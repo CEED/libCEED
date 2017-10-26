@@ -47,6 +47,7 @@ int main(int argc, char **argv)
   FemeVec u, r, xcoord, qdata;
   FemeInt *Eindices;
   FemeRestriction Erestrict;
+  FemeBasis Basis;
   FemeQFunction qf_mass, qf_poisson3d, qf_buildcoeffs;
   FemeOperator op_mass, op_poisson3d, op_buildcoeffs;
 
@@ -59,14 +60,17 @@ int main(int argc, char **argv)
   // call function to initialize Eindices...
   FemeRestrictionCreate(feme, 123, 125, FEME_MEM_HOST, FEME_USE_POINTER, Eindices, &Erestrict);
 
+  // Create a 3D Q_3 Lagrange element with 4^3 Gauss quadrature points
+  FemeBasisCreateTensorH1Lagrange(feme, 3, 3, 4, &Basis);
+
   FemeQFunctionCreateInterior(feme, 1, 1, sizeof(FemeScalar), FEME_EVAL_INTERP, FEME_EVAL_INTERP, f_mass, "ex1.c:f_mass", &qf_mass);
   FemeQFunctionCreateInterior(feme, 8, 1, 10*sizeof(FemeScalar), FEME_EVAL_GRAD, FEME_EVAL_GRAD, f_poisson3d, "ex1.c:f_poisson3d", &qf_poisson3d);
   FemeQFunctionCreateInterior(feme, 1, 3, 10*sizeof(FemeScalar), FEME_EVAL_INTERP | FEME_EVAL_GRAD, FEME_EVAL_NONE, f_buildcoeffs, "ex1.c:f_buildcoeffs", &qf_buildcoeffs);
   // We'll expect to build libraries of qfunctions, looked up by some name.  These should be cheap to create even if not used.
 
-  FemeOperatorCreate(feme, Erestrict, qf_mass, NULL, NULL, &op_mass);
-  FemeOperatorCreate(feme, Erestrict, qf_poisson3d, NULL, NULL, &op_poisson3d);
-  FemeOperatorCreate(feme, Erestrict, qf_buildcoeffs, NULL, NULL, &op_buildcoeffs);
+  FemeOperatorCreate(feme, Erestrict, Basis, qf_mass, NULL, NULL, &op_mass);
+  FemeOperatorCreate(feme, Erestrict, Basis, qf_poisson3d, NULL, NULL, &op_poisson3d);
+  FemeOperatorCreate(feme, Erestrict, Basis, qf_buildcoeffs, NULL, NULL, &op_buildcoeffs);
 
   // ... initialize xcoord
 
@@ -81,7 +85,8 @@ int main(int argc, char **argv)
   FemeOperatorFree(&op_poisson3d);
   FemeQFunctionFree(&qf_mass);
   FemeQFunctionFree(&qf_poisson3d);
-  FemeRestrictionFree(Erestrict);
+  FemeBasisFree(&Basis);
+  FemeRestrictionFree(&Erestrict);
   FemeFree(&feme);
   return 0;
 }

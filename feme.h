@@ -18,6 +18,7 @@ typedef struct Feme_private *Feme;
 typedef struct FemeRequest_private *FemeRequest;
 typedef struct FemeVec_private *FemeVec;
 typedef struct FemeRestriction_private *FemeRestriction;
+typedef struct FemeBasis_private *FemeBasis;
 typedef struct FemeQFunction_private *FemeQFunction;
 typedef struct FemeOperator_private *FemeOperator;
 
@@ -52,13 +53,18 @@ FEME_EXTERN int FemeRestrictionFree(FemeRestriction *r);
 
 typedef enum {FEME_EVAL_NONE = 0, FEME_EVAL_INTERP = 1, FEME_EVAL_GRAD = 2, FEME_EVAL_DIV = 4, FEME_EVAL_CURL = 8} FemeEvalMode;
 
+FEME_EXTERN int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, FemeInt Q, FemeBasis *basis);
+FEME_EXTERN int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, const FemeScalar *interp1d, const FemeScalar *grad1d, const FemeScalar *qref1d, const FemeScalar *qweight1d, FemeBasis *basis);
+FEME_EXTERN int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const FemeScalar *const *u, FemeScalar *const *v);
+FEME_EXTERN int FemeBasisFree(FemeBasis *basis);
+
 FEME_EXTERN int FemeQFunctionCreateInterior(Feme feme, FemeInt vlength, FemeInt nfields, size_t qdatasize, FemeEvalMode inmode, FemeEvalMode outmode,
-                                            int (*f)(void *ctx, void *qdata, FemeInt, const FemeScalar *const *u, FemeScalar *const *v),
+                                            int (*f)(void *ctx, void *qdata, FemeInt nq, const FemeScalar *const *u, FemeScalar *const *v),
                                             const char *focca, FemeQFunction *qf);
 FEME_EXTERN int FemeQFunctionSetContext(FemeQFunction qf, void *ctx, size_t ctxsize);
 FEME_EXTERN int FemeQFunctionFree(FemeQFunction *qf);
 
-FEME_EXTERN int FemeOperatorCreate(Feme feme, FemeRestriction r, FemeQFunction qf, FemeQFunction dqf, FemeQFunction dqfT, FemeOperator *op);
+FEME_EXTERN int FemeOperatorCreate(Feme feme, FemeRestriction r, FemeBasis b, FemeQFunction qf, FemeQFunction dqf, FemeQFunction dqfT, FemeOperator *op);
 FEME_EXTERN int FemeOperatorGetQData(FemeOperator op, FemeVec *qdata);
 FEME_EXTERN int FemeOperatorApply(FemeOperator op, FemeVec qdata, FemeVec ustate, FemeVec residual, FemeRequest *request);
 FEME_EXTERN int FemeOperatorApplyJacobian(FemeOperator op, FemeVec qdata, FemeVec ustate, FemeVec dustate, FemeVec dresidual, FemeRequest *request);
