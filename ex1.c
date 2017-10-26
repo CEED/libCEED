@@ -46,7 +46,7 @@ int main(int argc, char **argv)
   Feme feme;
   FemeVec u, r, xcoord, qdata;
   FemeInt *Eindices;
-  FemeRestriction Erestrict;
+  FemeElemRestriction Erestrict;
   FemeBasis Basis;
   FemeQFunction qf_mass, qf_poisson3d, qf_buildcoeffs;
   FemeOperator op_mass, op_poisson3d, op_buildcoeffs;
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 
   Eindices = malloc(123 * 125 * sizeof(Eindices[0]));
   // call function to initialize Eindices...
-  FemeRestrictionCreate(feme, 123, 125, FEME_MEM_HOST, FEME_USE_POINTER, Eindices, &Erestrict);
+  FemeElemRestrictionCreate(feme, 123, 125, FEME_MEM_HOST, FEME_USE_POINTER, Eindices, &Erestrict);
 
   // Create a 3D Q_3 Lagrange element with 4^3 Gauss quadrature points
   FemeBasisCreateTensorH1Lagrange(feme, 3, 3, 4, &Basis);
@@ -86,7 +86,7 @@ int main(int argc, char **argv)
   FemeQFunctionFree(&qf_mass);
   FemeQFunctionFree(&qf_poisson3d);
   FemeBasisFree(&Basis);
-  FemeRestrictionFree(&Erestrict);
+  FemeElemRestrictionFree(&Erestrict);
   FemeFree(&feme);
   return 0;
 }

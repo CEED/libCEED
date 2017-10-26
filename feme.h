@@ -17,7 +17,7 @@ typedef double FemeScalar;
 typedef struct Feme_private *Feme;
 typedef struct FemeRequest_private *FemeRequest;
 typedef struct FemeVec_private *FemeVec;
-typedef struct FemeRestriction_private *FemeRestriction;
+typedef struct FemeElemRestriction_private *FemeElemRestriction;
 typedef struct FemeBasis_private *FemeBasis;
 typedef struct FemeQFunction_private *FemeQFunction;
 typedef struct FemeOperator_private *FemeOperator;
@@ -42,10 +42,10 @@ FEME_EXTERN int FemeRequestWait(FemeRequest *req);
 
 typedef enum {FEME_TRANSPOSE, FEME_NOTRANSPOSE} FemeTransposeMode;
 
-FEME_EXTERN int FemeRestrictionCreate(Feme feme, FemeInt nelements, FemeInt esize, FemeMemType mtype, FemeCopyMode cmode, FemeInt *indices, FemeRestriction *r);
-FEME_EXTERN int FemeRestrictionCreateBlocked(Feme feme, FemeInt nelements, FemeInt esize, FemeInt blocksize, FemeMemType mtype, FemeCopyMode cmode, FemeInt *blkindices, FemeRestriction *r);
-FEME_EXTERN int FemeRestrictionApply(FemeRestriction r, FemeTransposeMode tmode, FemeVec u, FemeVec ru, FemeRequest *request);
-FEME_EXTERN int FemeRestrictionFree(FemeRestriction *r);
+FEME_EXTERN int FemeElemRestrictionCreate(Feme feme, FemeInt nelements, FemeInt esize, FemeMemType mtype, FemeCopyMode cmode, FemeInt *indices, FemeElemRestriction *r);
+FEME_EXTERN int FemeElemRestrictionCreateBlocked(Feme feme, FemeInt nelements, FemeInt esize, FemeInt blocksize, FemeMemType mtype, FemeCopyMode cmode, FemeInt *blkindices, FemeElemRestriction *r);
+FEME_EXTERN int FemeElemRestrictionApply(FemeElemRestriction r, FemeTransposeMode tmode, FemeVec u, FemeVec ru, FemeRequest *request);
+FEME_EXTERN int FemeElemRestrictionFree(FemeElemRestriction *r);
 
 // The formalism here is that we have the structure
 //   \int_\Omega v^T f_0(u, \nabla u, qdata) + (\nabla v)^T f_1(u, \nabla u, qdata)
@@ -64,7 +64,7 @@ FEME_EXTERN int FemeQFunctionCreateInterior(Feme feme, FemeInt vlength, FemeInt 
 FEME_EXTERN int FemeQFunctionSetContext(FemeQFunction qf, void *ctx, size_t ctxsize);
 FEME_EXTERN int FemeQFunctionFree(FemeQFunction *qf);
 
-FEME_EXTERN int FemeOperatorCreate(Feme feme, FemeRestriction r, FemeBasis b, FemeQFunction qf, FemeQFunction dqf, FemeQFunction dqfT, FemeOperator *op);
+FEME_EXTERN int FemeOperatorCreate(Feme feme, FemeElemRestriction r, FemeBasis b, FemeQFunction qf, FemeQFunction dqf, FemeQFunction dqfT, FemeOperator *op);
 FEME_EXTERN int FemeOperatorGetQData(FemeOperator op, FemeVec *qdata);
 FEME_EXTERN int FemeOperatorApply(FemeOperator op, FemeVec qdata, FemeVec ustate, FemeVec residual, FemeRequest *request);
 FEME_EXTERN int FemeOperatorApplyJacobian(FemeOperator op, FemeVec qdata, FemeVec ustate, FemeVec dustate, FemeVec dresidual, FemeRequest *request);
