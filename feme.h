@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdarg.h>
 
 // We can discuss ways to avoid forcing these to be compile-time decisions, but let's leave that for later.
 typedef int32_t FemeInt;
@@ -22,7 +23,13 @@ typedef struct FemeBasis_private *FemeBasis;
 typedef struct FemeQFunction_private *FemeQFunction;
 typedef struct FemeOperator_private *FemeOperator;
 
+FEME_EXTERN int FemeRegister(const char *prefix, int (*init)(const char *, Feme));
+
 FEME_EXTERN int FemeInit(const char *resource, Feme *feme);
+FEME_EXTERN int FemeErrorReturn(Feme, int, const char *, va_list);
+FEME_EXTERN int FemeErrorAbort(Feme, int, const char *, va_list);
+FEME_EXTERN int FemeSetErrorHandler(Feme, int (*)(Feme, int, const char *, va_list));
+FEME_EXTERN int FemeError(Feme, int, const char *, ...);
 FEME_EXTERN int FemeDestroy(Feme *feme);
 FEME_EXTERN int FemeCompose(int n, const Feme *femes, Feme *composed);
 
