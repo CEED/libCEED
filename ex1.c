@@ -79,14 +79,14 @@ int main(int argc, char **argv)
   FemeOperatorApply(op_buildcoeffs, qdata, xcoord, NULL, FEME_REQUEST_IMMEDIATE);
   FemeOperatorApply(op_poisson3d, qdata, u, r, FEME_REQUEST_IMMEDIATE);
 
-  FemeVecFree(&u);
-  FemeVecFree(&r);
-  FemeOperatorFree(&op_mass);
-  FemeOperatorFree(&op_poisson3d);
-  FemeQFunctionFree(&qf_mass);
-  FemeQFunctionFree(&qf_poisson3d);
-  FemeBasisFree(&Basis);
-  FemeElemRestrictionFree(&Erestrict);
-  FemeFree(&feme);
+  FemeVecDestroy(&u);
+  FemeVecDestroy(&r);
+  FemeOperatorDestroy(&op_mass);
+  FemeOperatorDestroy(&op_poisson3d);
+  FemeQFunctionDestroy(&qf_mass);
+  FemeQFunctionDestroy(&qf_poisson3d);
+  FemeBasisDestroy(&Basis);
+  FemeElemRestrictionDestroy(&Erestrict);
+  FemeDestroy(&feme);
   return 0;
 }
