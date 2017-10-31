@@ -12,19 +12,21 @@ static struct {
 } backends[32];
 static size_t num_backends;
 
-int FemeError(Feme feme, int ecode, const char *format, ...) {
+int FemeErrorImpl(Feme feme, const char *filename, int lineno, const char *func, int ecode, const char *format, ...) {
   va_list args;
   va_start(args, format);
-  if (feme) return feme->Error(feme, ecode, format, args);
-  return FemeErrorAbort(feme, ecode, format, args);
+  if (feme) return feme->Error(feme, filename, lineno, func, ecode, format, args);
+  return FemeErrorAbort(feme, filename, lineno, func, ecode, format, args);
 }
 
-int FemeErrorReturn(Feme feme, int ecode, const char *format, va_list args) {
+int FemeErrorReturn(Feme feme, const char *filename, int lineno, const char *func, int ecode, const char *format, va_list args) {
   return ecode;
 }
 
-int FemeErrorAbort(Feme feme, int ecode, const char *format, va_list args) {
+int FemeErrorAbort(Feme feme, const char *filename, int lineno, const char *func, int ecode, const char *format, va_list args) {
+  fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
   vfprintf(stderr, format, args);
+  fprintf(stderr, "\n");
   exit(ecode);
   return ecode;
 }

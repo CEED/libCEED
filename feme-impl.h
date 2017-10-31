@@ -9,7 +9,7 @@
 #define FEME_ALIGN 64
 
 struct Feme_private {
-  int (*Error)(Feme, int, const char *, va_list);
+  int (*Error)(Feme, const char *, int, const char *, int, const char *, va_list);
   int (*Destroy)(Feme);
   int (*VecCreate)(Feme, FemeInt, FemeVec);
   int (*ElemRestrictionCreate)(Feme, FemeInt, FemeInt, FemeMemType, FemeCopyMode, const FemeInt *, FemeElemRestriction);

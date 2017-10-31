@@ -26,10 +26,11 @@ typedef struct FemeOperator_private *FemeOperator;
 FEME_EXTERN int FemeRegister(const char *prefix, int (*init)(const char *, Feme));
 
 FEME_EXTERN int FemeInit(const char *resource, Feme *feme);
-FEME_EXTERN int FemeErrorReturn(Feme, int, const char *, va_list);
-FEME_EXTERN int FemeErrorAbort(Feme, int, const char *, va_list);
+FEME_EXTERN int FemeErrorReturn(Feme, const char *, int, const char *, int, const char *, va_list);
+FEME_EXTERN int FemeErrorAbort(Feme, const char *, int, const char *, int, const char *, va_list);
 FEME_EXTERN int FemeSetErrorHandler(Feme, int (*)(Feme, int, const char *, va_list));
-FEME_EXTERN int FemeError(Feme, int, const char *, ...);
+FEME_EXTERN int FemeErrorImpl(Feme, const char *, int, const char *, int, const char *, ...);
+#define FemeError(feme, ecode, ...) FemeErrorImpl((feme), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__)
 FEME_EXTERN int FemeDestroy(Feme *feme);
 FEME_EXTERN int FemeCompose(int n, const Feme *femes, Feme *composed);
 
