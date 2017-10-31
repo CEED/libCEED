@@ -51,6 +51,13 @@ int FemeCallocArray(size_t n, size_t unit, void *p) {
   return 0;
 }
 
+// Takes void* to avoid needing a cast, but is the address of the pointer.
+int FemeFree(void *p) {
+  free(*(void**)p);
+  *(void**)p = NULL;
+  return 0;
+}
+
 int FemeInit(const char *resource, Feme *feme) {
   int ierr;
   size_t matchlen = 0, matchidx;
