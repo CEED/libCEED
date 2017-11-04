@@ -44,4 +44,15 @@ struct FemeElemRestriction_private {
   void *data;
 };
 
+struct FemeBasis_private {
+  Feme feme;
+  int (*FemeBasisApply)(FemeBasis, FemeTransposeMode, FemeEvalMode, const FemeScalar *, FemeScalar *);
+  int(*FemeBasisDestroy)(FemeBasis *);
+  FemeInt dim;
+  const FemeScalar *qref1d;
+  const FemeScalar *qweight1d;
+  const FemeScalar **bmat1d;
+  const FemeScalar **dmat1d;
+};
+
 #endif
