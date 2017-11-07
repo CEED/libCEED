@@ -51,8 +51,8 @@ struct FemeBasis_private {
   FemeInt dim;
   const FemeScalar *qref1d;
   const FemeScalar *qweight1d;
-  const FemeScalar **bmat1d;
-  const FemeScalar **dmat1d;
+  const FemeScalar *bmat1d;
+  const FemeScalar *dmat1d;
 };
 
 #endif

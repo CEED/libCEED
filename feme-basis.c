@@ -6,7 +6,7 @@ int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, co
   // Allocate
   int ierr, i, j, k;
   FemeScalar temp;
-  FemeScalar **bmat1d, **dmat1d;
+  FemeScalar *bmat1d, *dmat1d;
   ierr = FemeCalloc(P1d*Q1d, &bmat1d); FemeChk(ierr);
   ierr = FemeCalloc(P1d*Q1d, &dmat1d); FemeChk(ierr);
   // Build B matrix
@@ -17,7 +17,7 @@ int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, co
         if (k != j) {
           temp *= (qref1d[i] - interp1d[k]) / (interp1d[j] - interp1d[k]);
         } }
-      bmat1d[i][j] = temp;
+      bmat1d[i + Q1d*j] = temp;
     } }
     // Build D matrix
     for (i = 0; i <= Q1d; i++) {
@@ -27,15 +27,15 @@ int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, co
           if (k != j) {
             temp *= (qref1d[i] - grad1d[k]) / (grad1d[j] - grad1d[k]);
           } }
-        dmat1d[i][j] = temp;
+        dmat1d[i + Q1d*j] = temp;
       } }
   // Populate basis struct
   (*basis)->feme = feme;
   (*basis)->dim = dim;
   (*basis)->qref1d = qref1d;
   (*basis)->qweight1d = qweight1d;
-  (*basis)->bmat1d = (const FemeScalar**) bmat1d;
-  (*basis)->dmat1d = (const FemeScalar**) dmat1d;
+  (*basis)->bmat1d = bmat1d;
+  (*basis)->dmat1d = dmat1d;
   return 0;
 }
 
@@ -57,7 +57,7 @@ for (i = 0; i <= degree; i++) {
   // Build qref1d, qweight1d
 
   // Pass to FemeBasisCreateTensorH1
-  ierr = FemeBasisCreateTensorH1(feme, dim, degree, Q, (const FemeScalar*) interp1d, (const FemeScalar*) grad1d, (const FemeScalar*) qref1d, (const FemeScalar*) qweight1d, basis); FemeChk(ierr);
+  ierr = FemeBasisCreateTensorH1(feme, dim, degree, Q, interp1d, grad1d, qref1d, qweight1d, basis); FemeChk(ierr);
   return 0;
 }
 
