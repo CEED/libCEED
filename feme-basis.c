@@ -19,7 +19,6 @@ int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, co
 int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, FemeInt Q, FemeQuadMode qmode, FemeBasis *basis) {
   // Allocate
   int ierr, i, j, k, m;
-  char s[sizeof(FemeScalar)];
   FemeScalar temp, temp2, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
   ierr = FemeCalloc((degree+ 1)*(Q + 1), &interp1d); FemeChk(ierr);
   ierr = FemeCalloc((degree + 1)*(Q + 1), &grad1d); FemeChk(ierr);
