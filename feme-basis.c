@@ -18,8 +18,9 @@ int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, co
 
 int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, FemeInt Q, FemeQuadMode qmode, FemeBasis *basis) {
   // Allocate
-  int ierr, i, j, k;
-  FemeScalar temp, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
+  int ierr, i, j, k, m;
+  char s[sizeof(FemeScalar)];
+  FemeScalar temp, temp2, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
   ierr = FemeCalloc((degree+ 1)*(Q + 1), &interp1d); FemeChk(ierr);
   ierr = FemeCalloc((degree + 1)*(Q + 1), &grad1d); FemeChk(ierr);
   ierr = FemeCalloc(degree + 1, &nodes); FemeChk(ierr);
@@ -46,19 +47,17 @@ int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, Feme
     // Build D matrix
     for (i = 0; i <= Q; i++) {
       for (j = 0; j <= degree; j++) {
-        temp = 1.0;
+        temp2 = 0.0;
         for (k = 0; k <= degree; k++) {
           if (k != j) {
-            temp *= (qref1d[i] -nodes[k]) / (nodes[j] - nodes[k]);
-          } }
-        grad1d[i + Q*j] = temp;
-        temp = 1.0;
-        for (k = 0; k <= degree; k++) {
-          if (k != j) {
-            temp += 1 / (nodes[k] - nodes[j]);
-          }
-        }
-        grad1d[i + Q*j] *= temp;
+            temp = 1.0;
+            for (m = 0; m <= degree; m++) {
+              if (m != j && m != k) {
+                temp *= (qref1d[i] - nodes[m]) / (nodes[j] - nodes[m]);
+              } }
+              temp2+= temp/(nodes[j] - nodes[k]);
+            } }
+            grad1d[i + Q*j]  = temp2;
       } }
    // Pass to FemeBasisCreateTensorH1
   ierr = FemeBasisCreateTensorH1(feme, dim, degree, Q, interp1d, grad1d, qref1d, qweight1d, basis); FemeChk(ierr);
@@ -68,7 +67,6 @@ int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, Feme
 int FemeGaussQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweight1d) {
   // Allocate
   int ierr, i, j, k;
-  char s[50] = "";
   FemeScalar P0, P1, P2, dP2, xi, wi, PI = 4.0*atan(1.0);
   // Build qref1d, qweight1d
   for (i = 0; i <= (degree + 1)/2; i++) {
@@ -113,7 +111,6 @@ int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweigh
   // Allocate
   int ierr, i, j, k;
   FemeScalar P0, P1, P2, dP2, d2P2, xi, wi, PI = 4.0*atan(1.0);
-  char s[2*sizeof(double)];
   // Build qref1d, qweight1d
   // Set endpoints
   wi = 2.0/((FemeScalar)(degree*(degree - 1)));
@@ -123,7 +120,9 @@ int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweigh
   qref1d[degree] = 1.0;
   // Interior
   for (i = 1; i <= degree/2; i++) {
+    // Guess
     xi = cos(PI*(FemeScalar)(i)/((FemeScalar)(degree)));
+    // Pn(xi)
     P0 = 1.0;
     P1 = xi;
     for (j = 2; j <= degree; j++) {
@@ -131,10 +130,12 @@ int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweigh
       P0 = P1;
       P1 = P2;
     }
+    // First Newton step
     dP2 = (xi*P2 - P0)*(FemeScalar)(degree)/(xi*xi-1.0);
     d2P2 = (2*xi*dP2 - (FemeScalar)(degree*(degree-1))*P2)/(1.0-xi*xi);
     xi = xi-dP2/d2P2;
     k = 1;
+    // Newton to convergence
     while (fabs(dP2)>pow(10,-15) && k < 100) {
       P0 = 1.0;
       P1 = xi;
@@ -148,9 +149,7 @@ int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweigh
       xi = xi-dP2/d2P2;
       k++;
     }
-
-    sprintf(s, "%d", k);
-    printf("%s\n", s);fflush(stdout);
+    // Save xi, wi
     wi = 2.0/(((FemeScalar)(degree*(degree+1)))*P2*P2);
     qweight1d[i] = wi;
     qweight1d[degree-i] = wi;
