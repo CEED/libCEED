@@ -1,4 +1,4 @@
-CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC
+CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -lm
 CFLAGS += $(if $(NDEBUG),-O2,-g)
 CPPFLAGS = -I.
 

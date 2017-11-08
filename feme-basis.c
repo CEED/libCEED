@@ -27,7 +27,7 @@ int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, Feme
   ierr = FemeCalloc(Q + 1, &qweight1d); FemeChk(ierr);
   // Get Nodes and Weights
   if (qmode) {
-    ierr = FemeLobattoQuadratre(degree, nodes, nodes); FemeChk(ierr);
+    ierr = FemeLobattoQuadrature(degree, nodes, nodes); FemeChk(ierr);
     ierr = FemeLobattoQuadrature(Q, qref1d, qweight1d); FemeChk(ierr);
   } else {
     ierr = FemeLobattoQuadrature(degree, nodes, nodes); FemeChk(ierr);
@@ -68,42 +68,43 @@ int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, Feme
 int FemeGaussQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweight1d) {
   // Allocate
   int ierr, i, j, k;
+  char s[50] = "";
   FemeScalar P0, P1, P2, dP2, xi, wi, PI = 4.0*atan(1.0);
   // Build qref1d, qweight1d
-  for (i = 0; i < degree/2; i++) {
+  for (i = 0; i <= (degree + 1)/2; i++) {
     // Guess
-    xi = cos(PI*(FemeScalar)((4*i+3)/(4*degree+2)));
+    xi = cos(PI*(FemeScalar)(2*i+1)/((FemeScalar)(2*degree+2)));
     // Pn(xi)
     P0 = 1.0;
     P1 = xi;
-    for (j = 2; j <= degree; j++) {
-      P2 = (FemeScalar)((2*j+1)/(j+1))*xi*P1-(FemeScalar)(j/(j+1))*P0;
+    for (j = 2; j <= degree + 1; j++) {
+      P2 = (((FemeScalar)(2*j-1))*xi*P1-((FemeScalar)(j-1))*P0)/((FemeScalar)(j));
       P0 = P1;
       P1 = P2;
     }
     // First Newton Step
-    dP2 = (xi*P2 - P1)*(FemeScalar)(degree)/(xi*xi-1.0);
+    dP2 = (xi*P2 - P0)*(FemeScalar)(degree + 1)/(xi*xi-1.0);
     xi = xi-P2/dP2;
     k = 1;
-    // Newton to convergance
-    while (abs(P2)>pow(10,-15) && k < 100) {
+    // Newton to convergence
+    while (fabs(P2)>pow(10,-15) && k < 100) {
       P0 = 1.0;
       P1 = xi;
-      for (j = 2; j <= degree; j++) {
-        P2 = (FemeScalar)((2*j+1)/(j+1))*xi*P1-(FemeScalar)(j/(j+1))*P0;
+      for (j = 2; j <= degree + 1; j++) {
+        P2 = (((FemeScalar)(2*j-1))*xi*P1-((FemeScalar)(j-1))*P0)/((FemeScalar)(j));
         P0 = P1;
         P1 = P2;
       }
-      dP2 = (xi*P2 - P1)*(FemeScalar)(degree)/(xi*xi-1.0);
+      dP2 = (xi*P2 - P0)*(FemeScalar)(degree + 1)/(xi*xi-1.0);
       xi = xi-P2/dP2;
       k++;
     }
     // Save xi, wi
     wi = 2.0/((1.0-xi*xi)*dP2*dP2);
     qweight1d[i] = wi;
-    qweight1d[degree-1-i] = wi;
-    qref1d[i] = xi;
-    qref1d[degree-1-i]= -xi;
+    qweight1d[degree-i] = wi;
+    qref1d[i] = -xi;
+    qref1d[degree-i]= xi;
   }
   return 0;
 }
@@ -111,45 +112,50 @@ int FemeGaussQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweight1
 int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweight1d) {
   // Allocate
   int ierr, i, j, k;
-  FemeScalar P0, P1, P2, dP1, dP2, d2P2, xi, wi, PI = 4.0*atan(1.0);
+  FemeScalar P0, P1, P2, dP2, d2P2, xi, wi, PI = 4.0*atan(1.0);
+  char s[2*sizeof(double)];
   // Build qref1d, qweight1d
   // Set endpoints
+  wi = 2.0/((FemeScalar)(degree*(degree - 1)));
+  qweight1d[0] = wi;
+  qweight1d[degree] = wi;
   qref1d[0] = -1.0;
-  qref1d[degree - 1] = 1.0;
-  for (i = 1; i < degree/2; i++) {
-    xi = cos(PI*(FemeScalar)((4*i+3)/(4*degree+2)));
+  qref1d[degree] = 1.0;
+  // Interior
+  for (i = 1; i <= degree/2; i++) {
+    xi = cos(PI*(FemeScalar)(i)/((FemeScalar)(degree)));
     P0 = 1.0;
     P1 = xi;
-    for (j = 2; j <= degree - 1; j++) {
-      P2 = (FemeScalar)((2*j+1)/(j+1))*xi*P1-(FemeScalar)(j/(j+1))*P0;
+    for (j = 2; j <= degree; j++) {
+      P2 = (((FemeScalar)(2*j-1))*xi*P1-((FemeScalar)(j-1))*P0)/((FemeScalar)(j));
       P0 = P1;
       P1 = P2;
     }
-    dP2 = (xi*P2 - P1)*(FemeScalar)(degree - 1)/(xi*xi-1.0);
-    dP1 = (xi*P1 - P0)*(FemeScalar)(degree - 2)/(xi*xi-1.0);
-    d2P2 = (FemeScalar)(degree-1)*((-xi*xi-1.0)/((xi*xi-1.0)*(xi*xi-1.0))*P2 +xi/(xi*xi-1.0)*dP2+2*xi/((xi*xi-1.0)*(xi*xi-1.0))*P1-1/(xi*xi-1.0)*dP1);
+    dP2 = (xi*P2 - P0)*(FemeScalar)(degree)/(xi*xi-1.0);
+    d2P2 = (2*xi*dP2 - (FemeScalar)(degree*(degree-1))*P2)/(1.0-xi*xi);
     xi = xi-dP2/d2P2;
     k = 1;
-    while (abs(P2)>pow(10,-15) && k < 100) {
+    while (fabs(dP2)>pow(10,-15) && k < 100) {
       P0 = 1.0;
       P1 = xi;
-      for (j = 2; j <= degree - 1; j++) {
-        P2 = (FemeScalar)((2*j+1)/(j+1))*xi*P1-(FemeScalar)(j/(j+1))*P0;
+      for (j = 2; j <= degree; j++) {
+        P2 = (((FemeScalar)(2*j-1))*xi*P1-((FemeScalar)(j-1))*P0)/((FemeScalar)(j));
         P0 = P1;
         P1 = P2;
       }
-      dP2 = (xi*P2 - P1)*(FemeScalar)(degree - 1)/(xi*xi-1.0);
-      dP1 = (xi*P1 - P0)*(FemeScalar)(degree - 2)/(xi*xi-1.0);
-      d2P2 = (FemeScalar)(degree-1)*((-xi*xi-1.0)/((xi*xi-1.0)*(xi*xi-1.0))*P2 +xi/(xi*xi-1.0)*dP2+2*xi/((xi*xi-1.0)*(xi*xi-1.0))*P1-1/(xi*xi-1.0)*dP1);
+      dP2 = (xi*P2 - P0)*(FemeScalar)(degree)/(xi*xi-1.0);
+      d2P2 = (2*xi*dP2 - (FemeScalar)(degree*(degree-1))*P2)/(1.0-xi*xi);
       xi = xi-dP2/d2P2;
-
       k++;
     }
-    wi = 2.0/((FemeScalar)(degree*(degree-1))*P2*P2);
+
+    sprintf(s, "%d", k);
+    printf("%s\n", s);fflush(stdout);
+    wi = 2.0/(((FemeScalar)(degree*(degree+1)))*P2*P2);
     qweight1d[i] = wi;
-    qweight1d[degree-1-i] = wi;
-    qref1d[i] = xi;
-    qref1d[degree-1-i]= -xi;
+    qweight1d[degree-i] = wi;
+    qref1d[i] = -xi;
+    qref1d[degree-i]= xi;
   }
   return 0;
 }
