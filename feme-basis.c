@@ -179,6 +179,27 @@ int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweigh
   return 0;
 }
 
+static int FemeScalarView(const char *name, const char *fpformat, FemeInt m, FemeInt n, const FemeScalar *a, FILE *stream) {
+  for (int i=0; i<m; i++) {
+    if (m > 1) fprintf(stream, "%12s[%d]:", name, i);
+    else fprintf(stream, "%12s:", name);
+    for (int j=0; j<n; j++) fprintf(stream, fpformat, a[i+m*j]);
+    fputs("\n", stream);
+  }
+  return 0;
+}
+
+int FemeBasisView(FemeBasis basis, FILE *stream) {
+  int ierr;
+
+  fprintf(stream, "FemeBasis: dim=%d P=%d Q=%d\n", basis->dim, basis->P1d, basis->Q1d);
+  ierr = FemeScalarView("qref1d", "\t% 12.8f", 1, basis->Q1d, basis->qref1d, stream);FemeChk(ierr);
+  ierr = FemeScalarView("qweight1d", "\t% 12.8f", 1, basis->Q1d, basis->qweight1d, stream);FemeChk(ierr);
+  ierr = FemeScalarView("interp1d", "\t% 12.8f", basis->Q1d, basis->P1d, basis->interp1d, stream);FemeChk(ierr);
+  ierr = FemeScalarView("grad1d", "\t% 12.8f", basis->Q1d, basis->P1d, basis->grad1d, stream);FemeChk(ierr);
+  return 0;
+}
+
 int FemeBasisDestroy(FemeBasis *basis) {
   int ierr;
 
