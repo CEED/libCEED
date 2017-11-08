@@ -129,7 +129,7 @@ int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweigh
   FemeScalar P0, P1, P2, dP2, d2P2, xi, wi, PI = 4.0*atan(1.0);
   // Build qref1d, qweight1d
   // Set endpoints
-  wi = 2.0/((FemeScalar)(degree*(degree - 1)));
+  wi = 2.0/((FemeScalar)(degree*(degree + 1)));
   if (qweight1d) {
     qweight1d[0] = wi;
     qweight1d[degree] = wi;
@@ -143,14 +143,14 @@ int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweigh
     // Pn(xi)
     P0 = 1.0;
     P1 = xi;
-    for (j = 2; j <= degree; j++) {
+    for (j = 2; j <= degree ; j++) {
       P2 = (((FemeScalar)(2*j-1))*xi*P1-((FemeScalar)(j-1))*P0)/((FemeScalar)(j));
       P0 = P1;
       P1 = P2;
     }
     // First Newton step
-    dP2 = (xi*P2 - P0)*(FemeScalar)(degree)/(xi*xi-1.0);
-    d2P2 = (2*xi*dP2 - (FemeScalar)(degree*(degree-1))*P2)/(1.0-xi*xi);
+    dP2 = (xi*P2 - P0)*(FemeScalar)(degree + 1)/(xi*xi-1.0);
+    d2P2 = (2*xi*dP2 - (FemeScalar)(degree*(degree + 1))*P2)/(1.0-xi*xi);
     xi = xi-dP2/d2P2;
     k = 1;
     // Newton to convergence
@@ -162,13 +162,13 @@ int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweigh
         P0 = P1;
         P1 = P2;
       }
-      dP2 = (xi*P2 - P0)*(FemeScalar)(degree)/(xi*xi-1.0);
-      d2P2 = (2*xi*dP2 - (FemeScalar)(degree*(degree-1))*P2)/(1.0-xi*xi);
+      dP2 = (xi*P2 - P0)*(FemeScalar)(degree + 1)/(xi*xi-1.0);
+      d2P2 = (2*xi*dP2 - (FemeScalar)(degree*(degree + 1))*P2)/(1.0-xi*xi);
       xi = xi-dP2/d2P2;
       k++;
     }
     // Save xi, wi
-    wi = 2.0/(((FemeScalar)(degree*(degree+1)))*P2*P2);
+    wi = 2.0/(((FemeScalar)(degree*(degree + 1)))*P2*P2);
     if (qweight1d) {
       qweight1d[i] = wi;
       qweight1d[degree-i] = wi;
