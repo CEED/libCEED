@@ -77,9 +77,19 @@ static int FemeVecCreate_Ref(Feme feme, FemeInt n, FemeVec vec) {
   return 0;
 }
 
+static int FemeBasisDestroy_Ref(FemeBasis basis) {
+  return 0;
+}
+
+static int FemeBasisCreateTensorH1_Ref(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, const FemeScalar *interp1d, const FemeScalar *grad1d, const FemeScalar *qref1d, const FemeScalar *qweight1d, FemeBasis basis) {
+  basis->Destroy = FemeBasisDestroy_Ref;
+  return 0;
+}
+
 static int FemeInit_Ref(const char *resource, Feme feme) {
   if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/ref")) return FemeError(feme, 1, "Ref backend cannot use resource: %s", resource);
   feme->VecCreate = FemeVecCreate_Ref;
+  feme->BasisCreateTensorH1 = FemeBasisCreateTensorH1_Ref;
   return 0;
 }
 

@@ -50,7 +50,7 @@ FEME_EXTERN int FemeRequestWait(FemeRequest *req);
 
 typedef enum {FEME_TRANSPOSE, FEME_NOTRANSPOSE} FemeTransposeMode;
 
-FEME_EXTERN int FemeElemRestrictionCreate(Feme feme, FemeInt nelements, FemeInt esize, FemeMemType mtype, FemeCopyMode cmode, FemeInt *indices, FemeElemRestriction *r);
+FEME_EXTERN int FemeElemRestrictionCreate(Feme feme, FemeInt nelements, FemeInt esize, FemeMemType mtype, FemeCopyMode cmode, const FemeInt *indices, FemeElemRestriction *r);
 FEME_EXTERN int FemeElemRestrictionCreateBlocked(Feme feme, FemeInt nelements, FemeInt esize, FemeInt blocksize, FemeMemType mtype, FemeCopyMode cmode, FemeInt *blkindices, FemeElemRestriction *r);
 FEME_EXTERN int FemeElemRestrictionApply(FemeElemRestriction r, FemeTransposeMode tmode, FemeVec u, FemeVec ru, FemeRequest *request);
 FEME_EXTERN int FemeElemRestrictionDestroy(FemeElemRestriction *r);
@@ -60,7 +60,7 @@ FEME_EXTERN int FemeElemRestrictionDestroy(FemeElemRestriction *r);
 // where gradients are with respect to the reference element.
 
 typedef enum {FEME_EVAL_NONE = 0, FEME_EVAL_INTERP = 1, FEME_EVAL_GRAD = 2, FEME_EVAL_DIV = 4, FEME_EVAL_CURL = 8} FemeEvalMode;
-typedef enum {GAUSS = 0, GAUSS_LOBATTO = 1} FemeQuadMode;
+typedef enum {FEME_GAUSS = 0, FEME_GAUSS_LOBATTO = 1} FemeQuadMode;
 
 FEME_EXTERN int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, FemeInt Q, FemeQuadMode qmode, FemeBasis *basis);
 FEME_EXTERN int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, const FemeScalar *interp1d, const FemeScalar *grad1d, const FemeScalar *qref1d, const FemeScalar *qweight1d, FemeBasis *basis);

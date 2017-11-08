@@ -5,14 +5,23 @@
 #include <string.h>
 
 int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, const FemeScalar *interp1d, const FemeScalar *grad1d, const FemeScalar *qref1d, const FemeScalar *qweight1d, FemeBasis *basis) {
-  // Populate basis struct
+  int ierr;
+
+  if (!feme->BasisCreateTensorH1) return FemeError(feme, 1, "Backend does not support BasisCreateTensorH1");
+  ierr = FemeCalloc(1,basis);FemeChk(ierr);
   (*basis)->feme = feme;
   (*basis)->dim = dim;
-  memcpy((*basis)->qref1d, qref1d, Q1d);
-  memcpy((*basis)->qweight1d, qweight1d, Q1d);
-  memcpy((*basis)->interp1d, interp1d, P1d);
-  memcpy((*basis)->grad1d, grad1d, P1d);
-  // Tensor code here
+  (*basis)->P1d = P1d;
+  (*basis)->Q1d = Q1d;
+  ierr = FemeMalloc(Q1d,&(*basis)->qref1d);FemeChk(ierr);
+  ierr = FemeMalloc(Q1d,&(*basis)->qweight1d);FemeChk(ierr);
+  memcpy((*basis)->qref1d, qref1d, Q1d*sizeof(qref1d[0]));
+  memcpy((*basis)->qweight1d, qweight1d, Q1d*sizeof(qweight1d[0]));
+  ierr = FemeMalloc(Q1d*P1d,&(*basis)->interp1d);FemeChk(ierr);
+  ierr = FemeMalloc(Q1d*P1d,&(*basis)->grad1d);FemeChk(ierr);
+  memcpy((*basis)->interp1d, interp1d, Q1d*P1d*sizeof(interp1d[0]));
+  memcpy((*basis)->grad1d, grad1d, Q1d*P1d*sizeof(interp1d[0]));
+  ierr = feme->BasisCreateTensorH1(feme, dim, P1d, Q1d, interp1d, grad1d, qref1d, qweight1d, *basis);FemeChk(ierr);
   return 0;
 }
 
@@ -20,21 +29,24 @@ int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, Feme
   // Allocate
   int ierr, i, j, k, m;
   FemeScalar temp, temp2, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
-  ierr = FemeCalloc((degree+ 1)*(Q + 1), &interp1d); FemeChk(ierr);
-  ierr = FemeCalloc((degree + 1)*(Q + 1), &grad1d); FemeChk(ierr);
-  ierr = FemeCalloc(degree + 1, &nodes); FemeChk(ierr);
-  ierr = FemeCalloc(Q + 1, &qref1d); FemeChk(ierr);
-  ierr = FemeCalloc(Q + 1, &qweight1d); FemeChk(ierr);
+  FemeInt P = degree+1;
+  ierr = FemeCalloc(P*Q, &interp1d); FemeChk(ierr);
+  ierr = FemeCalloc(P*Q, &grad1d); FemeChk(ierr);
+  ierr = FemeCalloc(P, &nodes); FemeChk(ierr);
+  ierr = FemeCalloc(Q, &qref1d); FemeChk(ierr);
+  ierr = FemeCalloc(Q, &qweight1d); FemeChk(ierr);
   // Get Nodes and Weights
-  if (qmode) {
-    ierr = FemeLobattoQuadrature(degree, nodes, nodes); FemeChk(ierr);
-    ierr = FemeLobattoQuadrature(Q, qref1d, qweight1d); FemeChk(ierr);
-  } else {
-    ierr = FemeLobattoQuadrature(degree, nodes, nodes); FemeChk(ierr);
-    ierr = FemeGaussQuadrature(Q, qref1d, qweight1d); FemeChk(ierr);
+  ierr = FemeLobattoQuadrature(degree, nodes, NULL); FemeChk(ierr);
+  switch (qmode) {
+  case FEME_GAUSS:
+    ierr = FemeGaussQuadrature(Q-1, qref1d, qweight1d); FemeChk(ierr);
+    break;
+  case FEME_GAUSS_LOBATTO:
+    ierr = FemeLobattoQuadrature(Q-1, qref1d, qweight1d); FemeChk(ierr);
+    break;
   }
   // Build B matrix
-  for (i = 0; i <= Q; i++) {
+  for (i = 0; i < Q; i++) {
     for (j = 0; j <= degree; j++) {
       temp = 1.0;
       for (k = 0; k <= degree; k++) {
@@ -44,7 +56,7 @@ int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, Feme
       interp1d[i + Q*j] = temp;
     } }
     // Build D matrix
-    for (i = 0; i <= Q; i++) {
+    for (i = 0; i < Q; i++) {
       for (j = 0; j <= degree; j++) {
         temp2 = 0.0;
         for (k = 0; k <= degree; k++) {
@@ -59,13 +71,18 @@ int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, Feme
             grad1d[i + Q*j]  = temp2;
       } }
    // Pass to FemeBasisCreateTensorH1
-  ierr = FemeBasisCreateTensorH1(feme, dim, degree, Q, interp1d, grad1d, qref1d, qweight1d, basis); FemeChk(ierr);
+  ierr = FemeBasisCreateTensorH1(feme, dim, P, Q, interp1d, grad1d, qref1d, qweight1d, basis); FemeChk(ierr);
+  ierr = FemeFree(&interp1d);FemeChk(ierr);
+  ierr = FemeFree(&grad1d);FemeChk(ierr);
+  ierr = FemeFree(&nodes);FemeChk(ierr);
+  ierr = FemeFree(&qref1d);FemeChk(ierr);
+  ierr = FemeFree(&qweight1d);FemeChk(ierr);
   return 0;
 }
 
 int FemeGaussQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweight1d) {
   // Allocate
-  int ierr, i, j, k;
+  int i, j, k;
   FemeScalar P0, P1, P2, dP2, xi, wi, PI = 4.0*atan(1.0);
   // Build qref1d, qweight1d
   for (i = 0; i <= (degree + 1)/2; i++) {
@@ -84,7 +101,7 @@ int FemeGaussQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweight1
     xi = xi-P2/dP2;
     k = 1;
     // Newton to convergence
-    while (fabs(P2)>pow(10,-15) && k < 100) {
+    while (fabs(P2)>1e-15 && k < 100) {
       P0 = 1.0;
       P1 = xi;
       for (j = 2; j <= degree + 1; j++) {
@@ -108,13 +125,15 @@ int FemeGaussQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweight1
 
 int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweight1d) {
   // Allocate
-  int ierr, i, j, k;
+  int i, j, k;
   FemeScalar P0, P1, P2, dP2, d2P2, xi, wi, PI = 4.0*atan(1.0);
   // Build qref1d, qweight1d
   // Set endpoints
   wi = 2.0/((FemeScalar)(degree*(degree - 1)));
-  qweight1d[0] = wi;
-  qweight1d[degree] = wi;
+  if (qweight1d) {
+    qweight1d[0] = wi;
+    qweight1d[degree] = wi;
+  }
   qref1d[0] = -1.0;
   qref1d[degree] = 1.0;
   // Interior
@@ -135,7 +154,7 @@ int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweigh
     xi = xi-dP2/d2P2;
     k = 1;
     // Newton to convergence
-    while (fabs(dP2)>pow(10,-15) && k < 100) {
+    while (fabs(dP2)>1e-15 && k < 100) {
       P0 = 1.0;
       P1 = xi;
       for (j = 2; j <= degree; j++) {
@@ -150,8 +169,10 @@ int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweigh
     }
     // Save xi, wi
     wi = 2.0/(((FemeScalar)(degree*(degree+1)))*P2*P2);
-    qweight1d[i] = wi;
-    qweight1d[degree-i] = wi;
+    if (qweight1d) {
+      qweight1d[i] = wi;
+      qweight1d[degree-i] = wi;
+    }
     qref1d[i] = -xi;
     qref1d[degree-i]= xi;
   }
@@ -160,9 +181,15 @@ int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweigh
 
 int FemeBasisDestroy(FemeBasis *basis) {
   int ierr;
+
+  if (!*basis) return 0;
+  if ((*basis)->Destroy) {
+    ierr = (*basis)->Destroy(*basis);FemeChk(ierr);
+  }
   ierr = FemeFree(&(*basis)->interp1d); FemeChk(ierr);
   ierr = FemeFree(&(*basis)->grad1d); FemeChk(ierr);
   ierr = FemeFree(&(*basis)->qref1d); FemeChk(ierr);
   ierr = FemeFree(&(*basis)->qweight1d); FemeChk(ierr);
+  ierr = FemeFree(basis);FemeChk(ierr);
   return 0;
 }
