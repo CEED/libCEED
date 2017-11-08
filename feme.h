@@ -60,11 +60,15 @@ FEME_EXTERN int FemeElemRestrictionDestroy(FemeElemRestriction *r);
 // where gradients are with respect to the reference element.
 
 typedef enum {FEME_EVAL_NONE = 0, FEME_EVAL_INTERP = 1, FEME_EVAL_GRAD = 2, FEME_EVAL_DIV = 4, FEME_EVAL_CURL = 8} FemeEvalMode;
+typedef enum {GAUSS = 0, GAUSS_LOBATTO = 1} FemeQuadMode;
 
-FEME_EXTERN int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, FemeInt Q, FemeBasis *basis);
+FEME_EXTERN int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, FemeInt Q, FemeQuadMode qmode, FemeBasis *basis);
 FEME_EXTERN int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, const FemeScalar *interp1d, const FemeScalar *grad1d, const FemeScalar *qref1d, const FemeScalar *qweight1d, FemeBasis *basis);
 FEME_EXTERN int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const FemeScalar *const *u, FemeScalar *const *v);
 FEME_EXTERN int FemeBasisDestroy(FemeBasis *basis);
+
+FEME_EXTERN int FemeGaussQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweight1d);
+FEME_EXTERN int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweight1d);
 
 FEME_EXTERN int FemeQFunctionCreateInterior(Feme feme, FemeInt vlength, FemeInt nfields, size_t qdatasize, FemeEvalMode inmode, FemeEvalMode outmode,
                                             int (*f)(void *ctx, void *qdata, FemeInt nq, const FemeScalar *const *u, FemeScalar *const *v),
