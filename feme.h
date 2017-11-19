@@ -49,9 +49,9 @@ FEME_EXTERN int FemeVecDestroy(FemeVec *vec);
 FEME_EXTERN FemeRequest *FEME_REQUEST_IMMEDIATE; // Use when you don't want to wait
 FEME_EXTERN int FemeRequestWait(FemeRequest *req);
 
-typedef enum {FEME_TRANSPOSE, FEME_NOTRANSPOSE} FemeTransposeMode;
+typedef enum {FEME_NOTRANSPOSE, FEME_TRANSPOSE} FemeTransposeMode;
 
-FEME_EXTERN int FemeElemRestrictionCreate(Feme feme, FemeInt nelements, FemeInt esize, FemeMemType mtype, FemeCopyMode cmode, const FemeInt *indices, FemeElemRestriction *r);
+FEME_EXTERN int FemeElemRestrictionCreate(Feme feme, FemeInt nelements, FemeInt esize, FemeInt ndof, FemeMemType mtype, FemeCopyMode cmode, const FemeInt *indices, FemeElemRestriction *r);
 FEME_EXTERN int FemeElemRestrictionCreateBlocked(Feme feme, FemeInt nelements, FemeInt esize, FemeInt blocksize, FemeMemType mtype, FemeCopyMode cmode, FemeInt *blkindices, FemeElemRestriction *r);
 FEME_EXTERN int FemeElemRestrictionApply(FemeElemRestriction r, FemeTransposeMode tmode, FemeVec u, FemeVec ru, FemeRequest *request);
 FEME_EXTERN int FemeElemRestrictionDestroy(FemeElemRestriction *r);

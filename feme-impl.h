@@ -12,7 +12,7 @@ struct Feme_private {
   int (*Error)(Feme, const char *, int, const char *, int, const char *, va_list);
   int (*Destroy)(Feme);
   int (*VecCreate)(Feme, FemeInt, FemeVec);
-  int (*ElemRestrictionCreate)(Feme, FemeInt, FemeInt, FemeMemType, FemeCopyMode, const FemeInt *, FemeElemRestriction);
+  int (*ElemRestrictionCreate)(FemeElemRestriction, FemeMemType, FemeCopyMode, const FemeInt *);
   int (*BasisCreateTensorH1)(Feme, FemeInt, FemeInt, FemeInt, const FemeScalar *, const FemeScalar *, const FemeScalar *, const FemeScalar *, FemeBasis);
 };
 
@@ -38,6 +38,8 @@ struct FemeVec_private {
 
 struct FemeElemRestriction_private {
   Feme feme;
+  int (*Apply)(FemeElemRestriction, FemeTransposeMode, FemeVec, FemeVec, FemeRequest *);
+  int (*Destroy)(FemeElemRestriction);
   FemeInt nelem;
   FemeInt elemsize;
   FemeInt ndof;
