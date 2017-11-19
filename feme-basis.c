@@ -27,8 +27,8 @@ int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, co
 
 int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, FemeInt Q, FemeQuadMode qmode, FemeBasis *basis) {
   // Allocate
-  int ierr, i, j, k, m;
-  FemeScalar temp, temp2, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
+  int ierr, i, j, k;
+  FemeScalar c1, c2, c3, c4, dx, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
   FemeInt P = degree+1;
   ierr = FemeCalloc(P*Q, &interp1d); FemeChk(ierr);
   ierr = FemeCalloc(P*Q, &grad1d); FemeChk(ierr);
@@ -45,32 +45,29 @@ int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, Feme
     ierr = FemeLobattoQuadrature(Q-1, qref1d, qweight1d); FemeChk(ierr);
     break;
   }
-  // Build B matrix
-  for (i = 0; i < Q; i++) {
-    for (j = 0; j <= degree; j++) {
-      temp = 1.0;
-      for (k = 0; k <= degree; k++) {
-        if (k != j) {
-          temp *= (qref1d[i] - nodes[k]) / (nodes[j] - nodes[k]);
-        } }
-      interp1d[i + Q*j] = temp;
+  // Build B, D matrix
+  // Fornberg, 1998
+  for (i = 0; i  < Q; i++) {
+    c1 = 1.0;
+    c3 = nodes[0] - qref1d[i];
+    interp1d[i] = 1.0;
+    for (j = 1; j < P; j++) {
+      c2 = 1.0;
+      c4 = c3;
+      c3 = nodes[j] - qref1d[i];
+      for (k = 0; k < j; k++) {
+        dx = nodes[j] - nodes[k];
+        c2 *= dx;
+        if (k == j - 1) {
+          grad1d[i + Q*j] = c1*(interp1d[i + Q*k] - c4*grad1d[i + Q*k]) / c2;
+          interp1d[i + Q*j] = - c1*c4*interp1d[i + Q*k] / c2;
+        }
+        grad1d[i + Q*k] = (c3*grad1d[i + Q*k] - interp1d[i + Q*k]) / dx;
+        interp1d[i + Q*k] = c3*interp1d[i + Q*k] / dx;
+      }
+      c1 = c2;
     } }
-    // Build D matrix
-    for (i = 0; i < Q; i++) {
-      for (j = 0; j <= degree; j++) {
-        temp2 = 0.0;
-        for (k = 0; k <= degree; k++) {
-          if (k != j) {
-            temp = 1.0;
-            for (m = 0; m <= degree; m++) {
-              if (m != j && m != k) {
-                temp *= (qref1d[i] - nodes[m]) / (nodes[j] - nodes[m]);
-              } }
-              temp2+= temp/(nodes[j] - nodes[k]);
-            } }
-            grad1d[i + Q*j]  = temp2;
-      } }
-   // Pass to FemeBasisCreateTensorH1
+  //  // Pass to FemeBasisCreateTensorH1
   ierr = FemeBasisCreateTensorH1(feme, dim, P, Q, interp1d, grad1d, qref1d, qweight1d, basis); FemeChk(ierr);
   ierr = FemeFree(&interp1d);FemeChk(ierr);
   ierr = FemeFree(&grad1d);FemeChk(ierr);
