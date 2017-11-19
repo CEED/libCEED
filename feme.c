@@ -27,7 +27,7 @@ int FemeErrorAbort(Feme feme, const char *filename, int lineno, const char *func
   fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
   vfprintf(stderr, format, args);
   fprintf(stderr, "\n");
-  exit(ecode);
+  abort();
   return ecode;
 }
 
