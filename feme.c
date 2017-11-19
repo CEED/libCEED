@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+static FemeRequest feme_request_immediate;
+FemeRequest *FEME_REQUEST_IMMEDIATE = &feme_request_immediate;
+
 static struct {
   char prefix[FEME_MAX_RESOURCE_LEN];
   int (*init)(const char *resource, Feme f);
