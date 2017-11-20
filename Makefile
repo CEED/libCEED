@@ -4,7 +4,7 @@ CPPFLAGS = -I.
 
 libfeme := libfeme.so
 libfeme.c := $(wildcard feme*.c)
-tests.c   := $(wildcard t[0-9][0-9]-*.c)
+tests.c   := $(sort $(wildcard t[0-9][0-9]-*.c))
 tests     := $(tests.c:%.c=%)
 
 $(libfeme) : $(libfeme.c:%.c=%.o)
