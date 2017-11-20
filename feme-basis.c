@@ -197,6 +197,76 @@ int FemeBasisView(FemeBasis basis, FILE *stream) {
   return 0;
 }
 
+int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, FemeScalar *u, FemeScalar *v) {
+  int i, ierr;
+
+  // Zero v
+  for (i = 0; i < (basis->Q1d)*(basis->dim); i++) {
+    v[i] = 0;
+  }
+
+  // Define FemeKron
+  int FemeKron(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, FemeScalar *u, FemeScalar *v, int index, int level);
+
+  // Apply Basis
+  switch(emode) {
+    case FEME_EVAL_NONE:
+      break;
+    case FEME_EVAL_INTERP:
+      ierr = FemeKron(basis, tmode, FEME_EVAL_INTERP, u, v, 0, 1); FemeChk(ierr);
+      break;
+    case FEME_EVAL_GRAD:
+      break;
+    case FEME_EVAL_DIV:
+      break;
+    case FEME_EVAL_CURL:
+      break;
+    }
+
+  return 0;
+}
+
+int FemeKron(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, FemeScalar *u, FemeScalar *v, int index, int level) {
+  int i, j, k, ierr;
+  FemeScalar *vtemp;
+
+  // Temp array if dim > level
+  if (basis->dim - level) {
+    ierr = FemeCalloc((basis->Q1d )*(basis->dim - level), &vtemp); FemeChk(ierr);
+  }
+
+  // Apply basis
+  switch(emode) {
+    case FEME_EVAL_NONE:
+      break;
+    case FEME_EVAL_INTERP:
+      for (i = 0; i < basis->Q1d; i++) {
+        for (j = 0; j < basis->P1d; j++) {
+          if (basis->dim - level) {
+            ierr = FemeKron(basis, tmode, FEME_EVAL_INTERP, u, vtemp, j, level + 1); FemeChk(ierr);
+            for (k = 0; k < basis->Q1d; k++) {
+              v[i*(basis->Q1d) + j*(basis->Q1d)*(basis->dim - level) + k] += (FemeScalar)(basis->interp1d[i + (basis->Q1d)*j])*(FemeScalar)(basis->qweight1d[j])*vtemp[k];
+            } }
+          else {
+            v[i] += (FemeScalar)(basis->interp1d[i + (basis->Q1d)*j])*(FemeScalar)(basis->qweight1d[j])*u[i + index*(basis->Q1d)];
+          } } }
+      break;
+    case FEME_EVAL_GRAD:
+      break;
+    case FEME_EVAL_DIV:
+      break;
+    case FEME_EVAL_CURL:
+      break;
+  }
+
+  // Cleanup
+  if (vtemp) {
+    ierr = FemeFree(vtemp); FemeChk(ierr);
+  }
+
+  return 0;
+}
+
 int FemeBasisDestroy(FemeBasis *basis) {
   int ierr;
 

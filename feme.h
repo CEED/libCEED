@@ -66,7 +66,7 @@ typedef enum {FEME_GAUSS = 0, FEME_GAUSS_LOBATTO = 1} FemeQuadMode;
 FEME_EXTERN int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, FemeInt Q, FemeQuadMode qmode, FemeBasis *basis);
 FEME_EXTERN int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, const FemeScalar *interp1d, const FemeScalar *grad1d, const FemeScalar *qref1d, const FemeScalar *qweight1d, FemeBasis *basis);
 FEME_EXTERN int FemeBasisView(FemeBasis basis, FILE *stream);
-FEME_EXTERN int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const FemeScalar *const *u, FemeScalar *const *v);
+FEME_EXTERN int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, FemeScalar *u, FemeScalar *v);
 FEME_EXTERN int FemeBasisDestroy(FemeBasis *basis);
 
 FEME_EXTERN int FemeGaussQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweight1d);
