@@ -13,5 +13,9 @@ if [ -f output/$1.out ]; then
     else
         printf "not ok diff $1\n"
     fi
+else
+    while read line; do
+        printf "+ ${line}\n"
+    done < ${output}
 fi
 rm ${output}
