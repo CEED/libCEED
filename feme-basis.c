@@ -197,7 +197,7 @@ int FemeBasisView(FemeBasis basis, FILE *stream) {
   return 0;
 }
 
-int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, FemeScalar *u, FemeScalar *v) {
+int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const FemeScalar *u, FemeScalar *v) {
   int i, ierr;
 
   // Zero v
@@ -206,7 +206,7 @@ int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode,
   }
 
   // Define FemeKron
-  int FemeKron(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, FemeScalar *u, FemeScalar *v, int index, int level);
+  int FemeKron(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const FemeScalar *u, FemeScalar *v, int index, int level);
 
   // Apply Basis
   switch(emode) {
@@ -226,7 +226,7 @@ int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode,
   return 0;
 }
 
-int FemeKron(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, FemeScalar *u, FemeScalar *v, int index, int level) {
+int FemeKron(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const FemeScalar *u, FemeScalar *v, int index, int level) {
   int i, j, k, ierr;
   FemeScalar *vtemp;
 
