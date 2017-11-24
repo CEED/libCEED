@@ -200,6 +200,10 @@ int FemeBasisView(FemeBasis basis, FILE *stream) {
 int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const FemeScalar *u, FemeScalar *v) {
   int i, ierr;
 
+  if (basis->Apply) {
+    ierr = basis->Apply(basis, tmode, emode, u, v);FemeChk(ierr);
+    return 0;
+  }
   // Zero v
   for (i = 0; i < (int)(pow(basis->Q1d, basis->dim) + 0.4); i++) {
     v[i] = 0.0;

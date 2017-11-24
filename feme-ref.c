@@ -135,11 +135,56 @@ static int FemeElemRestrictionCreate_Ref(FemeElemRestriction r, FemeMemType mtyp
   return 0;
 }
 
+// Contracts on the middle index
+// NOTRANSPOSE: V_ajc = T_jb U_abc
+// TRANSPOSE:   V_ajc = T_bj U_abc
+static int FemeTensorContract_Ref(Feme feme, FemeInt A, FemeInt B, FemeInt C, FemeInt J, const FemeScalar *t, FemeTransposeMode tmode, const FemeScalar *u, FemeScalar *v) {
+  FemeInt tstride0 = B, tstride1 = 1;
+  if (tmode == FEME_TRANSPOSE) {
+    tstride0 = 1; tstride1 = B;
+  }
+
+  for (FemeInt a=0; a<A; a++) {
+    for (FemeInt j=0; j<J; j++) {
+      for (FemeInt c=0; c<C; c++)
+        v[(a*J+j)*C+c] = 0;
+      for (FemeInt b=0; b<B; b++) {
+        for (FemeInt c=0; c<C; c++) {
+          v[(a*J+j)*C+c] += t[j*tstride0 + b*tstride1] * u[(a*B+b)*C+c];
+        }
+      }
+    }
+  }
+  return 0;
+}
+
+static int FemeBasisApply_Ref(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const FemeScalar *u, FemeScalar *v) {
+  int ierr;
+
+  switch (emode) {
+  case FEME_EVAL_INTERP: {
+    FemeInt P = basis->P1d, Q = basis->Q1d;
+    if (tmode == FEME_TRANSPOSE) {
+      P = basis->Q1d; Q = basis->P1d;
+    }
+    if (basis->dim == 1) {
+      ierr = FemeTensorContract_Ref(basis->feme, 1, P, 1, Q, basis->interp1d, tmode, u, v);FemeChk(ierr);
+    } else {
+      return FemeError(basis->feme, 1, "dim=%d not supported", basis->dim);
+    }
+  } break;
+  default:
+    return FemeError(basis->feme, 1, "EvalMode %d not supported", emode);
+  }
+  return 0;
+}
+
 static int FemeBasisDestroy_Ref(FemeBasis basis) {
   return 0;
 }
 
 static int FemeBasisCreateTensorH1_Ref(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, const FemeScalar *interp1d, const FemeScalar *grad1d, const FemeScalar *qref1d, const FemeScalar *qweight1d, FemeBasis basis) {
+  basis->Apply = FemeBasisApply_Ref;
   basis->Destroy = FemeBasisDestroy_Ref;
   return 0;
 }
