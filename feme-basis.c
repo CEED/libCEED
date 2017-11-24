@@ -50,7 +50,7 @@ int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, Feme
   for (i = 0; i  < Q; i++) {
     c1 = 1.0;
     c3 = nodes[0] - qref1d[i];
-    interp1d[i] = 1.0;
+    interp1d[i*P+0] = 1.0;
     for (j = 1; j < P; j++) {
       c2 = 1.0;
       c4 = c3;
@@ -59,11 +59,11 @@ int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, Feme
         dx = nodes[j] - nodes[k];
         c2 *= dx;
         if (k == j - 1) {
-          grad1d[i + Q*j] = c1*(interp1d[i + Q*k] - c4*grad1d[i + Q*k]) / c2;
-          interp1d[i + Q*j] = - c1*c4*interp1d[i + Q*k] / c2;
+          grad1d[i*P + j] = c1*(interp1d[i*P + k] - c4*grad1d[i*P + k]) / c2;
+          interp1d[i*P + j] = - c1*c4*interp1d[i*P + k] / c2;
         }
-        grad1d[i + Q*k] = (c3*grad1d[i + Q*k] - interp1d[i + Q*k]) / dx;
-        interp1d[i + Q*k] = c3*interp1d[i + Q*k] / dx;
+        grad1d[i*P + k] = (c3*grad1d[i*P + k] - interp1d[i*P + k]) / dx;
+        interp1d[i*P + k] = c3*interp1d[i*P + k] / dx;
       }
       c1 = c2;
     } }
@@ -180,7 +180,7 @@ static int FemeScalarView(const char *name, const char *fpformat, FemeInt m, Fem
   for (int i=0; i<m; i++) {
     if (m > 1) fprintf(stream, "%12s[%d]:", name, i);
     else fprintf(stream, "%12s:", name);
-    for (int j=0; j<n; j++) fprintf(stream, fpformat, a[i+m*j]);
+    for (int j=0; j<n; j++) fprintf(stream, fpformat, a[i*n+j]);
     fputs("\n", stream);
   }
   return 0;
