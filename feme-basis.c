@@ -232,7 +232,7 @@ int FemeKron(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const
 
   // Temp array if dim > level
   if ((basis->dim) - level) {
-    ierr = FemeCalloc((int)(pow((double)(basis->Q1d), basis->dim - level) + 0.4), &vtemp); FemeChk(ierr);
+    ierr = FemeCalloc((int)(pow((double)(basis->P1d), basis->dim - level) + 0.4), &vtemp); FemeChk(ierr);
   }
 
   // Apply basis
@@ -245,10 +245,10 @@ int FemeKron(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const
           if (basis->dim - level) {
             ierr = FemeKron(basis, tmode, FEME_EVAL_INTERP, u, vtemp, i, level + 1); FemeChk(ierr);
             for (k = 0; k < basis->Q1d; k++) {
-              v[i*(basis->Q1d)+ k] += (FemeScalar)(basis->interp1d[i + (basis->Q1d)*j])*(FemeScalar)(basis->qweight1d[j])*vtemp[k];
+              v[i*(basis->P1d)+ k] += (FemeScalar)(basis->interp1d[i + (basis->Q1d)*j])*(FemeScalar)(basis->qweight1d[i])*vtemp[k];
             } }
           else {
-            v[i] += (FemeScalar)(basis->interp1d[i + (basis->Q1d)*j])*(FemeScalar)(basis->qweight1d[j])*u[i + index*(basis->Q1d)];
+            v[i] += (FemeScalar)(basis->interp1d[i + (basis->Q1d)*j])*(FemeScalar)(basis->qweight1d[i])*u[i + index*(basis->Q1d)];
           } } }
       break;
     case FEME_EVAL_GRAD:
