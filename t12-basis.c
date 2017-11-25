@@ -1,9 +1,10 @@
+// Test polynomial interpolation in 1D
 #include <feme.h>
 #include <math.h>
 
 #define ALEN(a) (sizeof(a) / sizeof((a)[0]))
 
-static double PolyEval(FemeScalar x, FemeInt n, const FemeScalar *p) {
+static FemeScalar PolyEval(FemeScalar x, FemeInt n, const FemeScalar *p) {
   FemeScalar y = p[n-1];
   for (FemeInt i=n-2; i>=0; i--) y = y*x + p[i];
   return y;
