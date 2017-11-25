@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
   FemeBasisCreateTensorH1Lagrange(feme, dim, P1d, Q1d, FEME_GAUSS_LOBATTO, &b);
   FemeBasisApply(b, FEME_NOTRANSPOSE, FEME_EVAL_INTERP, u, v);
   for (i = 0; i < len; i++) {
-    printf("%f\n", v[i]);
+    if (fabs(v[i] - 1.) > 1e-15) printf("v[%d] = %f != 1.\n", i, v[i]);
   }
   FemeBasisDestroy(&b);
   FemeDestroy(&feme);
