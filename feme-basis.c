@@ -198,14 +198,23 @@ int FemeBasisView(FemeBasis basis, FILE *stream) {
 }
 
 int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const FemeScalar *u, FemeScalar *v) {
-  int i, ierr;
+  int i, rows, ierr;
 
   if (basis->Apply) {
     ierr = basis->Apply(basis, tmode, emode, u, v);FemeChk(ierr);
     return 0;
   }
+
   // Zero v
-  for (i = 0; i < (int)(pow(basis->Q1d, basis->dim) + 0.4); i++) {
+  switch(tmode) {
+    case FEME_NOTRANSPOSE:
+      rows = basis->Q1d;
+      break;
+    case FEME_TRANSPOSE:
+      rows = basis->P1d;
+      break;
+  }
+  for (i = 0; i <= (int)(pow(rows, basis->dim) + 0.4); i++) {
     v[i] = 0.0;
   }
 
@@ -220,6 +229,7 @@ int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode,
       ierr = FemeKron(basis, tmode, FEME_EVAL_INTERP, u, v, 0, 1); FemeChk(ierr);
       break;
     case FEME_EVAL_GRAD:
+      ierr = FemeKron(basis, tmode, FEME_EVAL_GRAD, u, v, 0, 1); FemeChk(ierr);
       break;
     case FEME_EVAL_DIV:
       break;
@@ -232,11 +242,27 @@ int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode,
 
 int FemeKron(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const FemeScalar *u, FemeScalar *v, int index, int level) {
   int i, j, k, ierr;
+  int *col, cols, *row, rows;
   FemeScalar *vtemp;
+
+  switch(tmode) {
+    case FEME_NOTRANSPOSE:
+      col = &j;
+      cols = basis->P1d;
+      row = &i;
+      rows = basis->Q1d;
+      break;
+    case FEME_TRANSPOSE:
+      col = &i;
+      cols = basis->Q1d;
+      row = &j;
+      rows = basis->P1d;
+      break;
+  }
 
   // Temp array if dim > level
   if ((basis->dim) - level) {
-    ierr = FemeCalloc((int)(pow((double)(basis->P1d), basis->dim - level) + 0.4), &vtemp); FemeChk(ierr);
+    ierr = FemeCalloc((int)(pow(rows, basis->dim - level) + 0.4), &vtemp); FemeChk(ierr);
   }
 
   // Apply basis
@@ -244,18 +270,39 @@ int FemeKron(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const
     case FEME_EVAL_NONE:
       break;
     case FEME_EVAL_INTERP:
+    if (basis->dim - level) {
       for (i = 0; i < basis->Q1d; i++) {
         for (j = 0; j < basis->P1d; j++) {
-          if (basis->dim - level) {
-            ierr = FemeKron(basis, tmode, FEME_EVAL_INTERP, u, vtemp, i, level + 1); FemeChk(ierr);
-            for (k = 0; k < basis->Q1d; k++) {
-              v[i*(basis->P1d)+ k] += (FemeScalar)(basis->interp1d[i + (basis->Q1d)*j])*(FemeScalar)(basis->qweight1d[i])*vtemp[k];
-            } }
-          else {
-            v[i] += (FemeScalar)(basis->interp1d[i + (basis->Q1d)*j])*(FemeScalar)(basis->qweight1d[i])*u[i + index*(basis->Q1d)];
-          } } }
+          ierr = FemeKron(basis, tmode, FEME_EVAL_INTERP, u, vtemp, *col, level + 1); FemeChk(ierr);
+          for (k = 0; k < rows; k++) {
+            v[*row*rows + k] += (FemeScalar)(basis->interp1d[i*(basis->P1d) + j])*vtemp[k];
+            vtemp[k] = 0.0;
+          } } } }
+    else {
+      for (i = 0; i < basis->Q1d; i++) {
+        for (j = 0; j < basis->P1d; j++) {
+          v[*row] += (FemeScalar)(basis->interp1d[i*(basis->P1d) + j])*u[*col + index*cols];
+        } } }
       break;
     case FEME_EVAL_GRAD:
+    if (basis->dim - level) {
+      for (i = 0; i < basis->Q1d; i++) {
+        for (j = 0; j < basis->P1d; j++) {
+          ierr = FemeKron(basis, tmode, FEME_EVAL_GRAD, u, vtemp, *col, level + 1); FemeChk(ierr);
+          for (k = 0; k < rows; k++) {
+            v[*row*rows + k] += (FemeScalar)(basis->interp1d[i*(basis->P1d) + j])*vtemp[k];
+            vtemp[k] = 0.0;
+          }
+            ierr = FemeKron(basis, tmode, FEME_EVAL_INTERP, u, vtemp, *col, level + 1); FemeChk(ierr);
+            for (k = 0; k < rows; k++) {
+              v[*row*rows + k] += (FemeScalar)(basis->grad1d[i*(basis->P1d) + j])*vtemp[k];
+              vtemp[k] = 0.0;
+            } } } }
+    else {
+      for (i = 0; i < basis->Q1d; i++) {
+        for (j = 0; j < basis->P1d; j++) {
+          v[*row] += (FemeScalar)(basis->grad1d[i*(basis->P1d) + j])*u[*col + index*cols];
+        } } }
       break;
     case FEME_EVAL_DIV:
       break;
