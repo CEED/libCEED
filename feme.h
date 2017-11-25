@@ -84,4 +84,14 @@ FEME_EXTERN int FemeOperatorApply(FemeOperator op, FemeVec qdata, FemeVec ustate
 FEME_EXTERN int FemeOperatorApplyJacobian(FemeOperator op, FemeVec qdata, FemeVec ustate, FemeVec dustate, FemeVec dresidual, FemeRequest *request);
 FEME_EXTERN int FemeOperatorDestroy(FemeOperator *op);
 
+static inline FemeInt FemePowInt(FemeInt base, FemeInt power) {
+  FemeInt result = 1;
+  while (power) {
+    if (power & 1) result *= base;
+    power >>= 1;
+    base *= base;
+  }
+  return result;
+}
+
 #endif
