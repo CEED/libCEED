@@ -11,6 +11,10 @@ typedef struct {
   FemeInt *indices_allocated;
 } FemeElemRestriction_Ref;
 
+typedef struct {
+  FemeVec etmp;
+} FemeOperator_Ref;
+
 static int FemeVecSetArray_Ref(FemeVec vec, FemeMemType mtype, FemeCopyMode cmode, FemeScalar *array) {
   FemeVec_Ref *impl = vec->data;
   int ierr;
@@ -201,12 +205,60 @@ static int FemeQFunctionCreate_Ref(FemeQFunction qf) {
   return 0;
 }
 
+static int FemeOperatorDestroy_Ref(FemeOperator op) {
+  FemeOperator_Ref *impl = op->data;
+  int ierr;
+
+  ierr = FemeVecDestroy(&impl->etmp);FemeChk(ierr);
+  ierr = FemeFree(&op->data);FemeChk(ierr);
+  return 0;
+}
+
+static int FemeOperatorApply_Ref(FemeOperator op, FemeVec qdata, FemeVec ustate, FemeVec residual, FemeRequest *request) {
+  FemeOperator_Ref *impl = op->data;
+  FemeVec etmp;
+  FemeScalar *Eu;
+  int ierr;
+
+  if (!impl->etmp) {
+    ierr = FemeVecCreate(op->feme, op->Erestrict->nelem * op->Erestrict->elemsize, &impl->etmp);FemeChk(ierr);
+  }
+  etmp = impl->etmp;
+  if (op->qf->inmode != FEME_EVAL_NONE) {
+    ierr = FemeElemRestrictionApply(op->Erestrict, FEME_NOTRANSPOSE, ustate, etmp, FEME_REQUEST_IMMEDIATE);FemeChk(ierr);
+  }
+  ierr = FemeVecGetArray(etmp, FEME_MEM_HOST, &Eu);FemeChk(ierr);
+  for (FemeInt e=0; e<op->Erestrict->nelem; e++) {
+    FemeScalar BEu[FemePowInt(op->basis->Q1d, op->basis->dim)];
+    FemeScalar BEv[FemePowInt(op->basis->Q1d, op->basis->dim)];
+    ierr = FemeBasisApply(op->basis, FEME_NOTRANSPOSE, op->qf->inmode, &Eu[e*op->Erestrict->elemsize], BEu);FemeChk(ierr);
+    // qfunction
+    ierr = FemeBasisApply(op->basis, FEME_TRANSPOSE, op->qf->outmode, BEv, &Eu[e*op->Erestrict->elemsize]);FemeChk(ierr);
+  }
+  ierr = FemeVecRestoreArray(etmp, &Eu);FemeChk(ierr);
+  ierr = FemeElemRestrictionApply(op->Erestrict, FEME_TRANSPOSE, etmp, residual, FEME_REQUEST_IMMEDIATE);FemeChk(ierr);
+  if (request != FEME_REQUEST_IMMEDIATE) *request = NULL;
+  return 0;
+}
+
+static int FemeOperatorCreate_Ref(FemeOperator op) {
+  FemeOperator_Ref *impl;
+  int ierr;
+
+  ierr = FemeCalloc(1, &impl);FemeChk(ierr);
+  op->data = impl;
+  op->Destroy = FemeOperatorDestroy_Ref;
+  op->Apply = FemeOperatorApply_Ref;
+  return 0;
+}
+
 static int FemeInit_Ref(const char *resource, Feme feme) {
   if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/ref")) return FemeError(feme, 1, "Ref backend cannot use resource: %s", resource);
   feme->VecCreate = FemeVecCreate_Ref;
   feme->BasisCreateTensorH1 = FemeBasisCreateTensorH1_Ref;
   feme->ElemRestrictionCreate = FemeElemRestrictionCreate_Ref;
   feme->QFunctionCreate = FemeQFunctionCreate_Ref;
+  feme->OperatorCreate = FemeOperatorCreate_Ref;
   return 0;
 }
 

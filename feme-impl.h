@@ -15,6 +15,7 @@ struct Feme_private {
   int (*ElemRestrictionCreate)(FemeElemRestriction, FemeMemType, FemeCopyMode, const FemeInt *);
   int (*BasisCreateTensorH1)(Feme, FemeInt, FemeInt, FemeInt, const FemeScalar *, const FemeScalar *, const FemeScalar *, const FemeScalar *, FemeBasis);
   int (*QFunctionCreate)(FemeQFunction);
+  int (*OperatorCreate)(FemeOperator);
 };
 
 FEME_INTERN int FemeMallocArray(size_t n, size_t unit, void *p);
@@ -71,6 +72,19 @@ struct FemeQFunction_private {
   const char *focca;
   void *ctx;
   size_t ctxsize;
+  void *data;
+};
+
+struct FemeOperator_private {
+  Feme feme;
+  int (*Apply)(FemeOperator, FemeVec, FemeVec, FemeVec, FemeRequest*);
+  int (*ApplyJacobian)(FemeOperator, FemeVec, FemeVec, FemeVec, FemeVec, FemeRequest*);
+  int (*Destroy)(FemeOperator);
+  FemeElemRestriction Erestrict;
+  FemeBasis basis;
+  FemeQFunction qf;
+  FemeQFunction dqf;
+  FemeQFunction dqfT;
   void *data;
 };
 
