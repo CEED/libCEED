@@ -192,11 +192,21 @@ static int FemeBasisCreateTensorH1_Ref(Feme feme, FemeInt dim, FemeInt P1d, Feme
   return 0;
 }
 
+static int FemeQFunctionDestroy_Ref(FemeQFunction qf) {
+  return 0;
+}
+
+static int FemeQFunctionCreate_Ref(FemeQFunction qf) {
+  qf->Destroy = FemeQFunctionDestroy_Ref;
+  return 0;
+}
+
 static int FemeInit_Ref(const char *resource, Feme feme) {
   if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/ref")) return FemeError(feme, 1, "Ref backend cannot use resource: %s", resource);
   feme->VecCreate = FemeVecCreate_Ref;
   feme->BasisCreateTensorH1 = FemeBasisCreateTensorH1_Ref;
   feme->ElemRestrictionCreate = FemeElemRestrictionCreate_Ref;
+  feme->QFunctionCreate = FemeQFunctionCreate_Ref;
   return 0;
 }
 
