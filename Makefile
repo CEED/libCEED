@@ -1,6 +1,7 @@
-CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -lm
+CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 CFLAGS += $(if $(NDEBUG),-O2,-g)
 CPPFLAGS = -I.
+LDLIBS = -lm
 
 libfeme := libfeme.so
 libfeme.c := $(wildcard feme*.c)
@@ -25,3 +26,5 @@ clean :
 
 print :
 	@echo $(VAR)=$($(VAR))
+
+-include $(libfeme.c:%.c=%.d) $(tests.c:%.c=%.d)
