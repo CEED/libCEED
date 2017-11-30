@@ -1,3 +1,4 @@
+// Test square Gauss Lobatto interp1d is identity
 #include <feme.h>
 #include <stdio.h>
 #include <math.h>

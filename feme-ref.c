@@ -165,6 +165,7 @@ static int FemeTensorContract_Ref(Feme feme, FemeInt A, FemeInt B, FemeInt C, Fe
 static int FemeBasisApply_Ref(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const FemeScalar *u, FemeScalar *v) {
   int ierr;
   const FemeInt dim = basis->dim;
+  const FemeInt ndof = basis->ndof;
 
   switch (emode) {
   case FEME_EVAL_INTERP: {
@@ -172,7 +173,7 @@ static int FemeBasisApply_Ref(FemeBasis basis, FemeTransposeMode tmode, FemeEval
     if (tmode == FEME_TRANSPOSE) {
       P = basis->Q1d; Q = basis->P1d;
     }
-    FemeInt pre = FemePowInt(P, dim-1), post = 1;
+    FemeInt pre = ndof*FemePowInt(P, dim-1), post = 1;
     FemeScalar tmp[2][Q*FemePowInt(P>Q?P:Q, dim-1)];
     for (FemeInt d=0; d<dim; d++) {
       ierr = FemeTensorContract_Ref(basis->feme, pre, P, post, Q, basis->interp1d, tmode, d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);FemeChk(ierr);
