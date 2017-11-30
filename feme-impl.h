@@ -53,6 +53,7 @@ struct FemeBasis_private {
   int (*Apply)(FemeBasis, FemeTransposeMode, FemeEvalMode, const FemeScalar *, FemeScalar *);
   int (*Destroy)(FemeBasis);
   FemeInt dim;
+  FemeInt ndof;
   FemeInt P1d;
   FemeInt Q1d;
   FemeScalar *qref1d;

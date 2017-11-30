@@ -26,8 +26,8 @@ int main(int argc, char **argv) {
         x[d][i] = (i % FemePowInt(2, dim-d)) / FemePowInt(2, dim-d-1) ? 1 : -1;
       }
     }
-    FemeBasisCreateTensorH1Lagrange(feme, dim, 1, Q, FEME_GAUSS_LOBATTO, &bxl);
-    FemeBasisCreateTensorH1Lagrange(feme, dim, Q-1, Q, FEME_GAUSS_LOBATTO, &bul);
+    FemeBasisCreateTensorH1Lagrange(feme, dim, 1, 1, Q, FEME_GAUSS_LOBATTO, &bxl);
+    FemeBasisCreateTensorH1Lagrange(feme, dim, 1, Q-1, Q, FEME_GAUSS_LOBATTO, &bul);
     for (FemeInt d=0; d<dim; d++) {
       FemeBasisApply(bxl, FEME_NOTRANSPOSE, FEME_EVAL_INTERP, x[d], xq[d]);
     }
@@ -39,8 +39,8 @@ int main(int argc, char **argv) {
 
     FemeBasisApply(bul, FEME_TRANSPOSE, FEME_EVAL_INTERP, uq, u); // Should be identity
 
-    FemeBasisCreateTensorH1Lagrange(feme, dim, 1, Q, FEME_GAUSS, &bxg);
-    FemeBasisCreateTensorH1Lagrange(feme, dim, Q-1, Q, FEME_GAUSS, &bug);
+    FemeBasisCreateTensorH1Lagrange(feme, dim, 1, 1, Q, FEME_GAUSS, &bxg);
+    FemeBasisCreateTensorH1Lagrange(feme, dim, 1, Q-1, Q, FEME_GAUSS, &bug);
     for (FemeInt d=0; d<dim; d++) {
       FemeBasisApply(bxg, FEME_NOTRANSPOSE, FEME_EVAL_INTERP, x[d], xq[d]);
     }

@@ -63,8 +63,8 @@ FEME_EXTERN int FemeElemRestrictionDestroy(FemeElemRestriction *r);
 typedef enum {FEME_EVAL_NONE = 0, FEME_EVAL_INTERP = 1, FEME_EVAL_GRAD = 2, FEME_EVAL_DIV = 4, FEME_EVAL_CURL = 8} FemeEvalMode;
 typedef enum {FEME_GAUSS = 0, FEME_GAUSS_LOBATTO = 1} FemeQuadMode;
 
-FEME_EXTERN int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, FemeInt Q, FemeQuadMode qmode, FemeBasis *basis);
-FEME_EXTERN int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, const FemeScalar *interp1d, const FemeScalar *grad1d, const FemeScalar *qref1d, const FemeScalar *qweight1d, FemeBasis *basis);
+FEME_EXTERN int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt ndof, FemeInt degree, FemeInt Q, FemeQuadMode qmode, FemeBasis *basis);
+FEME_EXTERN int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt ndof, FemeInt P1d, FemeInt Q1d, const FemeScalar *interp1d, const FemeScalar *grad1d, const FemeScalar *qref1d, const FemeScalar *qweight1d, FemeBasis *basis);
 FEME_EXTERN int FemeBasisView(FemeBasis basis, FILE *stream);
 FEME_EXTERN int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const FemeScalar *u, FemeScalar *v);
 FEME_EXTERN int FemeBasisDestroy(FemeBasis *basis);

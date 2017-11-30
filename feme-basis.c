@@ -4,13 +4,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, const FemeScalar *interp1d, const FemeScalar *grad1d, const FemeScalar *qref1d, const FemeScalar *qweight1d, FemeBasis *basis) {
+int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt ndof, FemeInt P1d, FemeInt Q1d, const FemeScalar *interp1d, const FemeScalar *grad1d, const FemeScalar *qref1d, const FemeScalar *qweight1d, FemeBasis *basis) {
   int ierr;
 
   if (!feme->BasisCreateTensorH1) return FemeError(feme, 1, "Backend does not support BasisCreateTensorH1");
   ierr = FemeCalloc(1,basis);FemeChk(ierr);
   (*basis)->feme = feme;
   (*basis)->dim = dim;
+  (*basis)->ndof = ndof;
   (*basis)->P1d = P1d;
   (*basis)->Q1d = Q1d;
   ierr = FemeMalloc(Q1d,&(*basis)->qref1d);FemeChk(ierr);
@@ -25,7 +26,7 @@ int FemeBasisCreateTensorH1(Feme feme, FemeInt dim, FemeInt P1d, FemeInt Q1d, co
   return 0;
 }
 
-int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, FemeInt Q, FemeQuadMode qmode, FemeBasis *basis) {
+int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt ndof, FemeInt degree, FemeInt Q, FemeQuadMode qmode, FemeBasis *basis) {
   // Allocate
   int ierr, i, j, k;
   FemeScalar c1, c2, c3, c4, dx, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
@@ -68,7 +69,7 @@ int FemeBasisCreateTensorH1Lagrange(Feme feme, FemeInt dim, FemeInt degree, Feme
       c1 = c2;
     } }
   //  // Pass to FemeBasisCreateTensorH1
-  ierr = FemeBasisCreateTensorH1(feme, dim, P, Q, interp1d, grad1d, qref1d, qweight1d, basis); FemeChk(ierr);
+  ierr = FemeBasisCreateTensorH1(feme, dim, ndof, P, Q, interp1d, grad1d, qref1d, qweight1d, basis); FemeChk(ierr);
   ierr = FemeFree(&interp1d);FemeChk(ierr);
   ierr = FemeFree(&grad1d);FemeChk(ierr);
   ierr = FemeFree(&nodes);FemeChk(ierr);
