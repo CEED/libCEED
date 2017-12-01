@@ -17,13 +17,13 @@ int main(int argc, char **argv) {
   FemeInit("/cpu/self", &feme);
   for (FemeInt dim=1; dim<=3; dim++) {
     FemeBasis bxl, bul, bxg, bug;
-    FemeInt Q = 10, Qdim = FemePowInt(Q, dim);
-    FemeScalar x[Qdim*dim];
+    FemeInt Q = 10, Qdim = FemePowInt(Q, dim), Xdim = FemePowInt(2, dim);
+    FemeScalar x[Xdim*dim];
     FemeScalar xq[Qdim*dim], uq[Qdim], u[Qdim];
 
     for (FemeInt d=0; d<dim; d++) {
-      for (FemeInt i=0; i<FemePowInt(2, dim); i++) {
-        x[d*Qdim + i] = (i % FemePowInt(2, dim-d)) / FemePowInt(2, dim-d-1) ? 1 : -1;
+      for (FemeInt i=0; i<Xdim; i++) {
+        x[d*Xdim + i] = (i % FemePowInt(2, dim-d)) / FemePowInt(2, dim-d-1) ? 1 : -1;
       }
     }
     FemeBasisCreateTensorH1Lagrange(feme, dim, dim, 1, Q, FEME_GAUSS_LOBATTO, &bxl);
