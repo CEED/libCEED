@@ -39,6 +39,8 @@ FEME_EXTERN int FemeCompose(int n, const Feme *femes, Feme *composed);
 typedef enum {FEME_MEM_HOST, FEME_MEM_CUDA} FemeMemType;
 typedef enum {FEME_COPY_VALUES, FEME_USE_POINTER, FEME_OWN_POINTER} FemeCopyMode;
 
+/* FIXME: Should we can make all of the FemeVec* functions inline? They
+   basically dispatch to the backend anyway. */
 FEME_EXTERN int FemeVecCreate(Feme feme, FemeInt len, FemeVec *vec);
 FEME_EXTERN int FemeVecSetArray(FemeVec vec, FemeMemType mtype, FemeCopyMode cmode, FemeScalar *array);
 FEME_EXTERN int FemeVecGetArray(FemeVec vec, FemeMemType mtype, FemeScalar **array);

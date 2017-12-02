@@ -6,6 +6,27 @@ typedef struct {
   FemeScalar *array_allocated;
 } FemeVec_Ref;
 
+/*
+   FIXME: To avoid the two dynamic memory allocations, during vector-create, we
+   can define FemeVec_Ref as
+
+   typedef struct {
+     FemeVec_private base;
+     FemeScalar *array;
+     FemeScalar *array_allocated;
+   } FemeVec_Ref;
+
+   while removing the 'void *data' field from FemeVec_private. Then we can set
+   the FemeVec to be the address of FemeVec_Ref which should be the same as the
+   address of FemeVec_Ref::base. This way, only the backend will need to perform
+   dynamic allocation to create the vector.
+
+   Another advantage is that other structs in the same backend can include a
+   FemeVec_Ref avoiding the separate dynamic allocation.
+
+   What do you think of this approach?
+*/
+
 typedef struct {
   const FemeInt *indices;
   FemeInt *indices_allocated;
@@ -19,6 +40,8 @@ static int FemeVecSetArray_Ref(FemeVec vec, FemeMemType mtype, FemeCopyMode cmod
   FemeVec_Ref *impl = vec->data;
   int ierr;
 
+  /* FIXME: Free impl->array_allocated, at least in the cases of
+     FEME_COPY_VALUES and FEME_OWN_POINTER? */
   if (mtype != FEME_MEM_HOST) FemeError(vec->feme, 1, "Only MemType = HOST supported");
   switch (cmode) {
   case FEME_COPY_VALUES:
@@ -32,6 +55,7 @@ static int FemeVecSetArray_Ref(FemeVec vec, FemeMemType mtype, FemeCopyMode cmod
     break;
   case FEME_USE_POINTER:
     impl->array = array;
+    /* FIXME: Free impl->array_allocated in this case as well? */
   }
   return 0;
 }
