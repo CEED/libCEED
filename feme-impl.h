@@ -18,6 +18,8 @@ struct Feme_private {
   int (*OperatorCreate)(FemeOperator);
 };
 
+/* In the next 3 functions, p has to be the address of a pointer type, i.e. p
+   has to be a pointer to a pointer. */
 FEME_INTERN int FemeMallocArray(size_t n, size_t unit, void *p);
 FEME_INTERN int FemeCallocArray(size_t n, size_t unit, void *p);
 FEME_INTERN int FemeFree(void *p);
@@ -26,6 +28,9 @@ FEME_INTERN int FemeFree(void *p);
 #define FemeMalloc(n, p) FemeMallocArray((n), sizeof(**(p)), p)
 #define FemeCalloc(n, p) FemeCallocArray((n), sizeof(**(p)), p)
 
+/* FIXME: Separate the function pointers in a separate structure (vtable) that
+   will be shared by many vectors. */
+/* FIXME: What do the Get* and Restore* methods do exactly? */
 struct FemeVec_private {
   Feme feme;
   int (*SetArray)(FemeVec, FemeMemType, FemeCopyMode, FemeScalar *);
@@ -34,20 +39,27 @@ struct FemeVec_private {
   int (*RestoreArray)(FemeVec, FemeScalar **);
   int (*RestoreArrayRead)(FemeVec, const FemeScalar **);
   int (*Destroy)(FemeVec);
-  FemeInt n;
+  FemeInt n; /* FIXME: rename n --> size? */
   void *data;
 };
 
+/* FIXME: Separate the function pointers in a vtable? */
 struct FemeElemRestriction_private {
   Feme feme;
   int (*Apply)(FemeElemRestriction, FemeTransposeMode, FemeVec, FemeVec, FemeRequest *);
   int (*Destroy)(FemeElemRestriction);
-  FemeInt nelem;
-  FemeInt elemsize;
-  FemeInt ndof;
-  void *data;
+  FemeInt nelem;    /* number of elements */
+  FemeInt elemsize; /* number of dofs per element */
+  FemeInt ndof;     /* size of the L-vector, can be used for checking for
+                       correct vector sizes */
+  void *data;       /* place for the backend to store any data */
 };
 
+/* FIXME: Separate the function pointers in a vtable? */
+/* FIXME: Since we will want to support non-tensor product bases, and other
+   types, like H(div)- and H(curl)-conforming bases, separate the basis data, so
+   it can be changed. In other words, replace { dim, P1d, Q1d, qref1d,
+   qweight1d, interp1d, grad1d } with void *data. */
 struct FemeBasis_private {
   Feme feme;
   int (*Apply)(FemeBasis, FemeTransposeMode, FemeEvalMode, const FemeScalar *, FemeScalar *);
@@ -62,20 +74,28 @@ struct FemeBasis_private {
   FemeScalar *grad1d;
 };
 
+/* FIXME: The number of in-fields and out-fields may be different? */
+/* FIXME: Shouldn't inmode and outmode be per-in-field and per-out-field,
+   respectively? */
+/* FIXME: Should we make this an "abstact" class, i.e. support different types
+   of Q-functions, using different sets of data fields? */
 struct FemeQFunction_private {
   Feme feme;
   int (*Destroy)(FemeQFunction);
-  FemeInt vlength;
+  FemeInt vlength; /* FIXME: what is this? */
   FemeInt nfields;
-  size_t qdatasize;
+  size_t qdatasize; /* FIXME: what is this? */
   FemeEvalMode inmode, outmode;
   int (*function)(void*, void*, FemeInt, const FemeScalar *const*, FemeScalar *const*);
   const char *focca;
-  void *ctx;
-  size_t ctxsize;
-  void *data;
+  void *ctx;      /* any user data */
+  size_t ctxsize; /* can be used to mem-copy ctx to device */
+  void *data;     /* any backend data */
 };
 
+/* FIXME: Separate the function pointers in a vtable? */
+/* FIXME: Should we make this an "abstact" class, i.e. support different types
+   of operators, using different sets of data fields? */
 struct FemeOperator_private {
   Feme feme;
   int (*Apply)(FemeOperator, FemeVec, FemeVec, FemeVec, FemeRequest*);
@@ -88,5 +108,11 @@ struct FemeOperator_private {
   FemeQFunction dqfT;
   void *data;
 };
+
+/* FIXME QUESTION: How do we plan to support multiple devices controlled by the
+   same MPI rank? I see two options:
+   1) extend the above structures, so they can hold data + vtables for multiple
+      devices, or
+   2) define a multi-device API layer on top of the above classes. */
 
 #endif

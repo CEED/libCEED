@@ -18,7 +18,7 @@ typedef double FemeScalar;
 
 typedef struct Feme_private *Feme;
 typedef struct FemeRequest_private *FemeRequest;
-typedef struct FemeVec_private *FemeVec;
+typedef struct FemeVec_private *FemeVec; /* FIXME: rename Vec --> Vector? */
 typedef struct FemeElemRestriction_private *FemeElemRestriction;
 typedef struct FemeBasis_private *FemeBasis;
 typedef struct FemeQFunction_private *FemeQFunction;
@@ -35,6 +35,7 @@ FEME_EXTERN int FemeErrorImpl(Feme, const char *, int, const char *, int, const 
 FEME_EXTERN int FemeDestroy(Feme *feme);
 FEME_EXTERN int FemeCompose(int n, const Feme *femes, Feme *composed);
 
+/* FIXME: rename MEM_CUDA --> MEM_DEVICE? */
 typedef enum {FEME_MEM_HOST, FEME_MEM_CUDA} FemeMemType;
 typedef enum {FEME_COPY_VALUES, FEME_USE_POINTER, FEME_OWN_POINTER} FemeCopyMode;
 
@@ -46,6 +47,8 @@ FEME_EXTERN int FemeVecRestoreArray(FemeVec vec, FemeScalar **array);
 FEME_EXTERN int FemeVecRestoreArrayRead(FemeVec vec, const FemeScalar **array);
 FEME_EXTERN int FemeVecDestroy(FemeVec *vec);
 
+/* FIXME: What's "immediate" about the request? The name seems misleading. How
+   about *_NULL (as in MPI_REQUEST_NULL), *_NIL, *_VOID, *_NONE, or *_EMPTY? */
 FEME_EXTERN FemeRequest *FEME_REQUEST_IMMEDIATE; // Use when you don't want to wait
 FEME_EXTERN int FemeRequestWait(FemeRequest *req);
 

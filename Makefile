@@ -3,10 +3,16 @@ CFLAGS += $(if $(NDEBUG),-O2,-g)
 CPPFLAGS = -I.
 LDLIBS = -lm
 
-libfeme := libfeme.so
+NOTMAC := $(subst Darwin,,$(shell uname -s))
+SO_EXT := $(if $(NOTMAC),so,dylib)
+
+libfeme := libfeme.$(SO_EXT)
 libfeme.c := $(wildcard feme*.c)
 tests.c   := $(sort $(wildcard t[0-9][0-9]-*.c))
 tests     := $(tests.c:%.c=%)
+
+.SUFFIXES:
+.SUFFIXES: .c .o .d
 
 $(libfeme) : $(libfeme.c:%.c=%.o)
 	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
@@ -23,8 +29,17 @@ test : $(tests:%=run-%)
 .PHONY: clean print
 clean :
 	$(RM) *.o $(libfeme) $(tests.c:%.c=%)
+	$(RM) -r *.dSYM
 
 print :
 	@echo $(VAR)=$($(VAR))
+
+print-%:
+	$(info [ variable name]: $*)
+	$(info [        origin]: $(origin $*))
+	$(info [         value]: $(value $*))
+	$(info [expanded value]: $($*))
+	$(info )
+	@true
 
 -include $(libfeme.c:%.c=%.d) $(tests.c:%.c=%.d)

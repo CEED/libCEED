@@ -44,6 +44,8 @@ int FemeRegister(const char *prefix, int (*init)(const char *resource, Feme f)) 
   return 0;
 }
 
+/* FIXME: Isn't it better to leave alignment decisions to the backend? The
+   frontend does not really need to worry about data alignment. */
 int FemeMallocArray(size_t n, size_t unit, void *p) {
   int ierr = posix_memalign((void**)p, FEME_ALIGN, n*unit);
   if (ierr) return FemeError(NULL, ierr, "posix_memalign failed to allocate %zd members of size %zd\n", n, unit);
