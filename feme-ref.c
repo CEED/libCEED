@@ -40,9 +40,8 @@ static int FemeVecSetArray_Ref(FemeVec vec, FemeMemType mtype, FemeCopyMode cmod
   FemeVec_Ref *impl = vec->data;
   int ierr;
 
-  /* FIXME: Free impl->array_allocated, at least in the cases of
-     FEME_COPY_VALUES and FEME_OWN_POINTER? */
   if (mtype != FEME_MEM_HOST) FemeError(vec->feme, 1, "Only MemType = HOST supported");
+  ierr = FemeFree(&impl->array_allocated);FemeChk(ierr);
   switch (cmode) {
   case FEME_COPY_VALUES:
     ierr = FemeMalloc(vec->n, &impl->array_allocated);FemeChk(ierr);
@@ -55,7 +54,6 @@ static int FemeVecSetArray_Ref(FemeVec vec, FemeMemType mtype, FemeCopyMode cmod
     break;
   case FEME_USE_POINTER:
     impl->array = array;
-    /* FIXME: Free impl->array_allocated in this case as well? */
   }
   return 0;
 }
