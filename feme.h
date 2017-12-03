@@ -18,7 +18,7 @@ typedef double FemeScalar;
 
 typedef struct Feme_private *Feme;
 typedef struct FemeRequest_private *FemeRequest;
-typedef struct FemeVec_private *FemeVec; /* FIXME: rename Vec --> Vector? */
+typedef struct FemeVector_private *FemeVector;
 typedef struct FemeElemRestriction_private *FemeElemRestriction;
 typedef struct FemeBasis_private *FemeBasis;
 typedef struct FemeQFunction_private *FemeQFunction;
@@ -39,13 +39,13 @@ FEME_EXTERN int FemeCompose(int n, const Feme *femes, Feme *composed);
 typedef enum {FEME_MEM_HOST, FEME_MEM_CUDA} FemeMemType;
 typedef enum {FEME_COPY_VALUES, FEME_USE_POINTER, FEME_OWN_POINTER} FemeCopyMode;
 
-FEME_EXTERN int FemeVecCreate(Feme feme, FemeInt len, FemeVec *vec);
-FEME_EXTERN int FemeVecSetArray(FemeVec vec, FemeMemType mtype, FemeCopyMode cmode, FemeScalar *array);
-FEME_EXTERN int FemeVecGetArray(FemeVec vec, FemeMemType mtype, FemeScalar **array);
-FEME_EXTERN int FemeVecGetArrayRead(FemeVec vec, FemeMemType mtype, const FemeScalar **array);
-FEME_EXTERN int FemeVecRestoreArray(FemeVec vec, FemeScalar **array);
-FEME_EXTERN int FemeVecRestoreArrayRead(FemeVec vec, const FemeScalar **array);
-FEME_EXTERN int FemeVecDestroy(FemeVec *vec);
+FEME_EXTERN int FemeVectorCreate(Feme feme, FemeInt len, FemeVector *vec);
+FEME_EXTERN int FemeVectorSetArray(FemeVector vec, FemeMemType mtype, FemeCopyMode cmode, FemeScalar *array);
+FEME_EXTERN int FemeVectorGetArray(FemeVector vec, FemeMemType mtype, FemeScalar **array);
+FEME_EXTERN int FemeVectorGetArrayRead(FemeVector vec, FemeMemType mtype, const FemeScalar **array);
+FEME_EXTERN int FemeVectorRestoreArray(FemeVector vec, FemeScalar **array);
+FEME_EXTERN int FemeVectorRestoreArrayRead(FemeVector vec, const FemeScalar **array);
+FEME_EXTERN int FemeVectorDestroy(FemeVector *vec);
 
 FEME_EXTERN FemeRequest *FEME_REQUEST_IMMEDIATE; // Use when you don't want to wait
 FEME_EXTERN int FemeRequestWait(FemeRequest *req);
@@ -54,7 +54,7 @@ typedef enum {FEME_NOTRANSPOSE, FEME_TRANSPOSE} FemeTransposeMode;
 
 FEME_EXTERN int FemeElemRestrictionCreate(Feme feme, FemeInt nelements, FemeInt esize, FemeInt ndof, FemeMemType mtype, FemeCopyMode cmode, const FemeInt *indices, FemeElemRestriction *r);
 FEME_EXTERN int FemeElemRestrictionCreateBlocked(Feme feme, FemeInt nelements, FemeInt esize, FemeInt blocksize, FemeMemType mtype, FemeCopyMode cmode, FemeInt *blkindices, FemeElemRestriction *r);
-FEME_EXTERN int FemeElemRestrictionApply(FemeElemRestriction r, FemeTransposeMode tmode, FemeVec u, FemeVec ru, FemeRequest *request);
+FEME_EXTERN int FemeElemRestrictionApply(FemeElemRestriction r, FemeTransposeMode tmode, FemeVector u, FemeVector ru, FemeRequest *request);
 FEME_EXTERN int FemeElemRestrictionDestroy(FemeElemRestriction *r);
 
 // The formalism here is that we have the structure
@@ -80,9 +80,9 @@ FEME_EXTERN int FemeQFunctionSetContext(FemeQFunction qf, void *ctx, size_t ctxs
 FEME_EXTERN int FemeQFunctionDestroy(FemeQFunction *qf);
 
 FEME_EXTERN int FemeOperatorCreate(Feme feme, FemeElemRestriction r, FemeBasis b, FemeQFunction qf, FemeQFunction dqf, FemeQFunction dqfT, FemeOperator *op);
-FEME_EXTERN int FemeOperatorGetQData(FemeOperator op, FemeVec *qdata);
-FEME_EXTERN int FemeOperatorApply(FemeOperator op, FemeVec qdata, FemeVec ustate, FemeVec residual, FemeRequest *request);
-FEME_EXTERN int FemeOperatorApplyJacobian(FemeOperator op, FemeVec qdata, FemeVec ustate, FemeVec dustate, FemeVec dresidual, FemeRequest *request);
+FEME_EXTERN int FemeOperatorGetQData(FemeOperator op, FemeVector *qdata);
+FEME_EXTERN int FemeOperatorApply(FemeOperator op, FemeVector qdata, FemeVector ustate, FemeVector residual, FemeRequest *request);
+FEME_EXTERN int FemeOperatorApplyJacobian(FemeOperator op, FemeVector qdata, FemeVector ustate, FemeVector dustate, FemeVector dresidual, FemeRequest *request);
 FEME_EXTERN int FemeOperatorDestroy(FemeOperator *op);
 
 static inline FemeInt FemePowInt(FemeInt base, FemeInt power) {

@@ -44,7 +44,7 @@ static int f_buildcoeffs(void *ctx, void *qdata, FemeInt Q, const FemeScalar *co
 int main(int argc, char **argv)
 {
   Feme feme;
-  FemeVec u, r, xcoord, qdata;
+  FemeVector u, r, xcoord, qdata;
   FemeInt *Eindices;
   FemeElemRestriction Erestrict;
   FemeBasis Basis;
@@ -52,9 +52,9 @@ int main(int argc, char **argv)
   FemeOperator op_mass, op_poisson3d, op_buildcoeffs;
 
   FemeInit("/cpu/self", &feme); // implementation aborts on error by default
-  FemeVecCreate(feme, 1234, &u);
-  FemeVecCreate(feme, 1234, &r);
-  FemeVecCreate(feme, 1234*3, &xcoord);
+  FemeVectorCreate(feme, 1234, &u);
+  FemeVectorCreate(feme, 1234, &r);
+  FemeVectorCreate(feme, 1234*3, &xcoord);
 
   Eindices = malloc(123 * 125 * sizeof(Eindices[0]));
   // call function to initialize Eindices...
@@ -79,8 +79,8 @@ int main(int argc, char **argv)
   FemeOperatorApply(op_buildcoeffs, qdata, xcoord, NULL, FEME_REQUEST_IMMEDIATE);
   FemeOperatorApply(op_poisson3d, qdata, u, r, FEME_REQUEST_IMMEDIATE);
 
-  FemeVecDestroy(&u);
-  FemeVecDestroy(&r);
+  FemeVectorDestroy(&u);
+  FemeVectorDestroy(&r);
   FemeOperatorDestroy(&op_mass);
   FemeOperatorDestroy(&op_poisson3d);
   FemeQFunctionDestroy(&qf_mass);

@@ -16,7 +16,7 @@ int FemeOperatorCreate(Feme feme, FemeElemRestriction r, FemeBasis b, FemeQFunct
   return 0;
 }
 
-int FemeOperatorApply(FemeOperator op, FemeVec qdata, FemeVec ustate, FemeVec residual, FemeRequest *request) {
+int FemeOperatorApply(FemeOperator op, FemeVector qdata, FemeVector ustate, FemeVector residual, FemeRequest *request) {
   int ierr;
 
   ierr = op->Apply(op, qdata, ustate, residual, request);FemeChk(ierr);

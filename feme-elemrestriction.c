@@ -13,7 +13,7 @@ int FemeElemRestrictionCreate(Feme feme, FemeInt nelem, FemeInt elemsize, FemeIn
   return 0;
 }
 
-int FemeElemRestrictionApply(FemeElemRestriction r, FemeTransposeMode tmode, FemeVec u, FemeVec v, FemeRequest *request) {
+int FemeElemRestrictionApply(FemeElemRestriction r, FemeTransposeMode tmode, FemeVector u, FemeVector v, FemeRequest *request) {
   FemeInt m,n;
   int ierr;
 

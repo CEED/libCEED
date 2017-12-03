@@ -4,25 +4,25 @@
 typedef struct {
   FemeScalar *array;
   FemeScalar *array_allocated;
-} FemeVec_Ref;
+} FemeVector_Ref;
 
 /*
    FIXME: To avoid the two dynamic memory allocations, during vector-create, we
-   can define FemeVec_Ref as
+   can define FemeVector_Ref as
 
    typedef struct {
-     FemeVec_private base;
+     FemeVector_private base;
      FemeScalar *array;
      FemeScalar *array_allocated;
-   } FemeVec_Ref;
+   } FemeVector_Ref;
 
-   while removing the 'void *data' field from FemeVec_private. Then we can set
-   the FemeVec to be the address of FemeVec_Ref which should be the same as the
-   address of FemeVec_Ref::base. This way, only the backend will need to perform
+   while removing the 'void *data' field from FemeVector_private. Then we can set
+   the FemeVector to be the address of FemeVector_Ref which should be the same as the
+   address of FemeVector_Ref::base. This way, only the backend will need to perform
    dynamic allocation to create the vector.
 
    Another advantage is that other structs in the same backend can include a
-   FemeVec_Ref avoiding the separate dynamic allocation.
+   FemeVector_Ref avoiding the separate dynamic allocation.
 
    What do you think of this approach?
 */
@@ -33,11 +33,11 @@ typedef struct {
 } FemeElemRestriction_Ref;
 
 typedef struct {
-  FemeVec etmp;
+  FemeVector etmp;
 } FemeOperator_Ref;
 
-static int FemeVecSetArray_Ref(FemeVec vec, FemeMemType mtype, FemeCopyMode cmode, FemeScalar *array) {
-  FemeVec_Ref *impl = vec->data;
+static int FemeVectorSetArray_Ref(FemeVector vec, FemeMemType mtype, FemeCopyMode cmode, FemeScalar *array) {
+  FemeVector_Ref *impl = vec->data;
   int ierr;
 
   if (mtype != FEME_MEM_HOST) FemeError(vec->feme, 1, "Only MemType = HOST supported");
@@ -58,34 +58,34 @@ static int FemeVecSetArray_Ref(FemeVec vec, FemeMemType mtype, FemeCopyMode cmod
   return 0;
 }
 
-static int FemeVecGetArray_Ref(FemeVec vec, FemeMemType mtype, FemeScalar **array) {
-  FemeVec_Ref *impl = vec->data;
+static int FemeVectorGetArray_Ref(FemeVector vec, FemeMemType mtype, FemeScalar **array) {
+  FemeVector_Ref *impl = vec->data;
 
   if (mtype != FEME_MEM_HOST) FemeError(vec->feme, 1, "Can only provide to HOST memory");
   *array = impl->array;
   return 0;
 }
 
-static int FemeVecGetArrayRead_Ref(FemeVec vec, FemeMemType mtype, const FemeScalar **array) {
-  FemeVec_Ref *impl = vec->data;
+static int FemeVectorGetArrayRead_Ref(FemeVector vec, FemeMemType mtype, const FemeScalar **array) {
+  FemeVector_Ref *impl = vec->data;
 
   if (mtype != FEME_MEM_HOST) FemeError(vec->feme, 1, "Can only provide to HOST memory");
   *array = impl->array;
   return 0;
 }
 
-static int FemeVecRestoreArray_Ref(FemeVec vec, FemeScalar **array) {
+static int FemeVectorRestoreArray_Ref(FemeVector vec, FemeScalar **array) {
   *array = NULL;
   return 0;
 }
 
-static int FemeVecRestoreArrayRead_Ref(FemeVec vec, const FemeScalar **array) {
+static int FemeVectorRestoreArrayRead_Ref(FemeVector vec, const FemeScalar **array) {
   *array = NULL;
   return 0;
 }
 
-static int FemeVecDestroy_Ref(FemeVec vec) {
-  FemeVec_Ref *impl = vec->data;
+static int FemeVectorDestroy_Ref(FemeVector vec) {
+  FemeVector_Ref *impl = vec->data;
   int ierr;
 
   ierr = FemeFree(&impl->array_allocated);FemeChk(ierr);
@@ -93,36 +93,36 @@ static int FemeVecDestroy_Ref(FemeVec vec) {
   return 0;
 }
 
-static int FemeVecCreate_Ref(Feme feme, FemeInt n, FemeVec vec) {
-  FemeVec_Ref *impl;
+static int FemeVectorCreate_Ref(Feme feme, FemeInt n, FemeVector vec) {
+  FemeVector_Ref *impl;
   int ierr;
 
-  vec->SetArray = FemeVecSetArray_Ref;
-  vec->GetArray = FemeVecGetArray_Ref;
-  vec->GetArrayRead = FemeVecGetArrayRead_Ref;
-  vec->RestoreArray = FemeVecRestoreArray_Ref;
-  vec->RestoreArrayRead = FemeVecRestoreArrayRead_Ref;
-  vec->Destroy = FemeVecDestroy_Ref;
+  vec->SetArray = FemeVectorSetArray_Ref;
+  vec->GetArray = FemeVectorGetArray_Ref;
+  vec->GetArrayRead = FemeVectorGetArrayRead_Ref;
+  vec->RestoreArray = FemeVectorRestoreArray_Ref;
+  vec->RestoreArrayRead = FemeVectorRestoreArrayRead_Ref;
+  vec->Destroy = FemeVectorDestroy_Ref;
   ierr = FemeCalloc(1,&impl);FemeChk(ierr);
   vec->data = impl;
   return 0;
 }
 
-static int FemeElemRestrictionApply_Ref(FemeElemRestriction r, FemeTransposeMode tmode, FemeVec u, FemeVec v, FemeRequest *request) {
+static int FemeElemRestrictionApply_Ref(FemeElemRestriction r, FemeTransposeMode tmode, FemeVector u, FemeVector v, FemeRequest *request) {
   FemeElemRestriction_Ref *impl = r->data;
   int ierr;
   const FemeScalar *uu;
   FemeScalar *vv;
 
-  ierr = FemeVecGetArrayRead(u, FEME_MEM_HOST, &uu);FemeChk(ierr);
-  ierr = FemeVecGetArray(v, FEME_MEM_HOST, &vv);FemeChk(ierr);
+  ierr = FemeVectorGetArrayRead(u, FEME_MEM_HOST, &uu);FemeChk(ierr);
+  ierr = FemeVectorGetArray(v, FEME_MEM_HOST, &vv);FemeChk(ierr);
   if (tmode == FEME_NOTRANSPOSE) {
     for (FemeInt i=0; i<r->nelem*r->elemsize; i++) vv[i] = uu[impl->indices[i]];
   } else {
     for (FemeInt i=0; i<r->nelem*r->elemsize; i++) vv[impl->indices[i]] += uu[i];
   }
-  ierr = FemeVecRestoreArrayRead(u, &uu);FemeChk(ierr);
-  ierr = FemeVecRestoreArray(v, &vv);FemeChk(ierr);
+  ierr = FemeVectorRestoreArrayRead(u, &uu);FemeChk(ierr);
+  ierr = FemeVectorRestoreArray(v, &vv);FemeChk(ierr);
   if (request != FEME_REQUEST_IMMEDIATE) *request = NULL;
   return 0;
 }
@@ -232,25 +232,25 @@ static int FemeOperatorDestroy_Ref(FemeOperator op) {
   FemeOperator_Ref *impl = op->data;
   int ierr;
 
-  ierr = FemeVecDestroy(&impl->etmp);FemeChk(ierr);
+  ierr = FemeVectorDestroy(&impl->etmp);FemeChk(ierr);
   ierr = FemeFree(&op->data);FemeChk(ierr);
   return 0;
 }
 
-static int FemeOperatorApply_Ref(FemeOperator op, FemeVec qdata, FemeVec ustate, FemeVec residual, FemeRequest *request) {
+static int FemeOperatorApply_Ref(FemeOperator op, FemeVector qdata, FemeVector ustate, FemeVector residual, FemeRequest *request) {
   FemeOperator_Ref *impl = op->data;
-  FemeVec etmp;
+  FemeVector etmp;
   FemeScalar *Eu;
   int ierr;
 
   if (!impl->etmp) {
-    ierr = FemeVecCreate(op->feme, op->Erestrict->nelem * op->Erestrict->elemsize, &impl->etmp);FemeChk(ierr);
+    ierr = FemeVectorCreate(op->feme, op->Erestrict->nelem * op->Erestrict->elemsize, &impl->etmp);FemeChk(ierr);
   }
   etmp = impl->etmp;
   if (op->qf->inmode != FEME_EVAL_NONE) {
     ierr = FemeElemRestrictionApply(op->Erestrict, FEME_NOTRANSPOSE, ustate, etmp, FEME_REQUEST_IMMEDIATE);FemeChk(ierr);
   }
-  ierr = FemeVecGetArray(etmp, FEME_MEM_HOST, &Eu);FemeChk(ierr);
+  ierr = FemeVectorGetArray(etmp, FEME_MEM_HOST, &Eu);FemeChk(ierr);
   for (FemeInt e=0; e<op->Erestrict->nelem; e++) {
     FemeScalar BEu[FemePowInt(op->basis->Q1d, op->basis->dim)];
     FemeScalar BEv[FemePowInt(op->basis->Q1d, op->basis->dim)];
@@ -258,7 +258,7 @@ static int FemeOperatorApply_Ref(FemeOperator op, FemeVec qdata, FemeVec ustate,
     // qfunction
     ierr = FemeBasisApply(op->basis, FEME_TRANSPOSE, op->qf->outmode, BEv, &Eu[e*op->Erestrict->elemsize]);FemeChk(ierr);
   }
-  ierr = FemeVecRestoreArray(etmp, &Eu);FemeChk(ierr);
+  ierr = FemeVectorRestoreArray(etmp, &Eu);FemeChk(ierr);
   ierr = FemeElemRestrictionApply(op->Erestrict, FEME_TRANSPOSE, etmp, residual, FEME_REQUEST_IMMEDIATE);FemeChk(ierr);
   if (request != FEME_REQUEST_IMMEDIATE) *request = NULL;
   return 0;
@@ -277,7 +277,7 @@ static int FemeOperatorCreate_Ref(FemeOperator op) {
 
 static int FemeInit_Ref(const char *resource, Feme feme) {
   if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/ref")) return FemeError(feme, 1, "Ref backend cannot use resource: %s", resource);
-  feme->VecCreate = FemeVecCreate_Ref;
+  feme->VecCreate = FemeVectorCreate_Ref;
   feme->BasisCreateTensorH1 = FemeBasisCreateTensorH1_Ref;
   feme->ElemRestrictionCreate = FemeElemRestrictionCreate_Ref;
   feme->QFunctionCreate = FemeQFunctionCreate_Ref;

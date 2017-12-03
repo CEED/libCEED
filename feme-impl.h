@@ -11,7 +11,7 @@
 struct Feme_private {
   int (*Error)(Feme, const char *, int, const char *, int, const char *, va_list);
   int (*Destroy)(Feme);
-  int (*VecCreate)(Feme, FemeInt, FemeVec);
+  int (*VecCreate)(Feme, FemeInt, FemeVector);
   int (*ElemRestrictionCreate)(FemeElemRestriction, FemeMemType, FemeCopyMode, const FemeInt *);
   int (*BasisCreateTensorH1)(Feme, FemeInt, FemeInt, FemeInt, const FemeScalar *, const FemeScalar *, const FemeScalar *, const FemeScalar *, FemeBasis);
   int (*QFunctionCreate)(FemeQFunction);
@@ -28,21 +28,21 @@ FEME_INTERN int FemeFree(void *p);
 #define FemeMalloc(n, p) FemeMallocArray((n), sizeof(**(p)), p)
 #define FemeCalloc(n, p) FemeCallocArray((n), sizeof(**(p)), p)
 
-struct FemeVec_private {
+struct FemeVector_private {
   Feme feme;
-  int (*SetArray)(FemeVec, FemeMemType, FemeCopyMode, FemeScalar *);
-  int (*GetArray)(FemeVec, FemeMemType, FemeScalar **);
-  int (*GetArrayRead)(FemeVec, FemeMemType, const FemeScalar **);
-  int (*RestoreArray)(FemeVec, FemeScalar **);
-  int (*RestoreArrayRead)(FemeVec, const FemeScalar **);
-  int (*Destroy)(FemeVec);
+  int (*SetArray)(FemeVector, FemeMemType, FemeCopyMode, FemeScalar *);
+  int (*GetArray)(FemeVector, FemeMemType, FemeScalar **);
+  int (*GetArrayRead)(FemeVector, FemeMemType, const FemeScalar **);
+  int (*RestoreArray)(FemeVector, FemeScalar **);
+  int (*RestoreArrayRead)(FemeVector, const FemeScalar **);
+  int (*Destroy)(FemeVector);
   FemeInt length;
   void *data;
 };
 
 struct FemeElemRestriction_private {
   Feme feme;
-  int (*Apply)(FemeElemRestriction, FemeTransposeMode, FemeVec, FemeVec, FemeRequest *);
+  int (*Apply)(FemeElemRestriction, FemeTransposeMode, FemeVector, FemeVector, FemeRequest *);
   int (*Destroy)(FemeElemRestriction);
   FemeInt nelem;    /* number of elements */
   FemeInt elemsize; /* number of dofs per element */
@@ -92,8 +92,8 @@ struct FemeQFunction_private {
    of operators, using different sets of data fields? */
 struct FemeOperator_private {
   Feme feme;
-  int (*Apply)(FemeOperator, FemeVec, FemeVec, FemeVec, FemeRequest*);
-  int (*ApplyJacobian)(FemeOperator, FemeVec, FemeVec, FemeVec, FemeVec, FemeRequest*);
+  int (*Apply)(FemeOperator, FemeVector, FemeVector, FemeVector, FemeRequest*);
+  int (*ApplyJacobian)(FemeOperator, FemeVector, FemeVector, FemeVector, FemeVector, FemeRequest*);
   int (*Destroy)(FemeOperator);
   FemeElemRestriction Erestrict;
   FemeBasis basis;
