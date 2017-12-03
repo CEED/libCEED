@@ -28,9 +28,6 @@ FEME_INTERN int FemeFree(void *p);
 #define FemeMalloc(n, p) FemeMallocArray((n), sizeof(**(p)), p)
 #define FemeCalloc(n, p) FemeCallocArray((n), sizeof(**(p)), p)
 
-/* FIXME: Separate the function pointers in a separate structure (vtable) that
-   will be shared by many vectors. */
-/* FIXME: What do the Get* and Restore* methods do exactly? */
 struct FemeVec_private {
   Feme feme;
   int (*SetArray)(FemeVec, FemeMemType, FemeCopyMode, FemeScalar *);
@@ -43,7 +40,6 @@ struct FemeVec_private {
   void *data;
 };
 
-/* FIXME: Separate the function pointers in a vtable? */
 struct FemeElemRestriction_private {
   Feme feme;
   int (*Apply)(FemeElemRestriction, FemeTransposeMode, FemeVec, FemeVec, FemeRequest *);
@@ -55,7 +51,6 @@ struct FemeElemRestriction_private {
   void *data;       /* place for the backend to store any data */
 };
 
-/* FIXME: Separate the function pointers in a vtable? */
 /* FIXME: Since we will want to support non-tensor product bases, and other
    types, like H(div)- and H(curl)-conforming bases, separate the basis data, so
    it can be changed. In other words, replace { dim, P1d, Q1d, qref1d,
@@ -82,18 +77,17 @@ struct FemeBasis_private {
 struct FemeQFunction_private {
   Feme feme;
   int (*Destroy)(FemeQFunction);
-  FemeInt vlength; /* FIXME: what is this? */
+  FemeInt vlength;    // Number of quadrature points must be padded to a multiple of vlength
   FemeInt nfields;
-  size_t qdatasize; /* FIXME: what is this? */
+  size_t qdatasize;   // Number of bytes of qdata per quadrature point
   FemeEvalMode inmode, outmode;
   int (*function)(void*, void*, FemeInt, const FemeScalar *const*, FemeScalar *const*);
   const char *focca;
-  void *ctx;      /* any user data */
-  size_t ctxsize; /* can be used to mem-copy ctx to device */
-  void *data;     /* any backend data */
+  void *ctx;      /* user context for function */
+  size_t ctxsize; /* size of user context; may be used to copy to a device */
+  void *data;     /* backend data */
 };
 
-/* FIXME: Separate the function pointers in a vtable? */
 /* FIXME: Should we make this an "abstact" class, i.e. support different types
    of operators, using different sets of data fields? */
 struct FemeOperator_private {
@@ -108,11 +102,5 @@ struct FemeOperator_private {
   FemeQFunction dqfT;
   void *data;
 };
-
-/* FIXME QUESTION: How do we plan to support multiple devices controlled by the
-   same MPI rank? I see two options:
-   1) extend the above structures, so they can hold data + vtables for multiple
-      devices, or
-   2) define a multi-device API layer on top of the above classes. */
 
 #endif

@@ -39,8 +39,6 @@ FEME_EXTERN int FemeCompose(int n, const Feme *femes, Feme *composed);
 typedef enum {FEME_MEM_HOST, FEME_MEM_CUDA} FemeMemType;
 typedef enum {FEME_COPY_VALUES, FEME_USE_POINTER, FEME_OWN_POINTER} FemeCopyMode;
 
-/* FIXME: Should we can make all of the FemeVec* functions inline? They
-   basically dispatch to the backend anyway. */
 FEME_EXTERN int FemeVecCreate(Feme feme, FemeInt len, FemeVec *vec);
 FEME_EXTERN int FemeVecSetArray(FemeVec vec, FemeMemType mtype, FemeCopyMode cmode, FemeScalar *array);
 FEME_EXTERN int FemeVecGetArray(FemeVec vec, FemeMemType mtype, FemeScalar **array);
@@ -49,8 +47,6 @@ FEME_EXTERN int FemeVecRestoreArray(FemeVec vec, FemeScalar **array);
 FEME_EXTERN int FemeVecRestoreArrayRead(FemeVec vec, const FemeScalar **array);
 FEME_EXTERN int FemeVecDestroy(FemeVec *vec);
 
-/* FIXME: What's "immediate" about the request? The name seems misleading. How
-   about *_NULL (as in MPI_REQUEST_NULL), *_NIL, *_VOID, *_NONE, or *_EMPTY? */
 FEME_EXTERN FemeRequest *FEME_REQUEST_IMMEDIATE; // Use when you don't want to wait
 FEME_EXTERN int FemeRequestWait(FemeRequest *req);
 
