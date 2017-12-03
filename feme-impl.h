@@ -36,7 +36,7 @@ struct FemeVec_private {
   int (*RestoreArray)(FemeVec, FemeScalar **);
   int (*RestoreArrayRead)(FemeVec, const FemeScalar **);
   int (*Destroy)(FemeVec);
-  FemeInt n; /* FIXME: rename n --> size? */
+  FemeInt length;
   void *data;
 };
 

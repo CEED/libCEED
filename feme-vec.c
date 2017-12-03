@@ -1,13 +1,13 @@
 #include <feme-impl.h>
 
-int FemeVecCreate(Feme feme, FemeInt n, FemeVec *vec) {
+int FemeVecCreate(Feme feme, FemeInt length, FemeVec *vec) {
   int ierr;
 
   if (!feme->VecCreate) return FemeError(feme, 1, "Backend does not support VecCreate");
   ierr = FemeCalloc(1,vec);FemeChk(ierr);
   (*vec)->feme = feme;
-  (*vec)->n = n;
-  ierr = feme->VecCreate(feme, n, *vec);FemeChk(ierr);
+  (*vec)->length = length;
+  ierr = feme->VecCreate(feme, length, *vec);FemeChk(ierr);
   return 0;
 }
 

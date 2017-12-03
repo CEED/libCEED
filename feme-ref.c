@@ -44,9 +44,9 @@ static int FemeVecSetArray_Ref(FemeVec vec, FemeMemType mtype, FemeCopyMode cmod
   ierr = FemeFree(&impl->array_allocated);FemeChk(ierr);
   switch (cmode) {
   case FEME_COPY_VALUES:
-    ierr = FemeMalloc(vec->n, &impl->array_allocated);FemeChk(ierr);
+    ierr = FemeMalloc(vec->length, &impl->array_allocated);FemeChk(ierr);
     impl->array = impl->array_allocated;
-    if (array) memcpy(impl->array, array, vec->n * sizeof(array[0]));
+    if (array) memcpy(impl->array, array, vec->length * sizeof(array[0]));
     break;
   case FEME_OWN_POINTER:
     impl->array_allocated = array;

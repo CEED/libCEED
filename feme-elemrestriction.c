@@ -24,8 +24,8 @@ int FemeElemRestrictionApply(FemeElemRestriction r, FemeTransposeMode tmode, Fem
     m = r->ndof;
     n = r->nelem * r->elemsize;
   }
-  if (n != u->n) return FemeError(r->feme, 2, "Input vector size %d not compatible with element restriction (%d,%d)", u->n, r->nelem*r->elemsize, r->ndof);
-  if (m != v->n) return FemeError(r->feme, 2, "Output vector size %d not compatible with element restriction (%d,%d)", v->n, r->nelem*r->elemsize, r->ndof);
+  if (n != u->length) return FemeError(r->feme, 2, "Input vector size %d not compatible with element restriction (%d,%d)", u->length, r->nelem*r->elemsize, r->ndof);
+  if (m != v->length) return FemeError(r->feme, 2, "Output vector size %d not compatible with element restriction (%d,%d)", v->length, r->nelem*r->elemsize, r->ndof);
   ierr = r->Apply(r, tmode, u, v, request);FemeChk(ierr);
   return 0;
 }
