@@ -3,8 +3,8 @@ CFLAGS += $(if $(NDEBUG),-O2,-g)
 CPPFLAGS = -I.
 LDLIBS = -lm
 
-NOTMAC := $(subst Darwin,,$(shell uname -s))
-SO_EXT := $(if $(NOTMAC),so,dylib)
+DARWIN := $(filter Darwin,$(shell uname -s))
+SO_EXT := $(if $(DARWIN),dylib,so)
 
 libfeme := libfeme.$(SO_EXT)
 libfeme.c := $(wildcard feme*.c)
