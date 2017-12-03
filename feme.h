@@ -70,8 +70,8 @@ FEME_EXTERN int FemeBasisView(FemeBasis basis, FILE *stream);
 FEME_EXTERN int FemeBasisApply(FemeBasis basis, FemeTransposeMode tmode, FemeEvalMode emode, const FemeScalar *u, FemeScalar *v);
 FEME_EXTERN int FemeBasisDestroy(FemeBasis *basis);
 
-FEME_EXTERN int FemeGaussQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweight1d);
-FEME_EXTERN int FemeLobattoQuadrature(FemeInt degree, FemeScalar *qref1d, FemeScalar *qweight1d);
+FEME_EXTERN int FemeGaussQuadrature(FemeInt Q, FemeScalar *qref1d, FemeScalar *qweight1d);
+FEME_EXTERN int FemeLobattoQuadrature(FemeInt Q, FemeScalar *qref1d, FemeScalar *qweight1d);
 
 FEME_EXTERN int FemeQFunctionCreateInterior(Feme feme, FemeInt vlength, FemeInt nfields, size_t qdatasize, FemeEvalMode inmode, FemeEvalMode outmode,
                                             int (*f)(void *ctx, void *qdata, FemeInt nq, const FemeScalar *const *u, FemeScalar *const *v),
