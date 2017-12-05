@@ -39,6 +39,10 @@ FEME_EXTERN int FemeCompose(int n, const Feme *femes, Feme *composed);
 typedef enum {FEME_MEM_HOST, FEME_MEM_CUDA} FemeMemType;
 typedef enum {FEME_COPY_VALUES, FEME_USE_POINTER, FEME_OWN_POINTER} FemeCopyMode;
 
+/* The FemeVectorGet* and FemeVectorRestore* functions provide access to array
+   pointers in the desired memory space. Pairing get/restore allows the Vector
+   to track access, thus knowing if norms or other operations may need to be
+   recomputed. */
 FEME_EXTERN int FemeVectorCreate(Feme feme, FemeInt len, FemeVector *vec);
 FEME_EXTERN int FemeVectorSetArray(FemeVector vec, FemeMemType mtype, FemeCopyMode cmode, FemeScalar *array);
 FEME_EXTERN int FemeVectorGetArray(FemeVector vec, FemeMemType mtype, FemeScalar **array);
@@ -47,7 +51,19 @@ FEME_EXTERN int FemeVectorRestoreArray(FemeVector vec, FemeScalar **array);
 FEME_EXTERN int FemeVectorRestoreArrayRead(FemeVector vec, const FemeScalar **array);
 FEME_EXTERN int FemeVectorDestroy(FemeVector *vec);
 
-FEME_EXTERN FemeRequest *FEME_REQUEST_IMMEDIATE; // Use when you don't want to wait
+/* When FEME_REQUEST_IMMEDIATE is passed as the FemeRequest pointer to a call,
+   the called function must ensure that all output is immediately available
+   after it returns. In other words, the operation does not need to be executed
+   asynchronously, and if it is, the called function will wait for the
+   asynchronous execution to complete before returning. */
+FEME_EXTERN FemeRequest *FEME_REQUEST_IMMEDIATE;
+/* When FEME_REQUEST_NULL (or simply NULL) is given as the FemeRequest pointer
+   to a function call, the caller is indicating that he/she will not need to
+   call FemeRequestWait to wait for the completion of the operation. In general,
+   the operation is expected to be executed asyncronously and its result to be
+   available before the execution of next asynchronous operation using the same
+   Feme. */
+#define FEME_REQUEST_NULL ((FemeRequest *)NULL)
 FEME_EXTERN int FemeRequestWait(FemeRequest *req);
 
 typedef enum {FEME_NOTRANSPOSE, FEME_TRANSPOSE} FemeTransposeMode;
