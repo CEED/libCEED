@@ -35,8 +35,7 @@ FEME_EXTERN int FemeErrorImpl(Feme, const char *, int, const char *, int, const 
 FEME_EXTERN int FemeDestroy(Feme *feme);
 FEME_EXTERN int FemeCompose(int n, const Feme *femes, Feme *composed);
 
-/* FIXME: rename MEM_CUDA --> MEM_DEVICE? */
-typedef enum {FEME_MEM_HOST, FEME_MEM_CUDA} FemeMemType;
+typedef enum {FEME_MEM_HOST, FEME_MEM_DEVICE} FemeMemType;
 typedef enum {FEME_COPY_VALUES, FEME_USE_POINTER, FEME_OWN_POINTER} FemeCopyMode;
 
 /* The FemeVectorGet* and FemeVectorRestore* functions provide access to array
