@@ -6,27 +6,6 @@ typedef struct {
   FemeScalar *array_allocated;
 } FemeVector_Ref;
 
-/*
-   FIXME: To avoid the two dynamic memory allocations, during vector-create, we
-   can define FemeVector_Ref as
-
-   typedef struct {
-     FemeVector_private base;
-     FemeScalar *array;
-     FemeScalar *array_allocated;
-   } FemeVector_Ref;
-
-   while removing the 'void *data' field from FemeVector_private. Then we can set
-   the FemeVector to be the address of FemeVector_Ref which should be the same as the
-   address of FemeVector_Ref::base. This way, only the backend will need to perform
-   dynamic allocation to create the vector.
-
-   Another advantage is that other structs in the same backend can include a
-   FemeVector_Ref avoiding the separate dynamic allocation.
-
-   What do you think of this approach?
-*/
-
 typedef struct {
   const FemeInt *indices;
   FemeInt *indices_allocated;

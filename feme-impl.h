@@ -51,10 +51,6 @@ struct FemeElemRestriction_private {
   void *data;       /* place for the backend to store any data */
 };
 
-/* FIXME: Since we will want to support non-tensor product bases, and other
-   types, like H(div)- and H(curl)-conforming bases, separate the basis data, so
-   it can be changed. In other words, replace { dim, P1d, Q1d, qref1d,
-   qweight1d, interp1d, grad1d } with void *data. */
 struct FemeBasis_private {
   Feme feme;
   int (*Apply)(FemeBasis, FemeTransposeMode, FemeEvalMode, const FemeScalar *, FemeScalar *);
@@ -72,8 +68,6 @@ struct FemeBasis_private {
 /* FIXME: The number of in-fields and out-fields may be different? */
 /* FIXME: Shouldn't inmode and outmode be per-in-field and per-out-field,
    respectively? */
-/* FIXME: Should we make this an "abstact" class, i.e. support different types
-   of Q-functions, using different sets of data fields? */
 struct FemeQFunction_private {
   Feme feme;
   int (*Destroy)(FemeQFunction);
@@ -88,8 +82,6 @@ struct FemeQFunction_private {
   void *data;     /* backend data */
 };
 
-/* FIXME: Should we make this an "abstact" class, i.e. support different types
-   of operators, using different sets of data fields? */
 struct FemeOperator_private {
   Feme feme;
   int (*Apply)(FemeOperator, FemeVector, FemeVector, FemeVector, FemeRequest*);
