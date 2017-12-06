@@ -28,7 +28,7 @@ test : $(tests:%=run-%)
 
 .PHONY: clean print
 clean :
-	$(RM) *.o $(libfeme) $(tests.c:%.c=%)
+	$(RM) *.o *.d $(libfeme) $(tests.c:%.c=%)
 	$(RM) -r *.dSYM
 
 print :
