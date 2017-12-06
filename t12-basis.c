@@ -1,46 +1,46 @@
 // Test polynomial interpolation in 1D
-#include <feme.h>
+#include <ceed.h>
 #include <math.h>
 
 #define ALEN(a) (sizeof(a) / sizeof((a)[0]))
 
-static FemeScalar PolyEval(FemeScalar x, FemeInt n, const FemeScalar *p) {
-  FemeScalar y = p[n-1];
-  for (FemeInt i=n-2; i>=0; i--) y = y*x + p[i];
+static CeedScalar PolyEval(CeedScalar x, CeedInt n, const CeedScalar *p) {
+  CeedScalar y = p[n-1];
+  for (CeedInt i=n-2; i>=0; i--) y = y*x + p[i];
   return y;
 }
 
 int main(int argc, char **argv) {
-  Feme feme;
-  FemeBasis bxl, bul, bxg, bug;
-  FemeInt Q = 6;
-  const FemeScalar p[] = {1, 2, 3, 4, 5, 6}; // 1 + 2x + 3x^2 + ...
-  const FemeScalar x[] = {-1, 1};
-  FemeScalar xq[Q], uq[Q], u[Q];
+  Ceed ceed;
+  CeedBasis bxl, bul, bxg, bug;
+  CeedInt Q = 6;
+  const CeedScalar p[] = {1, 2, 3, 4, 5, 6}; // 1 + 2x + 3x^2 + ...
+  const CeedScalar x[] = {-1, 1};
+  CeedScalar xq[Q], uq[Q], u[Q];
 
-  FemeInit("/cpu/self", &feme);
-  FemeBasisCreateTensorH1Lagrange(feme, 1,  1, 1, Q, FEME_GAUSS_LOBATTO, &bxl);
-  FemeBasisCreateTensorH1Lagrange(feme, 1, 1, Q-1, Q, FEME_GAUSS_LOBATTO, &bul);
-  FemeBasisApply(bxl, FEME_NOTRANSPOSE, FEME_EVAL_INTERP, x, xq);
-  for (FemeInt i=0; i<Q; i++) uq[i] = PolyEval(xq[i], ALEN(p), p);
+  CeedInit("/cpu/self", &ceed);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 1, Q, CEED_GAUSS_LOBATTO, &bxl);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q-1, Q, CEED_GAUSS_LOBATTO, &bul);
+  CeedBasisApply(bxl, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
+  for (CeedInt i=0; i<Q; i++) uq[i] = PolyEval(xq[i], ALEN(p), p);
 
-  FemeBasisApply(bul, FEME_TRANSPOSE, FEME_EVAL_INTERP, uq, u); // Should be identity
+  CeedBasisApply(bul, CEED_TRANSPOSE, CEED_EVAL_INTERP, uq, u); // Should be identity
 
-  FemeBasisCreateTensorH1Lagrange(feme, 1, 1, 1, Q, FEME_GAUSS, &bxg);
-  FemeBasisCreateTensorH1Lagrange(feme, 1, 1, Q-1, Q, FEME_GAUSS, &bug);
-  FemeBasisApply(bxg, FEME_NOTRANSPOSE, FEME_EVAL_INTERP, x, xq);
-  FemeBasisApply(bug, FEME_NOTRANSPOSE, FEME_EVAL_INTERP, u, uq);
-  for (FemeInt i=0; i<Q; i++) {
-    FemeScalar px = PolyEval(xq[i], ALEN(p), p);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 1, Q, CEED_GAUSS, &bxg);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q-1, Q, CEED_GAUSS, &bug);
+  CeedBasisApply(bxg, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
+  CeedBasisApply(bug, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, uq);
+  for (CeedInt i=0; i<Q; i++) {
+    CeedScalar px = PolyEval(xq[i], ALEN(p), p);
     if (fabs(uq[i] - px) > 1e-14) {
       printf("%f != %f=p(%f)\n", uq[i], px, xq[i]);
     }
   }
 
-  FemeBasisDestroy(&bxl);
-  FemeBasisDestroy(&bul);
-  FemeBasisDestroy(&bxg);
-  FemeBasisDestroy(&bug);
-  FemeDestroy(&feme);
+  CeedBasisDestroy(&bxl);
+  CeedBasisDestroy(&bul);
+  CeedBasisDestroy(&bxg);
+  CeedBasisDestroy(&bug);
+  CeedDestroy(&ceed);
   return 0;
 }

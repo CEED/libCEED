@@ -1,16 +1,16 @@
-#include <feme.h>
+#include <ceed.h>
 
 int main(int argc, char **argv) {
-  Feme feme;
-  FemeBasis b;
+  Ceed ceed;
+  CeedBasis b;
 
-  FemeInit("/cpu/self", &feme);
-  FemeBasisCreateTensorH1Lagrange(feme, 1, 1, 3, 4, FEME_GAUSS_LOBATTO, &b);
-  FemeBasisView(b, stdout);
-  FemeBasisDestroy(&b);
-  FemeBasisCreateTensorH1Lagrange(feme, 1,  1, 3, 4, FEME_GAUSS, &b);
-  FemeBasisView(b, stdout);
-  FemeBasisDestroy(&b);
-  FemeDestroy(&feme);
+  CeedInit("/cpu/self", &ceed);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 3, 4, CEED_GAUSS_LOBATTO, &b);
+  CeedBasisView(b, stdout);
+  CeedBasisDestroy(&b);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 3, 4, CEED_GAUSS, &b);
+  CeedBasisView(b, stdout);
+  CeedBasisDestroy(&b);
+  CeedDestroy(&ceed);
   return 0;
 }

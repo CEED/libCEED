@@ -6,20 +6,20 @@ LDLIBS = -lm
 DARWIN := $(filter Darwin,$(shell uname -s))
 SO_EXT := $(if $(DARWIN),dylib,so)
 
-libfeme := libfeme.$(SO_EXT)
-libfeme.c := $(wildcard feme*.c)
+libceed := libceed.$(SO_EXT)
+libceed.c := $(wildcard ceed*.c)
 tests.c   := $(sort $(wildcard t[0-9][0-9]-*.c))
 tests     := $(tests.c:%.c=%)
 
 .SUFFIXES:
 .SUFFIXES: .c .o .d
 
-$(libfeme) : $(libfeme.c:%.c=%.o)
+$(libceed) : $(libceed.c:%.c=%.o)
 	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
-$(tests) : $(libfeme)
+$(tests) : $(libceed)
 $(tests) : LDFLAGS += -Wl,-rpath,. -L.
-t% : t%.c $(libfeme)
+t% : t%.c $(libceed)
 
 run-t% : t%
 	@./tap.sh $<
@@ -28,7 +28,7 @@ test : $(tests:%=run-%)
 
 .PHONY: clean print
 clean :
-	$(RM) *.o *.d $(libfeme) $(tests.c:%.c=%)
+	$(RM) *.o *.d $(libceed) $(tests.c:%.c=%)
 	$(RM) -r *.dSYM
 
 print :
@@ -42,4 +42,4 @@ print-%:
 	$(info )
 	@true
 
--include $(libfeme.c:%.c=%.d) $(tests.c:%.c=%.d)
+-include $(libceed.c:%.c=%.d) $(tests.c:%.c=%.d)

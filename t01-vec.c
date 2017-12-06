@@ -1,23 +1,23 @@
-#include <feme.h>
+#include <ceed.h>
 
 int main(int argc, char **argv) {
-  Feme feme;
-  FemeVector x;
-  FemeInt n;
-  FemeScalar a[10];
-  const FemeScalar *b;
+  Ceed ceed;
+  CeedVector x;
+  CeedInt n;
+  CeedScalar a[10];
+  const CeedScalar *b;
 
-  FemeInit("/cpu/self", &feme);
+  CeedInit("/cpu/self", &ceed);
   n = 10;
-  FemeVectorCreate(feme, n, &x);
-  for (FemeInt i=0; i<n; i++) a[i] = 10 + i;
-  FemeVectorSetArray(x, FEME_MEM_HOST, FEME_USE_POINTER, a);
-  FemeVectorGetArrayRead(x, FEME_MEM_HOST, &b);
-  for (FemeInt i=0; i<n; i++) {
-    if (10+i != b[i]) FemeError(feme, (int)i, "Error reading array b[%d] = %f",i,(double)b[i]);
+  CeedVectorCreate(ceed, n, &x);
+  for (CeedInt i=0; i<n; i++) a[i] = 10 + i;
+  CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
+  CeedVectorGetArrayRead(x, CEED_MEM_HOST, &b);
+  for (CeedInt i=0; i<n; i++) {
+    if (10+i != b[i]) CeedError(ceed, (int)i, "Error reading array b[%d] = %f",i,(double)b[i]);
   }
-  FemeVectorRestoreArrayRead(x, &b);
-  FemeVectorDestroy(&x);
-  FemeDestroy(&feme);
+  CeedVectorRestoreArrayRead(x, &b);
+  CeedVectorDestroy(&x);
+  CeedDestroy(&ceed);
   return 0;
 }

@@ -1,9 +1,9 @@
-#include <feme.h>
+#include <ceed.h>
 
 int main(int argc, char **argv) {
-  Feme feme;
+  Ceed ceed;
 
-  FemeInit("/cpu/self", &feme);
-  FemeDestroy(&feme);
+  CeedInit("/cpu/self", &ceed);
+  CeedDestroy(&ceed);
   return 0;
 }

@@ -1,10 +1,10 @@
 // Test interpolation in multiple dimensions
-#include <feme.h>
+#include <ceed.h>
 #include <math.h>
 
-static FemeScalar Eval(FemeInt dim, const FemeScalar x[]) {
-  FemeScalar result = 1, center = 0.1;
-  for (FemeInt d=0; d<dim; d++) {
+static CeedScalar Eval(CeedInt dim, const CeedScalar x[]) {
+  CeedScalar result = 1, center = 0.1;
+  for (CeedInt d=0; d<dim; d++) {
     result *= tanh(x[d] - center);
     center += 0.1;
   }
@@ -12,51 +12,51 @@ static FemeScalar Eval(FemeInt dim, const FemeScalar x[]) {
 }
 
 int main(int argc, char **argv) {
-  Feme feme;
+  Ceed ceed;
 
-  FemeInit("/cpu/self", &feme);
-  for (FemeInt dim=1; dim<=3; dim++) {
-    FemeBasis bxl, bul, bxg, bug;
-    FemeInt Q = 10, Qdim = FemePowInt(Q, dim), Xdim = FemePowInt(2, dim);
-    FemeScalar x[Xdim*dim];
-    FemeScalar xq[Qdim*dim], uq[Qdim], u[Qdim];
+  CeedInit("/cpu/self", &ceed);
+  for (CeedInt dim=1; dim<=3; dim++) {
+    CeedBasis bxl, bul, bxg, bug;
+    CeedInt Q = 10, Qdim = CeedPowInt(Q, dim), Xdim = CeedPowInt(2, dim);
+    CeedScalar x[Xdim*dim];
+    CeedScalar xq[Qdim*dim], uq[Qdim], u[Qdim];
 
-    for (FemeInt d=0; d<dim; d++) {
-      for (FemeInt i=0; i<Xdim; i++) {
-        x[d*Xdim + i] = (i % FemePowInt(2, dim-d)) / FemePowInt(2, dim-d-1) ? 1 : -1;
+    for (CeedInt d=0; d<dim; d++) {
+      for (CeedInt i=0; i<Xdim; i++) {
+        x[d*Xdim + i] = (i % CeedPowInt(2, dim-d)) / CeedPowInt(2, dim-d-1) ? 1 : -1;
       }
     }
-    FemeBasisCreateTensorH1Lagrange(feme, dim, dim, 1, Q, FEME_GAUSS_LOBATTO, &bxl);
-    FemeBasisCreateTensorH1Lagrange(feme, dim, 1, Q-1, Q, FEME_GAUSS_LOBATTO, &bul);
-    FemeBasisApply(bxl, FEME_NOTRANSPOSE, FEME_EVAL_INTERP, x, xq);
-    for (FemeInt i=0; i<Qdim; i++) {
-      FemeScalar xx[dim];
-      for (FemeInt d=0; d<dim; d++) xx[d] = xq[d*Qdim + i];
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 1, Q, CEED_GAUSS_LOBATTO, &bxl);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, Q-1, Q, CEED_GAUSS_LOBATTO, &bul);
+    CeedBasisApply(bxl, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
+    for (CeedInt i=0; i<Qdim; i++) {
+      CeedScalar xx[dim];
+      for (CeedInt d=0; d<dim; d++) xx[d] = xq[d*Qdim + i];
       uq[i] = Eval(dim, xx);
     }
 
-    FemeBasisApply(bul, FEME_TRANSPOSE, FEME_EVAL_INTERP, uq, u); // Should be identity
+    CeedBasisApply(bul, CEED_TRANSPOSE, CEED_EVAL_INTERP, uq, u); // Should be identity
 
-    FemeBasisCreateTensorH1Lagrange(feme, dim, dim, 1, Q, FEME_GAUSS, &bxg);
-    FemeBasisCreateTensorH1Lagrange(feme, dim, 1, Q-1, Q, FEME_GAUSS, &bug);
-    FemeBasisApply(bxg, FEME_NOTRANSPOSE, FEME_EVAL_INTERP, x, xq);
-    FemeBasisApply(bug, FEME_NOTRANSPOSE, FEME_EVAL_INTERP, u, uq);
-    for (FemeInt i=0; i<Qdim; i++) {
-      FemeScalar xx[dim];
-      for (FemeInt d=0; d<dim; d++) xx[d] = xq[d*Qdim + i];
-      FemeScalar fx = Eval(dim, xx);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 1, Q, CEED_GAUSS, &bxg);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, Q-1, Q, CEED_GAUSS, &bug);
+    CeedBasisApply(bxg, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
+    CeedBasisApply(bug, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, uq);
+    for (CeedInt i=0; i<Qdim; i++) {
+      CeedScalar xx[dim];
+      for (CeedInt d=0; d<dim; d++) xx[d] = xq[d*Qdim + i];
+      CeedScalar fx = Eval(dim, xx);
       if (fabs(uq[i] - fx) > 1e-4) {
         printf("[%d] %f != %f=f(%f", dim, uq[i], fx, xx[0]);
-        for (FemeInt d=1; d<dim; d++) printf(",%f", xx[d]);
+        for (CeedInt d=1; d<dim; d++) printf(",%f", xx[d]);
         puts(")");
       }
     }
 
-    FemeBasisDestroy(&bxl);
-    FemeBasisDestroy(&bul);
-    FemeBasisDestroy(&bxg);
-    FemeBasisDestroy(&bug);
+    CeedBasisDestroy(&bxl);
+    CeedBasisDestroy(&bul);
+    CeedBasisDestroy(&bxg);
+    CeedBasisDestroy(&bug);
   }
-  FemeDestroy(&feme);
+  CeedDestroy(&ceed);
   return 0;
 }
