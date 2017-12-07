@@ -25,7 +25,7 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 
 libceed := libceed.$(SO_EXT)
 libceed.c := $(wildcard ceed*.c)
-tests.c   := $(sort $(wildcard t/t[0-9][0-9]-*.c))
+tests.c   := $(sort $(wildcard tests/t[0-9][0-9]-*.c))
 tests     := $(tests.c:%.c=%)
 examples.c := $(sort $(wildcard examples/*.c))
 examples  := $(examples.c:%.c=%)
@@ -38,28 +38,29 @@ $(libceed) : $(libceed.c:%.c=%.o)
 
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,. -L.
-t/t% : t/t%.c $(libceed)
+tests/t% : tests/t%.c $(libceed)
 examples/% : examples/%.c $(libceed)
 
-run-t% : t/t%
-	@t/tap.sh $(<:t/%=%)
+run-t% : tests/t%
+	@tests/tap.sh $(<:tests/%=%)
 
-test : $(tests:t/%=run-%)
+test : $(tests:tests/%=run-%)
 
 prove : $(tests)
-	$(PROVE) --exec t/tap.sh $(CEED_PROVE_OPTS) $(tests:t/%=%)
+	$(PROVE) --exec tests/tap.sh $(CEED_PROVE_OPTS) $(tests:tests/%=%)
 
 examples : $(examples)
 
 .PHONY: clean print test examples astyle
 clean :
-	$(RM) *.o t/*.o *.d t/*.d $(libceed) $(tests.c:%.c=%)
+	$(RM) *.o tests/*.o *.d tests/*.d $(libceed) $(tests.c:%.c=%)
 	$(RM) -r *.dSYM
 
 astyle :
 	astyle --style=google --indent=spaces=2 --max-code-length=80 \
-           --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
-          --suffix=none --preserve-date --formatted *.[ch] t/*.[ch] examples/*.[ch]
+            --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
+            --suffix=none --preserve-date --formatted \
+            *.[ch] tests/*.[ch] examples/*.[ch]
 
 
 print :
