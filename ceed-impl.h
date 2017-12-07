@@ -29,7 +29,8 @@ struct Ceed_private {
   int (*Destroy)(Ceed);
   int (*VecCreate)(Ceed, CeedInt, CeedVector);
   int (*ElemRestrictionCreate)(CeedElemRestriction, CeedMemType, CeedCopyMode, const CeedInt *);
-  int (*BasisCreateTensorH1)(Ceed, CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
+  int (*BasisCreateTensorH1)(Ceed, CeedInt, CeedInt, CeedInt, const CeedScalar *,
+                             const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*QFunctionCreate)(CeedQFunction);
   int (*OperatorCreate)(CeedOperator);
 };
@@ -101,7 +102,8 @@ struct CeedQFunction_private {
 struct CeedOperator_private {
   Ceed ceed;
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedRequest*);
-  int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedVector, CeedRequest*);
+  int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedVector,
+                       CeedRequest*);
   int (*Destroy)(CeedOperator);
   CeedElemRestriction Erestrict;
   CeedBasis basis;
