@@ -6,7 +6,7 @@
 
 static CeedScalar PolyEval(CeedScalar x, CeedInt n, const CeedScalar *p) {
   CeedScalar y = p[n-1];
-  for (CeedInt i=n-2; i>=0; i--) y = y*x + p[i];
+  for (CeedInt i=n-2; i>=0; i--) { y = y*x + p[i]; }
   return y;
 }
 
@@ -22,9 +22,10 @@ int main(int argc, char **argv) {
   CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 1, Q, CEED_GAUSS_LOBATTO, &bxl);
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q-1, Q, CEED_GAUSS_LOBATTO, &bul);
   CeedBasisApply(bxl, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
-  for (CeedInt i=0; i<Q; i++) uq[i] = PolyEval(xq[i], ALEN(p), p);
+  for (CeedInt i=0; i<Q; i++) { uq[i] = PolyEval(xq[i], ALEN(p), p); }
 
-  CeedBasisApply(bul, CEED_TRANSPOSE, CEED_EVAL_INTERP, uq, u); // Should be identity
+  CeedBasisApply(bul, CEED_TRANSPOSE, CEED_EVAL_INTERP, uq,
+                 u); // Should be identity
 
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 1, Q, CEED_GAUSS, &bxg);
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q-1, Q, CEED_GAUSS, &bug);

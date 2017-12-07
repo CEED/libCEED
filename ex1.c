@@ -18,28 +18,33 @@
 #include <stdlib.h>
 #include <math.h>
 
-static int f_mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u, CeedScalar *const *v) {
+static int f_mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
+                  CeedScalar *const *v) {
   const CeedScalar *w = qdata;
-  for (CeedInt i=0; i<Q; i++) v[0][i] = w[i] * u[0][i];
+  for (CeedInt i=0; i<Q; i++) { v[0][i] = w[i] * u[0][i]; }
   return 0;
 }
 
-static int f_poisson3d(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u, CeedScalar *const *v) {
+static int f_poisson3d(void *ctx, void *qdata, CeedInt Q,
+                       const CeedScalar *const *u, CeedScalar *const *v) {
   // Q is guaranteed to be a multiple of 8 (because of how we call CeedQFunctionCreateInterior) so we can tell the compiler
   Q = 8*(Q/8);
   // qdata can be packed arbitrarily, but we'll choose a vector-friendly ordering here
   const CeedScalar *rhs = qdata;
-  const CeedScalar (*K)[Q] = (const CeedScalar(*)[Q])(rhs + Q);  // Probably symmetric but we don't have to exploit it
+  const CeedScalar (*K)[Q] = (const CeedScalar(*)[Q])(rhs +
+                             Q);  // Probably symmetric but we don't have to exploit it
   for (CeedInt i=0; i<Q; i++) {
     v[0][i] = -rhs[i];
     for (CeedInt d=0; d<3; d++) {
-      v[1][d*Q+i] = K[d*3+0][i] * u[1][0*Q+i] + K[d*3+1][i] * u[1][1*Q+i] + K[d*3+2][i] * u[1][2*Q+i];
+      v[1][d*Q+i] = K[d*3+0][i] * u[1][0*Q+i] + K[d*3+1][i] * u[1][1*Q+i] + K[d*3
+                    +2][i] * u[1][2*Q+i];
     }
   }
   return 0;
 }
 
-static int f_buildcoeffs(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u, CeedScalar *const *v) {
+static int f_buildcoeffs(void *ctx, void *qdata, CeedInt Q,
+                         const CeedScalar *const *u, CeedScalar *const *v) {
   CeedScalar *rhs = qdata;
   CeedScalar (*K)[Q] = (CeedScalar(*)[Q])(rhs + Q);
   for (CeedInt i=0; i<Q; i++) {
@@ -57,8 +62,7 @@ static int f_buildcoeffs(void *ctx, void *qdata, CeedInt Q, const CeedScalar *co
   return 0;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   Ceed ceed;
   CeedVector u, r, xcoord, qdata;
   CeedInt *Eindices;
@@ -74,19 +78,26 @@ int main(int argc, char **argv)
 
   Eindices = malloc(123 * 125 * sizeof(Eindices[0]));
   // call function to initialize Eindices...
-  CeedElemRestrictionCreate(ceed, 123, 125, CEED_MEM_HOST, CEED_USE_POINTER, Eindices, &Erestrict);
+  CeedElemRestrictionCreate(ceed, 123, 125, CEED_MEM_HOST, CEED_USE_POINTER,
+                            Eindices, &Erestrict);
 
   // Create a 3D Q_3 Lagrange element with 4^3 Gauss quadrature points
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 4, &Basis);
 
-  CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar), CEED_EVAL_INTERP, CEED_EVAL_INTERP, f_mass, "ex1.c:f_mass", &qf_mass);
-  CeedQFunctionCreateInterior(ceed, 8, 1, 10*sizeof(CeedScalar), CEED_EVAL_GRAD, CEED_EVAL_GRAD, f_poisson3d, "ex1.c:f_poisson3d", &qf_poisson3d);
-  CeedQFunctionCreateInterior(ceed, 1, 3, 10*sizeof(CeedScalar), CEED_EVAL_INTERP | CEED_EVAL_GRAD, CEED_EVAL_NONE, f_buildcoeffs, "ex1.c:f_buildcoeffs", &qf_buildcoeffs);
+  CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar), CEED_EVAL_INTERP,
+                              CEED_EVAL_INTERP, f_mass, "ex1.c:f_mass", &qf_mass);
+  CeedQFunctionCreateInterior(ceed, 8, 1, 10*sizeof(CeedScalar), CEED_EVAL_GRAD,
+                              CEED_EVAL_GRAD, f_poisson3d, "ex1.c:f_poisson3d", &qf_poisson3d);
+  CeedQFunctionCreateInterior(ceed, 1, 3, 10*sizeof(CeedScalar),
+                              CEED_EVAL_INTERP | CEED_EVAL_GRAD, CEED_EVAL_NONE, f_buildcoeffs,
+                              "ex1.c:f_buildcoeffs", &qf_buildcoeffs);
   // We'll expect to build libraries of qfunctions, looked up by some name.  These should be cheap to create even if not used.
 
   CeedOperatorCreate(ceed, Erestrict, Basis, qf_mass, NULL, NULL, &op_mass);
-  CeedOperatorCreate(ceed, Erestrict, Basis, qf_poisson3d, NULL, NULL, &op_poisson3d);
-  CeedOperatorCreate(ceed, Erestrict, Basis, qf_buildcoeffs, NULL, NULL, &op_buildcoeffs);
+  CeedOperatorCreate(ceed, Erestrict, Basis, qf_poisson3d, NULL, NULL,
+                     &op_poisson3d);
+  CeedOperatorCreate(ceed, Erestrict, Basis, qf_buildcoeffs, NULL, NULL,
+                     &op_buildcoeffs);
 
   // ... initialize xcoord
 

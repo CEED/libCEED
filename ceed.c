@@ -31,18 +31,21 @@ static struct {
 } backends[32];
 static size_t num_backends;
 
-int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func, int ecode, const char *format, ...) {
+int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
+                  int ecode, const char *format, ...) {
   va_list args;
   va_start(args, format);
-  if (ceed) return ceed->Error(ceed, filename, lineno, func, ecode, format, args);
+  if (ceed) { return ceed->Error(ceed, filename, lineno, func, ecode, format, args); }
   return CeedErrorAbort(ceed, filename, lineno, func, ecode, format, args);
 }
 
-int CeedErrorReturn(Ceed ceed, const char *filename, int lineno, const char *func, int ecode, const char *format, va_list args) {
+int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
+                    const char *func, int ecode, const char *format, va_list args) {
   return ecode;
 }
 
-int CeedErrorAbort(Ceed ceed, const char *filename, int lineno, const char *func, int ecode, const char *format, va_list args) {
+int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
+                   const char *func, int ecode, const char *format, va_list args) {
   fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
   vfprintf(stderr, format, args);
   fprintf(stderr, "\n");
@@ -50,7 +53,8 @@ int CeedErrorAbort(Ceed ceed, const char *filename, int lineno, const char *func
   return ecode;
 }
 
-int CeedRegister(const char *prefix, int (*init)(const char *resource, Ceed f)) {
+int CeedRegister(const char *prefix, int (*init)(const char *resource,
+                 Ceed f)) {
   if (num_backends >= sizeof(backends) / sizeof(backends[0])) {
     return CeedError(NULL, 1, "Too many backends");
   }
@@ -62,13 +66,13 @@ int CeedRegister(const char *prefix, int (*init)(const char *resource, Ceed f)) 
 
 int CeedMallocArray(size_t n, size_t unit, void *p) {
   int ierr = posix_memalign((void**)p, CEED_ALIGN, n*unit);
-  if (ierr) return CeedError(NULL, ierr, "posix_memalign failed to allocate %zd members of size %zd\n", n, unit);
+  if (ierr) { return CeedError(NULL, ierr, "posix_memalign failed to allocate %zd members of size %zd\n", n, unit); }
   return 0;
 }
 
 int CeedCallocArray(size_t n, size_t unit, void *p) {
   *(void**)p = calloc(n, unit);
-  if (n && unit && !*(void**)p) return CeedError(NULL, 1, "calloc failed to allocate %zd members of size %zd\n", n, unit);
+  if (n && unit && !*(void**)p) { return CeedError(NULL, 1, "calloc failed to allocate %zd members of size %zd\n", n, unit); }
   return 0;
 }
 
@@ -91,20 +95,20 @@ int CeedInit(const char *resource, Ceed *ceed) {
       matchidx = i;
     }
   }
-  if (!matchlen) return CeedError(NULL, 1, "No suitable backend");
-  ierr = CeedCalloc(1,ceed);CeedChk(ierr);
+  if (!matchlen) { return CeedError(NULL, 1, "No suitable backend"); }
+  ierr = CeedCalloc(1,ceed); CeedChk(ierr);
   (*ceed)->Error = CeedErrorAbort;
-  ierr = backends[matchidx].init(resource, *ceed);CeedChk(ierr);
+  ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);
   return 0;
 }
 
 int CeedDestroy(Ceed *ceed) {
   int ierr;
 
-  if (!*ceed) return 0;
+  if (!*ceed) { return 0; }
   if ((*ceed)->Destroy) {
-    ierr = (*ceed)->Destroy(*ceed);CeedChk(ierr);
+    ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);
   }
-  ierr = CeedFree(ceed);CeedChk(ierr);
+  ierr = CeedFree(ceed); CeedChk(ierr);
   return 0;
 }

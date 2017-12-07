@@ -28,8 +28,10 @@ struct Ceed_private {
   int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list);
   int (*Destroy)(Ceed);
   int (*VecCreate)(Ceed, CeedInt, CeedVector);
-  int (*ElemRestrictionCreate)(CeedElemRestriction, CeedMemType, CeedCopyMode, const CeedInt *);
-  int (*BasisCreateTensorH1)(Ceed, CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
+  int (*ElemRestrictionCreate)(CeedElemRestriction, CeedMemType, CeedCopyMode,
+                               const CeedInt *);
+  int (*BasisCreateTensorH1)(Ceed, CeedInt, CeedInt, CeedInt, const CeedScalar *,
+                             const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*QFunctionCreate)(CeedQFunction);
   int (*OperatorCreate)(CeedOperator);
 };
@@ -58,7 +60,8 @@ struct CeedVector_private {
 
 struct CeedElemRestriction_private {
   Ceed ceed;
-  int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
+  int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector,
+               CeedRequest *);
   int (*Destroy)(CeedElemRestriction);
   CeedInt nelem;    /* number of elements */
   CeedInt elemsize; /* number of dofs per element */
@@ -69,7 +72,8 @@ struct CeedElemRestriction_private {
 
 struct CeedBasis_private {
   Ceed ceed;
-  int (*Apply)(CeedBasis, CeedTransposeMode, CeedEvalMode, const CeedScalar *, CeedScalar *);
+  int (*Apply)(CeedBasis, CeedTransposeMode, CeedEvalMode, const CeedScalar *,
+               CeedScalar *);
   int (*Destroy)(CeedBasis);
   CeedInt dim;
   CeedInt ndof;
@@ -91,7 +95,8 @@ struct CeedQFunction_private {
   CeedInt nfields;
   size_t qdatasize;   // Number of bytes of qdata per quadrature point
   CeedEvalMode inmode, outmode;
-  int (*function)(void*, void*, CeedInt, const CeedScalar *const*, CeedScalar *const*);
+  int (*function)(void*, void*, CeedInt, const CeedScalar *const*,
+                  CeedScalar *const*);
   const char *focca;
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */
@@ -101,7 +106,8 @@ struct CeedQFunction_private {
 struct CeedOperator_private {
   Ceed ceed;
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedRequest*);
-  int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedVector, CeedRequest*);
+  int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector,
+                       CeedVector, CeedRequest*);
   int (*Destroy)(CeedOperator);
   CeedElemRestriction Erestrict;
   CeedBasis basis;

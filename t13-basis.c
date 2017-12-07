@@ -31,11 +31,12 @@ int main(int argc, char **argv) {
     CeedBasisApply(bxl, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
     for (CeedInt i=0; i<Qdim; i++) {
       CeedScalar xx[dim];
-      for (CeedInt d=0; d<dim; d++) xx[d] = xq[d*Qdim + i];
+      for (CeedInt d=0; d<dim; d++) { xx[d] = xq[d*Qdim + i]; }
       uq[i] = Eval(dim, xx);
     }
 
-    CeedBasisApply(bul, CEED_TRANSPOSE, CEED_EVAL_INTERP, uq, u); // Should be identity
+    CeedBasisApply(bul, CEED_TRANSPOSE, CEED_EVAL_INTERP, uq,
+                   u); // Should be identity
 
     CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 1, Q, CEED_GAUSS, &bxg);
     CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, Q-1, Q, CEED_GAUSS, &bug);
@@ -43,11 +44,11 @@ int main(int argc, char **argv) {
     CeedBasisApply(bug, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, uq);
     for (CeedInt i=0; i<Qdim; i++) {
       CeedScalar xx[dim];
-      for (CeedInt d=0; d<dim; d++) xx[d] = xq[d*Qdim + i];
+      for (CeedInt d=0; d<dim; d++) { xx[d] = xq[d*Qdim + i]; }
       CeedScalar fx = Eval(dim, xx);
       if (fabs(uq[i] - fx) > 1e-4) {
         printf("[%d] %f != %f=f(%f", dim, uq[i], fx, xx[0]);
-        for (CeedInt d=1; d<dim; d++) printf(",%f", xx[d]);
+        for (CeedInt d=1; d<dim; d++) { printf(",%f", xx[d]); }
         puts(")");
       }
     }

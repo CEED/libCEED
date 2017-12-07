@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
   CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P1d, Q1d, CEED_GAUSS_LOBATTO, &b);
   CeedBasisApply(b, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, v);
   for (i = 0; i < len; i++) {
-    if (fabs(v[i] - 1.) > 1e-15) printf("v[%d] = %f != 1.\n", i, v[i]);
+    if (fabs(v[i] - 1.) > 1e-15) { printf("v[%d] = %f != 1.\n", i, v[i]); }
   }
   CeedBasisDestroy(&b);
   CeedDestroy(&ceed);
