@@ -26,6 +26,8 @@ libceed := libceed.$(SO_EXT)
 libceed.c := $(wildcard ceed*.c)
 tests.c   := $(sort $(wildcard t/t[0-9][0-9]-*.c))
 tests     := $(tests.c:%.c=%)
+examples.c := $(sort $(wildcard examples/*.c))
+examples  := $(examples.c:%.c=%)
 
 .SUFFIXES:
 .SUFFIXES: .c .o .d
@@ -33,16 +35,19 @@ tests     := $(tests.c:%.c=%)
 $(libceed) : $(libceed.c:%.c=%.o)
 	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
-$(tests) : $(libceed)
-$(tests) : LDFLAGS += -Wl,-rpath,. -L.
+$(tests) $(examples) : $(libceed)
+$(tests) $(examples) : LDFLAGS += -Wl,-rpath,. -L.
 t/t% : t/t%.c $(libceed)
+examples/% : examples/%.c $(libceed)
 
 run-t% : t/t%
 	@./tap.sh $(<:t/%=%)
 
 test : $(tests:t/%=run-%)
 
-.PHONY: clean print
+examples : $(examples)
+
+.PHONY: clean print test examples
 clean :
 	$(RM) *.o t/*.o *.d t/*.d $(libceed) $(tests.c:%.c=%)
 	$(RM) -r *.dSYM

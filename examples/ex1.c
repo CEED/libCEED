@@ -61,23 +61,23 @@ int main(int argc, char **argv)
 {
   Ceed ceed;
   CeedVector u, r, xcoord, qdata;
-  CeedInt *Eindices;
+  CeedInt nelem = 8, esize = 64, ndof = 343, *Eindices;
   CeedElemRestriction Erestrict;
   CeedBasis Basis;
   CeedQFunction qf_mass, qf_poisson3d, qf_buildcoeffs;
   CeedOperator op_mass, op_poisson3d, op_buildcoeffs;
 
   CeedInit("/cpu/self", &ceed); // implementation aborts on error by default
-  CeedVectorCreate(ceed, 1234, &u);
-  CeedVectorCreate(ceed, 1234, &r);
-  CeedVectorCreate(ceed, 1234*3, &xcoord);
+  CeedVectorCreate(ceed, ndof, &u);
+  CeedVectorCreate(ceed, ndof, &r);
+  CeedVectorCreate(ceed, ndof*3, &xcoord);
 
   Eindices = malloc(123 * 125 * sizeof(Eindices[0]));
   // call function to initialize Eindices...
-  CeedElemRestrictionCreate(ceed, 123, 125, CEED_MEM_HOST, CEED_USE_POINTER, Eindices, &Erestrict);
+  CeedElemRestrictionCreate(ceed, nelem, esize, ndof, CEED_MEM_HOST, CEED_USE_POINTER, Eindices, &Erestrict);
 
   // Create a 3D Q_3 Lagrange element with 4^3 Gauss quadrature points
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 4, &Basis);
+  CeedBasisCreateTensorH1Lagrange(ceed, 3, 1, 3, 4, CEED_GAUSS, &Basis);
 
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar), CEED_EVAL_INTERP, CEED_EVAL_INTERP, f_mass, "ex1.c:f_mass", &qf_mass);
   CeedQFunctionCreateInterior(ceed, 8, 1, 10*sizeof(CeedScalar), CEED_EVAL_GRAD, CEED_EVAL_GRAD, f_poisson3d, "ex1.c:f_poisson3d", &qf_poisson3d);
