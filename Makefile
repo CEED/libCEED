@@ -24,7 +24,7 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 
 libceed := libceed.$(SO_EXT)
 libceed.c := $(wildcard ceed*.c)
-tests.c   := $(sort $(wildcard t[0-9][0-9]-*.c))
+tests.c   := $(sort $(wildcard t/t[0-9][0-9]-*.c))
 tests     := $(tests.c:%.c=%)
 
 .SUFFIXES:
@@ -35,16 +35,16 @@ $(libceed) : $(libceed.c:%.c=%.o)
 
 $(tests) : $(libceed)
 $(tests) : LDFLAGS += -Wl,-rpath,. -L.
-t% : t%.c $(libceed)
+t/t% : t/t%.c $(libceed)
 
-run-t% : t%
-	@./tap.sh $<
+run-t% : t/t%
+	@./tap.sh $(<:t/%=%)
 
-test : $(tests:%=run-%)
+test : $(tests:t/%=run-%)
 
 .PHONY: clean print
 clean :
-	$(RM) *.o *.d $(libceed) $(tests.c:%.c=%)
+	$(RM) *.o t/*.o *.d t/*.d $(libceed) $(tests.c:%.c=%)
 	$(RM) -r *.dSYM
 
 print :

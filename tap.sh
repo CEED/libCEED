@@ -2,7 +2,7 @@
 
 output=$(mktemp $1.XXXX)
 
-if ./"$@" > ${output}; then
+if t/"$@" > ${output}; then
     printf "ok $@\n"
 else
     printf "not ok $@\n"
