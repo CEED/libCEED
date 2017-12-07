@@ -57,8 +57,7 @@ clean :
 	$(RM) -r *.dSYM
 
 astyle :
-	@git diff --stat --exit-code HEAD || ( printf "error: Cannot run astyle in dirty tree.\nAborting.\n"; false )
-	astyle --style=google --indent=spaces=2 --max-code-length=96 \
+	astyle --style=google --indent=spaces=2 --max-code-length=80 \
            --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
           --suffix=none --preserve-date --formatted *.[ch] t/*.[ch] examples/*.[ch]
 

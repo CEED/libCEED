@@ -40,16 +40,20 @@ typedef struct CeedBasis_private *CeedBasis;
 typedef struct CeedQFunction_private *CeedQFunction;
 typedef struct CeedOperator_private *CeedOperator;
 
-CEED_EXTERN int CeedRegister(const char *prefix, int (*init)(const char *, Ceed));
+CEED_EXTERN int CeedRegister(const char *prefix, int (*init)(const char *,
+                             Ceed));
 
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
-CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int, const char *,
-                                va_list);
-CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int, const char *,
-                               va_list);
-CEED_EXTERN int CeedSetErrorHandler(Ceed, int (*)(Ceed, int, const char *, va_list));
-CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int, const char *, ...);
-#define CeedError(ceed, ecode, ...) CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__)
+CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,
+                                const char *, va_list);
+CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
+                               const char *, va_list);
+CEED_EXTERN int CeedSetErrorHandler(Ceed,
+                                    int (*)(Ceed, int, const char *, va_list));
+CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
+                              const char *, ...);
+#define CeedError(ceed, ecode, ...)                                     \
+  CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__)
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
 CEED_EXTERN int CeedCompose(int n, const Ceed *ceeds, Ceed *composed);
 
@@ -61,13 +65,15 @@ typedef enum {CEED_COPY_VALUES, CEED_USE_POINTER, CEED_OWN_POINTER} CeedCopyMode
    to track access, thus knowing if norms or other operations may need to be
    recomputed. */
 CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedInt len, CeedVector *vec);
-CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mtype, CeedCopyMode cmode,
-                                   CeedScalar *array);
-CEED_EXTERN int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array);
+CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mtype,
+                                   CeedCopyMode cmode, CeedScalar *array);
+CEED_EXTERN int CeedVectorGetArray(CeedVector vec, CeedMemType mtype,
+                                   CeedScalar **array);
 CEED_EXTERN int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
                                        const CeedScalar **array);
 CEED_EXTERN int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array);
-CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array);
+CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec,
+    const CeedScalar **array);
 CEED_EXTERN int CeedVectorDestroy(CeedVector *vec);
 
 /* When CEED_REQUEST_IMMEDIATE is passed as the CeedRequest pointer to a call,
@@ -87,14 +93,14 @@ CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
 typedef enum {CEED_NOTRANSPOSE, CEED_TRANSPOSE} CeedTransposeMode;
 
-CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelements, CeedInt esize,
-    CeedInt ndof, CeedMemType mtype, CeedCopyMode cmode, const CeedInt *indices,
-    CeedElemRestriction *r);
-CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelements, CeedInt esize,
-    CeedInt blocksize, CeedMemType mtype, CeedCopyMode cmode, CeedInt *blkindices,
-    CeedElemRestriction *r);
-CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode,
-    CeedVector u, CeedVector ru, CeedRequest *request);
+CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelements,
+    CeedInt esize, CeedInt ndof, CeedMemType mtype, CeedCopyMode cmode,
+    const CeedInt *indices,    CeedElemRestriction *r);
+CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelements,
+    CeedInt esize, CeedInt blocksize, CeedMemType mtype, CeedCopyMode cmode,
+    CeedInt *blkindices, CeedElemRestriction *r);
+CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction r,
+    CeedTransposeMode tmode, CeedVector u, CeedVector ru, CeedRequest *request);
 CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *r);
 
 // The formalism here is that we have the structure
@@ -104,33 +110,38 @@ CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *r);
 typedef enum {CEED_EVAL_NONE = 0, CEED_EVAL_INTERP = 1, CEED_EVAL_GRAD = 2, CEED_EVAL_DIV = 4, CEED_EVAL_CURL = 8} CeedEvalMode;
 typedef enum {CEED_GAUSS = 0, CEED_GAUSS_LOBATTO = 1} CeedQuadMode;
 
-CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ndof,
-    CeedInt degree, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);
-CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof, CeedInt P1d,
-                                        CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d, const CeedScalar *qref1d,
-                                        const CeedScalar *qweight1d, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,
+    CeedInt ndof, CeedInt degree, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof,
+                                        CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
+                                        const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis *basis);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
-CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode, CeedEvalMode emode,
-                               const CeedScalar *u, CeedScalar *v);
+CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode,
+                               CeedEvalMode emode, const CeedScalar *u, CeedScalar *v);
 CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
 
-CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d);
-CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d);
+CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d,
+                                    CeedScalar *qweight1d);
+CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
+                                      CeedScalar *qweight1d);
 
-CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedInt nfields,
-    size_t qdatasize, CeedEvalMode inmode, CeedEvalMode outmode,
-    int (*f)(void *ctx, void *qdata, CeedInt nq, const CeedScalar *const *u, CeedScalar *const *v),
-    const char *focca, CeedQFunction *qf);
-CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize);
+CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
+    CeedInt nfields, size_t qdatasize, CeedEvalMode inmode, CeedEvalMode outmode,
+    int (*f)(void *ctx, void *qdata, CeedInt nq, const CeedScalar *const *u,
+             CeedScalar *const *v), const char *focca, CeedQFunction *qf);
+CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx,
+                                        size_t ctxsize);
 CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
 
-CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
-                                   CeedQFunction qf, CeedQFunction dqf, CeedQFunction dqfT, CeedOperator *op);
+CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r,
+                                   CeedBasis b, CeedQFunction qf, CeedQFunction dqf, CeedQFunction dqfT,
+                                   CeedOperator *op);
 CEED_EXTERN int CeedOperatorGetQData(CeedOperator op, CeedVector *qdata);
-CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector qdata, CeedVector ustate,
-                                  CeedVector residual, CeedRequest *request);
-CEED_EXTERN int CeedOperatorApplyJacobian(CeedOperator op, CeedVector qdata, CeedVector ustate,
-    CeedVector dustate, CeedVector dresidual, CeedRequest *request);
+CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector qdata,
+                                  CeedVector ustate, CeedVector residual, CeedRequest *request);
+CEED_EXTERN int CeedOperatorApplyJacobian(CeedOperator op, CeedVector qdata,
+    CeedVector ustate, CeedVector dustate, CeedVector dresidual,
+    CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
 
 static inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {

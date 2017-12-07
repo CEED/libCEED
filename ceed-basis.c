@@ -20,8 +20,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof, CeedInt P1d, CeedInt Q1d,
-                            const CeedScalar *interp1d, const CeedScalar *grad1d, const CeedScalar *qref1d,
+int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof, CeedInt P1d,
+                            CeedInt Q1d, const CeedScalar *interp1d,
+                            const CeedScalar *grad1d, const CeedScalar *qref1d,
                             const CeedScalar *qweight1d, CeedBasis *basis) {
   int ierr;
 
@@ -41,13 +42,14 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof, CeedInt P1d, C
   ierr = CeedMalloc(Q1d*P1d,&(*basis)->grad1d); CeedChk(ierr);
   memcpy((*basis)->interp1d, interp1d, Q1d*P1d*sizeof(interp1d[0]));
   memcpy((*basis)->grad1d, grad1d, Q1d*P1d*sizeof(interp1d[0]));
-  ierr = ceed->BasisCreateTensorH1(ceed, dim, P1d, Q1d, interp1d, grad1d, qref1d, qweight1d,
-                                   *basis); CeedChk(ierr);
+  ierr = ceed->BasisCreateTensorH1(ceed, dim, P1d, Q1d, interp1d, grad1d, qref1d,
+                                   qweight1d, *basis); CeedChk(ierr);
   return 0;
 }
 
-int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ndof, CeedInt degree,
-                                    CeedInt Q, CeedQuadMode qmode, CeedBasis *basis) {
+int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ndof,
+                                    CeedInt degree, CeedInt Q,
+                                    CeedQuadMode qmode, CeedBasis *basis) {
   // Allocate
   int ierr, i, j, k;
   CeedScalar c1, c2, c3, c4, dx, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
@@ -91,8 +93,8 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ndof, CeedIn
     }
   }
   //  // Pass to CeedBasisCreateTensorH1
-  ierr = CeedBasisCreateTensorH1(ceed, dim, ndof, P, Q, interp1d, grad1d, qref1d, qweight1d,
-                                 basis); CeedChk(ierr);
+  ierr = CeedBasisCreateTensorH1(ceed, dim, ndof, P, Q, interp1d, grad1d, qref1d,
+                                 qweight1d, basis); CeedChk(ierr);
   ierr = CeedFree(&interp1d); CeedChk(ierr);
   ierr = CeedFree(&grad1d); CeedChk(ierr);
   ierr = CeedFree(&nodes); CeedChk(ierr);
@@ -141,7 +143,8 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) {
   return 0;
 }
 
-int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) {
+int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
+                          CeedScalar *qweight1d) {
   // Allocate
   CeedScalar P0, P1, P2, dP2, d2P2, xi, wi, PI = 4.0*atan(1.0);
   // Build qref1d, qweight1d
@@ -194,8 +197,8 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) 
   return 0;
 }
 
-static int CeedScalarView(const char *name, const char *fpformat, CeedInt m, CeedInt n,
-                          const CeedScalar *a, FILE *stream) {
+static int CeedScalarView(const char *name, const char *fpformat, CeedInt m,
+                          CeedInt n, const CeedScalar *a, FILE *stream) {
   for (int i=0; i<m; i++) {
     if (m > 1) fprintf(stream, "%12s[%d]:", name, i);
     else fprintf(stream, "%12s:", name);
@@ -208,22 +211,24 @@ static int CeedScalarView(const char *name, const char *fpformat, CeedInt m, Cee
 int CeedBasisView(CeedBasis basis, FILE *stream) {
   int ierr;
 
-  fprintf(stream, "CeedBasis: dim=%d P=%d Q=%d\n", basis->dim, basis->P1d, basis->Q1d);
-  ierr = CeedScalarView("qref1d", "\t% 12.8f", 1, basis->Q1d, basis->qref1d, stream);
-  CeedChk(ierr);
-  ierr = CeedScalarView("qweight1d", "\t% 12.8f", 1, basis->Q1d, basis->qweight1d, stream);
-  CeedChk(ierr);
-  ierr = CeedScalarView("interp1d", "\t% 12.8f", basis->Q1d, basis->P1d, basis->interp1d, stream);
-  CeedChk(ierr);
-  ierr = CeedScalarView("grad1d", "\t% 12.8f", basis->Q1d, basis->P1d, basis->grad1d, stream);
-  CeedChk(ierr);
+  fprintf(stream, "CeedBasis: dim=%d P=%d Q=%d\n", basis->dim, basis->P1d,
+          basis->Q1d);
+  ierr = CeedScalarView("qref1d", "\t% 12.8f", 1, basis->Q1d, basis->qref1d,
+                        stream); CeedChk(ierr);
+  ierr = CeedScalarView("qweight1d", "\t% 12.8f", 1, basis->Q1d, basis->qweight1d,
+                        stream); CeedChk(ierr);
+  ierr = CeedScalarView("interp1d", "\t% 12.8f", basis->Q1d, basis->P1d,
+                        basis->interp1d, stream); CeedChk(ierr);
+  ierr = CeedScalarView("grad1d", "\t% 12.8f", basis->Q1d, basis->P1d,
+                        basis->grad1d, stream); CeedChk(ierr);
   return 0;
 }
 
 int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode, CeedEvalMode emode,
                    const CeedScalar *u, CeedScalar *v) {
   int ierr;
-  if (!basis->Apply) return CeedError(basis->ceed, 1, "Backend does not support BasisApply");
+  if (!basis->Apply) return CeedError(basis->ceed, 1,
+                                        "Backend does not support BasisApply");
   ierr = basis->Apply(basis, tmode, emode, u, v); CeedChk(ierr);
   return 0;
 }

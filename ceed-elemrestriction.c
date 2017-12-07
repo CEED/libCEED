@@ -16,8 +16,9 @@
 
 #include <ceed-impl.h>
 
-int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize, CeedInt ndof,
-                              CeedMemType mtype, CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction *r) {
+int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
+                              CeedInt ndof, CeedMemType mtype, CeedCopyMode cmode,
+                              const CeedInt *indices, CeedElemRestriction *r) {
   int ierr;
 
   if (!ceed->ElemRestrictionCreate)
@@ -31,8 +32,8 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize, CeedIn
   return 0;
 }
 
-int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode, CeedVector u,
-                             CeedVector v, CeedRequest *request) {
+int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode,
+                             CeedVector u, CeedVector v, CeedRequest *request) {
   CeedInt m,n;
   int ierr;
 

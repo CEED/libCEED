@@ -16,8 +16,9 @@
 
 #include <ceed-impl.h>
 
-int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedInt nfields, size_t qdatasize,
-                                CeedEvalMode inmode, CeedEvalMode outmode,
+int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedInt nfields,
+                                size_t qdatasize, CeedEvalMode inmode,
+                                CeedEvalMode outmode,
                                 int (*f)(void*, void*, CeedInt, const CeedScalar *const*, CeedScalar *const*),
                                 const char *focca, CeedQFunction *qf) {
   int ierr;

@@ -35,7 +35,8 @@ int main(int argc, char **argv) {
       uq[i] = Eval(dim, xx);
     }
 
-    CeedBasisApply(bul, CEED_TRANSPOSE, CEED_EVAL_INTERP, uq, u); // Should be identity
+    // This operation is the identity because the quadrature is colocated
+    CeedBasisApply(bul, CEED_TRANSPOSE, CEED_EVAL_INTERP, uq, u);
 
     CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 1, Q, CEED_GAUSS, &bxg);
     CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, Q-1, Q, CEED_GAUSS, &bug);

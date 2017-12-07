@@ -17,11 +17,13 @@
 #include <ceed-impl.h>
 
 
-int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b, CeedQFunction qf,
-                       CeedQFunction dqf, CeedQFunction dqfT, CeedOperator *op) {
+int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
+                       CeedQFunction qf, CeedQFunction dqf,
+                       CeedQFunction dqfT, CeedOperator *op) {
   int ierr;
 
-  if (!ceed->OperatorCreate) return CeedError(ceed, 1, "Backend does not support OperatorCreate");
+  if (!ceed->OperatorCreate) return CeedError(ceed, 1,
+                                      "Backend does not support OperatorCreate");
   ierr = CeedCalloc(1,op); CeedChk(ierr);
   (*op)->ceed = ceed;
   (*op)->Erestrict = r;
@@ -33,8 +35,8 @@ int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b, CeedQFunct
   return 0;
 }
 
-int CeedOperatorApply(CeedOperator op, CeedVector qdata, CeedVector ustate, CeedVector residual,
-                      CeedRequest *request) {
+int CeedOperatorApply(CeedOperator op, CeedVector qdata, CeedVector ustate,
+                      CeedVector residual, CeedRequest *request) {
   int ierr;
 
   ierr = op->Apply(op, qdata, ustate, residual, request); CeedChk(ierr);

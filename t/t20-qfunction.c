@@ -24,9 +24,11 @@ int main(int argc, char **argv) {
   CeedQFunction qf_setup, qf_mass;
 
   CeedInit("/cpu/self", &ceed);
-  CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar), CEED_EVAL_NONE, CEED_EVAL_NONE,
+  CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
+                              CEED_EVAL_NONE, CEED_EVAL_NONE,
                               setup, __FILE__ ":setup", &qf_setup);
-  CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar), CEED_EVAL_INTERP, CEED_EVAL_INTERP,
+  CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
+                              CEED_EVAL_INTERP, CEED_EVAL_INTERP,
                               mass, __FILE__ ":mass", &qf_mass);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_mass);
