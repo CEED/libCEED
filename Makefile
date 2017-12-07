@@ -47,10 +47,17 @@ test : $(tests:t/%=run-%)
 
 examples : $(examples)
 
-.PHONY: clean print test examples
+.PHONY: clean print test examples astyle
 clean :
 	$(RM) *.o t/*.o *.d t/*.d $(libceed) $(tests.c:%.c=%)
 	$(RM) -r *.dSYM
+
+astyle :
+	@git diff --stat --exit-code HEAD || ( printf "error: Cannot run astyle in dirty tree.\nAborting.\n"; false )
+	astyle --style=google --indent=spaces=2 --max-code-length=96 \
+           --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
+          --suffix=none --preserve-date --formatted *.[ch] t/*.[ch] examples/*.[ch]
+
 
 print :
 	@echo $(VAR)=$($(VAR))
