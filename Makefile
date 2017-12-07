@@ -19,6 +19,7 @@ CFLAGS += $(if $(NDEBUG),-O2,-g)
 CPPFLAGS = -I.
 LDLIBS = -lm
 
+PROVE ?= prove
 DARWIN := $(filter Darwin,$(shell uname -s))
 SO_EXT := $(if $(DARWIN),dylib,so)
 
@@ -41,9 +42,12 @@ t/t% : t/t%.c $(libceed)
 examples/% : examples/%.c $(libceed)
 
 run-t% : t/t%
-	@./tap.sh $(<:t/%=%)
+	@t/tap.sh $(<:t/%=%)
 
 test : $(tests:t/%=run-%)
+
+prove : $(tests)
+	$(PROVE) --exec t/tap.sh $(CEED_PROVE_OPTS) $(tests:t/%=%)
 
 examples : $(examples)
 
