@@ -58,6 +58,10 @@ CEED_EXTERN int CeedDestroy(Ceed *ceed);
 CEED_EXTERN int CeedCompose(int n, const Ceed *ceeds, Ceed *composed);
 
 typedef enum {CEED_MEM_HOST, CEED_MEM_DEVICE} CeedMemType;
+/* When ownership of dynamically alocated CEED_MEM_HOST pointers is transferred
+   to the library (CEED_OWN_POINTER mode), they will be deallocated by calling
+   the standard C library function, free(). In particular, pointers allocated
+   with the C++ operator new should not be used with CEED_OWN_POINTER mode. */
 typedef enum {CEED_COPY_VALUES, CEED_USE_POINTER, CEED_OWN_POINTER} CeedCopyMode;
 
 /* The CeedVectorGet* and CeedVectorRestore* functions provide access to array

@@ -43,6 +43,9 @@ CEED_INTERN int CeedCallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedFree(void *p);
 
 #define CeedChk(ierr) do { if (ierr) return ierr; } while (0)
+/* Note that CeedMalloc and CeedCalloc will, generally, return pointers with
+   different memory alignments: CeedMalloc returns pointers aligned at
+   CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
 #define CeedMalloc(n, p) CeedMallocArray((n), sizeof(**(p)), p)
 #define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
 
@@ -95,6 +98,52 @@ struct CeedQFunction_private {
   CeedInt nfields;
   size_t qdatasize;   // Number of bytes of qdata per quadrature point
   CeedEvalMode inmode, outmode;
+  /* The arguments of the call-back 'function' are:
+
+     1. [void *ctx][in/out] - user data, this is the 'ctx' pointer stored in
+                the CeedQFunction, set by calling CeedQFunctionSetContext
+
+     2. [void *qdata][in/out] - quadrature points data corresponding to the
+                batch-of-points being processed in this call; the quadrature
+                point index has a stride of 1
+
+     3. [CeedInt nq][in] - number of quadrature points to process
+
+     4. [const CeedScalar *const *u][in] - input fields data at quadrature pts:
+         u[0] - CEED_EVAL_INTERP data: field values at quadrature points in
+                reference space; the quadrature point index has a stride of 1,
+                vector component index has a stride of nq (see argument 3) and
+                values for multiple fields are consequitive in memory (strides
+                will generally vary with the number of components in a field);
+                fields that do not specify CEED_EVAL_INTERP mode, use no memory.
+         u[1] - CEED_EVAL_GRAD data: field gradients at quadrature points in
+                reference space; the quadrature point index has a stride of 1,
+                the derivative direction index has a stride of nq (see argument
+                3), vector component index has a stride of (rdim x nq) where
+                rdim is the dimension of the reference element, and values for
+                multiple fields are consequitive in memory (strides will
+                generally vary with the number of components in a field);
+                fields that do not specify CEED_EVAL_GRAD mode, use no memory.
+         u[2] - CEED_EVAL_DIV data: field divergences ... <same as above>?
+         u[3] - CEED_EVAL_CURL data: field curl ... <same as above>?
+
+         FIXME: Do we want to have distinct CeedEvalModes for DIV in an H(div)-
+                conforming space, and DIV in vector H1 space? Same question for
+                CURL in 3D? What about the two curl operators in 2D?
+
+     5. [CeedScalar *const *v][out] - output fields data at quadrature points:
+         v[0], v[1], ..., v[3] - use similar layouts as u[] but use the output
+                CeedEvalMode.
+
+     6. FIXME: Add a CeedTransposeMode argument? To implement the action of the
+               transpose we need either a separate Q-function or we can add this
+               CeedTransposeMode argument.
+
+     7. FIXME: What if the callback function needs to know which element each
+               quadrature point belongs to? It may be sufficient to pass the
+               global index of the first quadrature point that is being
+               processed.
+  */
   int (*function)(void*, void*, CeedInt, const CeedScalar *const*,
                   CeedScalar *const*);
   const char *focca;
