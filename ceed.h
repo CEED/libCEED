@@ -112,7 +112,8 @@ typedef enum {CEED_NOTRANSPOSE, CEED_TRANSPOSE} CeedTransposeMode;
   @param indices    A 2D array of dimensions (@a esize x @a nelements) using
                     column-major storage layout. Column i holds the ordered list
                     of the indices (into the input CeedVector) for the unknowns
-                    corresponding to element i, where 0 <= i < nelements.
+                    corresponding to element i, where 0 <= i < @a nelements.
+                    All indices must be in the range [0, @a ndof).
   @param r          The address of the variable where the newly created
                     CeedElemRestriction will be stored.
 
@@ -121,6 +122,22 @@ typedef enum {CEED_NOTRANSPOSE, CEED_TRANSPOSE} CeedTransposeMode;
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelements,
     CeedInt esize, CeedInt ndof, CeedMemType mtype, CeedCopyMode cmode,
     const CeedInt *indices, CeedElemRestriction *r);
+
+/**
+  @brief Create a blocked CeedElemRestriction
+
+  @param ceed        A Ceed object where the CeedElemRestriction will be created.
+  @param nelements   Number of elements described ...
+  @param esize       Size (number of unknowns) per element.
+  @param blocksize   ...
+  @param mtype       Memory type of the @a blkindices array, see CeedMemType.
+  @param cmode       Copy mode for the @a blkindices array, see CeedCopyMode.
+  @param blkindices  ...
+  @param r           The address of the variable where the newly created
+                     CeedElemRestriction will be stored.
+
+  @return An error code: 0 - success, otherwise - failure.
+ */
 CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelements,
     CeedInt esize, CeedInt blocksize, CeedMemType mtype, CeedCopyMode cmode,
     CeedInt *blkindices, CeedElemRestriction *r);
