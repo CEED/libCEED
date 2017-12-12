@@ -3,7 +3,7 @@
 output=$(mktemp $1.XXXX)
 
 printf "1..3\n"
-if tests/"$@" > ${output}.out 2> ${output}.err ; then
+if build/"$@" > ${output}.out 2> ${output}.err ; then
     printf "ok 1 $@\n"
 else
     printf "not ok 1 $@\n"

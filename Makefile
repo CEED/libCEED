@@ -18,42 +18,60 @@ CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 CFLAGS += $(if $(NDEBUG),-O2,-g)
 CPPFLAGS = -I.
 LDLIBS = -lm
+OBJDIR := build
+LIBDIR := .
 
 PROVE ?= prove
 DARWIN := $(filter Darwin,$(shell uname -s))
 SO_EXT := $(if $(DARWIN),dylib,so)
 
-libceed := libceed.$(SO_EXT)
+libceed := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.c := $(wildcard ceed*.c)
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9]-*.c))
-tests     := $(tests.c:%.c=%)
+tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 examples.c := $(sort $(wildcard examples/*.c))
-examples  := $(examples.c:%.c=%)
+examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
 
 .SUFFIXES:
 .SUFFIXES: .c .o .d
+.SECONDEXPANSION:		# to expand $$(@D)/.DIR
 
-$(libceed) : $(libceed.c:%.c=%.o)
+%/.DIR :
+	@mkdir -p $(@D)
+	@touch $@
+
+.PRECIOUS: %/.DIR
+
+$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o)
 	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
+$(OBJDIR)/%.o : %.c | $$(@D)/.DIR
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
+
+$(OBJDIR)/%.o : tests/%.c | $$(@D)/.DIR
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
+
+$(OBJDIR)/%.o : examples/%.c | $$(@D)/.DIR
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
+
 $(tests) $(examples) : $(libceed)
-$(tests) $(examples) : LDFLAGS += -Wl,-rpath,. -L.
-tests/t% : tests/t%.c $(libceed)
-examples/% : examples/%.c $(libceed)
+$(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(LIBDIR) -L$(LIBDIR)
+$(OBJDIR)/t% : tests/t%.c $(libceed)
+$(OBJDIR)/ex% : examples/ex%.c $(libceed)
 
-run-t% : tests/t%
-	@tests/tap.sh $(<:tests/%=%)
+run-t% : $(OBJDIR)/t%
+	@tests/tap.sh $(<:build/%=%)
 
-test : $(tests:tests/%=run-%)
+test : $(tests:$(OBJDIR)/t%=run-t%)
 
 prove : $(tests)
-	$(PROVE) --exec tests/tap.sh $(CEED_PROVE_OPTS) $(tests:tests/%=%)
+	$(PROVE) --exec tests/tap.sh $(CEED_PROVE_OPTS) $(tests:$(OBJDIR)/%=%)
 
 examples : $(examples)
 
 .PHONY: clean print test examples astyle
 clean :
-	$(RM) *.o tests/*.o *.d tests/*.d $(libceed) $(tests.c:%.c=%)
+	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests.c:%.c=%)
 	$(RM) -r *.dSYM
 
 astyle :
