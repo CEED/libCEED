@@ -149,7 +149,13 @@ CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *r);
 //   \int_\Omega v^T f_0(u, \nabla u, qdata) + (\nabla v)^T f_1(u, \nabla u, qdata)
 // where gradients are with respect to the reference element.
 
-typedef enum {CEED_EVAL_NONE = 0, CEED_EVAL_INTERP = 1, CEED_EVAL_GRAD = 2, CEED_EVAL_DIV = 4, CEED_EVAL_CURL = 8} CeedEvalMode;
+typedef enum {CEED_EVAL_NONE   = 0,
+              CEED_EVAL_INTERP = 1, // values at quadrature points
+              CEED_EVAL_GRAD   = 2, // gradients
+              CEED_EVAL_DIV    = 4, // divergence
+              CEED_EVAL_CURL   = 8, // curl
+              CEED_EVAL_WEIGHT = 16, // quadrature weights for reference element
+} CeedEvalMode;
 typedef enum {CEED_GAUSS = 0, CEED_GAUSS_LOBATTO = 1} CeedQuadMode;
 
 CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,
@@ -173,6 +179,9 @@ CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
              CeedScalar *const *v), const char *focca, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx,
                                         size_t ctxsize);
+CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, void *qdata, CeedInt Q,
+                                   const CeedScalar *const *u,
+                                   CeedScalar *const *v);
 CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
 
 CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r,

@@ -93,6 +93,8 @@ struct CeedBasis_private {
    respectively? */
 struct CeedQFunction_private {
   Ceed ceed;
+  int (*Apply)(CeedQFunction, void *, CeedInt, const CeedScalar *const *,
+               CeedScalar *const *);
   int (*Destroy)(CeedQFunction);
   CeedInt vlength;    // Number of quadrature points must be padded to a multiple of vlength
   CeedInt nfields;

@@ -44,6 +44,20 @@ int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
   return 0;
 }
 
+int CeedQFunctionApply(CeedQFunction qf, void *qdata, CeedInt Q,
+                       const CeedScalar *const *u,
+                       CeedScalar *const *v) {
+  int ierr;
+  if (!qf->Apply)
+    return CeedError(qf->ceed, 1, "Backend does not support QFunctionApply");
+  if (Q % qf->vlength)
+    return CeedError(qf->ceed, 2,
+                     "Number of quadrature points %d must be a multiple of %d",
+                     Q, qf->vlength);
+  ierr = qf->Apply(qf, qdata, Q, u, v); CeedChk(ierr);
+  return 0;
+}
+
 int CeedQFunctionDestroy(CeedQFunction *qf) {
   int ierr;
 

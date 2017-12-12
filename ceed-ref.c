@@ -240,11 +240,20 @@ static int CeedBasisCreateTensorH1_Ref(Ceed ceed, CeedInt dim, CeedInt P1d,
   return 0;
 }
 
+static int CeedQFunctionApply_Ref(CeedQFunction qf, void *qdata, CeedInt Q,
+                                  const CeedScalar *const *u,
+                                  CeedScalar *const *v) {
+  int ierr;
+  ierr = qf->function(qf->ctx, qdata, Q, u, v); CeedChk(ierr);
+  return 0;
+}
+
 static int CeedQFunctionDestroy_Ref(CeedQFunction qf) {
   return 0;
 }
 
 static int CeedQFunctionCreate_Ref(CeedQFunction qf) {
+  qf->Apply = CeedQFunctionApply_Ref;
   qf->Destroy = CeedQFunctionDestroy_Ref;
   return 0;
 }
@@ -272,7 +281,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector qdata,
                             &impl->etmp); CeedChk(ierr);
   }
   etmp = impl->etmp;
-  if (op->qf->inmode != CEED_EVAL_NONE) {
+  if (op->qf->inmode != CEED_EVAL_NONE || op->qf->inmode != CEED_EVAL_WEIGHT) {
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_NOTRANSPOSE, ustate, etmp,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
   }
