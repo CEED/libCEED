@@ -157,7 +157,7 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
   qref1d[0] = -1.0;
   qref1d[Q-1] = 1.0;
   // Interior
-  for (int i = 1; i <= Q/2; i++) {
+  for (int i = 1; i <= (Q-1)/2; i++) {
     // Guess
     xi = cos(PI*(CeedScalar)(i)/(CeedScalar)(Q-1));
     // Pn(xi)

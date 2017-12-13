@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
   CeedBasisApply(bug, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, uq);
   for (CeedInt i=0; i<Q; i++) {
     CeedScalar px = PolyEval(xq[i], ALEN(p), p);
-    if (fabs(uq[i] - px) > 1e-14) {
+    if (!(fabs(uq[i] - px) < 1e-14)) {
       printf("%f != %f=p(%f)\n", uq[i], px, xq[i]);
     }
   }
