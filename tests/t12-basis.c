@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   CeedBasisApply(bxl, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
   for (CeedInt i=0; i<Q; i++) uq[i] = PolyEval(xq[i], ALEN(p), p);
 
-  // This operation is the identity because the quadrature is colocated
+  // This operation is the identity because the quadrature is collocated
   CeedBasisApply(bul, CEED_TRANSPOSE, CEED_EVAL_INTERP, uq, u);
 
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 1, Q, CEED_GAUSS, &bxg);
