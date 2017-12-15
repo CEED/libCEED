@@ -24,17 +24,8 @@
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
 
-struct Ceed_private {
-  int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list);
-  int (*Destroy)(Ceed);
-  int (*VecCreate)(Ceed, CeedInt, CeedVector);
-  int (*ElemRestrictionCreate)(CeedElemRestriction, CeedMemType, CeedCopyMode,
-                               const CeedInt *);
-  int (*BasisCreateTensorH1)(Ceed, CeedInt, CeedInt, CeedInt, const CeedScalar *,
-                             const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
-  int (*QFunctionCreate)(CeedQFunction);
-  int (*OperatorCreate)(CeedOperator);
-};
+typedef struct CeedBasisScalarGeneric_private *CeedBasisScalarGeneric;
+typedef struct CeedBasisScalarTensor_private *CeedBasisScalarTensor;
 
 /* In the next 3 functions, p has to be the address of a pointer type, i.e. p
    has to be a pointer to a pointer. */
@@ -48,6 +39,25 @@ CEED_INTERN int CeedFree(void *p);
    CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
 #define CeedMalloc(n, p) CeedMallocArray((n), sizeof(**(p)), p)
 #define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
+
+CEED_INTERN int CeedBasisScalarGenericCreate(CeedInt ndof, CeedInt nqpt,
+    CeedInt dim, CeedBasisScalarGeneric *basis);
+CEED_INTERN int CeedBasisScalarGenericDestroy(CeedBasisScalarGeneric *basis);
+CEED_INTERN int CeedBasisScalarTensorCreate(CeedInt ndof1d, CeedInt nqpt1d,
+    CeedInt dim, CeedBasisScalarTensor *basis);
+CEED_INTERN int CeedBasisScalarTensorDestroy(CeedBasisScalarTensor *basis);
+
+struct Ceed_private {
+  int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list);
+  int (*Destroy)(Ceed);
+  int (*VecCreate)(Ceed, CeedInt, CeedVector);
+  int (*ElemRestrictionCreate)(CeedElemRestriction, CeedMemType, CeedCopyMode,
+                               const CeedInt *);
+  int (*BasisCreateScalarGeneric)(CeedBasis, CeedBasisScalarGeneric);
+  int (*BasisCreateScalarTensor)(CeedBasis, CeedBasisScalarTensor);
+  int (*QFunctionCreate)(CeedQFunction);
+  int (*OperatorCreate)(CeedOperator);
+};
 
 struct CeedVector_private {
   Ceed ceed;
@@ -73,19 +83,52 @@ struct CeedElemRestriction_private {
   void *data;       /* place for the backend to store any data */
 };
 
+typedef enum {
+  CEED_BASIS_NO_DATA = 0,     /**< Initial value: host_data is not set */
+  CEED_BASIS_SCALAR_GENERIC,  /**< Corresponds to CeedBasisScalarGeneric */
+  CEED_BASIS_SCALAR_TENSOR,   /**< Corresponds to CeedBasisScalarTensor */
+} CeedBasisDataType;
+
 struct CeedBasis_private {
-  Ceed ceed;
+  Ceed ceed; // associated Ceed object
+  // The function pointers Apply and Destroy will be set by the backend.
   int (*Apply)(CeedBasis, CeedTransposeMode, CeedEvalMode, const CeedScalar *,
                CeedScalar *);
   int (*Destroy)(CeedBasis);
-  CeedInt dim;
-  CeedInt ndof;
-  CeedInt P1d;
-  CeedInt Q1d;
-  CeedScalar *qref1d;
-  CeedScalar *qweight1d;
-  CeedScalar *interp1d;
-  CeedScalar *grad1d;
+  CeedGeometry geom;  // type of the reference element
+  CeedBasisType btype;
+  CeedInt degree; // polynomial degree of the basis functions: k in Pk/Qk
+  CeedQuadMode node_locations; // node = point where a DOF is defined
+  CeedInt qorder; // quadrature rule order; -1 = unknown (custom)
+  CeedQuadMode qmode;
+  CeedInt dim;  // dimension of the reference element space
+  CeedInt ndof; // number of degrees of freedom / number of basis functions
+  CeedInt nqpt; // number of quadrature points
+  CeedInt ncomp; // number of components
+  /* TODO: move ncomp to the restriction; also, add it as an argument to
+           CeedBasisApply. */
+  CeedBasisDataType dtype; // data type describing 'host_data'
+  void *host_data; // host representation of the basis data
+  void *be_data; // backend data
+};
+
+struct CeedBasisScalarGeneric_private {
+  CeedInt ndof; // number of degrees of freedom
+  CeedInt nqpt; // number of quadrature points
+  CeedInt dim;  // dimension of the reference element space
+  CeedScalar *interp; // nqpt x ndof (column-major layout)
+  CeedScalar *grad;   // nqpt x dim x ndof (column-major layout)
+  CeedScalar *qweights; // quadrature point weights, size = nqpt
+};
+
+struct CeedBasisScalarTensor_private {
+  CeedInt P1d; // = (degree + 1) from CeedBasis_private; ndof = P1d^dim
+  CeedInt Q1d; // number of quadrature points in 1D; nqpt = Q1d^dim
+  CeedInt dim; // dimension of the reference space
+  CeedScalar *qref1d;  // locations of the 1D quadrature points, size = Q1d
+  CeedScalar *qweight1d; // weights of the 1D quadrature, size = Q1d
+  CeedScalar *interp1d;  // Q1d x P1d (column-major layout)
+  CeedScalar *grad1d;    // Q1d x P1d (column-major layout)
 };
 
 /* FIXME: The number of in-fields and out-fields may be different? */

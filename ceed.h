@@ -155,21 +155,187 @@ typedef enum {CEED_EVAL_NONE   = 0,
               CEED_EVAL_DIV    = 4, // divergence
               CEED_EVAL_CURL   = 8, // curl
               CEED_EVAL_WEIGHT = 16, // quadrature weights for reference element
-} CeedEvalMode;
-typedef enum {CEED_GAUSS = 0, CEED_GAUSS_LOBATTO = 1} CeedQuadMode;
+             } CeedEvalMode;
 
+/** @brief Enumeration for quadrature point sets. Used also for specifying node
+    locations for nodal finite element bases. */
+typedef enum {
+  CEED_GAUSS = 0,      /**< Gauss quadrature. */
+  CEED_GAUSS_LOBATTO,  /**< Gauss-Lobatto quadrature. */
+  CEED_CUSTOM_QMODE    /**< Unknown/custom quadrature. */
+} CeedQuadMode;
+
+/** @brief Enumeration for reference geometric shapes for mesh elements. */
+typedef enum {
+  CEED_POINT = 0,   /**< Point */
+  CEED_LINE,        /**< Unit line segment: [0,1] */
+  CEED_TRIANGLE,    /**< Triangle with vertices: (0,0), (1,0), and (0,1) */
+  CEED_QUAD,        /**< Unit square: [0,1]^2 */
+  CEED_TET,         /**< Tetrahedron with vertices: (0,0,0), (1,0,0), (0,1,0),
+                         and (0,0,1) */
+  CEED_HEX,         /**< Unit cube: [0,1]^3 */
+  CEED_NUM_GEOM     /**< This is the number of reference element types: insert
+                         new types in front of it. */
+} CeedGeometry;
+
+/** @brief An array that contains the dimensions of all reference element types
+    as defined by the CeedGeometry enumeration. */
+CEED_EXTERN const CeedInt CeedGeometryDimension[CEED_NUM_GEOM];
+
+/** @brief Enumeration for finite element basis types. Node locations, if
+    applicable, are specified separately using CeedQuadMode. */
+typedef enum {
+  CEED_LAGRANGE_BASIS,  /**< Nodal scalar Lagrange basis. */
+  CEED_CUSTOM_BASIS     /**< User-specified basis type. */
+} CeedBasisType;
+
+/** @brief Allocate and zero-initialize a CeedBasis in the variable pointed to
+    by @a basis_ptr, associating it with the given Ceed object, @a ceed. */
+CEED_EXTERN int CeedBasisCreate(Ceed ceed, CeedBasis *basis_ptr);
+
+/** @brief Set the reference element type, @a geom, of @a basis. */
+CEED_EXTERN int CeedBasisSetElement(CeedBasis basis, CeedGeometry geom);
+
+/** @brief Set the basis type, @a btype, @a degree, and node location, @a nloc,
+    (when applicable) for the given @a basis. */
+CEED_EXTERN int CeedBasisSetType(CeedBasis basis, CeedBasisType btype,
+                                 CeedInt degree, CeedQuadMode nloc);
+
+/** @brief Set the quadrature rule, where the @a basis will be evaluated.
+
+    Note that this function uses the quadrature @a order (i.e. the polynonial
+    degree for which the quadrature is exact) as input: the number of quadrature
+    points on the element will be determined based on @a order. */
+CEED_EXTERN int CeedBasisSetQuadrature(CeedBasis basis, CeedInt qorder,
+                                       CeedQuadMode qmode);
+
+/** @brief Complete the construction of the CeedBasis object, @a basis.
+
+    This function uses the currently set parameters (element type, basis
+    parameters, quadrature parameters) to complete the construction of the
+    object on both the host and the device (from the associated Ceed object).
+    Generally, it will invoke the backend (from the associated Ceed object) to
+    perform the object setup on the device. */
+CEED_EXTERN int CeedBasisComplete(CeedBasis basis);
+
+/** @brief Construct a CeedBasis for a scalar tensor-product basis in 1D
+    (CEED_LINE), 2D (CEED_QUAD), or 3D (CEED_HEX).
+
+    @param[in]  ceed    Ceed object to associate with the new CeedBasis
+    @param[in]  dim     Reference element dimension
+    @param[in]  ncomp   Number of components; TODO: remove this
+    @param[in]  degree  Polynomial degree of the basis
+    @param[in]  Q       Number of quadrature points in 1D, used for all spatial
+                        dimensions
+    @param[in]  qmode   Quadrature mode; CEED_CUSTOM_QMODE can not be used here
+    @param[out] basis   The address of the output CeedBasis variable
+
+    @return An error code: 0 - success, otherwise - failure.
+*/
 CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,
-    CeedInt ndof, CeedInt degree, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);
-CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof,
+    CeedInt ncomp, CeedInt degree, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);
+
+/** @brief Construst a CeedBasis for a scalar tensor-product basis in 1D
+    (CEED_LINE), 2D (CEED_QUAD), or 3D (CEED_HEX).
+
+    @note This constructor will copy the content of the input arrays internally.
+
+    @param[in]  ceed       Ceed object to associate with the new CeedBasis
+    @param[in]  dim        Reference element dimension
+    @param[in]  ncomp      Number of components; TODO: remove this
+    @param[in]  P1d        Number of degrees of freedom, i.e. number of basis
+                           functions, in 1D
+    @param[in]  Q1d        Number of quadrature points in 1D, used for all
+                           spatial dimensions
+    @param[in]  interp1d   Interpolation matrix with dimensions @a Q1d x @a P1d,
+                           using column-major layout. It represents the values
+                           of the 1D basis functions at the 1D quadrature
+                           points.
+    @param[in]  grad1d     Interpolation matrix with dimensions @a Q1d x @a P1d,
+                           using column-major layout. It represents the
+                           derivatives of the 1D basis functions at the 1D
+                           quadrature points.
+    @param[in]  qref1d     Coordinates of the 1D quadrature points: array of
+                           size @a Q1d
+    @param[in]  qweight1d  1D quadrature point weights: array of size @a Q1d
+    @param[out] basis      The address of the output CeedBasis variable
+
+    @return An error code: 0 - success, otherwise - failure.
+*/
+CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp,
                                         CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
                                         const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis *basis);
+
+/** @brief Write text information about @a basis to the given @a stream.
+
+    @note Generally, the written information will not be sufficient to
+    reconstruct a copy of @a basis, by reading it back. */
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
+
+/** @brief Apply a basis transformation between degrees of freedom and
+    quadrature point data.
+
+    @param[in]  basis  The CeedBasis to use.
+
+    @param[in]  tmode  In CEED_NOTRANSPOSE mode, transform degrees of freedom to
+                       quadrature point data; in CEED_TRANSPOSE mode, perform
+                       the transpose operation from quadrature point data to
+                       degrees of freedom.
+
+    @param[in]  emode  Evaluation mode: a bitwise-or of constants from the
+                       enumeration CeedEvalMode, describing what quadrature data
+                       is given as input, or expected as output; input or output
+                       depends on the @a tmode argument.
+
+    @param[in]  u      When the input represents degrees of freedom, the array
+                       @a u must contain the coefficients multiplying each
+                       basis function.
+
+                       When the input represents quadrature point data, the data
+                       layout is a concatenation of arrays corresponding to the
+                       specified CeedEvalMode, @a emode, ordered as defined in
+                       the enumeration.
+
+                       The data for CEED_EVAL_INTERP is an array of size nqpt
+                       (number of quadrature point). If the basis is a vector
+                       basis, the data is an array with dimensions nqpt x vdim,
+                       using column-major layout, where vdim is the number of
+                       vector components of all basis functions.
+
+                       The data for CEED_EVAL_GRAD is an array with dimensions
+                       nqpt x dim, using column-major layout, where dim is the
+                       dimension of the reference element space. For vector
+                       bases, a third array dimension is added of size vdim: the
+                       number of vector components of all basis functions.
+
+                       The data for CEED_EVAL_DIV is an array of size nqpt.
+
+                       The data for CEED_EVAL_CURL is an array with dimensions
+                       nqpt x 3 in 3D, and nqpt x 1 in 2D.
+
+                       The data for CEED_EVAL_WEIGHT is an array of size nqpt.
+
+                       TODO: add a parameter that allows this function to
+                       perform the transformations on multiple elements, or
+                       multiple vector field component at the same time. Such a
+                       parameter can be used for vectorization of the
+                       implementation.
+
+    @param[out] v      Output data; uses the same data layouts as the input
+                       data, @a u.
+
+    @return An error code: 0 - success, otherwise - failure.
+*/
 CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode,
                                CeedEvalMode emode, const CeedScalar *u, CeedScalar *v);
+
+/** Destroy a CeedBasis object. */
 CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
 
+/** @brief Helper function for constructing 1D Gauss quadrature. */
 CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d,
                                     CeedScalar *qweight1d);
+/** @brief Helper function for constructing 1D Gauss-Lobatto quadrature. */
 CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
                                       CeedScalar *qweight1d);
 

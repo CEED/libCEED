@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+const CeedInt CeedGeometryDimension[] = {0, 1, 2, 2, 3, 3};
+
 static CeedRequest ceed_request_immediate;
 CeedRequest *CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
 
