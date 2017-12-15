@@ -14,13 +14,22 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
+CC = gcc
+
+NDEBUG ?=
+LDFLAGS ?= 
+
+SANTIZ = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
+CFLAGS += $(if $(NDEBUG),,$(SANTIZ))
 CFLAGS += $(if $(NDEBUG),-O2,-g)
+LDFLAGS += $(if $(NDEBUG),,$(SANTIZ))
 CPPFLAGS = -I.
 LDLIBS = -lm
 OBJDIR := build
 LIBDIR := .
 NPROCS := $(shell getconf _NPROCESSORS_ONLN)
+MFLAGS := --no-print-directory -j $(NPROCS) --warn-undefined-variables
 
 PROVE ?= prove
 DARWIN := $(filter Darwin,$(shell uname -s))
@@ -43,7 +52,8 @@ examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
 
 .PRECIOUS: %/.DIR
 
-all:;$(MAKE) --no-print-directory -j $(NPROCS) $(libceed)
+all dbg:;$(MAKE) $(MFLAGS) $(libceed)
+opt:;NDEBUG=1 $(MAKE) $(MFLAGS) $(libceed)
 
 $(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o)
 	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
@@ -63,10 +73,10 @@ $(OBJDIR)/t% : tests/t%.c $(libceed)
 $(OBJDIR)/ex% : examples/ex%.c $(libceed)
 
 run-t% : $(OBJDIR)/t%
-	@tests/tap.sh $(<:build/%=%)
+	tests/tap.sh $(<:build/%=%)
 
 test : $(tests:$(OBJDIR)/t%=run-t%)
-tst:;@$(MAKE) --no-print-directory -j $(NPROCS) test
+tst:;@$(MAKE) $(MFLAGS) test
 
 prove : $(tests)
 	$(PROVE) --exec tests/tap.sh $(CEED_PROVE_OPTS) $(tests:$(OBJDIR)/%=%)

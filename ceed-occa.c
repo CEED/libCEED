@@ -32,7 +32,7 @@ typedef struct {
 } CeedOperatorOccaCPU;
 
 static int CeedVectorSetArrayOccaCPU(CeedVector vec, CeedMemType mtype,
-                                  CeedCopyMode cmode, CeedScalar* array) {
+                                     CeedCopyMode cmode, CeedScalar* array) {
   CeedVectorOccaCPU* impl = vec->data;
   int ierr;
 
@@ -56,7 +56,7 @@ static int CeedVectorSetArrayOccaCPU(CeedVector vec, CeedMemType mtype,
 }
 
 static int CeedVectorGetArrayOccaCPU(CeedVector vec, CeedMemType mtype,
-                                  CeedScalar** array) {
+                                     CeedScalar** array) {
   CeedVectorOccaCPU* impl = vec->data;
 
   if (mtype != CEED_MEM_HOST)
@@ -66,7 +66,7 @@ static int CeedVectorGetArrayOccaCPU(CeedVector vec, CeedMemType mtype,
 }
 
 static int CeedVectorGetArrayReadOccaCPU(CeedVector vec, CeedMemType mtype,
-                                      const CeedScalar** array) {
+    const CeedScalar** array) {
   CeedVectorOccaCPU* impl = vec->data;
 
   if (mtype != CEED_MEM_HOST)
@@ -111,8 +111,8 @@ static int CeedVectorCreateOccaCPU(Ceed ceed, CeedInt n, CeedVector vec) {
 }
 
 static int CeedElemRestrictionApplyOccaCPU(CeedElemRestriction r,
-                                        CeedTransposeMode tmode, CeedVector u,
-                                        CeedVector v, CeedRequest* request) {
+    CeedTransposeMode tmode, CeedVector u,
+    CeedVector v, CeedRequest* request) {
   CeedElemRestrictionOccaCPU* impl = r->data;
   int ierr;
   const CeedScalar* uu;
@@ -174,9 +174,9 @@ static int CeedElemRestrictionCreateOccaCPU(CeedElemRestriction r,
 // NOTRANSPOSE: V_ajc = T_jb U_abc
 // TRANSPOSE:   V_ajc = T_bj U_abc
 static int CeedTensorContractOccaCPU(Ceed ceed,
-                                  CeedInt A, CeedInt B, CeedInt C, CeedInt J,
-                                  const CeedScalar* t, CeedTransposeMode tmode,
-                                  const CeedScalar* u, CeedScalar* v) {
+                                     CeedInt A, CeedInt B, CeedInt C, CeedInt J,
+                                     const CeedScalar* t, CeedTransposeMode tmode,
+                                     const CeedScalar* u, CeedScalar* v) {
   CeedInt tstride0 = B, tstride1 = 1;
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = B;
@@ -197,8 +197,8 @@ static int CeedTensorContractOccaCPU(Ceed ceed,
 }
 
 static int CeedBasisApplyOccaCPU(CeedBasis basis, CeedTransposeMode tmode,
-                              CeedEvalMode emode,
-                              const CeedScalar* u, CeedScalar* v) {
+                                 CeedEvalMode emode,
+                                 const CeedScalar* u, CeedScalar* v) {
   int ierr;
   const CeedInt dim = basis->dim;
   const CeedInt ndof = basis->ndof;
@@ -213,8 +213,8 @@ static int CeedBasisApplyOccaCPU(CeedBasis basis, CeedTransposeMode tmode,
       CeedScalar tmp[2][Q*CeedPowInt(P>Q?P:Q, dim-1)];
       for (CeedInt d=0; d<dim; d++) {
         ierr = CeedTensorContractOccaCPU(basis->ceed, pre, P, post, Q, basis->interp1d,
-                                      tmode,
-                                      d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]); CeedChk(ierr);
+                                         tmode,
+                                         d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]); CeedChk(ierr);
         pre /= P;
         post *= Q;
       }
@@ -247,19 +247,19 @@ static int CeedBasisDestroyOccaCPU(CeedBasis basis) {
 }
 
 static int CeedBasisCreateTensorH1OccaCPU(Ceed ceed, CeedInt dim, CeedInt P1d,
-                                       CeedInt Q1d, const CeedScalar* interp1d,
-                                       const CeedScalar* grad1d,
-                                       const CeedScalar* qref1d,
-                                       const CeedScalar* qweight1d,
-                                       CeedBasis basis) {
+    CeedInt Q1d, const CeedScalar* interp1d,
+    const CeedScalar* grad1d,
+    const CeedScalar* qref1d,
+    const CeedScalar* qweight1d,
+    CeedBasis basis) {
   basis->Apply = CeedBasisApplyOccaCPU;
   basis->Destroy = CeedBasisDestroyOccaCPU;
   return 0;
 }
 
 static int CeedQFunctionApplyOccaCPU(CeedQFunction qf, void* qdata, CeedInt Q,
-                                  const CeedScalar* const* u,
-                                  CeedScalar* const* v) {
+                                     const CeedScalar* const* u,
+                                     CeedScalar* const* v) {
   int ierr;
   ierr = qf->function(qf->ctx, qdata, Q, u, v); CeedChk(ierr);
   return 0;
@@ -285,8 +285,8 @@ static int CeedOperatorDestroyOccaCPU(CeedOperator op) {
 }
 
 static int CeedOperatorApplyOccaCPU(CeedOperator op, CeedVector qdata,
-                                 CeedVector ustate,
-                                 CeedVector residual, CeedRequest* request) {
+                                    CeedVector ustate,
+                                    CeedVector residual, CeedRequest* request) {
   CeedOperatorOccaCPU* impl = op->data;
   CeedVector etmp;
   CeedScalar* Eu;
