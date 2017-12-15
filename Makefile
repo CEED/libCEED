@@ -48,8 +48,8 @@ $(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o)
 $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
 
-$(OBJDIR)/%.o : tests/%.c | $$(@D)/.DIR
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
+$(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 $(OBJDIR)/%.o : examples/%.c | $$(@D)/.DIR
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
