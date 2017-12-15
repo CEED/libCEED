@@ -94,7 +94,7 @@ int CeedBasisSetQuadrature(CeedBasis basis, CeedInt qorder,
   return 0;
 }
 
-/* This function compeles the construction of a scalar, tensor-product basis.
+/* This function completes the construction of a scalar, tensor-product basis.
    It expects that the following entries in basis are set.
    1. If host_basis == NULL:
      - ceed, dim, ncomp;
@@ -119,7 +119,7 @@ static int CeedBasisCompleteScalarTensor(CeedBasis basis) {
   }
   if (!h_data) {
     switch (basis->btype) {
-    case CEED_LAGRANGE_BASIS:
+    case CEED_BASIS_LAGRANGE:
       break;
     default: return CeedError(basis->ceed, 1, "Basis type not supported: %d",
                                 basis->btype);
@@ -179,7 +179,7 @@ static int CeedBasisCompleteScalarTensor(CeedBasis basis) {
     }
     ierr = CeedFree(&nodes); CeedChk(ierr);
   } else {
-    basis->btype = CEED_CUSTOM_BASIS;
+    basis->btype = CEED_BASIS_CUSTOM;
     basis->degree = h_data->P1d - 1;
     basis->node_locations = CEED_CUSTOM_QMODE;
     basis->qorder = -1; // unknown (custom) order
@@ -237,7 +237,7 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
   (*basis)->ceed = ceed;
   (*basis)->dim = dim;
   (*basis)->ncomp = ncomp;
-  (*basis)->btype = CEED_LAGRANGE_BASIS;
+  (*basis)->btype = CEED_BASIS_LAGRANGE;
   (*basis)->degree = degree;
   (*basis)->node_locations = CEED_GAUSS_LOBATTO;
   switch (qmode) {

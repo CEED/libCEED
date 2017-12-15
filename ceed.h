@@ -185,8 +185,8 @@ CEED_EXTERN const CeedInt CeedGeometryDimension[CEED_NUM_GEOM];
 /** @brief Enumeration for finite element basis types. Node locations, if
     applicable, are specified separately using CeedQuadMode. */
 typedef enum {
-  CEED_LAGRANGE_BASIS,  /**< Nodal scalar Lagrange basis. */
-  CEED_CUSTOM_BASIS     /**< User-specified basis type. */
+  CEED_BASIS_LAGRANGE,  /**< Nodal scalar Lagrange basis. */
+  CEED_BASIS_CUSTOM     /**< User-specified basis type. */
 } CeedBasisType;
 
 /** @brief Allocate and zero-initialize a CeedBasis in the variable pointed to
