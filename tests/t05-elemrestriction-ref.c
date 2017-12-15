@@ -1,12 +1,12 @@
 #include <ceed.h>
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   Ceed ceed;
   CeedVector x, y;
   CeedInt ne = 3;
   CeedInt ind[2*ne];
   CeedScalar a[ne+1];
-  const CeedScalar *yy;
+  const CeedScalar* yy;
   CeedElemRestriction r;
 
   CeedInit("/cpu/self", &ceed);

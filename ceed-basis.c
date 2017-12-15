@@ -21,9 +21,9 @@
 #include <string.h>
 
 int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof, CeedInt P1d,
-                            CeedInt Q1d, const CeedScalar *interp1d,
-                            const CeedScalar *grad1d, const CeedScalar *qref1d,
-                            const CeedScalar *qweight1d, CeedBasis *basis) {
+                            CeedInt Q1d, const CeedScalar* interp1d,
+                            const CeedScalar* grad1d, const CeedScalar* qref1d,
+                            const CeedScalar* qweight1d, CeedBasis* basis) {
   int ierr;
 
   if (!ceed->BasisCreateTensorH1)
@@ -49,7 +49,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof, CeedInt P1d,
 
 int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ndof,
                                     CeedInt degree, CeedInt Q,
-                                    CeedQuadMode qmode, CeedBasis *basis) {
+                                    CeedQuadMode qmode, CeedBasis* basis) {
   // Allocate
   int ierr, i, j, k;
   CeedScalar c1, c2, c3, c4, dx, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
@@ -62,12 +62,12 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ndof,
   // Get Nodes and Weights
   ierr = CeedLobattoQuadrature(degree+1, nodes, NULL); CeedChk(ierr);
   switch (qmode) {
-  case CEED_GAUSS:
-    ierr = CeedGaussQuadrature(Q, qref1d, qweight1d); CeedChk(ierr);
-    break;
-  case CEED_GAUSS_LOBATTO:
-    ierr = CeedLobattoQuadrature(Q, qref1d, qweight1d); CeedChk(ierr);
-    break;
+    case CEED_GAUSS:
+      ierr = CeedGaussQuadrature(Q, qref1d, qweight1d); CeedChk(ierr);
+      break;
+    case CEED_GAUSS_LOBATTO:
+      ierr = CeedLobattoQuadrature(Q, qref1d, qweight1d); CeedChk(ierr);
+      break;
   }
   // Build B, D matrix
   // Fornberg, 1998
@@ -103,7 +103,7 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ndof,
   return 0;
 }
 
-int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) {
+int CeedGaussQuadrature(CeedInt Q, CeedScalar* qref1d, CeedScalar* qweight1d) {
   // Allocate
   CeedScalar P0, P1, P2, dP2, xi, wi, PI = 4.0*atan(1.0);
   // Build qref1d, qweight1d
@@ -143,8 +143,8 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) {
   return 0;
 }
 
-int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
-                          CeedScalar *qweight1d) {
+int CeedLobattoQuadrature(CeedInt Q, CeedScalar* qref1d,
+                          CeedScalar* qweight1d) {
   // Allocate
   CeedScalar P0, P1, P2, dP2, d2P2, xi, wi, PI = 4.0*atan(1.0);
   // Build qref1d, qweight1d
@@ -197,8 +197,8 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
   return 0;
 }
 
-static int CeedScalarView(const char *name, const char *fpformat, CeedInt m,
-                          CeedInt n, const CeedScalar *a, FILE *stream) {
+static int CeedScalarView(const char* name, const char* fpformat, CeedInt m,
+                          CeedInt n, const CeedScalar* a, FILE* stream) {
   for (int i=0; i<m; i++) {
     if (m > 1) fprintf(stream, "%12s[%d]:", name, i);
     else fprintf(stream, "%12s:", name);
@@ -208,7 +208,7 @@ static int CeedScalarView(const char *name, const char *fpformat, CeedInt m,
   return 0;
 }
 
-int CeedBasisView(CeedBasis basis, FILE *stream) {
+int CeedBasisView(CeedBasis basis, FILE* stream) {
   int ierr;
 
   fprintf(stream, "CeedBasis: dim=%d P=%d Q=%d\n", basis->dim, basis->P1d,
@@ -225,7 +225,7 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
 }
 
 int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode, CeedEvalMode emode,
-                   const CeedScalar *u, CeedScalar *v) {
+                   const CeedScalar* u, CeedScalar* v) {
   int ierr;
   if (!basis->Apply) return CeedError(basis->ceed, 1,
                                         "Backend does not support BasisApply");
@@ -233,7 +233,7 @@ int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode, CeedEvalMode emode,
   return 0;
 }
 
-int CeedBasisDestroy(CeedBasis *basis) {
+int CeedBasisDestroy(CeedBasis* basis) {
   int ierr;
 
   if (!*basis) return 0;

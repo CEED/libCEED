@@ -18,20 +18,20 @@
 #include <stdlib.h>
 #include <math.h>
 
-static int f_mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
-                  CeedScalar *const *v) {
-  const CeedScalar *w = qdata;
+static int f_mass(void* ctx, void* qdata, CeedInt Q, const CeedScalar* const* u,
+                  CeedScalar* const* v) {
+  const CeedScalar* w = qdata;
   for (CeedInt i=0; i<Q; i++) v[0][i] = w[i] * u[0][i];
   return 0;
 }
 
-static int f_poisson3d(void *ctx, void *qdata, CeedInt Q,
-                       const CeedScalar *const *u,
-                       CeedScalar *const *v) {
+static int f_poisson3d(void* ctx, void* qdata, CeedInt Q,
+                       const CeedScalar* const* u,
+                       CeedScalar* const* v) {
   // Q is guaranteed to be a multiple of 8 (because of how we call CeedQFunctionCreateInterior) so we can tell the compiler
   Q = 8*(Q/8);
   // qdata can be packed arbitrarily, but we'll choose a vector-friendly ordering here
-  const CeedScalar *rhs = qdata;
+  const CeedScalar* rhs = qdata;
   const CeedScalar (*K)[Q] = (const CeedScalar(*)[Q])(rhs +
                              Q);  // Probably symmetric but we don't have to exploit it
   for (CeedInt i=0; i<Q; i++) {
@@ -44,10 +44,10 @@ static int f_poisson3d(void *ctx, void *qdata, CeedInt Q,
   return 0;
 }
 
-static int f_buildcoeffs(void *ctx, void *qdata, CeedInt Q,
-                         const CeedScalar *const *u,
-                         CeedScalar *const *v) {
-  CeedScalar *rhs = qdata;
+static int f_buildcoeffs(void* ctx, void* qdata, CeedInt Q,
+                         const CeedScalar* const* u,
+                         CeedScalar* const* v) {
+  CeedScalar* rhs = qdata;
   CeedScalar (*K)[Q] = (CeedScalar(*)[Q])(rhs + Q);
   for (CeedInt i=0; i<Q; i++) {
     // RHS as an analytic function of the coordinates
@@ -64,7 +64,7 @@ static int f_buildcoeffs(void *ctx, void *qdata, CeedInt Q,
   return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   Ceed ceed;
   CeedVector u, r, xcoord, qdata;
   CeedInt nelem = 8, esize = 64, ndof = 343, *Eindices;

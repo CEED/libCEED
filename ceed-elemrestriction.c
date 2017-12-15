@@ -18,7 +18,7 @@
 
 int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
                               CeedInt ndof, CeedMemType mtype, CeedCopyMode cmode,
-                              const CeedInt *indices, CeedElemRestriction *r) {
+                              const CeedInt* indices, CeedElemRestriction* r) {
   int ierr;
 
   if (!ceed->ElemRestrictionCreate)
@@ -33,7 +33,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 }
 
 int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode,
-                             CeedVector u, CeedVector v, CeedRequest *request) {
+                             CeedVector u, CeedVector v, CeedRequest* request) {
   CeedInt m,n;
   int ierr;
 
@@ -56,7 +56,7 @@ int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode,
   return 0;
 }
 
-int CeedElemRestrictionDestroy(CeedElemRestriction *r) {
+int CeedElemRestrictionDestroy(CeedElemRestriction* r) {
   int ierr;
 
   if (!*r) return 0;

@@ -20,6 +20,7 @@ CPPFLAGS = -I.
 LDLIBS = -lm
 OBJDIR := build
 LIBDIR := .
+NPROCS := $(shell getconf _NPROCESSORS_ONLN)
 
 PROVE ?= prove
 DARWIN := $(filter Darwin,$(shell uname -s))
@@ -42,6 +43,8 @@ examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
 
 .PRECIOUS: %/.DIR
 
+all:;$(MAKE) --no-print-directory -j $(NPROCS) $(libceed)
+
 $(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o)
 	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
@@ -63,6 +66,7 @@ run-t% : $(OBJDIR)/t%
 	@tests/tap.sh $(<:build/%=%)
 
 test : $(tests:$(OBJDIR)/t%=run-t%)
+tst:;@$(MAKE) --no-print-directory -j $(NPROCS) test
 
 prove : $(tests)
 	$(PROVE) --exec tests/tap.sh $(CEED_PROVE_OPTS) $(tests:$(OBJDIR)/%=%)
@@ -70,7 +74,7 @@ prove : $(tests)
 examples : $(examples)
 
 .PHONY: clean print test examples astyle
-clean :
+cln clean :
 	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests.c:%.c=%)
 	$(RM) -r *.dSYM
 

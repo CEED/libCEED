@@ -11,10 +11,10 @@ static CeedScalar Eval(CeedInt dim, const CeedScalar x[]) {
   return result;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   Ceed ceed;
 
-  CeedInit("/cpu/self", &ceed);
+  CeedInit("/cpu/occa", &ceed);
   for (CeedInt dim=1; dim<=3; dim++) {
     CeedBasis bxl, bul, bxg, bug;
     CeedInt Q = 10, Qdim = CeedPowInt(Q, dim), Xdim = CeedPowInt(2, dim);

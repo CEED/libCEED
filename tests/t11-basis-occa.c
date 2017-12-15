@@ -3,13 +3,13 @@
 #include <stdio.h>
 #include <math.h>
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   Ceed ceed;
   CeedBasis b;
   int i, dim = 2, P1d = 3, Q1d = 4, len = (int)(pow((double)(Q1d), dim) + 0.4);
   CeedScalar u[len], v[len];
 
-  CeedInit("/cpu/self", &ceed);
+  CeedInit("/cpu/occa", &ceed);
   for (i = 0; i < len; i++) {
     u[i] = 1.0;
   }

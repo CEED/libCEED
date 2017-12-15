@@ -19,7 +19,7 @@
 
 int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
                        CeedQFunction qf, CeedQFunction dqf,
-                       CeedQFunction dqfT, CeedOperator *op) {
+                       CeedQFunction dqfT, CeedOperator* op) {
   int ierr;
 
   if (!ceed->OperatorCreate) return CeedError(ceed, 1,
@@ -36,14 +36,14 @@ int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
 }
 
 int CeedOperatorApply(CeedOperator op, CeedVector qdata, CeedVector ustate,
-                      CeedVector residual, CeedRequest *request) {
+                      CeedVector residual, CeedRequest* request) {
   int ierr;
 
   ierr = op->Apply(op, qdata, ustate, residual, request); CeedChk(ierr);
   return 0;
 }
 
-int CeedOperatorDestroy(CeedOperator *op) {
+int CeedOperatorDestroy(CeedOperator* op) {
   int ierr;
 
   if (!*op) return 0;

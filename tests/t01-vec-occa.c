@@ -1,13 +1,13 @@
 #include <ceed.h>
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   Ceed ceed;
   CeedVector x;
   CeedInt n;
   CeedScalar a[10];
-  const CeedScalar *b;
+  const CeedScalar* b;
 
-  CeedInit("/cpu/self", &ceed);
+  CeedInit("/cpu/occa", &ceed);
   n = 10;
   CeedVectorCreate(ceed, n, &x);
   for (CeedInt i=0; i<n; i++) a[i] = 10 + i;

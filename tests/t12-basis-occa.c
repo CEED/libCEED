@@ -4,13 +4,13 @@
 
 #define ALEN(a) (sizeof(a) / sizeof((a)[0]))
 
-static CeedScalar PolyEval(CeedScalar x, CeedInt n, const CeedScalar *p) {
+static CeedScalar PolyEval(CeedScalar x, CeedInt n, const CeedScalar* p) {
   CeedScalar y = p[n-1];
   for (CeedInt i=n-2; i>=0; i--) y = y*x + p[i];
   return y;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   Ceed ceed;
   CeedBasis bxl, bul, bxg, bug;
   CeedInt Q = 6;
@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   const CeedScalar x[] = {-1, 1};
   CeedScalar xq[Q], uq[Q], u[Q];
 
-  CeedInit("/cpu/self", &ceed);
+  CeedInit("/cpu/occa", &ceed);
   CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 1, Q, CEED_GAUSS_LOBATTO, &bxl);
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q-1, Q, CEED_GAUSS_LOBATTO, &bul);
   CeedBasisApply(bxl, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
