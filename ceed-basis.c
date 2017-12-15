@@ -232,6 +232,16 @@ int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode, CeedEvalMode emode,
   return 0;
 }
 
+int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
+  *P = CeedPowInt(basis->P1d, basis->dim);
+  return 0;
+}
+
+int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
+  *Q = CeedPowInt(basis->Q1d, basis->dim);
+  return 0;
+}
+
 int CeedBasisDestroy(CeedBasis *basis) {
   int ierr;
 
