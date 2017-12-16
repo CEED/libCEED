@@ -24,6 +24,10 @@
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
 
+/** @brief An array that contains the dimensions of all reference element types
+    as defined by the CeedTopology enumeration. */
+CEED_INTERN const CeedInt CeedTopologyDimension[CEED_NUM_TOPO];
+
 typedef struct CeedBasisScalarGeneric_private *CeedBasisScalarGeneric;
 typedef struct CeedBasisScalarTensor_private *CeedBasisScalarTensor;
 
@@ -95,7 +99,7 @@ struct CeedBasis_private {
   int (*Apply)(CeedBasis, CeedTransposeMode, CeedEvalMode, const CeedScalar *,
                CeedScalar *);
   int (*Destroy)(CeedBasis);
-  CeedGeometry geom;  // type of the reference element
+  CeedTopology topology;  // type of the reference element
   CeedBasisType btype;
   CeedInt degree; // polynomial degree of the basis functions: k in Pk/Qk
   CeedQuadMode node_locations; // node = point where a DOF is defined

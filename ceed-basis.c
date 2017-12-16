@@ -74,8 +74,8 @@ int CeedBasisCreate(Ceed ceed, CeedBasis *basis_ptr) {
   return 0;
 }
 
-int CeedBasisSetElement(CeedBasis basis, CeedGeometry geom) {
-  basis->geom = geom;
+int CeedBasisSetElement(CeedBasis basis, CeedTopology topo) {
+  basis->topology = topo;
   return 0;
 }
 
@@ -112,9 +112,9 @@ static int CeedBasisCompleteScalarTensor(CeedBasis basis) {
   if (!ceed->BasisCreateScalarTensor)
     return CeedError(ceed, 1, "Backend does not support BasisCreateScalarTensor");
   switch (basis->dim) {
-  case 1: basis->geom = CEED_LINE; break;
-  case 2: basis->geom = CEED_QUAD; break;
-  case 3: basis->geom = CEED_HEX; break;
+  case 1: basis->topology = CEED_LINE; break;
+  case 2: basis->topology = CEED_QUAD; break;
+  case 3: basis->topology = CEED_HEX; break;
   default: return CeedError(ceed, 1, "Invalid dimension: %d", basis->dim);
   }
   if (!h_data) {
@@ -193,19 +193,20 @@ static int CeedBasisCompleteScalarTensor(CeedBasis basis) {
 }
 
 int CeedBasisComplete(CeedBasis basis) {
-  switch (basis->geom) {
+  switch (basis->topology) {
   case CEED_POINT:
   case CEED_TRIANGLE:
   case CEED_TET:
-    return CeedError(basis->ceed, 1, "Unsupported CeedGeometry: %d", basis->geom);
+    return CeedError(basis->ceed, 1, "Unsupported CeedTopology: %d",
+                     basis->topology);
   case CEED_LINE:
   case CEED_QUAD:
   case CEED_HEX:
-    basis->dim = CeedGeometryDimension[basis->geom];
+    basis->dim = CeedTopologyDimension[basis->topology];
     basis->ncomp = 1;
     return CeedBasisCompleteScalarTensor(basis);
   default:
-    return CeedError(basis->ceed, 2, "Invalid CeedGeometry: %d", basis->geom);
+    return CeedError(basis->ceed, 2, "Invalid CeedTopology: %d", basis->topology);
   }
   return 0;
 }

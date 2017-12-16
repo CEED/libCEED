@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-const CeedInt CeedGeometryDimension[] = {0, 1, 2, 2, 3, 3};
+const CeedInt CeedTopologyDimension[] = {-1, 0, 1, 2, 2, 3, 3};
 
 static CeedRequest ceed_request_immediate;
 CeedRequest *CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
@@ -118,5 +118,14 @@ int CeedDestroy(Ceed *ceed) {
     ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);
   }
   ierr = CeedFree(ceed); CeedChk(ierr);
+  return 0;
+}
+
+int CeedTopologyGetDimension(CeedTopology topo, CeedInt *dim) {
+  if (topo == CEED_CUSTOM_TOPOLOGY)
+    return CeedError(NULL, 1, "CEED_CUSTOM_TOPOLOGY has unknown dimension");
+  else if (topo < CEED_CUSTOM_TOPOLOGY || topo >= CEED_NUM_TOPO)
+    return CeedError(NULL, 1, "Invalid CeedTopology: %d", topo);
+  *dim = CeedTopologyDimension[topo];
   return 0;
 }

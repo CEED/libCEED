@@ -160,41 +160,42 @@ typedef enum {CEED_EVAL_NONE   = 0,
 /** @brief Enumeration for quadrature point sets. Used also for specifying node
     locations for nodal finite element bases. */
 typedef enum {
-  CEED_GAUSS = 0,      /**< Gauss quadrature. */
-  CEED_GAUSS_LOBATTO,  /**< Gauss-Lobatto quadrature. */
-  CEED_CUSTOM_QMODE    /**< Unknown/custom quadrature. */
+  CEED_CUSTOM_QMODE = 0,  /**< Unknown/custom quadrature. */
+  CEED_GAUSS,             /**< Gauss quadrature. */
+  CEED_GAUSS_LOBATTO,     /**< Gauss-Lobatto quadrature. */
 } CeedQuadMode;
 
 /** @brief Enumeration for reference geometric shapes for mesh elements. */
 typedef enum {
-  CEED_POINT = 0,   /**< Point */
+  CEED_CUSTOM_TOPOLOGY = 0,  /**< Custom/unknown reference element type */
+  CEED_POINT,       /**< Point */
   CEED_LINE,        /**< Unit line segment: [0,1] */
   CEED_TRIANGLE,    /**< Triangle with vertices: (0,0), (1,0), and (0,1) */
   CEED_QUAD,        /**< Unit square: [0,1]^2 */
   CEED_TET,         /**< Tetrahedron with vertices: (0,0,0), (1,0,0), (0,1,0),
                          and (0,0,1) */
   CEED_HEX,         /**< Unit cube: [0,1]^3 */
-  CEED_NUM_GEOM     /**< This is the number of reference element types: insert
+  CEED_NUM_TOPO     /**< This is the number of reference element types: insert
                          new types in front of it. */
-} CeedGeometry;
+} CeedTopology;
 
-/** @brief An array that contains the dimensions of all reference element types
-    as defined by the CeedGeometry enumeration. */
-CEED_EXTERN const CeedInt CeedGeometryDimension[CEED_NUM_GEOM];
+/** @brief A function that returns the dimension, @a dim, of a given
+    CeedTopology, @a topo. */
+CEED_EXTERN int CeedTopologyGetDimension(CeedTopology topo, CeedInt *dim);
 
 /** @brief Enumeration for finite element basis types. Node locations, if
     applicable, are specified separately using CeedQuadMode. */
 typedef enum {
-  CEED_BASIS_LAGRANGE,  /**< Nodal scalar Lagrange basis. */
-  CEED_BASIS_CUSTOM     /**< User-specified basis type. */
+  CEED_BASIS_CUSTOM = 0,  /**< User-specified basis type. */
+  CEED_BASIS_LAGRANGE     /**< Nodal scalar Lagrange basis. */
 } CeedBasisType;
 
 /** @brief Allocate and zero-initialize a CeedBasis in the variable pointed to
     by @a basis_ptr, associating it with the given Ceed object, @a ceed. */
 CEED_EXTERN int CeedBasisCreate(Ceed ceed, CeedBasis *basis_ptr);
 
-/** @brief Set the reference element type, @a geom, of @a basis. */
-CEED_EXTERN int CeedBasisSetElement(CeedBasis basis, CeedGeometry geom);
+/** @brief Set the reference element type, @a topo, of @a basis. */
+CEED_EXTERN int CeedBasisSetElement(CeedBasis basis, CeedTopology topo);
 
 /** @brief Set the basis type, @a btype, @a degree, and node location, @a nloc,
     (when applicable) for the given @a basis. */
