@@ -390,8 +390,19 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   switch (basis->dtype) {
   case CEED_BASIS_NO_DATA:
     fprintf(stream, "CeedBasis: (no host data)\n"); break;
-  case CEED_BASIS_SCALAR_GENERIC:
-    fprintf(stream, "CeedBasis: (generic scalar basis)\n"); break;
+  case CEED_BASIS_SCALAR_GENERIC: {
+    CeedBasisScalarGeneric h_data = basis->host_data;
+    fprintf(stream, "CeedBasis: (generic scalar basis)\n");
+    fprintf(stream, "CeedBasis: dim=%d ndof=%d nqpt=%d\n", h_data->dim,
+            h_data->ndof, h_data->nqpt);
+    ierr = CeedScalarView("qweights", "\t% 12.8f", 1, h_data->nqpt,
+                          h_data->qweights, stream); CeedChk(ierr);
+    ierr = CeedScalarView("interp", "\t% 12.8f", h_data->ndof, h_data->nqpt,
+                          h_data->interp, stream); CeedChk(ierr);
+    ierr = CeedScalarView("grad", "\t% 12.8f", h_data->ndof*h_data->dim,
+                          h_data->nqpt, h_data->grad, stream); CeedChk(ierr);
+    break;
+  }
   case CEED_BASIS_SCALAR_TENSOR: {
     CeedBasisScalarTensor h_data = basis->host_data;
     fprintf(stream, "CeedBasis: dim=%d P=%d Q=%d\n", h_data->dim, h_data->P1d,

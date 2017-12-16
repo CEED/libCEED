@@ -251,13 +251,12 @@ CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,
     @param[in]  Q1d        Number of quadrature points in 1D, used for all
                            spatial dimensions
     @param[in]  interp1d   Interpolation matrix with dimensions @a Q1d x @a P1d,
-                           using column-major layout. It represents the values
+                           using row-major layout. It represents the values of
+                           the 1D basis functions at the 1D quadrature points.
+    @param[in]  grad1d     Interpolation matrix with dimensions @a Q1d x @a P1d,
+                           using row-major layout. It represents the derivatives
                            of the 1D basis functions at the 1D quadrature
                            points.
-    @param[in]  grad1d     Interpolation matrix with dimensions @a Q1d x @a P1d,
-                           using column-major layout. It represents the
-                           derivatives of the 1D basis functions at the 1D
-                           quadrature points.
     @param[in]  qref1d     Coordinates of the 1D quadrature points: array of
                            size @a Q1d
     @param[in]  qweight1d  1D quadrature point weights: array of size @a Q1d

@@ -131,8 +131,8 @@ struct CeedBasisScalarTensor_private {
   CeedInt dim; // dimension of the reference space
   CeedScalar *qref1d;  // locations of the 1D quadrature points, size = Q1d
   CeedScalar *qweight1d; // weights of the 1D quadrature, size = Q1d
-  CeedScalar *interp1d;  // Q1d x P1d (column-major layout)
-  CeedScalar *grad1d;    // Q1d x P1d (column-major layout)
+  CeedScalar *interp1d;  // Q1d x P1d (row-major layout)
+  CeedScalar *grad1d;    // Q1d x P1d (row-major layout)
 };
 
 /* FIXME: The number of in-fields and out-fields may be different? */

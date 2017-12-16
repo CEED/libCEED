@@ -179,7 +179,7 @@ static int CeedTensorContract_Ref(Ceed ceed,
                                   const CeedScalar *u, CeedScalar *v) {
   CeedInt tstride0 = B, tstride1 = 1;
   if (tmode == CEED_TRANSPOSE) {
-    tstride0 = 1; tstride1 = B;
+    tstride0 = 1; tstride1 = J;
   }
 
   for (CeedInt a=0; a<A; a++) {
@@ -209,12 +209,14 @@ static int CeedBasisApplyScalarGeneric_Ref(CeedBasis basis,
     if (tmode == CEED_NOTRANSPOSE) {
       // v = interp * u,  [(nqpt) = (nqpt x ndof) * (ndof)]
       ierr = CeedTensorContract_Ref(basis->ceed, 1, ndof, 1, nqpt,
-                                    h_data->interp, tmode, u, v); CeedChk(ierr);
+                                    h_data->interp, CEED_TRANSPOSE, u, v);
+      CeedChk(ierr);
       v += nqpt;
     } else {
       // v = interp^T * u,  [(ndof) = (ndof x nqpt) * (nqpt)]
       ierr = CeedTensorContract_Ref(basis->ceed, 1, nqpt, 1, ndof,
-                                    h_data->interp, tmode, u, v); CeedChk(ierr);
+                                    h_data->interp, CEED_NOTRANSPOSE, u, v);
+      CeedChk(ierr);
       u += nqpt;
     }
   }
@@ -222,17 +224,26 @@ static int CeedBasisApplyScalarGeneric_Ref(CeedBasis basis,
     if (tmode == CEED_NOTRANSPOSE) {
       // v = grad * u,  [(nqpt x dim) = (nqpt x dim x ndof) * (ndof)]
       ierr = CeedTensorContract_Ref(basis->ceed, 1, ndof, 1, nqpt*dim,
-                                    h_data->grad, tmode, u, v); CeedChk(ierr);
+                                    h_data->grad, CEED_TRANSPOSE, u, v);
+      CeedChk(ierr);
+      v += nqpt*dim;
     } else {
       // v += ( view[nqpt*dim,ndof](grad) )^T * view[nqpt*dim](u),
       //   [(ndof) += (ndof x (nqpt*dim)) * (nqpt*dim)]
       CeedScalar vt[ndof];
       ierr = CeedTensorContract_Ref(basis->ceed, 1, nqpt*dim, 1, ndof,
-                                    h_data->grad, tmode, u, vt); CeedChk(ierr);
+                                    h_data->grad, CEED_NOTRANSPOSE, u, vt);
+      CeedChk(ierr);
       for (CeedInt i = 0; i < ndof; i++) {
         v[i] += vt[i];
       }
     }
+  }
+  if (emode & CEED_EVAL_WEIGHT) {
+    if (tmode == CEED_TRANSPOSE)
+      return CeedError(basis->ceed, 1,
+                       "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+    memcpy(v, h_data->qweights, nqpt*sizeof(v[0]));
   }
   return 0;
 }
