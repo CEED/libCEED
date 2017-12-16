@@ -36,6 +36,8 @@ typedef struct Ceed_private *Ceed;
 typedef struct CeedRequest_private *CeedRequest;
 typedef struct CeedVector_private *CeedVector;
 typedef struct CeedElemRestriction_private *CeedElemRestriction;
+/** @brief A type representing a set of discrete basis functions that can be
+    evaluated at a predefined set of quadrature points. */
 typedef struct CeedBasis_private *CeedBasis;
 typedef struct CeedQFunction_private *CeedQFunction;
 typedef struct CeedOperator_private *CeedOperator;
@@ -266,6 +268,33 @@ CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,
 CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp,
                                         CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
                                         const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis *basis);
+
+/** @brief Construct a CeedBasis for a scalar, generic basis.
+
+    The constructed object represents a basis of scalar functions that do not
+    have any special structure, or the associated a qudrature rule does not
+    allow any special structure of the basis to be utilized for fast evaluation.
+
+    @param[in]  ceed     Ceed object to associate with the new CeedBasis
+    @param[in]  dim      Reference element dimension
+    @param[in]  ndof     Number of degrees of freedom, i.e. number of basis
+                         functions
+    @param[in]  nqpt     Number of quadrature points
+    @param[in]  interp   Interpolation matrix with dimensions @a nqpt x @a ndof,
+                         using column-major layout. It represents the values of
+                         the basis functions at the quadrature points.
+    @param[in]  grad     Interpolation rank 3 tensor with dimensions @a nqpt x
+                         @a dim x @a ndof, using column-major layout. It
+                         represents the partial derivatives of the basis
+                         functions at the quadrature points.
+    @param[in]  qweights Quadrature point weights: array of size @a nqpt
+    @param[out] basis    The address of the output CeedBasis variable
+
+    @return An error code: 0 - success, otherwise - failure.
+*/
+CEED_EXTERN int CeedBasisCreateScalarGeneric(Ceed ceed, CeedInt dim,
+    CeedInt ndof, CeedInt nqpt, const CeedScalar *interp, const CeedScalar *grad,
+    const CeedScalar *qweights, CeedBasis *basis);
 
 /** @brief Write text information about @a basis to the given @a stream.
 

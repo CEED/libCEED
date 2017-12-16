@@ -22,6 +22,7 @@
 
 int CeedBasisScalarGenericCreate(CeedInt ndof, CeedInt nqpt, CeedInt dim,
                                  CeedBasisScalarGeneric *basis) {
+  // TODO: cleanup in case of error
   int ierr;
   ierr = CeedCalloc(1, basis); CeedChk(ierr);
   (*basis)->ndof = ndof;
@@ -342,6 +343,34 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
     qref1d[i] = -xi;
     qref1d[Q-1-i]= xi;
   }
+  return 0;
+}
+
+int CeedBasisCreateScalarGeneric(Ceed ceed, CeedInt dim, CeedInt ndof,
+                                 CeedInt nqpt, const CeedScalar *interp,
+                                 const CeedScalar *grad,
+                                 const CeedScalar *qweights, CeedBasis *basis) {
+  // TODO: cleanup in case of error
+  int ierr;
+  if (!ceed->BasisCreateScalarGeneric) return CeedError(ceed, 1,
+        "The backend does not support BasisCreateScalarGeneric");
+  ierr = CeedCalloc(1,basis); CeedChk(ierr);
+  (*basis)->ceed = ceed;
+  // topology, btype, node_locations, qmode: zero -> "custom" type
+  (*basis)->degree = -1; // unknown/custom degree
+  (*basis)->qorder = -1; // unknown/custom quadrature order
+  (*basis)->dim = dim;
+  (*basis)->ndof = ndof;
+  (*basis)->nqpt = nqpt;
+  (*basis)->ncomp = 1;
+  CeedBasisScalarGeneric h_data;
+  ierr = CeedBasisScalarGenericCreate(ndof, nqpt, dim, &h_data); CeedChk(ierr);
+  memcpy(h_data->interp, interp, nqpt*ndof*sizeof(interp[0]));
+  memcpy(h_data->grad, grad, nqpt*dim*ndof*sizeof(grad[0]));
+  memcpy(h_data->qweights, qweights, nqpt*sizeof(qweights[0]));
+  (*basis)->dtype = CEED_BASIS_SCALAR_GENERIC;
+  (*basis)->host_data = h_data;
+  ierr = ceed->BasisCreateScalarGeneric(*basis, h_data); CeedChk(ierr);
   return 0;
 }
 
