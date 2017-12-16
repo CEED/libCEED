@@ -199,16 +199,42 @@ static int CeedTensorContract_Ref(Ceed ceed,
 static int CeedBasisApplyScalarGeneric_Ref(CeedBasis basis,
     CeedTransposeMode tmode, CeedEvalMode emode, const CeedScalar *u,
     CeedScalar *v) {
-  /*
-  const CeedInt dim = basis->dim;
-  const CeedInt ndof = basis->ndof;
+  int ierr;
   CeedBasisScalarGeneric h_data = basis->host_data;
-  */
+  const CeedInt ndof = h_data->ndof;
+  const CeedInt nqpt = h_data->nqpt;
+  const CeedInt dim = h_data->dim;
 
-  /* TODO */
-  return CeedError(basis->ceed, 1, "Not implemented");
-
-  // return 0;
+  if (emode & CEED_EVAL_INTERP) {
+    if (tmode == CEED_NOTRANSPOSE) {
+      // v = interp * u,  [(nqpt) = (nqpt x ndof) * (ndof)]
+      ierr = CeedTensorContract_Ref(basis->ceed, 1, ndof, 1, nqpt,
+                                    h_data->interp, tmode, u, v); CeedChk(ierr);
+      v += nqpt;
+    } else {
+      // v = interp^T * u,  [(ndof) = (ndof x nqpt) * (nqpt)]
+      ierr = CeedTensorContract_Ref(basis->ceed, 1, nqpt, 1, ndof,
+                                    h_data->interp, tmode, u, v); CeedChk(ierr);
+      u += nqpt;
+    }
+  }
+  if (emode & CEED_EVAL_GRAD) {
+    if (tmode == CEED_NOTRANSPOSE) {
+      // v = grad * u,  [(nqpt x dim) = (nqpt x dim x ndof) * (ndof)]
+      ierr = CeedTensorContract_Ref(basis->ceed, 1, ndof, 1, nqpt*dim,
+                                    h_data->grad, tmode, u, v); CeedChk(ierr);
+    } else {
+      // v += ( view[nqpt*dim,ndof](grad) )^T * view[nqpt*dim](u),
+      //   [(ndof) += (ndof x (nqpt*dim)) * (nqpt*dim)]
+      CeedScalar vt[ndof];
+      ierr = CeedTensorContract_Ref(basis->ceed, 1, nqpt*dim, 1, ndof,
+                                    h_data->grad, tmode, u, vt); CeedChk(ierr);
+      for (CeedInt i = 0; i < ndof; i++) {
+        v[i] += vt[i];
+      }
+    }
+  }
+  return 0;
 }
 
 static int CeedBasisApplyScalarTensor_Ref(CeedBasis basis,
