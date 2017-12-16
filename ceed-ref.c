@@ -179,7 +179,7 @@ static int CeedTensorContract_Ref(Ceed ceed,
                                   const CeedScalar *u, CeedScalar *v) {
   CeedInt tstride0 = B, tstride1 = 1;
   if (tmode == CEED_TRANSPOSE) {
-    tstride0 = 1; tstride1 = B;
+    tstride0 = 1; tstride1 = J;
   }
 
   for (CeedInt a=0; a<A; a++) {
@@ -196,40 +196,94 @@ static int CeedTensorContract_Ref(Ceed ceed,
   return 0;
 }
 
-static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
-                              CeedEvalMode emode,
-                              const CeedScalar *u, CeedScalar *v) {
+static int CeedBasisApplyScalarGeneric_Ref(CeedBasis basis,
+    CeedTransposeMode tmode, CeedEvalMode emode, const CeedScalar *u,
+    CeedScalar *v) {
+  int ierr;
+  CeedBasisScalarGeneric h_data = basis->host_data;
+  const CeedInt ndof = h_data->ndof;
+  const CeedInt nqpt = h_data->nqpt;
+  const CeedInt dim = h_data->dim;
+
+  if (emode & CEED_EVAL_INTERP) {
+    if (tmode == CEED_NOTRANSPOSE) {
+      // v = interp * u,  [(nqpt) = (nqpt x ndof) * (ndof)]
+      ierr = CeedTensorContract_Ref(basis->ceed, 1, ndof, 1, nqpt,
+                                    h_data->interp, CEED_TRANSPOSE, u, v);
+      CeedChk(ierr);
+      v += nqpt;
+    } else {
+      // v = interp^T * u,  [(ndof) = (ndof x nqpt) * (nqpt)]
+      ierr = CeedTensorContract_Ref(basis->ceed, 1, nqpt, 1, ndof,
+                                    h_data->interp, CEED_NOTRANSPOSE, u, v);
+      CeedChk(ierr);
+      u += nqpt;
+    }
+  }
+  if (emode & CEED_EVAL_GRAD) {
+    if (tmode == CEED_NOTRANSPOSE) {
+      // v = grad * u,  [(nqpt x dim) = (nqpt x dim x ndof) * (ndof)]
+      ierr = CeedTensorContract_Ref(basis->ceed, 1, ndof, 1, nqpt*dim,
+                                    h_data->grad, CEED_TRANSPOSE, u, v);
+      CeedChk(ierr);
+      v += nqpt*dim;
+    } else {
+      // v += ( view[nqpt*dim,ndof](grad) )^T * view[nqpt*dim](u),
+      //   [(ndof) += (ndof x (nqpt*dim)) * (nqpt*dim)]
+      CeedScalar vt[ndof];
+      ierr = CeedTensorContract_Ref(basis->ceed, 1, nqpt*dim, 1, ndof,
+                                    h_data->grad, CEED_NOTRANSPOSE, u, vt);
+      CeedChk(ierr);
+      for (CeedInt i = 0; i < ndof; i++) {
+        v[i] += vt[i];
+      }
+    }
+  }
+  if (emode & CEED_EVAL_WEIGHT) {
+    if (tmode == CEED_TRANSPOSE)
+      return CeedError(basis->ceed, 1,
+                       "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+    memcpy(v, h_data->qweights, nqpt*sizeof(v[0]));
+  }
+  return 0;
+}
+
+static int CeedBasisApplyScalarTensor_Ref(CeedBasis basis,
+    CeedTransposeMode tmode, CeedEvalMode emode, const CeedScalar *u,
+    CeedScalar *v) {
   int ierr;
   const CeedInt dim = basis->dim;
-  const CeedInt ndof = basis->ndof;
+  const CeedInt ncomp = basis->ncomp;
+  CeedBasisScalarTensor h_data = basis->host_data;
 
   switch (emode) {
   case CEED_EVAL_INTERP: {
-    CeedInt P = basis->P1d, Q = basis->Q1d;
+    CeedInt P = h_data->P1d, Q = h_data->Q1d;
     if (tmode == CEED_TRANSPOSE) {
-      P = basis->Q1d; Q = basis->P1d;
+      P = h_data->Q1d; Q = h_data->P1d;
     }
-    CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
+    CeedInt pre = ncomp*CeedPowInt(P, dim-1), post = 1;
     CeedScalar tmp[2][Q*CeedPowInt(P>Q?P:Q, dim-1)];
     for (CeedInt d=0; d<dim; d++) {
-      ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q, basis->interp1d,
-                                    tmode,
-                                    d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]); CeedChk(ierr);
+      ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q, h_data->interp1d,
+                                    tmode, d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
+      CeedChk(ierr);
       pre /= P;
       post *= Q;
     }
   } break;
   case CEED_EVAL_WEIGHT: {
     if (tmode == CEED_TRANSPOSE)
-      return CeedError(basis->ceed, 1, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
-    CeedInt Q = basis->Q1d;
+      return CeedError(basis->ceed, 1,
+                       "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+    CeedInt Q = h_data->Q1d;
     for (CeedInt d=0; d<dim; d++) {
       CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
       for (CeedInt i=0; i<pre; i++) {
         for (CeedInt j=0; j<Q; j++) {
           for (CeedInt k=0; k<post; k++) {
-            v[(i*Q + j)*post + k] = basis->qweight1d[j]
-              * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
+            v[(i*Q + j)*post + k] = h_data->qweight1d[j]
+                                    * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
           }
         }
       }
@@ -241,18 +295,17 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
   return 0;
 }
 
-static int CeedBasisDestroy_Ref(CeedBasis basis) {
+static int CeedBasisCreateScalarGeneric_Ref(CeedBasis basis,
+    CeedBasisScalarGeneric h_data) {
+  basis->Apply = CeedBasisApplyScalarGeneric_Ref;
+  basis->Destroy = NULL;
   return 0;
 }
 
-static int CeedBasisCreateTensorH1_Ref(Ceed ceed, CeedInt dim, CeedInt P1d,
-                                       CeedInt Q1d, const CeedScalar *interp1d,
-                                       const CeedScalar *grad1d,
-                                       const CeedScalar *qref1d,
-                                       const CeedScalar *qweight1d,
-                                       CeedBasis basis) {
-  basis->Apply = CeedBasisApply_Ref;
-  basis->Destroy = CeedBasisDestroy_Ref;
+static int CeedBasisCreateScalarTensor_Ref(CeedBasis basis,
+    CeedBasisScalarTensor h_data) {
+  basis->Apply = CeedBasisApplyScalarTensor_Ref;
+  basis->Destroy = NULL;
   return 0;
 }
 
@@ -303,8 +356,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector qdata,
   }
   ierr = CeedVectorGetArray(etmp, CEED_MEM_HOST, &Eu); CeedChk(ierr);
   for (CeedInt e=0; e<op->Erestrict->nelem; e++) {
-    CeedScalar BEu[CeedPowInt(op->basis->Q1d, op->basis->dim)];
-    CeedScalar BEv[CeedPowInt(op->basis->Q1d, op->basis->dim)];
+    CeedScalar BEu[op->basis->nqpt];
+    CeedScalar BEv[op->basis->nqpt];
     ierr = CeedBasisApply(op->basis, CEED_NOTRANSPOSE, op->qf->inmode,
                           &Eu[e*op->Erestrict->elemsize], BEu); CeedChk(ierr);
     // qfunction
@@ -334,7 +387,8 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
       && strcmp(resource, "/cpu/self/ref"))
     return CeedError(ceed, 1, "Ref backend cannot use resource: %s", resource);
   ceed->VecCreate = CeedVectorCreate_Ref;
-  ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Ref;
+  ceed->BasisCreateScalarGeneric = CeedBasisCreateScalarGeneric_Ref;
+  ceed->BasisCreateScalarTensor = CeedBasisCreateScalarTensor_Ref;
   ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Ref;
   ceed->QFunctionCreate = CeedQFunctionCreate_Ref;
   ceed->OperatorCreate = CeedOperatorCreate_Ref;
