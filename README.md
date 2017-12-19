@@ -7,7 +7,7 @@ high-order discretization methods developed by the ECP co-design [Center for
 Efficient Exascale Discretizations (CEED)](http://ceed.exascaleproject.org).
 While our focus is on high-order finite elements, the approach is mostly
 algebraic and thus applicable to other discretizations in factored form, see the
-[API documentation](doc/README.md).
+[API documentation](doc/libCEED.md).
 
 One of the challenges with high-order methods is that a global sparse matrix is
 no longer a good representation of a high-order linear operator, both with
@@ -19,7 +19,7 @@ sparse matrix.
 The goal of libCEED is to propose such a format, as well as supporting
 implementations and data structures, that enable efficient operator evaluation
 on a variety of computational device types (CPUs, GPUs, etc.). This new operator
-description is based on algebraically [factored form](doc/README.md), that is
+description is based on algebraically [factored form](doc/libCEED.md), that is
 easy to incorporate in a wide variety of applications, without significant
 refactoring of their own discretization infrastructure.
 
@@ -51,7 +51,6 @@ It can be built using
 The test suite produces [TAP](https://testanything.org) output and is run by:
 
     make test
-
 
 ## Contact
 
