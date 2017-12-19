@@ -2,8 +2,9 @@
 
 output=$(mktemp $1.XXXX)
 
-function clean() { rm ${output} ${output}.out ${output}.err; }
+function clean() { rm -f ${output} ${output}.out ${output}.err; }
 function error() { clean; exit 1; }
+function quit0() { clean; exit 0; }
 
 printf "1..3\n"
 if build/"$@" > ${output}.out 2> ${output}.err ; then
@@ -12,6 +13,9 @@ else
     printf "not ok 1 $@\n"
     error
 fi
+
+quit0
+
 if [ -f output/$1.out ]; then
     if diff -u output/$1.out ${output}.out; then
         printf "ok 2 $1 stdout\n"

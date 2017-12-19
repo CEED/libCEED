@@ -18,14 +18,20 @@ CC = gcc
 
 NDEBUG ?=
 LDFLAGS ?= 
+LOADLIBES ?=
+TARGET_ARCH ?=
+
+pwd = $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
 
 SANTIZ = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
-CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-CFLAGS += $(if $(NDEBUG),,$(SANTIZ))
+CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native
+CFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
 CFLAGS += $(if $(NDEBUG),-O2,-g)
-LDFLAGS += $(if $(NDEBUG),,$(SANTIZ))
-CPPFLAGS = -I.
+LDFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
+CPPFLAGS = -I. -I/home/camier1/home/occa/occa-1.0/include #-I/usr/local/cuda-8.0/include
 LDLIBS = -lm
+LDLIBS += -L/home/camier1/home/occa/occa-1.0/lib -locca -lrt -ldl
+#LDLIBS += -L/usr/local/cuda/lib64 -lcuda
 OBJDIR := build
 LIBDIR := .
 NPROCS := $(shell getconf _NPROCESSORS_ONLN)
@@ -52,19 +58,19 @@ examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
 
 .PRECIOUS: %/.DIR
 
-all dbg:;$(MAKE) $(MFLAGS) $(libceed)
-opt:;NDEBUG=1 $(MAKE) $(MFLAGS) $(libceed)
+all dbg:;$(MAKE) $(MFLAGS) $(libceed) $(tests) Makefile
+opt:;NDEBUG=1 $(MAKE) $(MFLAGS) $(libceed) $(tests) Makefile
 
 $(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o)
 	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
-$(OBJDIR)/%.o : %.c | $$(@D)/.DIR
+$(OBJDIR)/%.o : $(pwd)/%.c | $$(@D)/.DIR
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
 
-$(OBJDIR)/%.o : tests/%.c | $$(@D)/.DIR
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
+$(OBJDIR)/%.o : $(pwd)/tests/%.c | $$(@D)/.DIR
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
-$(OBJDIR)/%.o : examples/%.c | $$(@D)/.DIR
+$(OBJDIR)/%.o : $(pwd)/examples/%.c | $$(@D)/.DIR
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
 
 $(tests) $(examples) : $(libceed)
