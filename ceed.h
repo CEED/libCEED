@@ -159,7 +159,7 @@ typedef enum {CEED_EVAL_NONE   = 0,
 typedef enum {CEED_GAUSS = 0, CEED_GAUSS_LOBATTO = 1} CeedQuadMode;
 
 CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,
-    CeedInt ndof, CeedInt degree, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);
+    CeedInt ndof, CeedInt P, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);
 CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof,
                                         CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
                                         const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis *basis);

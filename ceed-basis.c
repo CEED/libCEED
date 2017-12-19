@@ -48,19 +48,18 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof, CeedInt P1d,
 }
 
 int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ndof,
-                                    CeedInt degree, CeedInt Q,
+                                    CeedInt P, CeedInt Q,
                                     CeedQuadMode qmode, CeedBasis *basis) {
   // Allocate
   int ierr, i, j, k;
   CeedScalar c1, c2, c3, c4, dx, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
-  CeedInt P = degree+1;
   ierr = CeedCalloc(P*Q, &interp1d); CeedChk(ierr);
   ierr = CeedCalloc(P*Q, &grad1d); CeedChk(ierr);
   ierr = CeedCalloc(P, &nodes); CeedChk(ierr);
   ierr = CeedCalloc(Q, &qref1d); CeedChk(ierr);
   ierr = CeedCalloc(Q, &qweight1d); CeedChk(ierr);
   // Get Nodes and Weights
-  ierr = CeedLobattoQuadrature(degree+1, nodes, NULL); CeedChk(ierr);
+  ierr = CeedLobattoQuadrature(P, nodes, NULL); CeedChk(ierr);
   switch (qmode) {
   case CEED_GAUSS:
     ierr = CeedGaussQuadrature(Q, qref1d, qweight1d); CeedChk(ierr);
