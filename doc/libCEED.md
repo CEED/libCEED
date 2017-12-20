@@ -6,12 +6,12 @@ practical implementation of the libCEED library.
 ## Finite Element Operator Decomposition
 
 Finite element operators are typically defined through weak formulations of
-partial differential equations, that involve integration over a computational
+partial differential equations that involve integration over a computational
 mesh.  The required integrals are computed by splitting them as a sum over the
 mesh elements, mapping each element to a simple *reference* element (e.g. the
 unit square) and applying a quadrature rule in reference space.
 
-This sequence of operations, highlights an inherent hierarchical structure
+This sequence of operations highlights an inherent hierarchical structure
 present in all finite element operators where the evaluation starts on *global
 (trial) degrees of freedom (dofs) on the whole mesh*, restricts to *degrees of
 freedom on subdomains* (groups of elements), then moves to independent *degrees
@@ -19,14 +19,14 @@ of freedom on each element*, transitions to independent *quadrature points* in
 reference space, performs the integration, and then goes back in reverse order
 to global (test) degrees of freedom on the whole mesh.
 
-This is illustrated below, for the simple case of symmetric linear operator on
+This is illustrated below for the simple case of symmetric linear operator on
 third order (Q3) scalar continuous (H1) elements, where we use the notions
 **T-vector**, **L-vector**, **E-vector** and **Q-vector** to represent the sets
 corresponding to the (true) degrees of freedom on the global mesh, the split
 local degrees of freedom on the subdomains, the split degrees of freedom on the
 mesh elements, and the values at quadrature points, respectively.
 
-We refer to the operators that connect the different types of vectors as
+We refer to the operators that connect the different types of vectors as:
 
 - Subdomain restriction **P**
 - Element restriction **G**
@@ -41,7 +41,7 @@ versions of **P**, **G** and **B**.
 Note that in the case of adaptive mesh refinement (AMR), the restrictions **P**
 and **G** will involve not just extracting sub-vectors, but evaluating values at
 constrained degrees of freedom through the AMR interpolation. There can also be
-several levels of subdomains (**P1**, **P2**, etc.)  and it may be convenient to
+several levels of subdomains (**P1**, **P2**, etc.),  and it may be convenient to
 split **D** as the product of several operators (**D1**, **D2**, etc.).
 
 ### Partial Assembly
@@ -52,7 +52,7 @@ with **B**, **G** and **P**, starting from its point-wise kernel **D**, a
 innermost variational restriction matrices, and applying the rest of the
 operators "on-the-fly".  For example, one can compute and store a global matrix
 on T-vector level. Alternatively, one can compute and store only the subdomain
-(L-vector) or element (E-vector) matrices, and perform the action of **A** using
+(L-vector) or element (E-vector) matrices and perform the action of **A** using
 matvecs with **P** or **P** and **G**.  While these options are natural for
 low-order discretizations, they are not a good fit for high-order methods due to
 the amount of FLOPs needed for their evaluation, as well as the memory
@@ -77,7 +77,7 @@ used for sparse matrices), and then split the rest of the vector types over
 computational devices (CPUs, GPUs, etc.) as indicated by the shaded regions in
 the diagram above.
 
-Currently in libCEED we allow the application to manage the global T-vectors and
+Currently in libCEED, we allow the application to manage the global T-vectors and
 the transition to/from devices with **P**. Our API is thus focused on the
 L-vector level, where devices are independent and there is one device per MPI
 rank (there could be different types of devices in different ranks though).
@@ -99,7 +99,7 @@ easily switch/try different back-ends. It also enables back-end developers to
 impact many applications from a single implementation.
 
 Our long-term vision is to include a variety of back-end implementations in
-libCEED, ranging from reference kernels, to highly optimized kernels targeting
+libCEED, ranging from reference kernels to highly optimized kernels targeting
 specific devices (e.g. GPUs) or specific polynomial orders. A simple reference
 back-end implementation is provided in the file
 [ceed-ref.c](https://github.com/CEED/libCEED/blob/master/ceed-ref.c).
@@ -113,7 +113,7 @@ implementation is as follows:
 - the overall operator **G^T B^T D B G** is represented as variable of type
   `CeedOperator` and its action is accessible through `CeedOperatorApply()`.
 
-To clarify this concepts and illustrate how they are combined in the API,
+To clarify these concepts and illustrate how they are combined in the API,
 consider the implementation of the action of a simple 1D mass matrix
 (cf. [tests/t30-operator.c](https://github.com/CEED/libCEED/blob/master/tests/t30-operator.c))
 
@@ -227,7 +227,7 @@ int mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u, CeedScal
 ```
 
 The **B** operators for the mesh nodes, `bx`, and the unknown field, `bu`, are
-defined in the `CeedBasisCreateTensorH1Lagrange` calls. In this case both the
+defined in the `CeedBasisCreateTensorH1Lagrange` calls. In this case, both the
 mesh and unknowns are of Gauss-Legendre type, but while the mesh is second
 order, the order of `bu` is higher (5 in this case).
 
@@ -254,7 +254,7 @@ arrays:
                             indu, &Erestrictu);
 ```
 
-With partial assembly, we first perform a setup stage, where **D** is evaluated
+With partial assembly, we first perform a setup stage where **D** is evaluated
 and stored. This is accomplished by the operator `op_setup` and its application
 to `X`, the nodes of the mesh (these are needed to compute Jacobians at
 quadrature points). Note that the corresponding `CeedOperatorApply` has only
