@@ -106,16 +106,16 @@ back-end implementation is provided in the file
 
 On the front-end, the mapping between the decomposition concepts and the code
 implementation is as follows:
-- L-, E- and Q-vector are represented as variables of type `CeedVector`
-- **G** is represented as variable of type `CeedElemRestriction`
-- **B** is represented as variable of type `CeedBasis`
-- the action of **D** is represented as variable of type `CeedQFunction`
+- L-, E- and Q-vector are represented as variables of type `CeedVector`.
+- **G** is represented as variable of type `CeedElemRestriction`.
+- **B** is represented as variable of type `CeedBasis`.
+- the action of **D** is represented as variable of type `CeedQFunction`.
 - the overall operator **G^T B^T D B G** is represented as variable of type
   `CeedOperator` and its action is accessible through `CeedOperatorApply()`.
 
 To clarify these concepts and illustrate how they are combined in the API,
 consider the implementation of the action of a simple 1D mass matrix
-(cf. [tests/t30-operator.c](https://github.com/CEED/libCEED/blob/master/tests/t30-operator.c))
+(cf. [tests/t30-operator.c](https://github.com/CEED/libCEED/blob/master/tests/t30-operator.c)).
 
 ```c
 #include <ceed.h>
