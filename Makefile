@@ -42,6 +42,7 @@ examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
 
 .PRECIOUS: %/.DIR
 
+$(libceed) : LDFLAGS += $(if $(DARWIN), -install_name $(abspath $(libceed)))
 $(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o)
 	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
