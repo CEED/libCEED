@@ -19,7 +19,7 @@ sparse matrix.
 The goal of libCEED is to propose such a format, as well as supporting
 implementations and data structures, that enable efficient operator evaluation
 on a variety of computational device types (CPUs, GPUs, etc.). This new operator
-description is based on algebraically [factored form](doc/libCEED.md), that is
+description is based on algebraically [factored form](doc/libCEED.md), which is
 easy to incorporate in a wide variety of applications, without significant
 refactoring of their own discretization infrastructure.
 
