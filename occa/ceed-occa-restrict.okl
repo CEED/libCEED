@@ -1,0 +1,12 @@
+kernel void ceed_occa_restrict(const int *idx,
+                               const int* x,
+                               int* y) {
+  printf("[kRestrict]\n");fflush(stdout);
+  for (int i=0; i<nelemsize; i++; tile(TILE_SIZE)){
+    if (i >= nelemsize) return;
+    printf("\t[kRestrict] %d\n",i);fflush(stdout);
+    if (TRANSPOSE) y[i] = x[idx[i]];
+    else  y[idx[i]] += x[i];
+  }
+}
+

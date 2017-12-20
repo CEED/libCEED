@@ -43,6 +43,8 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.c := $(wildcard ceed*.c)
+occa.c    := $(sort $(wildcard occa/*.c))
+occa      := $(occa.c:occa/%.c=$(OBJDIR)/%)
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9]-*.c))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 examples.c := $(sort $(wildcard examples/*.c))
@@ -58,13 +60,16 @@ examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
 
 .PRECIOUS: %/.DIR
 
-all dbg:;$(MAKE) $(MFLAGS) $(libceed) $(tests) Makefile
-opt:;NDEBUG=1 $(MAKE) $(MFLAGS) $(libceed) $(tests) Makefile
+all dbg:;$(MAKE) $(MFLAGS) $(libceed) $(tests)
+opt:;NDEBUG=1 $(MAKE) $(MFLAGS) $(libceed) $(tests)
 
-$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o)
+$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) $(occa.c:%.c=$(OBJDIR)/%.o)
 	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(OBJDIR)/%.o : $(pwd)/%.c | $$(@D)/.DIR
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
+
+$(OBJDIR)/%.o : $(pwd)/occa/%.c $(pwd)/occa/ceed-occa.h | $$(@D)/.DIR
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
 
 $(OBJDIR)/%.o : $(pwd)/tests/%.c | $$(@D)/.DIR
@@ -92,7 +97,7 @@ examples : $(examples)
 .PHONY: clean print test examples astyle
 cln clean :
 	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests.c:%.c=%)
-	$(RM) -r *.dSYM
+	$(RM) -r *.dSYM $(OBJDIR)/occa
 
 astyle :
 	astyle --style=google --indent=spaces=2 --max-code-length=80 \
