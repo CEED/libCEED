@@ -100,7 +100,9 @@ impact many applications from a single implementation.
 
 Our long-term vision is to include a variety of back-end implementations in
 libCEED, ranging from reference kernels, to highly optimized kernels targeting
-specific devices (e.g. GPUs) or specific polynomial orders.
+specific devices (e.g. GPUs) or specific polynomial orders. A simple reference
+back-end implementation is provided in the file
+[ceed-ref.c](https://github.com/CEED/libCEED/blob/master/ceed-ref.c).
 
 On the front-end, the mapping between the decomposition concepts and the code
 implementation is as follows:
@@ -111,8 +113,9 @@ implementation is as follows:
 - the overall operator **G^T B^T D B G** is represented as variable of type
   `CeedOperator` and its action is accessible through `CeedOperatorApply()`.
 
-For example, the implemetation of the action of a simple 1D mass matrix looks as
-follows (cf. [tests/t30-operator.c](tests/t30-operator.c))
+To clarify this concepts and illustrate how they are combined in the API,
+consider the implementation of the action of a simple 1D mass matrix
+(cf. [tests/t30-operator.c](https://github.com/CEED/libCEED/blob/master/tests/t30-operator.c))
 
 ```c
 #include <ceed.h>
@@ -205,23 +208,70 @@ int main(int argc, char **argv) {
 The `setup` routine above computes and stores **D**, in this case a scalar value
 in each quadrature point, while `mass` uses these saved values to perform the
 action of **D**. These functions are turned into the `CeedQFunction` variables
-`qf_setup` and `qf_mass` in the `CeedQFunctionCreateInterior()` calls.
+`qf_setup` and `qf_mass` in the `CeedQFunctionCreateInterior()` calls:
+
+```c
+int setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u, CeedScalar *const *v);
+int mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u, CeedScalar *const *v);
+
+{
+  CeedQFunction qf_setup, qf_mass;
+
+  CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
+                              CEED_EVAL_WEIGHT, CEED_EVAL_NONE,
+                              setup, __FILE__ ":setup", &qf_setup);
+  CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
+                              CEED_EVAL_INTERP, CEED_EVAL_INTERP,
+                              mass, __FILE__ ":mass", &qf_mass);
+}
+```
 
 The **B** operators for the mesh nodes, `bx`, and the unknown field, `bu`, are
 defined in the `CeedBasisCreateTensorH1Lagrange` calls. In this case both the
 mesh and unknowns are of Gauss-Legendre type, but while the mesh is second
 order, the order of `bu` is higher (5 in this case).
 
+```c
+  CeedBasis bx, bu;
+
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bx);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, P, Q, CEED_GAUSS, &bu);
+```
+
 The **G** operators for the mesh nodes, `Erestrictx`, and the unknown field,
 `Erestrictu`, are specified in the `CeedElemRestrictionCreate()`. Both of these
 specify directly the dof indices for each element in the `indx` and `indu`
-arrays.
+arrays:
+
+```c
+  CeedInt indx[nelem*2], indu[nelem*P];
+
+  /* indx[i] = ...; indu[i] = ...; */
+
+  CeedElemRestrictionCreate(ceed, nelem, 2, Nx, CEED_MEM_HOST, CEED_USE_POINTER,
+                            indx, &Erestrictx);
+  CeedElemRestrictionCreate(ceed, nelem, P, Nu, CEED_MEM_HOST, CEED_USE_POINTER,
+                            indu, &Erestrictu);
+```
 
 With partial assembly, we first perform a setup stage, where **D** is evaluated
 and stored. This is accomplished by the operator `op_setup` and its application
 to `X`, the nodes of the mesh (these are needed to compute Jacobians at
 quadrature points). Note that the corresponding `CeedOperatorApply` has only
-input (the output is `NULL`).
+input (the output is `NULL`):
+
+```c
+  CeedVectorCreate(ceed, Nx, &X);
+  CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
+  CeedOperatorGetQData(op_setup, &qdata);
+  CeedOperatorApply(op_setup, qdata, X, NULL, CEED_REQUEST_IMMEDIATE);
+```
 
 The action of the operator is then represented by operator `op_mass` and its
-`CeedOperatorApply` to the input L-vector `U` with output in `V`.
+`CeedOperatorApply` to the input L-vector `U` with output in `V`:
+
+```c
+  CeedVectorCreate(ceed, Nu, &U);
+  CeedVectorCreate(ceed, Nu, &V);
+  CeedOperatorApply(op_mass, qdata, U, V, CEED_REQUEST_IMMEDIATE);
+```
