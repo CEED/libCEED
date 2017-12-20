@@ -228,8 +228,10 @@ int mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u, CeedScal
 
 The **B** operators for the mesh nodes, `bx`, and the unknown field, `bu`, are
 defined in the `CeedBasisCreateTensorH1Lagrange` calls. In this case, both the
-mesh and unknowns are of Gauss-Legendre type, but while the mesh is second
-order, the order of `bu` is higher (5 in this case).
+mesh and unknown field use H1 Lagrange finite elements of order 1 and 4
+respectively (the `P` argument represents the number of 1D degrees of
+freedom on each element). Both basis operators use the same integration rule,
+which is Gauss-Legendre with 8 points (the `Q` argument).
 
 ```c
   CeedBasis bx, bu;
