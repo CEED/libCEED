@@ -18,6 +18,7 @@
 #define _ceed_impl_h
 
 #include <ceed.h>
+#include <stdbool.h>
 
 #define CEED_INTERN CEED_EXTERN __attribute__((visibility ("hidden")))
 
@@ -68,7 +69,7 @@ struct CeedVector_private {
 
 struct CeedElemRestriction_private {
   Ceed ceed;
-  int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedInt, CeedTransposeMode,
+  int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedTransposeMode,
                CeedVector, CeedVector, CeedRequest *);
   int (*Destroy)(CeedElemRestriction);
   int refcount;
@@ -76,6 +77,7 @@ struct CeedElemRestriction_private {
   CeedInt elemsize; /* number of dofs per element */
   CeedInt ndof;     /* size of the L-vector, can be used for checking for
                        correct vector sizes */
+  CeedInt ncomp;    /* number of components */
   void *data;       /* place for the backend to store any data */
 };
 
@@ -96,40 +98,51 @@ struct CeedBasis_private {
   void *data;       /* place for the backend to store any data */
 };
 
-/* FIXME: The number of in-fields and out-fields may be different? */
-/* FIXME: Shouldn't inmode and outmode be per-in-field and per-out-field,
-   respectively? */
+struct CeedQFunctionField {
+  const char *fieldname;
+  CeedInt ncomp;
+  CeedEvalMode emode;
+};
+
 struct CeedQFunction_private {
   Ceed ceed;
-  int (*Apply)(CeedQFunction, void *, CeedInt, const CeedScalar *const *,
+  int (*Apply)(CeedQFunction, CeedInt, const CeedScalar *const *,
                CeedScalar *const *);
   int (*Destroy)(CeedQFunction);
   int refcount;
   CeedInt vlength;    // Number of quadrature points must be padded to a multiple of vlength
-  CeedInt nfields;
-  size_t qdatasize;   // Number of bytes of qdata per quadrature point
-  CeedEvalMode inmode, outmode;
-  int (*function)(void *, void *, CeedInt, const CeedScalar *const *,
-                  CeedScalar *const *);
+  struct CeedQFunctionField inputfields[16];
+  struct CeedQFunctionField outputfields[16];
+  CeedInt numinputfields, numoutputfields;
+  int (*function)(void*, CeedInt, const CeedScalar *const*, CeedScalar *const*);
   const char *focca;
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */
   void *data;     /* backend data */
 };
 
+struct CeedOperatorField {
+  CeedElemRestriction Erestrict; /// Restriction from L-vector or NULL if identity
+  CeedBasis basis;               /// Basis or NULL for collocated fields
+  CeedVector vec;                /// State vector for passive fields, NULL for active fields
+};
+
 struct CeedOperator_private {
   Ceed ceed;
   int refcount;
-  int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedRequest *);
+  int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector,
                        CeedVector, CeedRequest *);
   int (*GetQData)(CeedOperator, CeedVector *);
   int (*Destroy)(CeedOperator);
-  CeedElemRestriction Erestrict;
-  CeedBasis basis;
+  struct CeedOperatorField inputfields[16];
+  struct CeedOperatorField outputfields[16];
+  CeedInt numelements; /// Number of elements
+  CeedInt numqpoints;  /// Number of quadrature points over all elements
   CeedQFunction qf;
   CeedQFunction dqf;
   CeedQFunction dqfT;
+  bool setupdone;
   void *data;
 };
 

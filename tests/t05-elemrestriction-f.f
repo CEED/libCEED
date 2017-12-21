@@ -33,13 +33,13 @@ c-----------------------------------------------------------------------
         ind(2*i  )=i
       enddo
 
-      call ceedelemrestrictioncreate(ceed,ne,2,ne+1,ceed_mem_host,
+      call ceedelemrestrictioncreate(ceed,ne,2,ne+1,1,ceed_mem_host,
      $  ceed_use_pointer,ind,r,err)
 
       call ceedvectorcreate(ceed,2*ne,y,err);
       call ceedvectorsetarray(y,ceed_mem_host,ceed_copy_values,%val(0),
      $  err);
-      call ceedelemrestrictionapply(r,ceed_notranspose,1,
+      call ceedelemrestrictionapply(r,ceed_notranspose,
      $  ceed_notranspose,x,y,ceed_request_immediate,err)
 
       call ceedvectorgetarrayread(y,ceed_mem_host,yy,err)

@@ -45,7 +45,7 @@
   @return An error code: 0 - success, otherwise - failure.
 */
 int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
-                              CeedInt ndof, CeedMemType mtype, CeedCopyMode cmode,
+                              CeedInt ndof, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
                               const CeedInt *indices, CeedElemRestriction *r) {
   int ierr;
 
@@ -58,6 +58,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   (*r)->nelem = nelem;
   (*r)->elemsize = elemsize;
   (*r)->ndof = ndof;
+  (*r)->ncomp = ncomp;
   ierr = ceed->ElemRestrictionCreate(*r, mtype, cmode, indices); CeedChk(ierr);
   return 0;
 }
@@ -84,29 +85,42 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelements,
   return CeedError(ceed, 1, "Not implemented");
 }
 
+int CeedElemRestrictionCreateVector(CeedElemRestriction r, CeedVector *lvec, CeedVector *evec) {
+    int ierr;
+    CeedInt n, m;
+    m = r->ndof * r->ncomp;
+    n = r->nelem * r->elemsize * r->ncomp;
+    if (lvec) {
+      ierr = CeedVectorCreate(r->ceed, m, lvec); CeedChk(ierr);
+    }
+    if (evec) {
+      ierr = CeedVectorCreate(r->ceed, n, evec); CeedChk(ierr);
+    }
+    return 0;
+}
+
 /**
   Restrict an L-vector to an E-vector or apply transpose
 
   @param r Restriction
   @param tmode Apply restriction or transpose
-  @param ncomp Number of components [FIXME: include in CeedElemRestriction]
   @param lmode Ordering of the ncomp components
   @param u Input vector (of size @a ndof when tmode=CEED_NOTRANSPOSE)
   @param v Output vector (of size @a nelem * @a elemsize when tmode=CEED_NOTRANSPOSE)
   @param request Request or CEED_REQUEST_IMMEDIATE
 */
 int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode,
-                             CeedInt ncomp, CeedTransposeMode lmode,
+                             CeedTransposeMode lmode,
                              CeedVector u, CeedVector v, CeedRequest *request) {
   CeedInt m,n;
   int ierr;
 
   if (tmode == CEED_NOTRANSPOSE) {
-    m = r->nelem * r->elemsize * ncomp;
-    n = r->ndof * ncomp;
+    m = r->nelem * r->elemsize * r->ncomp;
+    n = r->ndof * r->ncomp;
   } else {
-    m = r->ndof * ncomp;
-    n = r->nelem * r->elemsize * ncomp;
+    m = r->ndof * r->ncomp;
+    n = r->nelem * r->elemsize * r->ncomp;
   }
   if (n != u->length)
     return CeedError(r->ceed, 2,
@@ -116,7 +130,19 @@ int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode,
     return CeedError(r->ceed, 2,
                      "Output vector size %d not compatible with element restriction (%d,%d)",
                      v->length, m, n);
-  ierr = r->Apply(r, tmode, ncomp, lmode, u, v, request); CeedChk(ierr);
+  ierr = r->Apply(r, tmode, lmode, u, v, request); CeedChk(ierr);
+  return 0;
+}
+
+/**
+  Get the total number of elements in the range of a CeedElemRestriction
+
+  @param r the element restriction
+  @param[out] numelements number of elements
+*/
+int CeedElemRestrictionGetNumElements(CeedElemRestriction r,
+                                      CeedInt *numelements) {
+  *numelements = r->nelem;
   return 0;
 }
 

@@ -73,7 +73,6 @@ int CeedVectorSetArray(CeedVector x, CeedMemType mtype, CeedCopyMode cmode,
 /// @sa CeedVectorRestoreArray()
 int CeedVectorGetArray(CeedVector x, CeedMemType mtype, CeedScalar **array) {
   int ierr;
-
   if (!x || !x->GetArray)
     return CeedError(x ? x->ceed : NULL, 1, "Not supported");
   ierr = x->GetArray(x, mtype, array); CeedChk(ierr);

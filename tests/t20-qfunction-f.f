@@ -1,27 +1,30 @@
 c-----------------------------------------------------------------------
-      subroutine setup(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
+      subroutine setup(ctx,q,u1,u2,u3,u4,u5,u6,u7,
+     $  u8,u9,u10,u11,u12,u13,u14,u15,u16,v1,v2,v3,v4,v5,v6,v7,v8,
+     $  v9,v10,v11,v12,v13,v14,v15,v16,ierr)
       real*8 ctx(1)
-      real*8 qdata(1)
-      real*8 u1(1)
-c     real*8 v(1)
+      real*8 u1(8)
+      real*8 v1(8)
       integer q,ierr
 
       do i=1,q
-        qdata(i)=u1(i)
+        v1(i)=u1(i)
       enddo
 
       ierr=0
       end
 c-----------------------------------------------------------------------
-      subroutine mass(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
+      subroutine mass(ctx,q,u1,u2,u3,u4,u5,u6,u7,
+     $  u8,u9,u10,u11,u12,u13,u14,u15,u16,v1,v2,v3,v4,v5,v6,v7,v8,
+     $  v9,v10,v11,v12,v13,v14,v15,v16,ierr)
       real*8 ctx(1)
-      real*8 qdata(1)
-      real*8 u1(1)
-      real*8 v1(1)
+      real*8 u1(8)
+      real*8 u2(8)
+      real*8 v1(8)
       integer q,ierr
 
       do i=1,q
-        v1(i)=qdata(i)*u1(i)
+        v1(i)=u1(i)*u2(i)
       enddo
 
       ierr=0
@@ -48,14 +51,17 @@ c-----------------------------------------------------------------------
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-      call ceedqfunctioncreateinterior(ceed,1,1,8,
-     $     ceed_eval_weight,ceed_eval_none,setup,
-     $     __FILE__
-     $     //':setup'//char(0),qf_setup,err)
-      call ceedqfunctioncreateinterior(ceed,1,1,8,
-     $     ceed_eval_interp,ceed_eval_interp,mass,
-     $     __FILE__
-     $     //':mass'//char(0),qf_mass,err)
+      call ceedqfunctioncreateinterior(ceed,1,setup,
+     $  't20-qfunction-f.f:setup',qf_setup,err)
+      call ceedqfunctionaddinput(qf_setup,'w', 1,ceed_eval_interp,err)
+      call ceedqfunctionaddoutput(qf_setup,'qdata',1,ceed_eval_interp,
+     $  err)
+
+      call ceedqfunctioncreateinterior(ceed,1,mass,
+     $  't20-qfunction-f.f:mass',qf_mass,err)
+      call ceedqfunctionaddinput(qf_mass,'qdata',1,ceed_eval_interp,err)
+      call ceedqfunctionaddinput(qf_mass,'u',1,ceed_eval_interp,err)
+      call ceedqfunctionaddoutput(qf_mass,'v',1,ceed_eval_interp,err)
 
       do i=0,q-1
         x=2.0*i/(q-1)-1
@@ -64,8 +70,22 @@ c-----------------------------------------------------------------------
         v(i+1)=w(i+1)*u(i+1)
       enddo
 
-      call ceedqfunctionapply(qf_setup,qdata,q,w,%val(0),err)
-      call ceedqfunctionapply(qf_mass,qdata,q,u,vv,err)
+      call ceedqfunctionapply(qf_setup,q,w,ceed_null,ceed_null,
+     $  ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,
+     $  ceed_null,ceed_null,ceed_null,ceed_null,
+     $  ceed_null,ceed_null,ceed_null,ceed_null,
+     $  qdata,ceed_null,ceed_null,ceed_null,
+     $  ceed_null,ceed_null,ceed_null,ceed_null,
+     $  ceed_null,ceed_null,ceed_null,ceed_null,
+     $  ceed_null,ceed_null,ceed_null,ceed_null,err)
+      call ceedqfunctionapply(qf_mass,q,u,qdata,ceed_null,
+     $  ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,
+     $  ceed_null,ceed_null,ceed_null,ceed_null,
+     $  ceed_null,ceed_null,ceed_null,ceed_null,
+     $  vv,ceed_null,ceed_null,ceed_null,
+     $  ceed_null,ceed_null,ceed_null,ceed_null,
+     $  ceed_null,ceed_null,ceed_null,ceed_null,
+     $  ceed_null,ceed_null,ceed_null,ceed_null,err)
 
       do i=1,q
         if (abs(v(i)-vv(i)) > 1.0D-15) then
