@@ -23,6 +23,7 @@
   #define CEED_EXTERN extern
 #endif
 
+#include <assert.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdarg.h>
@@ -159,16 +160,16 @@ typedef enum {CEED_EVAL_NONE   = 0,
 typedef enum {CEED_GAUSS = 0, CEED_GAUSS_LOBATTO = 1} CeedQuadMode;
 
 CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,
-    CeedInt ndof, CeedInt P, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);
+    CeedInt ndof, CeedInt P, CeedInt Q, CeedQuadMode qmode, CeedBasis* basis);
 CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof,
                                         CeedInt P1d, CeedInt Q1d, const CeedScalar* interp1d, const CeedScalar* grad1d,
                                         const CeedScalar* qref1d, const CeedScalar* qweight1d, CeedBasis* basis);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE* stream);
 CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode,
-                               CeedEvalMode emode, const CeedScalar *u, CeedScalar *v);
-CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
-CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);
-CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
+                               CeedEvalMode emode, const CeedScalar* u, CeedScalar* v);
+CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt* P);
+CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt* Q);
+CEED_EXTERN int CeedBasisDestroy(CeedBasis* basis);
 
 CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar* qref1d,
                                     CeedScalar* qweight1d);

@@ -113,7 +113,7 @@ struct CeedOperator_private {
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedRequest*);
   int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector,
                        CeedVector, CeedRequest*);
-  int (*GetQData)(CeedOperator, CeedVector *);
+  int (*GetQData)(CeedOperator, CeedVector*);
   int (*Destroy)(CeedOperator);
   CeedElemRestriction Erestrict;
   CeedBasis basis;

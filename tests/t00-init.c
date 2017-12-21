@@ -3,7 +3,8 @@
 int main(int argc, char** argv) {
   Ceed ceed;
 
-  CeedInit("/cpu/occa", &ceed);
+  assert(argv[1]);
+  CeedInit(argv[1], &ceed);
   CeedDestroy(&ceed);
   return 0;
 }

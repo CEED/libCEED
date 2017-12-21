@@ -58,8 +58,8 @@ static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mtype,
 }
 
 static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mtype,
-                                  CeedScalar **array) {
-  CeedVector_Ref *impl = vec->data;
+                                  CeedScalar** array) {
+  CeedVector_Ref* impl = vec->data;
   int ierr;
 
   if (mtype != CEED_MEM_HOST)
@@ -73,8 +73,8 @@ static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mtype,
 }
 
 static int CeedVectorGetArrayRead_Ref(CeedVector vec, CeedMemType mtype,
-                                      const CeedScalar **array) {
-  CeedVector_Ref *impl = vec->data;
+                                      const CeedScalar** array) {
+  CeedVector_Ref* impl = vec->data;
   int ierr;
 
   if (mtype != CEED_MEM_HOST)
@@ -216,33 +216,36 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
   const CeedInt ndof = basis->ndof;
 
   switch (emode) {
-  case CEED_EVAL_NONE: break;
-  case CEED_EVAL_INTERP: {
-    CeedInt P = basis->P1d, Q = basis->Q1d;
-    if (tmode == CEED_TRANSPOSE) {
-      P = basis->Q1d; Q = basis->P1d;
+    case CEED_EVAL_NONE: break;
+    case CEED_EVAL_INTERP: {
+      CeedInt P = basis->P1d, Q = basis->Q1d;
+      if (tmode == CEED_TRANSPOSE) {
+        P = basis->Q1d; Q = basis->P1d;
+      }
+      CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
+      CeedScalar tmp[2][Q*CeedPowInt(P>Q?P:Q, dim-1)];
+      for (CeedInt d=0; d<dim; d++) {
+        ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q, basis->interp1d,
+                                      tmode,
+                                      d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]); CeedChk(ierr);
+        pre /= P;
+        post *= Q;
+      }
     }
-    CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
-    CeedScalar tmp[2][Q*CeedPowInt(P>Q?P:Q, dim-1)];
-    for (CeedInt d=0; d<dim; d++) {
-      ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q, basis->interp1d,
-                                    tmode,
-                                    d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]); CeedChk(ierr);
-      pre /= P;
-      post *= Q;
-    }
-  } break;
-  case CEED_EVAL_WEIGHT: {
-    if (tmode == CEED_TRANSPOSE)
-      return CeedError(basis->ceed, 1, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
-    CeedInt Q = basis->Q1d;
-    for (CeedInt d=0; d<dim; d++) {
-      CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
-      for (CeedInt i=0; i<pre; i++) {
-        for (CeedInt j=0; j<Q; j++) {
-          for (CeedInt k=0; k<post; k++) {
-            v[(i*Q + j)*post + k] = basis->qweight1d[j]
-              * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
+    break;
+    case CEED_EVAL_WEIGHT: {
+      if (tmode == CEED_TRANSPOSE)
+        return CeedError(basis->ceed, 1,
+                         "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+      CeedInt Q = basis->Q1d;
+      for (CeedInt d=0; d<dim; d++) {
+        CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
+        for (CeedInt i=0; i<pre; i++) {
+          for (CeedInt j=0; j<Q; j++) {
+            for (CeedInt k=0; k<post; k++) {
+              v[(i*Q + j)*post + k] = basis->qweight1d[j]
+                                      * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
+            }
           }
         }
       }
@@ -302,8 +305,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector qdata,
   CeedOperator_Ref* impl = op->data;
   CeedVector etmp;
   CeedInt Q;
-  CeedScalar *Eu;
-  char *qd;
+  CeedScalar* Eu;
+  char* qd;
   int ierr;
 
   if (!impl->etmp) {
@@ -318,10 +321,11 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector qdata,
   }
   ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
   ierr = CeedVectorGetArray(etmp, CEED_MEM_HOST, &Eu); CeedChk(ierr);
-  ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar**)&qd); CeedChk(ierr);
+  ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar**)&qd);
+  CeedChk(ierr);
   for (CeedInt e=0; e<op->Erestrict->nelem; e++) {
     CeedScalar BEu[Q], BEv[Q], *out[1];
-    const CeedScalar *in[1];
+    const CeedScalar* in[1];
     ierr = CeedBasisApply(op->basis, CEED_NOTRANSPOSE, op->qf->inmode,
                           &Eu[e*op->Erestrict->elemsize], BEu); CeedChk(ierr);
     in[0] = BEu;
@@ -340,8 +344,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector qdata,
   return 0;
 }
 
-static int CeedOperatorGetQData_Ref(CeedOperator op, CeedVector *qdata) {
-  CeedOperator_Ref *impl = op->data;
+static int CeedOperatorGetQData_Ref(CeedOperator op, CeedVector* qdata) {
+  CeedOperator_Ref* impl = op->data;
   int ierr;
 
   if (!impl->qdata) {

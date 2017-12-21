@@ -49,7 +49,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof, CeedInt P1d,
 
 int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ndof,
                                     CeedInt P, CeedInt Q,
-                                    CeedQuadMode qmode, CeedBasis *basis) {
+                                    CeedQuadMode qmode, CeedBasis* basis) {
   // Allocate
   int ierr, i, j, k;
   CeedScalar c1, c2, c3, c4, dx, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
@@ -234,17 +234,17 @@ int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode, CeedEvalMode emode,
   return 0;
 }
 
-int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
+int CeedBasisGetNumNodes(CeedBasis basis, CeedInt* P) {
   *P = CeedPowInt(basis->P1d, basis->dim);
   return 0;
 }
 
-int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
+int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt* Q) {
   *Q = CeedPowInt(basis->Q1d, basis->dim);
   return 0;
 }
 
-int CeedBasisDestroy(CeedBasis *basis) {
+int CeedBasisDestroy(CeedBasis* basis) {
   int ierr;
 
   if (!*basis) return 0;

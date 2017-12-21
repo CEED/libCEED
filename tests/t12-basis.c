@@ -18,17 +18,18 @@ int main(int argc, char** argv) {
   const CeedScalar x[] = {-1, 1};
   CeedScalar xq[Q], uq[Q], u[Q];
 
-  CeedInit("/cpu/occa", &ceed);
-  CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 1, Q, CEED_GAUSS_LOBATTO, &bxl);
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q-1, Q, CEED_GAUSS_LOBATTO, &bul);
+  assert(argv[1]);
+  CeedInit(argv[1], &ceed);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q, Q, CEED_GAUSS_LOBATTO, &bul);
   CeedBasisApply(bxl, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
   for (CeedInt i=0; i<Q; i++) uq[i] = PolyEval(xq[i], ALEN(p), p);
 
   // This operation is the identity because the quadrature is collocated
   CeedBasisApply(bul, CEED_TRANSPOSE, CEED_EVAL_INTERP, uq, u);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 1, Q, CEED_GAUSS, &bxg);
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q-1, Q, CEED_GAUSS, &bug);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bxg);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q, Q, CEED_GAUSS, &bug);
   CeedBasisApply(bxg, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
   CeedBasisApply(bug, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, uq);
   for (CeedInt i=0; i<Q; i++) {

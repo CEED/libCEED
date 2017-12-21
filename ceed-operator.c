@@ -43,7 +43,7 @@ int CeedOperatorApply(CeedOperator op, CeedVector qdata, CeedVector ustate,
   return 0;
 }
 
-int CeedOperatorGetQData(CeedOperator op, CeedVector *qdata) {
+int CeedOperatorGetQData(CeedOperator op, CeedVector* qdata) {
   int ierr;
 
   if (!op->GetQData)
@@ -52,7 +52,7 @@ int CeedOperatorGetQData(CeedOperator op, CeedVector *qdata) {
   return 0;
 }
 
-int CeedOperatorDestroy(CeedOperator *op) {
+int CeedOperatorDestroy(CeedOperator* op) {
   int ierr;
 
   if (!*op) return 0;

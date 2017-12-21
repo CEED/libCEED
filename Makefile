@@ -84,11 +84,8 @@ $(OBJDIR)/%.o : $(pwd)/%.c | $$(@D)/.DIR;$(output)
 $(OBJDIR)/%.o : $(pwd)/occa/%.c $(pwd)/occa/ceed-occa.h | $$(@D)/.DIR;$(output)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
 
-#$(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
-#	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
-
 $(OBJDIR)/%.o : $(pwd)/tests/%.c | $$(@D)/.DIR;$(output)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -c -o $@ $^ $(LDLIBS)
 
 $(OBJDIR)/%.o : $(pwd)/examples/%.c | $$(@D)/.DIR;$(output)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
@@ -111,7 +108,7 @@ examples : $(examples)
 
 .PHONY: clean print test examples astyle
 cln clean :
-	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests.c:%.c=%)
+	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests)
 	$(RM) -r *.dSYM $(OBJDIR)/occa
 
 astyle :
