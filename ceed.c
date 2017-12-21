@@ -67,7 +67,7 @@ int CeedRegister(const char *prefix, int (*init)(const char *resource,
 }
 
 int CeedMallocArray(size_t n, size_t unit, void *p) {
-  int ierr = posix_memalign((void **)p, CEED_ALIGN, n*unit);
+  int ierr = posix_memalign((void**)p, CEED_ALIGN, n*unit);
   if (ierr)
     return CeedError(NULL, ierr,
                      "posix_memalign failed to allocate %zd members of size %zd\n", n, unit);
@@ -75,8 +75,8 @@ int CeedMallocArray(size_t n, size_t unit, void *p) {
 }
 
 int CeedCallocArray(size_t n, size_t unit, void *p) {
-  *(void **)p = calloc(n, unit);
-  if (n && unit && !*(void **)p)
+  *(void**)p = calloc(n, unit);
+  if (n && unit && !*(void**)p)
     return CeedError(NULL, 1, "calloc failed to allocate %zd members of size %zd\n",
                      n, unit);
   return 0;
@@ -84,8 +84,8 @@ int CeedCallocArray(size_t n, size_t unit, void *p) {
 
 // Takes void* to avoid needing a cast, but is the address of the pointer.
 int CeedFree(void *p) {
-  free(*(void **)p);
-  *(void **)p = NULL;
+  free(*(void**)p);
+  *(void**)p = NULL;
   return 0;
 }
 

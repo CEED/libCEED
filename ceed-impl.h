@@ -100,8 +100,8 @@ struct CeedQFunction_private {
   CeedInt nfields;
   size_t qdatasize;   // Number of bytes of qdata per quadrature point
   CeedEvalMode inmode, outmode;
-  int (*function)(void *, void *, CeedInt, const CeedScalar *const *,
-                  CeedScalar *const *);
+  int (*function)(void*, void*, CeedInt, const CeedScalar *const*,
+                  CeedScalar *const*);
   const char *focca;
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */
@@ -110,9 +110,9 @@ struct CeedQFunction_private {
 
 struct CeedOperator_private {
   Ceed ceed;
-  int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedRequest *);
+  int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedRequest*);
   int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector,
-                       CeedVector, CeedRequest *);
+                       CeedVector, CeedRequest*);
   int (*GetQData)(CeedOperator, CeedVector *);
   int (*Destroy)(CeedOperator);
   CeedElemRestriction Erestrict;

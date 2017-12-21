@@ -77,6 +77,15 @@ used for sparse matrices), and then split the rest of the vector types over
 computational devices (CPUs, GPUs, etc.) as indicated by the shaded regions in
 the diagram above.
 
+One of the advantages of the decomposition perspective in these settings is that
+the operators **P**, **G**, **B** and **D** clearly separate the MPI parallelism
+in the operator (**P**) from the unstructured mesh topology (**G**), the choice
+of the finite element space/basis (**B**) and the geometry and point-wise
+physics **D**.  These components also naturally fall in different classes of
+numerical algorithms -- parallel (multi-device) linear algebra for **P**, sparse
+(on-device) linear algebra for **G**, dense linear algebra (tensor contractions)
+for **B** and parallel point-wise evaluations for **D**.
+
 Currently in libCEED, we allow the application to manage the global T-vectors and
 the transition to/from devices with **P**. Our API is thus focused on the
 L-vector level, where devices are independent and there is one device per MPI

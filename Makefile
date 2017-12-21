@@ -113,7 +113,7 @@ cln clean :
 
 ### ASTYLE ###
 ASTYLE = astyle --options=.astylerc
-FORMAT_FILES = $(foreach dir,. tests occa,$(dir)/*.[ch])
+FORMAT_FILES = $(foreach dir,. tests examples occa,$(dir)/*.[ch])
 style:
 	@if ! $(ASTYLE) $(FORMAT_FILES) | grep Formatted; then\
 	   echo "No source files were changed.";\
