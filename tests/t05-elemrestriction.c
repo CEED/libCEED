@@ -18,11 +18,11 @@ int main(int argc, char **argv) {
     ind[2*i+0] = i;
     ind[2*i+1] = i+1;
   }
-  CeedElemRestrictionCreate(ceed, ne, 2, ne+1, CEED_MEM_HOST, CEED_USE_POINTER,
+  CeedElemRestrictionCreate(ceed, ne, 2, ne+1, 1, CEED_MEM_HOST, CEED_USE_POINTER,
                             ind, &r);
   CeedVectorCreate(ceed, ne*2, &y);
   CeedVectorSetArray(y, CEED_MEM_HOST, CEED_COPY_VALUES, NULL); // Allocates array
-  CeedElemRestrictionApply(r, CEED_NOTRANSPOSE, 1, CEED_NOTRANSPOSE, x, y,
+  CeedElemRestrictionApply(r, CEED_NOTRANSPOSE, CEED_NOTRANSPOSE, x, y,
                            CEED_REQUEST_IMMEDIATE);
   CeedVectorGetArrayRead(y, CEED_MEM_HOST, &yy);
   for (CeedInt i=0; i<ne*2; i++) {
