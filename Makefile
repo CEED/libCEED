@@ -28,10 +28,9 @@ CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=nati
 CFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
 CFLAGS += $(if $(NDEBUG),-O2,-g)
 LDFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
-CPPFLAGS = -I. -I/home/camier1/home/occa/occa-1.0/include #-I/usr/local/cuda-8.0/include
+CPPFLAGS = -I. -I$(OCCA_DIR)/include
 LDLIBS = -lm
-LDLIBS += -L/home/camier1/home/occa/occa-1.0/lib -locca -lrt -ldl
-#LDLIBS += -L/usr/local/cuda/lib64 -lcuda
+LDLIBS += -L$(OCCA_DIR)/lib -locca -lrt -ldl
 OBJDIR := build
 LIBDIR := .
 NPROCS := $(shell getconf _NPROCESSORS_ONLN)
@@ -107,7 +106,7 @@ test : $(tests:$(OBJDIR)/t%=run-t%)
 tst:;@$(MAKE) $(MFLAGS) test
 
 prove : $(tests)
-	$(PROVE) --exec tests/tap.sh $(CEED_PROVE_OPTS) $(tests:$(OBJDIR)/%=%)
+	$(PROVE) -j $(NPROCS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%)
 
 examples : $(examples)
 

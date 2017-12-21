@@ -2,48 +2,44 @@
 
 output=$(mktemp $1.XXXX)
 
-function clean() { rm -f ${output} ${output}.out ${output}.err; }
-function error() { clean; exit 1; }
+printf "1..9\n"
 
-for backend in /cpu/self /cpu/occa /gpu/occa
-do
-    echo -e \\tbuild/$@ $backend
-    printf "\t1..3\n"
-    if build/"$@" $backend > ${output}.out 2> ${output}.err ; then
-    #if build/"$@" $backend 2> ${output}.err ; then
-        printf "\t\tok 1 $@\n"
+backends=(/cpu/self /cpu/occa /gpu/occa)
+
+for ((i = 0; i < ${#backends[@]}; ++i)); do
+    i0=$((3*$i+1)) # return code
+    i1=$(($i0+1))  # stdout
+    i2=$(($i0+2))  # stderr 
+    backend=${backends[$i-1]}
+
+    if build/$1 $backend > ${output}.out 2> ${output}.err ; then
+        printf "ok $i0 $1 $backend\n"
     else
-        printf "\t\tnot ok 1 $@\n"
-        error
+        printf "not ok $i0 $1 $backend\n"
     fi
-
-    # continue before diff'ing outputs
-    #continue
-
+    # stdout
     if [ -f output/$1.out ]; then
         if diff -u output/$1.out ${output}.out; then
-            printf "\t\tok 2 $1 stdout\n"
+            printf "ok $i1 $1 $backend stdout\n"
         else
-            printf "\t\tnot ok 2 $1 stdout\n" 
-            error
+            printf "not ok $i1 $1 $backend stdout\n" 
         fi
     elif [ -s ${output}.out ]; then
-        printf "\t\tnot ok 2 $1 stdout\n"
+        printf "not ok $i1 $1 $backend stdout\n"
         while read line; do
             printf "# + ${line}\n"
         done < ${output}.out
-        error
     else
-        printf "\t\tok 2 $1 stdout\n"
+        printf "ok $i1 $1 $backend stdout\n"
     fi
+    # stderr
     if [ -s ${output}.err ]; then
-        printf "\t\tnot ok 3 $1 stderr\n"
+        printf "not ok $i2 $1 $backend stderr\n"
         while read line; do
             printf "# + ${line}\n"
         done < ${output}.err
-        error
     else
-        printf "\t\tok 3 $1 stderr\n"
+        printf "ok $i2 $1 $backend stderr\n"
     fi
 done
-clean
+rm -f ${output} ${output}.out ${output}.err; 
