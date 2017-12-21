@@ -35,7 +35,8 @@ LDLIBS += -L/home/camier1/home/occa/occa-1.0/lib -locca -lrt -ldl
 OBJDIR := build
 LIBDIR := .
 NPROCS := $(shell getconf _NPROCESSORS_ONLN)
-MFLAGS := --no-print-directory -j $(NPROCS) --warn-undefined-variables
+MFLAGS := -j $(NPROCS) --warn-undefined-variables \
+			--no-print-directory --quiet --no-keep-going
 
 PROVE ?= prove
 DARWIN := $(filter Darwin,$(shell uname -s))
@@ -50,6 +51,17 @@ tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 examples.c := $(sort $(wildcard examples/*.c))
 examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
 
+
+# OUTPUT rules #
+COLOR_OFFSET = 3
+COLOR = $(shell echo $(rule_path)|cksum|cut -b1-2)
+rule_path = $(notdir $(patsubst %/,%,$(dir $<)))
+rule_file = $(basename $(notdir $@))
+rule_dumb = @echo -e $(rule_path)/$(rule_file)
+rule_xterm = @echo -e \\e[38\;5\;$(shell echo $(COLOR)+$(COLOR_OFFSET)|bc -l)\;1m\
+             $(rule_path)\\033[m/\\033[\m$(rule_file)\\033[m
+output = $(rule_${TERM})
+
 .SUFFIXES:
 .SUFFIXES: .c .o .d
 .SECONDEXPANSION:		# to expand $$(@D)/.DIR
@@ -63,19 +75,19 @@ examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
 all dbg:;$(MAKE) $(MFLAGS) $(libceed) $(tests)
 opt:;NDEBUG=1 $(MAKE) $(MFLAGS) $(libceed) $(tests)
 
-$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) $(occa.c:%.c=$(OBJDIR)/%.o)
+$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) $(occa.c:%.c=$(OBJDIR)/%.o);$(output)
 	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
-$(OBJDIR)/%.o : $(pwd)/%.c | $$(@D)/.DIR
+$(OBJDIR)/%.o : $(pwd)/%.c | $$(@D)/.DIR;$(output)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
 
-$(OBJDIR)/%.o : $(pwd)/occa/%.c $(pwd)/occa/ceed-occa.h | $$(@D)/.DIR
+$(OBJDIR)/%.o : $(pwd)/occa/%.c $(pwd)/occa/ceed-occa.h | $$(@D)/.DIR;$(output)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
 
-$(OBJDIR)/%.o : $(pwd)/tests/%.c | $$(@D)/.DIR
+$(OBJDIR)/%.o : $(pwd)/tests/%.c | $$(@D)/.DIR;$(output)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
-$(OBJDIR)/%.o : $(pwd)/examples/%.c | $$(@D)/.DIR
+$(OBJDIR)/%.o : $(pwd)/examples/%.c | $$(@D)/.DIR;$(output)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
 
 $(tests) $(examples) : $(libceed)

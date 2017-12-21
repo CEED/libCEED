@@ -19,9 +19,9 @@
 // * OCCA stuff
 // *****************************************************************************
 occaDevice device;
-//const int occaTileSize = 32;
-const char *occaDeviceInfo = "mode: 'Serial'";
-const bool occaVerboseCompilationMode = true;
+static const char *occaDeviceInfo = "mode: 'Serial'";
+//static const char *occaDeviceInfo = "mode: 'CUDA', deviceID: 0";
+static const bool occaVerboseCompilationMode = false;
 extern void occaSetVerboseCompilation(const int value);
 
 // *****************************************************************************
@@ -62,7 +62,7 @@ static int CeedInitOcca(const char* resource, Ceed ceed) {
   ceed->QFunctionCreate = CeedQFunctionCreateOcca;
   ceed->OperatorCreate = CeedOperatorCreateOcca;
   // Now creating OCCA device
-  occaPrintModeInfo();
+  //occaPrintModeInfo();
   occaSetVerboseCompilation(occaVerboseCompilationMode);
   device = occaCreateDevice(occaString(occaDeviceInfo));
   return 0;

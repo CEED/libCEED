@@ -10,11 +10,11 @@ int main(int argc, char** argv) {
   CeedElemRestriction r;
 
   CeedInit("/cpu/occa", &ceed);
-  CeedVectorCreate(ceed, ne+1, &x); // x[0..ne] size ne+1
-  for (CeedInt i=0; i<ne+1; i++) a[i] = 10 + i; // a[0..ne] size ne+1 = 10..14
+  CeedVectorCreate(ceed, ne+1, &x); // x[0..3] size ne+1
+  for (CeedInt i=0; i<ne+1; i++) a[i] = 10 + i; // a[0..3] size ne+1 = 10..14
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
 
-  for (CeedInt i=0; i<ne; i++) {  // ind[0..2*ne-1] = ..(i,i+1)..
+  for (CeedInt i=0; i<ne; i++) {  // ind[0..2*ne-1=5] = ..(i,i+1)..
     ind[2*i+0] = i;
     ind[2*i+1] = i+1;
   }

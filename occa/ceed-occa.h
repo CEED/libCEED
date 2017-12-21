@@ -25,15 +25,39 @@
 
 // *****************************************************************************
 #include "occa.h"
+
+// *****************************************************************************
+#define NO_OFFSET 0
+#define NO_PROPS occaDefault
+#define TILE_SIZE 32
 extern occaDevice device;
-#define occaTileSize 32
+
+
+// *****************************************************************************
+// * CeedVectorOcca struct
+// *****************************************************************************
+typedef struct {
+  CeedScalar* host;
+  occaMemory* device;
+} CeedVectorOcca;
+
+
+// *****************************************************************************
+// * CeedElemRestrictionOcca struct
+// *****************************************************************************
+typedef struct {
+  const CeedInt* host;
+  occaMemory* device;
+  occaKernel kRestrict;
+} CeedElemRestrictionOcca;
+
 
 // **[ basis ] *****************************************************************
 int CeedBasisCreateTensorH1Occa(Ceed ceed, CeedInt dim, CeedInt P1d,
-                                   CeedInt Q1d, const CeedScalar* interp1d,
-                                   const CeedScalar* grad1d,
-                                   const CeedScalar* qref1d,
-                                   const CeedScalar* qweight1d,
+                                CeedInt Q1d, const CeedScalar* interp1d,
+                                const CeedScalar* grad1d,
+                                const CeedScalar* qref1d,
+                                const CeedScalar* qweight1d,
                                 CeedBasis basis);
 
 // **[ operator ]***************************************************************
@@ -43,9 +67,9 @@ int CeedOperatorCreateOcca(CeedOperator op);
 int CeedQFunctionCreateOcca(CeedQFunction qf);
 
 // **[ restriction ]************************************************************
-int CeedElemRestrictionCreateOcca(CeedElemRestriction r,
-                                  CeedMemType mtype,
-                                  CeedCopyMode cmode,
+int CeedElemRestrictionCreateOcca(const CeedElemRestriction res,
+                                  const CeedMemType mtype,
+                                  const CeedCopyMode cmode,
                                   const CeedInt* indices);
 int CeedTensorContractOcca(Ceed ceed,
                            CeedInt A, CeedInt B, CeedInt C, CeedInt J,

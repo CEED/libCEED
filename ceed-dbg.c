@@ -17,12 +17,14 @@
 #include <stdarg.h>
 
 void dbg(const char *format,...){
-  //return;
+  return;
   va_list args;
   va_start(args, format);
   fflush(stdout);
   fprintf(stdout,"\033[32m");
   vfprintf(stdout,format,args);
-  fprintf(stdout,"\033[m\n");
+  fprintf(stdout,"\033[m");
+  fprintf(stdout,"\n");
+  fflush(stdout);
   va_end(args);
 }

@@ -14,7 +14,7 @@ else
     error
 fi
 
-quit0
+#quit0
 
 if [ -f output/$1.out ]; then
     if diff -u output/$1.out ${output}.out; then
