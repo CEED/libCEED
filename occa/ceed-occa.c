@@ -19,9 +19,8 @@
 // * OCCA stuff
 // *****************************************************************************
 occaDevice device;
-static const char *occaDeviceInfo = "mode: 'Serial'";
-//static const char *occaDeviceInfo = "mode: 'CUDA', deviceID: 0";
-static const bool occaVerboseCompilationMode = false;
+static const char *occaCPU = "mode: 'Serial'";
+static const char *occaGPU = "mode: 'CUDA', deviceID: 0";
 extern void occaSetVerboseCompilation(const int value);
 
 // *****************************************************************************
@@ -52,7 +51,8 @@ static int CeedDestroyOcca(Ceed ceed){
 // *****************************************************************************
 static int CeedInitOcca(const char* resource, Ceed ceed) {
   dbg("\033[1m[CeedInit][Occa] resource='%s'", resource);
-  if (strcmp(resource, "/cpu/occa"))
+  if (strcmp(resource, "/cpu/occa")
+      && strcmp(resource, "/gpu/occa"))
     return CeedError(ceed, 1, "Ref backend cannot use resource: %s", resource);
   ceed->Error = CeedErrorOcca;
   ceed->Destroy = CeedDestroyOcca;
@@ -62,9 +62,10 @@ static int CeedInitOcca(const char* resource, Ceed ceed) {
   ceed->QFunctionCreate = CeedQFunctionCreateOcca;
   ceed->OperatorCreate = CeedOperatorCreateOcca;
   // Now creating OCCA device
-  //occaPrintModeInfo();
-  occaSetVerboseCompilation(occaVerboseCompilationMode);
-  device = occaCreateDevice(occaString(occaDeviceInfo));
+  if (getenv("DBG")) occaPrintModeInfo();
+  occaSetVerboseCompilation(getenv("DBG")?true:false);
+  const char *mode = (resource[1]=='g')?occaGPU:occaCPU;
+  device = occaCreateDevice(occaString(mode));
   return 0;
 } 
 
@@ -76,4 +77,5 @@ __attribute__((constructor))
 static void Register(void) {
   dbg("\033[1m[Register] /cpu/occa");
   CeedRegister("/cpu/occa", CeedInitOcca);
+  CeedRegister("/gpu/occa", CeedInitOcca);
 }

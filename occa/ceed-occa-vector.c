@@ -36,10 +36,14 @@ static inline size_t bytes(const CeedVector vec){
 // *****************************************************************************
 static inline void occaSyncH2D(const CeedVector vec){
   const CeedVectorOcca* impl = vec->data;
+  assert(impl);
+  assert(impl->device);
   occaCopyPtrToMem(*impl->device, impl->host, bytes(vec), NO_OFFSET, NO_PROPS);
 }
 static inline void occaSyncD2H(const CeedVector vec){
   const CeedVectorOcca* impl = vec->data;
+  assert(impl);
+  assert(impl->host);
   occaCopyMemToPtr(impl->host, *impl->device, bytes(vec), NO_OFFSET, NO_PROPS);
 }
 
@@ -48,10 +52,15 @@ static inline void occaSyncD2H(const CeedVector vec){
 // *****************************************************************************
 static inline void occaCopyH2D(const CeedVector vec, void *from){
   const CeedVectorOcca* impl = vec->data;
+  assert(from);
+  assert(impl);
+  assert(impl->device);
   occaCopyPtrToMem(*impl->device, from, bytes(vec), NO_OFFSET, NO_PROPS);
 }
 static inline void occaCopyD2H(const CeedVector vec, void *to){
   const CeedVectorOcca* impl = vec->data;
+  assert(to);
+  assert(impl);
   occaCopyMemToPtr(to, *impl->device, bytes(vec), NO_OFFSET, NO_PROPS);
 }
 
@@ -127,6 +136,8 @@ static int CeedVectorGetArrayOcca(const CeedVector vec,
   dbg("\033[33m[CeedVector][GetArray][Occa]");
   if (mtype != CEED_MEM_HOST)
     return CeedError(vec->ceed, 1, "Can only provide to HOST memory");
+  // Allocating space on host to allow the view
+  CeedChk(CeedCalloc(vec->length,&impl->host));
   // sync'ing back device to the host
   occaSyncD2H(vec);
   *array = impl->host;

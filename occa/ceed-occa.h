@@ -42,16 +42,6 @@ typedef struct {
 } CeedVectorOcca;
 
 
-// *****************************************************************************
-// * CeedElemRestrictionOcca struct
-// *****************************************************************************
-typedef struct {
-  const CeedInt* host;
-  occaMemory* device;
-  occaKernel kRestrict;
-} CeedElemRestrictionOcca;
-
-
 // **[ basis ] *****************************************************************
 int CeedBasisCreateTensorH1Occa(Ceed ceed, CeedInt dim, CeedInt P1d,
                                 CeedInt Q1d, const CeedScalar* interp1d,

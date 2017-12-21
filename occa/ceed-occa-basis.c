@@ -27,6 +27,7 @@ static int CeedBasisApplyOcca(CeedBasis basis, CeedTransposeMode tmode,
 
   dbg("[CeedBasis][Apply][Occa]");
   switch (emode) {
+    case CEED_EVAL_NONE: break;
     case CEED_EVAL_INTERP: {
       CeedInt P = basis->P1d, Q = basis->Q1d;
       if (tmode == CEED_TRANSPOSE) {
@@ -36,12 +37,13 @@ static int CeedBasisApplyOcca(CeedBasis basis, CeedTransposeMode tmode,
       CeedScalar tmp[2][Q*CeedPowInt(P>Q?P:Q, dim-1)];
       for (CeedInt d=0; d<dim; d++) {
         ierr = CeedTensorContractOcca(basis->ceed, pre, P, post, Q, basis->interp1d,
-                                         tmode,
-                                         d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]); CeedChk(ierr);
+                                      tmode,
+                                      d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]); CeedChk(ierr);
         pre /= P;
         post *= Q;
       }
-    } break;
+    }
+    break;
     case CEED_EVAL_WEIGHT: {
       if (tmode == CEED_TRANSPOSE)
         return CeedError(basis->ceed, 1,

@@ -18,6 +18,11 @@
 // *****************************************************************************
 // * RESTRICTIONS: Create, Apply, Destroy
 // *****************************************************************************
+typedef struct {
+  const CeedInt* host;
+  occaMemory* device;
+  occaKernel kRestrict;
+} CeedElemRestrictionOcca;
 
 // *****************************************************************************
 // * Bytes used
@@ -46,12 +51,16 @@ static inline void occaSyncD2H(const CeedElemRestriction res){
 // *****************************************************************************
 static inline void occaCopyH2D(const CeedElemRestriction res, const void *from){
   const CeedElemRestrictionOcca* impl = res->data;
+  assert(from);
   assert(impl);
   assert(impl->device);
   occaCopyPtrToMem(*impl->device, from, bytes(res), NO_OFFSET, NO_PROPS);
 }
 static inline void occaCopyD2H(const CeedElemRestriction res, void *to){
   const CeedElemRestrictionOcca* impl = res->data;
+  assert(to);
+  assert(impl);
+  assert(impl->device);
   occaCopyMemToPtr(to, *impl->device, bytes(res), NO_OFFSET, NO_PROPS);
 }
 

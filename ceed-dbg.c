@@ -15,9 +15,10 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
 void dbg(const char* format,...) {
-  return;
+  if (!getenv("DBG")) return;
   va_list args;
   va_start(args, format);
   fflush(stdout);

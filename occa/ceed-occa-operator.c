@@ -20,6 +20,7 @@
 // *****************************************************************************
 typedef struct {
   CeedVector etmp;
+  CeedVector qdata;
 } CeedOperatorOcca;
 
 // *****************************************************************************
@@ -29,7 +30,9 @@ static int CeedOperatorApplyOcca(CeedOperator op, CeedVector qdata,
   dbg("[CeedOperator][Apply][Occa]");
   CeedOperatorOcca* impl = op->data;
   CeedVector etmp;
+  CeedInt Q;
   CeedScalar* Eu;
+  char* qd;
   int ierr;
 
   if (!impl->etmp) {
@@ -42,20 +45,45 @@ static int CeedOperatorApplyOcca(CeedOperator op, CeedVector qdata,
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_NOTRANSPOSE, ustate, etmp,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
   }
+  ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
   ierr = CeedVectorGetArray(etmp, CEED_MEM_HOST, &Eu); CeedChk(ierr);
+  ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar**)&qd);
+  CeedChk(ierr);
   for (CeedInt e=0; e<op->Erestrict->nelem; e++) {
-    CeedScalar BEu[CeedPowInt(op->basis->Q1d, op->basis->dim)];
-    CeedScalar BEv[CeedPowInt(op->basis->Q1d, op->basis->dim)];
+    CeedScalar BEu[Q], BEv[Q], *out[1];
+    const CeedScalar* in[1];
     ierr = CeedBasisApply(op->basis, CEED_NOTRANSPOSE, op->qf->inmode,
                           &Eu[e*op->Erestrict->elemsize], BEu); CeedChk(ierr);
-    // qfunction
+    in[0] = BEu;
+    out[0] = BEv;
+    ierr = CeedQFunctionApply(op->qf, &qd[e*Q*op->qf->qdatasize], Q, in, out);
+    CeedChk(ierr);
     ierr = CeedBasisApply(op->basis, CEED_TRANSPOSE, op->qf->outmode, BEv,
                           &Eu[e*op->Erestrict->elemsize]); CeedChk(ierr);
   }
   ierr = CeedVectorRestoreArray(etmp, &Eu); CeedChk(ierr);
-  ierr = CeedElemRestrictionApply(op->Erestrict, CEED_TRANSPOSE, etmp, residual,
-                                  CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
+  if (residual) {
+    ierr = CeedElemRestrictionApply(op->Erestrict, CEED_TRANSPOSE, etmp, residual,
+                                    CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
+  }
   if (request != CEED_REQUEST_IMMEDIATE) *request = NULL;
+  return 0;
+}
+
+// *****************************************************************************
+static int CeedOperatorGetQDataOcca(CeedOperator op, CeedVector* qdata) {
+  dbg("[CeedOperator][GetQData][Occa]");
+  CeedOperatorOcca* impl = op->data;
+  int ierr;
+
+  if (!impl->qdata) {
+    CeedInt Q;
+    ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
+    ierr = CeedVectorCreate(op->ceed,
+                            op->Erestrict->nelem * Q * op->basis->ndof,
+                            &impl->qdata); CeedChk(ierr);
+  }
+  *qdata = impl->qdata;
   return 0;
 }
 
@@ -66,6 +94,7 @@ static int CeedOperatorDestroyOcca(CeedOperator op) {
   int ierr;
 
   ierr = CeedVectorDestroy(&impl->etmp); CeedChk(ierr);
+  ierr = CeedVectorDestroy(&impl->qdata); CeedChk(ierr);
   ierr = CeedFree(&op->data); CeedChk(ierr);
   return 0;
 }
@@ -80,6 +109,7 @@ int CeedOperatorCreateOcca(CeedOperator op) {
   op->data = impl;
   op->Destroy = CeedOperatorDestroyOcca;
   op->Apply = CeedOperatorApplyOcca;
+  op->GetQData = CeedOperatorGetQDataOcca;
   return 0;
 }
 
