@@ -21,6 +21,8 @@ LDFLAGS ?=
 LOADLIBES ?=
 TARGET_ARCH ?=
 
+OCCA_DIR ?= ../occa
+
 pwd = $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
 
 SANTIZ = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
@@ -53,15 +55,16 @@ ref       := $(ref.c:backends/ref/%.c=$(OBJDIR)/%)
 occa.c    := $(sort $(wildcard backends/occa/*.c))
 occa      := $(occa.c:backends/occa/%.c=$(OBJDIR)/%)
 
-# OUTPUT rules #
+# Output color rules
 COLOR_OFFSET = 3
 COLOR = $(shell echo $(rule_path)|cksum|cut -b1-2)
 rule_path = $(notdir $(patsubst %/,%,$(dir $<)))
 rule_file = $(basename $(notdir $@))
 rule_dumb = @echo -e $(rule_path)/$(rule_file)
-rule_xterm = @echo -e \\e[38\;5\;$(shell echo $(COLOR)+$(COLOR_OFFSET)|bc -l)\;1m\
+rule_term = @echo -e \\e[38\;5\;$(shell echo $(COLOR)+$(COLOR_OFFSET)|bc -l)\;1m\
              $(rule_path)\\033[m/\\033[\m$(rule_file)\\033[m
-output = $(rule_${TERM})
+# if TERM=dumb, use it, otherwise switch to the term one
+output = $(if $(TERM:dumb=),$(rule_term),$(rule_dumb))
 
 .SUFFIXES:
 .SUFFIXES: .c .o .d
