@@ -64,6 +64,13 @@ and **B** on-the-fly.  Critically for performance, we take advantage of the
 tensor-product structure of the degrees of freedom and quad and hex elements to
 perform the action of **B** without storing it as a matrix.
 
+Implemented properly, the partial assembly algorithm requires optimal amount of
+memory transfers (with respect to the polynomial order) and near-optimal FLOPs
+for operator evaluation. It consists of an operator *setup* phase, that
+evaluates and stores **D** and an operator *evaluation* (or application) phase
+that computes the action of **A** on an input vector. The relative costs of
+these two phases are different for different operators.
+
 ### Parallel Decomposition
 
 After the application of each of the first three transition operators, **P**,
