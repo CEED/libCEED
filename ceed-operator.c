@@ -43,7 +43,16 @@ int CeedOperatorApply(CeedOperator op, CeedVector qdata, CeedVector ustate,
   return 0;
 }
 
-int CeedOperatorDestroy(CeedOperator* op) {
+int CeedOperatorGetQData(CeedOperator op, CeedVector *qdata) {
+  int ierr;
+
+  if (!op->GetQData)
+    return CeedError(op->ceed, 1, "Backend does not support OperatorGetQData");
+  ierr = op->GetQData(op, qdata); CeedChk(ierr);
+  return 0;
+}
+
+int CeedOperatorDestroy(CeedOperator *op) {
   int ierr;
 
   if (!*op) return 0;

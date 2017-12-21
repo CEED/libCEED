@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
                             &Erestrict);
 
   // Create a 3D Q_3 Lagrange element with 4^3 Gauss quadrature points
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, 1, 3, 4, CEED_GAUSS, &Basis);
+  CeedBasisCreateTensorH1Lagrange(ceed, 3, 1, 4, 4, CEED_GAUSS, &Basis);
 
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar), CEED_EVAL_INTERP,
                               CEED_EVAL_INTERP, f_mass, "ex1.c:f_mass", &qf_mass);

@@ -84,6 +84,9 @@ $(OBJDIR)/%.o : $(pwd)/%.c | $$(@D)/.DIR;$(output)
 $(OBJDIR)/%.o : $(pwd)/occa/%.c $(pwd)/occa/ceed-occa.h | $$(@D)/.DIR;$(output)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
 
+#$(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
+#	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+
 $(OBJDIR)/%.o : $(pwd)/tests/%.c | $$(@D)/.DIR;$(output)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
