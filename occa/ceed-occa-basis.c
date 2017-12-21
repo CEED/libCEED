@@ -25,7 +25,7 @@ static int CeedBasisApplyOcca(CeedBasis basis, CeedTransposeMode tmode,
   const CeedInt dim = basis->dim;
   const CeedInt ndof = basis->ndof;
 
-  dbg("[CeedBasis][Apply][Occa]");
+  dbg("\033[38;5;249m[CeedBasis][Apply]");
   switch (emode) {
     case CEED_EVAL_NONE: break;
     case CEED_EVAL_INTERP: {
@@ -64,13 +64,12 @@ static int CeedBasisApplyOcca(CeedBasis basis, CeedTransposeMode tmode,
     default:
       return CeedError(basis->ceed, 1, "EvalMode %d not supported", emode);
   }
-  dbg("[CeedBasis][Apply][Occa] done");
   return 0;
 }
 
 // *****************************************************************************
 static int CeedBasisDestroyOcca(CeedBasis basis) {
-  dbg("[CeedBasis][Destroy][Occa] done");
+  dbg("\033[38;5;249m[CeedBasis][Destroy]");
   return 0;
 }
 
@@ -83,6 +82,6 @@ int CeedBasisCreateTensorH1Occa(Ceed ceed, CeedInt dim, CeedInt P1d,
                                 CeedBasis basis) {
   basis->Apply = CeedBasisApplyOcca;
   basis->Destroy = CeedBasisDestroyOcca;
-  dbg("[CeedBasis][Create][TensorH1][Occa] done");
+  dbg("\033[38;5;249m[CeedBasis][Create][TensorH1]");
   return 0;
 }

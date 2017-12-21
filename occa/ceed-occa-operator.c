@@ -25,9 +25,9 @@ typedef struct {
 
 // *****************************************************************************
 static int CeedOperatorApplyOcca(CeedOperator op, CeedVector qdata,
-                                    CeedVector ustate,
-                                    CeedVector residual, CeedRequest* request) {
-  dbg("[CeedOperator][Apply][Occa]");
+                                 CeedVector ustate,
+                                 CeedVector residual, CeedRequest* request) {
+  dbg("\033[37;1m[CeedOperator][Apply]");
   CeedOperatorOcca* impl = op->data;
   CeedVector etmp;
   CeedInt Q;
@@ -72,7 +72,7 @@ static int CeedOperatorApplyOcca(CeedOperator op, CeedVector qdata,
 
 // *****************************************************************************
 static int CeedOperatorGetQDataOcca(CeedOperator op, CeedVector* qdata) {
-  dbg("[CeedOperator][GetQData][Occa]");
+  dbg("\033[37;1m[CeedOperator][GetQData]");
   CeedOperatorOcca* impl = op->data;
   int ierr;
 
@@ -89,7 +89,7 @@ static int CeedOperatorGetQDataOcca(CeedOperator op, CeedVector* qdata) {
 
 // *****************************************************************************
 static int CeedOperatorDestroyOcca(CeedOperator op) {
-  dbg("[CeedOperator][Destroy][Occa]");
+  dbg("\033[37;1m[CeedOperator][Destroy]");
   CeedOperatorOcca* impl = op->data;
   int ierr;
 
@@ -104,7 +104,7 @@ int CeedOperatorCreateOcca(CeedOperator op) {
   CeedOperatorOcca* impl;
   int ierr;
 
-  dbg("[CeedOperator][Create][Occa]");
+  dbg("\033[37;1m[CeedOperator][Create]");
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   op->data = impl;
   op->Destroy = CeedOperatorDestroyOcca;

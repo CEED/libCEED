@@ -70,7 +70,7 @@ static inline void occaCopyD2H(const CeedVector vec, void *to){
 static int CeedVectorDestroyOcca(const CeedVector vec) {
   CeedVectorOcca* impl = vec->data;
 
-  dbg("\033[33m[CeedVector][Destroy][Occa]");
+  dbg("\033[33m[CeedVector][Destroy]");
   // free device memory
   occaMemoryFree(*impl->device);
   // free device object
@@ -89,7 +89,7 @@ static int CeedVectorSetArrayOcca(const CeedVector vec,
                                   CeedScalar* array) {
   CeedVectorOcca* impl = vec->data;
 
-  dbg("\033[33m[CeedVector][SetArray][Occa]");
+  dbg("\033[33m[CeedVector][SetArray]");
   if (mtype != CEED_MEM_HOST)
     return CeedError(vec->ceed, 1, "Only MemType = HOST supported");
   // ***************************************************************************
@@ -104,22 +104,22 @@ static int CeedVectorSetArrayOcca(const CeedVector vec,
   // ***************************************************************************
   switch (cmode) {
   case CEED_COPY_VALUES:
-    dbg("\t\033[33m[CeedVector][SetArray][Occa] CEED_COPY_VALUES");
+    dbg("\t\033[33m[CeedVector][SetArray] CEED_COPY_VALUES");
     if (array) memcpy(impl->host, array, bytes(vec));
     break;
   case CEED_OWN_POINTER:
-    dbg("\t\033[33m[CeedVector][SetArray][Occa] CEED_OWN_POINTER");
+    dbg("\t\033[33m[CeedVector][SetArray] CEED_OWN_POINTER");
     impl->host = array;
     break;
   case CEED_USE_POINTER:
-    dbg("\t\033[33m[CeedVector][SetArray][Occa] CEED_USE_POINTER");
+    dbg("\t\033[33m[CeedVector][SetArray] CEED_USE_POINTER");
     impl->host = array;
     break;
   default: CeedError(vec->ceed,1," OCCA backend no default error");
   }
   // now sync the host to the device
   if (array) {
-    dbg("\033[33m[CeedVector][SetArray][Occa] occaSyncH2D");
+    dbg("\033[33m[CeedVector][SetArray] occaSyncH2D");
     occaSyncH2D(vec);
   }
   return 0;
@@ -133,7 +133,7 @@ static int CeedVectorGetArrayOcca(const CeedVector vec,
                                   CeedScalar** array) {
   CeedVectorOcca* impl = vec->data;
 
-  dbg("\033[33m[CeedVector][GetArray][Occa]");
+  dbg("\033[33m[CeedVector][GetArray]");
   if (mtype != CEED_MEM_HOST)
     return CeedError(vec->ceed, 1, "Can only provide to HOST memory");
   // Allocating space on host to allow the view
@@ -152,7 +152,7 @@ static int CeedVectorGetArrayReadOcca(const CeedVector vec,
                                       const CeedScalar** array) {
   CeedVectorOcca* impl = vec->data;
 
-  dbg("\033[33m[CeedVector][GetArray][Const][Occa]");
+  dbg("\033[33m[CeedVector][GetArray][Const]");
   if (mtype != CEED_MEM_HOST)
     return CeedError(vec->ceed, 1, "Can only provide to HOST memory");
   // Allocating space on host to allow the view
@@ -171,7 +171,7 @@ static int CeedVectorRestoreArrayReadOcca(const CeedVector vec,
                                           const CeedScalar** array) {
   CeedVectorOcca* impl = vec->data;
 
-  dbg("\033[33m[CeedVector][RestoreArray][Const][Occa]");
+  dbg("\033[33m[CeedVector][RestoreArray][Const]");
   // free memory we used for the view
   CeedChk(CeedFree(&impl->host));
   *array = NULL;
@@ -185,7 +185,7 @@ static int CeedVectorRestoreArrayOcca(const CeedVector vec,
                                       CeedScalar** array) {
   CeedVectorOcca* impl = vec->data;
 
-  dbg("\033[33m[CeedVector][RestoreArray][Occa]");
+  dbg("\033[33m[CeedVector][RestoreArray]");
   impl->host = NULL;
   *array = NULL;
   return 0;
@@ -197,7 +197,7 @@ static int CeedVectorRestoreArrayOcca(const CeedVector vec,
 int CeedVectorCreateOcca(const Ceed ceed, const CeedInt n, CeedVector vec) {
   CeedVectorOcca* impl;
 
-  dbg("\033[33m[CeedVector][Create][Occa] n=%d", n);
+  dbg("\033[33m[CeedVector][Create] n=%d", n);
   // ***************************************************************************
   vec->SetArray = CeedVectorSetArrayOcca;
   vec->GetArray = CeedVectorGetArrayOcca;
@@ -210,6 +210,6 @@ int CeedVectorCreateOcca(const Ceed ceed, const CeedInt n, CeedVector vec) {
   CeedChk(CeedCalloc(1,&impl->device));
   *impl->device = occaDeviceMalloc(device, bytes(vec), NULL, NO_PROPS);
   vec->data = impl;
-  dbg("\033[33m[CeedVector][Create][Occa] done");
+  dbg("\033[33m[CeedVector][Create] done");
   return 0;
 }

@@ -4,7 +4,6 @@ output=$(mktemp $1.XXXX)
 
 function clean() { rm -f ${output} ${output}.out ${output}.err; }
 function error() { clean; exit 1; }
-function quit0() { clean; exit 0; }
 
 for backend in /cpu/self /cpu/occa /gpu/occa
 do

@@ -22,20 +22,21 @@ static int CeedQFunctionApplyOcca(CeedQFunction qf, void* qdata, CeedInt Q,
                                   const CeedScalar* const* u,
                                   CeedScalar* const* v) {
   int ierr;
-  dbg("[CeedQFunction][Apply][Occa]");
+  dbg("\033[36m[CeedQFunction][Apply]");
   ierr = qf->function(qf->ctx, qdata, Q, u, v); CeedChk(ierr);
+  
   return 0;
 }
 
 // *****************************************************************************
 static int CeedQFunctionDestroyOcca(CeedQFunction qf) {
-  dbg("[CeedQFunction][Destroy][Occa]");
+  dbg("\033[36m[CeedQFunction][Destroy]");
   return 0;
 }
 
 // *****************************************************************************
 int CeedQFunctionCreateOcca(CeedQFunction qf) {
-  dbg("[CeedQFunction][Create][Occa]");
+  dbg("\033[36m[CeedQFunction][Create]");
   qf->Apply = CeedQFunctionApplyOcca;
   qf->Destroy = CeedQFunctionDestroyOcca;
   return 0;

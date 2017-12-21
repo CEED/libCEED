@@ -41,7 +41,7 @@ static int CeedErrorOcca(Ceed ceed,
 // * CeedDestroyOcca
 // *****************************************************************************
 static int CeedDestroyOcca(Ceed ceed){
-  dbg("\033[1m[CeedDestroy][Occa]");
+  dbg("\033[1m[CeedDestroy]");
   occaDeviceFree(device);
   return 0;
 }
@@ -50,7 +50,7 @@ static int CeedDestroyOcca(Ceed ceed){
 // * INIT
 // *****************************************************************************
 static int CeedInitOcca(const char* resource, Ceed ceed) {
-  dbg("\033[1m[CeedInit][Occa] resource='%s'", resource);
+  dbg("\033[1m[CeedInit] resource='%s'", resource);
   if (strcmp(resource, "/cpu/occa")
       && strcmp(resource, "/gpu/occa"))
     return CeedError(ceed, 1, "Ref backend cannot use resource: %s", resource);
