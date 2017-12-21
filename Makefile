@@ -46,13 +46,13 @@ $(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o)
 	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 $(OBJDIR)/%.o : examples/%.c | $$(@D)/.DIR
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(LIBDIR) -L$(LIBDIR)
@@ -92,4 +92,4 @@ print-%:
 	$(info )
 	@true
 
--include $(libceed.c:%.c=%.d) $(tests.c:%.c=%.d)
+-include $(libceed.c:%.c=build/%.d) $(tests.c:tests/%.c=build/%.d)
