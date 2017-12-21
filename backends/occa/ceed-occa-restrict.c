@@ -140,7 +140,7 @@ int CeedElemRestrictionCreateOcca(const CeedElemRestriction res,
   occaPropertiesSet(pKR, "defines/nelemsize", occaInt(res->nelem*res->elemsize));
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(TILE_SIZE));
   impl->kRestrict = occaDeviceBuildKernel(device,
-                                          "occa/ceed-occa-restrict.okl",
+                                          "backends/occa/ceed-occa-restrict.okl",
                                           "kRestrict",pKR);
   // ***************************************************************************
   res->Apply = CeedElemRestrictionApplyOcca;

@@ -44,13 +44,15 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.c := $(wildcard ceed*.c)
-occa.c    := $(sort $(wildcard occa/*.c))
-occa      := $(occa.c:occa/%.c=$(OBJDIR)/%)
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9]-*.c))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 examples.c := $(sort $(wildcard examples/*.c))
 examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
-
+# backends/[ref & occa]
+ref.c     := $(sort $(wildcard backends/ref/*.c))
+ref       := $(ref.c:backends/ref/%.c=$(OBJDIR)/%)
+occa.c    := $(sort $(wildcard backends/occa/*.c))
+occa      := $(occa.c:backends/occa/%.c=$(OBJDIR)/%)
 
 # OUTPUT rules #
 COLOR_OFFSET = 3
@@ -75,13 +77,16 @@ output = $(rule_${TERM})
 all dbg:;$(MAKE) $(MFLAGS) $(libceed) $(tests)
 opt:;NDEBUG=1 $(MAKE) $(MFLAGS) $(libceed) $(tests)
 
-$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) $(occa.c:%.c=$(OBJDIR)/%.o);$(output)
+$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) $(ref.c:%.c=$(OBJDIR)/%.o) $(occa.c:%.c=$(OBJDIR)/%.o);$(output)
 	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(OBJDIR)/%.o : $(pwd)/%.c | $$(@D)/.DIR;$(output)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
 
-$(OBJDIR)/%.o : $(pwd)/occa/%.c $(pwd)/occa/ceed-occa.h | $$(@D)/.DIR;$(output)
+$(OBJDIR)/%.o : $(pwd)/backends/ref/%.c | $$(@D)/.DIR;$(output)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
+
+$(OBJDIR)/%.o : $(pwd)/backends/occa/%.c | $$(@D)/.DIR;$(output)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
 
 $(OBJDIR)/%.o : $(pwd)/tests/%.c | $$(@D)/.DIR;$(output)
@@ -109,7 +114,7 @@ examples : $(examples)
 .PHONY: clean print test examples astyle
 cln clean :
 	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests)
-	$(RM) -r *.dSYM $(OBJDIR)/occa
+	$(RM) -r *.dSYM $(OBJDIR)/backends
 
 ### ASTYLE ###
 ASTYLE = astyle --options=.astylerc
