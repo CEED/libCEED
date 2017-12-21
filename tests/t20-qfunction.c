@@ -1,25 +1,25 @@
 // Test qfunction evaluation
 #include <ceed.h>
 
-static int setup(void* ctx, void* qdata, CeedInt Q, const CeedScalar* const* u,
-                 CeedScalar* const* v) {
-  CeedScalar* w = qdata;
+static int setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
+                 CeedScalar *const *v) {
+  CeedScalar *w = qdata;
   for (CeedInt i=0; i<Q; i++) {
     w[i] = u[0][i];
   }
   return 0;
 }
 
-static int mass(void* ctx, void* qdata, CeedInt Q, const CeedScalar* const* u,
-                CeedScalar* const* v) {
-  const CeedScalar* w = qdata;
+static int mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
+                CeedScalar *const *v) {
+  const CeedScalar *w = qdata;
   for (CeedInt i=0; i<Q; i++) {
     v[0][i] = w[i] * u[0][i];
   }
   return 0;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   Ceed ceed;
   CeedQFunction qf_setup, qf_mass;
   CeedInt Q = 8;
@@ -40,12 +40,12 @@ int main(int argc, char** argv) {
     v[i] = w[i] * u[i];
   }
   {
-    const CeedScalar* const up = w;
+    const CeedScalar *const up = w;
     CeedQFunctionApply(qf_setup, qdata, Q, &up, NULL);
   }
   {
-    const CeedScalar* const up = u;
-    CeedScalar* const vp = vv;
+    const CeedScalar *const up = u;
+    CeedScalar *const vp = vv;
     CeedQFunctionApply(qf_mass, qdata, Q, &up, &vp);
   }
   for (CeedInt i=0; i<Q; i++) {

@@ -4,13 +4,13 @@
 
 #define ALEN(a) (sizeof(a) / sizeof((a)[0]))
 
-static CeedScalar PolyEval(CeedScalar x, CeedInt n, const CeedScalar* p) {
+static CeedScalar PolyEval(CeedScalar x, CeedInt n, const CeedScalar *p) {
   CeedScalar y = p[n-1];
   for (CeedInt i=n-2; i>=0; i--) y = y*x + p[i];
   return y;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   Ceed ceed;
   CeedBasis bxl, bxg, bug;
   CeedInt Q = 6;

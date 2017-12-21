@@ -11,7 +11,7 @@ static CeedScalar Eval(CeedInt dim, const CeedScalar x[]) {
   return result;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   Ceed ceed;
 
   assert(argv[1]);

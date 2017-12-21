@@ -4,7 +4,9 @@
 --max-code-length=80
 --keep-one-line-statements
 --keep-one-line-blocks
+--indent-preproc-cond
 --lineend=linux
 --suffix=none
 --preserve-date
 --formatted
+--align-pointer=name

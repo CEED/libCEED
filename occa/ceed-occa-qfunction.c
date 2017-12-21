@@ -18,9 +18,9 @@
 // *****************************************************************************
 // * Q-functions: Apply, Destroy & Create
 // *****************************************************************************
-static int CeedQFunctionApplyOcca(CeedQFunction qf, void* qdata, CeedInt Q,
-                                  const CeedScalar* const* u,
-                                  CeedScalar* const* v) {
+static int CeedQFunctionApplyOcca(CeedQFunction qf, void *qdata, CeedInt Q,
+                                  const CeedScalar *const *u,
+                                  CeedScalar *const *v) {
   int ierr;
   dbg("\033[36m[CeedQFunction][Apply]");
   ierr = qf->function(qf->ctx, qdata, Q, u, v); CeedChk(ierr);

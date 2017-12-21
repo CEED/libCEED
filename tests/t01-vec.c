@@ -1,11 +1,11 @@
 #include <ceed.h>
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   Ceed ceed;
   CeedVector x;
   CeedInt n;
   CeedScalar a[10];
-  const CeedScalar* b;
+  const CeedScalar *b;
 
   assert(argv[1]);
   CeedInit(argv[1], &ceed);

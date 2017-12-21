@@ -26,13 +26,13 @@ typedef struct {
 // *****************************************************************************
 static int CeedOperatorApplyOcca(CeedOperator op, CeedVector qdata,
                                  CeedVector ustate,
-                                 CeedVector residual, CeedRequest* request) {
+                                 CeedVector residual, CeedRequest *request) {
   dbg("\033[37;1m[CeedOperator][Apply]");
-  CeedOperatorOcca* impl = op->data;
+  CeedOperatorOcca *impl = op->data;
   CeedVector etmp;
   CeedInt Q;
-  CeedScalar* Eu;
-  char* qd;
+  CeedScalar *Eu;
+  char *qd;
   int ierr;
 
   if (!impl->etmp) {
@@ -47,11 +47,11 @@ static int CeedOperatorApplyOcca(CeedOperator op, CeedVector qdata,
   }
   ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
   ierr = CeedVectorGetArray(etmp, CEED_MEM_HOST, &Eu); CeedChk(ierr);
-  ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar**)&qd);
+  ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar **)&qd);
   CeedChk(ierr);
   for (CeedInt e=0; e<op->Erestrict->nelem; e++) {
     CeedScalar BEu[Q], BEv[Q], *out[1];
-    const CeedScalar* in[1];
+    const CeedScalar *in[1];
     ierr = CeedBasisApply(op->basis, CEED_NOTRANSPOSE, op->qf->inmode,
                           &Eu[e*op->Erestrict->elemsize], BEu); CeedChk(ierr);
     in[0] = BEu;
@@ -71,9 +71,9 @@ static int CeedOperatorApplyOcca(CeedOperator op, CeedVector qdata,
 }
 
 // *****************************************************************************
-static int CeedOperatorGetQDataOcca(CeedOperator op, CeedVector* qdata) {
+static int CeedOperatorGetQDataOcca(CeedOperator op, CeedVector *qdata) {
   dbg("\033[37;1m[CeedOperator][GetQData]");
-  CeedOperatorOcca* impl = op->data;
+  CeedOperatorOcca *impl = op->data;
   int ierr;
 
   if (!impl->qdata) {
@@ -90,7 +90,7 @@ static int CeedOperatorGetQDataOcca(CeedOperator op, CeedVector* qdata) {
 // *****************************************************************************
 static int CeedOperatorDestroyOcca(CeedOperator op) {
   dbg("\033[37;1m[CeedOperator][Destroy]");
-  CeedOperatorOcca* impl = op->data;
+  CeedOperatorOcca *impl = op->data;
   int ierr;
 
   ierr = CeedVectorDestroy(&impl->etmp); CeedChk(ierr);
@@ -101,7 +101,7 @@ static int CeedOperatorDestroyOcca(CeedOperator op) {
 
 // *****************************************************************************
 int CeedOperatorCreateOcca(CeedOperator op) {
-  CeedOperatorOcca* impl;
+  CeedOperatorOcca *impl;
   int ierr;
 
   dbg("\033[37;1m[CeedOperator][Create]");

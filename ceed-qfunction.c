@@ -69,8 +69,9 @@
 int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedInt nfields,
                                 size_t qdatasize, CeedEvalMode inmode,
                                 CeedEvalMode outmode,
-                                int (*f)(void*, void*, CeedInt, const CeedScalar* const*, CeedScalar* const*),
-                                const char* focca, CeedQFunction* qf) {
+                                int (*f)(void *, void *, CeedInt, const CeedScalar *const *,
+                                    CeedScalar *const *),
+                                const char *focca, CeedQFunction *qf) {
   int ierr;
 
   if (!ceed->QFunctionCreate)
@@ -88,15 +89,15 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedInt nfields,
   return 0;
 }
 
-int CeedQFunctionSetContext(CeedQFunction qf, void* ctx, size_t ctxsize) {
+int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
   qf->ctx = ctx;
   qf->ctxsize = ctxsize;
   return 0;
 }
 
-int CeedQFunctionApply(CeedQFunction qf, void* qdata, CeedInt Q,
-                       const CeedScalar* const* u,
-                       CeedScalar* const* v) {
+int CeedQFunctionApply(CeedQFunction qf, void *qdata, CeedInt Q,
+                       const CeedScalar *const *u,
+                       CeedScalar *const *v) {
   int ierr;
   if (!qf->Apply)
     return CeedError(qf->ceed, 1, "Backend does not support QFunctionApply");
@@ -108,7 +109,7 @@ int CeedQFunctionApply(CeedQFunction qf, void* qdata, CeedInt Q,
   return 0;
 }
 
-int CeedQFunctionDestroy(CeedQFunction* qf) {
+int CeedQFunctionDestroy(CeedQFunction *qf) {
   int ierr;
 
   if (!*qf) return 0;

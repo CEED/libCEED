@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <math.h>
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   Ceed ceed;
   CeedBasis b;
   int i, dim = 2, P1d = 4, Q1d = 4, len = (int)(pow((double)(Q1d), dim) + 0.4);

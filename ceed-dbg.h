@@ -16,6 +16,6 @@
 #ifndef _ceed_dbg_h
 #define _ceed_dbg_h
 
-void dbg(const char*,...);
+void dbg(const char *,...);
 
 #endif // _ceed_dbg_h

@@ -18,13 +18,13 @@
 #include <string.h>
 
 typedef struct {
-  CeedScalar* array;
-  CeedScalar* array_allocated;
+  CeedScalar *array;
+  CeedScalar *array_allocated;
 } CeedVector_Ref;
 
 typedef struct {
-  const CeedInt* indices;
-  CeedInt* indices_allocated;
+  const CeedInt *indices;
+  CeedInt *indices_allocated;
 } CeedElemRestriction_Ref;
 
 typedef struct {
@@ -33,8 +33,8 @@ typedef struct {
 } CeedOperator_Ref;
 
 static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mtype,
-                                  CeedCopyMode cmode, CeedScalar* array) {
-  CeedVector_Ref* impl = vec->data;
+                                  CeedCopyMode cmode, CeedScalar *array) {
+  CeedVector_Ref *impl = vec->data;
   int ierr;
 
   if (mtype != CEED_MEM_HOST)
@@ -57,8 +57,8 @@ static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mtype,
 }
 
 static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mtype,
-                                  CeedScalar** array) {
-  CeedVector_Ref* impl = vec->data;
+                                  CeedScalar **array) {
+  CeedVector_Ref *impl = vec->data;
   int ierr;
 
   if (mtype != CEED_MEM_HOST)
@@ -72,8 +72,8 @@ static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mtype,
 }
 
 static int CeedVectorGetArrayRead_Ref(CeedVector vec, CeedMemType mtype,
-                                      const CeedScalar** array) {
-  CeedVector_Ref* impl = vec->data;
+                                      const CeedScalar **array) {
+  CeedVector_Ref *impl = vec->data;
   int ierr;
 
   if (mtype != CEED_MEM_HOST)
@@ -86,19 +86,19 @@ static int CeedVectorGetArrayRead_Ref(CeedVector vec, CeedMemType mtype,
   return 0;
 }
 
-static int CeedVectorRestoreArray_Ref(CeedVector vec, CeedScalar** array) {
+static int CeedVectorRestoreArray_Ref(CeedVector vec, CeedScalar **array) {
   *array = NULL;
   return 0;
 }
 
 static int CeedVectorRestoreArrayRead_Ref(CeedVector vec,
-    const CeedScalar** array) {
+    const CeedScalar **array) {
   *array = NULL;
   return 0;
 }
 
 static int CeedVectorDestroy_Ref(CeedVector vec) {
-  CeedVector_Ref* impl = vec->data;
+  CeedVector_Ref *impl = vec->data;
   int ierr;
 
   ierr = CeedFree(&impl->array_allocated); CeedChk(ierr);
@@ -107,7 +107,7 @@ static int CeedVectorDestroy_Ref(CeedVector vec) {
 }
 
 static int CeedVectorCreate_Ref(Ceed ceed, CeedInt n, CeedVector vec) {
-  CeedVector_Ref* impl;
+  CeedVector_Ref *impl;
   int ierr;
 
   vec->SetArray = CeedVectorSetArray_Ref;
@@ -123,11 +123,11 @@ static int CeedVectorCreate_Ref(Ceed ceed, CeedInt n, CeedVector vec) {
 
 static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
                                         CeedTransposeMode tmode, CeedVector u,
-                                        CeedVector v, CeedRequest* request) {
-  CeedElemRestriction_Ref* impl = r->data;
+                                        CeedVector v, CeedRequest *request) {
+  CeedElemRestriction_Ref *impl = r->data;
   int ierr;
-  const CeedScalar* uu;
-  CeedScalar* vv;
+  const CeedScalar *uu;
+  CeedScalar *vv;
 
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
@@ -143,7 +143,7 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
 }
 
 static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {
-  CeedElemRestriction_Ref* impl = r->data;
+  CeedElemRestriction_Ref *impl = r->data;
   int ierr;
 
   ierr = CeedFree(&impl->indices_allocated); CeedChk(ierr);
@@ -153,9 +153,9 @@ static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {
 
 static int CeedElemRestrictionCreate_Ref(CeedElemRestriction r,
     CeedMemType mtype,
-    CeedCopyMode cmode, const CeedInt* indices) {
+    CeedCopyMode cmode, const CeedInt *indices) {
   int ierr;
-  CeedElemRestriction_Ref* impl;
+  CeedElemRestriction_Ref *impl;
 
   if (mtype != CEED_MEM_HOST)
     return CeedError(r->ceed, 1, "Only MemType = HOST supported");
@@ -169,7 +169,7 @@ static int CeedElemRestrictionCreate_Ref(CeedElemRestriction r,
     impl->indices = impl->indices_allocated;
     break;
   case CEED_OWN_POINTER:
-    impl->indices_allocated = (CeedInt*)indices;
+    impl->indices_allocated = (CeedInt *)indices;
     impl->indices = impl->indices_allocated;
     break;
   case CEED_USE_POINTER:
@@ -186,8 +186,8 @@ static int CeedElemRestrictionCreate_Ref(CeedElemRestriction r,
 // TRANSPOSE:   V_ajc = T_bj U_abc
 static int CeedTensorContract_Ref(Ceed ceed,
                                   CeedInt A, CeedInt B, CeedInt C, CeedInt J,
-                                  const CeedScalar* t, CeedTransposeMode tmode,
-                                  const CeedScalar* u, CeedScalar* v) {
+                                  const CeedScalar *t, CeedTransposeMode tmode,
+                                  const CeedScalar *u, CeedScalar *v) {
   CeedInt tstride0 = B, tstride1 = 1;
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = J;
@@ -209,7 +209,7 @@ static int CeedTensorContract_Ref(Ceed ceed,
 
 static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
                               CeedEvalMode emode,
-                              const CeedScalar* u, CeedScalar* v) {
+                              const CeedScalar *u, CeedScalar *v) {
   int ierr;
   const CeedInt dim = basis->dim;
   const CeedInt ndof = basis->ndof;
@@ -260,19 +260,19 @@ static int CeedBasisDestroy_Ref(CeedBasis basis) {
 }
 
 static int CeedBasisCreateTensorH1_Ref(Ceed ceed, CeedInt dim, CeedInt P1d,
-                                       CeedInt Q1d, const CeedScalar* interp1d,
-                                       const CeedScalar* grad1d,
-                                       const CeedScalar* qref1d,
-                                       const CeedScalar* qweight1d,
+                                       CeedInt Q1d, const CeedScalar *interp1d,
+                                       const CeedScalar *grad1d,
+                                       const CeedScalar *qref1d,
+                                       const CeedScalar *qweight1d,
                                        CeedBasis basis) {
   basis->Apply = CeedBasisApply_Ref;
   basis->Destroy = CeedBasisDestroy_Ref;
   return 0;
 }
 
-static int CeedQFunctionApply_Ref(CeedQFunction qf, void* qdata, CeedInt Q,
-                                  const CeedScalar* const* u,
-                                  CeedScalar* const* v) {
+static int CeedQFunctionApply_Ref(CeedQFunction qf, void *qdata, CeedInt Q,
+                                  const CeedScalar *const *u,
+                                  CeedScalar *const *v) {
   int ierr;
   ierr = qf->function(qf->ctx, qdata, Q, u, v); CeedChk(ierr);
   return 0;
@@ -289,7 +289,7 @@ static int CeedQFunctionCreate_Ref(CeedQFunction qf) {
 }
 
 static int CeedOperatorDestroy_Ref(CeedOperator op) {
-  CeedOperator_Ref* impl = op->data;
+  CeedOperator_Ref *impl = op->data;
   int ierr;
 
   ierr = CeedVectorDestroy(&impl->etmp); CeedChk(ierr);
@@ -300,12 +300,12 @@ static int CeedOperatorDestroy_Ref(CeedOperator op) {
 
 static int CeedOperatorApply_Ref(CeedOperator op, CeedVector qdata,
                                  CeedVector ustate,
-                                 CeedVector residual, CeedRequest* request) {
-  CeedOperator_Ref* impl = op->data;
+                                 CeedVector residual, CeedRequest *request) {
+  CeedOperator_Ref *impl = op->data;
   CeedVector etmp;
   CeedInt Q;
-  CeedScalar* Eu;
-  char* qd;
+  CeedScalar *Eu;
+  char *qd;
   int ierr;
 
   if (!impl->etmp) {
@@ -320,11 +320,11 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector qdata,
   }
   ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
   ierr = CeedVectorGetArray(etmp, CEED_MEM_HOST, &Eu); CeedChk(ierr);
-  ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar**)&qd);
+  ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar **)&qd);
   CeedChk(ierr);
   for (CeedInt e=0; e<op->Erestrict->nelem; e++) {
     CeedScalar BEu[Q], BEv[Q], *out[1];
-    const CeedScalar* in[1];
+    const CeedScalar *in[1];
     ierr = CeedBasisApply(op->basis, CEED_NOTRANSPOSE, op->qf->inmode,
                           &Eu[e*op->Erestrict->elemsize], BEu); CeedChk(ierr);
     in[0] = BEu;
@@ -343,8 +343,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector qdata,
   return 0;
 }
 
-static int CeedOperatorGetQData_Ref(CeedOperator op, CeedVector* qdata) {
-  CeedOperator_Ref* impl = op->data;
+static int CeedOperatorGetQData_Ref(CeedOperator op, CeedVector *qdata) {
+  CeedOperator_Ref *impl = op->data;
   int ierr;
 
   if (!impl->qdata) {
@@ -359,7 +359,7 @@ static int CeedOperatorGetQData_Ref(CeedOperator op, CeedVector* qdata) {
 }
 
 static int CeedOperatorCreate_Ref(CeedOperator op) {
-  CeedOperator_Ref* impl;
+  CeedOperator_Ref *impl;
   int ierr;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
@@ -370,7 +370,7 @@ static int CeedOperatorCreate_Ref(CeedOperator op) {
   return 0;
 }
 
-static int CeedInit_Ref(const char* resource, Ceed ceed) {
+static int CeedInit_Ref(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/ref"))
     return CeedError(ceed, 1, "Ref backend cannot use resource: %s", resource);

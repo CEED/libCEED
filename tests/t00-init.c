@@ -1,6 +1,6 @@
 #include <ceed.h>
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   Ceed ceed;
 
   assert(argv[1]);

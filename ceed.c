@@ -23,31 +23,31 @@
 #include <string.h>
 
 static CeedRequest ceed_request_immediate;
-CeedRequest* CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
+CeedRequest *CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
 
 static struct {
   char prefix[CEED_MAX_RESOURCE_LEN];
-  int (*init)(const char* resource, Ceed f);
+  int (*init)(const char *resource, Ceed f);
 } backends[32];
 static size_t num_backends;
 
-int CeedErrorImpl(Ceed ceed, const char* filename, int lineno, const char* func,
-                  int ecode, const char* format, ...) {
+int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
+                  int ecode, const char *format, ...) {
   va_list args;
   va_start(args, format);
   if (ceed) return ceed->Error(ceed, filename, lineno, func, ecode, format, args);
   return CeedErrorAbort(ceed, filename, lineno, func, ecode, format, args);
 }
 
-int CeedErrorReturn(Ceed ceed, const char* filename, int lineno,
-                    const char* func, int ecode, const char* format,
+int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
+                    const char *func, int ecode, const char *format,
                     va_list args) {
   return ecode;
 }
 
-int CeedErrorAbort(Ceed ceed, const char* filename, int lineno,
-                   const char* func, int ecode,
-                   const char* format, va_list args) {
+int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
+                   const char *func, int ecode,
+                   const char *format, va_list args) {
   fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
   vfprintf(stderr, format, args);
   fprintf(stderr, "\n");
@@ -55,7 +55,7 @@ int CeedErrorAbort(Ceed ceed, const char* filename, int lineno,
   return ecode;
 }
 
-int CeedRegister(const char* prefix, int (*init)(const char* resource,
+int CeedRegister(const char *prefix, int (*init)(const char *resource,
                  Ceed f)) {
   if (num_backends >= sizeof(backends) / sizeof(backends[0])) {
     return CeedError(NULL, 1, "Too many backends");
@@ -66,35 +66,35 @@ int CeedRegister(const char* prefix, int (*init)(const char* resource,
   return 0;
 }
 
-int CeedMallocArray(size_t n, size_t unit, void* p) {
-  int ierr = posix_memalign((void**)p, CEED_ALIGN, n*unit);
+int CeedMallocArray(size_t n, size_t unit, void *p) {
+  int ierr = posix_memalign((void **)p, CEED_ALIGN, n*unit);
   if (ierr)
     return CeedError(NULL, ierr,
                      "posix_memalign failed to allocate %zd members of size %zd\n", n, unit);
   return 0;
 }
 
-int CeedCallocArray(size_t n, size_t unit, void* p) {
-  *(void**)p = calloc(n, unit);
-  if (n && unit && !*(void**)p)
+int CeedCallocArray(size_t n, size_t unit, void *p) {
+  *(void **)p = calloc(n, unit);
+  if (n && unit && !*(void **)p)
     return CeedError(NULL, 1, "calloc failed to allocate %zd members of size %zd\n",
                      n, unit);
   return 0;
 }
 
 // Takes void* to avoid needing a cast, but is the address of the pointer.
-int CeedFree(void* p) {
-  free(*(void**)p);
-  *(void**)p = NULL;
+int CeedFree(void *p) {
+  free(*(void **)p);
+  *(void **)p = NULL;
   return 0;
 }
 
-int CeedInit(const char* resource, Ceed* ceed) {
+int CeedInit(const char *resource, Ceed *ceed) {
   int ierr;
   size_t matchlen = 0, matchidx;
   for (size_t i=0; i<num_backends; i++) {
     size_t n;
-    const char* prefix = backends[i].prefix;
+    const char *prefix = backends[i].prefix;
     for (n = 0; prefix[n] && prefix[n] == resource[n]; n++) {}
     if (n > matchlen) {
       matchlen = n;
@@ -108,7 +108,7 @@ int CeedInit(const char* resource, Ceed* ceed) {
   return 0;
 }
 
-int CeedDestroy(Ceed* ceed) {
+int CeedDestroy(Ceed *ceed) {
   int ierr;
 
   if (!*ceed) return 0;

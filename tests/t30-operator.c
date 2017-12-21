@@ -1,25 +1,25 @@
 // Test operator action for mass matrix
 #include <ceed.h>
 
-static int setup(void* ctx, void* qdata, CeedInt Q, const CeedScalar* const* u,
-                 CeedScalar* const* v) {
-  CeedScalar* w = qdata;
+static int setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
+                 CeedScalar *const *v) {
+  CeedScalar *w = qdata;
   for (CeedInt i=0; i<Q; i++) {
     w[i] = u[0][i];
   }
   return 0;
 }
 
-static int mass(void* ctx, void* qdata, CeedInt Q, const CeedScalar* const* u,
-                CeedScalar* const* v) {
-  const CeedScalar* w = qdata;
+static int mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
+                CeedScalar *const *v) {
+  const CeedScalar *w = qdata;
   for (CeedInt i=0; i<Q; i++) {
     v[0][i] = w[i] * u[0][i];
   }
   return 0;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   Ceed ceed;
   CeedElemRestriction Erestrictx, Erestrictu;
   CeedBasis bx, bu;

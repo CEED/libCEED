@@ -16,7 +16,7 @@
 
 #include <ceed-impl.h>
 
-int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector* vec) {
+int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   int ierr;
 
   if (!ceed->VecCreate)
@@ -29,7 +29,7 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector* vec) {
 }
 
 int CeedVectorSetArray(CeedVector x, CeedMemType mtype, CeedCopyMode cmode,
-                       CeedScalar* array) {
+                       CeedScalar *array) {
   int ierr;
 
   if (!x || !x->SetArray)
@@ -38,7 +38,7 @@ int CeedVectorSetArray(CeedVector x, CeedMemType mtype, CeedCopyMode cmode,
   return 0;
 }
 
-int CeedVectorGetArray(CeedVector x, CeedMemType mtype, CeedScalar** array) {
+int CeedVectorGetArray(CeedVector x, CeedMemType mtype, CeedScalar **array) {
   int ierr;
 
   if (!x || !x->GetArray)
@@ -48,7 +48,7 @@ int CeedVectorGetArray(CeedVector x, CeedMemType mtype, CeedScalar** array) {
 }
 
 int CeedVectorGetArrayRead(CeedVector x, CeedMemType mtype,
-                           const CeedScalar** array) {
+                           const CeedScalar **array) {
   int ierr;
 
   if (!x || !x->GetArrayRead)
@@ -57,7 +57,7 @@ int CeedVectorGetArrayRead(CeedVector x, CeedMemType mtype,
   return 0;
 }
 
-int CeedVectorRestoreArray(CeedVector x, CeedScalar** array) {
+int CeedVectorRestoreArray(CeedVector x, CeedScalar **array) {
   int ierr;
 
   if (!x || !x->RestoreArray)
@@ -66,7 +66,7 @@ int CeedVectorRestoreArray(CeedVector x, CeedScalar** array) {
   return 0;
 }
 
-int CeedVectorRestoreArrayRead(CeedVector x, const CeedScalar** array) {
+int CeedVectorRestoreArrayRead(CeedVector x, const CeedScalar **array) {
   int ierr;
 
   if (!x || !x->RestoreArrayRead)
@@ -75,7 +75,7 @@ int CeedVectorRestoreArrayRead(CeedVector x, const CeedScalar** array) {
   return 0;
 }
 
-int CeedVectorDestroy(CeedVector* x) {
+int CeedVectorDestroy(CeedVector *x) {
   int ierr;
 
   if (!*x) return 0;

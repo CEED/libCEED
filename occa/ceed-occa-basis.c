@@ -20,7 +20,7 @@
 // *****************************************************************************
 static int CeedBasisApplyOcca(CeedBasis basis, CeedTransposeMode tmode,
                               CeedEvalMode emode,
-                              const CeedScalar* u, CeedScalar* v) {
+                              const CeedScalar *u, CeedScalar *v) {
   int ierr;
   const CeedInt dim = basis->dim;
   const CeedInt ndof = basis->ndof;
@@ -75,10 +75,10 @@ static int CeedBasisDestroyOcca(CeedBasis basis) {
 
 // *****************************************************************************
 int CeedBasisCreateTensorH1Occa(Ceed ceed, CeedInt dim, CeedInt P1d,
-                                CeedInt Q1d, const CeedScalar* interp1d,
-                                const CeedScalar* grad1d,
-                                const CeedScalar* qref1d,
-                                const CeedScalar* qweight1d,
+                                CeedInt Q1d, const CeedScalar *interp1d,
+                                const CeedScalar *grad1d,
+                                const CeedScalar *qref1d,
+                                const CeedScalar *qweight1d,
                                 CeedBasis basis) {
   basis->Apply = CeedBasisApplyOcca;
   basis->Destroy = CeedBasisDestroyOcca;

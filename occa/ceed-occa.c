@@ -29,7 +29,7 @@ extern void occaSetVerboseCompilation(const int value);
 static int CeedErrorOcca(Ceed ceed,
                          const char *file, int line,
                          const char *func, int code,
-                         const char* format, va_list args) {
+                         const char *format, va_list args) {
   fprintf(stderr,"\033[31;1m");
   vfprintf(stderr, format, args);
   fprintf(stderr,"\033[m\n");
@@ -49,7 +49,7 @@ static int CeedDestroyOcca(Ceed ceed) {
 // *****************************************************************************
 // * INIT
 // *****************************************************************************
-static int CeedInitOcca(const char* resource, Ceed ceed) {
+static int CeedInitOcca(const char *resource, Ceed ceed) {
   dbg("\033[1m[CeedInit] resource='%s'", resource);
   if (strcmp(resource, "/cpu/occa")
       && strcmp(resource, "/gpu/occa"))

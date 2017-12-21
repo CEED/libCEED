@@ -17,7 +17,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
-void dbg(const char* format,...) {
+void dbg(const char *format,...) {
   if (!getenv("DBG")) return;
   va_list args;
   va_start(args, format);
