@@ -1,51 +1,43 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
-//
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
-//
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
-
-
-//                             MFEM Example 1
+//                           libCEED + MFEM Example 1
 //
 // This example illustrates a simple usage of libCEED with the MFEM (mfem.org)
-// finite element library. The example reads a mesh from a file and solves an
-// L2-projection problem for a given analytic function expressed as the function
-// 'solution'. The mass matrix required for performing the projection is
+// finite element library.
+//
+// The example reads a mesh from a file and solves a simple linear system with a
+// mass matrix (L2-projection of a given analytic function provided by
+// 'solution'). The mass matrix required for performing the projection is
 // expressed as a new class, CeedMassOperator, derived from mfem::Operator.
 // Internally, CeedMassOperator uses a CeedOperator object constructed based on
 // an mfem::FiniteElementSpace. All libCEED objects use a Ceed device object
 // constructed based on a command line argument.
 //
-// Build with:  make ex1 [MFEM_DIR=</path/to/mfem>]
+// The mass matrix is inverted using a simple conjugate gradient algorithm
+// corresponding to CEED BP1, see http://ceed.exascaleproject.org/bps. Arbitrary
+// mesh and solution orders in 1D, 2D and 3D are supported from the same code.
 //
-// Sample runs:  ex1
-//               ex1 -m ../../../mfem/data/fichera.mesh
+// Build with:
+
+//     make ex1 [MFEM_DIR=</path/to/mfem>]
+//
+// Sample runs:
+//
+//     ex1
+//     ex1 -m ../../../mfem/data/fichera.mesh
+//     ex1 -m ../../../mfem/data/star.vtk  -o 3
+//     ex1 -m ../../../mfem/data/inline-segment.mesh -o 8
 
 #include <ceed.h>
 #include <mfem.hpp>
 
-
-/// Function to L2-project on the discrete FE space
+/// Continuous function to project on the discrete FE space
 double solution(const mfem::Vector &pt) {
-  return pt.Norml2();
+  return pt.Norml2(); // distance to the origin
 }
-
 
 /// A structure used to pass additional data to f_build_mass
 struct BuildContext { CeedInt dim, space_dim; };
 
-
-/// LibCEED Q-function for building quadrature data for a mass operator
+/// libCEED Q-function for building quadrature data for a mass operator
 static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
                         const CeedScalar *const *u, CeedScalar *const *v) {
   // u[1] is Jacobians, size (Q x nc x dim) with column-major layout
@@ -83,15 +75,13 @@ static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
   return 0;
 }
 
-
-/// LibCEED Q-function for applying a mass operator
+/// libCEED Q-function for applying a mass operator
 static int f_apply_mass(void *ctx, void *qdata, CeedInt Q,
                         const CeedScalar *const *u, CeedScalar *const *v) {
   const CeedScalar *w = (const CeedScalar*)qdata;
   for (CeedInt i=0; i<Q; i++) v[0][i] = w[i] * u[0][i];
   return 0;
 }
-
 
 /// Wrapper for a mass CeedOperator as an mfem::Operator
 class CeedMassOperator : public mfem::Operator {
@@ -301,8 +291,8 @@ int main(int argc, char *argv[]) {
   std::cout << "Number of finite element unknowns: "
             << fespace->GetTrueVSize() << std::endl;
 
-  // 6. Construct a rhs vector using the linear form f(v) = (solution, v),
-  //    where v is a test function.
+  // 6. Construct a rhs vector using the linear form f(v) = (solution, v), where
+  //    v is a test function.
   mfem::LinearForm b(fespace);
   mfem::FunctionCoefficient sol_coeff(solution);
   b.AddDomainIntegrator(new mfem::DomainLFIntegrator(sol_coeff));
