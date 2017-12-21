@@ -41,17 +41,17 @@ static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mtype,
     return CeedError(vec->ceed, 1, "Only MemType = HOST supported");
   ierr = CeedFree(&impl->array_allocated); CeedChk(ierr);
   switch (cmode) {
-    case CEED_COPY_VALUES:
-      ierr = CeedMalloc(vec->length, &impl->array_allocated); CeedChk(ierr);
-      impl->array = impl->array_allocated;
-      if (array) memcpy(impl->array, array, vec->length * sizeof(array[0]));
-      break;
-    case CEED_OWN_POINTER:
-      impl->array_allocated = array;
-      impl->array = array;
-      break;
-    case CEED_USE_POINTER:
-      impl->array = array;
+  case CEED_COPY_VALUES:
+    ierr = CeedMalloc(vec->length, &impl->array_allocated); CeedChk(ierr);
+    impl->array = impl->array_allocated;
+    if (array) memcpy(impl->array, array, vec->length * sizeof(array[0]));
+    break;
+  case CEED_OWN_POINTER:
+    impl->array_allocated = array;
+    impl->array = array;
+    break;
+  case CEED_USE_POINTER:
+    impl->array = array;
   }
   return 0;
 }
@@ -161,19 +161,19 @@ static int CeedElemRestrictionCreate_Ref(CeedElemRestriction r,
     return CeedError(r->ceed, 1, "Only MemType = HOST supported");
   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
   switch (cmode) {
-    case CEED_COPY_VALUES:
-      ierr = CeedMalloc(r->nelem*r->elemsize, &impl->indices_allocated);
-      CeedChk(ierr);
-      memcpy(impl->indices_allocated, indices,
-             r->nelem * r->elemsize * sizeof(indices[0]));
-      impl->indices = impl->indices_allocated;
-      break;
-    case CEED_OWN_POINTER:
-      impl->indices_allocated = (CeedInt*)indices;
-      impl->indices = impl->indices_allocated;
-      break;
-    case CEED_USE_POINTER:
-      impl->indices = indices;
+  case CEED_COPY_VALUES:
+    ierr = CeedMalloc(r->nelem*r->elemsize, &impl->indices_allocated);
+    CeedChk(ierr);
+    memcpy(impl->indices_allocated, indices,
+           r->nelem * r->elemsize * sizeof(indices[0]));
+    impl->indices = impl->indices_allocated;
+    break;
+  case CEED_OWN_POINTER:
+    impl->indices_allocated = (CeedInt*)indices;
+    impl->indices = impl->indices_allocated;
+    break;
+  case CEED_USE_POINTER:
+    impl->indices = indices;
   }
   r->data = impl;
   r->Apply = CeedElemRestrictionApply_Ref;
@@ -215,42 +215,42 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
   const CeedInt ndof = basis->ndof;
 
   switch (emode) {
-    case CEED_EVAL_NONE: break;
-    case CEED_EVAL_INTERP: {
-      CeedInt P = basis->P1d, Q = basis->Q1d;
-      if (tmode == CEED_TRANSPOSE) {
-        P = basis->Q1d; Q = basis->P1d;
-      }
-      CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
-      CeedScalar tmp[2][Q*CeedPowInt(P>Q?P:Q, dim-1)];
-      for (CeedInt d=0; d<dim; d++) {
-        ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q, basis->interp1d,
-                                      tmode,
-                                      d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]); CeedChk(ierr);
-        pre /= P;
-        post *= Q;
-      }
+  case CEED_EVAL_NONE: break;
+  case CEED_EVAL_INTERP: {
+    CeedInt P = basis->P1d, Q = basis->Q1d;
+    if (tmode == CEED_TRANSPOSE) {
+      P = basis->Q1d; Q = basis->P1d;
     }
-    break;
-    case CEED_EVAL_WEIGHT: {
-      if (tmode == CEED_TRANSPOSE)
-        return CeedError(basis->ceed, 1,
-                         "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
-      CeedInt Q = basis->Q1d;
-      for (CeedInt d=0; d<dim; d++) {
-        CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
-        for (CeedInt i=0; i<pre; i++) {
-          for (CeedInt j=0; j<Q; j++) {
-            for (CeedInt k=0; k<post; k++) {
-              v[(i*Q + j)*post + k] = basis->qweight1d[j]
-                                      * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
-            }
+    CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
+    CeedScalar tmp[2][Q*CeedPowInt(P>Q?P:Q, dim-1)];
+    for (CeedInt d=0; d<dim; d++) {
+      ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q, basis->interp1d,
+                                    tmode,
+                                    d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]); CeedChk(ierr);
+      pre /= P;
+      post *= Q;
+    }
+  }
+  break;
+  case CEED_EVAL_WEIGHT: {
+    if (tmode == CEED_TRANSPOSE)
+      return CeedError(basis->ceed, 1,
+                       "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+    CeedInt Q = basis->Q1d;
+    for (CeedInt d=0; d<dim; d++) {
+      CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
+      for (CeedInt i=0; i<pre; i++) {
+        for (CeedInt j=0; j<Q; j++) {
+          for (CeedInt k=0; k<post; k++) {
+            v[(i*Q + j)*post + k] = basis->qweight1d[j]
+                                    * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
           }
         }
       }
-    } break;
-    default:
-      return CeedError(basis->ceed, 1, "EvalMode %d not supported", emode);
+    }
+  } break;
+  default:
+    return CeedError(basis->ceed, 1, "EvalMode %d not supported", emode);
   }
   return 0;
 }

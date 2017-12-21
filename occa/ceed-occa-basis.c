@@ -27,42 +27,42 @@ static int CeedBasisApplyOcca(CeedBasis basis, CeedTransposeMode tmode,
 
   dbg("\033[38;5;249m[CeedBasis][Apply]");
   switch (emode) {
-    case CEED_EVAL_NONE: break;
-    case CEED_EVAL_INTERP: {
-      CeedInt P = basis->P1d, Q = basis->Q1d;
-      if (tmode == CEED_TRANSPOSE) {
-        P = basis->Q1d; Q = basis->P1d;
-      }
-      CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
-      CeedScalar tmp[2][Q*CeedPowInt(P>Q?P:Q, dim-1)];
-      for (CeedInt d=0; d<dim; d++) {
-        ierr = CeedTensorContractOcca(basis->ceed, pre, P, post, Q, basis->interp1d,
-                                      tmode,
-                                      d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]); CeedChk(ierr);
-        pre /= P;
-        post *= Q;
-      }
+  case CEED_EVAL_NONE: break;
+  case CEED_EVAL_INTERP: {
+    CeedInt P = basis->P1d, Q = basis->Q1d;
+    if (tmode == CEED_TRANSPOSE) {
+      P = basis->Q1d; Q = basis->P1d;
     }
-    break;
-    case CEED_EVAL_WEIGHT: {
-      if (tmode == CEED_TRANSPOSE)
-        return CeedError(basis->ceed, 1,
-                         "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
-      CeedInt Q = basis->Q1d;
-      for (CeedInt d=0; d<dim; d++) {
-        CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
-        for (CeedInt i=0; i<pre; i++) {
-          for (CeedInt j=0; j<Q; j++) {
-            for (CeedInt k=0; k<post; k++) {
-              v[(i*Q + j)*post + k] = basis->qweight1d[j]
-                                      * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
-            }
+    CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
+    CeedScalar tmp[2][Q*CeedPowInt(P>Q?P:Q, dim-1)];
+    for (CeedInt d=0; d<dim; d++) {
+      ierr = CeedTensorContractOcca(basis->ceed, pre, P, post, Q, basis->interp1d,
+                                    tmode,
+                                    d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]); CeedChk(ierr);
+      pre /= P;
+      post *= Q;
+    }
+  }
+  break;
+  case CEED_EVAL_WEIGHT: {
+    if (tmode == CEED_TRANSPOSE)
+      return CeedError(basis->ceed, 1,
+                       "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+    CeedInt Q = basis->Q1d;
+    for (CeedInt d=0; d<dim; d++) {
+      CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
+      for (CeedInt i=0; i<pre; i++) {
+        for (CeedInt j=0; j<Q; j++) {
+          for (CeedInt k=0; k<post; k++) {
+            v[(i*Q + j)*post + k] = basis->qweight1d[j]
+                                    * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
           }
         }
       }
-    } break;
-    default:
-      return CeedError(basis->ceed, 1, "EvalMode %d not supported", emode);
+    }
+  } break;
+  default:
+    return CeedError(basis->ceed, 1, "EvalMode %d not supported", emode);
   }
   return 0;
 }

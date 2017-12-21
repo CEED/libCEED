@@ -29,7 +29,7 @@ extern void occaSetVerboseCompilation(const int value);
 static int CeedErrorOcca(Ceed ceed,
                          const char *file, int line,
                          const char *func, int code,
-                         const char* format, va_list args){
+                         const char* format, va_list args) {
   fprintf(stderr,"\033[31;1m");
   vfprintf(stderr, format, args);
   fprintf(stderr,"\033[m\n");
@@ -40,7 +40,7 @@ static int CeedErrorOcca(Ceed ceed,
 // *****************************************************************************
 // * CeedDestroyOcca
 // *****************************************************************************
-static int CeedDestroyOcca(Ceed ceed){
+static int CeedDestroyOcca(Ceed ceed) {
   dbg("\033[1m[CeedDestroy]");
   occaDeviceFree(device);
   return 0;
@@ -67,7 +67,7 @@ static int CeedInitOcca(const char* resource, Ceed ceed) {
   const char *mode = (resource[1]=='g')?occaGPU:occaCPU;
   device = occaCreateDevice(occaString(mode));
   return 0;
-} 
+}
 
 
 // *****************************************************************************

@@ -61,12 +61,12 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ndof,
   // Get Nodes and Weights
   ierr = CeedLobattoQuadrature(P, nodes, NULL); CeedChk(ierr);
   switch (qmode) {
-    case CEED_GAUSS:
-      ierr = CeedGaussQuadrature(Q, qref1d, qweight1d); CeedChk(ierr);
-      break;
-    case CEED_GAUSS_LOBATTO:
-      ierr = CeedLobattoQuadrature(Q, qref1d, qweight1d); CeedChk(ierr);
-      break;
+  case CEED_GAUSS:
+    ierr = CeedGaussQuadrature(Q, qref1d, qweight1d); CeedChk(ierr);
+    break;
+  case CEED_GAUSS_LOBATTO:
+    ierr = CeedLobattoQuadrature(Q, qref1d, qweight1d); CeedChk(ierr);
+    break;
   }
   // Build B, D matrix
   // Fornberg, 1998

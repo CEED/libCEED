@@ -111,12 +111,13 @@ cln clean :
 	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests)
 	$(RM) -r *.dSYM $(OBJDIR)/occa
 
-astyle :
-	astyle --style=google --indent=spaces=2 --max-code-length=80 \
-            --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
-            --suffix=none --preserve-date --formatted \
-            *.[ch] tests/*.[ch] examples/*.[ch]
-
+### ASTYLE ###
+ASTYLE = astyle --options=.astylerc
+FORMAT_FILES = $(foreach dir,. tests occa,$(dir)/*.[ch])
+style:
+	@if ! $(ASTYLE) $(FORMAT_FILES) | grep Formatted; then\
+	   echo "No source files were changed.";\
+	fi
 
 print :
 	@echo $(VAR)=$($(VAR))

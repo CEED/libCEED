@@ -18,9 +18,9 @@
 #define _ceed_h
 
 #ifdef __cplusplus
-  #define CEED_EXTERN extern "C"
+#define CEED_EXTERN extern "C"
 #else
-  #define CEED_EXTERN extern
+#define CEED_EXTERN extern
 #endif
 
 #include <assert.h>

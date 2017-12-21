@@ -24,7 +24,7 @@
 // *****************************************************************************
 // * Bytes used
 // *****************************************************************************
-static inline size_t bytes(const CeedVector vec){
+static inline size_t bytes(const CeedVector vec) {
   return vec->length * sizeof(CeedScalar);
 }
 
@@ -34,13 +34,13 @@ static inline size_t bytes(const CeedVector vec){
 // * occaCopyPtrToMem(occaMemory dest, const void *src,
 // * occaCopyMemToPtr(void *dest, occaMemory src,
 // *****************************************************************************
-static inline void occaSyncH2D(const CeedVector vec){
+static inline void occaSyncH2D(const CeedVector vec) {
   const CeedVectorOcca* impl = vec->data;
   assert(impl);
   assert(impl->device);
   occaCopyPtrToMem(*impl->device, impl->host, bytes(vec), NO_OFFSET, NO_PROPS);
 }
-static inline void occaSyncD2H(const CeedVector vec){
+static inline void occaSyncD2H(const CeedVector vec) {
   const CeedVectorOcca* impl = vec->data;
   assert(impl);
   assert(impl->host);
@@ -50,14 +50,14 @@ static inline void occaSyncD2H(const CeedVector vec){
 // *****************************************************************************
 // * OCCA COPY functions
 // *****************************************************************************
-static inline void occaCopyH2D(const CeedVector vec, void *from){
+static inline void occaCopyH2D(const CeedVector vec, void *from) {
   const CeedVectorOcca* impl = vec->data;
   assert(from);
   assert(impl);
   assert(impl->device);
   occaCopyPtrToMem(*impl->device, from, bytes(vec), NO_OFFSET, NO_PROPS);
 }
-static inline void occaCopyD2H(const CeedVector vec, void *to){
+static inline void occaCopyD2H(const CeedVector vec, void *to) {
   const CeedVectorOcca* impl = vec->data;
   assert(to);
   assert(impl);
@@ -168,7 +168,7 @@ static int CeedVectorGetArrayReadOcca(const CeedVector vec,
 // * Restore + Const
 // *****************************************************************************
 static int CeedVectorRestoreArrayReadOcca(const CeedVector vec,
-                                          const CeedScalar** array) {
+    const CeedScalar** array) {
   CeedVectorOcca* impl = vec->data;
 
   dbg("\033[33m[CeedVector][RestoreArray][Const]");

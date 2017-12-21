@@ -27,7 +27,7 @@ typedef struct {
 // *****************************************************************************
 // * Bytes used
 // *****************************************************************************
-static inline size_t bytes(const CeedElemRestriction res){
+static inline size_t bytes(const CeedElemRestriction res) {
   return res->nelem * res->elemsize * sizeof(CeedInt);
 }
 
@@ -37,26 +37,28 @@ static inline size_t bytes(const CeedElemRestriction res){
 // * occaCopyPtrToMem(occaMemory dest, const void *src,
 // * occaCopyMemToPtr(void *dest, occaMemory src,
 // *****************************************************************************
-static inline void occaSyncH2D(const CeedElemRestriction res){
+static inline void occaSyncH2D(const CeedElemRestriction res) {
   const CeedElemRestrictionOcca* impl = res->data;
   occaCopyPtrToMem(*impl->device, impl->host, bytes(res), NO_OFFSET, NO_PROPS);
 }
-static inline void occaSyncD2H(const CeedElemRestriction res){
+static inline void occaSyncD2H(const CeedElemRestriction res) {
   const CeedElemRestrictionOcca* impl = res->data;
-  occaCopyMemToPtr((void*)impl->host, *impl->device, bytes(res), NO_OFFSET, NO_PROPS);
+  occaCopyMemToPtr((void*)impl->host, *impl->device, bytes(res), NO_OFFSET,
+                   NO_PROPS);
 }
 
 // *****************************************************************************
 // * OCCA COPY functions
 // *****************************************************************************
-static inline void occaCopyH2D(const CeedElemRestriction res, const void *from){
+static inline void occaCopyH2D(const CeedElemRestriction res,
+                               const void *from) {
   const CeedElemRestrictionOcca* impl = res->data;
   assert(from);
   assert(impl);
   assert(impl->device);
   occaCopyPtrToMem(*impl->device, from, bytes(res), NO_OFFSET, NO_PROPS);
 }
-static inline void occaCopyD2H(const CeedElemRestriction res, void *to){
+static inline void occaCopyD2H(const CeedElemRestriction res, void *to) {
   const CeedElemRestrictionOcca* impl = res->data;
   assert(to);
   assert(impl);
@@ -78,9 +80,9 @@ static int CeedElemRestrictionApplyOcca(CeedElemRestriction res,
   const occaMemory uu = *u_impl->device;
   const CeedVectorOcca* v_impl = v->data;
   occaMemory vv = *v_impl->device;
-  
+
   dbg("\033[35m[CeedElemRestriction][Apply]");
-  occaKernelRun(impl->kRestrict,occaInt(TRANSPOSE),indices,uu,vv);  
+  occaKernelRun(impl->kRestrict,occaInt(TRANSPOSE),indices,uu,vv);
   if (request != CEED_REQUEST_IMMEDIATE) *request = NULL;
   return 0;
 }
@@ -160,7 +162,7 @@ int CeedTensorContractOcca(Ceed ceed,
                            const CeedScalar* t, CeedTransposeMode tmode,
                            const CeedScalar* u, CeedScalar* v) {
   CeedInt tstride0 = B, tstride1 = 1;
-  
+
   dbg("\033[35m[CeedTensorContract]");
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = B;
