@@ -222,9 +222,11 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction res,
   occaPropertiesSet(pKR, "defines/rnelem", occaInt(res->nelem));
   occaPropertiesSet(pKR, "defines/relemsize", occaInt(res->elemsize));
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(TILE_SIZE));
+  char oklpath[4096] = __FILE__;
+  size_t oklpathlen = strlen(oklpath); // path to ceed-occa-restrict.okl
+  strcpy(&oklpath[oklpathlen - 2], ".okl"); // consider using realpath(3) or something dynamic
   impl->kRestrict = occaDeviceBuildKernel(ceed_data->device,
-     "/Users/camierjs/home/libCEED/backends/occa/ceed-occa-restrict.okl",
-                                          "kRestrict",pKR);
+                                          oklpath, "kRestrict", pKR);
   // ***************************************************************************
   res->Apply = CeedElemRestrictionApply_Occa;
   res->Destroy = CeedElemRestrictionDestroy_Occa;
