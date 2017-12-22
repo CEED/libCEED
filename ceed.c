@@ -67,7 +67,7 @@ int CeedRegister(const char *prefix, int (*init)(const char *resource,
 }
 
 int CeedMallocArray(size_t n, size_t unit, void *p) {
-  int ierr = posix_memalign((void**)p, CEED_ALIGN, n*unit);
+  int ierr = posix_memalign((void **)p, CEED_ALIGN, n*unit);
   if (ierr)
     return CeedError(NULL, ierr,
                      "posix_memalign failed to allocate %zd members of size %zd\n", n, unit);
@@ -75,8 +75,8 @@ int CeedMallocArray(size_t n, size_t unit, void *p) {
 }
 
 int CeedCallocArray(size_t n, size_t unit, void *p) {
-  *(void**)p = calloc(n, unit);
-  if (n && unit && !*(void**)p)
+  *(void **)p = calloc(n, unit);
+  if (n && unit && !*(void **)p)
     return CeedError(NULL, 1, "calloc failed to allocate %zd members of size %zd\n",
                      n, unit);
   return 0;
@@ -84,14 +84,16 @@ int CeedCallocArray(size_t n, size_t unit, void *p) {
 
 // Takes void* to avoid needing a cast, but is the address of the pointer.
 int CeedFree(void *p) {
-  free(*(void**)p);
-  *(void**)p = NULL;
+  free(*(void **)p);
+  *(void **)p = NULL;
   return 0;
 }
 
 int CeedInit(const char *resource, Ceed *ceed) {
   int ierr;
   size_t matchlen = 0, matchidx;
+
+  if (!resource) return CeedError(NULL, 1, "No resource provided");
   for (size_t i=0; i<num_backends; i++) {
     size_t n;
     const char *prefix = backends[i].prefix;
@@ -104,6 +106,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   if (!matchlen) return CeedError(NULL, 1, "No suitable backend");
   ierr = CeedCalloc(1,ceed); CeedChk(ierr);
   (*ceed)->Error = CeedErrorAbort;
+  (*ceed)->data = NULL;
   ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);
   return 0;
 }
@@ -117,4 +120,18 @@ int CeedDestroy(Ceed *ceed) {
   }
   ierr = CeedFree(ceed); CeedChk(ierr);
   return 0;
+}
+
+void CeedDebug(const char *format,...) {
+  // real slow, should use NDEBUG to ifdef the body
+  if (!getenv("CEED_DEBUG")) return;
+  va_list args;
+  va_start(args, format);
+  fflush(stdout);
+  fprintf(stdout,"\033[32m");
+  vfprintf(stdout,format,args);
+  fprintf(stdout,"\033[m");
+  fprintf(stdout,"\n");
+  fflush(stdout);
+  va_end(args);
 }

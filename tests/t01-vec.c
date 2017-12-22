@@ -7,7 +7,7 @@ int main(int argc, char **argv) {
   CeedScalar a[10];
   const CeedScalar *b;
 
-  CeedInit("/cpu/self", &ceed);
+  CeedInit(argv[1], &ceed);
   n = 10;
   CeedVectorCreate(ceed, n, &x);
   for (CeedInt i=0; i<n; i++) a[i] = 10 + i;

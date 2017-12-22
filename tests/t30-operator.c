@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
   CeedInt indx[nelem*2], indu[nelem*P];
   CeedScalar x[Nx];
 
-  CeedInit("/cpu/self", &ceed);
+  CeedInit(argv[1], &ceed);
   for (CeedInt i=0; i<Nx; i++) x[i] = i / (Nx - 1);
   for (CeedInt i=0; i<nelem; i++) {
     indx[2*i+0] = i;
