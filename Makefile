@@ -22,6 +22,7 @@ LOADLIBES ?=
 TARGET_ARCH ?=
 
 # env variable OCCA_DIR should point to OCCA-1.0 branch
+OCCA_DIR ?= ../occa
 
 pwd = $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
 
@@ -85,7 +86,7 @@ endif
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name $(abspath $(libceed)))
 
 $(libceed) : $(ref.o)
-ifdef OCCA_DIR
+ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(OCCA_DIR)/lib
   $(libceed) : LDLIBS += -locca -lrt -ldl
   $(libceed) : $(occa.o)
