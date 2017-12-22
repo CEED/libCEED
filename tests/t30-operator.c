@@ -5,7 +5,7 @@ static int setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
                  CeedScalar *const *v) {
   CeedScalar *w = qdata;
   for (CeedInt i=0; i<Q; i++) {
-    w[i] = u[0][i];
+    w[i] = u[1][i]*u[4][i];
   }
   return 0;
 }
@@ -52,8 +52,8 @@ int main(int argc, char **argv) {
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, P, Q, CEED_GAUSS, &bu);
 
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
-                              CEED_EVAL_WEIGHT, CEED_EVAL_NONE,
-                              setup, __FILE__ ":setup", &qf_setup);
+                              (CeedEvalMode)(CEED_EVAL_GRAD|CEED_EVAL_WEIGHT),
+                              CEED_EVAL_NONE, setup, __FILE__ ":setup", &qf_setup);
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
                               CEED_EVAL_INTERP, CEED_EVAL_INTERP,
                               mass, __FILE__ ":mass", &qf_mass);

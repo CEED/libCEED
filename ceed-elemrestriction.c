@@ -33,26 +33,27 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 }
 
 int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode,
+                             CeedInt ncomp, CeedTransposeMode lmode,
                              CeedVector u, CeedVector v, CeedRequest *request) {
   CeedInt m,n;
   int ierr;
 
   if (tmode == CEED_NOTRANSPOSE) {
-    m = r->nelem * r->elemsize;
-    n = r->ndof;
+    m = r->nelem * r->elemsize * ncomp;
+    n = r->ndof * ncomp;
   } else {
-    m = r->ndof;
-    n = r->nelem * r->elemsize;
+    m = r->ndof * ncomp;
+    n = r->nelem * r->elemsize * ncomp;
   }
   if (n != u->length)
     return CeedError(r->ceed, 2,
                      "Input vector size %d not compatible with element restriction (%d,%d)",
-                     u->length, r->nelem*r->elemsize, r->ndof);
+                     u->length, m, n);
   if (m != v->length)
     return CeedError(r->ceed, 2,
                      "Output vector size %d not compatible with element restriction (%d,%d)",
-                     v->length, r->nelem*r->elemsize, r->ndof);
-  ierr = r->Apply(r, tmode, u, v, request); CeedChk(ierr);
+                     v->length, m, n);
+  ierr = r->Apply(r, tmode, ncomp, lmode, u, v, request); CeedChk(ierr);
   return 0;
 }
 

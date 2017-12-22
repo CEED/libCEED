@@ -82,8 +82,9 @@ endif
 
 .PRECIOUS: %/.DIR
 
-all dbg:; @$(MAKE) $(MFLAGS) $(libceed) $(tests)
-opt:;NDEBUG=1 $(MAKE) $(MFLAGS) $(libceed) $(tests)
+$(libceed) : LDFLAGS += $(if $(DARWIN), -install_name $(abspath $(libceed)))
+$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o)
+	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(libceed) : $(ref.o)
 ifdef OCCA_DIR
@@ -121,17 +122,16 @@ prove : $(tests)
 examples : $(examples)
 
 .PHONY: clean print test examples astyle
-cln clean :
+clean :
 	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests)
-	$(RM) -r *.dSYM $(OBJDIR)/backends
+	$(RM) -r *.dSYM
+	$(MAKE) -C examples/mfem clean
 
-### ASTYLE ###
-ASTYLE = astyle --options=.astylerc
-FORMAT_FILES = $(foreach dir,. tests examples backends/ref backends/occa,$(dir)/*.[ch])
-style:
-	@if ! $(ASTYLE) $(FORMAT_FILES) | grep Formatted; then\
-	   echo "No source files were changed.";\
-	fi
+astyle :
+	astyle --style=google --indent=spaces=2 --max-code-length=80 \
+            --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
+            --suffix=none --preserve-date --formatted \
+            *.[ch] tests/*.[ch] examples/*.[ch] examples/mfem/*.[ch]pp
 
 print :
 	@echo $(VAR)=$($(VAR))

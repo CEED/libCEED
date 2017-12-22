@@ -52,6 +52,10 @@ The test suite produces [TAP](https://testanything.org) output and is run by:
 
     make test
 
+or, using the `prove` tool distributed with Perl (recommended)
+
+    make prove
+
 ## Contact
 
 You can reach the libCEED team by emailing [ceed-users@llnl.gov](mailto:ceed-users@llnl.gov)
