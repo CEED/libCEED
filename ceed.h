@@ -142,7 +142,8 @@ CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelements,
     CeedInt esize, CeedInt blocksize, CeedMemType mtype, CeedCopyMode cmode,
     CeedInt *blkindices, CeedElemRestriction *r);
 CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction r,
-    CeedTransposeMode tmode, CeedVector u, CeedVector ru, CeedRequest *request);
+    CeedTransposeMode tmode, CeedInt ncomp, CeedTransposeMode lmode, CeedVector u,
+    CeedVector ru, CeedRequest *request);
 CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *r);
 
 // The formalism here is that we have the structure
@@ -155,7 +156,7 @@ typedef enum {CEED_EVAL_NONE   = 0,
               CEED_EVAL_DIV    = 4, // divergence
               CEED_EVAL_CURL   = 8, // curl
               CEED_EVAL_WEIGHT = 16, // quadrature weights for reference element
-} CeedEvalMode;
+             } CeedEvalMode;
 typedef enum {CEED_GAUSS = 0, CEED_GAUSS_LOBATTO = 1} CeedQuadMode;
 
 CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,

@@ -63,8 +63,8 @@ struct CeedVector_private {
 
 struct CeedElemRestriction_private {
   Ceed ceed;
-  int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector,
-               CeedRequest *);
+  int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedInt, CeedTransposeMode,
+               CeedVector, CeedVector, CeedRequest *);
   int (*Destroy)(CeedElemRestriction);
   CeedInt nelem;    /* number of elements */
   CeedInt elemsize; /* number of dofs per element */

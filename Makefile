@@ -42,6 +42,7 @@ examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
 
 .PRECIOUS: %/.DIR
 
+$(libceed) : LDFLAGS += $(if $(DARWIN), -install_name $(abspath $(libceed)))
 $(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o)
 	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
@@ -71,14 +72,15 @@ examples : $(examples)
 
 .PHONY: clean print test examples astyle
 clean :
-	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests.c:%.c=%)
+	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests)
 	$(RM) -r *.dSYM
+	$(MAKE) -C examples/mfem clean
 
 astyle :
 	astyle --style=google --indent=spaces=2 --max-code-length=80 \
             --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
             --suffix=none --preserve-date --formatted \
-            *.[ch] tests/*.[ch] examples/*.[ch]
+            *.[ch] tests/*.[ch] examples/*.[ch] examples/mfem/*.[ch]pp
 
 
 print :
