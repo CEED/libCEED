@@ -14,6 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+/// @file
+/// Public header for libCEED
 #ifndef _ceed_h
 #define _ceed_h
 
@@ -30,15 +32,38 @@
 #include <stdio.h>
 
 // We can discuss ways to avoid forcing these to be compile-time decisions, but let's leave that for later.
+/// Integer type, used for indexing
+/// @ingroup Ceed
 typedef int32_t CeedInt;
+/// Scalar (floating point) type
+/// @ingroup Ceed
 typedef double CeedScalar;
 
+/// Library context created by CeedInit()
+/// @ingroup Ceed
 typedef struct Ceed_private *Ceed;
+/// Non-blocking Ceed interfaces return a CeedRequest.
+/// To perform an operation immediately, pass \ref CEED_REQUEST_IMMEDIATE instead.
+/// @ingroup Ceed
 typedef struct CeedRequest_private *CeedRequest;
+/// Handle for vectors over the field \ref CeedScalar
+/// @ingroup CeedVector
 typedef struct CeedVector_private *CeedVector;
+/// Handle for object describing restriction to elements
+/// @ingroup CeedElemRestriction
 typedef struct CeedElemRestriction_private *CeedElemRestriction;
+/// Handle for object describing discrete finite element evaluations
+/// @ingroup CeedBasis
 typedef struct CeedBasis_private *CeedBasis;
+/// Handle for object describing functions evaluated independently at quadrature points
+/// @ingroup CeedQFunction
 typedef struct CeedQFunction_private *CeedQFunction;
+/// Handle for object describing FE-type operators acting on vectors
+///
+/// Given an element restriction \f$E\f$, basis evaluator \f$B\f$, and quadrature function
+/// \f$f\f$, a CeedOperator expresses operations of the form
+///   $$ E^T B^T f(B E u) $$
+/// acting on the vector \f$u\f$.
 typedef struct CeedOperator_private *CeedOperator;
 
 CEED_EXTERN int CeedRegister(const char *prefix, int (*init)(const char *,
@@ -49,26 +74,52 @@ CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,
                                 const char *, va_list);
 CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
                                const char *, va_list);
-CEED_EXTERN int CeedSetErrorHandler(Ceed,
-                                    int (*)(Ceed, int, const char *, va_list));
+CEED_EXTERN int CeedSetErrorHandler(Ceed ceed,
+                                    int (eh)(Ceed, const char *, int, const char *,
+                                             int, const char *, va_list));
 CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
                               const char *, ...);
+/// Raise an error on ceed object
+///
+/// @param ceed Ceed library context or NULL
+/// @param ecode Error code (int)
+/// @param ... printf-style format string followed by arguments as needed
+///
+/// @ingroup Ceed
+/// @sa CeedSetErrorHandler()
 #define CeedError(ceed, ecode, ...)                                     \
   CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__)
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
 CEED_EXTERN int CeedCompose(int n, const Ceed *ceeds, Ceed *composed);
 
-typedef enum {CEED_MEM_HOST, CEED_MEM_DEVICE} CeedMemType;
-/* When ownership of dynamically alocated CEED_MEM_HOST pointers is transferred
-   to the library (CEED_OWN_POINTER mode), they will be deallocated by calling
-   the standard C library function, free(). In particular, pointers allocated
-   with the C++ operator new should not be used with CEED_OWN_POINTER mode. */
-typedef enum {CEED_COPY_VALUES, CEED_USE_POINTER, CEED_OWN_POINTER} CeedCopyMode;
+/// Specify memory type
+///
+/// Many Ceed interfaces take or return pointers to memory.  This enum is used to
+/// specify where the memory being provided or requested must reside.
+/// @ingroup Ceed
+typedef enum {
+  /// Memory resides on the host
+  CEED_MEM_HOST,
+  /// Memory resides on a device (corresponding to \ref Ceed resource)
+  CEED_MEM_DEVICE,
+} CeedMemType;
 
-/* The CeedVectorGet* and CeedVectorRestore* functions provide access to array
-   pointers in the desired memory space. Pairing get/restore allows the Vector
-   to track access, thus knowing if norms or other operations may need to be
-   recomputed. */
+/// Conveys ownership status of arrays passed to Ceed interfaces.
+/// @ingroup Ceed
+typedef enum {
+  /// Implementation will copy the values and not store the passed pointer.
+  CEED_COPY_VALUES,
+  /// Implementation can use and modify the data provided by the user, but does
+  /// not take ownership.
+  CEED_USE_POINTER,
+  /// Implementation takes ownership of the pointer and will free using
+  /// CeedFree() when done using it.  The user should not assume that the
+  /// pointer remains valid after ownership has been transferred.  Note that
+  /// arrays allocated using C++ operator new or other allocators cannot
+  /// generally be freed using CeedFree()
+  CEED_OWN_POINTER,
+} CeedCopyMode;
+
 CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedInt len, CeedVector *vec);
 CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mtype,
                                    CeedCopyMode cmode, CeedScalar *array);
@@ -81,12 +132,7 @@ CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec,
     const CeedScalar **array);
 CEED_EXTERN int CeedVectorDestroy(CeedVector *vec);
 
-/* When CEED_REQUEST_IMMEDIATE is passed as the CeedRequest pointer to a call,
-   the called function must ensure that all output is immediately available
-   after it returns. In other words, the operation does not need to be executed
-   asynchronously, and if it is, the called function will wait for the
-   asynchronous execution to complete before returning. */
-CEED_EXTERN CeedRequest *CEED_REQUEST_IMMEDIATE;
+CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;
 /* When CEED_REQUEST_NULL (or simply NULL) is given as the CeedRequest pointer
    to a function call, the caller is indicating that he/she will not need to
    call CeedRequestWait to wait for the completion of the operation. In general,
@@ -98,47 +144,10 @@ CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
 typedef enum {CEED_NOTRANSPOSE, CEED_TRANSPOSE} CeedTransposeMode;
 
-/**
-  @brief Create a CeedElemRestriction
-
-  @param ceed       A Ceed object where the CeedElemRestriction will be created.
-  @param nelements  Number of elements described in the @a indices array.
-  @param esize      Size (number of unknowns) per element.
-  @param ndof       The total size of the input CeedVector to which the
-                    restriction will be applied. This size may include data
-                    used by other CeedElemRestriction objects describing
-                    different types of elements.
-  @param mtype      Memory type of the @a indices array, see CeedMemType.
-  @param cmode      Copy mode for the @a indices array, see CeedCopyMode.
-  @param indices    A 2D array of dimensions (@a esize x @a nelements) using
-                    column-major storage layout. Column i holds the ordered list
-                    of the indices (into the input CeedVector) for the unknowns
-                    corresponding to element i, where 0 <= i < @a nelements.
-                    All indices must be in the range [0, @a ndof).
-  @param r          The address of the variable where the newly created
-                    CeedElemRestriction will be stored.
-
-  @return An error code: 0 - success, otherwise - failure.
- */
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelements,
     CeedInt esize, CeedInt ndof, CeedMemType mtype, CeedCopyMode cmode,
     const CeedInt *indices, CeedElemRestriction *r);
 
-/**
-  @brief Create a blocked CeedElemRestriction
-
-  @param ceed        A Ceed object where the CeedElemRestriction will be created.
-  @param nelements   Number of elements described ...
-  @param esize       Size (number of unknowns) per element.
-  @param blocksize   ...
-  @param mtype       Memory type of the @a blkindices array, see CeedMemType.
-  @param cmode       Copy mode for the @a blkindices array, see CeedCopyMode.
-  @param blkindices  ...
-  @param r           The address of the variable where the newly created
-                     CeedElemRestriction will be stored.
-
-  @return An error code: 0 - success, otherwise - failure.
- */
 CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelements,
     CeedInt esize, CeedInt blocksize, CeedMemType mtype, CeedCopyMode cmode,
     CeedInt *blkindices, CeedElemRestriction *r);
@@ -151,14 +160,34 @@ CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *r);
 //   \int_\Omega v^T f_0(u, \nabla u, qdata) + (\nabla v)^T f_1(u, \nabla u, qdata)
 // where gradients are with respect to the reference element.
 
-typedef enum {CEED_EVAL_NONE   = 0,
-              CEED_EVAL_INTERP = 1, // values at quadrature points
-              CEED_EVAL_GRAD   = 2, // gradients
-              CEED_EVAL_DIV    = 4, // divergence
-              CEED_EVAL_CURL   = 8, // curl
-              CEED_EVAL_WEIGHT = 16, // quadrature weights for reference element
-             } CeedEvalMode;
-typedef enum {CEED_GAUSS = 0, CEED_GAUSS_LOBATTO = 1} CeedQuadMode;
+/// Basis evaluation mode
+///
+/// Modes can be bitwise ORed when passing to most functions.
+/// @ingroup CeedBasis
+typedef enum {
+  /// Perform no evaluation (either because there is no data or it is already at
+  /// quadrature points)
+  CEED_EVAL_NONE   = 0,
+  /// Interpolate from nodes to quadrature points
+  CEED_EVAL_INTERP = 1,
+  /// Evaluate gradients at quadrature points from input in a nodal basis
+  CEED_EVAL_GRAD   = 2,
+  /// Evaluate divergence at quadrature points from input in a nodal basis
+  CEED_EVAL_DIV    = 4,
+  /// Evaluate curl at quadrature points from input in a nodal basis
+  CEED_EVAL_CURL   = 8,
+  /// Using no input, evaluate quadrature weights on the reference element
+  CEED_EVAL_WEIGHT = 16,
+} CeedEvalMode;
+
+/// Type of quadrature; also used for location of nodes
+/// @ingroup CeedBasis
+typedef enum {
+  /// Gauss-Legendre quadrature
+  CEED_GAUSS = 0,
+  /// Gauss-Legendre-Lobatto quadrature
+  CEED_GAUSS_LOBATTO = 1,
+} CeedQuadMode;
 
 CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,
     CeedInt ndof, CeedInt P, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);

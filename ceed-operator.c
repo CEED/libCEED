@@ -16,6 +16,13 @@
 
 #include <ceed-impl.h>
 
+/**
+  @file
+  Implementation of public CeedOperator interfaces
+
+  @defgroup CeedOperator CeedOperator: composed FE-type operations on vectors
+  @{
+ */
 
 int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
                        CeedQFunction qf, CeedQFunction dqf,

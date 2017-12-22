@@ -16,6 +16,17 @@
 
 #include <ceed-impl.h>
 
+/// @file
+/// Implementation of public CeedVector interfaces
+///
+/// @defgroup CeedVector CeedVector: storing and manipulating vectors
+/// @{
+
+/// Create a vector of the specified length (does not allocated memory)
+///
+/// @param ceed   Ceed
+/// @param length Length of vector
+/// @param vec    New vector
 int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   int ierr;
 
@@ -28,6 +39,12 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   return 0;
 }
 
+/// Set the array used by a vector, freeing any previously allocated array if applicable.
+///
+/// @param x Vector
+/// @param mtype Memory type of the array being passed
+/// @param cmode Copy mode for the array
+/// @param array Array to be used, or NULL with CEED_COPY_VALUES to have the library allocate
 int CeedVectorSetArray(CeedVector x, CeedMemType mtype, CeedCopyMode cmode,
                        CeedScalar *array) {
   int ierr;
@@ -38,6 +55,20 @@ int CeedVectorSetArray(CeedVector x, CeedMemType mtype, CeedCopyMode cmode,
   return 0;
 }
 
+/// Get read/write access to a vector via the specified memory type
+///
+/// @param x Vector to access
+/// @param mtype Memory type on which to access the array.  If the backend uses
+///              a different memory type, this will perform a copy and
+///              CeedVectorRestoreArray() will copy back.
+/// @param[out] array Array on memory type mtype
+///
+/// @note The CeedVectorGetArray* and CeedVectorRestoreArray* functions provide
+///   access to array pointers in the desired memory space. Pairing get/restore
+///   allows the Vector to track access, thus knowing if norms or other
+///   operations may need to be recomputed.
+///
+/// @sa CeedVectorRestoreArray()
 int CeedVectorGetArray(CeedVector x, CeedMemType mtype, CeedScalar **array) {
   int ierr;
 
@@ -47,6 +78,14 @@ int CeedVectorGetArray(CeedVector x, CeedMemType mtype, CeedScalar **array) {
   return 0;
 }
 
+/// Get read-only access to a vector via the specified memory type
+///
+/// @param x Vector to access
+/// @param mtype Memory type on which to access the array.  If the backend uses
+///              a different memory type, this will perform a copy (possibly cached).
+/// @param[out] array Array on memory type mtype
+///
+/// @sa CeedVectorRestoreArrayRead()
 int CeedVectorGetArrayRead(CeedVector x, CeedMemType mtype,
                            const CeedScalar **array) {
   int ierr;
@@ -57,6 +96,7 @@ int CeedVectorGetArrayRead(CeedVector x, CeedMemType mtype,
   return 0;
 }
 
+/// Restore an array obtained using CeedVectorGetArray()
 int CeedVectorRestoreArray(CeedVector x, CeedScalar **array) {
   int ierr;
 
@@ -66,6 +106,7 @@ int CeedVectorRestoreArray(CeedVector x, CeedScalar **array) {
   return 0;
 }
 
+/// Restore an array obtaned using CeedVectorGetArrayRead()
 int CeedVectorRestoreArrayRead(CeedVector x, const CeedScalar **array) {
   int ierr;
 
@@ -75,6 +116,7 @@ int CeedVectorRestoreArrayRead(CeedVector x, const CeedScalar **array) {
   return 0;
 }
 
+/// Destroy a vector
 int CeedVectorDestroy(CeedVector *x) {
   int ierr;
 

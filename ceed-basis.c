@@ -20,7 +20,31 @@
 #include <stdlib.h>
 #include <string.h>
 
-int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof, CeedInt P1d,
+/// @file
+/// Implementation of public CeedBasis interfaces
+///
+/// @defgroup CeedBasis CeedBasis: fully discrete finite element-like objects
+/// @{
+
+/// Create a tensor product basis for H^1 discretizations
+///
+/// @param ceed   Ceed
+/// @param dim    Topological dimension
+/// @param ncomp  Number of field components (1 for scalar fields)
+/// @param P1d    Number of nodes in one dimension
+/// @param Q1d    Number of quadrature points in one dimension
+/// @param interp1d Row-major Q1d × P1d matrix expressing the values of nodal
+///               basis functions at quadrature points
+/// @param grad1d  Row-major Q1d × P1d matrix expressing derivatives of nodal
+///               basis functions at quadrature points
+/// @param qref1d Array of length Q1d holding the locations of quadrature points
+///               on the 1D reference element [-1, 1]
+/// @param qweight1d Array of length Q1d holding the quadrature weights on the
+///               reference element
+/// @param[out] basis New basis
+///
+/// @sa CeedBasisCreateTensorH1Lagrange()
+int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
                             CeedInt Q1d, const CeedScalar *interp1d,
                             const CeedScalar *grad1d, const CeedScalar *qref1d,
                             const CeedScalar *qweight1d, CeedBasis *basis) {
@@ -31,7 +55,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof, CeedInt P1d,
   ierr = CeedCalloc(1,basis); CeedChk(ierr);
   (*basis)->ceed = ceed;
   (*basis)->dim = dim;
-  (*basis)->ndof = ndof;
+  (*basis)->ndof = ncomp;
   (*basis)->P1d = P1d;
   (*basis)->Q1d = Q1d;
   ierr = CeedMalloc(Q1d,&(*basis)->qref1d); CeedChk(ierr);
@@ -47,7 +71,20 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof, CeedInt P1d,
   return 0;
 }
 
-int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ndof,
+/// Create a tensor product Lagrange basis
+///
+/// @param ceed Ceed
+/// @param dim Topological dimension of element
+/// @param ncomp Number of field components
+/// @param P Number of Gauss-Lobatto nodes in one dimension.  The polynomial degree
+///     of the resulting Q_k element is k=P-1.
+/// @param Q Number of quadrature points in one dimension.
+/// @param qmode Distribution of the Q quadrature points (affects order of
+///     accuracy for the quadrature)
+/// @param[out] basis New basis
+///
+/// @sa CeedBasisCreateTensorH1()
+int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
                                     CeedInt P, CeedInt Q,
                                     CeedQuadMode qmode, CeedBasis *basis) {
   // Allocate
@@ -92,7 +129,7 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ndof,
     }
   }
   //  // Pass to CeedBasisCreateTensorH1
-  ierr = CeedBasisCreateTensorH1(ceed, dim, ndof, P, Q, interp1d, grad1d, qref1d,
+  ierr = CeedBasisCreateTensorH1(ceed, dim, ncomp, P, Q, interp1d, grad1d, qref1d,
                                  qweight1d, basis); CeedChk(ierr);
   ierr = CeedFree(&interp1d); CeedChk(ierr);
   ierr = CeedFree(&grad1d); CeedChk(ierr);
@@ -102,6 +139,12 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ndof,
   return 0;
 }
 
+/// Construct a Gauss-Legendre quadrature
+///
+/// @param Q Number of quadrature points (integrates polynomials of degree 2*Q-1 exactly)
+/// @param qref1d Array of length Q to hold the abscissa on [-1, 1]
+/// @param qweight1d Array of length Q to hold the weights
+/// @sa CeedLobattoQuadrature()
 int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) {
   // Allocate
   CeedScalar P0, P1, P2, dP2, xi, wi, PI = 4.0*atan(1.0);
@@ -143,6 +186,12 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) {
   return 0;
 }
 
+/// Construct a Gauss-Legendre-Lobatto quadrature
+///
+/// @param Q Number of quadrature points (integrates polynomials of degree 2*Q-3 exactly)
+/// @param qref1d Array of length Q to hold the abscissa on [-1, 1]
+/// @param qweight1d Array of length Q to hold the weights
+/// @sa CeedGaussQuadrature()
 int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
                           CeedScalar *qweight1d) {
   // Allocate
@@ -209,6 +258,10 @@ static int CeedScalarView(const char *name, const char *fpformat, CeedInt m,
   return 0;
 }
 
+/// View a basis
+///
+/// @param basis Basis to view
+/// @param stream Stream to view to, e.g., stdout
 int CeedBasisView(CeedBasis basis, FILE *stream) {
   int ierr;
 
@@ -225,6 +278,16 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   return 0;
 }
 
+/// Apply basis evaluation from nodes to quadrature points or vice-versa
+///
+/// @param basis Basis to evaluate
+/// @param tmode \ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature
+///     points, \ref CEED_TRANSPOSE to apply the transpose, mapping from
+///     quadrature points to nodes
+/// @param emode \ref CEED_EVAL_INTERP to obtain interpolated values,
+///     \ref CEED_EVAL_GRAD to obtain gradients.
+/// @param u input vector
+/// @param v output vector
 int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode, CeedEvalMode emode,
                    const CeedScalar *u, CeedScalar *v) {
   int ierr;
@@ -234,16 +297,19 @@ int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode, CeedEvalMode emode,
   return 0;
 }
 
+/// Get total number of nodes (in dim dimensions)
 int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
   *P = CeedPowInt(basis->P1d, basis->dim);
   return 0;
 }
 
+/// Get total number of quadrature points (in dim dimensions)
 int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
   *Q = CeedPowInt(basis->Q1d, basis->dim);
   return 0;
 }
 
+/// Destroy a CeedBasis
 int CeedBasisDestroy(CeedBasis *basis) {
   int ierr;
 

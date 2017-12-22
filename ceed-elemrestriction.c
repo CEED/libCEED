@@ -16,6 +16,34 @@
 
 #include <ceed-impl.h>
 
+/// @file
+/// Implementation of public CeedElemRestriction interfaces
+///
+/// @defgroup CeedElemRestriction CeedElemRestriction: restriction from vectors to elements
+/// @{
+
+/**
+  Create a CeedElemRestriction
+
+  @param ceed       A Ceed object where the CeedElemRestriction will be created.
+  @param nelem      Number of elements described in the @a indices array.
+  @param elemsize   Size (number of unknowns) per element.
+  @param ndof       The total size of the input CeedVector to which the
+                    restriction will be applied. This size may include data
+                    used by other CeedElemRestriction objects describing
+                    different types of elements.
+  @param mtype      Memory type of the @a indices array, see CeedMemType.
+  @param cmode      Copy mode for the @a indices array, see CeedCopyMode.
+  @param indices    Array of dimensions @a nelem × @a elemsize) using
+                    column-major storage layout. Row i holds the ordered list
+                    of the indices (into the input CeedVector) for the unknowns
+                    corresponding to element i, where 0 <= i < @a nelements.
+                    All indices must be in the range [0, @a ndof).
+  @param r          The address of the variable where the newly created
+                    CeedElemRestriction will be stored.
+
+  @return An error code: 0 - success, otherwise - failure.
+*/
 int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
                               CeedInt ndof, CeedMemType mtype, CeedCopyMode cmode,
                               const CeedInt *indices, CeedElemRestriction *r) {
@@ -32,6 +60,38 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   return 0;
 }
 
+/**
+  Create a blocked CeedElemRestriction
+
+  @param ceed        A Ceed object where the CeedElemRestriction will be created.
+  @param nelements   Number of elements described ...
+  @param esize       Size (number of unknowns) per element.
+  @param blocksize   ...
+  @param mtype       Memory type of the @a blkindices array, see CeedMemType.
+  @param cmode       Copy mode for the @a blkindices array, see CeedCopyMode.
+  @param blkindices  ...
+  @param r           The address of the variable where the newly created
+                     CeedElemRestriction will be stored.
+
+  @return An error code: 0 - success, otherwise - failure.
+ */
+int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelements,
+    CeedInt esize, CeedInt blocksize, CeedMemType mtype, CeedCopyMode cmode,
+    CeedInt *blkindices, CeedElemRestriction *r) {
+  return CeedError(ceed, 1, "Not implemented");
+}
+
+/**
+  Restrict an L-vector to an E-vector or apply transpose
+
+  @param r Restriction
+  @param tmode Apply restriction or transpose
+  @param ncomp Number of components [FIXME: include in CeedElemRestriction]
+  @param lmode Ordering of the ncomp components
+  @param u Input vector (of size @a ndof when tmode=CEED_NOTRANSPOSE)
+  @param v Output vector (of size @a nelem * @a elemsize when tmode=CEED_NOTRANSPOSE)
+  @param request Request or CEED_REQUEST_IMMEDIATE
+*/
 int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode,
                              CeedInt ncomp, CeedTransposeMode lmode,
                              CeedVector u, CeedVector v, CeedRequest *request) {
@@ -57,6 +117,9 @@ int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode,
   return 0;
 }
 
+/**
+  Destroy a CeedElemRestriction
+*/
 int CeedElemRestrictionDestroy(CeedElemRestriction *r) {
   int ierr;
 

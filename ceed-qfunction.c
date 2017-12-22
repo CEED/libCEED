@@ -17,6 +17,14 @@
 #include <ceed-impl.h>
 
 /**
+  @file
+  Implementation of public CeedQFunction interfaces
+
+  @defgroup CeedQFunction CeedQFunction: independent operations at quadrature points
+  @{
+ */
+
+/**
   @brief Create a CeedQFunction for evaluating interior (volumetric) terms.
 
   @param ceed       Ceed library context
@@ -89,12 +97,17 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedInt nfields,
   return 0;
 }
 
+/**
+  Set global context for a quadrature function
+ */
 int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
   qf->ctx = ctx;
   qf->ctxsize = ctxsize;
   return 0;
 }
 
+/** Apply the action of a CeedQFunction
+ */
 int CeedQFunctionApply(CeedQFunction qf, void *qdata, CeedInt Q,
                        const CeedScalar *const *u,
                        CeedScalar *const *v) {
@@ -109,6 +122,8 @@ int CeedQFunctionApply(CeedQFunction qf, void *qdata, CeedInt Q,
   return 0;
 }
 
+/** Destroy a CeedQFunction
+ */
 int CeedQFunctionDestroy(CeedQFunction *qf) {
   int ierr;
 
