@@ -9,7 +9,6 @@ int main(int argc, char **argv) {
   const CeedScalar *yy;
   CeedElemRestriction r;
 
-  assert(argv[1]);
   CeedInit(argv[1], &ceed);
   CeedVectorCreate(ceed, ne+1, &x);
   for (CeedInt i=0; i<ne+1; i++) a[i] = 10 + i;

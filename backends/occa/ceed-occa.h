@@ -20,7 +20,6 @@
 #include <stdbool.h>
 
 // *****************************************************************************
-#include <ceed-dbg.h>
 #include <ceed-impl.h>
 
 // *****************************************************************************
@@ -30,42 +29,46 @@
 #define NO_OFFSET 0
 #define NO_PROPS occaDefault
 #define TILE_SIZE 32
-extern occaDevice device;
-
 
 // *****************************************************************************
-// * CeedVectorOcca struct
+// * Ceed_Occa struct
+// *****************************************************************************
+typedef struct {
+  occaDevice device;
+} Ceed_Occa;
+
+// *****************************************************************************
+// * CeedVector_Occa struct needed by some other functions below
 // *****************************************************************************
 typedef struct {
   CeedScalar *host;
   occaMemory *device;
-} CeedVectorOcca;
-
+} CeedVector_Occa;
 
 // **[ basis ] *****************************************************************
-int CeedBasisCreateTensorH1Occa(Ceed ceed, CeedInt dim, CeedInt P1d,
-                                CeedInt Q1d, const CeedScalar *interp1d,
-                                const CeedScalar *grad1d,
-                                const CeedScalar *qref1d,
-                                const CeedScalar *qweight1d,
-                                CeedBasis basis);
+int CeedBasisCreateTensorH1_Occa(Ceed ceed, CeedInt dim, CeedInt P1d,
+                                 CeedInt Q1d, const CeedScalar *interp1d,
+                                 const CeedScalar *grad1d,
+                                 const CeedScalar *qref1d,
+                                 const CeedScalar *qweight1d,
+                                 CeedBasis basis);
 
 // **[ operator ]***************************************************************
-int CeedOperatorCreateOcca(CeedOperator op);
+int CeedOperatorCreate_Occa(CeedOperator op);
 
 // **[ qfunction ]**************************************************************
-int CeedQFunctionCreateOcca(CeedQFunction qf);
+int CeedQFunctionCreate_Occa(CeedQFunction qf);
 
 // **[ restriction ]************************************************************
-int CeedElemRestrictionCreateOcca(const CeedElemRestriction res,
-                                  const CeedMemType mtype,
-                                  const CeedCopyMode cmode,
-                                  const CeedInt *indices);
-int CeedTensorContractOcca(Ceed ceed,
-                           CeedInt A, CeedInt B, CeedInt C, CeedInt J,
-                           const CeedScalar *t, CeedTransposeMode tmode,
-                           const CeedScalar *u, CeedScalar *v);
+int CeedElemRestrictionCreate_Occa(const CeedElemRestriction res,
+                                   const CeedMemType mtype,
+                                   const CeedCopyMode cmode,
+                                   const CeedInt *indices);
+int CeedTensorContract_Occa(Ceed ceed,
+                            CeedInt A, CeedInt B, CeedInt C, CeedInt J,
+                            const CeedScalar *t, CeedTransposeMode tmode,
+                            const CeedScalar *u, CeedScalar *v);
 
 // **[ vector ] ****************************************************************
-int CeedVectorCreateOcca(Ceed ceed, CeedInt n, CeedVector vec);
+int CeedVectorCreate_Occa(Ceed ceed, CeedInt n, CeedVector vec);
 

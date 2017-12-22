@@ -19,26 +19,26 @@
 // *****************************************************************************
 // * Q-functions: Apply, Destroy & Create
 // *****************************************************************************
-static int CeedQFunctionApplyOcca(CeedQFunction qf, void *qdata, CeedInt Q,
-                                  const CeedScalar *const *u,
-                                  CeedScalar *const *v) {
+static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
+                                   const CeedScalar *const *u,
+                                   CeedScalar *const *v) {
   int ierr;
-  dbg("\033[36m[CeedQFunction][Apply]");
+  CeedDebug("\033[36m[CeedQFunction][Apply]");
   ierr = qf->function(qf->ctx, qdata, Q, u, v); CeedChk(ierr);
 
   return 0;
 }
 
 // *****************************************************************************
-static int CeedQFunctionDestroyOcca(CeedQFunction qf) {
-  dbg("\033[36m[CeedQFunction][Destroy]");
+static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
+  CeedDebug("\033[36m[CeedQFunction][Destroy]");
   return 0;
 }
 
 // *****************************************************************************
-int CeedQFunctionCreateOcca(CeedQFunction qf) {
-  dbg("\033[36m[CeedQFunction][Create]");
-  qf->Apply = CeedQFunctionApplyOcca;
-  qf->Destroy = CeedQFunctionDestroyOcca;
+int CeedQFunctionCreate_Occa(CeedQFunction qf) {
+  CeedDebug("\033[36m[CeedQFunction][Create]");
+  qf->Apply = CeedQFunctionApply_Occa;
+  qf->Destroy = CeedQFunctionDestroy_Occa;
   return 0;
 }

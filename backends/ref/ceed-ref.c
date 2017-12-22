@@ -169,7 +169,7 @@ static int CeedElemRestrictionCreate_Ref(CeedElemRestriction r,
     impl->indices = impl->indices_allocated;
     break;
   case CEED_OWN_POINTER:
-    impl->indices_allocated = (CeedInt*)indices;
+    impl->indices_allocated = (CeedInt *)indices;
     impl->indices = impl->indices_allocated;
     break;
   case CEED_USE_POINTER:
@@ -233,7 +233,8 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
   } break;
   case CEED_EVAL_WEIGHT: {
     if (tmode == CEED_TRANSPOSE)
-      return CeedError(basis->ceed, 1, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+      return CeedError(basis->ceed, 1,
+                       "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     CeedInt Q = basis->Q1d;
     for (CeedInt d=0; d<dim; d++) {
       CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
@@ -241,7 +242,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
         for (CeedInt j=0; j<Q; j++) {
           for (CeedInt k=0; k<post; k++) {
             v[(i*Q + j)*post + k] = basis->qweight1d[j]
-              * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
+                                    * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
           }
         }
       }
@@ -318,7 +319,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector qdata,
   }
   ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
   ierr = CeedVectorGetArray(etmp, CEED_MEM_HOST, &Eu); CeedChk(ierr);
-  ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar**)&qd); CeedChk(ierr);
+  ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar **)&qd);
+  CeedChk(ierr);
   for (CeedInt e=0; e<op->Erestrict->nelem; e++) {
     CeedScalar BEu[Q], BEv[Q], *out[1];
     const CeedScalar *in[1];

@@ -18,7 +18,6 @@ int main(int argc, char **argv) {
   const CeedScalar x[] = {-1, 1};
   CeedScalar xq[Q], u[Q], uq[Q], w[Q], sum, error, pint[ALEN(p)+1];
 
-  assert(argv[1]);
   CeedInit(argv[1], &ceed);
   CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
   CeedBasisApply(bxl, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);

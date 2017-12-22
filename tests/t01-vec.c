@@ -7,7 +7,6 @@ int main(int argc, char **argv) {
   CeedScalar a[10];
   const CeedScalar *b;
 
-  assert(argv[1]);
   CeedInit(argv[1], &ceed);
   n = 10;
   CeedVectorCreate(ceed, n, &x);

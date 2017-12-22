@@ -25,7 +25,6 @@ int main(int argc, char **argv) {
   CeedInt Q = 8;
   CeedScalar qdata[Q], w[Q], u[Q], v[Q], vv[Q];
 
-  assert(argv[1]);
   CeedInit(argv[1], &ceed);
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
                               CEED_EVAL_WEIGHT, CEED_EVAL_NONE,

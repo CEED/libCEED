@@ -156,7 +156,7 @@ typedef enum {CEED_EVAL_NONE   = 0,
               CEED_EVAL_DIV    = 4, // divergence
               CEED_EVAL_CURL   = 8, // curl
               CEED_EVAL_WEIGHT = 16, // quadrature weights for reference element
-} CeedEvalMode;
+             } CeedEvalMode;
 typedef enum {CEED_GAUSS = 0, CEED_GAUSS_LOBATTO = 1} CeedQuadMode;
 
 CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,

@@ -14,7 +14,6 @@ static CeedScalar Eval(CeedInt dim, const CeedScalar x[]) {
 int main(int argc, char **argv) {
   Ceed ceed;
 
-  assert(argv[1]);
   CeedInit(argv[1], &ceed);
   for (CeedInt dim=1; dim<=3; dim++) {
     CeedBasis bxl, bul, bxg, bug;
