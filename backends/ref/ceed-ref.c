@@ -348,7 +348,8 @@ static int CeedOperatorGetQData_Ref(CeedOperator op, CeedVector *qdata) {
     CeedInt Q;
     ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
     ierr = CeedVectorCreate(op->ceed,
-                            op->Erestrict->nelem * Q * op->basis->ndof,
+                            op->Erestrict->nelem * Q
+                            * op->qf->qdatasize / sizeof(CeedScalar),
                             &impl->qdata); CeedChk(ierr);
   }
   *qdata = impl->qdata;
