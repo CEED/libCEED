@@ -412,9 +412,10 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector qdata,
   }
   ierr = CeedVectorRestoreArray(etmp, &Eu); CeedChk(ierr);
   if (residual) {
-    CeedVector_Ref *res_ref = residual->data;
+    CeedScalar *res;
+    CeedVectorGetArray(residual, CEED_MEM_HOST, &res);
     for (int i = 0; i < residual->length; i++)
-      res_ref->array[i] = (CeedScalar)0;
+      res[i] = (CeedScalar)0;
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_TRANSPOSE,
                                     nc, lmode, etmp, residual,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);

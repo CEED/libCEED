@@ -72,7 +72,7 @@ examples : $(examples)
 
 .PHONY: clean print test examples astyle
 clean :
-	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests.c:%.c=%)
+	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests)
 	$(RM) -r *.dSYM
 	$(MAKE) -C examples/mfem clean
 
