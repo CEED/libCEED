@@ -59,7 +59,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   CeedDebug("\033[1m[CeedInit] resource='%s'", resource);
   if (strcmp(resource, "/cpu/occa")
       && strcmp(resource, "/gpu/occa"))
-    return CeedError(ceed, 1, "Ref backend cannot use resource: %s", resource);
+    return CeedError(ceed, 1, "OCCA backend cannot use resource: %s", resource);
   ceed->Error = CeedError_Occa;
   ceed->Destroy = CeedDestroy_Occa;
   ceed->VecCreate = CeedVectorCreate_Occa;
@@ -75,6 +75,8 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   occaSetVerboseCompilation(getenv("CEED_DEBUG")?true:false);
   const char *mode = (resource[1]=='g')?occaGPU:occaCPU;
   impl->device = occaCreateDevice(occaString(mode));
+  if (resource[1] == 'g' && !strcmp(occaDeviceMode(impl->device), "Serial"))
+    return CeedError(ceed, 1, "OCCA backend failed to use GPU resource");
   return 0;
 }
 
