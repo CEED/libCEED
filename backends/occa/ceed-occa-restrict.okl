@@ -1,12 +1,56 @@
-kernel void kRestrict(const bool TRANSPOSE,
-                      const int *idx,
-                      const double* x,
-                      double* y) {
-  //printf("[kRestrict]\n");fflush(stdout);
-  for (int i=0; i<nelemsize; i++; tile(TILE_SIZE)){
-    if (i >= nelemsize) return;
-    //printf("\t[kRestrict] %d\n",i);fflush(stdout);
-    if (TRANSPOSE) y[i] = x[idx[i]];
-    else  y[idx[i]] += x[i];
+kernel void kRestrict(const bool T_TRANSPOSE,
+                      const bool L_TRANSPOSE,
+                      const int ncomp,
+                      const int *indices,
+                      const double* uu,
+                      double* vv) {
+  for (int i=0; i<esize; i++; tile(TILE_SIZE)){
+    if (i >= esize) return;
+    
+    if (T_TRANSPOSE) {
+      // Perform: v = r * u
+      if (ncomp == 1) {
+        for (int i=0; i<esize; i++) vv[i] = uu[indices[i]];
+      } else {
+        // vv is (elemsize x ncomp x nelem), column-major
+        if (L_TRANSPOSE) { // u is (ndof x ncomp), column-major
+          for (int e = 0; e < rnelem; e++)
+            for (int d = 0; d < ncomp; d++)
+              for (int i=0; i<relemsize; i++) {
+                vv[i+relemsize*(d+ncomp*e)] =
+                  uu[indices[i+relemsize*e]+rndof*d];
+              }
+        } else { // u is (ncomp x ndof), column-major
+          for (int e = 0; e < rnelem; e++)
+            for (int d = 0; d < ncomp; d++)
+              for (int i=0; i<relemsize; i++) {
+                vv[i+relemsize*(d+ncomp*e)] =
+                  uu[d+ncomp*indices[i+relemsize*e]];
+              }
+        }
+      }
+    } else {
+      // Note: in transpose mode, we perform: v += r^t * u
+      if (ncomp == 1) {
+        for (int i=0; i<esize; i++) vv[indices[i]] += uu[i];
+      } else {
+        // u is (elemsize x ncomp x nelem)
+        if (L_TRANSPOSE) { // vv is (ndof x ncomp), column-major
+          for (int e = 0; e < rnelem; e++)
+            for (int d = 0; d < ncomp; d++)
+              for (int i=0; i<relemsize; i++) {
+                vv[indices[i+relemsize*e]+rndof*d] +=
+                  uu[i+relemsize*(d+e*ncomp)];
+              }
+        } else { // vv is (ncomp x ndof), column-major
+          for (int e = 0; e < rnelem; e++)
+            for (int d = 0; d < ncomp; d++)
+              for (int i=0; i<relemsize; i++) {
+                vv[d+ncomp*indices[i+relemsize*e]] +=
+                  uu[i+relemsize*(d+e*ncomp)];
+              }
+        }
+      }
+    }
   }
 }

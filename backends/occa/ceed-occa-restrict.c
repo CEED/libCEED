@@ -38,15 +38,15 @@ static inline size_t bytes(const CeedElemRestriction res) {
 // * occaCopyPtrToMem(occaMemory dest, const void *src,
 // * occaCopyMemToPtr(void *dest, occaMemory src,
 // *****************************************************************************
-static inline void occaSyncH2D(const CeedElemRestriction res) {
-  const CeedElemRestriction_Occa *impl = res->data;
-  occaCopyPtrToMem(*impl->device, impl->host, bytes(res), NO_OFFSET, NO_PROPS);
-}
-static inline void occaSyncD2H(const CeedElemRestriction res) {
-  const CeedElemRestriction_Occa *impl = res->data;
-  occaCopyMemToPtr((void *)impl->host, *impl->device, bytes(res), NO_OFFSET,
-                   NO_PROPS);
-}
+//static inline void occaSyncH2D(const CeedElemRestriction res) {
+//  const CeedElemRestriction_Occa *impl = res->data;
+//  occaCopyPtrToMem(*impl->device, impl->host, bytes(res), NO_OFFSET, NO_PROPS);
+//}
+//static inline void occaSyncD2H(const CeedElemRestriction res) {
+// const CeedElemRestriction_Occa *impl = res->data;
+//  occaCopyMemToPtr((void *)impl->host, *impl->device, bytes(res), NO_OFFSET,
+//                   NO_PROPS);
+//}
 
 // *****************************************************************************
 // * OCCA COPY functions
@@ -59,13 +59,13 @@ static inline void occaCopyH2D(const CeedElemRestriction res,
   assert(impl->device);
   occaCopyPtrToMem(*impl->device, from, bytes(res), NO_OFFSET, NO_PROPS);
 }
-static inline void occaCopyD2H(const CeedElemRestriction res, void *to) {
-  const CeedElemRestriction_Occa *impl = res->data;
-  assert(to);
-  assert(impl);
-  assert(impl->device);
-  occaCopyMemToPtr(to, *impl->device, bytes(res), NO_OFFSET, NO_PROPS);
-}
+//static inline void occaCopyD2H(const CeedElemRestriction res, void *to) {
+//  const CeedElemRestriction_Occa *impl = res->data;
+//  assert(to);
+//  assert(impl);
+//  assert(impl->device);
+//  occaCopyMemToPtr(to, *impl->device, bytes(res), NO_OFFSET, NO_PROPS);
+//}
 
 
 // *****************************************************************************
@@ -76,7 +76,8 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction res,
                                          CeedTransposeMode lmode, CeedVector u,
                                          CeedVector v, CeedRequest *request) {
 //#warning CeedElemRestrictionApply_Occa to apply changes
-  const bool TRANSPOSE = tmode == CEED_NOTRANSPOSE;
+  const bool T_TRANSPOSE = tmode == CEED_NOTRANSPOSE;
+  const bool L_TRANSPOSE = lmode == CEED_NOTRANSPOSE;
   const CeedElemRestriction_Occa *impl = res->data;
   const occaMemory indices = *impl->device;
   const CeedVector_Occa *u_impl = u->data;
@@ -85,7 +86,11 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction res,
   occaMemory vv = *v_impl->device;
 
   CeedDebug("\033[35m[CeedElemRestriction][Apply]");
-  occaKernelRun(impl->kRestrict,occaInt(TRANSPOSE),indices,uu,vv);
+  occaKernelRun(impl->kRestrict,
+                occaInt(T_TRANSPOSE),
+                occaInt(L_TRANSPOSE),
+                occaInt(ncomp),
+                indices,uu,vv);
   if (request != CEED_REQUEST_IMMEDIATE) *request = NULL;
   return 0;
 }
@@ -144,10 +149,13 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction res,
   // ***************************************************************************
   CeedDebug("\033[35m[CeedElemRestriction][Create] Building kRestrict");
   occaProperties pKR = occaCreateProperties();
-  occaPropertiesSet(pKR, "defines/nelemsize", occaInt(res->nelem*res->elemsize));
+  occaPropertiesSet(pKR, "defines/esize", occaInt(res->nelem*res->elemsize));
+  occaPropertiesSet(pKR, "defines/rndof", occaInt(res->ndof));
+  occaPropertiesSet(pKR, "defines/rnelem", occaInt(res->nelem));
+  occaPropertiesSet(pKR, "defines/relemsize", occaInt(res->elemsize));
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(TILE_SIZE));
   impl->kRestrict = occaDeviceBuildKernel(ceed_data->device,
-                                          "backends/occa/ceed-occa-restrict.okl",
+     "/Users/camierjs/home/libCEED/backends/occa/ceed-occa-restrict.okl",
                                           "kRestrict",pKR);
   // ***************************************************************************
   res->Apply = CeedElemRestrictionApply_Occa;
