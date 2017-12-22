@@ -12,12 +12,12 @@ backends+=(/cpu/occa /gpu/occa)
 printf "1..9\n"
 fi
 
-for ((i = 0; i < ${#backends[@]}; ++i)); do
+for ((i=0;i<${#backends[@]}; ++i)); do
     i0=$((3*$i+1)) # return code
     i1=$(($i0+1))  # stdout
-    i2=$(($i0+2))  # stderr 
-    backend=${backends[$i-1]}
-
+    i2=$(($i0+2))  # stderr
+    backend=${backends[$i]}
+    
     if build/$1 $backend > ${output}.out 2> ${output}.err ; then
         printf "ok $i0 $1 $backend\n"
     else
