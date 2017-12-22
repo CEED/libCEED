@@ -38,6 +38,7 @@ MFLAGS := -j $(NPROCS) --warn-undefined-variables \
 			--no-print-directory --no-keep-going
 
 PROVE ?= prove
+PROVE_OPTS ?= -j $(NPROCS)
 DARWIN := $(filter Darwin,$(shell uname -s))
 SO_EXT := $(if $(DARWIN),dylib,so)
 
@@ -114,7 +115,7 @@ test : $(tests:$(OBJDIR)/t%=run-t%)
 tst:;@$(MAKE) $(MFLAGS) test
 
 prove : $(tests)
-	$(PROVE) -j $(NPROCS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%)
 
 examples : $(examples)
 
