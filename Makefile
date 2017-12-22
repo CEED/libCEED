@@ -24,8 +24,6 @@ TARGET_ARCH ?=
 # env variable OCCA_DIR should point to OCCA-1.0 branch
 OCCA_DIR ?= ../occa
 
-pwd = $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
-
 SANTIZ = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native
 CFLAGS += $(if $(NDEBUG),-O2,-g)
@@ -92,17 +90,17 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : $(occa.o)
   $(occa.o) : CFLAGS += -I$(OCCA_DIR)/include
 endif
-$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) $(ref.c:%.c=$(OBJDIR)/%.o)
+$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o)
 	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
-$(OBJDIR)/%.o : $(pwd)/%.c | $$(@D)/.DIR
-	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+$(OBJDIR)/%.o : %.c | $$(@D)/.DIR
+	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
 
-$(OBJDIR)/% : $(pwd)/tests/%.c | $$(@D)/.DIR
-	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+$(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
+	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
-$(OBJDIR)/%.o : $(pwd)/examples/%.c | $$(@D)/.DIR
-	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+$(OBJDIR)/%.o : examples/%.c | $$(@D)/.DIR
+	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
 
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
@@ -110,7 +108,7 @@ $(OBJDIR)/t% : tests/t%.c $(libceed)
 $(OBJDIR)/ex% : examples/ex%.c $(libceed)
 
 run-t% : $(OBJDIR)/t%
-	tests/tap.sh $(<:build/%=%)
+	@tests/tap.sh $(<:build/%=%)
 
 test : $(tests:$(OBJDIR)/t%=run-t%)
 tst:;@$(MAKE) $(MFLAGS) test
