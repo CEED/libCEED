@@ -58,12 +58,12 @@ static inline void occaCopyH2D(const CeedVector vec, void *from) {
   assert(impl->device);
   occaCopyPtrToMem(*impl->device, from, bytes(vec), NO_OFFSET, NO_PROPS);
 }
-static inline void occaCopyD2H(const CeedVector vec, void *to) {
-  const CeedVector_Occa *impl = vec->data;
-  assert(to);
-  assert(impl);
-  occaCopyMemToPtr(to, *impl->device, bytes(vec), NO_OFFSET, NO_PROPS);
-}
+//static inline void occaCopyD2H(const CeedVector vec, void *to) {
+// const CeedVector_Occa *impl = vec->data;
+//  assert(to);
+//  assert(impl);
+//  occaCopyMemToPtr(to, *impl->device, bytes(vec), NO_OFFSET, NO_PROPS);
+//}
 
 // *****************************************************************************
 // * Destroy
@@ -106,22 +106,32 @@ static int CeedVectorSetArray_Occa(const CeedVector vec,
   switch (cmode) {
   case CEED_COPY_VALUES:
     CeedDebug("\t\033[33m[CeedVector][SetArray] CEED_COPY_VALUES");
+    CeedChk(CeedCalloc(vec->length,&impl->host));
     if (array) memcpy(impl->host, array, bytes(vec));
+    // now sync the host to the device
+    if (array) {
+      CeedDebug("\033[33m[CeedVector][SetArray] occaSyncH2D");
+      occaSyncH2D(vec);
+    }
     break;
   case CEED_OWN_POINTER:
     CeedDebug("\t\033[33m[CeedVector][SetArray] CEED_OWN_POINTER");
     impl->host = array;
+    if (array){
+      CeedDebug("\033[33m[CeedVector][SetArray] occaSyncH2D");
+      occaCopyH2D(vec,array);
+    }
     break;
   case CEED_USE_POINTER:
     CeedDebug("\t\033[33m[CeedVector][SetArray] CEED_USE_POINTER");
     impl->host = array;
+    if (array) memcpy(impl->host, array, bytes(vec));
+    if (array){
+      CeedDebug("\033[33m[CeedVector][SetArray] occaSyncH2D");
+       occaCopyH2D(vec,array);
+    }
     break;
   default: CeedError(vec->ceed,1," OCCA backend no default error");
-  }
-  // now sync the host to the device
-  if (array) {
-    CeedDebug("\033[33m[CeedVector][SetArray] occaSyncH2D");
-    occaSyncH2D(vec);
   }
   return 0;
 }
@@ -130,18 +140,26 @@ static int CeedVectorSetArray_Occa(const CeedVector vec,
 // * Get
 // *****************************************************************************
 static int CeedVectorGetArray_Occa(const CeedVector vec,
-                                   CeedMemType mtype,
+                                   const CeedMemType mtype,
                                    CeedScalar **array) {
+  int ierr;
   CeedVector_Occa *impl = vec->data;
 
   CeedDebug("\033[33m[CeedVector][GetArray]");
   if (mtype != CEED_MEM_HOST)
     return CeedError(vec->ceed, 1, "Can only provide to HOST memory");
+  assert(impl);
+  assert(array);
   // Allocating space on host to allow the view
-  CeedChk(CeedCalloc(vec->length,&impl->host));
+  CeedDebug("\033[33m[CeedVector][GetArray] alloc");
+  ierr=CeedCalloc(vec->length,&impl->host);CeedChk(ierr);
+  assert(impl->host);
+  assert(impl->device);
   // sync'ing back device to the host
+  CeedDebug("\033[33m[CeedVector][GetArray] occaSyncD2H");
   occaSyncD2H(vec);
   *array = impl->host;
+  CeedDebug("\033[33m[CeedVector][GetArray] done");
   return 0;
 }
 
@@ -212,6 +230,6 @@ int CeedVectorCreate_Occa(const Ceed ceed, const CeedInt n, CeedVector vec) {
   CeedChk(CeedCalloc(1,&impl->device));
   *impl->device = occaDeviceMalloc(ceed_data->device, bytes(vec), NULL, NO_PROPS);
   vec->data = impl;
-  CeedDebug("\033[33m[CeedVector][Create] done");
+  //CeedDebug("\033[33m[CeedVector][Create] done");
   return 0;
 }

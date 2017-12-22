@@ -71,20 +71,83 @@ static inline void occaCopyH2D(const CeedElemRestriction res,
 // *****************************************************************************
 // * CeedElemRestrictionApply_Occa
 // *****************************************************************************
-static int CeedElemRestrictionApply_Occa(CeedElemRestriction res,
+static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
                                          CeedTransposeMode tmode, CeedInt ncomp,
                                          CeedTransposeMode lmode, CeedVector u,
                                          CeedVector v, CeedRequest *request) {
-//#warning CeedElemRestrictionApply_Occa to apply changes
+  CeedElemRestriction_Occa *impl = r->data;
+  int ierr;
+  const CeedScalar *uu=NULL;
+  CeedScalar *vv=NULL;
+  CeedInt esize = r->nelem*r->elemsize;
+  CeedDebug("\033[35m[CeedElemRestriction][Apply] Gets u:%d, v=%d", u->length, v->length);
+
+  ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
+  ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
+
+  CeedDebug("\033[35m[CeedElemRestriction][Apply] Compute");
+  if (tmode == CEED_NOTRANSPOSE) {
+    CeedDebug("\033[35m[CeedElemRestriction][Apply] CEED_NOTRANSPOSE");
+    // Perform: v = r * u
+    if (ncomp == 1) {
+      CeedDebug("\033[35m[CeedElemRestriction][Apply] ncomp==1");
+      for (CeedInt i=0; i<esize; i++) vv[i] = uu[impl->host[i]];
+    } else {
+      CeedDebug("\033[35m[CeedElemRestriction][Apply] !ncomp==1");
+      // vv is (elemsize x ncomp x nelem), column-major
+      if (lmode == CEED_NOTRANSPOSE) { // u is (ndof x ncomp), column-major
+        for (CeedInt e = 0; e < r->nelem; e++)
+          for (CeedInt d = 0; d < ncomp; d++)
+            for (CeedInt i=0; i<r->elemsize; i++) {
+              vv[i+r->elemsize*(d+ncomp*e)] =
+                uu[impl->host[i+r->elemsize*e]+r->ndof*d];
+            }
+      } else { // u is (ncomp x ndof), column-major
+        for (CeedInt e = 0; e < r->nelem; e++)
+          for (CeedInt d = 0; d < ncomp; d++)
+            for (CeedInt i=0; i<r->elemsize; i++) {
+              vv[i+r->elemsize*(d+ncomp*e)] =
+                uu[d+ncomp*impl->host[i+r->elemsize*e]];
+            }
+      }
+    }
+  } else {
+    // Note: in transpose mode, we perform: v += r^t * u
+    CeedDebug("\033[35m[CeedElemRestriction][Apply] !CEED_NOTRANSPOSE");
+   if (ncomp == 1) {
+      for (CeedInt i=0; i<esize; i++) vv[impl->host[i]] += uu[i];
+    } else {
+      // u is (elemsize x ncomp x nelem)
+      if (lmode == CEED_NOTRANSPOSE) { // vv is (ndof x ncomp), column-major
+        for (CeedInt e = 0; e < r->nelem; e++)
+          for (CeedInt d = 0; d < ncomp; d++)
+            for (CeedInt i=0; i<r->elemsize; i++) {
+              vv[impl->host[i+r->elemsize*e]+r->ndof*d] +=
+                uu[i+r->elemsize*(d+e*ncomp)];
+            }
+      } else { // vv is (ncomp x ndof), column-major
+        for (CeedInt e = 0; e < r->nelem; e++)
+          for (CeedInt d = 0; d < ncomp; d++)
+            for (CeedInt i=0; i<r->elemsize; i++) {
+              vv[d+ncomp*impl->host[i+r->elemsize*e]] +=
+                uu[i+r->elemsize*(d+e*ncomp)];
+            }
+      }
+    }
+  }
+  CeedDebug("\033[35m[CeedElemRestriction][Apply] Restore");
+  ierr = CeedVectorRestoreArrayRead(u, &uu); CeedChk(ierr);
+  ierr = CeedVectorRestoreArray(v, &vv); CeedChk(ierr);
+  if (request != CEED_REQUEST_IMMEDIATE) *request = NULL;
+/*
   const bool T_TRANSPOSE = tmode == CEED_NOTRANSPOSE;
   const bool L_TRANSPOSE = lmode == CEED_NOTRANSPOSE;
-  const CeedElemRestriction_Occa *impl = res->data;
+  const CeedElemRestriction_Occa *impl = r->data;
   const occaMemory indices = *impl->device;
   const CeedVector_Occa *u_impl = u->data;
   const occaMemory uu = *u_impl->device;
   const CeedVector_Occa *v_impl = v->data;
   occaMemory vv = *v_impl->device;
-
   CeedDebug("\033[35m[CeedElemRestriction][Apply]");
   occaKernelRun(impl->kRestrict,
                 occaInt(T_TRANSPOSE),
@@ -92,6 +155,7 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction res,
                 occaInt(ncomp),
                 indices,uu,vv);
   if (request != CEED_REQUEST_IMMEDIATE) *request = NULL;
+*/
   return 0;
 }
 
@@ -133,6 +197,10 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction res,
   switch (cmode) {
   case CEED_COPY_VALUES:
     CeedDebug("\t\033[35m[CeedElemRestriction][Create] CEED_COPY_VALUES");
+    //impl->host = indices;
+    occaCopyH2D(res,indices);
+    CeedChk(CeedCalloc(res->nelem*res->elemsize,&impl->host));
+    memcpy((void*)impl->host, indices, bytes(res));
     break;
   case CEED_OWN_POINTER:
     CeedDebug("\t\033[35m[CeedElemRestriction][Create] CEED_OWN_POINTER");
@@ -178,7 +246,7 @@ int CeedTensorContract_Occa(Ceed ceed,
                             const CeedScalar *u, CeedScalar *v) {
   CeedInt tstride0 = B, tstride1 = 1;
 
-  CeedDebug("\033[35m[CeedTensorContract]");
+  //CeedDebug("\033[35m[CeedTensorContract]");
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = J;
   }
