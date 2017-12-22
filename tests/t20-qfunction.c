@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
   CeedInt Q = 8;
   CeedScalar qdata[Q], w[Q], u[Q], v[Q], vv[Q];
 
-  CeedInit(argv[1], &ceed);
+  CeedInit("/cpu/self", &ceed);
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
                               CEED_EVAL_WEIGHT, CEED_EVAL_NONE,
                               setup, __FILE__ ":setup", &qf_setup);
