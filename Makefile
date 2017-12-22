@@ -85,7 +85,6 @@ endif
 all dbg:; @$(MAKE) $(MFLAGS) $(libceed) $(tests)
 opt:;NDEBUG=1 $(MAKE) $(MFLAGS) $(libceed) $(tests)
 
-
 $(libceed) : $(ref.o)
 ifdef OCCA_DIR
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(OCCA_DIR)/lib
@@ -145,4 +144,4 @@ print-%:
 	$(info )
 	@true
 
--include $(libceed.c:%.c=%.d) $(tests.c:%.c=%.d)
+-include $(libceed.c:%.c=build/%.d) $(tests.c:tests/%.c=build/%.d)

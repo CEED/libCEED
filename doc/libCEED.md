@@ -41,7 +41,7 @@ versions of **P**, **G** and **B**.
 Note that in the case of adaptive mesh refinement (AMR), the restrictions **P**
 and **G** will involve not just extracting sub-vectors, but evaluating values at
 constrained degrees of freedom through the AMR interpolation. There can also be
-several levels of subdomains (**P1**, **P2**, etc.),  and it may be convenient to
+several levels of subdomains (**P1**, **P2**, etc.), and it may be convenient to
 split **D** as the product of several operators (**D1**, **D2**, etc.).
 
 ### Partial Assembly
@@ -61,8 +61,8 @@ transfer needed for a matvec.
 Our focus in libCEED instead is on **partial assembly**, where we compute and
 store only **D** (or portions of it) and evaluate the actions of **P**, **G**
 and **B** on-the-fly.  Critically for performance, we take advantage of the
-tensor-product structure of the degrees of freedom and quad and hex elements to
-perform the action of **B** without storing it as a matrix.
+tensor-product structure of the degrees of freedom and quadrature points on quad
+and hex elements to perform the action of **B** without storing it as a matrix.
 
 Implemented properly, the partial assembly algorithm requires optimal amount of
 memory transfers (with respect to the polynomial order) and near-optimal FLOPs
@@ -93,17 +93,26 @@ numerical algorithms -- parallel (multi-device) linear algebra for **P**, sparse
 (on-device) linear algebra for **G**, dense linear algebra (tensor contractions)
 for **B** and parallel point-wise evaluations for **D**.
 
-Currently in libCEED, we allow the application to manage the global T-vectors and
-the transition to/from devices with **P**. Our API is thus focused on the
-L-vector level, where devices are independent and there is one device per MPI
-rank (there could be different types of devices in different ranks though).
+Currently in libCEED, it is assumed that the host application manages the global
+T-vectors and the required communications among devices (which are generally on
+different compute nodes) with **P**. Our API is thus focused on the L-vector
+level, where the logical devices, which we refer to as "ceeds", are independent.
+Each MPI rank can use one or more "ceeds", and each "ceed", in turn, can
+represent one or more physical devices, as long as libCEED backends support such
+configurations. The idea is that every MPI rank can use any logical device it is
+assigned at runtime. For eaxmple, on a node with 2 CPU sockets and 4 GPUs, one
+may decide to use 6 MPI ranks (each using a single "ceed"): 2 ranks using 1 CPU
+socket each, and 4 using 1 GPU each. Another choice could be to run 1 MPI rank
+on the whole node and use 5 "ceeds": 1 managing all CPU cores on the 2 sockets
+and 4 managing 1 GPU each. The communications among the "ceeds", e.g. required
+for applying the action of **P**, are currently out of scope of libCEED.
 
 ## API Description
 
 The libCEED API takes an algebraic approach, where the user essentially
 describes in the *front-end* the operators **G**, **B** and **D** and the library
 provides *back-end* implementations and coordinates their action to the original
-operator on L-vector level (i.e. independently on each device / MPI task).
+operator on L-vector level (i.e. independently on each "ceed").
 
 One of the advantages of this purely algebraic description is that it already
 includes all the finite element information, so the back-ends can operate on
