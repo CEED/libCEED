@@ -87,7 +87,7 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name $(abspath $(libceed)))
 
 $(libceed) : $(ref.o)
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-  $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(OCCA_DIR)/lib
+  $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceed) : LDLIBS += -locca #-lrt -ldl
   $(libceed) : $(occa.o)
   $(occa.o) : CFLAGS += -I$(OCCA_DIR)/include
@@ -105,7 +105,7 @@ $(OBJDIR)/%.o : $(pwd)/examples/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 $(tests) $(examples) : $(libceed)
-$(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(LIBDIR) -L$(LIBDIR)
+$(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 $(OBJDIR)/t% : tests/t%.c $(libceed)
 $(OBJDIR)/ex% : examples/ex%.c $(libceed)
 
