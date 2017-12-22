@@ -1,0 +1,10 @@
+language: c
+
+compiler:
+  - gcc
+  - clang
+
+script:
+  - make
+  - make prove PROVE_OPTS=-v
+
