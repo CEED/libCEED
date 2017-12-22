@@ -14,30 +14,29 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-CC = gcc
+CC ?= gcc
 
 NDEBUG ?=
 LDFLAGS ?= 
 LOADLIBES ?=
 TARGET_ARCH ?=
 
-OCCA_DIR ?= ../occa
+# env variable OCCA_DIR should point to OCCA-1.0 branch
 
 pwd = $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
 
 SANTIZ = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native
-CFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
 CFLAGS += $(if $(NDEBUG),-O2,-g)
+CFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
 LDFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
-CPPFLAGS = -I. -I$(OCCA_DIR)/include
+CPPFLAGS = -I.
 LDLIBS = -lm
-LDLIBS += -L$(OCCA_DIR)/lib -locca -lrt -ldl
 OBJDIR := build
 LIBDIR := .
 NPROCS := $(shell getconf _NPROCESSORS_ONLN)
 MFLAGS := -j $(NPROCS) --warn-undefined-variables \
-			--no-print-directory --quiet --no-keep-going
+			--no-print-directory --no-keep-going
 
 PROVE ?= prove
 DARWIN := $(filter Darwin,$(shell uname -s))
@@ -51,9 +50,9 @@ examples.c := $(sort $(wildcard examples/*.c))
 examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
 # backends/[ref & occa]
 ref.c     := $(sort $(wildcard backends/ref/*.c))
-ref       := $(ref.c:backends/ref/%.c=$(OBJDIR)/%)
+ref.o     := $(ref.c:%.c=$(OBJDIR)/%.o)
 occa.c    := $(sort $(wildcard backends/occa/*.c))
-occa      := $(occa.c:backends/occa/%.c=$(OBJDIR)/%)
+occa.o    := $(occa.c:%.c=$(OBJDIR)/%.o)
 
 # Output color rules
 COLOR_OFFSET = 3
@@ -66,6 +65,13 @@ rule_term = @echo -e \\e[38\;5\;$(shell echo $(COLOR)+$(COLOR_OFFSET)|bc -l)\;1m
 # if TERM=dumb, use it, otherwise switch to the term one
 output = $(if $(TERM:dumb=),$(rule_term),$(rule_dumb))
 
+V ?= 0
+ifeq ($(V),0)
+  quiet = @printf "  %10s %s\n" "$1" "$@"; $($(1))
+else
+  quiet = $($(1))
+endif
+
 .SUFFIXES:
 .SUFFIXES: .c .o .d
 .SECONDEXPANSION:		# to expand $$(@D)/.DIR
@@ -76,26 +82,28 @@ output = $(if $(TERM:dumb=),$(rule_term),$(rule_dumb))
 
 .PRECIOUS: %/.DIR
 
-all dbg:;$(MAKE) $(MFLAGS) $(libceed) $(tests)
+all dbg:; @$(MAKE) $(MFLAGS) $(libceed) $(tests)
 opt:;NDEBUG=1 $(MAKE) $(MFLAGS) $(libceed) $(tests)
 
-$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) $(ref.c:%.c=$(OBJDIR)/%.o) $(occa.c:%.c=$(OBJDIR)/%.o);$(output)
-	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
-$(OBJDIR)/%.o : $(pwd)/%.c | $$(@D)/.DIR;$(output)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
+$(libceed) : $(ref.o)
+ifdef OCCA_DIR
+  $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(OCCA_DIR)/lib
+  $(libceed) : LDLIBS += -locca -lrt -ldl
+  $(libceed) : $(occa.o)
+  $(occa.o) : CFLAGS += -I$(OCCA_DIR)/include
+endif
+$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) $(ref.c:%.c=$(OBJDIR)/%.o)
+	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
-$(OBJDIR)/%.o : $(pwd)/backends/ref/%.c | $$(@D)/.DIR;$(output)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
+$(OBJDIR)/%.o : $(pwd)/%.c | $$(@D)/.DIR
+	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
 
-$(OBJDIR)/%.o : $(pwd)/backends/occa/%.c | $$(@D)/.DIR;$(output)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
+$(OBJDIR)/% : $(pwd)/tests/%.c | $$(@D)/.DIR
+	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-$(OBJDIR)/%.o : $(pwd)/tests/%.c | $$(@D)/.DIR;$(output)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -c -o $@ $^ $(LDLIBS)
-
-$(OBJDIR)/%.o : $(pwd)/examples/%.c | $$(@D)/.DIR;$(output)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
+$(OBJDIR)/%.o : $(pwd)/examples/%.c | $$(@D)/.DIR
+	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $^
 
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(LIBDIR) -L$(LIBDIR)

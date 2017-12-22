@@ -2,9 +2,15 @@
 
 output=$(mktemp $1.XXXX)
 
-printf "1..9\n"
+backends=(/cpu/self)
 
-backends=(/cpu/self /cpu/occa /gpu/occa)
+if [ -z "$OCCA_DIR" ]
+then
+printf "1..3\n"
+else
+backends+=(/cpu/occa /gpu/occa)
+printf "1..9\n"
+fi
 
 for ((i = 0; i < ${#backends[@]}; ++i)); do
     i0=$((3*$i+1)) # return code

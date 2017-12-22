@@ -92,6 +92,8 @@ int CeedFree(void *p) {
 int CeedInit(const char *resource, Ceed *ceed) {
   int ierr;
   size_t matchlen = 0, matchidx;
+  
+  if (!resource) return CeedError(NULL, 1, "No resource provided");
   for (size_t i=0; i<num_backends; i++) {
     size_t n;
     const char *prefix = backends[i].prefix;
