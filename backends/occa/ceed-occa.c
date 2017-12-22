@@ -31,10 +31,12 @@ static int CeedError_Occa(Ceed ceed,
                           const char *func, int code,
                           const char *format, va_list args) {
   fprintf(stderr,"\033[31;1m");
+  fprintf(stderr, "CEED-OCCA error @ %s:%d %s\n", file, line, func);
   vfprintf(stderr, format, args);
   fprintf(stderr,"\033[m\n");
   fflush(stderr);
-  return 0;
+  abort();
+  return code;
 }
 
 // *****************************************************************************

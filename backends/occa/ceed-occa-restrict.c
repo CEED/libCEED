@@ -95,14 +95,15 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction res,
 // *****************************************************************************
 static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction res) {
   CeedElemRestriction_Occa *impl = res->data;
+  int ierr;
 
   CeedDebug("\033[35m[CeedElemRestriction][Destroy]");
   // free device memory
   occaMemoryFree(*impl->device);
   // free device object
-  CeedChk(CeedFree(&impl->device));
+  ierr = CeedFree(&impl->device); CeedChk(ierr);
   // free our CeedElemRestriction_Occa struct
-  CeedChk(CeedFree(&res->data));
+  ierr = CeedFree(&res->data); CeedChk(ierr);
   return 0;
 }
 
@@ -111,15 +112,17 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction res,
                                    const CeedMemType mtype,
                                    const CeedCopyMode cmode,
                                    const CeedInt *indices) {
+  int ierr;
   if (mtype != CEED_MEM_HOST)
     return CeedError(res->ceed, 1, "Only MemType = HOST supported");
   // Allocating impl & device **************************************************
   CeedDebug("\033[35m[CeedElemRestriction][Create] Allocating");
-  CeedChk(CeedCalloc(1,&res->data));
-  CeedElemRestriction_Occa *impl=res->data;
+  CeedElemRestriction_Occa *impl;
+  ierr = CeedCalloc(1,&impl); CeedChk(ierr);
+  res->data = impl;
   const Ceed_Occa *ceed_data=res->ceed->data;
   // for now, target the device, whatever =cmode= is
-  CeedChk(CeedCalloc(1,&impl->device));
+  ierr = CeedCalloc(1,&impl->device); CeedChk(ierr);
   *impl->device = occaDeviceMalloc(ceed_data->device, bytes(res), NULL, NO_PROPS);
   // ***************************************************************************
   switch (cmode) {
@@ -169,7 +172,7 @@ int CeedTensorContract_Occa(Ceed ceed,
 
   CeedDebug("\033[35m[CeedTensorContract]");
   if (tmode == CEED_TRANSPOSE) {
-    tstride0 = 1; tstride1 = B;
+    tstride0 = 1; tstride1 = J;
   }
 
   for (CeedInt a=0; a<A; a++) {

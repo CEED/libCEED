@@ -40,7 +40,7 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
 
   if (!impl->etmp) {
     ierr = CeedVectorCreate(op->ceed,
-                            op->Erestrict->nelem * op->Erestrict->elemsize,
+                            nc * op->Erestrict->nelem * op->Erestrict->elemsize,
                             &impl->etmp); CeedChk(ierr);
   }
   etmp = impl->etmp;
