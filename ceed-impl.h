@@ -34,7 +34,6 @@ struct Ceed_private {
                              const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*QFunctionCreate)(CeedQFunction);
   int (*OperatorCreate)(CeedOperator);
-  void *data;
 };
 
 /* In the next 3 functions, p has to be the address of a pointer type, i.e. p
@@ -49,8 +48,6 @@ CEED_INTERN int CeedFree(void *p);
    CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
 #define CeedMalloc(n, p) CeedMallocArray((n), sizeof(**(p)), p)
 #define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
-
-void CeedDebug(const char *,...);
 
 struct CeedVector_private {
   Ceed ceed;
@@ -103,8 +100,8 @@ struct CeedQFunction_private {
   CeedInt nfields;
   size_t qdatasize;   // Number of bytes of qdata per quadrature point
   CeedEvalMode inmode, outmode;
-  int (*function)(void *, void *, CeedInt, const CeedScalar *const *,
-                  CeedScalar *const *);
+  int (*function)(void*, void*, CeedInt, const CeedScalar *const*,
+                  CeedScalar *const*);
   const char *focca;
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */
@@ -113,9 +110,9 @@ struct CeedQFunction_private {
 
 struct CeedOperator_private {
   Ceed ceed;
-  int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedRequest *);
+  int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedRequest*);
   int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector,
-                       CeedVector, CeedRequest *);
+                       CeedVector, CeedRequest*);
   int (*GetQData)(CeedOperator, CeedVector *);
   int (*Destroy)(CeedOperator);
   CeedElemRestriction Erestrict;

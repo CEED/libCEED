@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   const CeedScalar x[] = {-1, 1};
   CeedScalar xq[Q], u[Q], uq[Q], w[Q], sum, error, pint[ALEN(p)+1];
 
-  CeedInit(argv[1], &ceed);
+  CeedInit("/cpu/self", &ceed);
   CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
   CeedBasisApply(bxl, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
   for (CeedInt i=0; i<Q; i++) u[i] = PolyEval(xq[i], ALEN(p), p);

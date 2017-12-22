@@ -112,7 +112,6 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) {
     // Pn(xi)
     P0 = 1.0;
     P1 = xi;
-    P2 = 0.0;
     for (int j = 2; j <= Q; j++) {
       P2 = (((CeedScalar)(2*j-1))*xi*P1-((CeedScalar)(j-1))*P0)/((CeedScalar)(j));
       P0 = P1;
@@ -163,7 +162,6 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
     // Pn(xi)
     P0 = 1.0;
     P1 = xi;
-    P2 = 0.0;
     for (int j = 2; j < Q; j++) {
       P2 = (((CeedScalar)(2*j-1))*xi*P1-((CeedScalar)(j-1))*P0)/((CeedScalar)(j));
       P0 = P1;

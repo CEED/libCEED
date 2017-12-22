@@ -211,7 +211,7 @@ static int CeedElemRestrictionCreate_Ref(CeedElemRestriction r,
     impl->indices = impl->indices_allocated;
     break;
   case CEED_OWN_POINTER:
-    impl->indices_allocated = (CeedInt *)indices;
+    impl->indices_allocated = (CeedInt*)indices;
     impl->indices = impl->indices_allocated;
     break;
   case CEED_USE_POINTER:

@@ -19,11 +19,6 @@ CEED_DIR ?= ../..
 CEED_FLAGS ?= -I$(CEED_DIR)
 CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)) -L$(CEED_DIR) -lceed
 
-OCCA_DIR ?= ../../../occa
-ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-  OCCA_LIBS ?= -Wl,-rpath,$(abspath $(OCCA_DIR)/lib) -L$(OCCA_DIR)/lib -locca
-endif
-
 # Use an MFEM build directory or an MFEM install directory
 MFEM_DIR ?= ../../../mfem
 CONFIG_MK ?= $(or $(wildcard $(MFEM_DIR)/config/config.mk),$(wildcard\
@@ -46,7 +41,7 @@ all: $(MFEM_EXAMPLES)
 # Rules for building the examples
 %: %.cpp $(MFEM_LIB_FILE) $(CONFIG_MK)
 	$(MFEM_CXX) $(CEED_FLAGS) $(MFEM_FLAGS) $< -o $@ $(CEED_LIBS) \
-	  $(MFEM_LIBS) $(OCCA_LIBS)
+	  $(MFEM_LIBS)
 
 # Generate an error message if the MFEM library is not built and exit
 $(MFEM_LIB_FILE):

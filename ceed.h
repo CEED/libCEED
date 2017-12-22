@@ -23,7 +23,6 @@
 #  define CEED_EXTERN extern
 #endif
 
-#include <assert.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdarg.h>

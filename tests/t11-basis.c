@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
   int i, dim = 2, P1d = 4, Q1d = 4, len = (int)(pow((double)(Q1d), dim) + 0.4);
   CeedScalar u[len], v[len];
 
-  CeedInit(argv[1], &ceed);
+  CeedInit("/cpu/self", &ceed);
   for (i = 0; i < len; i++) {
     u[i] = 1.0;
   }
