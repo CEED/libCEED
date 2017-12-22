@@ -26,10 +26,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
   const CeedInt dim = basis->dim;
   const CeedInt ndof = basis->ndof;
 
-  CeedDebug("\033[38;5;249m[CeedBasis][Apply]");
-  switch (emode) {
-  case CEED_EVAL_NONE: break;
-  case CEED_EVAL_INTERP: {
+  if (emode & CEED_EVAL_INTERP) {
     CeedInt P = basis->P1d, Q = basis->Q1d;
     if (tmode == CEED_TRANSPOSE) {
       P = basis->Q1d; Q = basis->P1d;
@@ -38,14 +35,42 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
     CeedScalar tmp[2][Q*CeedPowInt(P>Q?P:Q, dim-1)];
     for (CeedInt d=0; d<dim; d++) {
       ierr = CeedTensorContract_Occa(basis->ceed, pre, P, post, Q, basis->interp1d,
-                                     tmode,
-                                     d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]); CeedChk(ierr);
+                                     tmode, d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
+      CeedChk(ierr);
       pre /= P;
       post *= Q;
     }
+    if (tmode == CEED_NOTRANSPOSE) {
+      v += ndof*CeedPowInt(Q, dim);
+    } else {
+      u += ndof*CeedPowInt(Q, dim);
+    }
   }
-  break;
-  case CEED_EVAL_WEIGHT: {
+  if (emode & CEED_EVAL_GRAD) {
+    CeedInt P = basis->P1d, Q = basis->Q1d;
+    if (tmode == CEED_NOTRANSPOSE) {
+      // u is (P^dim x nc), column-major layout (nc = ndof)
+      // v is (Q^dim x nc x dim), column-major layout (nc = ndof)
+      CeedScalar tmp[2][Q*CeedPowInt(P>Q?P:Q, dim-1)];
+      for (CeedInt p = 0; p < dim; p++) {
+        CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
+        for (CeedInt d=0; d<dim; d++) {
+          ierr = CeedTensorContract_Occa(basis->ceed, pre, P, post, Q,
+                                         (p==d)?basis->grad1d:basis->interp1d,
+                                         tmode, d==0?u:tmp[d%2],
+                                         d==dim-1?v:tmp[(d+1)%2]); CeedChk(ierr);
+          pre /= P;
+          post *= Q;
+        }
+        v += ndof*CeedPowInt(Q, dim);
+      }
+    } else {
+      // TODO: CEED_EVAL_GRAD + CEED_TRANSPOSE
+      CeedError(basis->ceed, 1, "TODO: CEED_EVAL_GRAD + CEED_TRANSPOSE");
+      u += ndof*dim*CeedPowInt(Q, dim);
+    }
+  }
+  if (emode & CEED_EVAL_WEIGHT) {
     if (tmode == CEED_TRANSPOSE)
       return CeedError(basis->ceed, 1,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
@@ -61,9 +86,6 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
         }
       }
     }
-  } break;
-  default:
-    return CeedError(basis->ceed, 1, "EvalMode %d not supported", emode);
   }
   return 0;
 }

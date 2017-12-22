@@ -72,8 +72,10 @@ static inline void occaCopyD2H(const CeedElemRestriction res, void *to) {
 // * CeedElemRestrictionApply_Occa
 // *****************************************************************************
 static int CeedElemRestrictionApply_Occa(CeedElemRestriction res,
-    CeedTransposeMode tmode, CeedVector u,
-    CeedVector v, CeedRequest *request) {
+                                         CeedTransposeMode tmode, CeedInt ncomp,
+                                         CeedTransposeMode lmode, CeedVector u,
+                                         CeedVector v, CeedRequest *request) {
+//#warning CeedElemRestrictionApply_Occa to apply changes
   const bool TRANSPOSE = tmode == CEED_NOTRANSPOSE;
   const CeedElemRestriction_Occa *impl = res->data;
   const occaMemory indices = *impl->device;

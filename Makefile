@@ -83,8 +83,6 @@ endif
 .PRECIOUS: %/.DIR
 
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name $(abspath $(libceed)))
-$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o)
-	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(libceed) : $(ref.o)
 ifdef OCCA_DIR
@@ -124,7 +122,7 @@ examples : $(examples)
 .PHONY: clean print test examples astyle
 clean :
 	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests)
-	$(RM) -r *.dSYM
+	$(RM) -r *.dSYM $(OBJDIR)/backends
 	$(MAKE) -C examples/mfem clean
 
 astyle :

@@ -32,9 +32,11 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   CeedOperator_Occa *impl = op->data;
   CeedVector etmp;
   CeedInt Q;
+  const CeedInt nc = op->basis->ndof, dim = op->basis->dim;
   CeedScalar *Eu;
   char *qd;
   int ierr;
+  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
 
   if (!impl->etmp) {
     ierr = CeedVectorCreate(op->ceed,
@@ -42,29 +44,42 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
                             &impl->etmp); CeedChk(ierr);
   }
   etmp = impl->etmp;
-  if (op->qf->inmode != CEED_EVAL_NONE || op->qf->inmode != CEED_EVAL_WEIGHT) {
-    ierr = CeedElemRestrictionApply(op->Erestrict, CEED_NOTRANSPOSE, ustate, etmp,
+  if (op->qf->inmode & ~CEED_EVAL_WEIGHT) {
+    ierr = CeedElemRestrictionApply(op->Erestrict, CEED_NOTRANSPOSE,
+                                    nc, lmode, ustate, etmp,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
   }
   ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
   ierr = CeedVectorGetArray(etmp, CEED_MEM_HOST, &Eu); CeedChk(ierr);
-  ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar **)&qd);
+  ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar**)&qd);
   CeedChk(ierr);
   for (CeedInt e=0; e<op->Erestrict->nelem; e++) {
-    CeedScalar BEu[Q], BEv[Q], *out[1];
-    const CeedScalar *in[1];
+    CeedScalar BEu[Q*nc*(dim+2)], BEv[Q*nc*(dim+2)], *out[5] = {0,0,0,0,0};
+    const CeedScalar *in[5] = {0,0,0,0,0};
+    // TODO: quadrature weights can be computed just once
     ierr = CeedBasisApply(op->basis, CEED_NOTRANSPOSE, op->qf->inmode,
-                          &Eu[e*op->Erestrict->elemsize], BEu); CeedChk(ierr);
-    in[0] = BEu;
-    out[0] = BEv;
+                          &Eu[e*op->Erestrict->elemsize*nc], BEu);
+    CeedChk(ierr);
+    CeedScalar *u_ptr = BEu, *v_ptr = BEv;
+    if (op->qf->inmode & CEED_EVAL_INTERP) { in[0] = u_ptr; u_ptr += Q*nc; }
+    if (op->qf->inmode & CEED_EVAL_GRAD) { in[1] = u_ptr; u_ptr += Q*nc*dim; }
+    if (op->qf->inmode & CEED_EVAL_WEIGHT) { in[4] = u_ptr; u_ptr += Q; }
+    if (op->qf->outmode & CEED_EVAL_INTERP) { out[0] = v_ptr; v_ptr += Q*nc; }
+    if (op->qf->outmode & CEED_EVAL_GRAD) { out[1] = v_ptr; v_ptr += Q*nc*dim; }
     ierr = CeedQFunctionApply(op->qf, &qd[e*Q*op->qf->qdatasize], Q, in, out);
     CeedChk(ierr);
     ierr = CeedBasisApply(op->basis, CEED_TRANSPOSE, op->qf->outmode, BEv,
-                          &Eu[e*op->Erestrict->elemsize]); CeedChk(ierr);
+                          &Eu[e*op->Erestrict->elemsize*nc]);
+    CeedChk(ierr);
   }
   ierr = CeedVectorRestoreArray(etmp, &Eu); CeedChk(ierr);
   if (residual) {
-    ierr = CeedElemRestrictionApply(op->Erestrict, CEED_TRANSPOSE, etmp, residual,
+    CeedScalar *res;
+    CeedVectorGetArray(residual, CEED_MEM_HOST, &res);
+    for (int i = 0; i < residual->length; i++)
+      res[i] = (CeedScalar)0;
+    ierr = CeedElemRestrictionApply(op->Erestrict, CEED_TRANSPOSE,
+                                    nc, lmode, etmp, residual,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
   }
   if (request != CEED_REQUEST_IMMEDIATE) *request = NULL;
