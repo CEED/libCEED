@@ -79,8 +79,8 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
     (resource[1]=='g') ? occaGPU :
     (resource[1]=='o') ? occaOMP : occaCPU;
   impl->device = occaCreateDevice(occaString(mode));
-  if (resource[1] == 'g' && resource[1] == 'o' &&
-      !strcmp(occaDeviceMode(impl->device), "Serial"))
+  if ((resource[1] == 'g' || resource[1] == 'o')
+      && !strcmp(occaDeviceMode(impl->device), "Serial"))
     return CeedError(ceed, 1, "OCCA backend failed to use GPU resource");
   return 0;
 }
