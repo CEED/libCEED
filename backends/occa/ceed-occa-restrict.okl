@@ -49,7 +49,7 @@ kernel void kRestrict3(const int *indices,
                        double* vv) {
   for (int i=0; i<esize; i++; tile(TILE_SIZE)){
     if (i < esize) {
-      vv[indices[i]] += uu[i];
+      atomicAdd(vv + indices[i], uu[i]);
     }
   }
 }
@@ -63,8 +63,7 @@ kernel void kRestrict4(const int ncomp,
     if (e < rnelem) {
       for (int d = 0; d < ncomp; d++){
         for (int i=0; i<relemsize; i++) {
-          vv[indices[i+relemsize*e]+rndof*d] +=
-            uu[i+relemsize*(d+e*ncomp)];
+          atomicAdd(vv + (i+relemsize*e+rndof*d), uu[i+relemsize*(d+e*ncomp)]);
         }
       }
     }
@@ -80,8 +79,7 @@ kernel void kRestrict5(const int ncomp,
     if (e < rnelem) {
       for (int d = 0; d < ncomp; d++){
         for (int i=0; i<relemsize; i++) {
-          vv[d+ncomp*indices[i+relemsize*e]] +=
-            uu[i+relemsize*(d+e*ncomp)];
+          atomicAdd(vv + (d+ncomp*indices[i+relemsize*e]), uu[i+relemsize*(d+e*ncomp)]);
         }
       }
     }
