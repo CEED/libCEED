@@ -132,7 +132,7 @@ static int CeedVectorGetArrayRead_Occa(const CeedVector vec,
                                        const CeedScalar **array) {
   CeedVector_Occa *impl = vec->data;
   int ierr;
-  
+
   CeedDebug("\033[33m[CeedVector][GetArray][Const]");
   if (mtype != CEED_MEM_HOST)
     return CeedError(vec->ceed, 1, "Can only provide to HOST memory");
@@ -149,7 +149,7 @@ static int CeedVectorGetArrayRead_Occa(const CeedVector vec,
 // * Restore + Const
 // *****************************************************************************
 static int CeedVectorRestoreArrayRead_Occa(const CeedVector vec,
-                                           const CeedScalar **array) {
+    const CeedScalar **array) {
   //CeedVector_Occa *impl = vec->data;
 
   CeedDebug("\033[33m[CeedVector][RestoreArray][Const]");

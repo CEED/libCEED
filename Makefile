@@ -17,7 +17,7 @@
 CC ?= gcc
 
 NDEBUG ?=
-LDFLAGS ?= 
+LDFLAGS ?=
 LOADLIBES ?=
 TARGET_ARCH ?=
 
@@ -129,7 +129,7 @@ astyle :
 	astyle --style=google --indent=spaces=2 --max-code-length=80 \
             --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
             --suffix=none --preserve-date --formatted \
-            *.[ch] tests/*.[ch] examples/*.[ch] examples/mfem/*.[ch]pp
+            *.[ch] tests/*.[ch] backends/*/*.[ch] examples/*.[ch] examples/mfem/*.[ch]pp
 
 print :
 	@echo $(VAR)=$($(VAR))

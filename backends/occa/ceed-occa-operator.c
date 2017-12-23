@@ -63,7 +63,7 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   ierr = CeedVectorGetArray(impl->etmp, CEED_MEM_HOST, &Eu); CeedChk(ierr);
   assert(impl->etmp->length);
   //printf("\nEu (%d):",impl->etmp->length);fflush(stdout);
-  for(int i=0;i<impl->etmp->length;i++) {Eu[i]=0.0;/*printf("%f ",Eu[i]);*/}
+  for(int i=0; i<impl->etmp->length; i++) {Eu[i]=0.0;/*printf("%f ",Eu[i]);*/}
 
   if (op->qf->inmode & ~CEED_EVAL_WEIGHT) {
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_NOTRANSPOSE,
@@ -117,7 +117,7 @@ static int CeedOperatorGetQData_Occa(CeedOperator op, CeedVector *qdata) {
     CeedInt Q;
     ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
     const int n = op->Erestrict->nelem * Q * op->qf->qdatasize / sizeof(CeedScalar);
-    //printf("\n\033[37;1m[CeedOperator][GetQData] NEW qdata, n=%d\033[m",n); 
+    //printf("\n\033[37;1m[CeedOperator][GetQData] NEW qdata, n=%d\033[m",n);
     ierr = CeedVectorCreate(op->ceed,n,&impl->qdata); CeedChk(ierr);
     CeedScalar *dummy;
     ierr = CeedVectorGetArray(impl->qdata, CEED_MEM_HOST, &dummy); CeedChk(ierr);
