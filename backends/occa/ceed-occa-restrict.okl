@@ -3,7 +3,7 @@ kernel void kRestrict0(const int *indices,
                        const double* uu,
                        double* vv) {
   for (int i=0; i<esize; i++; tile(TILE_SIZE)){
-    if (i >= esize) return;
+    if (i >= esize) continue;
     vv[i] = uu[indices[i]];
   }
 }
@@ -13,9 +13,8 @@ kernel void kRestrict1(const int ncomp,
                        const int *indices,
                        const double* uu,
                        double* vv) {
-  // u is (ndof x ncomp), column-major
   for (int e = 0; e < rnelem; e++; tile(TILE_SIZE)){
-    if (e >= rnelem) return;
+    if (e >= rnelem) continue;
     for (int d = 0; d < ncomp; d++){
       for (int i=0; i<relemsize; i++) {
         vv[i+relemsize*(d+ncomp*e)] =
@@ -30,9 +29,8 @@ kernel void kRestrict2(const int ncomp,
                        const int *indices,
                        const double* uu,
                        double* vv) {
-  // u is (ncomp x ndof), column-major
   for (int e = 0; e < rnelem; e++; tile(TILE_SIZE)){
-    if (e >= rnelem) return;
+    if (e >= rnelem) continue;
     for (int d = 0; d < ncomp; d++){
       for (int i=0; i<relemsize; i++) {
         vv[i+relemsize*(d+ncomp*e)] =
@@ -47,7 +45,7 @@ kernel void kRestrict3(const int *indices,
                        const double* uu,
                        double* vv) {
   for (int i=0; i<esize; i++; tile(TILE_SIZE)){
-    if (i >= esize) return;
+    if (i >= esize) continue;
     vv[indices[i]] += uu[i];
   }
 }
@@ -58,7 +56,7 @@ kernel void kRestrict4(const int ncomp,
                        const double* uu,
                        double* vv) {
   for (int e = 0; e < rnelem; e++; tile(TILE_SIZE)){
-    if (e >= rnelem) return;
+    if (e >= rnelem) continue;
     for (int d = 0; d < ncomp; d++){
       for (int i=0; i<relemsize; i++) {
         vv[indices[i+relemsize*e]+rndof*d] +=
@@ -73,9 +71,8 @@ kernel void kRestrict5(const int ncomp,
                        const int *indices,
                        const double* uu,
                        double* vv) {
-  // vv is (ncomp x ndof), column-major
   for (int e = 0; e < rnelem; e++; tile(TILE_SIZE)){
-    if (e >= rnelem) return;
+    if (e >= rnelem) continue;
     for (int d = 0; d < ncomp; d++){
       for (int i=0; i<relemsize; i++) {
         vv[d+ncomp*indices[i+relemsize*e]] +=
