@@ -27,10 +27,9 @@ local degrees of freedom on the subdomains, the split degrees of freedom on the
 mesh elements, and the values at quadrature points, respectively.
 
 We refer to the operators that connect the different types of vectors as:
-
 - Subdomain restriction **P**
 - Element restriction **G**
-- Dofs-to-Qpts evaluator **B**
+- Basis (Dofs-to-Qpts) evaluator **B**
 - Operator at quadrature points **D**
 
 More generally, when the test and trial space differ, they get their own
@@ -58,7 +57,7 @@ low-order discretizations, they are not a good fit for high-order methods due to
 the amount of FLOPs needed for their evaluation, as well as the memory
 transfer needed for a matvec.
 
-Our focus in libCEED instead is on **partial assembly**, where we compute and
+Our focus in libCEED, instead, is on **partial assembly**, where we compute and
 store only **D** (or portions of it) and evaluate the actions of **P**, **G**
 and **B** on-the-fly.  Critically for performance, we take advantage of the
 tensor-product structure of the degrees of freedom and quadrature points on quad
@@ -72,7 +71,7 @@ that computes the action of **A** on an input vector.
 When desired, the setup phase may be done as a side-effect of evaluating
 a different operator, such as a nonlinear residual.
 The relative costs of the setup and apply phases are different depending on the
-physics being expressed and the representation of $D$.
+physics being expressed and the representation of **D**.
 
 ### Parallel Decomposition
 
@@ -97,17 +96,18 @@ numerical algorithms -- parallel (multi-device) linear algebra for **P**, sparse
 for **B** and parallel point-wise evaluations for **D**.
 
 Currently in libCEED, it is assumed that the host application manages the global
-T-vectors and the required communications among devices (which are generally on
-different compute nodes) with **P**. Our API is thus focused on the L-vector
-level, where the logical devices, which we refer to as "ceeds", are independent.
-Each MPI rank can use one or more "ceeds", and each "ceed", in turn, can
+**T-vectors** and the required communications among devices (which are generally on
+different compute nodes) with **P**. Our API is thus focused on the **L-vector**
+level, where the logical devices, which in the library are represented by the
+`Ceed` object, are independent.
+Each MPI rank can use one or more `Ceed`s, and each `Ceed`, in turn, can
 represent one or more physical devices, as long as libCEED backends support such
 configurations. The idea is that every MPI rank can use any logical device it is
-assigned at runtime. For eaxmple, on a node with 2 CPU sockets and 4 GPUs, one
-may decide to use 6 MPI ranks (each using a single "ceed"): 2 ranks using 1 CPU
-socket each, and 4 using 1 GPU each. Another choice could be to run 1 MPI rank
-on the whole node and use 5 "ceeds": 1 managing all CPU cores on the 2 sockets
-and 4 managing 1 GPU each. The communications among the "ceeds", e.g. required
+assigned at runtime. For example, on a node with 2 CPU sockets and 4 GPUs, one
+may decide to use 6 MPI ranks (each using a single `Ceed` object): 2 ranks using 1
+CPU socket each, and 4 using 1 GPU each. Another choice could be to run 1 MPI rank
+on the whole node and use 5 `Ceed` objects: 1 managing all CPU cores on the 2 sockets
+and 4 managing 1 GPU each. The communications among the devices, e.g. required
 for applying the action of **P**, are currently out of scope of libCEED.
 The interface is non-blocking for all operations involving more than
 O(1) data, allowing operations performed on a coprocessor or worker
@@ -116,29 +116,29 @@ threads to overlap with operations on the host.
 ## API Description
 
 The libCEED API takes an algebraic approach, where the user essentially
-describes in the *front-end* the operators **G**, **B** and **D** and the library
-provides *back-end* implementations and coordinates their action to the original
-operator on L-vector level (i.e. independently on each "ceed").
+describes in the *frontend* the operators **G**, **B** and **D** and the library
+provides *backend* implementations and coordinates their action to the original
+operator on **L-vector** level (i.e. independently on each device / MPI task).
 
 One of the advantages of this purely algebraic description is that it already
-includes all the finite element information, so the back-ends can operate on
-linear algebra level without explicit finite element code. The front-end
+includes all the finite element information, so the backends can operate on
+linear algebra level without explicit finite element code. The frontend
 description is general enough to support a wide variety of finite element
 algorithms, as well as some other types algorithms such as spectral finite
-differences. The separation of the front- and back-ends enables applications to
-easily switch/try different back-ends. It also enables back-end developers to
+differences. The separation of the front- and backends enables applications to
+easily switch/try different backends. It also enables backend developers to
 impact many applications from a single implementation.
 
-Our long-term vision is to include a variety of back-end implementations in
+Our long-term vision is to include a variety of backend implementations in
 libCEED, ranging from reference kernels to highly optimized kernels targeting
 specific devices (e.g. GPUs) or specific polynomial orders. A simple reference
-back-end implementation is provided in the file
-[ceed-ref.c](https://github.com/CEED/libCEED/blob/master/ceed-ref.c).
+backend implementation is provided in the file
+[ceed-ref.c](https://github.com/CEED/libCEED/blob/master/backends/ref/ceed-ref.c).
 
-On the front-end, the mapping between the decomposition concepts and the code
+On the frontend, the mapping between the decomposition concepts and the code
 implementation is as follows:
-- L-, E- and Q-vector are represented as variables of type `CeedVector`.
-  (A backend may choose to operate incrementally without forming explicit E- or Q-vectors.)
+- **L-**, **E-** and **Q-vector** are represented as variables of type `CeedVector`.
+  (A backend may choose to operate incrementally without forming explicit **E-** or **Q-vectors**.)
 - **G** is represented as variable of type `CeedElemRestriction`.
 - **B** is represented as variable of type `CeedBasis`.
 - the action of **D** is represented as variable of type `CeedQFunction`.
@@ -156,7 +156,7 @@ static int setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
                  CeedScalar *const *v) {
   CeedScalar *w = qdata;
   for (CeedInt i=0; i<Q; i++) {
-    w[i] = u[0][i];
+    w[i] = u[1][i]*u[4][i];
   }
   return 0;
 }
@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
   CeedInt indx[nelem*2], indu[nelem*P];
   CeedScalar x[Nx];
 
-  CeedInit("/cpu/self", &ceed);
+  CeedInit(argv[1], &ceed);
   for (CeedInt i=0; i<Nx; i++) x[i] = i / (Nx - 1);
   for (CeedInt i=0; i<nelem; i++) {
     indx[2*i+0] = i;
@@ -203,8 +203,8 @@ int main(int argc, char **argv) {
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, P, Q, CEED_GAUSS, &bu);
 
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
-                              CEED_EVAL_WEIGHT, CEED_EVAL_NONE,
-                              setup, __FILE__ ":setup", &qf_setup);
+                              (CeedEvalMode)(CEED_EVAL_GRAD|CEED_EVAL_WEIGHT),
+                              CEED_EVAL_NONE, setup, __FILE__ ":setup", &qf_setup);
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
                               CEED_EVAL_INTERP, CEED_EVAL_INTERP,
                               mass, __FILE__ ":mass", &qf_mass);
@@ -239,12 +239,14 @@ int main(int argc, char **argv) {
 
 The constructor
 
-    CeedInit("/cpu/self", &ceed);
+```c
+    CeedInit(argv[1], &ceed);
+```
 
-creates a library context `ceed` on the specified *resource*, which
+creates a logical device `ceed` on the specified *resource*, which
 could also be a coprocessor such as `"/nvidia/0"`.
-There can be any number of ceeds, including more than one driving the same resource (though performance may suffer in case of oversubscription).
-The resource is used to locate a suitable backend which will have discretion over the implementations of all objects created on this library context.
+There can be any number of such devices, including multiple logical devices driving the same resource (though performance may suffer in case of oversubscription).
+The resource is used to locate a suitable backend which will have discretion over the implementations of all objects created with this logical device.
 
 The `setup` routine above computes and stores **D**, in this case a scalar value
 in each quadrature point, while `mass` uses these saved values to perform the
@@ -252,15 +254,17 @@ action of **D**. These functions are turned into the `CeedQFunction` variables
 `qf_setup` and `qf_mass` in the `CeedQFunctionCreateInterior()` calls:
 
 ```c
-int setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u, CeedScalar *const *v);
-int mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u, CeedScalar *const *v);
+int setup(void *ctx, void *qdata, CeedInt Q,
+          const CeedScalar *const *u, CeedScalar *const *v);
+int mass(void *ctx, void *qdata, CeedInt Q,
+         const CeedScalar *const *u, CeedScalar *const *v);
 
 {
   CeedQFunction qf_setup, qf_mass;
 
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
-                              CEED_EVAL_WEIGHT, CEED_EVAL_NONE,
-                              setup, __FILE__ ":setup", &qf_setup);
+                              (CeedEvalMode)(CEED_EVAL_GRAD|CEED_EVAL_WEIGHT),
+                              CEED_EVAL_NONE, setup, __FILE__ ":setup", &qf_setup);
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
                               CEED_EVAL_INTERP, CEED_EVAL_INTERP,
                               mass, __FILE__ ":mass", &qf_mass);
@@ -282,7 +286,7 @@ indicates that the mass operator only contains terms of the form
 
     $$ \int_\Omega v f_0(u) $$
 
-where $v$ are test functions.
+where *v* are test functions.
 More general operators, such as those of the form
 
     $$ \int_\Omega v f_0(u, \nabla u) + \nabla v \cdot f_1(u, \nabla u) $$
@@ -297,8 +301,8 @@ used by backends that support Just-In-Time (JIT) compilation (i.e., OCCA) to
 compile for coprocessors.
 
 The **B** operators for the mesh nodes, `bx`, and the unknown field, `bu`, are
-defined in the `CeedBasisCreateTensorH1Lagrange` calls. In this case, both the
-mesh and unknown field use H1 Lagrange finite elements of order 1 and 4
+defined in the calls to the function `CeedBasisCreateTensorH1Lagrange`. In this example, both the
+mesh and the unknown field use H1 Lagrange finite elements of order 1 and 4
 respectively (the `P` argument represents the number of 1D degrees of
 freedom on each element). Both basis operators use the same integration rule,
 which is Gauss-Legendre with 8 points (the `Q` argument).
@@ -336,13 +340,13 @@ This technique is used to provide no-copy interfaces in all contexts
 that involve problem-sized data.
 
 For discontinuous Galerkin and for applications such as Nek5000 that
-only explicitly store E-vectors (inter-element continuity has been
+only explicitly store **E-vectors** (inter-element continuity has been
 subsumed by the parallel restriction **P**), the element restriction
 **G** is the identity so the explicit indices can be elided (`NULL`).
-Support for other structured representations of **G** will be added
-according to demand.  In the case of non-conforming finite elements, **G**
+We plan to support other structured representations of **G** which will be added
+according to demand.  In the case of non-conforming mesh elements, **G**
 needs a more general representation that expresses values at slave nodes
-(which do not appear in L-vectors) as linear combinations of the
+(which do not appear in **L-vectors**) as linear combinations of the
 degrees of freedom at master nodes.
 
 With partial assembly, we first perform a setup stage where **D** is evaluated
@@ -359,7 +363,7 @@ input (the output is `NULL`):
 ```
 
 The action of the operator is then represented by operator `op_mass` and its
-`CeedOperatorApply` to the input L-vector `U` with output in `V`:
+`CeedOperatorApply` to the input **L-vector** `U` with output in `V`:
 
 ```c
   CeedVectorCreate(ceed, Nu, &U);
@@ -367,14 +371,26 @@ The action of the operator is then represented by operator `op_mass` and its
   CeedOperatorApply(op_mass, qdata, U, V, CEED_REQUEST_IMMEDIATE);
 ```
 
-## Interface principles
+A number of function calls in the interface, such as `CeedOperatorApply`,
+are intended to support asynchronous execution via their last argument,
+`CeedRequest*`. The specific (pointer) value used in the above example,
+`CEED_REQUEST_IMMEDIATE`, is used to express the request (from the user)
+for the operation to complete before returning from the function call, i.e. to
+make sure that the result of the operation is available in the output parameters
+immediately after the call. For a true asynchronous call, one needs to provide
+the address of a user defined variable. Such a variable can be used later to
+explicitly wait for the completion of the operation.
+
+## Interface Principles and Evolution
 
 LibCEED is intended to be extensible via backends that are packaged with the library and packaged separately (possibly as a binary containing proprietary code).
 Backends are registered by calling
 
-    CeedRegister(prefix, init_function);
+```c
+  CeedRegister(prefix, init_function);
+```
 
-typically in a library initializer or ``constructor'' that runs automatically.
+typically in a library initializer or "constructor" that runs automatically.
 `CeedInit` uses this prefix to find an appropriate backend for the resource.
 
 Source (API) and binary (ABI) stability are important to libCEED.
