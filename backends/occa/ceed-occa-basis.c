@@ -32,7 +32,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
       P = basis->Q1d; Q = basis->P1d;
     }
     CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
-    CeedScalar tmp[2][Q*CeedPowInt(P>Q?P:Q, dim-1)];
+    CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
     for (CeedInt d=0; d<dim; d++) {
       ierr = CeedTensorContract_Occa(basis->ceed, pre, P, post, Q, basis->interp1d,
                                      tmode, d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
@@ -51,7 +51,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
     if (tmode == CEED_NOTRANSPOSE) {
       // u is (P^dim x nc), column-major layout (nc = ndof)
       // v is (Q^dim x nc x dim), column-major layout (nc = ndof)
-      CeedScalar tmp[2][Q*CeedPowInt(P>Q?P:Q, dim-1)];
+      CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
       for (CeedInt p = 0; p < dim; p++) {
         CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
         for (CeedInt d=0; d<dim; d++) {
