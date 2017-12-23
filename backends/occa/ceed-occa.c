@@ -45,7 +45,7 @@ static int CeedError_Occa(Ceed ceed,
 // *****************************************************************************
 static int CeedDestroy_Occa(Ceed ceed) {
   const Ceed_Occa *impl=ceed->data;
-  
+
   CeedDebug("\033[1m[CeedDestroy]");
   occaDeviceFree(impl->device);
   return 0;
@@ -56,7 +56,7 @@ static int CeedDestroy_Occa(Ceed ceed) {
 // *****************************************************************************
 static int CeedInit_Occa(const char *resource, Ceed ceed) {
   Ceed_Occa *impl;
-  
+
   CeedDebug("\033[1m[CeedInit] resource='%s'", resource);
   if (strcmp(resource, "/cpu/occa")
       && strcmp(resource, "/omp/occa")
@@ -76,9 +76,8 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   if (getenv("CEED_DEBUG")) occaPrintModeInfo();
   occaSetVerboseCompilation(getenv("CEED_DEBUG")?true:false);
   const char *mode =
-    (resource[1]=='g')?occaGPU:
-    (resource[1]=='o')?occaOMP:
-                       occaCPU;
+    (resource[1]=='g') ? occaGPU :
+    (resource[1]=='o') ? occaOMP : occaCPU;
   impl->device = occaCreateDevice(occaString(mode));
   if (resource[1] == 'g' && resource[1] == 'o' &&
       !strcmp(occaDeviceMode(impl->device), "Serial"))

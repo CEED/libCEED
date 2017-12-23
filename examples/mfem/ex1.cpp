@@ -273,7 +273,7 @@ int main(int argc, char *argv[]) {
   //    largest number that gives a final mesh with no more than 50,000
   //    elements.
   {
-    int ref_levels = 
+    int ref_levels =
       (int)floor(log(50000./mesh->GetNE())/log(2.)/dim);
     for (int l = 0; l < ref_levels; l++) {
       mesh->UniformRefinement();
@@ -313,7 +313,7 @@ int main(int argc, char *argv[]) {
   sol = 0.0;
   cg.Mult(b, sol);
   //std::cout << "sol="<<sol<< std::endl;
- 
+
   // 9. Compute and print the L2 projection error.
   std::cout << "L2 projection error: " << sol.ComputeL2Error(sol_coeff)
             << std::endl;
