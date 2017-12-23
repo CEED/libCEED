@@ -7,7 +7,7 @@ practical implementation of the libCEED library.
 
 Finite element operators are typically defined through weak formulations of
 partial differential equations that involve integration over a computational
-mesh.  The required integrals are computed by splitting them as a sum over the
+mesh. The required integrals are computed by splitting them as a sum over the
 mesh elements, mapping each element to a simple *reference* element (e.g. the
 unit square) and applying a quadrature rule in reference space.
 
@@ -49,29 +49,29 @@ Since the global operator **A** is just a series of variational restrictions
 with **B**, **G** and **P**, starting from its point-wise kernel **D**, a
 "matvec" with **A** can be performed by evaluating and storing some of the
 innermost variational restriction matrices, and applying the rest of the
-operators "on-the-fly".  For example, one can compute and store a global matrix
+operators "on-the-fly". For example, one can compute and store a global matrix
 on T-vector level. Alternatively, one can compute and store only the subdomain
 (L-vector) or element (E-vector) matrices and perform the action of **A** using
-matvecs with **P** or **P** and **G**.  While these options are natural for
+matvecs with **P** or **P** and **G**. While these options are natural for
 low-order discretizations, they are not a good fit for high-order methods due to
-the amount of FLOPs needed for their evaluation, as well as the memory
-transfer needed for a matvec.
+the amount of FLOPs needed for their evaluation, as well as the memory transfer
+needed for a matvec.
 
 Our focus in libCEED, instead, is on **partial assembly**, where we compute and
 store only **D** (or portions of it) and evaluate the actions of **P**, **G**
-and **B** on-the-fly.  Critically for performance, we take advantage of the
+and **B** on-the-fly. Critically for performance, we take advantage of the
 tensor-product structure of the degrees of freedom and quadrature points on quad
 and hex elements to perform the action of **B** without storing it as a matrix.
 
 Implemented properly, the partial assembly algorithm requires optimal amount of
 memory transfers (with respect to the polynomial order) and near-optimal FLOPs
 for operator evaluation. It consists of an operator *setup* phase, that
-evaluates and stores **D** and an operator *apply* (evaluation) phase
-that computes the action of **A** on an input vector.
-When desired, the setup phase may be done as a side-effect of evaluating
-a different operator, such as a nonlinear residual.
-The relative costs of the setup and apply phases are different depending on the
-physics being expressed and the representation of **D**.
+evaluates and stores **D** and an operator *apply* (evaluation) phase that
+computes the action of **A** on an input vector. When desired, the setup phase
+may be done as a side-effect of evaluating a different operator, such as a
+nonlinear residual. The relative costs of the setup and apply phases are
+different depending on the physics being expressed and the representation of
+**D**.
 
 ### Parallel Decomposition
 
@@ -90,28 +90,28 @@ One of the advantages of the decomposition perspective in these settings is that
 the operators **P**, **G**, **B** and **D** clearly separate the MPI parallelism
 in the operator (**P**) from the unstructured mesh topology (**G**), the choice
 of the finite element space/basis (**B**) and the geometry and point-wise
-physics **D**.  These components also naturally fall in different classes of
+physics **D**. These components also naturally fall in different classes of
 numerical algorithms -- parallel (multi-device) linear algebra for **P**, sparse
-(on-device) linear algebra for **G**, dense/structured linear algebra (tensor contractions)
-for **B** and parallel point-wise evaluations for **D**.
+(on-device) linear algebra for **G**, dense/structured linear algebra (tensor
+contractions) for **B** and parallel point-wise evaluations for **D**.
 
 Currently in libCEED, it is assumed that the host application manages the global
-**T-vectors** and the required communications among devices (which are generally on
-different compute nodes) with **P**. Our API is thus focused on the **L-vector**
-level, where the logical devices, which in the library are represented by the
-`Ceed` object, are independent.
-Each MPI rank can use one or more `Ceed`s, and each `Ceed`, in turn, can
-represent one or more physical devices, as long as libCEED backends support such
-configurations. The idea is that every MPI rank can use any logical device it is
-assigned at runtime. For example, on a node with 2 CPU sockets and 4 GPUs, one
-may decide to use 6 MPI ranks (each using a single `Ceed` object): 2 ranks using 1
-CPU socket each, and 4 using 1 GPU each. Another choice could be to run 1 MPI rank
-on the whole node and use 5 `Ceed` objects: 1 managing all CPU cores on the 2 sockets
-and 4 managing 1 GPU each. The communications among the devices, e.g. required
-for applying the action of **P**, are currently out of scope of libCEED.
-The interface is non-blocking for all operations involving more than
-O(1) data, allowing operations performed on a coprocessor or worker
-threads to overlap with operations on the host.
+**T-vectors** and the required communications among devices (which are generally
+on different compute nodes) with **P**. Our API is thus focused on the
+**L-vector** level, where the logical devices, which in the library are
+represented by the `Ceed` object, are independent. Each MPI rank can use one or
+more `Ceed`s, and each `Ceed`, in turn, can represent one or more physical
+devices, as long as libCEED backends support such configurations. The idea is
+that every MPI rank can use any logical device it is assigned at runtime. For
+example, on a node with 2 CPU sockets and 4 GPUs, one may decide to use 6 MPI
+ranks (each using a single `Ceed` object): 2 ranks using 1 CPU socket each, and
+4 using 1 GPU each. Another choice could be to run 1 MPI rank on the whole node
+and use 5 `Ceed` objects: 1 managing all CPU cores on the 2 sockets and 4
+managing 1 GPU each. The communications among the devices, e.g. required for
+applying the action of **P**, are currently out of scope of libCEED. The
+interface is non-blocking for all operations involving more than O(1) data,
+allowing operations performed on a coprocessor or worker threads to overlap with
+operations on the host.
 
 ## API Description
 
@@ -243,10 +243,12 @@ The constructor
     CeedInit(argv[1], &ceed);
 ```
 
-creates a logical device `ceed` on the specified *resource*, which
-could also be a coprocessor such as `"/nvidia/0"`.
-There can be any number of such devices, including multiple logical devices driving the same resource (though performance may suffer in case of oversubscription).
-The resource is used to locate a suitable backend which will have discretion over the implementations of all objects created with this logical device.
+creates a logical device `ceed` on the specified *resource*, which could also be
+a coprocessor such as `"/nvidia/0"`. There can be any number of such devices,
+including multiple logical devices driving the same resource (though performance
+may suffer in case of oversubscription). The resource is used to locate a
+suitable backend which will have discretion over the implementations of all
+objects created with this logical device.
 
 The `setup` routine above computes and stores **D**, in this case a scalar value
 in each quadrature point, while `mass` uses these saved values to perform the
@@ -271,40 +273,40 @@ int mass(void *ctx, void *qdata, CeedInt Q,
 }
 ```
 
-A `CeedQFunction` performs independent operations at each
-quadrature point and the interface is intended to facilitate
-vectorization.  The second argument is an expected vector length.  If
-greater than 1, the caller must ensure that the number of quadrature
-points `Q` is divisible by the vector length.  This is often
-satisfied automatically due to the element size or by batching elements
-together to facilitate vectorization in other stages, and can always be
-ensured by padding.  The data at quadrature points, `qdata`, is
-opaque to the library and can be of any type; it is of type
-`CeedScalar` here because it simply stores a weight.  The
-evaluation mode `CEED_EVAL_INTERP` for both inputs and outputs
+A `CeedQFunction` performs independent operations at each quadrature point and
+the interface is intended to facilitate vectorization.  The second argument is
+an expected vector length. If greater than 1, the caller must ensure that the
+number of quadrature points `Q` is divisible by the vector length. This is
+often satisfied automatically due to the element size or by batching elements
+together to facilitate vectorization in other stages, and can always be ensured
+by padding. The data at quadrature points, `qdata`, is opaque to the library
+and can be of any type; it is of type `CeedScalar` here because it simply stores
+a weight. The evaluation mode `CEED_EVAL_INTERP` for both inputs and outputs
 indicates that the mass operator only contains terms of the form
 
-    $$ \int_\Omega v f_0(u) $$
+<img src="https://latex.codecogs.com/gif.latex?
+       \int_\Omega v f_0(u)
+"/>
 
-where *v* are test functions.
-More general operators, such as those of the form
+where *v* are test functions. More general operators, such as those of the form
 
-    $$ \int_\Omega v f_0(u, \nabla u) + \nabla v \cdot f_1(u, \nabla u) $$
+<img src="https://latex.codecogs.com/gif.latex?
+       \int_\Omega v f_0(u, \nabla u) + \nabla v \cdot f_1(u, \nabla u)
+"/>
 
-can be expressed using a bitwise or `CEED_EVAL_INTERP | CEED_EVAL_GRAD`,
-in which case the callback will receive multiple inputs (outputs).
+can be expressed using a bitwise or `CEED_EVAL_INTERP | CEED_EVAL_GRAD`, in
+which case the callback will receive multiple inputs (outputs).
 
-In addition to the function pointers (`setup` and `mass`),
-`CeedQFunction` constructors take a string representation
-specifying where the source for the implementation is found.  This is
-used by backends that support Just-In-Time (JIT) compilation (i.e., OCCA) to
-compile for coprocessors.
+In addition to the function pointers (`setup` and `mass`), `CeedQFunction`
+constructors take a string representation specifying where the source for the
+implementation is found. This is used by backends that support Just-In-Time
+(JIT) compilation (i.e., OCCA) to compile for coprocessors.
 
 The **B** operators for the mesh nodes, `bx`, and the unknown field, `bu`, are
-defined in the calls to the function `CeedBasisCreateTensorH1Lagrange`. In this example, both the
-mesh and the unknown field use H1 Lagrange finite elements of order 1 and 4
-respectively (the `P` argument represents the number of 1D degrees of
-freedom on each element). Both basis operators use the same integration rule,
+defined in the calls to the function `CeedBasisCreateTensorH1Lagrange`. In this
+example, both the mesh and the unknown field use H1 Lagrange finite elements of
+order 1 and 4 respectively (the `P` argument represents the number of 1D degrees
+of freedom on each element). Both basis operators use the same integration rule,
 which is Gauss-Legendre with 8 points (the `Q` argument).
 
 ```c
@@ -314,8 +316,10 @@ which is Gauss-Legendre with 8 points (the `Q` argument).
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, P, Q, CEED_GAUSS, &bu);
 ```
 
-Other elements with this structure can be specified in terms of the `Q×P` matrices that evaluate values and gradients at quadrature points in one dimension using `CeedBasisCreateTensorH1`.  Elements that do not have
-tensor product structure, such as symmetric elements on simplices, will be created
+Other elements with this structure can be specified in terms of the `Q×P`
+matrices that evaluate values and gradients at quadrature points in one
+dimension using `CeedBasisCreateTensorH1`. Elements that do not have tensor
+product structure, such as symmetric elements on simplices, will be created
 using different constructors.
 
 The **G** operators for the mesh nodes, `Erestrictx`, and the unknown field,
@@ -335,19 +339,17 @@ arrays:
 ```
 
 If the user has arrays available on a device, they can be provided using
-`CEED_MEM_DEVICE`.
-This technique is used to provide no-copy interfaces in all contexts
-that involve problem-sized data.
+`CEED_MEM_DEVICE`. This technique is used to provide no-copy interfaces in all
+contexts that involve problem-sized data.
 
-For discontinuous Galerkin and for applications such as Nek5000 that
-only explicitly store **E-vectors** (inter-element continuity has been
-subsumed by the parallel restriction **P**), the element restriction
-**G** is the identity so the explicit indices can be elided (`NULL`).
-We plan to support other structured representations of **G** which will be added
-according to demand.  In the case of non-conforming mesh elements, **G**
-needs a more general representation that expresses values at slave nodes
-(which do not appear in **L-vectors**) as linear combinations of the
-degrees of freedom at master nodes.
+For discontinuous Galerkin and for applications such as Nek5000 that only
+explicitly store **E-vectors** (inter-element continuity has been subsumed by
+the parallel restriction **P**), the element restriction **G** is the identity
+so the explicit indices can be elided (`NULL`). We plan to support other
+structured representations of **G** which will be added according to demand. In
+the case of non-conforming mesh elements, **G** needs a more general
+representation that expresses values at slave nodes (which do not appear in
+**L-vectors**) as linear combinations of the degrees of freedom at master nodes.
 
 With partial assembly, we first perform a setup stage where **D** is evaluated
 and stored. This is accomplished by the operator `op_setup` and its application
@@ -371,20 +373,21 @@ The action of the operator is then represented by operator `op_mass` and its
   CeedOperatorApply(op_mass, qdata, U, V, CEED_REQUEST_IMMEDIATE);
 ```
 
-A number of function calls in the interface, such as `CeedOperatorApply`,
-are intended to support asynchronous execution via their last argument,
+A number of function calls in the interface, such as `CeedOperatorApply`, are
+intended to support asynchronous execution via their last argument,
 `CeedRequest*`. The specific (pointer) value used in the above example,
-`CEED_REQUEST_IMMEDIATE`, is used to express the request (from the user)
-for the operation to complete before returning from the function call, i.e. to
-make sure that the result of the operation is available in the output parameters
+`CEED_REQUEST_IMMEDIATE`, is used to express the request (from the user) for the
+operation to complete before returning from the function call, i.e. to make sure
+that the result of the operation is available in the output parameters
 immediately after the call. For a true asynchronous call, one needs to provide
 the address of a user defined variable. Such a variable can be used later to
 explicitly wait for the completion of the operation.
 
 ## Interface Principles and Evolution
 
-LibCEED is intended to be extensible via backends that are packaged with the library and packaged separately (possibly as a binary containing proprietary code).
-Backends are registered by calling
+LibCEED is intended to be extensible via backends that are packaged with the
+library and packaged separately (possibly as a binary containing proprietary
+code). Backends are registered by calling
 
 ```c
   CeedRegister(prefix, init_function);
@@ -393,7 +396,10 @@ Backends are registered by calling
 typically in a library initializer or "constructor" that runs automatically.
 `CeedInit` uses this prefix to find an appropriate backend for the resource.
 
-Source (API) and binary (ABI) stability are important to libCEED.
-LibCEED is evolving rapidly at present, but we expect it to stabilize soon at which point we will adopt semantic versioning.
-User code, including libraries of `CeedQFunction`s, will not need to be recompiled except between major releases.
-The backends currently have some dependence beyond the public user interface, but we intent to remove that dependence and will prioritize if anyone expresses interest in distributing a backend outside the libCEED repository.
+Source (API) and binary (ABI) stability are important to libCEED. LibCEED is
+evolving rapidly at present, but we expect it to stabilize soon at which point
+we will adopt semantic versioning. User code, including libraries of
+`CeedQFunction`s, will not need to be recompiled except between major releases.
+The backends currently have some dependence beyond the public user interface,
+but we intent to remove that dependence and will prioritize if anyone expresses
+interest in distributing a backend outside the libCEED repository.
