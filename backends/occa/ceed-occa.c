@@ -20,6 +20,7 @@
 // * OCCA stuff
 // *****************************************************************************
 static const char *occaCPU = "mode: 'Serial'";
+static const char *occaOMP = "mode: 'OpenMP'";
 static const char *occaGPU = "mode: 'CUDA', deviceID: 0";
 extern void occaSetVerboseCompilation(const int value);
 
@@ -58,6 +59,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   
   CeedDebug("\033[1m[CeedInit] resource='%s'", resource);
   if (strcmp(resource, "/cpu/occa")
+      && strcmp(resource, "/omp/occa")
       && strcmp(resource, "/gpu/occa"))
     return CeedError(ceed, 1, "OCCA backend cannot use resource: %s", resource);
   ceed->Error = CeedError_Occa;
@@ -73,9 +75,13 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   // Now creating OCCA device
   if (getenv("CEED_DEBUG")) occaPrintModeInfo();
   occaSetVerboseCompilation(getenv("CEED_DEBUG")?true:false);
-  const char *mode = (resource[1]=='g')?occaGPU:occaCPU;
+  const char *mode =
+    (resource[1]=='g')?occaGPU:
+    (resource[1]=='o')?occaOMP:
+                       occaCPU;
   impl->device = occaCreateDevice(occaString(mode));
-  if (resource[1] == 'g' && !strcmp(occaDeviceMode(impl->device), "Serial"))
+  if (resource[1] == 'g' && resource[1] == 'o' &&
+      !strcmp(occaDeviceMode(impl->device), "Serial"))
     return CeedError(ceed, 1, "OCCA backend failed to use GPU resource");
   return 0;
 }
@@ -89,4 +95,5 @@ static void Register(void) {
   CeedDebug("\033[1m[Register] /cpu/occa");
   CeedRegister("/cpu/occa", CeedInit_Occa);
   CeedRegister("/gpu/occa", CeedInit_Occa);
+  CeedRegister("/omp/occa", CeedInit_Occa);
 }

@@ -3,8 +3,9 @@ kernel void kRestrict0(const int *indices,
                        const double* uu,
                        double* vv) {
   for (int i=0; i<esize; i++; tile(TILE_SIZE)){
-    if (i >= esize) continue;
-    vv[i] = uu[indices[i]];
+    if (i < esize){
+      vv[i] = uu[indices[i]];
+    }
   }
 }
 
@@ -14,11 +15,12 @@ kernel void kRestrict1(const int ncomp,
                        const double* uu,
                        double* vv) {
   for (int e = 0; e < rnelem; e++; tile(TILE_SIZE)){
-    if (e >= rnelem) continue;
-    for (int d = 0; d < ncomp; d++){
-      for (int i=0; i<relemsize; i++) {
-        vv[i+relemsize*(d+ncomp*e)] =
-          uu[indices[i+relemsize*e]+rndof*d];
+    if (e < rnelem) {
+      for (int d = 0; d < ncomp; d++){
+        for (int i=0; i<relemsize; i++) {
+          vv[i+relemsize*(d+ncomp*e)] =
+            uu[indices[i+relemsize*e]+rndof*d];
+        }
       }
     }
   }
@@ -30,11 +32,12 @@ kernel void kRestrict2(const int ncomp,
                        const double* uu,
                        double* vv) {
   for (int e = 0; e < rnelem; e++; tile(TILE_SIZE)){
-    if (e >= rnelem) continue;
-    for (int d = 0; d < ncomp; d++){
-      for (int i=0; i<relemsize; i++) {
-        vv[i+relemsize*(d+ncomp*e)] =
-          uu[d+ncomp*indices[i+relemsize*e]];
+    if (e < rnelem) {
+      for (int d = 0; d < ncomp; d++){
+        for (int i=0; i<relemsize; i++) {
+          vv[i+relemsize*(d+ncomp*e)] =
+            uu[d+ncomp*indices[i+relemsize*e]];
+        }
       }
     }
   }
@@ -45,8 +48,9 @@ kernel void kRestrict3(const int *indices,
                        const double* uu,
                        double* vv) {
   for (int i=0; i<esize; i++; tile(TILE_SIZE)){
-    if (i >= esize) continue;
-    vv[indices[i]] += uu[i];
+    if (i < esize) {
+      vv[indices[i]] += uu[i];
+    }
   }
 }
 
@@ -56,11 +60,12 @@ kernel void kRestrict4(const int ncomp,
                        const double* uu,
                        double* vv) {
   for (int e = 0; e < rnelem; e++; tile(TILE_SIZE)){
-    if (e >= rnelem) continue;
-    for (int d = 0; d < ncomp; d++){
-      for (int i=0; i<relemsize; i++) {
-        vv[indices[i+relemsize*e]+rndof*d] +=
-          uu[i+relemsize*(d+e*ncomp)];
+    if (e < rnelem) {
+      for (int d = 0; d < ncomp; d++){
+        for (int i=0; i<relemsize; i++) {
+          vv[indices[i+relemsize*e]+rndof*d] +=
+            uu[i+relemsize*(d+e*ncomp)];
+        }
       }
     }
   }
@@ -72,11 +77,12 @@ kernel void kRestrict5(const int ncomp,
                        const double* uu,
                        double* vv) {
   for (int e = 0; e < rnelem; e++; tile(TILE_SIZE)){
-    if (e >= rnelem) continue;
-    for (int d = 0; d < ncomp; d++){
-      for (int i=0; i<relemsize; i++) {
-        vv[d+ncomp*indices[i+relemsize*e]] +=
-          uu[i+relemsize*(d+e*ncomp)];
+    if (e < rnelem) {
+      for (int d = 0; d < ncomp; d++){
+        for (int i=0; i<relemsize; i++) {
+          vv[d+ncomp*indices[i+relemsize*e]] +=
+            uu[i+relemsize*(d+e*ncomp)];
+        }
       }
     }
   }
