@@ -284,7 +284,7 @@ and can be of any type; it is of type `CeedScalar` here because it simply stores
 a weight. The evaluation mode `CEED_EVAL_INTERP` for both inputs and outputs
 indicates that the mass operator only contains terms of the form
 
-<img src="https://latex.codecogs.com/gif.latex?\int_\Omega v f_0(u)"/>
+![](https://latex.codecogs.com/svg.latex?\int_\Omega v f_0(u))
 
 where *v* are test functions. More general operators, such as those of the form
 
