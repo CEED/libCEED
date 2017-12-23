@@ -74,7 +74,7 @@ kernel void kRestrict5(const int ncomp,
                        const double* uu,
                        double* vv) {
   // vv is (ncomp x ndof), column-major
-  for (int e = 0; e < rnelem; e++){
+  for (int e = 0; e < rnelem; e++; tile(TILE_SIZE)){
     if (e >= rnelem) return;
     for (int d = 0; d < ncomp; d++){
       for (int i=0; i<relemsize; i++) {
