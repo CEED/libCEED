@@ -120,7 +120,7 @@ prove : $(tests)
 examples : $(examples)
 
 .PHONY: clean print test examples astyle
-clean :
+cln clean :
 	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests)
 	$(RM) -r *.dSYM $(OBJDIR)/backends
 	$(MAKE) -C examples/mfem clean

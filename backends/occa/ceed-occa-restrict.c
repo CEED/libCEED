@@ -20,9 +20,10 @@
 // * RESTRICTIONS: Create, Apply, Destroy
 // *****************************************************************************
 typedef struct {
-  const CeedInt *host;
+  const CeedInt *indices;
+  CeedInt *indices_allocated;
   occaMemory *device;
-  occaKernel kRestrict;
+  occaKernel kRestrict[6];
 } CeedElemRestriction_Occa;
 
 // *****************************************************************************
@@ -38,15 +39,17 @@ static inline size_t bytes(const CeedElemRestriction res) {
 // * occaCopyPtrToMem(occaMemory dest, const void *src,
 // * occaCopyMemToPtr(void *dest, occaMemory src,
 // *****************************************************************************
-//static inline void occaSyncH2D(const CeedElemRestriction res) {
-//  const CeedElemRestriction_Occa *impl = res->data;
-//  occaCopyPtrToMem(*impl->device, impl->host, bytes(res), NO_OFFSET, NO_PROPS);
-//}
-//static inline void occaSyncD2H(const CeedElemRestriction res) {
-// const CeedElemRestriction_Occa *impl = res->data;
-//  occaCopyMemToPtr((void *)impl->host, *impl->device, bytes(res), NO_OFFSET,
-//                   NO_PROPS);
-//}
+static inline void occaSyncH2D(const CeedElemRestriction res) {
+  const CeedElemRestriction_Occa *impl = res->data;
+  assert(impl);
+  assert(impl->device);
+  occaCopyPtrToMem(*impl->device, impl->indices, bytes(res), NO_OFFSET, NO_PROPS);
+}
+static inline void occaSyncD2H(const CeedElemRestriction res) {
+  const CeedElemRestriction_Occa *impl = res->data;
+  occaCopyMemToPtr((void *)impl->indices, *impl->device, bytes(res), NO_OFFSET,
+                   NO_PROPS);
+}
 
 // *****************************************************************************
 // * OCCA COPY functions
@@ -75,162 +78,226 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
                                          CeedTransposeMode tmode, CeedInt ncomp,
                                          CeedTransposeMode lmode, CeedVector u,
                                          CeedVector v, CeedRequest *request) {
-  CeedElemRestriction_Occa *impl = r->data;
+  const CeedElemRestriction_Occa *impl = r->data;
   int ierr;
-  const CeedScalar *uu=NULL;
-  CeedScalar *vv=NULL;
-  CeedInt esize = r->nelem*r->elemsize;
-  CeedDebug("\033[35m[CeedElemRestriction][Apply] Gets u:%d, v=%d", u->length, v->length);
-
+  const CeedScalar *uu;
+  CeedScalar *vv;
+ 
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
+/*
+  CeedInt esize = r->nelem*r->elemsize;
+  //printf("\n\033[31;1muu(%d):\033[m",u->length); for(int i=0;i<u->length;i++) printf("%f ",uu[i]);
 
-  CeedDebug("\033[35m[CeedElemRestriction][Apply] Compute");
   if (tmode == CEED_NOTRANSPOSE) {
-    CeedDebug("\033[35m[CeedElemRestriction][Apply] CEED_NOTRANSPOSE");
     // Perform: v = r * u
     if (ncomp == 1) {
-      CeedDebug("\033[35m[CeedElemRestriction][Apply] ncomp==1");
-      for (CeedInt i=0; i<esize; i++) vv[i] = uu[impl->host[i]];
+      for (CeedInt i=0; i<esize; i++) vv[i] = uu[impl->indices[i]];
     } else {
-      CeedDebug("\033[35m[CeedElemRestriction][Apply] !ncomp==1");
       // vv is (elemsize x ncomp x nelem), column-major
       if (lmode == CEED_NOTRANSPOSE) { // u is (ndof x ncomp), column-major
         for (CeedInt e = 0; e < r->nelem; e++)
           for (CeedInt d = 0; d < ncomp; d++)
             for (CeedInt i=0; i<r->elemsize; i++) {
               vv[i+r->elemsize*(d+ncomp*e)] =
-                uu[impl->host[i+r->elemsize*e]+r->ndof*d];
+                uu[impl->indices[i+r->elemsize*e]+r->ndof*d];
             }
       } else { // u is (ncomp x ndof), column-major
         for (CeedInt e = 0; e < r->nelem; e++)
           for (CeedInt d = 0; d < ncomp; d++)
             for (CeedInt i=0; i<r->elemsize; i++) {
               vv[i+r->elemsize*(d+ncomp*e)] =
-                uu[d+ncomp*impl->host[i+r->elemsize*e]];
+                uu[d+ncomp*impl->indices[i+r->elemsize*e]];
             }
       }
     }
   } else {
     // Note: in transpose mode, we perform: v += r^t * u
-    CeedDebug("\033[35m[CeedElemRestriction][Apply] !CEED_NOTRANSPOSE");
-   if (ncomp == 1) {
-      for (CeedInt i=0; i<esize; i++) vv[impl->host[i]] += uu[i];
+    if (ncomp == 1) {
+      for (CeedInt i=0; i<esize; i++) vv[impl->indices[i]] += uu[i];
     } else {
       // u is (elemsize x ncomp x nelem)
       if (lmode == CEED_NOTRANSPOSE) { // vv is (ndof x ncomp), column-major
         for (CeedInt e = 0; e < r->nelem; e++)
           for (CeedInt d = 0; d < ncomp; d++)
             for (CeedInt i=0; i<r->elemsize; i++) {
-              vv[impl->host[i+r->elemsize*e]+r->ndof*d] +=
+              vv[impl->indices[i+r->elemsize*e]+r->ndof*d] +=
                 uu[i+r->elemsize*(d+e*ncomp)];
             }
       } else { // vv is (ncomp x ndof), column-major
         for (CeedInt e = 0; e < r->nelem; e++)
           for (CeedInt d = 0; d < ncomp; d++)
             for (CeedInt i=0; i<r->elemsize; i++) {
-              vv[d+ncomp*impl->host[i+r->elemsize*e]] +=
+              vv[d+ncomp*impl->indices[i+r->elemsize*e]] +=
                 uu[i+r->elemsize*(d+e*ncomp)];
             }
       }
     }
   }
-  CeedDebug("\033[35m[CeedElemRestriction][Apply] Restore");
-  ierr = CeedVectorRestoreArrayRead(u, &uu); CeedChk(ierr);
-  ierr = CeedVectorRestoreArray(v, &vv); CeedChk(ierr);
-  if (request != CEED_REQUEST_IMMEDIATE) *request = NULL;
-/*
-  const bool T_TRANSPOSE = tmode == CEED_NOTRANSPOSE;
-  const bool L_TRANSPOSE = lmode == CEED_NOTRANSPOSE;
-  const CeedElemRestriction_Occa *impl = r->data;
+  //printf("\n\033[31;1mvv(%d):\033[m",v->length); for(int i=0;i<v->length;i++) printf("%f ",vv[i]);
+  */
+  //ierr = CeedVectorRestoreArrayRead(u, &uu); CeedChk(ierr);
+  //ierr = CeedVectorRestoreArray(v, &vv); CeedChk(ierr);
+  //if (request != CEED_REQUEST_IMMEDIATE) *request = NULL;
+
+  // ***************************************************************************
   const occaMemory indices = *impl->device;
-  const CeedVector_Occa *u_impl = u->data;
-  const occaMemory uu = *u_impl->device;
-  const CeedVector_Occa *v_impl = v->data;
-  occaMemory vv = *v_impl->device;
-  CeedDebug("\033[35m[CeedElemRestriction][Apply]");
-  occaKernelRun(impl->kRestrict,
-                occaInt(T_TRANSPOSE),
-                occaInt(L_TRANSPOSE),
-                occaInt(ncomp),
-                indices,uu,vv);
+  occaSyncD2H(r);  
+  //printf("indices: ");for(int i=0;i<(r->nelem*r->elemsize);i++) printf("%d ",impl->indices[i]);
+
+  CeedVector_Occa *u_impl = u->data;
+  //printf("\nu2:"); for(int i=0;i<u->length;i++) printf("%f ",u_impl->array[i]);
+
+  CeedVector_Occa *v_impl = v->data;
+  //printf("\nv2:"); for(int i=0;i<v->length;i++) printf("%f ",v_impl->array[i]);
+  const CeedScalar *us;
+  CeedScalar *vs;
+  ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &us); CeedChk(ierr);
+  ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vs); CeedChk(ierr);
+
+  //assert(memcmp(u_impl->array,us,u->length)==0); // us == uu
+  //assert(memcmp(v_impl->array,vs,v->length)==0);
+  
+  const occaMemory ud = *u_impl->device;
+  occaMemory vd = *v_impl->device;
+  
+  CeedDebug("\033[35m[CeedElemRestriction][Apply] kRestrict");
+
+  if (tmode == CEED_NOTRANSPOSE) {
+    // Perform: v = r * u
+    if (ncomp == 1) {
+      occaKernelRun(impl->kRestrict[0], indices, ud, vd);
+    } else {
+      // vv is (elemsize x ncomp x nelem), column-major
+      if (lmode == CEED_NOTRANSPOSE) {
+        // u is (ndof x ncomp), column-major
+        occaKernelRun(impl->kRestrict[1], occaInt(ncomp), indices, ud, vd);
+      } else {
+        // u is (ncomp x ndof), column-major
+        occaKernelRun(impl->kRestrict[2], occaInt(ncomp), indices, ud, vd);
+      }
+    }
+  } else {
+    // Note: in transpose mode, we perform: v += r^t * u
+    if (ncomp == 1) {
+      occaKernelRun(impl->kRestrict[3], indices, ud, vd);
+    } else {
+      // u is (elemsize x ncomp x nelem)
+      if (lmode == CEED_NOTRANSPOSE) {
+        // vv is (ndof x ncomp), column-major
+        occaKernelRun(impl->kRestrict[4], occaInt(ncomp), indices, ud, vd);
+      } else {
+        // vv is (ncomp x ndof), column-major
+        occaKernelRun(impl->kRestrict[5], occaInt(ncomp), indices, ud, vd);
+      }
+    }
+  }
+  
+  occaCopyMemToPtr(v_impl->array, vd, v->length*sizeof(CeedScalar), NO_OFFSET, NO_PROPS);
+
+  //CeedDebug("\033[35m[CeedElemRestriction][Apply] occaCopyMemToPtr");
+  // Get back Data from device to host
+  //ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &us); CeedChk(ierr);
+  //printf("\n\033[31;1mus:\033[m"); for(int i=0;i<u->length;i++) printf("%f ",us[i]);
+  //ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vs); CeedChk(ierr);
+  //printf("\n\033[31;1mvd:\033[m"); for(int i=0;i<v->length;i++) printf("%f ",vd[i]);
+  
+  //occaCopyMemToPtr((void*)us, ud, u->length*sizeof(CeedScalar), NO_OFFSET, NO_PROPS);
+  //occaCopyMemToPtr((void*)vs, vd, v->length*sizeof(CeedScalar), NO_OFFSET, NO_PROPS);
+  //ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vs); CeedChk(ierr);
+  //printf("\n\033[31;1mvv(%d):\033[m",v->length); for(int i=0;i<v->length;i++) printf("%f ",v_impl->array[i]);
+  
+  //assert(memcmp(uu,us,u->length)==0);
+  //assert(memcmp(vv,vs,v->length)==0);
+  
+  // ***************************************************************************
+  ierr = CeedVectorRestoreArrayRead(u, &us); CeedChk(ierr);
+  ierr = CeedVectorRestoreArray(v, &vs); CeedChk(ierr);
   if (request != CEED_REQUEST_IMMEDIATE) *request = NULL;
-*/
   return 0;
+
 }
 
 // *****************************************************************************
 // * CeedElemRestrictionDestroy_Occa
 // *****************************************************************************
-static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction res) {
-  CeedElemRestriction_Occa *impl = res->data;
+static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
+  CeedElemRestriction_Occa *impl = r->data;
   int ierr;
 
   CeedDebug("\033[35m[CeedElemRestriction][Destroy]");
   // free device memory
-  occaMemoryFree(*impl->device);
+  // occaMemoryFree(*impl->device);
   // free device object
-  ierr = CeedFree(&impl->device); CeedChk(ierr);
+  //ierr = CeedFree(&impl->device); CeedChk(ierr);
   // free our CeedElemRestriction_Occa struct
-  ierr = CeedFree(&res->data); CeedChk(ierr);
+  //ierr = CeedFree(&res->data); CeedChk(ierr);
+  ierr = CeedFree(&impl->indices_allocated); CeedChk(ierr);
+  ierr = CeedFree(&r->data); CeedChk(ierr);
   return 0;
 }
 
 // *****************************************************************************
-int CeedElemRestrictionCreate_Occa(const CeedElemRestriction res,
+int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
                                    const CeedMemType mtype,
                                    const CeedCopyMode cmode,
                                    const CeedInt *indices) {
+  const Ceed_Occa *ceed_data=r->ceed->data;
+  CeedElemRestriction_Occa *impl;
   int ierr;
+
   if (mtype != CEED_MEM_HOST)
-    return CeedError(res->ceed, 1, "Only MemType = HOST supported");
+    return CeedError(r->ceed, 1, "Only MemType = HOST supported");
   // Allocating impl & device **************************************************
   CeedDebug("\033[35m[CeedElemRestriction][Create] Allocating");
-  CeedElemRestriction_Occa *impl;
   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
-  res->data = impl;
-  const Ceed_Occa *ceed_data=res->ceed->data;
-  // for now, target the device, whatever =cmode= is
   ierr = CeedCalloc(1,&impl->device); CeedChk(ierr);
-  *impl->device = occaDeviceMalloc(ceed_data->device, bytes(res), NULL, NO_PROPS);
+  *impl->device = occaDeviceMalloc(ceed_data->device, bytes(r), NULL, NO_PROPS);
+  r->data = impl;
   // ***************************************************************************
   switch (cmode) {
   case CEED_COPY_VALUES:
     CeedDebug("\t\033[35m[CeedElemRestriction][Create] CEED_COPY_VALUES");
-    //impl->host = indices;
-    occaCopyH2D(res,indices);
-    CeedChk(CeedCalloc(res->nelem*res->elemsize,&impl->host));
-    memcpy((void*)impl->host, indices, bytes(res));
+    ierr = CeedMalloc(r->nelem*r->elemsize, &impl->indices_allocated);
+    CeedChk(ierr);
+    memcpy(impl->indices_allocated, indices, bytes(r));
+    impl->indices = impl->indices_allocated;
     break;
   case CEED_OWN_POINTER:
     CeedDebug("\t\033[35m[CeedElemRestriction][Create] CEED_OWN_POINTER");
-    impl->host = indices;
+    impl->indices_allocated = (CeedInt *)indices;
+    impl->indices = impl->indices_allocated;
     break;
   case CEED_USE_POINTER:
     CeedDebug("\t\033[35m[CeedElemRestriction][Create] CEED_USE_POINTER");
-    impl->host = indices;
+    impl->indices = indices;
     break;
-  default: CeedError(res->ceed,1," OCCA backend no default error");
+  default: CeedError(r->ceed,1," OCCA backend no default error");
   }
   CeedDebug("\033[35m[CeedElemRestriction][Create] occaCopyH2D");
-  occaCopyH2D(res,indices);
+  assert(indices);
+  occaSyncH2D(r);
   // ***************************************************************************
   CeedDebug("\033[35m[CeedElemRestriction][Create] Building kRestrict");
   occaProperties pKR = occaCreateProperties();
-  occaPropertiesSet(pKR, "defines/esize", occaInt(res->nelem*res->elemsize));
-  occaPropertiesSet(pKR, "defines/rndof", occaInt(res->ndof));
-  occaPropertiesSet(pKR, "defines/rnelem", occaInt(res->nelem));
-  occaPropertiesSet(pKR, "defines/relemsize", occaInt(res->elemsize));
+  occaPropertiesSet(pKR, "defines/esize", occaInt(r->nelem*r->elemsize));
+  occaPropertiesSet(pKR, "defines/rndof", occaInt(r->ndof));
+  occaPropertiesSet(pKR, "defines/rnelem", occaInt(r->nelem));
+  occaPropertiesSet(pKR, "defines/relemsize", occaInt(r->elemsize));
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(TILE_SIZE));
-  char oklpath[4096] = __FILE__;
-  size_t oklpathlen = strlen(oklpath); // path to ceed-occa-restrict.okl
-  strcpy(&oklpath[oklpathlen - 2], ".okl"); // consider using realpath(3) or something dynamic
-  impl->kRestrict = occaDeviceBuildKernel(ceed_data->device,
-                                          oklpath, "kRestrict", pKR);
+  const occaDevice dev = ceed_data->device;
+  char oklPath[4096] = __FILE__;
+  const size_t oklPathLen = strlen(oklPath); // path to ceed-occa-restrict.okl
+  strcpy(&oklPath[oklPathLen - 2], ".okl");  // consider using realpath(3) or something dynamic
+  impl->kRestrict[0] = occaDeviceBuildKernel(dev, oklPath, "kRestrict0", pKR);
+  impl->kRestrict[1] = occaDeviceBuildKernel(dev, oklPath, "kRestrict1", pKR);
+  impl->kRestrict[2] = occaDeviceBuildKernel(dev, oklPath, "kRestrict2", pKR);
+  impl->kRestrict[3] = occaDeviceBuildKernel(dev, oklPath, "kRestrict3", pKR);
+  impl->kRestrict[4] = occaDeviceBuildKernel(dev, oklPath, "kRestrict4", pKR);
+  impl->kRestrict[5] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5", pKR);
   // ***************************************************************************
-  res->Apply = CeedElemRestrictionApply_Occa;
-  res->Destroy = CeedElemRestrictionDestroy_Occa;
-  res->data = impl;
+  r->Apply = CeedElemRestrictionApply_Occa;
+  r->Destroy = CeedElemRestrictionDestroy_Occa;
   CeedDebug("\033[35m[CeedElemRestriction][Create] done");
   return 0;
 }

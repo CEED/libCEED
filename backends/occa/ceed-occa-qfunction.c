@@ -25,7 +25,6 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   int ierr;
   //CeedDebug("\033[36m[CeedQFunction][Apply]");
   ierr = qf->function(qf->ctx, qdata, Q, u, v); CeedChk(ierr);
-
   return 0;
 }
 

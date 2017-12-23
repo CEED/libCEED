@@ -25,6 +25,18 @@ typedef struct {
 } CeedOperator_Occa;
 
 // *****************************************************************************
+static int CeedOperatorDestroy_Occa(CeedOperator op) {
+  CeedDebug("\033[37;1m[CeedOperator][Destroy]");
+  CeedOperator_Occa *impl = op->data;
+  int ierr;
+
+  ierr = CeedVectorDestroy(&impl->etmp); CeedChk(ierr);
+  ierr = CeedVectorDestroy(&impl->qdata); CeedChk(ierr);
+  ierr = CeedFree(&op->data); CeedChk(ierr);
+  return 0;
+}
+
+// *****************************************************************************
 static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
                                   CeedVector ustate,
                                   CeedVector residual, CeedRequest *request) {
@@ -33,24 +45,33 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   CeedVector etmp;
   CeedInt Q;
   const CeedInt nc = op->basis->ndof, dim = op->basis->dim;
-  CeedScalar *Eu;
+  CeedScalar *Eu=NULL;
   char *qd;
   int ierr;
   CeedTransposeMode lmode = CEED_NOTRANSPOSE;
 
   if (!impl->etmp) {
+    const int n = nc * op->Erestrict->nelem * op->Erestrict->elemsize;
+    //printf("\n\033[37;1m[CeedOperator][GetQData] NEW etmp, n=%d\033[m",n);fflush(stdout);
     ierr = CeedVectorCreate(op->ceed,
-                            nc * op->Erestrict->nelem * op->Erestrict->elemsize,
+                            n,
                             &impl->etmp); CeedChk(ierr);
+    assert(impl->etmp);
+    // etmp is allocated when CeedVectorGetArray is called below
   }
   etmp = impl->etmp;
+  ierr = CeedVectorGetArray(impl->etmp, CEED_MEM_HOST, &Eu); CeedChk(ierr);
+  assert(impl->etmp->length);
+  //printf("\nEu (%d):",impl->etmp->length);fflush(stdout);
+  for(int i=0;i<impl->etmp->length;i++) {Eu[i]=0.0;/*printf("%f ",Eu[i]);*/}
+
   if (op->qf->inmode & ~CEED_EVAL_WEIGHT) {
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_NOTRANSPOSE,
-                                    nc, lmode, ustate, etmp,
+                                    nc, lmode, ustate, impl->etmp,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
   }
   ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
-  ierr = CeedVectorGetArray(etmp, CEED_MEM_HOST, &Eu); CeedChk(ierr);
+  assert(qdata);
   ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar**)&qd);
   CeedChk(ierr);
   for (CeedInt e=0; e<op->Erestrict->nelem; e++) {
@@ -95,23 +116,15 @@ static int CeedOperatorGetQData_Occa(CeedOperator op, CeedVector *qdata) {
   if (!impl->qdata) {
     CeedInt Q;
     ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
-    ierr = CeedVectorCreate(op->ceed,
-                            op->Erestrict->nelem * Q * op->basis->ndof,
-                            &impl->qdata); CeedChk(ierr);
+    const int n = op->Erestrict->nelem * Q * op->qf->qdatasize / sizeof(CeedScalar);
+    //printf("\n\033[37;1m[CeedOperator][GetQData] NEW qdata, n=%d\033[m",n); 
+    ierr = CeedVectorCreate(op->ceed,n,&impl->qdata); CeedChk(ierr);
+    CeedScalar *dummy;
+    ierr = CeedVectorGetArray(impl->qdata, CEED_MEM_HOST, &dummy); CeedChk(ierr);
   }
+  assert(impl->qdata);
+  assert(qdata);
   *qdata = impl->qdata;
-  return 0;
-}
-
-// *****************************************************************************
-static int CeedOperatorDestroy_Occa(CeedOperator op) {
-  CeedDebug("\033[37;1m[CeedOperator][Destroy]");
-  CeedOperator_Occa *impl = op->data;
-  int ierr;
-
-  ierr = CeedVectorDestroy(&impl->etmp); CeedChk(ierr);
-  ierr = CeedVectorDestroy(&impl->qdata); CeedChk(ierr);
-  ierr = CeedFree(&op->data); CeedChk(ierr);
   return 0;
 }
 
