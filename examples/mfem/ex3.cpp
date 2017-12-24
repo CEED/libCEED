@@ -4,14 +4,14 @@
 // finite element library.
 //
 // The example reads a mesh from a file and solves a simple linear system with a
-// mass matrix (L2-projection of a given analytic function provided by
-// 'solution'). The mass matrix required for performing the projection is
-// expressed as a new class, CeedMassOperator, derived from mfem::Operator.
-// Internally, CeedMassOperator uses a CeedOperator object constructed based on
+// diff matrix (L2-projection of a given analytic function provided by
+// 'solution'). The diff matrix required for performing the projection is
+// expressed as a new class, CeedDiffusionOperator, derived from mfem::Operator.
+// Internally, CeedDiffusionOperator uses a CeedOperator object constructed based on
 // an mfem::FiniteElementSpace. All libCEED objects use a Ceed device object
 // constructed based on a command line argument.
 //
-// The mass matrix is inverted using a simple conjugate gradient algorithm
+// The diff matrix is inverted using a simple conjugate gradient algorithm
 // corresponding to CEED BP1, see http://ceed.exascaleproject.org/bps. Arbitrary
 // mesh and solution orders in 1D, 2D and 3D are supported from the same code.
 //
@@ -29,62 +29,147 @@
 #include <ceed.h>
 #include <mfem.hpp>
 
-/// Continuous function to project on the discrete FE space
+/// Exact solution
 double solution(const mfem::Vector &pt) {
-  return pt.Norml2(); // distance to the origin
+  static const double x[3] = { -0.32, 0.15, 0.24 };
+  static const double k[3] = { 1.21, 1.45, 1.37 };
+  double val = sin(M_PI*(x[0]+k[0]*pt(0)));
+  for (int d = 1; d < pt.Size(); d++)
+    val *= sin(M_PI*(x[d]+k[d]*pt(d)));
+  return val;
 }
 
-/// A structure used to pass additional data to f_build_mass
-struct BuildContext { CeedInt dim, space_dim; };
+/// Right-hand side
+double rhs(const mfem::Vector &pt) {
+  static const double x[3] = { -0.32, 0.15, 0.24 };
+  static const double k[3] = { 1.21, 1.45, 1.37 };
+  double f[3], l[3], val, lap;
+  f[0] = sin(M_PI*(x[0]+k[0]*pt(0)));
+  l[0] = M_PI*M_PI*k[0]*k[0]*f[0];
+  val = f[0];
+  lap = l[0];
+  for (int d = 1; d < pt.Size(); d++) {
+    f[d] = sin(M_PI*(x[d]+k[d]*pt(d)));
+    l[d] = M_PI*M_PI*k[d]*k[d]*f[d];
+    lap = lap*f[d] + val*l[d];
+    val = val*f[d];
+  }
+  return lap;
+}
 
-/// libCEED Q-function for building quadrature data for a mass operator
-static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
+/// A structure used to pass additional data to f_build_diff and f_apply_diff
+struct DiffContext { CeedInt dim, space_dim; };
+
+/// libCEED Q-function for building quadrature data for a diffusion operator
+static int f_build_diff(void *ctx, void *qdata, CeedInt Q,
                         const CeedScalar *const *u, CeedScalar *const *v) {
   // u[1] is Jacobians, size (Q x nc x dim) with column-major layout
   // u[4] is quadrature weights, size (Q)
-  BuildContext *bc = (BuildContext*)ctx;
+  //
+  // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
+  // the symmetric part of the result.
+  DiffContext *dc = (DiffContext*)ctx;
   CeedScalar *qd = (CeedScalar*)qdata;
   const CeedScalar *J = u[1], *qw = u[4];
-  switch (bc->dim + 10*bc->space_dim) {
+  switch (dc->dim + 10*dc->space_dim) {
   case 11:
     for (CeedInt i=0; i<Q; i++) {
-      qd[i] = J[i] * qw[i];
+      qd[i] = qw[i] / J[i];
     }
     break;
   case 22:
     for (CeedInt i=0; i<Q; i++) {
-      // 0 2
-      // 1 3
-      qd[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
+      // J: 0 2   qd: 0 1   adj(J):  J22 -J12
+      //    1 3       1 2           -J21  J11
+      const CeedScalar J11 = J[i+Q*0];
+      const CeedScalar J21 = J[i+Q*1];
+      const CeedScalar J12 = J[i+Q*2];
+      const CeedScalar J22 = J[i+Q*3];
+      const CeedScalar w = qw[i] / (J11*J22 - J21*J12);
+      qd[i+Q*0] =   w * (J12*J12 + J22*J22);
+      qd[i+Q*1] = - w * (J11*J12 + J21*J22);
+      qd[i+Q*2] =   w * (J11*J11 + J21*J21);
     }
     break;
   case 33:
     for (CeedInt i=0; i<Q; i++) {
-      // 0 3 6
-      // 1 4 7
-      // 2 5 8
-      qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
-               J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-               J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * qw[i];
+      // J: 0 3 6   qd: 0 1 2
+      //    1 4 7       1 3 4
+      //    2 5 8       2 4 5
+      const CeedScalar J11 = J[i+Q*0];
+      const CeedScalar J21 = J[i+Q*1];
+      const CeedScalar J31 = J[i+Q*2];
+      const CeedScalar J12 = J[i+Q*3];
+      const CeedScalar J22 = J[i+Q*4];
+      const CeedScalar J32 = J[i+Q*5];
+      const CeedScalar J13 = J[i+Q*6];
+      const CeedScalar J23 = J[i+Q*7];
+      const CeedScalar J33 = J[i+Q*8];
+      const CeedScalar A11 = J22*J33 - J23*J32;
+      const CeedScalar A12 = J13*J32 - J12*J33;
+      const CeedScalar A13 = J12*J23 - J13*J22;
+      const CeedScalar A21 = J23*J31 - J21*J33;
+      const CeedScalar A22 = J11*J33 - J13*J31;
+      const CeedScalar A23 = J13*J21 - J11*J23;
+      const CeedScalar A31 = J21*J32 - J22*J31;
+      const CeedScalar A32 = J12*J31 - J11*J32;
+      const CeedScalar A33 = J11*J22 - J12*J21;
+      const CeedScalar w = qw[i] / (J11*A11 + J21*A12 + J31*A13);
+      qd[i+Q*0] = w * (A11*A11 + A12*A12 + A13*A13);
+      qd[i+Q*1] = w * (A11*A21 + A12*A22 + A13*A23);
+      qd[i+Q*2] = w * (A11*A31 + A12*A32 + A13*A33);
+      qd[i+Q*3] = w * (A21*A21 + A22*A22 + A23*A23);
+      qd[i+Q*4] = w * (A21*A31 + A22*A32 + A23*A33);
+      qd[i+Q*5] = w * (A31*A31 + A32*A32 + A33*A33);
     }
     break;
   default:
     return CeedError(NULL, 1, "dim=%d, space_dim=%d is not supported",
-                     bc->dim, bc->space_dim);
+                     dc->dim, dc->space_dim);
   }
   return 0;
 }
 
-/// libCEED Q-function for applying a mass operator
-static int f_apply_mass(void *ctx, void *qdata, CeedInt Q,
+/// libCEED Q-function for applying a diff operator
+static int f_apply_diff(void *ctx, void *qdata, CeedInt Q,
                         const CeedScalar *const *u, CeedScalar *const *v) {
-  const CeedScalar *w = (const CeedScalar*)qdata;
-  for (CeedInt i=0; i<Q; i++) v[0][i] = w[i] * u[0][i];
+  DiffContext *dc = (DiffContext*)ctx;
+  const CeedScalar *qd = (const CeedScalar*)qdata;
+  // u[1], v[1]: size: (Q x nc x dim) with column-major layout (nc == 1)
+  const CeedScalar *ug = u[1];
+  CeedScalar *vg = v[1];
+  switch (dc->dim) {
+  case 1:
+    for (CeedInt i=0; i<Q; i++) {
+      vg[i] = ug[i] * qd[i];
+    }
+    break;
+  case 2:
+    for (CeedInt i=0; i<Q; i++) {
+      const CeedScalar ug0 = ug[i+Q*0];
+      const CeedScalar ug1 = ug[i+Q*1];
+      vg[i+Q*0] = qd[i+Q*0]*ug0 + qd[i+Q*1]*ug1;
+      vg[i+Q*1] = qd[i+Q*1]*ug0 + qd[i+Q*2]*ug1;
+    }
+    break;
+  case 3:
+    for (CeedInt i=0; i<Q; i++) {
+      const CeedScalar ug0 = ug[i+Q*0];
+      const CeedScalar ug1 = ug[i+Q*1];
+      const CeedScalar ug2 = ug[i+Q*2];
+      vg[i+Q*0] = qd[i+Q*0]*ug0 + qd[i+Q*1]*ug1 + qd[i+Q*2]*ug2;
+      vg[i+Q*1] = qd[i+Q*1]*ug0 + qd[i+Q*3]*ug1 + qd[i+Q*4]*ug2;
+      vg[i+Q*2] = qd[i+Q*2]*ug0 + qd[i+Q*4]*ug1 + qd[i+Q*5]*ug2;
+    }
+    break;
+  default:
+    return CeedError(NULL, 1, "topo_dim=%d is not supported", dc->dim);
+  }
   return 0;
 }
 
-/// Wrapper for a mass CeedOperator as an mfem::Operator
-class CeedMassOperator : public mfem::Operator {
+/// Wrapper for a diffusion CeedOperator as an mfem::Operator
+class CeedDiffusionOperator : public mfem::Operator {
  protected:
   const mfem::FiniteElementSpace *fes;
   CeedOperator build_oper, oper;
@@ -93,7 +178,7 @@ class CeedMassOperator : public mfem::Operator {
   CeedQFunction apply_qfunc, build_qfunc;
   CeedVector node_coords, qdata;
 
-  BuildContext build_ctx;
+  DiffContext diff_ctx;
 
   CeedVector u, v;
 
@@ -170,7 +255,7 @@ class CeedMassOperator : public mfem::Operator {
 
  public:
   /// Constructor. Assumes @a fes is a scalar FE space.
-  CeedMassOperator(Ceed ceed, const mfem::FiniteElementSpace *fes)
+  CeedDiffusionOperator(Ceed ceed, const mfem::FiniteElementSpace *fes)
     : Operator(fes->GetNDofs()),
       fes(fes) {
     mfem::Mesh *mesh = fes->GetMesh();
@@ -189,23 +274,26 @@ class CeedMassOperator : public mfem::Operator {
     CeedVectorSetArray(node_coords, CEED_MEM_HOST, CEED_USE_POINTER,
                        mesh->GetNodes()->GetData());
 
-    build_ctx.dim = mesh->Dimension();
-    build_ctx.space_dim = mesh->SpaceDimension();
+    const int dim = mesh->Dimension();
+    diff_ctx.dim = dim;
+    diff_ctx.space_dim = mesh->SpaceDimension();
 
-    CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
+    const int qsize = dim*(dim+1)/2;
+    CeedQFunctionCreateInterior(ceed, 1, 1, qsize*sizeof(CeedScalar),
                                 (CeedEvalMode)(CEED_EVAL_GRAD|CEED_EVAL_WEIGHT),
-                                CEED_EVAL_NONE, f_build_mass,
-                                __FILE__":f_build_mass", &build_qfunc);
-    CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
+                                CEED_EVAL_NONE, f_build_diff,
+                                __FILE__":f_build_diff", &build_qfunc);
+    CeedQFunctionSetContext(build_qfunc, &diff_ctx, sizeof(diff_ctx));
     CeedOperatorCreate(ceed, mesh_restr, mesh_basis, build_qfunc, NULL, NULL,
                        &build_oper);
     CeedOperatorGetQData(build_oper, &qdata);
     CeedOperatorApply(build_oper, qdata, node_coords, NULL,
                       CEED_REQUEST_IMMEDIATE);
 
-    CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
-                                CEED_EVAL_INTERP, CEED_EVAL_INTERP, f_apply_mass,
-                                __FILE__":f_apply_mass", &apply_qfunc);
+    CeedQFunctionCreateInterior(ceed, 1, 1, qsize*sizeof(CeedScalar),
+                                CEED_EVAL_GRAD, CEED_EVAL_GRAD, f_apply_diff,
+                                __FILE__":f_apply_diff", &apply_qfunc);
+    CeedQFunctionSetContext(apply_qfunc, &diff_ctx, sizeof(diff_ctx));
     CeedOperatorCreate(ceed, restr, basis, apply_qfunc, NULL, NULL, &oper);
 
     CeedVectorCreate(ceed, fes->GetNDofs(), &u);
@@ -213,12 +301,12 @@ class CeedMassOperator : public mfem::Operator {
   }
 
   /// Destructor
-  ~CeedMassOperator() {
+  ~CeedDiffusionOperator() {
     CeedVectorDestroy(&v);
     CeedVectorDestroy(&u);
     CeedOperatorDestroy(&oper);
     CeedQFunctionDestroy(&apply_qfunc);
-    // CeedVectorDestroy(&qdata); // qdata is owned by build_oper
+    // qdata is owned by build_oper
     CeedOperatorDestroy(&build_oper);
     CeedQFunctionDestroy(&build_qfunc);
     CeedVectorDestroy(&node_coords);
@@ -291,31 +379,43 @@ int main(int argc, char *argv[]) {
   std::cout << "Number of finite element unknowns: "
             << fespace->GetTrueVSize() << std::endl;
 
-  // 6. Construct a rhs vector using the linear form f(v) = (solution, v), where
+  mfem::FunctionCoefficient sol_coeff(solution);
+  mfem::Array<int> ess_tdof_list;
+  mfem::GridFunction sol(fespace);
+  if (mesh->bdr_attributes.Size())
+  {
+     mfem::Array<int> ess_bdr(mesh->bdr_attributes.Max());
+     ess_bdr = 1;
+     fespace->GetEssentialTrueDofs(ess_bdr, ess_tdof_list);
+     sol.ProjectBdrCoefficient(sol_coeff, ess_bdr);
+  }
+
+  // 6. Construct a rhs vector using the linear form f(v) = (rhs, v), where
   //    v is a test function.
   mfem::LinearForm b(fespace);
-  mfem::FunctionCoefficient sol_coeff(solution);
-  b.AddDomainIntegrator(new mfem::DomainLFIntegrator(sol_coeff));
+  mfem::FunctionCoefficient rhs_coeff(rhs);
+  b.AddDomainIntegrator(new mfem::DomainLFIntegrator(rhs_coeff));
   b.Assemble();
 
-  // 7. Construct a CeedMassOperator utilizing the 'ceed' device and using the
+  // 7. Construct a CeedDiffusionOperator utilizing the 'ceed' device and using the
   //    'fespace' object to extract data needed by the Ceed objects.
-  CeedMassOperator mass(ceed, fespace);
+  CeedDiffusionOperator diff(ceed, fespace);
+
+  mfem::Operator *D;
+  mfem::Vector X, B;
+  diff.FormLinearSystem(ess_tdof_list, sol, b, D, X, B);
 
   // 8. Solve the discrete system using the conjugate gradients (CG) method.
   mfem::CGSolver cg;
   cg.SetRelTol(1e-6);
-  cg.SetMaxIter(100);
+  cg.SetMaxIter(1000);
   cg.SetPrintLevel(3);
-  cg.SetOperator(mass);
+  cg.SetOperator(*D);
 
-  mfem::GridFunction sol(fespace);
-  sol = 0.0;
-  cg.Mult(b, sol);
-  //std::cout << "sol="<<sol<< std::endl;
+  cg.Mult(B, X);
 
   // 9. Compute and print the L2 projection error.
-  std::cout << "L2 projection error: " << sol.ComputeL2Error(sol_coeff)
+  std::cout << "L2 norm of the error: " << sol.ComputeL2Error(sol_coeff)
             << std::endl;
 
   // 10. Open a socket connection to GLVis and send the mesh and solution for
