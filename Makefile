@@ -82,6 +82,8 @@ endif
 
 .PRECIOUS: %/.DIR
 
+all : $(libceed) ceed.pc
+
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name $(abspath $(libceed)))
 
 $(libceed) : $(ref.o)
@@ -119,9 +121,12 @@ prove : $(tests)
 
 examples : $(examples)
 
-.PHONY: clean print test examples astyle
+ceed.pc : ceed.pc.template
+	@sed 's:%prefix%:$(abspath .):' $< > $@
+
+.PHONY: all clean print test examples astyle
 cln clean :
-	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests)
+	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests) ceed.pc
 	$(RM) -r *.dSYM $(OBJDIR)/backends
 	$(MAKE) -C examples/mfem clean
 

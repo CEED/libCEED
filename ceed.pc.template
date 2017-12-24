@@ -1,0 +1,9 @@
+prefix=%prefix%
+includedir=${prefix}
+libdir=${prefix}
+
+Name: CEED
+Description: Code for Efficient Exascale Discretization
+Version: 0.0
+Cflags: -I${includedir}
+Libs: -L${libdir} -lceed
