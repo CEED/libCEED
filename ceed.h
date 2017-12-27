@@ -238,4 +238,15 @@ static inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
   return result;
 }
 
+// Fortran interface
+
+#include "name.h"
+
+#define fCeedInit FORTRAN_NAME(ceedinit,CEEDINIT)
+#define fCeedVectorCreate FORTRAN_NAME(ceedvectorcreate,CEEDVECTORCREATE)
+
+void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err);
+void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec,
+                                                           CeedInt *err);
+
 #endif

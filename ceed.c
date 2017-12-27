@@ -217,3 +217,37 @@ void CeedDebug(const char *format,...) {
   fflush(stdout);
   va_end(args);
 }
+
+// Fortran interface
+static Ceed **Ceed_dict = NULL;
+static int Ceed_count = 0;
+static int Ceed_count_max = 0;
+
+static CeedVector **CeedVector_dict = NULL;
+static int CeedVector_count = 0;
+static int CeedVector_count_max = 0;
+
+void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err) {
+  if (Ceed_count == Ceed_count_max)
+    Ceed_count_max += Ceed_count_max/2 + 1,
+    Ceed_dict = realloc(Ceed_dict, sizeof(Ceed*)*Ceed_count_max);
+
+  Ceed *ceed_ = Ceed_dict[Ceed_count] = (Ceed*) malloc(sizeof(Ceed));
+  *err = CeedInit(resource, ceed_);
+
+  *ceed = Ceed_count++;
+}
+
+void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec, CeedInt *err) {
+  if (CeedVector_count == CeedVector_count_max)
+    CeedVector_count_max += CeedVector_count_max/2 + 1,
+    CeedVector_dict =
+      realloc(CeedVector_dict, sizeof(CeedVector*)*CeedVector_count_max);
+
+  CeedVector *vec_ = CeedVector_dict[CeedVector_count] =
+                               (CeedVector *) malloc(sizeof(CeedVector));
+
+  *err = CeedVectorCreate(*Ceed_dict[*ceed], *length, vec_);
+
+  *vec = CeedVector_count++;
+}
