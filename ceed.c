@@ -245,7 +245,7 @@ void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec, CeedInt *er
         realloc(CeedVector_dict, sizeof(CeedVector*)*CeedVector_count_max);
 
   CeedVector *vec_ = CeedVector_dict[CeedVector_count] =
-                         (CeedVector *) malloc(sizeof(CeedVector));
+                         (CeedVector*) malloc(sizeof(CeedVector));
 
   *err = CeedVectorCreate(*Ceed_dict[*ceed], *length, vec_);
 
@@ -262,15 +262,45 @@ void fCeedElemRestrictionCreate(CeedInt *ceed, CeedInt *nelements,
   if (CeedElemRestriction_count == CeedElemRestriction_count_max)
     CeedElemRestriction_count_max += CeedElemRestriction_count_max/2 + 1,
     CeedElemRestriction_dict =
-        realloc(CeedElemRestriction_dict,
+        realloc(CeedElemRestriction_dict, \
         sizeof(CeedElemRestriction*)*CeedElemRestriction_count_max);
 
   CeedElemRestriction *elemrestriction_ =
       CeedElemRestriction_dict[CeedElemRestriction_count] =
-          (CeedElemRestriction *) malloc(sizeof(CeedElemRestriction));
+          (CeedElemRestriction*) malloc(sizeof(CeedElemRestriction));
 
-  *err = CeedElemRestriction(*Ceed_dict[*ceed], *nelements, *esize, *ndof,
-             *memtype, *copymode, indices, elemrestriction);
+  *err = CeedElemRestrictionCreate(*Ceed_dict[*ceed], *nelements, *esize, *ndof,
+             *memtype, *copymode, indices, elemrestriction_);
 
   *elemrestriction = CeedElemRestriction_count++;
+}
+
+static CeedBasis **CeedBasis_dict = NULL;
+static int CeedBasis_count = 0;
+static int CeedBasis_count_max = 0;
+
+void fCeedBasisCreateTensorH1Lagrange(CeedInt *ceed, CeedInt *dim,
+    CeedInt *ndof, CeedInt *P, CeedInt *Q, CeedInt *quadmode, CeedInt *basis,
+    CeedInt *err) {
+  if (CeedBasis_count == CeedBasis_count_max)
+    CeedBasis_count_max += CeedBasis_count_max/2 + 1,
+    CeedBasis_dict = realloc(CeedBasis_dict, sizeof(CeedBasis*)*CeedBasis_count_max);
+
+  CeedBasis *basis_ = CeedBasis_dict[CeedBasis_count] =
+                          (CeedBasis*) malloc(sizeof(CeedBasis));
+
+  *err = CeedBasisCreateTensorH1Lagrange(*Ceed_dict[*ceed], *dim, *ndof, *P, *Q,
+             *quadmode, basis_);
+
+  *basis = CeedBasis_count++;
+}
+
+static CeedQFunction **CeedQFunction_dict = NULL;
+static int CeedQFunction_count = 0;
+static int CeedQFunction_count_max = 0;
+
+void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
+    CeedInt* nfields, size_t qdatasize, CeedInt* inmode, CeedInt* outmode,
+    int (*f)(void *ctx, void *qdata, CeedInt nq, const CeedScalar *const *u,
+             CeedScalar *const *v), const char *focca, CeedInt *qf) {
 }

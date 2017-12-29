@@ -243,12 +243,26 @@ static inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
 #include "name.h"
 
 #define fCeedInit FORTRAN_NAME(ceedinit,CEEDINIT)
-#define fCeedVectorCreate FORTRAN_NAME(ceedvectorcreate,CEEDVECTORCREATE)
-
 void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err);
+
+#define fCeedVectorCreate FORTRAN_NAME(ceedvectorcreate,CEEDVECTORCREATE)
 void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec,
                                                            CeedInt *err);
+#define fCeedElemRestriction FORTRAN_NAME(ceedelemrestriction, CEEDELEMRESTRICTION)
 void fCeedElemRestrictionCreate(CeedInt *ceed, CeedInt *nelements,
     CeedInt *esize, CeedInt *ndof, CeedInt *memtype, CeedInt *copymode,
     const CeedInt *indices, CeedInt *elemrestriction, CeedInt *err);
+
+#define fCeedBasisCreateTensorH1Lagrange \
+    FORTRAN_NAME(ceedbasiscreatetensorh1lagrange, CEEDBASISCREATETENSORH1LAGRANGE)
+void fCeedBasisCreateTensorH1Lagrange(CeedInt *ceed, CeedInt *dim,
+    CeedInt *ndof, CeedInt *P, CeedInt *Q, CeedInt *quadmode, CeedInt *basis,
+    CeedInt *err);
+
+#define fCeedQFunctionCreateInterior \
+    FORTRAN_NAME(ceedqfunctioncreateinterior, CEEDQFUNCTIONCREATEINTERIOR)
+void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
+    CeedInt* nfields, size_t qdatasize, CeedInt* inmode, CeedInt* outmode,
+    int (*f)(void *ctx, void *qdata, CeedInt nq, const CeedScalar *const *u,
+             CeedScalar *const *v), const char *focca, CeedInt *qf);
 #endif
