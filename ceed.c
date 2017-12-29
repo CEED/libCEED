@@ -223,10 +223,6 @@ static Ceed **Ceed_dict = NULL;
 static int Ceed_count = 0;
 static int Ceed_count_max = 0;
 
-static CeedVector **CeedVector_dict = NULL;
-static int CeedVector_count = 0;
-static int CeedVector_count_max = 0;
-
 void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err) {
   if (Ceed_count == Ceed_count_max)
     Ceed_count_max += Ceed_count_max/2 + 1,
@@ -238,16 +234,43 @@ void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err) {
   *ceed = Ceed_count++;
 }
 
+static CeedVector **CeedVector_dict = NULL;
+static int CeedVector_count = 0;
+static int CeedVector_count_max = 0;
+
 void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec, CeedInt *err) {
   if (CeedVector_count == CeedVector_count_max)
     CeedVector_count_max += CeedVector_count_max/2 + 1,
     CeedVector_dict =
-      realloc(CeedVector_dict, sizeof(CeedVector*)*CeedVector_count_max);
+        realloc(CeedVector_dict, sizeof(CeedVector*)*CeedVector_count_max);
 
   CeedVector *vec_ = CeedVector_dict[CeedVector_count] =
-                               (CeedVector *) malloc(sizeof(CeedVector));
+                         (CeedVector *) malloc(sizeof(CeedVector));
 
   *err = CeedVectorCreate(*Ceed_dict[*ceed], *length, vec_);
 
   *vec = CeedVector_count++;
+}
+
+static CeedElemRestriction **CeedElemRestriction_dict = NULL;
+static int CeedElemRestriction_count = 0;
+static int CeedElemRestriction_count_max = 0;
+
+void fCeedElemRestrictionCreate(CeedInt *ceed, CeedInt *nelements,
+    CeedInt *esize, CeedInt *ndof, CeedInt *memtype, CeedInt *copymode,
+    const CeedInt *indices, CeedInt *elemrestriction, CeedInt *err) {
+  if (CeedElemRestriction_count == CeedElemRestriction_count_max)
+    CeedElemRestriction_count_max += CeedElemRestriction_count_max/2 + 1,
+    CeedElemRestriction_dict =
+        realloc(CeedElemRestriction_dict,
+        sizeof(CeedElemRestriction*)*CeedElemRestriction_count_max);
+
+  CeedElemRestriction *elemrestriction_ =
+      CeedElemRestriction_dict[CeedElemRestriction_count] =
+          (CeedElemRestriction *) malloc(sizeof(CeedElemRestriction));
+
+  *err = CeedElemRestriction(*Ceed_dict[*ceed], *nelements, *esize, *ndof,
+             *memtype, *copymode, indices, elemrestriction);
+
+  *elemrestriction = CeedElemRestriction_count++;
 }

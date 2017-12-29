@@ -248,5 +248,7 @@ static inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
 void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err);
 void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec,
                                                            CeedInt *err);
-
+void fCeedElemRestrictionCreate(CeedInt *ceed, CeedInt *nelements,
+    CeedInt *esize, CeedInt *ndof, CeedInt *memtype, CeedInt *copymode,
+    const CeedInt *indices, CeedInt *elemrestriction, CeedInt *err);
 #endif
