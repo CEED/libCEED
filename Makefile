@@ -15,19 +15,30 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 CC ?= gcc
+FC ?= gfortran
 
 NDEBUG ?=
 LDFLAGS ?=
 LOADLIBES ?=
 TARGET_ARCH ?=
+UNDERSCORE ?= 1
 
 # env variable OCCA_DIR should point to OCCA-1.0 branch
 OCCA_DIR ?= ../occa
 
 SANTIZ = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native
+FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native
+
 CFLAGS += $(if $(NDEBUG),-O2,-g)
+ifeq ($(UNDERSCORE), 1)
+  CFLAGS += -DUNDERSCORE
+endif
+
+FFLAGS += $(if $(NDEBUG),-O2,-g)
+
 CFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
+FFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
 LDFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
 CPPFLAGS = -I.
 LDLIBS = -lm
@@ -41,11 +52,15 @@ PROVE ?= prove
 PROVE_OPTS ?= -j $(NPROCS)
 DARWIN := $(filter Darwin,$(shell uname -s))
 SO_EXT := $(if $(DARWIN),dylib,so)
-
+#libceed
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.c := $(wildcard ceed*.c)
+# tests
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9]-*.c))
+tests.f   := $(sort $(wildcard tests/t[0-9][0-9]-*.f))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
+tests     += $(tests.f:tests/%.f=$(OBJDIR)/%)
+#examples
 examples.c := $(sort $(wildcard examples/*.c))
 examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
 # backends/[ref & occa]
@@ -102,12 +117,15 @@ $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
+$(OBJDIR)/% : tests/%.f | $$(@D)/.DIR
+	$(call quiet,FC) $(FFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
+
 $(OBJDIR)/%.o : examples/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
 
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
-$(OBJDIR)/t% : tests/t%.c $(libceed)
+$(OBJDIR)/t% : tests/t%.c tests/t%.f $(libceed)
 $(OBJDIR)/ex% : examples/ex%.c $(libceed)
 
 run-t% : $(OBJDIR)/t%
