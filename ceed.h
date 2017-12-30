@@ -248,7 +248,8 @@ void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err);
 #define fCeedVectorCreate FORTRAN_NAME(ceedvectorcreate,CEEDVECTORCREATE)
 void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec,
                                                            CeedInt *err);
-#define fCeedElemRestriction FORTRAN_NAME(ceedelemrestriction, CEEDELEMRESTRICTION)
+#define fCeedElemRestrictionCreate \
+    FORTRAN_NAME(ceedelemrestrictioncreate, CEEDELEMRESTRICTIONCREATE)
 void fCeedElemRestrictionCreate(CeedInt *ceed, CeedInt *nelements,
     CeedInt *esize, CeedInt *ndof, CeedInt *memtype, CeedInt *copymode,
     const CeedInt *indices, CeedInt *elemrestriction, CeedInt *err);
