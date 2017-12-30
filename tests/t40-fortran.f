@@ -2,9 +2,13 @@
       integer ceed, ndof, u, err
       character arg*32
 
-      call getarg(1, arg)
-      call ceedinit(arg,ceed,err)
+      ceed = -1
+      ndof = 3
 
-      call ceedvectorcreate(ceed,ndof,u)
+      call getarg(1, arg)
+
+      call ceedinit(trim(arg),ceed,err)
+
+      call ceedvectorcreate(ceed,ndof,u,err)
 
       end
