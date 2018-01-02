@@ -116,7 +116,8 @@ typedef enum {
   /// CeedFree() when done using it.  The user should not assume that the
   /// pointer remains valid after ownership has been transferred.  Note that
   /// arrays allocated using C++ operator new or other allocators cannot
-  /// generally be freed using CeedFree()
+  /// generally be freed using CeedFree().  CeedFree() is capable of freeing any
+  /// memory that can be freed using free(3).
   CEED_OWN_POINTER,
 } CeedCopyMode;
 
