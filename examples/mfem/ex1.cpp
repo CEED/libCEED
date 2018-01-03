@@ -270,17 +270,21 @@ int main(int argc, char *argv[]) {
 
   // 4. Refine the mesh to increase the resolution. In this example we do
   //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
-  //    largest number that gives a final mesh with no more than 50,000
-  //    elements.
+  //    largest number that gives a final system with no more than 50,000
+  //    unknowns, approximately.
   {
+    double max_dofs = 50000;
     int ref_levels =
-      (int)floor(log(50000./mesh->GetNE())/log(2.)/dim);
+      (int)floor((log(max_dofs/mesh->GetNE())-dim*log(order))/log(2.)/dim);
     for (int l = 0; l < ref_levels; l++) {
       mesh->UniformRefinement();
     }
   }
   if (mesh->GetNodalFESpace() == NULL) {
     mesh->SetCurvature(1, false, -1, mfem::Ordering::byNODES);
+  }
+  if (mesh->NURBSext) {
+    mesh->SetCurvature(order, false, -1, mfem::Ordering::byNODES);
   }
 
   // 5. Define a finite element space on the mesh. Here we use continuous

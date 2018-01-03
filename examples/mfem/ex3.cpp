@@ -1,30 +1,30 @@
-//                           libCEED + MFEM Example 1
+//                           libCEED + MFEM Example 3
 //
 // This example illustrates a simple usage of libCEED with the MFEM (mfem.org)
 // finite element library.
 //
-// The example reads a mesh from a file and solves a simple linear system with a
-// diff matrix (L2-projection of a given analytic function provided by
-// 'solution'). The diff matrix required for performing the projection is
-// expressed as a new class, CeedDiffusionOperator, derived from mfem::Operator.
-// Internally, CeedDiffusionOperator uses a CeedOperator object constructed based on
-// an mfem::FiniteElementSpace. All libCEED objects use a Ceed device object
-// constructed based on a command line argument.
+// The example reads a mesh from a file and solves a linear system with a
+// diffusion stiffness matrix (with a prescribed analytic solution, provided by
+// the function 'solution'). The diffusion matrix is expressed as a new class,
+// CeedDiffusionOperator, derived from mfem::Operator. Internally,
+// CeedDiffusionOperator uses a CeedOperator object constructed based on an
+// mfem::FiniteElementSpace. All libCEED objects use a Ceed logical device
+// object constructed based on a command line argument.
 //
-// The diff matrix is inverted using a simple conjugate gradient algorithm
-// corresponding to CEED BP1, see http://ceed.exascaleproject.org/bps. Arbitrary
+// The linear system is inverted using the conjugate gradients algorithm
+// corresponding to CEED BP3, see http://ceed.exascaleproject.org/bps. Arbitrary
 // mesh and solution orders in 1D, 2D and 3D are supported from the same code.
 //
 // Build with:
 //
-//     make ex1 [MFEM_DIR=</path/to/mfem>]
+//     make ex3 [MFEM_DIR=</path/to/mfem>]
 //
 // Sample runs:
 //
-//     ex1
-//     ex1 -m ../../../mfem/data/fichera.mesh
-//     ex1 -m ../../../mfem/data/star.vtk  -o 3
-//     ex1 -m ../../../mfem/data/inline-segment.mesh -o 8
+//     ex3
+//     ex3 -m ../../../mfem/data/fichera.mesh -o 4
+//     ex3 -m ../../../mfem/data/square-disc-nurbs.mesh -o 6
+//     ex3 -m ../../../mfem/data/inline-segment.mesh -o 8
 
 #include <ceed.h>
 #include <mfem.hpp>
@@ -330,7 +330,7 @@ int main(int argc, char *argv[]) {
   // 1. Parse command-line options.
   const char *ceed_spec = "/cpu/self";
   const char *mesh_file = "../../../mfem/data/star.mesh";
-  int order = 1;
+  int order = 2;
   bool visualization = true;
 
   mfem::OptionsParser args(argc, argv);
@@ -358,17 +358,21 @@ int main(int argc, char *argv[]) {
 
   // 4. Refine the mesh to increase the resolution. In this example we do
   //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
-  //    largest number that gives a final mesh with no more than 50,000
-  //    elements.
+  //    largest number that gives a final system with no more than 50,000 (1,000
+  //    in 1D) unknowns, approximately.
   {
+    double max_dofs = (dim > 1) ? 50000 : 1000;
     int ref_levels =
-      (int)floor(log(50000./mesh->GetNE())/log(2.)/dim);
+      (int)floor((log(max_dofs/mesh->GetNE())-dim*log(order))/log(2.)/dim);
     for (int l = 0; l < ref_levels; l++) {
       mesh->UniformRefinement();
     }
   }
   if (mesh->GetNodalFESpace() == NULL) {
     mesh->SetCurvature(1, false, -1, mfem::Ordering::byNODES);
+  }
+  if (mesh->NURBSext) {
+    mesh->SetCurvature(order, false, -1, mfem::Ordering::byNODES);
   }
 
   // 5. Define a finite element space on the mesh. Here we use continuous
@@ -397,8 +401,8 @@ int main(int argc, char *argv[]) {
   b.AddDomainIntegrator(new mfem::DomainLFIntegrator(rhs_coeff));
   b.Assemble();
 
-  // 7. Construct a CeedDiffusionOperator utilizing the 'ceed' device and using the
-  //    'fespace' object to extract data needed by the Ceed objects.
+  // 7. Construct a CeedDiffusionOperator utilizing the 'ceed' device and using
+  //    the 'fespace' object to extract data needed by the Ceed objects.
   CeedDiffusionOperator diff(ceed, fespace);
 
   mfem::Operator *D;
@@ -414,7 +418,7 @@ int main(int argc, char *argv[]) {
 
   cg.Mult(B, X);
 
-  // 9. Compute and print the L2 projection error.
+  // 9. Compute and print the L2 norm of the error.
   std::cout << "L2 norm of the error: " << sol.ComputeL2Error(sol_coeff)
             << std::endl;
 
