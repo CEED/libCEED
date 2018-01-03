@@ -82,7 +82,7 @@ CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
                                const char *, va_list);
 CEED_EXTERN int CeedSetErrorHandler(Ceed ceed,
                                     int (eh)(Ceed, const char *, int, const char *,
-                                             int, const char *, va_list));
+                                        int, const char *, va_list));
 CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
                               const char *, ...);
 /// Raise an error on ceed object
