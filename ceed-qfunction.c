@@ -66,8 +66,8 @@
               multiple fields are consequitive in memory (strides will
               generally vary with the number of components in a field);
               fields that do not specify CEED_EVAL_GRAD mode, use no memory.
-       u[2] - CEED_EVAL_DIV data: field divergences ... <same as above>?
-       u[3] - CEED_EVAL_CURL data: field curl ... <same as above>?
+       u[2] - CEED_EVAL_DIV data: field divergences ... (same as above)?
+       u[3] - CEED_EVAL_CURL data: field curl ... (same as above)?
 
    5. [CeedScalar *const *v][out] - output fields data at quadrature points:
        v[0], v[1], ..., v[3] - use similar layouts as u[] but use the output
@@ -77,8 +77,9 @@
 int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedInt nfields,
                                 size_t qdatasize, CeedEvalMode inmode,
                                 CeedEvalMode outmode,
-                                int (*f)(void *, void *, CeedInt, const CeedScalar *const *,
-                                    CeedScalar *const *),
+                                int (*f)(void *, void *, CeedInt,
+                                         const CeedScalar *const *,
+                                         CeedScalar *const *),
                                 const char *focca, CeedQFunction *qf) {
   int ierr;
 

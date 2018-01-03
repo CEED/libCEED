@@ -104,14 +104,17 @@ int CeedSetErrorHandler(Ceed ceed,
   return 0;
 }
 
-/// Register a Ceed backend
-///
-/// @param prefix Prefix of resources for this backend to respond to.  For
-///               example, the reference backend responds to "/cpu/self".
-/// @param init   Initialization function called by CeedInit() when the backend
-///               is selected to drive the requested resource.
-int CeedRegister(const char *prefix, int (*init)(const char *resource,
-                 Ceed f)) {
+/**
+  Register a Ceed backend
+
+  @param prefix Prefix of resources for this backend to respond to.  For
+                example, the reference backend responds to "/cpu/self".
+  @param init   Initialization function called by CeedInit() when the backend
+                is selected to drive the requested resource.
+  @return 0 on success
+ */
+int CeedRegister(const char *prefix,
+                 int (*init)(const char *, Ceed)) {
   if (num_backends >= sizeof(backends) / sizeof(backends[0])) {
     return CeedError(NULL, 1, "Too many backends");
   }
@@ -163,6 +166,19 @@ int CeedFree(void *p) {
   return 0;
 }
 
+/**
+  Wait for a CeedRequest to complete.
+
+  Calling CeedRequestWait on a NULL request is a no-op.
+
+  @param req Address of CeedRequest to wait for; zeroed on completion.
+  @return 0 on success
+ */
+int CeedRequestWait(CeedRequest *req) {
+  if (!*req) return 0;
+  return CeedError(NULL, 2, "CeedRequestWait not implemented");
+}
+
 /// Initialize a \ref Ceed to use the specified resource.
 ///
 /// @param resource  Resource to use, e.g., "/cpu/self"
@@ -190,7 +206,12 @@ int CeedInit(const char *resource, Ceed *ceed) {
   return 0;
 }
 
-/// Destroy a Ceed context
+/**
+  Destroy a Ceed context
+
+  @param ceed Address of Ceed context to destroy
+  @return 0 on success
+ */
 int CeedDestroy(Ceed *ceed) {
   int ierr;
 
@@ -204,6 +225,12 @@ int CeedDestroy(Ceed *ceed) {
 
 /// @}
 
+/**
+  Private printf-style debugging with color for the terminal
+
+  @param format printf-style format string
+  @param ... arguments as specified in format string
+ */
 void CeedDebug(const char *format,...) {
   // real slow, should use NDEBUG to ifdef the body
   if (!getenv("CEED_DEBUG")) return;

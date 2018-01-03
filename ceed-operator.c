@@ -24,6 +24,19 @@
   @{
  */
 
+/**
+  Create an operator from element restriction, basis, and QFunction
+
+  @param ceed The Ceed library context on which to create the operator
+  @param r Element restriction for the operator
+  @param b Basis for elements restricted to by @a r
+  @param qf QFunction defining the action of the operator at quadrature points
+  @param dqf QFunction defining the action of the Jacobian of @a qf (or NULL)
+  @param dqfT QFunction defining the action of the transpose of the Jacobian
+              of @a qf (or NULL)
+  @param[out] op Newly created CeedOperator
+  @return Error code, 0 on success
+ */
 int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
                        CeedQFunction qf, CeedQFunction dqf,
                        CeedQFunction dqfT, CeedOperator *op) {
@@ -42,14 +55,35 @@ int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
   return 0;
 }
 
-int CeedOperatorApply(CeedOperator op, CeedVector qdata, CeedVector ustate,
-                      CeedVector residual, CeedRequest *request) {
+/**
+  Apply CeedOperator to a vector
+
+  @param op CeedOperator to apply
+  @param qdata CeedVector containing any stored quadrature data (passive data)
+               for the operator
+  @param invec CeedVector containing input state
+  @param outvec CeedVector to store result of applying operator (must be
+                distinct from @a invec)
+  @param request Address of CeedRequest for non-blocking completion, else
+                 CEED_REQUEST_IMMEDIATE
+  @return Error code, 0 on success
+ */
+int CeedOperatorApply(CeedOperator op, CeedVector qdata, CeedVector invec,
+                      CeedVector outvec, CeedRequest *request) {
   int ierr;
 
-  ierr = op->Apply(op, qdata, ustate, residual, request); CeedChk(ierr);
+  ierr = op->Apply(op, qdata, invec, outvec, request); CeedChk(ierr);
   return 0;
 }
 
+/**
+  Get a suitably sized vector to hold passive fields (data at quadrature points)
+
+  @param op CeedOperator for which to get
+  @param[out] qdata Resulting CeedVector.  The implementation holds a reference
+                    so the user should not call CeedVectorDestroy
+  @return Error code, 0 on success
+ */
 int CeedOperatorGetQData(CeedOperator op, CeedVector *qdata) {
   int ierr;
 
@@ -59,6 +93,12 @@ int CeedOperatorGetQData(CeedOperator op, CeedVector *qdata) {
   return 0;
 }
 
+/**
+  Destroy a CeedOperator
+
+  @param op CeedOperator to destroy
+  @return Error code, 0 on success
+ */
 int CeedOperatorDestroy(CeedOperator *op) {
   int ierr;
 
