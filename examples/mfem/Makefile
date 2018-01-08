@@ -32,7 +32,7 @@ CONFIG_MK ?= $(or $(wildcard $(MFEM_DIR)/config/config.mk),$(wildcard\
 MFEM_LIB_FILE = mfem_is_not_built
 -include $(CONFIG_MK)
 
-MFEM_EXAMPLES = ex1
+MFEM_EXAMPLES = ex1 ex3
 
 .SUFFIXES:
 .SUFFIXES: .cpp

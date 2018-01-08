@@ -140,6 +140,7 @@ CEED_EXTERN int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream);
 CEED_EXTERN int CeedVectorDestroy(CeedVector *vec);
 
 CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;
+CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
 /// Denotes whether a linear transformation or its transpose should be applied

@@ -24,6 +24,7 @@
 
 /// @cond DOXYGEN_SKIP
 static CeedRequest ceed_request_immediate;
+static CeedRequest ceed_request_ordered;
 
 static struct {
   char prefix[CEED_MAX_RESOURCE_LEN];
@@ -55,7 +56,35 @@ static size_t num_backends;
 ///   CeedOperatorApply(op, ..., &request);
 ///   CeedRequestWait(&request);
 /// @endcode
+///
+/// @sa CEED_REQUEST_ORDERED
 CeedRequest *const CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
+
+/**
+  Request ordered completion
+
+  This predefined constant is passed as the \ref CeedRequest argument to
+  interfaces when the caller wishes for the operation to be completed in the
+  order that it is submitted to the device.  It is typically used in a construct
+  such as
+
+  @code
+    CeedRequest request;
+    CeedOperatorApply(op1, ..., CEED_REQUEST_ORDERED);
+    CeedOperatorApply(op2, ..., &request);
+    // other optional work
+    CeedWait(&request);
+  @endcode
+
+  which allows the sequence to complete asynchronously but does not start
+  `op2` until `op1` has completed.
+
+  @fixme The current implementation is overly strict, offering equivalent
+  semantics to CEED_REQUEST_IMMEDIATE.
+
+  @sa CEED_REQUEST_IMMEDIATE
+ */
+CeedRequest *const CEED_REQUEST_ORDERED = &ceed_request_ordered;
 
 /// Error handling implementation; use \ref CeedError instead.
 int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
