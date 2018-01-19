@@ -263,7 +263,14 @@ void fCeedBasisCreateTensorH1Lagrange(CeedInt *ceed, CeedInt *dim,
 #define fCeedQFunctionCreateInterior \
     FORTRAN_NAME(ceedqfunctioncreateinterior, CEEDQFUNCTIONCREATEINTERIOR)
 void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
-    CeedInt* nfields, size_t qdatasize, CeedInt* inmode, CeedInt* outmode,
-    int (*f)(void *ctx, void *qdata, CeedInt nq, const CeedScalar *const *u,
-             CeedScalar *const *v), const char *focca, CeedInt *qf);
+    CeedInt* nfields, size_t* qdatasize, CeedInt* inmode, CeedInt* outmode,
+    void (*f)(void *ctx, void *qdata, CeedInt *nq, const CeedScalar *const *u,
+             CeedScalar *const *v, int *err), const char *focca, CeedInt *qf,
+             CeedInt *err);
+
+#define fCeedQFunctionSetContext \
+    FORTRAN_NAME(ceedqfunctionsetcontext, CEEDQFUNCTIONSETCONTEXT)
+void fCeedQFunctionSetContext(CeedInt *qf, void *ctx, size_t* ctxsize,
+    CeedInt *err);
+
 #endif

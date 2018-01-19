@@ -299,8 +299,49 @@ static CeedQFunction **CeedQFunction_dict = NULL;
 static int CeedQFunction_count = 0;
 static int CeedQFunction_count_max = 0;
 
+struct fContext {
+  void (*f)(void *ctx, void *qdata, CeedInt *nq, const CeedScalar *const *u,
+           CeedScalar *const *v, int *ierr);
+  void *innerctx;
+};
+
+static int CeedQFunctionFortranStub(void *ctx, void *qdata, CeedInt nq,
+    const CeedScalar *const *u, CeedScalar *const *v) {
+  struct fContext *fctx = ctx;
+  int ierr;
+  fctx->f(fctx->innerctx, qdata, &nq, u, v, &ierr);
+  return ierr;
+}
+
 void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
-    CeedInt* nfields, size_t qdatasize, CeedInt* inmode, CeedInt* outmode,
-    int (*f)(void *ctx, void *qdata, CeedInt nq, const CeedScalar *const *u,
-             CeedScalar *const *v), const char *focca, CeedInt *qf) {
+    CeedInt* nfields, size_t* qdatasize, CeedInt* inmode, CeedInt* outmode,
+    void (*f)(void *ctx, void *qdata, CeedInt *nq, const CeedScalar *const *u,
+             CeedScalar *const *v, int *ierr), const char *focca, CeedInt *qf,
+             CeedInt *err) {
+  if (CeedQFunction_count == CeedQFunction_count_max)
+    CeedQFunction_count_max += CeedQFunction_count_max/2 + 1,
+    CeedQFunction_dict =
+        realloc(CeedQFunction_dict, sizeof(CeedQFunction*)*CeedQFunction_count_max);
+
+  CeedQFunction *qf_ = CeedQFunction_dict[CeedQFunction_count] =
+                          (CeedQFunction*) malloc(sizeof(CeedQFunction));
+
+  *err = CeedQFunctionCreateInterior(*Ceed_dict[*ceed], *vlength, *nfields,
+             *qdatasize, *inmode, *outmode, CeedQFunctionFortranStub,focca, qf_);
+
+  struct fContext fctx = {f, NULL};
+  CeedQFunctionSetContext(*qf_, &fctx, sizeof(struct fContext));
+
+  *qf = CeedQFunction_count++;
+}
+
+void fCeedQFunctionSetContext(CeedInt *qf, void *ctx, size_t* ctxsize,
+    CeedInt *err) {
+  CeedQFunction qf_ = *CeedQFunction_dict[*qf];
+
+  struct fContext *currentFContext = qf_->ctx;
+  struct fContext newFContext = {currentFContext->f, ctx};
+  *err = CeedQFunctionSetContext(qf_, &newFContext, sizeof(struct fContext));
+
+  CeedQFunction_dict[*qf] = &qf_;
 }
