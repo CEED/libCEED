@@ -245,14 +245,25 @@ static inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
 #define fCeedInit FORTRAN_NAME(ceedinit,CEEDINIT)
 void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err);
 
+#define fCeedDestroy FORTRAN_NAME(ceeddestroy,CEEDDESTROY)
+void fCeedDestroy(CeedInt *ceed, CeedInt *err);
+
 #define fCeedVectorCreate FORTRAN_NAME(ceedvectorcreate,CEEDVECTORCREATE)
 void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec,
                                                            CeedInt *err);
+
+#define fCeedVectorDestroy FORTRAN_NAME(ceedvectordestroy,CEEDVECTORDESTROY)
+void fCeedVectorDestroy(CeedInt *vec, CeedInt *err);
+
 #define fCeedElemRestrictionCreate \
     FORTRAN_NAME(ceedelemrestrictioncreate, CEEDELEMRESTRICTIONCREATE)
 void fCeedElemRestrictionCreate(CeedInt *ceed, CeedInt *nelements,
     CeedInt *esize, CeedInt *ndof, CeedInt *memtype, CeedInt *copymode,
     const CeedInt *indices, CeedInt *elemrestriction, CeedInt *err);
+
+#define fCeedElemRestrictionDestroy \
+    FORTRAN_NAME(ceedelemrestrictiondestroy,CEEDELEMRESTRICTIONDESTROY)
+void fCeedElemRestrictionDestroy(CeedInt *elem, CeedInt *err);
 
 #define fCeedBasisCreateTensorH1Lagrange \
     FORTRAN_NAME(ceedbasiscreatetensorh1lagrange, CEEDBASISCREATETENSORH1LAGRANGE)
@@ -260,13 +271,20 @@ void fCeedBasisCreateTensorH1Lagrange(CeedInt *ceed, CeedInt *dim,
     CeedInt *ndof, CeedInt *P, CeedInt *Q, CeedInt *quadmode, CeedInt *basis,
     CeedInt *err);
 
+#define fCeedBasisDestroy FORTRAN_NAME(ceedbasisdestroy,CEEDBASISDESTROY)
+void fCeedBasisDestroy(CeedInt *basis, CeedInt *err);
+
 #define fCeedQFunctionCreateInterior \
     FORTRAN_NAME(ceedqfunctioncreateinterior, CEEDQFUNCTIONCREATEINTERIOR)
 void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
     CeedInt* nfields, size_t* qdatasize, CeedInt* inmode, CeedInt* outmode,
     void (*f)(void *ctx, void *qdata, CeedInt *nq, const CeedScalar *const *u,
              CeedScalar *const *v, int *err), const char *focca, CeedInt *qf,
-             CeedInt *err);
+    CeedInt *err);
+
+#define fCeedQFunctionDestroy \
+    FORTRAN_NAME(ceedqfunctiondestroy,ceedqfunctiondestroy)
+void fCeedQFunctionDestroy(CeedInt *qf, CeedInt *err);
 
 #define fCeedQFunctionSetContext \
     FORTRAN_NAME(ceedqfunctionsetcontext, CEEDQFUNCTIONSETCONTEXT)

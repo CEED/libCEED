@@ -234,6 +234,11 @@ void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err) {
   *ceed = Ceed_count++;
 }
 
+#define fCeedDestroy FORTRAN_NAME(ceeddestroy,CEEDDESTROY)
+void fCeedDestroy(CeedInt *ceed, CeedInt *err) {
+  *err = CeedDestroy(Ceed_dict[*ceed]);
+}
+
 static CeedVector **CeedVector_dict = NULL;
 static int CeedVector_count = 0;
 static int CeedVector_count_max = 0;
@@ -250,6 +255,10 @@ void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec, CeedInt *er
   *err = CeedVectorCreate(*Ceed_dict[*ceed], *length, vec_);
 
   *vec = CeedVector_count++;
+}
+
+void fCeedVectorDestroy(CeedInt *vec, CeedInt *err) {
+  *err = CeedVectorDestroy(CeedVector_dict[*vec]);
 }
 
 static CeedElemRestriction **CeedElemRestriction_dict = NULL;
@@ -275,6 +284,10 @@ void fCeedElemRestrictionCreate(CeedInt *ceed, CeedInt *nelements,
   *elemrestriction = CeedElemRestriction_count++;
 }
 
+void fCeedElemRestrictionDestroy(CeedInt *elem, CeedInt *err) {
+  *err = CeedElemRestrictionDestroy(CeedElemRestriction_dict[*elem]);
+}
+
 static CeedBasis **CeedBasis_dict = NULL;
 static int CeedBasis_count = 0;
 static int CeedBasis_count_max = 0;
@@ -293,6 +306,10 @@ void fCeedBasisCreateTensorH1Lagrange(CeedInt *ceed, CeedInt *dim,
              *quadmode, basis_);
 
   *basis = CeedBasis_count++;
+}
+
+void fCeedBasisDestroy(CeedInt *basis, CeedInt *err) {
+  *err = CeedBasisDestroy(CeedBasis_dict[*basis]);
 }
 
 static CeedQFunction **CeedQFunction_dict = NULL;
@@ -316,8 +333,8 @@ static int CeedQFunctionFortranStub(void *ctx, void *qdata, CeedInt nq,
 void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
     CeedInt* nfields, size_t* qdatasize, CeedInt* inmode, CeedInt* outmode,
     void (*f)(void *ctx, void *qdata, CeedInt *nq, const CeedScalar *const *u,
-             CeedScalar *const *v, int *ierr), const char *focca, CeedInt *qf,
-             CeedInt *err) {
+             CeedScalar *const *v, int *err), const char *focca, CeedInt *qf,
+    CeedInt *err) {
   if (CeedQFunction_count == CeedQFunction_count_max)
     CeedQFunction_count_max += CeedQFunction_count_max/2 + 1,
     CeedQFunction_dict =
@@ -333,6 +350,10 @@ void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
   CeedQFunctionSetContext(*qf_, &fctx, sizeof(struct fContext));
 
   *qf = CeedQFunction_count++;
+}
+
+void fCeedQFunctionDestroy(CeedInt *qf, CeedInt *err) {
+  *err = CeedQFunctionDestroy(CeedQFunction_dict[*qf]);
 }
 
 void fCeedQFunctionSetContext(CeedInt *qf, void *ctx, size_t* ctxsize,
