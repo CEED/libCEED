@@ -62,7 +62,9 @@ tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 tests     += $(tests.f:tests/%.f=$(OBJDIR)/%)
 #examples
 examples.c := $(sort $(wildcard examples/*.c))
+examples.f := $(sort $(wildcard examples/*.f))
 examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
+examples  += $(examples.f:examples/%.f=$(OBJDIR)/%)
 # backends/[ref & occa]
 ref.c     := $(sort $(wildcard backends/ref/*.c))
 ref.o     := $(ref.c:%.c=$(OBJDIR)/%.o)
@@ -122,6 +124,9 @@ $(OBJDIR)/% : tests/%.f | $$(@D)/.DIR
 
 $(OBJDIR)/% : examples/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
+
+$(OBJDIR)/% : examples/%.f | $$(@D)/.DIR
+	$(call quiet,FC) $(FFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
