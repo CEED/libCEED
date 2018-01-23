@@ -20,14 +20,13 @@
       integer massh
       integer op_massh, op_poisson3dh, op_buildcoeffsh
 
-      character arg*32
-
       nelem=8
       esize=64
       ndof =343
 
-      call getarg(1, arg)
-      call ceedinit(trim(arg)//char(0),ceedh,err)
+c     TODO: get rid of //char(0), essentially we need to convert
+c     fortran strings to c-strings
+      call ceedinit('/cpu/self'//char(0),ceedh,err)
 
       call ceedvectorcreate(ceedh,ndof  ,uh     ,err)
       call ceedvectorcreate(ceedh,ndof  ,rh     ,err)
@@ -39,6 +38,8 @@
       call ceedbasiscreatetensorh1lagrange(ceedh,3,1,4,4,0,
      $  basish,err)
 
+c     TODO: get rid of //char(0), essentially we need to convert
+c     fortran strings to c-strings
       call ceedqfunctioncreateinterior(ceedh,1,1,8,1,1,f_mass,
      $  't40-fortran.f:f_mass'//char(0),massh,err)
 
