@@ -4,6 +4,12 @@ compiler:
   - gcc
   - clang
 
+install:
+  - sudo apt-get install gfortran
+
+env:
+  - FC=gfortran
+
 script:
   - make
   - make prove PROVE_OPTS=-v
