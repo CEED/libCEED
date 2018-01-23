@@ -218,7 +218,10 @@ void CeedDebug(const char *format,...) {
   va_end(args);
 }
 
-// Fortran interface
+/// @defgroup FortranAPI Ceed: Fortran Interface
+/// @{
+/// Fortran interface
+///
 static Ceed **Ceed_dict = NULL;
 static int Ceed_count = 0;
 static int Ceed_count_max = 0;
@@ -366,3 +369,5 @@ void fCeedQFunctionSetContext(CeedInt *qf, void *ctx, size_t* ctxsize,
 
   CeedQFunction_dict[*qf] = &qf_;
 }
+/// @}
+///
