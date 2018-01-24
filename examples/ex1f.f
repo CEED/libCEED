@@ -43,8 +43,11 @@ c     fortran strings to c-strings
       call ceedqfunctioncreateinterior(ceedh,1,1,8,1,1,f_mass,
      $  'ex1f.f:f_mass'//char(0),massh,err)
 
-      call ceedvectordestroy(uh     ,err)
-      call ceedvectordestroy(rh     ,err)
+      call ceedoperatorcreate(ceedh,erstrh,basish,massh,%val(0),%val(0)
+     $  ,op_massh,err)
+
+      call ceedvectordestroy(uh,err)
+      call ceedvectordestroy(rh,err)
       call ceedvectordestroy(xcoordh,err)
       call ceedelemrestrictiondestroy(erstrh,err)
       call ceedbasisdestroy(basish,err)
