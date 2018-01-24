@@ -386,12 +386,11 @@ int main(int argc, char *argv[]) {
   mfem::FunctionCoefficient sol_coeff(solution);
   mfem::Array<int> ess_tdof_list;
   mfem::GridFunction sol(fespace);
-  if (mesh->bdr_attributes.Size())
-  {
-     mfem::Array<int> ess_bdr(mesh->bdr_attributes.Max());
-     ess_bdr = 1;
-     fespace->GetEssentialTrueDofs(ess_bdr, ess_tdof_list);
-     sol.ProjectBdrCoefficient(sol_coeff, ess_bdr);
+  if (mesh->bdr_attributes.Size()) {
+    mfem::Array<int> ess_bdr(mesh->bdr_attributes.Max());
+    ess_bdr = 1;
+    fespace->GetEssentialTrueDofs(ess_bdr, ess_tdof_list);
+    sol.ProjectBdrCoefficient(sol_coeff, ess_bdr);
   }
 
   // 6. Construct a rhs vector using the linear form f(v) = (rhs, v), where
