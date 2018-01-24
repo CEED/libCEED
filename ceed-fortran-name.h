@@ -1,5 +1,5 @@
-#ifndef NAME_H
-#define NAME_H
+#ifndef _ceed_fortran_name_h
+#define _ceed_fortran_name_h
 
 /* establishes some macros to establish
    * the FORTRAN naming convention
@@ -41,4 +41,3 @@
 #endif
 
 #endif
-
