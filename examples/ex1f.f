@@ -41,7 +41,7 @@ c     fortran strings to c-strings
 c     TODO: get rid of //char(0), essentially we need to convert
 c     fortran strings to c-strings
       call ceedqfunctioncreateinterior(ceedh,1,1,8,1,1,f_mass,
-     $  't40-fortran.f:f_mass'//char(0),massh,err)
+     $  'ex1f.f:f_mass'//char(0),massh,err)
 
       call ceedvectordestroy(uh     ,err)
       call ceedvectordestroy(rh     ,err)
