@@ -291,4 +291,9 @@ void fCeedQFunctionDestroy(CeedInt *qf, CeedInt *err);
 void fCeedQFunctionSetContext(CeedInt *qf, void *ctx, size_t* ctxsize,
     CeedInt *err);
 
+#define fCeedOperatorCreate \
+    FORTRAN_NAME(ceedoperatorcreate, CEEDOPERATORCREATE)
+void fCeedOperatorCreate(CeedInt* ceed, CeedInt* erstrn, CeedInt* basis,
+    CeedInt* qf, CeedInt* dqf, CeedInt* dqfT, CeedInt *op, CeedInt *err);
+
 #endif
