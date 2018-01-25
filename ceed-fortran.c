@@ -40,26 +40,26 @@
 /// @{
 /// Fortran interface
 ///
-static Ceed **Ceed_dict = NULL;
+static Ceed *Ceed_dict = NULL;
 static int Ceed_count = 0;
 static int Ceed_count_max = 0;
 
 void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err) {
   if (Ceed_count == Ceed_count_max)
     Ceed_count_max += Ceed_count_max/2 + 1,
-    Ceed_dict = realloc(Ceed_dict, sizeof(Ceed*)*Ceed_count_max);
+    Ceed_dict = realloc(Ceed_dict, sizeof(Ceed)*Ceed_count_max);
 
-  Ceed *ceed_ = Ceed_dict[Ceed_count] = (Ceed*) malloc(sizeof(Ceed));
+  Ceed *ceed_ = &Ceed_dict[Ceed_count];
   *err = CeedInit(resource, ceed_);
 
   *ceed = Ceed_count++;
 }
 
 void fCeedDestroy(CeedInt *ceed, CeedInt *err) {
-  *err = CeedDestroy(Ceed_dict[*ceed]);
+  *err = CeedDestroy(&Ceed_dict[*ceed]);
 }
 
-static CeedVector **CeedVector_dict = NULL;
+static CeedVector *CeedVector_dict = NULL;
 static int CeedVector_count = 0;
 static int CeedVector_count_max = 0;
 
@@ -67,21 +67,19 @@ void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec, CeedInt *er
   if (CeedVector_count == CeedVector_count_max)
     CeedVector_count_max += CeedVector_count_max/2 + 1,
     CeedVector_dict =
-        realloc(CeedVector_dict, sizeof(CeedVector*)*CeedVector_count_max);
+        realloc(CeedVector_dict, sizeof(CeedVector)*CeedVector_count_max);
 
-  CeedVector *vec_ = CeedVector_dict[CeedVector_count] =
-                         (CeedVector*) malloc(sizeof(CeedVector));
-
-  *err = CeedVectorCreate(*Ceed_dict[*ceed], *length, vec_);
+  CeedVector* vec_ = &CeedVector_dict[CeedVector_count];
+  *err = CeedVectorCreate(Ceed_dict[*ceed], *length, vec_);
 
   *vec = CeedVector_count++;
 }
 
 void fCeedVectorDestroy(CeedInt *vec, CeedInt *err) {
-  *err = CeedVectorDestroy(CeedVector_dict[*vec]);
+  *err = CeedVectorDestroy(&CeedVector_dict[*vec]);
 }
 
-static CeedElemRestriction **CeedElemRestriction_dict = NULL;
+static CeedElemRestriction *CeedElemRestriction_dict = NULL;
 static int CeedElemRestriction_count = 0;
 static int CeedElemRestriction_count_max = 0;
 
@@ -92,23 +90,21 @@ void fCeedElemRestrictionCreate(CeedInt *ceed, CeedInt *nelements,
     CeedElemRestriction_count_max += CeedElemRestriction_count_max/2 + 1,
     CeedElemRestriction_dict =
         realloc(CeedElemRestriction_dict, \
-        sizeof(CeedElemRestriction*)*CeedElemRestriction_count_max);
+        sizeof(CeedElemRestriction)*CeedElemRestriction_count_max);
 
   CeedElemRestriction *elemrestriction_ =
-      CeedElemRestriction_dict[CeedElemRestriction_count] =
-          (CeedElemRestriction*) malloc(sizeof(CeedElemRestriction));
-
-  *err = CeedElemRestrictionCreate(*Ceed_dict[*ceed], *nelements, *esize, *ndof,
+      &CeedElemRestriction_dict[CeedElemRestriction_count];
+  *err = CeedElemRestrictionCreate(Ceed_dict[*ceed], *nelements, *esize, *ndof,
              *memtype, *copymode, indices, elemrestriction_);
 
   *elemrestriction = CeedElemRestriction_count++;
 }
 
 void fCeedElemRestrictionDestroy(CeedInt *elem, CeedInt *err) {
-  *err = CeedElemRestrictionDestroy(CeedElemRestriction_dict[*elem]);
+  *err = CeedElemRestrictionDestroy(&CeedElemRestriction_dict[*elem]);
 }
 
-static CeedBasis **CeedBasis_dict = NULL;
+static CeedBasis *CeedBasis_dict = NULL;
 static int CeedBasis_count = 0;
 static int CeedBasis_count_max = 0;
 
@@ -117,22 +113,20 @@ void fCeedBasisCreateTensorH1Lagrange(CeedInt *ceed, CeedInt *dim,
     CeedInt *err) {
   if (CeedBasis_count == CeedBasis_count_max)
     CeedBasis_count_max += CeedBasis_count_max/2 + 1,
-    CeedBasis_dict = realloc(CeedBasis_dict, sizeof(CeedBasis*)*CeedBasis_count_max);
+    CeedBasis_dict = realloc(CeedBasis_dict, sizeof(CeedBasis)*CeedBasis_count_max);
 
-  CeedBasis *basis_ = CeedBasis_dict[CeedBasis_count] =
-                          (CeedBasis*) malloc(sizeof(CeedBasis));
-
-  *err = CeedBasisCreateTensorH1Lagrange(*Ceed_dict[*ceed], *dim, *ndof, *P, *Q,
+  CeedBasis *basis_ = &CeedBasis_dict[CeedBasis_count];
+  *err = CeedBasisCreateTensorH1Lagrange(Ceed_dict[*ceed], *dim, *ndof, *P, *Q,
              *quadmode, basis_);
 
   *basis = CeedBasis_count++;
 }
 
 void fCeedBasisDestroy(CeedInt *basis, CeedInt *err) {
-  *err = CeedBasisDestroy(CeedBasis_dict[*basis]);
+  *err = CeedBasisDestroy(&CeedBasis_dict[*basis]);
 }
 
-static CeedQFunction **CeedQFunction_dict = NULL;
+static CeedQFunction *CeedQFunction_dict = NULL;
 static int CeedQFunction_count = 0;
 static int CeedQFunction_count_max = 0;
 
@@ -158,36 +152,37 @@ void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
   if (CeedQFunction_count == CeedQFunction_count_max)
     CeedQFunction_count_max += CeedQFunction_count_max/2 + 1,
     CeedQFunction_dict =
-        realloc(CeedQFunction_dict, sizeof(CeedQFunction*)*CeedQFunction_count_max);
+        realloc(CeedQFunction_dict, sizeof(CeedQFunction)*CeedQFunction_count_max);
 
-  CeedQFunction *qf_ = CeedQFunction_dict[CeedQFunction_count] =
-                           (CeedQFunction*) malloc(sizeof(CeedQFunction));
-
-  *err = CeedQFunctionCreateInterior(*Ceed_dict[*ceed], *vlength, *nfields,
+  CeedQFunction *qf_ = &CeedQFunction_dict[CeedQFunction_count];
+  *err = CeedQFunctionCreateInterior(Ceed_dict[*ceed], *vlength, *nfields,
              *qdatasize, *inmode, *outmode, CeedQFunctionFortranStub,focca, qf_);
 
-  struct fContext fctx = {f, NULL};
-  CeedQFunctionSetContext(*qf_, &fctx, sizeof(struct fContext));
+  struct fContext *fctx = malloc(sizeof(struct fContext));
+  fctx->f = f; fctx->innerctx = NULL;
+
+  CeedQFunctionSetContext(*qf_, fctx, sizeof(struct fContext));
 
   *qf = CeedQFunction_count++;
 }
 
 void fCeedQFunctionDestroy(CeedInt *qf, CeedInt *err) {
-  *err = CeedQFunctionDestroy(CeedQFunction_dict[*qf]);
+  free(CeedQFunction_dict[*qf]->ctx);
+  *err = CeedQFunctionDestroy(&CeedQFunction_dict[*qf]);
 }
 
 void fCeedQFunctionSetContext(CeedInt *qf, void *ctx, size_t* ctxsize,
     CeedInt *err) {
-  CeedQFunction qf_ = *CeedQFunction_dict[*qf];
+  CeedQFunction qf_ = CeedQFunction_dict[*qf];
 
-  struct fContext *currentFContext = qf_->ctx;
-  struct fContext newFContext = {currentFContext->f, ctx};
-  *err = CeedQFunctionSetContext(qf_, &newFContext, sizeof(struct fContext));
+  struct fContext *newFContext = malloc(sizeof(struct fContext));
+  newFContext->f = ((struct fContext *)(qf_->ctx))->f;
+  newFContext->innerctx = ctx;
 
-  CeedQFunction_dict[*qf] = &qf_;
+  *err = CeedQFunctionSetContext(qf_, newFContext, sizeof(struct fContext));
 }
 
-static CeedOperator **CeedOperator_dict = NULL;
+static CeedOperator *CeedOperator_dict = NULL;
 static int CeedOperator_count = 0;
 static int CeedOperator_count_max = 0;
 
@@ -196,17 +191,16 @@ void fCeedOperatorCreate(CeedInt* ceed, CeedInt* erstrn, CeedInt* basis,
   if (CeedOperator_count == CeedOperator_count_max)
     CeedOperator_count_max += CeedOperator_count_max/2 + 1,
     CeedOperator_dict =
-        realloc(CeedOperator_dict, sizeof(CeedOperator*)*CeedOperator_count_max);
+        realloc(CeedOperator_dict, sizeof(CeedOperator)*CeedOperator_count_max);
 
-  CeedOperator *op_ = CeedOperator_dict[CeedOperator_count] =
-                          (CeedOperator *) malloc(sizeof(CeedOperator));
+  CeedOperator *op_ = &CeedOperator_dict[CeedOperator_count];
 
   CeedQFunction dqf_  = NULL, dqfT_ = NULL;
-  if (dqf  != NULL) dqf_  = *CeedQFunction_dict[*dqf ];
-  if (dqfT != NULL) dqfT_ = *CeedQFunction_dict[*dqfT];
+  if (dqf  != NULL) dqf_  = CeedQFunction_dict[*dqf ];
+  if (dqfT != NULL) dqfT_ = CeedQFunction_dict[*dqfT];
 
-  *err = CeedOperatorCreate(*Ceed_dict[*ceed], *CeedElemRestriction_dict[*erstrn],
-             *CeedBasis_dict[*basis], *CeedQFunction_dict[*qf], dqf_, dqfT_, op_);
+  *err = CeedOperatorCreate(Ceed_dict[*ceed], CeedElemRestriction_dict[*erstrn],
+             CeedBasis_dict[*basis], CeedQFunction_dict[*qf], dqf_, dqfT_, op_);
 
   *op = CeedOperator_count++;
 }
