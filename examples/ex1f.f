@@ -17,8 +17,8 @@
       integer nelem, esize, ndof, eindices(123*125)
       integer basish
       integer erstrh
-      integer massh
-      integer op_massh, op_poisson3dh, op_buildcoeffsh
+c      integer massh
+c      integer op_massh, op_poisson3dh, op_buildcoeffsh
 
       nelem=8
       esize=64
@@ -28,9 +28,9 @@ c     TODO: get rid of //char(0), essentially we need to convert
 c     fortran strings to c-strings
       call ceedinit('/cpu/self'//char(0),ceedh,err)
 
-      call ceedvectorcreate(ceedh,ndof  ,uh     ,err)
-      call ceedvectorcreate(ceedh,ndof  ,rh     ,err)
+      call ceedvectorcreate(ceedh,ndof,uh,err)
       call ceedvectorcreate(ceedh,ndof*3,xcoordh,err)
+      call ceedvectorcreate(ceedh,ndof,rh,err)
 
       call ceedelemrestrictioncreate(ceedh,nelem,esize,ndof,0,
      $  1,eindices,erstrh,err)
@@ -47,11 +47,12 @@ c     fortran strings to c-strings
      $  ,op_massh,err)
 
       call ceedvectordestroy(uh,err)
-      call ceedvectordestroy(rh,err)
       call ceedvectordestroy(xcoordh,err)
+      call ceedvectordestroy(rh,err)
       call ceedelemrestrictiondestroy(erstrh,err)
       call ceedbasisdestroy(basish,err)
       call ceedqfunctiondestroy(massh,err)
+      call ceedoperatordestroy(op_massh,err)
       call ceeddestroy(ceedh,err)
 
       end
