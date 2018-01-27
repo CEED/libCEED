@@ -50,7 +50,7 @@ CEED_INTERN int CeedFree(void *p);
    CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
 #define CeedMalloc(n, p) CeedMallocArray((n), sizeof(**(p)), p)
 #define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
-#define CeedRealloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
+#define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
 void CeedDebug(const char *,...);
 

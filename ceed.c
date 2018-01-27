@@ -163,7 +163,7 @@ int CeedCallocArray(size_t n, size_t unit, void *p) {
 /// @param p Address of pointer to hold the result.
 /// @sa CeedFree()
 int CeedReallocArray(size_t n, size_t unit, void *p) {
-  *(void **)p = realloc((void **)p, n*unit);
+  *(void **)p = realloc(*(void **)p, n*unit);
   if (n && unit && !*(void **)p)
     return CeedError(NULL, 1, "realloc failed to allocate %zd members of size %zd\n",
                      n, unit);
