@@ -45,9 +45,10 @@ static int Ceed_count = 0;
 static int Ceed_count_max = 0;
 
 void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err) {
-  if (Ceed_count == Ceed_count_max)
-    Ceed_count_max += Ceed_count_max/2 + 1,
-    Ceed_dict = realloc(Ceed_dict, sizeof(Ceed)*Ceed_count_max);
+  if (Ceed_count == Ceed_count_max) {
+    Ceed_count_max += Ceed_count_max/2 + 1;
+    CeedRealloc(Ceed_count_max, &Ceed_dict);
+  }
 
   Ceed *ceed_ = &Ceed_dict[Ceed_count];
   *err = CeedInit(resource, ceed_);
@@ -64,10 +65,10 @@ static int CeedVector_count = 0;
 static int CeedVector_count_max = 0;
 
 void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec, CeedInt *err) {
-  if (CeedVector_count == CeedVector_count_max)
-    CeedVector_count_max += CeedVector_count_max/2 + 1,
-    CeedVector_dict =
-        realloc(CeedVector_dict, sizeof(CeedVector)*CeedVector_count_max);
+  if (CeedVector_count == CeedVector_count_max) {
+    CeedVector_count_max += CeedVector_count_max/2 + 1;
+    CeedRealloc(CeedVector_count_max, &CeedVector_dict);
+  }
 
   CeedVector* vec_ = &CeedVector_dict[CeedVector_count];
   *err = CeedVectorCreate(Ceed_dict[*ceed], *length, vec_);
@@ -86,11 +87,10 @@ static int CeedElemRestriction_count_max = 0;
 void fCeedElemRestrictionCreate(CeedInt *ceed, CeedInt *nelements,
     CeedInt *esize, CeedInt *ndof, CeedInt *memtype, CeedInt *copymode,
     const CeedInt *indices, CeedInt *elemrestriction, CeedInt *err) {
-  if (CeedElemRestriction_count == CeedElemRestriction_count_max)
-    CeedElemRestriction_count_max += CeedElemRestriction_count_max/2 + 1,
-    CeedElemRestriction_dict =
-        realloc(CeedElemRestriction_dict, \
-        sizeof(CeedElemRestriction)*CeedElemRestriction_count_max);
+  if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
+    CeedElemRestriction_count_max += CeedElemRestriction_count_max/2 + 1;
+    CeedRealloc(CeedElemRestriction_count_max, &CeedElemRestriction_dict);
+  }
 
   CeedElemRestriction *elemrestriction_ =
       &CeedElemRestriction_dict[CeedElemRestriction_count];
@@ -111,9 +111,10 @@ static int CeedBasis_count_max = 0;
 void fCeedBasisCreateTensorH1Lagrange(CeedInt *ceed, CeedInt *dim,
     CeedInt *ndof, CeedInt *P, CeedInt *Q, CeedInt *quadmode, CeedInt *basis,
     CeedInt *err) {
-  if (CeedBasis_count == CeedBasis_count_max)
-    CeedBasis_count_max += CeedBasis_count_max/2 + 1,
-    CeedBasis_dict = realloc(CeedBasis_dict, sizeof(CeedBasis)*CeedBasis_count_max);
+  if (CeedBasis_count == CeedBasis_count_max) {
+    CeedBasis_count_max += CeedBasis_count_max/2 + 1;
+    CeedRealloc(CeedBasis_count_max, &CeedBasis_dict);
+  }
 
   CeedBasis *basis_ = &CeedBasis_dict[CeedBasis_count];
   *err = CeedBasisCreateTensorH1Lagrange(Ceed_dict[*ceed], *dim, *ndof, *P, *Q,
@@ -149,10 +150,10 @@ void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
     void (*f)(void *ctx, void *qdata, CeedInt *nq, const CeedScalar *const *u,
              CeedScalar *const *v, int *err), const char *focca, CeedInt *qf,
     CeedInt *err) {
-  if (CeedQFunction_count == CeedQFunction_count_max)
-    CeedQFunction_count_max += CeedQFunction_count_max/2 + 1,
-    CeedQFunction_dict =
-        realloc(CeedQFunction_dict, sizeof(CeedQFunction)*CeedQFunction_count_max);
+  if (CeedQFunction_count == CeedQFunction_count_max) {
+    CeedQFunction_count_max += CeedQFunction_count_max/2 + 1;
+    CeedRealloc(CeedQFunction_count_max, &CeedQFunction_dict);
+  }
 
   CeedQFunction *qf_ = &CeedQFunction_dict[CeedQFunction_count];
   *err = CeedQFunctionCreateInterior(Ceed_dict[*ceed], *vlength, *nfields,
@@ -167,7 +168,7 @@ void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
 }
 
 void fCeedQFunctionDestroy(CeedInt *qf, CeedInt *err) {
-  free(CeedQFunction_dict[*qf]->ctx);
+  CeedFree(&CeedQFunction_dict[*qf]->ctx);
   *err = CeedQFunctionDestroy(&CeedQFunction_dict[*qf]);
 }
 
@@ -175,7 +176,7 @@ void fCeedQFunctionSetContext(CeedInt *qf, void *ctx, size_t* ctxsize,
     CeedInt *err) {
   CeedQFunction qf_ = CeedQFunction_dict[*qf];
 
-  struct fContext *newFContext = malloc(sizeof(struct fContext));
+  struct fContext *newFContext; CeedMalloc(1, &newFContext);
   newFContext->f = ((struct fContext *)(qf_->ctx))->f;
   newFContext->innerctx = ctx;
 
