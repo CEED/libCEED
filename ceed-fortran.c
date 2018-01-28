@@ -61,6 +61,36 @@ void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec, CeedInt *er
   }
 }
 
+#define fCeedVectorSetArray FORTRAN_NAME(ceedvectorsetarray,CEEDVECTORSETARRAY)
+void fCeedVectorSetArray(CeedInt *vec, CeedInt *memtype, CeedInt *copymode,
+    CeedScalar *array, CeedInt *err) {
+  *err = CeedVectorSetArray(CeedVector_dict[*vec], *memtype, *copymode, array);
+}
+
+#define fCeedVectorGetArray FORTRAN_NAME(ceedvectorgetarray,CEEDVECTORGETARRAY)
+void fCeedVectorGetArray(CeedInt *vec, CeedInt *memtype, CeedScalar *array, CeedInt *err) {
+  *err = CeedVectorGetArray(CeedVector_dict[*vec], *memtype, &array);
+}
+
+#define fCeedVectorGetArrayRead \
+    FORTRAN_NAME(ceedvectorgetarrayread,CEEDVECTORGETARRAYREAD)
+void fCeedVectorGetArrayRead(CeedInt *vec, CeedInt *memtype, const CeedScalar *array,
+    CeedInt *err) {
+  *err = CeedVectorGetArrayRead(CeedVector_dict[*vec], *memtype, &array);
+}
+
+#define fCeedVectorRestoreArray \
+    FORTRAN_NAME(ceedvectorrestorearray,CEEDVECTORRESTOREARRAY)
+void fCeedVectorRestoreArray(CeedInt *vec, CeedScalar *array, CeedInt *err) {
+  *err = CeedVectorRestoreArray(CeedVector_dict[*vec], &array);
+}
+
+#define fCeedVectorRestoreArrayRead \
+    FORTRAN_NAME(ceedvectorrestorearrayread,CEEDVECTORRESTOREARRAYREAD)
+void fCeedVectorRestoreArrayRead(CeedInt *vec, CeedScalar *array, CeedInt *err) {
+  *err = CeedVectorRestoreArray(CeedVector_dict[*vec], &array);
+}
+
 #define fCeedVectorDestroy FORTRAN_NAME(ceedvectordestroy,CEEDVECTORDESTROY)
 void fCeedVectorDestroy(CeedInt *vec, CeedInt *err) {
   *err = CeedVectorDestroy(&CeedVector_dict[*vec]);
