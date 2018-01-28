@@ -5,40 +5,6 @@
 
 #include <stdlib.h>
 
-#define fCeedInit FORTRAN_NAME(ceedinit,CEEDINIT)
-
-#define fCeedDestroy FORTRAN_NAME(ceeddestroy,CEEDDESTROY)
-
-#define fCeedVectorCreate FORTRAN_NAME(ceedvectorcreate,CEEDVECTORCREATE)
-
-#define fCeedVectorDestroy FORTRAN_NAME(ceedvectordestroy,CEEDVECTORDESTROY)
-
-#define fCeedElemRestrictionCreate \
-    FORTRAN_NAME(ceedelemrestrictioncreate, CEEDELEMRESTRICTIONCREATE)
-
-#define fCeedElemRestrictionDestroy \
-    FORTRAN_NAME(ceedelemrestrictiondestroy,CEEDELEMRESTRICTIONDESTROY)
-
-#define fCeedBasisCreateTensorH1Lagrange \
-    FORTRAN_NAME(ceedbasiscreatetensorh1lagrange, CEEDBASISCREATETENSORH1LAGRANGE)
-
-#define fCeedBasisDestroy FORTRAN_NAME(ceedbasisdestroy,CEEDBASISDESTROY)
-
-#define fCeedQFunctionCreateInterior \
-    FORTRAN_NAME(ceedqfunctioncreateinterior, CEEDQFUNCTIONCREATEINTERIOR)
-
-#define fCeedQFunctionDestroy \
-    FORTRAN_NAME(ceedqfunctiondestroy,ceedqfunctiondestroy)
-
-#define fCeedQFunctionSetContext \
-    FORTRAN_NAME(ceedqfunctionsetcontext, CEEDQFUNCTIONSETCONTEXT)
-
-#define fCeedOperatorCreate \
-    FORTRAN_NAME(ceedoperatorcreate, CEEDOPERATORCREATE)
-
-#define fCeedOperatorDestroy \
-    FORTRAN_NAME(ceedoperatordestroy, CEEDOPERATORDESTROY)
-
 /// @defgroup FortranAPI Ceed: Fortran Interface
 /// @{
 /// Fortran interface
@@ -48,6 +14,7 @@ static int Ceed_count = 0;
 static int Ceed_n = 0;
 static int Ceed_count_max = 0;
 
+#define fCeedInit FORTRAN_NAME(ceedinit,CEEDINIT)
 void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err) {
   if (Ceed_count == Ceed_count_max) {
     Ceed_count_max += Ceed_count_max/2 + 1;
@@ -63,6 +30,7 @@ void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err) {
   }
 }
 
+#define fCeedDestroy FORTRAN_NAME(ceeddestroy,CEEDDESTROY)
 void fCeedDestroy(CeedInt *ceed, CeedInt *err) {
   *err = CeedDestroy(&Ceed_dict[*ceed]);
 
@@ -77,6 +45,7 @@ static int CeedVector_count = 0;
 static int CeedVector_n = 0;
 static int CeedVector_count_max = 0;
 
+#define fCeedVectorCreate FORTRAN_NAME(ceedvectorcreate,CEEDVECTORCREATE)
 void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec, CeedInt *err) {
   if (CeedVector_count == CeedVector_count_max) {
     CeedVector_count_max += CeedVector_count_max/2 + 1;
@@ -92,6 +61,7 @@ void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec, CeedInt *er
   }
 }
 
+#define fCeedVectorDestroy FORTRAN_NAME(ceedvectordestroy,CEEDVECTORDESTROY)
 void fCeedVectorDestroy(CeedInt *vec, CeedInt *err) {
   *err = CeedVectorDestroy(&CeedVector_dict[*vec]);
 
@@ -106,6 +76,8 @@ static int CeedElemRestriction_count = 0;
 static int CeedElemRestriction_n = 0;
 static int CeedElemRestriction_count_max = 0;
 
+#define fCeedElemRestrictionCreate \
+    FORTRAN_NAME(ceedelemrestrictioncreate, CEEDELEMRESTRICTIONCREATE)
 void fCeedElemRestrictionCreate(CeedInt *ceed, CeedInt *nelements,
     CeedInt *esize, CeedInt *ndof, CeedInt *memtype, CeedInt *copymode,
     const CeedInt *indices, CeedInt *elemrestriction, CeedInt *err) {
@@ -125,6 +97,8 @@ void fCeedElemRestrictionCreate(CeedInt *ceed, CeedInt *nelements,
   }
 }
 
+#define fCeedElemRestrictionDestroy \
+    FORTRAN_NAME(ceedelemrestrictiondestroy,CEEDELEMRESTRICTIONDESTROY)
 void fCeedElemRestrictionDestroy(CeedInt *elem, CeedInt *err) {
   *err = CeedElemRestrictionDestroy(&CeedElemRestriction_dict[*elem]);
 
@@ -139,6 +113,8 @@ static int CeedBasis_count = 0;
 static int CeedBasis_n = 0;
 static int CeedBasis_count_max = 0;
 
+#define fCeedBasisCreateTensorH1Lagrange \
+    FORTRAN_NAME(ceedbasiscreatetensorh1lagrange, CEEDBASISCREATETENSORH1LAGRANGE)
 void fCeedBasisCreateTensorH1Lagrange(CeedInt *ceed, CeedInt *dim,
     CeedInt *ndof, CeedInt *P, CeedInt *Q, CeedInt *quadmode, CeedInt *basis,
     CeedInt *err) {
@@ -157,6 +133,7 @@ void fCeedBasisCreateTensorH1Lagrange(CeedInt *ceed, CeedInt *dim,
   }
 }
 
+#define fCeedBasisDestroy FORTRAN_NAME(ceedbasisdestroy,CEEDBASISDESTROY)
 void fCeedBasisDestroy(CeedInt *basis, CeedInt *err) {
   *err = CeedBasisDestroy(&CeedBasis_dict[*basis]);
 
@@ -185,6 +162,8 @@ static int CeedQFunctionFortranStub(void *ctx, void *qdata, CeedInt nq,
   return ierr;
 }
 
+#define fCeedQFunctionCreateInterior \
+    FORTRAN_NAME(ceedqfunctioncreateinterior, CEEDQFUNCTIONCREATEINTERIOR)
 void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
     CeedInt* nfields, size_t* qdatasize, CeedInt* inmode, CeedInt* outmode,
     void (*f)(void *ctx, void *qdata, CeedInt *nq, const CeedScalar *const *u,
@@ -211,6 +190,8 @@ void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
 
 }
 
+#define fCeedQFunctionDestroy \
+    FORTRAN_NAME(ceedqfunctiondestroy,ceedqfunctiondestroy)
 void fCeedQFunctionDestroy(CeedInt *qf, CeedInt *err) {
   CeedFree(&CeedQFunction_dict[*qf]->ctx);
   *err = CeedQFunctionDestroy(&CeedQFunction_dict[*qf]);
@@ -221,6 +202,8 @@ void fCeedQFunctionDestroy(CeedInt *qf, CeedInt *err) {
   }
 }
 
+#define fCeedQFunctionSetContext \
+    FORTRAN_NAME(ceedqfunctionsetcontext, CEEDQFUNCTIONSETCONTEXT)
 void fCeedQFunctionSetContext(CeedInt *qf, void *ctx, size_t* ctxsize,
     CeedInt *err) {
   CeedQFunction qf_ = CeedQFunction_dict[*qf];
@@ -237,6 +220,8 @@ static int CeedOperator_count = 0;
 static int CeedOperator_n = 0;
 static int CeedOperator_count_max = 0;
 
+#define fCeedOperatorCreate \
+    FORTRAN_NAME(ceedoperatorcreate, CEEDOPERATORCREATE)
 void fCeedOperatorCreate(CeedInt* ceed, CeedInt* erstrn, CeedInt* basis,
     CeedInt* qf, CeedInt* dqf, CeedInt* dqfT, CeedInt *op, CeedInt *err) {
   if (CeedOperator_count == CeedOperator_count_max)
@@ -259,6 +244,8 @@ void fCeedOperatorCreate(CeedInt* ceed, CeedInt* erstrn, CeedInt* basis,
   }
 }
 
+#define fCeedOperatorDestroy \
+    FORTRAN_NAME(ceedoperatordestroy, CEEDOPERATORDESTROY)
 void fCeedOperatorDestroy(CeedInt *op, CeedInt *err) {
   *err = CeedOperatorDestroy(&CeedOperator_dict[*op]);
 
