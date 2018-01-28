@@ -4,6 +4,7 @@
 #include <ceed-fortran-name.h>
 
 #include <stdlib.h>
+#include <string.h>
 
 /// @defgroup FortranAPI Ceed: Fortran Interface
 /// @{
@@ -69,14 +70,22 @@ void fCeedVectorSetArray(CeedInt *vec, CeedInt *memtype, CeedInt *copymode,
 
 #define fCeedVectorGetArray FORTRAN_NAME(ceedvectorgetarray,CEEDVECTORGETARRAY)
 void fCeedVectorGetArray(CeedInt *vec, CeedInt *memtype, CeedScalar *array, CeedInt *err) {
-  *err = CeedVectorGetArray(CeedVector_dict[*vec], *memtype, &array);
+  CeedScalar *b;
+  CeedVector vec_ = CeedVector_dict[*vec];
+  *err = CeedVectorGetArray(vec_, *memtype, &b);
+  if (*err == 0)
+    memcpy(array, b, sizeof(CeedScalar)*vec_->length);
 }
 
 #define fCeedVectorGetArrayRead \
     FORTRAN_NAME(ceedvectorgetarrayread,CEEDVECTORGETARRAYREAD)
-void fCeedVectorGetArrayRead(CeedInt *vec, CeedInt *memtype, const CeedScalar *array,
+void fCeedVectorGetArrayRead(CeedInt *vec, CeedInt *memtype, CeedScalar *array,
     CeedInt *err) {
-  *err = CeedVectorGetArrayRead(CeedVector_dict[*vec], *memtype, &array);
+  const CeedScalar *b;
+  CeedVector vec_ = CeedVector_dict[*vec];
+  *err = CeedVectorGetArrayRead(CeedVector_dict[*vec], *memtype, &b);
+  if (*err == 0)
+    memcpy(array, b, sizeof(CeedScalar)*vec_->length);
 }
 
 #define fCeedVectorRestoreArray \
@@ -87,8 +96,8 @@ void fCeedVectorRestoreArray(CeedInt *vec, CeedScalar *array, CeedInt *err) {
 
 #define fCeedVectorRestoreArrayRead \
     FORTRAN_NAME(ceedvectorrestorearrayread,CEEDVECTORRESTOREARRAYREAD)
-void fCeedVectorRestoreArrayRead(CeedInt *vec, CeedScalar *array, CeedInt *err) {
-  *err = CeedVectorRestoreArray(CeedVector_dict[*vec], &array);
+void fCeedVectorRestoreArrayRead(CeedInt *vec, const CeedScalar *array, CeedInt *err) {
+  *err = CeedVectorRestoreArrayRead(CeedVector_dict[*vec], &array);
 }
 
 #define fCeedVectorDestroy FORTRAN_NAME(ceedvectordestroy,CEEDVECTORDESTROY)
