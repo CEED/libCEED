@@ -252,6 +252,21 @@ void fCeedBasisDestroy(CeedInt *basis, CeedInt *err) {
   }
 }
 
+#define fCeedGaussQuadrature FORTRAN_NAME(ceedgaussquadrature, CEEDGAUSSQUADRATURE)
+void fCeedFGaussQuadrature(CeedInt *Q, CeedScalar *qref1d, CeedScalar *qweight1d,
+    CeedInt *err)
+{
+  *err = CeedGaussQuadrature(*Q, qref1d, qweight1d);
+}
+
+#define fCeedLobattoQuadrature \
+    FORTRAN_NAME(ceedlobattoquadrature, CEEDLOBATTOQUADRATURE)
+void fCeedLobattoQuadrature(CeedInt *Q, CeedScalar *qref1d, CeedScalar *qweight1d,
+    CeedInt *err)
+{
+  *err = CeedLobattoQuadrature(*Q, qref1d, qweight1d);
+}
+
 static CeedQFunction *CeedQFunction_dict = NULL;
 static int CeedQFunction_count = 0;
 static int CeedQFunction_n = 0;
