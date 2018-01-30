@@ -207,6 +207,41 @@ void fCeedBasisCreateTensorH1Lagrange(CeedInt *ceed, CeedInt *dim,
   }
 }
 
+#define fCeedBasisCreateTensorH1 \
+    FORTRAN_NAME(ceedbasiscreatetensorh1, CEEDBASISCREATETENSORH1)
+void fCeedBasisCreateTensorH1(CeedInt *ceed, CeedInt *dim, CeedInt *ndof, CeedInt *P1d,
+    CeedInt *Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
+    const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedInt *basis, CeedInt *err)
+{
+
+  *err = CeedBasisCreateTensorH1(Ceed_dict[*ceed], *dim, *ndof, *P1d, *Q1d, interp1d, grad1d,
+             qref1d, qweight1d, &CeedBasis_dict[*basis]);
+}
+
+#define fCeedBasisView FORTRAN_NAME(ceedbasisview, CEEDBASISVIEW)
+void fCeedBasisView(CeedInt *basis, FILE *stream, CeedInt *err) {
+//TODO
+//CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
+}
+
+#define fCeedBasisApply FORTRAN_NAME(ceedbasisapply, CEEDBASISAPPLY)
+void fCeedBasisApply(CeedInt *basis, CeedInt *tmode, CeedInt *emode, const CeedScalar *u,
+    CeedScalar *v, CeedInt *err) {
+  *err = CeedBasisApply(CeedBasis_dict[*basis], *tmode, *emode, u, v);
+}
+
+#define fCeedBasisGetNumNodes \
+    FORTRAN_NAME(ceedbasisgetnumnodes, CEEDBASISGETNUMNODES)
+void fCeedBasisGetNumNodes(CeedInt *basis, CeedInt *P, CeedInt *err) {
+  *err = CeedBasisGetNumNodes(CeedBasis_dict[*basis], P);
+}
+
+#define fCeedBasisGetNumQuadraturePoints \
+    FORTRAN_NAME(ceedbasisgetnumquadraturepoints, CEEDBASISGETNUMQUADRATUREPOINTS)
+void fCeedBasisGetNumQuadraturePoints(CeedInt *basis, CeedInt *Q, CeedInt *err) {
+  *err = CeedBasisGetNumQuadraturePoints(CeedBasis_dict[*basis], Q);
+}
+
 #define fCeedBasisDestroy FORTRAN_NAME(ceedbasisdestroy,CEEDBASISDESTROY)
 void fCeedBasisDestroy(CeedInt *basis, CeedInt *err) {
   *err = CeedBasisDestroy(&CeedBasis_dict[*basis]);
