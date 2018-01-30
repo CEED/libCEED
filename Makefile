@@ -55,18 +55,18 @@ occa.c    := $(sort $(wildcard backends/occa/*.c))
 occa.o    := $(occa.c:%.c=$(OBJDIR)/%.o)
 
 # Output using the 216-color rules mode
-CSTRIDE   = 2
-COFFSET   = 17
-CCHKSUM   = $(shell echo $(rule_path)|cksum|cut -b1-2)
-rule_path = $(notdir $(patsubst %/,%,$(dir $1)))
-rule_file = $(basename $(notdir $1))
-rule_dumb = @echo -e $(call rule_path,$1)/$(call rule_file,$2)
-rule_term = @echo -e \\e[38\;5\;$(shell echo $(CCHKSUM)*$(CSTRIDE)+$(COFFSET)|bc -l)\;1m\
-             $(call rule_path,$1)\\033[m/\\033[\m$(call rule_file,$2)\\033[m
-# if TERM=dumb (emacs), use it; else the term one
-output = $(if $(TERM:dumb=),$(call rule_term,$(1),$(2)),$(call rule_dumb,$(1),$(2)))
+rule_file = $(notdir $(1))
+rule_path = $(patsubst %/,%,$(dir $(1)))
+last_path = $(notdir $(patsubst %/,%,$(dir $(1))))
+CCHKSUM = $(shell echo $(call last_path,$(1))|cksum|cut -b1-2)
+CPRINTF = @if [ -t 1 ]; then \
+				printf "  %10s \033[38;5;%d;1m%s\033[m/%s\n" \
+					$(1) $(shell echo $(call CCHKSUM,$(2))*2+17|bc -l) \
+					$(call rule_path,$(2)) $(call rule_file,$(2)); else \
+				printf "  %10s %s\n" $(1) $(2); fi
+output = $(call CPRINTF,$1,$2)
 # if V is set to non-nil, turn the verbose mode
-quiet = $(if $(V),$($(1)),$(call output,$@,$<);$($(1)))
+quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
 .SUFFIXES:
 .SUFFIXES: .c .o .d
