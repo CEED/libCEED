@@ -19,11 +19,6 @@ CEED_DIR ?= ..
 CEED_FLAGS ?= -I$(CEED_DIR) -std=c99
 CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)) -L$(CEED_DIR) -lceed -lm
 
-OCCA_DIR ?= ../../occa
-ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-  OCCA_LIBS ?= -Wl,-rpath,$(abspath $(OCCA_DIR)/lib) -L$(OCCA_DIR)/lib -locca
-endif
-
 EXAMPLES = ex1
 
 .SUFFIXES:
@@ -37,7 +32,7 @@ all: $(EXAMPLES)
 
 # Rules for building the examples
 %: %.c
-	$(LINK.c) $(CEED_FLAGS) $< -o $@ $(CEED_LIBS) $(OCCA_LIBS)
+	$(LINK.c) $(CEED_FLAGS) $< -o $@ $(CEED_LIBS)
 
 clean:
 	rm -f *~ $(EXAMPLES)
