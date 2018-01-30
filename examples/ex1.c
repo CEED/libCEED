@@ -312,6 +312,11 @@ int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_order,
   return 0;
 }
 
+#ifndef M_PI
+#define M_PI    3.14159265358979323846
+#define M_PI_2  1.57079632679489661923
+#endif
+
 CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords) {
   CeedScalar exact_volume;
   CeedScalar *coords;

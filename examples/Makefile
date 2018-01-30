@@ -16,8 +16,8 @@
 
 # Ceed directory
 CEED_DIR ?= ..
-CEED_FLAGS ?= -I$(CEED_DIR)
-CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)) -L$(CEED_DIR) -lceed
+CEED_FLAGS ?= -I$(CEED_DIR) -std=c99
+CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)) -L$(CEED_DIR) -lceed -lm
 
 OCCA_DIR ?= ../../occa
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
