@@ -136,6 +136,41 @@ void fCeedElemRestrictionCreate(CeedInt *ceed, CeedInt *nelements,
   }
 }
 
+#define fCeedElemRestrictionCreateBlocked \
+    FORTRAN_NAME(ceedelemrestrictioncreateblocked,CEEDELEMRESTRICTIONCREATEBLOCKED)
+void fCeedElemRestrictionCreateBlocked(CeedInt *ceed, CeedInt *nelements,
+    CeedInt *esize, CeedInt *blocksize, CeedInt *mtype, CeedInt *cmode,
+    CeedInt *blkindices, CeedInt *elemr, CeedInt *err)
+{
+  *err = CeedElemRestrictionCreateBlocked(Ceed_dict[*ceed], *nelements, *esize,
+             *blocksize, *mtype, *cmode, blkindices, &CeedElemRestriction_dict[*elemr]);
+}
+
+static CeedRequest *CeedRequest_dict = NULL;
+static int CeedRequest_count = 0;
+static int CeedRequest_n = 0;
+static int CeedRequest_count_max = 0;
+
+#define fCeedElemRestrictionApply \
+    FORTRAN_NAME(ceedelemrestrictionapply,CEEDELEMRESTRICTIONAPPLY)
+void fCeedElemRestrictionApply(CeedInt *elemr, CeedInt *tmode, CeedInt *ncomp, CeedInt *lmode,
+    CeedInt *uvec, CeedInt *ruvec, CeedInt *rqst, CeedInt *err)
+{
+  if (CeedRequest_count == CeedRequest_count_max) {
+    CeedRequest_count_max += CeedRequest_count_max/2 + 1;
+    CeedRealloc(CeedRequest_count_max, &CeedRequest_dict);
+  }
+
+  *err = CeedElemRestrictionApply(CeedElemRestriction_dict[*elemr], *tmode, *ncomp,
+             *lmode, CeedVector_dict[*uvec], CeedVector_dict[*ruvec],
+             &CeedRequest_dict[CeedRequest_count]);
+
+  if (*err == 0) {
+    *rqst = CeedRequest_count++;
+    CeedRequest_n++;
+  }
+}
+
 #define fCeedElemRestrictionDestroy \
     FORTRAN_NAME(ceedelemrestrictiondestroy,CEEDELEMRESTRICTIONDESTROY)
 void fCeedElemRestrictionDestroy(CeedInt *elem, CeedInt *err) {
