@@ -128,6 +128,7 @@ ceed.pc : ceed.pc.template
 cln clean :
 	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests) ceed.pc
 	$(RM) -r *.dSYM $(OBJDIR)/backends
+	$(MAKE) -C examples clean
 	$(MAKE) -C examples/mfem clean
 
 astyle :

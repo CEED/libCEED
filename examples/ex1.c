@@ -17,6 +17,7 @@
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 
 /// A structure used to pass additional data to f_build_mass
@@ -88,24 +89,49 @@ int main(int argc, const char *argv[]) {
   int sol_order  = 4;           // polynomial degree for the solution
   int num_qpts   = sol_order+2; // number of 1D quadrature points
   int prob_size  = 256*1024;    // approximate problem size
+  int help = 0, test = 0;
 
   // Process command line arguments.
-  if (argc != 2) {
-    printf(" Usage:   ex1 <ceed-spec>\n");
-    printf(" Example: ex1 /cpu/self\n");
-    return 0;
+  for (int ia = 1; ia < argc; ia++) {
+    int next_arg = ((ia+1) < argc), parse_error = 0;
+    if (!strcmp(argv[ia],"-h")) {
+      help = 1;
+    } else if (!strcmp(argv[ia],"-c")) {
+      parse_error = next_arg ? ceed_spec = argv[++ia], 0 : 1;
+    } else if (!strcmp(argv[ia],"-d")) {
+      parse_error = next_arg ? dim = atoi(argv[++ia]), 0 : 1;
+    } else if (!strcmp(argv[ia],"-m")) {
+      parse_error = next_arg ? mesh_order = atoi(argv[++ia]), 0 : 1;
+    } else if (!strcmp(argv[ia],"-o")) {
+      parse_error = next_arg ? sol_order = atoi(argv[++ia]), 0 : 1;
+    } else if (!strcmp(argv[ia],"-q")) {
+      parse_error = next_arg ? num_qpts = atoi(argv[++ia]), 0 : 1;
+    } else if (!strcmp(argv[ia],"-s")) {
+      parse_error = next_arg ? prob_size = atoi(argv[++ia]), 0 : 1;
+    } else if (!strcmp(argv[ia],"-t")) {
+      test = 1;
+    }
+    if (parse_error) {
+      printf("Error parsing command line options.\n");
+      return 1;
+    }
   }
-  ceed_spec = argv[1];
 
   // Print the values of all options:
-  printf("Selected options:\n");
-  printf("  Ceed specification : %s\n", ceed_spec);
-  printf("  Mesh dimension     : %d\n", dim);
-  printf("  Mesh order         : %d\n", mesh_order);
-  printf("  Solution order     : %d\n", sol_order);
-  printf("  Num. 1D quadr. pts : %d\n", num_qpts);
-  printf("  Approx. # unknowns : %d\n", prob_size);
-  printf("\n");
+  if (!test || help) {
+    printf("Selected options: [command line option] : <current value>\n");
+    printf("  Ceed specification [-c] : %s\n", ceed_spec);
+    printf("  Mesh dimension     [-d] : %d\n", dim);
+    printf("  Mesh order         [-m] : %d\n", mesh_order);
+    printf("  Solution order     [-o] : %d\n", sol_order);
+    printf("  Num. 1D quadr. pts [-q] : %d\n", num_qpts);
+    printf("  Approx. # unknowns [-s] : %d\n", prob_size);
+    if (help) {
+      printf("Test/quiet mode is %s\n", (test?"ON":"OFF (use -t to enable)"));
+      return 0;
+    }
+    printf("\n");
+  }
 
   // Select appropriate backend and logical device based on the <ceed-spec>
   // command line argument.
@@ -123,10 +149,12 @@ int main(int argc, const char *argv[]) {
   int nxyz[3];
   GetCartesianMeshSize(dim, sol_order, prob_size, nxyz);
 
-  printf("Mesh size: nx = %d", nxyz[0]);
-  if (dim > 1) { printf(", ny = %d", nxyz[1]); }
-  if (dim > 2) { printf(", nz = %d", nxyz[2]); }
-  printf("\n");
+  if (!test) {
+    printf("Mesh size: nx = %d", nxyz[0]);
+    if (dim > 1) { printf(", ny = %d", nxyz[1]); }
+    if (dim > 2) { printf(", nz = %d", nxyz[2]); }
+    printf("\n");
+  }
 
   // Build CeedElemRestriction objects describing the mesh and solution discrete
   // representations.
@@ -136,8 +164,10 @@ int main(int argc, const char *argv[]) {
                             &mesh_restr);
   BuildCartesianRestriction(ceed, dim, nxyz, sol_order, 1, &sol_size,
                             &sol_restr);
-  printf("Number of mesh nodes    : %d\n", mesh_size/dim);
-  printf("Number of solution dofs : %d\n", sol_size);
+  if (!test) {
+    printf("Number of mesh nodes    : %d\n", mesh_size/dim);
+    printf("Number of solution dofs : %d\n", sol_size);
+  }
 
   // Create a CeedVector with the mesh coordinates.
   CeedVector mesh_coords;
@@ -168,11 +198,15 @@ int main(int argc, const char *argv[]) {
   // Compute the quadrature data for the mass operator.
   CeedVector qdata;
   CeedOperatorGetQData(build_oper, &qdata);
-  printf("Computing the quadrature data for the mass operator ...");
-  fflush(stdout);
+  if (!test) {
+    printf("Computing the quadrature data for the mass operator ...");
+    fflush(stdout);
+  }
   CeedOperatorApply(build_oper, qdata, mesh_coords, NULL,
                     CEED_REQUEST_IMMEDIATE);
-  printf(" done.\n");
+  if (!test) {
+    printf(" done.\n");
+  }
 
   // Create the Q-function that defines the action of the mass operator.
   CeedQFunction apply_qfunc;
@@ -186,8 +220,10 @@ int main(int argc, const char *argv[]) {
                      &oper);
 
   // Compute the mesh volume using the mass operator: vol = 1^T.M.1.
-  printf("Computing the mesh volume using the formula: vol = 1^T.M.1 ...");
-  fflush(stdout);
+  if (!test) {
+    printf("Computing the mesh volume using the formula: vol = 1^T.M.1 ...");
+    fflush(stdout);
+  }
 
   // Create auxiliary solution-size vectors.
   CeedVector u, v;
@@ -213,10 +249,14 @@ int main(int argc, const char *argv[]) {
     vol += v_host[i];
   }
   CeedVectorRestoreArrayRead(v, &v_host);
-  printf(" done.\n");
-  printf("Exact mesh volume    : % .14g\n", exact_vol);
-  printf("Computed mesh volume : % .14g\n", vol);
-  printf("Error                : % .14g\n", vol-exact_vol);
+  if (!test) {
+    printf(" done.\n");
+    printf("Exact mesh volume    : % .14g\n", exact_vol);
+    printf("Computed mesh volume : % .14g\n", vol);
+    printf("Volume error         : % .14g\n", vol-exact_vol);
+  } else {
+    printf("Volume error : % .14g\n", vol-exact_vol);
+  }
 
   // Free dynamically allocated memory.
   CeedVectorDestroy(&v);
