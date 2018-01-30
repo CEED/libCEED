@@ -301,13 +301,19 @@ int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_order,
   }
   CeedScalar *coords;
   CeedVectorGetArray(mesh_coords, CEED_MEM_HOST, &coords);
+  CeedScalar *nodes = malloc(sizeof(CeedScalar)*(p+1));
+  // The H1 basis uses Lobatto quadrature points as nodes.
+  CeedLobattoQuadrature(p+1, nodes, NULL); // nodes are in [-1,1]
+  for (CeedInt i = 0; i <= p; i++) { nodes[i] = 0.5+0.5*nodes[i]; }
   for (CeedInt gsdof = 0; gsdof < scalar_size; gsdof++) {
     CeedInt rdof = gsdof;
     for (int d = 0; d < dim; d++) {
-      coords[gsdof+scalar_size*d] = (CeedScalar)(rdof%nd[d]) / (nd[d] - 1);
+      CeedInt d1d = rdof%nd[d];
+      coords[gsdof+scalar_size*d] = ((d1d/p)+nodes[d1d%p]) / nxyz[d];
       rdof /= nd[d];
     }
   }
+  free(nodes);
   CeedVectorRestoreArray(mesh_coords, &coords);
   return 0;
 }
