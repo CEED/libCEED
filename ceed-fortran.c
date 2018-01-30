@@ -155,6 +155,7 @@ static int CeedRequest_count_max = 0;
 
 #define fCeedElemRestrictionApply \
     FORTRAN_NAME(ceedelemrestrictionapply,CEEDELEMRESTRICTIONAPPLY)
+//TODO: Where do I free CeedRequest structs?
 void fCeedElemRestrictionApply(CeedInt *elemr, CeedInt *tmode, CeedInt *ncomp, CeedInt *lmode,
     CeedInt *uvec, CeedInt *ruvec, CeedInt *rqst, CeedInt *err)
 {
@@ -382,6 +383,30 @@ void fCeedOperatorCreate(CeedInt* ceed, CeedInt* erstrn, CeedInt* basis,
     *op = CeedOperator_count++;
     CeedOperator_n++;
   }
+}
+
+#define fCeedOperatorGetQdata \
+    FORTRAN_NAME(ceedoperatorgetqdata, CEEDOPERATORGETQDATA)
+void fCeedOperatorGetQData(CeedInt *op, CeedInt *vec, CeedInt *err) {
+  *err = CeedOperatorGetQData(CeedOperator_dict[*op], &CeedVector_dict[*vec]);
+}
+
+#define fCeedOperatorApply FORTRAN_NAME(ceedoperatorapply, CEEDOPERATORAPPLY)
+void fCeedOperatorApply(CeedInt *op, CeedInt *qdatavec, CeedInt *ustatevec,
+    CeedInt *resvec, CeedInt *rqst, CeedInt *err) {
+  *err = CeedOperatorApply(CeedOperator_dict[*op], CeedVector_dict[*qdatavec],
+             CeedVector_dict[*ustatevec], CeedVector_dict[*resvec],
+             &CeedRequest_dict[*rqst]);
+}
+
+#define fCeedOperatorApplyJacobian \
+    FORTRAN_NAME(ceedoperatorapplyjacobian, CEEDOPERATORAPPLYJACOBIAN)
+void fCeedOperatorApplyJacobian(CeedInt *op, CeedInt *qdatavec, CeedInt *ustatevec,
+    CeedInt *dustatevec, CeedInt *dresvec, CeedInt *rqst, CeedInt *err) {
+// TODO Uncomment this when CeedOperatorApplyJacobian is implemented
+//  *err = CeedOperatorApplyJacobian(CeedOperator_dict[*op], CeedVector_dict[*qdatavec],
+//             CeedVector_dict[*ustatevec], CeedVector_dict[*dustatevec],
+//             CeedVector_dict[*dresvec], &CeedRequest_dict[*rqst]);
 }
 
 #define fCeedOperatorDestroy \
