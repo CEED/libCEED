@@ -58,10 +58,10 @@ occa.o    := $(occa.c:%.c=$(OBJDIR)/%.o)
 rule_file = $(notdir $(1))
 rule_path = $(patsubst %/,%,$(dir $(1)))
 last_path = $(notdir $(patsubst %/,%,$(dir $(1))))
-CCHKSUM = $(shell echo $(call last_path,$(1))|cksum|cut -b1-2)
+ansicolor = $(shell echo $(call last_path,$(1)) | cksum | cut -b1-2 | xargs -IS expr 2 \* S + 17)
 CPRINTF = @if [ -t 1 ]; then \
 				printf "  %10s \033[38;5;%d;1m%s\033[m/%s\n" \
-					$(1) $(shell echo $(call CCHKSUM,$(2))*2+17|bc -l) \
+					$(1) $(call ansicolor,$(2)) \
 					$(call rule_path,$(2)) $(call rule_file,$(2)); else \
 				printf "  %10s %s\n" $(1) $(2); fi
 output = $(call CPRINTF,$1,$2)
