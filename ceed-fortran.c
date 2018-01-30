@@ -69,6 +69,7 @@ void fCeedVectorSetArray(CeedInt *vec, CeedInt *memtype, CeedInt *copymode,
 }
 
 #define fCeedVectorGetArray FORTRAN_NAME(ceedvectorgetarray,CEEDVECTORGETARRAY)
+//TODO Need Fixing, double pointer
 void fCeedVectorGetArray(CeedInt *vec, CeedInt *memtype, CeedScalar *array, CeedInt *err) {
   CeedScalar *b;
   CeedVector vec_ = CeedVector_dict[*vec];
@@ -79,6 +80,7 @@ void fCeedVectorGetArray(CeedInt *vec, CeedInt *memtype, CeedScalar *array, Ceed
 
 #define fCeedVectorGetArrayRead \
     FORTRAN_NAME(ceedvectorgetarrayread,CEEDVECTORGETARRAYREAD)
+//TODO Need Fixing, double pointer
 void fCeedVectorGetArrayRead(CeedInt *vec, CeedInt *memtype, CeedScalar *array,
     CeedInt *err) {
   const CeedScalar *b;
@@ -314,18 +316,6 @@ void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
 
 }
 
-#define fCeedQFunctionDestroy \
-    FORTRAN_NAME(ceedqfunctiondestroy,ceedqfunctiondestroy)
-void fCeedQFunctionDestroy(CeedInt *qf, CeedInt *err) {
-  CeedFree(&CeedQFunction_dict[*qf]->ctx);
-  *err = CeedQFunctionDestroy(&CeedQFunction_dict[*qf]);
-
-  if (*err == 0) {
-    CeedQFunction_n--;
-    if (CeedQFunction_n == 0) CeedFree(&CeedQFunction_dict);
-  }
-}
-
 #define fCeedQFunctionSetContext \
     FORTRAN_NAME(ceedqfunctionsetcontext, CEEDQFUNCTIONSETCONTEXT)
 void fCeedQFunctionSetContext(CeedInt *qf, void *ctx, size_t* ctxsize,
@@ -337,6 +327,32 @@ void fCeedQFunctionSetContext(CeedInt *qf, void *ctx, size_t* ctxsize,
   newFContext->innerctx = ctx;
 
   *err = CeedQFunctionSetContext(qf_, newFContext, sizeof(struct fContext));
+}
+
+#define fCeedQFunctionApply \
+    FORTRAN_NAME(ceedqfunctionapply,CEEDQFUNCTIONAPPLY)
+//TODO Need Fixing, double pointer
+void fCeedQFunctionApply(CeedInt *qf, void *qdata, CeedInt *Q,
+    const CeedScalar *u, CeedScalar *v, CeedInt *err)
+{
+  CeedQFunction qf_ = CeedQFunction_dict[*qf];
+
+  CeedScalar *v_;
+  *err = CeedQFunctionApply(qf_, qdata, *Q, &u, &v_);
+  if (*err == 0)
+    memcpy(v, v_, sizeof(CeedScalar)*qf_->vlength);
+}
+
+#define fCeedQFunctionDestroy \
+    FORTRAN_NAME(ceedqfunctiondestroy,CEEDQFUNCTIONDESTROY)
+void fCeedQFunctionDestroy(CeedInt *qf, CeedInt *err) {
+  CeedFree(&CeedQFunction_dict[*qf]->ctx);
+  *err = CeedQFunctionDestroy(&CeedQFunction_dict[*qf]);
+
+  if (*err == 0) {
+    CeedQFunction_n--;
+    if (CeedQFunction_n == 0) CeedFree(&CeedQFunction_dict);
+  }
 }
 
 static CeedOperator *CeedOperator_dict = NULL;
