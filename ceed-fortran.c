@@ -174,6 +174,15 @@ void fCeedElemRestrictionApply(CeedInt *elemr, CeedInt *tmode, CeedInt *ncomp, C
   }
 }
 
+//#define fCeedRequestDestroy FORTRAN_NAME(ceedrequestdestroy, CEEDREQUESTDESTROY)
+//void fCeedRequestDestroy(CeedInt *rqst, CeedInt *err) {
+//
+//  if (*err == 0) {
+//    CeedRequest_n--;
+//    if (CeedRequest_n == 0) CeedFree(&CeedRequest_dict);
+//  }
+//}
+
 #define fCeedElemRestrictionDestroy \
     FORTRAN_NAME(ceedelemrestrictiondestroy,CEEDELEMRESTRICTIONDESTROY)
 void fCeedElemRestrictionDestroy(CeedInt *elem, CeedInt *err) {
