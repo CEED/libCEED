@@ -7,6 +7,12 @@ output=$(mktemp $1.XXXX)
 backends=(/cpu/self /cpu/occa /gpu/occa)
 printf "1..$[3*${#backends[@]}]\n";
 
+if [ ${1::2} == "ex" ]; then
+    args=$(grep -F //TESTARGS examples/$1.c | cut -d\  -f2- )
+else
+    args='{ceed_resource}'
+fi
+
 for ((i=0;i<${#backends[@]}; ++i)); do
     i0=$((3*$i+1)) # return code
     i1=$(($i0+1))  # stdout
@@ -14,7 +20,7 @@ for ((i=0;i<${#backends[@]}; ++i)); do
     backend=${backends[$i]}
 
     # Run in subshell
-    (build/$1 $backend || false) > ${output}.out 2> ${output}.err
+    (build/$1 ${args/\{ceed_resource\}/$backend} || false) > ${output}.out 2> ${output}.err
     status=$?
     if grep -F -q -e 'backend cannot use resource' \
             -e 'backend failed to use GPU resource' ${output}.err; then

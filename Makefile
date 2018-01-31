@@ -110,13 +110,13 @@ $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 $(OBJDIR)/t% : tests/t%.c $(libceed)
 $(OBJDIR)/ex% : examples/ex%.c $(libceed)
 
-run-t% : $(OBJDIR)/t%
+run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:build/%=%)
 
-test : $(tests:$(OBJDIR)/t%=run-t%)
+test : $(tests:$(OBJDIR)/%=run-%) $(examples:$(OBJDIR)/%=run-%)
 
-prove : $(tests)
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%)
+prove : $(tests) $(examples)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)
 
 examples : $(examples)
 
