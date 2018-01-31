@@ -84,8 +84,8 @@ void fCeedVectorGetArray(CeedInt *vec, CeedInt *memtype, CeedScalar *array, Ceed
 void fCeedVectorGetArrayRead(CeedInt *vec, CeedInt *memtype, CeedScalar *array,
     CeedInt *err) {
   const CeedScalar *b;
-  CeedVector vec_ = CeedVector_dict[*vec];
   *err = CeedVectorGetArrayRead(CeedVector_dict[*vec], *memtype, &b);
+  CeedVector vec_ = CeedVector_dict[*vec];
   if (*err == 0)
     memcpy(array, b, sizeof(CeedScalar)*vec_->length);
 }
@@ -155,33 +155,41 @@ static int CeedRequest_count_max = 0;
 
 #define fCeedElemRestrictionApply \
     FORTRAN_NAME(ceedelemrestrictionapply,CEEDELEMRESTRICTIONAPPLY)
-//TODO: Where do I free CeedRequest structs?
 void fCeedElemRestrictionApply(CeedInt *elemr, CeedInt *tmode, CeedInt *ncomp, CeedInt *lmode,
     CeedInt *uvec, CeedInt *ruvec, CeedInt *rqst, CeedInt *err)
 {
-  if (CeedRequest_count == CeedRequest_count_max) {
+  int createRequest = 1;
+  // Check if input is CEED_REQUEST_NULL(NULL) or CEED_REQUEST_IMMEDIATE(-1)
+  if (rqst != NULL || *rqst != -1) createRequest = 0;
+
+  if (createRequest && CeedRequest_count == CeedRequest_count_max) {
     CeedRequest_count_max += CeedRequest_count_max/2 + 1;
     CeedRealloc(CeedRequest_count_max, &CeedRequest_dict);
   }
 
-  *err = CeedElemRestrictionApply(CeedElemRestriction_dict[*elemr], *tmode, *ncomp,
-             *lmode, CeedVector_dict[*uvec], CeedVector_dict[*ruvec],
-             &CeedRequest_dict[CeedRequest_count]);
+  CeedRequest *rqst_;
+  if (rqst == NULL) rqst_ = CEED_REQUEST_NULL;
+  else if (*rqst == -1) rqst_ = CEED_REQUEST_IMMEDIATE;
 
-  if (*err == 0) {
+  *err = CeedElemRestrictionApply(CeedElemRestriction_dict[*elemr], *tmode, *ncomp,
+             *lmode, CeedVector_dict[*uvec], CeedVector_dict[*ruvec], rqst_);
+
+  if (*err == 0 && createRequest) {
     *rqst = CeedRequest_count++;
     CeedRequest_n++;
   }
 }
 
-//#define fCeedRequestDestroy FORTRAN_NAME(ceedrequestdestroy, CEEDREQUESTDESTROY)
-//void fCeedRequestDestroy(CeedInt *rqst, CeedInt *err) {
-//
-//  if (*err == 0) {
-//    CeedRequest_n--;
-//    if (CeedRequest_n == 0) CeedFree(&CeedRequest_dict);
-//  }
-//}
+#define fCeedRequestWait FORTRAN_NAME(ceedrequestwait, CEEDREQUESTWAIT)
+void fCeedRequestwait(CeedInt *rqst, CeedInt *err) {
+  // TODO Uncomment this once CeedRequestWait is implemented
+  //*err = CeedRequestWait(&CeedRequest_dict[*rqst]);
+
+  if (*err == 0) {
+    CeedRequest_n--;
+    if (CeedRequest_n == 0) CeedFree(&CeedRequest_dict);
+  }
+}
 
 #define fCeedElemRestrictionDestroy \
     FORTRAN_NAME(ceedelemrestrictiondestroy,CEEDELEMRESTRICTIONDESTROY)
