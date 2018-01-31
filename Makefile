@@ -102,22 +102,21 @@ $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
-$(OBJDIR)/%.o : examples/%.c | $$(@D)/.DIR
-	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
+$(OBJDIR)/% : examples/%.c | $$(@D)/.DIR
+	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 $(OBJDIR)/t% : tests/t%.c $(libceed)
 $(OBJDIR)/ex% : examples/ex%.c $(libceed)
 
-run-t% : $(OBJDIR)/t%
+run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:build/%=%)
 
-test : $(tests:$(OBJDIR)/t%=run-t%)
-tst:;@$(MAKE) $(MFLAGS) V=$(V) test
+test : $(tests:$(OBJDIR)/%=run-%) $(examples:$(OBJDIR)/%=run-%)
 
-prove : $(tests)
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%)
+prove : $(tests) $(examples)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)
 
 examples : $(examples)
 
@@ -128,6 +127,7 @@ ceed.pc : ceed.pc.template
 cln clean :
 	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests) ceed.pc
 	$(RM) -r *.dSYM $(OBJDIR)/backends
+	$(MAKE) -C examples clean
 	$(MAKE) -C examples/mfem clean
 
 astyle :
