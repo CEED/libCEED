@@ -88,7 +88,7 @@ int main(int argc, const char *argv[]) {
   int mesh_order = 4;           // polynomial degree for the mesh
   int sol_order  = 4;           // polynomial degree for the solution
   int num_qpts   = sol_order+2; // number of 1D quadrature points
-  int prob_size  = 256*1024;    // approximate problem size
+  int prob_size  = -1;          // approximate problem size
   int help = 0, test = 0;
 
   // Process command line arguments.
@@ -116,6 +116,7 @@ int main(int argc, const char *argv[]) {
       return 1;
     }
   }
+  if (prob_size < 0) prob_size = test ? 8*16 : 256*1024;
 
   // Print the values of all options:
   if (!test || help) {
@@ -255,7 +256,7 @@ int main(int argc, const char *argv[]) {
     printf("Computed mesh volume : % .14g\n", vol);
     printf("Volume error         : % .14g\n", vol-exact_vol);
   } else {
-    printf("Volume error : % .14g\n", vol-exact_vol);
+    printf("Volume error : % .1e\n", vol-exact_vol);
   }
 
   // Free dynamically allocated memory.
