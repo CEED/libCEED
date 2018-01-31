@@ -114,7 +114,6 @@ run-t% : $(OBJDIR)/t%
 	@tests/tap.sh $(<:build/%=%)
 
 test : $(tests:$(OBJDIR)/t%=run-t%)
-tst:;@$(MAKE) $(MFLAGS) test
 
 prove : $(tests)
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%)
