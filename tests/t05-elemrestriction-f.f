@@ -7,7 +7,7 @@
       integer r
       parameter(ne=3)
 
-      integer*8 ind(2*ne)
+      integer*4 ind(2*ne)
       real*8 a(ne+1)
       real*8 yy(2*ne)
       real*8 diff
@@ -20,7 +20,7 @@
       call ceedvectorcreate(ceed,ne+1,x,err)
 
       do i=1,ne+1
-        a(i)=10+i
+        a(i)=10+i-1
       enddo
 
       call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,err)
@@ -41,15 +41,15 @@
 
       call ceedvectorgetarrayread(y1,ceed_mem_host,yy,err)
       do i=1,ne*2
-        diff=10.0+i/2-yy(i)
+        diff=10+i/2-yy(i)
         if (abs(diff) > 1.0D-5) then
           write(*,*) 'Error in restricted array y(',i,')=',yy(i)
         endif
       enddo
       call ceedvectorrestorearrayread(y1,yy,err)
 
-      call ceedvectordestroy(y1,err)
       call ceedvectordestroy(x,err)
+      call ceedvectordestroy(y1,err)
       call ceedelemrestrictiondestroy(r,err)
       call ceeddestroy(ceed,err)
 
