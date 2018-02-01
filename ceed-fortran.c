@@ -159,8 +159,8 @@ void fCeedElemRestrictionApply(CeedInt *elemr, CeedInt *tmode, CeedInt *ncomp, C
     CeedInt *uvec, CeedInt *ruvec, CeedInt *rqst, CeedInt *err)
 {
   int createRequest = 1;
-  // Check if input is CEED_REQUEST_NULL(NULL) or CEED_REQUEST_IMMEDIATE(-1)
-  if (rqst != NULL || *rqst != -1) createRequest = 0;
+  // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
+  if (*rqst == -1 || *rqst == -2) createRequest = 0;
 
   if (createRequest && CeedRequest_count == CeedRequest_count_max) {
     CeedRequest_count_max += CeedRequest_count_max/2 + 1;
@@ -168,8 +168,8 @@ void fCeedElemRestrictionApply(CeedInt *elemr, CeedInt *tmode, CeedInt *ncomp, C
   }
 
   CeedRequest *rqst_;
-  if (rqst == NULL) rqst_ = CEED_REQUEST_NULL;
-  else if (*rqst == -1) rqst_ = CEED_REQUEST_IMMEDIATE;
+  if (*rqst == -1) rqst_ = CEED_REQUEST_IMMEDIATE;
+  else if (*rqst == -2) rqst_ = CEED_REQUEST_ORDERED;
 
   *err = CeedElemRestrictionApply(CeedElemRestriction_dict[*elemr], *tmode, *ncomp,
              *lmode, CeedVector_dict[*uvec], CeedVector_dict[*ruvec], rqst_);

@@ -31,8 +31,8 @@ c
       integer ceed_request_immediate
       parameter(ceed_request_immediate = -1)
 
-      integer ceed_request_null
-      parameter(ceed_request_null      = -2)
+      integer ceed_request_ordered
+      parameter(ceed_request_ordered   = -2)
 c
 c CeedTransposeMode
 c
