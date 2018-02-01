@@ -68,6 +68,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction res,
 int CeedTensorContract_Occa(Ceed ceed,
                             CeedInt A, CeedInt B, CeedInt C, CeedInt J,
                             const CeedScalar *t, CeedTransposeMode tmode,
+                            const CeedInt Add,
                             const CeedScalar *u, CeedScalar *v);
 
 // **[ vector ] ****************************************************************

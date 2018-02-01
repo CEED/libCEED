@@ -19,6 +19,12 @@
 #ifndef _ceed_h
 #define _ceed_h
 
+/**
+  CEED_EXTERN is used in this header to denote all publicly visible symbols.
+
+  No other file should declare publicly visible symbols, thus it should never be
+  used outside ceed.h.
+ */
 #ifdef __cplusplus
 #  define CEED_EXTERN extern "C"
 #else
@@ -66,8 +72,8 @@ typedef struct CeedQFunction_private *CeedQFunction;
 /// acting on the vector \f$u\f$.
 typedef struct CeedOperator_private *CeedOperator;
 
-CEED_EXTERN int CeedRegister(const char *prefix, int (*init)(const char *,
-                             Ceed));
+CEED_EXTERN int CeedRegister(const char *prefix,
+                             int (*init)(const char *, Ceed));
 
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
 CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,
@@ -76,7 +82,7 @@ CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
                                const char *, va_list);
 CEED_EXTERN int CeedSetErrorHandler(Ceed ceed,
                                     int (eh)(Ceed, const char *, int, const char *,
-                                             int, const char *, va_list));
+                                        int, const char *, va_list));
 CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
                               const char *, ...);
 /// Raise an error on ceed object
@@ -90,7 +96,6 @@ CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
 #define CeedError(ceed, ecode, ...)                                     \
   CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__)
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
-CEED_EXTERN int CeedCompose(int n, const Ceed *ceeds, Ceed *composed);
 
 /// Specify memory type
 ///
@@ -116,7 +121,8 @@ typedef enum {
   /// CeedFree() when done using it.  The user should not assume that the
   /// pointer remains valid after ownership has been transferred.  Note that
   /// arrays allocated using C++ operator new or other allocators cannot
-  /// generally be freed using CeedFree()
+  /// generally be freed using CeedFree().  CeedFree() is capable of freeing any
+  /// memory that can be freed using free(3).
   CEED_OWN_POINTER,
 } CeedCopyMode;
 
@@ -130,19 +136,20 @@ CEED_EXTERN int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
 CEED_EXTERN int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array);
 CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec,
     const CeedScalar **array);
+CEED_EXTERN int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream);
 CEED_EXTERN int CeedVectorDestroy(CeedVector *vec);
 
 CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;
-/* When CEED_REQUEST_NULL (or simply NULL) is given as the CeedRequest pointer
-   to a function call, the caller is indicating that he/she will not need to
-   call CeedRequestWait to wait for the completion of the operation. In general,
-   the operation is expected to be executed asyncronously and its result to be
-   available before the execution of next asynchronous operation using the same
-   Ceed. */
-#define CEED_REQUEST_NULL ((CeedRequest *)NULL)
+CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
-typedef enum {CEED_NOTRANSPOSE, CEED_TRANSPOSE} CeedTransposeMode;
+/// Denotes whether a linear transformation or its transpose should be applied
+typedef enum {
+  /// Apply the linear transformation
+  CEED_NOTRANSPOSE,
+  /// Apply the transpose
+  CEED_TRANSPOSE
+} CeedTransposeMode;
 
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelements,
     CeedInt esize, CeedInt ndof, CeedMemType mtype, CeedCopyMode cmode,
@@ -208,8 +215,9 @@ CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
 
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     CeedInt nfields, size_t qdatasize, CeedEvalMode inmode, CeedEvalMode outmode,
-    int (*f)(void *ctx, void *qdata, CeedInt nq, const CeedScalar *const *u,
-             CeedScalar *const *v), const char *focca, CeedQFunction *qf);
+    int (*f)(void *, void *, CeedInt, const CeedScalar *const *,
+             CeedScalar *const *),
+    const char *focca, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx,
                                         size_t ctxsize);
 CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, void *qdata, CeedInt Q,
@@ -223,9 +231,6 @@ CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r,
 CEED_EXTERN int CeedOperatorGetQData(CeedOperator op, CeedVector *qdata);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector qdata,
                                   CeedVector ustate, CeedVector residual, CeedRequest *request);
-CEED_EXTERN int CeedOperatorApplyJacobian(CeedOperator op, CeedVector qdata,
-    CeedVector ustate, CeedVector dustate, CeedVector dresidual,
-    CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
 
 static inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {

@@ -103,7 +103,8 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
                                     nc, lmode, etmp, residual,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
   }
-  if (request != CEED_REQUEST_IMMEDIATE) *request = NULL;
+  if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
+    *request = NULL;
   return 0;
 }
 

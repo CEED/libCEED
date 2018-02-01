@@ -15,43 +15,26 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 # Ceed directory
-CEED_DIR ?= ../..
-CEED_FLAGS ?= -I$(CEED_DIR)
-CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)) -L$(CEED_DIR) -lceed
+CEED_DIR ?= ..
+CEED_FLAGS ?= -I$(CEED_DIR) -std=c99
+CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)) -L$(CEED_DIR) -lceed -lm
 
-OCCA_DIR ?= ../../../occa
-ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-  OCCA_LIBS ?= -Wl,-rpath,$(abspath $(OCCA_DIR)/lib) -L$(OCCA_DIR)/lib -locca
-endif
-
-# Use an MFEM build directory or an MFEM install directory
-MFEM_DIR ?= ../../../mfem
-CONFIG_MK ?= $(or $(wildcard $(MFEM_DIR)/config/config.mk),$(wildcard\
-  $(MFEM_DIR)/share/mfem/config.mk))
-
-MFEM_LIB_FILE = mfem_is_not_built
--include $(CONFIG_MK)
-
-MFEM_EXAMPLES = ex1 ex3
+EXAMPLES.c = $(wildcard ex*)
+EXAMPLES = $(EXAMPLES.c:%.c=%)
 
 .SUFFIXES:
-.SUFFIXES: .cpp
+.SUFFIXES: .c
 .PHONY: all clean
 
-all: $(MFEM_EXAMPLES)
+all: $(EXAMPLES)
 
 # Remove built-in rules
-%: %.cpp
+%: %.c
 
 # Rules for building the examples
-%: %.cpp $(MFEM_LIB_FILE) $(CONFIG_MK)
-	$(MFEM_CXX) $(CEED_FLAGS) $(MFEM_FLAGS) $< -o $@ $(CEED_LIBS) \
-	  $(MFEM_LIBS) $(OCCA_LIBS)
-
-# Generate an error message if the MFEM library is not built and exit
-$(MFEM_LIB_FILE):
-	$(error The MFEM library is not built)
+%: %.c
+	$(LINK.c) $(CEED_FLAGS) $< -o $@ $(CEED_LIBS)
 
 clean:
-	rm -f *~ $(MFEM_EXAMPLES)
+	rm -f *~ $(EXAMPLES)
 	rm -rf *.dSYM *.TVD.*breakpoints

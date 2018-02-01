@@ -71,23 +71,22 @@ ref.o     := $(ref.c:%.c=$(OBJDIR)/%.o)
 occa.c    := $(sort $(wildcard backends/occa/*.c))
 occa.o    := $(occa.c:%.c=$(OBJDIR)/%.o)
 
-# Output color rules
-COLOR_OFFSET = 3
-COLOR = $(shell echo $(rule_path)|cksum|cut -b1-2)
-rule_path = $(notdir $(patsubst %/,%,$(dir $<)))
-rule_file = $(basename $(notdir $@))
-rule_dumb = @echo -e $(rule_path)/$(rule_file)
-rule_term = @echo -e \\e[38\;5\;$(shell echo $(COLOR)+$(COLOR_OFFSET)|bc -l)\;1m\
-             $(rule_path)\\033[m/\\033[\m$(rule_file)\\033[m
+# Output using the 216-color rules mode
+rule_file = $(notdir $(1))
+rule_path = $(patsubst %/,%,$(dir $(1)))
+last_path = $(notdir $(patsubst %/,%,$(dir $(1))))
+ansicolor = $(shell echo $(call last_path,$(1)) | cksum | cut -b1-2 | xargs -IS expr 2 \* S + 17)
+emacs_out = @printf "  %10s %s/%s\n" $(1) $(call rule_path,$(2)) $(call rule_file,$(2))
+color_out = @if [ -t 1 ]; then \
+				printf "  %10s \033[38;5;%d;1m%s\033[m/%s\n" \
+					$(1) $(call ansicolor,$(2)) \
+					$(call rule_path,$(2)) $(call rule_file,$(2)); else \
+				printf "  %10s %s\n" $(1) $(2); fi
 # if TERM=dumb, use it, otherwise switch to the term one
-output = $(if $(TERM:dumb=),$(rule_term),$(rule_dumb))
+output = $(if $(TERM:dumb=),$(call color_out,$1,$2),$(call emacs_out,$1,$2))
 
-V ?= 0
-ifeq ($(V),0)
-  quiet = @printf "  %10s %s\n" "$1" "$@"; $($(1))
-else
-  quiet = $($(1))
-endif
+# if V is set to non-nil, turn the verbose mode
+quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
 .SUFFIXES:
 .SUFFIXES: .c .o .d
@@ -99,7 +98,8 @@ endif
 
 .PRECIOUS: %/.DIR
 
-all : $(libceed) ceed.pc
+this: $(libceed) ceed.pc
+all:;@$(MAKE) $(MFLAGS) V=$(V) this
 
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name $(abspath $(libceed)))
 
@@ -132,24 +132,24 @@ $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 $(OBJDIR)/t% : tests/t%.c tests/t%.f $(libceed)
 
-run-t% : $(OBJDIR)/t%
+run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:build/%=%)
 
-test : $(tests:$(OBJDIR)/t%=run-t%)
-tst:;@$(MAKE) $(MFLAGS) test
+test : $(tests:$(OBJDIR)/%=run-%) $(examples:$(OBJDIR)/%=run-%)
 
-prove : $(tests)
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%)
+prove : $(tests) $(examples)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)
 
 examples : $(examples)
 
 ceed.pc : ceed.pc.template
 	@sed 's:%prefix%:$(abspath .):' $< > $@
 
-.PHONY: all clean print test examples astyle
+.PHONY: all cln clean print test tst examples astyle
 cln clean :
 	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests) ceed.pc
 	$(RM) -r *.dSYM $(OBJDIR)/backends
+	$(MAKE) -C examples clean
 	$(MAKE) -C examples/mfem clean
 
 astyle :

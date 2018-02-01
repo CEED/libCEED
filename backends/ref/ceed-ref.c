@@ -180,7 +180,8 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
   }
   ierr = CeedVectorRestoreArrayRead(u, &uu); CeedChk(ierr);
   ierr = CeedVectorRestoreArray(v, &vv); CeedChk(ierr);
-  if (request != CEED_REQUEST_IMMEDIATE) *request = NULL;
+  if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
+    *request = NULL;
   return 0;
 }
 
@@ -226,9 +227,11 @@ static int CeedElemRestrictionCreate_Ref(CeedElemRestriction r,
 // Contracts on the middle index
 // NOTRANSPOSE: V_ajc = T_jb U_abc
 // TRANSPOSE:   V_ajc = T_bj U_abc
+// If Add != 0, "=" is replaced by "+="
 static int CeedTensorContract_Ref(Ceed ceed,
                                   CeedInt A, CeedInt B, CeedInt C, CeedInt J,
                                   const CeedScalar *t, CeedTransposeMode tmode,
+                                  const CeedInt Add,
                                   const CeedScalar *u, CeedScalar *v) {
   CeedInt tstride0 = B, tstride1 = 1;
   if (tmode == CEED_TRANSPOSE) {
@@ -237,8 +240,10 @@ static int CeedTensorContract_Ref(Ceed ceed,
 
   for (CeedInt a=0; a<A; a++) {
     for (CeedInt j=0; j<J; j++) {
-      for (CeedInt c=0; c<C; c++)
-        v[(a*J+j)*C+c] = 0;
+      if (!Add) {
+        for (CeedInt c=0; c<C; c++)
+          v[(a*J+j)*C+c] = 0;
+      }
       for (CeedInt b=0; b<B; b++) {
         for (CeedInt c=0; c<C; c++) {
           v[(a*J+j)*C+c] += t[j*tstride0 + b*tstride1] * u[(a*B+b)*C+c];
@@ -255,7 +260,14 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
   int ierr;
   const CeedInt dim = basis->dim;
   const CeedInt ndof = basis->ndof;
+  const CeedInt nqpt = ndof*CeedPowInt(basis->Q1d, dim);
+  const CeedInt add = (tmode == CEED_TRANSPOSE);
 
+  if (tmode == CEED_TRANSPOSE) {
+    const CeedInt vsize = ndof*CeedPowInt(basis->P1d, dim);
+    for (CeedInt i = 0; i < vsize; i++)
+      v[i] = (CeedScalar) 0;
+  }
   if (emode & CEED_EVAL_INTERP) {
     CeedInt P = basis->P1d, Q = basis->Q1d;
     if (tmode == CEED_TRANSPOSE) {
@@ -265,39 +277,44 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
     CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
     for (CeedInt d=0; d<dim; d++) {
       ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q, basis->interp1d,
-                                    tmode, d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
+                                    tmode, add&&(d==dim-1),
+                                    d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
       CeedChk(ierr);
       pre /= P;
       post *= Q;
     }
     if (tmode == CEED_NOTRANSPOSE) {
-      v += ndof*CeedPowInt(Q, dim);
+      v += nqpt;
     } else {
-      u += ndof*CeedPowInt(Q, dim);
+      u += nqpt;
     }
   }
   if (emode & CEED_EVAL_GRAD) {
     CeedInt P = basis->P1d, Q = basis->Q1d;
-    if (tmode == CEED_NOTRANSPOSE) {
-      // u is (P^dim x nc), column-major layout (nc = ndof)
-      // v is (Q^dim x nc x dim), column-major layout (nc = ndof)
-      CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
-      for (CeedInt p = 0; p < dim; p++) {
-        CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
-        for (CeedInt d=0; d<dim; d++) {
-          ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q,
-                                        (p==d)?basis->grad1d:basis->interp1d,
-                                        tmode, d==0?u:tmp[d%2],
-                                        d==dim-1?v:tmp[(d+1)%2]); CeedChk(ierr);
-          pre /= P;
-          post *= Q;
-        }
-        v += ndof*CeedPowInt(Q, dim);
+    // In CEED_NOTRANSPOSE mode:
+    // u is (P^dim x nc), column-major layout (nc = ndof)
+    // v is (Q^dim x nc x dim), column-major layout (nc = ndof)
+    // In CEED_TRANSPOSE mode, the sizes of u and v are switched.
+    if (tmode == CEED_TRANSPOSE) {
+      P = basis->Q1d, Q = basis->P1d;
+    }
+    CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
+    for (CeedInt p = 0; p < dim; p++) {
+      CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
+      for (CeedInt d=0; d<dim; d++) {
+        ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q,
+                                      (p==d)?basis->grad1d:basis->interp1d,
+                                      tmode, add&&(d==dim-1),
+                                      d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
+        CeedChk(ierr);
+        pre /= P;
+        post *= Q;
       }
-    } else {
-      // TODO: CEED_EVAL_GRAD + CEED_TRANSPOSE
-      CeedError(basis->ceed, 1, "TODO: CEED_EVAL_GRAD + CEED_TRANSPOSE");
-      u += ndof*dim*CeedPowInt(Q, dim);
+      if (tmode == CEED_NOTRANSPOSE) {
+        v += nqpt;
+      } else {
+        u += nqpt;
+      }
     }
   }
   if (emode & CEED_EVAL_WEIGHT) {
@@ -420,7 +437,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector qdata,
                                     nc, lmode, etmp, residual,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
   }
-  if (request != CEED_REQUEST_IMMEDIATE) *request = NULL;
+  if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
+    *request = NULL;
   return 0;
 }
 

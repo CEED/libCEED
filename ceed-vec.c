@@ -116,6 +116,21 @@ int CeedVectorRestoreArrayRead(CeedVector x, const CeedScalar **array) {
   return 0;
 }
 
+/** View a vector
+ */
+int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
+  const CeedScalar *x;
+  int ierr = CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &x); CeedChk(ierr);
+  char fmt[1024];
+  fprintf(stream, "CeedVector length %ld\n", (long)vec->length);
+  snprintf(fmt, sizeof fmt, "  %s\n", fpfmt ? fpfmt : "%g");
+  for (CeedInt i=0; i<vec->length; i++) {
+    fprintf(stream, fmt, x[i]);
+  }
+  ierr = CeedVectorRestoreArrayRead(vec, &x); CeedChk(ierr);
+  return 0;
+}
+
 /// Destroy a vector
 int CeedVectorDestroy(CeedVector *x) {
   int ierr;

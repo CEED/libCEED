@@ -214,7 +214,8 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
   // ***************************************************************************
   ierr = CeedVectorRestoreArrayRead(u, &us); CeedChk(ierr);
   ierr = CeedVectorRestoreArray(v, &vs); CeedChk(ierr);
-  if (request != CEED_REQUEST_IMMEDIATE) *request = NULL;
+  if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
+    *request = NULL;
   return 0;
 
 }
@@ -314,6 +315,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
 int CeedTensorContract_Occa(Ceed ceed,
                             CeedInt A, CeedInt B, CeedInt C, CeedInt J,
                             const CeedScalar *t, CeedTransposeMode tmode,
+                            const CeedInt Add,
                             const CeedScalar *u, CeedScalar *v) {
   CeedInt tstride0 = B, tstride1 = 1;
 
@@ -324,8 +326,10 @@ int CeedTensorContract_Occa(Ceed ceed,
 
   for (CeedInt a=0; a<A; a++) {
     for (CeedInt j=0; j<J; j++) {
-      for (CeedInt c=0; c<C; c++)
-        v[(a*J+j)*C+c] = 0;
+      if (!Add) {
+        for (CeedInt c=0; c<C; c++)
+          v[(a*J+j)*C+c] = 0;
+      }
       for (CeedInt b=0; b<B; b++) {
         for (CeedInt c=0; c<C; c++) {
           v[(a*J+j)*C+c] += t[j*tstride0 + b*tstride1] * u[(a*B+b)*C+c];

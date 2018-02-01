@@ -76,8 +76,9 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   @return An error code: 0 - success, otherwise - failure.
  */
 int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelements,
-    CeedInt esize, CeedInt blocksize, CeedMemType mtype, CeedCopyMode cmode,
-    CeedInt *blkindices, CeedElemRestriction *r) {
+                                     CeedInt esize, CeedInt blocksize,
+                                     CeedMemType mtype, CeedCopyMode cmode,
+                                     CeedInt *blkindices, CeedElemRestriction *r) {
   return CeedError(ceed, 1, "Not implemented");
 }
 
