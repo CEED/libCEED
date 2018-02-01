@@ -3,8 +3,10 @@
       include 'ceedf.h'
 
       integer ceed,err
-      integer x,y1
+      integer x,y
       integer r
+
+      integer ne
       parameter(ne=3)
 
       integer*4 ind(2*ne)
@@ -33,23 +35,23 @@
       call ceedelemrestrictioncreate(ceed,ne,2,ne+1,ceed_mem_host,
      $  ceed_use_pointer,ind,r,err)
 
-      call ceedvectorcreate(ceed,2*ne,y1,err);
-      call ceedvectorsetarray(y1,ceed_mem_host,ceed_copy_values,%val(0),
+      call ceedvectorcreate(ceed,2*ne,y,err);
+      call ceedvectorsetarray(y,ceed_mem_host,ceed_copy_values,%val(0),
      $  err);
       call ceedelemrestrictionapply(r,ceed_notranspose,1,
-     $  ceed_notranspose,x,y1,ceed_request_immediate,err)
+     $  ceed_notranspose,x,y,ceed_request_immediate,err)
 
-      call ceedvectorgetarrayread(y1,ceed_mem_host,yy,err)
+      call ceedvectorgetarrayread(y,ceed_mem_host,yy,err)
       do i=1,ne*2
         diff=10+i/2-yy(i)
-        if (abs(diff) > 1.0D-5) then
+        if (abs(diff) > 1.0D-15) then
           write(*,*) 'Error in restricted array y(',i,')=',yy(i)
         endif
       enddo
-      call ceedvectorrestorearrayread(y1,yy,err)
+      call ceedvectorrestorearrayread(y,yy,err)
 
       call ceedvectordestroy(x,err)
-      call ceedvectordestroy(y1,err)
+      call ceedvectordestroy(y,err)
       call ceedelemrestrictiondestroy(r,err)
       call ceeddestroy(ceed,err)
 

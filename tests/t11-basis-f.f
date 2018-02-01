@@ -3,9 +3,9 @@
       include 'ceedf.h'
 
       integer ceed,err
-      integer b
-      integer i,dimn,p1d,q1d,length
+      integer b,i
 
+      integer dimn,p1d,q1d,length
       parameter(dimn   = 2)
       parameter(p1d    = 4)
       parameter(q1d    = 4)
