@@ -51,7 +51,7 @@
         call polyeval(xq(i),6,p,uq(i))
       enddo
 
-      call ceedbasisapply(bul,ceed_transpose,ceed_eval_interp,uq,u)
+      call ceedbasisapply(bul,ceed_transpose,ceed_eval_interp,uq,u,err)
 
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss,
      $  bxg,err)

@@ -37,7 +37,11 @@ void fCeedDestroy(CeedInt *ceed, CeedInt *err) {
 
   if (*err == 0) {
     Ceed_n--;
-    if (Ceed_n == 0) CeedFree(&Ceed_dict);
+    if (Ceed_n == 0) {
+      CeedFree(&Ceed_dict);
+      Ceed_count = 0;
+      Ceed_count_max = 0;
+    }
   }
 }
 
@@ -108,7 +112,11 @@ void fCeedVectorDestroy(CeedInt *vec, CeedInt *err) {
 
   if (*err == 0) {
     CeedVector_n--;
-    if (CeedVector_n == 0) CeedFree(&CeedVector_dict);
+    if (CeedVector_n == 0) {
+      CeedFree(&CeedVector_dict);
+      CeedVector_count = 0;
+      CeedVector_count_max = 0;
+    }
   }
 }
 
@@ -187,7 +195,11 @@ void fCeedRequestwait(CeedInt *rqst, CeedInt *err) {
 
   if (*err == 0) {
     CeedRequest_n--;
-    if (CeedRequest_n == 0) CeedFree(&CeedRequest_dict);
+    if (CeedRequest_n == 0) {
+      CeedFree(&CeedRequest_dict);
+      CeedRequest_count = 0;
+      CeedRequest_count_max = 0;
+    }
   }
 }
 
@@ -198,7 +210,11 @@ void fCeedElemRestrictionDestroy(CeedInt *elem, CeedInt *err) {
 
   if (*err == 0) {
     CeedElemRestriction_n--;
-    if (CeedElemRestriction_n == 0) CeedFree(&CeedElemRestriction_dict);
+    if (CeedElemRestriction_n == 0) {
+      CeedFree(&CeedElemRestriction_dict);
+      CeedElemRestriction_count = 0;
+      CeedElemRestriction_count_max = 0;
+    }
   }
 }
 
@@ -217,9 +233,8 @@ void fCeedBasisCreateTensorH1Lagrange(CeedInt *ceed, CeedInt *dim,
     CeedRealloc(CeedBasis_count_max, &CeedBasis_dict);
   }
 
-  CeedBasis *basis_ = &CeedBasis_dict[CeedBasis_count];
-  *err = CeedBasisCreateTensorH1Lagrange(Ceed_dict[*ceed], *dim, *ndof, *P, *Q,
-             *quadmode, basis_);
+    *err = CeedBasisCreateTensorH1Lagrange(Ceed_dict[*ceed], *dim, *ndof, *P, *Q,
+             *quadmode, &CeedBasis_dict[CeedBasis_count]);
 
   if (*err == 0) {
     *basis = CeedBasis_count++;
@@ -233,9 +248,18 @@ void fCeedBasisCreateTensorH1(CeedInt *ceed, CeedInt *dim, CeedInt *ndof, CeedIn
     CeedInt *Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
     const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedInt *basis, CeedInt *err)
 {
+  if (CeedBasis_count == CeedBasis_count_max) {
+    CeedBasis_count_max += CeedBasis_count_max/2 + 1;
+    CeedRealloc(CeedBasis_count_max, &CeedBasis_dict);
+  }
 
   *err = CeedBasisCreateTensorH1(Ceed_dict[*ceed], *dim, *ndof, *P1d, *Q1d, interp1d, grad1d,
-             qref1d, qweight1d, &CeedBasis_dict[*basis]);
+             qref1d, qweight1d, &CeedBasis_dict[CeedBasis_count]);
+
+  if (*err == 0) {
+    *basis = CeedBasis_count++;
+    CeedBasis_n++;
+  }
 }
 
 #define fCeedBasisView FORTRAN_NAME(ceedbasisview, CEEDBASISVIEW)
@@ -268,12 +292,16 @@ void fCeedBasisDestroy(CeedInt *basis, CeedInt *err) {
 
   if (*err == 0) {
     CeedBasis_n--;
-    if (CeedBasis_n == 0) CeedFree(&CeedBasis_dict);
+    if (CeedBasis_n == 0) {
+      CeedFree(&CeedBasis_dict);
+      CeedBasis_count = 0;
+      CeedBasis_count_max = 0;
+    }
   }
 }
 
 #define fCeedGaussQuadrature FORTRAN_NAME(ceedgaussquadrature, CEEDGAUSSQUADRATURE)
-void fCeedFGaussQuadrature(CeedInt *Q, CeedScalar *qref1d, CeedScalar *qweight1d,
+void fCeedGaussQuadrature(CeedInt *Q, CeedScalar *qref1d, CeedScalar *qweight1d,
     CeedInt *err)
 {
   *err = CeedGaussQuadrature(*Q, qref1d, qweight1d);
@@ -369,7 +397,11 @@ void fCeedQFunctionDestroy(CeedInt *qf, CeedInt *err) {
 
   if (*err == 0) {
     CeedQFunction_n--;
-    if (CeedQFunction_n == 0) CeedFree(&CeedQFunction_dict);
+    if (CeedQFunction_n == 0) {
+      CeedFree(&CeedQFunction_dict);
+      CeedQFunction_count = 0;
+      CeedQFunction_count_max = 0;
+    }
   }
 }
 
@@ -433,7 +465,11 @@ void fCeedOperatorDestroy(CeedInt *op, CeedInt *err) {
 
   if (*err == 0) {
     CeedOperator_n--;
-    if (CeedOperator_n == 0) CeedFree(&CeedOperator_dict);
+    if (CeedOperator_n == 0) {
+      CeedFree(&CeedOperator_dict);
+      CeedOperator_count = 0;
+      CeedOperator_count_max = 0;
+    }
   }
 }
 /// @}
