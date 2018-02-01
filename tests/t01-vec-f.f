@@ -1,5 +1,7 @@
       program test
 
+      include 'ceedf.h'
+
       integer ceed,err
       integer x,n
       real*8 a(10)
@@ -19,8 +21,8 @@
         a(i)=10+i
       enddo
 
-      call ceedvectorsetarray(x,0,1,a,err)
-      call ceedvectorgetarrayread(x,0,b,err)
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,err)
+      call ceedvectorgetarrayread(x,ceed_mem_host,b,err)
 
       do i=1,10
         diff=b(i)-10-i

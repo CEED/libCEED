@@ -1,8 +1,10 @@
       program test
 
+      include 'ceedf.h'
+
       integer ceed,err
       integer x,y1
-      integer r,rqst
+      integer r
       parameter(ne=3)
 
       integer*8 ind(2*ne)
@@ -21,24 +23,27 @@
         a(i)=10+i
       enddo
 
-      call ceedvectorsetarray(x,0,1,a,err)
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,err)
 
       do i=1,ne
-        ind(2*i-1)=i
-        ind(2*i  )=i+1
+        ind(2*i-1)=i-1
+        ind(2*i  )=i
       enddo
 
-      call ceedelemrestrictioncreate(ceed,ne,2,ne+1,0,1,ind(1),r,err)
+      call ceedelemrestrictioncreate(ceed,ne,2,ne+1,ceed_mem_host,
+     $  ceed_use_pointer,ind,r,err)
 
       call ceedvectorcreate(ceed,2*ne,y1,err);
-      call ceedvectorsetarray(y1,0,0,%val(0),err);
-      call ceedelemrestrictionapply(r,0,1,0,x,y1,rqst,err)
+      call ceedvectorsetarray(y1,ceed_mem_host,ceed_copy_values,%val(0),
+     $  err);
+      call ceedelemrestrictionapply(r,ceed_notranspose,1,
+     $  ceed_notranspose,x,y1,ceed_request_immediate,err)
 
-      call ceedvectorgetarrayread(y1,0,yy,err)
+      call ceedvectorgetarrayread(y1,ceed_mem_host,yy,err)
       do i=1,ne*2
-        diff=10.0+(i-1)/2-yy(i)
+        diff=10.0+i/2-yy(i)
         if (abs(diff) > 1.0D-5) then
-          write(*,*) 'Error in restricted array y(',i,')='
+          write(*,*) 'Error in restricted array y(',i,')=',yy(i)
         endif
       enddo
       call ceedvectorrestorearrayread(y1,yy,err)

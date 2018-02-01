@@ -1,5 +1,7 @@
       program test
 
+      include 'ceedf.h'
+
       integer ceed,err
       character arg*32
 
