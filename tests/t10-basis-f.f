@@ -1,3 +1,4 @@
+c-----------------------------------------------------------------------
       program test
 
       include 'ceedf.h'
@@ -23,3 +24,4 @@ c      call ceedbasisview(b,stdout,err)
       call ceeddestroy(ceed,err)
 
       end
+c-----------------------------------------------------------------------
