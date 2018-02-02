@@ -178,6 +178,7 @@ void fCeedElemRestrictionApply(CeedInt *elemr, CeedInt *tmode, CeedInt *ncomp, C
   CeedRequest *rqst_;
   if (*rqst == -1) rqst_ = CEED_REQUEST_IMMEDIATE;
   else if (*rqst == -2) rqst_ = CEED_REQUEST_ORDERED;
+  else rqst_ = &CeedRequest_dict[CeedRequest_count];
 
   *err = CeedElemRestrictionApply(CeedElemRestriction_dict[*elemr], *tmode, *ncomp,
              *lmode, CeedVector_dict[*uvec], CeedVector_dict[*ruvec], rqst_);
@@ -332,7 +333,7 @@ static int CeedQFunctionFortranStub(void *ctx, void *qdata, CeedInt nq,
   int ierr;
   // Using a real*8 instead of (void*) (fctx->innerctx)
   CeedScalar ctx_=1.0;
-  fctx->f(&ctx_, (CeedScalar *)qdata, &nq, *u, *v, &ierr);
+  fctx->f(&ctx_, (CeedScalar *)qdata, &nq, (CeedScalar*)(*u), (CeedScalar*)(*v), &ierr);
   return ierr;
 }
 
@@ -433,18 +434,53 @@ void fCeedOperatorCreate(CeedInt* ceed, CeedInt* erstrn, CeedInt* basis,
   }
 }
 
-#define fCeedOperatorGetQdata \
+#define fCeedOperatorGetQData \
     FORTRAN_NAME(ceedoperatorgetqdata, CEEDOPERATORGETQDATA)
 void fCeedOperatorGetQData(CeedInt *op, CeedInt *vec, CeedInt *err) {
-  *err = CeedOperatorGetQData(CeedOperator_dict[*op], &CeedVector_dict[*vec]);
+  if (CeedVector_count == CeedVector_count_max) {
+    CeedVector_count_max += CeedVector_count_max/2 + 1;
+    CeedRealloc(CeedVector_count_max, &CeedVector_dict);
+  }
+
+  *err = CeedOperatorGetQData(CeedOperator_dict[*op], &CeedVector_dict[CeedVector_count]);
+
+  if (*err == 0) {
+    *vec = CeedVector_count++;
+    CeedVector_n++;
+  }
 }
 
 #define fCeedOperatorApply FORTRAN_NAME(ceedoperatorapply, CEEDOPERATORAPPLY)
 void fCeedOperatorApply(CeedInt *op, CeedInt *qdatavec, CeedInt *ustatevec,
     CeedInt *resvec, CeedInt *rqst, CeedInt *err) {
+  // TODO What vector arguments can be NULL?
+  CeedVector resvec_;
+  if (resvec == NULL) resvec_ = NULL;
+  else resvec_ = CeedVector_dict[*resvec];
+
+  int createRequest = 1;
+  // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
+  if (*rqst == -1 || *rqst == -2) {
+    createRequest = 0;
+  }
+
+  if (createRequest && CeedRequest_count == CeedRequest_count_max) {
+    CeedRequest_count_max += CeedRequest_count_max/2 + 1;
+    CeedRealloc(CeedRequest_count_max, &CeedRequest_dict);
+  }
+
+  CeedRequest *rqst_;
+  if (*rqst == -1) rqst_ = CEED_REQUEST_IMMEDIATE;
+  else if (*rqst == -2) rqst_ = CEED_REQUEST_ORDERED;
+  else rqst_ = &CeedRequest_dict[CeedRequest_count];
+
   *err = CeedOperatorApply(CeedOperator_dict[*op], CeedVector_dict[*qdatavec],
-             CeedVector_dict[*ustatevec], CeedVector_dict[*resvec],
-             &CeedRequest_dict[*rqst]);
+             CeedVector_dict[*ustatevec], resvec_, rqst_);
+
+  if (*err == 0 && createRequest) {
+    *rqst = CeedRequest_count++;
+    CeedRequest_n++;
+  }
 }
 
 #define fCeedOperatorApplyJacobian \

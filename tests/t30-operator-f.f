@@ -6,9 +6,9 @@ c-----------------------------------------------------------------------
       real*8 v(1)
       integer q,ierr 
 
-      do i=1,q
-        qdata(i)=u(i)
-      enddo
+c      do i=1,q
+c        qdata(i)=u(i)
+c      enddo
 
       ierr=0
       end
@@ -31,7 +31,7 @@ c-----------------------------------------------------------------------
 
       include 'ceedf.h'
 
-      integer ceed,err
+      integer ceed,err,i,j
       integer erestrictx,erestrictu
       integer bx,bu
       integer qf_setup,qf_mass
@@ -54,29 +54,63 @@ c-----------------------------------------------------------------------
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-c      call ceedqfunctioncreateinterior(ceed,1,1,8,ceed_eval_weight,
-c     $  ceed_eval_none,setup,'t20-qfunction-f.f:setup',qf_setup,err)
-c      call ceedqfunctioncreateinterior(ceed,1,1,8,ceed_eval_interp,
-c     $  ceed_eval_interp,mass,'t20-qfunction-f.f:mass',qf_mass,err)
-c
-c      do i=0,q-1
-c        x=2.0*i/(q-1)-1
-c        w(i+1)=1-x*x
-c        u(i+1)=2+3*x+5*x*x
-c        v(i+1)=w(i+1)*u(i+1)
-c      enddo
-c
-c      call ceedqfunctionapply(qf_setup,qdata,q,w,%val(0),err)
-c      call ceedqfunctionapply(qf_mass,qdata,q,u,vv,err)
-c
-c      do i=1,q
-c        if (abs(v(i)-vv(i)) > 1.0D-15) then
-c          write(*,*) 'v(i)=',v(i),', vv(i)=',vv(i)
-c        endif
-c      enddo
-c
-c      call ceedqfunctiondestroy(qf_setup,err)
-c      call ceedqfunctiondestroy(qf_mass,err)
-c      call ceeddestroy(ceed,err) 
+      do i=0,nx-1
+        arrx(i+1)=i/(nx-1)
+      enddo
+      do i=0,nelem-1
+        indx(2*i+1)=i
+        indx(2*i+2)=i+1
+      enddo
+
+      call ceedelemrestrictioncreate(ceed,nelem,2,nx,ceed_mem_host,
+     $  ceed_use_pointer,indx,erestrictx,err)
+
+      do i=0,nelem-1
+        do j=0,p-1
+          indu(p*i+j+1)=i*(p-1)+j
+        enddo
+      enddo
+
+      call ceedelemrestrictioncreate(ceed,nelem,p,nu,ceed_mem_host,
+     $  ceed_use_pointer,indu,erestrictu,err)
+
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss,
+     $  bx,err)
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,p,q,ceed_gauss,
+     $  bu,err)
+
+      call ceedqfunctioncreateinterior(ceed,1,1,8,
+     $  ior(ceed_eval_grad,ceed_eval_weight),ceed_eval_none,setup,
+     $  't30-operator-f.f:setup',qf_setup,err)
+      call ceedqfunctioncreateinterior(ceed,1,1,8,ceed_eval_interp,
+     $  ceed_eval_interp,mass,'t30-operator-f.f:mass',qf_mass,err)
+
+      call ceedoperatorcreate(ceed,erestrictx,bx,qf_setup,
+     $  %val(0),%val(0),op_setup,err)
+      call ceedoperatorcreate(ceed,erestrictu,bu,qf_mass,
+     $  %val(0),%val(0),op_mass,err)
+
+      call ceedvectorcreate(ceed,nx,x,err)
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,err)
+      qdata=5
+      call ceedoperatorgetqdata(op_setup,qdata,err)
+      call ceedoperatorapply(op_setup,qdata,x,%val(0),
+     $  ceed_request_immediate,err)
+
+      call ceedvectorcreate(ceed,nu,u,err)
+      call ceedvectorcreate(ceed,nu,v,err)
+c      call ceedoperatorapply(op_mass,qdata,x,%val(0),
+c     $  ceed_request_immediate,err)
+
+      call ceedvectordestroy(x,err)
+      call ceedoperatordestroy(op_mass,err)
+      call ceedoperatordestroy(op_setup,err)
+      call ceedqfunctiondestroy(qf_mass,err)
+      call ceedqfunctiondestroy(qf_setup,err)
+      call ceedbasisdestroy(bu,err)
+      call ceedbasisdestroy(bx,err)
+      call ceedelemrestrictiondestroy(erestrictu,err)
+      call ceedelemrestrictiondestroy(erestrictx,err)
+      call ceeddestroy(ceed,err)
       end
 c-----------------------------------------------------------------------
