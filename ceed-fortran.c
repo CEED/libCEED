@@ -321,8 +321,8 @@ static int CeedQFunction_n = 0;
 static int CeedQFunction_count_max = 0;
 
 struct fContext {
-  void (*f)(void *ctx, void *qdata, CeedInt *nq, const CeedScalar *const *u,
-           CeedScalar *const *v, int *ierr);
+  void (*f)(void *ctx, void *qdata, CeedInt *nq, const CeedScalar *const u,
+           CeedScalar *const v, int *ierr);
   void *innerctx;
 };
 
@@ -330,7 +330,9 @@ static int CeedQFunctionFortranStub(void *ctx, void *qdata, CeedInt nq,
     const CeedScalar *const *u, CeedScalar *const *v) {
   struct fContext *fctx = ctx;
   int ierr;
-  fctx->f(fctx->innerctx, qdata, &nq, u, v, &ierr);
+  // Using a real*8 instead of void* (fctx->innerctx)
+  CeedScalar ctx_=1.0;
+  fctx->f(&ctx_, (CeedScalar *)qdata, &nq, *u, *v, &ierr);
   return ierr;
 }
 
@@ -338,8 +340,8 @@ static int CeedQFunctionFortranStub(void *ctx, void *qdata, CeedInt nq,
     FORTRAN_NAME(ceedqfunctioncreateinterior, CEEDQFUNCTIONCREATEINTERIOR)
 void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
     CeedInt* nfields, size_t* qdatasize, CeedInt* inmode, CeedInt* outmode,
-    void (*f)(void *ctx, void *qdata, CeedInt *nq, const CeedScalar *const *u,
-             CeedScalar *const *v, int *err), const char *focca, CeedInt *qf,
+    void (*f)(void *ctx, void *qdata, CeedInt *nq, const CeedScalar *const u,
+             CeedScalar *const v, CeedInt *err), const char *focca, CeedInt *qf,
     CeedInt *err) {
   if (CeedQFunction_count == CeedQFunction_count_max) {
     CeedQFunction_count_max += CeedQFunction_count_max/2 + 1;
@@ -383,10 +385,7 @@ void fCeedQFunctionApply(CeedInt *qf, void *qdata, CeedInt *Q,
 {
   CeedQFunction qf_ = CeedQFunction_dict[*qf];
 
-  CeedScalar *v_;
-  *err = CeedQFunctionApply(qf_, qdata, *Q, &u, &v_);
-  if (*err == 0)
-    memcpy(v, v_, sizeof(CeedScalar)*qf_->vlength);
+  *err = CeedQFunctionApply(qf_, qdata, *Q, &u, &v);
 }
 
 #define fCeedQFunctionDestroy \
