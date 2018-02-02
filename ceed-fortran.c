@@ -330,7 +330,7 @@ static int CeedQFunctionFortranStub(void *ctx, void *qdata, CeedInt nq,
     const CeedScalar *const *u, CeedScalar *const *v) {
   struct fContext *fctx = ctx;
   int ierr;
-  // Using a real*8 instead of void* (fctx->innerctx)
+  // Using a real*8 instead of (void*) (fctx->innerctx)
   CeedScalar ctx_=1.0;
   fctx->f(&ctx_, (CeedScalar *)qdata, &nq, *u, *v, &ierr);
   return ierr;
