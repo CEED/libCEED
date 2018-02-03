@@ -56,6 +56,30 @@ or, using the `prove` tool distributed with Perl (recommended)
 
     make prove
 
+## Install
+
+To install libCEED, run
+
+    make install prefix=/usr/local
+
+or (e.g., if creating packages),
+
+    make install prefix=/usr DESTDIR=/packaging/path
+
+### pkg-config
+
+In addition to library and header, libCEED provides a
+[pkg-config](https://en.wikipedia.org/wiki/Pkg-config) file that can be
+used to easily compile and link.
+[For example](https://people.freedesktop.org/~dbn/pkg-config-guide.html#faq),
+if `$prefix` is a standard location or you set the environment variable
+`PKG_CONFIG_PATH`,
+
+    cc `pkg-config --cflags --libs ceed` -o myapp myapp.c
+
+will build `myapp` with libCEED.  This can be used with the source or
+installed directories.  Most build systems have support for pkg-config.
+
 ## Contact
 
 You can reach the libCEED team by emailing [ceed-users@llnl.gov](mailto:ceed-users@llnl.gov)
