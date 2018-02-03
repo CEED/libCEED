@@ -29,10 +29,11 @@ CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=nati
 CFLAGS += $(if $(NDEBUG),-O2,-g)
 CFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
 LDFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
-CPPFLAGS = -I.
+CPPFLAGS = -I./include
 LDLIBS = -lm
 OBJDIR := build
-LIBDIR := .
+LIBDIR := lib
+
 NPROCS := $(shell getconf _NPROCESSORS_ONLN)
 MFLAGS := -j $(NPROCS) --warn-undefined-variables \
 			--no-print-directory --no-keep-going
@@ -42,6 +43,7 @@ PROVE_OPTS ?= -j $(NPROCS)
 DARWIN := $(filter Darwin,$(shell uname -s))
 SO_EXT := $(if $(DARWIN),dylib,so)
 
+ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.c := $(wildcard ceed*.c)
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9]-*.c))
@@ -81,7 +83,7 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
 .PRECIOUS: %/.DIR
 
-this: $(libceed) ceed.pc
+this: $(libceed) $(ceed.pc)
 all:;@$(MAKE) $(MFLAGS) V=$(V) this
 
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name $(abspath $(libceed)))
@@ -93,7 +95,7 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : $(occa.o)
   $(occa.o) : CFLAGS += -I$(OCCA_DIR)/include
 endif
-$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o)
+$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) | $$(@D)/.DIR
 	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
@@ -120,13 +122,14 @@ prove : $(tests) $(examples)
 
 examples : $(examples)
 
-ceed.pc : ceed.pc.template
-	@sed 's:%prefix%:$(abspath .):' $< > $@
+$(ceed.pc) : pkgconfig-prefix = $(abspath .)
+%/ceed.pc : ceed.pc.template | $$(@D)/.DIR
+	@sed "s:%prefix%:$(pkgconfig-prefix):" $< > $@
 
 .PHONY: all cln clean print test tst examples astyle
 cln clean :
-	$(RM) *.o $(OBJDIR)/*.o *.d $(OBJDIR)/*.d $(libceed) $(tests) ceed.pc
-	$(RM) -r *.dSYM $(OBJDIR)/backends
+	$(RM) *.o *.d $(libceed)
+	$(RM) -r *.dSYM $(OBJDIR) $(LIBDIR)/pkgconfig
 	$(MAKE) -C examples clean
 	$(MAKE) -C examples/mfem clean
 
