@@ -331,16 +331,28 @@ static int CeedQFunctionFortranStub(void *ctx, void *qdata, CeedInt nq,
     const CeedScalar *const *u, CeedScalar *const *v) {
   struct fContext *fctx = ctx;
   int ierr;
+  //Note: Since u and v are arrays to pointers, they
+  //can't be passed as is to Fortran. So, what I do is
+  //find the first non-NULL pointer and pass it is
+  //address to Fortran function. On the Fortran side, to access
+  //specific type of data, the use has to calculate the indices.
+  const CeedScalar *uu = 0;
+  CeedScalar *vv = 0;
+  CeedInt i;
+  for(i=0; (i<5)&&!u[i]; i++);
+  if (i==5) uu = NULL; else uu=u[i];
+  for(i=0; (i<5)&&!v[i]; i++);
+  if (i==5) vv = NULL; else vv=v[i];
   // Using a real*8 instead of (void*) (fctx->innerctx)
   CeedScalar ctx_=1.0;
-  fctx->f(&ctx_, (CeedScalar *)qdata, &nq, (CeedScalar*)(*u), (CeedScalar*)(*v), &ierr);
+  fctx->f((void*)&ctx_, qdata, &nq, uu, vv, &ierr);
   return ierr;
 }
 
 #define fCeedQFunctionCreateInterior \
     FORTRAN_NAME(ceedqfunctioncreateinterior, CEEDQFUNCTIONCREATEINTERIOR)
 void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
-    CeedInt* nfields, size_t* qdatasize, CeedInt* inmode, CeedInt* outmode,
+    CeedInt* nfields, CeedInt* qdatasize, CeedInt* inmode, CeedInt* outmode,
     void (*f)(void *ctx, void *qdata, CeedInt *nq, const CeedScalar *const u,
              CeedScalar *const v, CeedInt *err), const char *focca, CeedInt *qf,
     CeedInt *err) {
@@ -351,7 +363,8 @@ void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
 
   CeedQFunction *qf_ = &CeedQFunction_dict[CeedQFunction_count];
   *err = CeedQFunctionCreateInterior(Ceed_dict[*ceed], *vlength, *nfields,
-             *qdatasize, *inmode, *outmode, CeedQFunctionFortranStub,focca, qf_);
+             *qdatasize, (CeedEvalMode)(*inmode), (CeedEvalMode)(*outmode),
+             CeedQFunctionFortranStub,focca, qf_);
 
   if (*err == 0) {
     *qf = CeedQFunction_count++;

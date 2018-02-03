@@ -1,20 +1,20 @@
 c-----------------------------------------------------------------------
       subroutine setup(ctx,qdata,q,u,v,ierr)
-      real*8 ctx(1)
+      real*8 ctx
       real*8 qdata(1)
       real*8 u(1)
       real*8 v(1)
       integer q,ierr 
 
-c      do i=1,q
-c        qdata(i)=u(i)
-c      enddo
+      do i=1,q
+        qdata(i)=u(i)*u(i+q*1*1)
+      enddo
 
       ierr=0
       end
 c-----------------------------------------------------------------------
       subroutine mass(ctx,qdata,q,u,v,ierr)
-      real*8 ctx(1)
+      real*8 ctx
       real*8 qdata(1)
       real*8 u(1)
       real*8 v(1)
@@ -46,7 +46,7 @@ c-----------------------------------------------------------------------
       parameter(nu=nelem*(p-1)+1)
       integer indx(nelem*2)
       integer indu(nelem*p)
-      real*8 arrx(Nx)
+      real*8 arrx(nx)
       character arg*32
 
       external setup,mass
@@ -92,17 +92,18 @@ c-----------------------------------------------------------------------
 
       call ceedvectorcreate(ceed,nx,x,err)
       call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,err)
-      qdata=5
       call ceedoperatorgetqdata(op_setup,qdata,err)
       call ceedoperatorapply(op_setup,qdata,x,%val(0),
      $  ceed_request_immediate,err)
 
       call ceedvectorcreate(ceed,nu,u,err)
       call ceedvectorcreate(ceed,nu,v,err)
-c      call ceedoperatorapply(op_mass,qdata,x,%val(0),
-c     $  ceed_request_immediate,err)
+      call ceedoperatorapply(op_mass,qdata,u,v,
+     $  ceed_request_immediate,err)
 
       call ceedvectordestroy(x,err)
+      call ceedvectordestroy(u,err)
+      call ceedvectordestroy(v,err)
       call ceedoperatordestroy(op_mass,err)
       call ceedoperatordestroy(op_setup,err)
       call ceedqfunctiondestroy(qf_mass,err)
