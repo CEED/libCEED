@@ -34,6 +34,16 @@ LDLIBS = -lm
 OBJDIR := build
 LIBDIR := lib
 
+# Installation variables
+prefix ?= /usr/local
+bindir = $(prefix)/bin
+libdir = $(prefix)/lib
+includedir = $(prefix)/include
+pkgconfigdir = $(libdir)/pkgconfig
+INSTALL = install
+INSTALL_PROGRAM = $(INSTALL)
+INSTALL_DATA = $(INSTALL) -m644
+
 NPROCS := $(shell getconf _NPROCESSORS_ONLN)
 MFLAGS := -j $(NPROCS) --warn-undefined-variables \
 			--no-print-directory --no-keep-going
@@ -123,10 +133,17 @@ prove : $(tests) $(examples)
 examples : $(examples)
 
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)
+$(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
+.INTERMEDIATE: $(OBJDIR)/ceed.pc
 %/ceed.pc : ceed.pc.template | $$(@D)/.DIR
 	@sed "s:%prefix%:$(pkgconfig-prefix):" $< > $@
 
-.PHONY: all cln clean print test tst examples astyle
+install : $(libceed) $(OBJDIR)/ceed.pc
+	$(INSTALL_DATA) -D -t "$(DESTDIR)$(includedir)/" include/ceed.h 
+	$(INSTALL_DATA) -D -t "$(DESTDIR)$(libdir)/" $(libceed)
+	$(INSTALL_DATA) -D -t "$(DESTDIR)$(pkgconfigdir)/" $(OBJDIR)/ceed.pc
+
+.PHONY: all cln clean print test tst examples astyle install
 cln clean :
 	$(RM) *.o *.d $(libceed)
 	$(RM) -r *.dSYM $(OBJDIR) $(LIBDIR)/pkgconfig
