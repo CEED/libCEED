@@ -139,9 +139,10 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 	@sed "s:%prefix%:$(pkgconfig-prefix):" $< > $@
 
 install : $(libceed) $(OBJDIR)/ceed.pc
-	$(INSTALL_DATA) -D -t "$(DESTDIR)$(includedir)/" include/ceed.h 
-	$(INSTALL_DATA) -D -t "$(DESTDIR)$(libdir)/" $(libceed)
-	$(INSTALL_DATA) -D -t "$(DESTDIR)$(pkgconfigdir)/" $(OBJDIR)/ceed.pc
+	$(INSTALL) -d "$(DESTDIR)$(includedir)" "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgconfigdir)"
+	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
+	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 
 .PHONY: all cln clean print test tst examples astyle install
 cln clean :
