@@ -4,7 +4,7 @@ c-----------------------------------------------------------------------
       real*8 qdata(1)
       real*8 u(1)
       real*8 v(1)
-      integer q,ierr 
+      integer q,ierr
 
       do i=1,q
         qdata(i)=u(i)
@@ -18,7 +18,7 @@ c-----------------------------------------------------------------------
       real*8 qdata(1)
       real*8 u(1)
       real*8 v(1)
-      integer q,ierr 
+      integer q,ierr
 
       do i=1,q
         v(i)=qdata(i)*u(i)
@@ -71,6 +71,6 @@ c-----------------------------------------------------------------------
 
       call ceedqfunctiondestroy(qf_setup,err)
       call ceedqfunctiondestroy(qf_mass,err)
-      call ceeddestroy(ceed,err) 
+      call ceeddestroy(ceed,err)
       end
 c-----------------------------------------------------------------------

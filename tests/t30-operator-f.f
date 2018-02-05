@@ -4,7 +4,7 @@ c-----------------------------------------------------------------------
       real*8 qdata(1)
       real*8 u(1)
       real*8 v(1)
-      integer q,ierr 
+      integer q,ierr
 
       do i=1,q
         qdata(i)=u(i)*u(i+q*1*1)
@@ -18,7 +18,7 @@ c-----------------------------------------------------------------------
       real*8 qdata(1)
       real*8 u(1)
       real*8 v(1)
-      integer q,ierr 
+      integer q,ierr
 
       do i=1,q
         v(i)=qdata(i)*u(i)
