@@ -1,5 +1,6 @@
 PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
-ceed.pc := ../../ceed.pc
+CEED_DIR ?= ../..
+ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
 
 CC := $(shell pkg-config --variable=ccompiler $(PETSc.pc) $(ceed.pc))
 CFLAGS := $(shell pkg-config --variable=cflags_extra $(PETSc.pc)) $(shell pkg-config --cflags-only-other $(PETSc.pc))

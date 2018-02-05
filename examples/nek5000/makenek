@@ -18,11 +18,11 @@ SOURCE_ROOT="$NEK5K_DIR"
 #-------------------------------------------------------------------------------
 
 # optional compiler flags
-FFLAGS="-I../../"
+FFLAGS="-I../../include"
 #CFLAGS=""
 
 # optional linking flags
-USR_LFLAGS+="-L../.. -lceed"
+USR_LFLAGS+="-L../../lib -lceed"
 
 # auxilliary files to compile
 # NOTE: source files have to located in the same directory as makenek
