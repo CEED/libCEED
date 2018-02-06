@@ -28,11 +28,10 @@ EXAMPLES=ex1
 ###############################################################################
 # DONT'T TOUCH WHAT FOLLOWS !!!
 ###############################################################################
-# Source the helper functions in functions.sh
-source ./functions.sh
-
-# Generate the box geometries
-build_and_run_tests
+# Exit if being sourced
+if [[ "${#BASH_SOURCE[@]}" -gt 1 ]]; then
+  return 0
+fi
 
 # Build examples
 for ex in $EXAMPLES; do

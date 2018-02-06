@@ -14,10 +14,18 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-###############################################################################
-# Helper functions for building Nek5000 examples
-###############################################################################
+#!/bin/bash
 
+min_elem=$1
+max_elem=$2
+
+###############################################################################
+# DONT'T TOUCH WHAT FOLLOWS !!!
+###############################################################################
+# Get the value of NEK5K_DIR which is needed by function genbb
+source make-nek-examples.sh
+
+# Functions needed for creating box meshes
 function xyz()
 {
   prod=$1
@@ -61,6 +69,15 @@ function genbb()
 
 function generate_boxes()
 {
+  if [[ $# -ne 2 ]]; then
+    echo "Error: should be called with two parameters. See syntax below."
+    echo "Syntax: generate_boxes log_2(<min_elem>) log_2(<max_elem>)."
+    echo "Example: generate-boxes 2 4"
+    exit 1
+  fi
+  local min_elem=$1
+  local max_elem=$2
+
   cd boxes
   # Run thorugh the box sizes
   for i in `seq $min_elem 1 $max_elem`
@@ -90,17 +107,4 @@ function generate_boxes()
   cd ..
 }
 
-function build_and_run_tests()
-{
-  # {min,max}_elem are the exponents for the number of elements, base is 2
-  if [[ $# -eq 2 ]]; then
-    min_elem=$1
-    max_elem=$2
-  else
-    min_elem=10
-    max_elem=10
-  fi
-
-  echo "Generating box meshes : from 2^$min_elem to 2^$max_elem elements ..."
-  $dry_run generate_boxes || return 1
-}
+generate_boxes $min_elem $max_elem
