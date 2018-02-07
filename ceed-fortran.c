@@ -6,17 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-/// @defgroup FortranAPI Ceed: Fortran Interface
-/// @{
-/// Fortran interface
-///
 static Ceed *Ceed_dict = NULL;
 static int Ceed_count = 0;
 static int Ceed_n = 0;
 static int Ceed_count_max = 0;
 
 #define fCeedInit FORTRAN_NAME(ceedinit,CEEDINIT)
-void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err) {
+void fCeedInit(const char* resource, int *ceed, int *err) {
   if (Ceed_count == Ceed_count_max) {
     Ceed_count_max += Ceed_count_max/2 + 1;
     CeedRealloc(Ceed_count_max, &Ceed_dict);
@@ -32,7 +28,7 @@ void fCeedInit(const char* resource, CeedInt *ceed, CeedInt *err) {
 }
 
 #define fCeedDestroy FORTRAN_NAME(ceeddestroy,CEEDDESTROY)
-void fCeedDestroy(CeedInt *ceed, CeedInt *err) {
+void fCeedDestroy(int *ceed, int *err) {
   *err = CeedDestroy(&Ceed_dict[*ceed]);
 
   if (*err == 0) {
@@ -51,7 +47,7 @@ static int CeedVector_n = 0;
 static int CeedVector_count_max = 0;
 
 #define fCeedVectorCreate FORTRAN_NAME(ceedvectorcreate,CEEDVECTORCREATE)
-void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec, CeedInt *err) {
+void fCeedVectorCreate(int *ceed, int *length, int *vec, int *err) {
   if (CeedVector_count == CeedVector_count_max) {
     CeedVector_count_max += CeedVector_count_max/2 + 1;
     CeedRealloc(CeedVector_count_max, &CeedVector_dict);
@@ -67,14 +63,14 @@ void fCeedVectorCreate(CeedInt *ceed, CeedInt *length, CeedInt *vec, CeedInt *er
 }
 
 #define fCeedVectorSetArray FORTRAN_NAME(ceedvectorsetarray,CEEDVECTORSETARRAY)
-void fCeedVectorSetArray(CeedInt *vec, CeedInt *memtype, CeedInt *copymode,
-    CeedScalar *array, CeedInt *err) {
+void fCeedVectorSetArray(int *vec, int *memtype, int *copymode,
+    CeedScalar *array, int *err) {
   *err = CeedVectorSetArray(CeedVector_dict[*vec], *memtype, *copymode, array);
 }
 
 #define fCeedVectorGetArray FORTRAN_NAME(ceedvectorgetarray,CEEDVECTORGETARRAY)
 //TODO Need Fixing, double pointer
-void fCeedVectorGetArray(CeedInt *vec, CeedInt *memtype, CeedScalar *array, CeedInt *err) {
+void fCeedVectorGetArray(int *vec, int *memtype, CeedScalar *array, int *err) {
   CeedScalar *b;
   CeedVector vec_ = CeedVector_dict[*vec];
   *err = CeedVectorGetArray(vec_, *memtype, &b);
@@ -85,8 +81,8 @@ void fCeedVectorGetArray(CeedInt *vec, CeedInt *memtype, CeedScalar *array, Ceed
 #define fCeedVectorGetArrayRead \
     FORTRAN_NAME(ceedvectorgetarrayread,CEEDVECTORGETARRAYREAD)
 //TODO Need Fixing, double pointer
-void fCeedVectorGetArrayRead(CeedInt *vec, CeedInt *memtype, CeedScalar *array,
-    CeedInt *err) {
+void fCeedVectorGetArrayRead(int *vec, int *memtype, CeedScalar *array,
+    int *err) {
   const CeedScalar *b;
   *err = CeedVectorGetArrayRead(CeedVector_dict[*vec], *memtype, &b);
   CeedVector vec_ = CeedVector_dict[*vec];
@@ -96,18 +92,18 @@ void fCeedVectorGetArrayRead(CeedInt *vec, CeedInt *memtype, CeedScalar *array,
 
 #define fCeedVectorRestoreArray \
     FORTRAN_NAME(ceedvectorrestorearray,CEEDVECTORRESTOREARRAY)
-void fCeedVectorRestoreArray(CeedInt *vec, CeedScalar *array, CeedInt *err) {
+void fCeedVectorRestoreArray(int *vec, CeedScalar *array, int *err) {
   *err = CeedVectorRestoreArray(CeedVector_dict[*vec], &array);
 }
 
 #define fCeedVectorRestoreArrayRead \
     FORTRAN_NAME(ceedvectorrestorearrayread,CEEDVECTORRESTOREARRAYREAD)
-void fCeedVectorRestoreArrayRead(CeedInt *vec, const CeedScalar *array, CeedInt *err) {
+void fCeedVectorRestoreArrayRead(int *vec, const CeedScalar *array, int *err) {
   *err = CeedVectorRestoreArrayRead(CeedVector_dict[*vec], &array);
 }
 
 #define fCeedVectorDestroy FORTRAN_NAME(ceedvectordestroy,CEEDVECTORDESTROY)
-void fCeedVectorDestroy(CeedInt *vec, CeedInt *err) {
+void fCeedVectorDestroy(int *vec, int *err) {
   *err = CeedVectorDestroy(&CeedVector_dict[*vec]);
 
   if (*err == 0) {
@@ -127,9 +123,9 @@ static int CeedElemRestriction_count_max = 0;
 
 #define fCeedElemRestrictionCreate \
     FORTRAN_NAME(ceedelemrestrictioncreate, CEEDELEMRESTRICTIONCREATE)
-void fCeedElemRestrictionCreate(CeedInt *ceed, CeedInt *nelements,
-    CeedInt *esize, CeedInt *ndof, CeedInt *memtype, CeedInt *copymode,
-    const CeedInt *indices, CeedInt *elemrestriction, CeedInt *err) {
+void fCeedElemRestrictionCreate(int *ceed, int *nelements,
+    int *esize, int *ndof, int *memtype, int *copymode,
+    const int *indices, int *elemrestriction, int *err) {
   if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
     CeedElemRestriction_count_max += CeedElemRestriction_count_max/2 + 1;
     CeedRealloc(CeedElemRestriction_count_max, &CeedElemRestriction_dict);
@@ -148,9 +144,9 @@ void fCeedElemRestrictionCreate(CeedInt *ceed, CeedInt *nelements,
 
 #define fCeedElemRestrictionCreateBlocked \
     FORTRAN_NAME(ceedelemrestrictioncreateblocked,CEEDELEMRESTRICTIONCREATEBLOCKED)
-void fCeedElemRestrictionCreateBlocked(CeedInt *ceed, CeedInt *nelements,
-    CeedInt *esize, CeedInt *blocksize, CeedInt *mtype, CeedInt *cmode,
-    CeedInt *blkindices, CeedInt *elemr, CeedInt *err)
+void fCeedElemRestrictionCreateBlocked(int *ceed, int *nelements,
+    int *esize, int *blocksize, int *mtype, int *cmode,
+    int *blkindices, int *elemr, int *err)
 {
   *err = CeedElemRestrictionCreateBlocked(Ceed_dict[*ceed], *nelements, *esize,
              *blocksize, *mtype, *cmode, blkindices, &CeedElemRestriction_dict[*elemr]);
@@ -163,8 +159,8 @@ static int CeedRequest_count_max = 0;
 
 #define fCeedElemRestrictionApply \
     FORTRAN_NAME(ceedelemrestrictionapply,CEEDELEMRESTRICTIONAPPLY)
-void fCeedElemRestrictionApply(CeedInt *elemr, CeedInt *tmode, CeedInt *ncomp, CeedInt *lmode,
-    CeedInt *uvec, CeedInt *ruvec, CeedInt *rqst, CeedInt *err)
+void fCeedElemRestrictionApply(int *elemr, int *tmode, int *ncomp, int *lmode,
+    int *uvec, int *ruvec, int *rqst, int *err)
 {
   int createRequest = 1;
   // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
@@ -190,7 +186,7 @@ void fCeedElemRestrictionApply(CeedInt *elemr, CeedInt *tmode, CeedInt *ncomp, C
 }
 
 #define fCeedRequestWait FORTRAN_NAME(ceedrequestwait, CEEDREQUESTWAIT)
-void fCeedRequestwait(CeedInt *rqst, CeedInt *err) {
+void fCeedRequestwait(int *rqst, int *err) {
   // TODO Uncomment this once CeedRequestWait is implemented
   //*err = CeedRequestWait(&CeedRequest_dict[*rqst]);
 
@@ -206,7 +202,7 @@ void fCeedRequestwait(CeedInt *rqst, CeedInt *err) {
 
 #define fCeedElemRestrictionDestroy \
     FORTRAN_NAME(ceedelemrestrictiondestroy,CEEDELEMRESTRICTIONDESTROY)
-void fCeedElemRestrictionDestroy(CeedInt *elem, CeedInt *err) {
+void fCeedElemRestrictionDestroy(int *elem, int *err) {
   *err = CeedElemRestrictionDestroy(&CeedElemRestriction_dict[*elem]);
 
   if (*err == 0) {
@@ -226,9 +222,9 @@ static int CeedBasis_count_max = 0;
 
 #define fCeedBasisCreateTensorH1Lagrange \
     FORTRAN_NAME(ceedbasiscreatetensorh1lagrange, CEEDBASISCREATETENSORH1LAGRANGE)
-void fCeedBasisCreateTensorH1Lagrange(CeedInt *ceed, CeedInt *dim,
-    CeedInt *ndof, CeedInt *P, CeedInt *Q, CeedInt *quadmode, CeedInt *basis,
-    CeedInt *err) {
+void fCeedBasisCreateTensorH1Lagrange(int *ceed, int *dim,
+    int *ndof, int *P, int *Q, int *quadmode, int *basis,
+    int *err) {
   if (CeedBasis_count == CeedBasis_count_max) {
     CeedBasis_count_max += CeedBasis_count_max/2 + 1;
     CeedRealloc(CeedBasis_count_max, &CeedBasis_dict);
@@ -245,9 +241,9 @@ void fCeedBasisCreateTensorH1Lagrange(CeedInt *ceed, CeedInt *dim,
 
 #define fCeedBasisCreateTensorH1 \
     FORTRAN_NAME(ceedbasiscreatetensorh1, CEEDBASISCREATETENSORH1)
-void fCeedBasisCreateTensorH1(CeedInt *ceed, CeedInt *dim, CeedInt *ndof, CeedInt *P1d,
-    CeedInt *Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
-    const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedInt *basis, CeedInt *err)
+void fCeedBasisCreateTensorH1(int *ceed, int *dim, int *ndof, int *P1d,
+    int *Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
+    const CeedScalar *qref1d, const CeedScalar *qweight1d, int *basis, int *err)
 {
   if (CeedBasis_count == CeedBasis_count_max) {
     CeedBasis_count_max += CeedBasis_count_max/2 + 1;
@@ -264,31 +260,31 @@ void fCeedBasisCreateTensorH1(CeedInt *ceed, CeedInt *dim, CeedInt *ndof, CeedIn
 }
 
 #define fCeedBasisView FORTRAN_NAME(ceedbasisview, CEEDBASISVIEW)
-void fCeedBasisView(CeedInt *basis, FILE *stream, CeedInt *err) {
+void fCeedBasisView(int *basis, FILE *stream, int *err) {
 //TODO
 //CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
 }
 
 #define fCeedBasisApply FORTRAN_NAME(ceedbasisapply, CEEDBASISAPPLY)
-void fCeedBasisApply(CeedInt *basis, CeedInt *tmode, CeedInt *emode, const CeedScalar *u,
-    CeedScalar *v, CeedInt *err) {
+void fCeedBasisApply(int *basis, int *tmode, int *emode, const CeedScalar *u,
+    CeedScalar *v, int *err) {
   *err = CeedBasisApply(CeedBasis_dict[*basis], *tmode, *emode, u, v);
 }
 
 #define fCeedBasisGetNumNodes \
     FORTRAN_NAME(ceedbasisgetnumnodes, CEEDBASISGETNUMNODES)
-void fCeedBasisGetNumNodes(CeedInt *basis, CeedInt *P, CeedInt *err) {
+void fCeedBasisGetNumNodes(int *basis, int *P, int *err) {
   *err = CeedBasisGetNumNodes(CeedBasis_dict[*basis], P);
 }
 
 #define fCeedBasisGetNumQuadraturePoints \
     FORTRAN_NAME(ceedbasisgetnumquadraturepoints, CEEDBASISGETNUMQUADRATUREPOINTS)
-void fCeedBasisGetNumQuadraturePoints(CeedInt *basis, CeedInt *Q, CeedInt *err) {
+void fCeedBasisGetNumQuadraturePoints(int *basis, int *Q, int *err) {
   *err = CeedBasisGetNumQuadraturePoints(CeedBasis_dict[*basis], Q);
 }
 
 #define fCeedBasisDestroy FORTRAN_NAME(ceedbasisdestroy,CEEDBASISDESTROY)
-void fCeedBasisDestroy(CeedInt *basis, CeedInt *err) {
+void fCeedBasisDestroy(int *basis, int *err) {
   *err = CeedBasisDestroy(&CeedBasis_dict[*basis]);
 
   if (*err == 0) {
@@ -302,16 +298,16 @@ void fCeedBasisDestroy(CeedInt *basis, CeedInt *err) {
 }
 
 #define fCeedGaussQuadrature FORTRAN_NAME(ceedgaussquadrature, CEEDGAUSSQUADRATURE)
-void fCeedGaussQuadrature(CeedInt *Q, CeedScalar *qref1d, CeedScalar *qweight1d,
-    CeedInt *err)
+void fCeedGaussQuadrature(int *Q, CeedScalar *qref1d, CeedScalar *qweight1d,
+    int *err)
 {
   *err = CeedGaussQuadrature(*Q, qref1d, qweight1d);
 }
 
 #define fCeedLobattoQuadrature \
     FORTRAN_NAME(ceedlobattoquadrature, CEEDLOBATTOQUADRATURE)
-void fCeedLobattoQuadrature(CeedInt *Q, CeedScalar *qref1d, CeedScalar *qweight1d,
-    CeedInt *err)
+void fCeedLobattoQuadrature(int *Q, CeedScalar *qref1d, CeedScalar *qweight1d,
+    int *err)
 {
   *err = CeedLobattoQuadrature(*Q, qref1d, qweight1d);
 }
@@ -322,12 +318,12 @@ static int CeedQFunction_n = 0;
 static int CeedQFunction_count_max = 0;
 
 struct fContext {
-  void (*f)(void *ctx, void *qdata, CeedInt *nq, const CeedScalar *const u,
+  void (*f)(void *ctx, void *qdata, int *nq, const CeedScalar *const u,
            CeedScalar *const v, int *ierr);
   void *innerctx;
 };
 
-static int CeedQFunctionFortranStub(void *ctx, void *qdata, CeedInt nq,
+static int CeedQFunctionFortranStub(void *ctx, void *qdata, int nq,
     const CeedScalar *const *u, CeedScalar *const *v) {
   struct fContext *fctx = ctx;
   int ierr;
@@ -351,11 +347,11 @@ static int CeedQFunctionFortranStub(void *ctx, void *qdata, CeedInt nq,
 
 #define fCeedQFunctionCreateInterior \
     FORTRAN_NAME(ceedqfunctioncreateinterior, CEEDQFUNCTIONCREATEINTERIOR)
-void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
-    CeedInt* nfields, CeedInt* qdatasize, CeedInt* inmode, CeedInt* outmode,
-    void (*f)(void *ctx, void *qdata, CeedInt *nq, const CeedScalar *const u,
-             CeedScalar *const v, CeedInt *err), const char *focca, CeedInt *qf,
-    CeedInt *err) {
+void fCeedQFunctionCreateInterior(int* ceed, int* vlength,
+    int* nfields, int* qdatasize, int* inmode, int* outmode,
+    void (*f)(void *ctx, void *qdata, int *nq, const CeedScalar *const u,
+             CeedScalar *const v, int *err), const char *focca, int *qf,
+    int *err) {
   if (CeedQFunction_count == CeedQFunction_count_max) {
     CeedQFunction_count_max += CeedQFunction_count_max/2 + 1;
     CeedRealloc(CeedQFunction_count_max, &CeedQFunction_dict);
@@ -380,8 +376,8 @@ void fCeedQFunctionCreateInterior(CeedInt* ceed, CeedInt* vlength,
 
 #define fCeedQFunctionSetContext \
     FORTRAN_NAME(ceedqfunctionsetcontext, CEEDQFUNCTIONSETCONTEXT)
-void fCeedQFunctionSetContext(CeedInt *qf, void *ctx, size_t* ctxsize,
-    CeedInt *err) {
+void fCeedQFunctionSetContext(int *qf, void *ctx, size_t* ctxsize,
+    int *err) {
   CeedQFunction qf_ = CeedQFunction_dict[*qf];
 
   struct fContext *newFContext; CeedMalloc(1, &newFContext);
@@ -394,8 +390,8 @@ void fCeedQFunctionSetContext(CeedInt *qf, void *ctx, size_t* ctxsize,
 #define fCeedQFunctionApply \
     FORTRAN_NAME(ceedqfunctionapply,CEEDQFUNCTIONAPPLY)
 //TODO Need Fixing, double pointer
-void fCeedQFunctionApply(CeedInt *qf, void *qdata, CeedInt *Q,
-    const CeedScalar *u, CeedScalar *v, CeedInt *err)
+void fCeedQFunctionApply(int *qf, void *qdata, int *Q,
+    const CeedScalar *u, CeedScalar *v, int *err)
 {
   CeedQFunction qf_ = CeedQFunction_dict[*qf];
 
@@ -404,7 +400,7 @@ void fCeedQFunctionApply(CeedInt *qf, void *qdata, CeedInt *Q,
 
 #define fCeedQFunctionDestroy \
     FORTRAN_NAME(ceedqfunctiondestroy,CEEDQFUNCTIONDESTROY)
-void fCeedQFunctionDestroy(CeedInt *qf, CeedInt *err) {
+void fCeedQFunctionDestroy(int *qf, int *err) {
   CeedFree(&CeedQFunction_dict[*qf]->ctx);
   *err = CeedQFunctionDestroy(&CeedQFunction_dict[*qf]);
 
@@ -425,8 +421,8 @@ static int CeedOperator_count_max = 0;
 
 #define fCeedOperatorCreate \
     FORTRAN_NAME(ceedoperatorcreate, CEEDOPERATORCREATE)
-void fCeedOperatorCreate(CeedInt* ceed, CeedInt* erstrn, CeedInt* basis,
-    CeedInt* qf, CeedInt* dqf, CeedInt* dqfT, CeedInt *op, CeedInt *err) {
+void fCeedOperatorCreate(int* ceed, int* erstrn, int* basis,
+    int* qf, int* dqf, int* dqfT, int *op, int *err) {
   if (CeedOperator_count == CeedOperator_count_max)
     CeedOperator_count_max += CeedOperator_count_max/2 + 1,
     CeedOperator_dict =
@@ -449,7 +445,7 @@ void fCeedOperatorCreate(CeedInt* ceed, CeedInt* erstrn, CeedInt* basis,
 
 #define fCeedOperatorGetQData \
     FORTRAN_NAME(ceedoperatorgetqdata, CEEDOPERATORGETQDATA)
-void fCeedOperatorGetQData(CeedInt *op, CeedInt *vec, CeedInt *err) {
+void fCeedOperatorGetQData(int *op, int *vec, int *err) {
   if (CeedVector_count == CeedVector_count_max) {
     CeedVector_count_max += CeedVector_count_max/2 + 1;
     CeedRealloc(CeedVector_count_max, &CeedVector_dict);
@@ -464,8 +460,8 @@ void fCeedOperatorGetQData(CeedInt *op, CeedInt *vec, CeedInt *err) {
 }
 
 #define fCeedOperatorApply FORTRAN_NAME(ceedoperatorapply, CEEDOPERATORAPPLY)
-void fCeedOperatorApply(CeedInt *op, CeedInt *qdatavec, CeedInt *ustatevec,
-    CeedInt *resvec, CeedInt *rqst, CeedInt *err) {
+void fCeedOperatorApply(int *op, int *qdatavec, int *ustatevec,
+    int *resvec, int *rqst, int *err) {
   // TODO What vector arguments can be NULL?
   CeedVector resvec_;
   if (resvec == NULL) resvec_ = NULL;
@@ -498,8 +494,8 @@ void fCeedOperatorApply(CeedInt *op, CeedInt *qdatavec, CeedInt *ustatevec,
 
 #define fCeedOperatorApplyJacobian \
     FORTRAN_NAME(ceedoperatorapplyjacobian, CEEDOPERATORAPPLYJACOBIAN)
-void fCeedOperatorApplyJacobian(CeedInt *op, CeedInt *qdatavec, CeedInt *ustatevec,
-    CeedInt *dustatevec, CeedInt *dresvec, CeedInt *rqst, CeedInt *err) {
+void fCeedOperatorApplyJacobian(int *op, int *qdatavec, int *ustatevec,
+    int *dustatevec, int *dresvec, int *rqst, int *err) {
 // TODO Uncomment this when CeedOperatorApplyJacobian is implemented
 //  *err = CeedOperatorApplyJacobian(CeedOperator_dict[*op], CeedVector_dict[*qdatavec],
 //             CeedVector_dict[*ustatevec], CeedVector_dict[*dustatevec],
@@ -508,7 +504,7 @@ void fCeedOperatorApplyJacobian(CeedInt *op, CeedInt *qdatavec, CeedInt *ustatev
 
 #define fCeedOperatorDestroy \
     FORTRAN_NAME(ceedoperatordestroy, CEEDOPERATORDESTROY)
-void fCeedOperatorDestroy(CeedInt *op, CeedInt *err) {
+void fCeedOperatorDestroy(int *op, int *err) {
   *err = CeedOperatorDestroy(&CeedOperator_dict[*op]);
 
   if (*err == 0) {
@@ -520,4 +516,3 @@ void fCeedOperatorDestroy(CeedInt *op, CeedInt *err) {
     }
   }
 }
-/// @}
