@@ -962,7 +962,10 @@ c     call dsavg(e1)
 
       call ceeddestroy(ceed,err)
 
-      call exitti('quit after cggos$',nx)
+c     Uncomment the exitti command below if you want to quit as soon as
+c     we are done with timing. But this will exit with a non-zero status
+c     and will print out an error message.
+c      call exitti('quit after cggos$',0)
 
       return
       end
