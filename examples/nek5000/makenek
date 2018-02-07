@@ -1,0 +1,79 @@
+#!/bin/bash
+#-------------------------------------------------------------------------------
+# Nek5000 config file
+#-------------------------------------------------------------------------------
+
+# source path 
+SOURCE_ROOT="$NEK5K_DIR"
+
+# Fortran/C compiler
+#FC="mpif77"
+#CC="mpicc"
+
+# pre-processor list (set to "?" to get a list of available symbols)
+#PPLIST="?" 
+
+#-------------------------------------------------------------------------------
+# WHAT FOLLOWS ARE OPTIONAL SETTINGS
+#-------------------------------------------------------------------------------
+
+# optional compiler flags
+FFLAGS="-I../../include"
+#CFLAGS=""
+
+# optional linking flags
+USR_LFLAGS+="-L../../lib -lceed"
+
+# auxilliary files to compile
+# NOTE: source files have to located in the same directory as makenek
+#       a makefile_usr.inc has to be provided containing the build rules 
+#USR="foo.o"
+
+# MPI (default 1) 
+#MPI=0
+
+# profiling (default 1)
+#PROFILING=0
+
+# VisIt in situ (default 0)
+#VISIT=1
+#  Note: you can override the lib and include paths. VISIT_LIB and VISIT_INC
+#  If VISIT_STOP is set the simulation will stop after first step and wait
+#  for VisIt to connect.
+#VISIT_INSTALL="/path/to/visit/current/linux-x86_64/"
+#VISIT_STOP=true
+
+
+###############################################################################
+# DONT'T TOUCH WHAT FOLLOWS !!!
+###############################################################################
+set -e
+
+# assign version tag
+mver=17.0.4
+
+# set defaults
+: ${SOURCE_ROOT:="$HOME/Nek5000"}
+: ${FC:="mpif77"}
+: ${CC:="mpicc"}
+: ${MPI:=1}
+: ${PROFILING:=1}
+: ${VISIT:=0}
+: ${PPLIST:=""}
+
+# overwrite source path with optional 2nd argument
+if [ -d $2 ] && [ $# -eq 2 ]; then
+  SOURCE_ROOT="$2"
+  echo "change source code directory to: ", $SOURCE_ROOT
+fi
+
+# create makefile
+source $SOURCE_ROOT/core/makenek.inc
+
+# compile 3rd_party code
+make_3rd_party 2>&1 | tee -a compiler.out
+
+# compile nek
+make -j4 -f makefile 2>&1 | tee -a compiler.out
+
+exit 0

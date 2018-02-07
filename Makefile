@@ -15,19 +15,30 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 CC ?= gcc
+FC = gfortran
 
 NDEBUG ?=
 LDFLAGS ?=
 LOADLIBES ?=
 TARGET_ARCH ?=
+UNDERSCORE ?= 1
 
 # env variable OCCA_DIR should point to OCCA-1.0 branch
 OCCA_DIR ?= ../occa
 
 SANTIZ = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native
+FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP -march=native
+
 CFLAGS += $(if $(NDEBUG),-O2,-g)
+ifeq ($(UNDERSCORE), 1)
+  CFLAGS += -DUNDERSCORE
+endif
+
+FFLAGS += $(if $(NDEBUG),-O2,-g)
+
 CFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
+FFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
 LDFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
 CPPFLAGS = -I./include
 LDLIBS = -lm
@@ -56,10 +67,16 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.c := $(wildcard ceed*.c)
+# tests
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9]-*.c))
+tests.f   := $(sort $(wildcard tests/t[0-9][0-9]-*.f))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
+tests     += $(tests.f:tests/%.f=$(OBJDIR)/%)
+#examples
 examples.c := $(sort $(wildcard examples/*.c))
+examples.f := $(sort $(wildcard examples/*.f))
 examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
+examples  += $(examples.f:examples/%.f=$(OBJDIR)/%)
 # backends/[ref & occa]
 ref.c     := $(sort $(wildcard backends/ref/*.c))
 ref.o     := $(ref.c:%.c=$(OBJDIR)/%.o)
@@ -114,13 +131,17 @@ $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
+$(OBJDIR)/% : tests/%.f | $$(@D)/.DIR
+	$(call quiet,FC) $(CPPFLAGS) $(FFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
+
 $(OBJDIR)/% : examples/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
+$(OBJDIR)/% : examples/%.f | $$(@D)/.DIR
+	$(call quiet,FC) $(CPPFLAGS) $(FFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
+
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
-$(OBJDIR)/t% : tests/t%.c $(libceed)
-$(OBJDIR)/ex% : examples/ex%.c $(libceed)
 
 run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:build/%=%)

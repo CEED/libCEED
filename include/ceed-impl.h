@@ -41,6 +41,7 @@ struct Ceed_private {
    has to be a pointer to a pointer. */
 CEED_INTERN int CeedMallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedCallocArray(size_t n, size_t unit, void *p);
+CEED_INTERN int CeedReallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedFree(void *p);
 
 #define CeedChk(ierr) do { if (ierr) return ierr; } while (0)
@@ -49,6 +50,7 @@ CEED_INTERN int CeedFree(void *p);
    CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
 #define CeedMalloc(n, p) CeedMallocArray((n), sizeof(**(p)), p)
 #define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
+#define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
 void CeedDebug(const char *,...);
 
