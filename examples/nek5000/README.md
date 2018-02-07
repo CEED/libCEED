@@ -8,6 +8,12 @@ for using the script is the following.
    generate_boxes log_2(<min_elem>) log_2(<max_elem>)."
 ```
 
+This script is depended on the following Nek5000 tools: `genbox`,
+`genmap`, `reatore2`. Make sure that you have built them in Nek5000
+directroy before running this script. Read Nek5000 documentation to learn
+how to build the above tools in the following link:
+https://nek5000.mcs.anl.gov/getstarted/
+
 Example:
 ```sh
 ./generate-boxes 2 4
@@ -35,5 +41,5 @@ Syntax for the command is
 
 Example:
 ```
-  echo "Example ./run-nek-example ex1 4 b10 ./boxes/b10"
+  echo "Example ./run-nek-example ex1 4 b3 ./boxes/b3"
 ```
