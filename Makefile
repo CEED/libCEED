@@ -15,7 +15,7 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 CC ?= gcc
-FC ?= gfortran
+FC = gfortran
 
 NDEBUG ?=
 LDFLAGS ?=
