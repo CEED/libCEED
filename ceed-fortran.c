@@ -68,41 +68,41 @@ void fCeedVectorCreate(int *ceed, int *length, int *vec, int *err) {
 
 #define fCeedVectorSetArray FORTRAN_NAME(ceedvectorsetarray,CEEDVECTORSETARRAY)
 void fCeedVectorSetArray(int *vec, int *memtype, int *copymode,
-    double *array, int *err) {
+    CeedScalar *array, int *err) {
   *err = CeedVectorSetArray(CeedVector_dict[*vec], *memtype, *copymode, array);
 }
 
 #define fCeedVectorGetArray FORTRAN_NAME(ceedvectorgetarray,CEEDVECTORGETARRAY)
 //TODO Need Fixing, double pointer
-void fCeedVectorGetArray(int *vec, int *memtype, double *array, int *err) {
-  double *b;
+void fCeedVectorGetArray(int *vec, int *memtype, CeedScalar *array, int *err) {
+  CeedScalar *b;
   CeedVector vec_ = CeedVector_dict[*vec];
   *err = CeedVectorGetArray(vec_, *memtype, &b);
   if (*err == 0)
-    memcpy(array, b, sizeof(double)*vec_->length);
+    memcpy(array, b, sizeof(CeedScalar)*vec_->length);
 }
 
 #define fCeedVectorGetArrayRead \
     FORTRAN_NAME(ceedvectorgetarrayread,CEEDVECTORGETARRAYREAD)
 //TODO Need Fixing, double pointer
-void fCeedVectorGetArrayRead(int *vec, int *memtype, double *array,
+void fCeedVectorGetArrayRead(int *vec, int *memtype, CeedScalar *array,
     int *err) {
-  const double *b;
+  const CeedScalar *b;
   *err = CeedVectorGetArrayRead(CeedVector_dict[*vec], *memtype, &b);
   CeedVector vec_ = CeedVector_dict[*vec];
   if (*err == 0)
-    memcpy(array, b, sizeof(double)*vec_->length);
+    memcpy(array, b, sizeof(CeedScalar)*vec_->length);
 }
 
 #define fCeedVectorRestoreArray \
     FORTRAN_NAME(ceedvectorrestorearray,CEEDVECTORRESTOREARRAY)
-void fCeedVectorRestoreArray(int *vec, double *array, int *err) {
+void fCeedVectorRestoreArray(int *vec, CeedScalar *array, int *err) {
   *err = CeedVectorRestoreArray(CeedVector_dict[*vec], &array);
 }
 
 #define fCeedVectorRestoreArrayRead \
     FORTRAN_NAME(ceedvectorrestorearrayread,CEEDVECTORRESTOREARRAYREAD)
-void fCeedVectorRestoreArrayRead(int *vec, const double *array, int *err) {
+void fCeedVectorRestoreArrayRead(int *vec, const CeedScalar *array, int *err) {
   *err = CeedVectorRestoreArrayRead(CeedVector_dict[*vec], &array);
 }
 
@@ -247,8 +247,8 @@ void fCeedBasisCreateTensorH1Lagrange(int *ceed, int *dim,
 #define fCeedBasisCreateTensorH1 \
     FORTRAN_NAME(ceedbasiscreatetensorh1, CEEDBASISCREATETENSORH1)
 void fCeedBasisCreateTensorH1(int *ceed, int *dim, int *ndof, int *P1d,
-    int *Q1d, const double *interp1d, const double *grad1d,
-    const double *qref1d, const double *qweight1d, int *basis, int *err)
+    int *Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
+    const CeedScalar *qref1d, const CeedScalar *qweight1d, int *basis, int *err)
 {
   if (CeedBasis_count == CeedBasis_count_max) {
     CeedBasis_count_max += CeedBasis_count_max/2 + 1;
@@ -271,8 +271,8 @@ void fCeedBasisView(int *basis, FILE *stream, int *err) {
 }
 
 #define fCeedBasisApply FORTRAN_NAME(ceedbasisapply, CEEDBASISAPPLY)
-void fCeedBasisApply(int *basis, int *tmode, int *emode, const double *u,
-    double *v, int *err) {
+void fCeedBasisApply(int *basis, int *tmode, int *emode, const CeedScalar *u,
+    CeedScalar *v, int *err) {
   *err = CeedBasisApply(CeedBasis_dict[*basis], *tmode, *emode, u, v);
 }
 
@@ -303,7 +303,7 @@ void fCeedBasisDestroy(int *basis, int *err) {
 }
 
 #define fCeedGaussQuadrature FORTRAN_NAME(ceedgaussquadrature, CEEDGAUSSQUADRATURE)
-void fCeedGaussQuadrature(int *Q, double *qref1d, double *qweight1d,
+void fCeedGaussQuadrature(int *Q, CeedScalar *qref1d, CeedScalar *qweight1d,
     int *err)
 {
   *err = CeedGaussQuadrature(*Q, qref1d, qweight1d);
@@ -311,7 +311,7 @@ void fCeedGaussQuadrature(int *Q, double *qref1d, double *qweight1d,
 
 #define fCeedLobattoQuadrature \
     FORTRAN_NAME(ceedlobattoquadrature, CEEDLOBATTOQUADRATURE)
-void fCeedLobattoQuadrature(int *Q, double *qref1d, double *qweight1d,
+void fCeedLobattoQuadrature(int *Q, CeedScalar *qref1d, CeedScalar *qweight1d,
     int *err)
 {
   *err = CeedLobattoQuadrature(*Q, qref1d, qweight1d);
@@ -324,17 +324,17 @@ static int CeedQFunction_count_max = 0;
 
 struct fContext {
   void (*f)(void *ctx, void *qdata, int *nq,
-      const double *const u,const double *const u1,const double *const u2,
-      double *const v1,double *const v2, int *err);
+      const CeedScalar *const u,const CeedScalar *const u1,const CeedScalar *const u2,
+      CeedScalar *const v1,CeedScalar *const v2, int *err);
   void *innerctx;
 };
 
 static int CeedQFunctionFortranStub(void *ctx, void *qdata, int nq,
-    const double *const *u, double *const *v) {
+    const CeedScalar *const *u, CeedScalar *const *v) {
   struct fContext *fctx = ctx;
   int ierr;
 
-  double ctx_=1.0;
+  CeedScalar ctx_=1.0;
   fctx->f((void*)&ctx_, qdata, &nq, u[0], u[1], u[4], v[0], v[1], &ierr);
   return ierr;
 }
@@ -344,8 +344,8 @@ static int CeedQFunctionFortranStub(void *ctx, void *qdata, int nq,
 void fCeedQFunctionCreateInterior(int* ceed, int* vlength,
     int* nfields, int* qdatasize, int* inmode, int* outmode,
     void (*f)(void *ctx, void *qdata, int *nq,
-        const double *u,const double *u1,const double *u2,
-        double *v1,double *v2, int *err),
+        const CeedScalar *u,const CeedScalar *u1,const CeedScalar *u2,
+        CeedScalar *v1,CeedScalar *v2, int *err),
     const char *focca, int *qf, int *err) {
   if (CeedQFunction_count == CeedQFunction_count_max) {
     CeedQFunction_count_max += CeedQFunction_count_max/2 + 1;
@@ -386,7 +386,7 @@ void fCeedQFunctionSetContext(int *qf, void *ctx, size_t* ctxsize,
     FORTRAN_NAME(ceedqfunctionapply,CEEDQFUNCTIONAPPLY)
 //TODO Need Fixing, double pointer
 void fCeedQFunctionApply(int *qf, void *qdata, int *Q,
-    const double *u, double *v, int *err)
+    const CeedScalar *u, CeedScalar *v, int *err)
 {
   CeedQFunction qf_ = CeedQFunction_dict[*qf];
 
