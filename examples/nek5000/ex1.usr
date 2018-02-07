@@ -387,6 +387,7 @@ c     Helmholtz equations
       include 'TOTAL'
       include 'DOMAIN'
       include 'FDMH1'
+
       include 'ceedf.h'
 
       real u1(1),r1(1),h1(1),h2(1),rmult(1),binv(1)
@@ -395,6 +396,7 @@ c     Helmholtz equations
       common /scrcg1/ wv(3),wk(3),rpp1(3),rpp2(3),alph(3),beta(3),pap(3)
 
       parameter (lt=lx1*ly1*lz1*lelt)
+      parameter (lx=lx1*ly1*lz1)
       common /scrcg/  dpc(lt)
      $     ,          p1 (lt)
      $     ,          z1 (lt)
@@ -407,6 +409,7 @@ c     Helmholtz equations
       integer qf_mass
       integer op_mass
       integer vec_p1,vec_ap1,vec_qdata
+      integer ee,ii,i,e,ex,ey,ez
 
       real ap1(lt)
       equivalence (ap1,z1)
@@ -424,7 +427,6 @@ c     Helmholtz equations
          u1(i)=0
       enddo
 
-
 c     Evaluate diagional pre-conidtioner for fluid solve
       call setprecn (dpc,h1,h2)
 
@@ -433,14 +435,20 @@ c     Create a ceed basis
       q=p+1
       ncomp=1
       call ceedbasiscreatetensorh1lagrange(ceed,ndim,ncomp,p,q,
-     $  ceed_gauss_lobatto,basis,err)
+     $  ceed_gauss,basis,err)
 
 c     Create a ceed element restriction
       edof=nx1**ndim
       ldof=edof*nelt*ncomp
-      do i=1,ldof
-        indices(i)=i
+
+      ii=1
+      do e=1,nelt
+      do i=1,edof
+        indices(ii)=ii-1
+        ii=ii+1
       enddo
+      enddo
+
       call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,
      $  ceed_mem_host,ceed_copy_values,indices,erstrct,err)
 
@@ -457,7 +465,7 @@ c     Create ceed vectors
       call ceedvectorcreate(ceed,ldof,vec_p1,err)
       call ceedoperatorgetqdata(ceed,vec_qdata,err)
       call ceedvectorsetarray(vec_qdata,ceed_mem_host,
-     $  ceed_use_pointer,h2,err)
+     $  ceed_copy_values,h2,err)
 
 c     Start cg
       wv(1)=0
@@ -470,7 +478,7 @@ c     Start cg
       rpp1(1) = wv  (1)
 
       do 1000 iter=1,maxit
-         call ceed_axhm1    (pap,ap1,p1,h1,h2,ceed,mass_op,
+         call ceed_axhm1    (pap,ap1,p1,h1,h2,ceed,op_mass,
      $  vec_ap1,vec_p1,vec_qdata)
          call gop      (pap,wk,'+  ',1)
          call xmask1   (ap1,nel)
@@ -549,157 +557,6 @@ c     Destroy ceed handles
       return
       end
 c-----------------------------------------------------------------------
-      subroutine cggov(u1,u2,u3,r1,r2,r3,h1,h2,rmult,binv,tin,maxit)
-
-c     Vector conjugate gradient iteration for solution of uncoupled
-c     Helmholtz equations
-
-      include 'SIZE'
-      include 'TOTAL'
-      include 'DOMAIN'
-      include 'FDMH1'
-
-      real u1(1),u2(1),u3(1),r1(1),r2(1),r3(1)
-     $    ,h1(1),h2(1),rmult(1),binv(1)
-
-      common /scrcg1/ wv(3),wk(3),rpp1(3),rpp2(3),alph(3),beta(3),pap(3)
-
-      parameter (lt=lx1*ly1*lz1*lelt)
-      common /scrcg/  p1(lt),p2(lt),p3(lt),dpc(lt)
-      common /scrmg/  z1(lt),z2(lt),z3(lt)
-
-      real ap1(lt),ap2(lt),ap3(lt)
-      equivalence (ap1,z1),(ap2,z2),(ap3,z3)
-
-
-      vol   = volfld(ifield)
-      nel   = nelfld(ifield)
-      nxyz  = lx1*ly1*lz1
-      n     = nxyz*nel
-
-      tol=tin
-      if (param(22).ne.0) tol=abs(param(22))
-
-
-C     Evaluate diagional pre-conidtioner for fluid solve
-      call setprecn (dpc,h1,h2)
-
-
-      wv(1)=0
-      wv(2)=0
-      wv(3)=0
-      do i=1,n
-         s=rmult(i)                   !      -1
-         p1(i)=dpc(i)*r1(i)           ! p = M    r
-         p2(i)=dpc(i)*r2(i)           !
-         p3(i)=dpc(i)*r3(i)           ! T
-         wv(1)=wv(1)+s*p1(i)*r1(i)    !r p
-         wv(2)=wv(2)+s*p2(i)*r2(i)
-         wv(3)=wv(3)+s*p3(i)*r3(i)
-      enddo
-
-      call gop(wv,wk,'+  ',3)
-      rpp1(1) = wv  (1)
-      rpp1(2) = wv  (2)
-      rpp1(3) = wv  (3)
-
-      do 1000 iter=1,maxit
-         call axhm3    (pap,ap1,ap2,ap3,p1,p2,p3,h1,h2)
-         call xmask    (ap1,ap2,ap3,nel)
-         call vec_dssum(ap1,ap2,ap3,nx1,ny1,nz1)
-
-         call gop(pap,wk,'+  ',3)
-         alph(1) = rpp1(1)/pap(1)
-         alph(2) = rpp1(2)/pap(2)
-         alph(3) = rpp1(3)/pap(3)
-
-         do i=1,n
-            u1(i)=u1(i)+alph(1)* p1(i)
-            u2(i)=u2(i)+alph(2)* p2(i)
-            u3(i)=u3(i)+alph(3)* p3(i)
-            r1(i)=r1(i)-alph(1)*ap1(i)
-            r2(i)=r2(i)-alph(2)*ap2(i)
-            r3(i)=r3(i)-alph(3)*ap3(i)
-         enddo
-
-         wv(1)=0
-         wv(2)=0
-         wv(3)=0
-         do i=1,n
-            s1=abs(h1(i)-u1(i))
-            s2=abs(h1(i)-u2(i))
-            s3=abs(h1(i)-u3(i))
-            wv(1)=max(wv(1),s1)
-            wv(2)=max(wv(2),s2)
-            wv(3)=max(wv(3),s3)
-         enddo
-         call gop(wv,wk,'M  ',3)
-         rbnorm = max(wv(1),wv(2))
-         rbnorm = max(wv(3),rbnorm)
-
-c        tolerance check here
-
-         nx = nx1-1
-         if (nio.eq.0) write(6,1) ifield,istep,iter,nx,(wv(k),k=1,3)
-   1     format(i2,i9,i5,i4,1p3e12.4,' cggov')
-
-         if (rbnorm.lt.tol) then
-            ifin = iter
-            if (nio.eq.0) then
-              if (matmod.ge.0) write(6,3000) istep,ifin,rbnorm,tol
-              if (matmod.lt.0) write(6,3010) istep,ifin,rbnorm,tol
-            endif
-            goto 9999
-         endif
-
-         wv(1)=0
-         wv(2)=0
-         wv(3)=0
-         do i=1,n
-            s=rmult(i)
-            z1(i)=dpc(i)*r1(i)
-            z2(i)=dpc(i)*r2(i)
-            z3(i)=dpc(i)*r3(i)          !  T
-            wv(1)=wv(1)+s*z1(i)*r1(i)   ! r z
-            wv(2)=wv(2)+s*z2(i)*r2(i)
-            wv(3)=wv(3)+s*z3(i)*r3(i)
-         enddo
-         call gop(wv,wk,'+  ',3)
-
-         do j=1,3
-            rpp2(j)=rpp1(j)
-            rpp1(j)=wv  (j)
-            beta(j)=rpp1(j)/rpp2(j)
-         enddo
-
-         do i=1,n
-            p1(i)=z1(i) + beta(1)*p1(i)
-            p2(i)=z2(i) + beta(2)*p2(i)
-            p3(i)=z3(i) + beta(3)*p3(i)
-         enddo
-
-
- 1000 continue
-
-      if (matmod.ge.0.and.nio.eq.0) write (6,3001) istep,iter,rbnorm,tol
-      if (matmod.lt.0.and.nio.eq.0) write (6,3011) istep,iter,rbnorm,tol
-
-      iter = iter-1
-
- 9999 continue
-
-      maxit=iter
-
- 2000 format(i12,1x,'cggov/fluid: no iteration - rbnorm =', 2E13.4)
- 2010 format(i12,1x,'cggov/ mesh: no iteration - rbnorm =', 2E13.4)
- 3000 format(i12,1x,'cggov/fluid: ',I6,5E13.4)
- 3010 format(i12,1x,'cggov/ Mesh: ',I6,5E13.4)
- 3001 format(2i6,' Unconverged cggov/Fluid: rbnorm =',2E13.6)
- 3011 format(2i6,' Unconverged cggov/Mesh : rbnorm =',2E13.6)
-
-      return
-      end
-c-----------------------------------------------------------------------
       subroutine ax_e(w,u,g,h1,h2,b,ju,us,ut) ! Local matrix-vector product
       include 'SIZE'
       include 'TOTAL'
@@ -743,11 +600,9 @@ c     Helmholtz equations
 
       integer e
 
-
       pap=0
 
       nxq = nx1+1
-
       k=1
       do e=1,nelt
 
@@ -1061,24 +916,7 @@ c     call dsavg(e1)
 
       nio    = -99 ! Turn off i/o to stdout
 
-      call opcopy(r1,r2,r3,t1,t2,t3)
-      call opzero(u1,u2,u3)          ! Save Exact SOLN
-      call nekgsync()
-
-      tstart = dnekclock()
-      call cggov(u1,u2,u3,r1,r2,r3,h1,h2,vmult,binvm1,tol,maxit)
-      tstop  = dnekclock()
-
-      telapv = (tstop-tstart)
-      maxitv = maxit
-
-      er1 = glrdif(u1,e1,n)
-      er2 = glrdif(u2,e2,n)
-      er3 = glrdif(u3,e3,n)
-      if(nid.eq.0)write(6,3)lx1,nelgv,er1,er2,er3,' error v',maxit
-   3  format(i3,i9,1p3e12.4,1x,a8,i9)
-
-      maxit  = 200
+      maxit  = 100
       call opcopy(r1,r2,r3,t1,t2,t3)
       call opzero(u1,u2,u3)          ! Save Exact SOLN
       call nekgsync()
@@ -1101,9 +939,9 @@ c     call dsavg(e1)
       if (nid.eq.0) write(6,3) lx1,nelgv,er1,er2,er3,' error a',maxit1
       if (nid.eq.0) write(6,3) lx1,nelgv,er1,er2,er3,' error b',maxit2
       if (nid.eq.0) write(6,3) lx1,nelgv,er1,er2,er3,' error c',maxit3
+   3  format(i3,i9,1p3e12.4,1x,a8,i9)
 
       n = nx1*ny1*nz1*nelgt
-      telapv = telapv/(3)    ! Time per solve
       telaps = telaps/(3)
 
       nio    = nid
@@ -1112,10 +950,6 @@ c     call dsavg(e1)
       ndof   = ndof*(nx**ldim) ! ndofs
       nppp   = nelt*(nx**ldim)  ! ndofs/proc
 
-      dofpsv = ndof/telapv   ! DOF/sec - vector form
-      titerv = telapv/maxitv ! time per iteration
-      tppp_v = titerv/nppp   ! time per iteraton per local point
-
       dofpss = ndof/telaps   ! DOF/sec - scalar form
       titers = telaps/maxits ! time per iteration
       tppp_s = titers/nppp   ! time per iteraton per local point
@@ -1123,14 +957,11 @@ c     call dsavg(e1)
       if (nid.eq.0) write(6,1) 'case scalar:'
      $ ,np,nx,nelt,nelgt,ndof,nppp,maxits,telaps,dofpss,titers,tppp_s
 
-      if (nid.eq.0) write(6,1) 'case vector:'
-     $ ,np,nx,nelt,nelgt,ndof,nppp,maxitv,telapv,dofpsv,titerv,tppp_v
-
     1 format(a12,i7,i3,i7,i10,i14,i10,i4,1p4e13.5)
 
       call ceeddestroy(ceed,err)
 
-      call exitti('quit after cggov$',nx)
+      call exitti('quit after cggos$',nx)
 
       return
       end
