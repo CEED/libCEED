@@ -2,11 +2,6 @@ c
 c Dummy parameters for CEED Fortran 77 stubs
 c
 c
-c Null
-c
-      integer null
-      parameter(null = -2)
-c
 c CeedMemType
 c
       integer ceed_mem_host
@@ -33,6 +28,11 @@ c
 
       integer ceed_request_ordered
       parameter(ceed_request_ordered   = -2)
+c
+c Null
+c
+      integer ceed_null
+      parameter(ceed_null = -3)
 c
 c CeedTransposeMode
 c

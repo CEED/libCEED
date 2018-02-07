@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define FORTRAN_REQUEST_IMMEDIATE -1
+#define FORTRAN_REQUEST_ORDERED -2
+#define FORTRAN_NULL -3
+
 static Ceed *Ceed_dict = NULL;
 static int Ceed_count = 0;
 static int Ceed_n = 0;
@@ -164,7 +168,8 @@ void fCeedElemRestrictionApply(int *elemr, int *tmode, int *ncomp, int *lmode,
 {
   int createRequest = 1;
   // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
-  if (*rqst == -1 || *rqst == -2) createRequest = 0;
+  if (*rqst == FORTRAN_REQUEST_IMMEDIATE || *rqst == FORTRAN_REQUEST_ORDERED)
+    createRequest = 0;
 
   if (createRequest && CeedRequest_count == CeedRequest_count_max) {
     CeedRequest_count_max += CeedRequest_count_max/2 + 1;
@@ -172,8 +177,8 @@ void fCeedElemRestrictionApply(int *elemr, int *tmode, int *ncomp, int *lmode,
   }
 
   CeedRequest *rqst_;
-  if (*rqst == -1) rqst_ = CEED_REQUEST_IMMEDIATE;
-  else if (*rqst == -2) rqst_ = CEED_REQUEST_ORDERED;
+  if      (*rqst == FORTRAN_REQUEST_IMMEDIATE) rqst_ = CEED_REQUEST_IMMEDIATE;
+  else if (*rqst == FORTRAN_REQUEST_ORDERED  ) rqst_ = CEED_REQUEST_ORDERED;
   else rqst_ = &CeedRequest_dict[CeedRequest_count];
 
   *err = CeedElemRestrictionApply(CeedElemRestriction_dict[*elemr], *tmode, *ncomp,
@@ -431,8 +436,8 @@ void fCeedOperatorCreate(int* ceed, int* erstrn, int* basis,
   CeedOperator *op_ = &CeedOperator_dict[CeedOperator_count];
 
   CeedQFunction dqf_  = NULL, dqfT_ = NULL;
-  if (dqf  != NULL) dqf_  = CeedQFunction_dict[*dqf ];
-  if (dqfT != NULL) dqfT_ = CeedQFunction_dict[*dqfT];
+  if (*dqf  != FORTRAN_NULL) dqf_  = CeedQFunction_dict[*dqf ];
+  if (*dqfT != FORTRAN_NULL) dqfT_ = CeedQFunction_dict[*dqfT];
 
   *err = CeedOperatorCreate(Ceed_dict[*ceed], CeedElemRestriction_dict[*erstrn],
              CeedBasis_dict[*basis], CeedQFunction_dict[*qf], dqf_, dqfT_, op_);
@@ -464,7 +469,7 @@ void fCeedOperatorApply(int *op, int *qdatavec, int *ustatevec,
     int *resvec, int *rqst, int *err) {
   // TODO What vector arguments can be NULL?
   CeedVector resvec_;
-  if (resvec == NULL) resvec_ = NULL;
+  if (*resvec == FORTRAN_NULL) resvec_ = NULL;
   else resvec_ = CeedVector_dict[*resvec];
 
   int createRequest = 1;

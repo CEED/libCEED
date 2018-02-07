@@ -458,7 +458,7 @@ c     Create a ceed qfunction
 
 c     Create a ceed operator
       call ceedoperatorcreate(ceed,erstrct,basis,qf_mass,
-     $  %val(0),%val(0),op_mass,err)
+     $  ceed_null,ceed_null,op_mass,err)
 
 c     Create ceed vectors
       call ceedvectorcreate(ceed,ldof,vec_ap1,err)
@@ -479,7 +479,8 @@ c     Start cg
 
       do 1000 iter=1,maxit
          call ceed_axhm1    (pap,ap1,p1,h1,h2,ceed,op_mass,
-     $  vec_ap1,vec_p1,vec_qdata)
+     $     vec_ap1,vec_p1,vec_qdata)
+c         call axhm1    (pap,ap1,p1,h1,h2)
          call gop      (pap,wk,'+  ',1)
          call xmask1   (ap1,nel)
          call dssum    (ap1,nx1,ny1,nz1)

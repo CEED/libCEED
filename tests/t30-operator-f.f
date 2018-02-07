@@ -86,14 +86,14 @@ c-----------------------------------------------------------------------
      $  ceed_eval_interp,mass,'t30-operator-f.f:mass',qf_mass,err)
 
       call ceedoperatorcreate(ceed,erestrictx,bx,qf_setup,
-     $  %val(0),%val(0),op_setup,err)
+     $  ceed_null,ceed_null,op_setup,err)
       call ceedoperatorcreate(ceed,erestrictu,bu,qf_mass,
-     $  %val(0),%val(0),op_mass,err)
+     $  ceed_null,ceed_null,op_mass,err)
 
       call ceedvectorcreate(ceed,nx,x,err)
       call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,err)
       call ceedoperatorgetqdata(op_setup,qdata,err)
-      call ceedoperatorapply(op_setup,qdata,x,%val(0),
+      call ceedoperatorapply(op_setup,qdata,x,ceed_null,
      $  ceed_request_immediate,err)
 
       call ceedvectorcreate(ceed,nu,u,err)
