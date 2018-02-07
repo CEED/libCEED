@@ -142,7 +142,6 @@ $(OBJDIR)/% : examples/%.f | $$(@D)/.DIR
 
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
-$(OBJDIR)/t% : tests/t%.c tests/t%.f $(libceed)
 
 run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:build/%=%)
