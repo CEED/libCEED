@@ -20,7 +20,9 @@
 # Make script for Nek5000 examples
 ###############################################################################
 # Nek5000 path
-NEK5K_DIR=`cd "../../../Nek5000"; pwd`
+if [ -z "$NEK5K_DIR" ]; then
+    NEK5K_DIR=`cd "../../../Nek5000"; pwd`
+fi
 
 # list of examples to make
 EXAMPLES=ex1
