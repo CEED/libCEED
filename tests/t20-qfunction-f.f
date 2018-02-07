@@ -1,27 +1,27 @@
 c-----------------------------------------------------------------------
-      subroutine setup(ctx,qdata,q,u,v,ierr)
+      subroutine setup(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
       real*8 ctx(1)
       real*8 qdata(1)
-      real*8 u(1)
+      real*8 u1(1)
       real*8 v(1)
       integer q,ierr
 
       do i=1,q
-        qdata(i)=u(i)
+        qdata(i)=u1(i)
       enddo
 
       ierr=0
       end
 c-----------------------------------------------------------------------
-      subroutine mass(ctx,qdata,q,u,v,ierr)
+      subroutine mass(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
       real*8 ctx(1)
       real*8 qdata(1)
-      real*8 u(1)
-      real*8 v(1)
+      real*8 u1(1)
+      real*8 v1(1)
       integer q,ierr
 
       do i=1,q
-        v(i)=qdata(i)*u(i)
+        v1(i)=qdata(i)*u1(i)
       enddo
 
       ierr=0

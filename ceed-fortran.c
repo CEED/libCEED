@@ -323,8 +323,9 @@ static int CeedQFunction_n = 0;
 static int CeedQFunction_count_max = 0;
 
 struct fContext {
-  void (*f)(void *ctx, void *qdata, int *nq, const double *const u,
-           double *const v, int *ierr);
+  void (*f)(void *ctx, void *qdata, int *nq,
+      const double *const u,const double *const u1,const double *const u2,
+      double *const v1,double *const v2, int *err);
   void *innerctx;
 };
 
@@ -332,21 +333,9 @@ static int CeedQFunctionFortranStub(void *ctx, void *qdata, int nq,
     const double *const *u, double *const *v) {
   struct fContext *fctx = ctx;
   int ierr;
-  //Note: Since u and v are arrays to pointers, they
-  //can't be passed as is to Fortran. So, what I do is
-  //find the first non-NULL pointer and pass it is
-  //address to Fortran function. On the Fortran side, to access
-  //specific type of data, the use has to calculate the indices.
-  const double *uu = 0;
-  double *vv = 0;
-  CeedInt i;
-  for(i=0; (i<5)&&!u[i]; i++);
-  if (i==5) uu = NULL; else uu=u[i];
-  for(i=0; (i<5)&&!v[i]; i++);
-  if (i==5) vv = NULL; else vv=v[i];
-  // Using a real*8 instead of (void*) (fctx->innerctx)
+
   double ctx_=1.0;
-  fctx->f((void*)&ctx_, qdata, &nq, uu, vv, &ierr);
+  fctx->f((void*)&ctx_, qdata, &nq, u[0], u[1], u[4], v[0], v[1], &ierr);
   return ierr;
 }
 
@@ -354,9 +343,10 @@ static int CeedQFunctionFortranStub(void *ctx, void *qdata, int nq,
     FORTRAN_NAME(ceedqfunctioncreateinterior, CEEDQFUNCTIONCREATEINTERIOR)
 void fCeedQFunctionCreateInterior(int* ceed, int* vlength,
     int* nfields, int* qdatasize, int* inmode, int* outmode,
-    void (*f)(void *ctx, void *qdata, int *nq, const double *const u,
-             double *const v, int *err), const char *focca, int *qf,
-    int *err) {
+    void (*f)(void *ctx, void *qdata, int *nq,
+        const double *u,const double *u1,const double *u2,
+        double *v1,double *v2, int *err),
+    const char *focca, int *qf, int *err) {
   if (CeedQFunction_count == CeedQFunction_count_max) {
     CeedQFunction_count_max += CeedQFunction_count_max/2 + 1;
     CeedRealloc(CeedQFunction_count_max, &CeedQFunction_dict);
