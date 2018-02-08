@@ -19,26 +19,44 @@
 ###############################################################################
 # Make script for Nek5000 examples
 ###############################################################################
-# Nek5000 path
-if [ -z "$NEK5K_DIR" ]; then
-    NEK5K_DIR=`cd "../../../Nek5000"; pwd`
-fi
+## Nek5000 path
+#NEK5K_DIR=
 
-# list of examples to make
+## Fortran compiler
+#FC=
+
+## C compiler
+#CC=
+
+## list of examples to make
 EXAMPLES=ex1
 
 ###############################################################################
 # DONT'T TOUCH WHAT FOLLOWS !!!
 ###############################################################################
+# Set defaults for the parameters
+: ${NEK5K_DIR:=`cd "../../../Nek5000"; pwd`}
+: ${FC:="mpif77"}
+: ${CC:="mpicc"}
+
 # Exit if being sourced
 if [[ "${#BASH_SOURCE[@]}" -gt 1 ]]; then
   return 0
 fi
 
+# Copy makenek from NEK5K_DIR/bin/
+cp $NEK5K_DIR/bin/makenek .
+
+sed -i.bak -e "s|^#FC=.*|FC=\"$FC\"|" \
+    -e "s|^#CC=.*|CC=\"$CC\"|" \
+    -e "s|^#SOURCE_ROOT=.*|SOURCE_ROOT=\"$NEK5K_DIR\"|" \
+    -e "s|^#FFLAGS=.*|FFLAGS+=\"-I../../include\"|" \
+    -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-L../../lib -lceed\"|" makenek
+
 # Build examples
 for ex in $EXAMPLES; do
   echo "Building example: $ex ..."
-  NEK5K_DIR="$NEK5K_DIR" ./makenek ex1 2>&1 >> $ex.build.log
+  ./makenek ex1 2>&1 >> $ex.build.log
 
   if [[ ! -f ./nek5000 ]]; then
     echo "  Building $ex failed. See $ex.build.log for details."
