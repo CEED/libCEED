@@ -1,0 +1,10 @@
+ex1
+ex1.f
+ex1.log*
+*.out
+*.build.log
+makefile
+makenek*
+obj/
+boxes/b[0-9]*
+SESSION.NAME
