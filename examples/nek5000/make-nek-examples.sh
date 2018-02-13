@@ -14,8 +14,6 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-#!/bin/bash
-
 ###############################################################################
 # Make script for Nek5000 examples
 ###############################################################################
@@ -39,6 +37,16 @@ EXAMPLES=ex1
 : ${FC:="mpif77"}
 : ${CC:="mpicc"}
 
+# See if its just cleaning and if yes, clean and exit
+if [[ "$#" -eq 1 && "$1" -eq "clean" ]]; then
+  if [[ -f ./makenek ]]; then
+    printf "y\n" | ./makenek clean 2>&1 >> /dev/null
+  fi
+  rm makenek* ex1 ex1*log* SESSION.NAME 2> /dev/null
+  find ./boxes -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
+  exit
+fi
+
 # Exit if being sourced
 if [[ "${#BASH_SOURCE[@]}" -gt 1 ]]; then
   return 0
@@ -52,6 +60,7 @@ sed -i.bak -e "s|^#FC=.*|FC=\"$FC\"|" \
     -e "s|^#SOURCE_ROOT=.*|SOURCE_ROOT=\"$NEK5K_DIR\"|" \
     -e "s|^#FFLAGS=.*|FFLAGS+=\"-I../../include\"|" \
     -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-L../../lib -lceed\"|" makenek
+
 
 # Build examples
 for ex in $EXAMPLES; do

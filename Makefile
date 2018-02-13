@@ -171,6 +171,7 @@ cln clean :
 	$(RM) -r *.dSYM $(OBJDIR) $(LIBDIR)/pkgconfig
 	$(MAKE) -C examples clean
 	$(MAKE) -C examples/mfem clean
+	cd examples/nek5000; bash make-nek-examples.sh clean; cd ../..;
 
 astyle :
 	astyle --style=google --indent=spaces=2 --max-code-length=80 \
