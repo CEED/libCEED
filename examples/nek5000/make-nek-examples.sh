@@ -67,8 +67,11 @@ for ex in $EXAMPLES; do
   echo "Building example: $ex ..."
 
   # makenek appends generated lines in SIZE, which we don't want versioned
-  rm -f SIZE
-  cp SIZE.in SIZE
+  # So we copy SIZE.in to SIZE and use that with Nek5000. Once copied,
+  # user can reuse the SIZE file till he clean the examples directory.
+  if [[ ! -f SIZE ]]; then
+    cp SIZE.in SIZE
+  fi
 
   ./makenek ex1 2>&1 >> $ex.build.log
 
