@@ -66,7 +66,7 @@ sed -i.bak -e "s|^#FC=.*|FC=\"$FC\"|" \
 for ex in $EXAMPLES; do
   echo "Building example: $ex ..."
 
-  # makenek appends generated lines SIZE, which we don't want versioned
+  # makenek appends generated lines in SIZE, which we don't want versioned
   rm -f SIZE
   cp SIZE.in SIZE
 
