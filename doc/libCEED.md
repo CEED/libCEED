@@ -3,6 +3,9 @@
 This page provides a brief description of the theoretical foundations and the
 practical implementation of the libCEED library.
 
+Developers may also want to consult the automatically updated
+[Doxygen documentaion](https://codedocs.xyz/ceed/libCEED).
+
 ## Finite Element Operator Decomposition
 
 Finite element operators are typically defined through weak formulations of

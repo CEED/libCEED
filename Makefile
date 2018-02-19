@@ -173,6 +173,9 @@ cln clean :
 	$(MAKE) -C examples/mfem clean
 	cd examples/nek5000; bash make-nek-examples.sh clean; cd ../..;
 
+distclean : clean
+	rm -rf doc/html
+
 astyle :
 	astyle --style=google --indent=spaces=2 --max-code-length=80 \
             --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
