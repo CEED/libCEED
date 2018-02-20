@@ -17,7 +17,7 @@
 CC ?= gcc
 FC = gfortran
 
-NDEBUG ?=
+NDEBUG ?= 1
 CEED_DEBUG ?=
 
 LDFLAGS ?=

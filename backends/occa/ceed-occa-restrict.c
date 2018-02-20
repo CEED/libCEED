@@ -97,8 +97,8 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &us); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vs); CeedChk(ierr);
 
-  assert(memcmp(u_impl->array,us,u->length)==0); // us == uu
-  assert(memcmp(v_impl->array,vs,v->length)==0);
+  //assert(memcmp(u_impl->array,us,u->length)==0); // us == uu
+  //assert(memcmp(v_impl->array,vs,v->length)==0);
 
   const occaMemory ud = *u_impl->device;
   occaMemory vd = *v_impl->device;
@@ -149,9 +149,8 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
   //occaCopyMemToPtr((void*)vs, vd, v->length*sizeof(CeedScalar), NO_OFFSET, NO_PROPS);
   //ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vs); CeedChk(ierr);
   //printf("\n\033[31;1mvv(%d):\033[m",v->length); for(int i=0;i<v->length;i++) printf("%f ",v_impl->array[i]);
-
-  //assert(memcmp(uu,us,u->length)==0);
-  //assert(memcmp(vv,vs,v->length)==0);
+  assert(memcmp(uu,us,u->length)==0);
+  assert(memcmp(vv,vs,v->length)==0);
 
   // ***************************************************************************
   ierr = CeedVectorRestoreArrayRead(u, &us); CeedChk(ierr);
@@ -261,7 +260,7 @@ int CeedTensorContract_Occa(Ceed ceed,
                             const CeedScalar *u, CeedScalar *v) {
   CeedInt tstride0 = B, tstride1 = 1;
 
-  CeedDebug("\033[35m[CeedTeg nsorContract] A=%d, J=%d, C=%d, B=%d",A,J,C,B);
+  CeedDebug("\033[35m[CeedTensorContract] A=%d, J=%d, C=%d, B=%d: %d",A,J,C,B,A*J*B*C);
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = J;
   }
