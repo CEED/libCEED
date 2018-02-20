@@ -72,12 +72,14 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   // Allocating impl, host & device
   CeedChk(CeedCalloc(1,&impl));
   ceed->data = impl;
-  // Now creating OCCA device
-  if (getenv("CEED_DEBUG")) occaPrintModeInfo();
-  occaSetVerboseCompilation(getenv("CEED_DEBUG")?true:false);
+#ifdef NDEBUG
+  occaPrintModeInfo();
+  occaSetVerboseCompilation(true);
+#endif
   const char *mode =
     (resource[1]=='g') ? occaGPU :
     (resource[1]=='o') ? occaOMP : occaCPU;
+  // Now creating OCCA device
   impl->device = occaCreateDevice(occaString(mode));
   if ((resource[1] == 'g' || resource[1] == 'o')
       && !strcmp(occaDeviceMode(impl->device), "Serial"))

@@ -278,8 +278,7 @@ int CeedDestroy(Ceed *ceed) {
   @param ... arguments as specified in format string
  */
 void CeedDebug(const char *format,...) {
-  // real slow, should use NDEBUG to ifdef the body
-  if (!getenv("CEED_DEBUG")) return;
+#ifdef NDEBUG
   va_list args;
   va_start(args, format);
   fflush(stdout);
@@ -289,4 +288,5 @@ void CeedDebug(const char *format,...) {
   fprintf(stdout,"\n");
   fflush(stdout);
   va_end(args);
+#endif
 }

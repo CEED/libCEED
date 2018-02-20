@@ -319,7 +319,7 @@ int CeedTensorContract_Occa(Ceed ceed,
                             const CeedScalar *u, CeedScalar *v) {
   CeedInt tstride0 = B, tstride1 = 1;
 
-  //CeedDebug("\033[35m[CeedTensorContract]");
+  CeedDebug("\033[35m[CeedTeg nsorContract] A=%d, J=%d, C=%d, B=%d",A,J,C,B);
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = J;
   }
