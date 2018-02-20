@@ -224,9 +224,9 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   CeedDebug("\033[35m[CeedElemRestriction][Create] Building kRestrict");
   occaProperties pKR = occaCreateProperties();
   occaPropertiesSet(pKR, "defines/esize", occaInt(r->nelem*r->elemsize));
-  occaPropertiesSet(pKR, "defines/rndof", occaInt(r->ndof));
-  occaPropertiesSet(pKR, "defines/rnelem", occaInt(r->nelem));
-  occaPropertiesSet(pKR, "defines/relemsize", occaInt(r->elemsize));
+  occaPropertiesSet(pKR, "defines/ndof", occaInt(r->ndof));
+  occaPropertiesSet(pKR, "defines/nelem", occaInt(r->nelem));
+  occaPropertiesSet(pKR, "defines/elemsize", occaInt(r->elemsize));
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(TILE_SIZE));
   const occaDevice dev = ceed_data->device;
   char oklPath[4096] = __FILE__;
