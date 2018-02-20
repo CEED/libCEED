@@ -278,7 +278,8 @@ int CeedDestroy(Ceed *ceed) {
   @param ... arguments as specified in format string
  */
 void CeedDebug(const char *format,...) {
-#ifdef NDEBUG
+#ifdef CEED_DEBUG
+#warning CEED_DEBUG
   va_list args;
   va_start(args, format);
   fflush(stdout);

@@ -73,8 +73,8 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   CeedChk(CeedCalloc(1,&impl));
   ceed->data = impl;
 #ifdef NDEBUG
-  occaPrintModeInfo();
-  occaSetVerboseCompilation(true);
+  //occaPrintModeInfo();
+  //occaSetVerboseCompilation(true);
 #endif
   const char *mode =
     (resource[1]=='g') ? occaGPU :

@@ -85,78 +85,20 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
 
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
-  /*
-    CeedInt esize = r->nelem*r->elemsize;
-    //printf("\n\033[31;1muu(%d):\033[m",u->length); for(int i=0;i<u->length;i++) printf("%f ",uu[i]);
-
-    if (tmode == CEED_NOTRANSPOSE) {
-      // Perform: v = r * u
-      if (ncomp == 1) {
-        for (CeedInt i=0; i<esize; i++) vv[i] = uu[impl->indices[i]];
-      } else {
-        // vv is (elemsize x ncomp x nelem), column-major
-        if (lmode == CEED_NOTRANSPOSE) { // u is (ndof x ncomp), column-major
-          for (CeedInt e = 0; e < r->nelem; e++)
-            for (CeedInt d = 0; d < ncomp; d++)
-              for (CeedInt i=0; i<r->elemsize; i++) {
-                vv[i+r->elemsize*(d+ncomp*e)] =
-                  uu[impl->indices[i+r->elemsize*e]+r->ndof*d];
-              }
-        } else { // u is (ncomp x ndof), column-major
-          for (CeedInt e = 0; e < r->nelem; e++)
-            for (CeedInt d = 0; d < ncomp; d++)
-              for (CeedInt i=0; i<r->elemsize; i++) {
-                vv[i+r->elemsize*(d+ncomp*e)] =
-                  uu[d+ncomp*impl->indices[i+r->elemsize*e]];
-              }
-        }
-      }
-    } else {
-      // Note: in transpose mode, we perform: v += r^t * u
-      if (ncomp == 1) {
-        for (CeedInt i=0; i<esize; i++) vv[impl->indices[i]] += uu[i];
-      } else {
-        // u is (elemsize x ncomp x nelem)
-        if (lmode == CEED_NOTRANSPOSE) { // vv is (ndof x ncomp), column-major
-          for (CeedInt e = 0; e < r->nelem; e++)
-            for (CeedInt d = 0; d < ncomp; d++)
-              for (CeedInt i=0; i<r->elemsize; i++) {
-                vv[impl->indices[i+r->elemsize*e]+r->ndof*d] +=
-                  uu[i+r->elemsize*(d+e*ncomp)];
-              }
-        } else { // vv is (ncomp x ndof), column-major
-          for (CeedInt e = 0; e < r->nelem; e++)
-            for (CeedInt d = 0; d < ncomp; d++)
-              for (CeedInt i=0; i<r->elemsize; i++) {
-                vv[d+ncomp*impl->indices[i+r->elemsize*e]] +=
-                  uu[i+r->elemsize*(d+e*ncomp)];
-              }
-        }
-      }
-    }
-    //printf("\n\033[31;1mvv(%d):\033[m",v->length); for(int i=0;i<v->length;i++) printf("%f ",vv[i]);
-    */
-  //ierr = CeedVectorRestoreArrayRead(u, &uu); CeedChk(ierr);
-  //ierr = CeedVectorRestoreArray(v, &vv); CeedChk(ierr);
-  //if (request != CEED_REQUEST_IMMEDIATE) *request = NULL;
 
   // ***************************************************************************
   const occaMemory indices = *impl->device;
   occaSyncD2H(r);
-  //printf("indices: ");for(int i=0;i<(r->nelem*r->elemsize);i++) printf("%d ",impl->indices[i]);
 
   CeedVector_Occa *u_impl = u->data;
-  //printf("\nu2:"); for(int i=0;i<u->length;i++) printf("%f ",u_impl->array[i]);
-
   CeedVector_Occa *v_impl = v->data;
-  //printf("\nv2:"); for(int i=0;i<v->length;i++) printf("%f ",v_impl->array[i]);
   const CeedScalar *us;
   CeedScalar *vs;
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &us); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vs); CeedChk(ierr);
 
-  //assert(memcmp(u_impl->array,us,u->length)==0); // us == uu
-  //assert(memcmp(v_impl->array,vs,v->length)==0);
+  assert(memcmp(u_impl->array,us,u->length)==0); // us == uu
+  assert(memcmp(v_impl->array,vs,v->length)==0);
 
   const occaMemory ud = *u_impl->device;
   occaMemory vd = *v_impl->device;

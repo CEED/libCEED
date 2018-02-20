@@ -18,6 +18,8 @@ CC ?= gcc
 FC = gfortran
 
 NDEBUG ?=
+CEED_DEBUG ?=
+
 LDFLAGS ?=
 LOADLIBES ?=
 TARGET_ARCH ?=
@@ -27,19 +29,21 @@ UNDERSCORE ?= 1
 OCCA_DIR ?= ../occa
 
 SANTIZ = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
-CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native
+CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native -O2 -g
 FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP -march=native
 
-CFLAGS += $(if $(NDEBUG),-O2,-g)
+CFLAGS += $(if $(NDEBUG),-DNDEBUG)
+CFLAGS += $(if $(CEED_DEBUG),-DCEED_DEBUG)
+
 ifeq ($(UNDERSCORE), 1)
   CFLAGS += -DUNDERSCORE
 endif
 
-FFLAGS += $(if $(NDEBUG),-O2,-g)
+FFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG,-g)
 
-CFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
-FFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
-LDFLAGS += $(if $(NDEBUG),,)#$(SANTIZ))
+CFLAGS += $(if $(NDEBUG),)#$(SANTIZ))
+FFLAGS += $(if $(NDEBUG),)#$(SANTIZ))
+LDFLAGS += $(if $(NDEBUG),)#$(SANTIZ))
 CPPFLAGS = -I./include
 LDLIBS = -lm
 OBJDIR := build
@@ -147,9 +151,11 @@ run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:build/%=%)
 
 test : $(tests:$(OBJDIR)/%=run-%) $(examples:$(OBJDIR)/%=run-%)
+tst:;@$(MAKE) $(MFLAGS) V=$(V) test
 
 prove : $(tests) $(examples)
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)
+prv:;@$(MAKE) $(MFLAGS) V=$(V) prove
 
 examples : $(examples)
 
@@ -165,7 +171,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 
-.PHONY: all cln clean print test tst examples astyle install
+.PHONY: all cln clean print test tst prove prv examples astyle install
 cln clean :
 	$(RM) *.o *.d $(libceed)
 	$(RM) -r *.dSYM $(OBJDIR) $(LIBDIR)/pkgconfig
