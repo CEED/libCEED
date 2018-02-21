@@ -32,7 +32,7 @@ c-----------------------------------------------------------------------
         endif
       enddo
 
-      call ceedvectorrestorearrayread(x,b)
+      call ceedvectorrestorearrayread(x,b,err)
       call ceedvectordestroy(x,err)
       call ceeddestroy(ceed,err)
 
