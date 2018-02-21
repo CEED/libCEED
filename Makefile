@@ -14,8 +14,10 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-CC ?= gcc
-FC = gfortran
+CC = cc
+#gcc
+#gcc-mp-4.9
+FC = gfortran-mp-4.9
 
 NDEBUG ?=
 LDFLAGS ?=
@@ -25,6 +27,9 @@ UNDERSCORE ?= 1
 
 # env variable OCCA_DIR should point to OCCA-1.0 branch
 OCCA_DIR ?= ../occa
+
+# env variable MAGMA_DIR should point to MAGMA branch
+MAGMA_DIR ?= ../magma
 
 SANTIZ = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native
@@ -77,11 +82,13 @@ examples.c := $(sort $(wildcard examples/*.c))
 examples.f := $(sort $(wildcard examples/*.f))
 examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
 examples  += $(examples.f:examples/%.f=$(OBJDIR)/%)
-# backends/[ref & occa]
+# backends/[ref & occa & magma]
 ref.c     := $(sort $(wildcard backends/ref/*.c))
 ref.o     := $(ref.c:%.c=$(OBJDIR)/%.o)
 occa.c    := $(sort $(wildcard backends/occa/*.c))
 occa.o    := $(occa.c:%.c=$(OBJDIR)/%.o)
+magma.c   := $(sort $(wildcard backends/magma/*.c))
+magma.o   := $(magma.c:%.c=$(OBJDIR)/%.o)
 
 # Output using the 216-color rules mode
 rule_file = $(notdir $(1))
@@ -121,6 +128,12 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDLIBS += -locca #-lrt -ldl
   $(libceed) : $(occa.o)
   $(occa.o) : CFLAGS += -I$(OCCA_DIR)/include
+endif
+ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
+  $(libceed) : LDFLAGS += -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)
+  $(libceed) : LDLIBS += -lmagma
+  $(libceed) : $(magma.o)
+  $(magma.o) : CFLAGS += -I$(MAGMA_DIR)/include
 endif
 $(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) | $$(@D)/.DIR
 	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
