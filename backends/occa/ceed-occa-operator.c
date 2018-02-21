@@ -25,6 +25,8 @@ typedef struct {
 } CeedOperator_Occa;
 
 // *****************************************************************************
+/// Destroy the CeedOperator_Occa
+// *****************************************************************************
 static int CeedOperatorDestroy_Occa(CeedOperator op) {
   CeedDebug("\033[37;1m[CeedOperator][Destroy]");
   CeedOperator_Occa *impl = op->data;
@@ -36,6 +38,8 @@ static int CeedOperatorDestroy_Occa(CeedOperator op) {
   return 0;
 }
 
+// *****************************************************************************
+/// Apply CeedOperator to a vector
 // *****************************************************************************
 static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
                                   CeedVector ustate,
@@ -109,6 +113,8 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
 }
 
 // *****************************************************************************
+/// Get a suitably sized vector to hold passive fields
+// *****************************************************************************
 static int CeedOperatorGetQData_Occa(CeedOperator op, CeedVector *qdata) {
   CeedDebug("\033[37;1m[CeedOperator][GetQData]");
   CeedOperator_Occa *impl = op->data;
@@ -129,6 +135,8 @@ static int CeedOperatorGetQData_Occa(CeedOperator op, CeedVector *qdata) {
   return 0;
 }
 
+// *****************************************************************************
+/// Create an operator from element restriction, basis, and QFunction
 // *****************************************************************************
 int CeedOperatorCreate_Occa(CeedOperator op) {
   CeedOperator_Occa *impl;

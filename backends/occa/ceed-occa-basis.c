@@ -17,7 +17,15 @@
 #include "ceed-occa.h"
 
 // *****************************************************************************
-// * BASIS: Apply, Destroy, CreateTensorH1
+/// Apply basis evaluation from nodes to quadrature points or vice-versa
+/// @param basis Basis to evaluate
+/// @param tmode \ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature
+///     points, \ref CEED_TRANSPOSE to apply the transpose, mapping from
+///     quadrature points to nodes
+/// @param emode \ref CEED_EVAL_INTERP to obtain interpolated values,
+///     \ref CEED_EVAL_GRAD to obtain gradients.
+/// @param u input vector
+/// @param v output vector
 // *****************************************************************************
 static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
                                CeedEvalMode emode,
@@ -108,6 +116,22 @@ static int CeedBasisDestroy_Occa(CeedBasis basis) {
   return 0;
 }
 
+// *****************************************************************************
+/// Create a tensor product basis for H^1 discretizations
+///
+/// @param ceed       Ceed
+/// @param dim        Topological dimension
+/// @param P1d        Number of nodes in one dimension
+/// @param Q1d        Number of quadrature points in one dimension
+/// @param interp1d   Row-major Q1d × P1d matrix expressing the values of nodal
+///                   basis functions at quadrature points
+/// @param grad1d     Row-major Q1d × P1d matrix expressing derivatives of nodal
+///                   basis functions at quadrature points
+/// @param qref1d     Array of length Q1d holding the locations of quadrature
+///                   points on the 1D reference element [-1, 1]
+/// @param qweight1d  Array of length Q1d holding the quadrature weights on the
+///                   reference element
+/// @param[out] basis New basis
 // *****************************************************************************
 int CeedBasisCreateTensorH1_Occa(Ceed ceed, CeedInt dim, CeedInt P1d,
                                  CeedInt Q1d, const CeedScalar *interp1d,

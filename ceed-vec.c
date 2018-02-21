@@ -22,7 +22,7 @@
 /// @defgroup CeedVector CeedVector: storing and manipulating vectors
 /// @{
 
-/// Create a vector of the specified length (does not allocated memory)
+/// Create a vector of the specified length (does not allocate memory)
 ///
 /// @param ceed   Ceed
 /// @param length Length of vector
@@ -106,7 +106,7 @@ int CeedVectorRestoreArray(CeedVector x, CeedScalar **array) {
   return 0;
 }
 
-/// Restore an array obtaned using CeedVectorGetArrayRead()
+/// Restore an array obtained using CeedVectorGetArrayRead()
 int CeedVectorRestoreArrayRead(CeedVector x, const CeedScalar **array) {
   int ierr;
 
