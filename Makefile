@@ -165,13 +165,19 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 
-.PHONY: all cln clean print test tst examples astyle install
+.PHONY: all cln clean print test tst examples astyle install doc
 cln clean :
 	$(RM) *.o *.d $(libceed)
 	$(RM) -r *.dSYM $(OBJDIR) $(LIBDIR)/pkgconfig
 	$(MAKE) -C examples clean
 	$(MAKE) -C examples/mfem clean
 	cd examples/nek5000; bash make-nek-examples.sh clean; cd ../..;
+
+distclean : clean
+	rm -rf doc/html
+
+doc :
+	doxygen Doxyfile
 
 astyle :
 	astyle --style=google --indent=spaces=2 --max-code-length=80 \
