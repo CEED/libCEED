@@ -18,7 +18,7 @@ CC ?= gcc
 FC = gfortran
 
 NDEBUG ?= 1
-CEED_DEBUG ?= 1
+CEED_DEBUG ?= 
 
 LDFLAGS ?=
 LOADLIBES ?=
@@ -28,11 +28,13 @@ UNDERSCORE ?= 1
 # env variable OCCA_DIR should point to OCCA-1.0 branch
 OCCA_DIR ?= ../occa
 
+# Warning SANTIZ options won't run with OCCA /gpu/occa mode
 SANTIZ = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
+
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native -O2 -g
 FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP -march=native
 
-CFLAGS += $(if $(NDEBUG),-DNDEBUG)
+CFLAGS += $(if $(NDEBUG),-DNDEBUG=1)
 CFLAGS += $(if $(CEED_DEBUG),-DCEED_DEBUG)
 
 ifeq ($(UNDERSCORE), 1)
@@ -41,9 +43,9 @@ endif
 
 FFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG,-g)
 
-CFLAGS += $(if $(NDEBUG),)#$(SANTIZ))
-FFLAGS += $(if $(NDEBUG),)#$(SANTIZ))
-LDFLAGS += $(if $(NDEBUG),)#$(SANTIZ))
+CFLAGS += $(if $(NDEBUG),,$(SANTIZ))
+FFLAGS += $(if $(NDEBUG),,$(SANTIZ))
+LDFLAGS += $(if $(NDEBUG),,$(SANTIZ))
 CPPFLAGS = -I./include
 LDLIBS = -lm
 OBJDIR := build
@@ -122,7 +124,7 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name $(abspath $(libceed)))
 $(libceed) : $(ref.o)
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
-  $(libceed) : LDLIBS += -locca #-lrt -ldl
+  $(libceed) : LDLIBS += -locca #-lrt -ldl -lOpenCL -lcuda
   $(libceed) : $(occa.o)
   $(occa.o) : CFLAGS += -I$(OCCA_DIR)/include
 endif

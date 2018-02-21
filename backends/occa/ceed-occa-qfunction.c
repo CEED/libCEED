@@ -46,8 +46,10 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
 
 // *****************************************************************************
 static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
-  //const Ceed_Occa *ceed_data=qf->ceed->data;
-  //CeedQFunction_Occa *data=qf->data;
+  int ierr;
+  CeedQFunction_Occa *occa=qf->data;
+  assert(occa);
+  ierr = CeedFree(&occa); CeedChk(ierr);
   CeedDebug("\033[36m[CeedQFunction][Destroy]");
   return 0;
 }
@@ -100,6 +102,7 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   occaProperties pKR = occaCreateProperties();
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(TILE_SIZE));
   data->kQFunctionApply = occaDeviceBuildKernel(dev, oklPath, qFunctionName, pKR);
+  occaPropertiesFree(pKR);
   // Populate the qf structure
   qf->Apply = CeedQFunctionApply_Occa;
   qf->Destroy = CeedQFunctionDestroy_Occa;

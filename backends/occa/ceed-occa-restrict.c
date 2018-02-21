@@ -167,18 +167,14 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
 // * CeedElemRestrictionDestroy_Occa
 // *****************************************************************************
 static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
-  CeedElemRestriction_Occa *impl = r->data;
+  CeedElemRestriction_Occa *occa = r->data;
   int ierr;
 
   CeedDebug("\033[35m[CeedElemRestriction][Destroy]");
-  // free device memory
-  // occaMemoryFree(*impl->device);
-  // free device object
-  //ierr = CeedFree(&impl->device); CeedChk(ierr);
-  // free our CeedElemRestriction_Occa struct
-  //ierr = CeedFree(&res->data); CeedChk(ierr);
-  ierr = CeedFree(&impl->indices_allocated); CeedChk(ierr);
-  ierr = CeedFree(&r->data); CeedChk(ierr);
+  occaMemoryFree(*occa->device);
+  ierr = CeedFree(&occa->device); CeedChk(ierr);
+  ierr = CeedFree(&occa->indices_allocated); CeedChk(ierr);
+  ierr = CeedFree(&occa); CeedChk(ierr);
   return 0;
 }
 
@@ -187,35 +183,35 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
                                    const CeedMemType mtype,
                                    const CeedCopyMode cmode,
                                    const CeedInt *indices) {
-  const Ceed_Occa *ceed_data=r->ceed->data;
-  CeedElemRestriction_Occa *impl;
+  const Ceed_Occa *ceed_occa=r->ceed->data;
+  CeedElemRestriction_Occa *occa;
   int ierr;
 
   if (mtype != CEED_MEM_HOST)
     return CeedError(r->ceed, 1, "Only MemType = HOST supported");
-  // Allocating impl & device **************************************************
+  // Allocating occa & device **************************************************
   CeedDebug("\033[35m[CeedElemRestriction][Create] Allocating");
-  ierr = CeedCalloc(1,&impl); CeedChk(ierr);
-  ierr = CeedCalloc(1,&impl->device); CeedChk(ierr);
-  *impl->device = occaDeviceMalloc(ceed_data->device, bytes(r), NULL, NO_PROPS);
-  r->data = impl;
+  ierr = CeedCalloc(1,&occa); CeedChk(ierr);
+  ierr = CeedCalloc(1,&occa->device); CeedChk(ierr);
+  *occa->device = occaDeviceMalloc(ceed_occa->device, bytes(r), NULL, NO_PROPS);
+  r->data = occa;
   // ***************************************************************************
   switch (cmode) {
   case CEED_COPY_VALUES:
     CeedDebug("\t\033[35m[CeedElemRestriction][Create] CEED_COPY_VALUES");
-    ierr = CeedMalloc(r->nelem*r->elemsize, &impl->indices_allocated);
+    ierr = CeedMalloc(r->nelem*r->elemsize, &occa->indices_allocated);
     CeedChk(ierr);
-    memcpy(impl->indices_allocated, indices, bytes(r));
-    impl->indices = impl->indices_allocated;
+    memcpy(occa->indices_allocated, indices, bytes(r));
+    occa->indices = occa->indices_allocated;
     break;
   case CEED_OWN_POINTER:
     CeedDebug("\t\033[35m[CeedElemRestriction][Create] CEED_OWN_POINTER");
-    impl->indices_allocated = (CeedInt *)indices;
-    impl->indices = impl->indices_allocated;
+    occa->indices_allocated = (CeedInt *)indices;
+    occa->indices = occa->indices_allocated;
     break;
   case CEED_USE_POINTER:
     CeedDebug("\t\033[35m[CeedElemRestriction][Create] CEED_USE_POINTER");
-    impl->indices = indices;
+    occa->indices = indices;
     break;
   default: CeedError(r->ceed,1," OCCA backend no default error");
   }
@@ -230,17 +226,17 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   occaPropertiesSet(pKR, "defines/nelem", occaInt(r->nelem));
   occaPropertiesSet(pKR, "defines/elemsize", occaInt(r->elemsize));
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(TILE_SIZE));
-  const occaDevice dev = ceed_data->device;
+  const occaDevice dev = ceed_occa->device;
   char oklPath[4096] = __FILE__;
   const size_t oklPathLen = strlen(oklPath); // path to ceed-occa-restrict.okl
   strcpy(&oklPath[oklPathLen - 2],
          ".okl");  // consider using realpath(3) or something dynamic
-  impl->kRestrict[0] = occaDeviceBuildKernel(dev, oklPath, "kRestrict0", pKR);
-  impl->kRestrict[1] = occaDeviceBuildKernel(dev, oklPath, "kRestrict1", pKR);
-  impl->kRestrict[2] = occaDeviceBuildKernel(dev, oklPath, "kRestrict2", pKR);
-  impl->kRestrict[3] = occaDeviceBuildKernel(dev, oklPath, "kRestrict3", pKR);
-  impl->kRestrict[4] = occaDeviceBuildKernel(dev, oklPath, "kRestrict4", pKR);
-  impl->kRestrict[5] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5", pKR);
+  occa->kRestrict[0] = occaDeviceBuildKernel(dev, oklPath, "kRestrict0", pKR);
+  occa->kRestrict[1] = occaDeviceBuildKernel(dev, oklPath, "kRestrict1", pKR);
+  occa->kRestrict[2] = occaDeviceBuildKernel(dev, oklPath, "kRestrict2", pKR);
+  occa->kRestrict[3] = occaDeviceBuildKernel(dev, oklPath, "kRestrict3", pKR);
+  occa->kRestrict[4] = occaDeviceBuildKernel(dev, oklPath, "kRestrict4", pKR);
+  occa->kRestrict[5] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5", pKR);
   // ***************************************************************************
   r->Apply = CeedElemRestrictionApply_Occa;
   r->Destroy = CeedElemRestrictionDestroy_Occa;
