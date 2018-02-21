@@ -43,12 +43,13 @@ static inline void occaSyncH2D(const CeedElemRestriction res) {
   const CeedElemRestriction_Occa *impl = res->data;
   assert(impl);
   assert(impl->device);
-  occaCopyPtrToMem(*impl->device, impl->indices, bytes(res), NO_OFFSET, NO_PROPS);
+  occaCopyPtrToMem(*impl->device, impl->indices, bytes(res),
+                   NO_OFFSET, NO_PROPS);
 }
 static inline void occaSyncD2H(const CeedElemRestriction res) {
   const CeedElemRestriction_Occa *impl = res->data;
-  occaCopyMemToPtr((void *)impl->indices, *impl->device, bytes(res), NO_OFFSET,
-                   NO_PROPS);
+  occaCopyMemToPtr((void *)impl->indices, *impl->device, bytes(res),
+                   NO_OFFSET, NO_PROPS);
 }
 
 // *****************************************************************************
@@ -88,10 +89,11 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
 
   // ***************************************************************************
   const occaMemory indices = *impl->device;
-  occaSyncD2H(r);
+  //occaSyncD2H(r);
 
   CeedVector_Occa *u_impl = u->data;
   CeedVector_Occa *v_impl = v->data;
+  
   const CeedScalar *us;
   CeedScalar *vs;
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &us); CeedChk(ierr);
@@ -100,8 +102,8 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
   //assert(memcmp(u_impl->array,us,u->length)==0); // us == uu
   //assert(memcmp(v_impl->array,vs,v->length)==0);
 
-  const occaMemory ud = *u_impl->device;
-  occaMemory vd = *v_impl->device;
+  const occaMemory ud = *u_impl->array_device;
+  occaMemory vd = *v_impl->array_device;
 
   CeedDebug("\033[35m[CeedElemRestriction][Apply] kRestrict");
 
@@ -260,7 +262,7 @@ int CeedTensorContract_Occa(Ceed ceed,
                             const CeedScalar *u, CeedScalar *v) {
   CeedInt tstride0 = B, tstride1 = 1;
 
-  CeedDebug("\033[35m[CeedTensorContract] A=%d, J=%d, C=%d, B=%d: %d",A,J,C,B,A*J*B*C);
+  //CeedDebug("\033[35m[CeedTensorContract] A=%d, J=%d, C=%d, B=%d: %d",A,J,C,B,A*J*B*C);
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = J;
   }

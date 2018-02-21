@@ -18,7 +18,7 @@ CC ?= gcc
 FC = gfortran
 
 NDEBUG ?= 1
-CEED_DEBUG ?=
+CEED_DEBUG ?= 1
 
 LDFLAGS ?=
 LOADLIBES ?=
@@ -75,7 +75,7 @@ libceed.c := $(wildcard ceed*.c)
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9]-*.c))
 tests.f   := $(sort $(wildcard tests/t[0-9][0-9]-*.f))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
-tests     += $(tests.f:tests/%.f=$(OBJDIR)/%)
+#tests     += $(tests.f:tests/%.f=$(OBJDIR)/%)
 #examples
 examples.c := $(sort $(wildcard examples/*.c))
 examples.f := $(sort $(wildcard examples/*.f))

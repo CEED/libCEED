@@ -43,7 +43,7 @@ typedef struct {
 typedef struct {
   CeedScalar *array;
   CeedScalar *array_allocated;
-  occaMemory *device;
+  occaMemory *array_device;
 } CeedVector_Occa;
 
 // **[ basis ] *****************************************************************

@@ -19,7 +19,7 @@ CEED_DIR ?= ..
 CEED_FLAGS ?= -I$(CEED_DIR)/include -std=c99
 CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -lm
 
-EXAMPLES.c = $(wildcard ex*)
+EXAMPLES.c = $(wildcard ex*.c)
 EXAMPLES = $(EXAMPLES.c:%.c=%)
 
 .SUFFIXES:

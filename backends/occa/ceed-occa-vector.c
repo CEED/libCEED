@@ -39,26 +39,26 @@ static inline void occaSyncH2D(const CeedVector vec) {
   const CeedVector_Occa *impl = vec->data;
   assert(impl);
   assert(impl->device);
-  occaCopyPtrToMem(*impl->device, impl->array, bytes(vec), NO_OFFSET, NO_PROPS);
+  occaCopyPtrToMem(*impl->array_device, impl->array, bytes(vec), NO_OFFSET, NO_PROPS);
 }
-static inline void occaSyncD2H(const CeedVector vec) {
+/*static inline void occaSyncD2H(const CeedVector vec) {
   const CeedVector_Occa *impl = vec->data;
   assert(impl);
   assert(impl->array);
   assert(impl->device);
-  occaCopyMemToPtr(impl->array, *impl->device, bytes(vec), NO_OFFSET, NO_PROPS);
-}
+  occaCopyMemToPtr(impl->array, *impl->array_device, bytes(vec), NO_OFFSET, NO_PROPS);
+  }*/
 
 // *****************************************************************************
 // * OCCA COPY functions
 // *****************************************************************************
-static inline void occaCopyH2D(const CeedVector vec, void *from) {
-  const CeedVector_Occa *impl = vec->data;
-  assert(from);
-  assert(impl);
-  assert(impl->device);
-  occaCopyPtrToMem(*impl->device, from, bytes(vec), NO_OFFSET, NO_PROPS);
-}
+//static inline void occaCopyH2D(const CeedVector vec, void *from) {
+//  const CeedVector_Occa *impl = vec->data;
+//  assert(from);
+//  assert(impl);
+//  assert(impl->device);
+//  occaCopyPtrToMem(*impl->array_device, from, bytes(vec), NO_OFFSET, NO_PROPS);
+//}
 //static inline void occaCopyD2H(const CeedVector vec, void *to) {
 // const CeedVector_Occa *impl = vec->data;
 //  assert(to);
@@ -210,8 +210,8 @@ int CeedVectorCreate_Occa(const Ceed ceed, const CeedInt n, CeedVector vec) {
   vec->Destroy = CeedVectorDestroy_Occa;
   // Allocating impl, host & device
   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
-  ierr = CeedCalloc(1,&impl->device); CeedChk(ierr);
-  *impl->device = occaDeviceMalloc(ceed_data->device, bytes(vec), NULL, NO_PROPS);
+  ierr = CeedCalloc(1,&impl->array_device); CeedChk(ierr);
+  *impl->array_device = occaDeviceMalloc(ceed_data->device, bytes(vec), NULL, NO_PROPS);
   vec->data = impl;
   return 0;
 }
