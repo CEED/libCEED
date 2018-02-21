@@ -79,9 +79,7 @@ examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
 examples  += $(examples.f:examples/%.f=$(OBJDIR)/%)
 # backends/[ref & occa]
 ref.c     := $(sort $(wildcard backends/ref/*.c))
-ref.o     := $(ref.c:%.c=$(OBJDIR)/%.o)
 occa.c    := $(sort $(wildcard backends/occa/*.c))
-occa.o    := $(occa.c:%.c=$(OBJDIR)/%.o)
 
 # Output using the 216-color rules mode
 rule_file = $(notdir $(1))
@@ -115,12 +113,12 @@ all:;@$(MAKE) $(MFLAGS) V=$(V) this
 
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name $(abspath $(libceed)))
 
-$(libceed) : $(ref.o)
+libceed.c += $(ref.c)
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceed) : LDLIBS += -locca #-lrt -ldl
-  $(libceed) : $(occa.o)
-  $(occa.o) : CFLAGS += -I$(OCCA_DIR)/include
+  libceed.c += $(occa.c)
+  $(occa.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(OCCA_DIR)/include
 endif
 $(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) | $$(@D)/.DIR
 	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
