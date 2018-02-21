@@ -14,10 +14,8 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-CC = cc
-#gcc
-#gcc-mp-4.9
-FC = gfortran-mp-4.9
+CC ?= gcc
+FC = gfortran
 
 NDEBUG ?=
 LDFLAGS ?=
