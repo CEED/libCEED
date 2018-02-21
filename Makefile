@@ -176,7 +176,7 @@ cln clean :
 distclean : clean
 	rm -rf doc/html
 
-doc: Doxyfile
+doc :
 	doxygen Doxyfile
 
 astyle :
