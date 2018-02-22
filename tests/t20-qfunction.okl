@@ -29,10 +29,7 @@ kernel void setup(context_t ctx, qdata_t qdata, CeedInt Q,
   CeedScalar *w = (double*)qdata;
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    //printf("\t\t\033[35m u[%d]=%f\n",i,u[i]);fflush(stdout);
     w[i] = u(0,i);
-    //w[i] = u[i];
-    //printf("\t\033[35m qdata[%d]=%f\n",i,qdata[i]);fflush(stdout);
   }
   *rtn=0;
 }
@@ -44,7 +41,6 @@ kernel void mass(context_t ctx, qdata_t qdata, CeedInt Q,
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
     v(0,i) = w[i] * u(0,i);
-    //v[i] = qdata[i] * u[i];
   }
   *rtn=0;
 }

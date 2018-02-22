@@ -49,37 +49,36 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   const size_t qb = Q*sizeof(CeedScalar);
   //CeedDebug("\033[36m[CeedQFunction][Apply] bytes=%d",qb);
 
-  //const CeedEvalMode inmode = qf->inmode;
+  const CeedEvalMode inmode = qf->inmode;
   const CeedEvalMode outmode = qf->outmode;
 
   // Context
   occaMemory o_ctx = occaDeviceMalloc(ceed->device,sizeof(void*),NULL,NO_PROPS);
    
   // qdata
-  CeedDebug("\033[36m[CeedQFunction][Apply] o_qdata");
+  //CeedDebug("\033[36m[CeedQFunction][Apply] o_qdata");
   //for(int i=0;i<Q;i+=1) printf("\tQ[%d]=%f\n",i,((double*)qdata)[i]);
   occaMemory o_qdata = occaDeviceMalloc(ceed->device,qb,qdata,NO_PROPS);
   
-  CeedDebug("\033[36m[CeedQFunction][Apply] o_u");
+  //CeedDebug("\033[36m[CeedQFunction][Apply] o_u");
   //for(int i=0;i<Q;i+=1) printf("\tu[0][%d]=%f\n",i,u[0][i]);
-  occaMemory o_u = occaDeviceMalloc(ceed->device,qb,u[0],NO_PROPS);
-  //occaCopyPtrToMem(o_u,u[0],qb,0*qb,NO_PROPS);
-  //occaCopyPtrToMem(o_u,u[1],qb,1*qb,NO_PROPS);
-  //occaCopyPtrToMem(o_u,u[2],qb,2*qb,NO_PROPS);
-  //occaCopyPtrToMem(o_u,u[3],qb,3*qb,NO_PROPS);
-  //occaCopyPtrToMem(o_u,u[4],qb,4*qb,NO_PROPS);
+  occaMemory o_u = occaDeviceMalloc(ceed->device,5*qb,NULL,NO_PROPS);
+  occaCopyPtrToMem(o_u,u[0],qb,0*qb,NO_PROPS);
+  if (inmode & CEED_EVAL_GRAD) occaCopyPtrToMem(o_u,u[1],qb,1*qb,NO_PROPS);
+  //if (inmode & CEED_EVAL_WEIGHT) occaCopyPtrToMem(o_u,u[4],qb,4*qb,NO_PROPS);
   
-  CeedDebug("\033[36m[CeedQFunction][Apply] o_v");
+  //CeedDebug("\033[36m[CeedQFunction][Apply] o_v");
   occaMemory o_v = occaDeviceMalloc(ceed->device,qb,NULL,NO_PROPS);
   
   int rtn=~0;
-  occaMemory o_rtn = occaDeviceMalloc(ceed->device,sizeof(int),&rtn,NO_PROPS);
-  
-  CeedDebug("\033[36m[CeedQFunction][Apply] occaKernelRun");
-  occaKernelRun(occa->kQFunctionApply,o_ctx,o_qdata,occaInt(Q),o_u,o_v,o_rtn);
 
-  //occaCopyMemToPtr(&rtn,o_rtn,sizeof(int),NO_OFFSET,NO_PROPS);
-  //if (rtn!=0) return EXIT_FAILURE;
+  //CeedDebug("\033[36m[CeedQFunction][Apply] occaKernelRun");
+  occaKernelRun(occa->kQFunctionApply,o_ctx,o_qdata,occaInt(Q),o_u,o_v,occaPtr(&rtn));
+
+  if (rtn!=0){
+    CeedDebug("\033[31;1m[CeedQFunction][Apply] return code !=0");
+    return EXIT_FAILURE;
+  }
   
   if (outmode==CEED_EVAL_NONE){
     //localCeedQFunctionApply_Occa(qf,qdata,Q,u,v);
