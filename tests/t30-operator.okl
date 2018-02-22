@@ -19,21 +19,29 @@ typedef int CeedInt;
 typedef double CeedScalar;
 
 // *****************************************************************************
-kernel void setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
-                  CeedScalar *const *v) {
+kernel void setup(void *ctx, void *qdata, CeedInt Q,
+                  const CeedScalar *const *u, CeedScalar *const *v,int *rtn) {
+  *rtn=~0;
+  printf("\033[36;1m[OccaQFunction][setup] rtn=%x\033[m",*rtn);fflush(stdout);
   CeedScalar *w = (double*)qdata;
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
     w[i] = u[1][i]*u[4][i];
   }
+  *rtn=0;
+  printf("\033[36;1m[OccaQFunction][setup] rtn=%x\033[m",*rtn);fflush(stdout);
 }
 
 // *****************************************************************************
-kernel void mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
-                 CeedScalar *const *v) {
+kernel void mass(void *ctx, void *qdata, CeedInt Q,
+                 const CeedScalar *const *u, CeedScalar *const *v,int *rtn) {
+  *rtn=~0;
+  printf("\033[36;1m[OccaQFunction][mass] rtn=%x\033[m",*rtn);fflush(stdout);
   const CeedScalar *w = (double*)qdata;
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
     v[0][i] = w[i] * u[0][i];
   }
+  *rtn=0;
+  printf("\033[36;1m[OccaQFunction][mass] rtn=%x\033[m",*rtn);fflush(stdout);
 }

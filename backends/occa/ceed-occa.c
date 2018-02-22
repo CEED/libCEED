@@ -74,8 +74,9 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   ceed->data = occa;
 #ifndef NDEBUG
   //occaPrintModeInfo();
-  //occaSetVerboseCompilation(true);
+  occaSetVerboseCompilation(true);
 #endif
+  occaSetVerboseCompilation(true);
   const char *mode =
     (resource[1]=='g') ? occaGPU :
     (resource[1]=='o') ? occaOMP : 

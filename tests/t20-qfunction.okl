@@ -17,23 +17,34 @@
 // *****************************************************************************
 typedef int CeedInt;
 typedef double CeedScalar;
+typedef void* context_t;
+typedef int* return_t;
+typedef double* qdata_t @dim(Q);
+typedef double* CeedScalarPtrCstPtr @(dim(5,Q), idxOrder(1,0));
+typedef double* cstCeedScalarPtrCstPtr @(dim(5,Q), idxOrder(1,0));
 
 // *****************************************************************************
-kernel void setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
-                 CeedScalar *const *v) {
+kernel void setup(context_t ctx, qdata_t qdata, CeedInt Q,
+                  cstCeedScalarPtrCstPtr u, CeedScalarPtrCstPtr v, return_t rtn) {
   CeedScalar *w = (double*)qdata;
-  for (int i=0; i<Q; i++; tile(TILE_SIZE)){
+  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    w[i] = u[0][i];
+    //printf("\t\t\033[35m u[%d]=%f\n",i,u[i]);fflush(stdout);
+    w[i] = u(0,i);
+    //w[i] = u[i];
+    //printf("\t\033[35m qdata[%d]=%f\n",i,qdata[i]);fflush(stdout);
   }
+  *rtn=0;
 }
 
 // *****************************************************************************
-kernel void mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
-                CeedScalar *const *v) {
+kernel void mass(context_t ctx, qdata_t qdata, CeedInt Q,
+                 cstCeedScalarPtrCstPtr u, CeedScalarPtrCstPtr v, return_t rtn) {
   const CeedScalar *w = (double*)qdata;
-  for (int i=0; i<Q; i++; tile(TILE_SIZE)){
+  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    v[0][i] = w[i] * u[0][i];
+    v(0,i) = w[i] * u(0,i);
+    //v[i] = qdata[i] * u[i];
   }
+  *rtn=0;
 }

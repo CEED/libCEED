@@ -46,31 +46,11 @@ static inline void occaSyncH2D(const CeedElemRestriction res) {
   occaCopyPtrToMem(*impl->device, impl->indices, bytes(res),
                    NO_OFFSET, NO_PROPS);
 }
-static inline void occaSyncD2H(const CeedElemRestriction res) {
-  const CeedElemRestriction_Occa *impl = res->data;
-  occaCopyMemToPtr((void *)impl->indices, *impl->device, bytes(res),
-                   NO_OFFSET, NO_PROPS);
-}
-
-// *****************************************************************************
-// * OCCA COPY functions
-// *****************************************************************************
-static inline void occaCopyH2D(const CeedElemRestriction res,
-                               const void *from) {
-  const CeedElemRestriction_Occa *impl = res->data;
-  assert(from);
-  assert(impl);
-  assert(impl->device);
-  occaCopyPtrToMem(*impl->device, from, bytes(res), NO_OFFSET, NO_PROPS);
-}
-//static inline void occaCopyD2H(const CeedElemRestriction res, void *to) {
+//static inline void occaSyncD2H(const CeedElemRestriction res) {
 //  const CeedElemRestriction_Occa *impl = res->data;
-//  assert(to);
-//  assert(impl);
-//  assert(impl->device);
-//  occaCopyMemToPtr(to, *impl->device, bytes(res), NO_OFFSET, NO_PROPS);
+//  occaCopyMemToPtr((void *)impl->indices, *impl->device, bytes(res),
+//                   NO_OFFSET, NO_PROPS);
 //}
-
 
 // *****************************************************************************
 // * Restrict an L-vector to an E-vector or apply transpose
@@ -152,6 +132,12 @@ static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
   CeedElemRestriction_Occa *occa = r->data;
   CeedDebug("\033[35m[CeedElemRestriction][Destroy]");
   occaMemoryFree(*occa->device);
+  occaKernelFree(occa->kRestrict[0]);
+  occaKernelFree(occa->kRestrict[1]);
+  occaKernelFree(occa->kRestrict[2]);
+  occaKernelFree(occa->kRestrict[3]);
+  occaKernelFree(occa->kRestrict[4]);
+  occaKernelFree(occa->kRestrict[5]);
   ierr = CeedFree(&occa->device); CeedChk(ierr);
   ierr = CeedFree(&occa->indices_allocated); CeedChk(ierr);
   ierr = CeedFree(&occa); CeedChk(ierr);
@@ -224,6 +210,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   occa->kRestrict[3] = occaDeviceBuildKernel(dev, oklPath, "kRestrict3", pKR);
   occa->kRestrict[4] = occaDeviceBuildKernel(dev, oklPath, "kRestrict4", pKR);
   occa->kRestrict[5] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5", pKR);
+  occaPropertiesFree(pKR);
   // ***************************************************************************
   r->Apply = CeedElemRestrictionApply_Occa;
   r->Destroy = CeedElemRestrictionDestroy_Occa;

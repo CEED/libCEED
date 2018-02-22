@@ -50,23 +50,6 @@ static inline void occaSyncH2D(const CeedVector vec) {
   }*/
 
 // *****************************************************************************
-// * OCCA COPY functions
-// *****************************************************************************
-//static inline void occaCopyH2D(const CeedVector vec, void *from) {
-//  const CeedVector_Occa *impl = vec->data;
-//  assert(from);
-//  assert(impl);
-//  assert(impl->device);
-//  occaCopyPtrToMem(*impl->array_device, from, bytes(vec), NO_OFFSET, NO_PROPS);
-//}
-//static inline void occaCopyD2H(const CeedVector vec, void *to) {
-// const CeedVector_Occa *impl = vec->data;
-//  assert(to);
-//  assert(impl);
-//  occaCopyMemToPtr(to, *impl->device, bytes(vec), NO_OFFSET, NO_PROPS);
-//}
-
-// *****************************************************************************
 // * Set the array used by a vector,
 // * freeing any previously allocated array if applicable
 // *****************************************************************************

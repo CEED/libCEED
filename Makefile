@@ -18,7 +18,7 @@ CC ?= gcc
 FC = gfortran
 
 NDEBUG ?= 1
-CEED_DEBUG ?= 
+CEED_DEBUG ?= 1
 
 LDFLAGS ?=
 LOADLIBES ?=
