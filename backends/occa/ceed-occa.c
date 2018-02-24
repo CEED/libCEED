@@ -72,11 +72,10 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   // Allocating occa, host & device
   CeedChk(CeedCalloc(1,&occa));
   ceed->data = occa;
-#ifndef NDEBUG
+#ifdef CDEBUG
   //occaPrintModeInfo();
   occaSetVerboseCompilation(true);
 #endif
-  occaSetVerboseCompilation(true);
   const char *mode =
     (resource[1]=='g') ? occaGPU :
     (resource[1]=='o') ? occaOMP : 

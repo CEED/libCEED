@@ -46,6 +46,18 @@ typedef struct {
   occaMemory *array_device;
 } CeedVector_Occa;
 
+// *****************************************************************************
+// * Q-Functions
+// *****************************************************************************
+typedef struct {
+  bool op;
+  bool ready;
+  int nc, dim;
+  char *oklPath;
+  char *qFunctionName;
+  occaKernel kQFunctionApply;
+} CeedQFunction_Occa;
+
 // **[ basis ] *****************************************************************
 int CeedBasisCreateTensorH1_Occa(Ceed ceed, CeedInt dim, CeedInt P1d,
                                  CeedInt Q1d, const CeedScalar *interp1d,

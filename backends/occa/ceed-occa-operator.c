@@ -44,11 +44,14 @@ static int CeedOperatorDestroy_Occa(CeedOperator op) {
 static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
                                   CeedVector ustate,
                                   CeedVector residual, CeedRequest *request) {
-  CeedDebug("\033[37;1m[CeedOperator][Apply]");
   CeedOperator_Occa *impl = op->data;
   CeedVector etmp;
   CeedInt Q;
   const CeedInt nc = op->basis->ndof, dim = op->basis->dim;
+  // Fill CeedQFunction_Occa's structure with nc & dim
+  CeedQFunction_Occa *occa_qf = op->qf->data;
+  occa_qf->op=true;occa_qf->nc=nc; occa_qf->dim=dim;
+  CeedDebug("\033[37;1m[CeedOperator][Apply] nc=%d, dim=%d", nc,dim);
   CeedScalar *Eu=NULL;
   char *qd;
   int ierr;

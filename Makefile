@@ -15,27 +15,26 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 CC ?= gcc
-FC = gfortran
+FC ?= gfortran
 
-NDEBUG ?= 1
-CEED_DEBUG ?= 1
+ASAN ?= 
+NDEBUG ?=
+CDEBUG ?= 1
 
 LDFLAGS ?=
-LOADLIBES ?=
-TARGET_ARCH ?=
 UNDERSCORE ?= 1
 
 # env variable OCCA_DIR should point to OCCA-1.0 branch
 OCCA_DIR ?= ../occa
 
-# Warning SANTIZ options won't run with OCCA /gpu/occa mode
-SANTIZ = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
+# Warning SANTIZ options won't run with OCCA
+AFLAGS = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native -O2 -g
 FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP -march=native
 
 CFLAGS += $(if $(NDEBUG),-DNDEBUG=1)
-CFLAGS += $(if $(CEED_DEBUG),-DCEED_DEBUG)
+CFLAGS += $(if $(CDEBUG),-DCDEBUG=1)
 
 ifeq ($(UNDERSCORE), 1)
   CFLAGS += -DUNDERSCORE
@@ -43,9 +42,9 @@ endif
 
 FFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG,-g)
 
-CFLAGS += $(if $(NDEBUG),,$(SANTIZ))
-FFLAGS += $(if $(NDEBUG),,$(SANTIZ))
-LDFLAGS += $(if $(NDEBUG),,$(SANTIZ))
+CFLAGS += $(if $(ASAN),$(AFLAGS))
+FFLAGS += $(if $(ASAN),$(AFLAGS))
+LDFLAGS += $(if $(ASAN),$(AFLAGS))
 CPPFLAGS = -I./include
 LDLIBS = -lm
 OBJDIR := build

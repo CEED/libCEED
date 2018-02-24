@@ -14,18 +14,16 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+//#include "/usr/include/stdio.h"
+
 // *****************************************************************************
 typedef int CeedInt;
 typedef double CeedScalar;
-typedef void* context_t;
-typedef int* return_t;
-typedef double* qdata_t @dim(Q);
-typedef double* CeedScalarPtrCstPtr @(dim(5,Q), idxOrder(1,0));
-typedef double* cstCeedScalarPtrCstPtr @(dim(5,Q), idxOrder(1,0));
+typedef double* CeedScalarPtrCstPtr @ dim(1,Q);
 
 // *****************************************************************************
-kernel void setup(context_t ctx, qdata_t qdata, CeedInt Q,
-                  cstCeedScalarPtrCstPtr u, CeedScalarPtrCstPtr v, return_t rtn) {
+kernel void setup(void *ctx, void *qdata, CeedInt Q,
+                  const CeedScalarPtrCstPtr u, CeedScalar *const *v, int *rtn) {
   CeedScalar *w = (double*)qdata;
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
@@ -35,8 +33,8 @@ kernel void setup(context_t ctx, qdata_t qdata, CeedInt Q,
 }
 
 // *****************************************************************************
-kernel void mass(context_t ctx, qdata_t qdata, CeedInt Q,
-                 cstCeedScalarPtrCstPtr u, CeedScalarPtrCstPtr v, return_t rtn) {
+kernel void mass(void *ctx, void *qdata, CeedInt Q,
+                 const CeedScalarPtrCstPtr u, CeedScalarPtrCstPtr v, int *rtn) {
   const CeedScalar *w = (double*)qdata;
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
