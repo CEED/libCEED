@@ -14,21 +14,22 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-
 // *****************************************************************************
 typedef int CeedInt;
 typedef double CeedScalar;
 typedef double*  CeedScalarPtrCstPtr1 @ dim(Q*NC*DIM);
 typedef double*  CeedScalarPtrCstPtr4 @ dim(Q);
 typedef double* oCeedScalarPtrCstPtr @ dim(1,Q*NC*DIM);
-
+/*
 // *****************************************************************************
 /// A structure used to pass additional data to f_build_mass
 struct BuildContext { CeedInt dim, space_dim; };
+typedef struct BuildContext *ctx_t;
+
 
 // *****************************************************************************
 /// libCEED Q-function for building quadrature data for a mass operator
-kernel void f_build_mass(void *ctx, void *qdata, CeedInt Q,
+kernel void f_build_mass(ctx_t ctx, void *qdata, CeedInt Q,
                          const CeedScalar *u,
                          oCeedScalarPtrCstPtr v, int *rtn) {
   // u[1] is Jacobians, size (Q x NC x DIM) with column-major layout
@@ -39,44 +40,66 @@ kernel void f_build_mass(void *ctx, void *qdata, CeedInt Q,
   CeedScalar *qd = (CeedScalar*)qdata;
   //const CeedScalar *J = u[1], *qw = u[4];
   const int dims=bc->dim + 10*bc->space_dim;
-  printf("\ndims=%d, Q=%d",dims,Q);fflush(stdout);
-  switch (dims) {
-/*  case 11:
-    for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-      if (i >= Q) continue;
-      qd[i] = u(1,i) * u(4,i);
-    }
-    break;
-  case 22:
-    for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-      if (i >= Q) continue;
-      // 0 2
-      // 1 3
-      qd[i] = (u(1,i+Q*0)*u(1,i+Q*3) - u(1,i+Q*1)*u(1,i+Q*2)) * u(4,i);
-    }
-    break;
-*/
-  case 33:
-    for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-      if (i >= Q) continue;
-      //printf(" %d",i);fflush(stdout);
-      // 0 3 6
-      // 1 4 7
-      // 2 5 8
-      qd[i] = (u1[i+Q*0]*(u1[i+Q*4]*u1[i+Q*8] - u1[i+Q*5]*u1[i+Q*7]) -
-               u1[i+Q*1]*(u1[i+Q*3]*u1[i+Q*8] - u1[i+Q*5]*u1[i+Q*6]) +
-               u1[i+Q*2]*(u1[i+Q*3]*u1[i+Q*7] - u1[i+Q*4]*u1[i+Q*6])) * u4[i];
+  
+  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
+    if (i >= Q) continue;
+    //printf(" %d",i);fflush(stdout);
+    // 0 3 6
+    // 1 4 7
+    // 2 5 8
+    qd[i] = (u1[i+Q*0]*(u1[i+Q*4]*u1[i+Q*8] - u1[i+Q*5]*u1[i+Q*7]) -
+             u1[i+Q*1]*(u1[i+Q*3]*u1[i+Q*8] - u1[i+Q*5]*u1[i+Q*6]) +
+             u1[i+Q*2]*(u1[i+Q*3]*u1[i+Q*7] - u1[i+Q*4]*u1[i+Q*6])) * u4[i];
 //      qd[i] = (u(1,i+Q*0)*(u(1,i+Q*4)*u(1,i+Q*8) - u(1,i+Q*5)*u(1,i+Q*7)) -
 //               u(1,i+Q*1)*(u(1,i+Q*3)*u(1,i+Q*8) - u(1,i+Q*5)*u(1,i+Q*6)) +
 //               u(1,i+Q*2)*(u(1,i+Q*3)*u(1,i+Q*7) - u(1,i+Q*4)*u(1,i+Q*6))) * u(4,i);
-    }
-    break;
-  default:
-    printf("dim=%d, space_dim=%d is not supported\n",bc->dim, bc->space_dim);
-    *rtn = -1;
-    return;
-    //return CeedError(NULL, 1, "dim=%d, space_dim=%d is not supported",
-    //                 bc->dim, bc->space_dim);
+  }
+
+  *rtn=0;
+}
+*/
+
+static unsigned long long align(unsigned long long pointer,
+                                unsigned long long alignment){
+  unsigned long long addr = pointer / alignment; // Aligned (also divided by 6)
+  addr++;                     // Next aligned pointer (still divided by 6)
+  addr *= alignment;          // Next aligned pointer
+  return addr;
+}
+
+
+// *****************************************************************************
+/*kernel void f_build_massGPU(void *ctx, void *qdata, CeedInt Q,
+                            const CeedScalar *u,
+                            oCeedScalarPtrCstPtr v, int *rtn) {
+  // J is Jacobians, size (Q x NC x DIM) with column-major layout
+  const CeedScalar *J=&u[Q*NC];
+  // qw is quadrature weights, size (Q)
+  const CeedScalar *qw=&u[(Q*NC)+(Q*NC*DIM)];
+  CeedScalar *qd = (CeedScalar*)qdata;
+  for (CeedInt i=0; i<Q; i++; tile(1)) {
+    if (i >= Q) continue;
+    qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
+             J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
+             J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * qw[i];
+  }
+  *rtn=0;
+  }*/
+
+kernel void f_build_massGPU(void *ctx, void *qdata, CeedInt Q,
+                            const CeedScalar *u1,
+                            const CeedScalar *u4,
+                            oCeedScalarPtrCstPtr v, int *rtn) {
+  // J is Jacobians, size (Q x NC x DIM) with column-major layout
+  const CeedScalar *J=u1;
+  // qw is quadrature weights, size (Q)
+  const CeedScalar *qw=u4;
+  CeedScalar *qd = (CeedScalar*)qdata;
+  for (CeedInt i=0; i<Q; i++; tile(1)) {
+    if (i >= Q) continue;
+    qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
+             J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
+             J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * qw[i];
   }
   *rtn=0;
 }

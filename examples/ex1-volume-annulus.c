@@ -188,7 +188,7 @@ int main(int argc, const char *argv[]) {
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
                               (CeedEvalMode)(CEED_EVAL_GRAD|CEED_EVAL_WEIGHT),
                               CEED_EVAL_NONE, f_build_mass,
-                              __FILE__":f_build_mass", &build_qfunc);
+                              __FILE__":f_build_massGPU", &build_qfunc);
   CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
 
   // Create the operator that builds the quadrature data for the mass operator.

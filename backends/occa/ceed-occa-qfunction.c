@@ -44,9 +44,19 @@ static int localCeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q
                                         const CeedScalar *const *u,
                                         CeedScalar *const *v) {
   int ierr;
-  CeedDebug("\033[36m[CeedQFunction][Apply] qf->function");
+  //CeedDebug("\033[36m[CeedQFunction][Apply] qf->function");
   ierr = qf->function(qf->ctx, qdata, Q, u, v); CeedChk(ierr);
   return 0;
+}
+
+// *****************************************************************************
+__attribute__((unused))
+static unsigned long long align(unsigned long long pointer,
+                                unsigned long long alignment){
+  unsigned long long addr = pointer / alignment; // Aligned (also divided by 6)
+  addr++;                     // Next aligned pointer (still divided by 6)
+  addr *= alignment;          // Next aligned pointer
+  return addr;
 }
 
 // *****************************************************************************
@@ -55,7 +65,7 @@ static int localCeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q
 static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
                                    const CeedScalar *const *u,
                                    CeedScalar *const *v) {  
-  CeedDebug("\033[36m[CeedQFunction][Apply]");
+  //CeedDebug("\033[36m[CeedQFunction][Apply]");
   CeedQFunction_Occa *occa=qf->data;
   const Ceed_Occa *ceed=qf->ceed->data;
   const CeedInt nc = occa->nc, dim = occa->dim;
@@ -75,49 +85,82 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   const CeedEvalMode outmode = qf->outmode;
 
   // Context
-  occaMemory o_ctx = occaDeviceMalloc(ceed->device,sizeof(void*),NULL,NO_PROPS);
-  occaCopyPtrToMem(o_ctx,qf->ctx,qf->ctxsize,0,NO_PROPS);
+  CeedDebug("\033[36;1m[CeedQFunction][Apply] Context ssize=%d,%d",qf->ctxsize, sizeof(CeedInt));
+  occaMemory o_ctx = occaDeviceMalloc(ceed->device,(qf->ctxsize>0)?qf->ctxsize:32,NULL,NO_PROPS);
+/*  if (qf->ctxsize>0){
+    assert(qf->ctx);
+    o_ctx = occaDeviceMalloc(ceed->device,qf->ctxsize,NULL,NO_PROPS);
+    occaCopyPtrToMem(o_ctx,qf->ctx,qf->ctxsize,0,NO_PROPS);
+  }else{
+    o_ctx = occaDeviceMalloc(ceed->device,1,NULL,NO_PROPS);
+    }*/
    
-  //CeedDebug("\033[36m[CeedQFunction][Apply] o_qdata");
+  CeedDebug("\033[36m[CeedQFunction][Apply] o_qdata");
   occaMemory o_qdata = occaDeviceMalloc(ceed->device,Q*bytes,qdata,NO_PROPS);
   
-  //CeedDebug("\033[36m[CeedQFunction][Apply] o_u");
+  CeedDebug("\033[36m[CeedQFunction][Apply] o_u");
+  //occaMemory o_u = occaDeviceMalloc(ceed->device,((Q*nc)+(Q*nc*dim)+(Q))*bytes,NULL,NO_PROPS);
   occaMemory o_u = occaDeviceMalloc(ceed->device,Q*nc*(dim+2)*bytes,NULL,NO_PROPS);
+  
+  occaMemory o_u0 = occaDeviceMalloc(ceed->device,Q*nc*bytes,NULL,NO_PROPS);
+  occaMemory o_u1 = occaDeviceMalloc(ceed->device,Q*nc*dim*bytes,NULL,NO_PROPS);
+  occaMemory o_u4 = occaDeviceMalloc(ceed->device,Q*bytes,NULL,NO_PROPS);
 
   if (!occa->op){ // t20-qfunction to look at WEIGHT or not
-    CeedDebug("\033[36m[CeedQFunction][Apply] t20 u[0]");
+    //CeedDebug("\033[36m[CeedQFunction][Apply] t20 u[0]");
     assert(u[0]);
     occaCopyPtrToMem(o_u,u[0],Q*bytes,0,NO_PROPS);
     
    }else{ // CeedQFunctionApply via CeedOperatorApply
+    
     if (inmode & CEED_EVAL_INTERP){
       CeedDebug("\033[36m[CeedQFunction][Apply] INTERP u[0]");
       assert(u[0]);
       occaCopyPtrToMem(o_u,u[0],Q*nc*bytes,0,NO_PROPS);
+      occaCopyPtrToMem(o_u0,u[0],Q*nc*bytes,0,NO_PROPS);
     }
     if (inmode & CEED_EVAL_GRAD){
-      CeedDebug("\033[36m[CeedQFunction][Apply] GRAD u[1]");
+      const int offset = Q*nc*bytes;
+      const int aoffset = offset;//align(offset,8);
+      CeedDebug("\033[36m[CeedQFunction][Apply] GRAD u[1], offset=%d, aoffset=%d",offset,aoffset);
       assert(u[1]);
-      occaCopyPtrToMem(o_u,u[1],Q*nc*dim*bytes,Q*nc*bytes,NO_PROPS);
-    }
+      assert((aoffset%8)==0);
+      occaCopyPtrToMem(o_u,u[1],Q*nc*dim*bytes,aoffset,NO_PROPS);
+      occaCopyPtrToMem(o_u1,u[1],Q*nc*dim*bytes,0,NO_PROPS);
+   }
     if (inmode & CEED_EVAL_WEIGHT){
-      CeedDebug("\033[36m[CeedQFunction][Apply] WEIGHT u[4]");
+      const int offset = ((Q*nc)+(Q*nc*dim))*bytes;
+      const int aoffset = offset;//align(offset,8);
+      CeedDebug("\033[36m[CeedQFunction][Apply] WEIGHT u[4], offset=%d, aoffset=%d",offset,aoffset);
       assert(u[4]);
-      occaCopyPtrToMem(o_u,u[4],Q*bytes,Q*nc*(dim+1)*bytes,NO_PROPS);
+      assert((aoffset%8)==0);
+      occaCopyPtrToMem(o_u,u[4],Q*bytes,aoffset,NO_PROPS);
+      occaCopyPtrToMem(o_u4,u[4],Q*bytes,0,NO_PROPS);
     }
   }
   
-  CeedDebug("\033[36m[CeedQFunction][Apply] o_v");
+  //CeedDebug("\033[36m[CeedQFunction][Apply] o_v");
   occaMemory o_v = occaDeviceMalloc(ceed->device,Q*nc*dim*bytes,NULL,NO_PROPS);
-   
+
   int rtn=~0;
 
-  CeedDebug("\033[36;1m[CeedQFunction][Apply] occaKernelRun");
+  CeedDebug("\033[31;1m[CeedQFunction][Apply] occaKernelRun: %s", occa->qFunctionName);
   // Warning, no return code can be used yet to tell if this call will succeed
-  occaKernelRun(occa->kQFunctionApply,
-                o_ctx, o_qdata, occaInt(Q),
-                o_u, o_v, occaPtr(&rtn));
-
+  if (strcmp(occa->qFunctionName,"f_build_massGPU")==0){
+    //CeedDebug("\033[31;1m[CeedQFunction][Apply] f_build_massGPU");    
+    occaKernelRun(occa->kQFunctionApply,
+                  occaPtr(qf->ctx),
+                  //o_ctx,
+                  o_qdata, occaInt(Q),
+                  o_u1,o_u4, o_v, occaPtr(&rtn));
+  }else{
+    occaKernelRun(occa->kQFunctionApply,
+                  //occaPtr(qf->ctx),
+                  o_ctx,
+                  o_qdata, occaInt(Q),
+                  o_u, o_v, occaPtr(&rtn));    
+  }
+  
   if (rtn!=0){
     CeedDebug("\033[31;1m[CeedQFunction][Apply] return code !=0");
     return CeedError(NULL, 1, "Return code !=0");
@@ -127,7 +170,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
     //localCeedQFunctionApply_Occa(qf,qdata,Q,u,v);
     occaCopyMemToPtr(qdata,o_qdata,Q*bytes,NO_OFFSET,NO_PROPS);
   }
-  
+
   if (outmode==CEED_EVAL_INTERP){
     //localCeedQFunctionApply_Occa(qf,qdata,Q,u,v);
     occaCopyMemToPtr(v[0],o_v,Q*nc*dim*bytes,NO_OFFSET,NO_PROPS);
@@ -137,7 +180,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
 
   CeedDebug("\033[36;1m[CeedQFunction][Apply] done");
   occaMemoryFree(o_qdata);
-  occaMemoryFree(o_ctx);
+  //occaMemoryFree(o_ctx);
   occaMemoryFree(o_u);
   occaMemoryFree(o_v);
   return 0;
