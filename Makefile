@@ -19,7 +19,7 @@ FC ?= gfortran
 
 ASAN ?=
 NDEBUG ?=
-CDEBUG ?=
+CDEBUG ?= 1
 
 LDFLAGS ?=
 UNDERSCORE ?= 1

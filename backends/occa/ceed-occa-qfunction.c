@@ -88,10 +88,10 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
 
   // Context
   //CeedDebug("\033[36;1m[CeedQFunction][Apply] Context ssize=%d,%d",qf->ctxsize, sizeof(CeedInt));
+  // We don't push the context to device
   // Avoid OCCA's "Trying to allocate zero bytes"
-  occaMemory o_ctx = occaDeviceMalloc(ceed->device,qf->ctxsize>0?qf->ctxsize:32,NULL,NO_PROPS);
-  if (qf->ctxsize>0)
-    occaCopyPtrToMem(o_ctx,qf->ctx,qf->ctxsize,0,NO_PROPS);
+  //occaMemory o_ctx = occaDeviceMalloc(ceed->device,qf->ctxsize>0?qf->ctxsize:32,NULL,NO_PROPS);
+  //if (qf->ctxsize>0) occaCopyPtrToMem(o_ctx,qf->ctx,qf->ctxsize,0,NO_PROPS);
  
   //CeedDebug("\033[36m[CeedQFunction][Apply] o_qdata");
   occaMemory o_qdata = occaDeviceMalloc(ceed->device,Q*bytes,qdata,NO_PROPS);
@@ -131,7 +131,8 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   //CeedDebug("\033[31;1m[CeedQFunction][Apply] occaKernelRun: %s", occa->qFunctionName);
   // Warning, no return code can be used yet to tell if this call will succeed
   occaKernelRun(occa->kQFunctionApply,
-                o_ctx, o_qdata, occaInt(Q),
+                qf->ctx?occaPtr(qf->ctx):occaInt(0),//o_ctx,
+                o_qdata, occaInt(Q),
                 o_u, o_v, occaPtr(&rtn));    
   
   if (rtn!=0){
@@ -153,7 +154,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
 
   //CeedDebug("\033[36;1m[CeedQFunction][Apply] done");
   occaMemoryFree(o_qdata);
-  occaMemoryFree(o_ctx);
+  //occaMemoryFree(o_ctx);
   occaMemoryFree(o_u);
   occaMemoryFree(o_v);
   return 0;

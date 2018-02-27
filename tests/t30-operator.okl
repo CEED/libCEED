@@ -17,31 +17,29 @@
 // *****************************************************************************
 typedef int CeedInt;
 typedef double CeedScalar;
-typedef double*  CeedScalarPtrCstPtr_Q_NC_DIM @ dim(5,Q*NC*DIM);
-typedef double* oCeedScalarPtrCstPtr_Q_NC_DIM @ dim(1,Q*NC*DIM);
 
 // *****************************************************************************
-kernel void setup(void *ctx, void *qdata, CeedInt Q,
-                  const CeedScalarPtrCstPtr_Q_NC_DIM u,
-                  CeedScalarPtrCstPtr_Q_NC_DIM v,
-                  int *rtn) {
+kernel void setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *u,
+                  CeedScalar *const *v, int *rtn) {
   CeedScalar *w = (double*)qdata;
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    w[i] = u(1,i)*u(4,i);
+    const CeedScalar *u1=u+Q*NC;
+    const CeedScalar *u4=u+Q*NC*(DIM+1);
+    w[i] = u1[i]*u4[i];
   }
   *rtn=0;
 }
 
 // *****************************************************************************
-kernel void mass(void *ctx, void *qdata, CeedInt Q,
-                 const oCeedScalarPtrCstPtr_Q_NC_DIM u,
-                 oCeedScalarPtrCstPtr_Q_NC_DIM v,
-                 int *rtn) {
+kernel void mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *u,
+                 CeedScalar *const v, int *rtn) {
   const CeedScalar *w = (double*)qdata;
+  const CeedScalar *u0 = (double*)u;
+  CeedScalar *v0 = (double*)v;
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    v(0,i) = w[i] * u(0,i);
+    v0[i] = w[i] * u0[i];
   }
   *rtn=0;
 }
