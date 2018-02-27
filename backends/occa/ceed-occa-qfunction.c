@@ -204,16 +204,19 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   occa->dim = 1;
   
   // Locate last ':' character in qf->focca
+  //CeedDebug("\033[36;1m[CeedQFunction][Create] qf->focca=%s",qf->focca);
   char *last_colon = strrchr(qf->focca,':');
   if (!last_colon) return EXIT_FAILURE;
   assert(last_colon);
+  //CeedDebug("\033[36;1m[CeedQFunction][Create] last_colon=%s",last_colon);
   // Focus on the function name
   occa->qFunctionName = last_colon+1;
   assert(occa->qFunctionName);
+  //CeedDebug("\033[36;1m[CeedQFunction][Create] qFunctionName=%s",occa->qFunctionName);
   
   // Now extract filename
   occa->oklPath=calloc(4096,sizeof(char));
-  const size_t oklPathLen = last_colon-qf->focca;
+  const size_t oklPathLen = last_colon - qf->focca;
   memcpy(occa->oklPath,qf->focca,oklPathLen);
   occa->oklPath[oklPathLen]='\0';
   strcpy(&occa->oklPath[oklPathLen - 2],".okl");
@@ -222,7 +225,7 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
 
   // Test if we can get file's status
   struct stat buf;          
-  if (stat(occa->oklPath, &buf)!=0) return EXIT_FAILURE; 
+  if (stat(occa->oklPath, &buf)!=0) return EXIT_FAILURE;
 
   return EXIT_SUCCESS;
 }

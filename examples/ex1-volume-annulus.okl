@@ -28,9 +28,9 @@ kernel void f_build_mass(void *ctx, void *qdata, CeedInt Q,
                         const CeedScalar *u, CeedScalar *v, int *rtn) {
   // u[1] is Jacobians, size (Q x nc x dim) with column-major layout
   // u[4] is quadrature weights, size (Q)
+  //const CeedScalar *J = u[1], *qw = u[4];
   struct BuildContext *bc = (struct BuildContext*)ctx;
   CeedScalar *qd = (CeedScalar*)qdata;
-  //const CeedScalar *J = u[1], *qw = u[4];
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
     for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
@@ -69,28 +69,6 @@ kernel void f_build_mass(void *ctx, void *qdata, CeedInt Q,
   }
   *rtn=0;
 }
-/*
-kernel void f_build_mass(void *ctx, void *qdata, CeedInt Q,
-                         const CeedScalar *u, CeedScalar *v, int *rtn) {
-  CeedScalar *qd = (CeedScalar*)qdata;
-  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-    if (i >= Q) continue;
-    // u[1] is Jacobians, size (Q x NC x DIM) with column-major layout
-    const CeedScalar *J=u+Q*NC;
-    // u[4] is quadrature weights, size (Q)
-    const CeedScalar *qw=u+Q*NC*(DIM+1);
-    struct BuildContext *bc = (struct BuildContext*)ctx;
-    const int dims=bc->dim + 10*bc->space_dim;
-    printf("\n\033[31;1m%d\033[m\n",dims);
-    // 0 3 6
-    // 1 4 7
-    // 2 5 8
-    qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
-             J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-             J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * qw[i];
-  }
-  *rtn=0;
-  }*/
 
 // *****************************************************************************
 /// libCEED Q-function for applying a mass operator
