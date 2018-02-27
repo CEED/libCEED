@@ -171,11 +171,8 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 
-<<<<<<< HEAD
-.PHONY: all cln clean print test tst prove prv examples astyle install
-=======
-.PHONY: all cln clean print test tst examples astyle install doc
->>>>>>> master
+.PHONY: all cln clean print test tst prove prv examples astyle install doc
+
 cln clean :
 	$(RM) *.o *.d $(libceed)
 	$(RM) -r *.dSYM $(OBJDIR) $(LIBDIR)/pkgconfig
