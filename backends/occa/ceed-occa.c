@@ -17,7 +17,7 @@
 #include "ceed-occa.h"
 
 // *****************************************************************************
-// * OCCA stuff
+// * OCCA modes, should be dynamic like OCCA_DEVICE_ID/PLATFORM_ID
 // *****************************************************************************
 static const char *occaCPU = "mode: 'Serial'";
 static const char *occaOMP = "mode: 'OpenMP'";

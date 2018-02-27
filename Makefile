@@ -17,9 +17,9 @@
 CC ?= gcc
 FC ?= gfortran
 
-ASAN ?= 
-NDEBUG ?= 1
-CDEBUG ?= 
+ASAN ?=
+NDEBUG ?=
+CDEBUG ?=
 
 LDFLAGS ?=
 UNDERSCORE ?= 1
