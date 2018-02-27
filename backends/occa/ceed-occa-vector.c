@@ -41,13 +41,6 @@ static inline void occaSyncH2D(const CeedVector vec) {
   assert(occa->array_device);
   occaCopyPtrToMem(*occa->array_device, occa->array, bytes(vec), NO_OFFSET, NO_PROPS);
 }
-/*static inline void occaSyncD2H(const CeedVector vec) {
-  const CeedVector_Occa *impl = vec->data;
-  assert(impl);
-  assert(impl->array);
-  assert(impl->device);
-  occaCopyMemToPtr(impl->array, *impl->array_device, bytes(vec), NO_OFFSET, NO_PROPS);
-  }*/
 
 // *****************************************************************************
 // * Set the array used by a vector,
@@ -123,9 +116,6 @@ static int CeedVectorGetArray_Occa(const CeedVector x,
 static int CeedVectorRestoreArrayRead_Occa(const CeedVector x,
                                            const CeedScalar **array) {
   CeedDebug("\033[33m[CeedVector][Restore]");
-  //CeedVector_Occa *occa = x->data;
-  // free memory we used for the view
-  //CeedChk(CeedFree(&occa->array));
   *array = NULL;
   return 0;
 }

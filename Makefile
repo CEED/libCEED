@@ -18,16 +18,17 @@ CC ?= gcc
 FC ?= gfortran
 
 ASAN ?=
-NDEBUG ?=
+NDEBUG ?= 1
 CDEBUG ?=
 
 LDFLAGS ?=
 UNDERSCORE ?= 1
 
-# env variable OCCA_DIR should point to OCCA-1.0 branch
+# OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
 OCCA_DIR ?= ../occa
 
-# Warning SANTIZ options won't run with OCCA
+# Warning SANTIZ options still don't run with /gpu/occa
+# export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native -O2 -g
@@ -107,7 +108,7 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
 .SUFFIXES:
 .SUFFIXES: .c .o .d
-.SECONDEXPANSION:		# to expand $$(@D)/.DIR
+.SECONDEXPANSION: # to expand $$(@D)/.DIR
 
 %/.DIR :
 	@mkdir -p $(@D)
@@ -123,7 +124,7 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name $(abspath $(libceed)))
 $(libceed) : $(ref.o)
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
-  $(libceed) : LDLIBS += -locca #-lrt -ldl -lOpenCL -lcuda
+  $(libceed) : LDLIBS += -locca
   $(libceed) : $(occa.o)
   $(occa.o) : CFLAGS += -I$(OCCA_DIR)/include
 endif
