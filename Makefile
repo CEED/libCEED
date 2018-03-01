@@ -27,7 +27,8 @@ UNDERSCORE ?= 1
 OCCA_DIR ?= ../occa
 
 # env variable MAGMA_DIR should point to MAGMA branch
-MAGMA_DIR ?= ../magma
+MAGMA_DIR ?= ../../magma
+CUDA_DIR  ?= /usr/local/cuda
 
 SANTIZ = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native
@@ -128,7 +129,8 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   $(libceed) : LDFLAGS += -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)
   $(libceed) : LDLIBS += -lmagma
   $(libceed) : $(magma.o)
-  $(magma.o) : CFLAGS += -I$(MAGMA_DIR)/include
+  libceed.c += $(magma.c)
+  $(magma.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
 endif
 $(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) | $$(@D)/.DIR
 	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
