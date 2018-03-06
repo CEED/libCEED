@@ -1,4 +1,4 @@
-###################################################################################
+################################################################################
 #  -- MAGMA (version 2.0) --
 #     Univ. of Tennessee, Knoxville
 #     @date
@@ -11,7 +11,7 @@
 # will generate the equivalent C code in src_tmp.c that calls CUDA kernels, 
 # generated in file src_tmp.cu. The original src.c file remains unchanged.
 #
-###################################################################################        
+################################################################################        
 import sys
 
 def main():
@@ -38,25 +38,38 @@ def main():
         cfile.write(prog[:i1])
         prog = prog[i1+14:]
         
-        bounds   = prog[prog.find("<<")+2:prog.find(">>")] # text between << >>
-        args     = prog[prog.find("(")+1 : prog.find(")")] # text/argd betweer ()
-        i1, i2   = find_matching(prog, "{", "}")           # text between {}
-        template = prog[i1+1:i2]                           # the template in {}
+        # templates are of the form:
+        #    magma_template<<e=0:r->nelem, d=0:ncomp, i=0:r->elemsize>>
+        #      (const CeedScalar *uu, CeedScalar *vv)
+        #         { code_for_single_thread; }
+
+        # text between << >> , i.e, bound = "e=0:r->nelem, d=0:ncomp, i=0:r->elemsize"
+        bounds   = prog[prog.find("<<")+2:prog.find(">>")] 
+
+        # text/argd betweer (), i.e., args = "const CeedScalar *uu, CeedScalar *vv"  
+        args     = prog[prog.find("(")+1 : prog.find(")")]
+
+        # text between {}, i.e., template = "code_for_single_thread;"
+        i1, i2   = find_matching(prog, "{", "}")          
+        template = prog[i1+1:i2]                          
 
         prog     = prog[i2:]
         
-        lmyarg, listargs  = find_argsbound( bounds )       # parse bounds
-        listargs +=  find_argslist( args )                 # parse args
+        # boundvars = "e, d, i" and boundargs = "0, r->nelem, 0, ncomp, 0, r->elemsize"
+        boundvars, boundargs  = find_argsbound( bounds )       
+
+        # add arguments from kernel, i.e. listars += "uu, vv"
+        boundargs +=  find_argslist( args )                 
 
         # Replace DSL call with the real generated call in the tmp.c file
         kname = "magma_template" + "_" + str(kernel) + "_" + fname
-        kcall = kname + "(" + listargs + ");"
+        kcall = kname + "(" + boundargs + ");"
         cfile.write(kcall)
 
-        # prepare the magma_template kernel in the .cu file
-        parts = lmyarg.split(",");                         # bound name variables
+        # Here parts[0] = e , parts[1] = d, parts[2] = i
+        parts = boundvars.split(",");                         
 
-        # the kernel
+        # Prepare the magma_template kernel and write it in the .cu file
         kernel  = "__global__ void                                   \n" 
         kernel +=  kname+"_kernel(                                   \n"
         kernel += "    int "+parts[0]+"begin, int "+parts[0]+"end,   \n"
@@ -96,8 +109,12 @@ def main():
     cfile.close()
     cufile.close()
 
-########################################################################
+################################################################################
+# Auxiliary fnctions
+################################################################################
 
+# Given a code in 'line' this returns the indices for the sub-code starting
+# from first "left" parenthesis/string to the closing "right" parenthesis
 def find_matching(line, left, right):
     i1 = line.find(left)
     num= 1
@@ -111,6 +128,8 @@ def find_matching(line, left, right):
             return i1, i
     return i1, i2
 
+# Given a declaration list of args separated by ",", this function
+# parses the list and returns a list of just their names
 def find_argslist( args ):
     args += ")"
     arglist = ""
@@ -127,6 +146,9 @@ def find_argslist( args ):
 
     return arglist
 
+# Given bounds list of the form "e=0:r->nelem, d=0:ncomp, ..." this returns
+# the list of parameters "e, d, ..." and list of their start and end arguments,
+# i.e., "0, r->nelem, 0, ncomp, ..."
 def find_argsbound( bounds ):
     args      = ""
     argsbound = ""
@@ -143,7 +165,7 @@ def find_argsbound( bounds ):
 
     return args, argsbound
 
-########################################################################
+################################################################################
 
 if __name__ == '__main__':
    main()
