@@ -17,9 +17,9 @@
 CC ?= gcc
 FC ?= gfortran
 
-ASAN ?=
-NDEBUG ?= 1
-CDEBUG ?=
+ASAN ?= 1
+NDEBUG ?= #1
+CDEBUG ?= 1
 
 LDFLAGS ?=
 UNDERSCORE ?= 1
@@ -29,7 +29,7 @@ OCCA_DIR ?= ../occa
 
 # Warning SANTIZ options still don't run with /gpu/occa
 # export LSAN_OPTIONS=suppressions=.asanignore
-AFLAGS = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
+AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native -O2 -g
 FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP -march=native
@@ -152,6 +152,19 @@ run-% : $(OBJDIR)/%
 
 test : $(tests:$(OBJDIR)/%=run-%) $(examples:$(OBJDIR)/%=run-%)
 tst:;@$(MAKE) $(MFLAGS) V=$(V) test
+
+ctests:=$(tests.c:tests/%.c=$(OBJDIR)/%)
+cto: $(ctests)
+	build/t00-init /cpu/occa
+	build/t01-vec /cpu/occa
+	build/t05-elemrestriction /cpu/occa
+	build/t10-basis /cpu/occa
+	build/t11-basis /cpu/occa
+	build/t12-basis /cpu/occa
+	build/t13-basis /cpu/occa
+	build/t14-basis-weight /cpu/occa
+	build/t20-qfunction /cpu/occa
+	build/t30-operator /cpu/occa
 
 prove : $(tests) $(examples)
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)

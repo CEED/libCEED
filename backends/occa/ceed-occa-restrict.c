@@ -76,8 +76,8 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &us); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vs); CeedChk(ierr);
 
-  const occaMemory ud = *u_occa->array_device;
-  occaMemory vd = *v_occa->array_device;
+  const occaMemory ud = *u_occa->d_array;
+  occaMemory vd = *v_occa->d_array;
 
   CeedDebug("\033[35m[CeedElemRestriction][Apply] kRestrict");
 
@@ -110,7 +110,7 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
       }
     }
   }
-  occaCopyMemToPtr(v_occa->array, vd, v->length*sizeof(CeedScalar),
+  occaCopyMemToPtr(v_occa->h_array, vd, v->length*sizeof(CeedScalar),
                    NO_OFFSET,NO_PROPS);
   assert(memcmp(uu,us,u->length)==0);
   assert(memcmp(vv,vs,v->length)==0);

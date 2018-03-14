@@ -73,7 +73,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   CeedChk(CeedCalloc(1,&occa));
   ceed->data = occa;
 #ifdef CDEBUG
-  occaPrintModeInfo();
+  //occaPrintModeInfo(); // produces CUDA_ERROR_NOT_INITIALIZED
   occaSetVerboseCompilation(true);
 #endif
   const char *mode =

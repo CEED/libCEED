@@ -41,9 +41,8 @@ typedef struct {
 // * CeedVector_Occa struct needed by some other functions below
 // *****************************************************************************
 typedef struct {
-  CeedScalar *array;
-  CeedScalar *array_allocated;
-  occaMemory *array_device;
+  CeedScalar *h_array;
+  occaMemory *d_array;
 } CeedVector_Occa;
 
 // *****************************************************************************
