@@ -56,23 +56,22 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
                                          CeedTransposeMode lmode,
                                          CeedVector u, CeedVector v,
                                          CeedRequest *request) {
+  CeedDebug("\033[35m[CeedElemRestriction][Apply]");
   int ierr;
   const CeedElemRestriction_Occa *occa = r->data;
   const CeedScalar *uu;
   CeedScalar *vv;
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
-  
+    
   const occaMemory indices = *occa->device;
-  CeedVector_Occa *u_occa = u->data;
-  CeedVector_Occa *v_occa = v->data;
-  const CeedScalar *us;
-  CeedScalar *vs;
-  ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &us); CeedChk(ierr);
-  ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vs); CeedChk(ierr);
-
-  const occaMemory ud = *u_occa->d_array;
-  occaMemory vd = *v_occa->d_array;
+  const CeedVector_Occa *u_data = u->data;
+  const CeedVector_Occa *v_data = v->data;
+  
+  const occaMemory ud = *u_data->d_array;
+  const occaMemory vd = *v_data->d_array;
+  
+  //occaCopyPtrToMem(ud,u_data->h_array,u->length*sizeof(CeedScalar),NO_OFFSET,NO_PROPS);
 
   CeedDebug("\033[35m[CeedElemRestriction][Apply] kRestrict");
 
@@ -81,7 +80,7 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
     if (ncomp == 1) {
       occaKernelRun(occa->kRestrict[0], indices, ud, vd);
     } else {
-      // vv is (elemsize x ncomp x nelem), column-major
+      // v is (elemsize x ncomp x nelem), column-major
       if (lmode == CEED_NOTRANSPOSE) {
         // u is (ndof x ncomp), column-major
         occaKernelRun(occa->kRestrict[1], occaInt(ncomp), indices, ud, vd);
@@ -97,22 +96,17 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
     } else {
       // u is (elemsize x ncomp x nelem)
       if (lmode == CEED_NOTRANSPOSE) {
-        // vv is (ndof x ncomp), column-major
+        // v is (ndof x ncomp), column-major
         occaKernelRun(occa->kRestrict[4], occaInt(ncomp), indices, ud, vd);
       } else {
-        // vv is (ncomp x ndof), column-major
+        // v is (ncomp x ndof), column-major
         occaKernelRun(occa->kRestrict[5], occaInt(ncomp), indices, ud, vd);
       }
     }
   }
-  occaCopyMemToPtr(v_occa->h_array, vd, v->length*sizeof(CeedScalar),
-                   NO_OFFSET,NO_PROPS);
-  assert(memcmp(uu,us,u->length)==0);
-  assert(memcmp(vv,vs,v->length)==0);
+  occaCopyMemToPtr(v_data->h_array,vd,v->length*sizeof(CeedScalar),NO_OFFSET,NO_PROPS);
 
   // ***************************************************************************
-  ierr = CeedVectorRestoreArrayRead(u, &us); CeedChk(ierr);
-  ierr = CeedVectorRestoreArray(v, &vs); CeedChk(ierr);
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
   return 0;

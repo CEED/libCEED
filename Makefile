@@ -18,7 +18,7 @@ CC ?= gcc
 FC ?= gfortran
 
 ASAN ?= #1
-NDEBUG ?= 1
+NDEBUG ?= #1
 CDEBUG ?= #1
 
 LDFLAGS ?=

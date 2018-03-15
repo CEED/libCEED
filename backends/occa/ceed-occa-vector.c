@@ -94,9 +94,11 @@ static int CeedVectorGetArrayRead_Occa(const CeedVector x,
   if (mtype != CEED_MEM_HOST)
     return CeedError(x->ceed, 1, "Can only provide to HOST memory");
   if (!occa->h_array) { // Allocate if array was not allocated yet
+    CeedDebug("\033[33m[CeedVector][Get] Allocating");
     ierr = CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
     CeedChk(ierr);
   }
+  CeedDebug("\033[33m[CeedVector][Get] occaSyncH2D");
   occaSyncH2D(x); // sync Host to Device
   *array = occa->h_array;
   return 0;
@@ -114,6 +116,7 @@ static int CeedVectorGetArray_Occa(const CeedVector x,
 static int CeedVectorRestoreArrayRead_Occa(const CeedVector x,
                                            const CeedScalar **array) {
   CeedDebug("\033[33m[CeedVector][Restore]");
+  //occaSyncH2D(x); // sync Host to Device
   *array = NULL;
   return 0;
 }
