@@ -34,16 +34,25 @@
 // * Ceed_Occa struct
 // *****************************************************************************
 typedef struct {
-  occaDevice device;
+  occaDevice *device;
 } Ceed_Occa;
 
 // *****************************************************************************
-// * CeedVector_Occa struct needed by some other functions below
+// * CeedVector_Occa struct
 // *****************************************************************************
 typedef struct {
   CeedScalar *h_array;
   occaMemory *d_array;
 } CeedVector_Occa;
+
+// *****************************************************************************
+// * CeedElemRestrictionApply_Occa struct
+// *****************************************************************************
+typedef struct {
+  const CeedInt *h_indices;
+  occaMemory *d_indices;
+  occaKernel kRestrict[6];
+} CeedElemRestriction_Occa;
 
 // *****************************************************************************
 // * Q-Functions

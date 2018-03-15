@@ -162,7 +162,8 @@ int CeedRegister(const char *prefix,
 /// @param unit Size of each unit
 /// @param p Address of pointer to hold the result.
 /// @sa CeedFree()
-int CeedMallocArray(size_t n, size_t unit, void *p) {
+int CeedMallocArray(size_t n, size_t unit, void *p, char *file, int line) {
+  CeedDebug("\033[32;1m[CeedMallocArray] %s:%d %dx%db\033[m",file,line,n,unit);
   int ierr = posix_memalign((void **)p, CEED_ALIGN, n*unit);
   if (ierr)
     return CeedError(NULL, ierr,
@@ -178,7 +179,8 @@ int CeedMallocArray(size_t n, size_t unit, void *p) {
 /// @param unit Size of each unit
 /// @param p Address of pointer to hold the result.
 /// @sa CeedFree()
-int CeedCallocArray(size_t n, size_t unit, void *p) {
+int CeedCallocArray(size_t n, size_t unit, void *p, char *file, int line) {
+  CeedDebug("\033[32;1m[CeedCallocArray] %s:%d %dx%db\033[m",file,line,n,unit);
   *(void **)p = calloc(n, unit);
   if (n && unit && !*(void **)p)
     return CeedError(NULL, 1, "calloc failed to allocate %zd members of size %zd\n",
@@ -194,7 +196,8 @@ int CeedCallocArray(size_t n, size_t unit, void *p) {
 /// @param unit Size of each unit
 /// @param p Address of pointer to hold the result.
 /// @sa CeedFree()
-int CeedReallocArray(size_t n, size_t unit, void *p) {
+int CeedReallocArray(size_t n, size_t unit, void *p, char *file, int line) {
+  CeedDebug("\033[32;1m[CeedReallocArray] %s:%d %dx%db\033[m",file,line,n,unit);
   *(void **)p = realloc(*(void **)p, n*unit);
   if (n && unit && !*(void **)p)
     return CeedError(NULL, 1,
@@ -206,7 +209,8 @@ int CeedReallocArray(size_t n, size_t unit, void *p) {
 /// Free memory allocated using CeedMalloc() or CeedCalloc()
 ///
 /// @param p address of pointer to memory.  This argument is of type void* to avoid needing a cast, but is the address of the pointer (which is zeroed) rather than the pointer.
-int CeedFree(void *p) {
+int CeedFreeImpl(void *p, char *file, int line) {
+  CeedDebug("\033[31;1m[CeedFree] %s:%d\033[m",file,line);
   free(*(void **)p);
   *(void **)p = NULL;
   return 0;

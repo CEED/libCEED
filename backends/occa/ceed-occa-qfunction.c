@@ -23,7 +23,7 @@ static int buildKernelForThisQfunction(CeedQFunction qf){
   CeedQFunction_Occa *occa=qf->data;
   const Ceed_Occa *ceed_data=qf->ceed->data;
   assert(ceed_data);
-  const occaDevice dev = ceed_data->device;
+  const occaDevice dev = *ceed_data->device;
   CeedDebug("\033[33m[CeedQFunction][buildKernelForThisQfunction] nc=%d",occa->nc);
   CeedDebug("\033[33m[CeedQFunction][buildKernelForThisQfunction] dim=%d",occa->dim);
   occaProperties pKR = occaCreateProperties();
@@ -68,8 +68,8 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   //occaMemory o_ctx = occaDeviceMalloc(ceed->device,qf->ctxsize>0?qf->ctxsize:32,NULL,NO_PROPS);
   //if (qf->ctxsize>0) occaCopyPtrToMem(o_ctx,qf->ctx,qf->ctxsize,0,NO_PROPS);
  
-  occaMemory o_qdata = occaDeviceMalloc(ceed->device,Q*bytes,qdata,NO_PROPS);
-  occaMemory o_u = occaDeviceMalloc(ceed->device,(Q+Q*nc*(dim+1))*bytes,NULL,NO_PROPS);
+  occaMemory o_qdata = occaDeviceMalloc(*ceed->device,Q*bytes,qdata,NO_PROPS);
+  occaMemory o_u = occaDeviceMalloc(*ceed->device,(Q+Q*nc*(dim+1))*bytes,NULL,NO_PROPS);
 
   if (!occa->op){ // t20-qfunction to look at WEIGHT or not
     assert(u[0]);
@@ -84,7 +84,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   }
   
   //CeedDebug("\033[36m[CeedQFunction][Apply] o_v");
-  occaMemory o_v = occaDeviceMalloc(ceed->device,Q*nc*dim*bytes,NULL,NO_PROPS);
+  occaMemory o_v = occaDeviceMalloc(*ceed->device,Q*nc*dim*bytes,NULL,NO_PROPS);
   int rtn=~0;
 
   //CeedDebug("\033[31;1m[CeedQFunction][Apply] occaKernelRun: %s", occa->qFunctionName);

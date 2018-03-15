@@ -60,9 +60,7 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   if (!impl->etmp) {
     const int n = nc * op->Erestrict->nelem * op->Erestrict->elemsize;
     //printf("\n\033[37;1m[CeedOperator][GetQData] NEW etmp, n=%d\033[m",n);fflush(stdout);
-    ierr = CeedVectorCreate(op->ceed,
-                            n,
-                            &impl->etmp); CeedChk(ierr);
+    ierr = CeedVectorCreate(op->ceed,n,&impl->etmp); CeedChk(ierr);
     assert(impl->etmp);
     // etmp is allocated when CeedVectorGetArray is called below
   }
