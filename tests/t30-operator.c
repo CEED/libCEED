@@ -1,5 +1,6 @@
 // Test operator action for mass matrix
 #include <ceed.h>
+#include <stdlib.h>
 
 static int setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
                  CeedScalar *const *v) {
@@ -32,7 +33,7 @@ int main(int argc, char **argv) {
   CeedScalar x[Nx];
 
   CeedInit(argv[1], &ceed);
-  for (CeedInt i=0; i<Nx; i++) x[i] = i / (Nx - 1);
+  for (CeedInt i=0; i<Nx; i++) x[i] = (CeedScalar) i / (Nx - 1);  
   for (CeedInt i=0; i<nelem; i++) {
     indx[2*i+0] = i;
     indx[2*i+1] = i+1;
@@ -50,7 +51,7 @@ int main(int argc, char **argv) {
 
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bx);
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, P, Q, CEED_GAUSS, &bu);
-
+  
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
                               (CeedEvalMode)(CEED_EVAL_GRAD|CEED_EVAL_WEIGHT),
                               CEED_EVAL_NONE, setup, __FILE__ ":setup", &qf_setup);

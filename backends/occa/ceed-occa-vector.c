@@ -174,8 +174,14 @@ int CeedVectorCreate_Occa(const Ceed ceed, const CeedInt n, CeedVector vec) {
   vec->Destroy = CeedVectorDestroy_Occa;
   // ***************************************************************************
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
+  vec->data = data;
+  // ***************************************************************************
   ierr = CeedCalloc(1,&data->d_array); CeedChk(ierr);
   *data->d_array = occaDeviceMalloc(*occa->device, bytes(vec), NULL, NO_PROPS);
-  vec->data = data;
+  // Flush device memory *******************************************************
+  ierr=CeedCalloc(vec->length, &data->h_array); CeedChk(ierr);
+  assert(data->h_array);
+  occaSyncH2D(vec);
+  ierr = CeedFree(&data->h_array); CeedChk(ierr);
   return 0;
 }

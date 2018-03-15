@@ -44,7 +44,7 @@ static int localCeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q
                                         const CeedScalar *const *u,
                                         CeedScalar *const *v) {
   int ierr;
-  //CeedDebug("\033[36m[CeedQFunction][Apply] qf->function");
+  CeedDebug("\033[36m[CeedQFunction][Apply] qf->function");
   ierr = qf->function(qf->ctx, qdata, Q, u, v); CeedChk(ierr);
   return 0;
 }
@@ -78,10 +78,12 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   // Avoid OCCA's "Trying to allocate zero bytes"
   //occaMemory o_ctx = occaDeviceMalloc(ceed->device,qf->ctxsize>0?qf->ctxsize:32,NULL,NO_PROPS);
   //if (qf->ctxsize>0) occaCopyPtrToMem(o_ctx,qf->ctx,qf->ctxsize,0,NO_PROPS);
- 
+
+  // On devrait pointer directement em d_memory
   occaMemory o_qdata = occaDeviceMalloc(*ceed->device,Q*bytes,qdata,NO_PROPS);
   occaMemory o_u = occaDeviceMalloc(*ceed->device,(Q+Q*nc*(dim+1))*bytes,NULL,NO_PROPS);
 
+  // on remplit
   if (!occa->op){ // t20-qfunction to look at WEIGHT or not
     assert(u[0]);
     occaCopyPtrToMem(o_u,u[0],Q*bytes,0,NO_PROPS);
@@ -113,12 +115,14 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
     //localCeedQFunctionApply_Occa(qf,qdata,Q,u,v);
 //#warning localCeedQFunctionApply
     occaCopyMemToPtr(qdata,o_qdata,Q*bytes,NO_OFFSET,NO_PROPS);
+    //for(int i=0;i<Q;i+=1) printf("\n[CeedQFunctionApply_Occa]  %g",((double*)qdata)[i]);
   }
 
   if (outmode==CEED_EVAL_INTERP){
     //localCeedQFunctionApply_Occa(qf,qdata,Q,u,v);
 //#warning localCeedQFunctionApply
     occaCopyMemToPtr(v[0],o_v,Q*nc*dim*bytes,NO_OFFSET,NO_PROPS);
+    //for(int i=0;i<Q*nc*dim;i+=1) printf("\n[CeedQFunctionApply_Occa]  %g",((double*)qdata)[i]);
   }
   
   assert(outmode==CEED_EVAL_NONE || outmode==CEED_EVAL_INTERP);

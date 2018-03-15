@@ -31,14 +31,14 @@
 #define TILE_SIZE 32
 
 // *****************************************************************************
-// * Ceed_Occa struct
+// * Ceed Occa struct
 // *****************************************************************************
 typedef struct {
   occaDevice *device;
 } Ceed_Occa;
 
 // *****************************************************************************
-// * CeedVector_Occa struct
+// * CeedVector Occa struct
 // *****************************************************************************
 typedef struct {
   CeedScalar *h_array;
@@ -46,13 +46,21 @@ typedef struct {
 } CeedVector_Occa;
 
 // *****************************************************************************
-// * CeedElemRestrictionApply_Occa struct
+// * CeedElemRestriction Occa struct
 // *****************************************************************************
 typedef struct {
   const CeedInt *h_indices;
   occaMemory *d_indices;
   occaKernel kRestrict[6];
 } CeedElemRestriction_Occa;
+
+// *****************************************************************************
+// * CeedOperator Occa struct
+// *****************************************************************************
+typedef struct {
+  CeedVector etmp;
+  CeedVector qdata;
+} CeedOperator_Occa;
 
 // *****************************************************************************
 // * Q-Functions
