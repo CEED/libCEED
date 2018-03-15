@@ -454,7 +454,9 @@ c     Create a ceed element restriction
 
 c     Create a ceed qfunction
       call ceedqfunctioncreateinterior(ceed,1,ncomp,8,ceed_eval_interp,
-     $  ceed_eval_interp,massf,'ex1.usr:massf'//char(0),qf_mass,err)
+     $  ceed_eval_interp,massf,
+     $  __FILE__
+     $  //':mass'//char(0),qf_mass,err)
 
 c     Create a ceed operator
       call ceedoperatorcreate(ceed,erstrct,basis,qf_mass,
@@ -464,8 +466,8 @@ c     Create ceed vectors
       call ceedvectorcreate(ceed,ldof,vec_ap1,err)
       call ceedvectorcreate(ceed,ldof,vec_p1,err)
       call ceedoperatorgetqdata(ceed,vec_qdata,err)
-      call ceedvectorsetarray(vec_qdata,ceed_mem_host,
-     $  ceed_copy_values,h2,err)
+c      call ceedvectorsetarray(vec_qdata,ceed_mem_host,
+c     $  ceed_copy_values,h2,err)
 
 c     Start cg
       wv(1)=0
@@ -478,9 +480,9 @@ c     Start cg
       rpp1(1) = wv  (1)
 
       do 1000 iter=1,maxit
-         call ceed_axhm1    (pap,ap1,p1,h1,h2,ceed,op_mass,
-     $     vec_ap1,vec_p1,vec_qdata)
-c         call axhm1    (pap,ap1,p1,h1,h2)
+c         call ceed_axhm1    (pap,ap1,p1,h1,h2,ceed,op_mass,
+c     $     vec_ap1,vec_p1,vec_qdata)
+         call axhm1    (pap,ap1,p1,h1,h2)
          call gop      (pap,wk,'+  ',1)
          call xmask1   (ap1,nel)
          call dssum    (ap1,nx1,ny1,nz1)
@@ -550,8 +552,8 @@ c        tolerance check here
 c     Destroy ceed handles
       call ceedvectordestroy(vec_ap1,err)
       call ceedvectordestroy(vec_p1,err)
-      call ceedoperatordestroy(op_mass,err)
-      call ceedqfunctiondestroy(qf_mass,err)
+c      call ceedoperatordestroy(op_mass,err)
+c      call ceedqfunctiondestroy(qf_mass,err)
       call ceedelemrestrictiondestroy(erstrct,err)
       call ceedbasisdestroy(basis,err)
 
@@ -871,7 +873,7 @@ c-----------------------------------------------------------------------
       integer ceed,err
 
 c     Init ceed library
-      call ceedinit('/cpu/self'//char(0),ceed,err)
+      call ceedinit('/gpu/occa'//char(0),ceed,err)
 
       call geodat1n  ! Set up gf() arrays
 
