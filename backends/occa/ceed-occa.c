@@ -90,7 +90,6 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   return 0;
 }
 
-
 // *****************************************************************************
 // * REGISTER
 // *****************************************************************************
@@ -101,12 +100,4 @@ static void Register(void) {
   CeedRegister("/gpu/occa", CeedInit_Occa);
   CeedRegister("/omp/occa", CeedInit_Occa);
   CeedRegister("/ocl/occa", CeedInit_Occa);
-  
-  CeedDebug("\033[1m[Register] sizeofs: Ceed_Occa=%d, CeedVector=%d, CeedElemRestriction=%d, CeedQFunction=%d",
-            sizeof(Ceed_Occa),
-            sizeof(CeedVector_Occa),
-            sizeof(CeedElemRestriction_Occa),
-            sizeof(CeedQFunction_Occa)
-            );
-
 }

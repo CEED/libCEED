@@ -39,19 +39,18 @@ struct Ceed_private {
 
 /* In the next 3 functions, p has to be the address of a pointer type, i.e. p
    has to be a pointer to a pointer. */
-CEED_INTERN int CeedMallocArray(size_t n, size_t unit, void *p, char*, int);
-CEED_INTERN int CeedCallocArray(size_t n, size_t unit, void *p, char*, int);
-CEED_INTERN int CeedReallocArray(size_t n, size_t unit, void *p, char*, int);
-CEED_INTERN int CeedFreeImpl(void *p, char*, int);
+CEED_INTERN int CeedMallocArray(size_t n, size_t unit, void *p);
+CEED_INTERN int CeedCallocArray(size_t n, size_t unit, void *p);
+CEED_INTERN int CeedReallocArray(size_t n, size_t unit, void *p);
+CEED_INTERN int CeedFree(void *p);
 
 #define CeedChk(ierr) do { if (ierr) return ierr; } while (0)
 /* Note that CeedMalloc and CeedCalloc will, generally, return pointers with
    different memory alignments: CeedMalloc returns pointers aligned at
    CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
-#define CeedMalloc(n, p) CeedMallocArray((n), sizeof(**(p)), p,__FILE__,__LINE__)
-#define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p,__FILE__,__LINE__)
-#define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p,__FILE__,__LINE__)
-#define CeedFree(p) CeedFreeImpl(p,__FILE__,__LINE__)
+#define CeedMalloc(n, p) CeedMallocArray((n), sizeof(**(p)), p)
+#define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
+#define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
 void CeedDebug(const char *,...);
 

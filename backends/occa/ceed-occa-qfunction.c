@@ -16,7 +16,6 @@
 
 #include "ceed-occa.h"
 #include <sys/stat.h>
-#undef NDEBUG
 
 // *****************************************************************************
 static int buildKernelForThisQfunction(CeedQFunction qf){
@@ -39,12 +38,24 @@ static int buildKernelForThisQfunction(CeedQFunction qf){
 }
 
 // *****************************************************************************
+// *****************************************************************************
+__attribute__((unused))
+static int localCeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
+                                        const CeedScalar *const *u,
+                                        CeedScalar *const *v) {
+  int ierr;
+  //CeedDebug("\033[36m[CeedQFunction][Apply] qf->function");
+  ierr = qf->function(qf->ctx, qdata, Q, u, v); CeedChk(ierr);
+  return 0;
+}
+
+// *****************************************************************************
 // * Q-functions: Apply, Destroy & Create
 // *****************************************************************************
 static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
                                    const CeedScalar *const *u,
                                    CeedScalar *const *v) {  
-  //CeedDebug("\033[36m[CeedQFunction][Apply]");
+  CeedDebug("\033[36m[CeedQFunction][Apply]");
   CeedQFunction_Occa *occa=qf->data;
   const Ceed_Occa *ceed=qf->ceed->data;
   const CeedInt nc = occa->nc, dim = occa->dim;
@@ -100,11 +111,13 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   
   if (outmode==CEED_EVAL_NONE){
     //localCeedQFunctionApply_Occa(qf,qdata,Q,u,v);
+//#warning localCeedQFunctionApply
     occaCopyMemToPtr(qdata,o_qdata,Q*bytes,NO_OFFSET,NO_PROPS);
   }
 
   if (outmode==CEED_EVAL_INTERP){
     //localCeedQFunctionApply_Occa(qf,qdata,Q,u,v);
+//#warning localCeedQFunctionApply
     occaCopyMemToPtr(v[0],o_v,Q*nc*dim*bytes,NO_OFFSET,NO_PROPS);
   }
   

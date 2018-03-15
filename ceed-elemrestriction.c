@@ -128,6 +128,5 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *r) {
     ierr = (*r)->Destroy(*r); CeedChk(ierr);
   }
   ierr = CeedFree(r); CeedChk(ierr);
-  CeedDebug("\033[33m[CeedElemRestrictionDestroy]");//assert(0==1);
   return 0;
 }

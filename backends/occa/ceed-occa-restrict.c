@@ -53,8 +53,13 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
   const CeedVector_Occa *v_data = v->data;
   const occaMemory ud = *u_data->d_array;
   const occaMemory vd = *v_data->d_array;
-  
   CeedDebug("\033[35m[CeedElemRestriction][Apply] kRestrict");
+  /*int ierr;
+  const CeedScalar *uu;
+  CeedScalar *vv;
+  ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
+  ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
+  */
   if (tmode == CEED_NOTRANSPOSE) {
     // Perform: v = r * u
     if (ncomp == 1) {
@@ -84,11 +89,13 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
       }
     }
   }
-  //occaCopyMemToPtr(v_data->h_array,vd,v->length*sizeof(CeedScalar),NO_OFFSET,NO_PROPS);
+  //ierr = CeedVectorRestoreArrayRead(u, &uu); CeedChk(ierr);
+  //ierr = CeedVectorRestoreArray(v, &vv); CeedChk(ierr);
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
   return 0;
 }
+
 
 // *****************************************************************************
 // * CeedElemRestrictionDestroy_Occa
@@ -104,6 +111,7 @@ static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
   occaKernelFree(data->kRestrict[3]);
   occaKernelFree(data->kRestrict[4]);
   occaKernelFree(data->kRestrict[5]);
+//#warning free data->indices
   ierr = CeedFree(&data->h_indices); CeedChk(ierr);
   ierr = CeedFree(&data->d_indices); CeedChk(ierr);
   ierr = CeedFree(&data); CeedChk(ierr);
@@ -125,6 +133,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   if (mtype != CEED_MEM_HOST)
     return CeedError(r->ceed, 1, "Only MemType = HOST supported");
   // Set the functions *********************************************************
+//#warning CeedElemRestrictionApply
   r->Apply = CeedElemRestrictionApply_Occa;
   r->Destroy = CeedElemRestrictionDestroy_Occa;
   // Allocating occa & device **************************************************
@@ -156,11 +165,11 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
     CeedDebug("\t\033[35m[CeedElemRestriction][Create] CEED_USE_POINTER");
     data->h_indices = indices;
     occaSyncH2D(r);
+//#warning Restrict data->indices
     data->h_indices = NULL; /// but does not take ownership
     break;
   default: CeedError(r->ceed,1," OCCA backend no default error");
   }
-  CeedDebug("\033[35m[CeedElemRestriction][Create] occaCopyH2D");
   // ***************************************************************************
   CeedDebug("\033[35m[CeedElemRestriction][Create] Building kRestrict");
   occaProperties pKR = occaCreateProperties();
@@ -186,7 +195,6 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   return 0;
 }
 
-
 // *****************************************************************************
 // * TENSORS: Contracts on the middle index
 // *          NOTRANSPOSE: V_ajc = T_jb U_abc
@@ -203,7 +211,6 @@ int CeedTensorContract_Occa(Ceed ceed,
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = J;
   }
-
   for (CeedInt a=0; a<A; a++) {
     for (CeedInt j=0; j<J; j++) {
       if (!Add) {
