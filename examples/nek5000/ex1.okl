@@ -32,7 +32,7 @@ kernel void setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *u,
 }
 
 // *****************************************************************************
-kernel void mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *u,
+kernel void massf(void *ctx, void *qdata, CeedInt Q, const CeedScalar *u,
                  CeedScalar *const v, int *rtn) {
   const CeedScalar *w = (double*)qdata;
   const CeedScalar *u0 = (double*)u;
