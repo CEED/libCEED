@@ -59,7 +59,7 @@ sed -i.bak -e "s|^#FC=.*|FC=\"$FC\"|" \
     -e "s|^#CC=.*|CC=\"$CC\"|" \
     -e "s|^#SOURCE_ROOT=.*|SOURCE_ROOT=\"$NEK5K_DIR\"|" \
     -e "s|^#FFLAGS=.*|FFLAGS+=\"-I../../include\"|" \
-    -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-L../../lib -lceed\"|" makenek
+    -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-L../../lib -lceed -fopenmp -L/$OCCA_DIR/lib -locca -lm -lcuda\"|" makenek
 
 
 # Build examples

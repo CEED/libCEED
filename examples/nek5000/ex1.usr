@@ -414,8 +414,6 @@ c     Helmholtz equations
       real ap1(lt)
       equivalence (ap1,z1)
 
-      external massf
-
       vol   = volfld(ifield)
       nel   = nelfld(ifield)
       nxyz  = lx1*ly1*lz1
@@ -454,7 +452,9 @@ c     Create a ceed element restriction
 
 c     Create a ceed qfunction
       call ceedqfunctioncreateinterior(ceed,1,ncomp,8,ceed_eval_interp,
-     $  ceed_eval_interp,massf,'ex1.usr:massf'//char(0),qf_mass,err)
+     $  ceed_eval_interp,massf,
+     $  __FILE__
+     $  //':massf'//char(0),qf_mass,err)
 
 c     Create a ceed operator
       call ceedoperatorcreate(ceed,erstrct,basis,qf_mass,
@@ -480,7 +480,6 @@ c     Start cg
       do 1000 iter=1,maxit
          call ceed_axhm1    (pap,ap1,p1,h1,h2,ceed,op_mass,
      $     vec_ap1,vec_p1,vec_qdata)
-c         call axhm1    (pap,ap1,p1,h1,h2)
          call gop      (pap,wk,'+  ',1)
          call xmask1   (ap1,nel)
          call dssum    (ap1,nx1,ny1,nz1)
@@ -871,7 +870,7 @@ c-----------------------------------------------------------------------
       integer ceed,err
 
 c     Init ceed library
-      call ceedinit('/cpu/self'//char(0),ceed,err)
+      call ceedinit('/gpu/occa'//char(0),ceed,err)
 
       call geodat1n  ! Set up gf() arrays
 
@@ -928,8 +927,8 @@ c     call dsavg(e1)
 
       tstart = dnekclock()
       call cggos(u1,r1,h1,h2,vmult,binvm1,tol,ceed,maxit1)
-      call cggos(u2,r2,h1,h2,vmult,binvm1,tol,ceed,maxit2)
-      call cggos(u3,r3,h1,h2,vmult,binvm1,tol,ceed,maxit3)
+c      call cggos(u2,r2,h1,h2,vmult,binvm1,tol,ceed,maxit2)
+c      call cggos(u3,r3,h1,h2,vmult,binvm1,tol,ceed,maxit3)
       tstop  = dnekclock()
 
       telaps = (tstop-tstart)
@@ -998,20 +997,6 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
-      subroutine massf(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
-      real*8 ctx
-      real*8 qdata(1)
-      real*8 u1(1)
-      real*8 v1(1)
-      integer q,ierr
-
-      do i=1,q
-        v1(i)=qdata(i)*u1(i)
-      enddo
-
-      ierr=0
-      end
-c-----------------------------------------------------------------------
       subroutine ceed_axhm1(pap,ap1,p1,h1,h2,ceed,op_mass,
      $  vec_ap1,vec_p1,vec_qdata)
 
@@ -1034,7 +1019,7 @@ c     Helmholtz equations
       integer ceed,op_mass,vec_ap1,vec_p1,vec_qdata
       integer e
 
-      call ceedvectorsetarray(vec_p1,ceed_mem_host,ceed_use_pointer,
+      call ceedvectorsetarray(vec_p1,ceed_mem_host,ceed_copy_values,
      $  p1,err)
       call ceedoperatorapply(op_mass,vec_qdata,vec_p1,vec_ap1,
      $  ceed_request_immediate,err)

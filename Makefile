@@ -17,7 +17,7 @@
 CC ?= gcc
 FC ?= gfortran
 
-ASAN ?= 1
+ASAN ?= 0
 NDEBUG ?= #1
 CDEBUG ?= 1
 
@@ -29,7 +29,7 @@ OCCA_DIR ?= ../occa
 
 # Warning SANTIZ options still don't run with /gpu/occa
 # export LSAN_OPTIONS=suppressions=.asanignore
-AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
+AFLAGS = #-fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native -O2 -g
 FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP -march=native
