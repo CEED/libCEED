@@ -39,27 +39,6 @@ static int buildKernelForThisQfunction(CeedQFunction qf){
 }
 
 // *****************************************************************************
-__attribute__((unused))
-static int localCeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
-                                        const CeedScalar *const *u,
-                                        CeedScalar *const *v) {
-  int ierr;
-  //CeedDebug("\033[36m[CeedQFunction][Apply] qf->function");
-  ierr = qf->function(qf->ctx, qdata, Q, u, v); CeedChk(ierr);
-  return 0;
-}
-
-// *****************************************************************************
-__attribute__((unused))
-static unsigned long long align(unsigned long long pointer,
-                                unsigned long long alignment){
-  unsigned long long addr = pointer / alignment; // Aligned (also divided by 6)
-  addr++;                     // Next aligned pointer (still divided by 6)
-  addr *= alignment;          // Next aligned pointer
-  return addr;
-}
-
-// *****************************************************************************
 // * Q-functions: Apply, Destroy & Create
 // *****************************************************************************
 static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,

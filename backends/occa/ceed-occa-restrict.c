@@ -46,11 +46,6 @@ static inline void occaSyncH2D(const CeedElemRestriction res) {
   occaCopyPtrToMem(*impl->device, impl->indices, bytes(res),
                    NO_OFFSET, NO_PROPS);
 }
-//static inline void occaSyncD2H(const CeedElemRestriction res) {
-//  const CeedElemRestriction_Occa *impl = res->data;
-//  occaCopyMemToPtr((void *)impl->indices, *impl->device, bytes(res),
-//                   NO_OFFSET, NO_PROPS);
-//}
 
 // *****************************************************************************
 // * Restrict an L-vector to an E-vector or apply transpose
