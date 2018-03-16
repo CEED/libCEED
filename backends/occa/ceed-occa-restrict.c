@@ -37,11 +37,11 @@ static inline void occaSyncH2D(const CeedElemRestriction res) {
 // * Restrict an L-vector to an E-vector or apply transpose
 // *****************************************************************************
 static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
-                                         CeedTransposeMode tmode,
-                                         CeedInt ncomp,
-                                         CeedTransposeMode lmode,
-                                         CeedVector u, CeedVector v,
-                                         CeedRequest *request) {
+    CeedTransposeMode tmode,
+    CeedInt ncomp,
+    CeedTransposeMode lmode,
+    CeedVector u, CeedVector v,
+    CeedRequest *request) {
   CeedDebug("\033[35m[CeedElemRestriction][Apply]");
   const CeedElemRestriction_Occa *occa = r->data;
   const occaMemory id = *occa->d_indices;
@@ -128,9 +128,9 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   *data->d_indices = occaDeviceMalloc(*occa->device, bytes(r), NULL, NO_PROPS);
   r->data = data;
   assert(indices);
-   // ***************************************************************************
+  // ***************************************************************************
   switch (cmode) {
-    // Will copy the values and not store the passed pointer
+  // Will copy the values and not store the passed pointer
   case CEED_COPY_VALUES:
     CeedDebug("\t\033[35m[CeedElemRestriction][Create] CEED_COPY_VALUES");
     ierr = CeedMalloc(r->nelem*r->elemsize, &data->h_indices); CeedChk(ierr);
@@ -139,13 +139,13 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
     memcpy((CeedInt*)data->h_indices, indices, bytes(r));
     occaSyncH2D(r);
     break;
-    // Takes ownership of the pointer and will free using CeedFree()
+  // Takes ownership of the pointer and will free using CeedFree()
   case CEED_OWN_POINTER:
     CeedDebug("\t\033[35m[CeedElemRestriction][Create] CEED_OWN_POINTER");
     data->h_indices = indices;
     occaSyncH2D(r);
     break;
-    /// Can use and modify the data provided by the user
+  /// Can use and modify the data provided by the user
   case CEED_USE_POINTER:
     CeedDebug("\t\033[35m[CeedElemRestriction][Create] CEED_USE_POINTER");
     data->h_indices = indices;
@@ -165,9 +165,9 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   const occaDevice dev = *occa->device;
   char oklPath[4096] = __FILE__;
   // path to ceed-occa-restrict.okl
-  const size_t oklPathLen = strlen(oklPath); 
+  const size_t oklPathLen = strlen(oklPath);
   // consider using realpath(3) or something dynamic
-  strcpy(&oklPath[oklPathLen-2],".okl"); 
+  strcpy(&oklPath[oklPathLen-2],".okl");
   data->kRestrict[0] = occaDeviceBuildKernel(dev, oklPath, "kRestrict0", pKR);
   data->kRestrict[1] = occaDeviceBuildKernel(dev, oklPath, "kRestrict1", pKR);
   data->kRestrict[2] = occaDeviceBuildKernel(dev, oklPath, "kRestrict2", pKR);

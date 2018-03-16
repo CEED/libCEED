@@ -79,7 +79,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
 #endif
   const char *mode =
     (resource[1]=='g') ? occaGPU :
-    (resource[1]=='o') ? occaOMP : 
+    (resource[1]=='o') ? occaOMP :
     (resource[2]=='c') ? occaOCL : occaCPU;
   // Now creating OCCA device
   *data->device = occaCreateDevice(occaString(mode));

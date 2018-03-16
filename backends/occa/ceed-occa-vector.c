@@ -30,7 +30,8 @@ static inline void occaSyncH2D(const CeedVector vec) {
   assert(occa);
   assert(occa->h_array);
   assert(occa->d_array);
-  occaCopyPtrToMem(*occa->d_array, occa->h_array, bytes(vec), NO_OFFSET, NO_PROPS);
+  occaCopyPtrToMem(*occa->d_array, occa->h_array, bytes(vec), NO_OFFSET,
+                   NO_PROPS);
 }
 // *****************************************************************************
 static inline void occaSyncD2H(const CeedVector vec) {
@@ -57,7 +58,7 @@ static int CeedVectorSetArray_Occa(const CeedVector x,
     return CeedError(x->ceed, 1, "Only MemType = HOST supported");
   ierr = CeedFree(&data->h_array); CeedChk(ierr);
   switch (cmode) {
-    // Implementation will copy the values and not store the passed pointer.
+  // Implementation will copy the values and not store the passed pointer.
   case CEED_COPY_VALUES:
     CeedDebug("\t\033[33m[CeedVectorOcca][Set] CEED_COPY_VALUES");
     ierr = CeedMalloc(x->length, &data->h_array); CeedChk(ierr);
@@ -65,15 +66,15 @@ static int CeedVectorSetArray_Occa(const CeedVector x,
     if (array) memcpy(data->h_array, array, bytes(x));
     if (array) occaSyncH2D(x);
     break;
-    // Implementation takes ownership of the pointer
-    // and will free using CeedFree() when done using it
+  // Implementation takes ownership of the pointer
+  // and will free using CeedFree() when done using it
   case CEED_OWN_POINTER:
     CeedDebug("\t\033[33m[CeedVectorOcca][Set] CEED_OWN_POINTER");
     data->h_array = array;
     occaSyncH2D(x);
     break;
-    // Implementation can use and modify the data provided by the user
-  case CEED_USE_POINTER: 
+  // Implementation can use and modify the data provided by the user
+  case CEED_USE_POINTER:
     CeedDebug("\t\033[33m[CeedVectorOcca][Set] CEED_USE_POINTER");
     data->h_array = array;
     occaSyncH2D(x);
@@ -91,8 +92,8 @@ static int CeedVectorSetArray_Occa(const CeedVector x,
 // * this will perform a copy (possibly cached).
 // *****************************************************************************
 static int CeedVectorGetArrayRead_Occa(const CeedVector x,
-                                   const CeedMemType mtype,
-                                   const CeedScalar **array) {
+                                       const CeedMemType mtype,
+                                       const CeedScalar **array) {
   CeedDebug("\033[33m[CeedVector][Get]");
   CeedVector_Occa *occa = x->data;
   int ierr;
@@ -120,7 +121,7 @@ static int CeedVectorGetArray_Occa(const CeedVector x,
 // * Restore an array obtained using CeedVectorGetArray()
 // *****************************************************************************
 static int CeedVectorRestoreArrayRead_Occa(const CeedVector x,
-                                           const CeedScalar **array) {
+    const CeedScalar **array) {
   CeedDebug("\033[33m[CeedVector][Restore]");
   CeedVector_Occa *occa = x->data;
   assert(occa->h_array);
