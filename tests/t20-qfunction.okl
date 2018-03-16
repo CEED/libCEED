@@ -19,25 +19,27 @@ typedef int CeedInt;
 typedef double CeedScalar;
 
 // *****************************************************************************
-kernel void setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *u,
+kernel void setup(void *ctx, void *qdata, const CeedInt qoffset,
+                  CeedInt Q, const CeedScalar *u,
                   CeedScalar *v, int *rtn) {
-  const CeedScalar *u0 = (double*)u;
-  CeedScalar *w = (double*)qdata;
+  const CeedScalar *u0 = (CeedScalar*)u;
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
+    CeedScalar *w = ((CeedScalar*)qdata)+qoffset;
     w[i] = u0[i];
   }
   *rtn=0;
 }
 
 // *****************************************************************************
-kernel void mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *u,
+kernel void mass(void *ctx, void *qdata, const CeedInt qoffset,
+                 CeedInt Q, const CeedScalar *u,
                  CeedScalar *v, int *rtn) {
-  const CeedScalar *w = (double*)qdata;
-  const CeedScalar *u0 = (double*)u;
-  CeedScalar *v0 = (double*)v;
+  const CeedScalar *u0 = (CeedScalar*)u;
+  CeedScalar *v0 = (CeedScalar*)v;
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
+    const CeedScalar *w = ((CeedScalar*)qdata)+qoffset;
     v0[i] = w[i] * u0[i];
   }
   *rtn=0;

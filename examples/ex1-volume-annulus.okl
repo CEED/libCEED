@@ -24,19 +24,20 @@ struct BuildContext { CeedInt dim, space_dim; };
 
 // *****************************************************************************
 /// libCEED Q-function for building quadrature data for a mass operator
-kernel void f_build_mass(void *ctx, void *qdata, CeedInt Q,
-                        const CeedScalar *u, CeedScalar *v, int *rtn) {
+kernel void f_build_mass(void *ctx, void *qdata, const CeedInt qoffset,
+                         CeedInt Q, const CeedScalar *u,
+                         CeedScalar *v, int *rtn) {
   // u[1] is Jacobians, size (Q x nc x dim) with column-major layout
   // u[4] is quadrature weights, size (Q)
   //const CeedScalar *J = u[1], *qw = u[4];
   struct BuildContext *bc = (struct BuildContext*)ctx;
-  CeedScalar *qd = (CeedScalar*)qdata;
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
     for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
       if (i >= Q) continue;
       const CeedScalar *J=u+Q*NC;
       const CeedScalar *qw=u+Q*NC*(DIM+1);
+      CeedScalar *qd = ((CeedScalar*)qdata)+qoffset;
       qd[i] = J[i] * qw[i];
     }
     break;
@@ -47,6 +48,7 @@ kernel void f_build_mass(void *ctx, void *qdata, CeedInt Q,
       // 1 3
       const CeedScalar *J=u+Q*NC;
       const CeedScalar *qw=u+Q*NC*(DIM+1);
+      CeedScalar *qd = ((CeedScalar*)qdata)+qoffset;
       qd[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
     }
     break;
@@ -58,6 +60,7 @@ kernel void f_build_mass(void *ctx, void *qdata, CeedInt Q,
       // 2 5 8
       const CeedScalar *J=u+Q*NC;
       const CeedScalar *qw=u+Q*NC*(DIM+1);
+      CeedScalar *qd = ((CeedScalar*)qdata)+qoffset;
       qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
                J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
                J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * qw[i];
@@ -72,11 +75,12 @@ kernel void f_build_mass(void *ctx, void *qdata, CeedInt Q,
 
 // *****************************************************************************
 /// libCEED Q-function for applying a mass operator
-kernel void f_apply_mass(void *ctx, void *qdata, CeedInt Q,
-                         const CeedScalar *u, CeedScalar *v, int *rtn) {
-  const CeedScalar *w = (const CeedScalar*)qdata;
+kernel void f_apply_mass(void *ctx, void *qdata, const CeedInt qoffset,
+                         CeedInt Q, const CeedScalar *u,
+                         CeedScalar *v, int *rtn) {
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
+    const CeedScalar *w = ((CeedScalar*)qdata)+qoffset;
     v[i] = w[i] * u[i];
   }
   *rtn=0;

@@ -31,7 +31,7 @@ static int buildKernelForThisQfunction(CeedQFunction qf){
   CeedDebug("\033[33m[CeedQFunction][buildKernelForThisQfunction] occaDeviceBuildKernel");
   CeedDebug("\033[33m[CeedQFunction][buildKernelForThisQfunction] oklPath=%s",occa->oklPath);
   CeedDebug("\033[33m[CeedQFunction][buildKernelForThisQfunction] qFunctionName=%s",occa->qFunctionName);
-  occa->kQFunctionApply = occaDeviceBuildKernel(dev, occa->oklPath, occa->qFunctionName, pKR);
+  occa->kQFunctionApply = occaDeviceBuildKernel(dev, occa->oklPath, occa->qFunctionName, pKR);  
   occaPropertiesFree(pKR);
   return 0;
 }
@@ -50,6 +50,7 @@ static int localCeedQFunctionApply_Occa(CeedQFunction qf,
   return 0;
 }
 
+
 // *****************************************************************************
 // * Q-functions: Apply, Destroy & Create
 // *****************************************************************************
@@ -59,21 +60,24 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   // Number of quadrature points Q must be a multiple of vlength
   assert((Q%qf->vlength)==0);
   CeedDebug("\033[36m[CeedQFunction][Apply]");
-  CeedQFunction_Occa *occa=qf->data;
+  CeedQFunction_Occa *data=qf->data;
   const Ceed_Occa *ceed=qf->ceed->data;
-  const CeedInt nc = occa->nc, dim = occa->dim;
+  const CeedInt nc = data->nc, dim = data->dim;
+  occaMemory *d_qdata = data->d_qdata;
+  const void *qd_base = data->qd;
+  const size_t bytes = qf->qdatasize;
+  const CeedEvalMode inmode = qf->inmode;
+  const CeedEvalMode outmode = qf->outmode;
 
   // If the kernel has not been built, do it now
   // We were waiting to get the (nc,dim) pushed to the structure
   // to pass them to the kernels as OCCA properties
-  if (!occa->ready){
-    CeedDebug("\033[36m[CeedQFunction][Apply] buildKernelForThisQfunction");
+  if (!data->ready){
+    data->ready=true;
     buildKernelForThisQfunction(qf);
-    occa->ready=true;
+    data->d_u = occaDeviceMalloc(*ceed->device,(Q+Q*nc*(dim+1))*bytes,NULL,NO_PROPS);
+    data->d_v = occaDeviceMalloc(*ceed->device,Q*nc*dim*bytes,NULL,NO_PROPS);
   }
-  const size_t bytes = sizeof(CeedScalar);
-  const CeedEvalMode inmode = qf->inmode;
-  const CeedEvalMode outmode = qf->outmode;
 
   // Context
   //CeedDebug("\033[36;1m[CeedQFunction][Apply] Context ssize=%d,%d",qf->ctxsize, sizeof(CeedInt));
@@ -83,11 +87,22 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   //if (qf->ctxsize>0) occaCopyPtrToMem(o_ctx,qf->ctx,qf->ctxsize,0,NO_PROPS);
 
   // On devrait pointer directement en d_memory
-  occaMemory o_qdata = occaDeviceMalloc(*ceed->device,Q*bytes,qdata,NO_PROPS);
-  occaMemory o_u = occaDeviceMalloc(*ceed->device,(Q+Q*nc*(dim+1))*bytes,NULL,NO_PROPS);
+  CeedInt qoffset = (qdata-qd_base)/bytes;
+
+  CeedDebug("\033[31;1m[CeedQFunction][Apply] o_qdata");
+  occaMemory o_qdata;
+  // assert(d_qdata); //d_qdata can be NULL, when not coming from operator, like t20
+  if (!d_qdata){
+    o_qdata = occaDeviceMalloc(*ceed->device,Q*bytes,qdata,NO_PROPS);
+    qoffset = 0;
+  }else{
+    o_qdata = *d_qdata;
+  }
+  CeedDebug("\033[31;1m[CeedQFunction][Apply] o_u");
+  occaMemory o_u = data->d_u;//occaDeviceMalloc(*ceed->device,(Q+Q*nc*(dim+1))*bytes,NULL,NO_PROPS);
 
   // on remplit
-  if (!occa->op){ // t20-qfunction to look at WEIGHT or not
+  if (!data->op){ // t20-qfunction to look at WEIGHT or not
     assert(u[0]);
     occaCopyPtrToMem(o_u,u[0],Q*bytes,0,NO_PROPS);
   }else{ // CeedQFunctionApply via CeedOperatorApply
@@ -100,15 +115,16 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   }
   
   //CeedDebug("\033[36m[CeedQFunction][Apply] o_v");
-  occaMemory o_v = occaDeviceMalloc(*ceed->device,Q*nc*dim*bytes,NULL,NO_PROPS);
+  occaMemory o_v = data->d_v;//occaDeviceMalloc(*ceed->device,Q*nc*dim*bytes,NULL,NO_PROPS);
   int rtn=~0;
 
-  //CeedDebug("\033[31;1m[CeedQFunction][Apply] occaKernelRun: %s", occa->qFunctionName);
-  occaKernelRun(occa->kQFunctionApply,
+  CeedDebug("\033[31;1m[CeedQFunction][Apply] occaKernelRun: %s", data->qFunctionName);
+  occaKernelRun(data->kQFunctionApply,
                 qf->ctx?occaPtr(qf->ctx):occaInt(0),//o_ctx,
-                o_qdata, occaInt(Q),
-                o_u, o_v, occaPtr(&rtn));    
-  
+                o_qdata,occaInt(qoffset),
+                occaInt(Q), o_u, o_v, occaPtr(&rtn));    
+  CeedDebug("\033[31;1m[CeedQFunction][Apply] kernel ran");
+
   if (rtn!=0){
     CeedDebug("\033[31;1m[CeedQFunction][Apply] return code !=0");
     return CeedError(NULL, 1, "Return code !=0");
@@ -117,7 +133,8 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   if (outmode==CEED_EVAL_NONE){
     //localCeedQFunctionApply_Occa(qf,qdata,Q,u,v);
 //#warning localCeedQFunctionApply
-    occaCopyMemToPtr(qdata,o_qdata,Q*bytes,NO_OFFSET,NO_PROPS);
+    if (!data->op) // t20-qfunction needs this
+      occaCopyMemToPtr(qdata,o_qdata,Q*bytes,NO_OFFSET,NO_PROPS);
     //for(int i=0;i<Q;i+=1) printf("\n[CeedQFunctionApply_Occa]  %g",((double*)qdata)[i]);
   }
 
@@ -131,10 +148,10 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   assert(outmode==CEED_EVAL_NONE || outmode==CEED_EVAL_INTERP);
 
   //CeedDebug("\033[36;1m[CeedQFunction][Apply] done");
-  occaMemoryFree(o_qdata);
+  //occaMemoryFree(o_qdata);
   //occaMemoryFree(o_ctx);
-  occaMemoryFree(o_u);
-  occaMemoryFree(o_v);
+  //occaMemoryFree(o_u);
+  //occaMemoryFree(o_v);
   return 0;
 }
 
@@ -145,6 +162,8 @@ static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
   assert(occa);
   free(occa->oklPath);
   CeedDebug("\033[36m[CeedQFunction][Destroy]");
+  occaMemoryFree(occa->d_u);
+  occaMemoryFree(occa->d_v);
   occaKernelFree(occa->kQFunctionApply);
   ierr = CeedFree(&occa); CeedChk(ierr);
   return 0;
@@ -167,17 +186,19 @@ static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
 //};
 // *****************************************************************************
 int CeedQFunctionCreate_Occa(CeedQFunction qf) {  
-  CeedQFunction_Occa *occa;
-  int ierr = CeedCalloc(1,&occa); CeedChk(ierr);
+  CeedQFunction_Occa *data;
+  int ierr = CeedCalloc(1,&data); CeedChk(ierr);
   // Populate the CeedQFunction structure
   qf->Apply = CeedQFunctionApply_Occa;
   qf->Destroy = CeedQFunctionDestroy_Occa;
-  qf->data = occa;
+  qf->data = data;
   // Fill CeedQFunction_Occa struct
-  occa->op = false;
-  occa->ready = false;
-  occa->nc = 1;
-  occa->dim = 1;
+  data->op = false;
+  data->ready = false;
+  data->nc = 1;
+  data->dim = 1;
+  data->qd = NULL;
+  data->d_qdata = NULL;
   // Locate last ':' character in qf->focca
   //CeedDebug("\033[36;1m[CeedQFunction][Create] qf->focca=%s",qf->focca);
   char *last_colon = strrchr(qf->focca,':');
@@ -185,19 +206,19 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   assert(last_colon);
   //CeedDebug("\033[36;1m[CeedQFunction][Create] last_colon=%s",last_colon);
   // Focus on the function name
-  occa->qFunctionName = last_colon+1;
-  assert(occa->qFunctionName);
+  data->qFunctionName = last_colon+1;
+  assert(data->qFunctionName);
   //CeedDebug("\033[36;1m[CeedQFunction][Create] qFunctionName=%s",occa->qFunctionName);
   // Now extract filename
-  occa->oklPath=calloc(4096,sizeof(char));
+  data->oklPath=calloc(4096,sizeof(char));
   const size_t oklPathLen = last_colon - qf->focca;
-  memcpy(occa->oklPath,qf->focca,oklPathLen);
-  occa->oklPath[oklPathLen]='\0';
-  strcpy(&occa->oklPath[oklPathLen - 2],".okl");
-  CeedDebug("\033[36;1m[CeedQFunction][Create] qFunctionName=%s",occa->qFunctionName);
-  CeedDebug("\033[36;1m[CeedQFunction][Create] filename=%s",occa->oklPath);
+  memcpy(data->oklPath,qf->focca,oklPathLen);
+  data->oklPath[oklPathLen]='\0';
+  strcpy(&data->oklPath[oklPathLen - 2],".okl");
+  CeedDebug("\033[36;1m[CeedQFunction][Create] qFunctionName=%s",data->qFunctionName);
+  CeedDebug("\033[36;1m[CeedQFunction][Create] filename=%s",data->oklPath);
   // Test if we can get file's status
   struct stat buf;          
-  if (stat(occa->oklPath, &buf)!=0) return EXIT_FAILURE;
+  if (stat(data->oklPath, &buf)!=0) return EXIT_FAILURE;
   return EXIT_SUCCESS;
 }

@@ -39,10 +39,14 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   CeedVector etmp;
   CeedInt Q;
   const CeedInt nc = op->basis->ndof, dim = op->basis->dim;
-  // Fill CeedQFunction_Occa's structure with nc & dim
-  CeedQFunction_Occa *occa_qf = op->qf->data;
-  occa_qf->op=true;occa_qf->nc=nc; occa_qf->dim=dim;
-  CeedDebug("\033[37;1m[CeedOperator][Apply] nc=%d, dim=%d", nc,dim);
+  // Fill CeedQFunction_Occa's structure with nc, dim & qdata
+  CeedQFunction_Occa *QFdata = op->qf->data;
+  QFdata->op = true; // Telling we are coming from operator
+  QFdata->nc = nc;
+  QFdata->dim = dim;
+  QFdata->d_qdata = ((CeedVector_Occa *)qdata->data)->d_array;
+  //qdata; // To be able to avoid Get/Set qdata
+  //CeedDebug("\033[37;1m[CeedOperator][Apply] nc=%d, dim=%d", nc,dim);
   CeedScalar *Eu;
   char *qd;
   int ierr;
@@ -65,14 +69,20 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   //for(int i=0;i<etmp->length;i+=1) printf(" %f",Eu[i]);
   // Fetching back data from device memory
   ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar**)&qd);
+  QFdata->qd = qd; // To be able to avoid Get/Set qdata
   //CeedVectorView(qdata,"%g",stdout);
   CeedChk(ierr);
-  for (CeedInt e=0; e<op->Erestrict->nelem; e++) {
-    CeedScalar BEu[Q*nc*(dim+2)], BEv[Q*nc*(dim+2)], *out[5] = {0,0,0,0,0};
-    const CeedScalar *in[5] = {0,0,0,0,0};
-    // TODO: quadrature weights can be computed just once
+  // Local arrays, sizes & pointers
+  CeedScalar BEu[Q*nc*(dim+2)], BEv[Q*nc*(dim+2)], *out[5] = {0,0,0,0,0};
+  const CeedScalar *in[5] = {0,0,0,0,0};
+  const size_t qbytes = op->qf->qdatasize;
+  const size_t esize = op->Erestrict->elemsize;
+  const CeedInt enelem = op->Erestrict->nelem;
+  
+  // TODO: quadrature weights can be computed just once
+  for (CeedInt e=0; e<enelem; e++) {
     ierr = CeedBasisApply(op->basis, CEED_NOTRANSPOSE, op->qf->inmode,
-                          &Eu[e*op->Erestrict->elemsize*nc], BEu);
+                          &Eu[e*nc*esize], BEu);
     //for(int i=0;i<Q*nc*(dim+2);i+=1) printf(" %f",BEu[i]);
     CeedChk(ierr);
     CeedScalar *u_ptr = BEu, *v_ptr = BEv;
@@ -82,18 +92,19 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
     if (op->qf->outmode & CEED_EVAL_INTERP) { out[0] = v_ptr; v_ptr += Q*nc; }
     if (op->qf->outmode & CEED_EVAL_GRAD) { out[1] = v_ptr; v_ptr += Q*nc*dim; }
     //printf("\ne=%d, Q=%d, qdatasize=%ld",e,Q,op->qf->qdatasize);
-    ierr = CeedQFunctionApply(op->qf, &qd[e*Q*op->qf->qdatasize], Q, in, out);
+    //printf("\neof7=%ld",e*Q*qbytes);
+    ierr = CeedQFunctionApply(op->qf, &qd[e*Q*qbytes], Q, in, out);
     CeedChk(ierr);
     //for(int i=0;i<Q*nc;i+=1) printf(" %f",BEv[i]);
-    //for(int i=0;i<Q;i+=1) printf(" %f",qd[i+e*Q*op->qf->qdatasize]);
-    ierr = CeedBasisApply(op->basis, CEED_TRANSPOSE, op->qf->outmode, BEv,
-                          &Eu[e*op->Erestrict->elemsize*nc]);
-    //for(int i=0;i<Q*nc*(dim+2);i+=1) printf(" %f",Eu[e*op->Erestrict->elemsize*nc+i]);
+    //for(int i=0;i<Q;i+=1) printf(" %f",qd[i+e*Q*bytes]);
+    ierr = CeedBasisApply(op->basis, CEED_TRANSPOSE, op->qf->outmode,
+                          BEv, &Eu[e*nc*esize]);
+    //for(int i=0;i<Q*nc*(dim+2);i+=1) printf(" %f",Eu[e*nc*esize+i]);
     CeedChk(ierr);
   }
   ierr = CeedVectorRestoreArray(etmp, &Eu); CeedChk(ierr);
-  ierr = CeedVectorRestoreArray(qdata, (CeedScalar**)&qd); CeedChk(ierr);
- //CeedVectorView(etmp,"%g",stdout);
+  //ierr = CeedVectorRestoreArray(qdata, (CeedScalar**)&qd); CeedChk(ierr);
+  //CeedVectorView(etmp,"%g",stdout);
   //CeedVectorView(qdata,"%g",stdout);
   if (residual) {
     CeedScalar *res;

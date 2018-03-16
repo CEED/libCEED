@@ -66,9 +66,10 @@ typedef struct {
 // * Q-Functions
 // *****************************************************************************
 typedef struct {
-  bool op;
-  bool ready;
+  bool op, ready;
   int nc, dim;
+  char *qd;
+  occaMemory *d_qdata,d_u,d_v;
   char *oklPath;
   char *qFunctionName;
   occaKernel kQFunctionApply;

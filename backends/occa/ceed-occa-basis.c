@@ -33,18 +33,17 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
   const CeedInt dim = basis->dim;
   const CeedInt ndof = basis->ndof;
   const CeedInt nqpt = ndof*CeedPowInt(basis->Q1d, dim);
-  const CeedInt add = (tmode == CEED_TRANSPOSE);
+  const CeedInt  add = (tmode == CEED_TRANSPOSE);
+  const CeedInt nadd = (tmode == CEED_NOTRANSPOSE);
 
-  if (tmode == CEED_TRANSPOSE) {
+  if (add) {
     const CeedInt vsize = ndof*CeedPowInt(basis->P1d, dim);
     for (CeedInt i = 0; i < vsize; i++)
       v[i] = (CeedScalar) 0;
   }
   if (emode & CEED_EVAL_INTERP) {
-    CeedInt P = basis->P1d, Q = basis->Q1d;
-    if (tmode == CEED_TRANSPOSE) {
-      P = basis->Q1d; Q = basis->P1d;
-    }
+    const CeedInt P = add?basis->Q1d:basis->P1d;
+    const CeedInt Q = add?basis->P1d:basis->Q1d;
     CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
     CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
     for (CeedInt d=0; d<dim; d++) {
@@ -55,21 +54,19 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
       pre /= P;
       post *= Q;
     }
-    if (tmode == CEED_NOTRANSPOSE) {
+    if (nadd) {
       v += nqpt;
     } else {
       u += nqpt;
     }
   }
   if (emode & CEED_EVAL_GRAD) {
-    CeedInt P = basis->P1d, Q = basis->Q1d;
     // In CEED_NOTRANSPOSE mode:
     // u is (P^dim x nc), column-major layout (nc = ndof)
     // v is (Q^dim x nc x dim), column-major layout (nc = ndof)
     // In CEED_TRANSPOSE mode, the sizes of u and v are switched.
-    if (tmode == CEED_TRANSPOSE) {
-      P = basis->Q1d, Q = basis->P1d;
-    }
+    const CeedInt P = add?basis->Q1d:basis->P1d;
+    const CeedInt Q = add?basis->P1d:basis->Q1d;
     CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
     for (CeedInt p = 0; p < dim; p++) {
       CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
@@ -82,7 +79,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
         pre /= P;
         post *= Q;
       }
-      if (tmode == CEED_NOTRANSPOSE) {
+      if (nadd) {
         v += nqpt;
       } else {
         u += nqpt;
@@ -90,12 +87,12 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
     }
   }
   if (emode & CEED_EVAL_WEIGHT) {
-    if (tmode == CEED_TRANSPOSE)
+    if (add)
       return CeedError(basis->ceed, 1,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     CeedInt Q = basis->Q1d;
     for (CeedInt d=0; d<dim; d++) {
-      CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
+      const CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
       for (CeedInt i=0; i<pre; i++) {
         for (CeedInt j=0; j<Q; j++) {
           for (CeedInt k=0; k<post; k++) {
