@@ -18,7 +18,7 @@ CC ?= gcc
 FC ?= gfortran
 
 ASAN ?= #1
-NDEBUG ?= #1
+NDEBUG ?= 1
 CDEBUG ?= #1
 
 LDFLAGS ?=
@@ -77,6 +77,7 @@ libceed.c := $(wildcard ceed*.c)
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9]-*.c))
 tests.f   := $(sort $(wildcard tests/t[0-9][0-9]-*.f))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
+ctests    := $(tests)
 tests     += $(tests.f:tests/%.f=$(OBJDIR)/%)
 #examples
 examples.c := $(sort $(wildcard examples/*.c))
@@ -152,19 +153,8 @@ run-% : $(OBJDIR)/%
 
 test : $(tests:$(OBJDIR)/%=run-%) $(examples:$(OBJDIR)/%=run-%)
 tst:;@$(MAKE) $(MFLAGS) V=$(V) test
-
-ctests:=$(tests.c:tests/%.c=$(OBJDIR)/%)
-cto: $(ctests)
-	build/t00-init /cpu/occa
-	build/t01-vec /cpu/occa
-	build/t05-elemrestriction /cpu/occa
-	build/t10-basis /cpu/occa
-	build/t11-basis /cpu/occa
-	build/t12-basis /cpu/occa
-	build/t13-basis /cpu/occa
-	build/t14-basis-weight /cpu/occa
-	build/t20-qfunction /cpu/occa
-	build/t30-operator /cpu/occa
+ctc-%: $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
+ctg-%: $(ctests);@$(foreach tst,$(ctests),$(tst) /gpu/$*;)
 
 prove : $(tests) $(examples)
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)

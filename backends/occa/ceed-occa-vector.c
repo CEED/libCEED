@@ -123,8 +123,7 @@ static int CeedVectorGetArray_Occa(const CeedVector x,
 static int CeedVectorRestoreArrayRead_Occa(const CeedVector x,
     const CeedScalar **array) {
   CeedDebug("\033[33m[CeedVector][Restore]");
-  CeedVector_Occa *occa = x->data;
-  assert(occa->h_array);
+  assert(((CeedVector_Occa *)x->data)->h_array);
   assert(*array);
   occaSyncH2D(x); // sync Host to Device
   *array = NULL;
