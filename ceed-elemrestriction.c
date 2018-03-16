@@ -123,6 +123,7 @@ int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode,
 */
 int CeedElemRestrictionDestroy(CeedElemRestriction *r) {
   int ierr;
+
   if (!*r) return 0;
   if ((*r)->Destroy) {
     ierr = (*r)->Destroy(*r); CeedChk(ierr);
