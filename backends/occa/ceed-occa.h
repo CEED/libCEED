@@ -68,7 +68,7 @@ typedef struct {
 typedef struct {
   bool op, ready;
   int nc, dim;
-  char *qd;
+  char *qdata;
   occaMemory *d_qdata,d_u,d_v;
   char *oklPath;
   char *qFunctionName;
