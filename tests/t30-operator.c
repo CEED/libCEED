@@ -66,11 +66,12 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
   CeedOperatorGetQData(op_setup, &qdata);
   CeedOperatorApply(op_setup, qdata, X, NULL, CEED_REQUEST_IMMEDIATE);
+  CeedVectorView(qdata,NULL,stdout);
 
   CeedVectorCreate(ceed, Nu, &U);
   CeedVectorCreate(ceed, Nu, &V);
   CeedOperatorApply(op_mass, qdata, U, V, CEED_REQUEST_IMMEDIATE);
-
+  
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_mass);
   CeedOperatorDestroy(&op_setup);
