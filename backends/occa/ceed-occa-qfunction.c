@@ -13,7 +13,6 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-
 #include "ceed-occa.h"
 #include <sys/stat.h>
 
@@ -38,9 +37,11 @@ static int buildKernelForThisQfunction(CeedQFunction qf){
 }
 
 // *****************************************************************************
+// * localCeedQFunctionApply_Occa
 // *****************************************************************************
 __attribute__((unused))
-static int localCeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
+static int localCeedQFunctionApply_Occa(CeedQFunction qf,
+                                        void *qdata, CeedInt Q,
                                         const CeedScalar *const *u,
                                         CeedScalar *const *v) {
   int ierr;
@@ -54,15 +55,17 @@ static int localCeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q
 // *****************************************************************************
 static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
                                    const CeedScalar *const *u,
-                                   CeedScalar *const *v) {  
+                                   CeedScalar *const *v) {
+  // Number of quadrature points Q must be a multiple of vlength
+  assert((Q%qf->vlength)==0);
   CeedDebug("\033[36m[CeedQFunction][Apply]");
   CeedQFunction_Occa *occa=qf->data;
   const Ceed_Occa *ceed=qf->ceed->data;
   const CeedInt nc = occa->nc, dim = occa->dim;
 
   // If the kernel has not been built, do it now
-  // We were waiting to get the nc,dim filled into the structure
-  // to pass them to the kernels as properties
+  // We were waiting to get the (nc,dim) pushed to the structure
+  // to pass them to the kernels as OCCA properties
   if (!occa->ready){
     CeedDebug("\033[36m[CeedQFunction][Apply] buildKernelForThisQfunction");
     buildKernelForThisQfunction(qf);
@@ -79,7 +82,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   //occaMemory o_ctx = occaDeviceMalloc(ceed->device,qf->ctxsize>0?qf->ctxsize:32,NULL,NO_PROPS);
   //if (qf->ctxsize>0) occaCopyPtrToMem(o_ctx,qf->ctx,qf->ctxsize,0,NO_PROPS);
 
-  // On devrait pointer directement em d_memory
+  // On devrait pointer directement en d_memory
   occaMemory o_qdata = occaDeviceMalloc(*ceed->device,Q*bytes,qdata,NO_PROPS);
   occaMemory o_u = occaDeviceMalloc(*ceed->device,(Q+Q*nc*(dim+1))*bytes,NULL,NO_PROPS);
 

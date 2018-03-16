@@ -13,14 +13,7 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-
 #include "ceed-occa.h"
-
-// *****************************************************************************
-// * VECTORS: - Create, Destroy,
-// *          - Restore w/ & w/o const
-// *          - Set, Get w/ & w/o const
-// *****************************************************************************
 
 // *****************************************************************************
 // * Bytes used
@@ -31,9 +24,6 @@ static inline size_t bytes(const CeedVector vec) {
 
 // *****************************************************************************
 // * OCCA SYNC functions
-// * Ptr == void*, Mem == device
-// * occaCopyPtrToMem(occaMemory dest, const void *src,
-// * occaCopyMemToPtr(void *dest, occaMemory src,
 // *****************************************************************************
 static inline void occaSyncH2D(const CeedVector vec) {
   const CeedVector_Occa *occa = vec->data;
@@ -42,6 +32,7 @@ static inline void occaSyncH2D(const CeedVector vec) {
   assert(occa->d_array);
   occaCopyPtrToMem(*occa->d_array, occa->h_array, bytes(vec), NO_OFFSET, NO_PROPS);
 }
+// *****************************************************************************
 static inline void occaSyncD2H(const CeedVector vec) {
   const CeedVector_Occa *occa = vec->data;
   assert(occa);
@@ -114,7 +105,7 @@ static int CeedVectorGetArrayRead_Occa(const CeedVector x,
     CeedChk(ierr);
   }
   CeedDebug("\033[33m[CeedVector][Get] occaSyncH2D");
-  occaSyncD2H(x); // sync Device to Host
+  occaSyncD2H(x);
   *array = occa->h_array;
   return 0;
 }
@@ -180,7 +171,6 @@ int CeedVectorCreate_Occa(const Ceed ceed, const CeedInt n, CeedVector vec) {
   *data->d_array = occaDeviceMalloc(*occa->device, bytes(vec), NULL, NO_PROPS);
   // Flush device memory *******************************************************
   ierr=CeedCalloc(vec->length, &data->h_array); CeedChk(ierr);
-  assert(data->h_array);
   occaSyncH2D(vec);
   ierr = CeedFree(&data->h_array); CeedChk(ierr);
   return 0;

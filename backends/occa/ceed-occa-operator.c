@@ -13,7 +13,6 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-
 #include "ceed-occa.h"
 
 // *****************************************************************************
@@ -36,7 +35,6 @@ static int CeedOperatorDestroy_Occa(CeedOperator op) {
 static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
                                   CeedVector ustate,
                                   CeedVector residual, CeedRequest *request) {
-  //CeedVectorView(ustate,"%g",stdout);
   CeedOperator_Occa *impl = op->data;
   CeedVector etmp;
   CeedInt Q;
@@ -85,10 +83,6 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
     if (op->qf->outmode & CEED_EVAL_GRAD) { out[1] = v_ptr; v_ptr += Q*nc*dim; }
     //printf("\ne=%d, Q=%d, qdatasize=%ld",e,Q,op->qf->qdatasize);
     ierr = CeedQFunctionApply(op->qf, &qd[e*Q*op->qf->qdatasize], Q, in, out);
-    // push back local results to 
-    occaCopyPtrToMem(*((CeedVector_Occa*)qdata->data)->d_array,
-                     &qd[e*Q*op->qf->qdatasize],
-                     Q*op->qf->qdatasize, e*Q*op->qf->qdatasize, NO_PROPS);
     CeedChk(ierr);
     //for(int i=0;i<Q*nc;i+=1) printf(" %f",BEv[i]);
     //for(int i=0;i<Q;i+=1) printf(" %f",qd[i+e*Q*op->qf->qdatasize]);
@@ -98,7 +92,8 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
     CeedChk(ierr);
   }
   ierr = CeedVectorRestoreArray(etmp, &Eu); CeedChk(ierr);
-  //CeedVectorView(etmp,"%g",stdout);
+  ierr = CeedVectorRestoreArray(qdata, (CeedScalar**)&qd); CeedChk(ierr);
+ //CeedVectorView(etmp,"%g",stdout);
   //CeedVectorView(qdata,"%g",stdout);
   if (residual) {
     CeedScalar *res;

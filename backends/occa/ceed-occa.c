@@ -13,7 +13,6 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-
 #include "ceed-occa.h"
 
 // *****************************************************************************

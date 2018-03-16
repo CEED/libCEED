@@ -13,7 +13,6 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-
 #include "ceed-occa.h"
 
 // *****************************************************************************
@@ -25,9 +24,6 @@ static inline size_t bytes(const CeedElemRestriction res) {
 
 // *****************************************************************************
 // * OCCA SYNC functions
-// * Ptr == void*, Mem == device
-// * occaCopyPtrToMem(occaMemory dest, const void *src,
-// * occaCopyMemToPtr(void *dest, occaMemory src,
 // *****************************************************************************
 static inline void occaSyncH2D(const CeedElemRestriction res) {
   const CeedElemRestriction_Occa *impl = res->data;
@@ -53,13 +49,6 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
   const CeedVector_Occa *v_data = v->data;
   const occaMemory ud = *u_data->d_array;
   const occaMemory vd = *v_data->d_array;
-  CeedDebug("\033[35m[CeedElemRestriction][Apply] kRestrict");
-  /*int ierr;
-  const CeedScalar *uu;
-  CeedScalar *vv;
-  ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
-  ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
-  */
   if (tmode == CEED_NOTRANSPOSE) {
     // Perform: v = r * u
     if (ncomp == 1) {
@@ -89,8 +78,6 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
       }
     }
   }
-  //ierr = CeedVectorRestoreArrayRead(u, &uu); CeedChk(ierr);
-  //ierr = CeedVectorRestoreArray(v, &vv); CeedChk(ierr);
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
   return 0;
@@ -111,7 +98,6 @@ static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
   occaKernelFree(data->kRestrict[3]);
   occaKernelFree(data->kRestrict[4]);
   occaKernelFree(data->kRestrict[5]);
-//#warning free data->indices
   ierr = CeedFree(&data->h_indices); CeedChk(ierr);
   ierr = CeedFree(&data->d_indices); CeedChk(ierr);
   ierr = CeedFree(&data); CeedChk(ierr);
@@ -133,7 +119,6 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   if (mtype != CEED_MEM_HOST)
     return CeedError(r->ceed, 1, "Only MemType = HOST supported");
   // Set the functions *********************************************************
-//#warning CeedElemRestrictionApply
   r->Apply = CeedElemRestrictionApply_Occa;
   r->Destroy = CeedElemRestrictionDestroy_Occa;
   // Allocating occa & device **************************************************
@@ -165,7 +150,6 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
     CeedDebug("\t\033[35m[CeedElemRestriction][Create] CEED_USE_POINTER");
     data->h_indices = indices;
     occaSyncH2D(r);
-//#warning Restrict data->indices
     data->h_indices = NULL; /// but does not take ownership
     break;
   default: CeedError(r->ceed,1," OCCA backend no default error");
