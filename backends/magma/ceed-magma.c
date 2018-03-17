@@ -25,8 +25,9 @@ typedef struct {
 } CeedVector_Magma;
 
 typedef struct {
-    const CeedInt *indices;
-    CeedInt *indices_allocated;
+    CeedInt *indices;
+    CeedInt *dindices;
+    int own_;
 } CeedElemRestriction_Magma;
 
 typedef struct {
@@ -73,6 +74,8 @@ static int CeedVectorSetArray_Magma(CeedVector vec, CeedMemType mtype,
         case CEED_OWN_POINTER:
             ierr = magma_malloc( (void**)&impl->darray,
                                  vec->length * sizeof(CeedScalar)); CeedChk(ierr);
+            // TODO: possible problem here is if we are passed non-pinned memory;
+            //       (as we own it, lter in destroy, we use free for pinned memory).
             impl->array = array;
             impl->own_ = 1;
 
@@ -349,7 +352,11 @@ static int CeedElemRestrictionDestroy_Magma(CeedElemRestriction r) {
   CeedElemRestriction_Magma *impl = r->data;
   int ierr;
 
-  ierr = CeedFree(&impl->indices_allocated); CeedChk(ierr);
+  // Free if we own the data                                                                  
+  if (impl->own_){
+      ierr = magma_free_pinned(impl->indices); CeedChk(ierr);
+      ierr = magma_free(impl->dindices);       CeedChk(ierr);
+  }
   ierr = CeedFree(&r->data); CeedChk(ierr);
   return 0;
 }
@@ -358,33 +365,78 @@ static int CeedElemRestrictionCreate_Magma(CeedElemRestriction r,
                                            CeedMemType mtype,
                                            CeedCopyMode cmode, 
                                            const CeedInt *indices) {
-    int ierr;
+    int ierr, size = r->nelem*r->elemsize;
     CeedElemRestriction_Magma *impl;
 
-    if (mtype != CEED_MEM_HOST)
-        return CeedError(r->ceed, 1, "Only MemType = HOST supported");
+    // Allocate memory for the MAGMA Restricton and initializa pointers to NULL
     ierr = CeedCalloc(1,&impl); CeedChk(ierr);
-    switch (cmode) {
-    case CEED_COPY_VALUES:
-        //printf("CeedElemRestriction_Magma COPY\n");
-        ierr = CeedMalloc(r->nelem*r->elemsize, &impl->indices_allocated);
-        CeedChk(ierr);
-        memcpy(impl->indices_allocated, indices,
-               r->nelem * r->elemsize * sizeof(indices[0]));
-        impl->indices = impl->indices_allocated;
-        break;
-    case CEED_OWN_POINTER:
-        //printf("CeedElemRestriction_Magma OWN\n");
-        impl->indices_allocated = (CeedInt *)indices;
-        impl->indices = impl->indices_allocated;
-        break;
-    case CEED_USE_POINTER:
-        //printf("CeedElemRestriction_Magma USE\n");
-        impl->indices = indices;
-    }
-    r->data = impl;
-    r->Apply = CeedElemRestrictionApply_Magma;
+    impl->dindices = NULL;
+    impl->indices  = NULL;
+    impl->own_ = 0;
+
+    if (mtype == CEED_MEM_HOST) {
+        // memory is on the host; own_ = 0
+        switch (cmode) {
+        case CEED_COPY_VALUES:
+            ierr = magma_malloc( (void**)&impl->dindices,
+                                  size * sizeof(CeedInt)); CeedChk(ierr);
+            ierr = magma_malloc_pinned( (void**)&impl->indices,
+                                        size * sizeof(CeedInt)); CeedChk(ierr);
+            impl->own_ = 1;
+
+            if (indices)
+                magma_setvector(size, sizeof(CeedInt),
+                                indices, 1, impl->dindices, 1);
+            break;
+        case CEED_OWN_POINTER:
+            ierr = magma_malloc( (void**)&impl->dindices,
+                                 size * sizeof(CeedInt)); CeedChk(ierr);
+            // TODO: possible problem here is if we are passed non-pinned memory;
+            //       (as we own it, lter in destroy, we use free for pinned memory).
+            impl->indices = indices;
+            impl->own_ = 1;
+
+            if (indices)
+                magma_setvector(size, sizeof(CeedInt),
+                                indices, 1, impl->dindices, 1);
+            break;
+        case CEED_USE_POINTER:
+            impl->dindices = NULL;
+            impl->indices  = indices;
+        }        
+    } else if (mtype == CEED_MEM_DEVICE) {
+        // memory is on the device; own = 0
+        switch (cmode) {
+        case CEED_COPY_VALUES:
+            ierr = magma_malloc( (void**)&impl->dindices,
+                                 size * sizeof(CeedInt)); CeedChk(ierr);
+            ierr = magma_malloc_pinned( (void**)&impl->indices,
+                                        size * sizeof(CeedInt)); CeedChk(ierr);
+            impl->own_ = 1;
+            
+            if (indices)
+                magma_copyvector(size, sizeof(CeedInt),
+                                 indices, 1, impl->dindices, 1);
+            break;
+        case CEED_OWN_POINTER:
+            impl->dindices = indices;
+            ierr = magma_malloc_pinned( (void**)&impl->indices,
+                                        size * sizeof(CeedInt)); CeedChk(ierr);
+            impl->own_ = 1;
+
+            break;
+        case CEED_USE_POINTER:
+            impl->dindices = indices;
+            impl->indices  = NULL;
+        }
+
+    } else
+        return CeedError(r->ceed, 1, "Only MemType = HOST or DEVICE supported");
+
+    r->data    = impl;
+    r->Apply   = CeedElemRestrictionApply_Magma;
     r->Destroy = CeedElemRestrictionDestroy_Magma;
+
     return 0;
 }
 
