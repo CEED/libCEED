@@ -14,8 +14,9 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-CC ?= gcc
-FC = gfortran
+CC  ?= gcc
+FC   = gfortran
+NVCC = nvcc
 
 NDEBUG ?=
 LDFLAGS ?=
@@ -84,7 +85,10 @@ examples  += $(examples.f:examples/%.f=$(OBJDIR)/%)
 # backends/[ref & occa & magma]
 ref.c     := $(sort $(wildcard backends/ref/*.c))
 occa.c    := $(sort $(wildcard backends/occa/*.c))
-magma.c   := $(sort $(wildcard backends/magma/*.c))
+magma_preprocessor := python backends/magma/gccm.py
+magma_pre_src := $(filter-out %_tmp.c, $(wildcard backends/magma/*.c))
+magma.c       := $(magma_pre_src:%.c=%_tmp.c)
+magma.cu      := $(magma_pre_src:%.c=%_cuda.cu)
 
 # Output using the 216-color rules mode
 rule_file = $(notdir $(1))
@@ -127,16 +131,26 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
 endif
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   $(libceed) : LDFLAGS += -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)
-  $(libceed) : LDLIBS += -lmagma
+  $(libceed) : LDLIBS += -lmagma -L$(CUDA_DIR)/lib -lcudart
   $(libceed) : $(magma.o)
-  libceed.c += $(magma.c)
+  libceed.c += $(magma.c) 
+  libceed.cu += $(magma.cu)
   $(magma.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
+  $(magma.cu:%.cu=$(OBJDIR)/%.o) : NVCCFLAGS += -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
 endif
-$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) | $$(@D)/.DIR
+
+# generate magma_tmp.c and magma_cuda.cu from magma.c                                                      
+%_tmp.c %_cuda.cu: %.c | $$(@D)/.DIR
+	$(magma_preprocessor) $<
+
+$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) | $$(@D)/.DIR
 	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
+
+$(OBJDIR)/%.o : %.cu | $$(@D)/.DIR
+	$(call quiet,NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
@@ -182,6 +196,7 @@ cln clean :
 	$(MAKE) -C examples clean
 	$(MAKE) -C examples/mfem clean
 	cd examples/nek5000; bash make-nek-examples.sh clean; cd ../..;
+	$(RM) $(magma.c) $(magma.cu) backends/magma/*~ backends/magma/*.o
 
 distclean : clean
 	rm -rf doc/html
