@@ -28,9 +28,12 @@ def main():
     fname  = sys.argv[1]
     fname  = fname[:fname.find(".")]
     cfile  = open(fname + "_tmp.c" , "w")
-    cufile = open(fname + "_tmp.cu", "w")
+    cufile = open(fname + "_cuda.cu", "w")
 
-    print('%s %s -> %s %s' % (sys.argv[0],sys.argv[1], fname+"_tmp.c", fname+"_tmp.cu"))
+    print('%s %s --> %s %s' % (sys.argv[0],sys.argv[1], fname+"_tmp.c", fname+"_cuda.cu"))
+
+    fname  = fname.replace("-", "_")
+    fname  = fname[fname.rfind("/")+1:]
 
     # Search for the magma_template keyword in the input file
     for kernel in range(prog.count("magma_template")):
@@ -50,7 +53,7 @@ def main():
         args     = prog[prog.find("(")+1 : prog.find(")")]
 
         # text between {}, i.e., template = "code_for_single_thread;"
-        i1, i2   = find_matching(prog, "{", "}")          
+        i1, i2   = find_matching(prog,'{','}')          
         template = prog[i1+1:i2]                          
 
         prog     = prog[i2:]
@@ -59,48 +62,66 @@ def main():
         boundvars, boundargs  = find_argsbound( bounds )       
 
         # add arguments from kernel, i.e. listars += "uu, vv"
-        boundargs +=  find_argslist( args )                 
+        boundargs +=  "," + find_argslist( args )
+
+        # Here parts[0] = e , parts[1] = d, parts[2] = i
+        parts = boundvars.split(",");
+        numparts = len(parts)
 
         # Replace DSL call with the real generated call in the tmp.c file
         kname = "magma_template" + "_" + str(kernel) + "_" + fname
         kcall = kname + "(" + boundargs + ");"
+        declaration  = "void                                            \n"
+        declaration +=  kname+"(                                        \n"
+        for i in range(numparts):
+            declaration += "    int "+parts[i]+"begin, int "+parts[i]+"end,\n"
+        declaration += "    " + args + ");                              \n"
+        cfile.write(declaration)
         cfile.write(kcall)
 
-        # Here parts[0] = e , parts[1] = d, parts[2] = i
-        parts = boundvars.split(",");                         
+        # Set how to initialize parts
+        partsinit = ["blockIdx.x", "blockIdx.y", "threadIdx.x"]
+        if (numparts == 1): partsinit[0] = partsinit[2]
+        if (numparts == 2): partsinit[2] = partsinit[2]
 
         # Prepare the magma_template kernel and write it in the .cu file
-        kernel  = "__global__ void                                   \n" 
-        kernel +=  kname+"_kernel(                                   \n"
-        kernel += "    int "+parts[0]+"begin, int "+parts[0]+"end,   \n"
-        kernel += "    int "+parts[1]+"begin, int "+parts[1]+"end,   \n"
-        kernel += "    int "+parts[2]+"begin, int "+parts[2]+"end,   \n"
-        kernel += "    " + args+ ")                                  \n"
-        kernel += "{                                                 \n"
-        kernel += "   int " + parts[0] + " =  blockIdx.x;            \n"
-        kernel += "   int " + parts[1] + " =  blockIdx.y;            \n"
-        kernel += "   int " + parts[2] + " = threadIdx.x;            \n"
-        kernel += template +             "                         \n\n"
+        kernel  = "#include <ceed-impl.h>                             \n\n"
+        kernel += "__global__ void                                      \n" 
+        kernel +=  kname+"_kernel(                                      \n"
+        for i in range(numparts):
+            kernel += "    int "+parts[i]+"begin, int "+parts[i]+"end,  \n"
+        kernel += "    " + args+ ")                                     \n"
+        kernel += "{                                                    \n"
+        for i in range(numparts):
+            kernel += "   int " +parts[i]+ " = " +partsinit[i]+ ";      \n"
+        kernel += template +             "                            \n\n"
 
         # the interface function calling the kernel
-        kernel += "extern \"C\"                                      \n"
-        kernel +=  kname+"(                                          \n"
-        kernel += "    int "+parts[0]+"begin, int "+parts[0]+"end,   \n"
-        kernel += "    int "+parts[1]+"begin, int "+parts[1]+"end,   \n"
-        kernel += "    int "+parts[2]+"begin, int "+parts[2]+"end,   \n"
-        kernel += "    " + args + ")                                 \n"
-        kernel += "{                                                 \n"
-        kernel += "    dim3 grid("+parts[0]+"end,"+parts[1]+"end);   \n"
-        kernel += "    dim3 threads("+parts[2]+"end);              \n\n"
-        kernel += "   " + kname + "_kernel<<<grid,threads,0>>>(      \n"
-        kernel += "    " + parts[0]+"begin, "+parts[0]+"end,          \n"
-        kernel += "   " + parts[1]+"begin, "+parts[1]+"end,          \n"
-        kernel += "   " + parts[2]+"begin, "+parts[2]+"end"
-        kernel += "   " + find_argslist( args ) + ");                \n" 
-        kernel += "}                                               \n\n"
+        kernel += "extern \"C\" void                                    \n"
+        kernel +=  kname+"(                                             \n"
+        for i in range(numparts):
+            kernel += "    int "+parts[i]+"begin, int "+parts[i]+"end,  \n"
+        kernel += "    " + args + ")                                    \n"
+        kernel += "{                                                    \n"
+        if (numparts == 1):
+            kernel += "   dim3 grid(1, 1);                                   \n"
+            kernel += "   dim3 threads("+parts[0]+"end-" +parts[0]+"begin);\n\n"
+        elif (numparts == 2):
+            kernel += "   dim3 grid(   "+parts[0]+"end -"+parts[0]+"begin);  \n"
+            kernel += "   dim3 threads("+parts[1]+"end-" +parts[1]+"begin);\n\n"
+        else:
+            kernel += "   dim3 grid(   "+parts[0]+"end -"+parts[0]+"begin,"
+            kernel +=                    parts[1]+"end -"+parts[1]+"begin); \n"
+            kernel += "   dim3 threads("+parts[2]+"end-" +parts[2]+"begin);\n\n"
+        kernel += "   " + kname + "_kernel<<<grid,threads,0>>>(         \n"
+        for i in range(numparts):
+            kernel += "    " + parts[i]+"begin, "+parts[i]+"end,        \n"
+        kernel += "   " + find_argslist( args ) + ");                   \n" 
+        kernel += "}                                                  \n\n"
         
         # write the current magma templates kernel
         cufile.write(kernel)
+        # print(kernel)
 
     # write until the end the rest of the original file
     cfile.write(prog)
@@ -116,17 +137,17 @@ def main():
 # Given a code in 'line' this returns the indices for the sub-code starting
 # from first "left" parenthesis/string to the closing "right" parenthesis
 def find_matching(line, left, right):
-    i1 = line.find(left)
+    i3 = line.find(left)
     num= 1
-    i2 = len(line)
-    for i in range(i1,i2):
+    i4 = len(line)
+    for i in range(i3+1,i4):
         if line[i] == right:
             num -= 1
         elif line[i] == left:
             num += 1
         if num == 0:
-            return i1, i
-    return i1, i2
+            return i3, i+1
+    return i3, i4
 
 # Given a declaration list of args separated by ",", this function
 # parses the list and returns a list of just their names
@@ -144,12 +165,13 @@ def find_argslist( args ):
                 args = args[i1+1:]
                 break
 
-    return arglist
+    return arglist[1:]
 
 # Given bounds list of the form "e=0:r->nelem, d=0:ncomp, ..." this returns
 # the list of parameters "e, d, ..." and list of their start and end arguments,
 # i.e., "0, r->nelem, 0, ncomp, ..."
 def find_argsbound( bounds ):
+    bounds   += ","
     args      = ""
     argsbound = ""
     numargs = bounds.count("=")
