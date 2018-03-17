@@ -74,7 +74,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   ierr = CeedCalloc(1,&data->device); CeedChk(ierr);
   ceed->data = data;
 #ifdef CDEBUG
-  //occaPrintModeInfo(); // can throw CUDA_ERROR_NOT_INITIALIZED with cuda 9.1
+  // occaPrintModeInfo(); // can throw CUDA_ERROR_NOT_INITIALIZED with cuda 9.1
   occaSetVerboseCompilation(true);
 #endif
   const char *mode =

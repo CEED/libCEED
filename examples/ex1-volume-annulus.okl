@@ -29,7 +29,6 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt qoffset,
                          CeedScalar *v, int *rtn) {
   // u[1] is Jacobians, size (Q x nc x dim) with column-major layout
   // u[4] is quadrature weights, size (Q)
-  //const CeedScalar *J = u[1], *qw = u[4];
   struct BuildContext *bc = (struct BuildContext*)ctx;
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
@@ -67,8 +66,6 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt qoffset,
     }
     break;
   default:*rtn=1;
-    //return CeedError(NULL, 1, "dim=%d, space_dim=%d is not supported",
-    //                 bc->dim, bc->space_dim);
   }
   *rtn=0;
 }

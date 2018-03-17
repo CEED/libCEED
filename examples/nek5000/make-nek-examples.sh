@@ -14,6 +14,8 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
+#!/bin/bash
+
 ###############################################################################
 # Make script for Nek5000 examples
 ###############################################################################
@@ -33,7 +35,14 @@ EXAMPLES=ex1
 # DONT'T TOUCH WHAT FOLLOWS !!!
 ###############################################################################
 # Set defaults for the parameters
-: ${NEK5K_DIR:=`cd "../../../Nek5000"; pwd`}
+
+if [ -e $NEK5K_DIR/bin/makenek ]; then
+  NEK5K_DIR:=`cd "../../../Nek5000"; pwd`
+else
+  exit
+fi
+
+# : ${NEK5K_DIR:=`cd "../../../Nek5000"; pwd`}
 : ${FC:="mpif77"}
 : ${CC:="mpicc"}
 

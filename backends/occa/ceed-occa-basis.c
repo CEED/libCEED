@@ -16,15 +16,15 @@
 #include "ceed-occa.h"
 
 // *****************************************************************************
-/// Apply basis evaluation from nodes to quadrature points or vice-versa
-/// @param basis Basis to evaluate
-/// @param tmode \ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature
-///     points, \ref CEED_TRANSPOSE to apply the transpose, mapping from
-///     quadrature points to nodes
-/// @param emode \ref CEED_EVAL_INTERP to obtain interpolated values,
-///     \ref CEED_EVAL_GRAD to obtain gradients.
-/// @param u input vector
-/// @param v output vector
+// Apply basis evaluation from nodes to quadrature points or vice-versa
+// @param basis Basis to evaluate
+// @param tmode \ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature
+//     points, \ref CEED_TRANSPOSE to apply the transpose, mapping from
+//     quadrature points to nodes
+// @param emode \ref CEED_EVAL_INTERP to obtain interpolated values,
+//     \ref CEED_EVAL_GRAD to obtain gradients.
+// @param u input vector
+// @param v output vector
 // *****************************************************************************
 static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
                                CeedEvalMode emode,
@@ -113,7 +113,7 @@ static int CeedBasisDestroy_Occa(CeedBasis basis) {
 }
 
 // *****************************************************************************
-/// Create a tensor product basis for H^1 discretizations
+/// OCCA Backend: Create a tensor product basis for H^1 discretizations
 ///
 /// @param ceed       Ceed
 /// @param dim        Topological dimension
