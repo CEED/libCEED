@@ -19,18 +19,19 @@
 #include "magma.h"
 
 typedef struct {
-  CeedScalar *array;
-  CeedScalar *darray;
+    CeedScalar *array;
+    CeedScalar *darray;
+    int own_;
 } CeedVector_Magma;
 
 typedef struct {
-  const CeedInt *indices;
-  CeedInt *indices_allocated;
+    const CeedInt *indices;
+    CeedInt *indices_allocated;
 } CeedElemRestriction_Magma;
 
 typedef struct {
-  CeedVector etmp;
-  CeedVector qdata;
+    CeedVector etmp;
+    CeedVector qdata;
 } CeedOperator_Magma;
 
 // *****************************************************************************
@@ -46,104 +47,161 @@ static int CeedVectorSetArray_Magma(CeedVector vec, CeedMemType mtype,
     CeedVector_Magma *impl = vec->data;
     int ierr;
 
-    if (mtype != CEED_MEM_HOST)
-        return CeedError(vec->ceed, 1, "Only MemType = HOST supported");
- 
-    switch (cmode) {
-    case CEED_COPY_VALUES:
-        if (impl->darray == NULL) {
+    // If own data, free that "old" data, e.g., as it may be of different size 
+    if (impl->own_){
+        magma_free( impl->darray );
+        magma_free_pinned( impl->array );
+        impl->darray = NULL;
+        impl->array  = NULL;
+        impl->own_ = 0;
+    }   
+
+    if (mtype == CEED_MEM_HOST) {
+        // memory is on the host; own_ = 0
+        switch (cmode) {
+        case CEED_COPY_VALUES:
             ierr = magma_malloc( (void**)&impl->darray,
-                                 vec->length * sizeof(CeedScalar)); 
-            CeedChk(ierr);
-        }
-        if (array)
-            magma_setvector(vec->length, sizeof(array[0]), 
-                            array, 1, impl->darray, 1);
-        break;
-    case CEED_OWN_POINTER:
-        if (impl->darray == NULL){
+                                 vec->length * sizeof(CeedScalar)); CeedChk(ierr);
+            ierr = magma_malloc_pinned( (void**)&impl->array,
+                                        vec->length * sizeof(CeedScalar)); CeedChk(ierr);
+            impl->own_ = 1;
+            
+            if (array)
+                magma_setvector(vec->length, sizeof(array[0]), 
+                                array, 1, impl->darray, 1);
+            break;
+        case CEED_OWN_POINTER:
             ierr = magma_malloc( (void**)&impl->darray,
-                                 vec->length * sizeof(CeedScalar)); 
-            CeedChk(ierr);
-        }
-        if (array)
-            magma_setvector(vec->length, sizeof(array[0]),
-                            array, 1, impl->darray, 1);
-        
-        ierr = CeedFree(array); CeedChk(ierr);
-        break;
-    case CEED_USE_POINTER:
-        if (impl->darray != NULL){
-            ierr = magma_free(impl->darray); 
-            CeedChk(ierr);
+                                 vec->length * sizeof(CeedScalar)); CeedChk(ierr);
+            impl->array = array;
+            impl->own_ = 1;
+
+            if (array)
+                magma_setvector(vec->length, sizeof(array[0]),
+                                array, 1, impl->darray, 1);
+            break;
+        case CEED_USE_POINTER:
             impl->darray = NULL;
+            impl->array  = array;
         }
-        impl->array = array;
-    }
+    } else if (mtype == CEED_MEM_DEVICE) {
+        // memory is on the device; own = 0
+        switch (cmode) {
+        case CEED_COPY_VALUES:
+            ierr = magma_malloc( (void**)&impl->darray,
+                                vec->length * sizeof(CeedScalar)); CeedChk(ierr);
+            ierr = magma_malloc_pinned( (void**)&impl->array,
+                                        vec->length * sizeof(CeedScalar)); CeedChk(ierr);
+            impl->own_ = 1;
+
+            if (array)
+                magma_copyvector(vec->length, sizeof(array[0]),
+                                 array, 1, impl->darray, 1);
+            break;
+        case CEED_OWN_POINTER:
+            impl->darray = array;
+            ierr = magma_malloc_pinned( (void**)&impl->array,
+                                        vec->length * sizeof(CeedScalar)); CeedChk(ierr);
+            impl->own_ = 1;
+
+            break;
+        case CEED_USE_POINTER:
+            impl->darray = array;
+            impl->array  = NULL;
+        }
+
+    } else
+        return CeedError(vec->ceed, 1, "Only MemType = HOST or DEVICE supported");
+
     return 0;
 }
 
 // *****************************************************************************
-// * Get data from Device vector vec into CeedScalar array on the CPU
+// * Give data pointer from vector vec to array (on HOST or DEVICE)  
 // ***************************************************************************** 
 static int CeedVectorGetArray_Magma(CeedVector vec, CeedMemType mtype,
                                     CeedScalar **array) {
     CeedVector_Magma *impl = vec->data;
     int ierr;
     
-    if (mtype != CEED_MEM_HOST)
-        return CeedError(vec->ceed, 1, "Can only provide to HOST memory");
+    if (mtype == CEED_MEM_HOST) {
+        if (!impl->array){
+            // Allocate data if array is NULL
+            ierr = CeedVectorSetArray(vec, mtype, CEED_COPY_VALUES, NULL);
+            CeedChk(ierr);
+        } else if (impl->own_) { 
+            // data is owned so GPU had the most up-to-date version; copy it 
+            magma_getvector(vec->length, sizeof(*array[0]),
+                            impl->darray, 1, impl->array, 1);
+        }
+        *array = impl->array;
+    } else if (mtype == CEED_MEM_DEVICE) {
+        if (!impl->darray){
+            // Allocate data if darray is NULL 
+            ierr = CeedVectorSetArray(vec, mtype, CEED_COPY_VALUES, NULL);
+            CeedChk(ierr);
+        }
+        *array = impl->darray;
+    } else
+        return CeedError(vec->ceed, 1, "Can only provide to HOST or DEVICE memory");
 
-    if (!impl->array) { // Allocate if array is not yet allocated
-        ierr = CeedMalloc(vec->length, &impl->array); CeedChk(ierr);
-    }
-    if (!impl->darray){ // Get data from the Device if owned (darray!=NULL)
-        magma_getvector(vec->length, sizeof(array[0]),
-                        impl->darray, 1, array, 1);
-    }
-    *array = impl->array;
     return 0;
 }
 
 // ***************************************************************************** 
-// * Get data from Device vector vec into CeedScalar array on the CPU for reading
+// * Give data pointer from vector vec to array (on HOST or DEVICE) to read it
 // ***************************************************************************** 
 static int CeedVectorGetArrayRead_Magma(CeedVector vec, CeedMemType mtype,
                                       const CeedScalar **array) {
     CeedVector_Magma *impl = vec->data;
     int ierr;
 
-    if (mtype != CEED_MEM_HOST)
-        return CeedError(vec->ceed, 1, "Can only provide to HOST memory");
+    if (mtype == CEED_MEM_HOST) {
+        if (!impl->array){
+            // Allocate data if array is NULL
+            ierr = CeedVectorSetArray(vec, mtype, CEED_COPY_VALUES, NULL);
+            CeedChk(ierr);
+        } else if (impl->own_) {
+            // data is owned so GPU had the most up-to-date version; copy it
+            magma_getvector(vec->length, sizeof(*array[0]),
+                            impl->darray, 1, impl->array, 1);
+        }
+        *array = impl->array;
+    } else if (mtype == CEED_MEM_DEVICE) {
+        if (!impl->darray){
+            // Allocate data if darray is NULL
+            ierr = CeedVectorSetArray(vec, mtype, CEED_COPY_VALUES, NULL);
+            CeedChk(ierr);
+        }
+        *array = impl->darray;
+    } else
+        return CeedError(vec->ceed, 1, "Can only provide to HOST or DEVICE memory");
 
-    if (!impl->array) { // Allocate if array is not yet allocated
-        ierr = CeedMalloc(vec->length, &impl->array); CeedChk(ierr);
-    }
-    if (!impl->darray){ // Get data from the Device if owned (darray!=NULL)
-        magma_getvector(vec->length, sizeof(array[0]),
-                        impl->darray, 1, array, 1);
-    }
-
-    *array = impl->array;
     return 0;
 }
 
 // *****************************************************************************
+// * There is no mtype here for array so it is not clear if we restore from HOST
+// * memory or from DEVICE memory. We assume that it is CPU memory because if
+// * it was GPU memory we would not call this routine at all.
 // * Restore vector vec with values from array, where array received its values
 // * from vec and possibly modified them.
 // *****************************************************************************
 static int CeedVectorRestoreArray_Magma(CeedVector vec, CeedScalar **array) {
     CeedVector_Magma *impl = vec->data;
 
-    if (!impl->darray) {// vec owns the data, so it is on GPU
+    if (impl->darray!=NULL)
         magma_setvector(vec->length, sizeof(*array[0]),
                         *array, 1, impl->darray, 1);
-    }
+
     *array = NULL;
     return 0;
 }
 
 // *****************************************************************************
+// * There is no mtype here for array so it is not clear if we restore from HOST
+// * memory or from DEVICE memory. We assume that it is CPU memory because if
+// * it was GPU memory we would not call this routine at all. 
 // * Restore vector vec with values from array, where array received its values
 // * from vec to only read them; in this case vec may have been modified meanwhile
 // * and needs to be restored here.
@@ -152,41 +210,46 @@ static int CeedVectorRestoreArrayRead_Magma(CeedVector vec,
                                             const CeedScalar **array) {
     CeedVector_Magma *impl = vec->data;
 
-    if (!impl->darray) {// vec owns the data, so it is on GPU 
+    if (impl->darray!=NULL)
         magma_setvector(vec->length, sizeof(*array[0]),
                         *array, 1, impl->darray, 1);
-    }
+    
     *array = NULL;
     return 0;
 }
 
 static int CeedVectorDestroy_Magma(CeedVector vec) {
-  CeedVector_Magma *impl = vec->data;
-  int ierr;
+    CeedVector_Magma *impl = vec->data;
+    int ierr;
 
-  if (!impl->array) {ierr = CeedFree(&impl->array); CeedChk(ierr);}
-  ierr = magma_free(impl->darray); CeedChk(ierr);
-  ierr = CeedFree(&vec->data); CeedChk(ierr);
-  return 0;
+    // Free if we own the data
+    if (impl->own_){
+        ierr = magma_free_pinned(impl->array); CeedChk(ierr);
+        ierr = magma_free(impl->darray);       CeedChk(ierr);
+    }
+    ierr = CeedFree(&vec->data); CeedChk(ierr);
+    return 0;
 }
 
 // *****************************************************************************
 // * Create vector vec of size n
 // *****************************************************************************  
 static int CeedVectorCreate_Magma(Ceed ceed, CeedInt n, CeedVector vec) {
-  CeedVector_Magma *impl;
-  int ierr;
+    CeedVector_Magma *impl;
+    int ierr;
 
-  vec->SetArray = CeedVectorSetArray_Magma;
-  vec->GetArray = CeedVectorGetArray_Magma;
-  vec->GetArrayRead = CeedVectorGetArrayRead_Magma;
-  vec->RestoreArray = CeedVectorRestoreArray_Magma;
-  vec->RestoreArrayRead = CeedVectorRestoreArrayRead_Magma;
-  vec->Destroy = CeedVectorDestroy_Magma;
-  ierr = CeedCalloc(1,&impl); CeedChk(ierr);
-  impl->darray = NULL;
-  vec->data = impl;
-  return 0;
+    vec->SetArray = CeedVectorSetArray_Magma;
+    vec->GetArray = CeedVectorGetArray_Magma;
+    vec->GetArrayRead = CeedVectorGetArrayRead_Magma;
+    vec->RestoreArray = CeedVectorRestoreArray_Magma;
+    vec->RestoreArrayRead = CeedVectorRestoreArrayRead_Magma;
+    vec->Destroy = CeedVectorDestroy_Magma;
+    ierr = CeedCalloc(1,&impl); CeedChk(ierr);
+    impl->darray = NULL;
+    impl->array  = NULL;
+    impl->own_ = 0;
+    vec->data = impl;
+    return 0;
 }
 
 // *****************************************************************************
@@ -196,64 +259,90 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
                                         CeedTransposeMode tmode, CeedInt ncomp,
                                         CeedTransposeMode lmode, CeedVector u,
                                         CeedVector v, CeedRequest *request) {
-  CeedElemRestriction_Magma *impl = r->data;
-  int ierr;
-  const CeedScalar *uu;
-  CeedScalar *vv;
-  CeedInt esize = r->nelem*r->elemsize;
+    CeedElemRestriction_Magma *impl = r->data;
+    int ierr;
+    const CeedScalar *uu;
+    CeedScalar *vv;
+    CeedInt esize = r->nelem*r->elemsize;
+    //printf("HELLOOOOOOOOO=======================\n");
 
-  ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
-  ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
-  if (tmode == CEED_NOTRANSPOSE) {
-    // Perform: v = r * u
-    if (ncomp == 1) {
-      for (CeedInt i=0; i<esize; i++) vv[i] = uu[impl->indices[i]];
+    ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
+    ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
+    if (tmode == CEED_NOTRANSPOSE) {
+        // Perform: v = r * u
+        if (ncomp == 1) {
+            for (CeedInt i=0; i<esize; i++) vv[i] = uu[impl->indices[i]];
+            
+            /*
+            // Works - in t05 x has to be with CEED_COPY_VALUES
+            CeedVector_Magma *uimpl = u->data, *vimpl = v->data;
+            uu = uimpl->darray;
+            vv = vimpl->darray;
+            CeedInt *indices;// = (int *)impl->indices;
+            magma_malloc( (void**)&indices, esize * sizeof(CeedInt)); 
+            magma_setvector(esize, sizeof(CeedInt),
+                            (int *)impl->indices, 1, indices, 1);
+            magma_template<<i=0:esize>>(const CeedScalar *uu, CeedScalar *vv, CeedInt *indices)
+              {
+                 vv[i] = uu[indices[i]];  
+              }
+             
+            // printf("HELLOOOOOOOOO....... size = %d\n", esize);
+            //
+            
+            if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
+                *request = NULL;
+            return 0;
+            */
+ 
+        } else {
+            //printf("HELLOOOOOOOOO-------------\n");
+            // vv is (elemsize x ncomp x nelem), column-major
+            if (lmode == CEED_NOTRANSPOSE) { // u is (ndof x ncomp), column-major
+                for (CeedInt e = 0; e < r->nelem; e++)
+                    for (CeedInt d = 0; d < ncomp; d++)
+                        for (CeedInt i=0; i<r->elemsize; i++) {
+                            vv[i+r->elemsize*(d+ncomp*e)] =
+                                uu[impl->indices[i+r->elemsize*e]+r->ndof*d];
+                        }
+            } else { // u is (ncomp x ndof), column-major
+                for (CeedInt e = 0; e < r->nelem; e++)
+                    for (CeedInt d = 0; d < ncomp; d++)
+                        for (CeedInt i=0; i<r->elemsize; i++) {
+                            vv[i+r->elemsize*(d+ncomp*e)] =
+                                uu[d+ncomp*impl->indices[i+r->elemsize*e]];
+                        }
+            }
+        }
     } else {
-      // vv is (elemsize x ncomp x nelem), column-major
-      if (lmode == CEED_NOTRANSPOSE) { // u is (ndof x ncomp), column-major
-        for (CeedInt e = 0; e < r->nelem; e++)
-          for (CeedInt d = 0; d < ncomp; d++)
-            for (CeedInt i=0; i<r->elemsize; i++) {
-              vv[i+r->elemsize*(d+ncomp*e)] =
-                uu[impl->indices[i+r->elemsize*e]+r->ndof*d];
+        // Note: in transpose mode, we perform: v += r^t * u
+        if (ncomp == 1) {
+            for (CeedInt i=0; i<esize; i++) vv[impl->indices[i]] += uu[i];
+        } else {
+            //printf("HELLOOOOOOOOO+++++++++++++\n");
+            // u is (elemsize x ncomp x nelem)
+            if (lmode == CEED_NOTRANSPOSE) { // vv is (ndof x ncomp), column-major
+                for (CeedInt e = 0; e < r->nelem; e++)
+                    for (CeedInt d = 0; d < ncomp; d++)
+                        for (CeedInt i=0; i<r->elemsize; i++) {
+                            vv[impl->indices[i+r->elemsize*e]+r->ndof*d] +=
+                                uu[i+r->elemsize*(d+e*ncomp)];
+                        }
+            } else { // vv is (ncomp x ndof), column-major
+                for (CeedInt e = 0; e < r->nelem; e++)
+                    for (CeedInt d = 0; d < ncomp; d++)
+                        for (CeedInt i=0; i<r->elemsize; i++) {
+                            vv[d+ncomp*impl->indices[i+r->elemsize*e]] +=
+                                uu[i+r->elemsize*(d+e*ncomp)];
+                        }
             }
-      } else { // u is (ncomp x ndof), column-major
-        for (CeedInt e = 0; e < r->nelem; e++)
-          for (CeedInt d = 0; d < ncomp; d++)
-            for (CeedInt i=0; i<r->elemsize; i++) {
-              vv[i+r->elemsize*(d+ncomp*e)] =
-                uu[d+ncomp*impl->indices[i+r->elemsize*e]];
-            }
-      }
+        }
     }
-  } else {
-    // Note: in transpose mode, we perform: v += r^t * u
-    if (ncomp == 1) {
-      for (CeedInt i=0; i<esize; i++) vv[impl->indices[i]] += uu[i];
-    } else {
-      // u is (elemsize x ncomp x nelem)
-      if (lmode == CEED_NOTRANSPOSE) { // vv is (ndof x ncomp), column-major
-        for (CeedInt e = 0; e < r->nelem; e++)
-          for (CeedInt d = 0; d < ncomp; d++)
-            for (CeedInt i=0; i<r->elemsize; i++) {
-              vv[impl->indices[i+r->elemsize*e]+r->ndof*d] +=
-                uu[i+r->elemsize*(d+e*ncomp)];
-            }
-      } else { // vv is (ncomp x ndof), column-major
-        for (CeedInt e = 0; e < r->nelem; e++)
-          for (CeedInt d = 0; d < ncomp; d++)
-            for (CeedInt i=0; i<r->elemsize; i++) {
-              vv[d+ncomp*impl->indices[i+r->elemsize*e]] +=
-                uu[i+r->elemsize*(d+e*ncomp)];
-            }
-      }
-    }
-  }
-  ierr = CeedVectorRestoreArrayRead(u, &uu); CeedChk(ierr);
-  ierr = CeedVectorRestoreArray(v, &vv); CeedChk(ierr);
-  if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
-    *request = NULL;
-  return 0;
+    ierr = CeedVectorRestoreArrayRead(u, &uu); CeedChk(ierr);
+    ierr = CeedVectorRestoreArray(v, &vv); CeedChk(ierr);
+    if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
+        *request = NULL;
+    return 0;   
 }
 
 static int CeedElemRestrictionDestroy_Magma(CeedElemRestriction r) {
@@ -277,6 +366,7 @@ static int CeedElemRestrictionCreate_Magma(CeedElemRestriction r,
     ierr = CeedCalloc(1,&impl); CeedChk(ierr);
     switch (cmode) {
     case CEED_COPY_VALUES:
+        //printf("CeedElemRestriction_Magma COPY\n");
         ierr = CeedMalloc(r->nelem*r->elemsize, &impl->indices_allocated);
         CeedChk(ierr);
         memcpy(impl->indices_allocated, indices,
@@ -284,10 +374,12 @@ static int CeedElemRestrictionCreate_Magma(CeedElemRestriction r,
         impl->indices = impl->indices_allocated;
         break;
     case CEED_OWN_POINTER:
+        //printf("CeedElemRestriction_Magma OWN\n");
         impl->indices_allocated = (CeedInt *)indices;
         impl->indices = impl->indices_allocated;
         break;
     case CEED_USE_POINTER:
+        //printf("CeedElemRestriction_Magma USE\n");
         impl->indices = indices;
     }
     r->data = impl;
