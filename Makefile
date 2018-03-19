@@ -136,7 +136,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   libceed.c += $(magma.c) 
   libceed.cu += $(magma.cu)
   $(magma.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-  $(magma.cu:%.cu=$(OBJDIR)/%.o) : NVCCFLAGS += -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
+  $(magma.cu:%.cu=$(OBJDIR)/%.o) : NVCCFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
 endif
 
 # generate magma_tmp.c and magma_cuda.cu from magma.c                                                      
