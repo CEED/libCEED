@@ -48,8 +48,6 @@ c-----------------------------------------------------------------------
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-
-
       call ceedqfunctioncreateinterior(ceed,1,1,8,
      $     ceed_eval_weight,ceed_eval_none,setup,
      $     __FILE__
