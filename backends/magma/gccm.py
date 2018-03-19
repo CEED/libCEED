@@ -35,6 +35,9 @@ def main():
     fname  = fname.replace("-", "_")
     fname  = fname[fname.rfind("/")+1:]
 
+    cufile.write("#include <ceed-impl.h>                             \n\n")
+    cufile.write("#include \"atomics.cuh\"                             \n")
+
     # Search for the magma_template keyword in the input file
     for kernel in range(prog.count("magma_template")):
         i1 = prog.index("magma_template")
@@ -85,8 +88,7 @@ def main():
         if (numparts == 2): partsinit[2] = partsinit[2]
 
         # Prepare the magma_template kernel and write it in the .cu file
-        kernel  = "#include <ceed-impl.h>                             \n\n"
-        kernel += "__global__ void                                      \n" 
+        kernel  = "__global__ void                                      \n" 
         kernel +=  kname+"_kernel(                                      \n"
         for i in range(numparts):
             kernel += "    int "+parts[i]+"begin, int "+parts[i]+"end,  \n"
