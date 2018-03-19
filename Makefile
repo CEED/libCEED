@@ -119,7 +119,7 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 this: $(libceed) $(ceed.pc)
 all:;@$(MAKE) $(MFLAGS) V=$(V) this
 
-$(libceed) : LDFLAGS += $(if $(DARWIN), -install_name $(abspath $(libceed)))
+$(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)))
 
 libceed.c += $(ref.c)
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
