@@ -16,7 +16,7 @@
 
 # Ceed directory
 CEED_DIR ?= ../..
-CEED_FLAGS ?= -I$(CEED_DIR)/include
+CEED_FLAGS ?= -I$(CEED_DIR)/include -g
 CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed
 
 OCCA_DIR ?= ../../../occa

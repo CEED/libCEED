@@ -33,6 +33,7 @@ static int CeedOperatorDestroy_Occa(CeedOperator op) {
 static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
                                   CeedVector ustate,
                                   CeedVector residual, CeedRequest *request) {
+  CeedDebug("\033[37;1m[CeedOperator][Apply]");
   CeedOperator_Occa *impl = op->data;
   const CeedInt nc = op->basis->ndof, dim = op->basis->dim;
   CeedVector etmp;
@@ -90,13 +91,21 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   }
   ierr = CeedVectorRestoreArray(etmp, &Eu); CeedChk(ierr);
   if (residual) {
+    CeedDebug("\033[37;1m[CeedOperator][Apply] residual");
+    //CeedDebug("\033[37;1m[CeedOperator][Apply] etmp=");
+    //CeedVectorView(etmp,NULL,stdout);
     CeedScalar *res;
     CeedVectorGetArray(residual, CEED_MEM_HOST, &res);
     for (int i = 0; i < residual->length; i++)
-      res[i] = (CeedScalar)0;
+      res[i] = (CeedScalar)0.0;
+    ierr = CeedVectorRestoreArray(residual, &res); CeedChk(ierr);
+    //CeedDebug("\033[37;1m[CeedOperator][Apply] residual=");
+    //CeedVectorView(residual,NULL,stdout);
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_TRANSPOSE,
                                     nc, lmode, etmp, residual,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
+    //CeedDebug("\033[37;1m[CeedOperator][Apply] residual=");
+    //CeedVectorView(residual,NULL,stdout);
   }
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;

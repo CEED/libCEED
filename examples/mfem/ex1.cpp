@@ -45,6 +45,7 @@ static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
   BuildContext *bc = (BuildContext*)ctx;
   CeedScalar *qd = (CeedScalar*)qdata;
   const CeedScalar *J = u[1], *qw = u[4];
+  //printf("\n[f_build_mass] %d",bc->dim + 10*bc->space_dim);
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
     for (CeedInt i=0; i<Q; i++) {
@@ -56,7 +57,19 @@ static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
       // 0 2
       // 1 3
       qd[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
-    }
+      //printf("\n[f_build_mass] qd[%d]=%f",i,qd[i]);
+/*[f_build_mass] 22
+[f_build_mass] qd[0]=0.018346
+[f_build_mass] qd[1]=0.029354
+[f_build_mass] qd[2]=0.018346
+[f_build_mass] qd[3]=0.029354
+[f_build_mass] qd[4]=0.046966
+[f_build_mass] qd[5]=0.029354
+[f_build_mass] qd[6]=0.018346
+[f_build_mass] qd[7]=0.029354
+[f_build_mass] qd[8]=0.018346
+*/
+  }
     break;
   case 33:
     for (CeedInt i=0; i<Q; i++) {
@@ -79,7 +92,23 @@ static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
 static int f_apply_mass(void *ctx, void *qdata, CeedInt Q,
                         const CeedScalar *const *u, CeedScalar *const *v) {
   const CeedScalar *w = (const CeedScalar*)qdata;
-  for (CeedInt i=0; i<Q; i++) v[0][i] = w[i] * u[0][i];
+  //printf("\n[f_apply_mass] Q=%d",Q);
+  for (CeedInt i=0; i<Q; i++){
+    v[0][i] = w[i] * u[0][i];
+    //printf("\n[f_apply_mass]\tv[0][%d]=%f",i,v[0][i]);
+/*[f_apply_mass] v[0][8]=0.000000   Iteration :   0  (B r, r) = 0.560944 ...
+
+[f_apply_mass] v[0][0]=0.001762
+[f_apply_mass] v[0][1]=0.003454
+[f_apply_mass] v[0][2]=0.002555
+[f_apply_mass] v[0][3]=0.003454
+[f_apply_mass] v[0][4]=0.006556
+[f_apply_mass] v[0][5]=0.004742
+[f_apply_mass] v[0][6]=0.002555
+[f_apply_mass] v[0][7]=0.004742
+[f_apply_mass] v[0][8]=0.003373
+*/
+  }
   return 0;
 }
 
@@ -229,11 +258,98 @@ class CeedMassOperator : public mfem::Operator {
   }
 
   /// Operator action
-  virtual void Mult(const mfem::Vector &x, mfem::Vector &y) const {
+  virtual void Mult(const mfem::Vector &x, mfem::Vector &y) const {//b ex1.cpp:262
+    printf("\n\033[33;1m[CeedMassOperator::Mult]\033[m");
     CeedVectorSetArray(u, CEED_MEM_HOST, CEED_USE_POINTER, x.GetData());
     CeedVectorSetArray(v, CEED_MEM_HOST, CEED_USE_POINTER, y.GetData());
-
+    assert(y.GetData());
+    printf("\n\033[33;1m[CeedMassOperator::Mult] u:\n\033[m");
+    CeedVectorView(u,NULL,stdout);
+/*[CeedMassOperator::Mult] u:
+CeedVector length 31
+  0.0835309  -0.117318    0.0423463
+  0.107559    0.028534    0.00729534
+  0.107559    0.0285342   0.00729528
+  0.0803822   0.0483457   0.0245346
+y  0.107558    ...
+  0.0803818
+  0.107558
+  0.0803815
+  0.107559
+  0.0803819
+  0.0803822
+  0.13902
+  0.131711
+  0.131711
+  0.13902
+  0.131711
+  0.13171
+  0.139019
+  0.13171
+  0.13171
+  0.139019
+  0.13171
+  0.131711
+  0.13902
+  0.131711
+  0.131711
+  0.196828
+  0.196827
+  0.196826
+  0.196827
+  0.196828
+*/
+    //printf("\n[CeedMassOperator::Mult] qdata:\n");
+    //CeedVectorView(qdata,NULL,stdout);
     CeedOperatorApply(oper, qdata, u, v, CEED_REQUEST_IMMEDIATE);
+/*
+  0.0358968    -0.0213106    0.0044169
+  0.0154353     0.00163299   0.000303544
+  0.0154352     0.00163302   0.000303534
+  0.00690311    0.00256538   0.000801572
+  0.015435      ...
+  0.00690307
+  0.015435
+  0.00690302
+  0.0154352
+  0.00690308
+  0.00690311
+  0.0337149
+  0.0164297
+  0.0164297
+  0.0337148
+  0.0164296
+  0.0164295
+  0.0337145
+  0.0164293
+  0.0164293
+  0.0337144
+  0.0164295
+  0.0164296
+  0.0337147
+  0.0164297
+  0.0164297
+  0.0376074
+  0.037607
+  0.0376067
+  0.037607
+  0.0376074
+*/
+    CeedScalar* v_data= NULL;// = y.GetData();
+    CeedVectorGetArray(v,CEED_MEM_HOST,&v_data);
+    mfem::Vector yy(v_data, y.Size());
+    printf("\n\033[33;1m[CeedMassOperator::Mult] MFEM Vector yy:\n\033[m");
+    yy.Print();
+    y=yy;
+    //y.NewDataAndSize((double*)v_data,y.Size());
+    //y.SetDataAndSize((double*)v_data,y.Size());
+    //y.MakeDataOwner();
+    //printf("\n\033[33;1m[CeedMassOperator::Mult] output v:\n\033[m");
+    //CeedVectorView(v,NULL,stdout);fflush(stdout);
+    printf("\n\033[33;1m[CeedMassOperator::Mult] MFEM Vector x:\n\033[m");
+    x.Print();
+    printf("\n\033[33;1m[CeedMassOperator::Mult] MFEM Vector y:\n\033[m");
+    y.Print();
   }
 };
 
@@ -315,7 +431,14 @@ int main(int argc, char *argv[]) {
 
   mfem::GridFunction sol(fespace);
   sol = 0.0;
-  cg.Mult(b, sol);
+  b.Print();
+/*Number of finite element unknowns: 31
+0.0835309 0.107559 0.107559 0.0803822 0.107558 0.0803818 0.107558 0.0803815
+0.107559 0.0803819 0.0803822 0.13902 0.131711 0.131711 0.13902 0.131711
+0.13171 0.139019 0.13171 0.13171 0.139019 0.13171 0.131711 0.13902
+0.131711 0.131711 0.196828 0.196827 0.196826 0.196827 0.196828
+*/
+    cg.Mult(b, sol);
   //std::cout << "sol="<<sol<< std::endl;
 
   // 9. Compute and print the L2 projection error.

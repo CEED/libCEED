@@ -105,7 +105,7 @@ static int CeedVectorGetArrayRead_Occa(const CeedVector x,
     ierr = CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
     CeedChk(ierr);
   }
-  CeedDebug("\033[33m[CeedVector][Get] occaSyncH2D");
+  CeedDebug("\033[33m[CeedVector][Get] occaSyncD2H");
   occaSyncD2H(x);
   *array = occa->h_array;
   return 0;

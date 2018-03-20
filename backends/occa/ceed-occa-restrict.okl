@@ -18,8 +18,8 @@
 kernel void kRestrict0(const int *indices,
                        const double* uu,
                        double* vv) {
-  for (int i=0; i<esize; i++; tile(TILE_SIZE)){
-    if (i >= esize) continue;
+  for (int i=0; i<nelem_x_elemsize; i++; tile(TILE_SIZE)){
+    if (i >= nelem_x_elemsize) continue;
     vv[i] = uu[indices[i]];
   }
 }
@@ -60,29 +60,31 @@ kernel void kRestrict2(const int ncomp,
 kernel void kRestrict3(const int *indices,
                        const double* uu,
                        double* vv) {
-  printf("\nkRestrict3");
-  for (int i=0; i<esize; i++; tile(TILE_SIZE)){
-    if (i >= esize) continue;
+  //printf("\nkRestrict3");
+  for (int i=0; i<nelem_x_elemsize; i++; tile(TILE_SIZE)){
+    if (i >= nelem_x_elemsize) continue;
+    //printf("\nv[%d]=%f",indices[i],vv[indices[i]]);
     atomicAdd(vv + indices[i], uu[i]);
-    printf("\nv[%d]+=u[%d]",indices[i],i);
+    //printf("\nv[%d]+=u[%d](=%f)",indices[i],i,uu[i]);
   }
 }
 
 // *****************************************************************************
-kernel void kRestrict3b(const int *indices,
+kernel void kRestrict3b(const int *tindices,
                         const int *offsets,
                         const double* uu,
                         double* vv) {
-  printf("\nkRestrict3b");
+  //printf("\nkRestrict3b");
   for (int i=0; i<ndof; i++; tile(TILE_SIZE)){
     if (i >= ndof) continue;
     const int offset = offsets[i];
     const int nextOffset = offsets[i+1];
     double dofValue = 0.0;
-    printf("\nv[%d]+=",i);
+    //printf("\nv[%d]+=",i);
     for (int j=offset; j<nextOffset; ++j){
-      dofValue += uu[j];
-      printf("u[%d] ",j);
+      const int tid = tindices[j];
+      dofValue += uu[tid];
+      //printf("u[%d] ",tid);
     }
     vv[i] = dofValue;
   }

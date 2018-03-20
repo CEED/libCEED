@@ -84,7 +84,7 @@ static int CeedQFunctionFillOp_Occa(occaMemory o_u,
 static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
                                    const CeedScalar *const *u,
                                    CeedScalar *const *v) {
-  CeedDebug("\033[36m[CeedQFunction][Apply]");
+  //CeedDebug("\033[36m[CeedQFunction][Apply]");
   int ierr;
   CeedQFunction_Occa *data = qf->data;
   const Ceed_Occa *ceed = qf->ceed->data;
@@ -111,10 +111,15 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   const occaMemory d_v = data->d_v;
   const occaMemory d_q = d_qdata?*d_qdata: // d_qdata can be NULL, like test t20
                          occaDeviceMalloc(*ceed->device,Q*bytes,qdata,NO_PROPS);
-  if (!data->op) CeedQFunctionFill20_Occa(d_u,u,qubytes);
-  else CeedQFunctionFillOp_Occa(d_u,u,inmode,Q,nc,dim,bytes);
-  CeedDebug("\033[31;1m[CeedQFunction][Apply] occaKernelRun: %s",
-            data->qFunctionName);
+  if (!data->op) {
+    //eedDebug("\033[31;1m[CeedQFunction][Apply] CeedQFunctionFill20_Occa");
+    CeedQFunctionFill20_Occa(d_u,u,qubytes);
+  }
+  else {
+    //CeedDebug("\033[31;1m[CeedQFunction][Apply] CeedQFunctionFillOp_Occa");
+    CeedQFunctionFillOp_Occa(d_u,u,inmode,Q,nc,dim,bytes);
+  }
+  //CeedDebug("\033[31;1m[CeedQFunction][Apply] run: %s", data->qFunctionName);
   occaKernelRun(data->kQFunctionApply,
                 qf->ctx?occaPtr(qf->ctx):occaInt(0),
                 d_q,occaInt(qoffset),
