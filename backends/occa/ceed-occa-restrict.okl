@@ -63,6 +63,54 @@ kernel void kRestrict3(const int *indices,
   for (int i=0; i<esize; i++; tile(TILE_SIZE)){
     if (i >= esize) continue;
     atomicAdd(vv + indices[i], uu[i]);
+    printf("\n\tv[%d]=u[%d]",indices[i],i);
+  }
+}
+
+// *****************************************************************************
+/*
+  v[0]=u[0]
+  v[1]=u[1]
+  v[2]=u[2]
+  v[3]=u[3]
+  v[4]=u[4]
+  v[4]=u[5]
+  v[5]=u[6]
+  v[6]=u[7]
+  v[7]=u[8]
+  v[8]=u[9]
+  v[8]=u[10]
+  v[9]=u[11]
+  v[10]=u[12]
+  v[11]=u[13]
+  v[12]=u[14]
+  v[12]=u[15]
+  v[13]=u[16]
+  v[14]=u[17]
+  v[15]=u[18]
+  v[16]=u[19]
+  v[16]=u[20]
+  v[17]=u[21]
+  v[18]=u[22]
+  v[19]=u[23]
+  v[20]=u[24]
+*/
+  kernel void kRestrict3b(const int *indices,
+                        const int *offsets,
+                        const double* uu,
+                        double* vv) {
+  for (int i=0; i<ndof; i++; tile(TILE_SIZE)){
+    if (i >= ndof) continue;
+    const int offset = offsets[i];
+    const int nextOffset = offsets[i+1];
+    double dofValue = 0.0;
+    printf("\n\tv[%d]+=",i);
+    for (int j=offset; j<nextOffset; ++j){
+      const int lid = j;
+      dofValue += uu[j];
+      printf(" u[(j=%d)%d]",j,lid);
+    }
+    vv[i] = dofValue;
   }
 }
 

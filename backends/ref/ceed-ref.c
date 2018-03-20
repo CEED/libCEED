@@ -158,7 +158,10 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
   } else {
     // Note: in transpose mode, we perform: v += r^t * u
     if (ncomp == 1) {
-      for (CeedInt i=0; i<esize; i++) vv[impl->indices[i]] += uu[i];
+      for (CeedInt i=0; i<esize; i++){
+        vv[impl->indices[i]] += uu[i];
+        printf("\n\tv[%d]=u[%d]",impl->indices[i],i);
+      }
     } else {
       // u is (elemsize x ncomp x nelem)
       if (lmode == CEED_NOTRANSPOSE) { // vv is (ndof x ncomp), column-major
