@@ -258,98 +258,18 @@ class CeedMassOperator : public mfem::Operator {
   }
 
   /// Operator action
-  virtual void Mult(const mfem::Vector &x, mfem::Vector &y) const {//b ex1.cpp:262
-    printf("\n\033[33;1m[CeedMassOperator::Mult]\033[m");
+  virtual void Mult(const mfem::Vector &x, mfem::Vector &y) const {
     CeedVectorSetArray(u, CEED_MEM_HOST, CEED_USE_POINTER, x.GetData());
     CeedVectorSetArray(v, CEED_MEM_HOST, CEED_USE_POINTER, y.GetData());
-    assert(y.GetData());
-    printf("\n\033[33;1m[CeedMassOperator::Mult] u:\n\033[m");
-    CeedVectorView(u,NULL,stdout);
-/*[CeedMassOperator::Mult] u:
-CeedVector length 31
-  0.0835309  -0.117318    0.0423463
-  0.107559    0.028534    0.00729534
-  0.107559    0.0285342   0.00729528
-  0.0803822   0.0483457   0.0245346
-y  0.107558    ...
-  0.0803818
-  0.107558
-  0.0803815
-  0.107559
-  0.0803819
-  0.0803822
-  0.13902
-  0.131711
-  0.131711
-  0.13902
-  0.131711
-  0.13171
-  0.139019
-  0.13171
-  0.13171
-  0.139019
-  0.13171
-  0.131711
-  0.13902
-  0.131711
-  0.131711
-  0.196828
-  0.196827
-  0.196826
-  0.196827
-  0.196828
-*/
-    //printf("\n[CeedMassOperator::Mult] qdata:\n");
-    //CeedVectorView(qdata,NULL,stdout);
     CeedOperatorApply(oper, qdata, u, v, CEED_REQUEST_IMMEDIATE);
-/*
-  0.0358968    -0.0213106    0.0044169
-  0.0154353     0.00163299   0.000303544
-  0.0154352     0.00163302   0.000303534
-  0.00690311    0.00256538   0.000801572
-  0.015435      ...
-  0.00690307
-  0.015435
-  0.00690302
-  0.0154352
-  0.00690308
-  0.00690311
-  0.0337149
-  0.0164297
-  0.0164297
-  0.0337148
-  0.0164296
-  0.0164295
-  0.0337145
-  0.0164293
-  0.0164293
-  0.0337144
-  0.0164295
-  0.0164296
-  0.0337147
-  0.0164297
-  0.0164297
-  0.0376074
-  0.037607
-  0.0376067
-  0.037607
-  0.0376074
-*/
-    CeedScalar* v_data= NULL;// = y.GetData();
+
+    CeedScalar* v_data;
     CeedVectorGetArray(v,CEED_MEM_HOST,&v_data);
+
     mfem::Vector yy(v_data, y.Size());
-    printf("\n\033[33;1m[CeedMassOperator::Mult] MFEM Vector yy:\n\033[m");
-    yy.Print();
     y=yy;
-    //y.NewDataAndSize((double*)v_data,y.Size());
-    //y.SetDataAndSize((double*)v_data,y.Size());
-    //y.MakeDataOwner();
-    //printf("\n\033[33;1m[CeedMassOperator::Mult] output v:\n\033[m");
-    //CeedVectorView(v,NULL,stdout);fflush(stdout);
-    printf("\n\033[33;1m[CeedMassOperator::Mult] MFEM Vector x:\n\033[m");
-    x.Print();
-    printf("\n\033[33;1m[CeedMassOperator::Mult] MFEM Vector y:\n\033[m");
-    y.Print();
+    
+    CeedVectorRestoreArray(v, &v_data);
   }
 };
 
@@ -388,14 +308,14 @@ int main(int argc, char *argv[]) {
   //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
   //    largest number that gives a final system with no more than 50,000
   //    unknowns, approximately.
-/*  {
+  {
     double max_dofs = 50000;
     int ref_levels =
       (int)floor((log(max_dofs/mesh->GetNE())-dim*log(order))/log(2.)/dim);
     for (int l = 0; l < ref_levels; l++) {
       mesh->UniformRefinement();
     }
-    }*/
+  }
   if (mesh->GetNodalFESpace() == NULL) {
     mesh->SetCurvature(1, false, -1, mfem::Ordering::byNODES);
   }
@@ -431,14 +351,7 @@ int main(int argc, char *argv[]) {
 
   mfem::GridFunction sol(fespace);
   sol = 0.0;
-  b.Print();
-/*Number of finite element unknowns: 31
-0.0835309 0.107559 0.107559 0.0803822 0.107558 0.0803818 0.107558 0.0803815
-0.107559 0.0803819 0.0803822 0.13902 0.131711 0.131711 0.13902 0.131711
-0.13171 0.139019 0.13171 0.13171 0.139019 0.13171 0.131711 0.13902
-0.131711 0.131711 0.196828 0.196827 0.196826 0.196827 0.196828
-*/
-    cg.Mult(b, sol);
+  cg.Mult(b, sol);
   //std::cout << "sol="<<sol<< std::endl;
 
   // 9. Compute and print the L2 projection error.

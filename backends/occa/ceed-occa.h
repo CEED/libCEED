@@ -34,7 +34,7 @@
 // * Ceed Occa struct
 // *****************************************************************************
 typedef struct {
-  occaDevice *device;
+  occaDevice device;
 } Ceed_Occa;
 
 // *****************************************************************************
@@ -49,9 +49,8 @@ typedef struct {
 // * CeedElemRestriction Occa struct
 // *****************************************************************************
 typedef struct {
-  const CeedInt *h_indices;
   occaMemory *d_indices;
-  occaMemory *d_offsets;
+  occaMemory *d_toffsets;
   occaMemory *d_tindices;
   occaKernel kRestrict[9];
 } CeedElemRestriction_Occa;

@@ -16,16 +16,6 @@
 #include "ceed-occa.h"
 
 // *****************************************************************************
-// Apply basis evaluation from nodes to quadrature points or vice-versa
-// @param basis Basis to evaluate
-// @param tmode \ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature
-//     points, \ref CEED_TRANSPOSE to apply the transpose, mapping from
-//     quadrature points to nodes
-// @param emode \ref CEED_EVAL_INTERP to obtain interpolated values,
-//     \ref CEED_EVAL_GRAD to obtain gradients.
-// @param u input vector
-// @param v output vector
-// *****************************************************************************
 static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
                                CeedEvalMode emode,
                                const CeedScalar *u, CeedScalar *v) {
@@ -33,28 +23,27 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
   const CeedInt dim = basis->dim;
   const CeedInt ndof = basis->ndof;
   const CeedInt nqpt = ndof*CeedPowInt(basis->Q1d, dim);
-  const CeedInt  add = (tmode == CEED_TRANSPOSE);
-  const CeedInt nadd = (tmode == CEED_NOTRANSPOSE);
+  const CeedInt transpose = (tmode == CEED_TRANSPOSE);
 
-  if (add) {
+  if (transpose) {
     const CeedInt vsize = ndof*CeedPowInt(basis->P1d, dim);
     for (CeedInt i = 0; i < vsize; i++)
       v[i] = (CeedScalar) 0;
   }
   if (emode & CEED_EVAL_INTERP) {
-    const CeedInt P = add?basis->Q1d:basis->P1d;
-    const CeedInt Q = add?basis->P1d:basis->Q1d;
+    const CeedInt P = transpose?basis->Q1d:basis->P1d;
+    const CeedInt Q = transpose?basis->P1d:basis->Q1d;
     CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
     CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
     for (CeedInt d=0; d<dim; d++) {
       ierr = CeedTensorContract_Occa(basis->ceed, pre, P, post, Q, basis->interp1d,
-                                     tmode, add&&(d==dim-1),
+                                     tmode, transpose&&(d==dim-1),
                                      d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
       CeedChk(ierr);
       pre /= P;
       post *= Q;
     }
-    if (nadd) {
+    if (!transpose) {
       v += nqpt;
     } else {
       u += nqpt;
@@ -65,21 +54,21 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
     // u is (P^dim x nc), column-major layout (nc = ndof)
     // v is (Q^dim x nc x dim), column-major layout (nc = ndof)
     // In CEED_TRANSPOSE mode, the sizes of u and v are switched.
-    const CeedInt P = add?basis->Q1d:basis->P1d;
-    const CeedInt Q = add?basis->P1d:basis->Q1d;
+    const CeedInt P = transpose?basis->Q1d:basis->P1d;
+    const CeedInt Q = transpose?basis->P1d:basis->Q1d;
     CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
     for (CeedInt p = 0; p < dim; p++) {
       CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
       for (CeedInt d=0; d<dim; d++) {
         ierr = CeedTensorContract_Occa(basis->ceed, pre, P, post, Q,
                                        (p==d)?basis->grad1d:basis->interp1d,
-                                       tmode, add&&(d==dim-1),
+                                       tmode, transpose&&(d==dim-1),
                                        d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
         CeedChk(ierr);
         pre /= P;
         post *= Q;
       }
-      if (nadd) {
+      if (!transpose) {
         v += nqpt;
       } else {
         u += nqpt;
@@ -87,7 +76,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
     }
   }
   if (emode & CEED_EVAL_WEIGHT) {
-    if (add)
+    if (transpose)
       return CeedError(basis->ceed, 1,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     CeedInt Q = basis->Q1d;
@@ -112,22 +101,6 @@ static int CeedBasisDestroy_Occa(CeedBasis basis) {
   return 0;
 }
 
-// *****************************************************************************
-/// OCCA Backend: Create a tensor product basis for H^1 discretizations
-///
-/// @param ceed       Ceed
-/// @param dim        Topological dimension
-/// @param P1d        Number of nodes in one dimension
-/// @param Q1d        Number of quadrature points in one dimension
-/// @param interp1d   Row-major Q1d × P1d matrix expressing the values of nodal
-///                   basis functions at quadrature points
-/// @param grad1d     Row-major Q1d × P1d matrix expressing derivatives of nodal
-///                   basis functions at quadrature points
-/// @param qref1d     Array of length Q1d holding the locations of quadrature
-///                   points on the 1D reference element [-1, 1]
-/// @param qweight1d  Array of length Q1d holding the quadrature weights on the
-///                   reference element
-/// @param[out] basis New basis
 // *****************************************************************************
 int CeedBasisCreateTensorH1_Occa(Ceed ceed, CeedInt dim, CeedInt P1d,
                                  CeedInt Q1d, const CeedScalar *interp1d,

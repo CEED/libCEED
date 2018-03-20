@@ -60,33 +60,27 @@ kernel void kRestrict2(const int ncomp,
 kernel void kRestrict3(const int *indices,
                        const double* uu,
                        double* vv) {
-  //printf("\nkRestrict3");
   for (int i=0; i<nelem_x_elemsize; i++; tile(TILE_SIZE)){
     if (i >= nelem_x_elemsize) continue;
-    //printf("\nv[%d]=%f",indices[i],vv[indices[i]]);
     atomicAdd(vv + indices[i], uu[i]);
-    //printf("\nv[%d]+=u[%d](=%f)",indices[i],i,uu[i]);
   }
 }
 
 // *****************************************************************************
 kernel void kRestrict3b(const int *tindices,
-                        const int *offsets,
+                        const int *toffsets,
                         const double* uu,
                         double* vv) {
-  //printf("\nkRestrict3b");
   for (int i=0; i<ndof; i++; tile(TILE_SIZE)){
     if (i >= ndof) continue;
-    const int offset = offsets[i];
-    const int nextOffset = offsets[i+1];
-    double dofValue = 0.0;
-    //printf("\nv[%d]+=",i);
-    for (int j=offset; j<nextOffset; ++j){
+    const int rng1 = toffsets[i];
+    const int rngN = toffsets[i+1];
+    double value = 0.0;
+    for (int j=rng1; j<rngN; ++j){
       const int tid = tindices[j];
-      dofValue += uu[tid];
-      //printf("u[%d] ",tid);
+      value += uu[tid];
     }
-    vv[i] = dofValue;
+    vv[i] = value;
   }
 }
 
@@ -106,22 +100,19 @@ kernel void kRestrict4(const int ncomp,
 }
 // *****************************************************************************
 kernel void kRestrict4b(const int ncomp,
-                        const int *indices,
-                        const int *offsets,
+                        const int *tindices,
+                        const int *toffsets,
                         const double* uu,
                         double* vv) {
   for (int i=0; i<ndof; i++; tile(TILE_SIZE)){
     if (i >= ndof) continue;
-    const int offset = offsets[i];
-    const int nextOffset = offsets[i+1];
+    const int rng1 = toffsets[i];
+    const int rngN = toffsets[i+1];
     for (int d = 0; d < ncomp; ++d) {
-      double dofValue = 0.0;
-      for (int j=offset; j<nextOffset; ++j){
-        const int lxs = d+indices[j]*ncomp;//ijNM(d,indices[j],ncomp,elemsize);
-        dofValue += uu[lxs];
-      }
-      const int gxs = d+i*ncomp;//ijNM(d,i,ncomp,ndof);
-      vv[gxs] = dofValue;
+      double value = 0.0;
+      for (int j=rng1; j<rngN; ++j)
+        value += uu[d+tindices[j]*ncomp];
+      vv[d+i*ncomp] = value;
     }
   }
 }
@@ -143,15 +134,15 @@ kernel void kRestrict5(const int ncomp,
 
 // *****************************************************************************
 kernel void kRestrict5b(const int ncomp,
-                        const int *indices,
-                        const int *offsets,
+                        const int *tindices,
+                        const int *toffsets,
                         const double* uu,
                         double* vv) {
   for (int e = 0; e < nelem; e++; tile(TILE_SIZE)){
     if (e >= nelem) continue;
     for (int d = 0; d < ncomp; d++){
       for (int i=0; i<elemsize; i++) {
-        atomicAdd(vv + d+ncomp*indices[i+elemsize*e], uu[i+elemsize*(d+e*ncomp)]);
+        atomicAdd(vv + d+ncomp*tindices[i+elemsize*e], uu[i+elemsize*(d+e*ncomp)]);
       }
     }
   }

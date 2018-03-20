@@ -20,9 +20,9 @@
 // *****************************************************************************
 static int CeedOperatorDestroy_Occa(CeedOperator op) {
   CeedDebug("\033[37;1m[CeedOperator][Destroy]");
-  CeedOperator_Occa *impl = op->data;
-  int ierr  = CeedVectorDestroy(&impl->etmp); CeedChk(ierr);
-  ierr = CeedVectorDestroy(&impl->qdata); CeedChk(ierr);
+  CeedOperator_Occa *data = op->data;
+  int ierr  = CeedVectorDestroy(&data->etmp); CeedChk(ierr);
+  ierr = CeedVectorDestroy(&data->qdata); CeedChk(ierr);
   ierr = CeedFree(&op->data); CeedChk(ierr);
   return 0;
 }
@@ -34,7 +34,7 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
                                   CeedVector ustate,
                                   CeedVector residual, CeedRequest *request) {
   CeedDebug("\033[37;1m[CeedOperator][Apply]");
-  CeedOperator_Occa *impl = op->data;
+  CeedOperator_Occa *data = op->data;
   const CeedInt nc = op->basis->ndof, dim = op->basis->dim;
   CeedVector etmp;
   CeedInt Q;
@@ -42,19 +42,19 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   char *qd;
   int ierr;
   const CeedTransposeMode lmode = CEED_NOTRANSPOSE;
-  // Fill CeedQFunction_Occa's structure with nc, dim & qdata
+  // Fill CeedQFunction_Occa's structure with nc, dim & qdata ******************
   CeedQFunction_Occa *QFdata = op->qf->data;
   QFdata->op = true;
   QFdata->nc = nc;
   QFdata->dim = dim;
   QFdata->d_qdata = ((CeedVector_Occa *)qdata->data)->d_array;
-
-  if (!impl->etmp) {
+  // ***************************************************************************
+  if (!data->etmp) {
     const int n = nc * op->Erestrict->nelem * op->Erestrict->elemsize;
-    ierr = CeedVectorCreate(op->ceed,n,&impl->etmp); CeedChk(ierr);
+    ierr = CeedVectorCreate(op->ceed,n,&data->etmp); CeedChk(ierr);
     // etmp is allocated when CeedVectorGetArray is called below
   }
-  etmp = impl->etmp;
+  etmp = data->etmp;
   if (op->qf->inmode & ~CEED_EVAL_WEIGHT) {
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_NOTRANSPOSE,
                                     nc, lmode, ustate, etmp,
@@ -92,20 +92,14 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   ierr = CeedVectorRestoreArray(etmp, &Eu); CeedChk(ierr);
   if (residual) {
     CeedDebug("\033[37;1m[CeedOperator][Apply] residual");
-    //CeedDebug("\033[37;1m[CeedOperator][Apply] etmp=");
-    //CeedVectorView(etmp,NULL,stdout);
     CeedScalar *res;
     CeedVectorGetArray(residual, CEED_MEM_HOST, &res);
     for (int i = 0; i < residual->length; i++)
       res[i] = (CeedScalar)0.0;
     ierr = CeedVectorRestoreArray(residual, &res); CeedChk(ierr);
-    //CeedDebug("\033[37;1m[CeedOperator][Apply] residual=");
-    //CeedVectorView(residual,NULL,stdout);
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_TRANSPOSE,
                                     nc, lmode, etmp, residual,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
-    //CeedDebug("\033[37;1m[CeedOperator][Apply] residual=");
-    //CeedVectorView(residual,NULL,stdout);
   }
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
@@ -117,17 +111,16 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
 // *****************************************************************************
 static int CeedOperatorGetQData_Occa(CeedOperator op, CeedVector *qdata) {
   CeedDebug("\033[37;1m[CeedOperator][GetQData]");
-  CeedOperator_Occa *impl = op->data;
+  CeedOperator_Occa *data = op->data;
   int ierr;
-
-  if (!impl->qdata) {
+  if (!data->qdata) {
     CeedDebug("\033[37;1m[CeedOperator][GetQData] New");
     CeedInt Q;
     ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
     const int n = op->Erestrict->nelem * Q * op->qf->qdatasize / sizeof(CeedScalar);
-    ierr = CeedVectorCreate(op->ceed,n,&impl->qdata); CeedChk(ierr);
+    ierr = CeedVectorCreate(op->ceed,n,&data->qdata); CeedChk(ierr);
   }
-  *qdata = impl->qdata;
+  *qdata = data->qdata;
   return 0;
 }
 

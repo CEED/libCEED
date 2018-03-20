@@ -21,7 +21,7 @@ static int buildKernelForThisQfunction(CeedQFunction qf) {
   CeedQFunction_Occa *occa=qf->data;
   const Ceed_Occa *ceed_data=qf->ceed->data;
   assert(ceed_data);
-  const occaDevice dev = *ceed_data->device;
+  const occaDevice dev = ceed_data->device;
   CeedDebug("\033[33m[CeedQFunction][buildKernelForThisQfunction] nc=%d",
             occa->nc);
   CeedDebug("\033[33m[CeedQFunction][buildKernelForThisQfunction] dim=%d",
@@ -103,14 +103,14 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   if (!ready) { // If the kernel has not been built, do it now
     data->ready=true;
     buildKernelForThisQfunction(qf);
-    data->d_u = occaDeviceMalloc(*ceed->device,(Q+Q*nc*(dim+1))*bytes,NULL,
+    data->d_u = occaDeviceMalloc(ceed->device,(Q+Q*nc*(dim+1))*bytes,NULL,
                                  NO_PROPS);
-    data->d_v = occaDeviceMalloc(*ceed->device,vbytes,NULL,NO_PROPS);
+    data->d_v = occaDeviceMalloc(ceed->device,vbytes,NULL,NO_PROPS);
   }
   const occaMemory d_u = data->d_u;
   const occaMemory d_v = data->d_v;
   const occaMemory d_q = d_qdata?*d_qdata: // d_qdata can be NULL, like test t20
-                         occaDeviceMalloc(*ceed->device,Q*bytes,qdata,NO_PROPS);
+                         occaDeviceMalloc(ceed->device,Q*bytes,qdata,NO_PROPS);
   if (!data->op) {
     //eedDebug("\033[31;1m[CeedQFunction][Apply] CeedQFunctionFill20_Occa");
     CeedQFunctionFill20_Occa(d_u,u,qubytes);

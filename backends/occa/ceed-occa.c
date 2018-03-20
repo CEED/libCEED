@@ -47,8 +47,7 @@ static int CeedDestroy_Occa(Ceed ceed) {
   int ierr;
   Ceed_Occa *data=ceed->data;
   CeedDebug("\033[1m[CeedDestroy]");
-  occaDeviceFree(*data->device);
-  ierr = CeedFree(&data->device); CeedChk(ierr);
+  occaDeviceFree(data->device);
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
@@ -71,7 +70,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   ceed->QFunctionCreate = CeedQFunctionCreate_Occa;
   ceed->OperatorCreate = CeedOperatorCreate_Occa;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  ierr = CeedCalloc(1,&data->device); CeedChk(ierr);
+  //ierr = CeedCalloc(1,&data->device); CeedChk(ierr);
   ceed->data = data;
 #ifdef CDEBUG
   // occaPrintModeInfo(); // can throw CUDA_ERROR_NOT_INITIALIZED with cuda 9.1
@@ -82,9 +81,9 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
     (resource[1]=='o') ? occaOMP :
     (resource[2]=='c') ? occaOCL : occaCPU;
   // Now creating OCCA device
-  *data->device = occaCreateDevice(occaString(mode));
+  data->device = occaCreateDevice(occaString(mode));
   if ((resource[1] == 'g' || resource[1] == 'o' || resource[2] == 'c')
-      && !strcmp(occaDeviceMode(*data->device), "Serial"))
+      && !strcmp(occaDeviceMode(data->device), "Serial"))
     return CeedError(ceed, 1, "OCCA backend failed to use GPU resource");
   return 0;
 }

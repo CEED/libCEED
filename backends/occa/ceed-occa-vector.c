@@ -26,20 +26,20 @@ static inline size_t bytes(const CeedVector vec) {
 // * OCCA SYNC functions
 // *****************************************************************************
 static inline void occaSyncH2D(const CeedVector vec) {
-  const CeedVector_Occa *occa = vec->data;
-  assert(occa);
-  assert(occa->h_array);
-  assert(occa->d_array);
-  occaCopyPtrToMem(*occa->d_array, occa->h_array, bytes(vec), NO_OFFSET,
+  const CeedVector_Occa *data = vec->data;
+  assert(data);
+  assert(data->h_array);
+  assert(data->d_array);
+  occaCopyPtrToMem(*data->d_array, data->h_array, bytes(vec), NO_OFFSET,
                    NO_PROPS);
 }
 // *****************************************************************************
 static inline void occaSyncD2H(const CeedVector vec) {
-  const CeedVector_Occa *occa = vec->data;
-  assert(occa);
-  assert(occa->h_array);
-  assert(occa->d_array);
-  occaCopyMemToPtr(occa->h_array,*occa->d_array, bytes(vec), NO_OFFSET, NO_PROPS);
+  const CeedVector_Occa *data = vec->data;
+  assert(data);
+  assert(data->h_array);
+  assert(data->d_array);
+  occaCopyMemToPtr(data->h_array,*data->d_array, bytes(vec), NO_OFFSET, NO_PROPS);
 }
 
 // *****************************************************************************
@@ -52,7 +52,6 @@ static int CeedVectorSetArray_Occa(const CeedVector x,
                                    CeedScalar *array) {
   CeedVector_Occa *data = x->data;
   int ierr;
-
   CeedDebug("\033[33m[CeedVectorOcca][Set]");
   if (mtype != CEED_MEM_HOST)
     return CeedError(x->ceed, 1, "Only MemType = HOST supported");
@@ -97,7 +96,6 @@ static int CeedVectorGetArrayRead_Occa(const CeedVector x,
   CeedDebug("\033[33m[CeedVector][Get]");
   CeedVector_Occa *occa = x->data;
   int ierr;
-
   if (mtype != CEED_MEM_HOST)
     return CeedError(x->ceed, 1, "Can only provide to HOST memory");
   if (!occa->h_array) { // Allocate if array was not allocated yet
@@ -168,7 +166,7 @@ int CeedVectorCreate_Occa(const Ceed ceed, const CeedInt n, CeedVector vec) {
   vec->data = data;
   // ***************************************************************************
   ierr = CeedCalloc(1,&data->d_array); CeedChk(ierr);
-  *data->d_array = occaDeviceMalloc(*occa->device, bytes(vec), NULL, NO_PROPS);
+  *data->d_array = occaDeviceMalloc(occa->device, bytes(vec), NULL, NO_PROPS);
   // Flush device memory *******************************************************
   ierr=CeedCalloc(vec->length, &data->h_array); CeedChk(ierr);
   occaSyncH2D(vec);
