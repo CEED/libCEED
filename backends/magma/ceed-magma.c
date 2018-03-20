@@ -315,7 +315,8 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     CeedScalar *vv;
     CeedInt nelem = r->nelem, elemsize = r->elemsize, ndof = r->ndof;
     CeedInt esize = nelem * elemsize;
-    CeedInt *indices = impl->indices, *dindices = impl->dindices;
+    // CeedInt *indices = impl->indices;
+    CeedInt *dindices = impl->dindices;
 
     //ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
     //ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
@@ -463,7 +464,7 @@ static int CeedElemRestrictionCreate_Magma(CeedElemRestriction r,
                                  size * sizeof(CeedInt)); CeedChk(ierr);
             // TODO: possible problem here is if we are passed non-pinned memory;
             //       (as we own it, lter in destroy, we use free for pinned memory).
-            impl->indices = indices;
+            impl->indices = (CeedInt *)indices;
             impl->own_ = 1;
 
             if (indices != NULL)
@@ -476,7 +477,7 @@ static int CeedElemRestrictionCreate_Magma(CeedElemRestriction r,
             magma_setvector(size, sizeof(CeedInt),
                             indices, 1, impl->dindices, 1);
             impl->down_ = 1;
-            impl->indices  = indices;
+            impl->indices  = (CeedInt *)indices;
         }        
     } else if (mtype == CEED_MEM_DEVICE) {
         // memory is on the device; own = 0
@@ -493,14 +494,14 @@ static int CeedElemRestrictionCreate_Magma(CeedElemRestriction r,
                                  indices, 1, impl->dindices, 1);
             break;
         case CEED_OWN_POINTER:
-            impl->dindices = indices;
+            impl->dindices = (CeedInt *)indices;
             ierr = magma_malloc_pinned( (void**)&impl->indices,
                                         size * sizeof(CeedInt)); CeedChk(ierr);
             impl->own_ = 1;
 
             break;
         case CEED_USE_POINTER:
-            impl->dindices = indices;
+            impl->dindices = (CeedInt *)indices;
             impl->indices  = NULL;
         }
 
@@ -754,8 +755,8 @@ static int CeedOperatorCreate_Magma(CeedOperator op) {
     
     ierr = CeedCalloc(1, &impl); CeedChk(ierr);
     op->data = impl;
-    op->Destroy = CeedOperatorDestroy_Magma;
-    op->Apply = CeedOperatorApply_Magma;
+    op->Destroy  = CeedOperatorDestroy_Magma;
+    op->Apply    = CeedOperatorApply_Magma;
     op->GetQData = CeedOperatorGetQData_Magma;
     return 0;
 }
