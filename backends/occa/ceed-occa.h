@@ -52,7 +52,7 @@ typedef struct {
   const CeedInt *h_indices;
   occaMemory *d_indices;
   occaMemory *d_offsets;
-  occaKernel kRestrict[7];
+  occaKernel kRestrict[9];
 } CeedElemRestriction_Occa;
 
 // *****************************************************************************

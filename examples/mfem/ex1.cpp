@@ -272,14 +272,14 @@ int main(int argc, char *argv[]) {
   //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
   //    largest number that gives a final system with no more than 50,000
   //    unknowns, approximately.
-  {
+/*  {
     double max_dofs = 50000;
     int ref_levels =
       (int)floor((log(max_dofs/mesh->GetNE())-dim*log(order))/log(2.)/dim);
     for (int l = 0; l < ref_levels; l++) {
       mesh->UniformRefinement();
     }
-  }
+    }*/
   if (mesh->GetNodalFESpace() == NULL) {
     mesh->SetCurvature(1, false, -1, mfem::Ordering::byNODES);
   }

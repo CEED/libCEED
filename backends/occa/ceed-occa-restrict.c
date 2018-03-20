@@ -68,15 +68,20 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
     // Note: in transpose mode, we perform: v += r^t * u
     if (ncomp == 1) {
       occaKernelRun(occa->kRestrict[3], id, ud, vd);
+      //assert(false);
       occaKernelRun(occa->kRestrict[6], id, od, ud, vd);
     } else {
       // u is (elemsize x ncomp x nelem)
       if (lmode == CEED_NOTRANSPOSE) {
         // v is (ndof x ncomp), column-major
+        assert(false);
         occaKernelRun(occa->kRestrict[4], occaInt(ncomp), id, ud, vd);
+        //occaKernelRun(occa->kRestrict[7], occaInt(ncomp), id, od,ud, vd);
       } else {
         // v is (ncomp x ndof), column-major
         occaKernelRun(occa->kRestrict[5], occaInt(ncomp), id, ud, vd);
+        assert(false);
+        //occaKernelRun(occa->kRestrict[8], occaInt(ncomp), id, od,ud, vd);
       }
     }
   }
@@ -102,6 +107,8 @@ static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
   occaKernelFree(data->kRestrict[4]);
   occaKernelFree(data->kRestrict[5]);
   occaKernelFree(data->kRestrict[6]);
+  occaKernelFree(data->kRestrict[7]);
+  occaKernelFree(data->kRestrict[8]);
   ierr = CeedFree(&data->h_indices); CeedChk(ierr);
   ierr = CeedFree(&data->d_indices); CeedChk(ierr);
   ierr = CeedFree(&data->d_offsets); CeedChk(ierr);
@@ -118,11 +125,12 @@ static int CeedElemRestrictionOffset_Occa(const CeedElemRestriction r,
   const CeedInt nelem = r->nelem;
   const CeedInt elemsize = r->elemsize;
   const CeedInt ndof = r->ndof;
-  //printf("nelem=%d, elemsize=%d & ndof=%d\n",nelem,elemsize,ndof);
+  printf("nelem=%d, elemsize=%d & ndof=%d\n",nelem,elemsize,ndof);
   
   for (int e=0; e < nelem; ++e)
     for (int i=0; i < elemsize; ++i){
-      //printf("\t indices #%d => %d\n",elemsize*e+i,indices[elemsize*e+i]);
+      const int lid = elemsize*e+i;
+      printf("\t indices lid_%d => gid_%d\n",lid,indices[lid]);
     }
 
   for (int i=0; i<=ndof; ++i) offsets[i]=0;
@@ -130,15 +138,39 @@ static int CeedElemRestrictionOffset_Occa(const CeedElemRestriction r,
   for (int e=0; e < nelem; ++e) 
     for (int i=0; i < elemsize; ++i)
       ++offsets[indices[elemsize*e+i]+1];
-  
-  // Aggregate to find offsets for each global dof
-  for (int i = 1; i <= ndof; ++i){
-    offsets[i] += offsets[i-1];
-    //printf("\tdof #%d => shifted offsets: %d\n",i,offsets[i]);
-  }
 
-  for (int i = 0; i <= ndof; ++i){
-    //printf("\tdof #%d => offsets: %d\n",i,offsets[i]);
+  printf("offsets:");
+  for (int i=0; i<=ndof; ++i)
+    printf(" %d",offsets[i]);
+  printf("\n");
+  
+  for (int i = 1; i <= ndof; ++i) {
+    offsets[i] += offsets[i-1];
+  }
+  
+  printf("aggr-offsets:");
+  for (int i=0; i<=ndof; ++i)
+    printf(" %d",offsets[i]);
+  printf("\n");
+
+  int h_indices[elemsize*nelem];
+  for (int e = 0; e < nelem; ++e) {
+    for (int i = 0; i < elemsize; ++i) {
+      const int lid = elemsize*e+i;
+      const int gid = indices[lid];
+      printf("\t lid=%d, gid=%d,",lid,gid);fflush(stdout);
+      printf(" offsets[gid]=%d",offsets[gid]);fflush(stdout);
+      h_indices[offsets[gid]++] = lid;
+      printf(", @%d=>%d\n",offsets[gid]-1,lid);
+    }
+  }
+  
+  for (int i = ndof; i > 0; --i)
+    offsets[i] = offsets[i - 1];
+  offsets[0] = 0;
+  
+  for (int i = 0; i < ndof; ++i){
+    printf("\tdof #%d => offsets: %d\n",i,offsets[i]);
   }
 
   return 0;
@@ -224,6 +256,8 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   data->kRestrict[4] = occaDeviceBuildKernel(dev, oklPath, "kRestrict4", pKR);
   data->kRestrict[5] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5", pKR);
   data->kRestrict[6] = occaDeviceBuildKernel(dev, oklPath, "kRestrict3b", pKR);
+  data->kRestrict[7] = occaDeviceBuildKernel(dev, oklPath, "kRestrict4b", pKR);
+  data->kRestrict[8] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5b", pKR);
   occaPropertiesFree(pKR);
   CeedDebug("\033[35m[CeedElemRestriction][Create] done");
   return 0;
