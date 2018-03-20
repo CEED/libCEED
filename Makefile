@@ -27,8 +27,8 @@ UNDERSCORE ?= 1
 OCCA_DIR ?= ../occa
 
 SANTIZ = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
-CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native
-FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP -march=native
+CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
+FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
 
 CFLAGS += $(if $(NDEBUG),-O2,-g)
 ifeq ($(UNDERSCORE), 1)
