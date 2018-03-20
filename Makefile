@@ -111,6 +111,8 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 .SUFFIXES: .c .o .d
 .SECONDEXPANSION:		# to expand $$(@D)/.DIR
 
+.SECONDARY: 
+
 %/.DIR :
 	@mkdir -p $(@D)
 	@touch $@
