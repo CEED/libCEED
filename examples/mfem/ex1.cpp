@@ -56,7 +56,7 @@ static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
       // 0 2
       // 1 3
       qd[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
-  }
+    }
     break;
   case 33:
     for (CeedInt i=0; i<Q; i++) {
@@ -79,7 +79,7 @@ static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
 static int f_apply_mass(void *ctx, void *qdata, CeedInt Q,
                         const CeedScalar *const *u, CeedScalar *const *v) {
   const CeedScalar *w = (const CeedScalar*)qdata;
-  for (CeedInt i=0; i<Q; i++){
+  for (CeedInt i=0; i<Q; i++) {
     v[0][i] = w[i] * u[0][i];
   }
   return 0;

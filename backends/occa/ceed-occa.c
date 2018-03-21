@@ -74,15 +74,17 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
 #ifdef CDEBUG
   occaSetVerboseCompilation(true);
 #endif
+
   const char *mode =
-    (resource[1]=='g') ? occaGPU :
-    (resource[1]=='o') ? occaOMP :
-    (resource[2]=='c') ? occaOCL : occaCPU;
+    (!strcmp(resource, "/gpu/occa")) ? occaGPU :
+    (!strcmp(resource, "/omp/occa")) ? occaOMP :
+    (!strcmp(resource, "/ocl/occa")) ? occaOCL :
+    occaCPU;
   // Now creating OCCA device
   data->device = occaCreateDevice(occaString(mode));
-  if ((resource[1] == 'g' || resource[1] == 'o' || resource[2] == 'c')
+  if ((resource[1] == 'g' || resource[1] == 'o')
       && !strcmp(occaDeviceMode(data->device), "Serial"))
-    return CeedError(ceed, 1, "OCCA backend failed to use GPU resource");
+    return CeedError(ceed, 1, "OCCA backend failed to use non-Serial resource");
   return 0;
 }
 

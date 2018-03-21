@@ -102,7 +102,7 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
       occaCopyMemToPtr(data->used_pointer,data->d_array,
                        residual->length*sizeof(CeedScalar),
                        NO_OFFSET, NO_PROPS);
-   }
+  }
   // ***************************************************************************
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;

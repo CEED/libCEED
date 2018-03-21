@@ -124,7 +124,7 @@ static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
   CeedQFunction_Occa *data=qf->data;
   free(data->oklPath);
   CeedDebug("\033[36m[CeedQFunction][Destroy]");
-  if (data->ready){
+  if (data->ready) {
     if (!data->op) occaMemoryFree(data->d_q);
     occaMemoryFree(data->d_u);
     occaMemoryFree(data->d_v);
@@ -164,7 +164,7 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   data->oklPath=calloc(4096,sizeof(char));
   const size_t oklPathLen = last_dot - qf->focca;
   memcpy(data->oklPath,qf->focca,oklPathLen);
-  data->oklPath[oklPathLen]='\0';  
+  data->oklPath[oklPathLen]='\0';
   strcpy(&data->oklPath[oklPathLen],".okl");
   CeedDebug("\033[36;1m[CeedQFunction][Create] filename=%s",data->oklPath);
   // Test if we can get file's status ******************************************
