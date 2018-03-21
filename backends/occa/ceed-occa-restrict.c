@@ -52,11 +52,11 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
       // v is (elemsize x ncomp x nelem), column-major
       if (ordering) {
         // u is (ndof x ncomp), column-major
-      CeedDebug("\033[35m[CeedElemRestriction][Apply] kRestrict[1]");
+        CeedDebug("\033[35m[CeedElemRestriction][Apply] kRestrict[1]");
         occaKernelRun(data->kRestrict[1], occaInt(ncomp), id, ud, vd);
       } else {
         // u is (ncomp x ndof), column-major
-      CeedDebug("\033[35m[CeedElemRestriction][Apply] kRestrict[2]");
+        CeedDebug("\033[35m[CeedElemRestriction][Apply] kRestrict[2]");
         occaKernelRun(data->kRestrict[2], occaInt(ncomp), id, ud, vd);
       }
     }
@@ -133,6 +133,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   int ierr;
   CeedElemRestriction_Occa *data;
   const occaDevice dev = ((Ceed_Occa*)r->ceed->data)->device;
+  ((Ceed_Occa*)r->ceed->data)->er = r;
   // ***************************************************************************
   if (mtype != CEED_MEM_HOST)
     return CeedError(r->ceed, 1, "Only MemType = HOST supported");
@@ -181,37 +182,5 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   data->kRestrict[8] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5b", pKR);
   occaPropertiesFree(pKR);
   CeedDebug("\033[35m[CeedElemRestriction][Create] done");
-  return 0;
-}
-
-// *****************************************************************************
-// * TENSORS: Contracts on the middle index
-// *          NOTRANSPOSE: V_ajc = T_jb U_abc
-// *          TRANSPOSE:   V_ajc = T_bj U_abc
-// * CeedScalars are used here, not CeedVectors: we don't touch it yet
-// *****************************************************************************
-int CeedTensorContract_Occa(Ceed ceed,
-                            CeedInt A, CeedInt B, CeedInt C, CeedInt J,
-                            const CeedScalar *t, CeedTransposeMode tmode,
-                            const CeedInt Add,
-                            const CeedScalar *u, CeedScalar *v) {
-  CeedInt tstride0 = B, tstride1 = 1;
-  //CeedDebug("\033[35m[CeedTensorContract] A=%d, J=%d, C=%d, B=%d: %d",A,J,C,B,A*J*B*C);
-  if (tmode == CEED_TRANSPOSE) {
-    tstride0 = 1; tstride1 = J;
-  }
-  for (CeedInt a=0; a<A; a++) {
-    for (CeedInt j=0; j<J; j++) {
-      if (!Add) {
-        for (CeedInt c=0; c<C; c++)
-          v[(a*J+j)*C+c] = 0;
-      }
-      for (CeedInt b=0; b<B; b++) {
-        for (CeedInt c=0; c<C; c++) {
-          v[(a*J+j)*C+c] += t[j*tstride0 + b*tstride1] * u[(a*B+b)*C+c];
-        }
-      }
-    }
-  }
   return 0;
 }

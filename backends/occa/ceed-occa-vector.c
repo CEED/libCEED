@@ -50,14 +50,14 @@ static int CeedVectorSetArray_Occa(const CeedVector x,
                                    CeedScalar *array) {
   CeedVector_Occa *data = x->data;
   int ierr;
-  CeedDebug("\033[33m[CeedVectorOcca][Set]");
+  CeedDebug("\033[33m[CeedVector][Set]");
   if (mtype != CEED_MEM_HOST)
     return CeedError(x->ceed, 1, "Only MemType = HOST supported");
   ierr = CeedFree(&data->h_array); CeedChk(ierr);
   switch (cmode) {
   // Implementation will copy the values and not store the passed pointer.
   case CEED_COPY_VALUES:
-    CeedDebug("\t\033[33m[CeedVectorOcca][Set] CEED_COPY_VALUES");
+    CeedDebug("\t\033[33m[CeedVector][Set] CEED_COPY_VALUES");
     ierr = CeedMalloc(x->length, &data->h_array); CeedChk(ierr);
     if (array) memcpy(data->h_array, array, bytes(x));
     if (array) occaSyncH2D(x);
@@ -65,13 +65,13 @@ static int CeedVectorSetArray_Occa(const CeedVector x,
   // Implementation takes ownership of the pointer
   // and will free using CeedFree() when done using it
   case CEED_OWN_POINTER:
-    CeedDebug("\t\033[33m[CeedVectorOcca][Set] CEED_OWN_POINTER");
+    CeedDebug("\t\033[33m[CeedVector][Set] CEED_OWN_POINTER");
     data->h_array = array;
     occaSyncH2D(x);
     break;
   // Implementation can use and modify the data provided by the user
   case CEED_USE_POINTER:
-    CeedDebug("\t\033[33m[CeedVectorOcca][Set] CEED_USE_POINTER");
+    CeedDebug("\t\033[33m[CeedVector][Set] CEED_USE_POINTER");
     data->h_array = array;
     data->used_pointer = array;
     occaSyncH2D(x);
@@ -79,7 +79,7 @@ static int CeedVectorSetArray_Occa(const CeedVector x,
     break;
   default: CeedError(x->ceed,1," OCCA backend no default error");
   }
-  CeedDebug("\t\033[33m[CeedVectorOcca][Set] done");
+  CeedDebug("\t\033[33m[CeedVector][Set] done");
   return 0;
 }
 

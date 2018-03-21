@@ -37,11 +37,15 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   const CeedInt nc = op->basis->ndof, dim = op->basis->dim;
   const CeedTransposeMode lmode = CEED_NOTRANSPOSE;
   CeedOperator_Occa *data = op->data;
-  CeedVector etmp;
+  CeedVector etmp,vBEu,vBEv;
   CeedScalar *Eu;
   CeedInt Q;
   char *qd;
   int ierr;
+  const size_t esize = op->Erestrict->elemsize;
+  const CeedInt enelem = op->Erestrict->nelem;
+  // Get Q *********************************************************************
+  ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
   // Fill CeedQFunction_Occa's structure with nc, dim & qdata ******************
   CeedQFunction_Occa *qfd = op->qf->data;
   qfd->op = true;
@@ -50,17 +54,22 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   qfd->d_q = ((CeedVector_Occa *)qdata->data)->d_array;
   // ***************************************************************************
   if (!data->etmp) {
-    const int n = nc * op->Erestrict->nelem * op->Erestrict->elemsize;
+    const int n = (nc*enelem)*esize;
+    const int vn = (enelem*Q*nc*(dim+2))*esize;
+    CeedDebug("\033[37;1m[CeedOperator][Apply] Setup, n=%d & vn=%d",n,vn);
     ierr = CeedVectorCreate(op->ceed,n,&data->etmp); CeedChk(ierr);
+    ierr = CeedVectorCreate(op->ceed,vn,&vBEu); CeedChk(ierr);
+    ierr = CeedVectorCreate(op->ceed,vn,&vBEv); CeedChk(ierr);
     // etmp is allocated when CeedVectorGetArray is called below
   }
   etmp = data->etmp;
   if (op->qf->inmode & ~CEED_EVAL_WEIGHT) {
+    CeedDebug("\033[37;1m[CeedOperator][Apply] Apply Restriction");
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_NOTRANSPOSE,
                                     nc, lmode, ustate, etmp,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
   }
-  ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
+  // We want to avoid Get/Restore
   ierr = CeedVectorGetArray(etmp, CEED_MEM_HOST, &Eu); CeedChk(ierr);
   // Fetching back data from device memory
   ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar**)&qd);
@@ -69,9 +78,11 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   CeedScalar BEu[Q*nc*(dim+2)], BEv[Q*nc*(dim+2)], *out[5] = {0,0,0,0,0};
   const CeedScalar *in[5] = {0,0,0,0,0};
   const size_t qbytes = op->qf->qdatasize;
-  const size_t esize = op->Erestrict->elemsize;
-  const CeedInt enelem = op->Erestrict->nelem;
   // ***************************************************************************
+  CeedDebug("\033[37;1m[CeedOperator][Apply] BEu");
+  ierr = CeedBasisApplyElems_Occa(op->basis,CEED_NOTRANSPOSE,op->qf->inmode,etmp,vBEu);CeedChk(ierr);
+  // ***************************************************************************
+  CeedDebug("\033[37;1m[CeedOperator][Apply] Q for-loop");
   for (CeedInt e=0; e<enelem; e++) {
     ierr = CeedBasisApply(op->basis, CEED_NOTRANSPOSE,
                           op->qf->inmode, &Eu[e*nc*esize], BEu);
@@ -89,7 +100,12 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
                           op->qf->outmode, BEv, &Eu[e*nc*esize]);
     CeedChk(ierr);
   }
-  ierr = CeedVectorRestoreArray(etmp, &Eu); CeedChk(ierr);
+  // ***************************************************************************
+  CeedDebug("\033[37;1m[CeedOperator][Apply] BEv");
+  ierr = CeedBasisApplyElems_Occa(op->basis,CEED_TRANSPOSE,op->qf->outmode,vBEv,etmp);CeedChk(ierr);
+  // *************************************************************************
+  ierr = CeedVectorRestoreArray(etmp, &Eu);
+  CeedChk(ierr);
   // ***************************************************************************
   if (residual) {
     CeedDebug("\033[37;1m[CeedOperator][Apply] residual");
@@ -139,6 +155,7 @@ int CeedOperatorCreate_Occa(CeedOperator op) {
   CeedDebug("\033[37;1m[CeedOperator][Create]");
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
   op->data = data;
+  ((Ceed_Occa*)op->ceed->data)->op = op;
   return 0;
 }
 
