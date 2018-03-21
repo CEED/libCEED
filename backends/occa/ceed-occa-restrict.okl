@@ -1,6 +1,6 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// All Rights reserved. See files LICENSE and NOTICE for details.
 //
 // This file is part of CEED, a collection of benchmarks, miniapps, software
 // libraries and APIs for efficient high-order finite element and spectral
@@ -93,7 +93,7 @@ kernel void kRestrict4(const int ncomp,
     if (e >= nelem) continue;
     for (int d = 0; d < ncomp; d++){
       for (int i=0; i<elemsize; i++) {
-         atomicAdd(vv + indices[i+elemsize*e]+ndof*d, uu[i+elemsize*(d+e*ncomp)]);
+         atomicAdd(vv+indices[i+elemsize*e]+ndof*d,uu[i+elemsize*(d+e*ncomp)]);
       }
     }
   }
@@ -126,7 +126,7 @@ kernel void kRestrict5(const int ncomp,
     if (e >= nelem) continue;
     for (int d = 0; d < ncomp; d++){
       for (int i=0; i<elemsize; i++) {
-         atomicAdd(vv + d+ncomp*indices[i+elemsize*e], uu[i+elemsize*(d+e*ncomp)]);
+         atomicAdd(vv+d+ncomp*indices[i+elemsize*e],uu[i+elemsize*(d+e*ncomp)]);
       }
     }
   }
@@ -142,7 +142,7 @@ kernel void kRestrict5b(const int ncomp,
     if (e >= nelem) continue;
     for (int d = 0; d < ncomp; d++){
       for (int i=0; i<elemsize; i++) {
-        atomicAdd(vv + d+ncomp*tindices[i+elemsize*e], uu[i+elemsize*(d+e*ncomp)]);
+        atomicAdd(vv + d+ncomp*tindices[i+elemsize*e],uu[i+elemsize*(d+e*ncomp)]);
       }
     }
   }

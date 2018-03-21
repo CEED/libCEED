@@ -1,6 +1,6 @@
-# Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-# the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-# reserved. See files LICENSE and NOTICE for details.
+# Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+# Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+# All Rights reserved. See files LICENSE and NOTICE for details.
 #
 # This file is part of CEED, a collection of benchmarks, miniapps, software
 # libraries and APIs for efficient high-order finite element and spectral

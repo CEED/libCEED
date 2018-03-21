@@ -45,7 +45,6 @@ static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
   BuildContext *bc = (BuildContext*)ctx;
   CeedScalar *qd = (CeedScalar*)qdata;
   const CeedScalar *J = u[1], *qw = u[4];
-  //printf("\n[f_build_mass] %d",bc->dim + 10*bc->space_dim);
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
     for (CeedInt i=0; i<Q; i++) {
@@ -57,18 +56,6 @@ static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
       // 0 2
       // 1 3
       qd[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
-      //printf("\n[f_build_mass] qd[%d]=%f",i,qd[i]);
-/*[f_build_mass] 22
-[f_build_mass] qd[0]=0.018346
-[f_build_mass] qd[1]=0.029354
-[f_build_mass] qd[2]=0.018346
-[f_build_mass] qd[3]=0.029354
-[f_build_mass] qd[4]=0.046966
-[f_build_mass] qd[5]=0.029354
-[f_build_mass] qd[6]=0.018346
-[f_build_mass] qd[7]=0.029354
-[f_build_mass] qd[8]=0.018346
-*/
   }
     break;
   case 33:
@@ -92,22 +79,8 @@ static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
 static int f_apply_mass(void *ctx, void *qdata, CeedInt Q,
                         const CeedScalar *const *u, CeedScalar *const *v) {
   const CeedScalar *w = (const CeedScalar*)qdata;
-  //printf("\n[f_apply_mass] Q=%d",Q);
   for (CeedInt i=0; i<Q; i++){
     v[0][i] = w[i] * u[0][i];
-    //printf("\n[f_apply_mass]\tv[0][%d]=%f",i,v[0][i]);
-/*[f_apply_mass] v[0][8]=0.000000   Iteration :   0  (B r, r) = 0.560944 ...
-
-[f_apply_mass] v[0][0]=0.001762
-[f_apply_mass] v[0][1]=0.003454
-[f_apply_mass] v[0][2]=0.002555
-[f_apply_mass] v[0][3]=0.003454
-[f_apply_mass] v[0][4]=0.006556
-[f_apply_mass] v[0][5]=0.004742
-[f_apply_mass] v[0][6]=0.002555
-[f_apply_mass] v[0][7]=0.004742
-[f_apply_mass] v[0][8]=0.003373
-*/
   }
   return 0;
 }
@@ -262,14 +235,6 @@ class CeedMassOperator : public mfem::Operator {
     CeedVectorSetArray(u, CEED_MEM_HOST, CEED_USE_POINTER, x.GetData());
     CeedVectorSetArray(v, CEED_MEM_HOST, CEED_USE_POINTER, y.GetData());
     CeedOperatorApply(oper, qdata, u, v, CEED_REQUEST_IMMEDIATE);
-
-    CeedScalar* v_data;
-    CeedVectorGetArray(v,CEED_MEM_HOST,&v_data);
-
-    mfem::Vector yy(v_data, y.Size());
-    y=yy;
-    
-    CeedVectorRestoreArray(v, &v_data);
   }
 };
 

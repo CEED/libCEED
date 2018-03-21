@@ -1,6 +1,6 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// All Rights reserved. See files LICENSE and NOTICE for details.
 //
 // This file is part of CEED, a collection of benchmarks, miniapps, software
 // libraries and APIs for efficient high-order finite element and spectral
@@ -70,10 +70,8 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   ceed->QFunctionCreate = CeedQFunctionCreate_Occa;
   ceed->OperatorCreate = CeedOperatorCreate_Occa;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  //ierr = CeedCalloc(1,&data->device); CeedChk(ierr);
   ceed->data = data;
 #ifdef CDEBUG
-  // occaPrintModeInfo(); // can throw CUDA_ERROR_NOT_INITIALIZED with cuda 9.1
   occaSetVerboseCompilation(true);
 #endif
   const char *mode =

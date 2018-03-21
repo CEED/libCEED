@@ -1,6 +1,6 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// All Rights reserved. See files LICENSE and NOTICE for details.
 //
 // This file is part of CEED, a collection of benchmarks, miniapps, software
 // libraries and APIs for efficient high-order finite element and spectral
@@ -16,6 +16,8 @@
 #include "ceed-occa.h"
 
 // *****************************************************************************
+// * CeedBasisApply_Occa
+// *****************************************************************************
 static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
                                CeedEvalMode emode,
                                const CeedScalar *u, CeedScalar *v) {
@@ -24,12 +26,13 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
   const CeedInt ndof = basis->ndof;
   const CeedInt nqpt = ndof*CeedPowInt(basis->Q1d, dim);
   const CeedInt transpose = (tmode == CEED_TRANSPOSE);
-
+  // ***************************************************************************
   if (transpose) {
     const CeedInt vsize = ndof*CeedPowInt(basis->P1d, dim);
     for (CeedInt i = 0; i < vsize; i++)
       v[i] = (CeedScalar) 0;
   }
+  // ***************************************************************************
   if (emode & CEED_EVAL_INTERP) {
     const CeedInt P = transpose?basis->Q1d:basis->P1d;
     const CeedInt Q = transpose?basis->P1d:basis->Q1d;
@@ -49,6 +52,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
       u += nqpt;
     }
   }
+  // ***************************************************************************
   if (emode & CEED_EVAL_GRAD) {
     // In CEED_NOTRANSPOSE mode:
     // u is (P^dim x nc), column-major layout (nc = ndof)
@@ -75,6 +79,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
       }
     }
   }
+  // ***************************************************************************
   if (emode & CEED_EVAL_WEIGHT) {
     if (transpose)
       return CeedError(basis->ceed, 1,
@@ -96,11 +101,15 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
 }
 
 // *****************************************************************************
+// * CeedBasisDestroy_Occa
+// *****************************************************************************
 static int CeedBasisDestroy_Occa(CeedBasis basis) {
   CeedDebug("\033[38;5;249m[CeedBasis][Destroy]");
   return 0;
 }
 
+// *****************************************************************************
+// * CeedBasisCreateTensorH1_Occa
 // *****************************************************************************
 int CeedBasisCreateTensorH1_Occa(Ceed ceed, CeedInt dim, CeedInt P1d,
                                  CeedInt Q1d, const CeedScalar *interp1d,

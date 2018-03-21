@@ -1,6 +1,6 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// All Rights reserved. See files LICENSE and NOTICE for details.
 //
 // This file is part of CEED, a collection of benchmarks, miniapps, software
 // libraries and APIs for efficient high-order finite element and spectral
@@ -33,21 +33,24 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
                                          CeedRequest *request) {
   CeedDebug("\033[35m[CeedElemRestriction][Apply]");
   const CeedElemRestriction_Occa *data = r->data;
-  const occaMemory id = *data->d_indices;
-  const occaMemory tid = *data->d_tindices;
-  const occaMemory od = *data->d_toffsets;
+  const occaMemory id = data->d_indices;
+  const occaMemory tid = data->d_tindices;
+  const occaMemory od = data->d_toffsets;
   const CeedVector_Occa *u_data = u->data;
   const CeedVector_Occa *v_data = v->data;
-  const occaMemory ud = *u_data->d_array;
-  const occaMemory vd = *v_data->d_array;
-  if (tmode == CEED_NOTRANSPOSE) {
+  const occaMemory ud = u_data->d_array;
+  const occaMemory vd = v_data->d_array;
+  const CeedTransposeMode restriction = (tmode == CEED_NOTRANSPOSE);
+  const CeedTransposeMode ordering = (lmode == CEED_NOTRANSPOSE);
+  // ***************************************************************************
+  if (restriction) {
     // Perform: v = r * u
     if (ncomp == 1) {
       CeedDebug("\033[35m[CeedElemRestriction][Apply] kRestrict[0]");
       occaKernelRun(data->kRestrict[0], id, ud, vd);
     } else {
       // v is (elemsize x ncomp x nelem), column-major
-      if (lmode == CEED_NOTRANSPOSE) {
+      if (ordering) {
         // u is (ndof x ncomp), column-major
       CeedDebug("\033[35m[CeedElemRestriction][Apply] kRestrict[1]");
         occaKernelRun(data->kRestrict[1], occaInt(ncomp), id, ud, vd);
@@ -57,7 +60,7 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
         occaKernelRun(data->kRestrict[2], occaInt(ncomp), id, ud, vd);
       }
     }
-  } else {
+  } else { // ******************************************************************
     // Note: in transpose mode, we perform: v += r^t * u
     if (ncomp == 1) {
       CeedDebug("\033[35m[CeedElemRestriction][Apply] kRestrict[3]");
@@ -65,7 +68,7 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
       occaKernelRun(data->kRestrict[6], tid, od, ud, vd);
     } else {
       // u is (elemsize x ncomp x nelem)
-      if (lmode == CEED_NOTRANSPOSE) {
+      if (ordering) {
         // v is (ndof x ncomp), column-major
         CeedDebug("\033[35m[CeedElemRestriction][Apply] kRestrict[4]");
         //occaKernelRun(data->kRestrict[4], occaInt(ncomp), id, ud, vd);
@@ -88,21 +91,6 @@ static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
   int ierr;
   CeedElemRestriction_Occa *data = r->data;
   CeedDebug("\033[35m[CeedElemRestriction][Destroy]");
-  occaMemoryFree(*data->d_indices);
-  occaMemoryFree(*data->d_toffsets);
-  occaMemoryFree(*data->d_tindices);
-  occaKernelFree(data->kRestrict[0]);
-  occaKernelFree(data->kRestrict[1]);
-  occaKernelFree(data->kRestrict[2]);
-  occaKernelFree(data->kRestrict[3]);
-  occaKernelFree(data->kRestrict[4]);
-  occaKernelFree(data->kRestrict[5]);
-  occaKernelFree(data->kRestrict[6]);
-  occaKernelFree(data->kRestrict[7]);
-  occaKernelFree(data->kRestrict[8]);
-  ierr = CeedFree(&data->d_indices); CeedChk(ierr);
-  ierr = CeedFree(&data->d_toffsets); CeedChk(ierr);
-  ierr = CeedFree(&data->d_tindices); CeedChk(ierr);
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
@@ -155,22 +143,19 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   r->data = data;
   // ***************************************************************************
-  ierr = CeedCalloc(1,&data->d_indices); CeedChk(ierr);
-  ierr = CeedCalloc(1,&data->d_toffsets); CeedChk(ierr);
-  ierr = CeedCalloc(1,&data->d_tindices); CeedChk(ierr);
-  *data->d_indices = occaDeviceMalloc(dev, bytes(r), NULL, NO_PROPS);
-  *data->d_toffsets = occaDeviceMalloc(dev,(1+r->ndof)*sizeof(CeedInt),
+  data->d_indices = occaDeviceMalloc(dev, bytes(r), NULL, NO_PROPS);
+  data->d_toffsets = occaDeviceMalloc(dev,(1+r->ndof)*sizeof(CeedInt),
                                        NULL, NO_PROPS);
-  *data->d_tindices = occaDeviceMalloc(dev, bytes(r), NULL, NO_PROPS);
+  data->d_tindices = occaDeviceMalloc(dev, bytes(r), NULL, NO_PROPS);
   // ***************************************************************************
   CeedInt toffsets[r->ndof+1];
   CeedInt tindices[r->elemsize*r->nelem];
   CeedElemRestrictionOffset_Occa(r,indices,toffsets,tindices);
-  occaCopyPtrToMem(*data->d_toffsets,toffsets,
+  occaCopyPtrToMem(data->d_toffsets,toffsets,
                    (1+r->ndof)*sizeof(CeedInt),NO_OFFSET,NO_PROPS);
-  occaCopyPtrToMem(*data->d_tindices,tindices,bytes(r),NO_OFFSET,NO_PROPS);
+  occaCopyPtrToMem(data->d_tindices,tindices,bytes(r),NO_OFFSET,NO_PROPS);
   // ***************************************************************************
-  occaCopyPtrToMem(*data->d_indices,indices,bytes(r),NO_OFFSET,NO_PROPS);
+  occaCopyPtrToMem(data->d_indices,indices,bytes(r),NO_OFFSET,NO_PROPS);
   // ***************************************************************************
   CeedDebug("\033[35m[CeedElemRestriction][Create] Building kRestrict");
   occaProperties pKR = occaCreateProperties();

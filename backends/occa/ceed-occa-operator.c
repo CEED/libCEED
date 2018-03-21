@@ -1,6 +1,6 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// All Rights reserved. See files LICENSE and NOTICE for details.
 //
 // This file is part of CEED, a collection of benchmarks, miniapps, software
 // libraries and APIs for efficient high-order finite element and spectral
@@ -16,38 +16,38 @@
 #include "ceed-occa.h"
 
 // *****************************************************************************
-/// Destroy the CeedOperator_Occa
+// * Destroy the CeedOperator_Occa
 // *****************************************************************************
 static int CeedOperatorDestroy_Occa(CeedOperator op) {
   CeedDebug("\033[37;1m[CeedOperator][Destroy]");
   CeedOperator_Occa *data = op->data;
-  int ierr  = CeedVectorDestroy(&data->etmp); CeedChk(ierr);
+  int ierr = CeedVectorDestroy(&data->etmp); CeedChk(ierr);
   ierr = CeedVectorDestroy(&data->qdata); CeedChk(ierr);
   ierr = CeedFree(&op->data); CeedChk(ierr);
   return 0;
 }
 
 // *****************************************************************************
-/// Apply CeedOperator to a vector
+// * Apply CeedOperator to a vector
 // *****************************************************************************
 static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
                                   CeedVector ustate,
                                   CeedVector residual, CeedRequest *request) {
   CeedDebug("\033[37;1m[CeedOperator][Apply]");
-  CeedOperator_Occa *data = op->data;
   const CeedInt nc = op->basis->ndof, dim = op->basis->dim;
+  const CeedTransposeMode lmode = CEED_NOTRANSPOSE;
+  CeedOperator_Occa *data = op->data;
   CeedVector etmp;
-  CeedInt Q;
   CeedScalar *Eu;
+  CeedInt Q;
   char *qd;
   int ierr;
-  const CeedTransposeMode lmode = CEED_NOTRANSPOSE;
   // Fill CeedQFunction_Occa's structure with nc, dim & qdata ******************
-  CeedQFunction_Occa *QFdata = op->qf->data;
-  QFdata->op = true;
-  QFdata->nc = nc;
-  QFdata->dim = dim;
-  QFdata->d_qdata = ((CeedVector_Occa *)qdata->data)->d_array;
+  CeedQFunction_Occa *qfd = op->qf->data;
+  qfd->op = true;
+  qfd->nc = nc;
+  qfd->dim = dim;
+  qfd->d_q = ((CeedVector_Occa *)qdata->data)->d_array;
   // ***************************************************************************
   if (!data->etmp) {
     const int n = nc * op->Erestrict->nelem * op->Erestrict->elemsize;
@@ -64,15 +64,14 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   ierr = CeedVectorGetArray(etmp, CEED_MEM_HOST, &Eu); CeedChk(ierr);
   // Fetching back data from device memory
   ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar**)&qd);
-  QFdata->qdata = qd; // Telling QF base address of qd
   CeedChk(ierr);
-  // Local arrays, sizes & pointers
+  // Local arrays, sizes & pointers ********************************************
   CeedScalar BEu[Q*nc*(dim+2)], BEv[Q*nc*(dim+2)], *out[5] = {0,0,0,0,0};
   const CeedScalar *in[5] = {0,0,0,0,0};
   const size_t qbytes = op->qf->qdatasize;
   const size_t esize = op->Erestrict->elemsize;
   const CeedInt enelem = op->Erestrict->nelem;
-  // TODO: quadrature weights can be computed just once
+  // ***************************************************************************
   for (CeedInt e=0; e<enelem; e++) {
     ierr = CeedBasisApply(op->basis, CEED_NOTRANSPOSE,
                           op->qf->inmode, &Eu[e*nc*esize], BEu);
@@ -83,6 +82,7 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
     if (op->qf->inmode & CEED_EVAL_WEIGHT) { in[4] = u_ptr; u_ptr += Q; }
     if (op->qf->outmode & CEED_EVAL_INTERP) { out[0] = v_ptr; v_ptr += Q*nc; }
     if (op->qf->outmode & CEED_EVAL_GRAD) { out[1] = v_ptr; v_ptr += Q*nc*dim; }
+    qfd->offset = e*Q;
     ierr = CeedQFunctionApply(op->qf, &qd[e*Q*qbytes], Q, in, out);
     CeedChk(ierr);
     ierr = CeedBasisApply(op->basis, CEED_TRANSPOSE,
@@ -90,24 +90,27 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
     CeedChk(ierr);
   }
   ierr = CeedVectorRestoreArray(etmp, &Eu); CeedChk(ierr);
+  // ***************************************************************************
   if (residual) {
     CeedDebug("\033[37;1m[CeedOperator][Apply] residual");
-    CeedScalar *res;
-    CeedVectorGetArray(residual, CEED_MEM_HOST, &res);
-    for (int i = 0; i < residual->length; i++)
-      res[i] = (CeedScalar)0.0;
-    ierr = CeedVectorRestoreArray(residual, &res); CeedChk(ierr);
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_TRANSPOSE,
                                     nc, lmode, etmp, residual,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
-  }
+    // Restore used pointer if one was provided ********************************
+    const CeedVector_Occa *data = residual->data;
+    if (data->used_pointer)
+      occaCopyMemToPtr(data->used_pointer,data->d_array,
+                       residual->length*sizeof(CeedScalar),
+                       NO_OFFSET, NO_PROPS);
+   }
+  // ***************************************************************************
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
   return 0;
 }
 
 // *****************************************************************************
-/// Get a suitably sized vector to hold passive fields
+// * CeedOperatorGetQData_Occa
 // *****************************************************************************
 static int CeedOperatorGetQData_Occa(CeedOperator op, CeedVector *qdata) {
   CeedDebug("\033[37;1m[CeedOperator][GetQData]");
@@ -125,7 +128,7 @@ static int CeedOperatorGetQData_Occa(CeedOperator op, CeedVector *qdata) {
 }
 
 // *****************************************************************************
-/// Create an operator from element restriction, basis, and QFunction
+// * Create an operator from element restriction, basis, and QFunction
 // *****************************************************************************
 int CeedOperatorCreate_Occa(CeedOperator op) {
   int ierr;

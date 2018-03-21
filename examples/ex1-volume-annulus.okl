@@ -30,7 +30,6 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt qoffset,
   // u[1] is Jacobians, size (Q x nc x dim) with column-major layout
   // u[4] is quadrature weights, size (Q)
   struct BuildContext *bc = (struct BuildContext*)ctx;
-  //printf("\n[okl][f_build_mass] %d",bc->dim + 10*bc->space_dim);
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
     for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
@@ -50,7 +49,6 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt qoffset,
       const CeedScalar *qw=u+Q*NC*(DIM+1);
       CeedScalar *qd = ((CeedScalar*)qdata)+qoffset;
       qd[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
-      //printf("\n[okl][f_build_mass] qd[%d]=%f",i,qd[i]);
     }
     break;
   case 33:
@@ -77,12 +75,10 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt qoffset,
 kernel void f_apply_mass(void *ctx, void *qdata, const CeedInt qoffset,
                          CeedInt Q, const CeedScalar *u,
                          CeedScalar *v, int *rtn) {
-  //printf("\n[f_apply_mass] Q=%d",Q);
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
     const CeedScalar *w = ((CeedScalar*)qdata)+qoffset;
     v[i] = w[i] * u[i];
-    //printf("\n[okl][f_apply_mass]\tv[%d]=%f",i,v[i]);
   }
   *rtn=0;
 }
