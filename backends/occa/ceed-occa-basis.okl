@@ -83,43 +83,6 @@ kernel void kInterp(const int transpose, const CeedTransposeMode tmode,
                           transpose&&(d==dim-1),
                           d==0?o_u:(d%2==0)?tmp0:tmp1,
                           d==dim-1?o_v:((d+1)%2==0)?tmp0:tmp1);
-      //CeedTensorContract_Occa(basis->ceed
-      //                        pre                     // A
-      //                        P                       // B
-      //                        post                    // C
-      //                        Q                       // J
-      //                        basis->interp1d         // t
-      //                        tmode                   // tmode
-      //                        transpose&&(d==dim-1)   // Add
-      //                        d==0?u:tmp[d%2]         // u
-      //                        d==dim-1?v:tmp[(d+1)%2] // v
-      // ***********************************************************************
-/*      const int A = pre;
-      const int B = P;
-      const int C = post;
-      const int J = Q;
-      const double *t = interp1d;
-      const bool Add = transpose&&(d==dim-1);
-      double *u = (d==0)?o_u:(d%2==0)?tmp0:tmp1;//tmp[d%2];
-      double *v = (d==dim-1)?o_v:((d+1)%2==0)?tmp0:tmp1;//tmp[(d+1)%2];
-      // ***********************************************************************
-      const int tstride0 = transpose?1:B;
-      const int tstride1 = transpose?J:1;
-      for (int a=0; a<A; a++) {
-        for (int j=0; j<J; j++) {
-          if (!Add) {
-            for (int c=0; c<C; c++)
-              v[(a*J+j)*C+c] = 0.0;
-          }
-          for (int b=0; b<B; b++) {
-            for (int c=0; c<C; c++) {
-              v[(a*J+j)*C+c] += t[j*tstride0 + b*tstride1] * u[(a*B+b)*C+c];
-            }
-          }
-        }
-      }
-*/
-      // ***********************************************************************
       pre /= P;
       post *= Q;
     }
@@ -129,7 +92,7 @@ kernel void kInterp(const int transpose, const CeedTransposeMode tmode,
 }
 
 // *****************************************************************************
-kernel void kGrad(const bool transpose, const int tmode,
+kernel void kGrad(const bool transpose, const CeedTransposeMode tmode,
                   const int P, const int Q,
                   const int _pre, const int _post,
                   double *tmp0, double *tmp1, double *grad1d, double *interp1d,
@@ -142,42 +105,11 @@ kernel void kGrad(const bool transpose, const int tmode,
     for (int p=0; p<dim; p++) {
       int pre = _pre, post = _post;
       for (int d=0; d<dim; d++) {
-        // CeedTensorContract_Occa(basis->ceed,
-        //                         pre,                      // A
-        //                         P,                        // B
-        //                         post,                     // C
-        //                         Q,                        // J
-        //                         (p==d)?grad1d:interp1d,   // t
-        //                         tmode,                    // tmode
-        //                         transpose&&(d==dim-1),    // Add
-        //                         d==0?u:tmp[d%2],          // u
-        //                         d==dim-1?v:tmp[(d+1)%2]); // v
-        // *********************************************************************
-        const int A = pre;
-        const int B = P;
-        const int C = post;
-        const int J = Q;
-        const double *t = (p==d)?grad1d:interp1d;
-        const bool Add = transpose&&(d==dim-1);
-        double *u = (d==0)?o_u:(d%2==0)?tmp0:tmp1;
-        double *v = (d==dim-1)?o_v:((d+1)%2==0)?tmp0:tmp1;
-        // *********************************************************************
-        const int tstride0 = transpose?1:B;
-        const int tstride1 = transpose?J:1;
-        for (int a=0; a<A; a++) {
-          for (int j=0; j<J; j++) {
-            if (!Add) {
-              for (int c=0; c<C; c++)
-                v[(a*J+j)*C+c] = 0.0;
-            }
-            for (int b=0; b<B; b++) {
-              for (int c=0; c<C; c++) {
-                v[(a*J+j)*C+c] += t[j*tstride0 + b*tstride1] * u[(a*B+b)*C+c];
-              }
-            }
-          }
-        }
-        // *********************************************************************
+        kCeedTensorContract(pre,P,post,Q,
+                            (p==d)?grad1d:interp1d,
+                            tmode, transpose&&(d==dim-1),
+                            d==0?o_u:(d%2==0)?tmp0:tmp1,
+                            d==dim-1?o_v:((d+1)%2==0)?tmp0:tmp1);
         pre /= P;
         post *= Q;
       }
