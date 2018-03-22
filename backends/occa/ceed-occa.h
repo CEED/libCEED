@@ -74,7 +74,7 @@ typedef struct {
 typedef struct {
   bool op, ready;
   int nc, dim, offset;
-  occaMemory d_q,d_u,d_v;
+  occaMemory d_q,d_u,b_u,d_v;
   char *oklPath;
   const char *qFunctionName;
   occaKernel kQFunctionApply;

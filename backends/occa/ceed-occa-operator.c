@@ -62,6 +62,7 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
     ierr = CeedVectorCreate(op->ceed,bn,&data->BEv); CeedChk(ierr);
     // etmp is allocated when CeedVectorGetArray is called below
   }
+  qfd->b_u = ((CeedVector_Occa *)data->BEu->data)->d_array;
   etmp = data->etmp;
   if (op->qf->inmode & ~CEED_EVAL_WEIGHT) {
     CeedDebug("\033[37;1m[CeedOperator][Apply] Apply Restriction");
@@ -81,13 +82,25 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   // ***************************************************************************
   CeedDebug("\033[37;1m[CeedOperator][Apply] BEu");
   ierr = CeedBasisApplyElems_Occa(op->basis,CEED_NOTRANSPOSE,op->qf->inmode,
-                                  etmp,data->BEu);CeedChk(ierr);
+                                  data->etmp,data->BEu);CeedChk(ierr);
+  CeedDebug("\033[37;1m[CeedOperator][Apply] etmp:");
+  CeedVectorView(data->etmp,"%f",stdout);
+  CeedDebug("\033[37;1m[CeedOperator][Apply] BEu:");
+  CeedVectorView(data->BEu,"%f",stdout);
   // ***************************************************************************
   CeedDebug("\033[37;1m[CeedOperator][Apply] Q for-loop");
   for (CeedInt e=0; e<enelem; e++) {
     // t20 needs this
-    ierr = CeedBasisApply(op->basis, CEED_NOTRANSPOSE,op->qf->inmode, &Eu[e*nc*esize], BEu);
-    CeedChk(ierr);
+    ierr = CeedBasisApply(op->basis, CEED_NOTRANSPOSE,op->qf->inmode, &Eu[e*nc*esize], &BEu[0]);CeedChk(ierr);
+    CeedDebug("\033[37;1m[CeedOperator][Apply] for-loop Eu:");
+    for(CeedInt k=0;k<nc*esize;k++){
+      printf("\t %f\n",Eu[e*nc*esize+k]);
+    }
+    CeedDebug("\033[37;1m[CeedOperator][Apply] for-loop BEu[e=%d,esize=%d,enelem=%d]:",e,esize,enelem);
+    for(CeedInt k=0;k<(Q*nc*(dim+2));k++){
+      printf("\t %f\n",BEu[k]);
+    }
+    /*
     CeedScalar *u_ptr = BEu, *v_ptr = BEv;
     if (op->qf->inmode & CEED_EVAL_INTERP) { in[0] = u_ptr; u_ptr += Q*nc; }
     if (op->qf->inmode & CEED_EVAL_GRAD) { in[1] = u_ptr; u_ptr += Q*nc*dim; }
@@ -97,10 +110,10 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
     qfd->offset = e;
     ierr = CeedQFunctionApply(op->qf, &qd[e*Q*qbytes], Q, in, out);
     CeedChk(ierr);
-    ierr = CeedBasisApply(op->basis, CEED_TRANSPOSE,
-                          op->qf->outmode, BEv, &Eu[e*nc*esize]);
-    CeedChk(ierr);
+    ierr = CeedBasisApply(op->basis, CEED_TRANSPOSE,op->qf->outmode, BEv, &Eu[e*nc*esize]); CeedChk(ierr);
+    */
   }
+  exit(0);
   // ***************************************************************************
   CeedDebug("\033[37;1m[CeedOperator][Apply] BEv");
   ierr = CeedBasisApplyElems_Occa(op->basis,CEED_TRANSPOSE,op->qf->outmode,
@@ -160,6 +173,7 @@ int CeedOperatorCreate_Occa(CeedOperator op) {
   CeedDebug("\033[37;1m[CeedOperator][Create]");
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
   op->data = data;
+  // Push to Ceed_Occa this operator
   ((Ceed_Occa*)op->ceed->data)->op = op;
   return 0;
 }
