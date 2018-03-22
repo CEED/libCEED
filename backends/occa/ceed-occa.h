@@ -24,7 +24,7 @@
 // *****************************************************************************
 #define NO_OFFSET 0
 #define NO_PROPS occaDefault
-#define TILE_SIZE 32
+#define TILE_SIZE 64
 
 
 // *****************************************************************************
@@ -50,6 +50,7 @@ typedef struct {
 // * CeedBasis Occa struct
 // *****************************************************************************
 typedef struct {
+  bool ready;
   occaMemory qref1d;
   occaMemory qweight1d;
   occaMemory interp1d;
@@ -63,7 +64,7 @@ typedef struct {
 // *****************************************************************************
 typedef struct {
   CeedVector etmp;
-  CeedVector Eu;
+  CeedVector BEu,BEv;
   CeedVector qdata;
 } CeedOperator_Occa;
 

@@ -20,9 +20,9 @@ typedef double CeedScalar;
 
 // *****************************************************************************
 kernel void setup(void *ctx, void *qdata, const CeedInt qoffset,
-                  CeedInt Q, const CeedScalar *u,
+                  CeedInt Q, const CeedScalar *u, //const CeedInt uoffset,
                   CeedScalar *v, int *rtn) {
-  const CeedScalar *u0 = (CeedScalar*)u;
+  const CeedScalar *u0 = ((CeedScalar*)u);//+uoffset;
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
     CeedScalar *w = ((CeedScalar*)qdata)+qoffset;
