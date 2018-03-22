@@ -132,8 +132,8 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   CeedDebug("\033[35m[CeedElemRestriction][Create]");
   int ierr;
   CeedElemRestriction_Occa *data;
-  const occaDevice dev = ((Ceed_Occa*)r->ceed->data)->device;
-  ((Ceed_Occa*)r->ceed->data)->er = r;
+  Ceed_Occa *ceed_data = r->ceed->data;
+  const occaDevice dev = ceed_data->device;
   // ***************************************************************************
   if (mtype != CEED_MEM_HOST)
     return CeedError(r->ceed, 1, "Only MemType = HOST supported");

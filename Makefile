@@ -19,7 +19,7 @@ FC ?= gfortran
 
 ASAN ?= #1
 NDEBUG ?= #1
-CDEBUG ?= 1
+CDEBUG ?= #1
 
 LDFLAGS ?=
 UNDERSCORE ?= 1
@@ -182,7 +182,7 @@ cln clean :
 	$(RM) -r *.dSYM $(OBJDIR) $(LIBDIR)/pkgconfig
 	$(MAKE) -C examples clean
 	$(MAKE) -C examples/mfem clean
-	cd examples/nek5000; make-nek-examples.sh clean; cd ../..
+	(cd examples/nek5000 && ./make-nek-examples.sh clean)
 
 distclean : clean
 	rm -rf doc/html

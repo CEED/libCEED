@@ -281,7 +281,6 @@ int CeedDestroy(Ceed *ceed) {
  */
 void CeedDebug(const char *format,...) {
 #ifdef CDEBUG
-#warning CDEBUG
   va_list args;
   va_start(args, format);
   fflush(stdout);

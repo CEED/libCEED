@@ -163,5 +163,9 @@ int CeedVectorCreate_Occa(const Ceed ceed, const CeedInt n, CeedVector vec) {
   // ***************************************************************************
   data->used_pointer = NULL;
   data->d_array = occaDeviceMalloc(ceed_data->device, bytes(vec),NULL,NO_PROPS);
+  // Flush device memory *******************************************************
+  ierr=CeedCalloc(vec->length, &data->h_array); CeedChk(ierr);
+  occaSyncH2D(vec);
+  ierr = CeedFree(&data->h_array); CeedChk(ierr);
   return 0;
 }

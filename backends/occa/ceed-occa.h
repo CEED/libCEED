@@ -51,6 +51,7 @@ typedef struct {
 // *****************************************************************************
 typedef struct {
   bool ready;
+  CeedElemRestriction er;
   occaMemory qref1d;
   occaMemory qweight1d;
   occaMemory interp1d;
@@ -73,8 +74,8 @@ typedef struct {
 // *****************************************************************************
 typedef struct {
   bool op, ready;
-  int nc, dim, offset;
-  occaMemory d_q,d_u,b_u,d_v;
+  int nc, dim, elemsize, e;
+  occaMemory d_q,d_u,b_u,d_v,b_v;
   char *oklPath;
   const char *qFunctionName;
   occaKernel kQFunctionApply;
@@ -85,8 +86,6 @@ typedef struct {
 // *****************************************************************************
 typedef struct {
   occaDevice device;
-  CeedOperator op;
-  CeedElemRestriction er;
 } Ceed_Occa;
 
 // *****************************************************************************

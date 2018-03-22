@@ -34,27 +34,28 @@ EXAMPLES=ex1
 ###############################################################################
 # DONT'T TOUCH WHAT FOLLOWS !!!
 ###############################################################################
-# Set defaults for the parameters
-
-if [ -e $NEK5K_DIR/bin/makenek ]; then
-  NEK5K_DIR:=`cd "../../../Nek5000"; pwd`
-else
-  exit
-fi
-
-# : ${NEK5K_DIR:=`cd "../../../Nek5000"; pwd`}
-: ${FC:="mpif77"}
-: ${CC:="mpicc"}
 
 # See if its just cleaning and if yes, clean and exit
 if [[ "$#" -eq 1 && "$1" -eq "clean" ]]; then
+    echo NEK clean
   if [[ -f ./makenek ]]; then
     printf "y\n" | ./makenek clean 2>&1 >> /dev/null
   fi
   rm makenek* ex1 ex1*log* SESSION.NAME 2> /dev/null
   find ./boxes -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
-  exit
+  exit 0
 fi
+
+# Set defaults for the parameters
+if [ -e $NEK5K_DIR/bin/makenek ]; then
+  NEK5K_DIR:=`cd "../../../Nek5000"; pwd`
+else
+  exit 0
+fi
+
+# : ${NEK5K_DIR:=`cd "../../../Nek5000"; pwd`}
+: ${FC:="mpif77"}
+: ${CC:="mpicc"}
 
 # Exit if being sourced
 if [[ "${#BASH_SOURCE[@]}" -gt 1 ]]; then

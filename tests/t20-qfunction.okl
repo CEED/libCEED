@@ -19,28 +19,38 @@ typedef int CeedInt;
 typedef double CeedScalar;
 
 // *****************************************************************************
-kernel void setup(void *ctx, void *qdata, const CeedInt qoffset,
-                  CeedInt Q, const CeedScalar *u, //const CeedInt uoffset,
-                  CeedScalar *v, int *rtn) {
-  const CeedScalar *u0 = ((CeedScalar*)u);//+uoffset;
+kernel void setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
+                  const CeedScalar *u, const CeedScalar *bu,
+                  CeedScalar *v, CeedScalar *bv,
+                  int *ierr) {
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    CeedScalar *w = ((CeedScalar*)qdata)+qoffset;
+    CeedScalar *w = ((CeedScalar*)qdata)+e*Q;
+    const CeedScalar *u0 = u;
+    // Offset computation should depend on inmode & outmode
+    const int offset = e*(Q*NC*(DIM+2));
+    const CeedScalar *bu0=bu+offset;
+    //printf("\tu0[%d]=%f, bu0[%d]=%f\n",i,u0[i],i,bu0[i]);
     w[i] = u0[i];
   }
-  *rtn=0;
+  *ierr=0;
 }
 
 // *****************************************************************************
-kernel void mass(void *ctx, void *qdata, const CeedInt qoffset,
-                 CeedInt Q, const CeedScalar *u,
-                 CeedScalar *v, int *rtn) {
-  const CeedScalar *u0 = (CeedScalar*)u;
+kernel void mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
+                 const CeedScalar *u, const CeedScalar *bu,
+                 CeedScalar *v, CeedScalar *bv,
+                 int *ierr) {
   CeedScalar *v0 = (CeedScalar*)v;
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    const CeedScalar *w = ((CeedScalar*)qdata)+qoffset;
+    const CeedScalar *w = ((CeedScalar*)qdata)+e*Q;
+    const CeedScalar *u0 = u;
+    // Offset computation should depend on inmode & outmode
+    const int offset = e*(Q*NC*(DIM+2));
+    const CeedScalar *bu0=bu+offset;
+    //printf("\tu0[%d]=%f, bu0[%d]=%f\n",i,u0[i],i,bu0[i]);
     v0[i] = w[i] * u0[i];
   }
-  *rtn=0;
+  *ierr=0;
 }
