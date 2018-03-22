@@ -26,11 +26,11 @@ static inline size_t bytes(const CeedElemRestriction res) {
 // * Restrict an L-vector to an E-vector or apply transpose
 // *****************************************************************************
 static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
-                                         CeedTransposeMode tmode,
-                                         CeedInt ncomp,
-                                         CeedTransposeMode lmode,
-                                         CeedVector u, CeedVector v,
-                                         CeedRequest *request) {
+    CeedTransposeMode tmode,
+    CeedInt ncomp,
+    CeedTransposeMode lmode,
+    CeedVector u, CeedVector v,
+    CeedRequest *request) {
   CeedDebug("\033[35m[CeedElemRestriction][Apply]");
   const CeedElemRestriction_Occa *data = r->data;
   const occaMemory id = data->d_indices;
@@ -99,14 +99,14 @@ static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
 // * Compute the transposed Tindices and Toffsets from indices
 // *****************************************************************************
 static int CeedElemRestrictionOffset_Occa(const CeedElemRestriction r,
-                                          const CeedInt *indices,
-                                          CeedInt *toffsets,
-                                          CeedInt *tindices){
+    const CeedInt *indices,
+    CeedInt *toffsets,
+    CeedInt *tindices) {
   const CeedInt nelem = r->nelem;
   const CeedInt elemsize = r->elemsize;
   const CeedInt ndof = r->ndof;
   for (int i=0; i<=ndof; ++i) toffsets[i]=0;
-  for (int e=0; e < nelem; ++e) 
+  for (int e=0; e < nelem; ++e)
     for (int i=0; i < elemsize; ++i)
       ++toffsets[indices[elemsize*e+i]+1];
   for (int i = 1; i <= ndof; ++i)
@@ -146,7 +146,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   // ***************************************************************************
   data->d_indices = occaDeviceMalloc(dev, bytes(r), NULL, NO_PROPS);
   data->d_toffsets = occaDeviceMalloc(dev,(1+r->ndof)*sizeof(CeedInt),
-                                       NULL, NO_PROPS);
+                                      NULL, NO_PROPS);
   data->d_tindices = occaDeviceMalloc(dev, bytes(r), NULL, NO_PROPS);
   // ***************************************************************************
   CeedInt toffsets[r->ndof+1];
@@ -163,7 +163,8 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   occaPropertiesSet(pKR, "defines/ndof", occaInt(r->ndof));
   occaPropertiesSet(pKR, "defines/nelem", occaInt(r->nelem));
   occaPropertiesSet(pKR, "defines/elemsize", occaInt(r->elemsize));
-  occaPropertiesSet(pKR, "defines/nelem_x_elemsize", occaInt(r->nelem*r->elemsize));
+  occaPropertiesSet(pKR, "defines/nelem_x_elemsize",
+                    occaInt(r->nelem*r->elemsize));
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(TILE_SIZE));
   char oklPath[4096] = __FILE__;
   // path to ceed-occa-restrict.okl
