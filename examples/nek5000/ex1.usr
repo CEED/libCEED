@@ -448,7 +448,7 @@ c     Create a ceed element restriction
       enddo
 
       call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,
-     $  ceed_mem_host,ceed_copy_values,indices,erstrct,err)
+     $  ceed_mem_host,ceed_use_pointer,indices,erstrct,err)
 
 c     Create a ceed qfunction
       call ceedqfunctioncreateinterior(ceed,1,ncomp,8,ceed_eval_interp,
@@ -463,9 +463,9 @@ c     Create a ceed operator
 c     Create ceed vectors
       call ceedvectorcreate(ceed,ldof,vec_ap1,err)
       call ceedvectorcreate(ceed,ldof,vec_p1,err)
-      call ceedoperatorgetqdata(ceed,vec_qdata,err)
-c      call ceedvectorsetarray(vec_qdata,ceed_mem_host,
-c     $  ceed_copy_values,h2,err)
+      call ceedoperatorgetqdata(op_mass,vec_qdata,err)
+      call ceedvectorsetarray(vec_qdata,ceed_mem_host,
+     $  ceed_use_pointer,h2,err)
 
 c     Start cg
       wv(1)=0
@@ -478,9 +478,8 @@ c     Start cg
       rpp1(1) = wv  (1)
 
       do 1000 iter=1,maxit
-         call ceed_axhm1    (pap,ap1,p1,h1,h2,ceed,op_mass,
+         call ceed_axhm1(pap,ap1,p1,h1,h2,ceed,op_mass,
      $     vec_ap1,vec_p1,vec_qdata)
-c         call axhm1    (pap,ap1,p1,h1,h2)
          call gop      (pap,wk,'+  ',1)
          call xmask1   (ap1,nel)
          call dssum    (ap1,nx1,ny1,nz1)
@@ -550,8 +549,8 @@ c        tolerance check here
 c     Destroy ceed handles
       call ceedvectordestroy(vec_ap1,err)
       call ceedvectordestroy(vec_p1,err)
-c      call ceedoperatordestroy(op_mass,err)
-c      call ceedqfunctiondestroy(qf_mass,err)
+      call ceedoperatordestroy(op_mass,err)
+      call ceedqfunctiondestroy(qf_mass,err)
       call ceedelemrestrictiondestroy(erstrct,err)
       call ceedbasisdestroy(basis,err)
 
@@ -1020,7 +1019,7 @@ c     Helmholtz equations
       integer ceed,op_mass,vec_ap1,vec_p1,vec_qdata
       integer e
 
-      call ceedvectorsetarray(vec_p1,ceed_mem_host,ceed_copy_values,
+      call ceedvectorsetarray(vec_p1,ceed_mem_host,ceed_use_pointer,
      $  p1,err)
       call ceedoperatorapply(op_mass,vec_qdata,vec_p1,vec_ap1,
      $  ceed_request_immediate,err)
