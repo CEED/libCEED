@@ -1,0 +1,165 @@
+// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// All Rights reserved. See files LICENSE and NOTICE for details.
+//
+// This file is part of CEED, a collection of benchmarks, miniapps, software
+// libraries and APIs for efficient high-order finite element and spectral
+// element discretizations for exascale applications. For more information and
+// source code availability see http://github.com/ceed.
+//
+// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
+// a collaborative effort of two U.S. Department of Energy organizations (Office
+// of Science and the National Nuclear Security Administration) responsible for
+// the planning and preparation of a capable exascale ecosystem, including
+// software, applications, hardware, advanced system engineering and early
+// testbed platforms, in support of the nation's exascale computing imperative.
+
+// *****************************************************************************
+static inline int CeedPowInt(int base, int power) {
+  int result = 1;
+  while (power) {
+    if (power & 1) result *= base;
+    power >>= 1;
+    base *= base;
+  }
+  return result;
+}
+
+// *****************************************************************************
+static int kCeedTensorContract(const int transpose,
+                               const int A, const int B,
+                               const int C, const int J,
+                               const double *t,
+                               const int tmode,
+                               const int Add,
+                               const double *u, double *v) {
+  const int tstride0 = transpose?1:B;
+  const int tstride1 = transpose?J:1;
+  for (int a=0; a<A; a++) {
+    for (int j=0; j<J; j++) {
+      if (!Add) {
+        for (int c=0; c<C; c++) v[(a*J+j)*C+c] = 0.0;
+      }
+      for (int b=0; b<B; b++) {
+        for (int c=0; c<C; c++) {
+          v[(a*J+j)*C+c] += t[j*tstride0 + b*tstride1] * u[(a*B+b)*C+c];
+        }
+      }
+    }
+  }
+  return 0;
+}
+
+// *****************************************************************************
+kernel void kZero(double* d_v, int *ierr) {
+  for (int e=0; e<nelem; e++; tile(TILE_SIZE)) {
+    if (e >= nelem) continue;
+    const int v_offset = e*(nc*elemsize);
+    double *o_v = d_v+v_offset;
+    for (int i = 0; i < vsize; i++)
+      o_v[i] = 0.0;
+  }
+}
+
+// *****************************************************************************
+kernel void kInterp(const int QnD,const int transpose, const int tmode,
+                    double *tmp0,double *tmp1,double *interp1d,
+                    double *d_u, double *d_v, int *ierr){
+  const int P = transpose?Q1d:P1d;
+  const int Q = transpose?P1d:Q1d;
+  //printf("\t[kInterp] CEED_EVAL_INTERP, P=%d, Q=%d\n",P,Q);
+  for (int e=0; e<nelem; e++; tile(TILE_SIZE)) {
+    if (e >= nelem) continue;
+    const int u_offset = e*(nc*elemsize);
+    const int v_offset = e*(QnD*nc*(dim+2));
+    const double *o_u = d_u+(transpose?v_offset:u_offset);
+    double *o_v = d_v+(transpose?u_offset:v_offset);
+    int pre = ndof*CeedPowInt(P, dim-1), post = 1;
+    //printf(", pre=%d",pre);
+    //printf(", post=%d",post);
+    for (int d=0; d<dim; d++) {
+      //printf("\n[kInterp] d=%d",d);
+      //printf(", d==0: %s",d==0?"yes":"no");
+      //printf(", d%%2=%d ",d%2);
+      //printf(", d==dim-1: %s",d==dim-1?"yes":"no");
+      //printf(", (d+1)%%2=%d ",(d+1)%2);
+      kCeedTensorContract(transpose,
+                          pre,P,post,Q,
+                          interp1d, tmode,
+                          transpose&&(d==dim-1),
+                          d==0?o_u:((d%2)==0)?tmp0:tmp1,
+                          d==dim-1?o_v:(((d+1)%2)==0)?tmp0:tmp1);
+      pre /= P;
+      post *= Q;
+    }
+    if (!transpose) o_v += nqpt;
+    else o_u += nqpt;
+  }
+  //printf("\n");
+}
+
+// *****************************************************************************
+kernel void kGrad(const int QnD, const int transpose, const int tmode,                  
+                  double *tmp0, double *tmp1, double *grad1d, double *interp1d,
+                  double *d_u, int u_nqpt,
+                  double *d_v, int v_nqpt,
+                  int *ierr){
+  const int P = transpose?Q1d:P1d;
+  const int Q = transpose?P1d:Q1d;
+  //printf("\n[kGrad] CEED_EVAL_GRAD, P=%d, Q=%d, transpose:%s",P,Q,transpose?"yes":"no");
+  for (int e=0; e<nelem; e++; tile(TILE_SIZE)) {
+    if (e >= nelem) continue;
+    const int u_offset = e*(nc*elemsize);
+    const int v_offset = e*(QnD*nc*(dim+2));
+    //printf("\n[kGrad] v_offset=%d",v_offset);
+    const double *o_u = d_u+(transpose?v_offset:u_offset);
+    double *o_v = d_v+(transpose?u_offset:v_offset);
+    for (int p=0; p<dim; p++) {
+      //printf("\n\t[kGrad] p=%d",p);
+      int pre = ndof*CeedPowInt(P,dim-1);
+      int post = 1;
+      for (int d=0; d<dim; d++) {
+        //printf("\n\t\t[kGrad] d=%d",d);
+        //printf(", pre=%d",pre);
+        //printf(", post=%d",post);
+        //printf(", d==0: %s",d==0?"yes":"no");
+        //printf(", d%%2=%d ",d%2);
+        //printf(", d==dim-1: %s",d==dim-1?"yes":"no");
+        //printf(", (d+1)%%2=%d ",(d+1)%2);
+        kCeedTensorContract(transpose,
+                            pre,P,post,Q,
+                            (p==d)?grad1d:interp1d,
+                            tmode, transpose&&(d==dim-1),
+                            d==0?o_u:((d%2)==0)?tmp0:tmp1,
+                            d==dim-1?o_v:(((d+1)%2)==0)?tmp0:tmp1);
+        pre /= P;
+        post *= Q;
+      }
+      if (!transpose) o_v += nqpt;
+      else o_u += nqpt;
+    }
+  }
+}
+
+// *****************************************************************************
+kernel void kWeight(const int QnD, const int Q, double *qweight1d, double* d_v,
+                    const int v_nqpt, int *ierr){
+  for (int e=0; e<nelem; e++; tile(TILE_SIZE)) {
+    if (e >= nelem) continue;
+    const int v_offset = e*(QnD*nc*(dim+2))+v_nqpt;
+    double *v = d_v+v_offset;
+    //printf("\n[kWeight] CEED_EVAL_WEIGHT Q=%d, v_nqpt=%d",Q,v_nqpt);
+    for (int d=0; d<dim; d++) {
+      const int pre = CeedPowInt(Q,dim-d-1);
+      const int post = CeedPowInt(Q,d);
+      //printf("\tpre=%d",pre);printf(", post=%d",post);
+       for (int i=0; i<pre; i++) {
+        for (int j=0; j<Q; j++) {
+          for (int k=0; k<post; k++) {
+            v[(i*Q+j)*post+k] = qweight1d[j]*(d==0?1.0:v[(i*Q+j)*post+k]);
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// All Rights reserved. See files LICENSE and NOTICE for details.
 //
 // This file is part of CEED, a collection of benchmarks, miniapps, software
 // libraries and APIs for efficient high-order finite element and spectral
@@ -13,7 +13,6 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-
 #include "ceed-occa.h"
 
 // *****************************************************************************
@@ -45,10 +44,11 @@ static int CeedError_Occa(Ceed ceed,
 // * CeedDestroy_Occa
 // *****************************************************************************
 static int CeedDestroy_Occa(Ceed ceed) {
-  const Ceed_Occa *data=ceed->data;
+  int ierr;
+  Ceed_Occa *data=ceed->data;
   CeedDebug("\033[1m[CeedDestroy]");
   occaDeviceFree(data->device);
-  CeedChk(CeedFree(&data));
+  ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
 
@@ -56,8 +56,8 @@ static int CeedDestroy_Occa(Ceed ceed) {
 // * INIT
 // *****************************************************************************
 static int CeedInit_Occa(const char *resource, Ceed ceed) {
-  Ceed_Occa *occa;
-
+  int ierr;
+  Ceed_Occa *data;
   CeedDebug("\033[1m[CeedInit] resource='%s'", resource);
   if (strcmp(resource, "/cpu/occa") && strcmp(resource, "/omp/occa") &&
       strcmp(resource, "/ocl/occa") && strcmp(resource, "/gpu/occa"))
@@ -69,25 +69,24 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Occa;
   ceed->QFunctionCreate = CeedQFunctionCreate_Occa;
   ceed->OperatorCreate = CeedOperatorCreate_Occa;
-  // Allocating occa, host & device
-  CeedChk(CeedCalloc(1,&occa));
-  ceed->data = occa;
+  ierr = CeedCalloc(1,&data); CeedChk(ierr);
+  ceed->data = data;
 #ifdef CDEBUG
-  //occaPrintModeInfo(); // produces CUDA_ERROR_NOT_INITIALIZED
   occaSetVerboseCompilation(true);
 #endif
+
   const char *mode =
-    (resource[1]=='g') ? occaGPU :
-    (resource[1]=='o') ? occaOMP : 
-    (resource[2]=='c') ? occaOCL : occaCPU;
+    (!strcmp(resource, "/gpu/occa")) ? occaGPU :
+    (!strcmp(resource, "/omp/occa")) ? occaOMP :
+    (!strcmp(resource, "/ocl/occa")) ? occaOCL :
+    occaCPU;
   // Now creating OCCA device
-  occa->device = occaCreateDevice(occaString(mode));
-  if ((resource[1] == 'g' || resource[1] == 'o' || resource[2] == 'c')
-      && !strcmp(occaDeviceMode(occa->device), "Serial"))
-    return CeedError(ceed, 1, "OCCA backend failed to use GPU resource");
+  data->device = occaCreateDevice(occaString(mode));
+  if ((resource[1] == 'g' || resource[1] == 'o')
+      && !strcmp(occaDeviceMode(data->device), "Serial"))
+    return CeedError(ceed, 1, "OCCA backend failed to use non-Serial resource");
   return 0;
 }
-
 
 // *****************************************************************************
 // * REGISTER

@@ -91,6 +91,7 @@ struct CeedBasis_private {
   CeedScalar *qweight1d;
   CeedScalar *interp1d;
   CeedScalar *grad1d;
+  void *data;       /* place for the backend to store any data */
 };
 
 /* FIXME: The number of in-fields and out-fields may be different? */

@@ -1,6 +1,6 @@
-# Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-# the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-# reserved. See files LICENSE and NOTICE for details.
+# Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+# Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+# All Rights reserved. See files LICENSE and NOTICE for details.
 #
 # This file is part of CEED, a collection of benchmarks, miniapps, software
 # libraries and APIs for efficient high-order finite element and spectral
@@ -19,7 +19,7 @@ FC ?= gfortran
 
 ASAN ?= 0
 NDEBUG ?= #1
-CDEBUG ?= 1
+CDEBUG ?= #1
 
 LDFLAGS ?=
 UNDERSCORE ?= 1
@@ -27,12 +27,12 @@ UNDERSCORE ?= 1
 # OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
 OCCA_DIR ?= ../occa
 
-# Warning SANTIZ options still don't run with /gpu/occa
+# Warning: SANTIZ options still don't run with /gpu/occa
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = #-fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native -O2 -g
-FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP -march=native
+CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -O2 -g
+FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
 
 CFLAGS += $(if $(NDEBUG),-DNDEBUG=1)
 CFLAGS += $(if $(CDEBUG),-DCDEBUG=1)
@@ -63,7 +63,7 @@ INSTALL_DATA = $(INSTALL) -m644
 
 NPROCS := $(shell getconf _NPROCESSORS_ONLN)
 MFLAGS := -j $(NPROCS) --warn-undefined-variables \
-			--no-print-directory --no-keep-going
+                       --no-print-directory --no-keep-going
 
 PROVE ?= prove
 PROVE_OPTS ?= -j $(NPROCS)
@@ -73,10 +73,12 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.c := $(wildcard ceed*.c)
-# tests
+
+# Tests
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9]-*.c))
 tests.f   := $(sort $(wildcard tests/t[0-9][0-9]-*.f))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
+ctests    := $(tests)
 tests     += $(tests.f:tests/%.f=$(OBJDIR)/%)
 #examples
 examples.c := $(sort $(wildcard examples/*.c))
@@ -117,7 +119,7 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 this: $(libceed) $(ceed.pc)
 all:;@$(MAKE) $(MFLAGS) V=$(V) this
 
-$(libceed) : LDFLAGS += $(if $(DARWIN), -install_name $(abspath $(libceed)))
+$(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)))
 
 libceed.c += $(ref.c)
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
@@ -151,30 +153,19 @@ run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:build/%=%)
 
 test : $(tests:$(OBJDIR)/%=run-%) $(examples:$(OBJDIR)/%=run-%)
-tst:;@$(MAKE) $(MFLAGS) V=$(V) test
-
-ctests:=$(tests.c:tests/%.c=$(OBJDIR)/%)
-cto: $(ctests)
-	build/t00-init /cpu/occa
-	build/t01-vec /cpu/occa
-	build/t05-elemrestriction /cpu/occa
-	build/t10-basis /cpu/occa
-	build/t11-basis /cpu/occa
-	build/t12-basis /cpu/occa
-	build/t13-basis /cpu/occa
-	build/t14-basis-weight /cpu/occa
-	build/t20-qfunction /cpu/occa
-	build/t30-operator /cpu/occa
+tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
+ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
+ctg-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /gpu/$*;)
 
 prove : $(tests) $(examples)
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)
-prv:;@$(MAKE) $(MFLAGS) V=$(V) prove
+prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
 examples : $(examples)
 
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)
 $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
-.INTERMEDIATE: $(OBJDIR)/ceed.pc
+.INTERMEDIATE : $(OBJDIR)/ceed.pc
 %/ceed.pc : ceed.pc.template | $$(@D)/.DIR
 	@sed "s:%prefix%:$(pkgconfig-prefix):" $< > $@
 
@@ -184,14 +175,14 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 
-.PHONY: all cln clean print test tst prove prv examples astyle install doc
+.PHONY : all cln clean print test tst prove prv examples astyle install doc
 
 cln clean :
 	$(RM) *.o *.d $(libceed)
 	$(RM) -r *.dSYM $(OBJDIR) $(LIBDIR)/pkgconfig
 	$(MAKE) -C examples clean
 	$(MAKE) -C examples/mfem clean
-	cd examples/nek5000; bash make-nek-examples.sh clean; cd ../..;
+	(cd examples/nek5000 && ./make-nek-examples.sh clean)
 
 distclean : clean
 	rm -rf doc/html
@@ -199,7 +190,7 @@ distclean : clean
 doc :
 	doxygen Doxyfile
 
-astyle :
+style astyle :
 	astyle --style=google --indent=spaces=2 --max-code-length=80 \
             --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
             --suffix=none --preserve-date --formatted \
@@ -208,7 +199,7 @@ astyle :
 print :
 	@echo $(VAR)=$($(VAR))
 
-print-%:
+print-% :
 	$(info [ variable name]: $*)
 	$(info [        origin]: $(origin $*))
 	$(info [         value]: $(value $*))
