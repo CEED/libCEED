@@ -192,14 +192,14 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
     if (transpose)
       return CeedError(basis->ceed, 1,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
-    const CeedInt Q = basis->Q1d;
+    const CeedInt Q1d = basis->Q1d;
     const occaMemory d_qw = data->qweight1d;
     const CeedVector_Occa *v_data = v->data;assert(v_data);
     const occaMemory d_v = v_data->d_array;
     //CeedDebug("\033[31;1m[CeedBasis][ApplyElems] CEED_EVAL_WEIGHT before v:\033[m");
     //CeedVectorView(v,"%f",stdout);
     int ierr = 0;
-    occaKernelRun(data->kWeight,occaInt(QnD),occaInt(Q),d_qw,d_v,occaInt(v_nqpt),occaPtr(&ierr));
+    occaKernelRun(data->kWeight,occaInt(QnD),occaInt(Q1d),d_qw,d_v,occaInt(v_nqpt),occaPtr(&ierr));
     CeedChk(ierr);
     //CeedDebug("\033[31;1m[CeedBasis][ApplyElems] CEED_EVAL_WEIGHT after v:\033[m");
     //CeedVectorView(v,"%f",stdout);    

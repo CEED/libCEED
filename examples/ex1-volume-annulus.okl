@@ -43,8 +43,8 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
       const int offset = e*(Q*NC*(DIM+2));
       const CeedScalar *bJ=bu+offset;
       const CeedScalar *bQW=bu+offset+Q*NC*DIM;
-      if (fabs(J[i]-bJ[i])>epsilon) {*ierr|=1;return;}
-      if (fabs(qw[i]-bQW[i])>epsilon) {*ierr|=1;return;}
+      if (fabs(J[i]-bJ[i])>epsilon) {*ierr=1;}
+      if (fabs(qw[i]-bQW[i])>epsilon) {*ierr=1;}
       //printf("\tJ[%d]=%f, bJ[%d]=%f\n",i,J[i],i,bJ[i]);
       //printf("\tqw[%d]=%f, bQW[%d]=%f\n",i,qw[i],i,bQW[i]);
       qd[i] = J[i] * qw[i];
@@ -62,8 +62,8 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
       const int offset = e*(Q*NC*(DIM+2));
       const CeedScalar *bJ=bu+offset;
       const CeedScalar *bQW=bu+offset+Q*NC*DIM;
-      if (fabs(J[i]-bJ[i])>epsilon) {*ierr|=1;return;}
-      if (fabs(qw[i]-bQW[i])>epsilon) {*ierr|=1;return;}
+      if (fabs(J[i]-bJ[i])>epsilon) {*ierr=1;}
+      if (fabs(qw[i]-bQW[i])>epsilon) {*ierr=1;}
       //printf("\tJ[%d]=%f, bJ[%d]=%f\n",i,J[i],i,bJ[i]);
       //printf("\tqw[%d]=%f, bQW[%d]=%f\n",i,qw[i],i,bQW[i]);
       qd[i] = 0.0;//(J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
@@ -80,8 +80,8 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
       const int offset = e*(Q*NC*(DIM+2));
       const CeedScalar *bJ=bu+offset;
       const CeedScalar *bQW=bu+offset+Q*NC*DIM;
-      if (fabs(J[i]-bJ[i])>epsilon) {*ierr|=1;return;}
-      if (fabs(qw[i]-bQW[i])>epsilon) {*ierr|=1;return;}
+      if (fabs(J[i]-bJ[i])>epsilon) *ierr=1;
+      if (fabs(qw[i]-bQW[i])>epsilon) *ierr=1;
       //printf("\tJ[%d]=%f, bJ[%d]=%f\n",i,J[i],i,bJ[i]);
       //printf("\tqw[%d]=%f, bQW[%d]=%f\n",i,qw[i],i,bQW[i]);
       qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
@@ -89,7 +89,7 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
                J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * qw[i];
     }
     break;
-  default:*ierr|=1;
+  default:*ierr=1;
   }
 }
 
@@ -107,7 +107,7 @@ kernel void f_apply_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
     const int offset = e*(Q*NC*(DIM+2));
     const CeedScalar *o_bu = bu+offset;
     //printf("\n\te=%d, offset=%d, u[%d]=%f, bu[%d]=%f",e,offset,i,u[i],i,o_bu[i]);
-    if (fabs(u[i]-o_bu[i])>epsilon) {*ierr|=1;return;}
+    if (fabs(u[i]-o_bu[i])>epsilon) *ierr=1;
     v[i] = w[i] * u[i];
   }
 }

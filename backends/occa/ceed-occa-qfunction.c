@@ -91,7 +91,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   const CeedEvalMode outmode = qf->outmode;
   const CeedInt bytes = qf->qdatasize;
   const CeedInt qbytes = Q*bytes;
-  const CeedInt ubytes = (Q+Q*nc*(dim+1))*bytes;
+  const CeedInt ubytes = (Q*nc*(dim+2))*bytes;
   const CeedInt vbytes = Q*nc*dim*bytes;
   const CeedInt e = data->e;
   const CeedInt ready =  data->ready;
@@ -105,9 +105,11 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
       data->d_q = occaDeviceMalloc(ceed->device,qbytes, qdata, NO_PROPS);
       data->b_u = occaDeviceMalloc(ceed->device,bbytes, NULL, NO_PROPS);
       data->b_v = occaDeviceMalloc(ceed->device,bbytes, NULL, NO_PROPS);
+    }else{
+      /* b_u, b_v come form cee-occa-operator BEu, BEv */
     }
     data->d_u = occaDeviceMalloc(ceed->device,ubytes, NULL, NO_PROPS);
-    data->d_v = occaDeviceMalloc(ceed->device,vbytes, NULL, NO_PROPS);
+    data->d_v = occaDeviceMalloc(ceed->device,ubytes, NULL, NO_PROPS);
    }
   const occaMemory d_q = data->d_q;
   const occaMemory d_u = data->d_u;
@@ -120,7 +122,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   else
     CeedQFunctionFillOp_Occa(d_u,u,inmode,Q,nc,dim,bytes);
   // ***************************************************************************
-  int ierr=0; // set it @ 0, the kernels will |= 1
+  int ierr=0; // set it @ 0, the kernels will set to 1 with an error
   occaKernelRun(data->kQFunctionApply,
                 qf->ctx?occaPtr(qf->ctx):occaInt(0),
                 d_q,occaInt(e),occaInt(Q),
@@ -128,6 +130,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
                 occaPtr(&ierr));
   CeedDebug("\033[36m[CeedQFunction][Apply] ierr=%d",ierr);
   CeedChk(ierr);
+  if (ierr!=0) exit(printf("\n\033[31;1m[CeedQFunction][Apply] Error!\033[m"));
   if (outmode==CEED_EVAL_NONE && !data->op)
     occaCopyMemToPtr(qdata,d_q,qbytes,NO_OFFSET,NO_PROPS);
   if (outmode==CEED_EVAL_INTERP)
