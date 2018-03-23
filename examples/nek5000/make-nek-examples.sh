@@ -46,14 +46,7 @@ if [[ "$#" -eq 1 && "$1" -eq "clean" ]]; then
   exit 0
 fi
 
-# Set defaults for the parameters
-if [ -e $NEK5K_DIR/bin/makenek ]; then
-  NEK5K_DIR:=`cd "../../../Nek5000"; pwd`
-else
-  exit 0
-fi
-
-# : ${NEK5K_DIR:=`cd "../../../Nek5000"; pwd`}
+: ${NEK5K_DIR:=`cd "../../../Nek5000"; pwd`}
 : ${FC:="mpif77"}
 : ${CC:="mpicc"}
 
