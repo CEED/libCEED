@@ -116,7 +116,7 @@ int main(int argc, const char *argv[]) {
       return 1;
     }
   }
-  if (prob_size < 0) prob_size = test ? 4*4 : 8*16;// : 256*1024;
+  if (prob_size < 0) prob_size = test ? 2*2 : 256*1024;//8*16 : 256*1024;
 
   // Print the values of all options:
   if (!test || help) {

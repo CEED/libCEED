@@ -30,6 +30,7 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
                          int *ierr) {
   // u[1] is Jacobians, size (Q x nc x dim) with column-major layout
   // u[4] is quadrature weights, size (Q)
+  const double epsilon = 1.e-14;
   struct BuildContext *bc = (struct BuildContext*)ctx;
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
@@ -42,6 +43,8 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
       const int offset = e*(Q*NC*(DIM+2));
       const CeedScalar *bJ=bu+offset;
       const CeedScalar *bQW=bu+offset+Q*NC*DIM;
+      if (fabs(J[i]-bJ[i])>epsilon) {*ierr|=1;return;}
+      if (fabs(qw[i]-bQW[i])>epsilon) {*ierr|=1;return;}
       //printf("\tJ[%d]=%f, bJ[%d]=%f\n",i,J[i],i,bJ[i]);
       //printf("\tqw[%d]=%f, bQW[%d]=%f\n",i,qw[i],i,bQW[i]);
       qd[i] = J[i] * qw[i];
@@ -59,9 +62,11 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
       const int offset = e*(Q*NC*(DIM+2));
       const CeedScalar *bJ=bu+offset;
       const CeedScalar *bQW=bu+offset+Q*NC*DIM;
+      if (fabs(J[i]-bJ[i])>epsilon) {*ierr|=1;return;}
+      if (fabs(qw[i]-bQW[i])>epsilon) {*ierr|=1;return;}
       //printf("\tJ[%d]=%f, bJ[%d]=%f\n",i,J[i],i,bJ[i]);
       //printf("\tqw[%d]=%f, bQW[%d]=%f\n",i,qw[i],i,bQW[i]);
-      qd[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
+      qd[i] = 0.0;//(J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
     }
     break;
   case 33:
@@ -75,6 +80,8 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
       const int offset = e*(Q*NC*(DIM+2));
       const CeedScalar *bJ=bu+offset;
       const CeedScalar *bQW=bu+offset+Q*NC*DIM;
+      if (fabs(J[i]-bJ[i])>epsilon) {*ierr|=1;return;}
+      if (fabs(qw[i]-bQW[i])>epsilon) {*ierr|=1;return;}
       //printf("\tJ[%d]=%f, bJ[%d]=%f\n",i,J[i],i,bJ[i]);
       //printf("\tqw[%d]=%f, bQW[%d]=%f\n",i,qw[i],i,bQW[i]);
       qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
@@ -82,9 +89,8 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
                J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * qw[i];
     }
     break;
-  default:*ierr=1;
+  default:*ierr|=1;
   }
-  *ierr=0;
 }
 
 // *****************************************************************************
@@ -93,14 +99,15 @@ kernel void f_apply_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
                          const CeedScalar *u, const CeedScalar *bu,
                          CeedScalar *v, CeedScalar *bv,
                          int *ierr) {
+  const double epsilon = 1.e-14;
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
     const CeedScalar *w = ((CeedScalar*)qdata)+e*Q;
     // Offset computation should depend on inmode & outmode
     const int offset = e*(Q*NC*(DIM+2));
-    const CeedScalar *bu=bu+offset;
-    //printf("\tu[%d]=%f, bu[%d]=%f\n",i,u[i],i,bu[i]);
+    const CeedScalar *o_bu = bu+offset;
+    //printf("\n\te=%d, offset=%d, u[%d]=%f, bu[%d]=%f",e,offset,i,u[i],i,o_bu[i]);
+    if (fabs(u[i]-o_bu[i])>epsilon) {*ierr|=1;return;}
     v[i] = w[i] * u[i];
   }
-  *ierr=0;
 }

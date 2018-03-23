@@ -34,9 +34,10 @@ kernel void setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
     const CeedScalar *bu4=bu+offset+Q*NC*DIM;
     //printf("\n[f_build_mass] Q=%d, NC=%d, DIM=%d",Q,NC,DIM);
     //printf("\tu1[%d]*u4[%d]=%f*%f, b1[%d]*b4[%d]=%f*%f\n",i,i,u1[i],u4[i],i,i,bu1[i],bu4[i]);
+    if (u1[i]!=bu1[i]) {printf("\033[31;1mError!\033[m");*ierr|=1;return;}
+    if (u4[i]!=bu4[i]) {printf("\033[31;1mError!\033[m");*ierr|=1;return;}
     w[i] = u1[i]*u4[i];
   }
-  *ierr=0;
 }
 
 // *****************************************************************************
@@ -46,14 +47,17 @@ kernel void mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
                  int *ierr) {
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
+    if (i==0){
+      for(int k=0;k<Q;k++){
+        printf("\n\tbu[%d]=%f",k,bu[k]);
+      }
+    }
     const CeedScalar *w = ((CeedScalar*)qdata)+e*Q;
-    const CeedScalar *u0 = u;
-    CeedScalar *v0 = v;
     // Offset computation should depend on inmode & outmode
-    //const int offset = e*(Q*NC*(DIM+2));
-    //const CeedScalar *bu0=bu+offset;
-    //printf("\tu0[%d]=%f, bu0[%d]=%f\n",i,u0[i],i,bu0[i]);
-    v0[i] = w[i] * u0[i];
+    const int offset = e*(Q*NC*(DIM+2));
+    const CeedScalar *bu = bu+offset;
+    //printf("\te=%d, u[%d]=%f, bu[%d]=%f\n",i,u[i],i,bu[i]);
+    if (u[i]!=bu[i]) {printf("\033[31;1mError!\033[m");*ierr|=1;return;}
+    v[i] = w[i] * u[i];
   }
-  *ierr=0;
 }

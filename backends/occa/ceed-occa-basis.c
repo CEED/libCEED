@@ -104,8 +104,8 @@ static int CeedTensorContract_Occa(Ceed ceed,
 // *****************************************************************************
 // * CeedBasisApplyElems_Occa
 // *****************************************************************************
-int CeedBasisApplyElems_Occa(CeedBasis basis, CeedTransposeMode tmode,
-                             CeedEvalMode emode,
+int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
+                             CeedTransposeMode tmode, CeedEvalMode emode,
                              const CeedVector u, CeedVector v) {
   CeedBasis_Occa *data = basis->data;
   const CeedInt ready =  data->ready;
@@ -120,6 +120,8 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedTransposeMode tmode,
   const CeedInt dim = basis->dim;
   const CeedInt ndof = basis->ndof;
   const CeedInt nqpt = ndof*CeedPowInt(Q1d,dim);
+  //const CeedElemRestriction er = data->er; assert(er);
+  //const CeedInt nelem = er->nelem;
   // ***************************************************************************
   const CeedInt transpose = (tmode == CEED_TRANSPOSE);
   CeedInt u_nqpt = 0;
@@ -129,7 +131,13 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedTransposeMode tmode,
     CeedDebug("\033[31;1m[CeedBasis][ApplyElems] transpose\033[m");
     const CeedVector_Occa *v_data = v->data;
     const occaMemory d_v = v_data->d_array;
-    occaKernelRun(data->kZero, d_v);
+    int ierr = 0;
+    occaKernelRun(data->kZero, d_v, occaPtr(&ierr));
+    CeedChk(ierr);
+  }
+  // ***************************************************************************
+  if (emode == CEED_EVAL_NONE) {
+    CeedDebug("\033[31;1m[CeedBasis][Apply] CEED_EVAL_NONE");
   }
   // ***************************************************************************
   if (emode & CEED_EVAL_INTERP) {
@@ -141,9 +149,13 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedTransposeMode tmode,
     const CeedVector_Occa *v_data = v->data;assert(v_data);
     const occaMemory d_u = u_data->d_array;
     const occaMemory d_v = v_data->d_array;
-    occaKernelRun(data->kInterp,
+    int ierr = 0;
+    occaKernelRun(data->kInterp,occaInt(QnD),
                   occaInt(transpose),occaInt(tmode),
-                  d_tmp0,d_tmp1,d_interp1d,d_u,d_v);
+                  d_tmp0, d_tmp1, d_interp1d,
+                  d_u, d_v,
+                  occaPtr(&ierr));
+    CeedChk(ierr);
     if (!transpose) v_nqpt += nqpt;
     else u_nqpt += nqpt;
   }
@@ -158,13 +170,16 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedTransposeMode tmode,
     const CeedVector_Occa *v_data = v->data; assert(v_data);
     const occaMemory d_u = u_data->d_array;
     const occaMemory d_v = v_data->d_array;
-    occaKernelRun(data->kGrad,
+    int ierr = 0;
+    occaKernelRun(data->kGrad,occaInt(QnD),
                   occaInt(transpose),occaInt(tmode),
                   d_tmp0,d_tmp1,d_grad1d,d_interp1d,
                   d_u,occaInt(u_nqpt),
-                  d_v,occaInt(v_nqpt));
-    if (!transpose) v_nqpt += nqpt;
-    else u_nqpt += nqpt;
+                  d_v,occaInt(v_nqpt),
+                  occaPtr(&ierr));
+    CeedChk(ierr);
+    if (!transpose) v_nqpt += dim*nqpt;
+    else u_nqpt += dim*nqpt;
     //CeedDebug("\033[31;1m[CeedBasis][ApplyElems] CEED_EVAL_GRAD v:\033[m");
     //CeedVectorView(v,"%f",stdout);    
     //CeedDebug("\033[31;1m[CeedBasis][ApplyElems] nqpt=%d\033[m",nqpt);
@@ -182,8 +197,10 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedTransposeMode tmode,
     const CeedVector_Occa *v_data = v->data;assert(v_data);
     const occaMemory d_v = v_data->d_array;
     //CeedDebug("\033[31;1m[CeedBasis][ApplyElems] CEED_EVAL_WEIGHT before v:\033[m");
-    //CeedVectorView(v,"%f",stdout);    
-    occaKernelRun(data->kWeight,occaInt(Q),d_qw,d_v,occaInt(v_nqpt));
+    //CeedVectorView(v,"%f",stdout);
+    int ierr = 0;
+    occaKernelRun(data->kWeight,occaInt(QnD),occaInt(Q),d_qw,d_v,occaInt(v_nqpt),occaPtr(&ierr));
+    CeedChk(ierr);
     //CeedDebug("\033[31;1m[CeedBasis][ApplyElems] CEED_EVAL_WEIGHT after v:\033[m");
     //CeedVectorView(v,"%f",stdout);    
     if (!transpose) v_nqpt += nqpt;
@@ -195,10 +212,11 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedTransposeMode tmode,
 // *****************************************************************************
 // * CeedBasisApply_Occa
 // *****************************************************************************
-static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
-                               CeedEvalMode emode,
+static int CeedBasisApply_Occa(CeedBasis basis,
+                               CeedTransposeMode tmode, CeedEvalMode emode,
                                const CeedScalar *u, CeedScalar *v) {
   int ierr;
+  //const CeedScalar *bkp_v=v;
   const CeedInt dim = basis->dim;
   const CeedInt ndof = basis->ndof;
   const CeedInt nqpt = ndof*CeedPowInt(basis->Q1d, dim);
@@ -206,40 +224,38 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
   // ***************************************************************************
   if (transpose) {
     const CeedInt vsize = ndof*CeedPowInt(basis->P1d, dim);
-    //CeedDebug("\033[38;5;249m[CeedBasis][Apply] transpose, vsize=%d",vsize);
+    CeedDebug("\033[38;5;249m[CeedBasis][Apply] transpose, vsize=%d",vsize);
     for (CeedInt i = 0; i < vsize; i++)
       v[i] = 0.0;
+  }
+  // ***************************************************************************
+  if (emode == CEED_EVAL_NONE) {
+    CeedDebug("\033[38;5;249m[CeedBasis][Apply] CEED_EVAL_NONE");
   }
   // ***************************************************************************
   if (emode & CEED_EVAL_INTERP) {
     const CeedInt P = transpose?basis->Q1d:basis->P1d;
     const CeedInt Q = transpose?basis->P1d:basis->Q1d;
-    //CeedDebug("\033[38;5;249m[CeedBasis][Apply] CEED_EVAL_INTERP, P=%d, Q=%d",P,Q);
     CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
-    //printf(", pre=%d",pre);
-    //printf(", post=%d",post);
+    CeedDebug("\033[38;5;249m[CeedBasis][Apply] CEED_EVAL_INTERP, P=%d, Q=%d, pre=%d, post=%d",P,Q,pre,post);
     CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
     for (CeedInt d=0; d<dim; d++) {
-      //CeedDebug("\033[38;5;249m\t\t[CeedBasis][Apply] d=%d",d);
-      //printf(", d==0: %s",d==0?"yes":"no");
-      //printf(", d%%2=%d ",d%2);
-      //printf(", d==dim-1: %s",d==dim-1?"yes":"no");
-      //printf(", (d+1)%%2=%d ",(d+1)%2);
-      ierr = CeedTensorContract_Occa(basis->ceed, pre, P, post, Q, basis->interp1d,
+      // CeedDebug("\033[38;5;249m[CeedBasis][Apply] d=%d, d==0: %s, d%%2=%d, d==dim-1: %s, (d+1)%%2=%d",d,d==0?"yes":"no",d%2,d==dim-1?"yes":"no",(d+1)%2);
+      ierr = CeedTensorContract_Occa(basis->ceed,
+                                     pre, P, post, Q,
+                                     basis->interp1d,
                                      tmode, transpose&&(d==dim-1),
-                                     d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
+                                     d==0?u:tmp[d%2],
+                                     d==dim-1?v:tmp[(d+1)%2]);
       CeedChk(ierr);
       pre /= P;
       post *= Q;
     }
-    if (!transpose) {
-      v += nqpt;
-    } else {
-      u += nqpt;
-    }
+    if (!transpose) v += nqpt;
+    else u += nqpt;
     //CeedDebug("\033[38;5;249m[CeedBasis][ApplyElems] CEED_EVAL_INTERP transpose:%s v:\033[m",transpose?"yes":"no");
     //for(int k=0;k<(Q*1*(dim+2));k++) printf("\t %f\n",v[k]);
-   }
+  }
   // ***************************************************************************
   if (emode & CEED_EVAL_GRAD) {
     const CeedInt P = transpose?basis->Q1d:basis->P1d;
@@ -265,14 +281,11 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
         pre /= P;
         post *= Q;
       }
-      if (!transpose) {
-        v += nqpt;
-      } else {
-        u += nqpt;
-      }
+      if (!transpose) v += nqpt;
+      else u += nqpt;      
     }
     //CeedDebug("\033[38;5;249m[CeedBasis][ApplyElems] CEED_EVAL_GRAD bkp_v:\033[m");
-    //for(int k=0;k<(Q*1*(dim+2));k++) printf("\t %f\n",v[k]);
+    //for(int k=0;k<(Q*ndof*(dim+2));k++) printf("\t %f\n",bkp_v[k]);
   }
   // ***************************************************************************
   if (emode & CEED_EVAL_WEIGHT) {
@@ -280,16 +293,18 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedTransposeMode tmode,
     if (transpose)
       return CeedError(basis->ceed, 1,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
-    //CeedDebug("\033[38;5;249m[CeedBasis][Apply] CEED_EVAL_WEIGHT v:");
-    //for(int k=0;k<(basis->Q1d*1*(1+2));k++) printf("\t %f\n",v[k]);
+    //CeedDebug("\033[38;5;249m[CeedBasis][Apply] CEED_EVAL_WEIGHT before v, but v-bkp_v=%d",v-bkp_v);
+    //for(int k=0;k<(basis->Q1d*ndof*(dim+2));k++) printf("\t %f\n",v[k]);
+    // *************************************************************************
     CeedInt Q = basis->Q1d;
+    //CeedDebug("\033[38;5;249m[CeedBasis][Apply] Q=%d, v-bkp_v=%d",Q, v-bkp_v);
     for (CeedInt d=0; d<dim; d++) {
       const CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
-      //printf("\tpre=%d",pre);printf(", post=%d",post);
+      //printf("\tpre=%d, post=%d",pre,post);
       for (CeedInt i=0; i<pre; i++) {
         for (CeedInt j=0; j<Q; j++) {
           for (CeedInt k=0; k<post; k++) {
-            //printf(" k%d",(i*Q+j)*post+k);
+            //printf(" d=%d, i=%d, j=%d, k=%d offset=%d",d,i,k,k,(i*Q+j)*post+k);
             v[(i*Q + j)*post + k] = basis->qweight1d[j] * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
           }
         }

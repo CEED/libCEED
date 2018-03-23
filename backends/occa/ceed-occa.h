@@ -97,7 +97,7 @@ int CeedBasisCreateTensorH1_Occa(Ceed ceed, CeedInt dim, CeedInt P1d,
                                  CeedBasis basis);
 
 // *****************************************************************************
-int CeedBasisApplyElems_Occa(CeedBasis basis,
+int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt Q,
                              CeedTransposeMode tmode, CeedEvalMode emode,
                              const CeedVector u, CeedVector v);
 

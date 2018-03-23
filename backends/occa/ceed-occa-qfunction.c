@@ -83,8 +83,7 @@ static int CeedQFunctionFillOp_Occa(occaMemory d_u,
 static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
                                    const CeedScalar *const *u,
                                    CeedScalar *const *v) {
-  //CeedDebug("\033[36m[CeedQFunction][Apply] Q=%d",Q);
-  int ierr;
+  CeedDebug("\033[36m[CeedQFunction][Apply] Q=%d",Q);
   CeedQFunction_Occa *data = qf->data;
   const Ceed_Occa *ceed = qf->ceed->data;
   const CeedInt nc = data->nc, dim = data->dim;
@@ -121,11 +120,13 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   else
     CeedQFunctionFillOp_Occa(d_u,u,inmode,Q,nc,dim,bytes);
   // ***************************************************************************
+  int ierr=0; // set it @ 0, the kernels will |= 1
   occaKernelRun(data->kQFunctionApply,
                 qf->ctx?occaPtr(qf->ctx):occaInt(0),
                 d_q,occaInt(e),occaInt(Q),
                 d_u, b_u,d_v, b_v,
                 occaPtr(&ierr));
+  CeedDebug("\033[36m[CeedQFunction][Apply] ierr=%d",ierr);
   CeedChk(ierr);
   if (outmode==CEED_EVAL_NONE && !data->op)
     occaCopyMemToPtr(qdata,d_q,qbytes,NO_OFFSET,NO_PROPS);
