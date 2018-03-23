@@ -1,5 +1,6 @@
 // Test operator action for mass matrix
 #include <ceed.h>
+#include <stdlib.h>
 
 static int setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
                  CeedScalar *const *v) {
@@ -32,7 +33,7 @@ int main(int argc, char **argv) {
   CeedScalar x[Nx];
 
   CeedInit(argv[1], &ceed);
-  for (CeedInt i=0; i<Nx; i++) x[i] = i / (Nx - 1);
+  for (CeedInt i=0; i<Nx; i++) x[i] = (CeedScalar) i / (Nx - 1);
   for (CeedInt i=0; i<nelem; i++) {
     indx[2*i+0] = i;
     indx[2*i+1] = i+1;
@@ -65,6 +66,7 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
   CeedOperatorGetQData(op_setup, &qdata);
   CeedOperatorApply(op_setup, qdata, X, NULL, CEED_REQUEST_IMMEDIATE);
+  CeedVectorView(qdata,NULL,stdout);
 
   CeedVectorCreate(ceed, Nu, &U);
   CeedVectorCreate(ceed, Nu, &V);

@@ -205,7 +205,9 @@ int CeedReallocArray(size_t n, size_t unit, void *p) {
 
 /// Free memory allocated using CeedMalloc() or CeedCalloc()
 ///
-/// @param p address of pointer to memory.  This argument is of type void* to avoid needing a cast, but is the address of the pointer (which is zeroed) rather than the pointer.
+/// @param p address of pointer to memory.  This argument is of type void* to
+/// avoid needing a cast, but is the address of the pointer (which is zeroed)
+/// rather than the pointer.
 int CeedFree(void *p) {
   free(*(void **)p);
   *(void **)p = NULL;
@@ -279,7 +281,6 @@ int CeedDestroy(Ceed *ceed) {
  */
 void CeedDebug(const char *format,...) {
 #ifdef CDEBUG
-#warning CDEBUG
   va_list args;
   va_start(args, format);
   fflush(stdout);

@@ -1,6 +1,6 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// All Rights reserved. See files LICENSE and NOTICE for details.
 //
 // This file is part of CEED, a collection of benchmarks, miniapps, software
 // libraries and APIs for efficient high-order finite element and spectral
@@ -13,50 +13,68 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-
 #include "ceed-occa.h"
 #include <sys/stat.h>
-#undef NDEBUG
 
 // *****************************************************************************
-static int buildKernelForThisQfunction(CeedQFunction qf){
-  CeedQFunction_Occa *occa=qf->data;
+// * buildKernel
+// *****************************************************************************
+static int CeedQFunctionBuildKernel(CeedQFunction qf) {
+  CeedQFunction_Occa *data=qf->data;
   const Ceed_Occa *ceed_data=qf->ceed->data;
   assert(ceed_data);
   const occaDevice dev = ceed_data->device;
-  CeedDebug("\033[33m[CeedQFunction][buildKernelForThisQfunction] nc=%d",occa->nc);
-  CeedDebug("\033[33m[CeedQFunction][buildKernelForThisQfunction] dim=%d",occa->dim);
+  CeedDebug("\033[36m[CeedQFunction][BuildKernel] nc=%d",data->nc);
+  CeedDebug("\033[36m[CeedQFunction][BuildKernel] dim=%d",data->dim);
+  CeedDebug("\033[36m[CeedQFunction][BuildKernel] elemsize=%d",data->elemsize);
   occaProperties pKR = occaCreateProperties();
-  occaPropertiesSet(pKR, "defines/NC", occaInt(occa->nc));
-  occaPropertiesSet(pKR, "defines/DIM", occaInt(occa->dim));
+  occaPropertiesSet(pKR, "defines/NC", occaInt(data->nc));
+  occaPropertiesSet(pKR, "defines/DIM", occaInt(data->dim));
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(TILE_SIZE));
-  CeedDebug("\033[33m[CeedQFunction][buildKernelForThisQfunction] occaDeviceBuildKernel");
-  CeedDebug("\033[33m[CeedQFunction][buildKernelForThisQfunction] oklPath=%s",occa->oklPath);
-  CeedDebug("\033[33m[CeedQFunction][buildKernelForThisQfunction] qFunctionName=%s",occa->qFunctionName);
-  occa->kQFunctionApply = occaDeviceBuildKernel(dev, occa->oklPath, occa->qFunctionName, pKR);
+  CeedDebug("\033[36m[CeedQFunction][BuildKernel] occaDeviceBuildKernel");
+  CeedDebug("\033[36m[CeedQFunction][BuildKernel] oklPath=%s",data->oklPath);
+  CeedDebug("\033[36m[CeedQFunction][BuildKernel] name=%s",data->qFunctionName);
+  data->kQFunctionApply =
+    occaDeviceBuildKernel(dev, data->oklPath, data->qFunctionName, pKR);
   occaPropertiesFree(pKR);
   return 0;
 }
 
 // *****************************************************************************
+// * Fill function for t20 case, should be removed
+// *****************************************************************************
 __attribute__((unused))
-static int localCeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
-                                        const CeedScalar *const *u,
-                                        CeedScalar *const *v) {
-  int ierr;
-  //CeedDebug("\033[36m[CeedQFunction][Apply] qf->function");
-  ierr = qf->function(qf->ctx, qdata, Q, u, v); CeedChk(ierr);
+static int CeedQFunctionFill20_Occa(occaMemory d_u,
+                                    occaMemory b_u,
+                                    const CeedScalar *const *u,
+                                    CeedInt size) {
+  occaCopyPtrToMem(d_u,u[0],size,0,NO_PROPS);
+  occaCopyPtrToMem(b_u,u[0],size,0,NO_PROPS);
   return 0;
 }
 
 // *****************************************************************************
+// *  Fill function for the operator case
+// *****************************************************************************
 __attribute__((unused))
-static unsigned long long align(unsigned long long pointer,
-                                unsigned long long alignment){
-  unsigned long long addr = pointer / alignment; // Aligned (also divided by 6)
-  addr++;                     // Next aligned pointer (still divided by 6)
-  addr *= alignment;          // Next aligned pointer
-  return addr;
+static int CeedQFunctionFillOp_Occa(occaMemory d_u,
+                                    const CeedScalar *const *u,
+                                    const CeedEvalMode inmode,
+                                    const CeedInt Q, const CeedInt nc,
+                                    const CeedInt dim, const size_t bytes) {
+  if (inmode & CEED_EVAL_INTERP){
+    CeedDebug("\033[36m[CeedQFunction][FillOp] CEED_EVAL_INTERP");
+    occaCopyPtrToMem(d_u, u[0],Q*nc*bytes,0,NO_PROPS);
+  }
+  if (inmode & CEED_EVAL_GRAD){
+    CeedDebug("\033[36m[CeedQFunction][FillOp] CEED_EVAL_GRAD");
+    occaCopyPtrToMem(d_u, u[1],Q*nc*dim*bytes,Q*nc*bytes,NO_PROPS);
+  }
+  if (inmode & CEED_EVAL_WEIGHT){
+    CeedDebug("\033[36m[CeedQFunction][FillOp] CEED_EVAL_WEIGHT");
+    occaCopyPtrToMem(d_u, u[4],Q*bytes,Q*nc*(dim+1)*bytes,NO_PROPS);
+  }
+  return 0;
 }
 
 // *****************************************************************************
@@ -64,141 +82,117 @@ static unsigned long long align(unsigned long long pointer,
 // *****************************************************************************
 static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
                                    const CeedScalar *const *u,
-                                   CeedScalar *const *v) {  
-  //CeedDebug("\033[36m[CeedQFunction][Apply]");
-  CeedQFunction_Occa *occa=qf->data;
-  const Ceed_Occa *ceed=qf->ceed->data;
-  const CeedInt nc = occa->nc, dim = occa->dim;
-
-  // If the kernel has not been built, do it now
-  // We were waiting to get the nc,dim filled into the structure
-  // to pass them to the kernels as properties
-  if (!occa->ready){
-    CeedDebug("\033[36m[CeedQFunction][Apply] buildKernelForThisQfunction");
-    buildKernelForThisQfunction(qf);
-    occa->ready=true;
-  }
-  const size_t bytes = sizeof(CeedScalar);
+                                   CeedScalar *const *v) {
+  CeedDebug("\033[36m[CeedQFunction][Apply] Q=%d",Q);
+  CeedQFunction_Occa *data = qf->data;
+  const Ceed_Occa *ceed = qf->ceed->data;
+  const CeedInt nc = data->nc, dim = data->dim;
   const CeedEvalMode inmode = qf->inmode;
   const CeedEvalMode outmode = qf->outmode;
-
-  // Context
-  //CeedDebug("\033[36;1m[CeedQFunction][Apply] Context ssize=%d,%d",qf->ctxsize, sizeof(CeedInt));
-  // We don't push the context to device
-  // Avoid OCCA's "Trying to allocate zero bytes"
-  //occaMemory o_ctx = occaDeviceMalloc(ceed->device,qf->ctxsize>0?qf->ctxsize:32,NULL,NO_PROPS);
-  //if (qf->ctxsize>0) occaCopyPtrToMem(o_ctx,qf->ctx,qf->ctxsize,0,NO_PROPS);
- 
-  occaMemory o_qdata = occaDeviceMalloc(ceed->device,Q*bytes,qdata,NO_PROPS);
-  occaMemory o_u = occaDeviceMalloc(ceed->device,(Q+Q*nc*(dim+1))*bytes,NULL,NO_PROPS);
-
-  if (!occa->op){ // t20-qfunction to look at WEIGHT or not
-    assert(u[0]);
-    occaCopyPtrToMem(o_u,u[0],Q*bytes,0,NO_PROPS);
-  }else{ // CeedQFunctionApply via CeedOperatorApply
-    if (inmode & CEED_EVAL_INTERP)
-      occaCopyPtrToMem(o_u, u[0],Q*nc*bytes,0,NO_PROPS);
-    if (inmode & CEED_EVAL_GRAD)
-      occaCopyPtrToMem(o_u, u[1],Q*nc*dim*bytes,Q*nc*bytes,NO_PROPS);
-    if (inmode & CEED_EVAL_WEIGHT)
-      occaCopyPtrToMem(o_u, u[4],Q*bytes,Q*nc*(dim+1)*bytes,NO_PROPS);
-  }
-  
-  //CeedDebug("\033[36m[CeedQFunction][Apply] o_v");
-  occaMemory o_v = occaDeviceMalloc(ceed->device,Q*nc*dim*bytes,NULL,NO_PROPS);
-  int rtn=~0;
-
-  //CeedDebug("\033[31;1m[CeedQFunction][Apply] occaKernelRun: %s", occa->qFunctionName);
-  occaKernelRun(occa->kQFunctionApply,
-                qf->ctx?occaPtr(qf->ctx):occaInt(0),//o_ctx,
-                o_qdata, occaInt(Q),
-                o_u, o_v, occaPtr(&rtn));    
-  
-  if (rtn!=0){
-    CeedDebug("\033[31;1m[CeedQFunction][Apply] return code !=0");
-    return CeedError(NULL, 1, "Return code !=0");
-  }
-  
-  if (outmode==CEED_EVAL_NONE){
-    //localCeedQFunctionApply_Occa(qf,qdata,Q,u,v);
-    occaCopyMemToPtr(qdata,o_qdata,Q*bytes,NO_OFFSET,NO_PROPS);
-  }
-
-  if (outmode==CEED_EVAL_INTERP){
-    //localCeedQFunctionApply_Occa(qf,qdata,Q,u,v);
-    occaCopyMemToPtr(v[0],o_v,Q*nc*dim*bytes,NO_OFFSET,NO_PROPS);
-  }
-  
+  const CeedInt bytes = qf->qdatasize;
+  const CeedInt qbytes = Q*bytes;
+  const CeedInt ubytes = (Q*nc*(dim+2))*bytes;
+  const CeedInt vbytes = Q*nc*dim*bytes;
+  const CeedInt e = data->e;
+  const CeedInt ready =  data->ready;
+  assert((Q%qf->vlength)==0); // Q must be a multiple of vlength
+  // ***************************************************************************
+  if (!ready) { // If the kernel has not been built, do it now
+    data->ready=true;
+    CeedQFunctionBuildKernel(qf);
+    if (!data->op){ // like from t20
+      const CeedInt bbytes = Q*nc*(dim+2)*bytes;
+      data->d_q = occaDeviceMalloc(ceed->device,qbytes, qdata, NO_PROPS);
+      data->b_u = occaDeviceMalloc(ceed->device,bbytes, NULL, NO_PROPS);
+      data->b_v = occaDeviceMalloc(ceed->device,bbytes, NULL, NO_PROPS);
+    }else{
+      /* b_u, b_v come form cee-occa-operator BEu, BEv */
+    }
+    data->d_u = occaDeviceMalloc(ceed->device,ubytes, NULL, NO_PROPS);
+    data->d_v = occaDeviceMalloc(ceed->device,ubytes, NULL, NO_PROPS);
+   }
+  const occaMemory d_q = data->d_q;
+  const occaMemory d_u = data->d_u;
+  const occaMemory d_v = data->d_v;
+  const occaMemory b_u = data->b_u;
+  const occaMemory b_v = data->b_v;
+  // ***************************************************************************
+  if (!data->op)
+    CeedQFunctionFill20_Occa(d_u,b_u,u,qbytes);
+  else
+    CeedQFunctionFillOp_Occa(d_u,u,inmode,Q,nc,dim,bytes);
+  // ***************************************************************************
+  int ierr=0; // set it @ 0, the kernels will set to 1 with an error
+  occaKernelRun(data->kQFunctionApply,
+                qf->ctx?occaPtr(qf->ctx):occaInt(0),
+                d_q,occaInt(e),occaInt(Q),
+                d_u, b_u,d_v, b_v,
+                occaPtr(&ierr));
+  CeedDebug("\033[36m[CeedQFunction][Apply] ierr=%d",ierr);
+  CeedChk(ierr);
+  if (ierr!=0) exit(printf("\n\033[31;1m[CeedQFunction][Apply] Error!\033[m"));
+  if (outmode==CEED_EVAL_NONE && !data->op)
+    occaCopyMemToPtr(qdata,d_q,qbytes,NO_OFFSET,NO_PROPS);
+  if (outmode==CEED_EVAL_INTERP)
+    occaCopyMemToPtr(*v,d_v,vbytes,NO_OFFSET,NO_PROPS);
   assert(outmode==CEED_EVAL_NONE || outmode==CEED_EVAL_INTERP);
-
-  //CeedDebug("\033[36;1m[CeedQFunction][Apply] done");
-  occaMemoryFree(o_qdata);
-  //occaMemoryFree(o_ctx);
-  occaMemoryFree(o_u);
-  occaMemoryFree(o_v);
   return 0;
 }
 
+// *****************************************************************************
+// * CeedQFunctionDestroy_Occa
 // *****************************************************************************
 static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
   int ierr;
-  CeedQFunction_Occa *occa=qf->data;
-  assert(occa);
-  free(occa->oklPath);
+  CeedQFunction_Occa *data=qf->data;
+  free(data->oklPath);
   CeedDebug("\033[36m[CeedQFunction][Destroy]");
-  occaKernelFree(occa->kQFunctionApply);
-  ierr = CeedFree(&occa); CeedChk(ierr);
+  if (data->ready) {
+    if (!data->op) occaMemoryFree(data->d_q);
+    occaMemoryFree(data->d_u);
+    occaMemoryFree(data->d_v);
+  }
+  ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
 
 // *****************************************************************************
-//struct CeedQFunction_private {
-//  Ceed ceed;
-//  int (*Apply)(CeedQFunction,void*,CeedInt,const CeedScalar*const*,CeedScalar *const*);
-//  int (*Destroy)(CeedQFunction);
-//  CeedInt vlength; // Number of quadrature points must be padded to a multiple of vlength
-//  CeedInt nfields;
-//  size_t qdatasize; // Number of bytes of qdata per quadrature point
-//  CeedEvalMode inmode, outmode;
-//  int (*function)(void *, void *, CeedInt, const CeedScalar *const *,CeedScalar *const *);
-//  const char *focca;
-//  void *ctx;      // user context for function 
-//  size_t ctxsize; // size of user context; may be used to copy to a device
-//  void *data;     // backend data
-//};
+// * CeedQFunctionCreate_Occa
 // *****************************************************************************
-int CeedQFunctionCreate_Occa(CeedQFunction qf) {  
-  CeedQFunction_Occa *occa;
-  int ierr = CeedCalloc(1,&occa); CeedChk(ierr);
-  // Populate the CeedQFunction structure
+int CeedQFunctionCreate_Occa(CeedQFunction qf) {
+  CeedQFunction_Occa *data;
+  int ierr = CeedCalloc(1,&data); CeedChk(ierr);
+  // Populate the CeedQFunction structure **************************************
   qf->Apply = CeedQFunctionApply_Occa;
   qf->Destroy = CeedQFunctionDestroy_Occa;
-  qf->data = occa;
-  // Fill CeedQFunction_Occa struct
-  occa->op = false;
-  occa->ready = false;
-  occa->nc = 1;
-  occa->dim = 1;
-  // Locate last ':' character in qf->focca
-  //CeedDebug("\033[36;1m[CeedQFunction][Create] qf->focca=%s",qf->focca);
-  char *last_colon = strrchr(qf->focca,':');
-  if (!last_colon) return EXIT_FAILURE;
-  assert(last_colon);
-  //CeedDebug("\033[36;1m[CeedQFunction][Create] last_colon=%s",last_colon);
+  qf->data = data;
+  // Fill CeedQFunction_Occa struct ********************************************
+  data->op = false;
+  data->ready = false;
+  data->nc = data->dim = 1;
+  data->e = 0;
+  // Locate last ':' character in qf->focca ************************************
+  CeedDebug("\033[36;1m[CeedQFunction][Create] focca=%s",qf->focca);
+  const char *last_colon = strrchr(qf->focca,':');
+  char *last_dot = strrchr(qf->focca,'.');
+  if (!last_colon)
+    return CeedError(qf->ceed, 1, "Can not find ':' in focca field!");
+  if (!last_dot)
+    return CeedError(qf->ceed, 1, "Can not find '.' in focca field!");
   // Focus on the function name
-  occa->qFunctionName = last_colon+1;
-  assert(occa->qFunctionName);
-  //CeedDebug("\033[36;1m[CeedQFunction][Create] qFunctionName=%s",occa->qFunctionName);
+  data->qFunctionName = last_colon+1;
+  CeedDebug("\033[36;1m[CeedQFunction][Create] qFunctionName=%s",
+            data->qFunctionName);
   // Now extract filename
-  occa->oklPath=calloc(4096,sizeof(char));
-  const size_t oklPathLen = last_colon - qf->focca;
-  memcpy(occa->oklPath,qf->focca,oklPathLen);
-  occa->oklPath[oklPathLen]='\0';
-  strcpy(&occa->oklPath[oklPathLen - 2],".okl");
-  CeedDebug("\033[36;1m[CeedQFunction][Create] qFunctionName=%s",occa->qFunctionName);
-  CeedDebug("\033[36;1m[CeedQFunction][Create] filename=%s",occa->oklPath);
-  // Test if we can get file's status
-  struct stat buf;          
-  if (stat(occa->oklPath, &buf)!=0) return EXIT_FAILURE;
-  return EXIT_SUCCESS;
+  data->oklPath=calloc(4096,sizeof(char));
+  const size_t oklPathLen = last_dot - qf->focca;
+  memcpy(data->oklPath,qf->focca,oklPathLen);
+  data->oklPath[oklPathLen]='\0';
+  strcpy(&data->oklPath[oklPathLen],".okl");
+  CeedDebug("\033[36;1m[CeedQFunction][Create] filename=%s",data->oklPath);
+  // Test if we can get file's status ******************************************
+  struct stat buf;
+  if (stat(data->oklPath, &buf)!=0)
+    return CeedError(qf->ceed, 1, "Can not find OKL file!");
+  return 0;
 }
