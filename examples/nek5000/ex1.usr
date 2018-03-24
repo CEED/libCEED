@@ -350,7 +350,7 @@ c     Output: ur,us         Input:u,N,D,Dt
 
       return
       end
-c=======================================================================
+c-----------------------------------------------------------------------
       subroutine xmask    (r1,r2,r3,nelv)
       real r1(1),r2(1),r3(1)
 
@@ -378,6 +378,20 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
+      subroutine massf(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
+      real*8 ctx
+      real*8 qdata(1)
+      real*8 u1(1)
+      real*8 v1(1)
+      integer q,ierr
+
+      do i=1,q
+        v1(i)=qdata(i)*u1(i)
+      enddo
+
+      ierr=0
+      end
+c-----------------------------------------------------------------------
       subroutine cggos(u1,r1,h1,h2,rmult,binv,tin,ceed,maxit)
 
 c     Vector conjugate gradient iteration for solution of uncoupled
@@ -389,6 +403,7 @@ c     Helmholtz equations
       include 'FDMH1'
 
       include 'ceedf.h'
+      external massf
 
       real u1(1),r1(1),h1(1),h2(1),rmult(1),binv(1)
       integer ceed
@@ -927,8 +942,8 @@ c     call dsavg(e1)
 
       tstart = dnekclock()
       call cggos(u1,r1,h1,h2,vmult,binvm1,tol,ceed,maxit1)
-c      call cggos(u2,r2,h1,h2,vmult,binvm1,tol,ceed,maxit2)
-c      call cggos(u3,r3,h1,h2,vmult,binvm1,tol,ceed,maxit3)
+      call cggos(u2,r2,h1,h2,vmult,binvm1,tol,ceed,maxit2)
+      call cggos(u3,r3,h1,h2,vmult,binvm1,tol,ceed,maxit3)
       tstop  = dnekclock()
 
       telaps = (tstop-tstart)
