@@ -81,6 +81,7 @@ int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_order,
                            CeedVector mesh_coords);
 CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords);
 
+// Next line is grep'd from tap.sh to set its arguments
 //TESTARGS -c {ceed_resource} -t
 int main(int argc, const char *argv[]) {
   const char *ceed_spec = "/cpu/self";

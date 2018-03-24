@@ -13,44 +13,38 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-
 // *****************************************************************************
 typedef int CeedInt;
 typedef double CeedScalar;
+typedef __global double gCeedScalar;
 
 // *****************************************************************************
 kernel void setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
                   const CeedScalar *u, const CeedScalar *bu,
-                  CeedScalar *v, CeedScalar *bv,
-                  int *ierr) {
+                  CeedScalar *v, CeedScalar *bv) {
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    CeedScalar *w = ((CeedScalar*)qdata)+e*Q;
-    const CeedScalar *u0 = u;
-    // Offset computation should depend on inmode & outmode
-    const int offset = e*(Q*NC*(DIM+2));
-    const CeedScalar *bu0=bu+offset;
-    //printf("\tu0[%d]=%f, bu0[%d]=%f\n",i,u0[i],i,bu0[i]);
+    gCeedScalar *w = ((gCeedScalar*)qdata)+e*Q;
+    const gCeedScalar *u0 = u;
+    const CeedInt offset = e*(Q*NC*(DIM+2));
+    const gCeedScalar *bu0 = bu+offset;
+    if (fabs(u0[i]-bu0[i])>epsilon) continue;
     w[i] = u0[i];
   }
-  *ierr=0;
 }
 
 // *****************************************************************************
 kernel void mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
                  const CeedScalar *u, const CeedScalar *bu,
-                 CeedScalar *v, CeedScalar *bv,
-                 int *ierr) {
-  CeedScalar *v0 = (CeedScalar*)v;
+                 CeedScalar *v, CeedScalar *bv) {
+  CeedScalar *v0 = v;
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    const CeedScalar *w = ((CeedScalar*)qdata)+e*Q;
-    const CeedScalar *u0 = u;
-    // Offset computation should depend on inmode & outmode
-    const int offset = e*(Q*NC*(DIM+2));
-    const CeedScalar *bu0=bu+offset;
-    //printf("\tu0[%d]=%f, bu0[%d]=%f\n",i,u0[i],i,bu0[i]);
+    const gCeedScalar *w = ((gCeedScalar*)qdata)+e*Q;
+    const gCeedScalar *u0 = u;
+    const CeedInt offset = e*(Q*NC*(DIM+2));
+    const gCeedScalar *bu0 = bu+offset;
+    if (fabs(u0[i]-bu0[i])>epsilon) continue;
     v0[i] = w[i] * u0[i];
   }
-  *ierr=0;
 }

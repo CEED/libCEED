@@ -17,8 +17,9 @@
 CC ?= gcc
 FC ?= gfortran
 
-ASAN ?= 0
-NDEBUG ?= #1
+# ASAN & CDEBUG must be empty not to use them
+ASAN ?= #1
+NDEBUG ?= 1
 CDEBUG ?= #1
 
 LDFLAGS ?=
@@ -175,7 +176,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 
-.PHONY : all cln clean print test tst prove prv examples astyle install doc
+.PHONY : all cln clean print test tst prove prv examples style install doc
 
 cln clean :
 	$(RM) *.o *.d $(libceed)
@@ -190,7 +191,7 @@ distclean : clean
 doc :
 	doxygen Doxyfile
 
-style astyle :
+style :
 	astyle --style=google --indent=spaces=2 --max-code-length=80 \
             --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
             --suffix=none --preserve-date --formatted \
