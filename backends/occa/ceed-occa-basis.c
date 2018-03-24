@@ -60,14 +60,18 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
   const CeedInt M1d = (Q1d>P1d)?Q1d:P1d;
   occaPropertiesSet(pKR, "defines/M1d", occaInt(M1d));
   const CeedInt MPow = CeedPowInt(M1d,dim-1);
-  CeedDebug("\033[38;5;249m[CeedBasis][BK] nelem=%d, ndof=%d, M1d=%d, MPow=%d", nelem,ndof,M1d,MPow);
+  CeedDebug("\033[38;5;249m[CeedBasis][BK] nelem=%d, ndof=%d, M1d=%d, MPow=%d",
+            nelem,ndof,M1d,MPow);
   const CeedInt tmpSz = ndof*M1d*CeedPowInt(M1d,dim-1);
   occaPropertiesSet(pKR, "defines/tmpSz", occaInt(tmpSz));
-  CeedDebug("\033[38;5;249m[CeedBasis][BK] dim=%d, ndof=%d, P1d=%d, Q1d=%d, M1d=%d ", dim,ndof,P1d,Q1d,M1d);
+  CeedDebug("\033[38;5;249m[CeedBasis][BK] dim=%d, ndof=%d, P1d=%d, Q1d=%d, M1d=%d ",
+            dim,ndof,P1d,Q1d,M1d);
   const CeedInt elems_x_tmpSz = nelem*tmpSz;
   CeedDebug("\033[38;5;249m[CeedBasis][BK] elems_x_tmpSz=%d",elems_x_tmpSz);
-  data->tmp0 = occaDeviceMalloc(dev,elems_x_tmpSz*sizeof(CeedScalar),NULL,NO_PROPS);
-  data->tmp1 = occaDeviceMalloc(dev,elems_x_tmpSz*sizeof(CeedScalar),NULL,NO_PROPS);
+  data->tmp0 = occaDeviceMalloc(dev,elems_x_tmpSz*sizeof(CeedScalar),NULL,
+                                NO_PROPS);
+  data->tmp1 = occaDeviceMalloc(dev,elems_x_tmpSz*sizeof(CeedScalar),NULL,
+                                NO_PROPS);
   // ***************************************************************************
   char oklPath[4096] = __FILE__;
   const size_t oklPathLen = strlen(oklPath);
@@ -96,7 +100,7 @@ static int CeedTensorContract_Occa(Ceed ceed,
   const CeedInt tstride1 = transpose?J:1;
   for (CeedInt a=0; a<A; a++) {
     for (CeedInt j=0; j<J; j++) {
-      if (!Add) 
+      if (!Add)
         for (CeedInt c=0; c<C; c++)
           v[(a*J+j)*C+c] = 0.0;
       for (CeedInt b=0; b<B; b++) {
@@ -119,7 +123,7 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
   const CeedInt ready =  data->ready;
   // ***************************************************************************
   // We were waiting for the CeedElemRestriction to fill nelem and elemsize
-  if (!ready){
+  if (!ready) {
     data->ready=true;
     CeedBasisBuildKernel(basis);
   }
@@ -149,8 +153,8 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
     const occaMemory d_tmp0 = data->tmp0;
     const occaMemory d_tmp1 = data->tmp1;
     const occaMemory d_interp1d = data->interp1d;
-    const CeedVector_Occa *u_data = u->data;assert(u_data);
-    const CeedVector_Occa *v_data = v->data;assert(v_data);
+    const CeedVector_Occa *u_data = u->data; assert(u_data);
+    const CeedVector_Occa *v_data = v->data; assert(v_data);
     const occaMemory d_u = u_data->d_array;
     const occaMemory d_v = v_data->d_array;
     occaKernelRun(data->kInterp,occaInt(QnD),
@@ -186,7 +190,7 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     const CeedInt Q1d = basis->Q1d;
     const occaMemory d_qw = data->qweight1d;
-    const CeedVector_Occa *v_data = v->data;assert(v_data);
+    const CeedVector_Occa *v_data = v->data; assert(v_data);
     const occaMemory d_v = v_data->d_array;
     occaKernelRun(data->kWeight,occaInt(QnD),occaInt(Q1d),d_qw,d_v,occaInt(v_nqpt));
     if (!transpose) v_nqpt += nqpt;
@@ -255,7 +259,7 @@ static int CeedBasisApply_Occa(CeedBasis basis,
         //printf(", d==0: %s",d==0?"yes":"no");
         //printf(", d%%2=%d ",d%2);
         //printf(", d==dim-1: %s",d==dim-1?"yes":"no");
-        //printf(", (d+1)%%2=%d ",(d+1)%2);        
+        //printf(", (d+1)%%2=%d ",(d+1)%2);
         ierr = CeedTensorContract_Occa(basis->ceed, pre, P, post, Q,
                                        (p==d)?basis->grad1d:basis->interp1d,
                                        tmode, transpose&&(d==dim-1),
@@ -265,7 +269,7 @@ static int CeedBasisApply_Occa(CeedBasis basis,
         post *= Q;
       }
       if (!transpose) v += nqpt;
-      else u += nqpt;      
+      else u += nqpt;
     }
   }
   // ***************************************************************************
@@ -284,7 +288,8 @@ static int CeedBasisApply_Occa(CeedBasis basis,
         for (CeedInt j=0; j<Q; j++) {
           for (CeedInt k=0; k<post; k++) {
             //printf("\n\t\td=%d, i=%d, j=%d, k=%d offset=%d",d,i,k,k,(i*Q+j)*post+k);
-            v[(i*Q + j)*post + k] = basis->qweight1d[j] * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
+            v[(i*Q + j)*post + k] = basis->qweight1d[j] * (d == 0 ? 1 : v[(i*Q + j)*post +
+                                    k]);
           }
         }
       }
@@ -328,15 +333,18 @@ int CeedBasisCreateTensorH1_Occa(Ceed ceed,
   // ***************************************************************************
   assert(qweight1d);
   data->qweight1d = occaDeviceMalloc(dev,Q1d*sizeof(CeedScalar),NULL,NO_PROPS);
-  occaCopyPtrToMem(data->qweight1d,qweight1d,Q1d*sizeof(CeedScalar),NO_OFFSET,NO_PROPS);
+  occaCopyPtrToMem(data->qweight1d,qweight1d,Q1d*sizeof(CeedScalar),NO_OFFSET,
+                   NO_PROPS);
   // ***************************************************************************
   assert(interp1d);
   data->interp1d = occaDeviceMalloc(dev,P1d*Q1d*sizeof(CeedScalar),NULL,NO_PROPS);
-  occaCopyPtrToMem(data->interp1d,interp1d,P1d*Q1d*sizeof(CeedScalar),NO_OFFSET,NO_PROPS);
+  occaCopyPtrToMem(data->interp1d,interp1d,P1d*Q1d*sizeof(CeedScalar),NO_OFFSET,
+                   NO_PROPS);
   // ***************************************************************************
   assert(grad1d);
   data->grad1d = occaDeviceMalloc(dev,P1d*Q1d*sizeof(CeedScalar),NULL,NO_PROPS);
-  occaCopyPtrToMem(data->grad1d,grad1d,P1d*Q1d*sizeof(CeedScalar),NO_OFFSET,NO_PROPS);
+  occaCopyPtrToMem(data->grad1d,grad1d,P1d*Q1d*sizeof(CeedScalar),NO_OFFSET,
+                   NO_PROPS);
   // ***************************************************************************
   basis->Apply = CeedBasisApply_Occa;
   basis->Destroy = CeedBasisDestroy_Occa;

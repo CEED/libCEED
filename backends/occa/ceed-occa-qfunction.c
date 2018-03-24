@@ -95,17 +95,17 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   if (!ready) { // If the kernel has not been built, do it now
     data->ready=true;
     CeedQFunctionBuildKernel(qf);
-    if (!data->op){ // like from t20
+    if (!data->op) { // like from t20
       const CeedInt bbytes = Q*nc*(dim+2)*bytes;
       data->d_q = occaDeviceMalloc(ceed->device,qbytes, qdata, NO_PROPS);
       data->b_u = occaDeviceMalloc(ceed->device,bbytes, NULL, NO_PROPS);
       data->b_v = occaDeviceMalloc(ceed->device,bbytes, NULL, NO_PROPS);
-    }else{
+    } else {
       /* b_u, b_v come form cee-occa-operator BEu, BEv */
     }
     data->d_u = occaDeviceMalloc(ceed->device,ubytes, NULL, NO_PROPS);
     data->d_v = occaDeviceMalloc(ceed->device,ubytes, NULL, NO_PROPS);
-   }
+  }
   const occaMemory d_q = data->d_q;
   const occaMemory d_u = data->d_u;
   const occaMemory d_v = data->d_v;
