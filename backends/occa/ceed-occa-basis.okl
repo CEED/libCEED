@@ -13,7 +13,9 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-int printf(const char *format, ...);
+
+// *****************************************************************************
+typedef __global double global_double;
 
 // *****************************************************************************
 static inline int CeedPowInt(int base, int power) {
@@ -30,23 +32,22 @@ static inline int CeedPowInt(int base, int power) {
 static int kCeedTensorContract(const int transpose,
                                const int A, const int B,
                                const int C, const int J,
-                               const double *t,
+                               const global_double *t,
                                const int tmode,
                                const int Add,
-                               const double *u, double *v) {
+                               const global_double *u, global_double *v) {
   const int tstride0 = transpose?1:B;
   const int tstride1 = transpose?J:1;
   for (int a=0; a<A; a++) {
     for (int j=0; j<J; j++) {
-      if (!Add) {
+      if (!Add) 
         for (int c=0; c<C; c++) v[(a*J+j)*C+c] = 0.0;
-      }
       for (int b=0; b<B; b++) {
         for (int c=0; c<C; c++) {
           const int wxs = (a*J+j)*C+c;
           const int rxs = (a*B+b)*C+c;
           v[wxs] += t[j*tstride0 + b*tstride1] * u[rxs];
-          //printf("\n\t\t[kCeedTensorContract] @%d(=%f) += @%d ",wxs,v[wxs],rxs);
+          //printf("\n\t\t[kCeedTensorContract] @%d(=%f)+ @%d",wxs,v[wxs],rxs);
         }
       }
     }
@@ -59,7 +60,7 @@ kernel void kZero(double* d_v) {
   for (int e=0; e<nelem; e++; tile(TILE_SIZE)) {
     if (e >= nelem) continue;
     const int v_offset = e*(nc*elemsize);
-    double *o_v = d_v+v_offset;
+    global_double *o_v = d_v+v_offset;
     for (int i = 0; i < vsize; i++)
       o_v[i] = 0.0;
   }
@@ -75,12 +76,12 @@ kernel void kInterp(const int QnD,const int transpose, const int tmode,
   for (int e=0; e<nelem; e++; tile(TILE_SIZE)) {
     if (e >= nelem) continue;
     const int t_offset = e*tmpSz;
-    double *eTmp0 = tmp0+t_offset;
-    double *eTmp1 = tmp1+t_offset;
+    global_double *eTmp0 = tmp0+t_offset;
+    global_double *eTmp1 = tmp1+t_offset;
     const int u_offset = e*(nc*elemsize);
     const int v_offset = e*(QnD*nc*(dim+2));
-    const double *o_u = d_u+(transpose?v_offset:u_offset);
-    double *o_v = d_v+(transpose?u_offset:v_offset);
+    const global_double *o_u = d_u+(transpose?v_offset:u_offset);
+    global_double *o_v = d_v+(transpose?u_offset:v_offset);
     int pre = ndof*CeedPowInt(P, dim-1), post = 1;
     //printf(", pre=%d",pre);
     //printf(", post=%d",post);
@@ -102,7 +103,6 @@ kernel void kInterp(const int QnD,const int transpose, const int tmode,
     if (!transpose) o_v += nqpt;
     else o_u += nqpt;
   }
-  //printf("\n");
 }
 
 // *****************************************************************************
@@ -115,12 +115,12 @@ kernel void kGrad(const int QnD, const int transpose, const int tmode,
   for (int e=0; e<nelem; e++; tile(TILE_SIZE)) {
     if (e >= nelem) continue;
     const int t_offset = e*tmpSz;
-    double *eTmp0 = tmp0+t_offset;
-    double *eTmp1 = tmp1+t_offset;
+    global_double *eTmp0 = tmp0+t_offset;
+    global_double *eTmp1 = tmp1+t_offset;
     const int u_offset = e*(nc*elemsize);
     const int v_offset = e*(QnD*nc*(dim+2));
-    const double *o_u = d_u+(transpose?v_offset:u_offset);
-    double *o_v = d_v+(transpose?u_offset:v_offset);
+    const global_double *o_u = d_u+(transpose?v_offset:u_offset);
+    global_double *o_v = d_v+(transpose?u_offset:v_offset);
     for (int p=0; p<dim; p++) {
       int pre = ndof*CeedPowInt(P,dim-1);
       int post = 1;
@@ -148,7 +148,7 @@ kernel void kWeight(const int QnD, const int Q, double *qweight1d,
     if (e >= nelem) continue;
     // QnD + QnD*nc + QnD*nc*dim
     const int v_offset = e*(QnD*nc*(dim+2))+v_nqpt;
-    double *v = d_v+v_offset;
+    global_double *v = d_v+v_offset;
     //printf("\n[kWeight] elem #%d, Q=%d, v_nqpt=%d",e,Q,v_nqpt);
     for (int d=0; d<dim; d++) {
       const int pre = CeedPowInt(Q,dim-d-1);
