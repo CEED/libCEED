@@ -7,6 +7,7 @@ output=$(mktemp $1.XXXX)
 backends=(/cpu/self /cpu/occa /gpu/occa /omp/occa) # /ocl/occa)
 printf "1..$[3*${#backends[@]}]\n";
 
+# for examples ex*, grep the code to fetch arguments from a TESTARGS line
 if [ ${1::2} == "ex" ]; then
     args=$(grep -F //TESTARGS examples/$1.c | cut -d\  -f2- )
 else

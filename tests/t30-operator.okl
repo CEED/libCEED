@@ -17,13 +17,12 @@
 // *****************************************************************************
 typedef int CeedInt;
 typedef double CeedScalar;
+int printf(const char *format, ...);
 
 // *****************************************************************************
 kernel void setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
                   const CeedScalar *u, const CeedScalar *bu,
-                  CeedScalar *v, CeedScalar *bv,
-                  int *ierr) {
-  const double epsilon = 1.e-14;
+                  CeedScalar *v, CeedScalar *bv) {
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
     CeedScalar *w = ((CeedScalar*)qdata)+e*Q;
@@ -35,8 +34,8 @@ kernel void setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
     const CeedScalar *bu4=bu+offset+Q*NC*DIM;
     //printf("\n[f_build_mass] Q=%d, NC=%d, DIM=%d",Q,NC,DIM);
     //printf("\tu1[%d]*u4[%d]=%f*%f, b1[%d]*b4[%d]=%f*%f\n",i,i,u1[i],u4[i],i,i,bu1[i],bu4[i]);
-    if (fabs(u1[i]-bu1[i])>epsilon) *ierr=1;
-    if (fabs(u4[i]-bu4[i])>epsilon) *ierr=1;
+    if (fabs(u1[i]-bu1[i])>epsilon) printf("\033[31;1mX\033[m");
+    if (fabs(u4[i]-bu4[i])>epsilon) printf("\033[31;1mX\033[m");
     w[i] = u1[i]*u4[i];
   }
 }
@@ -44,9 +43,7 @@ kernel void setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
 // *****************************************************************************
 kernel void mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
                  const CeedScalar *u, const CeedScalar *bu,
-                 CeedScalar *v, CeedScalar *bv,
-                 int *ierr) {
-  const double epsilon = 1.e-14;
+                 CeedScalar *v, CeedScalar *bv) {
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
     const CeedScalar *w = ((CeedScalar*)qdata)+e*Q;
@@ -54,7 +51,7 @@ kernel void mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
     const int offset = e*(Q*NC*(DIM+2));
     const CeedScalar *o_bu = bu+offset;
     //printf("\te=%d, u[%d]=%f, bu[%d]=%f\n",i,u[i],i,o_bu[i]);
-    if (fabs(u[i]-o_bu[i])>epsilon) *ierr=1;
+    if (fabs(u[i]-o_bu[i])>epsilon) printf("\033[31;1mX\033[m");
     v[i] = w[i] * u[i];
   }
 }
