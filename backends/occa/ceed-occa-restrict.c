@@ -181,7 +181,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   data->kRestrict[6] = occaDeviceBuildKernel(dev, oklPath, "kRestrict3b", pKR);
   data->kRestrict[7] = occaDeviceBuildKernel(dev, oklPath, "kRestrict4b", pKR);
   data->kRestrict[8] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5b", pKR);
-  occaPropertiesFree(pKR);
+  occaFree(pKR);
   CeedDebug("\033[35m[CeedElemRestriction][Create] done");
   return 0;
 }
