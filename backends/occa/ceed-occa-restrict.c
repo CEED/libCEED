@@ -177,9 +177,9 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   // should look for last '.' chr, instead of '-1'
   strcpy(&oklPath[oklPathLen-2],".okl");
   dbg("[CeedElemRestriction][Create] filename=%s",oklPath);
-  // Test if we can get file's status ******************************************
+  // Test if we can get file's status, if not revert to occa://ceed/*.okl ******
   struct stat buf;
-  if (stat(oklPath, &buf)==0){
+  if (stat(oklPath, &buf)!=0){
     dbg("[CeedElemRestriction][Create] Could NOT stat this OKL file: %s",oklPath);
     dbg("[CeedElemRestriction][Create] Reverting to occa://ceed/*.okl");
     strcpy(oklPath,"occa://ceed/ceed-occa-restrict.okl");
