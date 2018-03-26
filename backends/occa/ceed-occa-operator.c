@@ -88,10 +88,8 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   const CeedScalar *in[5] = {0,0,0,0,0};
   const size_t qbytes = op->qf->qdatasize;
   // ***************************************************************************
-  dbg("[CeedOperator][Apply] BEu @%p",data->BEu);
   ierr = CeedBasisApplyElems_Occa(op->basis,Q,CEED_NOTRANSPOSE,op->qf->inmode,
                                   data->etmp,data->BEu); CeedChk(ierr);
-  dbg("[CeedOperator][Apply] BEu @%p",data->BEu);
   //dbg("[CeedOperator][Apply] etmp:");
   //CeedVectorView(data->etmp,"%f",stdout);
   //dbg("[CeedOperator][Apply] View BEu:");

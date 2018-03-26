@@ -54,6 +54,7 @@ LIBDIR := lib
 prefix ?= /usr/local
 bindir = $(prefix)/bin
 libdir = $(prefix)/lib
+okldir = $(prefix)/lib/okl
 includedir = $(prefix)/include
 pkgconfigdir = $(libdir)/pkgconfig
 INSTALL = install
@@ -168,13 +169,26 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 %/ceed.pc : ceed.pc.template | $$(@D)/.DIR
 	@sed "s:%prefix%:$(pkgconfig-prefix):" $< > $@
 
+# OCCA cache dir, lib, okl
+OCCA_CACHE_DIR     ?= ${HOME}/.occa
+OCCA_LIB_CACHE_DIR := $(OCCA_CACHE_DIR)/libraries
+OKL_KERNELS        := $(shell find backends/occa -type f -name '*.okl')
+OKL_CACHED_KERNELS := $(subst backends/occa,$(OCCA_LIB_CACHE_DIR)/ceed,$(OKL_KERNELS))
+okl-cache: $(OKL_CACHED_KERNELS)
+okl-clear: ;@occa clear -y -l ceed
+$(OCCA_LIB_CACHE_DIR)/ceed/%.okl: backends/occa/*.okl
+	echo find . -type f -name $*.okl
+	@echo "Caching: $(shell find . -type f -name $*.okl)"
+	@occa cache ceed $(shell find . -type f -name $*.okl)
+
 install : $(libceed) $(OBJDIR)/ceed.pc
-	$(INSTALL) -d "$(DESTDIR)$(includedir)" "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgconfigdir)"
+	$(INSTALL) -d "$(DESTDIR)$(includedir)" "$(DESTDIR)$(libdir)" "$(DESTDIR)$(okldir)" "$(DESTDIR)$(pkgconfigdir)"
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
+	$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/"
 
-.PHONY : all cln clean print test tst prove prv examples style install doc
+.PHONY : all cln clean print test tst prove prv examples style install doc okl-cache okl-clear
 
 cln clean :
 	$(RM) *.o *.d $(libceed)

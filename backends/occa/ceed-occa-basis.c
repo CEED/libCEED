@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 #define CEED_DEBUG_COLOR 249
 #include "ceed-occa.h"
+#include <sys/stat.h>
 
 // *****************************************************************************
 // * buildKernel
@@ -79,6 +80,14 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
   char oklPath[4096] = __FILE__;
   const size_t oklPathLen = strlen(oklPath);
   strcpy(&oklPath[oklPathLen-2],".okl");
+  // Test if we can get file's status, if not revert to occa://ceed/*.okl
+  struct stat buf;
+  if (stat(oklPath, &buf)==0){
+    dbg("[CeedElemRestriction][Create] Could NOT stat this OKL file: %s",oklPath);
+    dbg("[CeedElemRestriction][Create] Reverting to occa://ceed/*.okl");
+    strcpy(oklPath,"occa://ceed/ceed-occa-basis.okl");
+  }
+  // ***************************************************************************
   data->kZero   = occaDeviceBuildKernel(dev,oklPath,"kZero",pKR);
   data->kInterp = occaDeviceBuildKernel(dev,oklPath,"kInterp",pKR);
   data->kGrad   = occaDeviceBuildKernel(dev,oklPath,"kGrad",pKR);

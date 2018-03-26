@@ -1,1 +1,91 @@
-../ex1-volume-annulus.okl
+// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
+// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
+// reserved. See files LICENSE and NOTICE for details.
+//
+// This file is part of CEED, a collection of benchmarks, miniapps, software
+// libraries and APIs for efficient high-order finite element and spectral
+// element discretizations for exascale applications. For more information and
+// source code availability see http://github.com/ceed.
+//
+// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
+// a collaborative effort of two U.S. Department of Energy organizations (Office
+// of Science and the National Nuclear Security Administration) responsible for
+// the planning and preparation of a capable exascale ecosystem, including
+// software, applications, hardware, advanced system engineering and early
+// testbed platforms, in support of the nation's exascale computing imperative.
+
+// *****************************************************************************
+typedef int CeedInt;
+typedef double CeedScalar;
+typedef __global double gCeedScalar;
+
+// *****************************************************************************
+struct BuildContext { CeedInt dim, space_dim; };
+
+// *****************************************************************************
+kernel void f_build_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
+                         const CeedScalar *u, const CeedScalar *bu,
+                         CeedScalar *v, CeedScalar *bv) {
+  struct BuildContext *bc = (struct BuildContext*)ctx;
+  switch (bc->dim + 10*bc->space_dim) {
+  case 11:
+    for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
+      if (i >= Q) continue;
+      const gCeedScalar *J=u+Q*NC;
+      const gCeedScalar *qw=u+Q*NC*(DIM+1);
+      gCeedScalar *qd = ((gCeedScalar*)qdata)+e*Q;
+      const CeedInt offset = e*(Q*NC*(DIM+2));
+      const gCeedScalar *bJ=bu+offset;
+      const gCeedScalar *bQW=bu+offset+Q*NC*DIM;
+      if (fabs(J[i]-bJ[i])>epsilon) continue;
+      if (fabs(qw[i]-bQW[i])>epsilon) continue;
+      qd[i] = J[i] * qw[i];
+    }
+    break;
+  case 22:
+    for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
+      if (i >= Q) continue;
+      const gCeedScalar *J=u+Q*NC;
+      const gCeedScalar *qw=u+Q*NC*(DIM+1);
+      gCeedScalar *qd = ((gCeedScalar*)qdata)+e*Q;
+      const CeedInt offset = e*(Q*NC*(DIM+2));
+      const gCeedScalar *bJ=bu+offset;
+      const gCeedScalar *bQW=bu+offset+Q*NC*DIM;
+      if (fabs(J[i]-bJ[i])>epsilon) continue;
+      if (fabs(qw[i]-bQW[i])>epsilon) continue;
+      qd[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
+    }
+    break;
+  case 33:
+    for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
+      if (i >= Q) continue;
+      gCeedScalar *qd = ((gCeedScalar*)qdata)+e*Q;
+      const gCeedScalar *J = u+Q*NC;
+      const gCeedScalar *qw = u+Q*NC*(DIM+1);
+      const CeedInt offset = e*(Q*NC*(DIM+2));
+      const gCeedScalar *bJ = bu+offset;
+      const gCeedScalar *bQW = bu+offset+Q*NC*DIM;
+      if (fabs(J[i]-bJ[i])>epsilon) continue;
+      if (fabs(qw[i]-bQW[i])>epsilon) continue;
+      qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
+               J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
+               J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * qw[i];
+    }
+    break;
+  default:;
+  }
+}
+
+// *****************************************************************************
+kernel void f_apply_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
+                         const CeedScalar *u, const CeedScalar *bu,
+                         CeedScalar *v, CeedScalar *bv) {
+  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
+    if (i >= Q) continue;
+    const gCeedScalar *w = ((gCeedScalar*)qdata)+e*Q;
+    const CeedInt offset = e*(Q*NC*(DIM+2));
+    const gCeedScalar *o_bu = bu+offset;
+    if (fabs(u[i]-o_bu[i])>epsilon) continue;
+    v[i] = w[i] * u[i];
+  }
+}

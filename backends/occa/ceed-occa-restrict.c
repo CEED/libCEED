@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 #define CEED_DEBUG_COLOR 13
 #include "ceed-occa.h"
+#include <sys/stat.h>
 
 // *****************************************************************************
 // * Bytes used
@@ -175,6 +176,15 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   // consider using realpath(3) or something dynamic
   // should look for last '.' chr, instead of '-1'
   strcpy(&oklPath[oklPathLen-2],".okl");
+  dbg("[CeedElemRestriction][Create] filename=%s",oklPath);
+  // Test if we can get file's status ******************************************
+  struct stat buf;
+  if (stat(oklPath, &buf)==0){
+    dbg("[CeedElemRestriction][Create] Could NOT stat this OKL file: %s",oklPath);
+    dbg("[CeedElemRestriction][Create] Reverting to occa://ceed/*.okl");
+    strcpy(oklPath,"occa://ceed/ceed-occa-restrict.okl");
+  }
+  // ***************************************************************************
   data->kRestrict[0] = occaDeviceBuildKernel(dev, oklPath, "kRestrict0", pKR);
   data->kRestrict[1] = occaDeviceBuildKernel(dev, oklPath, "kRestrict1", pKR);
   data->kRestrict[2] = occaDeviceBuildKernel(dev, oklPath, "kRestrict2", pKR);
