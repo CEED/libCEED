@@ -37,7 +37,7 @@ static int CeedQFunctionBuildKernel(CeedQFunction qf) {
   CeedDebug("\033[36m[CeedQFunction][BuildKernel] name=%s",data->qFunctionName);
   data->kQFunctionApply =
     occaDeviceBuildKernel(dev, data->oklPath, data->qFunctionName, pKR);
-  occaPropertiesFree(pKR);
+  occaFree(pKR);
   return 0;
 }
 
@@ -138,9 +138,9 @@ static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
   free(data->oklPath);
   CeedDebug("\033[36m[CeedQFunction][Destroy]");
   if (data->ready) {
-    if (!data->op) occaMemoryFree(data->d_q);
-    occaMemoryFree(data->d_u);
-    occaMemoryFree(data->d_v);
+    if (!data->op) occaFree(data->d_q);
+    occaFree(data->d_u);
+    occaFree(data->d_v);
   }
   int ierr = CeedFree(&data); CeedChk(ierr);
   return 0;

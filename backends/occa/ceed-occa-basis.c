@@ -80,7 +80,7 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
   data->kInterp = occaDeviceBuildKernel(dev,oklPath,"kInterp",pKR);
   data->kGrad   = occaDeviceBuildKernel(dev,oklPath,"kGrad",pKR);
   data->kWeight = occaDeviceBuildKernel(dev,oklPath,"kWeight",pKR);
-  occaPropertiesFree(pKR);
+  occaFree(pKR);
   return 0;
 }
 

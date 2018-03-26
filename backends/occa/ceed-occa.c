@@ -47,7 +47,7 @@ static int CeedDestroy_Occa(Ceed ceed) {
   int ierr;
   Ceed_Occa *data=ceed->data;
   CeedDebug("\033[1m[CeedDestroy]");
-  occaDeviceFree(data->device);
+  occaFree(data->device);
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
@@ -75,7 +75,9 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   ceed->data = data;
 #ifdef CDEBUG
-  occaSetVerboseCompilation(true);
+  occaPropertiesSet(occaSettings(),
+                    "verbose-compilation",
+                    occaBool(1));
 #endif
   const char *mode = gpu?occaGPU : omp?occaOMP : ocl ? occaOCL : occaCPU;
   // Now creating OCCA device
