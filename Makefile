@@ -17,10 +17,9 @@
 CC ?= gcc
 FC ?= gfortran
 
-# ASAN & CDEBUG must be empty not to use them
-ASAN ?= #1
+# ASAN must be empty not to use it
+ASAN ?=
 NDEBUG ?= 1
-CDEBUG ?= #1
 
 LDFLAGS ?=
 UNDERSCORE ?= 1
@@ -36,7 +35,6 @@ CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -O2 -g
 FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
 
 CFLAGS += $(if $(NDEBUG),-DNDEBUG=1)
-CFLAGS += $(if $(CDEBUG),-DCDEBUG=1)
 
 ifeq ($(UNDERSCORE), 1)
   CFLAGS += -DUNDERSCORE

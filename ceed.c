@@ -25,6 +25,7 @@
 /// @cond DOXYGEN_SKIP
 static CeedRequest ceed_request_immediate;
 static CeedRequest ceed_request_ordered;
+CeedInt ceed_debug;
 
 static struct {
   char prefix[CEED_MAX_RESOURCE_LEN];
@@ -251,6 +252,10 @@ int CeedInit(const char *resource, Ceed *ceed) {
   (*ceed)->Error = CeedErrorAbort;
   (*ceed)->data = NULL;
   ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);
+  // if env variables CEED_DEBUG or DBG are non null
+  // allow CeedDebugImpl's output
+  ceed_debug=!!getenv("CEED_DEBUG");
+  ceed_debug|=!!getenv("DBG");
   return 0;
 }
 
@@ -279,16 +284,23 @@ int CeedDestroy(Ceed *ceed) {
   @param format printf-style format string
   @param ... arguments as specified in format string
  */
-void CeedDebug(const char *format,...) {
-#ifdef CDEBUG
+void CeedDebugImpl256(const unsigned char color,
+                      const char *format,...) {
+  if (!ceed_debug) return;
   va_list args;
   va_start(args, format);
   fflush(stdout);
-  fprintf(stdout,"\033[32m");
+  fprintf(stdout,"\033[38;5;%dm",color);
   vfprintf(stdout,format,args);
   fprintf(stdout,"\033[m");
   fprintf(stdout,"\n");
   fflush(stdout);
   va_end(args);
-#endif
+}
+void CeedDebugImpl(const char *format,...) {
+  if (!ceed_debug) return;
+  va_list args;
+  va_start(args, format);
+  CeedDebugImpl256(0,format,args);
+  va_end(args);
 }

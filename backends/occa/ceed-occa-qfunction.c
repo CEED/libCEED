@@ -13,6 +13,7 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+#define CEED_DEBUG_COLOR 14
 #include "ceed-occa.h"
 #include <sys/stat.h>
 
@@ -24,17 +25,20 @@ static int CeedQFunctionBuildKernel(CeedQFunction qf) {
   const Ceed_Occa *ceed_data=qf->ceed->data;
   assert(ceed_data);
   const occaDevice dev = ceed_data->device;
-  CeedDebug("\033[36m[CeedQFunction][BuildKernel] nc=%d",data->nc);
-  CeedDebug("\033[36m[CeedQFunction][BuildKernel] dim=%d",data->dim);
-  CeedDebug("\033[36m[CeedQFunction][BuildKernel] elemsize=%d",data->elemsize);
+  dbg("[CeedQFunction][BuildKernel] nc=%d",data->nc);
+  dbg("[CeedQFunction][BuildKernel] dim=%d",data->dim);
+  dbg("[CeedQFunction][BuildKernel] nelem=%d",data->nelem);
+  dbg("[CeedQFunction][BuildKernel] elemsize=%d",data->elemsize);
   occaProperties pKR = occaCreateProperties();
   occaPropertiesSet(pKR, "defines/NC", occaInt(data->nc));
   occaPropertiesSet(pKR, "defines/DIM", occaInt(data->dim));
   occaPropertiesSet(pKR, "defines/epsilon", occaDouble(1.e-14));
-  occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(TILE_SIZE));
-  CeedDebug("\033[36m[CeedQFunction][BuildKernel] occaDeviceBuildKernel");
-  CeedDebug("\033[36m[CeedQFunction][BuildKernel] oklPath=%s",data->oklPath);
-  CeedDebug("\033[36m[CeedQFunction][BuildKernel] name=%s",data->qFunctionName);
+  // OpenCL check for this requirement
+  const CeedInt tile_size = (data->nelem>TILE_SIZE)?TILE_SIZE:data->nelem;
+  occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(tile_size));
+  dbg("[CeedQFunction][BuildKernel] occaDeviceBuildKernel");
+  dbg("[CeedQFunction][BuildKernel] oklPath=%s",data->oklPath);
+  dbg("[CeedQFunction][BuildKernel] name=%s",data->qFunctionName);
   data->kQFunctionApply =
     occaDeviceBuildKernel(dev, data->oklPath, data->qFunctionName, pKR);
   occaFree(pKR);
@@ -78,7 +82,7 @@ static int CeedQFunctionFillOp_Occa(occaMemory d_u,
 static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
                                    const CeedScalar *const *u,
                                    CeedScalar *const *v) {
-  //CeedDebug("\033[36m[CeedQFunction][Apply]");
+  //dbg("[CeedQFunction][Apply]");
   CeedQFunction_Occa *data = qf->data;
   const Ceed_Occa *ceed = qf->ceed->data;
   const CeedInt nc = data->nc, dim = data->dim;
@@ -136,7 +140,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
 static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
   CeedQFunction_Occa *data=qf->data;
   free(data->oklPath);
-  CeedDebug("\033[36m[CeedQFunction][Destroy]");
+  dbg("[CeedQFunction][Destroy]");
   if (data->ready) {
     if (!data->op) occaFree(data->d_q);
     occaFree(data->d_u);
@@ -160,9 +164,10 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   data->op = false;
   data->ready = false;
   data->nc = data->dim = 1;
+  data->nelem = data->elemsize = 1;
   data->e = 0;
   // Locate last ':' character in qf->focca ************************************
-  CeedDebug("\033[36;1m[CeedQFunction][Create] focca=%s",qf->focca);
+  dbg("[CeedQFunction][Create] focca=%s",qf->focca);
   const char *last_colon = strrchr(qf->focca,':');
   char *last_dot = strrchr(qf->focca,'.');
   if (!last_colon)
@@ -171,7 +176,7 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
     return CeedError(qf->ceed, 1, "Can not find '.' in focca field!");
   // Focus on the function name
   data->qFunctionName = last_colon+1;
-  CeedDebug("\033[36;1m[CeedQFunction][Create] qFunctionName=%s",
+  dbg("[CeedQFunction][Create] qFunctionName=%s",
             data->qFunctionName);
   // Now extract filename
   data->oklPath=calloc(4096,sizeof(char));
@@ -179,7 +184,7 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   memcpy(data->oklPath,qf->focca,oklPathLen);
   data->oklPath[oklPathLen]='\0';
   strcpy(&data->oklPath[oklPathLen],".okl");
-  CeedDebug("\033[36;1m[CeedQFunction][Create] filename=%s",data->oklPath);
+  dbg("[CeedQFunction][Create] filename=%s",data->oklPath);
   // Test if we can get file's status ******************************************
   struct stat buf;
   if (stat(data->oklPath, &buf)!=0)

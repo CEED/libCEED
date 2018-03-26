@@ -13,6 +13,7 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+#define CEED_DEBUG_COLOR 11
 #include "ceed-occa.h"
 
 // *****************************************************************************
@@ -50,14 +51,14 @@ static int CeedVectorSetArray_Occa(const CeedVector x,
                                    CeedScalar *array) {
   CeedVector_Occa *data = x->data;
   int ierr;
-  CeedDebug("\033[33m[CeedVector][Set]");
+  dbg("[CeedVector][Set]");
   if (mtype != CEED_MEM_HOST)
     return CeedError(x->ceed, 1, "Only MemType = HOST supported");
   ierr = CeedFree(&data->h_array); CeedChk(ierr);
   switch (cmode) {
   // Implementation will copy the values and not store the passed pointer.
   case CEED_COPY_VALUES:
-    CeedDebug("\t\033[33m[CeedVector][Set] CEED_COPY_VALUES");
+    dbg("\t[CeedVector][Set] CEED_COPY_VALUES");
     ierr = CeedMalloc(x->length, &data->h_array); CeedChk(ierr);
     if (array) memcpy(data->h_array, array, bytes(x));
     if (array) CeedSyncH2D_Occa(x);
@@ -65,13 +66,13 @@ static int CeedVectorSetArray_Occa(const CeedVector x,
   // Implementation takes ownership of the pointer
   // and will free using CeedFree() when done using it
   case CEED_OWN_POINTER:
-    CeedDebug("\t\033[33m[CeedVector][Set] CEED_OWN_POINTER");
+    dbg("\t[CeedVector][Set] CEED_OWN_POINTER");
     data->h_array = array;
     CeedSyncH2D_Occa(x);
     break;
   // Implementation can use and modify the data provided by the user
   case CEED_USE_POINTER:
-    CeedDebug("\t\033[33m[CeedVector][Set] CEED_USE_POINTER");
+    dbg("\t[CeedVector][Set] CEED_USE_POINTER");
     data->h_array = array;
     data->used_pointer = array;
     CeedSyncH2D_Occa(x);
@@ -79,7 +80,7 @@ static int CeedVectorSetArray_Occa(const CeedVector x,
     break;
   default: CeedError(x->ceed,1," OCCA backend no default error");
   }
-  CeedDebug("\t\033[33m[CeedVector][Set] done");
+  dbg("\t[CeedVector][Set] done");
   return 0;
 }
 
@@ -91,17 +92,17 @@ static int CeedVectorSetArray_Occa(const CeedVector x,
 static int CeedVectorGetArrayRead_Occa(const CeedVector x,
                                        const CeedMemType mtype,
                                        const CeedScalar **array) {
-  CeedDebug("\033[33m[CeedVector][Get]");
+  dbg("[CeedVector][Get]");
   CeedVector_Occa *data = x->data;
   int ierr;
   if (mtype != CEED_MEM_HOST)
     return CeedError(x->ceed, 1, "Can only provide to HOST memory");
   if (!data->h_array) { // Allocate if array was not allocated yet
-    CeedDebug("\033[33m[CeedVector][Get] Allocating");
+    dbg("[CeedVector][Get] Allocating");
     ierr = CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
     CeedChk(ierr);
   }
-  CeedDebug("\033[33m[CeedVector][Get] CeedSyncD2H_Occa");
+  dbg("[CeedVector][Get] CeedSyncD2H_Occa");
   CeedSyncD2H_Occa(x);
   *array = data->h_array;
   return 0;
@@ -118,7 +119,7 @@ static int CeedVectorGetArray_Occa(const CeedVector x,
 // *****************************************************************************
 static int CeedVectorRestoreArrayRead_Occa(const CeedVector x,
     const CeedScalar **array) {
-  CeedDebug("\033[33m[CeedVector][Restore]");
+  dbg("[CeedVector][Restore]");
   assert(((CeedVector_Occa *)x->data)->h_array);
   assert(*array);
   CeedSyncH2D_Occa(x); // sync Host to Device
@@ -137,7 +138,7 @@ static int CeedVectorRestoreArray_Occa(const CeedVector x,
 static int CeedVectorDestroy_Occa(const CeedVector vec) {
   int ierr;
   CeedVector_Occa *data = vec->data;
-  CeedDebug("\033[33m[CeedVector][Destroy]");
+  dbg("[CeedVector][Destroy]");
   ierr = CeedFree(&data->h_array); CeedChk(ierr);
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
@@ -150,7 +151,7 @@ int CeedVectorCreate_Occa(const Ceed ceed, const CeedInt n, CeedVector vec) {
   int ierr;
   CeedVector_Occa *data;
   const Ceed_Occa *ceed_data=ceed->data;
-  CeedDebug("\033[33m[CeedVector][Create] n=%d", n);
+  dbg("[CeedVector][Create] n=%d", n);
   vec->SetArray = CeedVectorSetArray_Occa;
   vec->GetArray = CeedVectorGetArray_Occa;
   vec->GetArrayRead = CeedVectorGetArrayRead_Occa;
