@@ -27,12 +27,14 @@ static inline size_t bytes(const CeedElemRestriction res) {
 // *****************************************************************************
 // * Restrict an L-vector to an E-vector or apply transpose
 // *****************************************************************************
-static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
-    CeedTransposeMode tmode,
-    CeedInt ncomp,
-    CeedTransposeMode lmode,
-    CeedVector u, CeedVector v,
-    CeedRequest *request) {
+static
+int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
+                                  CeedTransposeMode tmode,
+                                  CeedInt ncomp,
+                                  CeedTransposeMode lmode,
+                                  CeedVector u, CeedVector v,
+                                  CeedRequest *request) {
+  const Ceed ceed = r->ceed;
   dbg("[CeedElemRestriction][Apply]");
   const CeedElemRestriction_Occa *data = r->data;
   const occaMemory id = data->d_indices;
@@ -91,6 +93,7 @@ static int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
 // *****************************************************************************
 static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
   int ierr;
+  const Ceed ceed = r->ceed;
   CeedElemRestriction_Occa *data = r->data;
   dbg("[CeedElemRestriction][Destroy]");
   ierr = CeedFree(&data); CeedChk(ierr);
@@ -100,10 +103,11 @@ static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
 // *****************************************************************************
 // * Compute the transposed Tindices and Toffsets from indices
 // *****************************************************************************
-static int CeedElemRestrictionOffset_Occa(const CeedElemRestriction r,
-    const CeedInt *indices,
-    CeedInt *toffsets,
-    CeedInt *tindices) {
+static
+int CeedElemRestrictionOffset_Occa(const CeedElemRestriction r,
+                                   const CeedInt *indices,
+                                   CeedInt *toffsets,
+                                   CeedInt *tindices) {
   const CeedInt nelem = r->nelem;
   const CeedInt elemsize = r->elemsize;
   const CeedInt ndof = r->ndof;
@@ -131,6 +135,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
                                    const CeedMemType mtype,
                                    const CeedCopyMode cmode,
                                    const CeedInt *indices) {
+  const Ceed ceed = r->ceed;
   dbg("[CeedElemRestriction][Create]");
   int ierr;
   CeedElemRestriction_Occa *data;

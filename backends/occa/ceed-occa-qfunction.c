@@ -21,6 +21,7 @@
 // * buildKernel
 // *****************************************************************************
 static int CeedQFunctionBuildKernel(CeedQFunction qf) {
+  const Ceed ceed = qf->ceed;
   CeedQFunction_Occa *data=qf->data;
   const Ceed_Occa *ceed_data=qf->ceed->data;
   assert(ceed_data);
@@ -82,9 +83,11 @@ static int CeedQFunctionFillOp_Occa(occaMemory d_u,
 static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
                                    const CeedScalar *const *u,
                                    CeedScalar *const *v) {
+  //const Ceed ceed = qf->ceed;
   //dbg("[CeedQFunction][Apply]");
   CeedQFunction_Occa *data = qf->data;
-  const Ceed_Occa *ceed = qf->ceed->data;
+  Ceed_Occa *ceed_data = qf->ceed->data;
+  const occaDevice device = ceed_data->device;
   const CeedInt nc = data->nc, dim = data->dim;
   const CeedEvalMode inmode = qf->inmode;
   const CeedEvalMode outmode = qf->outmode;
@@ -101,14 +104,14 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
     CeedQFunctionBuildKernel(qf);
     if (!data->op) { // like from t20
       const CeedInt bbytes = Q*nc*(dim+2)*bytes;
-      data->d_q = occaDeviceMalloc(ceed->device,qbytes, qdata, NO_PROPS);
-      data->b_u = occaDeviceMalloc(ceed->device,bbytes, NULL, NO_PROPS);
-      data->b_v = occaDeviceMalloc(ceed->device,bbytes, NULL, NO_PROPS);
+      data->d_q = occaDeviceMalloc(device,qbytes, qdata, NO_PROPS);
+      data->b_u = occaDeviceMalloc(device,bbytes, NULL, NO_PROPS);
+      data->b_v = occaDeviceMalloc(device,bbytes, NULL, NO_PROPS);
     } else {
       /* b_u, b_v come form cee-occa-operator BEu, BEv */
     }
-    data->d_u = occaDeviceMalloc(ceed->device,ubytes, NULL, NO_PROPS);
-    data->d_v = occaDeviceMalloc(ceed->device,ubytes, NULL, NO_PROPS);
+    data->d_u = occaDeviceMalloc(device,ubytes, NULL, NO_PROPS);
+    data->d_v = occaDeviceMalloc(device,ubytes, NULL, NO_PROPS);
   }
   const occaMemory d_q = data->d_q;
   const occaMemory d_u = data->d_u;
@@ -138,6 +141,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
 // * CeedQFunctionDestroy_Occa
 // *****************************************************************************
 static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
+  const Ceed ceed = qf->ceed;
   CeedQFunction_Occa *data=qf->data;
   free(data->oklPath);
   dbg("[CeedQFunction][Destroy]");
@@ -154,6 +158,7 @@ static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
 // * CeedQFunctionCreate_Occa
 // *****************************************************************************
 int CeedQFunctionCreate_Occa(CeedQFunction qf) {
+  const Ceed ceed = qf->ceed;
   CeedQFunction_Occa *data;
   int ierr = CeedCalloc(1,&data); CeedChk(ierr);
   // Populate the CeedQFunction structure **************************************

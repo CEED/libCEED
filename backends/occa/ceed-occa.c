@@ -53,6 +53,39 @@ static int CeedDestroy_Occa(Ceed ceed) {
 }
 
 // *****************************************************************************
+// * CeedDebugImpl256
+// *****************************************************************************
+void CeedDebugImpl256(const Ceed ceed,
+                      const unsigned char color,
+                      const char *format,...) {
+  const Ceed_Occa *data=ceed->data;
+  if (!data->debug) return;
+  va_list args;
+  va_start(args, format);
+  fflush(stdout);
+  fprintf(stdout,"\033[38;5;%dm",color);
+  vfprintf(stdout,format,args);
+  fprintf(stdout,"\033[m");
+  fprintf(stdout,"\n");
+  fflush(stdout);
+  va_end(args);
+}
+
+// *****************************************************************************
+// * CeedDebugImpl
+// *****************************************************************************
+void CeedDebugImpl(const Ceed ceed,
+                   const char *format,...) {
+  const Ceed_Occa *data=ceed->data;
+  if (!data->debug) return;
+  va_list args;
+  va_start(args, format);
+  CeedDebugImpl256(ceed,0,format,args);
+  va_end(args);
+}
+
+
+// *****************************************************************************
 // * INIT
 // *****************************************************************************
 static int CeedInit_Occa(const char *resource, Ceed ceed) {
@@ -62,7 +95,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   const bool omp = !strcmp(resource, "/omp/occa");
   const bool ocl = !strcmp(resource, "/ocl/occa");
   const bool gpu = !strcmp(resource, "/gpu/occa");
-  dbg("[CeedInit] resource='%s'", resource);
+  
   // Warning: "backend cannot use resource" is used to grep in test/tap.sh
   if (!cpu && !omp && !ocl && !gpu)
     return CeedError(ceed, 1, "OCCA backend cannot use resource: %s", resource);
@@ -75,8 +108,11 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   ceed->OperatorCreate = CeedOperatorCreate_Occa;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   ceed->data = data;
-  if (ceed_debug)
-    occaPropertiesSet(occaCreateProperties(),"verbose-compilation",occaInt(1));
+  // if env variables CEED_DEBUG or DBG are non null
+  // allow CeedDebugImpl's output
+  data->debug=!!getenv("CEED_DEBUG") || !!getenv("DBG");
+  dbg("[CeedInit] resource='%s'", resource);
+  if (data->debug) occaSetVerboseCompilation(true);
   const char *mode = gpu?occaGPU : omp?occaOMP : ocl ? occaOCL : occaCPU;
   // Now creating OCCA device
   data->device = occaCreateDevice(occaString(mode));
@@ -99,7 +135,6 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
 // *****************************************************************************
 __attribute__((constructor))
 static void Register(void) {
-  dbg("[Register] occa: cpu, gpu, omp, ocl");
   CeedRegister("/cpu/occa", CeedInit_Occa);
   CeedRegister("/gpu/occa", CeedInit_Occa);
   CeedRegister("/omp/occa", CeedInit_Occa);

@@ -52,22 +52,6 @@ CEED_INTERN int CeedFree(void *p);
 #define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
 #define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
-// CEED_DEBUG_COLOR default value, forward CeedDebug* declarations & dbg macros
-#ifndef CEED_DEBUG_COLOR
-#define CEED_DEBUG_COLOR 0
-#endif
-extern CeedInt ceed_debug;
-CEED_INTERN void CeedDebugImpl(const char*,...);
-CEED_INTERN void CeedDebugImpl256(const unsigned char,const char*,...);
-#define CeedDebug(format, ...) CeedDebugImpl (format, ## __VA_ARGS__)
-#define CeedDebug256(color, ...) CeedDebugImpl256(color, ## __VA_ARGS__)
-// Generic selection, but since C11; if not acceptable, uncomment dbg CeedDebug
-#define cdbg(c,...) _Generic((c),  \
-  unsigned char: CeedDebugImpl256, \
-  default: CeedDebugImpl)(c,## __VA_ARGS__)
-#define dbg(...) cdbg((unsigned char)CEED_DEBUG_COLOR, ## __VA_ARGS__)
-//#define dbg CeedDebug
-
 struct CeedVector_private {
   Ceed ceed;
   int (*SetArray)(CeedVector, CeedMemType, CeedCopyMode, CeedScalar *);

@@ -20,6 +20,7 @@
 // * Destroy the CeedOperator_Occa
 // *****************************************************************************
 static int CeedOperatorDestroy_Occa(CeedOperator op) {
+  const Ceed ceed = op->ceed;
   dbg("[CeedOperator][Destroy]");
   CeedOperator_Occa *data = op->data;
   int ierr = CeedVectorDestroy(&data->etmp); CeedChk(ierr);
@@ -34,6 +35,7 @@ static int CeedOperatorDestroy_Occa(CeedOperator op) {
 static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
                                   CeedVector ustate,
                                   CeedVector residual, CeedRequest *request) {
+  const Ceed ceed = op->ceed;
   dbg("[CeedOperator][Apply]");
   const CeedInt nc = op->basis->ndof, dim = op->basis->dim;
   const CeedTransposeMode lmode = CEED_NOTRANSPOSE;
@@ -135,6 +137,7 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
 // * CeedOperatorGetQData_Occa
 // *****************************************************************************
 static int CeedOperatorGetQData_Occa(CeedOperator op, CeedVector *qdata) {
+  const Ceed ceed = op->ceed;
   dbg("[CeedOperator][GetQData]");
   CeedOperator_Occa *data = op->data;
   int ierr;
@@ -157,6 +160,7 @@ static int CeedOperatorGetQData_Occa(CeedOperator op, CeedVector *qdata) {
 // *****************************************************************************
 int CeedOperatorCreate_Occa(CeedOperator op) {
   int ierr;
+  const Ceed ceed = op->ceed;
   CeedOperator_Occa *data;
   op->Destroy = CeedOperatorDestroy_Occa;
   op->Apply = CeedOperatorApply_Occa;

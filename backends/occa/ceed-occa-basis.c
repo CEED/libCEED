@@ -21,8 +21,9 @@
 // * buildKernel
 // *****************************************************************************
 static int CeedBasisBuildKernel(CeedBasis basis) {
-  const Ceed_Occa *ceed_data = basis->ceed->data;
-  const occaDevice dev = ceed_data->device;
+  const Ceed ceed = basis->ceed;
+  const Ceed_Occa *ceed_occa = ceed->data;
+  const occaDevice dev = ceed_occa->device;
   CeedBasis_Occa *data = basis->data;
   // ***************************************************************************
   const int dim = basis->dim;
@@ -134,6 +135,7 @@ static int CeedTensorContract_Occa(Ceed ceed,
 int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
                              CeedTransposeMode tmode, CeedEvalMode emode,
                              const CeedVector u, CeedVector v) {
+  const Ceed ceed = basis->ceed;
   CeedBasis_Occa *data = basis->data;
   const CeedInt ready =  data->ready;
   // ***************************************************************************
@@ -306,6 +308,7 @@ static int CeedBasisApply_Occa(CeedBasis basis,
 // *****************************************************************************
 static int CeedBasisDestroy_Occa(CeedBasis basis) {
   int ierr;
+  const Ceed ceed = basis->ceed;
   CeedBasis_Occa *data = basis->data;
   dbg("[CeedBasis][Destroy]");
   ierr = CeedFree(&data); CeedChk(ierr);
