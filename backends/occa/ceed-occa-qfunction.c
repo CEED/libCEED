@@ -177,7 +177,7 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   // Focus on the function name
   data->qFunctionName = last_colon+1;
   dbg("[CeedQFunction][Create] qFunctionName=%s",
-            data->qFunctionName);
+      data->qFunctionName);
   // Now extract filename
   data->oklPath=calloc(4096,sizeof(char));
   const size_t oklPathLen = last_dot - qf->focca;
