@@ -169,7 +169,7 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   // Locate last ':' character in qf->focca ************************************
   dbg("[CeedQFunction][Create] focca=%s",qf->focca);
   const char *last_colon = strrchr(qf->focca,':');
-  char *last_dot = strrchr(qf->focca,'.');
+  const char *last_dot = strrchr(qf->focca,'.');
   if (!last_colon)
     return CeedError(qf->ceed, 1, "Can not find ':' in focca field!");
   if (!last_dot)

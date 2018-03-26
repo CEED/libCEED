@@ -78,8 +78,11 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
                                 NO_PROPS);
   // ***************************************************************************
   char oklPath[4096] = __FILE__;
-  const size_t oklPathLen = strlen(oklPath);
-  strcpy(&oklPath[oklPathLen-2],".okl");
+  const char *last_dot = strrchr(oklPath,'.');
+  if (!last_dot)
+    return CeedError(basis->ceed,1, "Can not find '.' in this filename!");
+  const size_t oklPathLen = last_dot - oklPath;
+  strcpy(&oklPath[oklPathLen],".okl");
   // Test if we can get file's status, if not revert to occa://ceed/*.okl ******
   struct stat buf;
   if (stat(oklPath, &buf)!=0){
@@ -241,7 +244,6 @@ static int CeedBasisApply_Occa(CeedBasis basis,
     //dbg("[CeedBasis][Apply] CEED_EVAL_INTERP");
     CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
     for (CeedInt d=0; d<dim; d++) {
-      //dbg("[CeedBasis][Apply] d=%d, d==0: %s, d%%2=%d, d==dim-1: %s, (d+1)%%2=%d",d,d==0?"yes":"no",d%2,d==dim-1?"yes":"no",(d+1)%2);
       ierr = CeedTensorContract_Occa(basis->ceed,
                                      pre, P, post, Q,
                                      basis->interp1d,
@@ -262,16 +264,8 @@ static int CeedBasisApply_Occa(CeedBasis basis,
     //dbg("[CeedBasis][Apply] CEED_EVAL_GRAD, P=%d, Q=%d",P,Q);
     CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
     for (CeedInt p=0; p<dim; p++) {
-      //dbg("\t[CeedBasis][Apply] p=%d",p);
       CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
       for (CeedInt d=0; d<dim; d++) {
-        //dbg("\t\t[CeedBasis][Apply] d=%d",d);
-        //printf(", pre=%d",pre);
-        //printf(", post=%d",post);
-        //printf(", d==0: %s",d==0?"yes":"no");
-        //printf(", d%%2=%d ",d%2);
-        //printf(", d==dim-1: %s",d==dim-1?"yes":"no");
-        //printf(", (d+1)%%2=%d ",(d+1)%2);
         ierr = CeedTensorContract_Occa(basis->ceed, pre, P, post, Q,
                                        (p==d)?basis->grad1d:basis->interp1d,
                                        tmode, transpose&&(d==dim-1),
@@ -292,16 +286,13 @@ static int CeedBasisApply_Occa(CeedBasis basis,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     // *************************************************************************
     CeedInt Q = basis->Q1d;
-    //dbg("[CeedBasis][Apply] CEED_EVAL_WEIGHT Q1d=%d",Q);
     for (CeedInt d=0; d<dim; d++) {
       const CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
-      //printf("\n\tpre=%d, post=%d",pre,post);
       for (CeedInt i=0; i<pre; i++) {
         for (CeedInt j=0; j<Q; j++) {
           for (CeedInt k=0; k<post; k++) {
-            //printf("\n\t\td=%d, i=%d, j=%d, k=%d offset=%d",d,i,k,k,(i*Q+j)*post+k);
-            v[(i*Q + j)*post + k] = basis->qweight1d[j] * (d == 0 ? 1 : v[(i*Q + j)*post +
-                                    k]);
+            v[(i*Q + j)*post + k] =
+              basis->qweight1d[j] * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
           }
         }
       }

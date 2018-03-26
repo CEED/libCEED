@@ -17,7 +17,7 @@
 CC ?= gcc
 FC ?= gfortran
 
-# ASAN must be empty not to use it
+# ASAN must be left empty if you don't want to use it
 ASAN ?=
 NDEBUG ?= 1
 
@@ -61,7 +61,9 @@ INSTALL = install
 INSTALL_PROGRAM = $(INSTALL)
 INSTALL_DATA = $(INSTALL) -m644
 
+# Get number of processors of the machine
 NPROCS := $(shell getconf _NPROCESSORS_ONLN)
+# prepare make options to run in parallel
 MFLAGS := -j $(NPROCS) --warn-undefined-variables \
                        --no-print-directory --no-keep-going
 
@@ -117,6 +119,7 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 .PRECIOUS: %/.DIR
 
 this: $(libceed) $(ceed.pc)
+# run 'this' target in parallel
 all:;@$(MAKE) $(MFLAGS) V=$(V) this
 
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)))
@@ -153,12 +156,14 @@ run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:build/%=%)
 
 test : $(tests:$(OBJDIR)/%=run-%) $(examples:$(OBJDIR)/%=run-%)
+# run test target in parallel
 tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
+# CPU C tests only for backend %
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
-ctg-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /gpu/$*;)
 
 prove : $(tests) $(examples)
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)
+# run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
 examples : $(examples)
@@ -169,7 +174,7 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 %/ceed.pc : ceed.pc.template | $$(@D)/.DIR
 	@sed "s:%prefix%:$(pkgconfig-prefix):" $< > $@
 
-# OCCA cache dir, lib, okl
+# OCCA env, OKL files cache, clear & rule to install
 OCCA_CACHE_DIR     ?= ${HOME}/.occa
 OCCA_LIB_CACHE_DIR := $(OCCA_CACHE_DIR)/libraries
 OKL_KERNELS        := $(shell find backends/occa -type f -name '*.okl')

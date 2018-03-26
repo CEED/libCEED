@@ -171,11 +171,11 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   const CeedInt tile_size = (r->nelem>TILE_SIZE)?TILE_SIZE:r->nelem;
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(tile_size));
   char oklPath[4096] = __FILE__;
-  // path to ceed-occa-restrict.okl
-  const size_t oklPathLen = strlen(oklPath);
-  // consider using realpath(3) or something dynamic
-  // should look for last '.' chr, instead of '-1'
-  strcpy(&oklPath[oklPathLen-2],".okl");
+  const char *last_dot = strrchr(oklPath,'.');
+  if (!last_dot)
+    return CeedError(r->ceed, 1, "Can not find '.' in this filename!");
+  const size_t oklPathLen = last_dot - oklPath;
+  strcpy(&oklPath[oklPathLen],".okl");
   dbg("[CeedElemRestriction][Create] filename=%s",oklPath);
   // Test if we can get file's status, if not revert to occa://ceed/*.okl ******
   struct stat buf;

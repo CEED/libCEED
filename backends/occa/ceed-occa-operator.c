@@ -90,20 +90,12 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
   // ***************************************************************************
   ierr = CeedBasisApplyElems_Occa(op->basis,Q,CEED_NOTRANSPOSE,op->qf->inmode,
                                   data->etmp,data->BEu); CeedChk(ierr);
-  //dbg("[CeedOperator][Apply] etmp:");
-  //CeedVectorView(data->etmp,"%f",stdout);
-  //dbg("[CeedOperator][Apply] View BEu:");
-  //CeedVectorView(data->BEu,"%f",stdout);
   // ***************************************************************************
   dbg("[CeedOperator][Apply] Q for-loop");
   for (CeedInt e=0; e<nelem; e++) {
     for(CeedInt k=0; k<(Q*nc*(dim+2)); k++) BEu[k]=0.0;
     ierr = CeedBasisApply(op->basis, CEED_NOTRANSPOSE,op->qf->inmode,
                           &Eu[e*nc*elemsize], BEu); CeedChk(ierr);
-    //dbg("[CeedOperator][Apply] for-loop Eu:");
-    //for(CeedInt k=0;k<nc*esize;k++) printf("\t %f\n",Eu[e*nc*esize+k]);
-    //dbg("[CeedOperator][Apply] for-loop BEu[e=%d,elemsize=%d,nelem=%d]:",e,elemsize,nelem);
-    //for(CeedInt k=0;k<(Q*nc*(dim+2));k++) printf("\t %f\n",BEu[k]);
     CeedScalar *u_ptr = BEu, *v_ptr = BEv;
     if (op->qf->inmode & CEED_EVAL_INTERP) { in[0] = u_ptr; u_ptr += Q*nc; }
     if (op->qf->inmode & CEED_EVAL_GRAD) { in[1] = u_ptr; u_ptr += Q*nc*dim; }
@@ -111,21 +103,15 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
     if (op->qf->outmode & CEED_EVAL_INTERP) { out[0] = v_ptr; v_ptr += Q*nc; }
     if (op->qf->outmode & CEED_EVAL_GRAD) { out[1] = v_ptr; v_ptr += Q*nc*dim; }
     qfd->e = e;
-    //dbg("[CeedOperator][Apply] CeedQFunctionApply");
     ierr = CeedQFunctionApply(op->qf, &qd[e*Q*qbytes], Q, in, out); CeedChk(ierr);
     ierr = CeedBasisApply(op->basis, CEED_TRANSPOSE,op->qf->outmode, BEv,
                           &Eu[e*nc*elemsize]); CeedChk(ierr);
   }
   // ***************************************************************************
-  //dbg("[CeedOperator][Apply] BEv");
   ierr = CeedBasisApplyElems_Occa(op->basis,Q,CEED_TRANSPOSE,op->qf->outmode,
                                   data->BEv,data->etmp); CeedChk(ierr);
-  //dbg("[CeedOperator][Apply] etmp:");
-  //CeedVectorView(data->etmp,"%f",stdout);
   // *************************************************************************
   ierr = CeedVectorRestoreArray(etmp, &Eu); CeedChk(ierr);
-  //dbg("[CeedOperator][Apply] etmp:");
-  //CeedVectorView(data->etmp,"%f",stdout);
   // ***************************************************************************
   if (residual) {
     dbg("[CeedOperator][Apply] residual");
