@@ -35,7 +35,8 @@ all: $(EXAMPLES)
 %: %.c okl-lib-cache
 	$(LINK.c) $(CEED_FLAGS) $< -o $@ $(CEED_LIBS)
 
-okl-lib-cache: #default okl-cache
+# okl-lib-cache depending on OCCA and INSTALL
+okl-lib-cache:
 # First test to see if libceed was compiled with OCCA
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
 # Second test to see if '..' is CEED_DIR
