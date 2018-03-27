@@ -62,7 +62,7 @@ INSTALL_DATA = $(INSTALL) -m644
 
 NPROCS := $(shell getconf _NPROCESSORS_ONLN)
 MFLAGS := -j $(NPROCS) --warn-undefined-variables \
-			--no-print-directory --no-keep-going
+                       --no-print-directory --no-keep-going
 
 PROVE ?= prove
 PROVE_OPTS ?= -j $(NPROCS)

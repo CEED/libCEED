@@ -1,3 +1,19 @@
+# Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
+# the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
+# reserved. See files LICENSE and NOTICE for details.
+#
+# This file is part of CEED, a collection of benchmarks, miniapps, software
+# libraries and APIs for efficient high-order finite element and spectral
+# element discretizations for exascale applications. For more information and
+# source code availability see http://github.com/ceed.
+#
+# The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
+# a collaborative effort of two U.S. Department of Energy organizations (Office
+# of Science and the National Nuclear Security Administration) responsible for
+# the planning and preparation of a capable exascale ecosystem, including
+# software, applications, hardware, advanced system engineering and early
+# testbed platforms, in support of the nation's exascale computing imperative.
+
 ################################################################################
 #  -- MAGMA (version 2.0) --
 #     Univ. of Tennessee, Knoxville
@@ -5,13 +21,13 @@
 #
 # File gccm.py
 #
-# This is a MAGMA DSL compiler. 
+# This is a MAGMA DSL compiler.
 # Given a file, e.g., 'src.c' that contains MAGMA DSL constructs, executing
 #    python gccm.py src.c
-# will generate the equivalent C code in src_tmp.c that calls CUDA kernels, 
+# will generate the equivalent C code in src_tmp.c that calls CUDA kernels,
 # generated in file src_tmp.cu. The original src.c file remains unchanged.
 #
-################################################################################        
+################################################################################
 import sys
 
 def main():
@@ -43,26 +59,26 @@ def main():
         i1 = prog.index("magma_template")
         cfile.write(prog[:i1])
         prog = prog[i1+14:]
-        
+
         # templates are of the form:
         #    magma_template<<e=0:r->nelem, d=0:ncomp, i=0:r->elemsize>>
         #      (const CeedScalar *uu, CeedScalar *vv)
         #         { code_for_single_thread; }
 
         # text between << >> , i.e, bound = "e=0:r->nelem, d=0:ncomp, i=0:r->elemsize"
-        bounds   = prog[prog.find("<<")+2:prog.find(">>")] 
+        bounds   = prog[prog.find("<<")+2:prog.find(">>")]
 
-        # text/argd betweer (), i.e., args = "const CeedScalar *uu, CeedScalar *vv"  
+        # text/argd betweer (), i.e., args = "const CeedScalar *uu, CeedScalar *vv"
         args     = prog[prog.find("(")+1 : prog.find(")")]
 
         # text between {}, i.e., template = "code_for_single_thread;"
-        i1, i2   = find_matching(prog,'{','}')          
-        template = prog[i1+1:i2]                          
+        i1, i2   = find_matching(prog,'{','}')
+        template = prog[i1+1:i2]
 
         prog     = prog[i2:]
-        
+
         # boundvars = "e, d, i" and boundargs = "0, r->nelem, 0, ncomp, 0, r->elemsize"
-        boundvars, boundargs  = find_argsbound( bounds )       
+        boundvars, boundargs  = find_argsbound( bounds )
 
         # add arguments from kernel, i.e. listars += "uu, vv"
         boundargs +=  "," + find_argslist( args )
@@ -88,7 +104,7 @@ def main():
         if (numparts == 2): partsinit[2] = partsinit[2]
 
         # Prepare the magma_template kernel and write it in the .cu file
-        kernel  = "__global__ void                                      \n" 
+        kernel  = "__global__ void                                      \n"
         kernel +=  kname+"_kernel(                                      \n"
         for i in range(numparts):
             kernel += "    int "+parts[i]+"begin, int "+parts[i]+"end,  \n"
@@ -118,9 +134,9 @@ def main():
         kernel += "   " + kname + "_kernel<<<grid,threads,0>>>(         \n"
         for i in range(numparts):
             kernel += "    " + parts[i]+"begin, "+parts[i]+"end,        \n"
-        kernel += "   " + find_argslist( args ) + ");                   \n" 
+        kernel += "   " + find_argslist( args ) + ");                   \n"
         kernel += "}                                                  \n\n"
-        
+
         # write the current magma templates kernel
         cufile.write(kernel)
         # print(kernel)
