@@ -17,12 +17,12 @@
 #include "ceed-occa.h"
 
 // *****************************************************************************
-// * OCCA modes, should be dynamic like OCCA_DEVICE_ID/PLATFORM_ID
+// * OCCA modes, default deviceID is 0, but can be changed with /ocl/occa/1
 // *****************************************************************************
 static const char *occaCPU = "mode: 'Serial'";
 static const char *occaOMP = "mode: 'OpenMP'";
-static const char *occaGPU = "mode: 'CUDA', deviceID: 0";
-static const char *occaOCL = "mode: 'OpenCL', platformID: 0, deviceID: 0";
+static const char *occaGPU = "mode: 'CUDA', deviceID: %d";
+static const char *occaOCL = "mode: 'OpenCL', platformID: 0, deviceID: %d";
 extern void occaSetVerboseCompilation(const int value);
 
 // *****************************************************************************
@@ -91,11 +91,14 @@ void CeedDebugImpl(const Ceed ceed,
 static int CeedInit_Occa(const char *resource, Ceed ceed) {
   int ierr;
   Ceed_Occa *data;
-  const bool cpu = !strcmp(resource, "/cpu/occa");
-  const bool omp = !strcmp(resource, "/omp/occa");
-  const bool ocl = !strcmp(resource, "/ocl/occa");
-  const bool gpu = !strcmp(resource, "/gpu/occa");
-
+  const int nrc = 9; // number of characters in resource
+  const bool cpu = !strncmp(resource,"/cpu/occa",nrc);
+  const bool omp = !strncmp(resource,"/omp/occa",nrc);
+  const bool ocl = !strncmp(resource,"/ocl/occa",nrc);
+  const bool gpu = !strncmp(resource,"/gpu/occa",nrc);
+  const int rlen = strlen(resource);
+  const bool slash = (rlen>nrc)?resource[nrc]=='/'?true:false:false;
+  const int deviceID = slash?(rlen>nrc+1)?atoi(&resource[nrc+1]):0:0;  
   // Warning: "backend cannot use resource" is used to grep in test/tap.sh
   if (!cpu && !omp && !ocl && !gpu)
     return CeedError(ceed, 1, "OCCA backend cannot use resource: %s", resource);
@@ -108,17 +111,25 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   ceed->OperatorCreate = CeedOperatorCreate_Occa;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   ceed->data = data;
-  // if env variables CEED_DEBUG or DBG are non null
-  // allow CeedDebugImpl's output
+  // push env variables CEED_DEBUG or DBG to our data
   data->debug=!!getenv("CEED_DEBUG") || !!getenv("DBG");
-  dbg("[CeedInit] resource='%s'", resource);
+  // push ocl to our data, to be able to check it later for the kernels
+  data->ocl = ocl;
   if (data->debug)
     occaPropertiesSet(occaSettings(),"verbose-compilation",occaBool(true));
-  const char *mode = gpu?occaGPU : omp?occaOMP : ocl ? occaOCL : occaCPU;
+  // Now that we can dbg, output resource and deviceID
+  dbg("[CeedInit] resource: %s", resource);
+  dbg("[CeedInit] deviceID: %d", deviceID);    
+  const char *mode_format = gpu?occaGPU : omp?occaOMP : ocl ? occaOCL : occaCPU;
+  char mode[1024];
+  // Push deviceID for CUDA and OpenCL mode
+  if (ocl || gpu) sprintf(mode,mode_format,deviceID);
+  else memcpy(mode,mode_format,strlen(mode_format));
+  dbg("[CeedInit] mode: %s", mode);
   // Now creating OCCA device
   data->device = occaCreateDevice(occaString(mode));
   const char *deviceMode = occaDeviceMode(data->device);
-  dbg("[CeedInit] deviceMode='%s'", deviceMode);
+  dbg("[CeedInit] returned deviceMode: %s", deviceMode);
   // Warning: "OCCA backend failed" is used to grep in test/tap.sh
   if (cpu && strcmp(occaDeviceMode(data->device), "Serial"))
     return CeedError(ceed,1, "OCCA backend failed to use Serial resource");

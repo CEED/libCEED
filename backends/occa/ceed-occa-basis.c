@@ -22,8 +22,8 @@
 // *****************************************************************************
 static int CeedBasisBuildKernel(CeedBasis basis) {
   const Ceed ceed = basis->ceed;
-  const Ceed_Occa *ceed_occa = ceed->data;
-  const occaDevice dev = ceed_occa->device;
+  const Ceed_Occa *ceed_data = ceed->data;
+  const occaDevice dev = ceed_data->device;
   CeedBasis_Occa *data = basis->data;
   // ***************************************************************************
   const int dim = basis->dim;
@@ -36,6 +36,7 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
   const CeedElemRestriction er = data->er; assert(er);
   const CeedInt nelem = er->nelem;
   const CeedInt elemsize = er->elemsize;
+  const bool ocl = ceed_data->ocl;
   // ***************************************************************************
   occaProperties pKR = occaCreateProperties();
   occaPropertiesSet(pKR, "defines/dim", occaInt(dim));
@@ -58,7 +59,9 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
   dbg("[CeedBasis][BK] elemsize=%d",elemsize);
   // ***************************************************************************
   // OpenCL check for this requirement
-  const CeedInt tile_size = (nelem>TILE_SIZE)?TILE_SIZE:nelem;
+  const CeedInt elem_tile_size = (nelem>TILE_SIZE)?TILE_SIZE:nelem;
+  // OCCA+MacOS implementation need that for now
+  const CeedInt tile_size = ocl?1:elem_tile_size;
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(tile_size));
   dbg("[CeedBasis][BK] TILE_SIZE=%d",tile_size);
   // ***************************************************************************

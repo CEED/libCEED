@@ -140,6 +140,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   int ierr;
   CeedElemRestriction_Occa *data;
   Ceed_Occa *ceed_data = r->ceed->data;
+  const bool ocl = ceed_data->ocl;
   const occaDevice dev = ceed_data->device;
   // ***************************************************************************
   if (mtype != CEED_MEM_HOST)
@@ -173,7 +174,9 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   occaPropertiesSet(pKR, "defines/nelem_x_elemsize",
                     occaInt(r->nelem*r->elemsize));
   // OpenCL check for this requirement
-  const CeedInt tile_size = (r->nelem>TILE_SIZE)?TILE_SIZE:r->nelem;
+  const CeedInt nelem_tile_size = (r->nelem>TILE_SIZE)?TILE_SIZE:r->nelem;
+  // OCCA+MacOS implementation need that for now
+  const CeedInt tile_size = ocl?1:nelem_tile_size;
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(tile_size));
   char oklPath[4096] = __FILE__;
   const char *last_dot = strrchr(oklPath,'.');

@@ -20,10 +20,11 @@
 // *****************************************************************************
 // * buildKernel
 // *****************************************************************************
-static int CeedQFunctionBuildKernel(CeedQFunction qf) {
+static int CeedQFunctionBuildKernel(CeedQFunction qf, const CeedInt Q) {
   const Ceed ceed = qf->ceed;
   CeedQFunction_Occa *data=qf->data;
   const Ceed_Occa *ceed_data=qf->ceed->data;
+  const bool ocl = ceed_data->ocl;
   assert(ceed_data);
   const occaDevice dev = ceed_data->device;
   dbg("[CeedQFunction][BuildKernel] nc=%d",data->nc);
@@ -35,7 +36,9 @@ static int CeedQFunctionBuildKernel(CeedQFunction qf) {
   occaPropertiesSet(pKR, "defines/DIM", occaInt(data->dim));
   occaPropertiesSet(pKR, "defines/epsilon", occaDouble(1.e-14));
   // OpenCL check for this requirement
-  const CeedInt tile_size = (data->nelem>TILE_SIZE)?TILE_SIZE:data->nelem;
+  const CeedInt q_tile_size = (Q>TILE_SIZE)?TILE_SIZE:Q;
+  // OCCA+MacOS implementation need that for now
+  const CeedInt tile_size = ocl?1:q_tile_size;
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(tile_size));
   dbg("[CeedQFunction][BuildKernel] occaDeviceBuildKernel");
   dbg("[CeedQFunction][BuildKernel] oklPath=%s",data->oklPath);
@@ -101,7 +104,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   // ***************************************************************************
   if (!ready) { // If the kernel has not been built, do it now
     data->ready=true;
-    CeedQFunctionBuildKernel(qf);
+    CeedQFunctionBuildKernel(qf,Q);
     if (!data->op) { // like from t20
       const CeedInt bbytes = Q*nc*(dim+2)*bytes;
       data->d_q = occaDeviceMalloc(device,qbytes, qdata, NO_PROPS);

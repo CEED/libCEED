@@ -86,6 +86,7 @@ typedef struct {
 typedef struct {
   occaDevice device;
   bool debug;
+  bool ocl;
 } Ceed_Occa;
 
 // *****************************************************************************
