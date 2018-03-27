@@ -113,7 +113,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   data->debug=!!getenv("CEED_DEBUG") || !!getenv("DBG");
   dbg("[CeedInit] resource='%s'", resource);
   if (data->debug)
-    occaPropertiesSet(occaSettings(),"verbose-compilation",occaInt(1));
+    occaPropertiesSet(occaSettings(),"verbose-compilation",occaBool(true));
   const char *mode = gpu?occaGPU : omp?occaOMP : ocl ? occaOCL : occaCPU;
   // Now creating OCCA device
   data->device = occaCreateDevice(occaString(mode));

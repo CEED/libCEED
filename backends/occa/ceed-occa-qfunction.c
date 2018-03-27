@@ -84,7 +84,6 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
                                    const CeedScalar *const *u,
                                    CeedScalar *const *v) {
   //const Ceed ceed = qf->ceed;
-  //dbg("[CeedQFunction][Apply]");
   CeedQFunction_Occa *data = qf->data;
   Ceed_Occa *ceed_data = qf->ceed->data;
   const occaDevice device = ceed_data->device;
@@ -97,6 +96,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   const CeedInt vbytes = Q*nc*dim*bytes;
   const CeedInt e = data->e;
   const CeedInt ready =  data->ready;
+  const CeedInt cbytes = qf->ctxsize;
   assert((Q%qf->vlength)==0); // Q must be a multiple of vlength
   // ***************************************************************************
   if (!ready) { // If the kernel has not been built, do it now
@@ -108,11 +108,14 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
       data->b_u = occaDeviceMalloc(device,bbytes, NULL, NO_PROPS);
       data->b_v = occaDeviceMalloc(device,bbytes, NULL, NO_PROPS);
     } else {
-      /* b_u, b_v come form cee-occa-operator BEu, BEv */
+      /* b_u, b_v come from cee-occa-operator BEu, BEv */
     }
     data->d_u = occaDeviceMalloc(device,ubytes, NULL, NO_PROPS);
     data->d_v = occaDeviceMalloc(device,ubytes, NULL, NO_PROPS);
+    data->d_c = occaDeviceMalloc(device,cbytes>0?cbytes:32,NULL,NO_PROPS);
+    if (cbytes>0) occaCopyPtrToMem(data->d_c,qf->ctx,cbytes,0,NO_PROPS);
   }
+  const occaMemory d_c = data->d_c;
   const occaMemory d_q = data->d_q;
   const occaMemory d_u = data->d_u;
   const occaMemory d_v = data->d_v;
@@ -125,8 +128,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
     CeedQFunctionFillOp_Occa(d_u,u,inmode,Q,nc,dim,bytes);
   // ***************************************************************************
   occaKernelRun(data->kQFunctionApply,
-                qf->ctx?occaPtr(qf->ctx):occaInt(0),
-                d_q,occaInt(e),occaInt(Q),
+                d_c, d_q, occaInt(e), occaInt(Q),
                 d_u, b_u,d_v, b_v);
   // ***************************************************************************
   if (outmode==CEED_EVAL_NONE && !data->op)
