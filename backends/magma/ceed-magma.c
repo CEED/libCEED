@@ -17,6 +17,7 @@
 #include <ceed-impl.h>
 #include <string.h>
 #include "magma.h"
+#include "ceed-magma.h"
 
 typedef struct {
     CeedScalar *array;
@@ -524,11 +525,15 @@ static int CeedTensorContract_Magma(Ceed ceed,
                                     const CeedScalar *t, CeedTransposeMode tmode,
                                     const CeedInt Add,
                                     const CeedScalar *u, CeedScalar *v) {
+    #ifdef USE_MAGMA_BATCH
+    magma_dtensor_contract(ceed, A, B, C, J, t, tmode, Add, u, v);
+    #else
     CeedInt tstride0 = B, tstride1 = 1;
     if (tmode == CEED_TRANSPOSE) {
         tstride0 = 1; tstride1 = J;
     }
-
+    CeedDebug("\033[31m[CeedTensorContract] A=%d, J=%d, C=%d, B=%d: %d %d %d",
+              A,J,C,B,A*J*B*C, C*J*A, C*B*A);
     for (CeedInt a=0; a<A; a++) {
         for (CeedInt j=0; j<J; j++) {
             if (!Add) {
@@ -542,6 +547,7 @@ static int CeedTensorContract_Magma(Ceed ceed,
             }
         }
     }
+    #endif
     return 0;
 }
 
@@ -553,6 +559,9 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedTransposeMode tmode,
     const CeedInt ndof = basis->ndof;
     const CeedInt nqpt = ndof*CeedPowInt(basis->Q1d, dim);
     const CeedInt add = (tmode == CEED_TRANSPOSE);
+
+    CeedDebug("\033[01m[CeedBasisApply_Magma] vsize=%d",
+              ndof*CeedPowInt(basis->P1d, dim));
 
     if (tmode == CEED_TRANSPOSE) {
         const CeedInt vsize = ndof*CeedPowInt(basis->P1d, dim);
@@ -566,6 +575,8 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedTransposeMode tmode,
         }
         CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
         CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
+        CeedDebug("\033[01m[CeedBasisApply_Magma] tmpsize = %d",
+                  ndof*Q*CeedPowInt(P>Q?P:Q, dim-1));
         for (CeedInt d=0; d<dim; d++) {
             ierr = CeedTensorContract_Magma(basis->ceed, pre, P, post, Q, basis->interp1d,
                                             tmode, add&&(d==dim-1),
@@ -590,6 +601,8 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedTransposeMode tmode,
             P = basis->Q1d, Q = basis->P1d;
         }
         CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
+        CeedDebug("\033[01m[CeedBasisApply_Magma] tmpsize = %d",
+                  ndof*Q*CeedPowInt(P>Q?P:Q, dim-1));
         for (CeedInt p = 0; p < dim; p++) {
             CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
             for (CeedInt d=0; d<dim; d++) {
@@ -699,10 +712,13 @@ static int CeedOperatorApply_Magma(CeedOperator op, CeedVector qdata,
     ierr = CeedVectorGetArray(etmp, CEED_MEM_HOST, &Eu); CeedChk(ierr);
     ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar**)&qd);
     CeedChk(ierr);
+
     for (CeedInt e=0; e<op->Erestrict->nelem; e++) {
         CeedScalar BEu[Q*nc*(dim+2)], BEv[Q*nc*(dim+2)], *out[5] = {0,0,0,0,0};
         const CeedScalar *in[5] = {0,0,0,0,0};
         // TODO: quadrature weights can be computed just once
+        CeedDebug("\033[11m[CeedOperatorApply_Magma] e=%d: Eu+%d, %d",
+                  e, e*op->Erestrict->elemsize*nc, Q*nc*(dim+2));
         ierr = CeedBasisApply(op->basis, CEED_NOTRANSPOSE, op->qf->inmode,
                               &Eu[e*op->Erestrict->elemsize*nc], BEu);
         CeedChk(ierr);
@@ -714,6 +730,7 @@ static int CeedOperatorApply_Magma(CeedOperator op, CeedVector qdata,
         if (op->qf->outmode & CEED_EVAL_GRAD) { out[1] = v_ptr; v_ptr += Q*nc*dim; }
         ierr = CeedQFunctionApply(op->qf, &qd[e*Q*op->qf->qdatasize], Q, in, out);
         CeedChk(ierr);
+        CeedDebug("\033[31m[CeedOperatorApply_Magma] e=%d: ",e);
         ierr = CeedBasisApply(op->basis, CEED_TRANSPOSE, op->qf->outmode, BEv,
                               &Eu[e*op->Erestrict->elemsize*nc]);
         CeedChk(ierr);
