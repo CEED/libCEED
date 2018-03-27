@@ -86,9 +86,12 @@ examples  += $(examples.f:examples/%.f=$(OBJDIR)/%)
 ref.c     := $(sort $(wildcard backends/ref/*.c))
 occa.c    := $(sort $(wildcard backends/occa/*.c))
 magma_preprocessor := python backends/magma/gccm.py
-magma_pre_src := $(filter-out %_tmp.c, $(wildcard backends/magma/*.c))
-magma.c       := $(magma_pre_src:%.c=%_tmp.c)
-magma.cu      := $(magma_pre_src:%.c=%_cuda.cu)
+magma_pre_src  := $(filter-out %_tmp.c, $(wildcard backends/magma/ceed-*.c))
+magma_dsrc     := $(wildcard backends/magma/magma_d*.c)
+magma_tmp.c    := $(magma_pre_src:%.c=%_tmp.c)
+magma_tmp.cu   := $(magma_pre_src:%.c=%_cuda.cu)
+magma_allsrc.c := $(magma_dsrc) $(magma_tmp.c)
+magma_allsrc.cu:= $(magma_tmp.cu)
 
 # Output using the 216-color rules mode
 rule_file = $(notdir $(1))
@@ -111,7 +114,7 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 .SUFFIXES: .c .o .d
 .SECONDEXPANSION:		# to expand $$(@D)/.DIR
 
-.SECONDARY: 
+.SECONDARY: $(magma_tmp.c) $(magma_tmp.cu)
 
 %/.DIR :
 	@mkdir -p $(@D)
@@ -132,17 +135,20 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(occa.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(OCCA_DIR)/include
 endif
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
-  $(libceed) : LDFLAGS += -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)
-  $(libceed) : LDLIBS += -lmagma -L$(CUDA_DIR)/lib -lcudart
-  $(libceed) : $(magma.o)
-  libceed.c += $(magma.c) 
-  libceed.cu += $(magma.cu)
-  $(magma.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-  $(magma.cu:%.cu=$(OBJDIR)/%.o) : NVCCFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
+  magma_allsrc.o = $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o)
+  $(libceed)           : LDFLAGS += -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)
+  $(tests) $(examples) : LDFLAGS += -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)
+  $(libceed)           : LDLIBS += -lmagma -L$(CUDA_DIR)/lib -lcudart
+  $(tests) $(examples) : LDLIBS += -lmagma -L$(CUDA_DIR)/lib -lcudart
+  $(libceed) : $(magma_allsrc.o)
+  libceed.c  += $(magma_allsrc.c) 
+  libceed.cu += $(magma_allsrc.cu)
+  $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
+  $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o) : NVCCFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
 endif
 
 # generate magma_tmp.c and magma_cuda.cu from magma.c                                                      
-%_tmp.c %_cuda.cu: %.c | $$(@D)/.DIR
+$(magma_tmp.c) $(magma_tmp.cu): $(magma_pre_src) | $$(@D)/.DIR
 	$(magma_preprocessor) $<
 
 $(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) | $$(@D)/.DIR
@@ -198,7 +204,7 @@ cln clean :
 	$(MAKE) -C examples clean
 	$(MAKE) -C examples/mfem clean
 	cd examples/nek5000; bash make-nek-examples.sh clean; cd ../..;
-	$(RM) $(magma.c) $(magma.cu) backends/magma/*~ backends/magma/*.o
+	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
 
 distclean : clean
 	rm -rf doc/html
