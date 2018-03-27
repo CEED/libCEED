@@ -48,8 +48,7 @@ rm -f logfile
 rm -f ioinfo
 mv $ex.log.$np.$rea $ex.log1.$np.$rea 2>/dev/null
 
-#mpiexec -np $np ./$ex > $ex.log.$np.$rea
-./$ex > $ex.log.$np.$rea
+mpiexec -np $np ./$ex > $ex.log.$np.$rea
 wait $!
 
 echo "Run finished. Output was written to $ex.log.$np.$rea"
