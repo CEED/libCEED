@@ -120,7 +120,7 @@ static int CeedVectorGetArray_Occa(const CeedVector vec,
 // * Restore an array obtained using CeedVectorGetArray()
 // *****************************************************************************
 static int CeedVectorRestoreArrayRead_Occa(const CeedVector vec,
-                                           const CeedScalar **array) {
+    const CeedScalar **array) {
   const Ceed ceed = vec->ceed;
   dbg("[CeedVector][Restore]");
   assert(((CeedVector_Occa *)vec->data)->h_array);

@@ -53,13 +53,13 @@ $(MFEM_LIB_FILE):
 	$(error The MFEM library is not built)
 
 # okl-lib-cache depending on OCCA and INSTALL
-okl-lib-cache: 
+okl-lib-cache:
 # First test to see if libceed was compiled with OCCA
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
 # Second test to see if '..' is CEED_DIR
-ifneq ($(CEED_DIR),..)
+ifneq ($(CEED_DIR),../..)
 okl-lib-cache:
-	occa cache ceed $(abspath $(CEED_DIR)/lib/okl/*.okl)
+	$(OCCA_DIR)/bin/occa cache ceed $(abspath $(CEED_DIR)/lib/okl/*.okl)
 endif
 endif
 

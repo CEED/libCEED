@@ -98,12 +98,7 @@ void CeedDebugImpl(const Ceed,const char*,...);
 void CeedDebugImpl256(const Ceed,const unsigned char,const char*,...);
 #define CeedDebug(ceed,format, ...) CeedDebugImpl(ceed,format, ## __VA_ARGS__)
 #define CeedDebug256(ceed,color, ...) CeedDebugImpl256(ceed,color, ## __VA_ARGS__)
-// Generic selection, but since C11; if not acceptable, uncomment dbg CeedDebug
-#define cdbg(c,...) _Generic((c), \
-  unsigned char: CeedDebugImpl256,    \
-  default: CeedDebugImpl)(ceed,c,## __VA_ARGS__)
-#define dbg(...) cdbg((unsigned char)CEED_DEBUG_COLOR, ## __VA_ARGS__)
-//#define dbg CeedDebug
+#define dbg(...) CeedDebug256(ceed,(unsigned char)CEED_DEBUG_COLOR, ## __VA_ARGS__)
 
 // *****************************************************************************
 int CeedBasisCreateTensorH1_Occa(Ceed ceed, CeedInt dim, CeedInt P1d,
@@ -132,4 +127,3 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction res,
 
 // *****************************************************************************
 int CeedVectorCreate_Occa(Ceed ceed, CeedInt n, CeedVector vec);
-

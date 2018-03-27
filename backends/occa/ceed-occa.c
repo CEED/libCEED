@@ -95,7 +95,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   const bool omp = !strcmp(resource, "/omp/occa");
   const bool ocl = !strcmp(resource, "/ocl/occa");
   const bool gpu = !strcmp(resource, "/gpu/occa");
-  
+
   // Warning: "backend cannot use resource" is used to grep in test/tap.sh
   if (!cpu && !omp && !ocl && !gpu)
     return CeedError(ceed, 1, "OCCA backend cannot use resource: %s", resource);

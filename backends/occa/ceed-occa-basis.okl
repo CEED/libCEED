@@ -40,7 +40,7 @@ static int kCeedTensorContract(const int transpose,
   const int tstride1 = transpose?J:1;
   for (int a=0; a<A; a++) {
     for (int j=0; j<J; j++) {
-      if (!Add) 
+      if (!Add)
         for (int c=0; c<C; c++) v[(a*J+j)*C+c] = 0.0;
       for (int b=0; b<B; b++) {
         for (int c=0; c<C; c++) {
@@ -106,9 +106,9 @@ kernel void kInterp(const int QnD,const int transpose, const int tmode,
 }
 
 // *****************************************************************************
-kernel void kGrad(const int QnD, const int transpose, const int tmode,                  
+kernel void kGrad(const int QnD, const int transpose, const int tmode,
                   double *tmp0, double *tmp1, double *grad1d, double *interp1d,
-                  double *d_u, double *d_v){  
+                  double *d_u, double *d_v){
   const int P = transpose?Q1d:P1d;
   const int Q = transpose?P1d:Q1d;
   //printf("\n[kGrad] CEED_EVAL_GRAD, P=%d, Q=%d, transpose:%s",P,Q,transpose?"yes":"no");

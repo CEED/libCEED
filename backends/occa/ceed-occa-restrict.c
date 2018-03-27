@@ -68,20 +68,20 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
     // Note: in transpose mode, we perform: v += r^t * u
     if (ncomp == 1) {
       dbg("[CeedElemRestriction][Apply] kRestrict[3]");
-      //occaKernelRun(occa->kRestrict[3], id, ud, vd);
+      // occaKernelRun(occa->kRestrict[3], id, ud, vd);
       occaKernelRun(data->kRestrict[6], tid, od, ud, vd);
     } else {
       // u is (elemsize x ncomp x nelem)
       if (ordering) {
         // v is (ndof x ncomp), column-major
         dbg("[CeedElemRestriction][Apply] kRestrict[4]");
-        //occaKernelRun(data->kRestrict[4], occaInt(ncomp), id, ud, vd);
+        // occaKernelRun(data->kRestrict[4], occaInt(ncomp), id, ud, vd);
         occaKernelRun(data->kRestrict[7], occaInt(ncomp), id, od,ud, vd);
       } else {
         // v is (ncomp x ndof), column-major
         dbg("[CeedElemRestriction][Apply] kRestrict[5]");
-        //occaKernelRun(data->kRestrict[5], occaInt(ncomp), id, ud, vd);
-        occaKernelRun(data->kRestrict[8], occaInt(ncomp), id, od,ud, vd);
+        // occaKernelRun(data->kRestrict[5], occaInt(ncomp), id, ud, vd);
+        // occaKernelRun(data->kRestrict[8], occaInt(ncomp), id, od,ud, vd);
       }
     }
   }
@@ -184,7 +184,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   dbg("[CeedElemRestriction][Create] filename=%s",oklPath);
   // Test if we can get file's status, if not revert to occa://ceed/*.okl ******
   struct stat buf;
-  if (stat(oklPath, &buf)!=0){
+  if (stat(oklPath, &buf)!=0) {
     dbg("[CeedElemRestriction][Create] Could NOT stat this OKL file: %s",oklPath);
     dbg("[CeedElemRestriction][Create] Reverting to occa://ceed/*.okl");
     strcpy(oklPath,"occa://ceed/ceed-occa-restrict.okl");
@@ -193,12 +193,12 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   data->kRestrict[0] = occaDeviceBuildKernel(dev, oklPath, "kRestrict0", pKR);
   data->kRestrict[1] = occaDeviceBuildKernel(dev, oklPath, "kRestrict1", pKR);
   data->kRestrict[2] = occaDeviceBuildKernel(dev, oklPath, "kRestrict2", pKR);
-  data->kRestrict[3] = occaDeviceBuildKernel(dev, oklPath, "kRestrict3", pKR);
-  data->kRestrict[4] = occaDeviceBuildKernel(dev, oklPath, "kRestrict4", pKR);
-  data->kRestrict[5] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5", pKR);
+  // data->kRestrict[3] = occaDeviceBuildKernel(dev, oklPath, "kRestrict3", pKR);
+  // data->kRestrict[4] = occaDeviceBuildKernel(dev, oklPath, "kRestrict4", pKR);
+  // data->kRestrict[5] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5", pKR);
   data->kRestrict[6] = occaDeviceBuildKernel(dev, oklPath, "kRestrict3b", pKR);
   data->kRestrict[7] = occaDeviceBuildKernel(dev, oklPath, "kRestrict4b", pKR);
-  data->kRestrict[8] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5b", pKR);
+  // data->kRestrict[8] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5b", pKR);
   occaFree(pKR);
   dbg("[CeedElemRestriction][Create] done");
   return 0;
