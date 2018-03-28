@@ -178,32 +178,9 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   const CeedInt tile_size = ocl?1:nelem_tile_size;
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(tile_size));
   // ***************************************************************************
-  char oklPath[4096] = __FILE__;
-  const char *last_dot = strrchr(oklPath,'.');
-  if (!last_dot)
-    return CeedError(ceed, 1, "Can not find '.' in this filename!");
-  const size_t oklPathLen = last_dot - oklPath;
-  strcpy(&oklPath[oklPathLen],".okl");
-  dbg("[CeedElemRestriction][Create] filename=%s",oklPath);
-  // Test if we can get file's status, if not revert to occa://ceed/*.okl ******
-  struct stat buf;
-  if (stat(oklPath, &buf)!=0) {
-    dbg("[CeedElemRestriction][Create] Could NOT stat this OKL file: %s",oklPath);
-    dbg("[CeedElemRestriction][Create] Reverting to occa://ceed/*.okl");
-    // Try to stat ceed-occa-restrict.okl in occa cache
-    ierr=sprintf(oklPath,"%s/ceed/libraries/ceed/ceed-occa-restrict.okl",
-                 ceed_data->occa_cache_dir);
-    if (ierr<0) return CeedError(ceed, 1, "With occa_cache_dir restrict");
-    if (stat(oklPath, &buf)!=0) {
-      dbg("[CeedElemRestriction][Create] Could NOT stat in OCCA cache: %s",oklPath);
-      // reverting to libceed_dir
-      ierr=sprintf(oklPath,"%s/okl/ceed-occa-restrict.okl",
-                   ceed_data->libceed_dir);
-      if (ierr<0) return CeedError(ceed, 1, "With libceed_dir restrict");
-    } else
-      strcpy(oklPath,"occa://ceed/ceed-occa-restrict.okl");
-  }
-  dbg("[CeedElemRestriction][Create] final okl file is %s",oklPath);
+  char *oklPath;
+  ierr = CeedOklPath_Occa(ceed,__FILE__, "ceed-occa-restrict",&oklPath);
+  CeedChk(ierr);
   // ***************************************************************************
   data->kRestrict[0] = occaDeviceBuildKernel(dev, oklPath, "kRestrict0", pKR);
   data->kRestrict[1] = occaDeviceBuildKernel(dev, oklPath, "kRestrict1", pKR);
@@ -214,7 +191,9 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   data->kRestrict[6] = occaDeviceBuildKernel(dev, oklPath, "kRestrict3b", pKR);
   data->kRestrict[7] = occaDeviceBuildKernel(dev, oklPath, "kRestrict4b", pKR);
   // data->kRestrict[8] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5b", pKR);
+  // free local usage **********************************************************
   occaFree(pKR);
+  ierr = CeedFree(&oklPath); CeedChk(ierr);
   dbg("[CeedElemRestriction][Create] done");
   return 0;
 }

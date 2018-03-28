@@ -17,45 +17,6 @@
 #include "ceed-occa.h"
 
 // *****************************************************************************
-// * CeedDladdr_Occa for Apple and Linux
-// *****************************************************************************
-#if defined(__APPLE__) || defined(__linux__)
-static int CeedDladdr_Occa(Ceed ceed) {
-  Dl_info info;
-  Ceed_Occa *data = ceed->data;
-  memset(&info,0,sizeof(info));
-  const int ierr = dladdr((void*)&CeedInit,&info);
-  dbg("[CeedDladdr_Occa] found %s", info.dli_fname);
-  if (ierr==0)
-    return CeedError(ceed, 1, "OCCA backend cannot fetch dladdr");
-  // libceed_dir setup & alloc in our data
-  const char *libceed_dir = (char*)info.dli_fname;
-  const int path_len = strlen(libceed_dir);
-  dbg("[CeedDladdr_Occa] path_len=%d", path_len);
-  CeedCalloc(path_len+1,&data->libceed_dir);
-  // stat'ing the library to make sure we can access the path
-  struct stat buf;
-  if (stat(libceed_dir, &buf)!=0)
-    return CeedError(ceed, 1, "OCCA backend cannot stat %s", libceed_dir);
-  // Now remove libceed.so part to get the path
-  char *last_slash = strrchr(libceed_dir,'/');
-  if (!last_slash)
-    return CeedError(ceed, 1,
-                     "OCCA backend cannot locate libceed_dir from %s",
-                     libceed_dir);
-  // remove from last_slash and push it to our data
-  *last_slash=0;
-  memcpy(data->libceed_dir,libceed_dir,last_slash-libceed_dir+1);
-  dbg("[CeedDladdr_Occa] data->data->libceed_dir: %s", data->libceed_dir);
-  return 0;
-}
-#else // nothing is done elsewhere
-static int CeedDladdr_Occa(Ceed ceed) {
-  return CeedError(ceed, 1, "OCCA backend dladdr not implemented");
-}
-#endif
-
-// *****************************************************************************
 // * OCCA modes, default deviceID is 0, but can be changed with /ocl/occa/1
 // *****************************************************************************
 static const char *occaCPU = "mode: 'Serial'";
@@ -182,13 +143,14 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   if (ocl && strcmp(occaDeviceMode(data->device), "OpenCL"))
     return CeedError(ceed,1, "OCCA backend failed to use OpenCL resource");
   // populating our data struct with libceed_dir
-  CeedDladdr_Occa(ceed);
-  dbg("[CeedInit] libceed_dir: %s", data->libceed_dir);
+  ierr = CeedOklDladdr_Occa(ceed); CeedChk(ierr);
+  if (data->libceed_dir)
+    dbg("[CeedInit] libceed_dir: %s", data->libceed_dir);
   // populating our data struct with occa_cache_dir
   const char *OCCA_CACHE_DIR = getenv("OCCA_CACHE_DIR");
   const char *occa_cache_dir = OCCA_CACHE_DIR?OCCA_CACHE_DIR:"~/.occa";
   const int occa_cache_dir_len = strlen(occa_cache_dir);
-  CeedCalloc(occa_cache_dir_len+1,&data->occa_cache_dir);
+  ierr = CeedCalloc(occa_cache_dir_len+1,&data->occa_cache_dir); CeedChk(ierr);
   memcpy(data->occa_cache_dir,occa_cache_dir,occa_cache_dir_len+1);
   dbg("[CeedInit] occa_cache_dir: %s", data->occa_cache_dir);
   return 0;

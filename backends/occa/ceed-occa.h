@@ -20,13 +20,11 @@
 #include <ceed-impl.h>
 
 // *****************************************************************************
-#if defined(__APPLE__) || defined(__linux__)
 // used to get Dl_info struct declaration (vs _GNU_SOURCE?)
 #ifndef __USE_GNU
 #define __USE_GNU
 #endif
 #include <dlfcn.h>
-#endif
 
 // *****************************************************************************
 #include "occa.h"
@@ -100,6 +98,12 @@ typedef struct {
   char *libceed_dir;
   char *occa_cache_dir;
 } Ceed_Occa;
+
+// *****************************************************************************
+int CeedOklPath_Occa(const Ceed, const char*, const char*, char **);
+
+// *****************************************************************************
+int CeedOklDladdr_Occa(Ceed);
 
 // *****************************************************************************
 // CEED_DEBUG_COLOR default value, forward CeedDebug* declarations & dbg macros

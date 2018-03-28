@@ -81,35 +81,16 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
   data->tmp1 = occaDeviceMalloc(dev,elems_x_tmpSz*sizeof(CeedScalar),NULL,
                                 NO_PROPS);
   // ***************************************************************************
-  char oklPath[4096] = __FILE__;
-  const char *last_dot = strrchr(oklPath,'.');
-  if (!last_dot)
-    return CeedError(basis->ceed,1, "Can not find '.' in this filename!");
-  const size_t oklPathLen = last_dot - oklPath;
-  strcpy(&oklPath[oklPathLen],".okl");
-  // Test if we can get file's status, if not revert to occa://ceed/*.okl ******
-  struct stat buf;
-  if (stat(oklPath, &buf)!=0) {
-    dbg("[CeedBasis][BK] Could NOT stat this OKL file: %s",oklPath);
-    dbg("[CeedBasis][BK] Reverting to occa://ceed/*.okl");
-    // Try to stat ceed-occa-basis.okl in occa cache
-    ierr=sprintf(oklPath,"%s/ceed/libraries/ceed/ceed-occa-basis.okl",
-                 ceed_data->occa_cache_dir);
-    if (ierr<0) return CeedError(ceed, 1, "With occa_cache_dir basis");
-    if (stat(oklPath, &buf)!=0) {
-      dbg("[CeedBasis][BK] Could NOT stat in OCCA cache: %s",oklPath);
-      // reverting to libceed_dir
-      ierr=sprintf(oklPath,"%s/okl/ceed-occa-basis.okl",ceed_data->libceed_dir);
-      if (ierr<0) return CeedError(ceed, 1, "With libceed_dir basis");
-    } else
-      strcpy(oklPath,"occa://ceed/ceed-occa-basis.okl");
-  }
-  dbg("[CeedBasis][BK] final okl file is %s",oklPath);
+  char *oklPath;
+  ierr = CeedOklPath_Occa(ceed,__FILE__, "ceed-occa-basis",&oklPath);
+  CeedChk(ierr);
   // ***************************************************************************
   data->kZero   = occaDeviceBuildKernel(dev,oklPath,"kZero",pKR);
   data->kInterp = occaDeviceBuildKernel(dev,oklPath,"kInterp",pKR);
   data->kGrad   = occaDeviceBuildKernel(dev,oklPath,"kGrad",pKR);
   data->kWeight = occaDeviceBuildKernel(dev,oklPath,"kWeight",pKR);
+  // free local usage **********************************************************
+  ierr = CeedFree(&oklPath); CeedChk(ierr);
   occaFree(pKR);
   return 0;
 }
