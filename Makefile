@@ -24,12 +24,14 @@ LOADLIBES ?=
 TARGET_ARCH ?=
 UNDERSCORE ?= 1
 
-# env variable OCCA_DIR should point to OCCA-1.0 branch
+# env variable OCCA_DIR can be used too (need OCCA v1.0)
 OCCA_DIR ?= ../occa
 
-# env variable MAGMA_DIR should point to MAGMA branch
-MAGMA_DIR ?= ../../magma
-CUDA_DIR  ?= /usr/local/cuda
+# env variable MAGMA_DIR can be used too
+MAGMA_DIR ?= ../magma
+# If CUDA_DIR is not set, check for nvcc, or resort to /usr/local/cuda
+CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
+               $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
 
 SANTIZ = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -march=native
@@ -135,16 +137,20 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(occa.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(OCCA_DIR)/include
 endif
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
+  CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
+  CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
+  ifneq ($(CUDA_LIB_DIR),)
   magma_allsrc.o = $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o)
   $(libceed)           : LDFLAGS += -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)
   $(tests) $(examples) : LDFLAGS += -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)
-  $(libceed)           : LDLIBS += -lmagma -L$(CUDA_DIR)/lib -lcudart
-  $(tests) $(examples) : LDLIBS += -lmagma -L$(CUDA_DIR)/lib -lcudart
+  $(libceed)           : LDLIBS += -lmagma -L$(CUDA_LIB_DIR) -lcudart
+  $(tests) $(examples) : LDLIBS += -lmagma -L$(CUDA_LIB_DIR) -lcudart
   $(libceed) : $(magma_allsrc.o)
   libceed.c  += $(magma_allsrc.c) 
   libceed.cu += $(magma_allsrc.cu)
   $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
   $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o) : NVCCFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
+  endif
 endif
 
 # generate magma_tmp.c and magma_cuda.cu from magma.c                                                      

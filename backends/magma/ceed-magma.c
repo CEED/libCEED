@@ -14,10 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
-#include <string.h>
-#include "magma.h"
 #include "ceed-magma.h"
+#include <string.h>
 
 typedef struct {
   CeedScalar *array;
@@ -222,8 +220,9 @@ static int CeedVectorRestoreArray_Magma(CeedVector vec, CeedScalar **array) {
     if (impl->darray != NULL) {
       magma_setvector(vec->length, sizeof(*array[0]),
                       *array, 1, impl->darray, 1);
-    } else
-      ; // nothing to do (case of CPU use pointer)
+    } else {
+      // nothing to do (case of CPU use pointer)
+    }
 
   } else if (impl->down_) {
     // nothing to do if array is on GPU, except if down_=1(case CPU use pointer)
@@ -250,11 +249,12 @@ static int CeedVectorRestoreArrayRead_Magma(CeedVector vec,
   // Check if the array is a CPU pointer
   if (*array == impl->array) {
     // Update device, if the device pointer is not NULL
-    if (impl->darray != NULL)
+    if (impl->darray != NULL) {
       magma_setvector(vec->length, sizeof(*array[0]),
                       *array, 1, impl->darray, 1);
-    else
-      ; // nothing to do (case of CPU use pointer)
+    } else {
+      // nothing to do (case of CPU use pointer)
+    }
 
   } else if (impl->down_) {
     // nothing to do if array is on GPU, except if down_=1(case CPU use pointer)
