@@ -20,6 +20,9 @@
 ## Nek5000 path
 #NEK5K_DIR=
 
+## CEED path
+#CEED_DIR=
+
 ## Fortran compiler
 #FC=
 
@@ -34,6 +37,7 @@ EXAMPLES=ex1
 ###############################################################################
 # Set defaults for the parameters
 : ${NEK5K_DIR:=`cd "../../../Nek5000"; pwd`}
+: ${CEED_DIR:=`cd "../../"; pwd`}
 : ${FC:="mpif77"}
 : ${CC:="mpicc"}
 
@@ -58,8 +62,8 @@ cp $NEK5K_DIR/bin/makenek .
 sed -i.bak -e "s|^#FC=.*|FC=\"$FC\"|" \
     -e "s|^#CC=.*|CC=\"$CC\"|" \
     -e "s|^#SOURCE_ROOT=.*|SOURCE_ROOT=\"$NEK5K_DIR\"|" \
-    -e "s|^#FFLAGS=.*|FFLAGS+=\"-I../../include\"|" \
-    -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-L../../lib -lceed\"|" makenek
+    -e "s|^#FFLAGS=.*|FFLAGS+=\"-I${CEED_DIR}/include\"|" \
+    -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-L${CEED_DIR}/lib -lceed\"|" makenek
 
 
 # Build examples
