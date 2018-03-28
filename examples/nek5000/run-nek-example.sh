@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
 # the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
 # reserved. See files LICENSE and NOTICE for details.
@@ -14,15 +16,13 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-#!/bin/bash
-
 ###############################################################################
 # DONT'T TOUCH WHAT FOLLOWS !!!
 ###############################################################################
 if [[ $# -ne 4 ]]; then
   echo "Error: Number of inputs does not equal to 4. Please use the syntax below."
   echo "./run-nek-example <example_name> <#mpi_ranks> <rea_name> <rea_and_map_path>"
-  echo "Example ./run-nek-example ex1 4 b3 ./boxes/b3"
+  echo "Example ./run-nek-example.sh ex1 4 b3 ./boxes/b3"
   exit 1
 fi
 

@@ -56,6 +56,7 @@ kernel void kRestrict2(const int ncomp,
   }
 }
 
+/* Version using atomicAdd(double), not available before sm_60
 // *****************************************************************************
 kernel void kRestrict3(const int *indices,
                        const double* uu,
@@ -65,6 +66,7 @@ kernel void kRestrict3(const int *indices,
     atomicAdd(vv + indices[i], uu[i]);
   }
 }
+*/
 
 // *****************************************************************************
 kernel void kRestrict3b(const int *tindices,
@@ -84,6 +86,7 @@ kernel void kRestrict3b(const int *tindices,
   }
 }
 
+/* Version using atomicAdd(double), not available before sm_60
 // *****************************************************************************
 kernel void kRestrict4(const int ncomp,
                        const int *indices,
@@ -93,11 +96,13 @@ kernel void kRestrict4(const int ncomp,
     if (e >= nelem) continue;
     for (int d = 0; d < ncomp; d++){
       for (int i=0; i<elemsize; i++) {
-         atomicAdd(vv+indices[i+elemsize*e]+ndof*d,uu[i+elemsize*(d+e*ncomp)]);
+        atomicAdd(vv+indices[i+elemsize*e]+ndof*d,uu[i+elemsize*(d+e*ncomp)]);
       }
     }
   }
 }
+*/
+
 // *****************************************************************************
 kernel void kRestrict4b(const int ncomp,
                         const int *tindices,
@@ -117,6 +122,7 @@ kernel void kRestrict4b(const int ncomp,
   }
 }
 
+/* Version using atomicAdd(double), not available before sm_60
 // *****************************************************************************
 kernel void kRestrict5(const int ncomp,
                        const int *indices,
@@ -126,12 +132,14 @@ kernel void kRestrict5(const int ncomp,
     if (e >= nelem) continue;
     for (int d = 0; d < ncomp; d++){
       for (int i=0; i<elemsize; i++) {
-         atomicAdd(vv+d+ncomp*indices[i+elemsize*e],uu[i+elemsize*(d+e*ncomp)]);
+        atomicAdd(vv+d+ncomp*indices[i+elemsize*e],uu[i+elemsize*(d+e*ncomp)]);
       }
     }
   }
 }
+*/
 
+/* Version using atomicAdd(double), not available before sm_60
 // *****************************************************************************
 kernel void kRestrict5b(const int ncomp,
                         const int *tindices,
@@ -147,3 +155,4 @@ kernel void kRestrict5b(const int ncomp,
     }
   }
 }
+*/

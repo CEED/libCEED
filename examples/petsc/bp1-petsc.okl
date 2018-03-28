@@ -1,0 +1,85 @@
+// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
+// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
+// reserved. See files LICENSE and NOTICE for details.
+//
+// This file is part of CEED, a collection of benchmarks, miniapps, software
+// libraries and APIs for efficient high-order finite element and spectral
+// element discretizations for exascale applications. For more information and
+// source code availability see http://github.com/ceed.
+//
+// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
+// a collaborative effort of two U.S. Department of Energy organizations (Office
+// of Science and the National Nuclear Security Administration) responsible for
+// the planning and preparation of a capable exascale ecosystem, including
+// software, applications, hardware, advanced system engineering and early
+// testbed platforms, in support of the nation's exascale computing imperative.
+
+// *****************************************************************************
+typedef int CeedInt;
+typedef double CeedScalar;
+typedef __global bool gCeedBool;
+typedef __global double gCeedScalar;
+
+// *****************************************************************************
+#define PetscSqr(a) ((a)*(a))
+#define PetscMax(a,b) (((a)<(b)) ? (b):(a))
+#define PetscAbsScalar(a) (((a)<0.0)?(-a):(a))
+
+// *****************************************************************************
+kernel void Setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
+                  const CeedScalar *u, const CeedScalar *bu,
+                  CeedScalar *v, CeedScalar *bv) {
+  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
+    if (i >= Q) continue;
+    const gCeedScalar *x = u;
+    const gCeedScalar *J = u+Q*NC;
+    const gCeedScalar *w = u+Q*NC*(DIM+1);
+    const int szofcs = sizeof(CeedScalar);
+    gCeedScalar *rho = ((gCeedScalar*)qdata)+e*Q*qdatasize/szofcs;
+    gCeedScalar *target = rho+Q;
+    const CeedInt offset = e*(Q*NC*(DIM+2));
+    //const gCeedScalar *du = bu+offset;
+    const gCeedScalar *bJ = bu+offset+Q*NC;
+    const gCeedScalar *bQW = bu+offset+Q*NC*(DIM+1);
+    if (fabs(J[i]-bJ[i])>epsilon) continue;
+    if (fabs(w[i]-bQW[i])>epsilon) continue;
+    const CeedScalar det =
+      bJ[i+Q*0]*(bJ[i+Q*4]*bJ[i+Q*8]-bJ[i+Q*5]*bJ[i+Q*7]) -
+      bJ[i+Q*1]*(bJ[i+Q*3]*bJ[i+Q*8]-bJ[i+Q*5]*bJ[i+Q*6]) +
+      bJ[i+Q*2]*(bJ[i+Q*3]*bJ[i+Q*7]-bJ[i+Q*4]*bJ[i+Q*6]);
+    rho[i] = det * w[i];
+    // Don't break this line, OCCA parser will seg-fault
+    target[i] = sqrt(PetscSqr(x[i+Q*0])+PetscSqr(x[Q*1+i])+PetscSqr(x[Q*2+i]));
+  }
+}
+  
+// *****************************************************************************
+kernel void Mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
+                 const CeedScalar *u, const CeedScalar *bu,
+                 CeedScalar *v, CeedScalar *bv) {
+  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
+    if (i >= Q) continue;
+    const int szofcs = sizeof(CeedScalar);
+    const gCeedBool *residual = (gCeedBool*)ctx;
+    const gCeedScalar *rho = ((gCeedScalar*)qdata)+e*Q*qdatasize/szofcs;
+    const gCeedScalar *target = rho + Q;
+    const CeedInt offset = e*(Q*NC*(DIM+2));
+    const gCeedScalar *du = bu+offset;
+    if (fabs(u[i]-du[i])>epsilon) continue;
+    v[i] = rho[i] * (u[i] - (*residual ? target[i] : 0.0));
+  }
+}
+
+// *****************************************************************************
+kernel void Error(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
+                  const CeedScalar *u, const CeedScalar *bu,
+                  CeedScalar *v, CeedScalar *bv) {
+  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
+    if (i >= Q) continue;
+    const int szofcs = sizeof(CeedScalar);
+    gCeedScalar *maxerror = (gCeedScalar*)ctx;
+    const gCeedScalar *rho = ((gCeedScalar*)qdata)+e*Q*qdatasize/szofcs;
+    const gCeedScalar *target = rho + Q;
+    *maxerror = PetscMax(*maxerror, PetscAbsScalar(u[i] - target[i]));
+  }
+}
