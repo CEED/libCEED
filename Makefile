@@ -187,6 +187,7 @@ okl-clear:
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d "$(DESTDIR)$(includedir)" "$(DESTDIR)$(libdir)" "$(DESTDIR)$(okldir)" "$(DESTDIR)$(pkgconfigdir)"
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/"
