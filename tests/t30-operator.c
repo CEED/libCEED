@@ -1,5 +1,6 @@
 // Test operator action for mass matrix
 #include <ceed.h>
+#include <stdlib.h>
 
 static int setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
                  CeedScalar *const *v) {
@@ -26,13 +27,14 @@ int main(int argc, char **argv) {
   CeedQFunction qf_setup, qf_mass;
   CeedOperator op_setup, op_mass;
   CeedVector qdata, X, U, V;
+  const CeedScalar *hv;
   CeedInt nelem = 5, P = 5, Q = 8;
   CeedInt Nx = nelem+1, Nu = nelem*(P-1)+1;
   CeedInt indx[nelem*2], indu[nelem*P];
   CeedScalar x[Nx];
 
   CeedInit(argv[1], &ceed);
-  for (CeedInt i=0; i<Nx; i++) x[i] = i / (Nx - 1);
+  for (CeedInt i=0; i<Nx; i++) x[i] = (CeedScalar) i / (Nx - 1);
   for (CeedInt i=0; i<nelem; i++) {
     indx[2*i+0] = i;
     indx[2*i+1] = i+1;
@@ -69,6 +71,10 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, Nu, &U);
   CeedVectorCreate(ceed, Nu, &V);
   CeedOperatorApply(op_mass, qdata, U, V, CEED_REQUEST_IMMEDIATE);
+
+  CeedVectorGetArrayRead(V, CEED_MEM_HOST, &hv);
+  for (CeedInt i=0; i<Nu; i++)
+    if (hv[i] != 0.0) printf("[%d] v %f != 0.0\n",i, hv[i]);
 
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_mass);

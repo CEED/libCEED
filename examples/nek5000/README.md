@@ -45,7 +45,7 @@ You can make Nek5000 examples by invoking `make-nek-examples.sh` script.
 ### Run Nek5000 examples
 
 You can run Nek5000 examples by invoking `run-nek-examples.sh` script.
-Syntax for the command is 
+Syntax for the command is
 ```sh
   ./run-nek-example <example_name> <#mpi_ranks> <rea_name> <rea_and_map_path>"
 ```

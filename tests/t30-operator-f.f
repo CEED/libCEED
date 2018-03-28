@@ -82,9 +82,12 @@ c-----------------------------------------------------------------------
 
       call ceedqfunctioncreateinterior(ceed,1,1,8,
      $  ior(ceed_eval_grad,ceed_eval_weight),ceed_eval_none,setup,
-     $  't30-operator-f.f:setup',qf_setup,err)
+     $     __FILE__
+     $     //':setup'//char(0),qf_setup,err)
       call ceedqfunctioncreateinterior(ceed,1,1,8,ceed_eval_interp,
-     $  ceed_eval_interp,mass,'t30-operator-f.f:mass',qf_mass,err)
+     $     ceed_eval_interp,mass,
+     $     __FILE__
+     $     //':mass'//char(0),qf_mass,err)
 
       call ceedoperatorcreate(ceed,erestrictx,bx,qf_setup,
      $  ceed_null,ceed_null,op_setup,err)

@@ -79,7 +79,9 @@ static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
 static int f_apply_mass(void *ctx, void *qdata, CeedInt Q,
                         const CeedScalar *const *u, CeedScalar *const *v) {
   const CeedScalar *w = (const CeedScalar*)qdata;
-  for (CeedInt i=0; i<Q; i++) v[0][i] = w[i] * u[0][i];
+  for (CeedInt i=0; i<Q; i++) {
+    v[0][i] = w[i] * u[0][i];
+  }
   return 0;
 }
 
@@ -232,7 +234,6 @@ class CeedMassOperator : public mfem::Operator {
   virtual void Mult(const mfem::Vector &x, mfem::Vector &y) const {
     CeedVectorSetArray(u, CEED_MEM_HOST, CEED_USE_POINTER, x.GetData());
     CeedVectorSetArray(v, CEED_MEM_HOST, CEED_USE_POINTER, y.GetData());
-
     CeedOperatorApply(oper, qdata, u, v, CEED_REQUEST_IMMEDIATE);
   }
 };

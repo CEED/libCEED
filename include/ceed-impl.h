@@ -52,8 +52,6 @@ CEED_INTERN int CeedFree(void *p);
 #define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
 #define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
-void CeedDebug(const char *,...);
-
 struct CeedVector_private {
   Ceed ceed;
   int (*SetArray)(CeedVector, CeedMemType, CeedCopyMode, CeedScalar *);
@@ -91,6 +89,7 @@ struct CeedBasis_private {
   CeedScalar *qweight1d;
   CeedScalar *interp1d;
   CeedScalar *grad1d;
+  void *data;       /* place for the backend to store any data */
 };
 
 /* FIXME: The number of in-fields and out-fields may be different? */
