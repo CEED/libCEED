@@ -296,7 +296,7 @@ int main(int argc, char **argv) {
                               Mass, __FILE__ ":Mass", &qf_mass);
   CeedQFunctionCreateInterior(ceed, 1, 1, 2*sizeof(CeedScalar),
                               CEED_EVAL_INTERP, CEED_EVAL_NONE,
-                              Error, __FILE__ ":Mass", &qf_error);
+                              Error, __FILE__ ":Error", &qf_error);
 
   CeedOperatorCreate(ceed, Erestrictx, basisx, qf_setup, NULL, NULL, &op_setup);
   CeedOperatorCreate(ceed, Erestrictu, basisu, qf_mass, NULL, NULL, &op_mass);

@@ -1,6 +1,6 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// All Rights reserved. See files LICENSE and NOTICE for details.
 //
 // This file is part of CEED, a collection of benchmarks, miniapps, software
 // libraries and APIs for efficient high-order finite element and spectral
@@ -13,15 +13,16 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-
+#define CEED_DEBUG_COLOR 10
 #include "ceed-occa.h"
 
 // *****************************************************************************
-// * OCCA stuff
+// * OCCA modes, default deviceID is 0, but can be changed with /ocl/occa/1
 // *****************************************************************************
 static const char *occaCPU = "mode: 'Serial'";
 static const char *occaOMP = "mode: 'OpenMP'";
-static const char *occaGPU = "mode: 'CUDA', deviceID: 0";
+static const char *occaGPU = "mode: 'CUDA', deviceID: %d";
+static const char *occaOCL = "mode: 'OpenCL', platformID: 0, deviceID: %d";
 extern void occaSetVerboseCompilation(const int value);
 
 // *****************************************************************************
@@ -31,10 +32,9 @@ static int CeedError_Occa(Ceed ceed,
                           const char *file, int line,
                           const char *func, int code,
                           const char *format, va_list args) {
-  fprintf(stderr,"\033[31;1m");
   fprintf(stderr, "CEED-OCCA error @ %s:%d %s\n", file, line, func);
   vfprintf(stderr, format, args);
-  fprintf(stderr,"\033[m\n");
+  fprintf(stderr,"\n");
   fflush(stderr);
   abort();
   return code;
@@ -44,23 +44,63 @@ static int CeedError_Occa(Ceed ceed,
 // * CeedDestroy_Occa
 // *****************************************************************************
 static int CeedDestroy_Occa(Ceed ceed) {
-  const Ceed_Occa *impl=ceed->data;
-
-  CeedDebug("\033[1m[CeedDestroy]");
-  occaDeviceFree(impl->device);
+  int ierr;
+  Ceed_Occa *data=ceed->data;
+  dbg("[CeedDestroy]");
+  occaFree(data->device);
+  ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
+
+// *****************************************************************************
+// * CeedDebugImpl256
+// *****************************************************************************
+void CeedDebugImpl256(const Ceed ceed,
+                      const unsigned char color,
+                      const char *format,...) {
+  const Ceed_Occa *data=ceed->data;
+  if (!data->debug) return;
+  va_list args;
+  va_start(args, format);
+  fflush(stdout);
+  fprintf(stdout,"\033[38;5;%dm",color);
+  vfprintf(stdout,format,args);
+  fprintf(stdout,"\033[m");
+  fprintf(stdout,"\n");
+  fflush(stdout);
+  va_end(args);
+}
+
+// *****************************************************************************
+// * CeedDebugImpl
+// *****************************************************************************
+void CeedDebugImpl(const Ceed ceed,
+                   const char *format,...) {
+  const Ceed_Occa *data=ceed->data;
+  if (!data->debug) return;
+  va_list args;
+  va_start(args, format);
+  CeedDebugImpl256(ceed,0,format,args);
+  va_end(args);
+}
+
 
 // *****************************************************************************
 // * INIT
 // *****************************************************************************
 static int CeedInit_Occa(const char *resource, Ceed ceed) {
-  Ceed_Occa *impl;
-
-  CeedDebug("\033[1m[CeedInit] resource='%s'", resource);
-  if (strcmp(resource, "/cpu/occa")
-      && strcmp(resource, "/omp/occa")
-      && strcmp(resource, "/gpu/occa"))
+  int ierr;
+  Ceed_Occa *data;
+  const int nrc = 9; // number of characters in resource
+  const bool cpu = !strncmp(resource,"/cpu/occa",nrc);
+  const bool omp = !strncmp(resource,"/omp/occa",nrc);
+  const bool ocl = !strncmp(resource,"/ocl/occa",nrc);
+  const bool gpu = !strncmp(resource,"/gpu/occa",nrc);
+  const int rlen = strlen(resource);
+  const bool slash = (rlen>nrc)?resource[nrc]=='/'?true:false:false;
+  const int deviceID = slash?(rlen>nrc+1)?atoi(&resource[nrc+1]):0:0;
+  // Warning: "backend cannot use resource" is used to grep in test/tap.sh
+  if (!cpu && !omp && !ocl && !gpu)
     return CeedError(ceed, 1, "OCCA backend cannot use resource: %s", resource);
   ceed->Error = CeedError_Occa;
   ceed->Destroy = CeedDestroy_Occa;
@@ -69,30 +109,46 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Occa;
   ceed->QFunctionCreate = CeedQFunctionCreate_Occa;
   ceed->OperatorCreate = CeedOperatorCreate_Occa;
-  // Allocating impl, host & device
-  CeedChk(CeedCalloc(1,&impl));
-  ceed->data = impl;
+  ierr = CeedCalloc(1,&data); CeedChk(ierr);
+  ceed->data = data;
+  // push env variables CEED_DEBUG or DBG to our data
+  data->debug=!!getenv("CEED_DEBUG") || !!getenv("DBG");
+  // push ocl to our data, to be able to check it later for the kernels
+  data->ocl = ocl;
+  if (data->debug)
+    occaPropertiesSet(occaSettings(),"verbose-compilation",occaBool(true));
+  // Now that we can dbg, output resource and deviceID
+  dbg("[CeedInit] resource: %s", resource);
+  dbg("[CeedInit] deviceID: %d", deviceID);
+  const char *mode_format = gpu?occaGPU : omp?occaOMP : ocl ? occaOCL : occaCPU;
+  char mode[1024];
+  // Push deviceID for CUDA and OpenCL mode
+  if (ocl || gpu) sprintf(mode,mode_format,deviceID);
+  else memcpy(mode,mode_format,strlen(mode_format));
+  dbg("[CeedInit] mode: %s", mode);
   // Now creating OCCA device
-  if (getenv("CEED_DEBUG")) occaPrintModeInfo();
-  occaSetVerboseCompilation(getenv("CEED_DEBUG")?true:false);
-  const char *mode =
-    (resource[1]=='g') ? occaGPU :
-    (resource[1]=='o') ? occaOMP : occaCPU;
-  impl->device = occaCreateDevice(occaString(mode));
-  if ((resource[1] == 'g' || resource[1] == 'o')
-      && !strcmp(occaDeviceMode(impl->device), "Serial"))
-    return CeedError(ceed, 1, "OCCA backend failed to use GPU resource");
+  data->device = occaCreateDevice(occaString(mode));
+  const char *deviceMode = occaDeviceMode(data->device);
+  dbg("[CeedInit] returned deviceMode: %s", deviceMode);
+  // Warning: "OCCA backend failed" is used to grep in test/tap.sh
+  if (cpu && strcmp(occaDeviceMode(data->device), "Serial"))
+    return CeedError(ceed,1, "OCCA backend failed to use Serial resource");
+  if (omp && strcmp(occaDeviceMode(data->device), "OpenMP"))
+    return CeedError(ceed,1, "OCCA backend failed to use OpenMP resource");
+  if (gpu && strcmp(occaDeviceMode(data->device), "CUDA"))
+    return CeedError(ceed,1, "OCCA backend failed to use CUDA resource");
+  if (ocl && strcmp(occaDeviceMode(data->device), "OpenCL"))
+    return CeedError(ceed,1, "OCCA backend failed to use OpenCL resource");
   return 0;
 }
-
 
 // *****************************************************************************
 // * REGISTER
 // *****************************************************************************
 __attribute__((constructor))
 static void Register(void) {
-  CeedDebug("\033[1m[Register] /cpu/occa");
   CeedRegister("/cpu/occa", CeedInit_Occa);
   CeedRegister("/gpu/occa", CeedInit_Occa);
   CeedRegister("/omp/occa", CeedInit_Occa);
+  CeedRegister("/ocl/occa", CeedInit_Occa);
 }

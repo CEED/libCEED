@@ -252,7 +252,9 @@ static int CeedScalarView(const char *name, const char *fpformat, CeedInt m,
   for (int i=0; i<m; i++) {
     if (m > 1) fprintf(stream, "%12s[%d]:", name, i);
     else fprintf(stream, "%12s:", name);
-    for (int j=0; j<n; j++) fprintf(stream, fpformat, a[i*n+j]);
+    for (int j=0; j<n; j++) {
+      fprintf(stream, fpformat, fabs(a[i*n+j]) > 1E-14 ? a[i*n+j] : 0);
+    }
     fputs("\n", stream);
   }
   return 0;

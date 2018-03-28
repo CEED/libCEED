@@ -1,11 +1,26 @@
+// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// All Rights reserved. See files LICENSE and NOTICE for details.
+//
+// This file is part of CEED, a collection of benchmarks, miniapps, software
+// libraries and APIs for efficient high-order finite element and spectral
+// element discretizations for exascale applications. For more information and
+// source code availability see http://github.com/ceed.
+//
+// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
+// a collaborative effort of two U.S. Department of Energy organizations (Office
+// of Science and the National Nuclear Security Administration) responsible for
+// the planning and preparation of a capable exascale ecosystem, including
+// software, applications, hardware, advanced system engineering and early
+// testbed platforms, in support of the nation's exascale computing imperative.
+
 // *****************************************************************************
 kernel void kRestrict0(const int *indices,
                        const double* uu,
                        double* vv) {
-  for (int i=0; i<esize; i++; tile(TILE_SIZE)){
-    if (i < esize){
-      vv[i] = uu[indices[i]];
-    }
+  for (int i=0; i<nelem_x_elemsize; i++; tile(TILE_SIZE)){
+    if (i >= nelem_x_elemsize) continue;
+    vv[i] = uu[indices[i]];
   }
 }
 
@@ -14,13 +29,12 @@ kernel void kRestrict1(const int ncomp,
                        const int *indices,
                        const double* uu,
                        double* vv) {
-  for (int e = 0; e < rnelem; e++; tile(TILE_SIZE)){
-    if (e < rnelem) {
-      for (int d = 0; d < ncomp; d++){
-        for (int i=0; i<relemsize; i++) {
-          vv[i+relemsize*(d+ncomp*e)] =
-            uu[indices[i+relemsize*e]+rndof*d];
-        }
+  for (int e = 0; e < nelem; e++; tile(TILE_SIZE)){
+    if (e >= nelem) continue;
+    for (int d = 0; d < ncomp; d++){
+      for (int i=0; i<elemsize; i++) {
+        vv[i+elemsize*(d+ncomp*e)] =
+          uu[indices[i+elemsize*e]+ndof*d];
       }
     }
   }
@@ -31,57 +45,114 @@ kernel void kRestrict2(const int ncomp,
                        const int *indices,
                        const double* uu,
                        double* vv) {
-  for (int e = 0; e < rnelem; e++; tile(TILE_SIZE)){
-    if (e < rnelem) {
-      for (int d = 0; d < ncomp; d++){
-        for (int i=0; i<relemsize; i++) {
-          vv[i+relemsize*(d+ncomp*e)] =
-            uu[d+ncomp*indices[i+relemsize*e]];
-        }
+  for (int e = 0; e < nelem; e++; tile(TILE_SIZE)){
+    if (e >= nelem) continue;
+    for (int d = 0; d < ncomp; d++){
+      for (int i=0; i<elemsize; i++) {
+        vv[i+elemsize*(d+ncomp*e)] =
+          uu[d+ncomp*indices[i+elemsize*e]];
       }
     }
   }
 }
 
+/* Version using atomicAdd(double), not available before sm_60
 // *****************************************************************************
 kernel void kRestrict3(const int *indices,
                        const double* uu,
                        double* vv) {
-  for (int i=0; i<esize; i++; tile(TILE_SIZE)){
-    if (i < esize) {
-      atomicAdd(vv + indices[i], uu[i]);
+  for (int i=0; i<nelem_x_elemsize; i++; tile(TILE_SIZE)){
+    if (i >= nelem_x_elemsize) continue;
+    atomicAdd(vv + indices[i], uu[i]);
+  }
+}
+*/
+
+// *****************************************************************************
+kernel void kRestrict3b(const int *tindices,
+                        const int *toffsets,
+                        const double* uu,
+                        double* vv) {
+  for (int i=0; i<ndof; i++; tile(TILE_SIZE)){
+    if (i >= ndof) continue;
+    const int rng1 = toffsets[i];
+    const int rngN = toffsets[i+1];
+    double value = 0.0;
+    for (int j=rng1; j<rngN; ++j){
+      const int tid = tindices[j];
+      value += uu[tid];
     }
+    vv[i] = value;
   }
 }
 
+/* Version using atomicAdd(double), not available before sm_60
 // *****************************************************************************
 kernel void kRestrict4(const int ncomp,
                        const int *indices,
                        const double* uu,
                        double* vv) {
-  for (int e = 0; e < rnelem; e++; tile(TILE_SIZE)){
-    if (e < rnelem) {
-      for (int d = 0; d < ncomp; d++){
-        for (int i=0; i<relemsize; i++) {
-          atomicAdd(vv + (i+relemsize*e+rndof*d), uu[i+relemsize*(d+e*ncomp)]);
-        }
+  for (int e = 0; e < nelem; e++; tile(TILE_SIZE)){
+    if (e >= nelem) continue;
+    for (int d = 0; d < ncomp; d++){
+      for (int i=0; i<elemsize; i++) {
+        atomicAdd(vv+indices[i+elemsize*e]+ndof*d,uu[i+elemsize*(d+e*ncomp)]);
       }
     }
   }
 }
+*/
 
+// *****************************************************************************
+kernel void kRestrict4b(const int ncomp,
+                        const int *tindices,
+                        const int *toffsets,
+                        const double* uu,
+                        double* vv) {
+  for (int i=0; i<ndof; i++; tile(TILE_SIZE)){
+    if (i >= ndof) continue;
+    const int rng1 = toffsets[i];
+    const int rngN = toffsets[i+1];
+    for (int d = 0; d < ncomp; ++d) {
+      double value = 0.0;
+      for (int j=rng1; j<rngN; ++j)
+        value += uu[d+tindices[j]*ncomp];
+      vv[d+i*ncomp] = value;
+    }
+  }
+}
+
+/* Version using atomicAdd(double), not available before sm_60
 // *****************************************************************************
 kernel void kRestrict5(const int ncomp,
                        const int *indices,
                        const double* uu,
                        double* vv) {
-  for (int e = 0; e < rnelem; e++; tile(TILE_SIZE)){
-    if (e < rnelem) {
-      for (int d = 0; d < ncomp; d++){
-        for (int i=0; i<relemsize; i++) {
-          atomicAdd(vv + (d+ncomp*indices[i+relemsize*e]), uu[i+relemsize*(d+e*ncomp)]);
-        }
+  for (int e = 0; e < nelem; e++; tile(TILE_SIZE)){
+    if (e >= nelem) continue;
+    for (int d = 0; d < ncomp; d++){
+      for (int i=0; i<elemsize; i++) {
+        atomicAdd(vv+d+ncomp*indices[i+elemsize*e],uu[i+elemsize*(d+e*ncomp)]);
       }
     }
   }
 }
+*/
+
+/* Version using atomicAdd(double), not available before sm_60
+// *****************************************************************************
+kernel void kRestrict5b(const int ncomp,
+                        const int *tindices,
+                        const int *toffsets,
+                        const double* uu,
+                        double* vv) {
+  for (int e = 0; e < nelem; e++; tile(TILE_SIZE)){
+    if (e >= nelem) continue;
+    for (int d = 0; d < ncomp; d++){
+      for (int i=0; i<elemsize; i++) {
+        atomicAdd(vv + d+ncomp*tindices[i+elemsize*e],uu[i+elemsize*(d+e*ncomp)]);
+      }
+    }
+  }
+}
+*/

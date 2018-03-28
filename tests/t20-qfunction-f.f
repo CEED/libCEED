@@ -48,10 +48,14 @@ c-----------------------------------------------------------------------
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-      call ceedqfunctioncreateinterior(ceed,1,1,8,ceed_eval_weight,
-     $  ceed_eval_none,setup,'t20-qfunction-f.f:setup',qf_setup,err)
-      call ceedqfunctioncreateinterior(ceed,1,1,8,ceed_eval_interp,
-     $  ceed_eval_interp,mass,'t20-qfunction-f.f:mass',qf_mass,err)
+      call ceedqfunctioncreateinterior(ceed,1,1,8,
+     $     ceed_eval_weight,ceed_eval_none,setup,
+     $     __FILE__
+     $     //':setup'//char(0),qf_setup,err)
+      call ceedqfunctioncreateinterior(ceed,1,1,8,
+     $     ceed_eval_interp,ceed_eval_interp,mass,
+     $     __FILE__
+     $     //':mass'//char(0),qf_mass,err)
 
       do i=0,q-1
         x=2.0*i/(q-1)-1

@@ -44,13 +44,24 @@ all: $(MFEM_EXAMPLES)
 %: %.cpp
 
 # Rules for building the examples
-%: %.cpp $(MFEM_LIB_FILE) $(CONFIG_MK)
+%: %.cpp $(MFEM_LIB_FILE) $(CONFIG_MK) okl-lib-cache
 	$(MFEM_CXX) $(CEED_FLAGS) $(MFEM_FLAGS) $< -o $@ $(CEED_LIBS) \
 	  $(MFEM_LIBS) $(OCCA_LIBS)
 
 # Generate an error message if the MFEM library is not built and exit
 $(MFEM_LIB_FILE):
 	$(error The MFEM library is not built)
+
+# okl-lib-cache depending on OCCA and INSTALL
+okl-lib-cache:
+# First test to see if libceed was compiled with OCCA
+ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
+# Second test to see if '../..' is CEED_DIR
+ifneq ($(CEED_DIR),../..)
+okl-lib-cache:
+	$(OCCA_DIR)/bin/occa cache ceed $(abspath $(CEED_DIR)/lib/okl/*.okl)
+endif
+endif
 
 clean:
 	rm -f *~ $(MFEM_EXAMPLES)
