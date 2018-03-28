@@ -94,14 +94,14 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
     dbg("[CeedBasis][BK] Reverting to occa://ceed/*.okl");
     // Try to stat ceed-occa-basis.okl in occa cache
     ierr=sprintf(oklPath,"%s/ceed/libraries/ceed/ceed-occa-basis.okl",
-            ceed_data->occa_cache_dir);
+                 ceed_data->occa_cache_dir);
     if (ierr<0) return CeedError(ceed, 1, "With occa_cache_dir basis");
     if (stat(oklPath, &buf)!=0) {
       dbg("[CeedBasis][BK] Could NOT stat in OCCA cache: %s",oklPath);
       // reverting to libceed_dir
       ierr=sprintf(oklPath,"%s/okl/ceed-occa-basis.okl",ceed_data->libceed_dir);
       if (ierr<0) return CeedError(ceed, 1, "With libceed_dir basis");
-    }else
+    } else
       strcpy(oklPath,"occa://ceed/ceed-occa-basis.okl");
   }
   dbg("[CeedBasis][BK] final okl file is %s",oklPath);

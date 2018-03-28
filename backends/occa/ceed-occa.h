@@ -16,17 +16,14 @@
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
-#include <ceed-impl.h>
-
 #include <sys/stat.h>
+#include <ceed-impl.h>
 
 // *****************************************************************************
 #if defined(__APPLE__) || defined(__linux__)
+// used to get Dl_info struct declaration (vs _GNU_SOURCE?)
 #ifndef __USE_GNU
 #define __USE_GNU
-#endif
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
 #endif
 #include <dlfcn.h>
 #endif

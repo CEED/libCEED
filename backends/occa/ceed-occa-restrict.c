@@ -200,7 +200,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
       ierr=sprintf(oklPath,"%s/okl/ceed-occa-restrict.okl",
                    ceed_data->libceed_dir);
       if (ierr<0) return CeedError(ceed, 1, "With libceed_dir restrict");
-    }else
+    } else
       strcpy(oklPath,"occa://ceed/ceed-occa-restrict.okl");
   }
   dbg("[CeedElemRestriction][Create] final okl file is %s",oklPath);

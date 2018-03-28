@@ -201,7 +201,7 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   dbg("[CeedQFunction][Create] filename=%s, now stating",data->oklPath);
   // Test if we can get file's status, if not revert to occa://ceed/*.okl ******
   struct stat buf;
-  if (stat(data->oklPath, &buf)!=0){
+  if (stat(data->oklPath, &buf)!=0) {
     dbg("[CeedQFunction][Create] Could NOT stat this OKL file: %s",data->oklPath);
     char nodir_filename[1024], *last_slash = strrchr(data->oklPath,'/');
     // if no slash has been found, revert to focca field

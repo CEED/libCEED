@@ -20,7 +20,7 @@
 // * CeedDladdr_Occa for Apple and Linux
 // *****************************************************************************
 #if defined(__APPLE__) || defined(__linux__)
-static int CeedDladdr_Occa(Ceed ceed) {   
+static int CeedDladdr_Occa(Ceed ceed) {
   Dl_info info;
   Ceed_Occa *data = ceed->data;
   memset(&info,0,sizeof(info));
@@ -50,9 +50,9 @@ static int CeedDladdr_Occa(Ceed ceed) {
   return 0;
 }
 #else // nothing is done elsewhere
-static int CeedDladdr_Occa(Ceed ceed) {   
+static int CeedDladdr_Occa(Ceed ceed) {
   return CeedError(ceed, 1, "OCCA backend dladdr not implemented");
-}   
+}
 #endif
 
 // *****************************************************************************
@@ -181,10 +181,10 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
     return CeedError(ceed,1, "OCCA backend failed to use CUDA resource");
   if (ocl && strcmp(occaDeviceMode(data->device), "OpenCL"))
     return CeedError(ceed,1, "OCCA backend failed to use OpenCL resource");
-  // populatind our data struct with libceed_dir
+  // populating our data struct with libceed_dir
   CeedDladdr_Occa(ceed);
   dbg("[CeedInit] libceed_dir: %s", data->libceed_dir);
-  // populatind our data struct with occa_cache_dir
+  // populating our data struct with occa_cache_dir
   const char *OCCA_CACHE_DIR = getenv("OCCA_CACHE_DIR");
   const char *occa_cache_dir = OCCA_CACHE_DIR?OCCA_CACHE_DIR:"~/.occa";
   const int occa_cache_dir_len = strlen(occa_cache_dir);
