@@ -15,7 +15,6 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 #define CEED_DEBUG_COLOR 14
 #include "ceed-occa.h"
-#include <sys/stat.h>
 
 // *****************************************************************************
 // * buildKernel
@@ -199,10 +198,20 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   memcpy(data->oklPath,qf->focca,oklPathLen);
   data->oklPath[oklPathLen]='\0';
   strcpy(&data->oklPath[oklPathLen],".okl");
-  dbg("[CeedQFunction][Create] filename=%s",data->oklPath);
-  // Test if we can get file's status ******************************************
+  dbg("[CeedQFunction][Create] filename=%s, now stating",data->oklPath);
+  // Test if we can get file's status, if not revert to occa://ceed/*.okl ******
   struct stat buf;
-  if (stat(data->oklPath, &buf)!=0)
-    return CeedError(qf->ceed, 1, "Can not find OKL file!");
+  if (stat(data->oklPath, &buf)!=0){
+    dbg("[CeedQFunction][Create] Could NOT stat this OKL file: %s",data->oklPath);
+    char nodir_filename[1024], *last_slash = strrchr(data->oklPath,'/');
+    // if no slash has been found, revert to focca field
+    if (!last_slash) last_slash=data->oklPath;
+    else last_slash+=1;
+    dbg("[CeedQFunction][Create] last_slash: %s",last_slash);
+    memcpy(nodir_filename,last_slash,strlen(last_slash)+1);
+    dbg("[CeedQFunction][Create] nodir_filename: %s",nodir_filename);
+    sprintf(data->oklPath,"occa://ceed/%s",nodir_filename);
+    dbg("[CeedQFunction][Create] preparing to use occa cache: %s",data->oklPath);
+  }
   return 0;
 }

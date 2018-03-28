@@ -15,12 +15,12 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 #define CEED_DEBUG_COLOR 249
 #include "ceed-occa.h"
-#include <sys/stat.h>
 
 // *****************************************************************************
 // * buildKernel
 // *****************************************************************************
 static int CeedBasisBuildKernel(CeedBasis basis) {
+  int ierr;
   const Ceed ceed = basis->ceed;
   const Ceed_Occa *ceed_data = ceed->data;
   const occaDevice dev = ceed_data->device;
@@ -60,7 +60,7 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
   // ***************************************************************************
   // OpenCL check for this requirement
   const CeedInt elem_tile_size = (nelem>TILE_SIZE)?TILE_SIZE:nelem;
-  // OCCA+MacOS implementation need that for now
+  // OCCA+MacOS implementation needs that for now (if DeviceID targets a CPU)
   const CeedInt tile_size = ocl?1:elem_tile_size;
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(tile_size));
   dbg("[CeedBasis][BK] TILE_SIZE=%d",tile_size);
@@ -90,10 +90,21 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
   // Test if we can get file's status, if not revert to occa://ceed/*.okl ******
   struct stat buf;
   if (stat(oklPath, &buf)!=0) {
-    dbg("[CeedElemRestriction][Create] Could NOT stat this OKL file: %s",oklPath);
-    dbg("[CeedElemRestriction][Create] Reverting to occa://ceed/*.okl");
-    strcpy(oklPath,"occa://ceed/ceed-occa-basis.okl");
+    dbg("[CeedBasis][BK] Could NOT stat this OKL file: %s",oklPath);
+    dbg("[CeedBasis][BK] Reverting to occa://ceed/*.okl");
+    // Try to stat ceed-occa-basis.okl in occa cache
+    ierr=sprintf(oklPath,"%s/ceed/libraries/ceed/ceed-occa-basis.okl",
+            ceed_data->occa_cache_dir);
+    if (ierr<0) return CeedError(ceed, 1, "With occa_cache_dir basis");
+    if (stat(oklPath, &buf)!=0) {
+      dbg("[CeedBasis][BK] Could NOT stat in OCCA cache: %s",oklPath);
+      // reverting to libceed_dir
+      ierr=sprintf(oklPath,"%s/okl/ceed-occa-basis.okl",ceed_data->libceed_dir);
+      if (ierr<0) return CeedError(ceed, 1, "With libceed_dir basis");
+    }else
+      strcpy(oklPath,"occa://ceed/ceed-occa-basis.okl");
   }
+  dbg("[CeedBasis][BK] final okl file is %s",oklPath);
   // ***************************************************************************
   data->kZero   = occaDeviceBuildKernel(dev,oklPath,"kZero",pKR);
   data->kInterp = occaDeviceBuildKernel(dev,oklPath,"kInterp",pKR);

@@ -18,6 +18,19 @@
 #include <stdbool.h>
 #include <ceed-impl.h>
 
+#include <sys/stat.h>
+
+// *****************************************************************************
+#if defined(__APPLE__) || defined(__linux__)
+#ifndef __USE_GNU
+#define __USE_GNU
+#endif
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <dlfcn.h>
+#endif
+
 // *****************************************************************************
 #include "occa.h"
 
@@ -87,6 +100,8 @@ typedef struct {
   occaDevice device;
   bool debug;
   bool ocl;
+  char *libceed_dir;
+  char *occa_cache_dir;
 } Ceed_Occa;
 
 // *****************************************************************************
