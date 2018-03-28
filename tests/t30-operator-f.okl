@@ -29,8 +29,8 @@ kernel void setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
     const gCeedScalar *u1 = u+Q*NC;
     const gCeedScalar *u4 = u+Q*NC*(DIM+1);
     const CeedInt offset = e*(Q*NC*(DIM+2));
-    const gCeedScalar *bu1 = bu+offset;
-    const gCeedScalar *bu4 = bu+offset+Q*NC*DIM;
+    const gCeedScalar *bu1 = bu+offset+Q*NC;
+    const gCeedScalar *bu4 = bu+offset+Q*NC*(DIM+1);
     if (fabs(u1[i]-bu1[i])>epsilon) continue;
     if (fabs(u4[i]-bu4[i])>epsilon) continue;
     w[i] = u1[i]*u4[i];

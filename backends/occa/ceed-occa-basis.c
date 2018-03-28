@@ -148,14 +148,7 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
     CeedBasisBuildKernel(basis);
   }
   // ***************************************************************************
-  const int Q1d = basis->Q1d;
-  const CeedInt dim = basis->dim;
-  const CeedInt ndof = basis->ndof;
-  const CeedInt nqpt = ndof*CeedPowInt(Q1d,dim);
-  // ***************************************************************************
   const CeedInt transpose = (tmode == CEED_TRANSPOSE);
-  CeedInt u_nqpt = 0;
-  CeedInt v_nqpt = 0;
   // ***************************************************************************
   if (transpose) {
     dbg("[CeedBasis][ApplyElems] transpose");
@@ -181,8 +174,6 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
                   occaInt(transpose),occaInt(tmode),
                   d_tmp0, d_tmp1, d_interp1d,
                   d_u, d_v);
-    if (!transpose) v_nqpt += nqpt;
-    else u_nqpt += nqpt;
   }
   // ***************************************************************************
   if (emode & CEED_EVAL_GRAD) {
@@ -199,8 +190,6 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
                   occaInt(transpose),occaInt(tmode),
                   d_tmp0,d_tmp1,d_grad1d,d_interp1d,
                   d_u, d_v);
-    if (!transpose) v_nqpt += dim*nqpt;
-    else u_nqpt += dim*nqpt;
   }
   // ***************************************************************************
   if (emode & CEED_EVAL_WEIGHT) {
@@ -212,9 +201,7 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
     const occaMemory d_qw = data->qweight1d;
     const CeedVector_Occa *v_data = v->data; assert(v_data);
     const occaMemory d_v = v_data->d_array;
-    occaKernelRun(data->kWeight,occaInt(QnD),occaInt(Q1d),d_qw,d_v,occaInt(v_nqpt));
-    if (!transpose) v_nqpt += nqpt;
-    else u_nqpt += nqpt;
+    occaKernelRun(data->kWeight,occaInt(QnD),occaInt(Q1d),d_qw,d_v);
   }
   return 0;
 }

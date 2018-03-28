@@ -35,8 +35,8 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
     const gCeedScalar *qw = u+Q*NC*(DIM+1);
     gCeedScalar *qd = ((gCeedScalar*)qdata)+e*Q;
     const CeedInt offset = e*(Q*NC*(DIM+2));
-    const gCeedScalar *bJ = bu+offset;
-    const gCeedScalar *bQW = bu+offset+Q*NC*DIM;
+    const gCeedScalar *bJ = bu+offset+Q*NC;
+    const gCeedScalar *bQW = bu+offset+Q*NC*(DIM+1);
     if (fabs(J[i]-bJ[i])>epsilon) continue;
     if (fabs(qw[i]-bQW[i])>epsilon) continue;
     if (dims==11) qd[i] = J[i] * qw[i];

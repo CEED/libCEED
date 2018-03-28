@@ -98,7 +98,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   const bool gpu = !strncmp(resource,"/gpu/occa",nrc);
   const int rlen = strlen(resource);
   const bool slash = (rlen>nrc)?resource[nrc]=='/'?true:false:false;
-  const int deviceID = slash?(rlen>nrc+1)?atoi(&resource[nrc+1]):0:0;  
+  const int deviceID = slash?(rlen>nrc+1)?atoi(&resource[nrc+1]):0:0;
   // Warning: "backend cannot use resource" is used to grep in test/tap.sh
   if (!cpu && !omp && !ocl && !gpu)
     return CeedError(ceed, 1, "OCCA backend cannot use resource: %s", resource);
@@ -119,7 +119,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
     occaPropertiesSet(occaSettings(),"verbose-compilation",occaBool(true));
   // Now that we can dbg, output resource and deviceID
   dbg("[CeedInit] resource: %s", resource);
-  dbg("[CeedInit] deviceID: %d", deviceID);    
+  dbg("[CeedInit] deviceID: %d", deviceID);
   const char *mode_format = gpu?occaGPU : omp?occaOMP : ocl ? occaOCL : occaCPU;
   char mode[1024];
   // Push deviceID for CUDA and OpenCL mode

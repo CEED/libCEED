@@ -31,10 +31,12 @@ static int CeedQFunctionBuildKernel(CeedQFunction qf, const CeedInt Q) {
   dbg("[CeedQFunction][BuildKernel] dim=%d",data->dim);
   dbg("[CeedQFunction][BuildKernel] nelem=%d",data->nelem);
   dbg("[CeedQFunction][BuildKernel] elemsize=%d",data->elemsize);
+  dbg("[CeedQFunction][BuildKernel] qdatasize=%d",qf->qdatasize);
   occaProperties pKR = occaCreateProperties();
   occaPropertiesSet(pKR, "defines/NC", occaInt(data->nc));
   occaPropertiesSet(pKR, "defines/DIM", occaInt(data->dim));
   occaPropertiesSet(pKR, "defines/epsilon", occaDouble(1.e-14));
+  occaPropertiesSet(pKR, "defines/qdatasize", occaInt(qf->qdatasize));
   // OpenCL check for this requirement
   const CeedInt q_tile_size = (Q>TILE_SIZE)?TILE_SIZE:Q;
   // OCCA+MacOS implementation need that for now
@@ -93,8 +95,8 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   const CeedInt nc = data->nc, dim = data->dim;
   const CeedEvalMode inmode = qf->inmode;
   const CeedEvalMode outmode = qf->outmode;
-  const CeedInt bytes = qf->qdatasize;
-  const CeedInt qbytes = Q*bytes;
+  const CeedInt bytes = sizeof(CeedScalar);
+  const CeedInt qbytes = Q*qf->qdatasize;
   const CeedInt ubytes = (Q*nc*(dim+2))*bytes;
   const CeedInt vbytes = Q*nc*dim*bytes;
   const CeedInt e = data->e;
@@ -116,7 +118,6 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
     data->d_u = occaDeviceMalloc(device,ubytes, NULL, NO_PROPS);
     data->d_v = occaDeviceMalloc(device,ubytes, NULL, NO_PROPS);
     data->d_c = occaDeviceMalloc(device,cbytes>0?cbytes:32,NULL,NO_PROPS);
-    if (cbytes>0) occaCopyPtrToMem(data->d_c,qf->ctx,cbytes,0,NO_PROPS);
   }
   const occaMemory d_c = data->d_c;
   const occaMemory d_q = data->d_q;
@@ -130,9 +131,13 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   else
     CeedQFunctionFillOp_Occa(d_u,u,inmode,Q,nc,dim,bytes);
   // ***************************************************************************
+  if (cbytes>0) occaCopyPtrToMem(data->d_c,qf->ctx,cbytes,0,NO_PROPS);
+  // ***************************************************************************
   occaKernelRun(data->kQFunctionApply,
                 d_c, d_q, occaInt(e), occaInt(Q),
                 d_u, b_u,d_v, b_v);
+  // ***************************************************************************
+  if (cbytes>0) occaCopyMemToPtr(qf->ctx,data->d_c,cbytes,0,NO_PROPS);
   // ***************************************************************************
   if (outmode==CEED_EVAL_NONE && !data->op)
     occaCopyMemToPtr(qdata,d_q,qbytes,NO_OFFSET,NO_PROPS);
