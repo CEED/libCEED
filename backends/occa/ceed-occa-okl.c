@@ -36,6 +36,8 @@ int CeedOklPath_Occa(const Ceed ceed, const char *c_src_file,
   if (stat(okl, &buf)!=0) { // if not revert to occa cache
     dbg("[CeedOklPath] Could NOT stat this OKL file: %s",okl);
     dbg("[CeedOklPath] Reverting to occa://ceed/*.okl");
+    if (!ceed_data->occa_cache_dir)
+      return CeedError(ceed, 1, "Cannot use null occa_cache_dir!");
     // Try to stat ceed-occa-restrict.okl in occa cache
     ierr=sprintf(okl,"%s/libraries/ceed/%s.okl",
                  ceed_data->occa_cache_dir,
@@ -43,6 +45,8 @@ int CeedOklPath_Occa(const Ceed ceed, const char *c_src_file,
     CeedChk(ierr);
     // if we cannot find the okl file in cache,
     if (stat(okl, &buf)!=0) { // look into libceed install path
+      if (!ceed_data->libceed_dir)
+        return CeedError(ceed, 1, "Cannot use null libceed_dir!");
       dbg("[CeedOklPath] Could NOT stat OCCA cache: %s",okl);
       ierr=sprintf(okl,"%s/okl/%s.okl",
                    ceed_data->libceed_dir,
