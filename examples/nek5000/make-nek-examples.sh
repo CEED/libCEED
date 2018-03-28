@@ -32,7 +32,7 @@
 #CC=
 
 ## list of examples to make
-EXAMPLES=ex1
+EXAMPLES=bp1
 
 ###############################################################################
 # DONT'T TOUCH WHAT FOLLOWS !!!
@@ -44,7 +44,7 @@ if [[ "$#" -eq 1 && "$1" -eq "clean" ]]; then
   if [[ -f ./makenek ]]; then
     printf "y\n" | ./makenek clean 2>&1 >> /dev/null
   fi
-  rm makenek* ex1 ex1*log* SESSION.NAME 2> /dev/null
+  rm makenek* bp1 bp1*log* SESSION.NAME 2> /dev/null
   find ./boxes -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
   exit 0
 fi
@@ -87,7 +87,7 @@ for ex in $EXAMPLES; do
     cp SIZE.in SIZE
   fi
 
-  ./makenek ex1 2>&1 >> $ex.build.log
+  ./makenek bp1 2>&1 >> $ex.build.log
 
   if [[ ! -f ./nek5000 ]]; then
     echo "  Building $ex failed. See $ex.build.log for details."

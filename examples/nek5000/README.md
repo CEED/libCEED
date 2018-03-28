@@ -52,5 +52,5 @@ Syntax for the command is
 
 Example:
 ```
-  ./run-nek-example ex1 4 b3 boxes/b3
+  ./run-nek-example bp1 4 b3 boxes/b3
 ```

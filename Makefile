@@ -83,10 +83,10 @@ tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 ctests    := $(tests)
 tests     += $(tests.f:tests/%.f=$(OBJDIR)/%)
 #examples
-examples.c := $(sort $(wildcard examples/*.c))
-examples.f := $(sort $(wildcard examples/*.f))
-examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
-examples  += $(examples.f:examples/%.f=$(OBJDIR)/%)
+examples.c := $(sort $(wildcard examples/ceed/*.c))
+examples.f := $(sort $(wildcard examples/ceed/*.f))
+examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%)
+examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
 # backends/[ref & occa]
 ref.c     := $(sort $(wildcard backends/ref/*.c))
 occa.c    := $(sort $(wildcard backends/occa/*.c))
@@ -143,10 +143,10 @@ $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
 $(OBJDIR)/% : tests/%.f | $$(@D)/.DIR
 	$(call quiet,FC) $(CPPFLAGS) $(FFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
-$(OBJDIR)/% : examples/%.c | $$(@D)/.DIR
+$(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
-$(OBJDIR)/% : examples/%.f | $$(@D)/.DIR
+$(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
 	$(call quiet,FC) $(CPPFLAGS) $(FFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
 $(tests) $(examples) : $(libceed)
@@ -196,8 +196,9 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 cln clean :
 	$(RM) *.o *.d $(libceed)
 	$(RM) -r *.dSYM $(OBJDIR) $(LIBDIR)/pkgconfig
-	$(MAKE) -C examples clean
+	$(MAKE) -C examples/ceed clean
 	$(MAKE) -C examples/mfem clean
+	$(MAKE) -C examples/petsc clean
 	(cd examples/nek5000 && bash make-nek-examples.sh clean)
 
 distclean : clean
@@ -210,7 +211,7 @@ style :
 	astyle --style=google --indent=spaces=2 --max-code-length=80 \
             --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
             --suffix=none --preserve-date --formatted \
-            *.[ch] tests/*.[ch] backends/*/*.[ch] examples/*.[ch] examples/mfem/*.[ch]pp
+            *.[ch] tests/*.[ch] backends/*/*.[ch] examples/*/*.[ch] examples/*/*.[ch]pp
 
 print :
 	@echo $(VAR)=$($(VAR))
