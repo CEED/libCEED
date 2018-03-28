@@ -198,7 +198,7 @@ cln clean :
 	$(RM) -r *.dSYM $(OBJDIR) $(LIBDIR)/pkgconfig
 	$(MAKE) -C examples clean
 	$(MAKE) -C examples/mfem clean
-	(cd examples/nek5000 && ./make-nek-examples.sh clean)
+	(cd examples/nek5000 && bash make-nek-examples.sh clean)
 
 distclean : clean
 	rm -rf doc/html
