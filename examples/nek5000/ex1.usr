@@ -883,9 +883,11 @@ c-----------------------------------------------------------------------
       logical ifh3
       integer*8 ndof
       integer ceed,err
+      character*64 spec
 
 c     Init ceed library
-      call ceedinit('/gpu/occa'//char(0),ceed,err)
+      call get_spec(spec)
+      call ceedinit(trim(spec)//char(0),ceed,err)
 
       call geodat1n  ! Set up gf() arrays
 
@@ -1052,5 +1054,15 @@ c     Helmholtz equations
       enddo
 
       return
+      end
+c-----------------------------------------------------------------------
+      subroutine get_spec(spec)
+      integer i
+      character*64 spec
+
+      spec = '/cpu/self'
+      if(iargc().ge.1) then
+        call getarg(1, spec)
+      endif
       end
 c-----------------------------------------------------------------------
