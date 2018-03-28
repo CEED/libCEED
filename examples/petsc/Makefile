@@ -3,7 +3,7 @@ CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
 
 CC := $(shell pkg-config --variable=ccompiler $(PETSc.pc) $(ceed.pc))
-CFLAGS := $(shell pkg-config --variable=cflags_extra $(PETSc.pc)) $(shell pkg-config --cflags-only-other $(PETSc.pc))
+CFLAGS := -std=c99 $(shell pkg-config --variable=cflags_extra $(PETSc.pc)) $(shell pkg-config --cflags-only-other $(PETSc.pc))
 CPPFLAGS := $(shell pkg-config --cflags-only-I $(PETSc.pc) $(ceed.pc))
 LDFLAGS := $(shell pkg-config --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))
 LDFLAGS += $(patsubst -L%, $(shell pkg-config --variable=ldflag_rpath $(PETSc.pc))%, $(shell pkg-config --libs-only-L $(PETSc.pc) $(ceed.pc)))
