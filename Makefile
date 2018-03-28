@@ -174,17 +174,15 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 %/ceed.pc : ceed.pc.template | $$(@D)/.DIR
 	@sed "s:%prefix%:$(pkgconfig-prefix):" $< > $@
 
-# OCCA env, OKL files cache, clear & rule to install
-OCCA_CACHE_DIR     ?= ${HOME}/.occa
-OCCA_LIB_CACHE_DIR := $(OCCA_CACHE_DIR)/libraries
-OKL_KERNELS        := $(shell find backends/occa -type f -name '*.okl')
-OKL_CACHED_KERNELS := $(subst backends/occa,$(OCCA_LIB_CACHE_DIR)/ceed,$(OKL_KERNELS))
-okl-cache: $(OKL_CACHED_KERNELS)
-okl-clear: ;@occa clear -y -l ceed
-$(OCCA_LIB_CACHE_DIR)/ceed/%.okl: backends/occa/*.okl
-	echo find . -type f -name $*.okl
-	@echo "Caching: $(shell find . -type f -name $*.okl)"
-	@occa cache ceed $(shell find . -type f -name $*.okl)
+# The occa executable is not linked with RPATH by default, so we need it to find its libocca.so
+OCCA               := $(if $(DARWIN),DYLD_LIBRARY_PATH,LD_LIBRARY_PATH)=$(OCCA_DIR)/lib $(OCCA_DIR)/bin/occa
+OKL_KERNELS        := $(wildcard backends/occa/*.okl)
+
+okl-cache :
+	$(OCCA) cache ceed $(OKL_KERNELS)
+
+okl-clear:
+	$(OCCA) clear -y -l ceed
 
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d "$(DESTDIR)$(includedir)" "$(DESTDIR)$(libdir)" "$(DESTDIR)$(okldir)" "$(DESTDIR)$(pkgconfigdir)"
