@@ -12,7 +12,7 @@ LDLIBS := $(shell pkg-config --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 bp.c := $(wildcard bp*.c)
 bp := $(bp.c:%.c=%)
 
-all: $(bp)
+all: $(bp) okl-lib-cache
 
 print:
 	$(info CC      : $(CC))
@@ -20,6 +20,17 @@ print:
 	$(info CPPFLAGS: $(CPPFLAGS))
 	$(info LDFLAGS : $(LDFLAGS))
 	$(info LDLIBS  : $(LDLIBS))
+
+# okl-lib-cache depending on OCCA and INSTALL
+okl-lib-cache:
+# First test to see if libceed was compiled with OCCA
+ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
+# Second test to see if '../..' is CEED_DIR
+ifneq ($(CEED_DIR),../..)
+okl-lib-cache:
+	$(OCCA_DIR)/bin/occa cache ceed $(abspath $(CEED_DIR)/lib/okl/*.okl)
+endif
+endif
 
 clean:
 	$(RM) $(bp)
