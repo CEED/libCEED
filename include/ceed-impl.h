@@ -61,6 +61,7 @@ struct CeedVector_private {
   int (*RestoreArray)(CeedVector, CeedScalar **);
   int (*RestoreArrayRead)(CeedVector, const CeedScalar **);
   int (*Destroy)(CeedVector);
+  int refcount;
   CeedInt length;
   void *data;
 };
