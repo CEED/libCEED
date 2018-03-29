@@ -44,7 +44,7 @@ all: $(MFEM_EXAMPLES)
 # Rules for building the examples
 %: %.cpp $(CONFIG_MK) $(MFEM_LIB_FILE) okl-lib-cache
 	$(MFEM_CXX) $(CEED_FLAGS) $(MFEM_FLAGS) $(MFEM_DEF) $< -o $@ \
-	  $(CEED_LIBS) $(MFEM_LIBS) $(OCCA_LIBS)
+	  $(CEED_LIBS) $(MFEM_LIBS)
 
 # Generate an error message if the MFEM library is not built and exit
 $(MFEM_LIB_FILE):
