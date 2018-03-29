@@ -1,5 +1,8 @@
 # libCEED: the CEED API Library
 
+[![Build Status](https://travis-ci.org/CEED/libCEED.svg?branch=master)](https://travis-ci.org/CEED/libCEED)
+[![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
+
 ## Code for Efficient Extensible Discretization
 
 This repository contains an initial low-level API library for the efficient
