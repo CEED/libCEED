@@ -350,7 +350,7 @@ c     Output: ur,us         Input:u,N,D,Dt
 
       return
       end
-c=======================================================================
+c-----------------------------------------------------------------------
       subroutine xmask    (r1,r2,r3,nelv)
       real r1(1),r2(1),r3(1)
 
@@ -378,6 +378,20 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
+      subroutine massf(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
+      real*8 ctx
+      real*8 qdata(1)
+      real*8 u1(1)
+      real*8 v1(1)
+      integer q,ierr
+
+      do i=1,q
+        v1(i)=qdata(i)*u1(i)
+      enddo
+
+      ierr=0
+      end
+c-----------------------------------------------------------------------
       subroutine cggos(u1,r1,h1,h2,rmult,binv,tin,ceed,maxit)
 
 c     Vector conjugate gradient iteration for solution of uncoupled
@@ -389,6 +403,7 @@ c     Helmholtz equations
       include 'FDMH1'
 
       include 'ceedf.h'
+      external massf
 
       real u1(1),r1(1),h1(1),h2(1),rmult(1),binv(1)
       integer ceed
@@ -413,8 +428,6 @@ c     Helmholtz equations
 
       real ap1(lt)
       equivalence (ap1,z1)
-
-      external massf
 
       vol   = volfld(ifield)
       nel   = nelfld(ifield)
@@ -450,11 +463,13 @@ c     Create a ceed element restriction
       enddo
 
       call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,
-     $  ceed_mem_host,ceed_copy_values,indices,erstrct,err)
+     $  ceed_mem_host,ceed_use_pointer,indices,erstrct,err)
 
 c     Create a ceed qfunction
       call ceedqfunctioncreateinterior(ceed,1,ncomp,8,ceed_eval_interp,
-     $  ceed_eval_interp,massf,'ex1.usr:massf'//char(0),qf_mass,err)
+     $  ceed_eval_interp,massf,
+     $  __FILE__
+     $  //':massf'//char(0),qf_mass,err)
 
 c     Create a ceed operator
       call ceedoperatorcreate(ceed,erstrct,basis,qf_mass,
@@ -463,9 +478,9 @@ c     Create a ceed operator
 c     Create ceed vectors
       call ceedvectorcreate(ceed,ldof,vec_ap1,err)
       call ceedvectorcreate(ceed,ldof,vec_p1,err)
-      call ceedoperatorgetqdata(ceed,vec_qdata,err)
+      call ceedoperatorgetqdata(op_mass,vec_qdata,err)
       call ceedvectorsetarray(vec_qdata,ceed_mem_host,
-     $  ceed_copy_values,h2,err)
+     $  ceed_use_pointer,h2,err)
 
 c     Start cg
       wv(1)=0
@@ -478,9 +493,8 @@ c     Start cg
       rpp1(1) = wv  (1)
 
       do 1000 iter=1,maxit
-         call ceed_axhm1    (pap,ap1,p1,h1,h2,ceed,op_mass,
+         call ceed_axhm1(pap,ap1,p1,h1,h2,ceed,op_mass,
      $     vec_ap1,vec_p1,vec_qdata)
-c         call axhm1    (pap,ap1,p1,h1,h2)
          call gop      (pap,wk,'+  ',1)
          call xmask1   (ap1,nel)
          call dssum    (ap1,nx1,ny1,nz1)
@@ -869,9 +883,11 @@ c-----------------------------------------------------------------------
       logical ifh3
       integer*8 ndof
       integer ceed,err
+      character*64 spec
 
 c     Init ceed library
-      call ceedinit('/cpu/self'//char(0),ceed,err)
+      call get_spec(spec)
+      call ceedinit(trim(spec)//char(0),ceed,err)
 
       call geodat1n  ! Set up gf() arrays
 
@@ -998,20 +1014,6 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
-      subroutine massf(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
-      real*8 ctx
-      real*8 qdata(1)
-      real*8 u1(1)
-      real*8 v1(1)
-      integer q,ierr
-
-      do i=1,q
-        v1(i)=qdata(i)*u1(i)
-      enddo
-
-      ierr=0
-      end
-c-----------------------------------------------------------------------
       subroutine ceed_axhm1(pap,ap1,p1,h1,h2,ceed,op_mass,
      $  vec_ap1,vec_p1,vec_qdata)
 
@@ -1052,5 +1054,15 @@ c     Helmholtz equations
       enddo
 
       return
+      end
+c-----------------------------------------------------------------------
+      subroutine get_spec(spec)
+      integer i
+      character*64 spec
+
+      spec = '/cpu/self'
+      if(iargc().ge.1) then
+        call getarg(1, spec)
+      endif
       end
 c-----------------------------------------------------------------------

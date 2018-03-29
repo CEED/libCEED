@@ -1,56 +1,68 @@
-## Running Nek5000 examples
+## Nek5000 + libCEED examples
 
 ### Prerequisites
 
-Nek5000 must be [installed](https://nek5000.mcs.anl.gov/getstarted/) to
-run these examples.  It is assumed to exist at `../../../Nek5000` (a
-sibling to the libCEED directory) or at a path defined in the
-environment variable `NEK5K_DIR`.  For example, you could set
-
+Nek5000 must be [installed](https://nek5000.mcs.anl.gov/getstarted/) to run
+these examples.  It is assumed to exist at `../../../Nek5000` (a sibling to the
+libCEED directory) or at a path defined in the environment variable `NEK5K_DIR`.
+For example, you could set
+```sh
     export NEK5K_DIR=/scratch/Nek5000
-
+```
 if that is where it is located.
 
 ### Generate meshes (boxes)
 
-You can generate box geometries using `generate-boxes.sh` script, with
-usage
-
+You can generate box geometries using `generate-boxes.sh` script:
 ```sh
-   ./generate_boxes log_2(<min_elem>) log_2(<max_elem>)."
+  ./generate-boxes.sh log_2(<min_elem>) log_2(<max_elem>)."
 ```
-
-Example:
+For example:
 ```sh
-./generate-boxes 2 4
+  ./generate-boxes.sh 2 4
 ```
-This will generate three boxes with 4(=2^2), 8 and 16(=2^4) elements inside
+will generate three boxes with 4(=2^2), 8 and 16(=2^4) elements inside the
 `boxes/b*` directories.
 
-This script depends on the Nek5000 tools: `genbox`, `genmap`, and
-`reatore2`.  They can be built using
-
-    ( cd $NEK5K_DIR/tools && ./maketools genbox genmap reatore2 )
-
-(see also the [Nek5000 documentation](https://nek5000.mcs.anl.gov/getstarted/)).
-
-
-### Make Nek5000 examples
-
-You can make Nek5000 examples by invoking `make-nek-examples.sh` script.
+The `generate-boxes.sh` script depends on the Nek5000 tools: `genbox`, `genmap`,
+and `reatore2`. They can be built using
 ```sh
-./make-nek-examples.sh
+   ( cd $NEK5K_DIR/tools && ./maketools genbox genmap reatore2 )
 ```
+See also the [Nek5000 documentation](https://nek5000.mcs.anl.gov/getstarted/).
 
-### Run Nek5000 examples
+### Building the Nek5000 examples
 
-You can run Nek5000 examples by invoking `run-nek-examples.sh` script.
-Syntax for the command is 
+You can build the Nek5000 libCEED examples by invoking `make-nek-examples.sh` script.
 ```sh
-  ./run-nek-example <example_name> <#mpi_ranks> <rea_name> <rea_and_map_path>"
+  ./make-nek-examples.sh
 ```
 
-Example:
+### Running Nek5000 examples
+
+You can run the Nek5000 libCEED examples by invoking `run-nek-examples.sh`
+script. The syntax is:
+```sh
+  ./run-nek-example.sh -c <ceed_backend> -e <example_name> \
+                                            -n <mpi_ranks> -b <box_geometry>
 ```
-  ./run-nek-example ex1 4 b3 boxes/b3
+The different options that can be used for the script are listed below:
+```
+options:
+   -h|-help     Print this usage information and exit
+   -c|-ceed     Ceed backend to be used for the run (optional, default: /cpu/self)
+   -e|-example  Example name (optional, default: bp1)
+   -n|-np       Specify number of MPI ranks for the run (optional, default: 4)
+   -b|-box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
+```
+The only mandatory argument is `-b` or `--box` which sets the box geometry to be
+used. This geometry should be found in `./boxes` directory.
+
+For example, you can run bp1 as follows:
+```sh
+  ./run-nek-example.sh -ceed /cpu/self -e bp1 -n 4 -b b3
+```
+which is the same as running:
+```sh
+  ./run-nek-example.sh -b b3
 ```

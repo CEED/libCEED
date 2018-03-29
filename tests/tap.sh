@@ -4,11 +4,12 @@ ulimit -c 0 # Do not dump core
 
 output=$(mktemp $1.XXXX)
 
-backends=(/cpu/self /cpu/occa /gpu/occa /cpu/magma /gpu/magma)
+backends=(/cpu/self /cpu/occa /gpu/occa /omp/occa /ocl/occa /cpu/magma /gpu/magma)
 printf "1..$[3*${#backends[@]}]\n";
 
+# for examples/ceed ex*, grep the code to fetch arguments from a TESTARGS line
 if [ ${1::2} == "ex" ]; then
-    args=$(grep -F //TESTARGS examples/$1.c | cut -d\  -f2- )
+    args=$(grep -F //TESTARGS examples/ceed/$1.c | cut -d\  -f2- )
 else
     args='{ceed_resource}'
 fi
@@ -22,8 +23,9 @@ for ((i=0;i<${#backends[@]}; ++i)); do
     # Run in subshell
     (build/$1 ${args/\{ceed_resource\}/$backend} || false) > ${output}.out 2> ${output}.err
     status=$?
+    # grep to skip test if backend cannot handle resource
     if grep -F -q -e 'backend cannot use resource' \
-            -e 'backend failed to use GPU resource' ${output}.err; then
+            -e 'OCCA backend failed' ${output}.err; then
         printf "ok $i0 # SKIP $1 $backend\n"
         printf "ok $i1 # SKIP $1 $backend stdout\n"
         printf "ok $i2 # SKIP $1 $backend stderr\n"

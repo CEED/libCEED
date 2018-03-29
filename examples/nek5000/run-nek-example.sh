@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
 # the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
 # reserved. See files LICENSE and NOTICE for details.
@@ -14,41 +16,86 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-#!/bin/bash
+## Set libCEED directory
+#CEED_DIR=
 
 ###############################################################################
 # DONT'T TOUCH WHAT FOLLOWS !!!
 ###############################################################################
-if [[ $# -ne 4 ]]; then
-  echo "Error: Number of inputs does not equal to 4. Please use the syntax below."
-  echo "./run-nek-example <example_name> <#mpi_ranks> <rea_name> <rea_and_map_path>"
-  echo "Example ./run-nek-example ex1 4 b3 ./boxes/b3"
-  exit 1
+if [[ "${#BASH_ARGV[@]}" -ne "$#" ]]; then
+   NEK_EXIT_CMD=return
+else
+   NEK_EXIT_CMD=exit
 fi
 
-export LD_LIBRARY_PATH=`cd ../../lib; pwd`:${LD_LIBRARY_PATH}
+# Set defaults for the parameters
+: ${CEED_DIR:=`cd ../../; pwd`}
+nek_ex=bp1
+nek_spec=/cpu/self
+nek_np=4
+nek_box=
+NEK_BOX_DIR=./boxes
 
-ex=$1
-np=$2
-rea=$3
-reapath=$4
+# Set constants
+NEK_THIS_FILE="${BASH_SOURCE[0]}"
+NEK_HELP_MSG="
+$NEK_THIS_FILE [options]
 
-if [[ ! -f $ex ]]; then
-  echo "Example $ex does not exist. Build it with make-nek-examples.sh"
-  exit 1
+options:
+   -h|-help     Print this usage information and exit
+   -c|-ceed     Ceed backend to be used for the run (optional, default: /cpu/self)
+   -e|-example  Example name (optional, default: bp1)
+   -n|-np       Specify number of MPI ranks for the run (optional, default: 4)
+   -b|-box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
+
+Example:
+  ./run-nek-example -c /cpu/self -e bp1 -n 4 -b b3
+"
+
+# Read in parameter values
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help)
+       echo "$NEK_HELP_MSG"
+       $NEK_EXIT_CMD
+       ;;
+    -e|--example)
+       shift
+       nek_ex="$1"
+       ;;
+    -c|-ceed)
+       shift
+       nek_spec="$1"
+       ;;
+    -n|--np)
+       shift
+       nek_np="$1"
+       ;;
+    -b|--box)
+       shift
+       nek_box="$1"
+       ;;
+  esac
+  shift
+done
+
+if [[ ! -f ${nek_ex} ]]; then
+  echo "Example ${nek_ex} does not exist. Build it with make-nek-examples.sh"
+  ${NEK_EXIT_CMD} 1
 fi
-if [[ ! -f $reapath/$rea.rea || ! -f $reapath/$rea.map ]]; then
-  echo ".rea/.map file $reapath/$rea does not exist."
-  exit 1
+if [[ ! -f ${NEK_BOX_DIR}/${nek_box}/${nek_box}.rea || \
+	! -f ${NEK_BOX_DIR}/${nek_box}/${nek_box}.map ]]; then
+  echo ".rea/.map file(s) ./boxes/${nek_box}/${nek_box} does not exist."
+  ${NEK_EXIT_CMD} 1
 fi
 
-echo $rea                   >  SESSION.NAME
-echo `cd $reapath; pwd`'/' >>  SESSION.NAME
+echo ${nek_box}                              > SESSION.NAME
+echo `cd ${NEK_BOX_DIR}/${nek_box}; pwd`'/' >> SESSION.NAME
 rm -f logfile
 rm -f ioinfo
-mv $ex.log.$np.$rea $ex.log1.$np.$rea 2>/dev/null
+mv ${nek_ex}.log.${nek_np}.${nek_box} ${nek_ex}.log1.${nek_np}.${nek_box} 2>/dev/null
 
-mpiexec -np $np ./$ex > $ex.log.$np.$rea
+mpiexec -np ${nek_np} ./${nek_ex} ${nek_spec} > ${nek_ex}.log.${nek_np}.${nek_box}
 wait $!
 
-echo "Run finished. Output was written to $ex.log.$np.$rea"
+echo "Run finished. Output was written to ${nek_ex}.log.${nek_np}.${nek_box}"
