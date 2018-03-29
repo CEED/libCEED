@@ -16,18 +16,16 @@
 
 # Ceed directory
 CEED_DIR ?= ../..
-CEED_FLAGS ?= -I$(CEED_DIR)/include -I.
+CEED_FLAGS ?= -I$(CEED_DIR)/include
 CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed
 
 OCCA_DIR ?= ../../../occa
-ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-  OCCA_LIBS ?= -Wl,-rpath,$(abspath $(OCCA_DIR)/lib) -L$(OCCA_DIR)/lib -locca
-endif
 
 # Use an MFEM build directory or an MFEM install directory
 MFEM_DIR ?= ../../../mfem
 CONFIG_MK ?= $(or $(wildcard $(MFEM_DIR)/config/config.mk),$(wildcard\
-  $(MFEM_DIR)/share/mfem/config.mk))
+  $(MFEM_DIR)/share/mfem/config.mk),invalid_mfem_dir)
+MFEM_DEF = -DMFEM_DIR="\"$(abspath $(MFEM_DIR))\""
 
 MFEM_LIB_FILE = mfem_is_not_built
 -include $(CONFIG_MK)
@@ -44,13 +42,16 @@ all: $(MFEM_EXAMPLES)
 %: %.cpp
 
 # Rules for building the examples
-%: %.cpp $(MFEM_LIB_FILE) $(CONFIG_MK) okl-lib-cache
-	$(MFEM_CXX) $(CEED_FLAGS) $(MFEM_FLAGS) $< -o $@ $(CEED_LIBS) \
-	  $(MFEM_LIBS) $(OCCA_LIBS)
+%: %.cpp $(CONFIG_MK) $(MFEM_LIB_FILE) okl-lib-cache
+	$(MFEM_CXX) $(CEED_FLAGS) $(MFEM_FLAGS) $(MFEM_DEF) $< -o $@ \
+	  $(CEED_LIBS) $(MFEM_LIBS) $(OCCA_LIBS)
 
 # Generate an error message if the MFEM library is not built and exit
 $(MFEM_LIB_FILE):
 	$(error The MFEM library is not built)
+
+$(CONFIG_MK):
+	$(error MFEM config file not found. Please set MFEM_DIR)
 
 # okl-lib-cache depending on OCCA and INSTALL
 okl-lib-cache:
