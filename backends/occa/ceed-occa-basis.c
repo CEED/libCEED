@@ -15,12 +15,12 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 #define CEED_DEBUG_COLOR 249
 #include "ceed-occa.h"
-#include <sys/stat.h>
 
 // *****************************************************************************
 // * buildKernel
 // *****************************************************************************
 static int CeedBasisBuildKernel(CeedBasis basis) {
+  int ierr;
   const Ceed ceed = basis->ceed;
   const Ceed_Occa *ceed_data = ceed->data;
   const occaDevice dev = ceed_data->device;
@@ -60,7 +60,7 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
   // ***************************************************************************
   // OpenCL check for this requirement
   const CeedInt elem_tile_size = (nelem>TILE_SIZE)?TILE_SIZE:nelem;
-  // OCCA+MacOS implementation need that for now
+  // OCCA+MacOS implementation needs that for now (if DeviceID targets a CPU)
   const CeedInt tile_size = ocl?1:elem_tile_size;
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(tile_size));
   dbg("[CeedBasis][BK] TILE_SIZE=%d",tile_size);
@@ -81,24 +81,16 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
   data->tmp1 = occaDeviceMalloc(dev,elems_x_tmpSz*sizeof(CeedScalar),NULL,
                                 NO_PROPS);
   // ***************************************************************************
-  char oklPath[4096] = __FILE__;
-  const char *last_dot = strrchr(oklPath,'.');
-  if (!last_dot)
-    return CeedError(basis->ceed,1, "Can not find '.' in this filename!");
-  const size_t oklPathLen = last_dot - oklPath;
-  strcpy(&oklPath[oklPathLen],".okl");
-  // Test if we can get file's status, if not revert to occa://ceed/*.okl ******
-  struct stat buf;
-  if (stat(oklPath, &buf)!=0) {
-    dbg("[CeedElemRestriction][Create] Could NOT stat this OKL file: %s",oklPath);
-    dbg("[CeedElemRestriction][Create] Reverting to occa://ceed/*.okl");
-    strcpy(oklPath,"occa://ceed/ceed-occa-basis.okl");
-  }
+  char *oklPath;
+  ierr = CeedOklPath_Occa(ceed,__FILE__, "ceed-occa-basis",&oklPath);
+  CeedChk(ierr);
   // ***************************************************************************
   data->kZero   = occaDeviceBuildKernel(dev,oklPath,"kZero",pKR);
   data->kInterp = occaDeviceBuildKernel(dev,oklPath,"kInterp",pKR);
   data->kGrad   = occaDeviceBuildKernel(dev,oklPath,"kGrad",pKR);
   data->kWeight = occaDeviceBuildKernel(dev,oklPath,"kWeight",pKR);
+  // free local usage **********************************************************
+  ierr = CeedFree(&oklPath); CeedChk(ierr);
   occaFree(pKR);
   return 0;
 }

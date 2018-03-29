@@ -48,6 +48,7 @@ static int CeedDestroy_Occa(Ceed ceed) {
   Ceed_Occa *data=ceed->data;
   dbg("[CeedDestroy]");
   occaFree(data->device);
+  ierr = CeedFree(&data->libceed_dir);
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
@@ -115,13 +116,15 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   data->debug=!!getenv("CEED_DEBUG") || !!getenv("DBG");
   // push ocl to our data, to be able to check it later for the kernels
   data->ocl = ocl;
+  data->libceed_dir = NULL;
+  data->occa_cache_dir = NULL;
   if (data->debug)
     occaPropertiesSet(occaSettings(),"verbose-compilation",occaBool(true));
   // Now that we can dbg, output resource and deviceID
   dbg("[CeedInit] resource: %s", resource);
   dbg("[CeedInit] deviceID: %d", deviceID);
   const char *mode_format = gpu?occaGPU : omp?occaOMP : ocl ? occaOCL : occaCPU;
-  char mode[1024];
+  char mode[CEED_MAX_RESOURCE_LEN];
   // Push deviceID for CUDA and OpenCL mode
   if (ocl || gpu) sprintf(mode,mode_format,deviceID);
   else memcpy(mode,mode_format,strlen(mode_format));
@@ -139,6 +142,21 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
     return CeedError(ceed,1, "OCCA backend failed to use CUDA resource");
   if (ocl && strcmp(occaDeviceMode(data->device), "OpenCL"))
     return CeedError(ceed,1, "OCCA backend failed to use OpenCL resource");
+  // populating our data struct with libceed_dir
+  ierr = CeedOklDladdr_Occa(ceed); CeedChk(ierr);
+  if (data->libceed_dir)
+    dbg("[CeedInit] libceed_dir: %s", data->libceed_dir);
+  // populating our data struct with occa_cache_dir
+  char occa_cache_home[OCCA_PATH_MAX];
+  const char *HOME = getenv("HOME");
+  if (!HOME) return CeedError(ceed, 1, "Cannot get env HOME");
+  ierr = sprintf(occa_cache_home,"%s/.occa",HOME); CeedChk(!ierr);
+  const char *OCCA_CACHE_DIR = getenv("OCCA_CACHE_DIR");
+  const char *occa_cache_dir = OCCA_CACHE_DIR?OCCA_CACHE_DIR:occa_cache_home;
+  const int occa_cache_dir_len = strlen(occa_cache_dir);
+  ierr = CeedCalloc(occa_cache_dir_len+1,&data->occa_cache_dir); CeedChk(ierr);
+  memcpy(data->occa_cache_dir,occa_cache_dir,occa_cache_dir_len+1);
+  dbg("[CeedInit] occa_cache_dir: %s", data->occa_cache_dir);
   return 0;
 }
 

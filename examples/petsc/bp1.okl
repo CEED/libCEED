@@ -37,16 +37,16 @@ kernel void Setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
     const int szofcs = sizeof(CeedScalar);
     gCeedScalar *rho = ((gCeedScalar*)qdata)+e*Q*qdatasize/szofcs;
     gCeedScalar *target = rho+Q;
-    const CeedInt offset = e*(Q*NC*(DIM+2));
+    //const CeedInt offset = e*(Q*NC*(DIM+2));
     //const gCeedScalar *du = bu+offset;
-    const gCeedScalar *bJ = bu+offset+Q*NC;
-    const gCeedScalar *bQW = bu+offset+Q*NC*(DIM+1);
-    if (fabs(J[i]-bJ[i])>epsilon) continue;
-    if (fabs(w[i]-bQW[i])>epsilon) continue;
+    //const gCeedScalar *bJ = bu+offset+Q*NC;
+    //const gCeedScalar *bQW = bu+offset+Q*NC*(DIM+1);
+    //if (fabs(J[i]-bJ[i])>epsilon) continue;
+    //if (fabs(w[i]-bQW[i])>epsilon) continue;
     const CeedScalar det =
-      bJ[i+Q*0]*(bJ[i+Q*4]*bJ[i+Q*8]-bJ[i+Q*5]*bJ[i+Q*7]) -
-      bJ[i+Q*1]*(bJ[i+Q*3]*bJ[i+Q*8]-bJ[i+Q*5]*bJ[i+Q*6]) +
-      bJ[i+Q*2]*(bJ[i+Q*3]*bJ[i+Q*7]-bJ[i+Q*4]*bJ[i+Q*6]);
+      J[i+Q*0]*(J[i+Q*4]*J[i+Q*8]-J[i+Q*5]*J[i+Q*7]) -
+      J[i+Q*1]*(J[i+Q*3]*J[i+Q*8]-J[i+Q*5]*J[i+Q*6]) +
+      J[i+Q*2]*(J[i+Q*3]*J[i+Q*7]-J[i+Q*4]*J[i+Q*6]);
     rho[i] = det * w[i];
     // Don't break this line, OCCA parser will seg-fault
     target[i] = sqrt(PetscSqr(x[i+Q*0])+PetscSqr(x[Q*1+i])+PetscSqr(x[Q*2+i]));
@@ -62,10 +62,10 @@ kernel void Mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
     const int szofcs = sizeof(CeedScalar);
     const gCeedBool *residual = (gCeedBool*)ctx;
     const gCeedScalar *rho = ((gCeedScalar*)qdata)+e*Q*qdatasize/szofcs;
-    const gCeedScalar *target = rho + Q;
-    const CeedInt offset = e*(Q*NC*(DIM+2));
-    const gCeedScalar *du = bu+offset;
-    if (fabs(u[i]-du[i])>epsilon) continue;
+    const gCeedScalar *target = rho+Q;
+    //const CeedInt offset = e*(Q*NC*(DIM+2));
+    //const gCeedScalar *du = bu+offset;
+    //if (fabs(u[i]-du[i])>epsilon) continue;
     v[i] = rho[i] * (u[i] - (*residual ? target[i] : 0.0));
   }
 }
@@ -79,7 +79,7 @@ kernel void Error(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
     const int szofcs = sizeof(CeedScalar);
     gCeedScalar *maxerror = (gCeedScalar*)ctx;
     const gCeedScalar *rho = ((gCeedScalar*)qdata)+e*Q*qdatasize/szofcs;
-    const gCeedScalar *target = rho + Q;
-    *maxerror = PetscMax(*maxerror, PetscAbsScalar(u[i] - target[i]));
+    const gCeedScalar *target = rho+Q;
+    *maxerror = PetscMax(*maxerror, PetscAbsScalar(u[i]-target[i]));
   }
 }

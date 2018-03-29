@@ -15,7 +15,6 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 #define CEED_DEBUG_COLOR 14
 #include "ceed-occa.h"
-#include <sys/stat.h>
 
 // *****************************************************************************
 // * buildKernel
@@ -182,27 +181,34 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   data->nelem = data->elemsize = 1;
   data->e = 0;
   // Locate last ':' character in qf->focca ************************************
-  dbg("[CeedQFunction][Create] focca=%s",qf->focca);
+  dbg("[CeedQFunction][Create] focca: %s",qf->focca);
   const char *last_colon = strrchr(qf->focca,':');
   const char *last_dot = strrchr(qf->focca,'.');
   if (!last_colon)
     return CeedError(qf->ceed, 1, "Can not find ':' in focca field!");
   if (!last_dot)
     return CeedError(qf->ceed, 1, "Can not find '.' in focca field!");
-  // Focus on the function name
+  // get the function name
   data->qFunctionName = last_colon+1;
-  dbg("[CeedQFunction][Create] qFunctionName=%s",
-      data->qFunctionName);
-  // Now extract filename
-  data->oklPath=calloc(4096,sizeof(char));
-  const size_t oklPathLen = last_dot - qf->focca;
-  memcpy(data->oklPath,qf->focca,oklPathLen);
-  data->oklPath[oklPathLen]='\0';
-  strcpy(&data->oklPath[oklPathLen],".okl");
-  dbg("[CeedQFunction][Create] filename=%s",data->oklPath);
-  // Test if we can get file's status ******************************************
-  struct stat buf;
-  if (stat(data->oklPath, &buf)!=0)
-    return CeedError(qf->ceed, 1, "Can not find OKL file!");
+  dbg("[CeedQFunction][Create] qFunctionName: %s",data->qFunctionName);
+  // extract file base name
+  const char *last_slash_pos = strrchr(qf->focca,'/');
+  // if no slash has been found, revert to focca field
+  const char *last_slash = last_slash_pos?last_slash_pos+1:qf->focca;
+  dbg("[CeedQFunction][Create] last_slash: %s",last_slash);
+  // extract c_src_file & okl_base_name
+  char *c_src_file, *okl_base_name;
+  ierr = CeedCalloc(OCCA_PATH_MAX,&okl_base_name); CeedChk(ierr);
+  ierr = CeedCalloc(OCCA_PATH_MAX,&c_src_file); CeedChk(ierr);
+  memcpy(okl_base_name,last_slash,last_dot-last_slash);
+  memcpy(c_src_file,qf->focca,last_colon-qf->focca);
+  dbg("[CeedQFunction][Create] c_src_file: %s",c_src_file);
+  dbg("[CeedQFunction][Create] okl_base_name: %s",okl_base_name);
+  // Now fetch OKL filename ****************************************************
+  ierr = CeedOklPath_Occa(ceed,c_src_file, okl_base_name, &data->oklPath);
+  CeedChk(ierr);
+  // free **********************************************************************
+  ierr = CeedFree(&okl_base_name); CeedChk(ierr);
+  ierr = CeedFree(&c_src_file); CeedChk(ierr);
   return 0;
 }

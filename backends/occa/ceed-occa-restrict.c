@@ -15,7 +15,6 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 #define CEED_DEBUG_COLOR 13
 #include "ceed-occa.h"
-#include <sys/stat.h>
 
 // *****************************************************************************
 // * Bytes used
@@ -139,12 +138,12 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   dbg("[CeedElemRestriction][Create]");
   int ierr;
   CeedElemRestriction_Occa *data;
-  Ceed_Occa *ceed_data = r->ceed->data;
+  Ceed_Occa *ceed_data = ceed->data;
   const bool ocl = ceed_data->ocl;
   const occaDevice dev = ceed_data->device;
   // ***************************************************************************
   if (mtype != CEED_MEM_HOST)
-    return CeedError(r->ceed, 1, "Only MemType = HOST supported");
+    return CeedError(ceed, 1, "Only MemType = HOST supported");
   r->Apply = CeedElemRestrictionApply_Occa;
   r->Destroy = CeedElemRestrictionDestroy_Occa;
   // Allocating occa & device **************************************************
@@ -175,23 +174,13 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
                     occaInt(r->nelem*r->elemsize));
   // OpenCL check for this requirement
   const CeedInt nelem_tile_size = (r->nelem>TILE_SIZE)?TILE_SIZE:r->nelem;
-  // OCCA+MacOS implementation need that for now
+  // OCCA+MacOS implementation need that for now (if DeviceID targets a CPU)
   const CeedInt tile_size = ocl?1:nelem_tile_size;
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(tile_size));
-  char oklPath[4096] = __FILE__;
-  const char *last_dot = strrchr(oklPath,'.');
-  if (!last_dot)
-    return CeedError(r->ceed, 1, "Can not find '.' in this filename!");
-  const size_t oklPathLen = last_dot - oklPath;
-  strcpy(&oklPath[oklPathLen],".okl");
-  dbg("[CeedElemRestriction][Create] filename=%s",oklPath);
-  // Test if we can get file's status, if not revert to occa://ceed/*.okl ******
-  struct stat buf;
-  if (stat(oklPath, &buf)!=0) {
-    dbg("[CeedElemRestriction][Create] Could NOT stat this OKL file: %s",oklPath);
-    dbg("[CeedElemRestriction][Create] Reverting to occa://ceed/*.okl");
-    strcpy(oklPath,"occa://ceed/ceed-occa-restrict.okl");
-  }
+  // ***************************************************************************
+  char *oklPath;
+  ierr = CeedOklPath_Occa(ceed,__FILE__, "ceed-occa-restrict",&oklPath);
+  CeedChk(ierr);
   // ***************************************************************************
   data->kRestrict[0] = occaDeviceBuildKernel(dev, oklPath, "kRestrict0", pKR);
   data->kRestrict[1] = occaDeviceBuildKernel(dev, oklPath, "kRestrict1", pKR);
@@ -202,7 +191,9 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   data->kRestrict[6] = occaDeviceBuildKernel(dev, oklPath, "kRestrict3b", pKR);
   data->kRestrict[7] = occaDeviceBuildKernel(dev, oklPath, "kRestrict4b", pKR);
   // data->kRestrict[8] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5b", pKR);
+  // free local usage **********************************************************
   occaFree(pKR);
+  ierr = CeedFree(&oklPath); CeedChk(ierr);
   dbg("[CeedElemRestriction][Create] done");
   return 0;
 }
