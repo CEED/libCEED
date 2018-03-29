@@ -99,14 +99,13 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
 static int Setup(void *ctx, void *qdata, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
   CeedScalar *rho = qdata, *target = rho + Q;
-  const CeedScalar (*x)[Q] = (const CeedScalar (*)[Q])in[0],
-                             (*J)[3][Q] = (const CeedScalar (*)[3][Q])in[1],
-                                          *w = in[4];
+  const CeedScalar (*x)[Q] = (const CeedScalar (*)[Q])in[0];
+  const CeedScalar (*J)[3][Q] = (const CeedScalar (*)[3][Q])in[1];
+  const CeedScalar *w = in[4];
   for (CeedInt i=0; i<Q; i++) {
-    CeedScalar det =
-      J[0][0][i] * (J[1][1][i]*J[2][2][i] - J[1][2][i]*J[2][1][i])
-      - J[0][1][i] * (J[1][0][i]*J[2][2][i] - J[1][2][i]*J[2][0][i])
-      + J[0][2][i] * (J[1][0][i]*J[2][1][i] - J[1][1][i]*J[2][0][i]);
+    CeedScalar det = (+ J[0][0][i] * (J[1][1][i]*J[2][2][i] - J[1][2][i]*J[2][1][i])
+                      - J[0][1][i] * (J[1][0][i]*J[2][2][i] - J[1][2][i]*J[2][0][i])
+                      + J[0][2][i] * (J[1][0][i]*J[2][1][i] - J[1][1][i]*J[2][0][i]));
     rho[i] = det * w[i];
     target[i] = PetscSqrtScalar(PetscSqr(x[0][i]) + PetscSqr(x[1][i]) + PetscSqr(
                                   x[2][i]));
@@ -279,8 +278,8 @@ int main(int argc, char **argv) {
     for (PetscInt i=0,ir,ii; ir=i>=mdof[0], ii=i-ir*mdof[0], i<ldof[0]; i++) {
       for (PetscInt j=0,jr,jj; jr=j>=mdof[1], jj=j-jr*mdof[1], j<ldof[1]; j++) {
         for (PetscInt k=0,kr,kk; kr=k>=mdof[2], kk=k-kr*mdof[2], k<ldof[2]; k++) {
-          ltogind[(i*ldof[1]+j)*ldof[2]+k] = gstart[ir][jr][kr]
-                                             + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk;
+          ltogind[(i*ldof[1]+j)*ldof[2]+k] =
+            gstart[ir][jr][kr] + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk;
         }
       }
     }
