@@ -15,7 +15,7 @@ if that is where it is located.
 
 You can generate box geometries using `generate-boxes.sh` script:
 ```sh
-  ./generate_boxes.sh log_2(<min_elem>) log_2(<max_elem>)."
+  ./generate-boxes.sh log_2(<min_elem>) log_2(<max_elem>)."
 ```
 For example:
 ```sh
