@@ -43,7 +43,7 @@ kernel void massf(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
                  CeedScalar *v, CeedScalar *bv) {
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    const gCeedScalar *w = ((gCeedScalar*)qdata);
+    const gCeedScalar *w = ((gCeedScalar*)qdata)+e*Q;
 //    const CeedInt offset = e*(Q*NC*(DIM+2));
 //    const gCeedScalar *o_bu = bu+offset;
 //    if (fabs(u[i]-o_bu[i])>epsilon) continue;

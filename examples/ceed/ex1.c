@@ -1,28 +1,39 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+//                             libCEED Example 1
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// This example illustrates a simple usage of libCEED to compute the volume of a
+// 3D body using matrix-free application of a mass operator.  Arbitrary mesh and
+// solution orders in 1D, 2D and 3D are supported from the same code.
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// The example has no dependencies, and is designed to be self-contained. For
+// additional examples that use external discretization libraries (MFEM, PETSc,
+// etc.) see the subdirectories in libceed/examples.
+//
+// All libCEED objects use a Ceed device object constructed based on a command
+// line argument (-ceed).
+//
+// Build with:
+//
+//     make ex1 [CEED_DIR=</path/to/libceed>]
+//
+// Sample runs:
+//
+//     ex1
+//     ex1 -ceed /cpu/self
+//     ex1 -ceed /gpu/occa
+//     ex1 -ceed /cpu/occa
+//     ex1 -ceed /omp/occa
+//     ex1 -ceed /ocl/occa
+//     ex1 -m ../../../mfem/data/fichera.mesh
+//     ex1 -m ../../../mfem/data/star.vtk -o 3
+//     ex1 -m ../../../mfem/data/inline-segment.mesh -o 8
 
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
 
-
 /// A structure used to pass additional data to f_build_mass
 struct BuildContext { CeedInt dim, space_dim; };
-
 
 /// libCEED Q-function for building quadrature data for a mass operator
 static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
@@ -62,7 +73,6 @@ static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
   return 0;
 }
 
-
 /// libCEED Q-function for applying a mass operator
 static int f_apply_mass(void *ctx, void *qdata, CeedInt Q,
                         const CeedScalar *const *u, CeedScalar *const *v) {
@@ -81,8 +91,9 @@ int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_order,
                            CeedVector mesh_coords);
 CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords);
 
+
 // Next line is grep'd from tap.sh to set its arguments
-//TESTARGS -c {ceed_resource} -t
+//TESTARGS -ceed {ceed_resource} -t
 int main(int argc, const char *argv[]) {
   const char *ceed_spec = "/cpu/self";
   int dim        = 3;           // dimension of the mesh
@@ -97,7 +108,7 @@ int main(int argc, const char *argv[]) {
     int next_arg = ((ia+1) < argc), parse_error = 0;
     if (!strcmp(argv[ia],"-h")) {
       help = 1;
-    } else if (!strcmp(argv[ia],"-c")) {
+    } else if (!strcmp(argv[ia],"-c") || !strcmp(argv[ia],"-ceed")) {
       parse_error = next_arg ? ceed_spec = argv[++ia], 0 : 1;
     } else if (!strcmp(argv[ia],"-d")) {
       parse_error = next_arg ? dim = atoi(argv[++ia]), 0 : 1;

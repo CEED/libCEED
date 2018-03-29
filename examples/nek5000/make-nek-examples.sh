@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
 # the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
 # reserved. See files LICENSE and NOTICE for details.
@@ -14,13 +16,14 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-#!/bin/bash
-
 ###############################################################################
 # Make script for Nek5000 examples
 ###############################################################################
 ## Nek5000 path
 #NEK5K_DIR=
+
+## CEED path
+#CEED_DIR=
 
 ## Fortran compiler
 #FC=
@@ -29,7 +32,7 @@
 #CC=
 
 ## list of examples to make
-EXAMPLES=ex1
+EXAMPLES=bp1
 
 ###############################################################################
 # DONT'T TOUCH WHAT FOLLOWS !!!
@@ -41,12 +44,14 @@ if [[ "$#" -eq 1 && "$1" -eq "clean" ]]; then
   if [[ -f ./makenek ]]; then
     printf "y\n" | ./makenek clean 2>&1 >> /dev/null
   fi
-  rm makenek* ex1 ex1*log* SESSION.NAME 2> /dev/null
+  rm makenek* bp1 bp1*log* SESSION.NAME 2> /dev/null
   find ./boxes -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
   exit 0
 fi
 
+# Set defaults for the parameters
 : ${NEK5K_DIR:=`cd "../../../Nek5000"; pwd`}
+: ${CEED_DIR:=`cd "../../"; pwd`}
 : ${FC:="mpif77"}
 : ${CC:="mpicc"}
 
@@ -61,9 +66,8 @@ cp $NEK5K_DIR/bin/makenek .
 sed -i.bak -e "s|^#FC=.*|FC=\"$FC\"|" \
     -e "s|^#CC=.*|CC=\"$CC\"|" \
     -e "s|^#SOURCE_ROOT=.*|SOURCE_ROOT=\"$NEK5K_DIR\"|" \
-    -e "s|^#FFLAGS=.*|FFLAGS+=\"-I../../include\"|" \
-    -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-L../../lib -lceed -fopenmp -lm\"|" makenek
-
+    -e "s|^#FFLAGS=.*|FFLAGS+=\"-I${CEED_DIR}/include\"|" \
+    -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed\"|" makenek
 
 # Build examples
 for ex in $EXAMPLES; do
@@ -76,7 +80,7 @@ for ex in $EXAMPLES; do
     cp SIZE.in SIZE
   fi
 
-  ./makenek ex1 2>&1 >> $ex.build.log
+  ./makenek bp1 2>&1 >> $ex.build.log
 
   if [[ ! -f ./nek5000 ]]; then
     echo "  Building $ex failed. See $ex.build.log for details."

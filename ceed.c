@@ -270,25 +270,3 @@ int CeedDestroy(Ceed *ceed) {
   ierr = CeedFree(ceed); CeedChk(ierr);
   return 0;
 }
-
-/// @}
-
-/**
-  Private printf-style debugging with color for the terminal
-
-  @param format printf-style format string
-  @param ... arguments as specified in format string
- */
-void CeedDebug(const char *format,...) {
-#ifdef CDEBUG
-  va_list args;
-  va_start(args, format);
-  fflush(stdout);
-  fprintf(stdout,"\033[32m");
-  vfprintf(stdout,format,args);
-  fprintf(stdout,"\033[m");
-  fprintf(stdout,"\n");
-  fflush(stdout);
-  va_end(args);
-#endif
-}

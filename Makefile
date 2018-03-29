@@ -14,13 +14,16 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-CC ?= gcc
-FC ?= gfortran
+ifeq (,$(filter-out undefined default,$(origin CC)))
+  CC = gcc
+endif
+ifeq (,$(filter-out undefined default,$(origin FC)))
+  FC = gfortran
+endif
 
-# ASAN & CDEBUG must be empty not to use them
-ASAN ?= #1
+# ASAN must be left empty if you don't want to use it
+ASAN ?=
 NDEBUG ?= 1
-CDEBUG ?= #1
 
 LDFLAGS ?=
 UNDERSCORE ?= 1
@@ -36,7 +39,6 @@ CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -O2 -g
 FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
 
 CFLAGS += $(if $(NDEBUG),-DNDEBUG=1)
-CFLAGS += $(if $(CDEBUG),-DCDEBUG=1)
 
 ifeq ($(UNDERSCORE), 1)
   CFLAGS += -DUNDERSCORE
@@ -56,13 +58,16 @@ LIBDIR := lib
 prefix ?= /usr/local
 bindir = $(prefix)/bin
 libdir = $(prefix)/lib
+okldir = $(prefix)/lib/okl
 includedir = $(prefix)/include
 pkgconfigdir = $(libdir)/pkgconfig
 INSTALL = install
 INSTALL_PROGRAM = $(INSTALL)
 INSTALL_DATA = $(INSTALL) -m644
 
+# Get number of processors of the machine
 NPROCS := $(shell getconf _NPROCESSORS_ONLN)
+# prepare make options to run in parallel
 MFLAGS := -j $(NPROCS) --warn-undefined-variables \
                        --no-print-directory --no-keep-going
 
@@ -82,10 +87,10 @@ tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 ctests    := $(tests)
 tests     += $(tests.f:tests/%.f=$(OBJDIR)/%)
 #examples
-examples.c := $(sort $(wildcard examples/*.c))
-examples.f := $(sort $(wildcard examples/*.f))
-examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
-examples  += $(examples.f:examples/%.f=$(OBJDIR)/%)
+examples.c := $(sort $(wildcard examples/ceed/*.c))
+examples.f := $(sort $(wildcard examples/ceed/*.f))
+examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%)
+examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
 # backends/[ref & occa]
 ref.c     := $(sort $(wildcard backends/ref/*.c))
 occa.c    := $(sort $(wildcard backends/occa/*.c))
@@ -118,6 +123,7 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 .PRECIOUS: %/.DIR
 
 this: $(libceed) $(ceed.pc)
+# run 'this' target in parallel
 all:;@$(MAKE) $(MFLAGS) V=$(V) this
 
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)))
@@ -141,10 +147,10 @@ $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
 $(OBJDIR)/% : tests/%.f | $$(@D)/.DIR
 	$(call quiet,FC) $(CPPFLAGS) $(FFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
-$(OBJDIR)/% : examples/%.c | $$(@D)/.DIR
+$(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
-$(OBJDIR)/% : examples/%.f | $$(@D)/.DIR
+$(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
 	$(call quiet,FC) $(CPPFLAGS) $(FFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
 $(tests) $(examples) : $(libceed)
@@ -154,12 +160,14 @@ run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:build/%=%)
 
 test : $(tests:$(OBJDIR)/%=run-%) $(examples:$(OBJDIR)/%=run-%)
+# run test target in parallel
 tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
+# CPU C tests only for backend %
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
-ctg-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /gpu/$*;)
 
 prove : $(tests) $(examples)
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)
+# run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
 examples : $(examples)
@@ -170,20 +178,33 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 %/ceed.pc : ceed.pc.template | $$(@D)/.DIR
 	@sed "s:%prefix%:$(pkgconfig-prefix):" $< > $@
 
+# The occa executable is not linked with RPATH by default, so we need it to find its libocca.so
+OCCA               := $(if $(DARWIN),DYLD_LIBRARY_PATH,LD_LIBRARY_PATH)=$(OCCA_DIR)/lib $(OCCA_DIR)/bin/occa
+OKL_KERNELS        := $(wildcard backends/occa/*.okl)
+
+okl-cache :
+	$(OCCA) cache ceed $(OKL_KERNELS)
+
+okl-clear:
+	$(OCCA) clear -y -l ceed
+
 install : $(libceed) $(OBJDIR)/ceed.pc
-	$(INSTALL) -d "$(DESTDIR)$(includedir)" "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgconfigdir)"
+	$(INSTALL) -d "$(DESTDIR)$(includedir)" "$(DESTDIR)$(libdir)" "$(DESTDIR)$(okldir)" "$(DESTDIR)$(pkgconfigdir)"
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
+	$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/"
 
-.PHONY : all cln clean print test tst prove prv examples style install doc
+.PHONY : all cln clean print test tst prove prv examples style install doc okl-cache okl-clear
 
 cln clean :
 	$(RM) *.o *.d $(libceed)
 	$(RM) -r *.dSYM $(OBJDIR) $(LIBDIR)/pkgconfig
-	$(MAKE) -C examples clean
+	$(MAKE) -C examples/ceed clean
 	$(MAKE) -C examples/mfem clean
-	(cd examples/nek5000 && ./make-nek-examples.sh clean)
+	$(MAKE) -C examples/petsc clean
+	(cd examples/nek5000 && bash make-nek-examples.sh clean)
 
 distclean : clean
 	rm -rf doc/html
@@ -195,7 +216,7 @@ style :
 	astyle --style=google --indent=spaces=2 --max-code-length=80 \
             --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
             --suffix=none --preserve-date --formatted \
-            *.[ch] tests/*.[ch] backends/*/*.[ch] examples/*.[ch] examples/mfem/*.[ch]pp
+            *.[ch] tests/*.[ch] backends/*/*.[ch] examples/*/*.[ch] examples/*/*.[ch]pp
 
 print :
 	@echo $(VAR)=$($(VAR))

@@ -190,7 +190,7 @@ void fCeedElemRestrictionApply(int *elemr, int *tmode, int *ncomp, int *lmode,
 }
 
 #define fCeedRequestWait FORTRAN_NAME(ceedrequestwait, CEEDREQUESTWAIT)
-void fCeedRequestwait(int *rqst, int *err) {
+void fCeedRequestWait(int *rqst, int *err) {
   // TODO Uncomment this once CeedRequestWait is implemented
   //*err = CeedRequestWait(&CeedRequest_dict[*rqst]);
 

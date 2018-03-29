@@ -16,16 +16,26 @@
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <sys/stat.h>
 #include <ceed-impl.h>
+
+// *****************************************************************************
+#define OCCA_PATH_MAX 4096
+
+// *****************************************************************************
+// used to get Dl_info struct declaration (vs _GNU_SOURCE?)
+#ifndef __USE_GNU
+#define __USE_GNU
+#endif
+#include <dlfcn.h>
 
 // *****************************************************************************
 #include "occa.h"
 
 // *****************************************************************************
 #define NO_OFFSET 0
+#define TILE_SIZE 32
 #define NO_PROPS occaDefault
-#define TILE_SIZE 64
-
 
 // *****************************************************************************
 // * CeedVector Occa struct
@@ -74,8 +84,8 @@ typedef struct {
 // *****************************************************************************
 typedef struct {
   bool op, ready;
-  int nc, dim, elemsize, e;
-  occaMemory d_q,d_u,b_u,d_v,b_v;
+  int nc, dim, nelem, elemsize, e;
+  occaMemory d_q,d_u,b_u,d_v,b_v,d_c;
   char *oklPath;
   const char *qFunctionName;
   occaKernel kQFunctionApply;
@@ -86,7 +96,29 @@ typedef struct {
 // *****************************************************************************
 typedef struct {
   occaDevice device;
+  bool debug;
+  bool ocl;
+  char *libceed_dir;
+  char *occa_cache_dir;
 } Ceed_Occa;
+
+// *****************************************************************************
+int CeedOklPath_Occa(const Ceed, const char*, const char*, char **);
+
+// *****************************************************************************
+int CeedOklDladdr_Occa(Ceed);
+
+// *****************************************************************************
+// CEED_DEBUG_COLOR default value, forward CeedDebug* declarations & dbg macros
+// *****************************************************************************
+#ifndef CEED_DEBUG_COLOR
+#define CEED_DEBUG_COLOR 0
+#endif
+void CeedDebugImpl(const Ceed,const char*,...);
+void CeedDebugImpl256(const Ceed,const unsigned char,const char*,...);
+#define CeedDebug(ceed,format, ...) CeedDebugImpl(ceed,format, ## __VA_ARGS__)
+#define CeedDebug256(ceed,color, ...) CeedDebugImpl256(ceed,color, ## __VA_ARGS__)
+#define dbg(...) CeedDebug256(ceed,(unsigned char)CEED_DEBUG_COLOR, ## __VA_ARGS__)
 
 // *****************************************************************************
 int CeedBasisCreateTensorH1_Occa(Ceed ceed, CeedInt dim, CeedInt P1d,
@@ -115,4 +147,3 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction res,
 
 // *****************************************************************************
 int CeedVectorCreate_Occa(Ceed ceed, CeedInt n, CeedVector vec);
-

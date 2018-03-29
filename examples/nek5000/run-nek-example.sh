@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
 # the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
 # reserved. See files LICENSE and NOTICE for details.
@@ -14,8 +16,6 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-#!/bin/bash
-
 ## Set libCEED directory
 #CEED_DIR=
 
@@ -28,8 +28,8 @@ else
    NEK_EXIT_CMD=exit
 fi
 
+# Set defaults for the parameters
 : ${CEED_DIR:=`cd ../../; pwd`}
-export LD_LIBRARY_PATH=$CEED_DIR/lib:${LD_LIBRARY_PATH}
 
 NEK_THIS_FILE="${BASH_SOURCE[0]}"
 NEK_HELP_MSG="
@@ -38,13 +38,13 @@ $NEK_THIS_FILE [options]
 options:
    -h|--help     Print this usage information and exit
    -e|--example  Example name
-   -c|--ceed     Ceed backend to be used for the run
+   -ceed|--ceed  Ceed backend to be used for the run
    -n|--np       Specify number of MPI ranks for the run
    -b|--box      Specify the path of the box geometry (./boxes/b3)
 "
 NEK_BOX_DIR=./boxes
 
-nek_ex=ex1
+nek_ex=bp1
 nek_spec=/cpu/self
 nek_np=4
 nek_box=
@@ -66,7 +66,7 @@ while [ $# -gt 0 ]; do
        shift
        nek_ex="$1"
        ;;
-    -c|--ceed)
+    -ceed|--ceed)
        shift
        nek_spec="$1"
        ;;
