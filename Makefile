@@ -14,8 +14,12 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-CC = gcc
-FC = gfortran
+ifeq (,$(filter-out undefined default,$(origin CC)))
+  CC = gcc
+endif
+ifeq (,$(filter-out undefined default,$(origin FC)))
+  FC = gfortran
+endif
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
