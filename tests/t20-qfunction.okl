@@ -13,6 +13,7 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+
 // *****************************************************************************
 typedef int CeedInt;
 typedef double CeedScalar;
@@ -26,9 +27,9 @@ kernel void setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
     if (i >= Q) continue;
     gCeedScalar *w = ((gCeedScalar*)qdata)+e*Q;
     const gCeedScalar *u0 = u;
-    const CeedInt offset = e*(Q*NC*(DIM+2));
-    const gCeedScalar *bu0 = bu+offset;
-    if (fabs(u0[i]-bu0[i])>epsilon) continue;
+    //const CeedInt offset = e*(Q*NC*(DIM+2));
+    //const gCeedScalar *bu0 = bu+offset;
+    //if (fabs(u0[i]-bu0[i])>epsilon) continue;
     w[i] = u0[i];
   }
 }
@@ -41,10 +42,9 @@ kernel void mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
     const gCeedScalar *w = ((gCeedScalar*)qdata)+e*Q;
-    const gCeedScalar *u0 = u;
-    const CeedInt offset = e*(Q*NC*(DIM+2));
-    const gCeedScalar *bu0 = bu+offset;
-    if (fabs(u0[i]-bu0[i])>epsilon) continue;
-    v0[i] = w[i] * u0[i];
+    //const CeedInt offset = e*(Q*NC*(DIM+2));
+    //const gCeedScalar *bu0 = bu+offset;
+    //if (fabs(u[i]-bu0[i])>epsilon) continue;
+    v0[i] = w[i] * u[i];
   }
 }

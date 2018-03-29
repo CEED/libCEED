@@ -28,11 +28,11 @@ kernel void setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
     gCeedScalar *w = ((gCeedScalar*)qdata)+e*Q;
     const gCeedScalar *u1 = u+Q*NC;
     const gCeedScalar *u4 = u+Q*NC*(DIM+1);
-    const CeedInt offset = e*(Q*NC*(DIM+2));
-    const gCeedScalar *bu1 = bu+offset+Q*NC;
-    const gCeedScalar *bu4 = bu+offset+Q*NC*(DIM+1);
-    if (fabs(u1[i]-bu1[i])>epsilon) continue;
-    if (fabs(u4[i]-bu4[i])>epsilon) continue;
+    //const CeedInt offset = e*(Q*NC*(DIM+2));
+    //const gCeedScalar *bu1 = bu+offset+Q*NC;
+    //const gCeedScalar *bu4 = bu+offset+Q*NC*(DIM+1);
+    //if (fabs(u1[i]-bu1[i])>epsilon) continue;
+    //if (fabs(u4[i]-bu4[i])>epsilon) continue;
     w[i] = u1[i]*u4[i];
   }
 }
@@ -44,9 +44,9 @@ kernel void mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
     const gCeedScalar *w = ((gCeedScalar*)qdata)+e*Q;
-    const CeedInt offset = e*(Q*NC*(DIM+2));
-    const gCeedScalar *o_bu = bu+offset;
-    if (fabs(u[i]-o_bu[i])>epsilon) continue;
+    //const CeedInt offset = e*(Q*NC*(DIM+2));
+    //const gCeedScalar *o_bu = bu+offset;
+    //if (fabs(u[i]-o_bu[i])>epsilon) continue;
     v[i] = w[i] * u[i];
   }
 }
