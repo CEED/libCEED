@@ -23,7 +23,7 @@ int CeedOklPath_Occa(const Ceed ceed, const char *c_src_file,
                      const char *okl_base_name, char **okl_file) {
   struct stat buf;
   const Ceed_Occa *ceed_data = ceed->data;
-  int ierr = CeedCalloc(4096,okl_file); CeedChk(ierr);
+  int ierr = CeedCalloc(OCCA_PATH_MAX,okl_file); CeedChk(ierr);
   memcpy(*okl_file,c_src_file,strlen(c_src_file));
   char *okl = *okl_file;
   const char *last_dot = strrchr(okl,'.');
@@ -31,18 +31,19 @@ int CeedOklPath_Occa(const Ceed ceed, const char *c_src_file,
     return CeedError(ceed, 1, "Cannot find file's extension!");
   const size_t okl_path_len = last_dot - okl;
   strcpy(&okl[okl_path_len],".okl");
-  dbg("[CeedOklPath] current OKL is %s",okl);
+  dbg("[CeedOklPath] Current OKL is %s",okl);
   // Test if we can get file's status,
   if (stat(okl, &buf)!=0) { // if not revert to occa cache
     dbg("[CeedOklPath] Could NOT stat this OKL file: %s",okl);
-    dbg("[CeedOklPath] Reverting to occa://ceed/*.okl");
+    dbg("[CeedOklPath] Trying occa://ceed/%s.okl",okl_base_name);
     if (!ceed_data->occa_cache_dir)
       return CeedError(ceed, 1, "Cannot use null occa_cache_dir!");
     // Try to stat ceed-occa-restrict.okl in occa cache
     ierr=sprintf(okl,"%s/libraries/ceed/%s.okl",
                  ceed_data->occa_cache_dir,
                  okl_base_name);
-    CeedChk(ierr);
+    CeedChk(!ierr);
+    dbg("[CeedOklPath] Stating %s",okl);
     // if we cannot find the okl file in cache,
     if (stat(okl, &buf)!=0) { // look into libceed install path
       if (!ceed_data->libceed_dir)
@@ -51,11 +52,16 @@ int CeedOklPath_Occa(const Ceed ceed, const char *c_src_file,
       ierr=sprintf(okl,"%s/okl/%s.okl",
                    ceed_data->libceed_dir,
                    okl_base_name);
-      CeedChk(ierr);
-    } else // if it is in occa cache, use it
+      CeedChk(!ierr);
+      dbg("[CeedOklPath] Trying fron libceed: %s",okl);
+      if (stat(okl, &buf)!=0) // last chance here
+        return CeedError(ceed, 1, "Cannot find OKL file!");
+    } else {// if it is in occa cache, use it
+      dbg("[CeedOklPath] Found occa://ceed/%s.okl",okl_base_name);
       sprintf(okl,"occa://ceed/%s.okl",okl_base_name);
+    }
   }
-  dbg("[CeedOklPath]   final OKL is %s",okl);
+  dbg("[CeedOklPath] Final OKL is %s",okl);
   return 0;
 }
 

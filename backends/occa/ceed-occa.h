@@ -20,6 +20,9 @@
 #include <ceed-impl.h>
 
 // *****************************************************************************
+#define OCCA_PATH_MAX 4096
+
+// *****************************************************************************
 // used to get Dl_info struct declaration (vs _GNU_SOURCE?)
 #ifndef __USE_GNU
 #define __USE_GNU
@@ -31,8 +34,8 @@
 
 // *****************************************************************************
 #define NO_OFFSET 0
-#define NO_PROPS occaDefault
 #define TILE_SIZE 32
+#define NO_PROPS occaDefault
 
 // *****************************************************************************
 // * CeedVector Occa struct
