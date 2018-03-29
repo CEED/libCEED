@@ -26,3 +26,5 @@ void magma_dtensor_contract(Ceed ceed,
                             const CeedScalar *t, CeedTransposeMode tmode,
                             const CeedInt Add,
                             const CeedScalar *u, CeedScalar *v);
+
+#define CeedDebug(...)
