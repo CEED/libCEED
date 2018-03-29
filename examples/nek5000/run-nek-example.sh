@@ -43,7 +43,7 @@ $NEK_THIS_FILE [options]
 
 options:
    -h|--help     Print this usage information and exit
-   -ceed|--ceed  Ceed backend to be used for the run (optional, default: /cpu/self)
+   -c|--ceed     Ceed backend to be used for the run (optional, default: /cpu/self)
    -e|--example  Example name (optional, default: bp1)
    -n|--np       Specify number of MPI ranks for the run (optional, default: 4)
    -b|--box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
@@ -63,7 +63,7 @@ while [ $# -gt 0 ]; do
        shift
        nek_ex="$1"
        ;;
-    -ceed|--ceed)
+    -c|--ceed)
        shift
        nek_spec="$1"
        ;;

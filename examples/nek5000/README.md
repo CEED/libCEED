@@ -33,7 +33,7 @@ See also the [Nek5000 documentation](https://nek5000.mcs.anl.gov/getstarted/).
 
 ### Building the Nek5000 examples
 
-You can make the Nek5000 libCEED examples by invoking `make-nek-examples.sh` script.
+You can build the Nek5000 libCEED examples by invoking `make-nek-examples.sh` script.
 ```sh
   ./make-nek-examples.sh
 ```
@@ -43,27 +43,27 @@ You can make the Nek5000 libCEED examples by invoking `make-nek-examples.sh` scr
 You can run the Nek5000 libCEED examples by invoking `run-nek-examples.sh`
 script. The syntax is:
 ```sh
-  ./run-nek-example -ceed <ceed_backend> -e <example_name> \
-                                        -n <mpi_ranks> -b <box_geometry>
+  ./run-nek-example.sh -ceed <ceed_backend> -e <example_name> \
+                                            -n <mpi_ranks> -b <box_geometry>
 ```
-Different options that can be used for the script are listed below:
+The different options that can be used for the script are listed below:
 ```
 options:
    -h|--help     Print this usage information and exit
-   -ceed|--ceed  Ceed backend to be used for the run (optional, default: /cpu/self)
+   -c|--ceed     Ceed backend to be used for the run (optional, default: /cpu/self)
    -e|--example  Example name (optional, default: bp1)
    -n|--np       Specify number of MPI ranks for the run (optional, default: 4)
    -b|--box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
 
 ```
-Here only mandatory argument is `-b` or `--box` which sets the box geometry
-to be used. This geometry should be found in `./boxes` directory.
+The only mandatory argument is `-b` or `--box` which sets the box geometry to be
+used. This geometry should be found in `./boxes` directory.
 
-For example, you can run bp1 as:
+For example, you can run bp1 as follows:
 ```sh
-  ./run-nek-example -ceed /cpu/self -e bp1 -n 4 -b b3
+  ./run-nek-example.sh -ceed /cpu/self -e bp1 -n 4 -b b3
 ```
-which is the same as:
+which is the same as running:
 ```sh
-  ./run-nek-example -b b3
+  ./run-nek-example.sh -b b3
 ```
