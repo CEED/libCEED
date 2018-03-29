@@ -84,6 +84,7 @@ struct CeedBasis_private {
   int (*Apply)(CeedBasis, CeedTransposeMode, CeedEvalMode, const CeedScalar *,
                CeedScalar *);
   int (*Destroy)(CeedBasis);
+  int refcount;
   CeedInt dim;
   CeedInt ndof;
   CeedInt P1d;

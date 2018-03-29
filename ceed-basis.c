@@ -55,6 +55,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
   ierr = CeedCalloc(1,basis); CeedChk(ierr);
   (*basis)->ceed = ceed;
   ceed->refcount++;
+  (*basis)->refcount = 1;
   (*basis)->dim = dim;
   (*basis)->ndof = ncomp;
   (*basis)->P1d = P1d;
@@ -316,7 +317,7 @@ int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
 int CeedBasisDestroy(CeedBasis *basis) {
   int ierr;
 
-  if (!*basis) return 0;
+  if (!*basis || --(*basis)->refcount > 0) return 0;
   if ((*basis)->Destroy) {
     ierr = (*basis)->Destroy(*basis); CeedChk(ierr);
   }
