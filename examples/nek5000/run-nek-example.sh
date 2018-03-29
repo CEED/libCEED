@@ -26,8 +26,6 @@ if [[ $# -ne 4 ]]; then
   exit 1
 fi
 
-export LD_LIBRARY_PATH=`cd ../../lib; pwd`:${LD_LIBRARY_PATH}
-
 ex=$1
 np=$2
 rea=$3
