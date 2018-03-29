@@ -12,10 +12,7 @@ LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 bp.c := $(wildcard bp*.c)
 bp := $(bp.c:%.c=%)
 
-HAVE_OCCA = $(wildcard $(OCCA_DIR)/lib/libocca.*)
-NEED_OKL_CACHED = $(if $(HAVE_OCCA),$(CEED_DIR:../..=))
-
-all: $(bp) $(if $(NEED_OKL_CACHED),.okl-lib-cached)
+all: $(bp)
 $(bp): | $(PETSc.pc) $(ceed.pc)
 
 print: $(PETSc.pc) $(ceed.pc)
@@ -26,12 +23,8 @@ print: $(PETSc.pc) $(ceed.pc)
 	$(info LDLIBS  : $(LDLIBS))
 	@true
 
-.okl-lib-cached:
-	$(OCCA_DIR)/bin/occa cache ceed $(abspath $(CEED_DIR)/lib/okl/*.okl)
-	touch $@
-
 clean:
-	$(RM) $(bp) .okl-lib-cached
+	$(RM) $(bp)
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \

@@ -66,6 +66,18 @@ or (e.g., if creating packages),
 
     make install prefix=/usr DESTDIR=/packaging/path
 
+Note that along with the library, libCEED installs kernel sources, e.g. OCCA
+kernels are installed in `$prefix/lib/okl`. This allows the OCCA backend to
+build specialized kernels at run-time. In a normal setting, the kernel sources
+will be found automatically (relative to the library file `libceed.so`).
+However, if that fails (e.g. if `libceed.so` is moved), one can copy (cache) the
+kernel sources inside the user OCCA directory, `~/.occa` using
+
+    $(OCCA_DIR)/bin/occa cache ceed $(CEED_DIR)/lib/okl/*.okl
+
+This will allow OCCA to find the sources regardless of the location of the CEED
+library.
+
 ### pkg-config
 
 In addition to library and header, libCEED provides a

@@ -19,8 +19,6 @@ CEED_DIR ?= ../..
 CEED_FLAGS ?= -I$(CEED_DIR)/include
 CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed
 
-OCCA_DIR ?= ../../../occa
-
 # Use an MFEM build directory or an MFEM install directory
 MFEM_DIR ?= ../../../mfem
 CONFIG_MK ?= $(or $(wildcard $(MFEM_DIR)/config/config.mk),$(wildcard\
@@ -41,11 +39,8 @@ all: $(MFEM_EXAMPLES)
 # Remove built-in rules
 %: %.cpp
 
-HAVE_OCCA = $(wildcard $(OCCA_DIR)/lib/libocca.*)
-NEED_OKL_CACHED = $(if $(HAVE_OCCA),$(CEED_DIR:../..=))
-
 # Rules for building the examples
-%: %.cpp $(CONFIG_MK) $(MFEM_LIB_FILE) $(if $(NEED_OKL_CACHED),.okl-lib-cached)
+%: %.cpp $(CONFIG_MK) $(MFEM_LIB_FILE)
 	$(MFEM_CXX) $(CEED_FLAGS) $(MFEM_FLAGS) $(MFEM_DEF) $< -o $@ \
 	  $(CEED_LIBS) $(MFEM_LIBS)
 
@@ -57,10 +52,6 @@ $(CONFIG_MK):
 	$(if $(wildcard $@),,$(error \
 	  MFEM config file not found. Please set MFEM_DIR))
 
-.okl-lib-cached:
-	$(OCCA_DIR)/bin/occa cache ceed $(abspath $(CEED_DIR)/lib/okl/*.okl)
-	touch $@
-
 clean:
-	rm -f *~ $(MFEM_EXAMPLES) .okl-lib-cached
+	rm -f *~ $(MFEM_EXAMPLES)
 	rm -rf *.dSYM *.TVD.*breakpoints
