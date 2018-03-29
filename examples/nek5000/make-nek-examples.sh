@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
 # the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
 # reserved. See files LICENSE and NOTICE for details.
@@ -13,8 +15,6 @@
 # the planning and preparation of a capable exascale ecosystem, including
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
-
-#!/bin/bash
 
 ###############################################################################
 # Make script for Nek5000 examples
@@ -50,13 +50,7 @@ if [[ "$#" -eq 1 && "$1" -eq "clean" ]]; then
 fi
 
 # Set defaults for the parameters
-if [ -e $NEK5K_DIR/bin/makenek ]; then
-  NEK5K_DIR:=`cd "../../../Nek5000"; pwd`
-else
-  exit 0
-fi
-
-# : ${NEK5K_DIR:=`cd "../../../Nek5000"; pwd`}
+: ${NEK5K_DIR:=`cd "../../../Nek5000"; pwd`}
 : ${CEED_DIR:=`cd "../../"; pwd`}
 : ${FC:="mpif77"}
 : ${CC:="mpicc"}
@@ -73,8 +67,7 @@ sed -i.bak -e "s|^#FC=.*|FC=\"$FC\"|" \
     -e "s|^#CC=.*|CC=\"$CC\"|" \
     -e "s|^#SOURCE_ROOT=.*|SOURCE_ROOT=\"$NEK5K_DIR\"|" \
     -e "s|^#FFLAGS=.*|FFLAGS+=\"-I${CEED_DIR}/include\"|" \
-    -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-L${CEED_DIR}/lib -lceed\"|" makenek
-
+    -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed\"|" makenek
 
 # Build examples
 for ex in $EXAMPLES; do
