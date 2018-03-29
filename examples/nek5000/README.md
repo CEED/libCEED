@@ -15,7 +15,7 @@ if that is where it is located.
 
 You can generate box geometries using `generate-boxes.sh` script:
 ```sh
-  ./generate_boxes.sh log_2(<min_elem>) log_2(<max_elem>)."
+  ./generate-boxes.sh log_2(<min_elem>) log_2(<max_elem>)."
 ```
 For example:
 ```sh
@@ -43,9 +43,9 @@ You can make the Nek5000 libCEED examples by invoking `make-nek-examples.sh` scr
 You can run the Nek5000 libCEED examples by invoking `run-nek-examples.sh`
 script. The syntax is:
 ```sh
-  ./run-nek-example <example_name> <#mpi_ranks> <rea_name> <rea_and_map_path>"
+  ./run-nek-example.sh <example_name> <#mpi_ranks> <rea_name> <rea_and_map_path>"
 ```
 For example:
 ```
-  ./run-nek-example bp1 4 b3 boxes/b3
+  ./run-nek-example.sh bp1 4 b3 boxes/b3
 ```
