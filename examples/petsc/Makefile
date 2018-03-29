@@ -12,7 +12,10 @@ LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 bp.c := $(wildcard bp*.c)
 bp := $(bp.c:%.c=%)
 
-all: $(bp) okl-lib-cache
+HAVE_OCCA = $(wildcard $(OCCA_DIR)/lib/libocca.*)
+NEED_OKL_CACHED = $(if $(HAVE_OCCA),$(CEED_DIR:../..=))
+
+all: $(bp) $(if $(NEED_OKL_CACHED),.okl-lib-cached)
 $(bp): | $(PETSc.pc) $(ceed.pc)
 
 print: $(PETSc.pc) $(ceed.pc)
@@ -23,22 +26,16 @@ print: $(PETSc.pc) $(ceed.pc)
 	$(info LDLIBS  : $(LDLIBS))
 	@true
 
-# okl-lib-cache depending on OCCA and INSTALL
-okl-lib-cache:
-# First test to see if libceed was compiled with OCCA
-ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-# Second test to see if '../..' is CEED_DIR
-ifneq ($(CEED_DIR),../..)
-okl-lib-cache:
+.okl-lib-cached:
 	$(OCCA_DIR)/bin/occa cache ceed $(abspath $(CEED_DIR)/lib/okl/*.okl)
-endif
-endif
+	touch $@
 
 clean:
-	$(RM) $(bp)
+	$(RM) $(bp) .okl-lib-cached
 
 $(PETSc.pc):
-	$(error PETSc config not found. Please set PETSC_DIR and PETSC_ARCH)
+	$(if $(wildcard $@),,$(error \
+	  PETSc config not found. Please set PETSC_DIR and PETSC_ARCH))
 
 .PHONY: all print clean
 
