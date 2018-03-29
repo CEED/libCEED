@@ -103,10 +103,10 @@ typedef struct {
 } Ceed_Occa;
 
 // *****************************************************************************
-int CeedOklPath_Occa(const Ceed, const char*, const char*, char **);
+CEED_INTERN int CeedOklPath_Occa(const Ceed, const char*, const char*, char **);
 
 // *****************************************************************************
-int CeedOklDladdr_Occa(Ceed);
+CEED_INTERN int CeedOklDladdr_Occa(Ceed);
 
 // *****************************************************************************
 // CEED_DEBUG_COLOR default value, forward CeedDebug* declarations & dbg macros
@@ -121,29 +121,23 @@ void CeedDebugImpl256(const Ceed,const unsigned char,const char*,...);
 #define dbg(...) CeedDebug256(ceed,(unsigned char)CEED_DEBUG_COLOR, ## __VA_ARGS__)
 
 // *****************************************************************************
-int CeedBasisCreateTensorH1_Occa(Ceed ceed, CeedInt dim, CeedInt P1d,
-                                 CeedInt Q1d, const CeedScalar *interp1d,
-                                 const CeedScalar *grad1d,
-                                 const CeedScalar *qref1d,
-                                 const CeedScalar *qweight1d,
-                                 CeedBasis basis);
+CEED_INTERN int CeedBasisCreateTensorH1_Occa(Ceed ceed, CeedInt dim,
+    CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
+    const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
 
 // *****************************************************************************
-int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt Q,
-                             CeedTransposeMode tmode, CeedEvalMode emode,
-                             const CeedVector u, CeedVector v);
+CEED_INTERN int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt Q,
+    CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
 
 // *****************************************************************************
-int CeedOperatorCreate_Occa(CeedOperator op);
+CEED_INTERN int CeedOperatorCreate_Occa(CeedOperator op);
 
 // *****************************************************************************
-int CeedQFunctionCreate_Occa(CeedQFunction qf);
+CEED_INTERN int CeedQFunctionCreate_Occa(CeedQFunction qf);
 
 // *****************************************************************************
-int CeedElemRestrictionCreate_Occa(const CeedElemRestriction res,
-                                   const CeedMemType mtype,
-                                   const CeedCopyMode cmode,
-                                   const CeedInt *indices);
+CEED_INTERN int CeedElemRestrictionCreate_Occa(const CeedElemRestriction res,
+    const CeedMemType mtype, const CeedCopyMode cmode, const CeedInt *indices);
 
 // *****************************************************************************
-int CeedVectorCreate_Occa(Ceed ceed, CeedInt n, CeedVector vec);
+CEED_INTERN int CeedVectorCreate_Occa(Ceed ceed, CeedInt n, CeedVector vec);
