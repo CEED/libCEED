@@ -55,7 +55,7 @@ options:
    -n|-np       Specify number of MPI ranks for the run (optional, default: 4)
    -b|-box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
 ```
-The only mandatory argument is `-b` or `--box` which sets the box geometry to be
+The only mandatory argument is `-b` or `-box` which sets the box geometry to be
 used. This geometry should be found in `./boxes` directory.
 
 For example, you can run bp1 as follows:

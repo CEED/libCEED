@@ -55,11 +55,11 @@ Example:
 # Read in parameter values
 while [ $# -gt 0 ]; do
   case "$1" in
-    -h|--help)
+    -h|-help)
        echo "$NEK_HELP_MSG"
        $NEK_EXIT_CMD
        ;;
-    -e|--example)
+    -e|-example)
        shift
        nek_ex="$1"
        ;;
@@ -67,11 +67,11 @@ while [ $# -gt 0 ]; do
        shift
        nek_spec="$1"
        ;;
-    -n|--np)
+    -n|-np)
        shift
        nek_np="$1"
        ;;
-    -b|--box)
+    -b|-box)
        shift
        nek_box="$1"
        ;;
