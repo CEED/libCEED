@@ -89,8 +89,8 @@ if [[ ! -f ${NEK_BOX_DIR}/${nek_box}/${nek_box}.rea || \
   ${NEK_EXIT_CMD} 1
 fi
 
-echo ${nek_box}                       >  SESSION.NAME
-echo `cd ./boxes/${nek_box}; pwd`'/' >>  SESSION.NAME
+echo ${nek_box}                              > SESSION.NAME
+echo `cd ${NEK_BOX_DIR}/${nek_box}; pwd`'/' >> SESSION.NAME
 rm -f logfile
 rm -f ioinfo
 mv ${nek_ex}.log.${nek_np}.${nek_box} ${nek_ex}.log1.${nek_np}.${nek_box} 2>/dev/null
