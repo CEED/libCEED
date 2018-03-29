@@ -60,9 +60,9 @@ used. This geometry should be found in `./boxes` directory.
 
 For example, you can run bp1 as follows:
 ```sh
-  ./run-nek-example.sh -ceed /cpu/self -e bp1 -n 4 -b b3
+  ./run-nek-example.sh -ceed /cpu/self -e bp1 -n 4 -b 3
 ```
 which is the same as running:
 ```sh
-  ./run-nek-example.sh -b b3
+  ./run-nek-example.sh -b 3
 ```
