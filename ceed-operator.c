@@ -48,6 +48,7 @@ int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
   (*op)->ceed = ceed;
   ceed->refcount++;
   (*op)->Erestrict = r;
+  r->refcount++;
   (*op)->basis = b;
   (*op)->qf = qf;
   (*op)->dqf = dqf;
@@ -107,6 +108,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   if ((*op)->Destroy) {
     ierr = (*op)->Destroy(*op); CeedChk(ierr);
   }
+  ierr = CeedElemRestrictionDestroy(&(*op)->Erestrict); CeedChk(ierr);
   ierr = CeedDestroy(&(*op)->ceed); CeedChk(ierr);
   ierr = CeedFree(op); CeedChk(ierr);
   return 0;

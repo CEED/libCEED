@@ -71,6 +71,7 @@ struct CeedElemRestriction_private {
   int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedInt, CeedTransposeMode,
                CeedVector, CeedVector, CeedRequest *);
   int (*Destroy)(CeedElemRestriction);
+  int refcount;
   CeedInt nelem;    /* number of elements */
   CeedInt elemsize; /* number of dofs per element */
   CeedInt ndof;     /* size of the L-vector, can be used for checking for
