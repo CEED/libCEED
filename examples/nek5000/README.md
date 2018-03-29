@@ -43,7 +43,7 @@ You can make the Nek5000 libCEED examples by invoking `make-nek-examples.sh` scr
 You can run the Nek5000 libCEED examples by invoking `run-nek-examples.sh`
 script. The syntax is:
 ```sh
-  ./run-nek-example -ceed <ceed_backend> -ex <example_name> \
+  ./run-nek-example -ceed <ceed_backend> -e <example_name> \
                                         -n <mpi_ranks> -b <box_geometry>
 ```
 Different options that can be used for the script are listed below:
@@ -61,7 +61,7 @@ to be used. This geometry should be found in `./boxes` directory.
 
 For example, you can run bp1 as:
 ```sh
-  ./run-nek-example -ceed /cpu/self -ex bp1 -n 4 -b b3
+  ./run-nek-example -ceed /cpu/self -e bp1 -n 4 -b b3
 ```
 which is the same as:
 ```sh
