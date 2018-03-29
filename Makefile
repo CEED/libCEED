@@ -14,8 +14,8 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-CC ?= gcc
-FC ?= gfortran
+CC = gcc
+FC = gfortran
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
