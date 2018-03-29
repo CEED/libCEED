@@ -885,7 +885,7 @@ c-----------------------------------------------------------------------
       integer ceed,err
 
 c     Init ceed library
-      call ceedinit('/gpu/occa'//char(0),ceed,err)
+      call ceedinit('/cpu/self'//char(0),ceed,err)
 
       call geodat1n  ! Set up gf() arrays
 

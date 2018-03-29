@@ -22,7 +22,7 @@
 if [[ $# -ne 4 ]]; then
   echo "Error: Number of inputs does not equal to 4. Please use the syntax below."
   echo "./run-nek-example <example_name> <#mpi_ranks> <rea_name> <rea_and_map_path>"
-  echo "Example ./run-nek-example.sh ex1 4 b3 ./boxes/b3"
+  echo "Example ./run-nek-example bp1 4 b3 ./boxes/b3"
   exit 1
 fi
 

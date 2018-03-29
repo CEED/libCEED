@@ -14,8 +14,8 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-CC ?= gcc
-FC ?= gfortran
+CC = gcc
+FC = gfortran
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
@@ -83,10 +83,10 @@ tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 ctests    := $(tests)
 tests     += $(tests.f:tests/%.f=$(OBJDIR)/%)
 #examples
-examples.c := $(sort $(wildcard examples/*.c))
-examples.f := $(sort $(wildcard examples/*.f))
-examples  := $(examples.c:examples/%.c=$(OBJDIR)/%)
-examples  += $(examples.f:examples/%.f=$(OBJDIR)/%)
+examples.c := $(sort $(wildcard examples/ceed/*.c))
+examples.f := $(sort $(wildcard examples/ceed/*.f))
+examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%)
+examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
 # backends/[ref & occa]
 ref.c     := $(sort $(wildcard backends/ref/*.c))
 occa.c    := $(sort $(wildcard backends/occa/*.c))
@@ -143,10 +143,10 @@ $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
 $(OBJDIR)/% : tests/%.f | $$(@D)/.DIR
 	$(call quiet,FC) $(CPPFLAGS) $(FFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
-$(OBJDIR)/% : examples/%.c | $$(@D)/.DIR
+$(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
-$(OBJDIR)/% : examples/%.f | $$(@D)/.DIR
+$(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
 	$(call quiet,FC) $(CPPFLAGS) $(FFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
 $(tests) $(examples) : $(libceed)
@@ -187,6 +187,7 @@ okl-clear:
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d "$(DESTDIR)$(includedir)" "$(DESTDIR)$(libdir)" "$(DESTDIR)$(okldir)" "$(DESTDIR)$(pkgconfigdir)"
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/"
@@ -196,8 +197,9 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 cln clean :
 	$(RM) *.o *.d $(libceed)
 	$(RM) -r *.dSYM $(OBJDIR) $(LIBDIR)/pkgconfig
-	$(MAKE) -C examples clean
+	$(MAKE) -C examples/ceed clean
 	$(MAKE) -C examples/mfem clean
+	$(MAKE) -C examples/petsc clean
 	(cd examples/nek5000 && bash make-nek-examples.sh clean)
 
 distclean : clean
@@ -210,7 +212,7 @@ style :
 	astyle --style=google --indent=spaces=2 --max-code-length=80 \
             --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
             --suffix=none --preserve-date --formatted \
-            *.[ch] tests/*.[ch] backends/*/*.[ch] examples/*.[ch] examples/mfem/*.[ch]pp
+            *.[ch] tests/*.[ch] backends/*/*.[ch] examples/*/*.[ch] examples/*/*.[ch]pp
 
 print :
 	@echo $(VAR)=$($(VAR))
