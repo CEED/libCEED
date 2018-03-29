@@ -94,7 +94,7 @@ rm -f logfile
 rm -f ioinfo
 mv ${nek_ex}.log.${nek_np}.b${nek_box} ${nek_ex}.log1.${nek_np}.b${nek_box} 2>/dev/null
 
-mpiexec -np ${nek_np} ./${nek_ex} ${nek_spec} > ${nek_ex}.log.${nek_np}.b${nek_box}
+${MPIEXEC:-mpiexec} -np ${nek_np} ./${nek_ex} ${nek_spec} > ${nek_ex}.log.${nek_np}.b${nek_box}
 wait $!
 
 echo "Run finished. Output was written to ${nek_ex}.log.${nek_np}.b${nek_box}"
