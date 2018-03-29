@@ -46,6 +46,7 @@ int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
                                       "Backend does not support OperatorCreate");
   ierr = CeedCalloc(1,op); CeedChk(ierr);
   (*op)->ceed = ceed;
+  ceed->refcount++;
   (*op)->Erestrict = r;
   (*op)->basis = b;
   (*op)->qf = qf;
@@ -106,6 +107,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   if ((*op)->Destroy) {
     ierr = (*op)->Destroy(*op); CeedChk(ierr);
   }
+  ierr = CeedDestroy(&(*op)->ceed); CeedChk(ierr);
   ierr = CeedFree(op); CeedChk(ierr);
   return 0;
 }

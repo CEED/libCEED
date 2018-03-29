@@ -53,6 +53,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
     return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreate");
   ierr = CeedCalloc(1,r); CeedChk(ierr);
   (*r)->ceed = ceed;
+  ceed->refcount++;
   (*r)->nelem = nelem;
   (*r)->elemsize = elemsize;
   (*r)->ndof = ndof;
@@ -128,6 +129,7 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *r) {
   if ((*r)->Destroy) {
     ierr = (*r)->Destroy(*r); CeedChk(ierr);
   }
+  ierr = CeedDestroy(&(*r)->ceed); CeedChk(ierr);
   ierr = CeedFree(r); CeedChk(ierr);
   return 0;
 }

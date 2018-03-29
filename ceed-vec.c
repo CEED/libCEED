@@ -34,6 +34,7 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
     return CeedError(ceed, 1, "Backend does not support VecCreate");
   ierr = CeedCalloc(1,vec); CeedChk(ierr);
   (*vec)->ceed = ceed;
+  ceed->refcount++;
   (*vec)->length = length;
   ierr = ceed->VecCreate(ceed, length, *vec); CeedChk(ierr);
   return 0;
@@ -139,6 +140,7 @@ int CeedVectorDestroy(CeedVector *x) {
   if ((*x)->Destroy) {
     ierr = (*x)->Destroy(*x); CeedChk(ierr);
   }
+  ierr = CeedDestroy(&(*x)->ceed); CeedChk(ierr);
   ierr = CeedFree(x); CeedChk(ierr);
   return 0;
 }

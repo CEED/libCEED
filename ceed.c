@@ -249,6 +249,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   if (!matchlen) return CeedError(NULL, 1, "No suitable backend");
   ierr = CeedCalloc(1,ceed); CeedChk(ierr);
   (*ceed)->Error = CeedErrorAbort;
+  (*ceed)->refcount = 1;
   (*ceed)->data = NULL;
   ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);
   return 0;
@@ -263,7 +264,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
 int CeedDestroy(Ceed *ceed) {
   int ierr;
 
-  if (!*ceed) return 0;
+  if (!*ceed || --(*ceed)->refcount > 0) return 0;
   if ((*ceed)->Destroy) {
     ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);
   }

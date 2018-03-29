@@ -34,6 +34,7 @@ struct Ceed_private {
                              const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*QFunctionCreate)(CeedQFunction);
   int (*OperatorCreate)(CeedOperator);
+  int refcount;
   void *data;
 };
 

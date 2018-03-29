@@ -87,6 +87,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedInt nfields,
     return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
   ierr = CeedCalloc(1,qf); CeedChk(ierr);
   (*qf)->ceed = ceed;
+  ceed->refcount++;
   (*qf)->vlength = vlength;
   (*qf)->nfields = nfields;
   (*qf)->qdatasize = qdatasize;
@@ -132,6 +133,7 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   if ((*qf)->Destroy) {
     ierr = (*qf)->Destroy(*qf); CeedChk(ierr);
   }
+  ierr = CeedDestroy(&(*qf)->ceed); CeedChk(ierr);
   ierr = CeedFree(qf); CeedChk(ierr);
   return 0;
 }
