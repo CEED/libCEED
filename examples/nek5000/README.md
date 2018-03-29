@@ -43,7 +43,7 @@ You can build the Nek5000 libCEED examples by invoking `make-nek-examples.sh` sc
 You can run the Nek5000 libCEED examples by invoking `run-nek-examples.sh`
 script. The syntax is:
 ```sh
-  ./run-nek-example.sh -ceed <ceed_backend> -e <example_name> \
+  ./run-nek-example.sh -c <ceed_backend> -e <example_name> \
                                             -n <mpi_ranks> -b <box_geometry>
 ```
 The different options that can be used for the script are listed below:

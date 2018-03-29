@@ -49,7 +49,7 @@ options:
    -b|-box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
 
 Example:
-  ./run-nek-example -ceed /cpu/self -e bp1 -n 4 -b b3
+  ./run-nek-example -c /cpu/self -e bp1 -n 4 -b b3
 "
 
 # Read in parameter values
