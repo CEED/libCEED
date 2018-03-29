@@ -47,6 +47,7 @@ static int CeedDestroy_Occa(Ceed ceed) {
   int ierr;
   Ceed_Occa *data=ceed->data;
   dbg("[CeedDestroy]");
+  ierr = CeedFree(&data->occa_cache_dir); CeedChk(ierr);
   occaFree(data->device);
   ierr = CeedFree(&data->libceed_dir);
   ierr = CeedFree(&data); CeedChk(ierr);
