@@ -30,7 +30,13 @@ fi
 
 # Set defaults for the parameters
 : ${CEED_DIR:=`cd ../../; pwd`}
+nek_ex=bp1
+nek_spec=/cpu/self
+nek_np=4
+nek_box=
+NEK_BOX_DIR=./boxes
 
+# Set constants
 NEK_THIS_FILE="${BASH_SOURCE[0]}"
 NEK_HELP_MSG="
 $NEK_THIS_FILE [options]
@@ -43,22 +49,10 @@ options:
    -b|--box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
 
 Example:
-   ./run-nek-examples.sh -b b3
+  ./run-nek-example -ceed /cpu/self -ex bp1 -n 4 -b b3
 "
-NEK_BOX_DIR=./boxes
 
-nek_ex=bp1
-nek_spec=/cpu/self
-nek_np=4
-nek_box=
-#if [[ $# -ne 4 ]]; then
-#  echo "Error: Number of inputs does not equal to 5. Please use the syntax below."
-#  echo "./run-nek-example <example_name> <backend> <#mpi_ranks> <rea_name> <rea_and_map_path>"
-#  echo "Example ./run-nek-example ex1 4 b3 ./boxes/b3"
-#  exit 1
-#fi
-#export LD_LIBRARY_PATH=`cd ../../lib; pwd`:${LD_LIBRARY_PATH}
-
+# Read in parameter values
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help)
