@@ -16,7 +16,7 @@
 
 # Ceed directory
 CEED_DIR ?= ../..
-CEED_FLAGS ?= -I$(CEED_DIR)/include
+CEED_FLAGS ?= -I$(CEED_DIR)/include -I.
 CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed
 
 OCCA_DIR ?= ../../../occa
@@ -32,7 +32,7 @@ CONFIG_MK ?= $(or $(wildcard $(MFEM_DIR)/config/config.mk),$(wildcard\
 MFEM_LIB_FILE = mfem_is_not_built
 -include $(CONFIG_MK)
 
-MFEM_EXAMPLES = ex1 ex3
+MFEM_EXAMPLES = bp1 bp3
 
 .SUFFIXES:
 .SUFFIXES: .cpp

@@ -454,7 +454,7 @@ c     Create a ceed element restriction
 
 c     Create a ceed qfunction
       call ceedqfunctioncreateinterior(ceed,1,ncomp,8,ceed_eval_interp,
-     $  ceed_eval_interp,massf,'ex1.usr:massf'//char(0),qf_mass,err)
+     $  ceed_eval_interp,massf,'bp1.usr:massf'//char(0),qf_mass,err)
 
 c     Create a ceed operator
       call ceedoperatorcreate(ceed,erstrct,basis,qf_mass,

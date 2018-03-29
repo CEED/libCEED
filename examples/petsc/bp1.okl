@@ -52,7 +52,7 @@ kernel void Setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
     target[i] = sqrt(PetscSqr(x[i+Q*0])+PetscSqr(x[Q*1+i])+PetscSqr(x[Q*2+i]));
   }
 }
-  
+
 // *****************************************************************************
 kernel void Mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
                  const CeedScalar *u, const CeedScalar *bu,

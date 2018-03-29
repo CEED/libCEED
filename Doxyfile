@@ -792,7 +792,7 @@ WARN_LOGFILE           =
 
 INPUT                  = . \
                          include \
-                         examples \
+                         examples/ceed \
                          examples/mfem \
                          examples/nek5000 \
                          examples/petsc \
