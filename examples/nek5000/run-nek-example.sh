@@ -37,10 +37,13 @@ $NEK_THIS_FILE [options]
 
 options:
    -h|--help     Print this usage information and exit
-   -e|--example  Example name
-   -ceed|--ceed  Ceed backend to be used for the run
-   -n|--np       Specify number of MPI ranks for the run
-   -b|--box      Specify the path of the box geometry (./boxes/b3)
+   -ceed|--ceed  Ceed backend to be used for the run (optional, default: /cpu/self)
+   -e|--example  Example name (optional, default: bp1)
+   -n|--np       Specify number of MPI ranks for the run (optional, default: 4)
+   -b|--box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
+
+Example:
+   ./run-nek-examples.sh -b b3
 "
 NEK_BOX_DIR=./boxes
 
@@ -59,7 +62,7 @@ nek_box=
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help)
-       echo $NEK_HELP_MSG
+       echo "$NEK_HELP_MSG"
        $NEK_EXIT_CMD
        ;;
     -e|--example)
