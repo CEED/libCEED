@@ -47,6 +47,7 @@ int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
   ierr = CeedCalloc(1,op); CeedChk(ierr);
   (*op)->ceed = ceed;
   ceed->refcount++;
+  (*op)->refcount = 1;
   (*op)->Erestrict = r;
   r->refcount++;
   (*op)->basis = b;
@@ -108,7 +109,7 @@ int CeedOperatorGetQData(CeedOperator op, CeedVector *qdata) {
 int CeedOperatorDestroy(CeedOperator *op) {
   int ierr;
 
-  if (!*op) return 0;
+  if (!*op || --(*op)->refcount > 0) return 0;
   if ((*op)->Destroy) {
     ierr = (*op)->Destroy(*op); CeedChk(ierr);
   }

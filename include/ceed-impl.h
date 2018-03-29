@@ -119,6 +119,7 @@ struct CeedQFunction_private {
 
 struct CeedOperator_private {
   Ceed ceed;
+  int refcount;
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector,
                        CeedVector, CeedRequest *);
