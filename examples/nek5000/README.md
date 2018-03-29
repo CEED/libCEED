@@ -33,7 +33,7 @@ See also the [Nek5000 documentation](https://nek5000.mcs.anl.gov/getstarted/).
 
 ### Building the Nek5000 examples
 
-You can make the Nek5000 libCEED examples by invoking `make-nek-examples.sh` script.
+You can build the Nek5000 libCEED examples by invoking `make-nek-examples.sh` script.
 ```sh
   ./make-nek-examples.sh
 ```
@@ -43,9 +43,26 @@ You can make the Nek5000 libCEED examples by invoking `make-nek-examples.sh` scr
 You can run the Nek5000 libCEED examples by invoking `run-nek-examples.sh`
 script. The syntax is:
 ```sh
-  ./run-nek-example.sh <example_name> <#mpi_ranks> <rea_name> <rea_and_map_path>"
+  ./run-nek-example.sh -c <ceed_backend> -e <example_name> \
+                                            -n <mpi_ranks> -b <box_geometry>
 ```
-For example:
+The different options that can be used for the script are listed below:
 ```
-  ./run-nek-example.sh bp1 4 b3 boxes/b3
+options:
+   -h|-help     Print this usage information and exit
+   -c|-ceed     Ceed backend to be used for the run (optional, default: /cpu/self)
+   -e|-example  Example name (optional, default: bp1)
+   -n|-np       Specify number of MPI ranks for the run (optional, default: 4)
+   -b|-box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
+```
+The only mandatory argument is `-b` or `--box` which sets the box geometry to be
+used. This geometry should be found in `./boxes` directory.
+
+For example, you can run bp1 as follows:
+```sh
+  ./run-nek-example.sh -ceed /cpu/self -e bp1 -n 4 -b b3
+```
+which is the same as running:
+```sh
+  ./run-nek-example.sh -b b3
 ```
