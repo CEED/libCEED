@@ -104,6 +104,7 @@ struct CeedQFunction_private {
   int (*Apply)(CeedQFunction, void *, CeedInt, const CeedScalar *const *,
                CeedScalar *const *);
   int (*Destroy)(CeedQFunction);
+  int refcount;
   CeedInt vlength;    // Number of quadrature points must be padded to a multiple of vlength
   CeedInt nfields;
   size_t qdatasize;   // Number of bytes of qdata per quadrature point
