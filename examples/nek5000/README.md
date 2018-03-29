@@ -49,12 +49,11 @@ script. The syntax is:
 The different options that can be used for the script are listed below:
 ```
 options:
-   -h|--help     Print this usage information and exit
-   -c| -ceed     Ceed backend to be used for the run (optional, default: /cpu/self)
-   -e|--example  Example name (optional, default: bp1)
-   -n|--np       Specify number of MPI ranks for the run (optional, default: 4)
-   -b|--box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
-
+   -h|-help     Print this usage information and exit
+   -c|-ceed     Ceed backend to be used for the run (optional, default: /cpu/self)
+   -e|-example  Example name (optional, default: bp1)
+   -n|-np       Specify number of MPI ranks for the run (optional, default: 4)
+   -b|-box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
 ```
 The only mandatory argument is `-b` or `--box` which sets the box geometry to be
 used. This geometry should be found in `./boxes` directory.
