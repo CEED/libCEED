@@ -35,10 +35,10 @@ OCCA_DIR ?= ../occa
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -O2 -g
+CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
 
-CFLAGS += $(if $(NDEBUG),-DNDEBUG=1)
+CFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
 
 ifeq ($(UNDERSCORE), 1)
   CFLAGS += -DUNDERSCORE
