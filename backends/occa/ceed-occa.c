@@ -23,7 +23,6 @@ static const char *occaCPU = "mode: 'Serial'";
 static const char *occaOMP = "mode: 'OpenMP'";
 static const char *occaGPU = "mode: 'CUDA', deviceID: %d";
 static const char *occaOCL = "mode: 'OpenCL', platformID: 0, deviceID: %d";
-extern void occaSetVerboseCompilation(const int value);
 
 // *****************************************************************************
 // * CeedError_Occa
@@ -118,8 +117,10 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   data->ocl = ocl;
   data->libceed_dir = NULL;
   data->occa_cache_dir = NULL;
-  if (data->debug)
-    occaPropertiesSet(occaSettings(),"verbose-compilation",occaBool(true));
+  if (data->debug) {
+    occaPropertiesSet(occaSettings(), "device/verbose", occaBool(1));
+    occaPropertiesSet(occaSettings(), "kernel/verbose", occaBool(1));
+  }
   // Now that we can dbg, output resource and deviceID
   dbg("[CeedInit] resource: %s", resource);
   dbg("[CeedInit] deviceID: %d", deviceID);
