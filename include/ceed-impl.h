@@ -34,6 +34,7 @@ struct Ceed_private {
                              const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*QFunctionCreate)(CeedQFunction);
   int (*OperatorCreate)(CeedOperator);
+  int refcount;
   void *data;
 };
 
@@ -60,6 +61,7 @@ struct CeedVector_private {
   int (*RestoreArray)(CeedVector, CeedScalar **);
   int (*RestoreArrayRead)(CeedVector, const CeedScalar **);
   int (*Destroy)(CeedVector);
+  int refcount;
   CeedInt length;
   void *data;
 };
@@ -69,6 +71,7 @@ struct CeedElemRestriction_private {
   int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedInt, CeedTransposeMode,
                CeedVector, CeedVector, CeedRequest *);
   int (*Destroy)(CeedElemRestriction);
+  int refcount;
   CeedInt nelem;    /* number of elements */
   CeedInt elemsize; /* number of dofs per element */
   CeedInt ndof;     /* size of the L-vector, can be used for checking for
@@ -81,6 +84,7 @@ struct CeedBasis_private {
   int (*Apply)(CeedBasis, CeedTransposeMode, CeedEvalMode, const CeedScalar *,
                CeedScalar *);
   int (*Destroy)(CeedBasis);
+  int refcount;
   CeedInt dim;
   CeedInt ndof;
   CeedInt P1d;
@@ -100,6 +104,7 @@ struct CeedQFunction_private {
   int (*Apply)(CeedQFunction, void *, CeedInt, const CeedScalar *const *,
                CeedScalar *const *);
   int (*Destroy)(CeedQFunction);
+  int refcount;
   CeedInt vlength;    // Number of quadrature points must be padded to a multiple of vlength
   CeedInt nfields;
   size_t qdatasize;   // Number of bytes of qdata per quadrature point
@@ -114,6 +119,7 @@ struct CeedQFunction_private {
 
 struct CeedOperator_private {
   Ceed ceed;
+  int refcount;
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector,
                        CeedVector, CeedRequest *);

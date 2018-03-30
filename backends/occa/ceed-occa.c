@@ -124,7 +124,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   dbg("[CeedInit] resource: %s", resource);
   dbg("[CeedInit] deviceID: %d", deviceID);
   const char *mode_format = gpu?occaGPU : omp?occaOMP : ocl ? occaOCL : occaCPU;
-  char mode[CEED_MAX_RESOURCE_LEN];
+  char mode[CEED_MAX_RESOURCE_LEN] = {0};
   // Push deviceID for CUDA and OpenCL mode
   if (ocl || gpu) sprintf(mode,mode_format,deviceID);
   else memcpy(mode,mode_format,strlen(mode_format));
