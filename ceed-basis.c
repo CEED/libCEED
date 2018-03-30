@@ -54,6 +54,8 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
     return CeedError(ceed, 1, "Backend does not support BasisCreateTensorH1");
   ierr = CeedCalloc(1,basis); CeedChk(ierr);
   (*basis)->ceed = ceed;
+  ceed->refcount++;
+  (*basis)->refcount = 1;
   (*basis)->dim = dim;
   (*basis)->ndof = ncomp;
   (*basis)->P1d = P1d;
@@ -315,7 +317,7 @@ int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
 int CeedBasisDestroy(CeedBasis *basis) {
   int ierr;
 
-  if (!*basis) return 0;
+  if (!*basis || --(*basis)->refcount > 0) return 0;
   if ((*basis)->Destroy) {
     ierr = (*basis)->Destroy(*basis); CeedChk(ierr);
   }
@@ -323,6 +325,7 @@ int CeedBasisDestroy(CeedBasis *basis) {
   ierr = CeedFree(&(*basis)->grad1d); CeedChk(ierr);
   ierr = CeedFree(&(*basis)->qref1d); CeedChk(ierr);
   ierr = CeedFree(&(*basis)->qweight1d); CeedChk(ierr);
+  ierr = CeedDestroy(&(*basis)->ceed); CeedChk(ierr);
   ierr = CeedFree(basis); CeedChk(ierr);
   return 0;
 }

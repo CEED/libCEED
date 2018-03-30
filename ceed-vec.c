@@ -34,6 +34,8 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
     return CeedError(ceed, 1, "Backend does not support VecCreate");
   ierr = CeedCalloc(1,vec); CeedChk(ierr);
   (*vec)->ceed = ceed;
+  ceed->refcount++;
+  (*vec)->refcount = 1;
   (*vec)->length = length;
   ierr = ceed->VecCreate(ceed, length, *vec); CeedChk(ierr);
   return 0;
@@ -135,10 +137,11 @@ int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
 int CeedVectorDestroy(CeedVector *x) {
   int ierr;
 
-  if (!*x) return 0;
+  if (!*x || --(*x)->refcount > 0) return 0;
   if ((*x)->Destroy) {
     ierr = (*x)->Destroy(*x); CeedChk(ierr);
   }
+  ierr = CeedDestroy(&(*x)->ceed); CeedChk(ierr);
   ierr = CeedFree(x); CeedChk(ierr);
   return 0;
 }

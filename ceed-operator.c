@@ -46,11 +46,18 @@ int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
                                       "Backend does not support OperatorCreate");
   ierr = CeedCalloc(1,op); CeedChk(ierr);
   (*op)->ceed = ceed;
+  ceed->refcount++;
+  (*op)->refcount = 1;
   (*op)->Erestrict = r;
+  r->refcount++;
   (*op)->basis = b;
+  b->refcount++;
   (*op)->qf = qf;
+  qf->refcount++;
   (*op)->dqf = dqf;
+  if (dqf) dqf->refcount++;
   (*op)->dqfT = dqfT;
+  if (dqfT) dqfT->refcount++;
   ierr = ceed->OperatorCreate(*op); CeedChk(ierr);
   return 0;
 }
@@ -102,10 +109,16 @@ int CeedOperatorGetQData(CeedOperator op, CeedVector *qdata) {
 int CeedOperatorDestroy(CeedOperator *op) {
   int ierr;
 
-  if (!*op) return 0;
+  if (!*op || --(*op)->refcount > 0) return 0;
   if ((*op)->Destroy) {
     ierr = (*op)->Destroy(*op); CeedChk(ierr);
   }
+  ierr = CeedElemRestrictionDestroy(&(*op)->Erestrict); CeedChk(ierr);
+  ierr = CeedBasisDestroy(&(*op)->basis); CeedChk(ierr);
+  ierr = CeedQFunctionDestroy(&(*op)->qf); CeedChk(ierr);
+  ierr = CeedQFunctionDestroy(&(*op)->dqf); CeedChk(ierr);
+  ierr = CeedQFunctionDestroy(&(*op)->dqfT); CeedChk(ierr);
+  ierr = CeedDestroy(&(*op)->ceed); CeedChk(ierr);
   ierr = CeedFree(op); CeedChk(ierr);
   return 0;
 }
