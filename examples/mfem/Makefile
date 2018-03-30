@@ -26,7 +26,7 @@ CONFIG_MK ?= $(or $(wildcard $(MFEM_DIR)/config/config.mk),$(wildcard\
 MFEM_DEF = -DMFEM_DIR="\"$(abspath $(MFEM_DIR))\""
 
 MFEM_LIB_FILE = mfem_is_not_built
--include $(CONFIG_MK)
+-include $(wildcard $(CONFIG_MK))
 
 MFEM_EXAMPLES = bp1 bp3
 
