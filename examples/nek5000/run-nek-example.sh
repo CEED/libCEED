@@ -55,11 +55,11 @@ Example:
 # Read in parameter values
 while [ $# -gt 0 ]; do
   case "$1" in
-    -h|--help)
+    -h|-help)
        echo "$NEK_HELP_MSG"
        $NEK_EXIT_CMD
        ;;
-    -e|--example)
+    -e|-example)
        shift
        nek_ex="$1"
        ;;
@@ -67,11 +67,11 @@ while [ $# -gt 0 ]; do
        shift
        nek_spec="$1"
        ;;
-    -n|--np)
+    -n|-np)
        shift
        nek_np="$1"
        ;;
-    -b|--box)
+    -b|-box)
        shift
        nek_box="$1"
        ;;
@@ -83,19 +83,18 @@ if [[ ! -f ${nek_ex} ]]; then
   echo "Example ${nek_ex} does not exist. Build it with make-nek-examples.sh"
   ${NEK_EXIT_CMD} 1
 fi
-if [[ ! -f ${NEK_BOX_DIR}/${nek_box}/${nek_box}.rea || \
-	! -f ${NEK_BOX_DIR}/${nek_box}/${nek_box}.map ]]; then
-  echo ".rea/.map file(s) ./boxes/${nek_box}/${nek_box} does not exist."
-  ${NEK_EXIT_CMD} 1
+if [[ ! -f ${NEK_BOX_DIR}/b${nek_box}/b${nek_box}.rea || \
+	! -f ${NEK_BOX_DIR}/b${nek_box}/b${nek_box}.map ]]; then
+  ./generate-boxes.sh ${nek_box} ${nek_box}
 fi
 
-echo ${nek_box}                              > SESSION.NAME
-echo `cd ${NEK_BOX_DIR}/${nek_box}; pwd`'/' >> SESSION.NAME
+echo b${nek_box}                              > SESSION.NAME
+echo `cd ${NEK_BOX_DIR}/b${nek_box}; pwd`'/' >> SESSION.NAME
 rm -f logfile
 rm -f ioinfo
-mv ${nek_ex}.log.${nek_np}.${nek_box} ${nek_ex}.log1.${nek_np}.${nek_box} 2>/dev/null
+mv ${nek_ex}.log.${nek_np}.b${nek_box} ${nek_ex}.log1.${nek_np}.b${nek_box} 2>/dev/null
 
-mpiexec -np ${nek_np} ./${nek_ex} ${nek_spec} > ${nek_ex}.log.${nek_np}.${nek_box}
+${MPIEXEC:-mpiexec} -np ${nek_np} ./${nek_ex} ${nek_spec} > ${nek_ex}.log.${nek_np}.b${nek_box}
 wait $!
 
-echo "Run finished. Output was written to ${nek_ex}.log.${nek_np}.${nek_box}"
+echo "Run finished. Output was written to ${nek_ex}.log.${nek_np}.b${nek_box}"

@@ -33,7 +33,7 @@
 
 #include <ceed.h>
 #include <mfem.hpp>
-#include <bp1.hpp>
+#include "bp1.hpp"
 
 /// Continuous function to project on the discrete FE space
 double solution(const mfem::Vector &pt) {
@@ -44,7 +44,11 @@ double solution(const mfem::Vector &pt) {
 int main(int argc, char *argv[]) {
   // 1. Parse command-line options.
   const char *ceed_spec = "/cpu/self";
+#ifndef MFEM_DIR
   const char *mesh_file = "../../../mfem/data/star.mesh";
+#else
+  const char *mesh_file = MFEM_DIR "/data/star.mesh";
+#endif
   int order = 1;
   bool visualization = true;
 
