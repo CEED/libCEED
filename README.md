@@ -94,8 +94,8 @@ cd ../..
 cd examples/nek5000
 ./generate-boxes.sh 2 4
 ./make-nek-examples.sh
-./run-nek-example.sh -ceed /cpu/self -b b3
-./run-nek-example.sh -ceed /gpu/occa -b b3
+./run-nek-example.sh -ceed /cpu/self -b 3
+./run-nek-example.sh -ceed /gpu/occa -b 3
 cd ../..
 ```
 
