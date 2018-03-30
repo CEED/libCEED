@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/CEED/libCEED.svg?branch=master)](https://travis-ci.org/CEED/libCEED)
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
+[![Doxygen](https://codedocs.xyz/CEED/libCEED.svg)](https://codedocs.xyz/CEED/libCEED/)
 
 ## Code for Efficient Extensible Discretization
 
@@ -67,7 +68,7 @@ such as MFEM, PETSc and Nek5000.
 To build the examples, set the `MFEM_DIR`, `PETSC_DIR` and `NEK5K_DIR` variables
 and run:
 
-```
+```console
 # libCEED examples on CPU and GPU
 cd examples/ceed
 make
