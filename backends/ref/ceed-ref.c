@@ -428,14 +428,16 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector qdata,
     CeedChk(ierr);
   }
   ierr = CeedVectorRestoreArray(etmp, &Eu); CeedChk(ierr);
+  ierr = CeedVectorRestoreArray(qdata, (CeedScalar**)&qd); CeedChk(ierr);
   if (residual) {
     CeedScalar *res;
-    CeedVectorGetArray(residual, CEED_MEM_HOST, &res);
+    ierr = CeedVectorGetArray(residual, CEED_MEM_HOST, &res); CeedChk(ierr);
     for (int i = 0; i < residual->length; i++)
       res[i] = (CeedScalar)0;
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_TRANSPOSE,
                                     nc, lmode, etmp, residual,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
+    ierr = CeedVectorRestoreArray(residual, &res); CeedChk(ierr);
   }
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
