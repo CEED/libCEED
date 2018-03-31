@@ -293,10 +293,6 @@ static int CeedBasisDestroy_Occa(CeedBasis basis) {
   const Ceed ceed = basis->ceed;
   CeedBasis_Occa *data = basis->data;
   dbg("[CeedBasis][Destroy]");
-  occaFree(data->kZero);
-  occaFree(data->kInterp);
-  occaFree(data->kGrad);
-  occaFree(data->kWeight);
   occaFree(data->qref1d);
   occaFree(data->qweight1d);
   occaFree(data->interp1d);
