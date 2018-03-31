@@ -154,6 +154,7 @@ static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
   CeedQFunction_Occa *data=qf->data;
   free(data->oklPath);
   dbg("[CeedQFunction][Destroy]");
+  occaFree(data->kQFunctionApply);
   if (data->ready) {
     if (!data->op) occaFree(data->d_q);
     occaFree(data->d_u);
