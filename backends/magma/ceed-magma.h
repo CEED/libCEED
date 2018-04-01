@@ -20,6 +20,7 @@
 #include "magma.h"
 
 #define USE_MAGMA_BATCH
+#define USE_MAGMA_BATCH2
 
 void magma_dtensor_contract(Ceed ceed,
                             CeedInt A, CeedInt B, CeedInt C, CeedInt J,
