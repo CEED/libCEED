@@ -51,8 +51,12 @@ def main():
     fname  = fname.replace("-", "_")
     fname  = fname[fname.rfind("/")+1:]
 
-    cufile.write("#include <ceed-impl.h>                             \n\n")
-    cufile.write("#include \"atomics.cuh\"                             \n")
+    cufile.write("#include <ceed-impl.h>                       \n\n")
+    cufile.write("#include \"atomics.cuh\"                       \n")
+    cufile.write("#include \"magma_check_cudaerror.h\"         \n\n")
+    cufile.write("#define  MAX_TB_XDIM      2147483647           \n")
+    cufile.write("#define  MAX_THREADS_PTB  1024                 \n")
+    cufile.write("#define  OUR_THREADS_PTB  512                \n\n")
 
     # Search for the magma_template keyword in the input file
     for kernel in range(prog.count("magma_template")):
@@ -103,38 +107,65 @@ def main():
         if (numparts == 1): partsinit[0] = partsinit[2]
         if (numparts == 2): partsinit[2] = partsinit[2]
 
-        # Prepare the magma_template kernel and write it in the .cu file
+        # Prepare the magma_template kernel and write it in the .cu file ###
         kernel  = "__global__ void                                      \n"
         kernel +=  kname+"_kernel(                                      \n"
         for i in range(numparts):
             kernel += "    int "+parts[i]+"begin, int "+parts[i]+"end,  \n"
         kernel += "    " + args+ ")                                     \n"
         kernel += "{                                                    \n"
-        for i in range(numparts):
-            kernel += "   int " +parts[i]+ " = " +partsinit[i]+ ";      \n"
-        kernel += template +             "                            \n\n"
+        if (numparts == 1):
+            # preparing the kernel for template1 (one loop)  
+            kernel += "   int "+parts[0]+" = " +  \
+                parts[0]+"begin + blockIdx.x*blockDim.x+threadIdx.x;\n"
+            kernel += "   if ("+parts[0]+" < "+parts[0]+"end)       \n"
+            kernel += "   {                                         \n"
+            kernel += template  +                                  "\n"
+            kernel += "}  \n\n"
+        else:
+            # preparing the kernel for template2 (two loops) and template3 (3 loops)
+            for i in range(numparts):
+                kernel += "   int "+parts[i]+" = "+ \
+                    parts[i]+"begin + "+partsinit[i]+";\n"
+            kernel += template +             "                    \n\n"
 
-        # the interface function calling the kernel
+        # the interface function calling the kernel ########################
         kernel += "extern \"C\" void                                    \n"
         kernel +=  kname+"(                                             \n"
         for i in range(numparts):
             kernel += "    int "+parts[i]+"begin, int "+parts[i]+"end,  \n"
-        kernel += "    " + args + ")                                    \n"
-        kernel += "{                                                    \n"
+        kernel += "    " + args + ")\n"
+        kernel += "{                \n"
         if (numparts == 1):
-            kernel += "   dim3 grid(1, 1);                                   \n"
-            kernel += "   dim3 threads("+parts[0]+"end-" +parts[0]+"begin);\n\n"
+            # preparing the function for template1 (one loop)
+            kernel += "   int siz = "+parts[0]+"end-"+parts[0]+"begin;             \n"  
+            kernel += "   int THR_PTB = siz>MAX_THREADS_PTB? OUR_THREADS_PTB : siz;\n"
+            kernel += "   int nTB = magma_ceildiv(siz, THR_PTB);                 \n\n"
+            kernel += "   for(int r=0; r<nTB; r+=MAX_TB_XDIM)                      \n"
+            kernel += "   {                                                        \n"
+            kernel += "      int  this_TB = min(MAX_TB_XDIM, nTB-r);               \n"
+            kernel += "      dim3 grid(this_TB, 1, 1);                             \n"
+            kernel += "      dim3 threads(THR_PTB);                              \n\n"
+            kernel += "      " + kname + "_kernel<<<grid,threads,0>>>(             \n"
+            kernel += "          " + parts[0]+"begin+r*THR_PTB, "+parts[0]+"end,   \n"
+            kernel += "          " + find_argslist( args ) + ");                   \n"
+            kernel += "      magma_check_cudaerror();                              \n"
+            kernel += "   }                                                        \n"
         elif (numparts == 2):
             kernel += "   dim3 grid(   "+parts[0]+"end -"+parts[0]+"begin);  \n"
             kernel += "   dim3 threads("+parts[1]+"end-" +parts[1]+"begin);\n\n"
+            kernel += "   " + kname + "_kernel<<<grid,threads,0>>>(         \n"
+            for i in range(numparts):
+                kernel += "    " + parts[i]+"begin, "+parts[i]+"end,        \n"
+            kernel += "   " + find_argslist( args ) + ");                   \n"
         else:
             kernel += "   dim3 grid(   "+parts[0]+"end -"+parts[0]+"begin,"
             kernel +=                    parts[1]+"end -"+parts[1]+"begin); \n"
             kernel += "   dim3 threads("+parts[2]+"end-" +parts[2]+"begin);\n\n"
-        kernel += "   " + kname + "_kernel<<<grid,threads,0>>>(         \n"
-        for i in range(numparts):
-            kernel += "    " + parts[i]+"begin, "+parts[i]+"end,        \n"
-        kernel += "   " + find_argslist( args ) + ");                   \n"
+            kernel += "   " + kname + "_kernel<<<grid,threads,0>>>(         \n"
+            for i in range(numparts):
+                kernel += "    " + parts[i]+"begin, "+parts[i]+"end,        \n"
+            kernel += "   " + find_argslist( args ) + ");                   \n"
         kernel += "}                                                  \n\n"
 
         # write the current magma templates kernel
