@@ -95,9 +95,6 @@ static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
   const Ceed ceed = r->ceed;
   CeedElemRestriction_Occa *data = r->data;
   dbg("[CeedElemRestriction][Destroy]");
-  for (int i=0; i<9; i++) {
-    occaFree(data->kRestrict[i]);
-  }
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
