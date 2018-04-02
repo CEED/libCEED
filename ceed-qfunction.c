@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
+#include <string.h>
 
 /**
   @file
@@ -82,6 +83,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedInt nfields,
                                     CeedScalar *const *),
                                 const char *focca, CeedQFunction *qf) {
   int ierr;
+  char *focca_copy;
 
   if (!ceed->QFunctionCreate)
     return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
@@ -95,7 +97,9 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedInt nfields,
   (*qf)->inmode = inmode;
   (*qf)->outmode = outmode;
   (*qf)->function = f;
-  (*qf)->focca = focca;
+  ierr = CeedCalloc(strlen(focca)+1, &focca_copy); CeedChk(ierr);
+  strcpy(focca_copy, focca);
+  (*qf)->focca = focca_copy;
   ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
   return 0;
 }
@@ -134,6 +138,7 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   if ((*qf)->Destroy) {
     ierr = (*qf)->Destroy(*qf); CeedChk(ierr);
   }
+  ierr = CeedFree(&(*qf)->focca); CeedChk(ierr);
   ierr = CeedDestroy(&(*qf)->ceed); CeedChk(ierr);
   ierr = CeedFree(qf); CeedChk(ierr);
   return 0;
