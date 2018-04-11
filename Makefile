@@ -20,7 +20,7 @@ endif
 ifeq (,$(filter-out undefined default,$(origin FC)))
   FC = gfortran
 endif
-NVCC = nvcc
+NVCC = $(CUDA_DIR)/bin/nvcc
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
@@ -42,16 +42,20 @@ CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -O2 -g
+CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
+# If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
+ifneq ($(filter %xlf %xlf_r,$(FC)),)
+  FFLAGS = -qpreprocess -qextname -qpic -MMD
+endif
 
-CFLAGS += $(if $(NDEBUG),-DNDEBUG=1)
+CFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
 
 ifeq ($(UNDERSCORE), 1)
   CFLAGS += -DUNDERSCORE
 endif
 
-FFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG,-g)
+FFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
 
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
@@ -155,11 +159,14 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
   CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
   ifneq ($(CUDA_LIB_DIR),)
+  cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
+  omp_link = -fopenmp
+  magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
+  magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
+  magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
   magma_allsrc.o = $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o)
-  $(libceed)           : LDFLAGS += -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)
-  $(tests) $(examples) : LDFLAGS += -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)
-  $(libceed)           : LDLIBS += -lmagma -L$(CUDA_LIB_DIR) -lcudart
-  $(tests) $(examples) : LDLIBS += -lmagma -L$(CUDA_LIB_DIR) -lcudart
+  $(libceed)           : LDLIBS += $(magma_link)
+  $(tests) $(examples) : LDLIBS += $(magma_link)
   $(libceed) : $(magma_allsrc.o)
   libceed.c  += $(magma_allsrc.c)
   libceed.cu += $(magma_allsrc.cu)

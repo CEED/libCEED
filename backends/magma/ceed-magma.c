@@ -808,10 +808,12 @@ static int CeedOperatorCreate_Magma(CeedOperator op) {
 // * INIT
 // *****************************************************************************
 static int CeedInit_Magma(const char *resource, Ceed ceed) {
+  int ierr;
   if (strcmp(resource, "/gpu/magma"))
     return CeedError(ceed, 1, "MAGMA backend cannot use resource: %s", resource);
 
-  magma_init();
+  ierr = magma_init();
+  if (ierr) return CeedError(ceed, 1, "error in magma_init(): %d\n", ierr);
   //magma_print_environment();
 
   ceed->VecCreate = CeedVectorCreate_Magma;
