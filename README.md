@@ -110,7 +110,6 @@ CEED resource (`-ceed`) | Backend
 `/gpu/occa`             | CUDA OCCA kernels
 `/omp/occa`             | OpenMP OCCA kernels
 `/ocl/occa`             | OpenCL OCCA kernels
-`/cpu/magma`            | Serial MAGMA kernels
 `/gpu/magma`            | CUDA MAGMA kernels
 
 ## Install

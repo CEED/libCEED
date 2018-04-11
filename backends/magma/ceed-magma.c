@@ -808,8 +808,7 @@ static int CeedOperatorCreate_Magma(CeedOperator op) {
 // * INIT
 // *****************************************************************************
 static int CeedInit_Magma(const char *resource, Ceed ceed) {
-  if (strcmp(resource, "/cpu/magma")
-      && strcmp(resource, "/gpu/magma"))
+  if (strcmp(resource, "/gpu/magma"))
     return CeedError(ceed, 1, "MAGMA backend cannot use resource: %s", resource);
 
   magma_init();
@@ -828,6 +827,5 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
 // *****************************************************************************
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/magma", CeedInit_Magma);
   CeedRegister("/gpu/magma", CeedInit_Magma);
 }
