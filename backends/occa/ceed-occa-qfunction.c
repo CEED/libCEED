@@ -130,16 +130,16 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
   else
     CeedQFunctionFillOp_Occa(d_u,u,inmode,Q,nc,dim,bytes);
   // ***************************************************************************
-  if (cbytes>0) occaCopyPtrToMem(data->d_c,qf->ctx,cbytes,0,NO_PROPS);
+  if (cbytes>0) occaCopyPtrToMem(d_c,qf->ctx,cbytes,0,NO_PROPS);
   // ***************************************************************************
   occaKernelRun(data->kQFunctionApply,
                 d_c, d_q, occaInt(e), occaInt(Q),
                 d_u, b_u,d_v, b_v);
   // ***************************************************************************
-  if (cbytes>0) occaCopyMemToPtr(qf->ctx,data->d_c,cbytes,0,NO_PROPS);
+  if (cbytes>0) occaCopyMemToPtr(qf->ctx,d_c,cbytes,0,NO_PROPS);
   // ***************************************************************************
-  if (outmode==CEED_EVAL_NONE && !data->op)
-    occaCopyMemToPtr(qdata,d_q,qbytes,NO_OFFSET,NO_PROPS);
+  if (outmode==CEED_EVAL_NONE)
+    occaCopyMemToPtr(qdata,d_q,qbytes,e*Q*bytes,NO_PROPS);
   if (outmode==CEED_EVAL_INTERP)
     occaCopyMemToPtr(*v,d_v,vbytes,NO_OFFSET,NO_PROPS);
   assert(outmode==CEED_EVAL_NONE || outmode==CEED_EVAL_INTERP);
