@@ -24,6 +24,8 @@ static int CeedOperatorDestroy_Occa(CeedOperator op) {
   dbg("[CeedOperator][Destroy]");
   CeedOperator_Occa *data = op->data;
   int ierr = CeedVectorDestroy(&data->etmp); CeedChk(ierr);
+  ierr = CeedVectorDestroy(&data->BEu); CeedChk(ierr);
+  ierr = CeedVectorDestroy(&data->BEv); CeedChk(ierr);
   ierr = CeedVectorDestroy(&data->qdata); CeedChk(ierr);
   ierr = CeedFree(&op->data); CeedChk(ierr);
   return 0;

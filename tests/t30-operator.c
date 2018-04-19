@@ -75,6 +75,7 @@ int main(int argc, char **argv) {
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &hv);
   for (CeedInt i=0; i<Nu; i++)
     if (hv[i] != 0.0) printf("[%d] v %f != 0.0\n",i, hv[i]);
+  CeedVectorRestoreArrayRead(V, &hv);
 
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_mass);
