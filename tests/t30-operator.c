@@ -27,6 +27,7 @@ int main(int argc, char **argv) {
   CeedQFunction qf_setup, qf_mass;
   CeedOperator op_setup, op_mass;
   CeedVector qdata, X, U, V;
+  CeedScalar *hu;
   const CeedScalar *hv;
   CeedInt nelem = 5, P = 5, Q = 8;
   CeedInt Nx = nelem+1, Nu = nelem*(P-1)+1;
@@ -69,12 +70,16 @@ int main(int argc, char **argv) {
   CeedOperatorApply(op_setup, qdata, X, NULL, CEED_REQUEST_IMMEDIATE);
 
   CeedVectorCreate(ceed, Nu, &U);
+  CeedVectorGetArray(U, CEED_MEM_HOST, &hu);
+  for (CeedInt i=0; i<Nu; i++)
+    hu[i] = 0.0;
+  CeedVectorRestoreArray(U, &hu);
   CeedVectorCreate(ceed, Nu, &V);
   CeedOperatorApply(op_mass, qdata, U, V, CEED_REQUEST_IMMEDIATE);
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &hv);
   for (CeedInt i=0; i<Nu; i++)
-    if (hv[i] != 0.0) printf("[%d] v %f != 0.0\n",i, hv[i]);
+    if (hv[i] != 0.0) printf("[%d] v %g != 0.0\n",i, hv[i]);
   CeedVectorRestoreArrayRead(V, &hv);
 
   CeedQFunctionDestroy(&qf_setup);

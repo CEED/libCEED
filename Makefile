@@ -20,6 +20,7 @@ endif
 ifeq (,$(filter-out undefined default,$(origin FC)))
   FC = gfortran
 endif
+NVCC = $(CUDA_DIR)/bin/nvcc
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
@@ -31,12 +32,22 @@ UNDERSCORE ?= 1
 # OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
 OCCA_DIR ?= ../occa
 
+# env variable MAGMA_DIR can be used too
+MAGMA_DIR ?= ../magma
+# If CUDA_DIR is not set, check for nvcc, or resort to /usr/local/cuda
+CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
+               $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
+
 # Warning: SANTIZ options still don't run with /gpu/occa
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
+# If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
+ifneq ($(filter %xlf %xlf_r,$(FC)),)
+  FFLAGS = -qpreprocess -qextname -qpic -MMD
+endif
 
 CFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
 
@@ -44,7 +55,7 @@ ifeq ($(UNDERSCORE), 1)
   CFLAGS += -DUNDERSCORE
 endif
 
-FFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG,-g)
+FFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
 
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
@@ -91,9 +102,16 @@ examples.c := $(sort $(wildcard examples/ceed/*.c))
 examples.f := $(sort $(wildcard examples/ceed/*.f))
 examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%)
 examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
-# backends/[ref & occa]
+# backends/[ref & occa  & magma]
 ref.c     := $(sort $(wildcard backends/ref/*.c))
 occa.c    := $(sort $(wildcard backends/occa/*.c))
+magma_preprocessor := python backends/magma/gccm.py
+magma_pre_src  := $(filter-out %_tmp.c, $(wildcard backends/magma/ceed-*.c))
+magma_dsrc     := $(wildcard backends/magma/magma_d*.c)
+magma_tmp.c    := $(magma_pre_src:%.c=%_tmp.c)
+magma_tmp.cu   := $(magma_pre_src:%.c=%_cuda.cu)
+magma_allsrc.c := $(magma_dsrc) $(magma_tmp.c)
+magma_allsrc.cu:= $(magma_tmp.cu)
 
 # Output using the 216-color rules mode
 rule_file = $(notdir $(1))
@@ -116,6 +134,8 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 .SUFFIXES: .c .o .d
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
 
+.SECONDARY: $(magma_tmp.c) $(magma_tmp.cu)
+
 %/.DIR :
 	@mkdir -p $(@D)
 	@touch $@
@@ -135,11 +155,38 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   libceed.c += $(occa.c)
   $(occa.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(OCCA_DIR)/include
 endif
-$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) | $$(@D)/.DIR
+ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
+  CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
+  CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
+  ifneq ($(CUDA_LIB_DIR),)
+  cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
+  omp_link = -fopenmp
+  magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
+  magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
+  magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
+  magma_allsrc.o = $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o)
+  $(libceed)           : LDLIBS += $(magma_link)
+  $(tests) $(examples) : LDLIBS += $(magma_link)
+  $(libceed) : $(magma_allsrc.o)
+  libceed.c  += $(magma_allsrc.c)
+  libceed.cu += $(magma_allsrc.cu)
+  $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
+  $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o) : NVCCFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
+  endif
+endif
+
+# generate magma_tmp.c and magma_cuda.cu from magma.c
+$(magma_tmp.c) $(magma_tmp.cu): $(magma_pre_src) | $$(@D)/.DIR
+	$(magma_preprocessor) $<
+
+$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) | $$(@D)/.DIR
 	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
+
+$(OBJDIR)/%.o : %.cu | $$(@D)/.DIR
+	$(call quiet,NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
@@ -205,6 +252,7 @@ cln clean :
 	$(MAKE) -C examples/mfem clean
 	$(MAKE) -C examples/petsc clean
 	(cd examples/nek5000 && bash make-nek-examples.sh clean)
+	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
 
 distclean : clean
 	rm -rf doc/html
