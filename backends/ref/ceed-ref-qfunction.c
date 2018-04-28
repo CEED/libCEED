@@ -18,19 +18,20 @@
 #include <string.h>
 #include "ceed-ref.h"
 
-static int CeedInit_Ref(const char *resource, Ceed ceed) {
-  if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/ref"))
-    return CeedError(ceed, 1, "Ref backend cannot use resource: %s", resource);
-  ceed->VecCreate = CeedVectorCreate_Ref;
-  ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Ref;
-  ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Ref;
-  ceed->QFunctionCreate = CeedQFunctionCreate_Ref;
-  ceed->OperatorCreate = CeedOperatorCreate_Ref;
+static int CeedQFunctionApply_Ref(CeedQFunction qf, void *qdata, CeedInt Q,
+                                  const CeedScalar *const *u,
+                                  CeedScalar *const *v) {
+  int ierr;
+  ierr = qf->function(qf->ctx, qdata, Q, u, v); CeedChk(ierr);
   return 0;
 }
 
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/cpu/self/ref", CeedInit_Ref);
+static int CeedQFunctionDestroy_Ref(CeedQFunction qf) {
+  return 0;
+}
+
+int CeedQFunctionCreate_Ref(CeedQFunction qf) {
+  qf->Apply = CeedQFunctionApply_Ref;
+  qf->Destroy = CeedQFunctionDestroy_Ref;
+  return 0;
 }

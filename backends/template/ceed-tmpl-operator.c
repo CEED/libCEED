@@ -16,21 +16,14 @@
 
 #include <ceed-impl.h>
 #include <string.h>
-#include "ceed-ref.h"
+#include "ceed-tmpl.h"
 
-static int CeedInit_Ref(const char *resource, Ceed ceed) {
-  if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/ref"))
-    return CeedError(ceed, 1, "Ref backend cannot use resource: %s", resource);
-  ceed->VecCreate = CeedVectorCreate_Ref;
-  ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Ref;
-  ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Ref;
-  ceed->QFunctionCreate = CeedQFunctionCreate_Ref;
-  ceed->OperatorCreate = CeedOperatorCreate_Ref;
+int CeedOperatorCreate_Tmpl(CeedOperator op) {
+  int ierr;
+  Ceed_Tmpl *impl = op->ceed->data;
+  Ceed ceedref = impl->ceedref;
+  ierr = ceedref->OperatorCreate(op);
+  CeedChk(ierr);
+
   return 0;
-}
-
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/cpu/self/ref", CeedInit_Ref);
 }
