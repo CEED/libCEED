@@ -104,7 +104,7 @@ be provided with the `-ceed` option, for example:
 
 CEED resource (`-ceed`) | Backend
 ----------------------- | ---------------------------------
-`/cpu/self`             | Serial reference implementation
+`/cpu/self/ref`         | Serial reference implementation
 `/cpu/occa`             | Serial OCCA kernels
 `/gpu/occa`             | CUDA OCCA kernels
 `/omp/occa`             | OpenMP OCCA kernels

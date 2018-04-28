@@ -16,21 +16,35 @@
 
 #include <ceed-impl.h>
 #include <string.h>
-#include "ceed-ref.h"
 
-static int CeedInit_Ref(const char *resource, Ceed ceed) {
-  if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/ref"))
-    return CeedError(ceed, 1, "Ref backend cannot use resource: %s", resource);
-  ceed->VecCreate = CeedVectorCreate_Ref;
-  ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Ref;
-  ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Ref;
-  ceed->QFunctionCreate = CeedQFunctionCreate_Ref;
-  ceed->OperatorCreate = CeedOperatorCreate_Ref;
-  return 0;
-}
+typedef struct {
+  CeedScalar *array;
+  CeedScalar *array_allocated;
+} CeedVector_Ref;
 
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/cpu/self/ref", CeedInit_Ref);
-}
+typedef struct {
+  const CeedInt *indices;
+  CeedInt *indices_allocated;
+} CeedElemRestriction_Ref;
+
+typedef struct {
+  CeedVector etmp;
+  CeedVector qdata;
+} CeedOperator_Ref;
+
+CEED_INTERN int CeedVectorCreate_Ref(Ceed ceed, CeedInt n, CeedVector vec);
+
+CEED_INTERN int CeedElemRestrictionCreate_Ref(CeedElemRestriction r,
+    CeedMemType mtype,
+    CeedCopyMode cmode, const CeedInt *indices);
+
+CEED_INTERN int CeedBasisCreateTensorH1_Ref(Ceed ceed, CeedInt dim, CeedInt P1d,
+    CeedInt Q1d, const CeedScalar *interp1d,
+    const CeedScalar *grad1d,
+    const CeedScalar *qref1d,
+    const CeedScalar *qweight1d,
+    CeedBasis basis);
+
+CEED_INTERN int CeedQFunctionCreate_Ref(CeedQFunction qf);
+
+CEED_INTERN int CeedOperatorCreate_Ref(CeedOperator op);

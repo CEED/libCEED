@@ -13,3 +13,4 @@ ceed.pc
 # Mac specific
 .DS_Store
 *.dSYM
+*~
