@@ -99,7 +99,7 @@ cd ../..
 ```
 
 The above code assumes a GPU-capable machine enabled in the OCCA
-backend. Depending on the availabl backends, other Ceed resource specifiers can
+backend. Depending on the available backends, other Ceed resource specifiers can
 be provided with the `-ceed` option, for example:
 
 CEED resource (`-ceed`) | Backend
