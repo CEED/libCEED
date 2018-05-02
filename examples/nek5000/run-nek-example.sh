@@ -79,6 +79,12 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+if [[ -z "${nek_box}" ]]; then
+    echo "$0: You must specify option -b <number of boxes>."
+    echo "$NEK_HELP_MSG"
+    ${NEK_EXIT_CMD} 1
+fi
+
 if [[ ! -f ${nek_ex} ]]; then
   echo "Example ${nek_ex} does not exist. Build it with make-nek-examples.sh"
   ${NEK_EXIT_CMD} 1
