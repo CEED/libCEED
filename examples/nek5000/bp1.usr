@@ -299,26 +299,6 @@ c     Output: ur,us,ut         Input:u,n,D,Dt
       return
       end
 c-----------------------------------------------------------------------
-      subroutine loc_grad3_ta(u,ur,us,ut,N,D,Dt)
-c     Output: ur,us,ut         Input:u,N,D,Dt
-      real u (0:N,0:N,0:N)
-      real ur(0:N,0:N,0:N),us(0:N,0:N,0:N),ut(0:N,0:N,0:N)
-      real D (0:N,0:N),Dt(0:N,0:N)
-      integer e
-
-      m1 = N+1
-      m2 = m1*m1
-      m3 = m1*m1*m1
-
-      call mxma(Dt,m1,ur,m1,u,m2)
-      do k=0,N
-         call mxma(us(0,0,k),m1,D ,m1,u(0,0,k),m1)
-      enddo
-      call mxma(ut,m2,D ,m1,u,m1)
-
-      return
-      end
-c-----------------------------------------------------------------------
       subroutine loc_grad2(ur,us,u,n,D,Dt)
 c     Output: ur,us         Input:u,n,D,Dt
       real ur(0:n,0:n,0:n),us(0:n,0:n,0:n)
@@ -331,22 +311,6 @@ c     Output: ur,us         Input:u,n,D,Dt
 
       call mxm(D ,m1,u,m1,ur,m2)
       call mxm(u,m2,Dt,m1,us,m1)
-
-      return
-      end
-c-----------------------------------------------------------------------
-      subroutine loc_grad2_ta(u,ur,us,N,D,Dt)
-c     Output: ur,us         Input:u,N,D,Dt
-      real u (0:N,0:N,0:N)
-      real ur(0:N,0:N,0:N),us(0:N,0:N,0:N)
-      real D (0:N,0:N),Dt(0:N,0:N)
-      integer e
-
-      m1 = N+1
-      m2 = m1
-
-      call mxma(Dt,m1,ur,m1,u,m2)
-      call mxma(us,m2,D ,m1,u,m1)
 
       return
       end
@@ -392,7 +356,8 @@ c-----------------------------------------------------------------------
       ierr=0
       end
 c-----------------------------------------------------------------------
-      subroutine cggos(u1,r1,h1,h2,rmult,binv,tin,ceed,maxit)
+      subroutine cggos(u1,r1,h1,h2,rmult,binv,tin,ceed,op_mass,vec_p1,
+     $  vec_ap1,vec_qdata,maxit)
 
 c     Vector conjugate gradient iteration for solution of uncoupled
 c     Helmholtz equations
@@ -402,11 +367,8 @@ c     Helmholtz equations
       include 'DOMAIN'
       include 'FDMH1'
 
-      include 'ceedf.h'
-      external massf
-
       real u1(1),r1(1),h1(1),h2(1),rmult(1),binv(1)
-      integer ceed
+      integer ceed,op_mass,vec_p1,vec_ap1,vec_qdata
 
       common /scrcg1/ wv(3),wk(3),rpp1(3),rpp2(3),alph(3),beta(3),pap(3)
 
@@ -415,16 +377,6 @@ c     Helmholtz equations
       common /scrcg/  dpc(lt)
      $     ,          p1 (lt)
      $     ,          z1 (lt)
-
-      integer indices(lelt*(lx1**ldim))
-      integer p,q,ncomp,edof,ldof
-      integer basis,err
-      integer erstrct
-      integer qdata
-      integer qf_mass
-      integer op_mass
-      integer vec_p1,vec_ap1,vec_qdata
-      integer ee,ii,i,e,ex,ey,ez
 
       real ap1(lt)
       equivalence (ap1,z1)
@@ -442,45 +394,6 @@ c     Helmholtz equations
 
 c     Evaluate diagional pre-conidtioner for fluid solve
       call setprecn (dpc,h1,h2)
-
-c     Create a ceed basis
-      p=nx1
-      q=p+1
-      ncomp=1
-      call ceedbasiscreatetensorh1lagrange(ceed,ndim,ncomp,p,q,
-     $  ceed_gauss,basis,err)
-
-c     Create a ceed element restriction
-      edof=nx1**ndim
-      ldof=edof*nelt*ncomp
-
-      ii=1
-      do e=1,nelt
-      do i=1,edof
-        indices(ii)=ii-1
-        ii=ii+1
-      enddo
-      enddo
-
-      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,
-     $  ceed_mem_host,ceed_use_pointer,indices,erstrct,err)
-
-c     Create a ceed qfunction
-      call ceedqfunctioncreateinterior(ceed,1,ncomp,8,ceed_eval_interp,
-     $  ceed_eval_interp,massf,
-     $  __FILE__
-     $  //':massf'//char(0),qf_mass,err)
-
-c     Create a ceed operator
-      call ceedoperatorcreate(ceed,erstrct,basis,qf_mass,
-     $  ceed_null,ceed_null,op_mass,err)
-
-c     Create ceed vectors
-      call ceedvectorcreate(ceed,ldof,vec_ap1,err)
-      call ceedvectorcreate(ceed,ldof,vec_p1,err)
-      call ceedoperatorgetqdata(op_mass,vec_qdata,err)
-      call ceedvectorsetarray(vec_qdata,ceed_mem_host,
-     $  ceed_use_pointer,h2,err)
 
 c     Start cg
       wv(1)=0
@@ -561,14 +474,6 @@ c        tolerance check here
  3001 format(2i6,' Unconverged cggos/Fluid: rbnorm =',2E13.6)
  3011 format(2i6,' Unconverged cggos/Mesh : rbnorm =',2E13.6)
 
-c     Destroy ceed handles
-      call ceedvectordestroy(vec_ap1,err)
-      call ceedvectordestroy(vec_p1,err)
-      call ceedoperatordestroy(op_mass,err)
-      call ceedqfunctiondestroy(qf_mass,err)
-      call ceedelemrestrictiondestroy(erstrct,err)
-      call ceedbasisdestroy(basis,err)
-
       return
       end
 c-----------------------------------------------------------------------
@@ -589,46 +494,6 @@ c-----------------------------------------------------------------------
          ju(i)=ju(i)*h2(i) !! h2 must be on the fine grid, w/ quad wts
       enddo
       call intp_rstd (w,ju,lx1,nxq,if3d,1) ! 1 --> ju-->u
-
-      return
-      end
-c-----------------------------------------------------------------------
-      subroutine axhm1(pap,ap1,p1,h1,h2)
-
-c     Vector conjugate gradient matvec for solution of uncoupled
-c     Helmholtz equations
-
-      include 'SIZE'
-      include 'TOTAL'
-
-      parameter (lx=lx1*ly1*lz1,lg=3+3*(ldim-2))
-      real         gf(lg,lx,lelt)             ! Equivalence new gf() data
-      equivalence (gf,g1m1)                   ! layout to g1m1...g6m1
-
-
-      real ap1(lx,lelt)
-      real  p1(lx,lelt)
-      real  h1(lx,lelt), h2(lx,lelt)
-
-      real ur(lx),us(lx),ut(lx)
-      common /ctmp1/ ur,us,ut
-
-      integer e
-
-      pap=0
-
-      nxq = nx1+1
-      k=1
-      do e=1,nelt
-
-         call ax_e(ap1(1,e),p1(1,e),gf(1,1,e),h1(1,e),h2(k,1)
-     $                                          ,bm1(1,1,1,e),ur,us,ut)
-         do i=1,lx
-           pap=pap+ap1(i,e)*p1(i,e)
-         enddo
-         k=k+nxq*nxq*nxq
-
-      enddo
 
       return
       end
@@ -885,6 +750,18 @@ c-----------------------------------------------------------------------
       integer ceed,err
       character*64 spec
 
+      integer indices(lelt*(lx1**ldim))
+      integer p,q,ncomp,edof,ldof
+      integer basis
+      integer erstrct
+      integer qdata
+      integer qf_mass
+      integer op_mass
+      integer vec_p1,vec_ap1,vec_qdata
+      integer ii,i,e
+
+      external massf
+
 c     Init ceed library
       call get_spec(spec)
       call ceedinit(trim(spec)//char(0),ceed,err)
@@ -897,21 +774,6 @@ c     Init ceed library
       n = nx1*ny1*nz1*nelt
 
       call rand_fld_h1(e1)
-
-c     ratio = nid
-c     ratio = (1.-ratio/(10*np))  ! A number between 0.9 and 1.0
-c     do i=1,n
-c        e1(i)=(abs(e1(i)))**ratio
-c     enddo
-c     call dsavg(e1)
-
-c     do i=1,n
-c        x=xm1(i,1,1,1)
-c        y=ym1(i,1,1,1)
-c        z=zm1(i,1,1,1)
-c        e1(i) = sin(pi*x)*sin(pi*x*y)*sin(pi*x*y*z)
-c     enddo
-c     call dsavg(e1)
 
       call copy       (e2,e1,n)
       call copy       (e3,e1,n)
@@ -942,10 +804,52 @@ c     call dsavg(e1)
       maxit2=maxit
       maxit3=maxit
 
+c     Create a ceed basis
+      p=nx1
+      q=p+1
+      ncomp=1
+      call ceedbasiscreatetensorh1lagrange(ceed,ndim,ncomp,p,q,
+     $  ceed_gauss,basis,err)
+
+c     Create a ceed element restriction
+      edof=nx1**ndim
+      ldof=edof*nelt*ncomp
+
+      ii=1
+      do e=1,nelt
+      do i=1,edof
+        indices(ii)=ii-1
+        ii=ii+1
+      enddo
+      enddo
+
+      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,
+     $  ceed_mem_host,ceed_use_pointer,indices,erstrct,err)
+
+c     Create a ceed qfunction
+      call ceedqfunctioncreateinterior(ceed,1,ncomp,8,ceed_eval_interp,
+     $  ceed_eval_interp,massf,
+     $  __FILE__
+     $  //':massf'//char(0),qf_mass,err)
+
+c     Create a ceed operator
+      call ceedoperatorcreate(ceed,erstrct,basis,qf_mass,
+     $  ceed_null,ceed_null,op_mass,err)
+
+c     Create ceed vectors
+      call ceedvectorcreate(ceed,ldof,vec_p1,err)
+      call ceedvectorcreate(ceed,ldof,vec_ap1,err)
+      call ceedoperatorgetqdata(op_mass,vec_qdata,err)
+      call ceedvectorsetarray(vec_qdata,ceed_mem_host,
+     $  ceed_use_pointer,h2,err)
+
       tstart = dnekclock()
-      call cggos(u1,r1,h1,h2,vmult,binvm1,tol,ceed,maxit1)
-      call cggos(u2,r2,h1,h2,vmult,binvm1,tol,ceed,maxit2)
-      call cggos(u3,r3,h1,h2,vmult,binvm1,tol,ceed,maxit3)
+      call cggos(u1,r1,h1,h2,vmult,binvm1,tol,ceed,op_mass,vec_p1,
+     $  vec_ap1,vec_qdata,maxit1)
+      call cggos(u2,r2,h1,h2,vmult,binvm1,tol,ceed,op_mass,vec_p1,
+     $  vec_ap1,vec_qdata,maxit2)
+      call cggos(u3,r3,h1,h2,vmult,binvm1,tol,ceed,op_mass,vec_p1,
+     $  vec_ap1,vec_qdata,maxit3)
       tstop  = dnekclock()
 
       telaps = (tstop-tstart)
@@ -976,12 +880,60 @@ c     call dsavg(e1)
 
     1 format(a12,i7,i3,i7,i10,i14,i10,i4,1p4e13.5)
 
+c     Destroy ceed handles
+      call ceedvectordestroy(vec_ap1,err)
+      call ceedvectordestroy(vec_p1,err)
+      call ceedoperatordestroy(op_mass,err)
+      call ceedqfunctiondestroy(qf_mass,err)
+      call ceedelemrestrictiondestroy(erstrct,err)
+      call ceedbasisdestroy(basis,err)
       call ceeddestroy(ceed,err)
 
 c     Uncomment the exitti command below if you want to quit as soon as
 c     we are done with timing. But this will exit with a non-zero status
 c     and will print out an error message.
 c      call exitti('quit after cggos$',0)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine ceed_axhm1(pap,ap1,p1,h1,h2,ceed,op_mass,
+     $  vec_ap1,vec_p1,vec_qdata)
+
+      include 'ceedf.h'
+
+c     Vector conjugate gradient matvec for solution of uncoupled
+c     Helmholtz equations
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      parameter (lx=lx1*ly1*lz1,lg=3+3*(ldim-2))
+      real         gf(lg,lx,lelt)             ! Equivalence new gf() data
+      equivalence (gf,g1m1)                   ! layout to g1m1...g6m1
+
+
+      real ap1(lx,lelt)
+      real  p1(lx,lelt)
+      real  h1(lx,lelt), h2(lx,lelt)
+      integer ceed,op_mass,vec_ap1,vec_p1,vec_qdata
+
+      call ceedvectorsetarray(vec_p1,ceed_mem_host,ceed_use_pointer,
+     $  p1,err)
+      call ceedoperatorapply(op_mass,vec_qdata,vec_p1,vec_ap1,
+     $  ceed_request_immediate,err)
+      call ceedvectorgetarray(vec_ap1,ceed_mem_host,ap1,err)
+
+      pap=0
+
+      nxq = nx1+1
+      k=1
+      do e=1,nelt
+         do i=1,lx
+           pap=pap+ap1(i,e)*p1(i,e)
+         enddo
+         k=k+nxq*nxq*nxq
+      enddo
 
       return
       end
@@ -1010,48 +962,6 @@ c-----------------------------------------------------------------------
       enddo
       enddo
 
-
-      return
-      end
-c-----------------------------------------------------------------------
-      subroutine ceed_axhm1(pap,ap1,p1,h1,h2,ceed,op_mass,
-     $  vec_ap1,vec_p1,vec_qdata)
-
-      include 'ceedf.h'
-
-c     Vector conjugate gradient matvec for solution of uncoupled
-c     Helmholtz equations
-
-      include 'SIZE'
-      include 'TOTAL'
-
-      parameter (lx=lx1*ly1*lz1,lg=3+3*(ldim-2))
-      real         gf(lg,lx,lelt)             ! Equivalence new gf() data
-      equivalence (gf,g1m1)                   ! layout to g1m1...g6m1
-
-
-      real ap1(lx,lelt)
-      real  p1(lx,lelt)
-      real  h1(lx,lelt), h2(lx,lelt)
-      integer ceed,op_mass,vec_ap1,vec_p1,vec_qdata
-      integer e
-
-      call ceedvectorsetarray(vec_p1,ceed_mem_host,ceed_use_pointer,
-     $  p1,err)
-      call ceedoperatorapply(op_mass,vec_qdata,vec_p1,vec_ap1,
-     $  ceed_request_immediate,err)
-      call ceedvectorgetarray(vec_ap1,ceed_mem_host,ap1,err)
-
-      pap=0
-
-      nxq = nx1+1
-      k=1
-      do e=1,nelt
-         do i=1,lx
-           pap=pap+ap1(i,e)*p1(i,e)
-         enddo
-         k=k+nxq*nxq*nxq
-      enddo
 
       return
       end
