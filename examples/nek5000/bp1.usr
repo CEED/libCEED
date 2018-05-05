@@ -824,7 +824,7 @@ c     Create a ceed element restriction
       enddo
 
       call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,
-     $  ceed_mem_host,ceed_use_pointer,indices,erstrct,err)
+     $  ceed_mem_host,ceed_use_pointer,ceed_null,erstrct,err)
 
 c     Create a ceed qfunction
       call ceedqfunctioncreateinterior(ceed,1,ncomp,8,ceed_eval_interp,
