@@ -135,10 +135,15 @@ void fCeedElemRestrictionCreate(int *ceed, int *nelements,
     CeedRealloc(CeedElemRestriction_count_max, &CeedElemRestriction_dict);
   }
 
+  const int *indices_ = indices;
+  if (*indices == FORTRAN_NULL) {
+    indices_ = NULL;
+  }
+
   CeedElemRestriction *elemrestriction_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
   *err = CeedElemRestrictionCreate(Ceed_dict[*ceed], *nelements, *esize, *ndof,
-                                   *memtype, *copymode, indices, elemrestriction_);
+                                   *memtype, *copymode, indices_, elemrestriction_);
 
   if (*err == 0) {
     *elemrestriction = CeedElemRestriction_count++;
