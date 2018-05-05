@@ -99,12 +99,13 @@ cd ../..
 ```
 
 The above code assumes a GPU-capable machine enabled in the OCCA
-backend. Depending on the availabl backends, other Ceed resource specifiers can
+backend. Depending on the available backends, other Ceed resource specifiers can
 be provided with the `-ceed` option, for example:
 
 CEED resource (`-ceed`) | Backend
 ----------------------- | ---------------------------------
-`/cpu/self`             | Serial reference implementation
+`/cpu/self/ref`         | Serial reference implementation
+`/cpu/self/tmpl`        | Backend template, dispatches to reference
 `/cpu/occa`             | Serial OCCA kernels
 `/gpu/occa`             | CUDA OCCA kernels
 `/omp/occa`             | OpenMP OCCA kernels

@@ -40,7 +40,6 @@ EXAMPLES=bp1
 
 # See if its just cleaning and if yes, clean and exit
 if [[ "$#" -eq 1 && "$1" -eq "clean" ]]; then
-    echo NEK clean
   if [[ -f ./makenek ]]; then
     printf "y\n" | ./makenek clean 2>&1 >> /dev/null
   fi

@@ -1,5 +1,5 @@
-#ifndef MAGMABLAS_CHECK_CUDAERROR_H 
-#define MAGMABLAS_CHECK_CUDAERROR_H 
+#ifndef MAGMABLAS_CHECK_CUDAERROR_H
+#define MAGMABLAS_CHECK_CUDAERROR_H
 
 #define magma_check_cudaerror() {                                          \
  cudaError_t e=cudaGetLastError();                                 \
@@ -9,4 +9,4 @@
  }                                                                 \
 }
 
-#endif 
+#endif

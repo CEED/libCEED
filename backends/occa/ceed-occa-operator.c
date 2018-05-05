@@ -116,6 +116,7 @@ static int CeedOperatorApply_Occa(CeedOperator op, CeedVector qdata,
                                   data->BEv,data->etmp); CeedChk(ierr);
   // *************************************************************************
   ierr = CeedVectorRestoreArray(etmp, &Eu); CeedChk(ierr);
+  ierr = CeedVectorRestoreArray(qdata, (CeedScalar**)&qd); CeedChk(ierr);
   // ***************************************************************************
   if (residual) {
     dbg("[CeedOperator][Apply] residual");

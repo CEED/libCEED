@@ -90,7 +90,7 @@ static int CeedVectorSetArray_Magma(CeedVector vec, CeedMemType mtype,
                            vec->length * sizeof(CeedScalar)); CeedChk(ierr);
       magma_setvector(vec->length, sizeof(array[0]),
                       array, 1, impl->darray, 1);
-       
+
       impl->down_  = 1;
       impl->array  = array;
     }
@@ -105,12 +105,12 @@ static int CeedVectorSetArray_Magma(CeedVector vec, CeedMemType mtype,
       impl->own_ = 1;
 
       if (array)
-          magma_copyvector(vec->length, sizeof(array[0]),
-                           array, 1, impl->darray, 1);
+        magma_copyvector(vec->length, sizeof(array[0]),
+                         array, 1, impl->darray, 1);
       else
-          // t30 assumes allocation initializes with 0s
-          magma_setvector(vec->length, sizeof(array[0]),
-                          impl->array, 1, impl->darray, 1);
+        // t30 assumes allocation initializes with 0s
+        magma_setvector(vec->length, sizeof(array[0]),
+                        impl->array, 1, impl->darray, 1);
       break;
     case CEED_OWN_POINTER:
       impl->darray = array;
@@ -140,12 +140,12 @@ static int CeedVectorGetArray_Magma(CeedVector vec, CeedMemType mtype,
 
   if (mtype == CEED_MEM_HOST) {
     if (impl->own_) {
-        // data is owned so GPU had the most up-to-date version; copy it
-        // TTT - apparantly it doesn't have most up to date data
-        magma_getvector(vec->length, sizeof(*array[0]),
-                        impl->darray, 1, impl->array, 1);
-        CeedDebug("\033[31m[CeedVectorGetArray_Magma]");
-        //fprintf(stderr,"rrrrrrrrrrrrrrr\n");
+      // data is owned so GPU had the most up-to-date version; copy it
+      // TTT - apparantly it doesn't have most up to date data
+      magma_getvector(vec->length, sizeof(*array[0]),
+                      impl->darray, 1, impl->array, 1);
+      CeedDebug("\033[31m[CeedVectorGetArray_Magma]");
+      //fprintf(stderr,"rrrrrrrrrrrrrrr\n");
     } else if (impl->array == NULL) {
       // Vector doesn't own the data and was set on GPU
       if (impl->darray == NULL) {
@@ -326,106 +326,106 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
   CeedInt nelem = r->nelem, elemsize = r->elemsize, ndof = r->ndof;
   CeedInt esize = nelem * elemsize;
 
-  #ifdef USE_MAGMA_BATCH2
+#ifdef USE_MAGMA_BATCH2
   CeedInt *dindices = impl->dindices;
   // Get pointers on the device
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &vv); CeedChk(ierr);
-  #else
+#else
   CeedInt *indices = impl->indices;
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
-  #endif
+#endif
 
   if (tmode == CEED_NOTRANSPOSE) {
     // Perform: v = r * u
     if (ncomp == 1) {
-        #ifdef USE_MAGMA_BATCH2
-            magma_template<<i=0:esize>>
-                (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices) {
-                    vv[i] = uu[dindices[i]];
-            }
-        #else
-           for (CeedInt i=0; i<esize; i++) vv[i] = uu[indices[i]];
-        #endif
+#ifdef USE_MAGMA_BATCH2
+magma_template<<i=0:esize>>
+      (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices) {
+        vv[i] = uu[dindices[i]];
+      }
+#else
+      for (CeedInt i=0; i<esize; i++) vv[i] = uu[indices[i]];
+#endif
     } else {
       // vv is (elemsize x ncomp x nelem), column-major
       if (lmode == CEED_NOTRANSPOSE) { // u is (ndof x ncomp), column-major
-          #ifdef USE_MAGMA_BATCH2
-          magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
-              (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices, int ndof) {
-              vv[i + iend*(d+dend*e)] = uu[dindices[i+iend*e]+ndof*d];
-          }
-          #else
-          for (CeedInt e = 0; e < nelem; e++)
-              for (CeedInt d = 0; d < ncomp; d++)
-                  for (CeedInt i=0; i < elemsize; i++) {
-                      vv[i + elemsize*(d+ncomp*e)] =
-                          uu[indices[i+elemsize*e]+ndof*d];
-                  }
-          #endif
+#ifdef USE_MAGMA_BATCH2
+magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
+        (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices, int ndof) {
+          vv[i + iend*(d+dend*e)] = uu[dindices[i+iend*e]+ndof*d];
+        }
+#else
+        for (CeedInt e = 0; e < nelem; e++)
+          for (CeedInt d = 0; d < ncomp; d++)
+            for (CeedInt i=0; i < elemsize; i++) {
+              vv[i + elemsize*(d+ncomp*e)] =
+                uu[indices[i+elemsize*e]+ndof*d];
+            }
+#endif
       } else { // u is (ncomp x ndof), column-major
-          #ifdef USE_MAGMA_BATCH2
-          magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
-              (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices) {
-              vv[i + iend*(d+dend*e)] = uu[d+dend*dindices[i + iend*e]];
-          }
-          #else
-          for (CeedInt e = 0; e < nelem; e++)
-              for (CeedInt d = 0; d < ncomp; d++)
-                  for (CeedInt i=0; i< elemsize; i++) {
-                      vv[i + elemsize*(d+ncomp*e)] =
-                          uu[d+ncomp*indices[i+elemsize*e]];
-                  }
-          #endif
+#ifdef USE_MAGMA_BATCH2
+magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
+        (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices) {
+          vv[i + iend*(d+dend*e)] = uu[d+dend*dindices[i + iend*e]];
+        }
+#else
+        for (CeedInt e = 0; e < nelem; e++)
+          for (CeedInt d = 0; d < ncomp; d++)
+            for (CeedInt i=0; i< elemsize; i++) {
+              vv[i + elemsize*(d+ncomp*e)] =
+                uu[d+ncomp*indices[i+elemsize*e]];
+            }
+#endif
       }
     }
   } else {
     // Note: in transpose mode, we perform: v += r^t * u
     if (ncomp == 1) {
-        // fprintf(stderr,"3 ---------\n");
-        #ifdef USE_MAGMA_BATCH2
-        magma_template<<i=0:esize>>
-            (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices) {
-            magmablas_datomic_add( &vv[dindices[i]], uu[i]);
-        }
-        #else
-        for (CeedInt i=0; i<esize; i++) vv[indices[i]] += uu[i];
-        #endif
+      // fprintf(stderr,"3 ---------\n");
+#ifdef USE_MAGMA_BATCH2
+magma_template<<i=0:esize>>
+      (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices) {
+        magmablas_datomic_add( &vv[dindices[i]], uu[i]);
+      }
+#else
+      for (CeedInt i=0; i<esize; i++) vv[indices[i]] += uu[i];
+#endif
     } else { // u is (elemsize x ncomp x nelem)
-        fprintf(stderr,"2 ---------\n");
+      fprintf(stderr,"2 ---------\n");
 
-        if (lmode == CEED_NOTRANSPOSE) { // vv is (ndof x ncomp), column-major
-            #ifdef USE_MAGMA_BATCH2
-            magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
-                (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices, CeedInt ndof) {
-                magmablas_datomic_add( &vv[dindices[i+iend*e]+ndof*d],
-                                       uu[i+iend*(d+e*dend)]);
-            }
-            #else
-            for (CeedInt e = 0; e < nelem; e++)
-                for (CeedInt d = 0; d < ncomp; d++)
-                    for (CeedInt i=0; i < elemsize; i++) {
-                        vv[indices[i + elemsize*e]+ndof*d] +=
-                            uu[i + elemsize*(d+e*ncomp)];
-                    }
-            #endif
-        } else { // vv is (ncomp x ndof), column-major
-            #ifdef USE_MAGMA_BATCH2
-            magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
-                (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices) {
-                magmablas_datomic_add( &vv[d+dend*dindices[i + iend*e]],
-                                       uu[i+iend*(d+e*dend)]);
-            }
-            #else
-            for (CeedInt e = 0; e < nelem; e++)
-                for (CeedInt d = 0; d < ncomp; d++)
-                    for (CeedInt i=0; i < elemsize; i++) {
-                        vv[d+ncomp*indices[i + elemsize*e]] +=
-                            uu[i + elemsize*(d+e*ncomp)];
-                    }
-            #endif
+      if (lmode == CEED_NOTRANSPOSE) { // vv is (ndof x ncomp), column-major
+#ifdef USE_MAGMA_BATCH2
+magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
+        (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices, CeedInt ndof) {
+          magmablas_datomic_add( &vv[dindices[i+iend*e]+ndof*d],
+                                 uu[i+iend*(d+e*dend)]);
         }
+#else
+        for (CeedInt e = 0; e < nelem; e++)
+          for (CeedInt d = 0; d < ncomp; d++)
+            for (CeedInt i=0; i < elemsize; i++) {
+              vv[indices[i + elemsize*e]+ndof*d] +=
+                uu[i + elemsize*(d+e*ncomp)];
+            }
+#endif
+      } else { // vv is (ncomp x ndof), column-major
+#ifdef USE_MAGMA_BATCH2
+magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
+        (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices) {
+          magmablas_datomic_add( &vv[d+dend*dindices[i + iend*e]],
+                                 uu[i+iend*(d+e*dend)]);
+        }
+#else
+        for (CeedInt e = 0; e < nelem; e++)
+          for (CeedInt d = 0; d < ncomp; d++)
+            for (CeedInt i=0; i < elemsize; i++) {
+              vv[d+ncomp*indices[i + elemsize*e]] +=
+                uu[i + elemsize*(d+e*ncomp)];
+            }
+#endif
+      }
     }
   }
 
@@ -477,9 +477,9 @@ static int CeedElemRestrictionCreate_Magma(CeedElemRestriction r,
       impl->own_ = 1;
 
       if (indices != NULL) {
-          memcpy(impl->indices, indices, size * sizeof(indices[0]));
-          magma_setvector(size, sizeof(CeedInt),
-                          impl->indices, 1, impl->dindices, 1);
+        memcpy(impl->indices, indices, size * sizeof(indices[0]));
+        magma_setvector(size, sizeof(CeedInt),
+                        impl->indices, 1, impl->dindices, 1);
       }
       break;
     case CEED_OWN_POINTER:
