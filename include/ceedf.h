@@ -69,3 +69,8 @@ c
 
       integer ceed_gauss_lobatto
       parameter(ceed_gauss_lobatto = 1)
+c
+c CeedElemRestriction
+c
+      integer ceed_elemrestrict_identity
+      parameter(ceed_elemrestrict_identity = -1)

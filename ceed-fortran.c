@@ -9,6 +9,7 @@
 #define FORTRAN_REQUEST_IMMEDIATE -1
 #define FORTRAN_REQUEST_ORDERED -2
 #define FORTRAN_NULL -3
+#define FORTRAN_ELEMRESTRICT_IDENTITY -1
 
 static Ceed *Ceed_dict = NULL;
 static int Ceed_count = 0;
@@ -136,7 +137,7 @@ void fCeedElemRestrictionCreate(int *ceed, int *nelements,
   }
 
   const int *indices_ = indices;
-  if (*indices == FORTRAN_NULL) {
+  if (*indices == FORTRAN_ELEMRESTRICT_IDENTITY) {
     indices_ = NULL;
   }
 
