@@ -750,7 +750,6 @@ c-----------------------------------------------------------------------
       integer ceed,err
       character*64 spec
 
-      integer indices(lelt*(lx1**ldim))
       integer p,q,ncomp,edof,ldof
       integer basis
       integer erstrct
@@ -814,14 +813,6 @@ c     Create a ceed basis
 c     Create a ceed element restriction
       edof=nx1**ndim
       ldof=edof*nelt*ncomp
-
-      ii=1
-      do e=1,nelt
-      do i=1,edof
-        indices(ii)=ii-1
-        ii=ii+1
-      enddo
-      enddo
 
       call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,
      $  ceed_mem_host,ceed_use_pointer,ceed_null,erstrct,err)
