@@ -372,10 +372,11 @@ void fCeedQFunctionCreateInterior(int* ceed, int* vlength,
     CeedQFunction_n++;
   }
 
-  struct fContext *fctx; CeedMalloc(1, &fctx);
+  struct fContext *fctx;
+  *err = CeedMalloc(1, &fctx); if (*err) return;
   fctx->f = f; fctx->innerctx = NULL;
 
-  CeedQFunctionSetContext(*qf_, fctx, sizeof(struct fContext));
+  *err = CeedQFunctionSetContext(*qf_, fctx, sizeof(struct fContext));
 
 }
 
@@ -410,8 +411,8 @@ void fCeedQFunctionApply(int *qf, int *Q,
                          CeedScalar *v8,CeedScalar *v9, CeedScalar *v10,CeedScalar *v11,
                          CeedScalar *v12,CeedScalar *v13, CeedScalar *v14,CeedScalar *v15, int *err) {
   CeedQFunction qf_ = CeedQFunction_dict[*qf];
-  CeedScalar **in;
-  CeedCalloc(16, &in);
+  const CeedScalar **in;
+  *err = CeedCalloc(16, &in); if (*err) return;
   in[0] = u;
   in[1] = u1;
   in[2] = u2;
@@ -429,7 +430,7 @@ void fCeedQFunctionApply(int *qf, int *Q,
   in[14] = u14;
   in[15] = u15;
   CeedScalar **out;
-  CeedCalloc(16, &out);
+  *err = CeedCalloc(16, &out); if (*err) return;
   out[0] = v;
   out[1] = v1;
   out[2] = v2;
@@ -446,10 +447,10 @@ void fCeedQFunctionApply(int *qf, int *Q,
   out[13] = v13;
   out[14] = v14;
   out[15] = v15;
-  *err = CeedQFunctionApply(qf_, *Q, (const CeedScalar * const*)in, out);
+  *err = CeedQFunctionApply(qf_, *Q, (const CeedScalar * const*)in, out); if (*err) return;
 
-  CeedFree(&in);
-  CeedFree(&out);
+  *err = CeedFree(&in); if (*err) return;
+  *err = CeedFree(&out);
 }
 
 #define fCeedQFunctionDestroy \
@@ -458,13 +459,12 @@ void fCeedQFunctionDestroy(int *qf, int *err) {
   CeedFree(&CeedQFunction_dict[*qf]->ctx);
   *err = CeedQFunctionDestroy(&CeedQFunction_dict[*qf]);
 
-  if (*err == 0) {
-    CeedQFunction_n--;
-    if (CeedQFunction_n == 0) {
-      CeedFree(&CeedQFunction_dict);
-      CeedQFunction_count = 0;
-      CeedQFunction_count_max = 0;
-    }
+  if (*err) return;
+  CeedQFunction_n--;
+  if (CeedQFunction_n == 0) {
+    *err = CeedFree(&CeedQFunction_dict);
+    CeedQFunction_count = 0;
+    CeedQFunction_count_max = 0;
   }
 }
 
@@ -489,11 +489,9 @@ void fCeedOperatorCreate(int* ceed,
   if (*dqfT != FORTRAN_NULL) dqfT_ = CeedQFunction_dict[*dqfT];
 
   *err = CeedOperatorCreate(Ceed_dict[*ceed], CeedQFunction_dict[*qf], dqf_, dqfT_, op_);
-
-  if (*err == 0) {
-    *op = CeedOperator_count++;
-    CeedOperator_n++;
-  }
+  if (*err) return;
+  *op = CeedOperator_count++;
+  CeedOperator_n++;
 }
 
 #define fCeedOperatorSetField \
@@ -542,8 +540,8 @@ void fCeedOperatorApply(int *op, int *ustatevec,
 
   *err = CeedOperatorApply(CeedOperator_dict[*op],
                            CeedVector_dict[*ustatevec], resvec_, rqst_);
-
-  if (*err == 0 && createRequest) {
+  if (*err) return;
+  if (createRequest) {
     *rqst = CeedRequest_count++;
     CeedRequest_n++;
   }
@@ -563,13 +561,11 @@ void fCeedOperatorApplyJacobian(int *op, int *qdatavec, int *ustatevec,
     FORTRAN_NAME(ceedoperatordestroy, CEEDOPERATORDESTROY)
 void fCeedOperatorDestroy(int *op, int *err) {
   *err = CeedOperatorDestroy(&CeedOperator_dict[*op]);
-
-  if (*err == 0) {
-    CeedOperator_n--;
-    if (CeedOperator_n == 0) {
-      CeedFree(&CeedOperator_dict);
-      CeedOperator_count = 0;
-      CeedOperator_count_max = 0;
-    }
+  if (*err) return;
+  CeedOperator_n--;
+  if (CeedOperator_n == 0) {
+    *err = CeedFree(&CeedOperator_dict);
+    CeedOperator_count = 0;
+    CeedOperator_count_max = 0;
   }
 }
