@@ -69,3 +69,14 @@ c
 
       integer ceed_gauss_lobatto
       parameter(ceed_gauss_lobatto = 1)
+c
+c OperatorFieldConstants
+c
+      integer ceed_restriction_identity
+      parameter(ceed_restriction_identity = -1)
+
+      integer ceed_basis_colocated
+      parameter(ceed_basis_colocated      = -1)
+
+      integer ceed_qdata_none
+      parameter(ceed_qdata_none           = -1)
