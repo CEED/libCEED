@@ -85,18 +85,19 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelements,
   return CeedError(ceed, 1, "Not implemented");
 }
 
-int CeedElemRestrictionCreateVector(CeedElemRestriction r, CeedVector *lvec, CeedVector *evec) {
-    int ierr;
-    CeedInt n, m;
-    m = r->ndof * r->ncomp;
-    n = r->nelem * r->elemsize * r->ncomp;
-    if (lvec) {
-      ierr = CeedVectorCreate(r->ceed, m, lvec); CeedChk(ierr);
-    }
-    if (evec) {
-      ierr = CeedVectorCreate(r->ceed, n, evec); CeedChk(ierr);
-    }
-    return 0;
+int CeedElemRestrictionCreateVector(CeedElemRestriction r, CeedVector *lvec,
+                                    CeedVector *evec) {
+  int ierr;
+  CeedInt n, m;
+  m = r->ndof * r->ncomp;
+  n = r->nelem * r->elemsize * r->ncomp;
+  if (lvec) {
+    ierr = CeedVectorCreate(r->ceed, m, lvec); CeedChk(ierr);
+  }
+  if (evec) {
+    ierr = CeedVectorCreate(r->ceed, n, evec); CeedChk(ierr);
+  }
+  return 0;
 }
 
 /**

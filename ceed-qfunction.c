@@ -50,8 +50,8 @@
 
 */
 int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
-    int (*f)(void*, CeedInt, const CeedScalar *const*, CeedScalar *const*),
-    const char *focca, CeedQFunction *qf) {
+                                int (*f)(void*, CeedInt, const CeedScalar *const*, CeedScalar *const*),
+                                const char *focca, CeedQFunction *qf) {
   int ierr;
   char *focca_copy;
 
@@ -91,8 +91,9 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
 }
 
 int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
-                          CeedInt ncomp, CeedEvalMode emode) {
-  if (emode == CEED_EVAL_WEIGHT) return CeedError(qf->ceed, 1, "Cannot create qfunction output with CEED_EVAL_WEIGHT");
+                           CeedInt ncomp, CeedEvalMode emode) {
+  if (emode == CEED_EVAL_WEIGHT) return CeedError(qf->ceed, 1,
+                                          "Cannot create qfunction output with CEED_EVAL_WEIGHT");
   int ierr = CeedQFunctionFieldSet(&qf->outputfields[qf->numoutputfields++],
                                    fieldname, ncomp, emode); CeedChk(ierr);
   return 0;
@@ -150,10 +151,10 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
 
   if (!*qf || --(*qf)->refcount > 0) return 0;
   // Free field names
-  for (int i=0; i<(*qf)->numinputfields;i++) {
+  for (int i=0; i<(*qf)->numinputfields; i++) {
     ierr = CeedFree(&(*qf)->inputfields[i].fieldname); CeedChk(ierr);
   }
-  for (int i=0; i<(*qf)->numoutputfields;i++) {
+  for (int i=0; i<(*qf)->numoutputfields; i++) {
     ierr = CeedFree(&(*qf)->outputfields[i].fieldname); CeedChk(ierr);
   }
   if ((*qf)->Destroy) {
