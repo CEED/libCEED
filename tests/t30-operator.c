@@ -42,7 +42,8 @@ int main(int argc, char **argv) {
     indx[2*i+0] = i;
     indx[2*i+1] = i+1;
   }
-  CeedElemRestrictionCreate(ceed, nelem, 2, Nx, 1, CEED_MEM_HOST, CEED_USE_POINTER,
+  CeedElemRestrictionCreate(ceed, nelem, 2, Nx, 1, CEED_MEM_HOST,
+                            CEED_USE_POINTER,
                             indx, &Erestrictx);
 
   for (CeedInt i=0; i<nelem; i++) {
@@ -50,7 +51,8 @@ int main(int argc, char **argv) {
       indu[P*i+j] = i*(P-1) + j;
     }
   }
-  CeedElemRestrictionCreate(ceed, nelem, P, Nu, 1, CEED_MEM_HOST, CEED_USE_POINTER,
+  CeedElemRestrictionCreate(ceed, nelem, P, Nu, 1, CEED_MEM_HOST,
+                            CEED_USE_POINTER,
                             indu, &Erestrictu);
 
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bx);
@@ -73,10 +75,13 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
   CeedVectorCreate(ceed, nelem*Q, &qdata);
 
-  CeedOperatorSetField(op_setup, "_weight", CEED_RESTRICTION_IDENTITY, bx, NULL);
+  CeedOperatorSetField(op_setup, "_weight", CEED_RESTRICTION_IDENTITY, bx,
+                       CEED_QDATA_NONE);
   CeedOperatorSetField(op_setup, "x", Erestrictx, bx, CEED_QDATA_NONE);
-  CeedOperatorSetField(op_setup, "rho", CEED_RESTRICTION_IDENTITY, CEED_BASIS_COLOCATED, CEED_QDATA_NONE);
-  CeedOperatorSetField(op_mass, "rho", CEED_RESTRICTION_IDENTITY, CEED_BASIS_COLOCATED, qdata);
+  CeedOperatorSetField(op_setup, "rho", CEED_RESTRICTION_IDENTITY,
+                       CEED_BASIS_COLOCATED, CEED_QDATA_NONE);
+  CeedOperatorSetField(op_mass, "rho", CEED_RESTRICTION_IDENTITY,
+                       CEED_BASIS_COLOCATED, qdata);
   CeedOperatorSetField(op_mass, "u", Erestrictu, bu, CEED_QDATA_NONE);
   CeedOperatorSetField(op_mass, "v", Erestrictu, bu, CEED_QDATA_NONE);
 

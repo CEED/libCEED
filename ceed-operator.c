@@ -85,7 +85,8 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
     CeedInt numelements;
     ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
     if (op->numelements && op->numelements != numelements)
-      return CeedError(op->ceed, 1, "ElemRestriction with %d elements incompatible with prior %d elements",
+      return CeedError(op->ceed, 1,
+                       "ElemRestriction with %d elements incompatible with prior %d elements",
                        numelements, op->numelements);
     op->numelements = numelements;
   }
@@ -93,7 +94,8 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
     CeedInt numqpoints;
     ierr = CeedBasisGetNumQuadraturePoints(b, &numqpoints); CeedChk(ierr);
     if (op->numqpoints && op->numqpoints != numqpoints)
-      return CeedError(op->ceed, 1, "Basis with %d quadrature points incompatible with prior %d points",
+      return CeedError(op->ceed, 1,
+                       "Basis with %d quadrature points incompatible with prior %d points",
                        numqpoints, op->numqpoints);
     op->numqpoints = numqpoints;
   }
@@ -110,8 +112,9 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
       goto found;
     }
   }
-  return CeedError(op->ceed, 1, "QFunction has no knowledge of field '%s'", fieldname);
-  found:
+  return CeedError(op->ceed, 1, "QFunction has no knowledge of field '%s'",
+                   fieldname);
+found:
   ofield->Erestrict = r;
   ofield->basis = b;
   ofield->vec = v;
