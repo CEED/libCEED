@@ -9,7 +9,13 @@
 #define FORTRAN_REQUEST_IMMEDIATE -1
 #define FORTRAN_REQUEST_ORDERED -2
 #define FORTRAN_NULL -3
+<<<<<<< HEAD
 #define FORTRAN_ELEMRESTRICT_IDENTITY -1
+=======
+#define FORTRAN_RESTRICTION_IDENTITY -1
+#define FORTRAN_BASIS_COLOCATED -1
+#define FORTRAN_QDATA_NONE -1
+>>>>>>> fortran: ceed_restriction_identity, ceed_basis_colocated, ceed_qdata_none
 
 static Ceed *Ceed_dict = NULL;
 static int Ceed_count = 0;
@@ -541,12 +547,27 @@ void fCeedOperatorSetField(int *op, const char *fieldname,
 
   CeedOperator op_ = CeedOperator_dict[*op];
 
-  if (*r == FORTRAN_NULL) r_ = NULL;
-  else r_ = CeedElemRestriction_dict[*r];
-  if (*b == FORTRAN_NULL) b_ = NULL;
-  else b_ = CeedBasis_dict[*b];
-  if (*v == FORTRAN_NULL) v_ = NULL;
-  else v_ = CeedVector_dict[*v];
+  if (*r == FORTRAN_NULL) {
+    r_ = NULL;
+  } else if (*r == FORTRAN_RESTRICTION_IDENTITY) {
+    r_ = CEED_RESTRICTION_IDENTITY;
+  } else {
+    r_ = CeedElemRestriction_dict[*r];
+  }
+  if (*b == FORTRAN_NULL) {
+    b_ = NULL;
+  } else if (*b == FORTRAN_BASIS_COLOCATED) {
+    b_ = CEED_BASIS_COLOCATED;
+  } else {
+    b_ = CeedBasis_dict[*b];
+  }
+  if (*v == FORTRAN_NULL) {
+    v_ = NULL;
+  } else if (*v == FORTRAN_QDATA_NONE) {
+    v_ = CEED_QDATA_NONE;
+  } else {
+    v_ = CeedVector_dict[*v];
+  }
 
   *err = CeedOperatorSetField(op_, fieldname, r_, b_, v_);
 }
