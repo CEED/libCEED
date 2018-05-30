@@ -282,6 +282,57 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   return 0;
 }
 
+/// Return QR Factorization of matrix
+/// @param mat        Row-major matrix to be factorized in place
+int CeedQRFactorization(CeedScalar *mat, CeedInt m, CeedInt n) {
+  int i, j, k;
+  CeedScalar b, mu, sigma, v[m], w[n];
+
+  for (i=0; i<n; i++) {
+    // Calculate Householder vector, magnitude
+    sigma = 0;
+    v[i] = 1;
+    for (j=i+1; j<m; j++) {
+      sigma += mat[i+n*j]*mat[i+n*j];
+      v[j] = mat[i+n*j];
+    }
+    if (sigma == 0) {
+      b = 0;
+    } else {
+      mu = sqrt(mat[i+n*i]*mat[i+n*i]+sigma);
+      if (mat[i+n*i]<=0) {
+        v[i] = mat[i+n*i]-mu;
+      } else {
+        v[i] = -sigma/(mat[i+n*i]+mu);
+      }
+      b = 2*v[i]*v[i]/(sigma+v[i]*v[i]);
+      for (j=i; j<m; j++) {
+        v[m-1-(j-i)] = v[m-1-(j-i)]/v[i];
+      }
+     }
+    // Apply Householder vector
+    // Find w = Atranspose v
+    for (j=i; j<n; j++) {
+      w[j] = 0;
+      for (k=i; k<m; k++) {
+        w[j] += mat[n*k+j]*v[k];
+      }
+    }
+    // Calculate A - w*vtranspose
+    for (j=i; j<m; j++) {
+      for (k=i; k<n; k++) {
+        mat[k+n*j] = mat[k+n*j] - b*v[j]*w[k];
+      }
+    }
+    // Save v
+    for (j=i+1; j<m; j++) {
+      mat[i+n*j] = v[j];
+    }
+  }
+
+  return 0;
+}
+
 /// Apply basis evaluation from nodes to quadrature points or vice-versa
 ///
 /// @param basis Basis to evaluate
