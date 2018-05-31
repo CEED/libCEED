@@ -769,7 +769,7 @@ c-----------------------------------------------------------------------
       integer qdata
       integer qf_mass,qf_setup
       integer op_mass,op_setup
-      integer vec_p1,vec_ap1,vec_qdata,vec_h2
+      integer vec_p1,vec_ap1,vec_qdata
       integer ii,i,e
 
       external massf,setupf
@@ -784,6 +784,7 @@ c     Init ceed library
 
       ifield = 1
       n = nx1*ny1*nz1*nelt
+      nxq = nx1+1
 
       call rand_fld_h1(e1)
 
@@ -791,7 +792,6 @@ c     Init ceed library
       call copy       (e3,e1,n)
       call xmask      (e1,e2,e3,nelt)
 
-      nxq = nx1+1
       call set_h2_as_rhoJac_GL (h2,nxq)
       call copy                (h1,e1,n)  ! Save exact soln in h1
 
@@ -806,6 +806,7 @@ c     Init ceed library
       maxit     = 100
 
       nio    = -99 ! Turn off i/o to stdout
+c     nio       = nid ! Turn on
 
       maxit  = 100
       call opcopy(r1,r2,r3,t1,t2,t3)
@@ -858,10 +859,7 @@ c     Create ceed vectors
       call ceedvectorcreate(ceed,ldof,vec_p1,err)
       call ceedvectorcreate(ceed,ldof,vec_ap1,err)
       call ceedoperatorgetqdata(op_mass,vec_qdata,err)
-      call ceedoperatorgetqdata(op_mass,vec_h2,err)
-      call ceedvectorsetarray(vec_h2,ceed_mem_host,
-     $  ceed_use_pointer,h2,err)
-      call ceedoperatorapply(op_setup,vec_qdata,vec_h2,ceed_null,
+      call ceedoperatorapply(op_setup,vec_qdata,ceed_null,ceed_null,
      $  ceed_request_immediate,err)
 
       tstart = dnekclock()
