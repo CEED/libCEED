@@ -264,9 +264,8 @@ void fCeedBasisCreateTensorH1(int *ceed, int *dim, int *ndof, int *P1d,
 }
 
 #define fCeedBasisView FORTRAN_NAME(ceedbasisview, CEEDBASISVIEW)
-void fCeedBasisView(int *basis, FILE *stream, int *err) {
-//TODO
-//CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
+void fCeedBasisView(int *basis, int *err) {
+  *err = CeedBasisView(CeedBasis_dict[*basis], stdout);
 }
 
 #define fCeedQRFactorization \
@@ -277,7 +276,7 @@ void fCeedQRFactorization(CeedScalar *mat, int *m, int *n,
 }
 
 #define fCeedBasisGetColocatedGrad \
-    FORTRAN_NAME(ceedgetcolocatedgrad, CEEDGETCOLOCATEDGRAD)
+    FORTRAN_NAME(ceedbasisgetcolocatedgrad, CEEDBASISGETCOLOCATEDGRAD)
 void fCeedBasisGetColocatedGrad(int *basis, CeedScalar *colograd1d,
                                 int *err) {
   *err = CeedBasisGetColocatedGrad(CeedBasis_dict[*basis],
