@@ -17,6 +17,11 @@ c-----------------------------------------------------------------------
       call ceedbasisgetcolocatedgrad(b,colograd1d,err)
 c     TODO Not implemented in Fortran yet
 c      call ceedbasisview(b,stdout,err)
+      do i=1,12
+        if (abs(colograd1d(i))<1.0D-14) then
+          colograd1d(i) = 0
+        endif
+      enddo
       do i=0,3
         write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')
      $ 'colograd[',i,']:',(colograd1d(j+4*i),j=1,4)
@@ -28,6 +33,11 @@ c      call ceedbasisview(b,stdout,err)
       call ceedbasisgetcolocatedgrad(b,colograd1d,err)
 c     TODO Not implemented in Fortran yet
 c      call ceedbasisview(b,stdout,err)
+      do i=1,12
+        if (abs(colograd1d(i))<1.0D-14) then
+          colograd1d(i) = 0
+        endif
+      enddo
       do i=0,3
         write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')
      $ 'colograd[',i,']:',(colograd1d(j+4*i),j=1,4)
