@@ -276,7 +276,7 @@ void fCeedQRFactorization(CeedScalar *mat, int *m, int *n,
 }
 
 #define fCeedBasisGetColocatedGrad \
-    FORTRAN_NAME(ceedgetcolocatedgrad, CEEDGETCOLOCATEDGRAD)
+    FORTRAN_NAME(ceedbasisgetcolocatedgrad, CEEDBASISGETCOLOCATEDGRAD)
 void fCeedBasisGetColocatedGrad(int *basis, CeedScalar *colograd1d,
                                 int *err) {
   *err = CeedBasisGetColocatedGrad(CeedBasis_dict[*basis],
