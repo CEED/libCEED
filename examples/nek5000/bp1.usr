@@ -858,7 +858,7 @@ c     Create a ceed operator
 c     Create ceed vectors
       call ceedvectorcreate(ceed,ldof,vec_p1,err)
       call ceedvectorcreate(ceed,ldof,vec_ap1,err)
-      call ceedoperatorgetqdata(op_mass,vec_qdata,err)
+      call ceedoperatorgetqdata(op_setup,vec_qdata,err)
       call ceedoperatorapply(op_setup,vec_qdata,ceed_null,ceed_null,
      $  ceed_request_immediate,err)
 

@@ -32,7 +32,7 @@
 #CC=
 
 ## list of examples to make
-EXAMPLES=bp1
+EXAMPLES=(bp1 bp3)
 
 ###############################################################################
 # DONT'T TOUCH WHAT FOLLOWS !!!
@@ -72,7 +72,7 @@ sed -i.bak -e "s|^#FC=.*|FC=\"$FC\"|" \
     -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed\"|" makenek
 
 # Build examples
-for ex in $EXAMPLES; do
+for ex in "${EXAMPLES[@]}"; do
   echo "Building example: $ex ..."
 
   # makenek appends generated lines in SIZE, which we don't want versioned
