@@ -269,6 +269,21 @@ void fCeedBasisView(int *basis, FILE *stream, int *err) {
 //CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
 }
 
+#define fCeedQRFactorization \
+    FORTRAN_NAME(ceedqrfactorization, CEEDQRFACTORIZATION)
+void fCeedQRFactorization(CeedScalar *mat, int *m, int *n,
+                          int *err) {
+  *err = CeedQRFactorization(mat, *m, *n);
+}
+
+#define fCeedBasisGetColocatedGrad \
+    FORTRAN_NAME(ceedgetcolocatedgrad, CEEDGETCOLOCATEDGRAD)
+void fCeedBasisGetColocatedGrad(int *basis, CeedScalar *colograd1d,
+                                int *err) {
+  *err = CeedBasisGetColocatedGrad(CeedBasis_dict[*basis],
+                                   colograd1d);
+}
+
 #define fCeedBasisApply FORTRAN_NAME(ceedbasisapply, CEEDBASISAPPLY)
 void fCeedBasisApply(int *basis, int *tmode, int *emode, const CeedScalar *u,
                      CeedScalar *v, int *err) {
