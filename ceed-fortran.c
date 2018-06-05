@@ -11,7 +11,8 @@
 #define FORTRAN_NULL -3
 #define FORTRAN_RESTRICTION_IDENTITY -1
 #define FORTRAN_BASIS_COLOCATED -1
-#define FORTRAN_QDATA_NONE -1
+#define FORTRAN_VECTOR_ACTIVE -1
+#define FORTRAN_VECTOR_NONE -2
 
 static Ceed *Ceed_dict = NULL;
 static int Ceed_count = 0;
@@ -542,8 +543,10 @@ void fCeedOperatorSetField(int *op, const char *fieldname,
   }
   if (*v == FORTRAN_NULL) {
     v_ = NULL;
-  } else if (*v == FORTRAN_QDATA_NONE) {
-    v_ = CEED_QDATA_NONE;
+  } else if (*v == FORTRAN_VECTOR_ACTIVE) {
+    v_ = CEED_VECTOR_ACTIVE;
+  } else if (*v == FORTRAN_VECTOR_NONE) {
+    v_ = CEED_VECTOR_NONE;
   } else {
     v_ = CeedVector_dict[*v];
   }

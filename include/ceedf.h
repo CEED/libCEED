@@ -78,5 +78,8 @@ c
       integer ceed_basis_colocated
       parameter(ceed_basis_colocated      = -1)
 
-      integer ceed_qdata_none
-      parameter(ceed_qdata_none           = -1)
+      integer ceed_vector_active
+      parameter(ceed_vector_active        = -1)
+
+      integer ceed_vector_none
+      parameter(ceed_vector_none          = -2)
