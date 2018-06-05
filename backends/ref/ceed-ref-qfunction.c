@@ -18,11 +18,11 @@
 #include <string.h>
 #include "ceed-ref.h"
 
-static int CeedQFunctionApply_Ref(CeedQFunction qf, void *qdata, CeedInt Q,
+static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
                                   const CeedScalar *const *u,
                                   CeedScalar *const *v) {
   int ierr;
-  ierr = qf->function(qf->ctx, qdata, Q, u, v); CeedChk(ierr);
+  ierr = qf->function(qf->ctx, Q, u, v); CeedChk(ierr);
   return 0;
 }
 
