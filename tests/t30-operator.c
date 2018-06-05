@@ -76,14 +76,14 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, nelem*Q, &qdata);
 
   CeedOperatorSetField(op_setup, "_weight", CEED_RESTRICTION_IDENTITY, bx,
-                       CEED_QDATA_NONE);
-  CeedOperatorSetField(op_setup, "x", Erestrictx, bx, CEED_QDATA_NONE);
+                       CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setup, "x", Erestrictx, bx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "rho", CEED_RESTRICTION_IDENTITY,
-                       CEED_BASIS_COLOCATED, CEED_QDATA_NONE);
+                       CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "rho", CEED_RESTRICTION_IDENTITY,
                        CEED_BASIS_COLOCATED, qdata);
-  CeedOperatorSetField(op_mass, "u", Erestrictu, bu, CEED_QDATA_NONE);
-  CeedOperatorSetField(op_mass, "v", Erestrictu, bu, CEED_QDATA_NONE);
+  CeedOperatorSetField(op_mass, "u", Erestrictu, bu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "v", Erestrictu, bu, CEED_VECTOR_ACTIVE);
 
   CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
 

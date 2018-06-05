@@ -107,19 +107,19 @@ c-----------------------------------------------------------------------
       call ceedvectorcreate(ceed,nelem*q,qdata,err)
 
       call ceedoperatorsetfield(op_setup,'_weight',
-     $  ceed_restriction_identity,bx,ceed_qdata_none,err)
+     $  ceed_restriction_identity,bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'x',erestrictx,bx,
-     $  ceed_qdata_none,err)
+     $  ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rho',
      $  ceed_restriction_identity,ceed_basis_colocated,
-     $  ceed_qdata_none,err)
+     $  ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass,'rho',
      $  ceed_restriction_identity,ceed_basis_colocated,
      $  qdata,err)
       call ceedoperatorsetfield(op_mass,'u',erestrictu,bu,
-     $  ceed_qdata_none,err)
+     $  ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass,'v',erestrictu,bu,
-     $  ceed_qdata_none,err)
+     $  ceed_vector_active,err)
 
       call ceedoperatorapply(op_setup,x,qdata,
      $  ceed_request_immediate,err)

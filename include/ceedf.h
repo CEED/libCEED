@@ -86,4 +86,9 @@ c
 
       integer ceed_qdata_none
       parameter(ceed_qdata_none           = -1)
->>>>>>> fortran: ceed_restriction_identity, ceed_basis_colocated, ceed_qdata_none
+
+      integer ceed_vector_active
+      parameter(ceed_vector_active        = -1)
+
+      integer ceed_vector_none
+      parameter(ceed_vector_none          = -2)

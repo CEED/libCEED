@@ -145,7 +145,8 @@ CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
 CEED_EXTERN CeedElemRestriction CEED_RESTRICTION_IDENTITY;
 CEED_EXTERN CeedBasis CEED_BASIS_COLOCATED;
-CEED_EXTERN CeedVector CEED_QDATA_NONE;
+CEED_EXTERN CeedVector CEED_VECTOR_ACTIVE;
+CEED_EXTERN CeedVector CEED_VECTOR_NONE;
 
 /// Denotes whether a linear transformation or its transpose should be applied
 typedef enum {

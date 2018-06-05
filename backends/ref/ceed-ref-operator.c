@@ -20,7 +20,8 @@
 
 CeedElemRestriction CEED_RESTRICTION_IDENTITY = NULL;
 CeedBasis CEED_BASIS_COLOCATED = NULL;
-CeedVector CEED_QDATA_NONE = NULL;
+CeedVector CEED_VECTOR_ACTIVE = NULL;
+CeedVector CEED_VECTOR_NONE = NULL;
 
 static int CeedOperatorDestroy_Ref(CeedOperator op) {
   CeedOperator_Ref *impl = op->data;
