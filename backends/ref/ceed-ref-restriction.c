@@ -26,7 +26,7 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
   int ierr;
   const CeedScalar *uu;
   CeedScalar *vv;
-  CeedInt esize = r->nelem*r->elemsize;
+  CeedInt esize = r->nelem*r->elemsize*ncomp;
 
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
