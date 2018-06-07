@@ -26,14 +26,14 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
   int ierr;
   const CeedScalar *uu;
   CeedScalar *vv;
-  CeedInt esize = r->nelem*r->elemsize*ncomp;
+  CeedInt esize = r->nelem*r->elemsize;
 
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
   if (tmode == CEED_NOTRANSPOSE) {
     // Perform: v = r * u
     if (!impl->indices) {
-      for (CeedInt i=0; i<esize; i++) vv[i] = uu[i];
+      for (CeedInt i=0; i<esize*ncomp; i++) vv[i] = uu[i];
     } else if (ncomp == 1) {
       for (CeedInt i=0; i<esize; i++) vv[i] = uu[impl->indices[i]];
     } else {
