@@ -74,9 +74,16 @@ typedef struct {
 // * CeedOperator Occa struct
 // *****************************************************************************
 typedef struct {
-  CeedVector etmp;
-  CeedVector BEu,BEv;
-  CeedVector qdata;
+  CeedVector
+  *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
+  CeedVector *qvecs; /// Vecs of data at quad points, basis applied on inputs
+  CeedScalar **qdata; /// Inputs followed by outputs
+  CeedScalar **indata;
+  CeedScalar **outdata;
+  CeedInt    numein;
+  CeedInt    numeout;
+  CeedInt    numqin;
+  CeedInt    numqout;
 } CeedOperator_Occa;
 
 // *****************************************************************************
@@ -85,7 +92,7 @@ typedef struct {
 typedef struct {
   bool op, ready;
   int nc, dim, nelem, elemsize, e;
-  occaMemory d_q,d_u,b_u,d_v,b_v,d_c;
+  occaMemory o_indata, o_outdata;
   char *oklPath;
   const char *qFunctionName;
   occaKernel kQFunctionApply;
