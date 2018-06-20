@@ -92,7 +92,8 @@ typedef struct {
 typedef struct {
   bool op, ready;
   int nc, dim, nelem, elemsize, e;
-   occaMemory o_indata, o_outdata, d_ctx;
+  occaMemory o_indata, o_outdata;
+  occaMemory d_ctx, d_idx, d_odx;
   char *oklPath;
   const char *qFunctionName;
   occaKernel kQFunctionApply;

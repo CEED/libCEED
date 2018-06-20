@@ -106,7 +106,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   assert((Q%qf->vlength)==0); // Q must be a multiple of vlength
   const CeedInt nelem = 1; // !?
   const CeedInt dim = 1; // !?
-
+  CeedInt idx=0,odx=0;
   // ***************************************************************************
   if (!ready) { // If the kernel has not been built, do it now
     data->ready=true;
@@ -120,8 +120,9 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
       // CEED_EVAL_INTERP: Q*ncomp*nelem
       // CEED_EVAL_GRAD: Q*ncomp*dim*nelem
       // CEED_EVAL_WEIGHT: Q
-      // ***********************************************************************
-      CeedInt idx=0,iOf7[8] = {0}; assert(nIn<8);
+      // INPUT counting ********************************************************
+#define N_MAX_IDX 16
+      CeedInt iOf7[N_MAX_IDX] = {0}; assert(nIn<N_MAX_IDX);
       for (CeedInt i=0; i<nIn; i++) {
         const CeedEvalMode emode = qf->inputfields[i].emode;
         const char *name = qf->inputfields[i].fieldname;
@@ -148,10 +149,10 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
       const CeedInt ilen=iOf7[idx];
       dbg("[CeedQFunction][Apply] ilen=%d", ilen);
       dbg("[CeedQFunction][Apply] Alloc IN of %d", ilen);
-      // IN alloc **************************************************************
+      // INPUT+IDX alloc/filling ***********************************************
       data->o_indata = occaDeviceMalloc(device, ilen*bytes, NULL, NO_PROPS);
+      data->d_idx = occaDeviceMalloc(device, idx*sizeof(int), NULL, NO_PROPS);
       const occaMemory d_indata = data->o_indata;
-      // Filling
       for (CeedInt i=0; i<nIn; i++) {
         const CeedEvalMode emode = qf->inputfields[i].emode;
         const CeedInt ncomp = qf->inputfields[i].ncomp;
@@ -166,9 +167,9 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
         if (emode & CEED_EVAL_GRAD) assert(false);
         if (emode & CEED_EVAL_WEIGHT) assert(false);
       }
-
-      // ***********************************************************************
-      int odx=0,oOf7[8] = {0}; assert(nOut<8);
+      occaCopyPtrToMem(data->d_idx,iOf7,idx*sizeof(int),0,NO_PROPS);
+      // OUTPUT counting *******************************************************
+      CeedInt oOf7[N_MAX_IDX] = {0}; assert(nOut<N_MAX_IDX);
       for (CeedInt i=0; i<nOut; i++) {
         const CeedEvalMode emode = qf->outputfields[i].emode;
         const char *name = qf->outputfields[i].fieldname;
@@ -189,9 +190,12 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
       }
       const CeedInt olen=oOf7[odx];
       dbg("[CeedQFunction][Apply] olen=%d", olen);
-      // OUT alloc *************************************************************
+      // OUTPUT alloc **********************************************************
       data->o_outdata = occaDeviceMalloc(device, olen*bytes, NULL, NO_PROPS);
+      data->d_odx = occaDeviceMalloc(device, odx*sizeof(int), NULL, NO_PROPS);
+      occaCopyPtrToMem(data->d_odx,oOf7,odx*sizeof(int),0,NO_PROPS);
     } else { // !operator_setup
+      assert(false);
       /* b_u, b_v come from ceed-occa-operator BEu, BEv */
     }
     //data->d_u = occaDeviceMalloc(device,ubytes, NULL, NO_PROPS);
@@ -201,6 +205,8 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   const occaMemory d_indata = data->o_indata;
   const occaMemory d_outdata = data->o_outdata;
   const occaMemory d_ctx = data->d_ctx;
+  const occaMemory d_idx = data->d_idx;
+  const occaMemory d_odx = data->d_odx;
   //const occaMemory d_q = data->d_q;
   //const occaMemory d_u = data->d_u;
   //const occaMemory d_v = data->d_v;
@@ -220,8 +226,10 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   //if (cbytes>0) occaCopyPtrToMem(d_c,qf->ctx,cbytes,0,NO_PROPS);
   // ***************************************************************************
   occaKernelRun(data->kQFunctionApply,
-                d_ctx, /*occaInt(e),*/ occaInt(Q),
-                d_indata, d_outdata/*b_u,d_v, b_v*/);
+                d_ctx, occaInt(Q),
+                d_idx, occaInt(idx),
+                d_odx, occaInt(odx),
+                d_indata, d_outdata);
   //assert(false);
   // ***************************************************************************
   if (cbytes>0) {
