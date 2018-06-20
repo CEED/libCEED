@@ -32,17 +32,24 @@ static int CeedTensorContract_Ref(Ceed ceed,
     tstride0 = 1; tstride1 = J;
   }
 
+  if (!Add) {
+    for (CeedInt q=0; q<A*J*C; q++) {
+      v[q] = (CeedScalar) 0.0;
+    }
+  }
+
+  const CeedScalar *uP = u;
   for (CeedInt a=0; a<A; a++) {
-    for (CeedInt j=0; j<J; j++) {
-      if (!Add) {
-        for (CeedInt c=0; c<C; c++)
-          v[(a*J+j)*C+c] = 0;
-      }
-      for (CeedInt b=0; b<B; b++) {
+    for (CeedInt b=0; b<B; b++) {
+      CeedScalar *vP = v + a * J * C;
+      for (CeedInt j=0; j<J; j++) {
+        CeedScalar tq = t[j*tstride0 + b*tstride1];
         for (CeedInt c=0; c<C; c++) {
-          v[(a*J+j)*C+c] += t[j*tstride0 + b*tstride1] * u[(a*B+b)*C+c];
+          *vP += tq * uP[c];
+          vP++;
         }
       }
+      uP += C;
     }
   }
   return 0;

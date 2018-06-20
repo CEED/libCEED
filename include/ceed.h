@@ -217,6 +217,8 @@ CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     CeedInt nfields, size_t qdatasize, CeedEvalMode inmode, CeedEvalMode outmode,
     int (*f)(void *, void *, CeedInt, const CeedScalar *const *,
              CeedScalar *const *),
+    void (*cf)(void *, void *, CeedInt, const CeedScalar *const *,
+             CeedScalar *const *, CeedInt, CeedInt),
     const char *focca, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx,
                                         size_t ctxsize);

@@ -111,6 +111,8 @@ struct CeedQFunction_private {
   CeedEvalMode inmode, outmode;
   int (*function)(void *, void *, CeedInt, const CeedScalar *const *,
                   CeedScalar *const *);
+  void (*cudafunction)(void *, void *, CeedInt, const CeedScalar *const *, 
+      CeedScalar *const *, CeedInt, CeedInt);
   const char *focca;
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */

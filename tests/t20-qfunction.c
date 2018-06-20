@@ -28,10 +28,10 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
                               CEED_EVAL_WEIGHT, CEED_EVAL_NONE,
-                              setup, __FILE__ ":setup", &qf_setup);
+                              setup, NULL, __FILE__ ":setup", &qf_setup);
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
                               CEED_EVAL_INTERP, CEED_EVAL_INTERP,
-                              mass, __FILE__ ":mass", &qf_mass);
+                              mass, NULL, __FILE__ ":mass", &qf_mass);
   for (CeedInt i=0; i<Q; i++) {
     CeedScalar x = 2.*i/(Q-1) - 1;
     w[i] = 1 - x*x;
