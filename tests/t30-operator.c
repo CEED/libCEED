@@ -56,10 +56,10 @@ int main(int argc, char **argv) {
 
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
                               (CeedEvalMode)(CEED_EVAL_GRAD|CEED_EVAL_WEIGHT),
-                              CEED_EVAL_NONE, setup, __FILE__ ":setup", &qf_setup);
+                              CEED_EVAL_NONE, setup, NULL, __FILE__ ":setup", &qf_setup);
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
                               CEED_EVAL_INTERP, CEED_EVAL_INTERP,
-                              mass, __FILE__ ":mass", &qf_mass);
+                              mass, NULL, __FILE__ ":mass", &qf_mass);
 
   CeedOperatorCreate(ceed, Erestrictx, bx, qf_setup, NULL, NULL, &op_setup);
   CeedOperatorCreate(ceed, Erestrictu, bu, qf_mass, NULL, NULL, &op_mass);

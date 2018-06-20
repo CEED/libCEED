@@ -35,6 +35,50 @@
 /// A structure used to pass additional data to f_build_mass
 struct BuildContext { CeedInt dim, space_dim; };
 
+
+__global__ void cuda_f_build_mass(void *ctx, void *qdata, CeedInt Q,
+                        const CeedScalar *const *u, CeedScalar *const *v, CeedInt nc, CeedInt dim) {
+  // u[1] is Jacobians, size (Q x nc x dim) with column-major layout
+  // u[4] is quadrature weights, size (Q)
+  struct BuildContext *bc = (struct BuildContext*)ctx;
+  CeedScalar *qd = (CeedScalar*)qdata;
+  const CeedScalar *J = u[1], *qw = u[4];
+  switch (bc->dim + 10*bc->space_dim) {
+  case 11:
+    for (CeedInt i=0; i<Q; i++) {
+      qd[i] = J[i] * qw[i];
+    }
+    break;
+  case 22:
+    for (CeedInt i=0; i<Q; i++) {
+      // 0 2
+      // 1 3
+      qd[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
+    }
+    break;
+  case 33:
+    for (CeedInt i=0; i<Q; i++) {
+      // 0 3 6
+      // 1 4 7
+      // 2 5 8
+      qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
+               J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
+               J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * qw[i];
+    }
+    break;
+  }
+}
+
+/// libCEED Q-function for applying a mass operator
+__global__ void cuda_f_apply_mass(void *ctx, void *qdata, CeedInt Q,
+                        const CeedScalar *const *u, CeedScalar *const *v, CeedInt nc, CeedInt dim) {
+  const CeedScalar *w = (const CeedScalar*)qdata;
+  for (CeedInt i=0; i<Q; i++) {
+    v[0][i] = w[i] * u[0][i];
+  }
+}
+
+
 /// libCEED Q-function for building quadrature data for a mass operator
 static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
                         const CeedScalar *const *u, CeedScalar *const *v) {
@@ -199,7 +243,7 @@ int main(int argc, const char *argv[]) {
   CeedQFunction build_qfunc;
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
                               (CeedEvalMode)(CEED_EVAL_GRAD|CEED_EVAL_WEIGHT),
-                              CEED_EVAL_NONE, f_build_mass,
+                              CEED_EVAL_NONE, f_build_mass, cuda_f_build_mass,
                               __FILE__":f_build_mass", &build_qfunc);
   CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
 
@@ -224,7 +268,7 @@ int main(int argc, const char *argv[]) {
   // Create the Q-function that defines the action of the mass operator.
   CeedQFunction apply_qfunc;
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
-                              CEED_EVAL_INTERP, CEED_EVAL_INTERP, f_apply_mass,
+                              CEED_EVAL_INTERP, CEED_EVAL_INTERP, f_apply_mass, cuda_f_apply_mass,
                               __FILE__":f_apply_mass", &apply_qfunc);
 
   // Create the mass operator.
@@ -322,7 +366,7 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
   // elem:         0             1                 n-1
   //        |---*-...-*---|---*-...-*---|- ... -|--...--|
   // dof:   0   1    p-1  p  p+1       2*p             n*p
-  CeedInt *el_dof = malloc(sizeof(CeedInt)*num_elem*ndof);
+  CeedInt *el_dof = (CeedInt*)malloc(sizeof(CeedInt)*num_elem*ndof);
   for (CeedInt e = 0; e < num_elem; e++) {
     CeedInt exyz[3], re = e;
     for (int d = 0; d < dim; d++) { exyz[d] = re%nxyz[d]; re /= nxyz[d]; }
@@ -354,7 +398,7 @@ int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_order,
   }
   CeedScalar *coords;
   CeedVectorGetArray(mesh_coords, CEED_MEM_HOST, &coords);
-  CeedScalar *nodes = malloc(sizeof(CeedScalar)*(p+1));
+  CeedScalar *nodes = (CeedScalar*)malloc(sizeof(CeedScalar)*(p+1));
   // The H1 basis uses Lobatto quadrature points as nodes.
   CeedLobattoQuadrature(p+1, nodes, NULL); // nodes are in [-1,1]
   for (CeedInt i = 0; i <= p; i++) { nodes[i] = 0.5+0.5*nodes[i]; }
