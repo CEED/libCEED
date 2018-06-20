@@ -319,6 +319,7 @@ int CeedBasisCreateTensorH1_Occa(Ceed ceed,
   CeedBasis_Occa *data;
   const Ceed_Occa *ceed_data = ceed->data;
   const occaDevice dev = ceed_data->device;
+  dbg("[CeedBasis][CreateTensorH1]");
   // ***************************************************************************
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   basis->data = data;

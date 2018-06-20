@@ -24,7 +24,7 @@ NVCC = $(CUDA_DIR)/bin/nvcc
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
-NDEBUG ?= 1
+NDEBUG ?=
 
 LDFLAGS ?=
 UNDERSCORE ?= 1

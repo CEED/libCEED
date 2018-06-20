@@ -103,14 +103,18 @@ static int CeedOperatorSetup_Occa(CeedOperator op) {
   // Count infield and outfield array sizes and evectors
   for (CeedInt i=0; i<qf->numinputfields; i++) {
     CeedEvalMode emode = qf->inputfields[i].emode;
-    opocca->numqin += !!(emode & CEED_EVAL_INTERP) + !!(emode & CEED_EVAL_GRAD) + !!
-                      (emode & CEED_EVAL_WEIGHT);
+    opocca->numqin +=
+      !! (emode & CEED_EVAL_INTERP) +
+      !! (emode & CEED_EVAL_GRAD) +
+      !! (emode & CEED_EVAL_WEIGHT);
     opocca->numein +=
       !!op->inputfields[i].Erestrict; // Need E-vector when restriction exists
   }
   for (CeedInt i=0; i<qf->numoutputfields; i++) {
     CeedEvalMode emode = qf->outputfields[i].emode;
-    opocca->numqout += !!(emode & CEED_EVAL_INTERP) + !!(emode & CEED_EVAL_GRAD);
+    opocca->numqout +=
+      !! (emode & CEED_EVAL_INTERP) +
+      !! (emode & CEED_EVAL_GRAD);
     opocca->numeout += !!op->outputfields[i].Erestrict;
   }
 
@@ -153,6 +157,8 @@ static int CeedOperatorBasisAction_Occa(CeedVector *evec, CeedVector *qvec,
                                         CeedEvalMode emode, CeedInt i, CeedInt Q,
                                         CeedScalar **qdata, CeedScalar **indata) {
   CeedInt ierr;
+  const Ceed ceed = basis->ceed;
+  dbg("[CeedOperator][BasisAction]");
 
   switch(emode) {
   case CEED_EVAL_NONE: // No basis action, evec = qvec
@@ -212,33 +218,46 @@ static int CeedOperatorApply_Occa(CeedOperator op,
   // Setup *********************************************************************
   ierr = CeedOperatorSetup_Occa(op); CeedChk(ierr);
 
-  // Input Evecs, Restriction, and Basis action
+  // Input Evecs, Restriction, and Basis action ********************************
   for (CeedInt i=0,iein=0; i<qf->numinputfields; i++) {
     // Restriction
     if (op->inputfields[i].Erestrict) {
       // Passive
       if (op->inputfields[i].vec) {
-        ierr = CeedElemRestrictionApply(op->inputfields[i].Erestrict, CEED_NOTRANSPOSE,
-                                        lmode, op->inputfields[i].vec, opocca->evecs[iein],
-                                        request); CeedChk(ierr);
+        ierr = CeedElemRestrictionApply(op->inputfields[i].Erestrict,
+                                        CEED_NOTRANSPOSE, lmode,
+                                        op->inputfields[i].vec,
+                                        opocca->evecs[iein],
+                                        request);
+        CeedChk(ierr);
         // Apply input Basis action
         basis = op->inputfields[i].basis;
         emode = qf->outputfields[i].emode;
         if (basis) {
-          ierr = CeedOperatorBasisAction_Occa(&evecs[iein], &qvecs[i], basis, emode, i, Q,
-                                              opocca->qdata, opocca->indata); CeedChk(ierr);
+          ierr = CeedOperatorBasisAction_Occa(&evecs[iein], &qvecs[i],
+                                              basis, emode, i, Q,
+                                              opocca->qdata,
+                                              opocca->indata);
+          CeedChk(ierr);
           iein++;
         }
       } else {
         // Active
-        ierr = CeedElemRestrictionApply(op->inputfields[i].Erestrict, CEED_NOTRANSPOSE,
-                                        lmode, ustate, opocca->evecs[iein], request); CeedChk(ierr);
+        ierr = CeedElemRestrictionApply(op->inputfields[i].Erestrict,
+                                        CEED_NOTRANSPOSE, lmode,
+                                        ustate,
+                                        opocca->evecs[iein],
+                                        request);
+        CeedChk(ierr);
         // Apply input Basis action
         basis = op->inputfields[i].basis;
         emode = qf->outputfields[i].emode;
         if (basis) {
-          ierr = CeedOperatorBasisAction_Occa(&ustate, &qvecs[i], basis, emode, i, Q,
-                                              opocca->qdata, opocca->indata); CeedChk(ierr);
+          ierr = CeedOperatorBasisAction_Occa(&ustate, &qvecs[i],
+                                              basis, emode, i, Q,
+                                              opocca->qdata,
+                                              opocca->indata);
+          CeedChk(ierr);
           iein++;
         }
       }
@@ -250,9 +269,12 @@ static int CeedOperatorApply_Occa(CeedOperator op,
         basis = op->inputfields[i].basis;
         emode = qf->outputfields[i].emode;
         if (basis) {
-          ierr = CeedOperatorBasisAction_Occa(&op->inputfields[i].vec, &qvecs[i], basis,
+          ierr = CeedOperatorBasisAction_Occa(&op->inputfields[i].vec,
+                                              &qvecs[i], basis,
                                               emode, i, Q,
-                                              opocca->qdata, opocca->indata); CeedChk(ierr);
+                                              opocca->qdata,
+                                              opocca->indata);
+          CeedChk(ierr);
           iein++;
         }
       } else {
@@ -340,14 +362,22 @@ static int CeedOperatorApply_Occa(CeedOperator op,
     if (op->outputfields[i].Erestrict) {
       // Passive
       if (op->outputfields[i].vec) {
-        ierr = CeedElemRestrictionApply(op->outputfields[i].Erestrict, CEED_TRANSPOSE,
-                                        lmode, evecs[ieout], op->outputfields[i].vec, request); CeedChk(ierr);
+        ierr = CeedElemRestrictionApply(op->outputfields[i].Erestrict,
+                                        CEED_TRANSPOSE, lmode,
+                                        evecs[ieout],
+                                        op->outputfields[i].vec,
+                                        request);
+        CeedChk(ierr);
         ieout++;
       } else {
         // Active
-        ierr = CeedElemRestrictionApply(op->outputfields[i].Erestrict, CEED_TRANSPOSE,
-                                        lmode, evecs[ieout], residual, request); CeedChk(ierr);
-        ieout++;
+        ierr = CeedElemRestrictionApply(op->outputfields[i].Erestrict,
+                                        CEED_TRANSPOSE, lmode,
+                                        evecs[ieout],
+                                        residual,
+                                        request);
+        CeedChk(ierr);
+        ieout++;        
       }
     } else {
       // No Restriction
