@@ -17,28 +17,24 @@
 // *****************************************************************************
 typedef int CeedInt;
 typedef double CeedScalar;
-typedef __global double gCeedScalar;
-typedef __global struct BuildContext gBuildContext;
+typedef /*__global*/ double gCeedScalar;
+//typedef /*__global*/ struct BuildContext gBuildContext;
 
 // *****************************************************************************
-struct BuildContext { CeedInt dim, space_dim; };
+//struct BuildContext { CeedInt dim, space_dim; };
 
 // *****************************************************************************
-kernel void f_build_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
-                         const CeedScalar *u, const CeedScalar *bu,
-                         CeedScalar *v, CeedScalar *bv) {
-  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-    if (i >= Q) continue;
-    const gBuildContext *bc = (gBuildContext*)ctx;
-    const CeedInt dims = bc->dim + 10*bc->space_dim;
-    const gCeedScalar *J = u+Q*NC;
-    const gCeedScalar *qw = u+Q*NC*(DIM+1);
-    gCeedScalar *qd = ((gCeedScalar*)qdata)+e*Q;
-    //const CeedInt offset = e*(Q*NC*(DIM+2));
-    //const gCeedScalar *bJ = bu+offset+Q*NC;
-    //const gCeedScalar *bQW = bu+offset+Q*NC*(DIM+1);
-    //if (fabs(J[i]-bJ[i])>epsilon) continue;
-    //if (fabs(qw[i]-bQW[i])>epsilon) continue;
+@kernel void f_build_mass(int *ctx, CeedInt Q,
+                          const int *iOf7, const int *oOf7, 
+                          const CeedScalar *u, CeedScalar *v) {
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    const CeedScalar *J = u + iOf7[0];
+    const CeedScalar *qw = u + iOf7[1];
+    CeedScalar *qd = v + oOf7[0];
+    //const struct BuildContext *bc = (struct BuildContext*)ctx;
+    const int dim = ctx[0];
+    const int space_dim = ctx[1];
+    const CeedInt dims = dim + 10*space_dim;
     if (dims==11) qd[i] = J[i] * qw[i];
     if (dims==22) qd[i] = (J[i+Q*0]*J[i+Q*3]-J[i+Q*1]*J[i+Q*2])*qw[i];
     if (dims==33) qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8]-J[i+Q*5]*J[i+Q*7]) -
@@ -48,15 +44,13 @@ kernel void f_build_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
 }
 
 // *****************************************************************************
-kernel void f_apply_mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
-                         const CeedScalar *u, const CeedScalar *bu,
-                         CeedScalar *v, CeedScalar *bv) {
-  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-    if (i >= Q) continue;
-    const gCeedScalar *w = ((gCeedScalar*)qdata)+e*Q;
-    //const CeedInt offset = e*(Q*NC*(DIM+2));
-    //const gCeedScalar *o_bu = bu+offset;
-    //if (fabs(u[i]-o_bu[i])>epsilon) continue;
+@kernel void f_apply_mass(void *ctx, CeedInt Q,
+                          const int *iOf7, const int *oOf7,
+                          const CeedScalar *in, CeedScalar *out) {
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    const CeedScalar *u = in + iOf7[0];
+    const CeedScalar *w = in + iOf7[1];
+    CeedScalar *v = out + oOf7[0];
     v[i] = w[i] * u[i];
   }
 }

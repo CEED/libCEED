@@ -55,6 +55,7 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
     if (emode == CEED_EVAL_NONE ){
       dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > NONE",name);
       //data->indata[i]
+      iOf7[idx+1]=iOf7[idx];
       idx+=1;
     }
     if (emode & CEED_EVAL_INTERP){

@@ -84,7 +84,10 @@ c-----------------------------------------------------------------------
      $  bu,err)
 
       call ceedqfunctioncreateinterior(ceed,1,setup,
-     $  't30-operator-f.f:setup',qf_setup,err)
+c     __FILE__ should not be more than the 72 characters, -ffree-line-length-none ?
+     $__FILE__ 
+     $     //':setup'//char(0),qf_setup,err)
+c     $  't30-operator-f.f:setup',qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'_weight',1,
      $  ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setup,'x',1,ceed_eval_grad,err)
@@ -92,7 +95,9 @@ c-----------------------------------------------------------------------
      $  ceed_eval_none,err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,
-     $  't30-operator-f.f:mass',qf_mass,err)
+     $__FILE__ 
+     $     //':mass'//char(0),qf_mass,err)
+c     $  't30-operator-f.f:mass',qf_mass,err)
       call ceedqfunctionaddinput(qf_mass,'rho',1,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_mass,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_mass,'v',1,ceed_eval_interp,err)
