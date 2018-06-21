@@ -112,7 +112,7 @@ static int kCeedTensorContract(const int transpose,
   const int P = transpose?Q1d:P1d;
   const int Q = transpose?P1d:Q1d;
   //printf("\n[kGrad] CEED_EVAL_GRAD, P=%d, Q=%d, transpose:%s",P,Q,transpose?"yes":"no");
-  for (int e=0; e<nelem; e++; tile(TILE_SIZE)) {
+  for (int e=0; e<nelem; e++; @tile(TILE_SIZE)) {
      //if (e >= nelem) continue;
     const int t_offset = e*tmpSz;
     global_double *eTmp0 = tmp0+t_offset;

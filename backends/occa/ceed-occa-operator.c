@@ -327,7 +327,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
   // Loop through elements *****************************************************
   dbg("\n[CeedOperator][Apply] Loop through elements");
   for (CeedInt e=0; e<op->numelements; e++) {
-    dbg("\n\t[CeedOperator][Apply] e # %d/%d",e,op->numelements);
+    dbg("\n\t[CeedOperator][Apply] e # %d/%d",e,op->numelements-1);
     // Input basis apply if needed
     dbg("\t[CeedOperator][Apply] Input basis apply if needed");
     dbg("\t[CeedOperator][Apply] num input fields");

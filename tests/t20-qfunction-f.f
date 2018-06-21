@@ -51,14 +51,17 @@ c-----------------------------------------------------------------------
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-      call ceedqfunctioncreateinterior(ceed,1,setup,
-     $  't20-qfunction-f.f:setup',qf_setup,err)
+      call ceedqfunctioncreateinterior(ceed,1,setup, 
+c     __FILE__ should not be more than the 72 characters, -ffree-line-length-none ?
+     $__FILE__ 
+     $     //':setup'//char(0),qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'w', 1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_setup,'qdata',1,ceed_eval_interp,
      $  err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,
-     $  't20-qfunction-f.f:mass',qf_mass,err)
+     $__FILE__ 
+     $  //':mass'//char(0),qf_mass,err)
       call ceedqfunctionaddinput(qf_mass,'qdata',1,ceed_eval_interp,err)
       call ceedqfunctionaddinput(qf_mass,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_mass,'v',1,ceed_eval_interp,err)
