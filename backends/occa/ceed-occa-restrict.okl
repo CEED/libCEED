@@ -16,8 +16,8 @@
 
 // *****************************************************************************
 @kernel void kRestrict0(const int *indices,
-                       const double* uu,
-                       double* vv) {
+                        const double* uu,
+                        double* vv) {
   for (int i=0; i<nelem_x_elemsize; i++; @tile(TILE_SIZE,@outer,@inner)){
      //if (i >= nelem_x_elemsize) continue;
     vv[i] = uu[indices[i]];
@@ -26,9 +26,9 @@
 
 // *****************************************************************************
 @kernel void kRestrict1(const int ncomp,
-                       const int *indices,
-                       const double* uu,
-                       double* vv) {
+                        const int *indices,
+                        const double* uu,
+                        double* vv) {
   for (int e = 0; e < nelem; e++; @tile(TILE_SIZE,@outer,@inner)){
      //if (e >= nelem) continue;
     for (int d = 0; d < ncomp; d++){
@@ -42,9 +42,9 @@
 
 // *****************************************************************************
 @kernel void kRestrict2(const int ncomp,
-                       const int *indices,
-                       const double* uu,
-                       double* vv) {
+                        const int *indices,
+                        const double* uu,
+                        double* vv) {
   for (int e = 0; e < nelem; e++; @tile(TILE_SIZE,@outer,@inner)){
      //if (e >= nelem) continue;
     for (int d = 0; d < ncomp; d++){
@@ -70,9 +70,9 @@ kernel void kRestrict3(const int *indices,
 
 // *****************************************************************************
 @kernel void kRestrict3b(const int *tindices,
-                        const int *toffsets,
-                        const double* uu,
-                        double* vv) {
+                         const int *toffsets,
+                         const double* uu,
+                         double* vv) {
   for (int i=0; i<ndof; i++; @tile(TILE_SIZE,@outer,@inner)){
      //if (i >= ndof) continue;
     const int rng1 = toffsets[i];
@@ -105,12 +105,12 @@ kernel void kRestrict4(const int ncomp,
 
 // *****************************************************************************
 @kernel void kRestrict4b(const int ncomp,
-                        const int *tindices,
-                        const int *toffsets,
-                        const double* uu,
-                        double* vv) {
+                         const int *tindices,
+                         const int *toffsets,
+                         const double* uu,
+                         double* vv) {
   for (int i=0; i<ndof; i++; @tile(TILE_SIZE,@outer,@inner)){
-     //if (i >= ndof) continue;
+    //if (i >= ndof) continue;
     const int rng1 = toffsets[i];
     const int rngN = toffsets[i+1];
     for (int d = 0; d < ncomp; ++d) {

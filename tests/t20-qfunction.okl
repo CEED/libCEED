@@ -21,38 +21,23 @@ typedef /*__global*/ double gCeedScalar;
 
 // *****************************************************************************
 @kernel void setup(void *ctx, CeedInt Q,
-                   const int *iOf7, const int idx,
-                   const int *oOf7, const int odx,
+                   const int *iOf7, const int *oOf7,
                    const CeedScalar *in, CeedScalar *out) {
-  for (/*CeedI*/int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
-      //if (i >= Q) continue;
-      //gCeedScalar *w = ((gCeedScalar*)qdata)+e*Q;
-      //const gCeedScalar *u0 = u;
-      const CeedScalar *w = in + iOf7[0];
-      CeedScalar *qdata = out + oOf7[0];
-      //const CeedInt offset = e*(Q*NC*(DIM+2));
-      //const gCeedScalar *bu0 = bu+offset;
-      //if (fabs(u0[i]-bu0[i])>epsilon) continue;
-      qdata[i] = w[i];
-   }
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    const CeedScalar *w = in + iOf7[0];
+    CeedScalar *qdata = out + oOf7[0];
+    qdata[i] = w[i];
+  }
 }
 
 // *****************************************************************************
 @kernel void mass(void *ctx, CeedInt Q,
-                  const int *iOf7, const int idx,
-                  const int *oOf7, const int odx,
+                  const int *iOf7, const int *oOf7,
                   const CeedScalar *in, CeedScalar *out) {
-  for (/*CeedI*/int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
-     //if (i >= Q) continue;
-     //const gCeedScalar *w = qdata + e*Q;
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
     const CeedScalar *qdata = in + iOf7[0];
     const CeedScalar *u = in + iOf7[1];
-    //printf("\tqdata=%f, u=%f\n",qdata[i],u[i]);
     CeedScalar *v = out + oOf7[0];
-    //const CeedInt offset = e*(Q*NC*(DIM+2));
-    //const gCeedScalar *bu0 = bu+offset;
-    //if (fabs(u[i]-bu0[i])>epsilon) continue;
-    //v0[i] = w[i] * u[i];
     v[i] = qdata[i] * u[i];
   }
 }
