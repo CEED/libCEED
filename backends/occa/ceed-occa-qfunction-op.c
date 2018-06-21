@@ -41,21 +41,20 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
     const CeedInt ncomp = qf->inputfields[i].ncomp;
     const CeedEvalMode emode = qf->inputfields[i].emode;
     //const bool restriction = op->inputfields[i].Erestrict;
-    /*
-      if (restriction) {
+
+    /*if (restriction) {
       dbg("\t[CeedQFunction][AllocOpIn] restriction");
       elemsize = op->inputfields[i].Erestrict->elemsize;
-      } else {
+    } else {
       dbg("\t[CeedQFunction][AllocOpIn] NO restriction, Q=%d", Q);
       elemsize = Q;
       }*/
-    //dbg("\t[CeedQFunction][AllocOpIn] elemsize=%d",elemsize);
-    // data in op_data->Edata
    
     if (emode == CEED_EVAL_NONE ){
       dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > NONE",name);
+      const CeedInt length = Q*ncomp;
       //data->indata[i]
-      iOf7[idx+1]=iOf7[idx];
+      iOf7[idx+1]=iOf7[idx]+length;
       idx+=1;
     }
     if (emode & CEED_EVAL_INTERP){
@@ -186,7 +185,7 @@ int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
     //const bool restriction = op->inputfields[i].Erestrict;
     const char *name = qf->inputfields[i].fieldname;
     const CeedEvalMode emode = qf->inputfields[i].emode;
-    //const CeedInt ncomp = qf->inputfields[i].ncomp;
+    const CeedInt ncomp = qf->inputfields[i].ncomp;
     /*if (restriction) {
       elemsize = op->inputfields[i].Erestrict->elemsize;
     } else {
@@ -196,11 +195,14 @@ int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
     */
     switch(emode) {
     case CEED_EVAL_NONE:{
-      dbg("\t[CeedQFunction][FillOp] \"%s\" > NONE",name);
+      dbg("[CeedQFunction][FillOp] \"%s\" > NONE",name);
       //assert(false);
       //data->indata[i] = &data->Edata[i][e*Q*ncomp];
-      //const CeedInt length = Q*ncomp;
-      //occaCopyPtrToMem(d_indata,in[i],length*bytes,iOf7[i]*bytes,NO_PROPS);
+      const CeedInt length = Q*ncomp;
+      dbg("[CeedQFunction][FillOp] NONE length=%d", length);
+      dbg("[CeedQFunction][FillOp] NONE offset=%d", iOf7[i]);
+      assert(length>0);
+      occaCopyPtrToMem(d_indata,in[i],length*bytes,iOf7[i]*bytes,NO_PROPS);
       break;
     }
     case CEED_EVAL_INTERP:{
@@ -209,6 +211,7 @@ int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
       dbg("[CeedQFunction][FillOp] INTERP iOf7[%d]=%d", i,iOf7[i]);
       const CeedInt length = iOf7[i+1]-iOf7[i];
       dbg("[CeedQFunction][FillOp] INTERP length=%d", length);
+      dbg("[CeedQFunction][FillOp] INTERP offset=%d", iOf7[i]);
       assert(length>0);
       occaCopyPtrToMem(d_indata,in[i],length*bytes,iOf7[i]*bytes,NO_PROPS);
       break;
@@ -219,12 +222,19 @@ int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
       dbg("[CeedQFunction][FillOp] GRAD iOf7[%d]=%d", i,iOf7[i]);
       const CeedInt length = iOf7[i+1]-iOf7[i];
       dbg("[CeedQFunction][FillOp] GRAD length=%d", length);
+      dbg("[CeedQFunction][FillOp] GRAD offset=%d", iOf7[i]);
       assert(length>0);
       occaCopyPtrToMem(d_indata,in[i],length*bytes,iOf7[i]*bytes,NO_PROPS);
       break;
     }
     case CEED_EVAL_WEIGHT:
       dbg("[CeedQFunction][FillOp] \"%s\" WEIGHT", name);
+      dbg("[CeedQFunction][FillOp] WEIGHT iOf7[%d]=%d", i,iOf7[i]);
+      const CeedInt length = iOf7[i+1]-iOf7[i];
+      dbg("[CeedQFunction][FillOp] WEIGHT length=%d", length);
+      dbg("[CeedQFunction][FillOp] WEIGHT offset=%d", iOf7[i]);
+      assert(length>0);
+      occaCopyPtrToMem(d_indata,in[i],length*bytes,iOf7[i]*bytes,NO_PROPS);
       break;  // No action
     case CEED_EVAL_DIV: break; // Not implemented
     case CEED_EVAL_CURL: break; // Not implemented

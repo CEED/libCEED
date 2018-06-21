@@ -123,7 +123,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
                 d_ctx, occaInt(Q),
                 d_idx, d_odx, 
                 d_indata, d_outdata);
-
+  
   // ***************************************************************************
   if (cbytes>0) occaCopyMemToPtr(qf->ctx,d_ctx,cbytes,0,NO_PROPS);
   
@@ -152,6 +152,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
       const CeedInt ncomp = qf->outputfields[i].ncomp;
       assert(emode==CEED_EVAL_NONE || emode==CEED_EVAL_INTERP);
       if (emode==CEED_EVAL_NONE){
+        dbg("[CeedQFunction][Apply] out \"%s\" NONE",name);
         occaCopyMemToPtr(out[i],d_outdata,Q*bytes,NO_OFFSET,NO_PROPS);
       }
       if (emode & CEED_EVAL_INTERP){
