@@ -26,9 +26,11 @@ struct BuildContext { CeedInt dim, space_dim; };
 // *****************************************************************************
 kernel void f_build_mass(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
-    CeedScalar *J = (CeedScalar*)in[0];
-    CeedScalar *qw = (CeedScalar*)in[1];
-    CeedScalar *qd = (CeedScalar*)out[0];
+  BuildContext *bc = (BuildContext*)ctx;
+  int dims = bc->dim;
+  CeedScalar *J = (CeedScalar*)in[0];
+  CeedScalar *qw = (CeedScalar*)in[1];
+  CeedScalar *qd = (CeedScalar*)out[0];
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
     if (dims==11) qd[i] = J[i] * qw[i];

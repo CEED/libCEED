@@ -26,17 +26,15 @@ typedef __global double gCeedScalar;
 #define PetscAbsScalar(a) (((a)<0.0)?(-a):(a))
 
 // *****************************************************************************
-kernel void Setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
-                  const CeedScalar *u, const CeedScalar *bu,
-                  CeedScalar *v, CeedScalar *bv) {
+kernel void Setup(void *ctx, CeedInt Q,
+                 const CeedScalar *const *in, CeedScalar *const *out) {
+  CeedScalar *rho = out[0], *target = rho + Q;
+  const CeedScalar (*x)[Q] = (const CeedScalar (*)[Q])in[0];
+  const CeedScalar (*J)[3][Q] = (const CeedScalar (*)[3][Q])in[1];
+  const CeedScalar *w = in[2];
+  const int szofcs = sizeof(CeedScalar);
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    const gCeedScalar *x = u;
-    const gCeedScalar *J = u+Q*NC;
-    const gCeedScalar *w = u+Q*NC*(DIM+1);
-    const int szofcs = sizeof(CeedScalar);
-    gCeedScalar *rho = ((gCeedScalar*)qdata)+e*Q*qdatasize/szofcs;
-    gCeedScalar *target = rho+Q;
     //const CeedInt offset = e*(Q*NC*(DIM+2));
     //const gCeedScalar *du = bu+offset;
     //const gCeedScalar *bJ = bu+offset+Q*NC;
@@ -54,15 +52,15 @@ kernel void Setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
 }
 
 // *****************************************************************************
-kernel void Mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
-                 const CeedScalar *u, const CeedScalar *bu,
-                 CeedScalar *v, CeedScalar *bv) {
+kernel void Mass(void *ctx, CeedInt Q,
+                const CeedScalar *const *in, CeedScalar *const *out) {
+  bool *residual = ctx;
+  CeedScalar *rho = (CeedScalar*)in[1], *target = rho + Q;
+  CeedScalar *v = (CeedScalar*)out[0];
+  CeedScalar *u = (CeedScalar*)in[0];
+  const int szofcs = sizeof(CeedScalar);
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    const int szofcs = sizeof(CeedScalar);
-    const gCeedBool *residual = (gCeedBool*)ctx;
-    const gCeedScalar *rho = ((gCeedScalar*)qdata)+e*Q*qdatasize/szofcs;
-    const gCeedScalar *target = rho+Q;
     //const CeedInt offset = e*(Q*NC*(DIM+2));
     //const gCeedScalar *du = bu+offset;
     //if (fabs(u[i]-du[i])>epsilon) continue;
@@ -71,15 +69,14 @@ kernel void Mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
 }
 
 // *****************************************************************************
-kernel void Error(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
-                  const CeedScalar *u, const CeedScalar *bu,
-                  CeedScalar *v, CeedScalar *bv) {
+kernel void Error(void *ctx, CeedInt Q,
+                 const CeedScalar *const *in, CeedScalar *const *out) {
+  CeedScalar *maxerror = ctx;
+  CeedScalar *rho = (CeedScalar*)in[1], *target = rho + Q;
+  CeedScalar *u = (CeedScalar*)in[0];
+  const int szofcs = sizeof(CeedScalar);
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    const int szofcs = sizeof(CeedScalar);
-    gCeedScalar *maxerror = (gCeedScalar*)ctx;
-    const gCeedScalar *rho = ((gCeedScalar*)qdata)+e*Q*qdatasize/szofcs;
-    const gCeedScalar *target = rho+Q;
     *maxerror = PetscMax(*maxerror, PetscAbsScalar(u[i]-target[i]));
   }
 }
