@@ -342,15 +342,17 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
-      subroutine massf(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
+      subroutine massf(ctx,q,u1,u2,u3,u4,u5,u6,u7,
+     $  u8,u9,u10,u11,u12,u13,u14,u15,u16,v1,v2,v3,v4,v5,v6,v7,v8,
+     $  v9,v10,v11,v12,v13,v14,v15,v16,ierr)
       real*8 ctx
-      real*8 qdata(1)
       real*8 u1(1)
+      real*8 u2(1)
       real*8 v1(1)
       integer q,ierr
 
       do i=1,q
-        v1(i)=qdata(i)*u1(i)
+        v1(i)=u2(i)*u1(i)
       enddo
 
       ierr=0
@@ -827,19 +829,27 @@ c     Create a ceed element restriction
      $  ceed_mem_host,ceed_use_pointer,indices,erstrct,err)
 
 c     Create a ceed qfunction
-      call ceedqfunctioncreateinterior(ceed,1,ncomp,8,ceed_eval_interp,
-     $  ceed_eval_interp,massf,
+      call ceedqfunctioncreateinterior(ceed,1,massf,
      $  __FILE__
      $  //':massf'//char(0),qf_mass,err)
+      call ceedqfunctionaddinput(qf_mass,'u',1,ceed_eval_interp,err)
+      call ceedqfunctionaddinput(qf_mass,'rho',1,ceed_eval_none,err)
+      call ceedqfunctionaddoutput(qf_mass,'v',1,ceed_eval_interp,err)
 
 c     Create a ceed operator
-      call ceedoperatorcreate(ceed,erstrct,basis,qf_mass,
+      call ceedoperatorcreate(ceed,qf_mass,
      $  ceed_null,ceed_null,op_mass,err)
+      call ceedoperatorsetfield(op_mass,'u',erstrct,basis,
+     $  ceed_vector_active,err)
+      call ceedoperatorsetfield(op_mass,'rho',
+     $  ceed_restriction_identity,ceed_basis_colocated,
+     $  vec_qdata,err)
+      call ceedoperatorsetfield(op_mass,'v',erstrct,basis,
+     $  ceed_vector_active,err)
 
 c     Create ceed vectors
       call ceedvectorcreate(ceed,ldof,vec_p1,err)
       call ceedvectorcreate(ceed,ldof,vec_ap1,err)
-      call ceedoperatorgetqdata(op_mass,vec_qdata,err)
       call ceedvectorsetarray(vec_qdata,ceed_mem_host,
      $  ceed_use_pointer,h2,err)
 
@@ -920,7 +930,7 @@ c     Helmholtz equations
 
       call ceedvectorsetarray(vec_p1,ceed_mem_host,ceed_use_pointer,
      $  p1,err)
-      call ceedoperatorapply(op_mass,vec_qdata,vec_p1,vec_ap1,
+      call ceedoperatorapply(op_mass,vec_p1,vec_ap1,
      $  ceed_request_immediate,err)
       call ceedvectorgetarray(vec_ap1,ceed_mem_host,ap1,err)
 
