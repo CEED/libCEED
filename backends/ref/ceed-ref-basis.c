@@ -24,23 +24,26 @@
 // If Add != 0, "=" is replaced by "+="
 static int CeedTensorContract_Ref(Ceed ceed,
                                   CeedInt A, CeedInt B, CeedInt C, CeedInt J,
-                                  const CeedScalar *t, CeedTransposeMode tmode,
+                                  const CeedScalar *restrict t, CeedTransposeMode tmode,
                                   const CeedInt Add,
-                                  const CeedScalar *u, CeedScalar *v) {
+                                  const CeedScalar *restrict u, CeedScalar *restrict v) {
   CeedInt tstride0 = B, tstride1 = 1;
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = J;
   }
 
+  if (!Add) {
+    for (CeedInt q=0; q<A*J*C; q++) {
+      v[q] = (CeedScalar) 0.0;
+    }
+  }
+
   for (CeedInt a=0; a<A; a++) {
-    for (CeedInt j=0; j<J; j++) {
-      if (!Add) {
-        for (CeedInt c=0; c<C; c++)
-          v[(a*J+j)*C+c] = 0;
-      }
-      for (CeedInt b=0; b<B; b++) {
+    for (CeedInt b=0; b<B; b++) {
+      for (CeedInt j=0; j<J; j++) {
+        CeedScalar tq = t[j*tstride0 + b*tstride1];
         for (CeedInt c=0; c<C; c++) {
-          v[(a*J+j)*C+c] += t[j*tstride0 + b*tstride1] * u[(a*B+b)*C+c];
+          v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
         }
       }
     }
