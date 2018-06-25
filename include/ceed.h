@@ -167,6 +167,20 @@ CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *r);
 //   \int_\Omega v^T f_0(u, \nabla u, qdata) + (\nabla v)^T f_1(u, \nabla u, qdata)
 // where gradients are with respect to the reference element.
 
+/// Basis reference element shape
+///
+/// @ingroup CeedBasis
+typedef enum {
+  /// 1D elements, 2D squares, or nD hexahedra, n > 2
+  CEED_ELEM_HEXAHEDRA  = 0,
+  /// nD tetrahedra, n > 1
+  CEED_ELEM_TETRAHEDRA = 1,
+  /// 3D pyramids
+  CEED_ELEM_PYRAMID    = 2,
+  /// 3D wedges
+  CEED_ELEM_WEDGE      = 4,
+} CeedElemType;
+
 /// Basis evaluation mode
 ///
 /// Modes can be bitwise ORed when passing to most functions.
@@ -196,11 +210,12 @@ typedef enum {
   CEED_GAUSS_LOBATTO = 1,
 } CeedQuadMode;
 
-CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,
-    CeedInt ndof, CeedInt P, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);
-CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof,
-                                        CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
-                                        const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedElemType type, CeedInt dim,
+                                                CeedInt ndof, CeedInt P, CeedInt Q,
+                                                CeedQuadMode qmode, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedElemType type, CeedInt dim, CeedInt ndof,
+                                        CeedInt P1d, CeedInt Q1d, const CeedScalar *interp, const CeedScalar *grad,
+                                        const CeedScalar *qref, const CeedScalar *qweight, CeedBasis *basis);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
 CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode,
                                CeedEvalMode emode, const CeedScalar *u, CeedScalar *v);
