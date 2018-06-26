@@ -270,9 +270,9 @@ void fCeedBasisView(int *basis, int *err) {
 
 #define fCeedQRFactorization \
     FORTRAN_NAME(ceedqrfactorization, CEEDQRFACTORIZATION)
-void fCeedQRFactorization(CeedScalar *mat, int *m, int *n,
+void fCeedQRFactorization(CeedScalar *mat, CeedScalar *tau, int *m, int *n,
                           int *err) {
-  *err = CeedQRFactorization(mat, *m, *n);
+  *err = CeedQRFactorization(mat, tau, *m, *n);
 }
 
 #define fCeedBasisGetColocatedGrad \

@@ -282,11 +282,88 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   return 0;
 }
 
+/// Side to apply Householder matrix
+typedef enum {
+  CEED_LEFT  = 0,
+  CEED_RIGHT = 1,
+} CeedSide;
+
+int CeedHouseholderApply(CeedScalar *mat, CeedScalar *v, CeedScalar b, CeedInt m,
+                         CeedInt n, CeedInt i, CeedSide side) {
+  // Qtranspose = Hn-1 Hn-2 ... H0
+  //
+  // Hi = |I 0|
+  //      |0 P|
+  //
+  // Left Multiply
+  // |I 0| |A B| = |A   B|
+  // |0 P| |C D|   |PC PD|
+  //
+  // Right Multiply
+  // |A B| |I 0| = |A  BP|
+  // |C D| |0 P|   |C  DP|
+  int j, k;
+  CeedScalar w[n];
+
+  switch (side) {
+  case CEED_LEFT: // Assumes C = 0, in the middle of QR Factorization
+    // Find w = Dtranspose v
+    for (j=i; j<n; j++) { // Row j
+      w[j] = mat[n*i+j];  // v[i] = 1
+      for (k=i+1; k<m; k++) { // Column k
+        w[j] += mat[n*k+j]*v[k];
+      }
+    }
+    // Calculate D - b v wtranspose
+    for (j=i; j<m; j++) { // Row j
+      for (k=i; k<n; k++) { // Column k
+        mat[k+n*j] = mat[k+n*j] - b*v[j]*w[k];
+      }
+    }
+    break;
+  case CEED_RIGHT:
+    // Find w = D v
+    for (j=i; j<m; j++) { // Row j
+      w[j] = mat[i+n*j]; // v[i] = 1
+      for (k=i+1; k<n; k++) { // Column k
+        w[j] += mat[k+n*j]*v[k];
+      }
+    }
+    // Calculate D - b w vtranspose
+    for (j=i; j<m; j++) { // Row j
+      mat[i+n*j] = mat[i+n*j] - b*w[j]; // v[i] = 1
+      for (k=i+1; k<m; k++) { // Column k
+        mat[k+n*j] = mat[k+n*j] - b*v[k]*w[j];
+      }
+    }
+    // Find w = B v
+    for (j=0; j<i; j++) { // Row j
+      w[j] = mat[i+n*j]; // v[i] = 1
+      for (k=i+1; k<m; k++) { // Column k
+        w[j] += mat[k+n*j]*v[k];
+      }
+    }
+    // Calculate B - b w vtranspose
+    for (j=0; j<i; j++) { // Row j
+      mat[i+n*j] = mat[i+n*j] - b*w[j]; // v[i] = 1
+      for (k=i+1; k<m; k++) { // Column k
+        mat[k+n*j] = mat[k+n*j] - b*v[k]*w[j];
+      }
+    }
+    break;
+  }
+
+  return 0;
+};
+
 /// Return QR Factorization of matrix
 /// @param mat        Row-major matrix to be factorized in place
-int CeedQRFactorization(CeedScalar *mat, CeedInt m, CeedInt n) {
-  int i, j, k;
-  CeedScalar b, mu, sigma, v[m], w[n];
+/// @param tau        Vector of length m of scaling fators
+/// @param m          Number of rows
+/// @param n          Number of columns
+int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m, CeedInt n) {
+  int i, j;
+  CeedScalar b, mu, sigma, v[m];
 
   for (i=0; i<n; i++) {
     // Calculate Householder vector, magnitude
@@ -311,21 +388,11 @@ int CeedQRFactorization(CeedScalar *mat, CeedInt m, CeedInt n) {
       }
         v[i] = 1.0;
      }
-    // Apply Householder vector
+    tau[i] = b;
+
     if (b) {
-      // Find w = Atranspose v
-      for (j=i; j<n; j++) { // Row j
-        w[j] = 0;
-        for (k=i; k<m; k++) { // Column k
-          w[j] += mat[n*k+j]*v[k];
-        }
-      }
-      // Calculate A - b v wtranspose
-      for (j=i; j<m; j++) { // Row j
-        for (k=i; k<n; k++) { // Column k
-          mat[k+n*j] = mat[k+n*j] - b*v[j]*w[k];
-        }
-      }
+      // Apply Householder vector
+      CeedHouseholderApply(mat, v, b, m, n, i, CEED_LEFT);
       // Save v
       for (j=i+1; j<m; j++) {
         mat[i+n*j] = v[j];
@@ -343,7 +410,7 @@ int CeedQRFactorization(CeedScalar *mat, CeedInt m, CeedInt n) {
 int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
   int i, j, k;
   CeedInt ierr, P1d=(basis)->P1d, Q1d=(basis)->Q1d;
-  CeedScalar *interp1d, *grad1d, b, w[Q1d];
+  CeedScalar *interp1d, *grad1d, tau[Q1d], v[P1d];
 
   ierr = CeedMalloc(Q1d*P1d, &interp1d); CeedChk(ierr);
   ierr = CeedMalloc(Q1d*P1d, &grad1d); CeedChk(ierr);
@@ -351,7 +418,7 @@ int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
   memcpy(grad1d, (basis)->grad1d, Q1d*P1d*sizeof(basis)->interp1d[0]);
   
   // QR Factorization, interp1d = Q R
-  ierr = CeedQRFactorization(interp1d, Q1d, P1d); CeedChk(ierr);
+  ierr = CeedQRFactorization(interp1d, tau, Q1d, P1d); CeedChk(ierr);
 
   // Apply Rinv, colograd1d = grad1d Rinv
   for (i=0; i<Q1d; i++) { // Row i
@@ -369,53 +436,13 @@ int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
   }
 
   // Apply Qtranspose, colograd = colograd Qtranspose
-  // Qtranspose = Hn-1 Hn-2 ... H0
-  //
-  // Hi = |I 0|
-  //      |0 P|
-  //
-  // |I 0| |A B| = |A PB|
-  // |0 P| |C D|   |C PD|
-  for (i=P1d-1; i>=0; i--) { // Column i
-    // Calculate b
-    b = 0.0;
-    for (j=i+1; j<Q1d; j++) {
-      b += interp1d[i+P1d*j]*interp1d[i+P1d*j];
-    }
-    if (fabs(b) <= 10E-14) {
-      b = 0;
-    } else {
-      b = 2.0/(b + 1.0);
-    }
-    if (b) {
-      // Find w = D v
-      for (j=i; j<Q1d; j++) { // Row j
-        w[j] = colograd1d[i+Q1d*j]; // v[i] = 1
-        for (k=i+1; k<Q1d; k++) { // Column k
-          w[j] += colograd1d[k+Q1d*j]*interp1d[i+P1d*k];
-        }
+  for (i=P1d-1; i>=0; i--) {
+    if (tau[i]) {
+      for (j=i+1; j<Q1d; j++) {
+        v[j] = interp1d[i+P1d*j];
       }
-      // Calculate D - b w vtranspose
-      for (j=i; j<Q1d; j++) { // Row j
-        colograd1d[i+Q1d*j] = colograd1d[i+Q1d*j] - b*w[j]; // v[i] = 1
-        for (k=i+1; k<Q1d; k++) { // Column k
-          colograd1d[k+Q1d*j] = colograd1d[k+Q1d*j] - b*interp1d[i+P1d*k]*w[j];
-        }
-      }
-      // Find w = B v
-      for (j=0; j<i; j++) { // Row j
-        w[j] = colograd1d[i+Q1d*j]; // v[i] = 1
-        for (k=i+1; k<Q1d; k++) { // Column k
-          w[j] += colograd1d[k+Q1d*j]*interp1d[i+P1d*k];
-        }
-      }
-      // Calculate B - b w vtranspose
-      for (j=0; j<i; j++) { // Row j
-        colograd1d[i+Q1d*j] = colograd1d[i+Q1d*j] - b*w[j]; // v[i] = 1
-        for (k=i+1; k<Q1d; k++) { // Column k
-          colograd1d[k+Q1d*j] = colograd1d[k+Q1d*j] - b*interp1d[i+P1d*k]*w[j];
-        }
-      }
+      // Apply Householder vector
+      CeedHouseholderApply(colograd1d, v, tau[i], Q1d, P1d, i, CEED_RIGHT);
     }
   }
 
