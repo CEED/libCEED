@@ -282,6 +282,113 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   return 0;
 }
 
+// Computes A = (I - b v v^T) A
+// where A is an mxn matrix indexed as A[i*row + j*col]
+int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v, CeedScalar b,
+                           CeedInt m, CeedInt n, CeedInt row, CeedInt col) {
+  for (CeedInt j=0; j<n; j++) {
+    CeedScalar w = A[0*row + j*col];
+    for (CeedInt i=1; i<m; i++) w += v[i] * A[i*row + j*col];
+    A[0*row + j*col] -= b * w;
+    for (CeedInt i=1; i<m; i++) A[i*row + j*col] -= b * w * v[i];
+  }
+  return 0;
+}
+
+// Compute A = Q A where Q is mxk and A is mxn. k<m
+int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q, const CeedScalar *tau, CeedTransposeMode tmode,
+                          CeedInt m, CeedInt n, CeedInt k, CeedInt row, CeedInt col) {
+  CeedScalar v[m];
+  for (CeedInt ii=0; ii<k; ii++) {
+    CeedInt i = tmode == CEED_TRANSPOSE ? ii : k-1-ii;
+    for (CeedInt j=i+1; j<m; j++) {
+      v[j] = Q[j*k+i];
+    }
+    // Apply Householder reflector (I - tau v v^T) colograd1d^T
+    CeedHouseholderReflect(&A[i*row], &v[i], tau[i], m-i, n, row, col);
+  }
+  return 0;
+}
+
+/// Return QR Factorization of matrix
+/// @param mat        Row-major matrix to be factorized in place
+/// @param tau        Vector of length m of scaling fators
+/// @param m          Number of rows
+/// @param n          Number of columns
+int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m, CeedInt n) {
+  CeedInt i, j;
+  CeedScalar v[m];
+
+  for (i=0; i<n; i++) {
+    // Calculate Householder vector, magnitude
+    CeedScalar sigma = 0.0;
+    v[i] = mat[i+n*i];
+    for (j=i+1; j<m; j++) {
+      v[j] = mat[i+n*j];
+      sigma += v[j] * v[j];
+    }
+    CeedScalar norm = sqrt(v[i]*v[i] + sigma); // norm of v[i:m]
+    CeedScalar Rii = -copysign(norm, v[i]);
+    v[i] -= Rii;
+    // norm of v[i:m] after modification above and scaling below
+    //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
+    //   tau = 2 / (norm*norm)
+    tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
+    for (j=i+1; j<m; j++) v[j] /= v[i];
+
+    // Apply Householder reflector to lower right panel
+    CeedHouseholderReflect(&mat[i*n+i+1], &v[i], tau[i], m-i, n-i-1, n, 1);
+    // Save v
+    mat[i+n*i] = Rii;
+    for (j=i+1; j<m; j++) {
+      mat[i+n*j] = v[j];
+    }
+  }
+
+  return 0;
+}
+
+/// Return colocated grad matrix
+/// @param basis      Basis
+/// @param colograd1d Row-major Q1d × Q1d matrix expressing derivatives of
+///                   basis functions at quadrature points
+int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
+  int i, j, k;
+  CeedInt ierr, P1d=(basis)->P1d, Q1d=(basis)->Q1d;
+  CeedScalar *interp1d, *grad1d, tau[Q1d];
+
+  ierr = CeedMalloc(Q1d*P1d, &interp1d); CeedChk(ierr);
+  ierr = CeedMalloc(Q1d*P1d, &grad1d); CeedChk(ierr);
+  memcpy(interp1d, (basis)->interp1d, Q1d*P1d*sizeof(basis)->interp1d[0]);
+  memcpy(grad1d, (basis)->grad1d, Q1d*P1d*sizeof(basis)->interp1d[0]);
+
+  // QR Factorization, interp1d = Q R
+  ierr = CeedQRFactorization(interp1d, tau, Q1d, P1d); CeedChk(ierr);
+
+  // Apply Rinv, colograd1d = grad1d Rinv
+  for (i=0; i<Q1d; i++) { // Row i
+    colograd1d[Q1d*i] = grad1d[P1d*i]/interp1d[0];
+    for (j=1; j<P1d; j++) { // Column j
+      colograd1d[j+Q1d*i] = grad1d[j+P1d*i];
+      for (k=0; k<j; k++) {
+        colograd1d[j+Q1d*i] -= interp1d[j+P1d*k]*colograd1d[k+Q1d*i];
+      }
+      colograd1d[j+Q1d*i] /= interp1d[j+P1d*j];
+    }
+    for (j=P1d; j<Q1d; j++) {
+      colograd1d[j+Q1d*i] = 0;
+    }
+  }
+
+  // Apply Qtranspose, colograd = colograd Qtranspose
+  CeedHouseholderApplyQ(colograd1d, interp1d, tau, CEED_NOTRANSPOSE, Q1d, Q1d, P1d, 1, Q1d);
+
+  ierr = CeedFree(&interp1d); CeedChk(ierr);
+  ierr = CeedFree(&grad1d); CeedChk(ierr);
+
+  return 0;
+}
+
 /// Apply basis evaluation from nodes to quadrature points or vice-versa
 ///
 /// @param basis Basis to evaluate
