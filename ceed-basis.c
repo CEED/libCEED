@@ -282,6 +282,149 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   return 0;
 }
 
+/// Return QR Factorization of matrix
+/// @param mat        Row-major matrix to be factorized in place
+int CeedQRFactorization(CeedScalar *mat, CeedInt m, CeedInt n) {
+  int i, j, k;
+  CeedScalar b, mu, sigma, v[m], w[n];
+
+  for (i=0; i<n; i++) {
+    // Calculate Householder vector, magnitude
+    sigma = 0.0;
+    v[i] = 1.0;
+    for (j=i+1; j<m; j++) {
+      sigma += mat[i+n*j]*mat[i+n*j];
+      v[j] = mat[i+n*j];
+    }
+    if (sigma<10E-14) {
+      b = 0;
+    } else {
+      mu = sqrt(mat[i+n*i]*mat[i+n*i]+sigma);
+      if (mat[i+n*i]<10E-14) {
+        v[i] = mat[i+n*i]-mu;
+      } else {
+        v[i] = -sigma/(mat[i+n*i]+mu);
+      }
+      b = 2*v[i]*v[i]/(sigma+v[i]*v[i]);
+      for (j=i+1; j<m; j++) {
+        v[j] = v[j]/v[i];
+      }
+        v[i] = 1.0;
+     }
+    // Apply Householder vector
+    if (b) {
+      // Find w = Atranspose v
+      for (j=i; j<n; j++) { // Row j
+        w[j] = 0;
+        for (k=i; k<m; k++) { // Column k
+          w[j] += mat[n*k+j]*v[k];
+        }
+      }
+      // Calculate A - b v wtranspose
+      for (j=i; j<m; j++) { // Row j
+        for (k=i; k<n; k++) { // Column k
+          mat[k+n*j] = mat[k+n*j] - b*v[j]*w[k];
+        }
+      }
+      // Save v
+      for (j=i+1; j<m; j++) {
+        mat[i+n*j] = v[j];
+      }
+    }
+  }
+
+  return 0;
+}
+
+/// Return colocated grad matrix
+/// @param basis      Basis
+/// @param colograd1d Row-major Q1d × Q1d matrix expressing derivatives of
+///                   basis functions at quadrature points
+int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
+  int i, j, k;
+  CeedInt ierr, P1d=(basis)->P1d, Q1d=(basis)->Q1d;
+  CeedScalar *interp1d, *grad1d, b, w[Q1d];
+
+  ierr = CeedMalloc(Q1d*P1d, &interp1d); CeedChk(ierr);
+  ierr = CeedMalloc(Q1d*P1d, &grad1d); CeedChk(ierr);
+  memcpy(interp1d, (basis)->interp1d, Q1d*P1d*sizeof(basis)->interp1d[0]);
+  memcpy(grad1d, (basis)->grad1d, Q1d*P1d*sizeof(basis)->interp1d[0]);
+  
+  // QR Factorization, interp1d = Q R
+  ierr = CeedQRFactorization(interp1d, Q1d, P1d); CeedChk(ierr);
+
+  // Apply Rinv, colograd1d = grad1d Rinv
+  for (i=0; i<Q1d; i++) { // Row i
+    colograd1d[Q1d*i] = grad1d[P1d*i]/interp1d[0];
+    for (j=1; j<P1d; j++) { // Column j
+      colograd1d[j+Q1d*i] = grad1d[j+P1d*i];
+      for (k=0; k<j; k++) {
+        colograd1d[j+Q1d*i] -= interp1d[j+P1d*k]*colograd1d[k+Q1d*i];
+      }
+      colograd1d[j+Q1d*i] /= interp1d[j+P1d*j];
+    }
+    for (j=P1d; j<Q1d; j++) {
+      colograd1d[j+Q1d*i] = 0;
+    }
+  }
+
+  // Apply Qtranspose, colograd = colograd Qtranspose
+  // Qtranspose = Hn-1 Hn-2 ... H0
+  //
+  // Hi = |I 0|
+  //      |0 P|
+  //
+  // |I 0| |A B| = |A PB|
+  // |0 P| |C D|   |C PD|
+  for (i=P1d-1; i>=0; i--) { // Column i
+    // Calculate b
+    b = 0.0;
+    for (j=i+1; j<Q1d; j++) {
+      b += interp1d[i+P1d*j]*interp1d[i+P1d*j];
+    }
+    if (fabs(b) <= 10E-14) {
+      b = 0;
+    } else {
+      b = 2.0/(b + 1.0);
+    }
+    if (b) {
+      // Find w = D v
+      for (j=i; j<Q1d; j++) { // Row j
+        w[j] = colograd1d[i+Q1d*j]; // v[i] = 1
+        for (k=i+1; k<Q1d; k++) { // Column k
+          w[j] += colograd1d[k+Q1d*j]*interp1d[i+P1d*k];
+        }
+      }
+      // Calculate D - b w vtranspose
+      for (j=i; j<Q1d; j++) { // Row j
+        colograd1d[i+Q1d*j] = colograd1d[i+Q1d*j] - b*w[j]; // v[i] = 1
+        for (k=i+1; k<Q1d; k++) { // Column k
+          colograd1d[k+Q1d*j] = colograd1d[k+Q1d*j] - b*interp1d[i+P1d*k]*w[j];
+        }
+      }
+      // Find w = B v
+      for (j=0; j<i; j++) { // Row j
+        w[j] = colograd1d[i+Q1d*j]; // v[i] = 1
+        for (k=i+1; k<Q1d; k++) { // Column k
+          w[j] += colograd1d[k+Q1d*j]*interp1d[i+P1d*k];
+        }
+      }
+      // Calculate B - b w vtranspose
+      for (j=0; j<i; j++) { // Row j
+        colograd1d[i+Q1d*j] = colograd1d[i+Q1d*j] - b*w[j]; // v[i] = 1
+        for (k=i+1; k<Q1d; k++) { // Column k
+          colograd1d[k+Q1d*j] = colograd1d[k+Q1d*j] - b*interp1d[i+P1d*k]*w[j];
+        }
+      }
+    }
+  }
+
+  ierr = CeedFree(&interp1d); CeedChk(ierr);
+  ierr = CeedFree(&grad1d); CeedChk(ierr);
+
+  return 0;
+}
+
 /// Apply basis evaluation from nodes to quadrature points or vice-versa
 ///
 /// @param basis Basis to evaluate
