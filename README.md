@@ -72,28 +72,28 @@ and run:
 # libCEED examples on CPU and GPU
 cd examples/ceed
 make
-./ex1 -ceed /cpu/self
+./ex1 -ceed /cpu/self/ref
 ./ex1 -ceed /gpu/occa
 cd ../..
 
 # MFEM+libCEED examples on CPU and GPU
 cd examples/mfem
 make
-./bp1 -ceed /cpu/self -no-vis
+./bp1 -ceed /cpu/self/ref -no-vis
 ./bp1 -ceed /gpu/occa -no-vis
 cd ../..
 
 # PETSc+libCEED examples on CPU and GPU
 cd examples/petsc
 make
-./bp1 -ceed /cpu/self
+./bp1 -ceed /cpu/self/ref
 ./bp1 -ceed /gpu/occa
 cd ../..
 
 # Nek+libCEED examples on CPU and GPU
 cd examples/nek5000
 ./make-nek-examples.sh
-./run-nek-example.sh -ceed /cpu/self -b 3
+./run-nek-example.sh -ceed /cpu/self/ref -b 3
 ./run-nek-example.sh -ceed /gpu/occa -b 3
 cd ../..
 ```
