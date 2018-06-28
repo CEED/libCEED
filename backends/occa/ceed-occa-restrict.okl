@@ -53,24 +53,12 @@
   }
 }
 
-/* Version using atomicAdd(double), not available before sm_60
-// *****************************************************************************
-@kernel void kRestrict3(const int *indices,
-                       const double* uu,
-                       double* vv) {
-  for (int i=0; i<nelem_x_elemsize; i++; @tile(TILE_SIZE,@outer,@inner)){
-    atomicAdd(vv + indices[i], uu[i]);
-  }
-}
-*/
-
 // *****************************************************************************
 @kernel void kRestrict3b(const int *tindices,
                          const int *toffsets,
                          const double* uu,
                          double* vv) {
   for (int i=0; i<ndof; i++; @tile(TILE_SIZE,@outer,@inner)){
-     //if (i >= ndof) continue;
     const int rng1 = toffsets[i];
     const int rngN = toffsets[i+1];
     double value = 0.0;
@@ -81,22 +69,6 @@
     vv[i] = value;
   }
 }
-
-/* Version using atomicAdd(double), not available before sm_60
-// *****************************************************************************
-@kernel void kRestrict4(const int ncomp,
-                       const int *indices,
-                       const double* uu,
-                       double* vv) {
-  for (int e = 0; e < nelem; e++; @tile(TILE_SIZE,@outer,@inner)){
-    for (int d = 0; d < ncomp; d++){
-      for (int i=0; i<elemsize; i++) {
-        atomicAdd(vv+indices[i+elemsize*e]+ndof*d,uu[i+elemsize*(d+e*ncomp)]);
-      }
-    }
-  }
-}
-*/
 
 // *****************************************************************************
 @kernel void kRestrict4b(const int ncomp,
@@ -115,38 +87,3 @@
     }
   }
 }
-
-/* Version using atomicAdd(double), not available before sm_60
-// *****************************************************************************
-@kernel void kRestrict5(const int ncomp,
-                       const int *indices,
-                       const double* uu,
-                       double* vv) {
-  for (int e = 0; e < nelem; e++; @tile(TILE_SIZE,@outer,@inner)){
-    if (e >= nelem) continue;
-    for (int d = 0; d < ncomp; d++){
-      for (int i=0; i<elemsize; i++) {
-        atomicAdd(vv+d+ncomp*indices[i+elemsize*e],uu[i+elemsize*(d+e*ncomp)]);
-      }
-    }
-  }
-}
-*/
-
-/* Version using atomicAdd(double), not available before sm_60
-// *****************************************************************************
-@kernel void kRestrict5b(const int ncomp,
-                        const int *tindices,
-                        const int *toffsets,
-                        const double* uu,
-                        double* vv) {
-  for (int e = 0; e < nelem; e++; @tile(TILE_SIZE,@outer,@inner)){
-    if (e >= nelem) continue;
-    for (int d = 0; d < ncomp; d++){
-      for (int i=0; i<elemsize; i++) {
-        atomicAdd(vv + d+ncomp*tindices[i+elemsize*e],uu[i+elemsize*(d+e*ncomp)]);
-      }
-    }
-  }
-}
-*/
