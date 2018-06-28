@@ -16,24 +16,24 @@
 
 #include <ceed-impl.h>
 #include <string.h>
-#include "ceed-tmpl.h"
+#include "ceed-opt.h"
 
-static int CeedDestroy_Tmpl(Ceed ceed) {
+static int CeedDestroy_Opt(Ceed ceed) {
   int ierr;
-  Ceed_Tmpl *impl = ceed->data;
+  Ceed_Opt *impl = ceed->data;
   Ceed ceedref = impl->ceedref;
   ierr = CeedFree(&ceedref); CeedChk(ierr);
   ierr = CeedFree(&impl); CeedChk(ierr);
   return 0;
 }
 
-static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
+static int CeedInit_Opt(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/tmpl"))
-    return CeedError(ceed, 1, "Tmpl backend cannot use resource: %s", resource);
+      && strcmp(resource, "/cpu/self/opt"))
+    return CeedError(ceed, 1, "Opt backend cannot use resource: %s", resource);
 
   int ierr;
-  Ceed_Tmpl *impl;
+  Ceed_Opt *impl;
   Ceed ceedref;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
@@ -41,17 +41,17 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
   ceed->data = impl;
   impl->ceedref = ceedref;
 
-  ceed->VecCreate = CeedVectorCreate_Tmpl;
-  ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Tmpl;
-  ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Tmpl;
-  ceed->QFunctionCreate = CeedQFunctionCreate_Tmpl;
-  ceed->OperatorCreate = CeedOperatorCreate_Tmpl;
-  ceed->Destroy = CeedDestroy_Tmpl;
+  ceed->VecCreate = CeedVectorCreate_Opt;
+  ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Opt;
+  ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Opt;
+  ceed->QFunctionCreate = CeedQFunctionCreate_Opt;
+  ceed->OperatorCreate = CeedOperatorCreate_Opt;
+  ceed->Destroy = CeedDestroy_Opt;
 
   return 0;
 }
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/tmpl", CeedInit_Tmpl, 30);
+  CeedRegister("/cpu/self/opt", CeedInit_Opt, 10);
 }

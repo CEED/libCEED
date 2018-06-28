@@ -829,5 +829,5 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
 // *****************************************************************************
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/gpu/magma", CeedInit_Magma);
+  CeedRegister("/gpu/magma", CeedInit_Magma, 20);
 }
