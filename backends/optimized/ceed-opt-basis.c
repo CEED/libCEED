@@ -16,13 +16,13 @@
 
 #include <ceed-impl.h>
 #include <string.h>
-#include "ceed-ref.h"
+#include "ceed-opt.h"
 
 // Contracts on the middle index
 // NOTRANSPOSE: V_ajc = T_jb U_abc
 // TRANSPOSE:   V_ajc = T_bj U_abc
 // If Add != 0, "=" is replaced by "+="
-static int CeedTensorContract_Ref(Ceed ceed,
+static int CeedTensorContract_Opt(Ceed ceed,
                                   CeedInt A, CeedInt B, CeedInt C, CeedInt J,
                                   const CeedScalar *restrict t, CeedTransposeMode tmode,
                                   const CeedInt Add,
@@ -46,13 +46,12 @@ static int CeedTensorContract_Ref(Ceed ceed,
           v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
         }
       }
-      uP += C;
     }
   }
   return 0;
 }
 
-static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
+static int CeedBasisApply_Opt(CeedBasis basis, CeedTransposeMode tmode,
                               CeedEvalMode emode,
                               const CeedScalar *u, CeedScalar *v) {
   int ierr;
@@ -74,7 +73,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
     CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
     CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
     for (CeedInt d=0; d<dim; d++) {
-      ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q, basis->interp1d,
+      ierr = CeedTensorContract_Opt(basis->ceed, pre, P, post, Q, basis->interp1d,
                                     tmode, add&&(d==dim-1),
                                     d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
       CeedChk(ierr);
@@ -96,22 +95,47 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
     if (tmode == CEED_TRANSPOSE) {
       P = basis->Q1d, Q = basis->P1d;
     }
-    CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
-    for (CeedInt p = 0; p < dim; p++) {
+    if (dim == 1) {
+      ierr = CeedTensorContract_Opt(basis->ceed, ndof, P, 1, Q, basis->grad1d,tmode,
+                                    add, u, v); CeedChk(ierr);
+    } else {
+      if (tmode == CEED_TRANSPOSE) {
+        P = basis->Q1d, Q = basis->Q1d;
+      }
+      CeedBasis_Opt *impl = basis->data;
+      CeedScalar interp[ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
       CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
+      CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
       for (CeedInt d=0; d<dim; d++) {
-        ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q,
-                                      (p==d)?basis->grad1d:basis->interp1d,
-                                      tmode, add&&(d==dim-1),
-                                      d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
+        ierr = CeedTensorContract_Opt(basis->ceed, pre, P, post, Q,
+                                      tmode==CEED_NOTRANSPOSE?basis->interp1d:impl->colograd1d,
+                                      tmode, add&&(d>0),
+                                      tmode==CEED_NOTRANSPOSE?(d==0?u:tmp[d%2]):u,
+                                      tmode==CEED_NOTRANSPOSE?(d==dim-1?interp:tmp[(d+1)%2]):interp);
         CeedChk(ierr);
         pre /= P;
         post *= Q;
+        if (tmode == CEED_TRANSPOSE) {
+          u += nqpt;
+        }
       }
-      if (tmode == CEED_NOTRANSPOSE) {
-        v += nqpt;
-      } else {
-        u += nqpt;
+      P = basis->Q1d, Q = basis->Q1d;
+      if (tmode == CEED_TRANSPOSE) {
+        P = basis->Q1d, Q = basis->P1d;
+      }
+      pre = ndof*CeedPowInt(P, dim-1), post = 1;
+      for (CeedInt d=0; d<dim; d++) {
+        ierr = CeedTensorContract_Opt(basis->ceed, pre, P, post, Q,
+                                      tmode==CEED_NOTRANSPOSE?impl->colograd1d:basis->interp1d,
+                                      tmode, add&&(d==dim-1),
+                                      tmode==CEED_NOTRANSPOSE?interp:(d==0?interp:tmp[d%2]),
+                                      tmode==CEED_NOTRANSPOSE?v:(d==dim-1?v:tmp[(d+1)%2]));
+        CeedChk(ierr);
+        pre /= P;
+        post *= Q;
+        if (tmode == CEED_NOTRANSPOSE) {
+          v += nqpt;
+        }
       }
     }
   }
@@ -135,17 +159,30 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
   return 0;
 }
 
-static int CeedBasisDestroy_Ref(CeedBasis basis) {
+static int CeedBasisDestroy_Opt(CeedBasis basis) {
+  CeedBasis_Opt *impl = basis->data;
+  int ierr;
+
+  ierr = CeedFree(&impl->colograd1d); CeedChk(ierr);
+  ierr = CeedFree(&basis->data); CeedChk(ierr);
+
   return 0;
 }
 
-int CeedBasisCreateTensorH1_Ref(Ceed ceed, CeedInt dim, CeedInt P1d,
+int CeedBasisCreateTensorH1_Opt(Ceed ceed, CeedInt dim, CeedInt P1d,
                                 CeedInt Q1d, const CeedScalar *interp1d,
                                 const CeedScalar *grad1d,
                                 const CeedScalar *qref1d,
                                 const CeedScalar *qweight1d,
                                 CeedBasis basis) {
-  basis->Apply = CeedBasisApply_Ref;
-  basis->Destroy = CeedBasisDestroy_Ref;
+  CeedBasis_Opt *impl;
+  int ierr;
+  ierr = CeedCalloc(1,&impl); CeedChk(ierr);
+  ierr = CeedMalloc(Q1d*Q1d, &impl->colograd1d); CeedChk(ierr);
+  ierr = CeedBasisGetColocatedGrad(basis, impl->colograd1d); CeedChk(ierr);
+  basis->data = impl;
+
+  basis->Apply = CeedBasisApply_Opt;
+  basis->Destroy = CeedBasisDestroy_Opt;
   return 0;
 }

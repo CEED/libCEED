@@ -104,6 +104,7 @@ be provided with the `-ceed` option, for example:
 
 CEED resource (`-ceed`) | Backend
 ----------------------- | ---------------------------------
+`/cpu/self/opt`         | Serial optimized implementation
 `/cpu/self/ref`         | Serial reference implementation
 `/cpu/self/tmpl`        | Backend template, dispatches to reference
 `/cpu/occa`             | Serial OCCA kernels

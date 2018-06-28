@@ -73,7 +73,7 @@ typedef struct CeedQFunction_private *CeedQFunction;
 typedef struct CeedOperator_private *CeedOperator;
 
 CEED_EXTERN int CeedRegister(const char *prefix,
-                             int (*init)(const char *, Ceed));
+                             int (*init)(const char *, Ceed), unsigned int priority);
 
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
 CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,
@@ -202,6 +202,8 @@ CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof,
                                         CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
                                         const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis *basis);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
+CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m, CeedInt n);
+CEED_EXTERN int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d);
 CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode,
                                CeedEvalMode emode, const CeedScalar *u, CeedScalar *v);
 CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);

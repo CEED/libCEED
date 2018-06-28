@@ -29,6 +29,7 @@ static CeedRequest ceed_request_ordered;
 static struct {
   char prefix[CEED_MAX_RESOURCE_LEN];
   int (*init)(const char *resource, Ceed f);
+  unsigned int priority;
 } backends[32];
 static size_t num_backends;
 /// @endcond
@@ -140,15 +141,19 @@ int CeedSetErrorHandler(Ceed ceed,
                 example, the reference backend responds to "/cpu/self".
   @param init   Initialization function called by CeedInit() when the backend
                 is selected to drive the requested resource.
+  @param priority Integer priority.  Lower values are preferred in case the
+                  resource requested by CeedInit() has non-unique best prefix
+                  match.
   @return 0 on success
  */
 int CeedRegister(const char *prefix,
-                 int (*init)(const char *, Ceed)) {
+                 int (*init)(const char *, Ceed), unsigned int priority) {
   if (num_backends >= sizeof(backends) / sizeof(backends[0])) {
     return CeedError(NULL, 1, "Too many backends");
   }
   strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
   backends[num_backends].init = init;
+  backends[num_backends].priority = priority;
   num_backends++;
   return 0;
 }
@@ -235,14 +240,17 @@ int CeedRequestWait(CeedRequest *req) {
 int CeedInit(const char *resource, Ceed *ceed) {
   int ierr;
   size_t matchlen = 0, matchidx;
+  unsigned int matchpriority = 100, priority;
 
   if (!resource) return CeedError(NULL, 1, "No resource provided");
   for (size_t i=0; i<num_backends; i++) {
     size_t n;
     const char *prefix = backends[i].prefix;
     for (n = 0; prefix[n] && prefix[n] == resource[n]; n++) {}
-    if (n > matchlen) {
+    priority = backends[i].priority;
+    if (n > matchlen || (n == matchlen && matchpriority > priority)) {
       matchlen = n;
+      matchpriority = priority;
       matchidx = i;
     }
   }
