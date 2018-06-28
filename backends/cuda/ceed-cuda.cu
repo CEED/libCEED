@@ -53,5 +53,5 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/gpu/cuda", CeedInit_Cuda);
+  CeedRegister("/gpu/cuda", CeedInit_Cuda, 20);
 }

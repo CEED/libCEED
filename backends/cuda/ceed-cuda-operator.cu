@@ -22,7 +22,7 @@ static int CeedOperatorDestroy_Cuda(CeedOperator op) {
   CeedOperator_Cuda *impl = (CeedOperator_Cuda*) op->data;
   int ierr;
 
-  if (data->ready) {
+  if (impl->ready) {
     ierr = CeedVectorDestroy(&impl->etmp); CeedChk(ierr);
     ierr = CeedVectorDestroy(&impl->qdata); CeedChk(ierr);
     ierr = CeedVectorDestroy(&impl->BEu); CeedChk(ierr);
