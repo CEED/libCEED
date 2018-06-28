@@ -222,6 +222,7 @@ tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
 prove : $(tests) $(examples)
+	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)
 # run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
