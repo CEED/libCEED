@@ -46,12 +46,10 @@ static int CeedQFunctionBuildKernel(CeedQFunction qf, const CeedInt Q) {
   dbg("[CeedQFunction][BuildKernel] dim=%d",data->dim);
   dbg("[CeedQFunction][BuildKernel] nelem=%d",data->nelem);
   dbg("[CeedQFunction][BuildKernel] elemsize=%d",data->elemsize);
-  //dbg("[CeedQFunction][BuildKernel] qdatasize=%d",qf->qdatasize);
   occaProperties pKR = occaCreateProperties();
   occaPropertiesSet(pKR, "defines/NC", occaInt(data->nc));
   occaPropertiesSet(pKR, "defines/DIM", occaInt(data->dim));
   occaPropertiesSet(pKR, "defines/epsilon", occaDouble(1.e-14));
-  //occaPropertiesSet(pKR, "defines/qdatasize", occaInt(qf->qdatasize));
   // OpenCL check for this requirement
   const CeedInt q_tile_size = (Q>TILE_SIZE)?TILE_SIZE:Q;
   // OCCA+MacOS implementation need that for now

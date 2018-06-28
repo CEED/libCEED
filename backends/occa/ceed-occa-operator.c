@@ -154,7 +154,6 @@ static int CeedOperatorSetupFields_Occa(CeedOperator op,
   const Ceed ceed = op->ceed;
   CeedInt dim, ierr, ncomp;
   CeedInt ie=starte, iq=startq;
-  
   // Loop over fields
   for (CeedInt i=0; i<numfields; i++) {
     dbg("\t\t[CeedOperator][SetupFields] # %d/%d, \033[7m%s",i,numfields-1,qfields[i].fieldname);
@@ -195,8 +194,8 @@ static int CeedOperatorSetupFields_Occa(CeedOperator op,
       qdata[i + starti] = qdata_alloc[iq];
       indata[i] = qdata[i];
       break;
-    case CEED_EVAL_DIV: break; // Not implimented
-    case CEED_EVAL_CURL: break; // Not implimented
+    case CEED_EVAL_DIV: break; // Not implemented
+    case CEED_EVAL_CURL: break; // Not implemented
     }
   }
   return 0;
@@ -263,8 +262,8 @@ static int CeedOperatorSetup_Occa(CeedOperator op) {
   ierr = CeedCalloc(16, &data->outdata); CeedChk(ierr);
 
   // Dump data before setting fields
-  dbg("\t[CeedOperator][Setup] Dump data before setting fields: (should be void)");
-  CeedOperatorDump_Occa(op);
+  //dbg("\t[CeedOperator][Setup] Dump data before setting fields: (should be void)");
+  //CeedOperatorDump_Occa(op);
   
   // Set up infield and outfield pointer arrays
   dbg("\t[CeedOperator][Setup] Set up IN fields:");
@@ -303,7 +302,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
   // ***************************************************************************
   dbg("[CeedOperator][Dump] Setup?");
   ierr = CeedOperatorSetup_Occa(op); CeedChk(ierr);
-  CeedOperatorDump_Occa(op);
+  //CeedOperatorDump_Occa(op);
   
   // Tell CeedQFunction_Occa's structure we are coming from an operator ********
   CeedQFunction_Occa *qfd = op->qf->data;
@@ -344,8 +343,8 @@ static int CeedOperatorApply_Occa(CeedOperator op,
       }
     }
   }
-  dbg("\n[CeedOperator][Apply] Input Evecs and Restriction done, debug:");
-  CeedOperatorDump_Occa(op);
+  //dbg("\n[CeedOperator][Apply] Input Evecs and Restriction done, debug:");
+  //CeedOperatorDump_Occa(op);
 
   // Output Evecs
   for (CeedInt i=0,ieout=data->numein; i<qf->numoutputfields; i++) {
@@ -369,8 +368,8 @@ static int CeedOperatorApply_Occa(CeedOperator op,
       }
     }
   }
-  dbg("\n[CeedOperator][Apply] Output Evecs done, debug:");
-  CeedOperatorDump_Occa(op);
+  //dbg("\n[CeedOperator][Apply] Output Evecs done, debug:");
+  //CeedOperatorDump_Occa(op);
 
   // Output Qvecs **************************************************************
   dbg("\n[CeedOperator][Apply] Output Qvecs!");
@@ -383,8 +382,8 @@ static int CeedOperatorApply_Occa(CeedOperator op,
       dbg("\n[CeedOperator][Apply] else NONE");
     }
   }
-  dbg("\n[CeedOperator][Apply] Output Qvecs done, debug:");
-  CeedOperatorDump_Occa(op);
+  //dbg("\n[CeedOperator][Apply] Output Qvecs done, debug:");
+  //CeedOperatorDump_Occa(op);
 
   // Loop through elements *****************************************************
   dbg("\n[CeedOperator][Apply] Loop through elements");
