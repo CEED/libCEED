@@ -29,10 +29,10 @@ __global__ void noTrScalar(const CeedInt esize, const CeedInt *indices, const Ce
   }
 }
 
-__global__ void noTrNoTr(const CeedInt nelem, const CeedInt ncomp, const CeedInt elemsize, const CeedInt ndof, const CeedInt *indices, const CeedScalar* u, CeedScalar* v) {
-  const CeedInt i = blockIdx.z*blockDim.z + threadIdx.z;
-  const CeedInt d = blockIdx.y*blockDim.y + threadIdx.y;
+__global__ void noTrNoTr(const CeedInt ncomp, const CeedInt elemsize, const CeedInt nelem, const CeedInt ndof, const CeedInt *indices, const CeedScalar* u, CeedScalar* v) {
   const CeedInt e = blockIdx.x*blockDim.x + threadIdx.x;
+  const CeedInt i = blockIdx.y*blockDim.y + threadIdx.y;
+  const CeedInt d = blockIdx.z*blockDim.z + threadIdx.z;
 
   if (e >= nelem || d >= ncomp || i >= elemsize) {
     return;
@@ -41,10 +41,10 @@ __global__ void noTrNoTr(const CeedInt nelem, const CeedInt ncomp, const CeedInt
   v[i + elemsize * (d + ncomp * e)] = u[indices[i + elemsize * e] + ndof * d];
 }
 
-__global__ void noTrTr(const CeedInt nelem, const CeedInt ncomp, const CeedInt elemsize, const CeedInt *indices, const CeedScalar* u, CeedScalar* v) {
-  const CeedInt i = blockIdx.z*blockDim.z + threadIdx.z;
-  const CeedInt d = blockIdx.y*blockDim.y + threadIdx.y;
+__global__ void noTrTr(const CeedInt ncomp, const CeedInt elemsize, const CeedInt nelem, const CeedInt *indices, const CeedScalar* u, CeedScalar* v) {
   const CeedInt e = blockIdx.x*blockDim.x + threadIdx.x;
+  const CeedInt i = blockIdx.y*blockDim.y + threadIdx.y;
+  const CeedInt d = blockIdx.z*blockDim.z + threadIdx.z;
 
   if (e >= nelem || d >= ncomp || i >= elemsize) {
     return;
@@ -60,10 +60,10 @@ __global__ void trScalar(const CeedInt esize, const CeedInt *indices, const Ceed
   }
 }
 
-__global__ void trNoTr(const CeedInt nelem, const CeedInt ncomp, const CeedInt elemsize, const CeedInt ndof, const CeedInt *indices, const CeedScalar* u, CeedScalar* v) {
-  const CeedInt i = blockIdx.z*blockDim.z + threadIdx.z;
-  const CeedInt d = blockIdx.y*blockDim.y + threadIdx.y;
+__global__ void trNoTr(const CeedInt ncomp, const CeedInt elemsize, const CeedInt nelem, const CeedInt ndof, const CeedInt *indices, const CeedScalar* u, CeedScalar* v) {
   const CeedInt e = blockIdx.x*blockDim.x + threadIdx.x;
+  const CeedInt i = blockIdx.y*blockDim.y + threadIdx.y;
+  const CeedInt d = blockIdx.z*blockDim.z + threadIdx.z;
 
   if (e >= nelem || d >= ncomp || i >= elemsize) {
     return;
@@ -72,18 +72,17 @@ __global__ void trNoTr(const CeedInt nelem, const CeedInt ncomp, const CeedInt e
   atomicAdd(v + (indices[i+elemsize*e]+ndof*d), u[i+elemsize*(d+e*ncomp)]);
 }
 
-__global__ void trTr(const CeedInt nelem, const CeedInt ncomp, const CeedInt elemsize, const CeedInt *indices, const CeedScalar* u, CeedScalar* v) {
-  const CeedInt i = blockIdx.z*blockDim.z + threadIdx.z;
-  const CeedInt d = blockIdx.y*blockDim.y + threadIdx.y;
+__global__ void trTr(const CeedInt ncomp, const CeedInt elemsize, const CeedInt nelem, const CeedInt *indices, const CeedScalar* u, CeedScalar* v) {
   const CeedInt e = blockIdx.x*blockDim.x + threadIdx.x;
+  const CeedInt i = blockIdx.y*blockDim.y + threadIdx.y;
+  const CeedInt d = blockIdx.z*blockDim.z + threadIdx.z;
 
   if (e >= nelem || d >= ncomp || i >= elemsize) {
     return;
   }
+
   atomicAdd(v + (d+ncomp*indices[i+elemsize*e]), u[i+elemsize*(d+e*ncomp)]);
 }
-
-
 
 static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
                                         CeedTransposeMode tmode, CeedInt ncomp,
@@ -100,34 +99,31 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
   const CeedScalar *d_u = ((CeedVector_Cuda*)u->data)->d_array;
   CeedScalar *d_v = ((CeedVector_Cuda*)v->data)->d_array;
 
-  ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &d_u); CeedChk(ierr);
-  ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &d_v); CeedChk(ierr);
   if (tmode == CEED_NOTRANSPOSE) {
     // Perform: v = r * u
     if (ncomp == 1) {
-      run1d(data, noTrScalar, esize, d_indices, d_u, d_v);
+      ierr = run1d(data, noTrScalar, 0, esize, d_indices, d_u, d_v); CeedChk(ierr);
     } else {
       // vv is (elemsize x ncomp x nelem), column-major
       if (lmode == CEED_NOTRANSPOSE) { // u is (ndof x ncomp), column-major
-        run3d(data, noTrNoTr, nelem, ncomp, elemsize, ndof, d_indices, d_u, d_v);
+        ierr = run3d(data, noTrNoTr, 0, ncomp, elemsize, nelem, ndof, d_indices, d_u, d_v); CeedChk(ierr);
       } else { // u is (ncomp x ndof), column-major
-        run3d(data, noTrTr, nelem, ncomp, elemsize, d_indices, d_u, d_v);
+        ierr = run3d(data, noTrTr, 0, ncomp, elemsize, nelem, d_indices, d_u, d_v); CeedChk(ierr);
       }
     }
   } else {
     // Note: in transpose mode, we perform: v += r^t * u
     if (ncomp == 1) {
-      run1d(data, trScalar, elemsize, d_indices, d_u, d_v);
+      ierr = run1d(data, trScalar, 0, esize, d_indices, d_u, d_v); CeedChk(ierr);
     } else {
       // u is (elemsize x ncomp x nelem)
       if (lmode == CEED_NOTRANSPOSE) { // vv is (ndof x ncomp), column-major
-        run3d(data, trNoTr, nelem, ncomp, elemsize, ndof, d_indices, d_u, d_v);
+        ierr = run3d(data, trNoTr, 0, ncomp, elemsize, nelem, ndof, d_indices, d_u, d_v); CeedChk(ierr);
       } else { // vv is (ncomp x ndof), column-major
-        run3d(data, trTr, nelem, ncomp, elemsize, d_indices, d_u, d_v);
+        ierr = run3d(data, trTr, 0, ncomp, elemsize, nelem, d_indices, d_u, d_v); CeedChk(ierr);
       }
     }
   }
-  CeedChk(cudaGetLastError());
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
   return 0;

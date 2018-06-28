@@ -43,35 +43,40 @@ __device__ void tensorContract(CeedInt A, CeedInt B, CeedInt C, CeedInt J,
     }
   }
 
-  const CeedScalar *uP = u;
   for (CeedInt a=0; a<A; a++) {
     for (CeedInt b=0; b<B; b++) {
-      CeedScalar *vP = v + a * J * C;
       for (CeedInt j=0; j<J; j++) {
         CeedScalar tq = t[j*tstride0 + b*tstride1];
         for (CeedInt c=0; c<C; c++) {
-          *vP += tq * uP[c];
-          vP++;
+          v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
         }
       }
-      uP += C;
     }
   }
 }
 
-__global__ void interp(const CeedInt nelem, const CeedInt dim, const CeedInt P, const CeedInt Q, const CeedInt bufLen, const CeedInt preStart,
-    const CeedInt nqpt, const CeedTransposeMode tmode, const CeedScalar *interp1d, const CeedScalar *u, CeedScalar *v) {
+__global__ void interp(const CeedInt nelem, const CeedInt dim, const CeedInt ndof, const CeedInt elemsize, const CeedInt P, const CeedInt Q, const CeedInt nqpt, const CeedInt bufLen,
+    const CeedTransposeMode tmode, const CeedScalar *interp1d, const CeedScalar *u, CeedScalar *v, CeedScalar *tmp1, CeedScalar *tmp2) {
   const int elem = blockIdx.x*blockDim.x + threadIdx.x;
   if (elem >= nelem) return;
 
-  u += elem * nqpt;
+  CeedInt add;
+  if (tmode == CEED_TRANSPOSE) {
+    add = true;
+    u += nqpt * ndof * elem;
+    v += elem * ndof * elemsize;
+  } else {
+    add = false;
+    u += elem * ndof * elemsize;
+    v += nqpt * ndof * elem;
+  }
 
-  const CeedInt add = (tmode == CEED_TRANSPOSE);
-  CeedInt pre = preStart;
+   const CeedInt tmpOffset = elem * bufLen;
+   tmp1 += tmpOffset;
+   tmp2 += tmpOffset;
+  
+  CeedInt pre = ndof * powInt(P, dim - 1);
   CeedInt post = 1;
-
-  CeedScalar* tmp1 = new CeedScalar[bufLen];
-  CeedScalar* tmp2 = new CeedScalar[bufLen];
 
   for (CeedInt d = 0; d < dim; d++) {
     CeedScalar *in, *out;
@@ -87,24 +92,34 @@ __global__ void interp(const CeedInt nelem, const CeedInt dim, const CeedInt P, 
     pre /= P;
     post *= Q;
   }
-
-  delete [] tmp1;
-  delete [] tmp2;
 }
 
-__global__ void grad(const CeedInt nelem, const CeedInt dim, const CeedInt P, const CeedInt Q, const CeedInt bufLen, CeedInt pre,
-    const CeedInt nqpt, const CeedTransposeMode tmode, const CeedScalar *interp1d, const CeedScalar *grad1d, const CeedScalar *u, CeedScalar *v) {
-  const int elem = blockIdx.x*blockDim.x + threadIdx.x;
-  const int dim1 = blockIdx.y*blockDim.y + threadIdx.y;
+__global__ void grad(const CeedInt nelem, const CeedInt dim, const CeedInt ndof, const CeedInt elemsize, const CeedInt P, const CeedInt Q, const CeedInt nqpt, const CeedInt bufLen,
+   const CeedTransposeMode tmode, const CeedScalar *interp1d, const CeedScalar *grad1d, const CeedScalar *u, CeedScalar *v, CeedScalar *tmp1, CeedScalar *tmp2) {
+  const int dim1 = blockIdx.x*blockDim.x + threadIdx.x;
+  const int elem = blockIdx.y*blockDim.y + threadIdx.y;
+  const int idx = elem * dim + dim1;
 
   if (elem >= nelem || dim1 >= dim) return;
+
+  CeedInt add;
+  if (tmode == CEED_TRANSPOSE) {
+    add = true;
+    u += nqpt * ndof * idx;
+    v += elem * ndof * elemsize;
+  } else {
+    add = false;
+    u += elem * ndof * elemsize;
+    v += nqpt * ndof * idx;
+  }
+
+  const CeedInt tmpOffset = idx * bufLen;
+  tmp1 += tmpOffset;
+  tmp2 += tmpOffset;
   
-  const CeedInt add = (tmode == CEED_TRANSPOSE);
+  CeedInt pre = ndof * powInt(P, dim - 1);
   CeedInt post = 1;
 
-  CeedScalar* tmp1 = new CeedScalar[bufLen];
-  CeedScalar* tmp2 = new CeedScalar[bufLen];
-  
   for (CeedInt dim2 = 0; dim2 < dim; dim2++) {
     CeedScalar *in, *out;
     if (dim2 % 2) {
@@ -120,9 +135,6 @@ __global__ void grad(const CeedInt nelem, const CeedInt dim, const CeedInt P, co
     pre /= P;
     post *= Q;
   }
-
-  delete [] tmp1;
-  delete [] tmp2;
 }
 
 __global__ void weight(const CeedInt dim, const CeedInt Q, const CeedScalar *qweight1d, CeedScalar *v) {
@@ -149,49 +161,86 @@ int CeedBasisApplyElems_Cuda(CeedBasis basis, CeedTransposeMode tmode,
                               const CeedVector u, CeedVector v) {
   int ierr;
   const Ceed_Cuda* ceed = (Ceed_Cuda*)basis->ceed->data;
-  const CeedBasis_Cuda *data = (CeedBasis_Cuda*)basis->data;
+  CeedBasis_Cuda *data = (CeedBasis_Cuda*)basis->data;
   const CeedInt dim = basis->dim;
   const CeedInt nelem = data->er->nelem;
+  const CeedInt elemsize = data->er->elemsize;
   const CeedInt ndof = basis->ndof;
-  const CeedInt nqpt = ndof*CeedPowInt(basis->Q1d, dim);
+  const CeedInt nqpt = CeedPowInt(basis->Q1d, dim);
+  const CeedInt transpose = tmode == CEED_TRANSPOSE;
+  const CeedInt P = transpose?basis->Q1d:basis->P1d;
+  const CeedInt Q = transpose?basis->P1d:basis->Q1d;
+  const CeedInt bufLen = ndof * Q * CeedPowInt(std::max(P, Q), dim-1);
+
+  if (!data->ready) {
+    data->ready = true;
+    const CeedInt qBytes = basis->Q1d * sizeof(CeedScalar);
+    ierr = cudaMalloc(&data->d_qweight1d, qBytes); CeedChk(ierr);
+    ierr = cudaMemcpy(data->d_qweight1d, basis->qweight1d, qBytes, cudaMemcpyHostToDevice); CeedChk(ierr);
+
+    const CeedInt iBytes = qBytes * basis->P1d;
+    ierr = cudaMalloc(&data->d_interp1d, iBytes); CeedChk(ierr);
+    ierr = cudaMemcpy(data->d_interp1d, basis->interp1d, iBytes, cudaMemcpyHostToDevice); CeedChk(ierr);
+  
+    ierr = cudaMalloc(&data->d_grad1d, iBytes); CeedChk(ierr);
+    ierr = cudaMemcpy(data->d_grad1d, basis->grad1d, iBytes, cudaMemcpyHostToDevice); CeedChk(ierr);
+
+    const CeedInt tBytes = bufLen * nelem * dim * sizeof(CeedScalar);
+    ierr = cudaMalloc(&data->d_tmp1, tBytes); CeedChk(ierr);
+    ierr = cudaMalloc(&data->d_tmp2, tBytes); CeedChk(ierr);
+  }
 
   const CeedScalar *du = ((CeedVector_Cuda*) u->data)->d_array;
   CeedScalar *dv = ((CeedVector_Cuda*) v->data)->d_array;
 
-  CeedInt P, Q;
   if (tmode == CEED_TRANSPOSE) {
-    P = basis->Q1d;
-    Q = basis->P1d;
-    const CeedInt vsize = ndof*CeedPowInt(basis->P1d, dim);
-
-    ierr = cudaMemset(dv, 0, vsize); CeedChk(ierr);
-  } else {
-    P = basis->P1d;
-    Q = basis->Q1d;
+    ierr = cudaMemset(dv, 0, v->length * sizeof(CeedScalar)); CeedChk(ierr);
   }
-  const CeedInt pre = ndof * CeedPowInt(P, dim - 1);
-  const CeedInt bufLen = ndof * Q * CeedPowInt(max(P, Q), dim - 1);
-
   if (emode & CEED_EVAL_INTERP) {
-    run1d(ceed, interp, nelem, dim, P, Q, bufLen, pre, nqpt, tmode, data->d_interp1d, du, dv);
-    CeedChk(cudaGetLastError());
+    ierr = run1d(ceed, interp, 0, nelem, dim, ndof, elemsize, P, Q, nqpt, bufLen, tmode, data->d_interp1d, du, dv, data->d_tmp1, data->d_tmp2); CeedChk(ierr);
   }
-  du += nelem * CeedPowInt(basis->Q1d, 2) * ndof * dim;
+
+  if (transpose) {
+    du += nelem * nqpt * ndof;
+  } else {
+    dv += nelem * nqpt * ndof;
+  }
+
   if (emode & CEED_EVAL_GRAD) {
-    run2d(ceed, grad, nelem, dim, P, Q, bufLen, pre, nqpt, tmode, data->d_interp1d, data->d_grad1d, du, dv);
-    CeedChk(cudaGetLastError());
+    ierr = run2d(ceed, grad, 0, nelem, dim, ndof, elemsize, P, Q, nqpt, bufLen, tmode, data->d_interp1d, data->d_grad1d, du, dv, data->d_tmp1, data->d_tmp2); CeedChk(ierr);
   }
+
+  if (transpose) {
+    du += nelem * nqpt * ndof * dim;
+  } else {
+    dv += nelem * nqpt * ndof * dim;
+  }
+  
   if (emode & CEED_EVAL_WEIGHT) {
     if (tmode == CEED_TRANSPOSE)
       return CeedError(basis->ceed, 1,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     weight<<<1,1>>>(dim, basis->Q1d, data->d_qweight1d, dv);
-    CeedChk(cudaGetLastError());
+    ierr = cudaGetLastError(); CeedChk(ierr);
   }
   return 0;
 }
 
 static int CeedBasisDestroy_Cuda(CeedBasis basis) {
+  int ierr;
+
+  CeedBasis_Cuda *data = (CeedBasis_Cuda *) basis->data;
+
+  if (data->ready) {
+    ierr = cudaFree(data->d_qweight1d); CeedChk(ierr);
+    ierr = cudaFree(data->d_interp1d); CeedChk(ierr);
+    ierr = cudaFree(data->d_grad1d); CeedChk(ierr);
+    ierr = cudaFree(data->d_tmp1); CeedChk(ierr);
+    ierr = cudaFree(data->d_tmp2); CeedChk(ierr);
+  }
+
+  ierr = CeedFree(&data); CeedChk(ierr);
+
   return 0;
 }
 
@@ -205,18 +254,7 @@ int CeedBasisCreateTensorH1_Cuda(Ceed ceed, CeedInt dim, CeedInt P1d,
   CeedBasis_Cuda *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   basis->data = data;
-
-  const CeedInt qBytes = Q1d * sizeof(CeedScalar);
-  ierr = cudaMalloc(&data->d_qweight1d, qBytes); CeedChk(ierr);
-  ierr = cudaMemcpy(data->d_qweight1d, qweight1d, qBytes, cudaMemcpyHostToDevice); CeedChk(ierr);
-
-  const CeedInt iBytes = qBytes * P1d;
-  ierr = cudaMalloc(&data->d_interp1d, iBytes); CeedChk(ierr);
-  ierr = cudaMemcpy(data->d_interp1d, interp1d, iBytes, cudaMemcpyHostToDevice); CeedChk(ierr);
-
-  ierr = cudaMalloc(&data->d_grad1d, iBytes); CeedChk(ierr);
-  ierr = cudaMemcpy(data->d_grad1d, grad1d, iBytes, cudaMemcpyHostToDevice); CeedChk(ierr);
-
+  
   basis->Apply = CeedBasisApply_Cuda;
   basis->Destroy = CeedBasisDestroy_Cuda;
   return 0;

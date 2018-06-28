@@ -303,6 +303,7 @@ int main(int argc, const char *argv[]) {
   CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_host);
   CeedScalar vol = 0.;
   for (CeedInt i = 0; i < sol_size; i++) {
+    //printf("%e\n", v_host[i]);
     vol += v_host[i];
   }
   CeedVectorRestoreArrayRead(v, &v_host);

@@ -37,9 +37,10 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, deviceID);
 
-  data->x_thread_limit = deviceProp.maxThreadsDim[0];
-  data->y_thread_limit = deviceProp.maxThreadsDim[1];
-  data->z_thread_limit = deviceProp.maxThreadsDim[2];
+  data->optBlockSize = deviceProp.maxThreadsPerBlock;
+  data->xThreadLimit = deviceProp.maxThreadsDim[0];
+  data->yThreadLimit = deviceProp.maxThreadsDim[1];
+  data->zThreadLimit = deviceProp.maxThreadsDim[2];
 
   ceed->data = data;
   ceed->VecCreate = CeedVectorCreate_Cuda;

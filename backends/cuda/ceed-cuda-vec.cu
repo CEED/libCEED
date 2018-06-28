@@ -28,14 +28,12 @@ static inline size_t bytes(const CeedVector vec) {
 static inline void CeedSyncH2D_Cuda(const CeedVector vec) {
   const CeedVector_Cuda *data = (CeedVector_Cuda*)vec->data;
   assert(data);
-  assert(data->h_array);
   cudaMemcpy(data->d_array, data->h_array, bytes(vec), cudaMemcpyHostToDevice);
 }
 // *****************************************************************************
 static inline void CeedSyncD2H_Cuda(const CeedVector vec) {
   const CeedVector_Cuda *data = (CeedVector_Cuda*)vec->data;
   assert(data);
-  assert(data->h_array);
   cudaMemcpy(data->h_array, data->d_array, bytes(vec), cudaMemcpyDeviceToHost);
 }
 

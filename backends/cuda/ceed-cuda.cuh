@@ -18,6 +18,15 @@
 #include <ceed-impl.h>
 #include <stdbool.h>
 
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+static inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+  fprintf(stderr,"GPUassert %d: %s %s %d\n", code, cudaGetErrorString(code), file, line);
+  if (code != cudaSuccess) exit(code);
+}
+
+
+
 typedef struct {
   CeedScalar *h_array;
   CeedScalar *used_pointer;
@@ -37,65 +46,63 @@ typedef struct {
 typedef struct {
   bool ready;
   int nc, dim, nelem, elemsize;
-  void *d_q;
   CeedScalar **d_u;
   CeedScalar **d_v;
   void *d_c;
 } CeedQFunction_Cuda;
 
 typedef struct {
+  bool ready;
   CeedElemRestriction er;
   CeedScalar *d_qweight1d;
   CeedScalar *d_interp1d;
   CeedScalar *d_grad1d;
+  CeedScalar *d_tmp1;
+  CeedScalar *d_tmp2;
 } CeedBasis_Cuda;
 
 typedef struct {
   int deviceID;
-  int x_thread_limit, y_thread_limit, z_thread_limit;
+  int optBlockSize;
+  int xThreadLimit, yThreadLimit, zThreadLimit;
 } Ceed_Cuda;
 
 static int divup(int a, int b) {
   return (a + b - 1) / b;
 }
 
-
 template <typename CudaFunc, typename... Args>
-void run1d(const Ceed_Cuda* ceed, CudaFunc f, const CeedInt x, Args... args) {
-  int blocks, threads;
-  cudaOccupancyMaxPotentialBlockSize(&blocks, &threads, f);
-
-  int actThreads = std::min({x, threads, ceed->x_thread_limit});
-  int actBlocks = std::min(divup(x, actThreads), blocks);
-  f<<<actBlocks, actThreads>>>(x, args...);
+int run1d(const Ceed_Cuda* ceed, CudaFunc f, const CeedInt sharedMem, const CeedInt a, Args... args) {
+  const int threads = std::min({a, ceed->optBlockSize, ceed->xThreadLimit});
+  const int blocks = divup(a, threads);
+  f<<<blocks, threads, sharedMem>>>(a, args...);
+  return cudaGetLastError();
 }
 
 template <typename CudaFunc, typename... Args>
-void run2d(const Ceed_Cuda* ceed, CudaFunc f, const CeedInt x, const CeedInt y, Args... args) {
-  int blocks, threads;
-  cudaOccupancyMaxPotentialBlockSize(&blocks, &threads, f);
+int run2d(const Ceed_Cuda* ceed, CudaFunc f, const CeedInt sharedMem, const CeedInt a, const CeedInt b, Args... args) {
+  const int threadsX = std::min({b, ceed->optBlockSize, ceed->xThreadLimit});
+  const int threadsY = std::min({a, ceed->optBlockSize / threadsX, ceed->yThreadLimit});
 
-  int actThreadsX = std::min({x, threads, ceed->x_thread_limit});
-  int actThreadsY = std::min({y, std::max(threads / actThreadsX, 1), ceed->y_thread_limit});
+  const int blocksX = divup(b, threadsX);
+  const int blocksY = divup(a, threadsY);
 
-  int actBlocksX = std::min(divup(x, actThreadsX), blocks);
-  int actBlocksY = std::min(divup(y, actThreadsY), divup(blocks, actBlocksX));
-  f<<<dim3(actBlocksX, actBlocksY), dim3(actThreadsX, actThreadsY)>>>(x, y, args...);
+  f<<<dim3(blocksX, blocksY), dim3(threadsX, threadsY), sharedMem>>>(a, b, args...);
+  return cudaGetLastError();
 }
 
 template <typename CudaFunc, typename... Args>
-void run3d(const Ceed_Cuda* ceed, CudaFunc f, const CeedInt x, const CeedInt y, const CeedInt z, Args... args) {
-  int blocks, threads;
-  cudaOccupancyMaxPotentialBlockSize(&blocks, &threads, f);
+int run3d(const Ceed_Cuda* ceed, CudaFunc f, const CeedInt sharedMem, const CeedInt a, const CeedInt b, const CeedInt c, Args... args) {
+  const int threadsX = std::min({c, ceed->optBlockSize, ceed->xThreadLimit});
+  const int threadsY = std::min({b, ceed->optBlockSize / threadsX, ceed->yThreadLimit});
+  const int threadsZ = std::min({a, ceed->optBlockSize / (threadsX * threadsY), ceed->zThreadLimit});
 
-  int actThreadsX = std::min({x, threads, ceed->x_thread_limit});
-  int actThreadsY = std::min({y, std::max(threads / actThreadsX, 1), ceed->y_thread_limit});
-  int actThreadsZ = std::min({z, std::max(threads / (actThreadsX * actThreadsY), 1), ceed->z_thread_limit});
+  const int blocksX = divup(c, threadsX);
+  const int blocksY = divup(b, threadsY);
+  const int blocksZ = divup(a, threadsZ);
 
-  int actBlocksX = std::min(divup(x, actThreadsX), blocks);
-  int actBlocksY = std::min(divup(y, actThreadsY), divup(blocks, actBlocksX));
-  int actBlocksZ = std::min(divup(z, actThreadsZ), divup(blocks, actBlocksX * actBlocksY));
-  f<<<dim3(actBlocksX, actBlocksY, actBlocksZ), dim3(actThreadsX, actThreadsY, actThreadsZ)>>>(x, y, z, args...);
+  f<<<dim3(blocksX, blocksY, blocksZ), dim3(threadsX, threadsY, threadsZ), sharedMem>>>(a, b, c, args...);
+  return cudaGetLastError();
 }
 
 CEED_INTERN int CeedVectorCreate_Cuda(Ceed ceed, CeedInt n, CeedVector vec);

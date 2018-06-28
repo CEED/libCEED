@@ -34,10 +34,9 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector qdata,
                                  CeedVector ustate,
                                  CeedVector residual, CeedRequest *request) {
   CeedOperator_Cuda *data = (CeedOperator_Cuda*) op->data;
-  CeedVector etmp;
+  char *d_q = (char *)((CeedVector_Cuda *) qdata->data)->d_array;
   CeedInt Q;
   const CeedInt nc = op->basis->ndof, dim = op->basis->dim, nelem = op->Erestrict->nelem;
-  char *qd;
   int ierr;
   CeedTransposeMode lmode = CEED_NOTRANSPOSE;
 
@@ -51,14 +50,11 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector qdata,
     ierr = CeedVectorCreate(op->ceed, n, &data->BEv); CeedChk(ierr);
     // etmp is allocated when CeedVectorGetArray is called below
   }
-  etmp = data->etmp;
   if (op->qf->inmode & ~CEED_EVAL_WEIGHT) {
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_NOTRANSPOSE,
-                                    nc, lmode, ustate, etmp,
+                                    nc, lmode, ustate, data->etmp,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
   }
-  ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, (CeedScalar**)&qd);
-  CeedChk(ierr);
 
   CeedBasis_Cuda *basis = (CeedBasis_Cuda *)op->basis->data;
   basis->er = op->Erestrict;
@@ -82,24 +78,18 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector qdata,
   }
 
   for (CeedInt e=0; e < nelem; e++) {
-    if (op->qf->inmode & CEED_EVAL_INTERP) { in[0] = d_BEu; }
-    if (op->qf->inmode & CEED_EVAL_GRAD) { in[1] = d_BEu + Q * nc * e; }
-    if (op->qf->outmode & CEED_EVAL_INTERP) { out[0] = d_BEv; }
-    if (op->qf->outmode & CEED_EVAL_GRAD) { out[1] = d_BEv + Q * nc * e; }
-    ierr = CeedQFunctionApply(op->qf, &qd[e*Q*op->qf->qdatasize], Q, in, out);
+    if (op->qf->inmode & CEED_EVAL_INTERP) { in[0] = d_BEu + Q * nc * e; }
+    if (op->qf->inmode & CEED_EVAL_GRAD) { in[1] = d_BEu + Q * nc * (nelem + dim * e); }
+    if (op->qf->outmode & CEED_EVAL_INTERP) { out[0] = d_BEv + Q * nc * e; }
+    if (op->qf->outmode & CEED_EVAL_GRAD) { out[1] = d_BEv + Q * nc * (nelem + dim * e); }
+    ierr = CeedQFunctionApply(op->qf, &d_q[e*Q*op->qf->qdatasize], Q, in, out);
     CeedChk(ierr);
   }
-  ierr = CeedBasisApplyElems_Cuda(op->basis, CEED_TRANSPOSE, op->qf->outmode, data->BEv, data->BEu);
-  ierr = CeedVectorRestoreArray(qdata, (CeedScalar**)&qd); CeedChk(ierr);
+  ierr = CeedBasisApplyElems_Cuda(op->basis, CEED_TRANSPOSE, op->qf->outmode, data->BEv, data->etmp);
   if (residual) {
-    CeedScalar *res;
-    ierr = CeedVectorGetArray(residual, CEED_MEM_HOST, &res); CeedChk(ierr);
-    for (int i = 0; i < residual->length; i++)
-      res[i] = (CeedScalar)0;
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_TRANSPOSE,
-                                    nc, lmode, etmp, residual,
+                                    nc, lmode, data->etmp, residual,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
-    ierr = CeedVectorRestoreArray(residual, &res); CeedChk(ierr);
   }
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
