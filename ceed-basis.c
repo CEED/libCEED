@@ -284,8 +284,9 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
 
 // Computes A = (I - b v v^T) A
 // where A is an mxn matrix indexed as A[i*row + j*col]
-int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v, CeedScalar b,
-                           CeedInt m, CeedInt n, CeedInt row, CeedInt col) {
+static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v,
+                                  CeedScalar b, CeedInt m, CeedInt n,
+                                  CeedInt row, CeedInt col) {
   for (CeedInt j=0; j<n; j++) {
     CeedScalar w = A[0*row + j*col];
     for (CeedInt i=1; i<m; i++) w += v[i] * A[i*row + j*col];
@@ -296,8 +297,10 @@ int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v, CeedScalar b,
 }
 
 // Compute A = Q A where Q is mxk and A is mxn. k<m
-int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q, const CeedScalar *tau, CeedTransposeMode tmode,
-                          CeedInt m, CeedInt n, CeedInt k, CeedInt row, CeedInt col) {
+static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
+                                 const CeedScalar *tau, CeedTransposeMode tmode,
+                                 CeedInt m, CeedInt n, CeedInt k,
+                                 CeedInt row, CeedInt col) {
   CeedScalar v[m];
   for (CeedInt ii=0; ii<k; ii++) {
     CeedInt i = tmode == CEED_TRANSPOSE ? ii : k-1-ii;
@@ -315,7 +318,8 @@ int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q, const CeedScalar *
 /// @param tau        Vector of length m of scaling fators
 /// @param m          Number of rows
 /// @param n          Number of columns
-int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m, CeedInt n) {
+int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau,
+                        CeedInt m, CeedInt n) {
   CeedInt i, j;
   CeedScalar v[m];
 
@@ -381,7 +385,8 @@ int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
   }
 
   // Apply Qtranspose, colograd = colograd Qtranspose
-  CeedHouseholderApplyQ(colograd1d, interp1d, tau, CEED_NOTRANSPOSE, Q1d, Q1d, P1d, 1, Q1d);
+  CeedHouseholderApplyQ(colograd1d, interp1d, tau, CEED_NOTRANSPOSE,
+                        Q1d, Q1d, P1d, 1, Q1d);
 
   ierr = CeedFree(&interp1d); CeedChk(ierr);
   ierr = CeedFree(&grad1d); CeedChk(ierr);
