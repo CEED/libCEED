@@ -11,6 +11,6 @@ env:
   - FC=gfortran
 
 script:
-  - make
-  - make prove PROVE_OPTS=-v
+  - make -j2
+  - make -j2 prove PROVE_OPTS=-v
 
