@@ -22,11 +22,13 @@ static int CeedOperatorDestroy_Cuda(CeedOperator op) {
   CeedOperator_Cuda *impl = (CeedOperator_Cuda*) op->data;
   int ierr;
 
-  ierr = CeedVectorDestroy(&impl->etmp); CeedChk(ierr);
-  ierr = CeedVectorDestroy(&impl->qdata); CeedChk(ierr);
-  ierr = CeedVectorDestroy(&impl->BEu); CeedChk(ierr);
-  ierr = CeedVectorDestroy(&impl->BEv); CeedChk(ierr);
-  ierr = CeedFree(&op->data); CeedChk(ierr);
+  if (data->ready) {
+    ierr = CeedVectorDestroy(&impl->etmp); CeedChk(ierr);
+    ierr = CeedVectorDestroy(&impl->qdata); CeedChk(ierr);
+    ierr = CeedVectorDestroy(&impl->BEu); CeedChk(ierr);
+    ierr = CeedVectorDestroy(&impl->BEv); CeedChk(ierr);
+    ierr = CeedFree(&op->data); CeedChk(ierr);
+  }
   return 0;
 }
 
@@ -41,7 +43,8 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector qdata,
   CeedTransposeMode lmode = CEED_NOTRANSPOSE;
 
   ierr = CeedBasisGetNumQuadraturePoints(op->basis, &Q); CeedChk(ierr);
-  if (!data->etmp) {
+  if (!data->ready) {
+    data->ready = true;
     const CeedInt n = Q * (nc * (dim + 1) * nelem + 1);
     ierr = CeedVectorCreate(op->ceed,
                             nc * nelem * op->Erestrict->elemsize,
@@ -117,6 +120,7 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
   int ierr;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
+  impl->ready = false;
 
   op->data = impl;
   op->Destroy = CeedOperatorDestroy_Cuda;

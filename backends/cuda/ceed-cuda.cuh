@@ -38,6 +38,7 @@ typedef struct {
 } CeedElemRestriction_Cuda;
 
 typedef struct {
+  bool ready;
   CeedVector etmp;
   CeedVector qdata;
   CeedVector BEu, BEv;

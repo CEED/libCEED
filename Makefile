@@ -154,12 +154,9 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)
 
 libceed.c += $(ref.c)
 libceed.c += $(template.c)
-<<<<<<< HEAD
+libceed.c += $(optimized.c)
 libceed.c += $(cuda.c)
 libceed.cu += $(cuda.cu)
-=======
-libceed.c += $(optimized.c)
->>>>>>> master
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceed) : LDLIBS += -locca

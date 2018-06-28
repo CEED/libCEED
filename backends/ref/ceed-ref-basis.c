@@ -46,7 +46,6 @@ static int CeedTensorContract_Ref(Ceed ceed,
           v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
         }
       }
-      uP += C;
     }
   }
   return 0;
