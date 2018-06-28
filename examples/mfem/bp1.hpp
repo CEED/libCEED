@@ -194,7 +194,7 @@ class CeedMassOperator : public mfem::Operator {
                          CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(build_oper, "weight", CEED_RESTRICTION_IDENTITY,
                          mesh_basis, CEED_VECTOR_NONE);
-    CeedOperatorSetField(build_oper, "qfunc", CEED_RESTRICTION_IDENTITY,
+    CeedOperatorSetField(build_oper, "qdata", CEED_RESTRICTION_IDENTITY,
                          CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
     CeedOperatorApply(build_oper, node_coords, qdata,
                       CEED_REQUEST_IMMEDIATE);
