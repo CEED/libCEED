@@ -26,13 +26,11 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
   const Ceed ceed = qf->ceed;
   CeedQFunction_Occa *qf_data = qf->data;
   CeedOperator op = qf_data->op;
-  //CeedOperator_Occa *op_data = op->data;
   Ceed_Occa *ceed_data = qf->ceed->data;
   const occaDevice device = ceed_data->device;
   const int nIn = qf->numinputfields; assert(nIn<N_MAX_IDX);
   const CeedInt cbytes = qf->ctxsize;
   const CeedInt bytes = sizeof(CeedScalar);
-  //CeedInt elemsize;
   dbg("[CeedQFunction][AllocOpIn]");
   // ***************************************************************************
   for (CeedInt i=0; i<nIn; i++) {
@@ -40,55 +38,34 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
     const char *name = qf->inputfields[i].fieldname;
     const CeedInt ncomp = qf->inputfields[i].ncomp;
     const CeedEvalMode emode = qf->inputfields[i].emode;
-    //const bool restriction = op->inputfields[i].Erestrict;
-
-    /*if (restriction) {
-      dbg("\t[CeedQFunction][AllocOpIn] restriction");
-      elemsize = op->inputfields[i].Erestrict->elemsize;
-    } else {
-      dbg("\t[CeedQFunction][AllocOpIn] NO restriction, Q=%d", Q);
-      elemsize = Q;
-      }*/
-   
-    if (emode == CEED_EVAL_NONE ){
-      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > NONE",name);
-      const CeedInt length = Q*ncomp;
-      //data->indata[i]
-      iOf7[idx+1]=iOf7[idx]+length;
-      idx+=1;
-    }
     if (emode & CEED_EVAL_INTERP){
-      const CeedInt length = Q*ncomp;
-      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > INTERP (%d)", name,length);
-      // data->indata[i] = data->qdata[i];
-      iOf7[idx+1]=iOf7[idx]+length;
+      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > INTERP (%d)", name,Q*ncomp);
+      iOf7[idx+1]=iOf7[idx]+Q*ncomp;
       idx+=1;
     }
     if (emode & CEED_EVAL_GRAD) {
       const CeedInt dim = op->inputfields[i].basis->dim;
       const CeedInt length = Q*ncomp*dim;
       dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > GRAD (%d)",name,length);
-      // data->indata[i] = data->qdata[i];
       iOf7[idx+1]=iOf7[idx]+length;
       idx+=1;
     }
+    if (emode == CEED_EVAL_NONE ){
+      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > NONE",name);
+      iOf7[idx+1]=iOf7[idx]+Q*ncomp;
+      idx+=1;
+    }
     if (emode & CEED_EVAL_WEIGHT){
-      const CeedInt length = Q;
-      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > WEIGHT (%d)",name,length);
-      iOf7[idx+1]=iOf7[idx]+length;
+      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > WEIGHT (%d)",name,Q);
+      iOf7[idx+1]=iOf7[idx]+Q;
       idx+=1;
       // No action
     }
   }
-
-  for (CeedInt i=0; i<idx+1; i++) {
-    dbg("\t[CeedQFunction][AllocOpIn] iOf7[%d]=%d", i,iOf7[i]);
-  }
-  const CeedInt ilen=iOf7[idx];
+  assert(idx==nIn);
   *idx_p = idx;
-  
+  const CeedInt ilen=iOf7[idx];
   dbg("[CeedQFunction][AllocOpIn] ilen=%d", ilen);
-  dbg("[CeedQFunction][AllocOpIn] Alloc IN of length %d", ilen);
   // INPUT+IDX alloc ***********************************************************
   assert(ilen>0);
   qf_data->o_indata = occaDeviceMalloc(device, ilen*bytes, NULL, NO_PROPS);
@@ -119,7 +96,6 @@ int CeedQFunctionAllocOpOut_Occa(CeedQFunction qf, CeedInt Q,
     const CeedEvalMode emode = qf->outputfields[i].emode;
     const char *name = qf->outputfields[i].fieldname;
     const CeedInt ncomp = qf->outputfields[i].ncomp;
-    //const bool restriction = op->inputfields[i].Erestrict;
     if (emode == CEED_EVAL_NONE) {
       const CeedInt length = Q*ncomp;
       dbg("[CeedQFunction][AllocOpOut] out \"%s\" NONE (%d)",name,length);
@@ -172,32 +148,16 @@ int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
                              CeedInt *oOf7,
                              const CeedScalar *const *in) {
   const Ceed ceed = qf->ceed;
-  //const CeedQFunction_Occa *qf_data = qf->data;
-  //const CeedOperator op = qf_data->op;
   const int nIn = qf->numinputfields;
-  //const CeedInt ilen = iOf7[nIn];
-  //const CeedInt dim = 1; // !?
-  //const CeedInt nelem = 1; // !?
   const CeedInt bytes = sizeof(CeedScalar);
-  //CeedInt elemsize;
   dbg("\n[CeedQFunction][FillOp]");
   for (CeedInt i=0; i<nIn; i++) {
-    //const bool restriction = op->inputfields[i].Erestrict;
+    const CeedInt ncomp = qf->inputfields[i].ncomp;
     const char *name = qf->inputfields[i].fieldname;
     const CeedEvalMode emode = qf->inputfields[i].emode;
-    const CeedInt ncomp = qf->inputfields[i].ncomp;
-    /*if (restriction) {
-      elemsize = op->inputfields[i].Erestrict->elemsize;
-    } else {
-      elemsize = Q;
-      }
-    dbg("[CeedQFunction][FillOp] elemsize=%d",elemsize);
-    */
     switch(emode) {
     case CEED_EVAL_NONE:{
       dbg("[CeedQFunction][FillOp] \"%s\" > NONE",name);
-      //assert(false);
-      //data->indata[i] = &data->Edata[i][e*Q*ncomp];
       const CeedInt length = Q*ncomp;
       dbg("[CeedQFunction][FillOp] NONE length=%d", length);
       dbg("[CeedQFunction][FillOp] NONE offset=%d", iOf7[i]);
@@ -206,7 +166,6 @@ int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
       break;
     }
     case CEED_EVAL_INTERP:{
-      //data->indata[i] = data->qdata[i];
       dbg("[CeedQFunction][FillOp] \"%s\" INTERP", name);
       dbg("[CeedQFunction][FillOp] INTERP iOf7[%d]=%d", i,iOf7[i]);
       const CeedInt length = iOf7[i+1]-iOf7[i];
@@ -217,7 +176,6 @@ int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
       break;
     }
     case CEED_EVAL_GRAD:{
-      //data->indata[i] = data->qdata[i];
       dbg("[CeedQFunction][FillOp] \"%s\" GRAD", name);
       dbg("[CeedQFunction][FillOp] GRAD iOf7[%d]=%d", i,iOf7[i]);
       const CeedInt length = iOf7[i+1]-iOf7[i];
