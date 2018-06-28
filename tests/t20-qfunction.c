@@ -49,11 +49,6 @@ int main(int argc, char **argv) {
     CeedScalar *const out[1] = {qdata};
     CeedQFunctionApply(qf_setup, Q, in, out);
   }
-  /*for (CeedInt i=0; i<Q; i++){
-    qdata[i] = (i+1)*.123456;
-    u[i] = (i+1)*.111111;
-    printf("qdata = %f, u=%f \n", qdata[i],u[i]);
-    }*/
   {
     const CeedScalar *const in[2] = {qdata, u};
     CeedScalar *const out[1] = {vv};
