@@ -24,13 +24,14 @@
 struct BuildContext { CeedInt dim, space_dim; };
 
 /// libCEED Q-function for building quadrature data for a mass operator
-static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
-                        const CeedScalar *const *u, CeedScalar *const *v) {
-  // u[1] is Jacobians, size (Q x nc x dim) with column-major layout
-  // u[4] is quadrature weights, size (Q)
+static int f_build_mass(void *ctx, CeedInt Q,
+                        const CeedScalar *const *in, CeedScalar *const *out) {
+  // in[0] is Jacobians, size (Q x nc x dim) with column-major layout
+  // in[1] is quadrature weights, size (Q)
   BuildContext *bc = (BuildContext*)ctx;
-  CeedScalar *qd = (CeedScalar*)qdata;
-  const CeedScalar *J = u[1], *qw = u[4];
+  CeedScalar *v = (CeedScalar*)out[0];
+  CeedScalar *qd = (CeedScalar*)in[2];
+  CeedScalar *J = (CeedScalar*)in[0], *qw = (CeedScalar*)in[1];
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
     for (CeedInt i=0; i<Q; i++) {
@@ -62,11 +63,13 @@ static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
 }
 
 /// libCEED Q-function for applying a mass operator
-static int f_apply_mass(void *ctx, void *qdata, CeedInt Q,
-                        const CeedScalar *const *u, CeedScalar *const *v) {
-  const CeedScalar *w = (const CeedScalar*)qdata;
+static int f_apply_mass(void *ctx, CeedInt Q,
+                        const CeedScalar *const *in, CeedScalar *const *out) {
+  CeedScalar *u = (CeedScalar*)in[0];
+  CeedScalar *v = (CeedScalar*)out[0];
+  CeedScalar *w = (CeedScalar*)in[1];
   for (CeedInt i=0; i<Q; i++) {
-    v[0][i] = w[i] * u[0][i];
+    v[i] = w[i] * u[i];
   }
   return 0;
 }
@@ -152,7 +155,7 @@ class CeedMassOperator : public mfem::Operator {
       }
     }
     CeedElemRestrictionCreate(ceed, mesh->GetNE(), fe->GetDof(),
-                              fes->GetNDofs(), CEED_MEM_HOST, CEED_COPY_VALUES,
+                              fes->GetNDofs(), 1, CEED_MEM_HOST, CEED_COPY_VALUES,
                               tp_el_dof.GetData(), restr);
   }
 
@@ -180,21 +183,33 @@ class CeedMassOperator : public mfem::Operator {
     build_ctx.dim = mesh->Dimension();
     build_ctx.space_dim = mesh->SpaceDimension();
 
-    CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
-                                (CeedEvalMode)(CEED_EVAL_GRAD|CEED_EVAL_WEIGHT),
-                                CEED_EVAL_NONE, f_build_mass,
+    CeedQFunctionCreateInterior(ceed, 1, f_build_mass,
                                 __FILE__":f_build_mass", &build_qfunc);
-    CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
-    CeedOperatorCreate(ceed, mesh_restr, mesh_basis, build_qfunc, NULL, NULL,
-                       &build_oper);
-    CeedOperatorGetQData(build_oper, &qdata);
-    CeedOperatorApply(build_oper, qdata, node_coords, NULL,
+    CeedQFunctionAddInput(build_qfunc, "x", 1, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(build_qfunc, "weight", 1, CEED_EVAL_WEIGHT);
+    CeedQFunctionAddOutput(build_qfunc, "qdata", 1, CEED_EVAL_NONE);
+
+    CeedOperatorCreate(ceed, build_qfunc, NULL, NULL, &build_oper);
+    CeedOperatorSetField(build_oper, "x", mesh_restr, mesh_basis,
+                         CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(build_oper, "weight", CEED_RESTRICTION_IDENTITY,
+                         mesh_basis, CEED_VECTOR_NONE);
+    CeedOperatorSetField(build_oper, "qfunc", CEED_RESTRICTION_IDENTITY,
+                         CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
+    CeedOperatorApply(build_oper, node_coords, qdata,
                       CEED_REQUEST_IMMEDIATE);
 
-    CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
-                                CEED_EVAL_INTERP, CEED_EVAL_INTERP, f_apply_mass,
+    CeedQFunctionCreateInterior(ceed, 1, f_apply_mass,
                                 __FILE__":f_apply_mass", &apply_qfunc);
-    CeedOperatorCreate(ceed, restr, basis, apply_qfunc, NULL, NULL, &oper);
+    CeedQFunctionAddInput(apply_qfunc, "u", 1, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(apply_qfunc, "qdata", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(apply_qfunc, "v", 1, CEED_EVAL_INTERP);
+
+    CeedOperatorCreate(ceed, apply_qfunc, NULL, NULL, &oper);
+    CeedOperatorSetField(oper, "u", restr, basis, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(oper, "qdata", CEED_RESTRICTION_IDENTITY,
+                          CEED_BASIS_COLOCATED, qdata);
+    CeedOperatorSetField(oper, "v", restr, basis, CEED_VECTOR_ACTIVE);
 
     CeedVectorCreate(ceed, fes->GetNDofs(), &u);
     CeedVectorCreate(ceed, fes->GetNDofs(), &v);
@@ -206,7 +221,7 @@ class CeedMassOperator : public mfem::Operator {
     CeedVectorDestroy(&u);
     CeedOperatorDestroy(&oper);
     CeedQFunctionDestroy(&apply_qfunc);
-    // CeedVectorDestroy(&qdata); // qdata is owned by build_oper
+    CeedVectorDestroy(&qdata);
     CeedOperatorDestroy(&build_oper);
     CeedQFunctionDestroy(&build_qfunc);
     CeedVectorDestroy(&node_coords);
@@ -220,6 +235,6 @@ class CeedMassOperator : public mfem::Operator {
   virtual void Mult(const mfem::Vector &x, mfem::Vector &y) const {
     CeedVectorSetArray(u, CEED_MEM_HOST, CEED_USE_POINTER, x.GetData());
     CeedVectorSetArray(v, CEED_MEM_HOST, CEED_USE_POINTER, y.GetData());
-    CeedOperatorApply(oper, qdata, u, v, CEED_REQUEST_IMMEDIATE);
+    CeedOperatorApply(oper, u, v, CEED_REQUEST_IMMEDIATE);
   }
 };

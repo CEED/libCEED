@@ -26,8 +26,7 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedElemRestriction Erestrictx, Erestrictu;
   CeedBasis bx, bu;
-  CeedQFunction qf_setup, qf_mass;
-  CeedOperator op_setup, op_mass;
+  CeedQFunction qf_setup, qf_mass;  CeedOperator op_setup, op_mass;
   CeedVector qdata, X, U, V;
   CeedScalar *hu;
   const CeedScalar *hv;
