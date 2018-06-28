@@ -103,9 +103,10 @@ examples.f := $(sort $(wildcard examples/ceed/*.f))
 examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%)
 examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
 # backends/[ref & occa  & magma]
-ref.c     := $(sort $(wildcard backends/ref/*.c))
-template.c:= $(sort $(wildcard backends/template/*.c))
-occa.c    := $(sort $(wildcard backends/occa/*.c))
+ref.c      := $(sort $(wildcard backends/ref/*.c))
+template.c := $(sort $(wildcard backends/template/*.c))
+optimized.c:= $(sort $(wildcard backends/optimized/*.c))
+occa.c     := $(sort $(wildcard backends/occa/*.c))
 magma_preprocessor := python backends/magma/gccm.py
 magma_pre_src  := $(filter-out %_tmp.c, $(wildcard backends/magma/ceed-*.c))
 magma_dsrc     := $(wildcard backends/magma/magma_d*.c)
@@ -151,6 +152,7 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)
 
 libceed.c += $(ref.c)
 libceed.c += $(template.c)
+libceed.c += $(optimized.c)
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceed) : LDLIBS += -locca
