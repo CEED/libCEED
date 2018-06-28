@@ -53,5 +53,5 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/tmpl", CeedInit_Tmpl);
+  CeedRegister("/cpu/self/tmpl", CeedInit_Tmpl, 30);
 }

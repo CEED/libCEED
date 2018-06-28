@@ -32,5 +32,5 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/ref", CeedInit_Ref);
+  CeedRegister("/cpu/self/ref", CeedInit_Ref, 20);
 }

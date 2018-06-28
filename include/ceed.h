@@ -73,7 +73,7 @@ typedef struct CeedQFunction_private *CeedQFunction;
 typedef struct CeedOperator_private *CeedOperator;
 
 CEED_EXTERN int CeedRegister(const char *prefix,
-                             int (*init)(const char *, Ceed));
+                             int (*init)(const char *, Ceed), unsigned int priority);
 
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
 CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,

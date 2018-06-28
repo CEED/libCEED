@@ -167,8 +167,8 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
 // *****************************************************************************
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/occa", CeedInit_Occa);
-  CeedRegister("/gpu/occa", CeedInit_Occa);
-  CeedRegister("/omp/occa", CeedInit_Occa);
-  CeedRegister("/ocl/occa", CeedInit_Occa);
+  CeedRegister("/cpu/occa", CeedInit_Occa, 20);
+  CeedRegister("/gpu/occa", CeedInit_Occa, 20);
+  CeedRegister("/omp/occa", CeedInit_Occa, 20);
+  CeedRegister("/ocl/occa", CeedInit_Occa, 20);
 }
