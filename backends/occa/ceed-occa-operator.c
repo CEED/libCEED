@@ -96,7 +96,7 @@ static int CeedOperatorDestroy_Occa(CeedOperator op) {
 // *****************************************************************************
 // * Dump data
 // *****************************************************************************
-static int CeedOperatorDump_Occa(CeedOperator op){
+static int CeedOperatorDump_Occa(CeedOperator op) {
   const Ceed ceed = op->ceed;
   const CeedQFunction qf = op->qf;
   CeedOperator_Occa *data = op->data;
@@ -105,32 +105,32 @@ static int CeedOperatorDump_Occa(CeedOperator op){
   const CeedInt numQ = data->numqin + data->numqout;
   const CeedInt numIO = qf->numinputfields + qf->numoutputfields;
   for (CeedInt i=0; i<numE; i++) {
-    if (data->Evecs[i]){
+    if (data->Evecs[i]) {
       dbg("[CeedOperator][Dump] \033[7mdata->Evecs[%d]",i);
     }
   }
   for (CeedInt i=0; i<numIO; i++) {
-    if (data->Edata[i]){
+    if (data->Edata[i]) {
       dbg("[CeedOperator][Dump] \033[7mdata->Edata[%d]",i);
     }
   }
   for (CeedInt i=0; i<numQ; i++) {
-    if (data->qdata_alloc[i]){
+    if (data->qdata_alloc[i]) {
       dbg("[CeedOperator][Dump] \033[7mdata->qdata_alloc[%d]",i);
     }
   }
   for (CeedInt i=0; i<numIO; i++) {
-    if (data->qdata[i]){
+    if (data->qdata[i]) {
       dbg("[CeedOperator][Dump] \033[7mdata->qdata[%d]",i);
     }
   }
   for (CeedInt i=0; i<16; i++) {
-    if (data->indata[i]){
+    if (data->indata[i]) {
       dbg("[CeedOperator][Dump] \033[7mdata->INdata[%d]",i);
     }
   }
   for (CeedInt i=0; i<16; i++) {
-    if (data->outdata[i]){
+    if (data->outdata[i]) {
       dbg("[CeedOperator][Dump] \033[7mdata->OUTdata[%d]",i);
     }
   }
@@ -156,13 +156,14 @@ static int CeedOperatorSetupFields_Occa(CeedOperator op,
   CeedInt ie=starte, iq=startq;
   // Loop over fields
   for (CeedInt i=0; i<numfields; i++) {
-    dbg("\t\t[CeedOperator][SetupFields] # %d/%d, \033[7m%s",i,numfields-1,qfields[i].fieldname);
+    dbg("\t\t[CeedOperator][SetupFields] # %d/%d, \033[7m%s",i,numfields-1,
+        qfields[i].fieldname);
     if (ofields[i].Erestrict) {
       dbg("\t\t[CeedOperator][SetupFields] restriction");
       ierr = CeedElemRestrictionCreateVector(ofields[i].Erestrict, NULL, &evecs[ie]);
       CeedChk(ierr);
       ie++;
-    }else{
+    } else {
       dbg("\t\t[CeedOperator][SetupFields] no restriction");
     }
     CeedEvalMode emode = qfields[i].emode;
@@ -171,14 +172,16 @@ static int CeedOperatorSetupFields_Occa(CeedOperator op,
       dbg("\t\t[CeedOperator][SetupFields] NONE, Q==");
       break; // No action
     case CEED_EVAL_INTERP:
-      dbg("\t\t[CeedOperator][SetupFields] INTERP, Q++, qdata[%d]=qdata_alloc[%d]",i + starti,iq);
+      dbg("\t\t[CeedOperator][SetupFields] INTERP, Q++, qdata[%d]=qdata_alloc[%d]",
+          i + starti,iq);
       ncomp = qfields[i].ncomp;
       ierr = CeedMalloc(Q*ncomp, &qdata_alloc[iq]); CeedChk(ierr);
       qdata[i + starti] = qdata_alloc[iq];
       iq++;
       break;
     case CEED_EVAL_GRAD:
-      dbg("\t\t[CeedOperator][SetupFields] GRAD, Q++, qdata[%d]=qdata_alloc[%d]",i + starti,iq);
+      dbg("\t\t[CeedOperator][SetupFields] GRAD, Q++, qdata[%d]=qdata_alloc[%d]",
+          i + starti,iq);
       ncomp = qfields[i].ncomp;
       dim = ofields[i].basis->dim;
       ierr = CeedMalloc(Q*ncomp*dim, &qdata_alloc[iq]); CeedChk(ierr);
@@ -186,7 +189,8 @@ static int CeedOperatorSetupFields_Occa(CeedOperator op,
       iq++;
       break;
     case CEED_EVAL_WEIGHT: // Only on input fields
-      dbg("\t\t[CeedOperator][SetupFields] WEIGHT, Q== & qdata[%d]=indata[%d]=qdata_alloc[%d]",i + starti,i,iq);
+      dbg("\t\t[CeedOperator][SetupFields] WEIGHT, Q== & qdata[%d]=indata[%d]=qdata_alloc[%d]",
+          i + starti,i,iq);
       ierr = CeedMalloc(Q, &qdata_alloc[iq]); CeedChk(ierr);
       ierr = CeedBasisApply(ofields[iq].basis, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
                             NULL, qdata_alloc[iq]); CeedChk(ierr);
@@ -237,15 +241,16 @@ static int CeedOperatorSetup_Occa(CeedOperator op) {
   }
   dbg("\t[CeedOperator][Setup] numqout=%d, numeout=%d",
       data->numqout, data->numeout);
-  
+
   // Allocate ******************************************************************
   const CeedInt numE = data->numein + data->numeout;
   const CeedInt numQ = data->numqin + data->numqout;
   const CeedInt numIO = qf->numinputfields + qf->numoutputfields;
   dbg("\t[CeedOperator][Setup] numE=%d",numE);
   dbg("\t[CeedOperator][Setup] numQ=%d",numQ);
-  dbg("\t[CeedOperator][Setup] numIO=%d (%d in, %d out)",numIO, qf->numinputfields, qf->numoutputfields);
-  
+  dbg("\t[CeedOperator][Setup] numIO=%d (%d in, %d out)",numIO,
+      qf->numinputfields, qf->numoutputfields);
+
   dbg("\t[CeedOperator][Setup] %d Evecs",numE);
   ierr = CeedCalloc(numE, &data->Evecs); CeedChk(ierr);
   dbg("\t[CeedOperator][Setup] %d Edata",numIO);
@@ -264,7 +269,7 @@ static int CeedOperatorSetup_Occa(CeedOperator op) {
   // Dump data before setting fields
   //dbg("\t[CeedOperator][Setup] Dump data before setting fields: (should be void)");
   //CeedOperatorDump_Occa(op);
-  
+
   // Set up infield and outfield pointer arrays
   dbg("\t[CeedOperator][Setup] Set up IN fields:");
   // Infields
@@ -303,18 +308,19 @@ static int CeedOperatorApply_Occa(CeedOperator op,
   dbg("[CeedOperator][Dump] Setup?");
   ierr = CeedOperatorSetup_Occa(op); CeedChk(ierr);
   //CeedOperatorDump_Occa(op);
-  
+
   // Tell CeedQFunction_Occa's structure we are coming from an operator ********
   CeedQFunction_Occa *qfd = op->qf->data;
-  qfd->op = op; 
-  
+  qfd->op = op;
+
   // Input Evecs and Restriction
   for (CeedInt i=0,iein=0; i<qf->numinputfields; i++) {
     dbg("\n[CeedOperator][Apply] %d/%d Input Evecs:",i,qf->numinputfields-1);
     // Restriction
-    if (op->inputfields[i].Erestrict) {      
+    if (op->inputfields[i].Erestrict) {
       if (op->inputfields[i].vec) { // Passive
-        dbg("[CeedOperator][Apply] Restriction/Passive: data->Evecs[%d] = Edata[i]",iein,i);
+        dbg("[CeedOperator][Apply] Restriction/Passive: data->Evecs[%d] = Edata[i]",
+            iein,i);
         ierr = CeedElemRestrictionApply(op->inputfields[i].Erestrict, CEED_NOTRANSPOSE,
                                         lmode, op->inputfields[i].vec, data->Evecs[iein],
                                         request); CeedChk(ierr);
@@ -322,7 +328,8 @@ static int CeedOperatorApply_Occa(CeedOperator op,
                                       (const CeedScalar **) &data->Edata[i]); CeedChk(ierr);
         iein++;
       } else { // Active
-        dbg("[CeedOperator][Apply] Restriction/Active: data->Evecs[%d] = Edata[%d]",iein,i);
+        dbg("[CeedOperator][Apply] Restriction/Active: data->Evecs[%d] = Edata[%d]",
+            iein,i);
         ierr = CeedElemRestrictionApply(op->inputfields[i].Erestrict, CEED_NOTRANSPOSE,
                                         lmode, invec, data->Evecs[iein],
                                         request); CeedChk(ierr);
@@ -378,7 +385,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
     if (emode != CEED_EVAL_NONE) {
       dbg("\n[CeedOperator][Apply] NONE, outdata++");
       data->outdata[i] =  data->qdata[i + qf->numinputfields];
-    }else{
+    } else {
       dbg("\n[CeedOperator][Apply] else NONE");
     }
   }
@@ -413,7 +420,8 @@ static int CeedOperatorApply_Occa(CeedOperator op,
         data->indata[i] = &data->Edata[i][e*Q*ncomp];
         break;
       case CEED_EVAL_INTERP:
-        dbg("\t\t[CeedOperator][Apply] in INTERP, basis, Edata[%d] => qdata[%d] => indata[%d]",i,i,i);
+        dbg("\t\t[CeedOperator][Apply] in INTERP, basis, Edata[%d] => qdata[%d] => indata[%d]",
+            i,i,i);
         ierr = CeedBasisApply(op->inputfields[i].basis, CEED_NOTRANSPOSE,
                               CEED_EVAL_INTERP, &data->Edata[i][e*elemsize*ncomp],
                               data->qdata[i]);
@@ -421,7 +429,8 @@ static int CeedOperatorApply_Occa(CeedOperator op,
         data->indata[i] = data->qdata[i];
         break;
       case CEED_EVAL_GRAD:
-        dbg("\t\t[CeedOperator][Apply] in GRAD, basis, Edata[%d] => qdata[%d] => indata[%d]",i,i,i);
+        dbg("\t\t[CeedOperator][Apply] in GRAD, basis, Edata[%d] => qdata[%d] => indata[%d]",
+            i,i,i);
         ierr = CeedBasisApply(op->inputfields[i].basis, CEED_NOTRANSPOSE,
                               CEED_EVAL_GRAD, &data->Edata[i][e*elemsize*ncomp],
                               data->qdata[i]);
@@ -446,7 +455,8 @@ static int CeedOperatorApply_Occa(CeedOperator op,
       const char *name = qf->inputfields[i].fieldname;
       dbg("\t\t[CeedOperator][Apply] OUT %s",name);
       if (emode == CEED_EVAL_NONE) {
-        dbg("\t\t[CeedOperator][Apply] out NONE, Edata[%d] => outdata[%d]",i + qf->numinputfields,i);
+        dbg("\t\t[CeedOperator][Apply] out NONE, Edata[%d] => outdata[%d]",
+            i + qf->numinputfields,i);
         CeedInt ncomp = qf->outputfields[i].ncomp;
         data->outdata[i] = &data->Edata[i + qf->numinputfields][e*Q*ncomp];
       }
@@ -460,7 +470,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
         dbg("\t\t[CeedOperator][Apply] out WEIGHT");
       }
     }
-    
+
     dbg("\n[CeedOperator][Apply] before Q function debug:");
     CeedOperatorDump_Occa(op);
 
@@ -631,7 +641,7 @@ int CeedOperatorCreate_Occa(CeedOperator op) {
   const Ceed ceed = op->ceed;
   CeedOperator_Occa *impl;
   int ierr;
-  
+
   dbg("[CeedOperator][Create]");
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   op->data = impl;

@@ -105,59 +105,59 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   const occaMemory d_idx = data->d_idx;
   const occaMemory d_odx = data->d_odx;
   // ***************************************************************************
-  if (!from_operator_apply){
+  if (!from_operator_apply) {
     CeedQFunctionFillNoOp_Occa(qf,Q,d_indata,data->iOf7,data->oOf7,in);
-  }else{
+  } else {
     dbg("[CeedQFunction][Apply] Operator setup, filling");
     CeedQFunctionFillOp_Occa(qf,Q,d_indata,data->iOf7,data->oOf7,in);
   }
 
   // ***************************************************************************
   if (cbytes>0) occaCopyPtrToMem(d_ctx,qf->ctx,cbytes,0,NO_PROPS);
-  
+
   // ***************************************************************************
   dbg("[CeedQFunction][Apply] occaKernelRun");
   occaKernelRun(data->kQFunctionApply,
                 d_ctx, occaInt(Q),
-                d_idx, d_odx, 
+                d_idx, d_odx,
                 d_indata, d_outdata);
-  
+
   // ***************************************************************************
   if (cbytes>0) occaCopyMemToPtr(qf->ctx,d_ctx,cbytes,0,NO_PROPS);
-  
+
   // ***************************************************************************
-  if (!from_operator_apply) { 
+  if (!from_operator_apply) {
     const int nOut = qf->numoutputfields;
     for (CeedInt i=0; i<nOut; i++) {
       const CeedEvalMode emode = qf->outputfields[i].emode;
       const char *name = qf->outputfields[i].fieldname;
       const CeedInt ncomp = qf->outputfields[i].ncomp;
-      if (emode & CEED_EVAL_INTERP){
+      if (emode & CEED_EVAL_INTERP) {
         dbg("[CeedQFunction][Apply] out \"%s\" INTERP",name);
         // WITH OFFSET
         occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*nelem*bytes,NO_OFFSET,NO_PROPS);
       }
-      if (emode & CEED_EVAL_GRAD){
+      if (emode & CEED_EVAL_GRAD) {
         dbg("[CeedQFunction][Apply] out \"%s\" GRAD",name);
         assert(false);
       }
     }
-  }else{
+  } else {
     const int nOut = qf->numoutputfields;
     for (CeedInt i=0; i<nOut; i++) {
       const CeedEvalMode emode = qf->outputfields[i].emode;
       const char *name = qf->outputfields[i].fieldname;
       const CeedInt ncomp = qf->outputfields[i].ncomp;
       assert(emode==CEED_EVAL_NONE || emode==CEED_EVAL_INTERP);
-      if (emode==CEED_EVAL_NONE){
+      if (emode==CEED_EVAL_NONE) {
         dbg("[CeedQFunction][Apply] out \"%s\" NONE",name);
         occaCopyMemToPtr(out[i],d_outdata,Q*bytes,NO_OFFSET,NO_PROPS);
       }
-      if (emode & CEED_EVAL_INTERP){
+      if (emode & CEED_EVAL_INTERP) {
         dbg("[CeedQFunction][Apply] out \"%s\" INTERP",name);
         occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*nelem*bytes,NO_OFFSET,NO_PROPS);
       }
-      if (emode & CEED_EVAL_GRAD){
+      if (emode & CEED_EVAL_GRAD) {
         dbg("[CeedQFunction][Apply] out \"%s\" GRAD",name);
         assert(false);
       }
@@ -177,7 +177,7 @@ static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
   dbg("[CeedQFunction][Destroy]");
   occaFree(data->kQFunctionApply);
   if (data->ready) {
-    if (!operator_setup){
+    if (!operator_setup) {
       occaFree(data->d_ctx);
       occaFree(data->o_indata);
       occaFree(data->o_outdata);

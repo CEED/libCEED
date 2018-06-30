@@ -17,38 +17,48 @@
 // *****************************************************************************
 typedef int CeedInt;
 typedef double CeedScalar;
-typedef __global double gCeedScalar;
-typedef __global struct BuildContext gBuildContext;
+
+// OCCA parser doesn't like __global here
+typedef /*__global*/ double gCeedScalar;
+
+// OCCA parser doesn't like struct here
+//typedef /*__global*/ struct BuildContext gBuildContext;
 
 // *****************************************************************************
-struct BuildContext { CeedInt dim, space_dim; };
+// OCCA parser doesn't like struct here either
+//struct BuildContext { CeedInt dim, space_dim; };
 
 // *****************************************************************************
-kernel void f_build_mass(void *ctx, CeedInt Q,
-                        const CeedScalar *const *in, CeedScalar *const *out) {
-  BuildContext *bc = (BuildContext*)ctx;
-  int dims = bc->dim;
-  CeedScalar *J = (CeedScalar*)in[0];
-  CeedScalar *qw = (CeedScalar*)in[1];
-  CeedScalar *qd = (CeedScalar*)out[0];
-  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-    if (i >= Q) continue;
-    if (dims==11) qd[i] = J[i] * qw[i];
-    if (dims==22) qd[i] = (J[i+Q*0]*J[i+Q*3]-J[i+Q*1]*J[i+Q*2])*qw[i];
-    if (dims==33) qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8]-J[i+Q*5]*J[i+Q*7]) -
-                           J[i+Q*1]*(J[i+Q*3]*J[i+Q*8]-J[i+Q*5]*J[i+Q*6]) +
-                           J[i+Q*2]*(J[i+Q*3]*J[i+Q*7]-J[i+Q*4]*J[i+Q*6]))*qw[i];
+@kernel void f_build_mass(int *ctx, CeedInt Q,
+                          const int *iOf7, const int *oOf7, 
+                          const CeedScalar *u, CeedScalar *v) {
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    // OCCA parser can't insert an __global here
+    /*const CeedScalar *J = u + iOf7[0];
+    const CeedScalar *qw = u + iOf7[1];
+    CeedScalar *qd = v + oOf7[0];*/
+    //const struct BuildContext *bc = (struct BuildContext*)ctx;
+    const int dim = ctx[0];
+    const int space_dim = ctx[1];
+    const CeedInt dims = dim + 10*space_dim;
+    if (dims==11) v[oOf7[0]+i] = u[iOf7[0]+i] * u[iOf7[1]+i];
+    if (dims==22) v[oOf7[0]+i] = (u[iOf7[0]+i+Q*0]*u[iOf7[0]+i+Q*3]-u[iOf7[0]+i+Q*1]*u[iOf7[0]+i+Q*2])*u[iOf7[1]+i];
+    if (dims==33) v[oOf7[0]+i] = (u[iOf7[0]+i+Q*0]*(u[iOf7[0]+i+Q*4]*u[iOf7[0]+i+Q*8]-u[iOf7[0]+i+Q*5]*u[iOf7[0]+i+Q*7]) -
+                                  u[iOf7[0]+i+Q*1]*(u[iOf7[0]+i+Q*3]*u[iOf7[0]+i+Q*8]-u[iOf7[0]+i+Q*5]*u[iOf7[0]+i+Q*6]) +
+                                  u[iOf7[0]+i+Q*2]*(u[iOf7[0]+i+Q*3]*u[iOf7[0]+i+Q*7]-u[iOf7[0]+i+Q*4]*u[iOf7[0]+i+Q*6]))*u[iOf7[1]+i];
   }
 }
 
 // *****************************************************************************
-kernel void f_apply_mass(void *ctx, CeedInt Q,
-                        const CeedScalar *const *in, CeedScalar *const *out) {
-  CeedScalar *u = (CeedScalar*)in[0];
-  CeedScalar *w = (CeedScarar*)in[1];
-  CeedScalar *v = (CeedScalar*)out[0];
-  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-    if (i >= Q) continue;
-    v[i] = w[i] * u[i];
+@kernel void f_apply_mass(void *ctx, CeedInt Q,
+                          const int *iOf7, const int *oOf7,
+                          const CeedScalar *in, CeedScalar *out) {
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    // OCCA parser can't insert an __global here
+    /*const CeedScalar *u = in + iOf7[0];
+    const CeedScalar *w = in + iOf7[1];
+    CeedScalar *v = out + oOf7[0];
+    v[i] = w[i] * u[i];*/
+    out[oOf7[0]+i] = in[iOf7[1]+i] * in[iOf7[0]+i];
   }
 }

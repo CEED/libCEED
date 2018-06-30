@@ -170,7 +170,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   // ***************************************************************************
   dbg("[CeedElemRestriction][Create] Building kRestrict");
   dbg("[CeedElemRestriction][Create] nelem=%d",r->nelem);
- occaProperties pKR = occaCreateProperties();
+  occaProperties pKR = occaCreateProperties();
   occaPropertiesSet(pKR, "defines/ndof", occaInt(r->ndof));
   occaPropertiesSet(pKR, "defines/nelem", occaInt(r->nelem));
   occaPropertiesSet(pKR, "defines/elemsize", occaInt(r->elemsize));

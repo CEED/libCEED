@@ -37,12 +37,12 @@ struct BuildContext { CeedInt dim, space_dim; };
 
 /// libCEED Q-function for building quadrature data for a mass operator
 static int f_build_mass(void *ctx, CeedInt Q,
-                        const CeedScalar *const *u, CeedScalar *const *v) {
-  // u[1] is Jacobians, size (Q x nc x dim) with column-major layout
-  // u[4] is quadrature weights, size (Q)
+                        const CeedScalar *const *in, CeedScalar *const *out) {
+  // in[0] is Jacobians, size (Q x nc x dim) with column-major layout
+  // in[1] is quadrature weights, size (Q)
   struct BuildContext *bc = (struct BuildContext*)ctx;
-  CeedScalar *qd = v[0];
-  const CeedScalar *J = u[0], *qw = u[1];
+  const CeedScalar *J = in[0], *qw = in[1];
+  CeedScalar *qd = out[0];
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
     for (CeedInt i=0; i<Q; i++) {
@@ -75,9 +75,12 @@ static int f_build_mass(void *ctx, CeedInt Q,
 
 /// libCEED Q-function for applying a mass operator
 static int f_apply_mass(void *ctx, CeedInt Q,
-                        const CeedScalar *const *u, CeedScalar *const *v) {
-  const CeedScalar *w = u[1];
-  for (CeedInt i=0; i<Q; i++) v[0][i] = w[i] * u[0][i];
+                        const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar *u = in[0], *w = in[1];
+  CeedScalar *v = out[0];
+  for (CeedInt i=0; i<Q; i++) {
+    v[i] = w[i] * u[i];
+  }
   return 0;
 }
 
@@ -201,7 +204,7 @@ int main(int argc, const char *argv[]) {
                               __FILE__":f_build_mass", &build_qfunc);
   CeedQFunctionAddInput(build_qfunc, "dx", dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(build_qfunc, "qdata", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(build_qfunc, "rho", 1, CEED_EVAL_NONE);
   CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
 
   // Create the operator that builds the quadrature data for the mass operator.
@@ -211,18 +214,18 @@ int main(int argc, const char *argv[]) {
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(build_oper, "weights", CEED_RESTRICTION_IDENTITY,
                        mesh_basis, CEED_VECTOR_NONE);
-  CeedOperatorSetField(build_oper, "qdata", CEED_RESTRICTION_IDENTITY,
+  CeedOperatorSetField(build_oper, "rho", CEED_RESTRICTION_IDENTITY,
                        CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
 
   // Compute the quadrature data for the mass operator.
-  CeedVector qdata;
+  CeedVector rho;
   CeedInt elem_qpts = CeedPowInt(num_qpts, dim);
-  CeedVectorCreate(ceed, prob_size*elem_qpts, &qdata);
+  CeedVectorCreate(ceed, prob_size*elem_qpts, &rho);
   if (!test) {
     printf("Computing the quadrature data for the mass operator ...");
     fflush(stdout);
   }
-  CeedOperatorApply(build_oper, mesh_coords, qdata,
+  CeedOperatorApply(build_oper, mesh_coords, rho,
                     CEED_REQUEST_IMMEDIATE);
   if (!test) {
     printf(" done.\n");
@@ -233,15 +236,15 @@ int main(int argc, const char *argv[]) {
   CeedQFunctionCreateInterior(ceed, 1, f_apply_mass,
                               __FILE__":f_apply_mass", &apply_qfunc);
   CeedQFunctionAddInput(apply_qfunc, "u", 1, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(apply_qfunc, "qdata", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(apply_qfunc, "rho", 1, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(apply_qfunc, "v", 1, CEED_EVAL_INTERP);
 
   // Create the mass operator.
   CeedOperator oper;
   CeedOperatorCreate(ceed, apply_qfunc, NULL, NULL, &oper);
   CeedOperatorSetField(oper, "u", sol_restr, sol_basis, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(oper, "qdata", CEED_RESTRICTION_IDENTITY,
-                       CEED_BASIS_COLOCATED, qdata);
+  CeedOperatorSetField(oper, "rho", CEED_RESTRICTION_IDENTITY,
+                       CEED_BASIS_COLOCATED, rho);
   CeedOperatorSetField(oper, "v", sol_restr, sol_basis, CEED_VECTOR_ACTIVE);
 
   // Compute the mesh volume using the mass operator: vol = 1^T.M.1.
@@ -256,12 +259,15 @@ int main(int argc, const char *argv[]) {
   CeedVectorCreate(ceed, sol_size, &v);
 
   // Initialize 'u' with ones.
-  CeedScalar *u_host;
+  CeedScalar *u_host, *i_host;
   CeedVectorGetArray(u, CEED_MEM_HOST, &u_host);
+  CeedVectorGetArray(v, CEED_MEM_HOST, &i_host);
   for (CeedInt i = 0; i < sol_size; i++) {
     u_host[i] = 1.;
+    i_host[i] = 1.;
   }
   CeedVectorRestoreArray(u, &u_host);
+  CeedVectorRestoreArray(v, &i_host);
 
   // Apply the mass operator: 'u' -> 'v'.
   CeedOperatorApply(oper, u, v, CEED_REQUEST_IMMEDIATE);
@@ -284,14 +290,14 @@ int main(int argc, const char *argv[]) {
   }
 
   // Free dynamically allocated memory.
-  CeedVectorDestroy(&v);
   CeedVectorDestroy(&u);
+  CeedVectorDestroy(&v);
+  CeedVectorDestroy(&rho);
+  CeedVectorDestroy(&mesh_coords);
   CeedOperatorDestroy(&oper);
   CeedQFunctionDestroy(&apply_qfunc);
-  CeedVectorDestroy(&qdata);
   CeedOperatorDestroy(&build_oper);
   CeedQFunctionDestroy(&build_qfunc);
-  CeedVectorDestroy(&mesh_coords);
   CeedElemRestrictionDestroy(&sol_restr);
   CeedElemRestrictionDestroy(&mesh_restr);
   CeedBasisDestroy(&sol_basis);

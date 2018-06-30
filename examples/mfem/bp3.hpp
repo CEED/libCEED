@@ -26,14 +26,14 @@ struct DiffContext { CeedInt dim, space_dim; };
 /// libCEED Q-function for building quadrature data for a diffusion operator
 static int f_build_diff(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
+  DiffContext *dc = (DiffContext*)ctx;
   // in[0] is Jacobians, size (Q x nc x dim) with column-major layout
   // in[1] is quadrature weights, size (Q)
   //
   // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
   // the symmetric part of the result.
-  DiffContext *dc = (DiffContext*)ctx;
-  CeedScalar *qd = (CeedScalar*)out[0];
-  CeedScalar *J = (CeedScalar*)in[0], *qw = (CeedScalar*)in[1];
+  const CeedScalar *J = in[0], *qw = in[1];
+  CeedScalar *qd = out[0];
   switch (dc->dim + 10*dc->space_dim) {
   case 11:
     for (CeedInt i=0; i<Q; i++) {
@@ -96,11 +96,10 @@ static int f_build_diff(void *ctx, CeedInt Q,
 /// libCEED Q-function for applying a diff operator
 static int f_apply_diff(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
-  CeedScalar *qd = (CeedScalar*)in[1];
-  // in[0], out[0]: size: (Q x nc x dim) with column-major layout (nc == 1)
   DiffContext *dc = (DiffContext*)ctx;
-  CeedScalar *ug = (CeedScalar*)in[0];
-  CeedScalar *vg = (CeedScalar*)out[0];
+  // in[0], out[0]: size: (Q x nc x dim) with column-major layout (nc == 1)
+  const CeedScalar *ug = in[0], *qd = in[1];
+  CeedScalar *vg = out[0];
   switch (dc->dim) {
   case 1:
     for (CeedInt i=0; i<Q; i++) {
@@ -139,9 +138,9 @@ class CeedDiffusionOperator : public mfem::Operator {
   CeedBasis basis, mesh_basis;
   CeedElemRestriction restr, mesh_restr;
   CeedQFunction apply_qfunc, build_qfunc;
-  CeedVector node_coords, qdata;
+  CeedVector node_coords, rho;
 
-  DiffContext diff_ctx;
+  DiffContext build_ctx;
 
   CeedVector u, v;
 
@@ -212,7 +211,7 @@ class CeedDiffusionOperator : public mfem::Operator {
       }
     }
     CeedElemRestrictionCreate(ceed, mesh->GetNE(), fe->GetDof(),
-                              fes->GetNDofs(), 1, CEED_MEM_HOST, CEED_COPY_VALUES,
+                              fes->GetNDofs(), fes->GetVDim(), CEED_MEM_HOST, CEED_COPY_VALUES,
                               tp_el_dof.GetData(), restr);
   }
 
@@ -226,6 +225,7 @@ class CeedDiffusionOperator : public mfem::Operator {
     const int ir_order = 2*(order + 2) - 1; // <-----
     const mfem::IntegrationRule &ir =
       mfem::IntRules.Get(mfem::Geometry::SEGMENT, ir_order);
+    CeedInt nqpts, nelem = mesh->GetNE();
 
     FESpace2Ceed(fes, ir, ceed, &basis, &restr);
 
@@ -238,34 +238,56 @@ class CeedDiffusionOperator : public mfem::Operator {
                        mesh->GetNodes()->GetData());
 
     const int dim = mesh->Dimension();
-    diff_ctx.dim = dim;
-    diff_ctx.space_dim = mesh->SpaceDimension();
+    build_ctx.dim = dim;
+    build_ctx.space_dim = mesh->SpaceDimension();
 
     const int qsize = dim*(dim+1)/2;
+
+    CeedVectorCreate(ceed, nelem*nqpts, &rho);
+
+    // Context data to be passed to the 'f_build_diff' Q-function.
+    build_ctx.dim = mesh->Dimension();
+    build_ctx.space_dim = mesh->SpaceDimension();
+
+    // Create the Q-function that builds the diff operator (i.e. computes its
+    // quadrature data) and set its context data.
     CeedQFunctionCreateInterior(ceed, 1, f_build_diff,
                                 __FILE__":f_build_diff", &build_qfunc);
-    CeedQFunctionAddInput(build_qfunc, "x", 1, CEED_EVAL_GRAD);
-    CeedQFunctionAddInput(build_qfunc, "weight", 1, CEED_EVAL_WEIGHT);
-    CeedQFunctionAddOutput(build_qfunc, "qdata", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(build_qfunc, "dx", mesh->SpaceDimension(),
+                          CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
+    CeedQFunctionAddOutput(build_qfunc, "rho", 1, CEED_EVAL_NONE);
+    CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
 
+    // Create the operator that builds the quadrature data for the diff operator.
     CeedOperatorCreate(ceed, build_qfunc, NULL, NULL, &build_oper);
-    CeedOperatorSetField(build_oper, "x", mesh_restr, mesh_basis, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(build_oper, "weight", CEED_RESTRICTION_IDENTITY, mesh_basis, CEED_VECTOR_NONE);
-    CeedOperatorSetField(build_oper, "qdata", CEED_RESTRICTION_IDENTITY, CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(build_oper, "dx", mesh_restr, mesh_basis,
+                         CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(build_oper, "weights", CEED_RESTRICTION_IDENTITY,
+                         mesh_basis, CEED_VECTOR_NONE);
+    CeedOperatorSetField(build_oper, "rho", CEED_RESTRICTION_IDENTITY,
+                         CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
 
-    CeedOperatorApply(build_oper, node_coords, qdata,
+    // Compute the quadrature data for the mass operator.
+    CeedOperatorApply(build_oper, node_coords, rho,
                       CEED_REQUEST_IMMEDIATE);
 
+    // Create the Q-function that defines the action of the diff operator.
+    CeedQFunction apply_qfunc;
     CeedQFunctionCreateInterior(ceed, 1, f_apply_diff,
-                                __FILE__":f_apply_diff", &apply_qfunc);
-    CeedQFunctionAddInput(apply_qfunc, "u", 1, CEED_EVAL_GRAD);
-    CeedQFunctionAddInput(apply_qfunc, "qdata", 1, CEED_EVAL_NONE);
-    CeedQFunctionAddOutput(apply_qfunc, "v", 1, CEED_EVAL_GRAD);
+                                __FILE__":f_apply_mass", &apply_qfunc);
+    CeedQFunctionAddInput(apply_qfunc, "du", mesh->SpaceDimension(),
+                          CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(apply_qfunc, "rho", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(apply_qfunc, "dv", mesh->SpaceDimension(),
+                           CEED_EVAL_INTERP);
 
+    // Create the mass operator.
     CeedOperatorCreate(ceed, apply_qfunc, NULL, NULL, &oper);
-    CeedOperatorSetField(oper, "u", restr, basis, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(oper, "qdata", CEED_RESTRICTION_IDENTITY, CEED_BASIS_COLOCATED, qdata);
-    CeedOperatorSetField(oper, "v", restr, basis, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(oper, "du", restr, basis, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(oper, "rho", CEED_RESTRICTION_IDENTITY,
+                         CEED_BASIS_COLOCATED, rho);
+    CeedOperatorSetField(oper, "dv", restr, basis, CEED_VECTOR_ACTIVE);
 
     CeedVectorCreate(ceed, fes->GetNDofs(), &u);
     CeedVectorCreate(ceed, fes->GetNDofs(), &v);
@@ -273,18 +295,18 @@ class CeedDiffusionOperator : public mfem::Operator {
 
   /// Destructor
   ~CeedDiffusionOperator() {
-    CeedVectorDestroy(&v);
     CeedVectorDestroy(&u);
-    CeedOperatorDestroy(&oper);
-    CeedQFunctionDestroy(&apply_qfunc);
-    // qdata is owned by build_oper
-    CeedOperatorDestroy(&build_oper);
-    CeedQFunctionDestroy(&build_qfunc);
+    CeedVectorDestroy(&v);
+    CeedVectorDestroy(&rho);
     CeedVectorDestroy(&node_coords);
-    CeedElemRestrictionDestroy(&mesh_restr);
-    CeedBasisDestroy(&mesh_basis);
     CeedElemRestrictionDestroy(&restr);
+    CeedElemRestrictionDestroy(&mesh_restr);
     CeedBasisDestroy(&basis);
+    CeedBasisDestroy(&mesh_basis);
+    CeedQFunctionDestroy(&build_qfunc);
+    CeedOperatorDestroy(&build_oper);
+    CeedQFunctionDestroy(&apply_qfunc);
+    CeedOperatorDestroy(&oper);
   }
 
   /// Operator action

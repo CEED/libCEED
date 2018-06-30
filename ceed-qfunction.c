@@ -93,8 +93,8 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
 int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                            CeedInt ncomp, CeedEvalMode emode) {
   if (emode == CEED_EVAL_WEIGHT)
-     return CeedError(qf->ceed, 1,
-                      "Cannot create qfunction output with CEED_EVAL_WEIGHT");
+    return CeedError(qf->ceed, 1,
+                     "Cannot create qfunction output with CEED_EVAL_WEIGHT");
   int ierr = CeedQFunctionFieldSet(&qf->outputfields[qf->numoutputfields++],
                                    fieldname, ncomp, emode); CeedChk(ierr);
   return 0;

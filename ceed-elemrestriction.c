@@ -132,6 +132,7 @@ int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode,
                      "Output vector size %d not compatible with element restriction (%d,%d)",
                      v->length, m, n);
   ierr = r->Apply(r, tmode, lmode, u, v, request); CeedChk(ierr);
+
   return 0;
 }
 
