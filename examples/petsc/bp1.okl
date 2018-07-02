@@ -17,54 +17,49 @@
 // *****************************************************************************
 typedef int CeedInt;
 typedef double CeedScalar;
-typedef __global bool gCeedBool;
-typedef __global double gCeedScalar;
+
+// OCCA parser doesn't like __global here
+typedef /*__global*/ double gCeedScalar;
+
+// OCCA parser doesn't like struct here
+//typedef /*__global*/ struct BuildContext gBuildContext;
 
 // *****************************************************************************
-#define PetscSqr(a) ((a)*(a))
-#define PetscMax(a,b) (((a)<(b)) ? (b):(a))
-#define PetscAbsScalar(a) (((a)<0.0)?(-a):(a))
+// OCCA parser doesn't like struct here either
+//struct BuildContext { CeedInt dim, space_dim; };
 
 // *****************************************************************************
-kernel void Setup(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
-  CeedScalar *rho = out[0], *target = rho + Q;
-  const CeedScalar (*x)[Q] = (const CeedScalar (*)[Q])in[0];
-  const CeedScalar (*J)[3][Q] = (const CeedScalar (*)[3][Q])in[1];
-  const CeedScalar *w = in[2];
-  const int szofcs = sizeof(CeedScalar);
-  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-    if (i >= Q) continue;
-    //const CeedInt offset = e*(Q*NC*(DIM+2));
-    //const gCeedScalar *du = bu+offset;
-    //const gCeedScalar *bJ = bu+offset+Q*NC;
-    //const gCeedScalar *bQW = bu+offset+Q*NC*(DIM+1);
-    //if (fabs(J[i]-bJ[i])>epsilon) continue;
-    //if (fabs(w[i]-bQW[i])>epsilon) continue;
-    const CeedScalar det =
-      J[i+Q*0]*(J[i+Q*4]*J[i+Q*8]-J[i+Q*5]*J[i+Q*7]) -
-      J[i+Q*1]*(J[i+Q*3]*J[i+Q*8]-J[i+Q*5]*J[i+Q*6]) +
-      J[i+Q*2]*(J[i+Q*3]*J[i+Q*7]-J[i+Q*4]*J[i+Q*6]);
-    rho[i] = det * w[i];
-    // Don't break this line, OCCA parser will seg-fault
-    target[i] = sqrt(PetscSqr(x[i+Q*0])+PetscSqr(x[Q*1+i])+PetscSqr(x[Q*2+i]));
+@kernel void Setup(int *ctx, CeedInt Q,
+                          const int *iOf7, const int *oOf7, 
+                          const CeedScalar *u, CeedScalar *v) {
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    // OCCA parser can't insert an __global here
+    /*const CeedScalar *J = u + iOf7[0];
+    const CeedScalar *qw = u + iOf7[1];
+    CeedScalar *qd = v + oOf7[0];*/
+    //const struct BuildContext *bc = (struct BuildContext*)ctx;
+    const int dim = ctx[0];
+    const int space_dim = ctx[1];
+    const CeedInt dims = dim + 10*space_dim;
+    if (dims==11) v[oOf7[0]+i] = u[iOf7[0]+i] * u[iOf7[1]+i];
+    if (dims==22) v[oOf7[0]+i] = (u[iOf7[0]+i+Q*0]*u[iOf7[0]+i+Q*3]-u[iOf7[0]+i+Q*1]*u[iOf7[0]+i+Q*2])*u[iOf7[1]+i];
+    if (dims==33) v[oOf7[0]+i] = (u[iOf7[0]+i+Q*0]*(u[iOf7[0]+i+Q*4]*u[iOf7[0]+i+Q*8]-u[iOf7[0]+i+Q*5]*u[iOf7[0]+i+Q*7]) -
+                                  u[iOf7[0]+i+Q*1]*(u[iOf7[0]+i+Q*3]*u[iOf7[0]+i+Q*8]-u[iOf7[0]+i+Q*5]*u[iOf7[0]+i+Q*6]) +
+                                  u[iOf7[0]+i+Q*2]*(u[iOf7[0]+i+Q*3]*u[iOf7[0]+i+Q*7]-u[iOf7[0]+i+Q*4]*u[iOf7[0]+i+Q*6]))*u[iOf7[1]+i];
   }
 }
 
 // *****************************************************************************
-kernel void Mass(void *ctx, CeedInt Q,
-                const CeedScalar *const *in, CeedScalar *const *out) {
-  bool *residual = ctx;
-  CeedScalar *rho = (CeedScalar*)in[1], *target = rho + Q;
-  CeedScalar *v = (CeedScalar*)out[0];
-  CeedScalar *u = (CeedScalar*)in[0];
-  const int szofcs = sizeof(CeedScalar);
-  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-    if (i >= Q) continue;
-    //const CeedInt offset = e*(Q*NC*(DIM+2));
-    //const gCeedScalar *du = bu+offset;
-    //if (fabs(u[i]-du[i])>epsilon) continue;
-    v[i] = rho[i] * (u[i] - (*residual ? target[i] : 0.0));
+@kernel void Mass(void *ctx, CeedInt Q,
+                          const int *iOf7, const int *oOf7,
+                          const CeedScalar *in, CeedScalar *out) {
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    // OCCA parser can't insert an __global here
+    /*const CeedScalar *u = in + iOf7[0];
+    const CeedScalar *w = in + iOf7[1];
+    CeedScalar *v = out + oOf7[0];
+    v[i] = w[i] * u[i];*/
+    out[oOf7[0]+i] = in[iOf7[1]+i] * in[iOf7[0]+i];
   }
 }
 
