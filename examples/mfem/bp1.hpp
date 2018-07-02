@@ -189,7 +189,8 @@ class CeedMassOperator : public mfem::Operator {
     // quadrature data) and set its context data.
     CeedQFunctionCreateInterior(ceed, 1, f_build_mass,
                                 __FILE__":f_build_mass", &build_qfunc);
-    CeedQFunctionAddInput(build_qfunc, "dx", mesh->SpaceDimension(), CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(build_qfunc, "dx", mesh->SpaceDimension(),
+                          CEED_EVAL_GRAD);
     CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
     CeedQFunctionAddOutput(build_qfunc, "rho", 1, CEED_EVAL_NONE);
     CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));

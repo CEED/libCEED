@@ -57,7 +57,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
   ceed->refcount++;
   (*basis)->refcount = 1;
   (*basis)->dim = dim;
-  (*basis)->ndof = ncomp;
+  (*basis)->ncomp = ncomp;
   (*basis)->P1d = P1d;
   (*basis)->Q1d = Q1d;
   ierr = CeedMalloc(Q1d,&(*basis)->qref1d); CeedChk(ierr);

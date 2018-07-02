@@ -213,7 +213,7 @@ class CeedDiffusionOperator : public mfem::Operator {
     CeedElemRestrictionCreate(ceed, mesh->GetNE(), fe->GetDof(),
                               fes->GetNDofs(), fes->GetVDim(), CEED_MEM_HOST, CEED_COPY_VALUES,
                               tp_el_dof.GetData(), restr);
-    }
+  }
 
  public:
   /// Constructor. Assumes @a fes is a scalar FE space.

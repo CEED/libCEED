@@ -69,9 +69,11 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
 
   @param op the operator on which to provide the field
   @param fieldname name of the field (to be matched with the name used by CeedQFunction)
-  @param r element restriction or NULL to use the identity
-  @param b basis in which the field resides or NULL if collocated with quadrature points
-  @param v vector to be used by CeedOperator or NULL if field is active
+  @param r element restriction or CEED_RESTRICTION_IDENTITY to use the identity
+  @param b basis in which the field resides or CEED_BASIS_COLOCATED if collocated
+           with quadrature points
+  @param v vector to be used by CeedOperator, CEED_VECTOR_ACTIVE if field is
+           active, or CEED_VECTOR_NONE if using CEED_EVAL_WEIGHT in the qfunction
  */
 int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                          CeedElemRestriction r, CeedBasis b,

@@ -87,15 +87,19 @@ struct CeedBasis_private {
                CeedScalar *);
   int (*Destroy)(CeedBasis);
   int refcount;
-  CeedInt dim;
-  CeedInt ndof;
-  CeedInt P1d;
-  CeedInt Q1d;
-  CeedScalar *qref1d;
-  CeedScalar *qweight1d;
-  CeedScalar *interp1d;
-  CeedScalar *grad1d;
-  void *data;       /* place for the backend to store any data */
+  CeedInt dim;           /* topological dimension */
+  CeedInt ncomp;         /* number of field components (1 for scalar fields) */
+  CeedInt P1d;           /* number of nodes in one dimension */
+  CeedInt Q1d;           /* number of quadrature points in one dimension */
+  CeedScalar *qref1d;    /* Array of length Q1d holding the locations of 
+                            quadrature points on the 1D reference element [-1, 1] */
+  CeedScalar *qweight1d; /* array of length Q1d holding the quadrature weights on 
+                            the reference element */
+  CeedScalar *interp1d;  /* row-major Q1d × P1d matrix expressing the values of 
+                            nodal basis functions at quadrature points */
+  CeedScalar *grad1d;    /* row-major Q1d × P1d matrix expressing derivatives of 
+                            nodal basis functions at quadrature points */
+  void *data;            /* place for the backend to store any data */
 };
 
 struct CeedQFunctionField {

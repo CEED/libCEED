@@ -590,15 +590,15 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedTransposeMode tmode,
                                 const CeedScalar *u, CeedScalar *v) {
   int ierr;
   const CeedInt dim = basis->dim;
-  const CeedInt ndof = basis->ndof;
-  const CeedInt nqpt = ndof*CeedPowInt(basis->Q1d, dim);
+  const CeedInt ncomp = basis->ncomp;
+  const CeedInt nqpt = ncomp*CeedPowInt(basis->Q1d, dim);
   const CeedInt add = (tmode == CEED_TRANSPOSE);
 
   CeedDebug("\033[01m[CeedBasisApply_Magma] vsize=%d",
-            ndof*CeedPowInt(basis->P1d, dim));
+            ncomp*CeedPowInt(basis->P1d, dim));
 
   if (tmode == CEED_TRANSPOSE) {
-    const CeedInt vsize = ndof*CeedPowInt(basis->P1d, dim);
+    const CeedInt vsize = ncomp*CeedPowInt(basis->P1d, dim);
     for (CeedInt i = 0; i < vsize; i++)
       v[i] = (CeedScalar) 0;
   }
@@ -607,10 +607,10 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedTransposeMode tmode,
     if (tmode == CEED_TRANSPOSE) {
       P = basis->Q1d; Q = basis->P1d;
     }
-    CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
-    CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
+    CeedInt pre = ncomp*CeedPowInt(P, dim-1), post = 1;
+    CeedScalar tmp[2][ncomp*Q*CeedPowInt(P>Q?P:Q, dim-1)];
     CeedDebug("\033[01m[CeedBasisApply_Magma] tmpsize = %d",
-              ndof*Q*CeedPowInt(P>Q?P:Q, dim-1));
+              ncomp*Q*CeedPowInt(P>Q?P:Q, dim-1));
     for (CeedInt d=0; d<dim; d++) {
       ierr = CeedTensorContract_Magma(basis->ceed, pre, P, post, Q, basis->interp1d,
                                       tmode, add&&(d==dim-1),
@@ -628,17 +628,17 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedTransposeMode tmode,
   if (emode & CEED_EVAL_GRAD) {
     CeedInt P = basis->P1d, Q = basis->Q1d;
     // In CEED_NOTRANSPOSE mode:
-    // u is (P^dim x nc), column-major layout (nc = ndof)
-    // v is (Q^dim x nc x dim), column-major layout (nc = ndof)
+    // u is (P^dim x nc), column-major layout (nc = ncomp)
+    // v is (Q^dim x nc x dim), column-major layout (nc = ncomp)
     // In CEED_TRANSPOSE mode, the sizes of u and v are switched.
     if (tmode == CEED_TRANSPOSE) {
       P = basis->Q1d, Q = basis->P1d;
     }
-    CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
+    CeedScalar tmp[2][ncomp*Q*CeedPowInt(P>Q?P:Q, dim-1)];
     CeedDebug("\033[01m[CeedBasisApply_Magma] tmpsize = %d",
-              ndof*Q*CeedPowInt(P>Q?P:Q, dim-1));
+              ncomp*Q*CeedPowInt(P>Q?P:Q, dim-1));
     for (CeedInt p = 0; p < dim; p++) {
-      CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
+      CeedInt pre = ncomp*CeedPowInt(P, dim-1), post = 1;
       for (CeedInt d=0; d<dim; d++) {
         ierr = CeedTensorContract_Magma(basis->ceed, pre, P, post, Q,
                                         (p==d)?basis->grad1d:basis->interp1d,
@@ -858,7 +858,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
     // Restriction
     if (op->inputfields[i].Erestrict) {
       // Zero evec
-      ierr = CeedVectorGetArray(opmagma->evecs[iein], CEED_MEM_HOST, &vec_temp); CeedChk(ierr);
+      ierr = CeedVectorGetArray(opmagma->evecs[iein], CEED_MEM_HOST, &vec_temp);
+      CeedChk(ierr);
       for (CeedInt j=0; j<opmagma->evecs[iein]->length; j++)
         vec_temp[j] = 0.;
       ierr = CeedVectorRestoreArray(opmagma->evecs[iein], &vec_temp); CeedChk(ierr);
@@ -875,7 +876,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
       } else {
         // Active
         // Restrict
-      
+
         ierr = CeedElemRestrictionApply(op->inputfields[i].Erestrict, CEED_NOTRANSPOSE,
                                         lmode, invec, opmagma->evecs[iein], request); CeedChk(ierr);
         // Get evec
@@ -892,7 +893,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
         if (op->inputfields[i].vec) {
           ierr = CeedVectorGetArrayRead(op->inputfields[i].vec, CEED_MEM_HOST,
                                         (const CeedScalar **) &opmagma->edata[i]); CeedChk(ierr);
-        // Active
+          // Active
         } else {
           ierr = CeedVectorGetArrayRead(invec, CEED_MEM_HOST,
                                         (const CeedScalar **) &opmagma->edata[i]); CeedChk(ierr);
@@ -969,7 +970,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
       }
     }
     // Q function
-    ierr = CeedQFunctionApply(op->qf, Q, (const CeedScalar * const*) opmagma->indata,
+    ierr = CeedQFunctionApply(op->qf, Q,
+                              (const CeedScalar * const*) opmagma->indata,
                               opmagma->outdata); CeedChk(ierr);
 
     // Output basis apply if needed
@@ -1017,10 +1019,12 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
         ierr = CeedVectorRestoreArray(opmagma->evecs[ieout],
                                       &opmagma->edata[i + qf->numinputfields]); CeedChk(ierr);
         // Zero lvec
-        ierr = CeedVectorGetArray(op->outputfields[i].vec, CEED_MEM_HOST, &vec_temp); CeedChk(ierr);
+        ierr = CeedVectorGetArray(op->outputfields[i].vec, CEED_MEM_HOST, &vec_temp);
+        CeedChk(ierr);
         for (CeedInt j=0; j<op->outputfields[i].vec->length; j++)
           vec_temp[j] = 0.;
-        ierr = CeedVectorRestoreArray(op->outputfields[i].vec, &vec_temp); CeedChk(ierr);
+        ierr = CeedVectorRestoreArray(op->outputfields[i].vec, &vec_temp);
+        CeedChk(ierr);
         // Restrict
         ierr = CeedElemRestrictionApply(op->outputfields[i].Erestrict, CEED_TRANSPOSE,
                                         lmode, opmagma->evecs[ieout], op->outputfields[i].vec, request); CeedChk(ierr);
@@ -1059,8 +1063,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
     // Restriction
     if (op->inputfields[i].Erestrict) {
       ierr = CeedVectorRestoreArrayRead(opmagma->evecs[iein],
-                                      (const CeedScalar **) &opmagma->edata[i]); CeedChk(ierr);
-        iein++;
+                                        (const CeedScalar **) &opmagma->edata[i]); CeedChk(ierr);
+      iein++;
     } else {
       // No restriction
       CeedEvalMode emode = qf->inputfields[i].emode;
@@ -1069,11 +1073,11 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
         // Passive
         if (op->inputfields[i].vec) {
           ierr = CeedVectorRestoreArrayRead(op->inputfields[i].vec,
-                                        (const CeedScalar **) &opmagma->edata[i]); CeedChk(ierr);
-        // Active
+                                            (const CeedScalar **) &opmagma->edata[i]); CeedChk(ierr);
+          // Active
         } else {
           ierr = CeedVectorRestoreArrayRead(invec,
-                                        (const CeedScalar **) &opmagma->edata[i]); CeedChk(ierr);
+                                            (const CeedScalar **) &opmagma->edata[i]); CeedChk(ierr);
 
         }
       }
