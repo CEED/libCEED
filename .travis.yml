@@ -13,8 +13,7 @@ env:
 before_script:
   - git clone https://github.com/mfem/mfem.git
   - cd mfem
-  - make config
-  - make test -j 4
+  - make serial
   - export MFEM_DIR=$PWD
   - cd ..
 
