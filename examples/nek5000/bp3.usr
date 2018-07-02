@@ -401,13 +401,15 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
-      subroutine setupf(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
+      subroutine setupf(ctx,q,u1,u2,u3,u4,u5,u6,u7,
+     $  u8,u9,u10,u11,u12,u13,u14,u15,u16,v1,v2,v3,v4,v5,v6,v7,v8,
+     $  v9,v10,v11,v12,v13,v14,v15,v16,ierr)
       integer q,ierr
       real*8 ctx(1)
       real*8 u1(1)
       real*8 u2(1)
       real*8 u3(1)
-      real*8 qdata(6,q)
+      real*8 v1(6,q)
       real*8 jacmq
 
       do i=1,q
@@ -441,19 +443,21 @@ c-----------------------------------------------------------------------
 
         scl = u3(i)*jacmq
 
-        qdata(1,i) = scl*(g11*g11+g12*g12+g13*g13) ! Grr
-        qdata(2,i) = scl*(g11*g21+g12*g22+g13*g23) ! Grs
-        qdata(3,i) = scl*(g11*g31+g12*g32+g13*g33) ! Grt
-        qdata(4,i) = scl*(g21*g21+g22*g22+g23*g23) ! Gss
-        qdata(5,i) = scl*(g21*g31+g22*g32+g23*g33) ! Gst
-        qdata(6,i) = scl*(g31*g31+g32*g32+g33*g33) ! Gtt
+        v1(1,i) = scl*(g11*g11+g12*g12+g13*g13) ! Grr
+        v1(2,i) = scl*(g11*g21+g12*g22+g13*g23) ! Grs
+        v1(3,i) = scl*(g11*g31+g12*g32+g13*g33) ! Grt
+        v1(4,i) = scl*(g21*g21+g22*g22+g23*g23) ! Gss
+        v1(5,i) = scl*(g21*g31+g22*g32+g23*g33) ! Gst
+        v1(6,i) = scl*(g31*g31+g32*g32+g33*g33) ! Gtt
 
       enddo
 
       ierr=0
       end
 c-----------------------------------------------------------------------
-      subroutine diffusionf(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
+      subroutine diffusionf(ctx,q,u1,u2,u3,u4,u5,u6,u7,
+     $  u8,u9,u10,u11,u12,u13,u14,u15,u16,v1,v2,v3,v4,v5,v6,v7,v8,
+     $  v9,v10,v11,v12,v13,v14,v15,v16,ierr)
       integer q,ierr
       real*8 ctx
       real*8 u1(1)
@@ -461,15 +465,15 @@ c-----------------------------------------------------------------------
       real*8 u3(1)
       real*8 v1(1)
       real*8 v2(1)
-      real*8 qdata(6,q)
+      real*8 u4(6,q)
 
       do i=1,q
         v2(i+0*q)=
-     $     qdata(1,i)*u2(i)+qdata(2,i)*u2(i+q)+qdata(3,i)*u2(i+2*q)
+     $     u4(1,i)*u2(i)+u4(2,i)*u2(i+q)+u4(3,i)*u2(i+2*q)
         v2(i+1*q)=
-     $     qdata(2,i)*u2(i)+qdata(4,i)*u2(i+q)+qdata(5,i)*u2(i+2*q)
+     $     u4(2,i)*u2(i)+u4(4,i)*u2(i+q)+u4(5,i)*u2(i+2*q)
         v2(i+2*q)=
-     $     qdata(3,i)*u2(i)+qdata(5,i)*u2(i+q)+qdata(6,i)*u2(i+2*q)
+     $     u4(3,i)*u2(i)+u4(5,i)*u2(i+q)+u4(6,i)*u2(i+2*q)
       enddo
 
       ierr=0
@@ -554,32 +558,31 @@ c     Create ceed basis for mesh and computation
 c     Create ceed element restrictions for mesh and computation
       edof=nx1**ldim
       ldof=edof*nelt*ncomp
-      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,
+      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,ldim,
      $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
      $  erstrctx,err)
 
       edof=nx1**ldim
       ldof=edof*nelt*ncomp
-      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,
+      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,1,
      $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
      $  erstrctu,err)
 
 c     Create ceed qfunctions for setupf and diffusionf
       ngeo=(ldim*(ldim+1))/2
-      call ceedqfunctioncreateinterior(ceed,1,ncomp,ngeo*8,
-     $  ior(ceed_eval_weight,ceed_eval_grad),ceed_eval_none,setupf,
+      call ceedqfunctioncreateinterior(ceed,1,setupf,
      $  __FILE__
      $  //':setupf'//char(0),qf_setup,err)
 
-      call ceedqfunctioncreateinterior(ceed,1,ncomp,ngeo*8,
-     $  ceed_eval_grad,ceed_eval_grad,diffusionf,
+      call ceedqfunctioncreateinterior(ceed,1diffusionf,
      $  __FILE__
      $  //':diffusionf'//char(0),qf_diffusion,err)
 
 c     Create a ceed operator
-      call ceedoperatorcreate(ceed,erstrctx,basisx,qf_setup,
+      call ceedoperatorcreate(ceed,qf_setup,
      $  ceed_null,ceed_null,op_setup,err)
-      call ceedoperatorcreate(ceed,erstrctu,basisu,qf_diffusion,
+
+      call ceedoperatorcreate(ceed,qf_diffusion,
      $  ceed_null,ceed_null,op_diffusion,err)
 
 c     Create ceed vectors
