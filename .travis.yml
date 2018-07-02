@@ -10,7 +10,18 @@ install:
 env:
   - FC=gfortran
 
+before_script:
+  - git clone https://github.com/mfem/mfem.git
+  - cd mfem
+  - make config
+  - make test -j 4
+  - export MFEM_DIR=$PWD
+  - cd ..
+
 script:
   - make -j2
   - make -j2 prove PROVE_OPTS=-v
+  - cd examples/mfem
+  - make
+  - ./bp1 -no-vis
 

@@ -127,6 +127,10 @@ int main(int argc, char *argv[]) {
   // 9. Compute and print the L2 projection error.
   std::cout << "L2 projection error: " << sol.ComputeL2Error(sol_coeff)
             << std::endl;
+  if (fabs(sol.ComputeL2Error(sol_coeff))>1e-4) {
+    std::cout << "Error too large" << std::endl;
+    return 1;
+  }
 
   // 10. Open a socket connection to GLVis and send the mesh and solution for
   //     visualization.
