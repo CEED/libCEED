@@ -342,6 +342,19 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
+      subroutine setupf(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
+      real*8 ctx(1)
+      real*8 qdata(1)
+      real*8 u3(1)
+      integer q,ierr
+
+      do i=1,q
+        qdata(i)=u3(i)
+      enddo
+
+      ierr=0
+      end
+c-----------------------------------------------------------------------
       subroutine massf(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
       real*8 ctx
       real*8 qdata(1)
@@ -750,17 +763,16 @@ c-----------------------------------------------------------------------
       integer ceed,err
       character*64 spec
 
-      integer indices(lelt*(lx1**ldim))
       integer p,q,ncomp,edof,ldof
-      integer basis
-      integer erstrct
+      integer basisu,basisx
+      integer erstrctu,erstrctx
       integer qdata
-      integer qf_mass
-      integer op_mass
+      integer qf_mass,qf_setup
+      integer op_mass,op_setup
       integer vec_p1,vec_ap1,vec_qdata
       integer ii,i,e
 
-      external massf
+      external massf,setupf
 
 c     Init ceed library
       call get_spec(spec)
@@ -772,6 +784,7 @@ c     Init ceed library
 
       ifield = 1
       n = nx1*ny1*nz1*nelt
+      nxq = nx1+1
 
       call rand_fld_h1(e1)
 
@@ -779,7 +792,6 @@ c     Init ceed library
       call copy       (e3,e1,n)
       call xmask      (e1,e2,e3,nelt)
 
-      nxq = nx1+1
       call set_h2_as_rhoJac_GL (h2,nxq)
       call copy                (h1,e1,n)  ! Save exact soln in h1
 
@@ -794,6 +806,7 @@ c     Init ceed library
       maxit     = 100
 
       nio    = -99 ! Turn off i/o to stdout
+c     nio       = nid ! Turn on
 
       maxit  = 100
       call opcopy(r1,r2,r3,t1,t2,t3)
@@ -804,44 +817,50 @@ c     Init ceed library
       maxit2=maxit
       maxit3=maxit
 
-c     Create a ceed basis
+c     Create ceed basis for mesh and computation
       p=nx1
       q=p+1
       ncomp=1
+      call ceedbasiscreatetensorh1lagrange(ceed,ndim,ncomp,q,q,
+     $  ceed_gauss,basisx,err)
       call ceedbasiscreatetensorh1lagrange(ceed,ndim,ncomp,p,q,
-     $  ceed_gauss,basis,err)
+     $  ceed_gauss,basisu,err)
 
-c     Create a ceed element restriction
+c     Create ceed element restrictions for mesh and computation
+      edof=q**ndim
+      ldof=edof*nelt*ncomp
+      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,
+     $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
+     $  erstrctx,err)
+
       edof=nx1**ndim
       ldof=edof*nelt*ncomp
-
-      ii=1
-      do e=1,nelt
-      do i=1,edof
-        indices(ii)=ii-1
-        ii=ii+1
-      enddo
-      enddo
-
       call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,
-     $  ceed_mem_host,ceed_use_pointer,indices,erstrct,err)
+     $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
+     $  erstrctu,err)
 
-c     Create a ceed qfunction
+c     Create ceed qfunctions for setupf and massf
+      call ceedqfunctioncreateinterior(ceed,1,ncomp,8,
+     $  ceed_eval_weight,ceed_eval_none,setupf,
+     $  __FILE__
+     $  //':setupf'//char(0),qf_setup,err)
       call ceedqfunctioncreateinterior(ceed,1,ncomp,8,ceed_eval_interp,
      $  ceed_eval_interp,massf,
      $  __FILE__
      $  //':massf'//char(0),qf_mass,err)
 
 c     Create a ceed operator
-      call ceedoperatorcreate(ceed,erstrct,basis,qf_mass,
+      call ceedoperatorcreate(ceed,erstrctx,basisx,qf_setup,
+     $  ceed_null,ceed_null,op_setup,err)
+      call ceedoperatorcreate(ceed,erstrctu,basisu,qf_mass,
      $  ceed_null,ceed_null,op_mass,err)
 
 c     Create ceed vectors
       call ceedvectorcreate(ceed,ldof,vec_p1,err)
       call ceedvectorcreate(ceed,ldof,vec_ap1,err)
-      call ceedoperatorgetqdata(op_mass,vec_qdata,err)
-      call ceedvectorsetarray(vec_qdata,ceed_mem_host,
-     $  ceed_use_pointer,h2,err)
+      call ceedoperatorgetqdata(op_setup,vec_qdata,err)
+      call ceedoperatorapply(op_setup,vec_qdata,ceed_null,ceed_null,
+     $  ceed_request_immediate,err)
 
       tstart = dnekclock()
       call cggos(u1,r1,h1,h2,vmult,binvm1,tol,ceed,op_mass,vec_p1,
@@ -884,9 +903,13 @@ c     Destroy ceed handles
       call ceedvectordestroy(vec_ap1,err)
       call ceedvectordestroy(vec_p1,err)
       call ceedoperatordestroy(op_mass,err)
+      call ceedoperatordestroy(op_setup,err)
       call ceedqfunctiondestroy(qf_mass,err)
-      call ceedelemrestrictiondestroy(erstrct,err)
-      call ceedbasisdestroy(basis,err)
+      call ceedqfunctiondestroy(qf_setup,err)
+      call ceedelemrestrictiondestroy(erstrctx,err)
+      call ceedelemrestrictiondestroy(erstrctu,err)
+      call ceedbasisdestroy(basisu,err)
+      call ceedbasisdestroy(basisx,err)
       call ceeddestroy(ceed,err)
 
 c     Uncomment the exitti command below if you want to quit as soon as

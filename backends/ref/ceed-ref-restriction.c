@@ -32,7 +32,9 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
   if (tmode == CEED_NOTRANSPOSE) {
     // Perform: v = r * u
-    if (ncomp == 1) {
+    if (!impl->indices) {
+      for (CeedInt i=0; i<esize*ncomp; i++) vv[i] = uu[i];
+    } else if (ncomp == 1) {
       for (CeedInt i=0; i<esize; i++) vv[i] = uu[impl->indices[i]];
     } else {
       // vv is (elemsize x ncomp x nelem), column-major
@@ -54,7 +56,9 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
     }
   } else {
     // Note: in transpose mode, we perform: v += r^t * u
-    if (ncomp == 1) {
+    if (!impl->indices) {
+      for (CeedInt i=0; i<esize; i++) vv[i] += uu[i];
+    } else if (ncomp == 1) {
       for (CeedInt i=0; i<esize; i++) vv[impl->indices[i]] += uu[i];
     } else {
       // u is (elemsize x ncomp x nelem)

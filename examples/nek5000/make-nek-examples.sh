@@ -32,7 +32,7 @@
 #CC=
 
 ## list of examples to make
-EXAMPLES=bp1
+EXAMPLES=(bp1 bp3)
 
 ###############################################################################
 # DONT'T TOUCH WHAT FOLLOWS !!!
@@ -43,7 +43,10 @@ if [[ "$#" -eq 1 && "$1" -eq "clean" ]]; then
   if [[ -f ./makenek ]]; then
     printf "y\n" | ./makenek clean 2>&1 >> /dev/null
   fi
-  rm makenek* bp1 bp1*log* SESSION.NAME 2> /dev/null
+  rm makenek* SESSION.NAME 2> /dev/null
+  for i in `seq 1 6 1`; do
+    rm bp$i bp$i*log*              2> /dev/null
+  done
   find ./boxes -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
   exit 0
 fi
@@ -69,7 +72,7 @@ sed -i.bak -e "s|^#FC=.*|FC=\"$FC\"|" \
     -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed\"|" makenek
 
 # Build examples
-for ex in $EXAMPLES; do
+for ex in "${EXAMPLES[@]}"; do
   echo "Building example: $ex ..."
 
   # makenek appends generated lines in SIZE, which we don't want versioned
@@ -79,7 +82,7 @@ for ex in $EXAMPLES; do
     cp SIZE.in SIZE
   fi
 
-  ./makenek bp1 2>&1 >> $ex.build.log
+  ./makenek $ex 2>&1 >> $ex.build.log
 
   if [[ ! -f ./nek5000 ]]; then
     echo "  Building $ex failed. See $ex.build.log for details."
