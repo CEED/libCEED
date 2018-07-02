@@ -21,6 +21,5 @@ script:
   - make -j2
   - make -j2 prove PROVE_OPTS=-v
   - cd examples/mfem
-  - make
-  - ./bp1 -no-vis
+  - make test
 
