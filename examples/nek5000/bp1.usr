@@ -872,7 +872,7 @@ c     Create a ceed operator
      $  ceed_null,ceed_null,op_mass,err)
       call ceedoperatorsetfield(op_mass,'rho',
      $  ceed_restriction_identity,ceed_basis_colocated,
-     $  qdata,err)
+     $  vec_qdata,err)
       call ceedoperatorsetfield(op_mass,'u',erstrctu,basisu,
      $  ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass,'v',erstrctu,basisu,

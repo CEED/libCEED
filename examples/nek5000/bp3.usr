@@ -407,8 +407,7 @@ c-----------------------------------------------------------------------
       integer q,ierr
       real*8 ctx(1)
       real*8 u1(1)
-      real*8 u2(1)
-      real*8 u3(1)
+      real*8 u1(1)
       real*8 v1(6,q)
       real*8 jacmq
 
@@ -441,7 +440,7 @@ c-----------------------------------------------------------------------
         g32 = (a12*a31-a32*a11)/jacmq
         g33 = (a11*a22-a21*a12)/jacmq
 
-        scl = u3(i)*jacmq
+        scl = u1(i)*jacmq
 
         v1(1,i) = scl*(g11*g11+g12*g12+g13*g13) ! Grr
         v1(2,i) = scl*(g11*g21+g12*g22+g13*g23) ! Grs
@@ -461,19 +460,16 @@ c-----------------------------------------------------------------------
       integer q,ierr
       real*8 ctx
       real*8 u1(1)
-      real*8 u2(1)
-      real*8 u3(1)
+      real*8 u2(6,q)
       real*8 v1(1)
-      real*8 v2(1)
-      real*8 u4(6,q)
 
       do i=1,q
-        v2(i+0*q)=
-     $     u4(1,i)*u2(i)+u4(2,i)*u2(i+q)+u4(3,i)*u2(i+2*q)
-        v2(i+1*q)=
-     $     u4(2,i)*u2(i)+u4(4,i)*u2(i+q)+u4(5,i)*u2(i+2*q)
-        v2(i+2*q)=
-     $     u4(3,i)*u2(i)+u4(5,i)*u2(i+q)+u4(6,i)*u2(i+2*q)
+        v1(i+0*q)=
+     $     u2(1,i)*u1(i)+u2(2,i)*u1(i+q)+u2(3,i)*u1(i+2*q)
+        v1(i+1*q)=
+     $     u2(2,i)*u1(i)+u2(4,i)*u1(i+q)+u2(5,i)*u1(i+2*q)
+        v1(i+2*q)=
+     $     u2(3,i)*u1(i)+u2(5,i)*u1(i+q)+u2(6,i)*u1(i+2*q)
       enddo
 
       ierr=0
@@ -570,25 +566,50 @@ c     Create ceed element restrictions for mesh and computation
 
 c     Create ceed qfunctions for setupf and diffusionf
       ngeo=(ldim*(ldim+1))/2
+c     Create ceed qfunctions for setupf and massf
       call ceedqfunctioncreateinterior(ceed,1,setupf,
      $  __FILE__
      $  //':setupf'//char(0),qf_setup,err)
+      call ceedqfunctionaddinput(qf_setup,'_weight',1,
+     $  ceed_eval_weight,err)
+      call ceedqfunctionaddinput(qf_setup,'dx',ldim,
+     $  ceed_eval_grad,err)
+      call ceedqfunctionaddoutput(qf_setup,'rho',(ldim)*(ldim-1)/2,
+     $  ceed_eval_none,err)
 
-      call ceedqfunctioncreateinterior(ceed,1diffusionf,
+      call ceedqfunctioncreateinterior(ceed,1,diffusionf,
      $  __FILE__
-     $  //':diffusionf'//char(0),qf_diffusion,err)
+     $  //':massf'//char(0),qf_diffusion,err)
+      call ceedqfunctionaddinput(qf_diffusion,'rho',(ldim)*(ldim-1)/2,
+     $  ceed_eval_none,err)
+      call ceedqfunctionaddinput(qf_diffusion,'u',1,ceed_eval_grad,err)
+      call ceedqfunctionaddoutput(qf_diffusion,'v',1,ceed_eval_grad,err)  
 
 c     Create a ceed operator
       call ceedoperatorcreate(ceed,qf_setup,
      $  ceed_null,ceed_null,op_setup,err)
+      call ceedoperatorsetfield(op_setup,'weight',
+     $  ceed_restriction_identity,erstrctx,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setup,'dx',
+     $  ceed_restriction_identity,erstrctx,ceed_vector_active,err)
+      call ceedoperatorsetfield(op_setup,'rho',
+     $  ceed_restriction_identity,ceed_basis_colocated,
+     $  ceed_vector_active,err)
 
       call ceedoperatorcreate(ceed,qf_diffusion,
-     $  ceed_null,ceed_null,op_diffusion,err)
+     $  ceed_null,ceed_null,op_mass,err)
+      call ceedoperatorsetfield(op_diffusion,'rho',
+     $  ceed_restriction_identity,ceed_basis_colocated,
+     $  vec_qdata,err)
+      call ceedoperatorsetfield(op_diffusion,'u',erstrctu,basisu,
+     $  ceed_vector_active,err)
+      call ceedoperatorsetfield(op_diffusion,'v',erstrctu,basisu,
+     $  ceed_vector_active,err)
 
 c     Create ceed vectors
       call ceedvectorcreate(ceed,ldof,vec_p1,err)
       call ceedvectorcreate(ceed,ldof,vec_ap1,err)
-      call ceedoperatorgetqdata(op_setup,vec_qdata,err)
+      call ceedvectorcreate(ceed,(ldim)*(ldim-1)/2*edof,vec_qdata,err)
 
       nlt=lx1*ly1*lz1*nelt
       ii=0
@@ -604,7 +625,7 @@ c     Create ceed vectors
       call ceedvectorcreate(ceed,3*nlt,vec_coords,err)
       call ceedvectorsetarray(vec_coords,ceed_mem_host,
      $  ceed_use_pointer,coords,err)
-      call ceedoperatorapply(op_setup,vec_qdata,vec_coords,ceed_null,
+      call ceedoperatorapply(op_setup,vec_coords,vec_qdata,
      $  ceed_request_immediate,err)
 
       tstart = dnekclock()
@@ -1151,7 +1172,7 @@ c     Helmholtz equations
 
       call ceedvectorsetarray(vec_p1,ceed_mem_host,ceed_use_pointer,
      $  p1,err)
-      call ceedoperatorapply(op_diffusion,vec_qdata,vec_p1,vec_ap1,
+      call ceedoperatorapply(op_diffusion,vec_p1,vec_ap1,
      $  ceed_request_immediate,err)
       call ceedvectorgetarray(vec_ap1,ceed_mem_host,ap1,err)
 
