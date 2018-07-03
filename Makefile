@@ -63,7 +63,6 @@ LDFLAGS += $(if $(ASAN),$(AFLAGS))
 CPPFLAGS = -I./include
 LDLIBS = -lm
 OBJDIR := build
-MFEM_EX_DIR := examples/mfem
 LIBDIR := lib
 
 # Installation variables
@@ -106,7 +105,7 @@ examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%)
 examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
 #mfemexamples
 mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
-mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(MFEM_EX_DIR)/%)
+mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
 # backends/[ref & occa  & magma]
 ref.c      := $(sort $(wildcard backends/ref/*.c))
 template.c := $(sort $(wildcard backends/template/*.c))
@@ -213,12 +212,12 @@ $(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
 $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
 	$(call quiet,FC) $(CPPFLAGS) $(FFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
+$(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
+	$(MAKE) -C examples/mfem CEED_DIR=`pwd` $*
+	mv examples/mfem/$* $@
+
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
-
-# Build MFEM BPs
-libceed-mfem :
-	make && cd examples && make mfem && cd ../
 
 run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:build/%=%)
@@ -236,11 +235,9 @@ prove : $(tests) $(examples)
 # run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
-prove-mfem : $(tests) $(examples)
-	make libceed-mfem
+prove-allexamples : $(tests) $(examples) $(mfemexamples)
 	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(mfemexamples:$(MFEM_EX_DIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%) $(mfemexamples:$(OBJDIR)/%=%)
 
 examples : $(examples)
 

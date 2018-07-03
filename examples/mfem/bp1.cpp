@@ -40,7 +40,7 @@ double solution(const mfem::Vector &pt) {
   return pt.Norml2(); // distance to the origin
 }
 
-
+//TESTARGS -ceed {ceed_resource} -t -no-vis
 int main(int argc, char *argv[]) {
   // 1. Parse command-line options.
   const char *ceed_spec = "/cpu/self";

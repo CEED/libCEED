@@ -59,7 +59,7 @@ double rhs(const mfem::Vector &pt) {
   return lap;
 }
 
-
+//TESTARGS -ceed {ceed_resource} -t -no-vis
 int main(int argc, char *argv[]) {
   // 1. Parse command-line options.
   const char *ceed_spec = "/cpu/self";

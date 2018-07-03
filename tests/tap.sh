@@ -8,8 +8,8 @@ backends=(${BACKENDS:?Variable must be set, e.g., \"/cpu/self/ref /cpu/self/opt\
 printf "1..$[3*${#backends[@]}]\n";
 
 # for examples/ceed ex*, grep the code to fetch arguments from a TESTARGS line
-if [ ${1::2} == "bp" ]; then
-    args='-ceed {ceed_resource} -t -no-vis'
+if [ ${1::5} == "mfem-" ]; then
+    args=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
 elif [ ${1::2} == "ex" ]; then
     args=$(grep -F //TESTARGS examples/ceed/$1.c | cut -d\  -f2- )
 else
@@ -23,12 +23,7 @@ for ((i=0;i<${#backends[@]}; ++i)); do
     backend=${backends[$i]}
 
     # Run in subshell
-    if [ ${1::2} == "bp" ]; then
-      (examples/mfem/$1 ${args/\{ceed_resource\}/$backend} || false) > ${output}.out 2> ${output}.err
-    else
-      (build/$1 ${args/\{ceed_resource\}/$backend} || false) > ${output}.out 2> ${output}.err
-    fi
-
+    (build/$1 ${args/\{ceed_resource\}/$backend} || false) > ${output}.out 2> ${output}.err
     status=$?
     # grep to skip test if backend cannot handle resource
     if grep -F -q -e 'backend cannot use resource' \
