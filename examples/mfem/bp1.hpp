@@ -205,11 +205,8 @@ class CeedMassOperator : public mfem::Operator {
                          CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
 
     // Compute the quadrature data for the mass operator.
-    printf("Computing the quadrature data for the mass operator ...");
-    fflush(stdout);
     CeedOperatorApply(build_oper, node_coords, rho,
                       CEED_REQUEST_IMMEDIATE);
-    printf(" done.\n");
 
     // Create the Q-function that defines the action of the mass operator.
     CeedQFunctionCreateInterior(ceed, 1, f_apply_mass,
