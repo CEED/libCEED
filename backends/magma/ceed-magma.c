@@ -841,9 +841,9 @@ static int CeedOperatorSetup_Magma(CeedOperator op) {
   return 0;
 }
 
-static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
+static int CeedOperatorApply_Magma(CeedOperator op, CeedVector invec,
                                  CeedVector outvec, CeedRequest *request) {
-  CeedOperator_Ref *opmagma = op->data;
+  CeedOperator_Magma *opmagma = op->data;
   CeedInt Q = op->numqpoints, elemsize;
   int ierr;
   CeedQFunction qf = op->qf;
@@ -851,7 +851,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
   CeedScalar *vec_temp;
 
   // Setup
-  ierr = CeedOperatorSetup_Ref(op); CeedChk(ierr);
+  ierr = CeedOperatorSetup_Magma(op); CeedChk(ierr);
 
   // Input Evecs and Restriction
   for (CeedInt i=0,iein=0; i<qf->numinputfields; i++) {
