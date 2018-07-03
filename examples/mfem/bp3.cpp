@@ -59,7 +59,7 @@ double rhs(const mfem::Vector &pt) {
   return lap;
 }
 
-
+//TESTARGS -ceed {ceed_resource} -t -no-vis
 int main(int argc, char *argv[]) {
   // 1. Parse command-line options.
   const char *ceed_spec = "/cpu/self";
@@ -70,6 +70,7 @@ int main(int argc, char *argv[]) {
 #endif
   int order = 2;
   bool visualization = true;
+  bool test = false;
 
   mfem::OptionsParser args(argc, argv);
   args.AddOption(&ceed_spec, "-c", "-ceed", "Ceed specification.");
@@ -79,12 +80,17 @@ int main(int argc, char *argv[]) {
   args.AddOption(&visualization, "-vis", "--visualization", "-no-vis",
                  "--no-visualization",
                  "Enable or disable GLVis visualization.");
+  args.AddOption(&test, "-t", "--test", "-no-test",
+                 "--no-test",
+                 "Enable or disable test mode.");
   args.Parse();
   if (!args.Good()) {
     args.PrintUsage(std::cout);
     return 1;
   }
-  args.PrintOptions(std::cout);
+  if (!test) {
+    args.PrintOptions(std::cout);
+  }
 
   // 2. Initialize a Ceed device object using the given Ceed specification.
   Ceed ceed;
@@ -118,8 +124,10 @@ int main(int argc, char *argv[]) {
   MFEM_VERIFY(order > 0, "invalid order");
   mfem::FiniteElementCollection *fec = new mfem::H1_FECollection(order, dim);
   mfem::FiniteElementSpace *fespace = new mfem::FiniteElementSpace(mesh, fec);
-  std::cout << "Number of finite element unknowns: "
-            << fespace->GetTrueVSize() << std::endl;
+  if (!test) {
+    std::cout << "Number of finite element unknowns: "
+              << fespace->GetTrueVSize() << std::endl;
+  }
 
   mfem::FunctionCoefficient sol_coeff(solution);
   mfem::Array<int> ess_tdof_list;
@@ -150,14 +158,24 @@ int main(int argc, char *argv[]) {
   mfem::CGSolver cg;
   cg.SetRelTol(1e-6);
   cg.SetMaxIter(1000);
-  cg.SetPrintLevel(3);
+  if (test) {
+    cg.SetPrintLevel(0);
+  } else {
+    cg.SetPrintLevel(3);
+  }
   cg.SetOperator(*D);
 
   cg.Mult(B, X);
 
   // 9. Compute and print the L2 norm of the error.
-  std::cout << "L2 norm of the error: " << sol.ComputeL2Error(sol_coeff)
-            << std::endl;
+  if (!test) {
+    std::cout << "L2 projection error: " << sol.ComputeL2Error(sol_coeff)
+              << std::endl;
+  } else {
+    if (fabs(sol.ComputeL2Error(sol_coeff))>1e-4) {
+      std::cout << "Error too large" << std::endl;
+    }
+  }
 
   // 10. Open a socket connection to GLVis and send the mesh and solution for
   //     visualization.

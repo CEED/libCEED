@@ -10,7 +10,12 @@ install:
 env:
   - FC=gfortran
 
+before_script:
+  - git clone --depth 1 https://github.com/mfem/mfem.git
+  - make -C mfem -j2 serial MFEM_CXXFLAGS=-O
+  - export MFEM_DIR=$PWD/mfem
+
 script:
   - make -j2
-  - make -j2 prove PROVE_OPTS=-v
+  - make -j2 prove-allexamples PROVE_OPTS=-v
 
