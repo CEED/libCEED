@@ -63,6 +63,7 @@ LDFLAGS += $(if $(ASAN),$(AFLAGS))
 CPPFLAGS = -I./include
 LDLIBS = -lm
 OBJDIR := build
+MFEM_EX_DIR := examples/mfem
 LIBDIR := lib
 
 # Installation variables
@@ -103,6 +104,9 @@ examples.c := $(sort $(wildcard examples/ceed/*.c))
 examples.f := $(sort $(wildcard examples/ceed/*.f))
 examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%)
 examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
+#mfemexamples
+mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
+mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(MFEM_EX_DIR)/%)
 # backends/[ref & occa  & magma]
 ref.c      := $(sort $(wildcard backends/ref/*.c))
 template.c := $(sort $(wildcard backends/template/*.c))
@@ -212,10 +216,15 @@ $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
+# Build MFEM BPs
+libceed-mfem :
+	make && cd examples && make mfem && cd ../
+
 run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:build/%=%)
-
+# Test core libCEED
 test : $(tests:$(OBJDIR)/%=run-%) $(examples:$(OBJDIR)/%=run-%)
+
 # run test target in parallel
 tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
 # CPU C tests only for backend %
@@ -226,6 +235,12 @@ prove : $(tests) $(examples)
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)
 # run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
+
+prove-mfem : $(tests) $(examples)
+	make libceed-mfem
+	$(info Testing backends: $(BACKENDS))
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(mfemexamples:$(MFEM_EX_DIR)/%=%)
 
 examples : $(examples)
 

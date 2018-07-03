@@ -19,7 +19,5 @@ before_script:
 
 script:
   - make -j2
-  - make -j2 prove PROVE_OPTS=-v
-  - cd examples/mfem
-  - make test
+  - make -j2 prove-mfem PROVE_OPTS=-v
 
