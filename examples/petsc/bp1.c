@@ -18,7 +18,8 @@
 //     bp1 -ceed /cpu/occa
 //     bp1 -ceed /omp/occa
 //     bp1 -ceed /ocl/occa
-
+//
+//TESTARGS -ceed {ceed_resource} -test
 const char help[] = "Solve CEED BP1 using PETSc\n";
 
 #include <petscksp.h>
@@ -185,6 +186,7 @@ int main(int argc, char **argv) {
   char ceedresource[4096] = "/cpu/self";
   PetscInt degree, qextra, localdof, localelem, melem[3], mdof[3], p[3],
            irank[3], ldof[3], lsize;
+  PetscBool test_mode;
   PetscMPIInt size, rank;
   VecScatter ltog;
   Ceed ceed;
@@ -203,7 +205,11 @@ int main(int argc, char **argv) {
   if (ierr) return ierr;
   comm = PETSC_COMM_WORLD;
   ierr = PetscOptionsBegin(comm, NULL, "CEED BP1 in PETSc", NULL); CHKERRQ(ierr);
-  degree = 1;
+  test_mode = PETSC_FALSE;
+  ierr = PetscOptionsBool("-test",
+                          "Testing mode (do not print unless error is large)",
+                          NULL, test_mode, &test_mode, NULL); CHKERRQ(ierr);
+  degree = test_mode ? 3 : 1;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
   qextra = 0;
@@ -239,12 +245,14 @@ int main(int argc, char **argv) {
 
   GlobalDof(p, irank, degree, melem, mdof);
 
-  ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
-                     p[0], p[1], p[2]); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localelem,
-                     melem[0], melem[1], melem[2]); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Owned dofs: %D = %D %D %D\n",
-                     mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]); CHKERRQ(ierr);
+  if (!test_mode) {
+    ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
+                       p[0], p[1], p[2]); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localelem,
+                       melem[0], melem[1], melem[2]); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Owned dofs: %D = %D %D %D\n",
+                       mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]); CHKERRQ(ierr);
+  }
 
   {
     ierr = VecCreate(comm, &X); CHKERRQ(ierr);
@@ -424,16 +432,20 @@ int main(int argc, char **argv) {
     ierr = KSPGetConvergedReason(ksp, &reason); CHKERRQ(ierr);
     ierr = KSPGetIterationNumber(ksp, &its); CHKERRQ(ierr);
     ierr = KSPGetResidualNorm(ksp, &rnorm); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "KSP %s %s iterations %D rnorm %e\n", ksptype,
-                       KSPConvergedReasons[reason], its, (double)rnorm); CHKERRQ(ierr);
+    if (!test_mode || reason < 0 || rnorm > 1e-8) {
+      ierr = PetscPrintf(comm, "KSP %s %s iterations %D rnorm %e\n", ksptype,
+                         KSPConvergedReasons[reason], its, (double)rnorm); CHKERRQ(ierr);
+    }
   }
 
   CeedScalar maxerror = 0;
   user->op = op_error;
   CeedQFunctionSetContext(qf_error, &maxerror, sizeof maxerror);
   ierr = MatMult_Mass(mat, X, NULL); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Pointwise error (max) %e\n", (double)maxerror);
-  CHKERRQ(ierr);
+  if (!test_mode || maxerror > 1e-3) {
+    ierr = PetscPrintf(comm, "Pointwise error (max) %e\n", (double)maxerror);
+    CHKERRQ(ierr);
+  }
 
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
   ierr = VecDestroy(&X); CHKERRQ(ierr);

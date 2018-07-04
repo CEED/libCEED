@@ -106,6 +106,9 @@ examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
 #mfemexamples
 mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
 mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
+petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
+petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
+
 # backends/[ref & occa  & magma]
 ref.c      := $(sort $(wildcard backends/ref/*.c))
 template.c := $(sort $(wildcard backends/template/*.c))
@@ -216,6 +219,10 @@ $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	$(MAKE) -C examples/mfem CEED_DIR=`pwd` $*
 	mv examples/mfem/$* $@
 
+$(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) | $$(@D)/.DIR
+	$(MAKE) -C examples/petsc CEED_DIR=`pwd` $*
+	mv examples/petsc/$* $@
+
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
@@ -235,9 +242,10 @@ prove : $(tests) $(examples)
 # run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
-prove-allexamples : $(tests) $(examples) $(mfemexamples)
+alltests := $(tests) $(examples) $(mfemexamples) $(if $(PETSC_DIR),$(petscexamples))
+prove-all : $(alltests)
 	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%) $(mfemexamples:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(alltests:$(OBJDIR)/%=%)
 
 examples : $(examples)
 
