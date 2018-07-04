@@ -233,7 +233,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
     } else {
       // No restriction
       // Passive
-      if (op->inputfields[i].vec) {
+      if (op->outputfields[i].vec) {
         ierr = CeedVectorGetArray(op->outputfields[i].vec, CEED_MEM_HOST,
                                   &opref->edata[i + qf->numinputfields]); CeedChk(ierr);
       } else {

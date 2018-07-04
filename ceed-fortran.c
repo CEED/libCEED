@@ -148,7 +148,8 @@ void fCeedElemRestrictionCreate(int *ceed, int *nelements,
 
   CeedElemRestriction *elemrestriction_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
-  *err = CeedElemRestrictionCreate(Ceed_dict[*ceed], *nelements, *esize, *ndof, *ncomp,
+  *err = CeedElemRestrictionCreate(Ceed_dict[*ceed], *nelements, *esize, *ndof,
+                                   *ncomp,
                                    *memtype, *copymode, indices_, elemrestriction_);
 
   if (*err == 0) {
