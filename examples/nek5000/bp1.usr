@@ -769,7 +769,7 @@ c-----------------------------------------------------------------------
 
       integer p,q,ncomp,edof,ldof
       integer basisu,basisx
-c      integer erstrctu,erstrctx
+      integer erstrctu,erstrctx
       integer qdata
       integer qf_mass,qf_setup
       integer op_mass,op_setup
@@ -831,17 +831,17 @@ c     Create ceed basis for mesh and computation
      $  ceed_gauss,basisu,err)
 
 c     Create ceed element restrictions for mesh and computation
-c      edof=q**ndim
-c      ldof=edof*nelt*ncomp
-c      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,3,
-c     $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
-c     $  erstrctx,err)
+      edof=q**ndim
+      ldof=edof*nelt*ncomp
+      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,3,
+     $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
+     $  erstrctx,err)
 
       edof=nx1**ndim
       ldof=edof*nelt*ncomp
-c      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,1,
-c     $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
-c     $  erstrctu,err)
+      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,1,
+     $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
+     $  erstrctu,err)
 
 c     Create ceed vectors
       call ceedvectorcreate(ceed,ldof,vec_p1,err)
@@ -870,17 +870,17 @@ c     Create a ceed operator
       call ceedoperatorsetfield(op_setup,'_weight',
      $  ceed_restriction_identity,basisx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'rho',
-     $  ceed_restriction_identity,ceed_basis_colocated,
+     $  erstrctu,ceed_basis_colocated,
      $  ceed_vector_active,err)
 
       call ceedoperatorcreate(ceed,qf_mass,
      $  ceed_null,ceed_null,op_mass,err)
       call ceedoperatorsetfield(op_mass,'rho',
-     $  ceed_restriction_identity,ceed_basis_colocated,
+     $  erstrctu,ceed_basis_colocated,
      $  vec_qdata,err)
-      call ceedoperatorsetfield(op_mass,'u',ceed_restriction_identity,
+      call ceedoperatorsetfield(op_mass,'u',erstrctu,
      $  basisu,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_mass,'v',ceed_restriction_identity,
+      call ceedoperatorsetfield(op_mass,'v',erstrctu,
      $  basisu,ceed_vector_active,err)
 
       call ceedoperatorapply(op_setup,ceed_null,vec_qdata,
@@ -921,8 +921,8 @@ c     Destroy ceed handles
       call ceedoperatordestroy(op_setup,err)
       call ceedqfunctiondestroy(qf_mass,err)
       call ceedqfunctiondestroy(qf_setup,err)
-c      call ceedelemrestrictiondestroy(erstrctx,err)
-c      call ceedelemrestrictiondestroy(erstrctu,err)
+      call ceedelemrestrictiondestroy(erstrctx,err)
+      call ceedelemrestrictiondestroy(erstrctu,err)
       call ceedbasisdestroy(basisu,err)
       call ceedbasisdestroy(basisx,err)
       call ceeddestroy(ceed,err)

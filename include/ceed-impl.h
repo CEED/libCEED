@@ -143,6 +143,7 @@ struct CeedOperator_private {
   struct CeedOperatorField outputfields[16];
   CeedInt numelements; /// Number of elements
   CeedInt numqpoints;  /// Number of quadrature points over all elements
+  CeedInt nfields;     /// Number of fields that have been set
   CeedQFunction qf;
   CeedQFunction dqf;
   CeedQFunction dqfT;

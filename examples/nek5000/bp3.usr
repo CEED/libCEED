@@ -507,7 +507,7 @@ c-----------------------------------------------------------------------
 
       integer p,q,ncomp,edof,ldof
       integer basisu,basisx
-c      integer erstrctu,erstrctx
+      integer erstrctu,erstrctx
       integer qdata
       integer qf_diffusion,qf_setup
       integer op_diffusion,op_setup
@@ -552,26 +552,21 @@ c     Create ceed basis for mesh and computation
      $  ceed_gauss,basisu,err)
 
 c     Create ceed element restrictions for mesh and computation
-c      edof=nx1**ldim
-c      ldof=edof*nelt*ncomp
-c      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,ldim,
-c     $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
-c     $  erstrctx,err)
+      edof=nx1**ldim
+      ldof=edof*nelt*ncomp
+      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,ldim,
+     $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
+     $  erstrctx,err)
 
       edof=nx1**ldim
       ldof=edof*nelt*ncomp
-c      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,1,
-c     $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
-c     $  erstrctu,err)
+      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,1,
+     $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
+     $  erstrctu,err)
 
       ngeo=(ldim*(ldim+1))/2
 
 c     Create ceed vectors
-      call ceedvectorcreate(ceed,ldof,vec_p1,err)
-      call ceedvectorcreate(ceed,ldof,vec_ap1,err)
-      call ceedvectorcreate(ceed,3*nlt,vec_coords,err)
-      call ceedvectorcreate(ceed,edof*nelt*ngeo,vec_qdata,err)
-
       nlt=lx1*ly1*lz1*nelt
       ii=0
       do j=0,nelt-1
@@ -582,6 +577,12 @@ c     Create ceed vectors
         coords(i+2*lx+3*j*lx)=zm1(ii,1,1,1)
       enddo
       enddo
+
+      call ceedvectorcreate(ceed,ldof,vec_p1,err)
+      call ceedvectorcreate(ceed,ldof,vec_ap1,err)
+      call ceedvectorcreate(ceed,3*nlt,vec_coords,err)
+      call ceedvectorcreate(ceed,edof*nelt*ngeo,vec_qdata,err)
+
       call ceedvectorsetarray(vec_coords,ceed_mem_host,
      $  ceed_use_pointer,coords,err)
 
@@ -610,19 +611,19 @@ c     Create a ceed operator
       call ceedoperatorsetfield(op_setup,'weight',
      $  ceed_restriction_identity,basisx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'dx',
-     $  ceed_restriction_identity,basisx,ceed_vector_active,err)
+     $  erstrctx,basisx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rho',
-     $  ceed_restriction_identity,ceed_basis_colocated,
+     $  erstrctu,ceed_basis_colocated,
      $  ceed_vector_active,err)
 
       call ceedoperatorcreate(ceed,qf_diffusion,
      $  ceed_null,ceed_null,op_diffusion,err)
       call ceedoperatorsetfield(op_diffusion,'u',
-     $  ceed_restriction_identity,basisu, ceed_vector_active,err)
+     $  erstrctu,basisu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_diffusion,'rho',
-     $  ceed_restriction_identity,ceed_basis_colocated,vec_qdata,err)
+     $  erstrctu,ceed_basis_colocated,vec_qdata,err)
       call ceedoperatorsetfield(op_diffusion,'v',
-     $  ceed_restriction_identity,basisu,ceed_vector_active,err)
+     $  erstrctu,basisu,ceed_vector_active,err)
 
       call ceedoperatorapply(op_setup,vec_coords,vec_qdata,
      $  ceed_request_immediate,err)
@@ -655,8 +656,8 @@ c     Destroy ceed handles
       call ceedoperatordestroy(op_setup,err)
       call ceedqfunctiondestroy(qf_diffusion,err)
       call ceedqfunctiondestroy(qf_setup,err)
-c      call ceedelemrestrictiondestroy(erstrctx,err)
-c      call ceedelemrestrictiondestroy(erstrctu,err)
+      call ceedelemrestrictiondestroy(erstrctx,err)
+      call ceedelemrestrictiondestroy(erstrctu,err)
       call ceedbasisdestroy(basisu,err)
       call ceedbasisdestroy(basisx,err)
       call ceeddestroy(ceed,err)
