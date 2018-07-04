@@ -98,7 +98,7 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
 
 static int Setup(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
-  CeedScalar *rho = out[0], *target = rho + Q;
+  CeedScalar *rho = out[0], *target = out[1];
   const CeedScalar (*x)[Q] = (const CeedScalar (*)[Q])in[0];
   const CeedScalar (*J)[3][Q] = (const CeedScalar (*)[3][Q])in[1];
   const CeedScalar *w = in[2];
@@ -116,9 +116,8 @@ static int Setup(void *ctx, CeedInt Q,
 static int Mass(void *ctx, CeedInt Q,
                 const CeedScalar *const *in, CeedScalar *const *out) {
   bool *residual = ctx;
-  CeedScalar *rho = (CeedScalar*)in[1], *target = rho + Q;
-  CeedScalar *v = (CeedScalar*)out[0];
-  CeedScalar *u = (CeedScalar*)in[0];
+  const CeedScalar *u = in[0], *rho = in[1], *target = in[2];
+  CeedScalar *v = out[0];
   for (CeedInt i=0; i<Q; i++) {
     v[i] = rho[i] * (u[i] - (*residual ? target[i] : 0.));
   }
@@ -128,8 +127,7 @@ static int Mass(void *ctx, CeedInt Q,
 static int Error(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
   CeedScalar *maxerror = ctx;
-  CeedScalar *rho = (CeedScalar*)in[1], *target = rho + Q;
-  CeedScalar *u = (CeedScalar*)in[0];
+  const CeedScalar *u = in[0], *target = in[1];
   for (CeedInt i=0; i<Q; i++) {
     *maxerror = PetscMax(*maxerror, PetscAbsScalar(u[i] - target[i]));
   }
@@ -194,7 +192,7 @@ int main(int argc, char **argv) {
   CeedElemRestriction Erestrictx, Erestrictu;
   CeedQFunction qf_setup, qf_mass, qf_error;
   CeedOperator op_setup, op_mass, op_error;
-  CeedVector xcoord, rho;
+  CeedVector xcoord, rho, target;
   CeedInt P, Q;
   Vec X, Xloc, rhs;
   Mat mat;
@@ -326,23 +324,31 @@ int main(int argc, char **argv) {
   // quadrature data) and set its context data.
   CeedQFunctionCreateInterior(ceed, 1,
                               Setup, __FILE__ ":Setup", &qf_setup);
-  CeedQFunctionAddInput(qf_setup, "x", 1, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_setup, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setup, "dx", 3, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup, "rho", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_setup, "target", 1, CEED_EVAL_NONE);
 
   // Create the Q-function that defines the action of the mass operator.
   CeedQFunctionCreateInterior(ceed, 1,
                               Mass, __FILE__ ":Mass", &qf_mass);
   CeedQFunctionAddInput(qf_mass, "u", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_mass, "rho", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_mass, "target", 1, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);
 
   // Create the error qfunction
   CeedQFunctionCreateInterior(ceed, 1,
                               Error, __FILE__ ":Error", &qf_error);
   CeedQFunctionAddInput(qf_error, "u", 1, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_error, "rho", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_error, "target", 1, CEED_EVAL_NONE);
+
+  // Create the persistent vectors that will be needed in setup
+  CeedInt Nqpts, Nelem = melem[0]*melem[1]*melem[2];
+  CeedBasisGetNumQuadraturePoints(basisu, &Nqpts);
+  CeedVectorCreate(ceed, Nelem*Nqpts, &rho);
+  CeedVectorCreate(ceed, Nelem*Nqpts, &target);
 
   // Create the operator that builds the quadrature data for the mass operator.
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
@@ -352,24 +358,24 @@ int main(int argc, char **argv) {
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "rho", CEED_RESTRICTION_IDENTITY,
                        CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "target", CEED_RESTRICTION_IDENTITY,
+                       CEED_BASIS_COLOCATED, target);
 
   // Create the mass operator.
   CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
   CeedOperatorSetField(op_mass, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "rho", CEED_RESTRICTION_IDENTITY,
                        CEED_BASIS_COLOCATED, rho);
+  CeedOperatorSetField(op_mass, "target", CEED_RESTRICTION_IDENTITY,
+                       CEED_BASIS_COLOCATED, target);
   CeedOperatorSetField(op_mass, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
 
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
   CeedOperatorSetField(op_error, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_error, "rho", CEED_RESTRICTION_IDENTITY,
-                       CEED_BASIS_COLOCATED, rho);
+  CeedOperatorSetField(op_error, "target", CEED_RESTRICTION_IDENTITY,
+                       CEED_BASIS_COLOCATED, target);
 
-  // Compute the quadrature data for the mass operator.
-  CeedInt Nqpts, Nelem = melem[0]*melem[1]*melem[2];
-  CeedBasisGetNumQuadraturePoints(basisu, &Nqpts);
-  CeedVectorCreate(ceed, Nelem*Nqpts, &rho);
   CeedOperatorApply(op_setup, xcoord, rho, CEED_REQUEST_IMMEDIATE);
   CeedVectorDestroy(&xcoord);
 
@@ -440,6 +446,7 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&user->xceed);
   CeedVectorDestroy(&user->yceed);
   CeedVectorDestroy(&user->rho);
+  CeedVectorDestroy(&target);
   CeedOperatorDestroy(&op_setup);
   CeedOperatorDestroy(&op_mass);
   CeedOperatorDestroy(&op_error);
