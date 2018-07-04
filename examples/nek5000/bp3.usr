@@ -577,7 +577,7 @@ c     Create ceed qfunctions for setupf and diffusionf
       call ceedqfunctioncreateinterior(ceed,1,setupf,
      $  __FILE__
      $  //':setupf'//char(0),qf_setup,err)
-      call ceedqfunctionaddinput(qf_setup,'_weight',1,
+      call ceedqfunctionaddinput(qf_setup,'weight',1,
      $  ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setup,'dx',ldim,
      $  ceed_eval_grad,err)
@@ -604,7 +604,7 @@ c     Create a ceed operator
      $  ceed_vector_active,err)
 
       call ceedoperatorcreate(ceed,qf_diffusion,
-     $  ceed_null,ceed_null,op_mass,err)
+     $  ceed_null,ceed_null,op_diffusion,err)
       call ceedoperatorsetfield(op_diffusion,'u',
      $  ceed_restriction_identity,basisu, ceed_vector_active,err)
       call ceedoperatorsetfield(op_diffusion,'rho',
