@@ -304,6 +304,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
   int ierr;
   CeedQFunction qf = op->qf;
   CeedTransposeMode lmode = CEED_NOTRANSPOSE;
+  CeedScalar *vec_temp;
   // ***************************************************************************
   dbg("[CeedOperator][Dump] Setup?");
   ierr = CeedOperatorSetup_Occa(op); CeedChk(ierr);
@@ -318,6 +319,13 @@ static int CeedOperatorApply_Occa(CeedOperator op,
     dbg("\n[CeedOperator][Apply] %d/%d Input Evecs:",i,qf->numinputfields-1);
     // Restriction
     if (op->inputfields[i].Erestrict) {
+      // Zero evec
+      ierr = CeedVectorGetArray(data->Evecs[iein], CEED_MEM_HOST, &vec_temp);
+      CeedChk(ierr);
+      for (CeedInt j=0; j<data->Evecs[iein]->length; j++)
+        vec_temp[j] = 0.;
+      ierr = CeedVectorRestoreArray(data->Evecs[iein], &vec_temp); CeedChk(ierr);
+
       if (op->inputfields[i].vec) { // Passive
         dbg("[CeedOperator][Apply] Restriction/Passive: data->Evecs[%d] = Edata[i]",
             iein,i);
@@ -364,9 +372,9 @@ static int CeedOperatorApply_Occa(CeedOperator op,
       ieout++;
     } else {
       // No restriction
-      if (op->inputfields[i].vec) { // Passive
+      if (op->outputfields[i].vec) { // Passive
         dbg("[CeedOperator][Apply] No Restriction, passive");
-        ierr = CeedVectorGetArray(op->inputfields[i].vec, CEED_MEM_HOST,
+        ierr = CeedVectorGetArray(op->outputfields[i].vec, CEED_MEM_HOST,
                                   &data->Edata[i + qf->numinputfields]); CeedChk(ierr);
       } else { // Active
         dbg("[CeedOperator][Apply] No Restriction, active");
@@ -518,16 +526,31 @@ static int CeedOperatorApply_Occa(CeedOperator op,
     if (op->outputfields[i].Erestrict) {
       // Passive
       if (op->outputfields[i].vec) {
+        // Restore evec
         ierr = CeedVectorRestoreArray(data->Evecs[ieout],
                                       &data->Edata[i + qf->numinputfields]); CeedChk(ierr);
-        ierr = CeedElemRestrictionApply(op->outputfields[i].Erestrict, CEED_TRANSPOSE,
-                                        lmode, data->Evecs[ieout], op->outputfields[i].vec, request);
+        // Zero lvec
+        ierr = CeedVectorGetArray(op->outputfields[i].vec, CEED_MEM_HOST, &vec_temp);
         CeedChk(ierr);
+        for (CeedInt j=0; j<op->outputfields[i].vec->length; j++)
+          vec_temp[j] = 0.;
+        ierr = CeedVectorRestoreArray(op->outputfields[i].vec, &vec_temp);
+        CeedChk(ierr);
+        // Restrict
+        ierr = CeedElemRestrictionApply(op->outputfields[i].Erestrict, CEED_TRANSPOSE,
+                                        lmode, data->Evecs[ieout], op->outputfields[i].vec, request); CeedChk(ierr);
         ieout++;
       } else {
         // Active
+        // Restore evec
         ierr = CeedVectorRestoreArray(data->Evecs[ieout],
                                       &data->Edata[i + qf->numinputfields]); CeedChk(ierr);
+        // Zero lvec
+        ierr = CeedVectorGetArray(outvec, CEED_MEM_HOST, &vec_temp); CeedChk(ierr);
+        for (CeedInt j=0; j<outvec->length; j++)
+          vec_temp[j] = 0.;
+        ierr = CeedVectorRestoreArray(outvec, &vec_temp); CeedChk(ierr);
+        // Restrict
         ierr = CeedElemRestrictionApply(op->outputfields[i].Erestrict, CEED_TRANSPOSE,
                                         lmode, data->Evecs[ieout], outvec, request); CeedChk(ierr);
         ieout++;
@@ -542,6 +565,32 @@ static int CeedOperatorApply_Occa(CeedOperator op,
         // Active
         ierr = CeedVectorRestoreArray(outvec, &data->Edata[i + qf->numinputfields]);
         CeedChk(ierr);
+      }
+    }
+  }
+
+  // Restore input arrays
+  for (CeedInt i=0,iein=0; i<qf->numinputfields; i++) {
+    // Restriction
+    if (op->inputfields[i].Erestrict) {
+      ierr = CeedVectorRestoreArrayRead(data->Evecs[iein],
+                                        (const CeedScalar **) &data->Edata[i]); CeedChk(ierr);
+      iein++;
+    } else {
+      // No restriction
+      CeedEvalMode emode = qf->inputfields[i].emode;
+      if (emode & CEED_EVAL_WEIGHT) {
+      } else {
+        // Passive
+        if (op->inputfields[i].vec) {
+          ierr = CeedVectorRestoreArrayRead(op->inputfields[i].vec,
+                                            (const CeedScalar **) &data->Edata[i]); CeedChk(ierr);
+          // Active
+        } else {
+          ierr = CeedVectorRestoreArrayRead(invec,
+                                            (const CeedScalar **) &data->Edata[i]); CeedChk(ierr);
+
+        }
       }
     }
   }
