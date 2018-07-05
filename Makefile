@@ -29,6 +29,11 @@ NDEBUG ?= 1
 LDFLAGS ?=
 UNDERSCORE ?= 1
 
+# MFEM_DIR env variable should point to sibling directory
+ifneq ($(wildcard ../mfem/.*),)
+  MFEM_DIR=../mfem
+endif
+
 # OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
 OCCA_DIR ?= ../occa
 
@@ -242,7 +247,7 @@ prove : $(tests) $(examples)
 # run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
-alltests := $(tests) $(examples) $(mfemexamples) $(if $(PETSC_DIR),$(petscexamples))
+alltests := $(tests) $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
 prove-all : $(alltests)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(alltests:$(OBJDIR)/%=%)

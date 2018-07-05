@@ -28,7 +28,7 @@ MFEM_DEF = -DMFEM_DIR="\"$(abspath $(MFEM_DIR))\""
 MFEM_LIB_FILE = mfem_is_not_built
 -include $(wildcard $(CONFIG_MK))
 
-MFEM_EXAMPLES = bp1 bp3
+MFEM_EXAMPLES =  bp1 bp3
 
 .SUFFIXES:
 .SUFFIXES: .cpp
@@ -37,11 +37,10 @@ MFEM_EXAMPLES = bp1 bp3
 all: $(MFEM_EXAMPLES)
 
 # Remove built-in rules
-%: %.cpp
 
 # Rules for building the examples
 %: %.cpp $(CONFIG_MK) $(MFEM_LIB_FILE)
-	$(MFEM_CXX) $(CEED_FLAGS) $(MFEM_FLAGS) $(MFEM_DEF) $< -o $@ \
+	$(MFEM_CXX) $(CEED_FLAGS) $(MFEM_FLAGS) $(MFEM_DEF) $(abspath $<) -o $@ \
 	  $(CEED_LIBS) $(MFEM_LIBS)
 
 # Generate an error message if the MFEM library is not built and exit
