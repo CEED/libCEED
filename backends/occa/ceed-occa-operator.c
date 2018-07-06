@@ -289,6 +289,20 @@ static int CeedOperatorSetup_Occa(CeedOperator op) {
   return 0;
 }
 
+static int SyncToHostPointer(CeedVector outvec) {
+  if (outvec && ((CeedVector_Occa*)outvec->data)->used_pointer) {
+    // The device copy is not updated in the host array by default.  We may need
+    // to rethink memory management in this example, but this provides the
+    // expected semantics when using CeedVectorSetArray for the vector that will
+    // hold an output quantity.  This should at least be lazy instead of eager
+    // and we should do better about avoiding copies.
+    CeedVector_Occa *outvdata = (CeedVector_Occa*)outvec->data;
+    occaCopyMemToPtr(outvdata->used_pointer, outvdata->d_array,
+                     outvec->length * sizeof(CeedScalar), NO_OFFSET, NO_PROPS);
+  }
+  return 0;
+}
+
 // *****************************************************************************
 // * Apply CeedOperator to a vector
 // *****************************************************************************
@@ -539,6 +553,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
         // Restrict
         ierr = CeedElemRestrictionApply(op->outputfields[i].Erestrict, CEED_TRANSPOSE,
                                         lmode, data->Evecs[ieout], op->outputfields[i].vec, request); CeedChk(ierr);
+        ierr = SyncToHostPointer(op->outputfields[i].vec); CeedChk(ierr);
         ieout++;
       } else {
         // Active
@@ -553,6 +568,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
         // Restrict
         ierr = CeedElemRestrictionApply(op->outputfields[i].Erestrict, CEED_TRANSPOSE,
                                         lmode, data->Evecs[ieout], outvec, request); CeedChk(ierr);
+        ierr = SyncToHostPointer(outvec); CeedChk(ierr);
         ieout++;
       }
     } else {
@@ -561,21 +577,14 @@ static int CeedOperatorApply_Occa(CeedOperator op,
       if (op->outputfields[i].vec) {
         ierr = CeedVectorRestoreArray(op->outputfields[i].vec,
                                       &data->Edata[i + qf->numinputfields]); CeedChk(ierr);
+        ierr = SyncToHostPointer(op->outputfields[i].vec); CeedChk(ierr);
       } else {
         // Active
         ierr = CeedVectorRestoreArray(outvec, &data->Edata[i + qf->numinputfields]);
         CeedChk(ierr);
+        ierr = SyncToHostPointer(outvec); CeedChk(ierr);
       }
     }
-  }
-  if (outvec && ((CeedVector_Occa*)outvec->data)->used_pointer) {
-    // The device copy is not updated in the host array by default.  We may need
-    // to rethink memory management in this example, but this provides the
-    // expected semantics when using CeedVectorSetArray for the vector that will
-    // hold an output quantity.
-    CeedVector_Occa *outvdata = (CeedVector_Occa*)outvec->data;
-    occaCopyMemToPtr(outvdata->used_pointer, outvdata->d_array,
-                     outvec->length * sizeof(CeedScalar), NO_OFFSET, NO_PROPS);
   }
 
   // Restore input arrays
