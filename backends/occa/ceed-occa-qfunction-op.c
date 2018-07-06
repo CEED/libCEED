@@ -38,28 +38,32 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
     const char *name = qf->inputfields[i].fieldname;
     const CeedInt ncomp = qf->inputfields[i].ncomp;
     const CeedEvalMode emode = qf->inputfields[i].emode;
-    if (emode & CEED_EVAL_INTERP) {
+    const CeedInt dim = op->inputfields[i].basis?op->inputfields[i].basis->dim:0;
+    switch(emode) {
+    case CEED_EVAL_INTERP:
       dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > INTERP (%d)", name,Q*ncomp);
       iOf7[idx+1]=iOf7[idx]+Q*ncomp;
       idx+=1;
-    }
-    if (emode & CEED_EVAL_GRAD) {
-      const CeedInt dim = op->inputfields[i].basis->dim;
-      const CeedInt length = Q*ncomp*dim;
-      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > GRAD (%d)",name,length);
-      iOf7[idx+1]=iOf7[idx]+length;
+      break;
+    case CEED_EVAL_GRAD:
+      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > GRAD (%d)",name,Q*ncomp*dim);
+      iOf7[idx+1]=iOf7[idx]+Q*ncomp*dim;;
       idx+=1;
-    }
-    if (emode == CEED_EVAL_NONE ) {
+      break;
+    case CEED_EVAL_NONE:
       dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > NONE",name);
       iOf7[idx+1]=iOf7[idx]+Q*ncomp;
       idx+=1;
-    }
-    if (emode & CEED_EVAL_WEIGHT) {
+      break;
+    case CEED_EVAL_WEIGHT:
       dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > WEIGHT (%d)",name,Q);
       iOf7[idx+1]=iOf7[idx]+Q;
       idx+=1;
-      // No action
+      break;
+    case CEED_EVAL_DIV:
+      break; // Not implimented
+    case CEED_EVAL_CURL:
+      break; // Not implimented
     }
   }
   assert(idx==nIn);
@@ -96,31 +100,29 @@ int CeedQFunctionAllocOpOut_Occa(CeedQFunction qf, CeedInt Q,
     const CeedEvalMode emode = qf->outputfields[i].emode;
     const char *name = qf->outputfields[i].fieldname;
     const CeedInt ncomp = qf->outputfields[i].ncomp;
-    if (emode == CEED_EVAL_NONE) {
-      const CeedInt length = Q*ncomp;
-      dbg("[CeedQFunction][AllocOpOut] out \"%s\" NONE (%d)",name,length);
-      oOf7[odx+1]=oOf7[odx]+length;
+    const CeedInt dim = op->outputfields[i].basis?op->outputfields[i].basis->dim:0;
+    switch(emode) {
+    case CEED_EVAL_NONE:
+      dbg("[CeedQFunction][AllocOpOut] out \"%s\" NONE (%d)",name,Q*ncomp);
+      oOf7[odx+1]=oOf7[odx]+Q*ncomp;
       odx+=1;
-    }
-    if (emode & CEED_EVAL_INTERP) {
-      const CeedInt length = Q*ncomp;
-      dbg("\t[CeedQFunction][AllocOpOut \"%s\" > INTERP (%d)", name,length);
-      oOf7[odx+1]=oOf7[odx]+length;
+      break;
+    case CEED_EVAL_INTERP:
+      dbg("\t[CeedQFunction][AllocOpOut \"%s\" > INTERP (%d)", name,Q*ncomp);
+      oOf7[odx+1]=oOf7[odx]+Q*ncomp;
       odx+=1;
-    }
-    if (emode & CEED_EVAL_GRAD) {
-      const CeedInt dim = op->inputfields[i].basis->dim;
-      const CeedInt length = Q*ncomp*dim;
-      dbg("\t[CeedQFunction][AllocOpOut] \"%s\" > GRAD (%d)",name,length);
-      oOf7[odx+1]=oOf7[odx]+length;
+      break;
+    case CEED_EVAL_GRAD:
+      dbg("\t[CeedQFunction][AllocOpOut] \"%s\" > GRAD (%d)",name,Q*ncomp*dim);
+      oOf7[odx+1]=oOf7[odx]+Q*ncomp*dim;
       odx+=1;
-    }
-    if (emode & CEED_EVAL_WEIGHT) {
-      const CeedInt length = Q;
-      dbg("\t[CeedQFunction][AllocOpOut] \"%s\" > WEIGHT (%d)",name,length);
-      oOf7[odx+1]=oOf7[odx]+length;
-      odx+=1;
-      // No action
+      break;
+    case CEED_EVAL_WEIGHT:
+      break; // Should not occur
+    case CEED_EVAL_DIV:
+      break; // Not implimented
+    case CEED_EVAL_CURL:
+      break; // Not implimented
     }
   }
   for (CeedInt i=0; i<odx+1; i++) {

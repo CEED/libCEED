@@ -37,20 +37,31 @@ int CeedQFunctionAllocNoOpIn_Occa(CeedQFunction qf, CeedInt Q,
     const CeedEvalMode emode = qf->inputfields[i].emode;
     const char *name = qf->inputfields[i].fieldname;
     const CeedInt ncomp = qf->inputfields[i].ncomp;
-    if (emode & CEED_EVAL_INTERP) {
-      dbg("[CeedQFunction][AllocNoOpIn] \"%s\" > INTERP", name);
+    switch(emode) {
+    case CEED_EVAL_INTERP:
+      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > INTERP (%d)", name,Q*ncomp);
       iOf7[idx+1]=iOf7[idx]+Q*ncomp;
       idx+=1;
-    }
-    if (emode & CEED_EVAL_GRAD) {
-      dbg("[CeedQFunction][AllocNoOpIn] \"%s\" > GRAD",name);
-      iOf7[idx+1]=iOf7[idx]+Q*ncomp*dim;
+      break;
+    case CEED_EVAL_GRAD:
+      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > GRAD (%d)",name,Q*ncomp*dim);
+      iOf7[idx+1]=iOf7[idx]+Q*ncomp*dim;;
       idx+=1;
-    }
-    if (emode & CEED_EVAL_WEIGHT) {
-      dbg("[CeedQFunction][AllocNoOpIn] \"%s\" > WEIGHT",name);
+      break;
+    case CEED_EVAL_NONE:
+      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > NONE",name);
+      iOf7[idx+1]=iOf7[idx]+Q*ncomp;
+      idx+=1;
+      break;
+    case CEED_EVAL_WEIGHT:
+      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > WEIGHT (%d)",name,Q);
       iOf7[idx+1]=iOf7[idx]+Q;
       idx+=1;
+      break;
+    case CEED_EVAL_DIV:
+      break; // Not implimented
+    case CEED_EVAL_CURL:
+      break; // Not implimented
     }
   }
   for (CeedInt i=0; i<idx+1; i++) {
@@ -83,26 +94,35 @@ int CeedQFunctionAllocNoOpOut_Occa(CeedQFunction qf, CeedInt Q,
   Ceed_Occa *ceed_data = qf->ceed->data;
   const occaDevice device = ceed_data->device;
   const CeedInt bytes = sizeof(CeedScalar);
+  const CeedInt dim = 1; // !?
   const int nOut = qf->numoutputfields; assert(nOut<N_MAX_IDX);
   dbg("[CeedQFunction][AllocNoOpOut] nOut=%d",nOut);
   for (CeedInt i=0; i<nOut; i++) {
     const char *name = qf->outputfields[i].fieldname;
     const CeedInt ncomp = qf->outputfields[i].ncomp;
     const CeedEvalMode emode = qf->outputfields[i].emode;
-    if (emode & CEED_EVAL_INTERP) {
-      dbg("[CeedQFunction][AllocNoOpOut] out \"%s\" INTERP",name);
+    switch(emode) {
+    case CEED_EVAL_NONE:
+      dbg("[CeedQFunction][AllocOpOut] out \"%s\" NONE (%d)",name,Q*ncomp);
       oOf7[odx+1]=oOf7[odx]+Q*ncomp;
       odx+=1;
-    }
-    if (emode & CEED_EVAL_GRAD) {
-      dbg("[CeedQFunction][AllocNoOpOut] out \"%s\" GRAD",name);
+      break;
+    case CEED_EVAL_INTERP:
+      dbg("\t[CeedQFunction][AllocOpOut \"%s\" > INTERP (%d)", name,Q*ncomp);
       oOf7[odx+1]=oOf7[odx]+Q*ncomp;
       odx+=1;
-    }
-    if (emode == CEED_EVAL_NONE) {
-      dbg("[CeedQFunction][AllocNoOpOut] out \"%s\" NONE",name);
-      oOf7[odx+1]=oOf7[odx]+Q;
+      break;
+    case CEED_EVAL_GRAD:
+      dbg("\t[CeedQFunction][AllocOpOut] \"%s\" > GRAD (%d)",name,Q*ncomp*dim);
+      oOf7[odx+1]=oOf7[odx]+Q*ncomp*dim;
       odx+=1;
+      break;
+    case CEED_EVAL_WEIGHT:
+      break; // Should not occur
+    case CEED_EVAL_DIV:
+      break; // Not implimented
+    case CEED_EVAL_CURL:
+      break; // Not implimented
     }
   }
   assert(odx==nOut);
