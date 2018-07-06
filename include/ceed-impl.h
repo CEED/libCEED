@@ -85,14 +85,15 @@ struct CeedBasis_private {
                CeedScalar *);
   int (*Destroy)(CeedBasis);
   int refcount;
+  CeedElemType type;
   CeedInt dim;
   CeedInt ndof;
   CeedInt P1d;
   CeedInt Q1d;
   CeedScalar *qref1d;
   CeedScalar *qweight1d;
-  CeedScalar *interp1d;
-  CeedScalar *grad1d;
+  CeedScalar *interp;
+  CeedScalar *grad;
   void *data;       /* place for the backend to store any data */
 };
 

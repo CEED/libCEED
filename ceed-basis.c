@@ -33,9 +33,9 @@
 /// @param ncomp  Number of field components (1 for scalar fields)
 /// @param P1d    Number of nodes in one dimension
 /// @param Q1d    Number of quadrature points in one dimension
-/// @param interp1d Row-major Q1d × P1d matrix expressing the values of nodal
+/// @param interp Row-major Q1d × P1d matrix expressing the values of nodal
 ///               basis functions at quadrature points
-/// @param grad1d  Row-major Q1d × P1d matrix expressing derivatives of nodal
+/// @param grad  Row-major Q1d × P1d matrix expressing derivatives of nodal
 ///               basis functions at quadrature points
 /// @param qref1d Array of length Q1d holding the locations of quadrature points
 ///               on the 1D reference element [-1, 1]
@@ -44,9 +44,9 @@
 /// @param[out] basis New basis
 ///
 /// @sa CeedBasisCreateTensorH1Lagrange()
-int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
-                            CeedInt Q1d, const CeedScalar *interp1d,
-                            const CeedScalar *grad1d, const CeedScalar *qref1d,
+int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedElemType type, CeedInt ncomp, CeedInt P1d,
+                            CeedInt Q1d, const CeedScalar *interp,
+                            const CeedScalar *grad, const CeedScalar *qref1d,
                             const CeedScalar *qweight1d, CeedBasis *basis) {
   int ierr;
 
@@ -56,6 +56,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
   (*basis)->ceed = ceed;
   ceed->refcount++;
   (*basis)->refcount = 1;
+  (*basis)->type = type;
   (*basis)->dim = dim;
   (*basis)->ndof = ncomp;
   (*basis)->P1d = P1d;
@@ -64,11 +65,11 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
   ierr = CeedMalloc(Q1d,&(*basis)->qweight1d); CeedChk(ierr);
   memcpy((*basis)->qref1d, qref1d, Q1d*sizeof(qref1d[0]));
   memcpy((*basis)->qweight1d, qweight1d, Q1d*sizeof(qweight1d[0]));
-  ierr = CeedMalloc(Q1d*P1d,&(*basis)->interp1d); CeedChk(ierr);
-  ierr = CeedMalloc(Q1d*P1d,&(*basis)->grad1d); CeedChk(ierr);
-  memcpy((*basis)->interp1d, interp1d, Q1d*P1d*sizeof(interp1d[0]));
-  memcpy((*basis)->grad1d, grad1d, Q1d*P1d*sizeof(interp1d[0]));
-  ierr = ceed->BasisCreateTensorH1(ceed, dim, P1d, Q1d, interp1d, grad1d, qref1d,
+  ierr = CeedMalloc(Q1d*P1d,&(*basis)->interp); CeedChk(ierr);
+  ierr = CeedMalloc(Q1d*P1d,&(*basis)->grad); CeedChk(ierr);
+  memcpy((*basis)->interp, interp, Q1d*P1d*sizeof(interp[0]));
+  memcpy((*basis)->grad, grad, Q1d*P1d*sizeof(interp[0]));
+  ierr = ceed->BasisCreateTensorH1(ceed, dim, P1d, Q1d, interp, grad, qref1d,
                                    qweight1d, *basis); CeedChk(ierr);
   return 0;
 }
@@ -86,55 +87,66 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
 /// @param[out] basis New basis
 ///
 /// @sa CeedBasisCreateTensorH1()
-int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
+int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedElemType type, CeedInt dim, CeedInt ncomp,
                                     CeedInt P, CeedInt Q,
                                     CeedQuadMode qmode, CeedBasis *basis) {
   // Allocate
   int ierr, i, j, k;
-  CeedScalar c1, c2, c3, c4, dx, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
-  ierr = CeedCalloc(P*Q, &interp1d); CeedChk(ierr);
-  ierr = CeedCalloc(P*Q, &grad1d); CeedChk(ierr);
-  ierr = CeedCalloc(P, &nodes); CeedChk(ierr);
-  ierr = CeedCalloc(Q, &qref1d); CeedChk(ierr);
-  ierr = CeedCalloc(Q, &qweight1d); CeedChk(ierr);
-  // Get Nodes and Weights
-  ierr = CeedLobattoQuadrature(P, nodes, NULL); CeedChk(ierr);
-  switch (qmode) {
-  case CEED_GAUSS:
-    ierr = CeedGaussQuadrature(Q, qref1d, qweight1d); CeedChk(ierr);
-    break;
-  case CEED_GAUSS_LOBATTO:
-    ierr = CeedLobattoQuadrature(Q, qref1d, qweight1d); CeedChk(ierr);
-    break;
-  }
-  // Build B, D matrix
-  // Fornberg, 1998
-  for (i = 0; i  < Q; i++) {
-    c1 = 1.0;
-    c3 = nodes[0] - qref1d[i];
-    interp1d[i*P+0] = 1.0;
-    for (j = 1; j < P; j++) {
-      c2 = 1.0;
-      c4 = c3;
-      c3 = nodes[j] - qref1d[i];
-      for (k = 0; k < j; k++) {
-        dx = nodes[j] - nodes[k];
-        c2 *= dx;
-        if (k == j - 1) {
-          grad1d[i*P + j] = c1*(interp1d[i*P + k] - c4*grad1d[i*P + k]) / c2;
-          interp1d[i*P + j] = - c1*c4*interp1d[i*P + k] / c2;
-        }
-        grad1d[i*P + k] = (c3*grad1d[i*P + k] - interp1d[i*P + k]) / dx;
-        interp1d[i*P + k] = c3*interp1d[i*P + k] / dx;
-      }
-      c1 = c2;
+  CeedScalar c1, c2, c3, c4, dx, *nodes, *interp, *grad, *qref1d, *qweight1d;
+  switch (type) {
+  case CEED_ELEM_HEXAHEDRA:
+    ierr = CeedCalloc(P*Q, &interp); CeedChk(ierr);
+    ierr = CeedCalloc(P*Q, &grad); CeedChk(ierr);
+    ierr = CeedCalloc(P, &nodes); CeedChk(ierr);
+    ierr = CeedCalloc(Q, &qref1d); CeedChk(ierr);
+    ierr = CeedCalloc(Q, &qweight1d); CeedChk(ierr);
+    // Get Nodes and Weights
+    ierr = CeedLobattoQuadrature(P, nodes, NULL); CeedChk(ierr);
+    switch (qmode) {
+    case CEED_GAUSS:
+      ierr = CeedGaussQuadrature(Q, qref1d, qweight1d); CeedChk(ierr);
+      break;
+    case CEED_GAUSS_LOBATTO:
+      ierr = CeedLobattoQuadrature(Q, qref1d, qweight1d); CeedChk(ierr);
+      break;
     }
+    // Build B, D matrix
+    // Fornberg, 1998
+    for (i = 0; i  < Q; i++) {
+      c1 = 1.0;
+      c3 = nodes[0] - qref1d[i];
+      interp[i*P+0] = 1.0;
+      for (j = 1; j < P; j++) {
+        c2 = 1.0;
+        c4 = c3;
+        c3 = nodes[j] - qref1d[i];
+        for (k = 0; k < j; k++) {
+          dx = nodes[j] - nodes[k];
+          c2 *= dx;
+          if (k == j - 1) {
+            grad[i*P + j] = c1*(interp[i*P + k] - c4*grad[i*P + k]) / c2;
+            interp[i*P + j] = - c1*c4*interp[i*P + k] / c2;
+          }
+          grad[i*P + k] = (c3*grad[i*P + k] - interp[i*P + k]) / dx;
+          interp[i*P + k] = c3*interp[i*P + k] / dx;
+        }
+        c1 = c2;
+      }
+    }
+    break;
+  case CEED_ELEM_TETRAHEDRA:
+    break; // Not yet implemented
+  case CEED_ELEM_PYRAMID:
+    break; // Not yet implemented
+  case CEED_ELEM_WEDGE:
+    break; // Not yet implemented
   }
+
   //  // Pass to CeedBasisCreateTensorH1
-  ierr = CeedBasisCreateTensorH1(ceed, dim, ncomp, P, Q, interp1d, grad1d, qref1d,
+  ierr = CeedBasisCreateTensorH1(ceed, dim, type, ncomp, P, Q, interp, grad, qref1d,
                                  qweight1d, basis); CeedChk(ierr);
-  ierr = CeedFree(&interp1d); CeedChk(ierr);
-  ierr = CeedFree(&grad1d); CeedChk(ierr);
+  ierr = CeedFree(&interp); CeedChk(ierr);
+  ierr = CeedFree(&grad); CeedChk(ierr);
   ierr = CeedFree(&nodes); CeedChk(ierr);
   ierr = CeedFree(&qref1d); CeedChk(ierr);
   ierr = CeedFree(&qweight1d); CeedChk(ierr);
@@ -275,10 +287,10 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
                         stream); CeedChk(ierr);
   ierr = CeedScalarView("qweight1d", "\t% 12.8f", 1, basis->Q1d, basis->qweight1d,
                         stream); CeedChk(ierr);
-  ierr = CeedScalarView("interp1d", "\t% 12.8f", basis->Q1d, basis->P1d,
-                        basis->interp1d, stream); CeedChk(ierr);
-  ierr = CeedScalarView("grad1d", "\t% 12.8f", basis->Q1d, basis->P1d,
-                        basis->grad1d, stream); CeedChk(ierr);
+  ierr = CeedScalarView("interp", "\t% 12.8f", basis->Q1d, basis->P1d,
+                        basis->interp, stream); CeedChk(ierr);
+  ierr = CeedScalarView("grad", "\t% 12.8f", basis->Q1d, basis->P1d,
+                        basis->grad, stream); CeedChk(ierr);
   return 0;
 }
 
@@ -433,8 +445,8 @@ int CeedBasisDestroy(CeedBasis *basis) {
   if ((*basis)->Destroy) {
     ierr = (*basis)->Destroy(*basis); CeedChk(ierr);
   }
-  ierr = CeedFree(&(*basis)->interp1d); CeedChk(ierr);
-  ierr = CeedFree(&(*basis)->grad1d); CeedChk(ierr);
+  ierr = CeedFree(&(*basis)->interp); CeedChk(ierr);
+  ierr = CeedFree(&(*basis)->grad); CeedChk(ierr);
   ierr = CeedFree(&(*basis)->qref1d); CeedChk(ierr);
   ierr = CeedFree(&(*basis)->qweight1d); CeedChk(ierr);
   ierr = CeedDestroy(&(*basis)->ceed); CeedChk(ierr);
