@@ -52,6 +52,10 @@ $(CONFIG_MK):
 	$(if $(wildcard $@),,$(error \
 	  MFEM config file not found. Please set MFEM_DIR))
 
+test : $(MFEM_EXAMPLES)
+	@./tap.sh bp1
+	@./tap.sh bp3
+
 clean:
 	rm -f *~ $(MFEM_EXAMPLES)
 	rm -rf *.dSYM *.TVD.*breakpoints

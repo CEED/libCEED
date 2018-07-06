@@ -9,6 +9,7 @@
 #define FORTRAN_REQUEST_IMMEDIATE -1
 #define FORTRAN_REQUEST_ORDERED -2
 #define FORTRAN_NULL -3
+#define FORTRAN_ELEMRESTRICT_IDENTITY -1
 
 static Ceed *Ceed_dict = NULL;
 static int Ceed_count = 0;
@@ -135,10 +136,15 @@ void fCeedElemRestrictionCreate(int *ceed, int *nelements,
     CeedRealloc(CeedElemRestriction_count_max, &CeedElemRestriction_dict);
   }
 
+  const int *indices_ = indices;
+  if (*indices == FORTRAN_ELEMRESTRICT_IDENTITY) {
+    indices_ = NULL;
+  }
+
   CeedElemRestriction *elemrestriction_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
   *err = CeedElemRestrictionCreate(Ceed_dict[*ceed], *nelements, *esize, *ndof,
-                                   *memtype, *copymode, indices, elemrestriction_);
+                                   *memtype, *copymode, indices_, elemrestriction_);
 
   if (*err == 0) {
     *elemrestriction = CeedElemRestriction_count++;

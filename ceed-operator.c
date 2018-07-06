@@ -78,7 +78,6 @@ int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
 int CeedOperatorApply(CeedOperator op, CeedVector qdata, CeedVector invec,
                       CeedVector outvec, CeedRequest *request) {
   int ierr;
-
   ierr = op->Apply(op, qdata, invec, outvec, request); CeedChk(ierr);
   return 0;
 }

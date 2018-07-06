@@ -8,7 +8,9 @@ backends=(${BACKENDS:?Variable must be set, e.g., \"/cpu/self/ref /cpu/self/opt\
 printf "1..$[3*${#backends[@]}]\n";
 
 # for examples/ceed ex*, grep the code to fetch arguments from a TESTARGS line
-if [ ${1::2} == "ex" ]; then
+if [ ${1::5} == "mfem-" ]; then
+    args=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
+elif [ ${1::2} == "ex" ]; then
     args=$(grep -F //TESTARGS examples/ceed/$1.c | cut -d\  -f2- )
 else
     args='{ceed_resource}'
