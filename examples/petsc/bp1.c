@@ -137,11 +137,13 @@ static int Error(void *ctx, CeedInt Q,
 
 typedef struct User_ *User;
 struct User_ {
+  MPI_Comm comm;
   VecScatter ltog;
   Vec Xloc, Yloc;
   CeedVector xceed, yceed;
   CeedOperator op;
   CeedVector rho;
+  Ceed ceed;
 };
 
 // We abuse this function to also compute residuals (an affine operation) and to
@@ -180,6 +182,38 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
   PetscFunctionReturn(0);
 }
 
+static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X, CeedVector target, PetscReal *maxerror) {
+  PetscErrorCode ierr;
+  PetscScalar *x;
+  CeedVector collocated_error;
+  CeedInt length;
+
+  PetscFunctionBeginUser;
+  CeedVectorGetLength(target, &length);
+  CeedVectorCreate(user->ceed, length, &collocated_error);
+  ierr = VecScatterBegin(user->ltog, X, user->Xloc, INSERT_VALUES,
+                         SCATTER_REVERSE); CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES, SCATTER_REVERSE);
+  CHKERRQ(ierr);
+  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
+  CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
+  CeedOperatorApply(op_error, user->xceed, collocated_error,
+                    CEED_REQUEST_IMMEDIATE);
+  VecRestoreArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
+
+  *maxerror = 0;
+  const CeedScalar *e;
+  CeedVectorGetArrayRead(collocated_error, CEED_MEM_HOST, &e);
+  for (CeedInt i=0; i<length; i++) {
+    *maxerror = PetscMax(*maxerror, PetscAbsScalar(e[i]));
+  }
+  CeedVectorRestoreArrayRead(collocated_error, &e);
+  ierr = MPI_Allreduce(MPI_IN_PLACE, &maxerror,
+                       1, MPIU_SCALAR, MPIU_MAX, user->comm); CHKERRQ(ierr);
+  CeedVectorDestroy(&collocated_error);
+  PetscFunctionReturn(0);
+}
+
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
@@ -194,7 +228,7 @@ int main(int argc, char **argv) {
   CeedElemRestriction Erestrictx, Erestrictu;
   CeedQFunction qf_setup, qf_mass, qf_error;
   CeedOperator op_setup, op_mass, op_error;
-  CeedVector xcoord, rho, target, collocated_error;
+  CeedVector xcoord, rho, target;
   CeedInt P, Q;
   Vec X, Xloc, rhs;
   Mat mat;
@@ -358,7 +392,6 @@ int main(int argc, char **argv) {
   CeedBasisGetNumQuadraturePoints(basisu, &Nqpts);
   CeedVectorCreate(ceed, Nelem*Nqpts, &rho);
   CeedVectorCreate(ceed, Nelem*Nqpts, &target);
-  CeedVectorCreate(ceed, Nelem*Nqpts, &collocated_error);
 
   // Create the operator that builds the quadrature data for the mass operator.
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
@@ -389,9 +422,11 @@ int main(int argc, char **argv) {
                        CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
 
   CeedOperatorApply(op_setup, xcoord, rho, CEED_REQUEST_IMMEDIATE);
+  // CeedVectorView(target, "%8.2e", stdout);
   CeedVectorDestroy(&xcoord);
 
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
+  user->comm = comm;
   user->ltog = ltog;
   user->Xloc = Xloc;
   ierr = VecDuplicate(Xloc, &user->Yloc); CHKERRQ(ierr);
@@ -399,6 +434,7 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, lsize, &user->yceed);
   user->op = op_mass;
   user->rho = rho;
+  user->ceed = ceed;
 
   ierr = MatCreateShell(comm, mdof[0]*mdof[1]*mdof[2], mdof[0]*mdof[1]*mdof[2],
                         PETSC_DECIDE, PETSC_DECIDE, user, &mat); CHKERRQ(ierr);
@@ -443,26 +479,8 @@ int main(int argc, char **argv) {
   }
 
   {
-    PetscScalar *x;
-    ierr = VecScatterBegin(user->ltog, X, user->Xloc, INSERT_VALUES,
-                           SCATTER_REVERSE); CHKERRQ(ierr);
-    ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES, SCATTER_REVERSE);
-    CHKERRQ(ierr);
-    ierr = VecGetArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
-    CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
-    CeedOperatorApply(op_error, user->xceed, collocated_error,
-                      CEED_REQUEST_IMMEDIATE);
-    VecRestoreArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
-
-    CeedScalar maxerror = 0;
-    const CeedScalar *e;
-    CeedVectorGetArrayRead(collocated_error, CEED_MEM_HOST, &e);
-    for (CeedInt i=0; i<Nelem*Nqpts; i++) {
-      maxerror = PetscMax(maxerror, PetscAbsScalar(e[i]));
-    }
-    CeedVectorRestoreArrayRead(collocated_error, &e);
-    ierr = MPI_Allreduce(MPI_IN_PLACE, &maxerror,
-                         1, MPIU_SCALAR, MPIU_MAX, comm); CHKERRQ(ierr);
+    PetscReal maxerror;
+    ierr = ComputeErrorMax(user, op_error, X, target, &maxerror); CHKERRQ(ierr);
     if (!test_mode || maxerror > 1e-3) {
       ierr = PetscPrintf(comm, "Pointwise error (max) %e\n", (double)maxerror);
       CHKERRQ(ierr);
@@ -481,7 +499,6 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&user->yceed);
   CeedVectorDestroy(&user->rho);
   CeedVectorDestroy(&target);
-  CeedVectorDestroy(&collocated_error);
   CeedOperatorDestroy(&op_setup);
   CeedOperatorDestroy(&op_mass);
   CeedOperatorDestroy(&op_error);

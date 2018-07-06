@@ -18,60 +18,52 @@
 typedef int CeedInt;
 typedef double CeedScalar;
 
-// OCCA parser doesn't like __global here
-typedef /*__global*/ double gCeedScalar;
-
-// OCCA parser doesn't like struct here
-//typedef /*__global*/ struct BuildContext gBuildContext;
+#define Sqr(a) ((a)*(a))
 
 // *****************************************************************************
-// OCCA parser doesn't like struct here either
-//struct BuildContext { CeedInt dim, space_dim; };
-
-// *****************************************************************************
-@kernel void Setup(int *ctx, CeedInt Q,
-                          const int *iOf7, const int *oOf7, 
-                          const CeedScalar *u, CeedScalar *v) {
+@kernel void Setup(void *ctx, CeedInt Q,
+                   const int *iOf7, const int *oOf7,
+                   const CeedScalar *in, CeedScalar *out) {
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
-    // OCCA parser can't insert an __global here
-    /*const CeedScalar *J = u + iOf7[0];
-    const CeedScalar *qw = u + iOf7[1];
-    CeedScalar *qd = v + oOf7[0];*/
-    //const struct BuildContext *bc = (struct BuildContext*)ctx;
-    const int dim = ctx[0];
-    const int space_dim = ctx[1];
-    const CeedInt dims = dim + 10*space_dim;
-    if (dims==11) v[oOf7[0]+i] = u[iOf7[0]+i] * u[iOf7[1]+i];
-    if (dims==22) v[oOf7[0]+i] = (u[iOf7[0]+i+Q*0]*u[iOf7[0]+i+Q*3]-u[iOf7[0]+i+Q*1]*u[iOf7[0]+i+Q*2])*u[iOf7[1]+i];
-    if (dims==33) v[oOf7[0]+i] = (u[iOf7[0]+i+Q*0]*(u[iOf7[0]+i+Q*4]*u[iOf7[0]+i+Q*8]-u[iOf7[0]+i+Q*5]*u[iOf7[0]+i+Q*7]) -
-                                  u[iOf7[0]+i+Q*1]*(u[iOf7[0]+i+Q*3]*u[iOf7[0]+i+Q*8]-u[iOf7[0]+i+Q*5]*u[iOf7[0]+i+Q*6]) +
-                                  u[iOf7[0]+i+Q*2]*(u[iOf7[0]+i+Q*3]*u[iOf7[0]+i+Q*7]-u[iOf7[0]+i+Q*4]*u[iOf7[0]+i+Q*6]))*u[iOf7[1]+i];
+    const CeedScalar
+      *x = in + iOf7[0],
+      *J = in + iOf7[1],
+      *w = in + iOf7[2];
+    CeedScalar
+      *rho = out + oOf7[0],
+      *target = out + oOf7[1];
+    const CeedInt D = 3;
+    CeedScalar det = (+ J[(0*D+0)*Q+i] * (J[(1*D+1)*Q+i]*J[(2*D+2)*Q+i] - J[(1*D+2)*Q+i]*J[(2*D+1)*Q+i])
+                      - J[(0*D+1)*Q+i] * (J[(1*D+0)*Q+i]*J[(2*D+2)*Q+i] - J[(1*D+2)*Q+i]*J[(2*D+0)*Q+i])
+                      + J[(0*D+2)*Q+i] * (J[(1*D+0)*Q+i]*J[(2*D+1)*Q+i] - J[(1*D+1)*Q+i]*J[(2*D+0)*Q+i]));
+    rho[i] = det * w[i];
+    target[i] = sqrt(Sqr(x[0*Q+i]) + Sqr(x[1*Q+i]) + Sqr(x[2*Q+i]));
   }
 }
 
 // *****************************************************************************
-@kernel void Mass(void *ctx, CeedInt Q,
+@kernel void Mass(const bool *residual, CeedInt Q,
                           const int *iOf7, const int *oOf7,
                           const CeedScalar *in, CeedScalar *out) {
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
-    // OCCA parser can't insert an __global here
-    /*const CeedScalar *u = in + iOf7[0];
-    const CeedScalar *w = in + iOf7[1];
+    const CeedScalar
+      *u = in + iOf7[0],
+      *rho = in + iOf7[1],
+      *target = in + iOf7[2];
     CeedScalar *v = out + oOf7[0];
-    v[i] = w[i] * u[i];*/
-    out[oOf7[0]+i] = in[iOf7[1]+i] * in[iOf7[0]+i];
+    v[i] = rho[i] + (u[i] - (*residual ? target[i] : 0.));
   }
 }
 
 // *****************************************************************************
-kernel void Error(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
-  CeedScalar *maxerror = ctx;
-  CeedScalar *rho = (CeedScalar*)in[1], *target = rho + Q;
-  CeedScalar *u = (CeedScalar*)in[0];
-  const int szofcs = sizeof(CeedScalar);
-  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-    if (i >= Q) continue;
-    *maxerror = PetscMax(*maxerror, PetscAbsScalar(u[i]-target[i]));
+@kernel void Error(void *ctx, CeedInt Q,
+                  const int *iOf7, const int *oOf7,
+                  const CeedScalar *in, CeedScalar *out) {
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    const CeedScalar
+      *u = in + iOf7[0],
+      *target = in + iOf7[1];
+    CeedScalar *err = out + oOf7[0];
+    err[i] = u[i] - target[i];
   }
 }
