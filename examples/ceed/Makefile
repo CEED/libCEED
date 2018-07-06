@@ -16,24 +16,24 @@
 
 # Ceed directory
 CEED_DIR ?= ../..
-CEED_FLAGS ?= -I$(CEED_DIR)/include -std=c99
-CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -lm
+CEED_FLAGS ?= -I$(CEED_DIR)/include
+CEED_LIBS ?= -rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -lm -lcudart
 
-EXAMPLES.c = $(wildcard ex*.c)
-EXAMPLES = $(EXAMPLES.c:%.c=%)
+EXAMPLES.cu = $(wildcard ex*.cu)
+EXAMPLES = $(EXAMPLES.cu:%.cu=%)
 
 .SUFFIXES:
-.SUFFIXES: .c
+.SUFFIXES: .cu
 .PHONY: all clean
 
 all: $(EXAMPLES)
 
 # Remove built-in rules
-%: %.c
+%: %.cu
 
 # Rules for building the examples
-%: %.c
-	$(LINK.c) $(CEED_FLAGS) $< -o $@ $(CEED_LIBS)
+%: %.cu
+	nvcc $(CEED_FLAGS) $< -o $@ -Xlinker="$(CEED_LIBS)"
 
 clean:
 	rm -f *~ $(EXAMPLES)

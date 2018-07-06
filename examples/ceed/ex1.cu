@@ -36,8 +36,8 @@
 struct BuildContext { CeedInt dim, space_dim; };
 
 
-__global__ void cuda_f_build_mass(void *ctx, void *qdata, CeedInt Q,
-                        const CeedScalar *const *u, CeedScalar *const *v, CeedInt nc, CeedInt dim) {
+__device__ __host__ int f_build_mass(void *ctx, void *qdata, CeedInt Q,
+                        const CeedScalar *const *u, CeedScalar *const *v) {
   // u[1] is Jacobians, size (Q x nc x dim) with column-major layout
   // u[4] is quadrature weights, size (Q)
   struct BuildContext *bc = (struct BuildContext*)ctx;
@@ -67,18 +67,25 @@ __global__ void cuda_f_build_mass(void *ctx, void *qdata, CeedInt Q,
     }
     break;
   }
+
+  return 0;
 }
 
 /// libCEED Q-function for applying a mass operator
-__global__ void cuda_f_apply_mass(void *ctx, void *qdata, CeedInt Q,
-                        const CeedScalar *const *u, CeedScalar *const *v, CeedInt nc, CeedInt dim) {
+__device__ __host__ int f_apply_mass(void *ctx, void *qdata, CeedInt Q,
+                        const CeedScalar *const *u, CeedScalar *const *v) {
   const CeedScalar *w = (const CeedScalar*)qdata;
   for (CeedInt i=0; i<Q; i++) {
     v[0][i] = w[i] * u[0][i];
   }
+
+  return 0;
 }
 
+__device__ __managed__ CeedQFunctionCallback d_f_build_mass = f_build_mass;
+__device__ __managed__ CeedQFunctionCallback d_f_apply_mass = f_apply_mass;
 
+/*
 /// libCEED Q-function for building quadrature data for a mass operator
 static int f_build_mass(void *ctx, void *qdata, CeedInt Q,
                         const CeedScalar *const *u, CeedScalar *const *v) {
@@ -124,7 +131,7 @@ static int f_apply_mass(void *ctx, void *qdata, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) v[0][i] = w[i] * u[0][i];
   return 0;
 }
-
+*/
 
 // Auxiliary functions.
 int GetCartesianMeshSize(int dim, int order, int prob_size, int nxyz[3]);
@@ -139,6 +146,8 @@ CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords);
 // Next line is grep'd from tap.sh to set its arguments
 //TESTARGS -ceed {ceed_resource} -t
 int main(int argc, const char *argv[]) {
+  printf("%p %p\n", d_f_build_mass, d_f_apply_mass);
+  
   const char *ceed_spec = "/cpu/self";
   int dim        = 3;           // dimension of the mesh
   int mesh_order = 4;           // polynomial degree for the mesh
@@ -243,7 +252,7 @@ int main(int argc, const char *argv[]) {
   CeedQFunction build_qfunc;
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
                               (CeedEvalMode)(CEED_EVAL_GRAD|CEED_EVAL_WEIGHT),
-                              CEED_EVAL_NONE, f_build_mass, cuda_f_build_mass,
+                              CEED_EVAL_NONE, f_build_mass, d_f_build_mass,
                               __FILE__":f_build_mass", &build_qfunc);
   CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
 
@@ -268,7 +277,7 @@ int main(int argc, const char *argv[]) {
   // Create the Q-function that defines the action of the mass operator.
   CeedQFunction apply_qfunc;
   CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
-                              CEED_EVAL_INTERP, CEED_EVAL_INTERP, f_apply_mass, cuda_f_apply_mass,
+                              CEED_EVAL_INTERP, CEED_EVAL_INTERP, f_apply_mass, d_f_apply_mass,
                               __FILE__":f_apply_mass", &apply_qfunc);
 
   // Create the mass operator.

@@ -215,12 +215,11 @@ CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d,
 CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
                                       CeedScalar *qweight1d);
 
+typedef int (*CeedQFunctionCallback)(void *, void *, const CeedInt, const CeedScalar *const *, CeedScalar *const *);
+
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     CeedInt nfields, size_t qdatasize, CeedEvalMode inmode, CeedEvalMode outmode,
-    int (*f)(void *, void *, CeedInt, const CeedScalar *const *,
-             CeedScalar *const *),
-    void (*cf)(void *, void *, CeedInt, const CeedScalar *const *,
-             CeedScalar *const *, CeedInt, CeedInt),
+    CeedQFunctionCallback f, CeedQFunctionCallback fCuda,
     const char *focca, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx,
                                         size_t ctxsize);

@@ -44,7 +44,7 @@ AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
-NVCCFLAGS = -std=c++11 -arch=sm_60
+NVCCFLAGS = -std=c++11 -arch=sm_60 --compiler-options="-Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP"
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
   FFLAGS = -qpreprocess -qextname -qpic -MMD
@@ -57,6 +57,7 @@ ifeq ($(UNDERSCORE), 1)
 endif
 
 FFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
+NVCCFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
 
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
@@ -136,7 +137,7 @@ output = $(if $(TERM:dumb=),$(call color_out,$1,$2),$(call emacs_out,$1,$2))
 quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
 .SUFFIXES:
-.SUFFIXES: .c .o .d
+.SUFFIXES: .c .cu .o .d
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
 
 .SECONDARY: $(magma_tmp.c) $(magma_tmp.cu)
@@ -156,7 +157,10 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)
 libceed.c += $(ref.c)
 libceed.c += $(template.c)
 libceed.c += $(optimized.c)
-libceed.cu += $(cuda.cu)
+
+LDLIBS += -Wl,-rpath,$(CUDA_DIR)/lib64 -L$(CUDA_DIR)/lib64 -lcudart
+
+
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceed) : LDLIBS += -locca
@@ -164,9 +168,15 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(occa.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(OCCA_DIR)/include
   BACKENDS += /cpu/occa /gpu/occa /omp/occa /ocl/occa
 endif
+CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
+CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
+ifneq ($(CUDA_LIB_DIR),)
+  $(libceed) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
+  $(libceed) : LDLIBS += -lcudart
+  libceed.cu += $(cuda.cu)
+  BACKENDS += /gpu/cuda
+endif
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
-  CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
-  CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
   ifneq ($(CUDA_LIB_DIR),)
   cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
   omp_link = -fopenmp

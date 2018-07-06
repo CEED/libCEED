@@ -29,8 +29,9 @@ static inline void gpuAssert(cudaError_t code, const char *file, int line, bool 
 
 typedef struct {
   CeedScalar *h_array;
-  CeedScalar *used_pointer;
+  CeedScalar *h_array_allocated;
   CeedScalar *d_array;
+  CeedScalar *d_array_allocated;
 } CeedVector_Cuda;
 
 typedef struct {
@@ -46,15 +47,13 @@ typedef struct {
 
 typedef struct {
   bool ready;
-  int nc, dim, nelem, elemsize;
-  CeedScalar **d_u;
-  CeedScalar **d_v;
+  int nc, dim, nelem;
   void *d_c;
+  int *m_ierr;
 } CeedQFunction_Cuda;
 
 typedef struct {
   bool ready;
-  CeedElemRestriction er;
   CeedScalar *d_qweight1d;
   CeedScalar *d_interp1d;
   CeedScalar *d_grad1d;
@@ -112,8 +111,11 @@ CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedElemRestriction r,
     CeedMemType mtype,
     CeedCopyMode cmode, const CeedInt *indices);
 
-CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, 
+CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem,
     CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
+
+CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, CeedVector qdata, const CeedInt Q, const CeedInt nelem,
+    const CeedVector u, CeedVector v);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda(Ceed ceed, CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d,

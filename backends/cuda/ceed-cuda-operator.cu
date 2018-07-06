@@ -36,7 +36,6 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector qdata,
                                  CeedVector ustate,
                                  CeedVector residual, CeedRequest *request) {
   CeedOperator_Cuda *data = (CeedOperator_Cuda*) op->data;
-  char *d_q = (char *)((CeedVector_Cuda *) qdata->data)->d_array;
   CeedInt Q;
   const CeedInt nc = op->basis->ndof, dim = op->basis->dim, nelem = op->Erestrict->nelem;
   int ierr;
@@ -59,23 +58,19 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector qdata,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
   }
 
-  CeedBasis_Cuda *basis = (CeedBasis_Cuda *)op->basis->data;
-  basis->er = op->Erestrict;
-
   CeedQFunction_Cuda *qfd = (CeedQFunction_Cuda *)op->qf->data;
   qfd->nc = op->basis->ndof;
   qfd->dim = op->basis->dim;
   qfd->nelem = nelem;
-  qfd->elemsize = op->Erestrict->elemsize;
 
-  ierr = CeedBasisApplyElems_Cuda(op->basis, CEED_NOTRANSPOSE, op->qf->inmode,
+  ierr = CeedBasisApplyElems_Cuda(op->basis, nelem, CEED_NOTRANSPOSE, op->qf->inmode,
       data->etmp, data->BEu); CeedChk(ierr);
 
-  CeedScalar *out[5] = {0, 0, 0, 0, 0};
+  ierr = CeedQFunctionApplyElems_Cuda(op->qf, qdata, Q, nelem, data->BEu, data->BEv); CeedChk(ierr);
+
+  /*CeedScalar *out[5] = {0, 0, 0, 0, 0};
   const CeedScalar *in[5] = {0, 0, 0, 0, 0};
 
-  const CeedScalar *d_BEu = ((CeedVector_Cuda*)data->BEu->data)->d_array;
-  CeedScalar *d_BEv = ((CeedVector_Cuda*)data->BEv->data)->d_array;
   if (op->qf->inmode & CEED_EVAL_WEIGHT) {
     in[4] = d_BEu + Q * nelem * nc * (dim + 1);
   }
@@ -87,8 +82,8 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector qdata,
     if (op->qf->outmode & CEED_EVAL_GRAD) { out[1] = d_BEv + Q * nc * (nelem + dim * e); }
     ierr = CeedQFunctionApply(op->qf, &d_q[e*Q*op->qf->qdatasize], Q, in, out);
     CeedChk(ierr);
-  }
-  ierr = CeedBasisApplyElems_Cuda(op->basis, CEED_TRANSPOSE, op->qf->outmode, data->BEv, data->etmp);
+  }*/
+  ierr = CeedBasisApplyElems_Cuda(op->basis, nelem, CEED_TRANSPOSE, op->qf->outmode, data->BEv, data->etmp);
   if (residual) {
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_TRANSPOSE,
                                     nc, lmode, data->etmp, residual,
