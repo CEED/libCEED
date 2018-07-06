@@ -161,9 +161,6 @@ libceed.c += $(ref.c)
 libceed.c += $(template.c)
 libceed.c += $(optimized.c)
 
-LDLIBS += -Wl,-rpath,$(CUDA_DIR)/lib64 -L$(CUDA_DIR)/lib64 -lcudart
-
-
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceed) : LDLIBS += -locca
