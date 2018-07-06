@@ -127,10 +127,10 @@ static int Mass(void *ctx, CeedInt Q,
 
 static int Error(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
-  CeedScalar *maxerror = ctx;
   const CeedScalar *u = in[0], *target = in[1];
+  CeedScalar *err = out[0];
   for (CeedInt i=0; i<Q; i++) {
-    *maxerror = PetscMax(*maxerror, PetscAbsScalar(u[i] - target[i]));
+    err[i] = u[i] - target[i];
   }
   return 0;
 }
@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
   CeedElemRestriction Erestrictx, Erestrictu;
   CeedQFunction qf_setup, qf_mass, qf_error;
   CeedOperator op_setup, op_mass, op_error;
-  CeedVector xcoord, rho, target;
+  CeedVector xcoord, rho, target, collocated_error;
   CeedInt P, Q;
   Vec X, Xloc, rhs;
   Mat mat;
@@ -351,12 +351,14 @@ int main(int argc, char **argv) {
                               Error, __FILE__ ":Error", &qf_error);
   CeedQFunctionAddInput(qf_error, "u", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_error, "target", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_error, "error", 1, CEED_EVAL_NONE);
 
   // Create the persistent vectors that will be needed in setup
   CeedInt Nqpts, Nelem = melem[0]*melem[1]*melem[2];
   CeedBasisGetNumQuadraturePoints(basisu, &Nqpts);
   CeedVectorCreate(ceed, Nelem*Nqpts, &rho);
   CeedVectorCreate(ceed, Nelem*Nqpts, &target);
+  CeedVectorCreate(ceed, Nelem*Nqpts, &collocated_error);
 
   // Create the operator that builds the quadrature data for the mass operator.
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
@@ -383,6 +385,8 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_error, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_error, "target", CEED_RESTRICTION_IDENTITY,
                        CEED_BASIS_COLOCATED, target);
+  CeedOperatorSetField(op_error, "error", CEED_RESTRICTION_IDENTITY,
+                       CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
 
   CeedOperatorApply(op_setup, xcoord, rho, CEED_REQUEST_IMMEDIATE);
   CeedVectorDestroy(&xcoord);
@@ -438,13 +442,31 @@ int main(int argc, char **argv) {
     }
   }
 
-  CeedScalar maxerror = 0;
-  user->op = op_error;
-  CeedQFunctionSetContext(qf_error, &maxerror, sizeof maxerror);
-  ierr = MatMult_Mass(mat, X, NULL); CHKERRQ(ierr);
-  if (!test_mode || maxerror > 1e-3) {
-    ierr = PetscPrintf(comm, "Pointwise error (max) %e\n", (double)maxerror);
+  {
+    PetscScalar *x;
+    ierr = VecScatterBegin(user->ltog, X, user->Xloc, INSERT_VALUES,
+                           SCATTER_REVERSE); CHKERRQ(ierr);
+    ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES, SCATTER_REVERSE);
     CHKERRQ(ierr);
+    ierr = VecGetArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
+    CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
+    CeedOperatorApply(op_error, user->xceed, collocated_error,
+                      CEED_REQUEST_IMMEDIATE);
+    VecRestoreArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
+
+    CeedScalar maxerror = 0;
+    const CeedScalar *e;
+    CeedVectorGetArrayRead(collocated_error, CEED_MEM_HOST, &e);
+    for (CeedInt i=0; i<Nelem*Nqpts; i++) {
+      maxerror = PetscMax(maxerror, PetscAbsScalar(e[i]));
+    }
+    CeedVectorRestoreArrayRead(collocated_error, &e);
+    ierr = MPI_Allreduce(MPI_IN_PLACE, &maxerror,
+                         1, MPIU_SCALAR, MPIU_MAX, comm); CHKERRQ(ierr);
+    if (!test_mode || maxerror > 1e-3) {
+      ierr = PetscPrintf(comm, "Pointwise error (max) %e\n", (double)maxerror);
+      CHKERRQ(ierr);
+    }
   }
 
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
@@ -459,6 +481,7 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&user->yceed);
   CeedVectorDestroy(&user->rho);
   CeedVectorDestroy(&target);
+  CeedVectorDestroy(&collocated_error);
   CeedOperatorDestroy(&op_setup);
   CeedOperatorDestroy(&op_mass);
   CeedOperatorDestroy(&op_error);
