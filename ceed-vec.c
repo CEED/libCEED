@@ -132,6 +132,12 @@ int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
   return 0;
 }
 
+/// Get the length of a vector
+CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
+  *length = vec->length;
+  return 0;
+}
+
 /// Destroy a vector
 int CeedVectorDestroy(CeedVector *x) {
   int ierr;
