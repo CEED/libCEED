@@ -16,8 +16,8 @@
 
 # Ceed directory
 CEED_DIR ?= ../..
-CEED_FLAGS ?= -I$(CEED_DIR)/include
-CEED_LIBS ?= -rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -lm -lcudart
+CEED_FLAGS ?= -I$(CEED_DIR)/include 
+CEED_LIBS ?= -rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -lm
 
 EXAMPLES.cu = $(wildcard ex*.cu)
 EXAMPLES = $(EXAMPLES.cu:%.cu=%)

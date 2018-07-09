@@ -96,8 +96,10 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
   const CeedInt ndof = r->ndof;
   const CeedInt esize = nelem*elemsize;
   const CeedInt *d_indices = impl->d_indices;
-  const CeedScalar *d_u = ((CeedVector_Cuda*)u->data)->d_array;
-  CeedScalar *d_v = ((CeedVector_Cuda*)v->data)->d_array;
+  const CeedScalar *d_u;
+  CeedScalar *d_v;
+  CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u);
+  CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v);
 
   if (tmode == CEED_NOTRANSPOSE) {
     // Perform: v = r * u
@@ -126,6 +128,10 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
   }
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
+
+  CeedVectorRestoreArrayRead(u, &d_u);
+  CeedVectorRestoreArray(v, &d_v);
+
   return 0;
 }
 

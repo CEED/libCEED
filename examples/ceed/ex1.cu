@@ -38,6 +38,7 @@ struct BuildContext { CeedInt dim, space_dim; };
 
 __device__ __host__ int f_build_mass(void *ctx, void *qdata, CeedInt Q,
                         const CeedScalar *const *u, CeedScalar *const *v) {
+  printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
   // u[1] is Jacobians, size (Q x nc x dim) with column-major layout
   // u[4] is quadrature weights, size (Q)
   struct BuildContext *bc = (struct BuildContext*)ctx;
@@ -143,10 +144,25 @@ int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_order,
 CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords);
 
 
+typedef int (*fp) ();
+
+__device__ __host__ int hi() {
+  printf("hi\n");
+  return 4;
+}
+
+__global__ void cudaFun(int *data, fp f) {
+  data[threadIdx.x] = f();
+}
+
+__device__ __managed__ fp abc = hi;
+__device__ __managed__ int data[2] = {0, 0};
+
 // Next line is grep'd from tap.sh to set its arguments
 //TESTARGS -ceed {ceed_resource} -t
 int main(int argc, const char *argv[]) {
-  printf("%p %p\n", d_f_build_mass, d_f_apply_mass);
+  printf("%p\n", d_f_build_mass);
+  cudaFun<<<1,1>>>(data, abc);
   
   const char *ceed_spec = "/cpu/self";
   int dim        = 3;           // dimension of the mesh

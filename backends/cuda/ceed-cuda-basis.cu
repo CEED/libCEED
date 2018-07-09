@@ -1,5 +1,5 @@
 // Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
-// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// Prod_uced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
 // All Rights reserved. See files LICENSE and NOTICE for details.
 //
 // This file is part of CEED, a collection of benchmarks, miniapps, software
@@ -11,7 +11,7 @@
 // a collaborative effort of two U.S. Department of Energy organizations (Office
 // of Science and the National Nuclear Security Administration) responsible for
 // the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
+// software, applications, hardware, ad_vanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
@@ -203,33 +203,35 @@ int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem, CeedTranspose
     ierr = cudaMalloc(&data->d_tmp2, tBytes); CeedChk(ierr);
   }
 
-  const CeedScalar *du = ((CeedVector_Cuda*) u->data)->d_array;
-  CeedScalar *dv = ((CeedVector_Cuda*) v->data)->d_array;
+  const CeedScalar *d_u;
+  CeedScalar *d_v;
+  CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u);
+  CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v);
 
   if (tmode == CEED_TRANSPOSE) {
-    ierr = cudaMemset(dv, 0, v->length * sizeof(CeedScalar)); CeedChk(ierr);
+    ierr = cudaMemset(d_v, 0, v->length * sizeof(CeedScalar)); CeedChk(ierr);
   }
   if (emode & CEED_EVAL_INTERP) {
     ierr = run1d(ceed, interp, P * Q * sizeof(CeedScalar),
         nelem, dim, ndof, elemsize, P, Q, nqpt, bufLen, tmode,
-        data->d_interp1d, du, dv, data->d_tmp1, data->d_tmp2); CeedChk(ierr);
+        data->d_interp1d, d_u, d_v, data->d_tmp1, data->d_tmp2); CeedChk(ierr);
 
     if (transpose) {
-      du += nelem * nqpt * ndof;
+      d_u += nelem * nqpt * ndof;
     } else {
-      dv += nelem * nqpt * ndof;
+      d_v += nelem * nqpt * ndof;
     }
   }
 
   if (emode & CEED_EVAL_GRAD) {
     ierr = run1d(ceed, grad, 2 * P * Q * sizeof(CeedScalar),
         nelem, dim, ndof, elemsize, P, Q, nqpt, bufLen, tmode,
-        data->d_interp1d, data->d_grad1d, du, dv, data->d_tmp1, data->d_tmp2); CeedChk(ierr);
+        data->d_interp1d, data->d_grad1d, d_u, d_v, data->d_tmp1, data->d_tmp2); CeedChk(ierr);
 
     if (transpose) {
-      du += nelem * nqpt * ndof * dim;
+      d_u += nelem * nqpt * ndof * dim;
     } else {
-      dv += nelem * nqpt * ndof * dim;
+      d_v += nelem * nqpt * ndof * dim;
     }
   }
   
@@ -237,9 +239,13 @@ int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem, CeedTranspose
     if (tmode == CEED_TRANSPOSE)
       return CeedError(basis->ceed, 1,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
-    weight<<<1,1>>>(dim, basis->Q1d, data->d_qweight1d, dv);
+    weight<<<1,1>>>(dim, basis->Q1d, data->d_qweight1d, d_v);
     ierr = cudaGetLastError(); CeedChk(ierr);
   }
+  
+  CeedVectorRestoreArrayRead(u, &d_u);
+  CeedVectorRestoreArray(v, &d_v);
+
   return 0;
 }
 

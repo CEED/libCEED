@@ -50,7 +50,6 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector qdata,
                             &data->etmp); CeedChk(ierr);
     ierr = CeedVectorCreate(op->ceed, n, &data->BEu); CeedChk(ierr);
     ierr = CeedVectorCreate(op->ceed, n, &data->BEv); CeedChk(ierr);
-    // etmp is allocated when CeedVectorGetArray is called below
   }
   if (op->qf->inmode & ~CEED_EVAL_WEIGHT) {
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_NOTRANSPOSE,
