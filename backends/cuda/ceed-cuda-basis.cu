@@ -1,5 +1,5 @@
 // Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
-// Prod_uced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
 // All Rights reserved. See files LICENSE and NOTICE for details.
 //
 // This file is part of CEED, a collection of benchmarks, miniapps, software
@@ -11,7 +11,7 @@
 // a collaborative effort of two U.S. Department of Energy organizations (Office
 // of Science and the National Nuclear Security Administration) responsible for
 // the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, ad_vanced system engineering and early
+// software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
