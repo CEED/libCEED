@@ -18,16 +18,6 @@
 #include <string.h>
 #include "ceed-cuda.cuh"
 
-__device__ int powInt(int base, int power) {
-  int result = 1;
-  while (power) {
-    if (power & 1) result *= base;
-    power >>= 1;
-    base *= base;
-  }
-  return result;
-}
-
 __device__ void tensorContract(CeedInt A, CeedInt B, CeedInt C, CeedInt J,
                                const CeedScalar *t, CeedTransposeMode tmode,
                                const CeedInt Add,
@@ -38,7 +28,8 @@ __device__ void tensorContract(CeedInt A, CeedInt B, CeedInt C, CeedInt J,
   }
 
   if (!Add) {
-    for (CeedInt q=0; q<A*J*C; q++) {
+    const CeedInt zeroLen = A * J * C;
+    for (CeedInt q=0; q< zeroLen; q++) {
       v[q] = (CeedScalar) 0.0;
     }
   }
@@ -82,7 +73,7 @@ __global__ void interp(const CeedInt nelem, const CeedInt dim, const CeedInt ndo
    tmp1 += tmpOffset;
    tmp2 += tmpOffset;
   
-  CeedInt pre = ndof * powInt(P, dim - 1);
+  CeedInt pre = ndof * CeedPowInt(P, dim - 1);
   CeedInt post = 1;
 
   for (CeedInt d = 0; d < dim; d++) {
@@ -131,7 +122,7 @@ __global__ void grad(const CeedInt nelem, const CeedInt dim, const CeedInt ndof,
   tmp2 += tmpOffset;
 
   for (CeedInt dim1 = 0; dim1 < dim; dim1++) {
-    CeedInt pre = ndof * powInt(P, dim - 1);
+    CeedInt pre = ndof * CeedPowInt(P, dim - 1);
     CeedInt post = 1;
 
     for (CeedInt dim2 = 0; dim2 < dim; dim2++) {
@@ -160,7 +151,7 @@ __global__ void grad(const CeedInt nelem, const CeedInt dim, const CeedInt ndof,
 
 __global__ void weight(const CeedInt dim, const CeedInt Q, const CeedScalar *qweight1d, CeedScalar *v) {
   for (CeedInt d=0; d<dim; d++) {
-    CeedInt pre = powInt(Q, dim-d-1), post = powInt(Q, d);
+    CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
     for (CeedInt i=0; i<pre; i++) {
       for (CeedInt j=0; j<Q; j++) {
         for (CeedInt k=0; k<post; k++) {

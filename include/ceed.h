@@ -238,16 +238,6 @@ CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector qdata,
                                   CeedVector ustate, CeedVector residual, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
 
-static inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
-  CeedInt result = 1;
-  while (power) {
-    if (power & 1) result *= base;
-    power >>= 1;
-    base *= base;
-  }
-  return result;
-}
-
 #ifdef __CUDACC__
 
 template <CeedQFunctionCallback callback>
@@ -274,9 +264,19 @@ __global__ void apply(const CeedInt nelem, const CeedInt Q, const CeedInt nc, co
 
 #else
 
-#define CEED_SAFE_HOST_DEVICE
+#define CEED_SAFE_HOST_DEVICE static
 #define CeedQFunctionKernelCreate_Cuda(callback) NULL
 
 #endif
+
+CEED_SAFE_HOST_DEVICE inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
+  CeedInt result = 1;
+  while (power) {
+    if (power & 1) result *= base;
+    power >>= 1;
+    base *= base;
+  }
+  return result;
+}
 
 #endif
