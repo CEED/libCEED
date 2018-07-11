@@ -78,7 +78,7 @@
 int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedInt nfields,
                                 size_t qdatasize, CeedEvalMode inmode,
                                 CeedEvalMode outmode,
-                                CeedQFunctionCallback f, CeedQFunctionCallback cf,
+                                CeedQFunctionCallback f, CeedQFunctionKernel_Cuda fcuda,
                                 const char *focca, CeedQFunction *qf) {
   int ierr;
   char *focca_copy;
@@ -95,7 +95,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedInt nfields,
   (*qf)->inmode = inmode;
   (*qf)->outmode = outmode;
   (*qf)->function = f;
-  (*qf)->cudafunction = cf;
+  (*qf)->fcuda = fcuda;
   ierr = CeedCalloc(strlen(focca)+1, &focca_copy); CeedChk(ierr);
   strcpy(focca_copy, focca);
   (*qf)->focca = focca_copy;

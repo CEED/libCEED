@@ -216,10 +216,12 @@ CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
                                       CeedScalar *qweight1d);
 
 typedef int (*CeedQFunctionCallback)(void *, void *, const CeedInt, const CeedScalar *const *, CeedScalar *const *);
+typedef void (*CeedQFunctionKernel_Cuda)(const CeedInt nelem, const CeedInt Q, const CeedInt nc, const CeedInt dim, const CeedInt qdatasize,
+  const CeedEvalMode inmode, const CeedEvalMode outmode, const CeedScalar *u, CeedScalar *v, void *ctx, char *qdata, int *ierr);
 
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     CeedInt nfields, size_t qdatasize, CeedEvalMode inmode, CeedEvalMode outmode,
-    CeedQFunctionCallback f, CeedQFunctionCallback fCuda,
+    CeedQFunctionCallback f, CeedQFunctionKernel_Cuda fCuda,
     const char *focca, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx,
                                         size_t ctxsize);
@@ -245,5 +247,36 @@ static inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
   }
   return result;
 }
+
+#ifdef __CUDACC__
+
+template <CeedQFunctionCallback callback>
+__global__ void apply(const CeedInt nelem, const CeedInt Q, const CeedInt nc, const CeedInt dim, const CeedInt qdatasize,
+    const CeedEvalMode inmode, const CeedEvalMode outmode, const CeedScalar *u, CeedScalar *v, void *ctx, char *qdata, int *ierr) {
+  const int elem = blockIdx.x*blockDim.x + threadIdx.x;
+
+  if (elem >= nelem) return;
+
+  CeedScalar *out[5] = {0, 0, 0, 0, 0};
+  const CeedScalar *in[5] = {0, 0, 0, 0, 0};
+
+  if (inmode & CEED_EVAL_INTERP) { in[0] = u + Q * nc * elem; u += Q * nc * nelem; }
+  if (inmode & CEED_EVAL_GRAD) { in[1] = u + Q * nc * dim * elem; u += Q * nc * dim * nelem; }
+  if (inmode & CEED_EVAL_WEIGHT) { in[4] = u; u += Q; }
+  if (outmode & CEED_EVAL_INTERP) { out[0] = v + Q * nc * elem; v += Q * nc * nelem; }
+  if (outmode & CEED_EVAL_GRAD) { out[1] = v + Q * nc * dim * elem; v += Q * nc * dim * nelem; }
+  *ierr = callback(ctx, qdata + elem * Q * qdatasize, Q, in, out);
+}
+
+#define CEED_CUDA
+#define CEED_SAFE_HOST_DEVICE __host__ __device__
+#define CeedQFunctionKernelCreate_Cuda(callback) apply<(callback)>
+
+#else
+
+#define CEED_SAFE_HOST_DEVICE
+#define CeedQFunctionKernelCreate_Cuda(callback) NULL
+
+#endif
 
 #endif

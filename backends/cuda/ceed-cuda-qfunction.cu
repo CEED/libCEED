@@ -17,27 +17,6 @@
 #include <ceed-impl.h>
 #include "ceed-cuda.cuh"
 
-__global__ void apply(const CeedInt nelem, CeedQFunctionCallback qf, const CeedInt Q, const CeedInt nc, const CeedInt dim, const CeedInt qdatasize,
-    const CeedEvalMode inmode, const CeedEvalMode outmode, const CeedScalar *u, CeedScalar *v, void *ctx, char *qdata, int *ierr) {
-  const int elem = blockIdx.x*blockDim.x + threadIdx.x;
-
-  if (elem >= nelem) return;
-
-  CeedScalar *out[5] = {0, 0, 0, 0, 0};
-  const CeedScalar *in[5] = {0, 0, 0, 0, 0};
-
-  if (inmode & CEED_EVAL_WEIGHT) {
-    in[4] = u + Q * nelem * nc * (dim + 1);
-  }
-
-  if (inmode & CEED_EVAL_INTERP) { in[0] = u + Q * nc * elem; }
-  if (inmode & CEED_EVAL_GRAD) { in[1] = u + Q * nc * (nelem + dim * elem); }
-  if (outmode & CEED_EVAL_INTERP) { out[0] = v + Q * nc * elem; }
-  if (outmode & CEED_EVAL_GRAD) { out[1] = v + Q * nc * (nelem + dim * elem); }
-  *ierr = qf(ctx, qdata + elem * Q * qdatasize, Q, in, out);
-  printf("%d\n", *ierr);
-}
-
 int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, CeedVector qdata, const CeedInt Q, const CeedInt nelem,
     const CeedVector u, CeedVector v) {
   int ierr;
@@ -49,21 +28,32 @@ int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, CeedVector qdata, const CeedI
   if (!data->ready) {
     data->ready = true;
     ierr = cudaMalloc(&data->d_c, cbytes); CeedChk(ierr);
-    ierr = cudaMallocManaged(&data->m_ierr, sizeof(int)); CeedChk(ierr);
+    ierr = cudaMalloc(&data->d_ierr, sizeof(int)); CeedChk(ierr);
   }
-
-  const CeedScalar *d_u = ((CeedVector_Cuda *)u->data)->d_array;
-  CeedScalar *d_v = ((CeedVector_Cuda *)u->data)->d_array;
-  char *d_q = (char *)((CeedVector_Cuda *)qdata->data)->d_array;
-
-  ierr = run1d(ceed, apply, 0, nelem, qf->cudafunction,
-      Q, data->nc, data->dim, qf->qdatasize, qf->inmode, qf->outmode,
-      d_u, d_v, data->d_c, d_q, data->m_ierr); CeedChk(ierr);
-  CeedChk(*data->m_ierr);
 
   if (cbytes > 0) {
-    ierr = cudaMemcpy(qf->ctx, data->d_c, cbytes, cudaMemcpyDeviceToHost); gpuErrchk((cudaError_t)ierr); //CeedChk(ierr);
+    ierr = cudaMemcpy(data->d_c, qf->ctx, cbytes, cudaMemcpyHostToDevice); CeedChk(ierr);
   }
+
+  const CeedScalar *d_u;
+  CeedScalar *d_v;
+  char *d_q;
+  CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u);
+  CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v);
+  CeedVectorGetArray(qdata, CEED_MEM_DEVICE, (CeedScalar**)&d_q);
+
+  ierr = run1d(ceed, qf->fcuda, 0, nelem,
+      Q, data->nc, data->dim, qf->qdatasize, qf->inmode, qf->outmode,
+      d_u, d_v, data->d_c, d_q, data->d_ierr); CeedChk(ierr);
+  cudaMemcpy(&ierr, data->d_ierr, sizeof(int), cudaMemcpyDeviceToHost); CeedChk(ierr);
+
+  if (cbytes > 0) {
+    ierr = cudaMemcpy(qf->ctx, data->d_c, cbytes, cudaMemcpyDeviceToHost); CeedChk(ierr);
+  }
+
+  CeedVectorRestoreArrayRead(u, &d_u);
+  CeedVectorRestoreArray(v, &d_v);
+  CeedVectorRestoreArray(qdata, (CeedScalar**)&d_q);
 
   return 0;
 }
@@ -74,50 +64,13 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, void *qdata, CeedInt Q,
   return 0;
 }
 
-/*
-static int CeedQFunctionApply_Cuda(CeedQFunction qf, void *qdata, CeedInt Q,
-                                  const CeedScalar *const *u,
-                                  CeedScalar *const *v) {
-  int ierr;
-  CeedQFunction_Cuda *data = (CeedQFunction_Cuda*) qf->data;
-
-  const CeedInt nc = data->nc, dim = data->dim;
-  const CeedInt ubytes = 5 * sizeof(CeedScalar*);
-  const CeedInt ready =  data->ready;
-  const CeedInt cbytes = qf->ctxsize;
-
-  if (!ready) {
-    data->ready = true;
-    ierr = cudaMalloc(&data->d_u, ubytes); CeedChk(ierr);
-    ierr = cudaMalloc(&data->d_v, ubytes); CeedChk(ierr);
-    ierr = cudaMalloc(&data->d_c, cbytes); CeedChk(ierr);
-  }
-
-  ierr = cudaMemcpy(data->d_u, u, ubytes, cudaMemcpyHostToDevice); CeedChk(ierr);
-  ierr = cudaMemcpy(data->d_v, v, ubytes, cudaMemcpyHostToDevice); CeedChk(ierr);
-  if (cbytes > 0) {
-    ierr = cudaMemcpy(data->d_c, qf->ctx, cbytes, cudaMemcpyHostToDevice); CeedChk(ierr);
-  }
-
-  (qf->cudafunction)<<<1,1>>>(data->d_c, qdata, Q, data->d_u, data->d_v, nc, dim);
-
-  ierr = cudaGetLastError(); CeedChk(ierr);
-
-  if (cbytes > 0) {
-    ierr = cudaMemcpy(qf->ctx, data->d_c, cbytes, cudaMemcpyDeviceToHost); CeedChk(ierr);
-  }
-
-  return 0;
-}
-*/
-
 static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   int ierr;
   CeedQFunction_Cuda *data = (CeedQFunction_Cuda *) qf->data;
 
   if (data->ready) {
     ierr = cudaFree(data->d_c); CeedChk(ierr);
-    ierr = cudaFree(data->m_ierr); CeedChk(ierr);
+    ierr = cudaFree(data->d_ierr); CeedChk(ierr);
   }
 
   ierr = CeedFree(&data); CeedChk(ierr);

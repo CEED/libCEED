@@ -49,7 +49,7 @@ typedef struct {
   bool ready;
   int nc, dim, nelem;
   void *d_c;
-  int *m_ierr;
+  int *d_ierr;
 } CeedQFunction_Cuda;
 
 typedef struct {
@@ -73,7 +73,11 @@ static int divup(int a, int b) {
 
 template <typename CudaFunc, typename... Args>
 int run1d(const Ceed_Cuda* ceed, CudaFunc f, const CeedInt sharedMem, const CeedInt a, Args... args) {
-  const int threads = std::min({a, ceed->optBlockSize, ceed->xThreadLimit});
+  int optThreads = 0;
+  int optBlocks = 0;
+  cudaOccupancyMaxPotentialBlockSize(&optBlocks, &optThreads, f, sharedMem, 0);
+
+  const int threads = std::min({a, optThreads, ceed->xThreadLimit});
   const int blocks = divup(a, threads);
   f<<<blocks, threads, sharedMem>>>(a, args...);
   return cudaGetLastError();
@@ -81,8 +85,12 @@ int run1d(const Ceed_Cuda* ceed, CudaFunc f, const CeedInt sharedMem, const Ceed
 
 template <typename CudaFunc, typename... Args>
 int run2d(const Ceed_Cuda* ceed, CudaFunc f, const CeedInt sharedMem, const CeedInt a, const CeedInt b, Args... args) {
-  const int threadsX = std::min({b, ceed->optBlockSize, ceed->xThreadLimit});
-  const int threadsY = std::min({a, ceed->optBlockSize / threadsX, ceed->yThreadLimit});
+  int optThreads = 0;
+  int optBlocks = 0;
+  cudaOccupancyMaxPotentialBlockSize(&optBlocks, &optThreads, f, sharedMem, 0);
+
+  const int threadsX = std::min({b, optThreads, ceed->xThreadLimit});
+  const int threadsY = std::min({a, optThreads / threadsX, ceed->yThreadLimit});
 
   const int blocksX = divup(b, threadsX);
   const int blocksY = divup(a, threadsY);
@@ -93,9 +101,13 @@ int run2d(const Ceed_Cuda* ceed, CudaFunc f, const CeedInt sharedMem, const Ceed
 
 template <typename CudaFunc, typename... Args>
 int run3d(const Ceed_Cuda* ceed, CudaFunc f, const CeedInt sharedMem, const CeedInt a, const CeedInt b, const CeedInt c, Args... args) {
-  const int threadsX = std::min({c, ceed->optBlockSize, ceed->xThreadLimit});
-  const int threadsY = std::min({b, ceed->optBlockSize / threadsX, ceed->yThreadLimit});
-  const int threadsZ = std::min({a, ceed->optBlockSize / (threadsX * threadsY), ceed->zThreadLimit});
+  int optThreads = 0;
+  int optBlocks = 0;
+  cudaOccupancyMaxPotentialBlockSize(&optBlocks, &optThreads, f, sharedMem, 0);
+
+  const int threadsX = std::min({c, optThreads, ceed->xThreadLimit});
+  const int threadsY = std::min({b, optThreads / threadsX, ceed->yThreadLimit});
+  const int threadsZ = std::min({a, optThreads / (threadsX * threadsY), ceed->zThreadLimit});
 
   const int blocksX = divup(c, threadsX);
   const int blocksY = divup(b, threadsY);

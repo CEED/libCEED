@@ -109,7 +109,8 @@ struct CeedQFunction_private {
   CeedInt nfields;
   size_t qdatasize;   // Number of bytes of qdata per quadrature point
   CeedEvalMode inmode, outmode;
-  CeedQFunctionCallback function, cudafunction;
+  CeedQFunctionCallback function;
+  CeedQFunctionKernel_Cuda fcuda; 
   const char *focca;
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */

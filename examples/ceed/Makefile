@@ -16,24 +16,28 @@
 
 # Ceed directory
 CEED_DIR ?= ../..
-CEED_FLAGS ?= -I$(CEED_DIR)/include 
-CEED_LIBS ?= -rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -lm
+CEED_FLAGS ?= -I$(CEED_DIR)/include -std=c99
+CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -lm
 
-EXAMPLES.cu = $(wildcard ex*.cu)
-EXAMPLES = $(EXAMPLES.cu:%.cu=%)
+CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
+               $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
+NVCC = $(CUDA_DIR)/bin/nvcc
+
+EXAMPLES.c = $(wildcard ex*.c)
+EXAMPLES = $(EXAMPLES.c:%.c=%)
 
 .SUFFIXES:
-.SUFFIXES: .cu
+.SUFFIXES: .c
 .PHONY: all clean
 
 all: $(EXAMPLES)
 
 # Remove built-in rules
-%: %.cu
+%: %.c
 
 # Rules for building the examples
-%: %.cu
-	nvcc $(CEED_FLAGS) $< -o $@ -Xlinker="$(CEED_LIBS)"
+%: %.c
+	$(LINK.c) $(CEED_FLAGS) $< -o $@ $(CEED_LIBS)
 
 clean:
 	rm -f *~ $(EXAMPLES)
