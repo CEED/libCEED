@@ -1,0 +1,867 @@
+C Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
+C the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
+C reserved. See files LICENSE and NOTICE for details.
+C
+C This file is part of CEED, a collection of benchmarks, miniapps, software
+C libraries and APIs for efficient high-order finite element and spectral
+C element discretizations for exascale applications. For more information and
+C source code availability see http://github.com/ceed.
+C
+C The CEED research is supported by the Exascale Computing Project (17-SC-20-SC)
+C a collaborative effort of two U.S. Department of Energy organizations (Office
+C of Science and the National Nuclear Security Administration) responsible for
+C the planning and preparation of a capable exascale ecosystem, including
+C software, applications, hardware, advanced system engineering and early
+C testbed platforms, in support of the nation's exascale computing imperative.
+
+C-----------------------------------------------------------------------
+      subroutine uservp(ix,iy,iz,eg) ! set variable properties
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      udiff  = 0.0
+      utrans = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf(ix,iy,iz,eg) ! set acceleration term
+c
+c     Note: this is an acceleration term, NOT a force!
+c     Thus, ffx will subsequently be multiplied by rho(x,t).
+c
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq(i,j,k,eg) ! set source term
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+      e = gllel(eg)
+
+      qvol   = 0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc(ix,iy,iz,f,eg) ! set up boundary conditions
+c     NOTE ::: This subroutine MAY NOT be called by every process
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer e,f,eg
+
+      ux   = 0.0
+      uy   = 0.0
+      uz   = 0.0
+      temp = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric(ix,iy,iz,eg) ! set up initial conditions
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer e,f,eg
+
+      ux   = 0.0
+      uy   = 0.0
+      uz   = 0.0
+      temp = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat   ! This routine to modify element vertices
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2  ! This routine to modify mesh coordinates
+      include 'SIZE'
+      include 'TOTAL'
+
+      x0 = 0
+      x1 = 1
+      call rescale_x(xm1,x0,x1)
+      call rescale_x(ym1,x0,x1)
+      call rescale_x(zm1,x0,x1)
+
+      param(59)=1  ! Force Nek to use the "deformed element" formulation
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine loc_grad3(ur,us,ut,u,n,D,Dt)
+
+c     Output: ur,us,ut         Input:u,n,D,Dt
+
+      real ur(0:n,0:n,0:n),us(0:n,0:n,0:n),ut(0:n,0:n,0:n)
+      real u (0:n,0:n,0:n)
+      real D (0:n,0:n),Dt(0:n,0:n)
+      integer e
+
+      m1 = n+1
+      m2 = m1*m1
+
+      call mxm(D ,m1,u,m1,ur,m2)
+      do k=0,n
+         call mxm(u(0,0,k),m1,Dt,m1,us(0,0,k),m1)
+      enddo
+      call mxm(u,m2,Dt,m1,ut,m1)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine loc_grad3t(u,ur,us,ut,N,D,Dt)
+c     Output: ur,us,ut         Input:u,N,D,Dt
+      real u (0:N,0:N,0:N)
+      real ur(0:N,0:N,0:N),us(0:N,0:N,0:N),ut(0:N,0:N,0:N)
+      real D (0:N,0:N),Dt(0:N,0:N)
+      integer e
+
+      m1 = N+1
+      m2 = m1*m1
+      m3 = m1*m1*m1
+
+      call mxm (Dt,m1,ur,m1,u,m2)
+      do k=0,N
+         call mxma(us(0,0,k),m1,D ,m1,u(0,0,k),m1)
+      enddo
+      call mxma(ut,m2,D ,m1,u,m1)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine loc_grad2(ur,us,u,n,D,Dt)
+c     Output: ur,us         Input:u,n,D,Dt
+      real ur(0:n,0:n,0:n),us(0:n,0:n,0:n)
+      real u (0:n,0:n,0:n)
+      real D (0:n,0:n),Dt(0:n,0:n)
+      integer e
+
+      m1 = n+1
+      m2 = m1
+
+      call mxm(D ,m1,u,m1,ur,m2)
+      call mxm(u,m2,Dt,m1,us,m1)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine loc_grad2t(u,ur,us,N,D,Dt)
+c     Output: ur,us         Input:u,N,D,Dt
+      real u (0:N,0:N,0:N)
+      real ur(0:N,0:N,0:N),us(0:N,0:N,0:N)
+      real D (0:N,0:N),Dt(0:N,0:N)
+      integer e
+
+      m1 = N+1
+      m2 = m1
+
+      call mxm (Dt,m1,ur,m1,u,m2)
+      call mxma(us,m2,D ,m1,u,m1)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine xmask    (r1,r2,r3,nelv)
+      real r1(1),r2(1),r3(1)
+
+      call rmask    (r1,r2,r3,nelv)
+      return
+
+      end
+c-----------------------------------------------------------------------
+      subroutine xmask1   (r1,nel)
+      include 'SIZE'
+      include 'TOTAL'
+      real r1(1)
+
+      n=nx1*ny1*nz1*nelt
+      do i=1,n
+         r1(i)=r1(i)*v1mask(i,1,1,1)
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine geodatstd(gf)
+
+c     New routine to generate elemental geometric matrices on mesh 1
+c     (Gauss-Legendre Lobatto mesh).
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      parameter (lg=3+3*(ldim-2),lxyd=lx1**ldim)
+
+      real gf(lg,lx1**ldim,lelt)
+
+      common /ctmp1/ xr(lxyd),xs(lxyd),xt(lxyd)
+      common /sxrns/ yr(lxyd),ys(lxyd),yt(lxyd)
+     $ ,             zr(lxyd),zs(lxyd),zt(lxyd)
+
+      common /dxmfine/ dxmq(lx1,lx1), dxtmq(lx1,lx1)
+
+      integer e
+      real jacmq
+
+      nxyz = lx1**ldim
+      n    = lx1-1
+
+      call copy( dxmq, dxm1,lx1*lx1)
+      call copy(dxtmq,dxtm1,lx1*lx1)
+
+      if (ldim.eq.3) then
+       do e=1,nelt
+
+         call loc_grad3 (xr,xs,xt,xm1(1,1,1,e),n,dxm1,dxtm1)
+         call loc_grad3 (yr,ys,yt,ym1(1,1,1,e),n,dxm1,dxtm1)
+         call loc_grad3 (zr,zs,zt,zm1(1,1,1,e),n,dxm1,dxtm1)
+
+         do i=1,nxyz
+            jacmq      = xr(i)*(ys(i)*zt(i)-yt(i)*zs(i))
+     $                 - xs(i)*(yr(i)*zt(i)-yt(i)*zr(i))
+     $                 + xt(i)*(yr(i)*zs(i)-ys(i)*zr(i))
+            a11 = xr(i)
+            a12 = xs(i)
+            a13 = xt(i)
+            a21 = yr(i)
+            a22 = ys(i)
+            a23 = yt(i)
+            a31 = zr(i)
+            a32 = zs(i)
+            a33 = zt(i)
+
+            g11 = (a22*a33-a23*a32)/jacmq
+            g12 = (a13*a32-a33*a12)/jacmq
+            g13 = (a12*a23-a22*a13)/jacmq
+
+            g21 = (a23*a31-a21*a33)/jacmq
+            g22 = (a11*a33-a31*a13)/jacmq
+            g23 = (a13*a21-a23*a11)/jacmq
+
+            g31 = (a21*a32-a22*a31)/jacmq
+            g32 = (a12*a31-a32*a11)/jacmq
+            g33 = (a11*a22-a21*a12)/jacmq
+
+            scale     = w3m1(i,1,1)*jacmq
+
+            gf(1,i,e) = scale*(g11*g11+g12*g12+g13*g13) ! Grr
+            gf(2,i,e) = scale*(g11*g21+g12*g22+g13*g23) ! Grs
+            gf(3,i,e) = scale*(g11*g31+g12*g32+g13*g33) ! Grt
+            gf(4,i,e) = scale*(g21*g21+g22*g22+g23*g23) ! Gss
+            gf(5,i,e) = scale*(g21*g31+g22*g32+g23*g33) ! Gst
+            gf(6,i,e) = scale*(g31*g31+g32*g32+g33*g33) ! Gtt
+
+         enddo
+       enddo
+      else
+       call exitti('No 2D gf q yet...$',nelv)
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine setprecn (d,h1,h2) !  diag preconditioner
+
+C     Generate diagonal preconditioner for Helmholtz operator.
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      n     = nelv*lx1*ly1*lz1
+      call rone (d,n)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine sin_fld_h1(e,r)
+
+      include 'SIZE'
+      include 'TOTAL'
+      real x, y, z
+      real e(1), r(1)
+
+      n=lx1*ly1*lz1*nelt
+      one = 1.
+      pi = 4.0*atan(one)
+
+      do i=1,n
+        x=xm1(i,1,1,1)
+        y=ym1(i,1,1,1)
+        z=zm1(i,1,1,1)
+        e(i) = sin(pi*x)*sin(pi*y)*sin(pi*z)
+        r(i) = ((pi*pi)*3)*e(i)
+
+      enddo
+
+      call dsavg(e)  ! This is requisite for random fields
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine setupf(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
+      integer q,ierr
+      real*8 ctx(1)
+      real*8 u1(1)
+      real*8 u2(1)
+      real*8 u3(1)
+      real*8 qdata(6,q)
+      real*8 jacmq
+
+      do i=1,q
+        a11=u2(i+q*0)
+        a21=u2(i+q*1)
+        a31=u2(i+q*2)
+
+        a12=u2(i+q*3)
+        a22=u2(i+q*4)
+        a32=u2(i+q*5)
+
+        a13=u2(i+q*6)
+        a23=u2(i+q*7)
+        a33=u2(i+q*8)
+
+        jacmq = a11*(a22*a33-a23*a32)
+     $        - a12*(a21*a33-a23*a31)
+     $        + a13*(a21*a32-a22*a31)
+
+        g11 = (a22*a33-a23*a32)/jacmq
+        g12 = (a13*a32-a33*a12)/jacmq
+        g13 = (a12*a23-a22*a13)/jacmq
+
+        g21 = (a23*a31-a21*a33)/jacmq
+        g22 = (a11*a33-a31*a13)/jacmq
+        g23 = (a13*a21-a23*a11)/jacmq
+
+        g31 = (a21*a32-a22*a31)/jacmq
+        g32 = (a12*a31-a32*a11)/jacmq
+        g33 = (a11*a22-a21*a12)/jacmq
+
+        scl = u3(i)*jacmq
+
+        qdata(1,i) = scl*(g11*g11+g12*g12+g13*g13) ! Grr
+        qdata(2,i) = scl*(g11*g21+g12*g22+g13*g23) ! Grs
+        qdata(3,i) = scl*(g11*g31+g12*g32+g13*g33) ! Grt
+        qdata(4,i) = scl*(g21*g21+g22*g22+g23*g23) ! Gss
+        qdata(5,i) = scl*(g21*g31+g22*g32+g23*g33) ! Gst
+        qdata(6,i) = scl*(g31*g31+g32*g32+g33*g33) ! Gtt
+
+      enddo
+
+      ierr=0
+      end
+c-----------------------------------------------------------------------
+      subroutine diffusionf(ctx,qdata,q,u1,u2,u3,v1,v2,ierr)
+      integer q,ierr
+      real*8 ctx
+      real*8 u1(1)
+      real*8 u2(1)
+      real*8 u3(1)
+      real*8 v1(1)
+      real*8 v2(1)
+      real*8 qdata(6,q)
+
+      do i=1,q
+        v2(i+0*q)=
+     $     qdata(1,i)*u2(i)+qdata(2,i)*u2(i+q)+qdata(3,i)*u2(i+2*q)
+        v2(i+1*q)=
+     $     qdata(2,i)*u2(i)+qdata(4,i)*u2(i+q)+qdata(5,i)*u2(i+2*q)
+        v2(i+2*q)=
+     $     qdata(3,i)*u2(i)+qdata(5,i)*u2(i+q)+qdata(6,i)*u2(i+2*q)
+      enddo
+
+      ierr=0
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+
+      if (istep.eq.0) call bp5
+
+      end
+c-----------------------------------------------------------------------
+      subroutine bp5
+      include 'SIZE'
+      include 'TOTAL'
+      include 'CTIMER'  ! ifsync
+      include 'FDMH1'
+      include 'ceedf.h'
+
+      parameter (lzq=lx1)
+      parameter (lx=lx1*ly1*lz1,lg=3+3*(ldim-2),lq=lzq**ldim)
+      common /bpgfactstd/ gf(lg*lq,lelt)
+
+      parameter (lt=lx1*ly1*lz1*lelt)
+      parameter (ld=lxd*lyd*lzd*lelt)
+      common /vcrns/ u1(lt),u2(lt),u3(lt),r1(lt),r2(lt),r3(lt)
+      common /vcrny/ t1(lt),t2(lt),t3(lt),e1(lt),e2(lt),e3(lt)
+      common /vcrnz/ z1(lt),z2(lt),z3(lt)
+      common /vcrvh/ h1(lt),h2(ld),pap(3)
+      real*8 coords(ldim*lx*lelt)
+
+      logical ifh3
+      integer*8 ndof
+      integer ceed,err
+      character*64 spec
+
+      integer p,q,ncomp,edof,ldof
+      integer basisu,basisx
+      integer erstrctu,erstrctx
+      integer qdata
+      integer qf_diffusion,qf_setup
+      integer op_diffusion,op_setup
+      integer vec_p1,vec_ap1,vec_qdata,vec_coords
+      integer ii,i,e,ngeo,nlt
+
+      external diffusionf,setupf
+
+c     Init ceed library
+      call get_spec(spec)
+      call ceedinit(trim(spec)//char(0),ceed,err)
+
+      ifield = 1
+      n      = nx1*ny1*nz1*nelt
+      nzq    = nx1
+
+      call geodatstd  (gf)
+      call sin_fld_h1 (e1,r1)
+c     call rand_fld_h1 (e1)
+
+      call xmask1     (e1,nelt)
+      call axhm1(pap,r1,e1,h1,h2,'bp5')   ! r1 = A*e1
+      call dssum(r1,nx1,ny1,nz1)
+      call xmask1(r1,nelt)
+
+      tol       = 1.e-8
+      maxit     = 100
+
+      nio       = nid
+
+      call nekgsync()
+
+c     Create ceed basis for mesh and computation
+      p=nx1
+      q=p
+      ncomp=1
+      call ceedbasiscreatetensorh1lagrange(ceed,ldim,3*ncomp,p,q,
+     $  ceed_gauss,basisx,err)
+      call ceedbasiscreatetensorh1lagrange(ceed,ldim,ncomp,p,q,
+     $  ceed_gauss,basisu,err)
+
+c     Create ceed element restrictions for mesh and computation
+      edof=nx1**ldim
+      ldof=edof*nelt*ncomp
+      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,
+     $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
+     $  erstrctx,err)
+
+      edof=nx1**ldim
+      ldof=edof*nelt*ncomp
+      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,
+     $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
+     $  erstrctu,err)
+
+c     Create ceed qfunctions for setupf and diffusionf
+      ngeo=(ldim*(ldim+1))/2
+      call ceedqfunctioncreateinterior(ceed,1,ncomp,ngeo*8,
+     $  ior(ceed_eval_weight,ceed_eval_grad),ceed_eval_none,setupf,
+     $  __FILE__
+     $  //':setupf'//char(0),qf_setup,err)
+
+      call ceedqfunctioncreateinterior(ceed,1,ncomp,ngeo*8,
+     $  ceed_eval_grad,ceed_eval_grad,diffusionf,
+     $  __FILE__
+     $  //':diffusionf'//char(0),qf_diffusion,err)
+
+c     Create a ceed operator
+      call ceedoperatorcreate(ceed,erstrctx,basisx,qf_setup,
+     $  ceed_null,ceed_null,op_setup,err)
+      call ceedoperatorcreate(ceed,erstrctu,basisu,qf_diffusion,
+     $  ceed_null,ceed_null,op_diffusion,err)
+
+c     Create ceed vectors
+      call ceedvectorcreate(ceed,ldof,vec_p1,err)
+      call ceedvectorcreate(ceed,ldof,vec_ap1,err)
+      call ceedoperatorgetqdata(op_setup,vec_qdata,err)
+
+      nlt=lx1*ly1*lz1*nelt
+      ii=0
+      do j=0,nelt-1
+      do i=1,lx
+        ii=ii+1
+        coords(i+0*lx+3*j*lx)=xm1(ii,1,1,1)
+        coords(i+1*lx+3*j*lx)=ym1(ii,1,1,1)
+        coords(i+2*lx+3*j*lx)=zm1(ii,1,1,1)
+      enddo
+      enddo
+
+      call ceedvectorcreate(ceed,3*nlt,vec_coords,err)
+      call ceedvectorsetarray(vec_coords,ceed_mem_host,
+     $  ceed_use_pointer,coords,err)
+      call ceedoperatorapply(op_setup,vec_qdata,vec_coords,ceed_null,
+     $  ceed_request_immediate,err)
+
+      tstart = dnekclock()
+      call cggos(u1,r1,e1,vmult,binvm1,tol,ceed,op_diffusion,
+     $  vec_p1,vec_ap1,vec_qdata,maxit,'bp5')
+      tstop  = dnekclock()
+      telaps = (tstop-tstart)
+      maxits = maxit
+
+      nio    = nid
+      nx     = nx1-1
+      ndof   = nelgt ! ndofs
+      ndof   = ndof*(nx**ldim) ! ndofs
+      nppp   = ndof/np         ! ndofs/proc
+
+      dofpss = ndof/telaps   ! DOF/sec - scalar form
+      titers = telaps/maxits ! time per iteration
+      tppp_s = titers/nppp   ! time per iteraton per local point
+
+      if (nid.eq.0) write(6,1) 'case scalar:'
+     $ ,np,nx,nelt,nelgt,ndof,nppp,maxits,telaps,dofpss,titers,tppp_s
+    1 format(a12,i7,i3,i7,i10,i14,i10,i4,1p4e13.5)
+
+c     Destroy ceed handles
+      call ceedvectordestroy(vec_ap1,err)
+      call ceedvectordestroy(vec_p1,err)
+      call ceedoperatordestroy(op_diffusion,err)
+      call ceedoperatordestroy(op_setup,err)
+      call ceedqfunctiondestroy(qf_diffusion,err)
+      call ceedqfunctiondestroy(qf_setup,err)
+      call ceedelemrestrictiondestroy(erstrctx,err)
+      call ceedelemrestrictiondestroy(erstrctu,err)
+      call ceedbasisdestroy(basisu,err)
+      call ceedbasisdestroy(basisx,err)
+      call ceeddestroy(ceed,err)
+
+c     Uncomment the exitti command below if you want to quit as soon as
+c     we are done with timing. But this will exit with a non-zero status
+c     and will print out an error message.
+c      call exitti('quit after cggos$',0)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      function glrdif(x,y,n)
+      real x(n),y(n)
+
+      dmx=0
+      xmx=0
+      ymx=0
+
+      do i=1,n
+         diff=abs(x(i)-y(i))
+         dmx =max(dmx,diff)
+         xmx =max(xmx,x(i))
+         ymx =max(ymx,y(i))
+      enddo
+
+      xmx = max(xmx,ymx)
+      dmx = glmax(dmx,1) ! max across processors
+      xmx = glmax(xmx,1)
+
+      if (xmx.gt.0) then
+         glrdif = dmx/xmx
+      else
+         glrdif = -dmx  ! Negative indicates something strange
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine set_h2_as_rhoJac_GL(h2,nxq)
+      include 'SIZE'
+      real h2(1)
+
+      common /ctmp77/ wd(lxd),zd(lxd)
+      integer e
+
+      call zwgl(zd,wd,nxq)  ! nxq = number of points
+
+
+      q    = 1.0   ! Later, this can be a function of position...
+
+      L=0
+      do e=1,nelt
+      do k=1,nxq
+      do j=1,nxq
+      do i=1,nxq
+         L=L+1
+         h2(L) = q*wd(i)*wd(j)*wd(k)
+      enddo
+      enddo
+      enddo
+      enddo
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine cggos(u1,rhs1,x1,rmult,binv,tin,ceed,op_diffusion,
+     $  vec_p1,vec_ap1,vec_qdata,maxit,bpname)
+
+c     Scalar conjugate gradient iteration for solution of uncoupled
+c     Helmholtz equations
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'DOMAIN'
+      include 'FDMH1'
+      character*3 bpname
+
+c     INPUT:  rhs1 - rhs
+c             x1   - exact solution for convergence checking
+
+      real u1(1),rhs1(1),x1(1),rmult(1),binv(1)
+      parameter (lt=lx1*ly1*lz1*lelt)
+      parameter (ld=lxd*lyd*lzd*lelt)
+      common /scrcg/ dpc(lt),r1(lt),p1(lt),z1(lt)
+      common /vcrvh/ h1(lt),h2(ld),pap(3)
+      common /scrca/ wv(4),wk(4),rpp1(4),rpp2(4),alph(4),beta(4)!,pap(4)
+
+      integer ceed,op_diffusion,vec_p1,vec_ap1,vec_qdata
+
+      real ap1(lt)
+      equivalence (ap1,z1)
+
+      vol   = volfld(ifield)
+      nel   = nelfld(ifield)
+      nxyz  = lx1*ly1*lz1
+      n     = nxyz*nel
+      nx    = nx1-1             ! Polynomial order (just for i/o)
+
+      tol=tin
+
+      call setprecn(dpc,h1,h2) ! Set up diagional pre-conidtioner
+
+      call rzero(u1,n)      ! Initialize solution
+      call copy(r1,rhs1,n) ! Initialize residual
+
+      wv(1)=0
+      do i=1,n
+         s=rmult(i)                   !      -1
+         p1(i)=dpc(i)*r1(i)           ! p = M  r      T
+         wv(1)=wv(1)+s*p1(i)*r1(i)    !              r p
+      enddo
+      call gop(wv,wk,'+  ',1)
+      rpp1(1) = wv  (1)
+
+      do 1000 iter=1,maxit
+c        call axhm1_bp5_orig(pap,ap1,p1,h1,h2)
+c        call axhm1_bp5(pap,ap1,p1,h1,h2,ceed,op_diffusion,
+c    $     vec_ap1,vec_p1,vec_qdata,bpname)
+         call dssum     (ap1,nx1,ny1,nz1)
+         call xmask1(ap1,nel)
+
+         call gop      (pap,wk,'+  ',1)
+         alph(1) = rpp1(1)/pap(1)
+
+         do i=1,n
+            u1(i)=u1(i)+alph(1)* p1(i)
+            r1(i)=r1(i)-alph(1)*ap1(i)
+         enddo
+
+         call rzero(wv,2)       ! tolerance check here
+         do i=1,n
+            s=abs(u1(i)-x1(i))  ! u-uexact
+            wv(1)=max(wv(1),s)                 !      -1
+            z1(i)=dpc(i)*r1(i)                 ! z = M  r
+            wv(2)=wv(2)+rmult(i)*z1(i)*r1(i)   ! r z
+         enddo
+         call gop(wv,wk,'M  ',2)
+
+c       if (nio.eq.0) write(6,1) ifield,istep,iter,nx,(wv(k),k=1,1)
+  1     format(i2,i9,i5,i4,1p1e12.4,' cggos')
+
+         enorm=wv(1)
+         if (enorm.lt.tol) then
+            ifin = iter
+            if (nio.eq.0) write(6,3000) istep,ifin,enorm,tol
+            goto 9999
+         endif
+
+        if (nio.eq.0) write(6,2) iter,enorm,alph(1),pap(1),'alpha'
+ 2      format(i5,1p3e12.4,2x,a5)
+
+         rpp2(1)=rpp1(1)
+         rpp1(1)=wv  (1+1)
+         beta1  =rpp1(1)/rpp2(1)
+         do i=1,n
+            p1(i)=z1(i) + beta1*p1(i)
+         enddo
+
+ 1000 continue
+
+      rbnorm=wv(2)
+      if (nio.eq.0) write (6,3001) istep,iter,rbnorm,tol
+      iter = iter-1
+
+ 9999 continue
+
+      maxit=iter
+
+ 3000 format(i12,1x,'cggo scalar:',i6,1p5e13.4)
+ 3001 format(2i6,' Unconverged cggo scalar: rbnorm =',1p2e13.6)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine axhm1_bp5_ceed(pap,ap1,p1,h1,h2,ceed,op_diffusion,
+     $  vec_ap1,
+     $  vec_p1,vec_qdata)
+
+      include 'ceedf.h'
+
+c     Vector conjugate gradient matvec for solution of uncoupled
+c     Helmholtz equations
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      parameter (lzq=lx1)
+      parameter (lx=lx1*ly1*lz1,lg=3+3*(ldim-2),lq=lzq**ldim)
+      common /bpgfactors/ gf(lg*lq,lelt),bmq(lq,lelt),w3mq(lq)
+
+      real ap1(lx,lelt)
+      real  p1(lx,lelt)
+      integer ceed,op_diffusion,vec_p1,vec_ap1,vec_qdata
+
+      common /ctmp1/ ur,us,ut,wk
+      real ur(lq),us(lq),ut(lq),wk(lq)
+
+      integer e
+
+      call ceedvectorsetarray(vec_p1,ceed_mem_host,ceed_use_pointer,
+     $  p1,err)
+      call ceedoperatorapply(op_diffusion,vec_qdata,vec_p1,vec_ap1,
+     $  ceed_request_immediate,err)
+      call ceedvectorgetarray(vec_ap1,ceed_mem_host,ap1,err)
+
+      pap=0.
+
+      do e=1,nelt
+         do i=1,lx
+           pap=pap+p1(i,e)*ap1(i,e)
+         enddo
+      enddo
+
+      return
+      end
+c----------------------------------------------------------------------
+      subroutine axhm1(pap,ap1,p1,h1,h2,bpname)
+
+c     Vector conjugate gradient matvec for solution of uncoupled
+c     Helmholtz equations
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      real pap, ap1(1), p1(1)
+      real h1(1), h2(1)
+
+      character*3 bpname
+
+      call axhm1_bp5(pap,ap1,p1,h1,h2)
+
+      return
+      end
+c----------------------------------------------------------------------
+      subroutine axhm1_bp5(pap,ap1,p1,h1,h2)
+
+c     local matvec on std GLL points
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      parameter (lx=lx1*ly1*lz1,lg=3+3*(ldim-2),lq=lx1**ldim)
+      common /bpgfactstd/ gf(lg*lq,lelt)
+
+      real ap1(lx,lelt)
+      real  p1(lx,lelt)
+
+      common /ctmp2/ ur,us,ut,wk
+      real ur(lq),us(lq),ut(lq),wk(lq)
+
+      integer e
+
+      pap=0.
+
+      do e=1,nelt
+
+         call ax_e_bp5(ap1(1,e),p1(1,e),gf(1,e),ur,us,ut,wk)
+         do i=1,lx
+           pap=pap+p1(i,e)*ap1(i,e)
+         enddo
+
+      enddo
+
+      return
+      end
+
+c-----------------------------------------------------------------------
+      subroutine ax_e_bp5(w,u,g,ur,us,ut,wk) ! Local matrix-vector product
+      include 'SIZE'
+      include 'TOTAL'
+
+      parameter (lxyz=lx1*ly1*lz1)
+
+      real ur(lxyz),us(lxyz),ut(lxyz),wk(lxyz)
+      real w(lxyz),u(lxyz),g(2*ldim,lxyz)
+
+      n = lx1-1
+      call loc_grad3  (ur,us,ut,u,n,dxm1,dxtm1)
+
+      do i=1,lxyz
+         wr = g(1,i)*ur(i) + g(2,i)*us(i) + g(3,i)*ut(i)
+         ws = g(2,i)*ur(i) + g(4,i)*us(i) + g(5,i)*ut(i)
+         wt = g(3,i)*ur(i) + g(5,i)*us(i) + g(6,i)*ut(i)
+         ur(i) = wr
+         us(i) = ws
+         ut(i) = wt
+      enddo
+
+      call loc_grad3t (w,ur,us,ut,n,dxm1,dxtm1)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine get_spec(spec)
+      integer i
+      character*64 spec
+
+      spec = '/cpu/self'
+      if(iargc().ge.1) then
+        call getarg(1, spec)
+      endif
+      end
+c-----------------------------------------------------------------------

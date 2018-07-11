@@ -32,7 +32,7 @@
 #CC=
 
 ## list of examples to make
-EXAMPLES=(bp1 bp3)
+EXAMPLES=(bp5)
 
 ###############################################################################
 # DONT'T TOUCH WHAT FOLLOWS !!!

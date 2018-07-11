@@ -30,7 +30,7 @@ fi
 
 # Set defaults for the parameters
 : ${CEED_DIR:=`cd ../../; pwd`}
-nek_examples=(bp1 bp3)
+nek_examples=(bp5)
 nek_spec=/cpu/self
 nek_np=1
 nek_box=
