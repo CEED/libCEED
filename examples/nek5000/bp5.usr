@@ -473,9 +473,9 @@ c     Create ceed basis for mesh and computation
       q=p
       ncomp=1
       call ceedbasiscreatetensorh1lagrange(ceed,ldim,3*ncomp,p,q,
-     $  ceed_gauss,basisx,err)
+     $  ceed_gauss_lobatto,basisx,err)
       call ceedbasiscreatetensorh1lagrange(ceed,ldim,ncomp,p,q,
-     $  ceed_gauss,basisu,err)
+     $  ceed_gauss_lobatto,basisu,err)
 
 c     Create ceed element restrictions for mesh and computation
       edof=nx1**ldim
@@ -599,34 +599,6 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
-      subroutine set_h2_as_rhoJac_GL(h2,nxq)
-      include 'SIZE'
-      real h2(1)
-
-      common /ctmp77/ wd(lxd),zd(lxd)
-      integer e
-
-      call zwgl(zd,wd,nxq)  ! nxq = number of points
-
-
-      q    = 1.0   ! Later, this can be a function of position...
-
-      L=0
-      do e=1,nelt
-      do k=1,nxq
-      do j=1,nxq
-      do i=1,nxq
-         L=L+1
-         h2(L) = q*wd(i)*wd(j)*wd(k)
-      enddo
-      enddo
-      enddo
-      enddo
-
-
-      return
-      end
-c-----------------------------------------------------------------------
       subroutine cggos(u1,rhs1,x1,rmult,binv,tin,ceed,op_diffusion,
      $  vec_p1,vec_ap1,vec_qdata,maxit,bpname)
 
@@ -677,9 +649,9 @@ c             x1   - exact solution for convergence checking
       rpp1(1) = wv  (1)
 
       do 1000 iter=1,maxit
-c        call axhm1_bp5_orig(pap,ap1,p1,h1,h2)
-c        call axhm1_bp5(pap,ap1,p1,h1,h2,ceed,op_diffusion,
-c    $     vec_ap1,vec_p1,vec_qdata,bpname)
+c        call axhm1(pap,ap1,p1,h1,h2)
+         call axhm1_ceed(pap,ap1,p1,h1,h2,ceed,op_diffusion,
+     $     vec_ap1,vec_p1,vec_qdata,bpname)
          call dssum     (ap1,nx1,ny1,nz1)
          call xmask1(ap1,nel)
 
@@ -736,7 +708,7 @@ c       if (nio.eq.0) write(6,1) ifield,istep,iter,nx,(wv(k),k=1,1)
       return
       end
 c-----------------------------------------------------------------------
-      subroutine axhm1_bp5_ceed(pap,ap1,p1,h1,h2,ceed,op_diffusion,
+      subroutine axhm1_ceed(pap,ap1,p1,h1,h2,ceed,op_diffusion,
      $  vec_ap1,
      $  vec_p1,vec_qdata)
 
