@@ -51,10 +51,6 @@ int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, CeedVector qdata, const CeedI
     ierr = cudaMemcpy(qf->ctx, data->d_c, cbytes, cudaMemcpyDeviceToHost); CeedChk(ierr);
   }
 
-  CeedVectorRestoreArrayRead(u, &d_u);
-  CeedVectorRestoreArray(v, &d_v);
-  CeedVectorRestoreArray(qdata, (CeedScalar**)&d_q);
-
   return 0;
 }
 

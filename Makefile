@@ -24,7 +24,7 @@ NVCC = $(CUDA_DIR)/bin/nvcc
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
-NDEBUG ?= 1
+NDEBUG ?=
 
 LDFLAGS ?=
 UNDERSCORE ?= 1
@@ -57,7 +57,7 @@ ifeq ($(UNDERSCORE), 1)
 endif
 
 FFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
-NVCCFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
+NVCCFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g -lineinfo)
 
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
