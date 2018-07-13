@@ -16,8 +16,17 @@
 
 # Ceed directory
 CEED_DIR ?= ../..
-CEED_FLAGS ?= -I$(CEED_DIR)/include
-CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed
+
+NVCC ?= nvcc
+ifeq ($(shell which $(NVCC)),)
+	CC = $(MFEM_CXX)
+	CEED_FLAGS += -I$(CEED_DIR)/include -std=c99
+	CEED_LIBS += -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -lm
+else
+	CC = $(NVCC)
+	CEED_FLAGS += -I$(CEED_DIR)/include -x=cu
+	CEED_LIBS += -Xlinker="-rpath,$(abspath $(CEED_DIR)/lib)" -L$(CEED_DIR)/lib -lceed -lm -lcudart
+endif
 
 # Use an MFEM build directory or an MFEM install directory
 MFEM_DIR ?= ../../../mfem
@@ -41,8 +50,7 @@ all: $(MFEM_EXAMPLES)
 
 # Rules for building the examples
 %: %.cpp $(CONFIG_MK) $(MFEM_LIB_FILE)
-	$(MFEM_CXX) $(CEED_FLAGS) $(MFEM_FLAGS) $(MFEM_DEF) $< -o $@ \
-	  $(CEED_LIBS) $(MFEM_LIBS)
+	$(CC) $(CEED_FLAGS) $(MFEM_FLAGS) $(MFEM_DEF) $< -o $@ $(CEED_LIBS) $(MFEM_LIBS)
 
 # Generate an error message if the MFEM library is not built and exit
 $(MFEM_LIB_FILE):

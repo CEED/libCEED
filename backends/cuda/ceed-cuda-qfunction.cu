@@ -29,6 +29,7 @@ int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, CeedVector qdata, const CeedI
     data->ready = true;
     ierr = cudaMalloc(&data->d_c, cbytes); CeedChk(ierr);
     ierr = cudaMalloc(&data->d_ierr, sizeof(int)); CeedChk(ierr);
+    ierr = cudaMemset(data->d_ierr, 0, sizeof(int)); CeedChk(ierr);
   }
 
   if (cbytes > 0) {

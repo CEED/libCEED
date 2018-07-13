@@ -84,6 +84,11 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector qdata,
   }*/
   ierr = CeedBasisApplyElems_Cuda(op->basis, nelem, CEED_TRANSPOSE, op->qf->outmode, data->BEv, data->etmp);
   if (residual) {
+    CeedScalar *d_r;
+    CeedVectorGetArray(residual, CEED_MEM_DEVICE, &d_r);
+    ierr = cudaMemset(d_r, 0, residual->length * sizeof(CeedScalar)); CeedChk(ierr);
+    CeedVectorRestoreArray(residual, &d_r);
+
     ierr = CeedElemRestrictionApply(op->Erestrict, CEED_TRANSPOSE,
                                     nc, lmode, data->etmp, residual,
                                     CEED_REQUEST_IMMEDIATE); CeedChk(ierr);

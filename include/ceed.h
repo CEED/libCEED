@@ -255,7 +255,10 @@ __global__ void apply(const CeedInt nelem, const CeedInt Q, const CeedInt nc, co
   if (inmode & CEED_EVAL_WEIGHT) { in[4] = u; u += Q; }
   if (outmode & CEED_EVAL_INTERP) { out[0] = v + Q * nc * elem; v += Q * nc * nelem; }
   if (outmode & CEED_EVAL_GRAD) { out[1] = v + Q * nc * dim * elem; v += Q * nc * dim * nelem; }
-  *ierr = callback(ctx, qdata + elem * Q * qdatasize, Q, in, out);
+  int e = callback(ctx, qdata + elem * Q * qdatasize, Q, in, out);
+  if (e) {
+    atomicOr(ierr, e);
+  }
 }
 
 #define CEED_CUDA
