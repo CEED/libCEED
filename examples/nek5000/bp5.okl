@@ -25,7 +25,7 @@ kernel void setupf(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
                   CeedScalar *v, CeedScalar *bv) {
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    gCeedScalar *w = ((gCeedScalar*)qdata)+e*6*Q;
+    gCeedScalar *w = ((gCeedScalar*)qdata)+0*6*Q;
     const gCeedScalar *u1 = u+Q*NC; // u2 in fortran
     const gCeedScalar *u4 = u+Q*NC*(DIM+1); // u3 in fortran
 
@@ -61,7 +61,8 @@ kernel void setupf(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
     const gCeedScalar g32 = (a12*a31-a32*a11)/jacmq;
     const gCeedScalar g33 = (a11*a22-a21*a12)/jacmq;
 
-    const gCeedScalar scl = u4[i]*jacmq;
+    gCeedScalar scl = u4[i]*jacmq;
+    if(scl < 0) scl=-1*scl;
 
     w[0+i*6] = scl*(g11*g11+g12*g12+g13*g13);
     w[1+i*6] = scl*(g11*g21+g12*g22+g13*g23);
@@ -78,7 +79,7 @@ kernel void diffusionf(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
                  CeedScalar *v, CeedScalar *bv) {
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
-    const gCeedScalar *w = ((gCeedScalar*)qdata)+e*6*Q;
+    const gCeedScalar *w = ((gCeedScalar*)qdata)+0*6*Q;
     const gCeedScalar *u1 = u+Q*NC; // u2 in fortran
 //  const CeedInt offset = e*(Q*NC*(DIM+2));
 //  const gCeedScalar *o_bu = bu+offset;
