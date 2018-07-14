@@ -367,7 +367,7 @@ c-----------------------------------------------------------------------
         g32 = (a12*a31-a32*a11)/jacmq
         g33 = (a11*a22-a21*a12)/jacmq
 
-        scl = u3(i)*jacmq
+        scl = abs(u3(i)*jacmq)
 
         qdata(1,i) = scl*(g11*g11+g12*g12+g13*g13) ! Grr
         qdata(2,i) = scl*(g11*g21+g12*g22+g13*g23) ! Grs
@@ -457,7 +457,7 @@ c     Init ceed library
       call sin_fld_h1 (e1,r1)
 c     call rand_fld_h1 (e1)
 
-      call xmask1     (e1,nelt)
+      call xmask1(e1,nelt)
       call axhm1(pap,r1,e1,h1,h2,'bp5')   ! r1 = A*e1
       call dssum(r1,nx1,ny1,nz1)
       call xmask1(r1,nelt)
@@ -575,7 +575,7 @@ c     Destroy ceed handles
 c     Uncomment the exitti command below if you want to quit as soon as
 c     we are done with timing. But this will exit with a non-zero status
 c     and will print out an error message.
-c      call exitti('quit after cggos$',0)
+c     call exitti('quit after cggos$',0)
 
       return
       end
@@ -637,14 +637,14 @@ c             x1   - exact solution for convergence checking
       vol   = volfld(ifield)
       nel   = nelfld(ifield)
       nxyz  = lx1*ly1*lz1
-      n     = nxyz*nel
+      n     = nxyz*nelt
       nx    = nx1-1             ! Polynomial order (just for i/o)
 
       tol=tin
 
       call setprecn(dpc,h1,h2) ! Set up diagional pre-conidtioner
 
-      call rzero(u1,n)      ! Initialize solution
+      call rzero(u1,n)     ! Initialize solution
       call copy(r1,rhs1,n) ! Initialize residual
 
       wv(1)=0
@@ -660,8 +660,8 @@ c             x1   - exact solution for convergence checking
 c        call axhm1(pap,ap1,p1,h1,h2)
          call axhm1_ceed(pap,ap1,p1,h1,h2,ceed,op_diffusion,
      $     vec_ap1,vec_p1,vec_qdata,bpname)
-         call dssum     (ap1,nx1,ny1,nz1)
-         call xmask1(ap1,nel)
+         call dssum(ap1,nx1,ny1,nz1)
+         call xmask1(ap1,nelt)
 
          call gop      (pap,wk,'+  ',1)
          alph(1) = rpp1(1)/pap(1)
@@ -683,7 +683,7 @@ c        call axhm1(pap,ap1,p1,h1,h2)
 c       if (nio.eq.0) write(6,1) ifield,istep,iter,nx,(wv(k),k=1,1)
   1     format(i2,i9,i5,i4,1p1e12.4,' cggos')
 
-         enorm=wv(1)
+         enorm=wv(2)
          if (enorm.lt.tol) then
             ifin = iter
             if (nio.eq.0) write(6,3000) istep,ifin,enorm,tol
