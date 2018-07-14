@@ -142,7 +142,11 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, void *qdata, CeedInt Q,
     occaCopyMemToPtr(qdata,d_q,qbytes,e*Q*bytes,NO_PROPS);
   if (outmode==CEED_EVAL_INTERP)
     occaCopyMemToPtr(*v,d_v,vbytes,NO_OFFSET,NO_PROPS);
-  assert(outmode==CEED_EVAL_NONE || outmode==CEED_EVAL_INTERP);
+  if (outmode==CEED_EVAL_GRAD) {
+    occaCopyMemToPtr(v[1],d_v,vbytes,NO_OFFSET,NO_PROPS);
+  }
+  assert(outmode==CEED_EVAL_NONE || outmode==CEED_EVAL_INTERP
+         || outmode==CEED_EVAL_GRAD);
   return 0;
 }
 
