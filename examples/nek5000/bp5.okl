@@ -79,7 +79,7 @@ kernel void diffusionf(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
   for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
     if (i >= Q) continue;
     const gCeedScalar *w = ((gCeedScalar*)qdata)+e*6*Q;
-    const gCeedScalar *u1 = u; // u2 in fortran
+    const gCeedScalar *u1 = u+Q*NC; // u2 in fortran
 //  const CeedInt offset = e*(Q*NC*(DIM+2));
 //  const gCeedScalar *o_bu = bu+offset;
 //  if (fabs(u[i]-o_bu[i])>epsilon) continue;
