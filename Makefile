@@ -31,7 +31,7 @@ UNDERSCORE ?= 1
 
 # MFEM_DIR env variable should point to sibling directory
 ifneq ($(wildcard ../mfem/.*),)
-  MFEM_DIR=../mfem
+  MFEM_DIR?=../mfem
 endif
 
 # OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
