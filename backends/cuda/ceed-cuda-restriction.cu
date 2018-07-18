@@ -104,7 +104,9 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
   if (tmode == CEED_NOTRANSPOSE) {
     // Perform: v = r * u
     if (ncomp == 1) {
+      //START_BANDWIDTH;
       ierr = run1d(data, noTrScalar, 0, esize, d_indices, d_u, d_v); CeedChk(ierr);
+      //STOP_BANDWIDTH(esize * sizeof(int) + (u->length + v->length) * sizeof(CeedScalar));
     } else {
       // vv is (elemsize x ncomp x nelem), column-major
       if (lmode == CEED_NOTRANSPOSE) { // u is (ndof x ncomp), column-major

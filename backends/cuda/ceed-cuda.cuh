@@ -25,7 +25,18 @@ static inline void gpuAssert(cudaError_t code, const char *file, int line, bool 
   if (code != cudaSuccess) exit(code);
 }
 
+#define START_BANDWIDTH \
+cudaEvent_t start, stop;\
+cudaEventCreate(&start);\
+cudaEventCreate(&stop);\
+cudaEventRecord(start);
 
+#define STOP_BANDWIDTH(data) \
+cudaEventRecord(stop);\
+cudaEventSynchronize(stop);\
+float milliseconds = 0;\
+cudaEventElapsedTime(&milliseconds, start, stop);\
+printf("\nEffective Bandwidth (GB/s): %f\n", (data)/milliseconds/1e6);
 
 typedef struct {
   CeedScalar *h_array;
@@ -57,8 +68,6 @@ typedef struct {
   CeedScalar *d_qweight1d;
   CeedScalar *d_interp1d;
   CeedScalar *d_grad1d;
-  CeedScalar *d_tmp1;
-  CeedScalar *d_tmp2;
 } CeedBasis_Cuda;
 
 typedef struct {
