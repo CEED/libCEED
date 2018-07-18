@@ -248,7 +248,7 @@ prove : $(tests) $(examples)
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
 alltests := $(tests) $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
-prove-all : $(alltests)
+prove-all : $(ceed.pc) $(alltests)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(alltests:$(OBJDIR)/%=%)
 
