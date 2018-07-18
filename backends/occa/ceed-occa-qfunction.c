@@ -132,14 +132,24 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
       const CeedEvalMode emode = qf->outputfields[i].emode;
       const char *name = qf->outputfields[i].fieldname;
       const CeedInt ncomp = qf->outputfields[i].ncomp;
-      if (emode & CEED_EVAL_INTERP) {
+      switch (emode) {
+      case CEED_EVAL_INTERP:
         dbg("[CeedQFunction][Apply] out \"%s\" INTERP",name);
         // WITH OFFSET
         occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*nelem*bytes,NO_OFFSET,NO_PROPS);
-      }
-      if (emode & CEED_EVAL_GRAD) {
+        break;
+      case CEED_EVAL_GRAD:
         dbg("[CeedQFunction][Apply] out \"%s\" GRAD",name);
         assert(false);
+        break;
+      case CEED_EVAL_NONE:
+        break; // No action
+      case CEED_EVAL_WEIGHT:
+        break; // no action
+      case CEED_EVAL_CURL:
+        break; // Noth implimented
+      case CEED_EVAL_DIV:
+        break; // Not implimented
       }
     }
   } else {
@@ -149,17 +159,25 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
       const char *name = qf->outputfields[i].fieldname;
       const CeedInt ncomp = qf->outputfields[i].ncomp;
       assert(emode==CEED_EVAL_NONE || emode==CEED_EVAL_INTERP);
-      if (emode==CEED_EVAL_NONE) {
+      switch (emode) {
+      case CEED_EVAL_NONE:
         dbg("[CeedQFunction][Apply] out \"%s\" NONE",name);
         occaCopyMemToPtr(out[i],d_outdata,Q*bytes,NO_OFFSET,NO_PROPS);
-      }
-      if (emode & CEED_EVAL_INTERP) {
+        break;
+      case CEED_EVAL_INTERP:
         dbg("[CeedQFunction][Apply] out \"%s\" INTERP",name);
         occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*nelem*bytes,NO_OFFSET,NO_PROPS);
-      }
-      if (emode & CEED_EVAL_GRAD) {
+        break;
+      case CEED_EVAL_GRAD:
         dbg("[CeedQFunction][Apply] out \"%s\" GRAD",name);
         assert(false);
+        break;
+      case CEED_EVAL_WEIGHT:
+        break; // no action
+      case CEED_EVAL_CURL:
+        break; // Not implimented
+      case CEED_EVAL_DIV:
+        break; // Not implimented
       }
     }
   }
