@@ -51,7 +51,7 @@ typedef double CeedScalar;
       *rho = in + iOf7[1],
       *target = in + iOf7[2];
     CeedScalar *v = out + oOf7[0];
-    v[i] = rho[i] + (u[i] - (*residual ? target[i] : 0.));
+    v[i] = rho[i] * (u[i] - (*residual ? target[i] : 0.));
   }
 }
 
