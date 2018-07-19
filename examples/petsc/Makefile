@@ -15,6 +15,11 @@ bp := $(bp.c:%.c=%)
 all: $(bp)
 $(bp): | $(PETSc.pc) $(ceed.pc)
 
+# Rules for building the examples
+%: %.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(abspath $<) -o $@ \
+	  $(LDLIBS)
+
 print: $(PETSc.pc) $(ceed.pc)
 	$(info CC      : $(CC))
 	$(info CFLAGS  : $(CFLAGS))
