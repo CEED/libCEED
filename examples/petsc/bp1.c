@@ -182,7 +182,8 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X, CeedVector target, PetscReal *maxerror) {
+static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
+                                      CeedVector target, PetscReal *maxerror) {
   PetscErrorCode ierr;
   PetscScalar *x;
   CeedVector collocated_error;

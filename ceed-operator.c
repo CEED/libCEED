@@ -143,9 +143,12 @@ int CeedOperatorApply(CeedOperator op, CeedVector in,
   CeedQFunction qf = op->qf;
 
   if (op->nfields == 0) return CeedError(ceed, 1, "No operator fields set");
-  if (op->nfields < qf->numinputfields + qf->numoutputfields) return CeedError(ceed, 1, "Not all operator fields set");
-  if (op->numelements == 0) return CeedError(ceed, 1, "At least one non-identity restriction required");
-  if (op->numqpoints == 0) return CeedError(ceed, 1, "At least one non-colocated basis required");
+  if (op->nfields < qf->numinputfields + qf->numoutputfields) return CeedError(
+          ceed, 1, "Not all operator fields set");
+  if (op->numelements == 0) return CeedError(ceed, 1,
+                                     "At least one non-identity restriction required");
+  if (op->numqpoints == 0) return CeedError(ceed, 1,
+                                    "At least one non-colocated basis required");
   ierr = op->Apply(op, in, out, request); CeedChk(ierr);
   return 0;
 }
