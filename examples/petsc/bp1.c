@@ -422,7 +422,8 @@ int main(int argc, char **argv) {
                        CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
 
   CeedOperatorApply(op_setup, xcoord, rho, CEED_REQUEST_IMMEDIATE);
-  // CeedVectorView(target, "%8.2e", stdout);
+  //CeedVectorView(rho, "%8.2e", stdout);
+  //CeedVectorView(target, "%8.2e", stdout);
   CeedVectorDestroy(&xcoord);
 
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);

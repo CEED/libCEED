@@ -136,13 +136,15 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
       case CEED_EVAL_INTERP:
         dbg("[CeedQFunction][Apply] out \"%s\" INTERP",name);
         // WITH OFFSET
-        occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*nelem*bytes,NO_OFFSET,NO_PROPS);
+        occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*nelem*bytes,data->oOf7[i]*bytes,NO_PROPS);
         break;
       case CEED_EVAL_GRAD:
         dbg("[CeedQFunction][Apply] out \"%s\" GRAD",name);
         assert(false);
         break;
       case CEED_EVAL_NONE:
+        dbg("[CeedQFunction][Apply] out \"%s\" NONE",name);
+        occaCopyMemToPtr(out[i],d_outdata,Q*bytes,data->oOf7[i]*bytes,NO_PROPS);
         break; // No action
       case CEED_EVAL_WEIGHT:
         break; // no action
@@ -162,11 +164,11 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
       switch (emode) {
       case CEED_EVAL_NONE:
         dbg("[CeedQFunction][Apply] out \"%s\" NONE",name);
-        occaCopyMemToPtr(out[i],d_outdata,Q*bytes,NO_OFFSET,NO_PROPS);
+        occaCopyMemToPtr(out[i],d_outdata,Q*bytes,data->oOf7[i]*bytes,NO_PROPS);
         break;
       case CEED_EVAL_INTERP:
         dbg("[CeedQFunction][Apply] out \"%s\" INTERP",name);
-        occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*nelem*bytes,NO_OFFSET,NO_PROPS);
+        occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*nelem*bytes,data->oOf7[i]*bytes,NO_PROPS);
         break;
       case CEED_EVAL_GRAD:
         dbg("[CeedQFunction][Apply] out \"%s\" GRAD",name);

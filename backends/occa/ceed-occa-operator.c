@@ -289,17 +289,17 @@ static int CeedOperatorSetup_Occa(CeedOperator op) {
   return 0;
 }
 
-static int SyncToHostPointer(CeedVector outvec) {
-  if (outvec && ((CeedVector_Occa*)outvec->data)->used_pointer) {
-    // The device copy is not updated in the host array by default.  We may need
-    // to rethink memory management in this example, but this provides the
-    // expected semantics when using CeedVectorSetArray for the vector that will
-    // hold an output quantity.  This should at least be lazy instead of eager
-    // and we should do better about avoiding copies.
-    CeedVector_Occa *outvdata = (CeedVector_Occa*)outvec->data;
+static int SyncToHostPointer(CeedVector vec) {
+  // The device copy is not updated in the host array by default.  We may need
+  // to rethink memory management in this example, but this provides the
+  // expected semantics when using CeedVectorSetArray for the vector that will
+  // hold an output quantity.  This should at least be lazy instead of eager
+  // and we should do better about avoiding copies.
+  const CeedVector_Occa *outvdata = (CeedVector_Occa*)vec->data;
+  if (outvdata->used_pointer) {
     occaCopyMemToPtr(outvdata->used_pointer, outvdata->d_array,
-                     outvec->length * sizeof(CeedScalar), NO_OFFSET, NO_PROPS);
-  }
+                       vec->length * sizeof(CeedScalar), NO_OFFSET, NO_PROPS);
+   }
   return 0;
 }
 
