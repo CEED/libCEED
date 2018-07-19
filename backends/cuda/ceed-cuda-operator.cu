@@ -60,28 +60,11 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector qdata,
   CeedQFunction_Cuda *qfd = (CeedQFunction_Cuda *)op->qf->data;
   qfd->nc = op->basis->ndof;
   qfd->dim = op->basis->dim;
-  qfd->nelem = nelem;
 
   ierr = CeedBasisApplyElems_Cuda(op->basis, nelem, CEED_NOTRANSPOSE, op->qf->inmode,
       data->etmp, data->BEu); CeedChk(ierr);
 
   ierr = CeedQFunctionApplyElems_Cuda(op->qf, qdata, Q, nelem, data->BEu, data->BEv); CeedChk(ierr);
-
-  /*CeedScalar *out[5] = {0, 0, 0, 0, 0};
-  const CeedScalar *in[5] = {0, 0, 0, 0, 0};
-
-  if (op->qf->inmode & CEED_EVAL_WEIGHT) {
-    in[4] = d_BEu + Q * nelem * nc * (dim + 1);
-  }
-
-  for (CeedInt e=0; e < nelem; e++) {
-    if (op->qf->inmode & CEED_EVAL_INTERP) { in[0] = d_BEu + Q * nc * e; }
-    if (op->qf->inmode & CEED_EVAL_GRAD) { in[1] = d_BEu + Q * nc * (nelem + dim * e); }
-    if (op->qf->outmode & CEED_EVAL_INTERP) { out[0] = d_BEv + Q * nc * e; }
-    if (op->qf->outmode & CEED_EVAL_GRAD) { out[1] = d_BEv + Q * nc * (nelem + dim * e); }
-    ierr = CeedQFunctionApply(op->qf, &d_q[e*Q*op->qf->qdatasize], Q, in, out);
-    CeedChk(ierr);
-  }*/
   ierr = CeedBasisApplyElems_Cuda(op->basis, nelem, CEED_TRANSPOSE, op->qf->outmode, data->BEv, data->etmp);
   if (residual) {
     CeedScalar *d_r;

@@ -32,18 +32,23 @@ __global__ void interp(const CeedInt nelem, const CeedInt dim, const CeedInt ndo
 
   const CeedInt stride0 = tmode == CEED_NOTRANSPOSE ? P : 1;
   const CeedInt stride1 = tmode == CEED_NOTRANSPOSE ? 1 : Q;
+  const CeedInt u_stride = ndof * (tmode == CEED_NOTRANSPOSE ? elemsize : nqpt);
+  const CeedInt v_stride = ndof * (tmode == CEED_NOTRANSPOSE ? nqpt : elemsize);
 
   for (CeedInt elem = blockIdx.x; elem < nelem; elem += gridDim.x) {
-    const CeedScalar *cur_u = u + elem * ndof * (tmode == CEED_NOTRANSPOSE ? elemsize : nqpt);
-    CeedScalar *cur_v = v + elem * ndof * (tmode == CEED_NOTRANSPOSE ? nqpt : elemsize);
+    const CeedScalar *cur_u = u + elem * u_stride;
+    CeedScalar *cur_v = v + elem * v_stride;
+    for (CeedInt k = i; k < u_stride; k += blockDim.x) {
+      s_buf1[k] = cur_u[k];
+    }
 
     CeedInt pre = ndof * CeedPowInt(P, dim - 1);
     CeedInt post = 1;
     for (CeedInt d = 0; d < dim; d++) {
       __syncthreads();
 
-      const CeedScalar *in = d == 0 ? cur_u : (d % 2 ? s_buf1 : s_buf2);
-      CeedScalar *out = d == dim - 1 ? cur_v : (d % 2 ? s_buf2 : s_buf1);
+      const CeedScalar *in = d % 2 ? s_buf2 : s_buf1;
+      CeedScalar *out = d == dim - 1 ? cur_v : (d % 2 ? s_buf1 : s_buf2);
 
       const CeedInt writeLen = pre * post * Q;
       for (CeedInt k = i; k < writeLen; k += blockDim.x) {
@@ -78,12 +83,14 @@ __global__ void grad(const CeedInt nelem, const CeedInt dim, const CeedInt ndof,
     s_grad1d[k] = grad1d[k];
   }
 
-  const CeedInt stride0 = tmode == CEED_NOTRANSPOSE ? P : 1;
-  const CeedInt stride1 = tmode == CEED_NOTRANSPOSE ? 1 : Q;
+  const CeedInt op_stride0 = tmode == CEED_NOTRANSPOSE ? P : 1;
+  const CeedInt op_stride1 = tmode == CEED_NOTRANSPOSE ? 1 : Q;
+  const CeedInt u_stride = ndof * (tmode == CEED_NOTRANSPOSE ? elemsize : nqpt * dim);
+  const CeedInt v_stride = ndof * (tmode == CEED_NOTRANSPOSE ? nqpt * dim : elemsize);
 
   for (CeedInt elem = blockIdx.x; elem < nelem; elem += gridDim.x) {
-    const CeedScalar *cur_u = u + elem * ndof * (tmode == CEED_NOTRANSPOSE ? elemsize : (nqpt * dim));
-    CeedScalar *cur_v = v + elem * ndof * (tmode == CEED_NOTRANSPOSE ? (nqpt * dim) : elemsize);
+    const CeedScalar *cur_u = u + elem * u_stride;
+    CeedScalar *cur_v = v + elem * v_stride;
 
     for (CeedInt dim1 = 0; dim1 < dim; dim1++) {
       CeedInt pre = ndof * CeedPowInt(P, dim - 1);
@@ -92,18 +99,17 @@ __global__ void grad(const CeedInt nelem, const CeedInt dim, const CeedInt ndof,
         __syncthreads();
 
         const CeedScalar *op = dim1 == dim2 ? s_grad1d : s_interp1d;
-        const CeedScalar *in = dim2 == 0 ? cur_u : (dim2 % 2 ? s_buf1 : s_buf2);
-        CeedScalar *out = dim2 == dim - 1 ? cur_v : (dim2 % 2 ? s_buf2 : s_buf1);
+        const CeedScalar *in = dim2 == 0 ? cur_u : (dim2 % 2 ? s_buf2 : s_buf1);
+        CeedScalar *out = dim2 == dim - 1 ? cur_v : (dim2 % 2 ? s_buf1 : s_buf2);
 
         const CeedInt writeLen = pre * post * Q;
-        CeedScalar vk;
         for (CeedInt k = i; k < writeLen; k += blockDim.x) {
           const CeedInt c = k % post;
           const CeedInt j = (k / post) % Q;
           const CeedInt a = k / (post * Q);
-          vk = 0;
+          CeedScalar vk = 0;
           for (CeedInt b = 0; b < P; b++) {
-            vk += op[j * stride0 + b * stride1] * in[(a * P + b) * post + c];
+            vk += op[j * op_stride0 + b * op_stride1] * in[(a * P + b) * post + c];
           }
 
           if (tmode == CEED_TRANSPOSE && dim2 == dim - 1)
@@ -149,7 +155,7 @@ int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem, CeedTranspose
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
   const CeedInt P = transpose?basis->Q1d:basis->P1d;
   const CeedInt Q = transpose?basis->P1d:basis->Q1d;
-  const CeedInt bufLen = ndof * Q * CeedPowInt(std::max(P, Q), dim-1);
+  const CeedInt bufLen = ndof * CeedPowInt(std::max(P, Q), dim);
 
   if (!data->ready) {
     data->ready = true;
@@ -174,7 +180,7 @@ int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem, CeedTranspose
     ierr = cudaMemset(d_v, 0, v->length * sizeof(CeedScalar)); CeedChk(ierr);
   }
   if (emode & CEED_EVAL_INTERP) {
-    interp<<<nelem,1024,(P * Q + 2 * bufLen) * sizeof(CeedScalar)>>>(
+    interp<<<nelem, ceed->optBlockSize, (P * Q + 2 * bufLen) * sizeof(CeedScalar)>>>(
         nelem, dim, ndof, elemsize, P, Q, nqpt, bufLen, tmode,
         data->d_interp1d, d_u, d_v);
     ierr = cudaGetLastError(); CeedChk(ierr);
@@ -187,7 +193,7 @@ int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem, CeedTranspose
   }
 
   if (emode & CEED_EVAL_GRAD) {
-    grad<<<nelem,1024,(2 * P * Q + 2 * bufLen) * sizeof(CeedScalar)>>>(
+    grad<<<nelem, ceed->optBlockSize, 2 * (P * Q + bufLen) * sizeof(CeedScalar)>>>(
         nelem, dim, ndof, elemsize, P, Q, nqpt, bufLen, tmode,
         data->d_interp1d, data->d_grad1d, d_u, d_v);
     ierr = cudaGetLastError(); CeedChk(ierr);

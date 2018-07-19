@@ -32,15 +32,11 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
 
   Ceed_Cuda *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  data->deviceID = deviceID;
 
   cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, deviceID);
 
   data->optBlockSize = deviceProp.maxThreadsPerBlock;
-  data->xThreadLimit = deviceProp.maxThreadsDim[0];
-  data->yThreadLimit = deviceProp.maxThreadsDim[1];
-  data->zThreadLimit = deviceProp.maxThreadsDim[2];
 
   ceed->data = data;
   ceed->VecCreate = CeedVectorCreate_Cuda;

@@ -58,7 +58,7 @@ typedef struct {
 
 typedef struct {
   bool ready;
-  int nc, dim, nelem;
+  int nc, dim;
   void *d_c;
   int *d_ierr;
 } CeedQFunction_Cuda;
@@ -71,9 +71,7 @@ typedef struct {
 } CeedBasis_Cuda;
 
 typedef struct {
-  int deviceID;
   int optBlockSize;
-  int xThreadLimit, yThreadLimit, zThreadLimit;
 } Ceed_Cuda;
 
 static int divup(int a, int b) {
@@ -81,48 +79,17 @@ static int divup(int a, int b) {
 }
 
 template <typename CudaFunc, typename... Args>
-int run1d(const Ceed_Cuda* ceed, CudaFunc f, const CeedInt sharedMem, const CeedInt a, Args... args) {
-  int optThreads = 0;
-  int optBlocks = 0;
-  cudaOccupancyMaxPotentialBlockSize(&optBlocks, &optThreads, f, sharedMem, 0);
+int run_cuda(CudaFunc f, const int blockSize, const int sharedMem, const CeedInt a, Args... args) {
+  int actBlockSize = 0;
+  if (blockSize > 0) {
+    actBlockSize = blockSize;
+  } else {
+    int gridSize;
+    cudaOccupancyMaxPotentialBlockSize(&gridSize, &actBlockSize, f, sharedMem, 0);
+  }
 
-  const int threads = std::min({a, optThreads, ceed->xThreadLimit});
-  const int blocks = divup(a, threads);
-  f<<<blocks, threads, sharedMem>>>(a, args...);
-  return cudaGetLastError();
-}
-
-template <typename CudaFunc, typename... Args>
-int run2d(const Ceed_Cuda* ceed, CudaFunc f, const CeedInt sharedMem, const CeedInt a, const CeedInt b, Args... args) {
-  int optThreads = 0;
-  int optBlocks = 0;
-  cudaOccupancyMaxPotentialBlockSize(&optBlocks, &optThreads, f, sharedMem, 0);
-
-  const int threadsX = std::min({b, optThreads, ceed->xThreadLimit});
-  const int threadsY = std::min({a, optThreads / threadsX, ceed->yThreadLimit});
-
-  const int blocksX = divup(b, threadsX);
-  const int blocksY = divup(a, threadsY);
-
-  f<<<dim3(blocksX, blocksY), dim3(threadsX, threadsY), sharedMem>>>(a, b, args...);
-  return cudaGetLastError();
-}
-
-template <typename CudaFunc, typename... Args>
-int run3d(const Ceed_Cuda* ceed, CudaFunc f, const CeedInt sharedMem, const CeedInt a, const CeedInt b, const CeedInt c, Args... args) {
-  int optThreads = 0;
-  int optBlocks = 0;
-  cudaOccupancyMaxPotentialBlockSize(&optBlocks, &optThreads, f, sharedMem, 0);
-
-  const int threadsX = std::min({c, optThreads, ceed->xThreadLimit});
-  const int threadsY = std::min({b, optThreads / threadsX, ceed->yThreadLimit});
-  const int threadsZ = std::min({a, optThreads / (threadsX * threadsY), ceed->zThreadLimit});
-
-  const int blocksX = divup(c, threadsX);
-  const int blocksY = divup(b, threadsY);
-  const int blocksZ = divup(a, threadsZ);
-
-  f<<<dim3(blocksX, blocksY, blocksZ), dim3(threadsX, threadsY, threadsZ), sharedMem>>>(a, b, c, args...);
+  const int gridSize = divup(a, actBlockSize);
+  f<<<gridSize, actBlockSize, sharedMem>>>(a, args...);
   return cudaGetLastError();
 }
 

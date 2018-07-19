@@ -21,7 +21,6 @@ int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, CeedVector qdata, const CeedI
     const CeedVector u, CeedVector v) {
   int ierr;
   CeedQFunction_Cuda *data = (CeedQFunction_Cuda*) qf->data;
-  const Ceed_Cuda *ceed = (Ceed_Cuda*)qf->ceed->data;
 
   const CeedInt cbytes = qf->ctxsize;
 
@@ -43,7 +42,7 @@ int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, CeedVector qdata, const CeedI
   CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v);
   CeedVectorGetArray(qdata, CEED_MEM_DEVICE, (CeedScalar**)&d_q);
 
-  ierr = run1d(ceed, qf->fcuda, 0, nelem,
+  ierr = run_cuda(qf->fcuda, 0, 0, nelem,
       Q, data->nc, data->dim, qf->qdatasize, qf->inmode, qf->outmode,
       d_u, d_v, data->d_c, d_q, data->d_ierr); CeedChk(ierr);
   cudaMemcpy(&ierr, data->d_ierr, sizeof(int), cudaMemcpyDeviceToHost); CeedChk(ierr);
@@ -82,7 +81,6 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   data->ready = false;
   data->nc = 1;
   data->dim = 1;
-  data->nelem = 1;
 
   qf->Apply = CeedQFunctionApply_Cuda;
   qf->Destroy = CeedQFunctionDestroy_Cuda;
