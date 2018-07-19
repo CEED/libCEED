@@ -106,7 +106,7 @@ CEED resource (`-ceed`) | Backend
 ----------------------- | ---------------------------------
 `/cpu/self/opt`         | Serial optimized implementation
 `/cpu/self/ref`         | Serial reference implementation
-`/cpu/self/tmpl`        | Backend template, dispatches to reference
+`/cpu/self/tmpl`        | Backend template, dispatches to /cpu/self/opt
 `/cpu/occa`             | Serial OCCA kernels
 `/gpu/occa`             | CUDA OCCA kernels
 `/omp/occa`             | OpenMP OCCA kernels

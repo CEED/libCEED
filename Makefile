@@ -29,6 +29,11 @@ NDEBUG ?= 1
 LDFLAGS ?=
 UNDERSCORE ?= 1
 
+# MFEM_DIR env variable should point to sibling directory
+ifneq ($(wildcard ../mfem/.*),)
+  MFEM_DIR?=../mfem
+endif
+
 # OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
 OCCA_DIR ?= ../occa
 
@@ -106,6 +111,9 @@ examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
 #mfemexamples
 mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
 mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
+petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
+petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
+
 # backends/[ref & occa  & magma]
 ref.c      := $(sort $(wildcard backends/ref/*.c))
 template.c := $(sort $(wildcard backends/template/*.c))
@@ -216,6 +224,10 @@ $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	$(MAKE) -C examples/mfem CEED_DIR=`pwd` $*
 	mv examples/mfem/$* $@
 
+$(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) | $$(@D)/.DIR
+	$(MAKE) -C examples/petsc CEED_DIR=`pwd` $*
+	mv examples/petsc/$* $@
+
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
@@ -235,9 +247,10 @@ prove : $(tests) $(examples)
 # run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
-prove-allexamples : $(tests) $(examples) $(mfemexamples)
+alltests := $(tests) $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
+prove-all : $(ceed.pc) $(alltests)
 	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%) $(mfemexamples:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(alltests:$(OBJDIR)/%=%)
 
 examples : $(examples)
 

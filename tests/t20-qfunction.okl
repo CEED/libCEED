@@ -17,34 +17,32 @@
 // *****************************************************************************
 typedef int CeedInt;
 typedef double CeedScalar;
-typedef __global double gCeedScalar;
+// OCCA parser doesn't like __global here
+//typedef __global double gCeedScalar;
 
 // *****************************************************************************
-kernel void setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
-                  const CeedScalar *u, const CeedScalar *bu,
-                  CeedScalar *v, CeedScalar *bv) {
-  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-    if (i >= Q) continue;
-    gCeedScalar *w = ((gCeedScalar*)qdata)+e*Q;
-    const gCeedScalar *u0 = u;
-    //const CeedInt offset = e*(Q*NC*(DIM+2));
-    //const gCeedScalar *bu0 = bu+offset;
-    //if (fabs(u0[i]-bu0[i])>epsilon) continue;
-    w[i] = u0[i];
+@kernel void setup(void *ctx, CeedInt Q,
+                   const int *iOf7, const int *oOf7,
+                   const CeedScalar *in, CeedScalar *out) {
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    // OCCA parser can't insert an __global here
+    /*const CeedScalar *w = in + iOf7[0];
+    CeedScalar *qdata = out + oOf7[0];
+    qdata[i] = w[i];*/
+    out[oOf7[0]+i] = in[iOf7[0]+i];
   }
 }
 
 // *****************************************************************************
-kernel void mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
-                 const CeedScalar *u, const CeedScalar *bu,
-                 CeedScalar *v, CeedScalar *bv) {
-  CeedScalar *v0 = v;
-  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-    if (i >= Q) continue;
-    const gCeedScalar *w = ((gCeedScalar*)qdata)+e*Q;
-    //const CeedInt offset = e*(Q*NC*(DIM+2));
-    //const gCeedScalar *bu0 = bu+offset;
-    //if (fabs(u[i]-bu0[i])>epsilon) continue;
-    v0[i] = w[i] * u[i];
+@kernel void mass(void *ctx, CeedInt Q,
+                  const int *iOf7, const int *oOf7,
+                  const CeedScalar *in, CeedScalar *out) {
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    // OCCA parser can't insert an __global here
+    /*const CeedScalar *qdata = in + iOf7[0];
+    const CeedScalar *u = in + iOf7[1];
+    CeedScalar *v = out + oOf7[0];
+    v[i] = qdata[i] * u[i];*/
+    out[oOf7[0]+i] = in[iOf7[0]+i] * in[iOf7[1]+i];
   }
 }

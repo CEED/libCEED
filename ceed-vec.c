@@ -73,7 +73,6 @@ int CeedVectorSetArray(CeedVector x, CeedMemType mtype, CeedCopyMode cmode,
 /// @sa CeedVectorRestoreArray()
 int CeedVectorGetArray(CeedVector x, CeedMemType mtype, CeedScalar **array) {
   int ierr;
-
   if (!x || !x->GetArray)
     return CeedError(x ? x->ceed : NULL, 1, "Not supported");
   ierr = x->GetArray(x, mtype, array); CeedChk(ierr);
@@ -130,6 +129,12 @@ int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
     fprintf(stream, fmt, x[i]);
   }
   ierr = CeedVectorRestoreArrayRead(vec, &x); CeedChk(ierr);
+  return 0;
+}
+
+/// Get the length of a vector
+CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
+  *length = vec->length;
   return 0;
 }
 

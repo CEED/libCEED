@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
+#include <string.h>
 
 /**
   @file
@@ -28,8 +29,6 @@
   Create an operator from element restriction, basis, and QFunction
 
   @param ceed The Ceed library context on which to create the operator
-  @param r Element restriction for the operator
-  @param b Basis for elements restricted to by @a r
   @param qf QFunction defining the action of the operator at quadrature points
   @param dqf QFunction defining the action of the Jacobian of @a qf (or NULL)
   @param dqfT QFunction defining the action of the transpose of the Jacobian
@@ -37,8 +36,7 @@
   @param[out] op Newly created CeedOperator
   @return Error code, 0 on success
  */
-int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
-                       CeedQFunction qf, CeedQFunction dqf,
+int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
                        CeedQFunction dqfT, CeedOperator *op) {
   int ierr;
 
@@ -48,10 +46,6 @@ int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
   (*op)->ceed = ceed;
   ceed->refcount++;
   (*op)->refcount = 1;
-  (*op)->Erestrict = r;
-  r->refcount++;
-  (*op)->basis = b;
-  b->refcount++;
   (*op)->qf = qf;
   qf->refcount++;
   (*op)->dqf = dqf;
@@ -63,39 +57,99 @@ int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r, CeedBasis b,
 }
 
 /**
-  Apply CeedOperator to a vector
+  Provide a field to a CeedOperator for use by its CeedQFunction
 
-  @param op CeedOperator to apply
-  @param qdata CeedVector containing any stored quadrature data (passive data)
-               for the operator
-  @param invec CeedVector containing input state
-  @param outvec CeedVector to store result of applying operator (must be
-                distinct from @a invec)
-  @param request Address of CeedRequest for non-blocking completion, else
-                 CEED_REQUEST_IMMEDIATE
-  @return Error code, 0 on success
+  This function is used to specify both active and passive fields to a
+  CeedOperator.  For passive fields, a vector @arg v must be provided.  Passive
+  fields can inputs or outputs (updated in-place when operator is applied).
+
+  Active fields must be specified using this function, but their data (in a
+  CeedVector) is passed in CeedOperatorApply().  There can be at most one active
+  input and at most one active output.
+
+  @param op the operator on which to provide the field
+  @param fieldname name of the field (to be matched with the name used by CeedQFunction)
+  @param r element restriction or CEED_RESTRICTION_IDENTITY to use the identity
+  @param b basis in which the field resides or CEED_BASIS_COLOCATED if collocated
+           with quadrature points
+  @param v vector to be used by CeedOperator, CEED_VECTOR_ACTIVE if field is
+           active, or CEED_VECTOR_NONE if using CEED_EVAL_WEIGHT in the qfunction
  */
-int CeedOperatorApply(CeedOperator op, CeedVector qdata, CeedVector invec,
-                      CeedVector outvec, CeedRequest *request) {
+int CeedOperatorSetField(CeedOperator op, const char *fieldname,
+                         CeedElemRestriction r, CeedBasis b,
+                         CeedVector v) {
   int ierr;
-  ierr = op->Apply(op, qdata, invec, outvec, request); CeedChk(ierr);
+  if (r) {
+    CeedInt numelements;
+    ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
+    if (op->numelements && op->numelements != numelements)
+      return CeedError(op->ceed, 1,
+                       "ElemRestriction with %d elements incompatible with prior %d elements",
+                       numelements, op->numelements);
+    op->numelements = numelements;
+  }
+  if (b) {
+    CeedInt numqpoints;
+    ierr = CeedBasisGetNumQuadraturePoints(b, &numqpoints); CeedChk(ierr);
+    if (op->numqpoints && op->numqpoints != numqpoints)
+      return CeedError(op->ceed, 1,
+                       "Basis with %d quadrature points incompatible with prior %d points",
+                       numqpoints, op->numqpoints);
+    op->numqpoints = numqpoints;
+  }
+  struct CeedOperatorField *ofield;
+  for (CeedInt i=0; i<op->qf->numinputfields; i++) {
+    if (!strcmp(fieldname, op->qf->inputfields[i].fieldname)) {
+      ofield = &op->inputfields[i];
+      goto found;
+    }
+  }
+  for (CeedInt i=0; i<op->qf->numoutputfields; i++) {
+    if (!strcmp(fieldname, op->qf->outputfields[i].fieldname)) {
+      ofield = &op->outputfields[i];
+      goto found;
+    }
+  }
+  return CeedError(op->ceed, 1, "QFunction has no knowledge of field '%s'",
+                   fieldname);
+found:
+  ofield->Erestrict = r;
+  ofield->basis = b;
+  ofield->vec = v;
+  op->nfields += 1;
   return 0;
 }
 
 /**
-  Get a suitably sized vector to hold passive fields (data at quadrature points)
+  Apply CeedOperator to a vector
 
-  @param op CeedOperator for which to get
-  @param[out] qdata Resulting CeedVector.  The implementation holds a reference
-                    so the user should not call CeedVectorDestroy
+  This computes the action of the operator on the specified (active) input,
+  yielding its (active) output.  All inputs and outputs must be specified using
+  CeedOperatorSetField().
+
+  @param op CeedOperator to apply
+  @param in CeedVector containing input state or NULL if there are no active
+            inputs
+  @param out CeedVector to store result of applying operator (must be
+                distinct from @a in) or NULL if there are no active outputs
+  @param request Address of CeedRequest for non-blocking completion, else
+                 CEED_REQUEST_IMMEDIATE
   @return Error code, 0 on success
  */
-int CeedOperatorGetQData(CeedOperator op, CeedVector *qdata) {
+int CeedOperatorApply(CeedOperator op, CeedVector in,
+                      CeedVector out, CeedRequest *request) {
   int ierr;
+  Ceed ceed = op->ceed;
+  CeedQFunction qf = op->qf;
 
-  if (!op->GetQData)
-    return CeedError(op->ceed, 1, "Backend does not support OperatorGetQData");
-  ierr = op->GetQData(op, qdata); CeedChk(ierr);
+  if (op->nfields == 0) return CeedError(ceed, 1, "No operator fields set");
+  if (op->nfields < qf->numinputfields + qf->numoutputfields) return CeedError(
+          ceed, 1, "Not all operator fields set");
+  if (op->numelements == 0) return CeedError(ceed, 1,
+                                     "At least one non-identity restriction required");
+  if (op->numqpoints == 0) return CeedError(ceed, 1,
+                                    "At least one non-colocated basis required");
+  ierr = op->Apply(op, in, out, request); CeedChk(ierr);
   return 0;
 }
 
@@ -112,8 +166,6 @@ int CeedOperatorDestroy(CeedOperator *op) {
   if ((*op)->Destroy) {
     ierr = (*op)->Destroy(*op); CeedChk(ierr);
   }
-  ierr = CeedElemRestrictionDestroy(&(*op)->Erestrict); CeedChk(ierr);
-  ierr = CeedBasisDestroy(&(*op)->basis); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->qf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqfT); CeedChk(ierr);

@@ -17,36 +17,33 @@
 // *****************************************************************************
 typedef int CeedInt;
 typedef double CeedScalar;
-typedef __global double gCeedScalar;
+// OCCA parser doesn't like __global here
+//typedef __global double gCeedScalar;
 
 // *****************************************************************************
-kernel void setup(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
-                  const CeedScalar *u, const CeedScalar *bu,
-                  CeedScalar *v, CeedScalar *bv) {
-  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-    if (i >= Q) continue;
-    gCeedScalar *w = ((gCeedScalar*)qdata)+e*Q;
-    const gCeedScalar *u1 = u+Q*NC;
-    const gCeedScalar *u4 = u+Q*NC*(DIM+1);
-    //const CeedInt offset = e*(Q*NC*(DIM+2));
-    //const gCeedScalar *bu1 = bu+offset+Q*NC;
-    //const gCeedScalar *bu4 = bu+offset+Q*NC*(DIM+1);
-    //if (fabs(u1[i]-bu1[i])>epsilon) continue;
-    //if (fabs(u4[i]-bu4[i])>epsilon) continue;
-    w[i] = u1[i]*u4[i];
+@kernel void setup(void *ctx, CeedInt Q,
+                   const int *iOf7, const int *oOf7, 
+                   const CeedScalar *in, CeedScalar *out) {
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    // OCCA parser can't insert an __global here
+    /*const CeedScalar *weight = in + iOf7[0];
+    const CeedScalar *dxdX = in + iOf7[1];
+    CeedScalar *rho = out + oOf7[0];
+    rho[i] = weight[i] * dxdX[i];*/
+    out[oOf7[0]+i] = in[iOf7[0]+i] * in[iOf7[1]+i];
   }
 }
 
 // *****************************************************************************
-kernel void mass(void *ctx, void *qdata, const CeedInt e, CeedInt Q,
-                 const CeedScalar *u, const CeedScalar *bu,
-                 CeedScalar *v, CeedScalar *bv) {
-  for (CeedInt i=0; i<Q; i++; tile(TILE_SIZE)) {
-    if (i >= Q) continue;
-    const gCeedScalar *w = ((gCeedScalar*)qdata)+e*Q;
-    //const CeedInt offset = e*(Q*NC*(DIM+2));
-    //const gCeedScalar *o_bu = bu+offset;
-    //if (fabs(u[i]-o_bu[i])>epsilon) continue;
-    v[i] = w[i] * u[i];
+@kernel void mass(void *ctx, CeedInt Q,
+                  const int *iOf7, const int *oOf7,
+                  const CeedScalar *in, CeedScalar *out) {
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    // OCCA parser can't insert an __global here
+    /*const CeedScalar *rho = in + iOf7[0];
+    const CeedScalar *u = in + iOf7[1];
+    CeedScalar *v = out + oOf7[0];
+    v[i] = rho[i] * u[i];*/
+    out[oOf7[0]+i] = in[iOf7[0]+i] * in[iOf7[1]+i];
   }
 }

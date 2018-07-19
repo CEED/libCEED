@@ -17,5 +17,5 @@ before_script:
 
 script:
   - make -j2
-  - make -j2 prove-allexamples PROVE_OPTS=-v
+  - make -j2 prove-all PROVE_OPTS=-v
 
