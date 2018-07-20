@@ -4,8 +4,10 @@ compiler:
   - gcc
   - clang
 
-install:
-  - sudo apt-get install gfortran
+addons:
+  apt:
+    packages:
+    - gfortran
 
 env:
   - FC=gfortran
@@ -19,3 +21,5 @@ script:
   - make -j2
   - make -j2 prove-all PROVE_OPTS=-v
 
+cache:
+  - ccache
