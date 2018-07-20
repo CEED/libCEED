@@ -8,14 +8,21 @@ addons:
   apt:
     packages:
     - gfortran
+    - libopenblas-dev
+    - liblapack-dev
 
 env:
   - FC=gfortran
 
-before_script:
+install:
   - git clone --depth 1 https://github.com/mfem/mfem.git
   - make -C mfem -j2 serial MFEM_CXXFLAGS=-O
   - export MFEM_DIR=$PWD/mfem
+  - curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.9.3.tar.gz
+  - tar xf petsc-lite-3.9.3.tar.gz
+  - pushd petsc-3.9.3 && ./configure --with-debugging=0 COPTFLAGS=-O --with-mpi=0 --with-fc=0 --with-cxx=0 --prefix=$HOME/install/petsc
+  - make && make install && popd
+  - export PETSC_DIR=$HOME/install/petsc
 
 script:
   - make -j2
@@ -23,3 +30,4 @@ script:
 
 cache:
   - ccache
+  - $HOME/install
