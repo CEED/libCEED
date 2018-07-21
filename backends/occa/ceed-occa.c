@@ -21,8 +21,8 @@
 // *****************************************************************************
 static const char *occaCPU = "mode: 'Serial'";
 static const char *occaOMP = "mode: 'OpenMP'";
-static const char *occaGPU = "mode: 'CUDA', deviceID: %d";
-static const char *occaOCL = "mode: 'OpenCL', platformID: 0, deviceID: %d";
+static const char *occaGPU = "mode: 'CUDA', device_id: %d";
+static const char *occaOCL = "mode: 'OpenCL', platform_id: 0, device_id: %d";
 
 // *****************************************************************************
 // * CeedError_Occa
