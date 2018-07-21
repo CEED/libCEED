@@ -52,7 +52,7 @@ c-----------------------------------------------------------------------
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-      do dimn=1,2
+      do dimn=3,3
         qdimn=q**dimn
         pdimn=p**dimn
         xdim=2**dimn
@@ -94,11 +94,15 @@ c-----------------------------------------------------------------------
         call ceedbasisapply(bug,ceed_transpose,ceed_eval_grad,
      $    ones,gtposeones,err)
 
+        write(*,*) 'Sum 1:'
         do i=1,pdimn
           sum1=sum1+gtposeones(i)*u(i)
+          write(*,*) sum1
         enddo
+        write(*,*) 'Sum 2:'
         do i=1,dimxqdimn
           sum2=sum2+uq(i)
+          write(*,*) sum2
         enddo
         if(dabs(sum1-sum2) > 1.0D-10) then
           write(*,'(A,I1,A,F12.6,A,F12.6)')'[',dimn,'] Error: ',sum1,
