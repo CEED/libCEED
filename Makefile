@@ -54,13 +54,17 @@ ifneq ($(filter %xlf %xlf_r,$(FC)),)
   FFLAGS = -qpreprocess -qextname -qpic -MMD
 endif
 
-CFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
+ifeq ($(NDEBUG), 1)
+	CFLAGS += -O2 -DNDEBUG=1
+	FFLAGS += -O2 -DNDEBUG=1
+else
+	CFLAGS += -g
+	FFLAGS += -g
+endif
 
 ifeq ($(UNDERSCORE), 1)
   CFLAGS += -DUNDERSCORE
 endif
-
-FFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
 
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
