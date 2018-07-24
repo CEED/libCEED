@@ -24,7 +24,6 @@ NVCC = $(CUDA_DIR)/bin/nvcc
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
-NDEBUG ?= 1
 
 LDFLAGS ?=
 UNDERSCORE ?= 1
@@ -47,20 +46,19 @@ CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
+OPT    = -O -g
+CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
+NVCCFLAGS = $(OPT)
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
-  FFLAGS = -qpreprocess -qextname -qpic -MMD
+  FFLAGS = $(OPT) -qpreprocess -qextname -qpic -MMD
+else # gfortran/Intel-style options
+  FFLAGS = -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
 endif
-
-CFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
 
 ifeq ($(UNDERSCORE), 1)
   CFLAGS += -DUNDERSCORE
 endif
-
-FFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
 
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
