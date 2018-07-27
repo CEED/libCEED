@@ -21,11 +21,21 @@
 
 #define USE_MAGMA_BATCH
 #define USE_MAGMA_BATCH2
+#define USE_MAGMA_BATCH3
 
 void magma_dtensor_contract(Ceed ceed,
                             CeedInt A, CeedInt B, CeedInt C, CeedInt J,
                             const CeedScalar *t, CeedTransposeMode tmode,
                             const CeedInt Add,
                             const CeedScalar *u, CeedScalar *v);
+
+int t30_setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
+              CeedScalar *const *v);
+int t30_mass( void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
+              CeedScalar *const *v);
+int t20_setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
+              CeedScalar *const *v);
+int t20_mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
+              CeedScalar *const *v);
 
 #define CeedDebug(...)
