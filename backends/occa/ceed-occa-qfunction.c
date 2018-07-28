@@ -126,63 +126,34 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   if (cbytes>0) occaCopyMemToPtr(qf->ctx,d_ctx,cbytes,0,NO_PROPS);
 
   // ***************************************************************************
-  if (!from_operator_apply) {
-    const int nOut = qf->numoutputfields;
-    for (CeedInt i=0; i<nOut; i++) {
-      const CeedEvalMode emode = qf->outputfields[i].emode;
-      const char *name = qf->outputfields[i].fieldname;
-      const CeedInt ncomp = qf->outputfields[i].ncomp;
-      switch (emode) {
-      case CEED_EVAL_INTERP:
-        dbg("[CeedQFunction][Apply] out \"%s\" INTERP",name);
-        // WITH OFFSET
-        occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*nelem*bytes,data->oOf7[i]*bytes,
-                         NO_PROPS);
-        break;
-      case CEED_EVAL_GRAD:
-        dbg("[CeedQFunction][Apply] out \"%s\" GRAD",name);
-        assert(false);
-        break;
-      case CEED_EVAL_NONE:
-        dbg("[CeedQFunction][Apply] out \"%s\" NONE",name);
-        occaCopyMemToPtr(out[i],d_outdata,Q*bytes,data->oOf7[i]*bytes,NO_PROPS);
-        break; // No action
-      case CEED_EVAL_WEIGHT:
-        break; // no action
-      case CEED_EVAL_CURL:
-        break; // Noth implimented
-      case CEED_EVAL_DIV:
-        break; // Not implimented
-      }
-    }
-  } else {
-    const int nOut = qf->numoutputfields;
-    for (CeedInt i=0; i<nOut; i++) {
-      const CeedEvalMode emode = qf->outputfields[i].emode;
-      const char *name = qf->outputfields[i].fieldname;
-      const CeedInt ncomp = qf->outputfields[i].ncomp;
-      assert(emode==CEED_EVAL_NONE || emode==CEED_EVAL_INTERP);
-      switch (emode) {
-      case CEED_EVAL_NONE:
-        dbg("[CeedQFunction][Apply] out \"%s\" NONE",name);
-        occaCopyMemToPtr(out[i],d_outdata,Q*bytes,data->oOf7[i]*bytes,NO_PROPS);
-        break;
-      case CEED_EVAL_INTERP:
-        dbg("[CeedQFunction][Apply] out \"%s\" INTERP",name);
-        occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*nelem*bytes,data->oOf7[i]*bytes,
-                         NO_PROPS);
-        break;
-      case CEED_EVAL_GRAD:
-        dbg("[CeedQFunction][Apply] out \"%s\" GRAD",name);
-        assert(false);
-        break;
-      case CEED_EVAL_WEIGHT:
-        break; // no action
-      case CEED_EVAL_CURL:
-        break; // Not implimented
-      case CEED_EVAL_DIV:
-        break; // Not implimented
-      }
+  const int nOut = qf->numoutputfields;
+  for (CeedInt i=0; i<nOut; i++) {
+    const CeedEvalMode emode = qf->outputfields[i].emode;
+    const char *name = qf->outputfields[i].fieldname;
+    const CeedInt ncomp = qf->outputfields[i].ncomp;
+    const CeedInt dim = data->dim;
+    switch (emode) {
+    case CEED_EVAL_NONE:
+      dbg("[CeedQFunction][Apply] out \"%s\" NONE",name);
+      occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*nelem*bytes,data->oOf7[i]*bytes,
+                       NO_PROPS);
+      break;
+    case CEED_EVAL_INTERP:
+      dbg("[CeedQFunction][Apply] out \"%s\" INTERP",name);
+      occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*nelem*bytes,data->oOf7[i]*bytes,
+                       NO_PROPS);
+      break;
+    case CEED_EVAL_GRAD:
+      dbg("[CeedQFunction][Apply] out \"%s\" GRAD",name);
+      occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*dim*nelem*bytes,data->oOf7[i]*bytes,
+                       NO_PROPS);
+      break;
+    case CEED_EVAL_WEIGHT:
+      break; // no action
+    case CEED_EVAL_CURL:
+      break; // Not implimented
+    case CEED_EVAL_DIV:
+      break; // Not implimented
     }
   }
   return 0;
