@@ -20,6 +20,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/// @cond DOXYGEN_SKIP
+static struct CeedBasis_private ceed_basis_colocated;
+
 /// @file
 /// Implementation of public CeedBasis interfaces
 ///
@@ -441,3 +444,6 @@ int CeedBasisDestroy(CeedBasis *basis) {
   ierr = CeedFree(basis); CeedChk(ierr);
   return 0;
 }
+
+/// Indicate that the quadrature points are colocated with the dofs
+CeedBasis CEED_BASIS_COLOCATED = &ceed_basis_colocated;

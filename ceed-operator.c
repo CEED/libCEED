@@ -79,7 +79,7 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                          CeedElemRestriction r, CeedBasis b,
                          CeedVector v) {
   int ierr;
-  if (r) {
+  if (r != CEED_RESTRICTION_IDENTITY) {
     CeedInt numelements;
     ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
     if (op->numelements && op->numelements != numelements)
@@ -88,7 +88,7 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                        numelements, op->numelements);
     op->numelements = numelements;
   }
-  if (b) {
+  if (b != CEED_BASIS_COLOCATED) {
     CeedInt numqpoints;
     ierr = CeedBasisGetNumQuadraturePoints(b, &numqpoints); CeedChk(ierr);
     if (op->numqpoints && op->numqpoints != numqpoints)

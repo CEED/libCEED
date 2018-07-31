@@ -16,6 +16,10 @@
 
 #include <ceed-impl.h>
 
+/// @cond DOXYGEN_SKIP
+static struct CeedVector_private ceed_vector_active;
+static struct CeedVector_private ceed_vector_none;
+
 /// @file
 /// Implementation of public CeedVector interfaces
 ///
@@ -150,3 +154,9 @@ int CeedVectorDestroy(CeedVector *x) {
   ierr = CeedFree(x); CeedChk(ierr);
   return 0;
 }
+
+/// Indicate that vector will be provided as an explicit argument to CeedOperatorApply().
+CeedVector CEED_VECTOR_ACTIVE = &ceed_vector_active;
+
+/// Indicate that no vector is applicable (i.e., for CEED_EVAL_WEIGHTS).
+CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
