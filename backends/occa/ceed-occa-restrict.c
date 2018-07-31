@@ -97,6 +97,7 @@ static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
   dbg("[CeedElemRestriction][Destroy]");
   for (int i=0; i<9; i++) {
     occaFree(data->kRestrict[i]);
+    data->kRestrict[i] = occaUndefined;
   }
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
@@ -179,6 +180,13 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   occaCopyPtrToMem(data->d_indices,used_indices,bytes(r),NO_OFFSET,NO_PROPS);
   // ***************************************************************************
   dbg("[CeedElemRestriction][Create] Building kRestrict");
+
+  dbg("[CeedElemRestriction][Create] Initialize kRestrict");
+  for (int i = 0; i < CEED_OCCA_NUM_RESTRICTION_KERNELS; ++i) {
+    data->kRestrict[i] = occaUndefined;
+  }
+
+
   dbg("[CeedElemRestriction][Create] nelem=%d",r->nelem);
   occaProperties pKR = occaCreateProperties();
   occaPropertiesSet(pKR, "defines/ndof", occaInt(r->ndof));
