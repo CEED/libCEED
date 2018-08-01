@@ -18,11 +18,6 @@
 #include <string.h>
 #include "ceed-ref.h"
 
-CeedElemRestriction CEED_RESTRICTION_IDENTITY = NULL;
-CeedBasis CEED_BASIS_COLOCATED = NULL;
-CeedVector CEED_VECTOR_ACTIVE = NULL;
-CeedVector CEED_VECTOR_NONE = NULL;
-
 static int CeedOperatorDestroy_Ref(CeedOperator op) {
   CeedOperator_Ref *impl = op->data;
   int ierr;
@@ -59,7 +54,7 @@ static int CeedOperatorSetupFields_Ref(struct CeedQFunctionField qfields[16],
 
   // Loop over fields
   for (CeedInt i=0; i<numfields; i++) {
-    if (ofields[i].Erestrict) {
+    if (ofields[i].Erestrict != CEED_RESTRICTION_IDENTITY) {
       ierr = CeedElemRestrictionCreateVector(ofields[i].Erestrict, NULL, &evecs[ie]);
       CeedChk(ierr);
       ie++;
@@ -115,12 +110,12 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
     opref->numqin += !!(emode & CEED_EVAL_INTERP) + !!(emode & CEED_EVAL_GRAD) + !!
                      (emode & CEED_EVAL_WEIGHT);
     opref->numein +=
-      !!op->inputfields[i].Erestrict; // Need E-vector when restriction exists
+      (op->inputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY); // Need E-vector when non-identity restriction exists
   }
   for (CeedInt i=0; i<qf->numoutputfields; i++) {
     CeedEvalMode emode = qf->outputfields[i].emode;
     opref->numqout += !!(emode & CEED_EVAL_INTERP) + !!(emode & CEED_EVAL_GRAD);
-    opref->numeout += !!op->outputfields[i].Erestrict;
+    opref->numeout += (op->outputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY);
   }
 
   // Allocate
@@ -176,16 +171,41 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
 
   // Input Evecs and Restriction
   for (CeedInt i=0,iein=0; i<qf->numinputfields; i++) {
-    // Restriction
-    if (op->inputfields[i].Erestrict) {
+    // No Restriction
+    if (op->inputfields[i].Erestrict == CEED_RESTRICTION_IDENTITY) {
+      CeedEvalMode emode = qf->inputfields[i].emode;
+      if (emode & CEED_EVAL_WEIGHT) {
+      } else {
+        // Active
+        if (op->inputfields[i].vec == CEED_VECTOR_ACTIVE) {
+          ierr = CeedVectorGetArrayRead(invec, CEED_MEM_HOST,
+                                        (const CeedScalar **) &opref->edata[i]); CeedChk(ierr);
+          // Passive
+        } else {
+          ierr = CeedVectorGetArrayRead(op->inputfields[i].vec, CEED_MEM_HOST,
+                                        (const CeedScalar **) &opref->edata[i]); CeedChk(ierr);
+        }
+      }
+    } else {
+      // Restriction
       // Zero evec
       ierr = CeedVectorGetArray(opref->evecs[iein], CEED_MEM_HOST, &vec_temp);
       CeedChk(ierr);
       for (CeedInt j=0; j<opref->evecs[iein]->length; j++)
         vec_temp[j] = 0.;
       ierr = CeedVectorRestoreArray(opref->evecs[iein], &vec_temp); CeedChk(ierr);
-      // Passive
-      if (op->inputfields[i].vec) {
+      // Active
+      if (op->inputfields[i].vec == CEED_VECTOR_ACTIVE) {
+        // Restrict
+        ierr = CeedElemRestrictionApply(op->inputfields[i].Erestrict, CEED_NOTRANSPOSE,
+                                        lmode, invec, opref->evecs[iein],
+                                        request); CeedChk(ierr);
+        // Get evec
+        ierr = CeedVectorGetArrayRead(opref->evecs[iein], CEED_MEM_HOST,
+                                      (const CeedScalar **) &opref->edata[i]); CeedChk(ierr);
+        iein++;
+      } else {
+        // Passive
         // Restrict
         ierr = CeedElemRestrictionApply(op->inputfields[i].Erestrict, CEED_NOTRANSPOSE,
                                         lmode, op->inputfields[i].vec, opref->evecs[iein],
@@ -194,53 +214,28 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
         ierr = CeedVectorGetArrayRead(opref->evecs[iein], CEED_MEM_HOST,
                                       (const CeedScalar **) &opref->edata[i]); CeedChk(ierr);
         iein++;
-      } else {
-        // Active
-        // Restrict
-
-        ierr = CeedElemRestrictionApply(op->inputfields[i].Erestrict, CEED_NOTRANSPOSE,
-                                        lmode, invec, opref->evecs[iein], request); CeedChk(ierr);
-        // Get evec
-        ierr = CeedVectorGetArrayRead(opref->evecs[iein], CEED_MEM_HOST,
-                                      (const CeedScalar **) &opref->edata[i]); CeedChk(ierr);
-        iein++;
-      }
-    } else {
-      // No restriction
-      CeedEvalMode emode = qf->inputfields[i].emode;
-      if (emode & CEED_EVAL_WEIGHT) {
-      } else {
-        // Passive
-        if (op->inputfields[i].vec) {
-          ierr = CeedVectorGetArrayRead(op->inputfields[i].vec, CEED_MEM_HOST,
-                                        (const CeedScalar **) &opref->edata[i]); CeedChk(ierr);
-          // Active
-        } else {
-          ierr = CeedVectorGetArrayRead(invec, CEED_MEM_HOST,
-                                        (const CeedScalar **) &opref->edata[i]); CeedChk(ierr);
-        }
       }
     }
   }
 
   // Output Evecs
   for (CeedInt i=0,ieout=opref->numein; i<qf->numoutputfields; i++) {
-    // Restriction
-    if (op->outputfields[i].Erestrict) {
+    // No Restriction
+    if (op->outputfields[i].Erestrict == CEED_RESTRICTION_IDENTITY) {
+      // Active
+      if (op->outputfields[i].vec == CEED_VECTOR_ACTIVE) {
+        ierr = CeedVectorGetArray(outvec, CEED_MEM_HOST,
+                                  &opref->edata[i + qf->numinputfields]); CeedChk(ierr);
+      } else {
+        // Passive
+        ierr = CeedVectorGetArray(op->outputfields[i].vec, CEED_MEM_HOST,
+                                  &opref->edata[i + qf->numinputfields]); CeedChk(ierr);
+      }
+    } else {
+      // Restriction
       ierr = CeedVectorGetArray(opref->evecs[ieout], CEED_MEM_HOST,
                                 &opref->edata[i + qf->numinputfields]); CeedChk(ierr);
       ieout++;
-    } else {
-      // No restriction
-      // Passive
-      if (op->outputfields[i].vec) {
-        ierr = CeedVectorGetArray(op->outputfields[i].vec, CEED_MEM_HOST,
-                                  &opref->edata[i + qf->numinputfields]); CeedChk(ierr);
-      } else {
-        // Active
-        ierr = CeedVectorGetArray(outvec, CEED_MEM_HOST,
-                                  &opref->edata[i + qf->numinputfields]); CeedChk(ierr);
-      }
     }
   }
 
@@ -249,7 +244,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
     // Input basis apply if needed
     for (CeedInt i=0; i<qf->numinputfields; i++) {
       // Get elemsize
-      if (op->inputfields[i].Erestrict) {
+      if (op->inputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY) {
         elemsize = op->inputfields[i].Erestrict->elemsize;
       } else {
         elemsize = Q;
@@ -297,7 +292,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
     // Output basis apply if needed
     for (CeedInt i=0; i<qf->numoutputfields; i++) {
       // Get elemsize
-      if (op->outputfields[i].Erestrict) {
+      if (op->outputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY) {
         elemsize = op->outputfields[i].Erestrict->elemsize;
       } else {
         elemsize = Q;
@@ -331,26 +326,21 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
 
   // Output restriction
   for (CeedInt i=0,ieout=opref->numein; i<qf->numoutputfields; i++) {
-    // Restriction
-    if (op->outputfields[i].Erestrict) {
-      // Passive
-      if (op->outputfields[i].vec) {
-        // Restore evec
-        ierr = CeedVectorRestoreArray(opref->evecs[ieout],
-                                      &opref->edata[i + qf->numinputfields]); CeedChk(ierr);
-        // Zero lvec
-        ierr = CeedVectorGetArray(op->outputfields[i].vec, CEED_MEM_HOST, &vec_temp);
+    // No Restriction
+    if (op->outputfields[i].Erestrict == CEED_RESTRICTION_IDENTITY) {
+      // Active
+      if (op->outputfields[i].vec == CEED_VECTOR_ACTIVE) {
+        ierr = CeedVectorRestoreArray(outvec, &opref->edata[i + qf->numinputfields]);
         CeedChk(ierr);
-        for (CeedInt j=0; j<op->outputfields[i].vec->length; j++)
-          vec_temp[j] = 0.;
-        ierr = CeedVectorRestoreArray(op->outputfields[i].vec, &vec_temp);
-        CeedChk(ierr);
-        // Restrict
-        ierr = CeedElemRestrictionApply(op->outputfields[i].Erestrict, CEED_TRANSPOSE,
-                                        lmode, opref->evecs[ieout], op->outputfields[i].vec, request); CeedChk(ierr);
-        ieout++;
       } else {
-        // Active
+        // Passive
+        ierr = CeedVectorRestoreArray(op->outputfields[i].vec,
+                                      &opref->edata[i + qf->numinputfields]); CeedChk(ierr);
+      }
+    } else {
+      // Restriction
+      // Active
+      if (op->outputfields[i].vec == CEED_VECTOR_ACTIVE) {
         // Restore evec
         ierr = CeedVectorRestoreArray(opref->evecs[ieout],
                                       &opref->edata[i + qf->numinputfields]); CeedChk(ierr);
@@ -363,44 +353,49 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
         ierr = CeedElemRestrictionApply(op->outputfields[i].Erestrict, CEED_TRANSPOSE,
                                         lmode, opref->evecs[ieout], outvec, request); CeedChk(ierr);
         ieout++;
-      }
-    } else {
-      // No Restriction
-      // Passive
-      if (op->outputfields[i].vec) {
-        ierr = CeedVectorRestoreArray(op->outputfields[i].vec,
-                                      &opref->edata[i + qf->numinputfields]); CeedChk(ierr);
       } else {
-        // Active
-        ierr = CeedVectorRestoreArray(outvec, &opref->edata[i + qf->numinputfields]);
+        // Passive
+        // Restore evec
+        ierr = CeedVectorRestoreArray(opref->evecs[ieout],
+                                      &opref->edata[i + qf->numinputfields]); CeedChk(ierr);
+        // Zero lvec
+        ierr = CeedVectorGetArray(op->outputfields[i].vec, CEED_MEM_HOST, &vec_temp);
         CeedChk(ierr);
+        for (CeedInt j=0; j<op->outputfields[i].vec->length; j++)
+          vec_temp[j] = 0.;
+        ierr = CeedVectorRestoreArray(op->outputfields[i].vec, &vec_temp);
+        CeedChk(ierr);
+        // Restrict
+        ierr = CeedElemRestrictionApply(op->outputfields[i].Erestrict, CEED_TRANSPOSE,
+                                        lmode, opref->evecs[ieout], op->outputfields[i].vec,
+                                        request); CeedChk(ierr);
+        ieout++;
       }
     }
   }
 
   // Restore input arrays
   for (CeedInt i=0,iein=0; i<qf->numinputfields; i++) {
-    // Restriction
-    if (op->inputfields[i].Erestrict) {
-      ierr = CeedVectorRestoreArrayRead(opref->evecs[iein],
-                                        (const CeedScalar **) &opref->edata[i]); CeedChk(ierr);
-      iein++;
-    } else {
-      // No restriction
+    // No Restriction
+    if (op->inputfields[i].Erestrict == CEED_RESTRICTION_IDENTITY) {
       CeedEvalMode emode = qf->inputfields[i].emode;
       if (emode & CEED_EVAL_WEIGHT) {
       } else {
-        // Passive
-        if (op->inputfields[i].vec) {
-          ierr = CeedVectorRestoreArrayRead(op->inputfields[i].vec,
-                                            (const CeedScalar **) &opref->edata[i]); CeedChk(ierr);
-          // Active
-        } else {
+        // Active
+        if (op->inputfields[i].vec == CEED_VECTOR_ACTIVE) {
           ierr = CeedVectorRestoreArrayRead(invec,
                                             (const CeedScalar **) &opref->edata[i]); CeedChk(ierr);
-
+          // Passive
+        } else {
+          ierr = CeedVectorRestoreArrayRead(op->inputfields[i].vec,
+                                            (const CeedScalar **) &opref->edata[i]); CeedChk(ierr);
         }
       }
+    } else {
+      // Restriction
+      ierr = CeedVectorRestoreArrayRead(opref->evecs[iein],
+                                        (const CeedScalar **) &opref->edata[i]); CeedChk(ierr);
+      iein++;
     }
   }
 

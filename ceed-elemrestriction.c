@@ -16,6 +16,9 @@
 
 #include <ceed-impl.h>
 
+/// @cond DOXYGEN_SKIP
+static struct CeedElemRestriction_private ceed_restriction_identity;
+
 /// @file
 /// Implementation of public CeedElemRestriction interfaces
 ///
@@ -163,3 +166,6 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *r) {
   ierr = CeedFree(r); CeedChk(ierr);
   return 0;
 }
+
+/// Indicate that no element restriction is required on the l-vector
+CeedElemRestriction CEED_RESTRICTION_IDENTITY = &ceed_restriction_identity;
