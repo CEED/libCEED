@@ -26,56 +26,129 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
   int ierr;
   const CeedScalar *uu;
   CeedScalar *vv;
-  CeedInt esize = r->nelem*r->elemsize, ncomp=r->ncomp;
+  CeedInt nblk = r->nblk, blksize = r->blksize, elemsize = r->elemsize,
+           esize = nblk*blksize*elemsize, ncomp=r->ncomp;
 
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
   if (tmode == CEED_NOTRANSPOSE) {
     // Perform: v = r * u
     if (!impl->indices) {
-      for (CeedInt i=0; i<esize*ncomp; i++) vv[i] = uu[i];
+      for (CeedInt i = 0; i<nblk - 1; i++) {
+        CeedInt shift = i*blksize*ncomp*elemsize;
+        for (CeedInt j = 0; j<blksize; j++) {
+          for (CeedInt k = 0; k<ncomp*elemsize; k++) {
+            vv[shift + k*blksize + j] = uu[shift + j*ncomp*elemsize + k];
+          }
+        }
+      }
+      CeedInt shift = (nblk - 1)*blksize*ncomp*elemsize;
+      CeedInt nlastelems = r->nelem % nblk;
+      if (nlastelems == 0) nlastelems = blksize;
+      for (CeedInt j = 0; j<blksize; j++) {
+        for (CeedInt k = 0; k<ncomp*elemsize; k++) {
+          if (j < nlastelems) {
+            vv[shift + k*blksize + j] = uu[shift + j*ncomp*elemsize + k];
+          } else {
+            vv[shift + k*blksize + j] = uu[shift + (nlastelems - 1)*ncomp*elemsize + k];
+          }
+        }
+      }
     } else if (ncomp == 1) {
-      for (CeedInt i=0; i<esize; i++) vv[i] = uu[impl->indices[i]];
+      for (CeedInt i = 0; i<esize; i++) vv[i] = uu[impl->indices[i]];
     } else {
       // vv is (elemsize x ncomp x nelem), column-major
       if (lmode == CEED_NOTRANSPOSE) { // u is (ndof x ncomp), column-major
-        for (CeedInt e = 0; e < r->nelem; e++)
+        for (CeedInt e = 0; e < nblk*blksize; e++)
           for (CeedInt d = 0; d < ncomp; d++)
-            for (CeedInt i=0; i<r->elemsize; i++) {
+            for (CeedInt i = 0; i<r->elemsize; i++) {
               vv[i+r->elemsize*(d+ncomp*e)] =
                 uu[impl->indices[i+r->elemsize*e]+r->ndof*d];
             }
       } else { // u is (ncomp x ndof), column-major
-        for (CeedInt e = 0; e < r->nelem; e++)
-          for (CeedInt d = 0; d < ncomp; d++)
-            for (CeedInt i=0; i<r->elemsize; i++) {
+        for (CeedInt e = 0; e < r->nblk*blksize; e++) {
+          for (CeedInt d = 0; d < ncomp; d++) {
+            for (CeedInt i = 0; i<r->elemsize; i++) {
               vv[i+r->elemsize*(d+ncomp*e)] =
                 uu[d+ncomp*impl->indices[i+r->elemsize*e]];
             }
+          }
+        }
       }
     }
   } else {
     // Note: in transpose mode, we perform: v += r^t * u
+    esize = (nblk - 1)*blksize*elemsize;
     if (!impl->indices) {
-      for (CeedInt i=0; i<esize; i++) vv[i] += uu[i];
+      for (CeedInt i=0; i<nblk - 1; i++) {
+        CeedInt shift = i*blksize*ncomp*elemsize;
+        for (CeedInt j = 0; j<blksize; j++) {
+          for (CeedInt k = 0; k<ncomp*elemsize; k++) {
+            vv[shift + j*ncomp*elemsize + k] = uu[shift + k*blksize + j];
+          }
+        }
+      }
+      CeedInt shift = (nblk - 1)*blksize*ncomp*elemsize;
+      CeedInt nlastelems = r->nelem % nblk;
+      if (nlastelems == 0) nlastelems = blksize;
+      for (CeedInt j = 0; j<blksize; j++) {
+        for (CeedInt k = 0; k<ncomp*elemsize; k++) {
+          if (j < nlastelems) {
+            vv[shift + j*ncomp*elemsize + k] = uu[shift + k*blksize + j];
+          }
+        }
+      }
     } else if (ncomp == 1) {
-      for (CeedInt i=0; i<esize; i++) vv[impl->indices[i]] += uu[i];
+      for (CeedInt i = 0; i<esize; i++) vv[impl->indices[i]] += uu[i];
+      CeedInt nlastelems = r->nelem % blksize;
+      CeedInt shift = (nblk - 1)*blksize*elemsize;
+      if (nlastelems == 0) nlastelems = blksize;
+      for (CeedInt i = 0; i<blksize*elemsize; i++) {
+        if ((i % blksize) < nlastelems) {
+          vv[impl->indices[shift + i]] += uu[shift + i];
+        }
+      }
     } else {
       // u is (elemsize x ncomp x nelem)
       if (lmode == CEED_NOTRANSPOSE) { // vv is (ndof x ncomp), column-major
-        for (CeedInt e = 0; e < r->nelem; e++)
-          for (CeedInt d = 0; d < ncomp; d++)
-            for (CeedInt i=0; i<r->elemsize; i++) {
-              vv[impl->indices[i+r->elemsize*e]+r->ndof*d] +=
-                uu[i+r->elemsize*(d+e*ncomp)];
+        for (CeedInt e = 0; e < blksize * (nblk - 1); e++) {
+          for (CeedInt d = 0; d < ncomp; d++) {
+            for (CeedInt i = 0; i<elemsize; i++) {
+              vv[impl->indices[i+elemsize*e]+r->ndof*d] +=
+                uu[i+elemsize*(d+e*ncomp)];
             }
+          }
+        }
+      CeedInt shift = (nblk - 1)*blksize*elemsize;
+      CeedInt nlastelems = r->nelem % blksize;
+      if (nlastelems == 0) nlastelems = blksize;
+        for (CeedInt e = 0; e < nlastelems; e++) {
+          for (CeedInt d = 0; d < ncomp; d++) {
+            for (CeedInt i = 0; i<elemsize; i++) {
+              vv[impl->indices[i+elemsize*(e+shift)]+r->ndof*d] +=
+                uu[i+elemsize*(d+(e+shift)*ncomp)];
+            }
+          }
+        }
       } else { // vv is (ncomp x ndof), column-major
-        for (CeedInt e = 0; e < r->nelem; e++)
-          for (CeedInt d = 0; d < ncomp; d++)
-            for (CeedInt i=0; i<r->elemsize; i++) {
-              vv[d+ncomp*impl->indices[i+r->elemsize*e]] +=
+        for (CeedInt e = 0; e < blksize * (nblk - 1); e++) {
+          for (CeedInt d = 0; d < ncomp; d++) {
+            for (CeedInt i = 0; i<elemsize; i++) {
+              vv[d+ncomp*impl->indices[i+elemsize*e]] +=
                 uu[i+r->elemsize*(d+e*ncomp)];
             }
+          }
+        }
+        CeedInt shift = (nblk - 1)*blksize*elemsize;
+        CeedInt nlastelems = r->nelem % blksize;
+        for (CeedInt e = 0; e < nlastelems; e++) {
+          for (CeedInt d = 0; d < ncomp; d++) {
+            for (CeedInt i = 0; i<elemsize; i++) {
+              vv[d+ncomp*impl->indices[i+elemsize*(e+shift)]] +=
+                uu[i+r->elemsize*(d+(e+shift)*ncomp)];
+            }
+          }
+        }
       }
     }
   }

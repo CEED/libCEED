@@ -173,13 +173,12 @@ typedef enum {
   CEED_TRANSPOSE
 } CeedTransposeMode;
 
-CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelements,
-    CeedInt esize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
+CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem,
+    CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
     const CeedInt *indices, CeedElemRestriction *r);
-
-CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelements,
-    CeedInt esize, CeedInt blocksize, CeedMemType mtype, CeedCopyMode cmode,
-    CeedInt *blkindices, CeedElemRestriction *r);
+CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem,
+    CeedInt elemsize, CeedInt blksize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
+    const CeedInt *indices, CeedElemRestriction *r);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction r,
                                                 CeedVector *lvec,
                                                 CeedVector *evec);

@@ -161,10 +161,11 @@ void fCeedElemRestrictionCreate(int *ceed, int *nelements,
 #define fCeedElemRestrictionCreateBlocked \
     FORTRAN_NAME(ceedelemrestrictioncreateblocked,CEEDELEMRESTRICTIONCREATEBLOCKED)
 void fCeedElemRestrictionCreateBlocked(int *ceed, int *nelements,
-                                       int *esize, int *blocksize, int *mtype, int *cmode,
+                                       int *esize, int *blocksize, int *ndof, int *ncomp,
+                                       int *mtype, int *cmode,
                                        int *blkindices, int *elemr, int *err) {
   *err = CeedElemRestrictionCreateBlocked(Ceed_dict[*ceed], *nelements, *esize,
-                                          *blocksize, *mtype, *cmode, blkindices, &CeedElemRestriction_dict[*elemr]);
+                                          *blocksize, *ndof, *ncomp, *mtype, *cmode, blkindices, &CeedElemRestriction_dict[*elemr]);
 }
 
 static CeedRequest *CeedRequest_dict = NULL;

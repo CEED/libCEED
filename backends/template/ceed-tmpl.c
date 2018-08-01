@@ -44,6 +44,7 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
   ceed->VecCreate = CeedVectorCreate_Tmpl;
   ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Tmpl;
   ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Tmpl;
+  ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreate_Tmpl;
   ceed->QFunctionCreate = CeedQFunctionCreate_Tmpl;
   ceed->OperatorCreate = CeedOperatorCreate_Tmpl;
   ceed->Destroy = CeedDestroy_Tmpl;
