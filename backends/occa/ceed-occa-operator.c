@@ -226,7 +226,7 @@ static int CeedOperatorSetup_Occa(CeedOperator op) {
       !! (emode & CEED_EVAL_GRAD) +
       !! (emode & CEED_EVAL_WEIGHT);
     // Need E-vector when restriction exists
-    data->numein += !!(op->inputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY);
+    data->numein += (op->inputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY);
   }
   dbg("\t[CeedOperator][Setup] numqin=%d, numein=%d",
       data->numqin, data->numein);
@@ -237,7 +237,7 @@ static int CeedOperatorSetup_Occa(CeedOperator op) {
     data->numqout +=
       !! (emode & CEED_EVAL_INTERP) +
       !! (emode & CEED_EVAL_GRAD);
-    data->numeout += !!(op->outputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY);
+    data->numeout += (op->outputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY);
   }
   dbg("\t[CeedOperator][Setup] numqout=%d, numeout=%d",
       data->numqout, data->numeout);

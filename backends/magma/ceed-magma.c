@@ -801,12 +801,12 @@ static int CeedOperatorSetup_Magma(CeedOperator op) {
     opmagma->numqin += !!(emode & CEED_EVAL_INTERP) + !!(emode & CEED_EVAL_GRAD) + !!
                      (emode & CEED_EVAL_WEIGHT);
     opmagma->numein +=
-      !!(op->inputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY); // Need E-vector when non-identity restriction exists
+      (op->inputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY); // Need E-vector when non-identity restriction exists
   }
   for (CeedInt i=0; i<qf->numoutputfields; i++) {
     CeedEvalMode emode = qf->outputfields[i].emode;
     opmagma->numqout += !!(emode & CEED_EVAL_INTERP) + !!(emode & CEED_EVAL_GRAD);
-    opmagma->numeout += !!(op->outputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY);
+    opmagma->numeout += (op->outputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY);
   }
 
   // Allocate

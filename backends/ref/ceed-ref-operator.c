@@ -110,12 +110,12 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
     opref->numqin += !!(emode & CEED_EVAL_INTERP) + !!(emode & CEED_EVAL_GRAD) + !!
                      (emode & CEED_EVAL_WEIGHT);
     opref->numein +=
-      !!(op->inputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY); // Need E-vector when non-identity restriction exists
+      (op->inputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY); // Need E-vector when non-identity restriction exists
   }
   for (CeedInt i=0; i<qf->numoutputfields; i++) {
     CeedEvalMode emode = qf->outputfields[i].emode;
     opref->numqout += !!(emode & CEED_EVAL_INTERP) + !!(emode & CEED_EVAL_GRAD);
-    opref->numeout += !!(op->outputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY);
+    opref->numeout += (op->outputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY);
   }
 
   // Allocate
