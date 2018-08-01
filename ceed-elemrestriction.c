@@ -27,11 +27,12 @@
 
   @param ceed       A Ceed object where the CeedElemRestriction will be created.
   @param nelem      Number of elements described in the @a indices array.
-  @param elemsize   Size (number of unknowns) per element.
+  @param elemsize   Size (number of "nodes") per element.
   @param ndof       The total size of the input CeedVector to which the
                     restriction will be applied. This size may include data
                     used by other CeedElemRestriction objects describing
                     different types of elements.
+  @param ncomp      Number of field components per node.
   @param mtype      Memory type of the @a indices array, see CeedMemType.
   @param cmode      Copy mode for the @a indices array, see CeedCopyMode.
   @param indices    Array of dimensions @a nelem × @a elemsize) using
