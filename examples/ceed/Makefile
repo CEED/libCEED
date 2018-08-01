@@ -14,9 +14,11 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
+OPT ?= -O -g
+
 # Ceed directory
 CEED_DIR ?= ../..
-CEED_FLAGS ?= -I$(CEED_DIR)/include -std=c99
+CEED_FLAGS ?= -I$(CEED_DIR)/include -std=c99 $(OPT)
 CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -lm
 
 EXAMPLES.c = $(wildcard ex*.c)

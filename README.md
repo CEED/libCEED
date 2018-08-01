@@ -44,10 +44,17 @@ For more details on the CEED API see http://ceed.exascaleproject.org/ceed-code/.
 
 ## Building
 
-The CEED library, `libceed`, is a C99 library with no external dependencies.
-It can be built using
+The CEED library, `libceed`, is a C99 library with no external dependencies.  It
+can be built using
 
     make
+
+or, with optimization flags
+
+    make OPT='-O3 -march=skylake-avx512 -ffp-contract=fast'
+
+These optimization flags are used by all languages (C, C++, Fortran) and this
+makefile variable can also be set for testing and examples (below).
 
 ## Testing
 
