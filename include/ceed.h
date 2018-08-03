@@ -242,13 +242,13 @@ CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d,
 CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
                                       CeedScalar *qweight1d);
 
-typedef int (*CeedQFunctionCallback)(void *, void *, const CeedInt, const CeedScalar *const *, CeedScalar *const *);
-typedef void (*CeedQFunctionKernel_Cuda)(const CeedInt nelem, const CeedInt Q, const CeedInt nc, const CeedInt dim, const CeedInt qdatasize,
-  const CeedEvalMode inmode, const CeedEvalMode outmode, const CeedScalar *u, CeedScalar *v, void *ctx, char *qdata, int *ierr);
+typedef int (*CeedQFunctionCallback)(void *, const CeedInt, const CeedScalar *const *, CeedScalar *const *);
+typedef void (*CeedQFunctionKernel_Cuda)(const CeedInt, const CeedInt, const CeedInt, const CeedInt,
+    void *, const CeedScalar *const *, CeedScalar *const *, const CeedInt *, const CeedInt *, int *);
 
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
-    int (*f)(void *ctx, CeedInt nq, const CeedScalar *const *u,
-             CeedScalar *const *v), const char *focca, CeedQFunction *qf);
+    CeedQFunctionCallback f, CeedQFunctionKernel_Cuda fCuda,
+    const char *focca, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                                       CeedInt ncomp, CeedEvalMode emode);
 CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
@@ -275,23 +275,23 @@ CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
 #ifdef __CUDACC__
 
 template <CeedQFunctionCallback callback>
-__global__ void apply(const CeedInt nelem, const CeedInt Q, const CeedInt nc, const CeedInt dim, const CeedInt qdatasize,
-    const CeedEvalMode inmode, const CeedEvalMode outmode, const CeedScalar *u, CeedScalar *v, void *ctx, char *qdata, int *ierr) {
-  const int elem = blockIdx.x*blockDim.x + threadIdx.x;
+__global__ void apply(const CeedInt nelem, const CeedInt Q, const CeedInt numinputfields, const CeedInt numoutputfields,
+    void *ctx, const CeedScalar *const *u, CeedScalar *const *v, const CeedInt *uoffsets, const CeedInt *voffsets, int *ierr) {
+  const int i = blockIdx.x*blockDim.x + threadIdx.x;
 
-  if (elem >= nelem) return;
+  for (int elem = i; elem < nelem; i += gridDim.x * blockDim.x) {
+    int eoffset = i == elem ? elem : gridDim.x * blockDim.x;
+    for (int j = 0; j < numinputfields; j++) {
+      u[j] += eoffset * uoffsets[j];
+    }
+    for (int j = 0; j < numoutputfields; j++) {
+      v[j] += eoffset * voffsets[j];
+    }
 
-  CeedScalar *out[5] = {0, 0, 0, 0, 0};
-  const CeedScalar *in[5] = {0, 0, 0, 0, 0};
-
-  if (inmode & CEED_EVAL_INTERP) { in[0] = u + Q * nc * elem; u += Q * nc * nelem; }
-  if (inmode & CEED_EVAL_GRAD) { in[1] = u + Q * nc * dim * elem; u += Q * nc * dim * nelem; }
-  if (inmode & CEED_EVAL_WEIGHT) { in[4] = u; u += Q; }
-  if (outmode & CEED_EVAL_INTERP) { out[0] = v + Q * nc * elem; v += Q * nc * nelem; }
-  if (outmode & CEED_EVAL_GRAD) { out[1] = v + Q * nc * dim * elem; v += Q * nc * dim * nelem; }
-  int e = callback(ctx, qdata + elem * Q * qdatasize, Q, in, out);
-  if (e) {
-    atomicOr(ierr, e);
+    int e = callback(ctx, Q, u, v);
+    if (e) {
+      atomicOr(ierr, e);
+    }
   }
 }
 

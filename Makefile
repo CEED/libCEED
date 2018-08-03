@@ -48,7 +48,7 @@ AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 OPT    = -O -g
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-NVCCFLAGS = $(OPT)
+NVCCFLAGS = -std=c++11 $(OPT) -arch=sm_60 --compiler-options="-Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP"
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
   FFLAGS = $(OPT) -qpreprocess -qextname -qpic -MMD
@@ -164,7 +164,6 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)
 libceed.c += $(ref.c)
 libceed.c += $(template.c)
 libceed.c += $(optimized.c)
-
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceed) : LDLIBS += -locca

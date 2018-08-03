@@ -55,7 +55,8 @@ static int f_build_mass(void *ctx, CeedInt Q,
     }
     break;
   default:
-    return 1;
+    return CeedError(NULL, 1, "dim=%d, space_dim=%d is not supported",
+                     bc->dim, bc->space_dim);
   }
   return 0;
 }
@@ -70,9 +71,6 @@ static int f_apply_mass(void *ctx, CeedInt Q,
   }
   return 0;
 }
-
-const CeedQFunctionKernel_Cuda k_build_mass = CeedQFunctionKernelCreate_Cuda(f_build_mass);
-const CeedQFunctionKernel_Cuda k_apply_mass = CeedQFunctionKernelCreate_Cuda(f_apply_mass);
 
 /// Wrapper for a mass CeedOperator as an mfem::Operator
 class CeedMassOperator : public mfem::Operator {

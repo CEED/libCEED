@@ -130,10 +130,7 @@ static int f_apply_diff(void *ctx, CeedInt Q,
   return 0;
 }
 
-const CeedQFunctionKernel_Cuda k_build_diff = CeedQFunctionKernelCreate_Cuda(f_build_diff);
-const CeedQFunctionKernel_Cuda k_apply_diff = CeedQFunctionKernelCreate_Cuda(f_apply_diff);
-
-/// Wrapper for a diffusion CeedOperator as n mfem::Operator
+/// Wrapper for a diffusion CeedOperator as an mfem::Operator
 class CeedDiffusionOperator : public mfem::Operator {
  protected:
   const mfem::FiniteElementSpace *fes;

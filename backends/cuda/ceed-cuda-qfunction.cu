@@ -17,8 +17,8 @@
 #include <ceed-impl.h>
 #include "ceed-cuda.cuh"
 
-int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, CeedVector qdata, const CeedInt Q, const CeedInt nelem,
-    const CeedVector u, CeedVector v) {
+int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt nelem, const CeedInt Q,
+    const CeedVector *const u, const CeedVector* v) {
   int ierr;
   CeedQFunction_Cuda *data = (CeedQFunction_Cuda*) qf->data;
 
@@ -26,6 +26,10 @@ int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, CeedVector qdata, const CeedI
 
   if (!data->ready) {
     data->ready = true;
+    ierr = cudaMalloc(&data->d_u, qf->numinputfields * sizeof(CeedScalar*)); CeedChk(ierr);
+    ierr = cudaMalloc(&data->d_v, qf->numoutputfields * sizeof(CeedScalar*)); CeedChk(ierr);
+    ierr = cudaMalloc(&data->d_uoffsets, qf->numinputfields * sizeof(CeedInt)); CeedChk(ierr);
+    ierr = cudaMalloc(&data->d_voffsets, qf->numoutputfields * sizeof(CeedInt)); CeedChk(ierr);
     ierr = cudaMalloc(&data->d_c, cbytes); CeedChk(ierr);
     ierr = cudaMalloc(&data->d_ierr, sizeof(int)); CeedChk(ierr);
     ierr = cudaMemset(data->d_ierr, 0, sizeof(int)); CeedChk(ierr);
@@ -35,16 +39,26 @@ int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, CeedVector qdata, const CeedI
     ierr = cudaMemcpy(data->d_c, qf->ctx, cbytes, cudaMemcpyHostToDevice); CeedChk(ierr);
   }
 
-  const CeedScalar *d_u;
-  CeedScalar *d_v;
-  char *d_q;
-  CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u);
-  CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v);
-  CeedVectorGetArray(qdata, CEED_MEM_DEVICE, (CeedScalar**)&d_q);
+  const CeedScalar *h_u[qf->numinputfields];
+  CeedInt h_uoffsets[qf->numinputfields];
+  for (CeedInt i = 0; i < qf->numinputfields; i++) {
+    CeedVectorGetArrayRead(u[i], CEED_MEM_DEVICE, h_u + i);
+    h_uoffsets[i] = u[i]->length / nelem;
+  }
+  ierr = cudaMemcpy((void*)data->d_u, h_u, qf->numinputfields * sizeof(CeedScalar*), cudaMemcpyHostToDevice);
+  ierr = cudaMemcpy((void*)data->d_uoffsets, h_uoffsets, qf->numinputfields * sizeof(CeedInt), cudaMemcpyDeviceToHost);
 
-  ierr = run_cuda(qf->fcuda, 0, 0, nelem,
-      Q, data->nc, data->dim, qf->qdatasize, qf->inmode, qf->outmode,
-      d_u, d_v, data->d_c, d_q, data->d_ierr); CeedChk(ierr);
+  CeedScalar *h_v[qf->numoutputfields];
+  CeedInt h_voffsets[qf->numoutputfields];
+  for (CeedInt i = 0; i < qf->numoutputfields; i++) {
+    CeedVectorGetArray(v[i], CEED_MEM_DEVICE, h_v + i);
+    h_voffsets[i] = v[i]->length / nelem;
+  }
+  ierr = cudaMemcpy((void*)data->d_v, h_v, qf->numoutputfields * sizeof(CeedScalar*), cudaMemcpyDeviceToHost);
+  ierr = cudaMemcpy((void*)data->d_voffsets, h_voffsets, qf->numoutputfields * sizeof(CeedInt), cudaMemcpyDeviceToHost);
+
+  ierr = run_cuda(qf->fcuda, 0, 0, nelem, Q, qf->numinputfields, qf->numoutputfields, data->d_c,
+      data->d_u, data->d_v, data->d_uoffsets, data->d_voffsets, data->d_ierr); CeedChk(ierr);
   cudaMemcpy(&ierr, data->d_ierr, sizeof(int), cudaMemcpyDeviceToHost); CeedChk(ierr);
 
   if (cbytes > 0) {
@@ -54,10 +68,10 @@ int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, CeedVector qdata, const CeedI
   return 0;
 }
 
-static int CeedQFunctionApply_Cuda(CeedQFunction qf, void *qdata, CeedInt Q,
+static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
     const CeedScalar *const *u, CeedScalar *const *v) {
-
-  return 0;
+  // TODO Not enough info to implement
+  return 1;
 }
 
 static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
@@ -65,6 +79,8 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   CeedQFunction_Cuda *data = (CeedQFunction_Cuda *) qf->data;
 
   if (data->ready) {
+    ierr = cudaFree((void*)data->d_u); CeedChk(ierr);
+    ierr = cudaFree((void*)data->d_v); CeedChk(ierr);
     ierr = cudaFree(data->d_c); CeedChk(ierr);
     ierr = cudaFree(data->d_ierr); CeedChk(ierr);
   }
@@ -79,8 +95,6 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   int ierr = CeedCalloc(1,&data); CeedChk(ierr);
   qf->data = data;
   data->ready = false;
-  data->nc = 1;
-  data->dim = 1;
 
   qf->Apply = CeedQFunctionApply_Cuda;
   qf->Destroy = CeedQFunctionDestroy_Cuda;

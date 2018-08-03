@@ -46,7 +46,7 @@ CEED_INTERN int CeedCallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedReallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedFree(void *p);
 
-#define CeedChk(ierr) do { if (ierr) {printf("Error: %d at line %d of %s\n", ierr, __LINE__, __FILE__); return ierr;} } while (0)
+#define CeedChk(ierr) do { if (ierr) return ierr; } while (0)
 /* Note that CeedMalloc and CeedCalloc will, generally, return pointers with
    different memory alignments: CeedMalloc returns pointers aligned at
    CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
@@ -118,7 +118,8 @@ struct CeedQFunction_private {
   struct CeedQFunctionField inputfields[16];
   struct CeedQFunctionField outputfields[16];
   CeedInt numinputfields, numoutputfields;
-  int (*function)(void*, CeedInt, const CeedScalar *const*, CeedScalar *const*);
+  CeedQFunctionCallback function;
+  CeedQFunctionKernel_Cuda fcuda; 
   const char *focca;
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */

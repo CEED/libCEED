@@ -21,7 +21,7 @@
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 static inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
-  fprintf(stderr,"GPUassert %d: %s %s %d\n", code, cudaGetErrorString(code), file, line);
+  printf("GPUassert %d: %s %s %d\n", code, cudaGetErrorString(code), file, line);
   if (code != cudaSuccess) exit(code);
 }
 
@@ -46,19 +46,15 @@ typedef struct {
 } CeedVector_Cuda;
 
 typedef struct {
-  CeedInt *d_indices;
+  CeedVector indices;
 } CeedElemRestriction_Cuda;
 
 typedef struct {
   bool ready;
-  CeedVector etmp;
-  CeedVector qdata;
-  CeedVector BEu, BEv;
-} CeedOperator_Cuda;
-
-typedef struct {
-  bool ready;
-  int nc, dim;
+  const CeedScalar *const *d_u;
+  CeedScalar *const *d_v;
+  const CeedInt *d_uoffsets;
+  const CeedInt *d_voffsets;
   void *d_c;
   int *d_ierr;
 } CeedQFunction_Cuda;
@@ -72,6 +68,7 @@ typedef struct {
 
 typedef struct {
   int optBlockSize;
+  Ceed ceedref;
 } Ceed_Cuda;
 
 static int divup(int a, int b) {
@@ -99,11 +96,11 @@ CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedElemRestriction r,
     CeedMemType mtype,
     CeedCopyMode cmode, const CeedInt *indices);
 
-CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem,
+CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem, const CeedInt elemsize,
     CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
 
-CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, CeedVector qdata, const CeedInt Q, const CeedInt nelem,
-    const CeedVector u, CeedVector v);
+CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt nelem, const CeedInt Q,
+    const CeedVector *const u, const CeedVector* v);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda(Ceed ceed, CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d,

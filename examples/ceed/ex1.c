@@ -67,7 +67,8 @@ static int f_build_mass(void *ctx, CeedInt Q,
     }
     break;
   default:
-    return 1;
+    return CeedError(NULL, 1, "dim=%d, space_dim=%d is not supported",
+                     bc->dim, bc->space_dim);
   }
   return 0;
 }
@@ -82,9 +83,6 @@ static int f_apply_mass(void *ctx, CeedInt Q,
   }
   return 0;
 }
-
-const CeedQFunctionKernel_Cuda k_build_mass = CeedQFunctionKernelCreate_Cuda(f_build_mass);
-const CeedQFunctionKernel_Cuda k_apply_mass = CeedQFunctionKernelCreate_Cuda(f_apply_mass);
 
 
 // Auxiliary functions.
@@ -342,7 +340,7 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
   // elem:         0             1                 n-1
   //        |---*-...-*---|---*-...-*---|- ... -|--...--|
   // dof:   0   1    p-1  p  p+1       2*p             n*p
-  CeedInt *el_dof = (CeedInt *)malloc(sizeof(CeedInt)*num_elem*ndof);
+  CeedInt *el_dof = malloc(sizeof(CeedInt)*num_elem*ndof);
   for (CeedInt e = 0; e < num_elem; e++) {
     CeedInt exyz[3], re = e;
     for (int d = 0; d < dim; d++) { exyz[d] = re%nxyz[d]; re /= nxyz[d]; }
@@ -375,7 +373,7 @@ int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_order,
   }
   CeedScalar *coords;
   CeedVectorGetArray(mesh_coords, CEED_MEM_HOST, &coords);
-  CeedScalar *nodes = (CeedScalar *) malloc(sizeof(CeedScalar)*(p+1));
+  CeedScalar *nodes = malloc(sizeof(CeedScalar)*(p+1));
   // The H1 basis uses Lobatto quadrature points as nodes.
   CeedLobattoQuadrature(p+1, nodes, NULL); // nodes are in [-1,1]
   for (CeedInt i = 0; i <= p; i++) { nodes[i] = 0.5+0.5*nodes[i]; }
