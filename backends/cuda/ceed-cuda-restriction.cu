@@ -18,13 +18,13 @@
 #include <string.h>
 #include "ceed-cuda.cuh"
 
-__global__ void noTrScalar(const CeedInt esize, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
+static __global__ void noTrScalar(const CeedInt esize, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
   for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
     v[i] = u[indices[i]];
   }
 }
 
-__global__ void noTrNoTr(const CeedInt esize, const CeedInt ncomp, const CeedInt elemsize, const CeedInt nelem, const CeedInt ndof, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
+static __global__ void noTrNoTr(const CeedInt esize, const CeedInt ncomp, const CeedInt elemsize, const CeedInt nelem, const CeedInt ndof, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
   for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
     const CeedInt e = i / (ncomp * elemsize);
     const CeedInt d = (i / elemsize) % ncomp;
@@ -34,7 +34,7 @@ __global__ void noTrNoTr(const CeedInt esize, const CeedInt ncomp, const CeedInt
   }
 }
 
-__global__ void noTrTr(const CeedInt esize, const CeedInt ncomp, const CeedInt elemsize, const CeedInt nelem, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
+static __global__ void noTrTr(const CeedInt esize, const CeedInt ncomp, const CeedInt elemsize, const CeedInt nelem, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
   for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
     const CeedInt e = i / (ncomp * elemsize);
     const CeedInt d = (i / elemsize) % ncomp;
@@ -44,13 +44,13 @@ __global__ void noTrTr(const CeedInt esize, const CeedInt ncomp, const CeedInt e
   }
 }
 
-__global__ void trScalar(const CeedInt esize, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
+static __global__ void trScalar(const CeedInt esize, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
   for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
     atomicAdd(v + indices[i], u[i]);
   }
 }
 
-__global__ void trNoTr(const CeedInt esize, const CeedInt ncomp, const CeedInt elemsize, const CeedInt nelem, const CeedInt ndof, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
+static __global__ void trNoTr(const CeedInt esize, const CeedInt ncomp, const CeedInt elemsize, const CeedInt nelem, const CeedInt ndof, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
   for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
     const CeedInt e = i / (ncomp * elemsize);
     const CeedInt d = (i / elemsize) % ncomp;
@@ -60,7 +60,7 @@ __global__ void trNoTr(const CeedInt esize, const CeedInt ncomp, const CeedInt e
   }
 }
 
-__global__ void trTr(const CeedInt ncomp, const CeedInt esize, const CeedInt elemsize, const CeedInt nelem, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
+static __global__ void trTr(const CeedInt ncomp, const CeedInt esize, const CeedInt elemsize, const CeedInt nelem, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
   for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
     const CeedInt e = i / (ncomp * elemsize);
     const CeedInt d = (i / elemsize) % ncomp;

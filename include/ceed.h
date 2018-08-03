@@ -275,7 +275,7 @@ CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
 #ifdef __CUDACC__
 
 template <CeedQFunctionCallback callback>
-__global__ void apply(const CeedInt nelem, const CeedInt Q, const CeedInt numinputfields, const CeedInt numoutputfields,
+static __global__ void apply(const CeedInt nelem, const CeedInt Q, const CeedInt numinputfields, const CeedInt numoutputfields,
     void *ctx, const CeedScalar *const *u, CeedScalar *const *v, const CeedInt *uoffsets, const CeedInt *voffsets, int *ierr) {
   const int i = blockIdx.x*blockDim.x + threadIdx.x;
 

@@ -18,7 +18,7 @@
 #include <string.h>
 #include "ceed-cuda.cuh"
 
-__global__ void interp(const CeedInt nelem, const CeedInt dim, const CeedInt ncomp, const CeedInt elemsize, const CeedInt P, const CeedInt Q, const CeedInt nqpt, const CeedInt bufLen,
+static __global__ void interp(const CeedInt nelem, const CeedInt dim, const CeedInt ncomp, const CeedInt elemsize, const CeedInt P, const CeedInt Q, const CeedInt nqpt, const CeedInt bufLen,
     const CeedTransposeMode tmode, const CeedScalar *interp1d, const CeedScalar *u, CeedScalar *v) {
   const CeedInt i = threadIdx.x;
 
@@ -69,7 +69,7 @@ __global__ void interp(const CeedInt nelem, const CeedInt dim, const CeedInt nco
   }
 }
 
-__global__ void grad(const CeedInt nelem, const CeedInt dim, const CeedInt ncomp, const CeedInt elemsize, const CeedInt P, const CeedInt Q, const CeedInt nqpt, const CeedInt bufLen,
+static __global__ void grad(const CeedInt nelem, const CeedInt dim, const CeedInt ncomp, const CeedInt elemsize, const CeedInt P, const CeedInt Q, const CeedInt nqpt, const CeedInt bufLen,
     const CeedTransposeMode tmode, const CeedScalar *interp1d, const CeedScalar *grad1d, const CeedScalar *u, CeedScalar *v) {
   const CeedInt i = threadIdx.x;
 
@@ -130,7 +130,7 @@ __global__ void grad(const CeedInt nelem, const CeedInt dim, const CeedInt ncomp
   }
 }
 
-__global__ void weight(const CeedInt dim, const CeedInt Q, const CeedScalar *qweight1d, CeedScalar *v) {
+static __global__ void weight(const CeedInt dim, const CeedInt Q, const CeedScalar *qweight1d, CeedScalar *v) {
   for (CeedInt d=0; d<dim; d++) {
     CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
     for (CeedInt i=0; i<pre; i++) {

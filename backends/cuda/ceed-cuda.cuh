@@ -76,7 +76,7 @@ static int divup(int a, int b) {
 }
 
 template <typename CudaFunc, typename... Args>
-int run_cuda(CudaFunc f, const int blockSize, const int sharedMem, const CeedInt a, Args... args) {
+static int run_cuda(CudaFunc f, const int blockSize, const int sharedMem, const CeedInt a, Args... args) {
   int actBlockSize = 0;
   if (blockSize > 0) {
     actBlockSize = blockSize;
