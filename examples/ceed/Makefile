@@ -14,18 +14,12 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
+OPT ?= -O -g
+
 # Ceed directory
 CEED_DIR ?= ../..
-
-NVCC ?= nvcc
-ifeq ($(shell which $(NVCC)),)
-	CEED_FLAGS += -I$(CEED_DIR)/include -O3 -std=c99
-	CEED_LIBS += -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -lm
-else
-	CC = $(NVCC)
-	CEED_FLAGS += -I$(CEED_DIR)/include -O3 -x=cu
-	CEED_LIBS += -Xlinker="-rpath,$(abspath $(CEED_DIR)/lib)" -L$(CEED_DIR)/lib -lceed -lm -lcudart
-endif
+CEED_FLAGS ?= -I$(CEED_DIR)/include -std=c99 $(OPT)
+CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -lm
 
 EXAMPLES.c = $(wildcard ex*.c)
 EXAMPLES = $(EXAMPLES.c:%.c=%)

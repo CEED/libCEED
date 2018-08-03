@@ -29,11 +29,11 @@ static inline size_t bytes(const CeedElemRestriction res) {
 static
 int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
                                   CeedTransposeMode tmode,
-                                  CeedInt ncomp,
                                   CeedTransposeMode lmode,
                                   CeedVector u, CeedVector v,
                                   CeedRequest *request) {
   const Ceed ceed = r->ceed;
+  const CeedInt ncomp = r->ncomp;
   dbg("[CeedElemRestriction][Apply]");
   const CeedElemRestriction_Occa *data = r->data;
   const occaMemory id = data->d_indices;
@@ -169,6 +169,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   occaCopyPtrToMem(data->d_indices,indices,bytes(r),NO_OFFSET,NO_PROPS);
   // ***************************************************************************
   dbg("[CeedElemRestriction][Create] Building kRestrict");
+  dbg("[CeedElemRestriction][Create] nelem=%d",r->nelem);
   occaProperties pKR = occaCreateProperties();
   occaPropertiesSet(pKR, "defines/ndof", occaInt(r->ndof));
   occaPropertiesSet(pKR, "defines/nelem", occaInt(r->nelem));

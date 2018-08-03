@@ -24,10 +24,14 @@ NVCC = $(CUDA_DIR)/bin/nvcc
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
-NDEBUG ?= 1
 
 LDFLAGS ?=
 UNDERSCORE ?= 1
+
+# MFEM_DIR env variable should point to sibling directory
+ifneq ($(wildcard ../mfem/.*),)
+  MFEM_DIR?=../mfem
+endif
 
 # OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
 OCCA_DIR ?= ../occa
@@ -42,22 +46,19 @@ CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-CFLAGS = -std=c99 -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-FFLAGS = -cpp     -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
-NVCCFLAGS = -std=c++11 -arch=sm_60 --compiler-options="-Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP"
+OPT    = -O -g
+CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
+NVCCFLAGS = $(OPT)
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
-  FFLAGS = -qpreprocess -qextname -qpic -MMD
+  FFLAGS = $(OPT) -qpreprocess -qextname -qpic -MMD
+else # gfortran/Intel-style options
+  FFLAGS = -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
 endif
-
-CFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
 
 ifeq ($(UNDERSCORE), 1)
   CFLAGS += -DUNDERSCORE
 endif
-
-FFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g)
-NVCCFLAGS += $(if $(NDEBUG),-O2 -DNDEBUG=1,-g -lineinfo)
 
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
@@ -108,6 +109,9 @@ examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
 #mfemexamples
 mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
 mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
+petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
+petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
+
 # backends/[ref & occa  & magma]
 ref.c      := $(sort $(wildcard backends/ref/*.c))
 template.c := $(sort $(wildcard backends/template/*.c))
@@ -211,20 +215,24 @@ $(OBJDIR)/%.o : %.cu | $$(@D)/.DIR
 	$(call quiet,NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
-	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
+	$(call quiet,LINK.c) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
 $(OBJDIR)/% : tests/%.f | $$(@D)/.DIR
-	$(call quiet,FC) $(CPPFLAGS) $(FFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
+	$(call quiet,LINK.F) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
-	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
+	$(call quiet,LINK.c) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
-	$(call quiet,FC) $(CPPFLAGS) $(FFLAGS) $(LDFLAGS) -o $@ $(abspath $<) -lceed $(LDLIBS)
+	$(call quiet,LINK.F) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	$(MAKE) -C examples/mfem CEED_DIR=`pwd` $*
 	mv examples/mfem/$* $@
+
+$(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) | $$(@D)/.DIR
+	$(MAKE) -C examples/petsc CEED_DIR=`pwd` $*
+	mv examples/petsc/$* $@
 
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
@@ -245,9 +253,10 @@ prove : $(tests) $(examples)
 # run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
-prove-allexamples : $(tests) $(examples) $(mfemexamples)
+alltests := $(tests) $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
+prove-all : $(ceed.pc) $(alltests)
 	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%) $(mfemexamples:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(alltests:$(OBJDIR)/%=%)
 
 examples : $(examples)
 

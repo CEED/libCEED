@@ -31,10 +31,6 @@
   @param ceed       Ceed library context
   @param vlength    Vector length.  Caller must ensure that number of quadrature
                     points is a multiple of vlength.
-  @param nfields    Number of fields/components in input and output arrays
-  @param qdatasize  Size in bytes of quadrature data at each quadrature point.
-  @param inmode     Bitwise OR of evaluation modes for input fields
-  @param outmode    Bitwise OR of evaluation modes for output fields
   @param f          Function pointer to evaluate action at quadrature points.
                     See below.
   @param focca      OCCA identifier "file.c:function_name" for definition of `f`
@@ -46,39 +42,15 @@
    1. [void *ctx][in/out] - user data, this is the 'ctx' pointer stored in
               the CeedQFunction, set by calling CeedQFunctionSetContext
 
-   2. [void *qdata][in/out] - quadrature points data corresponding to the
-              batch-of-points being processed in this call; the quadrature
-              point index has a stride of 1
+   2. [CeedInt nq][in] - number of quadrature points to process
 
-   3. [CeedInt nq][in] - number of quadrature points to process
+   3. [const CeedScalar *const *u][in] - input fields data at quadrature pts, listed in the order given by the user
 
-   4. [const CeedScalar *const *u][in] - input fields data at quadrature pts:
-       u[0] - CEED_EVAL_INTERP data: field values at quadrature points in
-              reference space; the quadrature point index has a stride of 1,
-              vector component index has a stride of nq (see argument 3) and
-              values for multiple fields are consequitive in memory (strides
-              will generally vary with the number of components in a field);
-              fields that do not specify CEED_EVAL_INTERP mode, use no memory.
-       u[1] - CEED_EVAL_GRAD data: field gradients at quadrature points in
-              reference space; the quadrature point index has a stride of 1,
-              the derivative direction index has a stride of nq (see argument
-              3), vector component index has a stride of (rdim x nq) where
-              rdim is the dimension of the reference element, and values for
-              multiple fields are consequitive in memory (strides will
-              generally vary with the number of components in a field);
-              fields that do not specify CEED_EVAL_GRAD mode, use no memory.
-       u[2] - CEED_EVAL_DIV data: field divergences ... (same as above)?
-       u[3] - CEED_EVAL_CURL data: field curl ... (same as above)?
-
-   5. [CeedScalar *const *v][out] - output fields data at quadrature points:
-       v[0], v[1], ..., v[3] - use similar layouts as u[] but use the output
-              CeedEvalMode.
+   4. [CeedScalar *const *v][out] - output fields data at quadrature points, again listed in order given by the user
 
 */
-int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedInt nfields,
-                                size_t qdatasize, CeedEvalMode inmode,
-                                CeedEvalMode outmode,
-                                CeedQFunctionCallback f, CeedQFunctionKernel_Cuda fcuda,
+int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
+                                int (*f)(void*, CeedInt, const CeedScalar *const*, CeedScalar *const*),
                                 const char *focca, CeedQFunction *qf) {
   int ierr;
   char *focca_copy;
@@ -90,16 +62,62 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedInt nfields,
   ceed->refcount++;
   (*qf)->refcount = 1;
   (*qf)->vlength = vlength;
-  (*qf)->nfields = nfields;
-  (*qf)->qdatasize = qdatasize;
-  (*qf)->inmode = inmode;
-  (*qf)->outmode = outmode;
   (*qf)->function = f;
   (*qf)->fcuda = fcuda;
   ierr = CeedCalloc(strlen(focca)+1, &focca_copy); CeedChk(ierr);
   strcpy(focca_copy, focca);
   (*qf)->focca = focca_copy;
   ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
+  return 0;
+}
+
+static int CeedQFunctionFieldSet(struct CeedQFunctionField *f,
+                                 const char *fieldname, CeedInt ncomp,
+                                 CeedEvalMode emode) {
+  size_t len = strlen(fieldname);
+  char *tmp;
+  int ierr =  CeedCalloc(len+1, &tmp); CeedChk(ierr);
+  memcpy(tmp, fieldname, len+1);
+  f->fieldname = tmp;
+  f->ncomp = ncomp;
+  f->emode = emode;
+  return 0;
+}
+
+int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
+                          CeedInt ncomp, CeedEvalMode emode) {
+  int ierr = CeedQFunctionFieldSet(&qf->inputfields[qf->numinputfields++],
+                                   fieldname, ncomp, emode); CeedChk(ierr);
+  return 0;
+}
+
+int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
+                           CeedInt ncomp, CeedEvalMode emode) {
+  if (emode == CEED_EVAL_WEIGHT)
+    return CeedError(qf->ceed, 1,
+                     "Cannot create qfunction output with CEED_EVAL_WEIGHT");
+  int ierr = CeedQFunctionFieldSet(&qf->outputfields[qf->numoutputfields++],
+                                   fieldname, ncomp, emode); CeedChk(ierr);
+  return 0;
+}
+
+int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
+                            CeedInt *numoutput) {
+  CeedInt nin = 0, nout = 0;
+  for (CeedInt i=0; i<qf->numinputfields; i++) {
+    CeedEvalMode emode = qf->inputfields[i].emode;
+    if (emode == CEED_EVAL_NONE) nin++;  // Colocated field is input directly
+    if (emode & CEED_EVAL_INTERP) nin++; // Interpolate to quadrature points
+    if (emode & CEED_EVAL_GRAD) nin++;   // Gradients at quadrature points
+  }
+  for (CeedInt i=0; i<qf->numoutputfields; i++) {
+    CeedEvalMode emode = qf->outputfields[i].emode;
+    if (emode == CEED_EVAL_NONE) nout++;
+    if (emode & CEED_EVAL_INTERP) nout++;
+    if (emode & CEED_EVAL_GRAD) nout++;
+  }
+  if (numinput) *numinput = nin;
+  if (numoutput) *numoutput = nout;
   return 0;
 }
 
@@ -114,7 +132,7 @@ int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
 
 /** Apply the action of a CeedQFunction
  */
-int CeedQFunctionApply(CeedQFunction qf, void *qdata, CeedInt Q,
+int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
                        const CeedScalar *const *u,
                        CeedScalar *const *v) {
   int ierr;
@@ -124,7 +142,7 @@ int CeedQFunctionApply(CeedQFunction qf, void *qdata, CeedInt Q,
     return CeedError(qf->ceed, 2,
                      "Number of quadrature points %d must be a multiple of %d",
                      Q, qf->vlength);
-  ierr = qf->Apply(qf, qdata, Q, u, v); CeedChk(ierr);
+  ierr = qf->Apply(qf, Q, u, v); CeedChk(ierr);
   return 0;
 }
 
@@ -134,6 +152,13 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   int ierr;
 
   if (!*qf || --(*qf)->refcount > 0) return 0;
+  // Free field names
+  for (int i=0; i<(*qf)->numinputfields; i++) {
+    ierr = CeedFree(&(*qf)->inputfields[i].fieldname); CeedChk(ierr);
+  }
+  for (int i=0; i<(*qf)->numoutputfields; i++) {
+    ierr = CeedFree(&(*qf)->outputfields[i].fieldname); CeedChk(ierr);
+  }
   if ((*qf)->Destroy) {
     ierr = (*qf)->Destroy(*qf); CeedChk(ierr);
   }

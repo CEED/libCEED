@@ -14,19 +14,12 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
+OPT ?= -O -g
+
 # Ceed directory
 CEED_DIR ?= ../..
-
-NVCC ?= nvcc
-ifeq ($(shell which $(NVCC)),)
-	CC = $(MFEM_CXX)
-	CEED_FLAGS += -I$(CEED_DIR)/include -std=c99
-	CEED_LIBS += -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -lm
-else
-	CC = $(NVCC)
-	CEED_FLAGS += -I$(CEED_DIR)/include -x=cu
-	CEED_LIBS += -Xlinker="-rpath,$(abspath $(CEED_DIR)/lib)" -L$(CEED_DIR)/lib -lceed -lm -lcudart
-endif
+CEED_FLAGS ?= -I$(CEED_DIR)/include $(OPT)
+CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed
 
 # Use an MFEM build directory or an MFEM install directory
 MFEM_DIR ?= ../../../mfem
@@ -37,7 +30,7 @@ MFEM_DEF = -DMFEM_DIR="\"$(abspath $(MFEM_DIR))\""
 MFEM_LIB_FILE = mfem_is_not_built
 -include $(wildcard $(CONFIG_MK))
 
-MFEM_EXAMPLES = bp1 bp3
+MFEM_EXAMPLES =  bp1 bp3
 
 .SUFFIXES:
 .SUFFIXES: .cpp
@@ -46,11 +39,11 @@ MFEM_EXAMPLES = bp1 bp3
 all: $(MFEM_EXAMPLES)
 
 # Remove built-in rules
-%: %.cpp
 
 # Rules for building the examples
 %: %.cpp $(CONFIG_MK) $(MFEM_LIB_FILE)
-	$(CC) $(CEED_FLAGS) $(MFEM_FLAGS) $(MFEM_DEF) $< -o $@ $(CEED_LIBS) $(MFEM_LIBS)
+	$(MFEM_CXX) $(CEED_FLAGS) $(MFEM_FLAGS) $(MFEM_DEF) $(abspath $<) -o $@ \
+	  $(CEED_LIBS) $(MFEM_LIBS)
 
 # Generate an error message if the MFEM library is not built and exit
 $(MFEM_LIB_FILE):

@@ -16,6 +16,10 @@
 
 #include <ceed-impl.h>
 
+/// @cond DOXYGEN_SKIP
+static struct CeedVector_private ceed_vector_active;
+static struct CeedVector_private ceed_vector_none;
+
 /// @file
 /// Implementation of public CeedVector interfaces
 ///
@@ -73,7 +77,6 @@ int CeedVectorSetArray(CeedVector x, CeedMemType mtype, CeedCopyMode cmode,
 /// @sa CeedVectorRestoreArray()
 int CeedVectorGetArray(CeedVector x, CeedMemType mtype, CeedScalar **array) {
   int ierr;
-
   if (!x || !x->GetArray)
     return CeedError(x ? x->ceed : NULL, 1, "Not supported");
   ierr = x->GetArray(x, mtype, array); CeedChk(ierr);
@@ -133,6 +136,12 @@ int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
   return 0;
 }
 
+/// Get the length of a vector
+CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
+  *length = vec->length;
+  return 0;
+}
+
 /// Destroy a vector
 int CeedVectorDestroy(CeedVector *x) {
   int ierr;
@@ -145,3 +154,9 @@ int CeedVectorDestroy(CeedVector *x) {
   ierr = CeedFree(x); CeedChk(ierr);
   return 0;
 }
+
+/// Indicate that vector will be provided as an explicit argument to CeedOperatorApply().
+CeedVector CEED_VECTOR_ACTIVE = &ceed_vector_active;
+
+/// Indicate that no vector is applicable (i.e., for CEED_EVAL_WEIGHTS).
+CeedVector CEED_VECTOR_NONE = &ceed_vector_none;

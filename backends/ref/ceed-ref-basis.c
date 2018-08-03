@@ -56,12 +56,12 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
                               const CeedScalar *u, CeedScalar *v) {
   int ierr;
   const CeedInt dim = basis->dim;
-  const CeedInt ndof = basis->ndof;
-  const CeedInt nqpt = ndof*CeedPowInt(basis->Q1d, dim);
+  const CeedInt ncomp = basis->ncomp;
+  const CeedInt nqpt = ncomp*CeedPowInt(basis->Q1d, dim);
   const CeedInt add = (tmode == CEED_TRANSPOSE);
 
   if (tmode == CEED_TRANSPOSE) {
-    const CeedInt vsize = ndof*CeedPowInt(basis->P1d, dim);
+    const CeedInt vsize = ncomp*CeedPowInt(basis->P1d, dim);
     for (CeedInt i = 0; i < vsize; i++)
       v[i] = (CeedScalar) 0;
   }
@@ -70,8 +70,8 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
     if (tmode == CEED_TRANSPOSE) {
       P = basis->Q1d; Q = basis->P1d;
     }
-    CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
-    CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
+    CeedInt pre = ncomp*CeedPowInt(P, dim-1), post = 1;
+    CeedScalar tmp[2][ncomp*Q*CeedPowInt(P>Q?P:Q, dim-1)];
     for (CeedInt d=0; d<dim; d++) {
       ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q, basis->interp1d,
                                     tmode, add&&(d==dim-1),
@@ -89,15 +89,15 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedTransposeMode tmode,
   if (emode & CEED_EVAL_GRAD) {
     CeedInt P = basis->P1d, Q = basis->Q1d;
     // In CEED_NOTRANSPOSE mode:
-    // u is (P^dim x nc), column-major layout (nc = ndof)
-    // v is (Q^dim x nc x dim), column-major layout (nc = ndof)
+    // u is (P^dim x nc), column-major layout (nc = ncomp)
+    // v is (Q^dim x nc x dim), column-major layout (nc = ncomp)
     // In CEED_TRANSPOSE mode, the sizes of u and v are switched.
     if (tmode == CEED_TRANSPOSE) {
       P = basis->Q1d, Q = basis->P1d;
     }
-    CeedScalar tmp[2][ndof*Q*CeedPowInt(P>Q?P:Q, dim-1)];
+    CeedScalar tmp[2][ncomp*Q*CeedPowInt(P>Q?P:Q, dim-1)];
     for (CeedInt p = 0; p < dim; p++) {
-      CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
+      CeedInt pre = ncomp*CeedPowInt(P, dim-1), post = 1;
       for (CeedInt d=0; d<dim; d++) {
         ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q,
                                       (p==d)?basis->grad1d:basis->interp1d,

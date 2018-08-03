@@ -137,11 +137,33 @@ CEED_EXTERN int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array);
 CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec,
     const CeedScalar **array);
 CEED_EXTERN int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream);
+CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedInt *length);
 CEED_EXTERN int CeedVectorDestroy(CeedVector *vec);
 
 CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;
 CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int CeedRequestWait(CeedRequest *req);
+
+CEED_EXTERN CeedElemRestriction CEED_RESTRICTION_IDENTITY;
+/// Argument for CeedOperatorSetField to use no restriction
+/// @ingroup CeedElemRestriction
+/// @ingroup CeedOperator
+CEED_EXTERN CeedBasis CEED_BASIS_COLOCATED;
+/// Argument for CeedOperatorSetField that vector is colocated with
+/// quadrature points, used with qfunction eval mode CEED_EVAL_NONE
+/// or CEED_EVAL_INTERP only, not with CEED_EVAL_GRAD, CEED_EVAL_DIV,
+/// or CEED_EVAL_CURL
+/// @ingroup CeedVector
+/// @ingroup CeedOperator
+CEED_EXTERN CeedVector CEED_VECTOR_ACTIVE;
+/// Argument for CeedOperatorSetField to use active input or output
+/// @ingroup CeedVector
+/// @ingroup CeedOperator
+CEED_EXTERN CeedVector CEED_VECTOR_NONE;
+/// Argument for CeedOperatorSetField to use no vector, used with
+/// qfunction input with eval mode CEED_EVAL_WEIGHTS
+/// @ingroup CeedVector
+/// @ingroup CeedOperator
 
 /// Denotes whether a linear transformation or its transpose should be applied
 typedef enum {
@@ -152,14 +174,19 @@ typedef enum {
 } CeedTransposeMode;
 
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelements,
-    CeedInt esize, CeedInt ndof, CeedMemType mtype, CeedCopyMode cmode,
+    CeedInt esize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
     const CeedInt *indices, CeedElemRestriction *r);
 
 CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelements,
     CeedInt esize, CeedInt blocksize, CeedMemType mtype, CeedCopyMode cmode,
     CeedInt *blkindices, CeedElemRestriction *r);
+CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction r,
+                                                CeedVector *lvec,
+                                                CeedVector *evec);
+CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction r,
+                                                  CeedInt *numelements);
 CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction r,
-    CeedTransposeMode tmode, CeedInt ncomp, CeedTransposeMode lmode, CeedVector u,
+    CeedTransposeMode tmode, CeedTransposeMode lmode, CeedVector u,
     CeedVector ru, CeedRequest *request);
 CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *r);
 
@@ -220,22 +247,29 @@ typedef void (*CeedQFunctionKernel_Cuda)(const CeedInt nelem, const CeedInt Q, c
   const CeedEvalMode inmode, const CeedEvalMode outmode, const CeedScalar *u, CeedScalar *v, void *ctx, char *qdata, int *ierr);
 
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
-    CeedInt nfields, size_t qdatasize, CeedEvalMode inmode, CeedEvalMode outmode,
-    CeedQFunctionCallback f, CeedQFunctionKernel_Cuda fCuda,
-    const char *focca, CeedQFunction *qf);
+    int (*f)(void *ctx, CeedInt nq, const CeedScalar *const *u,
+             CeedScalar *const *v), const char *focca, CeedQFunction *qf);
+CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
+                                      CeedInt ncomp, CeedEvalMode emode);
+CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
+                                       CeedInt ncomp, CeedEvalMode emode);
+CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
+                                        CeedInt *numoutput);
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx,
                                         size_t ctxsize);
-CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, void *qdata, CeedInt Q,
+CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
                                    const CeedScalar *const *u,
                                    CeedScalar *const *v);
 CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
 
-CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedElemRestriction r,
-                                   CeedBasis b, CeedQFunction qf, CeedQFunction dqf, CeedQFunction dqfT,
+CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf,
+                                   CeedQFunction dqf, CeedQFunction dqfT,
                                    CeedOperator *op);
-CEED_EXTERN int CeedOperatorGetQData(CeedOperator op, CeedVector *qdata);
-CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector qdata,
-                                  CeedVector ustate, CeedVector residual, CeedRequest *request);
+CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *fieldname,
+                                     CeedElemRestriction r, CeedBasis b,
+                                     CeedVector v);
+CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
+                                  CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
 
 #ifdef __CUDACC__

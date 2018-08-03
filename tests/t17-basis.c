@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     CeedBasisApply(bxl, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
     for (CeedInt i=0; i<Pdim; i++) {
       CeedScalar xx[dim];
-      for (CeedInt d=0; d<dim; d++) xx[d] = xq[d*Pdim + i%Pdim];
+      for (CeedInt d=0; d<dim; d++) xx[d] = xq[d*Pdim + i];
       u[i] = Eval(dim, xx);
     }
 

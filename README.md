@@ -44,10 +44,17 @@ For more details on the CEED API see http://ceed.exascaleproject.org/ceed-code/.
 
 ## Building
 
-The CEED library, `libceed`, is a C99 library with no external dependencies.
-It can be built using
+The CEED library, `libceed`, is a C99 library with no external dependencies.  It
+can be built using
 
     make
+
+or, with optimization flags
+
+    make OPT='-O3 -march=skylake-avx512 -ffp-contract=fast'
+
+These optimization flags are used by all languages (C, C++, Fortran) and this
+makefile variable can also be set for testing and examples (below).
 
 ## Testing
 
@@ -106,7 +113,7 @@ CEED resource (`-ceed`) | Backend
 ----------------------- | ---------------------------------
 `/cpu/self/opt`         | Serial optimized implementation
 `/cpu/self/ref`         | Serial reference implementation
-`/cpu/self/tmpl`        | Backend template, dispatches to reference
+`/cpu/self/tmpl`        | Backend template, dispatches to /cpu/self/opt
 `/cpu/occa`             | Serial OCCA kernels
 `/gpu/occa`             | CUDA OCCA kernels
 `/omp/occa`             | OpenMP OCCA kernels

@@ -18,7 +18,8 @@
 //     bp1 -ceed /cpu/occa
 //     bp1 -ceed /omp/occa
 //     bp1 -ceed /ocl/occa
-
+//
+//TESTARGS -ceed {ceed_resource} -test
 const char help[] = "Solve CEED BP1 using PETSc\n";
 
 #include <petscksp.h>
@@ -63,7 +64,7 @@ static PetscInt GlobalStart(const PetscInt p[3], const PetscInt irank[3],
   return -1;
 }
 static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
-                             CeedInt P,
+                             CeedInt P, CeedInt ncomp,
                              CeedElemRestriction *Erestrict) {
   const PetscInt Nelem = melem[0]*melem[1]*melem[2];
   PetscInt mdof[3], *idx, *idxp;
@@ -91,17 +92,17 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
       }
     }
   }
-  CeedElemRestrictionCreate(ceed, Nelem, P*P*P, mdof[0]*mdof[1]*mdof[2],
+  CeedElemRestrictionCreate(ceed, Nelem, P*P*P, mdof[0]*mdof[1]*mdof[2], ncomp,
                             CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
   PetscFunctionReturn(0);
 }
 
-static int Setup(void *ctx, void *qdata, CeedInt Q,
+static int Setup(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
-  CeedScalar *rho = qdata, *target = rho + Q;
+  CeedScalar *rho = out[0], *target = out[1];
   const CeedScalar (*x)[Q] = (const CeedScalar (*)[Q])in[0];
   const CeedScalar (*J)[3][Q] = (const CeedScalar (*)[3][Q])in[1];
-  const CeedScalar *w = in[4];
+  const CeedScalar *w = in[2];
   for (CeedInt i=0; i<Q; i++) {
     CeedScalar det = (+ J[0][0][i] * (J[1][1][i]*J[2][2][i] - J[1][2][i]*J[2][1][i])
                       - J[0][1][i] * (J[1][0][i]*J[2][2][i] - J[1][2][i]*J[2][0][i])
@@ -113,33 +114,36 @@ static int Setup(void *ctx, void *qdata, CeedInt Q,
   return 0;
 }
 
-static int Mass(void *ctx, void *qdata, CeedInt Q,
+static int Mass(void *ctx, CeedInt Q,
                 const CeedScalar *const *in, CeedScalar *const *out) {
   bool *residual = ctx;
-  CeedScalar *rho = qdata, *target = rho + Q;
+  const CeedScalar *u = in[0], *rho = in[1], *target = in[2];
+  CeedScalar *v = out[0];
   for (CeedInt i=0; i<Q; i++) {
-    out[0][i] = rho[i] * (in[0][i] - (*residual ? target[i] : 0.));
+    v[i] = rho[i] * (u[i] - (*residual ? target[i] : 0.));
   }
   return 0;
 }
 
-static int Error(void *ctx, void *qdata, CeedInt Q,
+static int Error(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
-  CeedScalar *maxerror = ctx;
-  CeedScalar *rho = qdata, *target = rho + Q;
+  const CeedScalar *u = in[0], *target = in[1];
+  CeedScalar *err = out[0];
   for (CeedInt i=0; i<Q; i++) {
-    *maxerror = PetscMax(*maxerror, PetscAbsScalar(in[0][i] - target[i]));
+    err[i] = u[i] - target[i];
   }
   return 0;
 }
 
 typedef struct User_ *User;
 struct User_ {
+  MPI_Comm comm;
   VecScatter ltog;
   Vec Xloc, Yloc;
   CeedVector xceed, yceed;
   CeedOperator op;
-  CeedVector qdata;
+  CeedVector rho;
+  Ceed ceed;
 };
 
 // We abuse this function to also compute residuals (an affine operation) and to
@@ -162,7 +166,7 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
   CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
   CeedVectorSetArray(user->yceed, CEED_MEM_HOST, CEED_USE_POINTER, y);
 
-  CeedOperatorApply(user->op, user->qdata, user->xceed, user->yceed,
+  CeedOperatorApply(user->op, user->xceed, user->yceed,
                     CEED_REQUEST_IMMEDIATE);
 
   ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
@@ -178,12 +182,46 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
   PetscFunctionReturn(0);
 }
 
+static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
+                                      CeedVector target, PetscReal *maxerror) {
+  PetscErrorCode ierr;
+  PetscScalar *x;
+  CeedVector collocated_error;
+  CeedInt length;
+
+  PetscFunctionBeginUser;
+  CeedVectorGetLength(target, &length);
+  CeedVectorCreate(user->ceed, length, &collocated_error);
+  ierr = VecScatterBegin(user->ltog, X, user->Xloc, INSERT_VALUES,
+                         SCATTER_REVERSE); CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES, SCATTER_REVERSE);
+  CHKERRQ(ierr);
+  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
+  CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
+  CeedOperatorApply(op_error, user->xceed, collocated_error,
+                    CEED_REQUEST_IMMEDIATE);
+  VecRestoreArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
+
+  *maxerror = 0;
+  const CeedScalar *e;
+  CeedVectorGetArrayRead(collocated_error, CEED_MEM_HOST, &e);
+  for (CeedInt i=0; i<length; i++) {
+    *maxerror = PetscMax(*maxerror, PetscAbsScalar(e[i]));
+  }
+  CeedVectorRestoreArrayRead(collocated_error, &e);
+  ierr = MPI_Allreduce(MPI_IN_PLACE, &maxerror,
+                       1, MPIU_SCALAR, MPIU_MAX, user->comm); CHKERRQ(ierr);
+  CeedVectorDestroy(&collocated_error);
+  PetscFunctionReturn(0);
+}
+
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
   char ceedresource[4096] = "/cpu/self";
   PetscInt degree, qextra, localdof, localelem, melem[3], mdof[3], p[3],
            irank[3], ldof[3], lsize;
+  PetscBool test_mode;
   PetscMPIInt size, rank;
   VecScatter ltog;
   Ceed ceed;
@@ -191,7 +229,7 @@ int main(int argc, char **argv) {
   CeedElemRestriction Erestrictx, Erestrictu;
   CeedQFunction qf_setup, qf_mass, qf_error;
   CeedOperator op_setup, op_mass, op_error;
-  CeedVector xcoord, qdata;
+  CeedVector xcoord, rho, target;
   CeedInt P, Q;
   Vec X, Xloc, rhs;
   Mat mat;
@@ -202,7 +240,11 @@ int main(int argc, char **argv) {
   if (ierr) return ierr;
   comm = PETSC_COMM_WORLD;
   ierr = PetscOptionsBegin(comm, NULL, "CEED BP1 in PETSc", NULL); CHKERRQ(ierr);
-  degree = 1;
+  test_mode = PETSC_FALSE;
+  ierr = PetscOptionsBool("-test",
+                          "Testing mode (do not print unless error is large)",
+                          NULL, test_mode, &test_mode, NULL); CHKERRQ(ierr);
+  degree = test_mode ? 3 : 1;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
   qextra = 0;
@@ -238,12 +280,14 @@ int main(int argc, char **argv) {
 
   GlobalDof(p, irank, degree, melem, mdof);
 
-  ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
-                     p[0], p[1], p[2]); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localelem,
-                     melem[0], melem[1], melem[2]); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Owned dofs: %D = %D %D %D\n",
-                     mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]); CHKERRQ(ierr);
+  if (!test_mode) {
+    ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
+                       p[0], p[1], p[2]); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localelem,
+                       melem[0], melem[1], melem[2]); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Owned dofs: %D = %D %D %D\n",
+                       mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]); CHKERRQ(ierr);
+  }
 
   {
     ierr = VecCreate(comm, &X); CHKERRQ(ierr);
@@ -296,8 +340,8 @@ int main(int argc, char **argv) {
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 1, P, Q, CEED_GAUSS, &basisu);
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, Q, CEED_GAUSS, &basisx);
 
-  CreateRestriction(ceed, melem, P, &Erestrictu);
-  CreateRestriction(ceed, melem, 2, &Erestrictx);
+  CreateRestriction(ceed, melem, P, 1, &Erestrictu);
+  CreateRestriction(ceed, melem, 2, 3, &Erestrictx);
   {
     CeedScalar *xloc;
     CeedInt shape[3] = {melem[0]+1, melem[1]+1, melem[2]+1}, len =
@@ -319,33 +363,78 @@ int main(int argc, char **argv) {
     CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_OWN_POINTER, xloc);
   }
 
-  CeedQFunctionCreateInterior(ceed, 1, 3, 2*sizeof(CeedScalar),
-                              CEED_EVAL_INTERP | CEED_EVAL_GRAD | CEED_EVAL_WEIGHT,
-                              CEED_EVAL_NONE,
+  // Create the Q-function that builds the mass operator (i.e. computes its
+  // quadrature data) and set its context data.
+  CeedQFunctionCreateInterior(ceed, 1,
                               Setup, __FILE__ ":Setup", &qf_setup);
-  CeedQFunctionCreateInterior(ceed, 1, 1, 2*sizeof(CeedScalar),
-                              CEED_EVAL_INTERP, CEED_EVAL_INTERP,
+  CeedQFunctionAddInput(qf_setup, "x", 3, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_setup, "dx", 3, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddOutput(qf_setup, "rho", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_setup, "target", 1, CEED_EVAL_NONE);
+
+  // Create the Q-function that defines the action of the mass operator.
+  CeedQFunctionCreateInterior(ceed, 1,
                               Mass, __FILE__ ":Mass", &qf_mass);
-  CeedQFunctionCreateInterior(ceed, 1, 1, 2*sizeof(CeedScalar),
-                              CEED_EVAL_INTERP, CEED_EVAL_NONE,
+  CeedQFunctionAddInput(qf_mass, "u", 1, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_mass, "rho", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_mass, "target", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);
+
+  // Create the error qfunction
+  CeedQFunctionCreateInterior(ceed, 1,
                               Error, __FILE__ ":Error", &qf_error);
+  CeedQFunctionAddInput(qf_error, "u", 1, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_error, "target", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_error, "error", 1, CEED_EVAL_NONE);
 
-  CeedOperatorCreate(ceed, Erestrictx, basisx, qf_setup, NULL, NULL, &op_setup);
-  CeedOperatorCreate(ceed, Erestrictu, basisu, qf_mass, NULL, NULL, &op_mass);
-  CeedOperatorCreate(ceed, Erestrictu, basisu, qf_error, NULL, NULL, &op_error);
+  // Create the persistent vectors that will be needed in setup
+  CeedInt Nqpts, Nelem = melem[0]*melem[1]*melem[2];
+  CeedBasisGetNumQuadraturePoints(basisu, &Nqpts);
+  CeedVectorCreate(ceed, Nelem*Nqpts, &rho);
+  CeedVectorCreate(ceed, Nelem*Nqpts, &target);
 
-  CeedOperatorGetQData(op_setup, &qdata);
-  CeedOperatorApply(op_setup, qdata, xcoord, NULL, CEED_REQUEST_IMMEDIATE);
+  // Create the operator that builds the quadrature data for the mass operator.
+  CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
+  CeedOperatorSetField(op_setup, "x", Erestrictx, basisx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "dx", Erestrictx, basisx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "weight", CEED_RESTRICTION_IDENTITY, basisx,
+                       CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setup, "rho", CEED_RESTRICTION_IDENTITY,
+                       CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "target", CEED_RESTRICTION_IDENTITY,
+                       CEED_BASIS_COLOCATED, target);
+
+  // Create the mass operator.
+  CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
+  CeedOperatorSetField(op_mass, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "rho", CEED_RESTRICTION_IDENTITY,
+                       CEED_BASIS_COLOCATED, rho);
+  CeedOperatorSetField(op_mass, "target", CEED_RESTRICTION_IDENTITY,
+                       CEED_BASIS_COLOCATED, target);
+  CeedOperatorSetField(op_mass, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+
+  // Create the error operator
+  CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
+  CeedOperatorSetField(op_error, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "target", CEED_RESTRICTION_IDENTITY,
+                       CEED_BASIS_COLOCATED, target);
+  CeedOperatorSetField(op_error, "error", CEED_RESTRICTION_IDENTITY,
+                       CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
+
+  CeedOperatorApply(op_setup, xcoord, rho, CEED_REQUEST_IMMEDIATE);
   CeedVectorDestroy(&xcoord);
 
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
+  user->comm = comm;
   user->ltog = ltog;
   user->Xloc = Xloc;
   ierr = VecDuplicate(Xloc, &user->Yloc); CHKERRQ(ierr);
   CeedVectorCreate(ceed, lsize, &user->xceed);
   CeedVectorCreate(ceed, lsize, &user->yceed);
   user->op = op_mass;
-  user->qdata = qdata;
+  user->rho = rho;
+  user->ceed = ceed;
 
   ierr = MatCreateShell(comm, mdof[0]*mdof[1]*mdof[2], mdof[0]*mdof[1]*mdof[2],
                         PETSC_DECIDE, PETSC_DECIDE, user, &mat); CHKERRQ(ierr);
@@ -383,16 +472,20 @@ int main(int argc, char **argv) {
     ierr = KSPGetConvergedReason(ksp, &reason); CHKERRQ(ierr);
     ierr = KSPGetIterationNumber(ksp, &its); CHKERRQ(ierr);
     ierr = KSPGetResidualNorm(ksp, &rnorm); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "KSP %s %s iterations %D rnorm %e\n", ksptype,
-                       KSPConvergedReasons[reason], its, (double)rnorm); CHKERRQ(ierr);
+    if (!test_mode || reason < 0 || rnorm > 1e-8) {
+      ierr = PetscPrintf(comm, "KSP %s %s iterations %D rnorm %e\n", ksptype,
+                         KSPConvergedReasons[reason], its, (double)rnorm); CHKERRQ(ierr);
+    }
   }
 
-  CeedScalar maxerror = 0;
-  user->op = op_error;
-  CeedQFunctionSetContext(qf_error, &maxerror, sizeof maxerror);
-  ierr = MatMult_Mass(mat, X, NULL); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Pointwise error (max) %e\n", (double)maxerror);
-  CHKERRQ(ierr);
+  {
+    PetscReal maxerror;
+    ierr = ComputeErrorMax(user, op_error, X, target, &maxerror); CHKERRQ(ierr);
+    if (!test_mode || maxerror > 1e-3) {
+      ierr = PetscPrintf(comm, "Pointwise error (max) %e\n", (double)maxerror);
+      CHKERRQ(ierr);
+    }
+  }
 
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
   ierr = VecDestroy(&X); CHKERRQ(ierr);
@@ -404,6 +497,8 @@ int main(int argc, char **argv) {
 
   CeedVectorDestroy(&user->xceed);
   CeedVectorDestroy(&user->yceed);
+  CeedVectorDestroy(&user->rho);
+  CeedVectorDestroy(&target);
   CeedOperatorDestroy(&op_setup);
   CeedOperatorDestroy(&op_mass);
   CeedOperatorDestroy(&op_error);

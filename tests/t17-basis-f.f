@@ -8,9 +8,9 @@ c-----------------------------------------------------------------------
       if (dimn>1) then
         rslt=rslt+atan(x(2)+0.2)
       endif
-c      if (dimn>2) then 
-c        rslt=rslt+exp(-(x(3)+0.3)*(x(3)+0.3))
-c      endif
+      if (dimn>2) then 
+        rslt=rslt+exp(-(x(3)+0.3)*(x(3)+0.3))
+      endif
 
       end
 c-----------------------------------------------------------------------
@@ -52,7 +52,7 @@ c-----------------------------------------------------------------------
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-      do dimn=1,3
+      do dimn=1,2
         qdimn=q**dimn
         pdimn=p**dimn
         xdim=2**dimn
@@ -86,7 +86,7 @@ c-----------------------------------------------------------------------
           call eval(dimn,xx,u(i))
         enddo
 
-        call ceedbasiscreatetensorh1lagrange(ceed,dimn,2,p,q,
+        call ceedbasiscreatetensorh1lagrange(ceed,dimn,1,p,q,
      $    ceed_gauss,bug,err)
 
         call ceedbasisapply(bug,ceed_notranspose,ceed_eval_grad,
