@@ -279,7 +279,7 @@ static __global__ void apply(const CeedInt nelem, const CeedInt Q, const CeedInt
     void *ctx, const CeedScalar *const *u, CeedScalar *const *v, const CeedInt *uoffsets, const CeedInt *voffsets, int *ierr) {
   const int i = blockIdx.x*blockDim.x + threadIdx.x;
 
-  for (int elem = i; elem < nelem; i += gridDim.x * blockDim.x) {
+  for (int elem = i; i < nelem; i += gridDim.x * blockDim.x) {
     int eoffset = i == elem ? elem : gridDim.x * blockDim.x;
     for (int j = 0; j < numinputfields; j++) {
       u[j] += eoffset * uoffsets[j];
