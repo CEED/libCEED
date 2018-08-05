@@ -66,7 +66,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 }
 
 /**
-  Permute and pad indices for a blocked restriction.
+  Permute and pad indices for a blocked restriction
 
   @param indices    Array of dimensions @a nelem × @a elemsize) using
                     column-major storage layout. Row i holds the ordered list
@@ -105,7 +105,7 @@ void CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
 }
 
 /**
-  Create a blocked CeedElemRestriction
+  Create a blocked CeedElemRestriction, typically only called by backends
 
   @param ceed       A Ceed object where the CeedElemRestriction will be created.
   @param nelem      Number of elements described in the @a indices array.
@@ -121,7 +121,10 @@ void CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
                     column-major storage layout. Row i holds the ordered list
                     of the indices (into the input CeedVector) for the unknowns
                     corresponding to element i, where 0 <= i < @a nelements.
-                    All indices must be in the range [0, @a ndof).
+                    All indices must be in the range [0, @a ndof). The
+                    backend will permute and pad this array to the desired
+                    ordering for the blocksize, which is typically given by the
+                    backend. The default reordering is to interlace elements.
   @param r          The address of the variable where the newly created
                     CeedElemRestriction will be stored.
 
