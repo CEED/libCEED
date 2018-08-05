@@ -27,30 +27,20 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
   const CeedScalar *uu;
   CeedScalar *vv;
   CeedInt nblk = r->nblk, blksize = r->blksize, elemsize = r->elemsize,
-           esize = nblk*blksize*elemsize, ncomp=r->ncomp;
+          esize = nblk*blksize*elemsize, ncomp=r->ncomp;
 
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
   if (tmode == CEED_NOTRANSPOSE) {
     // Perform: v = r * u
     if (!impl->indices) {
-      for (CeedInt i = 0; i<nblk - 1; i++) {
-        CeedInt shift = i*blksize*ncomp*elemsize;
+      for (CeedInt shift=0; shift<nblk*blksize*ncomp*elemsize;
+           shift+=blksize*ncomp*elemsize) {
         for (CeedInt j = 0; j<blksize; j++) {
+          CeedInt maxj = (shift<(nblk-1)*blksize*ncomp*elemsize)?blksize-1:(r->nelem%nblk)-1;
+          if (maxj == -1) maxj = blksize-1;
           for (CeedInt k = 0; k<ncomp*elemsize; k++) {
-            vv[shift + k*blksize + j] = uu[shift + j*ncomp*elemsize + k];
-          }
-        }
-      }
-      CeedInt shift = (nblk - 1)*blksize*ncomp*elemsize;
-      CeedInt nlastelems = r->nelem % nblk;
-      if (nlastelems == 0) nlastelems = blksize;
-      for (CeedInt j = 0; j<blksize; j++) {
-        for (CeedInt k = 0; k<ncomp*elemsize; k++) {
-          if (j < nlastelems) {
-            vv[shift + k*blksize + j] = uu[shift + j*ncomp*elemsize + k];
-          } else {
-            vv[shift + k*blksize + j] = uu[shift + (nlastelems - 1)*ncomp*elemsize + k];
+            vv[shift + k*blksize + j] = uu[shift + (j<maxj?j:maxj)*ncomp*elemsize + k];
           }
         }
       }
@@ -80,20 +70,12 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
     // Note: in transpose mode, we perform: v += r^t * u
     esize = (nblk - 1)*blksize*elemsize;
     if (!impl->indices) {
-      for (CeedInt i=0; i<nblk - 1; i++) {
-        CeedInt shift = i*blksize*ncomp*elemsize;
-        for (CeedInt j = 0; j<blksize; j++) {
+      for (CeedInt shift=0; shift<nblk*blksize*ncomp*elemsize;
+           shift+=blksize*ncomp*elemsize) {
+        CeedInt maxj = (shift<(nblk-1)*blksize*ncomp*elemsize)?blksize:r->nelem%nblk;
+        if (maxj == 0) maxj = blksize;
+        for (CeedInt j = 0; j<maxj; j++) {
           for (CeedInt k = 0; k<ncomp*elemsize; k++) {
-            vv[shift + j*ncomp*elemsize + k] = uu[shift + k*blksize + j];
-          }
-        }
-      }
-      CeedInt shift = (nblk - 1)*blksize*ncomp*elemsize;
-      CeedInt nlastelems = r->nelem % nblk;
-      if (nlastelems == 0) nlastelems = blksize;
-      for (CeedInt j = 0; j<blksize; j++) {
-        for (CeedInt k = 0; k<ncomp*elemsize; k++) {
-          if (j < nlastelems) {
             vv[shift + j*ncomp*elemsize + k] = uu[shift + k*blksize + j];
           }
         }
@@ -119,9 +101,9 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
             }
           }
         }
-      CeedInt shift = (nblk - 1)*blksize*elemsize;
-      CeedInt nlastelems = r->nelem % blksize;
-      if (nlastelems == 0) nlastelems = blksize;
+        CeedInt shift = (nblk - 1)*blksize*elemsize;
+        CeedInt nlastelems = r->nelem % blksize;
+        if (nlastelems == 0) nlastelems = blksize;
         for (CeedInt e = 0; e < nlastelems; e++) {
           for (CeedInt d = 0; d < ncomp; d++) {
             for (CeedInt i = 0; i<elemsize; i++) {

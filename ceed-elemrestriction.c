@@ -78,7 +78,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   @param elemsize   Size of each element
 
  */
-void CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices, 
+void CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
                            CeedInt nblk, CeedInt nelem,
                            CeedInt blksize, CeedInt elemsize) {
   for (int i = 0; i < nblk-1; i++) {
@@ -97,7 +97,8 @@ void CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
       if (j < nlastelems) {
         blkindices[shift + k*blksize + j] = indices[shift + k + j*elemsize];
       } else {
-        blkindices[shift + k*blksize + j] = indices[shift + k + (nlastelems - 1)*elemsize];
+        blkindices[shift + k*blksize + j] = indices[shift + k +
+                                            (nlastelems - 1)*elemsize];
       }
     }
   }
@@ -127,15 +128,16 @@ void CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
   @return An error code: 0 - success, otherwise - failure.
  */
 int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
-                              CeedInt blksize, CeedInt ndof, CeedInt ncomp,
-                              CeedMemType mtype, CeedCopyMode cmode,
-                              const CeedInt *indices, CeedElemRestriction *r) {
+                                     CeedInt blksize, CeedInt ndof, CeedInt ncomp,
+                                     CeedMemType mtype, CeedCopyMode cmode,
+                                     const CeedInt *indices, CeedElemRestriction *r) {
   int ierr;
   CeedInt *blkindices;
   CeedInt nblk = (nelem / blksize) + !!(nelem % blksize);
 
   if (!ceed->ElemRestrictionCreateBlocked)
-    return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreateBlocked");
+    return CeedError(ceed, 1,
+                     "Backend does not support ElemRestrictionCreateBlocked");
   if (mtype != CEED_MEM_HOST)
     return CeedError(ceed, 1, "Only MemType = HOST supported");
 
@@ -154,7 +156,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   (*r)->nblk = nblk;
   (*r)->blksize = blksize;
   ierr = ceed->ElemRestrictionCreateBlocked(*r, CEED_MEM_HOST, CEED_OWN_POINTER,
-                                            (const CeedInt *) blkindices);
+         (const CeedInt *) blkindices);
   CeedChk(ierr);
 
   if (cmode == CEED_OWN_POINTER)

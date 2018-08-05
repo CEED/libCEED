@@ -165,7 +165,8 @@ void fCeedElemRestrictionCreateBlocked(int *ceed, int *nelements,
                                        int *mtype, int *cmode,
                                        int *blkindices, int *elemr, int *err) {
   *err = CeedElemRestrictionCreateBlocked(Ceed_dict[*ceed], *nelements, *esize,
-                                          *blocksize, *ndof, *ncomp, *mtype, *cmode, blkindices, &CeedElemRestriction_dict[*elemr]);
+                                          *blocksize, *ndof, *ncomp, *mtype, *cmode, blkindices,
+                                          &CeedElemRestriction_dict[*elemr]);
 }
 
 static CeedRequest *CeedRequest_dict = NULL;
