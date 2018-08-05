@@ -295,7 +295,7 @@ void fCeedBasisGetColocatedGrad(int *basis, CeedScalar *colograd1d,
 
 #define fCeedBasisApply FORTRAN_NAME(ceedbasisapply, CEEDBASISAPPLY)
 void fCeedBasisApply(int *basis, int *nelem, int *tmode, int *emode,
-                      const CeedScalar *u, CeedScalar *v, int *err) {
+                     const CeedScalar *u, CeedScalar *v, int *err) {
   *err = CeedBasisApply(CeedBasis_dict[*basis], *nelem, *tmode, *emode, u, v);
 }
 

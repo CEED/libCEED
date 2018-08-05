@@ -400,6 +400,8 @@ int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
 /// Apply basis evaluation from nodes to quadrature points or vice-versa
 ///
 /// @param basis Basis to evaluate
+/// @param nelem the number of elements to apply the basis evaluation to;
+///     the backend will specify the ordering in ElemRestrictionCreateBlocked
 /// @param tmode \ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature
 ///     points, \ref CEED_TRANSPOSE to apply the transpose, mapping from
 ///     quadrature points to nodes
@@ -408,7 +410,7 @@ int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
 /// @param u input vector
 /// @param v output vector
 int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
-                    CeedEvalMode emode, const CeedScalar *u, CeedScalar *v) {
+                   CeedEvalMode emode, const CeedScalar *u, CeedScalar *v) {
   int ierr;
   if (!basis->Apply) return CeedError(basis->ceed, 1,
                                         "Backend does not support BasisApply");

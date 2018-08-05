@@ -344,10 +344,10 @@ static int CeedOperatorApply_Occa(CeedOperator op,
                                         (const CeedScalar **) &data->Edata[i]);
           CeedChk(ierr);
         } else { // Passive
-        dbg("[CeedOperator][Apply] No restriction, ELSE: data->Edata[%d]",i);
-        ierr = CeedVectorGetArrayRead(op->inputfields[i].vec, CEED_MEM_HOST,
-                                      (const CeedScalar **) &data->Edata[i]);
-        CeedChk(ierr);
+          dbg("[CeedOperator][Apply] No restriction, ELSE: data->Edata[%d]",i);
+          ierr = CeedVectorGetArrayRead(op->inputfields[i].vec, CEED_MEM_HOST,
+                                        (const CeedScalar **) &data->Edata[i]);
+          CeedChk(ierr);
         }
       }
     } else { // Restriction ****************************************************
@@ -530,7 +530,8 @@ static int CeedOperatorApply_Occa(CeedOperator op,
                               &data->Edata[i + qf->numinputfields][e*elemsize*ncomp]); CeedChk(ierr);
         break;
       case CEED_EVAL_GRAD:
-        ierr = CeedBasisApply(op->outputfields[i].basis, 1, CEED_TRANSPOSE, CEED_EVAL_GRAD,
+        ierr = CeedBasisApply(op->outputfields[i].basis, 1, CEED_TRANSPOSE,
+                              CEED_EVAL_GRAD,
                               data->outdata[i], &data->Edata[i + qf->numinputfields][e*elemsize*ncomp]);
         CeedChk(ierr);
         break;
