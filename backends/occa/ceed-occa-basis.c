@@ -209,6 +209,10 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
   const CeedInt ncomp = basis->ncomp;
   const CeedInt nqpt = ncomp*CeedPowInt(basis->Q1d, dim);
   const CeedInt transpose = (tmode == CEED_TRANSPOSE);
+
+  if (nelem != 1)
+    return CeedError(basis->ceed, 1,
+                     "This backend does not support BasisApply for multiple elements");
   // ***************************************************************************
   if (transpose) {
     const CeedInt vsize = ncomp*CeedPowInt(basis->P1d, dim);

@@ -60,6 +60,10 @@ static int CeedBasisApply_Opt(CeedBasis basis, CeedInt nelem,
   const CeedInt nqpt = ncomp*CeedPowInt(basis->Q1d, dim);
   const CeedInt add = (tmode == CEED_TRANSPOSE);
 
+  if (nelem != 1)
+    return CeedError(basis->ceed, 1,
+                     "This backend does not support BasisApply for multiple elements");
+
   if (tmode == CEED_TRANSPOSE) {
     const CeedInt vsize = ncomp*CeedPowInt(basis->P1d, dim);
     for (CeedInt i = 0; i < vsize; i++)

@@ -594,6 +594,10 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   const CeedInt nqpt = ncomp*CeedPowInt(basis->Q1d, dim);
   const CeedInt add = (tmode == CEED_TRANSPOSE);
 
+  if (nelem != 1)
+    return CeedError(basis->ceed, 1,
+                     "This backend does not support BasisApply for multiple elements");
+
   CeedDebug("\033[01m[CeedBasisApply_Magma] vsize=%d",
             ncomp*CeedPowInt(basis->P1d, dim));
 
