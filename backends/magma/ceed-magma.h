@@ -29,13 +29,18 @@ void magma_dtensor_contract(Ceed ceed,
                             const CeedInt Add,
                             const CeedScalar *u, CeedScalar *v);
 
-int t30_setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
-              CeedScalar *const *v);
-int t30_mass( void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
-              CeedScalar *const *v);
-int t20_setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
-              CeedScalar *const *v);
-int t20_mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
-              CeedScalar *const *v);
+int t30_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
+              CeedScalar *const *out);
+int t30_mass( void *ctx, CeedInt Q, const CeedScalar *const *in,
+              CeedScalar *const *out);
+int t20_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
+              CeedScalar *const *out);
+int t20_mass(void *ctx,  CeedInt Q, const CeedScalar *const *in,
+              CeedScalar *const *out);
+int ex1_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
+              CeedScalar *const *out);
+int ex1_mass(void *ctx,  CeedInt Q, const CeedScalar *const *in,
+             CeedScalar *const *out);
 
 #define CeedDebug(...)
+//#define CeedDebug(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
