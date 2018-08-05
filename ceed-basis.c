@@ -407,12 +407,12 @@ int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
 ///     \ref CEED_EVAL_GRAD to obtain gradients.
 /// @param u input vector
 /// @param v output vector
-int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode, CeedEvalMode emode,
-                   const CeedScalar *u, CeedScalar *v) {
+int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
+                    CeedEvalMode emode, const CeedScalar *u, CeedScalar *v) {
   int ierr;
   if (!basis->Apply) return CeedError(basis->ceed, 1,
                                         "Backend does not support BasisApply");
-  ierr = basis->Apply(basis, tmode, emode, u, v); CeedChk(ierr);
+  ierr = basis->Apply(basis, nelem, tmode, emode, u, v); CeedChk(ierr);
   return 0;
 }
 

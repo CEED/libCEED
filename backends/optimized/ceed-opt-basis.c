@@ -51,8 +51,8 @@ static int CeedTensorContract_Opt(Ceed ceed,
   return 0;
 }
 
-static int CeedBasisApply_Opt(CeedBasis basis, CeedTransposeMode tmode,
-                              CeedEvalMode emode,
+static int CeedBasisApply_Opt(CeedBasis basis, CeedInt nelem, 
+                              CeedTransposeMode tmode, CeedEvalMode emode,
                               const CeedScalar *u, CeedScalar *v) {
   int ierr;
   const CeedInt dim = basis->dim;

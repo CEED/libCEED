@@ -231,7 +231,7 @@ CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof,
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
 CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m, CeedInt n);
 CEED_EXTERN int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d);
-CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode,
+CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
                                CeedEvalMode emode, const CeedScalar *u, CeedScalar *v);
 CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
 CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);

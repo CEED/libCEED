@@ -20,14 +20,14 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
   CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
-  CeedBasisApply(bxl, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
+  CeedBasisApply(bxl, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
   for (CeedInt i=0; i<Q; i++) u[i] = PolyEval(xq[i], ALEN(p), p);
 
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bxg);
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q, Q, CEED_GAUSS, &bug);
-  CeedBasisApply(bxg, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
-  CeedBasisApply(bug, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, uq);
-  CeedBasisApply(bug, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, NULL, w);
+  CeedBasisApply(bxg, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
+  CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, uq);
+  CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, NULL, w);
   sum = 0;
   for (CeedInt i=0; i<Q; i++) {
     sum += w[i] * uq[i];

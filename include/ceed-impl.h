@@ -83,7 +83,7 @@ struct CeedElemRestriction_private {
 
 struct CeedBasis_private {
   Ceed ceed;
-  int (*Apply)(CeedBasis, CeedTransposeMode, CeedEvalMode, const CeedScalar *,
+  int (*Apply)(CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, const CeedScalar *,
                CeedScalar *);
   int (*Destroy)(CeedBasis);
   int refcount;

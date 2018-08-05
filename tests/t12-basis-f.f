@@ -44,14 +44,15 @@ c-----------------------------------------------------------------------
      $  ceed_gauss_lobatto,bxl,err)
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,q,q,
      $  ceed_gauss_lobatto,bul,err)
-      call ceedbasisapply(bxl,ceed_notranspose,ceed_eval_interp,
+      call ceedbasisapply(bxl,1,ceed_notranspose,ceed_eval_interp,
      $  x,xq,err)
 
       do i=1,q
         call polyeval(xq(i),6,p,uq(i))
       enddo
 
-      call ceedbasisapply(bul,ceed_transpose,ceed_eval_interp,uq,u,err)
+      call ceedbasisapply(bul,1,ceed_transpose,ceed_eval_interp,uq,u,
+     $  err)
 
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss,
      $  bxg,err)

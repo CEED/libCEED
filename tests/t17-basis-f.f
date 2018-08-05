@@ -76,7 +76,7 @@ c-----------------------------------------------------------------------
 
         call ceedbasiscreatetensorh1lagrange(ceed,dimn,dimn,2,p,
      $    ceed_gauss_lobatto,bxl,err)
-        call ceedbasisapply(bxl,ceed_notranspose,ceed_eval_interp,
+        call ceedbasisapply(bxl,1,ceed_notranspose,ceed_eval_interp,
      $    x,xq,err)
 
         do i=1,pdimn
@@ -89,9 +89,9 @@ c-----------------------------------------------------------------------
         call ceedbasiscreatetensorh1lagrange(ceed,dimn,1,p,q,
      $    ceed_gauss,bug,err)
 
-        call ceedbasisapply(bug,ceed_notranspose,ceed_eval_grad,
+        call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_grad,
      $    u,uq,err)
-        call ceedbasisapply(bug,ceed_transpose,ceed_eval_grad,
+        call ceedbasisapply(bug,1,ceed_transpose,ceed_eval_grad,
      $    ones,gtposeones,err)
 
         do i=1,pdimn

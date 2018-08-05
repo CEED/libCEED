@@ -201,7 +201,7 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
 // *****************************************************************************
 // * CeedBasisApply_Occa
 // *****************************************************************************
-static int CeedBasisApply_Occa(CeedBasis basis,
+static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
                                CeedTransposeMode tmode, CeedEvalMode emode,
                                const CeedScalar *u, CeedScalar *v) {
   int ierr;
