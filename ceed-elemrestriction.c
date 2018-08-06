@@ -32,6 +32,7 @@
                     restriction will be applied. This size may include data
                     used by other CeedElemRestriction objects describing
                     different types of elements.
+  @param ncomp      Number of components at each interpolation node.
   @param mtype      Memory type of the @a indices array, see CeedMemType.
   @param cmode      Copy mode for the @a indices array, see CeedCopyMode.
   @param indices    Array of dimensions @a nelem × @a elemsize) using
@@ -69,11 +70,15 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   Permute and pad indices for a blocked restriction
 
   @param indices    Array of dimensions @a nelem × @a elemsize) using
-                    column-major storage layout. Row i holds the ordered list
+                    row-major storage layout. Row i holds the ordered list
                     of the indices (into the input CeedVector) for the unknowns
                     corresponding to element i, where 0 <= i < @a nelements.
                     All indices must be in the range [0, @a ndof).
-  @param blkindices Array of permuted and padded indicies
+  @param blkindices Array of permuted and padded indicies size
+                    @a nblk × @a blksize × @a elemsize
+                    using row-major ordering.
+  @param nblk       Number of blocks
+  @param nelem      Number of elements
   @param blksize    Number of elements in a block
   @param elemsize   Size of each element
 
@@ -115,6 +120,7 @@ void CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
                     restriction will be applied. This size may include data
                     used by other CeedElemRestriction objects describing
                     different types of elements.
+  @param ncomp      Number of components stored at each node.
   @param mtype      Memory type of the @a indices array, see CeedMemType.
   @param cmode      Copy mode for the @a indices array, see CeedCopyMode.
   @param indices    Array of dimensions @a nelem × @a elemsize) using
