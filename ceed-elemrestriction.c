@@ -86,14 +86,11 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 void CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
                            CeedInt nblk, CeedInt nelem,
                            CeedInt blksize, CeedInt elemsize) {
-  for (CeedInt e = 0; e < nblk*blksize; e+=blksize) {
-    for (int j = 0; j < blksize; j++) {
-      for (int k = 0; k < elemsize; k++) {
+  for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
+    for (int j = 0; j < blksize; j++)
+      for (int k = 0; k < elemsize; k++)
         blkindices[e*elemsize + k*blksize + j]
           = indices[CeedIntMin(e+j,nelem-1)*elemsize + k];
-      }
-    }
-  }
 }
 
 /**
