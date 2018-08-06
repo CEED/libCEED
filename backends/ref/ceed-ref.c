@@ -25,6 +25,7 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
   ceed->VecCreate = CeedVectorCreate_Ref;
   ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Ref;
   ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Ref;
+  ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreate_Ref;
   ceed->QFunctionCreate = CeedQFunctionCreate_Ref;
   ceed->OperatorCreate = CeedOperatorCreate_Ref;
   return 0;
