@@ -155,4 +155,6 @@ struct CeedOperator_private {
   void *data;
 };
 
+static inline CeedInt CeedIntMin(CeedInt a, CeedInt b) { return a < b ? a : b; }
+
 #endif
