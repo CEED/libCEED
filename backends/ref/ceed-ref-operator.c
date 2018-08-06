@@ -78,7 +78,7 @@ static int CeedOperatorSetupFields_Ref(struct CeedQFunctionField qfields[16],
       break;
     case CEED_EVAL_WEIGHT: // Only on input fields
       ierr = CeedMalloc(Q, &qdata_alloc[iq]); CeedChk(ierr);
-      ierr = CeedBasisApply(ofields[iq].basis, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
+      ierr = CeedBasisApply(ofields[iq].basis, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
                             NULL, qdata_alloc[iq]); CeedChk(ierr);
       qdata[i] = qdata_alloc[iq];
       indata[i] = qdata[i];
@@ -110,7 +110,8 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
     opref->numqin += !!(emode & CEED_EVAL_INTERP) + !!(emode & CEED_EVAL_GRAD) + !!
                      (emode & CEED_EVAL_WEIGHT);
     opref->numein +=
-      (op->inputfields[i].Erestrict != CEED_RESTRICTION_IDENTITY); // Need E-vector when non-identity restriction exists
+      (op->inputfields[i].Erestrict !=
+       CEED_RESTRICTION_IDENTITY); // Need E-vector when non-identity restriction exists
   }
   for (CeedInt i=0; i<qf->numoutputfields; i++) {
     CeedEvalMode emode = qf->outputfields[i].emode;
@@ -258,13 +259,13 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
         opref->indata[i] = &opref->edata[i][e*Q*ncomp];
         break;
       case CEED_EVAL_INTERP:
-        ierr = CeedBasisApply(op->inputfields[i].basis, CEED_NOTRANSPOSE,
+        ierr = CeedBasisApply(op->inputfields[i].basis, 1, CEED_NOTRANSPOSE,
                               CEED_EVAL_INTERP, &opref->edata[i][e*elemsize*ncomp], opref->qdata[i]);
         CeedChk(ierr);
         opref->indata[i] = opref->qdata[i];
         break;
       case CEED_EVAL_GRAD:
-        ierr = CeedBasisApply(op->inputfields[i].basis, CEED_NOTRANSPOSE,
+        ierr = CeedBasisApply(op->inputfields[i].basis, 1, CEED_NOTRANSPOSE,
                               CEED_EVAL_GRAD, &opref->edata[i][e*elemsize*ncomp], opref->qdata[i]);
         CeedChk(ierr);
         opref->indata[i] = opref->qdata[i];
@@ -305,12 +306,13 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
       case CEED_EVAL_NONE:
         break; // No action
       case CEED_EVAL_INTERP:
-        ierr = CeedBasisApply(op->outputfields[i].basis, CEED_TRANSPOSE,
+        ierr = CeedBasisApply(op->outputfields[i].basis, 1, CEED_TRANSPOSE,
                               CEED_EVAL_INTERP, opref->outdata[i],
                               &opref->edata[i + qf->numinputfields][e*elemsize*ncomp]); CeedChk(ierr);
         break;
       case CEED_EVAL_GRAD:
-        ierr = CeedBasisApply(op->outputfields[i].basis, CEED_TRANSPOSE, CEED_EVAL_GRAD,
+        ierr = CeedBasisApply(op->outputfields[i].basis, 1, CEED_TRANSPOSE,
+                              CEED_EVAL_GRAD,
                               opref->outdata[i], &opref->edata[i + qf->numinputfields][e*elemsize*ncomp]);
         CeedChk(ierr);
         break;

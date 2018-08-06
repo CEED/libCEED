@@ -51,14 +51,18 @@ static int CeedTensorContract_Opt(Ceed ceed,
   return 0;
 }
 
-static int CeedBasisApply_Opt(CeedBasis basis, CeedTransposeMode tmode,
-                              CeedEvalMode emode,
+static int CeedBasisApply_Opt(CeedBasis basis, CeedInt nelem,
+                              CeedTransposeMode tmode, CeedEvalMode emode,
                               const CeedScalar *u, CeedScalar *v) {
   int ierr;
   const CeedInt dim = basis->dim;
   const CeedInt ncomp = basis->ncomp;
   const CeedInt nqpt = ncomp*CeedPowInt(basis->Q1d, dim);
   const CeedInt add = (tmode == CEED_TRANSPOSE);
+
+  if (nelem != 1)
+    return CeedError(basis->ceed, 1,
+                     "This backend does not support BasisApply for multiple elements");
 
   if (tmode == CEED_TRANSPOSE) {
     const CeedInt vsize = ncomp*CeedPowInt(basis->P1d, dim);
