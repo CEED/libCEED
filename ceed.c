@@ -279,3 +279,5 @@ int CeedDestroy(Ceed *ceed) {
   ierr = CeedFree(ceed); CeedChk(ierr);
   return 0;
 }
+
+/// @}

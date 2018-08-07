@@ -166,3 +166,5 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   ierr = CeedFree(qf); CeedChk(ierr);
   return 0;
 }
+
+/// @}

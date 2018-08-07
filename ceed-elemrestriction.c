@@ -18,6 +18,7 @@
 
 /// @cond DOXYGEN_SKIP
 static struct CeedElemRestriction_private ceed_restriction_identity;
+/// @endcond
 
 /// @file
 /// Implementation of public CeedElemRestriction interfaces
@@ -241,3 +242,5 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *r) {
 
 /// Indicate that no element restriction is required on the l-vector
 CeedElemRestriction CEED_RESTRICTION_IDENTITY = &ceed_restriction_identity;
+
+/// @}

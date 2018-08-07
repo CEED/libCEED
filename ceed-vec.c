@@ -19,6 +19,7 @@
 /// @cond DOXYGEN_SKIP
 static struct CeedVector_private ceed_vector_active;
 static struct CeedVector_private ceed_vector_none;
+/// @endcond
 
 /// @file
 /// Implementation of public CeedVector interfaces
@@ -160,3 +161,5 @@ CeedVector CEED_VECTOR_ACTIVE = &ceed_vector_active;
 
 /// Indicate that no vector is applicable (i.e., for CEED_EVAL_WEIGHTS).
 CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
+
+/// @}

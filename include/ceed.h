@@ -144,28 +144,28 @@ CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;
 CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
-CEED_EXTERN CeedElemRestriction CEED_RESTRICTION_IDENTITY;
 /// Argument for CeedOperatorSetField to use no restriction
 /// @ingroup CeedElemRestriction
-/// @ingroup CeedOperator
-CEED_EXTERN CeedBasis CEED_BASIS_COLOCATED;
+CEED_EXTERN CeedElemRestriction CEED_RESTRICTION_IDENTITY;
+
 /// Argument for CeedOperatorSetField that vector is colocated with
 /// quadrature points, used with qfunction eval mode CEED_EVAL_NONE
 /// or CEED_EVAL_INTERP only, not with CEED_EVAL_GRAD, CEED_EVAL_DIV,
 /// or CEED_EVAL_CURL
-/// @ingroup CeedVector
 /// @ingroup CeedOperator
-CEED_EXTERN CeedVector CEED_VECTOR_ACTIVE;
+CEED_EXTERN CeedBasis CEED_BASIS_COLOCATED;
+
 /// Argument for CeedOperatorSetField to use active input or output
 /// @ingroup CeedVector
-/// @ingroup CeedOperator
-CEED_EXTERN CeedVector CEED_VECTOR_NONE;
+CEED_EXTERN CeedVector CEED_VECTOR_ACTIVE;
+
 /// Argument for CeedOperatorSetField to use no vector, used with
 /// qfunction input with eval mode CEED_EVAL_WEIGHTS
 /// @ingroup CeedVector
-/// @ingroup CeedOperator
+CEED_EXTERN CeedVector CEED_VECTOR_NONE;
 
 /// Denotes whether a linear transformation or its transpose should be applied
+/// @ingroup CeedBasis
 typedef enum {
   /// Apply the linear transformation
   CEED_NOTRANSPOSE,

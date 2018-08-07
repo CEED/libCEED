@@ -22,6 +22,7 @@
 
 /// @cond DOXYGEN_SKIP
 static struct CeedBasis_private ceed_basis_colocated;
+/// @endcond
 
 /// @file
 /// Implementation of public CeedBasis interfaces
@@ -449,3 +450,5 @@ int CeedBasisDestroy(CeedBasis *basis) {
 
 /// Indicate that the quadrature points are colocated with the dofs
 CeedBasis CEED_BASIS_COLOCATED = &ceed_basis_colocated;
+
+/// @}

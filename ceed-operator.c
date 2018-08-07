@@ -173,3 +173,5 @@ int CeedOperatorDestroy(CeedOperator *op) {
   ierr = CeedFree(op); CeedChk(ierr);
   return 0;
 }
+
+/// @}

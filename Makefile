@@ -293,7 +293,7 @@ cln clean :
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
 
 distclean : clean
-	rm -rf doc/html
+	$(RM) -r doc/html
 
 doc :
 	doxygen Doxyfile
