@@ -60,6 +60,11 @@ ifeq ($(UNDERSCORE), 1)
   CFLAGS += -DUNDERSCORE
 endif
 
+ifeq ($(COVERAGE), 1)
+  CFLAGS += --coverage
+  LDFLAGS += --coverage
+endif
+
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
 LDFLAGS += $(if $(ASAN),$(AFLAGS))
