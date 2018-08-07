@@ -24,7 +24,7 @@ static int mass(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedElemRestriction Erestrictx, Erestrictu;
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui;
   CeedBasis bx, bu;
   CeedQFunction qf_setup, qf_mass;  CeedOperator op_setup, op_mass;
   CeedVector qdata, X, U, V;
@@ -44,6 +44,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, nelem, 2, Nx, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER,
                             indx, &Erestrictx);
+  CeedElemRestrictionCreateIdentity(ceed, nelem, 2, nelem*2, 1, &Erestrictxi);
 
   for (CeedInt i=0; i<nelem; i++) {
     for (CeedInt j=0; j<P; j++) {
@@ -53,6 +54,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, nelem, P, Nu, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER,
                             indu, &Erestrictu);
+  CeedElemRestrictionCreateIdentity(ceed, nelem, Q, Q*nelem, 1, &Erestrictui);
 
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bx);
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, P, Q, CEED_GAUSS, &bu);
@@ -74,13 +76,13 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
   CeedVectorCreate(ceed, nelem*Q, &qdata);
 
-  CeedOperatorSetField(op_setup, "_weight", CEED_RESTRICTION_IDENTITY, bx,
+  CeedOperatorSetField(op_setup, "_weight", Erestrictxi, bx,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "x", Erestrictx, bx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "rho", CEED_RESTRICTION_IDENTITY,
+  CeedOperatorSetField(op_setup, "rho", Erestrictui,
                        CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
 
-  CeedOperatorSetField(op_mass, "rho", CEED_RESTRICTION_IDENTITY,
+  CeedOperatorSetField(op_mass, "rho", Erestrictui,
                        CEED_BASIS_COLOCATED, qdata);
   CeedOperatorSetField(op_mass, "u", Erestrictu, bu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "v", Erestrictu, bu, CEED_VECTOR_ACTIVE);
@@ -106,6 +108,8 @@ int main(int argc, char **argv) {
   CeedOperatorDestroy(&op_mass);
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
+  CeedElemRestrictionDestroy(&Erestrictui);
+  CeedElemRestrictionDestroy(&Erestrictxi);
   CeedBasisDestroy(&bu);
   CeedBasisDestroy(&bx);
   CeedVectorDestroy(&X);

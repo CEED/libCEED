@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
   VecScatter ltog;
   Ceed ceed;
   CeedBasis basisx, basisu;
-  CeedElemRestriction Erestrictx, Erestrictu;
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui;
   CeedQFunction qf_setup, qf_mass, qf_error;
   CeedOperator op_setup, op_mass, op_error;
   CeedVector xcoord, rho, target;
@@ -342,6 +342,11 @@ int main(int argc, char **argv) {
 
   CreateRestriction(ceed, melem, P, 1, &Erestrictu);
   CreateRestriction(ceed, melem, 2, 3, &Erestrictx);
+  CeedInt nelem = melem[0]*melem[1]*melem[2];
+  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1,
+                            &Erestrictui);
+  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1,
+                            &Erestrictxi);
   {
     CeedScalar *xloc;
     CeedInt shape[3] = {melem[0]+1, melem[1]+1, melem[2]+1}, len =
@@ -398,28 +403,28 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
   CeedOperatorSetField(op_setup, "x", Erestrictx, basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "dx", Erestrictx, basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "weight", CEED_RESTRICTION_IDENTITY, basisx,
+  CeedOperatorSetField(op_setup, "weight", Erestrictxi, basisx,
                        CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "rho", CEED_RESTRICTION_IDENTITY,
+  CeedOperatorSetField(op_setup, "rho", Erestrictui,
                        CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "target", CEED_RESTRICTION_IDENTITY,
+  CeedOperatorSetField(op_setup, "target", Erestrictui,
                        CEED_BASIS_COLOCATED, target);
 
   // Create the mass operator.
   CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
   CeedOperatorSetField(op_mass, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_mass, "rho", CEED_RESTRICTION_IDENTITY,
+  CeedOperatorSetField(op_mass, "rho", Erestrictui,
                        CEED_BASIS_COLOCATED, rho);
-  CeedOperatorSetField(op_mass, "target", CEED_RESTRICTION_IDENTITY,
+  CeedOperatorSetField(op_mass, "target", Erestrictui,
                        CEED_BASIS_COLOCATED, target);
   CeedOperatorSetField(op_mass, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
 
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
   CeedOperatorSetField(op_error, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_error, "target", CEED_RESTRICTION_IDENTITY,
+  CeedOperatorSetField(op_error, "target", Erestrictui,
                        CEED_BASIS_COLOCATED, target);
-  CeedOperatorSetField(op_error, "error", CEED_RESTRICTION_IDENTITY,
+  CeedOperatorSetField(op_error, "error", Erestrictui,
                        CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
 
   CeedOperatorApply(op_setup, xcoord, rho, CEED_REQUEST_IMMEDIATE);
@@ -504,6 +509,8 @@ int main(int argc, char **argv) {
   CeedOperatorDestroy(&op_error);
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
+  CeedElemRestrictionDestroy(&Erestrictui);
+  CeedElemRestrictionDestroy(&Erestrictxi);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_mass);
   CeedQFunctionDestroy(&qf_error);

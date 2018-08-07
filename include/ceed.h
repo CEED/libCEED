@@ -145,15 +145,11 @@ CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;
 CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
-/// Argument for CeedOperatorSetField to use no restriction
-/// @ingroup CeedElemRestriction
-CEED_EXTERN CeedElemRestriction CEED_RESTRICTION_IDENTITY;
-
 /// Argument for CeedOperatorSetField that vector is colocated with
 /// quadrature points, used with qfunction eval mode CEED_EVAL_NONE
 /// or CEED_EVAL_INTERP only, not with CEED_EVAL_GRAD, CEED_EVAL_DIV,
 /// or CEED_EVAL_CURL
-/// @ingroup CeedOperator
+/// @ingroup CeedBasis
 CEED_EXTERN CeedBasis CEED_BASIS_COLOCATED;
 
 /// Argument for CeedOperatorSetField to use active input or output
@@ -177,9 +173,11 @@ typedef enum {
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem,
     CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
     const CeedInt *indices, CeedElemRestriction *r);
+CEED_EXTERN int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
+    CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedElemRestriction *r);
 CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt blksize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
-    const CeedInt *indices, CeedElemRestriction *r);
+    CeedInt elemsize, CeedInt blksize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype,
+    CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction *r);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction r,
                                                 CeedVector *lvec,
                                                 CeedVector *evec);

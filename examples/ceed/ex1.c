@@ -88,8 +88,9 @@ static int f_apply_mass(void *ctx, CeedInt Q,
 // Auxiliary functions.
 int GetCartesianMeshSize(int dim, int order, int prob_size, int nxyz[3]);
 int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
-                              int ncomp, CeedInt *size,
-                              CeedElemRestriction *restr);
+                              int ncomp, CeedInt *size, CeedInt num_qpts,
+                              CeedElemRestriction *restr,
+                              CeedElemRestriction *restr_i);
 int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_order,
                            CeedVector mesh_coords);
 CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords);
@@ -175,11 +176,11 @@ int main(int argc, const char *argv[]) {
   // Build CeedElemRestriction objects describing the mesh and solution discrete
   // representations.
   CeedInt mesh_size, sol_size;
-  CeedElemRestriction mesh_restr, sol_restr;
+  CeedElemRestriction mesh_restr, sol_restr, mesh_restr_i, sol_restr_i;
   BuildCartesianRestriction(ceed, dim, nxyz, mesh_order, dim, &mesh_size,
-                            &mesh_restr);
+                            num_qpts, &mesh_restr, &mesh_restr_i);
   BuildCartesianRestriction(ceed, dim, nxyz, sol_order, 1, &sol_size,
-                            &sol_restr);
+                            num_qpts, &sol_restr, &sol_restr_i);
   if (!test) {
     printf("Number of mesh nodes    : %d\n", mesh_size/dim);
     printf("Number of solution dofs : %d\n", sol_size);
@@ -212,15 +213,18 @@ int main(int argc, const char *argv[]) {
   CeedOperatorCreate(ceed, build_qfunc, NULL, NULL, &build_oper);
   CeedOperatorSetField(build_oper, "dx", mesh_restr, mesh_basis,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(build_oper, "weights", CEED_RESTRICTION_IDENTITY,
+  CeedOperatorSetField(build_oper, "weights", mesh_restr_i,
                        mesh_basis, CEED_VECTOR_NONE);
-  CeedOperatorSetField(build_oper, "rho", CEED_RESTRICTION_IDENTITY,
+  CeedOperatorSetField(build_oper, "rho", sol_restr_i,
                        CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
 
   // Compute the quadrature data for the mass operator.
   CeedVector rho;
   CeedInt elem_qpts = CeedPowInt(num_qpts, dim);
-  CeedVectorCreate(ceed, prob_size*elem_qpts, &rho);
+  CeedInt num_elem = 1;
+  for (int d = 0; d < dim; d++)
+    num_elem *= nxyz[d];
+  CeedVectorCreate(ceed, num_elem*elem_qpts, &rho);
   if (!test) {
     printf("Computing the quadrature data for the mass operator ...");
     fflush(stdout);
@@ -243,7 +247,7 @@ int main(int argc, const char *argv[]) {
   CeedOperator oper;
   CeedOperatorCreate(ceed, apply_qfunc, NULL, NULL, &oper);
   CeedOperatorSetField(oper, "u", sol_restr, sol_basis, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(oper, "rho", CEED_RESTRICTION_IDENTITY,
+  CeedOperatorSetField(oper, "rho", sol_restr_i,
                        CEED_BASIS_COLOCATED, rho);
   CeedOperatorSetField(oper, "v", sol_restr, sol_basis, CEED_VECTOR_ACTIVE);
 
@@ -300,6 +304,8 @@ int main(int argc, const char *argv[]) {
   CeedQFunctionDestroy(&build_qfunc);
   CeedElemRestrictionDestroy(&sol_restr);
   CeedElemRestrictionDestroy(&mesh_restr);
+  CeedElemRestrictionDestroy(&sol_restr_i);
+  CeedElemRestrictionDestroy(&mesh_restr_i);
   CeedBasisDestroy(&sol_basis);
   CeedBasisDestroy(&mesh_basis);
   CeedDestroy(&ceed);
@@ -326,10 +332,12 @@ int GetCartesianMeshSize(int dim, int order, int prob_size, int nxyz[3]) {
 }
 
 int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
-                              int ncomp, CeedInt *size,
-                              CeedElemRestriction *restr) {
+                              int ncomp, CeedInt *size, CeedInt num_qpts,
+                              CeedElemRestriction *restr,
+                              CeedElemRestriction *restr_i) {
   CeedInt p = order, pp1 = p+1;
   CeedInt ndof = CeedPowInt(pp1, dim); // number of scal. dofs per element
+  CeedInt elem_qpts = CeedPowInt(num_qpts, dim); // number of qpts per element
   CeedInt nd[3], num_elem = 1, scalar_size = 1;
   for (int d = 0; d < dim; d++) {
     num_elem *= nxyz[d];
@@ -355,9 +363,11 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
       loc_el_dof[ldof] = gdof;
     }
   }
-  CeedElemRestrictionCreate(ceed, num_elem, ndof, scalar_size, ncomp,
-                            CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, num_elem, ndof, scalar_size,
+                            ncomp, CEED_MEM_HOST,
                             CEED_COPY_VALUES, el_dof, restr);
+  CeedElemRestrictionCreateIdentity(ceed, num_elem, elem_qpts, elem_qpts*num_elem*ncomp,
+                            ncomp, restr_i);
   free(el_dof);
   return 0;
 }
