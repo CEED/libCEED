@@ -64,7 +64,6 @@ int CeedVectorSetArray(CeedVector x, CeedMemType mtype, CeedCopyMode cmode,
 /// Set the array used by a vector, freeing any previously allocated array if applicable.
 ///
 /// @param x Vector
-/// @param mtype Memory type of the array being passed
 /// @param value to be used
 int CeedVectorSetValue(CeedVector x, CeedScalar value) {
   int ierr;
