@@ -28,8 +28,12 @@ install:
   - export PETSC_DIR=$PETSC_INSTALL
 
 script:
+  - export COVERAGE=1
   - make -j2
   - make -j2 prove-all PROVE_OPTS=-v
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
 
 cache:
   ccache: true
