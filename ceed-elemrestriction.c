@@ -16,9 +16,6 @@
 
 #include <ceed-impl.h>
 
-/// @cond DOXYGEN_SKIP
-static struct CeedElemRestriction_private ceed_restriction_identity;
-
 /// @file
 /// Implementation of public CeedElemRestriction interfaces
 ///
@@ -49,8 +46,9 @@ static struct CeedElemRestriction_private ceed_restriction_identity;
   @return An error code: 0 - success, otherwise - failure.
 */
 int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
-                              CeedInt ndof, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
-                              const CeedInt *indices, CeedElemRestriction *r) {
+                              CeedInt ndof, CeedInt ncomp, CeedMemType mtype,
+                              CeedCopyMode cmode, const CeedInt *indices,
+                              CeedElemRestriction *r) {
   int ierr;
 
   if (!ceed->ElemRestrictionCreate)
@@ -66,6 +64,43 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   (*r)->nblk = nelem;
   (*r)->blksize = 1;
   ierr = ceed->ElemRestrictionCreate(*r, mtype, cmode, indices); CeedChk(ierr);
+  return 0;
+}
+
+/**
+  Create an identity CeedElemRestriction
+
+  @param ceed       A Ceed object where the CeedElemRestriction will be created.
+  @param nelem      Number of elements described in the @a indices array.
+  @param elemsize   Size (number of "nodes") per element.
+  @param ndof       The total size of the input CeedVector to which the
+                    restriction will be applied. This size may include data
+                    used by other CeedElemRestriction objects describing
+                    different types of elements.
+  @param ncomp      Number of field components per interpolation node.
+  @param mtype      Memory type of the @a indices array, see CeedMemType.
+  @param r          The address of the variable where the newly created
+                    CeedElemRestriction will be stored.
+
+  @return An error code: 0 - success, otherwise - failure.
+*/
+int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem, CeedInt elemsize,
+                              CeedInt ndof, CeedInt ncomp, CeedElemRestriction *r) {
+  int ierr;
+
+  if (!ceed->ElemRestrictionCreate)
+    return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreateIdentity");
+  ierr = CeedCalloc(1, r); CeedChk(ierr);
+  (*r)->ceed = ceed;
+  ceed->refcount++;
+  (*r)->refcount = 1;
+  (*r)->nelem = nelem;
+  (*r)->elemsize = elemsize;
+  (*r)->ndof = ndof;
+  (*r)->ncomp = ncomp;
+  (*r)->nblk = nelem;
+  (*r)->blksize = 1;
+  ierr = ceed->ElemRestrictionCreate(*r, CEED_MEM_HOST, CEED_OWN_POINTER, NULL); CeedChk(ierr);
   return 0;
 }
 
@@ -238,6 +273,3 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *r) {
   ierr = CeedFree(r); CeedChk(ierr);
   return 0;
 }
-
-/// Indicate that no element restriction is required on the l-vector
-CeedElemRestriction CEED_RESTRICTION_IDENTITY = &ceed_restriction_identity;

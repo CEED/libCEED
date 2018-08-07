@@ -136,7 +136,7 @@ class CeedDiffusionOperator : public mfem::Operator {
   const mfem::FiniteElementSpace *fes;
   CeedOperator build_oper, oper;
   CeedBasis basis, mesh_basis;
-  CeedElemRestriction restr, mesh_restr;
+  CeedElemRestriction restr, mesh_restr, restr_i, mesh_restr_i;
   CeedQFunction apply_qfunc, build_qfunc;
   CeedVector node_coords, rho;
 
@@ -234,6 +234,11 @@ class CeedDiffusionOperator : public mfem::Operator {
     FESpace2Ceed(mesh_fes, ir, ceed, &mesh_basis, &mesh_restr);
     CeedBasisGetNumQuadraturePoints(basis, &nqpts);
 
+    CeedElemRestrictionCreateIdentity(ceed, nelem, nqpts*dim*(dim+1)/2,
+                              nqpts*nelem*dim*(dim+1)/2, 1, &restr_i);
+    CeedElemRestrictionCreateIdentity(ceed, nelem, nqpts,
+                              nqpts*nelem, 1, &mesh_restr_i);
+
     CeedVectorCreate(ceed, mesh->GetNodes()->Size(), &node_coords);
     CeedVectorSetArray(node_coords, CEED_MEM_HOST, CEED_USE_POINTER,
                        mesh->GetNodes()->GetData());
@@ -257,9 +262,9 @@ class CeedDiffusionOperator : public mfem::Operator {
     CeedOperatorCreate(ceed, build_qfunc, NULL, NULL, &build_oper);
     CeedOperatorSetField(build_oper, "dx", mesh_restr, mesh_basis,
                          CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(build_oper, "weights", CEED_RESTRICTION_IDENTITY,
+    CeedOperatorSetField(build_oper, "weights", mesh_restr_i,
                          mesh_basis, CEED_VECTOR_NONE);
-    CeedOperatorSetField(build_oper, "rho", CEED_RESTRICTION_IDENTITY,
+    CeedOperatorSetField(build_oper, "rho", restr_i,
                          CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
 
     // Compute the quadrature data for the diff operator.
@@ -277,7 +282,7 @@ class CeedDiffusionOperator : public mfem::Operator {
     // Create the diff operator.
     CeedOperatorCreate(ceed, apply_qfunc, NULL, NULL, &oper);
     CeedOperatorSetField(oper, "u", restr, basis, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(oper, "rho", CEED_RESTRICTION_IDENTITY,
+    CeedOperatorSetField(oper, "rho", restr_i,
                          CEED_BASIS_COLOCATED, rho);
     CeedOperatorSetField(oper, "v", restr, basis, CEED_VECTOR_ACTIVE);
 
@@ -293,6 +298,8 @@ class CeedDiffusionOperator : public mfem::Operator {
     CeedVectorDestroy(&node_coords);
     CeedElemRestrictionDestroy(&restr);
     CeedElemRestrictionDestroy(&mesh_restr);
+    CeedElemRestrictionDestroy(&restr_i);
+    CeedElemRestrictionDestroy(&mesh_restr_i);
     CeedBasisDestroy(&basis);
     CeedBasisDestroy(&mesh_basis);
     CeedQFunctionDestroy(&build_qfunc);

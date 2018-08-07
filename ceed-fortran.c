@@ -9,8 +9,6 @@
 #define FORTRAN_REQUEST_IMMEDIATE -1
 #define FORTRAN_REQUEST_ORDERED -2
 #define FORTRAN_NULL -3
-#define FORTRAN_ELEMRESTRICT_IDENTITY -1
-#define FORTRAN_RESTRICTION_IDENTITY -1
 #define FORTRAN_BASIS_COLOCATED -1
 #define FORTRAN_QDATA_NONE -1
 #define FORTRAN_VECTOR_ACTIVE -1
@@ -142,15 +140,33 @@ void fCeedElemRestrictionCreate(int *ceed, int *nelements,
   }
 
   const int *indices_ = indices;
-  if (*indices == FORTRAN_ELEMRESTRICT_IDENTITY) {
-    indices_ = NULL;
-  }
 
   CeedElemRestriction *elemrestriction_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
   *err = CeedElemRestrictionCreate(Ceed_dict[*ceed], *nelements, *esize, *ndof,
                                    *ncomp,
                                    *memtype, *copymode, indices_, elemrestriction_);
+
+  if (*err == 0) {
+    *elemrestriction = CeedElemRestriction_count++;
+    CeedElemRestriction_n++;
+  }
+}
+
+#define fCeedElemRestrictionCreateIdentity \
+    FORTRAN_NAME(ceedelemrestrictioncreateidentity, CEEDELEMRESTRICTIONCREATEIDENTITY)
+void fCeedElemRestrictionCreateIdentity(int *ceed, int *nelements,
+                                int *esize, int *ndof, int *ncomp,
+                                int *elemrestriction, int *err) {
+  if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
+    CeedElemRestriction_count_max += CeedElemRestriction_count_max/2 + 1;
+    CeedRealloc(CeedElemRestriction_count_max, &CeedElemRestriction_dict);
+  }
+
+  CeedElemRestriction *elemrestriction_ =
+    &CeedElemRestriction_dict[CeedElemRestriction_count];
+  *err = CeedElemRestrictionCreateIdentity(Ceed_dict[*ceed], *nelements, *esize, *ndof,
+                                   *ncomp, elemrestriction_);
 
   if (*err == 0) {
     *elemrestriction = CeedElemRestriction_count++;
@@ -551,8 +567,6 @@ void fCeedOperatorSetField(int *op, const char *fieldname,
 
   if (*r == FORTRAN_NULL) {
     r_ = NULL;
-  } else if (*r == FORTRAN_RESTRICTION_IDENTITY) {
-    r_ = CEED_RESTRICTION_IDENTITY;
   } else {
     r_ = CeedElemRestriction_dict[*r];
   }
