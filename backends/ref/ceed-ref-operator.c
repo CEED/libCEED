@@ -23,9 +23,7 @@ static int CeedOperatorDestroy_Ref(CeedOperator op) {
   int ierr;
 
   for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
-    if (impl->evecs[i]) {
-      ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);
-    }
+    ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);
   }
   ierr = CeedFree(&impl->evecs); CeedChk(ierr);
   ierr = CeedFree(&impl->edata); CeedChk(ierr);

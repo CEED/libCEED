@@ -78,7 +78,6 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
                     used by other CeedElemRestriction objects describing
                     different types of elements.
   @param ncomp      Number of field components per interpolation node.
-  @param mtype      Memory type of the @a indices array, see CeedMemType.
   @param r          The address of the variable where the newly created
                     CeedElemRestriction will be stored.
 

@@ -721,16 +721,16 @@ static int CeedOperatorDestroy_Magma(CeedOperator op) {
   int ierr;
 
   for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
-    if (&impl->evecs[i]) {
-      ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);
-    }
+    ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);
   }
+
   ierr = CeedFree(&impl->evecs); CeedChk(ierr);
   ierr = CeedFree(&impl->edata); CeedChk(ierr);
 
   for (CeedInt i=0; i<impl->numqin+impl->numqout; i++) {
     ierr = CeedFree(&impl->qdata_alloc[i]); CeedChk(ierr);
   }
+
   ierr = CeedFree(&impl->qdata_alloc); CeedChk(ierr);
   ierr = CeedFree(&impl->qdata); CeedChk(ierr);
 
