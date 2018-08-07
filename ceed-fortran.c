@@ -110,6 +110,11 @@ void fCeedVectorRestoreArrayRead(int *vec, const CeedScalar *array, int *err) {
   *err = CeedVectorRestoreArrayRead(CeedVector_dict[*vec], &array);
 }
 
+#define fCeedVectorView FORTRAN_NAME(ceedvectorview,CEEDVECTORVIEW)
+void fCeedVectorView(int *vec, int *err) {
+  *err = CeedVectorView(CeedVector_dict[*vec], "%12.8f", stdout);
+}
+
 #define fCeedVectorDestroy FORTRAN_NAME(ceedvectordestroy,CEEDVECTORDESTROY)
 void fCeedVectorDestroy(int *vec, int *err) {
   *err = CeedVectorDestroy(&CeedVector_dict[*vec]);
@@ -179,10 +184,23 @@ void fCeedElemRestrictionCreateIdentity(int *ceed, int *nelements,
 void fCeedElemRestrictionCreateBlocked(int *ceed, int *nelements,
                                        int *esize, int *blocksize, int *ndof, int *ncomp,
                                        int *mtype, int *cmode,
-                                       int *blkindices, int *elemr, int *err) {
+                                       int *blkindices, int *elemrestriction, int *err) {
+
+  if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
+    CeedElemRestriction_count_max += CeedElemRestriction_count_max/2 + 1;
+    CeedRealloc(CeedElemRestriction_count_max, &CeedElemRestriction_dict);
+  }
+
+  CeedElemRestriction *elemrestriction_ =
+    &CeedElemRestriction_dict[CeedElemRestriction_count];
   *err = CeedElemRestrictionCreateBlocked(Ceed_dict[*ceed], *nelements, *esize,
                                           *blocksize, *ndof, *ncomp, *mtype, *cmode, blkindices,
-                                          &CeedElemRestriction_dict[*elemr]);
+                                          elemrestriction_);
+
+  if (*err == 0) {
+    *elemrestriction = CeedElemRestriction_count++;
+    CeedElemRestriction_n++;
+  }
 }
 
 static CeedRequest *CeedRequest_dict = NULL;
