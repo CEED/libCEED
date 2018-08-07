@@ -906,7 +906,6 @@ static int CeedOperatorApply_Magma(CeedOperator op, CeedVector invec,
     ierr = CeedVectorGetArray(opmagma->evecs[i+opmagma->numein], CEED_MEM_HOST,
                               &opmagma->edata[i + qf->numinputfields]);
     CeedChk(ierr);
-    }
   }
 
   // Loop through elements
