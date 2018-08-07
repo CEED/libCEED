@@ -42,7 +42,7 @@ c-----------------------------------------------------------------------
       integer op_setup,op_mass
       integer qdata,x,u,v
       integer nelem,p,q
-      parameter(nelem=5)
+      parameter(nelem=15)
       parameter(p=5)
       parameter(q=8)
       integer nx,nu

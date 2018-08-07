@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
   CeedVector qdata, X, U, V;
   CeedScalar *hu;
   const CeedScalar *hv;
-  CeedInt nelem = 5, P = 5, Q = 8;
+  CeedInt nelem = 15, P = 5, Q = 8;
   CeedInt Nx = nelem+1, Nu = nelem*(P-1)+1;
   CeedInt indx[nelem*2], indu[nelem*P];
   CeedScalar x[Nx];

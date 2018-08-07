@@ -45,7 +45,7 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
       for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
         for (CeedInt d = 0; d < ncomp; d++)
           for (CeedInt i = 0; i < elemsize*blksize; i++)
-            vv[i+elemsize*(d+ncomp*e)]
+            vv[i+elemsize*(d*blksize+ncomp*e)]
               = uu[lmode == CEED_NOTRANSPOSE
                    ? impl->indices[i+elemsize*e]+r->ndof*d
                    : d+ncomp*impl->indices[i+elemsize*e]];
@@ -67,7 +67,7 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
               vv[lmode == CEED_NOTRANSPOSE
                  ? impl->indices[j+e*elemsize]+r->ndof*d
                  : d+ncomp*impl->indices[j+e*elemsize]]
-                += uu[j+elemsize*(d+ncomp*e)];
+                += uu[j+elemsize*(d*blksize+ncomp*e)];
       }
     }
   }
