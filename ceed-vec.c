@@ -62,6 +62,24 @@ int CeedVectorSetArray(CeedVector x, CeedMemType mtype, CeedCopyMode cmode,
   return 0;
 }
 
+/// Set the array used by a vector, freeing any previously allocated array if applicable.
+///
+/// @param x Vector
+/// @param value to be used
+int CeedVectorSetValue(CeedVector x, CeedScalar value) {
+  int ierr;
+  CeedScalar *array;
+
+  if (x->SetValue) {
+    ierr = x->SetValue(x, value); CeedChk(ierr);
+  } else {
+    ierr = CeedVectorGetArray(x, CEED_MEM_HOST, &array); CeedChk(ierr);
+    for (int i=0; i<x->length; i++) array[i] = value;
+    ierr = CeedVectorRestoreArray(x, &array); CeedChk(ierr);
+  }
+  return 0;
+}
+
 /// Get read/write access to a vector via the specified memory type
 ///
 /// @param x Vector to access

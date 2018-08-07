@@ -78,6 +78,11 @@ void fCeedVectorSetArray(int *vec, int *memtype, int *copymode,
   *err = CeedVectorSetArray(CeedVector_dict[*vec], *memtype, *copymode, array);
 }
 
+#define fCeedVectorSetValue FORTRAN_NAME(ceedvectorsetvalue,CEEDVECTORSETVALUE)
+void fCeedVectorSetValue(int *vec, CeedScalar *value, int *err) {
+  *err = CeedVectorSetValue(CeedVector_dict[*vec], *value);
+}
+
 #define fCeedVectorGetArray FORTRAN_NAME(ceedvectorgetarray,CEEDVECTORGETARRAY)
 //TODO Need Fixing, double pointer
 void fCeedVectorGetArray(int *vec, int *memtype, CeedScalar *array, int *err) {
