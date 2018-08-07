@@ -70,10 +70,13 @@ int CeedVectorSetValue(CeedVector x, CeedScalar value) {
   int ierr;
   CeedScalar *array;
 
-  ierr = CeedVectorGetArray(x, CEED_MEM_HOST, &array); CeedChk(ierr);
-  for (int i=0; i<x->length; i++) array[i] = value;
-  ierr = CeedVectorRestoreArray(x, &array); CeedChk(ierr);
-
+  if (x->SetValue) {
+    ierr = x->SetValue(x, value); CeedChk(ierr);
+  } else {
+    ierr = CeedVectorGetArray(x, CEED_MEM_HOST, &array); CeedChk(ierr);
+    for (int i=0; i<x->length; i++) array[i] = value;
+    ierr = CeedVectorRestoreArray(x, &array); CeedChk(ierr);
+  }
   return 0;
 }
 
