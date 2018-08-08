@@ -37,7 +37,7 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
   Ceed ceedref;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  CeedInit("/cpu/self/", &ceedref);
+  CeedInit("/cpu/self/ref", &ceedref);
   ceed->data = impl;
   impl->ceedref = ceedref;
 
