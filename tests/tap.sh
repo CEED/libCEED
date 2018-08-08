@@ -36,6 +36,15 @@ for ((i=0;i<${#backends[@]}; ++i)); do
         continue
     fi
 
+    # grep to skip test if backend cannot handle Blocked Restriction
+    if grep -F -q -e 'Backend does not support ElemRestrictionCreateBlocked' \
+            ${output}.err; then
+        printf "ok $i0 # SKIP $1 $backend\n"
+        printf "ok $i1 # SKIP $1 $backend stdout\n"
+        printf "ok $i2 # SKIP $1 $backend stderr\n"
+        continue
+    fi
+
     if [ $status -eq 0 ]; then
         printf "ok $i0 $1 $backend\n"
     else

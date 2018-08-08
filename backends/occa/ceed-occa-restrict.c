@@ -144,6 +144,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   Ceed_Occa *ceed_data = ceed->data;
   const bool ocl = ceed_data->ocl;
   const occaDevice dev = ceed_data->device;
+  CeedInt *used_indices;
   // ***************************************************************************
   if (mtype != CEED_MEM_HOST)
     return CeedError(ceed, 1, "Only MemType = HOST supported");
@@ -154,6 +155,15 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   r->data = data;
   // ***************************************************************************
+  // This is a temporary handling of null indices for identity restrictions
+  if (indices == NULL) {
+    dbg("[CeedElemRestriction][Create] Identity Restriction");
+    ierr = CeedMalloc(r->ndof, &used_indices); CeedChk(ierr);
+    for (CeedInt i=0; i<r->ndof; i++) used_indices[i] = i;
+  } else {
+    used_indices = (CeedInt *) indices;
+  }
+  // ***************************************************************************
   data->d_indices = occaDeviceMalloc(dev, bytes(r), NULL, NO_PROPS);
   data->d_toffsets = occaDeviceMalloc(dev,(1+r->ndof)*sizeof(CeedInt),
                                       NULL, NO_PROPS);
@@ -161,12 +171,12 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   // ***************************************************************************
   CeedInt toffsets[r->ndof+1];
   CeedInt tindices[r->elemsize*r->nelem];
-  CeedElemRestrictionOffset_Occa(r,indices,toffsets,tindices);
+  CeedElemRestrictionOffset_Occa(r,used_indices,toffsets,tindices);
   occaCopyPtrToMem(data->d_toffsets,toffsets,
                    (1+r->ndof)*sizeof(CeedInt),NO_OFFSET,NO_PROPS);
   occaCopyPtrToMem(data->d_tindices,tindices,bytes(r),NO_OFFSET,NO_PROPS);
   // ***************************************************************************
-  occaCopyPtrToMem(data->d_indices,indices,bytes(r),NO_OFFSET,NO_PROPS);
+  occaCopyPtrToMem(data->d_indices,used_indices,bytes(r),NO_OFFSET,NO_PROPS);
   // ***************************************************************************
   dbg("[CeedElemRestriction][Create] Building kRestrict");
   dbg("[CeedElemRestriction][Create] nelem=%d",r->nelem);
@@ -199,5 +209,11 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   occaFree(pKR);
   ierr = CeedFree(&oklPath); CeedChk(ierr);
   dbg("[CeedElemRestriction][Create] done");
+  // free indices as needed ****************************************************
+  if (indices == NULL) {
+    ierr = CeedFree(&used_indices); CeedChk(ierr);
+  } else if (cmode == CEED_OWN_POINTER) {
+    ierr = CeedFree(&indices); CeedChk(ierr);
+  }
   return 0;
 }

@@ -37,13 +37,14 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
   Ceed ceedref;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  CeedInit("/cpu/self/", &ceedref);
+  CeedInit("/cpu/self/ref", &ceedref);
   ceed->data = impl;
   impl->ceedref = ceedref;
 
   ceed->VecCreate = CeedVectorCreate_Tmpl;
   ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Tmpl;
   ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Tmpl;
+  ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreate_Tmpl;
   ceed->QFunctionCreate = CeedQFunctionCreate_Tmpl;
   ceed->OperatorCreate = CeedOperatorCreate_Tmpl;
   ceed->Destroy = CeedDestroy_Tmpl;

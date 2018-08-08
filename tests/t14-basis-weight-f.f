@@ -46,7 +46,7 @@ c-----------------------------------------------------------------------
 
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,
      $  ceed_gauss_lobatto,bxl,err)
-      call ceedbasisapply(bxl,ceed_notranspose,ceed_eval_interp,
+      call ceedbasisapply(bxl,1,ceed_notranspose,ceed_eval_interp,
      $  x,xq,err)
 
       do i=1,q
@@ -57,11 +57,11 @@ c-----------------------------------------------------------------------
      $  bxg,err)
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,q,q,ceed_gauss,
      $  bug,err)
-      call ceedbasisapply(bxg,ceed_notranspose,ceed_eval_interp,
+      call ceedbasisapply(bxg,1,ceed_notranspose,ceed_eval_interp,
      $  x,xq,err)
-      call ceedbasisapply(bug,ceed_notranspose,ceed_eval_interp,
+      call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_interp,
      $  u,uq,err)
-      call ceedbasisapply(bug,ceed_notranspose,ceed_eval_weight,
+      call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_weight,
      $  %val(0),w,err)
 
       summ=0.0

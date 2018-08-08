@@ -129,6 +129,7 @@ typedef enum {
 CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedInt len, CeedVector *vec);
 CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mtype,
                                    CeedCopyMode cmode, CeedScalar *array);
+CEED_EXTERN int CeedVectorSetValue(CeedVector vec, CeedScalar value);
 CEED_EXTERN int CeedVectorGetArray(CeedVector vec, CeedMemType mtype,
                                    CeedScalar **array);
 CEED_EXTERN int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
@@ -144,28 +145,24 @@ CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;
 CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
-CEED_EXTERN CeedElemRestriction CEED_RESTRICTION_IDENTITY;
-/// Argument for CeedOperatorSetField to use no restriction
-/// @ingroup CeedElemRestriction
-/// @ingroup CeedOperator
-CEED_EXTERN CeedBasis CEED_BASIS_COLOCATED;
 /// Argument for CeedOperatorSetField that vector is colocated with
 /// quadrature points, used with qfunction eval mode CEED_EVAL_NONE
 /// or CEED_EVAL_INTERP only, not with CEED_EVAL_GRAD, CEED_EVAL_DIV,
 /// or CEED_EVAL_CURL
-/// @ingroup CeedVector
-/// @ingroup CeedOperator
-CEED_EXTERN CeedVector CEED_VECTOR_ACTIVE;
+/// @ingroup CeedBasis
+CEED_EXTERN CeedBasis CEED_BASIS_COLOCATED;
+
 /// Argument for CeedOperatorSetField to use active input or output
 /// @ingroup CeedVector
-/// @ingroup CeedOperator
-CEED_EXTERN CeedVector CEED_VECTOR_NONE;
+CEED_EXTERN CeedVector CEED_VECTOR_ACTIVE;
+
 /// Argument for CeedOperatorSetField to use no vector, used with
 /// qfunction input with eval mode CEED_EVAL_WEIGHTS
 /// @ingroup CeedVector
-/// @ingroup CeedOperator
+CEED_EXTERN CeedVector CEED_VECTOR_NONE;
 
 /// Denotes whether a linear transformation or its transpose should be applied
+/// @ingroup CeedBasis
 typedef enum {
   /// Apply the linear transformation
   CEED_NOTRANSPOSE,
@@ -173,13 +170,14 @@ typedef enum {
   CEED_TRANSPOSE
 } CeedTransposeMode;
 
-CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelements,
-    CeedInt esize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
+CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem,
+    CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
     const CeedInt *indices, CeedElemRestriction *r);
-
-CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelements,
-    CeedInt esize, CeedInt blocksize, CeedMemType mtype, CeedCopyMode cmode,
-    CeedInt *blkindices, CeedElemRestriction *r);
+CEED_EXTERN int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
+    CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedElemRestriction *r);
+CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem,
+    CeedInt elemsize, CeedInt blksize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype,
+    CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction *r);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction r,
                                                 CeedVector *lvec,
                                                 CeedVector *evec);
@@ -231,7 +229,7 @@ CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof,
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
 CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m, CeedInt n);
 CEED_EXTERN int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d);
-CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedTransposeMode tmode,
+CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
                                CeedEvalMode emode, const CeedScalar *u, CeedScalar *v);
 CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
 CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);

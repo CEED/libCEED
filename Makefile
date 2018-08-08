@@ -60,6 +60,11 @@ ifeq ($(UNDERSCORE), 1)
   CFLAGS += -DUNDERSCORE
 endif
 
+ifeq ($(COVERAGE), 1)
+  CFLAGS += --coverage
+  LDFLAGS += --coverage
+endif
+
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
 LDFLAGS += $(if $(ASAN),$(AFLAGS))
@@ -230,7 +235,7 @@ $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	$(MAKE) -C examples/mfem CEED_DIR=`pwd` $*
 	mv examples/mfem/$* $@
 
-$(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) | $$(@D)/.DIR
+$(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	$(MAKE) -C examples/petsc CEED_DIR=`pwd` $*
 	mv examples/petsc/$* $@
 
@@ -254,7 +259,7 @@ prove : $(tests) $(examples)
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
 alltests := $(tests) $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
-prove-all : $(ceed.pc) $(alltests)
+prove-all : $(alltests)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(alltests:$(OBJDIR)/%=%)
 
@@ -296,7 +301,7 @@ cln clean :
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
 
 distclean : clean
-	rm -rf doc/html
+	$(RM) -r doc/html
 
 doc :
 	doxygen Doxyfile

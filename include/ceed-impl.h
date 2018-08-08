@@ -31,6 +31,8 @@ struct Ceed_private {
   int (*VecCreate)(Ceed, CeedInt, CeedVector);
   int (*ElemRestrictionCreate)(CeedElemRestriction, CeedMemType, CeedCopyMode,
                                const CeedInt *);
+  int (*ElemRestrictionCreateBlocked)(CeedElemRestriction, CeedMemType, CeedCopyMode,
+                               const CeedInt *);
   int (*BasisCreateTensorH1)(Ceed, CeedInt, CeedInt, CeedInt, const CeedScalar *,
                              const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*QFunctionCreate)(CeedQFunction);
@@ -57,6 +59,7 @@ CEED_INTERN int CeedFree(void *p);
 struct CeedVector_private {
   Ceed ceed;
   int (*SetArray)(CeedVector, CeedMemType, CeedCopyMode, CeedScalar *);
+  int (*SetValue)(CeedVector, CeedScalar);
   int (*GetArray)(CeedVector, CeedMemType, CeedScalar **);
   int (*GetArrayRead)(CeedVector, CeedMemType, const CeedScalar **);
   int (*RestoreArray)(CeedVector, CeedScalar **);
@@ -76,14 +79,16 @@ struct CeedElemRestriction_private {
   CeedInt nelem;    /* number of elements */
   CeedInt elemsize; /* number of dofs per element */
   CeedInt ndof;     /* size of the L-vector, can be used for checking for
-                       correct vector sizes */
+                      correct vector sizes */
   CeedInt ncomp;    /* number of components */
+  CeedInt blksize;  /* number of elements in a batch */
+  CeedInt nblk;     /* number of blocks of elements */
   void *data;       /* place for the backend to store any data */
 };
 
 struct CeedBasis_private {
   Ceed ceed;
-  int (*Apply)(CeedBasis, CeedTransposeMode, CeedEvalMode, const CeedScalar *,
+  int (*Apply)(CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, const CeedScalar *,
                CeedScalar *);
   int (*Destroy)(CeedBasis);
   int refcount;
@@ -151,5 +156,7 @@ struct CeedOperator_private {
   bool setupdone;
   void *data;
 };
+
+static inline CeedInt CeedIntMin(CeedInt a, CeedInt b) { return a < b ? a : b; }
 
 #endif

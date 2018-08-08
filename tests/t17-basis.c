@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 
     // Get function values at quadrature points
     CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, P, CEED_GAUSS_LOBATTO, &bxl);
-    CeedBasisApply(bxl, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
+    CeedBasisApply(bxl, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, xq);
     for (CeedInt i=0; i<Pdim; i++) {
       CeedScalar xx[dim];
       for (CeedInt d=0; d<dim; d++) xx[d] = xq[d*Pdim + i];
@@ -38,8 +38,8 @@ int main(int argc, char **argv) {
 
     // Calculate G u at quadrature points, G' * 1 at dofs
     CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P, Q, CEED_GAUSS, &bug);
-    CeedBasisApply(bug, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, u, uq);
-    CeedBasisApply(bug, CEED_TRANSPOSE, CEED_EVAL_GRAD, ones, gtposeones);
+    CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, u, uq);
+    CeedBasisApply(bug, 1, CEED_TRANSPOSE, CEED_EVAL_GRAD, ones, gtposeones);
 
     // Check if 1' * G * u = u' * (G' * 1)
     for (CeedInt i=0; i<Pdim; i++) {

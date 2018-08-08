@@ -19,6 +19,7 @@
 /// @cond DOXYGEN_SKIP
 static struct CeedVector_private ceed_vector_active;
 static struct CeedVector_private ceed_vector_none;
+/// @endcond
 
 /// @file
 /// Implementation of public CeedVector interfaces
@@ -58,6 +59,24 @@ int CeedVectorSetArray(CeedVector x, CeedMemType mtype, CeedCopyMode cmode,
   if (!x || !x->SetArray)
     return CeedError(x ? x->ceed : NULL, 1, "Not supported");
   ierr = x->SetArray(x, mtype, cmode, array); CeedChk(ierr);
+  return 0;
+}
+
+/// Set the array used by a vector, freeing any previously allocated array if applicable.
+///
+/// @param x Vector
+/// @param value to be used
+int CeedVectorSetValue(CeedVector x, CeedScalar value) {
+  int ierr;
+  CeedScalar *array;
+
+  if (x->SetValue) {
+    ierr = x->SetValue(x, value); CeedChk(ierr);
+  } else {
+    ierr = CeedVectorGetArray(x, CEED_MEM_HOST, &array); CeedChk(ierr);
+    for (int i=0; i<x->length; i++) array[i] = value;
+    ierr = CeedVectorRestoreArray(x, &array); CeedChk(ierr);
+  }
   return 0;
 }
 
@@ -160,3 +179,5 @@ CeedVector CEED_VECTOR_ACTIVE = &ceed_vector_active;
 
 /// Indicate that no vector is applicable (i.e., for CEED_EVAL_WEIGHTS).
 CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
+
+/// @}

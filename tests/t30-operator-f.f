@@ -36,7 +36,7 @@ c-----------------------------------------------------------------------
       include 'ceedf.h'
 
       integer ceed,err,i,j
-      integer erestrictx,erestrictu
+      integer erestrictx,erestrictu,erestrictxi,erestrictui
       integer bx,bu
       integer qf_setup,qf_mass
       integer op_setup,op_mass
@@ -66,8 +66,10 @@ c-----------------------------------------------------------------------
         indx(2*i+2)=i+1
       enddo
 
-      call ceedelemrestrictioncreate(ceed,nelem,2,nx,1,ceed_mem_host,
-     $  ceed_use_pointer,indx,erestrictx,err)
+      call ceedelemrestrictioncreate(ceed,nelem,2,nx,1,
+     $  ceed_mem_host,ceed_use_pointer,indx,erestrictx,err)
+      call ceedelemrestrictioncreateidentity(ceed,nelem,2,2*nelem,1,
+     $  erestrictxi,err)
 
       do i=0,nelem-1
         do j=0,p-1
@@ -75,8 +77,10 @@ c-----------------------------------------------------------------------
         enddo
       enddo
 
-      call ceedelemrestrictioncreate(ceed,nelem,p,nu,1,ceed_mem_host,
-     $  ceed_use_pointer,indu,erestrictu,err)
+      call ceedelemrestrictioncreate(ceed,nelem,p,nu,1,
+     $  ceed_mem_host,ceed_use_pointer,indu,erestrictu,err)
+      call ceedelemrestrictioncreateidentity(ceed,nelem,q,q*nelem,1,
+     $  erestrictui,err)
 
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss,
      $  bx,err)
@@ -112,14 +116,14 @@ c     $  't30-operator-f.f:mass',qf_mass,err)
       call ceedvectorcreate(ceed,nelem*q,qdata,err)
 
       call ceedoperatorsetfield(op_setup,'_weight',
-     $  ceed_restriction_identity,bx,ceed_vector_none,err)
+     $  erestrictxi,bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'x',erestrictx,bx,
      $  ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rho',
-     $  ceed_restriction_identity,ceed_basis_colocated,
+     $  erestrictui,ceed_basis_colocated,
      $  ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass,'rho',
-     $  ceed_restriction_identity,ceed_basis_colocated,
+     $  erestrictui,ceed_basis_colocated,
      $  qdata,err)
       call ceedoperatorsetfield(op_mass,'u',erestrictu,bu,
      $  ceed_vector_active,err)
@@ -144,6 +148,8 @@ c     $  't30-operator-f.f:mass',qf_mass,err)
       call ceedbasisdestroy(bx,err)
       call ceedelemrestrictiondestroy(erestrictu,err)
       call ceedelemrestrictiondestroy(erestrictx,err)
+      call ceedelemrestrictiondestroy(erestrictui,err)
+      call ceedelemrestrictiondestroy(erestrictxi,err)
       call ceeddestroy(ceed,err)
       end
 c-----------------------------------------------------------------------

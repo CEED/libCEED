@@ -26,7 +26,7 @@ c-----------------------------------------------------------------------
 
       call ceedbasiscreatetensorh1lagrange(ceed,dimn,1,p1d,q1d,
      $  ceed_gauss_lobatto,b,err)
-      call ceedbasisapply(b,ceed_notranspose,ceed_eval_interp,u,v,err)
+      call ceedbasisapply(b,1,ceed_notranspose,ceed_eval_interp,u,v,err)
 
       do i=1,length
         if (abs(v(i)-1.) > 1.D-15) then

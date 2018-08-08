@@ -69,7 +69,7 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
 
   @param op the operator on which to provide the field
   @param fieldname name of the field (to be matched with the name used by CeedQFunction)
-  @param r element restriction or CEED_RESTRICTION_IDENTITY to use the identity
+  @param r element restriction
   @param b basis in which the field resides or CEED_BASIS_COLOCATED if collocated
            with quadrature points
   @param v vector to be used by CeedOperator, CEED_VECTOR_ACTIVE if field is
@@ -79,15 +79,14 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                          CeedElemRestriction r, CeedBasis b,
                          CeedVector v) {
   int ierr;
-  if (r != CEED_RESTRICTION_IDENTITY) {
-    CeedInt numelements;
-    ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
-    if (op->numelements && op->numelements != numelements)
-      return CeedError(op->ceed, 1,
-                       "ElemRestriction with %d elements incompatible with prior %d elements",
-                       numelements, op->numelements);
-    op->numelements = numelements;
-  }
+  CeedInt numelements;
+  ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
+  if (op->numelements && op->numelements != numelements)
+    return CeedError(op->ceed, 1,
+                     "ElemRestriction with %d elements incompatible with prior %d elements",
+                     numelements, op->numelements);
+  op->numelements = numelements;
+
   if (b != CEED_BASIS_COLOCATED) {
     CeedInt numqpoints;
     ierr = CeedBasisGetNumQuadraturePoints(b, &numqpoints); CeedChk(ierr);
@@ -146,7 +145,7 @@ int CeedOperatorApply(CeedOperator op, CeedVector in,
   if (op->nfields < qf->numinputfields + qf->numoutputfields) return CeedError(
           ceed, 1, "Not all operator fields set");
   if (op->numelements == 0) return CeedError(ceed, 1,
-                                     "At least one non-identity restriction required");
+                                     "At least one restriction required");
   if (op->numqpoints == 0) return CeedError(ceed, 1,
                                     "At least one non-colocated basis required");
   ierr = op->Apply(op, in, out, request); CeedChk(ierr);
@@ -173,3 +172,5 @@ int CeedOperatorDestroy(CeedOperator *op) {
   ierr = CeedFree(op); CeedChk(ierr);
   return 0;
 }
+
+/// @}

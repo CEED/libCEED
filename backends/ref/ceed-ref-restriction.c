@@ -26,56 +26,48 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
   int ierr;
   const CeedScalar *uu;
   CeedScalar *vv;
-  CeedInt esize = r->nelem*r->elemsize, ncomp=r->ncomp;
+  CeedInt nblk = r->nblk, blksize = r->blksize, elemsize = r->elemsize,
+          ncomp=r->ncomp;
 
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
   if (tmode == CEED_NOTRANSPOSE) {
     // Perform: v = r * u
     if (!impl->indices) {
-      for (CeedInt i=0; i<esize*ncomp; i++) vv[i] = uu[i];
-    } else if (ncomp == 1) {
-      for (CeedInt i=0; i<esize; i++) vv[i] = uu[impl->indices[i]];
+      for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
+        for (CeedInt j = 0; j < blksize; j++)
+          for (CeedInt k = 0; k < ncomp*elemsize; k++)
+            vv[e*elemsize*ncomp + k*blksize + j]
+              = uu[CeedIntMin(e+j,r->nelem-1)*ncomp*elemsize + k];
     } else {
       // vv is (elemsize x ncomp x nelem), column-major
-      if (lmode == CEED_NOTRANSPOSE) { // u is (ndof x ncomp), column-major
-        for (CeedInt e = 0; e < r->nelem; e++)
-          for (CeedInt d = 0; d < ncomp; d++)
-            for (CeedInt i=0; i<r->elemsize; i++) {
-              vv[i+r->elemsize*(d+ncomp*e)] =
-                uu[impl->indices[i+r->elemsize*e]+r->ndof*d];
-            }
-      } else { // u is (ncomp x ndof), column-major
-        for (CeedInt e = 0; e < r->nelem; e++)
-          for (CeedInt d = 0; d < ncomp; d++)
-            for (CeedInt i=0; i<r->elemsize; i++) {
-              vv[i+r->elemsize*(d+ncomp*e)] =
-                uu[d+ncomp*impl->indices[i+r->elemsize*e]];
-            }
-      }
+      // uu is (ndof x ncomp)
+      for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
+        for (CeedInt d = 0; d < ncomp; d++)
+          for (CeedInt i = 0; i < elemsize*blksize; i++)
+            vv[i+elemsize*(d+ncomp*e)]
+              = uu[lmode == CEED_NOTRANSPOSE
+                   ? impl->indices[i+elemsize*e]+r->ndof*d
+                   : d+ncomp*impl->indices[i+elemsize*e]];
     }
   } else {
     // Note: in transpose mode, we perform: v += r^t * u
     if (!impl->indices) {
-      for (CeedInt i=0; i<esize; i++) vv[i] += uu[i];
-    } else if (ncomp == 1) {
-      for (CeedInt i=0; i<esize; i++) vv[impl->indices[i]] += uu[i];
+      for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
+        for (CeedInt j = 0; j < CeedIntMin(blksize, r->nelem-e); j++)
+          for (CeedInt k = 0; k < ncomp*elemsize; k++)
+            vv[(e+j)*ncomp*elemsize + k] += uu[e*elemsize*ncomp + k*blksize + j];
     } else {
-      // u is (elemsize x ncomp x nelem)
-      if (lmode == CEED_NOTRANSPOSE) { // vv is (ndof x ncomp), column-major
-        for (CeedInt e = 0; e < r->nelem; e++)
-          for (CeedInt d = 0; d < ncomp; d++)
-            for (CeedInt i=0; i<r->elemsize; i++) {
-              vv[impl->indices[i+r->elemsize*e]+r->ndof*d] +=
-                uu[i+r->elemsize*(d+e*ncomp)];
-            }
-      } else { // vv is (ncomp x ndof), column-major
-        for (CeedInt e = 0; e < r->nelem; e++)
-          for (CeedInt d = 0; d < ncomp; d++)
-            for (CeedInt i=0; i<r->elemsize; i++) {
-              vv[d+ncomp*impl->indices[i+r->elemsize*e]] +=
-                uu[i+r->elemsize*(d+e*ncomp)];
-            }
+      // uu is (elemsize x ncomp x nelem)
+      // vv is (ndof x ncomp)
+      for (CeedInt e = 0; e < nblk*blksize; e+=blksize) {
+        for (CeedInt d = 0; d < ncomp; d++)
+          for (CeedInt i = 0; i < elemsize*blksize; i+=blksize)
+            for (CeedInt j = i; j < i+CeedIntMin(blksize, r->nelem-e); j++)
+              vv[lmode == CEED_NOTRANSPOSE
+                 ? impl->indices[j+e*elemsize]+r->ndof*d
+                 : d+ncomp*impl->indices[j+e*elemsize]]
+                += uu[j+elemsize*(d+ncomp*e)];
       }
     }
   }
