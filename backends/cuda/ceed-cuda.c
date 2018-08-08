@@ -16,7 +16,65 @@
 
 #include <ceed-impl.h>
 #include <string.h>
-#include "ceed-cuda.cuh"
+#include <stdarg.h>
+#include "ceed-cuda.h"
+
+
+int compile(Ceed ceed, const char *source, CUmodule *module, const CeedInt numopts, ...) {
+  int ierr;
+  nvrtcProgram prog;
+  CeedChk_Nvrtc(ceed, nvrtcCreateProgram(&prog, source, NULL, 0, NULL, NULL));
+
+  const int optslen = 32;
+  const int optsextra = 3;
+  char buf[numopts][optslen];
+  const char *opts[numopts + optsextra];
+  va_list args;
+  va_start(args, numopts);
+  for (int i = 0; i < numopts; i++) {
+    sprintf(&buf[i][0], "-D%s=%d", va_arg(args, char*), va_arg(args, int));
+    opts[i] = &buf[i][0];
+  }
+  opts[numopts] = "-DCeedScalar=double";
+  opts[numopts + 1] = "-DCeedInt=int";
+  opts[numopts + 2] = "-arch=compute_60";
+
+  nvrtcResult result = nvrtcCompileProgram(prog, numopts + optsextra, opts);
+  if (result != NVRTC_SUCCESS) {
+    size_t logsize;
+    CeedChk_Nvrtc(ceed, nvrtcGetProgramLogSize(prog, &logsize));
+    char *log;
+    ierr = CeedMalloc(logsize, &log); CeedChk(ierr);
+    CeedChk_Nvrtc(ceed, nvrtcGetProgramLog(prog, log));
+    return CeedError(ceed, result, "%s\n%s", nvrtcGetErrorString(result), log);
+  }
+
+  size_t ptxsize;
+  CeedChk_Nvrtc(ceed, nvrtcGetPTXSize(prog, &ptxsize));
+  char *ptx;
+  ierr = CeedMalloc(ptxsize, &ptx); CeedChk(ierr);
+  CeedChk_Nvrtc(ceed, nvrtcGetPTX(prog, ptx));
+  CeedChk_Nvrtc(ceed, nvrtcDestroyProgram(&prog));
+
+  CeedChk_Cu(ceed, cuModuleLoadData(module, ptx));
+  ierr = CeedFree(&ptx); CeedChk(ierr);
+
+  return 0;
+}
+
+int get_kernel(Ceed ceed, CUmodule module, const char *name, CUfunction* kernel) {
+  CeedChk_Cu(ceed, cuModuleGetFunction(kernel, module, name));
+  return 0;
+}
+
+int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize, const int blockSize, void **args) {
+  CeedChk_Cu(ceed, cuLaunchKernel(kernel,
+      gridSize, 1, 1,
+      blockSize, 1, 1,
+      0, NULL,
+      args, NULL));
+  return 0;
+}
 
 static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   int ierr;
@@ -34,10 +92,10 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   CeedInit("/cpu/self/ref", &data->ceedref);
 
-  cudaDeviceProp deviceProp;
+  struct cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, deviceID);
 
-  data->optBlockSize = deviceProp.maxThreadsPerBlock;
+  data->optblocksize = deviceProp.maxThreadsPerBlock;
 
   ceed->data = data;
   ceed->VecCreate = CeedVectorCreate_Cuda;

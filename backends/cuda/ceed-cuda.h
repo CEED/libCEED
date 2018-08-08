@@ -14,29 +14,29 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <algorithm>
 #include <ceed-impl.h>
-#include <stdbool.h>
+#include <nvrtc.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-static inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-  printf("GPUassert %d: %s %s %d\n", code, cudaGetErrorString(code), file, line);
-  if (code != cudaSuccess) exit(code);
-}
+#define CeedChk_Nvrtc(ceed, x) \
+do { \
+  nvrtcResult result = x; \
+  if (result != NVRTC_SUCCESS) \
+    return CeedError((ceed), result, nvrtcGetErrorString(result)); \
+} while (0)
 
-#define START_BANDWIDTH \
-cudaEvent_t start, stop;\
-cudaEventCreate(&start);\
-cudaEventCreate(&stop);\
-cudaEventRecord(start);
+#define CeedChk_Cu(ceed, x) \
+do { \
+  CUresult result = x; \
+  if (result != CUDA_SUCCESS) { \
+    const char *msg; \
+    cuGetErrorName(result, &msg); \
+    return CeedError((ceed), result, msg); \
+  } \
+} while (0)
 
-#define STOP_BANDWIDTH(data) \
-cudaEventRecord(stop);\
-cudaEventSynchronize(stop);\
-float milliseconds = 0;\
-cudaEventElapsedTime(&milliseconds, start, stop);\
-printf("\nEffective Bandwidth (GB/s): %f\n", (data)/milliseconds/1e6);
+#define QUOTE(...) #__VA_ARGS__
 
 typedef struct {
   CeedScalar *h_array;
@@ -46,49 +46,42 @@ typedef struct {
 } CeedVector_Cuda;
 
 typedef struct {
+  CUmodule module;
+  CUfunction noTrNoTr;
+  CUfunction noTrTr;
+  CUfunction trNoTr;
+  CUfunction trTr;
   CeedVector indices;
 } CeedElemRestriction_Cuda;
 
 typedef struct {
-  bool ready;
+  CUmodule module;
+  CUfunction callback;
   const CeedScalar *const *d_u;
   CeedScalar *const *d_v;
-  const CeedInt *d_uoffsets;
-  const CeedInt *d_voffsets;
   void *d_c;
-  int *d_ierr;
 } CeedQFunction_Cuda;
 
 typedef struct {
-  bool ready;
-  CeedScalar *d_qweight1d;
+  CUmodule module;
+  CUfunction interp;
+  CUfunction grad;
+  CUfunction weight;
   CeedScalar *d_interp1d;
   CeedScalar *d_grad1d;
+  CeedScalar *d_qweight1d;
 } CeedBasis_Cuda;
 
 typedef struct {
-  int optBlockSize;
+  int optblocksize;
   Ceed ceedref;
 } Ceed_Cuda;
 
-static int divup(int a, int b) {
-  return (a + b - 1) / b;
-}
+CEED_INTERN int compile(Ceed ceed, const char *source, CUmodule *module, const CeedInt numopts, ...);
 
-template <typename CudaFunc, typename... Args>
-static int run_cuda(CudaFunc f, const int blockSize, const int sharedMem, const CeedInt a, Args... args) {
-  int actBlockSize = 0;
-  if (blockSize > 0) {
-    actBlockSize = blockSize;
-  } else {
-    int gridSize;
-    cudaOccupancyMaxPotentialBlockSize(&gridSize, &actBlockSize, f, sharedMem, 0);
-  }
+CEED_INTERN int get_kernel(Ceed ceed, CUmodule module, const char *name, CUfunction* kernel);
 
-  const int gridSize = divup(a, actBlockSize);
-  f<<<gridSize, actBlockSize, sharedMem>>>(a, args...);
-  return cudaGetLastError();
-}
+CEED_INTERN int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize, const int blockSize, void **args);
 
 CEED_INTERN int CeedVectorCreate_Cuda(Ceed ceed, CeedInt n, CeedVector vec);
 
@@ -96,11 +89,9 @@ CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedElemRestriction r,
     CeedMemType mtype,
     CeedCopyMode cmode, const CeedInt *indices);
 
-CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem, const CeedInt elemsize,
-    CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
+CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
 
-CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt nelem, const CeedInt Q,
-    const CeedVector *const u, const CeedVector* v);
+CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q, const CeedVector *const u, const CeedVector* v);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda(Ceed ceed, CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d,

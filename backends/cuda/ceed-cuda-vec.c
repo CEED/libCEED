@@ -13,7 +13,8 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-#include "ceed-cuda.cuh"
+#include "ceed-cuda.h"
+#include "string.h"
 
 // *****************************************************************************
 // * Bytes used
@@ -36,12 +37,12 @@ static int CeedVectorSetArrayHost_Cuda(const CeedVector vec,
     const CeedCopyMode cmode, CeedScalar *array) {
   int ierr;
   CeedVector_Cuda *data = (CeedVector_Cuda*)vec->data;
-  ierr = cudaMalloc(&data->d_array_allocated, bytes(vec)); CeedChk(ierr);
+  ierr = cudaMalloc((void**)&data->d_array_allocated, bytes(vec)); CeedChk(ierr);
   data->d_array = data->d_array_allocated;
 
   switch (cmode) {
     case CEED_COPY_VALUES:
-      ierr = cudaMallocHost(&data->h_array_allocated, bytes(vec)); CeedChk(ierr);
+      ierr = cudaMallocHost((void**)&data->h_array_allocated, bytes(vec)); CeedChk(ierr);
       data->h_array = data->h_array_allocated;
 
       if (array) memcpy(data->h_array, array, bytes(vec));
@@ -64,12 +65,12 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec,
     const CeedCopyMode cmode, CeedScalar *array) {
   int ierr;
   CeedVector_Cuda *data = (CeedVector_Cuda*)vec->data;
-  ierr = cudaMallocHost(&data->h_array_allocated, bytes(vec)); CeedChk(ierr);
+  ierr = cudaMallocHost((void**)&data->h_array_allocated, bytes(vec)); CeedChk(ierr);
   data->h_array = data->h_array_allocated;
 
   switch (cmode) {
     case CEED_COPY_VALUES:
-      ierr = cudaMalloc(&data->d_array_allocated, bytes(vec)); CeedChk(ierr);
+      ierr = cudaMalloc((void**)&data->d_array_allocated, bytes(vec)); CeedChk(ierr);
       data->d_array = data->d_array_allocated;
 
       if (array) cudaMemcpy(data->d_array, array, bytes(vec),
@@ -157,7 +158,7 @@ static int CeedVectorRestoreArrayRead_Cuda(const CeedVector vec,
   CeedVector_Cuda *data = (CeedVector_Cuda*)vec->data;
   if (*array == data->h_array) {
     CeedSyncH2D_Cuda(vec);
-  } else if (*array = data->d_array) {
+  } else if (*array == data->d_array) {
     CeedSyncD2H_Cuda(vec);
   } else {
     return CeedError(vec->ceed, 1, "Invalid restore array");

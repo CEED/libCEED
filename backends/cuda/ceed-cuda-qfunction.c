@@ -15,54 +15,39 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
-#include "ceed-cuda.cuh"
+#include <string.h>
+#include <stdio.h>
+#include "ceed-cuda.h"
 
-int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt nelem, const CeedInt Q,
+int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q,
     const CeedVector *const u, const CeedVector* v) {
   int ierr;
+  const Ceed_Cuda* ceed = (Ceed_Cuda*)qf->ceed->data;
   CeedQFunction_Cuda *data = (CeedQFunction_Cuda*) qf->data;
+  const int blocksize = ceed->optblocksize;
 
-  const CeedInt cbytes = qf->ctxsize;
-
-  if (!data->ready) {
-    data->ready = true;
-    ierr = cudaMalloc(&data->d_u, qf->numinputfields * sizeof(CeedScalar*)); CeedChk(ierr);
-    ierr = cudaMalloc(&data->d_v, qf->numoutputfields * sizeof(CeedScalar*)); CeedChk(ierr);
-    ierr = cudaMalloc(&data->d_uoffsets, qf->numinputfields * sizeof(CeedInt)); CeedChk(ierr);
-    ierr = cudaMalloc(&data->d_voffsets, qf->numoutputfields * sizeof(CeedInt)); CeedChk(ierr);
-    ierr = cudaMalloc(&data->d_c, cbytes); CeedChk(ierr);
-    ierr = cudaMalloc(&data->d_ierr, sizeof(int)); CeedChk(ierr);
-    ierr = cudaMemset(data->d_ierr, 0, sizeof(int)); CeedChk(ierr);
-  }
-
-  if (cbytes > 0) {
-    ierr = cudaMemcpy(data->d_c, qf->ctx, cbytes, cudaMemcpyHostToDevice); CeedChk(ierr);
+  if (qf->ctxsize > 0) {
+    ierr = cudaMemcpy(data->d_c, qf->ctx, qf->ctxsize, cudaMemcpyHostToDevice); CeedChk(ierr);
   }
 
   const CeedScalar *h_u[qf->numinputfields];
-  CeedInt h_uoffsets[qf->numinputfields];
   for (CeedInt i = 0; i < qf->numinputfields; i++) {
     CeedVectorGetArrayRead(u[i], CEED_MEM_DEVICE, h_u + i);
-    h_uoffsets[i] = u[i]->length / nelem;
   }
-  ierr = cudaMemcpy((void*)data->d_u, h_u, qf->numinputfields * sizeof(CeedScalar*), cudaMemcpyHostToDevice);
-  ierr = cudaMemcpy((void*)data->d_uoffsets, h_uoffsets, qf->numinputfields * sizeof(CeedInt), cudaMemcpyDeviceToHost);
+  ierr = cudaMemcpy((void**)data->d_u, h_u, qf->numinputfields * sizeof(CeedScalar*), cudaMemcpyHostToDevice);
 
   CeedScalar *h_v[qf->numoutputfields];
-  CeedInt h_voffsets[qf->numoutputfields];
   for (CeedInt i = 0; i < qf->numoutputfields; i++) {
     CeedVectorGetArray(v[i], CEED_MEM_DEVICE, h_v + i);
-    h_voffsets[i] = v[i]->length / nelem;
   }
   ierr = cudaMemcpy((void*)data->d_v, h_v, qf->numoutputfields * sizeof(CeedScalar*), cudaMemcpyDeviceToHost);
-  ierr = cudaMemcpy((void*)data->d_voffsets, h_voffsets, qf->numoutputfields * sizeof(CeedInt), cudaMemcpyDeviceToHost);
 
-  ierr = run_cuda(qf->fcuda, 0, 0, nelem, Q, qf->numinputfields, qf->numoutputfields, data->d_c,
-      data->d_u, data->d_v, data->d_uoffsets, data->d_voffsets, data->d_ierr); CeedChk(ierr);
-  cudaMemcpy(&ierr, data->d_ierr, sizeof(int), cudaMemcpyDeviceToHost); CeedChk(ierr);
+  void *args[] = {&data->d_c, (void*)&Q, &data->d_u, &data->d_v};
+  ierr = run_kernel(qf->ceed, data->callback, CeedDivUpInt(Q, blocksize), blocksize, args);
 
-  if (cbytes > 0) {
-    ierr = cudaMemcpy(qf->ctx, data->d_c, cbytes, cudaMemcpyDeviceToHost); CeedChk(ierr);
+
+  if (qf->ctxsize > 0) {
+    ierr = cudaMemcpy(qf->ctx, data->d_c, qf->ctxsize, cudaMemcpyDeviceToHost); CeedChk(ierr);
   }
 
   return 0;
@@ -78,12 +63,10 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   int ierr;
   CeedQFunction_Cuda *data = (CeedQFunction_Cuda *) qf->data;
 
-  if (data->ready) {
-    ierr = cudaFree((void*)data->d_u); CeedChk(ierr);
-    ierr = cudaFree((void*)data->d_v); CeedChk(ierr);
-    ierr = cudaFree(data->d_c); CeedChk(ierr);
-    ierr = cudaFree(data->d_ierr); CeedChk(ierr);
-  }
+  CeedChk_Cu(qf->ceed, cuModuleUnload(data->module)); 
+  ierr = cudaFree((void*)data->d_u); CeedChk(ierr);
+  ierr = cudaFree((void*)data->d_v); CeedChk(ierr);
+  ierr = cudaFree(data->d_c); CeedChk(ierr);
 
   ierr = CeedFree(&data); CeedChk(ierr);
 
@@ -91,11 +74,37 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
 }
 
 int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
+  int ierr;
+  
   CeedQFunction_Cuda *data;
-  int ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  qf->data = data;
-  data->ready = false;
+  ierr = CeedCalloc(1,&data); CeedChk(ierr);
+  ierr = cudaMalloc((void**)&data->d_u, qf->numinputfields * sizeof(CeedScalar*)); CeedChk(ierr);
+  ierr = cudaMalloc((void**)&data->d_v, qf->numoutputfields * sizeof(CeedScalar*)); CeedChk(ierr);
+  ierr = cudaMalloc(&data->d_c, qf->ctxsize); CeedChk(ierr);
+  
+  const char *funname = strrchr(qf->fcuda, ':') + 1;
+  // Including final NUL char
+  const int filenamelen = funname - qf->fcuda;
+  char filename[filenamelen];
+  memcpy(filename, qf->fcuda, filenamelen - 1);
+  filename[filenamelen - 1] = '\0';
+  FILE *file = fopen(filename, "r");
+  if (!file) {
+    return CeedError(qf->ceed, 1, "The file %s cannot be read", filename);
+  }
 
+  fseek(file, 0, SEEK_END);
+  const int contentslen = ftell(file);
+  fseek (file, 0, SEEK_SET);
+  char *contents;
+  ierr = CeedCalloc(contentslen + 1, &contents); CeedChk(ierr);
+  fread(contents, 1, contentslen, file);
+
+  ierr = compile(qf->ceed, contents, &data->module, 0); CeedChk(ierr);
+  ierr = get_kernel(qf->ceed, data->module, funname, &data->callback); CeedChk(ierr);
+  ierr = CeedFree(&contents); CeedChk(ierr);
+
+  qf->data = data;
   qf->Apply = CeedQFunctionApply_Cuda;
   qf->Destroy = CeedQFunctionDestroy_Cuda;
   return 0;

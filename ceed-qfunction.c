@@ -50,7 +50,7 @@
 
 */
 int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
-                                CeedQFunctionCallback f, CeedQFunctionKernel_Cuda fcuda,
+                                CeedQFunctionCallback f, const char *fcuda,
                                 const char *focca, CeedQFunction *qf) {
   int ierr;
   char *focca_copy;

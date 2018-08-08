@@ -389,7 +389,7 @@ void fCeedQFunctionCreateInterior(int* ceed, int* vlength,
                                       CeedScalar *v4,CeedScalar *v5, CeedScalar *v6,CeedScalar *v7,
                                       CeedScalar *v8,CeedScalar *v9, CeedScalar *v10,CeedScalar *v11,
                                       CeedScalar *v12,CeedScalar *v13, CeedScalar *v14,CeedScalar *v15,
-                                      int *err),
+                                      int *err), const char *fcuda,
                                   const char *focca, int *qf, int *err) {
   if (CeedQFunction_count == CeedQFunction_count_max) {
     CeedQFunction_count_max += CeedQFunction_count_max/2 + 1;
@@ -398,7 +398,7 @@ void fCeedQFunctionCreateInterior(int* ceed, int* vlength,
 
   CeedQFunction *qf_ = &CeedQFunction_dict[CeedQFunction_count];
   *err = CeedQFunctionCreateInterior(Ceed_dict[*ceed], *vlength,
-                                     CeedQFunctionFortranStub,(CeedQFunctionKernel_Cuda)NULL,focca, qf_);
+                                     CeedQFunctionFortranStub,fcuda,focca, qf_);
 
   if (*err == 0) {
     *qf = CeedQFunction_count++;

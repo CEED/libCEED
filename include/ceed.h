@@ -243,11 +243,9 @@ CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
                                       CeedScalar *qweight1d);
 
 typedef int (*CeedQFunctionCallback)(void *, const CeedInt, const CeedScalar *const *, CeedScalar *const *);
-typedef void (*CeedQFunctionKernel_Cuda)(const CeedInt, const CeedInt, const CeedInt, const CeedInt,
-    void *, const CeedScalar *const *, CeedScalar *const *, const CeedInt *, const CeedInt *, int *);
 
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
-    CeedQFunctionCallback f, CeedQFunctionKernel_Cuda fCuda,
+    CeedQFunctionCallback f, const char *fcuda,
     const char *focca, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                                       CeedInt ncomp, CeedEvalMode emode);
@@ -272,41 +270,7 @@ CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
 
-#ifdef __CUDACC__
-
-template <CeedQFunctionCallback callback>
-static __global__ void apply(const CeedInt nelem, const CeedInt Q, const CeedInt numinputfields, const CeedInt numoutputfields,
-    void *ctx, const CeedScalar *const *u, CeedScalar *const *v, const CeedInt *uoffsets, const CeedInt *voffsets, int *ierr) {
-  const int i = blockIdx.x*blockDim.x + threadIdx.x;
-
-  for (int elem = i; i < nelem; i += gridDim.x * blockDim.x) {
-    int eoffset = i == elem ? elem : gridDim.x * blockDim.x;
-    for (int j = 0; j < numinputfields; j++) {
-      u[j] += eoffset * uoffsets[j];
-    }
-    for (int j = 0; j < numoutputfields; j++) {
-      v[j] += eoffset * voffsets[j];
-    }
-
-    int e = callback(ctx, Q, u, v);
-    if (e) {
-      atomicOr(ierr, e);
-    }
-  }
-}
-
-#define CEED_CUDA
-#define CEED_SAFE_HOST_DEVICE __host__ __device__
-#define CeedQFunctionKernelCreate_Cuda(callback) apply<(callback)>
-
-#else
-
-#define CEED_SAFE_HOST_DEVICE static
-#define CeedQFunctionKernelCreate_Cuda(callback) NULL
-
-#endif
-
-CEED_SAFE_HOST_DEVICE inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
+static inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
   CeedInt result = 1;
   while (power) {
     if (power & 1) result *= base;
@@ -314,6 +278,10 @@ CEED_SAFE_HOST_DEVICE inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
     base *= base;
   }
   return result;
+}
+
+static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
+  return (numer + denom - 1) / denom;
 }
 
 #endif

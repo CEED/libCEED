@@ -48,7 +48,7 @@ AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 OPT    = -O -g
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-NVCCFLAGS = -std=c++11 $(OPT) -arch=sm_60 --compiler-options="-Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP"
+NVCCFLAGS = $(OPT)
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
   FFLAGS = $(OPT) -qpreprocess -qextname -qpic -MMD
@@ -116,7 +116,7 @@ petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 ref.c      := $(sort $(wildcard backends/ref/*.c))
 template.c := $(sort $(wildcard backends/template/*.c))
 optimized.c:= $(sort $(wildcard backends/optimized/*.c))
-cuda.cu    := $(sort $(wildcard backends/cuda/*.cu))
+cuda.c     := $(sort $(wildcard backends/cuda/*.c))
 occa.c     := $(sort $(wildcard backends/occa/*.c))
 magma_preprocessor := python backends/magma/gccm.py
 magma_pre_src  := $(filter-out %_tmp.c, $(wildcard backends/magma/ceed-*.c))
@@ -144,7 +144,7 @@ output = $(if $(TERM:dumb=),$(call color_out,$1,$2),$(call emacs_out,$1,$2))
 quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
 .SUFFIXES:
-.SUFFIXES: .c .cu .o .d
+.SUFFIXES: .c .o .d
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
 
 .SECONDARY: $(magma_tmp.c) $(magma_tmp.cu)
@@ -174,9 +174,10 @@ endif
 CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
 CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 ifneq ($(CUDA_LIB_DIR),)
+  $(libceed) : CFLAGS += -I$(CUDA_DIR)/include
   $(libceed) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
-  $(libceed) : LDLIBS += -lcudart
-  libceed.cu += $(cuda.cu)
+  $(libceed) : LDLIBS += -lcudart -lnvrtc -lcuda
+  libceed.c += $(cuda.c)
   BACKENDS += /gpu/cuda
 endif
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)

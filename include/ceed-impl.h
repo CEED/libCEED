@@ -119,7 +119,7 @@ struct CeedQFunction_private {
   struct CeedQFunctionField outputfields[16];
   CeedInt numinputfields, numoutputfields;
   CeedQFunctionCallback function;
-  CeedQFunctionKernel_Cuda fcuda; 
+  const char *fcuda;
   const char *focca;
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */
