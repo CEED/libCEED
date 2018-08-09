@@ -151,10 +151,11 @@ static int CeedOperatorSetupFields_Occa(CeedOperator op,
                                         CeedInt startq,
                                         const CeedInt numfields,
                                         const CeedInt Q) {
-  //const CeedQFunction qf = op->qf;
-  //const CeedQFunction_Occa *qf_data = qf->data;
+  CeedQFunction qf = op->qf;
+  CeedQFunction_Occa *qf_data = qf->data;
   const Ceed ceed = op->ceed;
-  CeedInt dim, ierr, ncomp;
+  CeedInt ierr, ncomp;
+  CeedInt dim = 1;
   CeedInt iq=startq;
   // Loop over fields
   for (CeedInt i=0; i<numfields; i++) {
@@ -176,6 +177,7 @@ static int CeedOperatorSetupFields_Occa(CeedOperator op,
       dbg("\t\t[CeedOperator][SetupFields] INTERP, Q++, qdata[%d]=qdata_alloc[%d]",
           i + starti,iq);
       ncomp = qfields[i].ncomp;
+      dim = ofields[i].basis->dim;
       ierr = CeedMalloc(Q*ncomp, &qdata_alloc[iq]); CeedChk(ierr);
       qdata[i + starti] = qdata_alloc[iq];
       iq++;
@@ -196,12 +198,14 @@ static int CeedOperatorSetupFields_Occa(CeedOperator op,
       ierr = CeedBasisApply(ofields[iq].basis, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
                             NULL, qdata_alloc[iq]); CeedChk(ierr);
       assert(starti==0);
+      dim = ofields[i].basis->dim;
       qdata[i + starti] = qdata_alloc[iq];
       indata[i] = qdata[i];
       break;
     case CEED_EVAL_DIV: break; // Not implemented
     case CEED_EVAL_CURL: break; // Not implemented
     }
+    qf_data->dim = dim;
   }
   return 0;
 }
