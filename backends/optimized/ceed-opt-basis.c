@@ -67,7 +67,8 @@ static int CeedBasisApply_Opt(CeedBasis basis, CeedInt nelem,
     for (CeedInt i = 0; i < vsize; i++)
       v[i] = (CeedScalar) 0.0;
   }
-  if (emode == CEED_EVAL_INTERP) {
+  switch (emode) {
+  case CEED_EVAL_INTERP: {
     CeedInt P = basis->P1d, Q = basis->Q1d;
     if (tmode == CEED_TRANSPOSE) {
       P = basis->Q1d; Q = basis->P1d;
@@ -82,7 +83,8 @@ static int CeedBasisApply_Opt(CeedBasis basis, CeedInt nelem,
       pre /= P;
       post *= Q;
     }
-  } else if (emode == CEED_EVAL_GRAD) {
+  } break;
+  case CEED_EVAL_GRAD: {
     // In CEED_NOTRANSPOSE mode:
     // u is (P^dim x nc) x nelem, column-major layout (nc = ncomp)
     // v is (Q^dim x nc x dim) x nelem, column-major layout (nc = ncomp)
@@ -136,7 +138,8 @@ static int CeedBasisApply_Opt(CeedBasis basis, CeedInt nelem,
       pre /= P;
       post *= Q;
     }
-  } else if (emode == CEED_EVAL_WEIGHT) {
+  } break;
+  case CEED_EVAL_WEIGHT: {
     if (tmode == CEED_TRANSPOSE)
       return CeedError(basis->ceed, 1,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
@@ -152,9 +155,14 @@ static int CeedBasisApply_Opt(CeedBasis basis, CeedInt nelem,
               v[((i*Q + j)*post + k)*nelem + e] = w;
         }
     }
-  } else if (emode == CEED_EVAL_DIV) {
-  } else if (emode == CEED_EVAL_CURL) {
-  }
+  } break;
+  case CEED_EVAL_DIV:
+    return CeedError(basis->ceed, 1, "CEED_EVAL_DIV not supported");
+  case CEED_EVAL_CURL:
+    return CeedError(basis->ceed, 1, "CEED_EVAL_CURL not supported");
+  case CEED_EVAL_NONE:
+    return CeedError(basis->ceed, 1, "CEED_EVAL_NONE does not make sense in this context");
+   }
   return 0;
 }
 
