@@ -43,7 +43,7 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
               = uu[CeedIntMin(e+j,r->nelem-1)*ncomp*elemsize + k];
     } else {
       // Indicies provided, standard or blocked restriction
-      // vv is [elemsize, ncomp, nelem], column-major
+      // vv is [elemsize, ncomp, nelem], row-major
       // uu is [ndof, ncomp]
       for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
         for (CeedInt d = 0; d < ncomp; d++)

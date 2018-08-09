@@ -97,7 +97,7 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
-libceed.c := $(wildcard ceed*.c)
+libceed.c := $(wildcard interface/ceed*.c)
 BACKENDS := /cpu/self/ref /cpu/self/tmpl /cpu/self/opt
 
 # Tests
