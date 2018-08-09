@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
   Ceed ceed;
 
   CeedInit(argv[1], &ceed);
-  for (CeedInt dim=1; dim<=3; dim++) {
+  for (CeedInt dim=3; dim<=3; dim++) {
     CeedBasis bxl, bug;
     CeedInt P = 8, Q = 10, Pdim = CeedPowInt(P, dim), Qdim = CeedPowInt(Q, dim),
             Xdim = CeedPowInt(2, dim);
@@ -42,11 +42,15 @@ int main(int argc, char **argv) {
     CeedBasisApply(bug, 1, CEED_TRANSPOSE, CEED_EVAL_GRAD, ones, gtposeones);
 
     // Check if 1' * G * u = u' * (G' * 1)
+    printf("Sum 1:\n");fflush(stdout);
     for (CeedInt i=0; i<Pdim; i++) {
       sum1 += gtposeones[i]*u[i];
+      printf("%f\n", sum1);fflush(stdout);
     }
+    printf("Sum 2:\n");fflush(stdout);
     for (CeedInt i=0; i<dim*Qdim; i++) {
       sum2 += uq[i];
+      printf("%f\n", sum2);fflush(stdout);
     }
     if (fabs(sum1 - sum2) > 1e-10) {
       printf("[%d] %f != %f\n", dim, sum1, sum2);
