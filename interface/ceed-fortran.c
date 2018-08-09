@@ -82,25 +82,22 @@ void fCeedVectorSetValue(int *vec, CeedScalar *value, int *err) {
 }
 
 #define fCeedVectorGetArray FORTRAN_NAME(ceedvectorgetarray,CEEDVECTORGETARRAY)
-//TODO Need Fixing, double pointer
-void fCeedVectorGetArray(int *vec, int *memtype, CeedScalar *array, int *err) {
+void fCeedVectorGetArray(int *vec, int *memtype, CeedScalar *array, long *offset,
+                         int *err) {
   CeedScalar *b;
   CeedVector vec_ = CeedVector_dict[*vec];
   *err = CeedVectorGetArray(vec_, *memtype, &b);
-  if (*err == 0)
-    memcpy(array, b, sizeof(CeedScalar)*vec_->length);
+  *offset = b - array;
 }
 
 #define fCeedVectorGetArrayRead \
     FORTRAN_NAME(ceedvectorgetarrayread,CEEDVECTORGETARRAYREAD)
-//TODO Need Fixing, double pointer
 void fCeedVectorGetArrayRead(int *vec, int *memtype, CeedScalar *array,
-                             int *err) {
+                             long *offset, int *err) {
   const CeedScalar *b;
-  *err = CeedVectorGetArrayRead(CeedVector_dict[*vec], *memtype, &b);
   CeedVector vec_ = CeedVector_dict[*vec];
-  if (*err == 0)
-    memcpy(array, b, sizeof(CeedScalar)*vec_->length);
+  *err = CeedVectorGetArrayRead(vec_, *memtype, &b);
+  *offset = b - array;
 }
 
 #define fCeedVectorRestoreArray \
