@@ -31,8 +31,10 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
 
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
+  // Restriction from lvector to evector
+  // Perform: v = r * u
   if (tmode == CEED_NOTRANSPOSE) {
-    // Perform: v = r * u
+    // No indicies provided, Identity Restriction
     if (!impl->indices) {
       for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
         for (CeedInt j = 0; j < blksize; j++)
@@ -40,8 +42,9 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
             vv[e*elemsize*ncomp + k*blksize + j]
               = uu[CeedIntMin(e+j,r->nelem-1)*ncomp*elemsize + k];
     } else {
-      // vv is (elemsize x ncomp x nelem), column-major
-      // uu is (ndof x ncomp)
+      // Indicies provided, standard or blocked restriction
+      // vv is [elemsize, ncomp, nelem], column-major
+      // uu is [ndof, ncomp]
       for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
         for (CeedInt d = 0; d < ncomp; d++)
           for (CeedInt i = 0; i < elemsize*blksize; i++)
@@ -51,18 +54,22 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
                    : d+ncomp*impl->indices[i+elemsize*e]];
     }
   } else {
-    // Note: in transpose mode, we perform: v += r^t * u
+    // Restriction from evector to lvector
+    // Performing v += r^T * u
+    // No indicies provided, Identity Restriction
     if (!impl->indices) {
       for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
         for (CeedInt j = 0; j < CeedIntMin(blksize, r->nelem-e); j++)
           for (CeedInt k = 0; k < ncomp*elemsize; k++)
             vv[(e+j)*ncomp*elemsize + k] += uu[e*elemsize*ncomp + k*blksize + j];
     } else {
-      // uu is (elemsize x ncomp x nelem)
-      // vv is (ndof x ncomp)
+      // Indicies provided, standard or blocked restriction
+      // uu is [elemsize, ncomp, nelem]
+      // vv is [ndof, ncomp]
       for (CeedInt e = 0; e < nblk*blksize; e+=blksize) {
         for (CeedInt d = 0; d < ncomp; d++)
           for (CeedInt i = 0; i < elemsize*blksize; i+=blksize)
+            // Iteration bound set to discard padding elements
             for (CeedInt j = i; j < i+CeedIntMin(blksize, r->nelem-e); j++)
               vv[lmode == CEED_NOTRANSPOSE
                  ? impl->indices[j+e*elemsize]+r->ndof*d

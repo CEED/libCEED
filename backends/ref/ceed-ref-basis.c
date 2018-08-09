@@ -59,12 +59,14 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     return CeedError(basis->ceed, 1,
                      "This backend does not support BasisApply for multiple elements");
 
+  // Clear v if operating in transpose
   if (tmode == CEED_TRANSPOSE) {
     const CeedInt vsize = ncomp*CeedPowInt(basis->P1d, dim);
     for (CeedInt i = 0; i < vsize; i++)
       v[i] = (CeedScalar) 0;
   }
   switch (emode) {
+  // Interpolate to/from quadrature points
   case CEED_EVAL_INTERP: {
     CeedInt P = basis->P1d, Q = basis->Q1d;
     if (tmode == CEED_TRANSPOSE) {
@@ -81,6 +83,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
       post *= Q;
     }
   } break;
+  // Evaluate the gradient to/from quadrature points
   case CEED_EVAL_GRAD: {
     CeedInt P = basis->P1d, Q = basis->Q1d;
     // In CEED_NOTRANSPOSE mode:
@@ -109,6 +112,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
       }
     }
   } break;
+  // Retrieve interpolation weights
   case CEED_EVAL_WEIGHT: {
     if (tmode == CEED_TRANSPOSE)
       return CeedError(basis->ceed, 1,
@@ -123,10 +127,13 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
                                     * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
     }
   } break;
+  // Evaluate the divergence to/from the quadrature points
   case CEED_EVAL_DIV:
     return CeedError(basis->ceed, 1, "CEED_EVAL_DIV not supported");
+  // Evaluate the curl to/from the quadrature points
   case CEED_EVAL_CURL:
     return CeedError(basis->ceed, 1, "CEED_EVAL_CURL not supported");
+  // Take no action, BasisApply should not have been called
   case CEED_EVAL_NONE:
     return CeedError(basis->ceed, 1, "CEED_EVAL_NONE does not make sense in this context");
    }

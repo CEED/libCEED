@@ -109,8 +109,8 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   impl->numein = qf->numinputfields;
   for (CeedInt i=0; i<qf->numinputfields; i++) {
     CeedEvalMode emode = qf->inputfields[i].emode;
-    impl->numqin += !!(emode & CEED_EVAL_INTERP) + !!(emode & CEED_EVAL_GRAD) + !!
-                     (emode & CEED_EVAL_WEIGHT);
+    impl->numqin += !!(emode & CEED_EVAL_INTERP) + !!(emode & CEED_EVAL_GRAD) +
+                    !!(emode & CEED_EVAL_WEIGHT);
   }
   impl->numeout = qf->numoutputfields;
   for (CeedInt i=0; i<qf->numoutputfields; i++) {
@@ -144,12 +144,17 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
                                      impl->indata, qf->numinputfields,
                                      impl->numqin, qf->numoutputfields, Q); CeedChk(ierr);
 
+  // Input Qvecs
+  for (CeedInt i=0; i<qf->numinputfields; i++) {
+    CeedEvalMode emode = qf->inputfields[i].emode;
+    if ((emode != CEED_EVAL_NONE) && (emode != CEED_EVAL_WEIGHT))
+      impl->indata[i] =  impl->qdata[i];
+  }
   // Output Qvecs
   for (CeedInt i=0; i<qf->numoutputfields; i++) {
     CeedEvalMode emode = qf->outputfields[i].emode;
-    if (emode != CEED_EVAL_NONE) {
+    if (emode != CEED_EVAL_NONE)
       impl->outdata[i] =  impl->qdata[i + qf->numinputfields];
-    }
   }
 
   op->setupdone = 1;
@@ -173,8 +178,6 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
     CeedEvalMode emode = qf->inputfields[i].emode;
     if (emode == CEED_EVAL_WEIGHT) { // Skip
     } else {
-      // Zero evec
-      ierr = CeedVectorSetValue(impl->evecs[i], 0.0); CeedChk(ierr);
       // Active
       if (op->inputfields[i].vec == CEED_VECTOR_ACTIVE) {
         // Restrict
@@ -220,13 +223,11 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
         ierr = CeedBasisApply(op->inputfields[i].basis, 1, CEED_NOTRANSPOSE,
                               CEED_EVAL_INTERP, &impl->edata[i][e*elemsize*ncomp], impl->qdata[i]);
         CeedChk(ierr);
-        impl->indata[i] = impl->qdata[i];
         break;
       case CEED_EVAL_GRAD:
         ierr = CeedBasisApply(op->inputfields[i].basis, 1, CEED_NOTRANSPOSE,
                               CEED_EVAL_GRAD, &impl->edata[i][e*elemsize*ncomp], impl->qdata[i]);
         CeedChk(ierr);
-        impl->indata[i] = impl->qdata[i];
         break;
       case CEED_EVAL_WEIGHT:
         break;  // No action
@@ -261,7 +262,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
       case CEED_EVAL_INTERP:
         ierr = CeedBasisApply(op->outputfields[i].basis, 1, CEED_TRANSPOSE,
                               CEED_EVAL_INTERP, impl->outdata[i],
-                              &impl->edata[i + qf->numinputfields][e*elemsize*ncomp]); CeedChk(ierr);
+                              &impl->edata[i + qf->numinputfields][e*elemsize*ncomp]);
+        CeedChk(ierr);
         break;
       case CEED_EVAL_GRAD:
         ierr = CeedBasisApply(op->outputfields[i].basis, 1, CEED_TRANSPOSE,
@@ -270,6 +272,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
         CeedChk(ierr);
         break;
       case CEED_EVAL_WEIGHT:
+        return CeedError(op->ceed, 1,
+                         "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
         break; // Should not occur
       case CEED_EVAL_DIV:
         break; // Not implimented

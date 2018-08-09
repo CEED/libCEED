@@ -36,6 +36,8 @@ static int CeedInit_Opt(const char *resource, Ceed ceed) {
   Ceed_Opt *impl;
   Ceed ceedref;
 
+  // Create refrence implimentation that implimentation will be dispatched
+  //   through unless overridden
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   CeedInit("/cpu/self/ref", &ceedref);
   ceed->data = impl;

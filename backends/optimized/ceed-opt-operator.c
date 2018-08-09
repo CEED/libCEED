@@ -196,8 +196,6 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
     CeedEvalMode emode = qf->inputfields[i].emode;
     if (emode == CEED_EVAL_WEIGHT) { // Skip
     } else {
-      // Zero evec
-      ierr = CeedVectorSetValue(impl->evecs[i], 0.0); CeedChk(ierr);
       // Active
       // Restrict
       if (op->inputfields[i].vec == CEED_VECTOR_ACTIVE) {
@@ -292,6 +290,8 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
         CeedChk(ierr);
         break;
       case CEED_EVAL_WEIGHT:
+        return CeedError(op->ceed, 1,
+                         "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
         break; // Should not occur
       case CEED_EVAL_DIV:
         break; // Not implimented
