@@ -2,6 +2,13 @@
 #include <ceed.h>
 #include <stdlib.h>
 
+//! [QFunction User Code]
+static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                 CeedScalar *const *out);
+static int mass(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                CeedScalar *const *out);
+//! [QFunction User Code]
+
 static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
                  CeedScalar *const *out) {
   const CeedScalar *weight = in[0], *dxdX = in[1];
@@ -35,30 +42,39 @@ int main(int argc, char **argv) {
   CeedInt indx[nelem*2], indu[nelem*P];
   CeedScalar x[Nx];
 
+//! [Ceed Init]
   CeedInit(argv[1], &ceed);
+//! [Ceed Init]
   for (CeedInt i=0; i<Nx; i++) x[i] = (CeedScalar) i / (Nx - 1);
   for (CeedInt i=0; i<nelem; i++) {
     indx[2*i+0] = i;
     indx[2*i+1] = i+1;
   }
+//! [ElemRestr Create]
   CeedElemRestrictionCreate(ceed, nelem, 2, Nx, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER,
                             indx, &Erestrictx);
   CeedElemRestrictionCreateIdentity(ceed, nelem, 2, nelem*2, 1, &Erestrictxi);
+//! [ElemRestr Create]
 
   for (CeedInt i=0; i<nelem; i++) {
     for (CeedInt j=0; j<P; j++) {
       indu[P*i+j] = i*(P-1) + j;
     }
   }
+//! [ElemRestrU Create]
   CeedElemRestrictionCreate(ceed, nelem, P, Nu, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER,
                             indu, &Erestrictu);
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q, Q*nelem, 1, &Erestrictui);
+//! [ElemRestrU Create]
 
+//! [Basis Create]
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bx);
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, P, Q, CEED_GAUSS, &bu);
+//! [Basis Create]
 
+//! [QFunction Create]
   CeedQFunctionCreateInterior(ceed, 1, setup, __FILE__ ":setup", &qf_setup);
   CeedQFunctionAddInput(qf_setup, "_weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddInput(qf_setup, "x", 1, CEED_EVAL_GRAD);
@@ -68,26 +84,38 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_mass, "rho", 1, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_mass, "u", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);
+//! [QFunction Create]
 
+//! [Setup Create]
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
+//! [Setup Create]
+
+//! [Operator Create]
   CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
+//! [Operator Create]
 
   CeedVectorCreate(ceed, Nx, &X);
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
   CeedVectorCreate(ceed, nelem*Q, &qdata);
 
+//! [Setup Set]
   CeedOperatorSetField(op_setup, "_weight", Erestrictxi, bx,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "x", Erestrictx, bx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "rho", Erestrictui,
                        CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
+//! [Setup Set]
 
+//! [Operator Set]
   CeedOperatorSetField(op_mass, "rho", Erestrictui,
                        CEED_BASIS_COLOCATED, qdata);
   CeedOperatorSetField(op_mass, "u", Erestrictu, bu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "v", Erestrictu, bu, CEED_VECTOR_ACTIVE);
+//! [Operator Set]
 
+//! [Setup Apply]
   CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
+//! [Setup Apply]
 
   CeedVectorCreate(ceed, Nu, &U);
   CeedVectorGetArray(U, CEED_MEM_HOST, &hu);
@@ -95,7 +123,9 @@ int main(int argc, char **argv) {
     hu[i] = 0.0;
   CeedVectorRestoreArray(U, &hu);
   CeedVectorCreate(ceed, Nu, &V);
+//! [Operator Apply]
   CeedOperatorApply(op_mass, U, V, CEED_REQUEST_IMMEDIATE);
+//! [Operator Apply]
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &hv);
   for (CeedInt i=0; i<Nu; i++)
