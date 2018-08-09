@@ -199,12 +199,14 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
       // Zero evec
       ierr = CeedVectorSetValue(impl->evecs[i], 0.0); CeedChk(ierr);
       // Active
+      // Restrict
       if (op->inputfields[i].vec == CEED_VECTOR_ACTIVE) {
         ierr = CeedElemRestrictionApply(impl->blkrestr[i], CEED_NOTRANSPOSE,
                                         lmode, invec, impl->evecs[i],
                                         request); CeedChk(ierr); CeedChk(ierr);
       } else {
         // Passive
+        // Restrict
         ierr = CeedElemRestrictionApply(impl->blkrestr[i], CEED_NOTRANSPOSE,
                                         lmode, op->inputfields[i].vec, impl->evecs[i],
                                         request); CeedChk(ierr);

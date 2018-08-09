@@ -32,11 +32,9 @@ static int CeedTensorContract_Opt(Ceed ceed,
     tstride0 = 1; tstride1 = J;
   }
 
-  if (!Add) {
-    for (CeedInt q=0; q<A*J*C; q++) {
+  if (!Add)
+    for (CeedInt q=0; q<A*J*C; q++)
       v[q] = (CeedScalar) 0.0;
-    }
-  }
 
   for (CeedInt a=0; a<A; a++)
     for (CeedInt b=0; b<B; b++)
@@ -86,8 +84,8 @@ static int CeedBasisApply_Opt(CeedBasis basis, CeedInt nelem,
   } break;
   case CEED_EVAL_GRAD: {
     // In CEED_NOTRANSPOSE mode:
-    // u is (P^dim x nc) x nelem, column-major layout (nc = ncomp)
-    // v is (Q^dim x nc x dim) x nelem, column-major layout (nc = ncomp)
+    // u is [dim, ncomp, P^dim, nelem], column-major layout
+    // v is [dim, ncomp, Q^dim, nelem], column-major layout
     // In CEED_TRANSPOSE mode, the sizes of u and v are switched.
     CeedInt P = basis->P1d, Q = basis->Q1d;
     if (tmode == CEED_TRANSPOSE) {
