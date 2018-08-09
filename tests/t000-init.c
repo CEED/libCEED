@@ -1,3 +1,4 @@
+// Test creation and destruction of a CEED object
 #include <ceed.h>
 
 int main(int argc, char **argv) {

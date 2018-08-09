@@ -101,8 +101,8 @@ libceed.c := $(wildcard ceed*.c)
 BACKENDS := /cpu/self/ref /cpu/self/tmpl /cpu/self/opt
 
 # Tests
-tests.c   := $(sort $(wildcard tests/t[0-9][0-9]-*.c))
-tests.f   := $(sort $(wildcard tests/t[0-9][0-9]-*.f))
+tests.c   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
+tests.f   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 ctests    := $(tests)
 tests     += $(tests.f:tests/%.f=$(OBJDIR)/%)

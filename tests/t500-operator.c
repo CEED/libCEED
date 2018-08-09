@@ -1,4 +1,4 @@
-// Test operator action for mass matrix
+// Test creation creation, action, and destruction for mass matrix operator
 #include <ceed.h>
 #include <stdlib.h>
 

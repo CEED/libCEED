@@ -1,3 +1,4 @@
+// Test creation, use, and destruction of a blocked element restriction
 #include <ceed.h>
 
 int main(int argc, char **argv) {
