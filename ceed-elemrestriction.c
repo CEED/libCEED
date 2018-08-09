@@ -172,9 +172,13 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
     return CeedError(ceed, 1, "Only MemType = HOST supported");
 
   ierr = CeedCalloc(1, r); CeedChk(ierr);
-  ierr = CeedCalloc(nblk*blksize*elemsize, &blkindices);
 
-  CeedPermutePadIndices(indices, blkindices, nblk, nelem, blksize, elemsize);
+  if (indices) {
+    ierr = CeedCalloc(nblk*blksize*elemsize, &blkindices);
+    CeedPermutePadIndices(indices, blkindices, nblk, nelem, blksize, elemsize);
+  } else {
+    blkindices = NULL;
+  }  
 
   (*r)->ceed = ceed;
   ceed->refcount++;

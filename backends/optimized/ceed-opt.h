@@ -25,6 +25,22 @@ typedef struct {
   CeedScalar *colograd1d;
 } CeedBasis_Opt;
 
+typedef struct {
+  CeedElemRestriction *blkrestr; /// Block versions of restrictions
+  CeedVector
+  *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
+  CeedScalar **edata;
+  CeedScalar **qdata; /// Inputs followed by outputs
+  CeedScalar
+  **qdata_alloc; /// Allocated quadrature data arrays (to be freed by us)
+  CeedScalar **indata;
+  CeedScalar **outdata;
+  CeedInt    numein;
+  CeedInt    numeout;
+  CeedInt    numqin;
+  CeedInt    numqout;
+} CeedOperator_Opt;
+
 CEED_INTERN int CeedVectorCreate_Opt(Ceed ceed, CeedInt n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Opt(CeedElemRestriction r,
