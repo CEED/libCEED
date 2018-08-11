@@ -1,4 +1,6 @@
-// Test Colocated Grad calculated matches basis with Lobatto points
+/// @file
+/// Test Colocated Grad calculated matches basis with Lobatto points
+/// \test Test Colocated Grad calculated matches basis with Lobatto points
 #include <ceed.h>
 #include <math.h>
 

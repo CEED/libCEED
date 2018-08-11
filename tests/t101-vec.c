@@ -1,4 +1,6 @@
-// Test CeedVectorSetValue
+/// @file
+/// Test CeedVectorSetValue
+/// \test Test CeedVectorSetValue
 #include <ceed.h>
 
 int main(int argc, char **argv) {

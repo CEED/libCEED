@@ -1,4 +1,6 @@
-// Test interpolation in multiple dimensions
+/// @file
+/// Test interpolation in multiple dimensions
+/// \test Test interpolation in multiple dimensions
 #include <ceed.h>
 #include <math.h>
 

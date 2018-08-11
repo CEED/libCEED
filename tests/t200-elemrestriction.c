@@ -1,4 +1,6 @@
-// Test creation, use, and destruction of a element restriction
+/// @file
+/// Test creation, use, and destruction of a element restriction
+/// \test Test creation, use, and destruction of a element restriction
 #include <ceed.h>
 
 int main(int argc, char **argv) {

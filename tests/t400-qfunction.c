@@ -1,4 +1,6 @@
-// Test creation, evaluation, and destruction for qfunction
+/// @file
+/// Test creation, evaluation, and destruction for qfunction
+/// \test Test creation, evaluation, and destruction for qfunction
 #include <ceed.h>
 
 static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,

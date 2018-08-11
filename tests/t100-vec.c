@@ -1,4 +1,6 @@
-// Test creation, setting, reading, restoring, and destroying of a vector
+/// @file
+/// Test creation, setting, reading, restoring, and destroying of a vector
+/// \test Test creation, setting, reading, restoring, and destroying of a vector
 #include <ceed.h>
 
 int main(int argc, char **argv) {

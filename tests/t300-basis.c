@@ -1,4 +1,6 @@
-// Test ceration and distruction of a H1Lagrange basis
+/// @file
+/// Test ceration and distruction of a H1Lagrange basis
+/// \test Test ceration and distruction of a H1Lagrange basis
 #include <ceed.h>
 
 int main(int argc, char **argv) {

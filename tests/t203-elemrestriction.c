@@ -1,5 +1,6 @@
-// Test creation, use, and destruction of a blocked element restriction
-//   with multiple components in the lvector
+/// @file
+/// Test creation, use, and destruction of a blocked element restriction with multiple components in the lvector
+/// \test Test creation, use, and destruction of a blocked element restriction with multiple components in the lvector
 #include <ceed.h>
 
 int main(int argc, char **argv) {

@@ -1,4 +1,6 @@
-// Test grad in multiple dimensions
+/// @file
+/// Test grad in multiple dimensions
+/// \test Test grad in multiple dimensions
 #include <ceed.h>
 #include <math.h>
 

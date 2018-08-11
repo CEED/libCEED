@@ -1,4 +1,6 @@
-// Test square Gauss Lobatto interp1d is identity
+/// @file
+/// Test square Gauss Lobatto interp1d is identity
+/// \test Test square Gauss Lobatto interp1d is identity
 #include <ceed.h>
 #include <stdio.h>
 #include <math.h>
