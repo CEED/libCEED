@@ -174,10 +174,11 @@ int CeedVectorDestroy(CeedVector *x) {
   return 0;
 }
 
-/// Indicate that vector will be provided as an explicit argument to CeedOperatorApply().
+/// @cond DOXYGEN_SKIP
+// Indicate that vector will be provided as an explicit argument to CeedOperatorApply().
 CeedVector CEED_VECTOR_ACTIVE = &ceed_vector_active;
 
-/// Indicate that no vector is applicable (i.e., for CEED_EVAL_WEIGHTS).
+// Indicate that no vector is applicable (i.e., for CEED_EVAL_WEIGHTS).
 CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
-
+/// @endcond
 /// @}

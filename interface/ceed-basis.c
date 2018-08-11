@@ -448,7 +448,8 @@ int CeedBasisDestroy(CeedBasis *basis) {
   return 0;
 }
 
-/// Indicate that the quadrature points are colocated with the dofs
+/// @cond DOXYGEN_SKIP
+// Indicate that the quadrature points are colocated with the dofs
 CeedBasis CEED_BASIS_COLOCATED = &ceed_basis_colocated;
-
+/// @endcond
 /// @}
