@@ -27,11 +27,16 @@ static struct CeedVector_private ceed_vector_none;
 /// @defgroup CeedVector CeedVector: storing and manipulating vectors
 /// @{
 
-/// Create a vector of the specified length (does not allocate memory)
-///
-/// @param ceed   Ceed
-/// @param length Length of vector
-/// @param vec    New vector
+/**
+  @brief Create a vector of the specified length (does not allocate memory)
+
+  @param ceed      Ceed object where the CeedVector will be created
+  @param length    Length of vector
+  @param[out] vec  Address of the variable where the newly created
+                     CeedVector will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+**/
 int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   int ierr;
 
@@ -46,102 +51,132 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   return 0;
 }
 
-/// Set the array used by a vector, freeing any previously allocated array if applicable.
-///
-/// @param x Vector
-/// @param mtype Memory type of the array being passed
-/// @param cmode Copy mode for the array
-/// @param array Array to be used, or NULL with CEED_COPY_VALUES to have the library allocate
-int CeedVectorSetArray(CeedVector x, CeedMemType mtype, CeedCopyMode cmode,
+/**
+  @brief Set the array used by a vector, freeing any previously allocated array if applicable
+
+  @param vec   CeedVector
+  @param mtype Memory type of the array being passed
+  @param cmode Copy mode for the array
+  @param array Array to be used, or NULL with CEED_COPY_VALUES to have the library allocate
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+int CeedVectorSetArray(CeedVector vec, CeedMemType mtype, CeedCopyMode cmode,
                        CeedScalar *array) {
   int ierr;
 
-  if (!x || !x->SetArray)
-    return CeedError(x ? x->ceed : NULL, 1, "Not supported");
-  ierr = x->SetArray(x, mtype, cmode, array); CeedChk(ierr);
+  if (!vec || !vec->SetArray)
+    return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
+  ierr = vec->SetArray(vec, mtype, cmode, array); CeedChk(ierr);
   return 0;
 }
 
-/// Set the array used by a vector, freeing any previously allocated array if applicable.
-///
-/// @param x Vector
-/// @param value to be used
-int CeedVectorSetValue(CeedVector x, CeedScalar value) {
+/**
+  @brief Set the array used by a vector, allocating the array if applicable
+
+  @param vec        CeedVector
+  @param[in] value  Value to be used
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
   int ierr;
   CeedScalar *array;
 
-  if (x->SetValue) {
-    ierr = x->SetValue(x, value); CeedChk(ierr);
+  if (vec->SetValue) {
+    ierr = vec->SetValue(vec, value); CeedChk(ierr);
   } else {
-    ierr = CeedVectorGetArray(x, CEED_MEM_HOST, &array); CeedChk(ierr);
-    for (int i=0; i<x->length; i++) array[i] = value;
-    ierr = CeedVectorRestoreArray(x, &array); CeedChk(ierr);
+    ierr = CeedVectorGetArray(vec, CEED_MEM_HOST, &array); CeedChk(ierr);
+    for (int i=0; i<vec->length; i++) array[i] = value;
+    ierr = CeedVectorRestoreArray(vec, &array); CeedChk(ierr);
   }
   return 0;
 }
 
-/// Get read/write access to a vector via the specified memory type
-///
-/// @param x Vector to access
-/// @param mtype Memory type on which to access the array.  If the backend uses
-///              a different memory type, this will perform a copy and
-///              CeedVectorRestoreArray() will copy back.
-/// @param[out] array Array on memory type mtype
-///
-/// @note The CeedVectorGetArray* and CeedVectorRestoreArray* functions provide
-///   access to array pointers in the desired memory space. Pairing get/restore
-///   allows the Vector to track access, thus knowing if norms or other
-///   operations may need to be recomputed.
-///
-/// @sa CeedVectorRestoreArray()
-int CeedVectorGetArray(CeedVector x, CeedMemType mtype, CeedScalar **array) {
+/**
+  @brief Get read/write access to a vector via the specified memory type
+
+  @param vec        CeedVector to access
+  @param mtype      Memory type on which to access the array.  If the backend
+                    uses a different memory type, this will perform a copy and
+                    CeedVectorRestoreArray() will copy back.
+  @param[out] array Array on memory type mtype
+
+  @note The CeedVectorGetArray* and CeedVectorRestoreArray* functions provide
+    access to array pointers in the desired memory space. Pairing get/restore
+    allows the Vector to track access, thus knowing if norms or other
+    operations may need to be recomputed.
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
   int ierr;
-  if (!x || !x->GetArray)
-    return CeedError(x ? x->ceed : NULL, 1, "Not supported");
-  ierr = x->GetArray(x, mtype, array); CeedChk(ierr);
+  if (!vec || !vec->GetArray)
+    return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
+  ierr = vec->GetArray(vec, mtype, array); CeedChk(ierr);
   return 0;
 }
 
-/// Get read-only access to a vector via the specified memory type
-///
-/// @param x Vector to access
-/// @param mtype Memory type on which to access the array.  If the backend uses
-///              a different memory type, this will perform a copy (possibly cached).
-/// @param[out] array Array on memory type mtype
-///
-/// @sa CeedVectorRestoreArrayRead()
-int CeedVectorGetArrayRead(CeedVector x, CeedMemType mtype,
+/**
+  @brief Get read-only access to a vector via the specified memory type
+
+  @param vec        CeedVector to access
+  @param mtype      Memory type on which to access the array.  If the backend 
+                    uses a different memory type, this will perform a copy
+                    (possibly cached).
+  @param[out] array Array on memory type mtype
+ 
+  @return An error code: 0 - success, otherwise - failure
+**/
+int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
                            const CeedScalar **array) {
   int ierr;
 
-  if (!x || !x->GetArrayRead)
-    return CeedError(x ? x->ceed : NULL, 1, "Not supported");
-  ierr = x->GetArrayRead(x, mtype, array); CeedChk(ierr);
+  if (!vec || !vec->GetArrayRead)
+    return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
+  ierr = vec->GetArrayRead(vec, mtype, array); CeedChk(ierr);
   return 0;
 }
 
-/// Restore an array obtained using CeedVectorGetArray()
-int CeedVectorRestoreArray(CeedVector x, CeedScalar **array) {
+/**
+  @brief Restore an array obtained using CeedVectorGetArray()
+
+  @param vec     CeedVector to restore
+  @param array   Array of vector data
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
   int ierr;
 
-  if (!x || !x->RestoreArray)
-    return CeedError(x ? x->ceed : NULL, 1, "Not supported");
-  ierr = x->RestoreArray(x, array); CeedChk(ierr);
+  if (!vec || !vec->RestoreArray)
+    return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
+  ierr = vec->RestoreArray(vec, array); CeedChk(ierr);
   return 0;
 }
 
-/// Restore an array obtained using CeedVectorGetArrayRead()
-int CeedVectorRestoreArrayRead(CeedVector x, const CeedScalar **array) {
+/**
+  @brief Restore an array obtained using CeedVectorGetArrayRead()
+
+  @param vec     CeedVector to restore
+  @param array   Array of vector data
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
   int ierr;
 
-  if (!x || !x->RestoreArrayRead)
-    return CeedError(x ? x->ceed : NULL, 1, "Not supported");
-  ierr = x->RestoreArrayRead(x, array); CeedChk(ierr);
+  if (!vec || !vec->RestoreArrayRead)
+    return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
+  ierr = vec->RestoreArrayRead(vec, array); CeedChk(ierr);
   return 0;
 }
 
-/** View a vector
- */
+/** 
+  @brief View a vector
+
+  @return An error code: 0 - success, otherwise - failure
+**/
 int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
   const CeedScalar *x;
   int ierr = CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &x); CeedChk(ierr);
@@ -155,22 +190,35 @@ int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
   return 0;
 }
 
-/// Get the length of a vector
+/**
+  @brief Get the length of a vector
+
+  @param vec           CeedVector to retrieve length
+  @param[out] length   Variable to store length
+
+  @return An error code: 0 - success, otherwise - failure
+**/
 CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
   *length = vec->length;
   return 0;
 }
 
-/// Destroy a vector
-int CeedVectorDestroy(CeedVector *x) {
+/**
+  @brief Destroy a vector
+
+  @param vec   CeedVector to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+int CeedVectorDestroy(CeedVector *vec) {
   int ierr;
 
-  if (!*x || --(*x)->refcount > 0) return 0;
-  if ((*x)->Destroy) {
-    ierr = (*x)->Destroy(*x); CeedChk(ierr);
+  if (!*vec || --(*vec)->refcount > 0) return 0;
+  if ((*vec)->Destroy) {
+    ierr = (*vec)->Destroy(*vec); CeedChk(ierr);
   }
-  ierr = CeedDestroy(&(*x)->ceed); CeedChk(ierr);
-  ierr = CeedFree(x); CeedChk(ierr);
+  ierr = CeedDestroy(&(*vec)->ceed); CeedChk(ierr);
+  ierr = CeedFree(vec); CeedChk(ierr);
   return 0;
 }
 

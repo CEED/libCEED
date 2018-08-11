@@ -28,14 +28,16 @@
 /**
   @brief Create a CeedQFunction for evaluating interior (volumetric) terms.
 
-  @param ceed       Ceed library context
+  @param ceed       A Ceed object where the CeedQFunction will be created
   @param vlength    Vector length.  Caller must ensure that number of quadrature
                     points is a multiple of vlength.
   @param f          Function pointer to evaluate action at quadrature points.
                     See below.
   @param focca      OCCA identifier "file.c:function_name" for definition of `f`
-  @param qf         constructed QFunction
-  @return 0 on success, otherwise failure
+  @param[out] qf    Address of the variable where the newly created
+                     CeedQFunction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
 
   The arguments of the call-back 'function' are:
 
@@ -70,6 +72,18 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
   return 0;
 }
 
+/**
+  @brief Set a CEEDQFunction field, used by CeedQFunctionAddInput/Output
+
+  @param f          CeedQFunctionField
+  @param fieldname  Name of QFunction field
+  @param ncomp      Number of components per quadrature node
+  @param emode      \ref CEED_EVAL_NONE to use values directly,
+                      \ref CEED_EVAL_INTERP to use interpolated values,
+                      \ref CEED_EVAL_GRAD to use gradients.
+
+  @return An error code: 0 - success, otherwise - failure
+**/
 static int CeedQFunctionFieldSet(struct CeedQFunctionField *f,
                                  const char *fieldname, CeedInt ncomp,
                                  CeedEvalMode emode) {
@@ -83,6 +97,18 @@ static int CeedQFunctionFieldSet(struct CeedQFunctionField *f,
   return 0;
 }
 
+/**
+  @brief Add a CEEDQFunction input
+
+  @param qf         CeedQFunction
+  @param fieldname  Name of QFunction field
+  @param ncomp      Number of components per quadrature node
+  @param emode      \ref CEED_EVAL_NONE to use values directly,
+                      \ref CEED_EVAL_INTERP to use interpolated values,
+                      \ref CEED_EVAL_GRAD to use gradients.
+
+  @return An error code: 0 - success, otherwise - failure
+**/
 int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                           CeedInt ncomp, CeedEvalMode emode) {
   int ierr = CeedQFunctionFieldSet(&qf->inputfields[qf->numinputfields++],
@@ -90,6 +116,18 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
   return 0;
 }
 
+/**
+  @brief Add a CEEDQFunction output
+
+  @param qf         CeedQFunction
+  @param fieldname  Name of QFunction field
+  @param ncomp      Number of components per quadrature node
+  @param emode      \ref CEED_EVAL_NONE to use values directly,
+                      \ref CEED_EVAL_INTERP to use interpolated values,
+                      \ref CEED_EVAL_GRAD to use gradients.
+
+  @return An error code: 0 - success, otherwise - failure
+**/
 int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                            CeedInt ncomp, CeedEvalMode emode) {
   if (emode == CEED_EVAL_WEIGHT)
@@ -121,16 +159,30 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
 }
 
 /**
-  Set global context for a quadrature function
- */
+  @brief Set global context for a quadrature function
+
+  @param qf       CeedQFunction
+  @param ctx      Context data to set
+  @param ctxsize  Size of context data values
+
+  @return An error code: 0 - success, otherwise - failure
+**/
 int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
   qf->ctx = ctx;
   qf->ctxsize = ctxsize;
   return 0;
 }
 
-/** Apply the action of a CeedQFunction
- */
+/**
+  @brief Apply the action of a CeedQFunction
+
+  @param qf      CeedQFunction
+  @param Q       Number of quadrature points
+  @param[in] u   Array of input data arrays
+  @param[out] v  Array of output data arrays
+
+  @return An error code: 0 - success, otherwise - failure
+**/
 int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
                        const CeedScalar *const *u,
                        CeedScalar *const *v) {
@@ -145,8 +197,13 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
   return 0;
 }
 
-/** Destroy a CeedQFunction
- */
+/**
+  @brief Destroy a CeedQFunction
+
+  @param qf CeedQFunction to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+**/
 int CeedQFunctionDestroy(CeedQFunction *qf) {
   int ierr;
 
