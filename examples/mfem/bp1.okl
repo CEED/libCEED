@@ -34,19 +34,15 @@ typedef double CeedScalar;
   const int dim = ctx[0];
   const int space_dim = ctx[1];
   const CeedInt dims = dim + 10*space_dim;
-  if (dims == 11) {
-    for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    if (dims == 11) {
       out[oOf7[0]+i] = in[iOf7[0]+i] * in[iOf7[1]+i];
-    }
-  } else if (dims == 22) {
-   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
-     // 0 2
-     // 1 3
-     out[oOf7[0]+i] = (in[iOf7[0]+i+Q*0]*in[iOf7[0]+i+Q*3] -
-                       in[iOf7[0]+i+Q*1]*in[iOf7[0]+i+Q*2]) * in[iOf7[1]+i];
-    }
-  } else if (dims == 33) {
-    for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    } else if (dims == 22) {
+      // 0 2
+      // 1 3
+      out[oOf7[0]+i] = (in[iOf7[0]+i+Q*0]*in[iOf7[0]+i+Q*3] -
+                        in[iOf7[0]+i+Q*1]*in[iOf7[0]+i+Q*2]) * in[iOf7[1]+i];
+    } else if (dims == 33) {
       // 0 3 6
       // 1 4 7
       // 2 5 8
