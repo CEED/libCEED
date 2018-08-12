@@ -283,6 +283,16 @@ CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
 
+/**
+  @brief Return integer power
+
+  @param[in] base   The base to exponentiate
+  @param[in] power  The power to raise the base to
+
+  @return base^power
+
+  @ref Utility
+**/
 static inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
   CeedInt result = 1;
   while (power) {
@@ -292,5 +302,17 @@ static inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
   }
   return result;
 }
+
+/**
+  @brief Return mimimum of two integers
+
+  @param[in] a  The first integer to compare
+  @param[in] b  The second integer to compare
+
+  @return The minimum of the two integers
+
+  @ref Utility
+**/
+static inline CeedInt CeedIntMin(CeedInt a, CeedInt b) { return a < b ? a : b; }
 
 #endif
