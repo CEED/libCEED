@@ -17,7 +17,7 @@
 #include "ceed-occa.h"
 
 // *****************************************************************************
-// * Alloc function for no-operator case
+// * Alloc function for with operator case
 // *****************************************************************************
 int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
                                 CeedInt *idx_p,
@@ -81,7 +81,7 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
 }
 
 // *****************************************************************************
-// * Alloc function for no-operator case
+// * Alloc function for with operator case
 // *****************************************************************************
 int CeedQFunctionAllocOpOut_Occa(CeedQFunction qf, CeedInt Q,
                                  CeedInt *odx_p,
@@ -142,7 +142,7 @@ int CeedQFunctionAllocOpOut_Occa(CeedQFunction qf, CeedInt Q,
 }
 
 // *****************************************************************************
-// * Fill function for no-operator case
+// * Fill function for with operator case
 // *****************************************************************************
 int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
                              occaMemory d_indata,

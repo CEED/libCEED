@@ -1,3 +1,7 @@
+# Build Dir
+build/*
+
+# General
 *.o
 *.so
 t[0-9][0-9]-*

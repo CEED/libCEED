@@ -68,8 +68,8 @@ cp $NEK5K_DIR/bin/makenek .
 sed -i.bak -e "s|^#FC=.*|FC=\"$FC\"|" \
     -e "s|^#CC=.*|CC=\"$CC\"|" \
     -e "s|^#SOURCE_ROOT=.*|SOURCE_ROOT=\"$NEK5K_DIR\"|" \
-    -e "s|^#FFLAGS=.*|FFLAGS+=\"-I${CEED_DIR}/include\"|" \
-    -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed\"|" makenek
+    -e "s|^#FFLAGS=.*|FFLAGS+=\"-g -I${CEED_DIR}/include\"|" \
+    -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-g -L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed\"|" makenek
 
 # Build examples
 for ex in "${EXAMPLES[@]}"; do
