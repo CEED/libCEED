@@ -31,10 +31,10 @@ typedef double CeedScalar;
 //    *qw = in + iOf7[1];
 //  CeedScalar
 //    *rho = out + oOf7[0];
-  const int dim = ctx[0];
-  const int space_dim = ctx[1];
-  const CeedInt dims = dim + 10*space_dim;
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    const int dim = ctx[0];
+    const int space_dim = ctx[1];
+    const CeedInt dims = dim + 10*space_dim;
     if (dims == 11) {
       out[oOf7[0]+i] = in[iOf7[0]+i] * in[iOf7[1]+i];
     } else if (dims == 22) {
