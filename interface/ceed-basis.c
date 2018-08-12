@@ -27,7 +27,7 @@ static struct CeedBasis_private ceed_basis_colocated;
 /// @file
 /// Implementation of public CeedBasis interfaces
 ///
-/// @defgroup CeedBasis CeedBasis: fully discrete finite element-like objects
+/// @addtogroup CeedBasis
 /// @{
 
 /**
@@ -50,6 +50,8 @@ static struct CeedBasis_private ceed_basis_colocated;
                       CeedBasis will be stored.
  
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
                             CeedInt Q1d, const CeedScalar *interp1d,
@@ -95,6 +97,8 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
                       CeedBasis will be stored.
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
                                     CeedInt P, CeedInt Q,
@@ -160,6 +164,8 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
   @param[out] qweight1d Array of length Q to hold the weights
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
 **/
 int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) {
   // Allocate
@@ -211,6 +217,8 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) {
   @param[out] qweight1d Array of length Q to hold the weights
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
 **/
 int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
                           CeedScalar *qweight1d) {
@@ -267,6 +275,20 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
   return 0;
 }
 
+/**
+  @brief View an array stored in a CeedBasis
+
+  @param name      Name of array
+  @param fpformat  Printing format
+  @param m         Number of rows in array
+  @param n         Number of columns in array
+  @param a         Array to be viewed
+  @param stream    Stream to view to, e.g., stdout
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
 static int CeedScalarView(const char *name, const char *fpformat, CeedInt m,
                           CeedInt n, const CeedScalar *a, FILE *stream) {
   for (int i=0; i<m; i++) {
@@ -287,6 +309,8 @@ static int CeedScalarView(const char *name, const char *fpformat, CeedInt m,
   @param stream Stream to view to, e.g., stdout
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
 **/
 int CeedBasisView(CeedBasis basis, FILE *stream) {
   int ierr;
@@ -304,8 +328,24 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   return 0;
 }
 
-// Computes A = (I - b v v^T) A
-// where A is an mxn matrix indexed as A[i*row + j*col]
+/**
+  @brief Compute Householder Reflection
+
+    Computes A = (I - b v v^T) A
+    where A is an mxn matrix indexed as A[i*row + j*col]
+
+  @param[out] A  Matrix to apply Householder reflection to, in place
+  @param v       Householder vector
+  @param b       Scaling factor
+  @param m       Number of rows in A
+  @param n       Number of columns in A
+  @param row     Col stride
+  @param col     Row stride
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
 static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v,
                                   CeedScalar b, CeedInt m, CeedInt n,
                                   CeedInt row, CeedInt col) {
@@ -318,7 +358,25 @@ static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v,
   return 0;
 }
 
-// Compute A = Q A where Q is mxk and A is mxn. k<m
+/**
+  @brief Apply Householder Q matrix
+
+    Compute A = Q A where Q is mxk and A is mxn. k<m
+
+  @param[out] A  Matrix to apply Householder Q to, in place
+  @param Q       Householder Q matrix
+  @param tau     Householder scaling factors
+  @param tmode   Transpose mode for application
+  @param m       Number of rows in A
+  @param n       Number of columns in A
+  @param k       Index of row targeted
+  @param row     Col stride
+  @param col     Row stride
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
 static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
                                  const CeedScalar *tau, CeedTransposeMode tmode,
                                  CeedInt m, CeedInt n, CeedInt k,
@@ -344,6 +402,8 @@ static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
   @param n         Number of columns
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
 **/
 int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau,
                         CeedInt m, CeedInt n) {
@@ -387,6 +447,8 @@ int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau,
                            basis functions at quadrature points
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
 **/
 int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
   int i, j, k;
@@ -442,6 +504,8 @@ int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
   @param[out] v Output array
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
 **/
 int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
                    CeedEvalMode emode, const CeedScalar *u, CeedScalar *v) {
@@ -459,6 +523,8 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
   @param[out] P  Number of nodes
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
 **/
 int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
   *P = CeedPowInt(basis->P1d, basis->dim);
@@ -472,6 +538,8 @@ int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
   @param[out] Q  Number of quadrature points
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
 **/
 int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
   *Q = CeedPowInt(basis->Q1d, basis->dim);
@@ -484,6 +552,8 @@ int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
   @param basis CeedBasis to destroy
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedBasisDestroy(CeedBasis *basis) {
   int ierr;

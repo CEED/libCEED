@@ -19,7 +19,7 @@
 /// @file
 /// Implementation of public CeedElemRestriction interfaces
 ///
-/// @defgroup CeedElemRestriction CeedElemRestriction: restriction from vectors to elements
+/// @addtogroup CeedElemRestriction
 /// @{
 
 /**
@@ -44,6 +44,8 @@
                       CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
                               CeedInt ndof, CeedInt ncomp, CeedMemType mtype,
@@ -82,6 +84,8 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
                       CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem, CeedInt elemsize,
                               CeedInt ndof, CeedInt ncomp, CeedElemRestriction *r) {
@@ -120,8 +124,9 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem, CeedInt elemsize
 
   @return An error code: 0 - success, otherwise - failure
 
+  @ref Utility
 **/
-void CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
+int CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
                            CeedInt nblk, CeedInt nelem,
                            CeedInt blksize, CeedInt elemsize) {
   for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
@@ -129,6 +134,7 @@ void CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
       for (int k = 0; k < elemsize; k++)
         blkindices[e*elemsize + k*blksize + j]
           = indices[CeedIntMin(e+j,nelem-1)*elemsize + k];
+  return 0;
 }
 
 /**
@@ -157,6 +163,8 @@ void CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
                       CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
  **/
 int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
                                      CeedInt blksize, CeedInt ndof, CeedInt ncomp,
@@ -176,7 +184,8 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
   if (indices) {
     ierr = CeedCalloc(nblk*blksize*elemsize, &blkindices);
-    CeedPermutePadIndices(indices, blkindices, nblk, nelem, blksize, elemsize);
+    ierr = CeedPermutePadIndices(indices, blkindices, nblk, nelem, blksize, elemsize);
+    CeedChk(ierr);
   } else {
     blkindices = NULL;
   }  
@@ -208,6 +217,8 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   @param evec  The address of the E-vector to be created, or NULL
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
 **/
 int CeedElemRestrictionCreateVector(CeedElemRestriction r, CeedVector *lvec,
                                     CeedVector *evec) {
@@ -235,6 +246,8 @@ int CeedElemRestrictionCreateVector(CeedElemRestriction r, CeedVector *lvec,
   @param request Request or CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
 **/
 int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode,
                              CeedTransposeMode lmode,
@@ -269,6 +282,8 @@ int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode,
   @param[out] numelements Number of elements
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
 **/
 int CeedElemRestrictionGetNumElements(CeedElemRestriction r,
                                       CeedInt *numelements) {
@@ -282,6 +297,8 @@ int CeedElemRestrictionGetNumElements(CeedElemRestriction r,
   @param r CeedElemRestriction to destroy
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedElemRestrictionDestroy(CeedElemRestriction *r) {
   int ierr;

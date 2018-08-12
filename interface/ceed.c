@@ -37,28 +37,30 @@ static size_t num_backends;
 /// @file
 /// Implementation of core components of Ceed library
 ///
-/// @defgroup Ceed Ceed: core components
+/// @addtogroup Ceed
 /// @{
 
-/// Request immediate completion
-///
-/// This predefined constant is passed as the \ref CeedRequest argument to
-/// interfaces when the caller wishes for the operation to be performed
-/// immediately.  The code
-///
-/// @code
-///   CeedOperatorApply(op, ..., CEED_REQUEST_IMMEDIATE);
-/// @endcode
-///
-/// is semantically equivalent to
-///
-/// @code
-///   CeedRequest request;
-///   CeedOperatorApply(op, ..., &request);
-///   CeedRequestWait(&request);
-/// @endcode
-///
-/// @sa CEED_REQUEST_ORDERED
+/**
+  @brief Request immediate completion
+
+  This predefined constant is passed as the \ref CeedRequest argument to
+  interfaces when the caller wishes for the operation to be performed
+  immediately.  The code
+
+  @code
+    CeedOperatorApply(op, ..., CEED_REQUEST_IMMEDIATE);
+  @endcode
+
+  is semantically equivalent to
+
+  @code
+    CeedRequest request;
+    CeedOperatorApply(op, ..., &request);
+    CeedRequestWait(&request);
+  @endcode
+
+  @sa CEED_REQUEST_ORDERED
+**/
 CeedRequest *const CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
 
 /**
@@ -89,6 +91,8 @@ CeedRequest *const CEED_REQUEST_ORDERED = &ceed_request_ordered;
 
 /**
   @brief Error handling implementation; use \ref CeedError instead.
+
+  @ref Developer
 **/
 int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
                   int ecode, const char *format, ...) {
@@ -102,6 +106,8 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
   @brief Error handler that returns without printing anything.
 
   Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
+
+  @ref Developer
 **/
 int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
                     const char *func, int ecode, const char *format,
@@ -113,6 +119,8 @@ int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
   @brief Error handler that prints to stderr and aborts
 
   Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
+
+  @ref Developer
 **/
 int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
                    const char *func, int ecode,
@@ -125,11 +133,13 @@ int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
 }
 
 /**
-  Set error handler
+  @brief Set error handler
 
   A default error handler is set in CeedInit().  Use this function to change
   the error handler to CeedErrorReturn(), CeedErrorAbort(), or a user-defined
   error handler.
+
+  @ref Developer
 **/
 int CeedSetErrorHandler(Ceed ceed,
                         int (eh)(Ceed, const char *, int, const char *,
@@ -150,6 +160,8 @@ int CeedSetErrorHandler(Ceed ceed,
                     match.
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
 **/
 int CeedRegister(const char *prefix,
                  int (*init)(const char *, Ceed), unsigned int priority) {
@@ -176,6 +188,8 @@ int CeedRegister(const char *prefix,
   @return An error code: 0 - success, otherwise - failure
 
   @sa CeedFree()
+
+  @ref Advanced
 **/
 int CeedMallocArray(size_t n, size_t unit, void *p) {
   int ierr = posix_memalign((void **)p, CEED_ALIGN, n*unit);
@@ -197,6 +211,8 @@ int CeedMallocArray(size_t n, size_t unit, void *p) {
   @return An error code: 0 - success, otherwise - failure
 
   @sa CeedFree()
+
+  @ref Advanced
 **/
 int CeedCallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = calloc(n, unit);
@@ -218,6 +234,8 @@ int CeedCallocArray(size_t n, size_t unit, void *p) {
   @return An error code: 0 - success, otherwise - failure
 
   @sa CeedFree()
+
+  @ref Advanced
 **/
 int CeedReallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = realloc(*(void **)p, n*unit);
@@ -247,6 +265,8 @@ int CeedFree(void *p) {
   @param req Address of CeedRequest to wait for; zeroed on completion.
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
 **/
 int CeedRequestWait(CeedRequest *req) {
   if (!*req) return 0;
@@ -261,6 +281,8 @@ int CeedRequestWait(CeedRequest *req) {
   @sa CeedRegister() CeedDestroy()
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedInit(const char *resource, Ceed *ceed) {
   int ierr;
@@ -294,6 +316,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
   @param ceed Address of Ceed context to destroy
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedDestroy(Ceed *ceed) {
   int ierr;

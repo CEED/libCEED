@@ -17,13 +17,11 @@
 #include <ceed-impl.h>
 #include <string.h>
 
-/**
-  @file
-  Implementation of public CeedQFunction interfaces
-
-  @defgroup CeedQFunction CeedQFunction: independent operations at quadrature points
-  @{
- */
+/// @file
+/// Implementation of public CeedQFunction interfaces
+///
+/// @addtogroup CeedQFunction
+/// @{
 
 /**
   @brief Create a CeedQFunction for evaluating interior (volumetric) terms.
@@ -50,7 +48,8 @@
 
    4. [CeedScalar *const *v][out] - output fields data at quadrature points, again listed in order given by the user
 
-*/
+  @ref Basic
+**/
 int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
                                 int (*f)(void*, CeedInt, const CeedScalar *const*, CeedScalar *const*),
                                 const char *focca, CeedQFunction *qf) {
@@ -83,6 +82,8 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
                       \ref CEED_EVAL_GRAD to use gradients.
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
 **/
 static int CeedQFunctionFieldSet(struct CeedQFunctionField *f,
                                  const char *fieldname, CeedInt ncomp,
@@ -108,6 +109,8 @@ static int CeedQFunctionFieldSet(struct CeedQFunctionField *f,
                       \ref CEED_EVAL_GRAD to use gradients.
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                           CeedInt ncomp, CeedEvalMode emode) {
@@ -127,6 +130,8 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                       \ref CEED_EVAL_GRAD to use gradients.
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                            CeedInt ncomp, CeedEvalMode emode) {
@@ -137,6 +142,18 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                                    fieldname, ncomp, emode); CeedChk(ierr);
   return 0;
 }
+
+/**
+  @brief Get the number of inputs and outputs to a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] numinput   Number of input fields
+  @param[out] numoutput  Number of output fields
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
 
 int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
                             CeedInt *numoutput) {
@@ -166,6 +183,8 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
   @param ctxsize  Size of context data values
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
   qf->ctx = ctx;
@@ -182,6 +201,8 @@ int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
   @param[out] v  Array of output data arrays
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
 **/
 int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
                        const CeedScalar *const *u,
@@ -203,6 +224,8 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
   @param qf CeedQFunction to destroy
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedQFunctionDestroy(CeedQFunction *qf) {
   int ierr;

@@ -24,11 +24,11 @@ static struct CeedVector_private ceed_vector_none;
 /// @file
 /// Implementation of public CeedVector interfaces
 ///
-/// @defgroup CeedVector CeedVector: storing and manipulating vectors
+/// @addtogroup CeedVector
 /// @{
 
 /**
-  @brief Create a vector of the specified length (does not allocate memory)
+  @brief Create a CeedVector of the specified length (does not allocate memory)
 
   @param ceed      Ceed object where the CeedVector will be created
   @param length    Length of vector
@@ -36,6 +36,8 @@ static struct CeedVector_private ceed_vector_none;
                      CeedVector will be stored
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   int ierr;
@@ -52,7 +54,7 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
 }
 
 /**
-  @brief Set the array used by a vector, freeing any previously allocated array if applicable
+  @brief Set the array used by a CeedVector, freeing any previously allocated array if applicable
 
   @param vec   CeedVector
   @param mtype Memory type of the array being passed
@@ -60,6 +62,8 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   @param array Array to be used, or NULL with CEED_COPY_VALUES to have the library allocate
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedVectorSetArray(CeedVector vec, CeedMemType mtype, CeedCopyMode cmode,
                        CeedScalar *array) {
@@ -72,12 +76,14 @@ int CeedVectorSetArray(CeedVector vec, CeedMemType mtype, CeedCopyMode cmode,
 }
 
 /**
-  @brief Set the array used by a vector, allocating the array if applicable
+  @brief Set the array used by a CeedVector, allocating the array if applicable
 
   @param vec        CeedVector
   @param[in] value  Value to be used
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
   int ierr;
@@ -94,7 +100,7 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 }
 
 /**
-  @brief Get read/write access to a vector via the specified memory type
+  @brief Get read/write access to a CeedVector via the specified memory type
 
   @param vec        CeedVector to access
   @param mtype      Memory type on which to access the array.  If the backend
@@ -108,6 +114,8 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
     operations may need to be recomputed.
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
   int ierr;
@@ -118,7 +126,7 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
 }
 
 /**
-  @brief Get read-only access to a vector via the specified memory type
+  @brief Get read-only access to a CeedVector via the specified memory type
 
   @param vec        CeedVector to access
   @param mtype      Memory type on which to access the array.  If the backend 
@@ -127,6 +135,8 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
   @param[out] array Array on memory type mtype
  
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
                            const CeedScalar **array) {
@@ -145,6 +155,8 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
   @param array   Array of vector data
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
   int ierr;
@@ -162,6 +174,8 @@ int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
   @param array   Array of vector data
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
   int ierr;
@@ -173,9 +187,11 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
 }
 
 /** 
-  @brief View a vector
+  @brief View a CeedVector
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
 **/
 int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
   const CeedScalar *x;
@@ -191,12 +207,14 @@ int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
 }
 
 /**
-  @brief Get the length of a vector
+  @brief Get the length of a CeedVector
 
   @param vec           CeedVector to retrieve length
   @param[out] length   Variable to store length
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
 **/
 CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
   *length = vec->length;
@@ -204,11 +222,13 @@ CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
 }
 
 /**
-  @brief Destroy a vector
+  @brief Destroy a CeedVector
 
   @param vec   CeedVector to destroy
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedVectorDestroy(CeedVector *vec) {
   int ierr;

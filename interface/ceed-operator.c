@@ -17,13 +17,11 @@
 #include <ceed-impl.h>
 #include <string.h>
 
-/**
-  @file
-  Implementation of public CeedOperator interfaces
-
-  @defgroup CeedOperator CeedOperator: composed FE-type operations on vectors
-  @{
- */
+/// @file
+/// Implementation of public CeedOperator interfaces
+///
+/// @addtogroup CeedOperator
+///   @{
 
 /**
   @brief Create an operator from element restriction, basis, and QFunction
@@ -37,6 +35,8 @@
                      CeedOperator will be stored
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
  */
 int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
                        CeedQFunction dqfT, CeedOperator *op) {
@@ -79,6 +79,8 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
                       CEED_EVAL_WEIGHT in the qfunction
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                          CeedElemRestriction r, CeedBasis b,
@@ -140,6 +142,8 @@ found:
                      CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedOperatorApply(CeedOperator op, CeedVector in,
                       CeedVector out, CeedRequest *request) {
@@ -164,6 +168,8 @@ int CeedOperatorApply(CeedOperator op, CeedVector in,
   @param op CeedOperator to destroy
 
   @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
 **/
 int CeedOperatorDestroy(CeedOperator *op) {
   int ierr;

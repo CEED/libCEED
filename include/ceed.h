@@ -19,6 +19,23 @@
 #ifndef _ceed_h
 #define _ceed_h
 
+/// @defgroup Ceed Ceed: core components
+/// @defgroup CeedVector CeedVector: storing and manipulating vectors
+/// @defgroup CeedElemRestriction CeedElemRestriction: restriction from vectors to elements
+/// @defgroup CeedBasis CeedBasis: fully discrete finite element-like objects
+/// @defgroup CeedQFunction CeedQFunction: independent operations at quadrature points
+/// @defgroup CeedOperator CeedOperator: composed FE-type operations on vectors
+///
+/// @page FunctionCategories libCEED Function Categories
+/// @section Utility Utility Functions
+///   These functions are intended general utilities that may be useful to libCEED developers and users.
+/// @section Basic User Functions
+///   These functions are intended to be used by general users of the libCEED interface.
+/// @section Advanced Backend Developer Functions
+///   These functions are intended to be used by backend developers of the libCEED interface.
+/// @section Developer Frontend Developer Functions
+///   These functions are intended to be used by frontend developers of the libCEED interface.
+
 /**
   CEED_EXTERN is used in this header to denote all publicly visible symbols.
 
