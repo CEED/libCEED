@@ -18,6 +18,9 @@ else
     args='{ceed_resource}'
 fi
 
+tmpfiles="${output} ${output}.out ${output}.diff ${output}.err"
+trap 'rm -f ${tmpfiles}' EXIT
+
 for ((i=0;i<${#backends[@]}; ++i)); do
     i0=$((3*$i+1)) # return code
     i1=$(($i0+1))  # stdout
@@ -79,4 +82,3 @@ for ((i=0;i<${#backends[@]}; ++i)); do
         printf "ok $i2 $1 $backend stderr\n"
     fi
 done
-rm -f ${output} ${output}.out ${output}.diff ${output}.err
