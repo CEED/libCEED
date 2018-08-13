@@ -173,7 +173,7 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDLIBS += -locca
   libceed.c += $(occa.c)
   $(occa.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(OCCA_DIR)/include
-  BACKENDS += /cpu/occa /gpu/occa /omp/occa /ocl/occa
+  BACKENDS += /cpu/occa /gpu/occa /omp/occa
 endif
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
