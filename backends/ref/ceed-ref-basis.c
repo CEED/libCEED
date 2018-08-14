@@ -52,7 +52,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
   int ierr;
   const CeedInt dim = basis->dim;
   const CeedInt ncomp = basis->ncomp;
-  const CeedInt nqpt = CeedPowInt(basis->Q1d, dim);
+  const CeedInt nqpt = CeedIntPow(basis->Q1d, dim);
   const CeedInt add = (tmode == CEED_TRANSPOSE);
 
   if (nelem != 1)
@@ -61,7 +61,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
 
   // Clear v if operating in transpose
   if (tmode == CEED_TRANSPOSE) {
-    const CeedInt vsize = ncomp*CeedPowInt(basis->P1d, dim);
+    const CeedInt vsize = ncomp*CeedIntPow(basis->P1d, dim);
     for (CeedInt i = 0; i < vsize; i++)
       v[i] = (CeedScalar) 0;
   }
@@ -72,8 +72,8 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     if (tmode == CEED_TRANSPOSE) {
       P = basis->Q1d; Q = basis->P1d;
     }
-    CeedInt pre = ncomp*CeedPowInt(P, dim-1), post = 1;
-    CeedScalar tmp[2][ncomp*Q*CeedPowInt(P>Q?P:Q, dim-1)];
+    CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = 1;
+    CeedScalar tmp[2][ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
     for (CeedInt d=0; d<dim; d++) {
       ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q, basis->interp1d,
                                     tmode, add&&(d==dim-1),
@@ -93,9 +93,9 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     if (tmode == CEED_TRANSPOSE) {
       P = basis->Q1d, Q = basis->P1d;
     }
-    CeedScalar tmp[2][ncomp*Q*CeedPowInt(P>Q?P:Q, dim-1)];
+    CeedScalar tmp[2][ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
     for (CeedInt p = 0; p < dim; p++) {
-      CeedInt pre = ncomp*CeedPowInt(P, dim-1), post = 1;
+      CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = 1;
       for (CeedInt d=0; d<dim; d++) {
         ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q,
                                       (p==d)?basis->grad1d:basis->interp1d,
@@ -119,7 +119,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     CeedInt Q = basis->Q1d;
     for (CeedInt d=0; d<dim; d++) {
-      CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
+      CeedInt pre = CeedIntPow(Q, dim-d-1), post = CeedIntPow(Q, d);
       for (CeedInt i=0; i<pre; i++)
         for (CeedInt j=0; j<Q; j++)
           for (CeedInt k=0; k<post; k++)

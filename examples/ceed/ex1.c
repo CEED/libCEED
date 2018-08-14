@@ -220,7 +220,7 @@ int main(int argc, const char *argv[]) {
 
   // Compute the quadrature data for the mass operator.
   CeedVector rho;
-  CeedInt elem_qpts = CeedPowInt(num_qpts, dim);
+  CeedInt elem_qpts = CeedIntPow(num_qpts, dim);
   CeedInt num_elem = 1;
   for (int d = 0; d < dim; d++)
     num_elem *= nxyz[d];
@@ -316,7 +316,7 @@ int main(int argc, const char *argv[]) {
 int GetCartesianMeshSize(int dim, int order, int prob_size, int nxyz[3]) {
   // Use the approximate formula:
   //    prob_size ~ num_elem * order^dim
-  CeedInt num_elem = prob_size / CeedPowInt(order, dim);
+  CeedInt num_elem = prob_size / CeedIntPow(order, dim);
   CeedInt s = 0;  // find s: num_elem/2 < 2^s <= num_elem
   while (num_elem > 1) {
     num_elem /= 2;
@@ -336,8 +336,8 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
                               CeedElemRestriction *restr,
                               CeedElemRestriction *restr_i) {
   CeedInt p = order, pp1 = p+1;
-  CeedInt ndof = CeedPowInt(pp1, dim); // number of scal. dofs per element
-  CeedInt elem_qpts = CeedPowInt(num_qpts, dim); // number of qpts per element
+  CeedInt ndof = CeedIntPow(pp1, dim); // number of scal. dofs per element
+  CeedInt elem_qpts = CeedIntPow(num_qpts, dim); // number of qpts per element
   CeedInt nd[3], num_elem = 1, scalar_size = 1;
   for (int d = 0; d < dim; d++) {
     num_elem *= nxyz[d];

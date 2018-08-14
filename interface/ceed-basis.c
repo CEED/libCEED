@@ -527,7 +527,7 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
   @ref Utility
 **/
 int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
-  *P = CeedPowInt(basis->P1d, basis->dim);
+  *P = CeedIntPow(basis->P1d, basis->dim);
   return 0;
 }
 
@@ -542,7 +542,7 @@ int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
   @ref Utility
 **/
 int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
-  *Q = CeedPowInt(basis->Q1d, basis->dim);
+  *Q = CeedIntPow(basis->Q1d, basis->dim);
   return 0;
 }
 

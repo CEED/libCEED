@@ -293,7 +293,7 @@ CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
 
   @ref Utility
 **/
-static inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
+static inline CeedInt CeedIntPow(CeedInt base, CeedInt power) {
   CeedInt result = 1;
   while (power) {
     if (power & 1) result *= base;
