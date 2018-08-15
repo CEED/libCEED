@@ -60,7 +60,7 @@ static int CeedOperatorSetupFields_Opt(struct CeedQFunctionField qfields[16],
   // Loop over fields
   for (CeedInt i=0; i<numfields; i++) {
     CeedEvalMode emode = qfields[i].emode;
-    
+
     if (emode != CEED_EVAL_WEIGHT) {
       CeedElemRestriction r = ofields[i].Erestrict;
       CeedElemRestriction_Ref *data = r->data;
@@ -69,7 +69,8 @@ static int CeedOperatorSetupFields_Opt(struct CeedQFunctionField qfields[16],
                                               CEED_MEM_HOST, CEED_COPY_VALUES,
                                               data->indices, &blkrestr[i+starti]);
       CeedChk(ierr);
-      ierr = CeedElemRestrictionCreateVector(blkrestr[i+starti], NULL, &evecs[i+starti]);
+      ierr = CeedElemRestrictionCreateVector(blkrestr[i+starti], NULL,
+                                             &evecs[i+starti]);
       CeedChk(ierr);
     }
 
@@ -280,7 +281,7 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
       case CEED_EVAL_INTERP:
         ierr = CeedBasisApply(op->outputfields[i].basis, blksize, CEED_TRANSPOSE,
                               CEED_EVAL_INTERP, impl->outdata[i],
-                              &impl->edata[i + qf->numinputfields][e*elemsize*ncomp]); 
+                              &impl->edata[i + qf->numinputfields][e*elemsize*ncomp]);
         CeedChk(ierr);
         break;
       case CEED_EVAL_GRAD:

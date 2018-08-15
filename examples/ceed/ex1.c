@@ -366,8 +366,9 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
   CeedElemRestrictionCreate(ceed, num_elem, ndof, scalar_size,
                             ncomp, CEED_MEM_HOST,
                             CEED_COPY_VALUES, el_dof, restr);
-  CeedElemRestrictionCreateIdentity(ceed, num_elem, elem_qpts, elem_qpts*num_elem*ncomp,
-                            ncomp, restr_i);
+  CeedElemRestrictionCreateIdentity(ceed, num_elem, elem_qpts,
+                                    elem_qpts*num_elem*ncomp,
+                                    ncomp, restr_i);
   free(el_dof);
   return 0;
 }

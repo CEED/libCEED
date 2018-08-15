@@ -41,7 +41,7 @@ static int CeedTensorContract_Opt(Ceed ceed,
       for (CeedInt j=0; j<J; j++) {
         CeedScalar tq = t[j*tstride0 + b*tstride1];
         for (CeedInt c=0; c<C; c++)
-            v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
+          v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
       }
   return 0;
 }
@@ -99,16 +99,16 @@ static int CeedBasisApply_Opt(CeedBasis basis, CeedInt nelem,
     //  or Grad to quadrature points (Transpose)
     for (CeedInt d=0; d<dim; d++) {
       ierr = CeedTensorContract_Opt(basis->ceed, pre, P, post, Q,
-                                    tmode==CEED_NOTRANSPOSE
-                                      ? basis->interp1d
-                                      : impl->colograd1d,
+                                    (tmode == CEED_NOTRANSPOSE
+                                     ? basis->interp1d
+                                     : impl->colograd1d),
                                     tmode, add&&(d>0),
-                                    tmode==CEED_NOTRANSPOSE
-                                      ? (d==0?u:tmp[d%2])
-                                      : u + d*nqpt*ncomp*nelem,
-                                    tmode==CEED_NOTRANSPOSE
-                                      ? (d==dim-1?interp:tmp[(d+1)%2])
-                                      : interp);
+                                    (tmode == CEED_NOTRANSPOSE
+                                     ? (d==0?u:tmp[d%2])
+                                     : u + d*nqpt*ncomp*nelem),
+                                    (tmode == CEED_NOTRANSPOSE
+                                     ? (d==dim-1?interp:tmp[(d+1)%2])
+                                     : interp));
       CeedChk(ierr);
       pre /= P;
       post *= Q;
@@ -122,16 +122,16 @@ static int CeedBasisApply_Opt(CeedBasis basis, CeedInt nelem,
     pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
     for (CeedInt d=0; d<dim; d++) {
       ierr = CeedTensorContract_Opt(basis->ceed, pre, P, post, Q,
-                                    tmode==CEED_NOTRANSPOSE
-                                      ? impl->colograd1d
-                                      : basis->interp1d,
+                                    (tmode == CEED_NOTRANSPOSE
+                                     ? impl->colograd1d
+                                     : basis->interp1d),
                                     tmode, add&&(d==dim-1),
-                                    tmode==CEED_NOTRANSPOSE
-                                      ? interp
-                                      : (d==0?interp:tmp[d%2]),
-                                    tmode==CEED_NOTRANSPOSE
-                                      ? v + d*nqpt*ncomp*nelem
-                                      : (d==dim-1?v:tmp[(d+1)%2]));
+                                    (tmode == CEED_NOTRANSPOSE
+                                     ? interp
+                                     : (d==0?interp:tmp[d%2])),
+                                    (tmode == CEED_NOTRANSPOSE
+                                     ? v + d*nqpt*ncomp*nelem
+                                     : (d==dim-1?v:tmp[(d+1)%2])));
       CeedChk(ierr);
       pre /= P;
       post *= Q;
@@ -151,7 +151,7 @@ static int CeedBasisApply_Opt(CeedBasis basis, CeedInt nelem,
                            * (d == 0 ? 1 : v[((i*Q + j)*post + k)*nelem]);
             for (CeedInt e=0; e<nelem; e++)
               v[((i*Q + j)*post + k)*nelem + e] = w;
-        }
+          }
     }
   } break;
   case CEED_EVAL_DIV:
@@ -159,8 +159,9 @@ static int CeedBasisApply_Opt(CeedBasis basis, CeedInt nelem,
   case CEED_EVAL_CURL:
     return CeedError(basis->ceed, 1, "CEED_EVAL_CURL not supported");
   case CEED_EVAL_NONE:
-    return CeedError(basis->ceed, 1, "CEED_EVAL_NONE does not make sense in this context");
-   }
+    return CeedError(basis->ceed, 1,
+                     "CEED_EVAL_NONE does not make sense in this context");
+  }
   return 0;
 }
 

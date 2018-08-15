@@ -100,12 +100,12 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
         ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q,
                                       (p==d)?basis->grad1d:basis->interp1d,
                                       tmode, add&&(d==dim-1),
-                                      d==0
+                                      (d == 0
                                        ? (tmode==CEED_NOTRANSPOSE?u:u+p*ncomp*nqpt)
-                                       : tmp[d%2],
-                                      d==dim-1
+                                       : tmp[d%2]),
+                                      (d == dim-1
                                        ? (tmode==CEED_TRANSPOSE?v:v+p*ncomp*nqpt)
-                                       : tmp[(d+1)%2]);
+                                       : tmp[(d+1)%2]));
         CeedChk(ierr);
         pre /= P;
         post *= Q;
@@ -135,8 +135,9 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     return CeedError(basis->ceed, 1, "CEED_EVAL_CURL not supported");
   // Take no action, BasisApply should not have been called
   case CEED_EVAL_NONE:
-    return CeedError(basis->ceed, 1, "CEED_EVAL_NONE does not make sense in this context");
-   }
+    return CeedError(basis->ceed, 1,
+                     "CEED_EVAL_NONE does not make sense in this context");
+  }
   return 0;
 }
 

@@ -31,8 +31,9 @@ struct Ceed_private {
   int (*VecCreate)(Ceed, CeedInt, CeedVector);
   int (*ElemRestrictionCreate)(CeedElemRestriction, CeedMemType, CeedCopyMode,
                                const CeedInt *);
-  int (*ElemRestrictionCreateBlocked)(CeedElemRestriction, CeedMemType, CeedCopyMode,
-                               const CeedInt *);
+  int (*ElemRestrictionCreateBlocked)(CeedElemRestriction, CeedMemType,
+                                      CeedCopyMode,
+                                      const CeedInt *);
   int (*BasisCreateTensorH1)(Ceed, CeedInt, CeedInt, CeedInt, const CeedScalar *,
                              const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*QFunctionCreate)(CeedQFunction);
@@ -88,7 +89,8 @@ struct CeedElemRestriction_private {
 
 struct CeedBasis_private {
   Ceed ceed;
-  int (*Apply)(CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, const CeedScalar *,
+  int (*Apply)(CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode,
+               const CeedScalar *,
                CeedScalar *);
   int (*Destroy)(CeedBasis);
   int refcount;
@@ -96,13 +98,15 @@ struct CeedBasis_private {
   CeedInt ncomp;         /* number of field components (1 for scalar fields) */
   CeedInt P1d;           /* number of nodes in one dimension */
   CeedInt Q1d;           /* number of quadrature points in one dimension */
-  CeedScalar *qref1d;    /* Array of length Q1d holding the locations of 
+  CeedScalar *qref1d;    /* Array of length Q1d holding the locations of
                             quadrature points on the 1D reference element [-1, 1] */
-  CeedScalar *qweight1d; /* array of length Q1d holding the quadrature weights on 
+  CeedScalar *qweight1d; /* array of length Q1d holding the quadrature weights on
                             the reference element */
-  CeedScalar *interp1d;  /* row-major matrix of shape [Q1d, P1d] expressing the values of
+  CeedScalar
+  *interp1d;  /* row-major matrix of shape [Q1d, P1d] expressing the values of
                             nodal basis functions at quadrature points */
-  CeedScalar *grad1d;    /* row-major matrix of shape [Q1d, P1d] matrix expressing derivatives of
+  CeedScalar
+  *grad1d;    /* row-major matrix of shape [Q1d, P1d] matrix expressing derivatives of
                             nodal basis functions at quadrature points */
   void *data;            /* place for the backend to store any data */
 };
@@ -133,7 +137,8 @@ struct CeedQFunction_private {
 struct CeedOperatorField {
   CeedElemRestriction Erestrict; /// Restriction from L-vector or NULL if identity
   CeedBasis basis;               /// Basis or NULL for collocated fields
-  CeedVector vec;                /// State vector for passive fields, NULL for active fields
+  CeedVector
+  vec;                /// State vector for passive fields, NULL for active fields
 };
 
 struct CeedOperator_private {

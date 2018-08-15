@@ -176,9 +176,9 @@ class CeedMassOperator : public mfem::Operator {
     CeedBasisGetNumQuadraturePoints(basis, &nqpts);
 
     CeedElemRestrictionCreateIdentity(ceed, nelem, nqpts,
-                              nqpts*nelem, 1, &restr_i);
+                                      nqpts*nelem, 1, &restr_i);
     CeedElemRestrictionCreateIdentity(ceed, nelem, nqpts,
-                              nqpts*nelem, 1, &mesh_restr_i);
+                                      nqpts*nelem, 1, &mesh_restr_i);
 
     CeedVectorCreate(ceed, mesh->GetNodes()->Size(), &node_coords);
     CeedVectorSetArray(node_coords, CEED_MEM_HOST, CEED_USE_POINTER,

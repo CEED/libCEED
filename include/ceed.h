@@ -188,18 +188,20 @@ typedef enum {
 } CeedTransposeMode;
 
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
+    CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype,
+    CeedCopyMode cmode,
     const CeedInt *indices, CeedElemRestriction *r);
 CEED_EXTERN int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
     CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedElemRestriction *r);
 CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt blksize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype,
+    CeedInt elemsize, CeedInt blksize, CeedInt ndof, CeedInt ncomp,
+    CeedMemType mtype,
     CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction *r);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction r,
-                                                CeedVector *lvec,
-                                                CeedVector *evec);
+    CeedVector *lvec,
+    CeedVector *evec);
 CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction r,
-                                                  CeedInt *numelements);
+    CeedInt *numelements);
 CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedTransposeMode lmode, CeedVector u,
     CeedVector ru, CeedRequest *request);
@@ -244,9 +246,12 @@ CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof,
                                         CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
                                         const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis *basis);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
-CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m, CeedInt n);
-CEED_EXTERN int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d);
-CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
+CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m,
+                                    CeedInt n);
+CEED_EXTERN int CeedBasisGetColocatedGrad(CeedBasis basis,
+    CeedScalar *colograd1d);
+CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt nelem,
+                               CeedTransposeMode tmode,
                                CeedEvalMode emode, const CeedScalar *u, CeedScalar *v);
 CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
 CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);

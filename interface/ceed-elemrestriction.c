@@ -86,12 +86,14 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
   @ref Basic
 **/
-int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem, CeedInt elemsize,
-                              CeedInt ndof, CeedInt ncomp, CeedElemRestriction *r) {
+int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
+                                      CeedInt elemsize,
+                                      CeedInt ndof, CeedInt ncomp, CeedElemRestriction *r) {
   int ierr;
 
   if (!ceed->ElemRestrictionCreate)
-    return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreateIdentity");
+    return CeedError(ceed, 1,
+                     "Backend does not support ElemRestrictionCreateIdentity");
   ierr = CeedCalloc(1, r); CeedChk(ierr);
   (*r)->ceed = ceed;
   ceed->refcount++;
@@ -102,7 +104,8 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem, CeedInt elemsize
   (*r)->ncomp = ncomp;
   (*r)->nblk = nelem;
   (*r)->blksize = 1;
-  ierr = ceed->ElemRestrictionCreate(*r, CEED_MEM_HOST, CEED_OWN_POINTER, NULL); CeedChk(ierr);
+  ierr = ceed->ElemRestrictionCreate(*r, CEED_MEM_HOST, CEED_OWN_POINTER, NULL);
+  CeedChk(ierr);
   return 0;
 }
 
@@ -125,8 +128,8 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem, CeedInt elemsize
   @ref Utility
 **/
 int CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
-                           CeedInt nblk, CeedInt nelem,
-                           CeedInt blksize, CeedInt elemsize) {
+                          CeedInt nblk, CeedInt nelem,
+                          CeedInt blksize, CeedInt elemsize) {
   for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
     for (int j = 0; j < blksize; j++)
       for (int k = 0; k < elemsize; k++)
@@ -181,11 +184,12 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
   if (indices) {
     ierr = CeedCalloc(nblk*blksize*elemsize, &blkindices);
-    ierr = CeedPermutePadIndices(indices, blkindices, nblk, nelem, blksize, elemsize);
+    ierr = CeedPermutePadIndices(indices, blkindices, nblk, nelem, blksize,
+                                 elemsize);
     CeedChk(ierr);
   } else {
     blkindices = NULL;
-  }  
+  }
 
   (*r)->ceed = ceed;
   ceed->refcount++;
@@ -210,7 +214,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   @brief Create CeedVectors associated with a CeedElemRestriction
 
   @param r     CeedElemRestriction
-  @param lvec  The address of the L-vector to be created, or NULL 
+  @param lvec  The address of the L-vector to be created, or NULL
   @param evec  The address of the E-vector to be created, or NULL
 
   @return An error code: 0 - success, otherwise - failure

@@ -26,7 +26,8 @@ int main(int argc, char **argv) {
     ind[2*i+0] = i;
     ind[2*i+1] = i+1;
   }
-  CeedElemRestrictionCreateBlocked(ceed, ne, 2, blksize, ne+1, ncomp, CEED_MEM_HOST,
+  CeedElemRestrictionCreateBlocked(ceed, ne, 2, blksize, ne+1, ncomp,
+                                   CEED_MEM_HOST,
                                    CEED_USE_POINTER, ind, &r);
   CeedVectorCreate(ceed, 2*blksize*2*ncomp, &y);
   CeedVectorSetArray(y, CEED_MEM_HOST, CEED_COPY_VALUES, NULL); // Allocates array

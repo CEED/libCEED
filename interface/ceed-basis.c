@@ -48,7 +48,7 @@ static struct CeedBasis_private ceed_basis_colocated;
                       reference element
   @param[out] basis Address of the variable where the newly created
                       CeedBasis will be stored.
- 
+
   @return An error code: 0 - success, otherwise - failure
 
   @ref Basic

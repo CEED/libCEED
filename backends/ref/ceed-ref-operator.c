@@ -55,9 +55,10 @@ static int CeedOperatorSetupFields_Ref(struct CeedQFunctionField qfields[16],
   // Loop over fields
   for (CeedInt i=0; i<numfields; i++) {
     CeedEvalMode emode = qfields[i].emode;
-    
+
     if (emode != CEED_EVAL_WEIGHT) {
-      ierr = CeedElemRestrictionCreateVector(ofields[i].Erestrict, NULL, &evecs[i+starti]);
+      ierr = CeedElemRestrictionCreateVector(ofields[i].Erestrict, NULL,
+                                             &evecs[i+starti]);
       CeedChk(ierr);
     }
 
@@ -287,7 +288,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
   for (CeedInt i=0; i<qf->numoutputfields; i++) {
     // Restore evec
     ierr = CeedVectorRestoreArray(impl->evecs[i+impl->numein],
-                                    &impl->edata[i + qf->numinputfields]); CeedChk(ierr);
+                                  &impl->edata[i + qf->numinputfields]); CeedChk(ierr);
     // Active
     if (op->outputfields[i].vec == CEED_VECTOR_ACTIVE) {
       // Zero lvec

@@ -129,11 +129,11 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
   @brief Get read-only access to a CeedVector via the specified memory type
 
   @param vec        CeedVector to access
-  @param mtype      Memory type on which to access the array.  If the backend 
+  @param mtype      Memory type on which to access the array.  If the backend
                     uses a different memory type, this will perform a copy
                     (possibly cached).
   @param[out] array Array on memory type mtype
- 
+
   @return An error code: 0 - success, otherwise - failure
 
   @ref Basic
@@ -186,7 +186,7 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
   return 0;
 }
 
-/** 
+/**
   @brief View a CeedVector
 
   @return An error code: 0 - success, otherwise - failure

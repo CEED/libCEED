@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
                        (double)b[i]);
   }
   CeedVectorRestoreArrayRead(x, &b);
-  
+
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);
   return 0;
