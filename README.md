@@ -11,8 +11,8 @@ This repository contains an initial low-level API library for the efficient
 high-order discretization methods developed by the ECP co-design [Center for
 Efficient Exascale Discretizations (CEED)](http://ceed.exascaleproject.org).
 While our focus is on high-order finite elements, the approach is mostly
-algebraic and thus applicable to other discretizations in factored form, see the
-[API documentation](doc/libCEED.md).
+algebraic and thus applicable to other discretizations in factored form, as
+explained in the API documentation portion of the [Doxygen documentation](https://codedocs.xyz/CEED/libCEED/md_doc_libCEEDapi.html).
 
 One of the challenges with high-order methods is that a global sparse matrix is
 no longer a good representation of a high-order linear operator, both with
@@ -24,8 +24,8 @@ sparse matrix.
 The goal of libCEED is to propose such a format, as well as supporting
 implementations and data structures, that enable efficient operator evaluation
 on a variety of computational device types (CPUs, GPUs, etc.). This new operator
-description is based on algebraically [factored form](doc/libCEED.md), which is
-easy to incorporate in a wide variety of applications, without significant
+description is based on algebraically [factored form](https://codedocs.xyz/CEED/libCEED/md_doc_libCEEDapi.html),
+which is easy to incorporate in a wide variety of applications, without significant
 refactoring of their own discretization infrastructure.
 
 The repository is part of the [CEED software suite][ceed-soft], a collection of
@@ -110,16 +110,16 @@ The above code assumes a GPU-capable machine enabled in the OCCA
 backend. Depending on the available backends, other Ceed resource specifiers can
 be provided with the `-ceed` option, for example:
 
-CEED resource (`-ceed`) | Backend
------------------------ | ---------------------------------
-`/cpu/self/opt`         | Serial optimized implementation
-`/cpu/self/ref`         | Serial reference implementation
-`/cpu/self/tmpl`        | Backend template, dispatches to /cpu/self/opt
-`/cpu/occa`             | Serial OCCA kernels
-`/gpu/occa`             | CUDA OCCA kernels
-`/omp/occa`             | OpenMP OCCA kernels
-`/ocl/occa`             | OpenCL OCCA kernels
-`/gpu/magma`            | CUDA MAGMA kernels
+|  CEED resource (`-ceed`) | Backend                                       |
+| :----------------------- | :-------------------------------------------- |
+| `/cpu/self/opt`          | Serial optimized implementation               |
+| `/cpu/self/ref`          | Serial reference implementation               |
+| `/cpu/self/tmpl`         | Backend template, dispatches to /cpu/self/opt |
+| `/cpu/occa`              | Serial OCCA kernels                           |
+| `/gpu/occa`              | CUDA OCCA kernels                             |
+| `/omp/occa`              | OpenMP OCCA kernels                           |
+| `/ocl/occa`              | OpenCL OCCA kernels                           |
+| `/gpu/magma`             | CUDA MAGMA kernels                            |
 
 ## Install
 

@@ -1,4 +1,6 @@
-// Test polynomial interpolation in 1D
+/// @file
+/// Test polynomial interpolation in 1D
+/// \test Test polynomial interpolation in 1D
 #include <ceed.h>
 #include <math.h>
 

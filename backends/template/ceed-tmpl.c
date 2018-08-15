@@ -36,6 +36,8 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
   Ceed_Tmpl *impl;
   Ceed ceedref;
 
+  // Create refrence CEED that implementation will be dispatched
+  //   through unless overridden
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   CeedInit("/cpu/self/ref", &ceedref);
   ceed->data = impl;

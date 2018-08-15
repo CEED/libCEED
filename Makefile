@@ -97,12 +97,12 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
-libceed.c := $(wildcard ceed*.c)
+libceed.c := $(wildcard interface/ceed*.c)
 BACKENDS := /cpu/self/ref /cpu/self/tmpl /cpu/self/opt
 
 # Tests
-tests.c   := $(sort $(wildcard tests/t[0-9][0-9]-*.c))
-tests.f   := $(sort $(wildcard tests/t[0-9][0-9]-*.f))
+tests.c   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
+tests.f   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 ctests    := $(tests)
 tests     += $(tests.f:tests/%.f=$(OBJDIR)/%)
@@ -302,7 +302,9 @@ style :
 	astyle --style=google --indent=spaces=2 --max-code-length=80 \
             --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
             --suffix=none --preserve-date --formatted \
-            *.[ch] tests/*.[ch] backends/*/*.[ch] examples/*/*.[ch] examples/*/*.[ch]pp
+            --exclude=include/ceedf.h \
+            include/*.h interface/*.[ch] tests/*.[ch] backends/*/*.[ch] \
+            examples/*/*.[ch] examples/*/*.[ch]pp
 
 print :
 	@echo $(VAR)=$($(VAR))

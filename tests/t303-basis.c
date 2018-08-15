@@ -1,4 +1,6 @@
-// Test interpolation in multiple dimensions
+/// @file
+/// Test interpolation in multiple dimensions
+/// \test Test interpolation in multiple dimensions
 #include <ceed.h>
 #include <math.h>
 
@@ -17,13 +19,13 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
   for (CeedInt dim=1; dim<=3; dim++) {
     CeedBasis bxl, bul, bxg, bug;
-    CeedInt Q = 10, Qdim = CeedPowInt(Q, dim), Xdim = CeedPowInt(2, dim);
+    CeedInt Q = 10, Qdim = CeedIntPow(Q, dim), Xdim = CeedIntPow(2, dim);
     CeedScalar x[Xdim*dim];
     CeedScalar xq[Qdim*dim], uq[Qdim], u[Qdim];
 
     for (CeedInt d=0; d<dim; d++) {
       for (CeedInt i=0; i<Xdim; i++) {
-        x[d*Xdim + i] = (i % CeedPowInt(2, dim-d)) / CeedPowInt(2, dim-d-1) ? 1 : -1;
+        x[d*Xdim + i] = (i % CeedIntPow(2, dim-d)) / CeedIntPow(2, dim-d-1) ? 1 : -1;
       }
     }
     CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, Q, CEED_GAUSS_LOBATTO, &bxl);

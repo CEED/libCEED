@@ -145,106 +145,18 @@ implementation is as follows:
 - **G** is represented as variable of type `CeedElemRestriction`.
 - **B** is represented as variable of type `CeedBasis`.
 - the action of **D** is represented as variable of type `CeedQFunction`.
-- the overall operator **G^T B^T D B G** is represented as variable of type
+- the overall operator **G<sup>T</sup> B<sup>T</sup> D B G** is represented as variable of type
   `CeedOperator` and its action is accessible through `CeedOperatorApply()`.
 
 To clarify these concepts and illustrate how they are combined in the API,
 consider the implementation of the action of a simple 1D mass matrix
-(cf. [tests/t30-operator.c](https://github.com/CEED/libCEED/blob/master/tests/t30-operator.c)).
+(cf. [tests/t500-operator.c](https://github.com/CEED/libCEED/blob/master/tests/t500-operator.c)).
 
-```c
-#include <ceed.h>
-
-static int setup(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
-                 CeedScalar *const *v) {
-  CeedScalar *w = qdata;
-  for (CeedInt i=0; i<Q; i++) {
-    w[i] = u[1][i]*u[4][i];
-  }
-  return 0;
-}
-
-static int mass(void *ctx, void *qdata, CeedInt Q, const CeedScalar *const *u,
-                CeedScalar *const *v) {
-  const CeedScalar *w = qdata;
-  for (CeedInt i=0; i<Q; i++) {
-    v[0][i] = w[i] * u[0][i];
-  }
-  return 0;
-}
-
-int main(int argc, char **argv) {
-  Ceed ceed;
-  CeedElemRestriction Erestrictx, Erestrictu;
-  CeedBasis bx, bu;
-  CeedQFunction qf_setup, qf_mass;
-  CeedOperator op_setup, op_mass;
-  CeedVector qdata, X, U, V;
-  CeedInt nelem = 5, P = 5, Q = 8;
-  CeedInt Nx = nelem+1, Nu = nelem*(P-1)+1;
-  CeedInt indx[nelem*2], indu[nelem*P];
-  CeedScalar x[Nx];
-
-  CeedInit(argv[1], &ceed);
-  for (CeedInt i=0; i<Nx; i++) x[i] = i / (Nx - 1);
-  for (CeedInt i=0; i<nelem; i++) {
-    indx[2*i+0] = i;
-    indx[2*i+1] = i+1;
-  }
-  CeedElemRestrictionCreate(ceed, nelem, 2, Nx, CEED_MEM_HOST, CEED_USE_POINTER,
-                            indx, &Erestrictx);
-
-  for (CeedInt i=0; i<nelem; i++) {
-    for (CeedInt j=0; j<P; j++) {
-      indu[P*i+j] = i*(P-1) + j;
-    }
-  }
-  CeedElemRestrictionCreate(ceed, nelem, P, Nu, CEED_MEM_HOST, CEED_USE_POINTER,
-                            indu, &Erestrictu);
-
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bx);
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, P, Q, CEED_GAUSS, &bu);
-
-  CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
-                              (CeedEvalMode)(CEED_EVAL_GRAD|CEED_EVAL_WEIGHT),
-                              CEED_EVAL_NONE, setup, __FILE__ ":setup", &qf_setup);
-  CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
-                              CEED_EVAL_INTERP, CEED_EVAL_INTERP,
-                              mass, __FILE__ ":mass", &qf_mass);
-
-  CeedOperatorCreate(ceed, Erestrictx, bx, qf_setup, NULL, NULL, &op_setup);
-  CeedOperatorCreate(ceed, Erestrictu, bu, qf_mass, NULL, NULL, &op_mass);
-
-  CeedVectorCreate(ceed, Nx, &X);
-  CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
-  CeedOperatorGetQData(op_setup, &qdata);
-  CeedOperatorApply(op_setup, qdata, X, NULL, CEED_REQUEST_IMMEDIATE);
-
-  CeedVectorCreate(ceed, Nu, &U);
-  CeedVectorCreate(ceed, Nu, &V);
-  CeedOperatorApply(op_mass, qdata, U, V, CEED_REQUEST_IMMEDIATE);
-
-  CeedQFunctionDestroy(&qf_setup);
-  CeedQFunctionDestroy(&qf_mass);
-  CeedOperatorDestroy(&op_setup);
-  CeedOperatorDestroy(&op_mass);
-  CeedElemRestrictionDestroy(&Erestrictu);
-  CeedElemRestrictionDestroy(&Erestrictx);
-  CeedBasisDestroy(&bu);
-  CeedBasisDestroy(&bx);
-  CeedVectorDestroy(&X);
-  CeedVectorDestroy(&U);
-  CeedVectorDestroy(&V);
-  CeedDestroy(&ceed);
-  return 0;
-}
-```
+\include t500-operator.c
 
 The constructor
 
-```c
-    CeedInit(argv[1], &ceed);
-```
+\snippet t500-operator.c Ceed Init
 
 creates a logical device `ceed` on the specified *resource*, which could also be
 a coprocessor such as `"/nvidia/0"`. There can be any number of such devices,
@@ -258,23 +170,7 @@ in each quadrature point, while `mass` uses these saved values to perform the
 action of **D**. These functions are turned into the `CeedQFunction` variables
 `qf_setup` and `qf_mass` in the `CeedQFunctionCreateInterior()` calls:
 
-```c
-int setup(void *ctx, void *qdata, CeedInt Q,
-          const CeedScalar *const *u, CeedScalar *const *v);
-int mass(void *ctx, void *qdata, CeedInt Q,
-         const CeedScalar *const *u, CeedScalar *const *v);
-
-{
-  CeedQFunction qf_setup, qf_mass;
-
-  CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
-                              (CeedEvalMode)(CEED_EVAL_GRAD|CEED_EVAL_WEIGHT),
-                              CEED_EVAL_NONE, setup, __FILE__ ":setup", &qf_setup);
-  CeedQFunctionCreateInterior(ceed, 1, 1, sizeof(CeedScalar),
-                              CEED_EVAL_INTERP, CEED_EVAL_INTERP,
-                              mass, __FILE__ ":mass", &qf_mass);
-}
-```
+\snippet t500-operator.c QFunction Create
 
 A `CeedQFunction` performs independent operations at each quadrature point and
 the interface is intended to facilitate vectorization.  The second argument is
@@ -282,44 +178,41 @@ an expected vector length. If greater than 1, the caller must ensure that the
 number of quadrature points `Q` is divisible by the vector length. This is
 often satisfied automatically due to the element size or by batching elements
 together to facilitate vectorization in other stages, and can always be ensured
-by padding. The data at quadrature points, `qdata`, is opaque to the library
-and can be of any type; it is of type `CeedScalar` here because it simply stores
-a weight. The evaluation mode `CEED_EVAL_INTERP` for both inputs and outputs
-indicates that the mass operator only contains terms of the form
+by padding.
 
-<!-- \int_\Omega v f_0(u) -->
-![](https://latex.codecogs.com/svg.latex?$$\int_\Omega\\,v\\,f_0(u)$$)
-
-where *v* are test functions. More general operators, such as those of the form
-
-<!-- \int_\Omega v f_0(u, \nabla u) + \nabla v \cdot f_1(u, \nabla u) -->
-![](https://latex.codecogs.com/svg.latex?$$\int_\Omega\\,v\\,f_0(u,\nabla\\,u)+\nabla\\,v\cdot\\,f_1(u,\nabla\\,u)$$)
-
-can be expressed using a bitwise or `CEED_EVAL_INTERP | CEED_EVAL_GRAD`, in
-which case the callback will receive multiple inputs (outputs).
+Different input and output fields are added individually, specifying the field
+name, number of components, and evaluation mode.
 
 In addition to the function pointers (`setup` and `mass`), `CeedQFunction`
 constructors take a string representation specifying where the source for the
 implementation is found. This is used by backends that support Just-In-Time
 (JIT) compilation (i.e., OCCA) to compile for coprocessors.
 
+The evaluation mode `CEED_EVAL_INTERP` for both input and output fields
+indicates that the mass operator only contains terms of the form
+
+<!-- \int_\Omega v f_0(u) -->
+![](https://latex.codecogs.com/svg.latex?$$\int_\Omega v f_0(u)$$)
+
+where *v* are test functions. More general operators, such as those of the form
+
+<!-- \int_\Omega v f_0(u, \nabla u) + \nabla v \cdot f_1(u, \nabla u) -->
+![](https://latex.codecogs.com/svg.latex?$$\int_\Omega v f_0(u \nabla u)+\nabla v \cdot f_1(u \nabla u)$$)
+
+can be expressed.
+
 The **B** operators for the mesh nodes, `bx`, and the unknown field, `bu`, are
-defined in the calls to the function `CeedBasisCreateTensorH1Lagrange`. In this
+defined in the calls to the function `CeedBasisCreateTensorH1Lagrange()`. In this
 example, both the mesh and the unknown field use H1 Lagrange finite elements of
 order 1 and 4 respectively (the `P` argument represents the number of 1D degrees
 of freedom on each element). Both basis operators use the same integration rule,
 which is Gauss-Legendre with 8 points (the `Q` argument).
 
-```c
-  CeedBasis bx, bu;
-
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bx);
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, P, Q, CEED_GAUSS, &bu);
-```
+\snippet t500-operator.c Basis Create
 
 Other elements with this structure can be specified in terms of the `Q×P`
 matrices that evaluate values and gradients at quadrature points in one
-dimension using `CeedBasisCreateTensorH1`. Elements that do not have tensor
+dimension using `CeedBasisCreateTensorH1()`. Elements that do not have tensor
 product structure, such as symmetric elements on simplices, will be created
 using different constructors.
 
@@ -328,16 +221,8 @@ The **G** operators for the mesh nodes, `Erestrictx`, and the unknown field,
 specify directly the dof indices for each element in the `indx` and `indu`
 arrays:
 
-```c
-  CeedInt indx[nelem*2], indu[nelem*P];
-
-  /* indx[i] = ...; indu[i] = ...; */
-
-  CeedElemRestrictionCreate(ceed, nelem, 2, Nx, CEED_MEM_HOST, CEED_USE_POINTER,
-                            indx, &Erestrictx);
-  CeedElemRestrictionCreate(ceed, nelem, P, Nu, CEED_MEM_HOST, CEED_USE_POINTER,
-                            indu, &Erestrictu);
-```
+\snippet t500-operator.c ElemRestr Create
+\snippet t500-operator.c ElemRestrU Create
 
 If the user has arrays available on a device, they can be provided using
 `CEED_MEM_DEVICE`. This technique is used to provide no-copy interfaces in all
@@ -346,35 +231,41 @@ contexts that involve problem-sized data.
 For discontinuous Galerkin and for applications such as Nek5000 that only
 explicitly store **E-vectors** (inter-element continuity has been subsumed by
 the parallel restriction **P**), the element restriction **G** is the identity
-so the explicit indices can be elided (`NULL`). We plan to support other
-structured representations of **G** which will be added according to demand. In
-the case of non-conforming mesh elements, **G** needs a more general
+and `CeedElemRestrictionCreateIdentity()` is used instead. We plan to support
+other structured representations of **G** which will be added according to demand.
+In the case of non-conforming mesh elements, **G** needs a more general
 representation that expresses values at slave nodes (which do not appear in
 **L-vectors**) as linear combinations of the degrees of freedom at master nodes.
+
+These operations, **P**, **B**, and **D**, are combined with a `CeedOperator`.
+As with qfunctions, operator fields are added separately with a matching
+field name, basis (**B**), element restriction (**G**), and **L-vector**. The flag
+`CEED_VECTOR_ACTIVE` indicates that the vector corresponding to that field will
+be provided to the operator when `CeedOperatorApply()` is called. Otherwise the
+input/output will be read from/written to the specified **L-vector**.
 
 With partial assembly, we first perform a setup stage where **D** is evaluated
 and stored. This is accomplished by the operator `op_setup` and its application
 to `X`, the nodes of the mesh (these are needed to compute Jacobians at
-quadrature points). Note that the corresponding `CeedOperatorApply` has only
-input (the output is `NULL`):
+quadrature points). Note that the corresponding `CeedOperatorApply()` has no basis
+evaluation on the output, as the quadrature data is not needed at the dofs:
 
-```c
-  CeedVectorCreate(ceed, Nx, &X);
-  CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
-  CeedOperatorGetQData(op_setup, &qdata);
-  CeedOperatorApply(op_setup, qdata, X, NULL, CEED_REQUEST_IMMEDIATE);
-```
+\snippet t500-operator.c Setup Create
+
+\snippet t500-operator.c Setup Set
+
+\snippet t500-operator.c Setup Apply
 
 The action of the operator is then represented by operator `op_mass` and its
-`CeedOperatorApply` to the input **L-vector** `U` with output in `V`:
+`CeedOperatorApply()` to the input **L-vector** `U` with output in `V`:
 
-```c
-  CeedVectorCreate(ceed, Nu, &U);
-  CeedVectorCreate(ceed, Nu, &V);
-  CeedOperatorApply(op_mass, qdata, U, V, CEED_REQUEST_IMMEDIATE);
-```
+\snippet t500-operator.c Operator Create
 
-A number of function calls in the interface, such as `CeedOperatorApply`, are
+\snippet t500-operator.c Operator Set
+
+\snippet t500-operator.c Operator Apply
+
+A number of function calls in the interface, such as `CeedOperatorApply()`, are
 intended to support asynchronous execution via their last argument,
 `CeedRequest*`. The specific (pointer) value used in the above example,
 `CEED_REQUEST_IMMEDIATE`, is used to express the request (from the user) for the
@@ -390,9 +281,7 @@ LibCEED is intended to be extensible via backends that are packaged with the
 library and packaged separately (possibly as a binary containing proprietary
 code). Backends are registered by calling
 
-```c
-  CeedRegister(prefix, init_function);
-```
+\snippet ref/ceed-ref.c Register
 
 typically in a library initializer or "constructor" that runs automatically.
 `CeedInit` uses this prefix to find an appropriate backend for the resource.

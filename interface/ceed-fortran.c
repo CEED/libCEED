@@ -166,8 +166,8 @@ void fCeedElemRestrictionCreate(int *ceed, int *nelements,
 #define fCeedElemRestrictionCreateIdentity \
     FORTRAN_NAME(ceedelemrestrictioncreateidentity, CEEDELEMRESTRICTIONCREATEIDENTITY)
 void fCeedElemRestrictionCreateIdentity(int *ceed, int *nelements,
-                                int *esize, int *ndof, int *ncomp,
-                                int *elemrestriction, int *err) {
+                                        int *esize, int *ndof, int *ncomp,
+                                        int *elemrestriction, int *err) {
   if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
     CeedElemRestriction_count_max += CeedElemRestriction_count_max/2 + 1;
     CeedRealloc(CeedElemRestriction_count_max, &CeedElemRestriction_dict);
@@ -175,8 +175,9 @@ void fCeedElemRestrictionCreateIdentity(int *ceed, int *nelements,
 
   CeedElemRestriction *elemrestriction_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
-  *err = CeedElemRestrictionCreateIdentity(Ceed_dict[*ceed], *nelements, *esize, *ndof,
-                                   *ncomp, elemrestriction_);
+  *err = CeedElemRestrictionCreateIdentity(Ceed_dict[*ceed], *nelements, *esize,
+         *ndof,
+         *ncomp, elemrestriction_);
 
   if (*err == 0) {
     *elemrestriction = CeedElemRestriction_count++;

@@ -27,27 +27,32 @@ static struct CeedBasis_private ceed_basis_colocated;
 /// @file
 /// Implementation of public CeedBasis interfaces
 ///
-/// @defgroup CeedBasis CeedBasis: fully discrete finite element-like objects
+/// @addtogroup CeedBasis
 /// @{
 
-/// Create a tensor product basis for H^1 discretizations
-///
-/// @param ceed   Ceed
-/// @param dim    Topological dimension
-/// @param ncomp  Number of field components (1 for scalar fields)
-/// @param P1d    Number of nodes in one dimension
-/// @param Q1d    Number of quadrature points in one dimension
-/// @param interp1d Row-major Q1d × P1d matrix expressing the values of nodal
-///               basis functions at quadrature points
-/// @param grad1d  Row-major Q1d × P1d matrix expressing derivatives of nodal
-///               basis functions at quadrature points
-/// @param qref1d Array of length Q1d holding the locations of quadrature points
-///               on the 1D reference element [-1, 1]
-/// @param qweight1d Array of length Q1d holding the quadrature weights on the
-///               reference element
-/// @param[out] basis New basis
-///
-/// @sa CeedBasisCreateTensorH1Lagrange()
+/**
+  @brief Create a tensor product basis for H^1 discretizations
+
+  @param ceed       A Ceed object where the CeedBasis will be created
+  @param dim        Topological dimension
+  @param ncomp      Number of field components (1 for scalar fields)
+  @param P1d        Number of nodes in one dimension
+  @param Q1d        Number of quadrature points in one dimension
+  @param interp1d   Row-major Q1d × P1d matrix expressing the values of nodal
+                      basis functions at quadrature points
+  @param grad1d     Row-major Q1d × P1d matrix expressing derivatives of nodal
+                      basis functions at quadrature points
+  @param qref1d     Array of length Q1d holding the locations of quadrature points
+                      on the 1D reference element [-1, 1]
+  @param qweight1d  Array of length Q1d holding the quadrature weights on the
+                      reference element
+  @param[out] basis Address of the variable where the newly created
+                      CeedBasis will be stored.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
 int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
                             CeedInt Q1d, const CeedScalar *interp1d,
                             const CeedScalar *grad1d, const CeedScalar *qref1d,
@@ -77,19 +82,24 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
   return 0;
 }
 
-/// Create a tensor product Lagrange basis
-///
-/// @param ceed Ceed
-/// @param dim Topological dimension of element
-/// @param ncomp Number of field components
-/// @param P Number of Gauss-Lobatto nodes in one dimension.  The polynomial degree
-///     of the resulting Q_k element is k=P-1.
-/// @param Q Number of quadrature points in one dimension.
-/// @param qmode Distribution of the Q quadrature points (affects order of
-///     accuracy for the quadrature)
-/// @param[out] basis New basis
-///
-/// @sa CeedBasisCreateTensorH1()
+/**
+  @brief Create a tensor product Lagrange basis
+
+  @param ceed       A Ceed object where the CeedBasis will be created
+  @param dim        Topological dimension of element
+  @param ncomp      Number of field components
+  @param P          Number of Gauss-Lobatto nodes in one dimension.  The
+                      polynomial degree of the resulting Q_k element is k=P-1.
+  @param Q          Number of quadrature points in one dimension.
+  @param qmode      Distribution of the Q quadrature points (affects order of
+                      accuracy for the quadrature)
+  @param[out] basis Address of the variable where the newly created
+                      CeedBasis will be stored.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
 int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
                                     CeedInt P, CeedInt Q,
                                     CeedQuadMode qmode, CeedBasis *basis) {
@@ -145,12 +155,18 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
   return 0;
 }
 
-/// Construct a Gauss-Legendre quadrature
-///
-/// @param Q Number of quadrature points (integrates polynomials of degree 2*Q-1 exactly)
-/// @param qref1d Array of length Q to hold the abscissa on [-1, 1]
-/// @param qweight1d Array of length Q to hold the weights
-/// @sa CeedLobattoQuadrature()
+/**
+  @brief Construct a Gauss-Legendre quadrature
+
+  @param Q              Number of quadrature points (integrates polynomials of
+                          degree 2*Q-1 exactly)
+  @param[out] qref1d    Array of length Q to hold the abscissa on [-1, 1]
+  @param[out] qweight1d Array of length Q to hold the weights
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
 int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) {
   // Allocate
   CeedScalar P0, P1, P2, dP2, xi, wi, PI = 4.0*atan(1.0);
@@ -192,12 +208,18 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) {
   return 0;
 }
 
-/// Construct a Gauss-Legendre-Lobatto quadrature
-///
-/// @param Q Number of quadrature points (integrates polynomials of degree 2*Q-3 exactly)
-/// @param qref1d Array of length Q to hold the abscissa on [-1, 1]
-/// @param qweight1d Array of length Q to hold the weights
-/// @sa CeedGaussQuadrature()
+/**
+  @brief Construct a Gauss-Legendre-Lobatto quadrature
+
+  @param Q              Number of quadrature points (integrates polynomials of
+                          degree 2*Q-3 exactly)
+  @param[out] qref1d    Array of length Q to hold the abscissa on [-1, 1]
+  @param[out] qweight1d Array of length Q to hold the weights
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
 int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
                           CeedScalar *qweight1d) {
   // Allocate
@@ -253,6 +275,20 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
   return 0;
 }
 
+/**
+  @brief View an array stored in a CeedBasis
+
+  @param name      Name of array
+  @param fpformat  Printing format
+  @param m         Number of rows in array
+  @param n         Number of columns in array
+  @param a         Array to be viewed
+  @param stream    Stream to view to, e.g., stdout
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
 static int CeedScalarView(const char *name, const char *fpformat, CeedInt m,
                           CeedInt n, const CeedScalar *a, FILE *stream) {
   for (int i=0; i<m; i++) {
@@ -266,10 +302,16 @@ static int CeedScalarView(const char *name, const char *fpformat, CeedInt m,
   return 0;
 }
 
-/// View a basis
-///
-/// @param basis Basis to view
-/// @param stream Stream to view to, e.g., stdout
+/**
+  @brief View a CeedBasis
+
+  @param basis  CeedBasis to view
+  @param stream Stream to view to, e.g., stdout
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
 int CeedBasisView(CeedBasis basis, FILE *stream) {
   int ierr;
 
@@ -286,8 +328,24 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   return 0;
 }
 
-// Computes A = (I - b v v^T) A
-// where A is an mxn matrix indexed as A[i*row + j*col]
+/**
+  @brief Compute Householder Reflection
+
+    Computes A = (I - b v v^T) A
+    where A is an mxn matrix indexed as A[i*row + j*col]
+
+  @param[out] A  Matrix to apply Householder reflection to, in place
+  @param v       Householder vector
+  @param b       Scaling factor
+  @param m       Number of rows in A
+  @param n       Number of columns in A
+  @param row     Col stride
+  @param col     Row stride
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
 static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v,
                                   CeedScalar b, CeedInt m, CeedInt n,
                                   CeedInt row, CeedInt col) {
@@ -300,7 +358,25 @@ static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v,
   return 0;
 }
 
-// Compute A = Q A where Q is mxk and A is mxn. k<m
+/**
+  @brief Apply Householder Q matrix
+
+    Compute A = Q A where Q is mxk and A is mxn. k<m
+
+  @param[out] A  Matrix to apply Householder Q to, in place
+  @param Q       Householder Q matrix
+  @param tau     Householder scaling factors
+  @param tmode   Transpose mode for application
+  @param m       Number of rows in A
+  @param n       Number of columns in A
+  @param k       Index of row targeted
+  @param row     Col stride
+  @param col     Row stride
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
 static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
                                  const CeedScalar *tau, CeedTransposeMode tmode,
                                  CeedInt m, CeedInt n, CeedInt k,
@@ -317,11 +393,18 @@ static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
   return 0;
 }
 
-/// Return QR Factorization of matrix
-/// @param mat        Row-major matrix to be factorized in place
-/// @param tau        Vector of length m of scaling fators
-/// @param m          Number of rows
-/// @param n          Number of columns
+/**
+  @brief Return QR Factorization of matrix
+
+  @param[out] mat  Row-major matrix to be factorized in place
+  @param[out] tau  Vector of length m of scaling fators
+  @param m         Number of rows
+  @param n         Number of columns
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
 int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau,
                         CeedInt m, CeedInt n) {
   CeedInt i, j;
@@ -356,10 +439,17 @@ int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau,
   return 0;
 }
 
-/// Return colocated grad matrix
-/// @param basis      Basis
-/// @param colograd1d Row-major Q1d × Q1d matrix expressing derivatives of
-///                   basis functions at quadrature points
+/**
+  @brief Return colocated grad matrix
+
+  @param basis           CeedBasis
+  @param[out] colograd1d Row-major Q1d × Q1d matrix expressing derivatives of
+                           basis functions at quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
 int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
   int i, j, k;
   CeedInt ierr, P1d=(basis)->P1d, Q1d=(basis)->Q1d;
@@ -398,18 +488,25 @@ int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
   return 0;
 }
 
-/// Apply basis evaluation from nodes to quadrature points or vice-versa
-///
-/// @param basis Basis to evaluate
-/// @param nelem the number of elements to apply the basis evaluation to;
-///     the backend will specify the ordering in ElemRestrictionCreateBlocked
-/// @param tmode \ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature
-///     points, \ref CEED_TRANSPOSE to apply the transpose, mapping from
-///     quadrature points to nodes
-/// @param emode \ref CEED_EVAL_INTERP to obtain interpolated values,
-///     \ref CEED_EVAL_GRAD to obtain gradients.
-/// @param u input vector
-/// @param v output vector
+/**
+  @brief Apply basis evaluation from nodes to quadrature points or vice-versa
+
+  @param basis  CeedBasis to evaluate
+  @param nelem  The number of elements to apply the basis evaluation to;
+                  the backend will specify the ordering in
+                  ElemRestrictionCreateBlocked
+  @param tmode  \ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature
+                  points, \ref CEED_TRANSPOSE to apply the transpose, mapping
+                  from quadrature points to nodes
+  @param emode  \ref CEED_EVAL_INTERP to obtain interpolated values,
+                  \ref CEED_EVAL_GRAD to obtain gradients.
+  @param[in] u  Input array
+  @param[out] v Output array
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
 int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
                    CeedEvalMode emode, const CeedScalar *u, CeedScalar *v) {
   int ierr;
@@ -419,19 +516,45 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
   return 0;
 }
 
-/// Get total number of nodes (in dim dimensions)
+/**
+  @brief Get total number of nodes (in dim dimensions)
+
+  @param basis   CeedBasis
+  @param[out] P  Number of nodes
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
 int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
-  *P = CeedPowInt(basis->P1d, basis->dim);
+  *P = CeedIntPow(basis->P1d, basis->dim);
   return 0;
 }
 
-/// Get total number of quadrature points (in dim dimensions)
+/**
+  @brief Get total number of quadrature points (in dim dimensions)
+
+  @param basis   CeedBasis
+  @param[out] Q  Number of quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
 int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
-  *Q = CeedPowInt(basis->Q1d, basis->dim);
+  *Q = CeedIntPow(basis->Q1d, basis->dim);
   return 0;
 }
 
-/// Destroy a CeedBasis
+/**
+  @brief Destroy a CeedBasis
+
+  @param basis CeedBasis to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
 int CeedBasisDestroy(CeedBasis *basis) {
   int ierr;
 
@@ -448,7 +571,8 @@ int CeedBasisDestroy(CeedBasis *basis) {
   return 0;
 }
 
-/// Indicate that the quadrature points are colocated with the dofs
+/// @cond DOXYGEN_SKIP
+// Indicate that the quadrature points are colocated with the dofs
 CeedBasis CEED_BASIS_COLOCATED = &ceed_basis_colocated;
-
+/// @endcond
 /// @}

@@ -17,24 +17,26 @@
 #include <ceed-impl.h>
 #include <string.h>
 
-/**
-  @file
-  Implementation of public CeedOperator interfaces
-
-  @defgroup CeedOperator CeedOperator: composed FE-type operations on vectors
-  @{
- */
+/// @file
+/// Implementation of public CeedOperator interfaces
+///
+/// @addtogroup CeedOperator
+///   @{
 
 /**
-  Create an operator from element restriction, basis, and QFunction
+  @brief Create an operator from element restriction, basis, and QFunction
 
-  @param ceed The Ceed library context on which to create the operator
-  @param qf QFunction defining the action of the operator at quadrature points
-  @param dqf QFunction defining the action of the Jacobian of @a qf (or NULL)
-  @param dqfT QFunction defining the action of the transpose of the Jacobian
-              of @a qf (or NULL)
-  @param[out] op Newly created CeedOperator
-  @return Error code, 0 on success
+  @param ceed    A Ceed object where the CeedOperator will be created
+  @param qf      QFunction defining the action of the operator at quadrature points
+  @param dqf     QFunction defining the action of the Jacobian of @a qf (or NULL)
+  @param dqfT    QFunction defining the action of the transpose of the Jacobian
+                   of @a qf (or NULL)
+  @param[out] op Address of the variable where the newly created
+                     CeedOperator will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
  */
 int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
                        CeedQFunction dqfT, CeedOperator *op) {
@@ -57,7 +59,7 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
 }
 
 /**
-  Provide a field to a CeedOperator for use by its CeedQFunction
+  @brief Provide a field to a CeedOperator for use by its CeedQFunction
 
   This function is used to specify both active and passive fields to a
   CeedOperator.  For passive fields, a vector @arg v must be provided.  Passive
@@ -67,14 +69,19 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
   CeedVector) is passed in CeedOperatorApply().  There can be at most one active
   input and at most one active output.
 
-  @param op the operator on which to provide the field
-  @param fieldname name of the field (to be matched with the name used by CeedQFunction)
-  @param r element restriction
-  @param b basis in which the field resides or CEED_BASIS_COLOCATED if collocated
-           with quadrature points
-  @param v vector to be used by CeedOperator, CEED_VECTOR_ACTIVE if field is
-           active, or CEED_VECTOR_NONE if using CEED_EVAL_WEIGHT in the qfunction
- */
+  @param op         Ceedoperator on which to provide the field
+  @param fieldname  Name of the field (to be matched with the name used by CeedQFunction)
+  @param r          CeedElemRestriction
+  @param b          CeedBasis in which the field resides or CEED_BASIS_COLOCATED
+                      if collocated with quadrature points
+  @param v          CeedVector to be used by CeedOperator or CEED_VECTOR_ACTIVE
+                      if field is active or CEED_VECTOR_NONE if using
+                      CEED_EVAL_WEIGHT in the qfunction
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
 int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                          CeedElemRestriction r, CeedBasis b,
                          CeedVector v) {
@@ -120,21 +127,24 @@ found:
 }
 
 /**
-  Apply CeedOperator to a vector
+  @brief Apply CeedOperator to a vector
 
   This computes the action of the operator on the specified (active) input,
   yielding its (active) output.  All inputs and outputs must be specified using
   CeedOperatorSetField().
 
-  @param op CeedOperator to apply
-  @param in CeedVector containing input state or NULL if there are no active
-            inputs
-  @param out CeedVector to store result of applying operator (must be
-                distinct from @a in) or NULL if there are no active outputs
-  @param request Address of CeedRequest for non-blocking completion, else
-                 CEED_REQUEST_IMMEDIATE
-  @return Error code, 0 on success
- */
+  @param op        CeedOperator to apply
+  @param[in] in    CeedVector containing input state or NULL if there are no
+                     active inputs
+  @param[out] out  CeedVector to store result of applying operator (must be
+                     distinct from @a in) or NULL if there are no active outputs
+  @param request   Address of CeedRequest for non-blocking completion, else
+                     CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
 int CeedOperatorApply(CeedOperator op, CeedVector in,
                       CeedVector out, CeedRequest *request) {
   int ierr;
@@ -153,11 +163,14 @@ int CeedOperatorApply(CeedOperator op, CeedVector in,
 }
 
 /**
-  Destroy a CeedOperator
+  @brief Destroy a CeedOperator
 
   @param op CeedOperator to destroy
-  @return Error code, 0 on success
- */
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
 int CeedOperatorDestroy(CeedOperator *op) {
   int ierr;
 

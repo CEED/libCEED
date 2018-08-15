@@ -1,4 +1,6 @@
-// Test grad in multiple dimensions
+/// @file
+/// Test grad in multiple dimensions
+/// \test Test grad in multiple dimensions
 #include <ceed.h>
 #include <math.h>
 
@@ -15,15 +17,15 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
   for (CeedInt dim=1; dim<=3; dim++) {
     CeedBasis bxl, bug;
-    CeedInt P = 8, Q = 10, Pdim = CeedPowInt(P, dim), Qdim = CeedPowInt(Q, dim),
-            Xdim = CeedPowInt(2, dim);
+    CeedInt P = 8, Q = 10, Pdim = CeedIntPow(P, dim), Qdim = CeedIntPow(Q, dim),
+            Xdim = CeedIntPow(2, dim);
     CeedScalar x[Xdim*dim], ones[dim*Qdim], gtposeones[Pdim];
     CeedScalar xq[Pdim*dim], uq[dim*Qdim], u[Pdim], sum1 = 0, sum2 = 0;
 
     for (CeedInt i=0; i<dim*Qdim; i++) ones[i] = 1;
     for (CeedInt d=0; d<dim; d++) {
       for (CeedInt i=0; i<Xdim; i++) {
-        x[d*Xdim + i] = (i % CeedPowInt(2, dim-d)) / CeedPowInt(2, dim-d-1) ? 1 : -1;
+        x[d*Xdim + i] = (i % CeedIntPow(2, dim-d)) / CeedIntPow(2, dim-d-1) ? 1 : -1;
       }
     }
 

@@ -37,32 +37,34 @@ static size_t num_backends;
 /// @file
 /// Implementation of core components of Ceed library
 ///
-/// @defgroup Ceed Ceed: core components
+/// @addtogroup Ceed
 /// @{
 
-/// Request immediate completion
-///
-/// This predefined constant is passed as the \ref CeedRequest argument to
-/// interfaces when the caller wishes for the operation to be performed
-/// immediately.  The code
-///
-/// @code
-///   CeedOperatorApply(op, ..., CEED_REQUEST_IMMEDIATE);
-/// @endcode
-///
-/// is semantically equivalent to
-///
-/// @code
-///   CeedRequest request;
-///   CeedOperatorApply(op, ..., &request);
-///   CeedRequestWait(&request);
-/// @endcode
-///
-/// @sa CEED_REQUEST_ORDERED
+/**
+  @brief Request immediate completion
+
+  This predefined constant is passed as the \ref CeedRequest argument to
+  interfaces when the caller wishes for the operation to be performed
+  immediately.  The code
+
+  @code
+    CeedOperatorApply(op, ..., CEED_REQUEST_IMMEDIATE);
+  @endcode
+
+  is semantically equivalent to
+
+  @code
+    CeedRequest request;
+    CeedOperatorApply(op, ..., &request);
+    CeedRequestWait(&request);
+  @endcode
+
+  @sa CEED_REQUEST_ORDERED
+**/
 CeedRequest *const CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
 
 /**
-  Request ordered completion
+  @brief Request ordered completion
 
   This predefined constant is passed as the \ref CeedRequest argument to
   interfaces when the caller wishes for the operation to be completed in the
@@ -87,7 +89,11 @@ CeedRequest *const CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
  */
 CeedRequest *const CEED_REQUEST_ORDERED = &ceed_request_ordered;
 
-/// Error handling implementation; use \ref CeedError instead.
+/**
+  @brief Error handling implementation; use \ref CeedError instead.
+
+  @ref Developer
+**/
 int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
                   int ecode, const char *format, ...) {
   va_list args;
@@ -96,22 +102,26 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
   return CeedErrorAbort(ceed, filename, lineno, func, ecode, format, args);
 }
 
-/// Error handler that returns without printing anything.
-///
-/// Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
-///
-/// @sa CeedErrorAbort
+/**
+  @brief Error handler that returns without printing anything.
+
+  Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
+
+  @ref Developer
+**/
 int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
                     const char *func, int ecode, const char *format,
                     va_list args) {
   return ecode;
 }
 
-/// Error handler that prints to stderr and aborts
-///
-/// Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
-///
-/// @sa CeedErrorReturn
+/**
+  @brief Error handler that prints to stderr and aborts
+
+  Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
+
+  @ref Developer
+**/
 int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
                    const char *func, int ecode,
                    const char *format, va_list args) {
@@ -122,11 +132,15 @@ int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
   return ecode;
 }
 
-/// Set error handler
-///
-/// A default error handler is set in CeedInit().  Use this function to change
-/// the error handler to CeedErrorReturn(), CeedErrorAbort(), or a user-defined
-/// error handler.
+/**
+  @brief Set error handler
+
+  A default error handler is set in CeedInit().  Use this function to change
+  the error handler to CeedErrorReturn(), CeedErrorAbort(), or a user-defined
+  error handler.
+
+  @ref Developer
+**/
 int CeedSetErrorHandler(Ceed ceed,
                         int (eh)(Ceed, const char *, int, const char *,
                                  int, const char *, va_list)) {
@@ -135,17 +149,20 @@ int CeedSetErrorHandler(Ceed ceed,
 }
 
 /**
-  Register a Ceed backend
+  @brief Register a Ceed backend
 
-  @param prefix Prefix of resources for this backend to respond to.  For
-                example, the reference backend responds to "/cpu/self".
-  @param init   Initialization function called by CeedInit() when the backend
-                is selected to drive the requested resource.
+  @param prefix   Prefix of resources for this backend to respond to.  For
+                    example, the reference backend responds to "/cpu/self".
+  @param init     Initialization function called by CeedInit() when the backend
+                    is selected to drive the requested resource.
   @param priority Integer priority.  Lower values are preferred in case the
-                  resource requested by CeedInit() has non-unique best prefix
-                  match.
-  @return 0 on success
- */
+                    resource requested by CeedInit() has non-unique best prefix
+                    match.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
 int CeedRegister(const char *prefix,
                  int (*init)(const char *, Ceed), unsigned int priority) {
   if (num_backends >= sizeof(backends) / sizeof(backends[0])) {
@@ -158,15 +175,22 @@ int CeedRegister(const char *prefix,
   return 0;
 }
 
-/// Allocate an array on the host; use CeedMalloc()
-///
-/// Memory usage can be tracked by the library.  This ensures sufficient
-/// alignment for vectorization and should be used for large allocations.
-///
-/// @param n Number of units to allocate
-/// @param unit Size of each unit
-/// @param p Address of pointer to hold the result.
-/// @sa CeedFree()
+/**
+  @brief Allocate an array on the host; use CeedMalloc()
+
+  Memory usage can be tracked by the library.  This ensures sufficient
+    alignment for vectorization and should be used for large allocations.
+
+  @param n Number of units to allocate
+  @param unit Size of each unit
+  @param p Address of pointer to hold the result.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @sa CeedFree()
+
+  @ref Advanced
+**/
 int CeedMallocArray(size_t n, size_t unit, void *p) {
   int ierr = posix_memalign((void **)p, CEED_ALIGN, n*unit);
   if (ierr)
@@ -175,14 +199,21 @@ int CeedMallocArray(size_t n, size_t unit, void *p) {
   return 0;
 }
 
-/// Allocate a cleared (zeroed) array on the host; use CeedCalloc()
-///
-/// Memory usage can be tracked by the library.
-///
-/// @param n Number of units to allocate
-/// @param unit Size of each unit
-/// @param p Address of pointer to hold the result.
-/// @sa CeedFree()
+/**
+  @brief Allocate a cleared (zeroed) array on the host; use CeedCalloc()
+
+  Memory usage can be tracked by the library.
+
+  @param n Number of units to allocate
+  @param unit Size of each unit
+  @param p Address of pointer to hold the result.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @sa CeedFree()
+
+  @ref Advanced
+**/
 int CeedCallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = calloc(n, unit);
   if (n && unit && !*(void **)p)
@@ -191,14 +222,21 @@ int CeedCallocArray(size_t n, size_t unit, void *p) {
   return 0;
 }
 
-/// Reallocate an array on the host; use CeedRealloc()
-///
-/// Memory usage can be tracked by the library.
-///
-/// @param n Number of units to allocate
-/// @param unit Size of each unit
-/// @param p Address of pointer to hold the result.
-/// @sa CeedFree()
+/**
+  @brief Reallocate an array on the host; use CeedRealloc()
+
+  Memory usage can be tracked by the library.
+
+  @param n Number of units to allocate
+  @param unit Size of each unit
+  @param p Address of pointer to hold the result.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @sa CeedFree()
+
+  @ref Advanced
+**/
 int CeedReallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = realloc(*(void **)p, n*unit);
   if (n && unit && !*(void **)p)
@@ -220,23 +258,32 @@ int CeedFree(void *p) {
 }
 
 /**
-  Wait for a CeedRequest to complete.
+  @brief Wait for a CeedRequest to complete.
 
   Calling CeedRequestWait on a NULL request is a no-op.
 
   @param req Address of CeedRequest to wait for; zeroed on completion.
-  @return 0 on success
- */
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
 int CeedRequestWait(CeedRequest *req) {
   if (!*req) return 0;
   return CeedError(NULL, 2, "CeedRequestWait not implemented");
 }
 
-/// Initialize a \ref Ceed to use the specified resource.
-///
-/// @param resource  Resource to use, e.g., "/cpu/self"
-/// @param ceed The library context
-/// @sa CeedRegister() CeedDestroy()
+/**
+  @brief Initialize a \ref Ceed to use the specified resource.
+
+  @param resource  Resource to use, e.g., "/cpu/self"
+  @param ceed The library context
+  @sa CeedRegister() CeedDestroy()
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
 int CeedInit(const char *resource, Ceed *ceed) {
   int ierr;
   size_t matchlen = 0, matchidx;
@@ -264,11 +311,14 @@ int CeedInit(const char *resource, Ceed *ceed) {
 }
 
 /**
-  Destroy a Ceed context
+  @brief Destroy a Ceed context
 
   @param ceed Address of Ceed context to destroy
-  @return 0 on success
- */
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
 int CeedDestroy(Ceed *ceed) {
   int ierr;
 

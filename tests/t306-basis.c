@@ -1,4 +1,6 @@
-// Test QR Factorization
+/// @file
+/// Test QR Factorization
+/// \test Test QR Factorization
 #include <ceed.h>
 
 int main(int argc, char **argv) {

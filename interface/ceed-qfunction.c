@@ -17,25 +17,25 @@
 #include <ceed-impl.h>
 #include <string.h>
 
-/**
-  @file
-  Implementation of public CeedQFunction interfaces
-
-  @defgroup CeedQFunction CeedQFunction: independent operations at quadrature points
-  @{
- */
+/// @file
+/// Implementation of public CeedQFunction interfaces
+///
+/// @addtogroup CeedQFunction
+/// @{
 
 /**
   @brief Create a CeedQFunction for evaluating interior (volumetric) terms.
 
-  @param ceed       Ceed library context
+  @param ceed       A Ceed object where the CeedQFunction will be created
   @param vlength    Vector length.  Caller must ensure that number of quadrature
                     points is a multiple of vlength.
   @param f          Function pointer to evaluate action at quadrature points.
                     See below.
   @param focca      OCCA identifier "file.c:function_name" for definition of `f`
-  @param qf         constructed QFunction
-  @return 0 on success, otherwise failure
+  @param[out] qf    Address of the variable where the newly created
+                     CeedQFunction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
 
   The arguments of the call-back 'function' are:
 
@@ -48,7 +48,8 @@
 
    4. [CeedScalar *const *v][out] - output fields data at quadrature points, again listed in order given by the user
 
-*/
+  @ref Basic
+**/
 int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
                                 int (*f)(void*, CeedInt, const CeedScalar *const*, CeedScalar *const*),
                                 const char *focca, CeedQFunction *qf) {
@@ -70,6 +71,20 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
   return 0;
 }
 
+/**
+  @brief Set a CeedQFunction field, used by CeedQFunctionAddInput/Output
+
+  @param f          CeedQFunctionField
+  @param fieldname  Name of QFunction field
+  @param ncomp      Number of components per quadrature node
+  @param emode      \ref CEED_EVAL_NONE to use values directly,
+                      \ref CEED_EVAL_INTERP to use interpolated values,
+                      \ref CEED_EVAL_GRAD to use gradients.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
 static int CeedQFunctionFieldSet(struct CeedQFunctionField *f,
                                  const char *fieldname, CeedInt ncomp,
                                  CeedEvalMode emode) {
@@ -83,6 +98,20 @@ static int CeedQFunctionFieldSet(struct CeedQFunctionField *f,
   return 0;
 }
 
+/**
+  @brief Add a CeedQFunction input
+
+  @param qf         CeedQFunction
+  @param fieldname  Name of QFunction field
+  @param ncomp      Number of components per quadrature node
+  @param emode      \ref CEED_EVAL_NONE to use values directly,
+                      \ref CEED_EVAL_INTERP to use interpolated values,
+                      \ref CEED_EVAL_GRAD to use gradients.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
 int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                           CeedInt ncomp, CeedEvalMode emode) {
   int ierr = CeedQFunctionFieldSet(&qf->inputfields[qf->numinputfields++],
@@ -90,6 +119,20 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
   return 0;
 }
 
+/**
+  @brief Add a CeedQFunction output
+
+  @param qf         CeedQFunction
+  @param fieldname  Name of QFunction field
+  @param ncomp      Number of components per quadrature node
+  @param emode      \ref CEED_EVAL_NONE to use values directly,
+                      \ref CEED_EVAL_INTERP to use interpolated values,
+                      \ref CEED_EVAL_GRAD to use gradients.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
 int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                            CeedInt ncomp, CeedEvalMode emode) {
   if (emode == CEED_EVAL_WEIGHT)
@@ -99,6 +142,18 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                                    fieldname, ncomp, emode); CeedChk(ierr);
   return 0;
 }
+
+/**
+  @brief Get the number of inputs and outputs to a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] numinput   Number of input fields
+  @param[out] numoutput  Number of output fields
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
 
 int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
                             CeedInt *numoutput) {
@@ -121,16 +176,34 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
 }
 
 /**
-  Set global context for a quadrature function
- */
+  @brief Set global context for a quadrature function
+
+  @param qf       CeedQFunction
+  @param ctx      Context data to set
+  @param ctxsize  Size of context data values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
 int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
   qf->ctx = ctx;
   qf->ctxsize = ctxsize;
   return 0;
 }
 
-/** Apply the action of a CeedQFunction
- */
+/**
+  @brief Apply the action of a CeedQFunction
+
+  @param qf      CeedQFunction
+  @param Q       Number of quadrature points
+  @param[in] u   Array of input data arrays
+  @param[out] v  Array of output data arrays
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
 int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
                        const CeedScalar *const *u,
                        CeedScalar *const *v) {
@@ -145,8 +218,15 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
   return 0;
 }
 
-/** Destroy a CeedQFunction
- */
+/**
+  @brief Destroy a CeedQFunction
+
+  @param qf CeedQFunction to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
 int CeedQFunctionDestroy(CeedQFunction *qf) {
   int ierr;
 

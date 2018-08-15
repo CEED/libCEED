@@ -344,9 +344,9 @@ int main(int argc, char **argv) {
   CreateRestriction(ceed, melem, 2, 3, &Erestrictx);
   CeedInt nelem = melem[0]*melem[1]*melem[2];
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1,
-                            &Erestrictui);
+                                    &Erestrictui);
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1,
-                            &Erestrictxi);
+                                    &Erestrictxi);
   {
     CeedScalar *xloc;
     CeedInt shape[3] = {melem[0]+1, melem[1]+1, melem[2]+1}, len =
