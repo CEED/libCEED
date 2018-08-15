@@ -27,7 +27,7 @@ struct BuildContext { CeedInt dim, space_dim; };
 static int f_build_diff(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
   BuildContext *bc = (BuildContext*)ctx;
-  // in[0] is Jacobians, size (Q x nc x dim) with column-major layout
+  // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
   //
   // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
@@ -97,7 +97,7 @@ static int f_build_diff(void *ctx, CeedInt Q,
 static int f_apply_diff(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
   BuildContext *bc = (BuildContext*)ctx;
-  // in[0], out[0]: size: (Q x nc x dim) with column-major layout (nc == 1)
+  // in[0], out[0] have shape [dim, nc=1, Q]
   const CeedScalar *ug = in[0], *qd = in[1];
   CeedScalar *vg = out[0];
   switch (bc->dim) {

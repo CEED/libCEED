@@ -84,8 +84,8 @@ static int CeedBasisApply_Opt(CeedBasis basis, CeedInt nelem,
   } break;
   case CEED_EVAL_GRAD: {
     // In CEED_NOTRANSPOSE mode:
-    // u is [dim, ncomp, P^dim, nelem], row-major layout
-    // v is [dim, ncomp, Q^dim, nelem], row-major layout
+    // u has shape [dim, ncomp, P^dim, nelem], row-major layout
+    // v has shape [dim, ncomp, Q^dim, nelem], row-major layout
     // In CEED_TRANSPOSE mode, the sizes of u and v are switched.
     CeedInt P = basis->P1d, Q = basis->Q1d;
     if (tmode == CEED_TRANSPOSE) {

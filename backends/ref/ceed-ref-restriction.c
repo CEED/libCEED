@@ -43,8 +43,8 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
               = uu[CeedIntMin(e+j,r->nelem-1)*ncomp*elemsize + k];
     } else {
       // Indicies provided, standard or blocked restriction
-      // vv is [elemsize, ncomp, nelem], row-major
-      // uu is [ndof, ncomp]
+      // vv has shape [elemsize, ncomp, nelem], row-major
+      // uu has shape [ndof, ncomp]
       for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
         for (CeedInt d = 0; d < ncomp; d++)
           for (CeedInt i = 0; i < elemsize*blksize; i++)
@@ -64,8 +64,8 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
             vv[(e+j)*ncomp*elemsize + k] += uu[e*elemsize*ncomp + k*blksize + j];
     } else {
       // Indicies provided, standard or blocked restriction
-      // uu is [elemsize, ncomp, nelem]
-      // vv is [ndof, ncomp]
+      // uu has shape [elemsize, ncomp, nelem]
+      // vv has shape [ndof, ncomp]
       for (CeedInt e = 0; e < nblk*blksize; e+=blksize) {
         for (CeedInt d = 0; d < ncomp; d++)
           for (CeedInt i = 0; i < elemsize*blksize; i+=blksize)

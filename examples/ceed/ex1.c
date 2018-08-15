@@ -38,7 +38,7 @@ struct BuildContext { CeedInt dim, space_dim; };
 /// libCEED Q-function for building quadrature data for a mass operator
 static int f_build_mass(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
-  // in[0] is Jacobians, size (Q x nc x dim) with column-major layout
+  // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
   struct BuildContext *bc = (struct BuildContext*)ctx;
   const CeedScalar *J = in[0], *qw = in[1];
