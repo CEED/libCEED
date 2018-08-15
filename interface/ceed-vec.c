@@ -84,7 +84,7 @@ int CeedVectorSetArray(CeedVector vec, CeedMemType mtype, CeedCopyMode cmode,
 }
 
 /**
-  @brief Set the array used by a CeedVector, allocating the array if applicable
+  @brief Set the CeedVector to a constant value
 
   @param vec        CeedVector
   @param[in] value  Value to be used
