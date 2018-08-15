@@ -49,6 +49,7 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   ceed->refcount++;
   (*vec)->refcount = 1;
   (*vec)->length = length;
+  (*vec)->state = 0;
   ierr = ceed->VecCreate(ceed, length, *vec); CeedChk(ierr);
   return 0;
 }
@@ -69,9 +70,15 @@ int CeedVectorSetArray(CeedVector vec, CeedMemType mtype, CeedCopyMode cmode,
                        CeedScalar *array) {
   int ierr;
 
+  if (vec && (vec->state % 2) == 1)
+    return CeedError(vec->ceed, 1, "Cannot grant CeedVector array access, the access lock is already in use");
+
   if (!vec || !vec->SetArray)
     return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
+
   ierr = vec->SetArray(vec, mtype, cmode, array); CeedChk(ierr);
+  vec->state += 2;
+
   return 0;
 }
 
@@ -89,6 +96,9 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
   int ierr;
   CeedScalar *array;
 
+  if (vec && (vec->state % 2) == 1)
+    return CeedError(vec->ceed, 1, "Cannot grant CeedVector array access, the access lock is already in use");
+
   if (vec->SetValue) {
     ierr = vec->SetValue(vec, value); CeedChk(ierr);
   } else {
@@ -96,6 +106,9 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
     for (int i=0; i<vec->length; i++) array[i] = value;
     ierr = CeedVectorRestoreArray(vec, &array); CeedChk(ierr);
   }
+
+  vec->state += 2;
+
   return 0;
 }
 
@@ -119,9 +132,16 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 **/
 int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
   int ierr;
+
+  if (vec && (vec->state % 2) == 1)
+    return CeedError(vec->ceed, 1, "Cannot grant CeedVector array access, the access lock is already in use");
+
   if (!vec || !vec->GetArray)
     return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
+
   ierr = vec->GetArray(vec, mtype, array); CeedChk(ierr);
+  vec->state += 1;
+
   return 0;
 }
 
@@ -142,9 +162,14 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
                            const CeedScalar **array) {
   int ierr;
 
+  if (vec && (vec->state % 2) == 1)
+    return CeedError(vec->ceed, 1, "Cannot grant CeedVector array access, the access lock is already in use");
+
   if (!vec || !vec->GetArrayRead)
     return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
+
   ierr = vec->GetArrayRead(vec, mtype, array); CeedChk(ierr);
+
   return 0;
 }
 
@@ -163,7 +188,10 @@ int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
 
   if (!vec || !vec->RestoreArray)
     return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
+
   ierr = vec->RestoreArray(vec, array); CeedChk(ierr);
+  vec->state += 1;
+
   return 0;
 }
 
@@ -182,7 +210,9 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
 
   if (!vec || !vec->RestoreArrayRead)
     return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
+
   ierr = vec->RestoreArrayRead(vec, array); CeedChk(ierr);
+
   return 0;
 }
 
@@ -195,14 +225,18 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
 **/
 int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
   const CeedScalar *x;
+
   int ierr = CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &x); CeedChk(ierr);
+
   char fmt[1024];
   fprintf(stream, "CeedVector length %ld\n", (long)vec->length);
   snprintf(fmt, sizeof fmt, "  %s\n", fpfmt ? fpfmt : "%g");
   for (CeedInt i=0; i<vec->length; i++) {
     fprintf(stream, fmt, x[i]);
   }
+
   ierr = CeedVectorRestoreArrayRead(vec, &x); CeedChk(ierr);
+
   return 0;
 }
 
@@ -234,11 +268,17 @@ int CeedVectorDestroy(CeedVector *vec) {
   int ierr;
 
   if (!*vec || --(*vec)->refcount > 0) return 0;
+
+  if ((*vec) && ((*vec)->state % 2) == 1)
+    return CeedError((*vec)->ceed, 1, "Cannot destroy CeedVector, a process still has read/write access");
+
   if ((*vec)->Destroy) {
     ierr = (*vec)->Destroy(*vec); CeedChk(ierr);
   }
+
   ierr = CeedDestroy(&(*vec)->ceed); CeedChk(ierr);
   ierr = CeedFree(vec); CeedChk(ierr);
+
   return 0;
 }
 
