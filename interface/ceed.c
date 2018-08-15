@@ -323,8 +323,9 @@ int CeedInit(const char *resource, Ceed *ceed) {
   }
   if (!matchlen) return CeedError(NULL, 1, "No suitable backend");
   ierr = CeedCalloc(1,ceed); CeedChk(ierr);
-  char * ceed_error_handler = getenv("CEED_ERROR_HANDLER") ;
-  if (ceed_error_handler && !strcmp(ceed_error_handler, "exit"))
+  const char * ceed_error_handler = getenv("CEED_ERROR_HANDLER");
+  if (!ceed_error_handler) ceed_error_handler = "abort";
+  if (!strcmp(ceed_error_handler, "exit"))
     (*ceed)->Error = CeedErrorExit;
   else
     (*ceed)->Error = CeedErrorAbort;
