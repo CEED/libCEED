@@ -270,7 +270,7 @@ int CeedVectorDestroy(CeedVector *vec) {
   if (!*vec || --(*vec)->refcount > 0) return 0;
 
   if ((*vec) && ((*vec)->state % 2) == 1)
-    return CeedError((*vec)->ceed, 1, "Cannot destroy CeedVector, a process still has read/write access");
+    return CeedError((*vec)->ceed, 1, "Cannot destroy CeedVector, the access lock is in use");
 
   if ((*vec)->Destroy) {
     ierr = (*vec)->Destroy(*vec); CeedChk(ierr);
