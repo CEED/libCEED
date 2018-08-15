@@ -955,12 +955,13 @@ c     Helmholtz equations
       real  p1(lx,lelt)
       real  h1(lx,lelt), h2(lx,lelt)
       integer ceed,op_mass,vec_ap1,vec_p1,vec_qdata
+      integer*8 offset
 
       call ceedvectorsetarray(vec_p1,ceed_mem_host,ceed_use_pointer,
      $  p1,err)
       call ceedoperatorapply(op_mass,vec_p1,vec_ap1,
      $  ceed_request_immediate,err)
-      call ceedvectorgetarray(vec_ap1,ceed_mem_host,ap1,err)
+      call ceedvectorgetarray(vec_ap1,ceed_mem_host,ap1,offset,err)
 
       pap=0
 
@@ -968,11 +969,12 @@ c     Helmholtz equations
       k=1
       do e=1,nelt
          do i=1,lx
-           pap=pap+ap1(i,e)*p1(i,e)
+           pap=pap+ap1(offset+i,e)*p1(i,e)
          enddo
          k=k+nxq*nxq*nxq
       enddo
 
+      call ceedvectorrestorearray(vec_ap1,ap1,offset,err)
       return
       end
 c-----------------------------------------------------------------------

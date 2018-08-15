@@ -102,14 +102,18 @@ void fCeedVectorGetArrayRead(int *vec, int *memtype, CeedScalar *array,
 
 #define fCeedVectorRestoreArray \
     FORTRAN_NAME(ceedvectorrestorearray,CEEDVECTORRESTOREARRAY)
-void fCeedVectorRestoreArray(int *vec, CeedScalar *array, int *err) {
+void fCeedVectorRestoreArray(int *vec, CeedScalar *array,
+                             int64_t *offset, int *err) {
   *err = CeedVectorRestoreArray(CeedVector_dict[*vec], &array);
+  *offset = 0;
 }
 
 #define fCeedVectorRestoreArrayRead \
     FORTRAN_NAME(ceedvectorrestorearrayread,CEEDVECTORRESTOREARRAYREAD)
-void fCeedVectorRestoreArrayRead(int *vec, const CeedScalar *array, int *err) {
+void fCeedVectorRestoreArrayRead(int *vec, const CeedScalar *array,
+                                 int64_t *offset, int *err) {
   *err = CeedVectorRestoreArrayRead(CeedVector_dict[*vec], &array);
+  *offset = 0;
 }
 
 #define fCeedVectorView FORTRAN_NAME(ceedvectorview,CEEDVECTORVIEW)

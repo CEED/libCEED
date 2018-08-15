@@ -1164,6 +1164,7 @@ c     Helmholtz equations
       real ap1(lx,lelt)
       real  p1(lx,lelt)
       integer ceed,op_diffusion,vec_p1,vec_ap1,vec_qdata
+      integer*8 offset
 
       common /ctmp1/ ur,us,ut,wk
       real ur(lq),us(lq),ut(lq),wk(lq)
@@ -1174,16 +1175,17 @@ c     Helmholtz equations
      $  p1,err)
       call ceedoperatorapply(op_diffusion,vec_p1,vec_ap1,
      $  ceed_request_immediate,err)
-      call ceedvectorgetarray(vec_ap1,ceed_mem_host,ap1,err)
+      call ceedvectorgetarray(vec_ap1,ceed_mem_host,ap1,offset,err)
 
       pap=0.
 
       do e=1,nelt
          do i=1,lx
-           pap=pap+p1(i,e)*ap1(i,e)
+           pap=pap+p1(i,e)*ap1(offset+i,e)
          enddo
       enddo
 
+      call ceedvectorrestorearray(vec_ap1,ap1,offset,err)
       return
       end
 c-----------------------------------------------------------------------

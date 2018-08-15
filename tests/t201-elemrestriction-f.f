@@ -13,6 +13,7 @@ c-----------------------------------------------------------------------
       real*8 a(2*ne)
       real*8 yy(2*ne)
       real*8 diff
+      integer*8 yoffset
 
       character arg*32
 
@@ -35,14 +36,14 @@ c-----------------------------------------------------------------------
       call ceedelemrestrictionapply(r,ceed_notranspose,
      $  ceed_notranspose,x,y,ceed_request_immediate,err)
 
-      call ceedvectorgetarrayread(y,ceed_mem_host,yy,err)
+      call ceedvectorgetarrayread(y,ceed_mem_host,yy,yoffset,err)
       do i=1,ne*2
-        diff=10+i-1-yy(i)
+        diff=10+i-1-yy(yoffset+i)
         if (abs(diff) > 1.0D-15) then
-          write(*,*) 'Error in restricted array y(',i,')=',yy(i)
+          write(*,*) 'Error in restricted array y(',i,')=',yy(yoffset+i)
         endif
       enddo
-      call ceedvectorrestorearrayread(y,yy,err)
+      call ceedvectorrestorearrayread(y,yy,yoffset,err)
 
       call ceedvectordestroy(x,err)
       call ceedvectordestroy(y,err)

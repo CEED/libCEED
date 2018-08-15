@@ -14,6 +14,7 @@ c-----------------------------------------------------------------------
 
       integer*4 ind(2*ne)
       real*8 a(ne+1)
+      integer*8 aoffset
 
       character arg*32
 
@@ -46,11 +47,11 @@ c    No Transpose
       call ceedvectorview(y,err)
 
 c    Transpose
-      call ceedvectorgetarray(x,ceed_mem_host,a,err)
+      call ceedvectorgetarray(x,ceed_mem_host,a,aoffset,err)
       do i=1,ne+1
-        a(i)=0.0
+        a(aoffset+i)=0.0
       enddo
-      call ceedvectorrestorearray(x,a,err)
+      call ceedvectorrestorearray(x,a,aoffset,err)
       
       call ceedelemrestrictionapply(r,ceed_transpose,
      $  ceed_notranspose,y,x,ceed_request_immediate,err)

@@ -51,7 +51,7 @@ c-----------------------------------------------------------------------
           write(*,*) 'Error in restricted array y(',i,')=',yy(i+offset)
         endif
       enddo
-      call ceedvectorrestorearrayread(y,yy,err)
+      call ceedvectorrestorearrayread(y,yy,offset,err)
 
       call ceedvectordestroy(x,err)
       call ceedvectordestroy(y,err)

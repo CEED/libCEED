@@ -9,6 +9,7 @@ c-----------------------------------------------------------------------
       real*8 b(10)
       real*8 diff
       real*8 val
+      integer*8 boffset
       character arg*32
 
       call getarg(1,arg)
@@ -25,28 +26,28 @@ c-----------------------------------------------------------------------
       enddo
 
       call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,err)
-      call ceedvectorgetarrayread(x,ceed_mem_host,b,err)
+      call ceedvectorgetarrayread(x,ceed_mem_host,b,boffset,err)
 
       do i=1,10
-        diff=b(i)-10-i
+        diff=b(boffset+i)-10-i
         if (abs(diff)>1.0D-15) then
-          write(*,*) 'Error reading array b(',i,')=',b(i)
+          write(*,*) 'Error reading array b(',i,')=',b(boffset+i)
         endif
       enddo
 
-      call ceedvectorrestorearrayread(x,b,err)
+      call ceedvectorrestorearrayread(x,b,boffset,err)
 
       call ceedvectorsetvalue(x,val,err)
-      call ceedvectorgetarrayread(x,ceed_mem_host,b,err)
+      call ceedvectorgetarrayread(x,ceed_mem_host,b,boffset,err)
 
       do i=1,10
-        diff=b(i)-val
+        diff=b(boffset+i)-val
         if (abs(diff)>1.0D-15) then
-          write(*,*) 'Error reading array b(',i,')=',b(i)
+          write(*,*) 'Error reading array b(',i,')=',b(boffset+i)
         endif
       enddo
 
-      call ceedvectorrestorearrayread(x,b,err)
+      call ceedvectorrestorearrayread(x,b,boffset,err)
 
       call ceedvectordestroy(x,err)
       call ceeddestroy(ceed,err)
