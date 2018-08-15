@@ -97,6 +97,8 @@ CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,
                                 const char *, va_list);
 CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
                                const char *, va_list);
+CEED_EXTERN int CeedErrorExit(Ceed, const char *, int, const char *, int,
+                               const char *, va_list);
 CEED_EXTERN int CeedSetErrorHandler(Ceed ceed,
                                     int (eh)(Ceed, const char *, int, const char *,
                                         int, const char *, va_list));
