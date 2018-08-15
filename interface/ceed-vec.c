@@ -254,7 +254,7 @@ int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
 
   @ref Utility
 **/
-CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
+int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
   *length = vec->length;
   return 0;
 }
