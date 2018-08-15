@@ -170,8 +170,10 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
                                       NULL, NO_PROPS);
   data->d_tindices = occaDeviceMalloc(dev, bytes(r), NULL, NO_PROPS);
   // ***************************************************************************
-  CeedInt toffsets[r->ndof+1];
-  CeedInt tindices[r->elemsize*r->nelem];
+  CeedInt *toffsets;
+  ierr = CeedMalloc(r->ndof+1, &toffsets); CeedChk(ierr);
+  CeedInt *tindices;
+  ierr = CeedMalloc(r->elemsize*r->nelem, &tindices); CeedChk(ierr);
   CeedElemRestrictionOffset_Occa(r,used_indices,toffsets,tindices);
   occaCopyPtrToMem(data->d_toffsets,toffsets,
                    (1+r->ndof)*sizeof(CeedInt),NO_OFFSET,NO_PROPS);
@@ -223,5 +225,7 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   } else if (cmode == CEED_OWN_POINTER) {
     ierr = CeedFree(&indices); CeedChk(ierr);
   }
+  ierr = CeedFree(&toffsets); CeedChk(ierr);
+  ierr = CeedFree(&tindices); CeedChk(ierr);
   return 0;
 }
