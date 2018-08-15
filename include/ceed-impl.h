@@ -68,6 +68,7 @@ struct CeedVector_private {
   int (*Destroy)(CeedVector);
   int refcount;
   CeedInt length;
+  uint64_t state;
   void *data;
 };
 

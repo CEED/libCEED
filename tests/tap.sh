@@ -48,6 +48,23 @@ for ((i=0;i<${#backends[@]}; ++i)); do
         continue
     fi
 
+    # grep to pass test t103 on error
+    if grep -F -q -e 'Cannot grant CeedVector array access, the access lock is already in use' \
+            ${output}.err; then
+        printf "ok $i0 # Expected Fail $1 $backend\n"
+        printf "ok $i1 # Expected Fail $1 $backend stdout\n"
+        printf "ok $i2 # Expected Fail $1 $backend stderr\n"
+        continue
+    fi
+     # grep to pass test t104 on error
+    if grep -F -q -e 'Cannot destroy CeedVector, the access lock is in use' \
+            ${output}.err; then
+        printf "ok $i0 # Expected Fail $1 $backend\n"
+        printf "ok $i1 # Expected Fail $1 $backend stdout\n"
+        printf "ok $i2 # Expected Fail $1 $backend stderr\n"
+        continue
+    fi
+
     if [ $status -eq 0 ]; then
         printf "ok $i0 $1 $backend\n"
     else
