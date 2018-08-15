@@ -72,7 +72,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 }
 
 /**
-  @brief Set a CEEDQFunction field, used by CeedQFunctionAddInput/Output
+  @brief Set a CeedQFunction field, used by CeedQFunctionAddInput/Output
 
   @param f          CeedQFunctionField
   @param fieldname  Name of QFunction field
@@ -99,7 +99,7 @@ static int CeedQFunctionFieldSet(struct CeedQFunctionField *f,
 }
 
 /**
-  @brief Add a CEEDQFunction input
+  @brief Add a CeedQFunction input
 
   @param qf         CeedQFunction
   @param fieldname  Name of QFunction field
@@ -120,7 +120,7 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
 }
 
 /**
-  @brief Add a CEEDQFunction output
+  @brief Add a CeedQFunction output
 
   @param qf         CeedQFunction
   @param fieldname  Name of QFunction field
