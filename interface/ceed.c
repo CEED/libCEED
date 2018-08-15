@@ -133,6 +133,26 @@ int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
 }
 
 /**
+  @brief Error handler that prints to stderr and exits
+
+  Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
+
+  In contrast to CeedErrorAbort(), this exits without a signal, so atexit()
+  handlers (e.g., as used by gcov) are run.
+
+  @ref Developer
+**/
+int CeedErrorExit(Ceed ceed, const char *filename, int lineno,
+                   const char *func, int ecode,
+                   const char *format, va_list args) {
+  fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
+  vfprintf(stderr, format, args);
+  fprintf(stderr, "\n");
+  exit(ecode);
+  return ecode;
+}
+
+/**
   @brief Set error handler
 
   A default error handler is set in CeedInit().  Use this function to change
@@ -303,7 +323,10 @@ int CeedInit(const char *resource, Ceed *ceed) {
   }
   if (!matchlen) return CeedError(NULL, 1, "No suitable backend");
   ierr = CeedCalloc(1,ceed); CeedChk(ierr);
-  (*ceed)->Error = CeedErrorAbort;
+  if (!strcmp(getenv("CEED_ERROR_HANDLER"), "exit"))
+    (*ceed)->Error = CeedErrorExit;
+  else
+    (*ceed)->Error = CeedErrorAbort;
   (*ceed)->refcount = 1;
   (*ceed)->data = NULL;
   ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);
