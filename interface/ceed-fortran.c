@@ -618,10 +618,10 @@ void fCeedOperatorSetField(int *op, const char *fieldname,
 #define fCeedOperatorApply FORTRAN_NAME(ceedoperatorapply, CEEDOPERATORAPPLY)
 void fCeedOperatorApply(int *op, int *ustatevec,
                         int *resvec, int *rqst, int *err) {
-  // TODO What vector arguments can be NULL?
-  CeedVector resvec_;
-  if (*resvec == FORTRAN_NULL) resvec_ = NULL;
-  else resvec_ = CeedVector_dict[*resvec];
+  CeedVector ustatevec_ = *ustatevec == FORTRAN_NULL
+    ? NULL : CeedVector_dict[*ustatevec];
+  CeedVector resvec_ = *resvec == FORTRAN_NULL
+    ? NULL : CeedVector_dict[*resvec];
 
   int createRequest = 1;
   // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
@@ -640,7 +640,7 @@ void fCeedOperatorApply(int *op, int *ustatevec,
   else rqst_ = &CeedRequest_dict[CeedRequest_count];
 
   *err = CeedOperatorApply(CeedOperator_dict[*op],
-                           CeedVector_dict[*ustatevec], resvec_, rqst_);
+                           ustatevec_, resvec_, rqst_);
   if (*err) return;
   if (createRequest) {
     *rqst = CeedRequest_count++;
