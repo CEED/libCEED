@@ -44,8 +44,8 @@ if [[ "$#" -eq 1 && "$1" -eq "clean" ]]; then
     printf "y\n" | ./makenek clean 2>&1 >> /dev/null
   fi
   rm makenek* SESSION.NAME 2> /dev/null
-  for i in `seq 1 6 1`; do
-    rm bp$i bp$i*log*              2> /dev/null
+  for i in `seq 1 6`; do
+    rm -f bp$i bp$i.f bp$i*log*              2> /dev/null
   done
   find ./boxes -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
   exit 0
