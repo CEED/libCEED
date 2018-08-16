@@ -19,15 +19,45 @@ static int Ceed_count = 0;
 static int Ceed_n = 0;
 static int Ceed_count_max = 0;
 
+// This test should actually be for the gfortran version, but we don't currently
+// have a configure system to determine that (TODO).  At present, this will use
+// the smaller integer when run with clang+gfortran=8, for example.  (That is
+// sketchy, but will likely work for users that don't have huge character
+// strings.)
+#if __GNUC__ >= 8
+typedef size_t fortran_charlen_t;
+#else
+typedef int fortran_charlen_t;
+#endif
+
+#define Splice(a, b) a ## b
+
+// Fortran strings are generally unterminated and the length is passed as an
+// extra argument after all the normal arguments.  Some compilers (I only know
+// of Windows) place the length argument immediately after the string parameter
+// (TODO).
+//
+// We can't just NULL-terminate the string in-place because that could overwrite
+// other strings or attempt to write to read-only memory.  This macro allocates
+// a string to hold the null-terminated version of the string that C expects.
+#define FIX_STRING(stringname)                                          \
+  char Splice(stringname, _c)[1024];                                    \
+  if (Splice(stringname, _len) > 1023)                                  \
+    CeedError(NULL, 1, "Fortran string length too long %zd", (size_t)Splice(stringname, _len)); \
+  strncpy(Splice(stringname, _c), stringname, Splice(stringname, _len)); \
+  Splice(stringname, _c)[Splice(stringname, _len)] = 0;                 \
+
 #define fCeedInit FORTRAN_NAME(ceedinit,CEEDINIT)
-void fCeedInit(const char* resource, int *ceed, int *err) {
+void fCeedInit(const char* resource, int *ceed, int *err,
+               fortran_charlen_t resource_len) {
+  FIX_STRING(resource);
   if (Ceed_count == Ceed_count_max) {
     Ceed_count_max += Ceed_count_max/2 + 1;
     CeedRealloc(Ceed_count_max, &Ceed_dict);
   }
 
   Ceed *ceed_ = &Ceed_dict[Ceed_count];
-  *err = CeedInit(resource, ceed_);
+  *err = CeedInit(resource_c, ceed_);
 
   if (*err == 0) {
     *ceed = Ceed_count++;
@@ -433,7 +463,9 @@ void fCeedQFunctionCreateInterior(int* ceed, int* vlength,
                                       CeedScalar *v8,CeedScalar *v9, CeedScalar *v10,CeedScalar *v11,
                                       CeedScalar *v12,CeedScalar *v13, CeedScalar *v14,CeedScalar *v15,
                                       int *err),
-                                  const char *focca, int *qf, int *err) {
+                                  const char *focca, int *qf, int *err,
+                                  fortran_charlen_t focca_len) {
+  FIX_STRING(focca);
   if (CeedQFunction_count == CeedQFunction_count_max) {
     CeedQFunction_count_max += CeedQFunction_count_max/2 + 1;
     CeedRealloc(CeedQFunction_count_max, &CeedQFunction_dict);
@@ -441,7 +473,7 @@ void fCeedQFunctionCreateInterior(int* ceed, int* vlength,
 
   CeedQFunction *qf_ = &CeedQFunction_dict[CeedQFunction_count];
   *err = CeedQFunctionCreateInterior(Ceed_dict[*ceed], *vlength,
-                                     CeedQFunctionFortranStub,focca, qf_);
+                                     CeedQFunctionFortranStub,focca_c, qf_);
 
   if (*err == 0) {
     *qf = CeedQFunction_count++;
@@ -460,19 +492,23 @@ void fCeedQFunctionCreateInterior(int* ceed, int* vlength,
 #define fCeedQFunctionAddInput \
     FORTRAN_NAME(ceedqfunctionaddinput,CEEDQFUNCTIONADDINPUT)
 void fCeedQFunctionAddInput(int *qf, const char *fieldname,
-                            CeedInt *ncomp, CeedEvalMode *emode, int *err) {
+                            CeedInt *ncomp, CeedEvalMode *emode, int *err,
+                            fortran_charlen_t fieldname_len) {
+  FIX_STRING(fieldname);
   CeedQFunction qf_ = CeedQFunction_dict[*qf];
 
-  *err = CeedQFunctionAddInput(qf_, fieldname, *ncomp, *emode);
+  *err = CeedQFunctionAddInput(qf_, fieldname_c, *ncomp, *emode);
 }
 
 #define fCeedQFunctionAddOutput \
     FORTRAN_NAME(ceedqfunctionaddoutput,CEEDQFUNCTIONADDOUTPUT)
 void fCeedQFunctionAddOutput(int *qf, const char *fieldname,
-                             CeedInt *ncomp, CeedEvalMode *emode, int *err) {
+                             CeedInt *ncomp, CeedEvalMode *emode, int *err,
+                             fortran_charlen_t fieldname_len) {
+  FIX_STRING(fieldname);
   CeedQFunction qf_ = CeedQFunction_dict[*qf];
 
-  *err = CeedQFunctionAddOutput(qf_, fieldname, *ncomp, *emode);
+  *err = CeedQFunctionAddOutput(qf_, fieldname_c, *ncomp, *emode);
 }
 
 #define fCeedQFunctionApply \
@@ -583,7 +619,9 @@ void fCeedOperatorCreate(int* ceed,
 #define fCeedOperatorSetField \
     FORTRAN_NAME(ceedoperatorsetfield,CEEDOPERATORSETFIELD)
 void fCeedOperatorSetField(int *op, const char *fieldname,
-                           int *r, int *b, int *v, int *err) {
+                           int *r, int *b, int *v, int *err,
+                           fortran_charlen_t fieldname_len) {
+  FIX_STRING(fieldname);
   CeedElemRestriction r_;
   CeedBasis b_;
   CeedVector v_;
@@ -612,7 +650,7 @@ void fCeedOperatorSetField(int *op, const char *fieldname,
     v_ = CeedVector_dict[*v];
   }
 
-  *err = CeedOperatorSetField(op_, fieldname, r_, b_, v_);
+  *err = CeedOperatorSetField(op_, fieldname_c, r_, b_, v_);
 }
 
 #define fCeedOperatorApply FORTRAN_NAME(ceedoperatorapply, CEEDOPERATORAPPLY)
