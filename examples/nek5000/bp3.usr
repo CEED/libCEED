@@ -507,7 +507,7 @@ c-----------------------------------------------------------------------
 
       integer p,q,ncomp,edof,ldof
       integer basisu,basisx
-      integer erstrctu,erstrctx
+      integer erstrctu,erstrctx,erstrctw
       integer qdata
       integer qf_diffusion,qf_setup
       integer op_diffusion,op_setup
@@ -564,6 +564,9 @@ c     Create ceed element restrictions for mesh and computation
 
       ngeo=(ldim*(ldim+1))/2
 
+      call ceedelemrestrictioncreateidentity(ceed,nelt,q**ldim,
+     $  nelt*q**ldim,ngeo,erstrctw,err)
+
 c     Create ceed vectors
       nlt=lx1*ly1*lz1*nelt
       ii=0
@@ -579,7 +582,7 @@ c     Create ceed vectors
       call ceedvectorcreate(ceed,ldof,vec_p1,err)
       call ceedvectorcreate(ceed,ldof,vec_ap1,err)
       call ceedvectorcreate(ceed,3*nlt,vec_coords,err)
-      call ceedvectorcreate(ceed,edof*nelt*ngeo,vec_qdata,err)
+      call ceedvectorcreate(ceed,q**ldim*nelt*ngeo,vec_qdata,err)
 
       call ceedvectorsetarray(vec_coords,ceed_mem_host,
      $  ceed_use_pointer,coords,err)
@@ -611,7 +614,7 @@ c     Create a ceed operator
       call ceedoperatorsetfield(op_setup,'dx',
      $  erstrctx,basisx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rho',
-     $  erstrctu,ceed_basis_colocated,
+     $  erstrctw,ceed_basis_colocated,
      $  ceed_vector_active,err)
 
       call ceedoperatorcreate(ceed,qf_diffusion,
@@ -619,7 +622,7 @@ c     Create a ceed operator
       call ceedoperatorsetfield(op_diffusion,'u',
      $  erstrctu,basisu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_diffusion,'rho',
-     $  erstrctu,ceed_basis_colocated,vec_qdata,err)
+     $  erstrctw,ceed_basis_colocated,vec_qdata,err)
       call ceedoperatorsetfield(op_diffusion,'v',
      $  erstrctu,basisu,ceed_vector_active,err)
 
@@ -656,6 +659,7 @@ c     Destroy ceed handles
       call ceedqfunctiondestroy(qf_setup,err)
       call ceedelemrestrictiondestroy(erstrctx,err)
       call ceedelemrestrictiondestroy(erstrctu,err)
+      call ceedelemrestrictiondestroy(erstrctw,err)
       call ceedbasisdestroy(basisu,err)
       call ceedbasisdestroy(basisx,err)
       call ceeddestroy(ceed,err)

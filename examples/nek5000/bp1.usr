@@ -769,7 +769,7 @@ c-----------------------------------------------------------------------
 
       integer p,q,ncomp,edof,ldof
       integer basisu,basisx
-      integer erstrctu,erstrctx
+      integer erstrctu,erstrctx,erstrctw
       integer qdata
       integer qf_mass,qf_setup
       integer op_mass,op_setup
@@ -835,6 +835,8 @@ c     Create ceed element restrictions for mesh and computation
       ldof=edof*nelt*ncomp
       call ceedelemrestrictioncreateidentity(ceed,nelt,edof,ldof,3,
      $  erstrctx,err)
+      call ceedelemrestrictioncreateidentity(ceed,nelt,edof,ldof,1,
+     $  erstrctw,err)
 
       edof=nx1**ndim
       ldof=edof*nelt*ncomp
@@ -844,7 +846,7 @@ c     Create ceed element restrictions for mesh and computation
 c     Create ceed vectors
       call ceedvectorcreate(ceed,ldof,vec_p1,err)
       call ceedvectorcreate(ceed,ldof,vec_ap1,err)
-      call ceedvectorcreate(ceed,edof*nelt,vec_qdata,err)
+      call ceedvectorcreate(ceed,q**ndim*nelt,vec_qdata,err)
 
 c     Create ceed qfunctions for setupf and massf
       call ceedqfunctioncreateinterior(ceed,1,setupf,
@@ -866,15 +868,15 @@ c     Create a ceed operator
       call ceedoperatorcreate(ceed,qf_setup,
      $  ceed_null,ceed_null,op_setup,err)
       call ceedoperatorsetfield(op_setup,'_weight',
-     $  erstrctu,basisx,ceed_vector_none,err)
+     $  erstrctw,basisx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'rho',
-     $  erstrctu,ceed_basis_colocated,
+     $  erstrctw,ceed_basis_colocated,
      $  ceed_vector_active,err)
 
       call ceedoperatorcreate(ceed,qf_mass,
      $  ceed_null,ceed_null,op_mass,err)
       call ceedoperatorsetfield(op_mass,'rho',
-     $  erstrctu,ceed_basis_colocated,
+     $  erstrctw,ceed_basis_colocated,
      $  vec_qdata,err)
       call ceedoperatorsetfield(op_mass,'u',erstrctu,
      $  basisu,ceed_vector_active,err)
@@ -920,6 +922,7 @@ c     Destroy ceed handles
       call ceedqfunctiondestroy(qf_mass,err)
       call ceedqfunctiondestroy(qf_setup,err)
       call ceedelemrestrictiondestroy(erstrctx,err)
+      call ceedelemrestrictiondestroy(erstrctw,err)
       call ceedelemrestrictiondestroy(erstrctu,err)
       call ceedbasisdestroy(basisu,err)
       call ceedbasisdestroy(basisx,err)
