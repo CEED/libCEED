@@ -554,14 +554,12 @@ c     Create ceed basis for mesh and computation
 c     Create ceed element restrictions for mesh and computation
       edof=nx1**ldim
       ldof=edof*nelt*ncomp
-      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,ldim,
-     $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
+      call ceedelemrestrictioncreateidentity(ceed,nelt,edof,ldof,ldim,
      $  erstrctx,err)
 
       edof=nx1**ldim
       ldof=edof*nelt*ncomp
-      call ceedelemrestrictioncreate(ceed,nelt,edof,ldof,1,
-     $  ceed_mem_host,ceed_use_pointer,ceed_elemrestrict_identity,
+      call ceedelemrestrictioncreateidentity(ceed,nelt,edof,ldof,1,
      $  erstrctu,err)
 
       ngeo=(ldim*(ldim+1))/2
@@ -609,7 +607,7 @@ c     Create a ceed operator
       call ceedoperatorcreate(ceed,qf_setup,
      $  ceed_null,ceed_null,op_setup,err)
       call ceedoperatorsetfield(op_setup,'weight',
-     $  ceed_restriction_identity,basisx,ceed_vector_none,err)
+     $  erstrctu,basisx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'dx',
      $  erstrctx,basisx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rho',
