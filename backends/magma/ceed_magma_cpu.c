@@ -54,14 +54,14 @@ static int CeedBasisApply_MagmaCPU(CeedBasis basis, CeedTransposeMode tmode,
   int ierr;
   const CeedInt dim = basis->dim;
   const CeedInt ndof = basis->ncomp;
-  const CeedInt nqpt = ndof*CeedPowInt(basis->Q1d, dim);
+  const CeedInt nqpt = ndof*CeedIntPow(basis->Q1d, dim);
   const CeedInt add = (tmode == CEED_TRANSPOSE);
 
   CeedDebug("\033[01m[CeedBasisApply_Magma] vsize=%d",
-            ndof*CeedPowInt(basis->P1d, dim));
+            ndof*CeedIntPow(basis->P1d, dim));
 
   if (tmode == CEED_TRANSPOSE) {
-    const CeedInt vsize = ndof*CeedPowInt(basis->P1d, dim);
+    const CeedInt vsize = ndof*CeedIntPow(basis->P1d, dim);
 
     for (CeedInt i = 0; i < vsize; i++)
       v[i] = (CeedScalar) 0;
@@ -71,12 +71,12 @@ static int CeedBasisApply_MagmaCPU(CeedBasis basis, CeedTransposeMode tmode,
     if (tmode == CEED_TRANSPOSE) {
       P = basis->Q1d; Q = basis->P1d;
     }
-    CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
-    int ldtmp = ndof*Q*CeedPowInt(P>Q?P:Q,dim-1);
+    CeedInt pre = ndof*CeedIntPow(P, dim-1), post = 1;
+    int ldtmp = ndof*Q*CeedIntPow(P>Q?P:Q,dim-1);
 
     CeedScalar tmp[2*ldtmp];    
     CeedDebug("\033[01m[CeedBasisApply_Magma] tmpsize = %d",
-              ndof*Q*CeedPowInt(P>Q?P:Q, dim-1));
+              ndof*Q*CeedIntPow(P>Q?P:Q, dim-1));
     for (CeedInt d=0; d<dim; d++) {
       ierr = CeedTensorContract_MagmaCPU(basis->ceed, pre, P, post, Q, 
                                          // impl->dinterp1d, 
@@ -102,13 +102,13 @@ static int CeedBasisApply_MagmaCPU(CeedBasis basis, CeedTransposeMode tmode,
     if (tmode == CEED_TRANSPOSE) {
       P = basis->Q1d, Q = basis->P1d;
     }
-    int ldtmp = ndof*Q*CeedPowInt(P>Q?P:Q,dim-1); 
+    int ldtmp = ndof*Q*CeedIntPow(P>Q?P:Q,dim-1); 
 
     CeedScalar tmp[2*ldtmp];
     CeedDebug("\033[01m[CeedBasisApply_Magma] tmpsize = %d",
-              ndof*Q*CeedPowInt(P>Q?P:Q, dim-1));
+              ndof*Q*CeedIntPow(P>Q?P:Q, dim-1));
     for (CeedInt p = 0; p < dim; p++) {
-      CeedInt pre = ndof*CeedPowInt(P, dim-1), post = 1;
+      CeedInt pre = ndof*CeedIntPow(P, dim-1), post = 1;
       for (CeedInt d=0; d<dim; d++) {
         ierr = CeedTensorContract_MagmaCPU(basis->ceed, pre, P, post, Q,
                                            //(p==d)? impl->dgrad1d: impl->dinterp1d,
@@ -132,7 +132,7 @@ static int CeedBasisApply_MagmaCPU(CeedBasis basis, CeedTransposeMode tmode,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     CeedInt Q = basis->Q1d;
     for (CeedInt d=0; d<dim; d++) {
-      CeedInt pre = CeedPowInt(Q, dim-d-1), post = CeedPowInt(Q, d);
+      CeedInt pre = CeedIntPow(Q, dim-d-1), post = CeedIntPow(Q, d);
 
       for (CeedInt i=0; i<pre; i++) {
         for (CeedInt j=0; j<Q; j++) {
