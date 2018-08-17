@@ -1042,12 +1042,6 @@ static int CeedOperatorApply_Magma(CeedOperator op, CeedVector invec,
     CeedEvalMode emode = qf->inputfields[i].emode;
     if (emode & CEED_EVAL_WEIGHT) { // Skip
     } else {
-      // Zero evec
-      ierr = CeedVectorGetArray(opmagma->evecs[i], CEED_MEM_HOST, &vec_temp);
-      CeedChk(ierr);
-      for (CeedInt j=0; j<opmagma->evecs[i]->length; j++)
-        vec_temp[j] = 0.;
-      ierr = CeedVectorRestoreArray(opmagma->evecs[i], &vec_temp); CeedChk(ierr);
       // Active
       if (op->inputfields[i].vec == CEED_VECTOR_ACTIVE) {
         // Restrict
@@ -1154,27 +1148,20 @@ static int CeedOperatorApply_Magma(CeedOperator op, CeedVector invec,
 
   // Output restriction
   for (CeedInt i=0; i<qf->numoutputfields; i++) {
+    // Restore evec
+    ierr = CeedVectorRestoreArray(opmagma->evecs[i+opmagma->numein],
+                                  &opmagma->edata[i + qf->numinputfields]); CeedChk(ierr);
     // Active
     if (op->outputfields[i].vec == CEED_VECTOR_ACTIVE) {
-      // Restore evec
-      ierr = CeedVectorRestoreArray(opmagma->evecs[i+opmagma->numein],
-                                    &opmagma->edata[i + qf->numinputfields]); CeedChk(ierr);
       // Zero lvec
-      ierr = CeedVectorGetArray(outvec, CEED_MEM_HOST, &vec_temp); CeedChk(ierr);
-      for (CeedInt j=0; j<outvec->length; j++)
-        vec_temp[j] = 0.;
-      ierr = CeedVectorRestoreArray(outvec, &vec_temp); CeedChk(ierr);
+      ierr = CeedVectorSetValue(outvec, 0.0); CeedChk(ierr);
       // Restrict
       ierr = CeedElemRestrictionApply(op->outputfields[i].Erestrict, CEED_TRANSPOSE,
                                       lmode, opmagma->evecs[i+opmagma->numein], outvec, request); CeedChk(ierr);
     } else {
       // Passive
-      // Restore evec
-      ierr = CeedVectorRestoreArray(opmagma->evecs[i+opmagma->numein],
-                                    &opmagma->edata[i + qf->numinputfields]); CeedChk(ierr);
       // Zero lvec
-      ierr = CeedVectorGetArray(op->outputfields[i].vec, CEED_MEM_HOST, &vec_temp);
-      CeedChk(ierr);
+      ierr = CeedVectorSetValue(op->outputfields[i].vec, 0.0); CeedChk(ierr);
       for (CeedInt j=0; j<op->outputfields[i].vec->length; j++)
         vec_temp[j] = 0.;
       ierr = CeedVectorRestoreArray(op->outputfields[i].vec, &vec_temp);
