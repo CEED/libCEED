@@ -33,3 +33,20 @@ int CeedBasisCreateTensorH1_Tmpl(Ceed ceed, CeedInt dim, CeedInt P1d,
 
   return 0;
 }
+
+int CeedBasisCreateH1_Tmpl(Ceed ceed, CeedElemTopology topo, CeedInt dim,
+                           CeedInt ndof, CeedInt nqpts,
+                           const CeedScalar *interp,
+                           const CeedScalar *grad,
+                           const CeedScalar *qref,
+                           const CeedScalar *qweight,
+                           CeedBasis basis) {
+  int ierr;
+  Ceed_Tmpl *impl = ceed->data;
+  Ceed ceedref = impl->ceedref;
+  ierr = ceedref->BasisCreateH1(ceed, topo, dim, ndof, nqpts, interp,
+                                grad, qref, qweight, basis);
+  CeedChk(ierr);
+
+  return 0;
+}

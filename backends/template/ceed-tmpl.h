@@ -35,6 +35,15 @@ CEED_INTERN int CeedBasisCreateTensorH1_Tmpl(Ceed ceed, CeedInt dim,
     const CeedScalar *qweight1d,
     CeedBasis basis);
 
+CEED_INTERN int CeedBasisCreateH1_Tmpl(Ceed ceed, CeedElemTopology topo,
+                                       CeedInt dim,
+                                       CeedInt ndof, CeedInt nqpts,
+                                       const CeedScalar *interp,
+                                       const CeedScalar *grad,
+                                       const CeedScalar *qref,
+                                       const CeedScalar *qweight,
+                                       CeedBasis basis);
+
 CEED_INTERN int CeedQFunctionCreate_Tmpl(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Tmpl(CeedOperator op);

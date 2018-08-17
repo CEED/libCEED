@@ -705,6 +705,16 @@ static int CeedBasisCreateTensorH1_Magma(Ceed ceed, CeedInt dim, CeedInt P1d,
   return 0;
 }
 
+static int CeedBasisCreateH1_Magma(Ceed ceed, CeedElemTopology topo, CeedInt dim,
+                          CeedInt ndof, CeedInt nqpts,
+                          const CeedScalar *interp,
+                          const CeedScalar *grad,
+                          const CeedScalar *qref,
+                          const CeedScalar *qweight,
+                          CeedBasis basis) {
+  return CeedError(basis->ceed, 1, "Backend does not implement non-tensor bases");
+}
+
 static int CeedQFunctionApply_Magma(CeedQFunction qf, CeedInt Q,
                                     const CeedScalar *const *u,
                                     CeedScalar *const *v) {
@@ -1062,6 +1072,7 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
 
   ceed->VecCreate = CeedVectorCreate_Magma;
   ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Magma;
+  ceed->BasisCreateH1 = CeedBasisCreateH1_Magma;
   ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Magma;
   ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreateBlocked_Magma;
   ceed->QFunctionCreate = CeedQFunctionCreate_Magma;

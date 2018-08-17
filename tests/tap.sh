@@ -42,7 +42,7 @@ for ((i=0;i<${#backends[@]}; ++i)); do
         continue
     fi
 
-     # grep to skip test if backend chooses to whitelist test
+    # grep to skip test if backend chooses to whitelist test
     if grep -F -q -e 'Backend does not implement' \
             ${output}.err ; then
         printf "ok $i0 # SKIP - not implemented $1 $backend\n"

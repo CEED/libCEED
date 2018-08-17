@@ -107,7 +107,8 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   int ierr;
 
   // Count infield and outfield array sizes and evectors
-  ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields); CeedChk(ierr);
+  ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
+  CeedChk(ierr);
   impl->numein = numinputfields;
   for (CeedInt i=0; i<numinputfields; i++) {
     CeedEvalMode emode = qf->inputfields[i].emode;
@@ -174,7 +175,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
 
   // Setup
   ierr = CeedOperatorSetup_Ref(op); CeedChk(ierr);
-  ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields); CeedChk(ierr);
+  ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
+  CeedChk(ierr);
 
   // Input Evecs and Restriction
   for (CeedInt i=0; i<numinputfields; i++) {

@@ -143,8 +143,8 @@ int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
   @ref Developer
 **/
 int CeedErrorExit(Ceed ceed, const char *filename, int lineno,
-                   const char *func, int ecode,
-                   const char *format, va_list args) {
+                  const char *func, int ecode,
+                  const char *format, va_list args) {
   fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
   vfprintf(stderr, format, args);
   fprintf(stderr, "\n");

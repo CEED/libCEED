@@ -45,6 +45,7 @@ static int CeedInit_Opt(const char *resource, Ceed ceed) {
 
   ceed->VecCreate = CeedVectorCreate_Opt;
   ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Opt;
+  ceed->BasisCreateH1 = CeedBasisCreateH1_Opt;
   ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Opt;
   ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreate_Opt;
   ceed->QFunctionCreate = CeedQFunctionCreate_Opt;

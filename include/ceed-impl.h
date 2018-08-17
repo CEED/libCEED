@@ -36,6 +36,9 @@ struct Ceed_private {
                                       const CeedInt *);
   int (*BasisCreateTensorH1)(Ceed, CeedInt, CeedInt, CeedInt, const CeedScalar *,
                              const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
+  int (*BasisCreateH1)(Ceed, CeedElemTopology, CeedInt, CeedInt, CeedInt,
+                       const CeedScalar *,
+                       const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*QFunctionCreate)(CeedQFunction);
   int (*OperatorCreate)(CeedOperator);
   int refcount;
@@ -95,10 +98,13 @@ struct CeedBasis_private {
                CeedScalar *);
   int (*Destroy)(CeedBasis);
   int refcount;
+  bool tensorbasis;      /* flag for tensor basis */
   CeedInt dim;           /* topological dimension */
   CeedInt ncomp;         /* number of field components (1 for scalar fields) */
   CeedInt P1d;           /* number of nodes in one dimension */
   CeedInt Q1d;           /* number of quadrature points in one dimension */
+  CeedInt P;             /* total number of nodes */
+  CeedInt Q;             /* total number of quadrature points */
   CeedScalar *qref1d;    /* Array of length Q1d holding the locations of
                             quadrature points on the 1D reference element [-1, 1] */
   CeedScalar *qweight1d; /* array of length Q1d holding the quadrature weights on

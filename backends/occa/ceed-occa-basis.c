@@ -351,3 +351,16 @@ int CeedBasisCreateTensorH1_Occa(Ceed ceed,
   basis->Destroy = CeedBasisDestroy_Occa;
   return 0;
 }
+
+// *****************************************************************************
+// * CeedBasisCreateH1_Occa
+// *****************************************************************************
+int CeedBasisCreateH1_Occa(Ceed ceed, CeedElemTopology topo, CeedInt dim,
+                          CeedInt ndof, CeedInt nqpts,
+                          const CeedScalar *interp,
+                          const CeedScalar *grad,
+                          const CeedScalar *qref,
+                          const CeedScalar *qweight,
+                          CeedBasis basis) {
+  return CeedError(basis->ceed, 1, "Backend does not implement non-tensor bases");
+}

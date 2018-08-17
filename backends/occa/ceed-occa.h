@@ -140,6 +140,15 @@ CEED_INTERN int CeedBasisCreateTensorH1_Occa(Ceed ceed, CeedInt dim,
     const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
 
 // *****************************************************************************
+CEED_INTERN int CeedBasisCreateH1_Occa(Ceed ceed, CeedElemTopology topo,
+                                      CeedInt dim,
+                                      CeedInt ndof, CeedInt nqpts,
+                                      const CeedScalar *interp1d,
+                                      const CeedScalar *grad1d,
+                                      const CeedScalar *qref1d,
+                                      const CeedScalar *qweight1d,
+                                      CeedBasis basis);
+// *****************************************************************************
 CEED_INTERN int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt Q,
     CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
 

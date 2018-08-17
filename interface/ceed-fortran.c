@@ -10,7 +10,6 @@
 #define FORTRAN_REQUEST_ORDERED -2
 #define FORTRAN_NULL -3
 #define FORTRAN_BASIS_COLLOCATED -1
-#define FORTRAN_QDATA_NONE -1
 #define FORTRAN_VECTOR_ACTIVE -1
 #define FORTRAN_VECTOR_NONE -2
 
@@ -112,7 +111,8 @@ void fCeedVectorSetValue(int *vec, CeedScalar *value, int *err) {
 }
 
 #define fCeedVectorGetArray FORTRAN_NAME(ceedvectorgetarray,CEEDVECTORGETARRAY)
-void fCeedVectorGetArray(int *vec, int *memtype, CeedScalar *array, int64_t *offset,
+void fCeedVectorGetArray(int *vec, int *memtype, CeedScalar *array,
+                         int64_t *offset,
                          int *err) {
   CeedScalar *b;
   CeedVector vec_ = CeedVector_dict[*vec];
@@ -311,14 +311,14 @@ static int CeedBasis_count_max = 0;
 #define fCeedBasisCreateTensorH1Lagrange \
     FORTRAN_NAME(ceedbasiscreatetensorh1lagrange, CEEDBASISCREATETENSORH1LAGRANGE)
 void fCeedBasisCreateTensorH1Lagrange(int *ceed, int *dim,
-                                      int *ndof, int *P, int *Q, int *quadmode, int *basis,
+                                      int *ncomp, int *P, int *Q, int *quadmode, int *basis,
                                       int *err) {
   if (CeedBasis_count == CeedBasis_count_max) {
     CeedBasis_count_max += CeedBasis_count_max/2 + 1;
     CeedRealloc(CeedBasis_count_max, &CeedBasis_dict);
   }
 
-  *err = CeedBasisCreateTensorH1Lagrange(Ceed_dict[*ceed], *dim, *ndof, *P, *Q,
+  *err = CeedBasisCreateTensorH1Lagrange(Ceed_dict[*ceed], *dim, *ncomp, *P, *Q,
                                          *quadmode, &CeedBasis_dict[CeedBasis_count]);
 
   if (*err == 0) {
@@ -329,7 +329,7 @@ void fCeedBasisCreateTensorH1Lagrange(int *ceed, int *dim,
 
 #define fCeedBasisCreateTensorH1 \
     FORTRAN_NAME(ceedbasiscreatetensorh1, CEEDBASISCREATETENSORH1)
-void fCeedBasisCreateTensorH1(int *ceed, int *dim, int *ndof, int *P1d,
+void fCeedBasisCreateTensorH1(int *ceed, int *dim, int *ncomp, int *P1d,
                               int *Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
                               const CeedScalar *qref1d, const CeedScalar *qweight1d, int *basis, int *err) {
   if (CeedBasis_count == CeedBasis_count_max) {
@@ -337,9 +337,29 @@ void fCeedBasisCreateTensorH1(int *ceed, int *dim, int *ndof, int *P1d,
     CeedRealloc(CeedBasis_count_max, &CeedBasis_dict);
   }
 
-  *err = CeedBasisCreateTensorH1(Ceed_dict[*ceed], *dim, *ndof, *P1d, *Q1d,
+  *err = CeedBasisCreateTensorH1(Ceed_dict[*ceed], *dim, *ncomp, *P1d, *Q1d,
                                  interp1d, grad1d,
                                  qref1d, qweight1d, &CeedBasis_dict[CeedBasis_count]);
+
+  if (*err == 0) {
+    *basis = CeedBasis_count++;
+    CeedBasis_n++;
+  }
+}
+
+#define fCeedBasisCreateH1 \
+    FORTRAN_NAME(ceedbasiscreateh1, CEEDBASISCREATEH1)
+void fCeedBasisCreateH1(int *ceed, int *topo, int *ncomp, int *ndof,
+                        int *nqpts, const CeedScalar *interp, const CeedScalar *grad,
+                        const CeedScalar *qref, const CeedScalar *qweight, int *basis, int *err) {
+  if (CeedBasis_count == CeedBasis_count_max) {
+    CeedBasis_count_max += CeedBasis_count_max/2 + 1;
+    CeedRealloc(CeedBasis_count_max, &CeedBasis_dict);
+  }
+
+  *err = CeedBasisCreateH1(Ceed_dict[*ceed], *topo, *ncomp,
+                           *ndof, *nqpts, interp, grad,
+                           qref, qweight, &CeedBasis_dict[CeedBasis_count]);
 
   if (*err == 0) {
     *basis = CeedBasis_count++;
@@ -657,9 +677,9 @@ void fCeedOperatorSetField(int *op, const char *fieldname,
 void fCeedOperatorApply(int *op, int *ustatevec,
                         int *resvec, int *rqst, int *err) {
   CeedVector ustatevec_ = *ustatevec == FORTRAN_NULL
-    ? NULL : CeedVector_dict[*ustatevec];
+                          ? NULL : CeedVector_dict[*ustatevec];
   CeedVector resvec_ = *resvec == FORTRAN_NULL
-    ? NULL : CeedVector_dict[*resvec];
+                       ? NULL : CeedVector_dict[*resvec];
 
   int createRequest = 1;
   // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
