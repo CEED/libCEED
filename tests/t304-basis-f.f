@@ -38,8 +38,8 @@ c-----------------------------------------------------------------------
 
       real*8 x(xdimmax*maxdim)
       real*8 xx(maxdim)
-      real*8 xq(qdimnmax*maxdim)
-      real*8 uq(qdimnmax)
+      real*8 xq(pdimnmax*maxdim)
+      real*8 uq(qdimnmax*maxdim)
       real*8 u(pdimnmax)
       real*8 ones(qdimnmax*maxdim)
       real*8 gtposeones(pdimnmax)
@@ -52,7 +52,7 @@ c-----------------------------------------------------------------------
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-      do dimn=1,2
+      do dimn=1,3
         qdimn=q**dimn
         pdimn=p**dimn
         xdim=2**dimn
