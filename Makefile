@@ -29,7 +29,7 @@ LDFLAGS ?=
 UNDERSCORE ?= 1
 
 # MFEM_DIR env variable should point to sibling directory
-ifneq ($(wildcard ../mfem/.*),)
+ifneq ($(wildcard ../mfem/libmfem.*),)
   MFEM_DIR?=../mfem
 endif
 
@@ -77,7 +77,7 @@ LIBDIR := lib
 prefix ?= /usr/local
 bindir = $(prefix)/bin
 libdir = $(prefix)/lib
-okldir = $(prefix)/lib/okl
+okldir = $(libdir)/okl
 includedir = $(prefix)/include
 pkgconfigdir = $(libdir)/pkgconfig
 INSTALL = install
@@ -162,6 +162,36 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 this: $(libceed) $(ceed.pc)
 # run 'this' target in parallel
 all:;@$(MAKE) $(MFLAGS) V=$(V) this
+info:
+	$(info ------------------------------------)
+	$(info CC        = $(CC))
+	$(info FC        = $(FC))
+	$(info CPPFLAGS  = $(CPPFLAGS))
+	$(info CFLAGS    = $(value CFLAGS))
+	$(info FFLAGS    = $(value FFLAGS))
+	$(info NVCCFLAGS = $(value NVCCFLAGS))
+	$(info LDFLAGS   = $(value LDFLAGS))
+	$(info LDLIBS    = $(LDLIBS))
+	$(info OPT       = $(OPT))
+	$(info AFLAGS    = $(AFLAGS))
+	$(info ASAN      = $(or $(ASAN),(empty)))
+	$(info V         = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
+	$(info ------------------------------------)
+	$(info CUDA_DIR  = $(CUDA_DIR))
+	$(info OCCA_DIR  = $(OCCA_DIR))
+	$(info MAGMA_DIR = $(MAGMA_DIR))
+	$(info ------------------------------------)
+	$(info MFEM_DIR  = $(MFEM_DIR))
+	$(info PETSC_DIR = $(PETSC_DIR))
+	$(info ------------------------------------)
+	$(info prefix       = $(prefix))
+	$(info includedir   = $(value includedir))
+	$(info libdir       = $(value libdir))
+	$(info okldir       = $(value okldir))
+	$(info pkgconfigdir = $(value pkgconfigdir))
+	$(info ------------------------------------)
+	@true
+.PHONY: info
 
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)))
 
@@ -169,6 +199,8 @@ libceed.c += $(ref.c)
 libceed.c += $(template.c)
 libceed.c += $(optimized.c)
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
+  OCCA_ON = YES
+  $(info libCEED: OCCA backend enabled [OCCA_DIR=$(OCCA_DIR)])
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceed) : LDLIBS += -locca
   libceed.c += $(occa.c)
@@ -179,6 +211,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
   CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
   ifneq ($(CUDA_LIB_DIR),)
+  $(info libCEED: MAGMA backend enabled [MAGMA_DIR=$(MAGMA_DIR)])
   cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
   omp_link = -fopenmp
   magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
@@ -263,9 +296,8 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 %/ceed.pc : ceed.pc.template | $$(@D)/.DIR
 	@sed "s:%prefix%:$(pkgconfig-prefix):" $< > $@
 
-# The occa executable is not linked with RPATH by default, so we need it to find its libocca.so
-OCCA               := $(if $(DARWIN),DYLD_LIBRARY_PATH,LD_LIBRARY_PATH)=$(OCCA_DIR)/lib $(OCCA_DIR)/bin/occa
-OKL_KERNELS        := $(wildcard backends/occa/*.okl)
+OCCA        := $(OCCA_DIR)/bin/occa
+OKL_KERNELS := $(wildcard backends/occa/*.okl)
 
 okl-cache :
 	$(OCCA) cache ceed $(OKL_KERNELS)
@@ -274,12 +306,13 @@ okl-clear:
 	$(OCCA) clear -y -l ceed
 
 install : $(libceed) $(OBJDIR)/ceed.pc
-	$(INSTALL) -d "$(DESTDIR)$(includedir)" "$(DESTDIR)$(libdir)" "$(DESTDIR)$(okldir)" "$(DESTDIR)$(pkgconfigdir)"
+	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
+	  "$(libdir)" "$(pkgconfigdir)" $(if $(OCCA_ON),"$(okldir)"))
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
-	$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/"
+	$(if $(OCCA_ON),$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/")
 
 .PHONY : all cln clean print test tst prove prv examples style install doc okl-cache okl-clear
 
