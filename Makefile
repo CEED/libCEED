@@ -185,7 +185,7 @@ info:
 	$(info ------------------------------------)
 	$(info CUDA_DIR  = $(CUDA_DIR))
 	$(info OCCA_DIR  = $(OCCA_DIR))
-	$(info MAGMA_DIR = $(MAGMA_DIR)$(if $(MAGMA_ON), [backend enabled]))
+	$(info MAGMA_DIR = $(MAGMA_DIR))
 	$(info $1    Enabled backends:$(if $(OCCA_ON), OCCA)$(if \
 	  $(MAGMA_ON), MAGMA))
 	$(info ------------------------------------)
