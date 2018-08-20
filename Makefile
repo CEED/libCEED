@@ -148,7 +148,7 @@ output = $(if $(TERM:dumb=),$(call color_out,$1,$2),$(call emacs_out,$1,$2))
 quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
 .SUFFIXES:
-.SUFFIXES: .c .f .o .d
+.SUFFIXES: .c .f .cu .o .d
 # cancel some built-in implicit rules
 %: %.c
 %: %.f
@@ -334,8 +334,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 .PHONY : cln clean print test tst prove prv examples style install doc okl-cache okl-clear
 
 cln clean :
-	$(RM) $(libceed)
-	$(RM) -r $(OBJDIR) $(LIBDIR)/pkgconfig
+	$(RM) -r $(OBJDIR) $(LIBDIR)
 	$(MAKE) -C examples/ceed clean
 	$(MAKE) -C examples/mfem clean
 	$(MAKE) -C examples/petsc clean
