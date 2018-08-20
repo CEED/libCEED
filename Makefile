@@ -247,7 +247,7 @@ endif
 export BACKENDS
 
 # generate magma_tmp.c and magma_cuda.cu from magma.c
-$(magma_tmp.c) $(magma_tmp.cu): $(magma_pre_src) | $$(@D)/.DIR
+$(magma_tmp.c) $(magma_tmp.cu): $(magma_pre_src)
 	$(magma_preprocessor) $<
 
 libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o)
