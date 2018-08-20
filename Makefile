@@ -117,7 +117,7 @@ mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
 petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
 petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 
-# backends/[ref & occa  & magma]
+# backends/[ref, template, optimized, occa, magma]
 ref.c      := $(sort $(wildcard backends/ref/*.c))
 template.c := $(sort $(wildcard backends/template/*.c))
 optimized.c:= $(sort $(wildcard backends/optimized/*.c))
@@ -148,7 +148,13 @@ output = $(if $(TERM:dumb=),$(call color_out,$1,$2),$(call emacs_out,$1,$2))
 quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
 .SUFFIXES:
-.SUFFIXES: .c .o .d
+.SUFFIXES: .c .f .o .d
+# cancel some built-in implicit rules
+%: %.c
+%: %.f
+%: %.o
+%.o: %.c
+%.o: %.f
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
 
 .SECONDARY: $(magma_tmp.c) $(magma_tmp.cu)
@@ -159,9 +165,9 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
 .PRECIOUS: %/.DIR
 
-this: $(libceed) $(ceed.pc)
-# run 'this' target in parallel
-all:;@$(MAKE) $(MFLAGS) V=$(V) this
+lib: $(libceed) $(ceed.pc)
+# run 'lib' target in parallel
+all:;@$(MAKE) $(MFLAGS) V=$(V) lib
 info:
 	$(info ------------------------------------)
 	$(info CC        = $(CC))
@@ -179,7 +185,9 @@ info:
 	$(info ------------------------------------)
 	$(info CUDA_DIR  = $(CUDA_DIR))
 	$(info OCCA_DIR  = $(OCCA_DIR))
-	$(info MAGMA_DIR = $(MAGMA_DIR))
+	$(info MAGMA_DIR = $(MAGMA_DIR)$(if $(MAGMA_ON), [backend enabled]))
+	$(info $1    Enabled backends:$(if $(OCCA_ON), OCCA)$(if \
+	  $(MAGMA_ON), MAGMA))
 	$(info ------------------------------------)
 	$(info MFEM_DIR  = $(MFEM_DIR))
 	$(info PETSC_DIR = $(PETSC_DIR))
@@ -191,36 +199,43 @@ info:
 	$(info pkgconfigdir = $(value pkgconfigdir))
 	$(info ------------------------------------)
 	@true
-.PHONY: info
+info-backends:
+	$(if $(OCCA_ON),\
+	  $(info libCEED: OCCA backend enabled [OCCA_DIR=$(OCCA_DIR)]))
+	$(if $(MAGMA_ON),\
+	  $(info libCEED: MAGMA backend enabled [MAGMA_DIR=$(MAGMA_DIR)]))
+	@true
+.PHONY: lib all info info-backends
 
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)))
 
 libceed.c += $(ref.c)
 libceed.c += $(template.c)
 libceed.c += $(optimized.c)
+
+override OCCA_ON =
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-  OCCA_ON = YES
-  $(info libCEED: OCCA backend enabled [OCCA_DIR=$(OCCA_DIR)])
+  override OCCA_ON = YES
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceed) : LDLIBS += -locca
   libceed.c += $(occa.c)
   $(occa.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(OCCA_DIR)/include
   BACKENDS += /cpu/occa /gpu/occa /omp/occa
 endif
+
+override MAGMA_ON =
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
   CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
   ifneq ($(CUDA_LIB_DIR),)
-  $(info libCEED: MAGMA backend enabled [MAGMA_DIR=$(MAGMA_DIR)])
+  override MAGMA_ON = YES
   cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
   omp_link = -fopenmp
   magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
   magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
   magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
-  magma_allsrc.o = $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o)
   $(libceed)           : LDLIBS += $(magma_link)
   $(tests) $(examples) : LDLIBS += $(magma_link)
-  $(libceed) : $(magma_allsrc.o)
   libceed.c  += $(magma_allsrc.c)
   libceed.cu += $(magma_allsrc.cu)
   $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
@@ -235,7 +250,9 @@ export BACKENDS
 $(magma_tmp.c) $(magma_tmp.cu): $(magma_pre_src) | $$(@D)/.DIR
 	$(magma_preprocessor) $<
 
-$(libceed) : $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) | $$(@D)/.DIR
+libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o)
+$(libceed.o): | info-backends
+$(libceed) : $(libceed.o) | $$(@D)/.DIR
 	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
@@ -314,11 +331,11 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(if $(OCCA_ON),$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/")
 
-.PHONY : all cln clean print test tst prove prv examples style install doc okl-cache okl-clear
+.PHONY : cln clean print test tst prove prv examples style install doc okl-cache okl-clear
 
 cln clean :
-	$(RM) *.o *.d $(libceed)
-	$(RM) -r *.dSYM $(OBJDIR) $(LIBDIR)/pkgconfig
+	$(RM) $(libceed)
+	$(RM) -r $(OBJDIR) $(LIBDIR)/pkgconfig
 	$(MAKE) -C examples/ceed clean
 	$(MAKE) -C examples/mfem clean
 	$(MAKE) -C examples/petsc clean
