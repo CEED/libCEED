@@ -147,14 +147,9 @@ output = $(if $(TERM:dumb=),$(call color_out,$1,$2),$(call emacs_out,$1,$2))
 # if V is set to non-nil, turn the verbose mode
 quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
+# Cancel built-in and old-fashioned implicit rules which we don't use
 .SUFFIXES:
-.SUFFIXES: .c .f .cu .o .d
-# cancel some built-in implicit rules
-%: %.c
-%: %.f
-%: %.o
-%.o: %.c
-%.o: %.f
+
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
 
 .SECONDARY: $(magma_tmp.c) $(magma_tmp.cu)
