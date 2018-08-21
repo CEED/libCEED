@@ -98,7 +98,8 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.c := $(wildcard interface/ceed*.c)
-BACKENDS := /cpu/self/ref /cpu/self/tmpl /cpu/self/opt
+BACKENDS_BUILTIN := /cpu/self/ref /cpu/self/tmpl /cpu/self/opt
+BACKENDS := $(BACKENDS_BUILTIN)
 
 # Tests
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
@@ -147,14 +148,9 @@ output = $(if $(TERM:dumb=),$(call color_out,$1,$2),$(call emacs_out,$1,$2))
 # if V is set to non-nil, turn the verbose mode
 quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
+# Cancel built-in and old-fashioned implicit rules which we don't use
 .SUFFIXES:
-.SUFFIXES: .c .f .cu .o .d
-# cancel some built-in implicit rules
-%: %.c
-%: %.f
-%: %.o
-%.o: %.c
-%.o: %.f
+
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
 
 .SECONDARY: $(magma_tmp.c) $(magma_tmp.cu)
@@ -168,6 +164,7 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 lib: $(libceed) $(ceed.pc)
 # run 'lib' target in parallel
 all:;@$(MAKE) $(MFLAGS) V=$(V) lib
+backend_status = $(if $(filter $1,$(BACKENDS)), [backends: $1], [not found])
 info:
 	$(info ------------------------------------)
 	$(info CC        = $(CC))
@@ -183,11 +180,9 @@ info:
 	$(info ASAN      = $(or $(ASAN),(empty)))
 	$(info V         = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info ------------------------------------)
-	$(info CUDA_DIR  = $(CUDA_DIR))
-	$(info OCCA_DIR  = $(OCCA_DIR))
-	$(info MAGMA_DIR = $(MAGMA_DIR))
-	$(info $1    Enabled backends:$(if $(OCCA_ON), OCCA)$(if \
-	  $(MAGMA_ON), MAGMA))
+	$(info OCCA_DIR  = $(OCCA_DIR)$(call backend_status,/cpu/occa /gpu/occa /omp/occa))
+	$(info MAGMA_DIR = $(MAGMA_DIR)$(call backend_status,/gpu/magma))
+	$(info CUDA_DIR  = $(CUDA_DIR)$(call backend_status,/gpu/magma))
 	$(info ------------------------------------)
 	$(info MFEM_DIR  = $(MFEM_DIR))
 	$(info PETSC_DIR = $(PETSC_DIR))
@@ -200,11 +195,7 @@ info:
 	$(info ------------------------------------)
 	@true
 info-backends:
-	$(if $(OCCA_ON),\
-	  $(info libCEED: OCCA backend enabled [OCCA_DIR=$(OCCA_DIR)]))
-	$(if $(MAGMA_ON),\
-	  $(info libCEED: MAGMA backend enabled [MAGMA_DIR=$(MAGMA_DIR)]))
-	@true
+	$(info make: 'lib' with optional backends: $(filter-out $(BACKENDS_BUILTIN),$(BACKENDS)))
 .PHONY: lib all info info-backends
 
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)))
@@ -213,9 +204,7 @@ libceed.c += $(ref.c)
 libceed.c += $(template.c)
 libceed.c += $(optimized.c)
 
-override OCCA_ON =
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-  override OCCA_ON = YES
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceed) : LDLIBS += -locca
   libceed.c += $(occa.c)
@@ -223,12 +212,10 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   BACKENDS += /cpu/occa /gpu/occa /omp/occa
 endif
 
-override MAGMA_ON =
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
   CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
   ifneq ($(CUDA_LIB_DIR),)
-  override MAGMA_ON = YES
   cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
   omp_link = -fopenmp
   magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
@@ -247,7 +234,7 @@ endif
 export BACKENDS
 
 # generate magma_tmp.c and magma_cuda.cu from magma.c
-$(magma_tmp.c) $(magma_tmp.cu): $(magma_pre_src)
+%_tmp.c %_cuda.cu : %.c
 	$(magma_preprocessor) $<
 
 libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o)
@@ -255,10 +242,10 @@ $(libceed.o): | info-backends
 $(libceed) : $(libceed.o) | $$(@D)/.DIR
 	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
-$(OBJDIR)/%.o : %.c | $$(@D)/.DIR
+$(OBJDIR)/%.o : $(CURDIR)/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
 
-$(OBJDIR)/%.o : %.cu | $$(@D)/.DIR
+$(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 	$(call quiet,NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
