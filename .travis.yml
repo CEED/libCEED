@@ -35,7 +35,10 @@ script:
   - make -j2 prove-all PROVE_OPTS=-v
 
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - bash <(curl -s https://codecov.io/bash) -F interface
+  - bash <(curl -s https://codecov.io/bash) -F backends
+  - bash <(curl -s https://codecov.io/bash) -F tests
+  - bash <(curl -s https://codecov.io/bash) -F examples
 
 cache:
   ccache: true
