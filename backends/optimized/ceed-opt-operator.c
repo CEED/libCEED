@@ -302,6 +302,13 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
     }
   }
 
+  // Zero lvecs
+  ierr = CeedVectorSetValue(outvec, 0.0); CeedChk(ierr);
+  for (CeedInt i=0; i<qf->numoutputfields; i++)
+    if (op->outputfields[i].vec != CEED_VECTOR_ACTIVE) {
+      ierr = CeedVectorSetValue(op->outputfields[i].vec, 0.0); CeedChk(ierr);
+    }
+
   // Output restriction
   for (CeedInt i=0; i<qf->numoutputfields; i++) {
     // Restore evec
@@ -309,15 +316,11 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
                                   &impl->edata[i + qf->numinputfields]); CeedChk(ierr);
     // Active
     if (op->outputfields[i].vec == CEED_VECTOR_ACTIVE) {
-      // Zero lvec
-      ierr = CeedVectorSetValue(outvec, 0.0); CeedChk(ierr);
       // Restrict
       ierr = CeedElemRestrictionApply(impl->blkrestr[i+impl->numein], CEED_TRANSPOSE,
                                       lmode, impl->evecs[i+impl->numein], outvec, request); CeedChk(ierr);
     } else {
       // Passive
-      // Zero lvec
-      ierr = CeedVectorSetValue(op->outputfields[i].vec, 0.0); CeedChk(ierr);
       // Restrict
       ierr = CeedElemRestrictionApply(impl->blkrestr[i+impl->numein], CEED_TRANSPOSE,
                                       lmode, impl->evecs[i+impl->numein], op->outputfields[i].vec,
