@@ -40,7 +40,7 @@ double solution(const mfem::Vector &pt) {
   return pt.Norml2(); // distance to the origin
 }
 
-//TESTARGS -ceed {ceed_resource} -t -no-vis
+//TESTARGS -ceed {ceed_resource} -t -no-vis --size 2000
 int main(int argc, char *argv[]) {
   // 1. Parse command-line options.
   const char *ceed_spec = "/cpu/self";
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
     std::cout << "L2 projection error: " << sol.ComputeL2Error(sol_coeff)
               << std::endl;
   } else {
-    if (fabs(sol.ComputeL2Error(sol_coeff))>1e-4) {
+    if (fabs(sol.ComputeL2Error(sol_coeff))>2e-4) {
       std::cout << "Error too large" << std::endl;
     }
   }
