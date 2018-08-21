@@ -157,21 +157,8 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
 
 int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
                             CeedInt *numoutput) {
-  CeedInt nin = 0, nout = 0;
-  for (CeedInt i=0; i<qf->numinputfields; i++) {
-    CeedEvalMode emode = qf->inputfields[i].emode;
-    if (emode == CEED_EVAL_NONE) nin++;  // Colocated field is input directly
-    if (emode & CEED_EVAL_INTERP) nin++; // Interpolate to quadrature points
-    if (emode & CEED_EVAL_GRAD) nin++;   // Gradients at quadrature points
-  }
-  for (CeedInt i=0; i<qf->numoutputfields; i++) {
-    CeedEvalMode emode = qf->outputfields[i].emode;
-    if (emode == CEED_EVAL_NONE) nout++;
-    if (emode & CEED_EVAL_INTERP) nout++;
-    if (emode & CEED_EVAL_GRAD) nout++;
-  }
-  if (numinput) *numinput = nin;
-  if (numoutput) *numoutput = nout;
+  if (numinput) *numinput = qf->numinputfields;
+  if (numoutput) *numoutput = qf->numoutputfields;
   return 0;
 }
 
