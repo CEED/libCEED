@@ -242,10 +242,10 @@ $(libceed.o): | info-backends
 $(libceed) : $(libceed.o) | $$(@D)/.DIR
 	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
-$(OBJDIR)/%.o : %.c | $$(@D)/.DIR
+$(OBJDIR)/%.o : $(CURDIR)/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
 
-$(OBJDIR)/%.o : %.cu | $$(@D)/.DIR
+$(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 	$(call quiet,NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
