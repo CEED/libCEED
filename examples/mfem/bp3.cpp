@@ -59,7 +59,7 @@ double rhs(const mfem::Vector &pt) {
   return lap;
 }
 
-//TESTARGS -ceed {ceed_resource} -t -no-vis
+//TESTARGS -ceed {ceed_resource} -t -no-vis --size 2000
 int main(int argc, char *argv[]) {
   // 1. Parse command-line options.
   const char *ceed_spec = "/cpu/self";
@@ -71,12 +71,14 @@ int main(int argc, char *argv[]) {
   int order = 2;
   bool visualization = true;
   bool test = false;
+  double max_dofs = 50000;
 
   mfem::OptionsParser args(argc, argv);
   args.AddOption(&ceed_spec, "-c", "-ceed", "Ceed specification.");
   args.AddOption(&mesh_file, "-m", "--mesh", "Mesh file to use.");
   args.AddOption(&order, "-o", "--order",
                  "Finite element order (polynomial degree).");
+  args.AddOption(&max_dofs, "-s", "--size", "Maximum size (number of DoFs)");
   args.AddOption(&visualization, "-vis", "--visualization", "-no-vis",
                  "--no-visualization",
                  "Enable or disable GLVis visualization.");
@@ -102,10 +104,9 @@ int main(int argc, char *argv[]) {
 
   // 4. Refine the mesh to increase the resolution. In this example we do
   //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
-  //    largest number that gives a final system with no more than 50,000 (1,000
-  //    in 1D) unknowns, approximately.
+  //    largest number that gives a final system with no more than 50,000
+  //    unknowns, approximately.
   {
-    double max_dofs = (dim > 1) ? 50000 : 1000;
     int ref_levels =
       (int)floor((log(max_dofs/mesh->GetNE())-dim*log(order))/log(2.)/dim);
     for (int l = 0; l < ref_levels; l++) {
@@ -172,7 +173,7 @@ int main(int argc, char *argv[]) {
     std::cout << "L2 projection error: " << sol.ComputeL2Error(sol_coeff)
               << std::endl;
   } else {
-    if (fabs(sol.ComputeL2Error(sol_coeff))>1e-4) {
+    if (fabs(sol.ComputeL2Error(sol_coeff))>2e-3) {
       std::cout << "Error too large" << std::endl;
     }
   }
