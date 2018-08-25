@@ -61,7 +61,7 @@ while [ $# -gt 0 ]; do
        ;;
     -e|-example)
        shift
-       nek_ex="$1"
+       nek_examples=("$1")
        ;;
     -c|-ceed)
        shift

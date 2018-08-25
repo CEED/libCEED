@@ -6,6 +6,7 @@ c-----------------------------------------------------------------------
       integer ceed,err
       integer x,n
       real*8 a(10)
+      integer*8 aoffset
       character arg*32
 
       call getarg(1,arg)
@@ -16,7 +17,7 @@ c-----------------------------------------------------------------------
 
       call ceedvectorcreate(ceed,n,x,err)
 
-      call ceedvectorgetarray(x,ceed_mem_host,a,err)
+      call ceedvectorgetarray(x,ceed_mem_host,a,aoffset,err)
 
       call ceedvectordestroy(x,err)
       call ceeddestroy(ceed,err)

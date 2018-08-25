@@ -94,6 +94,10 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
   if (!ceed->ElemRestrictionCreate)
     return CeedError(ceed, 1,
                      "Backend does not support ElemRestrictionCreateIdentity");
+  if (nelem * elemsize != ndof)
+    return CeedError(ceed, 1,
+                     "Cannot create identity restriction nelem=%d elemsize=%d ndof=%d",
+                     nelem, elemsize, ndof);
   ierr = CeedCalloc(1, r); CeedChk(ierr);
   (*r)->ceed = ceed;
   ceed->refcount++;
