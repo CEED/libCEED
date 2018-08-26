@@ -12,12 +12,13 @@ addons:
     - liblapack-dev
 
 env:
-  - FC=gfortran
+  - FC=gfortran OCCA_BRANCH="v1.0.5"
+  - FC=gfortran OCCA_BRANCH="master"
 
 install:
   - git clone --depth 1 https://github.com/mfem/mfem.git
   - make -C mfem -j2 serial MFEM_CXXFLAGS=-O
-  - git clone --depth 1 https://github.com/libocca/occa.git
+  - git clone --depth 1 https://github.com/libocca/occa.git --branch $OCCA_BRANCH
   - make -C occa -j2
   - export OCCA_DIR=$PWD/occa MFEM_DIR=$PWD/mfem PETSC_INSTALL=$HOME/install/petsc-3.9.3
   - test -d $PETSC_INSTALL
