@@ -42,7 +42,7 @@
 // *****************************************************************************
 typedef struct {
   CeedScalar *h_array;
-  CeedScalar *used_pointer;
+  CeedScalar *h_array_allocated;
   occaMemory d_array;
 } CeedVector_Occa;
 

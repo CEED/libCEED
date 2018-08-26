@@ -301,8 +301,8 @@ static int SyncToHostPointer(CeedVector vec) {
   // hold an output quantity.  This should at least be lazy instead of eager
   // and we should do better about avoiding copies.
   const CeedVector_Occa *outvdata = (CeedVector_Occa*)vec->data;
-  if (outvdata->used_pointer) {
-    occaCopyMemToPtr(outvdata->used_pointer, outvdata->d_array,
+  if (outvdata->h_array) {
+    occaCopyMemToPtr(outvdata->h_array, outvdata->d_array,
                      vec->length * sizeof(CeedScalar), NO_OFFSET, NO_PROPS);
   }
   return 0;

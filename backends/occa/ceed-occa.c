@@ -17,7 +17,7 @@
 #include "ceed-occa.h"
 
 // *****************************************************************************
-// * OCCA modes, default deviceID is 0, but can be changed with /ocl/occa/1
+// * OCCA modes, default device_id is 0, but can be changed with /ocl/occa/1
 // *****************************************************************************
 static const char *occaCPU = "mode: 'Serial'";
 static const char *occaOMP = "mode: 'OpenMP'";

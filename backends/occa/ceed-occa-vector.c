@@ -55,12 +55,13 @@ static int CeedVectorSetArray_Occa(const CeedVector vec,
   dbg("[CeedVector][Set]");
   if (mtype != CEED_MEM_HOST)
     return CeedError(vec->ceed, 1, "Only MemType = HOST supported");
-  ierr = CeedFree(&data->h_array); CeedChk(ierr);
+  ierr = CeedFree(&data->h_array_allocated); CeedChk(ierr);
   switch (cmode) {
   // Implementation will copy the values and not store the passed pointer.
   case CEED_COPY_VALUES:
     dbg("\t[CeedVector][Set] CEED_COPY_VALUES");
     ierr = CeedMalloc(vec->length, &data->h_array); CeedChk(ierr);
+    data->h_array_allocated = data->h_array;
     if (array) memcpy(data->h_array, array, bytes(vec));
     if (array) CeedSyncH2D_Occa(vec);
     break;
@@ -69,17 +70,16 @@ static int CeedVectorSetArray_Occa(const CeedVector vec,
   case CEED_OWN_POINTER:
     dbg("\t[CeedVector][Set] CEED_OWN_POINTER");
     data->h_array = array;
+    data->h_array_allocated = array;
     CeedSyncH2D_Occa(vec);
     break;
   // Implementation can use and modify the data provided by the user
   case CEED_USE_POINTER:
     dbg("\t[CeedVector][Set] CEED_USE_POINTER");
     data->h_array = array;
-    data->used_pointer = array;
     CeedSyncH2D_Occa(vec);
-    data->h_array = NULL; // but does not take ownership.
     break;
-  default: CeedError(vec->ceed,1," OCCA backend no default error");
+  default: CeedError(ceed,1," OCCA backend no default error");
   }
   dbg("\t[CeedVector][Set] done");
   return 0;
@@ -143,7 +143,8 @@ static int CeedVectorDestroy_Occa(const CeedVector vec) {
   const Ceed ceed = vec->ceed;
   CeedVector_Occa *data = vec->data;
   dbg("[CeedVector][Destroy]");
-  ierr = CeedFree(&data->h_array); CeedChk(ierr);
+  ierr = CeedFree(&data->h_array_allocated); CeedChk(ierr);
+  occaFree(data->d_array);
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
@@ -153,8 +154,8 @@ static int CeedVectorDestroy_Occa(const CeedVector vec) {
 // *****************************************************************************
 int CeedVectorCreate_Occa(const Ceed ceed, const CeedInt n, CeedVector vec) {
   int ierr;
+  const Ceed_Occa *ceed_data = ceed->data;
   CeedVector_Occa *data;
-  const Ceed_Occa *ceed_data=ceed->data;
   dbg("[CeedVector][Create] n=%d", n);
   vec->SetArray = CeedVectorSetArray_Occa;
   vec->GetArray = CeedVectorGetArray_Occa;
@@ -165,12 +166,6 @@ int CeedVectorCreate_Occa(const Ceed ceed, const CeedInt n, CeedVector vec) {
   // ***************************************************************************
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   vec->data = data;
-  // ***************************************************************************
-  data->used_pointer = NULL;
   data->d_array = occaDeviceMalloc(ceed_data->device, bytes(vec),NULL,NO_PROPS);
-  // Flush device memory *******************************************************
-  ierr=CeedCalloc(vec->length, &data->h_array); CeedChk(ierr);
-  CeedSyncH2D_Occa(vec);
-  ierr = CeedFree(&data->h_array); CeedChk(ierr);
   return 0;
 }
