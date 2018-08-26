@@ -154,4 +154,8 @@ CEED_INTERN int CeedElemRestrictionCreate_Occa(const CeedElemRestriction res,
     const CeedMemType mtype, const CeedCopyMode cmode, const CeedInt *indices);
 
 // *****************************************************************************
+CEED_INTERN int CeedElemRestrictionCreateBlocked_Occa(const CeedElemRestriction res,
+    const CeedMemType mtype, const CeedCopyMode cmode, const CeedInt *indices);
+
+// *****************************************************************************
 CEED_INTERN int CeedVectorCreate_Occa(Ceed ceed, CeedInt n, CeedVector vec);

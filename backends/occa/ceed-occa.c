@@ -107,6 +107,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   ceed->Destroy = CeedDestroy_Occa;
   ceed->VecCreate = CeedVectorCreate_Occa;
   ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Occa;
+  ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreateBlocked_Occa;
   ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Occa;
   ceed->QFunctionCreate = CeedQFunctionCreate_Occa;
   ceed->OperatorCreate = CeedOperatorCreate_Occa;
