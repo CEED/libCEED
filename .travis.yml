@@ -15,6 +15,14 @@ env:
   - FC=gfortran OCCA_HEAD=HEAD
   - FC=gfortran OCCA_HEAD=527494c
 
+matrix:
+  fast_finish: true
+  allow_failures:
+    - env: FC=gfortran OCCA_HEAD=HEAD
+      compiler: gcc
+    - env: FC=gfortran OCCA_HEAD=HEAD
+      compiler: clang
+
 install:
   - git clone --depth 1 https://github.com/mfem/mfem.git
   - make -C mfem -j2 serial MFEM_CXXFLAGS=-O
