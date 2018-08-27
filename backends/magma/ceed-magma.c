@@ -554,6 +554,13 @@ static int CeedElemRestrictionCreate_Magma(CeedElemRestriction r,
   return 0;
 }
 
+static int CeedElemRestrictionCreate_Magma(CeedElemRestriction r,
+    CeedMemType mtype,
+    CeedCopyMode cmode,
+    const CeedInt *indices) {
+  return CeedError(r->ceed, 1, "Backend does not implement blocked restrictions");
+}
+
 // Contracts on the middle index
 // NOTRANSPOSE: V_ajc = T_jb U_abc
 // TRANSPOSE:   V_ajc = T_bj U_abc
@@ -1056,6 +1063,7 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   ceed->VecCreate = CeedVectorCreate_Magma;
   ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Magma;
   ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Magma;
+  ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreateBlocked_Magma;
   ceed->QFunctionCreate = CeedQFunctionCreate_Magma;
   ceed->OperatorCreate = CeedOperatorCreate_Magma;
   return 0;

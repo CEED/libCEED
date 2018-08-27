@@ -229,3 +229,10 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   ierr = CeedFree(&tindices); CeedChk(ierr);
   return 0;
 }
+// *****************************************************************************
+int CeedElemRestrictionCreateBlocked_Occa(const CeedElemRestriction r,
+                                   const CeedMemType mtype,
+                                   const CeedCopyMode cmode,
+                                   const CeedInt *indices) {
+  return CeedError(r->ceed, 1, "Backend does not implement blocked restrictions");
+}

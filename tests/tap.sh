@@ -36,35 +36,27 @@ for ((i=0;i<${#backends[@]}; ++i)); do
     # grep to skip test if backend cannot handle resource
     if grep -F -q -e 'backend cannot use resource' \
             -e 'OCCA backend failed' ${output}.err; then
-        printf "ok $i0 # SKIP $1 $backend\n"
-        printf "ok $i1 # SKIP $1 $backend stdout\n"
-        printf "ok $i2 # SKIP $1 $backend stderr\n"
+        printf "ok $i0 # SKIP - occa mode not supported $1 $backend\n"
+        printf "ok $i1 # SKIP - occa mode not supported $1 $backend stdout\n"
+        printf "ok $i2 # SKIP - occa mode not supported $1 $backend stderr\n"
         continue
     fi
 
-    # grep to skip test if backend cannot handle Blocked Restriction
-    if grep -F -q -e 'Backend does not support ElemRestrictionCreateBlocked' \
-            ${output}.err; then
-        printf "ok $i0 # SKIP $1 $backend\n"
-        printf "ok $i1 # SKIP $1 $backend stdout\n"
-        printf "ok $i2 # SKIP $1 $backend stderr\n"
+     # grep to skip test if backend chooses to whitelist test
+    if grep -F -q -e 'Backend does not implement' \
+            ${output}.err ; then
+        printf "ok $i0 # SKIP - not implemented $1 $backend\n"
+        printf "ok $i1 # SKIP - not implemented $1 $backend stdout\n"
+        printf "ok $i2 # SKIP - not implemented $1 $backend stderr\n"
         continue
     fi
 
-    # grep to pass test t103 on error
-    if grep -F -q -e 'Cannot grant CeedVector array access, the access lock is already in use' \
-            ${output}.err; then
-        printf "ok $i0 # Expected Fail $1 $backend\n"
-        printf "ok $i1 # Expected Fail $1 $backend stdout\n"
-        printf "ok $i2 # Expected Fail $1 $backend stderr\n"
-        continue
-    fi
-     # grep to pass test t104 on error
-    if grep -F -q -e 'Cannot destroy CeedVector, the access lock is in use' \
-            ${output}.err; then
-        printf "ok $i0 # Expected Fail $1 $backend\n"
-        printf "ok $i1 # Expected Fail $1 $backend stdout\n"
-        printf "ok $i2 # Expected Fail $1 $backend stderr\n"
+    # grep to pass test t103 and t104 on error
+    if grep -F -q -e 'access lock' ${output}.err \
+            && [[ "$1" = "t103"* || "$1" = "t104"* ]] ; then
+        printf "ok $i0 PASS - expected failure $1 $backend\n"
+        printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
+        printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
         continue
     fi
 
