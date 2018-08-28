@@ -164,12 +164,12 @@ CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;
 CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
-/// Argument for CeedOperatorSetField that vector is colocated with
+/// Argument for CeedOperatorSetField that vector is collocated with
 /// quadrature points, used with qfunction eval mode CEED_EVAL_NONE
 /// or CEED_EVAL_INTERP only, not with CEED_EVAL_GRAD, CEED_EVAL_DIV,
 /// or CEED_EVAL_CURL
 /// @ingroup CeedBasis
-CEED_EXTERN CeedBasis CEED_BASIS_COLOCATED;
+CEED_EXTERN CeedBasis CEED_BASIS_COLLOCATED;
 
 /// Argument for CeedOperatorSetField to use active input or output
 /// @ingroup CeedVector
@@ -250,7 +250,7 @@ CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof,
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
 CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m,
                                     CeedInt n);
-CEED_EXTERN int CeedBasisGetColocatedGrad(CeedBasis basis,
+CEED_EXTERN int CeedBasisGetCollocatedGrad(CeedBasis basis,
     CeedScalar *colograd1d);
 CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt nelem,
                                CeedTransposeMode tmode,

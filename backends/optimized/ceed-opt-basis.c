@@ -185,7 +185,7 @@ int CeedBasisCreateTensorH1_Opt(Ceed ceed, CeedInt dim, CeedInt P1d,
   int ierr;
   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
   ierr = CeedMalloc(Q1d*Q1d, &impl->colograd1d); CeedChk(ierr);
-  ierr = CeedBasisGetColocatedGrad(basis, impl->colograd1d); CeedChk(ierr);
+  ierr = CeedBasisGetCollocatedGrad(basis, impl->colograd1d); CeedChk(ierr);
   basis->data = impl;
 
   basis->Apply = CeedBasisApply_Opt;

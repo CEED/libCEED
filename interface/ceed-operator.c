@@ -72,7 +72,7 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
   @param op         Ceedoperator on which to provide the field
   @param fieldname  Name of the field (to be matched with the name used by CeedQFunction)
   @param r          CeedElemRestriction
-  @param b          CeedBasis in which the field resides or CEED_BASIS_COLOCATED
+  @param b          CeedBasis in which the field resides or CEED_BASIS_COLLOCATED
                       if collocated with quadrature points
   @param v          CeedVector to be used by CeedOperator or CEED_VECTOR_ACTIVE
                       if field is active or CEED_VECTOR_NONE if using
@@ -94,7 +94,7 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                      numelements, op->numelements);
   op->numelements = numelements;
 
-  if (b != CEED_BASIS_COLOCATED) {
+  if (b != CEED_BASIS_COLLOCATED) {
     CeedInt numqpoints;
     ierr = CeedBasisGetNumQuadraturePoints(b, &numqpoints); CeedChk(ierr);
     if (op->numqpoints && op->numqpoints != numqpoints)
@@ -157,7 +157,7 @@ int CeedOperatorApply(CeedOperator op, CeedVector in,
   if (op->numelements == 0) return CeedError(ceed, 1,
                                      "At least one restriction required");
   if (op->numqpoints == 0) return CeedError(ceed, 1,
-                                    "At least one non-colocated basis required");
+                                    "At least one non-collocated basis required");
   ierr = op->Apply(op, in, out, request); CeedChk(ierr);
   return 0;
 }

@@ -74,8 +74,8 @@ c
 c OperatorFieldConstants
 c
 
-      integer ceed_basis_colocated
-      parameter(ceed_basis_colocated      = -1)
+      integer ceed_basis_collocated
+      parameter(ceed_basis_collocated     = -1)
 
       integer ceed_qdata_none
       parameter(ceed_qdata_none           = -1)

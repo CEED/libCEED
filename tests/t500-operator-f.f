@@ -120,10 +120,10 @@ c     $  't30-operator-f.f:mass',qf_mass,err)
       call ceedoperatorsetfield(op_setup,'x',erestrictx,bx,
      $  ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rho',
-     $  erestrictui,ceed_basis_colocated,
+     $  erestrictui,ceed_basis_collocated,
      $  ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass,'rho',
-     $  erestrictui,ceed_basis_colocated,
+     $  erestrictui,ceed_basis_collocated,
      $  qdata,err)
       call ceedoperatorsetfield(op_mass,'u',erestrictu,bu,
      $  ceed_vector_active,err)

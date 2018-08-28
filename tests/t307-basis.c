@@ -1,6 +1,6 @@
 /// @file
-/// Test Colocated Grad calculated matches basis with Lobatto points
-/// \test Test Colocated Grad calculated matches basis with Lobatto points
+/// Test Collocated Grad calculated matches basis with Lobatto points
+/// \test Test Collocated Grad calculated matches basis with Lobatto points
 #include <ceed.h>
 #include <math.h>
 
@@ -12,9 +12,9 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
-  // Already colocated, GetColocatedGrad will return grad1d
+  // Already collocated, GetCollocatedGrad will return grad1d
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, P, Q, CEED_GAUSS_LOBATTO, &b);
-  CeedBasisGetColocatedGrad(b, colograd1d);
+  CeedBasisGetCollocatedGrad(b, colograd1d);
 
   CeedBasisView(b, stdout);
   for (int i=0; i<Q; i++) {
@@ -27,9 +27,9 @@ int main(int argc, char **argv) {
   }
   CeedBasisDestroy(&b);
 
-  // Q = P, not already colocated
+  // Q = P, not already collocated
   CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, P, Q, CEED_GAUSS, &b);
-  CeedBasisGetColocatedGrad(b, colograd1d);
+  CeedBasisGetCollocatedGrad(b, colograd1d);
 
   CeedBasisView(b, stdout);
   for (int i=0; i<Q; i++) {
@@ -42,9 +42,9 @@ int main(int argc, char **argv) {
   }
   CeedBasisDestroy(&b);
 
-  // Q = P + 2, not already colocated
+  // Q = P + 2, not already collocated
   CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, P, P+2, CEED_GAUSS, &b);
-  CeedBasisGetColocatedGrad(b, colograd1d2);
+  CeedBasisGetCollocatedGrad(b, colograd1d2);
 
   CeedBasisView(b, stdout);
   for (int i=0; i<P+2; i++) {
