@@ -870,13 +870,13 @@ c     Create a ceed operator
       call ceedoperatorsetfield(op_setup,'_weight',
      $  erstrctw,basisx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'rho',
-     $  erstrctw,ceed_basis_colocated,
+     $  erstrctw,ceed_basis_collocated,
      $  ceed_vector_active,err)
 
       call ceedoperatorcreate(ceed,qf_mass,
      $  ceed_null,ceed_null,op_mass,err)
       call ceedoperatorsetfield(op_mass,'rho',
-     $  erstrctw,ceed_basis_colocated,
+     $  erstrctw,ceed_basis_collocated,
      $  vec_qdata,err)
       call ceedoperatorsetfield(op_mass,'u',erstrctu,
      $  basisu,ceed_vector_active,err)
