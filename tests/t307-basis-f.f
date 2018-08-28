@@ -13,10 +13,10 @@ c-----------------------------------------------------------------------
 
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-c     Already colocated, GetColocatedGrad will return grad1d
+c     Already collocated, GetCollocatedGrad will return grad1d
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,4,
      $  ceed_gauss_lobatto,b,err)
-      call ceedbasisgetcolocatedgrad(b,colograd1d,err)
+      call ceedbasisgetcollocatedgrad(b,colograd1d,err)
       call ceedbasisview(b,err)
       do i=1,16
         if (abs(colograd1d(i))<1.0D-14) then
@@ -30,10 +30,10 @@ c     Already colocated, GetColocatedGrad will return grad1d
       enddo
       call ceedbasisdestroy(b,err)
 
-c     Q = P, not already colocated
+c     Q = P, not already collocated
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,4,
      $  ceed_gauss,b,err)
-      call ceedbasisgetcolocatedgrad(b,colograd1d,err)
+      call ceedbasisgetcollocatedgrad(b,colograd1d,err)
       call ceedbasisview(b,err)
       do i=1,16
         if (abs(colograd1d(i))<1.0D-14) then
@@ -47,10 +47,10 @@ c     Q = P, not already colocated
       enddo
       call ceedbasisdestroy(b,err)
 
-c     Q = P + 2, not already colocated
+c     Q = P + 2, not already collocated
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,6,
      $  ceed_gauss,b,err)
-      call ceedbasisgetcolocatedgrad(b,colograd1d2,err)
+      call ceedbasisgetcollocatedgrad(b,colograd1d2,err)
       call ceedbasisview(b,err)
       do i=1,36
         if (abs(colograd1d2(i))<1.0D-14) then

@@ -9,7 +9,7 @@
 #define FORTRAN_REQUEST_IMMEDIATE -1
 #define FORTRAN_REQUEST_ORDERED -2
 #define FORTRAN_NULL -3
-#define FORTRAN_BASIS_COLOCATED -1
+#define FORTRAN_BASIS_COLLOCATED -1
 #define FORTRAN_QDATA_NONE -1
 #define FORTRAN_VECTOR_ACTIVE -1
 #define FORTRAN_VECTOR_NONE -2
@@ -359,11 +359,11 @@ void fCeedQRFactorization(CeedScalar *mat, CeedScalar *tau, int *m, int *n,
   *err = CeedQRFactorization(mat, tau, *m, *n);
 }
 
-#define fCeedBasisGetColocatedGrad \
-    FORTRAN_NAME(ceedbasisgetcolocatedgrad, CEEDBASISGETCOLOCATEDGRAD)
-void fCeedBasisGetColocatedGrad(int *basis, CeedScalar *colograd1d,
+#define fCeedBasisGetCollocatedGrad \
+    FORTRAN_NAME(ceedbasisgetcollocatedgrad, CEEDBASISGETCOLLOCATEDGRAD)
+void fCeedBasisGetCollocatedGrad(int *basis, CeedScalar *colograd1d,
                                 int *err) {
-  *err = CeedBasisGetColocatedGrad(CeedBasis_dict[*basis], colograd1d);
+  *err = CeedBasisGetCollocatedGrad(CeedBasis_dict[*basis], colograd1d);
 }
 
 #define fCeedBasisApply FORTRAN_NAME(ceedbasisapply, CEEDBASISAPPLY)
@@ -635,8 +635,8 @@ void fCeedOperatorSetField(int *op, const char *fieldname,
   }
   if (*b == FORTRAN_NULL) {
     b_ = NULL;
-  } else if (*b == FORTRAN_BASIS_COLOCATED) {
-    b_ = CEED_BASIS_COLOCATED;
+  } else if (*b == FORTRAN_BASIS_COLLOCATED) {
+    b_ = CEED_BASIS_COLLOCATED;
   } else {
     b_ = CeedBasis_dict[*b];
   }

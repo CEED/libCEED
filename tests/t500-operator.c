@@ -105,12 +105,12 @@ int main(int argc, char **argv) {
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "x", Erestrictx, bx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "rho", Erestrictui,
-                       CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
+                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 //! [Setup Set]
 
 //! [Operator Set]
   CeedOperatorSetField(op_mass, "rho", Erestrictui,
-                       CEED_BASIS_COLOCATED, qdata);
+                       CEED_BASIS_COLLOCATED, qdata);
   CeedOperatorSetField(op_mass, "u", Erestrictu, bu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "v", Erestrictu, bu, CEED_VECTOR_ACTIVE);
 //! [Operator Set]

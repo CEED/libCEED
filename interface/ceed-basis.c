@@ -21,7 +21,7 @@
 #include <string.h>
 
 /// @cond DOXYGEN_SKIP
-static struct CeedBasis_private ceed_basis_colocated;
+static struct CeedBasis_private ceed_basis_collocated;
 /// @endcond
 
 /// @file
@@ -440,7 +440,7 @@ int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau,
 }
 
 /**
-  @brief Return colocated grad matrix
+  @brief Return collocated grad matrix
 
   @param basis           CeedBasis
   @param[out] colograd1d Row-major Q1d × Q1d matrix expressing derivatives of
@@ -450,7 +450,7 @@ int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau,
 
   @ref Advanced
 **/
-int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
+int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
   int i, j, k;
   CeedInt ierr, P1d=(basis)->P1d, Q1d=(basis)->Q1d;
   CeedScalar *interp1d, *grad1d, tau[Q1d];
@@ -572,7 +572,7 @@ int CeedBasisDestroy(CeedBasis *basis) {
 }
 
 /// @cond DOXYGEN_SKIP
-// Indicate that the quadrature points are colocated with the dofs
-CeedBasis CEED_BASIS_COLOCATED = &ceed_basis_colocated;
+// Indicate that the quadrature points are collocated with the dofs
+CeedBasis CEED_BASIS_COLLOCATED = &ceed_basis_collocated;
 /// @endcond
 /// @}

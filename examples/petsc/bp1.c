@@ -406,26 +406,26 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup, "weight", Erestrictxi, basisx,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "rho", Erestrictui,
-                       CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
+                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "target", Erestrictui,
-                       CEED_BASIS_COLOCATED, target);
+                       CEED_BASIS_COLLOCATED, target);
 
   // Create the mass operator.
   CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
   CeedOperatorSetField(op_mass, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "rho", Erestrictui,
-                       CEED_BASIS_COLOCATED, rho);
+                       CEED_BASIS_COLLOCATED, rho);
   CeedOperatorSetField(op_mass, "target", Erestrictui,
-                       CEED_BASIS_COLOCATED, target);
+                       CEED_BASIS_COLLOCATED, target);
   CeedOperatorSetField(op_mass, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
 
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
   CeedOperatorSetField(op_error, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_error, "target", Erestrictui,
-                       CEED_BASIS_COLOCATED, target);
+                       CEED_BASIS_COLLOCATED, target);
   CeedOperatorSetField(op_error, "error", Erestrictui,
-                       CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
+                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   CeedOperatorApply(op_setup, xcoord, rho, CEED_REQUEST_IMMEDIATE);
   CeedVectorDestroy(&xcoord);

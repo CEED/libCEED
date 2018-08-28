@@ -216,7 +216,7 @@ int main(int argc, const char *argv[]) {
   CeedOperatorSetField(build_oper, "weights", mesh_restr_i,
                        mesh_basis, CEED_VECTOR_NONE);
   CeedOperatorSetField(build_oper, "rho", sol_restr_i,
-                       CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
+                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Compute the quadrature data for the mass operator.
   CeedVector rho;
@@ -248,7 +248,7 @@ int main(int argc, const char *argv[]) {
   CeedOperatorCreate(ceed, apply_qfunc, NULL, NULL, &oper);
   CeedOperatorSetField(oper, "u", sol_restr, sol_basis, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(oper, "rho", sol_restr_i,
-                       CEED_BASIS_COLOCATED, rho);
+                       CEED_BASIS_COLLOCATED, rho);
   CeedOperatorSetField(oper, "v", sol_restr, sol_basis, CEED_VECTOR_ACTIVE);
 
   // Compute the mesh volume using the mass operator: vol = 1^T.M.1.
