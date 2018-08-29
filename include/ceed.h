@@ -98,7 +98,7 @@ CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,
 CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
                                const char *, va_list);
 CEED_EXTERN int CeedErrorExit(Ceed, const char *, int, const char *, int,
-                               const char *, va_list);
+                              const char *, va_list);
 CEED_EXTERN int CeedSetErrorHandler(Ceed ceed,
                                     int (eh)(Ceed, const char *, int, const char *,
                                         int, const char *, va_list));
@@ -242,11 +242,38 @@ typedef enum {
   CEED_GAUSS_LOBATTO = 1,
 } CeedQuadMode;
 
+/// Type of basis shape to create non-tensor H1 element basis
+///
+/// Dimension can be extracted with bitwise AND
+/// (CeedElemTopology & 2**(dim + 2)) == TRUE
+/// @ingroup CeedBasis
+typedef enum {
+  /// Line
+  CEED_LINE = 1 << 16 | 0,
+  /// Triangle - 2D shape
+  CEED_TRIANGLE = 2 << 16 | 1,
+  /// Quadralateral - 2D shape
+  CEED_QUAD = 2 << 16 | 2,
+  /// Tetrahedron - 3D shape
+  CEED_TET = 3 << 16 | 3,
+  /// Pyramid - 3D shape
+  CEED_PYRAMID = 3 << 16 | 4,
+  /// Prism - 3D shape
+  CEED_PRISM = 3 << 16 | 5,
+  /// Hexehedron - 3D shape
+  CEED_HEX = 3 << 16 | 6,
+} CeedElemTopology;
+
 CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,
-    CeedInt ndof, CeedInt P, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);
-CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof,
+    CeedInt ncomp, CeedInt P, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp,
                                         CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
                                         const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo,
+                                  CeedInt ncomp,
+                                  CeedInt ndof, CeedInt nqpts,
+                                  const CeedScalar *interp, const CeedScalar *grad,
+                                  const CeedScalar *qref, const CeedScalar *qweight, CeedBasis *basis);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
 CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m,
                                     CeedInt n);
@@ -257,6 +284,7 @@ CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt nelem,
                                CeedEvalMode emode, const CeedScalar *u, CeedScalar *v);
 CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
 CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);
+CEED_EXTERN int CeedBasisGetTopologyDimension(CeedElemTopology topo, CeedInt *dim);
 CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
 
 CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d,

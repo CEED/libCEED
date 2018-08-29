@@ -65,10 +65,13 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
   (*basis)->ceed = ceed;
   ceed->refcount++;
   (*basis)->refcount = 1;
+  (*basis)->tensorbasis = 1;
   (*basis)->dim = dim;
   (*basis)->ncomp = ncomp;
   (*basis)->P1d = P1d;
   (*basis)->Q1d = Q1d;
+  (*basis)->P = CeedIntPow(P1d, dim);
+  (*basis)->Q = CeedIntPow(Q1d, dim);
   ierr = CeedMalloc(Q1d,&(*basis)->qref1d); CeedChk(ierr);
   ierr = CeedMalloc(Q1d,&(*basis)->qweight1d); CeedChk(ierr);
   memcpy((*basis)->qref1d, qref1d, Q1d*sizeof(qref1d[0]));
@@ -152,6 +155,64 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
   ierr = CeedFree(&nodes); CeedChk(ierr);
   ierr = CeedFree(&qref1d); CeedChk(ierr);
   ierr = CeedFree(&qweight1d); CeedChk(ierr);
+  return 0;
+}
+
+/**
+  @brief Create a non tensor product basis for H^1 discretizations
+
+  @param ceed       A Ceed object where the CeedBasis will be created
+  @param topo       Topology of element, e.g. hypercube, simplex, ect
+  @param ncomp      Number of field components (1 for scalar fields)
+  @param ndof       Total number of nodes
+  @param nqpts      Total number of quadrature points
+  @param interp     Row-major nqpts × ndof matrix expressing the values of nodal
+                      basis functions at quadrature points
+  @param grad       Row-major (nqpts x dim) × ndof matrix expressing derivatives
+                      of nodal basis functions at quadrature points
+  @param qref       Array of length nqpts holding the locations of quadrature points
+                      on the reference element [-1, 1]
+  @param qweight    Array of length nqpts holding the quadrature weights on the
+                      reference element
+  @param[out] basis Address of the variable where the newly created
+                      CeedBasis will be stored.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt ncomp,
+                      CeedInt ndof, CeedInt nqpts,
+                      const CeedScalar *interp,
+                      const CeedScalar *grad, const CeedScalar *qref,
+                      const CeedScalar *qweight, CeedBasis *basis) {
+  int ierr;
+  CeedInt P = ndof, Q = nqpts, dim = 0;
+
+  if (!ceed->BasisCreateH1)
+    return CeedError(ceed, 1, "Backend does not support BasisCreateH1");
+  ierr = CeedCalloc(1,basis); CeedChk(ierr);
+
+  ierr = CeedBasisGetTopologyDimension(topo, &dim); CeedChk(ierr);
+
+  (*basis)->ceed = ceed;
+  ceed->refcount++;
+  (*basis)->refcount = 1;
+  (*basis)->tensorbasis = 0;
+  (*basis)->dim = dim;
+  (*basis)->ncomp = ncomp;
+  (*basis)->P = P;
+  (*basis)->Q = Q;
+  ierr = CeedMalloc(Q*dim,&(*basis)->qref1d); CeedChk(ierr);
+  ierr = CeedMalloc(Q,&(*basis)->qweight1d); CeedChk(ierr);
+  memcpy((*basis)->qref1d, qref, Q*dim*sizeof(qref[0]));
+  memcpy((*basis)->qweight1d, qweight, Q*sizeof(qweight[0]));
+  ierr = CeedMalloc(Q*P,&(*basis)->interp1d); CeedChk(ierr);
+  ierr = CeedMalloc(dim*Q*P,&(*basis)->grad1d); CeedChk(ierr);
+  memcpy((*basis)->interp1d, interp, Q*P*sizeof(interp[0]));
+  memcpy((*basis)->grad1d, grad, dim*Q*P*sizeof(grad[0]));
+  ierr = ceed->BasisCreateH1(ceed, topo, dim, P, Q, interp, grad, qref,
+                             qweight, *basis); CeedChk(ierr);
   return 0;
 }
 
@@ -315,16 +376,30 @@ static int CeedScalarView(const char *name, const char *fpformat, CeedInt m,
 int CeedBasisView(CeedBasis basis, FILE *stream) {
   int ierr;
 
-  fprintf(stream, "CeedBasis: dim=%d P=%d Q=%d\n", basis->dim, basis->P1d,
-          basis->Q1d);
-  ierr = CeedScalarView("qref1d", "\t% 12.8f", 1, basis->Q1d, basis->qref1d,
-                        stream); CeedChk(ierr);
-  ierr = CeedScalarView("qweight1d", "\t% 12.8f", 1, basis->Q1d, basis->qweight1d,
-                        stream); CeedChk(ierr);
-  ierr = CeedScalarView("interp1d", "\t% 12.8f", basis->Q1d, basis->P1d,
-                        basis->interp1d, stream); CeedChk(ierr);
-  ierr = CeedScalarView("grad1d", "\t% 12.8f", basis->Q1d, basis->P1d,
-                        basis->grad1d, stream); CeedChk(ierr);
+  if (basis->tensorbasis) {
+    fprintf(stream, "CeedBasis: dim=%d P=%d Q=%d\n", basis->dim, basis->P1d,
+            basis->Q1d);
+    ierr = CeedScalarView("qref1d", "\t% 12.8f", 1, basis->Q1d, basis->qref1d,
+                          stream); CeedChk(ierr);
+    ierr = CeedScalarView("qweight1d", "\t% 12.8f", 1, basis->Q1d, basis->qweight1d,
+                          stream); CeedChk(ierr);
+    ierr = CeedScalarView("interp1d", "\t% 12.8f", basis->Q1d, basis->P1d,
+                          basis->interp1d, stream); CeedChk(ierr);
+    ierr = CeedScalarView("grad1d", "\t% 12.8f", basis->Q1d, basis->P1d,
+                          basis->grad1d, stream); CeedChk(ierr);
+  } else {
+    fprintf(stream, "CeedBasis: dim=%d P=%d Q=%d\n", basis->dim, basis->P,
+            basis->Q);
+    ierr = CeedScalarView("qref", "\t% 12.8f", 1, basis->Q*basis->dim,
+                          basis->qref1d,
+                          stream); CeedChk(ierr);
+    ierr = CeedScalarView("qweight", "\t% 12.8f", 1, basis->Q, basis->qweight1d,
+                          stream); CeedChk(ierr);
+    ierr = CeedScalarView("interp", "\t% 12.8f", basis->Q, basis->P,
+                          basis->interp1d, stream); CeedChk(ierr);
+    ierr = CeedScalarView("grad", "\t% 12.8f", basis->dim*basis->Q, basis->P,
+                          basis->grad1d, stream); CeedChk(ierr);
+  }
   return 0;
 }
 
@@ -527,7 +602,7 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
   @ref Utility
 **/
 int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
-  *P = CeedIntPow(basis->P1d, basis->dim);
+  *P = basis->P;
   return 0;
 }
 
@@ -542,9 +617,25 @@ int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
   @ref Utility
 **/
 int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
-  *Q = CeedIntPow(basis->Q1d, basis->dim);
+  *Q = basis->Q;
   return 0;
 }
+
+/**
+  @brief Get dimension for given CeedElemTopology
+
+  @param topo      CeedElemTopology
+  @param[out] dim  Dimension of topology
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedBasisGetTopologyDimension(CeedElemTopology topo, CeedInt *dim) {
+  *dim = (CeedInt) topo >> 16;
+
+  return 0;
+};
 
 /**
   @brief Destroy a CeedBasis

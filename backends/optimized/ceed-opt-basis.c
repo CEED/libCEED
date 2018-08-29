@@ -192,3 +192,15 @@ int CeedBasisCreateTensorH1_Opt(Ceed ceed, CeedInt dim, CeedInt P1d,
   basis->Destroy = CeedBasisDestroy_Opt;
   return 0;
 }
+
+
+
+int CeedBasisCreateH1_Opt(Ceed ceed, CeedElemTopology topo, CeedInt dim,
+                          CeedInt ndof, CeedInt nqpts,
+                          const CeedScalar *interp,
+                          const CeedScalar *grad,
+                          const CeedScalar *qref,
+                          const CeedScalar *qweight,
+                          CeedBasis basis) {
+  return CeedError(basis->ceed, 1, "Backend does not implement non-tensor bases");
+}

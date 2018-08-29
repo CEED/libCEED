@@ -54,6 +54,7 @@ c-----------------------------------------------------------------------
       integer*8 voffset
 
       real*8 hv(nu)
+      real*8 total
 
       character arg*32
 
@@ -138,16 +139,18 @@ c     $  't30-operator-f.f:mass',qf_mass,err)
      $  ceed_request_immediate,err)
 
       call ceedvectorcreate(ceed,nu,u,err)
-      call ceedvectorsetvalue(u,0.d0,err)
+      call ceedvectorsetvalue(u,1.d0,err)
       call ceedvectorcreate(ceed,nu,v,err)
       call ceedoperatorapply(op_mass,u,v,ceed_request_immediate,err)
 
       call ceedvectorgetarrayread(v,ceed_mem_host,hv,voffset,err)
+      total=0.
       do i=1,nu
-        if (abs(hv(voffset+i))>1.0d-10) then
-          write(*,*) '[',i,'] v ',hv(voffset+i),' != 0.0'
-        endif
+        total=total+hv(voffset+i)
       enddo
+      if (abs(total-1.)>1.0d-10) then
+        write(*,*) 'Computed Area: ',total,' != True Area: 1.0'
+      endif
       call ceedvectorrestorearrayread(v,hv,voffset,err)
 
       call ceedvectordestroy(x,err)

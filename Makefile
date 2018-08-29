@@ -338,9 +338,9 @@ style :
 	astyle --style=google --indent=spaces=2 --max-code-length=80 \
             --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
             --suffix=none --preserve-date --formatted \
-            --exclude=include/ceedf.h \
+            --exclude=include/ceedf.h --exclude=tests/t310-basis-f.h \
             include/*.h interface/*.[ch] tests/*.[ch] backends/*/*.[ch] \
-            examples/*/*.[ch] examples/*/*.[ch]pp
+            examples/*/*.[ch] examples/*/*.[ch]pp -i
 
 print :
 	@echo $(VAR)=$($(VAR))
