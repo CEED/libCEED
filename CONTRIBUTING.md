@@ -1,11 +1,11 @@
 # How to Contribute
 
 Contributions to libCEED are encouraged.
-
+<!---
 Please use a pull request to the appropriate branch ('maint' for
 backward-compatible bug fixes for the last stable release, 'master' for
 new features and everything else).
-
+-->
 Please make your commits well-organized and
 [atomic](https://en.wikipedia.org/wiki/Atomic_commit#Atomic_commit_convention),
 using `git rebase --interactive` as needed.  Check that tests
