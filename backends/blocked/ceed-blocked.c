@@ -18,39 +18,21 @@
 #include <string.h>
 #include "ceed-blocked.h"
 
-static int CeedDestroy_Blocked(Ceed ceed) {
-  int ierr;
-  Ceed_Blocked *impl = ceed->data;
-  Ceed ceedref = impl->ceedref;
-  ierr = CeedFree(&ceedref); CeedChk(ierr);
-  ierr = CeedFree(&impl); CeedChk(ierr);
-  return 0;
-}
-
 static int CeedInit_Blocked(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/blocked"))
     return CeedError(ceed, 1, "Blocked backend cannot use resource: %s", resource);
 
-  int ierr;
-  Ceed_Blocked *impl;
   Ceed ceedref;
 
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
-  ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   CeedInit("/cpu/self/ref", &ceedref);
-  ceed->data = impl;
-  impl->ceedref = ceedref;
+  ceed->delegate = ceedref;
 
-  ceed->VecCreate = CeedVectorCreate_Blocked;
   ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Blocked;
   ceed->BasisCreateH1 = CeedBasisCreateH1_Blocked;
-  ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Blocked;
-  ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreate_Blocked;
-  ceed->QFunctionCreate = CeedQFunctionCreate_Blocked;
   ceed->OperatorCreate = CeedOperatorCreate_Blocked;
-  ceed->Destroy = CeedDestroy_Blocked;
 
   return 0;
 }

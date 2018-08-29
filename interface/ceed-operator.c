@@ -42,8 +42,17 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
                        CeedQFunction dqfT, CeedOperator *op) {
   int ierr;
 
-  if (!ceed->OperatorCreate) return CeedError(ceed, 1,
-                                      "Backend does not support OperatorCreate");
+  if (!ceed->OperatorCreate) {
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+
+    if (!delegate)
+      return CeedError(ceed, 1, "Backend does not support OperatorCreate");
+
+    ierr = CeedOperatorCreate(delegate, qf, dqf, dqfT, op); CeedChk(ierr);
+    return 0;
+  }
+
   ierr = CeedCalloc(1,op); CeedChk(ierr);
   (*op)->ceed = ceed;
   ceed->refcount++;

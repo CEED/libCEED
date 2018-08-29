@@ -42,8 +42,17 @@ static struct CeedVector_private ceed_vector_none;
 int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   int ierr;
 
-  if (!ceed->VecCreate)
+  if (!ceed->VecCreate) {
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+
+    if (!delegate)
     return CeedError(ceed, 1, "Backend does not support VecCreate");
+
+    ierr = CeedVectorCreate(delegate, length, vec); CeedChk(ierr);
+    return 0;
+  }
+
   ierr = CeedCalloc(1,vec); CeedChk(ierr);
   (*vec)->ceed = ceed;
   ceed->refcount++;

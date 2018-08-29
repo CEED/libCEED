@@ -59,8 +59,18 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
                             const CeedScalar *qweight1d, CeedBasis *basis) {
   int ierr;
 
-  if (!ceed->BasisCreateTensorH1)
-    return CeedError(ceed, 1, "Backend does not support BasisCreateTensorH1");
+  if (!ceed->BasisCreateTensorH1) {
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+
+    if (!delegate)
+      return CeedError(ceed, 1, "Backend does not support BasisCreateTensorH1");
+
+    ierr = CeedBasisCreateTensorH1(delegate, dim, ncomp, P1d,
+                            Q1d, interp1d, grad1d, qref1d,
+                            qweight1d, basis); CeedChk(ierr);
+    return 0;
+  }
   ierr = CeedCalloc(1,basis); CeedChk(ierr);
   (*basis)->ceed = ceed;
   ceed->refcount++;
@@ -189,8 +199,19 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt ncomp,
   int ierr;
   CeedInt P = ndof, Q = nqpts, dim = 0;
 
-  if (!ceed->BasisCreateH1)
-    return CeedError(ceed, 1, "Backend does not support BasisCreateH1");
+  if (!ceed->BasisCreateH1) {
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+
+    if (!delegate)
+      return CeedError(ceed, 1, "Backend does not support BasisCreateH1");
+
+    ierr = CeedBasisCreateH1(delegate, topo, ncomp, ndof,
+                            nqpts, interp, grad, qref,
+                            qweight, basis); CeedChk(ierr);
+    return 0;
+  }
+
   ierr = CeedCalloc(1,basis); CeedChk(ierr);
 
   ierr = CeedBasisGetTopologyDimension(topo, &dim); CeedChk(ierr);

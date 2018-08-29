@@ -26,6 +26,7 @@
 #define CEED_ALIGN 64
 
 struct Ceed_private {
+  Ceed delegate;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list);
   int (*Destroy)(Ceed);
   int (*VecCreate)(CeedInt, CeedVector);

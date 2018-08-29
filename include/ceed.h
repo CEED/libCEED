@@ -93,6 +93,7 @@ CEED_EXTERN int CeedRegister(const char *prefix,
                              int (*init)(const char *, Ceed), unsigned int priority);
 
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
+CEED_EXTERN int CeedGetDelegate(Ceed ceed, Ceed *delegate);
 CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,
                                 const char *, va_list);
 CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,

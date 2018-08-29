@@ -52,8 +52,19 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
                               CeedElemRestriction *r) {
   int ierr;
 
-  if (!ceed->ElemRestrictionCreate)
-    return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreate");
+  if (!ceed->ElemRestrictionCreate) {
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+
+    if (!delegate)
+      return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreate");
+
+    ierr = CeedElemRestrictionCreate(delegate, nelem, elemsize,
+                            ndof, ncomp, mtype, cmode,
+                            indices, r); CeedChk(ierr);
+    return 0;
+  }
+
   ierr = CeedCalloc(1, r); CeedChk(ierr);
   (*r)->ceed = ceed;
   ceed->refcount++;
@@ -91,13 +102,19 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
                                       CeedInt ndof, CeedInt ncomp, CeedElemRestriction *r) {
   int ierr;
 
-  if (!ceed->ElemRestrictionCreate)
-    return CeedError(ceed, 1,
-                     "Backend does not support ElemRestrictionCreateIdentity");
-  if (nelem * elemsize != ndof)
-    return CeedError(ceed, 1,
-                     "Cannot create identity restriction nelem=%d elemsize=%d ndof=%d",
-                     nelem, elemsize, ndof);
+  if (!ceed->ElemRestrictionCreate) {
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+
+    if (!delegate)
+      return CeedError(ceed, 1,
+                     "Backend does not support ElemRestrictionCreate");
+
+    ierr = CeedElemRestrictionCreateIdentity(delegate, nelem, elemsize,
+                            ndof, ncomp, r); CeedChk(ierr);
+    return 0;
+  }
+
   ierr = CeedCalloc(1, r); CeedChk(ierr);
   (*r)->ceed = ceed;
   ceed->refcount++;
@@ -178,11 +195,19 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   CeedInt *blkindices;
   CeedInt nblk = (nelem / blksize) + !!(nelem % blksize);
 
-  if (!ceed->ElemRestrictionCreateBlocked)
-    return CeedError(ceed, 1,
+  if (!ceed->ElemRestrictionCreateBlocked) {
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+
+    if (!delegate)
+      return CeedError(ceed, 1,
                      "Backend does not support ElemRestrictionCreateBlocked");
-  if (mtype != CEED_MEM_HOST)
-    return CeedError(ceed, 1, "Only MemType = HOST supported");
+
+    ierr = CeedElemRestrictionCreateBlocked(delegate, nelem, elemsize,
+                            blksize, ndof, ncomp, mtype, cmode,
+                            indices, r); CeedChk(ierr);
+    return 0;
+  }
 
   ierr = CeedCalloc(1, r); CeedChk(ierr);
 
