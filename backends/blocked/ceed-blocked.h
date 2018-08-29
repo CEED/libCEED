@@ -41,22 +41,19 @@ typedef struct {
   CeedInt    numqout;
 } CeedOperator_Blocked;
 
-CEED_INTERN int CeedVectorCreate_Blocked(Ceed ceed, CeedInt n, CeedVector vec);
+CEED_INTERN int CeedVectorCreate_Blocked(CeedInt n, CeedVector vec);
 
-CEED_INTERN int CeedElemRestrictionCreate_Blocked(CeedElemRestriction r,
-    CeedMemType mtype,
-    CeedCopyMode cmode, const CeedInt *indices);
+CEED_INTERN int CeedElemRestrictionCreate_Blocked( CeedMemType mtype,
+    CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r);
 
-CEED_INTERN int CeedBasisCreateTensorH1_Blocked(Ceed ceed, CeedInt dim,
-    CeedInt P1d,
+CEED_INTERN int CeedBasisCreateTensorH1_Blocked(CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d,
     const CeedScalar *grad1d,
     const CeedScalar *qref1d,
     const CeedScalar *qweight1d,
     CeedBasis basis);
 
-CEED_INTERN int CeedBasisCreateH1_Blocked(Ceed ceed, CeedElemTopology topo,
-                                      CeedInt dim,
+CEED_INTERN int CeedBasisCreateH1_Blocked(CeedElemTopology topo, CeedInt dim,
                                       CeedInt ndof, CeedInt nqpts,
                                       const CeedScalar *interp,
                                       const CeedScalar *grad,

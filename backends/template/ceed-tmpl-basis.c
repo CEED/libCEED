@@ -18,23 +18,23 @@
 #include <string.h>
 #include "ceed-tmpl.h"
 
-int CeedBasisCreateTensorH1_Tmpl(Ceed ceed, CeedInt dim, CeedInt P1d,
+int CeedBasisCreateTensorH1_Tmpl(CeedInt dim, CeedInt P1d,
                                  CeedInt Q1d, const CeedScalar *interp1d,
                                  const CeedScalar *grad1d,
                                  const CeedScalar *qref1d,
                                  const CeedScalar *qweight1d,
                                  CeedBasis basis) {
   int ierr;
-  Ceed_Tmpl *impl = ceed->data;
+  Ceed_Tmpl *impl = basis->ceed->data;
   Ceed ceedref = impl->ceedref;
-  ierr = ceedref->BasisCreateTensorH1(ceed, dim, P1d, Q1d, interp1d,
+  ierr = ceedref->BasisCreateTensorH1(dim, P1d, Q1d, interp1d,
                                       grad1d, qref1d, qweight1d, basis);
   CeedChk(ierr);
 
   return 0;
 }
 
-int CeedBasisCreateH1_Tmpl(Ceed ceed, CeedElemTopology topo, CeedInt dim,
+int CeedBasisCreateH1_Tmpl(CeedElemTopology topo, CeedInt dim,
                            CeedInt ndof, CeedInt nqpts,
                            const CeedScalar *interp,
                            const CeedScalar *grad,
@@ -42,9 +42,9 @@ int CeedBasisCreateH1_Tmpl(Ceed ceed, CeedElemTopology topo, CeedInt dim,
                            const CeedScalar *qweight,
                            CeedBasis basis) {
   int ierr;
-  Ceed_Tmpl *impl = ceed->data;
+  Ceed_Tmpl *impl = basis->ceed->data;
   Ceed ceedref = impl->ceedref;
-  ierr = ceedref->BasisCreateH1(ceed, topo, dim, ndof, nqpts, interp,
+  ierr = ceedref->BasisCreateH1(topo, dim, ndof, nqpts, interp,
                                 grad, qref, qweight, basis);
   CeedChk(ierr);
 

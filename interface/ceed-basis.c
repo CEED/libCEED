@@ -80,7 +80,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
   ierr = CeedMalloc(Q1d*P1d,&(*basis)->grad1d); CeedChk(ierr);
   memcpy((*basis)->interp1d, interp1d, Q1d*P1d*sizeof(interp1d[0]));
   memcpy((*basis)->grad1d, grad1d, Q1d*P1d*sizeof(grad1d[0]));
-  ierr = ceed->BasisCreateTensorH1(ceed, dim, P1d, Q1d, interp1d, grad1d, qref1d,
+  ierr = ceed->BasisCreateTensorH1(dim, P1d, Q1d, interp1d, grad1d, qref1d,
                                    qweight1d, *basis); CeedChk(ierr);
   return 0;
 }
@@ -211,7 +211,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt ncomp,
   ierr = CeedMalloc(dim*Q*P,&(*basis)->grad1d); CeedChk(ierr);
   memcpy((*basis)->interp1d, interp, Q*P*sizeof(interp[0]));
   memcpy((*basis)->grad1d, grad, dim*Q*P*sizeof(grad[0]));
-  ierr = ceed->BasisCreateH1(ceed, topo, dim, P, Q, interp, grad, qref,
+  ierr = ceed->BasisCreateH1(topo, dim, P, Q, interp, grad, qref,
                              qweight, *basis); CeedChk(ierr);
   return 0;
 }

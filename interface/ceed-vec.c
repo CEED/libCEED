@@ -50,7 +50,7 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   (*vec)->refcount = 1;
   (*vec)->length = length;
   (*vec)->state = 0;
-  ierr = ceed->VecCreate(ceed, length, *vec); CeedChk(ierr);
+  ierr = ceed->VecCreate(length, *vec); CeedChk(ierr);
   return 0;
 }
 

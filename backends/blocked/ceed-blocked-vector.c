@@ -18,11 +18,11 @@
 #include <string.h>
 #include "ceed-blocked.h"
 
-int CeedVectorCreate_Blocked(Ceed ceed, CeedInt n, CeedVector vec) {
+int CeedVectorCreate_Blocked(CeedInt n, CeedVector vec) {
   int ierr;
-  Ceed_Blocked *impl = ceed->data;
+  Ceed_Blocked *impl = vec->ceed->data;
   Ceed ceedref = impl->ceedref;
-  ierr = ceedref->VecCreate(ceed, n, vec); CeedChk(ierr);
+  ierr = ceedref->VecCreate(n, vec); CeedChk(ierr);
 
   return 0;
 }

@@ -18,13 +18,12 @@
 #include <string.h>
 #include "ceed-blocked.h"
 
-int CeedElemRestrictionCreate_Blocked(CeedElemRestriction r,
-                                  CeedMemType mtype,
-                                  CeedCopyMode cmode, const CeedInt *indices) {
+int CeedElemRestrictionCreate_Blocked(CeedMemType mtype, CeedCopyMode cmode,
+                                  const CeedInt *indices, CeedElemRestriction r) {
   int ierr;
   Ceed_Blocked *impl = r->ceed->data;
   Ceed ceedref = impl->ceedref;
-  ierr = ceedref->ElemRestrictionCreate(r, mtype, cmode, indices);
+  ierr = ceedref->ElemRestrictionCreate(mtype, cmode, indices, r);
   CeedChk(ierr);
 
   return 0;

@@ -21,28 +21,25 @@ typedef struct {
   Ceed ceedref;
 } Ceed_Tmpl;
 
-CEED_INTERN int CeedVectorCreate_Tmpl(Ceed ceed, CeedInt n, CeedVector vec);
+CEED_INTERN int CeedVectorCreate_Tmpl(CeedInt n, CeedVector vec);
 
-CEED_INTERN int CeedElemRestrictionCreate_Tmpl(CeedElemRestriction r,
-    CeedMemType mtype,
-    CeedCopyMode cmode, const CeedInt *indices);
+CEED_INTERN int CeedElemRestrictionCreate_Tmpl(CeedMemType mtype,
+    CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r);
 
-CEED_INTERN int CeedBasisCreateTensorH1_Tmpl(Ceed ceed, CeedInt dim,
-    CeedInt P1d,
+CEED_INTERN int CeedBasisCreateTensorH1_Tmpl(CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d,
     const CeedScalar *grad1d,
     const CeedScalar *qref1d,
     const CeedScalar *qweight1d,
     CeedBasis basis);
 
-CEED_INTERN int CeedBasisCreateH1_Tmpl(Ceed ceed, CeedElemTopology topo,
-                                       CeedInt dim,
-                                       CeedInt ndof, CeedInt nqpts,
-                                       const CeedScalar *interp,
-                                       const CeedScalar *grad,
-                                       const CeedScalar *qref,
-                                       const CeedScalar *qweight,
-                                       CeedBasis basis);
+CEED_INTERN int CeedBasisCreateH1_Tmpl(CeedElemTopology topo,
+    CeedInt dim, CeedInt ndof, CeedInt nqpts,
+    const CeedScalar *interp,
+    const CeedScalar *grad,
+    const CeedScalar *qref,
+    const CeedScalar *qweight,
+    CeedBasis basis);
 
 CEED_INTERN int CeedQFunctionCreate_Tmpl(CeedQFunction qf);
 

@@ -18,13 +18,12 @@
 #include <string.h>
 #include "ceed-tmpl.h"
 
-int CeedElemRestrictionCreate_Tmpl(CeedElemRestriction r,
-                                   CeedMemType mtype,
-                                   CeedCopyMode cmode, const CeedInt *indices) {
+int CeedElemRestrictionCreate_Tmpl(CeedMemType mtype, CeedCopyMode cmode,
+                                   const CeedInt *indices, CeedElemRestriction r) {
   int ierr;
   Ceed_Tmpl *impl = r->ceed->data;
   Ceed ceedref = impl->ceedref;
-  ierr = ceedref->ElemRestrictionCreate(r, mtype, cmode, indices);
+  ierr = ceedref->ElemRestrictionCreate(mtype, cmode, indices, r);
   CeedChk(ierr);
 
   return 0;

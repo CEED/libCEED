@@ -18,11 +18,11 @@
 #include <string.h>
 #include "ceed-tmpl.h"
 
-int CeedVectorCreate_Tmpl(Ceed ceed, CeedInt n, CeedVector vec) {
+int CeedVectorCreate_Tmpl(CeedInt n, CeedVector vec) {
   int ierr;
-  Ceed_Tmpl *impl = ceed->data;
+  Ceed_Tmpl *impl = vec->ceed->data;
   Ceed ceedref = impl->ceedref;
-  ierr = ceedref->VecCreate(ceed, n, vec); CeedChk(ierr);
+  ierr = ceedref->VecCreate(n, vec); CeedChk(ierr);
 
   return 0;
 }

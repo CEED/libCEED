@@ -22,8 +22,7 @@
 // NOTRANSPOSE: V_ajc = T_jb U_abc
 // TRANSPOSE:   V_ajc = T_bj U_abc
 // If Add != 0, "=" is replaced by "+="
-static int CeedTensorContract_Blocked(Ceed ceed,
-                                  CeedInt A, CeedInt B, CeedInt C, CeedInt J,
+static int CeedTensorContract_Blocked(CeedInt A, CeedInt B, CeedInt C, CeedInt J,
                                   const CeedScalar *restrict t,
                                   CeedTransposeMode tmode, const CeedInt Add,
                                   const CeedScalar *restrict u, CeedScalar *restrict v) {
@@ -74,7 +73,7 @@ static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
     CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
     CeedScalar tmp[2][nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
     for (CeedInt d=0; d<dim; d++) {
-      ierr = CeedTensorContract_Blocked(basis->ceed, pre, P, post, Q,
+      ierr = CeedTensorContract_Blocked(pre, P, post, Q,
                                     basis->interp1d, tmode, add&&(d==dim-1),
                                     d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
       CeedChk(ierr);
@@ -98,7 +97,7 @@ static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
     // Interpolate to quadrature points (NoTranspose)
     //  or Grad to quadrature points (Transpose)
     for (CeedInt d=0; d<dim; d++) {
-      ierr = CeedTensorContract_Blocked(basis->ceed, pre, P, post, Q,
+      ierr = CeedTensorContract_Blocked(pre, P, post, Q,
                                     (tmode == CEED_NOTRANSPOSE
                                      ? basis->interp1d
                                      : impl->colograd1d),
@@ -121,7 +120,7 @@ static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
     }
     pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
     for (CeedInt d=0; d<dim; d++) {
-      ierr = CeedTensorContract_Blocked(basis->ceed, pre, P, post, Q,
+      ierr = CeedTensorContract_Blocked(pre, P, post, Q,
                                     (tmode == CEED_NOTRANSPOSE
                                      ? impl->colograd1d
                                      : basis->interp1d),
@@ -175,7 +174,7 @@ static int CeedBasisDestroy_Blocked(CeedBasis basis) {
   return 0;
 }
 
-int CeedBasisCreateTensorH1_Blocked(Ceed ceed, CeedInt dim, CeedInt P1d,
+int CeedBasisCreateTensorH1_Blocked(CeedInt dim, CeedInt P1d,
                                 CeedInt Q1d, const CeedScalar *interp1d,
                                 const CeedScalar *grad1d,
                                 const CeedScalar *qref1d,
@@ -195,7 +194,7 @@ int CeedBasisCreateTensorH1_Blocked(Ceed ceed, CeedInt dim, CeedInt P1d,
 
 
 
-int CeedBasisCreateH1_Blocked(Ceed ceed, CeedElemTopology topo, CeedInt dim,
+int CeedBasisCreateH1_Blocked(CeedElemTopology topo, CeedInt dim,
                           CeedInt ndof, CeedInt nqpts,
                           const CeedScalar *interp,
                           const CeedScalar *grad,

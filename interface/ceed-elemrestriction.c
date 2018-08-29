@@ -64,7 +64,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   (*r)->ncomp = ncomp;
   (*r)->nblk = nelem;
   (*r)->blksize = 1;
-  ierr = ceed->ElemRestrictionCreate(*r, mtype, cmode, indices); CeedChk(ierr);
+  ierr = ceed->ElemRestrictionCreate(mtype, cmode, indices, *r); CeedChk(ierr);
   return 0;
 }
 
@@ -108,7 +108,7 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
   (*r)->ncomp = ncomp;
   (*r)->nblk = nelem;
   (*r)->blksize = 1;
-  ierr = ceed->ElemRestrictionCreate(*r, CEED_MEM_HOST, CEED_OWN_POINTER, NULL);
+  ierr = ceed->ElemRestrictionCreate(CEED_MEM_HOST, CEED_OWN_POINTER, NULL, *r);
   CeedChk(ierr);
   return 0;
 }
@@ -204,8 +204,8 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   (*r)->ncomp = ncomp;
   (*r)->nblk = nblk;
   (*r)->blksize = blksize;
-  ierr = ceed->ElemRestrictionCreateBlocked(*r, CEED_MEM_HOST, CEED_OWN_POINTER,
-         (const CeedInt *) blkindices);
+  ierr = ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER,
+         (const CeedInt *) blkindices, *r);
   CeedChk(ierr);
 
   if (cmode == CEED_OWN_POINTER)

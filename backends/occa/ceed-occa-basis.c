@@ -101,8 +101,7 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
 // *          TRANSPOSE:   V_ajc = T_bj U_abc
 // * CeedScalars are used here, not CeedVectors: we don't touch it yet
 // *****************************************************************************
-static int CeedTensorContract_Occa(Ceed ceed,
-                                   CeedInt A, CeedInt B, CeedInt C, CeedInt J,
+static int CeedTensorContract_Occa(CeedInt A, CeedInt B, CeedInt C, CeedInt J,
                                    const CeedScalar *t, CeedTransposeMode tmode,
                                    const CeedInt Add,
                                    const CeedScalar *u, CeedScalar *v) {
@@ -232,8 +231,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
     //dbg("[CeedBasis][Apply] CEED_EVAL_INTERP");
     CeedScalar tmp[2][ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
     for (CeedInt d=0; d<dim; d++) {
-      ierr = CeedTensorContract_Occa(basis->ceed,
-                                     pre, P, post, Q,
+      ierr = CeedTensorContract_Occa(pre, P, post, Q,
                                      basis->interp1d,
                                      tmode, transpose&&(d==dim-1),
                                      d==0?u:tmp[d%2],
@@ -254,7 +252,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
     for (CeedInt p=0; p<dim; p++) {
       CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = 1;
       for (CeedInt d=0; d<dim; d++) {
-        ierr = CeedTensorContract_Occa(basis->ceed, pre, P, post, Q,
+        ierr = CeedTensorContract_Occa(pre, P, post, Q,
                                        (p==d)?basis->grad1d:basis->interp1d,
                                        tmode, transpose&&(d==dim-1),
                                        d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
@@ -312,8 +310,7 @@ static int CeedBasisDestroy_Occa(CeedBasis basis) {
 // *****************************************************************************
 // * CeedBasisCreateTensorH1_Occa
 // *****************************************************************************
-int CeedBasisCreateTensorH1_Occa(Ceed ceed,
-                                 CeedInt dim, CeedInt P1d, CeedInt Q1d,
+int CeedBasisCreateTensorH1_Occa(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                                  const CeedScalar *interp1d,
                                  const CeedScalar *grad1d,
                                  const CeedScalar *qref1d,
@@ -321,6 +318,7 @@ int CeedBasisCreateTensorH1_Occa(Ceed ceed,
                                  CeedBasis basis) {
   int ierr;
   CeedBasis_Occa *data;
+  Ceed ceed = basis->ceed;
   const Ceed_Occa *ceed_data = ceed->data;
   const occaDevice dev = ceed_data->device;
   dbg("[CeedBasis][CreateTensorH1]");
@@ -355,7 +353,7 @@ int CeedBasisCreateTensorH1_Occa(Ceed ceed,
 // *****************************************************************************
 // * CeedBasisCreateH1_Occa
 // *****************************************************************************
-int CeedBasisCreateH1_Occa(Ceed ceed, CeedElemTopology topo, CeedInt dim,
+int CeedBasisCreateH1_Occa(CeedElemTopology topo, CeedInt dim,
                           CeedInt ndof, CeedInt nqpts,
                           const CeedScalar *interp,
                           const CeedScalar *grad,

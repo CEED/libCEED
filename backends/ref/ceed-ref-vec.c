@@ -92,7 +92,7 @@ static int CeedVectorDestroy_Ref(CeedVector vec) {
   return 0;
 }
 
-int CeedVectorCreate_Ref(Ceed ceed, CeedInt n, CeedVector vec) {
+int CeedVectorCreate_Ref(CeedInt n, CeedVector vec) {
   CeedVector_Ref *impl;
   int ierr;
 
