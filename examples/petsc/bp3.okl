@@ -59,7 +59,7 @@ typedef double CeedScalar;
     out[oOf7[0]+i+Q*3] = w * (A21*A21 + A22*A22 + A23*A23);
     out[oOf7[0]+i+Q*4] = w * (A21*A31 + A22*A32 + A23*A33);
     out[oOf7[0]+i+Q*5] = w * (A31*A31 + A32*A32 + A33*A33);
-    const CeedScalar c[3] = { -0.5, 1.5, 0.5 };
+    const CeedScalar c[3] = { 0, 1., 2. };
     const CeedScalar k[3] = { 1., 2., 3. };
     out[oOf7[1]+i] = sin(M_PI*(c[0] + k[0]*in[iOf7[0]+0*Q+i])) *
                        sin(M_PI*(c[1] + k[1]*in[iOf7[0]+1*Q+i])) *
