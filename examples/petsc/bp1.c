@@ -8,7 +8,7 @@
 //
 // Build with:
 //
-//     make bp1 [PETSC_DIR=</path/to/mfem>] [CEED_DIR=</path/to/libceed>]
+//     make bp1 [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>]
 //
 // Sample runs:
 //
@@ -109,8 +109,7 @@ struct User_ {
   Ceed ceed;
 };
 
-// We abuse this function to also compute residuals (an affine operation) and to
-// compute pointwise error (with no output vector Y).
+// This function uses libCEED to compute the action of the mass matrix
 static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
   PetscErrorCode ierr;
   User user;
@@ -211,7 +210,7 @@ int main(int argc, char **argv) {
   degree = test_mode ? 3 : 1;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
-  qextra = 0;
+  qextra = 2;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
@@ -460,7 +459,7 @@ int main(int argc, char **argv) {
   {
     PetscReal maxerror;
     ierr = ComputeErrorMax(user, op_error, X, target, &maxerror); CHKERRQ(ierr);
-    if (!test_mode || maxerror > 3e-3) {
+    if (!test_mode || maxerror > 5e-3) {
       ierr = PetscPrintf(comm, "Pointwise error (max) %e\n", (double)maxerror);
       CHKERRQ(ierr);
     }
