@@ -800,7 +800,7 @@ INPUT                  = . \
                          examples/petsc \
                          backends/ref \
                          backends/occa \
-                         backends/optimized \
+                         backends/blocked \
                          backends/tmpl \
                          backends/magma \
                          tests \

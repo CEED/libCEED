@@ -16,24 +16,24 @@
 
 #include <ceed-impl.h>
 #include <string.h>
-#include "ceed-opt.h"
+#include "ceed-blocked.h"
 
-static int CeedDestroy_Opt(Ceed ceed) {
+static int CeedDestroy_Blocked(Ceed ceed) {
   int ierr;
-  Ceed_Opt *impl = ceed->data;
+  Ceed_Blocked *impl = ceed->data;
   Ceed ceedref = impl->ceedref;
   ierr = CeedFree(&ceedref); CeedChk(ierr);
   ierr = CeedFree(&impl); CeedChk(ierr);
   return 0;
 }
 
-static int CeedInit_Opt(const char *resource, Ceed ceed) {
+static int CeedInit_Blocked(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/opt"))
-    return CeedError(ceed, 1, "Opt backend cannot use resource: %s", resource);
+      && strcmp(resource, "/cpu/self/blocked"))
+    return CeedError(ceed, 1, "Blocked backend cannot use resource: %s", resource);
 
   int ierr;
-  Ceed_Opt *impl;
+  Ceed_Blocked *impl;
   Ceed ceedref;
 
   // Create refrence CEED that implementation will be dispatched
@@ -43,19 +43,19 @@ static int CeedInit_Opt(const char *resource, Ceed ceed) {
   ceed->data = impl;
   impl->ceedref = ceedref;
 
-  ceed->VecCreate = CeedVectorCreate_Opt;
-  ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Opt;
-  ceed->BasisCreateH1 = CeedBasisCreateH1_Opt;
-  ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Opt;
-  ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreate_Opt;
-  ceed->QFunctionCreate = CeedQFunctionCreate_Opt;
-  ceed->OperatorCreate = CeedOperatorCreate_Opt;
-  ceed->Destroy = CeedDestroy_Opt;
+  ceed->VecCreate = CeedVectorCreate_Blocked;
+  ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Blocked;
+  ceed->BasisCreateH1 = CeedBasisCreateH1_Blocked;
+  ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Blocked;
+  ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreate_Blocked;
+  ceed->QFunctionCreate = CeedQFunctionCreate_Blocked;
+  ceed->OperatorCreate = CeedOperatorCreate_Blocked;
+  ceed->Destroy = CeedDestroy_Blocked;
 
   return 0;
 }
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/opt", CeedInit_Opt, 10);
+  CeedRegister("/cpu/self/blocked", CeedInit_Blocked, 10);
 }

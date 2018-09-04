@@ -16,11 +16,11 @@
 
 #include <ceed-impl.h>
 #include <string.h>
-#include "ceed-opt.h"
+#include "ceed-blocked.h"
 #include "../ref/ceed-ref.h"
 
-static int CeedOperatorDestroy_Opt(CeedOperator op) {
-  CeedOperator_Opt *impl = op->data;
+static int CeedOperatorDestroy_Blocked(CeedOperator op) {
+  CeedOperator_Blocked *impl = op->data;
   int ierr;
 
   for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
@@ -47,7 +47,7 @@ static int CeedOperatorDestroy_Opt(CeedOperator op) {
 /*
   Setup infields or outfields
  */
-static int CeedOperatorSetupFields_Opt(struct CeedQFunctionField qfields[16],
+static int CeedOperatorSetupFields_Blocked(struct CeedQFunctionField qfields[16],
                                        struct CeedOperatorField ofields[16],
                                        CeedElemRestriction *blkrestr,
                                        CeedVector *evecs, CeedScalar **qdata,
@@ -111,9 +111,9 @@ static int CeedOperatorSetupFields_Opt(struct CeedQFunctionField qfields[16],
   CeedOperator needs to connect all the named fields (be they active or passive)
   to the named inputs and outputs of its CeedQFunction.
  */
-static int CeedOperatorSetup_Opt(CeedOperator op) {
+static int CeedOperatorSetup_Blocked(CeedOperator op) {
   if (op->setupdone) return 0;
-  CeedOperator_Opt *impl = op->data;
+  CeedOperator_Blocked *impl = op->data;
   CeedQFunction qf = op->qf;
   CeedInt Q = op->numqpoints, numinputfields, numoutputfields;
   int ierr;
@@ -150,14 +150,14 @@ static int CeedOperatorSetup_Opt(CeedOperator op) {
   ierr = CeedCalloc(16, &impl->outdata); CeedChk(ierr);
   // Set up infield and outfield pointer arrays
   // Infields
-  ierr = CeedOperatorSetupFields_Opt(qf->inputfields, op->inputfields,
+  ierr = CeedOperatorSetupFields_Blocked(qf->inputfields, op->inputfields,
                                      impl->blkrestr, impl->evecs,
                                      impl->qdata, impl->qdata_alloc,
                                      impl->indata, 0,
                                      0, numinputfields, Q);
   CeedChk(ierr);
   // Outfields
-  ierr = CeedOperatorSetupFields_Opt(qf->outputfields, op->outputfields,
+  ierr = CeedOperatorSetupFields_Blocked(qf->outputfields, op->outputfields,
                                      impl->blkrestr, impl->evecs,
                                      impl->qdata, impl->qdata_alloc,
                                      impl->indata, numinputfields,
@@ -181,9 +181,9 @@ static int CeedOperatorSetup_Opt(CeedOperator op) {
   return 0;
 }
 
-static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
+static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
                                  CeedVector outvec, CeedRequest *request) {
-  CeedOperator_Opt *impl = op->data;
+  CeedOperator_Blocked *impl = op->data;
   const CeedInt blksize = 8;
   CeedInt Q = op->numqpoints, elemsize, numinputfields, numoutputfields,
           nblks = (op->numelements/blksize) + !!(op->numelements%blksize);
@@ -192,7 +192,7 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
   CeedTransposeMode lmode = CEED_NOTRANSPOSE;
 
   // Setup
-  ierr = CeedOperatorSetup_Opt(op); CeedChk(ierr);
+  ierr = CeedOperatorSetup_Blocked(op); CeedChk(ierr);
   ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
 
@@ -345,13 +345,13 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
   return 0;
 }
 
-int CeedOperatorCreate_Opt(CeedOperator op) {
-  CeedOperator_Opt *impl;
+int CeedOperatorCreate_Blocked(CeedOperator op) {
+  CeedOperator_Blocked *impl;
   int ierr;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   op->data = impl;
-  op->Destroy = CeedOperatorDestroy_Opt;
-  op->Apply = CeedOperatorApply_Opt;
+  op->Destroy = CeedOperatorDestroy_Blocked;
+  op->Apply = CeedOperatorApply_Blocked;
   return 0;
 }

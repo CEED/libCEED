@@ -110,16 +110,16 @@ The above code assumes a GPU-capable machine enabled in the OCCA
 backend. Depending on the available backends, other Ceed resource specifiers can
 be provided with the `-ceed` option, for example:
 
-|  CEED resource (`-ceed`) | Backend                                       |
-| :----------------------- | :-------------------------------------------- |
-| `/cpu/self/opt`          | Serial optimized implementation               |
-| `/cpu/self/ref`          | Serial reference implementation               |
-| `/cpu/self/tmpl`         | Backend template, dispatches to /cpu/self/opt |
-| `/cpu/occa`              | Serial OCCA kernels                           |
-| `/gpu/occa`              | CUDA OCCA kernels                             |
-| `/omp/occa`              | OpenMP OCCA kernels                           |
-| `/ocl/occa`              | OpenCL OCCA kernels                           |
-| `/gpu/magma`             | CUDA MAGMA kernels                            |
+|  CEED resource (`-ceed`) | Backend                                           |
+| :----------------------- | :------------------------------------------------ |
+| `/cpu/self/blocked`      | Serial blocked implementation                     |
+| `/cpu/self/ref`          | Serial reference implementation                   |
+| `/cpu/self/tmpl`         | Backend template, dispatches to /cpu/self/blocked |
+| `/cpu/occa`              | Serial OCCA kernels                               |
+| `/gpu/occa`              | CUDA OCCA kernels                                 |
+| `/omp/occa`              | OpenMP OCCA kernels                               |
+| `/ocl/occa`              | OpenCL OCCA kernels                               |
+| `/gpu/magma`             | CUDA MAGMA kernels                                |
 
 ## Install
 

@@ -16,11 +16,11 @@
 
 #include <ceed-impl.h>
 #include <string.h>
-#include "ceed-opt.h"
+#include "ceed-blocked.h"
 
-int CeedQFunctionCreate_Opt(CeedQFunction qf) {
+int CeedQFunctionCreate_Blocked(CeedQFunction qf) {
   int ierr;
-  Ceed_Opt *impl = qf->ceed->data;
+  Ceed_Blocked *impl = qf->ceed->data;
   Ceed ceedref = impl->ceedref;
   ierr = ceedref->QFunctionCreate(qf);
   CeedChk(ierr);

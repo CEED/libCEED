@@ -7,7 +7,7 @@ export CEED_ERROR_HANDLER=exit
 
 output=$(mktemp $1.XXXX)
 
-backends=(${BACKENDS:?Variable must be set, e.g., \"/cpu/self/ref /cpu/self/opt\"})
+backends=(${BACKENDS:?Variable must be set, e.g., \"/cpu/self/ref /cpu/self/blocked\"})
 printf "1..$[3*${#backends[@]}]\n";
 
 # for examples/ceed petsc*, mfem*, or ex* grep the code to fetch arguments from a TESTARGS line
