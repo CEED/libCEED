@@ -212,7 +212,7 @@ int main(int argc, char **argv) {
   degree = test_mode ? 3 : 1;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
-  qextra = 0;
+  qextra = 2;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
@@ -462,7 +462,7 @@ int main(int argc, char **argv) {
   {
     PetscReal maxerror;
     ierr = ComputeErrorMax(user, op_error, X, target, &maxerror); CHKERRQ(ierr);
-    if (!test_mode || maxerror > 3e-2) {
+    if (!test_mode || maxerror > 5e-2) {
       ierr = PetscPrintf(comm, "Pointwise error (max) %e\n", (double)maxerror);
       CHKERRQ(ierr);
     }
