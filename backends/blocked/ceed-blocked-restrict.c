@@ -16,13 +16,13 @@
 
 #include <ceed-impl.h>
 #include <string.h>
-#include "ceed-opt.h"
+#include "ceed-blocked.h"
 
-int CeedElemRestrictionCreate_Opt(CeedElemRestriction r,
+int CeedElemRestrictionCreate_Blocked(CeedElemRestriction r,
                                   CeedMemType mtype,
                                   CeedCopyMode cmode, const CeedInt *indices) {
   int ierr;
-  Ceed_Opt *impl = r->ceed->data;
+  Ceed_Blocked *impl = r->ceed->data;
   Ceed ceedref = impl->ceedref;
   ierr = ceedref->ElemRestrictionCreate(r, mtype, cmode, indices);
   CeedChk(ierr);

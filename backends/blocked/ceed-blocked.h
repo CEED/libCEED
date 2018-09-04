@@ -19,14 +19,14 @@
 
 typedef struct {
   Ceed ceedref;
-} Ceed_Opt;
+} Ceed_Blocked;
 
 typedef struct {
   CeedScalar *colograd1d;
-} CeedBasis_Opt;
+} CeedBasis_Blocked;
 
 typedef struct {
-  CeedElemRestriction *blkrestr; /// Block versions of restrictions
+  CeedElemRestriction *blkrestr; /// Blocked versions of restrictions
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
   CeedScalar **edata;
@@ -39,15 +39,15 @@ typedef struct {
   CeedInt    numeout;
   CeedInt    numqin;
   CeedInt    numqout;
-} CeedOperator_Opt;
+} CeedOperator_Blocked;
 
-CEED_INTERN int CeedVectorCreate_Opt(Ceed ceed, CeedInt n, CeedVector vec);
+CEED_INTERN int CeedVectorCreate_Blocked(Ceed ceed, CeedInt n, CeedVector vec);
 
-CEED_INTERN int CeedElemRestrictionCreate_Opt(CeedElemRestriction r,
+CEED_INTERN int CeedElemRestrictionCreate_Blocked(CeedElemRestriction r,
     CeedMemType mtype,
     CeedCopyMode cmode, const CeedInt *indices);
 
-CEED_INTERN int CeedBasisCreateTensorH1_Opt(Ceed ceed, CeedInt dim,
+CEED_INTERN int CeedBasisCreateTensorH1_Blocked(Ceed ceed, CeedInt dim,
     CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d,
     const CeedScalar *grad1d,
@@ -55,7 +55,7 @@ CEED_INTERN int CeedBasisCreateTensorH1_Opt(Ceed ceed, CeedInt dim,
     const CeedScalar *qweight1d,
     CeedBasis basis);
 
-CEED_INTERN int CeedBasisCreateH1_Opt(Ceed ceed, CeedElemTopology topo,
+CEED_INTERN int CeedBasisCreateH1_Blocked(Ceed ceed, CeedElemTopology topo,
                                       CeedInt dim,
                                       CeedInt ndof, CeedInt nqpts,
                                       const CeedScalar *interp,
@@ -64,6 +64,6 @@ CEED_INTERN int CeedBasisCreateH1_Opt(Ceed ceed, CeedElemTopology topo,
                                       const CeedScalar *qweight,
                                       CeedBasis basis);
 
-CEED_INTERN int CeedQFunctionCreate_Opt(CeedQFunction qf);
+CEED_INTERN int CeedQFunctionCreate_Blocked(CeedQFunction qf);
 
-CEED_INTERN int CeedOperatorCreate_Opt(CeedOperator op);
+CEED_INTERN int CeedOperatorCreate_Blocked(CeedOperator op);

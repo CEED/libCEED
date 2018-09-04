@@ -98,7 +98,7 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.c := $(wildcard interface/ceed*.c)
-BACKENDS_BUILTIN := /cpu/self/ref /cpu/self/tmpl /cpu/self/opt
+BACKENDS_BUILTIN := /cpu/self/ref /cpu/self/tmpl /cpu/self/blocked
 BACKENDS := $(BACKENDS_BUILTIN)
 
 # Tests
@@ -118,10 +118,10 @@ mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
 petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
 petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 
-# backends/[ref, template, optimized, occa, magma]
+# backends/[ref, template, blocked, occa, magma]
 ref.c      := $(sort $(wildcard backends/ref/*.c))
 template.c := $(sort $(wildcard backends/template/*.c))
-optimized.c:= $(sort $(wildcard backends/optimized/*.c))
+blocked.c  := $(sort $(wildcard backends/blocked/*.c))
 occa.c     := $(sort $(wildcard backends/occa/*.c))
 magma_preprocessor := python backends/magma/gccm.py
 magma_pre_src  := $(filter-out %_tmp.c, $(wildcard backends/magma/ceed-*.c))
@@ -202,7 +202,7 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)
 
 libceed.c += $(ref.c)
 libceed.c += $(template.c)
-libceed.c += $(optimized.c)
+libceed.c += $(blocked.c)
 
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)

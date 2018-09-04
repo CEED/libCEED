@@ -16,11 +16,11 @@
 
 #include <ceed-impl.h>
 #include <string.h>
-#include "ceed-opt.h"
+#include "ceed-blocked.h"
 
-int CeedVectorCreate_Opt(Ceed ceed, CeedInt n, CeedVector vec) {
+int CeedVectorCreate_Blocked(Ceed ceed, CeedInt n, CeedVector vec) {
   int ierr;
-  Ceed_Opt *impl = ceed->data;
+  Ceed_Blocked *impl = ceed->data;
   Ceed ceedref = impl->ceedref;
   ierr = ceedref->VecCreate(ceed, n, vec); CeedChk(ierr);
 
