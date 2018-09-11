@@ -19,7 +19,7 @@
 //     bp3 -ceed /omp/occa
 //     bp3 -ceed /ocl/occa
 //
-//TESTARGS -ceed {ceed_resource} -test
+//TESTARGS -ceed {ceed_resource} -test -degree 3
 const char help[] = "Solve CEED BP3 using PETSc\n";
 
 #include <petscksp.h>
@@ -101,7 +101,9 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
 typedef struct User_ *User;
 struct User_ {
   MPI_Comm comm;
-  VecScatter ltog;
+  VecScatter ltog;              // Scatter for all entries
+  VecScatter ltog0;             // Skip Dirichlet values
+  VecScatter gtogD;             // global-to-global; only Dirichlet values
   Vec Xloc, Yloc;
   CeedVector xceed, yceed;
   CeedOperator op;
@@ -109,7 +111,8 @@ struct User_ {
   Ceed ceed;
 };
 
-// This function uses libCEED to compute the action of the diffusion operator
+// This function uses libCEED to compute the action of the Laplacian with
+// Dirichlet boundary conditions
 static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
   PetscErrorCode ierr;
   User user;
@@ -117,9 +120,9 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
 
   PetscFunctionBeginUser;
   ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
-  ierr = VecScatterBegin(user->ltog, X, user->Xloc, INSERT_VALUES,
+  ierr = VecScatterBegin(user->ltog0, X, user->Xloc, INSERT_VALUES,
                          SCATTER_REVERSE); CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES, SCATTER_REVERSE);
+  ierr = VecScatterEnd(user->ltog0, X, user->Xloc, INSERT_VALUES, SCATTER_REVERSE);
   CHKERRQ(ierr);
   ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
@@ -134,13 +137,15 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
   ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
   ierr = VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
 
-  if (Y) {
-    ierr = VecZeroEntries(Y); CHKERRQ(ierr);
-    ierr = VecScatterBegin(user->ltog, user->Yloc, Y, ADD_VALUES, SCATTER_FORWARD);
-    CHKERRQ(ierr);
-    ierr = VecScatterEnd(user->ltog, user->Yloc, Y, ADD_VALUES, SCATTER_FORWARD);
-    CHKERRQ(ierr);
-  }
+  ierr = VecZeroEntries(Y); CHKERRQ(ierr);
+  ierr = VecScatterBegin(user->gtogD, X, Y, INSERT_VALUES, SCATTER_FORWARD);
+  CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->gtogD, X, Y, INSERT_VALUES, SCATTER_FORWARD);
+  CHKERRQ(ierr);
+  ierr = VecScatterBegin(user->ltog0, user->Yloc, Y, ADD_VALUES, SCATTER_FORWARD);
+  CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->ltog0, user->Yloc, Y, ADD_VALUES, SCATTER_FORWARD);
+  CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -186,7 +191,7 @@ int main(int argc, char **argv) {
   PetscScalar *r;
   PetscBool test_mode;
   PetscMPIInt size, rank;
-  VecScatter ltog;
+  VecScatter ltog, ltog0, gtogD;
   Ceed ceed;
   CeedBasis basisx, basisu;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui,
@@ -268,8 +273,8 @@ int main(int argc, char **argv) {
     ierr = VecSetUp(Xloc); CHKERRQ(ierr);
 
     // Create local-to-global scatter
-    PetscInt *ltogind;
-    IS ltogis;
+    PetscInt *ltogind, *ltogind0, *locind, l0count;
+    IS ltogis, ltogis0, locis;
     PetscInt gstart[2][2][2], gmdof[2][2][2][3];
 
     for (int i=0; i<2; i++) {
@@ -283,11 +288,24 @@ int main(int argc, char **argv) {
     }
 
     ierr = PetscMalloc1(lsize, &ltogind); CHKERRQ(ierr);
+    ierr = PetscMalloc1(lsize, &ltogind0); CHKERRQ(ierr);
+    ierr = PetscMalloc1(lsize, &locind); CHKERRQ(ierr);
+    l0count = 0;
     for (PetscInt i=0,ir,ii; ir=i>=mdof[0], ii=i-ir*mdof[0], i<ldof[0]; i++) {
       for (PetscInt j=0,jr,jj; jr=j>=mdof[1], jj=j-jr*mdof[1], j<ldof[1]; j++) {
         for (PetscInt k=0,kr,kk; kr=k>=mdof[2], kk=k-kr*mdof[2], k<ldof[2]; k++) {
-          ltogind[(i*ldof[1]+j)*ldof[2]+k] =
+          PetscInt here = (i*ldof[1]+j)*ldof[2]+k;
+          ltogind[here] =
             gstart[ir][jr][kr] + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk;
+          if ((irank[0] == 0 && i == 0)
+              || (irank[1] == 0 && j == 0)
+              || (irank[2] == 0 && k == 0)
+              || (irank[0]+1 == p[0] && i+1 == ldof[0])
+              || (irank[1]+1 == p[1] && j+1 == ldof[1])
+              || (irank[2]+1 == p[2] && k+1 == ldof[2]))
+            continue;
+          ltogind0[l0count] = ltogind[here];
+          locind[l0count++] = here;
         }
       }
     }
@@ -295,7 +313,23 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
     ierr = VecScatterCreate(Xloc, NULL, X, ltogis, &ltog); CHKERRQ(ierr);
     CHKERRQ(ierr);
+    ierr = ISCreateGeneral(comm, l0count, ltogind0, PETSC_OWN_POINTER, &ltogis0);
+    CHKERRQ(ierr);
+    ierr = ISCreateGeneral(PETSC_COMM_SELF, l0count, locind, PETSC_OWN_POINTER, &locis);
+    CHKERRQ(ierr);
+    ierr = VecScatterCreate(Xloc, locis, X, ltogis0, &ltog0); CHKERRQ(ierr);
+    { // Create global-to-global scatter for Dirichlet values (everything not in
+      // ltogis0, which is the range of ltog0)
+      PetscInt xstart, xend;
+      IS isD;
+      ierr = VecGetOwnershipRange(X, &xstart, &xend); CHKERRQ(ierr);
+      ierr = ISComplement(ltogis0, xstart, xend, &isD); CHKERRQ(ierr);
+      ierr = VecScatterCreate(X, isD, X, isD, &gtogD); CHKERRQ(ierr);
+      ierr = ISDestroy(&isD); CHKERRQ(ierr);
+    }
     ierr = ISDestroy(&ltogis); CHKERRQ(ierr);
+    ierr = ISDestroy(&ltogis0); CHKERRQ(ierr);
+    ierr = ISDestroy(&locis); CHKERRQ(ierr);
   }
 
   CeedInit(ceedresource, &ceed);
@@ -398,6 +432,8 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
   user->comm = comm;
   user->ltog = ltog;
+  user->ltog0 = ltog0;
+  user->gtogD = gtogD;
   user->Xloc = Xloc;
   ierr = VecDuplicate(Xloc, &user->Yloc); CHKERRQ(ierr);
   CeedVectorCreate(ceed, lsize, &user->xceed);
@@ -425,9 +461,9 @@ int main(int argc, char **argv) {
   // Gather RHS
   ierr = VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
   ierr = VecZeroEntries(rhs); CHKERRQ(ierr);
-  ierr = VecScatterBegin(ltog, rhsloc, rhs, ADD_VALUES, SCATTER_FORWARD);
+  ierr = VecScatterBegin(ltog0, rhsloc, rhs, ADD_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
-  ierr = VecScatterEnd(ltog, rhsloc, rhs, ADD_VALUES, SCATTER_FORWARD);
+  ierr = VecScatterEnd(ltog0, rhsloc, rhs, ADD_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
   CeedVectorDestroy(&rhsceed);
 
@@ -468,10 +504,13 @@ int main(int argc, char **argv) {
   }
 
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
+  ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
   ierr = VecDestroy(&X); CHKERRQ(ierr);
   ierr = VecDestroy(&user->Xloc); CHKERRQ(ierr);
   ierr = VecDestroy(&user->Yloc); CHKERRQ(ierr);
   ierr = VecScatterDestroy(&ltog); CHKERRQ(ierr);
+  ierr = VecScatterDestroy(&ltog0); CHKERRQ(ierr);
+  ierr = VecScatterDestroy(&gtogD); CHKERRQ(ierr);
   ierr = MatDestroy(&mat); CHKERRQ(ierr);
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
 
