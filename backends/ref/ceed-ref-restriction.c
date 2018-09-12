@@ -94,9 +94,8 @@ static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {
   return 0;
 }
 
-int CeedElemRestrictionCreate_Ref(CeedElemRestriction r,
-                                  CeedMemType mtype,
-                                  CeedCopyMode cmode, const CeedInt *indices) {
+int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
+                                  const CeedInt *indices, CeedElemRestriction r) {
   int ierr;
   CeedElemRestriction_Ref *impl;
 

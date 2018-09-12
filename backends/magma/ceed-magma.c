@@ -303,7 +303,7 @@ static int CeedVectorDestroy_Magma(CeedVector vec) {
 // *****************************************************************************
 // * Create vector vec of size n
 // *****************************************************************************
-static int CeedVectorCreate_Magma(Ceed ceed, CeedInt n, CeedVector vec) {
+static int CeedVectorCreate_Magma(CeedInt n, CeedVector vec) {
   CeedVector_Magma *impl;
   int ierr;
 
@@ -468,10 +468,9 @@ static int CeedElemRestrictionDestroy_Magma(CeedElemRestriction r) {
   return 0;
 }
 
-static int CeedElemRestrictionCreate_Magma(CeedElemRestriction r,
-    CeedMemType mtype,
+static int CeedElemRestrictionCreate_Magma(CeedMemType mtype,
     CeedCopyMode cmode,
-    const CeedInt *indices) {
+    const CeedInt *indices, CeedElemRestriction r) {
   int ierr, size = r->nelem*r->elemsize;
   CeedElemRestriction_Magma *impl;
 
@@ -554,10 +553,9 @@ static int CeedElemRestrictionCreate_Magma(CeedElemRestriction r,
   return 0;
 }
 
-static int CeedElemRestrictionCreate_Magma(CeedElemRestriction r,
-    CeedMemType mtype,
+static int CeedElemRestrictionCreateBlocked_Magma(CeedMemType mtype,
     CeedCopyMode cmode,
-    const CeedInt *indices) {
+    const CeedInt *indices, CeedElemRestriction r) {
   return CeedError(r->ceed, 1, "Backend does not implement blocked restrictions");
 }
 
@@ -694,7 +692,7 @@ static int CeedBasisDestroy_Magma(CeedBasis basis) {
   return 0;
 }
 
-static int CeedBasisCreateTensorH1_Magma(Ceed ceed, CeedInt dim, CeedInt P1d,
+static int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d,
     const CeedScalar *grad1d,
     const CeedScalar *qref1d,
@@ -705,7 +703,7 @@ static int CeedBasisCreateTensorH1_Magma(Ceed ceed, CeedInt dim, CeedInt P1d,
   return 0;
 }
 
-static int CeedBasisCreateH1_Magma(Ceed ceed, CeedElemTopology topo, CeedInt dim,
+static int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim,
                           CeedInt ndof, CeedInt nqpts,
                           const CeedScalar *interp,
                           const CeedScalar *grad,

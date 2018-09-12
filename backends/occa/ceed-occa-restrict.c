@@ -134,10 +134,10 @@ int CeedElemRestrictionOffset_Occa(const CeedElemRestriction r,
 }
 
 // *****************************************************************************
-int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
-                                   const CeedMemType mtype,
+int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
                                    const CeedCopyMode cmode,
-                                   const CeedInt *indices) {
+                                   const CeedInt *indices,
+                                   const CeedElemRestriction r) {
   const Ceed ceed = r->ceed;
   dbg("[CeedElemRestriction][Create]");
   int ierr;
@@ -230,9 +230,9 @@ int CeedElemRestrictionCreate_Occa(const CeedElemRestriction r,
   return 0;
 }
 // *****************************************************************************
-int CeedElemRestrictionCreateBlocked_Occa(const CeedElemRestriction r,
-                                   const CeedMemType mtype,
+int CeedElemRestrictionCreateBlocked_Occa(const CeedMemType mtype,
                                    const CeedCopyMode cmode,
-                                   const CeedInt *indices) {
+                                   const CeedInt *indices,
+                                   const CeedElemRestriction r) {
   return CeedError(r->ceed, 1, "Backend does not implement blocked restrictions");
 }

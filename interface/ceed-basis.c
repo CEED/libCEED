@@ -59,8 +59,18 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
                             const CeedScalar *qweight1d, CeedBasis *basis) {
   int ierr;
 
-  if (!ceed->BasisCreateTensorH1)
-    return CeedError(ceed, 1, "Backend does not support BasisCreateTensorH1");
+  if (!ceed->BasisCreateTensorH1) {
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+
+    if (!delegate)
+      return CeedError(ceed, 1, "Backend does not support BasisCreateTensorH1");
+
+    ierr = CeedBasisCreateTensorH1(delegate, dim, ncomp, P1d,
+                            Q1d, interp1d, grad1d, qref1d,
+                            qweight1d, basis); CeedChk(ierr);
+    return 0;
+  }
   ierr = CeedCalloc(1,basis); CeedChk(ierr);
   (*basis)->ceed = ceed;
   ceed->refcount++;
@@ -80,7 +90,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
   ierr = CeedMalloc(Q1d*P1d,&(*basis)->grad1d); CeedChk(ierr);
   memcpy((*basis)->interp1d, interp1d, Q1d*P1d*sizeof(interp1d[0]));
   memcpy((*basis)->grad1d, grad1d, Q1d*P1d*sizeof(grad1d[0]));
-  ierr = ceed->BasisCreateTensorH1(ceed, dim, P1d, Q1d, interp1d, grad1d, qref1d,
+  ierr = ceed->BasisCreateTensorH1(dim, P1d, Q1d, interp1d, grad1d, qref1d,
                                    qweight1d, *basis); CeedChk(ierr);
   return 0;
 }
@@ -189,8 +199,19 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt ncomp,
   int ierr;
   CeedInt P = ndof, Q = nqpts, dim = 0;
 
-  if (!ceed->BasisCreateH1)
-    return CeedError(ceed, 1, "Backend does not support BasisCreateH1");
+  if (!ceed->BasisCreateH1) {
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+
+    if (!delegate)
+      return CeedError(ceed, 1, "Backend does not support BasisCreateH1");
+
+    ierr = CeedBasisCreateH1(delegate, topo, ncomp, ndof,
+                            nqpts, interp, grad, qref,
+                            qweight, basis); CeedChk(ierr);
+    return 0;
+  }
+
   ierr = CeedCalloc(1,basis); CeedChk(ierr);
 
   ierr = CeedBasisGetTopologyDimension(topo, &dim); CeedChk(ierr);
@@ -211,7 +232,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt ncomp,
   ierr = CeedMalloc(dim*Q*P,&(*basis)->grad1d); CeedChk(ierr);
   memcpy((*basis)->interp1d, interp, Q*P*sizeof(interp[0]));
   memcpy((*basis)->grad1d, grad, dim*Q*P*sizeof(grad[0]));
-  ierr = ceed->BasisCreateH1(ceed, topo, dim, P, Q, interp, grad, qref,
+  ierr = ceed->BasisCreateH1(topo, dim, P, Q, interp, grad, qref,
                              qweight, *basis); CeedChk(ierr);
   return 0;
 }
