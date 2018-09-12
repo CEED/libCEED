@@ -152,9 +152,10 @@ int main(int argc, char **argv) {
   MPI_Comm comm;
   char ceedresource[4096] = "/cpu/self";
   PetscInt degree, qextra, localdof, localelem, melem[3], mdof[3], p[3],
-           irank[3], ldof[3], lsize, lsizeLHS, gsize;
-  PetscScalar *r;
+           irank[3], ldof[3], lsize, gsize;
   PetscMPIInt size, rank;
+  PetscScalar ftime;
+  PetscInt steps, nits, lits;
   VecScatter ltog;
   Ceed ceed;
   CeedBasis basisx, basisu;
@@ -164,7 +165,6 @@ int main(int argc, char **argv) {
   CeedOperator op_setup, op_ns;
   CeedVector xcoord, qdata;
   CeedInt degP, degQ;
-  CeedScalar cxt[5];
   Vec Q, Qloc;
   TS ts;
   User user;
@@ -273,7 +273,7 @@ int main(int argc, char **argv) {
   // Set up CEED
   CeedInit(ceedresource, &ceed);
   degP = degree + 1;
-  degQ = P + qextra;
+  degQ = degP + qextra;
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 1, degP, degQ, CEED_GAUSS, &basisu);
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, degQ, CEED_GAUSS, &basisx);
 
@@ -377,7 +377,7 @@ int main(int argc, char **argv) {
   ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user);
 
   // Solve
-  ierr = TSSolve(ts, X); CHKERRQ(ierr);
+  ierr = TSSolve(ts, Q); CHKERRQ(ierr);
 
   // Output Statistics
   ierr = TSGetSolveTime(ts,&ftime);CHKERRQ(ierr);
@@ -389,15 +389,15 @@ int main(int argc, char **argv) {
            steps,nits,lits,(double)ftime);CHKERRQ(ierr);
 
   // Clean up PETSc
-  ierr = VecDestroy(&X); CHKERRQ(ierr);
+  ierr = VecDestroy(&Q); CHKERRQ(ierr);
   ierr = VecDestroy(&user->Qloc); CHKERRQ(ierr);
   ierr = VecDestroy(&user->Gloc); CHKERRQ(ierr);
   ierr = VecScatterDestroy(&ltog); CHKERRQ(ierr);
   ierr = TSDestroy(&ts); CHKERRQ(ierr);
 
   // Clean up libCEED
-  CeedVectorDestroy(&user->xceed);
-  CeedVectorDestroy(&user->yceed);
+  CeedVectorDestroy(&user->qceed);
+  CeedVectorDestroy(&user->gceed);
   CeedVectorDestroy(&user->qdata);
   CeedVectorDestroy(&xcoord);
   CeedOperatorDestroy(&op_setup);

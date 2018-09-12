@@ -71,30 +71,31 @@ static int Setup(void *ctx, CeedInt Q,
   return 0;
 }
 
-static int NS(CeedScalar *ctx, CeedInt Q,
+static int NS(void *ctx, CeedInt Q,
                 const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
   // Outputs
   CeedScalar *v = out[0], *vg = out[1];
   // Context
-  const CeedScalar lambda = ctx[0];
-  const CeedScalar mu     = ctx[1];
-  const CeedScalar Pr     = ctx[2];
-  const CeedScalar cp     = ctx[3];
-  const CeedScalar cv     = ctx[4];
-  const CeedScalar g      = ctx[5];
-  const CeedScalar gamma  = cp / cv;
+  const CeedScalar *context = (const CeedScalar*)ctx;
+  const CeedScalar lambda     = context[0];
+  const CeedScalar mu         = context[1];
+  const CeedScalar Pr         = context[2];
+  const CeedScalar cp         = context[3];
+  const CeedScalar cv         = context[4];
+  const CeedScalar g          = context[5];
+  const CeedScalar gamma      = cp / cv;
 
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
     const CeedScalar rho     =   q[i+0*Q];
-    const CeedScalar u[3]    = { q[i+1*Q],
-                                 q[i+2*Q],
-                                 q[i+3*Q] };
-    const CeedScalar e       =   q[i+4*Q];
+    const CeedScalar u[3]    = { q[i+1*Q] / rho,
+                                 q[i+2*Q] / rho,
+                                 q[i+3*Q] / rho };
+    const CeedScalar E       =   q[i+4*Q];
     // -- Grad in
     const CeedScalar drho[3] = {  dq[i+(0+5*0)*Q],
                                   dq[i+(0+5*1)*Q],
@@ -108,9 +109,9 @@ static int NS(CeedScalar *ctx, CeedInt Q,
                                  (dq[i+(3+5*0)*Q] - drho[0]*u[2]) / rho,
                                  (dq[i+(3+5*1)*Q] - drho[1]*u[2]) / rho,
                                  (dq[i+(3+5*2)*Q] - drho[2]*u[2]) / rho };
-    const CeedScalar de[3]   = { (dq[i+(4+5*0)*Q] - drho[0]*e) / rho,
-                                 (dq[i+(4+5*1)*Q] - drho[1]*e) / rho,
-                                 (dq[i+(4+5*2)*Q] - drho[2]*e) / rho };
+    const CeedScalar dE[3]   = {  dq[i+(4+5*0)*Q],
+                                  dq[i+(4+5*1)*Q],
+                                  dq[i+(4+5*2)*Q] };
     // -- Interp-to-Interp qdata
     const CeedScalar J       =   qdata[i+ 0*Q];
     // -- Interp-to-Grad qdata
@@ -131,9 +132,12 @@ static int NS(CeedScalar *ctx, CeedInt Q,
                                  qdata[i+14*Q],
                                  qdata[i+15*Q] };
     // -- gradT
-    const CeedScalar gradT[3] = { (de[0] - u[0] * du[0+3*0]) / cv,
-                                  (de[1] - u[1] * du[1+3*1]) / cv,
-                                  (de[2] - u[2] * du[2+3*2]) / cv - g };
+    const CeedScalar gradT[3] = { (dE[0]/rho - E*drho[0]/(rho*rho) -
+                                    u[0]*du[0+3*0]) / cv,
+                                  (dE[1]/rho - E*drho[1]/(rho*rho) -
+                                    u[1]*du[1+3*1]) / cv,
+                                  (dE[2]/rho - E*drho[2]/(rho*rho) -
+                                    u[2]*du[2+3*2] - g) / cv };
     // -- Fuvisc
     const CeedScalar Fu[6] =  { mu * (du[0+3*0] * (2 + lambda)),
                                 mu * (du[0+3*1] + du[1+3*0]),
@@ -150,19 +154,19 @@ static int NS(CeedScalar *ctx, CeedInt Q,
                                u[0]*Fu[2] + u[1]*Fu[4] + u[2]*Fu[5] +
                                  (mu*cp/Pr) * gradT[2] };
     // -- P
-    const CeedScalar P = (e - (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2 -
-                               g*x[i+Q*2]) * (gamma - 1) * rho;
+    const CeedScalar P = (E - (u[0]*u[0] + u[1]*u[1] + u[2]*u[2])*rho/2 -
+                               rho*g*x[i+Q*2]) * (gamma - 1);
 
 
     // The Physics
 
-    // -- Mass
+    // -- Density
     // ---- u rho
     vg[i+(0+5*0)+15*Q] = rho*u[0]*BJ[0] + rho*u[1]*BJ[1] + rho*u[1]*BJ[2];
     vg[i+(0+5*1)+15*Q] = rho*u[0]*BJ[3] + rho*u[1]*BJ[4] + rho*u[1]*BJ[5];
     vg[i+(0+5*2)+15*Q] = rho*u[0]*BJ[6] + rho*u[1]*BJ[7] + rho*u[1]*BJ[8];
 
-    // -- Velocity
+    // -- Momentum
     // ---- rho (u x u) + P I3
     vg[i+(1+5*0)+15*Q]  = (rho*u[0]*u[0]+P)*BJ[0] + rho*u[0]*u[1]*BJ[1] +
                            rho*u[0]*u[2]*BJ[2];
@@ -195,11 +199,11 @@ static int NS(CeedScalar *ctx, CeedInt Q,
     // ---- -rho g k
     v[i+3+5*Q] = - rho*g*J;
 
-    // -- Energy
-    // ---- (rho e + P) u
-    vg[i+(4+5*0)+15*Q]  = (rho*e + P)*(u[0]*BJ[0] + u[1]*BJ[1] + u[2]*BJ[2]);
-    vg[i+(4+5*1)+15*Q]  = (rho*e + P)*(u[0]*BJ[3] + u[1]*BJ[4] + u[2]*BJ[5]);
-    vg[i+(4+5*2)+15*Q]  = (rho*e + P)*(u[0]*BJ[6] + u[1]*BJ[7] + u[2]*BJ[8]);
+    // -- Total Energy
+    // ---- (E + P) u
+    vg[i+(4+5*0)+15*Q]  = (E + P)*(u[0]*BJ[0] + u[1]*BJ[1] + u[2]*BJ[2]);
+    vg[i+(4+5*1)+15*Q]  = (E + P)*(u[0]*BJ[3] + u[1]*BJ[4] + u[2]*BJ[5]);
+    vg[i+(4+5*2)+15*Q]  = (E + P)*(u[0]*BJ[6] + u[1]*BJ[7] + u[2]*BJ[8]);
     // ---- Fevisc
     vg[i+(4+5*0)+15*Q] -= Fe[0]*BBJ[0] + Fe[1]*BBJ[1] + Fe[2]*BBJ[2];
     vg[i+(4+5*1)+15*Q] -= Fe[0]*BBJ[1] + Fe[1]*BBJ[3] + Fe[2]*BBJ[4];
