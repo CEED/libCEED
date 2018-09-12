@@ -96,21 +96,21 @@ static int NS(CeedScalar *ctx, CeedInt Q,
                                  q[i+3*Q] };
     const CeedScalar e       =   q[i+4*Q];
     // -- Grad in
-//  const CeedScalar drho[3] = { dq[i+(0+5*0)*Q],
-//                               dq[i+(0+5*1)*Q],
-//                               dq[i+(0+5*2)*Q] };
-    const CeedScalar du[9]   = { dq[i+(1+5*0)*Q],
-                                 dq[i+(1+5*1)*Q],
-                                 dq[i+(1+5*2)*Q],
-                                 dq[i+(2+5*0)*Q],
-                                 dq[i+(2+5*1)*Q],
-                                 dq[i+(2+5*2)*Q],
-                                 dq[i+(3+5*0)*Q],
-                                 dq[i+(3+5*1)*Q],
-                                 dq[i+(3+5*2)*Q] };
-    const CeedScalar de[3]   = { dq[i+(4+5*0)*Q],
-                                 dq[i+(4+5*1)*Q],
-                                 dq[i+(4+5*2)*Q] };
+    const CeedScalar drho[3] = {  dq[i+(0+5*0)*Q],
+                                  dq[i+(0+5*1)*Q],
+                                  dq[i+(0+5*2)*Q] };
+    const CeedScalar du[9]   = { (dq[i+(1+5*0)*Q] - drho[0]*u[0]) / rho,
+                                 (dq[i+(1+5*1)*Q] - drho[1]*u[0]) / rho,
+                                 (dq[i+(1+5*2)*Q] - drho[2]*u[0]) / rho,
+                                 (dq[i+(2+5*0)*Q] - drho[0]*u[1]) / rho,
+                                 (dq[i+(2+5*1)*Q] - drho[1]*u[1]) / rho,
+                                 (dq[i+(2+5*2)*Q] - drho[2]*u[1]) / rho,
+                                 (dq[i+(3+5*0)*Q] - drho[0]*u[2]) / rho,
+                                 (dq[i+(3+5*1)*Q] - drho[1]*u[2]) / rho,
+                                 (dq[i+(3+5*2)*Q] - drho[2]*u[2]) / rho };
+    const CeedScalar de[3]   = { (dq[i+(4+5*0)*Q] - drho[0]*e) / rho,
+                                 (dq[i+(4+5*1)*Q] - drho[1]*e) / rho,
+                                 (dq[i+(4+5*2)*Q] - drho[2]*e) / rho };
     // -- Interp-to-Interp qdata
     const CeedScalar J       =   qdata[i+ 0*Q];
     // -- Interp-to-Grad qdata
