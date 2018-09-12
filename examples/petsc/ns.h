@@ -76,78 +76,82 @@ static int NS(CeedScalar *ctx, CeedInt Q,
   // Inputs
   const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
   // Outputs
-  CeedScalar v* = out[0], *vg = out[1];
+  CeedScalar *v = out[0], *vg = out[1];
   // Context
-  const CeedScalar gamma = ctx[0];
-  const CeedScalar mu    = ctx[1];
-  const CeedScalar Pr    = ctx[2];
-  const CeedScalar cp    = ctx[3];
-  const CeedScalar g     = ctx[4];
+  const CeedScalar lambda = ctx[0];
+  const CeedScalar mu     = ctx[1];
+  const CeedScalar Pr     = ctx[2];
+  const CeedScalar cp     = ctx[3];
+  const CeedScalar cv     = ctx[4];
+  const CeedScalar g      = ctx[5];
+  const CeedScalar gamma  = cp / cv;
 
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar rho   =   q[i+0*Q];
-    const CeedScalar *u    = { q[i+1*Q],
-                               q[i+2*Q],
-                               q[i+3*Q] };
-    const CeedScalar e     =   q[i+4*Q];
+    const CeedScalar rho     =   q[i+0*Q];
+    const CeedScalar u[3]    = { q[i+1*Q],
+                                 q[i+2*Q],
+                                 q[i+3*Q] };
+    const CeedScalar e       =   q[i+4*Q];
     // -- Grad in
-    //const CeedScalar *drho = { dq[i+(0+5*0)*Q],
-    //                           dq[i+(0+5*1)*Q],
-    //                           dq[i+(0+5*2)*Q] };
-    const CeedScalar *du   = { dq[i+(1+5*0)*Q],
-                               dq[i+(1+5*1)*Q],
-                               dq[i+(1+5*2)*Q],
-                               dq[i+(2+5*0)*Q],
-                               dq[i+(2+5*1)*Q],
-                               dq[i+(2+5*2)*Q],
-                               dq[i+(3+5*0)*Q],
-                               dq[i+(3+5*1)*Q],
-                               dq[i+(3+5*2)*Q] };
-    const CeedScalar *de   = { dq[i+(4+5*0)*Q],
-                               dq[i+(4+5*1)*Q],
-                               dq[i+(4+5*2)*Q] };
+//  const CeedScalar drho[3] = { dq[i+(0+5*0)*Q],
+//                               dq[i+(0+5*1)*Q],
+//                               dq[i+(0+5*2)*Q] };
+    const CeedScalar du[9]   = { dq[i+(1+5*0)*Q],
+                                 dq[i+(1+5*1)*Q],
+                                 dq[i+(1+5*2)*Q],
+                                 dq[i+(2+5*0)*Q],
+                                 dq[i+(2+5*1)*Q],
+                                 dq[i+(2+5*2)*Q],
+                                 dq[i+(3+5*0)*Q],
+                                 dq[i+(3+5*1)*Q],
+                                 dq[i+(3+5*2)*Q] };
+    const CeedScalar de[3]   = { dq[i+(4+5*0)*Q],
+                                 dq[i+(4+5*1)*Q],
+                                 dq[i+(4+5*2)*Q] };
     // -- Interp-to-Interp qdata
-    const CeedScalar *J    =   qdata[i+ 0*Q];
+    const CeedScalar J       =   qdata[i+ 0*Q];
     // -- Interp-to-Grad qdata
-    const CeedScalar *BJ   = { qdata[i+ 1*Q],
-                               qdata[i+ 2*Q],
-                               qdata[i+ 3*Q],
-                               qdata[i+ 4*Q],
-                               qdata[i+ 5*Q],
-                               qdata[i+ 6*Q],
-                               qdata[i+ 7*Q],
-                               qdata[i+ 8*Q],
-                               qdata[i+ 9*Q] };
+    const CeedScalar BJ[9]   = { qdata[i+ 1*Q],
+                                 qdata[i+ 2*Q],
+                                 qdata[i+ 3*Q],
+                                 qdata[i+ 4*Q],
+                                 qdata[i+ 5*Q],
+                                 qdata[i+ 6*Q],
+                                 qdata[i+ 7*Q],
+                                 qdata[i+ 8*Q],
+                                 qdata[i+ 9*Q] };
     // -- Grad-to-Grad qdata
-    const CeedScalar *BBJ  = { qdata[i+10*Q],
-                               qdata[i+11*Q],
-                               qdata[i+12*Q],
-                               qdata[i+13*Q],
-                               qdata[i+14*Q],
-                               qdata[i+15*Q] };
+    const CeedScalar BBJ[6]  = { qdata[i+10*Q],
+                                 qdata[i+11*Q],
+                                 qdata[i+12*Q],
+                                 qdata[i+13*Q],
+                                 qdata[i+14*Q],
+                                 qdata[i+15*Q] };
     // -- gradT
-    const CeedScalar *gradT   = 1 / cv * { de[0] - u[0] * du[0+3*0],
-                                           de[1] - u[1] * du[1+3*1],
-                                           de[2] - u[2] * du[2+3*2] - g };
+    const CeedScalar gradT[3] = { (de[0] - u[0] * du[0+3*0]) / cv,
+                                  (de[1] - u[1] * du[1+3*1]) / cv,
+                                  (de[2] - u[2] * du[2+3*2]) / cv - g };
     // -- Fuvisc
-    const CeedScalar *Fu = mu * { du[0+3*0] * (2 + lambda),
-                                  du[0+3*1] + du[1+3*0],
-                                  du[0+3*2] + du[2+3*0],
-                                  du[1+3*1] * (2 + lambda),
-                                  du[1+3*2] + du[2+3*1],
-                                  du[2+3*2] * (2 + lambda) };
+    const CeedScalar Fu[6] =  { mu * (du[0+3*0] * (2 + lambda)),
+                                mu * (du[0+3*1] + du[1+3*0]),
+                                mu * (du[0+3*2] + du[2+3*0]),
+                                mu * (du[1+3*1] * (2 + lambda)),
+                                mu * (du[1+3*2] + du[2+3*1]),
+                                mu * (du[2+3*2] * (2 + lambda)) };
 
     // -- Fevisc
-    const CeedScalar *Fe = { u[0]*Fu[0] + u[1]*Fu[1] + u[2]*Fu[2],
-                             u[0]*Fu[1] + u[1]*Fu[3] + u[2]*Fu[4],
-                             u[0]*Fu[2] + u[1]*Fu[4] + u[2]*Fu[5] };
-                     Fe += (mu*cp/Pr) * gradT;
+    const CeedScalar Fe[3] = { u[0]*Fu[0] + u[1]*Fu[1] + u[2]*Fu[2] +
+                                 (mu*cp/Pr) * gradT[0],
+                               u[0]*Fu[1] + u[1]*Fu[3] + u[2]*Fu[4] +
+                                 (mu*cp/Pr) * gradT[1],
+                               u[0]*Fu[2] + u[1]*Fu[4] + u[2]*Fu[5] +
+                                 (mu*cp/Pr) * gradT[2] };
     // -- P
     const CeedScalar P = (e - (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2 -
-                              g*x[i+Q*2]) * (gamma - 1) * rho;
+                               g*x[i+Q*2]) * (gamma - 1) * rho;
 
 
     // The Physics

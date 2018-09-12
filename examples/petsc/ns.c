@@ -21,7 +21,7 @@
 //
 const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 
-#include <petscksp.h>
+#include <petscts.h>
 #include <ceed.h>
 #include <stdbool.h>
 #include "ns.h"
@@ -113,14 +113,14 @@ struct UserLHS_ {
   MPI_Comm comm;
   VecScatter ltog;
   Vec Qloc, dQloc, Floc;
-  PetscScalar lsize;
+  PetscInt lsize;
 };
 
 // This is the RHS of the DAE, given as F(t,u,u_t) = G(t,u)
 // This function takes in a state vector Q and writes into G
-static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user) {
+static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userRHS) {
   PetscErrorCode ierr;
-  UserRHS *user = (UserRHS*)user;
+  UserRHS user = *(UserRHS*)userRHS;
   PetscScalar *q, *g;
 
   // Global to local
@@ -157,10 +157,11 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user) {
 
 // This is the LHS of the DAE, given as F(t,u,u_t) = G(t,u)
 // This function takes in state vectors Q and dQ and writes into F
-static PetscErrorCode LHS_NS(TS ts, PetscReal t, Vec Q, Vec dQ, Vec F, void *user) {
+static PetscErrorCode LHS_NS(TS ts, PetscReal t, Vec Q, Vec dQ, Vec F, void *userLHS) {
   PetscErrorCode ierr;
-  User *user = (User*)user;
-  PetscScalar *q, *dq, *f, lsize = user->lsize;
+  UserLHS user = *(UserLHS*)userLHS;
+  PetscScalar *q, *dq, *f;
+  PetscInt lsize = user->lsize;
 
   // Global to local
   PetscFunctionBeginUser;
@@ -286,7 +287,7 @@ int main(int argc, char **argv) {
     for (int d=0; d<3; d++) {
       ldof[d] = melem[d]*degree + 1;
       lsize *= ldof[d];
-      gsize *= mdof[i];
+      gsize *= mdof[d];
     }
     ierr = VecCreate(PETSC_COMM_SELF, &Qloc); CHKERRQ(ierr);
     ierr = VecSetSizes(Qloc, 5*lsize, PETSC_DECIDE); CHKERRQ(ierr);
@@ -332,6 +333,17 @@ int main(int argc, char **argv) {
     // Create local-to-global scatter to LHS
     PetscInt *ltogindLHS;
     IS ltogisLHS;
+    PetscInt gstart[2][2][2], gmdof[2][2][2][3];
+
+    for (int i=0; i<2; i++) {
+      for (int j=0; j<2; j++) {
+        for (int k=0; k<2; k++) {
+          PetscInt ijkrank[3] = {irank[0]+i, irank[1]+j, irank[2]+k};
+          gstart[i][j][k] = GlobalStart(p, ijkrank, degree, melem);
+          GlobalDof(p, ijkrank, degree, melem, gmdof[i][j][k]);
+        }
+      }
+    }
 
     lsizeLHS = 1;
     for (int d=0; d<3; d++) {
@@ -444,7 +456,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_ns, "dv", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
 
   // Create the Navier-Stokes context
-  CeedScalar ctx[5] = {-2./3., 1.81e-5, 7.25e-5, 1.004, 9.81};
+  CeedScalar ctx[6] = {-2./3., 1.81e-5, 7.25e-5, 1.004, 0.717, 9.81};
   CeedQFunctionSetContext(qf_ns, &ctx, sizeof ctx);
 
   // Set up context
