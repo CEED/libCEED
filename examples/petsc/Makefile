@@ -12,6 +12,9 @@ LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 bp.c := $(wildcard bp*.c)
 bp := $(bp.c:%.c=%)
 
+ns.c := ns.c
+ns := $(ns.c:%.c=%)
+
 all: $(bp)
 $(bp): | $(PETSc.pc) $(ceed.pc)
 
@@ -29,7 +32,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) $(bp)
+	$(RM) $(bp) $(ns)
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
