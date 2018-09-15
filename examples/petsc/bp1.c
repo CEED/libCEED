@@ -8,7 +8,7 @@
 //
 // Build with:
 //
-//     make bp1 [PETSC_DIR=</path/to/mfem>] [CEED_DIR=</path/to/libceed>]
+//     make bp1 [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>]
 //
 // Sample runs:
 //
@@ -109,8 +109,7 @@ struct User_ {
   Ceed ceed;
 };
 
-// We abuse this function to also compute residuals (an affine operation) and to
-// compute pointwise error (with no output vector Y).
+// This function uses libCEED to compute the action of the mass matrix
 static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
   PetscErrorCode ierr;
   User user;

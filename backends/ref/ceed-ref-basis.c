@@ -22,8 +22,7 @@
 // NOTRANSPOSE: V_ajc = T_jb U_abc
 // TRANSPOSE:   V_ajc = T_bj U_abc
 // If Add != 0, "=" is replaced by "+="
-static int CeedTensorContract_Ref(Ceed ceed,
-                                  CeedInt A, CeedInt B, CeedInt C, CeedInt J,
+static int CeedTensorContract_Ref(Ceed ceed, CeedInt A, CeedInt B, CeedInt C, CeedInt J,
                                   const CeedScalar *restrict t, CeedTransposeMode tmode,
                                   const CeedInt Add,
                                   const CeedScalar *restrict u, CeedScalar *restrict v) {
@@ -189,7 +188,7 @@ static int CeedBasisDestroy_Ref(CeedBasis basis) {
   return 0;
 }
 
-int CeedBasisCreateTensorH1_Ref(Ceed ceed, CeedInt dim, CeedInt P1d,
+int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P1d,
                                 CeedInt Q1d, const CeedScalar *interp1d,
                                 const CeedScalar *grad1d,
                                 const CeedScalar *qref1d,
@@ -200,7 +199,7 @@ int CeedBasisCreateTensorH1_Ref(Ceed ceed, CeedInt dim, CeedInt P1d,
   return 0;
 }
 
-int CeedBasisCreateH1_Ref(Ceed ceed, CeedElemTopology topo, CeedInt dim,
+int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim,
                           CeedInt ndof, CeedInt nqpts,
                           const CeedScalar *interp,
                           const CeedScalar *grad,

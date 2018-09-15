@@ -336,6 +336,21 @@ int CeedInit(const char *resource, Ceed *ceed) {
 }
 
 /**
+  @brief Retrieve a delegate CEED
+
+  @param ceed           Ceed to retrieve delegate of
+  @param[out] delegate  Address to save the delegate to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
+  (*delegate)=ceed->delegate;
+  return 0;
+}
+
+/**
   @brief Destroy a Ceed context
 
   @param ceed Address of Ceed context to destroy
@@ -348,6 +363,9 @@ int CeedDestroy(Ceed *ceed) {
   int ierr;
 
   if (!*ceed || --(*ceed)->refcount > 0) return 0;
+  if ((*ceed)->delegate) {
+    ierr = CeedDestroy(&(*ceed)->delegate); CeedChk(ierr);
+  }
   if ((*ceed)->Destroy) {
     ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);
   }

@@ -56,8 +56,17 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
   int ierr;
   char *focca_copy;
 
-  if (!ceed->QFunctionCreate)
+  if (!ceed->QFunctionCreate) {
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+
+    if (!delegate)
     return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
+
+    ierr = CeedQFunctionCreateInterior(delegate, vlength, f, focca, qf); CeedChk(ierr);
+    return 0;
+  }
+
   ierr = CeedCalloc(1,qf); CeedChk(ierr);
   (*qf)->ceed = ceed;
   ceed->refcount++;

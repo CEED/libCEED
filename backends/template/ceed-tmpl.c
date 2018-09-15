@@ -16,41 +16,18 @@
 
 #include <ceed-impl.h>
 #include <string.h>
-#include "ceed-tmpl.h"
-
-static int CeedDestroy_Tmpl(Ceed ceed) {
-  int ierr;
-  Ceed_Tmpl *impl = ceed->data;
-  Ceed ceedref = impl->ceedref;
-  ierr = CeedFree(&ceedref); CeedChk(ierr);
-  ierr = CeedFree(&impl); CeedChk(ierr);
-  return 0;
-}
 
 static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/tmpl"))
     return CeedError(ceed, 1, "Tmpl backend cannot use resource: %s", resource);
 
-  int ierr;
-  Ceed_Tmpl *impl;
   Ceed ceedref;
 
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
-  ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  CeedInit("/cpu/self/ref", &ceedref);
-  ceed->data = impl;
-  impl->ceedref = ceedref;
-
-  ceed->VecCreate = CeedVectorCreate_Tmpl;
-  ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Tmpl;
-  ceed->BasisCreateH1 = CeedBasisCreateH1_Tmpl;
-  ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Tmpl;
-  ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreate_Tmpl;
-  ceed->QFunctionCreate = CeedQFunctionCreate_Tmpl;
-  ceed->OperatorCreate = CeedOperatorCreate_Tmpl;
-  ceed->Destroy = CeedDestroy_Tmpl;
+  CeedInit("/cpu/self/blocked", &ceedref);
+  ceed->delegate = ceedref;
 
   return 0;
 }

@@ -48,7 +48,7 @@ static int Setup(void *ctx, CeedInt Q,
     qd[i+Q*3] = qw * (A21*A21 + A22*A22 + A23*A23);
     qd[i+Q*4] = qw * (A21*A31 + A22*A32 + A23*A33);
     qd[i+Q*5] = qw * (A31*A31 + A32*A32 + A33*A33);
-    const CeedScalar c[3] = { -0.5, 1.5, 0.5 };
+    const CeedScalar c[3] = { 0, 1., 2. };
     const CeedScalar k[3] = { 1., 2., 3. };
     true_soln[i] = sin(M_PI*(c[0] + k[0]*x[i+Q*0])) *
                      sin(M_PI*(c[1] + k[1]*x[i+Q*1])) *

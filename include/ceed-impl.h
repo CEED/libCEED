@@ -26,17 +26,17 @@
 #define CEED_ALIGN 64
 
 struct Ceed_private {
+  Ceed delegate;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list);
   int (*Destroy)(Ceed);
-  int (*VecCreate)(Ceed, CeedInt, CeedVector);
-  int (*ElemRestrictionCreate)(CeedElemRestriction, CeedMemType, CeedCopyMode,
-                               const CeedInt *);
-  int (*ElemRestrictionCreateBlocked)(CeedElemRestriction, CeedMemType,
-                                      CeedCopyMode,
-                                      const CeedInt *);
-  int (*BasisCreateTensorH1)(Ceed, CeedInt, CeedInt, CeedInt, const CeedScalar *,
+  int (*VecCreate)(CeedInt, CeedVector);
+  int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode,
+                               const CeedInt *, CeedElemRestriction);
+  int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode,
+                                      const CeedInt *, CeedElemRestriction);
+  int (*BasisCreateTensorH1)(CeedInt, CeedInt, CeedInt, const CeedScalar *,
                              const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
-  int (*BasisCreateH1)(Ceed, CeedElemTopology, CeedInt, CeedInt, CeedInt,
+  int (*BasisCreateH1)(CeedElemTopology, CeedInt, CeedInt, CeedInt,
                        const CeedScalar *,
                        const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*QFunctionCreate)(CeedQFunction);
