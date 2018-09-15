@@ -100,13 +100,9 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
 typedef struct User_ *User;
 struct User_ {
   MPI_Comm comm;
-<<<<<<< HEAD
-  VecScatter ltog;
-=======
   VecScatter ltog;              // Scatter for all entries
   VecScatter ltog0;             // Skip Dirichlet values for U
   VecScatter gtogD;             // global-to-global; only Dirichlet values for U
->>>>>>> ebbd047f163567ea3e874dc36f4535b6f0d39fea
   Vec Qloc, Gloc;
   CeedVector qceed, gceed;
   CeedOperator op;
@@ -123,14 +119,6 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
 
   // Global to local
   PetscFunctionBeginUser;
-<<<<<<< HEAD
-  ierr = VecScatterBegin(user->ltog, Q, user->Qloc, INSERT_VALUES,
-                         SCATTER_REVERSE); CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog, Q, user->Qloc, INSERT_VALUES, SCATTER_REVERSE);
-  CHKERRQ(ierr);
-  ierr = VecZeroEntries(user->Gloc); CHKERRQ(ierr);
-
-=======
   ierr = VecScatterBegin(user->ltog0, Q, user->Qloc, INSERT_VALUES,
                          SCATTER_REVERSE); CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog0, Q, user->Qloc, INSERT_VALUES, SCATTER_REVERSE);
@@ -142,7 +130,6 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
 // !!!!!
   ierr = VecView(Q, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
->>>>>>> ebbd047f163567ea3e874dc36f4535b6f0d39fea
   // Ceed Vectors
   ierr = VecGetArrayRead(user->Qloc, (const PetscScalar**)&q); CHKERRQ(ierr);
   ierr = VecGetArray(user->Gloc, &g); CHKERRQ(ierr);
@@ -159,11 +146,6 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
 
   // Local to global
   ierr = VecZeroEntries(G); CHKERRQ(ierr);
-<<<<<<< HEAD
-  ierr = VecScatterBegin(user->ltog, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
-=======
   ierr = VecScatterBegin(user->gtogD, Q, G, INSERT_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
   ierr = VecScatterEnd(user->gtogD, Q, G, INSERT_VALUES, SCATTER_FORWARD);
@@ -171,7 +153,6 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   ierr = VecScatterBegin(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
->>>>>>> ebbd047f163567ea3e874dc36f4535b6f0d39fea
   CHKERRQ(ierr);
   
   PetscFunctionReturn(0);
