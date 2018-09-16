@@ -25,13 +25,13 @@ LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc)
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
 LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
-bp.c := $(wildcard bp*.c)
-bp := $(bp.c:%.c=%)
+ns.c := $(wildcard ns*.c)
+ns := $(ns.c:%.c=%)
 
-all: $(bp)
-$(bp): | $(PETSc.pc) $(ceed.pc)
+all: $(ns)
+$(ns): | $(PETSc.pc) $(ceed.pc)
 
-# Rules for building the examples
+# Rules for building the example
 %: %.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(abspath $<) -o $@ \
 	  $(LDLIBS)
@@ -45,7 +45,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) $(bp)
+	$(RM) $(ns)
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
