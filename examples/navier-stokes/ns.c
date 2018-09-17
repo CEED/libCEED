@@ -296,10 +296,22 @@ int main(int argc, char **argv) {
     ierr = VecScatterCreate(Qloc, locis, Q, ltogis0, &ltog0); CHKERRQ(ierr);
     { // Create global-to-global scatter for Dirichlet values (everything not in
       // ltogis0, which is the range of ltog0)
-      PetscInt qstart, qend;
+      PetscInt qstart, qend, *indD, countD = 0;
       IS isD;
+      const PetscScalar *q;
+      ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
+      ierr = VecSet(Q, 1.0); CHKERRQ(ierr);
+      ierr = VecScatterBegin(ltog0, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
+      ierr = VecScatterEnd(ltog0, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
       ierr = VecGetOwnershipRange(Q, &qstart, &qend); CHKERRQ(ierr);
-      ierr = ISComplement(ltogis0, qstart, qend, &isD); CHKERRQ(ierr);
+      ierr = PetscMalloc1(qend-qstart, &indD); CHKERRQ(ierr);
+      ierr = VecGetArrayRead(Q, &q); CHKERRQ(ierr);
+      for (PetscInt i=0; i<qend-qstart; i++) {
+        if (q[i] == 1.) indD[countD++] = qstart + i;
+      }
+      ierr = VecRestoreArrayRead(Q, &q); CHKERRQ(ierr);
+      ierr = ISCreateGeneral(comm, countD, indD, PETSC_COPY_VALUES, &isD); CHKERRQ(ierr);
+      ierr = PetscFree(indD); CHKERRQ(ierr);
       ierr = VecScatterCreate(Q, isD, Q, isD, &gtogD); CHKERRQ(ierr);
       ierr = ISDestroy(&isD); CHKERRQ(ierr);
     }
@@ -455,7 +467,7 @@ int main(int argc, char **argv) {
 // !!!!!
 // Temporary Print Statement
 // !!!!!
-  printf("t = %f\n", t);
+  printf("t = %f\n", 0.0);
   ierr = VecView(Q, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
   // Output Statistics

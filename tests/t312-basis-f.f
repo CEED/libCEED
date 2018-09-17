@@ -2,7 +2,7 @@ c-----------------------------------------------------------------------
 c
 c Header with common subroutine
 c 
-include 't310-basis-f.h'
+      include 't310-basis-f.h'
 c-----------------------------------------------------------------------
       subroutine feval(x1,x2,val)
       real*8 x1,x2,val

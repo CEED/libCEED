@@ -249,7 +249,14 @@ int main(int argc, char **argv) {
 
   GlobalDof(p, irank, degree, melem, mdof);
 
+  ierr = VecCreate(comm, &X); CHKERRQ(ierr);
+  ierr = VecSetSizes(X, mdof[0] * mdof[1] * mdof[2], PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetUp(X); CHKERRQ(ierr);
+
   if (!test_mode) {
+    CeedInt gsize;
+    ierr = VecGetSize(X, &gsize); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Global dofs: %D\n", gsize); CHKERRQ(ierr);
     ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
                        p[0], p[1], p[2]); CHKERRQ(ierr);
     ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localelem,
@@ -259,10 +266,6 @@ int main(int argc, char **argv) {
   }
 
   {
-    ierr = VecCreate(comm, &X); CHKERRQ(ierr);
-    ierr = VecSetSizes(X, mdof[0] * mdof[1] * mdof[2], PETSC_DECIDE); CHKERRQ(ierr);
-    ierr = VecSetUp(X); CHKERRQ(ierr);
-
     lsize = 1;
     for (int d=0; d<3; d++) {
       ldof[d] = melem[d]*degree + 1;
@@ -320,10 +323,22 @@ int main(int argc, char **argv) {
     ierr = VecScatterCreate(Xloc, locis, X, ltogis0, &ltog0); CHKERRQ(ierr);
     { // Create global-to-global scatter for Dirichlet values (everything not in
       // ltogis0, which is the range of ltog0)
-      PetscInt xstart, xend;
+      PetscInt xstart, xend, *indD, countD = 0;
       IS isD;
+      const PetscScalar *x;
+      ierr = VecZeroEntries(Xloc); CHKERRQ(ierr);
+      ierr = VecSet(X, 1.0); CHKERRQ(ierr);
+      ierr = VecScatterBegin(ltog0, Xloc, X, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
+      ierr = VecScatterEnd(ltog0, Xloc, X, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
       ierr = VecGetOwnershipRange(X, &xstart, &xend); CHKERRQ(ierr);
-      ierr = ISComplement(ltogis0, xstart, xend, &isD); CHKERRQ(ierr);
+      ierr = PetscMalloc1(xend-xstart, &indD); CHKERRQ(ierr);
+      ierr = VecGetArrayRead(X, &x);CHKERRQ(ierr);
+      for (PetscInt i=0; i<xend-xstart; i++) {
+        if (x[i] == 1.) indD[countD++] = xstart + i;
+      }
+      ierr = VecRestoreArrayRead(X, &x); CHKERRQ(ierr);
+      ierr = ISCreateGeneral(comm, countD, indD, PETSC_COPY_VALUES, &isD); CHKERRQ(ierr);
+      ierr = PetscFree(indD); CHKERRQ(ierr);
       ierr = VecScatterCreate(X, isD, X, isD, &gtogD); CHKERRQ(ierr);
       ierr = ISDestroy(&isD); CHKERRQ(ierr);
     }
