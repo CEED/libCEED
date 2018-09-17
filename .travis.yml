@@ -29,11 +29,11 @@ install:
   - git clone https://github.com/libocca/occa.git
   - git -C occa reset --hard $OCCA_HEAD
   - make -C occa -j2
-  - export OCCA_DIR=$PWD/occa MFEM_DIR=$PWD/mfem PETSC_INSTALL=$HOME/install/petsc-3.9.3
-  - test -d $PETSC_INSTALL
-    || ( curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.9.3.tar.gz
-        && tar xf petsc-lite-3.9.3.tar.gz
-        && cd petsc-3.9.3
+  - export OCCA_DIR=$PWD/occa MFEM_DIR=$PWD/mfem PETSC_INSTALL=$HOME/install/petsc-3.10.0
+  - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
+        || ( curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.10.0.tar.gz
+        && tar xf petsc-lite-3.10.0.tar.gz
+        && cd petsc-3.10.0
         && ./configure --with-debugging=0 COPTFLAGS=-O --with-mpi=0 --with-fc=0 --with-cxx=0 --prefix=$PETSC_INSTALL
         && make
         && make install )
