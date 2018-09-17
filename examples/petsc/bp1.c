@@ -243,7 +243,14 @@ int main(int argc, char **argv) {
 
   GlobalDof(p, irank, degree, melem, mdof);
 
+  ierr = VecCreate(comm, &X); CHKERRQ(ierr);
+  ierr = VecSetSizes(X, mdof[0] * mdof[1] * mdof[2], PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetUp(X); CHKERRQ(ierr);
+
   if (!test_mode) {
+    CeedInt gsize;
+    ierr = VecGetSize(X, &gsize); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Global dofs: %D\n", gsize); CHKERRQ(ierr);
     ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
                        p[0], p[1], p[2]); CHKERRQ(ierr);
     ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localelem,
@@ -253,10 +260,6 @@ int main(int argc, char **argv) {
   }
 
   {
-    ierr = VecCreate(comm, &X); CHKERRQ(ierr);
-    ierr = VecSetSizes(X, mdof[0] * mdof[1] * mdof[2], PETSC_DECIDE); CHKERRQ(ierr);
-    ierr = VecSetUp(X); CHKERRQ(ierr);
-
     lsize = 1;
     for (int d=0; d<3; d++) {
       ldof[d] = melem[d]*degree + 1;
