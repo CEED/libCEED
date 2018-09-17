@@ -469,6 +469,7 @@ int main(int argc, char **argv) {
   }
 
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
+  ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
   ierr = VecDestroy(&X); CHKERRQ(ierr);
   ierr = VecDestroy(&user->Xloc); CHKERRQ(ierr);
   ierr = VecDestroy(&user->Yloc); CHKERRQ(ierr);
