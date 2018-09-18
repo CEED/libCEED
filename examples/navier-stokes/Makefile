@@ -45,7 +45,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) $(ns)
+	$(RM) $(ns) *.vtr
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \

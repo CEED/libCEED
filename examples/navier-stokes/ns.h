@@ -20,17 +20,9 @@
 static int Setup(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *x = in[0], *J = in[1], *w = in[2];
+  const CeedScalar *J = in[0], *w = in[1];
   // Outputs
-  CeedScalar *qdata = out[0], *q0 = out[1];
-  // Context
-  const CeedScalar *context = (const CeedScalar*)ctx;
-  const CeedScalar Rd         = context[0];
-  const CeedScalar Ts         = context[1];
-  const CeedScalar p0         = context[2];
-  const CeedScalar cv         = context[3];
-  const CeedScalar cp         = context[4];
-  const CeedScalar g          = context[5];
+  CeedScalar *qdata = out[0];
 
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
@@ -76,10 +68,36 @@ static int Setup(void *ctx, CeedInt Q,
     qdata[i+14*Q] = qw * (A21*A31 + A22*A32 + A23*A33);
     qdata[i+15*Q] = qw * (A31*A31 + A32*A32 + A33*A33);
 
-    // Initial Conditions
-    CeedScalar T = Ts - g*x[i+Q*2]/cv;
+  } // End of Quadrature Point Loop
+
+  // Return
+  return 0;
+}
+
+// *****************************************************************************
+static int ICs(void *ctx, CeedInt Q,
+                 const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar *x = in[0];
+  // Outputs
+  CeedScalar *q0 = out[0];
+  // Context
+  const CeedScalar *context = (const CeedScalar*)ctx;
+  const CeedScalar Rd         = context[0];
+  const CeedScalar Ts         = context[1];
+  const CeedScalar p0         = context[2];
+  const CeedScalar cv         = context[3];
+  const CeedScalar cp         = context[4];
+  const CeedScalar g          = context[5];
+
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    CeedScalar T = Ts - g*x[i+Q*2]/cp;
     CeedScalar p = p0 * pow(T/Ts, Rd/cp);
-    CeedScalar rho = p / (Rd*T);
+    CeedScalar rho = p / (Rd*T);    
+
+    // Initial Conditions
     q0[i+0*Q] = rho;
     q0[i+1*Q] = 0.0;
     q0[i+2*Q] = 0.0;
@@ -92,6 +110,7 @@ static int Setup(void *ctx, CeedInt Q,
   return 0;
 }
 
+// *****************************************************************************
 static int NS(void *ctx, CeedInt Q,
                 const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -235,3 +254,5 @@ static int NS(void *ctx, CeedInt Q,
   // Return
   return 0;
 }
+
+// *****************************************************************************
