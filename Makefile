@@ -324,6 +324,7 @@ cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
 	$(MAKE) -C examples/ceed clean
 	$(MAKE) -C examples/mfem clean
+	$(MAKE) -C examples/navier-stokes clean
 	$(MAKE) -C examples/petsc clean
 	(cd examples/nek5000 && bash make-nek-examples.sh clean)
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
