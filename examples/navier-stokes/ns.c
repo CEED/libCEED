@@ -22,6 +22,7 @@
 const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 
 #include <petscts.h>
+#include <petscdmda.h>
 #include <ceed.h>
 #include <stdbool.h>
 #include "ns.h"
@@ -107,6 +108,9 @@ struct User_ {
   CeedVector qceed, gceed;
   CeedOperator op;
   CeedVector qdata;
+  PetscInt degree;
+  PetscInt melem[3];
+  DM dm;
   Ceed ceed;
 };
 
@@ -128,8 +132,8 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
 // !!!!!
 // Temporary Print Statement
 // !!!!!
-  printf("t = %f\n", t);
-  ierr = VecView(Q, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+  //printf("t = %f\n", t);
+  //ierr = VecView(Q, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
   // Ceed Vectors
   ierr = VecGetArrayRead(user->Qloc, (const PetscScalar**)&q); CHKERRQ(ierr);
@@ -159,12 +163,46 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   PetscFunctionReturn(0);
 }
 
+static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time, Vec X, void *ctx) {
+  User user = ctx;
+  const PetscScalar *x;
+  PetscScalar ***u;
+  Vec U;
+  DMDALocalInfo info;
+  char filepath[PETSC_MAX_PATH_LEN];
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBeginUser;
+  ierr = DMGetGlobalVector(user->dm, &U); CHKERRQ(ierr);
+  ierr = DMDAGetLocalInfo(user->dm, &info); CHKERRQ(ierr);
+  ierr = DMDAVecGetArray(user->dm, U, &u); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(X, &x); CHKERRQ(ierr);
+  for (PetscInt i=info.zs; i<info.zs+info.zm; i++) {
+    for (PetscInt j=info.ys; j<info.ys+info.ym; j++) {
+      for (PetscInt k=info.xs; k<info.xs+info.xm; k++) {
+        for (PetscInt c=0; c<5; c++) {
+          u[i][j][k*5+c] = x[c*info.xm*info.ym*info.zm + ((i*info.ym+j)*info.xm+k)];
+        }
+      }
+    }
+  }
+  ierr = VecRestoreArrayRead(X, &x); CHKERRQ(ierr);
+  ierr = DMDAVecRestoreArray(user->dm, U, &u); CHKERRQ(ierr);
+  ierr = PetscSNPrintf(filepath, sizeof filepath, "ns-%03D.vtr", stepno); CHKERRQ(ierr);
+  ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)U), filepath, FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
+  ierr = VecView(U, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  ierr = DMRestoreGlobalVector(user->dm, &U); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
   char ceedresource[4096] = "/cpu/self";
   PetscInt degree, qextra, localdof, localelem, melem[3], mdof[3], p[3],
-           irank[3], ldof[3], lsize, gsize;
+    irank[3], ldof[3], lsize;
   PetscMPIInt size, rank;
   PetscScalar ftime;
   PetscInt steps;
@@ -179,6 +217,7 @@ int main(int argc, char **argv) {
   CeedVector xcoord, qdata, q0ceed;
   CeedInt degP, degQ;
   Vec Q, Qloc;
+  DM dm;
   TS ts;
   User user;
 
@@ -231,6 +270,8 @@ int main(int argc, char **argv) {
                      mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]); CHKERRQ(ierr);
 
   {
+    PetscInt gsize;
+
     ierr = VecCreate(comm, &Q); CHKERRQ(ierr);
     gsize = mdof[0]*mdof[1]*mdof[2];
     ierr = VecSetSizes(Q, 5*gsize, PETSC_DECIDE); CHKERRQ(ierr);
@@ -318,6 +359,32 @@ int main(int argc, char **argv) {
     ierr = ISDestroy(&ltogis); CHKERRQ(ierr);
     ierr = ISDestroy(&ltogis0); CHKERRQ(ierr);
     ierr = ISDestroy(&locis); CHKERRQ(ierr);
+
+    PetscInt *ldofs[3];
+    ierr = PetscMalloc3(p[0], &ldofs[0], p[1], &ldofs[1], p[2], &ldofs[2]); CHKERRQ(ierr);
+    for (PetscInt d=0; d<3; d++) {
+      for (PetscInt r=0; r<p[d]; r++) {
+        PetscInt ijkrank[3] = {irank[0], irank[1], irank[2]};
+        ijkrank[d] = r;
+        PetscInt ijkdof[3];
+        GlobalDof(p, ijkrank, degree, melem, ijkdof);
+        ldofs[d][r] = ijkdof[d];
+      }
+    }
+    ierr = DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
+                        DMDA_STENCIL_STAR,
+                        degree*melem[2]*p[2]+1, degree*melem[1]*p[1]+1, degree*melem[0]*p[0]+1,
+                        p[2], p[1], p[0],
+                        5, 0,
+                        ldofs[2], ldofs[1], ldofs[0], &dm); CHKERRQ(ierr);
+    ierr = PetscFree3(ldofs[0], ldofs[1], ldofs[2]); CHKERRQ(ierr);
+    ierr = DMSetUp(dm); CHKERRQ(ierr);
+    ierr = DMDASetFieldName(dm, 0, "Density"); CHKERRQ(ierr);
+    ierr = DMDASetFieldName(dm, 0, "MomentumX"); CHKERRQ(ierr);
+    ierr = DMDASetFieldName(dm, 0, "MomentumY"); CHKERRQ(ierr);
+    ierr = DMDASetFieldName(dm, 0, "MomentumZ"); CHKERRQ(ierr);
+    ierr = DMDASetFieldName(dm, 0, "Energy"); CHKERRQ(ierr);
+    ierr = DMDASetUniformCoordinates(dm, 0, 1, 0, 1, 0, 1); CHKERRQ(ierr);
   }
 
   // Set up CEED
@@ -434,6 +501,9 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, 5*lsize, &user->gceed);
   user->op = op_ns;
   user->qdata = qdata;
+  user->degree = degree;
+  for (int d=0; d<3; d++) user->melem[d] = melem[d];
+  user->dm = dm;
   user->ceed = ceed;
 
   // Setup qdata and IC
@@ -461,14 +531,16 @@ int main(int argc, char **argv) {
   ierr = TSSetMaxSteps(ts, 100); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
 
+  ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
+
   // Solve
   ierr = TSSolve(ts, Q); CHKERRQ(ierr);
 
 // !!!!!
 // Temporary Print Statement
 // !!!!!
-  printf("t = %f\n", 0.0);
-  ierr = VecView(Q, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+  //printf("t = %f\n", 0.0);
+  //ierr = VecView(Q, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
   // Output Statistics
   ierr = TSGetSolveTime(ts,&ftime);CHKERRQ(ierr);
@@ -485,6 +557,7 @@ int main(int argc, char **argv) {
   ierr = VecScatterDestroy(&ltog0); CHKERRQ(ierr);
   ierr = VecScatterDestroy(&gtogD); CHKERRQ(ierr);
   ierr = TSDestroy(&ts); CHKERRQ(ierr);
+  ierr = DMDestroy(&dm); CHKERRQ(ierr);
 
   // Clean up libCEED
   CeedVectorDestroy(&user->qceed);
