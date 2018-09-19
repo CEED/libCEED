@@ -17,6 +17,46 @@
 #include <math.h>
 
 // *****************************************************************************
+// This QFunction sets up the geometric factors required for integration and
+//   coordinate transformations
+//
+// All data is stored in 16 field vector of quadrature data.
+//
+// We require the determinant of the Jacobian to properly compute integrals of
+//   the form: int( v u )
+//
+// Determinant of Jacobian:
+//   detJ = J11*A11 + J21*A12 + J31*A13
+//     Jij = Jacobian entry ij
+//     Aij = Adjoint ij
+//
+// Stored: w detJ
+//   qd: 0
+//
+// We require the transpose of the inverse of the Jacobian to properly compute
+//   integrals of the form: int( gradv u )
+//
+// Inverse of Jacobian:
+//   Bij = Aij / detJ
+//
+// Stored: w B detJ = w A
+//   qd: 1 2 3
+//       4 5 6
+//       7 8 9
+//
+// We require the product of the inverse of the Jacobian and its transpose to
+//   properly compute integrals of the form: int( gradv gradu)
+//
+// Product of Inverse and Transpose:
+//   BBij = sum( Bik Bkj )
+//
+// Stored: w B^T B detJ = w A^T A / detJ
+//   Note: This matrix is symmetric
+//     qd: 10 11 12
+//         11 13 14
+//         12 14 15
+//
+// *****************************************************************************
 static int Setup(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -75,6 +115,41 @@ static int Setup(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
+// This QFunction sets the the initial conditions
+//
+// These initial conditions are given in terms of potential temperature and
+//   Exner pressure and potential temperature and then converted to density and
+//   total energy. Initial velocity and momentum is zero.
+//
+// Initial Conditions:
+//   Potential Temperature:
+//     Theta = ThetaBar + deltaTheta
+//       ThetaBar   = Theta0 exp( N**2 z / g )
+//       detlaTheta = r <= 1: Theta0(1 + cos(pi r)) / 2
+//                     r > 1: 0
+//         r        = sqrt( (x - xr)**2 + (y - yr)**2 + (z - zr)**2 )
+//   Exner Pressure:
+//     Pi = PiBar + deltaPi
+//       PiBar      = g**2 (exp( - N**2 z / g ) - 1) / (Cp Theta0 N**2)
+//       deltaPi    = 0 (hydrostatic balance)
+//   Velocity/Momentum:
+//     Ui = ui = 0
+//
+// Conversion to Conserved Variables:
+//   rho = P0 Pi**(Cv/Rd) / (Rd Theta)
+//   E   = rho (Cv Theta Pi + (u u)/2 + g z)
+//
+// Constants:
+//   Theta0          ,  Potential temperature constant
+//   P0              ,  Pressure at the surface
+//   N               ,  Brunt-Vaisala frequency
+//   Cv              ,  Specific heat, constant volume
+//   Cp              ,  Specific heat, constant pressure
+//   Rd     = Cp - Cv,  Specific heat difference
+//   g               ,  Gravity
+//   ThetaC          ,  Potential temperature perturbation
+//
+// *****************************************************************************
 static int ICs(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
 
@@ -89,27 +164,27 @@ static int ICs(void *ctx, CeedInt Q,
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
   const CeedScalar Theta0     = context[0];
-  const CeedScalar P0         = context[1];
-  const CeedScalar N          = context[2];
-  const CeedScalar Cv         = context[3];
-  const CeedScalar Cp         = context[4];
-  const CeedScalar Rd         = context[5];
-  const CeedScalar g          = context[6];
-  const CeedScalar ThetaC     = 15.;
+  const CeedScalar ThetaC     = context[1];
+  const CeedScalar P0         = context[2];
+  const CeedScalar N          = context[3];
+  const CeedScalar Cv         = context[4];
+  const CeedScalar Cp         = context[5];
+  const CeedScalar Rd         = context[6];
+  const CeedScalar g          = context[7];
 
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Potential temperature, density current
-    CeedScalar r = sqrt(pow((x[i+Q*0] - 0.5)/4, 2) + pow((x[i+Q*1] - 0.5)/4, 2) +
-                        pow((x[i+Q*2] - 0.5)/4, 2));
-    CeedScalar deltaTheta = r<= 1. ? ThetaC*(1 + cos(M_PI*r))/2 : 0;
-    CeedScalar Theta = Theta0*exp(N*N*x[i+Q*2]/g) - deltaTheta;
+    const CeedScalar r = sqrt(pow((x[i+Q*0] - 0.5)/4, 2) +
+                              pow((x[i+Q*1] - 0.5)/4, 2) +
+                              pow((x[i+Q*2] - 0.5)/4, 2));
+    const CeedScalar deltaTheta = r<= 1. ? ThetaC*(1 + cos(M_PI*r))/2 : 0;
+    const CeedScalar Theta = Theta0*exp(N*N*x[i+Q*2]/g) + deltaTheta;
     // -- Exner pressure, hydrostatic balance
-    // CeedScalar deltaPi = 0;
-    CeedScalar Pi = 1. + g*g*(exp(-N*N*x[i+Q*2]/g) - 1.) / (Cp*Theta0*N*N);
+    const CeedScalar Pi = 1. + g*g*(exp(-N*N*x[i+Q*2]/g) - 1.) / (Cp*Theta0*N*N);
     // -- Density
-    CeedScalar rho = P0 * pow(Pi, Cv/Rd) / (Rd*Theta);
+    const CeedScalar rho = P0 * pow(Pi, Cv/Rd) / (Rd*Theta);
 
     // Initial Conditions
     q0[i+0*Q] = rho;
@@ -124,6 +199,41 @@ static int ICs(void *ctx, CeedInt Q,
   return 0;
 }
 
+// *****************************************************************************
+// This QFunction implements the following formulation of Navier-Stokes
+//
+// This is 3D compressible Navier-Stokes in conservation form with state
+//   variables of density, momentum, and total energy.
+//
+// State Variables: q = ( rho, U1, U2, U3, E )
+//   rho - Density
+//   Ui  - Momentum    ,  Ui = rho ui
+//   E   - Total Energy,  E  = rho Cv T + rho (u u) / 2 + rho g z
+//
+// Navier-Stokes Equations:
+//   drho/dt + div( U )                               = 0
+//   dU/dt   + div( rho (u x u) + P I3 ) + rho g khat = div( Fu )
+//   dE/dt   + div( (E + P) u )                       = div( Fe )
+//
+// Viscous Fluxes:
+//   Fu = mu (grad( u ) + grad( u )^T + lambda div ( u ) I3)
+//   Fe = u Fu + k grad( T )
+//
+// Equation of State:
+//   P = (gamma - 1) (E - rho (u u) / 2 - rho g z)
+//
+// Temperature:
+//   T = (E / rho - (u u) / 2 - g z) / Cv
+//
+// Constants:
+//   lambda = - 2 / 3,  From Stokes hypothesis
+//   mu              ,  Dynamic viscosity
+//   k               ,  Thermal conductivity
+//   Cv              ,  Specific heat, constant volume
+//   Cp              ,  Specific heat, constant pressure
+//   g               ,  Gravity
+//   gamma  = Cp / Cv,  Specific heat ratio
+//
 // *****************************************************************************
 static int NS(void *ctx, CeedInt Q,
                 const CeedScalar *const *in, CeedScalar *const *out) {
@@ -169,6 +279,7 @@ static int NS(void *ctx, CeedInt Q,
     // -- Interp-to-Interp qdata
     const CeedScalar J       =   qdata[i+ 0*Q];
     // -- Interp-to-Grad qdata
+    //      Symmetric 3x3 matrix
     const CeedScalar BJ[9]   = { qdata[i+ 1*Q],
                                  qdata[i+ 2*Q],
                                  qdata[i+ 3*Q],
@@ -187,18 +298,25 @@ static int NS(void *ctx, CeedInt Q,
                                  qdata[i+15*Q] };
     // -- gradT
     const CeedScalar gradT[3] = { (dE[0]/rho - E*drho[0]/(rho*rho) -
-                                    u[0]*du[0+3*0]) / Cv,
+                                    (u[0]*du[0+3*0] + u[1]*du[1+3*0] +
+                                     u[2]*du[2+3*0])) / Cv,
                                   (dE[1]/rho - E*drho[1]/(rho*rho) -
-                                    u[1]*du[1+3*1]) / Cv,
+                                    (u[0]*du[0+3*1] + u[1]*du[1+3*1] +
+                                     u[2]*du[2+3*1])) / Cv,
                                   (dE[2]/rho - E*drho[2]/(rho*rho) -
-                                    u[2]*du[2+3*2] - g) / Cv };
+                                    (u[0]*du[0+3*2] + u[1]*du[1+3*2] +
+                                     u[2]*du[2+3*2]) - g) / Cv };
     // -- Fuvisc
-    const CeedScalar Fu[6] =  { mu * (du[0+3*0] * (2 + lambda)),
+    //      Symmetric 3x3 matrix
+    const CeedScalar Fu[6] =  { mu * (du[0+3*0] * (2 + lambda) +
+                                     lambda * (du[1+3*1] + du[2+3*2])),
                                 mu * (du[0+3*1] + du[1+3*0]),
                                 mu * (du[0+3*2] + du[2+3*0]),
-                                mu * (du[1+3*1] * (2 + lambda)),
+                                mu * (du[1+3*1] * (2 + lambda) +
+                                      lambda * (du[0+3*0] + du[2+3*2])),
                                 mu * (du[1+3*2] + du[2+3*1]),
-                                mu * (du[2+3*2] * (2 + lambda)) };
+                                mu * (du[2+3*2] * (2 + lambda) +
+                                      lambda * (du[0+3*0] + du[1+3*1])) };
 
     // -- Fevisc
     const CeedScalar Fe[3] = { u[0]*Fu[0] + u[1]*Fu[1] + u[2]*Fu[2] +
@@ -216,30 +334,30 @@ static int NS(void *ctx, CeedInt Q,
 
     // -- Density
     // ---- u rho
-    vg[i+(0+5*0)*Q] = rho*u[0]*BJ[0] + rho*u[1]*BJ[1] + rho*u[1]*BJ[2];
-    vg[i+(0+5*1)*Q] = rho*u[0]*BJ[3] + rho*u[1]*BJ[4] + rho*u[1]*BJ[5];
-    vg[i+(0+5*2)*Q] = rho*u[0]*BJ[6] + rho*u[1]*BJ[7] + rho*u[1]*BJ[8];
+    vg[i+(0+5*0)*Q]  = rho*u[0]*BJ[0] + rho*u[1]*BJ[1] + rho*u[2]*BJ[2];
+    vg[i+(0+5*1)*Q]  = rho*u[0]*BJ[3] + rho*u[1]*BJ[4] + rho*u[2]*BJ[5];
+    vg[i+(0+5*2)*Q]  = rho*u[0]*BJ[6] + rho*u[1]*BJ[7] + rho*u[2]*BJ[8];
 
     // -- Momentum
     // ---- rho (u x u) + P I3
     vg[i+(1+5*0)*Q]  = (rho*u[0]*u[0]+P)*BJ[0] + rho*u[0]*u[1]*BJ[1] +
-                         rho*u[0]*u[2]*BJ[2];
+                        rho*u[0]*u[2]*BJ[2];
     vg[i+(1+5*1)*Q]  = (rho*u[0]*u[0]+P)*BJ[3] + rho*u[0]*u[1]*BJ[4] +
-                         rho*u[0]*u[2]*BJ[5];
+                        rho*u[0]*u[2]*BJ[5];
     vg[i+(1+5*2)*Q]  = (rho*u[0]*u[0]+P)*BJ[6] + rho*u[0]*u[1]*BJ[7] +
-                         rho*u[0]*u[2]*BJ[8];
-    vg[i+(2+5*0)*Q]  =  rho*u[1]*u[0]*BJ[0] + (rho*u[1]*u[1]+P)*BJ[1] +
-                         rho*u[1]*u[2]*BJ[2];
-    vg[i+(2+5*1)*Q]  =  rho*u[1]*u[0]*BJ[3] + (rho*u[1]*u[1]+P)*BJ[4] +
-                         rho*u[1]*u[2]*BJ[5];
-    vg[i+(2+5*2)*Q]  =  rho*u[1]*u[0]*BJ[6] + (rho*u[1]*u[1]+P)*BJ[7] +
-                         rho*u[1]*u[2]*BJ[8];
-    vg[i+(3+5*0)*Q]  =  rho*u[2]*u[0]*BJ[0] + rho*u[2]*u[1]*BJ[1] +
-                        (rho*u[2]*u[2]+P)*BJ[2];
-    vg[i+(3+5*1)*Q]  =  rho*u[2]*u[0]*BJ[3] + rho*u[2]*u[1]*BJ[4] +
-                        (rho*u[2]*u[2]+P)*BJ[5];
-    vg[i+(3+5*2)*Q]  =  rho*u[2]*u[0]*BJ[6] + rho*u[2]*u[1]*BJ[7] +
-                        (rho*u[2]*u[2]+P)*BJ[8];
+                        rho*u[0]*u[2]*BJ[8];
+    vg[i+(2+5*0)*Q]  =  rho*u[1]*u[0]*BJ[0] +   (rho*u[1]*u[1]+P)*BJ[1] +
+                        rho*u[1]*u[2]*BJ[2];
+    vg[i+(2+5*1)*Q]  =  rho*u[1]*u[0]*BJ[3] +   (rho*u[1]*u[1]+P)*BJ[4] +
+                        rho*u[1]*u[2]*BJ[5];
+    vg[i+(2+5*2)*Q]  =  rho*u[1]*u[0]*BJ[6] +   (rho*u[1]*u[1]+P)*BJ[7] +
+                        rho*u[1]*u[2]*BJ[8];
+    vg[i+(3+5*0)*Q]  =  rho*u[2]*u[0]*BJ[0] +    rho*u[2]*u[1]*BJ[1] +
+                       (rho*u[2]*u[2]+P)*BJ[2];
+    vg[i+(3+5*1)*Q]  =  rho*u[2]*u[0]*BJ[3] +    rho*u[2]*u[1]*BJ[4] +
+                       (rho*u[2]*u[2]+P)*BJ[5];
+    vg[i+(3+5*2)*Q]  =  rho*u[2]*u[0]*BJ[6] +    rho*u[2]*u[1]*BJ[7] +
+                       (rho*u[2]*u[2]+P)*BJ[8];
     // ---- Fuvisc
     vg[i+(1+5*0)*Q] -= Fu[0]*BBJ[0] + Fu[1]*BBJ[1] + Fu[2]*BBJ[2];
     vg[i+(1+5*1)*Q] -= Fu[0]*BBJ[1] + Fu[1]*BBJ[3] + Fu[2]*BBJ[4];
@@ -250,7 +368,7 @@ static int NS(void *ctx, CeedInt Q,
     vg[i+(3+5*0)*Q] -= Fu[2]*BBJ[0] + Fu[4]*BBJ[1] + Fu[5]*BBJ[2];
     vg[i+(3+5*1)*Q] -= Fu[2]*BBJ[1] + Fu[4]*BBJ[3] + Fu[5]*BBJ[4];
     vg[i+(3+5*2)*Q] -= Fu[2]*BBJ[2] + Fu[4]*BBJ[4] + Fu[5]*BBJ[5];
-    // ---- -rho g k
+    // ---- -rho g khat
     v[i+3*Q] = - rho*g*J;
 
     // -- Total Energy
