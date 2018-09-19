@@ -489,6 +489,7 @@ int main(int argc, char **argv) {
 
   // Create the libCEED contexts
   CeedScalar Theta0     = 300.;     // K
+  CeedScalar ThetaC     = -15.;     // K
   CeedScalar P0         = 1.e5;     // kg/m s^2
   CeedScalar N          = 0.01;     // 1/s
   CeedScalar Cv         = 717.;     // J/kg K
@@ -498,7 +499,7 @@ int main(int argc, char **argv) {
   CeedScalar lambda     = -2./3.;   // -
   CeedScalar mu         = 75.;      // s/m^2
   CeedScalar k          = 26.38;    // W/m K
-  CeedScalar ctxSetup[7] = {Theta0, P0, N, Cv, Cp, Rd, g};
+  CeedScalar ctxSetup[8] = {Theta0, ThetaC, P0, N, Cv, Cp, Rd, g};
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
   CeedScalar ctxNS[6] = {lambda, mu, k, Cv, Cp, g};
   CeedQFunctionSetContext(qf_ns, &ctxNS, sizeof ctxNS);
