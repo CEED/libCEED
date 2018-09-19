@@ -77,32 +77,46 @@ static int Setup(void *ctx, CeedInt Q,
 // *****************************************************************************
 static int ICs(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
+
+  #ifndef M_PI
+  #define M_PI    3.14159265358979323846
+  #endif
+
   // Inputs
   const CeedScalar *x = in[0];
   // Outputs
   CeedScalar *q0 = out[0];
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
-  const CeedScalar Rd         = context[0];
-  const CeedScalar Ts         = context[1];
-  const CeedScalar p0         = context[2];
-  const CeedScalar cv         = context[3];
-  const CeedScalar cp         = context[4];
-  const CeedScalar g          = context[5];
+  const CeedScalar Theta0     = context[0];
+  const CeedScalar P0         = context[1];
+  const CeedScalar N          = context[2];
+  const CeedScalar Cv         = context[3];
+  const CeedScalar Cp         = context[4];
+  const CeedScalar Rd         = context[5];
+  const CeedScalar g          = context[6];
+  const CeedScalar ThetaC     = 15.;
 
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
-    CeedScalar T = Ts - g*x[i+Q*2]/cp;
-    CeedScalar p = p0 * pow(T/Ts, Rd/cp);
-    CeedScalar rho = p / (Rd*T);    
+    // -- Potential temperature, density current
+    CeedScalar r = sqrt(pow((x[i+Q*0] - 0.5)/4, 2) + pow((x[i+Q*1] - 0.5)/4, 2) +
+                        pow((x[i+Q*2] - 0.5)/4, 2));
+    CeedScalar deltaTheta = r<= 1. ? ThetaC*(1 + cos(M_PI*r))/2 : 0;
+    CeedScalar Theta = Theta0*exp(N*N*x[i+Q*2]/g) - deltaTheta;
+    // -- Exner pressure, hydrostatic balance
+    // CeedScalar deltaPi = 0;
+    CeedScalar Pi = 1. + g*g*(exp(-N*N*x[i+Q*2]/g) - 1.) / (Cp*Theta0*N*N);
+    // -- Density
+    CeedScalar rho = P0 * pow(Pi, Cv/Rd) / (Rd*Theta);
 
     // Initial Conditions
     q0[i+0*Q] = rho;
     q0[i+1*Q] = 0.0;
     q0[i+2*Q] = 0.0;
     q0[i+3*Q] = 0.0;
-    q0[i+4*Q] = rho*cv*T + rho*g*x[i+Q*2];
+    q0[i+4*Q] = rho * (Cv*Theta*Pi + g*x[i+Q*2]);
 
   } // End of Quadrature Point Loop
 
@@ -121,11 +135,11 @@ static int NS(void *ctx, CeedInt Q,
   const CeedScalar *context = (const CeedScalar*)ctx;
   const CeedScalar lambda     = context[0];
   const CeedScalar mu         = context[1];
-  const CeedScalar Pr         = context[2];
-  const CeedScalar cp         = context[3];
-  const CeedScalar cv         = context[4];
+  const CeedScalar k          = context[2];
+  const CeedScalar Cv         = context[3];
+  const CeedScalar Cp         = context[4];
   const CeedScalar g          = context[5];
-  const CeedScalar gamma      = cp / cv;
+  const CeedScalar gamma      = Cp / Cv;
 
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
@@ -173,11 +187,11 @@ static int NS(void *ctx, CeedInt Q,
                                  qdata[i+15*Q] };
     // -- gradT
     const CeedScalar gradT[3] = { (dE[0]/rho - E*drho[0]/(rho*rho) -
-                                    u[0]*du[0+3*0]) / cv,
+                                    u[0]*du[0+3*0]) / Cv,
                                   (dE[1]/rho - E*drho[1]/(rho*rho) -
-                                    u[1]*du[1+3*1]) / cv,
+                                    u[1]*du[1+3*1]) / Cv,
                                   (dE[2]/rho - E*drho[2]/(rho*rho) -
-                                    u[2]*du[2+3*2] - g) / cv };
+                                    u[2]*du[2+3*2] - g) / Cv };
     // -- Fuvisc
     const CeedScalar Fu[6] =  { mu * (du[0+3*0] * (2 + lambda)),
                                 mu * (du[0+3*1] + du[1+3*0]),
@@ -188,11 +202,11 @@ static int NS(void *ctx, CeedInt Q,
 
     // -- Fevisc
     const CeedScalar Fe[3] = { u[0]*Fu[0] + u[1]*Fu[1] + u[2]*Fu[2] +
-                                 (mu*cp/Pr) * gradT[0],
+                                 k * gradT[0],
                                u[0]*Fu[1] + u[1]*Fu[3] + u[2]*Fu[4] +
-                                 (mu*cp/Pr) * gradT[1],
+                                 k * gradT[1],
                                u[0]*Fu[2] + u[1]*Fu[4] + u[2]*Fu[5] +
-                                 (mu*cp/Pr) * gradT[2] };
+                                 k * gradT[2] };
     // -- P
     const CeedScalar P = (E - (u[0]*u[0] + u[1]*u[1] + u[2]*u[2])*rho/2 -
                                rho*g*x[i+Q*2]) * (gamma - 1);
