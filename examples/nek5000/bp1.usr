@@ -825,7 +825,7 @@ c     Create ceed basis for mesh and computation
       p=nx1
       q=p+1
       ncomp=1
-      call ceedbasiscreatetensorh1lagrange(ceed,ndim,ncomp,q,q,
+      call ceedbasiscreatetensorh1lagrange(ceed,ndim,ndim,q,q,
      $  ceed_gauss,basisx,err)
       call ceedbasiscreatetensorh1lagrange(ceed,ndim,ncomp,p,q,
      $  ceed_gauss,basisu,err)
