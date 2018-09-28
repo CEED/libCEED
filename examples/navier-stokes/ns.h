@@ -164,13 +164,13 @@ static int ICs(void *ctx, CeedInt Q,
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
   const CeedScalar Theta0     = context[0];
-  const CeedScalar P0         = context[1];
-  const CeedScalar N          = context[2];
-  const CeedScalar Cv         = context[3];
-  const CeedScalar Cp         = context[4];
-  const CeedScalar Rd         = context[5];
-  const CeedScalar g          = context[6];
-  const CeedScalar ThetaC     = -15.;
+  const CeedScalar ThetaC     = context[1];
+  const CeedScalar P0         = context[2];
+  const CeedScalar N          = context[3];
+  const CeedScalar Cv         = context[4];
+  const CeedScalar Cp         = context[5];
+  const CeedScalar Rd         = context[6];
+  const CeedScalar g          = context[7];
 
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
