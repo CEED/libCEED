@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
   CeedQFunction qf_setup, qf_ics, qf_ns;
   CeedOperator op_setup, op_ics, op_ns;
   CeedVector xcoord, qdata, q0ceed, multevec, multlvec;
-  CeedInt degP, degQ;
+  CeedInt numP, numQ;
   Vec Q, Qloc;
   DM dm;
   TS ts;
@@ -383,25 +383,25 @@ int main(int argc, char **argv) {
 
   // Set up CEED
   CeedInit(ceedresource, &ceed);
-  degP = degree + 1;
-  degQ = degP + qextra;
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, 5, degP, degQ, CEED_GAUSS, &basisu);
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, degQ, CEED_GAUSS, &basisx);
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, degP, CEED_GAUSS_LOBATTO,
+  numP = degree + 1;
+  numQ = numP + qextra;
+  CeedBasisCreateTensorH1Lagrange(ceed, 3, 5, numP, numQ, CEED_GAUSS, &basisu);
+  CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, numQ, CEED_GAUSS, &basisx);
+  CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, numP, CEED_GAUSS_LOBATTO,
                                   &basisxc);
 
-  CreateRestriction(ceed, melem, degP, 5, &Erestrictu);
+  CreateRestriction(ceed, melem, numP, 5, &Erestrictu);
   CreateRestriction(ceed, melem, 2, 3, &Erestrictx);
-  CreateRestriction(ceed, melem, degP, 1, &Erestrictm);
+  CreateRestriction(ceed, melem, numP, 1, &Erestrictm);
   CeedInt nelem = melem[0]*melem[1]*melem[2];
-  CeedElemRestrictionCreateIdentity(ceed, nelem, degQ*degQ*degQ,
-                                    nelem*degQ*degQ*degQ, 5,
+  CeedElemRestrictionCreateIdentity(ceed, nelem, numQ*numQ*numQ,
+                                    nelem*numQ*numQ*numQ, 5,
                                     &Erestrictui);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, 16*degQ*degQ*degQ,
-                                    16*nelem*degQ*degQ*degQ, 1,
+  CeedElemRestrictionCreateIdentity(ceed, nelem, 16*numQ*numQ*numQ,
+                                    16*nelem*numQ*numQ*numQ, 1,
                                     &Erestrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, degQ*degQ*degQ,
-                                    nelem*degQ*degQ*degQ, 1,
+  CeedElemRestrictionCreateIdentity(ceed, nelem, numQ*numQ*numQ,
+                                    nelem*numQ*numQ*numQ, 1,
                                     &Erestrictxi);
   {
     CeedScalar *xloc;
@@ -431,7 +431,7 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, 5*lsize, &q0ceed);
   CeedVectorCreate(ceed, lsize, &multlvec);
   CeedInt Ndofs = 1;
-  for (int d=0; d<3; d++) Ndofs *= degP;
+  for (int d=0; d<3; d++) Ndofs *= numP;
   CeedVectorCreate(ceed, Nelem*Ndofs, &multevec);
 
   // Find multiplicity of each local point
