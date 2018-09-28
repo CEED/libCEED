@@ -92,13 +92,13 @@ static int Setup(void *ctx, CeedInt Q,
     qdata[i+ 0*Q] = w[i] * (J11*A11 + J21*A12 + J31*A13);
     // -- Interp-to-Grad qdata
     qdata[i+ 1*Q] = w[i] * A11;
-    qdata[i+ 2*Q] = w[i] * A21;
-    qdata[i+ 3*Q] = w[i] * A31;
-    qdata[i+ 4*Q] = w[i] * A12;
+    qdata[i+ 2*Q] = w[i] * A12;
+    qdata[i+ 3*Q] = w[i] * A13;
+    qdata[i+ 4*Q] = w[i] * A21;
     qdata[i+ 5*Q] = w[i] * A22;
-    qdata[i+ 6*Q] = w[i] * A32;
-    qdata[i+ 7*Q] = w[i] * A13;
-    qdata[i+ 8*Q] = w[i] * A23;
+    qdata[i+ 6*Q] = w[i] * A23;
+    qdata[i+ 7*Q] = w[i] * A31;
+    qdata[i+ 8*Q] = w[i] * A32;
     qdata[i+ 9*Q] = w[i] * A33;
     // -- Grad-to-Grad qdata
     qdata[i+10*Q] = qw * (A11*A11 + A12*A12 + A13*A13);
@@ -141,13 +141,13 @@ static int Setup(void *ctx, CeedInt Q,
 //
 // Constants:
 //   Theta0          ,  Potential temperature constant
+//   ThetaC          ,  Potential temperature perturbation
 //   P0              ,  Pressure at the surface
 //   N               ,  Brunt-Vaisala frequency
 //   Cv              ,  Specific heat, constant volume
 //   Cp              ,  Specific heat, constant pressure
 //   Rd     = Cp - Cv,  Specific heat difference
 //   g               ,  Gravity
-//   ThetaC          ,  Potential temperature perturbation
 //
 // *****************************************************************************
 static int ICs(void *ctx, CeedInt Q,
