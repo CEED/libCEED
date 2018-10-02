@@ -306,13 +306,12 @@ int main(int argc, char **argv) {
             PetscInt here = (i*ldof[1]+j)*ldof[2]+k;
               ltogind[here+f*lsize] =
                 gstart[ir][jr][kr] + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk+f*gsize;
-            if (((irank[0] == 0 && i == 0)
+            if ((irank[0] == 0 && i == 0)
                  || (irank[1] == 0 && j == 0)
                  || (irank[2] == 0 && k == 0)
                  || (irank[0]+1 == p[0] && i+1 == ldof[0])
                  || (irank[1]+1 == p[1] && j+1 == ldof[1])
                  || (irank[2]+1 == p[2] && k+1 == ldof[2]))
-                 && (f != 0 || f != 4))
               continue;
             ltogind0[l0count] = ltogind[here+f*lsize];
             locind[l0count++] = here+f*lsize;
