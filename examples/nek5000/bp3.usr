@@ -1171,23 +1171,24 @@ c     Helmholtz equations
       common /ctmp1/ ur,us,ut,wk
       real ur(lq),us(lq),ut(lq),wk(lq)
 
-      integer e
+      integer i,e
 
       call ceedvectorsetarray(vec_p1,ceed_mem_host,ceed_use_pointer,
      $  p1,err)
+      call ceedvectorsetarray(vec_ap1,ceed_mem_host,ceed_use_pointer,
+     $  ap1,err)
+
       call ceedoperatorapply(op_diffusion,vec_p1,vec_ap1,
      $  ceed_request_immediate,err)
-      call ceedvectorgetarray(vec_ap1,ceed_mem_host,ap1,offset,err)
 
       pap=0.
 
       do e=1,nelt
          do i=1,lx
-           pap=pap+p1(i,e)*ap1(offset+i,e)
+           pap=pap+p1(i,e)*ap1(i,e)
          enddo
       enddo
 
-      call ceedvectorrestorearray(vec_ap1,ap1,offset,err)
       return
       end
 c-----------------------------------------------------------------------
