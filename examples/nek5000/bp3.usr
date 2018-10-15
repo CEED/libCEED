@@ -600,7 +600,7 @@ c     Create ceed qfunctions for setupf and diffusionf
 
       call ceedqfunctioncreateinterior(ceed,1,diffusionf,
      $  __FILE__
-     $  //':massf'//char(0),qf_diffusion,err)
+     $  //':diffusionf'//char(0),qf_diffusion,err)
       call ceedqfunctionaddinput(qf_diffusion,'u',1,ceed_eval_grad,err)
       call ceedqfunctionaddinput(qf_diffusion,'rho',ngeo,
      $  ceed_eval_none,err)
