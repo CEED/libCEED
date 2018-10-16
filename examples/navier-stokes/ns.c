@@ -145,10 +145,6 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
 
   // Local to global
   ierr = VecZeroEntries(G); CHKERRQ(ierr);
-  ierr = VecScatterBegin(user->gtogD, Q, G, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->gtogD, Q, G, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
   ierr = VecScatterBegin(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
@@ -304,18 +300,17 @@ int main(int argc, char **argv) {
         for (PetscInt j=0,jr,jj; jr=j>=mdof[1], jj=j-jr*mdof[1], j<ldof[1]; j++) {
           for (PetscInt k=0,kr,kk; kr=k>=mdof[2], kk=k-kr*mdof[2], k<ldof[2]; k++) {
             PetscInt here = (i*ldof[1]+j)*ldof[2]+k;
-              ltogind[here+f*gsize] =
+              ltogind[here+f*lsize] =
                 gstart[ir][jr][kr] + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk+f*gsize;
-            if (((irank[0] == 0 && i == 0)
+            if ((irank[0] == 0 && i == 0)
                  || (irank[1] == 0 && j == 0)
                  || (irank[2] == 0 && k == 0)
                  || (irank[0]+1 == p[0] && i+1 == ldof[0])
                  || (irank[1]+1 == p[1] && j+1 == ldof[1])
                  || (irank[2]+1 == p[2] && k+1 == ldof[2]))
-                 && (f != 0 || f != 4))
               continue;
-            ltogind0[l0count] = ltogind[here+f*gsize];
-            locind[l0count++] = here+f*gsize;
+            ltogind0[l0count] = ltogind[here+f*lsize];
+            locind[l0count++] = here+f*lsize;
           }
         }
       }
@@ -557,6 +552,7 @@ int main(int argc, char **argv) {
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
   ierr = TSSetMaxSteps(ts, 100); CHKERRQ(ierr);
+  ierr = TSSetTimeStep(ts, 1.e-2);CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
   ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
   ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
