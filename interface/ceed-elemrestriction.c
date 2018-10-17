@@ -39,7 +39,7 @@
                       of the indices (into the input CeedVector) for the unknowns
                       corresponding to element i, where 0 <= i < @a nelements.
                       All indices must be in the range [0, @a ndof).
-  @param[out] r     Address of the variable where the newly created
+  @param[out] rstr  Address of the variable where the newly created
                       CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
@@ -49,7 +49,7 @@
 int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
                               CeedInt ndof, CeedInt ncomp, CeedMemType mtype,
                               CeedCopyMode cmode, const CeedInt *indices,
-                              CeedElemRestriction *r) {
+                              CeedElemRestriction *rstr) {
   int ierr;
 
   if (!ceed->ElemRestrictionCreate) {
@@ -61,21 +61,21 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
     ierr = CeedElemRestrictionCreate(delegate, nelem, elemsize,
                             ndof, ncomp, mtype, cmode,
-                            indices, r); CeedChk(ierr);
+                            indices, rstr); CeedChk(ierr);
     return 0;
   }
 
-  ierr = CeedCalloc(1, r); CeedChk(ierr);
-  (*r)->ceed = ceed;
+  ierr = CeedCalloc(1, rstr); CeedChk(ierr);
+  (*rstr)->ceed = ceed;
   ceed->refcount++;
-  (*r)->refcount = 1;
-  (*r)->nelem = nelem;
-  (*r)->elemsize = elemsize;
-  (*r)->ndof = ndof;
-  (*r)->ncomp = ncomp;
-  (*r)->nblk = nelem;
-  (*r)->blksize = 1;
-  ierr = ceed->ElemRestrictionCreate(mtype, cmode, indices, *r); CeedChk(ierr);
+  (*rstr)->refcount = 1;
+  (*rstr)->nelem = nelem;
+  (*rstr)->elemsize = elemsize;
+  (*rstr)->ndof = ndof;
+  (*rstr)->ncomp = ncomp;
+  (*rstr)->nblk = nelem;
+  (*rstr)->blksize = 1;
+  ierr = ceed->ElemRestrictionCreate(mtype, cmode, indices, *rstr); CeedChk(ierr);
   return 0;
 }
 
@@ -90,7 +90,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
                       used by other CeedElemRestriction objects describing
                       different types of elements
   @param ncomp      Number of field components per interpolation node
-  @param r          Address of the variable where the newly created
+  @param rstr       Address of the variable where the newly created
                       CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
@@ -99,7 +99,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 **/
 int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
                                       CeedInt elemsize,
-                                      CeedInt ndof, CeedInt ncomp, CeedElemRestriction *r) {
+                                      CeedInt ndof, CeedInt ncomp, CeedElemRestriction *rstr) {
   int ierr;
 
   if (!ceed->ElemRestrictionCreate) {
@@ -111,21 +111,21 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
                      "Backend does not support ElemRestrictionCreate");
 
     ierr = CeedElemRestrictionCreateIdentity(delegate, nelem, elemsize,
-                            ndof, ncomp, r); CeedChk(ierr);
+                            ndof, ncomp, rstr); CeedChk(ierr);
     return 0;
   }
 
-  ierr = CeedCalloc(1, r); CeedChk(ierr);
-  (*r)->ceed = ceed;
+  ierr = CeedCalloc(1, rstr); CeedChk(ierr);
+  (*rstr)->ceed = ceed;
   ceed->refcount++;
-  (*r)->refcount = 1;
-  (*r)->nelem = nelem;
-  (*r)->elemsize = elemsize;
-  (*r)->ndof = ndof;
-  (*r)->ncomp = ncomp;
-  (*r)->nblk = nelem;
-  (*r)->blksize = 1;
-  ierr = ceed->ElemRestrictionCreate(CEED_MEM_HOST, CEED_OWN_POINTER, NULL, *r);
+  (*rstr)->refcount = 1;
+  (*rstr)->nelem = nelem;
+  (*rstr)->elemsize = elemsize;
+  (*rstr)->ndof = ndof;
+  (*rstr)->ncomp = ncomp;
+  (*rstr)->nblk = nelem;
+  (*rstr)->blksize = 1;
+  ierr = ceed->ElemRestrictionCreate(CEED_MEM_HOST, CEED_OWN_POINTER, NULL, *rstr);
   CeedChk(ierr);
   return 0;
 }
@@ -180,7 +180,7 @@ int CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
                       backend will permute and pad this array to the desired
                       ordering for the blocksize, which is typically given by the
                       backend. The default reordering is to interlace elements.
-  @param r          Address of the variable where the newly created
+  @param rstr       Address of the variable where the newly created
                       CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
@@ -190,7 +190,8 @@ int CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
 int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
                                      CeedInt blksize, CeedInt ndof, CeedInt ncomp,
                                      CeedMemType mtype, CeedCopyMode cmode,
-                                     const CeedInt *indices, CeedElemRestriction *r) {
+                                     const CeedInt *indices,
+                                     CeedElemRestriction *rstr) {
   int ierr;
   CeedInt *blkindices;
   CeedInt nblk = (nelem / blksize) + !!(nelem % blksize);
@@ -205,11 +206,11 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
     ierr = CeedElemRestrictionCreateBlocked(delegate, nelem, elemsize,
                             blksize, ndof, ncomp, mtype, cmode,
-                            indices, r); CeedChk(ierr);
+                            indices, rstr); CeedChk(ierr);
     return 0;
   }
 
-  ierr = CeedCalloc(1, r); CeedChk(ierr);
+  ierr = CeedCalloc(1, rstr); CeedChk(ierr);
 
   if (indices) {
     ierr = CeedCalloc(nblk*blksize*elemsize, &blkindices);
@@ -220,17 +221,17 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
     blkindices = NULL;
   }
 
-  (*r)->ceed = ceed;
+  (*rstr)->ceed = ceed;
   ceed->refcount++;
-  (*r)->refcount = 1;
-  (*r)->nelem = nelem;
-  (*r)->elemsize = elemsize;
-  (*r)->ndof = ndof;
-  (*r)->ncomp = ncomp;
-  (*r)->nblk = nblk;
-  (*r)->blksize = blksize;
+  (*rstr)->refcount = 1;
+  (*rstr)->nelem = nelem;
+  (*rstr)->elemsize = elemsize;
+  (*rstr)->ndof = ndof;
+  (*rstr)->ncomp = ncomp;
+  (*rstr)->nblk = nblk;
+  (*rstr)->blksize = blksize;
   ierr = ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER,
-         (const CeedInt *) blkindices, *r);
+         (const CeedInt *) blkindices, *rstr);
   CeedChk(ierr);
 
   if (cmode == CEED_OWN_POINTER)
@@ -242,7 +243,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 /**
   @brief Create CeedVectors associated with a CeedElemRestriction
 
-  @param r     CeedElemRestriction
+  @param rstr  CeedElemRestriction
   @param lvec  The address of the L-vector to be created, or NULL
   @param evec  The address of the E-vector to be created, or NULL
 
@@ -250,17 +251,17 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
   @ref Advanced
 **/
-int CeedElemRestrictionCreateVector(CeedElemRestriction r, CeedVector *lvec,
+int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *lvec,
                                     CeedVector *evec) {
   int ierr;
   CeedInt n, m;
-  m = r->ndof * r->ncomp;
-  n = r->nblk * r->blksize * r->elemsize * r->ncomp;
+  m = rstr->ndof * rstr->ncomp;
+  n = rstr->nblk * rstr->blksize * rstr->elemsize * rstr->ncomp;
   if (lvec) {
-    ierr = CeedVectorCreate(r->ceed, m, lvec); CeedChk(ierr);
+    ierr = CeedVectorCreate(rstr->ceed, m, lvec); CeedChk(ierr);
   }
   if (evec) {
-    ierr = CeedVectorCreate(r->ceed, n, evec); CeedChk(ierr);
+    ierr = CeedVectorCreate(rstr->ceed, n, evec); CeedChk(ierr);
   }
   return 0;
 }
@@ -268,7 +269,7 @@ int CeedElemRestrictionCreateVector(CeedElemRestriction r, CeedVector *lvec,
 /**
   @brief Restrict an L-vector to an E-vector or apply transpose
 
-  @param r       CeedElemRestriction
+  @param rstr    CeedElemRestriction
   @param tmode   Apply restriction or transpose
   @param lmode   Ordering of the ncomp components
   @param u       Input vector (of size @a ndof when tmode=CEED_NOTRANSPOSE)
@@ -279,66 +280,179 @@ int CeedElemRestrictionCreateVector(CeedElemRestriction r, CeedVector *lvec,
 
   @ref Advanced
 **/
-int CeedElemRestrictionApply(CeedElemRestriction r, CeedTransposeMode tmode,
+int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
                              CeedTransposeMode lmode,
                              CeedVector u, CeedVector v, CeedRequest *request) {
   CeedInt m,n;
   int ierr;
 
   if (tmode == CEED_NOTRANSPOSE) {
-    m = r->nblk * r->blksize * r->elemsize * r->ncomp;
-    n = r->ndof * r->ncomp;
+    m = rstr->nblk * rstr->blksize * rstr->elemsize * rstr->ncomp;
+    n = rstr->ndof * rstr->ncomp;
   } else {
-    m = r->ndof * r->ncomp;
-    n = r->nblk * r->blksize * r->elemsize * r->ncomp;
+    m = rstr->ndof * rstr->ncomp;
+    n = rstr->nblk * rstr->blksize * rstr->elemsize * rstr->ncomp;
   }
   if (n != u->length)
-    return CeedError(r->ceed, 2,
+    return CeedError(rstr->ceed, 2,
                      "Input vector size %d not compatible with element restriction (%d, %d)",
                      u->length, m, n);
   if (m != v->length)
-    return CeedError(r->ceed, 2,
+    return CeedError(rstr->ceed, 2,
                      "Output vector size %d not compatible with element restriction (%d, %d)",
                      v->length, m, n);
-  ierr = r->Apply(r, tmode, lmode, u, v, request); CeedChk(ierr);
+  ierr = rstr->Apply(rstr, tmode, lmode, u, v, request); CeedChk(ierr);
 
+  return 0;
+}
+
+/**
+  @brief Get the Ceed associated with a CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] ceed        Variable to store Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed) {
+  *ceed = rstr->ceed;
   return 0;
 }
 
 /**
   @brief Get the total number of elements in the range of a CeedElemRestriction
 
-  @param r                CeedElemRestriction
-  @param[out] numelements Number of elements
+  @param rstr             CeedElemRestriction
+  @param[out] numelements Variable to store number of elements
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Utility
 **/
-int CeedElemRestrictionGetNumElements(CeedElemRestriction r,
-                                      CeedInt *numelements) {
-  *numelements = r->nelem;
+int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
+                                      CeedInt *numelem) {
+  *numelem = rstr->nelem;
+  return 0;
+}
+
+/**
+  @brief Get the size of elements in the CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] elemsize    Variable to store size of elements
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
+                                   CeedInt *elemsize) {
+  *elemsize = rstr->elemsize;
+  return 0;
+}
+
+/**
+  @brief Get the number of degrees of freedom in the range of a
+         CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] numdof      Variable to store number of DoFs
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedElemRestrictionGetNumDoF(CeedElemRestriction rstr,
+                                 CeedInt *numdof) {
+  *numdof = rstr->ndof;
+  return 0;
+}
+
+/**
+  @brief Get the number of components in the elements of a
+         CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] numcomp     Variable to store number of components
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
+                                  CeedInt *numcomp) {
+  *numcomp = rstr->ncomp;
+  return 0;
+}
+
+/**
+  @brief Get the number of blocks in a CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] numblock    Variable to store number of blocks
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
+                                  CeedInt *numblock) {
+  *numblock = rstr->nblk;
+  return 0;
+}
+
+/**
+  @brief Get the size of blocks in the CeedElemRestriction
+
+  @param r                CeedElemRestriction
+  @param[out] blksize     Variable to store size of blocks
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
+                                    CeedInt *blksize) {
+  *blksize = rstr->blksize;
+  return 0;
+}
+
+/**
+  @brief Get the backend data of a CeedElemRestriction
+
+  @param r                CeedElemRestriction
+  @param[out] data        Variable to store data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedElemRestrictionGetData(CeedElemRestriction rstr,
+                                    void* *data) {
+  *data = rstr->data;
   return 0;
 }
 
 /**
   @brief Destroy a CeedElemRestriction
 
-  @param r CeedElemRestriction to destroy
+  @param rstr CeedElemRestriction to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Basic
 **/
-int CeedElemRestrictionDestroy(CeedElemRestriction *r) {
+int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
   int ierr;
 
-  if (!*r || --(*r)->refcount > 0) return 0;
-  if ((*r)->Destroy) {
-    ierr = (*r)->Destroy(*r); CeedChk(ierr);
+  if (!*rstr || --(*rstr)->refcount > 0) return 0;
+  if ((*rstr)->Destroy) {
+    ierr = (*rstr)->Destroy(*rstr); CeedChk(ierr);
   }
-  ierr = CeedDestroy(&(*r)->ceed); CeedChk(ierr);
-  ierr = CeedFree(r); CeedChk(ierr);
+  ierr = CeedDestroy(&(*rstr)->ceed); CeedChk(ierr);
+  ierr = CeedFree(rstr); CeedChk(ierr);
   return 0;
 }
 

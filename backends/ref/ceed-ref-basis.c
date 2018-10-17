@@ -49,16 +49,17 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
                               CeedTransposeMode tmode, CeedEvalMode emode,
                               const CeedScalar *u, CeedScalar *v) {
   int ierr;
-  const CeedInt dim = basis->dim;
-  const CeedInt ncomp = basis->ncomp;
-  CeedInt nqpt;
-  ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
-  CeedInt ndof;
+  Ceed ceed;
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  CeedInt dim, ncomp, ndof, nqpt;
+  ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
   ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
+  ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   const CeedInt add = (tmode == CEED_TRANSPOSE);
 
   if (nelem != 1)
-    return CeedError(basis->ceed, 1,
+    return CeedError(ceed, 1,
                      "This backend does not support BasisApply for multiple elements");
 
   // Clear v if operating in transpose
@@ -68,18 +69,25 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
       v[i] = (CeedScalar) 0;
   }
   // Tensor basis
-  if (basis->tensorbasis) {
+  bool tensorbasis;
+  ierr = CeedBasisGetTensorStatus(basis, &tensorbasis); CeedChk(ierr);
+  if (tensorbasis) {
+    CeedInt P1d, Q1d;
+    ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
+    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
     switch (emode) {
     // Interpolate to/from quadrature points
     case CEED_EVAL_INTERP: {
-      CeedInt P = basis->P1d, Q = basis->Q1d;
+      CeedInt P = P1d, Q = Q1d;
       if (tmode == CEED_TRANSPOSE) {
-        P = basis->Q1d; Q = basis->P1d;
+        P = Q1d; Q = P1d;
       }
       CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = 1;
       CeedScalar tmp[2][ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
+      CeedScalar *interp1d;
+      ierr = CeedBasisGetInterp(basis, &interp1d); CeedChk(ierr);
       for (CeedInt d=0; d<dim; d++) {
-        ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q, basis->interp1d,
+        ierr = CeedTensorContract_Ref(ceed, pre, P, post, Q, interp1d,
                                       tmode, add&&(d==dim-1),
                                       d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
         CeedChk(ierr);
@@ -89,20 +97,23 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     } break;
     // Evaluate the gradient to/from quadrature points
     case CEED_EVAL_GRAD: {
-      CeedInt P = basis->P1d, Q = basis->Q1d;
+      CeedInt P = P1d, Q = Q1d;
       // In CEED_NOTRANSPOSE mode:
       // u has shape [dim, ncomp, P^dim, nelem], row-major layout
       // v has shape [dim, ncomp, Q^dim, nelem], row-major layout
       // In CEED_TRANSPOSE mode, the sizes of u and v are switched.
       if (tmode == CEED_TRANSPOSE) {
-        P = basis->Q1d, Q = basis->P1d;
+        P = Q1d, Q = P1d;
       }
       CeedScalar tmp[2][ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
+      CeedScalar *interp1d, *grad1d;
+      ierr = CeedBasisGetInterp(basis, &interp1d); CeedChk(ierr);
+      ierr = CeedBasisGetGrad(basis, &grad1d); CeedChk(ierr);
       for (CeedInt p = 0; p < dim; p++) {
         CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = 1;
         for (CeedInt d=0; d<dim; d++) {
-          ierr = CeedTensorContract_Ref(basis->ceed, pre, P, post, Q,
-                                        (p==d)?basis->grad1d:basis->interp1d,
+          ierr = CeedTensorContract_Ref(ceed, pre, P, post, Q,
+                                        (p==d)?grad1d:interp1d,
                                         tmode, add&&(d==dim-1),
                                         (d == 0
                                          ? (tmode==CEED_NOTRANSPOSE?u:u+p*ncomp*nqpt)
@@ -119,65 +130,73 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     // Retrieve interpolation weights
     case CEED_EVAL_WEIGHT: {
       if (tmode == CEED_TRANSPOSE)
-        return CeedError(basis->ceed, 1,
+        return CeedError(ceed, 1,
                          "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
-      CeedInt Q = basis->Q1d;
+      CeedInt Q = Q1d;
+      CeedScalar *qweight1d;
+      ierr = CeedBasisGetQWeights(basis, &qweight1d); CeedChk(ierr);
       for (CeedInt d=0; d<dim; d++) {
         CeedInt pre = CeedIntPow(Q, dim-d-1), post = CeedIntPow(Q, d);
         for (CeedInt i=0; i<pre; i++)
           for (CeedInt j=0; j<Q; j++)
             for (CeedInt k=0; k<post; k++)
-              v[(i*Q + j)*post + k] = basis->qweight1d[j]
+              v[(i*Q + j)*post + k] = qweight1d[j]
                                       * (d == 0 ? 1 : v[(i*Q + j)*post + k]);
       }
     } break;
     // Evaluate the divergence to/from the quadrature points
     case CEED_EVAL_DIV:
-      return CeedError(basis->ceed, 1, "CEED_EVAL_DIV not supported");
+      return CeedError(ceed, 1, "CEED_EVAL_DIV not supported");
     // Evaluate the curl to/from the quadrature points
     case CEED_EVAL_CURL:
-      return CeedError(basis->ceed, 1, "CEED_EVAL_CURL not supported");
+      return CeedError(ceed, 1, "CEED_EVAL_CURL not supported");
     // Take no action, BasisApply should not have been called
     case CEED_EVAL_NONE:
-      return CeedError(basis->ceed, 1,
+      return CeedError(ceed, 1,
                        "CEED_EVAL_NONE does not make sense in this context");
     }
   } else {
     // Non-tensor basis
     switch (emode) {
     case CEED_EVAL_INTERP: {
-      CeedInt P = basis->P, Q = basis->Q;
+      CeedInt P = ndof, Q = nqpt;
+      CeedScalar *interp;
+      ierr = CeedBasisGetInterp(basis, &interp); CeedChk(ierr);
       if (tmode == CEED_TRANSPOSE) {
-        P = basis->Q; Q = basis->P;
+        P = nqpt; Q = ndof;
       }
-      ierr = CeedTensorContract_Ref(basis->ceed, ncomp, P, 1, Q, basis->interp1d,
+      ierr = CeedTensorContract_Ref(ceed, ncomp, P, 1, Q, interp,
                                     tmode, add, u, v);
       CeedChk(ierr);
     }
     break;
     case CEED_EVAL_GRAD: {
-      CeedInt P = basis->P, Q = dim*basis->Q;
+      CeedInt P = ndof, Q = dim*nqpt;
+      CeedScalar *grad;
+      ierr = CeedBasisGetGrad(basis, &grad); CeedChk(ierr);
       if (tmode == CEED_TRANSPOSE) {
-        P = dim*basis->Q; Q = basis->P;
+        P = dim*nqpt; Q = ndof;
       }
-      ierr = CeedTensorContract_Ref(basis->ceed, ncomp, P, 1, Q, basis->grad1d,
+      ierr = CeedTensorContract_Ref(ceed, ncomp, P, 1, Q, grad,
                                     tmode, add, u, v);
       CeedChk(ierr);
     }
     break;
     case CEED_EVAL_WEIGHT: {
       if (tmode == CEED_TRANSPOSE)
-        return CeedError(basis->ceed, 1,
+        return CeedError(ceed, 1,
                          "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+      CeedScalar *qweight;
+      ierr = CeedBasisGetQWeights(basis, &qweight); CeedChk(ierr);
       for (CeedInt i=0; i<nqpt; i++)
-        v[i] = basis->qweight1d[i];
+        v[i] = qweight[i];
     } break;
     case CEED_EVAL_DIV:
-      return CeedError(basis->ceed, 1, "CEED_EVAL_DIV not supported");
+      return CeedError(ceed, 1, "CEED_EVAL_DIV not supported");
     case CEED_EVAL_CURL:
-      return CeedError(basis->ceed, 1, "CEED_EVAL_CURL not supported");
+      return CeedError(ceed, 1, "CEED_EVAL_CURL not supported");
     case CEED_EVAL_NONE:
-      return CeedError(basis->ceed, 1,
+      return CeedError(ceed, 1,
                        "CEED_EVAL_NONE does not make sense in this context");
     }
   }

@@ -20,7 +20,11 @@
 // * Bytes used
 // *****************************************************************************
 static inline size_t bytes(const CeedElemRestriction res) {
-  return res->nelem * res->elemsize * sizeof(CeedInt);
+  int ierr;
+  CeedInt nelem, elemsize;
+  ierr = CeedElemRestrictionGetNumElements(res, &nelem); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetElementSize(res, &elemsize); CeedChk(ierr);
+  return nelem * elemsize * sizeof(CeedInt);
 }
 
 // *****************************************************************************
@@ -32,10 +36,14 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
                                   CeedTransposeMode lmode,
                                   CeedVector u, CeedVector v,
                                   CeedRequest *request) {
-  const Ceed ceed = r->ceed;
-  const CeedInt ncomp = r->ncomp;
+  int ierr;
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
+  CeedInt ncomp;
+  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
   dbg("[CeedElemRestriction][Apply]");
-  const CeedElemRestriction_Occa *data = r->data;
+  CeedElemRestriction_Occa *data;
+  ierr = CeedElemRestrictionGetData(r, (void*)&data); CeedChk(ierr);
   const occaMemory id = data->d_indices;
   const occaMemory tid = data->d_tindices;
   const occaMemory od = data->d_toffsets;
@@ -92,8 +100,10 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
 // *****************************************************************************
 static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
   int ierr;
-  const Ceed ceed = r->ceed;
-  CeedElemRestriction_Occa *data = r->data;
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
+  CeedElemRestriction_Occa *data;
+  ierr = CeedElemRestrictionGetData(r, (void*)&data); CeedChk(ierr);
   dbg("[CeedElemRestriction][Destroy]");
   for (int i=0; i<9; i++) {
     occaFree(data->kRestrict[i]);
@@ -111,9 +121,11 @@ int CeedElemRestrictionOffset_Occa(const CeedElemRestriction r,
                                    const CeedInt *indices,
                                    CeedInt *toffsets,
                                    CeedInt *tindices) {
-  const CeedInt nelem = r->nelem;
-  const CeedInt elemsize = r->elemsize;
-  const CeedInt ndof = r->ndof;
+  int ierr;
+  CeedInt nelem, elemsize, ndof;
+  ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumDoF(r, &ndof); CeedChk(ierr);
   for (int i=0; i<=ndof; ++i) toffsets[i]=0;
   for (int e=0; e < nelem; ++e)
     for (int i=0; i < elemsize; ++i)
@@ -138,11 +150,17 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
                                    const CeedCopyMode cmode,
                                    const CeedInt *indices,
                                    const CeedElemRestriction r) {
-  const Ceed ceed = r->ceed;
-  dbg("[CeedElemRestriction][Create]");
   int ierr;
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
+  CeedInt ndof, nelem, elemsize;
+  ierr = CeedElemRestrictionGetNumDoF(r, &ndof); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
+  dbg("[CeedElemRestriction][Create]");
   CeedElemRestriction_Occa *data;
-  Ceed_Occa *ceed_data = ceed->data;
+  Ceed_Occa *ceed_data;
+  ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
   const bool ocl = ceed_data->ocl;
   const occaDevice dev = ceed_data->device;
   CeedInt *used_indices;
@@ -159,24 +177,24 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
   // This is a temporary handling of null indices for identity restrictions
   if (indices == NULL) {
     dbg("[CeedElemRestriction][Create] Identity Restriction");
-    ierr = CeedMalloc(r->ndof, &used_indices); CeedChk(ierr);
-    for (CeedInt i=0; i<r->ndof; i++) used_indices[i] = i;
+    ierr = CeedMalloc(ndof, &used_indices); CeedChk(ierr);
+    for (CeedInt i=0; i<ndof; i++) used_indices[i] = i;
   } else {
     used_indices = (CeedInt *) indices;
   }
   // ***************************************************************************
   data->d_indices = occaDeviceMalloc(dev, bytes(r), NULL, NO_PROPS);
-  data->d_toffsets = occaDeviceMalloc(dev,(1+r->ndof)*sizeof(CeedInt),
+  data->d_toffsets = occaDeviceMalloc(dev,(1+ndof)*sizeof(CeedInt),
                                       NULL, NO_PROPS);
   data->d_tindices = occaDeviceMalloc(dev, bytes(r), NULL, NO_PROPS);
   // ***************************************************************************
   CeedInt *toffsets;
-  ierr = CeedMalloc(r->ndof+1, &toffsets); CeedChk(ierr);
+  ierr = CeedMalloc(ndof+1, &toffsets); CeedChk(ierr);
   CeedInt *tindices;
-  ierr = CeedMalloc(r->elemsize*r->nelem, &tindices); CeedChk(ierr);
+  ierr = CeedMalloc(elemsize*nelem, &tindices); CeedChk(ierr);
   CeedElemRestrictionOffset_Occa(r,used_indices,toffsets,tindices);
   occaCopyPtrToMem(data->d_toffsets,toffsets,
-                   (1+r->ndof)*sizeof(CeedInt),NO_OFFSET,NO_PROPS);
+                   (1+ndof)*sizeof(CeedInt),NO_OFFSET,NO_PROPS);
   occaCopyPtrToMem(data->d_tindices,tindices,bytes(r),NO_OFFSET,NO_PROPS);
   // ***************************************************************************
   occaCopyPtrToMem(data->d_indices,used_indices,bytes(r),NO_OFFSET,NO_PROPS);
@@ -189,15 +207,15 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
   }
 
 
-  dbg("[CeedElemRestriction][Create] nelem=%d",r->nelem);
+  dbg("[CeedElemRestriction][Create] nelem=%d",nelem);
   occaProperties pKR = occaCreateProperties();
-  occaPropertiesSet(pKR, "defines/ndof", occaInt(r->ndof));
-  occaPropertiesSet(pKR, "defines/nelem", occaInt(r->nelem));
-  occaPropertiesSet(pKR, "defines/elemsize", occaInt(r->elemsize));
+  occaPropertiesSet(pKR, "defines/ndof", occaInt(ndof));
+  occaPropertiesSet(pKR, "defines/nelem", occaInt(nelem));
+  occaPropertiesSet(pKR, "defines/elemsize", occaInt(elemsize));
   occaPropertiesSet(pKR, "defines/nelem_x_elemsize",
-                    occaInt(r->nelem*r->elemsize));
+                    occaInt(nelem*elemsize));
   // OpenCL check for this requirement
-  const CeedInt nelem_tile_size = (r->nelem>TILE_SIZE)?TILE_SIZE:r->nelem;
+  const CeedInt nelem_tile_size = (nelem>TILE_SIZE)?TILE_SIZE:nelem;
   // OCCA+MacOS implementation need that for now (if DeviceID targets a CPU)
   const CeedInt tile_size = ocl?1:nelem_tile_size;
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(tile_size));
@@ -234,5 +252,8 @@ int CeedElemRestrictionCreateBlocked_Occa(const CeedMemType mtype,
                                    const CeedCopyMode cmode,
                                    const CeedInt *indices,
                                    const CeedElemRestriction r) {
-  return CeedError(r->ceed, 1, "Backend does not implement blocked restrictions");
+  int ierr;
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
+  return CeedError(ceed, 1, "Backend does not implement blocked restrictions");
 }
