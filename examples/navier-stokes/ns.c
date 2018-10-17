@@ -533,8 +533,8 @@ int main(int argc, char **argv) {
   CeedVectorGetArray(q0ceed, CEED_MEM_HOST, &q0);
   CeedVectorGetArray(multlvec, CEED_MEM_HOST, &m);
   for (PetscInt i=0; i<lsize; i++) {
-    q0[i] /= m[i];
-    q0[i+4*lsize] /= m[i];
+    for (PetscInt f=0; f<5; f++)
+      q0[lsize*f+i] /= m[i];
   }
   CeedVectorRestoreArray(q0ceed, &q0);
   CeedVectorRestoreArray(multlvec, &m);
