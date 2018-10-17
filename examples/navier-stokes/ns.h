@@ -390,6 +390,12 @@ static int NS(void *ctx, CeedInt Q,
     vg[i+(4+5*0)*Q]  = (E + 0)*(u[0]*BJ[0] + u[1]*BJ[1] + u[2]*BJ[2]);
     vg[i+(4+5*1)*Q]  = (E + 0)*(u[0]*BJ[3] + u[1]*BJ[4] + u[2]*BJ[5]);
     vg[i+(4+5*2)*Q]  = (E + 0)*(u[0]*BJ[6] + u[1]*BJ[7] + u[2]*BJ[8]);
+    for (PetscInt f=0; f<5; f++) {
+      for (PetscInt d=0; d<3; d++) {
+        CeedScalar c[3] = {2*(x[0*Q+i] - .5), 2*(x[1*Q+i] - .5), 2*(x[2*Q+i] - .5)};
+        CeedScalar w[3] = {-c[1], c[0], 0.};
+
+        vg[(d*5+f)*Q+i] = /* Add dX/dx * quadrature_weight * Jdet */ * q[f*Q+i];
     // ---- Fevisc
 //    vg[i+(4+5*0)*Q] -= Fe[0]*BBJ[0] + Fe[1]*BBJ[1] + Fe[2]*BBJ[2];
 //    vg[i+(4+5*1)*Q] -= Fe[0]*BBJ[1] + Fe[1]*BBJ[3] + Fe[2]*BBJ[4];
