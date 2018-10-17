@@ -27,6 +27,10 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include <stdbool.h>
 #include "ns.h"
 
+#if PETSC_VERSION_LT(3,11,0)
+#  define VecScatterCreateWithData VecScatterCreate
+#endif
+
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   for (PetscInt d=0,sizeleft=size; d<3; d++) {
     PetscInt try = (PetscInt)PetscCeilReal(PetscPowReal(sizeleft, 1./(3 - d)));
@@ -317,13 +321,13 @@ int main(int argc, char **argv) {
     }
     ierr = ISCreateGeneral(comm, 5*lsize, ltogind, PETSC_OWN_POINTER, &ltogis);
     CHKERRQ(ierr);
-    ierr = VecScatterCreate(Qloc, NULL, Q, ltogis, &ltog); CHKERRQ(ierr);
+    ierr = VecScatterCreateWithData(Qloc, NULL, Q, ltogis, &ltog); CHKERRQ(ierr);
     CHKERRQ(ierr);
     ierr = ISCreateGeneral(comm, l0count, ltogind0, PETSC_OWN_POINTER, &ltogis0);
     CHKERRQ(ierr);
     ierr = ISCreateGeneral(PETSC_COMM_SELF, l0count, locind, PETSC_OWN_POINTER, &locis);
     CHKERRQ(ierr);
-    ierr = VecScatterCreate(Qloc, locis, Q, ltogis0, &ltog0); CHKERRQ(ierr);
+    ierr = VecScatterCreateWithData(Qloc, locis, Q, ltogis0, &ltog0); CHKERRQ(ierr);
     { // Create global-to-global scatter for Dirichlet values (everything not in
       // ltogis0, which is the range of ltog0)
       PetscInt qstart, qend, *indD, countD = 0;
@@ -342,7 +346,7 @@ int main(int argc, char **argv) {
       ierr = VecRestoreArrayRead(Q, &q); CHKERRQ(ierr);
       ierr = ISCreateGeneral(comm, countD, indD, PETSC_COPY_VALUES, &isD); CHKERRQ(ierr);
       ierr = PetscFree(indD); CHKERRQ(ierr);
-      ierr = VecScatterCreate(Q, isD, Q, isD, &gtogD); CHKERRQ(ierr);
+      ierr = VecScatterCreateWithData(Q, isD, Q, isD, &gtogD); CHKERRQ(ierr);
       ierr = ISDestroy(&isD); CHKERRQ(ierr);
     }
     ierr = ISDestroy(&ltogis); CHKERRQ(ierr);
