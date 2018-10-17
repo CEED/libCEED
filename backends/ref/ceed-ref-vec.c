@@ -20,17 +20,22 @@
 
 static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mtype,
                                   CeedCopyMode cmode, CeedScalar *array) {
-  CeedVector_Ref *impl = vec->data;
   int ierr;
+  CeedVector_Ref *impl;
+  ierr = CeedVectorGetData(vec, (void*)&impl); CeedChk(ierr);
+  CeedInt length;
+  ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
 
   if (mtype != CEED_MEM_HOST)
-    return CeedError(vec->ceed, 1, "Only MemType = HOST supported");
+    return CeedError(ceed, 1, "Only MemType = HOST supported");
   ierr = CeedFree(&impl->array_allocated); CeedChk(ierr);
   switch (cmode) {
   case CEED_COPY_VALUES:
-    ierr = CeedMalloc(vec->length, &impl->array_allocated); CeedChk(ierr);
+    ierr = CeedMalloc(length, &impl->array_allocated); CeedChk(ierr);
     impl->array = impl->array_allocated;
-    if (array) memcpy(impl->array, array, vec->length * sizeof(array[0]));
+    if (array) memcpy(impl->array, array, length * sizeof(array[0]));
     break;
   case CEED_OWN_POINTER:
     impl->array_allocated = array;
@@ -44,11 +49,14 @@ static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mtype,
 
 static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mtype,
                                   CeedScalar **array) {
-  CeedVector_Ref *impl = vec->data;
   int ierr;
+  CeedVector_Ref *impl;
+  ierr = CeedVectorGetData(vec, (void*)&impl); CeedChk(ierr);
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
 
   if (mtype != CEED_MEM_HOST)
-    return CeedError(vec->ceed, 1, "Can only provide to HOST memory");
+    return CeedError(ceed, 1, "Can only provide to HOST memory");
   if (!impl->array) { // Allocate if array is not yet allocated
     ierr = CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
     CeedChk(ierr);
@@ -59,11 +67,14 @@ static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mtype,
 
 static int CeedVectorGetArrayRead_Ref(CeedVector vec, CeedMemType mtype,
                                       const CeedScalar **array) {
-  CeedVector_Ref *impl = vec->data;
   int ierr;
+  CeedVector_Ref *impl;
+  ierr = CeedVectorGetData(vec, (void*)&impl); CeedChk(ierr);
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
 
   if (mtype != CEED_MEM_HOST)
-    return CeedError(vec->ceed, 1, "Can only provide to HOST memory");
+    return CeedError(ceed, 1, "Can only provide to HOST memory");
   if (!impl->array) { // Allocate if array is not yet allocated
     ierr = CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
     CeedChk(ierr);
@@ -84,8 +95,9 @@ static int CeedVectorRestoreArrayRead_Ref(CeedVector vec,
 }
 
 static int CeedVectorDestroy_Ref(CeedVector vec) {
-  CeedVector_Ref *impl = vec->data;
   int ierr;
+  CeedVector_Ref *impl;
+  ierr = CeedVectorGetData(vec, (void*)&impl); CeedChk(ierr);
 
   ierr = CeedFree(&impl->array_allocated); CeedChk(ierr);
   ierr = CeedFree(&vec->data); CeedChk(ierr);
@@ -93,8 +105,8 @@ static int CeedVectorDestroy_Ref(CeedVector vec) {
 }
 
 int CeedVectorCreate_Ref(CeedInt n, CeedVector vec) {
-  CeedVector_Ref *impl;
   int ierr;
+  CeedVector_Ref *impl;
 
   vec->SetArray = CeedVectorSetArray_Ref;
   vec->GetArray = CeedVectorGetArray_Ref;

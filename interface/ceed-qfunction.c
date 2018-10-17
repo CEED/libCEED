@@ -153,11 +153,43 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
 }
 
 /**
+  @brief Get the Ceed associated with a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] ceed       Variable to store Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+
+int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
+  *ceed = qf->ceed;
+  return 0;
+}
+
+/**
+  @brief Get the vector length of a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] veclength  Variable to store vector length
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+
+int CeedQFunctionGetVectorLength(CeedQFunction qf, CeedInt *vlength) {
+  *vlength = qf->vlength;
+  return 0;
+}
+
+/**
   @brief Get the number of inputs and outputs to a CeedQFunction
 
   @param qf              CeedQFunction
-  @param[out] numinput   Number of input fields
-  @param[out] numoutput  Number of output fields
+  @param[out] numinput   Variable to store number of input fields
+  @param[out] numoutput  Variable to store number of output fields
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -172,7 +204,71 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
 }
 
 /**
-  @brief Set global context for a quadrature function
+  @brief Get the FOCCA string for a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] focca      Variable to store focca string
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+
+int CeedQFunctionGetFOCCA(CeedQFunction qf, char* *focca) {
+  *focca = (char*) qf->focca;
+  return 0;
+}
+
+/**
+  @brief Get global context size for a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] ctxsize    Variable to store size of context data values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+
+int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize) {
+  *ctxsize = qf->ctxsize;
+  return 0;
+}
+
+/**
+  @brief Get global context for a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] ctx        Variable to store context data values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+
+int CeedQFunctionGetContext(CeedQFunction qf, void* *ctx) {
+  *ctx = qf->ctx;
+  return 0;
+}
+
+/**
+  @brief Get backend data of a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] data       Variable to store data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+
+int CeedQFunctionGetData(CeedQFunction qf, void* *data) {
+  *data = qf->data;
+  return 0;
+}
+
+/**
+  @brief Set global context for a CeedQFunction
 
   @param qf       CeedQFunction
   @param ctx      Context data to set

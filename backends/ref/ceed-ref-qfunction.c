@@ -22,7 +22,10 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
                                   const CeedScalar *const *u,
                                   CeedScalar *const *v) {
   int ierr;
-  ierr = qf->function(qf->ctx, Q, u, v); CeedChk(ierr);
+  void *ctx;
+  ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
+
+  ierr = qf->function(ctx, Q, u, v); CeedChk(ierr);
   return 0;
 }
 

@@ -22,14 +22,21 @@
 int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
                                 CeedInt *idx_p,
                                 CeedInt *iOf7) {
+  int ierr;
   CeedInt idx = 0;
-  const Ceed ceed = qf->ceed;
-  CeedQFunction_Occa *qf_data = qf->data;
+  Ceed ceed;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  CeedQFunction_Occa *qf_data;
+  ierr = CeedQFunctionGetData(qf, (void*)&qf_data); CeedChk(ierr);
   CeedOperator op = qf_data->op;
-  Ceed_Occa *ceed_data = qf->ceed->data;
+  Ceed_Occa *ceed_data;
+  ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
   const occaDevice device = ceed_data->device;
-  const int nIn = qf->numinputfields; assert(nIn<N_MAX_IDX);
-  const CeedInt cbytes = qf->ctxsize;
+  CeedInt nIn;
+  ierr = CeedQFunctionGetNumArgs(qf, &nIn, NULL); CeedChk(ierr); 
+  assert(nIn<N_MAX_IDX);
+  size_t cbytes;
+  ierr = CeedQFunctionGetContextSize(qf, &cbytes); CeedChk(ierr);
   const CeedInt bytes = sizeof(CeedScalar);
   dbg("[CeedQFunction][AllocOpIn]");
   // ***************************************************************************
@@ -86,14 +93,20 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
 int CeedQFunctionAllocOpOut_Occa(CeedQFunction qf, CeedInt Q,
                                  CeedInt *odx_p,
                                  CeedInt *oOf7) {
+  int ierr;
   CeedInt odx = 0;
-  const Ceed ceed = qf->ceed;
-  CeedQFunction_Occa *data = qf->data;
+  Ceed ceed;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  CeedQFunction_Occa *data;
+  ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
   CeedOperator op = data->op;
-  Ceed_Occa *ceed_data = qf->ceed->data;
+  Ceed_Occa *ceed_data;
+  ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
   const occaDevice device = ceed_data->device;
   const CeedInt bytes = sizeof(CeedScalar);
-  const int nOut = qf->numoutputfields; assert(nOut<N_MAX_IDX);
+  CeedInt nOut;
+  ierr = CeedQFunctionGetNumArgs(qf, NULL, &nOut); CeedChk(ierr);
+  assert(nOut<N_MAX_IDX);
   dbg("\n[CeedQFunction][AllocOpOut]");
   for (CeedInt i=0; i<nOut; i++) {
     dbg("\t[CeedQFunction][AllocOpOut] # %d/%d",i,nOut-1);
@@ -149,8 +162,11 @@ int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
                              CeedInt *iOf7,
                              CeedInt *oOf7,
                              const CeedScalar *const *in) {
-  const Ceed ceed = qf->ceed;
-  const int nIn = qf->numinputfields;
+  int ierr;
+  Ceed ceed;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  CeedInt nIn;
+  ierr = CeedQFunctionGetNumArgs(qf, &nIn, NULL); CeedChk(ierr);
   const CeedInt bytes = sizeof(CeedScalar);
   dbg("\n[CeedQFunction][FillOp]");
   for (CeedInt i=0; i<nIn; i++) {

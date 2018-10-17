@@ -172,6 +172,133 @@ int CeedOperatorApply(CeedOperator op, CeedVector in,
 }
 
 /**
+  @brief Get the Ceed associated with a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] ceed       Variable to store Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+
+int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
+  *ceed = op->ceed;
+  return 0;
+}
+
+/**
+  @brief Get the number of elements associated with a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] numelem    Variable to store number of elements
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+
+int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
+  *numelem = op->numelements;
+  return 0;
+}
+
+/**
+  @brief Get the number of quadrature points associated with a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] numqpts    Variable to store vector number of quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+
+int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
+  *numqpts = op->numqpoints;
+  return 0;
+}
+
+/**
+  @brief Get the number of arguments associated with a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] numargs    Variable to store vector number of arguments
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+
+int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
+  *numargs = op->nfields;
+  return 0;
+}
+
+/**
+  @brief Get the setup status of a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] numelem    Variable to store setup status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+
+int CeedOperatorGetSetupStatus(CeedOperator op, bool *setupdone) {
+  *setupdone = op->setupdone;
+  return 0;
+}
+
+/**
+  @brief Get the QFunction associated with a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] qf         Variable to store qfunction
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+
+int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
+  *qf = op->qf;
+  return 0;
+}
+
+/**
+  @brief Get the backend data of a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] data       Variable to store data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+
+int CeedOperatorGetData(CeedOperator op, void* *data) {
+  *data = op->data;
+  return 0;
+}
+
+/**
+  @brief Set the setup flag of a CeedOperator to True
+
+  @param op              CeedOperator
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+
+int CeedOperatorSetSetupDone(CeedOperator op) {
+  op->setupdone = 1;
+  return 0;
+}
+
+/**
   @brief Destroy a CeedOperator
 
   @param op CeedOperator to destroy

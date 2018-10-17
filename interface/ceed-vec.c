@@ -254,6 +254,21 @@ int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
 }
 
 /**
+  @brief Get the Ceed associated with a CeedVector
+
+  @param vec           CeedVector to retrieve state
+  @param[out] ceed     Variable to store ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
+  *ceed = vec->ceed;
+  return 0;
+}
+
+/**
   @brief Get the length of a CeedVector
 
   @param vec           CeedVector to retrieve length
@@ -265,6 +280,36 @@ int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
 **/
 int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
   *length = vec->length;
+  return 0;
+}
+
+/**
+  @brief Get the state of a CeedVector
+
+  @param vec           CeedVector to retrieve state
+  @param[out] state    Variable to store state
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedVectorGetState(CeedVector vec, uint64_t *state) {
+  *state = vec->state;
+  return 0;
+}
+
+/**
+  @brief Get the backend data of a CeedVector
+
+  @param vec           CeedVector to retrieve state
+  @param[out] data     Variable to store data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedVectorGetData(CeedVector vec, void* *data) {
+  *data = vec->data;
   return 0;
 }
 
