@@ -27,6 +27,10 @@ const char help[] = "Solve CEED BP1 using PETSc\n";
 #include <stdbool.h>
 #include "bp1.h"
 
+#if PETSC_VERSION_LT(3,11,0)
+#  define VecScatterCreateWithData VecScatterCreate
+#endif
+
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   for (PetscInt d=0,sizeleft=size; d<3; d++) {
     PetscInt try = (PetscInt)PetscCeilReal(PetscPowReal(sizeleft, 1./(3 - d)));
@@ -295,7 +299,7 @@ int main(int argc, char **argv) {
     }
     ierr = ISCreateGeneral(comm, lsize, ltogind, PETSC_OWN_POINTER, &ltogis);
     CHKERRQ(ierr);
-    ierr = VecScatterCreate(Xloc, NULL, X, ltogis, &ltog); CHKERRQ(ierr);
+    ierr = VecScatterCreateWithData(Xloc, NULL, X, ltogis, &ltog); CHKERRQ(ierr);
     CHKERRQ(ierr);
     ierr = ISDestroy(&ltogis); CHKERRQ(ierr);
   }
