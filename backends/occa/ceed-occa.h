@@ -13,11 +13,12 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+#include <ceed-impl.h>
+#include <ceed-backend.h>
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
 #include <sys/stat.h>
-#include <ceed-impl.h>
 
 // *****************************************************************************
 #define OCCA_PATH_MAX 4096

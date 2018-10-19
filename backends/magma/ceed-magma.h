@@ -17,6 +17,7 @@
 // magma functions specific to ceed
 
 #include <ceed-impl.h>
+#include <ceed-backend.h>
 #include "magma.h"
 
 #define USE_MAGMA_BATCH

@@ -16,7 +16,7 @@
 
 #define _POSIX_C_SOURCE 200112
 #include <ceed-impl.h>
-
+#include <ceed-backend.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>

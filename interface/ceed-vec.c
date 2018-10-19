@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
+#include <ceed-backend.h>
 
 /// @cond DOXYGEN_SKIP
 static struct CeedVector_private ceed_vector_active;
