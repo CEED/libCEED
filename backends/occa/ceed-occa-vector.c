@@ -20,9 +20,8 @@
 // * Bytes used
 // *****************************************************************************
 static inline size_t bytes(const CeedVector vec) {
-  int ierr;
   CeedInt length;
-  ierr = CeedVectorGetLength(vec, &length);
+  CeedVectorGetLength(vec, &length);
 
   return length * sizeof(CeedScalar);
 }
@@ -31,9 +30,8 @@ static inline size_t bytes(const CeedVector vec) {
 // * OCCA SYNC functions
 // *****************************************************************************
 static inline void CeedSyncH2D_Occa(const CeedVector vec) {
-  int ierr;
   CeedVector_Occa *data;
-  ierr = CeedVectorGetData(vec, (void*)&data);
+  CeedVectorGetData(vec, (void*)&data);
 
   assert(data);
   assert(data->h_array);
@@ -42,9 +40,8 @@ static inline void CeedSyncH2D_Occa(const CeedVector vec) {
 }
 // *****************************************************************************
 static inline void CeedSyncD2H_Occa(const CeedVector vec) {
-  int ierr;
   CeedVector_Occa *data;
-  ierr = CeedVectorGetData(vec, (void*)&data);
+  CeedVectorGetData(vec, (void*)&data);
 
   assert(data);
   assert(data->h_array);
