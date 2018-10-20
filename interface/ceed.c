@@ -343,7 +343,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Developer
 **/
 int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
   *delegate = ceed->delegate;
@@ -358,7 +358,7 @@ int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 int CeedSetDelegate(Ceed ceed, Ceed *delegate) {
   ceed->delegate = *delegate;
@@ -373,7 +373,7 @@ int CeedSetDelegate(Ceed ceed, Ceed *delegate) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 int CeedGetData(Ceed ceed, void* *data) {
   *data = ceed->data;

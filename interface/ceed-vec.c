@@ -262,7 +262,7 @@ int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
   *ceed = vec->ceed;
@@ -277,7 +277,7 @@ int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
   *length = vec->length;
@@ -292,7 +292,7 @@ int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 int CeedVectorGetState(CeedVector vec, uint64_t *state) {
   *state = vec->state;
@@ -307,7 +307,7 @@ int CeedVectorGetState(CeedVector vec, uint64_t *state) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 int CeedVectorGetData(CeedVector vec, void* *data) {
   *data = vec->data;

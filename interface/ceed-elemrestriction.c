@@ -315,7 +315,7 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed) {
   *ceed = rstr->ceed;
@@ -330,7 +330,7 @@ int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
                                       CeedInt *numelem) {
@@ -346,7 +346,7 @@ int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
                                    CeedInt *elemsize) {
@@ -363,7 +363,7 @@ int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 int CeedElemRestrictionGetNumDoF(CeedElemRestriction rstr,
                                  CeedInt *numdof) {
@@ -380,7 +380,7 @@ int CeedElemRestrictionGetNumDoF(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
                                   CeedInt *numcomp) {
@@ -396,7 +396,7 @@ int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
                                   CeedInt *numblock) {
@@ -412,7 +412,7 @@ int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
                                     CeedInt *blksize) {
@@ -428,7 +428,7 @@ int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 int CeedElemRestrictionGetData(CeedElemRestriction rstr,
                                     void* *data) {
