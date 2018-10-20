@@ -161,7 +161,7 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
@@ -177,7 +177,7 @@ int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedQFunctionGetVectorLength(CeedQFunction qf, CeedInt *vlength) {
@@ -194,7 +194,7 @@ int CeedQFunctionGetVectorLength(CeedQFunction qf, CeedInt *vlength) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
@@ -212,7 +212,7 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedQFunctionGetFOCCA(CeedQFunction qf, char* *focca) {
@@ -228,7 +228,7 @@ int CeedQFunctionGetFOCCA(CeedQFunction qf, char* *focca) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize) {
@@ -244,7 +244,7 @@ int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedQFunctionGetContext(CeedQFunction qf, void* *ctx) {
@@ -260,7 +260,7 @@ int CeedQFunctionGetContext(CeedQFunction qf, void* *ctx) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedQFunctionGetData(CeedQFunction qf, void* *data) {

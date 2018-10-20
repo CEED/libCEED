@@ -180,7 +180,7 @@ int CeedOperatorApply(CeedOperator op, CeedVector in,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
@@ -196,7 +196,7 @@ int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
@@ -212,7 +212,7 @@ int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
@@ -228,7 +228,7 @@ int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
@@ -244,7 +244,7 @@ int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedOperatorGetSetupStatus(CeedOperator op, bool *setupdone) {
@@ -260,7 +260,7 @@ int CeedOperatorGetSetupStatus(CeedOperator op, bool *setupdone) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
@@ -276,7 +276,7 @@ int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedOperatorGetData(CeedOperator op, void* *data) {
@@ -291,7 +291,7 @@ int CeedOperatorGetData(CeedOperator op, void* *data) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
 **/
 
 int CeedOperatorSetSetupDone(CeedOperator op) {
