@@ -760,8 +760,8 @@ static int CeedOperatorDestroy_Magma(CeedOperator op) {
 /*
   Setup infields or outfields
  */
-static int CeedOperatorSetupFields_Magma(struct CeedQFunctionField qfields[16],
-                                       struct CeedOperatorField ofields[16],
+static int CeedOperatorSetupFields_Magma(CeedQFunctionField qfields[16],
+                                       CeedOperatorField ofields[16],
                                        CeedVector *evecs, CeedScalar **qdata,
                                        CeedScalar **qdata_alloc, CeedScalar **indata,
                                        CeedInt starti, CeedInt startq,

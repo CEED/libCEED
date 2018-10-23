@@ -113,7 +113,7 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                        numqpoints, op->numqpoints);
     op->numqpoints = numqpoints;
   }
-  struct CeedOperatorField *ofield;
+  CeedOperatorField *ofield;
   for (CeedInt i=0; i<op->qf->numinputfields; i++) {
     if (!strcmp(fieldname, op->qf->inputfields[i].fieldname)) {
       ofield = &op->inputfields[i];
@@ -296,6 +296,77 @@ int CeedOperatorGetData(CeedOperator op, void* *data) {
 
 int CeedOperatorSetSetupDone(CeedOperator op) {
   op->setupdone = 1;
+  return 0;
+}
+
+/**
+  @brief Get the CeedOperatorFields of a CeedOperator
+
+  @param op                 CeedOperator
+  @param[out] inputfields   Variable to store inputfields
+  @param[out] outputfields  Variable to store outputfields
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedOperatorGetFields(CeedOperator op,
+                          CeedOperatorField* *inputfields,
+                          CeedOperatorField* *outputfields) {
+  if (inputfields) *inputfields = op->inputfields;
+  if (outputfields) *outputfields = op->outputfields;
+  return 0;
+}
+
+/**
+  @brief Get the CeedElemRestriction of a CeedOperatorField
+
+  @param opfield         CeedOperatorField
+  @param[out] rstr       Variable to store CeedElemRestriction
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedOperatorFieldGetElemRestriction(CeedOperatorField opfield,
+                                        CeedElemRestriction *rstr) {
+  *rstr = (&opfield)->Erestrict;
+  return 0;
+}
+
+/**
+  @brief Get the CeedBasis of a CeedOperatorField
+
+  @param opfield         CeedOperatorField
+  @param[out] basis      Variable to store CeedBasis
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedOperatorFieldGetBasis(CeedOperatorField opfield,
+                              CeedBasis *basis) {
+  *basis = (&opfield)->basis;
+  return 0;
+}
+
+/**
+  @brief Get the CeedVector of a CeedOperatorField
+
+  @param opfield         CeedOperatorField
+  @param[out] vec        Variable to store CeedVector
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedOperatorFieldGetVector(CeedOperatorField opfield,
+                               CeedVector *vec) {
+  *vec = (&opfield)->vec;
   return 0;
 }
 

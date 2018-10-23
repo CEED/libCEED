@@ -88,7 +88,15 @@ typedef struct CeedQFunction_private *CeedQFunction;
 /// \f$f\f$, a CeedOperator expresses operations of the form
 ///   $$ E^T B^T f(B E u) $$
 /// acting on the vector \f$u\f$.
+/// @ingroup CeedOperator
 typedef struct CeedOperator_private *CeedOperator;
+
+/// Handle for object describing CeedQFunction fields
+/// @ingroup CeedQFunction
+typedef struct CeedQFunctionField_private CeedQFunctionField;
+/// Handle for object describing CeedOperator fields
+/// @ingroup CeedOperator
+typedef struct CeedOperatorField_private CeedOperatorField;
 
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
