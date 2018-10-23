@@ -556,10 +556,12 @@ int main(int argc, char **argv) {
   ierr = TSSetType(ts, TSEULER); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
-  ierr = TSSetMaxSteps(ts, 1.e5); CHKERRQ(ierr);
-  ierr = TSSetTimeStep(ts, 1.e-5); CHKERRQ(ierr);
+//  ierr = TSSetMaxSteps(ts, 1.e4); CHKERRQ(ierr);
+//  ierr = TSSetTimeStep(ts, 1.e-4); CHKERRQ(ierr);
+  ierr = TSSetMaxTime(ts, 100.); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
+  ierr = TSAdaptSetStepLimits(adapt, 1.e-7, 1.e-2); CHKERRQ(ierr);
   ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
   ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
 
