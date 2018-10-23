@@ -296,21 +296,21 @@ static int NS(void *ctx, CeedInt Q,
     // -- Interp-to-Grad qdata
     //      Symmetric 3x3 matrix
     const CeedScalar wBJ[9]   = { qdata[i+ 1*Q],
-                                 qdata[i+ 2*Q],
-                                 qdata[i+ 3*Q],
-                                 qdata[i+ 4*Q],
-                                 qdata[i+ 5*Q],
-                                 qdata[i+ 6*Q],
-                                 qdata[i+ 7*Q],
-                                 qdata[i+ 8*Q],
-                                 qdata[i+ 9*Q] };
+                                  qdata[i+ 2*Q],
+                                  qdata[i+ 3*Q],
+                                  qdata[i+ 4*Q],
+                                  qdata[i+ 5*Q],
+                                  qdata[i+ 6*Q],
+                                  qdata[i+ 7*Q],
+                                  qdata[i+ 8*Q],
+                                  qdata[i+ 9*Q] };
     // -- Grad-to-Grad qdata
     const CeedScalar wBBJ[6]  = { qdata[i+10*Q],
-                                 qdata[i+11*Q],
-                                 qdata[i+12*Q],
-                                 qdata[i+13*Q],
-                                 qdata[i+14*Q],
-                                 qdata[i+15*Q] };
+                                  qdata[i+11*Q],
+                                  qdata[i+12*Q],
+                                  qdata[i+13*Q],
+                                  qdata[i+14*Q],
+                                  qdata[i+15*Q] };
     // -- gradT
     const CeedScalar gradT[3] = { (dE[0]/rho - E*drho[0]/(rho*rho) -
                                     (u[0]*du[0+3*0] + u[1]*du[1+3*0] +
