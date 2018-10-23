@@ -203,8 +203,8 @@ static int ICs(void *ctx, CeedInt Q,
 
     // Initial Conditions
     q0[i+0*Q] = 1.;//rho;
-    q0[i+1*Q] = 50000*x[i+Q*1];//0.0;
-    q0[i+2*Q] = -50000*x[i+Q*0];//0.0;
+    q0[i+1*Q] = -5*(x[i+Q*1] - 0.5);//0.0;
+    q0[i+2*Q] = 5*(x[i+Q*0] - 0.5);//0.0;
     q0[i+3*Q] = 0.0;
     q0[i+4*Q] = r2 <= 1./8. ? 1. : 0.;//rho * (Cv*Theta*Pi + g*x[i+Q*2]);
 
@@ -391,15 +391,6 @@ static int NS(void *ctx, CeedInt Q,
     vg[i+(4+5*0)*Q]  = (E + 0)*(u[0]*wBJ[0] + u[1]*wBJ[1] + u[2]*wBJ[2]);
     vg[i+(4+5*1)*Q]  = (E + 0)*(u[0]*wBJ[3] + u[1]*wBJ[4] + u[2]*wBJ[5]);
     vg[i+(4+5*2)*Q]  = (E + 0)*(u[0]*wBJ[6] + u[1]*wBJ[7] + u[2]*wBJ[8]);
-    for (PetscInt f=0; f<5; f++) {
-      for (PetscInt d=0; d<3; d++) {
-        CeedScalar c[3] = {2*(x[0*Q+i] - .5), 2*(x[1*Q+i] - .5), 2*(x[2*Q+i] - .5)};
-        CeedScalar wind[3] = {-c[1], c[0], 0.};
-
-     //   vg[(d*5+f)*Q+i] = wBJ[i] * q[f*Q+i];
-      }
-
-    }
 
     // ---- Fevisc
 //    vg[i+(4+5*0)*Q] -= Fe[0]*wBBJ[0] + Fe[1]*wBBJ[1] + Fe[2]*wBBJ[2];
