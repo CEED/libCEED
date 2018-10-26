@@ -14,6 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+/// @file
+/// libCEED QFunctions for mass operator example using PETSc
+
 // *****************************************************************************
 static int Setup(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {

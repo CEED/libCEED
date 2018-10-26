@@ -31,6 +31,9 @@
 //     bp1 -m ../../../mfem/data/star.vtk -o 3
 //     bp1 -m ../../../mfem/data/inline-segment.mesh -o 8
 
+/// @file
+/// MFEM mass operator based on libCEED
+
 #include <ceed.h>
 #include <mfem.hpp>
 #include "bp1.hpp"

@@ -20,6 +20,9 @@
 //     bp1 -ceed /ocl/occa
 //
 //TESTARGS -ceed {ceed_resource} -test
+
+/// @file
+/// Mass operator example using PETSc
 const char help[] = "Solve CEED BP1 using PETSc\n";
 
 #include <petscksp.h>
