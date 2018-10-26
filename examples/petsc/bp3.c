@@ -20,6 +20,9 @@
 //     bp3 -ceed /ocl/occa
 //
 //TESTARGS -ceed {ceed_resource} -test -degree 3
+
+/// @file
+/// Diffusion operator example using PETSc
 const char help[] = "Solve CEED BP3 using PETSc\n";
 
 #include <petscksp.h>

@@ -14,6 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+/// @file
+/// Public header for backend components of libCEED
 #ifndef _ceed_backend_h
 #define _ceed_backend_h
 

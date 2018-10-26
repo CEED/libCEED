@@ -14,6 +14,9 @@ C the planning and preparation of a capable exascale ecosystem, including
 C software, applications, hardware, advanced system engineering and early
 C testbed platforms, in support of the nation's exascale computing imperative.
 
+C> @file
+C> Mass operator example using Nek5000
+
 C-----------------------------------------------------------------------
       subroutine uservp(ix,iy,iz,eg) ! set variable properties
       include 'SIZE'

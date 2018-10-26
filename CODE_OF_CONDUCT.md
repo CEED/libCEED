@@ -1,4 +1,4 @@
-# libCEED Code of Conduct
+# libCEED: Code of Conduct
 
 ## Our Pledge
 

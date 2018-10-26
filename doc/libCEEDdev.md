@@ -1,4 +1,4 @@
-# libCEED Developer Notes
+# libCEED: Developer Notes
 
 ## Shape
 

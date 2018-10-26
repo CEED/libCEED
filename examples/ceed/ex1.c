@@ -27,6 +27,9 @@
 //     ex1 -m ../../../mfem/data/star.vtk -o 3
 //     ex1 -m ../../../mfem/data/inline-segment.mesh -o 8
 
+/// @file
+/// libCEED example using mass operator to compute volume
+
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>

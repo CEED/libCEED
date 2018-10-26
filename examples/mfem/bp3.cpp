@@ -27,6 +27,9 @@
 //     bp3 -m ../../../mfem/data/square-disc-nurbs.mesh -o 6
 //     bp3 -m ../../../mfem/data/inline-segment.mesh -o 8
 
+/// @file
+/// MFEM diffusion operator based on libCEED
+
 #include <ceed.h>
 #include <mfem.hpp>
 #include "bp3.hpp"
