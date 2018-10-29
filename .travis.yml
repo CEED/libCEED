@@ -22,9 +22,18 @@ env:
 matrix:
   fast_finish: true
   allow_failures:
-    - env: FC=gfortran OCCA_HEAD=HEAD
+    - os: linux
+      env: FC=gfortran OCCA_HEAD=HEAD
       compiler: gcc
-    - env: FC=gfortran OCCA_HEAD=HEAD
+    - os: linux
+      env: FC=gfortran OCCA_HEAD=HEAD
+      compiler: clang
+  exclude:
+    - os: osx
+      env: FC=gfortran OCCA_HEAD=HEAD
+      compiler: gcc
+    - os: osx
+      env: FC=gfortran OCCA_HEAD=HEAD
       compiler: clang
 
 install:
