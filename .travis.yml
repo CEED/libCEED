@@ -28,8 +28,10 @@ matrix:
       compiler: clang
 
 install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then (brew install gcc || brew link --overwrite gcc); fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update
+        && (brew install gcc || brew link --overwrite gcc)
+        && brew install ccache
+        && export PATH=/usr/local/opt/ccache/libexec:$PATH; fi
   - git clone --depth 1 https://github.com/mfem/mfem.git
   - make -C mfem -j2 serial MFEM_CXXFLAGS=-O
   - git clone https://github.com/libocca/occa.git
@@ -60,3 +62,4 @@ cache:
   ccache: true
   directories:
   - $HOME/install
+  - $HOME/Library/Caches/Homebrew
