@@ -28,16 +28,29 @@ matrix:
       compiler: clang
 
 install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+        export HOMEBREW_NO_AUTO_UPDATE=1
         && (brew install gcc || brew link --overwrite gcc)
         && brew install ccache
-        && export PATH=/usr/local/opt/ccache/libexec:$PATH; fi
-  - git clone --depth 1 https://github.com/mfem/mfem.git
+        && export PATH=/usr/local/ccache/opt/libexec:$PATH; fi
+  - export CURR_DIR=$PWD
+  - cd $HOME/install
+  - if [[ -d mfem ]]; then
+        git -C mfem pull --depth 1
+        && git -C mfem gc --prune=all;
+    else
+        git clone --depth 1 https://github.com/mfem/mfem.git;
+    fi
   - make -C mfem -j2 serial MFEM_CXXFLAGS=-O
-  - git clone https://github.com/libocca/occa.git
-  - git -C occa reset --hard $OCCA_HEAD
+  - if [[ -d occa ]]; then
+        git -C occa pull
+        && git -C occa reset --hard $OCCA_HEAD;
+    else
+        git clone https://github.com/libocca/occa.git
+        && git -C occa reset --hard $OCCA_HEAD;
+    fi
   - make -C occa -j2
-  - export OCCA_DIR=$PWD/occa MFEM_DIR=$PWD/mfem PETSC_INSTALL=$HOME/install/petsc-3.10.0
+  - export OCCA_DIR=$HOME/install/occa MFEM_DIR=$HOME/install/mfem PETSC_INSTALL=$HOME/install/petsc-3.10.0
   - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
         || ( curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.10.0.tar.gz
         && tar xf petsc-lite-3.10.0.tar.gz
@@ -46,6 +59,7 @@ install:
         && make
         && make install )
   - export PETSC_DIR=$PETSC_INSTALL
+  - cd $CURR_DIR
 
 script:
   - export COVERAGE=1
