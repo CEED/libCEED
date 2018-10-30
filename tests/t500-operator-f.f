@@ -119,20 +119,19 @@ c     $  't30-operator-f.f:mass',qf_mass,err)
       call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,err)
       call ceedvectorcreate(ceed,nelem*q,qdata,err)
 
-      call ceedoperatorsetfield(op_setup,'_weight',
-     $  erestrictxi,bx,ceed_vector_none,err)
-      call ceedoperatorsetfield(op_setup,'x',erestrictx,bx,
+      call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,
+     $  ceed_notranspose,bx,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setup,'x',erestrictx,
+     $  ceed_notranspose,bx,ceed_vector_active,err)
+      call ceedoperatorsetfield(op_setup,'rho',erestrictui,
+     $  ceed_notranspose,ceed_basis_collocated,
      $  ceed_vector_active,err)
-      call ceedoperatorsetfield(op_setup,'rho',
-     $  erestrictui,ceed_basis_collocated,
-     $  ceed_vector_active,err)
-      call ceedoperatorsetfield(op_mass,'rho',
-     $  erestrictui,ceed_basis_collocated,
-     $  qdata,err)
-      call ceedoperatorsetfield(op_mass,'u',erestrictu,bu,
-     $  ceed_vector_active,err)
-      call ceedoperatorsetfield(op_mass,'v',erestrictu,bu,
-     $  ceed_vector_active,err)
+      call ceedoperatorsetfield(op_mass,'rho',erestrictui,
+     $  ceed_notranspose,ceed_basis_collocated,qdata,err)
+      call ceedoperatorsetfield(op_mass,'u',erestrictu,
+     $  ceed_notranspose,bu,ceed_vector_active,err)
+      call ceedoperatorsetfield(op_mass,'v',erestrictu,
+     $  ceed_notranspose,bu,ceed_vector_active,err)
 
       call ceedoperatorapply(op_setup,x,qdata,
      $  ceed_request_immediate,err)

@@ -93,8 +93,8 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
   @ref Basic
 **/
 int CeedOperatorSetField(CeedOperator op, const char *fieldname,
-                         CeedElemRestriction r, CeedBasis b,
-                         CeedVector v) {
+                         CeedElemRestriction r, CeedTransposeMode lmode,
+                         CeedBasis b, CeedVector v) {
   int ierr;
   CeedInt numelements;
   ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
@@ -130,6 +130,7 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                    fieldname);
 found:
   ofield->Erestrict = r;
+  ofield->lmode = lmode;
   ofield->basis = b;
   ofield->vec = v;
   op->nfields += 1;
@@ -320,6 +321,21 @@ int CeedOperatorGetFields(CeedOperator op,
 }
 
 /**
+  @brief Get the L vector CeedTransposeMode of a CeedOperatorField
+
+  @param opfield         CeedOperatorField
+  @param[out] lmode      Variable to store CeedTransposeMode
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedOperatorFieldGetLMode(CeedOperatorField opfield,
+                              CeedTransposeMode *lmode) {
+  *lmode = (&opfield)->lmode;
+  return 0;
+}/**
   @brief Get the CeedElemRestriction of a CeedOperatorField
 
   @param opfield         CeedOperatorField
