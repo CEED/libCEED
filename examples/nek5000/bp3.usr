@@ -612,22 +612,22 @@ c     Create ceed qfunctions for setupf and diffusionf
 c     Create a ceed operator
       call ceedoperatorcreate(ceed,qf_setup,
      $  ceed_null,ceed_null,op_setup,err)
-      call ceedoperatorsetfield(op_setup,'weight',
-     $  erstrctu,basisx,ceed_vector_none,err)
-      call ceedoperatorsetfield(op_setup,'dx',
-     $  erstrctx,basisx,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_setup,'rho',
-     $  erstrctw,ceed_basis_collocated,
+      call ceedoperatorsetfield(op_setup,'weight',erstrctu,
+     $  ceed_notranspose,basisx,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setup,'dx',erstrctx,
+     $  ceed_notranspose,basisx,ceed_vector_active,err)
+      call ceedoperatorsetfield(op_setup,'rho',erstrctw,
+     $  ceed_notranspose,ceed_basis_collocated,
      $  ceed_vector_active,err)
 
       call ceedoperatorcreate(ceed,qf_diffusion,
      $  ceed_null,ceed_null,op_diffusion,err)
-      call ceedoperatorsetfield(op_diffusion,'u',
-     $  erstrctu,basisu,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_diffusion,'rho',
-     $  erstrctw,ceed_basis_collocated,vec_qdata,err)
-      call ceedoperatorsetfield(op_diffusion,'v',
-     $  erstrctu,basisu,ceed_vector_active,err)
+      call ceedoperatorsetfield(op_diffusion,'u',erstrctu,
+     $  ceed_notranspose,basisu,ceed_vector_active,err)
+      call ceedoperatorsetfield(op_diffusion,'rho',erstrctw,
+     $  ceed_notranspose,ceed_basis_collocated,vec_qdata,err)
+      call ceedoperatorsetfield(op_diffusion,'v',erstrctu,
+     $  ceed_notranspose,basisu,ceed_vector_active,err)
 
       call ceedoperatorapply(op_setup,vec_coords,vec_qdata,
      $  ceed_request_immediate,err)

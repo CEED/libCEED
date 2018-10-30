@@ -424,29 +424,35 @@ int main(int argc, char **argv) {
 
   // Create the operator that builds the quadrature data for the diff operator.
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
-  CeedOperatorSetField(op_setup, "x", Erestrictx, basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "dx", Erestrictx, basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "weight", Erestrictxi, basisx,
-                       CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "rho", Erestrictqdi,
+  CeedOperatorSetField(op_setup, "x", Erestrictx, CEED_NOTRANSPOSE,
+                       basisx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE,
+                       basisx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "weight", Erestrictxi, CEED_NOTRANSPOSE,
+                       basisx, CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setup, "rho", Erestrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "true_soln", Erestrictui,
+  CeedOperatorSetField(op_setup, "true_soln", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_setup, "rhs", Erestrictu, basisu, rhsceed);
+  CeedOperatorSetField(op_setup, "rhs", Erestrictu, CEED_NOTRANSPOSE,
+                       basisu, rhsceed);
 
   // Create the diff operator.
   CeedOperatorCreate(ceed, qf_diff, NULL, NULL, &op_diff);
-  CeedOperatorSetField(op_diff, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_diff, "rho", Erestrictqdi,
+  CeedOperatorSetField(op_diff, "u", Erestrictu, CEED_NOTRANSPOSE,
+                       basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diff, "rho", Erestrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, rho);
-  CeedOperatorSetField(op_diff, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diff, "v", Erestrictu, CEED_NOTRANSPOSE,
+                       basisu, CEED_VECTOR_ACTIVE);
 
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
-  CeedOperatorSetField(op_error, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_error, "true_soln", Erestrictui,
+  CeedOperatorSetField(op_error, "u", Erestrictu, CEED_NOTRANSPOSE,
+                       basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "true_soln", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "error", Erestrictui,
+  CeedOperatorSetField(op_error, "error", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
 
