@@ -17,7 +17,7 @@ addons:
 
 env:
   - FC=gfortran OCCA_HEAD=HEAD
-  - FC=gfortran OCCA_HEAD=527494c
+  - FC=gfortran OCCA_HEAD=5b11d0c
 
 matrix:
   fast_finish: true
@@ -59,6 +59,7 @@ install:
         && git -C occa reset --hard $OCCA_HEAD;
     fi
   - make -C occa -j2
+  - cd $CURR_DIR
   - export OCCA_DIR=$HOME/install/occa MFEM_DIR=$HOME/install/mfem PETSC_INSTALL=$HOME/install/petsc-3.10.0
   - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
         || ( curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.10.0.tar.gz
@@ -68,7 +69,6 @@ install:
         && make
         && make install )
   - export PETSC_DIR=$PETSC_INSTALL
-  - cd $CURR_DIR
 
 script:
   - export COVERAGE=1
