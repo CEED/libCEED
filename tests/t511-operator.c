@@ -114,16 +114,19 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
   CeedVectorCreate(ceed, Nqpts, &qdata);
 
-  CeedOperatorSetField(op_setup, "_weight", Erestrictxi, bx,
-                       CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "x", Erestrictx, bx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "rho", Erestrictui,
+  CeedOperatorSetField(op_setup, "_weight", Erestrictxi, CEED_NOTRANSPOSE,
+                       bx, CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setup, "x", Erestrictx, CEED_NOTRANSPOSE,
+                       bx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "rho", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  CeedOperatorSetField(op_mass, "rho", Erestrictui,
+  CeedOperatorSetField(op_mass, "rho", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_mass, "u", Erestrictu, bu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_mass, "v", Erestrictu, bu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "u", Erestrictu, CEED_NOTRANSPOSE,
+                       bu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "v", Erestrictu, CEED_NOTRANSPOSE,
+                       bu, CEED_VECTOR_ACTIVE);
 
   CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
 

@@ -202,7 +202,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);
   ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
-  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
+  CeedTransposeMode lmode;
   CeedOperatorField *opinputfields, *opoutputfields;
   ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
   CeedChk(ierr);
@@ -230,6 +230,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
       // Restrict
       ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
       CeedChk(ierr);
+      ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
       ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE,
                                       lmode, vec, impl->evecs[i],
                                       request); CeedChk(ierr);
@@ -366,6 +367,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
     // Restrict
     ierr = CeedOperatorFieldGetElemRestriction(opoutputfields[i], &Erestrict);
     CeedChk(ierr);
+    ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
     ierr = CeedElemRestrictionApply(Erestrict, CEED_TRANSPOSE,
                                     lmode, impl->evecs[i+impl->numein], vec,
                                     request); CeedChk(ierr);

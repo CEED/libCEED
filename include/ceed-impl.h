@@ -130,6 +130,7 @@ struct CeedQFunction_private {
 
 struct CeedOperatorField_private {
   CeedElemRestriction Erestrict; /// Restriction from L-vector or NULL if identity
+  CeedTransposeMode lmode;       /// Transpose mode for lvector ordering
   CeedBasis basis;               /// Basis or NULL for collocated fields
   CeedVector
   vec;                /// State vector for passive fields, NULL for active fields

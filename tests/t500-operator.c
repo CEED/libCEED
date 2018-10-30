@@ -3,6 +3,7 @@
 /// \test Test creation creation, action, and destruction for mass matrix operator
 #include <ceed.h>
 #include <stdlib.h>
+#include <math.h>
 
 //! [QFunction User Code]
 static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
@@ -99,18 +100,21 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, nelem*Q, &qdata);
 
 //! [Setup Set]
-  CeedOperatorSetField(op_setup, "_weight", Erestrictxi, bx,
-                       CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "x", Erestrictx, bx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "rho", Erestrictui,
+  CeedOperatorSetField(op_setup, "_weight", Erestrictxi, CEED_NOTRANSPOSE,
+                       bx, CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setup, "x", Erestrictx, CEED_NOTRANSPOSE,
+                       bx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "rho", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 //! [Setup Set]
 
 //! [Operator Set]
-  CeedOperatorSetField(op_mass, "rho", Erestrictui,
+  CeedOperatorSetField(op_mass, "rho", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_mass, "u", Erestrictu, bu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_mass, "v", Erestrictu, bu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "u", Erestrictu, CEED_NOTRANSPOSE,
+                       bu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "v", Erestrictu, CEED_NOTRANSPOSE,
+                       bu, CEED_VECTOR_ACTIVE);
 //! [Operator Set]
 
 //! [Setup Apply]
@@ -126,7 +130,7 @@ int main(int argc, char **argv) {
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &hv);
   for (CeedInt i=0; i<Nu; i++)
-    if (hv[i] != 0.0) printf("[%d] v %g != 0.0\n",i, hv[i]);
+    if (fabs(hv[i]) > 1e-14) printf("[%d] v %g != 0.0\n",i, hv[i]);
   CeedVectorRestoreArrayRead(V, &hv);
 
   CeedQFunctionDestroy(&qf_setup);
