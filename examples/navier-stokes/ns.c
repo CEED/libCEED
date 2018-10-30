@@ -204,7 +204,7 @@ int main(int argc, char **argv) {
   VecScatter ltog, ltog0, gtogD;
   Ceed ceed;
   CeedBasis basisx, basisxc, basisu;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui,
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi,
                       Erestrictqdi, Erestrictm;
   CeedQFunction qf_setup, qf_ics, qf_ns;
   CeedOperator op_setup, op_ics, op_ns;
@@ -394,9 +394,6 @@ int main(int argc, char **argv) {
   CreateRestriction(ceed, melem, 2, 3, &Erestrictx);
   CreateRestriction(ceed, melem, numP, 1, &Erestrictm);
   CeedInt nelem = melem[0]*melem[1]*melem[2];
-  CeedElemRestrictionCreateIdentity(ceed, nelem, numQ*numQ*numQ,
-                                    nelem*numQ*numQ*numQ, 5,
-                                    &Erestrictui);
   CeedElemRestrictionCreateIdentity(ceed, nelem, 16*numQ*numQ*numQ,
                                     16*nelem*numQ*numQ*numQ, 1,
                                     &Erestrictqdi);
@@ -595,7 +592,6 @@ int main(int argc, char **argv) {
   CeedBasisDestroy(&basisxc);
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
-  CeedElemRestrictionDestroy(&Erestrictui);
   CeedElemRestrictionDestroy(&Erestrictqdi);
   CeedElemRestrictionDestroy(&Erestrictxi);
   CeedQFunctionDestroy(&qf_setup);
