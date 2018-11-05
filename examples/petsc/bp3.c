@@ -20,12 +20,19 @@
 //     bp3 -ceed /ocl/occa
 //
 //TESTARGS -ceed {ceed_resource} -test -degree 3
+
+/// @file
+/// Diffusion operator example using PETSc
 const char help[] = "Solve CEED BP3 using PETSc\n";
 
 #include <petscksp.h>
 #include <ceed.h>
 #include <stdbool.h>
 #include "bp3.h"
+
+#if PETSC_VERSION_LT(3,11,0)
+#  define VecScatterCreateWithData VecScatterCreate
+#endif
 
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   for (PetscInt d=0,sizeleft=size; d<3; d++) {
@@ -314,13 +321,13 @@ int main(int argc, char **argv) {
     }
     ierr = ISCreateGeneral(comm, lsize, ltogind, PETSC_OWN_POINTER, &ltogis);
     CHKERRQ(ierr);
-    ierr = VecScatterCreate(Xloc, NULL, X, ltogis, &ltog); CHKERRQ(ierr);
+    ierr = VecScatterCreateWithData(Xloc, NULL, X, ltogis, &ltog); CHKERRQ(ierr);
     CHKERRQ(ierr);
     ierr = ISCreateGeneral(comm, l0count, ltogind0, PETSC_OWN_POINTER, &ltogis0);
     CHKERRQ(ierr);
     ierr = ISCreateGeneral(PETSC_COMM_SELF, l0count, locind, PETSC_OWN_POINTER, &locis);
     CHKERRQ(ierr);
-    ierr = VecScatterCreate(Xloc, locis, X, ltogis0, &ltog0); CHKERRQ(ierr);
+    ierr = VecScatterCreateWithData(Xloc, locis, X, ltogis0, &ltog0); CHKERRQ(ierr);
     { // Create global-to-global scatter for Dirichlet values (everything not in
       // ltogis0, which is the range of ltog0)
       PetscInt xstart, xend, *indD, countD = 0;
@@ -339,7 +346,7 @@ int main(int argc, char **argv) {
       ierr = VecRestoreArrayRead(X, &x); CHKERRQ(ierr);
       ierr = ISCreateGeneral(comm, countD, indD, PETSC_COPY_VALUES, &isD); CHKERRQ(ierr);
       ierr = PetscFree(indD); CHKERRQ(ierr);
-      ierr = VecScatterCreate(X, isD, X, isD, &gtogD); CHKERRQ(ierr);
+      ierr = VecScatterCreateWithData(X, isD, X, isD, &gtogD); CHKERRQ(ierr);
       ierr = ISDestroy(&isD); CHKERRQ(ierr);
     }
     ierr = ISDestroy(&ltogis); CHKERRQ(ierr);
@@ -417,29 +424,35 @@ int main(int argc, char **argv) {
 
   // Create the operator that builds the quadrature data for the diff operator.
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
-  CeedOperatorSetField(op_setup, "x", Erestrictx, basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "dx", Erestrictx, basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "weight", Erestrictxi, basisx,
-                       CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "rho", Erestrictqdi,
+  CeedOperatorSetField(op_setup, "x", Erestrictx, CEED_NOTRANSPOSE,
+                       basisx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE,
+                       basisx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "weight", Erestrictxi, CEED_NOTRANSPOSE,
+                       basisx, CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setup, "rho", Erestrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "true_soln", Erestrictui,
+  CeedOperatorSetField(op_setup, "true_soln", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_setup, "rhs", Erestrictu, basisu, rhsceed);
+  CeedOperatorSetField(op_setup, "rhs", Erestrictu, CEED_NOTRANSPOSE,
+                       basisu, rhsceed);
 
   // Create the diff operator.
   CeedOperatorCreate(ceed, qf_diff, NULL, NULL, &op_diff);
-  CeedOperatorSetField(op_diff, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_diff, "rho", Erestrictqdi,
+  CeedOperatorSetField(op_diff, "u", Erestrictu, CEED_NOTRANSPOSE,
+                       basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diff, "rho", Erestrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, rho);
-  CeedOperatorSetField(op_diff, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diff, "v", Erestrictu, CEED_NOTRANSPOSE,
+                       basisu, CEED_VECTOR_ACTIVE);
 
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
-  CeedOperatorSetField(op_error, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_error, "true_soln", Erestrictui,
+  CeedOperatorSetField(op_error, "u", Erestrictu, CEED_NOTRANSPOSE,
+                       basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "true_soln", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "error", Erestrictui,
+  CeedOperatorSetField(op_error, "error", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
 

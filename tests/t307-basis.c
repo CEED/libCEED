@@ -2,6 +2,8 @@
 /// Test Collocated Grad calculated matches basis with Lobatto points
 /// \test Test Collocated Grad calculated matches basis with Lobatto points
 #include <ceed.h>
+#include <ceed-impl.h>
+#include <ceed-backend.h>
 #include <math.h>
 
 int main(int argc, char **argv) {

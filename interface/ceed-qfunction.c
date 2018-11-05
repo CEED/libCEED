@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
+#include <ceed-backend.h>
 #include <string.h>
 
 /// @file
@@ -94,7 +95,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 
   @ref Developer
 **/
-static int CeedQFunctionFieldSet(struct CeedQFunctionField *f,
+static int CeedQFunctionFieldSet(CeedQFunctionField *f,
                                  const char *fieldname, CeedInt ncomp,
                                  CeedEvalMode emode) {
   size_t len = strlen(fieldname);
@@ -153,15 +154,47 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
 }
 
 /**
-  @brief Get the number of inputs and outputs to a CeedQFunction
+  @brief Get the Ceed associated with a CeedQFunction
 
   @param qf              CeedQFunction
-  @param[out] numinput   Number of input fields
-  @param[out] numoutput  Number of output fields
+  @param[out] ceed       Variable to store Ceed
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
+**/
+
+int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
+  *ceed = qf->ceed;
+  return 0;
+}
+
+/**
+  @brief Get the vector length of a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] veclength  Variable to store vector length
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionGetVectorLength(CeedQFunction qf, CeedInt *vlength) {
+  *vlength = qf->vlength;
+  return 0;
+}
+
+/**
+  @brief Get the number of inputs and outputs to a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] numinput   Variable to store number of input fields
+  @param[out] numoutput  Variable to store number of output fields
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
 **/
 
 int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
@@ -172,7 +205,71 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
 }
 
 /**
-  @brief Set global context for a quadrature function
+  @brief Get the FOCCA string for a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] focca      Variable to store focca string
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionGetFOCCA(CeedQFunction qf, char* *focca) {
+  *focca = (char*) qf->focca;
+  return 0;
+}
+
+/**
+  @brief Get global context size for a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] ctxsize    Variable to store size of context data values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize) {
+  *ctxsize = qf->ctxsize;
+  return 0;
+}
+
+/**
+  @brief Get global context for a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] ctx        Variable to store context data values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionGetContext(CeedQFunction qf, void* *ctx) {
+  *ctx = qf->ctx;
+  return 0;
+}
+
+/**
+  @brief Get backend data of a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] data       Variable to store data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionGetData(CeedQFunction qf, void* *data) {
+  *data = qf->data;
+  return 0;
+}
+
+/**
+  @brief Set global context for a CeedQFunction
 
   @param qf       CeedQFunction
   @param ctx      Context data to set
@@ -211,6 +308,60 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
                      "Number of quadrature points %d must be a multiple of %d",
                      Q, qf->vlength);
   ierr = qf->Apply(qf, Q, u, v); CeedChk(ierr);
+  return 0;
+}
+
+/**
+  @brief Get the CeedQFunctionFields of a CeedQFunction
+
+  @param qf                 CeedQFunction
+  @param[out] inputfields   Variable to store inputfields
+  @param[out] outputfields  Variable to store outputfields
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionGetFields(CeedQFunction qf,
+                           CeedQFunctionField* *inputfields,
+                           CeedQFunctionField* *outputfields) {
+  if (inputfields) *inputfields = qf->inputfields;
+  if (outputfields) *outputfields = qf->outputfields;
+  return 0;
+}
+
+/**
+  @brief Get the number of components of a CeedQFunctionField
+
+  @param qffield         CeedQFunctionField
+  @param[out] numcomp    Variable to store the number of components
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionFieldGetNumComponents(CeedQFunctionField qffield,
+                                       CeedInt *numcomp) {
+  *numcomp = (&qffield)->ncomp;
+  return 0;
+}
+
+/**
+  @brief Get the CeedEvalMode of a CeedQFunctionField
+
+  @param qffield         CeedQFunctionField
+  @param[out] vec        Variable to store the number of components
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
+                               CeedEvalMode *emode) {
+  *emode = (&qffield)->emode;
   return 0;
 }
 

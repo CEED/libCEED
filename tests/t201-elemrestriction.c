@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   CeedVectorGetArrayRead(y, CEED_MEM_HOST, &yy);
   for (CeedInt i=0; i<ne*2; i++) {
     if (yy[i] != 10+i)
-      return CeedError(ceed, (int)i, "Error in restricted array y[%d] = %f",
+      printf("Error in restricted array y[%d] = %f",
                        i, (double)yy[i]);
   }
   CeedVectorRestoreArrayRead(y, &yy);

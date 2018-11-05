@@ -25,7 +25,7 @@ LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc)
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
 LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
-bp.c := $(wildcard bp*.c)
+bp.c := $(sort $(wildcard bp*.c))
 bp := $(bp.c:%.c=%)
 
 ns.c := ns.c

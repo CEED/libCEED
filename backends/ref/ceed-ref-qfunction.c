@@ -14,7 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
 #include <string.h>
 #include "ceed-ref.h"
 
@@ -22,7 +21,10 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
                                   const CeedScalar *const *u,
                                   CeedScalar *const *v) {
   int ierr;
-  ierr = qf->function(qf->ctx, Q, u, v); CeedChk(ierr);
+  void *ctx;
+  ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
+
+  ierr = qf->function(ctx, Q, u, v); CeedChk(ierr);
   return 0;
 }
 

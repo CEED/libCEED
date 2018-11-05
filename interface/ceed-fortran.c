@@ -1,8 +1,8 @@
 // Fortran interface
 #include <ceed.h>
 #include <ceed-impl.h>
+#include <ceed-backend.h>
 #include <ceed-fortran-name.h>
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -639,7 +639,7 @@ void fCeedOperatorCreate(int* ceed,
 #define fCeedOperatorSetField \
     FORTRAN_NAME(ceedoperatorsetfield,CEEDOPERATORSETFIELD)
 void fCeedOperatorSetField(int *op, const char *fieldname,
-                           int *r, int *b, int *v, int *err,
+                           int *r, int *lmode, int *b, int *v, int *err,
                            fortran_charlen_t fieldname_len) {
   FIX_STRING(fieldname);
   CeedElemRestriction r_;
@@ -653,6 +653,7 @@ void fCeedOperatorSetField(int *op, const char *fieldname,
   } else {
     r_ = CeedElemRestriction_dict[*r];
   }
+  
   if (*b == FORTRAN_NULL) {
     b_ = NULL;
   } else if (*b == FORTRAN_BASIS_COLLOCATED) {
@@ -670,7 +671,7 @@ void fCeedOperatorSetField(int *op, const char *fieldname,
     v_ = CeedVector_dict[*v];
   }
 
-  *err = CeedOperatorSetField(op_, fieldname_c, r_, b_, v_);
+  *err = CeedOperatorSetField(op_, fieldname_c, r_, *lmode, b_, v_);
 }
 
 #define fCeedOperatorApply FORTRAN_NAME(ceedoperatorapply, CEEDOPERATORAPPLY)

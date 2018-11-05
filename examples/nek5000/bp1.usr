@@ -14,6 +14,9 @@ C the planning and preparation of a capable exascale ecosystem, including
 C software, applications, hardware, advanced system engineering and early
 C testbed platforms, in support of the nation's exascale computing imperative.
 
+C> @file
+C> Mass operator example using Nek5000
+
 C-----------------------------------------------------------------------
       subroutine uservp(ix,iy,iz,eg) ! set variable properties
       include 'SIZE'
@@ -865,21 +868,21 @@ c     Create ceed qfunctions for setupf and massf
 c     Create a ceed operator
       call ceedoperatorcreate(ceed,qf_setup,
      $  ceed_null,ceed_null,op_setup,err)
-      call ceedoperatorsetfield(op_setup,'_weight',
-     $  erstrctx,basisx,ceed_vector_none,err)
-      call ceedoperatorsetfield(op_setup,'rho',
-     $  erstrctx,ceed_basis_collocated,
+      call ceedoperatorsetfield(op_setup,'_weight',erstrctx,
+     $  ceed_notranspose,basisx,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setup,'rho',erstrctx,
+     $  ceed_notranspose,ceed_basis_collocated,
      $  ceed_vector_active,err)
 
       call ceedoperatorcreate(ceed,qf_mass,
      $  ceed_null,ceed_null,op_mass,err)
-      call ceedoperatorsetfield(op_mass,'rho',
-     $  erstrctx,ceed_basis_collocated,
+      call ceedoperatorsetfield(op_mass,'rho',erstrctx,
+     $  ceed_notranspose,ceed_basis_collocated,
      $  vec_qdata,err)
       call ceedoperatorsetfield(op_mass,'u',erstrctu,
-     $  basisu,ceed_vector_active,err)
+     $  ceed_notranspose,basisu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass,'v',erstrctu,
-     $  basisu,ceed_vector_active,err)
+     $  ceed_notranspose,basisu,ceed_vector_active,err)
 
       call ceedoperatorapply(op_setup,ceed_null,vec_qdata,
      $  ceed_request_immediate,err)

@@ -27,6 +27,9 @@
 //     ex1 -m ../../../mfem/data/star.vtk -o 3
 //     ex1 -m ../../../mfem/data/inline-segment.mesh -o 8
 
+/// @file
+/// libCEED example using mass operator to compute volume
+
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
@@ -211,11 +214,11 @@ int main(int argc, const char *argv[]) {
   // Create the operator that builds the quadrature data for the mass operator.
   CeedOperator build_oper;
   CeedOperatorCreate(ceed, build_qfunc, NULL, NULL, &build_oper);
-  CeedOperatorSetField(build_oper, "dx", mesh_restr, mesh_basis,
-                       CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(build_oper, "weights", mesh_restr_i,
+  CeedOperatorSetField(build_oper, "dx", mesh_restr, CEED_NOTRANSPOSE,
+                       mesh_basis,CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(build_oper, "weights", mesh_restr_i, CEED_NOTRANSPOSE,
                        mesh_basis, CEED_VECTOR_NONE);
-  CeedOperatorSetField(build_oper, "rho", sol_restr_i,
+  CeedOperatorSetField(build_oper, "rho", sol_restr_i, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Compute the quadrature data for the mass operator.
@@ -246,10 +249,12 @@ int main(int argc, const char *argv[]) {
   // Create the mass operator.
   CeedOperator oper;
   CeedOperatorCreate(ceed, apply_qfunc, NULL, NULL, &oper);
-  CeedOperatorSetField(oper, "u", sol_restr, sol_basis, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(oper, "rho", sol_restr_i,
+  CeedOperatorSetField(oper, "u", sol_restr, CEED_NOTRANSPOSE,
+                       sol_basis, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(oper, "rho", sol_restr_i, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, rho);
-  CeedOperatorSetField(oper, "v", sol_restr, sol_basis, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(oper, "v", sol_restr, CEED_NOTRANSPOSE,
+                       sol_basis, CEED_VECTOR_ACTIVE);
 
   // Compute the mesh volume using the mass operator: vol = 1^T.M.1.
   if (!test) {
