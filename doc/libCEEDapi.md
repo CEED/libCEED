@@ -1,4 +1,4 @@
-# libCEED Documentation
+# libCEED: Documentation
 
 This page provides a brief description of the theoretical foundations and the
 practical implementation of the libCEED library.

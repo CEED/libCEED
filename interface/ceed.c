@@ -16,7 +16,7 @@
 
 #define _POSIX_C_SOURCE 200112
 #include <ceed-impl.h>
-
+#include <ceed-backend.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -343,10 +343,40 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Developer
 **/
 int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
-  (*delegate)=ceed->delegate;
+  *delegate = ceed->delegate;
+  return 0;
+}
+
+/**
+  @brief Set a delegate CEED
+
+  @param ceed           Ceed to set delegate of
+  @param[out] delegate  Address to set the delegate to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedSetDelegate(Ceed ceed, Ceed *delegate) {
+  ceed->delegate = *delegate;
+  return 0;
+}
+
+/**
+  @brief Retrieve backend data for a CEED
+
+  @param ceed           Ceed to retrieve delegate of
+  @param[out] data      Address to save data to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedGetData(Ceed ceed, void* *data) {
+  *data = ceed->data;
   return 0;
 }
 

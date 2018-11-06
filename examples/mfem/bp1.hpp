@@ -15,8 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// MFEM mass operator based on libCEED
-
+/// Mass operator example using MFEM
 #include <ceed.h>
 #include <mfem.hpp>
 

@@ -14,6 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+/// @file
+/// Private header for frontend components of libCEED
 #ifndef _ceed_impl_h
 #define _ceed_impl_h
 
@@ -44,21 +46,6 @@ struct Ceed_private {
   int refcount;
   void *data;
 };
-
-/* In the next 3 functions, p has to be the address of a pointer type, i.e. p
-   has to be a pointer to a pointer. */
-CEED_INTERN int CeedMallocArray(size_t n, size_t unit, void *p);
-CEED_INTERN int CeedCallocArray(size_t n, size_t unit, void *p);
-CEED_INTERN int CeedReallocArray(size_t n, size_t unit, void *p);
-CEED_INTERN int CeedFree(void *p);
-
-#define CeedChk(ierr) do { if (ierr) return ierr; } while (0)
-/* Note that CeedMalloc and CeedCalloc will, generally, return pointers with
-   different memory alignments: CeedMalloc returns pointers aligned at
-   CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
-#define CeedMalloc(n, p) CeedMallocArray((n), sizeof(**(p)), p)
-#define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
-#define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
 struct CeedVector_private {
   Ceed ceed;
@@ -118,7 +105,7 @@ struct CeedBasis_private {
   void *data;            /* place for the backend to store any data */
 };
 
-struct CeedQFunctionField {
+struct CeedQFunctionField_private {
   const char *fieldname;
   CeedInt ncomp;
   CeedEvalMode emode;
@@ -131,8 +118,8 @@ struct CeedQFunction_private {
   int (*Destroy)(CeedQFunction);
   int refcount;
   CeedInt vlength;    // Number of quadrature points must be padded to a multiple of vlength
-  struct CeedQFunctionField inputfields[16];
-  struct CeedQFunctionField outputfields[16];
+  CeedQFunctionField inputfields[16];
+  CeedQFunctionField outputfields[16];
   CeedInt numinputfields, numoutputfields;
   int (*function)(void*, CeedInt, const CeedScalar *const*, CeedScalar *const*);
   const char *focca;
@@ -141,7 +128,7 @@ struct CeedQFunction_private {
   void *data;     /* backend data */
 };
 
-struct CeedOperatorField {
+struct CeedOperatorField_private {
   CeedElemRestriction Erestrict; /// Restriction from L-vector or NULL if identity
   CeedBasis basis;               /// Basis or NULL for collocated fields
   CeedVector
@@ -156,8 +143,8 @@ struct CeedOperator_private {
                        CeedVector, CeedRequest *);
   int (*GetQData)(CeedOperator, CeedVector *);
   int (*Destroy)(CeedOperator);
-  struct CeedOperatorField inputfields[16];
-  struct CeedOperatorField outputfields[16];
+  CeedOperatorField inputfields[16];
+  CeedOperatorField outputfields[16];
   CeedInt numelements; /// Number of elements
   CeedInt numqpoints;  /// Number of quadrature points over all elements
   CeedInt nfields;     /// Number of fields that have been set
@@ -167,5 +154,15 @@ struct CeedOperator_private {
   bool setupdone;
   void *data;
 };
+
+CEED_INTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,
+                                const char *, va_list);
+CEED_INTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
+                               const char *, va_list);
+CEED_INTERN int CeedErrorExit(Ceed, const char *, int, const char *, int,
+                              const char *, va_list);
+CEED_INTERN int CeedSetErrorHandler(Ceed ceed,
+                                    int (eh)(Ceed, const char *, int, const char *,
+                                        int, const char *, va_list));
 
 #endif

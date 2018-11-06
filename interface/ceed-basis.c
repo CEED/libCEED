@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
+#include <ceed-backend.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -613,10 +614,108 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
 }
 
 /**
-  @brief Get total number of nodes (in dim dimensions)
+  @brief Get Ceed associated with a CeedBasis
+
+  @param basis      CeedBasis
+  @param[out] ceed  Variable to store Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed) {
+  *ceed = basis->ceed;
+
+  return 0;
+};
+
+/**
+  @brief Get dimension for given CeedBasis
+
+  @param basis     CeedBasis
+  @param[out] dim  Variable to store dimension of basis
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim) {
+  *dim = basis->dim;
+
+  return 0;
+};
+
+/**
+  @brief Get tensor status for given CeedBasis
+
+  @param basis        CeedBasis
+  @param[out] tensor  Variable to store tensor status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetTensorStatus(CeedBasis basis, bool *tensor) {
+  *tensor = basis->tensorbasis;
+
+  return 0;
+};
+
+/**
+  @brief Get number of components for given CeedBasis
+
+  @param basis     CeedBasis
+  @param[out] dim  Variable to store number of components of basis
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *numcomp) {
+  *numcomp = basis->ncomp;
+
+  return 0;
+};
+
+/**
+  @brief Get total number of nodes (in 1 dimension) of a CeedBasis
+
+  @param basis     CeedBasis
+  @param[out] P1d  Variable to store number of nodes
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P1d) {
+  if (!basis->tensorbasis) return CeedError(basis->ceed, 1,
+                                      "Cannot supply P1d for non-tensor basis");
+  *P1d = basis->P1d;
+  return 0;
+}
+
+/**
+  @brief Get total number of quadrature points (in 1 dimension) of a CeedBasis
+
+  @param basis     CeedBasis
+  @param[out] Q1d  Variable to store number of quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q1d) {
+  if (!basis->tensorbasis) return CeedError(basis->ceed, 1,
+                                      "Cannot supply Q1d for non-tensor basis");
+  *Q1d = basis->Q1d;
+  return 0;
+}
+
+/**
+  @brief Get total number of nodes (in dim dimensions) of a CeedBasis
 
   @param basis   CeedBasis
-  @param[out] P  Number of nodes
+  @param[out] P  Variable to store number of nodes
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -628,10 +727,10 @@ int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
 }
 
 /**
-  @brief Get total number of quadrature points (in dim dimensions)
+  @brief Get total number of quadrature points (in dim dimensions) of a CeedBasis
 
   @param basis   CeedBasis
-  @param[out] Q  Number of quadrature points
+  @param[out] Q  Variable to store number of quadrature points
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -643,14 +742,91 @@ int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
 }
 
 /**
-  @brief Get dimension for given CeedElemTopology
+  @brief Get refrence coordinates of quadrature points (in dim dimensions)
+         of a CeedBasis
 
-  @param topo      CeedElemTopology
-  @param[out] dim  Dimension of topology
+  @param basis      CeedBasis
+  @param[out] qref  Variable to store refrence coordinates of quadrature points
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Advanced
+**/
+int CeedBasisGetQRef(CeedBasis basis, CeedScalar* *qref) {
+  *qref = basis->qref1d;
+  return 0;
+}
+
+/**
+  @brief Get quadrature weights of quadrature points (in dim dimensions)
+         of a CeedBasis
+
+  @param basis         CeedBasis
+  @param[out] qweight  Variable to store quadrature weights
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetQWeights(CeedBasis basis, CeedScalar* *qweight) {
+  *qweight = basis->qweight1d;
+  return 0;
+}
+
+/**
+  @brief Get interpolation matrix of a CeedBasis
+
+  @param basis      CeedBasis
+  @param[out] qref  Variable to store interpolation matrix
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetInterp(CeedBasis basis, CeedScalar* *interp) {
+  *interp = basis->interp1d;
+  return 0;
+}
+
+/**
+  @brief Get gradient matrix of a CeedBasis
+
+  @param basis      CeedBasis
+  @param[out] qref  Variable to store gradient matrix
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetGrad(CeedBasis basis, CeedScalar* *grad) {
+  *grad = basis->grad1d;
+  return 0;
+}
+
+/**
+  @brief Get backend data of a CeedBasis
+
+  @param basis      CeedBasis
+  @param[out] data  Variable to store data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetData(CeedBasis basis, void* *data) {
+  *data = basis->data;
+  return 0;
+}
+
+/**
+  @brief Get dimension for given CeedElemTopology
+
+  @param topo      CeedElemTopology
+  @param[out] dim  Variable to store dimension of topology
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
 **/
 int CeedBasisGetTopologyDimension(CeedElemTopology topo, CeedInt *dim) {
   *dim = (CeedInt) topo >> 16;

@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   b[3] = -3.14;
   CeedVectorRestoreArray(x, &b);
   if (a[3] != -3.14)
-    return CeedError(ceed, 3, "Error writing array a[3] = %f", (double)b[3]);
+    printf("Error writing array a[3] = %f", (double)b[3]);
 
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);

@@ -14,10 +14,11 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
+#include <ceed-backend.h>
 #include <string.h>
 
 static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
+  int ierr;
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/tmpl"))
     return CeedError(ceed, 1, "Tmpl backend cannot use resource: %s", resource);
@@ -27,7 +28,7 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
   CeedInit("/cpu/self/blocked", &ceedref);
-  ceed->delegate = ceedref;
+  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
 
   return 0;
 }
