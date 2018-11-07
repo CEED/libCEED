@@ -361,7 +361,15 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
   if (tmode == CEED_NOTRANSPOSE) {
     // Perform: v = r * u
     if (!impl->indices) {
-      for (CeedInt i=0; i<esize*ncomp; i++) vv[i] = uu[i];
+        int esize_ncomp = esize*ncomp;
+        #ifdef USE_MAGMA_BATCH2
+           magma_template<<i=0:esize_ncomp>>
+               (const CeedScalar *uu, CeedScalar *vv) {
+               vv[i] = uu[i];
+        }
+        #else
+           for (CeedInt i=0; i<esize*ncomp; i++) vv[i] = uu[i];
+        #endif
     } else if (ncomp == 1) {
 #ifdef USE_MAGMA_BATCH2
 magma_template<<i=0:esize>>
@@ -406,7 +414,13 @@ magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
   } else {
     // Note: in transpose mode, we perform: v += r^t * u
     if (!impl->indices) {
+#ifdef USE_MAGMA_BATCH2
+        magma_template<<i=0:esize>>(const CeedScalar *uu, CeedScalar *vv) {
+            magmablas_datomic_add( &vv[i], uu[i]);
+        }
+#else
       for (CeedInt i=0; i<esize; i++) vv[i] += uu[i];
+#endif
     } else if (ncomp == 1) {
       // fprintf(stderr,"3 ---------\n");
 #ifdef USE_MAGMA_BATCH2
@@ -853,6 +867,18 @@ static int CeedQFunctionCreate_Magma(CeedQFunction qf) {
       qf->function = ex1_setup;
   else if (strstr(qf->focca, "ex1.c:f_apply_mass") != NULL)
       qf->function = ex1_mass;
+  else if (strstr(qf->focca, "t400-qfunction.c:setup") !=NULL)
+      qf->function = t400_setup;
+  else if (strstr(qf->focca, "t400-qfunction.c:mass") !=NULL)
+      qf->function = t400_mass;
+  else if (strstr(qf->focca, "t500-operator.c:setup") !=NULL)
+      qf->function = t500_setup;
+  else if (strstr(qf->focca, "t500-operator.c:mass") !=NULL)
+      qf->function = t500_mass;
+  else if (strstr(qf->focca, "t501-operator.c:setup") !=NULL)
+      qf->function = t500_setup;
+  else if (strstr(qf->focca, "t501-operator.c:mass") !=NULL)
+      qf->function = t500_mass;
   else
       printf("Did not find %s\n", qf->focca);
 
@@ -906,7 +932,8 @@ static int CeedOperatorSetupFields_Magma(struct CeedQFunctionField qfields[16],
   for (CeedInt i=0; i<numfields; i++) {
     CeedEvalMode emode = qfields[i].emode;
     if (emode != CEED_EVAL_WEIGHT) {
-      ierr = CeedElemRestrictionCreateVector(ofields[i].Erestrict, NULL, &evecs[i]);
+      ierr = CeedElemRestrictionCreateVector(ofields[i].Erestrict, NULL, 
+                                             &evecs[i + starti]);
       CeedChk(ierr);
     }
     switch(emode) {

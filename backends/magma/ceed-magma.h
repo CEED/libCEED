@@ -41,6 +41,14 @@ int ex1_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
               CeedScalar *const *out);
 int ex1_mass(void *ctx,  CeedInt Q, const CeedScalar *const *in,
              CeedScalar *const *out);
+int t400_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
+              CeedScalar *const *out);
+int t400_mass(void *ctx,  CeedInt Q, const CeedScalar *const *in,
+             CeedScalar *const *out);
+int t500_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
+               CeedScalar *const *out);
+int t500_mass(void *ctx,  CeedInt Q, const CeedScalar *const *in,
+              CeedScalar *const *out);
 
 #define CeedDebug(...)
 //#define CeedDebug(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
