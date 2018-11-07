@@ -82,6 +82,11 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
   @param op         Ceedoperator on which to provide the field
   @param fieldname  Name of the field (to be matched with the name used by CeedQFunction)
   @param r          CeedElemRestriction
+  @param lmode      CeedTransposeMode which specifies the ordering of the
+                      components of the l-vector used by this CeedOperatorField,
+                      CEED_NOTRANSPOSE indicates the component is the
+                      outermost index and CEED_TRANSPOSE indicates the component
+                      is the innermost index in ordering of the l-vector
   @param b          CeedBasis in which the field resides or CEED_BASIS_COLLOCATED
                       if collocated with quadrature points
   @param v          CeedVector to be used by CeedOperator or CEED_VECTOR_ACTIVE
