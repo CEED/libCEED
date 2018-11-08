@@ -141,7 +141,11 @@ static int CeedOperatorSetup_libparanumal(CeedOperator op) {
   int ierr;
   CeedOperator_libparanumal *impl;
   ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
-  //TODO
+  CeedQFunction qf;
+  ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
+  CeedQFunction_libparanumal *qf_data;//FIXME What do we expect?!
+  ierr = CeedQFunctionGetData(qf, (void*)&qf_data); CeedChk(ierr)
+  //TODO This is where we should recognize if libParanumal as an optimized kernel using this QFunction
   return 1;
 }
 
@@ -161,9 +165,10 @@ static int CeedOperatorApply_libparanumal(CeedOperator op, CeedVector invec,
   }
 	//Apply the operator
   mesh_t *mesh = impl->mesh;
+  // Do we only need to set Nelements, o_vgeo, and o_Dmatrices in mesh?
   impl->kernel(mesh->Nelements, 
-                mesh->o_vgeo, 
-                mesh->o_Dmatrices,
+                mesh->o_vgeo, //What is called D in MFEM (geometric factors)
+                mesh->o_Dmatrices, //What is call B in MFEM (interpolation matrix)
                 (occa::memory)invec->data->d_array, 
                 (occa::memory)outvec->data->d_array);
 	return 1;
