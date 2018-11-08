@@ -25,8 +25,28 @@ typedef struct {
   occa::kernel kernel;
 } CeedOperator_libparanumal;
 
-static int CeedOperatorSetup_libparanumal(CeedOperator op) {
+static int CeedOperatorDestroy_libparanumal(CeedOperator op) {
+  //TODO
+  return 1;
+}
 
+static int CeedOperatorSetupFields_libparanumal(CeedOperator op,
+                                        CeedQFunctionField qfields[16],
+                                        CeedOperatorField ofields[16],
+                                        CeedVector *evecs, CeedScalar **qdata, CeedScalar **qdata_alloc,
+                                        CeedScalar **indata,
+                                        const CeedInt starti,
+                                        CeedInt startq,
+                                        const CeedInt numfields,
+                                        const CeedInt Q) {
+
+  //TODO
+  return 1;
+}
+
+static int CeedOperatorSetup_libparanumal(CeedOperator op) {
+  //TODO
+  return 1;
 }
 
 static int CeedOperatorApply_libparanumal(CeedOperator op, CeedVector invec,
