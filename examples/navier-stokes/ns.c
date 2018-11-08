@@ -176,14 +176,14 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time, Vec X
     for (PetscInt j=info.ys; j<info.ys+info.ym; j++) {
       for (PetscInt k=info.xs; k<info.xs+info.xm; k++) {
         for (PetscInt c=0; c<5; c++) {
-          u[i][j][k*5+c] = x[c*info.xm*info.ym*info.zm + ((i*info.ym+j)*info.xm+k)];
+          u[i][j][k*5+c] = x[((i*info.ym+j)*info.xm+k) * 5 + c];
         }
       }
     }
   }
   ierr = VecRestoreArrayRead(X, &x); CHKERRQ(ierr);
   ierr = DMDAVecRestoreArray(user->dm, U, &u); CHKERRQ(ierr);
-  ierr = PetscSNPrintf(filepath, sizeof filepath, "./007/ns-%03D.vtr", stepno); CHKERRQ(ierr);
+  ierr = PetscSNPrintf(filepath, sizeof filepath, "ns-%03D.vtr", stepno); CHKERRQ(ierr);
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)U), filepath, FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
   ierr = VecView(U, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
@@ -300,57 +300,31 @@ int main(int argc, char **argv) {
     ierr = PetscMalloc1(5*lsize, &ltogind0); CHKERRQ(ierr);
     ierr = PetscMalloc1(5*lsize, &locind); CHKERRQ(ierr);
     l0count = 0;
-
-    // MY VERSION
-//    for (PetscInt i=0,ir,ii; ir=i>=mdof[0], ii=i-ir*mdof[0], i<ldof[0]; i++) {
-//      for (PetscInt j=0,jr,jj; jr=j>=mdof[1], jj=j-jr*mdof[1], j<ldof[1]; j++) {
-//        for (PetscInt k=0,kr,kk; kr=k>=mdof[2], kk=k-kr*mdof[2], k<ldof[2]; k++) {
-//          PetscInt dofind = (i*ldof[1]+j)*ldof[2]+k;
-//          for (PetscInt f=0; f<5; f++) {
-//            ltogind[dofind*5+f] =
-//              gstart[ir][jr][kr] + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk+f*gsize;
-//            if ((irank[0] == 0 && i == 0)
-//                 || (irank[1] == 0 && j == 0)
-//                 || (irank[2] == 0 && k == 0)
-//                 || (irank[0]+1 == p[0] && i+1 == ldof[0])
-//                 || (irank[1]+1 == p[1] && j+1 == ldof[1])
-//                 || (irank[2]+1 == p[2] && k+1 == ldof[2]))
-//              continue;
-//            ltogind0[l0count] = ltogind[dofind*5+f];
-//            locind[l0count++] = dofind*5+f;
-//          }
-//        }
-//      }
-//    }
-
-//    AS IT WAS
-    for (PetscInt f=0; f<5; f++) {
-      for (PetscInt i=0,ir,ii; ir=i>=mdof[0], ii=i-ir*mdof[0], i<ldof[0]; i++) {
-        for (PetscInt j=0,jr,jj; jr=j>=mdof[1], jj=j-jr*mdof[1], j<ldof[1]; j++) {
-          for (PetscInt k=0,kr,kk; kr=k>=mdof[2], kk=k-kr*mdof[2], k<ldof[2]; k++) {
-            PetscInt here = (i*ldof[1]+j)*ldof[2]+k;
-              ltogind[here+f*lsize] =
-                gstart[ir][jr][kr] + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk+f*gsize;
-            if ((irank[0] == 0 && i == 0)
-                 || (irank[1] == 0 && j == 0)
-                 || (irank[2] == 0 && k == 0)
-                 || (irank[0]+1 == p[0] && i+1 == ldof[0])
-                 || (irank[1]+1 == p[1] && j+1 == ldof[1])
-                 || (irank[2]+1 == p[2] && k+1 == ldof[2]))
-              continue;
-            ltogind0[l0count] = ltogind[here+f*lsize];
-            locind[l0count++] = here+f*lsize;
-          }
+    for (PetscInt i=0,ir,ii; ir=i>=mdof[0], ii=i-ir*mdof[0], i<ldof[0]; i++) {
+      for (PetscInt j=0,jr,jj; jr=j>=mdof[1], jj=j-jr*mdof[1], j<ldof[1]; j++) {
+        for (PetscInt k=0,kr,kk; kr=k>=mdof[2], kk=k-kr*mdof[2], k<ldof[2]; k++) {
+          PetscInt dofind = (i*ldof[1]+j)*ldof[2]+k;
+          ltogind[dofind] =
+            gstart[ir][jr][kr] + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk;
+          if ((irank[0] == 0 && i == 0)
+              || (irank[1] == 0 && j == 0)
+              || (irank[2] == 0 && k == 0)
+              || (irank[0]+1 == p[0] && i+1 == ldof[0])
+              || (irank[1]+1 == p[1] && j+1 == ldof[1])
+              || (irank[2]+1 == p[2] && k+1 == ldof[2]))
+            continue;
+          ltogind0[l0count] = ltogind[dofind];
+          locind[l0count++] = dofind;
         }
       }
     }
-    ierr = ISCreateGeneral(comm, 5*lsize, ltogind, PETSC_OWN_POINTER, &ltogis);
+    ierr = ISCreateBlock(comm, 5, lsize, ltogind, PETSC_OWN_POINTER, &ltogis);
     CHKERRQ(ierr);
     ierr = VecScatterCreateWithData(Qloc, NULL, Q, ltogis, &ltog); CHKERRQ(ierr);
     CHKERRQ(ierr);
-    ierr = ISCreateGeneral(comm, l0count, ltogind0, PETSC_OWN_POINTER, &ltogis0);
+    ierr = ISCreateBlock(comm, 5, l0count, ltogind0, PETSC_OWN_POINTER, &ltogis0);
     CHKERRQ(ierr);
-    ierr = ISCreateGeneral(PETSC_COMM_SELF, l0count, locind, PETSC_OWN_POINTER, &locis);
+    ierr = ISCreateBlock(PETSC_COMM_SELF, 5, l0count, locind, PETSC_OWN_POINTER, &locis);
     CHKERRQ(ierr);
     ierr = VecScatterCreateWithData(Qloc, locis, Q, ltogis0, &ltog0); CHKERRQ(ierr);
     { // Create global-to-global scatter for Dirichlet values (everything not in
@@ -369,6 +343,7 @@ int main(int argc, char **argv) {
         if (q[i] == 1.) indD[countD++] = qstart + i;
       }
       ierr = VecRestoreArrayRead(Q, &q); CHKERRQ(ierr);
+//      ierr = ISCreateBlock(comm, 5, countD, indD, PETSC_COPY_VALUES, &isD); CHKERRQ(ierr);
       ierr = ISCreateGeneral(comm, countD, indD, PETSC_COPY_VALUES, &isD); CHKERRQ(ierr);
       ierr = PetscFree(indD); CHKERRQ(ierr);
       ierr = VecScatterCreateWithData(Q, isD, Q, isD, &gtogD); CHKERRQ(ierr);
@@ -497,40 +472,23 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_ics, NULL, NULL, &op_ics);
   CeedOperatorSetField(op_ics, "x", Erestrictx, CEED_NOTRANSPOSE,
                        basisxc, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ics, "q0", Erestrictu, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_ics, "q0", Erestrictu, CEED_TRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  // MY VERSION
   // Create the Navier-Stokes operator.
-//    CeedOperatorCreate(ceed, qf_ns, NULL, NULL, &op_ns);
-//    CeedOperatorSetField(op_ns, "q", Erestrictu, CEED_TRANSPOSE,
-//                         basisu, CEED_VECTOR_ACTIVE);
-//    CeedOperatorSetField(op_ns, "dq", Erestrictu, CEED_TRANSPOSE,
-//                         basisu, CEED_VECTOR_ACTIVE);
-//    CeedOperatorSetField(op_ns, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
-//                         CEED_BASIS_COLLOCATED, qdata);
-//    CeedOperatorSetField(op_ns, "x", Erestrictx, CEED_NOTRANSPOSE,
-//                         basisx, xcoord);
-//    CeedOperatorSetField(op_ns, "v", Erestrictu, CEED_TRANSPOSE,
-//                         basisu, CEED_VECTOR_ACTIVE);
-//    CeedOperatorSetField(op_ns, "dv", Erestrictu, CEED_TRANSPOSE,
-//                         basisu, CEED_VECTOR_ACTIVE);
-
-// EQUIVALENT OF WHAT IT WAS
-  // Create the Navier-Stokes operator.
-  CeedOperatorCreate(ceed, qf_ns, NULL, NULL, &op_ns);
-  CeedOperatorSetField(op_ns, "q", Erestrictu, CEED_NOTRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ns, "dq", Erestrictu, CEED_NOTRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ns, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_ns, "x", Erestrictx, CEED_NOTRANSPOSE,
-                       basisx, xcoord);
-  CeedOperatorSetField(op_ns, "v", Erestrictu, CEED_NOTRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ns, "dv", Erestrictu, CEED_NOTRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
+    CeedOperatorCreate(ceed, qf_ns, NULL, NULL, &op_ns);
+    CeedOperatorSetField(op_ns, "q", Erestrictu, CEED_TRANSPOSE,
+                         basisu, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_ns, "dq", Erestrictu, CEED_TRANSPOSE,
+                         basisu, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_ns, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
+                         CEED_BASIS_COLLOCATED, qdata);
+    CeedOperatorSetField(op_ns, "x", Erestrictx, CEED_NOTRANSPOSE,
+                         basisx, xcoord);
+    CeedOperatorSetField(op_ns, "v", Erestrictu, CEED_TRANSPOSE,
+                         basisu, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_ns, "dv", Erestrictu, CEED_TRANSPOSE,
+                         basisu, CEED_VECTOR_ACTIVE);
 
   // Create the libCEED contexts
   CeedScalar Theta0     = 300.;     // K
