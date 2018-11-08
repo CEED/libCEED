@@ -16,6 +16,7 @@
 
 #include <ceed-impl.h>
 
+#if 0
 typedef struct {
   CeedScalar *h_array;
   CeedScalar *h_array_allocated;
@@ -79,5 +80,6 @@ CEED_INTERN int CeedBasisCreateTensorH1_libparanumal(Ceed ceed, CeedInt dim, Cee
     CeedBasis basis);
 
 CEED_INTERN int CeedQFunctionCreate_libparanumal(CeedQFunction qf);
+#endif
 
 CEED_INTERN int CeedOperatorCreate_libparanumal(CeedOperator op);

@@ -35,8 +35,8 @@ typedef struct {
   mesh_t mesh;
   char[BUFSIZ] fileName;
   char[BUFSIZ] kernelName;
-  occa::properties kernelInfo;
-  occa::kernel kernel;
+  occaProperties kernelInfo;
+  occaKernel kernel;//Might need more than one
 } CeedOperator_libparanumal;
 
 static int CeedOperatorDestroy_libparanumal(CeedOperator op) {
@@ -65,7 +65,7 @@ static int CeedOperatorDestroy_libparanumal(CeedOperator op) {
   occaFree(impl->kernel);
 
   ierr = CeedFree(&op->data); CeedChk(ierr);
-  return 1;
+  return 0;
 }
 
 static int CeedOperatorSetupFields_libparanumal(CeedOperator op,
@@ -139,14 +139,53 @@ static int CeedOperatorSetupFields_libparanumal(CeedOperator op,
 
 static int CeedOperatorSetup_libparanumal(CeedOperator op) {
   int ierr;
+  bool setupdone;
+  ierr = CeedOperatorGetSetupStatus(op, &setupdone); CeedChk(ierr);
+  if (setupdone) return 0;
   CeedOperator_libparanumal *impl;
   ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
-  CeedQFunction_libparanumal *qf_data;//FIXME What do we expect?!
-  ierr = CeedQFunctionGetData(qf, (void*)&qf_data); CeedChk(ierr)
-  //TODO This is where we should recognize if libParanumal as an optimized kernel using this QFunction
+  // CeedQFunction_libparanumal *qf_data;//FIXME What do we expect?!
+  // ierr = CeedQFunctionGetData(qf, (void*)&qf_data); CeedChk(ierr);
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  // CeedQFunction_Occa *data;
+  // ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
+  Ceed_Occa *ceed_data;
+  ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
+  assert(ceed_data);
+  const occaDevice device = ceed_data->device;
+  //
+  char* spec;
+  ierr = CeedQFunctionGetSpec(qf, &spec);
+  if (spec) {
+    //TODO extract Basis and put it somewhere
+    //TODO extract Dim and put it somewhere and in the suffix
+    //TODO set kernelInfo
+    occaProperties kernelInfo = occaCreateProperties();
+    occaPropertiesSet(kernelInfo, "defines/NC", occaInt(data->nc));
+    occaPropertiesSet(kernelInfo, "defines/DIM", occaInt(data->dim));
+    occaPropertiesSet(kernelInfo, "defines/epsilon", occaDouble(1.e-14));
+    if (!strcmp("Mass", spec)) {
+      //What are the specific fields to set for kernelInfo?
+      sprintf(fileName, DMASS "/okl/massVolume%s.okl", suffix);
+      sprintf(kernelName, "massVolume%s", suffix);
+      goto found;
+    } else if (!strcmp("Elliptic", spec)) {
+      //What are the specific fields to set for kernelInfo?
+      sprintf(fileName, DELLIPTIC "/okl/ellipticRhsBC%s.okl", suffix);
+      sprintf(kernelName, "ellipticRhsBC%s", suffix);
+      sprintf(fileName, DELLIPTIC "/okl/ellipticAddBC%s.okl", suffix);
+      sprintf(kernelName, "ellipticAddBC%s", suffix);
+      goto found;
+    }
+  }
   return 1;
+found:
+  // impl->kernel = mesh->device.buildKernel(fileName, kernelName, kernelInfo);
+  impl->kernel = occaDeviceBuildKernel(device, fileName, kernelName, kernelInfo);
+  return 0;
 }
 
 static int CeedOperatorApply_libparanumal(CeedOperator op, CeedVector invec,
@@ -155,22 +194,15 @@ static int CeedOperatorApply_libparanumal(CeedOperator op, CeedVector invec,
   CeedOperator_libparanumal *impl;
   ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
 	//Check if the operator Kernel is instanciated, otherwise creates it (jit)
-  // Is it what goes in OperatorSetup?
-  if(impl->kernel==NULL){
-    impl->mesh;//TODO
-    impl->fileName;//TODO
-    impl->kernelName;//TODO
-    impl->kernelInfo;//TODO
-    impl->kernel = mesh->device.buildKernel(fileName, kernelName, kernelInfo);
-  }
+  CeedOperatorSetup_libparanumal(op);
 	//Apply the operator
   mesh_t *mesh = impl->mesh;
-  // Do we only need to set Nelements, o_vgeo, and o_Dmatrices in mesh?
+  // Do we only need to set Nelements, o_vgeo, and o_Dmatrices in mesh? If so, maybe we can store them in a different struct...
   impl->kernel(mesh->Nelements, 
                 mesh->o_vgeo, //What is called D in MFEM (geometric factors)
                 mesh->o_Dmatrices, //What is call B in MFEM (interpolation matrix)
-                (occa::memory)invec->data->d_array, 
-                (occa::memory)outvec->data->d_array);
+                (occaMemory)invec->data->d_array, 
+                (occaMemory)outvec->data->d_array);
 	return 1;
 }
 

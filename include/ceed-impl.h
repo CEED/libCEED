@@ -126,6 +126,7 @@ struct CeedQFunction_private {
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */
   void *data;     /* backend data */
+  char* spec;     /* the string spec of the qFunction */
 };
 
 struct CeedOperatorField_private {
