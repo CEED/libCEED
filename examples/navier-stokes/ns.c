@@ -307,9 +307,9 @@ int main(int argc, char **argv) {
       }
     }
 
-    ierr = PetscMalloc1(5*lsize, &ltogind); CHKERRQ(ierr);
-    ierr = PetscMalloc1(5*lsize, &ltogind0); CHKERRQ(ierr);
-    ierr = PetscMalloc1(5*lsize, &locind); CHKERRQ(ierr);
+    ierr = PetscMalloc1(lsize, &ltogind); CHKERRQ(ierr);
+    ierr = PetscMalloc1(lsize, &ltogind0); CHKERRQ(ierr);
+    ierr = PetscMalloc1(lsize, &locind); CHKERRQ(ierr);
     l0count = 0;
     for (PetscInt i=0,ir,ii; ir=i>=mdof[0], ii=i-ir*mdof[0], i<ldof[0]; i++) {
       for (PetscInt j=0,jr,jj; jr=j>=mdof[1], jj=j-jr*mdof[1], j<ldof[1]; j++) {
