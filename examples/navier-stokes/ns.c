@@ -176,7 +176,7 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time, Vec X
     for (PetscInt j=info.ys; j<info.ys+info.ym; j++) {
       for (PetscInt k=info.xs; k<info.xs+info.xm; k++) {
         for (PetscInt c=0; c<5; c++) {
-          u[i][j][k*5+c] = x[((i*info.ym+j)*info.xm+k) * 5 + c];
+          u[i][j][k*5+c] = x[((i*info.ym+j)*info.xm+k)*5 + c];
         }
       }
     }
@@ -538,7 +538,7 @@ int main(int argc, char **argv) {
   CeedVectorGetArray(multlvec, CEED_MEM_HOST, &m);
   for (PetscInt i=0; i<lsize; i++) {
     for (PetscInt f=0; f<5; f++)
-      q0[lsize*f+i] /= m[i];
+      q0[i*5+f] /= m[i];
   }
   CeedVectorRestoreArray(q0ceed, &q0);
   CeedVectorRestoreArray(multlvec, &m);
