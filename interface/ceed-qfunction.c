@@ -108,15 +108,12 @@ int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength, char* spe
     (*qf)->spec = spec;
     ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
     CeedQFunctionAddInput(qf_setup, "ggeo", 1, CEED_EVAL_NONE);
-    CeedQFunctionAddInput(qf_setup, "sgeo", 1, CEED_EVAL_NONE);
     CeedQFunctionAddInput(qf_setup, "D", 1, CEED_EVAL_NONE);
     CeedQFunctionAddInput(qf_setup, "S", 1, CEED_EVAL_NONE);
-    CeedQFunctionAddInput(qf_setup, "MM", 1, CEED_EVAL_NONE);
-    CeedQFunctionAddInput(qf_setup, "sMT", 1, CEED_EVAL_NONE);
-    CeedQFunctionAddInput(qf_setup, "x", 1, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_setup, "y", 1, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_setup, "z", 1, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(qf_setup, "rhs", 1, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_setup, "MM", 1, CEED_EVAL_NONEE);
+    CeedQFunctionAddInput(qf_setup, "lambda", 1, CEED_EVAL_NONEE);
+    CeedQFunctionAddInput(qf_setup, "q", 1, CEED_EVAL_NONEE);
+    CeedQFunctionAddOutput(qf_setup, "Aq", 1, CEED_EVAL_INTERP);
     return 0;
   }
   return 1;
