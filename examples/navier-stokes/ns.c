@@ -159,7 +159,8 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time, Vec X, void *ctx) {
+static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time, Vec X,
+                                   void *ctx) {
   User user = ctx;
   const PetscScalar *x;
   PetscScalar ***u;
@@ -185,8 +186,11 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time, Vec X
   }
   ierr = VecRestoreArrayRead(X, &x); CHKERRQ(ierr);
   ierr = DMDAVecRestoreArray(user->dm, U, &u); CHKERRQ(ierr);
-  ierr = PetscSNPrintf(filepath, sizeof filepath, user->outputfolder, stepno); CHKERRQ(ierr);
-  ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)U), filepath, FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
+  ierr = PetscSNPrintf(filepath, sizeof filepath, user->outputfolder, stepno);
+  CHKERRQ(ierr);
+  ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)U), filepath,
+  FILE_MODE_WRITE, &viewer);
+  CHKERRQ(ierr);
   ierr = VecView(U, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   ierr = DMRestoreGlobalVector(user->dm, &U); CHKERRQ(ierr);
@@ -273,7 +277,8 @@ int main(int argc, char **argv) {
   ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localelem,
                      melem[0], melem[1], melem[2]); CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "Owned dofs: %D = %D %D %D\n",
-                     mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]); CHKERRQ(ierr);
+                     mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]);
+                     CHKERRQ(ierr);
 
   {
     PetscInt gsize;
@@ -345,8 +350,10 @@ int main(int argc, char **argv) {
       const PetscScalar *q;
       ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
       ierr = VecSet(Q, 1.0); CHKERRQ(ierr);
-      ierr = VecScatterBegin(ltog0, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
-      ierr = VecScatterEnd(ltog0, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
+      ierr = VecScatterBegin(ltog0, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
+      CHKERRQ(ierr);
+      ierr = VecScatterEnd(ltog0, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
+      CHKERRQ(ierr);
       ierr = VecGetOwnershipRange(Q, &qstart, &qend); CHKERRQ(ierr);
       ierr = PetscMalloc1(qend-qstart, &indD); CHKERRQ(ierr);
       ierr = VecGetArrayRead(Q, &q); CHKERRQ(ierr);
@@ -354,8 +361,8 @@ int main(int argc, char **argv) {
         if (q[i] == 1.) indD[countD++] = qstart + i;
       }
       ierr = VecRestoreArrayRead(Q, &q); CHKERRQ(ierr);
-//      ierr = ISCreateBlock(comm, 5, countD, indD, PETSC_COPY_VALUES, &isD); CHKERRQ(ierr);
-      ierr = ISCreateGeneral(comm, countD, indD, PETSC_COPY_VALUES, &isD); CHKERRQ(ierr);
+      ierr = ISCreateGeneral(comm, countD, indD, PETSC_COPY_VALUES, &isD);
+      CHKERRQ(ierr);
       ierr = PetscFree(indD); CHKERRQ(ierr);
       ierr = VecScatterCreateWithData(Q, isD, Q, isD, &gtogD); CHKERRQ(ierr);
       ierr = ISDestroy(&isD); CHKERRQ(ierr);
@@ -365,7 +372,8 @@ int main(int argc, char **argv) {
     ierr = ISDestroy(&locis); CHKERRQ(ierr);
 
     PetscInt *ldofs[3];
-    ierr = PetscMalloc3(p[0], &ldofs[0], p[1], &ldofs[1], p[2], &ldofs[2]); CHKERRQ(ierr);
+    ierr = PetscMalloc3(p[0], &ldofs[0], p[1], &ldofs[1], p[2], &ldofs[2]);
+    CHKERRQ(ierr);
     for (PetscInt d=0; d<3; d++) {
       for (PetscInt r=0; r<p[d]; r++) {
         PetscInt ijkrank[3] = {irank[0], irank[1], irank[2]};
@@ -377,9 +385,9 @@ int main(int argc, char **argv) {
     }
     ierr = DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
                         DMDA_STENCIL_STAR,
-                        degree*melem[2]*p[2]+1, degree*melem[1]*p[1]+1, degree*melem[0]*p[0]+1,
-                        p[2], p[1], p[0],
-                        5, 0,
+                        degree*melem[2]*p[2]+1, degree*melem[1]*p[1]+1,
+                        degree*melem[0]*p[0]+1,
+                        p[2], p[1], p[0], 5, 0,
                         ldofs[2], ldofs[1], ldofs[0], &dm); CHKERRQ(ierr);
     ierr = PetscFree3(ldofs[0], ldofs[1], ldofs[2]); CHKERRQ(ierr);
     ierr = DMSetUp(dm); CHKERRQ(ierr);
@@ -487,19 +495,19 @@ int main(int argc, char **argv) {
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Create the Navier-Stokes operator.
-    CeedOperatorCreate(ceed, qf_ns, NULL, NULL, &op_ns);
-    CeedOperatorSetField(op_ns, "q", Erestrictu, CEED_TRANSPOSE,
-                         basisu, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_ns, "dq", Erestrictu, CEED_TRANSPOSE,
-                         basisu, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_ns, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
-                         CEED_BASIS_COLLOCATED, qdata);
-    CeedOperatorSetField(op_ns, "x", Erestrictx, CEED_NOTRANSPOSE,
-                         basisx, xcoord);
-    CeedOperatorSetField(op_ns, "v", Erestrictu, CEED_TRANSPOSE,
-                         basisu, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_ns, "dv", Erestrictu, CEED_TRANSPOSE,
-                         basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorCreate(ceed, qf_ns, NULL, NULL, &op_ns);
+  CeedOperatorSetField(op_ns, "q", Erestrictu, CEED_TRANSPOSE,
+                       basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_ns, "dq", Erestrictu, CEED_TRANSPOSE,
+                       basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_ns, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
+                       CEED_BASIS_COLLOCATED, qdata);
+  CeedOperatorSetField(op_ns, "x", Erestrictx, CEED_NOTRANSPOSE,
+                       basisx, xcoord);
+  CeedOperatorSetField(op_ns, "v", Erestrictu, CEED_TRANSPOSE,
+                       basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_ns, "dv", Erestrictu, CEED_TRANSPOSE,
+                       basisu, CEED_VECTOR_ACTIVE);
 
   // Create the libCEED contexts
   CeedScalar Theta0     = 300.;     // K
@@ -569,8 +577,6 @@ int main(int argc, char **argv) {
   ierr = TSSetType(ts, TSEULER); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
-//  ierr = TSSetMaxSteps(ts, 1.e4); CHKERRQ(ierr);
-//  ierr = TSSetTimeStep(ts, 1.e-4); CHKERRQ(ierr);
   ierr = TSSetMaxTime(ts, 100.); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
