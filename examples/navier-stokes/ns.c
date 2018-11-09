@@ -25,6 +25,7 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include <petscdmda.h>
 #include <ceed.h>
 #include <stdbool.h>
+#include <petscsys.h>
 #include "ns.h"
 
 #if PETSC_VERSION_LT(3,11,0)
@@ -116,6 +117,7 @@ struct User_ {
   PetscInt melem[3];
   DM dm;
   Ceed ceed;
+  char outputfolder[256];
 };
 
 // This is the RHS of the DAE, given as u_t = G(t,u)
@@ -183,7 +185,7 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time, Vec X
   }
   ierr = VecRestoreArrayRead(X, &x); CHKERRQ(ierr);
   ierr = DMDAVecRestoreArray(user->dm, U, &u); CHKERRQ(ierr);
-  ierr = PetscSNPrintf(filepath, sizeof filepath, "ns-%03D.vtr", stepno); CHKERRQ(ierr);
+  ierr = PetscSNPrintf(filepath, sizeof filepath, user->outputfolder, stepno); CHKERRQ(ierr);
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)U), filepath, FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
   ierr = VecView(U, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
@@ -218,6 +220,10 @@ int main(int argc, char **argv) {
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
+
+  // Allocate PETSc context
+  ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
+
   comm = PETSC_COMM_WORLD;
   ierr = PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED",
                            NULL); CHKERRQ(ierr);
@@ -234,6 +240,11 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsInt("-local",
                          "Target number of locally owned degrees of freedom per process",
                          NULL, localdof, &localdof, NULL); CHKERRQ(ierr);
+  PetscStrcpy(user->outputfolder, "./");
+  ierr = PetscOptionsString("-of", "Output folder",
+                            NULL, user->outputfolder, user->outputfolder,
+                            sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
+  PetscStrcat(user->outputfolder, "/ns-%03D.vtr");
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Determine size of process grid
@@ -508,7 +519,6 @@ int main(int argc, char **argv) {
   CeedQFunctionSetContext(qf_ns, &ctxNS, sizeof ctxNS);
 
   // Set up PETSc context
-  ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
   user->comm = comm;
   user->ltog = ltog;
   user->ltog0 = ltog0;
