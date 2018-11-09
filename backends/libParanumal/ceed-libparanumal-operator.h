@@ -82,4 +82,26 @@ CEED_INTERN int CeedBasisCreateTensorH1_libparanumal(Ceed ceed, CeedInt dim, Cee
 CEED_INTERN int CeedQFunctionCreate_libparanumal(CeedQFunction qf);
 #endif
 
+#define BUFSIZ 16
+
+typedef struct {
+  //libCeed stuff
+  CeedVector  *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
+  CeedScalar **edata;
+  CeedScalar **qdata; /// Inputs followed by outputs
+  CeedScalar **qdata_alloc; /// Allocated quadrature data arrays (to be freed by us)
+  CeedScalar **indata;
+  CeedScalar **outdata;
+  CeedInt    numein;
+  CeedInt    numeout;
+  CeedInt    numqin;
+  CeedInt    numqout;
+  //libParanumal stuff
+  mesh_t mesh;
+  char[BUFSIZ] fileName;
+  char[BUFSIZ] kernelName;
+  occaProperties kernelInfo;
+  occaKernel kernel;//Might need more than one
+} CeedOperator_libparanumal;
+
 CEED_INTERN int CeedOperatorCreate_libparanumal(CeedOperator op);

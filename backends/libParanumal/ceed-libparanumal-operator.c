@@ -17,28 +17,6 @@
 #include <ceed-impl.h>
 #include "ceed-cuda.h"
 
-#define BUFSIZ 16
-
-typedef struct {
-  //libCeed stuff
-  CeedVector  *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
-  CeedScalar **edata;
-  CeedScalar **qdata; /// Inputs followed by outputs
-  CeedScalar **qdata_alloc; /// Allocated quadrature data arrays (to be freed by us)
-  CeedScalar **indata;
-  CeedScalar **outdata;
-  CeedInt    numein;
-  CeedInt    numeout;
-  CeedInt    numqin;
-  CeedInt    numqout;
-  //libParanumal stuff
-  mesh_t mesh;
-  char[BUFSIZ] fileName;
-  char[BUFSIZ] kernelName;
-  occaProperties kernelInfo;
-  occaKernel kernel;//Might need more than one
-} CeedOperator_libparanumal;
-
 static int CeedOperatorDestroy_libparanumal(CeedOperator op) {
   //TODO Destroy the CeedOperator_libparanumal?
   int ierr;
