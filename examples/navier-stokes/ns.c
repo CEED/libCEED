@@ -32,6 +32,7 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #  define VecScatterCreateWithData VecScatterCreate
 #endif
 
+// Utility function, compute three factors of an integer
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   for (PetscInt d=0,sizeleft=size; d<3; d++) {
     PetscInt try = (PetscInt)PetscCeilReal(PetscPowReal(sizeleft, 1./(3 - d)));
@@ -41,18 +42,25 @@ static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   }
 }
 
+// Utility function, return maximum of 3 values
 static PetscInt Max3(const PetscInt a[3]) {
   return PetscMax(a[0], PetscMax(a[1], a[2]));
 }
+
+// Utility function, return minimum of 3 values
 static PetscInt Min3(const PetscInt a[3]) {
   return PetscMin(a[0], PetscMin(a[1], a[2]));
 }
+
+// Utility function, compute the number of DoFs from the global grid
 static void GlobalDof(const PetscInt p[3], const PetscInt irank[3],
                       PetscInt degree, const PetscInt melem[3],
                       PetscInt mdof[3]) {
   for (int d=0; d<3; d++)
     mdof[d] = degree*melem[d] + (irank[d] == p[d]-1);
 }
+
+// Utility function
 static PetscInt GlobalStart(const PetscInt p[3], const PetscInt irank[3],
                             PetscInt degree, const PetscInt melem[3]) {
   PetscInt start = 0;
@@ -69,6 +77,8 @@ static PetscInt GlobalStart(const PetscInt p[3], const PetscInt irank[3],
   }
   return -1;
 }
+
+// Utility function to create local CEED restriction
 static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
                              CeedInt P, CeedInt ncomp,
                              CeedElemRestriction *Erestrict) {
@@ -103,6 +113,7 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
   PetscFunctionReturn(0);
 }
 
+// PETSc user data
 typedef struct User_ *User;
 struct User_ {
   MPI_Comm comm;
@@ -127,7 +138,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   User user = *(User*)userData;
   PetscScalar *q, *g;
 
-  // Global to local
+  // Global-to-local
   PetscFunctionBeginUser;
   ierr = VecScatterBegin(user->ltog0, Q, user->Qloc, INSERT_VALUES,
                          SCATTER_REVERSE); CHKERRQ(ierr);
@@ -149,8 +160,14 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   ierr = VecRestoreArrayRead(user->Qloc, (const PetscScalar**)&q); CHKERRQ(ierr);
   ierr = VecRestoreArray(user->Gloc, &g); CHKERRQ(ierr);
 
-  // Local to global
+  // Global-to-global
   ierr = VecZeroEntries(G); CHKERRQ(ierr);
+  ierr = VecScatterBegin(user->gtogD, Q, G, INSERT_VALUES, SCATTER_FORWARD);
+  CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->gtogD, Q, G, INSERT_VALUES, SCATTER_FORWARD);
+  CHKERRQ(ierr);
+
+  // Local-to-global
   ierr = VecScatterBegin(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
