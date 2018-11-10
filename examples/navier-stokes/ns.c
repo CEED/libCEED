@@ -189,7 +189,7 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time, Vec X
   ierr = PetscSNPrintf(filepath, sizeof filepath, user->outputfolder, stepno);
   CHKERRQ(ierr);
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)U), filepath,
-  FILE_MODE_WRITE, &viewer);
+                            FILE_MODE_WRITE, &viewer);
   CHKERRQ(ierr);
   ierr = VecView(U, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
@@ -340,7 +340,7 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
     ierr = ISCreateBlock(comm, 5, l0count, ltogind0, PETSC_OWN_POINTER, &ltogis0);
     CHKERRQ(ierr);
-    ierr = ISCreateBlock(PETSC_COMM_SELF, 5, l0count, locind, PETSC_OWN_POINTER, &locis);
+    ierr = ISCreateBlock(comm, 5, l0count, locind, PETSC_OWN_POINTER, &locis);
     CHKERRQ(ierr);
     ierr = VecScatterCreateWithData(Qloc, locis, Q, ltogis0, &ltog0); CHKERRQ(ierr);
     { // Create global-to-global scatter for Dirichlet values (everything not in
@@ -454,8 +454,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionApply(Erestrictm, CEED_TRANSPOSE, CEED_TRANSPOSE,
                            multevec, multlvec, CEED_REQUEST_IMMEDIATE);
 
-  // Create the Q-function that builds the NS operator (i.e. computes its
-  // quadrature data) and set its context data.
+  // Create the Q-function that builds the NS operator
   CeedQFunctionCreateInterior(ceed, 1,
                               Setup, __FILE__ ":Setup", &qf_setup);
   CeedQFunctionAddInput(qf_setup, "dx", 3, CEED_EVAL_GRAD);
@@ -468,7 +467,7 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_ics, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", 5, CEED_EVAL_NONE);
 
-  // Create the Q-function that defines the action of the NS operator.
+  // Create the Q-function that defines the action of the NS operator
   CeedQFunctionCreateInterior(ceed, 1,
                               NS, __FILE__ ":NS", &qf_ns);
   CeedQFunctionAddInput(qf_ns, "q", 5, CEED_EVAL_INTERP);
@@ -478,7 +477,7 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_ns, "v", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ns, "dv", 5, CEED_EVAL_GRAD);
 
-  // Create the operator that builds the quadrature data for the NS operator.
+  // Create the operator that builds the quadrature data for the NS operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
   CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
