@@ -272,6 +272,16 @@ int main(int argc, char **argv) {
 
   GlobalDof(p, irank, degree, melem, mdof);
 
+  // Set up state vector
+  ierr = VecCreate(comm, &Q); CHKERRQ(ierr);
+  ierr = VecSetSizes(Q, 5*mdof[0]*mdof[1]*mdof[2], PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetUp(Q); CHKERRQ(ierr);
+
+  // Print grid information
+  CeedInt gsize;
+  ierr = VecGetSize(Q, &gsize); CHKERRQ(ierr);
+  gsize /= 5;
+  ierr = PetscPrintf(comm, "Global dofs: %D\n", gsize); CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
                      p[0], p[1], p[2]); CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localelem,
@@ -281,13 +291,6 @@ int main(int argc, char **argv) {
                      CHKERRQ(ierr);
 
   {
-    PetscInt gsize;
-
-    ierr = VecCreate(comm, &Q); CHKERRQ(ierr);
-    gsize = mdof[0]*mdof[1]*mdof[2];
-    ierr = VecSetSizes(Q, 5*gsize, PETSC_DECIDE); CHKERRQ(ierr);
-    ierr = VecSetUp(Q); CHKERRQ(ierr);
-
     lsize = 1;
     for (int d=0; d<3; d++) {
       ldof[d] = melem[d]*degree + 1;
