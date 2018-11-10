@@ -176,8 +176,9 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time, Vec X,
-                                   void *ctx) {
+// User provided TS Monitor
+static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
+                                   Vec X, void *ctx) {
   User user = ctx;
   const PetscScalar *x;
   PetscScalar ***u;
@@ -609,7 +610,7 @@ int main(int argc, char **argv) {
   ierr = TSSetType(ts, TSEULER); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
-  ierr = TSSetMaxTime(ts, 100.); CHKERRQ(ierr);
+  ierr = TSSetMaxTime(ts, 1.); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
   ierr = TSAdaptSetStepLimits(adapt, 1.e-7, 1.e-2); CHKERRQ(ierr);
@@ -625,16 +626,6 @@ int main(int argc, char **argv) {
   ierr = PetscPrintf(PETSC_COMM_WORLD,
            "Time integrator took %D time steps to reach final time %g\n",
            steps,(double)ftime);CHKERRQ(ierr);
-
-  // Clean up PETSc
-  ierr = VecDestroy(&Q); CHKERRQ(ierr);
-  ierr = VecDestroy(&user->Qloc); CHKERRQ(ierr);
-  ierr = VecDestroy(&user->Gloc); CHKERRQ(ierr);
-  ierr = VecScatterDestroy(&ltog); CHKERRQ(ierr);
-  ierr = VecScatterDestroy(&ltog0); CHKERRQ(ierr);
-  ierr = VecScatterDestroy(&gtogD); CHKERRQ(ierr);
-  ierr = TSDestroy(&ts); CHKERRQ(ierr);
-  ierr = DMDestroy(&dm); CHKERRQ(ierr);
 
   // Clean up libCEED
   CeedVectorDestroy(&user->qceed);
@@ -656,6 +647,15 @@ int main(int argc, char **argv) {
   CeedOperatorDestroy(&op_ns);
   CeedDestroy(&ceed);
 
+  // Clean up PETSc
+  ierr = VecDestroy(&Q); CHKERRQ(ierr);
+  ierr = VecDestroy(&user->Qloc); CHKERRQ(ierr);
+  ierr = VecDestroy(&user->Gloc); CHKERRQ(ierr);
+  ierr = VecScatterDestroy(&ltog); CHKERRQ(ierr);
+  ierr = VecScatterDestroy(&ltog0); CHKERRQ(ierr);
+  ierr = VecScatterDestroy(&gtogD); CHKERRQ(ierr);
+  ierr = TSDestroy(&ts); CHKERRQ(ierr);
+  ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFree(user); CHKERRQ(ierr);
   return PetscFinalize();
 }
