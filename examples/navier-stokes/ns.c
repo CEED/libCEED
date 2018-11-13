@@ -610,12 +610,12 @@ int main(int argc, char **argv) {
   // Create and setup TS
   ierr = TSCreate(comm, &ts); CHKERRQ(ierr);
   ierr = TSSetType(ts, TSEULER); CHKERRQ(ierr);
-  ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
   ierr = TSSetMaxTime(ts, 1.); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
   ierr = TSAdaptSetStepLimits(adapt, 1.e-7, 1.e-2); CHKERRQ(ierr);
+  ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
   ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
 
