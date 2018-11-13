@@ -160,12 +160,14 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   ierr = VecRestoreArrayRead(user->Qloc, (const PetscScalar**)&q); CHKERRQ(ierr);
   ierr = VecRestoreArray(user->Gloc, &g); CHKERRQ(ierr);
 
+  if (0) { // Not appropriate for RHS of time-dependent problem
   // Global-to-global
   ierr = VecZeroEntries(G); CHKERRQ(ierr);
   ierr = VecScatterBegin(user->gtogD, Q, G, INSERT_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
   ierr = VecScatterEnd(user->gtogD, Q, G, INSERT_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
+  }
 
   // Local-to-global
   ierr = VecScatterBegin(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
@@ -193,11 +195,11 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = DMDAGetLocalInfo(user->dm, &info); CHKERRQ(ierr);
   ierr = DMDAVecGetArray(user->dm, U, &u); CHKERRQ(ierr);
   ierr = VecGetArrayRead(X, &x); CHKERRQ(ierr);
-  for (PetscInt i=info.zs; i<info.zs+info.zm; i++) {
-    for (PetscInt j=info.ys; j<info.ys+info.ym; j++) {
-      for (PetscInt k=info.xs; k<info.xs+info.xm; k++) {
+  for (PetscInt i=0; i<info.zm; i++) {
+    for (PetscInt j=0; j<info.ym; j++) {
+      for (PetscInt k=0; k<info.xm; k++) {
         for (PetscInt c=0; c<5; c++) {
-          u[i][j][k*5+c] = x[((i*info.ym+j)*info.xm+k)*5 + c];
+          u[info.zs+i][info.ys+j][(info.xs+k)*5+c] = x[((i*info.ym+j)*info.xm+k)*5 + c];
         }
       }
     }
