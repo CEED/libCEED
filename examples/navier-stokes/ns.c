@@ -128,7 +128,7 @@ struct User_ {
   PetscInt melem[3];
   DM dm;
   Ceed ceed;
-  char outputfolder[256];
+  char outputfolder[PETSC_MAX_PATH_LEN];
 };
 
 // This is the RHS of the DAE, given as u_t = G(t,u)
