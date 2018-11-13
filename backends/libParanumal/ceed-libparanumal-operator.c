@@ -15,8 +15,8 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
-#include "ceed-cuda.h"
 
+#if 0
 static int CeedOperatorDestroy_libparanumal(CeedOperator op) {
   //TODO Destroy the CeedOperator_libparanumal?
   int ierr;
@@ -194,3 +194,4 @@ int CeedOperatorCreate_libparanumal(CeedOperator op) {
   op->Apply = CeedOperatorApply_libparanumal;
   return 0;
 }
+#endif

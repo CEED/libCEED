@@ -97,7 +97,6 @@ typedef struct {
   CeedInt    numqin;
   CeedInt    numqout;
   //libParanumal stuff
-  mesh_t mesh;
   char[BUFSIZ] fileName;
   char[BUFSIZ] kernelName;
   occaProperties kernelInfo;
