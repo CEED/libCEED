@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreateBlocked(ceed, ne, 2, blksize, ne+1, 1, CEED_MEM_HOST,
                                    CEED_USE_POINTER, ind, &r);
   CeedVectorCreate(ceed, 2*blksize*2, &y);
-  CeedVectorSetArray(y, CEED_MEM_HOST, CEED_COPY_VALUES, NULL); // Allocates array
+  CeedVectorSetValue(y, 0); // Allocates array
 
   // NoTranspose
   CeedElemRestrictionApply(r, CEED_NOTRANSPOSE, CEED_NOTRANSPOSE, x, y,
