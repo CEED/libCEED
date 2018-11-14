@@ -38,14 +38,27 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
   size_t cbytes;
   ierr = CeedQFunctionGetContextSize(qf, &cbytes); CeedChk(ierr);
   const CeedInt bytes = sizeof(CeedScalar);
-  dbg("[CeedQFunction][AllocOpIn]");
   // ***************************************************************************
+  dbg("[CeedQFunction][AllocOpIn]");
+  CeedQFunctionField *inputfields;
+  ierr = CeedQFunctionGetFields(qf, &inputfields, NULL); CeedChk(ierr);
+  CeedOperatorField *opfields;
+  ierr = CeedOperatorGetFields(op, &opfields, NULL); CeedChk(ierr);
   for (CeedInt i=0; i<nIn; i++) {
     dbg("\t[CeedQFunction][AllocOpIn] # %d/%d",i,nIn-1);
-    const char *name = qf->inputfields[i].fieldname;
-    const CeedInt ncomp = qf->inputfields[i].ncomp;
-    const CeedEvalMode emode = qf->inputfields[i].emode;
-    const CeedInt dim = op->inputfields[i].basis?op->inputfields[i].basis->dim:0;
+    char *name;
+    ierr = CeedQFunctionFieldGetName(inputfields[i], &name); CeedChk(ierr);
+    CeedInt ncomp;
+    ierr = CeedQFunctionFieldGetNumComponents(inputfields[i], &ncomp);
+    CeedChk(ierr);
+    CeedEvalMode emode;
+    ierr = CeedQFunctionFieldGetEvalMode(inputfields[i], &emode); CeedChk(ierr);
+    CeedBasis basis;
+    ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
+    CeedInt dim = 0;
+    if (basis != CEED_BASIS_COLLOCATED) {
+      ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+    }
     switch(emode) {
     case CEED_EVAL_INTERP:
       dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > INTERP (%d)", name,Q*ncomp);
@@ -108,12 +121,25 @@ int CeedQFunctionAllocOpOut_Occa(CeedQFunction qf, CeedInt Q,
   ierr = CeedQFunctionGetNumArgs(qf, NULL, &nOut); CeedChk(ierr);
   assert(nOut<N_MAX_IDX);
   dbg("\n[CeedQFunction][AllocOpOut]");
+  CeedQFunctionField *outputfields;
+  ierr = CeedQFunctionGetFields(qf, NULL, &outputfields); CeedChk(ierr);
+  CeedOperatorField *opfields;
+  ierr = CeedOperatorGetFields(op, NULL, &opfields); CeedChk(ierr);
   for (CeedInt i=0; i<nOut; i++) {
     dbg("\t[CeedQFunction][AllocOpOut] # %d/%d",i,nOut-1);
-    const CeedEvalMode emode = qf->outputfields[i].emode;
-    const char *name = qf->outputfields[i].fieldname;
-    const CeedInt ncomp = qf->outputfields[i].ncomp;
-    const CeedInt dim = op->outputfields[i].basis?op->outputfields[i].basis->dim:0;
+    char *name;
+    ierr = CeedQFunctionFieldGetName(outputfields[i], &name); CeedChk(ierr);
+    CeedInt ncomp;
+    ierr = CeedQFunctionFieldGetNumComponents(outputfields[i], &ncomp);
+    CeedChk(ierr);
+    CeedEvalMode emode;
+    ierr = CeedQFunctionFieldGetEvalMode(outputfields[i], &emode); CeedChk(ierr);
+    CeedBasis basis;
+    ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
+    CeedInt dim = 0;
+    if (basis != CEED_BASIS_COLLOCATED) {
+      ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+    }
     switch(emode) {
     case CEED_EVAL_NONE:
       dbg("[CeedQFunction][AllocOpOut] out \"%s\" NONE (%d)",name,Q*ncomp);
@@ -169,10 +195,16 @@ int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
   ierr = CeedQFunctionGetNumArgs(qf, &nIn, NULL); CeedChk(ierr);
   const CeedInt bytes = sizeof(CeedScalar);
   dbg("\n[CeedQFunction][FillOp]");
+  CeedQFunctionField *inputfields;
+  ierr = CeedQFunctionGetFields(qf, &inputfields, NULL); CeedChk(ierr);
   for (CeedInt i=0; i<nIn; i++) {
-    const CeedInt ncomp = qf->inputfields[i].ncomp;
-    const char *name = qf->inputfields[i].fieldname;
-    const CeedEvalMode emode = qf->inputfields[i].emode;
+    char *name;
+    ierr = CeedQFunctionFieldGetName(inputfields[i], &name); CeedChk(ierr);
+    CeedInt ncomp;
+    ierr = CeedQFunctionFieldGetNumComponents(inputfields[i], &ncomp);
+    CeedChk(ierr);
+    CeedEvalMode emode;
+    ierr = CeedQFunctionFieldGetEvalMode(inputfields[i], &emode); CeedChk(ierr);
     switch(emode) {
     case CEED_EVAL_NONE: {
       dbg("[CeedQFunction][FillOp] \"%s\" > NONE",name);
