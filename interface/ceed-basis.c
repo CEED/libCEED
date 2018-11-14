@@ -819,6 +819,21 @@ int CeedBasisGetData(CeedBasis basis, void* *data) {
 }
 
 /**
+  @brief Set backend data of a CeedBasis
+
+  @param[out] basis CeedBasis
+  @param data       Data to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisSetData(CeedBasis basis, void* *data) {
+  basis->data = *data;
+  return 0;
+}
+
+/**
   @brief Get dimension for given CeedElemTopology
 
   @param topo      CeedElemTopology

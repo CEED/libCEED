@@ -315,6 +315,21 @@ int CeedVectorGetData(CeedVector vec, void* *data) {
 }
 
 /**
+  @brief Set the backend data of a CeedVector
+
+  @param[out] vec     CeedVector to retrieve state
+  @paramdata          Data to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedVectorSetData(CeedVector vec, void* *data) {
+  vec->data = *data;
+  return 0;
+}
+
+/**
   @brief Destroy a CeedVector
 
   @param vec   CeedVector to destroy

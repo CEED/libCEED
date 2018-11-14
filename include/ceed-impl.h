@@ -27,6 +27,12 @@
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
 
+// Lookup table field for backend functions
+typedef struct {
+  const char *fname;
+  size_t offset;
+} foffset;
+
 struct Ceed_private {
   Ceed delegate;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list);
@@ -45,6 +51,7 @@ struct Ceed_private {
   int (*OperatorCreate)(CeedOperator);
   int refcount;
   void *data;
+  foffset foffsets[25];
 };
 
 struct CeedVector_private {
@@ -118,8 +125,8 @@ struct CeedQFunction_private {
   int (*Destroy)(CeedQFunction);
   int refcount;
   CeedInt vlength;    // Number of quadrature points must be padded to a multiple of vlength
-  CeedQFunctionField inputfields[16];
-  CeedQFunctionField outputfields[16];
+  CeedQFunctionField *inputfields;
+  CeedQFunctionField *outputfields;
   CeedInt numinputfields, numoutputfields;
   int (*function)(void*, CeedInt, const CeedScalar *const*, CeedScalar *const*);
   const char *focca;
@@ -142,10 +149,9 @@ struct CeedOperator_private {
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector,
                        CeedVector, CeedRequest *);
-  int (*GetQData)(CeedOperator, CeedVector *);
   int (*Destroy)(CeedOperator);
-  CeedOperatorField inputfields[16];
-  CeedOperatorField outputfields[16];
+  CeedOperatorField *inputfields;
+  CeedOperatorField *outputfields;
   CeedInt numelements; /// Number of elements
   CeedInt numqpoints;  /// Number of quadrature points over all elements
   CeedInt nfields;     /// Number of fields that have been set

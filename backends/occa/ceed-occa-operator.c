@@ -336,9 +336,10 @@ static int SyncToHostPointer(CeedVector vec) {
   // expected semantics when using CeedVectorSetArray for the vector that will
   // hold an output quantity.  This should at least be lazy instead of eager
   // and we should do better about avoiding copies.
-  const CeedVector_Occa *outvdata = (CeedVector_Occa*)vec->data;
+  int ierr;
+  CeedVector_Occa *outvdata;
+  ierr = CeedVectorGetData(vec, (void *)&outvdata); CeedChk(ierr);
   if (outvdata->h_array) {
-    int ierr;
     CeedInt length;
     ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
     occaCopyMemToPtr(outvdata->h_array, outvdata->d_array,
@@ -384,7 +385,8 @@ static int CeedOperatorApply_Occa(CeedOperator op,
   //CeedOperatorDump_Occa(op);
 
   // Tell CeedQFunction_Occa's structure we are coming from an operator ********
-  CeedQFunction_Occa *qfd = qf->data;
+  CeedQFunction_Occa *qfd;
+  ierr = CeedQFunctionGetData(qf, (void *)&qfd); CeedChk(ierr);
   qfd->op = op;
 
   // Input Evecs and Restriction
@@ -707,8 +709,11 @@ int CeedOperatorCreate_Occa(CeedOperator op) {
 
   dbg("[CeedOperator][Create]");
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  op->data = impl;
-  op->Destroy = CeedOperatorDestroy_Occa;
-  op->Apply = CeedOperatorApply_Occa;
+  ierr = CeedOperatorSetData(op, (void*)&impl);
+
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
+                                CeedOperatorApply_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
+                                CeedOperatorDestroy_Occa); CeedChk(ierr);
   return 0;
 }
