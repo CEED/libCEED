@@ -179,15 +179,21 @@ int CeedVectorCreate_Occa(const CeedInt n, CeedVector vec) {
   ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
   CeedVector_Occa *data;
   dbg("[CeedVector][Create] n=%d", n);
-  vec->SetArray = CeedVectorSetArray_Occa;
-  vec->GetArray = CeedVectorGetArray_Occa;
-  vec->GetArrayRead = CeedVectorGetArrayRead_Occa;
-  vec->RestoreArray = CeedVectorRestoreArray_Occa;
-  vec->RestoreArrayRead = CeedVectorRestoreArrayRead_Occa;
-  vec->Destroy = CeedVectorDestroy_Occa;
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArray",
+                                CeedVectorSetArray_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArray",
+                                CeedVectorGetArray_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayRead",
+                                CeedVectorGetArrayRead_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArray",
+                                CeedVectorRestoreArray_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayRead",
+                                CeedVectorRestoreArrayRead_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Destroy",
+                                CeedVectorDestroy_Occa); CeedChk(ierr);
   // ***************************************************************************
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  vec->data = data;
   data->d_array = occaDeviceMalloc(ceed_data->device, bytes(vec),NULL,NO_PROPS);
+  ierr = CeedVectorSetData(vec, (void *)&data); CeedChk(ierr);
   return 0;
 }

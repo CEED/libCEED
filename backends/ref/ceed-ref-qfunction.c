@@ -23,8 +23,9 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
   int ierr;
   void *ctx;
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
-
-  ierr = qf->function(ctx, Q, u, v); CeedChk(ierr);
+  int (*f)() = NULL;
+  ierr = CeedQFunctionGetUserFunction(qf, (int **)&f); CeedChk(ierr);
+  ierr = f(ctx, Q, u, v); CeedChk(ierr);
   return 0;
 }
 
@@ -33,7 +34,13 @@ static int CeedQFunctionDestroy_Ref(CeedQFunction qf) {
 }
 
 int CeedQFunctionCreate_Ref(CeedQFunction qf) {
-  qf->Apply = CeedQFunctionApply_Ref;
-  qf->Destroy = CeedQFunctionDestroy_Ref;
+  int ierr;
+  Ceed ceed;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+
+  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
+                                CeedQFunctionApply_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
+                                CeedQFunctionDestroy_Ref); CeedChk(ierr);
   return 0;
 }

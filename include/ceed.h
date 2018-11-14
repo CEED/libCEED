@@ -100,10 +100,10 @@ typedef struct CeedOperator_private *CeedOperator;
 
 /// Handle for object describing CeedQFunction fields
 /// @ingroup CeedQFunction
-typedef struct CeedQFunctionField_private CeedQFunctionField;
+typedef struct CeedQFunctionField_private *CeedQFunctionField;
 /// Handle for object describing CeedOperator fields
 /// @ingroup CeedOperator
-typedef struct CeedOperatorField_private CeedOperatorField;
+typedef struct CeedOperatorField_private *CeedOperatorField;
 
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
