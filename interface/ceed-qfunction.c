@@ -239,8 +239,8 @@ int CeedQFunctionGetFOCCA(CeedQFunction qf, char* *focca) {
   @ref Advanced
 **/
 
-int CeedQFunctionGetUserFunction(CeedQFunction qf, int* (*f)) {
-  *f = (int *)qf->function;
+int CeedQFunctionGetUserFunction(CeedQFunction qf, int (**f)()) {
+  *f = (int (*)())qf->function;
   return 0;
 }
 
