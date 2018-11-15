@@ -339,7 +339,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   (*ceed)->data = NULL;
 
   // Set lookup table
-  foffset foffsets[25] = {
+  foffset foffsets[CEED_NUM_BACKEND_FUNCTIONS] = {
       {"Error",                  ceedoffsetof(Ceed, Error)},
       {"CeedDestroy",            ceedoffsetof(Ceed, Destroy)},
       {"VecCreate",              ceedoffsetof(Ceed, VecCreate)},
@@ -367,7 +367,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
       {"ApplyJacobian",          ceedoffsetof(CeedOperator, ApplyJacobian)},
       {"OperatorDestroy",        ceedoffsetof(CeedOperator, Destroy)}         };
 
-  memcpy((*ceed)->foffsets, foffsets, 25*sizeof(foffset));
+  memcpy((*ceed)->foffsets, foffsets,
+         CEED_NUM_BACKEND_FUNCTIONS*sizeof(foffset));
 
   // Backend specific setup
   ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);
@@ -432,7 +433,7 @@ int CeedSetBackendFunction(Ceed ceed,
   }
 
   // Find and use offset
-  for (CeedInt i = 0; i < 25; i++) {
+  for (CeedInt i = 0; i < CEED_NUM_BACKEND_FUNCTIONS; i++) {
     if (!strcmp(ceed->foffsets[i].fname, lookupname)) {
       size_t offset = ceed->foffsets[i].offset;
       size_t *fpointer;
