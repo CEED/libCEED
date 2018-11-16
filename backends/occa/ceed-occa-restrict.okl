@@ -81,8 +81,31 @@
     const int rngN = toffsets[i+1];
     for (int d = 0; d < ncomp; ++d) {
       double value = 0.0;
-      for (int j=rng1; j<rngN; ++j)
-        value += uu[d+tindices[j]*ncomp];
+      for (int j=rng1; j<rngN; ++j) {
+        int n = tindices[j] % elemsize;
+        int e = tindices[j] / elemsize;
+        value += uu[(e*ncomp + d)*elemsize + n];
+      }
+      vv[d*ndof+i] = value;
+    }
+  }
+}
+// *****************************************************************************
+@kernel void kRestrict5b(const int ncomp,
+                         const int *tindices,
+                         const int *toffsets,
+                         const double* uu,
+                         double* vv) {
+  for (int i=0; i<ndof; i++; @tile(TILE_SIZE,@outer,@inner)){
+    const int rng1 = toffsets[i];
+    const int rngN = toffsets[i+1];
+    for (int d = 0; d < ncomp; ++d) {
+      double value = 0.0;
+      for (int j=rng1; j<rngN; ++j) {
+        int n = tindices[j] % elemsize;
+        int e = tindices[j] / elemsize;
+        value += uu[(e*ncomp + d)*elemsize + n];
+      }
       vv[d+i*ncomp] = value;
     }
   }
