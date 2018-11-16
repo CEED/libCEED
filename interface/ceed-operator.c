@@ -428,11 +428,15 @@ int CeedOperatorDestroy(CeedOperator *op) {
   }
   ierr = CeedDestroy(&(*op)->ceed); CeedChk(ierr);
   // Free fields
-  for (int i=0; i<(*op)->qf->numinputfields; i++) {
-    ierr = CeedFree(&(*op)->inputfields[i]); CeedChk(ierr);
+  for (int i=0; i<(*op)->nfields; i++) {
+    if ((*op)->outputfields[i]) {
+      ierr = CeedFree(&(*op)->inputfields[i]); CeedChk(ierr);
+    }
   }
-  for (int i=0; i<(*op)->qf->numoutputfields; i++) {
-    ierr = CeedFree(&(*op)->outputfields[i]); CeedChk(ierr);
+  for (int i=0; i<(*op)->nfields; i++) {
+    if ((*op)->outputfields[i]) {
+      ierr = CeedFree(&(*op)->outputfields[i]); CeedChk(ierr);
+    }
   }
   ierr = CeedQFunctionDestroy(&(*op)->qf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqf); CeedChk(ierr);
