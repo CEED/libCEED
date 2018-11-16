@@ -4,6 +4,8 @@ os:
   - linux
   - osx
 
+dist: xenial
+
 compiler:
   - gcc
   - clang
@@ -45,15 +47,26 @@ install:
   - export CURR_DIR=$PWD
   - cd $HOME/install
   - if [[ -d mfem ]]; then
-        git -C mfem pull --depth 1
-        && git -C mfem gc --prune=all;
+        git -C mfem pull --depth 1 --allow-unrelated-histories;
+        if [[ $? -eq 0 ]]; then
+          git -C mfem gc --prune=all;
+        else 
+          rm -rf mfem
+          && git clone --depth 1 https://github.com/mfem/mfem.git;
+        fi
     else
         git clone --depth 1 https://github.com/mfem/mfem.git;
     fi
   - make -C mfem -j2 serial MFEM_CXXFLAGS=-O
   - if [[ -d occa ]]; then
-        git -C occa pull
-        && git -C occa reset --hard $OCCA_HEAD;
+        git -C occa pull --allow-unrelated-histories;
+        if [[ $? -eq 0 ]]; then
+          git -C occa reset --hard $OCCA_HEAD;
+        else
+          rm -rf occa
+          && git clone https://github.com/libocca/occa.git
+          && git -C occa reset --hard $OCCA_HEAD;
+        fi
     else
         git clone https://github.com/libocca/occa.git
         && git -C occa reset --hard $OCCA_HEAD;
