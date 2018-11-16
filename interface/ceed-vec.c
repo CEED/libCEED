@@ -149,6 +149,10 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
     return CeedError(vec->ceed, 1,
                      "Cannot grant CeedVector array access, the access lock is already in use");
 
+  if (vec && vec->numreaders > 0)
+    return CeedError(vec->ceed, 1,
+                     "Cannot grant CeedVector array access, a process has read access");
+
   if (!vec || !vec->GetArray)
     return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
 
@@ -183,6 +187,7 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
     return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
 
   ierr = vec->GetArrayRead(vec, mtype, array); CeedChk(ierr);
+  vec->numreaders++;
 
   return 0;
 }
@@ -226,6 +231,7 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
     return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
 
   ierr = vec->RestoreArrayRead(vec, array); CeedChk(ierr);
+  vec->numreaders--;
 
   return 0;
 }

@@ -21,6 +21,9 @@ c-----------------------------------------------------------------------
       call ceedvectorgetarrayread(x,ceed_mem_host,a,aoffset,err)
       call ceedvectorgetarrayread(x,ceed_mem_host,b,boffset,err)
 
+      call ceedvectorrestorearrayread(x,a,aoffset,err)
+      call ceedvectorrestorearrayread(x,b,boffset,err)
+
       call ceedvectordestroy(x,err)
       call ceeddestroy(ceed,err)
 

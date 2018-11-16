@@ -59,6 +59,7 @@ struct CeedVector_private {
   int refcount;
   CeedInt length;
   uint64_t state;
+  uint64_t numreaders;
   void *data;
 };
 
