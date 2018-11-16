@@ -255,7 +255,7 @@ static int NS(void *ctx, CeedInt Q,
   // Inputs
   const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
   // Outputs
-  CeedScalar *v = out[0], *vg = out[1];
+  CeedScalar *v = out[0], *dv = out[1];
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
   const CeedScalar lambda     = context[0];
@@ -349,53 +349,53 @@ static int NS(void *ctx, CeedInt Q,
 
     // -- Density
     // ---- u rho
-//    vg[i+(0+5*0)*Q]  = rho*u[0]*wBJ[0] + rho*u[1]*wBJ[1] + rho*u[2]*wBJ[2];
-//    vg[i+(0+5*1)*Q]  = rho*u[0]*wBJ[3] + rho*u[1]*wBJ[4] + rho*u[2]*wBJ[5];
-//    vg[i+(0+5*2)*Q]  = rho*u[0]*wBJ[6] + rho*u[1]*wBJ[7] + rho*u[2]*wBJ[8];
+//    dv[i+(0+5*0)*Q]  = rho*u[0]*wBJ[0] + rho*u[1]*wBJ[1] + rho*u[2]*wBJ[2];
+//    dv[i+(0+5*1)*Q]  = rho*u[0]*wBJ[3] + rho*u[1]*wBJ[4] + rho*u[2]*wBJ[5];
+//    dv[i+(0+5*2)*Q]  = rho*u[0]*wBJ[6] + rho*u[1]*wBJ[7] + rho*u[2]*wBJ[8];
 
     // -- Momentum
     // ---- rho (u x u) + P I3
-//    vg[i+(1+5*0)*Q]  = (rho*u[0]*u[0]+P)*wBJ[0] + rho*u[0]*u[1]*wBJ[1] +
+//    v[i+(1+5*0)*Q]  = (rho*u[0]*u[0]+P)*wBJ[0] + rho*u[0]*u[1]*wBJ[1] +
 //                        rho*u[0]*u[2]*wBJ[2];
-//    vg[i+(1+5*1)*Q]  = (rho*u[0]*u[0]+P)*wBJ[3] + rho*u[0]*u[1]*wBJ[4] +
+//    dv[i+(1+5*1)*Q]  = (rho*u[0]*u[0]+P)*wBJ[3] + rho*u[0]*u[1]*wBJ[4] +
 //                        rho*u[0]*u[2]*wBJ[5];
-//    vg[i+(1+5*2)*Q]  = (rho*u[0]*u[0]+P)*wBJ[6] + rho*u[0]*u[1]*wBJ[7] +
+//    dv[i+(1+5*2)*Q]  = (rho*u[0]*u[0]+P)*wBJ[6] + rho*u[0]*u[1]*wBJ[7] +
 //                        rho*u[0]*u[2]*wBJ[8];
-//    vg[i+(2+5*0)*Q]  =  rho*u[1]*u[0]*wBJ[0] +   (rho*u[1]*u[1]+P)*wBJ[1] +
+//    dv[i+(2+5*0)*Q]  =  rho*u[1]*u[0]*wBJ[0] +   (rho*u[1]*u[1]+P)*wBJ[1] +
 //                        rho*u[1]*u[2]*wBJ[2];
-//    vg[i+(2+5*1)*Q]  =  rho*u[1]*u[0]*wBJ[3] +   (rho*u[1]*u[1]+P)*wBJ[4] +
+//    dv[i+(2+5*1)*Q]  =  rho*u[1]*u[0]*wBJ[3] +   (rho*u[1]*u[1]+P)*wBJ[4] +
 //                        rho*u[1]*u[2]*wBJ[5];
-//    vg[i+(2+5*2)*Q]  =  rho*u[1]*u[0]*wBJ[6] +   (rho*u[1]*u[1]+P)*wBJ[7] +
+//    dv[i+(2+5*2)*Q]  =  rho*u[1]*u[0]*wBJ[6] +   (rho*u[1]*u[1]+P)*wBJ[7] +
 //                        rho*u[1]*u[2]*wBJ[8];
-//    vg[i+(3+5*0)*Q]  =  rho*u[2]*u[0]*wBJ[0] +    rho*u[2]*u[1]*wBJ[1] +
+//    dv[i+(3+5*0)*Q]  =  rho*u[2]*u[0]*wBJ[0] +    rho*u[2]*u[1]*wBJ[1] +
 //                       (rho*u[2]*u[2]+P)*wBJ[2];
-//    vg[i+(3+5*1)*Q]  =  rho*u[2]*u[0]*wBJ[3] +    rho*u[2]*u[1]*wBJ[4] +
+//    dv[i+(3+5*1)*Q]  =  rho*u[2]*u[0]*wBJ[3] +    rho*u[2]*u[1]*wBJ[4] +
 //                       (rho*u[2]*u[2]+P)*wBJ[5];
-//    vg[i+(3+5*2)*Q]  =  rho*u[2]*u[0]*wBJ[6] +    rho*u[2]*u[1]*wBJ[7] +
+//    dv[i+(3+5*2)*Q]  =  rho*u[2]*u[0]*wBJ[6] +    rho*u[2]*u[1]*wBJ[7] +
 //                       (rho*u[2]*u[2]+P)*wBJ[8];
     // ---- Fuvisc
-//    vg[i+(1+5*0)*Q] -= Fu[0]*wBBJ[0] + Fu[1]*wBBJ[1] + Fu[2]*wBBJ[2];
-//    vg[i+(1+5*1)*Q] -= Fu[0]*wBBJ[1] + Fu[1]*wBBJ[3] + Fu[2]*wBBJ[4];
-//    vg[i+(1+5*2)*Q] -= Fu[0]*wBBJ[2] + Fu[1]*wBBJ[4] + Fu[2]*wBBJ[5];
-//    vg[i+(2+5*0)*Q] -= Fu[1]*wBBJ[0] + Fu[3]*wBBJ[1] + Fu[4]*wBBJ[2];
-//    vg[i+(2+5*1)*Q] -= Fu[1]*wBBJ[1] + Fu[3]*wBBJ[3] + Fu[4]*wBBJ[4];
-//    vg[i+(2+5*2)*Q] -= Fu[1]*wBBJ[2] + Fu[3]*wBBJ[4] + Fu[4]*wBBJ[5];
-//    vg[i+(3+5*0)*Q] -= Fu[2]*wBBJ[0] + Fu[4]*wBBJ[1] + Fu[5]*wBBJ[2];
-//    vg[i+(3+5*1)*Q] -= Fu[2]*wBBJ[1] + Fu[4]*wBBJ[3] + Fu[5]*wBBJ[4];
-//    vg[i+(3+5*2)*Q] -= Fu[2]*wBBJ[2] + Fu[4]*wBBJ[4] + Fu[5]*wBBJ[5];
+//    dv[i+(1+5*0)*Q] -= Fu[0]*wBBJ[0] + Fu[1]*wBBJ[1] + Fu[2]*wBBJ[2];
+//    dv[i+(1+5*1)*Q] -= Fu[0]*wBBJ[1] + Fu[1]*wBBJ[3] + Fu[2]*wBBJ[4];
+//    dv[i+(1+5*2)*Q] -= Fu[0]*wBBJ[2] + Fu[1]*wBBJ[4] + Fu[2]*wBBJ[5];
+//    dv[i+(2+5*0)*Q] -= Fu[1]*wBBJ[0] + Fu[3]*wBBJ[1] + Fu[4]*wBBJ[2];
+//    dv[i+(2+5*1)*Q] -= Fu[1]*wBBJ[1] + Fu[3]*wBBJ[3] + Fu[4]*wBBJ[4];
+//    dv[i+(2+5*2)*Q] -= Fu[1]*wBBJ[2] + Fu[3]*wBBJ[4] + Fu[4]*wBBJ[5];
+//    dv[i+(3+5*0)*Q] -= Fu[2]*wBBJ[0] + Fu[4]*wBBJ[1] + Fu[5]*wBBJ[2];
+//    dv[i+(3+5*1)*Q] -= Fu[2]*wBBJ[1] + Fu[4]*wBBJ[3] + Fu[5]*wBBJ[4];
+//    dv[i+(3+5*2)*Q] -= Fu[2]*wBBJ[2] + Fu[4]*wBBJ[4] + Fu[5]*wBBJ[5];
     // ---- -rho g khat
 //    v[i+3*Q] = - rho*g*wJ;
 
     // -- Total Energy
     // ---- (E + P) u
-    vg[i+(4+5*0)*Q]  = (E + 0)*(u[0]*wBJ[0] + u[1]*wBJ[1] + u[2]*wBJ[2]);
-    vg[i+(4+5*1)*Q]  = (E + 0)*(u[0]*wBJ[3] + u[1]*wBJ[4] + u[2]*wBJ[5]);
-    vg[i+(4+5*2)*Q]  = (E + 0)*(u[0]*wBJ[6] + u[1]*wBJ[7] + u[2]*wBJ[8]);
+    dv[i+(4+5*0)*Q]  = (E + 0)*(u[0]*wBJ[0] + u[1]*wBJ[1] + u[2]*wBJ[2]);
+    dv[i+(4+5*1)*Q]  = (E + 0)*(u[0]*wBJ[3] + u[1]*wBJ[4] + u[2]*wBJ[5]);
+    dv[i+(4+5*2)*Q]  = (E + 0)*(u[0]*wBJ[6] + u[1]*wBJ[7] + u[2]*wBJ[8]);
 
     // ---- Fevisc
-//    vg[i+(4+5*0)*Q] -= Fe[0]*wBBJ[0] + Fe[1]*wBBJ[1] + Fe[2]*wBBJ[2];
-//    vg[i+(4+5*1)*Q] -= Fe[0]*wBBJ[1] + Fe[1]*wBBJ[3] + Fe[2]*wBBJ[4];
-//    vg[i+(4+5*2)*Q] -= Fe[0]*wBBJ[2] + Fe[1]*wBBJ[4] + Fe[2]*wBBJ[5];
+//    dv[i+(4+5*0)*Q] -= Fe[0]*wBBJ[0] + Fe[1]*wBBJ[1] + Fe[2]*wBBJ[2];
+//    dv[i+(4+5*1)*Q] -= Fe[0]*wBBJ[1] + Fe[1]*wBBJ[3] + Fe[2]*wBBJ[4];
+//    dv[i+(4+5*2)*Q] -= Fe[0]*wBBJ[2] + Fe[1]*wBBJ[4] + Fe[2]*wBBJ[5];
 
   } // End Quadrature Point Loop
 
