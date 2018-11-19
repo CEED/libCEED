@@ -20,6 +20,7 @@ c-----------------------------------------------------------------------
       include 'ceedf.h'
 
       integer ceed,err
+      integer x,xq,u,uq,w
       integer bxl,bxg,bug
       integer i
       integer q
@@ -29,45 +30,65 @@ c-----------------------------------------------------------------------
       parameter(plen=6)
       real*8 p(plen)
       real*8 pint(plen+1)
-      real*8 x(2)
-      real*8 xq(q)
-      real*8 uq(q)
-      real*8 u(q)
-      real*8 w(q)
+      real*8 xx(2)
+      real*8 xxq(q)
+      real*8 uuq(q)
+      real*8 uu(q)
+      real*8 ww(q)
       real*8 summ,error,p1,pm1
+      integer*8 offset1,offset2
 
       character arg*32
 
       data p/1,2,3,4,5,6/
-      data x/-1,1/
+      data xx/-1,1/
 
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
 
+      call ceedvectorcreate(ceed,2,x,err)
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,xx,err)
+      call ceedvectorcreate(ceed,q,xq,err)
+      call ceedvectorsetvalue(xq,0.d0,err)
+      call ceedvectorcreate(ceed,q,u,err)
+      call ceedvectorcreate(ceed,q,uq,err)
+      call ceedvectorsetvalue(uq,0.d0,err)
+      call ceedvectorcreate(ceed,q,w,err)
+      call ceedvectorsetvalue(w,0.d0,err)
+
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,
      $  ceed_gauss_lobatto,bxl,err)
+
       call ceedbasisapply(bxl,1,ceed_notranspose,ceed_eval_interp,
      $  x,xq,err)
 
+      call ceedvectorgetarrayread(xq,ceed_mem_host,xxq,offset1,err)
       do i=1,q
-        call polyeval(xq(i),plen,p,u(i))
+        call polyeval(xxq(i+offset1),plen,p,uu(i))
       enddo
+      call ceedvectorrestorearrayread(xq,xxq,offset1,err)
+      call ceedvectorsetarray(u,ceed_mem_host,ceed_use_pointer,uu,err)
 
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss,
      $  bxg,err)
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,q,q,ceed_gauss,
      $  bug,err)
+
       call ceedbasisapply(bxg,1,ceed_notranspose,ceed_eval_interp,
      $  x,xq,err)
       call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_interp,
      $  u,uq,err)
       call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_weight,
-     $  %val(0),w,err)
+     $  ceed_null,w,err)
 
+      call ceedvectorgetarrayread(w,ceed_mem_host,ww,offset1,err)
+      call ceedvectorgetarrayread(uq,ceed_mem_host,uuq,offset2,err)
       summ=0.0
       do i=1,q
-        summ=summ+w(i)*uq(i)
+        summ=summ+ww(i+offset1)*uuq(i+offset2)
       enddo
+      call ceedvectorrestorearrayread(w,ww,offset1,err)
+      call ceedvectorrestorearrayread(uq,uuq,offset2,err)
 
       pint(1)=0.0
       do i=1,plen
@@ -81,6 +102,11 @@ c-----------------------------------------------------------------------
         write(*,*) 'Error ',error,' sum ',summ,' exact ',p1-pm1
       endif
 
+      call ceedvectordestroy(x,err)
+      call ceedvectordestroy(xq,err)
+      call ceedvectordestroy(u,err)
+      call ceedvectordestroy(uq,err)
+      call ceedvectordestroy(w,err)
       call ceedbasisdestroy(bxl,err)
       call ceedbasisdestroy(bxg,err)
       call ceedbasisdestroy(bug,err)

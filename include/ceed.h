@@ -279,7 +279,7 @@ CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
 CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);
 CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt nelem,
                                CeedTransposeMode tmode,
-                               CeedEvalMode emode, const CeedScalar *u, CeedScalar *v);
+                               CeedEvalMode emode, CeedVector u, CeedVector v);
 CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
 
 CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d,
@@ -299,8 +299,7 @@ CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx,
                                         size_t ctxsize);
 CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
-                                   const CeedScalar *const *u,
-                                   CeedScalar *const *v);
+                                   CeedVector* u, CeedVector* v);
 CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
 
 CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf,

@@ -28,18 +28,20 @@ typedef struct {
 } CeedElemRestriction_Ref;
 
 typedef struct {
+  const CeedScalar **inputs;
+  CeedScalar **outputs;
+  bool setupdone;
+} CeedQFunction_Ref;
+
+typedef struct {
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
-  CeedScalar **edata;
-  CeedScalar **qdata; /// Inputs followed by outputs
-  CeedScalar
-  **qdata_alloc; /// Allocated quadrature data arrays (to be freed by us)
-  CeedScalar **indata;
-  CeedScalar **outdata;
+  CeedScalar ** edata;
+  CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
+  CeedVector *qvecsout;   /// Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
-  CeedInt    numqin;
-  CeedInt    numqout;
+  CeedVector tempvec;
 } CeedOperator_Ref;
 
 CEED_INTERN int CeedVectorCreate_Ref(CeedInt n, CeedVector vec);
