@@ -89,8 +89,7 @@ struct CeedElemRestriction_private {
 struct CeedBasis_private {
   Ceed ceed;
   int (*Apply)(CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode,
-               const CeedScalar *,
-               CeedScalar *);
+               CeedVector, CeedVector);
   int (*Destroy)(CeedBasis);
   int refcount;
   bool tensorbasis;      /* flag for tensor basis */
@@ -121,8 +120,8 @@ struct CeedQFunctionField_private {
 
 struct CeedQFunction_private {
   Ceed ceed;
-  int (*Apply)(CeedQFunction, CeedInt, const CeedScalar *const *,
-               CeedScalar *const *);
+  int (*Apply)(CeedQFunction, CeedInt, CeedVector *,
+               CeedVector *);
   int (*Destroy)(CeedQFunction);
   int refcount;
   CeedInt vlength;    // Number of quadrature points must be padded to a multiple of vlength
