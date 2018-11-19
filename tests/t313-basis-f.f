@@ -23,6 +23,7 @@ c-----------------------------------------------------------------------
       include 'ceedf.h'
 
       integer ceed,err
+      integer input,output
       integer p,q,d
       parameter(p=6)
       parameter(q=4)
@@ -34,10 +35,11 @@ c-----------------------------------------------------------------------
       real*8 grad(d*p*q)
       real*8 xq(d*q)
       real*8 xr(d*p)
-      real*8 input(p)
-      real*8 output(d*q)
+      real*8 iinput(p)
+      real*8 ooutput(d*q)
       real*8 val,diff
       real*8 x1,x2
+      integer*8 offset
 
       integer b
 
@@ -53,6 +55,7 @@ c-----------------------------------------------------------------------
       call buildmats(qref,qweight,interp,grad)
 
       call ceedinit(trim(arg)//char(0),ceed,err)
+
       call ceedbasiscreateh1(ceed,ceed_triangle,1,p,q,
      $  interp,grad,qref,qweight,b,err)
 
@@ -60,29 +63,40 @@ c-----------------------------------------------------------------------
         x1=xr(0*p+i)
         x2=xr(1*p+i)
         call feval(x1,x2,val)
-        input(i)=val
+        iinput(i)=val
       enddo
+
+      call ceedvectorcreate(ceed,p,input,err)
+      call ceedvectorsetarray(input,ceed_mem_host,ceed_use_pointer,
+     $  iinput,err)
+      call ceedvectorcreate(ceed,q*d,output,err)
+      call ceedvectorsetvalue(output,0.d0,err)
 
       call ceedbasisapply(b,1,ceed_notranspose,ceed_eval_grad,
      $  input,output,err)
 
+      call ceedvectorgetarrayread(output,ceed_mem_host,ooutput,
+     $  offset,err)
       do i=1,q
         x1=xq(0*q+i)
         x2=xq(1*q+i)
         call dfeval(x1,x2,val)
-        diff=val-output(0*q+i)
+        diff=val-ooutput(0*q+i+offset)
         if (abs(diff)>1.0d-10) then
           write(*,'(A,I1,A,F12.8,A,F12.8)')
-     $    '[',i,'] ',output(i),' != ',val
+     $    '[',i,'] ',ooutput(i+offset),' != ',val
         endif
         call dfeval(x2,x1,val)
-        diff=val-output(1*q+i)
+        diff=val-ooutput(1*q+i+offset)
         if (abs(diff)>1.0d-10) then
           write(*,'(A,I1,A,F12.8,A,F12.8)')
-     $    '[',i,'] ',output(i),' != ',val
+     $    '[',i,'] ',ooutput(i+offset),' != ',val
         endif
       enddo
+      call ceedvectorrestorearrayread(output,ooutput,offset,err)
 
+      call ceedvectordestroy(input,err)
+      call ceedvectordestroy(output,err)
       call ceedbasisdestroy(b,err)
       call ceeddestroy(ceed,err)
 
