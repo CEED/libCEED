@@ -35,8 +35,8 @@ static inline void CeedSyncH2D_Occa(const CeedVector vec) {
 
   assert(data);
   assert(data->h_array);
-  occaCopyPtrToMem(data->d_array, data->h_array, bytes(vec), NO_OFFSET,
-                   NO_PROPS);
+  occaCopyPtrToMem(data->d_array, data->h_array, bytes(vec),
+                   NO_OFFSET, NO_PROPS);
 }
 // *****************************************************************************
 static inline void CeedSyncD2H_Occa(const CeedVector vec) {
@@ -45,7 +45,8 @@ static inline void CeedSyncD2H_Occa(const CeedVector vec) {
 
   assert(data);
   assert(data->h_array);
-  occaCopyMemToPtr(data->h_array,data->d_array, bytes(vec), NO_OFFSET, NO_PROPS);
+  occaCopyMemToPtr(data->h_array,data->d_array, bytes(vec),
+                   NO_OFFSET, NO_PROPS);
 }
 
 // *****************************************************************************
