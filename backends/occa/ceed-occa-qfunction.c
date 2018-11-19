@@ -77,8 +77,7 @@ static int CeedQFunctionBuildKernel(CeedQFunction qf, const CeedInt Q) {
 // * CEED_EVAL_WEIGHT: Q
 // *****************************************************************************
 static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
-                                   const CeedScalar *const *in,
-                                   CeedScalar *const *out) {
+                                   CeedVector *In, CeedVector *Out) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
@@ -96,6 +95,16 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   ierr = CeedQFunctionGetVectorLength(qf, &vlength); CeedChk(ierr);
   assert((Q%vlength)==0); // Q must be a multiple of vlength
   const CeedInt nelem = 1; // !?
+  CeedInt nIn, nOut;
+  ierr = CeedQFunctionGetNumArgs(qf, &nIn, &nOut); CeedChk(ierr);
+  const CeedScalar *in[16];
+  CeedScalar *out[16];
+  for (int i = 0; i < nIn; i++) {
+    ierr = CeedVectorGetArrayRead(In[i], CEED_MEM_HOST, &in[i]); CeedChk(ierr);
+  }
+  for (int i = 0; i < nOut; i++) {
+    ierr = CeedVectorGetArray(Out[i], CEED_MEM_HOST, &out[i]); CeedChk(ierr);
+  }
   // ***************************************************************************
   if (!ready) { // If the kernel has not been built, do it now
     data->ready=true;
@@ -140,8 +149,6 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   if (cbytes>0) occaCopyMemToPtr(ctx,d_ctx,cbytes,0,NO_PROPS);
 
   // ***************************************************************************
-  CeedInt nOut;
-  ierr = CeedQFunctionGetNumArgs(qf, NULL, &nOut); CeedChk(ierr);
   CeedQFunctionField *outputfields;
   ierr = CeedQFunctionGetFields(qf, NULL, &outputfields); CeedChk(ierr);
   for (CeedInt i=0; i<nOut; i++) {
@@ -176,6 +183,12 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
     case CEED_EVAL_DIV:
       break; // Not implimented
     }
+  }
+  for (int i = 0; i < nIn; i++) {
+    ierr = CeedVectorRestoreArrayRead(In[i], &in[i]); CeedChk(ierr);
+  }
+  for (int i = 0; i < nOut; i++) {
+    ierr = CeedVectorRestoreArray(Out[i], &out[i]); CeedChk(ierr);
   }
   return 0;
 }

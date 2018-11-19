@@ -338,8 +338,7 @@ int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
   @ref Advanced
 **/
 int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
-                       const CeedScalar *const *u,
-                       CeedScalar *const *v) {
+                       CeedVector* u, CeedVector* v) {
   int ierr;
   if (!qf->Apply)
     return CeedError(qf->ceed, 1, "Backend does not support QFunctionApply");
