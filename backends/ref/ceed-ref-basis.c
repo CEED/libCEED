@@ -47,7 +47,7 @@ static int CeedTensorContract_Ref(Ceed ceed, CeedInt A, CeedInt B, CeedInt C,
 
 static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
                               CeedTransposeMode tmode, CeedEvalMode emode,
-                              const CeedScalar *u, CeedScalar *v) {
+                              CeedVector U, CeedVector V) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
@@ -57,6 +57,15 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   const CeedInt add = (tmode == CEED_TRANSPOSE);
+  const CeedScalar *u;
+  CeedScalar *v;
+  if (U) {
+    ierr = CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u); CeedChk(ierr);
+  } else if (emode != CEED_EVAL_WEIGHT) {
+      return CeedError(ceed, 1,
+                       "An input vector is required for this CeedEvalMode");
+  }
+  ierr = CeedVectorGetArray(V, CEED_MEM_HOST, &v); CeedChk(ierr);
 
   if (nelem != 1)
     return CeedError(ceed, 1,
@@ -200,6 +209,10 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
                        "CEED_EVAL_NONE does not make sense in this context");
     }
   }
+  if (U) {
+    ierr = CeedVectorRestoreArrayRead(U, &u); CeedChk(ierr);
+  }
+  ierr = CeedVectorRestoreArray(V, &v); CeedChk(ierr);
   return 0;
 }
 

@@ -605,7 +605,7 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
   @ref Advanced
 **/
 int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
-                   CeedEvalMode emode, const CeedScalar *u, CeedScalar *v) {
+                   CeedEvalMode emode, CeedVector u, CeedVector v) {
   int ierr;
   if (!basis->Apply) return CeedError(basis->ceed, 1,
                                         "Backend does not support BasisApply");

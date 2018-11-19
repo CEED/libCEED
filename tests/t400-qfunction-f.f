@@ -35,16 +35,17 @@ c-----------------------------------------------------------------------
       include 'ceedf.h'
 
       integer ceed,err
+      integer qdata,w,u,v
       integer qf_setup,qf_mass
       integer q,i
       parameter(q=8)
-      real*8 qdata(q)
-      real*8 w(q)
-      real*8 u(q)
-      real*8 v(q)
+      real*8 ww(q)
+      real*8 uu(q)
       real*8 vv(q)
+      real*8 vvv(q)
       real*8 x
       character arg*32
+      integer*8 offset
 
       external setup,mass
 
@@ -68,10 +69,19 @@ c     __FILE__ should not be more than the 72 characters, -ffree-line-length-non
 
       do i=0,q-1
         x=2.0*i/(q-1)-1
-        w(i+1)=1-x*x
-        u(i+1)=2+3*x+5*x*x
-        v(i+1)=w(i+1)*u(i+1)
+        ww(i+1)=1-x*x
+        uu(i+1)=2+3*x+5*x*x
+        vvv(i+1)=ww(i+1)*uu(i+1)
       enddo
+
+      call ceedvectorcreate(ceed,q,w,err)
+      call ceedvectorsetarray(w,ceed_mem_host,ceed_use_pointer,ww,err)
+      call ceedvectorcreate(ceed,q,u,err)
+      call ceedvectorsetarray(u,ceed_mem_host,ceed_use_pointer,uu,err)
+      call ceedvectorcreate(ceed,q,v,err)
+      call ceedvectorsetvalue(v,0.d0,err)
+      call ceedvectorcreate(ceed,q,qdata,err)
+      call ceedvectorsetvalue(qdata,0.d0,err)
 
       call ceedqfunctionapply(qf_setup,q,w,ceed_null,ceed_null,
      $  ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,
@@ -85,17 +95,23 @@ c     __FILE__ should not be more than the 72 characters, -ffree-line-length-non
      $  ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,
      $  ceed_null,ceed_null,ceed_null,ceed_null,
      $  ceed_null,ceed_null,ceed_null,ceed_null,
-     $  vv,ceed_null,ceed_null,ceed_null,
+     $  v,ceed_null,ceed_null,ceed_null,
      $  ceed_null,ceed_null,ceed_null,ceed_null,
      $  ceed_null,ceed_null,ceed_null,ceed_null,
      $  ceed_null,ceed_null,ceed_null,ceed_null,err)
 
+      call ceedvectorgetarrayread(v,ceed_mem_host,vv,offset,err)
       do i=1,q
-        if (abs(v(i)-vv(i)) > 1.0D-15) then
-          write(*,*) 'v(i)=',v(i),', vv(i)=',vv(i)
+        if (abs(vv(i+offset)-vvv(i)) > 1.0D-15) then
+          write(*,*) 'v(i)=',vv(i+offset),', vv(i)=',vvv(i)
         endif
       enddo
+      call ceedvectorrestorearrayread(v,vv,offset,err)
 
+      call ceedvectordestroy(u,err)
+      call ceedvectordestroy(v,err)
+      call ceedvectordestroy(w,err)
+      call ceedvectordestroy(qdata,err)
       call ceedqfunctiondestroy(qf_setup,err)
       call ceedqfunctiondestroy(qf_mass,err)
       call ceeddestroy(ceed,err)

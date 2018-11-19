@@ -17,6 +17,7 @@
 #define _POSIX_C_SOURCE 200112
 #include <ceed-impl.h>
 #include <ceed-backend.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -309,8 +310,7 @@ int CeedRequestWait(CeedRequest *req) {
 **/
 int CeedInit(const char *resource, Ceed *ceed) {
   int ierr;
-  size_t matchlen = 0, matchidx;
-  unsigned int matchpriority = 100, priority;
+  size_t matchlen = 0, matchidx = UINT_MAX, matchpriority = UINT_MAX, priority;
 
   // Find matching backend
   if (!resource) return CeedError(NULL, 1, "No resource provided");
