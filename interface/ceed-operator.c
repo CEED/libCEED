@@ -64,6 +64,8 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
   if (dqf) dqf->refcount++;
   (*op)->dqfT = dqfT;
   if (dqfT) dqfT->refcount++;
+  ierr = CeedCalloc(16, &(*op)->inputfields); CeedChk(ierr);
+  ierr = CeedCalloc(16, &(*op)->outputfields); CeedChk(ierr);
   ierr = ceed->OperatorCreate(*op); CeedChk(ierr);
   return 0;
 }
@@ -82,6 +84,11 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
   @param op         Ceedoperator on which to provide the field
   @param fieldname  Name of the field (to be matched with the name used by CeedQFunction)
   @param r          CeedElemRestriction
+  @param lmode      CeedTransposeMode which specifies the ordering of the
+                      components of the l-vector used by this CeedOperatorField,
+                      CEED_NOTRANSPOSE indicates the component is the
+                      outermost index and CEED_TRANSPOSE indicates the component
+                      is the innermost index in ordering of the l-vector
   @param b          CeedBasis in which the field resides or CEED_BASIS_COLLOCATED
                       if collocated with quadrature points
   @param v          CeedVector to be used by CeedOperator or CEED_VECTOR_ACTIVE
@@ -93,8 +100,8 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
   @ref Basic
 **/
 int CeedOperatorSetField(CeedOperator op, const char *fieldname,
-                         CeedElemRestriction r, CeedBasis b,
-                         CeedVector v) {
+                         CeedElemRestriction r, CeedTransposeMode lmode,
+                         CeedBasis b, CeedVector v) {
   int ierr;
   CeedInt numelements;
   ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
@@ -115,13 +122,13 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
   }
   CeedOperatorField *ofield;
   for (CeedInt i=0; i<op->qf->numinputfields; i++) {
-    if (!strcmp(fieldname, op->qf->inputfields[i].fieldname)) {
+    if (!strcmp(fieldname, (*op->qf->inputfields[i]).fieldname)) {
       ofield = &op->inputfields[i];
       goto found;
     }
   }
   for (CeedInt i=0; i<op->qf->numoutputfields; i++) {
-    if (!strcmp(fieldname, op->qf->outputfields[i].fieldname)) {
+    if (!strcmp(fieldname, (*op->qf->outputfields[i]).fieldname)) {
       ofield = &op->outputfields[i];
       goto found;
     }
@@ -129,9 +136,11 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
   return CeedError(op->ceed, 1, "QFunction has no knowledge of field '%s'",
                    fieldname);
 found:
-  ofield->Erestrict = r;
-  ofield->basis = b;
-  ofield->vec = v;
+  ierr = CeedCalloc(1, ofield); CeedChk(ierr);
+  (*ofield)->Erestrict = r;
+  (*ofield)->lmode = lmode;
+  (*ofield)->basis = b;
+  (*ofield)->vec = v;
   op->nfields += 1;
   return 0;
 }
@@ -269,6 +278,22 @@ int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
 }
 
 /**
+  @brief Set the backend data of a CeedOperator
+
+  @param[out] op         CeedOperator
+  @param data            Data to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedOperatorSetData(CeedOperator op, void* *data) {
+  op->data = *data;
+  return 0;
+}
+
+/**
   @brief Get the backend data of a CeedOperator
 
   @param op              CeedOperator
@@ -320,6 +345,21 @@ int CeedOperatorGetFields(CeedOperator op,
 }
 
 /**
+  @brief Get the L vector CeedTransposeMode of a CeedOperatorField
+
+  @param opfield         CeedOperatorField
+  @param[out] lmode      Variable to store CeedTransposeMode
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedOperatorFieldGetLMode(CeedOperatorField opfield,
+                              CeedTransposeMode *lmode) {
+  *lmode = opfield->lmode;
+  return 0;
+}/**
   @brief Get the CeedElemRestriction of a CeedOperatorField
 
   @param opfield         CeedOperatorField
@@ -332,7 +372,7 @@ int CeedOperatorGetFields(CeedOperator op,
 
 int CeedOperatorFieldGetElemRestriction(CeedOperatorField opfield,
                                         CeedElemRestriction *rstr) {
-  *rstr = (&opfield)->Erestrict;
+  *rstr = opfield->Erestrict;
   return 0;
 }
 
@@ -349,7 +389,7 @@ int CeedOperatorFieldGetElemRestriction(CeedOperatorField opfield,
 
 int CeedOperatorFieldGetBasis(CeedOperatorField opfield,
                               CeedBasis *basis) {
-  *basis = (&opfield)->basis;
+  *basis = opfield->basis;
   return 0;
 }
 
@@ -366,7 +406,7 @@ int CeedOperatorFieldGetBasis(CeedOperatorField opfield,
 
 int CeedOperatorFieldGetVector(CeedOperatorField opfield,
                                CeedVector *vec) {
-  *vec = (&opfield)->vec;
+  *vec = opfield->vec;
   return 0;
 }
 
@@ -386,10 +426,24 @@ int CeedOperatorDestroy(CeedOperator *op) {
   if ((*op)->Destroy) {
     ierr = (*op)->Destroy(*op); CeedChk(ierr);
   }
+  ierr = CeedDestroy(&(*op)->ceed); CeedChk(ierr);
+  // Free fields
+  for (int i=0; i<(*op)->nfields; i++) {
+    if ((*op)->outputfields[i]) {
+      ierr = CeedFree(&(*op)->inputfields[i]); CeedChk(ierr);
+    }
+  }
+  for (int i=0; i<(*op)->nfields; i++) {
+    if ((*op)->outputfields[i]) {
+      ierr = CeedFree(&(*op)->outputfields[i]); CeedChk(ierr);
+    }
+  }
   ierr = CeedQFunctionDestroy(&(*op)->qf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqfT); CeedChk(ierr);
-  ierr = CeedDestroy(&(*op)->ceed); CeedChk(ierr);
+
+  ierr = CeedFree(&(*op)->inputfields); CeedChk(ierr);
+  ierr = CeedFree(&(*op)->outputfields); CeedChk(ierr);
   ierr = CeedFree(op); CeedChk(ierr);
   return 0;
 }

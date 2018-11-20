@@ -46,7 +46,7 @@ static int CeedTensorContract_Blocked(Ceed ceed, CeedInt A, CeedInt B, CeedInt C
 
 static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
                               CeedTransposeMode tmode, CeedEvalMode emode,
-                              const CeedScalar *u, CeedScalar *v) {
+                               CeedVector U, CeedVector V) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
@@ -57,13 +57,22 @@ static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   const CeedInt add = (tmode == CEED_TRANSPOSE);
   const CeedInt blksize = 8;
+  const CeedScalar *u;
+  CeedScalar *v;
+  if (U) {
+    ierr = CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u); CeedChk(ierr);
+  } else if (emode != CEED_EVAL_WEIGHT) {
+      return CeedError(ceed, 1,
+                       "An input vector is required for this CeedEvalMode");
+  }
+  ierr = CeedVectorGetArray(V, CEED_MEM_HOST, &v); CeedChk(ierr);
 
   if ((nelem != 1) && (nelem != blksize))
     return CeedError(ceed, 1,
                      "This backend does not support BasisApply for %d elements", nelem);
 
   if (tmode == CEED_TRANSPOSE) {
-    const CeedInt vsize = nelem*ncomp*CeedIntPow(basis->P1d, dim);
+    const CeedInt vsize = nelem*ncomp*ndof;
     for (CeedInt i = 0; i < vsize; i++)
       v[i] = (CeedScalar) 0.0;
   }
@@ -223,6 +232,10 @@ static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
                        "CEED_EVAL_NONE does not make sense in this context");
     }
   }
+  if (U) {
+    ierr = CeedVectorRestoreArrayRead(U, &u); CeedChk(ierr);
+  }
+  ierr = CeedVectorRestoreArray(V, &v); CeedChk(ierr);
   return 0;
 }
 
@@ -236,7 +249,7 @@ static int CeedBasisDestroyTensor_Blocked(CeedBasis basis) {
   ierr = CeedBasisGetData(basis, (void*)&impl); CeedChk(ierr);
 
   ierr = CeedFree(&impl->colograd1d); CeedChk(ierr);
-  ierr = CeedFree(&basis->data); CeedChk(ierr);
+  ierr = CeedFree(&impl); CeedChk(ierr);
 
   return 0;
 }
@@ -248,14 +261,18 @@ int CeedBasisCreateTensorH1_Blocked(CeedInt dim, CeedInt P1d,
                                 const CeedScalar *qweight1d,
                                 CeedBasis basis) {
   int ierr;
+  Ceed ceed;
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   CeedBasis_Blocked *impl;
-  ierr = CeedCalloc(1,&impl); CeedChk(ierr);
+  ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedMalloc(Q1d*Q1d, &impl->colograd1d); CeedChk(ierr);
   ierr = CeedBasisGetCollocatedGrad(basis, impl->colograd1d); CeedChk(ierr);
-  basis->data = impl;
+  ierr = CeedBasisSetData(basis, (void*)&impl); CeedChk(ierr);
 
-  basis->Apply = CeedBasisApply_Blocked;
-  basis->Destroy = CeedBasisDestroyTensor_Blocked;
+  ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
+                                CeedBasisApply_Blocked); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
+                                CeedBasisDestroyTensor_Blocked); CeedChk(ierr);
   return 0;
 }
 
@@ -268,7 +285,13 @@ int CeedBasisCreateH1_Blocked(CeedElemTopology topo, CeedInt dim,
                           const CeedScalar *qref,
                           const CeedScalar *qweight,
                           CeedBasis basis) {
-  basis->Apply = CeedBasisApply_Blocked;
-  basis->Destroy = CeedBasisDestroyNonTensor_Blocked;
+  int ierr;
+  Ceed ceed;
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+
+  ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
+                                CeedBasisApply_Blocked); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
+                                CeedBasisDestroyNonTensor_Blocked); CeedChk(ierr);
   return 0;
 }

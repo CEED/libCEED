@@ -22,8 +22,10 @@
 int CeedOklPath_Occa(const Ceed ceed, const char *c_src_file,
                      const char *okl_base_name, char **okl_file) {
   struct stat buf;
-  const Ceed_Occa *ceed_data = ceed->data;
-  int ierr = CeedCalloc(OCCA_PATH_MAX,okl_file); CeedChk(ierr);
+  int ierr;
+  Ceed_Occa *ceed_data;
+  ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
+  ierr = CeedCalloc(OCCA_PATH_MAX,okl_file); CeedChk(ierr);
   memcpy(*okl_file,c_src_file,strlen(c_src_file));
   char *okl = *okl_file;
   const char *last_dot = strrchr(okl,'.');
@@ -70,9 +72,11 @@ int CeedOklPath_Occa(const Ceed ceed, const char *c_src_file,
 // *****************************************************************************
 int CeedOklDladdr_Occa(Ceed ceed) {
   Dl_info info;
-  Ceed_Occa *data = ceed->data;
+  int ierr;
+  Ceed_Occa *data;
+  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
   memset(&info,0,sizeof(info));
-  int ierr = dladdr((void*)&CeedInit,&info);
+  ierr = dladdr((void*)&CeedInit,&info);
   dbg("[CeedOklDladdr] libceed -> %s", info.dli_fname);
   if (ierr==0)
     return CeedError(ceed, 1, "OCCA backend cannot fetch dladdr");

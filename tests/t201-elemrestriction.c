@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 
   CeedElemRestrictionCreateIdentity(ceed, ne, 2, ne*2, 1, &r);
   CeedVectorCreate(ceed, ne*2, &y);
-  CeedVectorSetArray(y, CEED_MEM_HOST, CEED_COPY_VALUES, NULL); // Allocates array
+  CeedVectorSetValue(y, 0); // Allocates array
   CeedElemRestrictionApply(r, CEED_NOTRANSPOSE, CEED_NOTRANSPOSE, x, y,
                            CEED_REQUEST_IMMEDIATE);
   CeedVectorGetArrayRead(y, CEED_MEM_HOST, &yy);
