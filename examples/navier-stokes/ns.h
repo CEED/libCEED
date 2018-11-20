@@ -385,13 +385,27 @@ static int NS(void *ctx, CeedInt Q,
 //    dv[i+(3+5*2)*Q] -= Fu[2]*wBBJ[2] + Fu[4]*wBBJ[4] + Fu[5]*wBBJ[5];
     // ---- -rho g khat
 //    v[i+3*Q] = - rho*g*wJ;
+    for (int c=0; c<5; c++) {
+      v[c*Q+i] = 0;
+      for (int d=0; d<3; d++)
+        dv[(d*5+c)*Q+i] = 0;
+    }
 
     // -- Total Energy
     // ---- (E + P) u
+    if (0) {
     dv[i+(4+5*0)*Q]  = (E + 0)*(u[0]*wBJ[0] + u[1]*wBJ[1] + u[2]*wBJ[2]);
     dv[i+(4+5*1)*Q]  = (E + 0)*(u[0]*wBJ[3] + u[1]*wBJ[4] + u[2]*wBJ[5]);
     dv[i+(4+5*2)*Q]  = (E + 0)*(u[0]*wBJ[6] + u[1]*wBJ[7] + u[2]*wBJ[8]);
+    }
+    //CeedScalar grad_E[3];
 
+    for (int d=0; d<1; d++) {
+      //grad_E[d] = (1/wJ) * wBJ[d*3+d] * dq[(d*5+4)*Q+i];
+      // u . grad(E)
+      //v[4*Q+i] -= u[d] * wBJ[d*3+d] * dq[(d*5+4)*Q+i];
+      v[4*Q+i] -= 1. * wBJ[d*3+d] * dq[(d*5+4)*Q+i];
+    }
     // ---- Fevisc
 //    dv[i+(4+5*0)*Q] -= Fe[0]*wBBJ[0] + Fe[1]*wBBJ[1] + Fe[2]*wBBJ[2];
 //    dv[i+(4+5*1)*Q] -= Fe[0]*wBBJ[1] + Fe[1]*wBBJ[3] + Fe[2]*wBBJ[4];

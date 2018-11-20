@@ -160,9 +160,9 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   ierr = VecRestoreArrayRead(user->Qloc, (const PetscScalar**)&q); CHKERRQ(ierr);
   ierr = VecRestoreArray(user->Gloc, &g); CHKERRQ(ierr);
 
+  ierr = VecZeroEntries(G); CHKERRQ(ierr);
   if (0) { // Not appropriate for RHS of time-dependent problem
   // Global-to-global
-  ierr = VecZeroEntries(G); CHKERRQ(ierr);
   ierr = VecScatterBegin(user->gtogD, Q, G, INSERT_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
   ierr = VecScatterEnd(user->gtogD, Q, G, INSERT_VALUES, SCATTER_FORWARD);
@@ -485,6 +485,7 @@ int main(int argc, char **argv) {
 
   // Find multiplicity of each local point
   CeedVectorSetValue(multevec, 1.0);
+  CeedVectorSetValue(multlvec, 0.);
   CeedElemRestrictionApply(Erestrictm, CEED_TRANSPOSE, CEED_TRANSPOSE,
                            multevec, multlvec, CEED_REQUEST_IMMEDIATE);
 
