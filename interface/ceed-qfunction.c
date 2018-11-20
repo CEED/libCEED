@@ -96,7 +96,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 **/
 int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength, char* spec, CeedQFunction *qf) {
   int ierr;
-  if (!strcmp(spec,"elliptic"))
+  if (!strcmp(spec,"ellipticAxQuad3d"))
   {
     ierr = CeedCalloc(1,qf); CeedChk(ierr);
     (*qf)->ceed = ceed;
