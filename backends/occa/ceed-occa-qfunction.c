@@ -12,7 +12,7 @@
 // of Science and the National Nuclear Security Administration) responsible for
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation'exascale s computing imperative.
+// testbed platforms, in support of the nation's exascale computing imperative.
 #define CEED_DEBUG_COLOR 177
 #include "ceed-occa.h"
 
