@@ -84,6 +84,10 @@ int CeedVectorSetArray(CeedVector vec, CeedMemType mtype, CeedCopyMode cmode,
     return CeedError(vec->ceed, 1,
                      "Cannot grant CeedVector array access, the access lock is already in use");
 
+  if (vec && vec->numreaders > 0)
+    return CeedError(vec->ceed, 1,
+                     "Cannot grant CeedVector array access, a process has read access");
+
   if (!vec || !vec->SetArray)
     return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
 
