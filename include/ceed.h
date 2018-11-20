@@ -15,9 +15,33 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// Public header for libCEED
+/// Public header for user and utility components of libCEED
 #ifndef _ceed_h
 #define _ceed_h
+
+/// @defgroup Ceed Ceed: core components
+/// @defgroup CeedVector CeedVector: storing and manipulating vectors
+/// @defgroup CeedElemRestriction CeedElemRestriction: restriction from vectors to elements
+/// @defgroup CeedBasis CeedBasis: fully discrete finite element-like objects
+/// @defgroup CeedQFunction CeedQFunction: independent operations at quadrature points
+/// @defgroup CeedOperator CeedOperator: composed FE-type operations on vectors
+///
+/// @page FunctionCategories libCEED: Types of Functions
+/// @subsection Types of Functions
+///   libCEED provides three different header files depending upon the type of
+///   functions a user requires.
+/// @section Utility Utility Functions
+///   These functions are intended general utilities that may be useful to
+///   libCEED developers and users. These functions can generally be found in "ceed.h".
+/// @section Basic User Functions
+///   These functions are intended to be used by general users of the libCEED
+///   interface. These functions can generally be found in "ceed.h".
+/// @section Advanced Backend Developer Functions
+///   These functions are intended to be used by backend developers of the
+///   libCEED interface. These functions can generally be found in "ceed-backend.h".
+/// @section Developer Frontend Developer Functions
+///   These functions are intended to be used by frontend developers of the
+///   libCEED interface. These functions can generally be found in "ceed-impl.h".
 
 /**
   CEED_EXTERN is used in this header to denote all publicly visible symbols.
@@ -36,6 +60,7 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 // We can discuss ways to avoid forcing these to be compile-time decisions, but let's leave that for later.
 /// Integer type, used for indexing
@@ -70,19 +95,19 @@ typedef struct CeedQFunction_private *CeedQFunction;
 /// \f$f\f$, a CeedOperator expresses operations of the form
 ///   $$ E^T B^T f(B E u) $$
 /// acting on the vector \f$u\f$.
+/// @ingroup CeedOperator
 typedef struct CeedOperator_private *CeedOperator;
 
-CEED_EXTERN int CeedRegister(const char *prefix,
-                             int (*init)(const char *, Ceed), unsigned int priority);
+/// Handle for object describing CeedQFunction fields
+/// @ingroup CeedQFunction
+typedef struct CeedQFunctionField_private *CeedQFunctionField;
+/// Handle for object describing CeedOperator fields
+/// @ingroup CeedOperator
+typedef struct CeedOperatorField_private *CeedOperatorField;
 
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
-CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,
-                                const char *, va_list);
-CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
-                               const char *, va_list);
-CEED_EXTERN int CeedSetErrorHandler(Ceed ceed,
-                                    int (eh)(Ceed, const char *, int, const char *,
-                                        int, const char *, va_list));
+CEED_EXTERN int CeedDestroy(Ceed *ceed);
+
 CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
                               const char *, ...);
 /// Raise an error on ceed object
@@ -95,7 +120,6 @@ CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
 /// @sa CeedSetErrorHandler()
 #define CeedError(ceed, ecode, ...)                                     \
   CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__)
-CEED_EXTERN int CeedDestroy(Ceed *ceed);
 
 /// Specify memory type
 ///
@@ -145,12 +169,12 @@ CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;
 CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
-/// Argument for CeedOperatorSetField that vector is colocated with
+/// Argument for CeedOperatorSetField that vector is collocated with
 /// quadrature points, used with qfunction eval mode CEED_EVAL_NONE
 /// or CEED_EVAL_INTERP only, not with CEED_EVAL_GRAD, CEED_EVAL_DIV,
 /// or CEED_EVAL_CURL
 /// @ingroup CeedBasis
-CEED_EXTERN CeedBasis CEED_BASIS_COLOCATED;
+CEED_EXTERN CeedBasis CEED_BASIS_COLLOCATED;
 
 /// Argument for CeedOperatorSetField to use active input or output
 /// @ingroup CeedVector
@@ -171,22 +195,19 @@ typedef enum {
 } CeedTransposeMode;
 
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
-    const CeedInt *indices, CeedElemRestriction *r);
+    CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype,
+    CeedCopyMode cmode,
+    const CeedInt *indices, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedElemRestriction *r);
+    CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt blksize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype,
-    CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction *r);
-CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction r,
-                                                CeedVector *lvec,
-                                                CeedVector *evec);
-CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction r,
-                                                  CeedInt *numelements);
-CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction r,
+    CeedInt elemsize, CeedInt blksize, CeedInt ndof, CeedInt ncomp,
+    CeedMemType mtype,
+    CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction *rstr);
+CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr,
     CeedTransposeMode tmode, CeedTransposeMode lmode, CeedVector u,
     CeedVector ru, CeedRequest *request);
-CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *r);
+CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *rstr);
 
 // The formalism here is that we have the structure
 //   \int_\Omega v^T f_0(u, \nabla u, qdata) + (\nabla v)^T f_1(u, \nabla u, qdata)
@@ -221,54 +242,90 @@ typedef enum {
   CEED_GAUSS_LOBATTO = 1,
 } CeedQuadMode;
 
+/// Type of basis shape to create non-tensor H1 element basis
+///
+/// Dimension can be extracted with bitwise AND
+/// (CeedElemTopology & 2**(dim + 2)) == TRUE
+/// @ingroup CeedBasis
+typedef enum {
+  /// Line
+  CEED_LINE = 1 << 16 | 0,
+  /// Triangle - 2D shape
+  CEED_TRIANGLE = 2 << 16 | 1,
+  /// Quadralateral - 2D shape
+  CEED_QUAD = 2 << 16 | 2,
+  /// Tetrahedron - 3D shape
+  CEED_TET = 3 << 16 | 3,
+  /// Pyramid - 3D shape
+  CEED_PYRAMID = 3 << 16 | 4,
+  /// Prism - 3D shape
+  CEED_PRISM = 3 << 16 | 5,
+  /// Hexehedron - 3D shape
+  CEED_HEX = 3 << 16 | 6,
+} CeedElemTopology;
+
 CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,
-    CeedInt ndof, CeedInt P, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);
-CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ndof,
+    CeedInt ncomp, CeedInt P, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp,
                                         CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
                                         const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo,
+                                  CeedInt ncomp,
+                                  CeedInt ndof, CeedInt nqpts,
+                                  const CeedScalar *interp, const CeedScalar *grad,
+                                  const CeedScalar *qref, const CeedScalar *qweight, CeedBasis *basis);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
-CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m, CeedInt n);
-CEED_EXTERN int CeedBasisGetColocatedGrad(CeedBasis basis, CeedScalar *colograd1d);
-CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
-                               CeedEvalMode emode, const CeedScalar *u, CeedScalar *v);
 CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
 CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);
+CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt nelem,
+                               CeedTransposeMode tmode,
+                               CeedEvalMode emode, CeedVector u, CeedVector v);
 CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
 
 CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d,
                                     CeedScalar *qweight1d);
 CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
                                       CeedScalar *qweight1d);
+CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m,
+                                    CeedInt n);
 
 typedef int (*CeedQFunctionCallback)(void *, const CeedInt, const CeedScalar *const *, CeedScalar *const *);
 
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
-    CeedQFunctionCallback f, const char *fcuda,
+    CeedQFunctionCallback f,// const char *fcuda,
     const char *focca, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                                       CeedInt ncomp, CeedEvalMode emode);
 CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                                        CeedInt ncomp, CeedEvalMode emode);
-CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
-                                        CeedInt *numoutput);
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx,
                                         size_t ctxsize);
 CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
-                                   const CeedScalar *const *u,
-                                   CeedScalar *const *v);
+                                   CeedVector* u, CeedVector* v);
 CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
 
 CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf,
                                    CeedQFunction dqf, CeedQFunction dqfT,
                                    CeedOperator *op);
 CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *fieldname,
-                                     CeedElemRestriction r, CeedBasis b,
+                                     CeedElemRestriction r,
+                                     CeedTransposeMode lmode, CeedBasis b,
                                      CeedVector v);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
 
-static inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
+/**
+  @brief Return integer power
+
+  @param[in] base   The base to exponentiate
+  @param[in] power  The power to raise the base to
+
+  @return base^power
+
+  @ref Utility
+**/
+static inline CeedInt CeedIntPow(CeedInt base, CeedInt power) {
   CeedInt result = 1;
   while (power) {
     if (power & 1) result *= base;
@@ -281,5 +338,17 @@ static inline CeedInt CeedPowInt(CeedInt base, CeedInt power) {
 static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
   return (numer + denom - 1) / denom;
 }
+
+/**
+  @brief Return mimimum of two integers
+
+  @param[in] a  The first integer to compare
+  @param[in] b  The second integer to compare
+
+  @return The minimum of the two integers
+
+  @ref Utility
+**/
+static inline CeedInt CeedIntMin(CeedInt a, CeedInt b) { return a < b ? a : b; }
 
 #endif

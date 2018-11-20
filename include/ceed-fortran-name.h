@@ -8,7 +8,7 @@
      -DUNDERSCORE gs_setup_, etc.
    * a prefix for all external (non-FORTRAN) function names
      for example, -DPREFIX=jl_   transforms fail -> jl_fail
-   * a prefix for all external FORTRAN function names     
+   * a prefix for all external FORTRAN function names
      for example, -DFPREFIX=jlf_ transforms gs_setup_ -> jlf_gs_setup_
 */
 

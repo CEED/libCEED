@@ -38,7 +38,7 @@ PROJECT_NAME           = "libCEED"
 # could be handy for archiving the generated documentation or if some version
 # control system is used.
 
-PROJECT_NUMBER         = v0.2.1
+PROJECT_NUMBER         = v0.3
 
 # Using the PROJECT_BRIEF tag one can provide an optional one line description
 # for a project that appears at the top of each page and should give viewer a
@@ -266,7 +266,7 @@ OPTIMIZE_OUTPUT_JAVA   = NO
 # sources. Doxygen will then generate output that is tailored for Fortran.
 # The default value is: NO.
 
-OPTIMIZE_FOR_FORTRAN   = NO
+OPTIMIZE_FOR_FORTRAN   = YES
 
 # Set the OPTIMIZE_OUTPUT_VHDL tag to YES if your project consists of VHDL
 # sources. Doxygen will then generate output that is tailored for VHDL.
@@ -291,7 +291,7 @@ OPTIMIZE_OUTPUT_VHDL   = NO
 # Note that for custom extensions you also need to set FILE_PATTERNS otherwise
 # the files are not read by doxygen.
 
-EXTENSION_MAPPING      =
+EXTENSION_MAPPING      = f=FortranFixed, usr=FortranFixed
 
 # If the MARKDOWN_SUPPORT tag is enabled then doxygen pre-processes all comments
 # according to the Markdown format, which allows for more readable
@@ -703,7 +703,7 @@ FILE_VERSION_FILTER    =
 # DoxygenLayout.xml, doxygen will parse it automatically even if the LAYOUT_FILE
 # tag is left empty.
 
-LAYOUT_FILE            =
+LAYOUT_FILE            = doc/doxygenlayout.xml
 
 # The CITE_BIB_FILES tag can be used to specify one or more bib files containing
 # the reference definitions. This must be a list of .bib files. The .bib
@@ -791,16 +791,19 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = . \
+                         doc \
                          include \
+                         interface \
                          examples/ceed \
                          examples/mfem \
                          examples/nek5000 \
                          examples/petsc \
                          backends/ref \
                          backends/occa \
-                         backends/optimized \
-                         backends/tmpl \
-                         backends/magma
+                         backends/blocked \
+                         backends/template \
+                         backends/magma \
+                         tests \
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -868,7 +871,8 @@ FILE_PATTERNS          = *.c \
                          *.vhd \
                          *.vhdl \
                          *.ucf \
-                         *.qsf
+                         *.qsf \
+                         *.usr
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.
@@ -883,11 +887,8 @@ RECURSIVE              = NO
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
-EXCLUDE                = include/ceed-impl.h \
-                         include/ceedf.h \
-                         include/ceed-fortran-name.h \
-                         tests
-
+EXCLUDE                = include/ceedf.h \
+                         include/ceed-fortran-name.h
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
@@ -920,7 +921,8 @@ EXCLUDE_SYMBOLS        =
 # that contain example code fragments that are included (see the \include
 # command).
 
-EXAMPLE_PATH           =
+EXAMPLE_PATH           = tests \
+                         backends/ref
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp and
@@ -940,7 +942,7 @@ EXAMPLE_RECURSIVE      = NO
 # that contain images that are to be included in the documentation (see the
 # \image command).
 
-IMAGE_PATH             = .
+IMAGE_PATH             = doc
 
 # The INPUT_FILTER tag can be used to specify a program that doxygen should
 # invoke to filter for each input file. Doxygen will invoke the filter program
@@ -1022,7 +1024,7 @@ INLINE_SOURCES         = NO
 # Fortran comments will always remain visible.
 # The default value is: YES.
 
-STRIP_CODE_COMMENTS    = NO
+STRIP_CODE_COMMENTS    = YES
 
 # If the REFERENCED_BY_RELATION tag is set to YES then for each documented
 # function all documented functions referencing it will be listed.

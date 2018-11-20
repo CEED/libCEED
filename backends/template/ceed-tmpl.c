@@ -14,40 +14,21 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
+#include <ceed-backend.h>
 #include <string.h>
-#include "ceed-tmpl.h"
-
-static int CeedDestroy_Tmpl(Ceed ceed) {
-  int ierr;
-  Ceed_Tmpl *impl = ceed->data;
-  Ceed ceedref = impl->ceedref;
-  ierr = CeedFree(&ceedref); CeedChk(ierr);
-  ierr = CeedFree(&impl); CeedChk(ierr);
-  return 0;
-}
 
 static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
+  int ierr;
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/tmpl"))
     return CeedError(ceed, 1, "Tmpl backend cannot use resource: %s", resource);
 
-  int ierr;
-  Ceed_Tmpl *impl;
   Ceed ceedref;
 
-  ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  CeedInit("/cpu/self/ref", &ceedref);
-  ceed->data = impl;
-  impl->ceedref = ceedref;
-
-  ceed->VecCreate = CeedVectorCreate_Tmpl;
-  ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Tmpl;
-  ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Tmpl;
-  ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreate_Tmpl;
-  ceed->QFunctionCreate = CeedQFunctionCreate_Tmpl;
-  ceed->OperatorCreate = CeedOperatorCreate_Tmpl;
-  ceed->Destroy = CeedDestroy_Tmpl;
+  // Create refrence CEED that implementation will be dispatched
+  //   through unless overridden
+  CeedInit("/cpu/self/blocked", &ceedref);
+  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
 
   return 0;
 }

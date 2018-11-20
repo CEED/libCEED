@@ -14,6 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+/// @file
+/// Private header for frontend components of libCEED
 #ifndef _ceed_impl_h
 #define _ceed_impl_h
 
@@ -24,37 +26,34 @@
 
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
+#define CEED_NUM_BACKEND_FUNCTIONS 25
+
+// Lookup table field for backend functions
+typedef struct {
+  const char *fname;
+  size_t offset;
+} foffset;
 
 struct Ceed_private {
+  Ceed delegate;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list);
   int (*Destroy)(Ceed);
-  int (*VecCreate)(Ceed, CeedInt, CeedVector);
-  int (*ElemRestrictionCreate)(CeedElemRestriction, CeedMemType, CeedCopyMode,
-                               const CeedInt *);
-  int (*ElemRestrictionCreateBlocked)(CeedElemRestriction, CeedMemType, CeedCopyMode,
-                               const CeedInt *);
-  int (*BasisCreateTensorH1)(Ceed, CeedInt, CeedInt, CeedInt, const CeedScalar *,
+  int (*VecCreate)(CeedInt, CeedVector);
+  int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode,
+                               const CeedInt *, CeedElemRestriction);
+  int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode,
+                                      const CeedInt *, CeedElemRestriction);
+  int (*BasisCreateTensorH1)(CeedInt, CeedInt, CeedInt, const CeedScalar *,
                              const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
+  int (*BasisCreateH1)(CeedElemTopology, CeedInt, CeedInt, CeedInt,
+                       const CeedScalar *,
+                       const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*QFunctionCreate)(CeedQFunction);
   int (*OperatorCreate)(CeedOperator);
   int refcount;
   void *data;
+  foffset foffsets[CEED_NUM_BACKEND_FUNCTIONS];
 };
-
-/* In the next 3 functions, p has to be the address of a pointer type, i.e. p
-   has to be a pointer to a pointer. */
-CEED_INTERN int CeedMallocArray(size_t n, size_t unit, void *p);
-CEED_INTERN int CeedCallocArray(size_t n, size_t unit, void *p);
-CEED_INTERN int CeedReallocArray(size_t n, size_t unit, void *p);
-CEED_INTERN int CeedFree(void *p);
-
-#define CeedChk(ierr) do { if (ierr) return ierr; } while (0)
-/* Note that CeedMalloc and CeedCalloc will, generally, return pointers with
-   different memory alignments: CeedMalloc returns pointers aligned at
-   CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
-#define CeedMalloc(n, p) CeedMallocArray((n), sizeof(**(p)), p)
-#define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
-#define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
 struct CeedVector_private {
   Ceed ceed;
@@ -67,6 +66,7 @@ struct CeedVector_private {
   int (*Destroy)(CeedVector);
   int refcount;
   CeedInt length;
+  uint64_t state;
   void *data;
 };
 
@@ -88,26 +88,31 @@ struct CeedElemRestriction_private {
 
 struct CeedBasis_private {
   Ceed ceed;
-  int (*Apply)(CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, const CeedScalar *,
-               CeedScalar *);
+  int (*Apply)(CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode,
+               CeedVector, CeedVector);
   int (*Destroy)(CeedBasis);
   int refcount;
+  bool tensorbasis;      /* flag for tensor basis */
   CeedInt dim;           /* topological dimension */
   CeedInt ncomp;         /* number of field components (1 for scalar fields) */
   CeedInt P1d;           /* number of nodes in one dimension */
   CeedInt Q1d;           /* number of quadrature points in one dimension */
-  CeedScalar *qref1d;    /* Array of length Q1d holding the locations of 
+  CeedInt P;             /* total number of nodes */
+  CeedInt Q;             /* total number of quadrature points */
+  CeedScalar *qref1d;    /* Array of length Q1d holding the locations of
                             quadrature points on the 1D reference element [-1, 1] */
-  CeedScalar *qweight1d; /* array of length Q1d holding the quadrature weights on 
+  CeedScalar *qweight1d; /* array of length Q1d holding the quadrature weights on
                             the reference element */
-  CeedScalar *interp1d;  /* row-major Q1d × P1d matrix expressing the values of 
+  CeedScalar
+  *interp1d;  /* row-major matrix of shape [Q1d, P1d] expressing the values of
                             nodal basis functions at quadrature points */
-  CeedScalar *grad1d;    /* row-major Q1d × P1d matrix expressing derivatives of 
+  CeedScalar
+  *grad1d;    /* row-major matrix of shape [Q1d, P1d] matrix expressing derivatives of
                             nodal basis functions at quadrature points */
   void *data;            /* place for the backend to store any data */
 };
 
-struct CeedQFunctionField {
+struct CeedQFunctionField_private {
   const char *fieldname;
   CeedInt ncomp;
   CeedEvalMode emode;
@@ -115,13 +120,13 @@ struct CeedQFunctionField {
 
 struct CeedQFunction_private {
   Ceed ceed;
-  int (*Apply)(CeedQFunction, CeedInt, const CeedScalar *const *,
-               CeedScalar *const *);
+  int (*Apply)(CeedQFunction, CeedInt, CeedVector *,
+               CeedVector *);
   int (*Destroy)(CeedQFunction);
   int refcount;
   CeedInt vlength;    // Number of quadrature points must be padded to a multiple of vlength
-  struct CeedQFunctionField inputfields[16];
-  struct CeedQFunctionField outputfields[16];
+  CeedQFunctionField *inputfields;
+  CeedQFunctionField *outputfields;
   CeedInt numinputfields, numoutputfields;
   CeedQFunctionCallback function;
   const char *fcuda;
@@ -129,12 +134,15 @@ struct CeedQFunction_private {
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */
   void *data;     /* backend data */
+  char* spec;     /* the string spec of the qFunction */
 };
 
-struct CeedOperatorField {
+struct CeedOperatorField_private {
   CeedElemRestriction Erestrict; /// Restriction from L-vector or NULL if identity
+  CeedTransposeMode lmode;       /// Transpose mode for lvector ordering
   CeedBasis basis;               /// Basis or NULL for collocated fields
-  CeedVector vec;                /// State vector for passive fields, NULL for active fields
+  CeedVector
+  vec;                /// State vector for passive fields, NULL for active fields
 };
 
 struct CeedOperator_private {
@@ -143,10 +151,9 @@ struct CeedOperator_private {
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector,
                        CeedVector, CeedRequest *);
-  int (*GetQData)(CeedOperator, CeedVector *);
   int (*Destroy)(CeedOperator);
-  struct CeedOperatorField inputfields[16];
-  struct CeedOperatorField outputfields[16];
+  CeedOperatorField *inputfields;
+  CeedOperatorField *outputfields;
   CeedInt numelements; /// Number of elements
   CeedInt numqpoints;  /// Number of quadrature points over all elements
   CeedInt nfields;     /// Number of fields that have been set
@@ -157,6 +164,14 @@ struct CeedOperator_private {
   void *data;
 };
 
-static inline CeedInt CeedIntMin(CeedInt a, CeedInt b) { return a < b ? a : b; }
+CEED_INTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,
+                                const char *, va_list);
+CEED_INTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
+                               const char *, va_list);
+CEED_INTERN int CeedErrorExit(Ceed, const char *, int, const char *, int,
+                              const char *, va_list);
+CEED_INTERN int CeedSetErrorHandler(Ceed ceed,
+                                    int (eh)(Ceed, const char *, int, const char *,
+                                        int, const char *, va_list));
 
 #endif

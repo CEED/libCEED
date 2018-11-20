@@ -44,8 +44,8 @@ if [[ "$#" -eq 1 && "$1" -eq "clean" ]]; then
     printf "y\n" | ./makenek clean 2>&1 >> /dev/null
   fi
   rm makenek* SESSION.NAME 2> /dev/null
-  for i in `seq 1 6 1`; do
-    rm bp$i bp$i*log*              2> /dev/null
+  for i in `seq 1 6`; do
+    rm -f bp$i bp$i.f bp$i*log*              2> /dev/null
   done
   find ./boxes -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
   exit 0
@@ -68,8 +68,8 @@ cp $NEK5K_DIR/bin/makenek .
 sed -i.bak -e "s|^#FC=.*|FC=\"$FC\"|" \
     -e "s|^#CC=.*|CC=\"$CC\"|" \
     -e "s|^#SOURCE_ROOT=.*|SOURCE_ROOT=\"$NEK5K_DIR\"|" \
-    -e "s|^#FFLAGS=.*|FFLAGS+=\"-I${CEED_DIR}/include\"|" \
-    -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed\"|" makenek
+    -e "s|^#FFLAGS=.*|FFLAGS+=\"-g -I${CEED_DIR}/include\"|" \
+    -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-g -L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed\"|" makenek
 
 # Build examples
 for ex in "${EXAMPLES[@]}"; do

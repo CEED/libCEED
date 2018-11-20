@@ -17,28 +17,48 @@
 #include "ceed-occa.h"
 
 // *****************************************************************************
-// * Alloc function for no-operator case
+// * Alloc function for with operator case
 // *****************************************************************************
 int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
                                 CeedInt *idx_p,
                                 CeedInt *iOf7) {
+  int ierr;
   CeedInt idx = 0;
-  const Ceed ceed = qf->ceed;
-  CeedQFunction_Occa *qf_data = qf->data;
+  Ceed ceed;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  CeedQFunction_Occa *qf_data;
+  ierr = CeedQFunctionGetData(qf, (void*)&qf_data); CeedChk(ierr);
   CeedOperator op = qf_data->op;
-  Ceed_Occa *ceed_data = qf->ceed->data;
+  Ceed_Occa *ceed_data;
+  ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
   const occaDevice device = ceed_data->device;
-  const int nIn = qf->numinputfields; assert(nIn<N_MAX_IDX);
-  const CeedInt cbytes = qf->ctxsize;
+  CeedInt nIn;
+  ierr = CeedQFunctionGetNumArgs(qf, &nIn, NULL); CeedChk(ierr); 
+  assert(nIn<N_MAX_IDX);
+  size_t cbytes;
+  ierr = CeedQFunctionGetContextSize(qf, &cbytes); CeedChk(ierr);
   const CeedInt bytes = sizeof(CeedScalar);
-  dbg("[CeedQFunction][AllocOpIn]");
   // ***************************************************************************
+  dbg("[CeedQFunction][AllocOpIn]");
+  CeedQFunctionField *inputfields;
+  ierr = CeedQFunctionGetFields(qf, &inputfields, NULL); CeedChk(ierr);
+  CeedOperatorField *opfields;
+  ierr = CeedOperatorGetFields(op, &opfields, NULL); CeedChk(ierr);
   for (CeedInt i=0; i<nIn; i++) {
     dbg("\t[CeedQFunction][AllocOpIn] # %d/%d",i,nIn-1);
-    const char *name = qf->inputfields[i].fieldname;
-    const CeedInt ncomp = qf->inputfields[i].ncomp;
-    const CeedEvalMode emode = qf->inputfields[i].emode;
-    const CeedInt dim = op->inputfields[i].basis?op->inputfields[i].basis->dim:0;
+    char *name;
+    ierr = CeedQFunctionFieldGetName(inputfields[i], &name); CeedChk(ierr);
+    CeedInt ncomp;
+    ierr = CeedQFunctionFieldGetNumComponents(inputfields[i], &ncomp);
+    CeedChk(ierr);
+    CeedEvalMode emode;
+    ierr = CeedQFunctionFieldGetEvalMode(inputfields[i], &emode); CeedChk(ierr);
+    CeedBasis basis;
+    ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
+    CeedInt dim = 0;
+    if (basis != CEED_BASIS_COLLOCATED) {
+      ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+    }
     switch(emode) {
     case CEED_EVAL_INTERP:
       dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > INTERP (%d)", name,Q*ncomp);
@@ -81,26 +101,45 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
 }
 
 // *****************************************************************************
-// * Alloc function for no-operator case
+// * Alloc function for with operator case
 // *****************************************************************************
 int CeedQFunctionAllocOpOut_Occa(CeedQFunction qf, CeedInt Q,
                                  CeedInt *odx_p,
                                  CeedInt *oOf7) {
+  int ierr;
   CeedInt odx = 0;
-  const Ceed ceed = qf->ceed;
-  CeedQFunction_Occa *data = qf->data;
+  Ceed ceed;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  CeedQFunction_Occa *data;
+  ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
   CeedOperator op = data->op;
-  Ceed_Occa *ceed_data = qf->ceed->data;
+  Ceed_Occa *ceed_data;
+  ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
   const occaDevice device = ceed_data->device;
   const CeedInt bytes = sizeof(CeedScalar);
-  const int nOut = qf->numoutputfields; assert(nOut<N_MAX_IDX);
+  CeedInt nOut;
+  ierr = CeedQFunctionGetNumArgs(qf, NULL, &nOut); CeedChk(ierr);
+  assert(nOut<N_MAX_IDX);
   dbg("\n[CeedQFunction][AllocOpOut]");
+  CeedQFunctionField *outputfields;
+  ierr = CeedQFunctionGetFields(qf, NULL, &outputfields); CeedChk(ierr);
+  CeedOperatorField *opfields;
+  ierr = CeedOperatorGetFields(op, NULL, &opfields); CeedChk(ierr);
   for (CeedInt i=0; i<nOut; i++) {
     dbg("\t[CeedQFunction][AllocOpOut] # %d/%d",i,nOut-1);
-    const CeedEvalMode emode = qf->outputfields[i].emode;
-    const char *name = qf->outputfields[i].fieldname;
-    const CeedInt ncomp = qf->outputfields[i].ncomp;
-    const CeedInt dim = op->outputfields[i].basis?op->outputfields[i].basis->dim:0;
+    char *name;
+    ierr = CeedQFunctionFieldGetName(outputfields[i], &name); CeedChk(ierr);
+    CeedInt ncomp;
+    ierr = CeedQFunctionFieldGetNumComponents(outputfields[i], &ncomp);
+    CeedChk(ierr);
+    CeedEvalMode emode;
+    ierr = CeedQFunctionFieldGetEvalMode(outputfields[i], &emode); CeedChk(ierr);
+    CeedBasis basis;
+    ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
+    CeedInt dim = 0;
+    if (basis != CEED_BASIS_COLLOCATED) {
+      ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+    }
     switch(emode) {
     case CEED_EVAL_NONE:
       dbg("[CeedQFunction][AllocOpOut] out \"%s\" NONE (%d)",name,Q*ncomp);
@@ -142,21 +181,30 @@ int CeedQFunctionAllocOpOut_Occa(CeedQFunction qf, CeedInt Q,
 }
 
 // *****************************************************************************
-// * Fill function for no-operator case
+// * Fill function for with operator case
 // *****************************************************************************
 int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
                              occaMemory d_indata,
                              CeedInt *iOf7,
                              CeedInt *oOf7,
                              const CeedScalar *const *in) {
-  const Ceed ceed = qf->ceed;
-  const int nIn = qf->numinputfields;
+  int ierr;
+  Ceed ceed;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  CeedInt nIn;
+  ierr = CeedQFunctionGetNumArgs(qf, &nIn, NULL); CeedChk(ierr);
   const CeedInt bytes = sizeof(CeedScalar);
   dbg("\n[CeedQFunction][FillOp]");
+  CeedQFunctionField *inputfields;
+  ierr = CeedQFunctionGetFields(qf, &inputfields, NULL); CeedChk(ierr);
   for (CeedInt i=0; i<nIn; i++) {
-    const CeedInt ncomp = qf->inputfields[i].ncomp;
-    const char *name = qf->inputfields[i].fieldname;
-    const CeedEvalMode emode = qf->inputfields[i].emode;
+    char *name;
+    ierr = CeedQFunctionFieldGetName(inputfields[i], &name); CeedChk(ierr);
+    CeedInt ncomp;
+    ierr = CeedQFunctionFieldGetNumComponents(inputfields[i], &ncomp);
+    CeedChk(ierr);
+    CeedEvalMode emode;
+    ierr = CeedQFunctionFieldGetEvalMode(inputfields[i], &emode); CeedChk(ierr);
     switch(emode) {
     case CEED_EVAL_NONE: {
       dbg("[CeedQFunction][FillOp] \"%s\" > NONE",name);

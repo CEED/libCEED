@@ -13,11 +13,11 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+#include <ceed-backend.h>
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
 #include <sys/stat.h>
-#include <ceed-impl.h>
 
 // *****************************************************************************
 #define OCCA_PATH_MAX 4096
@@ -42,18 +42,19 @@
 // *****************************************************************************
 typedef struct {
   CeedScalar *h_array;
-  CeedScalar *used_pointer;
+  CeedScalar *h_array_allocated;
   occaMemory d_array;
 } CeedVector_Occa;
 
 // *****************************************************************************
 // * CeedElemRestriction Occa struct
 // *****************************************************************************
+#define CEED_OCCA_NUM_RESTRICTION_KERNELS 9
 typedef struct {
   occaMemory d_indices;
   occaMemory d_toffsets;
   occaMemory d_tindices;
-  occaKernel kRestrict[9];
+  occaKernel kRestrict[CEED_OCCA_NUM_RESTRICTION_KERNELS];
 } CeedElemRestriction_Occa;
 
 // *****************************************************************************
@@ -76,14 +77,12 @@ typedef struct {
 typedef struct {
   CeedVector *Evecs; /// E-vectors needed to apply operator (in followed by out)
   CeedScalar **Edata;
-  CeedScalar **qdata;
-  CeedScalar **qdata_alloc; /// Inputs followed by outputs
-  CeedScalar **indata;
-  CeedScalar **outdata;
+  CeedVector *evecsin;   /// Input E-vectors needed to apply operator
+  CeedVector *evecsout;   /// Output E-vectors needed to apply operator
+  CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
+  CeedVector *qvecsout;   /// Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
-  CeedInt    numqin;
-  CeedInt    numqout;
 } CeedOperator_Occa;
 
 // *****************************************************************************
@@ -134,9 +133,18 @@ void CeedDebugImpl256(const Ceed,const unsigned char,const char*,...);
 #define dbg(...) CeedDebug256(ceed,(unsigned char)CEED_DEBUG_COLOR, ## __VA_ARGS__)
 
 // *****************************************************************************
-CEED_INTERN int CeedBasisCreateTensorH1_Occa(Ceed ceed, CeedInt dim,
+CEED_INTERN int CeedBasisCreateTensorH1_Occa(CeedInt dim,
     CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
     const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
+
+// *****************************************************************************
+CEED_INTERN int CeedBasisCreateH1_Occa(CeedElemTopology topo,
+    CeedInt dim, CeedInt ndof, CeedInt nqpts,
+    const CeedScalar *interp1d,
+    const CeedScalar *grad1d,
+    const CeedScalar *qref1d,
+    const CeedScalar *qweight1d,
+    CeedBasis basis);
 
 // *****************************************************************************
 CEED_INTERN int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt Q,
@@ -149,8 +157,14 @@ CEED_INTERN int CeedOperatorCreate_Occa(CeedOperator op);
 CEED_INTERN int CeedQFunctionCreate_Occa(CeedQFunction qf);
 
 // *****************************************************************************
-CEED_INTERN int CeedElemRestrictionCreate_Occa(const CeedElemRestriction res,
-    const CeedMemType mtype, const CeedCopyMode cmode, const CeedInt *indices);
+CEED_INTERN int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
+    const CeedCopyMode cmode, const CeedInt *indices,
+    const CeedElemRestriction res);
 
 // *****************************************************************************
-CEED_INTERN int CeedVectorCreate_Occa(Ceed ceed, CeedInt n, CeedVector vec);
+CEED_INTERN int CeedElemRestrictionCreateBlocked_Occa(const CeedMemType mtype,
+     const CeedCopyMode cmode, const CeedInt *indices,
+     const CeedElemRestriction res);
+
+// *****************************************************************************
+CEED_INTERN int CeedVectorCreate_Occa(CeedInt n, CeedVector vec);

@@ -1,2 +1,31 @@
 fixes:
   - "build/backends/::backends/"
+
+coverage:
+  status:
+    project:
+      default: off
+      interface:
+        flags: interface
+      backends:
+        flags: backends
+    patch:
+      default: off
+      interface:
+        flags: interface
+      backends:
+        flags: backends
+
+flags:
+  interface:
+    paths:
+      - interface/
+  backends:
+    paths:
+      - backends/
+  tests:
+    paths:
+      - tests/
+  examples:
+    paths:
+      - examples/

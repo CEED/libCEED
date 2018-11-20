@@ -14,7 +14,7 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
+#include <ceed-backend.h>
 #include <string.h>
 
 typedef struct {
@@ -28,31 +28,40 @@ typedef struct {
 } CeedElemRestriction_Ref;
 
 typedef struct {
+  const CeedScalar **inputs;
+  CeedScalar **outputs;
+  bool setupdone;
+} CeedQFunction_Ref;
+
+typedef struct {
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
-  CeedScalar **edata;
-  CeedScalar **qdata; /// Inputs followed by outputs
-  CeedScalar
-  **qdata_alloc; /// Allocated quadrature data arrays (to be freed by us)
-  CeedScalar **indata;
-  CeedScalar **outdata;
+  CeedScalar ** edata;
+  CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
+  CeedVector *qvecsout;   /// Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
-  CeedInt    numqin;
-  CeedInt    numqout;
+  CeedVector tempvec;
 } CeedOperator_Ref;
 
-CEED_INTERN int CeedVectorCreate_Ref(Ceed ceed, CeedInt n, CeedVector vec);
+CEED_INTERN int CeedVectorCreate_Ref(CeedInt n, CeedVector vec);
 
-CEED_INTERN int CeedElemRestrictionCreate_Ref(CeedElemRestriction r,
-    CeedMemType mtype,
-    CeedCopyMode cmode, const CeedInt *indices);
+CEED_INTERN int CeedElemRestrictionCreate_Ref(CeedMemType mtype,
+    CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r);
 
-CEED_INTERN int CeedBasisCreateTensorH1_Ref(Ceed ceed, CeedInt dim, CeedInt P1d,
+CEED_INTERN int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d,
     const CeedScalar *grad1d,
     const CeedScalar *qref1d,
     const CeedScalar *qweight1d,
+    CeedBasis basis);
+
+CEED_INTERN int CeedBasisCreateH1_Ref(CeedElemTopology topo,
+    CeedInt dim, CeedInt ndof, CeedInt nqpts,
+    const CeedScalar *interp,
+    const CeedScalar *grad,
+    const CeedScalar *qref,
+    const CeedScalar *qweight,
     CeedBasis basis);
 
 CEED_INTERN int CeedQFunctionCreate_Ref(CeedQFunction qf);

@@ -27,6 +27,9 @@
 //     ex1 -m ../../../mfem/data/star.vtk -o 3
 //     ex1 -m ../../../mfem/data/inline-segment.mesh -o 8
 
+/// @file
+/// libCEED example using mass operator to compute volume
+
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
@@ -38,7 +41,7 @@ struct BuildContext { CeedInt dim, space_dim; };
 /// libCEED Q-function for building quadrature data for a mass operator
 static int f_build_mass(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
-  // in[0] is Jacobians, size (Q x nc x dim) with column-major layout
+  // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
   struct BuildContext *bc = (struct BuildContext*)ctx;
   const CeedScalar *J = in[0], *qw = in[1];
@@ -211,16 +214,16 @@ int main(int argc, const char *argv[]) {
   // Create the operator that builds the quadrature data for the mass operator.
   CeedOperator build_oper;
   CeedOperatorCreate(ceed, build_qfunc, NULL, NULL, &build_oper);
-  CeedOperatorSetField(build_oper, "dx", mesh_restr, mesh_basis,
-                       CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(build_oper, "weights", mesh_restr_i,
+  CeedOperatorSetField(build_oper, "dx", mesh_restr, CEED_NOTRANSPOSE,
+                       mesh_basis,CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(build_oper, "weights", mesh_restr_i, CEED_NOTRANSPOSE,
                        mesh_basis, CEED_VECTOR_NONE);
-  CeedOperatorSetField(build_oper, "rho", sol_restr_i,
-                       CEED_BASIS_COLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(build_oper, "rho", sol_restr_i, CEED_NOTRANSPOSE,
+                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Compute the quadrature data for the mass operator.
   CeedVector rho;
-  CeedInt elem_qpts = CeedPowInt(num_qpts, dim);
+  CeedInt elem_qpts = CeedIntPow(num_qpts, dim);
   CeedInt num_elem = 1;
   for (int d = 0; d < dim; d++)
     num_elem *= nxyz[d];
@@ -246,10 +249,12 @@ int main(int argc, const char *argv[]) {
   // Create the mass operator.
   CeedOperator oper;
   CeedOperatorCreate(ceed, apply_qfunc, NULL, NULL, &oper);
-  CeedOperatorSetField(oper, "u", sol_restr, sol_basis, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(oper, "rho", sol_restr_i,
-                       CEED_BASIS_COLOCATED, rho);
-  CeedOperatorSetField(oper, "v", sol_restr, sol_basis, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(oper, "u", sol_restr, CEED_NOTRANSPOSE,
+                       sol_basis, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(oper, "rho", sol_restr_i, CEED_NOTRANSPOSE,
+                       CEED_BASIS_COLLOCATED, rho);
+  CeedOperatorSetField(oper, "v", sol_restr, CEED_NOTRANSPOSE,
+                       sol_basis, CEED_VECTOR_ACTIVE);
 
   // Compute the mesh volume using the mass operator: vol = 1^T.M.1.
   if (!test) {
@@ -316,7 +321,7 @@ int main(int argc, const char *argv[]) {
 int GetCartesianMeshSize(int dim, int order, int prob_size, int nxyz[3]) {
   // Use the approximate formula:
   //    prob_size ~ num_elem * order^dim
-  CeedInt num_elem = prob_size / CeedPowInt(order, dim);
+  CeedInt num_elem = prob_size / CeedIntPow(order, dim);
   CeedInt s = 0;  // find s: num_elem/2 < 2^s <= num_elem
   while (num_elem > 1) {
     num_elem /= 2;
@@ -336,8 +341,8 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
                               CeedElemRestriction *restr,
                               CeedElemRestriction *restr_i) {
   CeedInt p = order, pp1 = p+1;
-  CeedInt ndof = CeedPowInt(pp1, dim); // number of scal. dofs per element
-  CeedInt elem_qpts = CeedPowInt(num_qpts, dim); // number of qpts per element
+  CeedInt ndof = CeedIntPow(pp1, dim); // number of scal. dofs per element
+  CeedInt elem_qpts = CeedIntPow(num_qpts, dim); // number of qpts per element
   CeedInt nd[3], num_elem = 1, scalar_size = 1;
   for (int d = 0; d < dim; d++) {
     num_elem *= nxyz[d];
@@ -366,8 +371,9 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
   CeedElemRestrictionCreate(ceed, num_elem, ndof, scalar_size,
                             ncomp, CEED_MEM_HOST,
                             CEED_COPY_VALUES, el_dof, restr);
-  CeedElemRestrictionCreateIdentity(ceed, num_elem, elem_qpts, elem_qpts*num_elem*ncomp,
-                            ncomp, restr_i);
+  CeedElemRestrictionCreateIdentity(ceed, num_elem, elem_qpts,
+                                    elem_qpts*num_elem,
+                                    ncomp, restr_i);
   free(el_dof);
   return 0;
 }
