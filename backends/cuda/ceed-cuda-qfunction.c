@@ -54,8 +54,27 @@ int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q,
 }
 
 static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
-    const CeedScalar *const *u, CeedScalar *const *v) {
-  // TODO Not enough info to implement
+                                   CeedVector *U, CeedVector *V) {
+  int ierr;
+  CeedQFunction_Cuda *data;
+  ierr = CeedQFunctionGetData(qf, (void*)&data);
+  CeedChk(ierr);
+  Ceed_Cuda *ceed;
+  ierr = CeedGetData(qf->ceed, ceed);
+  const int blocksize = ceed->optblocksize;
+
+  for (CeedInt i = 0; i < qf->numinputfields; i++) {
+    CeedVectorGetArrayRead(U[i], CEED_MEM_DEVICE, data->d_u + i);
+  }
+
+  for (CeedInt i = 0; i < qf->numoutputfields; i++) {
+    CeedVectorGetArray(V[i], CEED_MEM_DEVICE, data->d_v + i);
+  }
+
+  // void *args[] = {&data->d_c, (void*)&Q, &data->d_u, &data->d_v};
+  void *args[] = {&qf->ctx, (void*)&Q, &data->d_u, &data->d_v};
+  ierr = run_kernel(qf->ceed, data->callback, CeedDivUpInt(Q, blocksize), blocksize, args);
+
   return 1;
 }
 
