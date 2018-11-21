@@ -18,16 +18,15 @@
 #include "ceed-libparanumal.h"
 #include "../occa/ceed-occa.h"
 
-static int CeedInit_Ref(const char *resource, Ceed ceed) {
-  if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/ref"))
-    return CeedError(ceed, 1, "Ref backend cannot use resource: %s", resource);
-  ceed->VecCreate = CeedVectorCreate_Occa;
-  ceed->BasisCreateTensorH1 = NULL;
-  ceed->BasisCreateH1 = NULL;
-  ceed->ElemRestrictionCreate = NULL;
-  ceed->ElemRestrictionCreateBlocked = NULL;
-  ceed->QFunctionCreate = NULL;
+static int CeedInit_libparanumal(const char *resource, Ceed ceed) {
+  Ceed ceeddelegate;
+  // Create delegate CEED that implementation will be dispatched
+  //   through unless overridden
+  CeedInit("/gpu/occa", &ceeddelegate);
+  ierr = CeedSetDelegate(ceed, &ceeddelegate);
+  CeedChk(ierr);
+  if (strcmp(resource, "/gpu/libparanumal"))
+    return CeedError(ceed, 1, "LibParanumal backend cannot use resource: %s", resource);
   ceed->OperatorCreate = CeedOperatorCreate_libparanumal;
   return 0;
 }
@@ -35,6 +34,6 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
 __attribute__((constructor))
 static void Register(void) {
 //! [Register]
-  CeedRegister("/gpu/libparanumal", CeedInit_Ref, 20);
+  CeedRegister("/gpu/libparanumal", CeedInit_libparanumal, 20);
 //! [Register]
 }
