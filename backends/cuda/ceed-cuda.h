@@ -13,7 +13,8 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-
+#include <ceed-backend.h>
+#include "../include/ceed.h"
 #include <ceed-impl.h>
 #include <nvrtc.h>
 #include <cuda.h>
@@ -57,8 +58,8 @@ typedef struct {
 typedef struct {
   CUmodule module;
   CUfunction callback;
-  const CeedScalar *const *d_u;
-  CeedScalar *const *d_v;
+  const CeedScalar ** d_u;
+  CeedScalar ** d_v;
   void *d_c;
 } CeedQFunction_Cuda;
 
@@ -83,18 +84,17 @@ CEED_INTERN int get_kernel(Ceed ceed, CUmodule module, const char *name, CUfunct
 
 CEED_INTERN int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize, const int blockSize, void **args);
 
-CEED_INTERN int CeedVectorCreate_Cuda(Ceed ceed, CeedInt n, CeedVector vec);
+CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
 
-CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedElemRestriction r,
-    CeedMemType mtype,
-    CeedCopyMode cmode, const CeedInt *indices);
+CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
+    CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r);
 
 CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
 
 CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q, const CeedVector *const u, const CeedVector* v);
 
-CEED_INTERN int CeedBasisCreateTensorH1_Cuda(Ceed ceed, CeedInt dim, CeedInt P1d,
-    CeedInt Q1d, const CeedScalar *interp1d,
+CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q1d,
+    const CeedScalar *interp1d,
     const CeedScalar *grad1d,
     const CeedScalar *qref1d,
     const CeedScalar *qweight1d,

@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
+#include "../include/ceed.h"
 #include "ceed-cuda.h"
 
 static const char *basiskernels = QUOTE(
@@ -150,8 +151,8 @@ extern "C" __global__ void weight(const CeedScalar * __restrict__ qweight1d, Cee
 }
 );
 
-int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode tmode,
-    CeedEvalMode emode, const CeedVector u, CeedVector v) {
+int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode tmode,
+    CeedEvalMode emode, CeedVector u, CeedVector v) {
   int ierr;
   const Ceed_Cuda* ceed = (Ceed_Cuda*)basis->ceed->data;
   CeedBasis_Cuda *data = (CeedBasis_Cuda*)basis->data;
@@ -180,36 +181,36 @@ int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem, CeedTranspose
   return 0;
 }
 
-static int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode tmode,
-    CeedEvalMode emode,
-    const CeedScalar *u, CeedScalar *v) {
-  int ierr;
+// static int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode tmode,
+//     CeedEvalMode emode,
+//     CeedVector *U, CeedVector *V) {
+//   int ierr;
 
-  CeedVector tmp_u, tmp_v;
-  const CeedInt ncomp = basis->ncomp;
-  const CeedInt dim = basis->dim;
-  const CeedInt nqpt = CeedPowInt(basis->Q1d, dim);
-  const CeedInt nppt = CeedPowInt(basis->P1d, dim);
-  const CeedInt esize = (emode & CEED_EVAL_INTERP ? nqpt * ncomp : 0) + (emode & CEED_EVAL_GRAD ? nqpt * ncomp * dim : 0) + (emode & CEED_EVAL_WEIGHT ? nqpt : 0);
-  const CeedInt usize = tmode == CEED_TRANSPOSE ? esize : nppt*ncomp;
-  const CeedInt vsize = tmode == CEED_TRANSPOSE ? nppt*ncomp : esize;
-  ierr = CeedVectorCreate(basis->ceed, usize * nelem, &tmp_u); CeedChk(ierr);
-  ierr = CeedVectorCreate(basis->ceed, vsize * nelem, &tmp_v); CeedChk(ierr);
+//   CeedVector tmp_u, tmp_v;
+//   const CeedInt ncomp = basis->ncomp;
+//   const CeedInt dim = basis->dim;
+//   const CeedInt nqpt = CeedIntPow(basis->Q1d, dim);
+//   const CeedInt nppt = CeedIntPow(basis->P1d, dim);
+//   const CeedInt esize = (emode & CEED_EVAL_INTERP ? nqpt * ncomp : 0) + (emode & CEED_EVAL_GRAD ? nqpt * ncomp * dim : 0) + (emode & CEED_EVAL_WEIGHT ? nqpt : 0);
+//   const CeedInt usize = tmode == CEED_TRANSPOSE ? esize : nppt*ncomp;
+//   const CeedInt vsize = tmode == CEED_TRANSPOSE ? nppt*ncomp : esize;
+//   ierr = CeedVectorCreate(basis->ceed, usize * nelem, &tmp_u); CeedChk(ierr);
+//   ierr = CeedVectorCreate(basis->ceed, vsize * nelem, &tmp_v); CeedChk(ierr);
 
-  if (!(emode & CEED_EVAL_WEIGHT)) {
-    ierr = CeedVectorSetArray(tmp_u, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)u); CeedChk(ierr);
-  }
-  ierr = CeedVectorSetArray(tmp_v, CEED_MEM_HOST, CEED_USE_POINTER, v); CeedChk(ierr);
+//   if (!(emode & CEED_EVAL_WEIGHT)) {
+//     ierr = CeedVectorSetArray(tmp_u, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)u); CeedChk(ierr);
+//   }
+//   ierr = CeedVectorSetArray(tmp_v, CEED_MEM_HOST, CEED_USE_POINTER, v); CeedChk(ierr);
 
-  CeedBasisApplyElems_Cuda(basis, nelem, tmode, emode, tmp_u, tmp_v);
+//   CeedBasisApplyElems_Cuda(basis, nelem, tmode, emode, tmp_u, tmp_v);
 
-  ierr = CeedVectorGetArray(tmp_v, CEED_MEM_HOST, &v); CeedChk(ierr);
+//   ierr = CeedVectorGetArray(tmp_v, CEED_MEM_HOST, &v); CeedChk(ierr);
 
-  ierr = CeedVectorDestroy(&tmp_u); CeedChk(ierr);
-  ierr = CeedVectorDestroy(&tmp_v); CeedChk(ierr);
+//   ierr = CeedVectorDestroy(&tmp_u); CeedChk(ierr);
+//   ierr = CeedVectorDestroy(&tmp_v); CeedChk(ierr);
 
-  return 0;
-}
+//   return 0;
+// }
 
 static int CeedBasisDestroy_Cuda(CeedBasis basis) {
   int ierr;
@@ -227,8 +228,8 @@ static int CeedBasisDestroy_Cuda(CeedBasis basis) {
   return 0;
 }
 
-int CeedBasisCreateTensorH1_Cuda(Ceed ceed, CeedInt dim, CeedInt P1d,
-    CeedInt Q1d, const CeedScalar *interp1d,
+int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q1d,
+    const CeedScalar *interp1d,
     const CeedScalar *grad1d,
     const CeedScalar *qref1d,
     const CeedScalar *qweight1d,
@@ -248,18 +249,18 @@ int CeedBasisCreateTensorH1_Cuda(Ceed ceed, CeedInt dim, CeedInt P1d,
   ierr = cudaMalloc((void**)&data->d_grad1d, iBytes); CeedChk(ierr);
   ierr = cudaMemcpy(data->d_grad1d, basis->grad1d, iBytes, cudaMemcpyHostToDevice); CeedChk(ierr);
 
-  ierr = compile(ceed, basiskernels, &data->module, 7,
+  ierr = compile(basis->ceed, basiskernels, &data->module, 7,
       "BASIS_Q1D", basis->Q1d,
       "BASIS_P1D", basis->P1d,
-      "BASIS_BUF_LEN", basis->ncomp * CeedPowInt(basis->Q1d > basis->P1d ? basis->Q1d : basis->P1d, basis->dim),
+      "BASIS_BUF_LEN", basis->ncomp * CeedIntPow(basis->Q1d > basis->P1d ? basis->Q1d : basis->P1d, basis->dim),
       "BASIS_DIM", basis->dim,
       "BASIS_NCOMP", basis->ncomp,
-      "BASIS_ELEMSIZE", CeedPowInt(basis->P1d, basis->dim),
-      "BASIS_NQPT", CeedPowInt(basis->Q1d, basis->dim)
+      "BASIS_ELEMSIZE", CeedIntPow(basis->P1d, basis->dim),
+      "BASIS_NQPT", CeedIntPow(basis->Q1d, basis->dim)
       ); CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "interp", &data->interp); CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "grad", &data->grad); CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "weight", &data->weight); CeedChk(ierr);
+  ierr = get_kernel(basis->ceed, data->module, "interp", &data->interp); CeedChk(ierr);
+  ierr = get_kernel(basis->ceed, data->module, "grad", &data->grad); CeedChk(ierr);
+  ierr = get_kernel(basis->ceed, data->module, "weight", &data->weight); CeedChk(ierr);
 
   basis->data = data;
 

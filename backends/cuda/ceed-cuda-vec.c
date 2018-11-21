@@ -187,7 +187,7 @@ static int CeedVectorDestroy_Cuda(const CeedVector vec) {
 // *****************************************************************************
 // * Create a vector of the specified length (does not allocate memory)
 // *****************************************************************************
-int CeedVectorCreate_Cuda(const Ceed ceed, const CeedInt n, CeedVector vec) {
+int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
   CeedVector_Cuda *data;
   int ierr;
 

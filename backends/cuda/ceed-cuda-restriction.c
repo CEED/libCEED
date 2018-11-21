@@ -114,9 +114,8 @@ static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
   return 0;
 }
 
-int CeedElemRestrictionCreate_Cuda(CeedElemRestriction r,
-    CeedMemType mtype,
-    CeedCopyMode cmode, const CeedInt *indices) {
+int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
+    CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r) {
   int ierr;
   CeedElemRestriction_Cuda *impl;
   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
