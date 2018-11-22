@@ -192,7 +192,7 @@ static int ICs(void *ctx, CeedInt Q,
 //                              pow((x[i+Q*1] - 0.5)/4, 2)) +
 //                              pow((x[i+Q*2] - 0.5)/4, 2));
     const CeedScalar r2 = sqrt(pow((x[i+Q*0] - 0.25), 2) +
-                              pow((x[i+Q*1] - 0.25), 2) +
+                              pow((x[i+Q*1] - 0.5), 2) +
                               pow((x[i+Q*2] - 0.5), 2));
 //    const CeedScalar deltaTheta = r<= 1. ? ThetaC*(1 + cos(M_PI*r))/2 : 0;
 //    const CeedScalar Theta = Theta0*exp(N*N*x[i+Q*2]/g) + deltaTheta;
@@ -203,10 +203,10 @@ static int ICs(void *ctx, CeedInt Q,
 
     // Initial Conditions
     q0[i+0*Q] = 1.;//rho;
-    q0[i+1*Q] = -5*(x[i+Q*1] - 0.5);//0.0;
-    q0[i+2*Q] = 5*(x[i+Q*0] - 0.5);//0.0;
+    q0[i+1*Q] = 0.0;//-50*(x[i+Q*1] - 0.5);//0.0;
+    q0[i+2*Q] = 1.0;//50*(x[i+Q*0] - 0.5);//0.0;
     q0[i+3*Q] = 0.0;
-    q0[i+4*Q] = r2 <= 1./8. ? 1. : 0.;//rho * (Cv*Theta*Pi + g*x[i+Q*2]);
+    q0[i+4*Q] = r2 <= 1./8. ? (1.-8.*r2) : 0.;//rho * (Cv*Theta*Pi + g*x[i+Q*2]);
 
   } // End of Quadrature Point Loop
 
@@ -393,18 +393,20 @@ static int NS(void *ctx, CeedInt Q,
 
     // -- Total Energy
     // ---- (E + P) u
-    if (0) {
+    if (1) {
     dv[i+(4+5*0)*Q]  = (E + 0)*(u[0]*wBJ[0] + u[1]*wBJ[1] + u[2]*wBJ[2]);
     dv[i+(4+5*1)*Q]  = (E + 0)*(u[0]*wBJ[3] + u[1]*wBJ[4] + u[2]*wBJ[5]);
     dv[i+(4+5*2)*Q]  = (E + 0)*(u[0]*wBJ[6] + u[1]*wBJ[7] + u[2]*wBJ[8]);
     }
     //CeedScalar grad_E[3];
 
+    if (0) {
     for (int d=0; d<1; d++) {
       //grad_E[d] = (1/wJ) * wBJ[d*3+d] * dq[(d*5+4)*Q+i];
       // u . grad(E)
       //v[4*Q+i] -= u[d] * wBJ[d*3+d] * dq[(d*5+4)*Q+i];
       v[4*Q+i] -= 1. * wBJ[d*3+d] * dq[(d*5+4)*Q+i];
+    }
     }
     // ---- Fevisc
 //    dv[i+(4+5*0)*Q] -= Fe[0]*wBBJ[0] + Fe[1]*wBBJ[1] + Fe[2]*wBBJ[2];
