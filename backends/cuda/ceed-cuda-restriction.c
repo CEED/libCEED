@@ -63,6 +63,47 @@ extern "C" __global__ void trTr(const CeedInt nelem, const CeedInt * __restrict_
 }
 );
 
+// static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
+//     CeedTransposeMode tmode, CeedTransposeMode lmode,
+//     CeedVector u, CeedVector v, CeedRequest *request) {
+//   const CeedElemRestriction_Cuda *impl = (CeedElemRestriction_Cuda*)r->data;
+//   const Ceed_Cuda *data = (Ceed_Cuda*)r->ceed->data;
+//   int ierr;
+//   const CeedInt esize = r->nelem*r->elemsize*r->ncomp;
+//   const CeedScalar *d_u;
+//   CeedScalar *d_v;
+//   ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChk(ierr);
+//   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChk(ierr);
+
+//   if (!impl->indices) {
+//     cudaMemcpy(d_v, d_u, esize * sizeof(CeedScalar), cudaMemcpyDeviceToDevice);
+//   } else {
+//     const CeedInt* d_indices;
+//     ierr = CeedVectorGetArrayRead(impl->indices, CEED_MEM_DEVICE, (const CeedScalar**)&d_indices); CeedChk(ierr);
+//     CUfunction kernel;
+//     if (tmode == CEED_NOTRANSPOSE) {
+//       if (lmode == CEED_NOTRANSPOSE) {
+//         kernel = impl->noTrNoTr;
+//       } else {
+//         kernel = impl->noTrTr;
+//       }
+//     } else {
+//       if (lmode == CEED_NOTRANSPOSE) {
+//         kernel = impl->trNoTr;
+//       } else {
+//         kernel = impl->trTr;
+//       }
+//     }
+//     const CeedInt blocksize = data->optblocksize;
+//     void *args[] = {&r->nelem, &d_indices, &d_u,&d_v};
+//     ierr = run_kernel(r->ceed, kernel, CeedDivUpInt(r->nelem, blocksize), blocksize, args); CeedChk(ierr);
+//   } 
+//   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
+//     *request = NULL;
+
+//   return 0;
+// }
+
 static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedTransposeMode lmode,
     CeedVector u, CeedVector v, CeedRequest *request) {
@@ -74,30 +115,23 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
   CeedScalar *d_v;
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChk(ierr);
-
-  if (!impl->indices) {
-    cudaMemcpy(d_v, d_u, esize * sizeof(CeedScalar), cudaMemcpyDeviceToDevice);
-  } else {
-    const CeedInt* d_indices;
-    ierr = CeedVectorGetArrayRead(impl->indices, CEED_MEM_DEVICE, (const CeedScalar**)&d_indices); CeedChk(ierr);
-    CUfunction kernel;
-    if (tmode == CEED_NOTRANSPOSE) {
-      if (lmode == CEED_NOTRANSPOSE) {
-        kernel = impl->noTrNoTr;
-      } else {
-        kernel = impl->noTrTr;
-      }
+  CUfunction kernel;
+  if (tmode == CEED_NOTRANSPOSE) {
+    if (lmode == CEED_NOTRANSPOSE) {
+      kernel = impl->noTrNoTr;
     } else {
-      if (lmode == CEED_NOTRANSPOSE) {
-        kernel = impl->trNoTr;
-      } else {
-        kernel = impl->trTr;
-      }
+      kernel = impl->noTrTr;
     }
-    const CeedInt blocksize = data->optblocksize;
-    void *args[] = {&r->nelem, &d_indices, &d_u,&d_v};
-    ierr = run_kernel(r->ceed, kernel, CeedDivUpInt(r->nelem, blocksize), blocksize, args); CeedChk(ierr);
-  } 
+  } else {
+    if (lmode == CEED_NOTRANSPOSE) {
+      kernel = impl->trNoTr;
+    } else {
+      kernel = impl->trTr;
+    }
+  }
+  const CeedInt blocksize = data->optblocksize;
+  void *args[] = {&r->nelem, &d_ind, &d_u,&d_v};
+  ierr = run_kernel(r->ceed, kernel, CeedDivUpInt(r->nelem, blocksize), blocksize, args); CeedChk(ierr);
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
 
@@ -109,7 +143,12 @@ static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
   int ierr;
 
   CeedChk_Cu(r->ceed, cuModuleUnload(impl->module));
-  ierr = CeedVectorDestroy(&impl->indices); CeedChk(ierr);
+  if(impl->h_ind_allocated){
+    ierr = CeedFree(impl->h_ind_allocated); CeedChk(ierr);
+  }
+  if(impl->d_ind_allocated){
+    ierr = CeedFree(impl->d_ind_allocated); CeedChk(ierr);
+  }
   ierr = CeedFree(&r->data); CeedChk(ierr);
   return 0;
 }
