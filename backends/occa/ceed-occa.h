@@ -13,7 +13,6 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-#include <ceed-impl.h>
 #include <ceed-backend.h>
 #include <string.h>
 #include <assert.h>
@@ -78,14 +77,12 @@ typedef struct {
 typedef struct {
   CeedVector *Evecs; /// E-vectors needed to apply operator (in followed by out)
   CeedScalar **Edata;
-  CeedScalar **qdata;
-  CeedScalar **qdata_alloc; /// Inputs followed by outputs
-  CeedScalar **indata;
-  CeedScalar **outdata;
+  CeedVector *evecsin;   /// Input E-vectors needed to apply operator
+  CeedVector *evecsout;   /// Output E-vectors needed to apply operator
+  CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
+  CeedVector *qvecsout;   /// Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
-  CeedInt    numqin;
-  CeedInt    numqout;
 } CeedOperator_Occa;
 
 // *****************************************************************************

@@ -14,7 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
 #include <ceed-backend.h>
 #include <string.h>
 
@@ -30,16 +29,12 @@ typedef struct {
   CeedElemRestriction *blkrestr; /// Blocked versions of restrictions
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
-  CeedScalar **edata;
-  CeedScalar **qdata; /// Inputs followed by outputs
-  CeedScalar
-  **qdata_alloc; /// Allocated quadrature data arrays (to be freed by us)
-  CeedScalar **indata;
-  CeedScalar **outdata;
+  CeedScalar ** edata;
+  CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
+  CeedVector *qvecsout;   /// Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
-  CeedInt    numqin;
-  CeedInt    numqout;
+  CeedVector tempvec;
 } CeedOperator_Blocked;
 
 CEED_INTERN int CeedBasisCreateTensorH1_Blocked(CeedInt dim, CeedInt P1d,

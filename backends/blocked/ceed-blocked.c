@@ -30,9 +30,12 @@ static int CeedInit_Blocked(const char *resource, Ceed ceed) {
   CeedInit("/cpu/self/ref", &ceedref);
   ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
 
-  ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Blocked;
-  ceed->BasisCreateH1 = CeedBasisCreateH1_Blocked;
-  ceed->OperatorCreate = CeedOperatorCreate_Blocked;
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
+                                CeedBasisCreateTensorH1_Blocked); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
+                                CeedBasisCreateH1_Blocked); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
+                                CeedOperatorCreate_Blocked); CeedChk(ierr);
 
   return 0;
 }

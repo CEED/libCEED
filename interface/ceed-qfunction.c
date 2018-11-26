@@ -77,8 +77,48 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
   ierr = CeedCalloc(strlen(focca)+1, &focca_copy); CeedChk(ierr);
   strcpy(focca_copy, focca);
   (*qf)->focca = focca_copy;
+  ierr = CeedCalloc(16, &(*qf)->inputfields); CeedChk(ierr);
+  ierr = CeedCalloc(16, &(*qf)->outputfields); CeedChk(ierr);
   ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
   return 0;
+}
+
+/**
+  @brief Create a CeedQFunction for evaluating interior (volumetric) terms.
+
+  @param ceed       A Ceed object where the CeedQFunction will be created
+  @param vlength    Vector length.  Caller must ensure that number of quadrature
+                    points is a multiple of vlength.
+  @param spec       The specification of the desired qFunction
+  @param focca      OCCA identifier "file.c:function_name" for definition of `f`
+  @param[out] qf    Address of the variable where the newly created
+                     CeedQFunction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength, char* spec, CeedQFunction *qf) {
+  int ierr;
+  if (!strcmp(spec,"ellipticAxQuad3d"))
+  {
+    ierr = CeedCalloc(1,qf); CeedChk(ierr);
+    (*qf)->ceed = ceed;
+    ceed->refcount++;
+    (*qf)->refcount = 1;
+    (*qf)->vlength = vlength;
+    (*qf)->function = NULL;//TODO give a default implementation
+    //(*qf)->focca = focca_copy; //TODO
+    (*qf)->spec = spec;
+    ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
+    CeedQFunctionAddInput(*qf, "ggeo", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(*qf, "D", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(*qf, "S", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(*qf, "MM", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(*qf, "lambda", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(*qf, "q", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(*qf, "Aq", 1, CEED_EVAL_INTERP);
+    return 0;
+  }
+  return 1;
 }
 
 /**
@@ -95,16 +135,18 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 
   @ref Developer
 **/
-static int CeedQFunctionFieldSet(CeedQFunctionField *f,
-                                 const char *fieldname, CeedInt ncomp,
-                                 CeedEvalMode emode) {
+static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname, 
+                                 CeedInt ncomp, CeedEvalMode emode) {
   size_t len = strlen(fieldname);
   char *tmp;
-  int ierr =  CeedCalloc(len+1, &tmp); CeedChk(ierr);
+  int ierr;
+  ierr = CeedCalloc(1,f); CeedChk(ierr);
+
+  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
   memcpy(tmp, fieldname, len+1);
-  f->fieldname = tmp;
-  f->ncomp = ncomp;
-  f->emode = emode;
+  (*f)->fieldname = tmp;
+  (*f)->ncomp = ncomp;
+  (*f)->emode = emode;
   return 0;
 }
 
@@ -124,8 +166,10 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f,
 **/
 int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                           CeedInt ncomp, CeedEvalMode emode) {
-  int ierr = CeedQFunctionFieldSet(&qf->inputfields[qf->numinputfields++],
-                                   fieldname, ncomp, emode); CeedChk(ierr);
+  int ierr = CeedQFunctionFieldSet(&qf->inputfields[qf->numinputfields],
+                                   fieldname, ncomp, emode);
+  CeedChk(ierr);
+  qf->numinputfields++;
   return 0;
 }
 
@@ -148,8 +192,10 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
   if (emode == CEED_EVAL_WEIGHT)
     return CeedError(qf->ceed, 1,
                      "Cannot create qfunction output with CEED_EVAL_WEIGHT");
-  int ierr = CeedQFunctionFieldSet(&qf->outputfields[qf->numoutputfields++],
-                                   fieldname, ncomp, emode); CeedChk(ierr);
+  int ierr = CeedQFunctionFieldSet(&qf->outputfields[qf->numoutputfields],
+                                   fieldname, ncomp, emode);
+  CeedChk(ierr);
+  qf->numoutputfields++;
   return 0;
 }
 
@@ -221,6 +267,22 @@ int CeedQFunctionGetFOCCA(CeedQFunction qf, char* *focca) {
 }
 
 /**
+  @brief Get the User Function for a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] f          Variable to store user function
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionGetUserFunction(CeedQFunction qf, int (**f)()) {
+  *f = (int (*)())qf->function;
+  return 0;
+}
+
+/**
   @brief Get global context size for a CeedQFunction
 
   @param qf              CeedQFunction
@@ -269,6 +331,22 @@ int CeedQFunctionGetData(CeedQFunction qf, void* *data) {
 }
 
 /**
+  @brief Set backend data of a CeedQFunction
+
+  @param[out] qf         CeedQFunction
+  @param data            Data to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionSetData(CeedQFunction qf, void* *data) {
+  qf->data = *data;
+  return 0;
+}
+
+/**
   @brief Set global context for a CeedQFunction
 
   @param qf       CeedQFunction
@@ -298,8 +376,7 @@ int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
   @ref Advanced
 **/
 int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
-                       const CeedScalar *const *u,
-                       CeedScalar *const *v) {
+                       CeedVector* u, CeedVector* v) {
   int ierr;
   if (!qf->Apply)
     return CeedError(qf->ceed, 1, "Backend does not support QFunctionApply");
@@ -332,6 +409,23 @@ int CeedQFunctionGetFields(CeedQFunction qf,
 }
 
 /**
+  @brief Get the name of a CeedQFunctionField
+
+  @param qffield         CeedQFunctionField
+  @param[out] fieldname  Variable to store the field name
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionFieldGetName(CeedQFunctionField qffield,
+                              char* *fieldname) {
+  *fieldname = (char *)qffield->fieldname;
+  return 0;
+}
+
+/**
   @brief Get the number of components of a CeedQFunctionField
 
   @param qffield         CeedQFunctionField
@@ -344,7 +438,7 @@ int CeedQFunctionGetFields(CeedQFunction qf,
 
 int CeedQFunctionFieldGetNumComponents(CeedQFunctionField qffield,
                                        CeedInt *numcomp) {
-  *numcomp = (&qffield)->ncomp;
+  *numcomp = qffield->ncomp;
   return 0;
 }
 
@@ -361,7 +455,7 @@ int CeedQFunctionFieldGetNumComponents(CeedQFunctionField qffield,
 
 int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
                                CeedEvalMode *emode) {
-  *emode = (&qffield)->emode;
+  *emode = qffield->emode;
   return 0;
 }
 
@@ -378,16 +472,22 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   int ierr;
 
   if (!*qf || --(*qf)->refcount > 0) return 0;
-  // Free field names
-  for (int i=0; i<(*qf)->numinputfields; i++) {
-    ierr = CeedFree(&(*qf)->inputfields[i].fieldname); CeedChk(ierr);
-  }
-  for (int i=0; i<(*qf)->numoutputfields; i++) {
-    ierr = CeedFree(&(*qf)->outputfields[i].fieldname); CeedChk(ierr);
-  }
+  // Backend destroy
   if ((*qf)->Destroy) {
     ierr = (*qf)->Destroy(*qf); CeedChk(ierr);
   }
+  // Free fields
+  for (int i=0; i<(*qf)->numinputfields; i++) {
+    ierr = CeedFree(&(*(*qf)->inputfields[i]).fieldname); CeedChk(ierr);
+    ierr = CeedFree(&(*qf)->inputfields[i]); CeedChk(ierr);
+  }
+  for (int i=0; i<(*qf)->numoutputfields; i++) {
+    ierr = CeedFree(&(*(*qf)->outputfields[i]).fieldname); CeedChk(ierr);
+    ierr = CeedFree(&(*qf)->outputfields[i]); CeedChk(ierr);
+  }
+  ierr = CeedFree(&(*qf)->inputfields); CeedChk(ierr);
+  ierr = CeedFree(&(*qf)->outputfields); CeedChk(ierr);
+
   ierr = CeedFree(&(*qf)->focca); CeedChk(ierr);
   ierr = CeedDestroy(&(*qf)->ceed); CeedChk(ierr);
   ierr = CeedFree(qf); CeedChk(ierr);

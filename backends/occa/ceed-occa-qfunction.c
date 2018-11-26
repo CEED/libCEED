@@ -77,8 +77,7 @@ static int CeedQFunctionBuildKernel(CeedQFunction qf, const CeedInt Q) {
 // * CEED_EVAL_WEIGHT: Q
 // *****************************************************************************
 static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
-                                   const CeedScalar *const *in,
-                                   CeedScalar *const *out) {
+                                   CeedVector *In, CeedVector *Out) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
@@ -96,6 +95,16 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   ierr = CeedQFunctionGetVectorLength(qf, &vlength); CeedChk(ierr);
   assert((Q%vlength)==0); // Q must be a multiple of vlength
   const CeedInt nelem = 1; // !?
+  CeedInt nIn, nOut;
+  ierr = CeedQFunctionGetNumArgs(qf, &nIn, &nOut); CeedChk(ierr);
+  const CeedScalar *in[16];
+  CeedScalar *out[16];
+  for (int i = 0; i < nIn; i++) {
+    ierr = CeedVectorGetArrayRead(In[i], CEED_MEM_HOST, &in[i]); CeedChk(ierr);
+  }
+  for (int i = 0; i < nOut; i++) {
+    ierr = CeedVectorGetArray(Out[i], CEED_MEM_HOST, &out[i]); CeedChk(ierr);
+  }
   // ***************************************************************************
   if (!ready) { // If the kernel has not been built, do it now
     data->ready=true;
@@ -123,7 +132,11 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   }
 
   // ***************************************************************************
-  if (cbytes>0) occaCopyPtrToMem(d_ctx,qf->ctx,cbytes,0,NO_PROPS);
+  void *ctx;
+  if (cbytes>0) {
+    ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
+    occaCopyPtrToMem(d_ctx,ctx,cbytes,0,NO_PROPS);
+  }
 
   // ***************************************************************************
   dbg("[CeedQFunction][Apply] occaKernelRun");
@@ -133,15 +146,19 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
                 d_indata, d_outdata);
 
   // ***************************************************************************
-  if (cbytes>0) occaCopyMemToPtr(qf->ctx,d_ctx,cbytes,0,NO_PROPS);
+  if (cbytes>0) occaCopyMemToPtr(ctx,d_ctx,cbytes,0,NO_PROPS);
 
   // ***************************************************************************
-  CeedInt nOut;
-  ierr = CeedQFunctionGetNumArgs(qf, NULL, &nOut); CeedChk(ierr);
+  CeedQFunctionField *outputfields;
+  ierr = CeedQFunctionGetFields(qf, NULL, &outputfields); CeedChk(ierr);
   for (CeedInt i=0; i<nOut; i++) {
-    const CeedEvalMode emode = qf->outputfields[i].emode;
-    const char *name = qf->outputfields[i].fieldname;
-    const CeedInt ncomp = qf->outputfields[i].ncomp;
+    char *name;
+    ierr = CeedQFunctionFieldGetName(outputfields[i], &name); CeedChk(ierr);
+    CeedInt ncomp;
+    ierr = CeedQFunctionFieldGetNumComponents(outputfields[i], &ncomp);
+    CeedChk(ierr);
+    CeedEvalMode emode;
+    ierr = CeedQFunctionFieldGetEvalMode(outputfields[i], &emode); CeedChk(ierr);
     const CeedInt dim = data->dim;
     switch (emode) {
     case CEED_EVAL_NONE:
@@ -166,6 +183,12 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
     case CEED_EVAL_DIV:
       break; // Not implimented
     }
+  }
+  for (int i = 0; i < nIn; i++) {
+    ierr = CeedVectorRestoreArrayRead(In[i], &in[i]); CeedChk(ierr);
+  }
+  for (int i = 0; i < nOut; i++) {
+    ierr = CeedVectorRestoreArray(Out[i], &out[i]); CeedChk(ierr);
   }
   return 0;
 }
@@ -206,15 +229,17 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   CeedQFunction_Occa *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   // Populate the CeedQFunction structure **************************************
-  qf->Apply = CeedQFunctionApply_Occa;
-  qf->Destroy = CeedQFunctionDestroy_Occa;
-  qf->data = data;
+  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
+                                CeedQFunctionApply_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
+                                CeedQFunctionDestroy_Occa); CeedChk(ierr);
   // Fill CeedQFunction_Occa struct ********************************************
   data->op = false;
   data->ready = false;
   data->nc = data->dim = 1;
   data->nelem = data->elemsize = 1;
   data->e = 0;
+  ierr = CeedQFunctionSetData(qf, (void *)&data); CeedChk(ierr);
   // Locate last ':' character in qf->focca ************************************
   char *focca;
   ierr = CeedQFunctionGetFOCCA(qf, &focca); CeedChk(ierr);

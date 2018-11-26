@@ -437,6 +437,22 @@ int CeedElemRestrictionGetData(CeedElemRestriction rstr,
 }
 
 /**
+  @brief Set the backend data of a CeedElemRestriction
+
+  @param[out] r           CeedElemRestriction
+  @param data             Data to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedElemRestrictionSetData(CeedElemRestriction rstr,
+                                    void* *data) {
+  rstr->data = *data;
+  return 0;
+}
+
+/**
   @brief Destroy a CeedElemRestriction
 
   @param rstr CeedElemRestriction to destroy

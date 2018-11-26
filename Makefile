@@ -34,7 +34,10 @@ ifneq ($(wildcard ../mfem/libmfem.*),)
 endif
 
 # OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
-#OCCA_DIR ?= ../occa
+LIBP_DIR ?= ../libparanumal
+
+# OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
+OCCA_DIR ?= ../occa
 
 # env variable MAGMA_DIR can be used too
 MAGMA_DIR ?= ../magma
@@ -204,7 +207,6 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)
 libceed.c += $(ref.c)
 libceed.c += $(template.c)
 libceed.c += $(blocked.c)
-libceed.c += $(libparanumal.c)
 
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
@@ -231,6 +233,14 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o) : NVCCFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
   BACKENDS += /gpu/magma
   endif
+endif
+
+ifneq ($(wildcard $(LIBP_DIR)/libP.*),)
+  $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
+  $(libceed) : LDLIBS += -locca
+  libceed.c += $(libparanumal.c)
+  $(libparanumal.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(OCCA_DIR)/include
+  BACKENDS += /gpu/libparanumal
 endif
 
 export BACKENDS

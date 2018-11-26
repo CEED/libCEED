@@ -102,5 +102,3 @@ typedef struct {
   occaProperties kernelInfo;
   occaKernel kernel;//Might need more than one
 } CeedOperator_libparanumal;
-
-CEED_INTERN int CeedOperatorCreate_libparanumal(CeedOperator op);

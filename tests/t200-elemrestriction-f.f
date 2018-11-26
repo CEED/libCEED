@@ -39,8 +39,7 @@ c-----------------------------------------------------------------------
      $  ceed_use_pointer,ind,r,err)
 
       call ceedvectorcreate(ceed,2*ne,y,err);
-      call ceedvectorsetarray(y,ceed_mem_host,ceed_copy_values,%val(0),
-     $  err);
+      call ceedvectorsetvalue(y,0.d0,err);
       call ceedelemrestrictionapply(r,ceed_notranspose,
      $  ceed_notranspose,x,y,ceed_request_immediate,err)
 

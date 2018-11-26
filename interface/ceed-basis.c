@@ -605,7 +605,7 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
   @ref Advanced
 **/
 int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
-                   CeedEvalMode emode, const CeedScalar *u, CeedScalar *v) {
+                   CeedEvalMode emode, CeedVector u, CeedVector v) {
   int ierr;
   if (!basis->Apply) return CeedError(basis->ceed, 1,
                                         "Backend does not support BasisApply");
@@ -815,6 +815,21 @@ int CeedBasisGetGrad(CeedBasis basis, CeedScalar* *grad) {
 **/
 int CeedBasisGetData(CeedBasis basis, void* *data) {
   *data = basis->data;
+  return 0;
+}
+
+/**
+  @brief Set backend data of a CeedBasis
+
+  @param[out] basis CeedBasis
+  @param data       Data to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisSetData(CeedBasis basis, void* *data) {
+  basis->data = *data;
   return 0;
 }
 
