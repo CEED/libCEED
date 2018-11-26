@@ -147,7 +147,7 @@ static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
     ierr = CeedFree(impl->h_ind_allocated); CeedChk(ierr);
   }
   if(impl->d_ind_allocated){
-    ierr = CeedFree(impl->d_ind_allocated); CeedChk(ierr);
+    ierr = cudaFree(impl->d_ind_allocated); CeedChk(ierr);
   }
   ierr = CeedFree(&r->data); CeedChk(ierr);
   return 0;
