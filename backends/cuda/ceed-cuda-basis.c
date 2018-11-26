@@ -177,6 +177,9 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode 
     void *weightargs[] = {&data->d_qweight1d, &d_v};
     ierr = run_kernel(basis->ceed, data->weight, 1, 1, weightargs); CeedChk(ierr);
   }
+  
+  ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChk(ierr);
+  ierr = CeedVectorRestoreArray(v, &d_v); CeedChk(ierr);
 
   return 0;
 }
