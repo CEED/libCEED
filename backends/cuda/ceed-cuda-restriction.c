@@ -144,12 +144,12 @@ static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
   CeedElemRestriction_Cuda *impl = (CeedElemRestriction_Cuda*)r->data;
   int ierr;
 
-  CeedChk_Cu(r->ceed, cuModuleUnload(impl->module));
+  ierr = cuModuleUnload(impl->module); CeedChk_Cu(r->ceed, ierr);
   if(impl->h_ind_allocated){
     ierr = CeedFree(impl->h_ind_allocated); CeedChk(ierr);
   }
   if(impl->d_ind_allocated){
-    ierr = cudaFree(impl->d_ind_allocated); CeedChk(ierr);
+    ierr = cudaFree(impl->d_ind_allocated); CeedChk_Cu(r->ceed, ierr);
   }
   ierr = CeedFree(&r->data); CeedChk(ierr);
   return 0;
