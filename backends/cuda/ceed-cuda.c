@@ -106,6 +106,7 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   ceed->VecCreate = CeedVectorCreate_Cuda;
   ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Cuda;
   ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Cuda;
+  ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreateBlocked_Cuda;
   ceed->QFunctionCreate = CeedQFunctionCreate_Cuda;
   ceed->OperatorCreate = CeedOperatorCreate_Cuda;
   return 0;

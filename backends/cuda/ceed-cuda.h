@@ -39,11 +39,14 @@ do { \
 
 #define QUOTE(...) #__VA_ARGS__
 
+typedef enum {HOST_SYNC, DEVICE_SYNC, BOTH_SYNC} SyncState;
+
 typedef struct {
   CeedScalar *h_array;
   CeedScalar *h_array_allocated;
   CeedScalar *d_array;
   CeedScalar *d_array_allocated;
+  SyncState memState;
 } CeedVector_Cuda;
 
 // typedef struct {
@@ -100,6 +103,10 @@ CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
     CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r);
+
+CEED_INTERN int CeedElemRestrictionCreateBlocked_Cuda(const CeedMemType mtype,
+     const CeedCopyMode cmode, const CeedInt *indices,
+     const CeedElemRestriction res);
 
 CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
 
