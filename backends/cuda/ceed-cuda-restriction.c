@@ -135,6 +135,8 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
 
+  ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChk(ierr);
+  ierr = CeedVectorRestoreArray(v, &d_v); CeedChk(ierr);
   return 0;
 }
 
