@@ -107,10 +107,10 @@ extern "C" __global__ void trTr(const CeedInt nelem, const CeedInt * __restrict_
 static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedTransposeMode lmode,
     CeedVector u, CeedVector v, CeedRequest *request) {
-  const CeedElemRestriction_Cuda *impl = (CeedElemRestriction_Cuda*)r->data;
+  CeedElemRestriction_Cuda *impl = (CeedElemRestriction_Cuda*)r->data;
   const Ceed_Cuda *data = (Ceed_Cuda*)r->ceed->data;
   int ierr;
-  const CeedInt esize = r->nelem*r->elemsize*r->ncomp;
+  // const CeedInt esize = r->nelem*r->elemsize*r->ncomp;
   const CeedScalar *d_u;
   CeedScalar *d_v;
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChk(ierr);
@@ -130,7 +130,7 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
     }
   }
   const CeedInt blocksize = data->optblocksize;
-  void *args[] = {&r->nelem, &d_ind, &d_u,&d_v};
+  void *args[] = {&r->nelem, &impl->d_ind, &d_u,&d_v};
   ierr = run_kernel(r->ceed, kernel, CeedDivUpInt(r->nelem, blocksize), blocksize, args); CeedChk(ierr);
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
@@ -186,8 +186,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
   int ierr;
   CeedElemRestriction_Cuda *impl;
   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
-  int ierr, size = r->nelem*r->elemsize;
-  CeedElemRestriction_Magma *impl;
+  int size = r->nelem*r->elemsize;
 
   // Allocate memory for the MAGMA Restricton and initializa pointers to NULL
   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
@@ -200,9 +199,9 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
     // memory is on the host; own_ = 0
     switch (cmode) {
     case CEED_OWN_POINTER:
-      impl->h_ind_allocated = indices;
+      impl->h_ind_allocated = (CeedInt *)indices;
     case CEED_USE_POINTER:
-      impl->h_ind = indices;
+      impl->h_ind = (CeedInt *)indices;
     case CEED_COPY_VALUES:
       if (indices != NULL) {
         ierr = cudaMalloc( (void**)&impl->d_ind, size * sizeof(CeedInt));
