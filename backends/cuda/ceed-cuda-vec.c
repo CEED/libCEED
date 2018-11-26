@@ -155,6 +155,12 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec,
 // *****************************************************************************
 static int CeedVectorRestoreArrayRead_Cuda(const CeedVector vec,
     const CeedScalar **array) {
+  *array = NULL;
+  return 0;
+}
+// *****************************************************************************
+static int CeedVectorRestoreArray_Cuda(const CeedVector vec,
+                                       CeedScalar **array) {
   CeedVector_Cuda *data = (CeedVector_Cuda*)vec->data;
   if (*array == data->h_array) {
     CeedSyncH2D_Cuda(vec);
@@ -165,11 +171,6 @@ static int CeedVectorRestoreArrayRead_Cuda(const CeedVector vec,
   }
   *array = NULL;
   return 0;
-}
-// *****************************************************************************
-static int CeedVectorRestoreArray_Cuda(const CeedVector vec,
-                                       CeedScalar **array) {
-  return CeedVectorRestoreArrayRead_Cuda(vec,(const CeedScalar**)array);
 }
 
 // *****************************************************************************
