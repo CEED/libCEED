@@ -169,7 +169,8 @@ static int CeedVectorRestoreArrayRead_Cuda(const CeedVector vec,
 // *****************************************************************************
 static int CeedVectorRestoreArray_Cuda(const CeedVector vec,
                                        CeedScalar **array) {
-  return CeedVectorRestoreArrayRead_Cuda(vec,(const CeedScalar**)array);
+  *array = NULL;
+  return 0;
 }
 
 // *****************************************************************************
