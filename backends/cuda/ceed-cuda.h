@@ -46,13 +46,25 @@ typedef struct {
   CeedScalar *d_array_allocated;
 } CeedVector_Cuda;
 
+// typedef struct {
+//   CUmodule module;
+//   CUfunction noTrNoTr;
+//   CUfunction noTrTr;
+//   CUfunction trNoTr;
+//   CUfunction trTr;
+//   CeedVector indices;
+// } CeedElemRestriction_Cuda;
+
 typedef struct {
   CUmodule module;
   CUfunction noTrNoTr;
   CUfunction noTrTr;
   CUfunction trNoTr;
   CUfunction trTr;
-  CeedVector indices;
+  CeedInt *h_ind;
+  CeedInt *h_ind_allocated;
+  CeedInt *d_ind;
+  CeedInt *d_ind_allocated;
 } CeedElemRestriction_Cuda;
 
 typedef struct {

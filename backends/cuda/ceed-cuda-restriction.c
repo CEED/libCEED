@@ -114,17 +114,86 @@ static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
   return 0;
 }
 
+// int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
+//     CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r) {
+//   int ierr;
+//   CeedElemRestriction_Cuda *impl;
+//   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
+//   //TODO should take in account mtype and cmode
+//   if (indices) {
+//     ierr = CeedVectorCreate(r->ceed, r->nelem*r->elemsize*sizeof(CeedInt)/sizeof(CeedScalar) + 1, &impl->indices); CeedChk(ierr);
+//     ierr = CeedVectorSetArray(impl->indices, mtype, cmode, (CeedScalar*)indices); CeedChk(ierr);
+//   } else {
+//     impl->indices = NULL;
+//   }
+
+//   ierr = compile(r->ceed, restrictionkernels, &impl->module, 3,
+//       "RESTRICTION_ELEMSIZE", r->elemsize,
+//       "RESTRICTION_NCOMP", r->ncomp,
+//       "RESTRICTION_NDOF", r->ndof); CeedChk(ierr);
+//   ierr = get_kernel(r->ceed, impl->module, "noTrNoTr", &impl->noTrNoTr); CeedChk(ierr);
+//   ierr = get_kernel(r->ceed, impl->module, "noTrTr", &impl->noTrTr); CeedChk(ierr);
+//   ierr = get_kernel(r->ceed, impl->module, "trNoTr", &impl->trNoTr); CeedChk(ierr);
+//   ierr = get_kernel(r->ceed, impl->module, "trTr", &impl->trTr); CeedChk(ierr);
+
+//   r->data = impl;
+//   r->Apply = CeedElemRestrictionApply_Cuda;
+//   r->Destroy = CeedElemRestrictionDestroy_Cuda;
+//   return 0;
+// }
+
 int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
     CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r) {
   int ierr;
   CeedElemRestriction_Cuda *impl;
   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
-  if (indices) {
-    ierr = CeedVectorCreate(r->ceed, r->nelem*r->elemsize*sizeof(CeedInt)/sizeof(CeedScalar) + 1, &impl->indices); CeedChk(ierr);
-    ierr = CeedVectorSetArray(impl->indices, mtype, cmode, (CeedScalar*)indices); CeedChk(ierr);
-  } else {
-    impl->indices = NULL;
-  }
+  int ierr, size = r->nelem*r->elemsize;
+  CeedElemRestriction_Magma *impl;
+
+  // Allocate memory for the MAGMA Restricton and initializa pointers to NULL
+  ierr = CeedCalloc(1,&impl); CeedChk(ierr);
+  impl->h_ind           = NULL;
+  impl->h_ind_allocated = NULL;
+  impl->d_ind           = NULL;
+  impl->d_ind_allocated = NULL;
+
+  if (mtype == CEED_MEM_HOST) {
+    // memory is on the host; own_ = 0
+    switch (cmode) {
+    case CEED_OWN_POINTER:
+      impl->h_ind_allocated = indices;
+    case CEED_USE_POINTER:
+      impl->h_ind = indices;
+    case CEED_COPY_VALUES:
+      if (indices != NULL) {
+        ierr = cudaMalloc( (void**)&impl->d_ind, size * sizeof(CeedInt));
+        CeedChk(ierr);
+        impl->d_ind_allocated = impl->d_ind;//We own the device memory
+        ierr = cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), cudaMemcpyHostToDevice);
+        CeedChk(ierr);
+      }
+    }
+  } else if (mtype == CEED_MEM_DEVICE) {
+    // memory is on the device; own = 0
+    switch (cmode) {
+    case CEED_COPY_VALUES:
+      if (indices != NULL) {
+        ierr = cudaMalloc( (void**)&impl->d_ind, size * sizeof(CeedInt));
+        CeedChk(ierr);
+        impl->d_ind_allocated = impl->d_ind;//We own the device memory
+        ierr = cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), cudaMemcpyDeviceToDevice);
+        CeedChk(ierr);
+      }
+      break;
+    case CEED_OWN_POINTER:
+      impl->d_ind = (CeedInt *)indices;
+      impl->d_ind_allocated = impl->d_ind;
+      break;
+    case CEED_USE_POINTER:
+      impl->d_ind = (CeedInt *)indices;
+    }
+  } else
+    return CeedError(r->ceed, 1, "Only MemType = HOST or DEVICE supported");
 
   ierr = compile(r->ceed, restrictionkernels, &impl->module, 3,
       "RESTRICTION_ELEMSIZE", r->elemsize,
