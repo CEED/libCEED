@@ -20,45 +20,90 @@
 static const char *restrictionkernels = QUOTE(
 extern "C" __global__ void noTrNoTr(const CeedInt nelem, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
   const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
-  for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
-    const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
-    const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
-    const CeedInt s = i % RESTRICTION_ELEMSIZE;
+  if (indices)
+  {
+    for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
+      const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
+      const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
+      const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-    v[i] = u[indices[s + RESTRICTION_ELEMSIZE * e] + RESTRICTION_NDOF * d];
+      v[i] = u[indices[s + RESTRICTION_ELEMSIZE * e] + RESTRICTION_NDOF * d];
+    }    
+  }else{
+    for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
+      const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
+      const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
+      const CeedInt s = i % RESTRICTION_ELEMSIZE;
+
+      v[i] = u[s + RESTRICTION_ELEMSIZE * e + RESTRICTION_NDOF * d];
+    }
   }
+
 }
 
 extern "C" __global__ void noTrTr(const CeedInt nelem, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
   const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
-  for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
-    const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
-    const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
-    const CeedInt s = i % RESTRICTION_ELEMSIZE;
+  if (indices)
+  {
+    for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
+      const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
+      const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
+      const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-    v[i] = u[RESTRICTION_NCOMP * indices[s + RESTRICTION_ELEMSIZE * e] + d];
+      v[i] = u[RESTRICTION_NCOMP * indices[s + RESTRICTION_ELEMSIZE * e] + d];
+    }    
+  }else{
+    for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
+      const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
+      const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
+      const CeedInt s = i % RESTRICTION_ELEMSIZE;
+
+      v[i] = u[RESTRICTION_NCOMP * s + RESTRICTION_ELEMSIZE * e + d];
+    }
   }
 }
 
 extern "C" __global__ void trNoTr(const CeedInt nelem, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
   const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
-  for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
-    const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
-    const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
-    const CeedInt s = i % RESTRICTION_ELEMSIZE;
+  if (indices)
+  {
+    for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
+      const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
+      const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
+      const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-    atomicAdd(v + (indices[s + RESTRICTION_ELEMSIZE * e] + RESTRICTION_NDOF * d), u[i]);
+      atomicAdd(v + (indices[s + RESTRICTION_ELEMSIZE * e] + RESTRICTION_NDOF * d), u[i]);
+    }
+  }else{
+    for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
+      const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
+      const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
+      const CeedInt s = i % RESTRICTION_ELEMSIZE;
+
+      atomicAdd(v + (s + RESTRICTION_ELEMSIZE * e + RESTRICTION_NDOF * d), u[i]);
+    }
   }
 }
 
 extern "C" __global__ void trTr(const CeedInt nelem, const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u, CeedScalar * __restrict__ v) {
   const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
-  for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
-    const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
-    const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
-    const CeedInt s = i % RESTRICTION_ELEMSIZE;
+  if (indices)
+  {
+    for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
+      const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
+      const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
+      const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-    atomicAdd(v + (RESTRICTION_NCOMP * indices[s + RESTRICTION_ELEMSIZE * e] + d), u[i]);
+      atomicAdd(v + (RESTRICTION_NCOMP * indices[s + RESTRICTION_ELEMSIZE * e] + d), u[i]);
+    }
+  }else{
+    for (CeedInt i = blockIdx.x*blockDim.x + threadIdx.x; i < esize; i += blockDim.x * gridDim.x) {
+      const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
+      const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
+      const CeedInt s = i % RESTRICTION_ELEMSIZE;
+
+      atomicAdd(v + (RESTRICTION_NCOMP * s + RESTRICTION_ELEMSIZE * e + d), u[i]);
+    }
   }
 }
 );
@@ -144,7 +189,8 @@ static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
   CeedElemRestriction_Cuda *impl = (CeedElemRestriction_Cuda*)r->data;
   int ierr;
 
-  ierr = cuModuleUnload(impl->module); CeedChk_Cu(r->ceed, ierr);
+  ierr = cuModuleUnload(impl->module);
+  CeedChk_Cu(r->ceed, ierr);
   if(impl->h_ind_allocated){
     ierr = CeedFree(impl->h_ind_allocated); CeedChk(ierr);
   }
