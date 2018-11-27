@@ -15,6 +15,8 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 #include "ceed-cuda.h"
 #include "string.h"
+// #include "ceed-cuda.cuh"
+#include <cuda.h>
 
 // *****************************************************************************
 // * Bytes used
@@ -34,30 +36,54 @@ static inline void CeedSyncD2H_Cuda(const CeedVector vec) {
 }
 
 static int CeedVectorSetArrayHost_Cuda(const CeedVector vec,
-    const CeedCopyMode cmode, CeedScalar *array) {
+                                       const CeedCopyMode cmode, CeedScalar *array) {
   int ierr;
   CeedVector_Cuda *data = (CeedVector_Cuda*)vec->data;
   ierr = cudaMalloc((void**)&data->d_array_allocated, bytes(vec)); CeedChk(ierr);
   data->d_array = data->d_array_allocated;
+  // data->d_array = NULL;
 
   switch (cmode) {
-    case CEED_COPY_VALUES:
-      ierr = cudaMallocHost((void**)&data->h_array_allocated, bytes(vec)); CeedChk(ierr);
-      data->h_array = data->h_array_allocated;
+  case CEED_COPY_VALUES:
+    ierr = cudaMallocHost((void**)&data->h_array_allocated, bytes(vec)); CeedChk(ierr);
+    data->h_array = data->h_array_allocated;
 
-      if (array) memcpy(data->h_array, array, bytes(vec));
-      if (array) CeedSyncH2D_Cuda(vec);
-      break;
-    case CEED_OWN_POINTER:
-      data->h_array_allocated = array;
-      data->h_array = array;
-      CeedSyncH2D_Cuda(vec);
-      break;
-    case CEED_USE_POINTER:
-      data->h_array = array;
-      CeedSyncH2D_Cuda(vec);
-      break;
+    if (array) memcpy(data->h_array, array, bytes(vec));
+    if (array) CeedSyncH2D_Cuda(vec);
+    break;
+  case CEED_OWN_POINTER:
+    data->h_array_allocated = array;
+    data->h_array = array;
+    CeedSyncH2D_Cuda(vec);
+    break;
+  case CEED_USE_POINTER:
+    data->h_array = array;
+    CeedSyncH2D_Cuda(vec);
+    break;
   }
+  return 0;
+}
+
+static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
+  int ierr;
+  //TODO should take into account memState, use this if DEVICE_SYNC, use memSet if HOST_SYNC, ?? if BOTH_SYNC
+  CeedVector_Cuda *data = (CeedVector_Cuda*)vec->data;
+  const int bsize = 512;
+  const int vecsize = vec->length;
+  int gridsize = vecsize / bsize;
+  if (bsize * gridsize < vecsize)
+    gridsize += 1;
+  void* args[3] = {&data->d_array, &vec->length, &val};
+  CUmodule module;
+  ierr = cuModuleLoad(&module, "ceed-cuda-vec.ptx");
+  CeedChk_Cu(vec->ceed, ierr);
+  CUfunction function;
+  ierr = cuModuleGetFunction(&function, module, "setValue");
+  CeedChk_Cu(vec->ceed, ierr);
+  ierr = cuLaunchKernel(function, gridsize, 1, 1, bsize, 1, 1, 0, 0, args, 0);
+  CeedChk_Cu(vec->ceed, ierr);
+  ierr = cuModuleUnload(module);
+  CeedChk_Cu(vec->ceed, ierr);
   return 0;
 }
 
@@ -69,23 +95,23 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec,
   data->h_array = data->h_array_allocated;
 
   switch (cmode) {
-    case CEED_COPY_VALUES:
-      ierr = cudaMalloc((void**)&data->d_array_allocated, bytes(vec)); CeedChk(ierr);
-      data->d_array = data->d_array_allocated;
+  case CEED_COPY_VALUES:
+    ierr = cudaMalloc((void**)&data->d_array_allocated, bytes(vec)); CeedChk(ierr);
+    data->d_array = data->d_array_allocated;
 
-      if (array) cudaMemcpy(data->d_array, array, bytes(vec),
-          cudaMemcpyDeviceToDevice);
-      if (array) CeedSyncD2H_Cuda(vec);
-      break;
-    case CEED_OWN_POINTER:
-      data->d_array_allocated = array;
-      data->d_array = array;
-      CeedSyncD2H_Cuda(vec);
-      break;
-    case CEED_USE_POINTER:
-      data->d_array = array;
-      CeedSyncD2H_Cuda(vec);
-      break;
+    if (array) cudaMemcpy(data->d_array, array, bytes(vec),
+                            cudaMemcpyDeviceToDevice);
+    if (array) CeedSyncD2H_Cuda(vec);
+    break;
+  case CEED_OWN_POINTER:
+    data->d_array_allocated = array;
+    data->d_array = array;
+    CeedSyncD2H_Cuda(vec);
+    break;
+  case CEED_USE_POINTER:
+    data->d_array = array;
+    CeedSyncD2H_Cuda(vec);
+    break;
   }
   return 0;
 }
@@ -105,10 +131,10 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec,
   ierr = cudaFree(data->d_array_allocated); CeedChk(ierr);
 
   switch (mtype) {
-    case CEED_MEM_HOST:
-      return CeedVectorSetArrayHost_Cuda(vec, cmode, array);
-    case CEED_MEM_DEVICE:
-      return CeedVectorSetArrayDevice_Cuda(vec, cmode, array);
+  case CEED_MEM_HOST:
+    return CeedVectorSetArrayHost_Cuda(vec, cmode, array);
+  case CEED_MEM_DEVICE:
+    return CeedVectorSetArrayDevice_Cuda(vec, cmode, array);
   }
   return 0;
 }
@@ -130,15 +156,15 @@ static int CeedVectorGetArrayRead_Cuda(const CeedVector vec,
   }
 
   switch (mtype) {
-    case CEED_MEM_HOST:
-      CeedSyncD2H_Cuda(vec);
-      *array = data->h_array;
-      break;
-    case CEED_MEM_DEVICE:
-      // TODO: Should a copy occur?
-      // CeedSyncH2D_Cuda(vec);
-      *array = data->d_array;
-      break;
+  case CEED_MEM_HOST:
+    CeedSyncD2H_Cuda(vec);
+    *array = data->h_array;
+    break;
+  case CEED_MEM_DEVICE:
+    // TODO: Should a copy occur?
+    // CeedSyncH2D_Cuda(vec);
+    *array = data->d_array;
+    break;
   }
   return 0;
 }
@@ -147,7 +173,7 @@ static int CeedVectorGetArrayRead_Cuda(const CeedVector vec,
 static int CeedVectorGetArray_Cuda(const CeedVector vec,
                                    const CeedMemType mtype,
                                    CeedScalar **array) {
-  return CeedVectorGetArrayRead_Cuda(vec,mtype,(const CeedScalar**)array);
+  return CeedVectorGetArrayRead_Cuda(vec, mtype, (const CeedScalar**)array);
 }
 
 // *****************************************************************************
@@ -193,6 +219,7 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
   int ierr;
 
   vec->SetArray = CeedVectorSetArray_Cuda;
+  vec->SetValue = CeedVectorSetValue_Cuda;
   vec->GetArray = CeedVectorGetArray_Cuda;
   vec->GetArrayRead = CeedVectorGetArrayRead_Cuda;
   vec->RestoreArray = CeedVectorRestoreArray_Cuda;
