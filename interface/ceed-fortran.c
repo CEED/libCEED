@@ -389,7 +389,9 @@ void fCeedBasisGetCollocatedGrad(int *basis, CeedScalar *colograd1d,
 #define fCeedBasisApply FORTRAN_NAME(ceedbasisapply, CEEDBASISAPPLY)
 void fCeedBasisApply(int *basis, int *nelem, int *tmode, int *emode,
                      int *u, int *v, int *err) {
-  *err = CeedBasisApply(CeedBasis_dict[*basis], *nelem, *tmode, *emode, CeedVector_dict[*u], CeedVector_dict[*v]);
+  *err = CeedBasisApply(CeedBasis_dict[*basis], *nelem, *tmode, *emode,
+                        *u==FORTRAN_NULL?NULL:CeedVector_dict[*u],
+                        CeedVector_dict[*v]);
 }
 
 #define fCeedBasisGetNumNodes \

@@ -17,24 +17,24 @@ int main(int argc, char **argv) {
   CeedVector X, Xq, U, Uq;
   CeedBasis bxl, bul, bxg, bug;
   CeedInt Q = 6;
-  const CeedScalar p[] = {1, 2, 3, 4, 5, 6}; // 1 + 2x + 3x^2 + ...
-  const CeedScalar x[] = {-1, 1};
-  const CeedScalar *xq, *u;
-  CeedScalar uq[Q];
+  const CeedScalar p[6] = {1, 2, 3, 4, 5, 6}; // 1 + 2x + 3x^2 + ...
+  const CeedScalar *xq, *uuq;
+  CeedScalar x[2], uq[Q];
 
   CeedInit(argv[1], &ceed);
 
   CeedVectorCreate(ceed, 2, &X);
-  CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&x);
   CeedVectorCreate(ceed, Q, &Xq);
   CeedVectorSetValue(Xq, 0);
   CeedVectorCreate(ceed, Q, &U);
   CeedVectorSetValue(U, 0);
   CeedVectorCreate(ceed, Q, &Uq);
-  CeedVectorSetValue(Uq, 0);
 
   CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q, Q, CEED_GAUSS_LOBATTO, &bul);
+
+  for (int i = 0; i < 2; i++) x[i] = CeedIntPow(-1, i+1);
+  CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&x);
 
   CeedBasisApply(bxl, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
 
@@ -53,15 +53,15 @@ int main(int argc, char **argv) {
   CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, Uq);
 
   CeedVectorGetArrayRead(Xq, CEED_MEM_HOST, &xq);
-  CeedVectorGetArrayRead(Uq, CEED_MEM_HOST, &u);
+  CeedVectorGetArrayRead(Uq, CEED_MEM_HOST, &uuq);
   for (CeedInt i=0; i<Q; i++) {
     CeedScalar px = PolyEval(xq[i], ALEN(p), p);
-    if ((fabs(u[i] - px) > 1e-14)) {
-      printf("%f != %f=p(%f)\n", uq[i], px, xq[i]);
+    if ((fabs(uuq[i] - px) > 1e-14)) {
+      printf("%f != %f=p(%f)\n", uuq[i], px, xq[i]);
     }
   }
   CeedVectorRestoreArrayRead(Xq, &xq);
-  CeedVectorRestoreArrayRead(Uq, &u);
+  CeedVectorRestoreArrayRead(Uq, &uuq);
 
   CeedVectorDestroy(&X);
   CeedVectorDestroy(&Xq);

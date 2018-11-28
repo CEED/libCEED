@@ -73,6 +73,11 @@ c-----------------------------------------------------------------------
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,q,q,ceed_gauss,
      $  bug,err)
 
+      call ceedbasisapply(bxg,1,ceed_notranspose,ceed_eval_interp,x,xq,
+     $  err)
+      call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_interp,u,uq,
+     $  err)
+      
       call ceedvectorgetarrayread(xq,ceed_mem_host,xxq,offset1,err)
       call ceedvectorgetarrayread(uq,ceed_mem_host,uuq,offset2,err)
       do i=1,q

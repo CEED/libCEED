@@ -45,6 +45,7 @@ int main(int argc, char **argv) {
     // Get function values at quadrature points
     CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, P, CEED_GAUSS_LOBATTO, &bxl);
     CeedBasisApply(bxl, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
+
     CeedVectorGetArrayRead(Xq, CEED_MEM_HOST, &xq);
     for (CeedInt i=0; i<Pdim; i++) {
       CeedScalar xx[dim];

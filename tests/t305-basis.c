@@ -17,15 +17,13 @@ int main(int argc, char **argv) {
   CeedVector X, Xq, U, Uq, W;
   CeedBasis bxl, bxg, bug;
   CeedInt Q = 6;
-  const CeedScalar p[] = {1, 2, 3, 4, 5, 6}; // 1 + 2x + 3x^2 + ...
-  const CeedScalar x[] = {-1, 1};
+  const CeedScalar p[6] = {1, 2, 3, 4, 5, 6}; // 1 + 2x + 3x^2 + ...
   const CeedScalar *xq, *uq, *w;
-  CeedScalar u[Q], sum, error, pint[ALEN(p)+1];
+  CeedScalar u[Q], x[2], sum, error, pint[ALEN(p)+1];
 
   CeedInit(argv[1], &ceed);
 
   CeedVectorCreate(ceed, 2, &X);
-  CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&x);
   CeedVectorCreate(ceed, Q, &Xq);
   CeedVectorSetValue(Xq, 0);
   CeedVectorCreate(ceed, Q, &U);
@@ -35,6 +33,9 @@ int main(int argc, char **argv) {
   CeedVectorSetValue(W, 0);
 
   CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
+
+  for (int i = 0; i < 2; i++) x[i] = CeedIntPow(-1, i+1);
+  CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&x);
 
   CeedBasisApply(bxl, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
 
@@ -60,9 +61,9 @@ int main(int argc, char **argv) {
   CeedVectorRestoreArrayRead(Uq, &uq);
 
   pint[0] = 0;
-  for (CeedInt i=0; i<(CeedInt)ALEN(p); i++) pint[i+1] = p[i] / (i+1);
+  for (CeedInt i=0; i<(int)ALEN(p); i++) pint[i+1] = p[i] / (i+1);
   error = sum - PolyEval(1, ALEN(pint), pint) + PolyEval(-1, ALEN(pint), pint);
-  if (!(error < 1e-10))
+  if (error > 1.e-10)
     printf("Error %e  sum %g  exact %g\n", error, sum,
            PolyEval(1, ALEN(pint), pint) - PolyEval(-1, ALEN(pint), pint));
 

@@ -6,6 +6,8 @@ os:
 
 dist: xenial
 
+osx_image: xcode10.1
+
 compiler:
   - gcc
   - clang
@@ -16,6 +18,12 @@ addons:
     - gfortran
     - libopenblas-dev
     - liblapack-dev
+  homebrew:
+    packages:
+    - ccache
+    - gcc
+    - lapack
+    - openblas
 
 env:
   - FC=gfortran OCCA_HEAD=HEAD
@@ -40,10 +48,8 @@ matrix:
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-        export HOMEBREW_NO_AUTO_UPDATE=1
-        && (brew install gcc || brew link --overwrite gcc)
-        && brew install ccache
-        && export PATH=/usr/local/ccache/opt/libexec:$PATH; fi
+        export PATH="/usr/local/opt/ccache/libexec:$PATH"
+        && brew link --overwrite gcc; fi
   - export CURR_DIR=$PWD
   - cd $HOME/install
   - if [[ -d mfem ]]; then

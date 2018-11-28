@@ -93,11 +93,11 @@ c-----------------------------------------------------------------------
           do d=0,dimn-1
             xxx(d+1)=xxq(d*pdimn+i+offset1)
           enddo
-          call eval(dimn,xxx,uuq(i))
+          call eval(dimn,xxx,uu(i))
         enddo
         call ceedvectorrestorearrayread(xq,xxq,offset1,err)
-        call ceedvectorsetarray(uq,ceed_mem_host,ceed_use_pointer,
-     $    uuq,err)
+        call ceedvectorsetarray(u,ceed_mem_host,ceed_use_pointer,
+     $    uu,err)
 
         call ceedbasiscreatetensorh1lagrange(ceed,dimn,1,p,q,
      $    ceed_gauss,bug,err)
@@ -121,7 +121,7 @@ c-----------------------------------------------------------------------
      $    offset1,err)
         call ceedvectorrestorearrayread(u,uu,offset2,err)
         call ceedvectorrestorearrayread(uq,uuq,offset3,err)
-        if(dabs(sum1-sum2) > 1.0D-10) then
+        if(abs(sum1-sum2) > 1.0D-10) then
           write(*,'(A,I1,A,F12.6,A,F12.6)')'[',dimn,'] Error: ',sum1,
      $      ' != ',sum2
         endif
