@@ -161,8 +161,10 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode 
 
   const CeedScalar *d_u;
   CeedScalar *d_v;
-  CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u);
-  CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v);
+  if(emode!=CEED_EVAL_WEIGHT){
+    ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChk(ierr);
+  }
+  ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChk(ierr);
 
   if (tmode == CEED_TRANSPOSE) {
     ierr = cudaMemset(d_v, 0, v->length * sizeof(CeedScalar)); CeedChk(ierr);
@@ -177,8 +179,10 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode 
     void *weightargs[] = {&data->d_qweight1d, &d_v};
     ierr = run_kernel(basis->ceed, data->weight, 1, 1, weightargs); CeedChk(ierr);
   }
-  
-  ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChk(ierr);
+
+  if(emode!=CEED_EVAL_WEIGHT){
+    ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChk(ierr);
+  }
   ierr = CeedVectorRestoreArray(v, &d_v); CeedChk(ierr);
 
   return 0;
