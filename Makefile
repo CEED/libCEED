@@ -47,13 +47,13 @@ CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 OPT    = -O -g
-CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-NVCCFLAGS = $(OPT)
+CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -lstdc++
+NVCCFLAGS = $(OPT) -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
-  FFLAGS = $(OPT) -qpreprocess -qextname -qpic -MMD
+  FFLAGS = $(OPT) -qpreprocess -qextname -qpic -MMD 
 else # gfortran/Intel-style options
-  FFLAGS = -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
+  FFLAGS = -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP -lstdc++
 endif
 
 ifeq ($(UNDERSCORE), 1)
@@ -122,6 +122,7 @@ petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 ref.c      := $(sort $(wildcard backends/ref/*.c))
 template.c := $(sort $(wildcard backends/template/*.c))
 cuda.c     := $(sort $(wildcard backends/cuda/*.c))
+cuda.cu    := $(sort $(wildcard backends/cuda/*.cu))
 blocked.c  := $(sort $(wildcard backends/blocked/*.c))
 occa.c     := $(sort $(wildcard backends/occa/*.c))
 magma_preprocessor := python backends/magma/gccm.py
@@ -219,7 +220,8 @@ ifneq ($(CUDA_LIB_DIR),)
   $(libceed) : CFLAGS += -I$(CUDA_DIR)/include
   $(libceed) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
   $(libceed) : LDLIBS += -lcudart -lnvrtc -lcuda
-  libceed.c += $(cuda.c)
+  libceed.c  += $(cuda.c)
+  libceed.cu += $(cuda.cu)
   BACKENDS += /gpu/cuda
 endif
 
