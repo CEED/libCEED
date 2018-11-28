@@ -49,15 +49,6 @@ typedef struct {
   SyncState memState;
 } CeedVector_Cuda;
 
-// typedef struct {
-//   CUmodule module;
-//   CUfunction noTrNoTr;
-//   CUfunction noTrTr;
-//   CUfunction trNoTr;
-//   CUfunction trTr;
-//   CeedVector indices;
-// } CeedElemRestriction_Cuda;
-
 typedef struct {
   CUmodule module;
   CUfunction noTrNoTr;

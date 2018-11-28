@@ -188,37 +188,6 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode 
   return 0;
 }
 
-// static int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode tmode,
-//     CeedEvalMode emode,
-//     CeedVector *U, CeedVector *V) {
-//   int ierr;
-
-//   CeedVector tmp_u, tmp_v;
-//   const CeedInt ncomp = basis->ncomp;
-//   const CeedInt dim = basis->dim;
-//   const CeedInt nqpt = CeedIntPow(basis->Q1d, dim);
-//   const CeedInt nppt = CeedIntPow(basis->P1d, dim);
-//   const CeedInt esize = (emode & CEED_EVAL_INTERP ? nqpt * ncomp : 0) + (emode & CEED_EVAL_GRAD ? nqpt * ncomp * dim : 0) + (emode & CEED_EVAL_WEIGHT ? nqpt : 0);
-//   const CeedInt usize = tmode == CEED_TRANSPOSE ? esize : nppt*ncomp;
-//   const CeedInt vsize = tmode == CEED_TRANSPOSE ? nppt*ncomp : esize;
-//   ierr = CeedVectorCreate(basis->ceed, usize * nelem, &tmp_u); CeedChk(ierr);
-//   ierr = CeedVectorCreate(basis->ceed, vsize * nelem, &tmp_v); CeedChk(ierr);
-
-//   if (!(emode & CEED_EVAL_WEIGHT)) {
-//     ierr = CeedVectorSetArray(tmp_u, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)u); CeedChk(ierr);
-//   }
-//   ierr = CeedVectorSetArray(tmp_v, CEED_MEM_HOST, CEED_USE_POINTER, v); CeedChk(ierr);
-
-//   CeedBasisApplyElems_Cuda(basis, nelem, tmode, emode, tmp_u, tmp_v);
-
-//   ierr = CeedVectorGetArray(tmp_v, CEED_MEM_HOST, &v); CeedChk(ierr);
-
-//   ierr = CeedVectorDestroy(&tmp_u); CeedChk(ierr);
-//   ierr = CeedVectorDestroy(&tmp_v); CeedChk(ierr);
-
-//   return 0;
-// }
-
 static int CeedBasisDestroy_Cuda(CeedBasis basis) {
   int ierr;
 
