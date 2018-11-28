@@ -13,6 +13,8 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+#ifndef _ceed_occa_h
+#define _ceed_occa_h
 #include <ceed-backend.h>
 #include <string.h>
 #include <assert.h>
@@ -168,3 +170,4 @@ CEED_INTERN int CeedElemRestrictionCreateBlocked_Occa(const CeedMemType mtype,
 
 // *****************************************************************************
 CEED_INTERN int CeedVectorCreate_Occa(CeedInt n, CeedVector vec);
+#endif

@@ -15,7 +15,9 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
+
 #include "ceed-libparanumal.h"
+#include "../occa/ceed-occa.h"
 
 static int CeedOperatorDestroy_libparanumal(CeedOperator op) {
 ////TODO Destroy the CeedOperator_libparanumal?
@@ -200,5 +202,25 @@ int CeedOperatorCreate_libparanumal(CeedOperator op) {
                                 CeedOperatorApply_libparanumal); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
                                 CeedOperatorDestroy_libparanumal); CeedChk(ierr);
+
+  if(!strcmp(op->qf->galleryOp, "elliptic")) {
+    impl->kernelInfo = occaCreateProperties();
+    occaPropertiesSet(impl->kernelInfo, "defines/p_G00ID", occaInt(0));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_G01ID", occaInt(1));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_G02ID", occaInt(2));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_G11ID", occaInt(3));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_G12ID", occaInt(4));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_G22ID", occaInt(5));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_GWJID", occaInt(6));
+
+    Ceed_Occa *ceed_data;
+    ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
+    const occaDevice dev = ceed_data->device;
+
+    // TODO: Fix this
+    char *oklPath = "backends/libParanumal";
+    impl->kernel = occaDeviceBuildKernel(dev,oklPath,"ellipticHexAx3D",impl->kernelInfo);
+  }
+
   return 0;
 }

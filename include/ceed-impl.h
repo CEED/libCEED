@@ -130,6 +130,7 @@ struct CeedQFunction_private {
   CeedInt numinputfields, numoutputfields;
   int (*function)(void*, CeedInt, const CeedScalar *const*, CeedScalar *const*);
   const char *focca;
+  const char *galleryOp;
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */
   void *data;     /* backend data */

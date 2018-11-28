@@ -23,8 +23,14 @@
 #include <occa.h>
 
 typedef struct {
-  CeedQFunction qf;
+  //libParanumal stuff
+  char fileName[BUFSIZ];
+  char kernelName[BUFSIZ];
+  occaProperties kernelInfo;
+  occaKernel kernel;//Might need more than one
+} CeedQFunction_libparanumal;
 
+typedef struct {
   //libParanumal stuff
   char fileName[BUFSIZ];
   char kernelName[BUFSIZ];
