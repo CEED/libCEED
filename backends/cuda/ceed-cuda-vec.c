@@ -282,7 +282,7 @@ static int CeedVectorDestroy_Cuda(const CeedVector vec) {
   ierr = cudaFree(data->d_array_allocated); CeedChk_Cu(vec->ceed, ierr);
   // ierr = cudaFreeHost(data->h_array_allocated); CeedChk(ierr);
   if (data->h_array_allocated){
-    ierr = CeedFree(data->h_array_allocated); CeedChk(ierr);
+    ierr = CeedFree(&data->h_array_allocated); CeedChk(ierr);
   }
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
