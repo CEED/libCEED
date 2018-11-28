@@ -164,25 +164,25 @@ static int CeedVectorGetArrayRead_Cuda(const CeedVector vec,
 
   switch (mtype) {
   case CEED_MEM_HOST:
+    if(data->h_array==NULL){
+      ierr = CeedMalloc(vec->length, &data->h_array_allocated);
+      CeedChk(ierr);
+      data->h_array = data->h_array_allocated;
+    }
     if(data->memState==DEVICE_SYNC){
-      if(data->h_array==NULL){
-        ierr = CeedMalloc(vec->length, &data->h_array_allocated);
-        CeedChk(ierr);
-        data->h_array = data->h_array_allocated;
-      }
       CeedSyncD2H_Cuda(vec);
       data->memState = BOTH_SYNC;
     }
     *array = data->h_array;
     break;
   case CEED_MEM_DEVICE:
+    if (data->d_array==NULL)
+    {
+      ierr = cudaMalloc((void**)&data->d_array_allocated, bytes(vec));
+      CeedChk_Cu(vec->ceed, ierr);
+      data->d_array = data->d_array_allocated;
+    }
     if (data->memState==HOST_SYNC){
-      if (data->d_array==NULL)
-      {
-        ierr = cudaMalloc((void**)&data->d_array_allocated, bytes(vec));
-        CeedChk_Cu(vec->ceed, ierr);
-        data->d_array = data->d_array_allocated;
-      }
       CeedSyncH2D_Cuda(vec);
       data->memState = BOTH_SYNC;
     }
@@ -201,25 +201,25 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec,
 
   switch (mtype) {
   case CEED_MEM_HOST:
+    if(data->h_array==NULL){
+      ierr = CeedMalloc(vec->length, &data->h_array_allocated);
+      CeedChk(ierr);
+      data->h_array = data->h_array_allocated;
+    }
     if(data->memState==DEVICE_SYNC){
-      if(data->h_array==NULL){
-        ierr = CeedMalloc(vec->length, &data->h_array_allocated);
-        CeedChk(ierr);
-        data->h_array = data->h_array_allocated;
-      }
       CeedSyncD2H_Cuda(vec);
       data->memState = HOST_SYNC;
     }
     *array = data->h_array;
     break;
   case CEED_MEM_DEVICE:
+    if (data->d_array==NULL)
+    {
+      ierr = cudaMalloc((void**)&data->d_array_allocated, bytes(vec));
+      CeedChk_Cu(vec->ceed, ierr);
+      data->d_array = data->d_array_allocated;
+    }
     if (data->memState==HOST_SYNC){
-      if (data->d_array==NULL)
-      {
-        ierr = cudaMalloc((void**)&data->d_array_allocated, bytes(vec));
-        CeedChk_Cu(vec->ceed, ierr);
-        data->d_array = data->d_array_allocated;
-      }
       CeedSyncH2D_Cuda(vec);
       data->memState = DEVICE_SYNC;
     }
