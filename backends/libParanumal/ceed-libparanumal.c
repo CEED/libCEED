@@ -19,15 +19,19 @@
 #include "../occa/ceed-occa.h"
 
 static int CeedInit_libparanumal(const char *resource, Ceed ceed) {
+  int ierr;
   Ceed ceeddelegate;
   // Create delegate CEED that implementation will be dispatched
   //   through unless overridden
   CeedInit("/gpu/occa", &ceeddelegate);
-  int ierr = CeedSetDelegate(ceed, &ceeddelegate);
+  ierr = CeedSetDelegate(ceed, &ceeddelegate);
   CeedChk(ierr);
   if (strcmp(resource, "/gpu/libparanumal"))
     return CeedError(ceed, 1, "LibParanumal backend cannot use resource: %s", resource);
-  //ceed->OperatorCreate = CeedOperatorCreate_libparanumal;
+
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
+                                CeedOperatorCreate_libparanumal); CeedChk(ierr);
+
   return 0;
 }
 

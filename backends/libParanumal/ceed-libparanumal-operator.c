@@ -15,37 +15,56 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
+#include "ceed-libparanumal.h"
 
-#if 0
 static int CeedOperatorDestroy_libparanumal(CeedOperator op) {
-  //TODO Destroy the CeedOperator_libparanumal?
-  int ierr;
-  CeedOperator_libparanumal *impl;
-  ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
+////TODO Destroy the CeedOperator_libparanumal?
+//int ierr;
+//CeedOperator_libparanumal *impl;
+//ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
 
-  for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
-    ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);
-  }
-  ierr = CeedFree(&impl->evecs); CeedChk(ierr);
-  ierr = CeedFree(&impl->edata); CeedChk(ierr);
+//for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
+//  ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);
+//}
+//ierr = CeedFree(&impl->evecs); CeedChk(ierr);
+//ierr = CeedFree(&impl->edata); CeedChk(ierr);
 
-  for (CeedInt i=0; i<impl->numqin+impl->numqout; i++) {
-    ierr = CeedFree(&impl->qdata_alloc[i]); CeedChk(ierr);
-  }
-  ierr = CeedFree(&impl->qdata_alloc); CeedChk(ierr);
-  ierr = CeedFree(&impl->qdata); CeedChk(ierr);
+//for (CeedInt i=0; i<impl->numqin+impl->numqout; i++) {
+//  ierr = CeedFree(&impl->qdata_alloc[i]); CeedChk(ierr);
+//}
+//ierr = CeedFree(&impl->qdata_alloc); CeedChk(ierr);
+//ierr = CeedFree(&impl->qdata); CeedChk(ierr);
 
-  ierr = CeedFree(&impl->indata); CeedChk(ierr);
-  ierr = CeedFree(&impl->outdata); CeedChk(ierr);
+//ierr = CeedFree(&impl->indata); CeedChk(ierr);
+//ierr = CeedFree(&impl->outdata); CeedChk(ierr);
 
-  //Free mesh?
-  occaFree(impl->kernelInfo);
-  occaFree(impl->kernel);
+////Free mesh?
+//occaFree(impl->kernelInfo);
+//occaFree(impl->kernel);
 
-  ierr = CeedFree(&op->data); CeedChk(ierr);
+//ierr = CeedFree(&op->data); CeedChk(ierr);
   return 0;
 }
 
+static int CeedOperatorApply_libparanumal(CeedOperator op, CeedVector invec,
+                                 CeedVector outvec, CeedRequest *request) {
+//  int ierr;
+//  CeedOperator_libparanumal *impl;
+//  ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
+//	//Check if the operator Kernel is instanciated, otherwise creates it (jit)
+//  CeedOperatorSetup_libparanumal(op);
+//	//Apply the operator
+//  mesh_t *mesh = impl->mesh;
+//  // Do we only need to set Nelements, o_vgeo, and o_Dmatrices in mesh? If so, maybe we can store them in a different struct...
+//  impl->kernel(mesh->Nelements, 
+//                mesh->o_vgeo, //What is called D in MFEM (geometric factors)
+//                mesh->o_Dmatrices, //What is call B in MFEM (interpolation matrix)
+//                (occaMemory)invec->data->d_array, 
+//                (occaMemory)outvec->data->d_array);
+  return 1;
+}
+
+#if 0
 static int CeedOperatorSetupFields_libparanumal(CeedOperator op,
                                         CeedQFunctionField qfields[16],
                                         CeedOperatorField ofields[16],
@@ -166,32 +185,20 @@ found:
   return 0;
 }
 
-static int CeedOperatorApply_libparanumal(CeedOperator op, CeedVector invec,
-                                 CeedVector outvec, CeedRequest *request) {
-  int ierr;
-  CeedOperator_libparanumal *impl;
-  ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
-	//Check if the operator Kernel is instanciated, otherwise creates it (jit)
-  CeedOperatorSetup_libparanumal(op);
-	//Apply the operator
-  mesh_t *mesh = impl->mesh;
-  // Do we only need to set Nelements, o_vgeo, and o_Dmatrices in mesh? If so, maybe we can store them in a different struct...
-  impl->kernel(mesh->Nelements, 
-                mesh->o_vgeo, //What is called D in MFEM (geometric factors)
-                mesh->o_Dmatrices, //What is call B in MFEM (interpolation matrix)
-                (occaMemory)invec->data->d_array, 
-                (occaMemory)outvec->data->d_array);
-	return 1;
-}
+#endif
 
 int CeedOperatorCreate_libparanumal(CeedOperator op) {
   int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_libparanumal *impl;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  op->data = impl;
-  op->Destroy = CeedOperatorDestroy_libparanumal;
-  op->Apply = CeedOperatorApply_libparanumal;
+
+  ierr = CeedOperatorSetData(op, (void*)&impl);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
+                                CeedOperatorApply_libparanumal); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
+                                CeedOperatorDestroy_libparanumal); CeedChk(ierr);
   return 0;
 }
-#endif

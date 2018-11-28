@@ -20,4 +20,16 @@
 #include <stdbool.h>
 #include <sys/stat.h>
 
+#include <occa.h>
+
+typedef struct {
+  CeedQFunction qf;
+
+  //libParanumal stuff
+  char fileName[BUFSIZ];
+  char kernelName[BUFSIZ];
+  occaProperties kernelInfo;
+  occaKernel kernel;//Might need more than one
+} CeedOperator_libparanumal;
+
 CEED_INTERN int CeedOperatorCreate_libparanumal(CeedOperator op);
