@@ -39,28 +39,20 @@ static int CeedVectorSetArrayHost_Cuda(const CeedVector vec,
                                        const CeedCopyMode cmode, CeedScalar *array) {
   int ierr;
   CeedVector_Cuda *data = (CeedVector_Cuda*)vec->data;
-  //FIXME we should not allocate Device memory
-  // ierr = cudaMalloc((void**)&data->d_array_allocated, bytes(vec)); CeedChk_Cu(vec->ceed, ierr);
-  // data->d_array = data->d_array_allocated;
-  // data->d_array = NULL;
 
   switch (cmode) {
   case CEED_COPY_VALUES:
-    // ierr = cudaMallocHost((void**)&data->h_array_allocated, bytes(vec)); CeedChk(ierr);
     ierr = CeedMalloc(vec->length, &data->h_array_allocated); CeedChk(ierr);
     data->h_array = data->h_array_allocated;
 
     if (array) memcpy(data->h_array, array, bytes(vec));
-    // if (array) CeedSyncH2D_Cuda(vec);
     break;
   case CEED_OWN_POINTER:
     data->h_array_allocated = array;
     data->h_array = array;
-    // CeedSyncH2D_Cuda(vec);
     break;
   case CEED_USE_POINTER:
     data->h_array = array;
-    // CeedSyncH2D_Cuda(vec);
     break;
   }
   data->memState = HOST_SYNC;
@@ -71,10 +63,6 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec,
     const CeedCopyMode cmode, CeedScalar *array) {
   int ierr;
   CeedVector_Cuda *data = (CeedVector_Cuda*)vec->data;
-  //FIXME should not allocate
-  // ierr = cudaMallocHost((void**)&data->h_array_allocated, bytes(vec)); CeedChk(ierr);
-  // ierr = CeedMalloc(vec->length, &data->h_array_allocated); CeedChk(ierr);
-  // data->h_array = data->h_array_allocated;
 
   switch (cmode) {
   case CEED_COPY_VALUES:
@@ -83,16 +71,13 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec,
 
     if (array) cudaMemcpy(data->d_array, array, bytes(vec),
                             cudaMemcpyDeviceToDevice);
-    // if (array) CeedSyncD2H_Cuda(vec);
     break;
   case CEED_OWN_POINTER:
     data->d_array_allocated = array;
     data->d_array = array;
-    // CeedSyncD2H_Cuda(vec);
     break;
   case CEED_USE_POINTER:
     data->d_array = array;
-    // CeedSyncD2H_Cuda(vec);
     break;
   }
   data->memState = DEVICE_SYNC;
@@ -261,10 +246,8 @@ static int CeedVectorRestoreArray_Cuda(const CeedVector vec,
                                        CeedScalar **array) {
   CeedVector_Cuda *data = (CeedVector_Cuda*)vec->data;
   if (*array == data->h_array) {
-    // CeedSyncH2D_Cuda(vec);
     data->memState = HOST_SYNC;
   } else if (*array == data->d_array) {
-    // CeedSyncD2H_Cuda(vec);
     data->memState = DEVICE_SYNC;
   } else {
     return CeedError(vec->ceed, 1, "Invalid restore array");
@@ -280,10 +263,7 @@ static int CeedVectorDestroy_Cuda(const CeedVector vec) {
   int ierr;
   CeedVector_Cuda *data = (CeedVector_Cuda*)vec->data;
   ierr = cudaFree(data->d_array_allocated); CeedChk_Cu(vec->ceed, ierr);
-  // ierr = cudaFreeHost(data->h_array_allocated); CeedChk(ierr);
-  if (data->h_array_allocated){
-    ierr = CeedFree(&data->h_array_allocated); CeedChk(ierr);
-  }
+  ierr = CeedFree(&data->h_array_allocated); CeedChk(ierr);
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
