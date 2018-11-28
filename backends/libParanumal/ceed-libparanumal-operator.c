@@ -17,7 +17,7 @@
 #include <ceed-impl.h>
 
 #include "ceed-libparanumal.h"
-#include "../occa/ceed-occa.h"
+#include <ceed-occa.h>
 
 static int CeedOperatorDestroy_libparanumal(CeedOperator op) {
 ////TODO Destroy the CeedOperator_libparanumal?
@@ -218,8 +218,7 @@ int CeedOperatorCreate_libparanumal(CeedOperator op) {
     const occaDevice dev = ceed_data->device;
 
     // TODO: Fix this
-    char *oklPath = "backends/libParanumal";
-    impl->kernel = occaDeviceBuildKernel(dev,oklPath,"ellipticHexAx3D",impl->kernelInfo);
+    impl->kernel = occaDeviceBuildKernel(dev, LIBP_OKLPATH, "ellipticHexAx3D", impl->kernelInfo);
   }
 
   return 0;

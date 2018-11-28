@@ -36,6 +36,9 @@ endif
 # OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
 OCCA_DIR ?= ../occa
 
+# OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
+LIBP_OKLPATH ?= "$(abspath ./backends/libParanumal/okl/)"
+
 # env variable MAGMA_DIR can be used too
 MAGMA_DIR ?= ../magma
 # If CUDA_DIR is not set, check for nvcc, or resort to /usr/local/cuda
@@ -213,7 +216,7 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   BACKENDS += /cpu/occa /gpu/occa /omp/occa
 
   libceed.c += $(libparanumal.c)
-  $(libparanumal.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(OCCA_DIR)/include -Ibackends/occa
+  $(libparanumal.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(OCCA_DIR)/include -Ibackends/occa -DLIBP_OKLPATH=\"$(LIBP_OKLPATH)\"
   BACKENDS += /gpu/libparanumal
 endif
 
