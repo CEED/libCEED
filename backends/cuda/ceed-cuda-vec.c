@@ -327,6 +327,8 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
 
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArray",
                                 CeedVectorSetArray_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetValue",
+                                CeedVectorSetArray_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArray",
                                 CeedVectorGetArray_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayRead",
