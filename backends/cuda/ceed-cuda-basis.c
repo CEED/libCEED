@@ -238,9 +238,12 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   ierr = get_kernel(basis->ceed, data->module, "grad", &data->grad); CeedChk(ierr);
   ierr = get_kernel(basis->ceed, data->module, "weight", &data->weight); CeedChk(ierr);
 
-  basis->data = data;
-
-  basis->Apply = CeedBasisApply_Cuda;
-  basis->Destroy = CeedBasisDestroy_Cuda;
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, (void*)&data);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Cuda);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroy_Cuda);
+  CeedChk(ierr);
   return 0;
 }

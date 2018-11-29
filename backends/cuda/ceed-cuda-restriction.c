@@ -218,9 +218,13 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
   ierr = get_kernel(r->ceed, impl->module, "trNoTr", &impl->trNoTr); CeedChk(ierr);
   ierr = get_kernel(r->ceed, impl->module, "trTr", &impl->trTr); CeedChk(ierr);
 
-  r->data = impl;
-  r->Apply = CeedElemRestrictionApply_Cuda;
-  r->Destroy = CeedElemRestrictionDestroy_Cuda;
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
+  ierr = CeedElemRestrictionSetData(r, (void*)&impl); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",
+                                CeedElemRestrictionApply_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy",
+                                CeedElemRestrictionDestroy_Cuda); CeedChk(ierr);
   return 0;
 }
 

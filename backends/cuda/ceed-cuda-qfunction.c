@@ -131,8 +131,13 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = get_kernel(qf->ceed, data->module, funname, &data->callback); CeedChk(ierr);
   ierr = CeedFree(&contents); CeedChk(ierr);
 
-  qf->data = data;
-  qf->Apply = CeedQFunctionApply_Cuda;
-  qf->Destroy = CeedQFunctionDestroy_Cuda;
+  Ceed ceed;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  ierr = CeedQFunctionSetData(qf, (void*)&data); CeedChk(ierr);
+
+  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
+                                CeedQFunctionApply_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
+                                CeedQFunctionDestroy_Cuda); CeedChk(ierr);
   return 0;
 }

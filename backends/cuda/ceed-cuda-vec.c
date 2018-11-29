@@ -274,17 +274,24 @@ static int CeedVectorDestroy_Cuda(const CeedVector vec) {
 int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
   CeedVector_Cuda *data;
   int ierr;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
 
-  vec->SetArray = CeedVectorSetArray_Cuda;
-  vec->SetValue = CeedVectorSetValue_Cuda;
-  vec->GetArray = CeedVectorGetArray_Cuda;
-  vec->GetArrayRead = CeedVectorGetArrayRead_Cuda;
-  vec->RestoreArray = CeedVectorRestoreArray_Cuda;
-  vec->RestoreArrayRead = CeedVectorRestoreArrayRead_Cuda;
-  vec->Destroy = CeedVectorDestroy_Cuda;
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArray",
+                                CeedVectorSetArray_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArray",
+                                CeedVectorGetArray_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayRead",
+                                CeedVectorGetArrayRead_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArray",
+                                CeedVectorRestoreArray_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayRead",
+                                CeedVectorRestoreArrayRead_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Destroy",
+                                CeedVectorDestroy_Cuda); CeedChk(ierr);
   // ***************************************************************************
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
-  vec->data = data;
+  ierr = CeedVectorSetData(vec, (void*)&data);
   data->memState = DEVICE_SYNC; //Synchronized with the Device by default
   return 0;
 }
