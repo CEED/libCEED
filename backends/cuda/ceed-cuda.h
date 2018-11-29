@@ -110,6 +110,9 @@ CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q
     const CeedScalar *qweight1d,
     CeedBasis basis);
 
+CEED_INTERN int CeedBasisCreateH1_Cuda(CeedElemTopology, CeedInt, CeedInt, CeedInt, const CeedScalar *,
+    const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
+
 CEED_INTERN int CeedQFunctionCreate_Cuda(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Cuda(CeedOperator op);
