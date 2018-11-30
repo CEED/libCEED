@@ -28,7 +28,7 @@ static inline size_t bytes(const CeedVector vec) {
   return length * sizeof(CeedScalar);
 }
 
-static inline void CeedSyncH2D_Cuda(const CeedVector vec) {
+static inline int CeedSyncH2D_Cuda(const CeedVector vec) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
@@ -36,9 +36,10 @@ static inline void CeedSyncH2D_Cuda(const CeedVector vec) {
   ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
   ierr = cudaMemcpy(data->d_array, data->h_array, bytes(vec), cudaMemcpyHostToDevice);
   CeedChk_Cu(ceed, ierr);
+  return 0;
 }
 
-static inline void CeedSyncD2H_Cuda(const CeedVector vec) {
+static inline int CeedSyncD2H_Cuda(const CeedVector vec) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
@@ -46,6 +47,7 @@ static inline void CeedSyncD2H_Cuda(const CeedVector vec) {
   ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
   cudaMemcpy(data->h_array, data->d_array, bytes(vec), cudaMemcpyDeviceToHost);
   CeedChk_Cu(ceed, ierr);
+  return 0;
 }
 
 static int CeedVectorSetArrayHost_Cuda(const CeedVector vec,
@@ -202,7 +204,7 @@ static int CeedVectorGetArrayRead_Cuda(const CeedVector vec,
       data->h_array = data->h_array_allocated;
     }
     if(data->memState==DEVICE_SYNC){
-      CeedSyncD2H_Cuda(vec);
+      ierr = CeedSyncD2H_Cuda(vec); CeedChk(ierr);
       data->memState = BOTH_SYNC;
     }
     *array = data->h_array;
@@ -215,7 +217,7 @@ static int CeedVectorGetArrayRead_Cuda(const CeedVector vec,
       data->d_array = data->d_array_allocated;
     }
     if (data->memState==HOST_SYNC){
-      CeedSyncH2D_Cuda(vec);
+      ierr = CeedSyncH2D_Cuda(vec); CeedChk(ierr);
       data->memState = BOTH_SYNC;
     }
     *array = data->d_array;
@@ -244,7 +246,7 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec,
       data->h_array = data->h_array_allocated;
     }
     if(data->memState==DEVICE_SYNC){
-      CeedSyncD2H_Cuda(vec);
+      ierr = CeedSyncD2H_Cuda(vec); CeedChk(ierr);
       data->memState = HOST_SYNC;
     }
     *array = data->h_array;
@@ -257,7 +259,7 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec,
       data->d_array = data->d_array_allocated;
     }
     if (data->memState==HOST_SYNC){
-      CeedSyncH2D_Cuda(vec);
+      ierr = CeedSyncH2D_Cuda(vec); CeedChk(ierr);
       data->memState = DEVICE_SYNC;
     }
     *array = data->d_array;
