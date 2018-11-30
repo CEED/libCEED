@@ -118,7 +118,7 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec,
   ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
 
   ierr = CeedFree(&data->h_array_allocated); CeedChk(ierr);
-  ierr = cudaFree(data->d_array_allocated); CeedChk_Cu(ceed, ierr);
+  //ierr = cudaFree(&data->d_array_allocated); CeedChk_Cu(ceed, ierr);
 
   switch (mtype) {
   case CEED_MEM_HOST:
