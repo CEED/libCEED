@@ -102,13 +102,21 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
 
   data->optblocksize = deviceProp.maxThreadsPerBlock;
 
-  ceed->data = data;
-  ceed->VecCreate = CeedVectorCreate_Cuda;
-  ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Cuda;
-  ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Cuda;
-  ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreateBlocked_Cuda;
-  ceed->QFunctionCreate = CeedQFunctionCreate_Cuda;
-  ceed->OperatorCreate = CeedOperatorCreate_Cuda;
+  ierr = CeedSetData(ceed,(void*)&data); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VecCreate",
+                                CeedVectorCreate_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
+                                CeedBasisCreateTensorH1_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
+                                CeedBasisCreateH1_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
+                                CeedElemRestrictionCreate_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreateBlocked",
+                                CeedElemRestrictionCreateBlocked_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
+                                CeedQFunctionCreate_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
+                                CeedOperatorCreate_Cuda); CeedChk(ierr);
   return 0;
 }
 

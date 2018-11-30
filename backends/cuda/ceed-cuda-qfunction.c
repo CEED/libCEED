@@ -22,12 +22,16 @@
 int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q,
     const CeedVector *const u, const CeedVector* v) {
   int ierr;
-  const Ceed_Cuda* ceed = (Ceed_Cuda*)qf->ceed->data;
-  CeedQFunction_Cuda *data = (CeedQFunction_Cuda*) qf->data;
-  const int blocksize = ceed->optblocksize;
+  Ceed ceed;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  Ceed_Cuda* ceed_Cuda;
+  ierr = CeedGetData(ceed, (void*)&ceed_Cuda); CeedChk(ierr);
+  CeedQFunction_Cuda *data;
+  ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
+  const int blocksize = ceed_Cuda->optblocksize;
 
   if (qf->ctxsize > 0) {
-    ierr = cudaMemcpy(data->d_c, qf->ctx, qf->ctxsize, cudaMemcpyHostToDevice); CeedChk(ierr);
+    ierr = cudaMemcpy(data->d_c, qf->ctx, qf->ctxsize, cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
   }
 
   const CeedScalar *h_u[qf->numinputfields];
@@ -35,19 +39,22 @@ int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q,
     CeedVectorGetArrayRead(u[i], CEED_MEM_DEVICE, h_u + i);
   }
   ierr = cudaMemcpy((void**)data->d_u, h_u, qf->numinputfields * sizeof(CeedScalar*), cudaMemcpyHostToDevice);
+  CeedChk_Cu(ceed, ierr);
 
   CeedScalar *h_v[qf->numoutputfields];
   for (CeedInt i = 0; i < qf->numoutputfields; i++) {
     CeedVectorGetArray(v[i], CEED_MEM_DEVICE, h_v + i);
   }
   ierr = cudaMemcpy((void*)data->d_v, h_v, qf->numoutputfields * sizeof(CeedScalar*), cudaMemcpyDeviceToHost);
+  CeedChk_Cu(ceed, ierr);
 
   void *args[] = {&data->d_c, (void*)&Q, &data->d_u, &data->d_v};
   ierr = run_kernel(qf->ceed, data->callback, CeedDivUpInt(Q, blocksize), blocksize, args);
+  CeedChk(ierr);
 
 
   if (qf->ctxsize > 0) {
-    ierr = cudaMemcpy(qf->ctx, data->d_c, qf->ctxsize, cudaMemcpyDeviceToHost); CeedChk(ierr);
+    ierr = cudaMemcpy(qf->ctx, data->d_c, qf->ctxsize, cudaMemcpyDeviceToHost); CeedChk_Cu(ceed, ierr);
   }
 
   return 0;
@@ -56,44 +63,58 @@ int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q,
 static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
                                    CeedVector *U, CeedVector *V) {
   int ierr;
+  Ceed ceed;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
   CeedQFunction_Cuda *data;
-  ierr = CeedQFunctionGetData(qf, (void*)&data);
+  ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
+  Ceed_Cuda *ceed_Cuda;
+  ierr = CeedGetData(ceed, (void*)&ceed_Cuda);
+  CeedInt numinputfields, numoutputfields;
+  ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
-  Ceed_Cuda *ceed;
-  ierr = CeedGetData(qf->ceed, (void*)&ceed);
-  const int blocksize = ceed->optblocksize;
+  const int blocksize = ceed_Cuda->optblocksize;
 
-  for (CeedInt i = 0; i < qf->numinputfields; i++) {
-    CeedVectorGetArrayRead(U[i], CEED_MEM_DEVICE, data->d_u + i);
+  for (CeedInt i = 0; i < numinputfields; i++) {
+    ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_DEVICE, data->d_u + i);
+    CeedChk(ierr);
   }
 
-  for (CeedInt i = 0; i < qf->numoutputfields; i++) {
-    CeedVectorGetArray(V[i], CEED_MEM_DEVICE, data->d_v + i);
+  for (CeedInt i = 0; i < numoutputfields; i++) {
+    ierr = CeedVectorGetArray(V[i], CEED_MEM_DEVICE, data->d_v + i);
+    CeedChk(ierr);
   }
 
   // void *args[] = {&data->d_c, (void*)&Q, &data->d_u, &data->d_v};
-  void *args[] = {&qf->ctx, (void*)&Q, &data->d_u, &data->d_v};
-  ierr = run_kernel(qf->ceed, data->callback, CeedDivUpInt(Q, blocksize), blocksize, args);
+  void* ctx;
+  ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
+  void *args[] = {&ctx, (void*)&Q, &data->d_u, &data->d_v};
+  ierr = run_kernel(ceed, data->callback, CeedDivUpInt(Q, blocksize), blocksize, args);
+  CeedChk(ierr);
 
-  for (CeedInt i = 0; i < qf->numinputfields; i++) {
-    CeedVectorRestoreArrayRead(U[i], data->d_u + i);
+  for (CeedInt i = 0; i < numinputfields; i++) {
+    ierr = CeedVectorRestoreArrayRead(U[i], data->d_u + i);
+    CeedChk(ierr);
   }
 
-  for (CeedInt i = 0; i < qf->numoutputfields; i++) {
-    CeedVectorRestoreArray(V[i], data->d_v + i);
+  for (CeedInt i = 0; i < numoutputfields; i++) {
+    ierr = CeedVectorRestoreArray(V[i], data->d_v + i);
+    CeedChk(ierr);
   }
 
-  return 1;
+  return 0;
 }
 
 static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   int ierr;
-  CeedQFunction_Cuda *data = (CeedQFunction_Cuda *) qf->data;
+  CeedQFunction_Cuda *data;
+  ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
+  Ceed ceed;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
 
-  CeedChk_Cu(qf->ceed, cuModuleUnload(data->module)); 
-  ierr = cudaFree((void*)data->d_u); CeedChk(ierr);
-  ierr = cudaFree((void*)data->d_v); CeedChk(ierr);
-  ierr = cudaFree(data->d_c); CeedChk(ierr);
+  CeedChk_Cu(ceed, cuModuleUnload(data->module)); 
+  ierr = cudaFree((void*)data->d_u); CeedChk_Cu(ceed, ierr);
+  ierr = cudaFree((void*)data->d_v); CeedChk_Cu(ceed, ierr);
+  ierr = cudaFree(data->d_c); CeedChk_Cu(ceed, ierr);
 
   ierr = CeedFree(&data); CeedChk(ierr);
 
@@ -102,12 +123,17 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
 
 int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   int ierr;
-  
+  Ceed ceed;
+  CeedQFunctionGetCeed(qf, &ceed); 
   CeedQFunction_Cuda *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  ierr = cudaMalloc((void**)&data->d_u, qf->numinputfields * sizeof(CeedScalar*)); CeedChk(ierr);
-  ierr = cudaMalloc((void**)&data->d_v, qf->numoutputfields * sizeof(CeedScalar*)); CeedChk(ierr);
-  ierr = cudaMalloc(&data->d_c, qf->ctxsize); CeedChk(ierr);
+  CeedInt numinputfields, numoutputfields;
+  ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
+  ierr = cudaMalloc((void**)&data->d_u, numinputfields * sizeof(CeedScalar*)); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMalloc((void**)&data->d_v, numoutputfields * sizeof(CeedScalar*)); CeedChk_Cu(ceed, ierr);
+  size_t ctxsize;
+  ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
+  ierr = cudaMalloc(&data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);
   
   const char *funname = strrchr(qf->fcuda, ':') + 1;
   // Including final NUL char
@@ -127,12 +153,16 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = CeedCalloc(contentslen + 1, &contents); CeedChk(ierr);
   fread(contents, 1, contentslen, file);
 
-  ierr = compile(qf->ceed, contents, &data->module, 0); CeedChk(ierr);
-  ierr = get_kernel(qf->ceed, data->module, funname, &data->callback); CeedChk(ierr);
+  ierr = compile(ceed, contents, &data->module, 0); CeedChk(ierr);
+  ierr = get_kernel(ceed, data->module, funname, &data->callback); CeedChk(ierr);
   ierr = CeedFree(&contents); CeedChk(ierr);
 
-  qf->data = data;
-  qf->Apply = CeedQFunctionApply_Cuda;
-  qf->Destroy = CeedQFunctionDestroy_Cuda;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  ierr = CeedQFunctionSetData(qf, (void*)&data); CeedChk(ierr);
+
+  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
+                                CeedQFunctionApply_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
+                                CeedQFunctionDestroy_Cuda); CeedChk(ierr);
   return 0;
 }

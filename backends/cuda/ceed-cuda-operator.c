@@ -19,7 +19,10 @@
 
 int CeedOperatorCreate_Cuda(CeedOperator op) {
   int ierr;
-  Ceed_Cuda *impl = (Ceed_Cuda*)op->ceed->data;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  Ceed_Cuda *impl;
+  ierr = CeedGetData(ceed, (void*)&impl); CeedChk(ierr);
   Ceed ceedref = impl->ceedref;
   ierr = ceedref->OperatorCreate(op);
   CeedChk(ierr);
