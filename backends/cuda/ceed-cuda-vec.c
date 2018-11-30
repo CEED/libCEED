@@ -239,7 +239,7 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec,
     if(data->h_array==NULL){
       CeedInt length;
       ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
-      ierr = CeedMalloc(vec, &data->h_array_allocated);
+      ierr = CeedMalloc(length, &data->h_array_allocated);
       CeedChk(ierr);
       data->h_array = data->h_array_allocated;
     }
