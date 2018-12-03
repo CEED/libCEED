@@ -71,6 +71,15 @@ for ((i=0;i<${#backends[@]}; ++i)); do
         continue
     fi
 
+    # grep to skip test if Device memory is not supported
+    if grep -F -q -e 'Can only provide to HOST memory' \
+            ${output}.err ; then
+        printf "ok $i0 # SKIP - not supported $1 $backend\n"
+        printf "ok $i1 # SKIP - not supported $1 $backend stdout\n"
+        printf "ok $i2 # SKIP - not supported $1 $backend stderr\n"
+        continue
+    fi
+
     if [ $status -eq 0 ]; then
         printf "ok $i0 $1 $backend\n"
     else
