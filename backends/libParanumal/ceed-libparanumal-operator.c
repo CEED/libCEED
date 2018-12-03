@@ -191,28 +191,36 @@ found:
 
 int CeedOperatorCreate_libparanumal(CeedOperator op) {
   int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  CeedOperator_libparanumal *impl;
 
-  ierr = CeedCalloc(1, &impl); CeedChk(ierr);
+  if (op->qf->galleryOp==NULL)
+  {
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    delegate->OperatorCreate(op);
+  } else {
+    if(!strcmp(op->qf->galleryOp, "elliptic")) {
+      impl->kernelInfo = occaCreateProperties();
+      occaPropertiesSet(impl->kernelInfo, "defines/p_G00ID", occaInt(0));
+      occaPropertiesSet(impl->kernelInfo, "defines/p_G01ID", occaInt(1));
+      occaPropertiesSet(impl->kernelInfo, "defines/p_G02ID", occaInt(2));
+      occaPropertiesSet(impl->kernelInfo, "defines/p_G11ID", occaInt(3));
+      occaPropertiesSet(impl->kernelInfo, "defines/p_G12ID", occaInt(4));
+      occaPropertiesSet(impl->kernelInfo, "defines/p_G22ID", occaInt(5));
+      occaPropertiesSet(impl->kernelInfo, "defines/p_GWJID", occaInt(6));
+    } else {
+      return CeedError(ceed, 1, "LibParanumal backend does not support this QFunction");
+    }
+    Ceed ceed;
+    ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+    CeedOperator_libparanumal *impl;
 
-  ierr = CeedOperatorSetData(op, (void*)&impl);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
-                                CeedOperatorApply_libparanumal); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
-                                CeedOperatorDestroy_libparanumal); CeedChk(ierr);
+    ierr = CeedCalloc(1, &impl); CeedChk(ierr);
 
-  if(!strcmp(op->qf->galleryOp, "elliptic")) {
-    impl->kernelInfo = occaCreateProperties();
-    occaPropertiesSet(impl->kernelInfo, "defines/p_G00ID", occaInt(0));
-    occaPropertiesSet(impl->kernelInfo, "defines/p_G01ID", occaInt(1));
-    occaPropertiesSet(impl->kernelInfo, "defines/p_G02ID", occaInt(2));
-    occaPropertiesSet(impl->kernelInfo, "defines/p_G11ID", occaInt(3));
-    occaPropertiesSet(impl->kernelInfo, "defines/p_G12ID", occaInt(4));
-    occaPropertiesSet(impl->kernelInfo, "defines/p_G22ID", occaInt(5));
-    occaPropertiesSet(impl->kernelInfo, "defines/p_GWJID", occaInt(6));
-
+    ierr = CeedOperatorSetData(op, (void*)&impl);
+    ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
+                                  CeedOperatorApply_libparanumal); CeedChk(ierr);
+    ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
+                                  CeedOperatorDestroy_libparanumal); CeedChk(ierr);
     Ceed_Occa *ceed_data;
     ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
     const occaDevice dev = ceed_data->device;
