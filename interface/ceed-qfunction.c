@@ -103,17 +103,30 @@ int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength, char* spe
   {
 
     ierr = CeedCalloc(1,qf); CeedChk(ierr);
-    (*qf)->ceed = ceed;
+    (*qf)->ceed     = ceed;
     ceed->refcount++;
     (*qf)->refcount = 1;
-    (*qf)->vlength = vlength;
+    (*qf)->vlength  = vlength;
     (*qf)->function = NULL; //TODO give a default implementation
+    (*qf)->focca    = NULL;
+    ierr = CeedCalloc(16, &(*qf)->inputfields); CeedChk(ierr);
+    ierr = CeedCalloc(16, &(*qf)->outputfields); CeedChk(ierr);
 
     ierr = CeedCalloc(strlen(spec)+1, &galleryOp); CeedChk(ierr);
     strcpy(galleryOp, spec);
     (*qf)->galleryOp = galleryOp;
 
-    ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
+    if (!ceed->QFunctionCreate) {
+      Ceed delegate;
+      ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+
+      if (!delegate)
+      return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
+
+      ierr = delegate->QFunctionCreate(*qf); CeedChk(ierr);
+    } else {
+      ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
+    }
 
     CeedQFunctionAddInput (*qf, "ggeo", 1, CEED_EVAL_NONE);
     CeedQFunctionAddInput (*qf, "D", 1, CEED_EVAL_NONE);

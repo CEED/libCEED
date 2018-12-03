@@ -7,7 +7,10 @@ int main(int argc, char **argv) {
   Ceed ceed;
 
   CeedInit(argv[1], &ceed);
-//  CeedCreateQFunctionFromGallery();
+  CeedInt vlength = 1;
+  char* spec = "elliptic";
+  CeedQFunction qf;
+  CeedQFunctionCreateInteriorFromGallery(ceed, vlength, spec, &qf);
   CeedDestroy(&ceed);
   return 0;
 }
