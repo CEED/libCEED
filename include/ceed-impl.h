@@ -165,6 +165,8 @@ struct CeedOperator_private {
 
   const char *galleryOp;
   int p_Nq;
+  int p_Np;
+  int p_Nggeo;
   int p_dim;
   int p_Nverts;
 };

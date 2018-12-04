@@ -294,6 +294,7 @@ CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
              CeedScalar *const *v), const char *focca, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength, char* spec,
 	CeedQFunction *qf);
+
 CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                                       CeedInt ncomp, CeedEvalMode emode);
 CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,

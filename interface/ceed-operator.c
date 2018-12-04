@@ -97,6 +97,8 @@ int CeedOperatorCreateFromGallery(Ceed ceed, char *spec, CeedOperator *op) {
 
   // TODO: Set from somewhere else
   (*op)->p_Nq = 5;
+  (*op)->p_Np = 5;
+  (*op)->p_Nggeo = 6;
   (*op)->p_dim = 3;
   (*op)->p_Nverts = 8;
 

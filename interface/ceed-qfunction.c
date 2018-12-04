@@ -103,27 +103,38 @@ int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength, char* spe
   {
 
     ierr = CeedCalloc(1,qf); CeedChk(ierr);
-    (*qf)->ceed = ceed;
+    (*qf)->ceed     = ceed;
     ceed->refcount++;
     (*qf)->refcount = 1;
-    (*qf)->vlength = vlength;
+    (*qf)->vlength  = vlength;
     (*qf)->function = NULL; //TODO give a default implementation
+    (*qf)->focca    = NULL;
+    ierr = CeedCalloc(16, &(*qf)->inputfields); CeedChk(ierr);
+    ierr = CeedCalloc(16, &(*qf)->outputfields); CeedChk(ierr);
 
     ierr = CeedCalloc(strlen(spec)+1, &galleryOp); CeedChk(ierr);
     strcpy(galleryOp, spec);
     (*qf)->galleryOp = galleryOp;
 
-    printf("[Before][CeedQFunctionCreate] %p\n",ceed->QFunctionCreate);
-    ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
-    printf("[After][CeedQFunctionCreate]\n");
+    if (!ceed->QFunctionCreate) {
+      Ceed delegate;
+      ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
 
-    //CeedQFunctionAddInput (*qf, "ggeo", 1, CEED_EVAL_NONE);
-    //CeedQFunctionAddInput (*qf, "D", 1, CEED_EVAL_NONE);
-    //CeedQFunctionAddInput (*qf, "S", 1, CEED_EVAL_NONE);
-    //CeedQFunctionAddInput (*qf, "MM", 1, CEED_EVAL_NONE);
-    //CeedQFunctionAddInput (*qf, "lambda", 1, CEED_EVAL_NONE);
-    //CeedQFunctionAddInput (*qf, "q", 2, CEED_EVAL_NONE);
-    //CeedQFunctionAddOutput(*qf, "Aq", 1, CEED_EVAL_NONE);
+      if (!delegate)
+      return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
+
+      ierr = delegate->QFunctionCreate(*qf); CeedChk(ierr);
+    } else {
+      ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
+    }
+
+    CeedQFunctionAddInput (*qf, "ggeo", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddInput (*qf, "D", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddInput (*qf, "S", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddInput (*qf, "MM", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddInput (*qf, "lambda", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddInput (*qf, "q", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(*qf, "Aq", 1, CEED_EVAL_NONE);
 
     return 0;
   }

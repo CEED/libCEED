@@ -190,7 +190,6 @@ found:
 #endif
 
 int CeedOperatorCreate_libparanumal(CeedOperator op) {
-  printf("I am here 0\n");
   int ierr;
   Ceed ceed;
 
@@ -205,6 +204,8 @@ int CeedOperatorCreate_libparanumal(CeedOperator op) {
   occaPropertiesSet(impl->kernelInfo, "defines/dfloat", occaString("double"));
   occaPropertiesSet(impl->kernelInfo, "defines/pfloat", occaString("float"));
   occaPropertiesSet(impl->kernelInfo, "defines/p_Nq", occaInt(op->p_Nq));
+  occaPropertiesSet(impl->kernelInfo, "defines/p_Np", occaInt(op->p_Np));
+  occaPropertiesSet(impl->kernelInfo, "defines/p_Nggeo", occaInt(op->p_Nggeo));
   occaPropertiesSet(impl->kernelInfo, "defines/p_dim", occaInt(op->p_dim));
   occaPropertiesSet(impl->kernelInfo, "defines/p_Nverts", occaInt(op->p_Nverts));
 
