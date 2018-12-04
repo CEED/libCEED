@@ -53,6 +53,7 @@ Example:
 "
 
 # Read in parameter values
+nek_test="notest"
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|-help)
@@ -75,6 +76,9 @@ while [ $# -gt 0 ]; do
        shift
        nek_box="$1"
        ;;
+    -t|-test)
+       nek_test="test"
+       ;;
   esac
   shift
 done
@@ -86,7 +90,9 @@ if [[ -z "${nek_box}" ]]; then
 fi
 
 for nek_ex in "${nek_examples[@]}"; do
-  echo "Running Nek example: $nek_ex"
+  if [[ ! ${nek_test}=="test" ]]; then
+    echo "Running Nek example: $nek_ex"
+  fi
   if [[ ! -f ${nek_ex} ]]; then
     echo "  Example ${nek_ex} does not exist. Build it with make-nek-examples.sh"
     ${NEK_EXIT_CMD} 1
@@ -102,8 +108,14 @@ for nek_ex in "${nek_examples[@]}"; do
   rm -f ioinfo
   mv ${nek_ex}.log.${nek_np}.b${nek_box} ${nek_ex}.log1.${nek_np}.b${nek_box} 2>/dev/null
 
-  ${MPIEXEC:-mpiexec} -np ${nek_np} ./${nek_ex} ${nek_spec} > ${nek_ex}.log.${nek_np}.b${nek_box}
+  ${MPIEXEC:-mpiexec} -np ${nek_np} ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.log.${nek_np}.b${nek_box}
   wait $!
 
-  echo "  Run finished. Output was written to ${nek_ex}.log.${nek_np}.b${nek_box}"
+  if [[ ! ${nek_test}=="test" ]]; then
+    echo "  Run finished. Output was written to ${nek_ex}.log.${nek_np}.b${nek_box}"
+  fi
+
+  if [[ $nek_test=="test" ]]; then
+    grep "ERROR IS TOO LARGE" ${nek_ex}.log*
+  fi
 done
