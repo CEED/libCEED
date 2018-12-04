@@ -194,6 +194,9 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   PetscViewer viewer;
   PetscErrorCode ierr;
 
+  if (stepno % 100 != 0) // prints every 100 steps
+    PetscFunctionReturn(0);
+
   PetscFunctionBeginUser;
   ierr = DMGetGlobalVector(user->dm, &U); CHKERRQ(ierr);
   ierr = DMDAGetLocalInfo(user->dm, &info); CHKERRQ(ierr);
