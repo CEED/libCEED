@@ -26,6 +26,7 @@ c-----------------------------------------------------------------------
 
       do i=1,q
         v1(i)=u2(i)*u1(i)
+        v1(q+i)=u2(q+i)*u1(i)
       enddo
 
       ierr=0
@@ -53,8 +54,8 @@ c-----------------------------------------------------------------------
       real*8 arrx(nx)
       integer*8 voffset
 
-      real*8 hv(nu)
-      real*8 total
+      real*8 hu(nu*2),hv(nu*2)
+      real*8 total1,total2
 
       character arg*32
 
@@ -82,14 +83,14 @@ c-----------------------------------------------------------------------
         enddo
       enddo
 
-      call ceedelemrestrictioncreate(ceed,nelem,p,nu,1,
+      call ceedelemrestrictioncreate(ceed,nelem,p,nu,2,
      $  ceed_mem_host,ceed_use_pointer,indu,erestrictu,err)
       call ceedelemrestrictioncreateidentity(ceed,nelem,q,q*nelem,1,
      $  erestrictui,err)
 
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss,
      $  bx,err)
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,p,q,ceed_gauss,
+      call ceedbasiscreatetensorh1lagrange(ceed,1,2,p,q,ceed_gauss,
      $  bu,err)
 
       call ceedqfunctioncreateinterior(ceed,1,setup,
@@ -108,8 +109,8 @@ c     $  't30-operator-f.f:setup',qf_setup,err)
      $     //':mass'//char(0),qf_mass,err)
 c     $  't30-operator-f.f:mass',qf_mass,err)
       call ceedqfunctionaddinput(qf_mass,'rho',1,ceed_eval_none,err)
-      call ceedqfunctionaddinput(qf_mass,'u',1,ceed_eval_interp,err)
-      call ceedqfunctionaddoutput(qf_mass,'v',1,ceed_eval_interp,err)
+      call ceedqfunctionaddinput(qf_mass,'u',2,ceed_eval_interp,err)
+      call ceedqfunctionaddoutput(qf_mass,'v',2,ceed_eval_interp,err)
 
       call ceedoperatorcreate(ceed,qf_setup,ceed_null,ceed_null,
      $  op_setup,err)
@@ -131,25 +132,35 @@ c     $  't30-operator-f.f:mass',qf_mass,err)
      $  ceed_notranspose,ceed_basis_collocated,
      $  qdata,err)
       call ceedoperatorsetfield(op_mass,'u',erestrictu,
-     $  ceed_notranspose,bu,ceed_vector_active,err)
+     $  ceed_transpose,bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass,'v',erestrictu,
-     $  ceed_notranspose,bu,ceed_vector_active,err)
+     $  ceed_transpose,bu,ceed_vector_active,err)
 
       call ceedoperatorapply(op_setup,x,qdata,
      $  ceed_request_immediate,err)
 
-      call ceedvectorcreate(ceed,nu,u,err)
-      call ceedvectorsetvalue(u,1.d0,err)
-      call ceedvectorcreate(ceed,nu,v,err)
+      call ceedvectorcreate(ceed,2*nu,u,err)
+      call ceedvectorgetarray(u,ceed_mem_host,hu,voffset,err)
+      do i=1,nu
+        hu(voffset+2*i-1)=1.
+        hu(voffset+2*i)=2.
+      enddo
+      call ceedvectorrestorearray(u,hu,voffset,err)
+      call ceedvectorcreate(ceed,2*nu,v,err)
       call ceedoperatorapply(op_mass,u,v,ceed_request_immediate,err)
 
       call ceedvectorgetarrayread(v,ceed_mem_host,hv,voffset,err)
-      total=0.
+      total1=0.
+      total2=0.
       do i=1,nu
-        total=total+hv(voffset+i)
+        total1=total1+hv(voffset+2*i-1)
+        total2=total2+hv(voffset+2*i)
       enddo
-      if (abs(total-1.)>1.0d-10) then
-        write(*,*) 'Computed Area: ',total,' != True Area: 1.0'
+      if (abs(total1-1.)>1.0d-10) then
+        write(*,*) 'Computed Area: ',total1,' != True Area: 1.0'
+      endif
+      if (abs(total2-2.)>1.0d-10) then
+        write(*,*) 'Computed Area: ',total2,' != True Area: 2.0'
       endif
       call ceedvectorrestorearrayread(v,hv,voffset,err)
 

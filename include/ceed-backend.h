@@ -122,6 +122,8 @@ CEED_EXTERN int CeedOperatorFieldGetElemRestriction(CeedOperatorField opfield,
                                                     CeedElemRestriction *rstr);
 CEED_EXTERN int CeedOperatorFieldGetBasis(CeedOperatorField opfield,
                                           CeedBasis *basis);
+CEED_EXTERN int CeedOperatorFieldGetLMode(CeedOperatorField opfield,
+                                          CeedTransposeMode *lmode);
 CEED_EXTERN int CeedOperatorFieldGetVector(CeedOperatorField opfield,
                                            CeedVector *vec);
 
