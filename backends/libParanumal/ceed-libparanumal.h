@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 
 #include <occa.h>
+#include "../occa/ceed-occa.h"
 
 typedef struct {
   //libParanumal stuff
@@ -34,8 +35,10 @@ typedef struct {
   //libParanumal stuff
   char fileName[BUFSIZ];
   char kernelName[BUFSIZ];
+  char *galleryOp;
   occaProperties kernelInfo;
   occaKernel kernel;//Might need more than one
 } CeedOperator_libparanumal;
 
 CEED_INTERN int CeedOperatorCreate_libparanumal(CeedOperator op);
+CEED_INTERN int CeedOperatorDestroy_libparanumal(CeedOperator op);

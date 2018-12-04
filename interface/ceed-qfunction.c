@@ -113,15 +113,17 @@ int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength, char* spe
     strcpy(galleryOp, spec);
     (*qf)->galleryOp = galleryOp;
 
+    printf("[Before][CeedQFunctionCreate] %p\n",ceed->QFunctionCreate);
     ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
+    printf("[After][CeedQFunctionCreate]\n");
 
-    CeedQFunctionAddInput (*qf, "ggeo", 1, CEED_EVAL_NONE);
-    CeedQFunctionAddInput (*qf, "D", 1, CEED_EVAL_NONE);
-    CeedQFunctionAddInput (*qf, "S", 1, CEED_EVAL_NONE);
-    CeedQFunctionAddInput (*qf, "MM", 1, CEED_EVAL_NONE);
-    CeedQFunctionAddInput (*qf, "lambda", 1, CEED_EVAL_NONE);
-    CeedQFunctionAddInput (*qf, "q", 1, CEED_EVAL_NONE);
-    CeedQFunctionAddOutput(*qf, "Aq", 1, CEED_EVAL_NONE);
+    //CeedQFunctionAddInput (*qf, "ggeo", 1, CEED_EVAL_NONE);
+    //CeedQFunctionAddInput (*qf, "D", 1, CEED_EVAL_NONE);
+    //CeedQFunctionAddInput (*qf, "S", 1, CEED_EVAL_NONE);
+    //CeedQFunctionAddInput (*qf, "MM", 1, CEED_EVAL_NONE);
+    //CeedQFunctionAddInput (*qf, "lambda", 1, CEED_EVAL_NONE);
+    //CeedQFunctionAddInput (*qf, "q", 2, CEED_EVAL_NONE);
+    //CeedQFunctionAddOutput(*qf, "Aq", 1, CEED_EVAL_NONE);
 
     return 0;
   }

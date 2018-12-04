@@ -196,7 +196,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
 // *****************************************************************************
 // * CeedQFunctionDestroy_Occa
 // *****************************************************************************
-static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
+int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
@@ -225,12 +225,16 @@ static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
 int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   int ierr;
   Ceed ceed;
+  printf("[Before][CeedQFunctionGetCeed]\n");
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  printf("[After][CeedQFunctionGetCeed]\n");
   CeedQFunction_Occa *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   // Populate the CeedQFunction structure **************************************
+  printf("[CeedSetBackendFunction][Apply]\n");
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Occa); CeedChk(ierr);
+  printf("[CeedSetBackendFunction][Destroy]\n");
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
                                 CeedQFunctionDestroy_Occa); CeedChk(ierr);
   // Fill CeedQFunction_Occa struct ********************************************
@@ -239,11 +243,13 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   data->nc = data->dim = 1;
   data->nelem = data->elemsize = 1;
   data->e = 0;
+  printf("[Before][CeedQFunctionSetData]\n");
   ierr = CeedQFunctionSetData(qf, (void *)&data); CeedChk(ierr);
+  printf("[After][CeedQFunctionSetData]\n");
   // Locate last ':' character in qf->focca ************************************
   char *focca;
+  printf("[CeedQFunction][GetFOCCA] focca");
   ierr = CeedQFunctionGetFOCCA(qf, &focca); CeedChk(ierr);
-  dbg("[CeedQFunction][Create] focca: %s",focca);
   const char *last_colon = strrchr(focca,':');
   const char *last_dot = strrchr(focca,'.');
   if (!last_colon)

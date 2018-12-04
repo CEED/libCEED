@@ -16,7 +16,6 @@
 
 #include <string.h>
 #include "ceed-libparanumal.h"
-#include "../occa/ceed-occa.h"
 
 static int CeedInit_libparanumal(const char *resource, Ceed ceed) {
   int ierr;
@@ -31,6 +30,12 @@ static int CeedInit_libparanumal(const char *resource, Ceed ceed) {
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_libparanumal); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorDestroy",
+                                CeedOperatorDestroy_libparanumal); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
+                                CeedQFunctionCreate_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionDestroy",
+                                CeedQFunctionDestroy_Occa); CeedChk(ierr);
 
   return 0;
 }

@@ -19,7 +19,7 @@
 #include "ceed-libparanumal.h"
 #include <ceed-occa.h>
 
-static int CeedOperatorDestroy_libparanumal(CeedOperator op) {
+int CeedOperatorDestroy_libparanumal(CeedOperator op) {
 ////TODO Destroy the CeedOperator_libparanumal?
 //int ierr;
 //CeedOperator_libparanumal *impl;
@@ -190,21 +190,25 @@ found:
 #endif
 
 int CeedOperatorCreate_libparanumal(CeedOperator op) {
+  printf("I am here 0\n");
   int ierr;
   Ceed ceed;
+
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_libparanumal *impl;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
+  ierr = CeedOperatorSetData(op, (void*)&impl); CeedChk(ierr);
 
-  ierr = CeedOperatorSetData(op, (void*)&impl);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
-                                CeedOperatorApply_libparanumal); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
-                                CeedOperatorDestroy_libparanumal); CeedChk(ierr);
+  impl->kernelInfo = occaCreateProperties();
+  occaPropertiesSet(impl->kernelInfo, "defines/dlong", occaString("long"));
+  occaPropertiesSet(impl->kernelInfo, "defines/dfloat", occaString("double"));
+  occaPropertiesSet(impl->kernelInfo, "defines/pfloat", occaString("float"));
+  occaPropertiesSet(impl->kernelInfo, "defines/p_Nq", occaInt(op->p_Nq));
+  occaPropertiesSet(impl->kernelInfo, "defines/p_dim", occaInt(op->p_dim));
+  occaPropertiesSet(impl->kernelInfo, "defines/p_Nverts", occaInt(op->p_Nverts));
 
-  if(!strcmp(op->qf->galleryOp, "elliptic")) {
-    impl->kernelInfo = occaCreateProperties();
+  if(!strcmp(op->galleryOp, "elliptic")) {
     occaPropertiesSet(impl->kernelInfo, "defines/p_G00ID", occaInt(0));
     occaPropertiesSet(impl->kernelInfo, "defines/p_G01ID", occaInt(1));
     occaPropertiesSet(impl->kernelInfo, "defines/p_G02ID", occaInt(2));
@@ -214,11 +218,14 @@ int CeedOperatorCreate_libparanumal(CeedOperator op) {
     occaPropertiesSet(impl->kernelInfo, "defines/p_GWJID", occaInt(6));
 
     Ceed_Occa *ceed_data;
-    ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
+    Ceed ceeddelegate;
+    ierr = CeedGetDelegate(ceed, &ceeddelegate); CeedChk(ierr);
+    ierr = CeedGetData(ceeddelegate, (void *)&ceed_data);
     const occaDevice dev = ceed_data->device;
 
     // TODO: Fix this
-    impl->kernel = occaDeviceBuildKernel(dev, LIBP_OKLPATH, "ellipticHexAx3D", impl->kernelInfo);
+    impl->kernel = occaDeviceBuildKernel(dev, LIBP_OKLPATH"/ellipticAxHex3D.okl",
+	"ellipticAxHex3D", impl->kernelInfo);
   }
 
   return 0;

@@ -157,6 +157,7 @@ CEED_INTERN int CeedOperatorCreate_Occa(CeedOperator op);
 
 // *****************************************************************************
 CEED_INTERN int CeedQFunctionCreate_Occa(CeedQFunction qf);
+CEED_INTERN int CeedQFunctionDestroy_Occa(CeedQFunction qf);
 
 // *****************************************************************************
 CEED_INTERN int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,

@@ -162,6 +162,11 @@ struct CeedOperator_private {
   CeedQFunction dqfT;
   bool setupdone;
   void *data;
+
+  const char *galleryOp;
+  int p_Nq;
+  int p_dim;
+  int p_Nverts;
 };
 
 CEED_INTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,

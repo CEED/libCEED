@@ -71,6 +71,46 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
 }
 
 /**
+  @brief Create an operator from element restriction, basis, and QFunction
+
+  @param ceed    A Ceed object where the CeedOperator will be created
+  @param qf      QFunction defining the action of the operator at quadrature points
+  @param dqf     QFunction defining the action of the Jacobian of @a qf (or NULL)
+  @param dqfT    QFunction defining the action of the transpose of the Jacobian
+                   of @a qf (or NULL)
+  @param[out] op Address of the variable where the newly created
+                     CeedOperator will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+ */
+int CeedOperatorCreateFromGallery(Ceed ceed, char *spec, CeedOperator *op) {
+  int ierr;
+  char *galleryOp;
+
+  ierr = CeedCalloc(1,op); CeedChk(ierr);
+
+  ierr = CeedCalloc(strlen(spec)+1, &galleryOp); CeedChk(ierr);
+  strcpy(galleryOp, spec);
+  (*op)->galleryOp = galleryOp;
+
+  // TODO: Set from somewhere else
+  (*op)->p_Nq = 5;
+  (*op)->p_dim = 3;
+  (*op)->p_Nverts = 8;
+
+  (*op)->ceed = ceed;
+  ceed->refcount++;
+  (*op)->refcount = 1;
+  ierr = CeedCalloc(16, &(*op)->inputfields); CeedChk(ierr);
+  ierr = CeedCalloc(16, &(*op)->outputfields); CeedChk(ierr);
+  ierr = ceed->OperatorCreate(*op); CeedChk(ierr);
+
+  return 0;
+}
+
+/**
   @brief Provide a field to a CeedOperator for use by its CeedQFunction
 
   This function is used to specify both active and passive fields to a

@@ -5,9 +5,12 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
+  CeedOperator op;
 
-  CeedInit(argv[1], &ceed);
-//  CeedCreateQFunctionFromGallery();
+  CeedInit("/gpu/libparanumal", &ceed);
+  CeedOperatorCreateFromGallery(ceed, "elliptic", &op);
+
+  //CeedQFunctionDestroy(&qf);
   CeedDestroy(&ceed);
   return 0;
 }

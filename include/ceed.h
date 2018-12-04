@@ -292,6 +292,8 @@ CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m,
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     int (*f)(void *ctx, CeedInt nq, const CeedScalar *const *u,
              CeedScalar *const *v), const char *focca, CeedQFunction *qf);
+CEED_EXTERN int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength, char* spec,
+	CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                                       CeedInt ncomp, CeedEvalMode emode);
 CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
@@ -305,6 +307,9 @@ CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
 CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf,
                                    CeedQFunction dqf, CeedQFunction dqfT,
                                    CeedOperator *op);
+
+CEED_EXTERN int CeedOperatorCreateFromGallery(Ceed ceed, char *spec, CeedOperator *op);
+
 CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                                      CeedElemRestriction r,
                                      CeedTransposeMode lmode, CeedBasis b,
