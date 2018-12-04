@@ -127,6 +127,26 @@ static int Setup(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
+// This QFunction sets up the mass matrix, where u and w are the input arguments and
+// v is the output. This is defined for u and v as 5-field (interlaced values) functions
+// and w a scalar weight for every quadrature point, identical for all fields
+// *****************************************************************************
+static int Mass(void *ctx, CeedInt Q,
+                const CeedScalar *const *in, CeedScalar *const *out) {
+  (void)ctx;
+  const CeedScalar *u = in[0], *w = in[1];
+  CeedScalar *v = out[0];
+  for (CeedInt i=0; i<Q; i++) {
+    v[i+0*Q] = w[i+0*Q] * u[i+0*Q];
+    v[i+1*Q] = w[i+0*Q] * u[i+1*Q];
+    v[i+2*Q] = w[i+0*Q] * u[i+2*Q];
+    v[i+3*Q] = w[i+0*Q] * u[i+3*Q];
+    v[i+4*Q] = w[i+0*Q] * u[i+4*Q];
+  }
+  return 0;
+}
+
+// *****************************************************************************
 // This QFunction sets the the initial conditions
 //
 // These initial conditions are given in terms of potential temperature and
@@ -203,8 +223,8 @@ static int ICs(void *ctx, CeedInt Q,
 
     // Initial Conditions
     q0[i+0*Q] = 1.;//rho;
-    q0[i+1*Q] = 0.0;//-50*(x[i+Q*1] - 0.5);//0.0;
-    q0[i+2*Q] = 1.0;//50*(x[i+Q*0] - 0.5);//0.0;
+    q0[i+1*Q] = 0.0;//-0.5*(x[i+Q*1] - 0.5);//0.0;
+    q0[i+2*Q] = 0.01;//0.5*(x[i+Q*0] - 0.5);//.01;
     q0[i+3*Q] = 0.0;
     q0[i+4*Q] = r2 <= 1./8. ? (1.-8.*r2) : 0.;//rho * (Cv*Theta*Pi + g*x[i+Q*2]);
 

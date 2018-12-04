@@ -120,9 +120,9 @@ struct User_ {
   VecScatter ltog;              // Scatter for all entries
   VecScatter ltog0;             // Skip Dirichlet values for U
   VecScatter gtogD;             // global-to-global; only Dirichlet values for U
-  Vec Qloc, Gloc;
+  Vec Qloc, Gloc, M;
   CeedVector qceed, gceed;
-  CeedOperator op;
+  CeedOperator op_ns;
   CeedVector qdata;
   PetscInt degree;
   PetscInt melem[3];
@@ -153,7 +153,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   CeedVectorSetArray(user->gceed, CEED_MEM_HOST, CEED_USE_POINTER, g);
 
   // Apply CEED operator
-  CeedOperatorApply(user->op, user->qceed, user->gceed,
+  CeedOperatorApply(user->op_ns, user->qceed, user->gceed,
                     CEED_REQUEST_IMMEDIATE);
 
   // Restore vectors
@@ -173,6 +173,10 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   ierr = VecScatterBegin(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
+  CHKERRQ(ierr);
+  
+  // add the action of the inverse of the lumped mass matrix
+  ierr = VecPointwiseMult(G,G,user->M); // it is actually Minv after the call to VecReciprocal in main()
   CHKERRQ(ierr);
   
   PetscFunctionReturn(0);
@@ -226,17 +230,17 @@ int main(int argc, char **argv) {
   PetscMPIInt size, rank;
   PetscScalar ftime;
   PetscInt steps;
-  PetscScalar *q0, *m;
+  PetscScalar *q0, *m, *m0;
   VecScatter ltog, ltog0, gtogD;
   Ceed ceed;
   CeedBasis basisx, basisxc, basisu;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi,
                       Erestrictqdi, Erestrictm;
-  CeedQFunction qf_setup, qf_ics, qf_ns;
-  CeedOperator op_setup, op_ics, op_ns;
-  CeedVector xcoord, qdata, q0ceed, multevec, multlvec;
+  CeedQFunction qf_setup, qf_mass, qf_ics, qf_ns;
+  CeedOperator op_setup, op_mass, op_ics, op_ns;
+  CeedVector xcoord, qdata, q0ceed, m0ceed, onesvec, multevec, multlvec;
   CeedInt numP, numQ;
-  Vec Q, Qloc;
+  Vec Q, Qloc, Mloc;
   DM dm;
   TS ts;
   TSAdapt adapt;
@@ -311,7 +315,7 @@ int main(int argc, char **argv) {
                      mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]);
                      CHKERRQ(ierr);
 
-  {
+    {
     // Set up local state vector
     lsize = 1;
     for (int d=0; d<3; d++) {
@@ -321,6 +325,11 @@ int main(int argc, char **argv) {
     ierr = VecCreate(PETSC_COMM_SELF, &Qloc); CHKERRQ(ierr);
     ierr = VecSetSizes(Qloc, 5*lsize, PETSC_DECIDE); CHKERRQ(ierr);
     ierr = VecSetUp(Qloc); CHKERRQ(ierr);
+
+    // Set up local Mass vector
+    ierr = VecDuplicate(Qloc,&Mloc); CHKERRQ(ierr);
+    // Set up global Mass vector
+    ierr = VecDuplicate(Q,&user->M); CHKERRQ(ierr);
 
     // Create local-to-global scatters
     PetscInt *ltogind, *ltogind0, *locind, l0count;
@@ -480,6 +489,8 @@ int main(int argc, char **argv) {
   for (int d=0; d<3; d++) Ndofs *= numP;
   CeedVectorCreate(ceed, 16*Nelem*Nqpts, &qdata);
   CeedVectorCreate(ceed, 5*lsize, &q0ceed);
+  CeedVectorCreate(ceed, 5*lsize, &m0ceed);
+  CeedVectorCreate(ceed, 5*lsize, &onesvec);
   CeedVectorCreate(ceed, lsize, &multlvec);
   CeedVectorCreate(ceed, Nelem*Ndofs, &multevec);
 
@@ -495,6 +506,13 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_setup, "dx", 3, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup, "qdata", 16, CEED_EVAL_NONE);
+
+  // Create the Q-function that defines the action of the mass operator
+  CeedQFunctionCreateInterior(ceed, 1,
+                                Mass, __FILE__ ":Mass", &qf_mass);
+  CeedQFunctionAddInput(qf_mass, "q", 5, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_mass, "qdata", 16, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_mass, "v", 5, CEED_EVAL_INTERP);
 
   // Create the Q-function that sets the ICs
   CeedQFunctionCreateInterior(ceed, 1,
@@ -520,6 +538,15 @@ int main(int argc, char **argv) {
                        basisx, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+
+  // Create the mass operator
+  CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
+  CeedOperatorSetField(op_mass, "q", Erestrictu, CEED_TRANSPOSE,
+                       basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
+                       basisx, qdata);
+  CeedOperatorSetField(op_mass, "v", Erestrictu, CEED_TRANSPOSE,
+                       basisu, CEED_VECTOR_ACTIVE);
 
   // Create the operator that sets the ICs
   CeedOperatorCreate(ceed, qf_ics, NULL, NULL, &op_ics);
@@ -571,7 +598,7 @@ int main(int argc, char **argv) {
   ierr = VecDuplicate(Qloc, &user->Gloc); CHKERRQ(ierr);
   CeedVectorCreate(ceed, 5*lsize, &user->qceed);
   CeedVectorCreate(ceed, 5*lsize, &user->gceed);
-  user->op = op_ns;
+  user->op_ns = op_ns;
   user->qdata = qdata;
   user->degree = degree;
   for (int d=0; d<3; d++) user->melem[d] = melem[d];
@@ -579,13 +606,30 @@ int main(int argc, char **argv) {
   user->ceed = ceed;
 
   // Calculate qdata and ICs
-  // Set up vectors
+  // Set up state vectors
   ierr = VecGetArray(Qloc, &q0); CHKERRQ(ierr);
   CeedVectorSetArray(q0ceed, CEED_MEM_HOST, CEED_USE_POINTER, q0);
+
+  // Set up mass global and local vectors
+  ierr = VecZeroEntries(user->M); CHKERRQ(ierr);
+  ierr = VecZeroEntries(Mloc); CHKERRQ(ierr);
+  ierr = VecGetArray(Mloc, &m0); CHKERRQ(ierr);
+  CeedVectorSetArray(m0ceed, CEED_MEM_HOST, CEED_USE_POINTER, m0);
 
   // Apply Setup Ceed Operators
   CeedOperatorApply(op_setup, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
   CeedOperatorApply(op_ics, xcoord, q0ceed, CEED_REQUEST_IMMEDIATE);
+  CeedVectorSetValue(onesvec, 1.0);
+  CeedOperatorApply(op_mass, onesvec, m0ceed, CEED_REQUEST_IMMEDIATE);
+  ierr = VecRestoreArray(Mloc, &m); CHKERRQ(ierr);
+  ierr = VecScatterBegin(ltog, Mloc, user->M, ADD_VALUES, SCATTER_FORWARD);
+  CHKERRQ(ierr);
+  ierr = VecScatterEnd(ltog, Mloc, user->M, ADD_VALUES, SCATTER_FORWARD);
+  CHKERRQ(ierr);
+
+  // invert diagonally lumped mass vector so that it can be used in the RHS function
+  ierr = VecReciprocal(user->M); // keep in mind from now on M is actually Minv
+  CHKERRQ(ierr);
 
   // Fix multiplicity
   CeedVectorGetArray(q0ceed, CEED_MEM_HOST, &q0);
@@ -596,6 +640,7 @@ int main(int argc, char **argv) {
   }
   CeedVectorRestoreArray(q0ceed, &q0);
   CeedVectorRestoreArray(multlvec, &m);
+  CeedVectorDestroy(&m0ceed);
   CeedVectorDestroy(&multevec);
   CeedVectorDestroy(&multlvec);
 
@@ -637,6 +682,7 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&user->gceed);
   CeedVectorDestroy(&user->qdata);
   CeedVectorDestroy(&xcoord);
+  CeedVectorDestroy(&onesvec);
   CeedBasisDestroy(&basisu);
   CeedBasisDestroy(&basisx);
   CeedBasisDestroy(&basisxc);
@@ -656,6 +702,7 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&Q); CHKERRQ(ierr);
   ierr = VecDestroy(&user->Qloc); CHKERRQ(ierr);
   ierr = VecDestroy(&user->Gloc); CHKERRQ(ierr);
+  ierr = VecDestroy(&user->M); CHKERRQ(ierr);
   ierr = VecScatterDestroy(&ltog); CHKERRQ(ierr);
   ierr = VecScatterDestroy(&ltog0); CHKERRQ(ierr);
   ierr = VecScatterDestroy(&gtogD); CHKERRQ(ierr);
