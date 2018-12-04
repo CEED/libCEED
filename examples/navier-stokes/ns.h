@@ -223,8 +223,8 @@ static int ICs(void *ctx, CeedInt Q,
 
     // Initial Conditions
     q0[i+0*Q] = 1.;//rho;
-    q0[i+1*Q] = 0.0;//-0.5*(x[i+Q*1] - 0.5);//0.0;
-    q0[i+2*Q] = 0.01;//0.5*(x[i+Q*0] - 0.5);//.01;
+    q0[i+1*Q] = -0.5*(x[i+Q*1] - 0.5);//0.0;
+    q0[i+2*Q] = 0.5*(x[i+Q*0] - 0.5);//.01;
     q0[i+3*Q] = 0.0;
     q0[i+4*Q] = r2 <= 1./8. ? (1.-8.*r2) : 0.;//rho * (Cv*Theta*Pi + g*x[i+Q*2]);
 
