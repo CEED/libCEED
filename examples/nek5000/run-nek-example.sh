@@ -30,7 +30,7 @@ fi
 
 # Set defaults for the parameters
 : ${CEED_DIR:=`cd ../../; pwd`}
-nek_examples=(bp1 bp3)
+nek_examples=("bp1" "bp3")
 nek_spec=/cpu/self
 nek_np=1
 nek_box=
@@ -54,6 +54,7 @@ Example:
 
 # Read in parameter values
 nek_test="notest"
+nek_test_rst="PASS"
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|-help)
@@ -91,7 +92,9 @@ fi
 
 for nek_ex in "${nek_examples[@]}"; do
   if [[ ! ${nek_test}=="test" ]]; then
-    echo "Running Nek example: $nek_ex"
+    echo "Running Nek5000 Example: $nek_ex"
+  else
+    echo "Running Nek5000 Test: $nek_ex"
   fi
   if [[ ! -f ${nek_ex} ]]; then
     echo "  Example ${nek_ex} does not exist. Build it with make-nek-examples.sh"
@@ -116,6 +119,16 @@ for nek_ex in "${nek_examples[@]}"; do
   fi
 
   if [[ $nek_test=="test" ]]; then
-    grep "ERROR IS TOO LARGE" ${nek_ex}.log*
+    status=$(grep "ERROR IS TOO LARGE" ${nek_ex}.log*)
+    if [[ $status ]]; then
+      nek_test_rst = "FAIL"
+    fi
+    echo $nek_test_rst
   fi
 done
+
+if [[ $nek_test_rst != "PASS" ]]; then
+  exit 1
+else
+  exit 0
+fi
