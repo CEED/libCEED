@@ -5,19 +5,32 @@ c-----------------------------------------------------------------------
 
       integer ceed,err
       integer x,n
-      integer*8 offset
       real*8 a(10)
+      real*8 b(10)
+      real*8 diff
+      integer*8 boff
       character arg*32
 
       call getarg(1,arg)
 
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-      n=10
+      n = 10
 
       call ceedvectorcreate(ceed,n,x,err)
 
-      call ceedvectorrestorearray(x,a,offset,err)
+      do i=1,10
+        a(i)=0
+      enddo
+
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,err)
+      call ceedvectorgetarray(x,ceed_mem_host,b,boff,err)
+      b(boff+3) = -3.14
+      call ceedvectorrestorearray(x,b,boff,err)
+      diff=a(3)+3.14
+      if (abs(diff)>1.0D-15) then
+        write(*,*) 'Error writing array a(3)=',a(3)
+      endif
 
       call ceedvectordestroy(x,err)
       call ceeddestroy(ceed,err)
