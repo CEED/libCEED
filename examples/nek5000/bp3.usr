@@ -836,6 +836,8 @@ C     Create ceed operators
      $  ceed_notranspose,basisu,ceed_vector_active,err)
 
 C     Compute setup data
+      call ceedvectorsetarray(vec_rhs,ceed_mem_host,
+     $  ceed_use_pointer,r1,err)
       call ceedoperatorapply(op_setup,vec_coords,vec_qdata,
      $  ceed_request_immediate,err)
 
