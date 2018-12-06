@@ -85,32 +85,32 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
 
   @ref Basic
  */
-int CeedOperatorCreateFromGallery(Ceed ceed, char *spec, CeedOperator *op) {
-  int ierr;
-  char *galleryOp;
+// int CeedOperatorCreateFromGallery(Ceed ceed, char *spec, CeedOperator *op) {
+//   int ierr;
+//   char *galleryOp;
 
-  ierr = CeedCalloc(1,op); CeedChk(ierr);
+//   ierr = CeedCalloc(1,op); CeedChk(ierr);
 
-  ierr = CeedCalloc(strlen(spec)+1, &galleryOp); CeedChk(ierr);
-  strcpy(galleryOp, spec);
-  (*op)->galleryOp = galleryOp;
+//   ierr = CeedCalloc(strlen(spec)+1, &galleryOp); CeedChk(ierr);
+//   strcpy(galleryOp, spec);
+//   (*op)->galleryOp = galleryOp;
 
-  // TODO: Set from somewhere else
-  (*op)->p_Nq = 5;
-  (*op)->p_Np = 5;
-  (*op)->p_Nggeo = 6;
-  (*op)->p_dim = 3;
-  (*op)->p_Nverts = 8;
+//   // TODO: Set from somewhere else
+//   (*op)->p_Nq = 5;
+//   (*op)->p_Np = 5;
+//   (*op)->p_Nggeo = 6;
+//   (*op)->p_dim = 3;
+//   (*op)->p_Nverts = 8;
 
-  (*op)->ceed = ceed;
-  ceed->refcount++;
-  (*op)->refcount = 1;
-  ierr = CeedCalloc(16, &(*op)->inputfields); CeedChk(ierr);
-  ierr = CeedCalloc(16, &(*op)->outputfields); CeedChk(ierr);
-  ierr = ceed->OperatorCreate(*op); CeedChk(ierr);
+//   (*op)->ceed = ceed;
+//   ceed->refcount++;
+//   (*op)->refcount = 1;
+//   ierr = CeedCalloc(16, &(*op)->inputfields); CeedChk(ierr);
+//   ierr = CeedCalloc(16, &(*op)->outputfields); CeedChk(ierr);
+//   ierr = ceed->OperatorCreate(*op); CeedChk(ierr);
 
-  return 0;
-}
+//   return 0;
+// }
 
 /**
   @brief Provide a field to a CeedOperator for use by its CeedQFunction

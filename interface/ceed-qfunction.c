@@ -114,7 +114,7 @@ int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength, char* spe
 
     ierr = CeedCalloc(strlen(spec)+1, &galleryOp); CeedChk(ierr);
     strcpy(galleryOp, spec);
-    (*qf)->galleryOp = galleryOp;
+    (*qf)->spec = galleryOp;
 
     if (!ceed->QFunctionCreate) {
       Ceed delegate;
@@ -128,13 +128,11 @@ int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength, char* spe
       ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
     }
 
-    CeedQFunctionAddInput (*qf, "ggeo", 7, CEED_EVAL_NONE);
-    // CeedQFunctionAddInput (*qf, "D", 1, CEED_EVAL_NONE);//this is the interpolation Matrix
-    CeedQFunctionAddInput (*qf, "S", 1, CEED_EVAL_NONE);//FIXME: ncomp?
-    CeedQFunctionAddInput (*qf, "MM", 1, CEED_EVAL_NONE);//FIXME: ncomp?
-    // CeedQFunctionAddInput (*qf, "lambda", 1, CEED_EVAL_NONE);//Should maybe not be defined as a Vec input, context?
-    CeedQFunctionAddInput (*qf, "q", 1, CEED_EVAL_GRAD);//FIXME: vectorial?
-    CeedQFunctionAddOutput(*qf, "Aq", 1, CEED_EVAL_GRAD);//FIXME: vectorial?
+    CeedQFunctionAddInput (*qf, "ggeo", 7, CEED_EVAL_NONE);//opinput[0]
+    CeedQFunctionAddInput (*qf, "S"   , 1, CEED_EVAL_NONE);//opinput[1]  //FIXME: ncomp?
+    CeedQFunctionAddInput (*qf, "MM"  , 1, CEED_EVAL_NONE);//opinput[2]  //FIXME: ncomp?
+    CeedQFunctionAddInput (*qf, "q"   , 1, CEED_EVAL_GRAD);//opinput[3]  //FIXME: vectorial?
+    CeedQFunctionAddOutput(*qf, "Aq"  , 1, CEED_EVAL_GRAD);//opoutput[0] //FIXME: vectorial?
 
     return 0;
   }

@@ -33,6 +33,8 @@ int CeedOperatorDestroy_libparanumal(CeedOperator op) {
 
 static int CeedOperatorSetup_libparanumal(CeedOperator op) {
   int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_libparanumal *impl;
   ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
   CeedQFunction qf;
@@ -43,13 +45,44 @@ static int CeedOperatorSetup_libparanumal(CeedOperator op) {
   // CeedQFunctionField *qfinputfields, *qfoutputfields;
   // ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
   // CeedChk(ierr);
+  impl->kernelInfo = occaCreateProperties();
+  occaPropertiesSet(impl->kernelInfo, "defines/dlong", occaString("long"));
+  occaPropertiesSet(impl->kernelInfo, "defines/dfloat", occaString("double"));
+  occaPropertiesSet(impl->kernelInfo, "defines/pfloat", occaString("float"));
   if(!strcmp(qf->spec, "elliptic")) {
     CeedBasis basis = opinputfields[3]->basis;//Basis for q
-    occaPropertiesSet(impl->kernelInfo, "defines/p_Np"    , occaInt(basis->P));//FIXME:Maybe P1d?
-    occaPropertiesSet(impl->kernelInfo, "defines/p_Nq"    , occaInt(basis->Q));//FIXME:Maybe Q1d?
+    occaPropertiesSet(impl->kernelInfo, "defines/p_Np"    , occaInt(basis->P1d));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_Nq"    , occaInt(basis->Q1d));
     const CeedInt dim = basis->dim;
     occaPropertiesSet(impl->kernelInfo, "defines/p_dim"   , occaInt(dim));
     occaPropertiesSet(impl->kernelInfo, "defines/p_Nverts", occaInt(2*dim));//FIXME:assumes Hex topology
+    //FIXME: I have no idea what those are// Might depend on the dim
+    occaPropertiesSet(impl->kernelInfo, "defines/p_Nggeo", occaInt(7));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_G00ID", occaInt(0));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_G01ID", occaInt(1));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_G02ID", occaInt(2));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_G11ID", occaInt(3));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_G12ID", occaInt(4));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_G22ID", occaInt(5));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_GWJID", occaInt(6));
+    Ceed_Occa *ceed_data;
+    Ceed ceeddelegate;
+    ierr = CeedGetDelegate(ceed, &ceeddelegate); CeedChk(ierr);
+    ierr = CeedGetData(ceeddelegate, (void *)&ceed_data);
+    const occaDevice dev = ceed_data->device;
+    //TODO check the topology, store it somewhere? assume Hex?
+    if (dim==1){
+      //TODO is there a 1d kernel?
+      impl->kernel = occaDeviceBuildKernel(dev, LIBP_OKLPATH"/ellipticAxHex3D.okl",
+                                         "ellipticAxHex3D", impl->kernelInfo);
+    }else if (dim==2){
+      //TODO put the 2d kernel for Quad
+      impl->kernel = occaDeviceBuildKernel(dev, LIBP_OKLPATH"/ellipticAxHex3D.okl",
+                                         "ellipticAxHex3D", impl->kernelInfo);
+    }else if (dim==3){
+      impl->kernel = occaDeviceBuildKernel(dev, LIBP_OKLPATH"/ellipticAxHex3D.okl",
+                                         "ellipticAxHex3D", impl->kernelInfo);
+    }
   } else {
     Ceed ceed;
     CeedOperatorGetCeed(op, &ceed);
@@ -98,41 +131,6 @@ int CeedOperatorCreate_libparanumal(CeedOperator op) {
   ierr = CeedOperatorSetData(op, (void*)&impl); CeedChk(ierr);
 
   impl->setupDone = false;
-  impl->kernelInfo = occaCreateProperties();
-  occaPropertiesSet(impl->kernelInfo, "defines/dlong", occaString("long"));
-  occaPropertiesSet(impl->kernelInfo, "defines/dfloat", occaString("double"));
-  occaPropertiesSet(impl->kernelInfo, "defines/pfloat", occaString("float"));
-
-  if (!strcmp(op->qf->spec, "elliptic")) {
-    //FIXME: I have no idea what those are
-    occaPropertiesSet(impl->kernelInfo, "defines/p_Nggeo", occaInt(7));
-    occaPropertiesSet(impl->kernelInfo, "defines/p_G00ID", occaInt(0));
-    occaPropertiesSet(impl->kernelInfo, "defines/p_G01ID", occaInt(1));
-    occaPropertiesSet(impl->kernelInfo, "defines/p_G02ID", occaInt(2));
-    occaPropertiesSet(impl->kernelInfo, "defines/p_G11ID", occaInt(3));
-    occaPropertiesSet(impl->kernelInfo, "defines/p_G12ID", occaInt(4));
-    occaPropertiesSet(impl->kernelInfo, "defines/p_G22ID", occaInt(5));
-    occaPropertiesSet(impl->kernelInfo, "defines/p_GWJID", occaInt(6));
-
-    Ceed_Occa *ceed_data;
-    Ceed ceeddelegate;
-    ierr = CeedGetDelegate(ceed, &ceeddelegate); CeedChk(ierr);
-    ierr = CeedGetData(ceeddelegate, (void *)&ceed_data);
-    const occaDevice dev = ceed_data->device;
-
-    //TODO check the topology, store it somewhere? assume Hex?
-    const int dim = 3;//TODO Get the dim from the basis
-    if (dim==1){
-      //TODO is there a 1d kernel?
-    }else if (dim==2){
-      //TODO put the 2d kernel for Quad
-    }else if (dim==3){
-      impl->kernel = occaDeviceBuildKernel(dev, LIBP_OKLPATH"/ellipticAxHex3D.okl",
-                                         "ellipticAxHex3D", impl->kernelInfo);
-    }
-  } else {
-    CeedError(ceed,1," [libParanumal] Unrecognized operator. ");
-  }
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
                                 CeedOperatorApply_libparanumal); CeedChk(ierr);
