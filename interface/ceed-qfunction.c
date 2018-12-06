@@ -85,6 +85,32 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 }
 
 /**
+  @brief Create a CeedQFunction from a named CeedQFunction in the gallery
+
+  @param ceed       A Ceed object where the CeedQFunction will be created
+  @param name       Name of the QFuction in the gallery
+  @param[out] qf    Address of the variable where the newly created
+                     CeedQFunction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+int CeedQFunctionCreateFromGallery(Ceed ceed, const char *name,
+                                   CeedQFunction *qf) {
+  // Find matching QFunction from gallery
+  // -Could have a registered list like with backends, or could
+  // -could search a folder. The latter would make it easy for users to
+  // -add to or modify the gallery without recompilation.
+
+  // Run specified setup information
+  // -Need to setup QFunction and its fields. Right now I have a single headder
+  // -file with the qfunction and the lines of C that set it up.
+
+  return 0;
+}
+
+/**
   @brief Set a CeedQFunction field, used by CeedQFunctionAddInput/Output
 
   @param f          CeedQFunctionField

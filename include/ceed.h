@@ -292,6 +292,8 @@ CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m,
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     int (*f)(void *ctx, CeedInt nq, const CeedScalar *const *u,
              CeedScalar *const *v), const char *focca, CeedQFunction *qf);
+CEED_EXTERN int CeedQFunctionCreateFromGallery(Ceed ceed, const char *name,
+                                               CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                                       CeedInt ncomp, CeedEvalMode emode);
 CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
