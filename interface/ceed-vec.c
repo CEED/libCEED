@@ -185,7 +185,7 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
 
   if (vec && (vec->state % 2) == 1)
     return CeedError(vec->ceed, 1,
-                     "Cannot grant CeedVector array access, the access lock is already in use");
+                     "Cannot grant CeedVector read-only array access, the access lock is already in use");
 
   if (!vec || !vec->GetArrayRead)
     return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
