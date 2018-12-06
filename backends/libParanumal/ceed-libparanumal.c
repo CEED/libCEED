@@ -20,8 +20,6 @@
 static int CeedInit_libparanumal(const char *resource, Ceed ceed) {
   int ierr;
   Ceed ceeddelegate;
-  // Create delegate CEED that implementation will be dispatched
-  //   through unless overridden
   CeedInit("/gpu/occa", &ceeddelegate);
   ierr = CeedSetDelegate(ceed, &ceeddelegate);
   CeedChk(ierr);
@@ -33,9 +31,9 @@ static int CeedInit_libparanumal(const char *resource, Ceed ceed) {
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorDestroy",
                                 CeedOperatorDestroy_libparanumal); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
-                                CeedQFunctionCreate_Occa); CeedChk(ierr);
+                                CeedQFunctionCreate_libparanumal); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionDestroy",
-                                CeedQFunctionDestroy_Occa); CeedChk(ierr);
+                                CeedQFunctionDestroy_libparanumal); CeedChk(ierr);
 
   return 0;
 }
