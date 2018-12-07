@@ -15,12 +15,23 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 #include "ceed-libparanumal.h"
 
-int CeedQFunctionDestroy_libparanumal(CeedQFunction qf) {
+static bool HasSpecializedKernel(const char* spec){
+  // TODO: should acces a libParanumal Gallery
+  return spec!=NULL;
+}
 
+int CeedQFunctionDestroy_libparanumal(CeedQFunction qf) {
   return 0;
 }
 
 int CeedQFunctionCreate_libparanumal(CeedQFunction qf) {
-
+  int ierr;
+  if (!HasSpecializedKernel(qf->spec)) {
+    Ceed ceed;
+    ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+    Ceed ceeddelegate;
+    ierr = CeedGetDelegate(ceed, &ceeddelegate); CeedChk(ierr);
+    ceeddelegate->QFunctionCreate(qf);
+  }
   return 0;
 }
