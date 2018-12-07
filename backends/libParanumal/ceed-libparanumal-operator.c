@@ -51,13 +51,12 @@ static int CeedOperatorSetup_libparanumal(CeedOperator op) {
   occaPropertiesSet(impl->kernelInfo, "defines/pfloat", occaString("float"));
   if(!strcmp(qf->spec, "elliptic")) {
     CeedBasis basis = opinputfields[3]->basis;//Basis for q
-    occaPropertiesSet(impl->kernelInfo, "defines/p_Np"    , occaInt(basis->P1d));
+    occaPropertiesSet(impl->kernelInfo, "defines/p_Np"    , occaInt(basis->P));
     occaPropertiesSet(impl->kernelInfo, "defines/p_Nq"    , occaInt(basis->Q1d));
     const CeedInt dim = basis->dim;
     occaPropertiesSet(impl->kernelInfo, "defines/p_dim"   , occaInt(dim));
     occaPropertiesSet(impl->kernelInfo, "defines/p_Nverts",
-                      occaInt(2*dim));//FIXME:assumes Hex topology
-    //FIXME: I have no idea what those are// Might depend on the dim
+                      occaInt(CeedIntPow(2, dim)));//FIXME:assumes Hex topology
     occaPropertiesSet(impl->kernelInfo, "defines/p_Nggeo", occaInt(7));
     occaPropertiesSet(impl->kernelInfo, "defines/p_G00ID", occaInt(0));
     occaPropertiesSet(impl->kernelInfo, "defines/p_G01ID", occaInt(1));
@@ -105,7 +104,7 @@ static int CeedOperatorApply_libparanumal(CeedOperator op, CeedVector invec,
   CeedOperatorGetFields(op, &inputfields, &outputfields);
   if (!strcmp(op->qf->spec, "elliptic")) {
     CeedInt nelem   = op->numelements;
-    double lambda   = 1;
+    double lambda   = 0.0;
     occaMemory ggeo = ((CeedVector_Occa*)inputfields[0]->vec->data)->d_array;
     occaMemory D    = ((CeedBasis_Occa*)inputfields[3]->basis->data)->grad1d;
     occaMemory S    = ((CeedVector_Occa*)inputfields[1]->vec->data)->d_array;
