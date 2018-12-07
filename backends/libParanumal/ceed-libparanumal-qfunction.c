@@ -26,9 +26,12 @@ int CeedQFunctionDestroy_libparanumal(CeedQFunction qf) {
 
 int CeedQFunctionCreate_libparanumal(CeedQFunction qf) {
   int ierr;
-  if (!HasSpecializedKernel(qf->spec)) {
-    Ceed ceed;
-    ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  Ceed ceed;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  if (HasSpecializedKernel(qf->spec)) {
+    ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
+                                  CeedQFunctionDestroy_libparanumal); CeedChk(ierr);
+  }else{
     Ceed ceeddelegate;
     ierr = CeedGetDelegate(ceed, &ceeddelegate); CeedChk(ierr);
     ceeddelegate->QFunctionCreate(qf);
