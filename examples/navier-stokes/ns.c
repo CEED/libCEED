@@ -26,7 +26,9 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include <ceed.h>
 #include <stdbool.h>
 #include <petscsys.h>
-#include "ns.h"
+#include "common.h"
+#include "advection.h"
+#include "navierstokes.h"
 
 #if PETSC_VERSION_LT(3,11,0)
 #  define VecScatterCreateWithData VecScatterCreate
