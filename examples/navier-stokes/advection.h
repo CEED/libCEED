@@ -176,10 +176,9 @@ static int Advection(void *ctx, CeedInt Q,
     }
     // ---- Version 2: E du
     if (0) {
-    for (int d=0; d<1; d++) {
-      v[i+4*Q]   = E*(du[0]*wBJ[0] + du[3]*wBJ[1] + du[6]*wBJ[2]);
-      v[i+4*Q]  -= E*(du[1]*wBJ[3] + du[4]*wBJ[4] + du[7]*wBJ[5]);
-      v[i+4*Q]  -= E*(du[2]*wBJ[6] + du[5]*wBJ[7] + du[8]*wBJ[8]);
+    v[i+4*Q]   = E*(du[0]*wBJ[0] + du[3]*wBJ[1] + du[6]*wBJ[2]);
+    v[i+4*Q]  -= E*(du[1]*wBJ[3] + du[4]*wBJ[4] + du[7]*wBJ[5]);
+    v[i+4*Q]  -= E*(du[2]*wBJ[6] + du[5]*wBJ[7] + du[8]*wBJ[8]);
     }
 
   } // End Quadrature Point Loop
