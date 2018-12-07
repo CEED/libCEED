@@ -34,11 +34,11 @@
 //
 //  Boundary Conditions:
 //    Mass:
-//      0.0
+//      0.0 flux
 //    Momentum:
 //      0.0
 //    Energy:
-//      0.0
+//      0.0 flux
 //
 // *****************************************************************************
 static int ICsAdvection(void *ctx, CeedInt Q,
@@ -48,9 +48,9 @@ static int ICsAdvection(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar *q0 = out[0], *coordsout = out[1];
   // Setup
-  const tol = 1.e-14;
-  const x0[3] = {0.25, 0.5, 0.5};
-  const center[3] = {0.5, 0.5, 0.5};
+  const CeedScalar tol = 1.e-14;
+  const CeedScalar x0[3] = {0.25, 0.5, 0.5};
+  const CeedScalar center[3] = {0.5, 0.5, 0.5};
 
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
@@ -71,15 +71,13 @@ static int ICsAdvection(void *ctx, CeedInt Q,
     q0[i+3*Q] = 0.0;
     q0[i+4*Q] = r <= 1./8. ? (1.-8.*r) : 0.;
 
-    // Boundary Conditions
+    // Homogeneous Dirichlet Boundary Conditions for Momentum
     if ( fabs(x - 0.0) < tol || fabs(x - 1.0) < tol
       || fabs(y - 0.0) < tol || fabs(y - 1.0) < tol
       || fabs(z - 0.0) < tol || fabs(z - 1.0) < tol ) {
-      q0[i+0*Q] = 0.0;
       q0[i+1*Q] = 0.0;
       q0[i+2*Q] = 0.0;
       q0[i+3*Q] = 0.0;
-      q0[i+4*Q] = 0.0;
     }
 
     // Coordinates

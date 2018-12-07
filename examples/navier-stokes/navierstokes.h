@@ -43,11 +43,11 @@
 //
 //  Boundary Conditions:
 //    Mass:
-//      0.0
+//      0.0 flux
 //    Momentum:
 //      0.0
 //    Energy:
-//      0.0
+//      0.0 flux
 //
 // Constants:
 //   Theta0          ,  Potential temperature constant
@@ -73,7 +73,7 @@ static int ICsNS(void *ctx, CeedInt Q,
   CeedScalar *q0 = out[0], *coordsout = out[1];
   // Setup
   const CeedScalar tol = 1.e-14;
-  const center[3] = {0.5, 0.5, 0.5};
+  const CeedScalar center[3] = {0.5, 0.5, 0.5};
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
   const CeedScalar Theta0     = context[0];
@@ -94,7 +94,7 @@ static int ICsNS(void *ctx, CeedInt Q,
     const CeedScalar z = coords[i+Q*2];
     // -- Potential temperature, density current
     const CeedScalar r = sqrt(pow((x - center[0])/4, 2) +
-                              pow((y - center[1])/4, 2)) +
+                              pow((y - center[1])/4, 2) +
                               pow((z - center[2])/4, 2));
     const CeedScalar deltaTheta = r<= 1. ? ThetaC*(1 + cos(M_PI*r))/2 : 0;
     const CeedScalar Theta = Theta0*exp(N*N*z/g) + deltaTheta;
@@ -110,15 +110,13 @@ static int ICsNS(void *ctx, CeedInt Q,
     q0[i+3*Q] = 0.0;
     q0[i+4*Q] = rho * (Cv*Theta*Pi + g*z);
 
-    // Boundary Conditions
+    // Homogeneous Dirichlet Boundary Conditions for Momentum
     if ( fabs(x - 0.0) < tol || fabs(x - 1.0) < tol
       || fabs(y - 0.0) < tol || fabs(y - 1.0) < tol
       || fabs(z - 0.0) < tol || fabs(z - 1.0) < tol ) {
-      q0[i+0*Q] = 0.0;
       q0[i+1*Q] = 0.0;
       q0[i+2*Q] = 0.0;
       q0[i+3*Q] = 0.0;
-      q0[i+4*Q] = 0.0;
     }
 
     // Coordinates
