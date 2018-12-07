@@ -30,7 +30,8 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
                                 CeedBasisCreateH1_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
                                 CeedElemRestrictionCreate_Ref); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreateBlocked",
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
+                                "ElemRestrictionCreateBlocked",
                                 CeedElemRestrictionCreate_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
                                 CeedQFunctionCreate_Ref); CeedChk(ierr);

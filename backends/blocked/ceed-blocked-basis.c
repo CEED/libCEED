@@ -21,10 +21,11 @@
 // NOTRANSPOSE: V_ajc = T_jb U_abc
 // TRANSPOSE:   V_ajc = T_bj U_abc
 // If Add != 0, "=" is replaced by "+="
-static int CeedTensorContract_Blocked(Ceed ceed, CeedInt A, CeedInt B, CeedInt C, CeedInt J,
-                                  const CeedScalar *restrict t,
-                                  CeedTransposeMode tmode, const CeedInt Add,
-                                  const CeedScalar *restrict u, CeedScalar *restrict v) {
+static int CeedTensorContract_Blocked(Ceed ceed, CeedInt A, CeedInt B,
+                                      CeedInt C, CeedInt J,
+                                      const CeedScalar *restrict t,
+                                      CeedTransposeMode tmode, const CeedInt Add,
+                                      const CeedScalar *restrict u, CeedScalar *restrict v) {
   CeedInt tstride0 = B, tstride1 = 1;
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = J;
@@ -45,8 +46,8 @@ static int CeedTensorContract_Blocked(Ceed ceed, CeedInt A, CeedInt B, CeedInt C
 }
 
 static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
-                              CeedTransposeMode tmode, CeedEvalMode emode,
-                               CeedVector U, CeedVector V) {
+                                  CeedTransposeMode tmode, CeedEvalMode emode,
+                                  CeedVector U, CeedVector V) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
@@ -62,8 +63,8 @@ static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
   if (U) {
     ierr = CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u); CeedChk(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
-      return CeedError(ceed, 1,
-                       "An input vector is required for this CeedEvalMode");
+    return CeedError(ceed, 1,
+                     "An input vector is required for this CeedEvalMode");
   }
   ierr = CeedVectorGetArray(V, CEED_MEM_HOST, &v); CeedChk(ierr);
 
@@ -80,8 +81,8 @@ static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetTensorStatus(basis, &tensorbasis); CeedChk(ierr);
   if (tensorbasis) {
     CeedInt P1d, Q1d;
-  ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
-  ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
+    ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
+    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
     switch (emode) {
     case CEED_EVAL_INTERP: {
       CeedInt P = P1d, Q = Q1d;
@@ -94,8 +95,8 @@ static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
       ierr = CeedBasisGetInterp(basis, &interp1d); CeedChk(ierr);
       for (CeedInt d=0; d<dim; d++) {
         ierr = CeedTensorContract_Blocked(ceed, pre, P, post, Q,
-                                      interp1d, tmode, add&&(d==dim-1),
-                                      d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
+                                          interp1d, tmode, add&&(d==dim-1),
+                                          d==0?u:tmp[d%2], d==dim-1?v:tmp[(d+1)%2]);
         CeedChk(ierr);
         pre /= P;
         post *= Q;
@@ -121,16 +122,16 @@ static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
       //  or Grad to quadrature points (Transpose)
       for (CeedInt d=0; d<dim; d++) {
         ierr = CeedTensorContract_Blocked(ceed, pre, P, post, Q,
-                                      (tmode == CEED_NOTRANSPOSE
-                                       ? interp1d
-                                       : impl->colograd1d),
-                                      tmode, add&&(d>0),
-                                      (tmode == CEED_NOTRANSPOSE
-                                       ? (d==0?u:tmp[d%2])
-                                       : u + d*nqpt*ncomp*nelem),
-                                      (tmode == CEED_NOTRANSPOSE
-                                       ? (d==dim-1?interp:tmp[(d+1)%2])
-                                       : interp));
+                                          (tmode == CEED_NOTRANSPOSE
+                                           ? interp1d
+                                           : impl->colograd1d),
+                                          tmode, add&&(d>0),
+                                          (tmode == CEED_NOTRANSPOSE
+                                           ? (d==0?u:tmp[d%2])
+                                           : u + d*nqpt*ncomp*nelem),
+                                          (tmode == CEED_NOTRANSPOSE
+                                           ? (d==dim-1?interp:tmp[(d+1)%2])
+                                           : interp));
         CeedChk(ierr);
         pre /= P;
         post *= Q;
@@ -144,16 +145,16 @@ static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
       pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
       for (CeedInt d=0; d<dim; d++) {
         ierr = CeedTensorContract_Blocked(ceed, pre, P, post, Q,
-                                      (tmode == CEED_NOTRANSPOSE
-                                       ? impl->colograd1d
-                                       : interp1d),
-                                      tmode, add&&(d==dim-1),
-                                      (tmode == CEED_NOTRANSPOSE
-                                       ? interp
-                                       : (d==0?interp:tmp[d%2])),
-                                      (tmode == CEED_NOTRANSPOSE
-                                       ? v + d*nqpt*ncomp*nelem
-                                       : (d==dim-1?v:tmp[(d+1)%2])));
+                                          (tmode == CEED_NOTRANSPOSE
+                                           ? impl->colograd1d
+                                           : interp1d),
+                                          tmode, add&&(d==dim-1),
+                                          (tmode == CEED_NOTRANSPOSE
+                                           ? interp
+                                           : (d==0?interp:tmp[d%2])),
+                                          (tmode == CEED_NOTRANSPOSE
+                                           ? v + d*nqpt*ncomp*nelem
+                                           : (d==dim-1?v:tmp[(d+1)%2])));
         CeedChk(ierr);
         pre /= P;
         post *= Q;
@@ -197,7 +198,7 @@ static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
         P = nqpt; Q = ndof;
       }
       ierr = CeedTensorContract_Blocked(ceed, ncomp, P, nelem, Q,
-                                    interp, tmode, add, u, v);
+                                        interp, tmode, add, u, v);
       CeedChk(ierr);
     }
     break;
@@ -209,7 +210,7 @@ static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
         P = dim*nqpt; Q = ndof;
       }
       ierr = CeedTensorContract_Blocked(ceed, ncomp, P, nelem, Q,
-                                    grad, tmode, add, u, v);
+                                        grad, tmode, add, u, v);
       CeedChk(ierr);
     }
     break;
@@ -255,11 +256,11 @@ static int CeedBasisDestroyTensor_Blocked(CeedBasis basis) {
 }
 
 int CeedBasisCreateTensorH1_Blocked(CeedInt dim, CeedInt P1d,
-                                CeedInt Q1d, const CeedScalar *interp1d,
-                                const CeedScalar *grad1d,
-                                const CeedScalar *qref1d,
-                                const CeedScalar *qweight1d,
-                                CeedBasis basis) {
+                                    CeedInt Q1d, const CeedScalar *interp1d,
+                                    const CeedScalar *grad1d,
+                                    const CeedScalar *qref1d,
+                                    const CeedScalar *qweight1d,
+                                    CeedBasis basis) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
@@ -279,12 +280,12 @@ int CeedBasisCreateTensorH1_Blocked(CeedInt dim, CeedInt P1d,
 
 
 int CeedBasisCreateH1_Blocked(CeedElemTopology topo, CeedInt dim,
-                          CeedInt ndof, CeedInt nqpts,
-                          const CeedScalar *interp,
-                          const CeedScalar *grad,
-                          const CeedScalar *qref,
-                          const CeedScalar *qweight,
-                          CeedBasis basis) {
+                              CeedInt ndof, CeedInt nqpts,
+                              const CeedScalar *interp,
+                              const CeedScalar *grad,
+                              const CeedScalar *qref,
+                              const CeedScalar *qweight,
+                              CeedBasis basis) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);

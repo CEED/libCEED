@@ -83,7 +83,7 @@ int CeedQFunctionCreate_Ref(CeedQFunction qf) {
   ierr = CeedCalloc(16, &impl->inputs); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->outputs); CeedChk(ierr);
   ierr = CeedQFunctionSetData(qf, (void*)&impl); CeedChk(ierr);
-  
+
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",

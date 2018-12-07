@@ -11,7 +11,7 @@ static int CheckValues(Ceed ceed, CeedVector x, CeedScalar value) {
   for (CeedInt i=0; i<n; i++) {
     if (b[i] != value)
       printf("Error reading array b[%d] = %f",i,
-                       (double)b[i]);
+             (double)b[i]);
   }
   CeedVectorRestoreArrayRead(x, &b);
   return 0;
@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++) {
     if (b[i] != 10+i)
       printf("Error reading array b[%d] = %f",i,
-                       (double)b[i]);
+             (double)b[i]);
   }
   CeedVectorRestoreArrayRead(x, &b);
 

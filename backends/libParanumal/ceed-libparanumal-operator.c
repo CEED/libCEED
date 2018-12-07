@@ -55,7 +55,8 @@ static int CeedOperatorSetup_libparanumal(CeedOperator op) {
     occaPropertiesSet(impl->kernelInfo, "defines/p_Nq"    , occaInt(basis->Q1d));
     const CeedInt dim = basis->dim;
     occaPropertiesSet(impl->kernelInfo, "defines/p_dim"   , occaInt(dim));
-    occaPropertiesSet(impl->kernelInfo, "defines/p_Nverts", occaInt(2*dim));//FIXME:assumes Hex topology
+    occaPropertiesSet(impl->kernelInfo, "defines/p_Nverts",
+                      occaInt(2*dim));//FIXME:assumes Hex topology
     //FIXME: I have no idea what those are// Might depend on the dim
     occaPropertiesSet(impl->kernelInfo, "defines/p_Nggeo", occaInt(7));
     occaPropertiesSet(impl->kernelInfo, "defines/p_G00ID", occaInt(0));
@@ -71,17 +72,17 @@ static int CeedOperatorSetup_libparanumal(CeedOperator op) {
     ierr = CeedGetData(ceeddelegate, (void *)&ceed_data);
     const occaDevice dev = ceed_data->device;
     //TODO check the topology, store it somewhere? assume Hex?
-    if (dim==1){
+    if (dim==1) {
       //TODO is there a 1d kernel?
       impl->kernel = occaDeviceBuildKernel(dev, LIBP_OKLPATH"/ellipticAxHex3D.okl",
-                                         "ellipticAxHex3D", impl->kernelInfo);
-    }else if (dim==2){
+                                           "ellipticAxHex3D", impl->kernelInfo);
+    } else if (dim==2) {
       //TODO put the 2d kernel for Quad
       impl->kernel = occaDeviceBuildKernel(dev, LIBP_OKLPATH"/ellipticAxHex3D.okl",
-                                         "ellipticAxHex3D", impl->kernelInfo);
-    }else if (dim==3){
+                                           "ellipticAxHex3D", impl->kernelInfo);
+    } else if (dim==3) {
       impl->kernel = occaDeviceBuildKernel(dev, LIBP_OKLPATH"/ellipticAxHex3D.okl",
-                                         "ellipticAxHex3D", impl->kernelInfo);
+                                           "ellipticAxHex3D", impl->kernelInfo);
     }
   } else {
     Ceed ceed;

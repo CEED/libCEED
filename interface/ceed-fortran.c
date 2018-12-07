@@ -382,14 +382,15 @@ void fCeedQRFactorization(CeedScalar *mat, CeedScalar *tau, int *m, int *n,
 #define fCeedBasisGetCollocatedGrad \
     FORTRAN_NAME(ceedbasisgetcollocatedgrad, CEEDBASISGETCOLLOCATEDGRAD)
 void fCeedBasisGetCollocatedGrad(int *basis, CeedScalar *colograd1d,
-                                int *err) {
+                                 int *err) {
   *err = CeedBasisGetCollocatedGrad(CeedBasis_dict[*basis], colograd1d);
 }
 
 #define fCeedBasisApply FORTRAN_NAME(ceedbasisapply, CEEDBASISAPPLY)
 void fCeedBasisApply(int *basis, int *nelem, int *tmode, int *emode,
                      int *u, int *v, int *err) {
-  *err = CeedBasisApply(CeedBasis_dict[*basis], *nelem, *tmode, *emode, CeedVector_dict[*u], CeedVector_dict[*v]);
+  *err = CeedBasisApply(CeedBasis_dict[*basis], *nelem, *tmode, *emode,
+                        CeedVector_dict[*u], CeedVector_dict[*v]);
 }
 
 #define fCeedBasisGetNumNodes \
@@ -535,7 +536,7 @@ void fCeedQFunctionAddOutput(int *qf, const char *fieldname,
     FORTRAN_NAME(ceedqfunctionapply,CEEDQFUNCTIONAPPLY)
 //TODO Need Fixing, double pointer
 void fCeedQFunctionApply(int *qf, int *Q,
-                         int *u, int *u1, int *u2, int *u3, 
+                         int *u, int *u1, int *u2, int *u3,
                          int *u4, int *u5, int *u6, int *u7,
                          int *u8, int *u9, int *u10, int *u11,
                          int *u12, int *u13, int *u14, int *u15,
@@ -649,7 +650,7 @@ void fCeedOperatorSetField(int *op, const char *fieldname,
   } else {
     r_ = CeedElemRestriction_dict[*r];
   }
-  
+
   if (*b == FORTRAN_NULL) {
     b_ = NULL;
   } else if (*b == FORTRAN_BASIS_COLLOCATED) {

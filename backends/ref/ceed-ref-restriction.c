@@ -55,8 +55,8 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
           for (CeedInt i = 0; i < elemsize*blksize; i++)
             vv[i+elemsize*(d*blksize+ncomp*e)]
               = uu[lmode == CEED_NOTRANSPOSE
-                         ? impl->indices[i+elemsize*e]+ndof*d
-                         : d+ncomp*impl->indices[i+elemsize*e]];
+                   ? impl->indices[i+elemsize*e]+ndof*d
+                   : d+ncomp*impl->indices[i+elemsize*e]];
     }
   } else {
     // Restriction from evector to lvector
@@ -77,8 +77,8 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
             // Iteration bound set to discard padding elements
             for (CeedInt j = i; j < i+CeedIntMin(blksize, nelem-e); j++)
               vv[lmode == CEED_NOTRANSPOSE
-                       ? impl->indices[j+e*elemsize]+ndof*d
-                       : d+ncomp*impl->indices[j+e*elemsize]]
+                 ? impl->indices[j+e*elemsize]+ndof*d
+                 : d+ncomp*impl->indices[j+e*elemsize]]
               += uu[j+elemsize*(d*blksize+ncomp*e)];
       }
     }

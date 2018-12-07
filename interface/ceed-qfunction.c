@@ -62,9 +62,10 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
 
     if (!delegate)
-    return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
+      return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
 
-    ierr = CeedQFunctionCreateInterior(delegate, vlength, f, focca, qf); CeedChk(ierr);
+    ierr = CeedQFunctionCreateInterior(delegate, vlength, f, focca, qf);
+    CeedChk(ierr);
     return 0;
   }
 
@@ -95,12 +96,12 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 
   @return An error code: 0 - success, otherwise - failure
 **/
-int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength, char* spec, CeedQFunction *qf) {
+int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength,
+    char* spec, CeedQFunction *qf) {
   int ierr;
   char *galleryOp;
 
-  if (!strcmp(spec,"elliptic"))
-  {
+  if (!strcmp(spec,"elliptic")) {
 
     ierr = CeedCalloc(1,qf); CeedChk(ierr);
     (*qf)->ceed     = ceed;
@@ -121,7 +122,7 @@ int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength, char* spe
       ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
 
       if (!delegate)
-      return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
+        return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
 
       ierr = delegate->QFunctionCreate(*qf); CeedChk(ierr);
     } else {
@@ -129,10 +130,14 @@ int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength, char* spe
     }
 
     CeedQFunctionAddInput (*qf, "ggeo", 7, CEED_EVAL_NONE);//opinput[0]
-    CeedQFunctionAddInput (*qf, "S"   , 1, CEED_EVAL_NONE);//opinput[1]  //FIXME: ncomp?
-    CeedQFunctionAddInput (*qf, "MM"  , 1, CEED_EVAL_NONE);//opinput[2]  //FIXME: ncomp?
-    CeedQFunctionAddInput (*qf, "q"   , 1, CEED_EVAL_GRAD);//opinput[3]  //FIXME: vectorial?
-    CeedQFunctionAddOutput(*qf, "Aq"  , 1, CEED_EVAL_GRAD);//opoutput[0] //FIXME: vectorial?
+    CeedQFunctionAddInput (*qf, "S"   , 1,
+                           CEED_EVAL_NONE);//opinput[1]  //FIXME: ncomp?
+    CeedQFunctionAddInput (*qf, "MM"  , 1,
+                           CEED_EVAL_NONE);//opinput[2]  //FIXME: ncomp?
+    CeedQFunctionAddInput (*qf, "q"   , 1,
+                           CEED_EVAL_GRAD);//opinput[3]  //FIXME: vectorial?
+    CeedQFunctionAddOutput(*qf, "Aq"  , 1,
+                           CEED_EVAL_GRAD);//opoutput[0] //FIXME: vectorial?
 
     return 0;
   }
@@ -154,7 +159,7 @@ int CeedQFunctionCreateInteriorFromGallery(Ceed ceed, CeedInt vlength, char* spe
 
   @ref Developer
 **/
-static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname, 
+static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
                                  CeedInt ncomp, CeedEvalMode emode) {
   size_t len = strlen(fieldname);
   char *tmp;
@@ -473,7 +478,7 @@ int CeedQFunctionFieldGetNumComponents(CeedQFunctionField qffield,
 **/
 
 int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
-                               CeedEvalMode *emode) {
+                                  CeedEvalMode *emode) {
   *emode = qffield->emode;
   return 0;
 }
