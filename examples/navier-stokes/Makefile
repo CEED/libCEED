@@ -25,11 +25,11 @@ LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc)
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
 LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
-ns.c := $(wildcard ns*.c)
-ns := $(ns.c:%.c=%)
+navierstokes.c := $(wildcard navierstokes*.c)
+navierstokes := $(navierstokes.c:%.c=%)
 
-all: $(ns)
-$(ns): | $(PETSc.pc) $(ceed.pc)
+all: $(navierstokes)
+$(navierstokes): | $(PETSc.pc) $(ceed.pc)
 
 # Rules for building the example
 %: %.c
@@ -45,7 +45,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) $(ns) *.vtr
+	$(RM) $(navierstokes) *.vtr
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \

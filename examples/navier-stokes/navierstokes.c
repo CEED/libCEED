@@ -122,7 +122,7 @@ struct User_ {
   VecScatter ltog;              // Scatter for all entries
   VecScatter ltog0;             // Skip Dirichlet values for U
   VecScatter gtogD;             // global-to-global; only Dirichlet values for U
-  Vec Qloc, Gloc, M;
+  Vec Qloc, Gloc, M, X, BC;
   CeedVector qceed, gceed;
   CeedOperator op_ns;
   CeedVector qdata;
@@ -196,8 +196,8 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   PetscViewer viewer;
   PetscErrorCode ierr;
 
-  if (stepno % 100 != 0) // prints every 100 steps
-    PetscFunctionReturn(0);
+//  if (stepno % 100 != 0) // prints every 100 steps
+//    PetscFunctionReturn(0);
 
   PetscFunctionBeginUser;
   ierr = DMGetGlobalVector(user->dm, &U); CHKERRQ(ierr);
@@ -236,7 +236,7 @@ int main(int argc, char **argv) {
   PetscScalar ftime;
   PetscInt steps;
   PetscScalar *q0, *m, *m0;
-  VecScatter ltog, ltog0, gtogD;
+  VecScatter ltog, ltog0, gtogD, ltogX;
   Ceed ceed;
   CeedBasis basisx, basisxc, basisu;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi,
