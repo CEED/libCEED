@@ -42,7 +42,14 @@ static int CeedQFunctionBuildKernel(CeedQFunction qf, const CeedInt Q) {
   CeedQFunction_Occa *data;
   ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
   Ceed_Occa *ceed_data;
-  ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
+  Ceed delegate;
+  CeedGetDelegate(ceed, &delegate);
+  //We assume that the delegate is always the OCCA one
+  if (delegate){
+    ierr = CeedGetData(delegate, (void *)&ceed_data); CeedChk(ierr);
+  }else{
+    ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
+  }
   const bool ocl = ceed_data->ocl;
   assert(ceed_data);
   const occaDevice dev = ceed_data->device;

@@ -125,16 +125,24 @@ int CeedOperatorCreate_libparanumal(CeedOperator op) {
   Ceed ceed;
 
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  CeedOperator_libparanumal *impl;
 
-  ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedOperatorSetData(op, (void*)&impl); CeedChk(ierr);
+  if (op->qf->spec)
+  {
+    CeedOperator_libparanumal *impl;
 
-  impl->setupDone = false;
+    ierr = CeedCalloc(1, &impl); CeedChk(ierr);
+    ierr = CeedOperatorSetData(op, (void*)&impl); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
-                                CeedOperatorApply_libparanumal); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
-                                CeedOperatorDestroy_libparanumal); CeedChk(ierr);
+    impl->setupDone = false;
+
+    ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
+                                  CeedOperatorApply_libparanumal); CeedChk(ierr);
+    ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
+                                  CeedOperatorDestroy_libparanumal); CeedChk(ierr);
+  } else {
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    delegate->OperatorCreate(op);
+  }
   return 0;
 }

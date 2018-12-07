@@ -29,7 +29,14 @@ int CeedQFunctionAllocNoOpIn_Occa(CeedQFunction qf, CeedInt Q,
   CeedQFunction_Occa *data;
   ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
   Ceed_Occa *ceed_data;
-  ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
+  Ceed delegate;
+  CeedGetDelegate(ceed, &delegate);
+  //We assume that the delegate is always the OCCA one
+  if (delegate){
+    ierr = CeedGetData(delegate, (void *)&ceed_data); CeedChk(ierr);
+  }else{
+    ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
+  }
   const occaDevice device = ceed_data->device;
   int nIn;
   ierr = CeedQFunctionGetNumArgs(qf, &nIn, NULL);
@@ -108,7 +115,14 @@ int CeedQFunctionAllocNoOpOut_Occa(CeedQFunction qf, CeedInt Q,
   CeedQFunction_Occa *data;
   ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
   Ceed_Occa *ceed_data;
-  ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
+  Ceed delegate;
+  CeedGetDelegate(ceed, &delegate);
+  //We assume that the delegate is always the OCCA one
+  if (delegate){
+    ierr = CeedGetData(delegate, (void *)&ceed_data); CeedChk(ierr);
+  }else{
+    ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
+  }
   const occaDevice device = ceed_data->device;
   const CeedInt bytes = sizeof(CeedScalar);
   const CeedInt dim = 1; // !?
