@@ -61,7 +61,14 @@ void CeedDebugImpl256(const Ceed ceed,
                       const unsigned char color,
                       const char *format,...) {
   const Ceed_Occa *data;
-  CeedGetData(ceed, (void *)&data);
+  Ceed delegate;
+  CeedGetDelegate(ceed, &delegate);
+  //We assume that the delegate is always the OCCA one
+  if (delegate){
+    CeedGetData(delegate, (void *)&data);
+  }else{
+    CeedGetData(ceed, (void *)&data);
+  }
   if (!data->debug) return;
   va_list args;
   va_start(args, format);
@@ -80,7 +87,14 @@ void CeedDebugImpl256(const Ceed ceed,
 void CeedDebugImpl(const Ceed ceed,
                    const char *format,...) {
   const Ceed_Occa *data;
-  CeedGetData(ceed, (void *)&data);
+  Ceed delegate;
+  CeedGetDelegate(ceed, &delegate);
+  //We assume that the delegate is always the OCCA one
+  if (delegate){
+    CeedGetData(delegate, (void *)&data);
+  }else{
+    CeedGetData(ceed, (void *)&data);
+  }
   if (!data->debug) return;
   va_list args;
   va_start(args, format);
