@@ -29,12 +29,12 @@ else
 fi
 
 # Set defaults for the parameters
-: ${CEED_DIR:=`cd ../../; pwd`}
+: ${CEED_DIR:=`pwd`}
 nek_examples=("bp1" "bp3")
 nek_spec=/cpu/self
 nek_np=1
 nek_box=
-NEK_BOX_DIR=./boxes
+NEK_BOX_DIR=./build/boxes
 
 # Set constants
 NEK_THIS_FILE="${BASH_SOURCE[0]}"
@@ -91,36 +91,28 @@ if [[ -z "${nek_box}" ]]; then
 fi
 
 for nek_ex in "${nek_examples[@]}"; do
-  if [[ ! ${nek_test}=="test" ]]; then
-    echo "Running Nek5000 Example: $nek_ex"
-  fi
+  nek_ex="build/"${nek_ex}
   if [[ ! -f ${nek_ex} ]]; then
-    echo "  Example ${nek_ex} does not exist. Build it with make-nek-examples.sh"
+    echo "  Example ${nek_ex} does not exist. Build it with make-nek-tests.sh"
     ${NEK_EXIT_CMD} 1
   fi
   if [[ ! -f ${NEK_BOX_DIR}/b${nek_box}/b${nek_box}.rea || \
 	  ! -f ${NEK_BOX_DIR}/b${nek_box}/b${nek_box}.map ]]; then
-    ./generate-boxes.sh ${nek_box} ${nek_box}
+    echo "  Box ${nek_box} does not exist. Build it with make-nek-tests.sh"
+    ${NEK_EXIT_CMD} 1
   fi
 
   echo b${nek_box}                              > SESSION.NAME
   echo `cd ${NEK_BOX_DIR}/b${nek_box}; pwd`'/' >> SESSION.NAME
   rm -f logfile
   rm -f ioinfo
-  mv ${nek_ex}.log.${nek_np}.b${nek_box} ${nek_ex}.log1.${nek_np}.b${nek_box} 2>/dev/null
 
-  ${MPIEXEC:-mpiexec} -np ${nek_np} ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.log.${nek_np}.b${nek_box}
+  ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.log.${nek_np}.b${nek_box}
   wait $!
 
-  if [[ ! ${nek_test}=="test" ]]; then
-    echo "  Run finished. Output was written to ${nek_ex}.log.${nek_np}.b${nek_box}"
-  fi
-
-  if [[ $nek_test=="test" ]]; then
-    status=$(grep "ERROR IS TOO LARGE" ${nek_ex}.log*)
-    if [[ $status ]]; then
-      nek_test_rst = "FAIL"
-    fi
+  status=$(grep "ERROR IS TOO LARGE" ${nek_ex}.log*)
+  if [[ $status ]]; then
+    nek_test_rst = "FAIL"
   fi
 done
 
