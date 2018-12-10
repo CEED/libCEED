@@ -16,11 +16,16 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
+# Set parameters
+: ${FC:="gfortran"}
+: ${CC:="gcc"}
+MPI=0
+
 # Make examples
-(./make-nek-examples.sh)
+(export FC CC MPI && ./make-nek-examples.sh)
 
 # Build boxes
-(./generate-boxes.sh 6 6)
+(export FC CC MPI && ./generate-boxes.sh 6 6)
 
 # Copy
 cp run-nek-test.sh ../../build/nek-bp1

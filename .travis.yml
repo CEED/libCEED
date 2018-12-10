@@ -15,9 +15,9 @@ compiler:
 addons:
   apt:
     packages:
-    - gfortran
     - libopenblas-dev
     - liblapack-dev
+    - gfortran
   homebrew:
     packages:
     - ccache
@@ -49,7 +49,8 @@ matrix:
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         export PATH="/usr/local/opt/ccache/libexec:$PATH"
-        && brew link --overwrite gcc; fi
+        && brew link --overwrite gcc;
+    fi
   - export CURR_DIR=$PWD
   - cd $HOME/install
 # MFEM
@@ -96,6 +97,16 @@ install:
     fi
   - make -C libxsmm
   - export XSMM_DIR=$HOME/install/libxsmm
+# Nek5k
+  - if [ "$TRAVIS_OS_NAME" != "osx" ]; then
+        if [ ! -s $NEK5K_INSTALL/genbox/genbox.o ] || [ ! -s $NEK5K_INSTALL/genmap/genmap.o ] || [ ! -s $NEK5K_INSTALL/reatore2/reatore2.o]; then
+          curl -L https://github.com/Nek5000/Nek5000/releases/download/v17.0/Nek5000-v17.0.tar.gz > Nek5000-v17.0.tar.gz
+          && tar xvzf Nek5000-v17.0.tar.gz
+          && cd Nek5000/tools
+          && ./maketools genbox genmap reatore2;
+        fi;
+        export NEK5K_DIR=$NEK5K_INSTALL PATH=$NEK5K_DIR/bin:$PATH;
+    fi
 # PETSc
   - cd $CURR_DIR
   - export PETSC_INSTALL=$HOME/install/petsc-3.10.0

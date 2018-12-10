@@ -348,7 +348,7 @@ allexamples := $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$
 alltests := $(tests) $(allexamples)
 fulltestlist = $(alltests) $(if $(NEK5K_DIR), $(nekexamples))
 prepnektests:
-	(cd examples && make prepnektests)
+	(export CC FC && cd examples && make prepnektests)
 prove-all : $(alltests) $(if $(NEK5K_DIR), prepnektests)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(fulltestlist:$(OBJDIR)/%=%)
