@@ -27,21 +27,25 @@ int compile(Ceed ceed, const char *source, CUmodule *module, const CeedInt numop
 
   const int optslen = 32;
   const int optsextra = 3;
-  char buf[numopts][optslen];
   const char *opts[numopts + optsextra];
-  va_list args;
-  va_start(args, numopts);
-  char *name;
-  int val;
-  for (int i = 0; i < numopts; i++) {
-    name = va_arg(args, char*);
-    val = va_arg(args, int);
-    snprintf(&buf[i][0], optslen,"-D%s=%d", name, val);
-    opts[i] = &buf[i][0];
+  if (numopts>0)
+  {
+    char buf[numopts][optslen];
+    va_list args;
+    va_start(args, numopts);
+    char *name;
+    int val;
+    for (int i = 0; i < numopts; i++) {
+      name = va_arg(args, char*);
+      val = va_arg(args, int);
+      snprintf(&buf[i][0], optslen,"-D%s=%d", name, val);
+      opts[i] = &buf[i][0];
+    }
   }
-  opts[numopts] = "-DCeedScalar=double";
+  opts[numopts]     = "-DCeedScalar=double";
   opts[numopts + 1] = "-DCeedInt=int";
-  opts[numopts + 2] = "-arch=compute_60";
+  opts[numopts + 2] = "-arch=compute_60";//FIXME: Should take into account GPU CC
+  // opts[numopts + 2] = "-arch=compute_35";
 
 
   nvrtcResult result = nvrtcCompileProgram(prog, numopts + optsextra, opts);

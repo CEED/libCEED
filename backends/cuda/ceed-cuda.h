@@ -20,6 +20,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+#define CUDA_MAX_PATH 256
+
 #define CeedChk_Nvrtc(ceed, x) \
 do { \
   nvrtcResult result = x; \
@@ -63,7 +65,8 @@ typedef struct {
 
 typedef struct {
   CUmodule module;
-  CUfunction callback;
+  char* qFunctionName;
+  CUfunction qFunction;
   const CeedScalar ** d_u;
   CeedScalar ** d_v;
   void *d_c;
