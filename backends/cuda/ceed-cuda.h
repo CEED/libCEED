@@ -41,7 +41,7 @@ do { \
 
 #define QUOTE(...) #__VA_ARGS__
 
-typedef enum {HOST_SYNC, DEVICE_SYNC, BOTH_SYNC} SyncState;
+typedef enum {HOST_SYNC, DEVICE_SYNC, BOTH_SYNC, NONE_SYNC} SyncState;
 
 typedef struct {
   CeedScalar *h_array;
