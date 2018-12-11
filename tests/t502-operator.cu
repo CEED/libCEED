@@ -36,4 +36,10 @@ extern "C" __global__ void mass(void *ctx, CeedInt Q, Fields_Cuda fields) {
   {
     v[i] = rho[i] * u[i];
   }
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+    i < Q;
+    i += blockDim.x * gridDim.x)
+  {
+    v[Q+i] = rho[i] * u[Q+i];
+  }
 }
