@@ -74,13 +74,15 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
   CeedChk(ierr);
   const int blocksize = ceed_Cuda->optblocksize;
 
+  if(!data->d_u)CeedCalloc(numinputfields, &data->d_u);
   for (CeedInt i = 0; i < numinputfields; i++) {
-    ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_DEVICE, data->d_u + i);
+    ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_DEVICE, &data->d_u[i]);
     CeedChk(ierr);
   }
 
+  if(!data->d_v)CeedCalloc(numinputfields, &data->d_v);
   for (CeedInt i = 0; i < numoutputfields; i++) {
-    ierr = CeedVectorGetArray(V[i], CEED_MEM_DEVICE, data->d_v + i);
+    ierr = CeedVectorGetArray(V[i], CEED_MEM_DEVICE, &data->d_v[i]);
     CeedChk(ierr);
   }
 
@@ -92,12 +94,12 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
   CeedChk(ierr);
 
   for (CeedInt i = 0; i < numinputfields; i++) {
-    ierr = CeedVectorRestoreArrayRead(U[i], data->d_u + i);
+    ierr = CeedVectorRestoreArrayRead(U[i], &data->d_u[i]);
     CeedChk(ierr);
   }
 
   for (CeedInt i = 0; i < numoutputfields; i++) {
-    ierr = CeedVectorRestoreArray(V[i], data->d_v + i);
+    ierr = CeedVectorRestoreArray(V[i], &data->d_v[i]);
     CeedChk(ierr);
   }
 
@@ -147,7 +149,7 @@ static int loadCudaFunction(CeedQFunction qf, char* c_src_file) {
   rewind( fp );
 
   /* allocate memory for entire content */
-  ierr = CeedMalloc( lSize+1, &buffer ); CeedChk(ierr);
+  ierr = CeedCalloc( lSize+1, &buffer ); CeedChk(ierr);
 
   /* copy the file into the buffer */
   if( 1!=fread( buffer , lSize, 1 , fp) )
@@ -173,6 +175,7 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   CeedQFunctionGetCeed(qf, &ceed); 
   CeedQFunction_Cuda *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
+  ierr = CeedQFunctionSetData(qf, (void*)&data); CeedChk(ierr);
   CeedInt numinputfields, numoutputfields;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   ierr = cudaMalloc((void**)&data->d_u, numinputfields * sizeof(CeedScalar*)); CeedChk_Cu(ceed, ierr);

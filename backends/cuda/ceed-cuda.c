@@ -28,9 +28,9 @@ int compile(Ceed ceed, const char *source, CUmodule *module, const CeedInt numop
   const int optslen = 32;
   const int optsextra = 3;
   const char *opts[numopts + optsextra];
+  char buf[numopts][optslen];
   if (numopts>0)
   {
-    char buf[numopts][optslen];
     va_list args;
     va_start(args, numopts);
     char *name;
