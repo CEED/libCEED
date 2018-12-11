@@ -66,8 +66,8 @@ static int ICsAdvection(void *ctx, CeedInt Q,
 
     // Initial Conditions
     q0[i+0*Q] = 1.;
-    q0[i+1*Q] = -0.5*(y - center[0]);
-    q0[i+2*Q] =  0.5*(x - center[1]);
+    q0[i+1*Q] = 0.5;//-0.5*(y - center[0]);
+    q0[i+2*Q] = 0.; //0.5*(x - center[1]);
     q0[i+3*Q] = 0.0;
     q0[i+4*Q] = r <= 1./8. ? (1.-8.*r) : 0.;
 
@@ -81,9 +81,9 @@ static int ICsAdvection(void *ctx, CeedInt Q,
     }
 
     // Coordinates
-    coordsout[i+0*Q] = x;
-    coordsout[i+1*Q] = y;
-    coordsout[i+2*Q] = z;
+//    coordsout[i+0*Q] = x;
+//    coordsout[i+1*Q] = y;
+//    coordsout[i+2*Q] = z;
 
   } // End of Quadrature Point Loop
 

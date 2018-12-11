@@ -120,9 +120,9 @@ static int ICsNS(void *ctx, CeedInt Q,
     }
 
     // Coordinates
-    coordsout[i+0*Q] = x;
-    coordsout[i+1*Q] = y;
-    coordsout[i+2*Q] = z;
+//    coordsout[i+0*Q] = x;
+//    coordsout[i+1*Q] = y;
+//    coordsout[i+2*Q] = z;
 
   } // End of Quadrature Point Loop
 
