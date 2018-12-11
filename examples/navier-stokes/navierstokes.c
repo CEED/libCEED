@@ -242,9 +242,9 @@ int main(int argc, char **argv) {
   PetscScalar *q0, *m, *m0;
   VecScatter ltog, ltog0, gtogD, ltogX;
   Ceed ceed;
-  CeedBasis basisx, basisxc, basisu;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi,
-                      Erestrictqdi, Erestrictm;
+  CeedBasis basisx, basisxc, basisq;
+  CeedElemRestriction restrictx, restrictq, restrictxi,
+                      restrictqdi, restrictm;
   CeedQFunction qf_setup, qf_mass, qf_ics, qf;
   CeedOperator op_setup, op_mass, op_ics, op;
   CeedVector xcoord, qdata, q0ceed, m0ceed, onesvec, multevec, multlvec; //xceed
@@ -452,22 +452,22 @@ int main(int argc, char **argv) {
   CeedInit(ceedresource, &ceed);
   numP = degree + 1;
   numQ = numP + qextra;
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, 5, numP, numQ, CEED_GAUSS, &basisu);
+  CeedBasisCreateTensorH1Lagrange(ceed, 3, 5, numP, numQ, CEED_GAUSS, &basisq);
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, numQ, CEED_GAUSS, &basisx);
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, numP, CEED_GAUSS_LOBATTO,
                                   &basisxc);
 
   // CEED Restrictions
-  CreateRestriction(ceed, melem, numP, 5, &Erestrictu);
-  CreateRestriction(ceed, melem, 2, 3, &Erestrictx);
-  CreateRestriction(ceed, melem, numP, 1, &Erestrictm);
+  CreateRestriction(ceed, melem, numP, 5, &restrictq);
+  CreateRestriction(ceed, melem, 2, 3, &restrictx);
+  CreateRestriction(ceed, melem, numP, 1, &restrictm);
   CeedInt nelem = melem[0]*melem[1]*melem[2];
   CeedElemRestrictionCreateIdentity(ceed, nelem, 16*numQ*numQ*numQ,
                                     16*nelem*numQ*numQ*numQ, 1,
-                                    &Erestrictqdi);
+                                    &restrictqdi);
   CeedElemRestrictionCreateIdentity(ceed, nelem, numQ*numQ*numQ,
                                     nelem*numQ*numQ*numQ, 1,
-                                    &Erestrictxi);
+                                    &restrictxi);
 
   // Find physical cordinates of the corners of local elements
   {
@@ -493,7 +493,7 @@ int main(int argc, char **argv) {
 
   // Create the CEED vectors that will be needed in setup
   CeedInt Nqpts, Nelem = melem[0]*melem[1]*melem[2];
-  CeedBasisGetNumQuadraturePoints(basisu, &Nqpts);
+  CeedBasisGetNumQuadraturePoints(basisq, &Nqpts);
   CeedInt Ndofs = 1;
   for (int d=0; d<3; d++) Ndofs *= numP;
   CeedVectorCreate(ceed, 16*Nelem*Nqpts, &qdata);
@@ -506,7 +506,7 @@ int main(int argc, char **argv) {
   // Find multiplicity of each local point
   CeedVectorSetValue(multevec, 1.0);
   CeedVectorSetValue(multlvec, 0.);
-  CeedElemRestrictionApply(Erestrictm, CEED_TRANSPOSE, CEED_TRANSPOSE,
+  CeedElemRestrictionApply(restrictm, CEED_TRANSPOSE, CEED_TRANSPOSE,
                            multevec, multlvec, CEED_REQUEST_IMMEDIATE);
 
   // Create the Q-function that builds the quadrature data for the NS operator
@@ -561,45 +561,45 @@ int main(int argc, char **argv) {
 
   // Create the operator that builds the quadrature data for the NS operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
-  CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setup, "dx", restrictx, CEED_NOTRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "weight", Erestrictxi, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setup, "weight", restrictxi, CEED_NOTRANSPOSE,
                        basisx, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setup, "qdata", restrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Create the mass operator
   CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
-  CeedOperatorSetField(op_mass, "q", Erestrictu, CEED_TRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_mass, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_mass, "q", restrictq, CEED_TRANSPOSE,
+                       basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "qdata", restrictqdi, CEED_NOTRANSPOSE,
                        basisx, qdata);
-  CeedOperatorSetField(op_mass, "v", Erestrictu, CEED_TRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "v", restrictq, CEED_TRANSPOSE,
+                       basisq, CEED_VECTOR_ACTIVE);
 
   // Create the operator that sets the ICs
   CeedOperatorCreate(ceed, qf_ics, NULL, NULL, &op_ics);
-  CeedOperatorSetField(op_ics, "x", Erestrictx, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_ics, "x", restrictx, CEED_NOTRANSPOSE,
                        basisxc, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ics, "q0", Erestrictu, CEED_TRANSPOSE,
+  CeedOperatorSetField(op_ics, "q0", restrictq, CEED_TRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-//  CeedOperatorSetField(op_ics, "coords", Erestrictx, CEED_NOTRANSPOSE,
+//  CeedOperatorSetField(op_ics, "coords", restrictx, CEED_NOTRANSPOSE,
 //                       basisxc, CEED_VECTOR_ACTIVE);
 
   // Create the physics operator
   CeedOperatorCreate(ceed, qf, NULL, NULL, &op);
-  CeedOperatorSetField(op, "q", Erestrictu, CEED_TRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op, "dq", Erestrictu, CEED_TRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op, "q", restrictq, CEED_TRANSPOSE,
+                       basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op, "dq", restrictq, CEED_TRANSPOSE,
+                       basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op, "qdata", restrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op, "x", Erestrictx, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op, "x", restrictx, CEED_NOTRANSPOSE,
                        basisx, xcoord);
-  CeedOperatorSetField(op, "v", Erestrictu, CEED_TRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op, "dv", Erestrictu, CEED_TRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op, "v", restrictq, CEED_TRANSPOSE,
+                       basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op, "dv", restrictq, CEED_TRANSPOSE,
+                       basisq, CEED_VECTOR_ACTIVE);
 
   // Create the libCEED contexts
   {
@@ -659,6 +659,7 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   ierr = VecScatterEnd(ltog, Mloc, user->M, ADD_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
+  CeedVectorDestroy(Mloc);
 
   // invert diagonally lumped mass vector so that it can be used in the RHS function
   ierr = VecReciprocal(user->M); // keep in mind from now on M is actually Minv
@@ -717,13 +718,13 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&user->qdata);
   CeedVectorDestroy(&xcoord);
   CeedVectorDestroy(&onesvec);
-  CeedBasisDestroy(&basisu);
+  CeedBasisDestroy(&basisq);
   CeedBasisDestroy(&basisx);
   CeedBasisDestroy(&basisxc);
-  CeedElemRestrictionDestroy(&Erestrictu);
-  CeedElemRestrictionDestroy(&Erestrictx);
-  CeedElemRestrictionDestroy(&Erestrictqdi);
-  CeedElemRestrictionDestroy(&Erestrictxi);
+  CeedElemRestrictionDestroy(&restrictq);
+  CeedElemRestrictionDestroy(&restrictx);
+  CeedElemRestrictionDestroy(&restrictqdi);
+  CeedElemRestrictionDestroy(&restrictxi);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_ics);
   CeedQFunctionDestroy(&qf);
