@@ -274,7 +274,7 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
-  localdof = 1000;
+  localdof = (8*8*8*degree*degree*degree);
   ierr = PetscOptionsInt("-local",
                          "Target number of locally owned degrees of freedom per process",
                          NULL, localdof, &localdof, NULL); CHKERRQ(ierr);
