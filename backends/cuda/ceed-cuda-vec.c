@@ -36,7 +36,6 @@ static inline int CeedSyncH2D_Cuda(const CeedVector vec) {
   ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
   ierr = cudaMemcpy(data->d_array, data->h_array, bytes(vec), cudaMemcpyHostToDevice);
   CeedChk_Cu(ceed, ierr);
-  //FIXME if ierr is checked then an error occurs... don't seem to impact anything though
   return 0;
 }
 
@@ -48,7 +47,6 @@ static inline int CeedSyncD2H_Cuda(const CeedVector vec) {
   ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
   ierr = cudaMemcpy(data->h_array, data->d_array, bytes(vec), cudaMemcpyDeviceToHost);
   CeedChk_Cu(ceed, ierr);
-  //FIXME if ierr is checked then an error occurs... don't seem to impact anything though
   return 0;
 }
 

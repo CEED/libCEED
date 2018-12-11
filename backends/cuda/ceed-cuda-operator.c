@@ -222,10 +222,10 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
   }
 
   // Output Evecs
-  for (CeedInt i=0; i<numoutputfields; i++) {
-    ierr = CeedVectorGetArray(impl->evecs[i+impl->numein], CEED_MEM_DEVICE,
-                              &impl->edata[i + numinputfields]); CeedChk(ierr);
-  }
+  //for (CeedInt i=0; i<numoutputfields; i++) {
+  //  ierr = CeedVectorGetArray(impl->evecs[i+impl->numein], CEED_MEM_DEVICE,
+  //                            &impl->edata[i + numinputfields]); CeedChk(ierr);
+  //}
 
 	// Input basis apply if needed
 	for (CeedInt i=0; i<numinputfields; i++) {
@@ -243,7 +243,7 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
 	  case CEED_EVAL_NONE:
 	    ierr = CeedVectorSetArray(impl->qvecsin[i], CEED_MEM_DEVICE, 
 	                              CEED_USE_POINTER,
-	                              &impl->edata[i]); CeedChk(ierr);
+	                              impl->edata[i]); CeedChk(ierr);
 	    break;
 	  case CEED_EVAL_INTERP:
 	    ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
@@ -253,7 +253,7 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
 	    break;
 	  case CEED_EVAL_GRAD:
 	    ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
-	    ierr = CeedBasisApply(basis, 1, CEED_NOTRANSPOSE,
+	    ierr = CeedBasisApply(basis, numelements, CEED_NOTRANSPOSE,
 	                          CEED_EVAL_GRAD, impl->evecs[i],
 	                          impl->qvecsin[i]); CeedChk(ierr);
 	    break;
@@ -266,18 +266,18 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
 	  }
 	}
 	// Output pointers
-	for (CeedInt i=0; i<numoutputfields; i++) {
-	  ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
-	  CeedChk(ierr);
-	  if (emode == CEED_EVAL_NONE) {
-	    ierr = CeedQFunctionFieldGetNumComponents(qfoutputfields[i], &ncomp);
-	    CeedChk(ierr);
-	    ierr = CeedVectorSetArray(impl->qvecsout[i], CEED_MEM_DEVICE,
-	                              CEED_USE_POINTER,
-	                              &impl->edata[i + numinputfields]);
-	    CeedChk(ierr);
-	  }
-	}
+	//for (CeedInt i=0; i<numoutputfields; i++) {
+	//  ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
+	//  CeedChk(ierr);
+	//  if (emode == CEED_EVAL_NONE) {
+	//    ierr = CeedQFunctionFieldGetNumComponents(qfoutputfields[i], &ncomp);
+	//    CeedChk(ierr);
+	//    ierr = CeedVectorSetArray(impl->qvecsout[i], CEED_MEM_DEVICE,
+	//                              CEED_USE_POINTER,
+	//                              impl->edata[i + numinputfields]);
+	//    CeedChk(ierr);
+	//  }
+	//}
 	// Q function
 	ierr = CeedQFunctionApply(qf, Q, impl->qvecsin, impl->qvecsout); CeedChk(ierr);
 
@@ -299,14 +299,14 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
 	  case CEED_EVAL_INTERP:
 	    ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis);
 	    CeedChk(ierr);
-	    ierr = CeedBasisApply(basis, 1, CEED_TRANSPOSE,
+	    ierr = CeedBasisApply(basis, numelements, CEED_TRANSPOSE,
 	                          CEED_EVAL_INTERP, impl->qvecsout[i],
 	                          impl->evecs[i+impl->numein]); CeedChk(ierr);
 	    break;
 	  case CEED_EVAL_GRAD:
 	    ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis);
 	    CeedChk(ierr);
-	    ierr = CeedBasisApply(basis, 1, CEED_TRANSPOSE,
+	    ierr = CeedBasisApply(basis, numelements, CEED_TRANSPOSE,
 	                          CEED_EVAL_GRAD, impl->qvecsout[i],
 	                          impl->evecs[i+impl->numein]); CeedChk(ierr);
 	    break;
@@ -335,9 +335,9 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
   // Output restriction
   for (CeedInt i=0; i<numoutputfields; i++) {
     // Restore evec
-    ierr = CeedVectorRestoreArray(impl->evecs[i+impl->numein],
-                                  &impl->edata[i + numinputfields]);
-    CeedChk(ierr);
+    //ierr = CeedVectorRestoreArray(impl->evecs[i+impl->numein],
+    //                              &impl->edata[i + numinputfields]);
+    //CeedChk(ierr);
     // Get output vector
     ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
     // Active
