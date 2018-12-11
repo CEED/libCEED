@@ -140,7 +140,6 @@ static int loadCudaFunction(CeedQFunction qf, char* c_src_file) {
     return CeedError(ceed, 1, "Cannot find file's extension!");
   const size_t cuda_path_len = last_dot - cuda_file;
   strcpy(&cuda_file[cuda_path_len], ".cu");
-  printf("cudafile: %s\n", cuda_file);
   //*******************
   FILE *fp;
   long lSize;
@@ -163,7 +162,6 @@ static int loadCudaFunction(CeedQFunction qf, char* c_src_file) {
   //********************
   CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
-  printf("buffer: %s\n", buffer);
   ierr = compile(ceed, buffer, &data->module, 0); CeedChk(ierr);
   ierr = get_kernel(ceed, data->module, data->qFunctionName, &data->qFunction); CeedChk(ierr);
 
@@ -191,13 +189,11 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   
   const char *funname = strrchr(qf->focca, ':') + 1;
   data->qFunctionName = (char*)funname;
-  printf("funname: %s\n", funname);
   // Including final NUL char
   const int filenamelen = funname - qf->focca;
   char filename[filenamelen];
   memcpy(filename, qf->focca, filenamelen - 1);
   filename[filenamelen - 1] = '\0';
-  printf("filename: %s\n", filename);
   ierr = loadCudaFunction(qf, filename); CeedChk(ierr);
   // FILE *file = fopen(filename, "r");
   // if (!file) {

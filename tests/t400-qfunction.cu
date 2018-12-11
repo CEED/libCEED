@@ -17,7 +17,7 @@ extern "C" __global__ void setup(void *ctx, CeedInt Q, Fields_Cuda fields) {
 
 // *****************************************************************************
 extern "C" __global__ void mass(void *ctx, CeedInt Q, Fields_Cuda fields) {
-  const CeedScalar *qdata = feilds.inputs[0], *u = fields.inputs[1];
+  const CeedScalar *qdata = fields.inputs[0], *u = fields.inputs[1];
   CeedScalar *v = fields.outputs[0];
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
     i < Q;
