@@ -64,9 +64,15 @@ typedef struct {
 } CeedElemRestriction_Cuda;
 
 typedef struct {
+  const CeedScalar* inputs[16];
+  CeedScalar* outputs[16];
+} Fields_Cuda;
+
+typedef struct {
   CUmodule module;
   char* qFunctionName;
   CUfunction qFunction;
+  Fields_Cuda fields;
   const CeedScalar ** d_u;
   CeedScalar ** d_v;
   void *d_c;
