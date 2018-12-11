@@ -88,11 +88,16 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
     CeedChk(ierr);
   }
 
+  // TODO find a way to avoid this systematic memCpy
+  if (qf->ctxsize > 0) {
+    ierr = cudaMemcpy(data->d_c, qf->ctx, qf->ctxsize, cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
+  }
+
   // void *args[] = {&data->d_c, (void*)&Q, &data->d_u, &data->d_v};
   void* ctx;
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
   // void *args[] = {&ctx, (void*)&Q, &data->d_u, &data->d_v};
-  void *args[] = {&ctx, (void*)&Q, &data->fields};
+  void *args[] = {&data->d_c, (void*)&Q, &data->fields};
   ierr = run_kernel(ceed, data->qFunction, CeedDivUpInt(Q, blocksize), blocksize, args);
   CeedChk(ierr);
 
@@ -157,7 +162,7 @@ static int loadCudaFunction(CeedQFunction qf, char* c_src_file) {
   if( 1!=fread( buffer , lSize, 1 , fp) )
     fclose(fp),free(buffer),fputs("entire read fails",stderr),exit(1);
 
-  //FIXME: the magic number 16 should be define somewhere...
+  //FIXME: the magic number 16 should be defined somewhere...
   char * fields_string = "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda;";
   char * source = (char *) malloc(1 + strlen(fields_string)+ strlen(buffer) );
   strcpy(source, fields_string);
@@ -191,62 +196,11 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   
   const char *funname = strrchr(qf->focca, ':') + 1;
   data->qFunctionName = (char*)funname;
-  // Including final NUL char
   const int filenamelen = funname - qf->focca;
   char filename[filenamelen];
   memcpy(filename, qf->focca, filenamelen - 1);
   filename[filenamelen - 1] = '\0';
   ierr = loadCudaFunction(qf, filename); CeedChk(ierr);
-  // FILE *file = fopen(filename, "r");
-  // if (!file) {
-  //   return CeedError(qf->ceed, 1, "The file %s cannot be read", filename);
-  // }
-
-  // fseek(file, 0, SEEK_END);
-  // const int contentslen = ftell(file);
-  // fseek (file, 0, SEEK_SET);
-  // char *contents;
-  // ierr = CeedCalloc(contentslen + 1, &contents); CeedChk(ierr);
-  // fread(contents, 1, contentslen, file);
-
-  // printf("file: %s\n", file);
-
-  // ierr = compile(ceed, contents, &data->module, 0); CeedChk(ierr);
-  // ierr = get_kernel(ceed, data->module, funname, &data->qFunction); CeedChk(ierr);
-  // ierr = CeedFree(&contents); CeedChk(ierr);
-
-  // ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
-  // ierr = CeedQFunctionSetData(qf, (void*)&data); CeedChk(ierr);
-  // // File reading
-  // char *fcuda;
-  // ierr = CeedQFunctionGetFOCCA(qf, &fcuda); CeedChk(ierr);
-  // const char *last_colon = strrchr(fcuda,':');
-  // const char *last_dot = strrchr(fcuda,'.');
-  // if (!last_colon)
-  //   return CeedError(ceed, 1, "Can not find ':' in fcuda field!");
-  // if (!last_dot)
-  //   return CeedError(ceed, 1, "Can not find '.' in fcuda field!");
-  // // get the function name
-  // data->qFunctionName = last_colon+1;
-  // // extract file base name
-  // const char *last_slash_pos = strrchr(fcuda,'/');
-  // // if no slash has been found, revert to fcuda field
-  // const char *last_slash = last_slash_pos?last_slash_pos+1:fcuda;
-  // // extract c_src_file & cuda_base_name
-  // char *c_src_file, *cuda_base_name;
-  // ierr = CeedCalloc(CUDA_MAX_PATH,&cuda_base_name); CeedChk(ierr);
-  // ierr = CeedCalloc(CUDA_MAX_PATH,&c_src_file); CeedChk(ierr);
-  // memcpy(cuda_base_name,last_slash,last_dot-last_slash);
-  // memcpy(c_src_file,fcuda,last_colon-fcuda);
-  // Now fetch Cuda filename ****************************************************
-  // TODO do something with NVRTC Johann's style
-  // ierr = loadCudaFunction(qf, c_src_file, cuda_base_name);
-  // CeedChk(ierr);
-  // free **********************************************************************
-  // ierr = CeedFree(&cuda_base_name); CeedChk(ierr);
-  // ierr = CeedFree(&c_src_file); CeedChk(ierr);
-
-  //
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Cuda); CeedChk(ierr);

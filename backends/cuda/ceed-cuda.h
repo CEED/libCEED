@@ -63,6 +63,8 @@ typedef struct {
   CeedInt *d_ind_allocated;
 } CeedElemRestriction_Cuda;
 
+// We use a struct to avoid having to memCpy the array of pointers
+// __global__ copies by value the struct.
 typedef struct {
   const CeedScalar* inputs[16];
   CeedScalar* outputs[16];
