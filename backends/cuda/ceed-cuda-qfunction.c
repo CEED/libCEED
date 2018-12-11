@@ -119,8 +119,6 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
 
   CeedChk_Cu(ceed, cuModuleUnload(data->module)); 
-  ierr = cudaFree((void*)data->d_u); CeedChk_Cu(ceed, ierr);
-  ierr = cudaFree((void*)data->d_v); CeedChk_Cu(ceed, ierr);
   ierr = cudaFree(data->d_c); CeedChk_Cu(ceed, ierr);
 
   ierr = CeedFree(&data); CeedChk(ierr);
@@ -159,10 +157,16 @@ static int loadCudaFunction(CeedQFunction qf, char* c_src_file) {
   if( 1!=fread( buffer , lSize, 1 , fp) )
     fclose(fp),free(buffer),fputs("entire read fails",stderr),exit(1);
 
+  //FIXME: the magic number 16 should be define somewhere...
+  char * fields_string = "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda;";
+  char * source = (char *) malloc(1 + strlen(fields_string)+ strlen(buffer) );
+  strcpy(source, fields_string);
+  strcat(source, buffer);
+
   //********************
   CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
-  ierr = compile(ceed, buffer, &data->module, 0); CeedChk(ierr);
+  ierr = compile(ceed, source, &data->module, 0); CeedChk(ierr);
   ierr = get_kernel(ceed, data->module, data->qFunctionName, &data->qFunction); CeedChk(ierr);
 
   //********************
@@ -181,8 +185,6 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = CeedQFunctionSetData(qf, (void*)&data); CeedChk(ierr);
   CeedInt numinputfields, numoutputfields;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
-  ierr = cudaMalloc((void**)&data->d_u, numinputfields * sizeof(CeedScalar*)); CeedChk_Cu(ceed, ierr);
-  ierr = cudaMalloc((void**)&data->d_v, numoutputfields * sizeof(CeedScalar*)); CeedChk_Cu(ceed, ierr);
   size_t ctxsize;
   ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
   ierr = cudaMalloc(&data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);

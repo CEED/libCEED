@@ -73,8 +73,6 @@ typedef struct {
   char* qFunctionName;
   CUfunction qFunction;
   Fields_Cuda fields;
-  const CeedScalar ** d_u;
-  CeedScalar ** d_v;
   void *d_c;
 } CeedQFunction_Cuda;
 
