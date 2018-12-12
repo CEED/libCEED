@@ -239,8 +239,8 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
   if (U) {
     ierr = CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u); CeedChk(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
-      return CeedError(ceed, 1,
-                       "An input vector is required for this CeedEvalMode");
+    return CeedError(ceed, 1,
+                     "An input vector is required for this CeedEvalMode");
   }
   ierr = CeedVectorGetArray(V, CEED_MEM_HOST, &v); CeedChk(ierr);
 
@@ -302,8 +302,8 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
       else u += nqpt;
     }
 
-      if (!transpose) v -= nqpt*dim;
-      else u -= nqpt*dim;
+    if (!transpose) v -= nqpt*dim;
+    else u -= nqpt*dim;
   }
   // ***************************************************************************
   if (emode & CEED_EVAL_WEIGHT) {
