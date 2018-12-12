@@ -20,7 +20,7 @@
 
 static void printVec(CeedVector vec){
   printf("length=%d\n", vec->length);
-  CeedScalar* vec_ptr;
+  const CeedScalar* vec_ptr;
   CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &vec_ptr);
   for (int i = 0; i < vec->length; ++i)
   {
@@ -226,8 +226,8 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
       ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE,
                                       lmode, vec, impl->evecs[i],
                                       request); CeedChk(ierr);
-      printf("evecs[%d]\n", i);
-      printVec(impl->evecs[i]);
+      // printf("evecs[%d]\n", i);
+      // printVec(impl->evecs[i]);
       // Get evec
       ierr = CeedVectorGetArrayRead(impl->evecs[i], CEED_MEM_DEVICE,
                                     (const CeedScalar **) &impl->edata[i]);
@@ -278,8 +278,8 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
     case CEED_EVAL_CURL:
       break; // TODO: Not implemented
     }
-    printf("qvecsin[%d]\n", i);
-    printVec(impl->qvecsin[i]);
+    // printf("qvecsin[%d]\n", i);
+    // printVec(impl->qvecsin[i]);
   }
   // Output pointers
   for (CeedInt i = 0; i < numoutputfields; i++) {
@@ -340,8 +340,8 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
     case CEED_EVAL_CURL:
       break; // TODO: Not implemented
     }
-    printf("qvecsout[%d]\n", i);
-    printVec(impl->qvecsout[i]);
+    // printf("qvecsout[%d]\n", i);
+    // printVec(impl->qvecsout[i]);
   }
 
   // Zero lvecs

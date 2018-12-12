@@ -155,7 +155,7 @@ extern "C" __global__ void weight(const CeedInt nelem, const CeedScalar * __rest
     q < nelem*BASIS_DIM*BASIS_Q1D;
     q += blockDim.x * gridDim.x)
   {
-    v[q] = r_w;
+    if (threadIdx.x < BASIS_DIM*BASIS_Q1D) v[q] = r_w;
   }
 }
 
@@ -190,7 +190,7 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode 
     void *gradargs[] = {(void*)&nelem, (void*)&transpose, &data->d_interp1d, &data->d_grad1d, &d_u, &d_v};
     ierr = run_kernel(ceed, data->grad, nelem, blocksize, gradargs); CeedChk(ierr);
   } else if (emode == CEED_EVAL_WEIGHT) {
-    void *weightargs[] = {&data->d_qweight1d, &d_v};
+    void *weightargs[] = {&nelem, &data->d_qweight1d, &d_v};
     ierr = run_kernel(ceed, data->weight, nelem, basis->Q, weightargs); CeedChk(ierr);
   }
 
