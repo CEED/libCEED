@@ -45,7 +45,6 @@ int compile(Ceed ceed, const char *source, CUmodule *module, const CeedInt numop
   opts[numopts]     = "-DCeedScalar=double";
   opts[numopts + 1] = "-DCeedInt=int";
   opts[numopts + 2] = "-arch=compute_60";//FIXME: Should take into account GPU CC
-  // opts[numopts + 2] = "-arch=compute_35";
 
 
   nvrtcResult result = nvrtcCompileProgram(prog, numopts + optsextra, opts);
