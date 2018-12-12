@@ -237,26 +237,29 @@ int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
   char ceedresource[4096] = "/cpu/self";
+  const char *problemtypes[2] = {"advection", "navier_stokes"};
   PetscInt degree, qextra, localdof, localelem, melem[3], mdof[3], p[3],
     irank[3], ldof[3], lsize;
   PetscMPIInt size, rank;
   PetscScalar ftime;
-  PetscInt steps;
+  PetscInt steps, problemtype;
   PetscScalar *q0, *m, *mult, *x;
+  Vec Q, Qloc, Mloc, X, Xloc;
   VecScatter ltog, ltog0, gtogD, ltogX;
+  DM dm;
+  TS ts;
+  TSAdapt adapt;
+  User user;
+
   Ceed ceed;
+  CeedInt numP, numQ;
+  CeedVector xcorners, xceed, qdata, q0ceed, mceed,
+             onesvec, multevec, multlvec;
   CeedBasis basisx, basisxc, basisq;
   CeedElemRestriction restrictx, restrictxc, restrictxi,
                       restrictq, restrictqdi, restrictmult;
   CeedQFunction qf_setup, qf_mass, qf_ics, qf;
   CeedOperator op_setup, op_mass, op_ics, op;
-  CeedVector xcorners, xceed, qdata, q0ceed, mceed, onesvec, multevec, multlvec;
-  CeedInt numP, numQ;
-  Vec Q, Qloc, Mloc, X, Xloc;
-  DM dm;
-  TS ts;
-  TSAdapt adapt;
-  User user;
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -268,16 +271,19 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
   ierr = PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED",
                            NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-ceed", "CEED resource specifier",
+                            NULL, ceedresource, ceedresource,
+                            sizeof(ceedresource), NULL); CHKERRQ(ierr);
+  problemtype = 0;
+  PetscOptionsEList("-problem", "Problem to solve", NULL, problemtypes,2,
+                    problemtypes[0], &problemtype, NULL); CHKERRQ(ierr);
   degree = 3;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
   qextra = 2;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsString("-ceed", "CEED resource specifier",
-                            NULL, ceedresource, ceedresource,
-                            sizeof(ceedresource), NULL); CHKERRQ(ierr);
-  localdof = (8*8*8*degree*degree*degree);
+  localdof = 8*8*8*degree*degree*degree;
   ierr = PetscOptionsInt("-local",
                          "Target number of locally owned degrees of freedom per process",
                          NULL, localdof, &localdof, NULL); CHKERRQ(ierr);
@@ -548,41 +554,32 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_mass, "qdata", 16, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_mass, "v", 5, CEED_EVAL_INTERP);
 
-  // Create the Q-function that sets the ICs of the advection operator
-  CeedQFunctionCreateInterior(ceed, 1,
-                              ICsAdvection, __FILE__ ":ICsAdvection", &qf_ics);
-  CeedQFunctionAddInput(qf_ics, "x", 3, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_ics, "q0", 5, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_ics, "coords", 3, CEED_EVAL_NONE);
-
-  // Create the Q-function that defines the action of the Advection operator
-  CeedQFunctionCreateInterior(ceed, 1,
-                              Advection, __FILE__ ":Advection", &qf);
-  CeedQFunctionAddInput(qf, "q", 5, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf, "dq", 5, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf, "qdata", 16, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf, "x", 3, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf, "v", 5, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf, "dv", 5, CEED_EVAL_GRAD);
-
-  if(0){ // full NS case
-  // Create the Q-function that sets the ICs of the full NS operator
-  CeedQFunctionCreateInterior(ceed, 1,
-                              ICsNS, __FILE__ ":ICsNS", &qf_ics);
-  CeedQFunctionAddInput(qf_ics, "x", 3, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_ics, "q0", 5, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_ics, "coords", 3, CEED_EVAL_NONE);
-
-  // Create the Q-function that defines the action of the NS operator
-  CeedQFunctionCreateInterior(ceed, 1,
-                              NS, __FILE__ ":NS", &qf);
-  CeedQFunctionAddInput(qf, "q", 5, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf, "dq", 5, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf, "qdata", 16, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf, "x", 3, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf, "v", 5, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf, "dv", 5, CEED_EVAL_GRAD);
+  // Create the Q-function that sets the ICs of the operator
+  if (problemtype == 0) {
+    CeedQFunctionCreateInterior(ceed, 1,
+                                ICsAdvection, __FILE__ ":ICsAdvection", &qf_ics);
+  } else {
+    CeedQFunctionCreateInterior(ceed, 1,
+                                ICsNS, __FILE__ ":ICsNS", &qf_ics);
   }
+  CeedQFunctionAddInput(qf_ics, "x", 3, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_ics, "q0", 5, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_ics, "coords", 3, CEED_EVAL_NONE);
+
+  // Create the Q-function that defines the action of the operator
+  if (problemtype == 0) {
+    CeedQFunctionCreateInterior(ceed, 1,
+                                Advection, __FILE__ ":Advection", &qf);
+  } else {
+    CeedQFunctionCreateInterior(ceed, 1,
+                                NS, __FILE__ ":NS", &qf);
+  }
+  CeedQFunctionAddInput(qf, "q", 5, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf, "dq", 5, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf, "qdata", 16, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf, "x", 3, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf, "v", 5, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf, "dv", 5, CEED_EVAL_GRAD);
 
   // Create the operator that builds the quadrature data for the NS operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);

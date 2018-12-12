@@ -68,9 +68,9 @@ static int ICsNS(void *ctx, CeedInt Q,
   #endif
 
   // Inputs
-  const CeedScalar *coords = in[0];
+  const CeedScalar *X = in[0];
   // Outputs
-  CeedScalar *q0 = out[0], *coordsout = out[1];
+  CeedScalar *q0 = out[0], *coords = out[1];
   // Setup
   const CeedScalar tol = 1.e-14;
   const CeedScalar center[3] = {0.5, 0.5, 0.5};
@@ -89,9 +89,9 @@ static int ICsNS(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Coordinates
-    const CeedScalar x = coords[i+Q*0];
-    const CeedScalar y = coords[i+Q*1];
-    const CeedScalar z = coords[i+Q*2];
+    const CeedScalar x = X[i+Q*0];
+    const CeedScalar y = X[i+Q*1];
+    const CeedScalar z = X[i+Q*2];
     // -- Potential temperature, density current
     const CeedScalar r = sqrt(pow((x - center[0])/4, 2) +
                               pow((y - center[1])/4, 2) +
@@ -120,9 +120,9 @@ static int ICsNS(void *ctx, CeedInt Q,
     }
 
     // Coordinates
-//    coordsout[i+0*Q] = x;
-//    coordsout[i+1*Q] = y;
-//    coordsout[i+2*Q] = z;
+    coords[i+0*Q] = x;
+    coords[i+1*Q] = y;
+    coords[i+2*Q] = z;
 
   } // End of Quadrature Point Loop
 
