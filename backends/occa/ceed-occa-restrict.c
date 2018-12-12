@@ -182,7 +182,7 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
   CeedInt *tindices;
   data->d_indices = occaDeviceMalloc(dev, bytes(r), NULL, NO_PROPS);
   data->d_toffsets = occaDeviceMalloc(dev,(1+ndof)*sizeof(CeedInt),
-                                        NULL, NO_PROPS);
+                                      NULL, NO_PROPS);
   data->d_tindices = occaDeviceMalloc(dev, bytes(r), NULL, NO_PROPS);
   // ***************************************************************************
   ierr = CeedMalloc(ndof+1, &toffsets); CeedChk(ierr);
@@ -192,7 +192,7 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
     occaCopyPtrToMem(data->d_toffsets,toffsets,
                      (1+ndof)*sizeof(CeedInt),NO_OFFSET,NO_PROPS);
     occaCopyPtrToMem(data->d_tindices,tindices,bytes(r),NO_OFFSET,NO_PROPS);
-  // ***************************************************************************
+    // ***************************************************************************
     occaCopyPtrToMem(data->d_indices,indices,bytes(r),NO_OFFSET,NO_PROPS);
   } else {
     data->identity = true;

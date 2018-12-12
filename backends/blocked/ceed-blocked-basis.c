@@ -294,5 +294,6 @@ int CeedBasisCreateH1_Blocked(CeedElemTopology topo, CeedInt dim,
                                 CeedBasisApply_Blocked); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
                                 CeedBasisDestroyNonTensor_Blocked); CeedChk(ierr);
+
   return 0;
 }
