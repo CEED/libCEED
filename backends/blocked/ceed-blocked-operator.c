@@ -30,6 +30,7 @@ static int CeedOperatorDestroy_Blocked(CeedOperator op) {
   ierr = CeedFree(&impl->blkrestr); CeedChk(ierr);
   ierr = CeedFree(&impl->evecs); CeedChk(ierr);
   ierr = CeedFree(&impl->edata); CeedChk(ierr);
+  ierr = CeedFree(&impl->inputstate); CeedChk(ierr);
 
   for (CeedInt i=0; i<impl->numein; i++) {
     ierr = CeedVectorDestroy(&impl->evecsin[i]); CeedChk(ierr);
@@ -174,6 +175,7 @@ static int CeedOperatorSetup_Blocked(CeedOperator op) {
   ierr = CeedCalloc(numinputfields + numoutputfields, &impl->edata);
   CeedChk(ierr);
 
+  ierr = CeedCalloc(16, &impl->inputstate); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->evecsin); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->evecsout); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->qvecsin); CeedChk(ierr);
@@ -225,6 +227,7 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
   CeedVector vec;
   CeedBasis basis;
   CeedElemRestriction Erestrict;
+  uint64_t state;
 
   // Setup
   ierr = CeedOperatorSetup_Blocked(op); CeedChk(ierr);
@@ -240,10 +243,14 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
       if (vec == CEED_VECTOR_ACTIVE)
         vec = invec;
       // Restrict
-      ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
-      ierr = CeedElemRestrictionApply(impl->blkrestr[i], CEED_NOTRANSPOSE,
-                                      lmode, vec, impl->evecs[i],
-                                      request); CeedChk(ierr); CeedChk(ierr);
+      ierr = CeedVectorGetState(vec, &state); CeedChk(ierr);
+      if (state != impl->inputstate[i]) {
+        ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
+        ierr = CeedElemRestrictionApply(impl->blkrestr[i], CEED_NOTRANSPOSE,
+                                        lmode, vec, impl->evecs[i],
+                                        request); CeedChk(ierr); CeedChk(ierr);
+        impl->inputstate[i] = state;
+      }
       // Get evec
       ierr = CeedVectorGetArrayRead(impl->evecs[i], CEED_MEM_HOST,
                                     (const CeedScalar **) &impl->edata[i]);
