@@ -179,7 +179,6 @@ static int CeedOperatorSetupFields_Occa(CeedQFunction qf, CeedOperator op,
       dbg("\t\t[CeedOperator][SetupFields] NONE, Q==");
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
       CeedChk(ierr);
-      ierr = CeedVectorCreate(ceed, Q*ncomp, &evecs[i]); CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, Q*ncomp, &qvecs[i]); CeedChk(ierr);
       break; // No action
     case CEED_EVAL_INTERP:
