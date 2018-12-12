@@ -181,7 +181,7 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode 
     ierr = run_kernel(ceed, data->grad, nelem, blocksize, gradargs); CeedChk(ierr);
   } else if (emode == CEED_EVAL_WEIGHT) {
     void *weightargs[] = {&data->d_qweight1d, &d_v};
-    ierr = run_kernel(ceed, data->weight, 1, 1, weightargs); CeedChk(ierr);
+    ierr = run_kernel(ceed, data->weight, nelem, blocksize, weightargs); CeedChk(ierr);
   }
 
   if(emode!=CEED_EVAL_WEIGHT){
