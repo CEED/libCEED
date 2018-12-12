@@ -135,10 +135,10 @@ static int CeedOperatorDump_Occa(CeedOperator op) {
 // * Setup infields or outfields
 // *****************************************************************************
 static int CeedOperatorSetupFields_Occa(CeedQFunction qf, CeedOperator op,
-                                       bool inOrOut,
-                                       CeedVector *fullevecs, CeedVector *evecs,
-                                       CeedVector *qvecs, CeedInt starte,
-                                       CeedInt numfields, CeedInt Q) {
+                                        bool inOrOut,
+                                        CeedVector *fullevecs, CeedVector *evecs,
+                                        CeedVector *qvecs, CeedInt starte,
+                                        CeedInt numfields, CeedInt Q) {
   CeedInt dim = 1, ierr, ncomp;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -273,14 +273,14 @@ static int CeedOperatorSetup_Occa(CeedOperator op) {
   dbg("\t[CeedOperator][Setup] Set up IN fields:");
   // Infields
   ierr = CeedOperatorSetupFields_Occa(qf, op, 0, data->Evecs,
-                                     data->evecsin, data->qvecsin, 0,
-                                     numinputfields, Q);
+                                      data->evecsin, data->qvecsin, 0,
+                                      numinputfields, Q);
   CeedChk(ierr);
   dbg("\t[CeedOperator][Setup] Set up OUT fields:");
   // Outfields
   ierr = CeedOperatorSetupFields_Occa(qf, op, 1, data->Evecs,
-                                     data->evecsout, data->qvecsout,
-                                     numinputfields, numoutputfields, Q);
+                                      data->evecsout, data->qvecsout,
+                                      numinputfields, numoutputfields, Q);
   CeedChk(ierr);
   ierr = CeedOperatorSetSetupDone(op); CeedChk(ierr);
   dbg("\t[CeedOperator][Setup] done");
@@ -412,7 +412,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
       switch(emode) {
       case CEED_EVAL_NONE:
         dbg("\t\t[CeedOperator][Apply] in NONE, indata[%d] = Edata[%d]",i,i);
-        ierr = CeedVectorSetArray(data->qvecsin[i], CEED_MEM_HOST, 
+        ierr = CeedVectorSetArray(data->qvecsin[i], CEED_MEM_HOST,
                                   CEED_USE_POINTER,
                                   &data->Edata[i][e*Q*ncomp]); CeedChk(ierr);
         break;

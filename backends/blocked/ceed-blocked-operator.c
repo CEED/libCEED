@@ -280,7 +280,7 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
       // Basis action
       switch(emode) {
       case CEED_EVAL_NONE:
-        ierr = CeedVectorSetArray(impl->qvecsin[i], CEED_MEM_HOST, 
+        ierr = CeedVectorSetArray(impl->qvecsin[i], CEED_MEM_HOST,
                                   CEED_USE_POINTER,
                                   &impl->edata[i][e*Q*ncomp]); CeedChk(ierr);
         break;
