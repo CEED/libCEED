@@ -749,7 +749,7 @@ int main(int argc, char **argv) {
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
   ierr = TSSetTimeStep(ts, 1.e-5); CHKERRQ(ierr);
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
-  ierr = TSAdaptSetStepLimits(adapt, 1.e-7, 1.e-2); CHKERRQ(ierr);
+  ierr = TSAdaptSetStepLimits(adapt, 1.e-12, 1.e-2); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
   ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
