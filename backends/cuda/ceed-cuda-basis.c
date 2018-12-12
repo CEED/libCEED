@@ -134,21 +134,31 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose, const 
   }
 }
 
-extern "C" __global__ void weight(const CeedScalar * __restrict__ qweight1d, CeedScalar * __restrict__ v) {
-  CeedInt pre = BASIS_NQPT;
-  CeedInt post = 1;
-  for (CeedInt d=0; d<BASIS_DIM; d++) {
-    pre /= BASIS_Q1D;
-    for (CeedInt i=0; i<pre; i++) {
-      for (CeedInt j=0; j<BASIS_Q1D; j++) {
-        for (CeedInt k=0; k<post; k++) {
-          v[(i*BASIS_Q1D + j)*post + k] = qweight1d[j] * (d == 0 ? 1 : v[(i*BASIS_Q1D + j)*post + k]);
-        }
-      }
-    }
-    post *= BASIS_Q1D;
+// extern "C" __global__ void weight(const CeedScalar * __restrict__ qweight1d, CeedScalar * __restrict__ v) {
+//   CeedInt pre = BASIS_NQPT;
+//   CeedInt post = 1;
+//   for (CeedInt d=0; d<BASIS_DIM; d++) {
+//     pre /= BASIS_Q1D;
+//     for (CeedInt i=0; i<pre; i++) {
+//       for (CeedInt j=0; j<BASIS_Q1D; j++) {
+//         for (CeedInt k=0; k<post; k++) {
+//           v[(i*BASIS_Q1D + j)*post + k] = qweight1d[j] * (d == 0 ? 1 : v[(i*BASIS_Q1D + j)*post + k]);
+//         }
+//       }
+//     }
+//     post *= BASIS_Q1D;
+//   }
+// }
+extern "C" __global__ void weight(const CeedInt nelem, const CeedScalar * __restrict__ qweight1d, CeedScalar * __restrict__ v) {
+  CeedScalar r_w = qweight1d[threadIdx.x%BASIS_Q1D];
+  for (int q = blockIdx.x * blockDim.x + threadIdx.x;
+    q < nelem*BASIS_DIM*BASIS_Q1D;
+    q += blockDim.x * gridDim.x)
+  {
+    v[q] = r_w;
   }
 }
+
 );
 
 int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode tmode,
@@ -181,7 +191,7 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode 
     ierr = run_kernel(ceed, data->grad, nelem, blocksize, gradargs); CeedChk(ierr);
   } else if (emode == CEED_EVAL_WEIGHT) {
     void *weightargs[] = {&data->d_qweight1d, &d_v};
-    ierr = run_kernel(ceed, data->weight, nelem, blocksize, weightargs); CeedChk(ierr);
+    ierr = run_kernel(ceed, data->weight, nelem, basis->Q, weightargs); CeedChk(ierr);
   }
 
   if(emode!=CEED_EVAL_WEIGHT){
