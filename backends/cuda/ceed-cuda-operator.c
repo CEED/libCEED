@@ -221,12 +221,6 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
     }
   }
 
-  // Output Evecs
-  //for (CeedInt i=0; i<numoutputfields; i++) {
-  //  ierr = CeedVectorGetArray(impl->evecs[i+impl->numein], CEED_MEM_DEVICE,
-  //                            &impl->edata[i + numinputfields]); CeedChk(ierr);
-  //}
-
   // Input basis apply if needed
   for (CeedInt i = 0; i < numinputfields; i++) {
     // Get elemsize, emode, ncomp
