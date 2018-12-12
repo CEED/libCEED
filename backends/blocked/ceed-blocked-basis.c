@@ -63,8 +63,8 @@ static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
   if (U) {
     ierr = CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u); CeedChk(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
-      return CeedError(ceed, 1,
-                       "An input vector is required for this CeedEvalMode");
+    return CeedError(ceed, 1,
+                     "An input vector is required for this CeedEvalMode");
   }
   ierr = CeedVectorGetArray(V, CEED_MEM_HOST, &v); CeedChk(ierr);
 
