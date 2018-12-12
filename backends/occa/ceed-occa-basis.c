@@ -229,7 +229,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
   CeedInt dim, P1d, Q1d, ncomp, nqpt;
   ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
   ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
-  ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr); 
+  ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   nqpt *= ncomp;
@@ -393,12 +393,12 @@ int CeedBasisCreateTensorH1_Occa(CeedInt dim, CeedInt P1d, CeedInt Q1d,
 // * CeedBasisCreateH1_Occa
 // *****************************************************************************
 int CeedBasisCreateH1_Occa(CeedElemTopology topo, CeedInt dim,
-                          CeedInt ndof, CeedInt nqpts,
-                          const CeedScalar *interp,
-                          const CeedScalar *grad,
-                          const CeedScalar *qref,
-                          const CeedScalar *qweight,
-                          CeedBasis basis) {
+                           CeedInt ndof, CeedInt nqpts,
+                           const CeedScalar *interp,
+                           const CeedScalar *grad,
+                           const CeedScalar *qref,
+                           const CeedScalar *qweight,
+                           CeedBasis basis) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);

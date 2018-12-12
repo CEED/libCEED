@@ -364,7 +364,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
     if (vec == CEED_VECTOR_ACTIVE)
       vec = outvec;
     ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-    }
+  }
 
   // Output restriction
   for (CeedInt i=0; i<numoutputfields; i++) {

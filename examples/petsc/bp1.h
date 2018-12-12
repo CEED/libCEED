@@ -30,7 +30,7 @@ static int Setup(void *ctx, CeedInt Q,
                       + J[0][2][i] * (J[1][0][i]*J[2][1][i] - J[1][1][i]*J[2][0][i]));
     rho[i] = det * w[i];
     true_soln[i] = PetscSqrtScalar(PetscSqr(x[0][i]) + PetscSqr(x[1][i]) + PetscSqr(
-                                  x[2][i]));
+                                     x[2][i]));
     rhs[i] = rho[i] * true_soln[i];
   }
   return 0;

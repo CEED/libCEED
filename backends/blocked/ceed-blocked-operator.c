@@ -48,12 +48,12 @@ static int CeedOperatorDestroy_Blocked(CeedOperator op) {
   Setup infields or outfields
  */
 static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op,
-                                       bool inOrOut,
-                                       CeedElemRestriction *blkrestr,
-                                       CeedVector *evecs, CeedScalar **qdata,
-                                       CeedScalar **qdata_alloc, CeedScalar **indata,
-                                       CeedInt starti, CeedInt startq,
-                                       CeedInt numfields, CeedInt Q) {
+    bool inOrOut,
+    CeedElemRestriction *blkrestr,
+    CeedVector *evecs, CeedScalar **qdata,
+    CeedScalar **qdata_alloc, CeedScalar **indata,
+    CeedInt starti, CeedInt startq,
+    CeedInt numfields, CeedInt Q) {
   CeedInt dim, ierr, iq=startq, ncomp;
   CeedBasis basis;
   CeedElemRestriction r;
@@ -193,17 +193,17 @@ static int CeedOperatorSetup_Blocked(CeedOperator op) {
   // Set up infield and outfield pointer arrays
   // Infields
   ierr = CeedOperatorSetupFields_Blocked(qf, op, 0,
-                                     impl->blkrestr, impl->evecs,
-                                     impl->qdata, impl->qdata_alloc,
-                                     impl->indata, 0,
-                                     0, numinputfields, Q);
+                                         impl->blkrestr, impl->evecs,
+                                         impl->qdata, impl->qdata_alloc,
+                                         impl->indata, 0,
+                                         0, numinputfields, Q);
   CeedChk(ierr);
   // Outfields
   ierr = CeedOperatorSetupFields_Blocked(qf, op, 1,
-                                     impl->blkrestr, impl->evecs,
-                                     impl->qdata, impl->qdata_alloc,
-                                     impl->indata, numinputfields,
-                                     impl->numqin, numoutputfields, Q);
+                                         impl->blkrestr, impl->evecs,
+                                         impl->qdata, impl->qdata_alloc,
+                                         impl->indata, numinputfields,
+                                         impl->numqin, numoutputfields, Q);
   CeedChk(ierr);
   // Input Qvecs
   for (CeedInt i=0; i<numinputfields; i++) {
@@ -226,7 +226,7 @@ static int CeedOperatorSetup_Blocked(CeedOperator op) {
 }
 
 static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
-                                 CeedVector outvec, CeedRequest *request) {
+                                     CeedVector outvec, CeedRequest *request) {
   int ierr;
   CeedOperator_Blocked *impl;
   ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
@@ -390,7 +390,7 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
     if (vec == CEED_VECTOR_ACTIVE)
       vec = outvec;
     ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-    }
+  }
 
   // Output restriction
   for (CeedInt i=0; i<numoutputfields; i++) {
@@ -405,8 +405,8 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
     // Restrict
     ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
     ierr = CeedElemRestrictionApply(impl->blkrestr[i+impl->numein], CEED_TRANSPOSE,
-                                      lmode, impl->evecs[i+impl->numein], vec,
-                                      request); CeedChk(ierr);
+                                    lmode, impl->evecs[i+impl->numein], vec,
+                                    request); CeedChk(ierr);
 
   }
 

@@ -381,7 +381,8 @@ static int CeedOperatorApply_Occa(CeedOperator op,
   // ***************************************************************************
   dbg("[CeedOperator][Dump] Setup?");
   ierr = CeedOperatorSetup_Occa(op); CeedChk(ierr);
-  ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields); CeedChk(ierr);
+  ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
+  CeedChk(ierr);
   //CeedOperatorDump_Occa(op);
 
   // Tell CeedQFunction_Occa's structure we are coming from an operator ********
@@ -401,8 +402,8 @@ static int CeedOperatorApply_Occa(CeedOperator op,
       ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChk(ierr);
       if (vec == CEED_VECTOR_ACTIVE)
         vec = invec;
-        dbg("[CeedOperator][Apply] Restriction: data->Evecs[%d] = Edata[%d]",
-            i,i);
+      dbg("[CeedOperator][Apply] Restriction: data->Evecs[%d] = Edata[%d]",
+          i,i);
       // Restrict
       ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
       CeedChk(ierr);
@@ -574,7 +575,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
     if (vec == CEED_VECTOR_ACTIVE)
       vec = outvec;
     ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-    }
+  }
 
   // Output restriction
   for (CeedInt i=0; i<numoutputfields; i++) {

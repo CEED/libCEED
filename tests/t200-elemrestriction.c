@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<ne*2; i++) {
     if (10+(i+1)/2 != yy[i])
       printf("Error in restricted array y[%d] = %f",
-                       i, (double)yy[i]);
+             i, (double)yy[i]);
   }
   CeedVectorRestoreArrayRead(y, &yy);
   CeedVectorDestroy(&x);

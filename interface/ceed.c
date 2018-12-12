@@ -344,8 +344,10 @@ int CeedInit(const char *resource, Ceed *ceed) {
     {"CeedDestroy",               ceedoffsetof(Ceed, Destroy)},
     {"CeedVecCreate",             ceedoffsetof(Ceed, VecCreate)},
     {"CeedElemRestrictionCreate", ceedoffsetof(Ceed, ElemRestrictionCreate)},
-    {"CeedElemRestrictionCreateBlocked",
-      ceedoffsetof(Ceed, ElemRestrictionCreateBlocked)},
+    {
+      "CeedElemRestrictionCreateBlocked",
+      ceedoffsetof(Ceed, ElemRestrictionCreateBlocked)
+    },
     {"CeedBasisCreateTensorH1",    ceedoffsetof(Ceed, BasisCreateTensorH1)},
     {"CeedBasisCreateH1",          ceedoffsetof(Ceed, BasisCreateH1)},
     {"CeedQFunctionCreate",        ceedoffsetof(Ceed, QFunctionCreate)},
@@ -365,7 +367,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
     {"QFunctionDestroy",           ceedoffsetof(CeedQFunction, Destroy)},
     {"OperatorApply",              ceedoffsetof(CeedOperator, Apply)},
     {"OperatorApplyJacobian",      ceedoffsetof(CeedOperator, ApplyJacobian)},
-    {"OperatorDestroy",            ceedoffsetof(CeedOperator, Destroy)} };
+    {"OperatorDestroy",            ceedoffsetof(CeedOperator, Destroy)}
+  };
 
   memcpy((*ceed)->foffsets, foffsets,
          CEED_NUM_BACKEND_FUNCTIONS*sizeof(foffset));
@@ -439,7 +442,8 @@ int CeedSetBackendFunction(Ceed ceed,
     }
   }
 
-  return CeedError(ceed, 1, "Requested function '%s' was not found for CEED object '%s'", fname, type);
+  return CeedError(ceed, 1,
+                   "Requested function '%s' was not found for CEED object '%s'", fname, type);
 }
 
 /**

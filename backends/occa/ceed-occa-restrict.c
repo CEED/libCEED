@@ -252,9 +252,9 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
 }
 // *****************************************************************************
 int CeedElemRestrictionCreateBlocked_Occa(const CeedMemType mtype,
-                                   const CeedCopyMode cmode,
-                                   const CeedInt *indices,
-                                   const CeedElemRestriction r) {
+    const CeedCopyMode cmode,
+    const CeedInt *indices,
+    const CeedElemRestriction r) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
