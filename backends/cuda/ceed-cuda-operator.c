@@ -49,7 +49,7 @@ static int CeedOperatorDestroy_Cuda(CeedOperator op) {
 static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
                                         bool inOrOut, CeedVector *evecs,
                                         CeedVector *qvecs, CeedInt starte,
-                                        CeedInt numfields, CeedInt Q) {
+                                        CeedInt numfields, CeedInt Q, CeedInt numelements) {
   CeedInt dim, ierr, ncomp;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -86,23 +86,23 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
     case CEED_EVAL_NONE:
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
       CeedChk(ierr);
-      ierr = CeedVectorCreate(ceed, Q * ncomp, &qvecs[i]); CeedChk(ierr);
+      ierr = CeedVectorCreate(ceed, numelements * Q * ncomp, &qvecs[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_INTERP:
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
       CeedChk(ierr);
-      ierr = CeedVectorCreate(ceed, Q * ncomp, &qvecs[i]); CeedChk(ierr);
+      ierr = CeedVectorCreate(ceed, numelements * Q * ncomp, &qvecs[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_GRAD:
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
-      ierr = CeedVectorCreate(ceed, Q * ncomp * dim, &qvecs[i]); CeedChk(ierr);
+      ierr = CeedVectorCreate(ceed, numelements * Q * ncomp * dim, &qvecs[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_WEIGHT: // Only on input fields
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
-      ierr = CeedVectorCreate(ceed, Q, &qvecs[i]); CeedChk(ierr);
-      ierr = CeedBasisApply(basis, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
+      ierr = CeedVectorCreate(ceed, numelements * Q, &qvecs[i]); CeedChk(ierr);
+      ierr = CeedBasisApply(basis, numelements, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
                             NULL, qvecs[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_DIV:
@@ -156,13 +156,13 @@ static int CeedOperatorSetup_Cuda(CeedOperator op) {
   // Infields
   ierr = CeedOperatorSetupFields_Cuda(qf, op, 0,
                                       impl->evecs, impl->qvecsin, 0,
-                                      numinputfields, numelements * Q);
+                                      numinputfields, Q, numelements);
   CeedChk(ierr);
 
   // Outfields
   ierr = CeedOperatorSetupFields_Cuda(qf, op, 1,
                                       impl->evecs, impl->qvecsout,
-                                      numinputfields, numoutputfields, numelements * Q);
+                                      numinputfields, numoutputfields, Q, numelements);
   CeedChk(ierr);
 
   ierr = CeedOperatorSetSetupDone(op); CeedChk(ierr);
