@@ -281,7 +281,7 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
     }
   }
   // Q function
-  ierr = CeedQFunctionApply(qf, Q, impl->qvecsin, impl->qvecsout); CeedChk(ierr);
+  ierr = CeedQFunctionApply(qf, numelements * Q, impl->qvecsin, impl->qvecsout); CeedChk(ierr);
 
   // Output basis apply if needed
   for (CeedInt i = 0; i < numoutputfields; i++) {
