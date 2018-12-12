@@ -16,6 +16,9 @@ int main(int argc, char **argv) {
   CeedVectorGetArray(x, CEED_MEM_HOST, &a);
   CeedVectorGetArray(x, CEED_MEM_HOST, &b);
 
+  CeedVectorRestoreArray(x, &a);
+  CeedVectorRestoreArray(x, &b);
+
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);
   return 0;

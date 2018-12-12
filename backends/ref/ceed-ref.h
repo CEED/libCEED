@@ -14,7 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
 #include <ceed-backend.h>
 #include <string.h>
 
@@ -29,18 +28,21 @@ typedef struct {
 } CeedElemRestriction_Ref;
 
 typedef struct {
+  const CeedScalar **inputs;
+  CeedScalar **outputs;
+  bool setupdone;
+} CeedQFunction_Ref;
+
+typedef struct {
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
-  CeedScalar **edata;
-  CeedScalar **qdata; /// Inputs followed by outputs
-  CeedScalar
-  **qdata_alloc; /// Allocated quadrature data arrays (to be freed by us)
-  CeedScalar **indata;
-  CeedScalar **outdata;
+  CeedScalar ** edata;
+  CeedVector *evecsin;   /// Input E-vectors needed to apply operator
+  CeedVector *evecsout;   /// Output E-vectors needed to apply operator
+  CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
+  CeedVector *qvecsout;   /// Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
-  CeedInt    numqin;
-  CeedInt    numqout;
 } CeedOperator_Ref;
 
 CEED_INTERN int CeedVectorCreate_Ref(CeedInt n, CeedVector vec);

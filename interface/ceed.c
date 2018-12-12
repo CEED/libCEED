@@ -17,6 +17,7 @@
 #define _POSIX_C_SOURCE 200112
 #include <ceed-impl.h>
 #include <ceed-backend.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +33,9 @@ static struct {
   unsigned int priority;
 } backends[32];
 static size_t num_backends;
+
+#define ceedoffsetof(st, m) \
+    ((size_t) ( (char *)&((st)(0))->m - (char *)0 ))
 /// @endcond
 
 /// @file
@@ -306,9 +310,9 @@ int CeedRequestWait(CeedRequest *req) {
 **/
 int CeedInit(const char *resource, Ceed *ceed) {
   int ierr;
-  size_t matchlen = 0, matchidx;
-  unsigned int matchpriority = 100, priority;
+  size_t matchlen = 0, matchidx = UINT_MAX, matchpriority = UINT_MAX, priority;
 
+  // Find matching backend
   if (!resource) return CeedError(NULL, 1, "No resource provided");
   for (size_t i=0; i<num_backends; i++) {
     size_t n;
@@ -322,6 +326,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
     }
   }
   if (!matchlen) return CeedError(NULL, 1, "No suitable backend");
+
+  // Setup Ceed
   ierr = CeedCalloc(1,ceed); CeedChk(ierr);
   const char * ceed_error_handler = getenv("CEED_ERROR_HANDLER");
   if (!ceed_error_handler) ceed_error_handler = "abort";
@@ -331,7 +337,42 @@ int CeedInit(const char *resource, Ceed *ceed) {
     (*ceed)->Error = CeedErrorAbort;
   (*ceed)->refcount = 1;
   (*ceed)->data = NULL;
+
+  // Set lookup table
+  foffset foffsets[CEED_NUM_BACKEND_FUNCTIONS] = {
+      {"Error",                  ceedoffsetof(Ceed, Error)},
+      {"CeedDestroy",            ceedoffsetof(Ceed, Destroy)},
+      {"VecCreate",              ceedoffsetof(Ceed, VecCreate)},
+      {"ElemRestrictionCreate",  ceedoffsetof(Ceed, ElemRestrictionCreate)},
+      {"ElemRestrictionCreateBlocked",
+                                 ceedoffsetof(Ceed, ElemRestrictionCreateBlocked)},
+      {"BasisCreateTensorH1",    ceedoffsetof(Ceed, BasisCreateTensorH1)},
+      {"BasisCreateH1",          ceedoffsetof(Ceed, BasisCreateH1)},
+      {"QFunctionCreate",        ceedoffsetof(Ceed, QFunctionCreate)},
+      {"OperatorCreate",         ceedoffsetof(Ceed, OperatorCreate)},
+      {"SetArray",               ceedoffsetof(CeedVector, SetArray)},
+      {"SetValue",               ceedoffsetof(CeedVector, SetValue)},
+      {"GetArray",               ceedoffsetof(CeedVector, GetArray)},
+      {"GetArrayRead",           ceedoffsetof(CeedVector, GetArrayRead)},
+      {"RestoreArray",           ceedoffsetof(CeedVector, RestoreArray)},
+      {"RestoreArrayRead",       ceedoffsetof(CeedVector, RestoreArrayRead)},
+      {"VectorDestroy",          ceedoffsetof(CeedVector, Destroy)},
+      {"ElemRestrictionApply",   ceedoffsetof(CeedElemRestriction, Apply)},
+      {"ElemRestrictionDestroy", ceedoffsetof(CeedElemRestriction, Destroy)},
+      {"BasisApply",             ceedoffsetof(CeedBasis, Apply)},
+      {"BasisDestroy",           ceedoffsetof(CeedBasis, Destroy)},
+      {"QFunctionApply",         ceedoffsetof(CeedQFunction, Apply)},
+      {"QFunctionDestroy",       ceedoffsetof(CeedQFunction, Destroy)},
+      {"OperatorApply",          ceedoffsetof(CeedOperator, Apply)},
+      {"ApplyJacobian",          ceedoffsetof(CeedOperator, ApplyJacobian)},
+      {"OperatorDestroy",        ceedoffsetof(CeedOperator, Destroy)}         };
+
+  memcpy((*ceed)->foffsets, foffsets,
+         CEED_NUM_BACKEND_FUNCTIONS*sizeof(foffset));
+
+  // Backend specific setup
   ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);
+
   return 0;
 }
 
@@ -366,9 +407,49 @@ int CeedSetDelegate(Ceed ceed, Ceed *delegate) {
 }
 
 /**
+  @brief Set a backend function
+
+  @param ceed           Ceed for error handling
+  @param type           Type of Ceed object to set function for
+  @param[out] object    Ceed object to set function for
+  @param fname          Name of function to set
+  @param f              Function to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedSetBackendFunction(Ceed ceed,
+                           const char *type, void *object,
+                           const char *fname, int (*f)()) {
+  char lookupname[100];
+  strcpy(lookupname, "");
+
+  // Build lookup name
+  if (!strcmp(fname, "Apply") || !strcmp(fname, "Destroy")) {
+    strcat(strcat(lookupname, type), fname);
+  } else {
+    strcat(lookupname, fname);
+  }
+
+  // Find and use offset
+  for (CeedInt i = 0; i < CEED_NUM_BACKEND_FUNCTIONS; i++) {
+    if (!strcmp(ceed->foffsets[i].fname, lookupname)) {
+      size_t offset = ceed->foffsets[i].offset;
+      size_t *fpointer;
+      fpointer = (size_t *)(object + offset);
+      *fpointer = (size_t) f;
+      return 0;
+    }
+  }
+
+  return CeedError(ceed, 1, "Requested function '%s' was not found", fname);
+}
+
+/**
   @brief Retrieve backend data for a CEED
 
-  @param ceed           Ceed to retrieve delegate of
+  @param ceed           Ceed to retrieve data of
   @param[out] data      Address to save data to
 
   @return An error code: 0 - success, otherwise - failure
@@ -377,6 +458,21 @@ int CeedSetDelegate(Ceed ceed, Ceed *delegate) {
 **/
 int CeedGetData(Ceed ceed, void* *data) {
   *data = ceed->data;
+  return 0;
+}
+
+/**
+  @brief Set backend data for a CEED
+
+  @param ceed           Ceed to set data of
+  @param data           Address of data to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedSetData(Ceed ceed, void* *data) {
+  ceed->data = *data;
   return 0;
 }
 

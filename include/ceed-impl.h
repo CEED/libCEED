@@ -26,6 +26,13 @@
 
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
+#define CEED_NUM_BACKEND_FUNCTIONS 25
+
+// Lookup table field for backend functions
+typedef struct {
+  const char *fname;
+  size_t offset;
+} foffset;
 
 struct Ceed_private {
   Ceed delegate;
@@ -45,6 +52,7 @@ struct Ceed_private {
   int (*OperatorCreate)(CeedOperator);
   int refcount;
   void *data;
+  foffset foffsets[CEED_NUM_BACKEND_FUNCTIONS];
 };
 
 struct CeedVector_private {
@@ -59,6 +67,7 @@ struct CeedVector_private {
   int refcount;
   CeedInt length;
   uint64_t state;
+  uint64_t numreaders;
   void *data;
 };
 
@@ -81,8 +90,7 @@ struct CeedElemRestriction_private {
 struct CeedBasis_private {
   Ceed ceed;
   int (*Apply)(CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode,
-               const CeedScalar *,
-               CeedScalar *);
+               CeedVector, CeedVector);
   int (*Destroy)(CeedBasis);
   int refcount;
   bool tensorbasis;      /* flag for tensor basis */
@@ -113,13 +121,13 @@ struct CeedQFunctionField_private {
 
 struct CeedQFunction_private {
   Ceed ceed;
-  int (*Apply)(CeedQFunction, CeedInt, const CeedScalar *const *,
-               CeedScalar *const *);
+  int (*Apply)(CeedQFunction, CeedInt, CeedVector *,
+               CeedVector *);
   int (*Destroy)(CeedQFunction);
   int refcount;
   CeedInt vlength;    // Number of quadrature points must be padded to a multiple of vlength
-  CeedQFunctionField inputfields[16];
-  CeedQFunctionField outputfields[16];
+  CeedQFunctionField *inputfields;
+  CeedQFunctionField *outputfields;
   CeedInt numinputfields, numoutputfields;
   int (*function)(void*, CeedInt, const CeedScalar *const*, CeedScalar *const*);
   const char *focca;
@@ -142,10 +150,9 @@ struct CeedOperator_private {
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector,
                        CeedVector, CeedRequest *);
-  int (*GetQData)(CeedOperator, CeedVector *);
   int (*Destroy)(CeedOperator);
-  CeedOperatorField inputfields[16];
-  CeedOperatorField outputfields[16];
+  CeedOperatorField *inputfields;
+  CeedOperatorField *outputfields;
   CeedInt numelements; /// Number of elements
   CeedInt numqpoints;  /// Number of quadrature points over all elements
   CeedInt nfields;     /// Number of fields that have been set
