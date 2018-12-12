@@ -19,47 +19,6 @@
 #include <stdio.h>
 #include "ceed-cuda.h"
 
-// int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q,
-//     const CeedVector *const u, const CeedVector* v) {
-//   int ierr;
-//   Ceed ceed;
-//   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
-//   Ceed_Cuda* ceed_Cuda;
-//   ierr = CeedGetData(ceed, (void*)&ceed_Cuda); CeedChk(ierr);
-//   CeedQFunction_Cuda *data;
-//   ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
-//   const int blocksize = ceed_Cuda->optblocksize;
-
-//   if (qf->ctxsize > 0) {
-//     ierr = cudaMemcpy(data->d_c, qf->ctx, qf->ctxsize, cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
-//   }
-
-//   const CeedScalar *h_u[qf->numinputfields];
-//   for (CeedInt i = 0; i < qf->numinputfields; i++) {
-//     CeedVectorGetArrayRead(u[i], CEED_MEM_DEVICE, h_u + i);
-//   }
-//   ierr = cudaMemcpy((void**)data->d_u, h_u, qf->numinputfields * sizeof(CeedScalar*), cudaMemcpyHostToDevice);
-//   CeedChk_Cu(ceed, ierr);
-
-//   CeedScalar *h_v[qf->numoutputfields];
-//   for (CeedInt i = 0; i < qf->numoutputfields; i++) {
-//     CeedVectorGetArray(v[i], CEED_MEM_DEVICE, h_v + i);
-//   }
-//   ierr = cudaMemcpy((void*)data->d_v, h_v, qf->numoutputfields * sizeof(CeedScalar*), cudaMemcpyDeviceToHost);
-//   CeedChk_Cu(ceed, ierr);
-
-//   void *args[] = {&data->d_c, (void*)&Q, &data->d_u, &data->d_v};
-//   ierr = run_kernel(qf->ceed, data->callback, CeedDivUpInt(Q, blocksize), blocksize, args);
-//   CeedChk(ierr);
-
-
-//   if (qf->ctxsize > 0) {
-//     ierr = cudaMemcpy(qf->ctx, data->d_c, qf->ctxsize, cudaMemcpyDeviceToHost); CeedChk_Cu(ceed, ierr);
-//   }
-
-//   return 0;
-// }
-
 static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
                                    CeedVector *U, CeedVector *V) {
   int ierr;
