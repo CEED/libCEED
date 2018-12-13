@@ -446,33 +446,33 @@ int main(int argc, char **argv) {
     ierr = ISDestroy(&locis); CHKERRQ(ierr);
 
 
-  { // Set up DMDA
-    PetscInt *ldofs[3];
-    ierr = PetscMalloc3(p[0], &ldofs[0], p[1], &ldofs[1], p[2], &ldofs[2]);
-    CHKERRQ(ierr);
-    for (PetscInt d=0; d<3; d++) {
-      for (PetscInt r=0; r<p[d]; r++) {
-        PetscInt ijkrank[3] = {irank[0], irank[1], irank[2]};
-        ijkrank[d] = r;
-        PetscInt ijkdof[3];
-        GlobalDof(p, ijkrank, degree, melem, ijkdof);
-        ldofs[d][r] = ijkdof[d];
+    { // Set up DMDA
+      PetscInt *ldofs[3];
+      ierr = PetscMalloc3(p[0], &ldofs[0], p[1], &ldofs[1], p[2], &ldofs[2]);
+      CHKERRQ(ierr);
+      for (PetscInt d=0; d<3; d++) {
+        for (PetscInt r=0; r<p[d]; r++) {
+          PetscInt ijkrank[3] = {irank[0], irank[1], irank[2]};
+          ijkrank[d] = r;
+          PetscInt ijkdof[3];
+          GlobalDof(p, ijkrank, degree, melem, ijkdof);
+          ldofs[d][r] = ijkdof[d];
+        }
       }
+      ierr = DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
+                          DMDA_STENCIL_STAR,
+                          degree*melem[2]*p[2]+1, degree*melem[1]*p[1]+1,
+                          degree*melem[0]*p[0]+1,
+                          p[2], p[1], p[0], 5, 0,
+                          ldofs[2], ldofs[1], ldofs[0], &dm); CHKERRQ(ierr);
+      ierr = PetscFree3(ldofs[0], ldofs[1], ldofs[2]); CHKERRQ(ierr);
+      ierr = DMSetUp(dm); CHKERRQ(ierr);
+      ierr = DMDASetFieldName(dm, 0, "Density"); CHKERRQ(ierr);
+      ierr = DMDASetFieldName(dm, 1, "MomentumX"); CHKERRQ(ierr);
+      ierr = DMDASetFieldName(dm, 2, "MomentumY"); CHKERRQ(ierr);
+      ierr = DMDASetFieldName(dm, 3, "MomentumZ"); CHKERRQ(ierr);
+      ierr = DMDASetFieldName(dm, 4, "Total Energy"); CHKERRQ(ierr);
     }
-    ierr = DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
-                        DMDA_STENCIL_STAR,
-                        degree*melem[2]*p[2]+1, degree*melem[1]*p[1]+1,
-                        degree*melem[0]*p[0]+1,
-                        p[2], p[1], p[0], 5, 0,
-                        ldofs[2], ldofs[1], ldofs[0], &dm); CHKERRQ(ierr);
-    ierr = PetscFree3(ldofs[0], ldofs[1], ldofs[2]); CHKERRQ(ierr);
-    ierr = DMSetUp(dm); CHKERRQ(ierr);
-    ierr = DMDASetFieldName(dm, 0, "Density"); CHKERRQ(ierr);
-    ierr = DMDASetFieldName(dm, 1, "MomentumX"); CHKERRQ(ierr);
-    ierr = DMDASetFieldName(dm, 2, "MomentumY"); CHKERRQ(ierr);
-    ierr = DMDASetFieldName(dm, 3, "MomentumZ"); CHKERRQ(ierr);
-    ierr = DMDASetFieldName(dm, 4, "Total Energy"); CHKERRQ(ierr);
-  }
 
   }
 
@@ -725,8 +725,9 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&xceed);
 
   // Set dof coordinates in DMDA
-//  ierr = DMSetCoordinates(user->dm, X); CHKERRQ(ierr);
-  ierr = DMDASetUniformCoordinates(dm,0,1,0,1,0,1); CHKERRQ(ierr);
+  ierr = DMSetCoordinates(dm, X); CHKERRQ(ierr);
+//  ierr = DMDASetUniformCoordinates(dm,0,1,0,1,0,1); CHKERRQ(ierr);
+
   // Gather the inverse of the mass operator
   ierr = VecRestoreArray(Mloc, &m); CHKERRQ(ierr);
   ierr = VecScatterBegin(ltog, Mloc, user->M, ADD_VALUES, SCATTER_FORWARD);
