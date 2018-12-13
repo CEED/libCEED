@@ -276,7 +276,7 @@ static int NS(void *ctx, CeedInt Q,
 
     // -- Momentum
     // ---- rho (u x u) + P I3
-    v[i+(1+5*0)*Q]  = (rho*u[0]*u[0]+P)*wBJ[0] + rho*u[0]*u[1]*wBJ[1] +
+    dv[i+(1+5*0)*Q]  = (rho*u[0]*u[0]+P)*wBJ[0] + rho*u[0]*u[1]*wBJ[1] +
                         rho*u[0]*u[2]*wBJ[2];
     dv[i+(1+5*1)*Q]  = (rho*u[0]*u[0]+P)*wBJ[3] + rho*u[0]*u[1]*wBJ[4] +
                         rho*u[0]*u[2]*wBJ[5];

@@ -725,8 +725,8 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&xceed);
 
   // Set dof coordinates in DMDA
-  ierr = DMSetCoordinates(dm, X); CHKERRQ(ierr);
-//  ierr = DMDASetUniformCoordinates(dm,0,1,0,1,0,1); CHKERRQ(ierr);
+//  ierr = DMSetCoordinates(dm, X); CHKERRQ(ierr);
+  ierr = DMDASetUniformCoordinates(dm,0,1,0,1,0,1); CHKERRQ(ierr);
 
   // Gather the inverse of the mass operator
   ierr = VecRestoreArray(Mloc, &m); CHKERRQ(ierr);
