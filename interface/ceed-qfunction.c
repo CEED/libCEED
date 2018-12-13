@@ -62,9 +62,10 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
 
     if (!delegate)
-    return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
+      return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
 
-    ierr = CeedQFunctionCreateInterior(delegate, vlength, f, focca, qf); CeedChk(ierr);
+    ierr = CeedQFunctionCreateInterior(delegate, vlength, f, focca, qf);
+    CeedChk(ierr);
     return 0;
   }
 
@@ -97,7 +98,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 
   @ref Developer
 **/
-static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname, 
+static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
                                  CeedInt ncomp, CeedEvalMode emode) {
   size_t len = strlen(fieldname);
   char *tmp;
@@ -416,7 +417,7 @@ int CeedQFunctionFieldGetNumComponents(CeedQFunctionField qffield,
 **/
 
 int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
-                               CeedEvalMode *emode) {
+                                  CeedEvalMode *emode) {
   *emode = qffield->emode;
   return 0;
 }

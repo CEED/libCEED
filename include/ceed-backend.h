@@ -61,7 +61,8 @@ CEED_EXTERN int CeedVectorSetData(CeedVector vec, void* *data);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
     CeedVector *lvec,
     CeedVector *evec);
-CEED_EXTERN int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed);
+CEED_EXTERN int CeedElemRestrictionGetCeed(CeedElemRestriction rstr,
+    Ceed *ceed);
 CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
     CeedInt *numelem);
 CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
@@ -86,7 +87,8 @@ CEED_EXTERN int CeedBasisGetTensorStatus(CeedBasis basis, bool *tensor);
 CEED_EXTERN int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim);
 CEED_EXTERN int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *numcomp);
 CEED_EXTERN int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P1d);
-CEED_EXTERN int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q1d);
+CEED_EXTERN int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis,
+    CeedInt *Q1d);
 CEED_EXTERN int CeedBasisGetQRef(CeedBasis basis, CeedScalar* *qref);
 CEED_EXTERN int CeedBasisGetQWeights(CeedBasis basis, CeedScalar* *qweight);
 CEED_EXTERN int CeedBasisGetInterp(CeedBasis basis, CeedScalar* *interp);
@@ -94,15 +96,18 @@ CEED_EXTERN int CeedBasisGetGrad(CeedBasis basis, CeedScalar* *grad);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void* *data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void* *data);
 
-CEED_EXTERN int CeedBasisGetTopologyDimension(CeedElemTopology topo, CeedInt *dim);
+CEED_EXTERN int CeedBasisGetTopologyDimension(CeedElemTopology topo,
+    CeedInt *dim);
 
 CEED_EXTERN int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
-CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf, CeedInt *vlength);
-CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinputfields,
+CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf,
+    CeedInt *vlength);
+CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf,
+                                        CeedInt *numinputfields,
                                         CeedInt *numoutputfields);
 CEED_EXTERN int CeedQFunctionGetFOCCA(CeedQFunction qf, char* *focca);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
-                                             int (**f)());
+    int (**f)());
 CEED_EXTERN int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize);
 CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, void* *ctx);
 CEED_EXTERN int CeedQFunctionGetData(CeedQFunction qf, void* *data);
@@ -112,16 +117,16 @@ CEED_EXTERN int CeedQFunctionGetFields(CeedQFunction qf,
                                        CeedQFunctionField* *inputfields,
                                        CeedQFunctionField* *outputfields);
 CEED_EXTERN int CeedQFunctionFieldGetName(CeedQFunctionField qffield,
-                                          char* *fieldname);
+    char* *fieldname);
 CEED_EXTERN int CeedQFunctionFieldGetNumComponents(CeedQFunctionField qffield,
-                                                   CeedInt *numcomp);
+    CeedInt *numcomp);
 CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
-                                                   CeedEvalMode *emode);
+    CeedEvalMode *emode);
 
 CEED_EXTERN int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
 CEED_EXTERN int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem);
 CEED_EXTERN int CeedOperatorGetNumQuadraturePoints(CeedOperator op,
-                                                   CeedInt *numqpts);
+    CeedInt *numqpts);
 CEED_EXTERN int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs);
 CEED_EXTERN int CeedOperatorGetSetupStatus(CeedOperator op, bool *setupdone);
 CEED_EXTERN int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf);
@@ -133,12 +138,12 @@ CEED_EXTERN int CeedOperatorGetFields(CeedOperator op,
                                       CeedOperatorField* *inputfields,
                                       CeedOperatorField* *outputfields);
 CEED_EXTERN int CeedOperatorFieldGetElemRestriction(CeedOperatorField opfield,
-                                                    CeedElemRestriction *rstr);
+    CeedElemRestriction *rstr);
 CEED_EXTERN int CeedOperatorFieldGetBasis(CeedOperatorField opfield,
-                                          CeedBasis *basis);
+    CeedBasis *basis);
 CEED_EXTERN int CeedOperatorFieldGetLMode(CeedOperatorField opfield,
-                                          CeedTransposeMode *lmode);
+    CeedTransposeMode *lmode);
 CEED_EXTERN int CeedOperatorFieldGetVector(CeedOperatorField opfield,
-                                           CeedVector *vec);
+    CeedVector *vec);
 
 #endif

@@ -383,7 +383,7 @@ int main(int argc, char **argv) {
                        basisx, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "rho", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "true_soln", Erestrictui, CEED_NOTRANSPOSE, 
+  CeedOperatorSetField(op_setup, "true_soln", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, target);
   CeedOperatorSetField(op_setup, "rhs", Erestrictu, CEED_NOTRANSPOSE,
                        basisu, rhsceed);

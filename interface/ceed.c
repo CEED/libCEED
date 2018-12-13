@@ -340,32 +340,35 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // Set lookup table
   foffset foffsets[CEED_NUM_BACKEND_FUNCTIONS] = {
-      {"Error",                  ceedoffsetof(Ceed, Error)},
-      {"CeedDestroy",            ceedoffsetof(Ceed, Destroy)},
-      {"VecCreate",              ceedoffsetof(Ceed, VecCreate)},
-      {"ElemRestrictionCreate",  ceedoffsetof(Ceed, ElemRestrictionCreate)},
-      {"ElemRestrictionCreateBlocked",
-                                 ceedoffsetof(Ceed, ElemRestrictionCreateBlocked)},
-      {"BasisCreateTensorH1",    ceedoffsetof(Ceed, BasisCreateTensorH1)},
-      {"BasisCreateH1",          ceedoffsetof(Ceed, BasisCreateH1)},
-      {"QFunctionCreate",        ceedoffsetof(Ceed, QFunctionCreate)},
-      {"OperatorCreate",         ceedoffsetof(Ceed, OperatorCreate)},
-      {"SetArray",               ceedoffsetof(CeedVector, SetArray)},
-      {"SetValue",               ceedoffsetof(CeedVector, SetValue)},
-      {"GetArray",               ceedoffsetof(CeedVector, GetArray)},
-      {"GetArrayRead",           ceedoffsetof(CeedVector, GetArrayRead)},
-      {"RestoreArray",           ceedoffsetof(CeedVector, RestoreArray)},
-      {"RestoreArrayRead",       ceedoffsetof(CeedVector, RestoreArrayRead)},
-      {"VectorDestroy",          ceedoffsetof(CeedVector, Destroy)},
-      {"ElemRestrictionApply",   ceedoffsetof(CeedElemRestriction, Apply)},
-      {"ElemRestrictionDestroy", ceedoffsetof(CeedElemRestriction, Destroy)},
-      {"BasisApply",             ceedoffsetof(CeedBasis, Apply)},
-      {"BasisDestroy",           ceedoffsetof(CeedBasis, Destroy)},
-      {"QFunctionApply",         ceedoffsetof(CeedQFunction, Apply)},
-      {"QFunctionDestroy",       ceedoffsetof(CeedQFunction, Destroy)},
-      {"OperatorApply",          ceedoffsetof(CeedOperator, Apply)},
-      {"ApplyJacobian",          ceedoffsetof(CeedOperator, ApplyJacobian)},
-      {"OperatorDestroy",        ceedoffsetof(CeedOperator, Destroy)}         };
+    {"CeedError",                 ceedoffsetof(Ceed, Error)},
+    {"CeedDestroy",               ceedoffsetof(Ceed, Destroy)},
+    {"CeedVecCreate",             ceedoffsetof(Ceed, VecCreate)},
+    {"CeedElemRestrictionCreate", ceedoffsetof(Ceed, ElemRestrictionCreate)},
+    {
+      "CeedElemRestrictionCreateBlocked",
+      ceedoffsetof(Ceed, ElemRestrictionCreateBlocked)
+    },
+    {"CeedBasisCreateTensorH1",    ceedoffsetof(Ceed, BasisCreateTensorH1)},
+    {"CeedBasisCreateH1",          ceedoffsetof(Ceed, BasisCreateH1)},
+    {"CeedQFunctionCreate",        ceedoffsetof(Ceed, QFunctionCreate)},
+    {"CeedOperatorCreate",         ceedoffsetof(Ceed, OperatorCreate)},
+    {"VectorSetArray",             ceedoffsetof(CeedVector, SetArray)},
+    {"VectorSetValue",             ceedoffsetof(CeedVector, SetValue)},
+    {"VectorGetArray",             ceedoffsetof(CeedVector, GetArray)},
+    {"VectorGetArrayRead",         ceedoffsetof(CeedVector, GetArrayRead)},
+    {"VectorRestoreArray",         ceedoffsetof(CeedVector, RestoreArray)},
+    {"VectorRestoreArrayRead",     ceedoffsetof(CeedVector, RestoreArrayRead)},
+    {"VectorDestroy",              ceedoffsetof(CeedVector, Destroy)},
+    {"ElemRestrictionApply",       ceedoffsetof(CeedElemRestriction, Apply)},
+    {"ElemRestrictionDestroy",     ceedoffsetof(CeedElemRestriction, Destroy)},
+    {"BasisApply",                 ceedoffsetof(CeedBasis, Apply)},
+    {"BasisDestroy",               ceedoffsetof(CeedBasis, Destroy)},
+    {"QFunctionApply",             ceedoffsetof(CeedQFunction, Apply)},
+    {"QFunctionDestroy",           ceedoffsetof(CeedQFunction, Destroy)},
+    {"OperatorApply",              ceedoffsetof(CeedOperator, Apply)},
+    {"OperatorApplyJacobian",      ceedoffsetof(CeedOperator, ApplyJacobian)},
+    {"OperatorDestroy",            ceedoffsetof(CeedOperator, Destroy)}
+  };
 
   memcpy((*ceed)->foffsets, foffsets,
          CEED_NUM_BACKEND_FUNCTIONS*sizeof(foffset));
@@ -426,11 +429,7 @@ int CeedSetBackendFunction(Ceed ceed,
   strcpy(lookupname, "");
 
   // Build lookup name
-  if (!strcmp(fname, "Apply") || !strcmp(fname, "Destroy")) {
-    strcat(strcat(lookupname, type), fname);
-  } else {
-    strcat(lookupname, fname);
-  }
+  strcat(strcat(lookupname, type), fname);
 
   // Find and use offset
   for (CeedInt i = 0; i < CEED_NUM_BACKEND_FUNCTIONS; i++) {
@@ -443,7 +442,8 @@ int CeedSetBackendFunction(Ceed ceed,
     }
   }
 
-  return CeedError(ceed, 1, "Requested function '%s' was not found", fname);
+  return CeedError(ceed, 1,
+                   "Requested function '%s' was not found for CEED object '%s'", fname, type);
 }
 
 /**

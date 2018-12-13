@@ -21,7 +21,8 @@
 // NOTRANSPOSE: V_ajc = T_jb U_abc
 // TRANSPOSE:   V_ajc = T_bj U_abc
 // If Add != 0, "=" is replaced by "+="
-static int CeedTensorContract_Ref(Ceed ceed, CeedInt A, CeedInt B, CeedInt C, CeedInt J,
+static int CeedTensorContract_Ref(Ceed ceed, CeedInt A, CeedInt B, CeedInt C,
+                                  CeedInt J,
                                   const CeedScalar *restrict t, CeedTransposeMode tmode,
                                   const CeedInt Add,
                                   const CeedScalar *restrict u, CeedScalar *restrict v) {
@@ -61,8 +62,8 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
   if (U) {
     ierr = CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u); CeedChk(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
-      return CeedError(ceed, 1,
-                       "An input vector is required for this CeedEvalMode");
+    return CeedError(ceed, 1,
+                     "An input vector is required for this CeedEvalMode");
   }
   ierr = CeedVectorGetArray(V, CEED_MEM_HOST, &v); CeedChk(ierr);
 

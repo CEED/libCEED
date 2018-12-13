@@ -229,7 +229,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
   CeedInt dim, P1d, Q1d, ncomp, nqpt;
   ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
   ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
-  ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr); 
+  ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   nqpt *= ncomp;
@@ -239,8 +239,8 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
   if (U) {
     ierr = CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u); CeedChk(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
-      return CeedError(ceed, 1,
-                       "An input vector is required for this CeedEvalMode");
+    return CeedError(ceed, 1,
+                     "An input vector is required for this CeedEvalMode");
   }
   ierr = CeedVectorGetArray(V, CEED_MEM_HOST, &v); CeedChk(ierr);
 
@@ -302,8 +302,8 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
       else u += nqpt;
     }
 
-      if (!transpose) v -= nqpt*dim;
-      else u -= nqpt*dim;
+    if (!transpose) v -= nqpt*dim;
+    else u -= nqpt*dim;
   }
   // ***************************************************************************
   if (emode & CEED_EVAL_WEIGHT) {
@@ -407,12 +407,12 @@ int CeedBasisCreateTensorH1_Occa(CeedInt dim, CeedInt P1d, CeedInt Q1d,
 // * CeedBasisCreateH1_Occa
 // *****************************************************************************
 int CeedBasisCreateH1_Occa(CeedElemTopology topo, CeedInt dim,
-                          CeedInt ndof, CeedInt nqpts,
-                          const CeedScalar *interp,
-                          const CeedScalar *grad,
-                          const CeedScalar *qref,
-                          const CeedScalar *qweight,
-                          CeedBasis basis) {
+                           CeedInt ndof, CeedInt nqpts,
+                           const CeedScalar *interp,
+                           const CeedScalar *grad,
+                           const CeedScalar *qref,
+                           const CeedScalar *qweight,
+                           CeedBasis basis) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
