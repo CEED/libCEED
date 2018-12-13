@@ -89,9 +89,9 @@ static int ICsNS(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Coordinates
-    const CeedScalar x = X[i+Q*0];
-    const CeedScalar y = X[i+Q*1];
-    const CeedScalar z = X[i+Q*2];
+    const CeedScalar x = X[i+0*Q];
+    const CeedScalar y = X[i+1*Q];
+    const CeedScalar z = X[i+2*Q];
     // -- Potential temperature, density current
     const CeedScalar r = sqrt(pow((x - center[0])/4, 2) +
                               pow((y - center[1])/4, 2) +

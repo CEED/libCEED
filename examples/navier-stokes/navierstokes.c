@@ -158,8 +158,6 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   CeedOperatorApply(user->op, user->qceed, user->gceed,
                     CEED_REQUEST_IMMEDIATE);
 
-  // the coords are returned as output of op_ics!
-
   // Restore vectors
   ierr = VecRestoreArrayRead(user->Qloc, (const PetscScalar**)&q); CHKERRQ(ierr);
   ierr = VecRestoreArray(user->Gloc, &g); CHKERRQ(ierr);
@@ -690,6 +688,12 @@ int main(int argc, char **argv) {
     for (PetscInt d=0; d<3; d++)
       x[i*3+d] /= mult[i];
   }
+
+  ///// debugging
+  for (CeedInt i=0; i<100; i++)
+     printf("%g\n", x[i]);
+  ///////////////
+
   CeedVectorRestoreArray(q0ceed, &q0);
   CeedVectorRestoreArray(xceed, &x);
   CeedVectorRestoreArray(multlvec, &mult);
@@ -722,11 +726,25 @@ int main(int argc, char **argv) {
   ierr = VecScatterEnd(ltogX, Xloc, X, INSERT_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
   ierr = VecDestroy(&Xloc); CHKERRQ(ierr);
+
+  //// debugging
+  CeedVectorView(xceed,NULL,stdout);
+  /////////////
   CeedVectorDestroy(&xceed);
+
+  //// debugging
+//  VecView(X,PETSC_VIEWER_STDOUT_WORLD);
+  /////////////
 
   // Set dof coordinates in DMDA
 //  ierr = DMSetCoordinates(dm, X); CHKERRQ(ierr);
   ierr = DMDASetUniformCoordinates(dm,0,1,0,1,0,1); CHKERRQ(ierr);
+
+  //// debugging
+//  Vec foo;
+//  ierr = DMGetCoordinates(dm, &foo);
+//  VecView(foo,PETSC_VIEWER_STDOUT_WORLD);
+  //////////////
 
   // Gather the inverse of the mass operator
   ierr = VecRestoreArray(Mloc, &m); CHKERRQ(ierr);
