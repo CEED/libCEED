@@ -44,9 +44,9 @@
 static int ICsAdvection(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *coords = in[0];
+  const CeedScalar *X = in[0];
   // Outputs
-  CeedScalar *q0 = out[0], *coordsout = out[1];
+  CeedScalar *q0 = out[0], *coords = out[1];
   // Setup
   const CeedScalar tol = 1.e-14;
   const CeedScalar x0[3] = {0.25, 0.5, 0.5};
@@ -56,9 +56,9 @@ static int ICsAdvection(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Coordinates
-    const CeedScalar x = coords[i+Q*0];
-    const CeedScalar y = coords[i+Q*1];
-    const CeedScalar z = coords[i+Q*2];
+    const CeedScalar x = X[i+Q*0];
+    const CeedScalar y = X[i+Q*1];
+    const CeedScalar z = X[i+Q*2];
     // -- Energy
     const CeedScalar r = sqrt(pow((x - x0[0]), 2) +
                               pow((y - x0[1]), 2) +
@@ -66,8 +66,8 @@ static int ICsAdvection(void *ctx, CeedInt Q,
 
     // Initial Conditions
     q0[i+0*Q] = 1.;
-    q0[i+1*Q] = 0.5;//-0.5*(y - center[0]);
-    q0[i+2*Q] = 0.; //0.5*(x - center[1]);
+    q0[i+1*Q] = -0.5*(y - center[0]);
+    q0[i+2*Q] =  0.5*(x - center[1]);
     q0[i+3*Q] = 0.0;
     q0[i+4*Q] = r <= 1./8. ? (1.-8.*r) : 0.;
 
@@ -81,9 +81,9 @@ static int ICsAdvection(void *ctx, CeedInt Q,
     }
 
     // Coordinates
-//    coordsout[i+0*Q] = x;
-//    coordsout[i+1*Q] = y;
-//    coordsout[i+2*Q] = z;
+    coords[i+0*Q] = x;
+    coords[i+1*Q] = y;
+    coords[i+2*Q] = z;
 
   } // End of Quadrature Point Loop
 
@@ -166,13 +166,13 @@ static int Advection(void *ctx, CeedInt Q,
     // The Physics
 
     // -- Total Energy
-    // ---- Version 1: E u 
+    // ---- Version 1: dv E u 
     if (1) {
     dv[i+(4+5*0)*Q]  = E*(u[0]*wBJ[0] + u[1]*wBJ[1] + u[2]*wBJ[2]);
     dv[i+(4+5*1)*Q]  = E*(u[0]*wBJ[3] + u[1]*wBJ[4] + u[2]*wBJ[5]);
     dv[i+(4+5*2)*Q]  = E*(u[0]*wBJ[6] + u[1]*wBJ[7] + u[2]*wBJ[8]);
     }
-    // ---- Version 2: E du
+    // ---- Version 2: v E du
     if (0) {
     v[i+4*Q]   = E*(du[0]*wBJ[0] + du[3]*wBJ[1] + du[6]*wBJ[2]);
     v[i+4*Q]  -= E*(du[1]*wBJ[3] + du[4]*wBJ[4] + du[7]*wBJ[5]);
