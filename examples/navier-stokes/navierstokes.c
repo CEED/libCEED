@@ -737,8 +737,8 @@ int main(int argc, char **argv) {
   /////////////
 
   // Set dof coordinates in DMDA
-//  ierr = DMSetCoordinates(dm, X); CHKERRQ(ierr);
-  ierr = DMDASetUniformCoordinates(dm,0,1,0,1,0,1); CHKERRQ(ierr);
+  ierr = DMSetCoordinates(dm, X); CHKERRQ(ierr);
+  ierr = VecDestroy(&X); CHKERRQ(ierr);
 
   //// debugging
 //  Vec foo;
@@ -807,7 +807,6 @@ int main(int argc, char **argv) {
 
   // Clean up PETSc
   ierr = VecDestroy(&Q); CHKERRQ(ierr);
-  ierr = VecDestroy(&X); CHKERRQ(ierr);
   ierr = VecDestroy(&user->M); CHKERRQ(ierr);
   ierr = VecDestroy(&user->BC); CHKERRQ(ierr);
   ierr = VecDestroy(&user->Qloc); CHKERRQ(ierr);
