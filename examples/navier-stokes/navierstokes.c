@@ -725,12 +725,12 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   ierr = VecScatterEnd(ltogX, Xloc, X, INSERT_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
-  ierr = VecDestroy(&Xloc); CHKERRQ(ierr);
 
   //// debugging
   CeedVectorView(xceed,NULL,stdout);
   /////////////
   CeedVectorDestroy(&xceed);
+  ierr = VecDestroy(&Xloc); CHKERRQ(ierr);
 
   //// debugging
 //  VecView(X,PETSC_VIEWER_STDOUT_WORLD);
