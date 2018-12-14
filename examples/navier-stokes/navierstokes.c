@@ -289,7 +289,7 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
                             sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
-  PetscStrcat(user->outputfolder, "/ns-%03D.vtr");
+  PetscStrcat(user->outputfolder, "/ns-%03D.vts");
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Determine size of process grid
