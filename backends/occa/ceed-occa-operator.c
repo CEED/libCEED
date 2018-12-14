@@ -279,7 +279,7 @@ static int CeedOperatorSetup_Occa(CeedOperator op) {
   dbg("\t[CeedOperator][Setup] Set up OUT fields:");
   // Outfields
   ierr = CeedOperatorSetupFields_Occa(qf, op, 1, data->Evecs,
-                                     data->evecsout, data->qvecsout,
+                                      data->evecsout, data->qvecsout,
                                       numinputfields, numoutputfields, Q);
   CeedChk(ierr);
   ierr = CeedOperatorSetSetupDone(op); CeedChk(ierr);

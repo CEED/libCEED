@@ -144,7 +144,8 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   PetscFunctionBeginUser;
   ierr = VecScatterBegin(user->ltog0, Q, user->Qloc, INSERT_VALUES,
                          SCATTER_REVERSE); CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog0, Q, user->Qloc, INSERT_VALUES, SCATTER_REVERSE);
+  ierr = VecScatterEnd(user->ltog0, Q, user->Qloc, INSERT_VALUES,
+                       SCATTER_REVERSE);
   CHKERRQ(ierr);
   ierr = VecZeroEntries(user->Gloc); CHKERRQ(ierr);
 
@@ -163,7 +164,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   ierr = VecRestoreArray(user->Gloc, &g); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(G); CHKERRQ(ierr);
-  
+
   // Global-to-global
   // G on the boundary = (BC - Q)
   ierr = VecScatterBegin(user->gtogD, Q, G, INSERT_VALUES, SCATTER_FORWARD);
@@ -181,11 +182,11 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
-  
-  // add the action of the inverse of the lumped mass matrix
-  ierr = VecPointwiseMult(G,G,user->M); // it is actually Minv after the call to VecReciprocal in main()
+
+  // Inverse of the lumped mass matrix
+  ierr = VecPointwiseMult(G,G,user->M); // Minv
   CHKERRQ(ierr);
-  
+
   PetscFunctionReturn(0);
 }
 
@@ -201,9 +202,11 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   PetscViewer viewer;
   PetscErrorCode ierr;
 
-  if (stepno % user->outputfreq != 0) // prints every 'steps' steps
+  // Print every 'outputfreq' steps
+  if (stepno % user->outputfreq != 0)
     PetscFunctionReturn(0);
 
+  // Set up output
   PetscFunctionBeginUser;
   ierr = DMGetGlobalVector(user->dm, &U); CHKERRQ(ierr);
   ierr = DMDAGetLocalInfo(user->dm, &info); CHKERRQ(ierr);
@@ -220,6 +223,8 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   }
   ierr = VecRestoreArrayRead(Q, &q); CHKERRQ(ierr);
   ierr = DMDAVecRestoreArray(user->dm, U, &u); CHKERRQ(ierr);
+
+  // Output
   ierr = PetscSNPrintf(filepath, sizeof filepath, user->outputfolder, stepno);
   CHKERRQ(ierr);
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)U), filepath,
@@ -234,20 +239,19 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  char ceedresource[4096] = "/cpu/self";
-  const char *problemtypes[2] = {"advection", "navier_stokes"};
-  PetscInt degree, qextra, localdof, localelem, melem[3], mdof[3], p[3],
-    irank[3], ldof[3], lsize;
-  PetscMPIInt size, rank;
-  PetscScalar ftime;
-  PetscInt outputfreq, problemtype, steps;
-  PetscScalar *q0, *m, *mult, *x;
-  Vec Q, Qloc, Mloc, X, Xloc;
-  VecScatter ltog, ltog0, gtogD, ltogX;
   DM dm;
   TS ts;
   TSAdapt adapt;
   User user;
+  char ceedresource[4096] = "/cpu/self";
+  const char *problemtypes[2] = {"advection", "navier_stokes"};
+  PetscInt degree, qextra, localdof, localelem, lsize, outputfreq, problemtype,
+           steps, melem[3], mdof[3], p[3], irank[3], ldof[3];
+  PetscMPIInt size, rank;
+  PetscScalar ftime;
+  PetscScalar *q0, *m, *mult, *x;
+  Vec Q, Qloc, Mloc, X, Xloc;
+  VecScatter ltog, ltog0, gtogD, ltogX;
 
   Ceed ceed;
   CeedInt numP, numQ;
@@ -342,10 +346,11 @@ int main(int argc, char **argv) {
                      melem[0], melem[1], melem[2]); CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "Owned dofs: %D = %D %D %D\n",
                      mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]);
-                     CHKERRQ(ierr);
+  CHKERRQ(ierr);
 
   // Set up global mass vector
   ierr = VecDuplicate(Q,&user->M); CHKERRQ(ierr);
+
   // Set up local mass vector
   ierr = VecDuplicate(Qloc,&Mloc); CHKERRQ(ierr);
 
@@ -362,7 +367,8 @@ int main(int argc, char **argv) {
   // Set up global boundary values vector
   ierr = VecDuplicate(Q,&user->BC); CHKERRQ(ierr);
 
-  { // Create local-to-global scatters
+  {
+    // Create local-to-global scatters
     PetscInt *ltogind, *ltogind0, *locind, l0count;
     IS ltogis, ltogxis, ltogis0, locis;
     PetscInt gstart[2][2][2], gmdof[2][2][2][3];
@@ -404,19 +410,21 @@ int main(int argc, char **argv) {
     // Create local-to-global scatters
     ierr = ISCreateBlock(comm, 3, lsize, ltogind, PETSC_COPY_VALUES, &ltogxis);
     CHKERRQ(ierr);
-    ierr = VecScatterCreateWithData(Xloc, NULL, X, ltogxis, &ltogX); CHKERRQ(ierr);
+    ierr = VecScatterCreateWithData(Xloc, NULL, X, ltogxis, &ltogX);
     CHKERRQ(ierr);
     ierr = ISCreateBlock(comm, 5, lsize, ltogind, PETSC_OWN_POINTER, &ltogis);
     CHKERRQ(ierr);
-    ierr = VecScatterCreateWithData(Qloc, NULL, Q, ltogis, &ltog); CHKERRQ(ierr);
+    ierr = VecScatterCreateWithData(Qloc, NULL, Q, ltogis, &ltog);
     CHKERRQ(ierr);
     ierr = ISCreateBlock(comm, 5, l0count, ltogind0, PETSC_OWN_POINTER, &ltogis0);
     CHKERRQ(ierr);
     ierr = ISCreateBlock(comm, 5, l0count, locind, PETSC_OWN_POINTER, &locis);
     CHKERRQ(ierr);
-    ierr = VecScatterCreateWithData(Qloc, locis, Q, ltogis0, &ltog0); CHKERRQ(ierr);
+    ierr = VecScatterCreateWithData(Qloc, locis, Q, ltogis0, &ltog0);
+    CHKERRQ(ierr);
 
-    { // Create global-to-global scatter for Dirichlet values (everything not in
+    {
+      // Create global-to-global scatter for Dirichlet values (everything not in
       // ltogis0, which is the range of ltog0)
       PetscInt qstart, qend, *indD, countD = 0;
       IS isD;
@@ -447,7 +455,8 @@ int main(int argc, char **argv) {
     ierr = ISDestroy(&locis); CHKERRQ(ierr);
 
 
-    { // Set up DMDA
+    {
+      // Set up DMDA
       PetscInt *ldofs[3];
       ierr = PetscMalloc3(p[0], &ldofs[0], p[1], &ldofs[1], p[2], &ldofs[2]);
       CHKERRQ(ierr);
@@ -474,7 +483,6 @@ int main(int argc, char **argv) {
       ierr = DMDASetFieldName(dm, 3, "MomentumZ"); CHKERRQ(ierr);
       ierr = DMDASetFieldName(dm, 4, "Total Energy"); CHKERRQ(ierr);
     }
-
   }
 
   // Set up CEED
@@ -550,7 +558,7 @@ int main(int argc, char **argv) {
 
   // Create the Q-function that defines the action of the mass operator
   CeedQFunctionCreateInterior(ceed, 1,
-                                Mass, __FILE__ ":Mass", &qf_mass);
+                              Mass, __FILE__ ":Mass", &qf_mass);
   CeedQFunctionAddInput(qf_mass, "q", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_mass, "qdata", 16, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_mass, "v", 5, CEED_EVAL_INTERP);
@@ -764,11 +772,11 @@ int main(int argc, char **argv) {
   ierr = TSSolve(ts, Q); CHKERRQ(ierr);
 
   // Output Statistics
-  ierr = TSGetSolveTime(ts,&ftime);CHKERRQ(ierr);
-  ierr = TSGetStepNumber(ts,&steps);CHKERRQ(ierr);
+  ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
+  ierr = TSGetStepNumber(ts,&steps); CHKERRQ(ierr);
   ierr = PetscPrintf(PETSC_COMM_WORLD,
-           "Time integrator took %D time steps to reach final time %g\n",
-           steps,(double)ftime);CHKERRQ(ierr);
+                     "Time integrator took %D time steps to reach final time %g\n",
+                     steps,(double)ftime); CHKERRQ(ierr);
 
   // Clean up libCEED
   CeedVectorDestroy(&user->qceed);

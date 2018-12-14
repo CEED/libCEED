@@ -73,8 +73,8 @@ static int ICsAdvection(void *ctx, CeedInt Q,
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
     if ( fabs(x - 0.0) < tol || fabs(x - 1.0) < tol
-      || fabs(y - 0.0) < tol || fabs(y - 1.0) < tol
-      || fabs(z - 0.0) < tol || fabs(z - 1.0) < tol ) {
+         || fabs(y - 0.0) < tol || fabs(y - 1.0) < tol
+         || fabs(z - 0.0) < tol || fabs(z - 1.0) < tol ) {
       q0[i+1*Q] = 0.0;
       q0[i+2*Q] = 0.0;
       q0[i+3*Q] = 0.0;
@@ -119,12 +119,14 @@ static int Advection(void *ctx, CeedInt Q,
     const CeedScalar rho     =   q[i+0*Q];
     const CeedScalar u[3]    = { q[i+1*Q] / rho,
                                  q[i+2*Q] / rho,
-                                 q[i+3*Q] / rho };
+                                 q[i+3*Q] / rho
+                               };
     const CeedScalar E       =   q[i+4*Q];
     // -- Grad in
     const CeedScalar drho[3] = {  dq[i+(0+5*0)*Q],
                                   dq[i+(0+5*1)*Q],
-                                  dq[i+(0+5*2)*Q] };
+                                  dq[i+(0+5*2)*Q]
+                               };
     const CeedScalar du[9]   = { (dq[i+(1+5*0)*Q] - drho[0]*u[0]) / rho,
                                  (dq[i+(1+5*1)*Q] - drho[1]*u[0]) / rho,
                                  (dq[i+(1+5*2)*Q] - drho[2]*u[0]) / rho,
@@ -133,10 +135,12 @@ static int Advection(void *ctx, CeedInt Q,
                                  (dq[i+(2+5*2)*Q] - drho[2]*u[1]) / rho,
                                  (dq[i+(3+5*0)*Q] - drho[0]*u[2]) / rho,
                                  (dq[i+(3+5*1)*Q] - drho[1]*u[2]) / rho,
-                                 (dq[i+(3+5*2)*Q] - drho[2]*u[2]) / rho };
+                                 (dq[i+(3+5*2)*Q] - drho[2]*u[2]) / rho
+                               };
     const CeedScalar dE[3]   = {  dq[i+(4+5*0)*Q],
                                   dq[i+(4+5*1)*Q],
-                                  dq[i+(4+5*2)*Q] };
+                                  dq[i+(4+5*2)*Q]
+                               };
     // -- Interp-to-Interp qdata
     const CeedScalar wJ       =   qdata[i+ 0*Q];
     // -- Interp-to-Grad qdata
@@ -149,14 +153,16 @@ static int Advection(void *ctx, CeedInt Q,
                                   qdata[i+ 6*Q],
                                   qdata[i+ 7*Q],
                                   qdata[i+ 8*Q],
-                                  qdata[i+ 9*Q] };
+                                  qdata[i+ 9*Q]
+                                };
     // -- Grad-to-Grad qdata
     const CeedScalar wBBJ[6]  = { qdata[i+10*Q],
                                   qdata[i+11*Q],
                                   qdata[i+12*Q],
                                   qdata[i+13*Q],
                                   qdata[i+14*Q],
-                                  qdata[i+15*Q] };
+                                  qdata[i+15*Q]
+                                };
 
     for (int c=0; c<5; c++) {
       v[c*Q+i] = 0;
@@ -166,17 +172,17 @@ static int Advection(void *ctx, CeedInt Q,
     // The Physics
 
     // -- Total Energy
-    // ---- Version 1: dv E u 
+    // ---- Version 1: dv E u
     if (1) {
-    dv[i+(4+5*0)*Q]  = E*(u[0]*wBJ[0] + u[1]*wBJ[1] + u[2]*wBJ[2]);
-    dv[i+(4+5*1)*Q]  = E*(u[0]*wBJ[3] + u[1]*wBJ[4] + u[2]*wBJ[5]);
-    dv[i+(4+5*2)*Q]  = E*(u[0]*wBJ[6] + u[1]*wBJ[7] + u[2]*wBJ[8]);
+      dv[i+(4+5*0)*Q]  = E*(u[0]*wBJ[0] + u[1]*wBJ[1] + u[2]*wBJ[2]);
+      dv[i+(4+5*1)*Q]  = E*(u[0]*wBJ[3] + u[1]*wBJ[4] + u[2]*wBJ[5]);
+      dv[i+(4+5*2)*Q]  = E*(u[0]*wBJ[6] + u[1]*wBJ[7] + u[2]*wBJ[8]);
     }
     // ---- Version 2: v E du
     if (0) {
-    v[i+4*Q]   = E*(du[0]*wBJ[0] + du[3]*wBJ[1] + du[6]*wBJ[2]);
-    v[i+4*Q]  -= E*(du[1]*wBJ[3] + du[4]*wBJ[4] + du[7]*wBJ[5]);
-    v[i+4*Q]  -= E*(du[2]*wBJ[6] + du[5]*wBJ[7] + du[8]*wBJ[8]);
+      v[i+4*Q]   = E*(du[0]*wBJ[0] + du[3]*wBJ[1] + du[6]*wBJ[2]);
+      v[i+4*Q]  -= E*(du[1]*wBJ[3] + du[4]*wBJ[4] + du[7]*wBJ[5]);
+      v[i+4*Q]  -= E*(du[2]*wBJ[6] + du[5]*wBJ[7] + du[8]*wBJ[8]);
     }
 
   } // End Quadrature Point Loop
