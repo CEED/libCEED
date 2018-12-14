@@ -45,7 +45,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) $(navierstokes) *.vtr
+	$(RM) $(navierstokes) *.vtr *.vts
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \

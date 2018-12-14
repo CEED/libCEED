@@ -119,17 +119,17 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
 typedef struct User_ *User;
 struct User_ {
   MPI_Comm comm;
+  PetscInt degree;
+  PetscInt melem[3];
+  PetscInt outputfreq;
+  DM dm;
+  Ceed ceed;
+  CeedVector qceed, gceed, qdata;
+  CeedOperator op;
   VecScatter ltog;              // Scatter for all entries
   VecScatter ltog0;             // Skip Dirichlet values for Q
   VecScatter gtogD;             // global-to-global; only Dirichlet values for Q
   Vec Qloc, Gloc, M, BC;
-  CeedVector qceed, gceed; //, xceed;
-  CeedOperator op;
-  CeedVector qdata;
-  PetscInt degree;
-  PetscInt melem[3];
-  DM dm;
-  Ceed ceed;
   char outputfolder[PETSC_MAX_PATH_LEN];
 };
 
@@ -201,8 +201,8 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   PetscViewer viewer;
   PetscErrorCode ierr;
 
-//  if (stepno % 100 != 0) // prints every 100 steps
-//    PetscFunctionReturn(0);
+  if (stepno % user->outputfreq != 0) // prints every 'steps' steps
+    PetscFunctionReturn(0);
 
   PetscFunctionBeginUser;
   ierr = DMGetGlobalVector(user->dm, &U); CHKERRQ(ierr);
@@ -240,7 +240,7 @@ int main(int argc, char **argv) {
     irank[3], ldof[3], lsize;
   PetscMPIInt size, rank;
   PetscScalar ftime;
-  PetscInt steps, problemtype;
+  PetscInt outputfreq, problemtype, steps;
   PetscScalar *q0, *m, *mult, *x;
   Vec Q, Qloc, Mloc, X, Xloc;
   VecScatter ltog, ltog0, gtogD, ltogX;
@@ -275,6 +275,9 @@ int main(int argc, char **argv) {
   problemtype = 0;
   PetscOptionsEList("-problem", "Problem to solve", NULL, problemtypes,2,
                     problemtypes[0], &problemtype, NULL); CHKERRQ(ierr);
+  outputfreq = 10;
+  ierr = PetscOptionsInt("-frequency", "Frequency of output, in number of steps",
+                         NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
   degree = 3;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
@@ -642,19 +645,20 @@ int main(int argc, char **argv) {
 
   // Set up PETSc context
   user->comm = comm;
+  user->degree = degree;
+  for (int d=0; d<3; d++) user->melem[d] = melem[d];
+  user->outputfreq = outputfreq;
+  user->dm = dm;
+  user->ceed = ceed;
+  CeedVectorCreate(ceed, 5*lsize, &user->qceed);
+  CeedVectorCreate(ceed, 5*lsize, &user->gceed);
+  user->op = op;
+  user->qdata = qdata;
   user->ltog = ltog;
   user->ltog0 = ltog0;
   user->gtogD = gtogD;
   user->Qloc = Qloc;
   ierr = VecDuplicate(Qloc, &user->Gloc); CHKERRQ(ierr);
-  CeedVectorCreate(ceed, 5*lsize, &user->qceed);
-  CeedVectorCreate(ceed, 5*lsize, &user->gceed);
-  user->op = op;
-  user->qdata = qdata;
-  user->degree = degree;
-  for (int d=0; d<3; d++) user->melem[d] = melem[d];
-  user->dm = dm;
-  user->ceed = ceed;
 
   // Calculate qdata and ICs
   // Set up state global and local vectors
@@ -689,11 +693,6 @@ int main(int argc, char **argv) {
       x[i*3+d] /= mult[i];
   }
 
-  ///// debugging
-  for (CeedInt i=0; i<100; i++)
-     printf("%g\n", x[i]);
-  ///////////////
-
   CeedVectorRestoreArray(q0ceed, &q0);
   CeedVectorRestoreArray(xceed, &x);
   CeedVectorRestoreArray(multlvec, &mult);
@@ -726,25 +725,13 @@ int main(int argc, char **argv) {
   ierr = VecScatterEnd(ltogX, Xloc, X, INSERT_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
 
-  //// debugging
-  CeedVectorView(xceed,NULL,stdout);
-  /////////////
+  // Clean up
   CeedVectorDestroy(&xceed);
   ierr = VecDestroy(&Xloc); CHKERRQ(ierr);
-
-  //// debugging
-//  VecView(X,PETSC_VIEWER_STDOUT_WORLD);
-  /////////////
 
   // Set dof coordinates in DMDA
   ierr = DMSetCoordinates(dm, X); CHKERRQ(ierr);
   ierr = VecDestroy(&X); CHKERRQ(ierr);
-
-  //// debugging
-//  Vec foo;
-//  ierr = DMGetCoordinates(dm, &foo);
-//  VecView(foo,PETSC_VIEWER_STDOUT_WORLD);
-  //////////////
 
   // Gather the inverse of the mass operator
   ierr = VecRestoreArray(Mloc, &m); CHKERRQ(ierr);
@@ -755,8 +742,8 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&Mloc); CHKERRQ(ierr);
   CeedVectorDestroy(&mceed);
 
-  // invert diagonally lumped mass vector so that it can be used in the RHS function
-  ierr = VecReciprocal(user->M); // keep in mind from now on M is actually Minv
+  // Invert diagonally lumped mass vector for RHS function
+  ierr = VecReciprocal(user->M); // M is now Minv
   CHKERRQ(ierr);
 
   // Create and setup TS
