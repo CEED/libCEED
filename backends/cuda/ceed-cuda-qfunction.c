@@ -45,6 +45,9 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
 
   // TODO find a way to avoid this systematic memCpy
   if (qf->ctxsize > 0) {
+    if(!data->d_c) {
+      ierr = cudaMalloc(&data->d_c, qf->ctxsize); CeedChk_Cu(ceed, ierr);
+    }
     ierr = cudaMemcpy(data->d_c, qf->ctx, qf->ctxsize, cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
   }
 
