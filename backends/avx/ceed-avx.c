@@ -22,7 +22,7 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/avx"))
-    return CeedError(ceed, 1, "Tmpl backend cannot use resource: %s", resource);
+    return CeedError(ceed, 1, "AVX backend cannot use resource: %s", resource);
 
   Ceed ceedref;
 

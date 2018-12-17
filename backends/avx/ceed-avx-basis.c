@@ -58,7 +58,6 @@ static int CeedTensorContract8_Avx(Ceed ceed, CeedInt A, CeedInt B,
 
   const int JJ = 4, CC=8;
   if (C % CC) return CeedError(ceed, 2, "Tensor [%d, %d, %d]: last dimension not divisible by %d", A, B, C, CC);
-  if (J % JJ) return CeedError(ceed, 2, "Tensor [%d, %d, %d]: middle dimension output not divisible by %d", A, J, C, JJ);
 
   if (!Add) {
     for (CeedInt q=0; q<A*J*C; q++) {
@@ -67,7 +66,8 @@ static int CeedTensorContract8_Avx(Ceed ceed, CeedInt A, CeedInt B,
   }
 
   for (CeedInt a=0; a<A; a++) {
-    for (CeedInt j=0; j<J; j+=JJ) {
+    // Blocks of 4
+    for (CeedInt j=0; j<(J/JJ)*JJ; j+=JJ) {
       for (CeedInt c=0; c<C; c+=CC) {
         __m256d vv[JJ][CC/4]; // Output tile to be held in registers
         for (CeedInt jj=0; jj<JJ; jj++)
@@ -89,13 +89,21 @@ static int CeedTensorContract8_Avx(Ceed ceed, CeedInt A, CeedInt B,
 
       }
     }
+    // Any remainder
+    for (CeedInt j=(J/JJ)*JJ; j<J; j++) {
+      for (CeedInt b=0; b<B; b++) {
+        CeedScalar tq = t[j*tstride0 + b*tstride1];
+        for (CeedInt c=0; c<C; c++)
+          v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
+      }
+    }
   }
   return 0;
 }
 
 static int CeedBasisApply_Avx(CeedBasis basis, CeedInt nelem,
-                                  CeedTransposeMode tmode, CeedEvalMode emode,
-                                  CeedVector U, CeedVector V) {
+                              CeedTransposeMode tmode, CeedEvalMode emode,
+                              CeedVector U, CeedVector V) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
@@ -118,7 +126,13 @@ static int CeedBasisApply_Avx(CeedBasis basis, CeedInt nelem,
 
   if ((nelem != 1) && (nelem != blksize))
     return CeedError(ceed, 1,
-                     "This backend does not support BasisApply for %d elements", nelem);  
+                     "This backend does not support BasisApply for %d elements", nelem);
+
+  int (*CeedTensorContract_Avx)() = NULL;
+  if (nelem == blksize)
+    CeedTensorContract_Avx = CeedTensorContract8_Avx;
+  else
+    CeedTensorContract_Avx = CeedTensorContract1_Avx;
 
   if (tmode == CEED_TRANSPOSE) {
     const CeedInt vsize = nelem*ncomp*ndof;
@@ -131,12 +145,6 @@ static int CeedBasisApply_Avx(CeedBasis basis, CeedInt nelem,
     CeedInt P1d, Q1d;
     ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
-
-    int (*CeedTensorContract_Avx)() = NULL;
-    if (nelem == blksize && !(add ? (P1d%4) : (Q1d%4)))
-      CeedTensorContract_Avx = CeedTensorContract8_Avx;
-    else
-      CeedTensorContract_Avx = CeedTensorContract1_Avx;
 
     switch (emode) {
     case CEED_EVAL_INTERP: {
@@ -166,12 +174,6 @@ static int CeedBasisApply_Avx(CeedBasis basis, CeedInt nelem,
       if (tmode == CEED_TRANSPOSE) {
         P = Q1d, Q = Q1d;
       }
-
-      if (nelem == blksize && !(Q1d%4))
-        CeedTensorContract_Avx = CeedTensorContract8_Avx;
-      else
-        CeedTensorContract_Avx = CeedTensorContract1_Avx;
-
       CeedBasis_Avx *impl;
       ierr = CeedBasisGetData(basis, (void*)&impl); CeedChk(ierr);
       CeedScalar interp[nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
@@ -203,12 +205,6 @@ static int CeedBasisApply_Avx(CeedBasis basis, CeedInt nelem,
       if (tmode == CEED_TRANSPOSE) {
         P = Q1d, Q = P1d;
       }
-
-      if (nelem == blksize && !(add ? (P1d%4) : (Q1d%4)))
-        CeedTensorContract_Avx = CeedTensorContract8_Avx;
-      else
-      CeedTensorContract_Avx = CeedTensorContract1_Avx;
-
       pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
       for (CeedInt d=0; d<dim; d++) {
         ierr = CeedTensorContract_Avx(ceed, pre, P, post, Q,
@@ -256,12 +252,6 @@ static int CeedBasisApply_Avx(CeedBasis basis, CeedInt nelem,
     }
   } else {
     // Non-tensor basis
-    int (*CeedTensorContract_Avx)() = NULL;
-    if (nelem == blksize && !(add ? (ndof%4) : (nqpt%4)))
-      CeedTensorContract_Avx = CeedTensorContract8_Avx;
-    else
-      CeedTensorContract_Avx = CeedTensorContract1_Avx;
-
     switch (emode) {
     case CEED_EVAL_INTERP: {
       CeedInt P = ndof, Q = nqpt;
