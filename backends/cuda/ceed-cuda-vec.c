@@ -275,33 +275,11 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec,
 // *****************************************************************************
 static int CeedVectorRestoreArrayRead_Cuda(const CeedVector vec,
     const CeedScalar **array) {
-  int ierr;
-  CeedVector_Cuda *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
-  if ((*array != data->h_array) && (*array != data->d_array)) {
-    Ceed ceed;
-    CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
-    return CeedError(ceed, 1, "Invalid restore array");
-  }
-  *array = NULL;
   return 0;
 }
 // *****************************************************************************
 static int CeedVectorRestoreArray_Cuda(const CeedVector vec,
                                        CeedScalar **array) {
-  int ierr;
-  CeedVector_Cuda *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
-  //FIXME this memState set is not necessary
-  if (*array == data->h_array) {
-    data->memState = HOST_SYNC;
-  } else if (*array == data->d_array) {
-    data->memState = DEVICE_SYNC;
-  } else {
-    Ceed ceed;
-    CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
-    return CeedError(ceed, 1, "Invalid restore array");
-  }
   *array = NULL;
   return 0;
 }
