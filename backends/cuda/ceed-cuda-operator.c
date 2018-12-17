@@ -27,7 +27,7 @@ static int CeedOperatorDestroy_Cuda(CeedOperator op) {
     ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);
   }
   ierr = CeedFree(impl->evecs); CeedChk(ierr);
-  ierr = CeedFree(impl->edata); CeedChk(ierr);
+  // ierr = CeedFree(impl->edata); CeedChk(ierr);
 
   for (CeedInt i = 0; i < impl->numein; i++) {
     ierr = CeedVectorDestroy(&impl->qvecsin[i]); CeedChk(ierr);
