@@ -112,6 +112,7 @@ be provided with the `-ceed` option, for example:
 
 |  CEED resource (`-ceed`) | Backend                                           |
 | :----------------------- | :------------------------------------------------ |
+| `/cpu/self/avx`          | Vectorized blocked implementation                 |
 | `/cpu/self/blocked`      | Serial blocked implementation                     |
 | `/cpu/self/ref`          | Serial reference implementation                   |
 | `/cpu/self/tmpl`         | Backend template, dispatches to /cpu/self/blocked |

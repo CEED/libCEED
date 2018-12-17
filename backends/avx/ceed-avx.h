@@ -17,23 +17,21 @@
 #include <ceed-backend.h>
 #include <string.h>
 
-static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
-  int ierr;
-  if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/tmpl"))
-    return CeedError(ceed, 1, "Tmpl backend cannot use resource: %s", resource);
+typedef struct {
+  CeedScalar *colograd1d;
+} CeedBasis_Avx;
 
-  Ceed ceedref;
+CEED_INTERN int CeedBasisCreateTensorH1_Avx(CeedInt dim, CeedInt P1d,
+    CeedInt Q1d, const CeedScalar *interp1d,
+    const CeedScalar *grad1d,
+    const CeedScalar *qref1d,
+    const CeedScalar *qweight1d,
+    CeedBasis basis);
 
-  // Create refrence CEED that implementation will be dispatched
-  //   through unless overridden
-  CeedInit("/cpu/self/blocked", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
-
-  return 0;
-}
-
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/cpu/self/tmpl", CeedInit_Tmpl, 40);
-}
+CEED_INTERN int CeedBasisCreateH1_Avx(CeedElemTopology topo, CeedInt dim,
+    CeedInt ndof, CeedInt nqpts,
+    const CeedScalar *interp,
+    const CeedScalar *grad,
+    const CeedScalar *qref,
+    const CeedScalar *qweight,
+    CeedBasis basis);

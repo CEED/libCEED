@@ -18,10 +18,6 @@
 #include <string.h>
 
 typedef struct {
-  Ceed ceedref;
-} Ceed_Blocked;
-
-typedef struct {
   CeedScalar *colograd1d;
 } CeedBasis_Blocked;
 
