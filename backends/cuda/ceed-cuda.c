@@ -20,7 +20,8 @@
 #include "ceed-cuda.h"
 
 
-int compile(Ceed ceed, const char *source, CUmodule *module, const CeedInt numopts, ...) {
+int compile(Ceed ceed, const char *source, CUmodule *module,
+            const CeedInt numopts, ...) {
   int ierr;
   nvrtcProgram prog;
   CeedChk_Nvrtc(ceed, nvrtcCreateProgram(&prog, source, NULL, 0, NULL, NULL));
@@ -29,8 +30,7 @@ int compile(Ceed ceed, const char *source, CUmodule *module, const CeedInt numop
   const int optsextra = 3;
   const char *opts[numopts + optsextra];
   char buf[numopts][optslen];
-  if (numopts>0)
-  {
+  if (numopts>0) {
     va_list args;
     va_start(args, numopts);
     char *name;
@@ -70,17 +70,19 @@ int compile(Ceed ceed, const char *source, CUmodule *module, const CeedInt numop
   return 0;
 }
 
-int get_kernel(Ceed ceed, CUmodule module, const char *name, CUfunction* kernel) {
+int get_kernel(Ceed ceed, CUmodule module, const char *name,
+               CUfunction* kernel) {
   CeedChk_Cu(ceed, cuModuleGetFunction(kernel, module, name));
   return 0;
 }
 
-int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize, const int blockSize, void **args) {
+int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize,
+               const int blockSize, void **args) {
   CeedChk_Cu(ceed, cuLaunchKernel(kernel,
-      gridSize, 1, 1,
-      blockSize, 1, 1,
-      0, NULL,
-      args, NULL));
+                                  gridSize, 1, 1,
+                                  blockSize, 1, 1,
+                                  0, NULL,
+                                  args, NULL));
   return 0;
 }
 
@@ -114,7 +116,8 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
                                 CeedBasisCreateH1_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
                                 CeedElemRestrictionCreate_Cuda); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreateBlocked",
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
+                                "ElemRestrictionCreateBlocked",
                                 CeedElemRestrictionCreateBlocked_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
                                 CeedQFunctionCreate_Cuda); CeedChk(ierr);

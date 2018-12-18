@@ -103,11 +103,14 @@ typedef struct {
   Ceed ceedref;
 } Ceed_Cuda;
 
-CEED_INTERN int compile(Ceed ceed, const char *source, CUmodule *module, const CeedInt numopts, ...);
+CEED_INTERN int compile(Ceed ceed, const char *source, CUmodule *module,
+                        const CeedInt numopts, ...);
 
-CEED_INTERN int get_kernel(Ceed ceed, CUmodule module, const char *name, CUfunction* kernel);
+CEED_INTERN int get_kernel(Ceed ceed, CUmodule module, const char *name,
+                           CUfunction* kernel);
 
-CEED_INTERN int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize, const int blockSize, void **args);
+CEED_INTERN int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize,
+                           const int blockSize, void **args);
 
 CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
 
@@ -115,22 +118,26 @@ CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
     CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r);
 
 CEED_INTERN int CeedElemRestrictionCreateBlocked_Cuda(const CeedMemType mtype,
-     const CeedCopyMode cmode, const CeedInt *indices,
-     const CeedElemRestriction res);
+    const CeedCopyMode cmode, const CeedInt *indices,
+    const CeedElemRestriction res);
 
-CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem, CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
+CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem,
+    CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
 
-CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q, const CeedVector *const u, const CeedVector* v);
+CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q,
+    const CeedVector *const u, const CeedVector* v);
 
-CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q1d,
+CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d,
+    CeedInt Q1d,
     const CeedScalar *interp1d,
     const CeedScalar *grad1d,
     const CeedScalar *qref1d,
     const CeedScalar *qweight1d,
     CeedBasis basis);
 
-CEED_INTERN int CeedBasisCreateH1_Cuda(CeedElemTopology, CeedInt, CeedInt, CeedInt, const CeedScalar *,
-    const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
+CEED_INTERN int CeedBasisCreateH1_Cuda(CeedElemTopology, CeedInt, CeedInt,
+                                       CeedInt, const CeedScalar *,
+                                       const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
 
 CEED_INTERN int CeedQFunctionCreate_Cuda(CeedQFunction qf);
 

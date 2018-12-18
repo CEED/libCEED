@@ -86,18 +86,21 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
     case CEED_EVAL_NONE:
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
       CeedChk(ierr);
-      ierr = CeedVectorCreate(ceed, numelements * Q * ncomp, &qvecs[i]); CeedChk(ierr);
+      ierr = CeedVectorCreate(ceed, numelements * Q * ncomp, &qvecs[i]);
+      CeedChk(ierr);
       break;
     case CEED_EVAL_INTERP:
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
       CeedChk(ierr);
-      ierr = CeedVectorCreate(ceed, numelements * Q * ncomp, &qvecs[i]); CeedChk(ierr);
+      ierr = CeedVectorCreate(ceed, numelements * Q * ncomp, &qvecs[i]);
+      CeedChk(ierr);
       break;
     case CEED_EVAL_GRAD:
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
-      ierr = CeedVectorCreate(ceed, numelements * Q * ncomp * dim, &qvecs[i]); CeedChk(ierr);
+      ierr = CeedVectorCreate(ceed, numelements * Q * ncomp * dim, &qvecs[i]);
+      CeedChk(ierr);
       break;
     case CEED_EVAL_WEIGHT: // Only on input fields
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
@@ -275,7 +278,8 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
     }
   }
   // Q function
-  ierr = CeedQFunctionApply(qf, numelements * Q, impl->qvecsin, impl->qvecsout); CeedChk(ierr);
+  ierr = CeedQFunctionApply(qf, numelements * Q, impl->qvecsin, impl->qvecsout);
+  CeedChk(ierr);
 
   // Output basis apply if needed
   for (CeedInt i = 0; i < numoutputfields; i++) {
@@ -335,7 +339,7 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
     CeedChk(ierr);
     if (emode == CEED_EVAL_NONE) {
       ierr = CeedVectorRestoreArray(impl->evecs[i+impl->numein],
-                                   &impl->edata[i + numinputfields]);
+                                    &impl->edata[i + numinputfields]);
       CeedChk(ierr);
     }
     // Get output vector
