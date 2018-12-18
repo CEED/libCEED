@@ -138,7 +138,7 @@ struct User_ {
 static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   PetscErrorCode ierr;
   User user = *(User*)userData;
-  PetscScalar *q, *g, *x;
+  PetscScalar *q, *g;
 
   // Global-to-local
   PetscFunctionBeginUser;
@@ -454,7 +454,6 @@ int main(int argc, char **argv) {
     ierr = ISDestroy(&ltogis0); CHKERRQ(ierr);
     ierr = ISDestroy(&locis); CHKERRQ(ierr);
 
-
     {
       // Set up DMDA
       PetscInt *ldofs[3];
@@ -723,8 +722,6 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   ierr = VecScatterEnd(gtogD, Q, user->BC, INSERT_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
-  // Scale boundary values to subtract from Q in RHS
-  ierr = VecScale(user->BC, -1.0); CHKERRQ(ierr);
 
   // Gather dof coordinates
   ierr = VecRestoreArray(Xloc, &x); CHKERRQ(ierr);
