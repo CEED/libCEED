@@ -63,9 +63,9 @@
 static int ICsNS(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
 
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
+  #ifndef M_PI
+  #define M_PI    3.14159265358979323846
+  #endif
 
   // Inputs
   const CeedScalar *X = in[0];

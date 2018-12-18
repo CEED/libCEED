@@ -627,23 +627,21 @@ int main(int argc, char **argv) {
                        basisq, CEED_VECTOR_ACTIVE);
 
   // Create the libCEED contexts
-  {
-    CeedScalar Theta0     = 300.;     // K
-    CeedScalar ThetaC     = -15.;     // K
-    CeedScalar P0         = 1.e5;     // kg/m s^2
-    CeedScalar N          = 0.01;     // 1/s
-    CeedScalar Cv         = 717.;     // J/kg K
-    CeedScalar Cp         = 1004.;    // J/kg K
-    CeedScalar Rd         = Cp - Cv;  // J/kg K
-    CeedScalar g          = 9.81;     // m/s^2
-    CeedScalar lambda     = -2./3.;   // -
-    CeedScalar mu         = 75.;      // s/m^2
-    CeedScalar k          = 26.38;    // W/m K
-    CeedScalar ctxSetup[8] = {Theta0, ThetaC, P0, N, Cv, Cp, Rd, g};
-    CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
-    CeedScalar ctxNS[6] = {lambda, mu, k, Cv, Cp, g};
-    CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
-  }
+  CeedScalar Theta0     = 300.;     // K
+  CeedScalar ThetaC     = -15.;     // K
+  CeedScalar P0         = 1.e5;     // kg/m s^2
+  CeedScalar N          = 0.01;     // 1/s
+  CeedScalar Cv         = 717.;     // J/kg K
+  CeedScalar Cp         = 1004.;    // J/kg K
+  CeedScalar Rd         = Cp - Cv;  // J/kg K
+  CeedScalar g          = 9.81;     // m/s^2
+  CeedScalar lambda     = -2./3.;   // -
+  CeedScalar mu         = 75.;      // s/m^2
+  CeedScalar k          = 26.38;    // W/m K
+  CeedScalar ctxSetup[8] = {Theta0, ThetaC, P0, N, Cv, Cp, Rd, g};
+  CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
+  CeedScalar ctxNS[6] = {lambda, mu, k, Cv, Cp, g};
+  CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
 
   // Set up PETSc context
   user->comm = comm;
