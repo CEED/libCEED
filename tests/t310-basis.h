@@ -1,5 +1,5 @@
 static void buildmats(CeedScalar *qref, CeedScalar *qweight, CeedScalar *interp,
-               CeedScalar *grad) {
+                      CeedScalar *grad) {
   CeedInt P = 6, Q = 4;
 
   qref[0] = 0.2;

@@ -44,7 +44,8 @@ static int CeedError_Occa(Ceed ceed,
 // *****************************************************************************
 static int CeedDestroy_Occa(Ceed ceed) {
   int ierr;
-  Ceed_Occa *data=ceed->data;
+  Ceed_Occa *data;
+  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
   dbg("[CeedDestroy]");
   ierr = CeedFree(&data->occa_cache_dir); CeedChk(ierr);
   occaFree(data->device);
@@ -59,7 +60,8 @@ static int CeedDestroy_Occa(Ceed ceed) {
 void CeedDebugImpl256(const Ceed ceed,
                       const unsigned char color,
                       const char *format,...) {
-  const Ceed_Occa *data=ceed->data;
+  const Ceed_Occa *data;
+  CeedGetData(ceed, (void *)&data);
   if (!data->debug) return;
   va_list args;
   va_start(args, format);
@@ -77,7 +79,8 @@ void CeedDebugImpl256(const Ceed ceed,
 // *****************************************************************************
 void CeedDebugImpl(const Ceed ceed,
                    const char *format,...) {
-  const Ceed_Occa *data=ceed->data;
+  const Ceed_Occa *data;
+  CeedGetData(ceed, (void *)&data);
   if (!data->debug) return;
   va_list args;
   va_start(args, format);
@@ -103,17 +106,27 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   // Warning: "backend cannot use resource" is used to grep in test/tap.sh
   if (!cpu && !omp && !ocl && !gpu)
     return CeedError(ceed, 1, "OCCA backend cannot use resource: %s", resource);
-  ceed->Error = CeedError_Occa;
-  ceed->Destroy = CeedDestroy_Occa;
-  ceed->VecCreate = CeedVectorCreate_Occa;
-  ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Occa;
-  ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreateBlocked_Occa;
-  ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Occa;
-  ceed->BasisCreateH1 = CeedBasisCreateH1_Occa;
-  ceed->QFunctionCreate = CeedQFunctionCreate_Occa;
-  ceed->OperatorCreate = CeedOperatorCreate_Occa;
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Error",
+                                CeedError_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
+                                CeedDestroy_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VecCreate",
+                                CeedVectorCreate_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
+                                CeedBasisCreateTensorH1_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
+                                CeedBasisCreateH1_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
+                                CeedElemRestrictionCreate_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
+                                "ElemRestrictionCreateBlocked",
+                                CeedElemRestrictionCreateBlocked_Occa);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
+                                CeedQFunctionCreate_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
+                                CeedOperatorCreate_Occa); CeedChk(ierr);
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  ceed->data = data;
   // push env variables CEED_DEBUG or DBG to our data
   data->debug=!!getenv("CEED_DEBUG") || !!getenv("DBG");
   // push ocl to our data, to be able to check it later for the kernels
@@ -124,6 +137,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
     occaPropertiesSet(occaSettings(), "device/verbose", occaBool(1));
     occaPropertiesSet(occaSettings(), "kernel/verbose", occaBool(1));
   }
+  ierr = CeedSetData(ceed, (void *)&data); CeedChk(ierr);
   // Now that we can dbg, output resource and deviceID
   dbg("[CeedInit] resource: %s", resource);
   dbg("[CeedInit] deviceID: %d", deviceID);

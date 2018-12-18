@@ -37,15 +37,15 @@ static int CeedOperatorDestroy_Ref(CeedOperator op) {
   ierr = CeedFree(&impl->indata); CeedChk(ierr);
   ierr = CeedFree(&impl->outdata); CeedChk(ierr);
 
-  ierr = CeedFree(&op->data); CeedChk(ierr);
+  ierr = CeedFree(&impl); CeedChk(ierr);
   return 0;
 }
 
 /*
   Setup infields or outfields
  */
-static int CeedOperatorSetupFields_Ref(CeedQFunctionField qfields[16],
-                                       CeedOperatorField ofields[16],
+static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
+                                       bool inOrOut,
                                        CeedVector *evecs, CeedScalar **qdata,
                                        CeedScalar **qdata_alloc, CeedScalar **indata,
                                        CeedInt starti, CeedInt startq,
@@ -53,6 +53,19 @@ static int CeedOperatorSetupFields_Ref(CeedQFunctionField qfields[16],
   CeedInt dim, ierr, iq=startq, ncomp;
   CeedBasis basis;
   CeedElemRestriction Erestrict;
+  CeedOperatorField *ofields;
+  CeedQFunctionField *qfields;
+  if (inOrOut) {
+    ierr = CeedOperatorGetFields(op, NULL, &ofields);
+    CeedChk(ierr);
+    ierr = CeedQFunctionGetFields(qf, NULL, &qfields);
+    CeedChk(ierr);
+  } else {
+    ierr = CeedOperatorGetFields(op, &ofields, NULL);
+    CeedChk(ierr);
+    ierr = CeedQFunctionGetFields(qf, &qfields, NULL);
+    CeedChk(ierr);
+  }
 
   // Loop over fields
   for (CeedInt i=0; i<numfields; i++) {
@@ -158,13 +171,13 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
 
   // Set up infield and outfield pointer arrays
   // Infields
-  ierr = CeedOperatorSetupFields_Ref(qfinputfields, opinputfields,
+  ierr = CeedOperatorSetupFields_Ref(qf, op, 0,
                                      impl->evecs, impl->qdata, impl->qdata_alloc,
                                      impl->indata, 0, 0,
                                      numinputfields, Q); CeedChk(ierr);
 
   // Outfields
-  ierr = CeedOperatorSetupFields_Ref(qfoutputfields, opoutputfields,
+  ierr = CeedOperatorSetupFields_Ref(qf, op, 1,
                                      impl->evecs, impl->qdata, impl->qdata_alloc,
                                      impl->indata, numinputfields,
                                      impl->numqin, numoutputfields, Q);
@@ -351,7 +364,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
     if (vec == CEED_VECTOR_ACTIVE)
       vec = outvec;
     ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-    }
+  }
 
   // Output restriction
   for (CeedInt i=0; i<numoutputfields; i++) {
@@ -390,11 +403,16 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
 
 int CeedOperatorCreate_Ref(CeedOperator op) {
   int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Ref *impl;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  op->data = impl;
-  op->Destroy = CeedOperatorDestroy_Ref;
-  op->Apply = CeedOperatorApply_Ref;
+  ierr = CeedOperatorSetData(op, (void*)&impl);
+
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
+                                CeedOperatorApply_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
+                                CeedOperatorDestroy_Ref); CeedChk(ierr);
   return 0;
 }

@@ -14,7 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
 #include <ceed-backend.h>
 #include <string.h>
 
@@ -50,11 +49,11 @@ CEED_INTERN int CeedBasisCreateTensorH1_Blocked(CeedInt dim, CeedInt P1d,
     CeedBasis basis);
 
 CEED_INTERN int CeedBasisCreateH1_Blocked(CeedElemTopology topo, CeedInt dim,
-                                      CeedInt ndof, CeedInt nqpts,
-                                      const CeedScalar *interp,
-                                      const CeedScalar *grad,
-                                      const CeedScalar *qref,
-                                      const CeedScalar *qweight,
-                                      CeedBasis basis);
+    CeedInt ndof, CeedInt nqpts,
+    const CeedScalar *interp,
+    const CeedScalar *grad,
+    const CeedScalar *qref,
+    const CeedScalar *qweight,
+    CeedBasis basis);
 
 CEED_INTERN int CeedOperatorCreate_Blocked(CeedOperator op);

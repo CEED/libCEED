@@ -68,8 +68,8 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
       return CeedError(ceed, 1, "Backend does not support BasisCreateTensorH1");
 
     ierr = CeedBasisCreateTensorH1(delegate, dim, ncomp, P1d,
-                            Q1d, interp1d, grad1d, qref1d,
-                            qweight1d, basis); CeedChk(ierr);
+                                   Q1d, interp1d, grad1d, qref1d,
+                                   qweight1d, basis); CeedChk(ierr);
     return 0;
   }
   ierr = CeedCalloc(1,basis); CeedChk(ierr);
@@ -208,8 +208,8 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt ncomp,
       return CeedError(ceed, 1, "Backend does not support BasisCreateH1");
 
     ierr = CeedBasisCreateH1(delegate, topo, ncomp, ndof,
-                            nqpts, interp, grad, qref,
-                            qweight, basis); CeedChk(ierr);
+                             nqpts, interp, grad, qref,
+                             qweight, basis); CeedChk(ierr);
     return 0;
   }
 
@@ -689,7 +689,7 @@ int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *numcomp) {
 **/
 int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P1d) {
   if (!basis->tensorbasis) return CeedError(basis->ceed, 1,
-                                      "Cannot supply P1d for non-tensor basis");
+                                    "Cannot supply P1d for non-tensor basis");
   *P1d = basis->P1d;
   return 0;
 }
@@ -706,7 +706,7 @@ int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P1d) {
 **/
 int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q1d) {
   if (!basis->tensorbasis) return CeedError(basis->ceed, 1,
-                                      "Cannot supply Q1d for non-tensor basis");
+                                    "Cannot supply Q1d for non-tensor basis");
   *Q1d = basis->Q1d;
   return 0;
 }
@@ -815,6 +815,21 @@ int CeedBasisGetGrad(CeedBasis basis, CeedScalar* *grad) {
 **/
 int CeedBasisGetData(CeedBasis basis, void* *data) {
   *data = basis->data;
+  return 0;
+}
+
+/**
+  @brief Set backend data of a CeedBasis
+
+  @param[out] basis CeedBasis
+  @param data       Data to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisSetData(CeedBasis basis, void* *data) {
+  basis->data = *data;
   return 0;
 }
 

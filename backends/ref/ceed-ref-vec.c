@@ -99,21 +99,29 @@ static int CeedVectorDestroy_Ref(CeedVector vec) {
   ierr = CeedVectorGetData(vec, (void*)&impl); CeedChk(ierr);
 
   ierr = CeedFree(&impl->array_allocated); CeedChk(ierr);
-  ierr = CeedFree(&vec->data); CeedChk(ierr);
+  ierr = CeedFree(&impl); CeedChk(ierr);
   return 0;
 }
 
 int CeedVectorCreate_Ref(CeedInt n, CeedVector vec) {
   int ierr;
   CeedVector_Ref *impl;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
 
-  vec->SetArray = CeedVectorSetArray_Ref;
-  vec->GetArray = CeedVectorGetArray_Ref;
-  vec->GetArrayRead = CeedVectorGetArrayRead_Ref;
-  vec->RestoreArray = CeedVectorRestoreArray_Ref;
-  vec->RestoreArrayRead = CeedVectorRestoreArrayRead_Ref;
-  vec->Destroy = CeedVectorDestroy_Ref;
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArray",
+                                CeedVectorSetArray_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArray",
+                                CeedVectorGetArray_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayRead",
+                                CeedVectorGetArrayRead_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArray",
+                                CeedVectorRestoreArray_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayRead",
+                                CeedVectorRestoreArrayRead_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Destroy",
+                                CeedVectorDestroy_Ref); CeedChk(ierr);
   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
-  vec->data = impl;
+  ierr = CeedVectorSetData(vec, (void*)&impl);
   return 0;
 }

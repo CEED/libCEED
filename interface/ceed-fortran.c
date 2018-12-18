@@ -382,7 +382,7 @@ void fCeedQRFactorization(CeedScalar *mat, CeedScalar *tau, int *m, int *n,
 #define fCeedBasisGetCollocatedGrad \
     FORTRAN_NAME(ceedbasisgetcollocatedgrad, CEEDBASISGETCOLLOCATEDGRAD)
 void fCeedBasisGetCollocatedGrad(int *basis, CeedScalar *colograd1d,
-                                int *err) {
+                                 int *err) {
   *err = CeedBasisGetCollocatedGrad(CeedBasis_dict[*basis], colograd1d);
 }
 
@@ -653,7 +653,7 @@ void fCeedOperatorSetField(int *op, const char *fieldname,
   } else {
     r_ = CeedElemRestriction_dict[*r];
   }
-  
+
   if (*b == FORTRAN_NULL) {
     b_ = NULL;
   } else if (*b == FORTRAN_BASIS_COLLOCATED) {

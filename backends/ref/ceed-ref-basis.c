@@ -21,7 +21,8 @@
 // NOTRANSPOSE: V_ajc = T_jb U_abc
 // TRANSPOSE:   V_ajc = T_bj U_abc
 // If Add != 0, "=" is replaced by "+="
-static int CeedTensorContract_Ref(Ceed ceed, CeedInt A, CeedInt B, CeedInt C, CeedInt J,
+static int CeedTensorContract_Ref(Ceed ceed, CeedInt A, CeedInt B, CeedInt C,
+                                  CeedInt J,
                                   const CeedScalar *restrict t, CeedTransposeMode tmode,
                                   const CeedInt Add,
                                   const CeedScalar *restrict u, CeedScalar *restrict v) {
@@ -212,8 +213,14 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P1d,
                                 const CeedScalar *qref1d,
                                 const CeedScalar *qweight1d,
                                 CeedBasis basis) {
-  basis->Apply = CeedBasisApply_Ref;
-  basis->Destroy = CeedBasisDestroy_Ref;
+  int ierr;
+  Ceed ceed;
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+
+  ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
+                                CeedBasisApply_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
+                                CeedBasisDestroy_Ref); CeedChk(ierr);
   return 0;
 }
 
@@ -224,7 +231,13 @@ int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim,
                           const CeedScalar *qref,
                           const CeedScalar *qweight,
                           CeedBasis basis) {
-  basis->Apply = CeedBasisApply_Ref;
-  basis->Destroy = CeedBasisDestroy_Ref;
+  int ierr;
+  Ceed ceed;
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+
+  ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
+                                CeedBasisApply_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
+                                CeedBasisDestroy_Ref); CeedChk(ierr);
   return 0;
 }

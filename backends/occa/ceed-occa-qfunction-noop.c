@@ -31,17 +31,25 @@ int CeedQFunctionAllocNoOpIn_Occa(CeedQFunction qf, CeedInt Q,
   Ceed_Occa *ceed_data;
   ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
   const occaDevice device = ceed_data->device;
-  const int nIn = qf->numinputfields; assert(nIn<N_MAX_IDX);
+  int nIn;
+  ierr = CeedQFunctionGetNumArgs(qf, &nIn, NULL);
+  assert(nIn<N_MAX_IDX);
   size_t cbytes;
   ierr = CeedQFunctionGetContextSize(qf, &cbytes); CeedChk(ierr);
   const CeedInt bytes = sizeof(CeedScalar);
   const CeedInt dim = 1; // !?
   // ***************************************************************************
   dbg("[CeedQFunction][AllocNoOpIn] nIn=%d",nIn);
+  CeedQFunctionField *inputfields;
+  ierr = CeedQFunctionGetFields(qf, &inputfields, NULL); CeedChk(ierr);
   for (CeedInt i=0; i<nIn; i++) {
-    const CeedEvalMode emode = qf->inputfields[i].emode;
-    const char *name = qf->inputfields[i].fieldname;
-    const CeedInt ncomp = qf->inputfields[i].ncomp;
+    char *name;
+    ierr = CeedQFunctionFieldGetName(inputfields[i], &name); CeedChk(ierr);
+    CeedInt ncomp;
+    ierr = CeedQFunctionFieldGetNumComponents(inputfields[i], &ncomp);
+    CeedChk(ierr);
+    CeedEvalMode emode;
+    ierr = CeedQFunctionFieldGetEvalMode(inputfields[i], &emode); CeedChk(ierr);
     switch(emode) {
     case CEED_EVAL_INTERP:
       dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > INTERP (%d)", name,Q*ncomp);
@@ -108,10 +116,16 @@ int CeedQFunctionAllocNoOpOut_Occa(CeedQFunction qf, CeedInt Q,
   ierr = CeedQFunctionGetNumArgs(qf, NULL, &nOut); CeedChk(ierr);
   assert(nOut<N_MAX_IDX);
   dbg("[CeedQFunction][AllocNoOpOut] nOut=%d",nOut);
+  CeedQFunctionField *outputfields;
+  ierr = CeedQFunctionGetFields(qf, NULL, &outputfields); CeedChk(ierr);
   for (CeedInt i=0; i<nOut; i++) {
-    const char *name = qf->outputfields[i].fieldname;
-    const CeedInt ncomp = qf->outputfields[i].ncomp;
-    const CeedEvalMode emode = qf->outputfields[i].emode;
+    char *name;
+    ierr = CeedQFunctionFieldGetName(outputfields[i], &name); CeedChk(ierr);
+    CeedInt ncomp;
+    ierr = CeedQFunctionFieldGetNumComponents(outputfields[i], &ncomp);
+    CeedChk(ierr);
+    CeedEvalMode emode;
+    ierr = CeedQFunctionFieldGetEvalMode(outputfields[i], &emode); CeedChk(ierr);
     switch(emode) {
     case CEED_EVAL_NONE:
       dbg("[CeedQFunction][AllocOpOut] out \"%s\" NONE (%d)",name,Q*ncomp);
@@ -164,9 +178,14 @@ int CeedQFunctionFillNoOp_Occa(CeedQFunction qf, CeedInt Q,
   ierr = CeedQFunctionGetNumArgs(qf, &nIn, NULL); CeedChk(ierr);
   const CeedInt ilen = iOf7[nIn];
   const CeedInt bytes = sizeof(CeedScalar);
+  CeedQFunctionField *inputfields;
+  ierr = CeedQFunctionGetFields(qf, &inputfields, NULL); CeedChk(ierr);
   for (CeedInt i=0; i<nIn; i++) {
-    const CeedEvalMode emode = qf->inputfields[i].emode;
-    const CeedInt ncomp = qf->inputfields[i].ncomp;
+    CeedInt ncomp;
+    ierr = CeedQFunctionFieldGetNumComponents(inputfields[i], &ncomp);
+    CeedChk(ierr);
+    CeedEvalMode emode;
+    ierr = CeedQFunctionFieldGetEvalMode(inputfields[i], &emode); CeedChk(ierr);
     const CeedInt length = iOf7[i+1]-iOf7[i];
     switch (emode) {
     case CEED_EVAL_INTERP:

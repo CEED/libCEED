@@ -48,7 +48,7 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
     ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
 
     if (!delegate)
-    return CeedError(ceed, 1, "Backend does not support VecCreate");
+      return CeedError(ceed, 1, "Backend does not support VecCreate");
 
     ierr = CeedVectorCreate(delegate, length, vec); CeedChk(ierr);
     return 0;
@@ -325,6 +325,21 @@ int CeedVectorGetState(CeedVector vec, uint64_t *state) {
 **/
 int CeedVectorGetData(CeedVector vec, void* *data) {
   *data = vec->data;
+  return 0;
+}
+
+/**
+  @brief Set the backend data of a CeedVector
+
+  @param[out] vec     CeedVector to retrieve state
+  @paramdata          Data to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedVectorSetData(CeedVector vec, void* *data) {
+  vec->data = *data;
   return 0;
 }
 
