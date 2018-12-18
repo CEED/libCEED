@@ -275,7 +275,7 @@ int main(int argc, char **argv) {
   PetscOptionsEList("-problem", "Problem to solve", NULL, problemtypes,2,
                     problemtypes[0], &problemtype, NULL); CHKERRQ(ierr);
   outputfreq = 10;
-  ierr = PetscOptionsInt("-frequency", "Frequency of output, in number of steps",
+  ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
   degree = 3;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
