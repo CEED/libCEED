@@ -278,6 +278,22 @@ int CeedQFunctionGetContext(CeedQFunction qf, void* *ctx) {
 }
 
 /**
+  @brief Determine if Fortran interface was used
+
+  @param qf                  CeedQFunction
+  @param[out] fortranstatus  Variable to store Fortran status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionGetFortranStatus(CeedQFunction qf, bool *fortranstatus) {
+  *fortranstatus = qf->fortranstatus;
+  return 0;
+}
+
+/**
   @brief Get backend data of a CeedQFunction
 
   @param qf              CeedQFunction
