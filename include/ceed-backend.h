@@ -42,26 +42,6 @@ CEED_INTERN int CeedFree(void *p);
 #define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
 #define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
-typedef struct {
-  void *innerctx;
-  size_t innerctxsize;
-  void (*f)(void *ctx, int *nq,
-            const CeedScalar *u,const CeedScalar *u1,
-            const CeedScalar *u2,const CeedScalar *u3,
-            const CeedScalar *u4,const CeedScalar *u5,
-            const CeedScalar *u6,const CeedScalar *u7,
-            const CeedScalar *u8,const CeedScalar *u9,
-            const CeedScalar *u10,const CeedScalar *u11,
-            const CeedScalar *u12,const CeedScalar *u13,
-            const CeedScalar *u14,const CeedScalar *u15,
-            CeedScalar *v,CeedScalar *v1,CeedScalar *v2,
-            CeedScalar *v3,CeedScalar *v4,CeedScalar *v5,
-            CeedScalar *v6,CeedScalar *v7,CeedScalar *v8,
-            CeedScalar *v9, CeedScalar *v10,CeedScalar *v11,
-            CeedScalar *v12,CeedScalar *v13,CeedScalar *v14,
-            CeedScalar *v15, int *err);
-} fContext;
-
 CEED_EXTERN int CeedRegister(const char *prefix,
                              int (*init)(const char *, Ceed), unsigned int priority);
 
@@ -132,6 +112,7 @@ CEED_EXTERN int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize);
 CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, void* *ctx);
 CEED_EXTERN int CeedQFunctionGetFortranStatus(CeedQFunction qf,
     bool *fortranstatus);
+CEED_EXTERN int CeedQFunctionGetFortranContext(CeedQFunction qf, void* *ctx);
 CEED_EXTERN int CeedQFunctionGetData(CeedQFunction qf, void* *data);
 CEED_EXTERN int CeedQFunctionSetData(CeedQFunction qf, void* *data);
 
