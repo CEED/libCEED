@@ -16,6 +16,7 @@ c-----------------------------------------------------------------------
       include 'ceedf.h'
 
       integer ceed,err
+      integer input,output,weights
       integer p,q,d
       parameter(p=6)
       parameter(q=4)
@@ -25,12 +26,13 @@ c-----------------------------------------------------------------------
       real*8 qweight(q)
       real*8 interp(p*q)
       real*8 grad(d*p*q)
-      real*8 weights(q)
       real*8 xr(d*p)
-      real*8 input(p)
-      real*8 output(q)
+      real*8 iinput(p)
+      real*8 ooutput(q)
+      real*8 wweights(q)
       real*8 val,diff
       real*8 x1,x2
+      integer*8 offset1,offset2
 
       integer b
 
@@ -44,6 +46,7 @@ c-----------------------------------------------------------------------
       call buildmats(qref,qweight,interp,grad)
 
       call ceedinit(trim(arg)//char(0),ceed,err)
+
       call ceedbasiscreateh1(ceed,ceed_triangle,1,p,q,
      $  interp,grad,qref,qweight,b,err)
 
@@ -51,18 +54,32 @@ c-----------------------------------------------------------------------
         x1=xr(0*p+i)
         x2=xr(1*p+i)
         call feval(x1,x2,val)
-        input(i)=val
+        iinput(i)=val
       enddo
+
+      call ceedvectorcreate(ceed,p,input,err)
+      call ceedvectorsetarray(input,ceed_mem_host,ceed_use_pointer,
+     $  iinput,err)
+      call ceedvectorcreate(ceed,q,output,err)
+      call ceedvectorsetvalue(output,0.d0,err)
+      call ceedvectorcreate(ceed,q,weights,err)
+      call ceedvectorsetvalue(weights,0.d0,err)
 
       call ceedbasisapply(b,1,ceed_notranspose,ceed_eval_interp,
      $  input,output,err)
       call ceedbasisapply(b,1,ceed_notranspose,ceed_eval_weight,
      $  ceed_null,weights,err)
 
+      call ceedvectorgetarrayread(output,ceed_mem_host,ooutput,
+     $  offset1,err)
+      call ceedvectorgetarrayread(weights,ceed_mem_host,wweights,
+     $  offset2,err)
       val=0
       do i=1,q
-        val=val+output(i)*weights(i)
+        val=val+ooutput(i+offset1)*wweights(i+offset2)
       enddo
+      call ceedvectorrestorearrayread(output,ooutput,offset1,err)
+      call ceedvectorrestorearrayread(weights,wweights,offset2,err)
 
       diff=val-17.d0/24.d0
       if (abs(diff)>1.0d-10) then
@@ -70,6 +87,9 @@ c-----------------------------------------------------------------------
      $  '[',i,'] ',val,' != ',17.d0/24.d0
       endif
 
+      call ceedvectordestroy(input,err)
+      call ceedvectordestroy(output,err)
+      call ceedvectordestroy(weights,err)
       call ceedbasisdestroy(b,err)
       call ceeddestroy(ceed,err)
 

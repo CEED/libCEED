@@ -222,7 +222,7 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
 // *****************************************************************************
 static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
                                CeedTransposeMode tmode, CeedEvalMode emode,
-                               const CeedScalar *u, CeedScalar *v) {
+                               CeedVector U, CeedVector V) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
@@ -234,6 +234,15 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   nqpt *= ncomp;
   const CeedInt transpose = (tmode == CEED_TRANSPOSE);
+  const CeedScalar *u;
+  CeedScalar *v;
+  if (U) {
+    ierr = CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u); CeedChk(ierr);
+  } else if (emode != CEED_EVAL_WEIGHT) {
+    return CeedError(ceed, 1,
+                     "An input vector is required for this CeedEvalMode");
+  }
+  ierr = CeedVectorGetArray(V, CEED_MEM_HOST, &v); CeedChk(ierr);
 
   if (nelem != 1)
     return CeedError(ceed, 1,
@@ -268,8 +277,6 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
       pre /= P;
       post *= Q;
     }
-    if (!transpose) v += nqpt;
-    else u += nqpt;
   }
   // ***************************************************************************
   if (emode & CEED_EVAL_GRAD) {
@@ -294,6 +301,9 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
       if (!transpose) v += nqpt;
       else u += nqpt;
     }
+
+    if (!transpose) v -= nqpt*dim;
+    else u -= nqpt*dim;
   }
   // ***************************************************************************
   if (emode & CEED_EVAL_WEIGHT) {
@@ -317,6 +327,10 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
       }
     }
   }
+  if (U) {
+    ierr = CeedVectorRestoreArrayRead(U, &u); CeedChk(ierr);
+  }
+  ierr = CeedVectorRestoreArray(V, &v); CeedChk(ierr);
   return 0;
 }
 
