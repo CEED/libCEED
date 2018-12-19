@@ -133,7 +133,7 @@ struct User_ {
   char outputfolder[PETSC_MAX_PATH_LEN];
 };
 
-// This is the RHS of the DAE, given as u_t = G(t,u)
+// This is the RHS of the ODE, given as u_t = G(t,u)
 // This function takes in a state vector Q and writes into G
 static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   PetscErrorCode ierr;
@@ -166,7 +166,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   ierr = VecZeroEntries(G); CHKERRQ(ierr);
 
   // Global-to-global
-  // G on the boundary = (BC - Q)
+  // G on the boundary = BC
   ierr = VecScatterBegin(user->gtogD, user->BC, G, INSERT_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
   ierr = VecScatterEnd(user->gtogD, user->BC, G, INSERT_VALUES, SCATTER_FORWARD);
@@ -179,7 +179,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   CHKERRQ(ierr);
 
   // Inverse of the lumped mass matrix
-  ierr = VecPointwiseMult(G,G,user->M); // Minv
+  ierr = VecPointwiseMult(G,G,user->M); // M is Minv
   CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -239,8 +239,9 @@ int main(int argc, char **argv) {
   TSAdapt adapt;
   User user;
   char ceedresource[4096] = "/cpu/self";
-  const char *problemtypes[2] = {"advection", "navier_stokes"};
-  PetscInt degree, qextra, localdof, localelem, lsize, outputfreq, problemtype,
+  PetscFunctionList icsflist, qflist;
+  char problemtype[256] = "advection";
+  PetscInt degree, qextra, localdof, localelem, lsize, outputfreq,
            steps, melem[3], mdof[3], p[3], irank[3], ldof[3];
   PetscMPIInt size, rank;
   PetscScalar ftime;
@@ -264,6 +265,12 @@ int main(int argc, char **argv) {
   // Allocate PETSc context
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
 
+  // Set up problem type command line option
+  PetscFunctionListAdd(&icsflist, "advection", ICsAdvection);
+  PetscFunctionListAdd(&icsflist, "navier_stokes", ICsNS);
+  PetscFunctionListAdd(&qflist, "advection", Advection);
+  PetscFunctionListAdd(&qflist, "navier_stokes", NS);
+
   // Parse command line options
   comm = PETSC_COMM_WORLD;
   ierr = PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED",
@@ -271,9 +278,8 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
-  problemtype = 0;
-  PetscOptionsEList("-problem", "Problem to solve", NULL, problemtypes,2,
-                    problemtypes[0], &problemtype, NULL); CHKERRQ(ierr);
+  PetscOptionsFList("-problem", "Problem to solve", NULL, icsflist,
+                    problemtype, problemtype, sizeof problemtype, NULL);
   outputfreq = 10;
   ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
@@ -558,25 +564,27 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_mass, "v", 5, CEED_EVAL_INTERP);
 
   // Create the Q-function that sets the ICs of the operator
-  if (problemtype == 0) {
-    CeedQFunctionCreateInterior(ceed, 1,
-                                ICsAdvection, __FILE__ ":ICsAdvection", &qf_ics);
-  } else {
-    CeedQFunctionCreateInterior(ceed, 1,
-                                ICsNS, __FILE__ ":ICsNS", &qf_ics);
-  }
+  void (*icsfp)(void);
+  PetscFunctionListFind(icsflist, problemtype, &icsfp);
+  if (!icsfp)
+      return CeedError(ceed, 1, "Function not found in the list");
+  char str[256] = __FILE__":ICs";
+  strcat(str, problemtype);
+  CeedQFunctionCreateInterior(ceed, 1,
+                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))icsfp, str, &qf_ics);
   CeedQFunctionAddInput(qf_ics, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", 5, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_ics, "coords", 3, CEED_EVAL_NONE);
 
   // Create the Q-function that defines the action of the operator
-  if (problemtype == 0) {
-    CeedQFunctionCreateInterior(ceed, 1,
-                                Advection, __FILE__ ":Advection", &qf);
-  } else {
-    CeedQFunctionCreateInterior(ceed, 1,
-                                NS, __FILE__ ":NS", &qf);
-  }
+  void (*fp)(void);
+  PetscFunctionListFind(qflist, problemtype, &fp);
+  if (!fp)
+      return CeedError(ceed, 1, "Function not found in the list");
+  strcpy(str, __FILE__":");
+  strcat(str, problemtype);
+  CeedQFunctionCreateInterior(ceed, 1,
+                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))fp, str, &qf);
   CeedQFunctionAddInput(qf, "q", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf, "dq", 5, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf, "qdata", 16, CEED_EVAL_NONE);
