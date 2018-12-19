@@ -137,8 +137,10 @@ struct CeedQFunction_private {
   void *data;     /* backend data */
 };
 
+/// Struct to handle the context data to use the Fortran QFunction stub
+/// @ingroup CeedQFunction
 typedef struct {
-  void *innerctx;
+  CeedScalar *innerctx;
   size_t innerctxsize;
   void (*f)(void *ctx, int *nq,
             const CeedScalar *u,const CeedScalar *u1,
