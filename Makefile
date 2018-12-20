@@ -33,6 +33,9 @@ ifneq ($(wildcard ../mfem/libmfem.*),)
   MFEM_DIR?=../mfem
 endif
 
+# XSMM_DIR env variable should point to XSMM master (github.com/hfp/libxsmm)
+XSMM_DIR ?= ../libxsmm
+
 # OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
 OCCA_DIR ?= ../occa
 
@@ -125,6 +128,7 @@ cuda.c     := $(sort $(wildcard backends/cuda/*.c))
 cuda.cu    := $(sort $(wildcard backends/cuda/*.cu))
 blocked.c  := $(sort $(wildcard backends/blocked/*.c))
 avx.c      := $(sort $(wildcard backends/avx/*.c))
+xsmm.c     := $(sort $(wildcard backends/xsmm/*.c))
 occa.c     := $(sort $(wildcard backends/occa/*.c))
 magma_preprocessor := python backends/magma/gccm.py
 magma_pre_src  := $(filter-out %_tmp.c, $(wildcard backends/magma/ceed-*.c))
@@ -184,6 +188,7 @@ info:
 	$(info V          = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info ------------------------------------)
 	$(info AVX_STATUS = $(AVX_STATUS)$(call backend_status,/cpu/self/avx))
+	$(info XSMM_DIR   = $(XSMM_DIR)$(call backend_status,/cpu/xsmm/serial /cpu/xsmm/blocked))
 	$(info OCCA_DIR   = $(OCCA_DIR)$(call backend_status,/cpu/occa /gpu/occa /omp/occa))
 	$(info MAGMA_DIR  = $(MAGMA_DIR)$(call backend_status,/gpu/magma))
 	$(info CUDA_DIR   = $(CUDA_DIR)$(call backend_status,/gpu/magma))
@@ -216,6 +221,15 @@ ifeq ($(AVX),1)
   AVX_STATUS = Enabled
   libceed.c += $(avx.c)
   BACKENDS += /cpu/self/avx
+endif
+
+# libXSMM Backends
+ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
+  $(libceed) : LDFLAGS += -L$(XSMM_DIR)/lib -Wl,-rpath,$(abspath $(XSMM_DIR)/lib)
+  $(libceed) : LDLIBS += -lxsmm -ldl -lblas
+  libceed.c += $(xsmm.c)
+  $(xsmm.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(XSMM_DIR)/include
+  BACKENDS += /cpu/self/xsmm/serial /cpu/self/xsmm/blocked
 endif
 
 # OCCA Backends

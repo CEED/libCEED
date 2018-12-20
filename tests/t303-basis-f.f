@@ -105,7 +105,7 @@
           call eval(dimn,xxx,fx)
 
           if(dabs(uuq(i+offset2)-fx) > 1.0D-4) then
-          write(*,*) uuq(i+offset2),' not eqaul to ',fx,dimn,i
+          write(*,*) uuq(i+offset2),' not equal to ',fx,dimn,i
           endif
         enddo
         call ceedvectorrestorearrayread(xq,xxq,offset1,err)

@@ -64,6 +64,7 @@ install:
         git clone --depth 1 https://github.com/mfem/mfem.git;
     fi
   - make -C mfem -j2 serial MFEM_CXXFLAGS=-O
+  - export MFEM_DIR=$HOME/install/mfem
   - if [[ -d occa ]]; then
         git -C occa pull --allow-unrelated-histories;
         if [[ $? -eq 0 ]]; then
@@ -78,8 +79,17 @@ install:
         && git -C occa reset --hard $OCCA_HEAD;
     fi
   - make -C occa -j2
+  - export OCCA_DIR=$HOME/install/occa
+  - export XSMM_INSTALL=$HOME/install/libxsmm-1.10
+  - test -s "$XSMM_INSTALL/lib/libxsmm.pc"
+        || ( curl -L https://github.com/hfp/libxsmm/archive/1.10.tar.gz > libxsmm-1.10.tar.gz
+        && tar xf libxsmm-1.10.tar.gz
+        && rm libxsmm-1.10.tar.gz
+        && cd libxsmm
+        && make )
+  - export XSMM_DIR=$XSMM_INSTALL
   - cd $CURR_DIR
-  - export OCCA_DIR=$HOME/install/occa MFEM_DIR=$HOME/install/mfem PETSC_INSTALL=$HOME/install/petsc-3.10.0
+  - export PETSC_INSTALL=$HOME/install/petsc-3.10.0
   - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
         || ( curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.10.0.tar.gz
         && tar xf petsc-lite-3.10.0.tar.gz
