@@ -93,8 +93,10 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec,
     CeedChk_Cu(ceed, ierr);
     data->d_array = data->d_array_allocated;
 
-    if (array) cudaMemcpy(data->d_array, array, bytes(vec),
-                            cudaMemcpyDeviceToDevice);
+    if (array){ 
+      ierr = cudaMemcpy(data->d_array, array, bytes(vec), cudaMemcpyDeviceToDevice);
+      CeedChk_Cu(ceed, ierr);
+    }
     break;
   case CEED_OWN_POINTER:
     data->d_array_allocated = array;
@@ -169,6 +171,9 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
       data->d_array = data->d_array_allocated;
     }
     data->memState = DEVICE_SYNC;
+    ierr = DeviceSetValue(data->d_array, length, val);
+    CeedChk(ierr);
+    break;
   case DEVICE_SYNC:
     ierr = DeviceSetValue(data->d_array, length, val);
     CeedChk(ierr);

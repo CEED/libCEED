@@ -204,8 +204,27 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
     switch (cmode) {
     case CEED_OWN_POINTER:
       impl->h_ind_allocated = (CeedInt *)indices;
+      impl->h_ind = (CeedInt *)indices;
+      if (indices != NULL) {
+        ierr = cudaMalloc( (void**)&impl->d_ind, size * sizeof(CeedInt));
+        CeedChk_Cu(ceed, ierr);
+        impl->d_ind_allocated = impl->d_ind;//We own the device memory
+        ierr = cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt),
+                          cudaMemcpyHostToDevice);
+        CeedChk_Cu(ceed, ierr);
+      }
+      break;
     case CEED_USE_POINTER:
       impl->h_ind = (CeedInt *)indices;
+      if (indices != NULL) {
+        ierr = cudaMalloc( (void**)&impl->d_ind, size * sizeof(CeedInt));
+        CeedChk_Cu(ceed, ierr);
+        impl->d_ind_allocated = impl->d_ind;//We own the device memory
+        ierr = cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt),
+                          cudaMemcpyHostToDevice);
+        CeedChk_Cu(ceed, ierr);
+      }
+      break;
     case CEED_COPY_VALUES:
       if (indices != NULL) {
         ierr = cudaMalloc( (void**)&impl->d_ind, size * sizeof(CeedInt));
@@ -215,6 +234,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
                           cudaMemcpyHostToDevice);
         CeedChk_Cu(ceed, ierr);
       }
+      break;
     }
   } else if (mtype == CEED_MEM_DEVICE) {
     switch (cmode) {
