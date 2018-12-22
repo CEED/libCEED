@@ -186,10 +186,10 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
   CeedElemRestriction_Cuda *impl;
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  CeedInt nelem, elemsize;
+  CeedInt ndof, nelem, elemsize;
+  ierr = CeedElemRestrictionGetNumDoF(r, &ndof); CeedChk(ierr);
   ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
-  CeedInt size = nelem * elemsize;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   impl->h_ind           = NULL;
@@ -209,28 +209,28 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
     case CEED_COPY_VALUES:
       break;
     }
-    ierr = cudaMalloc( (void**)&impl->d_ind, size * sizeof(CeedInt));
+    ierr = cudaMalloc( (void**)&impl->d_ind, ndof * sizeof(CeedInt));
     CeedChk_Cu(ceed, ierr);
     impl->d_ind_allocated = impl->d_ind;//We own the device memory
     if (indices != NULL) {
-      ierr = cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt),
+      ierr = cudaMemcpy(impl->d_ind, indices, ndof * sizeof(CeedInt),
                         cudaMemcpyHostToDevice);
       CeedChk_Cu(ceed, ierr);
     } else {
-      ierr = initIdIndices(impl->d_ind, size); CeedChk(ierr);
+      ierr = initIdIndices(impl->d_ind, ndof); CeedChk(ierr);
     }
   } else if (mtype == CEED_MEM_DEVICE) {
     switch (cmode) {
     case CEED_COPY_VALUES:
-      ierr = cudaMalloc( (void**)&impl->d_ind, size * sizeof(CeedInt));
+      ierr = cudaMalloc( (void**)&impl->d_ind, ndof * sizeof(CeedInt));
       CeedChk_Cu(ceed, ierr);
       impl->d_ind_allocated = impl->d_ind;//We own the device memory
       if (indices != NULL) {
-        ierr = cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt),
+        ierr = cudaMemcpy(impl->d_ind, indices, ndof * sizeof(CeedInt),
                           cudaMemcpyDeviceToDevice);
         CeedChk_Cu(ceed, ierr);
       } else {
-        ierr = initIdIndices(impl->d_ind, size); CeedChk(ierr);
+        ierr = initIdIndices(impl->d_ind, ndof); CeedChk(ierr);
       }
       break;
     case CEED_OWN_POINTER:
@@ -243,9 +243,8 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
   } else
     return CeedError(ceed, 1, "Only MemType = HOST or DEVICE supported");
 
-  CeedInt ncomp, ndof;
+  CeedInt ncomp;
   ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetNumDoF(r, &ndof); CeedChk(ierr);
   ierr = compile(ceed, restrictionkernels, &impl->module, 3,
                  "RESTRICTION_ELEMSIZE", elemsize,
                  "RESTRICTION_NCOMP", ncomp,
