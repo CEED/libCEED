@@ -331,6 +331,6 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
 
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
   ierr = CeedVectorSetData(vec, (void*)&data); CeedChk(ierr);
-  data->memState = NONE_SYNC; //Synchronized with the Device by default
+  data->memState = NONE_SYNC;
   return 0;
 }
