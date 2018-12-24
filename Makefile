@@ -93,6 +93,9 @@ NPROCS := $(shell getconf _NPROCESSORS_ONLN)
 MFLAGS := -j $(NPROCS) --warn-undefined-variables \
                        --no-print-directory --no-keep-going
 
+# Benchmark options
+BENCHMARK_EX := petsc-bp1
+
 PROVE ?= prove
 PROVE_OPTS ?= -j $(NPROCS)
 DARWIN := $(filter Darwin,$(shell uname -s))
@@ -334,6 +337,11 @@ prove-all : $(alltests)
 
 examples : $(examples)
 
+# Benchmarks
+benchmark-examples: $(libceed) $(petscexamples)
+benchmarks: 
+	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(BENCHMARK_EX).sh
+
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)
 $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 .INTERMEDIATE : $(OBJDIR)/ceed.pc
@@ -358,7 +366,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(if $(OCCA_ON),$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/")
 
-.PHONY : cln clean print test tst prove prv examples style install doc okl-cache okl-clear
+.PHONY : benchmarks cln clean print test tst prove prv examples style install doc okl-cache okl-clear
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
@@ -367,6 +375,7 @@ cln clean :
 	$(MAKE) -C examples/petsc clean
 	(cd examples/nek5000 && bash make-nek-examples.sh clean)
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
+	$(RM) -rf benchmarks/*output.txt
 
 distclean : clean
 	$(RM) -r doc/html
