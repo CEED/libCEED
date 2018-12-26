@@ -169,7 +169,7 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
 // }
 
 
-__device__ void weight1d(const CeedScalar * qweight1d, CeedScalar* w){
+__device__ void weight1d(const CeedInt nelem, const CeedScalar * qweight1d, CeedScalar* w){
   CeedScalar w1d[BASIS_Q1D];
   for (int i = 0; i < BASIS_Q1D; ++i)
   {
@@ -186,7 +186,7 @@ __device__ void weight1d(const CeedScalar * qweight1d, CeedScalar* w){
   }
 }
 
-__device__ void weight2d(const CeedScalar * qweight1d, CeedScalar* w){
+__device__ void weight2d(const CeedInt nelem, const CeedScalar * qweight1d, CeedScalar* w){
   CeedScalar w1d[BASIS_Q1D];
   for (int i = 0; i < BASIS_Q1D; ++i)
   {
@@ -206,7 +206,7 @@ __device__ void weight2d(const CeedScalar * qweight1d, CeedScalar* w){
   }
 }
 
-__device__ void weight3d(const CeedScalar * qweight1d, CeedScalar* w){
+__device__ void weight3d(const CeedInt nelem, const CeedScalar * qweight1d, CeedScalar* w){
   CeedScalar w1d[BASIS_Q1D];
   for (int i = 0; i < BASIS_Q1D; ++i)
   {
