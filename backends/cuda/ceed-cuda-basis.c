@@ -158,17 +158,88 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
 //     post *= BASIS_Q1D;
 //   }
 // }
-extern "C" __global__ void weight(const CeedInt nelem,
-                                  const CeedScalar * __restrict__ qweight1d, CeedScalar * __restrict__ v) {
-  CeedScalar r_w = qweight1d[threadIdx.x%BASIS_Q1D];
-  for (int q = blockIdx.x * blockDim.x + threadIdx.x;
-       q < nelem*BASIS_DIM*BASIS_Q1D;
-       q += blockDim.x * gridDim.x) {
-    if (threadIdx.x < BASIS_DIM*BASIS_Q1D) v[q] = r_w;
+// extern "C" __global__ void weight(const CeedInt nelem,
+//                                   const CeedScalar * __restrict__ qweight1d, CeedScalar * __restrict__ v) {
+//   CeedScalar r_w = qweight1d[threadIdx.x%BASIS_Q1D];
+//   for (int q = blockIdx.x * blockDim.x + threadIdx.x;
+//        q < nelem*BASIS_DIM*BASIS_Q1D;
+//        q += blockDim.x * gridDim.x) {
+//     if (threadIdx.x < BASIS_DIM*BASIS_Q1D) v[q] = r_w;
+//   }
+// }
+
+
+__device__ void weight1d(const CeedScalar * qweight1d, CeedScalar* w){
+  CeedScalar w1d[BASIS_Q1D];
+  for (int i = 0; i < BASIS_Q1D; ++i)
+  {
+    w1d[i] = qweight1d[i];
+  }
+  for (int e = blockIdx.x * blockDim.x + threadIdx.x;
+       e < nelem;
+       e += blockDim.x * gridDim.x) {
+    for (int i = 0; i < BASIS_Q1D; ++i)
+    {
+      const int ind = e + i*nelem;
+      w[ind] = w1d[i];
+    }
   }
 }
 
-                                  );
+__device__ void weight2d(const CeedScalar * qweight1d, CeedScalar* w){
+  CeedScalar w1d[BASIS_Q1D];
+  for (int i = 0; i < BASIS_Q1D; ++i)
+  {
+    w1d[i] = qweight1d[i];
+  }
+  for (int e = blockIdx.x * blockDim.x + threadIdx.x;
+       e < nelem;
+       e += blockDim.x * gridDim.x) {
+    for (int i = 0; i < BASIS_Q1D; ++i)
+    {
+      for (int j = 0; j < BASIS_Q1D; ++j)
+      {
+        const int ind = e + i*nelem + j*BASIS_Q1D*nelem;
+        w[ind] = w1d[i]*w1d[j];
+      }
+    }
+  }
+}
+
+__device__ void weight3d(const CeedScalar * qweight1d, CeedScalar* w){
+  CeedScalar w1d[BASIS_Q1D];
+  for (int i = 0; i < BASIS_Q1D; ++i)
+  {
+    w1d[i] = qweight1d[i];
+  }
+  for (int e = blockIdx.x * blockDim.x + threadIdx.x;
+       e < nelem;
+       e += blockDim.x * gridDim.x) {
+    for (int i = 0; i < BASIS_Q1D; ++i)
+    {
+      for (int j = 0; j < BASIS_Q1D; ++j)
+      {
+        for (int k = 0; k < BASIS_Q1D; ++k)
+        {
+          const int ind = e + i*nelem + j*BASIS_Q1D*nelem + k*BASIS_Q1D*BASIS_Q1D*nelem;
+          w[ind] = w1d[i]*w1d[j]*w1d[k];
+        }
+      }
+    }
+  }
+}
+
+extern "C" __global__ void weight(const CeedInt nelem, const CeedScalar * __restrict__ qweight1d, CeedScalar * __restrict__ v){ 
+  if (BASIS_DIM==1) {
+    weight1d(nelem, qweight1d, w);
+  } else if (BASIS_DIM==2) {
+    weight2d(nelem, qweight1d, w);
+  } else if (BASIS_DIM==3) {
+    weight3d(nelem, qweight1d, w);
+  }
+}
+
+);
 
 int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
                         CeedTransposeMode tmode,
@@ -202,7 +273,11 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
     ierr = run_kernel(ceed, data->grad, nelem, blocksize, gradargs); CeedChk(ierr);
   } else if (emode == CEED_EVAL_WEIGHT) {
     void *weightargs[] = {(void*)&nelem, (void*)&data->d_qweight1d, &d_v};
-    ierr = run_kernel(ceed, data->weight, nelem, basis->Q, weightargs);
+    const int blocksize = 32;
+    int gridsize = nelem/32;
+    if (blocksize * gridsize < nelem)
+      gridsize += 1;
+    ierr = run_kernel(ceed, data->weight, gridsize, blocksize, weightargs);
     CeedChk(ierr);
   }
 
