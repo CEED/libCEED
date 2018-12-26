@@ -84,7 +84,7 @@ or, using the `prove` tool distributed with Perl (recommended)
 
 libCEED comes with several examples of its usage, ranging from standalone C
 codes in the `/examples/ceed` directory to examples based on external packages,
-such as MFEM, PETSc and Nek5000.
+such as MFEM, PETSc, and Nek5000. Nek5000 v18.0 or greater is required.
 
 To build the examples, set the `MFEM_DIR`, `PETSC_DIR` and `NEK5K_DIR` variables
 and run:
