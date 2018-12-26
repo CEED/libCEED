@@ -231,11 +231,11 @@ __device__ void weight3d(const CeedScalar * qweight1d, CeedScalar* w){
 
 extern "C" __global__ void weight(const CeedInt nelem, const CeedScalar * __restrict__ qweight1d, CeedScalar * __restrict__ v){ 
   if (BASIS_DIM==1) {
-    weight1d(nelem, qweight1d, w);
+    weight1d(nelem, qweight1d, v);
   } else if (BASIS_DIM==2) {
-    weight2d(nelem, qweight1d, w);
+    weight2d(nelem, qweight1d, v);
   } else if (BASIS_DIM==3) {
-    weight3d(nelem, qweight1d, w);
+    weight3d(nelem, qweight1d, v);
   }
 }
 
