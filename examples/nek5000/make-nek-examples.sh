@@ -77,12 +77,12 @@ for ex in "${EXAMPLES[@]}"; do
 make
   # makenek appends generated lines in SIZE, which we don't want versioned
   # So we copy SIZE.in to SIZE and use that with Nek5000. Once copied,
-  # user can reuse the SIZE file till he clean the examples directory.
+  # user can reuse the SIZE file until we clean the examples directory.
   if [[ ! -f SIZE ]]; then
     cp SIZE.in SIZE
   fi
 
-  ./makenek $ex 2>&1 >> $ex.build.log
+  ./makenek $ex >> $ex.build.log 2>&1
 
   if [[ ! -f ./nek5000 ]]; then
     echo "  Building $ex failed. See $ex.build.log for details."

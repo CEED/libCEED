@@ -22,10 +22,10 @@
 MPI=0
 
 # Make examples
-(export FC CC MPI && ./make-nek-examples.sh)
+(export FC CC MPI NEK5K_DIR && ./make-nek-examples.sh)
 
 # Build boxes
-(export FC CC MPI && ./generate-boxes.sh 6 6)
+(export FC CC MPI NEK5K_DIR && ./generate-boxes.sh 6 6)
 
 # Copy
 cp run-nek-example.sh ../../build/nek-bp1
