@@ -46,6 +46,7 @@ options:
    -c|-ceed     Ceed backend to be used for the run (optional, default: /cpu/self)
    -e|-example  Example name (optional, default: bp1)
    -n|-np       Specify number of MPI ranks for the run (optional, default: 1)
+   -t|-test     Run in test mode
    -b|-box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
 
 Example:
@@ -91,8 +92,11 @@ if [[ -z "${nek_box}" ]]; then
 fi
 
 for nek_ex in "${nek_examples[@]}"; do
-  if [[ ! ${nek_test}=="test" ]]; then
-    echo "Running Nek5000 Example: $nek_ex"
+  if [[ ${nek_test}=="test" ]]; then
+    nek_ex="build/"${nek_ex}
+    NEK_BOX_DIR="build/boxes"
+  else
+    echo "Running Nek5000 Example: $nek_ex"    
   fi
   if [[ ! -f ${nek_ex} ]]; then
     echo "  Example ${nek_ex} does not exist. Build it with make-nek-examples.sh"
@@ -109,17 +113,23 @@ for nek_ex in "${nek_examples[@]}"; do
   rm -f ioinfo
   mv ${nek_ex}.log.${nek_np}.b${nek_box} ${nek_ex}.log1.${nek_np}.b${nek_box} 2>/dev/null
 
-  ${MPIEXEC:-mpiexec} -np ${nek_np} ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.log.${nek_np}.b${nek_box}
-  wait $!
+  if [[ ${nek_test}=="test" ]]; then
+      ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.log.${nek_np}.b${nek_box}
+    wait $!
+  else
+    ${MPIEXEC:-mpiexec} -np ${nek_np} ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.log.${nek_np}.b${nek_box}
+    wait $!
+  fi
 
   if [[ ! ${nek_test}=="test" ]]; then
     echo "  Run finished. Output was written to ${nek_ex}.log.${nek_np}.b${nek_box}"
   fi
-
-  if [[ $nek_test=="test" ]]; then
+  if [[ ${nek_test}=="test" ]]; then
     status=$(grep "ERROR IS TOO LARGE" ${nek_ex}.log*)
-    if [[ $status ]]; then
-      nek_test_rst = "FAIL"
+    if [[ ${status} ]]; then
+      nek_test_rst="FAIL"
+    else
+      rm -f ${nek_ex}.log*
     fi
   fi
 done

@@ -28,10 +28,11 @@ MPI=0
 (export FC CC MPI && ./generate-boxes.sh 6 6)
 
 # Copy
-cp run-nek-test.sh ../../build/nek-bp1
-cp run-nek-test.sh ../../build/nek-bp3
+cp run-nek-example.sh ../../build/nek-bp1
+cp run-nek-example.sh ../../build/nek-bp3
 mv bp1 ../../build/bp1
 mv bp3 ../../build/bp3
+rm -rf ../../build/boxes
 cp -r boxes ../../build/boxes
 
 # Clean
