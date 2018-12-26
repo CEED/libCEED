@@ -16,7 +16,7 @@ C testbed platforms, in support of the nation's exascale computing imperative.
 
 C> @file
 C> Mass operator example using Nek5000
-C TESTARGS -c {ceed_resource} -e bp3 -n 1 -b 6 -test
+C TESTARGS -c {ceed_resource} -e bp1 -n 1 -b 6 -test
 
 C-----------------------------------------------------------------------
       subroutine masssetupf(ctx,q,u1,u2,u3,u4,u5,u6,u7,
@@ -474,7 +474,7 @@ C     (Gauss-Legendre Lobatto mesh).
       common /sxrns/ yr(lxyd),ys(lxyd),yt(lxyd)
      $ ,             zr(lxyd),zs(lxyd),zt(lxyd)
 
-      common /ctmp77/ wd(lzq),zd(lzq)
+      common /ctmp77/ wd(lxd),zd(lxd)
       common /dxmfine/ dxmq(lzq,lzq),dxtmq(lzq,lzq)
 
       integer e
@@ -560,7 +560,7 @@ C     Input: h1,h2                  Output: d
 
       parameter (lxyz=lx1*ly1*lz1,lg=3+3*(ldim-2))
 
-      real*8    d(lx1,ly1,lz1,1),h1(lxyz,1),h2(lxyz,1)
+      real*8    d(lx1,ly1,lz1,lelt),h1(lxyz,lelt),h2(lxyz,lelt)
       integer e
 
       real*8         gf(lg,lx1,ly1,lz1,lelt) ! Equivalence new gf() data
@@ -666,7 +666,9 @@ C     Input: h1,h2                  Output: d
       include 'SIZE'
       include 'TOTAL'
 
-      n     = nelv*lx1*ly1*lz1
+      parameter (n=lx1*ly1*lz1*lelt)
+      real*8 d(n),h1(n),h2(n)
+
       call rone (d,n)
 
       return
@@ -1318,9 +1320,11 @@ C     Output: u1,maxit
 C     INPUT:  rhs1 - rhs
 C             h1   - exact solution
 
-      real*8 u1(1),r1(1),h1(1),h2(1),rmult(1),binv(1)
       parameter (lt=lx1*ly1*lz1*lelt)
       parameter (ld=lxd*lyd*lzd*lelt)
+      real*8 u1(lt),r1(lt),h1(lt),h2(lt)
+      real*8 rmult(1),binv(1)
+      integer ceed,ceed_op,vec_ap1,vec_p1
       common /scrcg/ dpc(lt),p1(lt),z1(lt)
       common /scrca/ wv(4),wk(4),rpp1(4),rpp2(4),alph(4),beta(4),pap(4)
 
@@ -1345,9 +1349,9 @@ C             h1   - exact solution
 
       wv(1)=0
       do i=1,n
-         s=rmult(i)                   !      -1
-         p1(i)=dpc(i)*r1(i)           ! p = M  r      T
-         wv(1)=wv(1)+s*p1(i)*r1(i)    !              r p
+         s=rmult(i)                  !      -1
+         p1(i)=dpc(i)*r1(i)          ! p = M  r      T
+         wv(1)=wv(1)+s*p1(i)*r1(i)   !              r p
       enddo
       call gop(wv(1),wk,'+  ',1)
       rpp1(1) = wv  (1)
@@ -1369,7 +1373,7 @@ C             h1   - exact solution
 C        tolerance check here
          call rzero(wv,2)
          do i=1,n
-            wv(1)=wv(1)+r1(i)*r1(i)            ! L2error estimate
+            wv(1)=wv(1)+r1(i)*r1(i)            ! L2 error estimate
             z1(i)=dpc(i)*r1(i)                 ! z = M  r
             wv(2)=wv(2)+rmult(i)*z1(i)*r1(i)   ! r z
          enddo
@@ -1587,8 +1591,10 @@ C     Input: pap,p1,h1,h2,bpname    Output: ap1
       include 'SIZE'
       include 'TOTAL'
 
-      real*8 pap,ap1(1),p1(1)
-      real*8 h1(1),h2(1)
+      parameter (lx=lx1*ly1*lz1)
+
+      real*8 pap(3),ap1(lx,lelt),p1(lx,lelt)
+      real*8 h1(lx,lelt),h2(lx,lelt)
 
       character*3 bpname
 

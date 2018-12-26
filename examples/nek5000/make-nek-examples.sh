@@ -67,7 +67,7 @@ cp $NEK5K_DIR/bin/makenek .
 
 sed -i.bak -e "s|^#FC=.*|FC=\"$FC\"|" \
     -e "s|^#CC=.*|CC=\"$CC\"|" \
-    -e "s|^#SOURCE_ROOT=.*|SOURCE_ROOT=\"$NEK5K_DIR\"|" \
+    -e "s|^#NEK_SOURCE_ROOT=.*|NEK_SOURCE_ROOT=\"${NEK5K_DIR}\"|" \
     -e "s|^#FFLAGS=.*|FFLAGS+=\"-g -std=legacy -I${CEED_DIR}/include\"|" \
     -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-g -L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed\"|" makenek
 
@@ -82,7 +82,7 @@ make
     cp SIZE.in SIZE
   fi
 
-  ./makenek $ex >> $ex.build.log 2>&1
+  ./makenek $ex $NEK5K_DIR >> $ex.build.log 2>&1
 
   if [[ ! -f ./nek5000 ]]; then
     echo "  Building $ex failed. See $ex.build.log for details."

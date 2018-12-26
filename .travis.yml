@@ -98,20 +98,23 @@ install:
   - make -C libxsmm
   - export XSMM_DIR=$HOME/install/libxsmm
 # Nek5k
-  - if [ "$TRAVIS_OS_NAME" != "osx" ]; then
-        ( test -s "$NEK5K_INSTALL/genbox/genbox.o"
-        && test -s "$NEK5K_INSTALL/genmap/genmap.o"
-        && test -s "$NEK5K_INSTALL/reatore2/reatore2.o" )
-        || ( curl -L https://github.com/Nek5000/Nek5000/releases/download/v17.0/Nek5000-v17.0.tar.gz > Nek5000-v17.0.tar.gz
-        && tar xvzf Nek5000-v17.0.tar.gz
-        && cd Nek5000/tools
-        && ./maketools genbox genmap reatore2 );
-        export NEK5K_DIR=$NEK5K_INSTALL PATH=$NEK5K_DIR/bin:$PATH;
+  - if [[ -d Nek5000 ]]; then
+        git -C Nek5000 pull --depth 1 --allow-unrelated-histories;
+        if [[ $? -eq 0 ]]; then
+          git -C Nek5000 gc --prune=all;
+        else 
+          rm -rf Nek5000
+          && git clone --depth 1 https://github.com/Nek5000/Nek5000.git;
+        fi
+    else
+        git clone --depth 1 https://github.com/Nek5000/Nek5000.git;
     fi
-
+  - cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..
+        export NEK5K_DIR=$NEK5K_INSTALL PATH=$NEK5K_DIR/bin:$PATH;
 # PETSc
   - cd $CURR_DIR
   - export PETSC_INSTALL=$HOME/install/petsc-3.10.0
+
   - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
         || ( curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.10.0.tar.gz
         && tar xf petsc-lite-3.10.0.tar.gz
