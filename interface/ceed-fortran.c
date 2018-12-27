@@ -438,33 +438,16 @@ static int CeedQFunction_count = 0;
 static int CeedQFunction_n = 0;
 static int CeedQFunction_count_max = 0;
 
-struct fContext {
-  void (*f)(void *ctx, int *nq,
-            const CeedScalar *u,const CeedScalar *u1,const CeedScalar *u2,
-            const CeedScalar *u3,
-            const CeedScalar *u4,const CeedScalar *u5,const CeedScalar *u6,
-            const CeedScalar *u7,
-            const CeedScalar *u8,const CeedScalar *u9,const CeedScalar *u10,
-            const CeedScalar *u11,
-            const CeedScalar *u12,const CeedScalar *u13,const CeedScalar *u14,
-            const CeedScalar *u15,
-            CeedScalar *v,CeedScalar *v1, CeedScalar *v2,CeedScalar *v3,
-            CeedScalar *v4,CeedScalar *v5, CeedScalar *v6,CeedScalar *v7,
-            CeedScalar *v8,CeedScalar *v9, CeedScalar *v10,CeedScalar *v11,
-            CeedScalar *v12,CeedScalar *v13, CeedScalar *v14,CeedScalar *v15, int *err);
-  void *innerctx;
-};
-
 static int CeedQFunctionFortranStub(void *ctx, int nq,
                                     const CeedScalar *const *u, CeedScalar *const *v) {
-  struct fContext *fctx = ctx;
+  fContext *fctx = ctx;
   int ierr;
 
-  CeedScalar ctx_=1.0;
-  fctx->f((void*)&ctx_,&nq,u[0],u[1],u[2],u[3],u[4],u[5],u[6],u[7],
-          u[8],u[9],u[10],u[11],u[12],u[13],u[14],u[15],
-          v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],
-          v[8],v[9],v[10],v[11],v[12],v[13],v[14],v[15],&ierr);
+  CeedScalar *ctx_ = (CeedScalar *) fctx->innerctx;
+  fctx->f((void*)ctx_,&nq,u[0],u[1],u[2],u[3],u[4],u[5],u[6],
+          u[7],u[8],u[9],u[10],u[11],u[12],u[13],u[14],u[15],
+          v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8],v[9],
+          v[10],v[11],v[12],v[13],v[14],v[15],&ierr);
   return ierr;
 }
 
@@ -472,19 +455,20 @@ static int CeedQFunctionFortranStub(void *ctx, int nq,
     FORTRAN_NAME(ceedqfunctioncreateinterior, CEEDQFUNCTIONCREATEINTERIOR)
 void fCeedQFunctionCreateInterior(int* ceed, int* vlength,
                                   void (*f)(void *ctx, int *nq,
-                                      const CeedScalar *u,const CeedScalar *u1,const CeedScalar *u2,
-                                      const CeedScalar *u3,
-                                      const CeedScalar *u4,const CeedScalar *u5,const CeedScalar *u6,
-                                      const CeedScalar *u7,
-                                      const CeedScalar *u8,const CeedScalar *u9,const CeedScalar *u10,
-                                      const CeedScalar *u11,
-                                      const CeedScalar *u12,const CeedScalar *u13,const CeedScalar *u14,
-                                      const CeedScalar *u15,
-                                      CeedScalar *v,CeedScalar *v1, CeedScalar *v2,CeedScalar *v3,
-                                      CeedScalar *v4,CeedScalar *v5, CeedScalar *v6,CeedScalar *v7,
-                                      CeedScalar *v8,CeedScalar *v9, CeedScalar *v10,CeedScalar *v11,
-                                      CeedScalar *v12,CeedScalar *v13, CeedScalar *v14,CeedScalar *v15,
-                                      int *err),
+                                      const CeedScalar *u,const CeedScalar *u1,
+                                      const CeedScalar *u2,const CeedScalar *u3,
+                                      const CeedScalar *u4,const CeedScalar *u5,
+                                      const CeedScalar *u6,const CeedScalar *u7,
+                                      const CeedScalar *u8,const CeedScalar *u9,
+                                      const CeedScalar *u10,const CeedScalar *u11,
+                                      const CeedScalar *u12,const CeedScalar *u13,
+                                      const CeedScalar *u14,const CeedScalar *u15,
+                                      CeedScalar *v,CeedScalar *v1,CeedScalar *v2,
+                                      CeedScalar *v3,CeedScalar *v4,CeedScalar *v5,
+                                      CeedScalar *v6,CeedScalar *v7,CeedScalar *v8,
+                                      CeedScalar *v9,CeedScalar *v10,CeedScalar *v11,
+                                      CeedScalar *v12,CeedScalar *v13,CeedScalar *v14,
+                                      CeedScalar *v15,int *err),
                                   const char *focca, int *qf, int *err,
                                   fortran_charlen_t focca_len) {
   FIX_STRING(focca);
@@ -500,15 +484,17 @@ void fCeedQFunctionCreateInterior(int* ceed, int* vlength,
   if (*err == 0) {
     *qf = CeedQFunction_count++;
     CeedQFunction_n++;
+
   }
 
-  struct fContext *fctx;
+  fContext *fctx;
   *err = CeedMalloc(1, &fctx);
   if (*err) return;
-  fctx->f = f; fctx->innerctx = NULL;
+  fctx->f = f; fctx->innerctx = NULL; fctx->innerctxsize = 0;
 
-  *err = CeedQFunctionSetContext(*qf_, fctx, sizeof(struct fContext));
+  *err = CeedQFunctionSetContext(*qf_, fctx, sizeof(fContext));
 
+  (*qf_)->fortranstatus = true;
 }
 
 #define fCeedQFunctionAddInput \
@@ -531,6 +517,16 @@ void fCeedQFunctionAddOutput(int *qf, const char *fieldname,
   CeedQFunction qf_ = CeedQFunction_dict[*qf];
 
   *err = CeedQFunctionAddOutput(qf_, fieldname_c, *ncomp, *emode);
+}
+
+#define fCeedQFunctionSetContext \
+    FORTRAN_NAME(ceedqfunctionsetcontext,CEEDQFUNCTIONSETCONTEXT)
+void fCeedQFunctionSetContext(int *qf, CeedScalar *ctx, CeedInt *n, int *err) {
+  CeedQFunction qf_ = CeedQFunction_dict[*qf];
+
+  fContext *fctx = qf_->ctx;
+  fctx->innerctx = ctx;
+  fctx->innerctxsize = ((size_t) *n)*sizeof(CeedScalar);
 }
 
 #define fCeedQFunctionApply \
@@ -595,7 +591,6 @@ void fCeedQFunctionApply(int *qf, int *Q,
 #define fCeedQFunctionDestroy \
     FORTRAN_NAME(ceedqfunctiondestroy,CEEDQFUNCTIONDESTROY)
 void fCeedQFunctionDestroy(int *qf, int *err) {
-  CeedFree(&CeedQFunction_dict[*qf]->ctx);
   *err = CeedQFunctionDestroy(&CeedQFunction_dict[*qf]);
 
   if (*err) return;

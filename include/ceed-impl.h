@@ -131,10 +131,33 @@ struct CeedQFunction_private {
   CeedInt numinputfields, numoutputfields;
   int (*function)(void*, CeedInt, const CeedScalar *const*, CeedScalar *const*);
   const char *focca;
+  bool fortranstatus;
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */
   void *data;     /* backend data */
 };
+
+/// Struct to handle the context data to use the Fortran QFunction stub
+/// @ingroup CeedQFunction
+typedef struct {
+  CeedScalar *innerctx;
+  size_t innerctxsize;
+  void (*f)(void *ctx, int *nq,
+            const CeedScalar *u,const CeedScalar *u1,
+            const CeedScalar *u2,const CeedScalar *u3,
+            const CeedScalar *u4,const CeedScalar *u5,
+            const CeedScalar *u6,const CeedScalar *u7,
+            const CeedScalar *u8,const CeedScalar *u9,
+            const CeedScalar *u10,const CeedScalar *u11,
+            const CeedScalar *u12,const CeedScalar *u13,
+            const CeedScalar *u14,const CeedScalar *u15,
+            CeedScalar *v,CeedScalar *v1,CeedScalar *v2,
+            CeedScalar *v3,CeedScalar *v4,CeedScalar *v5,
+            CeedScalar *v6,CeedScalar *v7,CeedScalar *v8,
+            CeedScalar *v9, CeedScalar *v10,CeedScalar *v11,
+            CeedScalar *v12,CeedScalar *v13,CeedScalar *v14,
+            CeedScalar *v15, int *err);
+} fContext;
 
 struct CeedOperatorField_private {
   CeedElemRestriction Erestrict; /// Restriction from L-vector or NULL if identity
