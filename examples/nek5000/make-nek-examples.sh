@@ -74,7 +74,7 @@ sed -i.bak -e "s|^#FC=.*|FC=\"$FC\"|" \
 # Build examples
 for ex in "${EXAMPLES[@]}"; do
   echo "Building example: $ex ..."
-make
+
   # makenek appends generated lines in SIZE, which we don't want versioned
   # So we copy SIZE.in to SIZE and use that with Nek5000. Once copied,
   # user can reuse the SIZE file until we clean the examples directory.
