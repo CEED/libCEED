@@ -107,10 +107,10 @@ static int CeedOperatorApply_libparanumal(CeedOperator op, CeedVector invec,
     double lambda   = 0.0;
     occaMemory ggeo = ((CeedVector_Occa*)inputfields[0]->vec->data)->d_array;
     occaMemory D    = ((CeedBasis_Occa*)inputfields[3]->basis->data)->grad1d;
-    occaMemory S    = ((CeedVector_Occa*)inputfields[1]->vec->data)->d_array;
-    occaMemory MM   = ((CeedVector_Occa*)inputfields[2]->vec->data)->d_array;
-    occaMemory q    = ((CeedVector_Occa*)inputfields[3]->vec->data)->d_array;
-    occaMemory Aq   = ((CeedVector_Occa*)outputfields[0]->vec->data)->d_array;
+    occaMemory S    = ((CeedVector_Occa*)inputfields[1]->vec->data)->d_array;//unused by the kernel?
+    occaMemory MM   = ((CeedVector_Occa*)inputfields[2]->vec->data)->d_array;//unused by the kernel?
+    occaMemory q    = ((CeedVector_Occa*)invec->data)->d_array;
+    occaMemory Aq   = ((CeedVector_Occa*)outvec->data)->d_array;
     occaKernelRun(impl->kernel, nelem, ggeo, D, S, MM, lambda, q, Aq);
   } else {
     Ceed ceed;
