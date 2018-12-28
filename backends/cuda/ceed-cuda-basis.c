@@ -92,15 +92,15 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
   const CeedInt Q = transpose ? BASIS_P1D : BASIS_Q1D;
   const CeedInt stride0 = transpose ? 1 : BASIS_P1D;
   const CeedInt stride1 = transpose ? BASIS_P1D : 1;
-  const CeedInt u_stride = (transpose ? BASIS_NQPT : BASIS_ELEMSIZE);
-  const CeedInt v_stride = (transpose ? BASIS_ELEMSIZE : BASIS_NQPT);
-  const CeedInt comp_stride = nelem * v_stride;
+  const CeedInt u_stride = transpose ? BASIS_NQPT : BASIS_ELEMSIZE;
+  const CeedInt v_stride = transpose ? BASIS_ELEMSIZE : BASIS_NQPT;
+  const CeedInt comp_stride_u = transpose ? nelem * u_stride : u_stride;
+  const CeedInt comp_stride_v = transpose ? v_stride : nelem * v_stride;
 
   for (CeedInt elem = blockIdx.x; elem < nelem; elem += gridDim.x) {
-    for (CeedInt comp = 0; comp < BASIS_NCOMP; ++comp)
-    {
-      const CeedScalar *cur_u = u + elem * u_stride + comp * comp_stride;
-      CeedScalar *cur_v = v + elem * v_stride + comp * comp_stride;
+    for (CeedInt comp = 0; comp < BASIS_NCOMP; ++comp) {
+      const CeedScalar *cur_u = u + elem * u_stride + comp * comp_stride_u;
+      CeedScalar *cur_v = v + elem * v_stride + comp * comp_stride_v;
       for (CeedInt k = i; k < u_stride; k += blockDim.x) {
         s_buf1[k] = cur_u[k];
       }
@@ -131,7 +131,7 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
   }
 }
 
-extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
+extern "C" __global__ void gradInterleaved(const CeedInt nelem, const int transpose,
                                 const CeedScalar * __restrict__ interp1d,
                                 const CeedScalar * __restrict__ grad1d, const CeedScalar * __restrict__ u,
                                 CeedScalar *__restrict__ v) {
@@ -194,6 +194,76 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
         cur_u += BASIS_NQPT * BASIS_NCOMP;
       } else {
         cur_v += BASIS_NQPT * BASIS_NCOMP;
+      }
+    }
+  }
+}
+
+extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
+                                const CeedScalar * __restrict__ interp1d,
+                                const CeedScalar * __restrict__ grad1d, const CeedScalar * __restrict__ u,
+                                CeedScalar *__restrict__ v) {
+  const CeedInt i = threadIdx.x;
+
+  __shared__ CeedScalar s_mem[2 * (BASIS_Q1D * BASIS_P1D + BASIS_BUF_LEN)];
+  CeedScalar *s_interp1d = s_mem;
+  CeedScalar *s_grad1d = s_interp1d + BASIS_Q1D * BASIS_P1D;
+  CeedScalar *s_buf1 = s_grad1d + BASIS_Q1D * BASIS_P1D;
+  CeedScalar *s_buf2 = s_buf1 + BASIS_BUF_LEN;
+  for (CeedInt k = i; k < BASIS_Q1D * BASIS_P1D; k += blockDim.x) {
+    s_interp1d[k] = interp1d[k];
+    s_grad1d[k] = grad1d[k];
+  }
+
+
+  const CeedInt P = transpose ? BASIS_Q1D : BASIS_P1D;
+  const CeedInt Q = transpose ? BASIS_P1D : BASIS_Q1D;
+  const CeedInt stride0 = transpose ? 1 : BASIS_P1D;
+  const CeedInt stride1 = transpose ? BASIS_P1D : 1;
+  const CeedInt u_stride = transpose ? BASIS_NQPT * BASIS_DIM : BASIS_ELEMSIZE;
+  const CeedInt v_stride = transpose ? BASIS_ELEMSIZE : BASIS_NQPT * BASIS_DIM;
+  const CeedInt u_comp_stride = transpose ? nelem * u_stride : u_stride;
+  const CeedInt v_comp_stride = transpose ? v_stride : nelem * v_stride;
+
+  for (CeedInt elem = blockIdx.x; elem < nelem; elem += gridDim.x) {
+    for (CeedInt comp = 0; comp < BASIS_NCOMP; ++comp) {
+      const CeedScalar *cur_u = u + elem * u_stride + comp * u_comp_stride;
+      CeedScalar *cur_v = v + elem * v_stride + comp * v_comp_stride;
+
+      for (CeedInt dim1 = 0; dim1 < BASIS_DIM; dim1++) {
+        CeedInt pre = transpose ? BASIS_NQPT : BASIS_ELEMSIZE;
+        CeedInt post = 1;
+        for (CeedInt dim2 = 0; dim2 < BASIS_DIM; dim2++) {
+          __syncthreads();
+
+          pre /= P;
+          const CeedScalar *op = dim1 == dim2 ? s_grad1d : s_interp1d;
+          const CeedScalar *in = dim2 == 0 ? cur_u : (dim2 % 2 ? s_buf2 : s_buf1);
+          CeedScalar *out = dim2 == BASIS_DIM - 1 ? cur_v : (dim2 % 2 ? s_buf1 : s_buf2);
+
+          const CeedInt writeLen = pre * post * Q;
+          for (CeedInt k = i; k < writeLen; k += blockDim.x) {
+            const CeedInt c = k % post;
+            const CeedInt j = (k / post) % Q;
+            const CeedInt a = k / (post * Q);
+            CeedScalar vk = 0;
+            for (CeedInt b = 0; b < P; b++) {
+              vk += op[j * stride0 + b * stride1] * in[(a * P + b) * post + c];
+            }
+
+            if (transpose && dim2 == BASIS_DIM - 1)
+              out[k] += vk;
+            else
+              out[k] = vk;
+          }
+
+          post *= Q;
+        }
+        if (transpose) {
+          cur_u += BASIS_NQPT;
+        } else {
+          cur_v += BASIS_NQPT;
+        }
       }
     }
   }
