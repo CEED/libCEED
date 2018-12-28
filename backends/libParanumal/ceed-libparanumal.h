@@ -27,6 +27,8 @@ typedef struct {
 } CeedQFunction_libparanumal;
 
 typedef struct {
+  CeedVector evecIn;
+  CeedVector evecOut;
   bool setupDone;
   char fileName[BUFSIZ];
   char kernelName[BUFSIZ];

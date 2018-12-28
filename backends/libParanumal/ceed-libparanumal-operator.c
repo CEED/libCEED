@@ -83,6 +83,15 @@ static int CeedOperatorSetup_libparanumal(CeedOperator op) {
       impl->kernel = occaDeviceBuildKernel(dev, LIBP_OKLPATH"/ellipticAxHex3D.okl",
                                            "ellipticAxHex3D", impl->kernelInfo);
     }
+    CeedElemRestriction Erestrict;
+    ierr = CeedOperatorFieldGetElemRestriction(opinputfields[2], &Erestrict);
+    CeedChk(ierr);
+    ierr = CeedElemRestrictionCreateVector(Erestrict, NULL, &impl->evecIn);
+    CeedChk(ierr);
+    ierr = CeedOperatorFieldGetElemRestriction(opinputfields[3], &Erestrict);
+    CeedChk(ierr);
+    ierr = CeedElemRestrictionCreateVector(Erestrict, NULL, &impl->evecOut);
+    CeedChk(ierr);
   } else {
     Ceed ceed;
     CeedOperatorGetCeed(op, &ceed);
@@ -109,9 +118,25 @@ static int CeedOperatorApply_libparanumal(CeedOperator op, CeedVector invec,
     occaMemory D    = ((CeedBasis_Occa*)inputfields[3]->basis->data)->grad1d;
     occaMemory S    = ((CeedVector_Occa*)inputfields[1]->vec->data)->d_array;//unused by the kernel?
     occaMemory MM   = ((CeedVector_Occa*)inputfields[2]->vec->data)->d_array;//unused by the kernel?
+    // Restrict
+    ierr = CeedOperatorFieldGetElemRestriction(inputfields[2], &Erestrict);
+    CeedChk(ierr);
+    CeedTransposeMode lmode;
+    ierr = CeedOperatorFieldGetLMode(inputfields[2], &lmode); CeedChk(ierr);
+    ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE,
+                                    lmode, invec, evecIn,
+                                    request); CeedChk(ierr);
     occaMemory q    = ((CeedVector_Occa*)invec->data)->d_array;
-    occaMemory Aq   = ((CeedVector_Occa*)outvec->data)->d_array;
+    occaMemory Aq   = ((CeedVector_Occa*)impl->evecOut->data)->d_array;
+    // Apply Basis + QFunction
     occaKernelRun(impl->kernel, nelem, ggeo, D, S, MM, lambda, q, Aq);
+    // Prolong
+    ierr = CeedOperatorFieldGetElemRestriction(outputfields[0], &Erestrict);
+    CeedChk(ierr);
+    ierr = CeedOperatorFieldGetLMode(outputfields[0], &lmode); CeedChk(ierr);
+    ierr = CeedElemRestrictionApply(Erestrict, CEED_TRANSPOSE,
+                                    lmode, impl->evecOut, outvec,
+                                    request); CeedChk(ierr);
   } else {
     Ceed ceed;
     CeedOperatorGetCeed(op, &ceed);
