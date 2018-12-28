@@ -19,9 +19,9 @@
 #include "ceed-cuda.h"
 
 static const char *basiskernels = QUOTE(
-                                    extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
-                                        const CeedScalar * __restrict__ interp1d, const CeedScalar * __restrict__ u,
-CeedScalar *__restrict__ v) {
+extern "C" __global__ void interpInterleaved(const CeedInt nelem, const int transpose,
+                                  const CeedScalar * __restrict__ interp1d, const CeedScalar * __restrict__ u,
+                                  CeedScalar *__restrict__ v) {
   const CeedInt i = threadIdx.x;
 
   __shared__ CeedScalar s_mem[BASIS_Q1D * BASIS_P1D + 2 * BASIS_BUF_LEN];
@@ -71,6 +71,62 @@ CeedScalar *__restrict__ v) {
       }
 
       post *= Q;
+    }
+  }
+}
+
+extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
+                                  const CeedScalar * __restrict__ interp1d, const CeedScalar * __restrict__ u,
+                                  CeedScalar *__restrict__ v) {
+  const CeedInt i = threadIdx.x;
+
+  __shared__ CeedScalar s_mem[BASIS_Q1D * BASIS_P1D + 2 * BASIS_BUF_LEN];
+  CeedScalar *s_interp1d = s_mem;
+  CeedScalar *s_buf1 = s_mem + BASIS_Q1D * BASIS_P1D;
+  CeedScalar *s_buf2 = s_buf1 + BASIS_BUF_LEN;
+  for (CeedInt k = i; k < BASIS_Q1D * BASIS_P1D; k += blockDim.x) {
+    s_interp1d[k] = interp1d[k];
+  }
+
+  const CeedInt P = transpose ? BASIS_Q1D : BASIS_P1D;
+  const CeedInt Q = transpose ? BASIS_P1D : BASIS_Q1D;
+  const CeedInt stride0 = transpose ? 1 : BASIS_P1D;
+  const CeedInt stride1 = transpose ? BASIS_P1D : 1;
+  const CeedInt u_stride = (transpose ? BASIS_NQPT : BASIS_ELEMSIZE);
+  const CeedInt v_stride = (transpose ? BASIS_ELEMSIZE : BASIS_NQPT);
+  const CeedInt comp_stride = nelem * v_stride;
+
+  for (CeedInt elem = blockIdx.x; elem < nelem; elem += gridDim.x) {
+    for (CeedInt comp = 0; comp < BASIS_NCOMP; ++comp)
+    {
+      const CeedScalar *cur_u = u + elem * u_stride + comp * comp_stride;
+      CeedScalar *cur_v = v + elem * v_stride + comp * comp_stride;
+      for (CeedInt k = i; k < u_stride; k += blockDim.x) {
+        s_buf1[k] = cur_u[k];
+      }
+      CeedInt pre = u_stride;
+      CeedInt post = 1;
+      for (CeedInt d = 0; d < BASIS_DIM; d++) {
+        __syncthreads();
+        pre /= P;
+        const CeedScalar *in = d % 2 ? s_buf2 : s_buf1;
+        CeedScalar *out = d == BASIS_DIM - 1 ? cur_v : (d % 2 ? s_buf1 : s_buf2);
+
+        const CeedInt writeLen = pre * post * Q;
+        for (CeedInt k = i; k < writeLen; k += blockDim.x) {
+          const CeedInt c = k % post;
+          const CeedInt j = (k / post) % Q;
+          const CeedInt a = k / (post * Q);
+          CeedScalar vk = 0;
+          for (CeedInt b = 0; b < P; b++) {
+            vk += s_interp1d[j * stride0 + b * stride1] * in[(a * P + b) * post + c];
+          }
+
+          out[k] = vk;
+        }
+
+        post *= Q;
+      }
     }
   }
 }
