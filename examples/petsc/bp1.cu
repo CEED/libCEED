@@ -14,58 +14,43 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-/// A structure used to pass additional data to f_build_mass
-struct BuildContext { CeedInt dim, space_dim; };
-
-/// libCEED Q-function for building quadrature data for a mass operator
-extern "C" __global__ void f_build_mass(void *ctx, CeedInt Q,
-                        Fields_Cuda fields) {
-  // in[0] is Jacobians with shape [dim, nc=dim, Q]
-  // in[1] is quadrature weights, size (Q)
-  struct BuildContext *bc = (struct BuildContext*)ctx;
-  const CeedScalar *J = fields.inputs[0], *qw = fields.inputs[1];
-  CeedScalar *qd = fields.outputs[0];
-  switch (bc->dim + 10*bc->space_dim) {
-  case 11:
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-         i < Q;
-         i += blockDim.x * gridDim.x) {
-      qd[i] = J[i] * qw[i];
-    }
-    break;
-  case 22:
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-         i < Q;
-         i += blockDim.x * gridDim.x) {
-      // 0 2
-      // 1 3
-      qd[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
-    }
-    break;
-  case 33:
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-         i < Q;
-         i += blockDim.x * gridDim.x) {
-      // 0 3 6
-      // 1 4 7
-      // 2 5 8
-      qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
-               J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-               J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * qw[i];
-    }
-    break;
+// *****************************************************************************
+extern "C" __global__ void Setup(void *ctx, CeedInt Q,
+                                 Fields_Cuda fields) {
+  CeedScalar *rho = fields.outputs[0], *true_soln = fields.outputs[1], *rhs = fields.output[2];
+  const CeedScalar (*x)[Q] = (const CeedScalar (*)[Q])fields.inputs[0];
+  const CeedScalar (*J)[3][Q] = (const CeedScalar (*)[3][Q])fields.inputs[1];
+  const CeedScalar *w = in[2];
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+       i < Q;
+       i += blockDim.x * gridDim.x) {
+    CeedScalar det = (+ J[0][0][i] * (J[1][1][i]*J[2][2][i] - J[1][2][i]*J[2][1][i])
+                      - J[0][1][i] * (J[1][0][i]*J[2][2][i] - J[1][2][i]*J[2][0][i])
+                      + J[0][2][i] * (J[1][0][i]*J[2][1][i] - J[1][1][i]*J[2][0][i]));
+    rho[i] = det * w[i];
+    true_soln[i] = sqrt(x[0][i]*x[0][i] + x[1][i]*x[1][i] + x[2][i]*x[2][i]);
+    rhs[i] = rho[i] * true_soln[i];
   }
 }
 
-/// libCEED Q-function for applying a mass operator
-extern "C" __global__ void f_apply_mass(void *ctx, CeedInt Q,
-                        Fields_Cuda fields) {
-  const CeedScalar *u = fields.inputs[0], *w = fields.inputs[1];
+extern "C" __global__ void Mass(void *ctx, CeedInt Q,
+                Fields_Cuda fields) {
+  const CeedScalar *u = fields.inputs[0], *rho = fields.inputs[1];
   CeedScalar *v = fields.outputs[0];
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
        i += blockDim.x * gridDim.x) {
-    v[i] = w[i] * u[i];
+    v[i] = rho[i] * u[i];
   }
 }
 
+extern "C" __global__ void Error(void *ctx, CeedInt Q,
+                                 Fields_Cuda fields) {
+  const CeedScalar *u = fields.inputs[0], *target = fields.inputs[1];
+  CeedScalar *err = fields.outputs[0];
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+       i < Q;
+       i += blockDim.x * gridDim.x) {
+    err[i] = u[i] - target[i];
+  }
+}
