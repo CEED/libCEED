@@ -1,4 +1,4 @@
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
       subroutine eval(dimn,x,rslt)
       integer dimn
       real*8 x(3)
@@ -13,7 +13,7 @@ c-----------------------------------------------------------------------
       endif
 
       end
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
       program test
 
       include 'ceedf.h'
@@ -83,10 +83,8 @@ c-----------------------------------------------------------------------
         call ceedvectorcreate(ceed,pdimn,gtposeones,err)
         call ceedvectorsetvalue(gtposeones,0.d0,err)
 
-        call ceedbasiscreatetensorh1lagrange(ceed,dimn,dimn,2,p,
-     $    ceed_gauss_lobatto,bxl,err)
-        call ceedbasisapply(bxl,1,ceed_notranspose,ceed_eval_interp,
-     $    x,xq,err)
+        call ceedbasiscreatetensorh1lagrange(ceed,dimn,dimn,2,p,ceed_gauss_lobatto,bxl,err)
+        call ceedbasisapply(bxl,1,ceed_notranspose,ceed_eval_interp,x,xq,err)
 
         call ceedvectorgetarrayread(xq,ceed_mem_host,xxq,offset1,err)
         do i=1,pdimn
@@ -96,19 +94,14 @@ c-----------------------------------------------------------------------
           call eval(dimn,xxx,uu(i))
         enddo
         call ceedvectorrestorearrayread(xq,xxq,offset1,err)
-        call ceedvectorsetarray(u,ceed_mem_host,ceed_use_pointer,
-     $    uu,err)
+        call ceedvectorsetarray(u,ceed_mem_host,ceed_use_pointer,uu,err)
 
-        call ceedbasiscreatetensorh1lagrange(ceed,dimn,1,p,q,
-     $    ceed_gauss,bug,err)
+        call ceedbasiscreatetensorh1lagrange(ceed,dimn,1,p,q,ceed_gauss,bug,err)
 
-        call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_grad,
-     $    u,uq,err)
-        call ceedbasisapply(bug,1,ceed_transpose,ceed_eval_grad,
-     $    ones,gtposeones,err)
+        call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_grad,u,uq,err)
+        call ceedbasisapply(bug,1,ceed_transpose,ceed_eval_grad,ones,gtposeones,err)
 
-        call ceedvectorgetarrayread(gtposeones,ceed_mem_host,
-     $    ggtposeones,offset1,err)
+        call ceedvectorgetarrayread(gtposeones,ceed_mem_host,ggtposeones,offset1,err)
         call ceedvectorgetarrayread(u,ceed_mem_host,uu,offset2,err)
         call ceedvectorgetarrayread(uq,ceed_mem_host,uuq,offset3,err)
         do i=1,pdimn
@@ -117,13 +110,11 @@ c-----------------------------------------------------------------------
         do i=1,dimxqdimn
           sum2=sum2+uuq(i+offset3)
         enddo
-        call ceedvectorrestorearrayread(gtposeones,ggtposeones,
-     $    offset1,err)
+        call ceedvectorrestorearrayread(gtposeones,ggtposeones,offset1,err)
         call ceedvectorrestorearrayread(u,uu,offset2,err)
         call ceedvectorrestorearrayread(uq,uuq,offset3,err)
         if(abs(sum1-sum2) > 1.0D-10) then
-          write(*,'(A,I1,A,F12.6,A,F12.6)')'[',dimn,'] Error: ',sum1,
-     $      ' != ',sum2
+          write(*,'(A,I1,A,F12.6,A,F12.6)')'[',dimn,'] Error: ',sum1,  ' != ',sum2
         endif
 
         call ceedvectordestroy(x,err)
@@ -138,4 +129,4 @@ c-----------------------------------------------------------------------
 
       call ceeddestroy(ceed,err)
       end
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------

@@ -1,23 +1,23 @@
-c-----------------------------------------------------------------------
-c
-c Header with common subroutine
-c 
+!-----------------------------------------------------------------------
+! 
+! Header with common subroutine
+! 
       include 't310-basis-f.h'
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
       subroutine feval(x1,x2,val)
       real*8 x1,x2,val
 
       val=x1*x1+x2*x2+x1*x2+1
 
       end
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
       subroutine dfeval(x1,x2,val)
       real*8 x1,x2,val
 
       val=2*x1+x2
 
       end
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
       program test
 
       include 'ceedf.h'
@@ -45,10 +45,8 @@ c-----------------------------------------------------------------------
 
       character arg*32
 
-      xq=(/2.d-1,6.d-1,1.d0/3.d0,2.d-1,2.d-1,2.d-1,
-     $     1.d0/3.d0,6.d-1/)
-      xr=(/0.d0,5.d-1,1.d0,0.d0,5.d-1,0.d0,0.d0,0.d0,
-     $     0.d0,5.d-1,5.d-1,1.d0/)
+      xq=(/2.d-1,6.d-1,1.d0/3.d0,2.d-1,2.d-1,2.d-1,   1.d0/3.d0,6.d-1/)
+      xr=(/0.d0,5.d-1,1.d0,0.d0,5.d-1,0.d0,0.d0,0.d0,   0.d0,5.d-1,5.d-1,1.d0/)
 
       call getarg(1,arg)
 
@@ -56,8 +54,7 @@ c-----------------------------------------------------------------------
 
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-      call ceedbasiscreateh1(ceed,ceed_triangle,1,p,q,
-     $  interp,grad,qref,qweight,b,err)
+      call ceedbasiscreateh1(ceed,ceed_triangle,1,p,q,interp,grad,qref,qweight,b,err)
 
       do i=1,p
         x1=xr(0*p+i)
@@ -67,30 +64,25 @@ c-----------------------------------------------------------------------
       enddo
 
       call ceedvectorcreate(ceed,p,input,err)
-      call ceedvectorsetarray(input,ceed_mem_host,ceed_use_pointer,
-     $  iinput,err)
+      call ceedvectorsetarray(input,ceed_mem_host,ceed_use_pointer,iinput,err)
       call ceedvectorcreate(ceed,q*d,output,err)
       call ceedvectorsetvalue(output,0.d0,err)
 
-      call ceedbasisapply(b,1,ceed_notranspose,ceed_eval_grad,
-     $  input,output,err)
+      call ceedbasisapply(b,1,ceed_notranspose,ceed_eval_grad,input,output,err)
 
-      call ceedvectorgetarrayread(output,ceed_mem_host,ooutput,
-     $  offset,err)
+      call ceedvectorgetarrayread(output,ceed_mem_host,ooutput,offset,err)
       do i=1,q
         x1=xq(0*q+i)
         x2=xq(1*q+i)
         call dfeval(x1,x2,val)
         diff=val-ooutput(0*q+i+offset)
         if (abs(diff)>1.0d-10) then
-          write(*,'(A,I1,A,F12.8,A,F12.8)')
-     $    '[',i,'] ',ooutput(i+offset),' != ',val
+          write(*,'(A,I1,A,F12.8,A,F12.8)')  '[',i,'] ',ooutput(i+offset),' != ',val
         endif
         call dfeval(x2,x1,val)
         diff=val-ooutput(1*q+i+offset)
         if (abs(diff)>1.0d-10) then
-          write(*,'(A,I1,A,F12.8,A,F12.8)')
-     $    '[',i,'] ',ooutput(i+offset),' != ',val
+          write(*,'(A,I1,A,F12.8,A,F12.8)')  '[',i,'] ',ooutput(i+offset),' != ',val
         endif
       enddo
       call ceedvectorrestorearrayread(output,ooutput,offset,err)
@@ -101,4 +93,4 @@ c-----------------------------------------------------------------------
       call ceeddestroy(ceed,err)
 
       end
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------

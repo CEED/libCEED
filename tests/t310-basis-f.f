@@ -1,9 +1,9 @@
-c-----------------------------------------------------------------------
-c
-c Header with common subroutine
-c 
+!-----------------------------------------------------------------------
+!
+! Header with common subroutine
+! 
       include 't310-basis-f.h'
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
       program test
 
       include 'ceedf.h'
@@ -29,12 +29,11 @@ c-----------------------------------------------------------------------
 
       call buildmats(qref,qweight,interp,grad)
 
-      call ceedbasiscreateh1(ceed,ceed_triangle,1,p,q,
-     $  interp,grad,qref,qweight,b,err)
+      call ceedbasiscreateh1(ceed,ceed_triangle,1,p,q,interp,grad,qref,qweight,b,err)
       call ceedbasisview(b,err)
 
       call ceedbasisdestroy(b,err)
       call ceeddestroy(ceed,err)
 
       end
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------

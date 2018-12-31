@@ -1,4 +1,4 @@
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
       program test
 
       include 'ceedf.h'
@@ -35,13 +35,11 @@ c-----------------------------------------------------------------------
         ind(2*i  )=i
       enddo
 
-      call ceedelemrestrictioncreate(ceed,ne,2,ne+1,1,ceed_mem_host,
-     $  ceed_use_pointer,ind,r,err)
+      call ceedelemrestrictioncreate(ceed,ne,2,ne+1,1,ceed_mem_host,ceed_use_pointer,ind,r,err)
 
       call ceedvectorcreate(ceed,2*ne,y,err);
       call ceedvectorsetvalue(y,0.d0,err);
-      call ceedelemrestrictionapply(r,ceed_notranspose,
-     $  ceed_notranspose,x,y,ceed_request_immediate,err)
+      call ceedelemrestrictionapply(r,ceed_notranspose,ceed_notranspose,x,y,ceed_request_immediate,err)
 
       call ceedvectorgetarrayread(y,ceed_mem_host,yy,offset,err)
       do i=1,ne*2
@@ -58,4 +56,4 @@ c-----------------------------------------------------------------------
       call ceeddestroy(ceed,err)
 
       end
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------

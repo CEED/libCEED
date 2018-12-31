@@ -1,7 +1,6 @@
-c-----------------------------------------------------------------------
-      subroutine setup(ctx,q,u1,u2,u3,u4,u5,u6,u7,
-     $  u8,u9,u10,u11,u12,u13,u14,u15,u16,v1,v2,v3,v4,v5,v6,v7,v8,
-     $  v9,v10,v11,v12,v13,v14,v15,v16,ierr)
+!-----------------------------------------------------------------------
+      subroutine setup(ctx,q,u1,u2,u3,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,&
+&           u15,u16,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15,v16,ierr)
       real*8 ctx(1)
       real*8 u1(8)
       real*8 v1(8)
@@ -13,10 +12,9 @@ c-----------------------------------------------------------------------
 
       ierr=0
       end
-c-----------------------------------------------------------------------
-      subroutine mass(ctx,q,u1,u2,u3,u4,u5,u6,u7,
-     $  u8,u9,u10,u11,u12,u13,u14,u15,u16,v1,v2,v3,v4,v5,v6,v7,v8,
-     $  v9,v10,v11,v12,v13,v14,v15,v16,ierr)
+!-----------------------------------------------------------------------
+      subroutine mass(ctx,q,u1,u2,u3,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,&
+&           u15,u16,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15,v16,ierr)
       real*8 ctx(1)
       real*8 u1(8)
       real*8 u2(8)
@@ -29,7 +27,7 @@ c-----------------------------------------------------------------------
 
       ierr=0
       end
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
       program test
 
       include 'ceedf.h'
@@ -52,17 +50,15 @@ c-----------------------------------------------------------------------
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-      call ceedqfunctioncreateinterior(ceed,1,setup, 
-c     __FILE__ should not be more than the 72 characters, -ffree-line-length-none ?
-     $__FILE__ 
-     $     //':setup'//char(0),qf_setup,err)
+      call ceedqfunctioncreateinterior(ceed,1,setup,&
+     &__FILE__&
+     &//':setup'//char(0),qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'w', 1,ceed_eval_interp,err)
-      call ceedqfunctionaddoutput(qf_setup,'qdata',1,ceed_eval_interp,
-     $  err)
+      call ceedqfunctionaddoutput(qf_setup,'qdata',1,ceed_eval_interp,err)
 
-      call ceedqfunctioncreateinterior(ceed,1,mass,
-     $__FILE__ 
-     $  //':mass'//char(0),qf_mass,err)
+      call ceedqfunctioncreateinterior(ceed,1,mass,&
+     &__FILE__&
+     &//':mass'//char(0),qf_mass,err)
       call ceedqfunctionaddinput(qf_mass,'qdata',1,ceed_eval_interp,err)
       call ceedqfunctionaddinput(qf_mass,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_mass,'v',1,ceed_eval_interp,err)
@@ -83,22 +79,19 @@ c     __FILE__ should not be more than the 72 characters, -ffree-line-length-non
       call ceedvectorcreate(ceed,q,qdata,err)
       call ceedvectorsetvalue(qdata,0.d0,err)
 
-      call ceedqfunctionapply(qf_setup,q,w,ceed_null,ceed_null,
-     $  ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,
-     $  ceed_null,ceed_null,ceed_null,ceed_null,
-     $  ceed_null,ceed_null,ceed_null,ceed_null,
-     $  qdata,ceed_null,ceed_null,ceed_null,
-     $  ceed_null,ceed_null,ceed_null,ceed_null,
-     $  ceed_null,ceed_null,ceed_null,ceed_null,
-     $  ceed_null,ceed_null,ceed_null,ceed_null,err)
-      call ceedqfunctionapply(qf_mass,q,u,qdata,ceed_null,
-     $  ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,
-     $  ceed_null,ceed_null,ceed_null,ceed_null,
-     $  ceed_null,ceed_null,ceed_null,ceed_null,
-     $  v,ceed_null,ceed_null,ceed_null,
-     $  ceed_null,ceed_null,ceed_null,ceed_null,
-     $  ceed_null,ceed_null,ceed_null,ceed_null,
-     $  ceed_null,ceed_null,ceed_null,ceed_null,err)
+      call ceedqfunctionapply(qf_setup,q,w,ceed_null,ceed_null,ceed_null,&
+             &ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,&
+             &ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,&
+             &qdata,ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,&
+             &ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,&
+             &ceed_null,ceed_null,ceed_null,ceed_null,err)
+
+      call ceedqfunctionapply(qf_mass,q,u,qdata,ceed_null,ceed_null,&
+             &ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,&
+             &ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,&
+             &v,ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,&
+             &ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,&
+             &ceed_null,ceed_null,ceed_null,ceed_null,err)
 
       call ceedvectorgetarrayread(v,ceed_mem_host,vv,offset,err)
       do i=1,q
@@ -116,4 +109,4 @@ c     __FILE__ should not be more than the 72 characters, -ffree-line-length-non
       call ceedqfunctiondestroy(qf_mass,err)
       call ceeddestroy(ceed,err)
       end
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------

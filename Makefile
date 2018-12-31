@@ -51,9 +51,9 @@ CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 NVCCFLAGS = $(OPT)
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
-  FFLAGS = $(OPT) -qpreprocess -qextname -qpic -MMD
+  FFLAGS = $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD
 else # gfortran/Intel-style options
-  FFLAGS = -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
+  FFLAGS = -cpp     $(OPT) -ffree-form -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
 endif
 
 ifeq ($(UNDERSCORE), 1)

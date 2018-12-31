@@ -1,4 +1,4 @@
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
       subroutine polyeval(x,n,p,uq)
       real*8 x,y
       integer n,i
@@ -14,7 +14,7 @@ c-----------------------------------------------------------------------
       uq=y
 
       end
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
       program test
 
       include 'ceedf.h'
@@ -56,11 +56,9 @@ c-----------------------------------------------------------------------
       call ceedvectorcreate(ceed,q,w,err)
       call ceedvectorsetvalue(w,0.d0,err)
 
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,
-     $  ceed_gauss_lobatto,bxl,err)
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss_lobatto,bxl,err)
 
-      call ceedbasisapply(bxl,1,ceed_notranspose,ceed_eval_interp,
-     $  x,xq,err)
+      call ceedbasisapply(bxl,1,ceed_notranspose,ceed_eval_interp,x,xq,err)
 
       call ceedvectorgetarrayread(xq,ceed_mem_host,xxq,offset1,err)
       do i=1,q
@@ -69,17 +67,12 @@ c-----------------------------------------------------------------------
       call ceedvectorrestorearrayread(xq,xxq,offset1,err)
       call ceedvectorsetarray(u,ceed_mem_host,ceed_use_pointer,uu,err)
 
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss,
-     $  bxg,err)
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,q,q,ceed_gauss,
-     $  bug,err)
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss,bxg,err)
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,q,q,ceed_gauss,bug,err)
 
-      call ceedbasisapply(bxg,1,ceed_notranspose,ceed_eval_interp,
-     $  x,xq,err)
-      call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_interp,
-     $  u,uq,err)
-      call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_weight,
-     $  ceed_null,w,err)
+      call ceedbasisapply(bxg,1,ceed_notranspose,ceed_eval_interp,x,xq,err)
+      call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_interp,u,uq,err)
+      call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_weight,ceed_null,w,err)
 
       call ceedvectorgetarrayread(w,ceed_mem_host,ww,offset1,err)
       call ceedvectorgetarrayread(uq,ceed_mem_host,uuq,offset2,err)
@@ -112,4 +105,4 @@ c-----------------------------------------------------------------------
       call ceedbasisdestroy(bug,err)
       call ceeddestroy(ceed,err)
       end
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
