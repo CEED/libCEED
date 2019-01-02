@@ -101,7 +101,6 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
 
   Ceed_Cuda *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  CeedInit("/cpu/self/ref", &data->ceedref);
 
   struct cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, deviceID);

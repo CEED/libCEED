@@ -391,7 +391,7 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
   } else if (emode == CEED_EVAL_WEIGHT) {
     void *weightargs[] = {(void*)&nelem, (void*)&data->d_qweight1d, &d_v};
     const int blocksize = 32;
-    int gridsize = nelem/32;
+    int gridsize = nelem/blocksize;
     if (blocksize * gridsize < nelem)
       gridsize += 1;
     ierr = run_kernel(ceed, data->weight, gridsize, blocksize, weightargs);
