@@ -221,19 +221,21 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
   const CeedInt Q = transpose ? BASIS_P1D : BASIS_Q1D;
   const CeedInt stride0 = transpose ? 1 : BASIS_P1D;
   const CeedInt stride1 = transpose ? BASIS_P1D : 1;
-  const CeedInt u_stride = transpose ? BASIS_NQPT * BASIS_DIM : BASIS_ELEMSIZE;
-  const CeedInt v_stride = transpose ? BASIS_ELEMSIZE : BASIS_NQPT * BASIS_DIM;
-  const CeedInt u_comp_stride = transpose ? nelem * u_stride : u_stride;
-  const CeedInt v_comp_stride = transpose ? v_stride : nelem * v_stride;
+  const CeedInt u_stride = transpose ? BASIS_NQPT : BASIS_ELEMSIZE;
+  const CeedInt v_stride = transpose ? BASIS_ELEMSIZE : BASIS_NQPT;
+  const CeedInt u_comp_stride = transpose ? nelem * BASIS_NQPT * BASIS_DIM : BASIS_ELEMSIZE;
+  const CeedInt v_comp_stride = transpose ? BASIS_ELEMSIZE : nelem * BASIS_NQPT * BASIS_DIM;
+  const CeedInt u_dim_stride = transpose ? nelem * BASIS_NQPT : 0;
+  const CeedInt v_dim_stride = transpose ? 0 : nelem * BASIS_NQPT;
 
   for (CeedInt elem = blockIdx.x; elem < nelem; elem += gridDim.x) {
     for (CeedInt comp = 0; comp < BASIS_NCOMP; ++comp) {
-      const CeedScalar *cur_u = u + elem * u_stride + comp * u_comp_stride;
-      CeedScalar *cur_v = v + elem * v_stride + comp * v_comp_stride;
 
       for (CeedInt dim1 = 0; dim1 < BASIS_DIM; dim1++) {
         CeedInt pre = transpose ? BASIS_NQPT : BASIS_ELEMSIZE;
         CeedInt post = 1;
+        const CeedScalar *cur_u = u + elem * u_stride + dim1 * u_dim_stride + comp * u_comp_stride;
+        CeedScalar *cur_v = v + elem * v_stride + dim1 * v_dim_stride + comp * v_comp_stride;
         for (CeedInt dim2 = 0; dim2 < BASIS_DIM; dim2++) {
           __syncthreads();
 
@@ -259,11 +261,6 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
           }
 
           post *= Q;
-        }
-        if (transpose) {
-          cur_u += BASIS_NQPT;
-        } else {
-          cur_v += BASIS_NQPT;
         }
       }
     }
