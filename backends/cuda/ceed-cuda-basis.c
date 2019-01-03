@@ -221,12 +221,12 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
   const CeedInt Q = transpose ? BASIS_P1D : BASIS_Q1D;
   const CeedInt stride0 = transpose ? 1 : BASIS_P1D;
   const CeedInt stride1 = transpose ? BASIS_P1D : 1;
-  const CeedInt u_stride = transpose ? BASIS_NQPT : BASIS_ELEMSIZE;
-  const CeedInt v_stride = transpose ? BASIS_ELEMSIZE : BASIS_NQPT;
-  const CeedInt u_comp_stride = transpose ? nelem * BASIS_NQPT * BASIS_DIM : BASIS_ELEMSIZE;
-  const CeedInt v_comp_stride = transpose ? BASIS_ELEMSIZE : nelem * BASIS_NQPT * BASIS_DIM;
-  const CeedInt u_dim_stride = transpose ? nelem * BASIS_NQPT : 0;
-  const CeedInt v_dim_stride = transpose ? 0 : nelem * BASIS_NQPT;
+  const CeedInt u_stride = transpose ? BASIS_NQPT : BASIS_NCOMP * BASIS_ELEMSIZE;
+  const CeedInt v_stride = transpose ? BASIS_NCOMP * BASIS_ELEMSIZE : BASIS_NQPT;
+  const CeedInt u_comp_stride = transpose ? nelem * BASIS_NQPT : BASIS_ELEMSIZE;
+  const CeedInt v_comp_stride = transpose ? BASIS_ELEMSIZE : nelem * BASIS_NQPT;
+  const CeedInt u_dim_stride = transpose ? nelem * BASIS_NQPT * BASIS_NCOMP : 0;
+  const CeedInt v_dim_stride = transpose ? 0 : nelem * BASIS_NQPT * BASIS_NCOMP;
 
   for (CeedInt elem = blockIdx.x; elem < nelem; elem += gridDim.x) {
     for (CeedInt comp = 0; comp < BASIS_NCOMP; ++comp) {
@@ -292,38 +292,32 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
 //   }
 // }
 
-
 __device__ void weight1d(const CeedInt nelem, const CeedScalar * qweight1d, CeedScalar* w){
   CeedScalar w1d[BASIS_Q1D];
-  for (int i = 0; i < BASIS_Q1D; ++i)
-  {
+  for (int i = 0; i < BASIS_Q1D; ++i) {
     w1d[i] = qweight1d[i];
   }
   for (int e = blockIdx.x * blockDim.x + threadIdx.x;
        e < nelem;
        e += blockDim.x * gridDim.x) {
-    for (int i = 0; i < BASIS_Q1D; ++i)
-    {
-      const int ind = e + i*nelem;
+    for (int i = 0; i < BASIS_Q1D; ++i) {
+      const int ind = e*BASIS_Q1D + i;//sequential
       w[ind] = w1d[i];
     }
   }
 }
 
 __device__ void weight2d(const CeedInt nelem, const CeedScalar * qweight1d, CeedScalar* w){
-  CeedScalar w1d[BASIS_Q1D];
-  for (int i = 0; i < BASIS_Q1D; ++i)
-  {
+CeedScalar w1d[BASIS_Q1D];
+  for (int i = 0; i < BASIS_Q1D; ++i) {
     w1d[i] = qweight1d[i];
   }
   for (int e = blockIdx.x * blockDim.x + threadIdx.x;
        e < nelem;
        e += blockDim.x * gridDim.x) {
-    for (int i = 0; i < BASIS_Q1D; ++i)
-    {
-      for (int j = 0; j < BASIS_Q1D; ++j)
-      {
-        const int ind = e + i*nelem + j*BASIS_Q1D*nelem;
+    for (int i = 0; i < BASIS_Q1D; ++i) {
+      for (int j = 0; j < BASIS_Q1D; ++j) {
+        const int ind = e*BASIS_Q1D*BASIS_Q1D + i + j*BASIS_Q1D;//sequential
         w[ind] = w1d[i]*w1d[j];
       }
     }
@@ -331,21 +325,17 @@ __device__ void weight2d(const CeedInt nelem, const CeedScalar * qweight1d, Ceed
 }
 
 __device__ void weight3d(const CeedInt nelem, const CeedScalar * qweight1d, CeedScalar* w){
-  CeedScalar w1d[BASIS_Q1D];
-  for (int i = 0; i < BASIS_Q1D; ++i)
-  {
+CeedScalar w1d[BASIS_Q1D];
+  for (int i = 0; i < BASIS_Q1D; ++i) {
     w1d[i] = qweight1d[i];
   }
   for (int e = blockIdx.x * blockDim.x + threadIdx.x;
        e < nelem;
        e += blockDim.x * gridDim.x) {
-    for (int i = 0; i < BASIS_Q1D; ++i)
-    {
-      for (int j = 0; j < BASIS_Q1D; ++j)
-      {
-        for (int k = 0; k < BASIS_Q1D; ++k)
-        {
-          const int ind = e + i*nelem + j*BASIS_Q1D*nelem + k*BASIS_Q1D*BASIS_Q1D*nelem;
+    for (int i = 0; i < BASIS_Q1D; ++i) {
+      for (int j = 0; j < BASIS_Q1D; ++j) {
+        for (int k = 0; k < BASIS_Q1D; ++k) {
+          const int ind = e*BASIS_Q1D*BASIS_Q1D*BASIS_Q1D + i + j*BASIS_Q1D + k*BASIS_Q1D*BASIS_Q1D;//sequential
           w[ind] = w1d[i]*w1d[j]*w1d[k];
         }
       }
@@ -376,7 +366,7 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
   CeedBasis_Cuda *data;
   CeedBasisGetData(basis, (void*)&data); CeedChk(ierr);
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
-  const int blocksize = ceed_Cuda->optblocksize;
+  const int maxblocksize = 32;//ceed_Cuda->optblocksize;
 
   const CeedScalar *d_u;
   CeedScalar *d_v;
@@ -390,10 +380,13 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
   }
   if (emode == CEED_EVAL_INTERP) {
     void *interpargs[] = {(void*)&nelem, (void*)&transpose, &data->d_interp1d, &d_u, &d_v};
+    CeedInt blocksize = CeedIntPow(basis->Q1d, basis->dim);
+    blocksize = blocksize > maxblocksize ? maxblocksize : blocksize;
     ierr = run_kernel(ceed, data->interp, nelem, blocksize, interpargs);
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_GRAD) {
     void *gradargs[] = {(void*)&nelem, (void*)&transpose, &data->d_interp1d, &data->d_grad1d, &d_u, &d_v};
+    CeedInt blocksize = maxblocksize;
     ierr = run_kernel(ceed, data->grad, nelem, blocksize, gradargs); CeedChk(ierr);
   } else if (emode == CEED_EVAL_WEIGHT) {
     void *weightargs[] = {(void*)&nelem, (void*)&data->d_qweight1d, &d_v};
@@ -457,7 +450,7 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   ierr = compile(basis->ceed, basiskernels, &data->module, 7,
                  "BASIS_Q1D", basis->Q1d,
                  "BASIS_P1D", basis->P1d,
-                 "BASIS_BUF_LEN", CeedIntPow(basis->Q1d > basis->P1d ? basis->Q1d : basis->P1d, basis->dim),
+                 "BASIS_BUF_LEN", basis->ncomp * CeedIntPow(basis->Q1d > basis->P1d ? basis->Q1d : basis->P1d, basis->dim),
                  "BASIS_DIM", basis->dim,
                  "BASIS_NCOMP", basis->ncomp,
                  "BASIS_ELEMSIZE", CeedIntPow(basis->P1d, basis->dim),
