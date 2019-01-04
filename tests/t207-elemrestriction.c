@@ -18,8 +18,8 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, 2*(ne*2), &x);
   for (CeedInt i=0; i<ne; i++) {
     for (CeedInt n=0; n<2; n++) {
-        a[i*4+n] = 10+(2*i+n+1)/2;
-        a[i*4+n+2] = 20+(2*i+n+1)/2;
+      a[i*4+n] = 10+(2*i+n+1)/2;
+      a[i*4+n+2] = 20+(2*i+n+1)/2;
     }
   }
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
@@ -42,11 +42,11 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<ne+1; i++) {
     mult = i>0&&i<ne ? 2 : 1;
     if (yy[2*i] != (10+i)*mult)
-       printf("Error in restricted array y[%d] = %f != %f\n",
-                       2*i, (double)yy[2*i], (10.+i)*mult);
+      printf("Error in restricted array y[%d] = %f != %f\n",
+             2*i, (double)yy[2*i], (10.+i)*mult);
     if (yy[2*i+1] != (20+i)*mult)
       printf("Error in restricted array y[%d] = %f != %f\n",
-                       2*i+1, (double)yy[2*i+1], (20.+i)*mult);
+             2*i+1, (double)yy[2*i+1], (20.+i)*mult);
   }
 
   CeedVectorRestoreArrayRead(y, &yy);

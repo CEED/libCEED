@@ -118,7 +118,8 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
                                 CeedBasisCreateH1_Occa); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
                                 CeedElemRestrictionCreate_Occa); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreateBlocked",
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
+                                "ElemRestrictionCreateBlocked",
                                 CeedElemRestrictionCreateBlocked_Occa);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",

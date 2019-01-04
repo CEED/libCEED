@@ -62,9 +62,10 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
 
     if (!delegate)
-    return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
+      return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
 
-    ierr = CeedQFunctionCreateInterior(delegate, vlength, f, focca, qf); CeedChk(ierr);
+    ierr = CeedQFunctionCreateInterior(delegate, vlength, f, focca, qf);
+    CeedChk(ierr);
     return 0;
   }
 
@@ -97,7 +98,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 
   @ref Developer
 **/
-static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname, 
+static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
                                  CeedInt ncomp, CeedEvalMode emode) {
   size_t len = strlen(fieldname);
   char *tmp;
@@ -256,7 +257,12 @@ int CeedQFunctionGetUserFunction(CeedQFunction qf, int (**f)()) {
 **/
 
 int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize) {
-  *ctxsize = qf->ctxsize;
+  if (qf->fortranstatus) {
+    fContext *fctx = qf->ctx;
+    *ctxsize = fctx->innerctxsize;
+  } else {
+    *ctxsize = qf->ctxsize;
+  }
   return 0;
 }
 
@@ -273,6 +279,43 @@ int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize) {
 
 int CeedQFunctionGetContext(CeedQFunction qf, void* *ctx) {
   *ctx = qf->ctx;
+  return 0;
+}
+
+/**
+  @brief Determine if Fortran interface was used
+
+  @param qf                  CeedQFunction
+  @param[out] fortranstatus  Variable to store Fortran status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionGetFortranStatus(CeedQFunction qf, bool *fortranstatus) {
+  *fortranstatus = qf->fortranstatus;
+  return 0;
+}
+
+/**
+  @brief Get Fortran global context for a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] ctx        Variable to store context data values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionGetFortranContext(CeedQFunction qf, void* *ctx) {
+  if (!qf->fortranstatus)
+    return CeedError(qf->ceed, 1,
+                     "QFunction was not set using Fortran");
+
+  fContext *fctx = qf->ctx;
+ *ctx = fctx->innerctx;
   return 0;
 }
 
@@ -416,7 +459,7 @@ int CeedQFunctionFieldGetNumComponents(CeedQFunctionField qffield,
 **/
 
 int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
-                               CeedEvalMode *emode) {
+                                  CeedEvalMode *emode) {
   *emode = qffield->emode;
   return 0;
 }

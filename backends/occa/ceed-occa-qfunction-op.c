@@ -33,7 +33,7 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
   ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
   const occaDevice device = ceed_data->device;
   CeedInt nIn;
-  ierr = CeedQFunctionGetNumArgs(qf, &nIn, NULL); CeedChk(ierr); 
+  ierr = CeedQFunctionGetNumArgs(qf, &nIn, NULL); CeedChk(ierr);
   assert(nIn<N_MAX_IDX);
   size_t cbytes;
   ierr = CeedQFunctionGetContextSize(qf, &cbytes); CeedChk(ierr);
