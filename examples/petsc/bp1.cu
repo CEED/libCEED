@@ -18,15 +18,15 @@
 extern "C" __global__ void Setup(void *ctx, CeedInt Q,
                                  Fields_Cuda fields) {
   CeedScalar *rho = fields.outputs[0], *true_soln = fields.outputs[1], *rhs = fields.outputs[2];
-  const CeedScalar (*x)[Q] = (const CeedScalar (*)[Q])fields.inputs[0];
-  const CeedScalar (*J)[3][Q] = (const CeedScalar (*)[3][Q])fields.inputs[1];
+  const CeedScalar *x = (const CeedScalar *)fields.inputs[0];
+  const CeedScalar *J = (const CeedScalar *)fields.inputs[1];
   const CeedScalar *w = fields.inputs[2];
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
-       i += blockDim.x * gridDim.x) {
-    CeedScalar det = (+ J[0][0][i] * (J[1][1][i]*J[2][2][i] - J[1][2][i]*J[2][1][i])
-                      - J[0][1][i] * (J[1][0][i]*J[2][2][i] - J[1][2][i]*J[2][0][i])
-                      + J[0][2][i] * (J[1][0][i]*J[2][1][i] - J[1][1][i]*J[2][0][i]));
+       i += blockDim.x m.x) {
+    CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
+                      J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
+                      J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
     rho[i] = det * w[i];
     true_soln[i] = sqrt(x[0][i]*x[0][i] + x[1][i]*x[1][i] + x[2][i]*x[2][i]);
     rhs[i] = rho[i] * true_soln[i];
