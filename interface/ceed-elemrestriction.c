@@ -61,8 +61,8 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
       return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreate");
 
     ierr = CeedElemRestrictionCreate(delegate, nelem, elemsize,
-                            ndof, ncomp, mtype, cmode,
-                            indices, rstr); CeedChk(ierr);
+                                     ndof, ncomp, mtype, cmode,
+                                     indices, rstr); CeedChk(ierr);
     return 0;
   }
 
@@ -109,10 +109,10 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
 
     if (!delegate)
       return CeedError(ceed, 1,
-                     "Backend does not support ElemRestrictionCreate");
+                       "Backend does not support ElemRestrictionCreate");
 
     ierr = CeedElemRestrictionCreateIdentity(delegate, nelem, elemsize,
-                            ndof, ncomp, rstr); CeedChk(ierr);
+           ndof, ncomp, rstr); CeedChk(ierr);
     return 0;
   }
 
@@ -126,7 +126,8 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
   (*rstr)->ncomp = ncomp;
   (*rstr)->nblk = nelem;
   (*rstr)->blksize = 1;
-  ierr = ceed->ElemRestrictionCreate(CEED_MEM_HOST, CEED_OWN_POINTER, NULL, *rstr);
+  ierr = ceed->ElemRestrictionCreate(CEED_MEM_HOST, CEED_OWN_POINTER, NULL,
+                                     *rstr);
   CeedChk(ierr);
   return 0;
 }
@@ -203,11 +204,11 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
     if (!delegate)
       return CeedError(ceed, 1,
-                     "Backend does not support ElemRestrictionCreateBlocked");
+                       "Backend does not support ElemRestrictionCreateBlocked");
 
     ierr = CeedElemRestrictionCreateBlocked(delegate, nelem, elemsize,
-                            blksize, ndof, ncomp, mtype, cmode,
-                            indices, rstr); CeedChk(ierr);
+                                            blksize, ndof, ncomp, mtype, cmode,
+                                            indices, rstr); CeedChk(ierr);
     return 0;
   }
 
@@ -349,7 +350,7 @@ int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
   @ref Advanced
 **/
 int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
-                                   CeedInt *elemsize) {
+                                      CeedInt *elemsize) {
   *elemsize = rstr->elemsize;
   return 0;
 }
@@ -383,7 +384,7 @@ int CeedElemRestrictionGetNumDoF(CeedElemRestriction rstr,
   @ref Advanced
 **/
 int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
-                                  CeedInt *numcomp) {
+                                        CeedInt *numcomp) {
   *numcomp = rstr->ncomp;
   return 0;
 }
@@ -399,7 +400,7 @@ int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
   @ref Advanced
 **/
 int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
-                                  CeedInt *numblock) {
+                                    CeedInt *numblock) {
   *numblock = rstr->nblk;
   return 0;
 }
@@ -431,7 +432,7 @@ int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
   @ref Advanced
 **/
 int CeedElemRestrictionGetData(CeedElemRestriction rstr,
-                                    void* *data) {
+                               void* *data) {
   *data = rstr->data;
   return 0;
 }
@@ -447,7 +448,7 @@ int CeedElemRestrictionGetData(CeedElemRestriction rstr,
   @ref Advanced
 **/
 int CeedElemRestrictionSetData(CeedElemRestriction rstr,
-                                    void* *data) {
+                               void* *data) {
   rstr->data = *data;
   return 0;
 }

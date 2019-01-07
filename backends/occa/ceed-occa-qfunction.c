@@ -134,7 +134,13 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   // ***************************************************************************
   void *ctx;
   if (cbytes>0) {
-    ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
+    bool fortranstatus;
+    ierr = CeedQFunctionGetFortranStatus(qf, &fortranstatus); CeedChk(ierr);
+    if (fortranstatus) {
+      ierr = CeedQFunctionGetFortranContext(qf, &ctx); CeedChk(ierr);
+    } else {
+      ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
+    }
     occaCopyPtrToMem(d_ctx,ctx,cbytes,0,NO_PROPS);
   }
 
@@ -146,7 +152,9 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
                 d_indata, d_outdata);
 
   // ***************************************************************************
-  if (cbytes>0) occaCopyMemToPtr(ctx,d_ctx,cbytes,0,NO_PROPS);
+  if (cbytes>0) {
+    occaCopyMemToPtr(ctx,d_ctx,cbytes,0,NO_PROPS);
+  }
 
   // ***************************************************************************
   CeedQFunctionField *outputfields;

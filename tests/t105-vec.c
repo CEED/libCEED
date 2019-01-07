@@ -1,24 +1,25 @@
 /// @file
-/// Test CeedVectorGetArray to modify array
-/// \test Test CeedVectorGetArray to modify array
+/// Test CeedVector readers counter
+/// \test Test CeedVector readers counter
 #include <ceed.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedVector x;
-  const CeedInt n = 10;
-  CeedScalar a[n];
+  CeedInt n;
+  const CeedScalar *a;
   CeedScalar *b;
 
   CeedInit(argv[1], &ceed);
+  n = 10;
   CeedVectorCreate(ceed, n, &x);
-  for (CeedInt i=0; i<n; i++) a[i] = 0;
-  CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
+  CeedVectorGetArrayRead(x, CEED_MEM_HOST, &a);
+
+  // Write access with read access generate an error
   CeedVectorGetArray(x, CEED_MEM_HOST, &b);
-  b[3] = -3.14;
+
+  CeedVectorRestoreArrayRead(x, &a);
   CeedVectorRestoreArray(x, &b);
-  if (a[3] != -3.14)
-    printf("Error writing array a[3] = %f", (double)b[3]);
 
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);

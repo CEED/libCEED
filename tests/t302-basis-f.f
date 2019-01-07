@@ -77,7 +77,7 @@ c-----------------------------------------------------------------------
      $  err)
       call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_interp,u,uq,
      $  err)
-      
+
       call ceedvectorgetarrayread(xq,ceed_mem_host,xxq,offset1,err)
       call ceedvectorgetarrayread(uq,ceed_mem_host,uuq,offset2,err)
       do i=1,q

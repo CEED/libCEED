@@ -37,11 +37,12 @@ typedef struct {
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
   CeedScalar ** edata;
+  CeedVector *evecsin;   /// Input E-vectors needed to apply operator
+  CeedVector *evecsout;   /// Output E-vectors needed to apply operator
   CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
   CeedVector *qvecsout;   /// Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
-  CeedVector tempvec;
 } CeedOperator_Ref;
 
 CEED_INTERN int CeedVectorCreate_Ref(CeedInt n, CeedVector vec);
@@ -57,12 +58,12 @@ CEED_INTERN int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P1d,
     CeedBasis basis);
 
 CEED_INTERN int CeedBasisCreateH1_Ref(CeedElemTopology topo,
-    CeedInt dim, CeedInt ndof, CeedInt nqpts,
-    const CeedScalar *interp,
-    const CeedScalar *grad,
-    const CeedScalar *qref,
-    const CeedScalar *qweight,
-    CeedBasis basis);
+                                      CeedInt dim, CeedInt ndof, CeedInt nqpts,
+                                      const CeedScalar *interp,
+                                      const CeedScalar *grad,
+                                      const CeedScalar *qref,
+                                      const CeedScalar *qweight,
+                                      CeedBasis basis);
 
 CEED_INTERN int CeedQFunctionCreate_Ref(CeedQFunction qf);
 

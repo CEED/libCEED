@@ -139,12 +139,12 @@ CEED_INTERN int CeedBasisCreateTensorH1_Occa(CeedInt dim,
 
 // *****************************************************************************
 CEED_INTERN int CeedBasisCreateH1_Occa(CeedElemTopology topo,
-    CeedInt dim, CeedInt ndof, CeedInt nqpts,
-    const CeedScalar *interp1d,
-    const CeedScalar *grad1d,
-    const CeedScalar *qref1d,
-    const CeedScalar *qweight1d,
-    CeedBasis basis);
+                                       CeedInt dim, CeedInt ndof, CeedInt nqpts,
+                                       const CeedScalar *interp1d,
+                                       const CeedScalar *grad1d,
+                                       const CeedScalar *qref1d,
+                                       const CeedScalar *qweight1d,
+                                       CeedBasis basis);
 
 // *****************************************************************************
 CEED_INTERN int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt Q,
@@ -163,8 +163,8 @@ CEED_INTERN int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
 
 // *****************************************************************************
 CEED_INTERN int CeedElemRestrictionCreateBlocked_Occa(const CeedMemType mtype,
-     const CeedCopyMode cmode, const CeedInt *indices,
-     const CeedElemRestriction res);
+    const CeedCopyMode cmode, const CeedInt *indices,
+    const CeedElemRestriction res);
 
 // *****************************************************************************
 CEED_INTERN int CeedVectorCreate_Occa(CeedInt n, CeedVector vec);

@@ -20,9 +20,9 @@
 // *****************************************************************************
 static int Setup(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
-  #ifndef M_PI
-  #define M_PI    3.14159265358979323846
-  #endif
+#ifndef M_PI
+#define M_PI    3.14159265358979323846
+#endif
   const CeedScalar *x = in[0], *J = in[1], *w = in[2];
   CeedScalar *qd = out[0], *true_soln = out[1], *rhs = out[2];
   for (CeedInt i=0; i<Q; i++) {
@@ -54,11 +54,11 @@ static int Setup(void *ctx, CeedInt Q,
     const CeedScalar c[3] = { 0, 1., 2. };
     const CeedScalar k[3] = { 1., 2., 3. };
     true_soln[i] = sin(M_PI*(c[0] + k[0]*x[i+Q*0])) *
-                     sin(M_PI*(c[1] + k[1]*x[i+Q*1])) *
-                     sin(M_PI*(c[2] + k[2]*x[i+Q*2]));
+                   sin(M_PI*(c[1] + k[1]*x[i+Q*1])) *
+                   sin(M_PI*(c[2] + k[2]*x[i+Q*2]));
     const CeedScalar rho = w[i] * (J11*A11 + J21*A12 + J31*A13);
     rhs[i] = rho * M_PI*M_PI * (k[0]*k[0] + k[1]*k[1] + k[2]*k[2]) *
-               true_soln[i];
+             true_soln[i];
   }
   return 0;
 }
