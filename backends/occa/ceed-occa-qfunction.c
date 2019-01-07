@@ -134,13 +134,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   // ***************************************************************************
   void *ctx;
   if (cbytes>0) {
-    bool fortranstatus;
-    ierr = CeedQFunctionGetFortranStatus(qf, &fortranstatus); CeedChk(ierr);
-    if (fortranstatus) {
-      ierr = CeedQFunctionGetFortranContext(qf, &ctx); CeedChk(ierr);
-    } else {
-      ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
-    }
+    ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChk(ierr);
     occaCopyPtrToMem(d_ctx,ctx,cbytes,0,NO_PROPS);
   }
 

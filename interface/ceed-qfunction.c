@@ -299,7 +299,7 @@ int CeedQFunctionGetFortranStatus(CeedQFunction qf, bool *fortranstatus) {
 }
 
 /**
-  @brief Get Fortran global context for a CeedQFunction
+  @brief Get true user context for a CeedQFunction
 
   @param qf              CeedQFunction
   @param[out] ctx        Variable to store context data values
@@ -309,13 +309,14 @@ int CeedQFunctionGetFortranStatus(CeedQFunction qf, bool *fortranstatus) {
   @ref Advanced
 **/
 
-int CeedQFunctionGetFortranContext(CeedQFunction qf, void* *ctx) {
-  if (!qf->fortranstatus)
-    return CeedError(qf->ceed, 1,
-                     "QFunction was not set using Fortran");
+int CeedQFunctionGetInnerContext(CeedQFunction qf, void* *ctx) {
+  if (qf->fortranstatus) {
+    fContext *fctx = qf->ctx;
+    *ctx = fctx->innerctx;
+  } else {
+    *ctx = qf->ctx;
+  }
 
-  fContext *fctx = qf->ctx;
- *ctx = fctx->innerctx;
   return 0;
 }
 
