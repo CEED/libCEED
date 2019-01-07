@@ -496,8 +496,6 @@ int main(int argc, char **argv) {
   CeedOperatorApply(op_setup, xcoord, rho, CEED_REQUEST_IMMEDIATE);
   //TODO replace this by SyncArray when available
   const CeedScalar* array;
-  ierr = CeedVectorGetArrayRead(rho, CEED_MEM_HOST, &array); CHKERRQ(ierr);
-  ierr = CeedVectorRestoreArrayRead(rho, &array); CHKERRQ(ierr);
   ierr = CeedVectorGetArrayRead(rhsceed, CEED_MEM_HOST, &array); CHKERRQ(ierr);
   ierr = CeedVectorRestoreArrayRead(rhsceed, &array); CHKERRQ(ierr);
   CeedVectorDestroy(&xcoord);
