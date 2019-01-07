@@ -23,12 +23,12 @@ extern "C" __global__ void Setup(void *ctx, CeedInt Q,
   const CeedScalar *w = fields.inputs[2];
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
-       i += blockDim.x m.x) {
+       i += blockDim.x * gridDim.x) {
     CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
                       J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
                       J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
     rho[i] = det * w[i];
-    true_soln[i] = sqrt(x[0][i]*x[0][i] + x[1][i]*x[1][i] + x[2][i]*x[2][i]);
+    true_soln[i] = sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
     rhs[i] = rho[i] * true_soln[i];
   }
 }
