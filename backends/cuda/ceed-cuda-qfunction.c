@@ -44,11 +44,22 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
   }
 
   // TODO find a way to avoid this systematic memCpy
-  if (qf->ctxsize > 0) {
+
+  size_t ctxsize;
+  ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
+  if (ctxsize > 0) {
     if(!data->d_c) {
-      ierr = cudaMalloc(&data->d_c, qf->ctxsize); CeedChk_Cu(ceed, ierr);
+      ierr = cudaMalloc(&data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);
     }
-    ierr = cudaMemcpy(data->d_c, qf->ctx, qf->ctxsize, cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
+    void *ctx;
+    bool fortranstatus;
+    ierr = CeedQFunctionGetFortranStatus(qf, &fortranstatus); CeedChk(ierr);
+    if (fortranstatus) {
+      ierr = CeedQFunctionGetFortranContext(qf, &ctx); CeedChk(ierr);
+    } else {
+      ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
+    }
+    ierr = cudaMemcpy(data->d_c, ctx, ctxsize, cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
   }
 
   void* ctx;
