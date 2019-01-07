@@ -88,5 +88,4 @@ extern "C" __global__ void Error(void *ctx, CeedInt Q,
        i += blockDim.x * gridDim.x) {
     err[i] = u[i] - target[i];
   }
-  return 0;
 }
