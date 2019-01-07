@@ -17,10 +17,10 @@
 // *****************************************************************************
 extern "C" __global__ void Setup(void *ctx, CeedInt Q,
                                  Fields_Cuda fields) {
-  CeedScalar *rho = fields.outputs[0], *true_soln = fields.outputs[1], *rhs = fields.output[2];
+  CeedScalar *rho = fields.outputs[0], *true_soln = fields.outputs[1], *rhs = fields.outputs[2];
   const CeedScalar (*x)[Q] = (const CeedScalar (*)[Q])fields.inputs[0];
   const CeedScalar (*J)[3][Q] = (const CeedScalar (*)[3][Q])fields.inputs[1];
-  const CeedScalar *w = in[2];
+  const CeedScalar *w = fields.inputs[2];
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
        i += blockDim.x * gridDim.x) {
