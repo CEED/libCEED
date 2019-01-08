@@ -129,7 +129,7 @@ struct CeedQFunction_private {
   CeedQFunctionField *inputfields;
   CeedQFunctionField *outputfields;
   CeedInt numinputfields, numoutputfields;
-  CeedQFunctionCallback function;
+  CeedUserQFunction function;
   const char *focca;
   bool fortranstatus;
   void *ctx;      /* user context for function */

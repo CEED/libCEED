@@ -167,7 +167,6 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   CeedChk(ierr);
 
   // Outfields
-
   ierr = CeedOperatorSetupFields_Ref(qf, op, 1, impl->evecs,
                                      impl->evecsout, impl->qvecsout,
                                      numinputfields, numoutputfields, Q);

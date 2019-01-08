@@ -289,10 +289,10 @@ CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
 CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m,
                                     CeedInt n);
 
-typedef int (*CeedQFunctionCallback)(void *, const CeedInt, const CeedScalar *const *, CeedScalar *const *);
+typedef int (*CeedUserQFunction)(void *, const CeedInt, const CeedScalar *const *, CeedScalar *const *);
 
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
-    CeedQFunctionCallback f,// const char *fcuda,
+    CeedUserQFunction f,// const char *fcuda,
     const char *focca, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                                       CeedInt ncomp, CeedEvalMode emode);

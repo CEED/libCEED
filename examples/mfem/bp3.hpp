@@ -316,6 +316,7 @@ class CeedDiffusionOperator : public mfem::Operator {
 
     CeedOperatorApply(oper, u, v, CEED_REQUEST_IMMEDIATE);
 
+    //TODO replace this by SyncArray when available
     const CeedScalar* array;
     CeedVectorGetArrayRead(u, CEED_MEM_HOST, &array);
     CeedVectorRestoreArrayRead(u, &array);
