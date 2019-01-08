@@ -23,7 +23,7 @@ __global__ void setValueK(CeedScalar * __restrict__ vec, CeedInt size, CeedScala
   vec[idx] = val;
 }
 
-extern "C" int DeviceSetValue(CeedScalar* d_array, CeedInt length, CeedScalar val) {
+extern "C" int CeedDeviceSetValue(CeedScalar* d_array, CeedInt length, CeedScalar val) {
   const int bsize = 512;
   const int vecsize = length;
   int gridsize = vecsize / bsize;

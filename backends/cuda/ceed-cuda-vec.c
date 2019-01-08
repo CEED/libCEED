@@ -136,12 +136,12 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec,
 }
 
 // *****************************************************************************
-static int HostSetValue(CeedScalar* h_array, CeedInt length, CeedScalar val) {
+static int CeedHostSetValue(CeedScalar* h_array, CeedInt length, CeedScalar val) {
   for (int i=0; i<length; i++) h_array[i] = val;
   return 0;
 }
 
-int DeviceSetValue(CeedScalar* d_array, CeedInt length, CeedScalar val);
+int CeedDeviceSetValue(CeedScalar* d_array, CeedInt length, CeedScalar val);
 
 // *****************************************************************************
 // * Set a vector to a value,
@@ -156,7 +156,7 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
   ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
   switch(data->memState) {
   case HOST_SYNC:
-    ierr = HostSetValue(data->h_array, length, val);
+    ierr = CeedHostSetValue(data->h_array, length, val);
     CeedChk(ierr);
     break;
   case NONE_SYNC:
@@ -170,17 +170,17 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
       data->d_array = data->d_array_allocated;
     }
     data->memState = DEVICE_SYNC;
-    ierr = DeviceSetValue(data->d_array, length, val);
+    ierr = CeedDeviceSetValue(data->d_array, length, val);
     CeedChk(ierr);
     break;
   case DEVICE_SYNC:
-    ierr = DeviceSetValue(data->d_array, length, val);
+    ierr = CeedDeviceSetValue(data->d_array, length, val);
     CeedChk(ierr);
     break;
   case BOTH_SYNC:
-    ierr = HostSetValue(data->h_array, length, val);
+    ierr = CeedHostSetValue(data->h_array, length, val);
     CeedChk(ierr);
-    ierr = DeviceSetValue(data->d_array, length, val);
+    ierr = CeedDeviceSetValue(data->d_array, length, val);
     CeedChk(ierr);
     break;
   }
