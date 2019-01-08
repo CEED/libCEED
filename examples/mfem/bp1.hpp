@@ -258,8 +258,6 @@ class CeedMassOperator : public mfem::Operator {
 
     //TODO replace this by SyncArray when available
     const CeedScalar* array;
-    CeedVectorGetArrayRead(u, CEED_MEM_HOST, &array);
-    CeedVectorRestoreArrayRead(u, &array);
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &array);
     CeedVectorRestoreArrayRead(v, &array);
   }
