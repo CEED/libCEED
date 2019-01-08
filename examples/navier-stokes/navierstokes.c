@@ -644,9 +644,10 @@ int main(int argc, char **argv) {
   CeedScalar Rd         = Cp - Cv;  // J/kg K
   CeedScalar g          = 9.81;     // m/s^2
   CeedScalar lambda     = -2./3.;   // -
-  CeedScalar mu         = 75.;      // s/m^2
+  CeedScalar mu         = 75.;      // m^2/s
   CeedScalar k          = 26.38;    // W/m K
-  CeedScalar ctxSetup[8] = {Theta0, ThetaC, P0, N, Cv, Cp, Rd, g};
+  CeedScalar rc         = 1./4.;    // Radius of bubble
+  CeedScalar ctxSetup[9] = {Theta0, ThetaC, P0, N, Cv, Cp, Rd, g, rc};
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
   CeedScalar ctxNS[6] = {lambda, mu, k, Cv, Cp, g};
   CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
