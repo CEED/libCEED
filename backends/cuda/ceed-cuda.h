@@ -100,7 +100,6 @@ typedef struct {
 
 typedef struct {
   int optblocksize;
-  Ceed ceedref;
 } Ceed_Cuda;
 
 CEED_INTERN int compile(Ceed ceed, const char *source, CUmodule *module,
