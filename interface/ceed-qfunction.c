@@ -315,7 +315,7 @@ int CeedQFunctionGetFortranContext(CeedQFunction qf, void* *ctx) {
                      "QFunction was not set using Fortran");
 
   fContext *fctx = qf->ctx;
- *ctx = fctx->innerctx;
+  *ctx = fctx->innerctx;
   return 0;
 }
 

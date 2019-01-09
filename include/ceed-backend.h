@@ -107,7 +107,7 @@ CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf,
                                         CeedInt *numoutputfields);
 CEED_EXTERN int CeedQFunctionGetFOCCA(CeedQFunction qf, char* *focca);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
-                                             int (**f)());
+    int (**f)());
 CEED_EXTERN int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize);
 CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, void* *ctx);
 CEED_EXTERN int CeedQFunctionGetFortranStatus(CeedQFunction qf,
@@ -120,7 +120,7 @@ CEED_EXTERN int CeedQFunctionGetFields(CeedQFunction qf,
                                        CeedQFunctionField* *inputfields,
                                        CeedQFunctionField* *outputfields);
 CEED_EXTERN int CeedQFunctionFieldGetName(CeedQFunctionField qffield,
-                                          char* *fieldname);
+    char* *fieldname);
 CEED_EXTERN int CeedQFunctionFieldGetNumComponents(CeedQFunctionField qffield,
     CeedInt *numcomp);
 CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,

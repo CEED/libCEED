@@ -93,7 +93,7 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec,
     CeedChk_Cu(ceed, ierr);
     data->d_array = data->d_array_allocated;
 
-    if (array){ 
+    if (array) {
       ierr = cudaMemcpy(data->d_array, array, bytes(vec), cudaMemcpyDeviceToDevice);
       CeedChk_Cu(ceed, ierr);
     }
@@ -136,7 +136,8 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec,
 }
 
 // *****************************************************************************
-static int CeedHostSetValue(CeedScalar* h_array, CeedInt length, CeedScalar val) {
+static int CeedHostSetValue(CeedScalar* h_array, CeedInt length,
+                            CeedScalar val) {
   for (int i=0; i<length; i++) h_array[i] = val;
   return 0;
 }

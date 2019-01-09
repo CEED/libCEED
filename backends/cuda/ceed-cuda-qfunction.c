@@ -59,7 +59,8 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
     } else {
       ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
     }
-    ierr = cudaMemcpy(data->d_c, ctx, ctxsize, cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
+    ierr = cudaMemcpy(data->d_c, ctx, ctxsize, cudaMemcpyHostToDevice);
+    CeedChk_Cu(ceed, ierr);
   }
 
   void* ctx;

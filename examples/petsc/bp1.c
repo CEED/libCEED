@@ -139,9 +139,10 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
                     CEED_REQUEST_IMMEDIATE);
   //TODO replace this by SyncArray when available
   const CeedScalar* array;
-  ierr = CeedVectorGetArrayRead(user->yceed, CEED_MEM_HOST, &array); CHKERRQ(ierr);
+  ierr = CeedVectorGetArrayRead(user->yceed, CEED_MEM_HOST, &array);
+  CHKERRQ(ierr);
   ierr = CeedVectorRestoreArrayRead(user->yceed, &array); CHKERRQ(ierr);
-  
+
 
   ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
   ierr = VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
