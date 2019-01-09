@@ -54,7 +54,8 @@
 
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-      call ceedbasiscreateh1(ceed,ceed_triangle,1,p,q,interp,grad,qref,qweight,b,err)
+      call ceedbasiscreateh1(ceed,ceed_triangle,1,p,q,interp,grad,qref,qweight,&
+     & b,err)
 
       do i=1,p
         x1=xr(0*p+i)
@@ -77,12 +78,14 @@
         call dfeval(x1,x2,val)
         diff=val-ooutput(0*q+i+offset)
         if (abs(diff)>1.0d-10) then
-          write(*,'(A,I1,A,F12.8,A,F12.8)')  '[',i,'] ',ooutput(i+offset),' != ',val
+          write(*,'(A,I1,A,F12.8,A,F12.8)')  '[',i,'] ',ooutput(i+offset),&
+     &     ' != ',val
         endif
         call dfeval(x2,x1,val)
         diff=val-ooutput(1*q+i+offset)
         if (abs(diff)>1.0d-10) then
-          write(*,'(A,I1,A,F12.8,A,F12.8)')  '[',i,'] ',ooutput(i+offset),' != ',val
+          write(*,'(A,I1,A,F12.8,A,F12.8)')  '[',i,'] ',ooutput(i+offset),&
+     &     ' != ',val
         endif
       enddo
       call ceedvectorrestorearrayread(output,ooutput,offset,err)

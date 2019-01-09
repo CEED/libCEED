@@ -39,13 +39,15 @@
         ind(2*i  )=i
       enddo
 
-      call ceedelemrestrictioncreateblocked(ceed,ne,2,blksize,ne+1,ncomp,ceed_mem_host,ceed_use_pointer,ind,r,err)
+      call ceedelemrestrictioncreateblocked(ceed,ne,2,blksize,ne+1,ncomp,&
+     & ceed_mem_host,ceed_use_pointer,ind,r,err)
 
       call ceedvectorcreate(ceed,2*blksize*2*ncomp,y,err);
       call ceedvectorsetvalue(y,0.d0,err);
 
 !    No Transpose
-      call ceedelemrestrictionapply(r,ceed_notranspose,ceed_notranspose,x,y,ceed_request_immediate,err)
+      call ceedelemrestrictionapply(r,ceed_notranspose,ceed_notranspose,x,y,&
+     & ceed_request_immediate,err)
       call ceedvectorview(y,err)
 
 !    Transpose
@@ -55,7 +57,8 @@
       enddo
       call ceedvectorrestorearray(x,a,aoffset,err)
       
-      call ceedelemrestrictionapply(r,ceed_transpose,ceed_notranspose,y,x,ceed_request_immediate,err)
+      call ceedelemrestrictionapply(r,ceed_transpose,ceed_notranspose,y,x,&
+     & ceed_request_immediate,err)
 
       call ceedvectorview(x,err)
 

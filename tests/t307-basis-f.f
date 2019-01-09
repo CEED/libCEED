@@ -14,7 +14,8 @@
       call ceedinit(trim(arg)//char(0),ceed,err)
 
 !     Already collocated, GetCollocatedGrad will return grad1d
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,4,ceed_gauss_lobatto,b,err)
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,4,ceed_gauss_lobatto,b,&
+     & err)
       call ceedbasisgetcollocatedgrad(b,colograd1d,err)
       call ceedbasisview(b,err)
       do i=1,16
@@ -23,7 +24,8 @@
         endif
       enddo
       do i=0,3
-        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')'colograd[',i,']:',(colograd1d(j+4*i),j=1,4)
+        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')&
+     &   'colograd[',i,']:',(colograd1d(j+4*i),j=1,4)
       call flush(6)
       enddo
       call ceedbasisdestroy(b,err)
@@ -38,7 +40,8 @@
         endif
       enddo
       do i=0,3
-        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')'colograd[',i,']:',(colograd1d(j+4*i),j=1,4)
+        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')&
+     &   'colograd[',i,']:',(colograd1d(j+4*i),j=1,4)
       call flush(6)
       enddo
       call ceedbasisdestroy(b,err)
@@ -53,7 +56,8 @@
         endif
       enddo
       do i=0,5
-        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')'colograd[',i,']:',(colograd1d2(j+6*i),j=1,6)
+        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')&
+     &   'colograd[',i,']:',(colograd1d2(j+6*i),j=1,6)
       call flush(6)
       enddo
       call ceedbasisdestroy(b,err)

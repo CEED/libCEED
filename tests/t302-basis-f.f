@@ -50,8 +50,10 @@
       call ceedvectorcreate(ceed,q,uq,err)
       call ceedvectorsetvalue(uq,0.d0,err)
 
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss_lobatto,bxl,err)
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,q,q,ceed_gauss_lobatto,bul,err)
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss_lobatto,&
+     & bxl,err)
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,q,q,ceed_gauss_lobatto,&
+     & bul,err)
 
       call ceedbasisapply(bxl,1,ceed_notranspose,ceed_eval_interp,x,xq,err)
 

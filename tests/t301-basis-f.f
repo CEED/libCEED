@@ -29,7 +29,8 @@
       enddo
       call ceedvectorsetarray(u,ceed_mem_host,ceed_use_pointer,uu,err)
 
-      call ceedbasiscreatetensorh1lagrange(ceed,dimn,1,p1d,q1d,ceed_gauss_lobatto,b,err)
+      call ceedbasiscreatetensorh1lagrange(ceed,dimn,1,p1d,q1d,&
+     & ceed_gauss_lobatto,b,err)
 
       call ceedbasisapply(b,1,ceed_notranspose,ceed_eval_interp,u,v,err)
 

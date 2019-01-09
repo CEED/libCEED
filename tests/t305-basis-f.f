@@ -56,7 +56,8 @@
       call ceedvectorcreate(ceed,q,w,err)
       call ceedvectorsetvalue(w,0.d0,err)
 
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss_lobatto,bxl,err)
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss_lobatto,bxl,&
+     & err)
 
       call ceedbasisapply(bxl,1,ceed_notranspose,ceed_eval_interp,x,xq,err)
 
@@ -72,7 +73,8 @@
 
       call ceedbasisapply(bxg,1,ceed_notranspose,ceed_eval_interp,x,xq,err)
       call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_interp,u,uq,err)
-      call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_weight,ceed_null,w,err)
+      call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_weight,ceed_null,w,&
+     & err)
 
       call ceedvectorgetarrayread(w,ceed_mem_host,ww,offset1,err)
       call ceedvectorgetarrayread(uq,ceed_mem_host,uuq,offset2,err)

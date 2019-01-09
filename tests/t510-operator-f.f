@@ -100,16 +100,22 @@
         indx(i*2*p+12)=16+offset
       enddo
 
-      call ceedelemrestrictioncreate(ceed,nelem,p,ndofs,d,ceed_mem_host,ceed_use_pointer,indx,erestrictx,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelem,p,nelem*p,d,erestrictxi,err)
+      call ceedelemrestrictioncreate(ceed,nelem,p,ndofs,d,ceed_mem_host,&
+     & ceed_use_pointer,indx,erestrictx,err)
+      call ceedelemrestrictioncreateidentity(ceed,nelem,p,nelem*p,d,&
+     & erestrictxi,err)
 
-      call ceedelemrestrictioncreate(ceed,nelem,p,ndofs,1,ceed_mem_host,ceed_use_pointer,indx,erestrictu,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelem,q,nqpts,1,erestrictui,err)
+      call ceedelemrestrictioncreate(ceed,nelem,p,ndofs,1,ceed_mem_host,&
+     & ceed_use_pointer,indx,erestrictu,err)
+      call ceedelemrestrictioncreateidentity(ceed,nelem,q,nqpts,1,&
+     & erestrictui,err)
 
       call buildmats(qref,qweight,interp,grad)
-      call ceedbasiscreateh1(ceed,ceed_triangle,d,p,q,interp,grad,qref,qweight,bx,err)
+      call ceedbasiscreateh1(ceed,ceed_triangle,d,p,q,interp,grad,qref,qweight,&
+     & bx,err)
       call buildmats(qref,qweight,interp,grad)
-      call ceedbasiscreateh1(ceed,ceed_triangle,1,p,q,interp,grad,qref,qweight,bu,err)
+      call ceedbasiscreateh1(ceed,ceed_triangle,1,p,q,interp,grad,qref,qweight,&
+     & bu,err)
 
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &__FILE__&
@@ -132,12 +138,18 @@
       call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,err)
       call ceedvectorcreate(ceed,nqpts,qdata,err)
 
-      call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,ceed_notranspose,bx,ceed_vector_none,err)
-      call ceedoperatorsetfield(op_setup,'x',erestrictx,ceed_notranspose,bx,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_setup,'rho',erestrictui,ceed_notranspose,ceed_basis_collocated,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_mass,'rho',erestrictui,ceed_notranspose,ceed_basis_collocated,qdata,err)
-      call ceedoperatorsetfield(op_mass,'u',erestrictu,ceed_notranspose,bu,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_mass,'v',erestrictu,ceed_notranspose,bu,ceed_vector_active,err)
+      call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&
+     & ceed_notranspose,bx,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setup,'x',erestrictx,&
+     & ceed_notranspose,bx,ceed_vector_active,err)
+      call ceedoperatorsetfield(op_setup,'rho',erestrictui,&
+     & ceed_notranspose,ceed_basis_collocated,ceed_vector_active,err)
+      call ceedoperatorsetfield(op_mass,'rho',erestrictui,&
+     & ceed_notranspose,ceed_basis_collocated,qdata,err)
+      call ceedoperatorsetfield(op_mass,'u',erestrictu,&
+     & ceed_notranspose,bu,ceed_vector_active,err)
+      call ceedoperatorsetfield(op_mass,'v',erestrictu,&
+     & ceed_notranspose,bu,ceed_vector_active,err)
 
       call ceedoperatorapply(op_setup,x,qdata,ceed_request_immediate,err)
 
