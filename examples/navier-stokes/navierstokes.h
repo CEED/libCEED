@@ -97,7 +97,7 @@ static int ICsNS(void *ctx, CeedInt Q,
     const CeedScalar r = sqrt(pow((x - center[0]), 2) +
                               pow((y - center[1]), 2) +
                               pow((z - center[2]), 2));
-    const CeedScalar deltaTheta = r<= rc ? ThetaC*(1 + cos(M_PI*r/rc))/2 : 0;
+    const CeedScalar deltaTheta = r<= rc ? ThetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
     const CeedScalar Theta = Theta0*exp(N*N*z/g) + deltaTheta;
     // -- Exner pressure, hydrostatic balance
     const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (Cp*Theta0*N*N);

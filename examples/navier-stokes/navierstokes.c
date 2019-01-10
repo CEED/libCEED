@@ -644,7 +644,7 @@ int main(int argc, char **argv) {
   CeedScalar Rd         = Cp - Cv;  // J/kg K
   CeedScalar g          = 9.81;     // m/s^2
   CeedScalar lambda     = -2./3.;   // -
-  CeedScalar mu         = 75.;      // m^2/s
+  CeedScalar mu         = 1.e-5;    // Pa s (dynamic viscosity)
   CeedScalar k          = 26.38;    // W/m K
   CeedScalar rc         = 1./4.;    // Radius of bubble
   CeedScalar ctxSetup[9] = {Theta0, ThetaC, P0, N, Cv, Cp, Rd, g, rc};
