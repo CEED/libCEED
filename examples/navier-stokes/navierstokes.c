@@ -239,7 +239,7 @@ int main(int argc, char **argv) {
   TSAdapt adapt;
   User user;
   char ceedresource[4096] = "/cpu/self";
-  PetscFunctionList icsflist, qflist;
+  PetscFunctionList icsflist = NULL, qflist = NULL;
   char problemtype[256] = "advection";
   PetscInt degree, qextra, localdof, localelem, lsize, outputfreq,
            steps, melem[3], mdof[3], p[3], irank[3], ldof[3];
@@ -266,10 +266,10 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
 
   // Set up problem type command line option
-  PetscFunctionListAdd(&icsflist, "advection", ICsAdvection);
-  PetscFunctionListAdd(&icsflist, "navier_stokes", ICsNS);
-  PetscFunctionListAdd(&qflist, "advection", Advection);
-  PetscFunctionListAdd(&qflist, "navier_stokes", NS);
+  PetscFunctionListAdd(&icsflist, "advection", &ICsAdvection);
+  PetscFunctionListAdd(&icsflist, "navier_stokes", &ICsNS);
+  PetscFunctionListAdd(&qflist, "advection", &Advection);
+  PetscFunctionListAdd(&qflist, "navier_stokes", &NS);
 
   // Parse command line options
   comm = PETSC_COMM_WORLD;
@@ -644,9 +644,10 @@ int main(int argc, char **argv) {
   CeedScalar Rd         = Cp - Cv;  // J/kg K
   CeedScalar g          = 9.81;     // m/s^2
   CeedScalar lambda     = -2./3.;   // -
-  CeedScalar mu         = 75.;      // s/m^2
+  CeedScalar mu         = 75.;      // m^2/s
   CeedScalar k          = 26.38;    // W/m K
-  CeedScalar ctxSetup[8] = {Theta0, ThetaC, P0, N, Cv, Cp, Rd, g};
+  CeedScalar rc         = 1./4.;    // Radius of bubble
+  CeedScalar ctxSetup[9] = {Theta0, ThetaC, P0, N, Cv, Cp, Rd, g, rc};
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
   CeedScalar ctxNS[6] = {lambda, mu, k, Cv, Cp, g};
   CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);

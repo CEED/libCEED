@@ -84,6 +84,7 @@ static int ICsNS(void *ctx, CeedInt Q,
   const CeedScalar Cp         = context[5];
   const CeedScalar Rd         = context[6];
   const CeedScalar g          = context[7];
+  const CeedScalar rc         = context[8];
 
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
@@ -93,10 +94,10 @@ static int ICsNS(void *ctx, CeedInt Q,
     const CeedScalar y = X[i+1*Q];
     const CeedScalar z = X[i+2*Q];
     // -- Potential temperature, density current
-    const CeedScalar r = sqrt(pow((x - center[0])/4, 2) +
-                              pow((y - center[1])/4, 2) +
-                              pow((z - center[2])/4, 2));
-    const CeedScalar deltaTheta = r<= 1. ? ThetaC*(1 + cos(M_PI*r))/2 : 0;
+    const CeedScalar r = sqrt(pow((x - center[0]), 2) +
+                              pow((y - center[1]), 2) +
+                              pow((z - center[2]), 2));
+    const CeedScalar deltaTheta = r<= rc ? ThetaC*(1 + cos(M_PI*r/rc))/2 : 0;
     const CeedScalar Theta = Theta0*exp(N*N*z/g) + deltaTheta;
     // -- Exner pressure, hydrostatic balance
     const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (Cp*Theta0*N*N);

@@ -51,9 +51,9 @@ CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -mav
 NVCCFLAGS = $(OPT)
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
-  FFLAGS = $(OPT) -qpreprocess -qextname -qpic -MMD
+  FFLAGS = $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD
 else # gfortran/Intel-style options
-  FFLAGS = -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
+  FFLAGS = -cpp     $(OPT) -ffree-form -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
 endif
 
 ifeq ($(UNDERSCORE), 1)
@@ -324,11 +324,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
-	$(MAKE) -C examples/ceed clean
-	$(MAKE) -C examples/mfem clean
-	$(MAKE) -C examples/navier-stokes clean
-	$(MAKE) -C examples/petsc clean
-	(cd examples/nek5000 && bash make-nek-examples.sh clean)
+	$(MAKE) -C examples clean
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
 
 distclean : clean
