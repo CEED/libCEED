@@ -13,3 +13,6 @@ steps:
 - script: |
     make
   displayName: 'make'
+- script: |
+    make prove-all
+  displayName: 'prove'
