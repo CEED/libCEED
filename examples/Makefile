@@ -31,9 +31,9 @@ NEK5K_EXAMPLES ?= bp1
 PETSC_DIR ?=
 PETSC_ARCH ?=
 
-.PHONY: all nek mfem petsc ceed clean
+.PHONY: all nek ns mfem petsc ceed clean
 
-all: ceed nek mfem petsc ceed
+all: ceed nek ns mfem petsc ceed
 
 ceed:
 	make CEED_DIR=$(CEED_DIR) -C ceed all
@@ -52,7 +52,11 @@ mfem:
 petsc:
 	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C petsc all
 
+ns:
+	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C navier-stokes all
+
 clean:
 	cd nek5000 && ./make-nek-examples.sh clean
 	make -C mfem clean
 	make -C petsc clean
+	make -C navier-stokes clean
