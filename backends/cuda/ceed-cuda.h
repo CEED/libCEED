@@ -100,7 +100,6 @@ typedef struct {
 
 typedef struct {
   int optblocksize;
-  Ceed ceedref;
 } Ceed_Cuda;
 
 static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {

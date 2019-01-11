@@ -591,9 +591,13 @@ void fCeedQFunctionApply(int *qf, int *Q,
 #define fCeedQFunctionDestroy \
     FORTRAN_NAME(ceedqfunctiondestroy,CEEDQFUNCTIONDESTROY)
 void fCeedQFunctionDestroy(int *qf, int *err) {
-  *err = CeedQFunctionDestroy(&CeedQFunction_dict[*qf]);
-
+  fContext *fctx = CeedQFunction_dict[*qf]->ctx;
+  *err = CeedFree(&fctx);
   if (*err) return;
+
+  *err = CeedQFunctionDestroy(&CeedQFunction_dict[*qf]);
+  if (*err) return;
+
   CeedQFunction_n--;
   if (CeedQFunction_n == 0) {
     *err = CeedFree(&CeedQFunction_dict);

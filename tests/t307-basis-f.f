@@ -1,4 +1,4 @@
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
       program test
 
       include 'ceedf.h'
@@ -13,9 +13,9 @@ c-----------------------------------------------------------------------
 
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-c     Already collocated, GetCollocatedGrad will return grad1d
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,4,
-     $  ceed_gauss_lobatto,b,err)
+!     Already collocated, GetCollocatedGrad will return grad1d
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,4,ceed_gauss_lobatto,b,&
+     & err)
       call ceedbasisgetcollocatedgrad(b,colograd1d,err)
       call ceedbasisview(b,err)
       do i=1,16
@@ -24,15 +24,14 @@ c     Already collocated, GetCollocatedGrad will return grad1d
         endif
       enddo
       do i=0,3
-        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')
-     $ 'colograd[',i,']:',(colograd1d(j+4*i),j=1,4)
+        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')&
+     &   'colograd[',i,']:',(colograd1d(j+4*i),j=1,4)
       call flush(6)
       enddo
       call ceedbasisdestroy(b,err)
 
-c     Q = P, not already collocated
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,4,
-     $  ceed_gauss,b,err)
+!     Q = P, not already collocated
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,4,ceed_gauss,b,err)
       call ceedbasisgetcollocatedgrad(b,colograd1d,err)
       call ceedbasisview(b,err)
       do i=1,16
@@ -41,15 +40,14 @@ c     Q = P, not already collocated
         endif
       enddo
       do i=0,3
-        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')
-     $ 'colograd[',i,']:',(colograd1d(j+4*i),j=1,4)
+        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')&
+     &   'colograd[',i,']:',(colograd1d(j+4*i),j=1,4)
       call flush(6)
       enddo
       call ceedbasisdestroy(b,err)
 
-c     Q = P + 2, not already collocated
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,6,
-     $  ceed_gauss,b,err)
+!     Q = P + 2, not already collocated
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,6,ceed_gauss,b,err)
       call ceedbasisgetcollocatedgrad(b,colograd1d2,err)
       call ceedbasisview(b,err)
       do i=1,36
@@ -58,8 +56,8 @@ c     Q = P + 2, not already collocated
         endif
       enddo
       do i=0,5
-        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')
-     $ 'colograd[',i,']:',(colograd1d2(j+6*i),j=1,6)
+        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')&
+     &   'colograd[',i,']:',(colograd1d2(j+6*i),j=1,6)
       call flush(6)
       enddo
       call ceedbasisdestroy(b,err)
@@ -67,4 +65,4 @@ c     Q = P + 2, not already collocated
       call ceeddestroy(ceed,err)
 
       end
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------

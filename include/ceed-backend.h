@@ -110,9 +110,9 @@ CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
     int (**f)());
 CEED_EXTERN int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize);
 CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, void* *ctx);
+CEED_EXTERN int CeedQFunctionGetInnerContext(CeedQFunction qf, void* *ctx);
 CEED_EXTERN int CeedQFunctionGetFortranStatus(CeedQFunction qf,
     bool *fortranstatus);
-CEED_EXTERN int CeedQFunctionGetFortranContext(CeedQFunction qf, void* *ctx);
 CEED_EXTERN int CeedQFunctionGetData(CeedQFunction qf, void* *data);
 CEED_EXTERN int CeedQFunctionSetData(CeedQFunction qf, void* *data);
 

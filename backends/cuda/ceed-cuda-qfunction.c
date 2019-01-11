@@ -52,13 +52,7 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
       ierr = cudaMalloc(&data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);
     }
     void *ctx;
-    bool fortranstatus;
-    ierr = CeedQFunctionGetFortranStatus(qf, &fortranstatus); CeedChk(ierr);
-    if (fortranstatus) {
-      ierr = CeedQFunctionGetFortranContext(qf, &ctx); CeedChk(ierr);
-    } else {
-      ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
-    }
+    ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChk(ierr);
     ierr = cudaMemcpy(data->d_c, ctx, ctxsize, cudaMemcpyHostToDevice);
     CeedChk_Cu(ceed, ierr);
   }
