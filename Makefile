@@ -46,8 +46,8 @@ CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-OPT   ?= -O -g
-CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP -mavx
+OPT    = -O -g -march=native -ffp-contract=fast
+CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 NVCCFLAGS = $(OPT)
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
@@ -168,25 +168,26 @@ all:;@$(MAKE) $(MFLAGS) V=$(V) lib
 backend_status = $(if $(filter $1,$(BACKENDS)), [backends: $1], [not found])
 info:
 	$(info ------------------------------------)
-	$(info CC        = $(CC))
-	$(info FC        = $(FC))
-	$(info CPPFLAGS  = $(CPPFLAGS))
-	$(info CFLAGS    = $(value CFLAGS))
-	$(info FFLAGS    = $(value FFLAGS))
-	$(info NVCCFLAGS = $(value NVCCFLAGS))
-	$(info LDFLAGS   = $(value LDFLAGS))
-	$(info LDLIBS    = $(LDLIBS))
-	$(info OPT       = $(OPT))
-	$(info AFLAGS    = $(AFLAGS))
-	$(info ASAN      = $(or $(ASAN),(empty)))
-	$(info V         = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
+	$(info CC         = $(CC))
+	$(info FC         = $(FC))
+	$(info CPPFLAGS   = $(CPPFLAGS))
+	$(info CFLAGS     = $(value CFLAGS))
+	$(info FFLAGS     = $(value FFLAGS))
+	$(info NVCCFLAGS  = $(value NVCCFLAGS))
+	$(info LDFLAGS    = $(value LDFLAGS))
+	$(info LDLIBS     = $(LDLIBS))
+	$(info OPT        = $(OPT))
+	$(info AFLAGS     = $(AFLAGS))
+	$(info ASAN       = $(or $(ASAN),(empty)))
+	$(info V          = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info ------------------------------------)
-	$(info OCCA_DIR  = $(OCCA_DIR)$(call backend_status,/cpu/occa /gpu/occa /omp/occa))
-	$(info MAGMA_DIR = $(MAGMA_DIR)$(call backend_status,/gpu/magma))
-	$(info CUDA_DIR  = $(CUDA_DIR)$(call backend_status,/gpu/magma))
+	$(info AVX_STATUS = $(AVX_STATUS)$(call backend_status,/cpu/self/avx))
+	$(info OCCA_DIR   = $(OCCA_DIR)$(call backend_status,/cpu/occa /gpu/occa /omp/occa))
+	$(info MAGMA_DIR  = $(MAGMA_DIR)$(call backend_status,/gpu/magma))
+	$(info CUDA_DIR   = $(CUDA_DIR)$(call backend_status,/gpu/magma))
 	$(info ------------------------------------)
-	$(info MFEM_DIR  = $(MFEM_DIR))
-	$(info PETSC_DIR = $(PETSC_DIR))
+	$(info MFEM_DIR   = $(MFEM_DIR))
+	$(info PETSC_DIR  = $(PETSC_DIR))
 	$(info ------------------------------------)
 	$(info prefix       = $(prefix))
 	$(info includedir   = $(value includedir))
@@ -201,11 +202,22 @@ info-backends:
 
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)))
 
+# Standard Backends
 libceed.c += $(ref.c)
 libceed.c += $(template.c)
 libceed.c += $(blocked.c)
 libceed.c += $(avx.c)
 
+# AVX Backed
+AVX_STATUS = Disabled
+AVX := $(shell $(CC) $(CFLAGS) -v -E - < /dev/null 2>&1 | grep -c avx)
+ifeq ($(AVX),1)
+  AVX_STATUS = Enabled
+  libceed.c += $(avx.c)
+  BACKENDS += /cpu/self/avx
+endif
+
+# OCCA Backends
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceed) : LDLIBS += -locca
@@ -214,6 +226,7 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   BACKENDS += /cpu/occa /gpu/occa /omp/occa
 endif
 
+# MAGMA Backend
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
   CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))

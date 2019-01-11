@@ -42,5 +42,5 @@ static int CeedInit_Blocked(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/blocked", CeedInit_Blocked, 20);
+  CeedRegister("/cpu/self/blocked", CeedInit_Blocked, 30);
 }

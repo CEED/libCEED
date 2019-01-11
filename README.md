@@ -57,6 +57,19 @@ or, with optimization flags
 These optimization flags are used by all languages (C, C++, Fortran) and this
 makefile variable can also be set for testing and examples (below).
 
+The library attempts to automatically detect support for the AVX
+instruction set using gcc-style compiler options for the host.
+Support may need to be manually specified via
+
+    make AVX=1
+
+or
+
+    make AVX=0
+
+if your compiler does not support gcc-style options, if you are cross
+compiling, etc.
+
 ## Testing
 
 The test suite produces [TAP](https://testanything.org) output and is run by:

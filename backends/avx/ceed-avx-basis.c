@@ -76,9 +76,10 @@ static int CeedTensorContract8_Avx(Ceed ceed, CeedInt A, CeedInt B,
 
         for (CeedInt b=0; b<B; b++) {
           for (CeedInt jj=0; jj<JJ; jj++) { // unroll
-            CeedScalar tq = t[(j+jj)*tstride0 + b*tstride1];
+            __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
             for (CeedInt cc=0; cc<CC/4; cc++) { // unroll
-              vv[jj][cc] += tq * _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]);
+              vv[jj][cc] += _mm256_mul_pd(tqv,
+                              _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
             }
           }
         }
