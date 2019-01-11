@@ -19,8 +19,8 @@
 
 static const char *restrictionkernels = QUOTE(
     extern "C" __global__ void noTrNoTr(const CeedInt nelem,
-                                        const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u,
-CeedScalar * __restrict__ v) {
+                                        const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
+CeedScalar *__restrict__ v) {
   const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
   if (indices) {
     for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
@@ -45,8 +45,8 @@ CeedScalar * __restrict__ v) {
 }
 
 extern "C" __global__ void noTrTr(const CeedInt nelem,
-                                  const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u,
-                                  CeedScalar * __restrict__ v) {
+                                  const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
+                                  CeedScalar *__restrict__ v) {
   const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
   if (indices) {
     for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
@@ -70,8 +70,8 @@ extern "C" __global__ void noTrTr(const CeedInt nelem,
 }
 
 extern "C" __global__ void trNoTr(const CeedInt nelem,
-                                  const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u,
-                                  CeedScalar * __restrict__ v) {
+                                  const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
+                                  CeedScalar *__restrict__ v) {
   const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
   if (indices) {
     for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
@@ -96,8 +96,8 @@ extern "C" __global__ void trNoTr(const CeedInt nelem,
 }
 
 extern "C" __global__ void trTr(const CeedInt nelem,
-                                const CeedInt * __restrict__ indices, const CeedScalar * __restrict__ u,
-                                CeedScalar * __restrict__ v) {
+                                const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
+                                CeedScalar *__restrict__ v) {
   const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
   if (indices) {
     for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
@@ -127,11 +127,11 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
     CeedVector u, CeedVector v, CeedRequest *request) {
   int ierr;
   CeedElemRestriction_Cuda *impl;
-  ierr = CeedElemRestrictionGetData(r, (void*)&impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
   Ceed_Cuda *data;
-  ierr = CeedGetData(ceed, (void*)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
   const CeedScalar *d_u;
   CeedScalar *d_v;
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChk(ierr);
@@ -165,7 +165,7 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
 }
 
 static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
-  CeedElemRestriction_Cuda *impl = (CeedElemRestriction_Cuda*)r->data;
+  CeedElemRestriction_Cuda *impl = (CeedElemRestriction_Cuda *)r->data;
   int ierr;
 
   Ceed ceed;
@@ -208,7 +208,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
       break;
     }
     if (indices != NULL) {
-      ierr = cudaMalloc( (void**)&impl->d_ind, size * sizeof(CeedInt));
+      ierr = cudaMalloc( (void **)&impl->d_ind, size * sizeof(CeedInt));
       CeedChk_Cu(ceed, ierr);
       impl->d_ind_allocated = impl->d_ind;//We own the device memory
       ierr = cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt),
@@ -219,7 +219,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
     switch (cmode) {
     case CEED_COPY_VALUES:
       if (indices != NULL) {
-        ierr = cudaMalloc( (void**)&impl->d_ind, size * sizeof(CeedInt));
+        ierr = cudaMalloc( (void **)&impl->d_ind, size * sizeof(CeedInt));
         CeedChk_Cu(ceed, ierr);
         impl->d_ind_allocated = impl->d_ind;//We own the device memory
         ierr = cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt),
@@ -250,7 +250,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
   ierr = get_kernel(ceed, impl->module, "trNoTr", &impl->trNoTr); CeedChk(ierr);
   ierr = get_kernel(ceed, impl->module, "trTr", &impl->trTr); CeedChk(ierr);
 
-  ierr = CeedElemRestrictionSetData(r, (void*)&impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionSetData(r, (void *)&impl); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",
                                 CeedElemRestrictionApply_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy",

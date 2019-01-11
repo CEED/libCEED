@@ -33,7 +33,7 @@ static inline int CeedSyncH2D_Cuda(const CeedVector vec) {
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
   CeedVector_Cuda *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
   ierr = cudaMemcpy(data->d_array, data->h_array, bytes(vec),
                     cudaMemcpyHostToDevice);
   CeedChk_Cu(ceed, ierr);
@@ -45,7 +45,7 @@ static inline int CeedSyncD2H_Cuda(const CeedVector vec) {
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
   CeedVector_Cuda *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
   ierr = cudaMemcpy(data->h_array, data->d_array, bytes(vec),
                     cudaMemcpyDeviceToHost);
   CeedChk_Cu(ceed, ierr);
@@ -56,7 +56,7 @@ static int CeedVectorSetArrayHost_Cuda(const CeedVector vec,
                                        const CeedCopyMode cmode, CeedScalar *array) {
   int ierr;
   CeedVector_Cuda *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
 
   switch (cmode) {
   case CEED_COPY_VALUES: ;
@@ -85,11 +85,11 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec,
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
   CeedVector_Cuda *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
 
   switch (cmode) {
   case CEED_COPY_VALUES:
-    ierr = cudaMalloc((void**)&data->d_array_allocated, bytes(vec));
+    ierr = cudaMalloc((void **)&data->d_array_allocated, bytes(vec));
     CeedChk_Cu(ceed, ierr);
     data->d_array = data->d_array_allocated;
 
@@ -122,7 +122,7 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec,
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
   CeedVector_Cuda *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
 
   switch (mtype) {
   case CEED_MEM_HOST:
@@ -136,13 +136,13 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec,
 }
 
 // *****************************************************************************
-static int CeedHostSetValue(CeedScalar* h_array, CeedInt length,
+static int CeedHostSetValue(CeedScalar *h_array, CeedInt length,
                             CeedScalar val) {
   for (int i=0; i<length; i++) h_array[i] = val;
   return 0;
 }
 
-int CeedDeviceSetValue(CeedScalar* d_array, CeedInt length, CeedScalar val);
+int CeedDeviceSetValue(CeedScalar *d_array, CeedInt length, CeedScalar val);
 
 // *****************************************************************************
 // * Set a vector to a value,
@@ -152,7 +152,7 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
   CeedVector_Cuda *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
   CeedInt length;
   ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
   switch(data->memState) {
@@ -166,7 +166,7 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
       Default allocation then happens on the GPU.
     */
     if (data->d_array==NULL) {
-      ierr = cudaMalloc((void**)&data->d_array_allocated, bytes(vec));
+      ierr = cudaMalloc((void **)&data->d_array_allocated, bytes(vec));
       CeedChk_Cu(ceed, ierr);
       data->d_array = data->d_array_allocated;
     }
@@ -201,7 +201,7 @@ static int CeedVectorGetArrayRead_Cuda(const CeedVector vec,
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
   CeedVector_Cuda *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
 
   switch (mtype) {
   case CEED_MEM_HOST:
@@ -221,7 +221,7 @@ static int CeedVectorGetArrayRead_Cuda(const CeedVector vec,
     break;
   case CEED_MEM_DEVICE:
     if (data->d_array==NULL) {
-      ierr = cudaMalloc((void**)&data->d_array_allocated, bytes(vec));
+      ierr = cudaMalloc((void **)&data->d_array_allocated, bytes(vec));
       CeedChk_Cu(ceed, ierr);
       data->d_array = data->d_array_allocated;
     }
@@ -244,7 +244,7 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec,
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
   CeedVector_Cuda *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
 
   switch (mtype) {
   case CEED_MEM_HOST:
@@ -263,7 +263,7 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec,
     break;
   case CEED_MEM_DEVICE:
     if (data->d_array==NULL) {
-      ierr = cudaMalloc((void**)&data->d_array_allocated, bytes(vec));
+      ierr = cudaMalloc((void **)&data->d_array_allocated, bytes(vec));
       CeedChk_Cu(ceed, ierr);
       data->d_array = data->d_array_allocated;
     }
@@ -299,7 +299,7 @@ static int CeedVectorDestroy_Cuda(const CeedVector vec) {
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
   CeedVector_Cuda *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
   ierr = cudaFree(data->d_array_allocated); CeedChk_Cu(ceed, ierr);
   ierr = CeedFree(&data->h_array_allocated); CeedChk(ierr);
   ierr = CeedFree(&data); CeedChk(ierr);
@@ -331,7 +331,7 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
                                 CeedVectorDestroy_Cuda); CeedChk(ierr);
 
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
-  ierr = CeedVectorSetData(vec, (void*)&data); CeedChk(ierr);
+  ierr = CeedVectorSetData(vec, (void *)&data); CeedChk(ierr);
   data->memState = NONE_SYNC;
   return 0;
 }

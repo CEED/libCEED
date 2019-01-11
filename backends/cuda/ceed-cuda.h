@@ -66,13 +66,13 @@ typedef struct {
 // We use a struct to avoid having to memCpy the array of pointers
 // __global__ copies by value the struct.
 typedef struct {
-  const CeedScalar* inputs[16];
-  CeedScalar* outputs[16];
+  const CeedScalar *inputs[16];
+  CeedScalar *outputs[16];
 } Fields_Cuda;
 
 typedef struct {
   CUmodule module;
-  char* qFunctionName;
+  char *qFunctionName;
   CUfunction qFunction;
   Fields_Cuda fields;
   void *d_c;
@@ -91,7 +91,7 @@ typedef struct {
 typedef struct {
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
-  CeedScalar ** edata;
+  CeedScalar **edata;
   CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
   CeedVector *qvecsout;   /// Output Q-vectors needed to apply operator
   CeedInt    numein;
@@ -107,7 +107,7 @@ CEED_INTERN int compile(Ceed ceed, const char *source, CUmodule *module,
                         const CeedInt numopts, ...);
 
 CEED_INTERN int get_kernel(Ceed ceed, CUmodule module, const char *name,
-                           CUfunction* kernel);
+                           CUfunction *kernel);
 
 CEED_INTERN int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize,
                            const int blockSize, void **args);
@@ -125,7 +125,7 @@ CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem,
     CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
 
 CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q,
-    const CeedVector *const u, const CeedVector* v);
+    const CeedVector *const u, const CeedVector *v);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d,
     CeedInt Q1d,

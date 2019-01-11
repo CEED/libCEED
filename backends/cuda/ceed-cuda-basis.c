@@ -21,7 +21,7 @@
 static const char *basiskernels = QUOTE(
                                     extern "C" __global__ void interpInterleaved(const CeedInt nelem,
                                         const int transpose,
-                                        const CeedScalar * __restrict__ interp1d, const CeedScalar * __restrict__ u,
+                                        const CeedScalar *__restrict__ interp1d, const CeedScalar *__restrict__ u,
 CeedScalar *__restrict__ v) {
   const CeedInt i = threadIdx.x;
 
@@ -77,7 +77,7 @@ CeedScalar *__restrict__ v) {
 }
 
 extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
-                                  const CeedScalar * __restrict__ interp1d, const CeedScalar * __restrict__ u,
+                                  const CeedScalar *__restrict__ interp1d, const CeedScalar *__restrict__ u,
                                   CeedScalar *__restrict__ v) {
   const CeedInt i = threadIdx.x;
 
@@ -135,8 +135,8 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
 
 extern "C" __global__ void gradInterleaved(const CeedInt nelem,
     const int transpose,
-    const CeedScalar * __restrict__ interp1d,
-    const CeedScalar * __restrict__ grad1d, const CeedScalar * __restrict__ u,
+    const CeedScalar *__restrict__ interp1d,
+    const CeedScalar *__restrict__ grad1d, const CeedScalar *__restrict__ u,
     CeedScalar *__restrict__ v) {
   const CeedInt i = threadIdx.x;
 
@@ -155,7 +155,7 @@ extern "C" __global__ void gradInterleaved(const CeedInt nelem,
   const CeedInt Q = transpose ? BASIS_P1D : BASIS_Q1D;
   const CeedInt stride0 = transpose ? 1 : BASIS_P1D;
   const CeedInt stride1 = transpose ? BASIS_P1D : 1;
-  const CeedInt u_stride = BASIS_NCOMP * (transpose ? BASIS_NQPT * BASIS_DIM :
+  const CeedInt u_stride = BASIS_NCOMP * (transpose ? BASIS_NQPT *BASIS_DIM :
                                           BASIS_ELEMSIZE);
   const CeedInt v_stride = BASIS_NCOMP * (transpose ? BASIS_ELEMSIZE : BASIS_NQPT
                                           * BASIS_DIM);
@@ -203,8 +203,8 @@ extern "C" __global__ void gradInterleaved(const CeedInt nelem,
 }
 
 extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
-                                const CeedScalar * __restrict__ interp1d,
-                                const CeedScalar * __restrict__ grad1d, const CeedScalar * __restrict__ u,
+                                const CeedScalar *__restrict__ interp1d,
+                                const CeedScalar *__restrict__ grad1d, const CeedScalar *__restrict__ u,
                                 CeedScalar *__restrict__ v) {
   const CeedInt i = threadIdx.x;
 
@@ -296,8 +296,8 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
 //   }
 // }
 
-__device__ void weight1d(const CeedInt nelem, const CeedScalar * qweight1d,
-                         CeedScalar* w) {
+__device__ void weight1d(const CeedInt nelem, const CeedScalar *qweight1d,
+                         CeedScalar *w) {
   CeedScalar w1d[BASIS_Q1D];
   for (int i = 0; i < BASIS_Q1D; ++i) {
     w1d[i] = qweight1d[i];
@@ -312,8 +312,8 @@ __device__ void weight1d(const CeedInt nelem, const CeedScalar * qweight1d,
   }
 }
 
-__device__ void weight2d(const CeedInt nelem, const CeedScalar * qweight1d,
-                         CeedScalar* w) {
+__device__ void weight2d(const CeedInt nelem, const CeedScalar *qweight1d,
+                         CeedScalar *w) {
   CeedScalar w1d[BASIS_Q1D];
   for (int i = 0; i < BASIS_Q1D; ++i) {
     w1d[i] = qweight1d[i];
@@ -330,8 +330,8 @@ __device__ void weight2d(const CeedInt nelem, const CeedScalar * qweight1d,
   }
 }
 
-__device__ void weight3d(const CeedInt nelem, const CeedScalar * qweight1d,
-                         CeedScalar* w) {
+__device__ void weight3d(const CeedInt nelem, const CeedScalar *qweight1d,
+                         CeedScalar *w) {
   CeedScalar w1d[BASIS_Q1D];
   for (int i = 0; i < BASIS_Q1D; ++i) {
     w1d[i] = qweight1d[i];
@@ -352,7 +352,7 @@ __device__ void weight3d(const CeedInt nelem, const CeedScalar * qweight1d,
 }
 
 extern "C" __global__ void weight(const CeedInt nelem,
-                                  const CeedScalar * __restrict__ qweight1d, CeedScalar * __restrict__ v) {
+                                  const CeedScalar *__restrict__ qweight1d, CeedScalar *__restrict__ v) {
   if (BASIS_DIM==1) {
     weight1d(nelem, qweight1d, v);
   } else if (BASIS_DIM==2) {
@@ -370,10 +370,10 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-  Ceed_Cuda* ceed_Cuda;
-  CeedGetData(ceed, (void*) &ceed_Cuda); CeedChk(ierr);
+  Ceed_Cuda *ceed_Cuda;
+  CeedGetData(ceed, (void *) &ceed_Cuda); CeedChk(ierr);
   CeedBasis_Cuda *data;
-  CeedBasisGetData(basis, (void*)&data); CeedChk(ierr);
+  CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
   const int maxblocksize = 32;//ceed_Cuda->optblocksize;
 
@@ -388,17 +388,17 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
     ierr = cudaMemset(d_v, 0, v->length * sizeof(CeedScalar)); CeedChk(ierr);
   }
   if (emode == CEED_EVAL_INTERP) {
-    void *interpargs[] = {(void*)&nelem, (void*)&transpose, &data->d_interp1d, &d_u, &d_v};
+    void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->d_interp1d, &d_u, &d_v};
     CeedInt blocksize = CeedIntPow(basis->Q1d, basis->dim);
     blocksize = blocksize > maxblocksize ? maxblocksize : blocksize;
     ierr = run_kernel(ceed, data->interp, nelem, blocksize, interpargs);
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_GRAD) {
-    void *gradargs[] = {(void*)&nelem, (void*)&transpose, &data->d_interp1d, &data->d_grad1d, &d_u, &d_v};
+    void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->d_interp1d, &data->d_grad1d, &d_u, &d_v};
     CeedInt blocksize = maxblocksize;
     ierr = run_kernel(ceed, data->grad, nelem, blocksize, gradargs); CeedChk(ierr);
   } else if (emode == CEED_EVAL_WEIGHT) {
-    void *weightargs[] = {(void*)&nelem, (void*)&data->d_qweight1d, &d_v};
+    void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight1d, &d_v};
     const int blocksize = 32;
     int gridsize = nelem/blocksize;
     if (blocksize * gridsize < nelem)
@@ -419,7 +419,7 @@ static int CeedBasisDestroy_Cuda(CeedBasis basis) {
   int ierr;
 
   CeedBasis_Cuda *data;
-  ierr = CeedBasisGetData(basis, (void*) &data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, (void *) &data); CeedChk(ierr);
 
   CeedChk_Cu(basis->ceed, cuModuleUnload(data->module));
 
@@ -443,16 +443,16 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
 
   const CeedInt qBytes = basis->Q1d * sizeof(CeedScalar);
-  ierr = cudaMalloc((void**)&data->d_qweight1d, qBytes); CeedChk(ierr);
+  ierr = cudaMalloc((void **)&data->d_qweight1d, qBytes); CeedChk(ierr);
   ierr = cudaMemcpy(data->d_qweight1d, basis->qweight1d, qBytes,
                     cudaMemcpyHostToDevice); CeedChk(ierr);
 
   const CeedInt iBytes = qBytes * basis->P1d;
-  ierr = cudaMalloc((void**)&data->d_interp1d, iBytes); CeedChk(ierr);
+  ierr = cudaMalloc((void **)&data->d_interp1d, iBytes); CeedChk(ierr);
   ierr = cudaMemcpy(data->d_interp1d, basis->interp1d, iBytes,
                     cudaMemcpyHostToDevice); CeedChk(ierr);
 
-  ierr = cudaMalloc((void**)&data->d_grad1d, iBytes); CeedChk(ierr);
+  ierr = cudaMalloc((void **)&data->d_grad1d, iBytes); CeedChk(ierr);
   ierr = cudaMemcpy(data->d_grad1d, basis->grad1d, iBytes,
                     cudaMemcpyHostToDevice); CeedChk(ierr);
 
@@ -475,7 +475,7 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q1d,
 
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-  ierr = CeedBasisSetData(basis, (void*)&data);
+  ierr = CeedBasisSetData(basis, (void *)&data);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                 CeedBasisApply_Cuda);

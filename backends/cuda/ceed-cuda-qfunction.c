@@ -25,9 +25,9 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
   CeedQFunction_Cuda *data;
-  ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   Ceed_Cuda *ceed_Cuda;
-  ierr = CeedGetData(ceed, (void*)&ceed_Cuda);
+  ierr = CeedGetData(ceed, (void *)&ceed_Cuda);
   CeedInt numinputfields, numoutputfields;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
@@ -63,10 +63,10 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
     CeedChk_Cu(ceed, ierr);
   }
 
-  void* ctx;
+  void *ctx;
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
   // void *args[] = {&ctx, (void*)&Q, &data->d_u, &data->d_v};
-  void *args[] = {&data->d_c, (void*)&Q, &data->fields};
+  void *args[] = {&data->d_c, (void *) &Q, &data->fields};
   ierr = run_kernel(ceed, data->qFunction, CeedDivUpInt(Q, blocksize), blocksize,
                     args);
   CeedChk(ierr);
@@ -87,7 +87,7 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
 static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   int ierr;
   CeedQFunction_Cuda *data;
-  ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
 
@@ -99,11 +99,11 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   return 0;
 }
 
-static int loadCudaFunction(CeedQFunction qf, char* c_src_file) {
+static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   int ierr;
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
-  char* cuda_file;
+  char *cuda_file;
   ierr = CeedCalloc(CUDA_MAX_PATH, &cuda_file); CeedChk(ierr);
   memcpy(cuda_file, c_src_file, strlen(c_src_file));
   const char *last_dot = strrchr(cuda_file, '.');
@@ -134,15 +134,15 @@ static int loadCudaFunction(CeedQFunction qf, char* c_src_file) {
   }
 
   //FIXME: the magic number 16 should be defined somewhere...
-  char * fields_string =
+  char *fields_string =
     "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda;";
-  char * source = (char *) malloc(1 + strlen(fields_string)+ strlen(buffer) );
+  char *source = (char *) malloc(1 + strlen(fields_string)+ strlen(buffer) );
   strcpy(source, fields_string);
   strcat(source, buffer);
 
   //********************
   CeedQFunction_Cuda *data;
-  ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   ierr = compile(ceed, source, &data->module, 0); CeedChk(ierr);
   ierr = get_kernel(ceed, data->module, data->qFunctionName, &data->qFunction);
   CeedChk(ierr);
@@ -160,7 +160,7 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   CeedQFunctionGetCeed(qf, &ceed);
   CeedQFunction_Cuda *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  ierr = CeedQFunctionSetData(qf, (void*)&data); CeedChk(ierr);
+  ierr = CeedQFunctionSetData(qf, (void *)&data); CeedChk(ierr);
   CeedInt numinputfields, numoutputfields;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   size_t ctxsize;
@@ -168,7 +168,7 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = cudaMalloc(&data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);
 
   const char *funname = strrchr(qf->focca, ':') + 1;
-  data->qFunctionName = (char*)funname;
+  data->qFunctionName = (char *)funname;
   const int filenamelen = funname - qf->focca;
   char filename[filenamelen];
   memcpy(filename, qf->focca, filenamelen - 1);

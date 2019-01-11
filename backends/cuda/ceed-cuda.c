@@ -37,7 +37,7 @@ int compile(Ceed ceed, const char *source, CUmodule *module,
     char *name;
     int val;
     for (int i = 0; i < numopts; i++) {
-      name = va_arg(args, char*);
+      name = va_arg(args, char *);
       val = va_arg(args, int);
       snprintf(&buf[i][0], optslen,"-D%s=%d", name, val);
       opts[i] = &buf[i][0];
@@ -72,7 +72,7 @@ int compile(Ceed ceed, const char *source, CUmodule *module,
 }
 
 int get_kernel(Ceed ceed, CUmodule module, const char *name,
-               CUfunction* kernel) {
+               CUfunction *kernel) {
   CeedChk_Cu(ceed, cuModuleGetFunction(kernel, module, name));
   return 0;
 }
@@ -107,7 +107,7 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
 
   data->optblocksize = deviceProp.maxThreadsPerBlock;
 
-  ierr = CeedSetData(ceed,(void*)&data); CeedChk(ierr);
+  ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VecCreate",
                                 CeedVectorCreate_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
