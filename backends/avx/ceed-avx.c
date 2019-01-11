@@ -14,33 +14,32 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <ceed-backend.h>
 #include <string.h>
-#include "ceed-blocked.h"
+#include "ceed-avx.h"
 
-static int CeedInit_Blocked(const char *resource, Ceed ceed) {
+static int CeedInit_Avx(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/blocked"))
-    return CeedError(ceed, 1, "Blocked backend cannot use resource: %s", resource);
+      && strcmp(resource, "/cpu/self/avx"))
+    return CeedError(ceed, 1, "AVX backend cannot use resource: %s", resource);
 
   Ceed ceedref;
 
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
-  CeedInit("/cpu/self/ref", &ceedref);
+  CeedInit("/cpu/self/blocked", &ceedref);
   ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
-                                CeedBasisCreateTensorH1_Blocked); CeedChk(ierr);
+                                CeedBasisCreateTensorH1_Avx); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-                                CeedBasisCreateH1_Blocked); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Blocked); CeedChk(ierr);
+                                CeedBasisCreateH1_Avx); CeedChk(ierr);
 
   return 0;
 }
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/blocked", CeedInit_Blocked, 30);
+  CeedRegister("/cpu/self/avx", CeedInit_Avx, 10);
 }

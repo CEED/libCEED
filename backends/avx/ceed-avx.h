@@ -19,35 +19,19 @@
 
 typedef struct {
   CeedScalar *colograd1d;
-} CeedBasis_Blocked;
+} CeedBasis_Avx;
 
-typedef struct {
-  CeedElemRestriction *blkrestr; /// Blocked versions of restrictions
-  CeedVector
-  *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
-  CeedScalar ** edata;
-  uint64_t *inputstate;  /// State counter of inputs
-  CeedVector *evecsin;   /// Input E-vectors needed to apply operator
-  CeedVector *evecsout;  /// Output E-vectors needed to apply operator
-  CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
-  CeedVector *qvecsout;  /// Output Q-vectors needed to apply operator
-  CeedInt    numein;
-  CeedInt    numeout;
-} CeedOperator_Blocked;
-
-CEED_INTERN int CeedBasisCreateTensorH1_Blocked(CeedInt dim, CeedInt P1d,
+CEED_INTERN int CeedBasisCreateTensorH1_Avx(CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d,
     const CeedScalar *grad1d,
     const CeedScalar *qref1d,
     const CeedScalar *qweight1d,
     CeedBasis basis);
 
-CEED_INTERN int CeedBasisCreateH1_Blocked(CeedElemTopology topo, CeedInt dim,
+CEED_INTERN int CeedBasisCreateH1_Avx(CeedElemTopology topo, CeedInt dim,
     CeedInt ndof, CeedInt nqpts,
     const CeedScalar *interp,
     const CeedScalar *grad,
     const CeedScalar *qref,
     const CeedScalar *qweight,
     CeedBasis basis);
-
-CEED_INTERN int CeedOperatorCreate_Blocked(CeedOperator op);
