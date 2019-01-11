@@ -9,6 +9,8 @@ trigger:
 pool:
   vmImage: 'Ubuntu-16.04'
 
+container: jedbrown/petsc:latest
+
 steps:
 - script: |
     make
