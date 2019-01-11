@@ -103,6 +103,10 @@ typedef struct {
   Ceed ceedref;
 } Ceed_Cuda;
 
+static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
+  return (numer + denom - 1) / denom;
+}
+
 CEED_INTERN int compile(Ceed ceed, const char *source, CUmodule *module,
                         const CeedInt numopts, ...);
 

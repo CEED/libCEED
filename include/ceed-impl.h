@@ -129,13 +129,12 @@ struct CeedQFunction_private {
   CeedQFunctionField *inputfields;
   CeedQFunctionField *outputfields;
   CeedInt numinputfields, numoutputfields;
-  CeedUserQFunction function;
+  CeedQFunctionUser function;
   const char *focca;
   bool fortranstatus;
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */
   void *data;     /* backend data */
-  char* spec;     /* the string spec of the qFunction */
 };
 
 /// Struct to handle the context data to use the Fortran QFunction stub
