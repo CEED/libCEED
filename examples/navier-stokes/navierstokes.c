@@ -259,6 +259,20 @@ int main(int argc, char **argv) {
   CeedQFunction qf_setup, qf_mass, qf_ics, qf;
   CeedOperator op_setup, op_mass, op_ics, op;
 
+  // Create the libCEED contexts
+  CeedScalar theta0     = 300.;     // K
+  CeedScalar thetaC     = -15.;     // K
+  CeedScalar P0         = 1.e5;     // kg/m s^2
+  CeedScalar N          = 0.01;     // 1/s
+  CeedScalar cv         = 717.;     // J/kg K
+  CeedScalar cp         = 1004.;    // J/kg K
+  CeedScalar Rd         = cp - cv;  // J/kg K
+  CeedScalar g          = 9.81;     // m/s^2
+  CeedScalar lambda     = -2./3.;   // -
+  CeedScalar mu         = 1.e-5;    // Pa s (dynamic viscosity)
+  CeedScalar k          = 26.38;    // W/m K
+  CeedScalar rc         = 1./4.;    // Radius of bubble
+
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
 
@@ -280,6 +294,28 @@ int main(int argc, char **argv) {
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
   PetscOptionsFList("-problem", "Problem to solve", NULL, icsflist,
                     problemtype, problemtype, sizeof problemtype, NULL);
+  ierr = PetscOptionsScalar("-theta0", "Reference potential temperature",
+                         NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-thetaC", "Perturbation of potential temperature",
+                         NULL, thetaC, &thetaC, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-P0", "Atmospheric pressure",
+                         NULL, P0, &P0, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-N", "Brunt-Vaisala frequency",
+                         NULL, N, &N, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-cv", "Heat capacity at constant volume",
+                         NULL, cv, &cv, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-cp", "Heat capacity at constant pressure",
+                         NULL, cp, &cp, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
+                         NULL, g, &g, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-lambda", "Stokes hypothesis second viscosity coefficient",
+                         NULL, lambda, &lambda, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-mu", "Shear (dynamic) viscosity coefficient",
+                         NULL, mu, &mu, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-k", "Thermal conductivity",
+                         NULL, k, &k, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
+                         NULL, rc, &rc, NULL); CHKERRQ(ierr);
   outputfreq = 10;
   ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
@@ -634,22 +670,10 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op, "dv", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
 
-  // Create the libCEED contexts
-  CeedScalar Theta0     = 300.;     // K
-  CeedScalar ThetaC     = -15.;     // K
-  CeedScalar P0         = 1.e5;     // kg/m s^2
-  CeedScalar N          = 0.01;     // 1/s
-  CeedScalar Cv         = 717.;     // J/kg K
-  CeedScalar Cp         = 1004.;    // J/kg K
-  CeedScalar Rd         = Cp - Cv;  // J/kg K
-  CeedScalar g          = 9.81;     // m/s^2
-  CeedScalar lambda     = -2./3.;   // -
-  CeedScalar mu         = 1.e-5;    // Pa s (dynamic viscosity)
-  CeedScalar k          = 26.38;    // W/m K
-  CeedScalar rc         = 1./4.;    // Radius of bubble
-  CeedScalar ctxSetup[9] = {Theta0, ThetaC, P0, N, Cv, Cp, Rd, g, rc};
+  // Set up the libCEED context
+  CeedScalar ctxSetup[9] = {theta0, thetaC, P0, N, cv, cp, Rd, g, rc};
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
-  CeedScalar ctxNS[6] = {lambda, mu, k, Cv, Cp, g};
+  CeedScalar ctxNS[6] = {lambda, mu, k, cv, cp, g};
   CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
 
   // Set up PETSc context

@@ -26,20 +26,20 @@
 // Initial Conditions:
 //   Potential Temperature:
 //     Theta = ThetaBar + deltaTheta
-//       ThetaBar   = Theta0 exp( N**2 z / g )
-//       detlaTheta = r <= 1: Theta0(1 + cos(pi r)) / 2
+//       ThetaBar   = theta0 exp( N**2 z / g )
+//       detlaTheta = r <= 1: theta0(1 + cos(pi r)) / 2
 //                     r > 1: 0
 //         r        = sqrt( (x - xr)**2 + (y - yr)**2 + (z - zr)**2 )
 //   Exner Pressure:
 //     Pi = PiBar + deltaPi
-//       PiBar      = g**2 (exp( - N**2 z / g ) - 1) / (Cp Theta0 N**2)
+//       PiBar      = g**2 (exp( - N**2 z / g ) - 1) / (cp theta0 N**2)
 //       deltaPi    = 0 (hydrostatic balance)
 //   Velocity/Momentum:
 //     Ui = ui = 0
 //
 // Conversion to Conserved Variables:
-//   rho = P0 Pi**(Cv/Rd) / (Rd Theta)
-//   E   = rho (Cv Theta Pi + (u u)/2 + g z)
+//   rho = P0 Pi**(cv/Rd) / (Rd Theta)
+//   E   = rho (cv Theta Pi + (u u)/2 + g z)
 //
 //  Boundary Conditions:
 //    Mass:
@@ -50,13 +50,13 @@
 //      0.0 flux
 //
 // Constants:
-//   Theta0          ,  Potential temperature constant
-//   ThetaC          ,  Potential temperature perturbation
+//   theta0          ,  Potential temperature constant
+//   thetaC          ,  Potential temperature perturbation
 //   P0              ,  Pressure at the surface
 //   N               ,  Brunt-Vaisala frequency
-//   Cv              ,  Specific heat, constant volume
-//   Cp              ,  Specific heat, constant pressure
-//   Rd     = Cp - Cv,  Specific heat difference
+//   cv              ,  Specific heat, constant volume
+//   cp              ,  Specific heat, constant pressure
+//   Rd     = cp - cv,  Specific heat difference
 //   g               ,  Gravity
 //
 // *****************************************************************************
@@ -76,12 +76,12 @@ static int ICsNS(void *ctx, CeedInt Q,
   const CeedScalar center[3] = {0.5, 0.5, 0.5};
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
-  const CeedScalar Theta0     = context[0];
-  const CeedScalar ThetaC     = context[1];
+  const CeedScalar theta0     = context[0];
+  const CeedScalar thetaC     = context[1];
   const CeedScalar P0         = context[2];
   const CeedScalar N          = context[3];
-  const CeedScalar Cv         = context[4];
-  const CeedScalar Cp         = context[5];
+  const CeedScalar cv         = context[4];
+  const CeedScalar cp         = context[5];
   const CeedScalar Rd         = context[6];
   const CeedScalar g          = context[7];
   const CeedScalar rc         = context[8];
@@ -97,19 +97,19 @@ static int ICsNS(void *ctx, CeedInt Q,
     const CeedScalar r = sqrt(pow((x - center[0]), 2) +
                               pow((y - center[1]), 2) +
                               pow((z - center[2]), 2));
-    const CeedScalar deltaTheta = r<= rc ? ThetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
-    const CeedScalar Theta = Theta0*exp(N*N*z/g) + deltaTheta;
+    const CeedScalar deltaTheta = r<= rc ? thetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
+    const CeedScalar Theta = theta0*exp(N*N*z/g) + deltaTheta;
     // -- Exner pressure, hydrostatic balance
-    const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (Cp*Theta0*N*N);
+    const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
     // -- Density
-    const CeedScalar rho = P0 * pow(Pi, Cv/Rd) / (Rd*Theta);
+    const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*Theta);
 
     // Initial Conditions
     q0[i+0*Q] = rho;
     q0[i+1*Q] = 0.0;
     q0[i+2*Q] = 0.0;
     q0[i+3*Q] = 0.0;
-    q0[i+4*Q] = rho * (Cv*Theta*Pi + g*z);
+    q0[i+4*Q] = rho * (cv*Theta*Pi + g*z);
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
     if ( fabs(x - 0.0) < tol || fabs(x - 1.0) < tol
@@ -140,7 +140,7 @@ static int ICsNS(void *ctx, CeedInt Q,
 // State Variables: q = ( rho, U1, U2, U3, E )
 //   rho - Density
 //   Ui  - Momentum    ,  Ui = rho ui
-//   E   - Total Energy,  E  = rho Cv T + rho (u u) / 2 + rho g z
+//   E   - Total Energy,  E  = rho cv T + rho (u u) / 2 + rho g z
 //
 // Navier-Stokes Equations:
 //   drho/dt + div( U )                               = 0
@@ -155,16 +155,16 @@ static int ICsNS(void *ctx, CeedInt Q,
 //   P = (gamma - 1) (E - rho (u u) / 2 - rho g z)
 //
 // Temperature:
-//   T = (E / rho - (u u) / 2 - g z) / Cv
+//   T = (E / rho - (u u) / 2 - g z) / cv
 //
 // Constants:
 //   lambda = - 2 / 3,  From Stokes hypothesis
 //   mu              ,  Dynamic viscosity
 //   k               ,  Thermal conductivity
-//   Cv              ,  Specific heat, constant volume
-//   Cp              ,  Specific heat, constant pressure
+//   cv              ,  Specific heat, constant volume
+//   cp              ,  Specific heat, constant pressure
 //   g               ,  Gravity
-//   gamma  = Cp / Cv,  Specific heat ratio
+//   gamma  = cp / cv,  Specific heat ratio
 //
 // *****************************************************************************
 static int NS(void *ctx, CeedInt Q,
@@ -178,10 +178,10 @@ static int NS(void *ctx, CeedInt Q,
   const CeedScalar lambda     = context[0];
   const CeedScalar mu         = context[1];
   const CeedScalar k          = context[2];
-  const CeedScalar Cv         = context[3];
-  const CeedScalar Cp         = context[4];
+  const CeedScalar cv         = context[3];
+  const CeedScalar cp         = context[4];
   const CeedScalar g          = context[5];
-  const CeedScalar gamma      = Cp / Cv;
+  const CeedScalar gamma      = cp / cv;
 
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
@@ -237,13 +237,13 @@ static int NS(void *ctx, CeedInt Q,
     // -- gradT
     const CeedScalar gradT[3] = { (dE[0]/rho - E*drho[0]/(rho*rho) -
                                    (u[0]*du[0+3*0] + u[1]*du[1+3*0] +
-                                    u[2]*du[2+3*0])) / Cv,
+                                    u[2]*du[2+3*0])) / cv,
                                   (dE[1]/rho - E*drho[1]/(rho*rho) -
                                    (u[0]*du[0+3*1] + u[1]*du[1+3*1] +
-                                    u[2]*du[2+3*1])) / Cv,
+                                    u[2]*du[2+3*1])) / cv,
                                   (dE[2]/rho - E*drho[2]/(rho*rho) -
                                    (u[0]*du[0+3*2] + u[1]*du[1+3*2] +
-                                    u[2]*du[2+3*2]) - g) / Cv
+                                    u[2]*du[2+3*2]) - g) / cv
                                 };
     // -- Fuvisc
     //      Symmetric 3x3 matrix
