@@ -479,7 +479,7 @@ void fCeedQFunctionCreateInterior(int* ceed, int* vlength,
 
   CeedQFunction *qf_ = &CeedQFunction_dict[CeedQFunction_count];
   *err = CeedQFunctionCreateInterior(Ceed_dict[*ceed], *vlength,
-                                     CeedQFunctionFortranStub, focca, qf_);
+                                     CeedQFunctionFortranStub, focca_c, qf_);
 
   if (*err == 0) {
     *qf = CeedQFunction_count++;
