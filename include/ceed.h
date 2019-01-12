@@ -289,9 +289,32 @@ CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
 CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m,
                                     CeedInt n);
 
+/// Handle for the object describing the user CeedQFunction
+///
+/// @param ctx - user-defined context set using CeedQFunctionSetContext() or NULL
+///
+/// @param Q - number of quadrature points at which to evaluate
+///
+/// @param in - array of pointers to each input argument in the order provided
+///             by the user in CeedQFunctionAddInput().  Each array has shape
+///             `[dim, ncomp, Q]` where `dim` is the geometric dimension for
+///             \ref CEED_EVAL_GRAD (`dim=1` for \ref CEED_EVAL_INTERP) and
+///             `ncomp` is the number of field components (`ncomp=1` for
+///             scalar fields).  This results in indexing the `i`th input at
+///             quadarture point `j` as `in[i][(d*ncomp + c)*Q + j]`.
+///
+/// @param out - array of pointers to each output array in the order provided
+///              using CeedQFunctionAddOutput().  The shapes are as above for
+///              \a in.
+///
+/// @return 0 on success, nonzero for failure.
+///
+/// @ingroup CeedQFunction
+typedef int (*CeedQFunctionUser)(void *ctx, const CeedInt Q,
+                                 const CeedScalar *const *in, CeedScalar *const *out);
+
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
-    int (*f)(void *ctx, CeedInt nq, const CeedScalar *const *u,
-             CeedScalar *const *v), const char *focca, CeedQFunction *qf);
+    CeedQFunctionUser f, const char *focca, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                                       CeedInt ncomp, CeedEvalMode emode);
 CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,

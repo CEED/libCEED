@@ -141,6 +141,11 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
 
   CeedOperatorApply(user->op, user->xceed, user->yceed,
                     CEED_REQUEST_IMMEDIATE);
+  //TODO replace this by SyncArray when available
+  const CeedScalar* array;
+  ierr = CeedVectorGetArrayRead(user->yceed, CEED_MEM_HOST, &array);
+  CHKERRQ(ierr);
+  ierr = CeedVectorRestoreArrayRead(user->yceed, &array); CHKERRQ(ierr);
 
   ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
   ierr = VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
@@ -490,6 +495,10 @@ int main(int argc, char **argv) {
 
   // Setup rho, rhs, and target
   CeedOperatorApply(op_setup, xcoord, rho, CEED_REQUEST_IMMEDIATE);
+  //TODO replace this by SyncArray when available
+  const CeedScalar* array;
+  ierr = CeedVectorGetArrayRead(rhsceed, CEED_MEM_HOST, &array); CHKERRQ(ierr);
+  ierr = CeedVectorRestoreArrayRead(rhsceed, &array); CHKERRQ(ierr);
   CeedVectorDestroy(&xcoord);
 
   // Gather RHS

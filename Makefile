@@ -48,7 +48,7 @@ AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 OPT    = -O -g -march=native -ffp-contract=fast
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-NVCCFLAGS = $(OPT)
+NVCCFLAGS = -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
   FFLAGS = $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD
@@ -121,6 +121,8 @@ petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 # backends/[ref, template, blocked, avx, occa, magma]
 ref.c      := $(sort $(wildcard backends/ref/*.c))
 template.c := $(sort $(wildcard backends/template/*.c))
+cuda.c     := $(sort $(wildcard backends/cuda/*.c))
+cuda.cu    := $(sort $(wildcard backends/cuda/*.cu))
 blocked.c  := $(sort $(wildcard backends/blocked/*.c))
 avx.c      := $(sort $(wildcard backends/avx/*.c))
 occa.c     := $(sort $(wildcard backends/occa/*.c))
@@ -225,10 +227,20 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   BACKENDS += /cpu/occa /gpu/occa /omp/occa
 endif
 
+# Cuda Backend
+CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
+CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
+ifneq ($(CUDA_LIB_DIR),)
+  $(libceed) : CFLAGS += -I$(CUDA_DIR)/include
+  $(libceed) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
+  $(libceed) : LDLIBS += -lcudart -lnvrtc -lcuda
+  libceed.c  += $(cuda.c)
+  libceed.cu += $(cuda.cu)
+  BACKENDS += /gpu/cuda
+endif
+
 # MAGMA Backend
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
-  CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
-  CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
   ifneq ($(CUDA_LIB_DIR),)
   cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
   omp_link = -fopenmp
