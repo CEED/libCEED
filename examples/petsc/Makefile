@@ -1,4 +1,5 @@
 PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
+PETSc.pc := $(or $(wildcard $(PETSc.pc)),$(PETSC_DIR)/lib/pkgconfig/PETSc.pc)
 CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
 

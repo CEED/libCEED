@@ -25,8 +25,8 @@ function run_tests()
    # -ceed </cpu/self>: CEED resource specifier
    # -local <1000>: Target number of locally (per rank) owned degrees of freedom
 
-   # The variables 'ceed', 'max_dofs_node', and 'max_p' can be set on the
-   # command line invoking the '../../go.sh' script.
+   # The variables 'max_dofs_node', and 'max_p' can be set on the command line
+   # invoking the 'benchmark.sh' script.
    local ceed="${ceed:-/cpu/self}"
    local common_args=(-ceed $ceed -qextra 2 -pc_type none -benchmark)
    local max_dofs_node_def=$((3*2**20))
@@ -53,4 +53,4 @@ function run_tests()
 }
 
 
-test_required_packages="petsc-bp1"
+test_required_examples="petsc-bp1"

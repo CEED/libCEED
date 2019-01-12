@@ -25,8 +25,6 @@
 /// Diffusion operator example using PETSc
 const char help[] = "Solve CEED BP3 using PETSc\n";
 
-#include <petscksp.h>
-#include <ceed.h>
 #include <stdbool.h>
 #include "bp3.h"
 

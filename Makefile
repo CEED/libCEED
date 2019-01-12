@@ -45,6 +45,11 @@ MAGMA_DIR ?= ../magma
 CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
                $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
 
+# Check for PETSc in ../petsc
+ifneq ($(wildcard ../petsc/lib/libpetsc.*),)
+  PETSC_DIR ?= ../petsc
+endif
+
 # Warning: SANTIZ options still don't run with /gpu/occa
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
@@ -304,11 +309,13 @@ $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
 	$(call quiet,LINK.F) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
-	$(MAKE) -C examples/mfem CEED_DIR=`pwd` $*
+	$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
+	  MFEM_DIR="$(abspath $(MFEM_DIR))" $*
 	mv examples/mfem/$* $@
 
 $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	$(MAKE) -C examples/petsc CEED_DIR=`pwd` $*
+	$(MAKE) -C examples/petsc CEED_DIR=`pwd` \
+	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
 	mv examples/petsc/$* $@
 
 $(tests) $(examples) : $(libceed)
@@ -338,8 +345,7 @@ prove-all : $(alltests)
 examples : $(examples)
 
 # Benchmarks
-benchmark-examples: $(libceed) $(petscexamples)
-benchmarks: 
+benchmarks: build/$(BENCHMARK_EX)
 	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(BENCHMARK_EX).sh
 
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)

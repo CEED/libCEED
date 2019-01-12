@@ -31,7 +31,6 @@ build=""
 build_list=""
 remove_list=""
 run=""
-post_process=""
 profiler=""
 num_proc_build=${num_proc_build:-""}
 num_proc_run=${num_proc_run:-""}
@@ -70,19 +69,17 @@ $this_file [options]
 Options:
    -h|--help                print this usage information and exit
    -c|--ceed \"list\"         choose the libCEED backends to benchmark
-   -u|--update              update the package sources before (re)building
    -r|--run <name>          run the tests in the script <name>
    -n|--num-proc \"list\"     total number of MPI tasks to use in the tests
    -p|--proc-node \"list\"    number of MPI tasks per node to use in the tests
-  -pp|--post-process <name> post process the results using script <name>
    -d|--dry-run             show (but do not run) the commands for the tests
    -s|--shell               execute bash shell commands before running the test
    -v|--verbose             print additional messages
    -x                       enable script tracing with 'set -x'
    var=value                define shell variables; evaluated with 'eval'
 
-This script builds and/or runs a set of tests using specified configuration
-and compiler.
+This script builds and runs a set of benchmarks for a list of specified
+backends.
 
 Example usage:
   $this_file  --run petsc-bp1.sh
@@ -103,9 +100,9 @@ function set_build_dirs()
 function build_examples()
 {
    cd ".."
-   if [[ ! -f build/$test_required_packages ]]; then
-     make benchmark-examples
-   fi
+   for example; do
+      make build/$example || return 1
+   done
    cd "$cur_dir"
 }
 
@@ -211,15 +208,6 @@ case "$1" in
       echo "Missing \"list\" in --proc-node \"list\""; $exit_cmd 1; }
       num_proc_node="$1"
       ;;
-   -pp|--post-process)
-      post_process=on
-      shift
-      [ $# -gt 0 ] || { echo "Missing <name> in --post-process <name>"; $exit_cmd 1; }
-      pp_file="$1"
-      [[ -r "$pp_file" ]] || {
-         echo "Post process script not found: '$1'"; $exit_cmd 1
-      }
-      ;;
    -d|--dry-run)
       dry_run="quoted_echo"
       ;;
@@ -311,7 +299,7 @@ trap 'printf "\nScript interrupted.\n"; '$exit_cmd' 33' INT
 ## Source the test script file.
 echo "Reading test file: $test_file"
 echo
-test_required_packages=""
+test_required_examples=""
 . "$test_file" || $exit_cmd 1
 
 ## Setup output
@@ -319,10 +307,10 @@ output_file="${test_file%%.*}-$short_backend-output.txt"
 rm -rf output_file
 
 ## Build files required by the test
-echo "Files required by the test: $test_required_packages"
+echo "Example(s) required by the test: $test_required_examples"
 num_proc_build=${num_proc_build:-4}
 echo "Building examples using $num_proc_build processors."
-build_examples $test_required_packages || $exit_cmd 1
+build_examples $test_required_examples || $exit_cmd 1
 echo
 
 ## Loop over the number-of-processors list.
@@ -373,19 +361,6 @@ done ## End of loop over processor numbers
 trap - INT
 
 } ## run is on
-
-### Post process the results
-
-[[ -n "$post_process" ]] && {
-
-. "$pp_file" || $exit_cmd 1
-
-abspath test_dir "$(dirname "$pp_file")" || $exit_cmd 1
-test_exe_dir="$OUT_DIR"
-
-postprocess
-
-} ## post-process on
 
 $exit_cmd 0
 

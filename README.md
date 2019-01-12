@@ -137,6 +137,27 @@ be provided with the `-ceed` option, for example:
 | `/ocl/occa`              | OpenCL OCCA kernels                               |
 | `/gpu/magma`             | CUDA MAGMA kernels                                |
 
+
+## Benchmarks
+
+A sequence of benchmarks for all enabled backends can be run using
+
+```console
+make benchmarks
+```
+
+The results from the benchmarks are stored inside the `benchmarks/` directory
+and they can be viewed using the commands (requires python with matplotlib):
+
+```console
+cd benchmarks
+python postprocess-plot-2.py *-output.txt
+```
+
+For more details about the benchmarks, see
+[`benchmarks/README.md`](benchmarks/README.md)
+
+
 ## Install
 
 To install libCEED, run
