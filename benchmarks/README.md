@@ -22,7 +22,8 @@ The results from the benchmarks are written to files named `*-output.txt`.
 
 For a short help message, use the option `-h`.
 
-The following variables can be set on the command line:
+When running the tests `petsc-bp1.sh` and `petsc-bp3.sh`, the following
+variables can be set on the command line:
 * `max_dofs_node=<number>`, e.g. `max_dofs_node=1000000` - this sets the upper
   bound of the problem sizes, per compute node; the default value is 3*2^20.
 * `max_p=<number>`, e.g. `max_p=12` - this sets the highest degree for which the

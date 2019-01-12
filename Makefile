@@ -178,7 +178,7 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
 lib: $(libceed) $(ceed.pc)
 # run 'lib' target in parallel
-all:;@$(MAKE) $(MFLAGS) V=$(V) lib
+par:;@$(MAKE) $(MFLAGS) V=$(V) lib
 backend_status = $(if $(filter $1,$(BACKENDS)), [backends: $1], [not found])
 info:
 	$(info ------------------------------------)
@@ -337,12 +337,15 @@ prove : $(tests) $(examples)
 # run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
-alltests := $(tests) $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
+allexamples := $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
+alltests := $(tests) $(allexamples)
 prove-all : $(alltests)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(alltests:$(OBJDIR)/%=%)
 
-examples : $(examples)
+all: $(alltests)
+
+examples : $(allexamples)
 
 # Benchmarks
 benchmarks: build/$(BENCHMARK_EX)

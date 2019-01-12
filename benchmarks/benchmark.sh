@@ -26,19 +26,19 @@ else
 fi
 test_file=""
 backend_list="/cpu/self"
-config=""
-build=""
-build_list=""
-remove_list=""
 run=""
-profiler=""
-num_proc_build=${num_proc_build:-""}
 num_proc_run=${num_proc_run:-""}
 num_proc_node=${num_proc_node:-""}
 dry_run="" # empty string = NO
 start_shell=""
 verbose=""
 cur_dir="$PWD"
+
+mpiexec="mpirun"
+mpiexec_np="-np"
+mpiexec_opts=""
+mpiexec_post_opts=""
+profiler=""
 
 function abspath()
 {
@@ -48,7 +48,6 @@ function abspath()
 
 abspath root_dir ".." || $exit_cmd 1
 build_root="$root_dir/build"
-configs_dir="$root_dir/benchmarks/machine-configs"
 
 if [[ -t 1 ]]; then
    # ANSI color codes
@@ -86,55 +85,26 @@ Example usage:
 "
 
 
-function set_build_dirs()
-{
-   # Setup separate build directories inside $build_root based on $config
-   # and $compiler.
-   [[ -d "$build_root" ]] || mkdir -p "$build_root" || return 1
-   OUT_DIR="$build_root"
-   echo "Using OUT_DIR = $OUT_DIR"
-   echo
-}
-
-
 function build_examples()
 {
-   cd ".."
    for example; do
-      make build/$example || return 1
+      # We require the examples to be already built because we do not know what
+      # options to use when building the library + examples.
+      if [ ! -e $build_root/$example ]; then
+         echo "Error: example is not built: $example"
+         return 1
+      fi
    done
-   cd "$cur_dir"
 }
 
 
 function compose_mpi_run_command()
 {
-   mpi_run="${MPIEXEC:-mpirun} ${MPIEXEC_OPTS}"
-   mpi_run+=" ${MPIEXEC_NP:--np} ${num_proc_run} ${MPIEXEC_POST_OPTS} $bind_sh"
+   mpi_run="${mpiexec:-mpirun} ${mpiexec_opts}"
+   mpi_run+=" ${mpiexec_np:--np} ${num_proc_run} ${mpiexec_post_opts}"
    if [[ -n "$profiler" ]]; then
       mpi_run+=" $profiler"
    fi
-}
-
-
-function check_memory_req()
-{
-   local total_mem=""
-   if [[ -n "$num_nodes" && -n "$memory_per_node" && \
-         -n "$total_memory_required" ]]; then
-      ((total_mem = memory_per_node * num_nodes))
-      # echo "Total memory available: $total_mem GiB"
-      # echo "Total memory required : $total_memory_required GiB"
-      if [[ "$total_memory_required" -gt "$total_mem" ]]; then
-         printf " *** Insufficient total memory: $total_mem GiB, "
-         printf "this test requires: $total_memory_required GiB. "
-         echo "Skipping test."
-         return 1
-      fi
-   else
-      echo " *** Warning: unable to check memory requirement."
-   fi
-   return 0
 }
 
 
@@ -234,17 +204,6 @@ done # while ...
 # Done processing command line parameters
 
 
-### Read configuration file
-config="config.sh"
-echo "Reading configuration $config ..."
-. "$config" || $exit_cmd 1
-
-abspath config_dir "$(dirname "$config")" || $exit_cmd 1
-short_config="$(basename "$config")"
-config="${config_dir}/${short_config}"
-short_config="${short_config#config_}"
-short_config="${short_config%.sh}"
-
 num_proc_list=(${num_proc_run:-4})
 num_proc_list_size=${#num_proc_list[@]}
 num_proc_node_list=(${num_proc_node:-4})
@@ -265,9 +224,9 @@ for backend in $backend_list; do
 
 ### Setup the environment based on $backend
 
+echo
 echo "Using backend $backend ..."
 short_backend=${backend//[\/]}
-set_build_dirs || $exit_cmd 1
 
 ### Run the tests (building and running $test_file)
 
@@ -279,12 +238,6 @@ test_basename="$(basename "$test_file")"
 test_file="${test_dir}/${test_basename}"
 
 [[ "$verbose" = "yes" ]] && {
-   echo "Config file, $(basename "$config"):"
-   echo "------------------------------------------------"
-   cat $config
-   echo "------------------------------------------------"
-   echo
-
    echo "Test problem file, $test_basename:"
    echo "------------------------------------------------"
    cat $test_file
@@ -292,7 +245,7 @@ test_file="${test_dir}/${test_basename}"
    echo
 }
 
-test_exe_dir="$OUT_DIR"
+test_exe_dir="$build_root"
 
 trap 'printf "\nScript interrupted.\n"; '$exit_cmd' 33' INT
 
@@ -308,8 +261,6 @@ rm -rf output_file
 
 ## Build files required by the test
 echo "Example(s) required by the test: $test_required_examples"
-num_proc_build=${num_proc_build:-4}
-echo "Building examples using $num_proc_build processors."
 build_examples $test_required_examples || $exit_cmd 1
 echo
 
@@ -321,6 +272,7 @@ num_proc_run="${num_proc_list[$num_proc_idx]}"
 num_proc_node="${num_proc_node_list[$num_proc_idx]}"
 
 set_num_nodes || $exit_cmd 1
+compose_mpi_run_command
 
 if [[ "$start_shell" = "yes" ]]; then
    if [[ ! -t 1 ]]; then
@@ -352,8 +304,13 @@ if [[ "$start_shell" = "yes" ]]; then
    echo "Continuing ..."
 fi
 
+# Call the function run_tests defined inside the $test_file
 ceed=$backend
-run_tests >> $output_file
+if [ -z "$dry_run" ]; then
+   run_tests >> $output_file
+else
+   run_tests
+fi
 echo
 
 done ## End of loop over processor numbers
@@ -365,10 +322,10 @@ trap - INT
 $exit_cmd 0
 
 ) || {
-   echo "Sub-shell for compiler '$backend' returned error code $?. Stop."
+   echo "Sub-shell for backend '$backend' returned error code $?. Stop."
    $exit_cmd 1
 }
-done ## Loop over $compiler_list
+done ## Loop over $backend_list
 
 
 $exit_cmd 0
