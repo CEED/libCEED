@@ -54,17 +54,25 @@ static int CeedTensorContract_Xsmm_Serial(Ceed ceed, CeedInt A, CeedInt B,
                                           CeedScalar *restrict v) {
   CeedScalar alpha = 1.0, beta = 1.0;
   char transu = 'N', transt = 'N';
-  if (tmode == CEED_TRANSPOSE)
+  if ((tmode == CEED_TRANSPOSE && C != 1)
+      || (tmode == CEED_NOTRANSPOSE && C == 1))
     transt = 'T';
 
   if (!Add)
     beta = 0.0;
 
-  for (CeedInt a=0; a<A; a++)
-    // libXSMM GEMM
-    libxsmm_dgemm(&transu, &transt, &C, &J, &B,
-                  &alpha, &u[a*B*C], NULL, &t[0], NULL,
-                  &beta, &v[a*J*C], NULL);
+  if (C != 1)
+    for (CeedInt a=0; a<A; a++)
+      // libXSMM GEMM
+      libxsmm_dgemm(&transu, &transt, &C, &J, &B,
+                    &alpha, &u[a*B*C], NULL, &t[0], NULL,
+                    &beta, &v[a*J*C], NULL);
+   else
+      // libXSMM GEMM
+      libxsmm_dgemm(&transt, &transu, &J, &A, &B,
+                    &alpha, &t[0], NULL, &u[0], NULL,
+                    &beta, &v[0], NULL);
+
   return 0;
 }
 
