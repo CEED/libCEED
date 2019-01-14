@@ -46,7 +46,16 @@ int compile(Ceed ceed, const char *source, CUmodule *module,
   opts[numopts]     = "-DCeedScalar=double";
   opts[numopts + 1] = "-DCeedInt=int";
   struct cudaDeviceProp prop;
-  cudaGetDeviceProperties(&prop, 0);
+  Ceed_Cuda *ceed_data;
+  Ceed delegate;
+  CeedGetDelegate(ceed, &delegate);
+  //We assume that the delegate is always the Cuda one
+  if (delegate){
+    ierr = CeedGetData(delegate, (void *)&ceed_data); CeedChk(ierr);
+  }else{
+    ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
+  }
+  cudaGetDeviceProperties(&prop, ceed_data->deviceId);
   char buff[optslen];
   snprintf(buff, optslen,"-arch=compute_%d%d", prop.major, prop.minor);
   opts[numopts + 2] = buff;
