@@ -45,8 +45,11 @@ int compile(Ceed ceed, const char *source, CUmodule *module,
   }
   opts[numopts]     = "-DCeedScalar=double";
   opts[numopts + 1] = "-DCeedInt=int";
-  opts[numopts + 2] = "-arch=compute_60";//FIXME: Should take into account GPU CC
-
+  struct cudaDeviceProp prop;
+  cudaGetDeviceProperties(&prop, 0);
+  char buff[optslen];
+  snprintf(buff, optslen,"-arch=compute_%d%d", prop.major, prop.minor);
+  opts[numopts + 2] = buff;
 
   nvrtcResult result = nvrtcCompileProgram(prog, numopts + optsextra, opts);
   if (result != NVRTC_SUCCESS) {
