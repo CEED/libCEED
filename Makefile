@@ -140,6 +140,8 @@ ref.c      := $(sort $(wildcard backends/ref/*.c))
 template.c := $(sort $(wildcard backends/template/*.c))
 cuda.c     := $(sort $(wildcard backends/cuda/*.c))
 cuda.cu    := $(sort $(wildcard backends/cuda/*.cu))
+cuda-reg.c := $(sort $(wildcard backends/cuda-reg/*.c))
+cuda-reg.cu:= $(sort $(wildcard backends/cuda-reg/*.cu))
 blocked.c  := $(sort $(wildcard backends/blocked/*.c))
 avx.c      := $(sort $(wildcard backends/avx/*.c))
 xsmm.c     := $(sort $(wildcard backends/xsmm/*.c))
@@ -263,9 +265,9 @@ ifneq ($(CUDA_LIB_DIR),)
   $(libceed) : CFLAGS += -I$(CUDA_DIR)/include
   $(libceed) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
   $(libceed) : LDLIBS += -lcudart -lnvrtc -lcuda
-  libceed.c  += $(cuda.c)
-  libceed.cu += $(cuda.cu)
-  BACKENDS += /gpu/cuda
+  libceed.c  += $(cuda.c) $(cuda-reg.c)
+  libceed.cu += $(cuda.cu) $(cuda-reg.cu)
+  BACKENDS += /gpu/cuda/ref /gpu/cuda/reg
 endif
 
 # MAGMA Backend

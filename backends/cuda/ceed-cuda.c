@@ -93,7 +93,7 @@ int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize,
 static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   int ierr;
   const int nrc = 9; // number of characters in resource
-  if (strncmp(resource, "/gpu/cuda", nrc))
+  if (strncmp(resource, "/gpu/cuda/ref", nrc))
     return CeedError(ceed, 1, "Cuda backend cannot use resource: %s", resource);
 
   const int rlen = strlen(resource);
@@ -104,6 +104,7 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
 
   Ceed_Cuda *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
+  data->deviceId = deviceID;
 
   struct cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, deviceID);
@@ -131,5 +132,5 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/gpu/cuda", CeedInit_Cuda, 20);
+  CeedRegister("/gpu/cuda/ref", CeedInit_Cuda, 20);
 }
