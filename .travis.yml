@@ -52,6 +52,7 @@ install:
         && brew link --overwrite gcc; fi
   - export CURR_DIR=$PWD
   - cd $HOME/install
+# MFEM
   - if [[ -d mfem ]]; then
         git -C mfem pull --depth 1 --allow-unrelated-histories;
         if [[ $? -eq 0 ]]; then
@@ -65,6 +66,7 @@ install:
     fi
   - make -C mfem -j2 serial MFEM_CXXFLAGS=-O
   - export MFEM_DIR=$HOME/install/mfem
+# OCCA
   - if [[ -d occa ]]; then
         git -C occa pull --allow-unrelated-histories;
         if [[ $? -eq 0 ]]; then
@@ -80,14 +82,21 @@ install:
     fi
   - make -C occa -j2
   - export OCCA_DIR=$HOME/install/occa
-  - export XSMM_INSTALL=$HOME/install/libxsmm-1.10
-  - test -s "$XSMM_INSTALL/lib/libxsmm.pc"
-        || ( curl -L https://github.com/hfp/libxsmm/archive/1.10.tar.gz > libxsmm-1.10.tar.gz
-        && tar xf libxsmm-1.10.tar.gz
-        && rm libxsmm-1.10.tar.gz
-        && cd libxsmm
-        && make )
-  - export XSMM_DIR=$XSMM_INSTALL
+# libXSMM
+  - if [[ -d libxsmm ]]; then
+        git -C libxsmm pull --depth 1 --allow-unrelated-histories;
+        if [[ $? -eq 0 ]]; then
+          git -C libxsmm gc --prune=all;
+        else 
+          rm -rf libxsmm
+          && git clone --depth 1 https://github.com/hfp/libxsmm.git;
+        fi
+    else
+        git clone --depth 1 https://github.com/hfp/libxsmm.git;
+    fi
+  - make -C libxsmm
+  - export XSMM_DIR=$HOME/install/libxsmm
+# PETSc
   - cd $CURR_DIR
   - export PETSC_INSTALL=$HOME/install/petsc-3.10.0
   - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
