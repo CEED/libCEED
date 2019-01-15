@@ -44,5 +44,5 @@ CEED_INTERN int CeedBasisCreateTensorH1_Cuda_reg(CeedInt dim, CeedInt P1d,
     CeedBasis basis);
 
 CEED_INTERN int CeedBasisCreateH1_Cuda_reg(CeedElemTopology, CeedInt, CeedInt,
-                                       CeedInt, const CeedScalar *,
-                                       const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
+    CeedInt, const CeedScalar *,
+    const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
