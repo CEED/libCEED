@@ -20,27 +20,6 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-#define CUDA_MAX_PATH 256
-
-#define CeedChk_Nvrtc(ceed, x) \
-do { \
-  nvrtcResult result = x; \
-  if (result != NVRTC_SUCCESS) \
-    return CeedError((ceed), result, nvrtcGetErrorString(result)); \
-} while (0)
-
-#define CeedChk_Cu(ceed, x) \
-do { \
-  CUresult result = x; \
-  if (result != CUDA_SUCCESS) { \
-    const char *msg; \
-    cuGetErrorName(result, &msg); \
-    return CeedError((ceed), result, msg); \
-  } \
-} while (0)
-
-#define QUOTE(...) #__VA_ARGS__
-
 typedef struct {
   CUmodule module;
   CUfunction interp;
