@@ -260,6 +260,7 @@ int main(int argc, char **argv) {
   CeedOperator op_setup, op_mass, op_ics, op;
 
   // Create the libCEED contexts
+
   CeedScalar theta0     = 300.;     // K
   CeedScalar thetaC     = -15.;     // K
   CeedScalar P0         = 1.e5;     // kg/m s^2
@@ -271,7 +272,7 @@ int main(int argc, char **argv) {
   CeedScalar lambda     = -2./3.;   // -
   CeedScalar mu         = 1.e-5;    // Pa s (dynamic viscosity)
   CeedScalar k          = 26.38;    // W/m K
-  CeedScalar rc         = 1./4.;    // Radius of bubble
+  CeedScalar rc;                    // Radius of bubble
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -314,17 +315,22 @@ int main(int argc, char **argv) {
                          NULL, mu, &mu, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-k", "Thermal conductivity",
                          NULL, k, &k, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
-                         NULL, rc, &rc, NULL); CHKERRQ(ierr);
   lx = 1.;
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                          NULL, lx, &lx, NULL); CHKERRQ(ierr);
+  lx = fabs(lx);
   ly = 1.;
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
                          NULL, ly, &ly, NULL); CHKERRQ(ierr);
+  ly = fabs(ly);
   lz = 1.;
   ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
                          NULL, lz, &lz, NULL); CHKERRQ(ierr);
+  lz = fabs(lz);
+  rc = PetscMin(PetscMin(lx,ly),lz)/4.;
+  ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
+                         NULL, rc, &rc, NULL); CHKERRQ(ierr);
+  rc = fabs(rc);
   outputfreq = 10;
   ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);

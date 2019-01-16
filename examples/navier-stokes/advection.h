@@ -47,10 +47,16 @@ static int ICsAdvection(void *ctx, CeedInt Q,
   const CeedScalar *X = in[0];
   // Outputs
   CeedScalar *q0 = out[0], *coords = out[1];
+  // Context
+  const CeedScalar *context = (const CeedScalar*)ctx;
+  const CeedScalar rc         = context[8];
+  const CeedScalar lx         = context[9];
+  const CeedScalar ly         = context[10];
+  const CeedScalar lz         = context[11];
   // Setup
   const CeedScalar tol = 1.e-14;
-  const CeedScalar x0[3] = {0.25, 0.5, 0.5};
-  const CeedScalar center[3] = {0.5, 0.5, 0.5};
+  const CeedScalar x0[3] = {0.25*lx, 0.5*ly, 0.5*lz};
+  const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
@@ -69,12 +75,12 @@ static int ICsAdvection(void *ctx, CeedInt Q,
     q0[i+1*Q] = -0.5*(y - center[0]);
     q0[i+2*Q] =  0.5*(x - center[1]);
     q0[i+3*Q] = 0.0;
-    q0[i+4*Q] = r <= 1./8. ? (1.-8.*r) : 0.;
+    q0[i+4*Q] = r <= rc ? (1.-8.*r) : 0.;
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
-    if ( fabs(x - 0.0) < tol || fabs(x - 1.0) < tol
-         || fabs(y - 0.0) < tol || fabs(y - 1.0) < tol
-         || fabs(z - 0.0) < tol || fabs(z - 1.0) < tol ) {
+    if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol
+         || fabs(y - 0.0) < tol || fabs(y - ly) < tol
+         || fabs(z - 0.0) < tol || fabs(z - lz) < tol ) {
       q0[i+1*Q] = 0.0;
       q0[i+2*Q] = 0.0;
       q0[i+3*Q] = 0.0;

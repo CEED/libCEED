@@ -71,9 +71,6 @@ static int ICsNS(void *ctx, CeedInt Q,
   const CeedScalar *X = in[0];
   // Outputs
   CeedScalar *q0 = out[0], *coords = out[1];
-  // Setup
-  const CeedScalar tol = 1.e-14;
-  const CeedScalar center[3] = {0.5, 0.5, 0.5};
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
   const CeedScalar theta0     = context[0];
@@ -88,6 +85,9 @@ static int ICsNS(void *ctx, CeedInt Q,
   const CeedScalar lx         = context[9];
   const CeedScalar ly         = context[10];
   const CeedScalar lz         = context[11];
+  // Setup
+  const CeedScalar tol = 1.e-14;
+  const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
