@@ -318,7 +318,7 @@ static int NS(void *ctx, CeedInt Q,
     dv[i+(3+5*1)*Q] -= Fu[2]*wBBJ[1] + Fu[4]*wBBJ[3] + Fu[5]*wBBJ[4];
     dv[i+(3+5*2)*Q] -= Fu[2]*wBBJ[2] + Fu[4]*wBBJ[4] + Fu[5]*wBBJ[5];
     // ---- -rho g khat
-    v[i+3*Q] = - rho*g*wJ;
+    v[i+3*Q] = - rho*g*wJ; // TO DO: add the actuator model body force
 
     // -- Total Energy
     // ---- (E + P) u
