@@ -85,6 +85,9 @@ static int ICsNS(void *ctx, CeedInt Q,
   const CeedScalar Rd         = context[6];
   const CeedScalar g          = context[7];
   const CeedScalar rc         = context[8];
+  const CeedScalar lx         = context[9];
+  const CeedScalar ly         = context[10];
+  const CeedScalar lz         = context[11];
 
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
@@ -112,9 +115,9 @@ static int ICsNS(void *ctx, CeedInt Q,
     q0[i+4*Q] = rho * (cv*Theta*Pi + g*z);
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
-    if ( fabs(x - 0.0) < tol || fabs(x - 1.0) < tol
-         || fabs(y - 0.0) < tol || fabs(y - 1.0) < tol
-         || fabs(z - 0.0) < tol || fabs(z - 1.0) < tol ) {
+    if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol
+         || fabs(y - 0.0) < tol || fabs(y - ly) < tol
+         || fabs(z - 0.0) < tol || fabs(z - lz) < tol ) {
       q0[i+1*Q] = 0.0;
       q0[i+2*Q] = 0.0;
       q0[i+3*Q] = 0.0;

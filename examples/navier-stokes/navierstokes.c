@@ -244,7 +244,7 @@ int main(int argc, char **argv) {
   PetscInt degree, qextra, localdof, localelem, lsize, outputfreq,
            steps, melem[3], mdof[3], p[3], irank[3], ldof[3];
   PetscMPIInt size, rank;
-  PetscScalar ftime;
+  PetscScalar ftime, lx, ly, lz;
   PetscScalar *q0, *m, *mult, *x;
   Vec Q, Qloc, Mloc, X, Xloc;
   VecScatter ltog, ltog0, gtogD, ltogX;
@@ -316,6 +316,15 @@ int main(int argc, char **argv) {
                          NULL, k, &k, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                          NULL, rc, &rc, NULL); CHKERRQ(ierr);
+  lx = 1.;
+  ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
+                         NULL, lx, &lx, NULL); CHKERRQ(ierr);
+  ly = 1.;
+  ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
+                         NULL, ly, &ly, NULL); CHKERRQ(ierr);
+  lz = 1.;
+  ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
+                         NULL, lz, &lz, NULL); CHKERRQ(ierr);
   outputfreq = 10;
   ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
@@ -553,11 +562,11 @@ int main(int argc, char **argv) {
     for (CeedInt i=0; i<shape[0]; i++) {
       for (CeedInt j=0; j<shape[1]; j++) {
         for (CeedInt k=0; k<shape[2]; k++) {
-          xloc[((i*shape[1]+j)*shape[2]+k) + 0*len] = 1.*(irank[0]*melem[0]+i) /
+          xloc[((i*shape[1]+j)*shape[2]+k) + 0*len] = lx*(irank[0]*melem[0]+i) /
               (p[0]*melem[0]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 1*len] = 1.*(irank[1]*melem[1]+j) /
+          xloc[((i*shape[1]+j)*shape[2]+k) + 1*len] = ly*(irank[1]*melem[1]+j) /
               (p[1]*melem[1]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 2*len] = 1.*(irank[2]*melem[2]+k) /
+          xloc[((i*shape[1]+j)*shape[2]+k) + 2*len] = lz*(irank[2]*melem[2]+k) /
               (p[2]*melem[2]);
         }
       }
@@ -671,7 +680,7 @@ int main(int argc, char **argv) {
                        basisq, CEED_VECTOR_ACTIVE);
 
   // Set up the libCEED context
-  CeedScalar ctxSetup[9] = {theta0, thetaC, P0, N, cv, cp, Rd, g, rc};
+  CeedScalar ctxSetup[12] = {theta0, thetaC, P0, N, cv, cp, Rd, g, rc, lx, ly, lz};
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
   CeedScalar ctxNS[6] = {lambda, mu, k, cv, cp, g};
   CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
