@@ -271,7 +271,7 @@ int main(int argc, char **argv) {
   CeedScalar g          = 9.81;     // m/s^2
   CeedScalar lambda     = -2./3.;   // -
   CeedScalar mu         = 1.e-5;    // Pa s (dynamic viscosity)
-  CeedScalar k          = 26.38;    // W/m K
+  CeedScalar k          = 0.02638;  // W/m K
   CeedScalar rc;                    // Radius of bubble
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
