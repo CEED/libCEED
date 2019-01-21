@@ -58,6 +58,10 @@
 //   cp              ,  Specific heat, constant pressure
 //   Rd     = cp - cv,  Specific heat difference
 //   g               ,  Gravity
+//   rc              ,  Characteristic radius of thermal bubble
+//   lx              ,  Characteristic length scale of domain in x
+//   ly              ,  Characteristic length scale of domain in y
+//   lz              ,  Characteristic length scale of domain in z
 //
 // *****************************************************************************
 static int ICsNS(void *ctx, CeedInt Q,
@@ -100,7 +104,7 @@ static int ICsNS(void *ctx, CeedInt Q,
     const CeedScalar r = sqrt(pow((x - center[0]), 2) +
                               pow((y - center[1]), 2) +
                               pow((z - center[2]), 2));
-    const CeedScalar deltaTheta = r<= rc ? thetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
+    const CeedScalar deltaTheta = r <= rc ? thetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
     const CeedScalar Theta = theta0*exp(N*N*z/g) + deltaTheta;
     // -- Exner pressure, hydrostatic balance
     const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
