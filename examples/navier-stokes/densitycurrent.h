@@ -332,7 +332,7 @@ static int DC(void *ctx, CeedInt Q,
     dv[i+(4+5*1)*Q] -= Fe[0]*wBBJ[1] + Fe[1]*wBBJ[3] + Fe[2]*wBBJ[4];
     dv[i+(4+5*2)*Q] -= Fe[0]*wBBJ[2] + Fe[1]*wBBJ[4] + Fe[2]*wBBJ[5];
     // ---- No Change
-    v[i+5*Q] = 0;
+    v[i+4*Q] = 0;
 
   } // End Quadrature Point Loop
 
