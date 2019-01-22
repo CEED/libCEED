@@ -47,10 +47,16 @@ static int ICsAdvection(void *ctx, CeedInt Q,
   const CeedScalar *X = in[0];
   // Outputs
   CeedScalar *q0 = out[0], *coords = out[1];
+  // Context
+  const CeedScalar *context = (const CeedScalar*)ctx;
+  const CeedScalar rc         = context[8];
+  const CeedScalar lx         = context[9];
+  const CeedScalar ly         = context[10];
+  const CeedScalar lz         = context[11];
   // Setup
   const CeedScalar tol = 1.e-14;
-  const CeedScalar x0[3] = {0.25, 0.5, 0.5};
-  const CeedScalar center[3] = {0.5, 0.5, 0.5};
+  const CeedScalar x0[3] = {0.25*lx, 0.5*ly, 0.5*lz};
+  const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
@@ -69,12 +75,12 @@ static int ICsAdvection(void *ctx, CeedInt Q,
     q0[i+1*Q] = -0.5*(y - center[0]);
     q0[i+2*Q] =  0.5*(x - center[1]);
     q0[i+3*Q] = 0.0;
-    q0[i+4*Q] = r <= 1./8. ? (1.-8.*r) : 0.;
+    q0[i+4*Q] = r <= rc ? (1.-8.*r) : 0.;
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
-    if ( fabs(x - 0.0) < tol || fabs(x - 1.0) < tol
-         || fabs(y - 0.0) < tol || fabs(y - 1.0) < tol
-         || fabs(z - 0.0) < tol || fabs(z - 1.0) < tol ) {
+    if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol
+         || fabs(y - 0.0) < tol || fabs(y - ly) < tol
+         || fabs(z - 0.0) < tol || fabs(z - lz) < tol ) {
       q0[i+1*Q] = 0.0;
       q0[i+2*Q] = 0.0;
       q0[i+3*Q] = 0.0;
@@ -164,12 +170,29 @@ static int Advection(void *ctx, CeedInt Q,
                                   qdata[i+15*Q]
                                 };
 
-    for (int c=0; c<5; c++) {
-      v[c*Q+i] = 0;
-      for (int d=0; d<3; d++)
-        dv[(d*5+c)*Q+i] = 0;
-    }
     // The Physics
+
+    // -- Density
+    // ---- No Change
+    dv[i+(0+0*5)*Q] = 0;
+    dv[i+(0+1*5)*Q] = 0;
+    dv[i+(0+2*5)*Q] = 0;
+    v[i+0*Q] = 0;
+
+    // -- Momentum
+    // ---- No Change
+    dv[i+(1+0*5)*Q] = 0;
+    dv[i+(1+1*5)*Q] = 0;
+    dv[i+(1+2*5)*Q] = 0;
+    dv[i+(2+0*5)*Q] = 0;
+    dv[i+(2+1*5)*Q] = 0;
+    dv[i+(2+2*5)*Q] = 0;
+    dv[i+(3+0*5)*Q] = 0;
+    dv[i+(3+1*5)*Q] = 0;
+    dv[i+(3+2*5)*Q] = 0;
+    v[i+1*Q] = 0;
+    v[i+2*Q] = 0;
+    v[i+3*Q] = 0;
 
     // -- Total Energy
     // ---- Version 1: dv E u
@@ -177,9 +200,13 @@ static int Advection(void *ctx, CeedInt Q,
       dv[i+(4+5*0)*Q]  = E*(u[0]*wBJ[0] + u[1]*wBJ[1] + u[2]*wBJ[2]);
       dv[i+(4+5*1)*Q]  = E*(u[0]*wBJ[3] + u[1]*wBJ[4] + u[2]*wBJ[5]);
       dv[i+(4+5*2)*Q]  = E*(u[0]*wBJ[6] + u[1]*wBJ[7] + u[2]*wBJ[8]);
+      v[i+4*Q] = 0;
     }
     // ---- Version 2: v E du
     if (0) {
+      dv[i+(4+0*5)*Q] = 0;
+      dv[i+(4+1*5)*Q] = 0;
+      dv[i+(4+2*5)*Q] = 0;
       v[i+4*Q]   = E*(du[0]*wBJ[0] + du[3]*wBJ[1] + du[6]*wBJ[2]);
       v[i+4*Q]  -= E*(du[1]*wBJ[3] + du[4]*wBJ[4] + du[7]*wBJ[5]);
       v[i+4*Q]  -= E*(du[2]*wBJ[6] + du[5]*wBJ[7] + du[8]*wBJ[8]);
