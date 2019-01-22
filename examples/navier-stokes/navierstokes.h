@@ -119,9 +119,9 @@ static int ICsNS(void *ctx, CeedInt Q,
     q0[i+4*Q] = rho * (cv*Theta*Pi + g*z);
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
-    if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol
-         || fabs(y - 0.0) < tol || fabs(y - ly) < tol
-         || fabs(z - 0.0) < tol || fabs(z - lz) < tol ) {
+    if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol ||
+         fabs(y - 0.0) < tol || fabs(y - ly) < tol ||
+         fabs(z - 0.0) < tol || fabs(z - lz) < tol ) {
       q0[i+1*Q] = 0.0;
       q0[i+2*Q] = 0.0;
       q0[i+3*Q] = 0.0;
