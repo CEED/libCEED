@@ -170,12 +170,29 @@ static int Advection(void *ctx, CeedInt Q,
                                   qdata[i+15*Q]
                                 };
 
-    for (int c=0; c<5; c++) {
-      v[c*Q+i] = 0;
-      for (int d=0; d<3; d++)
-        dv[(d*5+c)*Q+i] = 0;
-    }
     // The Physics
+
+    // -- Density
+    // ---- No Change
+    dv[i+(0+0*5)*Q] = 0;
+    dv[i+(0+1*5)*Q] = 0;
+    dv[i+(0+2*5)*Q] = 0;
+    v[i+0*Q] = 0;
+
+    // -- Momentum
+    // ---- No Change
+    dv[i+(1+0*5)*Q] = 0;
+    dv[i+(1+1*5)*Q] = 0;
+    dv[i+(1+2*5)*Q] = 0;
+    dv[i+(2+0*5)*Q] = 0;
+    dv[i+(2+1*5)*Q] = 0;
+    dv[i+(2+2*5)*Q] = 0;
+    dv[i+(3+0*5)*Q] = 0;
+    dv[i+(3+1*5)*Q] = 0;
+    dv[i+(3+2*5)*Q] = 0;
+    v[i+1*Q] = 0;
+    v[i+2*Q] = 0;
+    v[i+3*Q] = 0;
 
     // -- Total Energy
     // ---- Version 1: dv E u
@@ -183,9 +200,13 @@ static int Advection(void *ctx, CeedInt Q,
       dv[i+(4+5*0)*Q]  = E*(u[0]*wBJ[0] + u[1]*wBJ[1] + u[2]*wBJ[2]);
       dv[i+(4+5*1)*Q]  = E*(u[0]*wBJ[3] + u[1]*wBJ[4] + u[2]*wBJ[5]);
       dv[i+(4+5*2)*Q]  = E*(u[0]*wBJ[6] + u[1]*wBJ[7] + u[2]*wBJ[8]);
+      v[i+4*Q] = 0;
     }
     // ---- Version 2: v E du
     if (0) {
+      dv[i+(4+0*5)*Q] = 0;
+      dv[i+(4+1*5)*Q] = 0;
+      dv[i+(4+2*5)*Q] = 0;
       v[i+4*Q]   = E*(du[0]*wBJ[0] + du[3]*wBJ[1] + du[6]*wBJ[2]);
       v[i+4*Q]  -= E*(du[1]*wBJ[3] + du[4]*wBJ[4] + du[7]*wBJ[5]);
       v[i+4*Q]  -= E*(du[2]*wBJ[6] + du[5]*wBJ[7] + du[8]*wBJ[8]);
