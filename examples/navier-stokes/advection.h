@@ -99,7 +99,7 @@ static int ICsAdvection(void *ctx, CeedInt Q,
 // This is 3D advection given in two formulations based upon the weak form.
 //
 // State Variables: q = ( rho, U1, U2, U3, E )
-//   rho - Density
+//   rho - Mass Density
 //   Ui  - Momentum Density    ,  Ui = rho ui
 //   E   - Total Energy Density,  E  = rho Cv T + rho (u u) / 2 + rho g z
 //

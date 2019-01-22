@@ -143,7 +143,7 @@ static int ICsDC(void *ctx, CeedInt Q,
 // This QFunction implements the following formulation of Navier-Stokes
 //
 // This is 3D compressible Navier-Stokes in conservation form with state
-//   variables of density, momentum, and total energy.
+//   variables of density, momentum density, and total energy density.
 //
 // State Variables: q = ( rho, U1, U2, U3, E )
 //   rho - Mass Density
