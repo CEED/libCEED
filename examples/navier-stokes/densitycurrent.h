@@ -20,21 +20,22 @@
 // This QFunction sets the the initial conditions and boundary conditions
 //
 // These initial conditions are given in terms of potential temperature and
-//   Exner pressure and potential temperature and then converted to density and
-//   total energy. Initial velocity and momentum is zero.
+//   Exner pressure and then converted to density and total energy.
+//   Initial momentum density is zero.
 //
 // Initial Conditions:
 //   Potential Temperature:
 //     theta = thetabar + deltatheta
 //       thetabar   = theta0 exp( N**2 z / g )
-//       detlatheta = r <= 1: theta0(1 + cos(pi r)) / 2
-//                     r > 1: 0
-//         r        = sqrt( (x - xr)**2 + (y - yr)**2 + (z - zr)**2 )
+//       detlatheta = r <= rc : theta0(1 + cos(pi r)) / 2
+//                     r > rc : 0
+//         r        = sqrt( (x - xc)**2 + (y - yc)**2 + (z - zc)**2 )
+//         with (xc,yc,zc) center of domain
 //   Exner Pressure:
 //     Pi = Pibar + deltaPi
 //       Pibar      = g**2 (exp( - N**2 z / g ) - 1) / (cp theta0 N**2)
 //       deltaPi    = 0 (hydrostatic balance)
-//   Velocity/Momentum:
+//   Velocity/Momentum Density:
 //     Ui = ui = 0
 //
 // Conversion to Conserved Variables:
@@ -42,11 +43,11 @@
 //   E   = rho (cv theta Pi + (u u)/2 + g z)
 //
 //  Boundary Conditions:
-//    Mass:
+//    Mass Density:
 //      0.0 flux
-//    Momentum:
+//    Momentum Density:
 //      0.0
-//    Energy:
+//    Energy Density:
 //      0.0 flux
 //
 // Constants:
@@ -145,17 +146,18 @@ static int ICsDC(void *ctx, CeedInt Q,
 //   variables of density, momentum, and total energy.
 //
 // State Variables: q = ( rho, U1, U2, U3, E )
-//   rho - Density
-//   Ui  - Momentum    ,  Ui = rho ui
-//   E   - Total Energy,  E  = rho cv T + rho (u u) / 2 + rho g z
+//   rho - Mass Density
+//   Ui  - Momentum Density   ,  Ui = rho ui
+//   E   - Total Energy Density,  E  = rho cv T + rho (u u) / 2 + rho g z
 //
 // Navier-Stokes Equations:
 //   drho/dt + div( U )                               = 0
 //   dU/dt   + div( rho (u x u) + P I3 ) + rho g khat = div( Fu )
 //   dE/dt   + div( (E + P) u )                       = div( Fe )
 //
-// Viscous Fluxes:
+// Viscous Stress:
 //   Fu = mu (grad( u ) + grad( u )^T + lambda div ( u ) I3)
+// Thermal Stress:
 //   Fe = u Fu + k grad( T )
 //
 // Equation of State:
