@@ -28,7 +28,7 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include <petscsys.h>
 #include "common.h"
 #include "advection.h"
-#include "navierstokes.h"
+#include "densitycurrent.h"
 
 #if PETSC_VERSION_LT(3,11,0)
 #  define VecScatterCreateWithData VecScatterCreate
@@ -267,9 +267,9 @@ int main(int argc, char **argv) {
 
   // Set up problem type command line option
   PetscFunctionListAdd(&icsflist, "advection", &ICsAdvection);
-  PetscFunctionListAdd(&icsflist, "navier_stokes", &ICsNS);
+  PetscFunctionListAdd(&icsflist, "density_current", &ICsDC);
   PetscFunctionListAdd(&qflist, "advection", &Advection);
-  PetscFunctionListAdd(&qflist, "navier_stokes", &NS);
+  PetscFunctionListAdd(&qflist, "density_current", &DC);
 
   // Parse command line options
   comm = PETSC_COMM_WORLD;
