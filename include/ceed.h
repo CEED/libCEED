@@ -328,10 +328,13 @@ CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
 CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf,
                                    CeedQFunction dqf, CeedQFunction dqfT,
                                    CeedOperator *op);
+CEED_EXTERN int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op);
 CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                                      CeedElemRestriction r,
                                      CeedTransposeMode lmode, CeedBasis b,
                                      CeedVector v);
+CEED_EXTERN int CeedCompositeOperatorAddSub(CeedOperator compositeop,
+                                            CeedOperator subop);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
