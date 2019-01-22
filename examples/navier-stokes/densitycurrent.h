@@ -25,21 +25,21 @@
 //
 // Initial Conditions:
 //   Potential Temperature:
-//     Theta = ThetaBar + deltaTheta
-//       ThetaBar   = theta0 exp( N**2 z / g )
-//       detlaTheta = r <= 1: theta0(1 + cos(pi r)) / 2
+//     theta = thetabar + deltatheta
+//       thetabar   = theta0 exp( N**2 z / g )
+//       detlatheta = r <= 1: theta0(1 + cos(pi r)) / 2
 //                     r > 1: 0
 //         r        = sqrt( (x - xr)**2 + (y - yr)**2 + (z - zr)**2 )
 //   Exner Pressure:
-//     Pi = PiBar + deltaPi
-//       PiBar      = g**2 (exp( - N**2 z / g ) - 1) / (cp theta0 N**2)
+//     Pi = Pibar + deltaPi
+//       Pibar      = g**2 (exp( - N**2 z / g ) - 1) / (cp theta0 N**2)
 //       deltaPi    = 0 (hydrostatic balance)
 //   Velocity/Momentum:
 //     Ui = ui = 0
 //
 // Conversion to Conserved Variables:
-//   rho = P0 Pi**(cv/Rd) / (Rd Theta)
-//   E   = rho (cv Theta Pi + (u u)/2 + g z)
+//   rho = P0 Pi**(cv/Rd) / (Rd theta)
+//   E   = rho (cv theta Pi + (u u)/2 + g z)
 //
 //  Boundary Conditions:
 //    Mass:
@@ -104,24 +104,24 @@ static int ICsDC(void *ctx, CeedInt Q,
     const CeedScalar r = sqrt(pow((x - center[0]), 2) +
                               pow((y - center[1]), 2) +
                               pow((z - center[2]), 2));
-    const CeedScalar deltaTheta = r <= rc ? thetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
-    const CeedScalar Theta = theta0*exp(N*N*z/g) + deltaTheta;
+    const CeedScalar deltatheta = r <= rc ? thetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
+    const CeedScalar theta = theta0*exp(N*N*z/g) + deltatheta;
     // -- Exner pressure, hydrostatic balance
     const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
     // -- Density
-    const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*Theta);
+    const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta);
 
     // Initial Conditions
     q0[i+0*Q] = rho;
     q0[i+1*Q] = 0.0;
     q0[i+2*Q] = 0.0;
     q0[i+3*Q] = 0.0;
-    q0[i+4*Q] = rho * (cv*Theta*Pi + g*z);
+    q0[i+4*Q] = rho * (cv*theta*Pi + g*z);
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
-    if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol
-         || fabs(y - 0.0) < tol || fabs(y - ly) < tol
-         || fabs(z - 0.0) < tol || fabs(z - lz) < tol ) {
+    if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol ||
+         fabs(y - 0.0) < tol || fabs(y - ly) < tol ||
+         fabs(z - 0.0) < tol || fabs(z - lz) < tol ) {
       q0[i+1*Q] = 0.0;
       q0[i+2*Q] = 0.0;
       q0[i+3*Q] = 0.0;
