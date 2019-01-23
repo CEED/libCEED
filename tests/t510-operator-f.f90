@@ -13,7 +13,7 @@
       integer q,ierr
 
       do i=1,q
-        v1(i)=u1(i)*u2(i)
+        v1(i)=u1(i)*(u2(i+q*0)*u2(i+q*3)-u2(i+q*1)*u2(i+q*2))
       enddo
 
       ierr=0
