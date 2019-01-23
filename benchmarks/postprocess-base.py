@@ -28,7 +28,7 @@ line=''
 i=0
 mesh_p=0
 config='unknown'
-compiler='unknown'
+backend='unknown'
 test='unknown'
 num_procs=0
 num_procs_node=0
@@ -40,7 +40,7 @@ while True:
    if state%2==0:
       ##
       try:
-         line=it.next()
+         line=next(it)
          i=i+1
       except StopIteration:
          break
@@ -57,12 +57,12 @@ while True:
          config=line.split()[2]
          num_procs=0
          num_procs_node=0
-      elif 'Setting up compiler' in line:
+      elif 'Using backend' in line:
          # out.write(lnfmt%i+': %s'%line)
-         compiler=line.split()[3]
-      elif 'Reading test file: ' in line:
+         backend=line.split()[2]
+      elif 'Example(s) required by the test: ' in line:
          # out.write(lnfmt%i+': %s'%line)
-         test=line.strip().split('Reading test file: ',1)[-1]
+         test=line.strip().split('Example(s) required by the test: ',1)[-1]
       elif 'Running the tests using a total of' in line:
          # out.write(lnfmt%i+': %s'%line)
          num_procs=int(line.split('a total of ',1)[1].split(None,1)[0])
@@ -80,7 +80,7 @@ while True:
          data={}
          data['file']=fileinput.filename()
          data['config']=config
-         data['compiler']=compiler
+         data['backend']=backend
          data['test']=test
          data['num-procs']=num_procs
          data['num-procs-node']=num_procs_node
@@ -97,7 +97,7 @@ while True:
          data['cg-iteration-dps']=1e6*float(line.split(' ')[4])
       elif 'Global dofs:' in line:
          # out.write(lnfmt%i+': %s'%line)
-         data['num-unknowns']=long(line.rsplit(None,1)[1])
+         data['num-unknowns']=int(line.rsplit(None,1)[1])
       elif 'Local elements:' in line:
          # out.write(lnfmt%i+': %s'%line)
          data['num-elem']=int(line.split(' ')[2])*data['num-procs']
@@ -132,4 +132,4 @@ for run in runs:
 # print
 # pprint.pprint(runs)
 
-print 'Number of test runs read: %i'%len(runs)
+print('Number of test runs read: %i'%len(runs))

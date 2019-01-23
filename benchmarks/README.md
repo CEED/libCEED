@@ -31,14 +31,14 @@ variables can be set on the command line:
 
 ## Post-processing the results
 
-After generating the results, use the `postprocess-plot-2.py` script (which
+After generating the results, use the `postprocess-plot.py` script (which
 requires the python package matplotlib) or the `postprocess-table.py` script,
 e.g.:
 ```sh
-python postprocess-plot-2.py petsc-bp1-output.txt
+python postprocess-plot.py petsc-bp1-output.txt
 ```
 The plot ranges and some other options can be adjusted by editing the values
-in the beginning of the script `postprocess-plot-2.py`.
+in the beginning of the script `postprocess-plot.py`.
 
 Note that the `postprocess-*.py` scripts can read multiple files at a time just
 by listing them on the command line and also read the standard input if no files

@@ -135,9 +135,9 @@ function set_num_nodes()
       num_proc_node="unknown number of"
       num_nodes=""
    fi
-   echo "Running the tests using a total of $num_proc_run MPI tasks ..."
-   echo "... with $num_proc_node tasks per node ..."
-   echo
+   echo "Running the tests using a total of $num_proc_run MPI tasks ..." | tee -a $output_file
+   echo "... with $num_proc_node tasks per node ..." | tee -a $output_file
+   echo | tee -a $output_file
 }
 
 
@@ -222,27 +222,33 @@ as the size of the number-of-processors-per-node list (option --proc-node)."
 for backend in $backend_list; do
 (  ## Run each backend in its own environment
 
+### Setup output
+### Test name
+cd "$cur_dir"
+abspath test_dir "$(dirname "$test_file")" || $exit_cmd 1
+test_basename="$(basename "$test_file")"
+test_file="${test_dir}/${test_basename}"
+### Backend name
+short_backend=${backend//[\/]}
+### Output file
+output_file="${test_file%%.*}-$short_backend-output.txt"
+rm -rf output_file
+
 ### Setup the environment based on $backend
 
 echo
-echo "Using backend $backend ..."
-short_backend=${backend//[\/]}
+echo "Using backend $backend ..." | tee $output_file
 
 ### Run the tests (building and running $test_file)
 
 [ -n "$run" ] && {
 
-cd "$cur_dir"
-abspath test_dir "$(dirname "$test_file")" || $exit_cmd 1
-test_basename="$(basename "$test_file")"
-test_file="${test_dir}/${test_basename}"
-
 [[ "$verbose" = "yes" ]] && {
-   echo "Test problem file, $test_basename:"
-   echo "------------------------------------------------"
-   cat $test_file
-   echo "------------------------------------------------"
-   echo
+   echo "Test problem file, $test_basename:" | tee -a $output_file
+   echo "------------------------------------------------" | tee -a $output_file
+   cat $test_file | tee -a $output_file
+   echo "------------------------------------------------" | tee -a $output_file
+   echo | tee -a $output_file
 }
 
 test_exe_dir="$build_root"
@@ -250,19 +256,15 @@ test_exe_dir="$build_root"
 trap 'printf "\nScript interrupted.\n"; '$exit_cmd' 33' INT
 
 ## Source the test script file.
-echo "Reading test file: $test_file"
-echo
+echo "Reading test file: $test_file" | tee -a $output_file
+echo | tee -a $output_file
 test_required_examples=""
 . "$test_file" || $exit_cmd 1
 
-## Setup output
-output_file="${test_file%%.*}-$short_backend-output.txt"
-rm -rf output_file
-
 ## Build files required by the test
-echo "Example(s) required by the test: $test_required_examples"
+echo "Example(s) required by the test: $test_required_examples" | tee -a $output_file
 build_examples $test_required_examples || $exit_cmd 1
-echo
+echo | tee -a $output_file
 
 ## Loop over the number-of-processors list.
 for (( num_proc_idx = 0; num_proc_idx < num_proc_list_size; num_proc_idx++ ))
@@ -276,11 +278,11 @@ compose_mpi_run_command
 
 if [[ "$start_shell" = "yes" ]]; then
    if [[ ! -t 1 ]]; then
-      echo "Standard output is not a terminal. Stop."
+      echo "Standard output is not a terminal. Stop." | tee -a $output_file
       $exit_cmd 1
    fi
-   echo "Reading shell commands, type 'c' to continue, 'exit' to stop ..."
-   echo
+   echo "Reading shell commands, type 'c' to continue, 'exit' to stop ..." | tee -a $output_file
+   echo | tee -a $output_file
    cd "$cur_dir"
    set -o emacs
    PS1='$ '
@@ -301,7 +303,7 @@ if [[ "$start_shell" = "yes" ]]; then
    done
    [[ "${#line}" -eq 0 ]] && { echo; $exit_cmd 0; }
    shopt -q -u expand_aliases
-   echo "Continuing ..."
+   echo "Continuing ..." | tee -a $output_file
 fi
 
 # Call the function run_tests defined inside the $test_file

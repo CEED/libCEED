@@ -28,7 +28,7 @@ show_figures=1        # display the figures on the screen?
 
 
 #####   Load the data
-execfile('postprocess-base.py')
+exec(compile(open('postprocess-base.py').read(), 'postprocess-base.py', 'exec'))
 
 
 #####   Sample plot output
@@ -54,20 +54,11 @@ colors=[cm(1.*i/(cm_size-1)) for i in range(cm_size)]
 
 sel_runs=runs
 
-configs=list(set([run['config'].rsplit('/',1)[-1].rsplit('.sh',1)[0]
-                  for run in sel_runs]))
-# print 'Present configurations:', configs
-config=configs[0]
-print 'Using configuration:', config
-config_short=config
-sel_runs=[run for run in sel_runs if
-          run['config'].rsplit('/',1)[-1].rsplit('.sh',1)[0]==config]
-
 tests=list(set([run['test'].rsplit('/',1)[-1].rsplit('.sh',1)[0]
                 for run in sel_runs]))
 # print 'Present tests:', tests
 test=tests[0]
-print 'Using test:', test
+print('Using test:', test)
 test_short=test
 sel_runs=[run for run in sel_runs if
           run['test'].rsplit('/',1)[-1].rsplit('.sh',1)[0]==test]
@@ -76,35 +67,34 @@ if 'case' in sel_runs[0]:
    cases=list(set([run['case'] for run in sel_runs]))
    case=cases[0]
    vdim=1 if case=='scalar' else 3
-   print 'Using case:', case
+   print('Using case:', case)
    sel_runs=[run for run in sel_runs if run['case']==case]
 
 codes = list(set([run['code'] for run in sel_runs]))
 code  = codes[0]
 sel_runs=[run for run in sel_runs if run['code']==code]
 
-pl_set=[(run['compiler'],run['num-procs'],run['num-procs-node'])
+pl_set=[(run['backend'],run['num-procs'],run['num-procs-node'])
         for run in sel_runs]
 pl_set=sorted(set(pl_set))
-print
+print()
 pprint.pprint(pl_set)
 
 for plt in pl_set:
-   compiler=plt[0]
+   backend=plt[0]
    num_procs=plt[1]
    num_procs_node=plt[2]
    num_nodes=num_procs/num_procs_node
    pl_runs=[run for run in sel_runs
-            if run['compiler']==compiler and
+            if run['backend']==backend and
                run['num-procs']==num_procs and
                run['num-procs-node']==num_procs_node]
-   pl_runs=sorted(pl_runs)
    if len(pl_runs)==0:
       continue
 
-   print
-   print 'compiler: %s, compute nodes: %i, number of MPI tasks = %i'%(
-      compiler,num_nodes,num_procs)
+   print()
+   print('backend: %s, compute nodes: %i, number of MPI tasks = %i'%(
+      backend,num_nodes,num_procs))
 
    figure()
    i=0
@@ -113,7 +103,7 @@ for plt in pl_set:
       qpts=sorted(list(set([run['quadrature-pts'] for run in pl_runs
                             if run['order']==sol_p])))
       qpts.reverse()
-      print 'Order: %i, quadrature points:'%sol_p, qpts
+      print('Order: %i, quadrature points:'%sol_p, qpts)
       qpts_1d=[int(q**(1./3)+0.5) for q in qpts]
 
       d=[[run['order'],run['num-elem'],1.*run['num-unknowns']/num_nodes/vdim,
@@ -168,9 +158,9 @@ for plt in pl_set:
       plot(y/slope1,y,'k--',label='%g iter/s'%(slope1/vdim))
       plot(y/slope2,y,'k-',label='%g iter/s'%(slope2/vdim))
 
-   title('Config: %s %s (%i node%s, %i tasks/node), %s, %s'%(
-         code,config_short,num_nodes,'' if num_nodes==1 else 's',
-         num_procs_node,compiler,test_short))
+   title('Config: %s (%i node%s, %i tasks/node), %s, %s'%(
+         code,num_nodes,'' if num_nodes==1 else 's',
+         num_procs_node,backend,test_short))
    xscale('log') # subsx=[2,4,6,8]
    if log_y:
       yscale('log')
@@ -190,11 +180,12 @@ for plt in pl_set:
    legend(ncol=legend_ncol, loc='best')
 
    if write_figures: # write .pdf file?
-      pdf_file='plot2_%s_%s_%s_%s_N%03i_pn%i.pdf'%(
-               code,test_short,config_short,compiler,num_nodes,num_procs_node)
-      print 'saving figure --> %s'%pdf_file
+      shortbackend=backend.replace('/','')
+      pdf_file='plot2_%s_%s_%s_N%03i_pn%i.pdf'%(
+               code,test_short,shortbackend,num_nodes,num_procs_node)
+      print('saving figure --> %s'%pdf_file)
       savefig(pdf_file, format='pdf', bbox_inches='tight')
 
 if show_figures: # show the figures?
-   print '\nshowing figures ...'
+   print('\nshowing figures ...')
    show()
