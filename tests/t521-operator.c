@@ -68,6 +68,7 @@ int main(int argc, char **argv) {
   CeedScalar x[dim*ndofs];
   CeedScalar qref[dim*QTet], qweight[QTet];
   CeedScalar interp[PTet*QTet], grad[dim*PTet*QTet];
+  CeedScalar sum;
 
   CeedInit(argv[1], &ceed);
 
@@ -224,15 +225,17 @@ int main(int argc, char **argv) {
 
   // Apply Mass Operator
   CeedVectorCreate(ceed, ndofs, &U);
-  CeedVectorSetValue(U, 0.0);
+  CeedVectorSetValue(U, 1.0);
   CeedVectorCreate(ceed, ndofs, &V);
 
   CeedOperatorApply(op_mass, U, V, CEED_REQUEST_IMMEDIATE);
 
   // Check output
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &hv);
+  sum = 0.;
   for (CeedInt i=0; i<ndofs; i++)
-    if (fabs(hv[i]) > 1e-14) printf("[%d] v %g != 0.0\n",i, hv[i]);
+    sum += hv[i];
+  if (fabs(sum-1.)>1e-10) printf("Computed Area: %f != True Area: 1.0\n", sum);
   CeedVectorRestoreArrayRead(V, &hv);
 
   // Cleanup
