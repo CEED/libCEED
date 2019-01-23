@@ -111,6 +111,12 @@ make
 ./bp1 -ceed /gpu/occa
 cd ../..
 
+cd navier-stokes
+make
+./navierstokes -ceed /cpu/self
+./navierstokes -ceed /gpu/occa
+cd ../..
+
 # Nek+libCEED examples on CPU and GPU
 cd examples/nek5000
 ./make-nek-examples.sh
