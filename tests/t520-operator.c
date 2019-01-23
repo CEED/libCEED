@@ -185,7 +185,7 @@ int main(int argc, char **argv) {
   // -- QFunctions
   CeedQFunctionCreateInterior(ceed, 1, setup, __FILE__ ":setup", &qf_setupHex);
   CeedQFunctionAddInput(qf_setupHex, "_weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddInput(qf_setupHex, "dx", 2, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setupHex, "dx", dim, CEED_EVAL_GRAD);
   CeedQFunctionAddOutput(qf_setupHex, "rho", 1, CEED_EVAL_NONE);
 
   CeedQFunctionCreateInterior(ceed, 1, mass, __FILE__ ":mass", &qf_massHex);
