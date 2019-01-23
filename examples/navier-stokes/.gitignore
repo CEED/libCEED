@@ -1,2 +1,5 @@
-ns
+navierstokes
 *.vtr
+*.vts
+# Output folders
+0**/*

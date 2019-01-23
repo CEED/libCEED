@@ -19,25 +19,21 @@
 // *****************************************************************************
 // This QFunction sets the the initial conditions and boundary conditions
 //
-// These initial conditions are given in terms of potential temperature and
-//   Exner pressure and potential temperature and then converted to density and
-//   total energy. Initial velocity and momentum is zero.
-//
 // Initial Conditions:
-//   Mass:
-//     Constant mass of 1.0
-//   Momentum:
+//   Mass Density:
+//     Constant mass density of 1.0
+//   Momentum Density:
 //     Rotational field in x,y with no momentum in z
-//   Energy:
+//   Energy Density:
 //     Maximum of 1. x0 decreasing linearly to 0. as radial distance increases
 //       to 1/8, then 0. everywhere else
 //
 //  Boundary Conditions:
-//    Mass:
+//    Mass Density:
 //      0.0 flux
-//    Momentum:
+//    Momentum Density:
 //      0.0
-//    Energy:
+//    Energy Density:
 //      0.0 flux
 //
 // *****************************************************************************
@@ -103,9 +99,9 @@ static int ICsAdvection(void *ctx, CeedInt Q,
 // This is 3D advection given in two formulations based upon the weak form.
 //
 // State Variables: q = ( rho, U1, U2, U3, E )
-//   rho - Density
-//   Ui  - Momentum    ,  Ui = rho ui
-//   E   - Total Energy,  E  = rho Cv T + rho (u u) / 2 + rho g z
+//   rho - Mass Density
+//   Ui  - Momentum Density    ,  Ui = rho ui
+//   E   - Total Energy Density,  E  = rho Cv T + rho (u u) / 2 + rho g z
 //
 // Advection Equation:
 //   dE/dt + div( E u ) = 0
@@ -219,3 +215,4 @@ static int Advection(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
+
