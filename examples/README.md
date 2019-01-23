@@ -29,6 +29,10 @@ Bakeoff problem 1 is the Poisson problem.
 
 The supplied examples solve *_A_ u = f*, where *_A_* is the Poisson operator.
 
+### Navier-Stokes Solver
+
+The Navier-Stokes problem solves the compressible Navier-Stokes equations using an explicit time integration.
+
 ## Running Examples
 
 To build the examples, set the `MFEM_DIR`, `PETSC_DIR` and `NEK5K_DIR` variables
@@ -54,6 +58,12 @@ cd petsc
 make
 ./bp1 -ceed /cpu/self
 ./bp1 -ceed /gpu/occa
+cd ../..
+
+cd navier-stokes
+make
+./navierstokes -ceed /cpu/self
+./navierstokes -ceed /gpu/occa
 cd ../..
 
 # Nek+libCEED examples on CPU and GPU
