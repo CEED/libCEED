@@ -531,7 +531,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   ierr = CeedDestroy(&(*op)->ceed); CeedChk(ierr);
   // Free fields
   for (int i=0; i<(*op)->nfields; i++) {
-    if ((*op)->outputfields[i]) {
+    if ((*op)->inputfields[i]) {
       ierr = CeedFree(&(*op)->inputfields[i]); CeedChk(ierr);
     }
   }
