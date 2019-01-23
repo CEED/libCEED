@@ -422,7 +422,6 @@ static int CeedCompositeOperatorApply_Ref(CeedOperator op, CeedVector invec,
   // Overwrite outvec with first output
   ierr = CeedOperatorApply(suboperators[0], invec, outvec, request);
   CeedChk(ierr);
-
   // Add to outvec with subsequent outputs
   for (CeedInt i=1; i<numsub; i++) {
     ierr = CeedOperatorGetData(suboperators[i], (void*)&impl);
