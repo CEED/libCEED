@@ -27,6 +27,7 @@ static int CeedOperatorDestroy_Ref(CeedOperator op) {
   }
   ierr = CeedFree(&impl->evecs); CeedChk(ierr);
   ierr = CeedFree(&impl->edata); CeedChk(ierr);
+  ierr = CeedFree(&impl->inputstate); CeedChk(ierr);
 
   for (CeedInt i=0; i<impl->numein; i++) {
     ierr = CeedVectorDestroy(&impl->evecsin[i]); CeedChk(ierr);
@@ -152,6 +153,7 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   ierr = CeedCalloc(numinputfields + numoutputfields, &impl->edata);
   CeedChk(ierr);
 
+  ierr = CeedCalloc(16, &impl->inputstate); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->evecsin); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->evecsout); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->qvecsin); CeedChk(ierr);
@@ -200,6 +202,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
   CeedVector vec;
   CeedBasis basis;
   CeedElemRestriction Erestrict;
+  uint64_t state;
 
   // Setup
   ierr = CeedOperatorSetup_Ref(op); CeedChk(ierr);
@@ -215,12 +218,17 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
       if (vec == CEED_VECTOR_ACTIVE)
         vec = invec;
       // Restrict
-      ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
-      CeedChk(ierr);
-      ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
-      ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE,
-                                      lmode, vec, impl->evecs[i],
-                                      request); CeedChk(ierr);
+      ierr = CeedVectorGetState(vec, &state); CeedChk(ierr);
+      // Skip restriction if input is unchanged
+      if (state != impl->inputstate[i] || vec == invec) {
+        ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
+        CeedChk(ierr);
+        ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
+        ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE,
+                                        lmode, vec, impl->evecs[i],
+                                        request); CeedChk(ierr);
+        impl->inputstate[i] = state;
+      }
       // Get evec
       ierr = CeedVectorGetArrayRead(impl->evecs[i], CEED_MEM_HOST,
                                     (const CeedScalar **) &impl->edata[i]);
