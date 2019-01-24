@@ -181,7 +181,7 @@ for plt in pl_set:
 
    if write_figures: # write .pdf file?
       shortbackend=backend.replace('/','')
-      pdf_file='plot2_%s_%s_%s_N%03i_pn%i.pdf'%(
+      pdf_file='plot_%s_%s_%s_N%03i_pn%i.pdf'%(
                code,test_short,shortbackend,num_nodes,num_procs_node)
       print('saving figure --> %s'%pdf_file)
       savefig(pdf_file, format='pdf', bbox_inches='tight')
