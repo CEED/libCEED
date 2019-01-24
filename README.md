@@ -151,7 +151,7 @@ and they can be viewed using the commands (requires python with matplotlib):
 
 ```console
 cd benchmarks
-python postprocess-plot-2.py *-output.txt
+python postprocess-plot.py *-output.txt
 ```
 
 For more details about the benchmarks, see
