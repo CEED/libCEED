@@ -22,16 +22,16 @@ exec(compile(open('postprocess-base.py').read(), 'postprocess-base.py', 'exec'))
 #####   Sample data output
 
 set1=sorted(
-   [(run['order'],run['quadrature-pts'],run['backend'],run['num-procs'],
+   [(run['backend'],run['order'],run['quadrature-pts'],run['num-procs'],
      run['num-unknowns'],run['cg-iteration-dps']/1e6,
      1.*run['num-elem']*run['quadrature-pts']/run['num-unknowns'])
     for run in runs])
 
 out.write('''\
-    | quad |  back  |     | number of | cg-iter dps | qpts per
-  p |  pts |  end   |  np |  unknowns |   millions  |  unknown
-----+------+--------+-----+-----------+-------------+---------
+                    |    | quad |     | number of | cg-iter dps | qpts per
+       backend      |  p |  pts |  np |  unknowns |   millions  |  unknown
+--------------------+----+------+-----+-----------+-------------+---------
 ''')
-line_fmt=' %2i | %4i | %6s | %3i | %9i | %11.6f | %7.4f\n'
+line_fmt=' %-18s | %2i | %4i | %3i | %9i | %11.6f | %7.4f\n'
 for run in set1:
    out.write(line_fmt%run)
