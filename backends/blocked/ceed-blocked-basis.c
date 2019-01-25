@@ -25,7 +25,8 @@ static int CeedTensorContract_Blocked(Ceed ceed, CeedInt A, CeedInt B,
                                       CeedInt C, CeedInt J,
                                       const CeedScalar *restrict t,
                                       CeedTransposeMode tmode, const CeedInt Add,
-                                      const CeedScalar *restrict u, CeedScalar *restrict v) {
+                                      const CeedScalar *restrict u,
+                                      CeedScalar *restrict v) {
   CeedInt tstride0 = B, tstride1 = 1;
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = J;
