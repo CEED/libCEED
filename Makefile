@@ -213,7 +213,7 @@ info:
 	@true
 info-backends:
 	$(info make: 'lib' with optional backends: $(filter-out $(BACKENDS_BUILTIN),$(BACKENDS)))
-.PHONY: lib all info info-backends
+.PHONY: lib all par info info-backends
 
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)))
 
