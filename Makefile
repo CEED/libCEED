@@ -348,7 +348,7 @@ all: $(alltests)
 examples : $(allexamples)
 
 # Benchmarks
-benchmarks: build/$(BENCHMARK_EX)
+benchmarks: $(OBJDIR)/$(BENCHMARK_EX)
 	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(BENCHMARK_EX).sh
 
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)
