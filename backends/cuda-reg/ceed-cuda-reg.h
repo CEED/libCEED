@@ -33,6 +33,20 @@ typedef struct {
 } CeedBasis_Cuda_reg;
 
 typedef struct {
+  CUmodule module;
+  CUfunction noTrNoTr;
+  CUfunction noTrTr;
+  CUfunction trNoTr;
+  CUfunction trTr;
+  CeedInt *h_ind;
+  CeedInt *h_ind_allocated;
+  CeedInt *d_ind;
+  CeedInt *d_ind_allocated;
+  CeedInt *d_toffsets;
+  CeedInt *d_tindices;
+} CeedElemRestriction_Cuda_reg;
+
+typedef struct {
 } Ceed_Cuda_reg;
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda_reg(CeedInt dim, CeedInt P1d,
@@ -46,3 +60,13 @@ CEED_INTERN int CeedBasisCreateTensorH1_Cuda_reg(CeedInt dim, CeedInt P1d,
 CEED_INTERN int CeedBasisCreateH1_Cuda_reg(CeedElemTopology, CeedInt, CeedInt,
     CeedInt, const CeedScalar *,
     const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
+
+CEED_INTERN int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype,
+                                                   CeedCopyMode cmode,
+                                                   const CeedInt *indices,
+                                                   CeedElemRestriction r);
+
+CEED_INTERN int CeedElemRestrictionCreateBlocked_Cuda_reg(const CeedMemType mtype,
+                                                          const CeedCopyMode cmode,
+                                                          const CeedInt *indices,
+                                                          const CeedElemRestriction r);

@@ -43,6 +43,11 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
                                 CeedBasisCreateTensorH1_Cuda_reg); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
                                 CeedBasisCreateH1_Cuda_reg); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
+                                CeedElemRestrictionCreate_Cuda_reg); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
+                                "ElemRestrictionCreateBlocked",
+                                CeedElemRestrictionCreateBlocked_Cuda_reg); CeedChk(ierr);
   return 0;
 }
 
