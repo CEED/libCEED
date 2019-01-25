@@ -201,8 +201,8 @@ info:
 	$(info ASAN       = $(or $(ASAN),(empty)))
 	$(info V          = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info ------------------------------------)
-	$(info AVX_STATUS = $(AVX_STATUS)$(call backend_status,/cpu/self/avx))
-	$(info XSMM_DIR   = $(XSMM_DIR)$(call backend_status,/cpu/xsmm/serial /cpu/xsmm/blocked))
+	$(info AVX_STATUS = $(AVX_STATUS)$(call backend_status,/cpu/self/avx/serial /cpu/self/avx/blocked))
+	$(info XSMM_DIR   = $(XSMM_DIR)$(call backend_status,/cpu/self/xsmm/serial /cpu/self/xsmm/blocked))
 	$(info OCCA_DIR   = $(OCCA_DIR)$(call backend_status,/cpu/occa /gpu/occa /omp/occa))
 	$(info MAGMA_DIR  = $(MAGMA_DIR)$(call backend_status,/gpu/magma))
 	$(info CUDA_DIR   = $(CUDA_DIR)$(call backend_status,/gpu/magma))
@@ -235,7 +235,7 @@ AVX := $(shell $(CC) $(OPT) -v -E - < /dev/null 2>&1 | grep -c avx)
 ifeq ($(AVX),1)
   AVX_STATUS = Enabled
   libceed.c += $(avx.c)
-  BACKENDS += /cpu/self/avx
+  BACKENDS += /cpu/self/avx/serial /cpu/self/avx/blocked
 endif
 
 # libXSMM Backends
