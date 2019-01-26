@@ -98,9 +98,6 @@ NPROCS := $(shell getconf _NPROCESSORS_ONLN)
 MFLAGS := -j $(NPROCS) --warn-undefined-variables \
                        --no-print-directory --no-keep-going
 
-# Benchmark options
-BENCHMARK_EX := petsc-bp1
-
 PROVE ?= prove
 PROVE_OPTS ?= -j $(NPROCS)
 DARWIN := $(filter Darwin,$(shell uname -s))
@@ -348,8 +345,12 @@ all: $(alltests)
 examples : $(allexamples)
 
 # Benchmarks
-benchmarks: $(OBJDIR)/$(BENCHMARK_EX)
-	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(BENCHMARK_EX).sh
+allbenchmarks = petsc-bp1 petsc-bp3
+bench-targets = $(addprefix bench-,$(allbenchmarks))
+.PHONY: $(bench-targets) benchmarks
+$(bench-targets): bench-%: $(OBJDIR)/%
+	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(*).sh
+benchmarks: $(bench-targets)
 
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)
 $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
@@ -375,7 +376,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(if $(OCCA_ON),$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/")
 
-.PHONY : benchmarks cln clean print test tst prove prv examples style install doc okl-cache okl-clear
+.PHONY : cln clean print test tst prove prv examples style install doc okl-cache okl-clear
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
