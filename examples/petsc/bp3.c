@@ -25,8 +25,6 @@
 /// Diffusion operator example using PETSc
 const char help[] = "Solve CEED BP3 using PETSc\n";
 
-#include <petscksp.h>
-#include <ceed.h>
 #include <stdbool.h>
 #include "bp3.h"
 
@@ -202,7 +200,7 @@ int main(int argc, char **argv) {
   PetscInt degree, qextra, localdof, localelem, melem[3], mdof[3], p[3],
            irank[3], ldof[3], lsize;
   PetscScalar *r;
-  PetscBool test_mode;
+  PetscBool test_mode, benchmark_mode;
   PetscMPIInt size, rank;
   VecScatter ltog, ltog0, gtogD;
   Ceed ceed;
@@ -217,6 +215,7 @@ int main(int argc, char **argv) {
   Mat mat;
   KSP ksp;
   User user;
+  double my_rt_start, my_rt, rt_min, rt_max;
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -226,6 +225,11 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
                           NULL, test_mode, &test_mode, NULL); CHKERRQ(ierr);
+  benchmark_mode = PETSC_FALSE;
+  ierr = PetscOptionsBool("-benchmark",
+                          "Benchmarking mode (prints benchmark statistics)",
+                          NULL, benchmark_mode, &benchmark_mode, NULL);
+  CHKERRQ(ierr);
   degree = test_mode ? 3 : 1;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
@@ -521,7 +525,10 @@ int main(int argc, char **argv) {
   }
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp, mat, mat); CHKERRQ(ierr);
+  // Timed solve
+  my_rt_start = MPI_Wtime();
   ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
+  my_rt = MPI_Wtime() - my_rt_start;
   {
     KSPType ksptype;
     KSPConvergedReason reason;
@@ -534,6 +541,18 @@ int main(int argc, char **argv) {
     if (!test_mode || reason < 0 || rnorm > 1e-8) {
       ierr = PetscPrintf(comm, "KSP %s %s iterations %D rnorm %e\n", ksptype,
                          KSPConvergedReasons[reason], its, (double)rnorm); CHKERRQ(ierr);
+    }
+    if (benchmark_mode && !test_mode) {
+      CeedInt gsize;
+      ierr = VecGetSize(X, &gsize); CHKERRQ(ierr);
+      MPI_Reduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, 0, comm);
+      MPI_Reduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
+      ierr = PetscPrintf(comm,
+                         "CG solve time  : %g (%g) sec.\n"
+                         "DOFs/sec in CG : %g (%g) million.\n",
+                         rt_max, rt_min,
+                         1e-6*gsize*its/rt_max, 1e-6*gsize*its/rt_min);
+      CHKERRQ(ierr);
     }
   }
 

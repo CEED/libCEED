@@ -45,6 +45,11 @@ MAGMA_DIR ?= ../magma
 CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
                $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
 
+# Check for PETSc in ../petsc
+ifneq ($(wildcard ../petsc/lib/libpetsc.*),)
+  PETSC_DIR ?= ../petsc
+endif
+
 # Warning: SANTIZ options still don't run with /gpu/occa
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
@@ -170,7 +175,7 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
 lib: $(libceed) $(ceed.pc)
 # run 'lib' target in parallel
-all:;@$(MAKE) $(MFLAGS) V=$(V) lib
+par:;@$(MAKE) $(MFLAGS) V=$(V) lib
 backend_status = $(if $(filter $1,$(BACKENDS)), [backends: $1], [not found])
 info:
 	$(info ------------------------------------)
@@ -205,7 +210,7 @@ info:
 	@true
 info-backends:
 	$(info make: 'lib' with optional backends: $(filter-out $(BACKENDS_BUILTIN),$(BACKENDS)))
-.PHONY: lib all info info-backends
+.PHONY: lib all par info info-backends
 
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)))
 
@@ -301,11 +306,13 @@ $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
 	$(call quiet,LINK.F) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
-	$(MAKE) -C examples/mfem CEED_DIR=`pwd` $*
+	$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
+	  MFEM_DIR="$(abspath $(MFEM_DIR))" $*
 	mv examples/mfem/$* $@
 
 $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	$(MAKE) -C examples/petsc CEED_DIR=`pwd` $*
+	$(MAKE) -C examples/petsc CEED_DIR=`pwd` \
+	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
 	mv examples/petsc/$* $@
 
 $(tests) $(examples) : $(libceed)
@@ -327,12 +334,23 @@ prove : $(tests) $(examples)
 # run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
-alltests := $(tests) $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
+allexamples := $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
+alltests := $(tests) $(allexamples)
 prove-all : $(alltests)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(alltests:$(OBJDIR)/%=%)
 
-examples : $(examples)
+all: $(alltests)
+
+examples : $(allexamples)
+
+# Benchmarks
+allbenchmarks = petsc-bp1 petsc-bp3
+bench-targets = $(addprefix bench-,$(allbenchmarks))
+.PHONY: $(bench-targets) benchmarks
+$(bench-targets): bench-%: $(OBJDIR)/%
+	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(*).sh
+benchmarks: $(bench-targets)
 
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)
 $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
@@ -367,6 +385,7 @@ cln clean :
 	$(MAKE) -C examples/petsc clean
 	(cd examples/nek5000 && bash make-nek-examples.sh clean)
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
+	$(RM) -rf benchmarks/*output.txt
 
 distclean : clean
 	$(RM) -r doc/html

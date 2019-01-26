@@ -1,3 +1,5 @@
+# Note: PETSC_ARCH can be undefined or empty for installations which do not use
+#       PETSC_ARCH - for example when using PETSc installed through Spack.
 PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
 CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc

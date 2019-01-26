@@ -17,6 +17,9 @@
 /// @file
 /// libCEED QFunctions for diffusion operator example using PETSc
 
+#include <petscksp.h>
+#include <ceed.h>
+
 // *****************************************************************************
 static int Setup(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
