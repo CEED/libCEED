@@ -385,18 +385,18 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
   }
 
   // Zero lvecs
-    for (CeedInt i=0; i<numoutputfields; i++) {
-      ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
-      if (vec == CEED_VECTOR_ACTIVE) {
-        if (!impl->add) {
-          vec = outvec;
-          ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-          impl->add = false;
-        }
-      } else {
+  for (CeedInt i=0; i<numoutputfields; i++) {
+    ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
+    if (vec == CEED_VECTOR_ACTIVE) {
+      if (!impl->add) {
+        vec = outvec;
         ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
       }
+    } else {
+      ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
     }
+  }
+  impl->add = false;
 
   // Output restriction
   for (CeedInt i=0; i<numoutputfields; i++) {
