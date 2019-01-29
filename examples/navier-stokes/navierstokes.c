@@ -265,9 +265,9 @@ int main(int argc, char **argv) {
   PetscScalar lx;                   // m
   PetscScalar ly;                   // m
   PetscScalar lz;                   // m
-  PetscScalar resx;                  // m (resolution in x)
-  PetscScalar resy;                  // m (resolution in y)
-  PetscScalar resz;                  // m (resolution in z)
+  PetscScalar resx;                 // m (resolution in x)
+  PetscScalar resy;                 // m (resolution in y)
+  PetscScalar resz;                 // m (resolution in z)
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
