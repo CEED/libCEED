@@ -44,16 +44,6 @@ static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   }
 }
 
-// Utility function, return maximum of 3 values
-static PetscInt Max3(const PetscInt a[3]) {
-  return PetscMax(a[0], PetscMax(a[1], a[2]));
-}
-
-// Utility function, return minimum of 3 values
-static PetscInt Min3(const PetscInt a[3]) {
-  return PetscMin(a[0], PetscMin(a[1], a[2]));
-}
-
 // Utility function, compute the number of DoFs from the global grid
 static void GlobalDof(const PetscInt p[3], const PetscInt irank[3],
                       PetscInt degree, const PetscInt melem[3],
@@ -275,6 +265,9 @@ int main(int argc, char **argv) {
   PetscScalar lx;                   // m
   PetscScalar ly;                   // m
   PetscScalar lz;                   // m
+  PetscScalar resx;                  // m (resolution in x)
+  PetscScalar resy;                  // m (resolution in y)
+  PetscScalar resz;                  // m (resolution in z)
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -351,18 +344,33 @@ int main(int argc, char **argv) {
                             NULL, user->outputfolder, user->outputfolder,
                             sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
   PetscStrcat(user->outputfolder, "/ns-%03D.vts");
+  resx = 100.;
+  ierr = PetscOptionsScalar("-resx","Resolution in x",
+                         NULL, resx, &resx, NULL); CHKERRQ(ierr);
+  resx = fabs(resx);
+  resy = 100.;
+  ierr = PetscOptionsScalar("-resy","Resolution in y",
+                         NULL, resy, &resy, NULL); CHKERRQ(ierr);
+  resy = fabs(resy);
+  resz = 100.;
+  ierr = PetscOptionsScalar("-resz","Resolution in z",
+                         NULL, resz, &resz, NULL); CHKERRQ(ierr);
+  resz = fabs(resz);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Determine size of process grid
   ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
   Split3(size, p, false);
 
-  // Find a nicely composite number of elements no less than localdof
-  for (localelem = PetscMax(1, localdof / (degree*degree*degree)); ;
-       localelem++) {
-    Split3(localelem, melem, true);
-    if (Max3(melem) / Min3(melem) <= 2) break;
+  // Find a nicely composite number of elements given the resolution
+  melem[0] = (PetscInt)(PetscRoundReal(lx / resx));
+  melem[1] = (PetscInt)(PetscRoundReal(ly / resy));
+  melem[2] = (PetscInt)(PetscRoundReal(lz / resz));
+  for (int d=0; d<3; d++) {
+    if (melem[d] == 0)
+      melem[d]++;
   }
+  localelem = melem[0] * melem[1] * melem[2];
 
   // Find my location in the process grid
   ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
