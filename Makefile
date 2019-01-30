@@ -346,11 +346,11 @@ examples : $(allexamples)
 
 # Benchmarks
 allbenchmarks = petsc-bp1 petsc-bp3
-bench-targets = $(addprefix bench-,$(allbenchmarks))
-.PHONY: $(bench-targets) benchmarks
-$(bench-targets): bench-%: $(OBJDIR)/%
+bench_targets = $(addprefix bench-,$(allbenchmarks))
+.PHONY: $(bench_targets) benchmarks
+$(bench_targets): bench-%: $(OBJDIR)/%
 	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(*).sh
-benchmarks: $(bench-targets)
+benchmarks: $(bench_targets)
 
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)
 $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
