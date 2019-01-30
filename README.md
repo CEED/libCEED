@@ -129,8 +129,8 @@ be provided with the `-ceed` option, for example:
 | `/cpu/self/blocked`      | Serial blocked implementation                     |
 | `/cpu/self/tmpl`         | Backend template, dispatches to /cpu/self/blocked |
 | `/cpu/self/avx`          | Vectorized blocked implementation                 |
-| `/cpu/self/xsmm/serial`  | Serial libXSMM implementation                     |
-| `/cpu/self/xsmm/blocked` | Blocked libXSMM implementation                    |
+| `/cpu/self/xsmm/serial`  | Serial LIBXSMM implementation                     |
+| `/cpu/self/xsmm/blocked` | Blocked LIBXSMM implementation                    |
 | `/cpu/occa`              | Serial OCCA kernels                               |
 | `/gpu/occa`              | CUDA OCCA kernels                                 |
 | `/omp/occa`              | OpenMP OCCA kernels                               |
