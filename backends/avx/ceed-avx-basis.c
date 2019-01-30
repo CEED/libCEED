@@ -62,13 +62,13 @@ static int CeedTensorContract_Avx_Serial(Ceed ceed, CeedInt A, CeedInt B,
           for (CeedInt cc=0; cc<CC/4; cc++)
             _mm256_storeu_pd(&v[(a*J+j+jj)*C+c+cc*4], vv[jj][cc]);
       }
-      // CC remainder
-      for (CeedInt jj=0; jj<JJ; jj++) {
-        for (CeedInt b=0; b<B; b++) {
-          CeedScalar tq = t[(j+jj)*tstride0 + b*tstride1];
-          for (CeedInt c=(C/CC)*CC; c<C; c++)
-            v[(a*J+j+jj)*C+c] += tq * u[(a*B+b)*C+c];
-        }
+    }
+    // CC remainder
+    for (CeedInt j=0; j<(J/JJ)*JJ; j++) {
+      for (CeedInt b=0; b<B; b++) {
+        CeedScalar tq = t[j*tstride0 + b*tstride1];
+        for (CeedInt c=(C/CC)*CC; c<C; c++)
+          v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
       }
     }
     // JJ remainder
