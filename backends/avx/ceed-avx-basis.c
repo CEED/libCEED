@@ -63,6 +63,8 @@ static int CeedTensorContract_Avx_Serial(Ceed ceed, CeedInt A, CeedInt B,
             _mm256_storeu_pd(&v[(a*J+j+jj)*C+c+cc*4], vv[jj][cc]);
       }
     }
+  }
+  for (CeedInt a=0; a<A; a++) {
     // CC remainder
     for (CeedInt j=0; j<(J/JJ)*JJ; j++) {
       for (CeedInt b=0; b<B; b++) {
@@ -126,6 +128,8 @@ static int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A, CeedInt B,
             _mm256_storeu_pd(&v[(a*J+j+jj)*C+c+cc*4], vv[jj][cc]);
       }
     }
+  }
+  for (CeedInt a=0; a<A; a++) {
     // Any remainder
     for (CeedInt j=(J/JJ)*JJ; j<J; j++) {
       for (CeedInt b=0; b<B; b++) {
