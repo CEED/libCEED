@@ -61,7 +61,7 @@ NVCCFLAGS = -Xcompiler "$(OPT)" -Xcompiler -fPIC
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
   FFLAGS = $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD
 else # gfortran/Intel-style options
-  FFLAGS = -cpp     $(OPT) -ffree-form -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
+  FFLAGS = -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
 endif
 
 ifeq ($(UNDERSCORE), 1)
@@ -111,10 +111,10 @@ BACKENDS := $(BACKENDS_BUILTIN)
 
 # Tests
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
-tests.f   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f))
+tests.f   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f90))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 ctests    := $(tests)
-tests     += $(tests.f:tests/%.f=$(OBJDIR)/%)
+tests     += $(tests.f:tests/%.f90=$(OBJDIR)/%)
 #examples
 examples.c := $(sort $(wildcard examples/ceed/*.c))
 examples.f := $(sort $(wildcard examples/ceed/*.f))
@@ -296,7 +296,7 @@ $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
-$(OBJDIR)/% : tests/%.f | $$(@D)/.DIR
+$(OBJDIR)/% : tests/%.f90 | $$(@D)/.DIR
 	$(call quiet,LINK.F) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
