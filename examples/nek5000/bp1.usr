@@ -1434,6 +1434,8 @@ C     Output: ap1
       real*8    h1(lx,lelt),h2(lx,lelt)
       integer ceed,ceed_op,vec_ap1,vec_p1,err
       integer i,e
+C TODO replace this by SyncArray when available
+      integer*8 offset
 
       call ceedvectorsetarray(vec_p1,ceed_mem_host,ceed_use_pointer,
      $  p1,err)
@@ -1442,6 +1444,10 @@ C     Output: ap1
 
       call ceedoperatorapply(ceed_op,vec_p1,vec_ap1,
      $  ceed_request_immediate,err)
+
+C TODO replace this by SyncArray when available
+      call ceedvectorgetarrayread(vec_ap1,ceed_mem_host,ap1,offset,err)
+      call ceedvectorrestorearrayread(vec_ap1,ap1,offset,err)
 
       pap(1)=0.
 
