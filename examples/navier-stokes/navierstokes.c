@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
   CeedScalar Rd         = cp - cv;  // J/kg K
   CeedScalar g          = 9.81;     // m/s^2
   CeedScalar lambda     = -2./3.;   // -
-  CeedScalar mu         = 1.e-5;    // Pa s (dynamic viscosity)
+  CeedScalar mu         = 75.;    // Pa s (dynamic viscosity, not physical for air, but good for numerical stability)
   CeedScalar k          = 0.02638;  // W/m K
   CeedScalar rc;                    // m (Radius of bubble)
   PetscScalar lx;                   // m
@@ -310,19 +310,19 @@ int main(int argc, char **argv) {
                          NULL, mu, &mu, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-k", "Thermal conductivity",
                          NULL, k, &k, NULL); CHKERRQ(ierr);
-  lx = 1000.;
+  lx = 8000.;
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                          NULL, lx, &lx, NULL); CHKERRQ(ierr);
   lx = fabs(lx);
-  ly = 1000.;
+  ly = 8000.;
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
                          NULL, ly, &ly, NULL); CHKERRQ(ierr);
   ly = fabs(ly);
-  lz = 400.;
+  lz = 4000.;
   ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
                          NULL, lz, &lz, NULL); CHKERRQ(ierr);
   lz = fabs(lz);
-  rc = PetscMin(PetscMin(lx,ly),lz)/8.;
+  rc = PetscMin(PetscMin(lx,ly),lz)/4.;
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                          NULL, rc, &rc, NULL); CHKERRQ(ierr);
   rc = fabs(rc);
@@ -340,15 +340,15 @@ int main(int argc, char **argv) {
                             NULL, user->outputfolder, user->outputfolder,
                             sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
   PetscStrcat(user->outputfolder, "/ns-%03D.vts");
-  resx = 100.;
+  resx = 1000.;
   ierr = PetscOptionsScalar("-resx","Resolution in x",
                          NULL, resx, &resx, NULL); CHKERRQ(ierr);
   resx = fabs(resx);
-  resy = 100.;
+  resy = 1000.;
   ierr = PetscOptionsScalar("-resy","Resolution in y",
                          NULL, resy, &resy, NULL); CHKERRQ(ierr);
   resy = fabs(resy);
-  resz = 100.;
+  resz = 1000.;
   ierr = PetscOptionsScalar("-resz","Resolution in z",
                          NULL, resz, &resz, NULL); CHKERRQ(ierr);
   resz = fabs(resz);
