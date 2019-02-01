@@ -92,7 +92,7 @@ if [[ -z "${nek_box}" ]]; then
 fi
 
 for nek_ex in "${nek_examples[@]}"; do
-  if [[ ${nek_test}=="test" ]]; then
+  if [ ${nek_test} == "test" ]; then
     nek_ex="build/"${nek_ex}
     NEK_BOX_DIR="build/boxes"
   else
@@ -113,7 +113,7 @@ for nek_ex in "${nek_examples[@]}"; do
   rm -f ioinfo
   mv ${nek_ex}.log.${nek_np}.b${nek_box} ${nek_ex}.log1.${nek_np}.b${nek_box} 2>/dev/null
 
-  if [[ ${nek_test}=="test" ]]; then
+  if [ ${nek_test} == "test" ]; then
       ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.log.${nek_np}.b${nek_box}
     wait $!
   else
@@ -121,10 +121,10 @@ for nek_ex in "${nek_examples[@]}"; do
     wait $!
   fi
 
-  if [[ ! ${nek_test}=="test" ]]; then
+  if [ ! ${nek_test} == "test" ]; then
     echo "  Run finished. Output was written to ${nek_ex}.log.${nek_np}.b${nek_box}"
   fi
-  if [[ ${nek_test}=="test" ]]; then
+  if [ ${nek_test} == "test" ]; then
     status=$(grep "ERROR IS TOO LARGE" ${nek_ex}.log*)
     if [[ ${status} ]]; then
       nek_test_rst="FAIL"
@@ -134,7 +134,7 @@ for nek_ex in "${nek_examples[@]}"; do
   fi
 done
 
-if [[ $nek_test_rst != "PASS" ]]; then
+if [ $nek_test_rst != "PASS" ]; then
   exit 1
 else
   exit 0
