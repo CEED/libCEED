@@ -113,29 +113,26 @@ for nek_ex in "${nek_examples[@]}"; do
   rm -f ioinfo
   mv ${nek_ex}.log.${nek_np}.b${nek_box} ${nek_ex}.log1.${nek_np}.b${nek_box} 2>/dev/null
 
+  nek_spec_short=${nek_spec//[\/]}
+
   if [ ${nek_test} == "test" ]; then
-      ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.log.${nek_np}.b${nek_box}
+      ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}
     wait $!
   else
-    ${MPIEXEC:-mpiexec} -np ${nek_np} ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.log.${nek_np}.b${nek_box}
+    ${MPIEXEC:-mpiexec} -np ${nek_np} ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}
     wait $!
   fi
 
   if [ ! ${nek_test} == "test" ]; then
-    echo "  Run finished. Output was written to ${nek_ex}.log.${nek_np}.b${nek_box}"
+    echo "  Run finished. Output was written to ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}"
   fi
   if [ ${nek_test} == "test" ]; then
-    status=$(grep "ERROR IS TOO LARGE" ${nek_ex}.log*)
-    if [[ ${status} ]]; then
+    if [[ $(grep "ERROR IS TOO LARGE" ${nek_ex}.${nek_spec_short}.log*) ]]; then
       nek_test_rst="FAIL"
     else
-      rm -f ${nek_ex}.log*
+      rm -f ${nek_ex}.${nek_spec_short}.log*
     fi
   fi
 done
 
-if [ $nek_test_rst != "PASS" ]; then
-  exit 1
-else
-  exit 0
-fi
+exit 0
