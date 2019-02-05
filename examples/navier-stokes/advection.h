@@ -68,10 +68,10 @@ static int ICsAdvection(void *ctx, CeedInt Q,
 
     // Initial Conditions
     q0[i+0*Q] = 1.;
-    q0[i+1*Q] = -0.5*(y - center[0]);
-    q0[i+2*Q] =  0.5*(x - center[1]);
+    q0[i+1*Q] = -0.5*(y - center[1]);
+    q0[i+2*Q] =  0.5*(x - center[0]);
     q0[i+3*Q] = 0.0;
-    q0[i+4*Q] = r <= rc ? (1.-8.*r) : 0.;
+    q0[i+4*Q] = r <= rc ? (1.-r/rc) : 0.;
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
     if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol
