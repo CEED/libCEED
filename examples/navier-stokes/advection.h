@@ -55,7 +55,6 @@ static int ICsAdvection(void *ctx, CeedInt Q,
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
   #pragma omp simd
-
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -117,7 +116,6 @@ static int Advection(void *ctx, CeedInt Q,
   CeedScalar *v = out[0], *dv = out[1];
 
   #pragma omp simd
-
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
