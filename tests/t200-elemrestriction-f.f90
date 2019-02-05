@@ -35,7 +35,8 @@
         ind(2*i  )=i
       enddo
 
-      call ceedelemrestrictioncreate(ceed,ne,2,ne+1,1,ceed_mem_host,ceed_use_pointer,ind,r,err)
+      call ceedelemrestrictioncreate(ceed,ne,2,ne+1,1,ceed_mem_host,&
+     & ceed_use_pointer,ind,r,err)
 
       call ceedvectorcreate(ceed,2*ne,y,err);
       call ceedvectorsetvalue(y,0.d0,err);

@@ -55,6 +55,7 @@ static int ICsAdvection(void *ctx, CeedInt Q,
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
   #pragma omp simd
+
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -68,11 +69,11 @@ static int ICsAdvection(void *ctx, CeedInt Q,
                               pow((z - x0[2]), 2));
 
     // Initial Conditions
-    q0[i+0*Q] = 1.;
-    q0[i+1*Q] = -0.5*(y - center[0]);
-    q0[i+2*Q] =  0.5*(x - center[1]);
+    q0[i+0*Q] = 1.;=
+    q0[i+1*Q] = -0.5*(y - center[1]);
+    q0[i+2*Q] =  0.5*(x - center[0]);
     q0[i+3*Q] = 0.0;
-    q0[i+4*Q] = r <= rc ? (1.-8.*r) : 0.;
+    q0[i+4*Q] = r <= rc ? (1.-r/rc) : 0.;
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
     if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol
@@ -116,6 +117,7 @@ static int Advection(void *ctx, CeedInt Q,
   CeedScalar *v = out[0], *dv = out[1];
 
   #pragma omp simd
+
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup

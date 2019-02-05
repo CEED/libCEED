@@ -44,6 +44,19 @@ static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   }
 }
 
+<<<<<<< HEAD
+=======
+// Utility function, return maximum of 3 values
+static PetscInt Max3(const PetscInt a[3]) {
+  return PetscMax(a[0], PetscMax(a[1], a[2]));
+}
+
+// Utility function, return minimum of 3 values
+static PetscInt Min3(const PetscInt a[3]) {
+  return PetscMin(a[0], PetscMin(a[1], a[2]));
+}
+
+>>>>>>> 9bf87778394024ff6631efa85e6738af1270e9c2
 // Utility function, compute the number of DoFs from the global grid
 static void GlobalDof(const PetscInt p[3], const PetscInt irank[3],
                       PetscInt degree, const PetscInt melem[3],
@@ -231,7 +244,11 @@ int main(int argc, char **argv) {
   char ceedresource[4096] = "/cpu/self";
   PetscFunctionList icsflist = NULL, qflist = NULL;
   char problemtype[256] = "advection";
+<<<<<<< HEAD
   PetscInt degree, qextra, localelem, lsize, outputfreq,
+=======
+  PetscInt degree, qextra, localdof, localelem, lsize, outputfreq,
+>>>>>>> 9bf87778394024ff6631efa85e6738af1270e9c2
            steps, melem[3], mdof[3], p[3], irank[3], ldof[3];
   PetscMPIInt size, rank;
   PetscScalar ftime;

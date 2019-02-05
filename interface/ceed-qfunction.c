@@ -31,28 +31,19 @@
   @param vlength    Vector length.  Caller must ensure that number of quadrature
                     points is a multiple of vlength.
   @param f          Function pointer to evaluate action at quadrature points.
-                    See below.
+                    See \ref CeedQFunctionUser.
   @param focca      OCCA identifier "file.c:function_name" for definition of `f`
   @param[out] qf    Address of the variable where the newly created
                      CeedQFunction will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
-  The arguments of the call-back 'function' are:
-
-   1. [void *ctx][in/out] - user data, this is the 'ctx' pointer stored in
-              the CeedQFunction, set by calling CeedQFunctionSetContext
-
-   2. [CeedInt nq][in] - number of quadrature points to process
-
-   3. [const CeedScalar *const *u][in] - input fields data at quadrature pts, listed in the order given by the user
-
-   4. [CeedScalar *const *v][out] - output fields data at quadrature points, again listed in order given by the user
+  See \ref CeedQFunctionUser for details on the call-back function @a f's arguments.
 
   @ref Basic
 **/
 int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
-                                int (*f)(void*, CeedInt, const CeedScalar *const*, CeedScalar *const*),
+                                CeedQFunctionUser f,
                                 const char *focca, CeedQFunction *qf) {
   int ierr;
   char *focca_copy;
@@ -316,6 +307,7 @@ int CeedQFunctionGetInnerContext(CeedQFunction qf, void* *ctx) {
   } else {
     *ctx = qf->ctx;
   }
+
 
   return 0;
 }
