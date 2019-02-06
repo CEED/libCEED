@@ -22,6 +22,76 @@
 // NOTRANSPOSE: V_ajc = T_jb U_abc
 // TRANSPOSE:   V_ajc = T_bj U_abc
 // If Add != 0, "=" is replaced by "+="
+
+// Blocked Tensor Contact
+static int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A, CeedInt B,
+                                          CeedInt C, CeedInt J,
+                                          const CeedScalar *restrict t,
+                                          CeedTransposeMode tmode,
+                                          const CeedInt Add,
+                                          const CeedScalar *restrict u,
+                                          CeedScalar *restrict v) {
+  CeedInt tstride0 = B, tstride1 = 1;
+  if (tmode == CEED_TRANSPOSE) {
+    tstride0 = 1; tstride1 = J;
+  }
+
+  const int JJ = 4, CC=8;
+  if (C % CC) return CeedError(ceed, 2, "Tensor [%d, %d, %d]: last dimension not divisible by %d", A, B, C, CC);
+
+  if (!Add)
+    for (CeedInt q=0; q<A*J*C; q++)
+      v[q] = (CeedScalar) 0.0;
+
+  for (CeedInt a=0; a<A; a++) {
+    // Blocks of 4
+    for (CeedInt j=0; j<(J/JJ)*JJ; j+=JJ) {
+      for (CeedInt c=0; c<C; c+=CC) {
+        __m256d vv[JJ][CC/4]; // Output tile to be held in registers
+        for (CeedInt jj=0; jj<JJ; jj++)
+          for (CeedInt cc=0; cc<CC/4; cc++)
+            vv[jj][cc] = _mm256_loadu_pd(&v[(a*J+j+jj)*C+c+cc*4]);
+
+        for (CeedInt b=0; b<B; b++) {
+          for (CeedInt jj=0; jj<JJ; jj++) { // unroll
+            __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
+            for (CeedInt cc=0; cc<CC/4; cc++) { // unroll
+              vv[jj][cc] += _mm256_mul_pd(tqv,
+                              _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
+            }
+          }
+        }
+        for (CeedInt jj=0; jj<JJ; jj++)
+          for (CeedInt cc=0; cc<CC/4; cc++)
+            _mm256_storeu_pd(&v[(a*J+j+jj)*C+c+cc*4], vv[jj][cc]);
+      }
+    }
+    // JJ Remainder
+    CeedInt j=(J/JJ)*JJ;
+    for (CeedInt c=0; c<(C/CC)*CC; c+=CC) {
+      __m256d vv[JJ][CC/4]; // Output tile to be held in registers
+      for (CeedInt jj=0; jj<J-j; jj++)
+        for (CeedInt cc=0; cc<CC/4; cc++)
+          vv[jj][cc] = _mm256_loadu_pd(&v[(a*J+j+jj)*C+c+cc*4]);
+
+      for (CeedInt b=0; b<B; b++) {
+        for (CeedInt jj=0; jj<J-j; jj++) { // unroll
+          __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
+          for (CeedInt cc=0; cc<CC/4; cc++) { // unroll
+            vv[jj][cc] += _mm256_mul_pd(tqv,
+                            _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
+          }
+        }
+      }
+      for (CeedInt jj=0; jj<J-j; jj++)
+        for (CeedInt cc=0; cc<CC/4; cc++)
+          _mm256_storeu_pd(&v[(a*J+j+jj)*C+c+cc*4], vv[jj][cc]);
+    }
+  }
+  return 0;
+}
+
+// Serial Tensor Contract
 static int CeedTensorContract_Avx_Serial(Ceed ceed, CeedInt A, CeedInt B,
                                          CeedInt C, CeedInt J,
                                          const CeedScalar *restrict t,
@@ -158,71 +228,21 @@ static int CeedTensorContract_Avx_Serial(Ceed ceed, CeedInt A, CeedInt B,
   return 0;
 }
 
-static int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A, CeedInt B,
-                                          CeedInt C, CeedInt J,
-                                          const CeedScalar *restrict t,
-                                          CeedTransposeMode tmode,
-                                          const CeedInt Add,
-                                          const CeedScalar *restrict u,
-                                          CeedScalar *restrict v) {
-  CeedInt tstride0 = B, tstride1 = 1;
-  if (tmode == CEED_TRANSPOSE) {
-    tstride0 = 1; tstride1 = J;
-  }
+// Switch for Tensor Contract
+static int CeedTensorContract_Avx(Ceed ceed, CeedInt A, CeedInt B,
+                                  CeedInt C, CeedInt J,
+                                  const CeedScalar *restrict t,
+                                  CeedTransposeMode tmode,
+                                  const CeedInt Add,
+                                  const CeedScalar *restrict u,
+                                  CeedScalar *restrict v) {
+  CeedInt blksize = 8;
 
-  const int JJ = 4, CC=8;
-  if (C % CC) return CeedError(ceed, 2,
-                                 "Tensor [%d, %d, %d]: last dimension not divisible by %d", A, B, C, CC);
+  if (C % blksize)
+    CeedTensorContract_Avx_Serial(ceed, A, B, C, J, t, tmode, Add, u, v);
+  else
+    CeedTensorContract_Avx_Blocked(ceed, A, B, C, J, t, tmode, Add, u, v);
 
-  if (!Add)
-    for (CeedInt q=0; q<A*J*C; q++)
-      v[q] = (CeedScalar) 0.0;
-
-  for (CeedInt a=0; a<A; a++) {
-    // Blocks of 4
-    for (CeedInt j=0; j<(J/JJ)*JJ; j+=JJ) {
-      for (CeedInt c=0; c<C; c+=CC) {
-        __m256d vv[JJ][CC/4]; // Output tile to be held in registers
-        for (CeedInt jj=0; jj<JJ; jj++)
-          for (CeedInt cc=0; cc<CC/4; cc++)
-            vv[jj][cc] = _mm256_loadu_pd(&v[(a*J+j+jj)*C+c+cc*4]);
-
-        for (CeedInt b=0; b<B; b++) {
-          for (CeedInt jj=0; jj<JJ; jj++) { // unroll
-            __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
-            for (CeedInt cc=0; cc<CC/4; cc++) { // unroll
-              vv[jj][cc] += _mm256_mul_pd(tqv,
-                                          _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
-            }
-          }
-        }
-        for (CeedInt jj=0; jj<JJ; jj++)
-          for (CeedInt cc=0; cc<CC/4; cc++)
-            _mm256_storeu_pd(&v[(a*J+j+jj)*C+c+cc*4], vv[jj][cc]);
-      }
-    }
-    // JJ Remainder
-    CeedInt j=(J/JJ)*JJ;
-    for (CeedInt c=0; c<(C/CC)*CC; c+=CC) {
-      __m256d vv[JJ][CC/4]; // Output tile to be held in registers
-      for (CeedInt jj=0; jj<J-j; jj++)
-        for (CeedInt cc=0; cc<CC/4; cc++)
-          vv[jj][cc] = _mm256_loadu_pd(&v[(a*J+j+jj)*C+c+cc*4]);
-
-      for (CeedInt b=0; b<B; b++) {
-        for (CeedInt jj=0; jj<J-j; jj++) { // unroll
-          __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
-          for (CeedInt cc=0; cc<CC/4; cc++) { // unroll
-            vv[jj][cc] += _mm256_mul_pd(tqv,
-                            _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
-          }
-        }
-      }
-      for (CeedInt jj=0; jj<J-j; jj++)
-        for (CeedInt cc=0; cc<CC/4; cc++)
-          _mm256_storeu_pd(&v[(a*J+j+jj)*C+c+cc*4], vv[jj][cc]);
-    }
-  }
   return 0;
 }
 
@@ -238,7 +258,6 @@ static int CeedBasisApply_Avx(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   const CeedInt add = (tmode == CEED_TRANSPOSE);
-  const CeedInt blksize = 8;
   const CeedScalar *u;
   CeedScalar *v;
   if (U) {
@@ -248,16 +267,6 @@ static int CeedBasisApply_Avx(CeedBasis basis, CeedInt nelem,
                      "An input vector is required for this CeedEvalMode");
   }
   ierr = CeedVectorGetArray(V, CEED_MEM_HOST, &v); CeedChk(ierr);
-
-  if ((nelem != 1) && (nelem != blksize))
-    return CeedError(ceed, 1,
-                     "This backend does not support BasisApply for %d elements", nelem);
-
-  int (*CeedTensorContract_Avx)() = NULL;
-  if (nelem == blksize)
-    CeedTensorContract_Avx = CeedTensorContract_Avx_Blocked;
-  else
-    CeedTensorContract_Avx = CeedTensorContract_Avx_Serial;
 
   if (tmode == CEED_TRANSPOSE) {
     const CeedInt vsize = nelem*ncomp*ndof;

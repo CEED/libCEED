@@ -18,6 +18,10 @@
 #include <string.h>
 
 typedef struct {
+  CeedScalar *colograd1d;
+} CeedBasis_Ref;
+
+typedef struct {
   CeedScalar *array;
   CeedScalar *array_allocated;
 } CeedVector_Ref;
