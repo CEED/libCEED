@@ -109,8 +109,8 @@ install:
     else
         git clone --depth 1 https://github.com/Nek5000/Nek5000.git;
     fi
-  - cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..
-        export NEK5K_DIR=$NEK5K_INSTALL PATH=$NEK5K_DIR/bin:$PATH;
+  - cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..;
+  - export NEK5K_DIR=$HOME/install/Nek5000 PATH=$HOME/install/Nek5000/bin:$PATH;
 # PETSc
   - cd $CURR_DIR
   - export PETSC_INSTALL=$HOME/install/petsc-3.10.0
