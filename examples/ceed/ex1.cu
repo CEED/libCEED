@@ -23,7 +23,8 @@ extern "C" __global__ void f_build_mass(void *ctx, CeedInt Q,
   // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
   struct BuildContext *bc = (struct BuildContext*)ctx;
-  const CeedScalar *J = fields.inputs[0], *qw = fields.inputs[1];
+  const CeedScalar *J = (const CeedScalar *)fields.inputs[0];
+  const CeedScalar *qw = (const CeedScalar *)fields.inputs[1];
   CeedScalar *qd = fields.outputs[0];
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
@@ -60,7 +61,8 @@ extern "C" __global__ void f_build_mass(void *ctx, CeedInt Q,
 /// libCEED Q-function for applying a mass operator
 extern "C" __global__ void f_apply_mass(void *ctx, CeedInt Q,
                         Fields_Cuda fields) {
-  const CeedScalar *u = fields.inputs[0], *w = fields.inputs[1];
+  const CeedScalar *u = (const CeedScalar *)fields.inputs[0];
+  const CeedScalar *w = (const CeedScalar *)fields.inputs[1];
   CeedScalar *v = fields.outputs[0];
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;

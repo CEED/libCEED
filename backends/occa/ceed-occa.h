@@ -49,8 +49,9 @@ typedef struct {
 // *****************************************************************************
 // * CeedElemRestriction Occa struct
 // *****************************************************************************
-#define CEED_OCCA_NUM_RESTRICTION_KERNELS 9
+#define CEED_OCCA_NUM_RESTRICTION_KERNELS 7
 typedef struct {
+  bool identity;
   occaMemory d_indices;
   occaMemory d_toffsets;
   occaMemory d_tindices;
