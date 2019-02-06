@@ -80,6 +80,42 @@ or, using the `prove` tool distributed with Perl (recommended)
 
     make prove
 
+## Backends
+
+There are multiple supported backends, which can be selected at runtime in the examples:
+
+|  CEED resource           | Backend                                           |
+| :----------------------- | :------------------------------------------------ |
+| `/cpu/self/ref`          | Serial reference implementation                   |
+| `/cpu/self/blocked`      | Blocked refrence implementation                   |
+| `/cpu/self/tmpl`         | Backend template, dispatches to /cpu/self/blocked |
+| `/cpu/self/avx`          | Blocked AVX implementation                        |
+| `/cpu/self/xsmm/serial`  | Serial LIBXSMM implementation                     |
+| `/cpu/self/xsmm/blocked` | Blocked LIBXSMM implementation                    |
+| `/cpu/occa`              | Serial OCCA kernels                               |
+| `/gpu/occa`              | CUDA OCCA kernels                                 |
+| `/omp/occa`              | OpenMP OCCA kernels                               |
+| `/ocl/occa`              | OpenCL OCCA kernels                               |
+| `/gpu/cuda`              | Pure CUDA kermels                                 |
+| `/gpu/magma`             | CUDA MAGMA kernels                                |
+
+The `/cpu/self/*/serial` backends process one element at a time and are intended for meshes
+with a smaller number of high order elements. The `/cpu/self/*/blocked` backends process
+blocked batches of eight interlaced elements and are intended for meshes with higher numbers
+of elements.
+
+The `/cpu/self/avx` backend relies upon AVX instructions to provide vectorized CPU performance.
+
+The `/cpu/self/xsmm/*` backends relies upon the [LIBXSMM](http://github.com/hfp/libxsmm) package
+to provide vectorized CPU performance.
+
+The `/*/occa` backends rely upon the [OCCA](http://github.com/libocca/occa) package to provide
+cross platform performance.
+
+The `/gpu/cuda` backend provides GPU performance strictly using CUDA.
+
+The `/gpu/magma` backend relies upon the [MAGMA](https://bitbucket.org/icl/magma) package.
+
 ## Examples
 
 libCEED comes with several examples of its usage, ranging from standalone C
@@ -119,24 +155,9 @@ cd examples/nek5000
 cd ../..
 ```
 
-The above code assumes a GPU-capable machine enabled in the OCCA
-backend. Depending on the available backends, other Ceed resource specifiers can
-be provided with the `-ceed` option, for example:
-
-|  CEED resource (`-ceed`) | Backend                                           |
-| :----------------------- | :------------------------------------------------ |
-| `/cpu/self/ref`          | Serial reference implementation                   |
-| `/cpu/self/blocked`      | Serial blocked implementation                     |
-| `/cpu/self/tmpl`         | Backend template, dispatches to /cpu/self/blocked |
-| `/cpu/self/avx`          | Vectorized blocked implementation                 |
-| `/cpu/self/xsmm/serial`  | Serial LIBXSMM implementation                     |
-| `/cpu/self/xsmm/blocked` | Blocked LIBXSMM implementation                    |
-| `/cpu/occa`              | Serial OCCA kernels                               |
-| `/gpu/occa`              | CUDA OCCA kernels                                 |
-| `/omp/occa`              | OpenMP OCCA kernels                               |
-| `/ocl/occa`              | OpenCL OCCA kernels                               |
-| `/gpu/magma`             | CUDA MAGMA kernels                                |
-
+The above code assumes a GPU-capable machine with the OCCA backend 
+enabled. Depending on the available backends, other Ceed resource specifiers can
+be provided with the `-ceed` option.
 
 ## Benchmarks
 
