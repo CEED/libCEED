@@ -44,7 +44,7 @@ static int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A, CeedInt B,
       v[q] = (CeedScalar) 0.0;
 
   for (CeedInt a=0; a<A; a++) {
-    // Blocks of 4
+    // Blocks of 4 rows
     for (CeedInt j=0; j<(J/JJ)*JJ; j+=JJ) {
       for (CeedInt c=0; c<C; c+=CC) {
         __m256d vv[JJ][CC/4]; // Output tile to be held in registers
@@ -66,26 +66,28 @@ static int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A, CeedInt B,
             _mm256_storeu_pd(&v[(a*J+j+jj)*C+c+cc*4], vv[jj][cc]);
       }
     }
-    // JJ Remainder
+    // Remainder of rows
     CeedInt j=(J/JJ)*JJ;
-    for (CeedInt c=0; c<(C/CC)*CC; c+=CC) {
-      __m256d vv[JJ][CC/4]; // Output tile to be held in registers
-      for (CeedInt jj=0; jj<J-j; jj++)
-        for (CeedInt cc=0; cc<CC/4; cc++)
-          vv[jj][cc] = _mm256_loadu_pd(&v[(a*J+j+jj)*C+c+cc*4]);
+    if (j < J) {
+      for (CeedInt c=0; c<(C/CC)*CC; c+=CC) {
+        __m256d vv[JJ][CC/4]; // Output tile to be held in registers
+        for (CeedInt jj=0; jj<J-j; jj++)
+          for (CeedInt cc=0; cc<CC/4; cc++)
+            vv[jj][cc] = _mm256_loadu_pd(&v[(a*J+j+jj)*C+c+cc*4]);
 
-      for (CeedInt b=0; b<B; b++) {
-        for (CeedInt jj=0; jj<J-j; jj++) { // unroll
-          __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
-          for (CeedInt cc=0; cc<CC/4; cc++) { // unroll
-            vv[jj][cc] += _mm256_mul_pd(tqv,
-                            _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
+        for (CeedInt b=0; b<B; b++) {
+          for (CeedInt jj=0; jj<J-j; jj++) { // doesn't unroll
+            __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
+            for (CeedInt cc=0; cc<CC/4; cc++) { // unroll
+              vv[jj][cc] += _mm256_mul_pd(tqv,
+                              _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
+            }
           }
         }
+        for (CeedInt jj=0; jj<J-j; jj++)
+          for (CeedInt cc=0; cc<CC/4; cc++)
+            _mm256_storeu_pd(&v[(a*J+j+jj)*C+c+cc*4], vv[jj][cc]);
       }
-      for (CeedInt jj=0; jj<J-j; jj++)
-        for (CeedInt cc=0; cc<CC/4; cc++)
-          _mm256_storeu_pd(&v[(a*J+j+jj)*C+c+cc*4], vv[jj][cc]);
     }
   }
   return 0;
@@ -113,7 +115,7 @@ static int CeedTensorContract_Avx_Serial(Ceed ceed, CeedInt A, CeedInt B,
   if (C != 1) {
     // V = T U
     for (CeedInt a=0; a<A; a++) {
-      // Blocks of 4
+      // Blocks of 4 rows
       for (CeedInt j=0; j<(J/JJ)*JJ; j+=JJ) {
         for (CeedInt c=0; c<(C/CC)*CC; c+=CC) {
           __m256d vv[JJ][CC/4]; // Output tile to be held in registers
@@ -135,7 +137,7 @@ static int CeedTensorContract_Avx_Serial(Ceed ceed, CeedInt A, CeedInt B,
               _mm256_storeu_pd(&v[(a*J+j+jj)*C+c+cc*4], vv[jj][cc]);
         }
       }
-      // JJ Remainder
+      // Remainder of rows
       CeedInt j=(J/JJ)*JJ;
       for (CeedInt c=0; c<(C/CC)*CC; c+=CC) {
         __m256d vv[JJ][CC/4]; // Output tile to be held in registers
@@ -144,7 +146,7 @@ static int CeedTensorContract_Avx_Serial(Ceed ceed, CeedInt A, CeedInt B,
             vv[jj][cc] = _mm256_loadu_pd(&v[(a*J+j+jj)*C+c+cc*4]);
 
         for (CeedInt b=0; b<B; b++) {
-          for (CeedInt jj=0; jj<J-j; jj++) { // unroll
+          for (CeedInt jj=0; jj<J-j; jj++) { // doesn't unroll
             __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
             for (CeedInt cc=0; cc<CC/4; cc++) { // unroll
               vv[jj][cc] += _mm256_mul_pd(tqv,
@@ -158,7 +160,7 @@ static int CeedTensorContract_Avx_Serial(Ceed ceed, CeedInt A, CeedInt B,
       }
     }
     for (CeedInt a=0; a<A; a++) {
-      // CC remainder
+      // Column remainder
       for (CeedInt j=0; j<J; j++) {
         for (CeedInt b=0; b<B; b++) {
           CeedScalar tq = t[j*tstride0 + b*tstride1];
@@ -171,7 +173,7 @@ static int CeedTensorContract_Avx_Serial(Ceed ceed, CeedInt A, CeedInt B,
   // V = U T^T
     const int AA = JJ;
     const int JJ2 = CC;
-    // Blocks of 4
+    // Blocks of 4 rows
     for (CeedInt a=0; a<(A/AA)*AA; a+=AA) {
       for (CeedInt j=0; j<(J/JJ2)*JJ2; j+=JJ2) {
         __m256d vv[AA][JJ2/4]; // Output tile to be held in registers
@@ -194,7 +196,7 @@ static int CeedTensorContract_Avx_Serial(Ceed ceed, CeedInt A, CeedInt B,
             _mm256_storeu_pd(&v[(a+aa)*J+j+jj*4], vv[aa][jj]);
       }
     }
-    // AA remainder
+    // Remainder of rows
     CeedInt a=(A/AA)*AA;
     for (CeedInt j=0; j<(J/JJ2)*JJ2; j+=JJ2) {
       __m256d vv[AA][JJ2/4]; // Output tile to be held in registers
@@ -216,7 +218,7 @@ static int CeedTensorContract_Avx_Serial(Ceed ceed, CeedInt A, CeedInt B,
         for (CeedInt jj=0; jj<JJ2/4; jj++)
           _mm256_storeu_pd(&v[(a+aa)*J+j+jj*4], vv[aa][jj]);
     }
-    // JJ remainder
+    // Column remainder
     for (CeedInt b=0; b<B; b++) {
       for (CeedInt j=(J/JJ2)*JJ2; j<J; j++){ 
         CeedScalar tq = t[j*tstride0 + b*tstride1];
