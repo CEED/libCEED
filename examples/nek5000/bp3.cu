@@ -18,7 +18,7 @@
 /// libCEED QFunctions for diffusion operator example using PETSc
 
 // *****************************************************************************
-extern "C" __global__ void Setup(void *ctx, CeedInt Q,
+extern "C" __global__ void diffsetupf(void *ctx, CeedInt Q,
                                  Fields_Cuda fields) {
   #ifndef M_PI
   #define M_PI    3.14159265358979323846
@@ -63,7 +63,7 @@ extern "C" __global__ void Setup(void *ctx, CeedInt Q,
   }
 }
 
-extern "C" __global__ void Diff(void *ctx, CeedInt Q,
+extern "C" __global__ void diffusionf(void *ctx, CeedInt Q,
                                 Fields_Cuda fields) {
   const CeedScalar *ug = fields.inputs[0], *qd = fields.inputs[1];
   CeedScalar *vg = fields.outputs[0];
@@ -78,3 +78,4 @@ extern "C" __global__ void Diff(void *ctx, CeedInt Q,
     vg[i+Q*2] = qd[i+Q*2]*ug0 + qd[i+Q*4]*ug1 + qd[i+Q*5]*ug2;
   }
 }
+

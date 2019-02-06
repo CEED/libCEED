@@ -15,7 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 // *****************************************************************************
-extern "C" __global__ void Setup(void *ctx, CeedInt Q,
+extern "C" __global__ void masssetupf(void *ctx, CeedInt Q,
                                  Fields_Cuda fields) {
   CeedScalar *rho = fields.outputs[0], *rhs = fields.outputs[1];
   const CeedScalar *x = (const CeedScalar *)fields.inputs[0];
@@ -33,7 +33,7 @@ extern "C" __global__ void Setup(void *ctx, CeedInt Q,
   }
 }
 
-extern "C" __global__ void Mass(void *ctx, CeedInt Q,
+extern "C" __global__ void massf(void *ctx, CeedInt Q,
                 Fields_Cuda fields) {
   const CeedScalar *u = fields.inputs[0], *rho = fields.inputs[1];
   CeedScalar *v = fields.outputs[0];
