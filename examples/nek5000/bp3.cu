@@ -23,7 +23,9 @@ extern "C" __global__ void diffsetupf(void *ctx, CeedInt Q,
   #ifndef M_PI
   #define M_PI    3.14159265358979323846
   #endif
-  const CeedScalar *x = fields.inputs[0], *J = fields.inputs[1], *w = fields.inputs[2];
+  const CeedScalar *x = (const CeedScalar *)fields.inputs[0];
+  const CeedScalar *J = (const CeedScalar *)fields.inputs[1];
+  const CeedScalar *w = (const CeedScalar *)fields.inputs[2];
   CeedScalar *qd = fields.outputs[0], *rhs = fields.outputs[1];
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
@@ -65,7 +67,8 @@ extern "C" __global__ void diffsetupf(void *ctx, CeedInt Q,
 
 extern "C" __global__ void diffusionf(void *ctx, CeedInt Q,
                                 Fields_Cuda fields) {
-  const CeedScalar *ug = fields.inputs[0], *qd = fields.inputs[1];
+  const CeedScalar *ug = (const CeedScalar *)fields.inputs[0];
+  const CeedScalar *qd = (const CeedScalar *)fields.inputs[1];
   CeedScalar *vg = fields.outputs[0];
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
