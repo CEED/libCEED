@@ -108,7 +108,7 @@ of elements.
 
 The `/cpu/self/ref/*` backends are written in pure C and provide basic functionality.
 
-The `/cpu/self/avx` backend relies upon AVX instructions to provide vectorized CPU performance.
+The `/cpu/self/avx/*` backends rely upon AVX instructions to provide vectorized CPU performance.
 
 The `/cpu/self/xsmm/*` backends relies upon the [LIBXSMM](http://github.com/hfp/libxsmm) package
 to provide vectorized CPU performance.
