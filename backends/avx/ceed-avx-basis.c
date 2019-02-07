@@ -37,7 +37,6 @@ static int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A, CeedInt B,
   }
 
   const int JJ = 4, CC=8;
-  if (C % CC) return CeedError(ceed, 2, "Tensor [%d, %d, %d]: last dimension not divisible by %d", A, B, C, CC);
 
   if (!Add)
     for (CeedInt q=0; q<A*J*C; q++)
@@ -46,7 +45,7 @@ static int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A, CeedInt B,
   for (CeedInt a=0; a<A; a++) {
     // Blocks of 4 rows
     for (CeedInt j=0; j<(J/JJ)*JJ; j+=JJ) {
-      for (CeedInt c=0; c<C; c+=CC) {
+      for (CeedInt c=0; c<(C/CC)*CC; c+=CC) {
         __m256d vv[JJ][CC/4]; // Output tile to be held in registers
         for (CeedInt jj=0; jj<JJ; jj++)
           for (CeedInt cc=0; cc<CC/4; cc++)
@@ -94,7 +93,35 @@ static int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A, CeedInt B,
 }
 
 // Serial Tensor Contract
-static int CeedTensorContract_Avx_Serial(Ceed ceed, CeedInt A, CeedInt B,
+static int CeedTensorContract_Avx_Remainder(Ceed ceed, CeedInt A, CeedInt B,
+                                            CeedInt C, CeedInt J,
+                                            const CeedScalar *restrict t,
+                                            CeedTransposeMode tmode,
+                                            const CeedInt Add,
+                                            const CeedScalar *restrict u,
+                                            CeedScalar *restrict v) {
+  CeedInt tstride0 = B, tstride1 = 1;
+  if (tmode == CEED_TRANSPOSE) {
+    tstride0 = 1; tstride1 = J;
+  }
+
+  const int CC=8;
+
+  for (CeedInt a=0; a<A; a++) {
+    // Column remainder
+    for (CeedInt j=0; j<J; j++) {
+      for (CeedInt b=0; b<B; b++) {
+        CeedScalar tq = t[j*tstride0 + b*tstride1];
+        for (CeedInt c=(C/CC)*CC; c<C; c++)
+          v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
+      }
+    }
+  }
+  return 0;
+}
+
+// Serial Tensor Contract
+static int CeedTensorContract_Avx_Single(Ceed ceed, CeedInt A, CeedInt B,
                                          CeedInt C, CeedInt J,
                                          const CeedScalar *restrict t,
                                          CeedTransposeMode tmode,
@@ -106,125 +133,63 @@ static int CeedTensorContract_Avx_Serial(Ceed ceed, CeedInt A, CeedInt B,
     tstride0 = 1; tstride1 = J;
   }
 
-  const int JJ = 4, CC=8;
+  const int AA = 4, JJ=8;
 
   if (!Add)
     for (CeedInt q=0; q<A*J*C; q++)
       v[q] = (CeedScalar) 0.0;
 
-  if (C != 1) {
-    // V = T U
-    for (CeedInt a=0; a<A; a++) {
-      // Blocks of 4 rows
-      for (CeedInt j=0; j<(J/JJ)*JJ; j+=JJ) {
-        for (CeedInt c=0; c<(C/CC)*CC; c+=CC) {
-          __m256d vv[JJ][CC/4]; // Output tile to be held in registers
-          for (CeedInt jj=0; jj<JJ; jj++)
-            for (CeedInt cc=0; cc<CC/4; cc++)
-              vv[jj][cc] = _mm256_loadu_pd(&v[(a*J+j+jj)*C+c+cc*4]);
-
-          for (CeedInt b=0; b<B; b++) {
-            for (CeedInt jj=0; jj<JJ; jj++) { // unroll
-              __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
-              for (CeedInt cc=0; cc<CC/4; cc++) { // unroll
-                vv[jj][cc] += _mm256_mul_pd(tqv,
-                                _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
-              }
-            }
-          }
-          for (CeedInt jj=0; jj<JJ; jj++)
-            for (CeedInt cc=0; cc<CC/4; cc++)
-              _mm256_storeu_pd(&v[(a*J+j+jj)*C+c+cc*4], vv[jj][cc]);
-        }
-      }
-      // Remainder of rows
-      CeedInt j=(J/JJ)*JJ;
-      for (CeedInt c=0; c<(C/CC)*CC; c+=CC) {
-        __m256d vv[JJ][CC/4]; // Output tile to be held in registers
-        for (CeedInt jj=0; jj<J-j; jj++)
-          for (CeedInt cc=0; cc<CC/4; cc++)
-            vv[jj][cc] = _mm256_loadu_pd(&v[(a*J+j+jj)*C+c+cc*4]);
-
-        for (CeedInt b=0; b<B; b++) {
-          for (CeedInt jj=0; jj<J-j; jj++) { // doesn't unroll
-            __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
-            for (CeedInt cc=0; cc<CC/4; cc++) { // unroll
-              vv[jj][cc] += _mm256_mul_pd(tqv,
-                              _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
-            }
-          }
-        }
-        for (CeedInt jj=0; jj<J-j; jj++)
-          for (CeedInt cc=0; cc<CC/4; cc++)
-            _mm256_storeu_pd(&v[(a*J+j+jj)*C+c+cc*4], vv[jj][cc]);
-      }
-    }
-    for (CeedInt a=0; a<A; a++) {
-      // Column remainder
-      for (CeedInt j=0; j<J; j++) {
-        for (CeedInt b=0; b<B; b++) {
-          CeedScalar tq = t[j*tstride0 + b*tstride1];
-          for (CeedInt c=(C/CC)*CC; c<C; c++)
-            v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
-        }
-      }
-    }
-  } else {
-  // V = U T^T
-    const int AA = JJ;
-    const int JJ2 = CC;
-    // Blocks of 4 rows
-    for (CeedInt a=0; a<(A/AA)*AA; a+=AA) {
-      for (CeedInt j=0; j<(J/JJ2)*JJ2; j+=JJ2) {
-        __m256d vv[AA][JJ2/4]; // Output tile to be held in registers
-        for (CeedInt aa=0; aa<AA; aa++)
-          for (CeedInt jj=0; jj<JJ2/4; jj++)
-            vv[aa][jj] = _mm256_loadu_pd(&v[(a+aa)*J+j+jj*4]);
-
-        for (CeedInt b=0; b<B; b++) {
-            for (CeedInt jj=0; jj<JJ2/4; jj++) { // unroll
-              __m256d tv = _mm256_set_pd(t[(j+jj*4+3)*tstride0 + b*tstride1],
-                                         t[(j+jj*4+2)*tstride0 + b*tstride1],
-                                         t[(j+jj*4+1)*tstride0 + b*tstride1],
-                                         t[(j+jj*4+0)*tstride0 + b*tstride1]);
-              for (CeedInt aa=0; aa<AA; aa++) // unroll
-                vv[aa][jj] += _mm256_mul_pd(tv, _mm256_set1_pd(u[(a+aa)*B+b]));
-          }
-        }
-        for (CeedInt aa=0; aa<AA; aa++)
-          for (CeedInt jj=0; jj<JJ2/4; jj++)
-            _mm256_storeu_pd(&v[(a+aa)*J+j+jj*4], vv[aa][jj]);
-      }
-    }
-    // Remainder of rows
-    CeedInt a=(A/AA)*AA;
-    for (CeedInt j=0; j<(J/JJ2)*JJ2; j+=JJ2) {
-      __m256d vv[AA][JJ2/4]; // Output tile to be held in registers
-      for (CeedInt aa=0; aa<A-a; aa++)
-        for (CeedInt jj=0; jj<JJ2/4; jj++)
+  // Blocks of 4 rows
+  for (CeedInt a=0; a<(A/AA)*AA; a+=AA) {
+    for (CeedInt j=0; j<(J/JJ)*JJ; j+=JJ) {
+      __m256d vv[AA][JJ/4]; // Output tile to be held in registers
+      for (CeedInt aa=0; aa<AA; aa++)
+        for (CeedInt jj=0; jj<JJ/4; jj++)
           vv[aa][jj] = _mm256_loadu_pd(&v[(a+aa)*J+j+jj*4]);
 
       for (CeedInt b=0; b<B; b++) {
-          for (CeedInt jj=0; jj<JJ2/4; jj++) { // unroll
-            __m256d tv = _mm256_set_pd(t[(j+jj*4+3)*tstride0 + b*tstride1],
-                                       t[(j+jj*4+2)*tstride0 + b*tstride1],
-                                       t[(j+jj*4+1)*tstride0 + b*tstride1],
-                                       t[(j+jj*4+0)*tstride0 + b*tstride1]);
-            for (CeedInt aa=0; aa<A-a; aa++) // unroll
-              vv[aa][jj] += _mm256_mul_pd(tv, _mm256_set1_pd(u[(a+aa)*B+b]));
+        for (CeedInt jj=0; jj<JJ/4; jj++) { // unroll
+          __m256d tv = _mm256_set_pd(t[(j+jj*4+3)*tstride0 + b*tstride1],
+                                     t[(j+jj*4+2)*tstride0 + b*tstride1],
+                                     t[(j+jj*4+1)*tstride0 + b*tstride1],
+                                     t[(j+jj*4+0)*tstride0 + b*tstride1]);
+          for (CeedInt aa=0; aa<AA; aa++) // unroll
+            vv[aa][jj] += _mm256_mul_pd(tv, _mm256_set1_pd(u[(a+aa)*B+b]));
         }
       }
-      for (CeedInt aa=0; aa<A-a; aa++)
-        for (CeedInt jj=0; jj<JJ2/4; jj++)
+      for (CeedInt aa=0; aa<AA; aa++)
+        for (CeedInt jj=0; jj<JJ/4; jj++)
           _mm256_storeu_pd(&v[(a+aa)*J+j+jj*4], vv[aa][jj]);
     }
-    // Column remainder
+  }
+  // Remainder of rows
+  CeedInt a=(A/AA)*AA;
+  for (CeedInt j=0; j<(J/JJ)*JJ; j+=JJ) {
+    __m256d vv[AA][JJ/4]; // Output tile to be held in registers
+    for (CeedInt aa=0; aa<A-a; aa++)
+      for (CeedInt jj=0; jj<JJ/4; jj++)
+        vv[aa][jj] = _mm256_loadu_pd(&v[(a+aa)*J+j+jj*4]);
+
     for (CeedInt b=0; b<B; b++) {
-      for (CeedInt j=(J/JJ2)*JJ2; j<J; j++){ 
-        CeedScalar tq = t[j*tstride0 + b*tstride1];
-        for (CeedInt a=0; a<A; a++)
-          v[a*J+j] += tq * u[a*B+b];
+      for (CeedInt jj=0; jj<JJ/4; jj++) { // unroll
+        __m256d tv = _mm256_set_pd(t[(j+jj*4+3)*tstride0 + b*tstride1],
+                                   t[(j+jj*4+2)*tstride0 + b*tstride1],
+                                   t[(j+jj*4+1)*tstride0 + b*tstride1],
+                                   t[(j+jj*4+0)*tstride0 + b*tstride1]);
+        for (CeedInt aa=0; aa<A-a; aa++) // unroll
+          vv[aa][jj] += _mm256_mul_pd(tv, _mm256_set1_pd(u[(a+aa)*B+b]));
       }
+    }
+    for (CeedInt aa=0; aa<A-a; aa++)
+      for (CeedInt jj=0; jj<JJ/4; jj++)
+        _mm256_storeu_pd(&v[(a+aa)*J+j+jj*4], vv[aa][jj]);
+  }
+  // Column remainder
+  for (CeedInt b=0; b<B; b++) {
+    for (CeedInt j=(J/JJ)*JJ; j<J; j++){ 
+      CeedScalar tq = t[j*tstride0 + b*tstride1];
+      for (CeedInt a=0; a<A; a++)
+        v[a*J+j] += tq * u[a*B+b];
     }
   }
   return 0;
@@ -240,10 +205,21 @@ static int CeedTensorContract_Avx(Ceed ceed, CeedInt A, CeedInt B,
                                   CeedScalar *restrict v) {
   CeedInt blksize = 8;
 
-  if (C % blksize)
-    CeedTensorContract_Avx_Serial(ceed, A, B, C, J, t, tmode, Add, u, v);
-  else
-    CeedTensorContract_Avx_Blocked(ceed, A, B, C, J, t, tmode, Add, u, v);
+  if (!Add)
+    for (CeedInt q=0; q<A*J*C; q++)
+      v[q] = (CeedScalar) 0.0;
+
+  if (C == 1) {
+    // Serial C=1 Case
+    CeedTensorContract_Avx_Single(ceed, A, B, C, J, t, tmode, true, u, v);
+  } else {
+    // Blocks of 8 columns
+    if (C >= blksize)
+      CeedTensorContract_Avx_Blocked(ceed, A, B, C, J, t, tmode, true, u, v);
+    // Remainder of columns
+    if (C % blksize)
+      CeedTensorContract_Avx_Remainder(ceed, A, B, C, J, t, tmode, true, u, v);
+  }
 
   return 0;
 }
