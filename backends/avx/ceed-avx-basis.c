@@ -22,7 +22,8 @@
 // NOTRANSPOSE: V_ajc = T_jb U_abc
 // TRANSPOSE:   V_ajc = T_bj U_abc
 // If Add != 0, "=" is replaced by "+="
-
+#define CEED_AVX_ROWS 4
+#define CEED_AVX_COLS 8
 // Blocked Tensor Contact
 static int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A, CeedInt B,
                                           CeedInt C, CeedInt J,
@@ -36,7 +37,7 @@ static int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A, CeedInt B,
     tstride0 = 1; tstride1 = J;
   }
 
-  const int JJ = 4, CC=8;
+  const int JJ = CEED_AVX_ROWS, CC = CEED_AVX_COLS;
 
   if (!Add)
     for (CeedInt q=0; q<A*J*C; q++)
@@ -54,10 +55,9 @@ static int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A, CeedInt B,
         for (CeedInt b=0; b<B; b++) {
           for (CeedInt jj=0; jj<JJ; jj++) { // unroll
             __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
-            for (CeedInt cc=0; cc<CC/4; cc++) { // unroll
+            for (CeedInt cc=0; cc<CC/4; cc++) // unroll
               vv[jj][cc] += _mm256_mul_pd(tqv,
                               _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
-            }
           }
         }
         for (CeedInt jj=0; jj<JJ; jj++)
@@ -77,10 +77,9 @@ static int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A, CeedInt B,
         for (CeedInt b=0; b<B; b++) {
           for (CeedInt jj=0; jj<J-j; jj++) { // doesn't unroll
             __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
-            for (CeedInt cc=0; cc<CC/4; cc++) { // unroll
+            for (CeedInt cc=0; cc<CC/4; cc++) // unroll
               vv[jj][cc] += _mm256_mul_pd(tqv,
                               _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
-            }
           }
         }
         for (CeedInt jj=0; jj<J-j; jj++)
@@ -105,17 +104,45 @@ static int CeedTensorContract_Avx_Remainder(Ceed ceed, CeedInt A, CeedInt B,
     tstride0 = 1; tstride1 = J;
   }
 
-  const int CC=8;
+  const int JJ = CEED_AVX_ROWS, CC = CEED_AVX_COLS;
 
+  CeedInt Jbreak = J%JJ ? (J/JJ)*JJ : (J/JJ - 1)*JJ;
   for (CeedInt a=0; a<A; a++) {
-    // Column remainder
-    for (CeedInt j=0; j<J; j++) {
+    // Blocks of 4 columns
+    for (CeedInt c = (C/CC)*CC; c<C; c+=4) {
+      // Blocks of 4 rows
+      for (CeedInt j=0; j<Jbreak; j+=JJ) {
+        __m256d vv[JJ]; // Output tile to be held in registers
+        for (CeedInt jj=0; jj<JJ; jj++)
+          vv[jj] = _mm256_loadu_pd(&v[(a*J+j+jj)*C+c]);
+
+        for (CeedInt b=0; b<B; b++) {
+          __m256d tqu;
+          if (C-c == 1)
+            tqu = _mm256_set_pd(0.0, 0.0, 0.0, u[(a*B+b)*C+c+0]);
+          else if (C-c == 2)
+            tqu = _mm256_set_pd(0.0, 0.0, u[(a*B+b)*C+c+1],
+                    u[(a*B+b)*C+c+0]);
+          else if (C-c == 3)
+            tqu = _mm256_set_pd(0.0, u[(a*B+b)*C+c+2], u[(a*B+b)*C+c+1],
+                    u[(a*B+b)*C+c+0]);
+          else
+            tqu = _mm256_loadu_pd(&u[(a*B+b)*C+c]);
+          for (CeedInt jj=0; jj<JJ; jj++) // unroll
+            vv[jj] += _mm256_mul_pd(tqu,
+                        _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]));
+        }
+        for (CeedInt jj=0; jj<JJ; jj++)
+          _mm256_storeu_pd(&v[(a*J+j+jj)*C+c], vv[jj]);
+      }
+    }
+    // Remainder of rows, all columns
+    for (CeedInt j=Jbreak; j<J; j++)
       for (CeedInt b=0; b<B; b++) {
         CeedScalar tq = t[j*tstride0 + b*tstride1];
         for (CeedInt c=(C/CC)*CC; c<C; c++)
           v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
       }
-    }
   }
   return 0;
 }
@@ -133,7 +160,7 @@ static int CeedTensorContract_Avx_Single(Ceed ceed, CeedInt A, CeedInt B,
     tstride0 = 1; tstride1 = J;
   }
 
-  const int AA = 4, JJ=8;
+  const int AA = CEED_AVX_ROWS, JJ = CEED_AVX_COLS;
 
   if (!Add)
     for (CeedInt q=0; q<A*J*C; q++)
@@ -203,7 +230,7 @@ static int CeedTensorContract_Avx(Ceed ceed, CeedInt A, CeedInt B,
                                   const CeedInt Add,
                                   const CeedScalar *restrict u,
                                   CeedScalar *restrict v) {
-  CeedInt blksize = 8;
+  const CeedInt blksize = CEED_AVX_COLS;
 
   if (!Add)
     for (CeedInt q=0; q<A*J*C; q++)
