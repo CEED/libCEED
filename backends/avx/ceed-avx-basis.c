@@ -91,7 +91,7 @@ static int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A, CeedInt B,
   return 0;
 }
 
-// Serial Tensor Contract
+// Serial Tensor Contract Remainder
 static int CeedTensorContract_Avx_Remainder(Ceed ceed, CeedInt A, CeedInt B,
                                             CeedInt C, CeedInt J,
                                             const CeedScalar *restrict t,
@@ -106,7 +106,7 @@ static int CeedTensorContract_Avx_Remainder(Ceed ceed, CeedInt A, CeedInt B,
 
   const int JJ = CEED_AVX_ROWS, CC = CEED_AVX_COLS;
 
-  CeedInt Jbreak = J%JJ ? (J/JJ)*JJ : (J/JJ - 1)*JJ;
+  CeedInt Jbreak = J%JJ ? (J/JJ)*JJ : (J/JJ-1)*JJ;
   for (CeedInt a=0; a<A; a++) {
     // Blocks of 4 columns
     for (CeedInt c = (C/CC)*CC; c<C; c+=4) {
@@ -147,7 +147,7 @@ static int CeedTensorContract_Avx_Remainder(Ceed ceed, CeedInt A, CeedInt B,
   return 0;
 }
 
-// Serial Tensor Contract
+// Serial Tensor Contract C=1 Case
 static int CeedTensorContract_Avx_Single(Ceed ceed, CeedInt A, CeedInt B,
                                          CeedInt C, CeedInt J,
                                          const CeedScalar *restrict t,
@@ -176,12 +176,12 @@ static int CeedTensorContract_Avx_Single(Ceed ceed, CeedInt A, CeedInt B,
 
       for (CeedInt b=0; b<B; b++) {
         for (CeedInt jj=0; jj<JJ/4; jj++) { // unroll
-          __m256d tv = _mm256_set_pd(t[(j+jj*4+3)*tstride0 + b*tstride1],
-                                     t[(j+jj*4+2)*tstride0 + b*tstride1],
-                                     t[(j+jj*4+1)*tstride0 + b*tstride1],
-                                     t[(j+jj*4+0)*tstride0 + b*tstride1]);
+          __m256d tqv = _mm256_set_pd(t[(j+jj*4+3)*tstride0 + b*tstride1],
+                                      t[(j+jj*4+2)*tstride0 + b*tstride1],
+                                      t[(j+jj*4+1)*tstride0 + b*tstride1],
+                                      t[(j+jj*4+0)*tstride0 + b*tstride1]);
           for (CeedInt aa=0; aa<AA; aa++) // unroll
-            vv[aa][jj] += _mm256_mul_pd(tv, _mm256_set1_pd(u[(a+aa)*B+b]));
+            vv[aa][jj] += _mm256_mul_pd(tqv, _mm256_set1_pd(u[(a+aa)*B+b]));
         }
       }
       for (CeedInt aa=0; aa<AA; aa++)
@@ -199,12 +199,12 @@ static int CeedTensorContract_Avx_Single(Ceed ceed, CeedInt A, CeedInt B,
 
     for (CeedInt b=0; b<B; b++) {
       for (CeedInt jj=0; jj<JJ/4; jj++) { // unroll
-        __m256d tv = _mm256_set_pd(t[(j+jj*4+3)*tstride0 + b*tstride1],
-                                   t[(j+jj*4+2)*tstride0 + b*tstride1],
-                                   t[(j+jj*4+1)*tstride0 + b*tstride1],
-                                   t[(j+jj*4+0)*tstride0 + b*tstride1]);
+        __m256d tqv = _mm256_set_pd(t[(j+jj*4+3)*tstride0 + b*tstride1],
+                                    t[(j+jj*4+2)*tstride0 + b*tstride1],
+                                    t[(j+jj*4+1)*tstride0 + b*tstride1],
+                                    t[(j+jj*4+0)*tstride0 + b*tstride1]);
         for (CeedInt aa=0; aa<A-a; aa++) // unroll
-          vv[aa][jj] += _mm256_mul_pd(tv, _mm256_set1_pd(u[(a+aa)*B+b]));
+          vv[aa][jj] += _mm256_mul_pd(tqv, _mm256_set1_pd(u[(a+aa)*B+b]));
       }
     }
     for (CeedInt aa=0; aa<A-a; aa++)
@@ -212,10 +212,43 @@ static int CeedTensorContract_Avx_Single(Ceed ceed, CeedInt A, CeedInt B,
         _mm256_storeu_pd(&v[(a+aa)*J+j+jj*4], vv[aa][jj]);
   }
   // Column remainder
+  CeedInt Abreak = A%AA ? (A/AA)*AA : (A/AA-1)*AA;
+  // Blocks of 4 columns
+  for (CeedInt j = (J/JJ)*JJ; j<J; j+=4) {
+    // Blocks of 4 rows
+    for (CeedInt a=0; a<Abreak; a+=AA) {
+      __m256d vv[AA]; // Output tile to be held in registers
+      for (CeedInt aa=0; aa<AA; aa++)
+        vv[aa] = _mm256_loadu_pd(&v[(a+aa)*J+j]);
+
+      for (CeedInt b=0; b<B; b++) {
+        __m256d tqv;
+        if (J-j == 1)
+          tqv = _mm256_set_pd(0.0, 0.0, 0.0, t[(j+0)*tstride0 + b*tstride1]);
+        else if (J-j == 2)
+          tqv = _mm256_set_pd(0.0, 0.0, t[(j+1)*tstride0 + b*tstride1],
+                  t[(j+0)*tstride0 + b*tstride1]);
+        else if (J-j == 3)
+          tqv = _mm256_set_pd(0.0, t[(j+2)*tstride0 + b*tstride1],
+                  t[(j+1)*tstride0 + b*tstride1],
+                  t[(j+0)*tstride0 + b*tstride1]);
+        else
+          tqv = _mm256_set_pd(t[(j+3)*tstride0 + b*tstride1],
+                  t[(j+2)*tstride0 + b*tstride1],
+                  t[(j+1)*tstride0 + b*tstride1],
+                  t[(j+0)*tstride0 + b*tstride1]);
+        for (CeedInt aa=0; aa<AA; aa++) // unroll
+          vv[aa] += _mm256_mul_pd(tqv, _mm256_set1_pd(u[(a+aa)*B+b]));
+      }
+      for (CeedInt aa=0; aa<AA; aa++)
+        _mm256_storeu_pd(&v[(a+aa)*J+j], vv[aa]);
+    }
+  }
+  // Remainder of rows, all columns
   for (CeedInt b=0; b<B; b++) {
     for (CeedInt j=(J/JJ)*JJ; j<J; j++){ 
       CeedScalar tq = t[j*tstride0 + b*tstride1];
-      for (CeedInt a=0; a<A; a++)
+      for (CeedInt a=Abreak; a<A; a++)
         v[a*J+j] += tq * u[a*B+b];
     }
   }
