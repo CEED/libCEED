@@ -28,7 +28,7 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include <petscsys.h>
 #include "common.h"
 #include "advection.h"
-#include "navierstokes.h"
+#include "densitycurrent.h"
 
 #if PETSC_VERSION_LT(3,11,0)
 #  define VecScatterCreateWithData VecScatterCreate
@@ -42,16 +42,6 @@ static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
     m[reverse ? 2-d : d] = try;
     sizeleft /= try;
   }
-}
-
-// Utility function, return maximum of 3 values
-static PetscInt Max3(const PetscInt a[3]) {
-  return PetscMax(a[0], PetscMax(a[1], a[2]));
-}
-
-// Utility function, return minimum of 3 values
-static PetscInt Min3(const PetscInt a[3]) {
-  return PetscMin(a[0], PetscMin(a[1], a[2]));
 }
 
 // Utility function, compute the number of DoFs from the global grid
@@ -241,10 +231,10 @@ int main(int argc, char **argv) {
   char ceedresource[4096] = "/cpu/self";
   PetscFunctionList icsflist = NULL, qflist = NULL;
   char problemtype[256] = "advection";
-  PetscInt degree, qextra, localdof, localelem, lsize, outputfreq,
+  PetscInt degree, qextra, localelem, lsize, outputfreq,
            steps, melem[3], mdof[3], p[3], irank[3], ldof[3];
   PetscMPIInt size, rank;
-  PetscScalar ftime, lx, ly, lz;
+  PetscScalar ftime;
   PetscScalar *q0, *m, *mult, *x;
   Vec Q, Qloc, Mloc, X, Xloc;
   VecScatter ltog, ltog0, gtogD, ltogX;
@@ -260,7 +250,6 @@ int main(int argc, char **argv) {
   CeedOperator op_setup, op_mass, op_ics, op;
 
   // Create the libCEED contexts
-
   CeedScalar theta0     = 300.;     // K
   CeedScalar thetaC     = -15.;     // K
   CeedScalar P0         = 1.e5;     // kg/m s^2
@@ -270,9 +259,15 @@ int main(int argc, char **argv) {
   CeedScalar Rd         = cp - cv;  // J/kg K
   CeedScalar g          = 9.81;     // m/s^2
   CeedScalar lambda     = -2./3.;   // -
-  CeedScalar mu         = 1.e-5;    // Pa s (dynamic viscosity)
-  CeedScalar k          = 26.38;    // W/m K
-  CeedScalar rc;                    // Radius of bubble
+  CeedScalar mu         = 75.;    // Pa s (dynamic viscosity, not physical for air, but good for numerical stability)
+  CeedScalar k          = 0.02638;  // W/m K
+  CeedScalar rc;                    // m (Radius of bubble)
+  PetscScalar lx;                   // m
+  PetscScalar ly;                   // m
+  PetscScalar lz;                   // m
+  PetscScalar resx;                 // m (resolution in x)
+  PetscScalar resy;                 // m (resolution in y)
+  PetscScalar resz;                 // m (resolution in z)
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -282,9 +277,9 @@ int main(int argc, char **argv) {
 
   // Set up problem type command line option
   PetscFunctionListAdd(&icsflist, "advection", &ICsAdvection);
-  PetscFunctionListAdd(&icsflist, "navier_stokes", &ICsNS);
+  PetscFunctionListAdd(&icsflist, "density_current", &ICsDC);
   PetscFunctionListAdd(&qflist, "advection", &Advection);
-  PetscFunctionListAdd(&qflist, "navier_stokes", &NS);
+  PetscFunctionListAdd(&qflist, "density_current", &DC);
 
   // Parse command line options
   comm = PETSC_COMM_WORLD;
@@ -315,15 +310,15 @@ int main(int argc, char **argv) {
                          NULL, mu, &mu, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-k", "Thermal conductivity",
                          NULL, k, &k, NULL); CHKERRQ(ierr);
-  lx = 1.;
+  lx = 8000.;
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                          NULL, lx, &lx, NULL); CHKERRQ(ierr);
   lx = fabs(lx);
-  ly = 1.;
+  ly = 8000.;
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
                          NULL, ly, &ly, NULL); CHKERRQ(ierr);
   ly = fabs(ly);
-  lz = 1.;
+  lz = 4000.;
   ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
                          NULL, lz, &lz, NULL); CHKERRQ(ierr);
   lz = fabs(lz);
@@ -340,27 +335,38 @@ int main(int argc, char **argv) {
   qextra = 2;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
-  localdof = 8*8*8*degree*degree*degree;
-  ierr = PetscOptionsInt("-local",
-                         "Target number of locally owned degrees of freedom per process",
-                         NULL, localdof, &localdof, NULL); CHKERRQ(ierr);
   PetscStrcpy(user->outputfolder, "./");
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
                             sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
   PetscStrcat(user->outputfolder, "/ns-%03D.vts");
+  resx = 1000.;
+  ierr = PetscOptionsScalar("-resx","Resolution in x",
+                         NULL, resx, &resx, NULL); CHKERRQ(ierr);
+  resx = fabs(resx);
+  resy = 1000.;
+  ierr = PetscOptionsScalar("-resy","Resolution in y",
+                         NULL, resy, &resy, NULL); CHKERRQ(ierr);
+  resy = fabs(resy);
+  resz = 1000.;
+  ierr = PetscOptionsScalar("-resz","Resolution in z",
+                         NULL, resz, &resz, NULL); CHKERRQ(ierr);
+  resz = fabs(resz);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Determine size of process grid
   ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
   Split3(size, p, false);
 
-  // Find a nicely composite number of elements no less than localdof
-  for (localelem = PetscMax(1, localdof / (degree*degree*degree)); ;
-       localelem++) {
-    Split3(localelem, melem, true);
-    if (Max3(melem) / Min3(melem) <= 2) break;
+  // Find a nicely composite number of elements given the resolution
+  melem[0] = (PetscInt)(PetscRoundReal(lx / resx));
+  melem[1] = (PetscInt)(PetscRoundReal(ly / resy));
+  melem[2] = (PetscInt)(PetscRoundReal(lz / resz));
+  for (int d=0; d<3; d++) {
+    if (melem[d] == 0)
+      melem[d]++;
   }
+  localelem = melem[0] * melem[1] * melem[2];
 
   // Find my location in the process grid
   ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);

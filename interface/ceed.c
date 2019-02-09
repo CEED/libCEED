@@ -344,7 +344,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
     {"CeedDestroy",               ceedoffsetof(Ceed, Destroy)},
     {"CeedVecCreate",             ceedoffsetof(Ceed, VecCreate)},
     {"CeedElemRestrictionCreate", ceedoffsetof(Ceed, ElemRestrictionCreate)},
-    {"CeedElemRestrictionCreateBlocked",
+    {
+      "CeedElemRestrictionCreateBlocked",
       ceedoffsetof(Ceed, ElemRestrictionCreateBlocked)
     },
     {"CeedBasisCreateTensorH1",    ceedoffsetof(Ceed, BasisCreateTensorH1)},

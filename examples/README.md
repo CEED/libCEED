@@ -1,6 +1,6 @@
 # libCEED: Examples
 
-This pace provides a brief description of the examples for the libCEED library.
+This page provides a brief description of the examples for the libCEED library.
 
 ## Example 1
 
@@ -27,6 +27,10 @@ The supplied examples solve *_B_ u = f*, where *_B_* is the mass matrix.
 Bakeoff problem 1 is the Poisson problem.
 
 The supplied examples solve *_A_ u = f*, where *_A_* is the Poisson operator.
+
+### Navier-Stokes Solver
+
+The Navier-Stokes problem solves the compressible Navier-Stokes equations using an explicit time integration.
 
 ## Running Examples
 
@@ -57,6 +61,12 @@ cd petsc
 make
 ./bp1 -ceed /cpu/self
 ./bp1 -ceed /gpu/occa
+cd ../..
+
+cd navier-stokes
+make
+./navierstokes -ceed /cpu/self
+./navierstokes -ceed /gpu/occa
 cd ../..
 
 # Nek+libCEED examples on CPU and GPU

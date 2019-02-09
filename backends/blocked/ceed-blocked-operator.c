@@ -244,7 +244,7 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
         vec = invec;
       // Restrict
       ierr = CeedVectorGetState(vec, &state); CeedChk(ierr);
-      if (state != impl->inputstate[i]) {
+      if (state != impl->inputstate[i] || vec == invec) {
         ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
         ierr = CeedElemRestrictionApply(impl->blkrestr[i], CEED_NOTRANSPOSE,
                                         lmode, vec, impl->evecs[i],

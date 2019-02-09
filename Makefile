@@ -33,6 +33,9 @@ ifneq ($(wildcard ../mfem/libmfem.*),)
   MFEM_DIR?=../mfem
 endif
 
+# XSMM_DIR env variable should point to XSMM master (github.com/hfp/libxsmm)
+XSMM_DIR ?= ../libxsmm
+
 # OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
 OCCA_DIR ?= ../occa
 
@@ -42,18 +45,23 @@ MAGMA_DIR ?= ../magma
 CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
                $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
 
+# Check for PETSc in ../petsc
+ifneq ($(wildcard ../petsc/lib/libpetsc.*),)
+  PETSC_DIR ?= ../petsc
+endif
+
 # Warning: SANTIZ options still don't run with /gpu/occa
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 OPT    = -O -g -march=native -ffp-contract=fast
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-NVCCFLAGS = $(OPT)
+NVCCFLAGS = -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
   FFLAGS = $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD
 else # gfortran/Intel-style options
-  FFLAGS = -cpp     $(OPT) -ffree-form -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
+  FFLAGS = -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
 endif
 
 ifeq ($(UNDERSCORE), 1)
@@ -103,10 +111,10 @@ BACKENDS := $(BACKENDS_BUILTIN)
 
 # Tests
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
-tests.f   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f))
+tests.f   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f90))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 ctests    := $(tests)
-tests     += $(tests.f:tests/%.f=$(OBJDIR)/%)
+tests     += $(tests.f:tests/%.f90=$(OBJDIR)/%)
 #examples
 examples.c := $(sort $(wildcard examples/ceed/*.c))
 examples.f := $(sort $(wildcard examples/ceed/*.f))
@@ -121,8 +129,11 @@ petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 # backends/[ref, template, blocked, avx, occa, magma]
 ref.c      := $(sort $(wildcard backends/ref/*.c))
 template.c := $(sort $(wildcard backends/template/*.c))
+cuda.c     := $(sort $(wildcard backends/cuda/*.c))
+cuda.cu    := $(sort $(wildcard backends/cuda/*.cu))
 blocked.c  := $(sort $(wildcard backends/blocked/*.c))
 avx.c      := $(sort $(wildcard backends/avx/*.c))
+xsmm.c     := $(sort $(wildcard backends/xsmm/*.c))
 occa.c     := $(sort $(wildcard backends/occa/*.c))
 magma_preprocessor := python backends/magma/gccm.py
 magma_pre_src  := $(filter-out %_tmp.c, $(wildcard backends/magma/ceed-*.c))
@@ -164,7 +175,7 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
 lib: $(libceed) $(ceed.pc)
 # run 'lib' target in parallel
-all:;@$(MAKE) $(MFLAGS) V=$(V) lib
+par:;@$(MAKE) $(MFLAGS) V=$(V) lib
 backend_status = $(if $(filter $1,$(BACKENDS)), [backends: $1], [not found])
 info:
 	$(info ------------------------------------)
@@ -182,6 +193,7 @@ info:
 	$(info V          = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info ------------------------------------)
 	$(info AVX_STATUS = $(AVX_STATUS)$(call backend_status,/cpu/self/avx))
+	$(info XSMM_DIR   = $(XSMM_DIR)$(call backend_status,/cpu/xsmm/serial /cpu/xsmm/blocked))
 	$(info OCCA_DIR   = $(OCCA_DIR)$(call backend_status,/cpu/occa /gpu/occa /omp/occa))
 	$(info MAGMA_DIR  = $(MAGMA_DIR)$(call backend_status,/gpu/magma))
 	$(info CUDA_DIR   = $(CUDA_DIR)$(call backend_status,/gpu/magma))
@@ -198,7 +210,7 @@ info:
 	@true
 info-backends:
 	$(info make: 'lib' with optional backends: $(filter-out $(BACKENDS_BUILTIN),$(BACKENDS)))
-.PHONY: lib all info info-backends
+.PHONY: lib all par info info-backends
 
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)))
 
@@ -217,6 +229,15 @@ ifeq ($(AVX),1)
   BACKENDS += /cpu/self/avx
 endif
 
+# libXSMM Backends
+ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
+  $(libceed) : LDFLAGS += -L$(XSMM_DIR)/lib -Wl,-rpath,$(abspath $(XSMM_DIR)/lib)
+  $(libceed) : LDLIBS += -lxsmm -ldl -lblas
+  libceed.c += $(xsmm.c)
+  $(xsmm.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(XSMM_DIR)/include
+  BACKENDS += /cpu/self/xsmm/serial /cpu/self/xsmm/blocked
+endif
+
 # OCCA Backends
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
@@ -226,10 +247,20 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   BACKENDS += /cpu/occa /gpu/occa /omp/occa
 endif
 
+# Cuda Backend
+CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
+CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
+ifneq ($(CUDA_LIB_DIR),)
+  $(libceed) : CFLAGS += -I$(CUDA_DIR)/include
+  $(libceed) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
+  $(libceed) : LDLIBS += -lcudart -lnvrtc -lcuda
+  libceed.c  += $(cuda.c)
+  libceed.cu += $(cuda.cu)
+  BACKENDS += /gpu/cuda
+endif
+
 # MAGMA Backend
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
-  CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
-  CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
   ifneq ($(CUDA_LIB_DIR),)
   cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
   omp_link = -fopenmp
@@ -266,7 +297,7 @@ $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
-$(OBJDIR)/% : tests/%.f | $$(@D)/.DIR
+$(OBJDIR)/% : tests/%.f90 | $$(@D)/.DIR
 	$(call quiet,LINK.F) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
@@ -276,11 +307,13 @@ $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
 	$(call quiet,LINK.F) -o $@ $(abspath $<) -lceed $(LDLIBS)
 
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
-	$(MAKE) -C examples/mfem CEED_DIR=`pwd` $*
+	$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
+	  MFEM_DIR="$(abspath $(MFEM_DIR))" $*
 	mv examples/mfem/$* $@
 
 $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	$(MAKE) -C examples/petsc CEED_DIR=`pwd` $*
+	$(MAKE) -C examples/petsc CEED_DIR=`pwd` \
+	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
 	mv examples/petsc/$* $@
 
 $(tests) $(examples) : $(libceed)
@@ -302,12 +335,23 @@ prove : $(tests) $(examples)
 # run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
-alltests := $(tests) $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
+allexamples := $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
+alltests := $(tests) $(allexamples)
 prove-all : $(alltests)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(alltests:$(OBJDIR)/%=%)
 
-examples : $(examples)
+all: $(alltests)
+
+examples : $(allexamples)
+
+# Benchmarks
+allbenchmarks = petsc-bp1 petsc-bp3
+bench_targets = $(addprefix bench-,$(allbenchmarks))
+.PHONY: $(bench_targets) benchmarks
+$(bench_targets): bench-%: $(OBJDIR)/%
+	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(*).sh
+benchmarks: $(bench_targets)
 
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)
 $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
@@ -339,6 +383,7 @@ cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
 	$(MAKE) -C examples clean
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
+	$(RM) -rf benchmarks/*output.txt
 
 distclean : clean
 	$(RM) -r doc/html

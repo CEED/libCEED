@@ -19,25 +19,21 @@
 // *****************************************************************************
 // This QFunction sets the the initial conditions and boundary conditions
 //
-// These initial conditions are given in terms of potential temperature and
-//   Exner pressure and potential temperature and then converted to density and
-//   total energy. Initial velocity and momentum is zero.
-//
 // Initial Conditions:
-//   Mass:
-//     Constant mass of 1.0
-//   Momentum:
+//   Mass Density:
+//     Constant mass density of 1.0
+//   Momentum Density:
 //     Rotational field in x,y with no momentum in z
-//   Energy:
+//   Energy Density:
 //     Maximum of 1. x0 decreasing linearly to 0. as radial distance increases
-//       to 1/8, then 0. everywhere else
+//       to (1.-r/rc), then 0. everywhere else
 //
 //  Boundary Conditions:
-//    Mass:
+//    Mass Density:
 //      0.0 flux
-//    Momentum:
+//    Momentum Density:
 //      0.0
-//    Energy:
+//    Energy Density:
 //      0.0 flux
 //
 // *****************************************************************************
@@ -58,6 +54,7 @@ static int ICsAdvection(void *ctx, CeedInt Q,
   const CeedScalar x0[3] = {0.25*lx, 0.5*ly, 0.5*lz};
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
+  #pragma omp simd
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -71,11 +68,11 @@ static int ICsAdvection(void *ctx, CeedInt Q,
                               pow((z - x0[2]), 2));
 
     // Initial Conditions
-    q0[i+0*Q] = 1.;
-    q0[i+1*Q] = -0.5*(y - center[0]);
-    q0[i+2*Q] =  0.5*(x - center[1]);
+    q0[i+0*Q] = 1.;=
+    q0[i+1*Q] = -0.5*(y - center[1]);
+    q0[i+2*Q] =  0.5*(x - center[0]);
     q0[i+3*Q] = 0.0;
-    q0[i+4*Q] = r <= rc ? (1.-8.*r) : 0.;
+    q0[i+4*Q] = r <= rc ? (1.-r/rc) : 0.;
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
     if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol
@@ -103,9 +100,9 @@ static int ICsAdvection(void *ctx, CeedInt Q,
 // This is 3D advection given in two formulations based upon the weak form.
 //
 // State Variables: q = ( rho, U1, U2, U3, E )
-//   rho - Density
-//   Ui  - Momentum    ,  Ui = rho ui
-//   E   - Total Energy,  E  = rho Cv T + rho (u u) / 2 + rho g z
+//   rho - Mass Density
+//   Ui  - Momentum Density    ,  Ui = rho ui
+//   E   - Total Energy Density
 //
 // Advection Equation:
 //   dE/dt + div( E u ) = 0
@@ -118,6 +115,7 @@ static int Advection(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar *v = out[0], *dv = out[1];
 
+  #pragma omp simd
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -170,12 +168,29 @@ static int Advection(void *ctx, CeedInt Q,
                                   qdata[i+15*Q]
                                 };
 
-    for (int c=0; c<5; c++) {
-      v[c*Q+i] = 0;
-      for (int d=0; d<3; d++)
-        dv[(d*5+c)*Q+i] = 0;
-    }
     // The Physics
+
+    // -- Density
+    // ---- No Change
+    dv[i+(0+0*5)*Q] = 0;
+    dv[i+(0+1*5)*Q] = 0;
+    dv[i+(0+2*5)*Q] = 0;
+    v[i+0*Q] = 0;
+
+    // -- Momentum
+    // ---- No Change
+    dv[i+(1+0*5)*Q] = 0;
+    dv[i+(1+1*5)*Q] = 0;
+    dv[i+(1+2*5)*Q] = 0;
+    dv[i+(2+0*5)*Q] = 0;
+    dv[i+(2+1*5)*Q] = 0;
+    dv[i+(2+2*5)*Q] = 0;
+    dv[i+(3+0*5)*Q] = 0;
+    dv[i+(3+1*5)*Q] = 0;
+    dv[i+(3+2*5)*Q] = 0;
+    v[i+1*Q] = 0;
+    v[i+2*Q] = 0;
+    v[i+3*Q] = 0;
 
     // -- Total Energy
     // ---- Version 1: dv E u
@@ -183,9 +198,13 @@ static int Advection(void *ctx, CeedInt Q,
       dv[i+(4+5*0)*Q]  = E*(u[0]*wBJ[0] + u[1]*wBJ[1] + u[2]*wBJ[2]);
       dv[i+(4+5*1)*Q]  = E*(u[0]*wBJ[3] + u[1]*wBJ[4] + u[2]*wBJ[5]);
       dv[i+(4+5*2)*Q]  = E*(u[0]*wBJ[6] + u[1]*wBJ[7] + u[2]*wBJ[8]);
+      v[i+4*Q] = 0;
     }
     // ---- Version 2: v E du
     if (0) {
+      dv[i+(4+0*5)*Q] = 0;
+      dv[i+(4+1*5)*Q] = 0;
+      dv[i+(4+2*5)*Q] = 0;
       v[i+4*Q]   = E*(du[0]*wBJ[0] + du[3]*wBJ[1] + du[6]*wBJ[2]);
       v[i+4*Q]  -= E*(du[1]*wBJ[3] + du[4]*wBJ[4] + du[7]*wBJ[5]);
       v[i+4*Q]  -= E*(du[2]*wBJ[6] + du[5]*wBJ[7] + du[8]*wBJ[8]);
