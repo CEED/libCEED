@@ -116,6 +116,64 @@ static int Setup(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
+// This QFunction sets up the geometric factors required for integration and
+//   coordinate transformations on a disc
+//
+// All data is stored in a single field vector of quadrature data.
+//
+// We require the determinant of the Jacobian to properly compute integrals of
+//   the form: int( v u )
+//
+// Determinant of Jacobian:
+//   detJ = J11*A11 + J21*A12 + J31*A13
+//     Jij = Jacobian entry ij
+//     Aij = Adjoint ij
+//
+// Stored: w detJ
+//   qd: 0
+//
+// *****************************************************************************
+static int SetupDisc(void *ctx, CeedInt Q,
+                 const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar *J = in[0], *wdisc = in[1];
+  // Outputs
+  CeedScalar *qdatadisc = out[0];
+
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Jacobian Setup
+    const CeedScalar J11 = J[i+Q*0];
+    const CeedScalar J21 = J[i+Q*1];
+    const CeedScalar J31 = J[i+Q*2];
+    const CeedScalar J12 = J[i+Q*3];
+    const CeedScalar J22 = J[i+Q*4];
+    const CeedScalar J32 = J[i+Q*5];
+    const CeedScalar J13 = J[i+Q*6];
+    const CeedScalar J23 = J[i+Q*7];
+    const CeedScalar J33 = J[i+Q*8];
+    const CeedScalar A11 = J22*J33 - J23*J32;
+    const CeedScalar A12 = J13*J32 - J12*J33;
+    const CeedScalar A13 = J12*J23 - J13*J22;
+    const CeedScalar A21 = J23*J31 - J21*J33;
+    const CeedScalar A22 = J11*J33 - J13*J31;
+    const CeedScalar A23 = J13*J21 - J11*J23;
+    const CeedScalar A31 = J21*J32 - J22*J31;
+    const CeedScalar A32 = J12*J31 - J11*J32;
+    const CeedScalar A33 = J11*J22 - J12*J21;
+    const CeedScalar detJ = J11*A11 + J21*A12 + J31*A13;
+
+    // Qdata
+    // -- Interp-to-Interp qdata
+    qdatadisc[i+ 0*Q] = wdisc[i] * detJ;
+
+  } // End of Quadrature Point Loop
+
+  // Return
+  return 0;
+}
+
+// *****************************************************************************
 // This QFunction applies the mass matrix to five interlaced fields.
 //
 // Inputs:

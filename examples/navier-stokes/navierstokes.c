@@ -231,7 +231,8 @@ int main(int argc, char **argv) {
   char ceedresource[4096] = "/cpu/self";
   PetscFunctionList icsflist = NULL, qflist = NULL;
   char problemtype[256] = "advection";
-  PetscInt degree, qextra, localelem, lsize, outputfreq,
+  PetscInt degree, qextra, degreedisc,
+           localelem, lsize, outputfreq,
            steps, melem[3], mdof[3], p[3], irank[3], ldof[3];
   PetscMPIInt size, rank;
   PetscScalar ftime;
@@ -240,14 +241,15 @@ int main(int argc, char **argv) {
   VecScatter ltog, ltog0, gtogD, ltogX;
 
   Ceed ceed;
-  CeedInt numP, numQ;
+  CeedInt numP, numQ, numPdisc, numQdisc;
   CeedVector xcorners, xceed, qdata, q0ceed, mceed,
              onesvec, multevec, multlvec;
-  CeedBasis basisx, basisxc, basisq;
+  CeedBasis basisx, basisxc, basisq, basisxdisc, basisxcdisc, basisqdisc;
   CeedElemRestriction restrictx, restrictxc, restrictxi,
-                      restrictq, restrictqdi, restrictmult;
-  CeedQFunction qf_setup, qf_mass, qf_ics, qf;
-  CeedOperator op_setup, op_mass, op_ics, op;
+                      restrictq, restrictqdi, restrictmult,
+                      restrictxdisc, restrictxidisc, restrictqdidisc;
+  CeedQFunction qf_setup, qf_setupdisc, qf_mass, qf_ics, qf;
+  CeedOperator op_setup, op_setupdisc, op_mass, op_ics, op;
 
   // Create the libCEED contexts
   CeedScalar theta0     = 300.;     // K
@@ -547,8 +549,12 @@ int main(int argc, char **argv) {
   CeedInit(ceedresource, &ceed);
   numP = degree + 1;
   numQ = numP + qextra;
+  numPdisc = degreedisc + 1;
+  numQdisc = numPdisc + qextra;
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 5, numP, numQ, CEED_GAUSS, &basisq);
+  CeedBasisCreateTensorH1Lagrange(ceed, 3, 5, numP, numQdisc, CEED_GAUSS, &basisqdisc);
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, numQ, CEED_GAUSS, &basisx);
+  CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, numQdisc, CEED_GAUSS, &basisxdisc);
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, numP, CEED_GAUSS_LOBATTO,
                                   &basisxc);
 
@@ -613,6 +619,13 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup, "qdata", 16, CEED_EVAL_NONE);
 
+  // Create the Q-function that builds the quadrature data for the disc operator
+  CeedQFunctionCreateInterior(ceed, 1,
+                              SetupDisc, __FILE__ ":SetupDisc", &qf_setupdisc);
+  CeedQFunctionAddInput(qf_setupdisc, "dxdisc", 3, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setupdisc, "weightdisc", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddOutput(qf_setupdisc, "qdatadisc", 1, CEED_EVAL_NONE);
+
   // Create the Q-function that defines the action of the mass operator
   CeedQFunctionCreateInterior(ceed, 1,
                               Mass, __FILE__ ":Mass", &qf_mass);
@@ -656,6 +669,15 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup, "weight", restrictxi, CEED_NOTRANSPOSE,
                        basisx, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "qdata", restrictqdi, CEED_NOTRANSPOSE,
+                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+
+  // Create the operator that builds the quadrature data for the disc operator
+  CeedOperatorCreate(ceed, qf_setupdisc, NULL, NULL, &op_setupdisc);
+  CeedOperatorSetField(op_setupdisc, "dxdisc", restrictxdisc, CEED_NOTRANSPOSE,
+                       basisxdisc, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setupdisc, "weightdisc", restrictxidisc, CEED_NOTRANSPOSE,
+                       basisxdisc, CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setupdisc, "qdatadisc", restrictqdidisc, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Create the mass operator
@@ -837,6 +859,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&restrictqdi);
   CeedElemRestrictionDestroy(&restrictxi);
   CeedQFunctionDestroy(&qf_setup);
+  CeedQFunctionDestroy(&qf_setupdisc);
   CeedQFunctionDestroy(&qf_ics);
   CeedQFunctionDestroy(&qf);
   CeedOperatorDestroy(&op_setup);
