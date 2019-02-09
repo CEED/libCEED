@@ -26,7 +26,7 @@
 //     Rotational field in x,y with no momentum in z
 //   Energy Density:
 //     Maximum of 1. x0 decreasing linearly to 0. as radial distance increases
-//       to 1/8, then 0. everywhere else
+//       to (1.-r/rc), then 0. everywhere else
 //
 //  Boundary Conditions:
 //    Mass Density:
@@ -102,7 +102,7 @@ static int ICsAdvection(void *ctx, CeedInt Q,
 // State Variables: q = ( rho, U1, U2, U3, E )
 //   rho - Mass Density
 //   Ui  - Momentum Density    ,  Ui = rho ui
-//   E   - Total Energy Density,  E  = rho Cv T + rho (u u) / 2 + rho g z
+//   E   - Total Energy Density
 //
 // Advection Equation:
 //   dE/dt + div( E u ) = 0

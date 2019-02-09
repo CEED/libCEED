@@ -27,10 +27,10 @@
 //   Potential Temperature:
 //     theta = thetabar + deltatheta
 //       thetabar   = theta0 exp( N**2 z / g )
-//       deltatheta = r <= rc : theta0(1 + cos(pi r)) / 2
+//       deltatheta = r <= rc : theta0(1 + cos(pi r/rc)) / 2
 //                     r > rc : 0
 //         r        = sqrt( (x - xc)**2 + (y - yc)**2 + (z - zc)**2 )
-//         with (xc,yc,zc) center of domain
+//         with (xc,yc,zc) center of domain, rc characteristic radius of thermal bubble
 //   Exner Pressure:
 //     Pi = Pibar + deltaPi
 //       Pibar      = g**2 (exp( - N**2 z / g ) - 1) / (cp theta0 N**2)
