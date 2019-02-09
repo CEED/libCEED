@@ -22,6 +22,7 @@ typedef struct {
 } CeedBasis_Blocked;
 
 typedef struct {
+  bool add;
   CeedElemRestriction *blkrestr; /// Blocked versions of restrictions
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)

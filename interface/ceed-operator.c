@@ -71,6 +71,41 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
 }
 
 /**
+  @brief Create an operator that composes the action of several operators
+
+  @param ceed    A Ceed object where the CeedOperator will be created
+  @param[out] op Address of the variable where the newly created
+                     Composite CeedOperator will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+ */
+int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
+  int ierr;
+
+  if (!ceed->CompositeOperatorCreate) {
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+
+    if (!delegate)
+      return CeedError(ceed, 1, "Backend does not support \
+                                   CompositeOperatorCreate");
+
+    ierr = CeedCompositeOperatorCreate(delegate, op); CeedChk(ierr);
+    return 0;
+  }
+
+  ierr = CeedCalloc(1,op); CeedChk(ierr);
+  (*op)->ceed = ceed;
+  ceed->refcount++;
+  (*op)->composite = true;
+  ierr = CeedCalloc(16, &(*op)->suboperators); CeedChk(ierr);
+  ierr = ceed->CompositeOperatorCreate(*op); CeedChk(ierr);
+  return 0;
+}
+
+/**
   @brief Provide a field to a CeedOperator for use by its CeedQFunction
 
   This function is used to specify both active and passive fields to a
@@ -146,6 +181,31 @@ found:
 }
 
 /**
+  @brief Add a sub-operator to a composite CeedOperator
+  @param[out] op Address of the composite CeedOperator
+  @param      op Address of the sub-operator CeedOperator
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+ */
+int CeedCompositeOperatorAddSub(CeedOperator compositeop,
+                                CeedOperator subop) {
+  if (!compositeop->composite)
+    return CeedError(compositeop->ceed, 1,
+      "CeedOperator is not a composite operator");
+
+  if (compositeop->numsub == CEED_COMPOSITE_MAX)
+    return CeedError(compositeop->ceed, 1,
+      "Cannot add additional suboperators");
+
+  compositeop->suboperators[compositeop->numsub] = subop;
+  subop->refcount++;
+  compositeop->numsub++;
+  return 0;
+}
+
+/**
   @brief Apply CeedOperator to a vector
 
   This computes the action of the operator on the specified (active) input,
@@ -170,13 +230,17 @@ int CeedOperatorApply(CeedOperator op, CeedVector in,
   Ceed ceed = op->ceed;
   CeedQFunction qf = op->qf;
 
-  if (op->nfields == 0) return CeedError(ceed, 1, "No operator fields set");
-  if (op->nfields < qf->numinputfields + qf->numoutputfields) return CeedError(
-          ceed, 1, "Not all operator fields set");
-  if (op->numelements == 0) return CeedError(ceed, 1,
-                                     "At least one restriction required");
-  if (op->numqpoints == 0) return CeedError(ceed, 1,
-                                    "At least one non-collocated basis required");
+  if (op->composite) {
+    if (!op->numsub) return CeedError(ceed, 1, "No suboperators set");
+  } else{
+    if (op->nfields == 0) return CeedError(ceed, 1, "No operator fields set");
+    if (op->nfields < qf->numinputfields + qf->numoutputfields) return CeedError(
+            ceed, 1, "Not all operator fields set");
+    if (op->numelements == 0) return CeedError(ceed, 1,
+                                "At least one restriction required");
+    if (op->numqpoints == 0) return CeedError(ceed, 1,
+                               "At least one non-collocated basis required");
+  }
   ierr = op->Apply(op, in, out, request); CeedChk(ierr);
   return 0;
 }
@@ -274,6 +338,44 @@ int CeedOperatorGetSetupStatus(CeedOperator op, bool *setupdone) {
 
 int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
   *qf = op->qf;
+  return 0;
+}
+
+/**
+  @brief Get the number of suboperators associated with a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] numsub     Variable to store number of suboperators
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedOperatorGetNumSub(CeedOperator op, CeedInt *numsub) {
+  Ceed ceed = op->ceed;
+  if (!op->composite) return CeedError(ceed, 1, "Not a composite operator");
+
+  *numsub = op->numsub;
+  return 0;
+}
+
+/**
+  @brief Get the list of suboperators associated with a CeedOperator
+
+  @param op                CeedOperator
+  @param[out] suboperators Variable to store list of suboperators
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedOperatorGetSubList(CeedOperator op, CeedOperator* *suboperators) {
+  Ceed ceed = op->ceed;
+  if (!op->composite) return CeedError(ceed, 1, "Not a composite operator");
+
+  *suboperators = op->suboperators;
   return 0;
 }
 
@@ -429,7 +531,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   ierr = CeedDestroy(&(*op)->ceed); CeedChk(ierr);
   // Free fields
   for (int i=0; i<(*op)->nfields; i++) {
-    if ((*op)->outputfields[i]) {
+    if ((*op)->inputfields[i]) {
       ierr = CeedFree(&(*op)->inputfields[i]); CeedChk(ierr);
     }
   }
@@ -438,12 +540,19 @@ int CeedOperatorDestroy(CeedOperator *op) {
       ierr = CeedFree(&(*op)->outputfields[i]); CeedChk(ierr);
     }
   }
+  // Destroy suboperators
+  for (int i=0; i<(*op)->numsub; i++) {
+    if ((*op)->suboperators[i]) {
+      ierr = CeedOperatorDestroy(&(*op)->suboperators[i]); CeedChk(ierr);
+    }
+  }
   ierr = CeedQFunctionDestroy(&(*op)->qf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqfT); CeedChk(ierr);
 
   ierr = CeedFree(&(*op)->inputfields); CeedChk(ierr);
   ierr = CeedFree(&(*op)->outputfields); CeedChk(ierr);
+  ierr = CeedFree(&(*op)->suboperators); CeedChk(ierr);
   ierr = CeedFree(op); CeedChk(ierr);
   return 0;
 }

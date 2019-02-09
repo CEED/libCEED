@@ -49,8 +49,9 @@ typedef struct {
 // *****************************************************************************
 // * CeedElemRestriction Occa struct
 // *****************************************************************************
-#define CEED_OCCA_NUM_RESTRICTION_KERNELS 9
+#define CEED_OCCA_NUM_RESTRICTION_KERNELS 7
 typedef struct {
+  bool identity;
   occaMemory d_indices;
   occaMemory d_toffsets;
   occaMemory d_tindices;
@@ -152,6 +153,8 @@ CEED_INTERN int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt Q,
 
 // *****************************************************************************
 CEED_INTERN int CeedOperatorCreate_Occa(CeedOperator op);
+
+CEED_INTERN int CeedCompositeOperatorCreate_Occa(CeedOperator op);
 
 // *****************************************************************************
 CEED_INTERN int CeedQFunctionCreate_Occa(CeedQFunction qf);

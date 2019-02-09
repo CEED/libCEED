@@ -1196,6 +1196,13 @@ static int CeedOperatorCreate_Magma(CeedOperator op) {
   return 0;
 }
 
+int CeedCompositeOperatorCreate_Magma(CeedOperator op) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  return CeedError(ceed, 1, "Backend does not support composite operators");
+}
+
 // *****************************************************************************
 // * INIT
 // *****************************************************************************
@@ -1215,6 +1222,7 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   ceed->ElemRestrictionCreateBlocked = CeedElemRestrictionCreateBlocked_Magma;
   ceed->QFunctionCreate = CeedQFunctionCreate_Magma;
   ceed->OperatorCreate = CeedOperatorCreate_Magma;
+  ceed->CompositeOperatorCreate = CeedCompositeOperatorCreate_Magma;
   return 0;
 }
 

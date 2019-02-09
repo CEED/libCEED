@@ -30,7 +30,12 @@ UNDERSCORE ?= 1
 
 # MFEM_DIR env variable should point to sibling directory
 ifneq ($(wildcard ../mfem/libmfem.*),)
-  MFEM_DIR?=../mfem
+  MFEM_DIR ?= ../mfem
+endif
+
+# NEK5K_DIR env variable should point to sibling directory
+ifneq ($(wildcard ../Nek5000/*),)
+  NEK5K_DIR ?= ../Nek5000
 endif
 
 # XSMM_DIR env variable should point to XSMM master (github.com/hfp/libxsmm)
@@ -106,7 +111,7 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.c := $(wildcard interface/ceed*.c)
-BACKENDS_BUILTIN := /cpu/self/ref /cpu/self/tmpl /cpu/self/blocked /cpu/self/avx
+BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/tmpl
 BACKENDS := $(BACKENDS_BUILTIN)
 
 # Tests
@@ -123,6 +128,10 @@ examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
 #mfemexamples
 mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
 mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
+#nekexamples
+nekexamples.usr := $(sort $(wildcard examples/nek5000/*.usr))
+nekexamples  := $(nekexamples.usr:examples/nek5000/%.usr=nek-%)
+#petscexamples
 petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
 petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 
@@ -199,6 +208,7 @@ info:
 	$(info CUDA_DIR   = $(CUDA_DIR)$(call backend_status,/gpu/magma))
 	$(info ------------------------------------)
 	$(info MFEM_DIR   = $(MFEM_DIR))
+	$(info NEK5K_DIR  = $(NEK5K_DIR))
 	$(info PETSC_DIR  = $(PETSC_DIR))
 	$(info ------------------------------------)
 	$(info prefix       = $(prefix))
@@ -337,9 +347,12 @@ prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
 allexamples := $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
 alltests := $(tests) $(allexamples)
-prove-all : $(alltests)
+fulltestlist = $(alltests) $(if $(NEK5K_DIR), $(nekexamples))
+prepnektests:
+	(export CC FC && cd examples && make prepnektests)
+prove-all : $(alltests) $(if $(NEK5K_DIR), prepnektests)
 	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(alltests:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(fulltestlist:$(OBJDIR)/%=%)
 
 all: $(alltests)
 
@@ -377,7 +390,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(if $(OCCA_ON),$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/")
 
-.PHONY : cln clean print test tst prove prv examples style install doc okl-cache okl-clear
+.PHONY : cln clean doc lib install all print test tst prove prv prove-all examples style okl-cache okl-clear info info-backends
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
