@@ -68,7 +68,7 @@ static int ICsAdvection(void *ctx, CeedInt Q,
                               pow((z - x0[2]), 2));
 
     // Initial Conditions
-    q0[i+0*Q] = 1.;=
+    q0[i+0*Q] = 1.;
     q0[i+1*Q] = -0.5*(y - center[1]);
     q0[i+2*Q] =  0.5*(x - center[0]);
     q0[i+3*Q] = 0.0;
@@ -145,8 +145,6 @@ static int Advection(void *ctx, CeedInt Q,
                                   dq[i+(4+5*1)*Q],
                                   dq[i+(4+5*2)*Q]
                                };
-    // -- Interp-to-Interp qdata
-    const CeedScalar wJ       =   qdata[i+ 0*Q];
     // -- Interp-to-Grad qdata
     //      Symmetric 3x3 matrix
     const CeedScalar wBJ[9]   = { qdata[i+ 1*Q],
@@ -158,14 +156,6 @@ static int Advection(void *ctx, CeedInt Q,
                                   qdata[i+ 7*Q],
                                   qdata[i+ 8*Q],
                                   qdata[i+ 9*Q]
-                                };
-    // -- Grad-to-Grad qdata
-    const CeedScalar wBBJ[6]  = { qdata[i+10*Q],
-                                  qdata[i+11*Q],
-                                  qdata[i+12*Q],
-                                  qdata[i+13*Q],
-                                  qdata[i+14*Q],
-                                  qdata[i+15*Q]
                                 };
 
     // The Physics
