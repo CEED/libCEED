@@ -114,7 +114,7 @@ struct User_ {
   PetscInt outputfreq;
   DM dm;
   Ceed ceed;
-  CeedVector qceed, gceed, qdata;
+  CeedVector qceed, gceed;
   CeedOperator op;
   VecScatter ltog;              // Scatter for all entries
   VecScatter ltog0;             // Skip Dirichlet values for Q
@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
   CeedScalar Rd         = cp - cv;  // J/kg K
   CeedScalar g          = 9.81;     // m/s^2
   CeedScalar lambda     = -2./3.;   // -
-  CeedScalar mu         = 75.;    // Pa s (dynamic viscosity, not physical for air, but good for numerical stability)
+  CeedScalar mu         = 75.;      // Pa s (dynamic viscosity, not physical for air, but good for numerical stability)
   CeedScalar k          = 0.02638;  // W/m K
   CeedScalar rc;                    // m (Radius of bubble)
   PetscScalar lx;                   // m
@@ -707,7 +707,6 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, 5*lsize, &user->qceed);
   CeedVectorCreate(ceed, 5*lsize, &user->gceed);
   user->op = op;
-  user->qdata = qdata;
   user->ltog = ltog;
   user->ltog0 = ltog0;
   user->gtogD = gtogD;
@@ -825,7 +824,6 @@ int main(int argc, char **argv) {
   // Clean up libCEED
   CeedVectorDestroy(&user->qceed);
   CeedVectorDestroy(&user->gceed);
-  CeedVectorDestroy(&user->qdata);
   CeedVectorDestroy(&xceed);
   CeedVectorDestroy(&xcorners);
   CeedVectorDestroy(&onesvec);
