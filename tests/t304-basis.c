@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
     }
     CeedVectorRestoreArrayRead(Gtposeones, &gtposeones);
     CeedVectorRestoreArrayRead(Uq, &uq);
-    if (fabs(sum1 - sum2) > 1e-8) {
+    if (fabs(sum1 - sum2) > 1e-10) {
       printf("[%d] %f != %f\n", dim, sum1, sum2);
     }
 
