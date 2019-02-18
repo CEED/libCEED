@@ -121,6 +121,7 @@ struct User_ {
   VecScatter gtogD;             // global-to-global; only Dirichlet values for Q
   Vec Qloc, Gloc, M, BC;
   char outputfolder[PETSC_MAX_PATH_LEN];
+  PetscInt contsteps;
 };
 
 // This is the RHS of the ODE, given as u_t = G(t,u)
@@ -210,7 +211,8 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = DMDAVecRestoreArray(user->dm, U, &u); CHKERRQ(ierr);
 
   // Output
-  ierr = PetscSNPrintf(filepath, sizeof filepath, user->outputfolder, stepno);
+  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-%03D.vts", user->outputfolder,
+                       stepno + user->contsteps);
   CHKERRQ(ierr);
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)U), filepath,
                             FILE_MODE_WRITE, &viewer);
@@ -218,6 +220,15 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = VecView(U, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   ierr = DMRestoreGlobalVector(user->dm, &U); CHKERRQ(ierr);
+
+  // Save data in a binary file for continuation of simulations
+  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin", user->outputfolder);
+  CHKERRQ(ierr);
+  ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
+  CHKERRQ(ierr);
+  ierr = VecView(Q, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -232,7 +243,7 @@ int main(int argc, char **argv) {
   PetscFunctionList icsflist = NULL, qflist = NULL;
   char problemtype[256] = "advection";
   PetscInt degree, qextra, localelem, lsize, outputfreq,
-           steps, melem[3], mdof[3], p[3], irank[3], ldof[3];
+           steps, melem[3], mdof[3], p[3], irank[3], ldof[3], contsteps;
   PetscMPIInt size, rank;
   PetscScalar ftime;
   PetscScalar *q0, *m, *mult, *x;
@@ -329,17 +340,19 @@ int main(int argc, char **argv) {
   outputfreq = 10;
   ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
+  contsteps = 0;
+  ierr = PetscOptionsInt("-continue", "Continue from existent solution",
+                         NULL, contsteps, &contsteps, NULL); CHKERRQ(ierr);
   degree = 3;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
   qextra = 2;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
-  PetscStrcpy(user->outputfolder, "./");
+  PetscStrcpy(user->outputfolder, ".");
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
                             sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
-  PetscStrcat(user->outputfolder, "/ns-%03D.vts");
   resx = 1000.;
   ierr = PetscOptionsScalar("-resx","Resolution in x",
                          NULL, resx, &resx, NULL); CHKERRQ(ierr);
@@ -702,6 +715,7 @@ int main(int argc, char **argv) {
   user->degree = degree;
   for (int d=0; d<3; d++) user->melem[d] = melem[d];
   user->outputfreq = outputfreq;
+  user->contsteps = contsteps;
   user->dm = dm;
   user->ceed = ceed;
   CeedVectorCreate(ceed, 5*lsize, &user->qceed);
@@ -756,10 +770,22 @@ int main(int argc, char **argv) {
 
   // Gather initial Q values
   ierr = VecRestoreArray(Qloc, &q0); CHKERRQ(ierr);
-  ierr = VecScatterBegin(ltog, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterEnd(ltog, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
+  // In case of continuation of simulation, set up initial values from binary file
+  if (contsteps){ // continue from existent solution
+    PetscViewer viewer;
+    char filepath[PETSC_MAX_PATH_LEN];
+    // Read input
+    ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin", user->outputfolder);
+    CHKERRQ(ierr);
+    ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer); CHKERRQ(ierr);
+    ierr = VecLoad(Q, viewer); CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  } else {
+    ierr = VecScatterBegin(ltog, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
+    CHKERRQ(ierr);
+    ierr = VecScatterEnd(ltog, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
+    CHKERRQ(ierr);
+  }
   CeedVectorDestroy(&q0ceed);
 
   // Copy boundary values
@@ -808,7 +834,9 @@ int main(int argc, char **argv) {
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
   ierr = TSAdaptSetStepLimits(adapt, 1.e-12, 1.e-2); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
-  ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
+  if (!contsteps){ // print initial condition
+    ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
+  }
   ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
 
   // Solve
