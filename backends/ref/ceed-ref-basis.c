@@ -290,12 +290,12 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P1d,
 
 
 int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim,
-                              CeedInt ndof, CeedInt nqpts,
-                              const CeedScalar *interp,
-                              const CeedScalar *grad,
-                              const CeedScalar *qref,
-                              const CeedScalar *qweight,
-                              CeedBasis basis) {
+                          CeedInt ndof, CeedInt nqpts,
+                          const CeedScalar *interp,
+                          const CeedScalar *grad,
+                          const CeedScalar *qref,
+                          const CeedScalar *qweight,
+                          CeedBasis basis) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
