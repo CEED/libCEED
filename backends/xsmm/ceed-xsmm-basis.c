@@ -25,12 +25,8 @@
 
 // Blocked Tensor Contract
 static int CeedTensorContract_Xsmm_Blocked(Ceed ceed, CeedInt A, CeedInt B,
-    CeedInt C, CeedInt J,
-    const CeedScalar *restrict t,
-    CeedTransposeMode tmode,
-    const CeedInt Add,
-    const CeedScalar *restrict u,
-    CeedScalar *restrict v) {
+    CeedInt C, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode tmode,
+    const CeedInt Add, const CeedScalar *restrict u, CeedScalar *restrict v) {
   CeedScalar alpha = 1.0, beta = 1.0;
   char transu = 'N', transt = 'N';
   if (tmode == CEED_TRANSPOSE)
@@ -49,12 +45,8 @@ static int CeedTensorContract_Xsmm_Blocked(Ceed ceed, CeedInt A, CeedInt B,
 
 // Serial Tensor Contact
 static int CeedTensorContract_Xsmm_Serial(Ceed ceed, CeedInt A, CeedInt B,
-    CeedInt C, CeedInt J,
-    const CeedScalar *restrict t,
-    CeedTransposeMode tmode,
-    const CeedInt Add,
-    const CeedScalar *restrict u,
-    CeedScalar *restrict v) {
+    CeedInt C, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode tmode,
+    const CeedInt Add, const CeedScalar *restrict u, CeedScalar *restrict v) {
   CeedScalar alpha = 1.0, beta = 1.0;
   char transu = 'N', transt = 'N';
   if ((tmode == CEED_TRANSPOSE && C != 1)

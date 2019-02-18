@@ -25,15 +25,9 @@
 
 // Blocked Tensor Contact
 static inline int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A,
-    CeedInt B, CeedInt C,
-    CeedInt J,
-    const CeedScalar *restrict t,
-    CeedTransposeMode tmode,
-    const CeedInt Add,
-    const CeedScalar *restrict u,
-    CeedScalar *restrict v,
-    const CeedInt JJ,
-    const CeedInt CC) {
+    CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
+    CeedTransposeMode tmode, const CeedInt Add, const CeedScalar *restrict u,
+    CeedScalar *restrict v, const CeedInt JJ, const CeedInt CC) {
   CeedInt tstride0 = B, tstride1 = 1;
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = J;
@@ -93,15 +87,9 @@ static inline int CeedTensorContract_Avx_Blocked(Ceed ceed, CeedInt A,
 
 // Serial Tensor Contract Remainder
 static inline int CeedTensorContract_Avx_Remainder(Ceed ceed, CeedInt A,
-    CeedInt B, CeedInt C,
-    CeedInt J,
-    const CeedScalar *restrict t,
-    CeedTransposeMode tmode,
-    const CeedInt Add,
-    const CeedScalar *restrict u,
-    CeedScalar *restrict v,
-    const CeedInt JJ,
-    const CeedInt CC) {
+    CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
+    CeedTransposeMode tmode, const CeedInt Add, const CeedScalar *restrict u,
+    CeedScalar *restrict v, const CeedInt JJ, const CeedInt CC) {
   CeedInt tstride0 = B, tstride1 = 1;
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = J;
@@ -150,14 +138,9 @@ static inline int CeedTensorContract_Avx_Remainder(Ceed ceed, CeedInt A,
 
 // Serial Tensor Contract C=1 Case
 static inline int CeedTensorContract_Avx_Single(Ceed ceed, CeedInt A,
-    CeedInt B, CeedInt C, CeedInt J,
-    const CeedScalar *restrict t,
-    CeedTransposeMode tmode,
-    const CeedInt Add,
-    const CeedScalar *restrict u,
-    CeedScalar *restrict v,
-    const CeedInt AA,
-    const CeedInt JJ) {
+    CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
+    CeedTransposeMode tmode, const CeedInt Add, const CeedScalar *restrict u,
+    CeedScalar *restrict v, const CeedInt AA, const CeedInt JJ) {
   CeedInt tstride0 = B, tstride1 = 1;
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = J;
@@ -258,32 +241,20 @@ static inline int CeedTensorContract_Avx_Single(Ceed ceed, CeedInt A,
 
 // Specific Variants
 static int CeedTensorContract_Avx_Blocked_4_8(Ceed ceed, CeedInt A, CeedInt B,
-    CeedInt C, CeedInt J,
-    const CeedScalar *restrict t,
-    CeedTransposeMode tmode,
-    const CeedInt Add,
-    const CeedScalar *restrict u,
-    CeedScalar *restrict v) {
+    CeedInt C, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode tmode,
+    const CeedInt Add, const CeedScalar *restrict u, CeedScalar *restrict v) {
   return CeedTensorContract_Avx_Blocked(ceed, A, B, C, J, t, tmode, Add, u, v,
                                         4, 8);
 }
 static int CeedTensorContract_Avx_Remainder_4_8(Ceed ceed, CeedInt A, CeedInt B,
-    CeedInt C, CeedInt J,
-    const CeedScalar *restrict t,
-    CeedTransposeMode tmode,
-    const CeedInt Add,
-    const CeedScalar *restrict u,
-    CeedScalar *restrict v) {
+    CeedInt C, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode tmode,
+    const CeedInt Add, const CeedScalar *restrict u, CeedScalar *restrict v) {
   return CeedTensorContract_Avx_Remainder(ceed, A, B, C, J, t, tmode, Add, u, v,
                                           4, 8);
 }
 static int CeedTensorContract_Avx_Single_4_8(Ceed ceed, CeedInt A, CeedInt B,
-    CeedInt C, CeedInt J,
-    const CeedScalar *restrict t,
-    CeedTransposeMode tmode,
-    const CeedInt Add,
-    const CeedScalar *restrict u,
-    CeedScalar *restrict v) {
+    CeedInt C, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode tmode,
+    const CeedInt Add, const CeedScalar *restrict u, CeedScalar *restrict v) {
   return CeedTensorContract_Avx_Single(ceed, A, B, C, J, t, tmode, Add, u, v,
                                        4, 8);
 }
