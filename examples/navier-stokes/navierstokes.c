@@ -229,6 +229,15 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = VecView(Q, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
+  // Save time stamp
+  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.data", user->outputfolder);
+  CHKERRQ(ierr);
+  FILE *fp;
+  ierr = PetscFOpen(user->comm, filepath, "w", &fp);
+  CHKERRQ(ierr);
+  ierr = PetscFPrintf (user->comm, fp, "%lg", time); CHKERRQ(ierr);
+  ierr = PetscFClose(user->comm, fp); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -836,6 +845,17 @@ int main(int argc, char **argv) {
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   if (!contsteps){ // print initial condition
     ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
+  } else { // continue from time of last output
+    PetscReal time;
+    char filepath[PETSC_MAX_PATH_LEN];
+    ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.data", user->outputfolder);
+    CHKERRQ(ierr);
+    FILE *fp;
+    ierr = PetscFOpen(comm, filepath, "r", &fp);
+    CHKERRQ(ierr);
+    fscanf (fp, "%lg", &time); CHKERRQ(ierr);
+    PetscFClose(comm, fp); CHKERRQ(ierr);
+    ierr = TSSetTime(ts, time); CHKERRQ(ierr);
   }
   ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
 
