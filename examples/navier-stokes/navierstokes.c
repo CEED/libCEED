@@ -848,13 +848,21 @@ int main(int argc, char **argv) {
   } else { // continue from time of last output
     PetscReal time;
     char filepath[PETSC_MAX_PATH_LEN];
-    ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.data", user->outputfolder);
-    CHKERRQ(ierr);
+    ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.data",
+                         user->outputfolder); CHKERRQ(ierr);
     FILE *fp;
-    ierr = PetscFOpen(comm, filepath, "r", &fp);
-    CHKERRQ(ierr);
-    fscanf (fp, "%lg", &time); CHKERRQ(ierr);
-    PetscFClose(comm, fp); CHKERRQ(ierr);
+    ierr = PetscFOpen(comm, filepath, "r", &fp);    CHKERRQ(ierr);
+    PetscMPIInt rank, size;
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_size(comm, &size);
+    if (!rank) {
+      fscanf (fp, "%lg", &time); CHKERRQ(ierr);
+      PetscFClose(comm, fp); CHKERRQ(ierr);
+      for (int i = 1; i < size; ++i)
+        MPI_Send(&time, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
+    } else {
+        MPI_Recv(&time, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
     ierr = TSSetTime(ts, time); CHKERRQ(ierr);
   }
   ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
