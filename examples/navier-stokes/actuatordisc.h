@@ -17,6 +17,84 @@
 #include <math.h>
 
 // *****************************************************************************
+// This QFunction sets the the initial conditions and boundary conditions
+//
+// Initial Conditions:
+//   Mass Density:
+//     Constant mass density of 1.0
+//   Momentum Density:
+//     Translational field in x
+//   Energy Density:
+//      0.
+//
+//  Boundary Conditions:
+//    Mass Density:
+//      0.0 flux
+//    Momentum Density:
+//      0.0
+//    Energy Density:
+//      0.0 flux
+//
+// *****************************************************************************
+static int ICsActuatorDisc(void *ctx, CeedInt Q,
+                        const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar *X = in[0];
+  // Outputs
+  CeedScalar *q0 = out[0], *coords = out[1];
+  // Context
+  const CeedScalar *context = (const CeedScalar*)ctx;
+  const CeedScalar rc         = context[8];
+  const CeedScalar lx         = context[9];
+  const CeedScalar ly         = context[10];
+  const CeedScalar lz         = context[11];
+  // Setup
+  const CeedScalar tol = 1.e-14;
+  const CeedScalar x0[3] = {0.25*lx, 0.5*ly, 0.5*lz};
+  const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
+
+  #pragma omp simd
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // -- Coordinates
+    const CeedScalar x = X[i+0*Q];
+    const CeedScalar y = X[i+1*Q];
+    const CeedScalar z = X[i+2*Q];
+//    // -- Energy
+//    const CeedScalar r = sqrt(pow((x - x0[0]), 2) +
+//                              pow((y - x0[1]), 2) +
+//                              pow((z - x0[2]), 2));
+
+    // Initial Conditions
+    q0[i+0*Q] = 1.;
+    q0[i+1*Q] = 0.5;
+    q0[i+2*Q] = 0.0;
+    q0[i+3*Q] = 0.0;
+    q0[i+4*Q] = 0.0;
+
+    // Homogeneous Dirichlet Boundary Conditions for Momentum
+    if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol
+         || fabs(y - 0.0) < tol || fabs(y - ly) < tol
+         || fabs(z - 0.0) < tol || fabs(z - lz) < tol ) {
+      q0[i+1*Q] = 0.0;
+      q0[i+2*Q] = 0.0;
+      q0[i+3*Q] = 0.0;
+    }
+
+    // Coordinates
+    coords[i+0*Q] = x;
+    coords[i+1*Q] = y;
+    coords[i+2*Q] = z;
+
+  } // End of Quadrature Point Loop
+
+  // Return
+  return 0;
+}
+
+
+// *****************************************************************************
 // This QFunction implements the following formulation of the actuator disc model
 //
 // State Variables: q = ( rho, U1, U2, U3, E )
@@ -91,7 +169,7 @@ static int AD(void *ctx, CeedInt Q,
     dv[i+(3+0*5)*Q] = 0;
     dv[i+(3+1*5)*Q] = 0;
     dv[i+(3+2*5)*Q] = 0;
-    v[i+1*Q] = .5*rho*u[0]*u[0]*Adisc*CT*wJ; // new body force only in the x-component
+    v[i+1*Q] = 0.5*rho*u[0]*u[0]*Adisc*CT*wJ; // new body force only in the x-component
     v[i+2*Q] = 0;
     v[i+3*Q] = 0;
 
