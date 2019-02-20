@@ -877,6 +877,7 @@ int main(int argc, char **argv) {
                      steps,(double)ftime); CHKERRQ(ierr);
 
   // Clean up libCEED
+  CeedVectorDestroy(&qdata);
   CeedVectorDestroy(&user->qceed);
   CeedVectorDestroy(&user->gceed);
   CeedVectorDestroy(&xceed);
