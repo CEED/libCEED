@@ -251,7 +251,7 @@ int main(int argc, char **argv) {
   char ceedresource[4096] = "/cpu/self";
   PetscFunctionList icsflist = NULL, qflist = NULL;
   char problemtype[256] = "advection";
-  PetscInt degree, qextra, localelem, lsize, outputfreq,
+  PetscInt degree, qextra, localNelem, lsize, outputfreq,
            steps, melem[3], mdof[3], p[3], irank[3], ldof[3], contsteps;
   PetscMPIInt size, rank;
   PetscScalar ftime;
@@ -388,7 +388,7 @@ int main(int argc, char **argv) {
     if (melem[d] == 0)
       melem[d]++;
   }
-  localelem = melem[0] * melem[1] * melem[2];
+  localNelem = melem[0] * melem[1] * melem[2];
 
   // Find my location in the process grid
   ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
@@ -422,7 +422,7 @@ int main(int argc, char **argv) {
   ierr = PetscPrintf(comm, "Global dofs: %D\n", gsize); CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
                      p[0], p[1], p[2]); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localelem,
+  ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localNelem,
                      melem[0], melem[1], melem[2]); CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "Owned dofs: %D = %D %D %D\n",
                      mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]);
@@ -579,12 +579,11 @@ int main(int argc, char **argv) {
   CreateRestriction(ceed, melem, 2, 3, &restrictx);
   CreateRestriction(ceed, melem, numP, 3, &restrictxc);
   CreateRestriction(ceed, melem, numP, 1, &restrictmult);
-  CeedInt nelem = melem[0]*melem[1]*melem[2];
-  CeedElemRestrictionCreateIdentity(ceed, nelem, 16*numQ*numQ*numQ,
-                                    16*nelem*numQ*numQ*numQ, 1,
+  CeedElemRestrictionCreateIdentity(ceed, localNelem, 16*numQ*numQ*numQ,
+                                    16*localNelem*numQ*numQ*numQ, 1,
                                     &restrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, numQ*numQ*numQ,
-                                    nelem*numQ*numQ*numQ, 1,
+  CeedElemRestrictionCreateIdentity(ceed, localNelem, numQ*numQ*numQ,
+                                    localNelem*numQ*numQ*numQ, 1,
                                     &restrictxi);
 
   // Find physical cordinates of the corners of local elements
@@ -610,17 +609,17 @@ int main(int argc, char **argv) {
   }
 
   // Create the CEED vectors that will be needed in setup
-  CeedInt Nqpts, Nelem = melem[0]*melem[1]*melem[2];
+  CeedInt Nqpts;
   CeedBasisGetNumQuadraturePoints(basisq, &Nqpts);
   CeedInt Ndofs = 1;
   for (int d=0; d<3; d++) Ndofs *= numP;
-  CeedVectorCreate(ceed, 16*Nelem*Nqpts, &qdata);
+  CeedVectorCreate(ceed, 16*localNelem*Nqpts, &qdata);
   CeedVectorCreate(ceed, 5*lsize, &q0ceed);
   CeedVectorCreate(ceed, 5*lsize, &mceed);
   CeedVectorCreate(ceed, 5*lsize, &onesvec);
   CeedVectorCreate(ceed, 3*lsize, &xceed);
   CeedVectorCreate(ceed, lsize, &multlvec);
-  CeedVectorCreate(ceed, Nelem*Ndofs, &multevec);
+  CeedVectorCreate(ceed, localNelem*Ndofs, &multevec);
 
   // Find multiplicity of each local point
   CeedVectorSetValue(multevec, 1.0);
