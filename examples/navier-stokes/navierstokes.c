@@ -111,13 +111,13 @@ static int CreateRestrictionDisc(Ceed ceed, const CeedInt melem[3],
                              const CeedInt P, const CeedInt ncomp,
                              const CeedScalar center[3], const CeedScalar rc,
                              const CeedInt numQdisc, const CeedVector xcornersceed,
-                             CeedInt *elemcount,
+                             CeedInt *Nelemdisc,
                              CeedElemRestriction *Erestrictdisc) {
   const CeedInt Nelem = melem[0]*melem[1]*melem[2];
   const CeedInt shape[3] = {melem[0]+1, melem[1]+1, melem[2]+1};
   CeedInt mdof[3], *idx, *idxp;
 
-  *elemcount = 0;
+  *Nelemdisc = 0;
 
   for (int d=0; d<3; d++) mdof[d] = melem[d]*(P-1) + 1;
   idx = idxp = malloc(Nelem*P*P*sizeof idx[0]);
@@ -139,7 +139,7 @@ static int CreateRestrictionDisc(Ceed ceed, const CeedInt melem[3],
         const CeedScalar x = xcorners[((ci*shape[1])*shape[2]) + 0*xcornerslen];
         if (fabs(x - center[0]) > midpelem) // the element is not on the plane of the disc
           continue;
-         // Loop over the corners of the element
+        // Loop over the corners of the element
         for (CeedInt cj = j; cj < j+2; cj++) {
           for (CeedInt ck = k; ck < k+2; ck++) {
             const CeedScalar y = xcorners[((ci*shape[1]+cj)*shape[2]+ck) + 1*xcornerslen];
@@ -149,7 +149,7 @@ static int CreateRestrictionDisc(Ceed ceed, const CeedInt melem[3],
             if (r <= rc) // the corner of the element is on the disc
             {
                 ondisc = 1;
-                goto ondiscfound;
+                goto ondiscfound; // no need to check for other corners, we consider whole element on disc
             }
           }
         }
@@ -163,13 +163,13 @@ ondiscfound:
             }
           }
           idxp += P*P;
-          (*elemcount)++;
+          (*Nelemdisc)++;
         }
       }
     }
   }
 
-  CeedElemRestrictionCreate(ceed, *elemcount, P*P, mdof[0]*mdof[1]*mdof[2], ncomp,
+  CeedElemRestrictionCreate(ceed, *Nelemdisc, P*P, mdof[0]*mdof[1]*mdof[2], ncomp,
                             CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrictdisc);
   PetscFunctionReturn(0);
 }
@@ -300,7 +300,7 @@ int main(int argc, char **argv) {
   char ceedresource[4096] = "/cpu/self";
   PetscFunctionList icsflist = NULL, qflist = NULL;
   char problemtype[256] = "advection";
-  PetscInt degree, qextra, localelem, lsize, outputfreq,
+  PetscInt degree, qextra, localNelem, lsize, outputfreq,
            steps, melem[3], mdof[3], p[3], irank[3], ldof[3];
   PetscMPIInt size, rank;
   PetscScalar ftime;
@@ -442,7 +442,7 @@ int main(int argc, char **argv) {
     if (melem[d] == 0)
       melem[d]++;
   }
-  localelem = melem[0] * melem[1] * melem[2];
+  localNelem = melem[0] * melem[1] * melem[2];
 
   // Find my location in the process grid
   ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
@@ -476,7 +476,7 @@ int main(int argc, char **argv) {
   ierr = PetscPrintf(comm, "Global dofs: %D\n", gsize); CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
                      p[0], p[1], p[2]); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localelem,
+  ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localNelem,
                      melem[0], melem[1], melem[2]); CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "Owned dofs: %D = %D %D %D\n",
                      mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]);
@@ -641,12 +641,11 @@ int main(int argc, char **argv) {
   CreateRestriction(ceed, melem, 2, 3, &restrictx);
   CreateRestriction(ceed, melem, numP, 3, &restrictxc);
   CreateRestriction(ceed, melem, numP, 1, &restrictmult);
-  CeedInt nelem = melem[0]*melem[1]*melem[2];
-  CeedElemRestrictionCreateIdentity(ceed, nelem, 16*numQ*numQ*numQ,
-                                    16*nelem*numQ*numQ*numQ, 1,
+  CeedElemRestrictionCreateIdentity(ceed, localNelem, 16*numQ*numQ*numQ,
+                                    16*localNelem*numQ*numQ*numQ, 1,
                                     &restrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, numQ*numQ*numQ,
-                                    nelem*numQ*numQ*numQ, 1,
+  CeedElemRestrictionCreateIdentity(ceed, localNelem, numQ*numQ*numQ,
+                                    localNelem*numQ*numQ*numQ, 1,
                                     &restrictxi);
 
   // Find physical cordinates of the corners of local elements
@@ -673,34 +672,34 @@ int main(int argc, char **argv) {
 
   // CEED Restrictions on disc
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
-  CeedInt elemcount = 0;
+  CeedInt Nelemdisc = 0;
   CreateRestrictionDisc(ceed, melem, numP, 5, center, rc, numQdisc, xcorners,
-                        &elemcount, &restrictqdisc);
-  CeedElemRestrictionCreateIdentity(ceed, mdof[0]*mdof[1]*mdof[2], numQdisc*numQdisc,
-                                    mdof[0]*mdof[1]*mdof[2]*numQdisc*numQdisc, 1,
+                        &Nelemdisc, &restrictqdisc);
+  CeedElemRestrictionCreateIdentity(ceed, Nelemdisc, numQdisc*numQdisc*numQdisc,
+                                    Nelemdisc*numQdisc*numQdisc*numQdisc, 1,
                                     &restrictqdidisc);
   CreateRestrictionDisc(ceed, melem, 2, 3, center, rc, numQdisc, xcorners,
-                        &elemcount, &restrictxdisc);//2,2
-  CeedElemRestrictionCreateIdentity(ceed, mdof[0]*mdof[1]*mdof[2], numQdisc*numQdisc,
-                                    mdof[0]*mdof[1]*mdof[2]*numQdisc*numQdisc, 1,
+                        &Nelemdisc, &restrictxdisc);//2,2
+  CeedElemRestrictionCreateIdentity(ceed, Nelemdisc, numQdisc*numQdisc*numQdisc,
+                                    Nelemdisc*numQdisc*numQdisc*numQdisc, 1,
                                     &restrictxidisc);
   CreateRestrictionDisc(ceed, melem, numP, 3, center, rc, numQdisc, xcorners,
-                        &elemcount, &restrictxcdisc);
+                        &Nelemdisc, &restrictxcdisc);
 
   // Create the CEED vectors that will be needed in setup
-  CeedInt Nqpts, Nqptsdisc, Nelem = melem[0]*melem[1]*melem[2];
+  CeedInt Nqpts, Nqptsdisc;
   CeedBasisGetNumQuadraturePoints(basisq, &Nqpts);
   CeedBasisGetNumQuadraturePoints(basisqdisc, &Nqptsdisc);
   CeedInt Ndofs = 1;
   for (int d=0; d<3; d++) Ndofs *= numP;
-  CeedVectorCreate(ceed, 16*Nelem*Nqpts, &qdata);
-  CeedVectorCreate(ceed, Nelem*Nqptsdisc, &qdatadisc);
+  CeedVectorCreate(ceed, 16*localNelem*Nqpts, &qdata);
+  CeedVectorCreate(ceed, Nelemdisc*Nqptsdisc, &qdatadisc);
   CeedVectorCreate(ceed, 5*lsize, &q0ceed);
   CeedVectorCreate(ceed, 5*lsize, &mceed);
   CeedVectorCreate(ceed, 5*lsize, &onesvec);
   CeedVectorCreate(ceed, 3*lsize, &xceed);
   CeedVectorCreate(ceed, lsize, &multlvec);
-  CeedVectorCreate(ceed, Nelem*Ndofs, &multevec);
+  CeedVectorCreate(ceed, localNelem*Ndofs, &multevec);
 
   // Find multiplicity of each local point
   CeedVectorSetValue(multevec, 1.0);
@@ -764,8 +763,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_disc, "qdisc", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_disc, "dqdisc", 5, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_disc, "qdatadisc", 1, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_disc, "xdisc", 3, CEED_EVAL_INTERP);//2
   CeedQFunctionAddOutput(qf_disc, "vdisc", 5, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_disc, "dvdisc", 5, CEED_EVAL_GRAD);
 
   // Create the operator that builds the quadrature data for the NS operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
@@ -826,10 +825,10 @@ int main(int argc, char **argv) {
                        basisqdisc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_disc, "qdatadisc", restrictqdidisc, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdatadisc);
-  CeedOperatorSetField(op_disc, "xdisc", restrictxdisc, CEED_NOTRANSPOSE,
-                       basisxdisc, xcorners);
   CeedOperatorSetField(op_disc, "vdisc", restrictqdisc, CEED_TRANSPOSE,
-                       basisqdisc, qdatadisc);
+                       basisqdisc, CEED_VECTOR_ACTIVE); //   qdatadisc instead of CEED_VECTOR_ACTIVE
+  CeedOperatorSetField(op_disc, "dvdisc", restrictqdisc, CEED_TRANSPOSE,
+                       basisqdisc, CEED_VECTOR_ACTIVE); //   qdatadisc instead of CEED_VECTOR_ACTIVE
 
   // Create the composite operators for the physics
   CeedCompositeOperatorCreate(ceed, &op_comp);
@@ -840,10 +839,12 @@ int main(int argc, char **argv) {
   Adisc = rc*rc*M_PI;
 
   // Set up the libCEED context
-  CeedScalar ctxSetup[14] = {theta0, thetaC, P0, N, cv, cp, Rd, g, rc, lx, ly, lz, Adisc, CT};
+  CeedScalar ctxSetup[12] = {theta0, thetaC, P0, N, cv, cp, Rd, g, rc, lx, ly, lz};
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
   CeedScalar ctxNS[6] = {lambda, mu, k, cv, cp, g};
   CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
+  CeedScalar ctxAD[2] = {Adisc, CT};
+  CeedQFunctionSetContext(qf_disc, &ctxAD, sizeof ctxAD);
 
   // Set up PETSc context
   user->comm = comm;

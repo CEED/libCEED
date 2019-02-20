@@ -109,13 +109,13 @@ static int ICsActuatorDisc(void *ctx, CeedInt Q,
 static int AD(void *ctx, CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
+  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2];
   // Outputs
   CeedScalar *v = out[0], *dv = out[1];
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
-  const CeedScalar Adisc         = context[12];
-  const CeedScalar CT            = context[13];
+  const CeedScalar Adisc         = context[0];
+  const CeedScalar CT            = context[1];
 
   #pragma omp simd
   // Quadrature Point Loop
