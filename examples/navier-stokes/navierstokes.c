@@ -88,12 +88,12 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
             for (CeedInt kk=0; kk<P; kk++) {
               if (0) { // This is the C-style (i,j,k) ordering that I prefer
                 idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mdof[1]
-                                        + (j*(P-1)+jj))*mdof[2]
-                                        + (k*(P-1)+kk));
+                                       + (j*(P-1)+jj))*mdof[2]
+                                       + (k*(P-1)+kk));
               } else { // (k,j,i) ordering for consistency with MFEM example
                 idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mdof[1]
-                                        + (j*(P-1)+jj))*mdof[2]
-                                        + (k*(P-1)+kk));
+                                       + (j*(P-1)+jj))*mdof[2]
+                                       + (k*(P-1)+kk));
               }
             }
           }
@@ -155,21 +155,23 @@ static int CreateRestrictionDisc(Ceed ceed, const CeedInt melem[3],
         }
 ondiscfound:
         if (ondisc) {
-          for (CeedInt jj=0; jj<P; jj++) {
-            for (CeedInt kk=0; kk<P; kk++) {
-              idxp[jj+P*kk] = (ci*(P-1))*mdof[1] +
-                              ( j*(P-1)+jj)*mdof[2] +
-                              ( k*(P-1)+kk);
+          for (CeedInt ii=0; ii<P; ii++) {
+            for (CeedInt jj=0; jj<P; jj++) {
+              for (CeedInt kk=0; kk<P; kk++) {
+                idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mdof[1]
+                                       + (j*(P-1)+jj))*mdof[2]
+                                       + (k*(P-1)+kk));
+              }
             }
           }
-          idxp += P*P;
+          idxp += P*P*P;
           (*Nelemdisc)++;
         }
       }
     }
   }
 
-  CeedElemRestrictionCreate(ceed, *Nelemdisc, P*P, mdof[0]*mdof[1]*mdof[2], ncomp,
+  CeedElemRestrictionCreate(ceed, *Nelemdisc, P*P*P, mdof[0]*mdof[1]*mdof[2], ncomp,
                             CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrictdisc);
   PetscFunctionReturn(0);
 }
@@ -315,7 +317,7 @@ int main(int argc, char **argv) {
   CeedBasis basisx, basisxc, basisq, basisxdisc, basisxcdisc, basisqdisc;
   CeedElemRestriction restrictx, restrictxc, restrictxi,
                       restrictq, restrictqdi, restrictmult,
-                      restrictxdisc, restrictxcdisc, restrictxidisc,
+                      restrictxdisc, restrictxidisc,
                       restrictqdisc, restrictqdidisc;
   CeedQFunction qf_setup, qf_setupdisc, qf_mass, qf_ics, qf, qf_disc;
   CeedOperator op_setup, op_setupdisc, op_mass, op_ics,
@@ -627,10 +629,10 @@ int main(int argc, char **argv) {
   numQdisc = numP + degreedisc + qextra;
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 5, numP, numQ, CEED_GAUSS, &basisq);
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 5, numP, numQdisc, CEED_GAUSS,
-                                  &basisqdisc);//2,5
+                                  &basisqdisc);
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, numQ, CEED_GAUSS, &basisx);
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, numQdisc, CEED_GAUSS,
-                                  &basisxdisc);//2,3,2
+                                  &basisxdisc);
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, numP, CEED_GAUSS_LOBATTO,
                                   &basisxc);
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, numP, CEED_GAUSS_LOBATTO,
@@ -679,12 +681,10 @@ int main(int argc, char **argv) {
                                     Nelemdisc*numQdisc*numQdisc*numQdisc, 1,
                                     &restrictqdidisc);
   CreateRestrictionDisc(ceed, melem, 2, 3, center, rc, numQdisc, xcorners,
-                        &Nelemdisc, &restrictxdisc);//2,2
+                        &Nelemdisc, &restrictxdisc);
   CeedElemRestrictionCreateIdentity(ceed, Nelemdisc, numQdisc*numQdisc*numQdisc,
                                     Nelemdisc*numQdisc*numQdisc*numQdisc, 1,
                                     &restrictxidisc);
-  CreateRestrictionDisc(ceed, melem, numP, 3, center, rc, numQdisc, xcorners,
-                        &Nelemdisc, &restrictxcdisc);
 
   // Create the CEED vectors that will be needed in setup
   CeedInt Nqpts, Nqptsdisc;
@@ -972,6 +972,8 @@ int main(int argc, char **argv) {
                      steps,(double)ftime); CHKERRQ(ierr);
 
   // Clean up libCEED
+  CeedVectorDestroy(&qdata);
+  CeedVectorDestroy(&qdatadisc);
   CeedVectorDestroy(&user->qceed);
   CeedVectorDestroy(&user->gceed);
   CeedVectorDestroy(&xceed);
@@ -981,9 +983,14 @@ int main(int argc, char **argv) {
   CeedBasisDestroy(&basisx);
   CeedBasisDestroy(&basisxc);
   CeedElemRestrictionDestroy(&restrictq);
+  CeedElemRestrictionDestroy(&restrictqdisc);
   CeedElemRestrictionDestroy(&restrictx);
+  CeedElemRestrictionDestroy(&restrictxdisc);
   CeedElemRestrictionDestroy(&restrictqdi);
+  CeedElemRestrictionDestroy(&restrictqdidisc);
   CeedElemRestrictionDestroy(&restrictxi);
+  CeedElemRestrictionDestroy(&restrictxidisc);
+  CeedElemRestrictionDestroy(&restrictxc);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_setupdisc);
   CeedQFunctionDestroy(&qf_ics);
