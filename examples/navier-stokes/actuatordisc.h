@@ -109,13 +109,17 @@ static int ICsActuatorDisc(void *ctx, CeedInt Q,
 static int AD(void *ctx, CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2];
+  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
   // Outputs
   CeedScalar *v = out[0], *dv = out[1];
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
-  const CeedScalar Adisc         = context[0];
-  const CeedScalar CT            = context[1];
+  const CeedScalar lx            = context[0];
+  const CeedScalar ly            = context[1];
+  const CeedScalar lz            = context[2];
+  const CeedScalar Adisc         = context[3];
+  const CeedScalar CT            = context[4];
+  const CeedScalar eps           = context[5];
 
   #pragma omp simd
   // Quadrature Point Loop
@@ -150,6 +154,18 @@ static int AD(void *ctx, CeedInt Q,
     // -- Interp-to-Interp qdata
     const CeedScalar wJ       =   qdata[i+ 0*Q];
 
+    // Coordinates
+    const CeedScalar xcoord = x[i+0*Q];
+    const CeedScalar ycoord = x[i+1*Q];
+    const CeedScalar zcoord = x[i+2*Q];
+
+    // Mollification function for turbine force force
+    const CeedScalar x0[3] = {0.5*lx, 0.5*ly, 0.5*lz};
+    const CeedScalar r = sqrt(pow((xcoord - x0[0]), 2) +
+                              pow((ycoord - x0[1]), 2) +
+                              pow((zcoord - x0[2]), 2));
+    const CeedScalar regfct = exp(-(r/eps)*(r/eps))/(eps*eps*eps*pow(M_PI,1.5));
+
     // The Physics
 
     // -- Density
@@ -169,7 +185,7 @@ static int AD(void *ctx, CeedInt Q,
     dv[i+(3+0*5)*Q] = 0;
     dv[i+(3+1*5)*Q] = 0;
     dv[i+(3+2*5)*Q] = 0;
-    v[i+1*Q] = 0.5*rho*u[0]*u[0]*Adisc*CT*wJ; // new body force only in the x-component
+    v[i+1*Q] = (0.5*rho*u[0]*u[0]*Adisc*CT*wJ)*regfct; // new body force only in the x-component
     v[i+2*Q] = 0;
     v[i+3*Q] = 0;
 
