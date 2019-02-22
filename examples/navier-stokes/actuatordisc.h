@@ -117,9 +117,10 @@ static int AD(void *ctx, CeedInt Q,
   const CeedScalar lx            = context[0];
   const CeedScalar ly            = context[1];
   const CeedScalar lz            = context[2];
-  const CeedScalar Adisc         = context[3];
-  const CeedScalar CT            = context[4];
-  const CeedScalar eps           = context[5];
+  const CeedScalar rc            = context[3];
+  const CeedScalar Adisc         = context[4];
+  const CeedScalar CT            = context[5];
+  const CeedScalar eps           = context[6];
 
   #pragma omp simd
   // Quadrature Point Loop
@@ -164,7 +165,8 @@ static int AD(void *ctx, CeedInt Q,
     const CeedScalar r = sqrt(pow((xcoord - x0[0]), 2) +
                               pow((ycoord - x0[1]), 2) +
                               pow((zcoord - x0[2]), 2));
-    const CeedScalar regfct = exp(-(r/eps)*(r/eps))/(eps*eps*eps*pow(M_PI,1.5));
+    const CeedScalar regfct = r >= rc ?
+                              exp(-(r/eps)*(r/eps))/(eps*eps*eps*pow(M_PI,1.5)) : 1.;
 
     // The Physics
 
