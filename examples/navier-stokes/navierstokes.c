@@ -335,15 +335,16 @@ int main(int argc, char **argv) {
   CeedScalar lambda     = -2./3.;   // -
   CeedScalar mu         = 75.;      // Pa s (dynamic viscosity, not physical for air, but good for numerical stability)
   CeedScalar k          = 0.02638;  // W/m K
-  CeedScalar rc;                    // m (Radius of bubble or actuator disc)
+  CeedScalar  rc;                   // m
   PetscScalar lx;                   // m
   PetscScalar ly;                   // m
   PetscScalar lz;                   // m
-  PetscScalar resx;                 // m (resolution in x)
-  PetscScalar resy;                 // m (resolution in y)
-  PetscScalar resz;                 // m (resolution in z)
+  PetscScalar resx;                 // m
+  PetscScalar resy;                 // m
+  PetscScalar resz;                 // m
   CeedScalar Adisc;                 // m^2 (Area of actuator disc)
   CeedScalar CT          = 0.75;    // - (Actuator disc thrust coefficient)
+  PetscScalar  eps;                 // m
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -430,6 +431,9 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsScalar("-resz","Resolution in z",
                          NULL, resz, &resz, NULL); CHKERRQ(ierr);
   resz = fabs(resz);
+  eps = 2*PetscMin(PetscMin(lx,ly),lz);
+  ierr = PetscOptionsScalar("-eps", "Width of regularization function for actuator disc",
+                         NULL, eps, &eps, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Determine size of process grid
@@ -762,6 +766,7 @@ int main(int argc, char **argv) {
                               AD, __FILE__ ":AD", &qf_disc);
   CeedQFunctionAddInput(qf_disc, "qdisc", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_disc, "dqdisc", 5, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_disc, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_disc, "qdatadisc", 1, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_disc, "vdisc", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_disc, "dvdisc", 5, CEED_EVAL_GRAD);
@@ -825,6 +830,8 @@ int main(int argc, char **argv) {
                        basisqdisc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_disc, "qdatadisc", restrictqdidisc, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdatadisc);
+  CeedOperatorSetField(op_disc, "x", restrictxdisc, CEED_NOTRANSPOSE,
+                       basisxdisc, xcorners);
   CeedOperatorSetField(op_disc, "vdisc", restrictqdisc, CEED_TRANSPOSE,
                        basisqdisc, CEED_VECTOR_ACTIVE); //   qdatadisc instead of CEED_VECTOR_ACTIVE
   CeedOperatorSetField(op_disc, "dvdisc", restrictqdisc, CEED_TRANSPOSE,
@@ -843,7 +850,7 @@ int main(int argc, char **argv) {
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
   CeedScalar ctxNS[6] = {lambda, mu, k, cv, cp, g};
   CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
-  CeedScalar ctxAD[2] = {Adisc, CT};
+  CeedScalar ctxAD[6] = {lx, ly, lz, Adisc, CT, eps};
   CeedQFunctionSetContext(qf_disc, &ctxAD, sizeof ctxAD);
 
   // Set up PETSc context
