@@ -23,9 +23,10 @@
 //   Mass Density:
 //     Constant mass density of 1.0
 //   Momentum Density:
-//     Translational field in x
+//     Rotational field in x,y with no momentum in z
 //   Energy Density:
-//      0.
+//     Maximum of 1. x0 decreasing linearly to 0. as radial distance increases
+//       to (1.-r/rc), then 0. everywhere else
 //
 //  Boundary Conditions:
 //    Mass Density:
@@ -36,7 +37,7 @@
 //      0.0 flux
 //
 // *****************************************************************************
-static int ICsActuatorDisc(void *ctx, CeedInt Q,
+static int ICsWindTurbine(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar *X = in[0];
@@ -86,29 +87,35 @@ static int ICsActuatorDisc(void *ctx, CeedInt Q,
   return 0;
 }
 
-
 // *****************************************************************************
-// This QFunction implements the following formulation of the actuator disc model
+// This QFunction implements the following formulation of the advection equation
+//
+// This is 3D advection given in two formulations based upon the weak form.
 //
 // State Variables: q = ( rho, U1, U2, U3, E )
 //   rho - Mass Density
 //   Ui  - Momentum Density    ,  Ui = rho ui
 //   E   - Total Energy Density
 //
-// Body Force for Actuator Disc Model:
-//   f = ....
+// Advection Equation:
+//   dE/dt + div( E u ) = 0
 //
 // *****************************************************************************
-static int AD(void *ctx, CeedInt Q,
-                     const CeedScalar *const *in, CeedScalar *const *out) {
+static int WT(void *ctx, CeedInt Q,
+              const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2];
+  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
   // Outputs
   CeedScalar *v = out[0], *dv = out[1];
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
-  const CeedScalar Adisc         = context[0];
-  const CeedScalar CT            = context[1];
+  const CeedScalar lx            = context[0];
+  const CeedScalar ly            = context[1];
+  const CeedScalar lz            = context[2];
+  const CeedScalar rc            = context[3];
+  const CeedScalar Adisc         = context[4];
+  const CeedScalar CT            = context[5];
+  const CeedScalar eps           = context[6];
 
   #pragma omp simd
   // Quadrature Point Loop
@@ -143,6 +150,18 @@ static int AD(void *ctx, CeedInt Q,
     // -- Interp-to-Interp qdata
     const CeedScalar wJ       =   qdata[i+ 0*Q];
 
+    // Coordinates
+    const CeedScalar xcoord = x[i+0*Q];
+    const CeedScalar ycoord = x[i+1*Q];
+    const CeedScalar zcoord = x[i+2*Q];
+
+    // Mollification function for turbine force force
+    const CeedScalar x0[3] = {0.5*lx, 0.5*ly, 0.5*lz};
+    const CeedScalar r = sqrt(pow((ycoord - x0[1]), 2) +
+                              pow((zcoord - x0[2]), 2));
+    const CeedScalar regfct = r >= rc ?
+                              exp(-(r/eps)*(r/(rc*eps)))/(eps*eps*eps*pow(M_PI,1.5)) : 1.;
+
     // The Physics
 
     // -- Density
@@ -162,18 +181,16 @@ static int AD(void *ctx, CeedInt Q,
     dv[i+(3+0*5)*Q] = 0;
     dv[i+(3+1*5)*Q] = 0;
     dv[i+(3+2*5)*Q] = 0;
-    v[i+1*Q] = 0.5*rho*u[0]*u[0]*Adisc*CT*wJ; // new body force only in the x-component
+    v[i+1*Q] = regfct; // new body force only in the x-component
     v[i+2*Q] = 0;
     v[i+3*Q] = 0;
 
     // -- Total Energy
     // ---- No Change
-    if (1) {
-      dv[i+(4+5*0)*Q]  = 0;
-      dv[i+(4+5*1)*Q]  = 0;
-      dv[i+(4+5*2)*Q]  = 0;
-      v[i+4*Q] = 0;
-    }
+    dv[i+(4+5*0)*Q]  = 0;
+    dv[i+(4+5*1)*Q]  = 0;
+    dv[i+(4+5*2)*Q]  = 0;
+    v[i+4*Q] = 0;
 
   } // End Quadrature Point Loop
 
