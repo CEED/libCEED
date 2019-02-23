@@ -47,6 +47,7 @@ static int ICsActuatorDisc(void *ctx, CeedInt Q,
   const CeedScalar lx         = context[9];
   const CeedScalar ly         = context[10];
   const CeedScalar lz         = context[11];
+
   // Setup
   const CeedScalar tol = 1.e-14;
 
