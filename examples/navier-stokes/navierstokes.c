@@ -29,6 +29,7 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include "common.h"
 #include "advection.h"
 #include "densitycurrent.h"
+#include "windturbine.h"
 #include "actuatordisc.h"
 
 #if PETSC_VERSION_LT(3,11,0)
@@ -355,9 +356,11 @@ int main(int argc, char **argv) {
   // Set up problem type command line option
   PetscFunctionListAdd(&icsflist, "advection", &ICsAdvection);
   PetscFunctionListAdd(&icsflist, "density_current", &ICsDC);
+  PetscFunctionListAdd(&icsflist, "wind_turbine", &ICsWindTurbine);
   PetscFunctionListAdd(&icsflist, "actuator_disc", &ICsActuatorDisc);
   PetscFunctionListAdd(&qflist, "advection", &Advection);
   PetscFunctionListAdd(&qflist, "density_current", &DC);
+  PetscFunctionListAdd(&qflist, "wind_turbine", &WT);
   PetscFunctionListAdd(&qflist, "actuator_disc", &AD);
 
   // Parse command line options
