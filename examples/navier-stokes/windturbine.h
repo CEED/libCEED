@@ -109,13 +109,12 @@ static int WT(void *ctx, CeedInt Q,
   CeedScalar *v = out[0], *dv = out[1];
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
-  const CeedScalar lx            = context[0];
-  const CeedScalar ly            = context[1];
-  const CeedScalar lz            = context[2];
-  const CeedScalar rc            = context[3];
-  const CeedScalar Adisc         = context[4];
-  const CeedScalar CT            = context[5];
-  const CeedScalar eps           = context[6];
+  const CeedScalar g          = context[5];
+  const CeedScalar rc         = context[6];
+  const CeedScalar lx         = context[7];
+  const CeedScalar ly         = context[8];
+  const CeedScalar lz         = context[9];
+  const CeedScalar eps        = context[10];
 
   #pragma omp simd
   // Quadrature Point Loop
@@ -183,7 +182,7 @@ static int WT(void *ctx, CeedInt Q,
     dv[i+(3+2*5)*Q] = 0;
     v[i+1*Q] = regfct; // new body force only in the x-component
     v[i+2*Q] = 0;
-    v[i+3*Q] = 0;
+    v[i+3*Q] = - rho*g*wJ;
 
     // -- Total Energy
     // ---- No Change

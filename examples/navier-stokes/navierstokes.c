@@ -851,9 +851,9 @@ int main(int argc, char **argv) {
   // Set up the libCEED context
   CeedScalar ctxSetup[12] = {theta0, thetaC, P0, N, cv, cp, Rd, g, rc, lx, ly, lz};
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
-  CeedScalar ctxNS[6] = {lambda, mu, k, cv, cp, g};
+  CeedScalar ctxNS[11] = {lambda, mu, k, cv, cp, g, rc, lx, ly, lz, eps};
   CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
-  CeedScalar ctxAD[7] = {lx, ly, lz, rc, Adisc, CT, eps};
+  CeedScalar ctxAD[2] = {Adisc, CT};
   CeedQFunctionSetContext(qf_disc, &ctxAD, sizeof ctxAD);
 
   // Set up PETSc context
