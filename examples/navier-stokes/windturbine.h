@@ -62,15 +62,15 @@ static int ICsWindTurbine(void *ctx, CeedInt Q,
 
     // Initial Conditions
     q0[i+0*Q] = 1.;
-    q0[i+1*Q] = 0.1;
+    q0[i+1*Q] = 50;
     q0[i+2*Q] = 0.0;
     q0[i+3*Q] = 0.0;
     q0[i+4*Q] = 0.0;
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
-    if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol
-         || fabs(y - 0.0) < tol || fabs(y - ly) < tol
-         || fabs(z - 0.0) < tol || fabs(z - lz) < tol ) {
+    if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol ||
+         fabs(y - 0.0) < tol || fabs(y - ly) < tol ||
+         fabs(z - 0.0) < tol || fabs(z - lz) < tol ) {
       q0[i+1*Q] = 0.0;
       q0[i+2*Q] = 0.0;
       q0[i+3*Q] = 0.0;
@@ -105,6 +105,7 @@ static int WT(void *ctx, CeedInt Q,
               const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
+
   // Outputs
   CeedScalar *v = out[0], *dv = out[1];
   // Context
@@ -154,12 +155,12 @@ static int WT(void *ctx, CeedInt Q,
     const CeedScalar ycoord = x[i+1*Q];
     const CeedScalar zcoord = x[i+2*Q];
 
-    // Mollification function for turbine force force
+    // Mollification function for turbine force
     const CeedScalar x0[3] = {0.5*lx, 0.5*ly, 0.5*lz};
     const CeedScalar r = sqrt(pow((ycoord - x0[1]), 2) +
                               pow((zcoord - x0[2]), 2));
-    const CeedScalar regfct = r >= rc ?
-                              exp(-(r/eps)*(r/(rc*eps)))/(eps*eps*eps*pow(M_PI,1.5)) : 1.;
+    const CeedScalar regfct = r > rc ?
+                              exp(-(r/eps)*(r/(rc*eps)))/(eps*eps*eps*pow(M_PI,1.5)) : 0.;
 
     // The Physics
 

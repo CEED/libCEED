@@ -769,8 +769,8 @@ int main(int argc, char **argv) {
                               AD, __FILE__ ":AD", &qf_disc);
   CeedQFunctionAddInput(qf_disc, "qdisc", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_disc, "dqdisc", 5, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_disc, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_disc, "qdatadisc", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_disc, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_disc, "vdisc", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_disc, "dvdisc", 5, CEED_EVAL_GRAD);
 
@@ -853,7 +853,7 @@ int main(int argc, char **argv) {
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
   CeedScalar ctxNS[11] = {lambda, mu, k, cv, cp, g, rc, lx, ly, lz, eps};
   CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
-  CeedScalar ctxAD[2] = {Adisc, CT};
+  CeedScalar ctxAD[7] = {Adisc, CT, eps, rc, lx, ly, lz};
   CeedQFunctionSetContext(qf_disc, &ctxAD, sizeof ctxAD);
 
   // Set up PETSc context
