@@ -62,7 +62,7 @@ static int ICsActuatorDisc(void *ctx, CeedInt Q,
 
     // Initial Conditions
     q0[i+0*Q] = 1.;
-    q0[i+1*Q] = 0.1;
+    q0[i+1*Q] = 50.;
     q0[i+2*Q] = 0.0;
     q0[i+3*Q] = 0.0;
     q0[i+4*Q] = 0.0;
@@ -103,13 +103,19 @@ static int ICsActuatorDisc(void *ctx, CeedInt Q,
 static int AD(void *ctx, CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2];
+  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
+
   // Outputs
   CeedScalar *v = out[0], *dv = out[1];
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
   const CeedScalar Adisc         = context[0];
   const CeedScalar CT            = context[1];
+  const CeedScalar eps           = context[2];
+  const CeedScalar rc            = context[3];
+  const CeedScalar lx            = context[4];
+  const CeedScalar ly            = context[5];
+  const CeedScalar lz            = context[6];
 
   #pragma omp simd
   // Quadrature Point Loop
@@ -144,6 +150,11 @@ static int AD(void *ctx, CeedInt Q,
     // -- Interp-to-Interp qdata
     const CeedScalar wJ       =   qdata[i+ 0*Q];
 
+    // Coordinates
+    const CeedScalar xcoord = x[i+0*Q];
+    const CeedScalar ycoord = x[i+1*Q];
+    const CeedScalar zcoord = x[i+2*Q];
+
     // The Physics
 
     // -- Density
@@ -152,6 +163,12 @@ static int AD(void *ctx, CeedInt Q,
     dv[i+(0+1*5)*Q] = 0;
     dv[i+(0+2*5)*Q] = 0;
     v[i+0*Q] = 0;
+
+    // Mollification function for turbine force in momentum eq.
+    const CeedScalar x0[3] = {0.5*lx, 0.5*ly, 0.5*lz};
+    const CeedScalar r = sqrt(pow((ycoord - x0[1]), 2) +
+                              pow((zcoord - x0[2]), 2));
+    const CeedScalar regfct = exp(-(r/eps)*(r/(rc*eps)))/(eps*eps*eps*pow(M_PI,1.5));
 
     // -- Momentum
     dv[i+(1+0*5)*Q] = 0;
@@ -163,7 +180,7 @@ static int AD(void *ctx, CeedInt Q,
     dv[i+(3+0*5)*Q] = 0;
     dv[i+(3+1*5)*Q] = 0;
     dv[i+(3+2*5)*Q] = 0;
-    v[i+1*Q] = 0.5*rho*u[0]*u[0]*Adisc*CT*wJ; // new body force only in the x-component
+    v[i+1*Q] = (0.5*rho*u[0]*u[0]*Adisc*CT) * regfct * wJ;
     v[i+2*Q] = 0;
     v[i+3*Q] = 0;
 
