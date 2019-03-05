@@ -246,11 +246,11 @@ static int CeedTensorContract_Avx_Blocked_4_8(Ceed ceed, CeedInt A, CeedInt B,
   return CeedTensorContract_Avx_Blocked(ceed, A, B, C, J, t, tmode, Add, u, v,
                                         4, 8);
 }
-static int CeedTensorContract_Avx_Remainder_4_8(Ceed ceed, CeedInt A, CeedInt B,
+static int CeedTensorContract_Avx_Remainder_8_8(Ceed ceed, CeedInt A, CeedInt B,
     CeedInt C, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode tmode,
     const CeedInt Add, const CeedScalar *restrict u, CeedScalar *restrict v) {
   return CeedTensorContract_Avx_Remainder(ceed, A, B, C, J, t, tmode, Add, u, v,
-                                          4, 8);
+                                          8, 8);
 }
 static int CeedTensorContract_Avx_Single_4_8(Ceed ceed, CeedInt A, CeedInt B,
     CeedInt C, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode tmode,
@@ -283,7 +283,7 @@ static int CeedTensorContract_Avx(Ceed ceed, CeedInt A, CeedInt B,
                                          v);
     // Remainder of columns
     if (C % blksize)
-      CeedTensorContract_Avx_Remainder_4_8(ceed, A, B, C, J, t, tmode, true, u,
+      CeedTensorContract_Avx_Remainder_8_8(ceed, A, B, C, J, t, tmode, true, u,
                                            v);
   }
 
