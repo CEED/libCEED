@@ -63,7 +63,7 @@ for ((i=0;i<${#backends[@]}; ++i)); do
     fi
 
     # grep to pass test t308 on error
-    if grep -F -q -e 'incompatible' ${output}.err \
+    if grep -F -q -e 'vectors incompatible' ${output}.err \
             && [[ "$1" = "t308"* ]] ; then
         printf "ok $i0 PASS - expected failure $1 $backend\n"
         printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
