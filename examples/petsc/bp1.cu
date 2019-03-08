@@ -20,7 +20,7 @@ extern "C" __global__ void Setup(void *ctx, CeedInt Q,
   CeedScalar *rho = fields.outputs[0], *true_soln = fields.outputs[1], *rhs = fields.outputs[2];
   const CeedScalar *x = (const CeedScalar *)fields.inputs[0];
   const CeedScalar *J = (const CeedScalar *)fields.inputs[1];
-  const CeedScalar *w = fields.inputs[2];
+  const CeedScalar *w = (const CeedScalar *)fields.inputs[2];
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
        i += blockDim.x * gridDim.x) {
@@ -35,7 +35,8 @@ extern "C" __global__ void Setup(void *ctx, CeedInt Q,
 
 extern "C" __global__ void Mass(void *ctx, CeedInt Q,
                 Fields_Cuda fields) {
-  const CeedScalar *u = fields.inputs[0], *rho = fields.inputs[1];
+  const CeedScalar *u = (const CeedScalar *)fields.inputs[0];
+  const CeedScalar *rho = (const CeedScalar *)fields.inputs[1];
   CeedScalar *v = fields.outputs[0];
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
@@ -46,7 +47,8 @@ extern "C" __global__ void Mass(void *ctx, CeedInt Q,
 
 extern "C" __global__ void Error(void *ctx, CeedInt Q,
                                  Fields_Cuda fields) {
-  const CeedScalar *u = fields.inputs[0], *target = fields.inputs[1];
+  const CeedScalar *u = (const CeedScalar *)fields.inputs[0];
+  const CeedScalar *target = (const CeedScalar *)fields.inputs[1];
   CeedScalar *err = fields.outputs[0];
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;

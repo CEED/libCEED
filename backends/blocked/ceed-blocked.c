@@ -20,14 +20,14 @@
 static int CeedInit_Blocked(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/blocked"))
+      && strcmp(resource, "/cpu/self/ref/blocked"))
     return CeedError(ceed, 1, "Blocked backend cannot use resource: %s", resource);
 
   Ceed ceedref;
 
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
-  CeedInit("/cpu/self/ref", &ceedref);
+  CeedInit("/cpu/self/ref/serial", &ceedref);
   ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
@@ -42,5 +42,5 @@ static int CeedInit_Blocked(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/blocked", CeedInit_Blocked, 30);
+  CeedRegister("/cpu/self/ref/blocked", CeedInit_Blocked, 30);
 }

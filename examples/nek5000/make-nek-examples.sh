@@ -67,8 +67,8 @@ cp $NEK5K_DIR/bin/makenek .
 
 sed -i.bak -e "s|^#FC=.*|FC=\"$FC\"|" \
     -e "s|^#CC=.*|CC=\"$CC\"|" \
-    -e "s|^#SOURCE_ROOT=.*|SOURCE_ROOT=\"$NEK5K_DIR\"|" \
-    -e "s|^#FFLAGS=.*|FFLAGS+=\"-g -I${CEED_DIR}/include\"|" \
+    -e "s|^#NEK_SOURCE_ROOT=.*|NEK_SOURCE_ROOT=\"${NEK5K_DIR}\"|" \
+    -e "s|^#FFLAGS=.*|FFLAGS+=\"-g -std=legacy -I${CEED_DIR}/include\"|" \
     -e "s|^#USR_LFLAGS+=.*|USR_LFLAGS+=\"-g -L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed\"|" makenek
 
 # Build examples
@@ -77,12 +77,12 @@ for ex in "${EXAMPLES[@]}"; do
 
   # makenek appends generated lines in SIZE, which we don't want versioned
   # So we copy SIZE.in to SIZE and use that with Nek5000. Once copied,
-  # user can reuse the SIZE file till he clean the examples directory.
+  # user can reuse the SIZE file until we clean the examples directory.
   if [[ ! -f SIZE ]]; then
     cp SIZE.in SIZE
   fi
 
-  ./makenek $ex 2>&1 >> $ex.build.log
+  ./makenek $ex $NEK5K_DIR >> $ex.build.log 2>&1
 
   if [[ ! -f ./nek5000 ]]; then
     echo "  Building $ex failed. See $ex.build.log for details."

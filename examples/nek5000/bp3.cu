@@ -18,7 +18,7 @@
 /// libCEED QFunctions for diffusion operator example using PETSc
 
 // *****************************************************************************
-extern "C" __global__ void Setup(void *ctx, CeedInt Q,
+extern "C" __global__ void diffsetupf(void *ctx, CeedInt Q,
                                  Fields_Cuda fields) {
   #ifndef M_PI
   #define M_PI    3.14159265358979323846
@@ -26,7 +26,7 @@ extern "C" __global__ void Setup(void *ctx, CeedInt Q,
   const CeedScalar *x = (const CeedScalar *)fields.inputs[0];
   const CeedScalar *J = (const CeedScalar *)fields.inputs[1];
   const CeedScalar *w = (const CeedScalar *)fields.inputs[2];
-  CeedScalar *qd = fields.outputs[0], *true_soln = fields.outputs[1], *rhs = fields.outputs[2];
+  CeedScalar *qd = fields.outputs[0], *rhs = fields.outputs[1];
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
        i += blockDim.x * gridDim.x) {
@@ -57,15 +57,15 @@ extern "C" __global__ void Setup(void *ctx, CeedInt Q,
     qd[i+Q*5] = qw * (A31*A31 + A32*A32 + A33*A33);
     const CeedScalar c[3] = { 0, 1., 2. };
     const CeedScalar k[3] = { 1., 2., 3. };
-    true_soln[i] = sin(M_PI*(c[0] + k[0]*x[i+Q*0])) *
-                   sin(M_PI*(c[1] + k[1]*x[i+Q*1])) *
-                   sin(M_PI*(c[2] + k[2]*x[i+Q*2]));
     const CeedScalar rho = w[i] * (J11*A11 + J21*A12 + J31*A13);
-    rhs[i] = rho * M_PI*M_PI * (k[0]*k[0] + k[1]*k[1] + k[2]*k[2]) * true_soln[i];
+    rhs[i] = rho * M_PI*M_PI * (k[0]*k[0] + k[1]*k[1] + k[2]*k[2]) * 
+               sin(M_PI*(c[0] + k[0]*x[i+Q*0])) *
+               sin(M_PI*(c[1] + k[1]*x[i+Q*1])) *
+               sin(M_PI*(c[2] + k[2]*x[i+Q*2]));
   }
 }
 
-extern "C" __global__ void Diff(void *ctx, CeedInt Q,
+extern "C" __global__ void diffusionf(void *ctx, CeedInt Q,
                                 Fields_Cuda fields) {
   const CeedScalar *ug = (const CeedScalar *)fields.inputs[0];
   const CeedScalar *qd = (const CeedScalar *)fields.inputs[1];
@@ -82,14 +82,3 @@ extern "C" __global__ void Diff(void *ctx, CeedInt Q,
   }
 }
 
-extern "C" __global__ void Error(void *ctx, CeedInt Q,
-                                 Fields_Cuda fields) {
-  const CeedScalar *u = (const CeedScalar *)fields.inputs[0];
-  const CeedScalar *target = (const CeedScalar *)fields.inputs[1];
-  CeedScalar *err = fields.outputs[0];
-  for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-       i < Q;
-       i += blockDim.x * gridDim.x) {
-    err[i] = u[i] - target[i];
-  }
-}

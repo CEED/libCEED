@@ -15,13 +15,15 @@ if [ ${1::6} == "petsc-" ]; then
     args=$(grep -F //TESTARGS examples/petsc/${1:6}.c* | cut -d\  -f2- )
 elif [ ${1::5} == "mfem-" ]; then
     args=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
+elif [ ${1::4} == "nek-" ]; then
+    args=$(grep -F "C TESTARGS" examples/nek5000/${1:4}.usr* | cut -d\  -f2- )
 elif [ ${1::2} == "ex" ]; then
     args=$(grep -F //TESTARGS examples/ceed/$1.c | cut -d\  -f2- )
 else
     args='{ceed_resource}'
 fi
 
-tmpfiles="${output} ${output}.out ${output}.diff ${output}.err"
+tmpfiles="${output} ${output}.out ${output}.diff ${output}.err SESSION.NAME"
 trap 'rm -f ${tmpfiles}' EXIT
 
 for ((i=0;i<${#backends[@]}; ++i)); do
@@ -33,6 +35,7 @@ for ((i=0;i<${#backends[@]}; ++i)); do
     # Run in subshell
     (build/$1 ${args/\{ceed_resource\}/$backend} || false) > ${output}.out 2> ${output}.err
     status=$?
+
     # grep to skip test if backend cannot handle resource
     if grep -F -q -e 'OCCA backend failed to use' ${output}.err; then
         printf "ok $i0 # SKIP - occa mode not supported $1 $backend\n"
@@ -92,6 +95,7 @@ for ((i=0;i<${#backends[@]}; ++i)); do
     else
         printf "ok $i1 $1 $backend stdout\n"
     fi
+
     # stderr
     if [ -s ${output}.err ]; then
         printf "not ok $i2 $1 $backend stderr\n"
