@@ -1,5 +1,5 @@
 /// @file
-/// Test creation and distruction of a 2D Simplex non-tensor H1 basis
+/// Test creation and destruction of a 2D Simplex non-tensor H1 basis
 /// \test Test creation and distruction of a 2D Simplex non-tensor H1 basis
 #include <ceed.h>
 #include "t310-basis.h"
