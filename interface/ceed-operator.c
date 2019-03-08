@@ -138,6 +138,9 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                          CeedElemRestriction r, CeedTransposeMode lmode,
                          CeedBasis b, CeedVector v) {
   int ierr;
+  if (op->composite)
+    return CeedError(op->ceed, 1, "Cannot add field to composite operator.");
+
   CeedInt numelements;
   ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
   if (op->numelements && op->numelements != numelements)
@@ -273,6 +276,9 @@ int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
 **/
 
 int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
+  if (op->composite)
+    return CeedError(op->ceed, 1, "Not defined for composite operator");
+
   *numelem = op->numelements;
   return 0;
 }
@@ -289,6 +295,9 @@ int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
 **/
 
 int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
+  if (op->composite)
+    return CeedError(op->ceed, 1, "Not defined for composite operator");
+
   *numqpts = op->numqpoints;
   return 0;
 }
@@ -305,6 +314,8 @@ int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
 **/
 
 int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
+  if (op->composite)
+    return CeedError(op->ceed, 1, "Not defined for composite operators");
   *numargs = op->nfields;
   return 0;
 }
@@ -337,6 +348,9 @@ int CeedOperatorGetSetupStatus(CeedOperator op, bool *setupdone) {
 **/
 
 int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
+  if (op->composite)
+    return CeedError(op->ceed, 1, "Not defined for composite operator");
+
   *qf = op->qf;
   return 0;
 }
@@ -441,6 +455,9 @@ int CeedOperatorSetSetupDone(CeedOperator op) {
 int CeedOperatorGetFields(CeedOperator op,
                           CeedOperatorField* *inputfields,
                           CeedOperatorField* *outputfields) {
+  if (op->composite)
+    return CeedError(op->ceed, 1, "Not defined for composite operator");
+
   if (inputfields) *inputfields = op->inputfields;
   if (outputfields) *outputfields = op->outputfields;
   return 0;
