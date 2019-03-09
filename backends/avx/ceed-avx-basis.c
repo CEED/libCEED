@@ -57,7 +57,8 @@ static int CeedTensorContract8_Avx(Ceed ceed, CeedInt A, CeedInt B,
   }
 
   const int JJ = 4, CC=8;
-  if (C % CC) return CeedError(ceed, 2, "Tensor [%d, %d, %d]: last dimension not divisible by %d", A, B, C, CC);
+  if (C % CC) return CeedError(ceed, 2,
+                                 "Tensor [%d, %d, %d]: last dimension not divisible by %d", A, B, C, CC);
 
   if (!Add) {
     for (CeedInt q=0; q<A*J*C; q++) {
@@ -79,7 +80,7 @@ static int CeedTensorContract8_Avx(Ceed ceed, CeedInt A, CeedInt B,
             __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
             for (CeedInt cc=0; cc<CC/4; cc++) { // unroll
               vv[jj][cc] += _mm256_mul_pd(tqv,
-                              _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
+                                          _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
             }
           }
         }
@@ -176,7 +177,7 @@ static int CeedBasisApply_Avx(CeedBasis basis, CeedInt nelem,
         P = Q1d, Q = Q1d;
       }
       CeedBasis_Avx *impl;
-      ierr = CeedBasisGetData(basis, (void*)&impl); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
       CeedScalar interp[nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
       CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
       CeedScalar tmp[2][nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
@@ -311,7 +312,7 @@ static int CeedBasisDestroyNonTensor_Avx(CeedBasis basis) {
 static int CeedBasisDestroyTensor_Avx(CeedBasis basis) {
   int ierr;
   CeedBasis_Avx *impl;
-  ierr = CeedBasisGetData(basis, (void*)&impl); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedFree(&impl->colograd1d); CeedChk(ierr);
   ierr = CeedFree(&impl); CeedChk(ierr);
@@ -332,7 +333,7 @@ int CeedBasisCreateTensorH1_Avx(CeedInt dim, CeedInt P1d,
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedMalloc(Q1d*Q1d, &impl->colograd1d); CeedChk(ierr);
   ierr = CeedBasisGetCollocatedGrad(basis, impl->colograd1d); CeedChk(ierr);
-  ierr = CeedBasisSetData(basis, (void*)&impl); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                 CeedBasisApply_Avx); CeedChk(ierr);

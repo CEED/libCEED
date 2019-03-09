@@ -43,7 +43,7 @@ static int f_build_mass(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
-  struct BuildContext *bc = (struct BuildContext*)ctx;
+  struct BuildContext *bc = (struct BuildContext *)ctx;
   const CeedScalar *J = in[0], *qw = in[1];
   CeedScalar *qd = out[0];
   switch (bc->dim + 10*bc->space_dim) {

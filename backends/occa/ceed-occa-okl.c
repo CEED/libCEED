@@ -76,7 +76,7 @@ int CeedOklDladdr_Occa(Ceed ceed) {
   Ceed_Occa *data;
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
   memset(&info,0,sizeof(info));
-  ierr = dladdr((void*)&CeedInit,&info);
+  ierr = dladdr((void *)&CeedInit,&info);
   dbg("[CeedOklDladdr] libceed -> %s", info.dli_fname);
   if (ierr==0)
     return CeedError(ceed, 1, "OCCA backend cannot fetch dladdr");
