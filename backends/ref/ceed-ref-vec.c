@@ -82,14 +82,11 @@ static int CeedVectorGetArrayRead_Ref(CeedVector vec, CeedMemType mtype,
   return 0;
 }
 
-static int CeedVectorRestoreArray_Ref(CeedVector vec, CeedScalar **array) {
-  *array = NULL;
+static int CeedVectorRestoreArray_Ref(CeedVector vec) {
   return 0;
 }
 
-static int CeedVectorRestoreArrayRead_Ref(CeedVector vec,
-    const CeedScalar **array) {
-  *array = NULL;
+static int CeedVectorRestoreArrayRead_Ref(CeedVector vec) {
   return 0;
 }
 

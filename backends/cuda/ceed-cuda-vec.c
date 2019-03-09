@@ -280,14 +280,11 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec,
 // *****************************************************************************
 // * Restore an array obtained using CeedVectorGetArray()
 // *****************************************************************************
-static int CeedVectorRestoreArrayRead_Cuda(const CeedVector vec,
-    const CeedScalar **array) {
+static int CeedVectorRestoreArrayRead_Cuda(const CeedVector vec) {
   return 0;
 }
 // *****************************************************************************
-static int CeedVectorRestoreArray_Cuda(const CeedVector vec,
-                                       CeedScalar **array) {
-  *array = NULL;
+static int CeedVectorRestoreArray_Cuda(const CeedVector vec) {
   return 0;
 }
 

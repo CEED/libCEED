@@ -231,26 +231,14 @@ static int CeedVectorGetArrayRead_Magma(CeedVector vec, CeedMemType mtype,
 // * Restore vector vec with values from array, where array received its values
 // * from vec and possibly modified them.
 // *****************************************************************************
-static int CeedVectorRestoreArray_Magma(CeedVector vec, CeedScalar **array) {
+static int CeedVectorRestoreArray_Magma(CeedVector vec) {
   CeedVector_Magma *impl = vec->data;
 
-  // Check if the array is a CPU pointer
-  if (*array == impl->array) {
-    // Update device, if the device pointer is not NULL
-    if (impl->darray != NULL) {
-      magma_setvector(vec->length, sizeof(*array[0]),
-                      *array, 1, impl->darray, 1);
-    } else {
-      // nothing to do (case of CPU use pointer)
-    }
-
-  } else if (impl->down_) {
+  if (impl->down_) {
     // nothing to do if array is on GPU, except if down_=1(case CPU use pointer)
     magma_getvector(vec->length, sizeof(*array[0]),
                     impl->darray, 1, impl->array, 1);
   }
-
-  *array = NULL;
   return 0;
 }
 
@@ -262,27 +250,14 @@ static int CeedVectorRestoreArray_Magma(CeedVector vec, CeedScalar **array) {
 // * from vec to only read them; in this case vec may have been modified meanwhile
 // * and needs to be restored here.
 // *****************************************************************************
-static int CeedVectorRestoreArrayRead_Magma(CeedVector vec,
-    const CeedScalar **array) {
+static int CeedVectorRestoreArrayRead_Magma(CeedVector vec) {
   CeedVector_Magma *impl = vec->data;
 
-  // Check if the array is a CPU pointer
-  if (*array == impl->array) {
-    // Update device, if the device pointer is not NULL
-    if (impl->darray != NULL) {
-      magma_setvector(vec->length, sizeof(*array[0]),
-                      *array, 1, impl->darray, 1);
-    } else {
-      // nothing to do (case of CPU use pointer)
-    }
-
-  } else if (impl->down_) {
+  if (impl->down_) {
     // nothing to do if array is on GPU, except if down_=1(case CPU use pointer)
     magma_getvector(vec->length, sizeof(*array[0]),
                     impl->darray, 1, impl->array, 1);
   }
-
-  *array = NULL;
   return 0;
 }
 
