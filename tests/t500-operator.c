@@ -7,12 +7,6 @@
 
 //! [QFunction User Code]
 static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                 CeedScalar *const *out);
-static int mass(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                CeedScalar *const *out);
-//! [QFunction User Code]
-
-static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
                  CeedScalar *const *out) {
   const CeedScalar *weight = in[0], *dxdX = in[1];
   CeedScalar *rho = out[0];
@@ -31,6 +25,7 @@ static int mass(void *ctx, CeedInt Q, const CeedScalar *const *in,
   }
   return 0;
 }
+//! [QFunction User Code]
 
 int main(int argc, char **argv) {
   Ceed ceed;
