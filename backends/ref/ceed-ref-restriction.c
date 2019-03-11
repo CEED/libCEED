@@ -23,7 +23,7 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
                                         CeedVector v, CeedRequest *request) {
   int ierr;
   CeedElemRestriction_Ref *impl;
-  ierr = CeedElemRestrictionGetData(r, (void*)&impl); CeedChk(ierr);;
+  ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);;
   const CeedScalar *uu;
   CeedScalar *vv;
   CeedInt nblk, blksize, nelem, elemsize, ndof, ncomp;
@@ -93,7 +93,7 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
 static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {
   int ierr;
   CeedElemRestriction_Ref *impl;
-  ierr = CeedElemRestrictionGetData(r, (void*)&impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedFree(&impl->indices_allocated); CeedChk(ierr);
   ierr = CeedFree(&impl); CeedChk(ierr);
@@ -129,7 +129,7 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
     impl->indices = indices;
   }
 
-  ierr = CeedElemRestrictionSetData(r, (void*)&impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionSetData(r, (void *)&impl); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",
                                 CeedElemRestrictionApply_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy",

@@ -128,7 +128,7 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
   CHKERRQ(ierr);
   ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
-  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
   ierr = VecGetArray(user->Yloc, &y); CHKERRQ(ierr);
   CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
   CeedVectorSetArray(user->yceed, CEED_MEM_HOST, CEED_USE_POINTER, y);
@@ -136,13 +136,13 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
   CeedOperatorApply(user->op, user->xceed, user->yceed,
                     CEED_REQUEST_IMMEDIATE);
   //TODO replace this by SyncArray when available
-  const CeedScalar* array;
+  const CeedScalar *array;
   ierr = CeedVectorGetArrayRead(user->yceed, CEED_MEM_HOST, &array);
   CHKERRQ(ierr);
   ierr = CeedVectorRestoreArrayRead(user->yceed, &array); CHKERRQ(ierr);
 
 
-  ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
+  ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
   ierr = VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
 
   if (Y) {
@@ -169,11 +169,11 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
                          SCATTER_REVERSE); CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES, SCATTER_REVERSE);
   CHKERRQ(ierr);
-  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
   CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
   CeedOperatorApply(op_error, user->xceed, collocated_error,
                     CEED_REQUEST_IMMEDIATE);
-  VecRestoreArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
+  VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
 
   *maxerror = 0;
   const CeedScalar *e;
@@ -253,7 +253,7 @@ int main(int argc, char **argv) {
   // Find my location in the process grid
   ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
   for (int d=0,rankleft=rank; d<3; d++) {
-    const int pstride[3] = {p[1]*p[2], p[2], 1};
+    const int pstride[3] = {p[1] *p[2], p[2], 1};
     irank[d] = rankleft / pstride[d];
     rankleft -= irank[d] * pstride[d];
   }
@@ -444,7 +444,7 @@ int main(int argc, char **argv) {
   // Setup rho, rhs, and target
   CeedOperatorApply(op_setup, xcoord, rho, CEED_REQUEST_IMMEDIATE);
   //TODO replace this by SyncArray when available
-  const CeedScalar* array;
+  const CeedScalar *array;
   ierr = CeedVectorGetArrayRead(rhsceed, CEED_MEM_HOST, &array); CHKERRQ(ierr);
   ierr = CeedVectorRestoreArrayRead(rhsceed, &array); CHKERRQ(ierr);
   CeedVectorDestroy(&xcoord);

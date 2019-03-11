@@ -322,7 +322,7 @@ CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx,
                                         size_t ctxsize);
 CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
-                                   CeedVector* u, CeedVector* v);
+                                   CeedVector *u, CeedVector *v);
 CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
 
 CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf,

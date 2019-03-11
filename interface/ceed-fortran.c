@@ -47,7 +47,7 @@ typedef int fortran_charlen_t;
   Splice(stringname, _c)[Splice(stringname, _len)] = 0;                 \
 
 #define fCeedInit FORTRAN_NAME(ceedinit,CEEDINIT)
-void fCeedInit(const char* resource, int *ceed, int *err,
+void fCeedInit(const char *resource, int *ceed, int *err,
                fortran_charlen_t resource_len) {
   FIX_STRING(resource);
   if (Ceed_count == Ceed_count_max) {
@@ -90,7 +90,7 @@ void fCeedVectorCreate(int *ceed, int *length, int *vec, int *err) {
     CeedRealloc(CeedVector_count_max, &CeedVector_dict);
   }
 
-  CeedVector* vec_ = &CeedVector_dict[CeedVector_count];
+  CeedVector *vec_ = &CeedVector_dict[CeedVector_count];
   *err = CeedVectorCreate(Ceed_dict[*ceed], *length, vec_);
 
   if (*err == 0) {
@@ -444,7 +444,7 @@ static int CeedQFunctionFortranStub(void *ctx, int nq,
   int ierr;
 
   CeedScalar *ctx_ = (CeedScalar *) fctx->innerctx;
-  fctx->f((void*)ctx_,&nq,u[0],u[1],u[2],u[3],u[4],u[5],u[6],
+  fctx->f((void *)ctx_,&nq,u[0],u[1],u[2],u[3],u[4],u[5],u[6],
           u[7],u[8],u[9],u[10],u[11],u[12],u[13],u[14],u[15],
           v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8],v[9],
           v[10],v[11],v[12],v[13],v[14],v[15],&ierr);
@@ -453,7 +453,7 @@ static int CeedQFunctionFortranStub(void *ctx, int nq,
 
 #define fCeedQFunctionCreateInterior \
     FORTRAN_NAME(ceedqfunctioncreateinterior, CEEDQFUNCTIONCREATEINTERIOR)
-void fCeedQFunctionCreateInterior(int* ceed, int* vlength,
+void fCeedQFunctionCreateInterior(int *ceed, int *vlength,
                                   void (*f)(void *ctx, int *nq,
                                       const CeedScalar *u,const CeedScalar *u1,
                                       const CeedScalar *u2,const CeedScalar *u3,
@@ -613,8 +613,8 @@ static int CeedOperator_count_max = 0;
 
 #define fCeedOperatorCreate \
     FORTRAN_NAME(ceedoperatorcreate, CEEDOPERATORCREATE)
-void fCeedOperatorCreate(int* ceed,
-                         int* qf, int* dqf, int* dqfT, int *op, int *err) {
+void fCeedOperatorCreate(int *ceed,
+                         int *qf, int *dqf, int *dqfT, int *op, int *err) {
   if (CeedOperator_count == CeedOperator_count_max)
     CeedOperator_count_max += CeedOperator_count_max/2 + 1,
                               CeedOperator_dict =

@@ -609,7 +609,7 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
   int ierr;
   CeedInt ulength = 0, vlength, ndof, nqpt;
   if (!basis->Apply) return CeedError(basis->ceed, 1,
-                                      "Backend does not support BasisApply");
+                                        "Backend does not support BasisApply");
   // check compatibility of topological and geometrical dimensions
   ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
@@ -619,10 +619,11 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
     ierr = CeedVectorGetLength(u, &ulength); CeedChk(ierr);
   }
 
-  if ((tmode == CEED_TRANSPOSE   && (vlength % ndof != 0 || ulength % nqpt != 0)) ||
+  if ((tmode == CEED_TRANSPOSE   && (vlength % ndof != 0 || ulength % nqpt != 0))
+      ||
       (tmode == CEED_NOTRANSPOSE && (ulength % ndof != 0 || vlength % nqpt != 0)))
-        return CeedError(basis->ceed, 1,
-                         "Length of input/output vectors incompatible with basis dimensions");
+    return CeedError(basis->ceed, 1,
+                     "Length of input/output vectors incompatible with basis dimensions");
 
   ierr = basis->Apply(basis, nelem, tmode, emode, u, v); CeedChk(ierr);
   return 0;

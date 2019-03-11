@@ -25,7 +25,7 @@ typedef struct {
   CeedElemRestriction *blkrestr; /// Blocked versions of restrictions
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
-  CeedScalar ** edata;
+  CeedScalar **edata;
   uint64_t *inputstate;  /// State counter of inputs
   CeedVector *evecsin;   /// Input E-vectors needed to apply operator
   CeedVector *evecsout;  /// Output E-vectors needed to apply operator

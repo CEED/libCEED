@@ -22,7 +22,7 @@
 static int CeedOperatorDestroy_Occa(CeedOperator op) {
   int ierr;
   CeedOperator_Occa *impl;
-  ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
 
   for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
     if (impl->Evecs[i]) {
@@ -93,7 +93,7 @@ static int CeedOperatorSetupFields_Occa(CeedQFunction qf, CeedOperator op,
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedQFunction_Occa *qf_data;
-  ierr = CeedQFunctionGetData(qf, (void*)&qf_data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, (void *)&qf_data); CeedChk(ierr);
   CeedBasis basis;
   CeedElemRestriction Erestrict;
   CeedOperatorField *opfields;
@@ -186,7 +186,7 @@ static int CeedOperatorSetup_Occa(CeedOperator op) {
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Occa *data;
-  ierr = CeedOperatorGetData(op, (void*)&data); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, (void *)&data); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields;
@@ -274,7 +274,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   dbg("[CeedOperator][Apply]");
   CeedOperator_Occa *data;
-  ierr = CeedOperatorGetData(op, (void*)&data); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, (void *)&data); CeedChk(ierr);
   //CeedVector *E = data->Evecs, *D = data->D, outvec;
   CeedInt Q, elemsize, numelements, numinputfields, numoutputfields, ncomp;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
@@ -537,7 +537,7 @@ int CeedOperatorCreate_Occa(CeedOperator op) {
 
   dbg("[CeedOperator][Create]");
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedOperatorSetData(op, (void*)&impl);
+  ierr = CeedOperatorSetData(op, (void *)&impl);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
                                 CeedOperatorApply_Occa); CeedChk(ierr);

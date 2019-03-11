@@ -27,10 +27,10 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
   CeedQFunction_Occa *qf_data;
-  ierr = CeedQFunctionGetData(qf, (void*)&qf_data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, (void *)&qf_data); CeedChk(ierr);
   CeedOperator op = qf_data->op;
   Ceed_Occa *ceed_data;
-  ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
   const occaDevice device = ceed_data->device;
   CeedInt nIn;
   ierr = CeedQFunctionGetNumArgs(qf, &nIn, NULL); CeedChk(ierr);
@@ -111,10 +111,10 @@ int CeedQFunctionAllocOpOut_Occa(CeedQFunction qf, CeedInt Q,
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
   CeedQFunction_Occa *data;
-  ierr = CeedQFunctionGetData(qf, (void*)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   CeedOperator op = data->op;
   Ceed_Occa *ceed_data;
-  ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
   const occaDevice device = ceed_data->device;
   const CeedInt bytes = sizeof(CeedScalar);
   CeedInt nOut;

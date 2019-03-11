@@ -24,10 +24,10 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   Ceed_Occa *ceed_data;
-  ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
   const occaDevice dev = ceed_data->device;
   CeedBasis_Occa *data;
-  ierr = CeedBasisGetData(basis, (void*)&data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
   // ***************************************************************************
   CeedInt dim, P1d, Q1d, ncomp;
   ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
@@ -138,7 +138,7 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   CeedBasis_Occa *data;
-  ierr = CeedBasisGetData(basis, (void*)&data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
   const CeedInt ready =  data->ready;
   // ***************************************************************************
   // We were waiting for the CeedElemRestriction to fill nelem and elemsize
@@ -342,7 +342,7 @@ static int CeedBasisDestroy_Occa(CeedBasis basis) {
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   CeedBasis_Occa *data;
-  ierr = CeedBasisGetData(basis, (void*)&data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
   dbg("[CeedBasis][Destroy]");
   occaFree(data->kZero);
   occaFree(data->kInterp);
@@ -370,7 +370,7 @@ int CeedBasisCreateTensorH1_Occa(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   Ceed_Occa *ceed_data;
-  ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
   const occaDevice dev = ceed_data->device;
   dbg("[CeedBasis][CreateTensorH1]");
   // ***************************************************************************

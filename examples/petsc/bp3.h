@@ -23,9 +23,9 @@
 // *****************************************************************************
 static int Setup(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
-#ifndef M_PI
+  #ifndef M_PI
 #define M_PI    3.14159265358979323846
-#endif
+  #endif
   const CeedScalar *x = in[0], *J = in[1], *w = in[2];
   CeedScalar *qd = out[0], *true_soln = out[1], *rhs = out[2];
   for (CeedInt i=0; i<Q; i++) {

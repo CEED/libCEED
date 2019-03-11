@@ -112,7 +112,7 @@ static int CeedBasisApply_Blocked(CeedBasis basis, CeedInt nelem,
         P = Q1d, Q = Q1d;
       }
       CeedBasis_Blocked *impl;
-      ierr = CeedBasisGetData(basis, (void*)&impl); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
       CeedScalar interp[nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
       CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
       CeedScalar tmp[2][nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
@@ -247,7 +247,7 @@ static int CeedBasisDestroyNonTensor_Blocked(CeedBasis basis) {
 static int CeedBasisDestroyTensor_Blocked(CeedBasis basis) {
   int ierr;
   CeedBasis_Blocked *impl;
-  ierr = CeedBasisGetData(basis, (void*)&impl); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedFree(&impl->colograd1d); CeedChk(ierr);
   ierr = CeedFree(&impl); CeedChk(ierr);
@@ -268,7 +268,7 @@ int CeedBasisCreateTensorH1_Blocked(CeedInt dim, CeedInt P1d,
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedMalloc(Q1d*Q1d, &impl->colograd1d); CeedChk(ierr);
   ierr = CeedBasisGetCollocatedGrad(basis, impl->colograd1d); CeedChk(ierr);
-  ierr = CeedBasisSetData(basis, (void*)&impl); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                 CeedBasisApply_Blocked); CeedChk(ierr);
