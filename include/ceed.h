@@ -334,7 +334,7 @@ CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                                      CeedTransposeMode lmode, CeedBasis b,
                                      CeedVector v);
 CEED_EXTERN int CeedCompositeOperatorAddSub(CeedOperator compositeop,
-                                            CeedOperator subop);
+    CeedOperator subop);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);

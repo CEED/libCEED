@@ -410,8 +410,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
 }
 
 static int CeedCompositeOperatorApply_Ref(CeedOperator op, CeedVector invec,
-                                          CeedVector outvec,
-                                          CeedRequest *request) {
+    CeedVector outvec,
+    CeedRequest *request) {
   int ierr;
   CeedInt numsub;
   CeedOperator_Ref *impl;
@@ -424,7 +424,7 @@ static int CeedCompositeOperatorApply_Ref(CeedOperator op, CeedVector invec,
   CeedChk(ierr);
   // Add to outvec with subsequent outputs
   for (CeedInt i=1; i<numsub; i++) {
-    ierr = CeedOperatorGetData(suboperators[i], (void*)&impl);
+    ierr = CeedOperatorGetData(suboperators[i], (void *)&impl);
     impl->add = true;
     ierr = CeedOperatorApply(suboperators[i], invec, outvec, request);
     CeedChk(ierr);

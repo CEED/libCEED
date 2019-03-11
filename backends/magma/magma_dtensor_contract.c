@@ -53,9 +53,9 @@ void magma_dtensor_contract(Ceed ceed,
   magma_dmalloc( &dT, ldt*Tn            );
   magma_dmalloc( &dU, ldu*Un*batchCount );
   magma_dmalloc( &dV, ldv*Vn*batchCount );
-  magma_malloc((void**)&dT_array, batchCount * sizeof(double*));
-  magma_malloc((void**)&dU_array, batchCount * sizeof(double*));
-  magma_malloc((void**)&dV_array, batchCount * sizeof(double*));
+  magma_malloc((void **)&dT_array, batchCount * sizeof(double *));
+  magma_malloc((void **)&dU_array, batchCount * sizeof(double *));
+  magma_malloc((void **)&dV_array, batchCount * sizeof(double *));
 
   magma_queue_t queue;
   magma_queue_create( &queue );

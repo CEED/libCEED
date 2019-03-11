@@ -196,11 +196,11 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop,
                                 CeedOperator subop) {
   if (!compositeop->composite)
     return CeedError(compositeop->ceed, 1,
-      "CeedOperator is not a composite operator");
+                     "CeedOperator is not a composite operator");
 
   if (compositeop->numsub == CEED_COMPOSITE_MAX)
     return CeedError(compositeop->ceed, 1,
-      "Cannot add additional suboperators");
+                     "Cannot add additional suboperators");
 
   compositeop->suboperators[compositeop->numsub] = subop;
   subop->refcount++;
@@ -235,14 +235,14 @@ int CeedOperatorApply(CeedOperator op, CeedVector in,
 
   if (op->composite) {
     if (!op->numsub) return CeedError(ceed, 1, "No suboperators set");
-  } else{
+  } else {
     if (op->nfields == 0) return CeedError(ceed, 1, "No operator fields set");
     if (op->nfields < qf->numinputfields + qf->numoutputfields) return CeedError(
             ceed, 1, "Not all operator fields set");
     if (op->numelements == 0) return CeedError(ceed, 1,
-                                "At least one restriction required");
+                                       "At least one restriction required");
     if (op->numqpoints == 0) return CeedError(ceed, 1,
-                               "At least one non-collocated basis required");
+                                      "At least one non-collocated basis required");
   }
   ierr = op->Apply(op, in, out, request); CeedChk(ierr);
   return 0;

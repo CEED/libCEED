@@ -635,7 +635,7 @@ void fCeedOperatorCreate(int *ceed,
 
 #define fCeedCompositeOperatorCreate \
     FORTRAN_NAME(ceedcompositeoperatorcreate, CEEDCOMPOSITEOPERATORCREATE)
-void fCeedCompositeOperatorCreate(int* ceed, int *op, int *err) {
+void fCeedCompositeOperatorCreate(int *ceed, int *op, int *err) {
   if (CeedOperator_count == CeedOperator_count_max)
     CeedOperator_count_max += CeedOperator_count_max/2 + 1,
                               CeedOperator_dict =

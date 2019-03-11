@@ -74,9 +74,9 @@ static int CeedVectorSetArray_Magma(CeedVector vec, CeedMemType mtype,
     // memory is on the host; own_ = 0
     switch (cmode) {
     case CEED_COPY_VALUES:
-      ierr = magma_malloc( (void**)&impl->darray,
+      ierr = magma_malloc( (void **)&impl->darray,
                            vec->length * sizeof(CeedScalar)); CeedChk(ierr);
-      ierr = magma_malloc_pinned( (void**)&impl->array,
+      ierr = magma_malloc_pinned( (void **)&impl->array,
                                   vec->length * sizeof(CeedScalar)); CeedChk(ierr);
       impl->own_ = 1;
 
@@ -85,7 +85,7 @@ static int CeedVectorSetArray_Magma(CeedVector vec, CeedMemType mtype,
                         array, 1, impl->darray, 1);
       break;
     case CEED_OWN_POINTER:
-      ierr = magma_malloc( (void**)&impl->darray,
+      ierr = magma_malloc( (void **)&impl->darray,
                            vec->length * sizeof(CeedScalar)); CeedChk(ierr);
       // TODO: possible problem here is if we are passed non-pinned memory;
       //       (as we own it, lter in destroy, we use free for pinned memory).
@@ -97,7 +97,7 @@ static int CeedVectorSetArray_Magma(CeedVector vec, CeedMemType mtype,
                         array, 1, impl->darray, 1);
       break;
     case CEED_USE_POINTER:
-      ierr = magma_malloc( (void**)&impl->darray,
+      ierr = magma_malloc( (void **)&impl->darray,
                            vec->length * sizeof(CeedScalar)); CeedChk(ierr);
       magma_setvector(vec->length, sizeof(array[0]),
                       array, 1, impl->darray, 1);
@@ -109,9 +109,9 @@ static int CeedVectorSetArray_Magma(CeedVector vec, CeedMemType mtype,
     // memory is on the device; own = 0
     switch (cmode) {
     case CEED_COPY_VALUES:
-      ierr = magma_malloc( (void**)&impl->darray,
+      ierr = magma_malloc( (void **)&impl->darray,
                            vec->length * sizeof(CeedScalar)); CeedChk(ierr);
-      ierr = magma_malloc_pinned( (void**)&impl->array,
+      ierr = magma_malloc_pinned( (void **)&impl->array,
                                   vec->length * sizeof(CeedScalar)); CeedChk(ierr);
       impl->own_ = 1;
 
@@ -125,7 +125,7 @@ static int CeedVectorSetArray_Magma(CeedVector vec, CeedMemType mtype,
       break;
     case CEED_OWN_POINTER:
       impl->darray = array;
-      ierr = magma_malloc_pinned( (void**)&impl->array,
+      ierr = magma_malloc_pinned( (void **)&impl->array,
                                   vec->length * sizeof(CeedScalar)); CeedChk(ierr);
       impl->own_ = 1;
 
@@ -339,60 +339,60 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
           ncomp=r->ncomp;
   CeedInt esize = nelem * elemsize;
 
-#ifdef USE_MAGMA_BATCH2
+  #ifdef USE_MAGMA_BATCH2
   CeedInt *dindices = impl->dindices;
   // Get pointers on the device
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &vv); CeedChk(ierr);
-#else
+  #else
   CeedInt *indices = impl->indices;
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
-#endif
+  #endif
 
   if (tmode == CEED_NOTRANSPOSE) {
     // Perform: v = r * u
     if (!impl->indices) {
       for (CeedInt i=0; i<esize*ncomp; i++) vv[i] = uu[i];
     } else if (ncomp == 1) {
-#ifdef USE_MAGMA_BATCH2
+      #ifdef USE_MAGMA_BATCH2
 magma_template<<i=0:esize>>
       (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices) {
         vv[i] = uu[dindices[i]];
       }
-#else
+      #else
       for (CeedInt i=0; i<esize; i++) vv[i] = uu[indices[i]];
-#endif
+      #endif
     } else {
       // vv is (elemsize x ncomp x nelem), column-major
       if (lmode == CEED_NOTRANSPOSE) { // u is (ndof x ncomp), column-major
-#ifdef USE_MAGMA_BATCH2
+        #ifdef USE_MAGMA_BATCH2
 magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
         (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices, int ndof) {
           vv[i + iend*(d+dend*e)] = uu[dindices[i+iend*e]+ndof*d];
         }
-#else
+        #else
         for (CeedInt e = 0; e < nelem; e++)
           for (CeedInt d = 0; d < ncomp; d++)
             for (CeedInt i=0; i < elemsize; i++) {
               vv[i + elemsize*(d+ncomp*e)] =
                 uu[indices[i+elemsize*e]+ndof*d];
             }
-#endif
+        #endif
       } else { // u is (ncomp x ndof), column-major
-#ifdef USE_MAGMA_BATCH2
+        #ifdef USE_MAGMA_BATCH2
 magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
         (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices) {
           vv[i + iend*(d+dend*e)] = uu[d+dend*dindices[i + iend*e]];
         }
-#else
+        #else
         for (CeedInt e = 0; e < nelem; e++)
           for (CeedInt d = 0; d < ncomp; d++)
             for (CeedInt i=0; i< elemsize; i++) {
               vv[i + elemsize*(d+ncomp*e)] =
                 uu[d+ncomp*indices[i+elemsize*e]];
             }
-#endif
+        #endif
       }
     }
   } else {
@@ -401,47 +401,47 @@ magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
       for (CeedInt i=0; i<esize; i++) vv[i] += uu[i];
     } else if (ncomp == 1) {
       // fprintf(stderr,"3 ---------\n");
-#ifdef USE_MAGMA_BATCH2
+      #ifdef USE_MAGMA_BATCH2
 magma_template<<i=0:esize>>
       (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices) {
         magmablas_datomic_add( &vv[dindices[i]], uu[i]);
       }
-#else
+      #else
       for (CeedInt i=0; i<esize; i++) vv[indices[i]] += uu[i];
-#endif
+      #endif
     } else { // u is (elemsize x ncomp x nelem)
       fprintf(stderr,"2 ---------\n");
 
       if (lmode == CEED_NOTRANSPOSE) { // vv is (ndof x ncomp), column-major
-#ifdef USE_MAGMA_BATCH2
+        #ifdef USE_MAGMA_BATCH2
 magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
         (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices, CeedInt ndof) {
           magmablas_datomic_add( &vv[dindices[i+iend*e]+ndof*d],
                                  uu[i+iend*(d+e*dend)]);
         }
-#else
+        #else
         for (CeedInt e = 0; e < nelem; e++)
           for (CeedInt d = 0; d < ncomp; d++)
             for (CeedInt i=0; i < elemsize; i++) {
               vv[indices[i + elemsize*e]+ndof*d] +=
                 uu[i + elemsize*(d+e*ncomp)];
             }
-#endif
+        #endif
       } else { // vv is (ncomp x ndof), column-major
-#ifdef USE_MAGMA_BATCH2
+        #ifdef USE_MAGMA_BATCH2
 magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
         (const CeedScalar *uu, CeedScalar *vv, CeedInt *dindices) {
           magmablas_datomic_add( &vv[d+dend*dindices[i + iend*e]],
                                  uu[i+iend*(d+e*dend)]);
         }
-#else
+        #else
         for (CeedInt e = 0; e < nelem; e++)
           for (CeedInt d = 0; d < ncomp; d++)
             for (CeedInt i=0; i < elemsize; i++) {
               vv[d+ncomp*indices[i + elemsize*e]] +=
                 uu[i + elemsize*(d+e*ncomp)];
             }
-#endif
+        #endif
       }
     }
   }
@@ -486,9 +486,9 @@ static int CeedElemRestrictionCreate_Magma(CeedMemType mtype,
     // memory is on the host; own_ = 0
     switch (cmode) {
     case CEED_COPY_VALUES:
-      ierr = magma_malloc( (void**)&impl->dindices,
+      ierr = magma_malloc( (void **)&impl->dindices,
                            size * sizeof(CeedInt)); CeedChk(ierr);
-      ierr = magma_malloc_pinned( (void**)&impl->indices,
+      ierr = magma_malloc_pinned( (void **)&impl->indices,
                                   size * sizeof(CeedInt)); CeedChk(ierr);
       impl->own_ = 1;
 
@@ -499,7 +499,7 @@ static int CeedElemRestrictionCreate_Magma(CeedMemType mtype,
       }
       break;
     case CEED_OWN_POINTER:
-      ierr = magma_malloc( (void**)&impl->dindices,
+      ierr = magma_malloc( (void **)&impl->dindices,
                            size * sizeof(CeedInt)); CeedChk(ierr);
       // TODO: possible problem here is if we are passed non-pinned memory;
       //       (as we own it, lter in destroy, we use free for pinned memory).
@@ -511,7 +511,7 @@ static int CeedElemRestrictionCreate_Magma(CeedMemType mtype,
                         indices, 1, impl->dindices, 1);
       break;
     case CEED_USE_POINTER:
-      ierr = magma_malloc( (void**)&impl->dindices,
+      ierr = magma_malloc( (void **)&impl->dindices,
                            size * sizeof(CeedInt)); CeedChk(ierr);
       magma_setvector(size, sizeof(CeedInt),
                       indices, 1, impl->dindices, 1);
@@ -522,9 +522,9 @@ static int CeedElemRestrictionCreate_Magma(CeedMemType mtype,
     // memory is on the device; own = 0
     switch (cmode) {
     case CEED_COPY_VALUES:
-      ierr = magma_malloc( (void**)&impl->dindices,
+      ierr = magma_malloc( (void **)&impl->dindices,
                            size * sizeof(CeedInt)); CeedChk(ierr);
-      ierr = magma_malloc_pinned( (void**)&impl->indices,
+      ierr = magma_malloc_pinned( (void **)&impl->indices,
                                   size * sizeof(CeedInt)); CeedChk(ierr);
       impl->own_ = 1;
 
@@ -534,7 +534,7 @@ static int CeedElemRestrictionCreate_Magma(CeedMemType mtype,
       break;
     case CEED_OWN_POINTER:
       impl->dindices = (CeedInt *)indices;
-      ierr = magma_malloc_pinned( (void**)&impl->indices,
+      ierr = magma_malloc_pinned( (void **)&impl->indices,
                                   size * sizeof(CeedInt)); CeedChk(ierr);
       impl->own_ = 1;
 
@@ -569,9 +569,9 @@ static int CeedTensorContract_Magma(Ceed ceed,
                                     const CeedScalar *t, CeedTransposeMode tmode,
                                     const CeedInt Add,
                                     const CeedScalar *u, CeedScalar *v) {
-#ifdef USE_MAGMA_BATCH
+  #ifdef USE_MAGMA_BATCH
   magma_dtensor_contract(ceed, A, B, C, J, t, tmode, Add, u, v);
-#else
+  #else
   CeedInt tstride0 = B, tstride1 = 1;
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = J;
@@ -591,7 +591,7 @@ static int CeedTensorContract_Magma(Ceed ceed,
       }
     }
   }
-#endif
+  #endif
   return 0;
 }
 
@@ -731,13 +731,13 @@ static int CeedQFunctionApply_Magma(CeedQFunction qf, CeedInt Q,
                                     CeedVector *U, CeedVector *V) {
   int ierr;
   CeedQFunction_Ref *impl;
-  ierr = CeedQFunctionGetData(qf, (void*)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);
 
   void *ctx;
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
 
   int (*f)() = NULL;
-  ierr = CeedQFunctionGetUserFunction(qf, (int (**)())&f); CeedChk(ierr);
+  ierr = CeedQFunctionGetUserFunction(qf, (int (* *)())&f); CeedChk(ierr);
 
   CeedInt nIn, nOut;
   ierr = CeedQFunctionGetNumArgs(qf, &nIn, &nOut); CeedChk(ierr);
@@ -773,7 +773,7 @@ static int CeedQFunctionApply_Magma(CeedQFunction qf, CeedInt Q,
 static int CeedQFunctionDestroy_Magma(CeedQFunction qf) {
   int ierr;
   CeedQFunction_Magma *impl;
-  ierr = CeedQFunctionGetData(qf, (void*)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedFree(&impl->inputs); CeedChk(ierr);
   ierr = CeedFree(&impl->outputs); CeedChk(ierr);
@@ -791,7 +791,7 @@ static int CeedQFunctionCreate_Magma(CeedQFunction qf) {
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->inputs); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->outputs); CeedChk(ierr);
-  ierr = CeedQFunctionSetData(qf, (void*)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionSetData(qf, (void *)&impl); CeedChk(ierr);
 
   qf->Apply = CeedQFunctionApply_Magma;
   qf->Destroy = CeedQFunctionDestroy_Magma;
@@ -801,7 +801,7 @@ static int CeedQFunctionCreate_Magma(CeedQFunction qf) {
 static int CeedOperatorDestroy_Magma(CeedOperator op) {
   int ierr;
   CeedOperator_Magma *impl;
-  ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
 
   for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
     if (impl->Evecs[i]) {
@@ -843,7 +843,7 @@ static int CeedOperatorSetupFields_Magma(CeedQFunction qf, CeedOperator op,
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedQFunction_Magma *qf_data;
-  ierr = CeedQFunctionGetData(qf, (void*)&qf_data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, (void *)&qf_data); CeedChk(ierr);
   CeedBasis basis;
   CeedElemRestriction Erestrict;
   CeedOperatorField *opfields;
@@ -921,7 +921,7 @@ static int CeedOperatorSetup_Magma(CeedOperator op) {
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Magma *data;
-  ierr = CeedOperatorGetData(op, (void*)&data); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, (void *)&data); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields;
@@ -971,7 +971,7 @@ static int CeedOperatorApply_Magma(CeedOperator op, CeedVector invec,
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Magma *data;
-  ierr = CeedOperatorGetData(op, (void*)&data); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, (void *)&data); CeedChk(ierr);
   //CeedVector *E = data->Evecs, *D = data->D, outvec;
   CeedInt Q, elemsize, numelements, numinputfields, numoutputfields, ncomp;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
@@ -1187,7 +1187,7 @@ static int CeedOperatorCreate_Magma(CeedOperator op) {
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedOperatorSetData(op, (void*)&impl);
+  ierr = CeedOperatorSetData(op, (void *)&impl);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
                                 CeedOperatorApply_Magma); CeedChk(ierr);
