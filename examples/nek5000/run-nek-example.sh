@@ -30,7 +30,7 @@ fi
 
 # Set defaults for the parameters
 : ${CEED_DIR:=`cd ../../; pwd`}
-nek_examples=(bp1 bp3)
+nek_examples=("bp1" "bp3")
 nek_spec=/cpu/self
 nek_np=1
 nek_box=
@@ -46,6 +46,7 @@ options:
    -c|-ceed     Ceed backend to be used for the run (optional, default: /cpu/self)
    -e|-example  Example name (optional, default: bp1)
    -n|-np       Specify number of MPI ranks for the run (optional, default: 1)
+   -t|-test     Run in test mode
    -b|-box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
 
 Example:
@@ -53,6 +54,8 @@ Example:
 "
 
 # Read in parameter values
+nek_test="notest"
+nek_test_rst="PASS"
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|-help)
@@ -75,6 +78,9 @@ while [ $# -gt 0 ]; do
        shift
        nek_box="$1"
        ;;
+    -t|-test)
+       nek_test="test"
+       ;;
   esac
   shift
 done
@@ -86,7 +92,12 @@ if [[ -z "${nek_box}" ]]; then
 fi
 
 for nek_ex in "${nek_examples[@]}"; do
-  echo "Running Nek example: $nek_ex"
+  if [ ${nek_test} == "test" ]; then
+    nek_ex="build/"${nek_ex}
+    NEK_BOX_DIR="build/boxes"
+  else
+    echo "Running Nek5000 Example: $nek_ex"    
+  fi
   if [[ ! -f ${nek_ex} ]]; then
     echo "  Example ${nek_ex} does not exist. Build it with make-nek-examples.sh"
     ${NEK_EXIT_CMD} 1
@@ -102,8 +113,26 @@ for nek_ex in "${nek_examples[@]}"; do
   rm -f ioinfo
   mv ${nek_ex}.log.${nek_np}.b${nek_box} ${nek_ex}.log1.${nek_np}.b${nek_box} 2>/dev/null
 
-  ${MPIEXEC:-mpiexec} -np ${nek_np} ./${nek_ex} ${nek_spec} > ${nek_ex}.log.${nek_np}.b${nek_box}
-  wait $!
+  nek_spec_short=${nek_spec//[\/]}
 
-  echo "  Run finished. Output was written to ${nek_ex}.log.${nek_np}.b${nek_box}"
+  if [ ${nek_test} == "test" ]; then
+      ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}
+    wait $!
+  else
+    ${MPIEXEC:-mpiexec} -np ${nek_np} ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}
+    wait $!
+  fi
+
+  if [ ! ${nek_test} == "test" ]; then
+    echo "  Run finished. Output was written to ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}"
+  fi
+  if [ ${nek_test} == "test" ]; then
+    if [[ $(grep "ERROR IS TOO LARGE" ${nek_ex}.${nek_spec_short}.log*) ]]; then
+      nek_test_rst="FAIL"
+    else
+      rm -f ${nek_ex}.${nek_spec_short}.log*
+    fi
+  fi
 done
+
+exit 0

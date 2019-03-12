@@ -20,7 +20,7 @@
 static int CeedOperatorDestroy_Ref(CeedOperator op) {
   int ierr;
   CeedOperator_Ref *impl;
-  ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
 
   for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
     ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);
@@ -55,7 +55,7 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
                                        CeedVector *fullevecs, CeedVector *evecs,
                                        CeedVector *qvecs, CeedInt starte,
                                        CeedInt numfields, CeedInt Q) {
-  CeedInt dim, ierr, ncomp;
+  CeedInt dim, ierr, ncomp, P;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedBasis basis;
@@ -96,14 +96,18 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
     case CEED_EVAL_INTERP:
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
       CeedChk(ierr);
-      ierr = CeedVectorCreate(ceed, Q*ncomp, &evecs[i]); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetElementSize(Erestrict, &P);
+      CeedChk(ierr);
+      ierr = CeedVectorCreate(ceed, P*ncomp, &evecs[i]); CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, Q*ncomp, &qvecs[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_GRAD:
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
-      ierr = CeedVectorCreate(ceed, Q*ncomp, &evecs[i]); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetElementSize(Erestrict, &P);
+      CeedChk(ierr);
+      ierr = CeedVectorCreate(ceed, P*ncomp, &evecs[i]); CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, Q*ncomp*dim, &qvecs[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_WEIGHT: // Only on input fields
@@ -133,7 +137,7 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Ref *impl;
-  ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields;
@@ -183,7 +187,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
                                  CeedVector outvec, CeedRequest *request) {
   int ierr;
   CeedOperator_Ref *impl;
-  ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numelements, elemsize, numinputfields, numoutputfields, ncomp;
@@ -406,7 +410,7 @@ int CeedOperatorCreate_Ref(CeedOperator op) {
   CeedOperator_Ref *impl;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedOperatorSetData(op, (void*)&impl);
+  ierr = CeedOperatorSetData(op, (void *)&impl);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
                                 CeedOperatorApply_Ref); CeedChk(ierr);

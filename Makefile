@@ -30,7 +30,12 @@ UNDERSCORE ?= 1
 
 # MFEM_DIR env variable should point to sibling directory
 ifneq ($(wildcard ../mfem/libmfem.*),)
-  MFEM_DIR?=../mfem
+  MFEM_DIR ?= ../mfem
+endif
+
+# NEK5K_DIR env variable should point to sibling directory
+ifneq ($(wildcard ../Nek5000/*),)
+  NEK5K_DIR ?= ../Nek5000
 endif
 
 # XSMM_DIR env variable should point to XSMM master (github.com/hfp/libxsmm)
@@ -106,7 +111,7 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.c := $(wildcard interface/ceed*.c)
-BACKENDS_BUILTIN := /cpu/self/ref /cpu/self/tmpl /cpu/self/blocked /cpu/self/avx
+BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/tmpl
 BACKENDS := $(BACKENDS_BUILTIN)
 
 # Tests
@@ -123,6 +128,10 @@ examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
 #mfemexamples
 mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
 mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
+#nekexamples
+nekexamples.usr := $(sort $(wildcard examples/nek5000/*.usr))
+nekexamples  := $(nekexamples.usr:examples/nek5000/%.usr=nek-%)
+#petscexamples
 petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
 petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 
@@ -192,13 +201,14 @@ info:
 	$(info ASAN       = $(or $(ASAN),(empty)))
 	$(info V          = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info ------------------------------------)
-	$(info AVX_STATUS = $(AVX_STATUS)$(call backend_status,/cpu/self/avx))
-	$(info XSMM_DIR   = $(XSMM_DIR)$(call backend_status,/cpu/xsmm/serial /cpu/xsmm/blocked))
+	$(info AVX_STATUS = $(AVX_STATUS)$(call backend_status,/cpu/self/avx/serial /cpu/self/avx/blocked))
+	$(info XSMM_DIR   = $(XSMM_DIR)$(call backend_status,/cpu/self/xsmm/serial /cpu/self/xsmm/blocked))
 	$(info OCCA_DIR   = $(OCCA_DIR)$(call backend_status,/cpu/occa /gpu/occa /omp/occa))
 	$(info MAGMA_DIR  = $(MAGMA_DIR)$(call backend_status,/gpu/magma))
 	$(info CUDA_DIR   = $(CUDA_DIR)$(call backend_status,/gpu/magma))
 	$(info ------------------------------------)
 	$(info MFEM_DIR   = $(MFEM_DIR))
+	$(info NEK5K_DIR  = $(NEK5K_DIR))
 	$(info PETSC_DIR  = $(PETSC_DIR))
 	$(info ------------------------------------)
 	$(info prefix       = $(prefix))
@@ -222,11 +232,11 @@ libceed.c += $(avx.c)
 
 # AVX Backed
 AVX_STATUS = Disabled
-AVX := $(shell $(CC) $(CFLAGS) -v -E - < /dev/null 2>&1 | grep -c avx)
+AVX := $(shell $(CC) $(OPT) -v -E - < /dev/null 2>&1 | grep -c avx)
 ifeq ($(AVX),1)
   AVX_STATUS = Enabled
   libceed.c += $(avx.c)
-  BACKENDS += /cpu/self/avx
+  BACKENDS += /cpu/self/avx/serial /cpu/self/avx/blocked
 endif
 
 # libXSMM Backends
@@ -337,9 +347,12 @@ prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
 allexamples := $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
 alltests := $(tests) $(allexamples)
-prove-all : $(alltests)
+fulltestlist = $(alltests) $(if $(NEK5K_DIR), $(nekexamples))
+prepnektests:
+	(export CC FC && cd examples && make prepnektests)
+prove-all : $(alltests) $(if $(NEK5K_DIR), prepnektests)
 	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(alltests:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(fulltestlist:$(OBJDIR)/%=%)
 
 all: $(alltests)
 
@@ -377,7 +390,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(if $(OCCA_ON),$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/")
 
-.PHONY : cln clean print test tst prove prv examples style install doc okl-cache okl-clear
+.PHONY : cln clean doc lib install all print test tst prove prv prove-all examples style okl-cache okl-clear info info-backends
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
@@ -392,12 +405,10 @@ doc :
 	doxygen Doxyfile
 
 style :
-	astyle --style=google --indent=spaces=2 --max-code-length=80 \
-            --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
-            --suffix=none --preserve-date --formatted \
-            --exclude=include/ceedf.h --exclude=tests/t310-basis-f.h \
-            include/*.h interface/*.[ch] tests/*.[ch] backends/*/*.[ch] \
-            examples/*/*.[ch] examples/*/*.[ch]pp -i
+	@astyle --options=.astylerc \
+          $(filter-out include/ceedf.h tests/t310-basis-f.h, \
+            $(wildcard include/*.h interface/*.[ch] tests/*.[ch] backends/*/*.[ch] \
+              examples/*/*.[ch] examples/*/*.[ch]pp))
 
 print :
 	@echo $(VAR)=$($(VAR))

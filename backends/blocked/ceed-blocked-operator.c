@@ -21,7 +21,7 @@
 static int CeedOperatorDestroy_Blocked(CeedOperator op) {
   int ierr;
   CeedOperator_Blocked *impl;
-  ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
 
   for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
     ierr = CeedElemRestrictionDestroy(&impl->blkrestr[i]); CeedChk(ierr);
@@ -59,7 +59,7 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op,
     CeedVector *fullevecs, CeedVector *evecs,
     CeedVector *qvecs, CeedInt starte,
     CeedInt numfields, CeedInt Q) {
-  CeedInt dim, ierr, ncomp;
+  CeedInt dim, ierr, ncomp, P;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedBasis basis;
@@ -91,7 +91,7 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op,
       ierr = CeedElemRestrictionGetData(r, (void *)&data);
       Ceed ceed;
       ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
-      CeedInt nelem, elemsize, ndof, ncomp;
+      CeedInt nelem, elemsize, ndof;
       ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
       ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
       ierr = CeedElemRestrictionGetNumDoF(r, &ndof); CeedChk(ierr);
@@ -115,14 +115,18 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op,
     case CEED_EVAL_INTERP:
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
       CeedChk(ierr);
-      ierr = CeedVectorCreate(ceed, Q*ncomp*blksize, &evecs[i]); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetElementSize(r, &P);
+      CeedChk(ierr);
+      ierr = CeedVectorCreate(ceed, P*ncomp*blksize, &evecs[i]); CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, Q*ncomp*blksize, &qvecs[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_GRAD:
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
-      ierr = CeedVectorCreate(ceed, Q*ncomp*blksize, &evecs[i]); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetElementSize(r, &P);
+      CeedChk(ierr);
+      ierr = CeedVectorCreate(ceed, P*ncomp*blksize, &evecs[i]); CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, Q*ncomp*dim*blksize, &qvecs[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_WEIGHT: // Only on input fields
@@ -153,7 +157,7 @@ static int CeedOperatorSetup_Blocked(CeedOperator op) {
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Blocked *impl;
-  ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields;
@@ -206,7 +210,7 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
                                      CeedVector outvec, CeedRequest *request) {
   int ierr;
   CeedOperator_Blocked *impl;
-  ierr = CeedOperatorGetData(op, (void*)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
   const CeedInt blksize = 8;
   CeedInt Q, elemsize, numinputfields, numoutputfields, numelements, ncomp;
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);

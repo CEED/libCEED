@@ -26,7 +26,8 @@ extern "C" __global__ void f_build_diff(void *ctx, CeedInt Q,
   //
   // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
   // the symmetric part of the result.
-  const CeedScalar *J = fields.inputs[0], *qw = fields.inputs[1];
+  const CeedScalar *J = (const CeedScalar *)fields.inputs[0];
+  const CeedScalar *qw = (const CeedScalar *)fields.inputs[1];
   CeedScalar *qd = fields.outputs[0];
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
@@ -94,7 +95,8 @@ extern "C" __global__ void f_apply_diff(void *ctx, CeedInt Q,
                                         Fields_Cuda fields) {
   BuildContext *bc = (BuildContext*)ctx;
   // in[0], out[0] have shape [dim, nc=1, Q]
-  const CeedScalar *ug = fields.inputs[0], *qd = fields.inputs[1];
+  const CeedScalar *ug = (const CeedScalar *)fields.inputs[0];
+  const CeedScalar *qd = (const CeedScalar *)fields.inputs[1];
   CeedScalar *vg = fields.outputs[0];
   switch (bc->dim) {
   case 1:

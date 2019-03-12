@@ -49,8 +49,9 @@ typedef struct {
 // *****************************************************************************
 // * CeedElemRestriction Occa struct
 // *****************************************************************************
-#define CEED_OCCA_NUM_RESTRICTION_KERNELS 9
+#define CEED_OCCA_NUM_RESTRICTION_KERNELS 7
 typedef struct {
+  bool identity;
   occaMemory d_indices;
   occaMemory d_toffsets;
   occaMemory d_tindices;
@@ -115,7 +116,8 @@ typedef struct {
 } Ceed_Occa;
 
 // *****************************************************************************
-CEED_INTERN int CeedOklPath_Occa(const Ceed, const char*, const char*, char **);
+CEED_INTERN int CeedOklPath_Occa(const Ceed, const char *, const char *,
+                                 char **);
 
 // *****************************************************************************
 CEED_INTERN int CeedOklDladdr_Occa(Ceed);
@@ -126,8 +128,8 @@ CEED_INTERN int CeedOklDladdr_Occa(Ceed);
 #ifndef CEED_DEBUG_COLOR
 #define CEED_DEBUG_COLOR 0
 #endif
-void CeedDebugImpl(const Ceed,const char*,...);
-void CeedDebugImpl256(const Ceed,const unsigned char,const char*,...);
+void CeedDebugImpl(const Ceed,const char *,...);
+void CeedDebugImpl256(const Ceed,const unsigned char,const char *,...);
 #define CeedDebug(ceed,format, ...) CeedDebugImpl(ceed,format, ## __VA_ARGS__)
 #define CeedDebug256(ceed,color, ...) CeedDebugImpl256(ceed,color, ## __VA_ARGS__)
 #define dbg(...) CeedDebug256(ceed,(unsigned char)CEED_DEBUG_COLOR, ## __VA_ARGS__)

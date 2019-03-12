@@ -43,6 +43,9 @@ nek:
 		 FC=$(NEK5K_FC) CC=$(NEK5K_CC) \
 		 EXAMPLES=$(NEK5K_EXAMPLES) ./make-nek-examples.sh
 
+prepnektests:
+	cd nek5000 && ./make-nek-tests.sh
+
 mfem:
 	make CEED_DIR=$(CEED_DIR) MFEM_DIR=$(MFEM_DIR) -C mfem all
 

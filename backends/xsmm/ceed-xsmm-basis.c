@@ -22,13 +22,11 @@
 // NOTRANSPOSE: V_ajc = T_jb U_abc
 // TRANSPOSE:   V_ajc = T_bj U_abc
 // If Add != 0, "=" is replaced by "+="
+
+// Blocked Tensor Contract
 static int CeedTensorContract_Xsmm_Blocked(Ceed ceed, CeedInt A, CeedInt B,
-                                           CeedInt C, CeedInt J,
-                                           const CeedScalar *restrict t,
-                                           CeedTransposeMode tmode,
-                                           const CeedInt Add,
-                                           const CeedScalar *restrict u,
-                                           CeedScalar *restrict v) {
+    CeedInt C, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode tmode,
+    const CeedInt Add, const CeedScalar *restrict u, CeedScalar *restrict v) {
   CeedScalar alpha = 1.0, beta = 1.0;
   char transu = 'N', transt = 'N';
   if (tmode == CEED_TRANSPOSE)
@@ -45,13 +43,10 @@ static int CeedTensorContract_Xsmm_Blocked(Ceed ceed, CeedInt A, CeedInt B,
   return 0;
 }
 
+// Serial Tensor Contact
 static int CeedTensorContract_Xsmm_Serial(Ceed ceed, CeedInt A, CeedInt B,
-                                          CeedInt C, CeedInt J,
-                                          const CeedScalar *restrict t,
-                                          CeedTransposeMode tmode,
-                                          const CeedInt Add,
-                                          const CeedScalar *restrict u,
-                                          CeedScalar *restrict v) {
+    CeedInt C, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode tmode,
+    const CeedInt Add, const CeedScalar *restrict u, CeedScalar *restrict v) {
   CeedScalar alpha = 1.0, beta = 1.0;
   char transu = 'N', transt = 'N';
   if ((tmode == CEED_TRANSPOSE && C != 1)
@@ -67,11 +62,29 @@ static int CeedTensorContract_Xsmm_Serial(Ceed ceed, CeedInt A, CeedInt B,
       libxsmm_dgemm(&transu, &transt, &C, &J, &B,
                     &alpha, &u[a*B*C], NULL, &t[0], NULL,
                     &beta, &v[a*J*C], NULL);
-   else
-      // libXSMM GEMM
-      libxsmm_dgemm(&transt, &transu, &J, &A, &B,
-                    &alpha, &t[0], NULL, &u[0], NULL,
-                    &beta, &v[0], NULL);
+  else
+    // libXSMM GEMM
+    libxsmm_dgemm(&transt, &transu, &J, &A, &B,
+                  &alpha, &t[0], NULL, &u[0], NULL,
+                  &beta, &v[0], NULL);
+
+  return 0;
+}
+
+// Switch for Tensor Contract
+static int CeedTensorContract_Xsmm(Ceed ceed, CeedInt A, CeedInt B,
+                                   CeedInt C, CeedInt J,
+                                   const CeedScalar *restrict t,
+                                   CeedTransposeMode tmode,
+                                   const CeedInt Add,
+                                   const CeedScalar *restrict u,
+                                   CeedScalar *restrict v) {
+  CeedInt blksize = 8;
+
+  if (C % blksize)
+    CeedTensorContract_Xsmm_Serial(ceed, A, B, C, J, t, tmode, Add, u, v);
+  else
+    CeedTensorContract_Xsmm_Blocked(ceed, A, B, C, J, t, tmode, Add, u, v);
 
   return 0;
 }
@@ -89,7 +102,6 @@ static int CeedBasisApply_Xsmm(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   const CeedInt add = (tmode == CEED_TRANSPOSE);
-  const CeedInt blksize = 8;
   const CeedScalar *u;
   CeedScalar *v;
   if (U) {
@@ -99,16 +111,6 @@ static int CeedBasisApply_Xsmm(CeedBasis basis, CeedInt nelem,
                      "An input vector is required for this CeedEvalMode");
   }
   ierr = CeedVectorGetArray(V, CEED_MEM_HOST, &v); CeedChk(ierr);
-
-  if ((nelem != 1) && (nelem != blksize))
-    return CeedError(ceed, 1,
-                     "This backend does not support BasisApply for %d elements", nelem);
-
-  int (*CeedTensorContract_Xsmm)() = NULL;
-  if (nelem == blksize)
-    CeedTensorContract_Xsmm = CeedTensorContract_Xsmm_Blocked;
-  else
-    CeedTensorContract_Xsmm = CeedTensorContract_Xsmm_Serial;
 
   if (tmode == CEED_TRANSPOSE) {
     const CeedInt vsize = nelem*ncomp*ndof;
@@ -151,7 +153,7 @@ static int CeedBasisApply_Xsmm(CeedBasis basis, CeedInt nelem,
         P = Q1d, Q = Q1d;
       }
       CeedBasis_Xsmm *impl;
-      ierr = CeedBasisGetData(basis, (void*)&impl); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
       CeedScalar interp[nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
       CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
       CeedScalar tmp[2][nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
@@ -286,7 +288,7 @@ static int CeedBasisDestroyNonTensor_Xsmm(CeedBasis basis) {
 static int CeedBasisDestroyTensor_Xsmm(CeedBasis basis) {
   int ierr;
   CeedBasis_Xsmm *impl;
-  ierr = CeedBasisGetData(basis, (void*)&impl); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedFree(&impl->colograd1d); CeedChk(ierr);
   ierr = CeedFree(&impl); CeedChk(ierr);
@@ -307,7 +309,7 @@ int CeedBasisCreateTensorH1_Xsmm(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedMalloc(Q1d*Q1d, &impl->colograd1d); CeedChk(ierr);
   ierr = CeedBasisGetCollocatedGrad(basis, impl->colograd1d); CeedChk(ierr);
-  ierr = CeedBasisSetData(basis, (void*)&impl); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                 CeedBasisApply_Xsmm); CeedChk(ierr);
