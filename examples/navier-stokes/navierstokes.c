@@ -230,13 +230,12 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   // Save time stamp
-  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.data", user->outputfolder);
+  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.bin", user->outputfolder);
   CHKERRQ(ierr);
-  FILE *fp;
-  ierr = PetscFOpen(user->comm, filepath, "w", &fp);
+  ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
   CHKERRQ(ierr);
-  ierr = PetscFPrintf (user->comm, fp, "%lg", time); CHKERRQ(ierr);
-  ierr = PetscFClose(user->comm, fp); CHKERRQ(ierr);
+  ierr = PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL, true); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -846,22 +845,16 @@ int main(int argc, char **argv) {
     ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
   } else { // continue from time of last output
     PetscReal time;
+    PetscInt count;
+    PetscViewer viewer;
     char filepath[PETSC_MAX_PATH_LEN];
-    ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.data",
+    ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.bin",
                          user->outputfolder); CHKERRQ(ierr);
-    FILE *fp;
-    ierr = PetscFOpen(comm, filepath, "r", &fp);    CHKERRQ(ierr);
-    PetscMPIInt rank, size;
-    MPI_Comm_rank(comm, &rank);
-    MPI_Comm_size(comm, &size);
-    if (!rank) {
-      ierr = fscanf(fp, "%lg", &time); CHKERRQ(ierr);
-      PetscFClose(comm, fp); CHKERRQ(ierr);
-      for (int i = 1; i < size; ++i)
-        ierr = MPI_Send(&time, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
-    } else {
-        ierr = MPI_Recv(&time, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
+    ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
+    CHKERRQ(ierr);
+    ierr = PetscViewerBinaryRead(viewer, &time, 1, &count, PETSC_REAL);
+    CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
     ierr = TSSetTime(ts, time); CHKERRQ(ierr);
   }
   ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
