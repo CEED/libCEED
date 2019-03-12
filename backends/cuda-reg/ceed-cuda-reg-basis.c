@@ -30,7 +30,6 @@ typedef CeedScalar real;
 //Read non interleaved dofs
 inline __device__ void readDofs(const int bid, const int tid, const int comp,
 const int size, const int nelem, const CeedScalar *d_U, real *r_U) {
-#pragma unroll
   for (int i = 0; i < size; i++)
     //r_U[i] = d_U[tid + i*32 + bid*32*size + comp*size*nelem];
     //r_U[i] = d_U[i + tid*size + bid*32*size + comp*size*nelem ];
@@ -41,7 +40,6 @@ const int size, const int nelem, const CeedScalar *d_U, real *r_U) {
 inline __device__ void readQuads(const int bid, const int tid, const int comp,
                                  const int dim, const int size, const int nelem, const CeedScalar *d_U,
                                  real *r_U) {
-#pragma unroll
   for (int i = 0; i < size; i++)
     r_U[i] = d_U[i + tid*size + bid*32*size + comp*size*nelem +
                  dim*BASIS_NCOMP*nelem*size];
@@ -51,7 +49,6 @@ inline __device__ void readQuads(const int bid, const int tid, const int comp,
 //Write non interleaved dofs
 inline __device__ void writeDofs(const int bid, const int tid, const int comp,
                                  const int size, const int nelem, const CeedScalar *r_V, real *d_V) {
-#pragma unroll
   for (int i = 0; i < size; i++)
     //d_V[i + tid*size + bid*32*size + comp*size*nelem ] = r_V[i];
     d_V[i + comp*size + tid*BASIS_NCOMP*size + bid*32*BASIS_NCOMP*size ] = r_V[i];
@@ -61,7 +58,6 @@ inline __device__ void writeDofs(const int bid, const int tid, const int comp,
 inline __device__ void writeQuads(const int bid, const int tid, const int comp,
                                   const int dim, const int size, const int nelem, const CeedScalar *r_V,
                                   real *d_V) {
-#pragma unroll
   for (int i = 0; i < size; i++)
     d_V[i + tid*size + bid*32*size + comp*size*nelem + dim*BASIS_NCOMP*nelem*size ]
       = r_V[i];
@@ -79,11 +75,11 @@ inline __device__ void add(const int size, CeedScalar *r_V,
 inline __device__ void Contract1d(const real *A, const real *B,
                                   int nA1,
                                   int nB1, int nB2, real *T) {
-#pragma unroll
+//_Pragma("unroll")
   for (int l = 0; l < nB2; l++) T[l] = 0.0;
-#pragma unroll
+//_Pragma("unroll")
   for (int b2 = 0; b2 < nB2; b2++)
-#pragma unroll
+//_Pragma("unroll")
     for (int t = 0; t < nB1; t++) {
       T[b2] += B[b2*nB1 + t] * A[t];
     }
@@ -92,11 +88,11 @@ inline __device__ void Contract1d(const real *A, const real *B,
 inline __device__ void ContractTranspose1d(const real *A, const real *B,
     int nA1,
     int nB1, int nB2, real *T) {
-#pragma unroll
+//_Pragma("unroll")
   for (int l = 0; l < nB1; l++) T[l] = 0.0;
-#pragma unroll
+//_Pragma("unroll")
   for (int b1 = 0; b1 < nB1; b1++)
-#pragma unroll
+//_Pragma("unroll")
     for (int t = 0; t < nB2; t++) {
       T[b1] += B[t*nB1 + b1] * A[t];
     }
@@ -167,13 +163,13 @@ inline __device__ void grad1d(const CeedInt nelem, const int transpose,
 inline __device__ void Contract2d(const real *A, const real *B,
                                   int nA1, int nA2,
                                   int nB1, int nB2, real *T) {
-#pragma unroll
+//_Pragma("unroll")
   for (int l = 0; l < nA2*nB2; l++) T[l] = 0.0;
-#pragma unroll
+//_Pragma("unroll")
   for (int a2 = 0; a2 < nA2; a2++)
-#pragma unroll
+//_Pragma("unroll")
     for (int b2 = 0; b2 < nB2; b2++)
-#pragma unroll
+//_Pragma("unroll")
       for (int t = 0; t < nB1; t++) {
         T[a2 + b2*nA2] += B[b2*nB1 + t] * A[a2*nA1 + t];
       }
@@ -182,13 +178,13 @@ inline __device__ void Contract2d(const real *A, const real *B,
 inline __device__ void ContractTranspose2d(const real *A, const real *B,
     int nA1, int nA2,
     int nB1, int nB2, real *T) {
-#pragma unroll
+//_Pragma("unroll")
   for (int l = 0; l < nA2*nB1; l++) T[l] = 0.0;
-#pragma unroll
+//_Pragma("unroll")
   for (int a2 = 0; a2 < nA2; a2++)
-#pragma unroll
+//_Pragma("unroll")
     for (int b1 = 0; b1 < nB1; b1++)
-#pragma unroll
+//_Pragma("unroll")
       for (int t = 0; t < nB2; t++) {
         T[a2 + b1*nA2] += B[t*nB1 + b1] * A[a2*nA1 + t];
       }
@@ -273,15 +269,15 @@ inline __device__ void grad2d(const CeedInt nelem, const int transpose,
 inline __device__ void Contract3d(const real *A, const real *B,
                                   int nA1, int nA2, int nA3,
                                   int nB1, int nB2, real *T) {
-#pragma unroll
+//_Pragma("unroll")
   for (int l = 0; l < nA2*nA3*nB2; l++) T[l] = 0.0;
-#pragma unroll
+//_Pragma("unroll")
   for (int a2 = 0; a2 < nA2; a2++)
-#pragma unroll
+//_Pragma("unroll")
     for (int a3 = 0; a3 < nA3; a3++)
-#pragma unroll
+//_Pragma("unroll")
       for (int b2 = 0; b2 < nB2; b2++)
-#pragma unroll
+//_Pragma("unroll")
         for (int t = 0; t < nB1; t++) {
           T[a2 + a3*nA2 + b2*nA2*nA3] += B[b2*nB1 + t] * A[a3*nA2*nA1 + a2*nA1 + t];
         }
@@ -290,15 +286,15 @@ inline __device__ void Contract3d(const real *A, const real *B,
 inline __device__ void ContractTranspose3d(const real *A, const real *B,
     int nA1, int nA2, int nA3,
     int nB1, int nB2, real *T) {
-#pragma unroll
+//_Pragma("unroll")
   for (int l = 0; l < nA2*nA3*nB1; l++) T[l] = 0.0;
-#pragma unroll
+//_Pragma("unroll")
   for (int a2 = 0; a2 < nA2; a2++)
-#pragma unroll
+//_Pragma("unroll")
     for (int a3 = 0; a3 < nA3; a3++)
-#pragma unroll
+//_Pragma("unroll")
       for (int b1 = 0; b1 < nB1; b1++)
-#pragma unroll
+//_Pragma("unroll")
         for (int t = 0; t < nB2; t++) {
           T[a2 + a3*nA2 + b1*nA2*nA3] += B[t*nB1 + b1] * A[a3*nA2*nA1 + a2*nA1 + t];
         }
