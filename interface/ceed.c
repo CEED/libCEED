@@ -348,27 +348,30 @@ int CeedInit(const char *resource, Ceed *ceed) {
       "CeedElemRestrictionCreateBlocked",
       ceedoffsetof(Ceed, ElemRestrictionCreateBlocked)
     },
-    {"CeedBasisCreateTensorH1",     ceedoffsetof(Ceed, BasisCreateTensorH1)},
-    {"CeedBasisCreateH1",           ceedoffsetof(Ceed, BasisCreateH1)},
-    {"CeedQFunctionCreate",         ceedoffsetof(Ceed, QFunctionCreate)},
-    {"CeedOperatorCreate",          ceedoffsetof(Ceed, OperatorCreate)},
-    {"CeedCompositeOperatorCreate", ceedoffsetof(Ceed, CompositeOperatorCreate)},
-    {"VectorSetArray",              ceedoffsetof(CeedVector, SetArray)},
-    {"VectorSetValue",              ceedoffsetof(CeedVector, SetValue)},
-    {"VectorGetArray",              ceedoffsetof(CeedVector, GetArray)},
-    {"VectorGetArrayRead",          ceedoffsetof(CeedVector, GetArrayRead)},
-    {"VectorRestoreArray",          ceedoffsetof(CeedVector, RestoreArray)},
-    {"VectorRestoreArrayRead",      ceedoffsetof(CeedVector, RestoreArrayRead)},
-    {"VectorDestroy",               ceedoffsetof(CeedVector, Destroy)},
-    {"ElemRestrictionApply",        ceedoffsetof(CeedElemRestriction, Apply)},
-    {"ElemRestrictionDestroy",      ceedoffsetof(CeedElemRestriction, Destroy)},
-    {"BasisApply",                  ceedoffsetof(CeedBasis, Apply)},
-    {"BasisDestroy",                ceedoffsetof(CeedBasis, Destroy)},
-    {"QFunctionApply",              ceedoffsetof(CeedQFunction, Apply)},
-    {"QFunctionDestroy",            ceedoffsetof(CeedQFunction, Destroy)},
-    {"OperatorApply",               ceedoffsetof(CeedOperator, Apply)},
-    {"OperatorApplyJacobian",       ceedoffsetof(CeedOperator, ApplyJacobian)},
-    {"OperatorDestroy",             ceedoffsetof(CeedOperator, Destroy)}
+    {"CeedBasisCreateTensorH1",    ceedoffsetof(Ceed, BasisCreateTensorH1)},
+    {"CeedBasisCreateH1",          ceedoffsetof(Ceed, BasisCreateH1)},
+    {"CeedTensorContractCreate",   ceedoffsetof(Ceed, TensorContractCreate)},
+    {"CeedQFunctionCreate",        ceedoffsetof(Ceed, QFunctionCreate)},
+    {"CeedOperatorCreate",         ceedoffsetof(Ceed, OperatorCreate)},
+    {"CeedCompositeOperatorCreate",ceedoffsetof(Ceed, CompositeOperatorCreate)},
+    {"VectorSetArray",             ceedoffsetof(CeedVector, SetArray)},
+    {"VectorSetValue",             ceedoffsetof(CeedVector, SetValue)},
+    {"VectorGetArray",             ceedoffsetof(CeedVector, GetArray)},
+    {"VectorGetArrayRead",         ceedoffsetof(CeedVector, GetArrayRead)},
+    {"VectorRestoreArray",         ceedoffsetof(CeedVector, RestoreArray)},
+    {"VectorRestoreArrayRead",     ceedoffsetof(CeedVector, RestoreArrayRead)},
+    {"VectorDestroy",              ceedoffsetof(CeedVector, Destroy)},
+    {"ElemRestrictionApply",       ceedoffsetof(CeedElemRestriction, Apply)},
+    {"ElemRestrictionDestroy",     ceedoffsetof(CeedElemRestriction, Destroy)},
+    {"BasisApply",                 ceedoffsetof(CeedBasis, Apply)},
+    {"BasisDestroy",               ceedoffsetof(CeedBasis, Destroy)},
+    {"TensorContractApply",        ceedoffsetof(CeedTensorContract, Apply)},
+    {"TensorContractDestroy",      ceedoffsetof(CeedTensorContract, Destroy)},
+    {"QFunctionApply",             ceedoffsetof(CeedQFunction, Apply)},
+    {"QFunctionDestroy",           ceedoffsetof(CeedQFunction, Destroy)},
+    {"OperatorApply",              ceedoffsetof(CeedOperator, Apply)},
+    {"OperatorApplyJacobian",      ceedoffsetof(CeedOperator, ApplyJacobian)},
+    {"OperatorDestroy",            ceedoffsetof(CeedOperator, Destroy)}
   };
 
   memcpy((*ceed)->foffsets, foffsets,
@@ -377,6 +380,26 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Backend specific setup
   ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);
 
+  return 0;
+}
+
+/**
+  @brief Retrieve a parent CEED
+
+  @param ceed           Ceed to retrieve parent of
+  @param[out] parent    Address to save the parent to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+int CeedGetParent(Ceed ceed, Ceed *parent) {
+  int ierr;
+  if (ceed->parent) {
+    ierr = CeedGetParent(ceed->parent, parent); CeedChk(ierr);
+    return 0;
+  }
+  *parent = ceed;
   return 0;
 }
 
@@ -407,6 +430,7 @@ int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
 **/
 int CeedSetDelegate(Ceed ceed, Ceed *delegate) {
   ceed->delegate = *delegate;
+  (*delegate)->parent = ceed;
   return 0;
 }
 
