@@ -858,9 +858,9 @@ int main(int argc, char **argv) {
       ierr = fscanf(fp, "%lg", &time); CHKERRQ(ierr);
       PetscFClose(comm, fp); CHKERRQ(ierr);
       for (int i = 1; i < size; ++i)
-        MPI_Send(&time, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
+        ierr = MPI_Send(&time, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
     } else {
-        MPI_Recv(&time, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        ierr = MPI_Recv(&time, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
     ierr = TSSetTime(ts, time); CHKERRQ(ierr);
   }
