@@ -309,6 +309,25 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
 }
 
 /**
+  @brief Get the Index of a degrees of freedom in the E-vector
+
+  @param rstr             CeedElemRestriction
+  @param[in] dof          The dof index in the element
+  @param[in] comp         The component index in the element
+  @param[in] elem         The element index
+  @param[out] index       The index of the dof in the E-Vector
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedElemRestrictionGetELayoutIndex(CeedElemRestriction rstr,
+                                       int dof, int comp, int elem, int *index) {
+  ierr = rstr->ELayout(dof, comp, elem, index); CeedChk(ierr);
+  return 0;
+}
+
+/**
   @brief Get the Ceed associated with a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
