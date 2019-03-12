@@ -48,8 +48,8 @@ CEED_EXTERN int CeedRegister(const char *prefix,
 CEED_EXTERN int CeedGetDelegate(Ceed ceed, Ceed *delegate);
 CEED_EXTERN int CeedSetDelegate(Ceed ceed, Ceed *delegate);
 CEED_EXTERN int CeedSetBackendFunction(Ceed ceed,
-                                       const char * type, void *object,
-                                       const char * fname, int (*f)());
+                                       const char *type, void *object,
+                                       const char *fname, int (*f)());
 CEED_EXTERN int CeedGetData(Ceed ceed, void* *data);
 CEED_EXTERN int CeedSetData(Ceed ceed, void* *data);
 

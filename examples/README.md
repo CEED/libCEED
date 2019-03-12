@@ -34,10 +34,6 @@ The Navier-Stokes problem solves the compressible Navier-Stokes equations using 
 
 ## Running Examples
 
-libCEED comes with several examples of its usage, ranging from standalone C
-codes in the `/examples/ceed` directory to examples based on external packages,
-such as MFEM, PETSc and Nek5000.
-
 To build the examples, set the `MFEM_DIR`, `PETSC_DIR` and `NEK5K_DIR` variables
 and run:
 
@@ -77,18 +73,6 @@ cd nek5000
 cd ../..
 ```
 
-The above code assumes a GPU-capable machine enabled in the OCCA
-backend. Depending on the available backends, other Ceed resource specifiers can
-be provided with the `-ceed` option, for example:
-
-|  CEED resource (`-ceed`) | Backend                                           |
-| :----------------------- | :------------------------------------------------ |
-| `/cpu/self/blocked`      | Serial blocked implementation                     |
-| `/cpu/self/ref`          | Serial reference implementation                   |
-| `/cpu/self/tmpl`         | Backend template, dispatches to /cpu/self/blocked |
-| `/cpu/occa`              | Serial OCCA kernels                               |
-| `/gpu/occa`              | CUDA OCCA kernels                                 |
-| `/omp/occa`              | OpenMP OCCA kernels                               |
-| `/ocl/occa`              | OpenCL OCCA kernels                               |
-| `/gpu/magma`             | CUDA MAGMA kernels                                |
-
+The above code assumes a GPU-capable machine with the OCCA backend 
+enabled. Depending on the available backends, other Ceed resource specifiers can
+be provided with the `-ceed` option.

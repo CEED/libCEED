@@ -27,7 +27,7 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
 
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
-  CeedInit("/cpu/self/blocked", &ceedref);
+  CeedInit("/cpu/self/ref/blocked", &ceedref);
   ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
 
   return 0;

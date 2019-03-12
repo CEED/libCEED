@@ -16,22 +16,30 @@
 
 #include <ceed-backend.h>
 #include <string.h>
+#include "ceed-avx.h"
 
-typedef struct {
-  CeedScalar *colograd1d;
-} CeedBasis_Avx;
+static int CeedInit_Avx(const char *resource, Ceed ceed) {
+  int ierr;
+  if (strcmp(resource, "/cpu/self")
+      && strcmp(resource, "/cpu/self/avx/blocked"))
+    return CeedError(ceed, 1, "AVX backend cannot use resource: %s", resource);
 
-CEED_INTERN int CeedBasisCreateTensorH1_Avx(CeedInt dim, CeedInt P1d,
-    CeedInt Q1d, const CeedScalar *interp1d,
-    const CeedScalar *grad1d,
-    const CeedScalar *qref1d,
-    const CeedScalar *qweight1d,
-    CeedBasis basis);
+  Ceed ceedref;
 
-CEED_INTERN int CeedBasisCreateH1_Avx(CeedElemTopology topo, CeedInt dim,
-                                      CeedInt ndof, CeedInt nqpts,
-                                      const CeedScalar *interp,
-                                      const CeedScalar *grad,
-                                      const CeedScalar *qref,
-                                      const CeedScalar *qweight,
-                                      CeedBasis basis);
+  // Create refrence CEED that implementation will be dispatched
+  //   through unless overridden
+  CeedInit("/cpu/self/ref/blocked", &ceedref);
+  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
+                                CeedBasisCreateTensorH1_Avx); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
+                                CeedBasisCreateH1_Avx); CeedChk(ierr);
+
+  return 0;
+}
+
+__attribute__((constructor))
+static void Register(void) {
+  CeedRegister("/cpu/self/avx/blocked", CeedInit_Avx, 10);
+}

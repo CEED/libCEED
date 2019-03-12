@@ -15,13 +15,15 @@ if [ ${1::6} == "petsc-" ]; then
     args=$(grep -F //TESTARGS examples/petsc/${1:6}.c* | cut -d\  -f2- )
 elif [ ${1::5} == "mfem-" ]; then
     args=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
+elif [ ${1::4} == "nek-" ]; then
+    args=$(grep -F "C TESTARGS" examples/nek5000/${1:4}.usr* | cut -d\  -f2- )
 elif [ ${1::2} == "ex" ]; then
     args=$(grep -F //TESTARGS examples/ceed/$1.c | cut -d\  -f2- )
 else
     args='{ceed_resource}'
 fi
 
-tmpfiles="${output} ${output}.out ${output}.diff ${output}.err"
+tmpfiles="${output} ${output}.out ${output}.diff ${output}.err SESSION.NAME"
 trap 'rm -f ${tmpfiles}' EXIT
 
 for ((i=0;i<${#backends[@]}; ++i)); do
@@ -33,6 +35,7 @@ for ((i=0;i<${#backends[@]}; ++i)); do
     # Run in subshell
     (build/$1 ${args/\{ceed_resource\}/$backend} || false) > ${output}.out 2> ${output}.err
     status=$?
+
     # grep to skip test if backend cannot handle resource
     if grep -F -q -e 'OCCA backend failed to use' ${output}.err; then
         printf "ok $i0 # SKIP - occa mode not supported $1 $backend\n"
@@ -53,6 +56,15 @@ for ((i=0;i<${#backends[@]}; ++i)); do
     # grep to pass test t103, t104, t105, t106 on error
     if grep -F -q -e 'access' ${output}.err \
             && [[ "$1" = "t103"* || "$1" = "t104"* || "$1" = "t105"* || "$1" = "t106"* || "$1" = "t107"* ]] ; then
+        printf "ok $i0 PASS - expected failure $1 $backend\n"
+        printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
+        printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
+        continue
+    fi
+
+    # grep to pass test t308 on error
+    if grep -F -q -e 'vectors incompatible' ${output}.err \
+            && [[ "$1" = "t308"* ]] ; then
         printf "ok $i0 PASS - expected failure $1 $backend\n"
         printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
         printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
@@ -83,6 +95,7 @@ for ((i=0;i<${#backends[@]}; ++i)); do
     else
         printf "ok $i1 $1 $backend stdout\n"
     fi
+
     # stderr
     if [ -s ${output}.err ]; then
         printf "not ok $i2 $1 $backend stderr\n"
