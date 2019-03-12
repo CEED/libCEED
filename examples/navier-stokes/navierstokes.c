@@ -855,7 +855,7 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &size);
     if (!rank) {
-      fscanf (fp, "%lg", &time); CHKERRQ(ierr);
+      ierr = fscanf(fp, "%lg", &time); CHKERRQ(ierr);
       PetscFClose(comm, fp); CHKERRQ(ierr);
       for (int i = 1; i < size; ++i)
         MPI_Send(&time, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
