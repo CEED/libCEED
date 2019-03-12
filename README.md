@@ -88,8 +88,9 @@ There are multiple supported backends, which can be selected at runtime in the e
 | :----------------------- | :------------------------------------------------ |
 | `/cpu/self/ref/serial`   | Serial reference implementation                   |
 | `/cpu/self/ref/blocked`  | Blocked refrence implementation                   |
-| `/cpu/self/tmpl`         | Backend template, dispatches to /cpu/self/blocked |
-| `/cpu/self/avx`          | Blocked AVX implementation                        |
+| `/cpu/self/tmpl`         | Backend template, delegates to `/cpu/self/ref/blocked` |
+| `/cpu/self/avx/serial`   | Serial AVX implementation                         |
+| `/cpu/self/avx/blocked`  | Blocked AVX implementation                        |
 | `/cpu/self/xsmm/serial`  | Serial LIBXSMM implementation                     |
 | `/cpu/self/xsmm/blocked` | Blocked LIBXSMM implementation                    |
 | `/cpu/occa`              | Serial OCCA kernels                               |
@@ -107,7 +108,7 @@ of elements.
 
 The `/cpu/self/ref/*` backends are written in pure C and provide basic functionality.
 
-The `/cpu/self/avx` backend relies upon AVX instructions to provide vectorized CPU performance.
+The `/cpu/self/avx/*` backends rely upon AVX instructions to provide vectorized CPU performance.
 
 The `/cpu/self/xsmm/*` backends relies upon the [LIBXSMM](http://github.com/hfp/libxsmm) package
 to provide vectorized CPU performance.
