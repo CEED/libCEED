@@ -28,6 +28,10 @@
 #define CEED_ALIGN 64
 #define CEED_COMPOSITE_MAX 16
 
+/// Handle for object handling TensorContraction
+/// @ingroup CeedBasis
+typedef struct CeedTensorContract_private *CeedTensorContract;
+
 /* In the next 3 functions, p has to be the address of a pointer type, i.e. p
    has to be a pointer to a pointer. */
 CEED_INTERN int CeedMallocArray(size_t n, size_t unit, void *p);
@@ -46,6 +50,7 @@ CEED_INTERN int CeedFree(void *p);
 CEED_EXTERN int CeedRegister(const char *prefix,
                              int (*init)(const char *, Ceed), unsigned int priority);
 
+CEED_EXTERN int CeedGetParent(Ceed ceed, Ceed *parent);
 CEED_EXTERN int CeedGetDelegate(Ceed ceed, Ceed *delegate);
 CEED_EXTERN int CeedSetDelegate(Ceed ceed, Ceed *delegate);
 CEED_EXTERN int CeedSetBackendFunction(Ceed ceed,
@@ -99,6 +104,24 @@ CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void* *data);
 
 CEED_EXTERN int CeedBasisGetTopologyDimension(CeedElemTopology topo,
     CeedInt *dim);
+
+CEED_EXTERN int CeedBasisGetTensorContract(CeedBasis basis,
+    CeedTensorContract *contract);
+CEED_EXTERN int CeedBasisSetTensorContract(CeedBasis basis,
+    CeedTensorContract *contract);
+CEED_EXTERN int CeedTensorContractCreate(Ceed ceed,
+    CeedTensorContract *contract);
+CEED_EXTERN int CeedTensorContractApply(CeedTensorContract contract, CeedInt A,
+                                        CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
+                                        CeedTransposeMode tmode, const CeedInt Add, const CeedScalar *restrict u,
+                                        CeedScalar *restrict v);
+CEED_EXTERN int CeedTensorContractGetCeed(CeedTensorContract contract,
+    Ceed *ceed);
+CEED_EXTERN int CeedTensorContractGetData(CeedTensorContract contract,
+    void* *data);
+CEED_EXTERN int CeedTensorContractSetData(CeedTensorContract contract,
+    void* *data);
+CEED_EXTERN int CeedTensorContractDestroy(CeedTensorContract *contract);
 
 CEED_EXTERN int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
 CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf,
