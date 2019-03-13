@@ -146,3 +146,5 @@ CEED_INTERN int CeedBasisCreateH1_Cuda(CeedElemTopology, CeedInt, CeedInt,
 CEED_INTERN int CeedQFunctionCreate_Cuda(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Cuda(CeedOperator op);
+
+CEED_INTERN int CeedCompositeOperatorCreate_Cuda(CeedOperator op);
