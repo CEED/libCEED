@@ -633,6 +633,22 @@ void fCeedOperatorCreate(int *ceed,
   CeedOperator_n++;
 }
 
+#define fCeedCompositeOperatorCreate \
+    FORTRAN_NAME(ceedcompositeoperatorcreate, CEEDCOMPOSITEOPERATORCREATE)
+void fCeedCompositeOperatorCreate(int *ceed, int *op, int *err) {
+  if (CeedOperator_count == CeedOperator_count_max)
+    CeedOperator_count_max += CeedOperator_count_max/2 + 1,
+                              CeedOperator_dict =
+                                realloc(CeedOperator_dict, sizeof(CeedOperator)*CeedOperator_count_max);
+
+  CeedOperator *op_ = &CeedOperator_dict[CeedOperator_count];
+
+  *err = CeedCompositeOperatorCreate(Ceed_dict[*ceed], op_);
+  if (*err) return;
+  *op = CeedOperator_count++;
+  CeedOperator_n++;
+}
+
 #define fCeedOperatorSetField \
     FORTRAN_NAME(ceedoperatorsetfield,CEEDOPERATORSETFIELD)
 void fCeedOperatorSetField(int *op, const char *fieldname,
@@ -669,6 +685,16 @@ void fCeedOperatorSetField(int *op, const char *fieldname,
   }
 
   *err = CeedOperatorSetField(op_, fieldname_c, r_, *lmode, b_, v_);
+}
+
+#define fCeedCompositeOperatorAddSub \
+    FORTRAN_NAME(ceedcompositeoperatoraddsub, CEEDCOMPOSITEOPERATORADDSUB)
+void fCeedCompositeOperatorAddSub(int *compositeop, int *subop, int *err) {
+  CeedOperator compositeop_ = CeedOperator_dict[*compositeop];
+  CeedOperator subop_ = CeedOperator_dict[*subop];
+
+  *err = CeedCompositeOperatorAddSub(compositeop_, subop_);
+  if (*err) return;
 }
 
 #define fCeedOperatorApply FORTRAN_NAME(ceedoperatorapply, CEEDOPERATORAPPLY)

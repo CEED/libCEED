@@ -139,6 +139,7 @@
       endif
       call ceedvectorrestorearrayread(v,hv,voffset,err)
 
+      call ceedvectordestroy(qdata,err)
       call ceedvectordestroy(x,err)
       call ceedvectordestroy(u,err)
       call ceedvectordestroy(v,err)

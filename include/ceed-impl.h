@@ -26,7 +26,8 @@
 
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
-#define CEED_NUM_BACKEND_FUNCTIONS 25
+#define CEED_NUM_BACKEND_FUNCTIONS 26
+#define CEED_COMPOSITE_MAX 16
 
 // Lookup table field for backend functions
 typedef struct {
@@ -50,6 +51,7 @@ struct Ceed_private {
                        const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*QFunctionCreate)(CeedQFunction);
   int (*OperatorCreate)(CeedOperator);
+  int (*CompositeOperatorCreate)(CeedOperator);
   int refcount;
   void *data;
   foffset foffsets[CEED_NUM_BACKEND_FUNCTIONS];
@@ -183,6 +185,9 @@ struct CeedOperator_private {
   CeedQFunction dqf;
   CeedQFunction dqfT;
   bool setupdone;
+  bool composite;
+  CeedOperator *suboperators;
+  CeedInt numsub;
   void *data;
 };
 

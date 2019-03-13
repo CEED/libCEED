@@ -37,6 +37,8 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
                                 CeedQFunctionCreate_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
+                                CeedCompositeOperatorCreate_Ref); CeedChk(ierr);
   return 0;
 }
 
