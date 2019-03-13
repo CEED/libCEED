@@ -158,16 +158,16 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
 
   // Global-to-global
   // G on the boundary = BC
-  ierr = VecScatterBegin(user->gtogD, user->BC, G, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->gtogD, user->BC, G, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
+  ierr = VecScatterBegin(user->gtogD, user->BC, G, INSERT_VALUES,
+                         SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->gtogD, user->BC, G, INSERT_VALUES,
+                       SCATTER_FORWARD); CHKERRQ(ierr);
 
   // Local-to-global
-  ierr = VecScatterBegin(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
+  ierr = VecScatterBegin(user->ltog0, user->Gloc, G, ADD_VALUES,
+                         SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->ltog0, user->Gloc, G, ADD_VALUES,
+                       SCATTER_FORWARD); CHKERRQ(ierr);
 
   // Inverse of the lumped mass matrix
   ierr = VecPointwiseMult(G,G,user->M); // M is Minv
@@ -202,7 +202,8 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
     for (PetscInt j=0; j<info.ym; j++) {
       for (PetscInt k=0; k<info.xm; k++) {
         for (PetscInt c=0; c<5; c++) {
-          u[info.zs+i][info.ys+j][(info.xs+k)*5+c] = q[((i*info.ym+j)*info.xm+k)*5 + c];
+          u[info.zs+i][info.ys+j][(info.xs+k)*5+c] =
+                  q[((i*info.ym+j)*info.xm+k)*5 + c];
         }
       }
     }
@@ -211,30 +212,30 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = DMDAVecRestoreArray(user->dm, U, &u); CHKERRQ(ierr);
 
   // Output
-  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-%03D.vts", user->outputfolder,
-                       stepno + user->contsteps);
+  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-%03D.vts",
+                       user->outputfolder, stepno + user->contsteps);
   CHKERRQ(ierr);
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)U), filepath,
-                            FILE_MODE_WRITE, &viewer);
-  CHKERRQ(ierr);
+                            FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
   ierr = VecView(U, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   ierr = DMRestoreGlobalVector(user->dm, &U); CHKERRQ(ierr);
 
   // Save data in a binary file for continuation of simulations
-  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin", user->outputfolder);
-  CHKERRQ(ierr);
+  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin",
+                       user->outputfolder); CHKERRQ(ierr);
   ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
   CHKERRQ(ierr);
   ierr = VecView(Q, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   // Save time stamp
-  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.bin", user->outputfolder);
-  CHKERRQ(ierr);
+  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.bin",
+                       user->outputfolder); CHKERRQ(ierr);
   ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
   CHKERRQ(ierr);
-  ierr = PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL, true); CHKERRQ(ierr);
+  ierr = PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL, true);
+  CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -310,40 +311,40 @@ int main(int argc, char **argv) {
   PetscOptionsFList("-problem", "Problem to solve", NULL, icsflist,
                     problemtype, problemtype, sizeof problemtype, NULL);
   ierr = PetscOptionsScalar("-theta0", "Reference potential temperature",
-                         NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
+                            NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-thetaC", "Perturbation of potential temperature",
-                         NULL, thetaC, &thetaC, NULL); CHKERRQ(ierr);
+                            NULL, thetaC, &thetaC, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-P0", "Atmospheric pressure",
-                         NULL, P0, &P0, NULL); CHKERRQ(ierr);
+                            NULL, P0, &P0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-N", "Brunt-Vaisala frequency",
-                         NULL, N, &N, NULL); CHKERRQ(ierr);
+                            NULL, N, &N, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-cv", "Heat capacity at constant volume",
-                         NULL, cv, &cv, NULL); CHKERRQ(ierr);
+                            NULL, cv, &cv, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-cp", "Heat capacity at constant pressure",
-                         NULL, cp, &cp, NULL); CHKERRQ(ierr);
+                            NULL, cp, &cp, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
-                         NULL, g, &g, NULL); CHKERRQ(ierr);
+                            NULL, g, &g, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lambda", "Stokes hypothesis second viscosity coefficient",
-                         NULL, lambda, &lambda, NULL); CHKERRQ(ierr);
+                            NULL, lambda, &lambda, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-mu", "Shear (dynamic) viscosity coefficient",
-                         NULL, mu, &mu, NULL); CHKERRQ(ierr);
+                            NULL, mu, &mu, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-k", "Thermal conductivity",
-                         NULL, k, &k, NULL); CHKERRQ(ierr);
+                            NULL, k, &k, NULL); CHKERRQ(ierr);
   lx = 8000.;
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
-                         NULL, lx, &lx, NULL); CHKERRQ(ierr);
+                            NULL, lx, &lx, NULL); CHKERRQ(ierr);
   lx = fabs(lx);
   ly = 8000.;
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
-                         NULL, ly, &ly, NULL); CHKERRQ(ierr);
+                            NULL, ly, &ly, NULL); CHKERRQ(ierr);
   ly = fabs(ly);
   lz = 4000.;
   ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
-                         NULL, lz, &lz, NULL); CHKERRQ(ierr);
+                            NULL, lz, &lz, NULL); CHKERRQ(ierr);
   lz = fabs(lz);
   rc = PetscMin(PetscMin(lx,ly),lz)/4.;
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
-                         NULL, rc, &rc, NULL); CHKERRQ(ierr);
+                            NULL, rc, &rc, NULL); CHKERRQ(ierr);
   rc = fabs(rc);
   outputfreq = 10;
   ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
@@ -363,15 +364,15 @@ int main(int argc, char **argv) {
                             sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
   resx = 1000.;
   ierr = PetscOptionsScalar("-resx","Resolution in x",
-                         NULL, resx, &resx, NULL); CHKERRQ(ierr);
+                            NULL, resx, &resx, NULL); CHKERRQ(ierr);
   resx = fabs(resx);
   resy = 1000.;
   ierr = PetscOptionsScalar("-resy","Resolution in y",
-                         NULL, resy, &resy, NULL); CHKERRQ(ierr);
+                            NULL, resy, &resy, NULL); CHKERRQ(ierr);
   resy = fabs(resy);
   resz = 1000.;
   ierr = PetscOptionsScalar("-resz","Resolution in z",
-                         NULL, resz, &resz, NULL); CHKERRQ(ierr);
+                            NULL, resz, &resz, NULL); CHKERRQ(ierr);
   resz = fabs(resz);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
@@ -473,12 +474,12 @@ int main(int argc, char **argv) {
           PetscInt dofind = (i*ldof[1]+j)*ldof[2]+k;
           ltogind[dofind] =
             gstart[ir][jr][kr] + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk;
-          if ((irank[0] == 0 && i == 0)
-              || (irank[1] == 0 && j == 0)
-              || (irank[2] == 0 && k == 0)
-              || (irank[0]+1 == p[0] && i+1 == ldof[0])
-              || (irank[1]+1 == p[1] && j+1 == ldof[1])
-              || (irank[2]+1 == p[2] && k+1 == ldof[2]))
+          if ((irank[0] == 0 && i == 0) ||
+              (irank[1] == 0 && j == 0) ||
+              (irank[2] == 0 && k == 0) ||
+              (irank[0]+1 == p[0] && i+1 == ldof[0]) ||
+              (irank[1]+1 == p[1] && j+1 == ldof[1]) ||
+              (irank[2]+1 == p[2] && k+1 == ldof[2]))
             continue;
           ltogind0[l0count] = ltogind[dofind];
           locind[l0count++] = dofind;
@@ -594,12 +595,12 @@ int main(int argc, char **argv) {
     for (CeedInt i=0; i<shape[0]; i++) {
       for (CeedInt j=0; j<shape[1]; j++) {
         for (CeedInt k=0; k<shape[2]; k++) {
-          xloc[((i*shape[1]+j)*shape[2]+k) + 0*len] = lx*(irank[0]*melem[0]+i) /
-              (p[0]*melem[0]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 1*len] = ly*(irank[1]*melem[1]+j) /
-              (p[1]*melem[1]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 2*len] = lz*(irank[2]*melem[2]+k) /
-              (p[2]*melem[2]);
+          xloc[((i*shape[1]+j)*shape[2]+k) + 0*len] =
+                 lx * (irank[0]*melem[0]+i) / (p[0]*melem[0]);
+          xloc[((i*shape[1]+j)*shape[2]+k) + 1*len] =
+                 ly * (irank[1]*melem[1]+j) / (p[1]*melem[1]);
+          xloc[((i*shape[1]+j)*shape[2]+k) + 2*len] =
+                 lz * (irank[2]*melem[2]+k) / (p[2]*melem[2]);
         }
       }
     }
@@ -648,7 +649,8 @@ int main(int argc, char **argv) {
   char str[256] = __FILE__":ICs";
   strcat(str, problemtype);
   CeedQFunctionCreateInterior(ceed, 1,
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))icsfp, str, &qf_ics);
+                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))icsfp,
+                              str, &qf_ics);
   CeedQFunctionAddInput(qf_ics, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", 5, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_ics, "coords", 3, CEED_EVAL_NONE);
@@ -661,7 +663,8 @@ int main(int argc, char **argv) {
   strcpy(str, __FILE__":");
   strcat(str, problemtype);
   CeedQFunctionCreateInterior(ceed, 1,
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))fp, str, &qf);
+                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))fp,
+                              str, &qf);
   CeedQFunctionAddInput(qf, "q", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf, "dq", 5, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf, "qdata", 16, CEED_EVAL_NONE);
@@ -782,9 +785,11 @@ int main(int argc, char **argv) {
     PetscViewer viewer;
     char filepath[PETSC_MAX_PATH_LEN];
     // Read input
-    ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin", user->outputfolder);
+    ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin",
+                         user->outputfolder);
     CHKERRQ(ierr);
-    ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer); CHKERRQ(ierr);
+    ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
+    CHKERRQ(ierr);
     ierr = VecLoad(Q, viewer); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   } else {
