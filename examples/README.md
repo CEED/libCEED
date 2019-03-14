@@ -1,7 +1,6 @@
 # libCEED: Examples
 
-libCEED comes with several examples of its usage, ranging from standalone C
-codes to examples based on external packages,such as MFEM, PETSc and Nek5000.
+This page provides a brief description of the examples for the libCEED library.
 
 ## Example 1
 

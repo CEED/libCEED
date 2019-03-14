@@ -5,8 +5,14 @@ This page provides a description of the Navier-Stokes example for the libCEED li
 The Navier-Stokes problem solves the compressible Navier-Stokes equations in three dimensions using an
 explicit time integration. The state variables are mass density, momentum density, and energy density.
 
-The main Navier-Stokes solver for libCEED is defined in `/examples/navier-stokes/navierstokes.c`
+The main Navier-Stokes solver for libCEED is defined in [`navierstokes.c`](navierstokes.c)
 with different problem definitions according to the application of interest.
+
+Build by using
+
+`make OPT="-O3 -march=native -ffp-contract=fast -fopenmp-simd"`
+
+for best performance.
 
 ## Advection
 
@@ -189,5 +195,4 @@ it can be subject to numerical instability, if run for large times or with large
 ## Space Discretization
 
 The geometric factors and coordinate transformations required for the integration of the weak form
-are described in the file `/examples/navier-stokes/common.h`
-
+are described in the file [`common.h`](common.h)

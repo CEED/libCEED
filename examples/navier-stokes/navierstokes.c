@@ -44,16 +44,6 @@ static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   }
 }
 
-// Utility function, return maximum of 3 values
-static PetscInt Max3(const PetscInt a[3]) {
-  return PetscMax(a[0], PetscMax(a[1], a[2]));
-}
-
-// Utility function, return minimum of 3 values
-static PetscInt Min3(const PetscInt a[3]) {
-  return PetscMin(a[0], PetscMin(a[1], a[2]));
-}
-
 // Utility function, compute the number of DoFs from the global grid
 static void GlobalDof(const PetscInt p[3], const PetscInt irank[3],
                       PetscInt degree, const PetscInt melem[3],
@@ -124,13 +114,14 @@ struct User_ {
   PetscInt outputfreq;
   DM dm;
   Ceed ceed;
-  CeedVector qceed, gceed, qdata;
+  CeedVector qceed, gceed;
   CeedOperator op;
   VecScatter ltog;              // Scatter for all entries
   VecScatter ltog0;             // Skip Dirichlet values for Q
   VecScatter gtogD;             // global-to-global; only Dirichlet values for Q
   Vec Qloc, Gloc, M, BC;
   char outputfolder[PETSC_MAX_PATH_LEN];
+  PetscInt contsteps;
 };
 
 // This is the RHS of the ODE, given as u_t = G(t,u)
@@ -167,16 +158,16 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
 
   // Global-to-global
   // G on the boundary = BC
-  ierr = VecScatterBegin(user->gtogD, user->BC, G, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->gtogD, user->BC, G, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
+  ierr = VecScatterBegin(user->gtogD, user->BC, G, INSERT_VALUES,
+                         SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->gtogD, user->BC, G, INSERT_VALUES,
+                       SCATTER_FORWARD); CHKERRQ(ierr);
 
   // Local-to-global
-  ierr = VecScatterBegin(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
+  ierr = VecScatterBegin(user->ltog0, user->Gloc, G, ADD_VALUES,
+                         SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->ltog0, user->Gloc, G, ADD_VALUES,
+                       SCATTER_FORWARD); CHKERRQ(ierr);
 
   // Inverse of the lumped mass matrix
   ierr = VecPointwiseMult(G,G,user->M); // M is Minv
@@ -211,7 +202,8 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
     for (PetscInt j=0; j<info.ym; j++) {
       for (PetscInt k=0; k<info.xm; k++) {
         for (PetscInt c=0; c<5; c++) {
-          u[info.zs+i][info.ys+j][(info.xs+k)*5+c] = q[((i*info.ym+j)*info.xm+k)*5 + c];
+          u[info.zs+i][info.ys+j][(info.xs+k)*5+c] =
+                  q[((i*info.ym+j)*info.xm+k)*5 + c];
         }
       }
     }
@@ -220,14 +212,32 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = DMDAVecRestoreArray(user->dm, U, &u); CHKERRQ(ierr);
 
   // Output
-  ierr = PetscSNPrintf(filepath, sizeof filepath, user->outputfolder, stepno);
+  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-%03D.vts",
+                       user->outputfolder, stepno + user->contsteps);
   CHKERRQ(ierr);
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)U), filepath,
-                            FILE_MODE_WRITE, &viewer);
-  CHKERRQ(ierr);
+                            FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
   ierr = VecView(U, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   ierr = DMRestoreGlobalVector(user->dm, &U); CHKERRQ(ierr);
+
+  // Save data in a binary file for continuation of simulations
+  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin",
+                       user->outputfolder); CHKERRQ(ierr);
+  ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
+  CHKERRQ(ierr);
+  ierr = VecView(Q, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  // Save time stamp
+  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.bin",
+                       user->outputfolder); CHKERRQ(ierr);
+  ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
+  CHKERRQ(ierr);
+  ierr = PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL, true);
+  CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -241,8 +251,8 @@ int main(int argc, char **argv) {
   char ceedresource[4096] = "/cpu/self";
   PetscFunctionList icsflist = NULL, qflist = NULL;
   char problemtype[256] = "advection";
-  PetscInt degree, qextra, localdof, localelem, lsize, outputfreq,
-           steps, melem[3], mdof[3], p[3], irank[3], ldof[3];
+  PetscInt degree, qextra, localNelem, lsize, outputfreq,
+           steps, melem[3], mdof[3], p[3], irank[3], ldof[3], contsteps;
   PetscMPIInt size, rank;
   PetscScalar ftime;
   PetscScalar *q0, *m, *mult, *x;
@@ -269,12 +279,15 @@ int main(int argc, char **argv) {
   CeedScalar Rd         = cp - cv;  // J/kg K
   CeedScalar g          = 9.81;     // m/s^2
   CeedScalar lambda     = -2./3.;   // -
-  CeedScalar mu         = 1.e-5;    // Pa s (dynamic viscosity)
+  CeedScalar mu         = 75.;      // Pa s (dynamic viscosity, not physical for air, but good for numerical stability)
   CeedScalar k          = 0.02638;  // W/m K
   CeedScalar rc;                    // m (Radius of bubble)
   PetscScalar lx;                   // m
   PetscScalar ly;                   // m
   PetscScalar lz;                   // m
+  PetscScalar resx;                 // m (resolution in x)
+  PetscScalar resy;                 // m (resolution in y)
+  PetscScalar resz;                 // m (resolution in z)
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -298,71 +311,84 @@ int main(int argc, char **argv) {
   PetscOptionsFList("-problem", "Problem to solve", NULL, icsflist,
                     problemtype, problemtype, sizeof problemtype, NULL);
   ierr = PetscOptionsScalar("-theta0", "Reference potential temperature",
-                         NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
+                            NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-thetaC", "Perturbation of potential temperature",
-                         NULL, thetaC, &thetaC, NULL); CHKERRQ(ierr);
+                            NULL, thetaC, &thetaC, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-P0", "Atmospheric pressure",
-                         NULL, P0, &P0, NULL); CHKERRQ(ierr);
+                            NULL, P0, &P0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-N", "Brunt-Vaisala frequency",
-                         NULL, N, &N, NULL); CHKERRQ(ierr);
+                            NULL, N, &N, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-cv", "Heat capacity at constant volume",
-                         NULL, cv, &cv, NULL); CHKERRQ(ierr);
+                            NULL, cv, &cv, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-cp", "Heat capacity at constant pressure",
-                         NULL, cp, &cp, NULL); CHKERRQ(ierr);
+                            NULL, cp, &cp, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
-                         NULL, g, &g, NULL); CHKERRQ(ierr);
+                            NULL, g, &g, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lambda", "Stokes hypothesis second viscosity coefficient",
-                         NULL, lambda, &lambda, NULL); CHKERRQ(ierr);
+                            NULL, lambda, &lambda, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-mu", "Shear (dynamic) viscosity coefficient",
-                         NULL, mu, &mu, NULL); CHKERRQ(ierr);
+                            NULL, mu, &mu, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-k", "Thermal conductivity",
-                         NULL, k, &k, NULL); CHKERRQ(ierr);
-  lx = 1000.;
+                            NULL, k, &k, NULL); CHKERRQ(ierr);
+  lx = 8000.;
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
-                         NULL, lx, &lx, NULL); CHKERRQ(ierr);
+                            NULL, lx, &lx, NULL); CHKERRQ(ierr);
   lx = fabs(lx);
-  ly = 1000.;
+  ly = 8000.;
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
-                         NULL, ly, &ly, NULL); CHKERRQ(ierr);
+                            NULL, ly, &ly, NULL); CHKERRQ(ierr);
   ly = fabs(ly);
-  lz = 400.;
+  lz = 4000.;
   ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
-                         NULL, lz, &lz, NULL); CHKERRQ(ierr);
+                            NULL, lz, &lz, NULL); CHKERRQ(ierr);
   lz = fabs(lz);
-  rc = PetscMin(PetscMin(lx,ly),lz)/8.;
+  rc = PetscMin(PetscMin(lx,ly),lz)/4.;
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
-                         NULL, rc, &rc, NULL); CHKERRQ(ierr);
+                            NULL, rc, &rc, NULL); CHKERRQ(ierr);
   rc = fabs(rc);
   outputfreq = 10;
   ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
+  contsteps = 0;
+  ierr = PetscOptionsInt("-continue", "Continue from existent solution",
+                         NULL, contsteps, &contsteps, NULL); CHKERRQ(ierr);
   degree = 3;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
   qextra = 2;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
-  localdof = 8*8*8*degree*degree*degree;
-  ierr = PetscOptionsInt("-local",
-                         "Target number of locally owned degrees of freedom per process",
-                         NULL, localdof, &localdof, NULL); CHKERRQ(ierr);
-  PetscStrcpy(user->outputfolder, "./");
+  PetscStrcpy(user->outputfolder, ".");
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
                             sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
-  PetscStrcat(user->outputfolder, "/ns-%03D.vts");
+  resx = 1000.;
+  ierr = PetscOptionsScalar("-resx","Resolution in x",
+                            NULL, resx, &resx, NULL); CHKERRQ(ierr);
+  resx = fabs(resx);
+  resy = 1000.;
+  ierr = PetscOptionsScalar("-resy","Resolution in y",
+                            NULL, resy, &resy, NULL); CHKERRQ(ierr);
+  resy = fabs(resy);
+  resz = 1000.;
+  ierr = PetscOptionsScalar("-resz","Resolution in z",
+                            NULL, resz, &resz, NULL); CHKERRQ(ierr);
+  resz = fabs(resz);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Determine size of process grid
   ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
   Split3(size, p, false);
 
-  // Find a nicely composite number of elements no less than localdof
-  for (localelem = PetscMax(1, localdof / (degree*degree*degree)); ;
-       localelem++) {
-    Split3(localelem, melem, true);
-    if (Max3(melem) / Min3(melem) <= 2) break;
+  // Find a nicely composite number of elements given the resolution
+  melem[0] = (PetscInt)(PetscRoundReal(lx / resx));
+  melem[1] = (PetscInt)(PetscRoundReal(ly / resy));
+  melem[2] = (PetscInt)(PetscRoundReal(lz / resz));
+  for (int d=0; d<3; d++) {
+    if (melem[d] == 0)
+      melem[d]++;
   }
+  localNelem = melem[0] * melem[1] * melem[2];
 
   // Find my location in the process grid
   ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
@@ -396,7 +422,7 @@ int main(int argc, char **argv) {
   ierr = PetscPrintf(comm, "Global dofs: %D\n", gsize); CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
                      p[0], p[1], p[2]); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localelem,
+  ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localNelem,
                      melem[0], melem[1], melem[2]); CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "Owned dofs: %D = %D %D %D\n",
                      mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]);
@@ -448,12 +474,12 @@ int main(int argc, char **argv) {
           PetscInt dofind = (i*ldof[1]+j)*ldof[2]+k;
           ltogind[dofind] =
             gstart[ir][jr][kr] + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk;
-          if ((irank[0] == 0 && i == 0)
-              || (irank[1] == 0 && j == 0)
-              || (irank[2] == 0 && k == 0)
-              || (irank[0]+1 == p[0] && i+1 == ldof[0])
-              || (irank[1]+1 == p[1] && j+1 == ldof[1])
-              || (irank[2]+1 == p[2] && k+1 == ldof[2]))
+          if ((irank[0] == 0 && i == 0) ||
+              (irank[1] == 0 && j == 0) ||
+              (irank[2] == 0 && k == 0) ||
+              (irank[0]+1 == p[0] && i+1 == ldof[0]) ||
+              (irank[1]+1 == p[1] && j+1 == ldof[1]) ||
+              (irank[2]+1 == p[2] && k+1 == ldof[2]))
             continue;
           ltogind0[l0count] = ltogind[dofind];
           locind[l0count++] = dofind;
@@ -553,12 +579,11 @@ int main(int argc, char **argv) {
   CreateRestriction(ceed, melem, 2, 3, &restrictx);
   CreateRestriction(ceed, melem, numP, 3, &restrictxc);
   CreateRestriction(ceed, melem, numP, 1, &restrictmult);
-  CeedInt nelem = melem[0]*melem[1]*melem[2];
-  CeedElemRestrictionCreateIdentity(ceed, nelem, 16*numQ*numQ*numQ,
-                                    16*nelem*numQ*numQ*numQ, 1,
+  CeedElemRestrictionCreateIdentity(ceed, localNelem, 16*numQ*numQ*numQ,
+                                    16*localNelem*numQ*numQ*numQ, 1,
                                     &restrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, numQ*numQ*numQ,
-                                    nelem*numQ*numQ*numQ, 1,
+  CeedElemRestrictionCreateIdentity(ceed, localNelem, numQ*numQ*numQ,
+                                    localNelem*numQ*numQ*numQ, 1,
                                     &restrictxi);
 
   // Find physical cordinates of the corners of local elements
@@ -570,12 +595,12 @@ int main(int argc, char **argv) {
     for (CeedInt i=0; i<shape[0]; i++) {
       for (CeedInt j=0; j<shape[1]; j++) {
         for (CeedInt k=0; k<shape[2]; k++) {
-          xloc[((i*shape[1]+j)*shape[2]+k) + 0*len] = lx*(irank[0]*melem[0]+i) /
-              (p[0]*melem[0]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 1*len] = ly*(irank[1]*melem[1]+j) /
-              (p[1]*melem[1]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 2*len] = lz*(irank[2]*melem[2]+k) /
-              (p[2]*melem[2]);
+          xloc[((i*shape[1]+j)*shape[2]+k) + 0*len] =
+                 lx * (irank[0]*melem[0]+i) / (p[0]*melem[0]);
+          xloc[((i*shape[1]+j)*shape[2]+k) + 1*len] =
+                 ly * (irank[1]*melem[1]+j) / (p[1]*melem[1]);
+          xloc[((i*shape[1]+j)*shape[2]+k) + 2*len] =
+                 lz * (irank[2]*melem[2]+k) / (p[2]*melem[2]);
         }
       }
     }
@@ -584,17 +609,17 @@ int main(int argc, char **argv) {
   }
 
   // Create the CEED vectors that will be needed in setup
-  CeedInt Nqpts, Nelem = melem[0]*melem[1]*melem[2];
+  CeedInt Nqpts;
   CeedBasisGetNumQuadraturePoints(basisq, &Nqpts);
   CeedInt Ndofs = 1;
   for (int d=0; d<3; d++) Ndofs *= numP;
-  CeedVectorCreate(ceed, 16*Nelem*Nqpts, &qdata);
+  CeedVectorCreate(ceed, 16*localNelem*Nqpts, &qdata);
   CeedVectorCreate(ceed, 5*lsize, &q0ceed);
   CeedVectorCreate(ceed, 5*lsize, &mceed);
   CeedVectorCreate(ceed, 5*lsize, &onesvec);
   CeedVectorCreate(ceed, 3*lsize, &xceed);
   CeedVectorCreate(ceed, lsize, &multlvec);
-  CeedVectorCreate(ceed, Nelem*Ndofs, &multevec);
+  CeedVectorCreate(ceed, localNelem*Ndofs, &multevec);
 
   // Find multiplicity of each local point
   CeedVectorSetValue(multevec, 1.0);
@@ -624,7 +649,8 @@ int main(int argc, char **argv) {
   char str[256] = __FILE__":ICs";
   strcat(str, problemtype);
   CeedQFunctionCreateInterior(ceed, 1,
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))icsfp, str, &qf_ics);
+                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))icsfp,
+                              str, &qf_ics);
   CeedQFunctionAddInput(qf_ics, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", 5, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_ics, "coords", 3, CEED_EVAL_NONE);
@@ -637,7 +663,8 @@ int main(int argc, char **argv) {
   strcpy(str, __FILE__":");
   strcat(str, problemtype);
   CeedQFunctionCreateInterior(ceed, 1,
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))fp, str, &qf);
+                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))fp,
+                              str, &qf);
   CeedQFunctionAddInput(qf, "q", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf, "dq", 5, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf, "qdata", 16, CEED_EVAL_NONE);
@@ -698,12 +725,12 @@ int main(int argc, char **argv) {
   user->degree = degree;
   for (int d=0; d<3; d++) user->melem[d] = melem[d];
   user->outputfreq = outputfreq;
+  user->contsteps = contsteps;
   user->dm = dm;
   user->ceed = ceed;
   CeedVectorCreate(ceed, 5*lsize, &user->qceed);
   CeedVectorCreate(ceed, 5*lsize, &user->gceed);
   user->op = op;
-  user->qdata = qdata;
   user->ltog = ltog;
   user->ltog0 = ltog0;
   user->gtogD = gtogD;
@@ -753,10 +780,24 @@ int main(int argc, char **argv) {
 
   // Gather initial Q values
   ierr = VecRestoreArray(Qloc, &q0); CHKERRQ(ierr);
-  ierr = VecScatterBegin(ltog, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterEnd(ltog, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
+  // In case of continuation of simulation, set up initial values from binary file
+  if (contsteps){ // continue from existent solution
+    PetscViewer viewer;
+    char filepath[PETSC_MAX_PATH_LEN];
+    // Read input
+    ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin",
+                         user->outputfolder);
+    CHKERRQ(ierr);
+    ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
+    CHKERRQ(ierr);
+    ierr = VecLoad(Q, viewer); CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  } else {
+    ierr = VecScatterBegin(ltog, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
+    CHKERRQ(ierr);
+    ierr = VecScatterEnd(ltog, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
+    CHKERRQ(ierr);
+  }
   CeedVectorDestroy(&q0ceed);
 
   // Copy boundary values
@@ -805,7 +846,22 @@ int main(int argc, char **argv) {
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
   ierr = TSAdaptSetStepLimits(adapt, 1.e-12, 1.e-2); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
-  ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
+  if (!contsteps){ // print initial condition
+    ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
+  } else { // continue from time of last output
+    PetscReal time;
+    PetscInt count;
+    PetscViewer viewer;
+    char filepath[PETSC_MAX_PATH_LEN];
+    ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.bin",
+                         user->outputfolder); CHKERRQ(ierr);
+    ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
+    CHKERRQ(ierr);
+    ierr = PetscViewerBinaryRead(viewer, &time, 1, &count, PETSC_REAL);
+    CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+    ierr = TSSetTime(ts, time); CHKERRQ(ierr);
+  }
   ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
 
   // Solve
@@ -819,9 +875,9 @@ int main(int argc, char **argv) {
                      steps,(double)ftime); CHKERRQ(ierr);
 
   // Clean up libCEED
+  CeedVectorDestroy(&qdata);
   CeedVectorDestroy(&user->qceed);
   CeedVectorDestroy(&user->gceed);
-  CeedVectorDestroy(&user->qdata);
   CeedVectorDestroy(&xceed);
   CeedVectorDestroy(&xcorners);
   CeedVectorDestroy(&onesvec);
@@ -855,4 +911,3 @@ int main(int argc, char **argv) {
   ierr = PetscFree(user); CHKERRQ(ierr);
   return PetscFinalize();
 }
-

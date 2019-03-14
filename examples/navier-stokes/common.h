@@ -64,6 +64,7 @@ static int Setup(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar *qdata = out[0];
 
+  #pragma omp simd
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -131,6 +132,8 @@ static int Mass(void *ctx, CeedInt Q,
   (void)ctx;
   const CeedScalar *u = in[0], *w = in[1];
   CeedScalar *v = out[0];
+
+  #pragma omp simd
   for (CeedInt i=0; i<Q; i++) {
     v[i+0*Q] = w[i+0*Q] * u[i+0*Q];
     v[i+1*Q] = w[i+0*Q] * u[i+1*Q];

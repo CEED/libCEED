@@ -26,7 +26,7 @@
 //     Rotational field in x,y with no momentum in z
 //   Energy Density:
 //     Maximum of 1. x0 decreasing linearly to 0. as radial distance increases
-//       to 1/8, then 0. everywhere else
+//       to (1.-r/rc), then 0. everywhere else
 //
 //  Boundary Conditions:
 //    Mass Density:
@@ -54,6 +54,7 @@ static int ICsAdvection(void *ctx, CeedInt Q,
   const CeedScalar x0[3] = {0.25*lx, 0.5*ly, 0.5*lz};
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
+  #pragma omp simd
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -101,7 +102,7 @@ static int ICsAdvection(void *ctx, CeedInt Q,
 // State Variables: q = ( rho, U1, U2, U3, E )
 //   rho - Mass Density
 //   Ui  - Momentum Density    ,  Ui = rho ui
-//   E   - Total Energy Density,  E  = rho Cv T + rho (u u) / 2 + rho g z
+//   E   - Total Energy Density
 //
 // Advection Equation:
 //   dE/dt + div( E u ) = 0
@@ -114,6 +115,7 @@ static int Advection(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar *v = out[0], *dv = out[1];
 
+  #pragma omp simd
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -143,8 +145,6 @@ static int Advection(void *ctx, CeedInt Q,
                                   dq[i+(4+5*1)*Q],
                                   dq[i+(4+5*2)*Q]
                                };
-    // -- Interp-to-Interp qdata
-    const CeedScalar wJ       =   qdata[i+ 0*Q];
     // -- Interp-to-Grad qdata
     //      Symmetric 3x3 matrix
     const CeedScalar wBJ[9]   = { qdata[i+ 1*Q],
@@ -156,14 +156,6 @@ static int Advection(void *ctx, CeedInt Q,
                                   qdata[i+ 7*Q],
                                   qdata[i+ 8*Q],
                                   qdata[i+ 9*Q]
-                                };
-    // -- Grad-to-Grad qdata
-    const CeedScalar wBBJ[6]  = { qdata[i+10*Q],
-                                  qdata[i+11*Q],
-                                  qdata[i+12*Q],
-                                  qdata[i+13*Q],
-                                  qdata[i+14*Q],
-                                  qdata[i+15*Q]
                                 };
 
     // The Physics
@@ -215,4 +207,3 @@ static int Advection(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-
