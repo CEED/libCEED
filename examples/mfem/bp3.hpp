@@ -315,10 +315,6 @@ class CeedDiffusionOperator : public mfem::Operator {
     CeedVectorSetArray(v, CEED_MEM_HOST, CEED_USE_POINTER, y.GetData());
 
     CeedOperatorApply(oper, u, v, CEED_REQUEST_IMMEDIATE);
-
-    //TODO replace this by SyncArray when available
-    const CeedScalar *array;
-    CeedVectorGetArrayRead(v, CEED_MEM_HOST, &array);
-    CeedVectorRestoreArrayRead(v, &array);
+    CeedVectorSyncArray(v, CEED_MEM_HOST);
   }
 };
