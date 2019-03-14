@@ -129,6 +129,34 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 }
 
 /**
+  @brief Sync the CeedVector to a specified memtype
+
+  @param vec        CeedVector
+  @param mtype      Memtype to be synced
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype) {
+  int ierr;
+
+  if (vec && (vec->state % 2) == 1)
+    return CeedError(vec->ceed, 1,
+                     "Cannot sync CeedVector, the access lock is already in use");
+
+  if (vec->SyncArray) {
+    ierr = vec->SyncArray(vec, mtype); CeedChk(ierr);
+  } else {
+    const CeedScalar *array;
+    ierr = CeedVectorGetArrayRead(vec, mtype, &array); CeedChk(ierr);
+    ierr = CeedVectorRestoreArrayRead(vec, &array); CeedChk(ierr);
+  }
+
+  return 0;
+}
+
+/**
   @brief Get read/write access to a CeedVector via the specified memory type
 
   @param vec        CeedVector to access

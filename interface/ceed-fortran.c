@@ -105,6 +105,11 @@ void fCeedVectorSetArray(int *vec, int *memtype, int *copymode,
   *err = CeedVectorSetArray(CeedVector_dict[*vec], *memtype, *copymode, array);
 }
 
+#define fCeedVectorSyncArray FORTRAN_NAME(ceedvectorsyncarray,CEEDVECTORSYNCARRAY)
+void fCeedVectorSyncArray(int *vec, int *memtype, int *err) {
+  *err = CeedVectorSyncArray(CeedVector_dict[*vec], *memtype);
+}
+
 #define fCeedVectorSetValue FORTRAN_NAME(ceedvectorsetvalue,CEEDVECTORSETVALUE)
 void fCeedVectorSetValue(int *vec, CeedScalar *value, int *err) {
   *err = CeedVectorSetValue(CeedVector_dict[*vec], *value);

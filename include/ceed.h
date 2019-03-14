@@ -154,6 +154,7 @@ CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedInt len, CeedVector *vec);
 CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mtype,
                                    CeedCopyMode cmode, CeedScalar *array);
 CEED_EXTERN int CeedVectorSetValue(CeedVector vec, CeedScalar value);
+CEED_EXTERN int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype);
 CEED_EXTERN int CeedVectorGetArray(CeedVector vec, CeedMemType mtype,
                                    CeedScalar **array);
 CEED_EXTERN int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,

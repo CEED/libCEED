@@ -68,6 +68,7 @@ struct CeedVector_private {
   Ceed ceed;
   int (*SetArray)(CeedVector, CeedMemType, CeedCopyMode, CeedScalar *);
   int (*SetValue)(CeedVector, CeedScalar);
+  int (*SyncArray)(CeedVector, CeedMemType);
   int (*GetArray)(CeedVector, CeedMemType, CeedScalar **);
   int (*GetArrayRead)(CeedVector, CeedMemType, const CeedScalar **);
   int (*RestoreArray)(CeedVector);
