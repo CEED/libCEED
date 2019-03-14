@@ -215,7 +215,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
 
   if (indices) {
-    ierr = CeedCalloc(nblk*blksize*elemsize, &blkindices);
+    ierr = CeedCalloc(nblk*blksize*elemsize, &blkindices); CeedChk(ierr);
     ierr = CeedPermutePadIndices(indices, blkindices, nblk, nelem, blksize,
                                  elemsize);
     CeedChk(ierr);
