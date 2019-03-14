@@ -104,6 +104,7 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
     case CEED_EVAL_GRAD:
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
+      CeedChk(ierr);
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
       ierr = CeedElemRestrictionGetElementSize(Erestrict, &P);
       CeedChk(ierr);
@@ -331,6 +332,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
         ierr = CeedVectorSetArray(impl->evecsout[i], CEED_MEM_HOST,
                                   CEED_USE_POINTER,
                                   &impl->edata[i + numinputfields][e*elemsize*ncomp]);
+        CeedChk(ierr);
         ierr = CeedBasisApply(basis, 1, CEED_TRANSPOSE,
                               CEED_EVAL_INTERP, impl->qvecsout[i],
                               impl->evecsout[i]); CeedChk(ierr);
@@ -341,6 +343,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
         ierr = CeedVectorSetArray(impl->evecsout[i], CEED_MEM_HOST,
                                   CEED_USE_POINTER,
                                   &impl->edata[i + numinputfields][e*elemsize*ncomp]);
+        CeedChk(ierr);
         ierr = CeedBasisApply(basis, 1, CEED_TRANSPOSE,
                               CEED_EVAL_GRAD, impl->qvecsout[i],
                               impl->evecsout[i]); CeedChk(ierr);
@@ -424,7 +427,7 @@ static int CeedCompositeOperatorApply_Ref(CeedOperator op, CeedVector invec,
   CeedChk(ierr);
   // Add to outvec with subsequent outputs
   for (CeedInt i=1; i<numsub; i++) {
-    ierr = CeedOperatorGetData(suboperators[i], (void *)&impl);
+    ierr = CeedOperatorGetData(suboperators[i], (void *)&impl); CeedChk(ierr);
     impl->add = true;
     ierr = CeedOperatorApply(suboperators[i], invec, outvec, request);
     CeedChk(ierr);
@@ -441,7 +444,7 @@ int CeedOperatorCreate_Ref(CeedOperator op) {
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   impl->add = false;
-  ierr = CeedOperatorSetData(op, (void *)&impl);
+  ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
                                 CeedOperatorApply_Ref); CeedChk(ierr);

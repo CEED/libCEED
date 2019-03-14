@@ -261,7 +261,7 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P1d,
   ierr = CeedBasisSetData(basis, (void *)&impl); CeedChk(ierr);
 
   Ceed parent;
-  ierr = CeedGetParent(ceed, &parent);
+  ierr = CeedGetParent(ceed, &parent); CeedChk(ierr);
   CeedTensorContract contract;
   ierr = CeedTensorContractCreate(parent, &contract); CeedChk(ierr);
   ierr = CeedBasisSetTensorContract(basis, &contract); CeedChk(ierr);
