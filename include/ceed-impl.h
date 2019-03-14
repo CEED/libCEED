@@ -70,8 +70,8 @@ struct CeedVector_private {
   int (*SetValue)(CeedVector, CeedScalar);
   int (*GetArray)(CeedVector, CeedMemType, CeedScalar **);
   int (*GetArrayRead)(CeedVector, CeedMemType, const CeedScalar **);
-  int (*RestoreArray)(CeedVector, CeedScalar **);
-  int (*RestoreArrayRead)(CeedVector, const CeedScalar **);
+  int (*RestoreArray)(CeedVector);
+  int (*RestoreArrayRead)(CeedVector);
   int (*Destroy)(CeedVector);
   int refcount;
   CeedInt length;

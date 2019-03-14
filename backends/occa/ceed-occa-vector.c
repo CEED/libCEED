@@ -133,8 +133,11 @@ static int CeedVectorGetArray_Occa(const CeedVector vec,
 // *****************************************************************************
 // * Restore an array obtained using CeedVectorGetArray()
 // *****************************************************************************
-static int CeedVectorRestoreArrayRead_Occa(const CeedVector vec,
-    const CeedScalar **array) {
+static int CeedVectorRestoreArrayRead_Occa(const CeedVector vec) {
+  return 0;
+}
+// *****************************************************************************
+static int CeedVectorRestoreArray_Occa(const CeedVector vec) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
@@ -142,15 +145,8 @@ static int CeedVectorRestoreArrayRead_Occa(const CeedVector vec,
   CeedVector_Occa *data;
   ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
   assert((data)->h_array);
-  assert(*array);
   CeedSyncH2D_Occa(vec); // sync Host to Device
-  *array = NULL;
   return 0;
-}
-// *****************************************************************************
-static int CeedVectorRestoreArray_Occa(const CeedVector vec,
-                                       CeedScalar **array) {
-  return CeedVectorRestoreArrayRead_Occa(vec,(const CeedScalar **)array);
 }
 
 // *****************************************************************************

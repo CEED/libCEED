@@ -216,7 +216,8 @@ int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
     return CeedError(vec->ceed, 1,
                      "Cannot restore CeedVector array access, access was not granted");
 
-  ierr = vec->RestoreArray(vec, array); CeedChk(ierr);
+  ierr = vec->RestoreArray(vec); CeedChk(ierr);
+  *array = NULL;
   vec->state += 1;
 
   return 0;
@@ -238,7 +239,8 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
   if (!vec || !vec->RestoreArrayRead)
     return CeedError(vec ? vec->ceed : NULL, 1, "Not supported");
 
-  ierr = vec->RestoreArrayRead(vec, array); CeedChk(ierr);
+  ierr = vec->RestoreArrayRead(vec); CeedChk(ierr);
+  *array = NULL;
   vec->numreaders--;
 
   return 0;
