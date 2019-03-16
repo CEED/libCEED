@@ -16,5 +16,11 @@ steps:
     make
   displayName: 'make'
 - script: |
-    make prove-all
-  displayName: 'prove'
+    make junit
+  displayName: 'junit'
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: 'build/*.junit'
+    mergeTestResults: true
+    failTaskOnFailedTests: true
