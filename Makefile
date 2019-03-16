@@ -103,6 +103,7 @@ NPROCS := $(shell getconf _NPROCESSORS_ONLN)
 MFLAGS := -j $(NPROCS) --warn-undefined-variables \
                        --no-print-directory --no-keep-going
 
+PYTHON ?= python3
 PROVE ?= prove
 PROVE_OPTS ?= -j $(NPROCS)
 DARWIN := $(filter Darwin,$(shell uname -s))
@@ -355,6 +356,11 @@ prove-all : $(alltests) $(if $(NEK5K_DIR), prepnektests)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(fulltestlist:$(OBJDIR)/%=%)
 
+junit-% : $(OBJDIR)/%
+	@$(PYTHON) tests/junit.py $(<:$(OBJDIR)/%=%)
+
+junit : $(alltests:$(OBJDIR)/%=junit-%)
+
 all: $(alltests)
 
 examples : $(allexamples)
@@ -391,7 +397,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(if $(OCCA_ON),$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/")
 
-.PHONY : cln clean doc lib install all print test tst prove prv prove-all examples style okl-cache okl-clear info info-backends
+.PHONY : cln clean doc lib install all print test tst prove prv prove-all junit examples style okl-cache okl-clear info info-backends
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
