@@ -1,19 +1,19 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 from collections import defaultdict
 import sys
 import re
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
-from six import u, iteritems, PY2
-
 try:
     # Python 2
     unichr
+    PY2 = True
 except NameError:  # pragma: nocover
     # Python 3
     unichr = chr
+    PY2 = False
 
 """
 Based on the understanding of what Jenkins can parse for JUnit XML files.
@@ -260,7 +260,7 @@ class TestSuite(object):
             for key in ['time']:
                 attributes[key] += float(ts_xml.get(key, 0))
             xml_element.append(ts_xml)
-        for key, value in iteritems(attributes):
+        for key, value in attributes.items():
             xml_element.set(key, str(value))
 
         xml_string = ET.tostring(xml_element, encoding=encoding)
@@ -312,7 +312,7 @@ class TestSuite(object):
                           for (low, high) in illegal_unichrs
                           if low < sys.maxunicode]
 
-        illegal_xml_re = re.compile(u('[%s]') % u('').join(illegal_ranges))
+        illegal_xml_re = re.compile(u'[%s]' % u''.join(illegal_ranges))
         return illegal_xml_re.sub('', string_to_clean)
 
 
