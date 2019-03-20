@@ -55,7 +55,7 @@ struct Ceed_private {
                        const CeedScalar *,
                        const CeedScalar *, const CeedScalar *,
                        const CeedScalar *, CeedBasis);
-  int (*TensorContractCreate)(CeedTensorContract);
+  int (*TensorContractCreate)(CeedBasis, CeedTensorContract);
   int (*QFunctionCreate)(CeedQFunction);
   int (*OperatorCreate)(CeedOperator);
   int (*CompositeOperatorCreate)(CeedOperator);

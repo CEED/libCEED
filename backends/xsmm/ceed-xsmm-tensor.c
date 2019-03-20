@@ -90,7 +90,7 @@ static int CeedTensorContractDestroy_Xsmm(CeedTensorContract contract) {
   return 0;
 }
 
-int CeedTensorContractCreate_Xsmm(CeedTensorContract contract) {
+int CeedTensorContractCreate_Xsmm(CeedBasis basis, CeedTensorContract contract) {
   int ierr;
   Ceed ceed;
   ierr = CeedTensorContractGetCeed(contract, &ceed); CeedChk(ierr);
