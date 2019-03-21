@@ -42,8 +42,9 @@ def run(test, backends):
         start = time.time()
         proc = subprocess.run(rargs,
                               stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              encoding='utf-8')
+                              stderr=subprocess.PIPE)
+        proc.stdout = proc.stdout.decode('utf-8')
+        proc.stderr = proc.stderr.decode('utf-8')
 
         case = TestCase('{} {}'.format(test, ceed_resource),
                         elapsed_sec=time.time()-start,
