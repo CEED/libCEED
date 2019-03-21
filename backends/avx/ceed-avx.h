@@ -18,4 +18,4 @@
 #include <string.h>
 
 CEED_INTERN int CeedTensorContractCreate_Avx(CeedBasis basis,
-     CeedTensorContract contract);
+    CeedTensorContract contract);
