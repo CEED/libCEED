@@ -15,7 +15,14 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-backend.h>
+#include <libxsmm.h>
 #include <string.h>
 
+typedef struct {
+  libxsmm_dmmfunction *kernels;
+  bool tensorbasis;
+  CeedInt P, Q, dim, nelem, numkernels;
+} CeedTensorContract_Xsmm;
+
 CEED_INTERN int CeedTensorContractCreate_Xsmm(CeedBasis basis,
-     CeedTensorContract contract);
+    CeedTensorContract contract);
