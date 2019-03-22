@@ -332,7 +332,7 @@ $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
 run-% : $(OBJDIR)/%
-	@tests/tap.sh $(<:build/%=%)
+	@tests/tap.sh $(<:$(OBJDIR)/%=%)
 # Test core libCEED
 test : $(tests:$(OBJDIR)/%=run-%) $(examples:$(OBJDIR)/%=run-%)
 
@@ -431,4 +431,4 @@ print-% :
 	$(info )
 	@true
 
--include $(libceed.c:%.c=build/%.d) $(tests.c:tests/%.c=build/%.d)
+-include $(libceed.c:%.c=$(OBJDIR)/%.d) $(tests.c:tests/%.c=$(OBJDIR)/%.d)
