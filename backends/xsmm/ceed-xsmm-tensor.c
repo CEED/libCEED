@@ -143,6 +143,9 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
               impl->kernels[ind] = libxsmm_dmmdispatch(C, J, B,
                                    NULL, NULL, NULL, &alpha,
                                    &beta, &flags, NULL);
+              if (!impl->kernels[ind])
+                return CeedError(ceed, 1,
+                                 "LIBXSMM kernel failed to build.");
             }
           }
         }
@@ -169,6 +172,9 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
             impl->kernels[ind] = libxsmm_dmmdispatch(nelem, J, B,
                                  NULL, NULL, NULL, &alpha,
                                  &beta, &flags, NULL);
+            if (!impl->kernels[ind])
+              return CeedError(ceed, 1,
+                               "LIBXSMM kernel failed to build.");
           }
         }
       }
