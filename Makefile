@@ -332,7 +332,7 @@ $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
 run-% : $(OBJDIR)/%
-	@tests/tap.sh $(<:build/%=%)
+	@tests/tap.sh $(<:$(OBJDIR)/%=%)
 # Test core libCEED
 test : $(tests:$(OBJDIR)/%=run-%) $(examples:$(OBJDIR)/%=run-%)
 
@@ -357,7 +357,7 @@ prove-all : $(alltests) $(if $(NEK5K_DIR), prepnektests)
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(fulltestlist:$(OBJDIR)/%=%)
 
 junit-% : $(OBJDIR)/%
-	@$(PYTHON) tests/junit.py $(<:$(OBJDIR)/%=%)
+	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py $(<:$(OBJDIR)/%=%)
 
 junit : $(alltests:$(OBJDIR)/%=junit-%)
 
@@ -431,4 +431,4 @@ print-% :
 	$(info )
 	@true
 
--include $(libceed.c:%.c=build/%.d) $(tests.c:tests/%.c=build/%.d)
+-include $(libceed.c:%.c=$(OBJDIR)/%.d) $(tests.c:tests/%.c=$(OBJDIR)/%.d)

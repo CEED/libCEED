@@ -12,7 +12,7 @@ def parse_testargs(file):
     elif os.path.splitext(file)[1] == '.usr':
         return sum([line.split()[2:] for line in open(file).readlines()
                     if line.startswith('C TESTARGS')], [])
-    raise RuntimeError(f'Unrecognized extension for file: {file}')
+    raise RuntimeError('Unrecognized extension for file: {}'.format(file))
 
 def get_source(test):
     if test.startswith('petsc-'):
@@ -30,6 +30,12 @@ def get_testargs(test):
         return ['{ceed_resource}']
     return parse_testargs(source)
 
+def check_required_failure(case, stderr, required):
+    if required in stderr:
+        case.status = 'fails with required: {}'.format(required)
+    else:
+        case.add_failure_info('required: {}'.format(required))
+
 def run(test, backends):
     import subprocess
     import time
@@ -42,29 +48,38 @@ def run(test, backends):
         start = time.time()
         proc = subprocess.run(rargs,
                               stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              encoding='utf-8')
+                              stderr=subprocess.PIPE)
+        proc.stdout = proc.stdout.decode('utf-8')
+        proc.stderr = proc.stderr.decode('utf-8')
 
-        case = TestCase(f'{test} {ceed_resource}',
+        case = TestCase('{} {}'.format(test, ceed_resource),
                         elapsed_sec=time.time()-start,
                         timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
                         stdout=proc.stdout,
                         stderr=proc.stderr)
         ref_stdout = os.path.join('output', test + '.out')
+
         if proc.stderr:
             if 'OCCA backend failed to use' in proc.stderr:
-                case.add_skipped_info(f'occa mode not supported {test} {ceed_resource}')
+                case.add_skipped_info('occa mode not supported {} {}'.format(test, ceed_resource))
             elif 'Backend does not implement' in proc.stderr:
-                case.add_skipped_info(f'not implemented {test} {ceed_resource}')
-            elif 'access' in proc.stderr and test[:4] in 't103 t104 t105 t106 t107'.split():
-                case.add_skipped_info(f'expected failure')
-            elif 'vectors incompatible' in proc.stderr and test[:4] in ['t308']:
-                case.add_skipped_info(f'expected failure')
-            else:
-                case.add_failure_info('stderr', proc.stderr)
+                case.add_skipped_info('not implemented {} {}'.format(test, ceed_resource))
+
         if not case.is_skipped():
-            if proc.returncode != 0:
-                case.add_error_info(f'returncode = {proc.returncode}')
+            if test[:4] in 't103 t105 t106'.split():
+                check_required_failure(case, proc.stderr, 'Cannot grant CeedVector array access')
+            if test[:4] in 't104'.split():
+                check_required_failure(case, proc.stderr, 'Cannot destroy CeedVector, the access lock is in use')
+            if test[:4] in 't107'.split():
+                check_required_failure(case, proc.stderr, 'Cannot restore CeedVector array access, access was not granted')
+            if test[:4] in 't308'.split():
+                check_required_failure(case, proc.stderr, 'Length of input/output vectors incompatible with basis dimensions')
+
+        if not case.is_skipped() and not case.status:
+            if proc.stderr:
+                case.add_failure_info('stderr', proc.stderr)
+            elif proc.returncode != 0:
+                case.add_error_info('returncode = {}'.format(proc.returncode))
             elif os.path.isfile(ref_stdout):
                 with open(ref_stdout) as ref:
                     diff = list(difflib.unified_diff(ref.readlines(),
