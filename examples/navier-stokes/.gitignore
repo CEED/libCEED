@@ -1,5 +1,3 @@
 navierstokes
 *.vtr
 *.vts
-# Output folders
-***/*

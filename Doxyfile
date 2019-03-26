@@ -798,6 +798,7 @@ INPUT                  = . \
                          examples/mfem \
                          examples/nek5000 \
                          examples/petsc \
+                         examples/navier-stokes \
                          backends/ref \
                          backends/occa \
                          backends/blocked \
