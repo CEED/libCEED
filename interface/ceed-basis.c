@@ -850,6 +850,38 @@ int CeedBasisSetData(CeedBasis basis, void* *data) {
 }
 
 /**
+  @brief Get CeedTensorContract of a CeedBasis
+
+  @param basis          CeedBasis
+  @param[out] contract  Variable to store CeedTensorContract
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetTensorContract(CeedBasis basis,
+                               CeedTensorContract *contract) {
+  *contract = basis->contract;
+  return 0;
+}
+
+/**
+  @brief Set CeedTensorContract of a CeedBasis
+
+  @param[out] basis     CeedBasis
+  @param contract       CeedTensorContract to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisSetTensorContract(CeedBasis basis,
+                               CeedTensorContract *contract) {
+  basis->contract = *contract;
+  return 0;
+}
+
+/**
   @brief Get dimension for given CeedElemTopology
 
   @param topo      CeedElemTopology

@@ -45,8 +45,20 @@ int compile(Ceed ceed, const char *source, CUmodule *module,
   }
   opts[numopts]     = "-DCeedScalar=double";
   opts[numopts + 1] = "-DCeedInt=int";
-  opts[numopts + 2] = "-arch=compute_60";//FIXME: Should take into account GPU CC
-
+  struct cudaDeviceProp prop;
+  Ceed_Cuda *ceed_data;
+  Ceed delegate;
+  CeedGetDelegate(ceed, &delegate);
+  //We assume that the delegate is always the Cuda one
+  if (delegate){
+    ierr = CeedGetData(delegate, (void *)&ceed_data); CeedChk(ierr);
+  }else{
+    ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
+  }
+  cudaGetDeviceProperties(&prop, ceed_data->deviceId);
+  char buff[optslen];
+  snprintf(buff, optslen,"-arch=compute_%d%d", prop.major, prop.minor);
+  opts[numopts + 2] = buff;
 
   nvrtcResult result = nvrtcCompileProgram(prog, numopts + optsextra, opts);
   if (result != NVRTC_SUCCESS) {
@@ -90,7 +102,7 @@ int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize,
 static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   int ierr;
   const int nrc = 9; // number of characters in resource
-  if (strncmp(resource, "/gpu/cuda", nrc))
+  if (strncmp(resource, "/gpu/cuda/ref", nrc))
     return CeedError(ceed, 1, "Cuda backend cannot use resource: %s", resource);
 
   const int rlen = strlen(resource);
@@ -101,6 +113,7 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
 
   Ceed_Cuda *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
+  data->deviceId = deviceID;
 
   struct cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, deviceID);
@@ -123,10 +136,12 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
                                 CeedQFunctionCreate_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
+                                CeedCompositeOperatorCreate_Cuda); CeedChk(ierr);
   return 0;
 }
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/gpu/cuda", CeedInit_Cuda, 20);
+  CeedRegister("/gpu/cuda/ref", CeedInit_Cuda, 20);
 }

@@ -28,6 +28,8 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
                                 CeedBasisCreateTensorH1_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
                                 CeedBasisCreateH1_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
+                                CeedTensorContractCreate_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
                                 CeedElemRestrictionCreate_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
@@ -37,6 +39,8 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
                                 CeedQFunctionCreate_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
+                                CeedCompositeOperatorCreate_Ref); CeedChk(ierr);
   return 0;
 }
 

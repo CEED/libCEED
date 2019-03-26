@@ -340,18 +340,20 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // Set lookup table
   foffset foffsets[CEED_NUM_BACKEND_FUNCTIONS] = {
-    {"CeedError",                 ceedoffsetof(Ceed, Error)},
-    {"CeedDestroy",               ceedoffsetof(Ceed, Destroy)},
-    {"CeedVecCreate",             ceedoffsetof(Ceed, VecCreate)},
-    {"CeedElemRestrictionCreate", ceedoffsetof(Ceed, ElemRestrictionCreate)},
+    {"CeedError",                  ceedoffsetof(Ceed, Error)},
+    {"CeedDestroy",                ceedoffsetof(Ceed, Destroy)},
+    {"CeedVecCreate",              ceedoffsetof(Ceed, VecCreate)},
+    {"CeedElemRestrictionCreate",  ceedoffsetof(Ceed, ElemRestrictionCreate)},
     {
       "CeedElemRestrictionCreateBlocked",
       ceedoffsetof(Ceed, ElemRestrictionCreateBlocked)
     },
     {"CeedBasisCreateTensorH1",    ceedoffsetof(Ceed, BasisCreateTensorH1)},
     {"CeedBasisCreateH1",          ceedoffsetof(Ceed, BasisCreateH1)},
+    {"CeedTensorContractCreate",   ceedoffsetof(Ceed, TensorContractCreate)},
     {"CeedQFunctionCreate",        ceedoffsetof(Ceed, QFunctionCreate)},
     {"CeedOperatorCreate",         ceedoffsetof(Ceed, OperatorCreate)},
+    {"CeedCompositeOperatorCreate",ceedoffsetof(Ceed, CompositeOperatorCreate)},
     {"VectorSetArray",             ceedoffsetof(CeedVector, SetArray)},
     {"VectorSetValue",             ceedoffsetof(CeedVector, SetValue)},
     {"VectorGetArray",             ceedoffsetof(CeedVector, GetArray)},
@@ -363,6 +365,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
     {"ElemRestrictionDestroy",     ceedoffsetof(CeedElemRestriction, Destroy)},
     {"BasisApply",                 ceedoffsetof(CeedBasis, Apply)},
     {"BasisDestroy",               ceedoffsetof(CeedBasis, Destroy)},
+    {"TensorContractApply",        ceedoffsetof(CeedTensorContract, Apply)},
+    {"TensorContractDestroy",      ceedoffsetof(CeedTensorContract, Destroy)},
     {"QFunctionApply",             ceedoffsetof(CeedQFunction, Apply)},
     {"QFunctionDestroy",           ceedoffsetof(CeedQFunction, Destroy)},
     {"OperatorApply",              ceedoffsetof(CeedOperator, Apply)},
@@ -376,6 +380,26 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Backend specific setup
   ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);
 
+  return 0;
+}
+
+/**
+  @brief Retrieve a parent CEED
+
+  @param ceed           Ceed to retrieve parent of
+  @param[out] parent    Address to save the parent to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+int CeedGetParent(Ceed ceed, Ceed *parent) {
+  int ierr;
+  if (ceed->parent) {
+    ierr = CeedGetParent(ceed->parent, parent); CeedChk(ierr);
+    return 0;
+  }
+  *parent = ceed;
   return 0;
 }
 
@@ -406,6 +430,7 @@ int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
 **/
 int CeedSetDelegate(Ceed ceed, Ceed *delegate) {
   ceed->delegate = *delegate;
+  (*delegate)->parent = ceed;
   return 0;
 }
 

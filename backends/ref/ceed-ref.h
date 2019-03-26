@@ -38,6 +38,7 @@ typedef struct {
 } CeedQFunction_Ref;
 
 typedef struct {
+  bool add;
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
   CeedScalar **edata;
@@ -70,6 +71,10 @@ CEED_INTERN int CeedBasisCreateH1_Ref(CeedElemTopology topo,
                                       const CeedScalar *qweight,
                                       CeedBasis basis);
 
+CEED_INTERN int CeedTensorContractCreate_Ref(CeedTensorContract contract);
+
 CEED_INTERN int CeedQFunctionCreate_Ref(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Ref(CeedOperator op);
+
+CEED_INTERN int CeedCompositeOperatorCreate_Ref(CeedOperator op);

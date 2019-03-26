@@ -97,7 +97,8 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/gpu/occa`              | CUDA OCCA kernels                                 |
 | `/omp/occa`              | OpenMP OCCA kernels                               |
 | `/ocl/occa`              | OpenCL OCCA kernels                               |
-| `/gpu/cuda`              | Pure CUDA kernels                                 |
+| `/gpu/cuda/ref`          | Reference pure CUDA kernels                       |
+| `/gpu/cuda/reg`          | Pure CUDA kernels using one thread per element    |
 | `/gpu/magma`             | CUDA MAGMA kernels                                |
 
 
@@ -116,7 +117,7 @@ to provide vectorized CPU performance.
 The `/*/occa` backends rely upon the [OCCA](http://github.com/libocca/occa) package to provide
 cross platform performance.
 
-The `/gpu/cuda` backend provides GPU performance strictly using CUDA.
+The `/gpu/cuda/*` backends provide GPU performance strictly using CUDA.
 
 The `/gpu/magma` backend relies upon the [MAGMA](https://bitbucket.org/icl/magma) package.
 

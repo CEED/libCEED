@@ -88,7 +88,7 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op,
       ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &r);
       CeedChk(ierr);
       CeedElemRestriction_Ref *data;
-      ierr = CeedElemRestrictionGetData(r, (void *)&data);
+      ierr = CeedElemRestrictionGetData(r, (void *)&data); CeedChk(ierr);
       Ceed ceed;
       ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
       CeedInt nelem, elemsize, ndof;
@@ -123,6 +123,7 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op,
     case CEED_EVAL_GRAD:
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
+      CeedChk(ierr);
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
       ierr = CeedElemRestrictionGetElementSize(r, &P);
       CeedChk(ierr);
@@ -355,6 +356,7 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
         ierr = CeedVectorSetArray(impl->evecsout[i], CEED_MEM_HOST,
                                   CEED_USE_POINTER,
                                   &impl->edata[i + numinputfields][e*elemsize*ncomp]);
+        CeedChk(ierr);
         ierr = CeedBasisApply(basis, blksize, CEED_TRANSPOSE,
                               CEED_EVAL_INTERP, impl->qvecsout[i],
                               impl->evecsout[i]); CeedChk(ierr);
@@ -365,6 +367,7 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
         ierr = CeedVectorSetArray(impl->evecsout[i], CEED_MEM_HOST,
                                   CEED_USE_POINTER,
                                   &impl->edata[i + numinputfields][e*elemsize*ncomp]);
+        CeedChk(ierr);
         ierr = CeedBasisApply(basis, blksize, CEED_TRANSPOSE,
                               CEED_EVAL_GRAD, impl->qvecsout[i],
                               impl->evecsout[i]); CeedChk(ierr);
@@ -387,10 +390,16 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
   // Zero lvecs
   for (CeedInt i=0; i<numoutputfields; i++) {
     ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
-    if (vec == CEED_VECTOR_ACTIVE)
-      vec = outvec;
-    ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
+    if (vec == CEED_VECTOR_ACTIVE) {
+      if (!impl->add) {
+        vec = outvec;
+        ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
+      }
+    } else {
+      ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
+    }
   }
+  impl->add = false;
 
   // Output restriction
   for (CeedInt i=0; i<numoutputfields; i++) {
@@ -432,7 +441,7 @@ int CeedOperatorCreate_Blocked(CeedOperator op) {
   CeedOperator_Blocked *impl;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedOperatorSetData(op, (void *)&impl);
+  ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
                                 CeedOperatorApply_Blocked); CeedChk(ierr);
