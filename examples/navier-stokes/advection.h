@@ -14,6 +14,21 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+/// @file
+/// Advection initial condition and operator for Navier-Stokes example using PETSc
+
+#ifndef advection_h
+#define advection_h
+
+#ifndef CeedPragmaOMP
+#  ifdef _OPENMP
+#    define CeedPragmaOMP_(a) _Pragma(#a)
+#    define CeedPragmaOMP(a) CeedPragmaOMP_(omp a)
+#  else
+#    define CeedPragmaOMP(a)
+#  endif
+#endif
+
 #include <math.h>
 
 // *****************************************************************************
@@ -54,7 +69,7 @@ static int ICsAdvection(void *ctx, CeedInt Q,
   const CeedScalar x0[3] = {0.25*lx, 0.5*ly, 0.5*lz};
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
-  #pragma omp simd
+  CeedPragmaOMP(simd)
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -115,7 +130,7 @@ static int Advection(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar *v = out[0], *dv = out[1];
 
-  #pragma omp simd
+  CeedPragmaOMP(simd)
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -207,3 +222,4 @@ static int Advection(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
+#endif

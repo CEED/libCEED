@@ -19,6 +19,10 @@
 //     ns -ceed /omp/occa
 //     ns -ceed /ocl/occa
 //
+
+/// @file
+/// Navier-Stokes example using PETSc
+
 const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 
 #include <petscts.h>
@@ -29,10 +33,6 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include "common.h"
 #include "advection.h"
 #include "densitycurrent.h"
-
-#if PETSC_VERSION_LT(3,11,0)
-#  define VecScatterCreateWithData VecScatterCreate
-#endif
 
 // Utility function, compute three factors of an integer
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
@@ -490,17 +490,17 @@ int main(int argc, char **argv) {
     // Create local-to-global scatters
     ierr = ISCreateBlock(comm, 3, lsize, ltogind, PETSC_COPY_VALUES, &ltogxis);
     CHKERRQ(ierr);
-    ierr = VecScatterCreateWithData(Xloc, NULL, X, ltogxis, &ltogX);
+    ierr = VecScatterCreate(Xloc, NULL, X, ltogxis, &ltogX);
     CHKERRQ(ierr);
     ierr = ISCreateBlock(comm, 5, lsize, ltogind, PETSC_OWN_POINTER, &ltogis);
     CHKERRQ(ierr);
-    ierr = VecScatterCreateWithData(Qloc, NULL, Q, ltogis, &ltog);
+    ierr = VecScatterCreate(Qloc, NULL, Q, ltogis, &ltog);
     CHKERRQ(ierr);
     ierr = ISCreateBlock(comm, 5, l0count, ltogind0, PETSC_OWN_POINTER, &ltogis0);
     CHKERRQ(ierr);
     ierr = ISCreateBlock(comm, 5, l0count, locind, PETSC_OWN_POINTER, &locis);
     CHKERRQ(ierr);
-    ierr = VecScatterCreateWithData(Qloc, locis, Q, ltogis0, &ltog0);
+    ierr = VecScatterCreate(Qloc, locis, Q, ltogis0, &ltog0);
     CHKERRQ(ierr);
 
     {
@@ -526,7 +526,7 @@ int main(int argc, char **argv) {
       ierr = ISCreateGeneral(comm, countD, indD, PETSC_COPY_VALUES, &isD);
       CHKERRQ(ierr);
       ierr = PetscFree(indD); CHKERRQ(ierr);
-      ierr = VecScatterCreateWithData(Q, isD, Q, isD, &gtogD); CHKERRQ(ierr);
+      ierr = VecScatterCreate(Q, isD, Q, isD, &gtogD); CHKERRQ(ierr);
       ierr = ISDestroy(&isD); CHKERRQ(ierr);
     }
     ierr = ISDestroy(&ltogis); CHKERRQ(ierr);

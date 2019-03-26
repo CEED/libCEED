@@ -14,6 +14,21 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+/// @file
+/// Geometric factors and mass operator for Navier-Stokes example using PETSc
+
+#ifndef common_h
+#define common_h
+
+#ifndef CeedPragmaOMP
+#  ifdef _OPENMP
+#    define CeedPragmaOMP_(a) _Pragma(#a)
+#    define CeedPragmaOMP(a) CeedPragmaOMP_(omp a)
+#  else
+#    define CeedPragmaOMP(a)
+#  endif
+#endif
+
 #include <math.h>
 
 // *****************************************************************************
@@ -64,7 +79,7 @@ static int Setup(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar *qdata = out[0];
 
-  #pragma omp simd
+  CeedPragmaOMP(simd)
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -133,7 +148,7 @@ static int Mass(void *ctx, CeedInt Q,
   const CeedScalar *u = in[0], *w = in[1];
   CeedScalar *v = out[0];
 
-  #pragma omp simd
+  CeedPragmaOMP(simd)
   for (CeedInt i=0; i<Q; i++) {
     v[i+0*Q] = w[i+0*Q] * u[i+0*Q];
     v[i+1*Q] = w[i+0*Q] * u[i+1*Q];
@@ -145,3 +160,4 @@ static int Mass(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
+#endif
