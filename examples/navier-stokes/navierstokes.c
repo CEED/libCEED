@@ -8,16 +8,16 @@
 //
 // Build with:
 //
-//     make ns [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>]
+//     make [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>]
 //
 // Sample runs:
 //
-//     ns
-//     ns -ceed /cpu/self
-//     ns -ceed /gpu/occa
-//     ns -ceed /cpu/occa
-//     ns -ceed /omp/occa
-//     ns -ceed /ocl/occa
+//     navierstokes
+//     navierstokes -ceed /cpu/self
+//     navierstokes -ceed /gpu/occa
+//     navierstokes -ceed /cpu/occa
+//     navierstokes -ceed /omp/occa
+//     navierstokes -ceed /ocl/occa
 //
 
 /// @file
@@ -326,7 +326,7 @@ int main(int argc, char **argv) {
                             NULL, g, &g, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lambda", "Stokes hypothesis second viscosity coefficient",
                             NULL, lambda, &lambda, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-mu", "Shear (dynamic) viscosity coefficient",
+  ierr = PetscOptionsScalar("-mu", "Shear dynamic viscosity coefficient",
                             NULL, mu, &mu, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-k", "Thermal conductivity",
                             NULL, k, &k, NULL); CHKERRQ(ierr);
@@ -350,7 +350,7 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
   contsteps = 0;
-  ierr = PetscOptionsInt("-continue", "Continue from existent solution",
+  ierr = PetscOptionsInt("-continue", "Continue from previous solution",
                          NULL, contsteps, &contsteps, NULL); CHKERRQ(ierr);
   degree = 3;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
