@@ -46,7 +46,7 @@ static int CeedTensorContractDestroy_Ref(CeedTensorContract contract) {
   return 0;
 }
 
-int CeedTensorContractCreate_Ref(CeedTensorContract contract) {
+int CeedTensorContractCreate_Ref(CeedBasis basis, CeedTensorContract contract) {
   int ierr;
   Ceed ceed;
   ierr = CeedTensorContractGetCeed(contract, &ceed); CeedChk(ierr);

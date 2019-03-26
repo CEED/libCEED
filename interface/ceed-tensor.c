@@ -34,7 +34,8 @@
 
   @ref Advanced
 **/
-int CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract) {
+int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
+                             CeedTensorContract *contract) {
   int ierr;
 
   if (!ceed->TensorContractCreate) {
@@ -45,7 +46,7 @@ int CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract) {
       return CeedError(ceed, 1,
                        "Backend does not support TensorContractCreate");
 
-    ierr = CeedTensorContractCreate(delegate, contract);
+    ierr = CeedTensorContractCreate(delegate, basis, contract);
     CeedChk(ierr);
     return 0;
   }
@@ -54,7 +55,7 @@ int CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract) {
 
   (*contract)->ceed = ceed;
   ceed->refcount++;
-  ierr = ceed->TensorContractCreate(*contract);
+  ierr = ceed->TensorContractCreate(basis, *contract);
   CeedChk(ierr);
   return 0;
 };
