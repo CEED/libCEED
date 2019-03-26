@@ -59,7 +59,7 @@ endif
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-OPT    = -O -g -march=native -ffp-contract=fast
+OPT    = -O -g -march=native -ffp-contract=fast -fopenmp-simd
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 NVCCFLAGS = -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
@@ -135,6 +135,9 @@ nekexamples  := $(nekexamples.usr:examples/nek5000/%.usr=nek-%)
 #petscexamples
 petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
 petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
+#navierstokesexample
+navierstokesexample.c := $(sort $(wildcard examples/navier-stokes/*.c))
+navierstokesexample  := $(navierstokesexample.c:examples/navier-stokes/%.c=$(OBJDIR)/navier-stokes-%)
 
 # backends/[ref, template, blocked, avx, occa, magma]
 ref.c      := $(sort $(wildcard backends/ref/*.c))
@@ -328,6 +331,11 @@ $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
 	mv examples/petsc/$* $@
 
+$(OBJDIR)/navier-stokes-% : examples/navier-stokes/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
+	$(MAKE) -C examples/navier-stokes CEED_DIR=`pwd` \
+	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
+	mv examples/navier-stokes/$* $@
+
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
@@ -401,10 +409,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
-	$(MAKE) -C examples/ceed clean
-	$(MAKE) -C examples/mfem clean
-	$(MAKE) -C examples/petsc clean
-	(cd examples/nek5000 && bash make-nek-examples.sh clean)
+	$(MAKE) -C examples clean
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
 	$(RM) -rf benchmarks/*output.txt
 
