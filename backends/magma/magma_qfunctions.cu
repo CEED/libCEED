@@ -1,4 +1,5 @@
 #include <ceed-impl.h>
+#include "ceed-magma.h" 
 #include "magma.h" 
 #include "magma_check_cudaerror.h"         
 
