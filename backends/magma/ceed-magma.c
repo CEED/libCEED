@@ -618,7 +618,8 @@ static int CeedTensorContract_Magma(Ceed ceed,
 
 static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem, 
                                 CeedTransposeMode tmode, CeedEvalMode emode,
-                                const CeedScalar *u, CeedScalar *v) {
+                                const CeedScalar *u, CeedScalar *v) 
+{
   // If input scalar is on CPU, call CPU code
   if (magma_is_devptr(v)!=1)
       return CeedBasisApply_MagmaCPU(basis, tmode, emode, u, v);
@@ -630,7 +631,9 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   const CeedInt dim = basis->dim;
   const CeedInt ncomp = basis->ncomp;
   const CeedInt nqpt = ncomp*CeedIntPow(basis->Q1d, dim);
+  #ifndef USE_MAGMA_BATCH4
   const CeedInt add = (tmode == CEED_TRANSPOSE);
+  #endif
 
   if (nelem != 1)
     return CeedError(basis->ceed, 1,
@@ -643,10 +646,9 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     const CeedInt vsize = ncomp*CeedIntPow(basis->P1d, dim);
 
     #ifdef USE_MAGMA_BATCH3
-    magma_queue_t queue;                                                                            
-    magma_queue_create( &queue );                                                                   
-    magmablas_dlaset( MagmaFull, vsize, 1, 0., 0., v, vsize );                               
-    magma_queue_destroy( queue ); 
+        #ifndef USE_MAGMA_BATCH4
+        magmablas_dlaset( MagmaFull, vsize, 1, 0., 0., v, vsize );
+        #endif                             
     #else
     for (CeedInt i = 0; i < vsize; i++)
       v[i] = (CeedScalar) 0;
@@ -657,18 +659,19 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     if (tmode == CEED_TRANSPOSE) {
       P = basis->Q1d; Q = basis->P1d;
     }
-    CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = 1;
     int ldtmp = ncomp*Q*CeedIntPow(P>Q?P:Q,dim-1);
 
     #ifdef USE_MAGMA_BATCH3
-    CeedScalar *tmp;
-    ierr = magma_malloc( (void**)&tmp, 2* ldtmp * sizeof(CeedScalar)); CeedChk(ierr);
+        #ifndef USE_MAGMA_BATCH4
+        CeedScalar *tmp;
+        ierr = magma_malloc( (void**)&tmp, 2* ldtmp * sizeof(CeedScalar)); CeedChk(ierr);
+        #endif
     #else
     CeedScalar tmp[2*ldtmp];
     #endif
-    
-    CeedDebug("\033[01m[CeedBasisApply_Magma] tmpsize = %d",
-              ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1));
+
+    #ifndef USE_MAGMA_BATCH4
+    CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = 1;
     for (CeedInt d=0; d<dim; d++) {
       ierr = CeedTensorContract_Magma(basis->ceed, pre, P, post, Q, 
                                       impl->dinterp1d, // basis->interp1d,
@@ -678,13 +681,21 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
       pre /= P;
       post *= Q;
     }
+    #else
+    ////////////////////////////////////////////////
+    magmablas_dbasis_apply_batched_eval_interp( P, Q, dim, ncomp, impl->dinterp1d, tmode, u, 0, v, 0, 1);
+    ////////////////////////////////////////////////
+    #endif
+    
     if (tmode == CEED_NOTRANSPOSE) {
       v += nqpt;
     } else {
       u += nqpt;
     }
     #ifdef USE_MAGMA_BATCH3
-    magma_free(tmp);
+        #ifndef USE_MAGMA_BATCH4
+        magma_free(tmp);
+        #endif
     #endif
   }
   if (emode & CEED_EVAL_GRAD) {
@@ -700,14 +711,15 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     int ldtmp = ncomp*Q*CeedIntPow(P>Q?P:Q,dim-1); 
 
     #ifdef USE_MAGMA_BATCH3
-    CeedScalar *tmp;                                                                               
-    ierr = magma_malloc( (void**)&tmp, 2 * ldtmp * sizeof(CeedScalar)); CeedChk(ierr);
+        #ifndef USE_MAGMA_BATCH4
+        CeedScalar *tmp;                                                                               
+        ierr = magma_malloc( (void**)&tmp, 2 * ldtmp * sizeof(CeedScalar)); CeedChk(ierr);
+        #endif
     #else
     CeedScalar tmp[2*ldtmp];
     #endif
 
-    CeedDebug("\033[01m[CeedBasisApply_Magma] tmpsize = %d",
-              ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1));
+    #ifndef USE_MAGMA_BATCH4
     for (CeedInt p = 0; p < dim; p++) {
       CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = 1;
       for (CeedInt d=0; d<dim; d++) {
@@ -726,8 +738,14 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
         u += nqpt;
       }
     }
+    #else
+    magmablas_dbasis_apply_batched_eval_grad( P, Q, dim, ncomp, nqpt, impl->dinterp1d, impl->dgrad1d, tmode, u, 0, v, 0, 1);
+    #endif
+    
     #ifdef USE_MAGMA_BATCH3
-    magma_free(tmp);
+        #ifndef USE_MAGMA_BATCH4
+        magma_free(tmp);
+        #endif
     #endif
   }
   if (emode & CEED_EVAL_WEIGHT) {
@@ -735,6 +753,10 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
       return CeedError(basis->ceed, 1,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     CeedInt Q = basis->Q1d;
+    
+    #ifdef USE_MAGMA_BATCH4
+    magmablas_dbasis_apply_batched_eval_weight( Q, dim, impl->dqweight1d, v, 0, 1 );
+    #else
     for (CeedInt d=0; d<dim; d++) {
       CeedInt pre = CeedIntPow(Q, dim-d-1), post = CeedIntPow(Q, d);
 
@@ -755,11 +777,13 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
       }
       #endif
     }
+    #endif
   }
   return 0;
 }
 
-static int CeedBasisDestroy_Magma(CeedBasis basis) {
+static int CeedBasisDestroy_Magma(CeedBasis basis) 
+{
   CeedBasis_Magma *impl = basis->data;
   int ierr;
   
@@ -785,7 +809,8 @@ static int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
     const CeedScalar *grad1d,
     const CeedScalar *qref1d,
     const CeedScalar *qweight1d,
-    CeedBasis basis) {
+    CeedBasis basis) 
+{
 
   CeedBasis_Magma *impl;
   int ierr;
@@ -927,7 +952,7 @@ static int CeedOperatorSetupFields_Magma(struct CeedQFunctionField qfields[16],
                                        CeedInt starti, CeedInt startq,
                                        CeedInt numfields, CeedInt Q) {
   CeedInt dim, ierr, iq=startq, ncomp;
-
+  
   // Loop over fields
   for (CeedInt i=0; i<numfields; i++) {
     CeedEvalMode emode = qfields[i].emode;
@@ -1052,7 +1077,7 @@ static int CeedOperatorApply_Magma(CeedOperator op, CeedVector invec,
   int ierr;
   CeedQFunction qf = op->qf;
   CeedTransposeMode lmode = CEED_NOTRANSPOSE;
-  CeedScalar *vec_temp;
+  //CeedScalar *vec_temp;
 
   // TTT: Where to compute
   CeedMemType CEED_MEM_MAGMA;
@@ -1131,6 +1156,7 @@ static int CeedOperatorApply_Magma(CeedOperator op, CeedVector invec,
         break; // Not implimented
       }
     }
+    
     // Output pointers
     for (CeedInt i=0; i<qf->numoutputfields; i++) {
       CeedEvalMode emode = qf->outputfields[i].emode;
