@@ -46,7 +46,7 @@ CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-OPT    = -O -g
+OPT    = -O3 -g
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 NVCCFLAGS = $(OPT)
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
@@ -129,7 +129,9 @@ magma_dsrc     := $(wildcard backends/magma/magma_d*.c)
 magma_tmp.c    := $(magma_pre_src:%.c=%_tmp.c)
 magma_tmp.cu   := $(magma_pre_src:%.c=%_cuda.cu)
 magma_allsrc.c := $(magma_dsrc) $(magma_tmp.c)
-magma_allsrc.cu:= $(magma_tmp.cu) backends/magma/magma_qfunctions.cu
+magma_allsrc.cu:= $(magma_tmp.cu) backends/magma/magma_qfunctions.cu backends/magma/magma_devptr.cu
+magma_allsrc.cu+= backends/magma/magma_dbasisApply_grad.cu backends/magma/magma_dbasisApply_interp.cu backends/magma/magma_dbasisApply_weight.cu
+
 #magma_qfunctions.cu
 
 # Output using the 216-color rules mode
