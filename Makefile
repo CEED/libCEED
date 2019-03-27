@@ -234,7 +234,6 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)
 libceed.c += $(ref.c)
 libceed.c += $(template.c)
 libceed.c += $(blocked.c)
-libceed.c += $(avx.c)
 
 # AVX Backed
 AVX_STATUS = Disabled
