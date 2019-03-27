@@ -59,7 +59,7 @@ endif
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-OPT    = -O -g -march=native -ffp-contract=fast
+OPT    = -O -g -march=native -ffp-contract=fast -fopenmp-simd
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 NVCCFLAGS = -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
@@ -103,6 +103,7 @@ NPROCS := $(shell getconf _NPROCESSORS_ONLN)
 MFLAGS := -j $(NPROCS) --warn-undefined-variables \
                        --no-print-directory --no-keep-going
 
+PYTHON ?= python3
 PROVE ?= prove
 PROVE_OPTS ?= -j $(NPROCS)
 DARWIN := $(filter Darwin,$(shell uname -s))
@@ -134,12 +135,17 @@ nekexamples  := $(nekexamples.usr:examples/nek5000/%.usr=nek-%)
 #petscexamples
 petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
 petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
+#navierstokesexample
+navierstokesexample.c := $(sort $(wildcard examples/navier-stokes/*.c))
+navierstokesexample  := $(navierstokesexample.c:examples/navier-stokes/%.c=$(OBJDIR)/navier-stokes-%)
 
 # backends/[ref, template, blocked, avx, occa, magma]
 ref.c      := $(sort $(wildcard backends/ref/*.c))
 template.c := $(sort $(wildcard backends/template/*.c))
 cuda.c     := $(sort $(wildcard backends/cuda/*.c))
 cuda.cu    := $(sort $(wildcard backends/cuda/*.cu))
+cuda-reg.c := $(sort $(wildcard backends/cuda-reg/*.c))
+cuda-reg.cu:= $(sort $(wildcard backends/cuda-reg/*.cu))
 blocked.c  := $(sort $(wildcard backends/blocked/*.c))
 avx.c      := $(sort $(wildcard backends/avx/*.c))
 xsmm.c     := $(sort $(wildcard backends/xsmm/*.c))
@@ -201,8 +207,8 @@ info:
 	$(info ASAN       = $(or $(ASAN),(empty)))
 	$(info V          = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info ------------------------------------)
-	$(info AVX_STATUS = $(AVX_STATUS)$(call backend_status,/cpu/self/avx))
-	$(info XSMM_DIR   = $(XSMM_DIR)$(call backend_status,/cpu/xsmm/serial /cpu/xsmm/blocked))
+	$(info AVX_STATUS = $(AVX_STATUS)$(call backend_status,/cpu/self/avx/serial /cpu/self/avx/blocked))
+	$(info XSMM_DIR   = $(XSMM_DIR)$(call backend_status,/cpu/self/xsmm/serial /cpu/self/xsmm/blocked))
 	$(info OCCA_DIR   = $(OCCA_DIR)$(call backend_status,/cpu/occa /gpu/occa /omp/occa))
 	$(info MAGMA_DIR  = $(MAGMA_DIR)$(call backend_status,/gpu/magma))
 	$(info CUDA_DIR   = $(CUDA_DIR)$(call backend_status,/gpu/magma))
@@ -232,11 +238,11 @@ libceed.c += $(avx.c)
 
 # AVX Backed
 AVX_STATUS = Disabled
-AVX := $(shell $(CC) $(CFLAGS) -v -E - < /dev/null 2>&1 | grep -c avx)
+AVX := $(shell $(CC) $(OPT) -v -E - < /dev/null 2>&1 | grep -c avx)
 ifeq ($(AVX),1)
   AVX_STATUS = Enabled
   libceed.c += $(avx.c)
-  BACKENDS += /cpu/self/avx
+  BACKENDS += /cpu/self/avx/serial /cpu/self/avx/blocked
 endif
 
 # libXSMM Backends
@@ -264,9 +270,9 @@ ifneq ($(CUDA_LIB_DIR),)
   $(libceed) : CFLAGS += -I$(CUDA_DIR)/include
   $(libceed) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
   $(libceed) : LDLIBS += -lcudart -lnvrtc -lcuda
-  libceed.c  += $(cuda.c)
-  libceed.cu += $(cuda.cu)
-  BACKENDS += /gpu/cuda
+  libceed.c  += $(cuda.c) $(cuda-reg.c)
+  libceed.cu += $(cuda.cu) $(cuda-reg.cu)
+  BACKENDS += /gpu/cuda/ref /gpu/cuda/reg
 endif
 
 # MAGMA Backend
@@ -326,11 +332,16 @@ $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
 	mv examples/petsc/$* $@
 
+$(OBJDIR)/navier-stokes-% : examples/navier-stokes/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
+	$(MAKE) -C examples/navier-stokes CEED_DIR=`pwd` \
+	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
+	mv examples/navier-stokes/$* $@
+
 $(tests) $(examples) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
 run-% : $(OBJDIR)/%
-	@tests/tap.sh $(<:build/%=%)
+	@tests/tap.sh $(<:$(OBJDIR)/%=%)
 # Test core libCEED
 test : $(tests:$(OBJDIR)/%=run-%) $(examples:$(OBJDIR)/%=run-%)
 
@@ -353,6 +364,11 @@ prepnektests:
 prove-all : $(alltests) $(if $(NEK5K_DIR), prepnektests)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(fulltestlist:$(OBJDIR)/%=%)
+
+junit-% : $(OBJDIR)/%
+	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py $(<:$(OBJDIR)/%=%)
+
+junit : $(alltests:$(OBJDIR)/%=junit-%)
 
 all: $(alltests)
 
@@ -390,7 +406,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(if $(OCCA_ON),$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/")
 
-.PHONY : cln clean doc lib install all print test tst prove prv prove-all examples style okl-cache okl-clear info info-backends
+.PHONY : cln clean doc lib install all print test tst prove prv prove-all junit examples style okl-cache okl-clear info info-backends
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
@@ -405,12 +421,10 @@ doc :
 	doxygen Doxyfile
 
 style :
-	astyle --style=google --indent=spaces=2 --max-code-length=80 \
-            --keep-one-line-statements --keep-one-line-blocks --lineend=linux \
-            --suffix=none --preserve-date --formatted \
-            --exclude=include/ceedf.h --exclude=tests/t310-basis-f.h \
-            include/*.h interface/*.[ch] tests/*.[ch] backends/*/*.[ch] \
-            examples/*/*.[ch] examples/*/*.[ch]pp -i
+	@astyle --options=.astylerc \
+          $(filter-out include/ceedf.h tests/t310-basis-f.h, \
+            $(wildcard include/*.h interface/*.[ch] tests/*.[ch] backends/*/*.[ch] \
+              examples/*/*.[ch] examples/*/*.[ch]pp))
 
 print :
 	@echo $(VAR)=$($(VAR))
@@ -423,4 +437,4 @@ print-% :
 	$(info )
 	@true
 
--include $(libceed.c:%.c=build/%.d) $(tests.c:tests/%.c=build/%.d)
+-include $(libceed.c:%.c=$(OBJDIR)/%.d) $(tests.c:tests/%.c=$(OBJDIR)/%.d)

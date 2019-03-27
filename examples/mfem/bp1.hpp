@@ -27,7 +27,7 @@ static int f_build_mass(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
-  BuildContext *bc = (BuildContext*)ctx;
+  BuildContext *bc = (BuildContext *)ctx;
   const CeedScalar *J = in[0], *qw = in[1];
   CeedScalar *rho = out[0];
   switch (bc->dim + 10*bc->space_dim) {
@@ -95,21 +95,21 @@ class CeedMassOperator : public mfem::Operator {
     switch (mesh->Dimension()) {
     case 1: {
       const mfem::H1_SegmentElement *h1_fe =
-        dynamic_cast<const mfem::H1_SegmentElement*>(fe);
+        dynamic_cast<const mfem::H1_SegmentElement *>(fe);
       MFEM_VERIFY(h1_fe, "invalid FE");
       h1_fe->GetDofMap().Copy(dof_map);
       break;
     }
     case 2: {
       const mfem::H1_QuadrilateralElement *h1_fe =
-        dynamic_cast<const mfem::H1_QuadrilateralElement*>(fe);
+        dynamic_cast<const mfem::H1_QuadrilateralElement *>(fe);
       MFEM_VERIFY(h1_fe, "invalid FE");
       h1_fe->GetDofMap().Copy(dof_map);
       break;
     }
     case 3: {
       const mfem::H1_HexahedronElement *h1_fe =
-        dynamic_cast<const mfem::H1_HexahedronElement*>(fe);
+        dynamic_cast<const mfem::H1_HexahedronElement *>(fe);
       MFEM_VERIFY(h1_fe, "invalid FE");
       h1_fe->GetDofMap().Copy(dof_map);
       break;
@@ -123,7 +123,7 @@ class CeedMassOperator : public mfem::Operator {
     mfem::Vector shape_i(shape1d.Height());
     mfem::DenseMatrix grad_i(grad1d.Height(), 1);
     const mfem::H1_SegmentElement *h1_fe1d =
-      dynamic_cast<const mfem::H1_SegmentElement*>(fe1d);
+      dynamic_cast<const mfem::H1_SegmentElement *>(fe1d);
     MFEM_VERIFY(h1_fe1d, "invalid FE");
     const mfem::Array<int> &dof_map_1d = h1_fe1d->GetDofMap();
     for (int i = 0; i < ir.GetNPoints(); i++) {
@@ -255,10 +255,6 @@ class CeedMassOperator : public mfem::Operator {
     CeedVectorSetArray(u, CEED_MEM_HOST, CEED_USE_POINTER, x.GetData());
     CeedVectorSetArray(v, CEED_MEM_HOST, CEED_USE_POINTER, y.GetData());
     CeedOperatorApply(oper, u, v, CEED_REQUEST_IMMEDIATE);
-
-    //TODO replace this by SyncArray when available
-    const CeedScalar* array;
-    CeedVectorGetArrayRead(v, CEED_MEM_HOST, &array);
-    CeedVectorRestoreArrayRead(v, &array);
+    CeedVectorSyncArray(v, CEED_MEM_HOST);
   }
 };

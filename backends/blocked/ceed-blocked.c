@@ -30,10 +30,6 @@ static int CeedInit_Blocked(const char *resource, Ceed ceed) {
   CeedInit("/cpu/self/ref/serial", &ceedref);
   ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
-                                CeedBasisCreateTensorH1_Blocked); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-                                CeedBasisCreateH1_Blocked); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Blocked); CeedChk(ierr);
 

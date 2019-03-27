@@ -14,6 +14,24 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+<<<<<<< HEAD
+=======
+/// @file
+/// Advection initial condition and operator for Navier-Stokes example using PETSc
+
+#ifndef advection_h
+#define advection_h
+
+#ifndef CeedPragmaOMP
+#  ifdef _OPENMP
+#    define CeedPragmaOMP_(a) _Pragma(#a)
+#    define CeedPragmaOMP(a) CeedPragmaOMP_(omp a)
+#  else
+#    define CeedPragmaOMP(a)
+#  endif
+#endif
+
+>>>>>>> upstream/master
 #include <math.h>
 
 // *****************************************************************************
@@ -54,7 +72,11 @@ static int ICsAdvection(void *ctx, CeedInt Q,
   const CeedScalar x0[3] = {0.25*lx, 0.5*ly, 0.5*lz};
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
+<<<<<<< HEAD
   #pragma omp simd
+=======
+  CeedPragmaOMP(simd)
+>>>>>>> upstream/master
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -115,7 +137,11 @@ static int Advection(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar *v = out[0], *dv = out[1];
 
+<<<<<<< HEAD
   #pragma omp simd
+=======
+  CeedPragmaOMP(simd)
+>>>>>>> upstream/master
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -145,8 +171,11 @@ static int Advection(void *ctx, CeedInt Q,
                                   dq[i+(4+5*1)*Q],
                                   dq[i+(4+5*2)*Q]
                                };
+<<<<<<< HEAD
     // -- Interp-to-Interp qdata
     const CeedScalar wJ       =   qdata[i+ 0*Q];
+=======
+>>>>>>> upstream/master
     // -- Interp-to-Grad qdata
     //      Symmetric 3x3 matrix
     const CeedScalar wBJ[9]   = { qdata[i+ 1*Q],
@@ -159,6 +188,7 @@ static int Advection(void *ctx, CeedInt Q,
                                   qdata[i+ 8*Q],
                                   qdata[i+ 9*Q]
                                 };
+<<<<<<< HEAD
     // -- Grad-to-Grad qdata
     const CeedScalar wBBJ[6]  = { qdata[i+10*Q],
                                   qdata[i+11*Q],
@@ -167,6 +197,8 @@ static int Advection(void *ctx, CeedInt Q,
                                   qdata[i+14*Q],
                                   qdata[i+15*Q]
                                 };
+=======
+>>>>>>> upstream/master
 
     // The Physics
 
@@ -217,3 +249,7 @@ static int Advection(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
+<<<<<<< HEAD
+=======
+#endif
+>>>>>>> upstream/master

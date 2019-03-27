@@ -18,6 +18,10 @@
 #include <string.h>
 
 typedef struct {
+  CeedScalar *colograd1d;
+} CeedBasis_Ref;
+
+typedef struct {
   CeedScalar *array;
   CeedScalar *array_allocated;
 } CeedVector_Ref;
@@ -37,7 +41,7 @@ typedef struct {
   bool add;
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
-  CeedScalar ** edata;
+  CeedScalar **edata;
   uint64_t *inputstate;  /// State counter of inputs
   CeedVector *evecsin;   /// Input E-vectors needed to apply operator
   CeedVector *evecsout;  /// Output E-vectors needed to apply operator
@@ -66,6 +70,9 @@ CEED_INTERN int CeedBasisCreateH1_Ref(CeedElemTopology topo,
                                       const CeedScalar *qref,
                                       const CeedScalar *qweight,
                                       CeedBasis basis);
+
+CEED_INTERN int CeedTensorContractCreate_Ref(CeedBasis basis,
+    CeedTensorContract contract);
 
 CEED_INTERN int CeedQFunctionCreate_Ref(CeedQFunction qf);
 

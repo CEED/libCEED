@@ -7,11 +7,6 @@
 #include "t310-basis.h"
 
 static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                 CeedScalar *const *out);
-static int mass(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                CeedScalar *const *out);
-
-static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
                  CeedScalar *const *out) {
   const CeedScalar *weight = in[0], *J = in[1];
   CeedScalar *rho = out[0];

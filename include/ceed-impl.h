@@ -20,13 +20,15 @@
 #define _ceed_impl_h
 
 #include <ceed.h>
+#include <ceed-backend.h>
 #include <stdbool.h>
 
 #define CEED_INTERN CEED_EXTERN __attribute__((visibility ("hidden")))
 
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
-#define CEED_NUM_BACKEND_FUNCTIONS 26
+
+#define CEED_NUM_BACKEND_FUNCTIONS 29
 #define CEED_COMPOSITE_MAX 16
 
 // Lookup table field for backend functions
@@ -37,7 +39,9 @@ typedef struct {
 
 struct Ceed_private {
   Ceed delegate;
-  int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list);
+  Ceed parent;
+  int (*Error)(Ceed, const char *, int, const char *, int, const char *,
+               va_list);
   int (*Destroy)(Ceed);
   int (*VecCreate)(CeedInt, CeedVector);
   int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode,
@@ -45,10 +49,13 @@ struct Ceed_private {
   int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode,
                                       const CeedInt *, CeedElemRestriction);
   int (*BasisCreateTensorH1)(CeedInt, CeedInt, CeedInt, const CeedScalar *,
-                             const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
+                             const CeedScalar *, const CeedScalar *,
+                             const CeedScalar *, CeedBasis);
   int (*BasisCreateH1)(CeedElemTopology, CeedInt, CeedInt, CeedInt,
                        const CeedScalar *,
-                       const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
+                       const CeedScalar *, const CeedScalar *,
+                       const CeedScalar *, CeedBasis);
+  int (*TensorContractCreate)(CeedBasis, CeedTensorContract);
   int (*QFunctionCreate)(CeedQFunction);
   int (*OperatorCreate)(CeedOperator);
   int (*CompositeOperatorCreate)(CeedOperator);
@@ -61,10 +68,11 @@ struct CeedVector_private {
   Ceed ceed;
   int (*SetArray)(CeedVector, CeedMemType, CeedCopyMode, CeedScalar *);
   int (*SetValue)(CeedVector, CeedScalar);
+  int (*SyncArray)(CeedVector, CeedMemType);
   int (*GetArray)(CeedVector, CeedMemType, CeedScalar **);
   int (*GetArrayRead)(CeedVector, CeedMemType, const CeedScalar **);
-  int (*RestoreArray)(CeedVector, CeedScalar **);
-  int (*RestoreArrayRead)(CeedVector, const CeedScalar **);
+  int (*RestoreArray)(CeedVector);
+  int (*RestoreArrayRead)(CeedVector);
   int (*Destroy)(CeedVector);
   int refcount;
   CeedInt length;
@@ -112,7 +120,18 @@ struct CeedBasis_private {
   CeedScalar
   *grad1d;    /* row-major matrix of shape [Q1d, P1d] matrix expressing derivatives of
                             nodal basis functions at quadrature points */
+  CeedTensorContract contract; /* tensor contraction object */
   void *data;            /* place for the backend to store any data */
+};
+
+struct CeedTensorContract_private {
+  Ceed ceed;
+  int (*Apply)(CeedTensorContract, CeedInt, CeedInt, CeedInt, CeedInt,
+               const CeedScalar *restrict, CeedTransposeMode, const CeedInt,
+               const CeedScalar *restrict, CeedScalar *restrict);
+  int (*Destroy)(CeedTensorContract);
+  int refcount;
+  void *data;
 };
 
 struct CeedQFunctionField_private {
@@ -123,8 +142,7 @@ struct CeedQFunctionField_private {
 
 struct CeedQFunction_private {
   Ceed ceed;
-  int (*Apply)(CeedQFunction, CeedInt, CeedVector *,
-               CeedVector *);
+  int (*Apply)(CeedQFunction, CeedInt, CeedVector *, CeedVector *);
   int (*Destroy)(CeedQFunction);
   int refcount;
   CeedInt vlength;    // Number of quadrature points must be padded to a multiple of vlength
@@ -198,7 +216,8 @@ CEED_INTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
 CEED_INTERN int CeedErrorExit(Ceed, const char *, int, const char *, int,
                               const char *, va_list);
 CEED_INTERN int CeedSetErrorHandler(Ceed ceed,
-                                    int (eh)(Ceed, const char *, int, const char *,
-                                        int, const char *, va_list));
+                                    int (eh)(Ceed, const char *, int,
+                                        const char *, int, const char *,
+                                        va_list));
 
 #endif

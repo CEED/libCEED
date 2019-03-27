@@ -25,7 +25,7 @@ struct BuildContext { CeedInt dim, space_dim; };
 /// libCEED Q-function for building quadrature data for a diffusion operator
 static int f_build_diff(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
-  BuildContext *bc = (BuildContext*)ctx;
+  BuildContext *bc = (BuildContext *)ctx;
   // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
   //
@@ -95,7 +95,7 @@ static int f_build_diff(void *ctx, CeedInt Q,
 /// libCEED Q-function for applying a diff operator
 static int f_apply_diff(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
-  BuildContext *bc = (BuildContext*)ctx;
+  BuildContext *bc = (BuildContext *)ctx;
   // in[0], out[0] have shape [dim, nc=1, Q]
   const CeedScalar *ug = in[0], *qd = in[1];
   CeedScalar *vg = out[0];
@@ -154,21 +154,21 @@ class CeedDiffusionOperator : public mfem::Operator {
     switch (mesh->Dimension()) {
     case 1: {
       const mfem::H1_SegmentElement *h1_fe =
-        dynamic_cast<const mfem::H1_SegmentElement*>(fe);
+        dynamic_cast<const mfem::H1_SegmentElement *>(fe);
       MFEM_VERIFY(h1_fe, "invalid FE");
       h1_fe->GetDofMap().Copy(dof_map);
       break;
     }
     case 2: {
       const mfem::H1_QuadrilateralElement *h1_fe =
-        dynamic_cast<const mfem::H1_QuadrilateralElement*>(fe);
+        dynamic_cast<const mfem::H1_QuadrilateralElement *>(fe);
       MFEM_VERIFY(h1_fe, "invalid FE");
       h1_fe->GetDofMap().Copy(dof_map);
       break;
     }
     case 3: {
       const mfem::H1_HexahedronElement *h1_fe =
-        dynamic_cast<const mfem::H1_HexahedronElement*>(fe);
+        dynamic_cast<const mfem::H1_HexahedronElement *>(fe);
       MFEM_VERIFY(h1_fe, "invalid FE");
       h1_fe->GetDofMap().Copy(dof_map);
       break;
@@ -182,7 +182,7 @@ class CeedDiffusionOperator : public mfem::Operator {
     mfem::Vector shape_i(shape1d.Height());
     mfem::DenseMatrix grad_i(grad1d.Height(), 1);
     const mfem::H1_SegmentElement *h1_fe1d =
-      dynamic_cast<const mfem::H1_SegmentElement*>(fe1d);
+      dynamic_cast<const mfem::H1_SegmentElement *>(fe1d);
     MFEM_VERIFY(h1_fe1d, "invalid FE");
     const mfem::Array<int> &dof_map_1d = h1_fe1d->GetDofMap();
     for (int i = 0; i < ir.GetNPoints(); i++) {
@@ -315,10 +315,6 @@ class CeedDiffusionOperator : public mfem::Operator {
     CeedVectorSetArray(v, CEED_MEM_HOST, CEED_USE_POINTER, y.GetData());
 
     CeedOperatorApply(oper, u, v, CEED_REQUEST_IMMEDIATE);
-
-    //TODO replace this by SyncArray when available
-    const CeedScalar* array;
-    CeedVectorGetArrayRead(v, CEED_MEM_HOST, &array);
-    CeedVectorRestoreArrayRead(v, &array);
+    CeedVectorSyncArray(v, CEED_MEM_HOST);
   }
 };

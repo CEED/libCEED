@@ -138,6 +138,9 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                          CeedElemRestriction r, CeedTransposeMode lmode,
                          CeedBasis b, CeedVector v) {
   int ierr;
+  if (op->composite)
+    return CeedError(op->ceed, 1, "Cannot add field to composite operator.");
+
   CeedInt numelements;
   ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
   if (op->numelements && op->numelements != numelements)
@@ -193,11 +196,11 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop,
                                 CeedOperator subop) {
   if (!compositeop->composite)
     return CeedError(compositeop->ceed, 1,
-      "CeedOperator is not a composite operator");
+                     "CeedOperator is not a composite operator");
 
   if (compositeop->numsub == CEED_COMPOSITE_MAX)
     return CeedError(compositeop->ceed, 1,
-      "Cannot add additional suboperators");
+                     "Cannot add additional suboperators");
 
   compositeop->suboperators[compositeop->numsub] = subop;
   subop->refcount++;
@@ -232,14 +235,14 @@ int CeedOperatorApply(CeedOperator op, CeedVector in,
 
   if (op->composite) {
     if (!op->numsub) return CeedError(ceed, 1, "No suboperators set");
-  } else{
+  } else {
     if (op->nfields == 0) return CeedError(ceed, 1, "No operator fields set");
     if (op->nfields < qf->numinputfields + qf->numoutputfields) return CeedError(
             ceed, 1, "Not all operator fields set");
     if (op->numelements == 0) return CeedError(ceed, 1,
-                                "At least one restriction required");
+                                       "At least one restriction required");
     if (op->numqpoints == 0) return CeedError(ceed, 1,
-                               "At least one non-collocated basis required");
+                                      "At least one non-collocated basis required");
   }
   ierr = op->Apply(op, in, out, request); CeedChk(ierr);
   return 0;
@@ -273,6 +276,9 @@ int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
 **/
 
 int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
+  if (op->composite)
+    return CeedError(op->ceed, 1, "Not defined for composite operator");
+
   *numelem = op->numelements;
   return 0;
 }
@@ -289,6 +295,9 @@ int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
 **/
 
 int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
+  if (op->composite)
+    return CeedError(op->ceed, 1, "Not defined for composite operator");
+
   *numqpts = op->numqpoints;
   return 0;
 }
@@ -305,6 +314,8 @@ int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
 **/
 
 int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
+  if (op->composite)
+    return CeedError(op->ceed, 1, "Not defined for composite operators");
   *numargs = op->nfields;
   return 0;
 }
@@ -337,6 +348,9 @@ int CeedOperatorGetSetupStatus(CeedOperator op, bool *setupdone) {
 **/
 
 int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
+  if (op->composite)
+    return CeedError(op->ceed, 1, "Not defined for composite operator");
+
   *qf = op->qf;
   return 0;
 }
@@ -441,6 +455,9 @@ int CeedOperatorSetSetupDone(CeedOperator op) {
 int CeedOperatorGetFields(CeedOperator op,
                           CeedOperatorField* *inputfields,
                           CeedOperatorField* *outputfields) {
+  if (op->composite)
+    return CeedError(op->ceed, 1, "Not defined for composite operator");
+
   if (inputfields) *inputfields = op->inputfields;
   if (outputfields) *outputfields = op->outputfields;
   return 0;

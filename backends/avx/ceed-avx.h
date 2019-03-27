@@ -17,21 +17,5 @@
 #include <ceed-backend.h>
 #include <string.h>
 
-typedef struct {
-  CeedScalar *colograd1d;
-} CeedBasis_Avx;
-
-CEED_INTERN int CeedBasisCreateTensorH1_Avx(CeedInt dim, CeedInt P1d,
-    CeedInt Q1d, const CeedScalar *interp1d,
-    const CeedScalar *grad1d,
-    const CeedScalar *qref1d,
-    const CeedScalar *qweight1d,
-    CeedBasis basis);
-
-CEED_INTERN int CeedBasisCreateH1_Avx(CeedElemTopology topo, CeedInt dim,
-    CeedInt ndof, CeedInt nqpts,
-    const CeedScalar *interp,
-    const CeedScalar *grad,
-    const CeedScalar *qref,
-    const CeedScalar *qweight,
-    CeedBasis basis);
+CEED_INTERN int CeedTensorContractCreate_Avx(CeedBasis basis,
+    CeedTensorContract contract);

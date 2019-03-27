@@ -154,6 +154,7 @@ CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedInt len, CeedVector *vec);
 CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mtype,
                                    CeedCopyMode cmode, CeedScalar *array);
 CEED_EXTERN int CeedVectorSetValue(CeedVector vec, CeedScalar value);
+CEED_EXTERN int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype);
 CEED_EXTERN int CeedVectorGetArray(CeedVector vec, CeedMemType mtype,
                                    CeedScalar **array);
 CEED_EXTERN int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
@@ -322,7 +323,7 @@ CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx,
                                         size_t ctxsize);
 CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
-                                   CeedVector* u, CeedVector* v);
+                                   CeedVector *u, CeedVector *v);
 CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
 
 CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf,
@@ -334,7 +335,7 @@ CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                                      CeedTransposeMode lmode, CeedBasis b,
                                      CeedVector v);
 CEED_EXTERN int CeedCompositeOperatorAddSub(CeedOperator compositeop,
-                                            CeedOperator subop);
+    CeedOperator subop);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);

@@ -28,10 +28,6 @@ const char help[] = "Solve CEED BP1 using PETSc\n";
 #include <stdbool.h>
 #include "bp1.h"
 
-#if PETSC_VERSION_LT(3,11,0)
-#  define VecScatterCreateWithData VecScatterCreate
-#endif
-
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   for (PetscInt d=0,sizeleft=size; d<3; d++) {
     PetscInt try = (PetscInt)PetscCeilReal(PetscPowReal(sizeleft, 1./(3 - d)));
@@ -128,21 +124,16 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
   CHKERRQ(ierr);
   ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
-  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
   ierr = VecGetArray(user->Yloc, &y); CHKERRQ(ierr);
   CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
   CeedVectorSetArray(user->yceed, CEED_MEM_HOST, CEED_USE_POINTER, y);
 
   CeedOperatorApply(user->op, user->xceed, user->yceed,
                     CEED_REQUEST_IMMEDIATE);
-  //TODO replace this by SyncArray when available
-  const CeedScalar* array;
-  ierr = CeedVectorGetArrayRead(user->yceed, CEED_MEM_HOST, &array);
-  CHKERRQ(ierr);
-  ierr = CeedVectorRestoreArrayRead(user->yceed, &array); CHKERRQ(ierr);
+  ierr = CeedVectorSyncArray(user->yceed, CEED_MEM_HOST); CHKERRQ(ierr);
 
-
-  ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
+  ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
   ierr = VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
 
   if (Y) {
@@ -169,11 +160,11 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
                          SCATTER_REVERSE); CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES, SCATTER_REVERSE);
   CHKERRQ(ierr);
-  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
   CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
   CeedOperatorApply(op_error, user->xceed, collocated_error,
                     CEED_REQUEST_IMMEDIATE);
-  VecRestoreArrayRead(user->Xloc, (const PetscScalar**)&x); CHKERRQ(ierr);
+  VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
 
   *maxerror = 0;
   const CeedScalar *e;
@@ -253,7 +244,7 @@ int main(int argc, char **argv) {
   // Find my location in the process grid
   ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
   for (int d=0,rankleft=rank; d<3; d++) {
-    const int pstride[3] = {p[1]*p[2], p[2], 1};
+    const int pstride[3] = {p[1] *p[2], p[2], 1};
     irank[d] = rankleft / pstride[d];
     rankleft -= irank[d] * pstride[d];
   }
@@ -312,7 +303,7 @@ int main(int argc, char **argv) {
     }
     ierr = ISCreateGeneral(comm, lsize, ltogind, PETSC_OWN_POINTER, &ltogis);
     CHKERRQ(ierr);
-    ierr = VecScatterCreateWithData(Xloc, NULL, X, ltogis, &ltog); CHKERRQ(ierr);
+    ierr = VecScatterCreate(Xloc, NULL, X, ltogis, &ltog); CHKERRQ(ierr);
     CHKERRQ(ierr);
     ierr = ISDestroy(&ltogis); CHKERRQ(ierr);
   }
@@ -443,10 +434,7 @@ int main(int argc, char **argv) {
 
   // Setup rho, rhs, and target
   CeedOperatorApply(op_setup, xcoord, rho, CEED_REQUEST_IMMEDIATE);
-  //TODO replace this by SyncArray when available
-  const CeedScalar* array;
-  ierr = CeedVectorGetArrayRead(rhsceed, CEED_MEM_HOST, &array); CHKERRQ(ierr);
-  ierr = CeedVectorRestoreArrayRead(rhsceed, &array); CHKERRQ(ierr);
+  ierr = CeedVectorSyncArray(rhsceed, CEED_MEM_HOST); CHKERRQ(ierr);
   CeedVectorDestroy(&xcoord);
 
   // Gather RHS

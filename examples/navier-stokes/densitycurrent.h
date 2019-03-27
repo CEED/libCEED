@@ -14,6 +14,24 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+<<<<<<< HEAD
+=======
+/// @file
+/// Density current initial condition and operator for Navier-Stokes example using PETSc
+
+#ifndef densitycurrent_h
+#define densitycurrent_h
+
+#ifndef CeedPragmaOMP
+#  ifdef _OPENMP
+#    define CeedPragmaOMP_(a) _Pragma(#a)
+#    define CeedPragmaOMP(a) CeedPragmaOMP_(omp a)
+#  else
+#    define CeedPragmaOMP(a)
+#  endif
+#endif
+
+>>>>>>> upstream/master
 #include <math.h>
 
 // *****************************************************************************
@@ -94,7 +112,11 @@ static int ICsDC(void *ctx, CeedInt Q,
   const CeedScalar tol = 1.e-14;
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
+<<<<<<< HEAD
   #pragma omp simd
+=======
+  CeedPragmaOMP(simd)
+>>>>>>> upstream/master
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -193,7 +215,11 @@ static int DC(void *ctx, CeedInt Q,
   const CeedScalar g          = context[5];
   const CeedScalar gamma      = cp / cv;
 
+<<<<<<< HEAD
   #pragma omp simd
+=======
+  CeedPragmaOMP(simd)
+>>>>>>> upstream/master
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -345,3 +371,7 @@ static int DC(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
+<<<<<<< HEAD
+=======
+#endif
+>>>>>>> upstream/master

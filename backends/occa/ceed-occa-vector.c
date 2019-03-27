@@ -31,7 +31,7 @@ static inline size_t bytes(const CeedVector vec) {
 // *****************************************************************************
 static inline void CeedSyncH2D_Occa(const CeedVector vec) {
   CeedVector_Occa *data;
-  CeedVectorGetData(vec, (void*)&data);
+  CeedVectorGetData(vec, (void *)&data);
 
   assert(data);
   assert(data->h_array);
@@ -41,7 +41,7 @@ static inline void CeedSyncH2D_Occa(const CeedVector vec) {
 // *****************************************************************************
 static inline void CeedSyncD2H_Occa(const CeedVector vec) {
   CeedVector_Occa *data;
-  CeedVectorGetData(vec, (void*)&data);
+  CeedVectorGetData(vec, (void *)&data);
 
   assert(data);
   assert(data->h_array);
@@ -63,7 +63,7 @@ static int CeedVectorSetArray_Occa(const CeedVector vec,
   CeedInt length;
   ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
   CeedVector_Occa *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
   dbg("[CeedVector][Set]");
   if (mtype != CEED_MEM_HOST)
     return CeedError(ceed, 1, "Only MemType = HOST supported");
@@ -110,7 +110,7 @@ static int CeedVectorGetArrayRead_Occa(const CeedVector vec,
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
   dbg("[CeedVector][Get]");
   CeedVector_Occa *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
   if (mtype != CEED_MEM_HOST)
     return CeedError(ceed, 1, "Can only provide to HOST memory");
   if (!data->h_array) { // Allocate if array was not allocated yet
@@ -127,30 +127,26 @@ static int CeedVectorGetArrayRead_Occa(const CeedVector vec,
 static int CeedVectorGetArray_Occa(const CeedVector vec,
                                    const CeedMemType mtype,
                                    CeedScalar **array) {
-  return CeedVectorGetArrayRead_Occa(vec,mtype,(const CeedScalar**)array);
+  return CeedVectorGetArrayRead_Occa(vec,mtype,(const CeedScalar **)array);
 }
 
 // *****************************************************************************
 // * Restore an array obtained using CeedVectorGetArray()
 // *****************************************************************************
-static int CeedVectorRestoreArrayRead_Occa(const CeedVector vec,
-    const CeedScalar **array) {
+static int CeedVectorRestoreArrayRead_Occa(const CeedVector vec) {
+  return 0;
+}
+// *****************************************************************************
+static int CeedVectorRestoreArray_Occa(const CeedVector vec) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
   dbg("[CeedVector][Restore]");
   CeedVector_Occa *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
   assert((data)->h_array);
-  assert(*array);
   CeedSyncH2D_Occa(vec); // sync Host to Device
-  *array = NULL;
   return 0;
-}
-// *****************************************************************************
-static int CeedVectorRestoreArray_Occa(const CeedVector vec,
-                                       CeedScalar **array) {
-  return CeedVectorRestoreArrayRead_Occa(vec,(const CeedScalar**)array);
 }
 
 // *****************************************************************************
@@ -161,7 +157,7 @@ static int CeedVectorDestroy_Occa(const CeedVector vec) {
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
   CeedVector_Occa *data;
-  ierr = CeedVectorGetData(vec, (void*)&data); CeedChk(ierr);
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
   dbg("[CeedVector][Destroy]");
   ierr = CeedFree(&data->h_array_allocated); CeedChk(ierr);
   occaFree(data->d_array);
@@ -177,7 +173,7 @@ int CeedVectorCreate_Occa(const CeedInt n, CeedVector vec) {
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
   Ceed_Occa *ceed_data;
-  ierr = CeedGetData(ceed, (void*)&ceed_data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
   CeedVector_Occa *data;
   dbg("[CeedVector][Create] n=%d", n);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArray",

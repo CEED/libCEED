@@ -23,3 +23,6 @@ ceed.pc
 *.gcno
 *.gcda
 *.gcov
+
+# Debugging
+vgcore*

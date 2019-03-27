@@ -386,3 +386,10 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
                                 CeedOperatorDestroy_Cuda); CeedChk(ierr);
   return 0;
 }
+
+int CeedCompositeOperatorCreate_Cuda(CeedOperator op) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  return CeedError(ceed, 1, "Backend does not support composite operators");
+}

@@ -1,5 +1,8 @@
 navierstokes
 *.vtr
 *.vts
+<<<<<<< HEAD
 # Output folders
 ***/*
+=======
+>>>>>>> upstream/master

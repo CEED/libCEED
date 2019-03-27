@@ -21,7 +21,7 @@ static int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self/xsmm/blocked"))
     return CeedError(ceed, 1, "blocked libXSMM backend cannot use resource: %s",
-      resource);
+                     resource);
 
   Ceed ceedref;
 
@@ -30,10 +30,8 @@ static int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
   CeedInit("/cpu/self/ref/blocked", &ceedref);
   ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
-                                CeedBasisCreateTensorH1_Xsmm); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-                                CeedBasisCreateH1_Xsmm); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
+                                CeedTensorContractCreate_Xsmm); CeedChk(ierr);
 
   return 0;
 }

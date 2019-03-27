@@ -607,8 +607,24 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
 int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
                    CeedEvalMode emode, CeedVector u, CeedVector v) {
   int ierr;
+  CeedInt ulength = 0, vlength, ndof, nqpt;
   if (!basis->Apply) return CeedError(basis->ceed, 1,
                                         "Backend does not support BasisApply");
+  // check compatibility of topological and geometrical dimensions
+  ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
+  ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
+  ierr = CeedVectorGetLength(v, &vlength); CeedChk(ierr);
+
+  if (u) {
+    ierr = CeedVectorGetLength(u, &ulength); CeedChk(ierr);
+  }
+
+  if ((tmode == CEED_TRANSPOSE   && (vlength % ndof != 0 || ulength % nqpt != 0))
+      ||
+      (tmode == CEED_NOTRANSPOSE && (ulength % ndof != 0 || vlength % nqpt != 0)))
+    return CeedError(basis->ceed, 1,
+                     "Length of input/output vectors incompatible with basis dimensions");
+
   ierr = basis->Apply(basis, nelem, tmode, emode, u, v); CeedChk(ierr);
   return 0;
 }
@@ -830,6 +846,38 @@ int CeedBasisGetData(CeedBasis basis, void* *data) {
 **/
 int CeedBasisSetData(CeedBasis basis, void* *data) {
   basis->data = *data;
+  return 0;
+}
+
+/**
+  @brief Get CeedTensorContract of a CeedBasis
+
+  @param basis          CeedBasis
+  @param[out] contract  Variable to store CeedTensorContract
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetTensorContract(CeedBasis basis,
+                               CeedTensorContract *contract) {
+  *contract = basis->contract;
+  return 0;
+}
+
+/**
+  @brief Set CeedTensorContract of a CeedBasis
+
+  @param[out] basis     CeedBasis
+  @param contract       CeedTensorContract to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisSetTensorContract(CeedBasis basis,
+                               CeedTensorContract *contract) {
+  basis->contract = *contract;
   return 0;
 }
 

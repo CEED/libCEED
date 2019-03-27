@@ -88,15 +88,17 @@ There are multiple supported backends, which can be selected at runtime in the e
 | :----------------------- | :------------------------------------------------ |
 | `/cpu/self/ref/serial`   | Serial reference implementation                   |
 | `/cpu/self/ref/blocked`  | Blocked refrence implementation                   |
-| `/cpu/self/tmpl`         | Backend template, dispatches to /cpu/self/blocked |
-| `/cpu/self/avx`          | Blocked AVX implementation                        |
+| `/cpu/self/tmpl`         | Backend template, delegates to `/cpu/self/ref/blocked` |
+| `/cpu/self/avx/serial`   | Serial AVX implementation                         |
+| `/cpu/self/avx/blocked`  | Blocked AVX implementation                        |
 | `/cpu/self/xsmm/serial`  | Serial LIBXSMM implementation                     |
 | `/cpu/self/xsmm/blocked` | Blocked LIBXSMM implementation                    |
 | `/cpu/occa`              | Serial OCCA kernels                               |
 | `/gpu/occa`              | CUDA OCCA kernels                                 |
 | `/omp/occa`              | OpenMP OCCA kernels                               |
 | `/ocl/occa`              | OpenCL OCCA kernels                               |
-| `/gpu/cuda`              | Pure CUDA kernels                                 |
+| `/gpu/cuda/ref`          | Reference pure CUDA kernels                       |
+| `/gpu/cuda/reg`          | Pure CUDA kernels using one thread per element    |
 | `/gpu/magma`             | CUDA MAGMA kernels                                |
 
 
@@ -107,15 +109,15 @@ of elements.
 
 The `/cpu/self/ref/*` backends are written in pure C and provide basic functionality.
 
-The `/cpu/self/avx` backend relies upon AVX instructions to provide vectorized CPU performance.
+The `/cpu/self/avx/*` backends rely upon AVX instructions to provide vectorized CPU performance.
 
-The `/cpu/self/xsmm/*` backends relies upon the [LIBXSMM](http://github.com/hfp/libxsmm) package
+The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](http://github.com/hfp/libxsmm) package
 to provide vectorized CPU performance.
 
 The `/*/occa` backends rely upon the [OCCA](http://github.com/libocca/occa) package to provide
 cross platform performance.
 
-The `/gpu/cuda` backend provides GPU performance strictly using CUDA.
+The `/gpu/cuda/*` backends provide GPU performance strictly using CUDA.
 
 The `/gpu/magma` backend relies upon the [MAGMA](https://bitbucket.org/icl/magma) package.
 

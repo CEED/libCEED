@@ -9,12 +9,18 @@ trigger:
 pool:
   vmImage: 'Ubuntu-16.04'
 
-container: jedbrown/petsc-root:master
+container: jedbrown/petsc-root:latest
 
 steps:
 - script: |
     make
   displayName: 'make'
 - script: |
-    make prove-all
-  displayName: 'prove'
+    make junit
+  displayName: 'junit'
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: 'build/*.junit'
+    mergeTestResults: true
+    failTaskOnFailedTests: true
