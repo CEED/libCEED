@@ -53,7 +53,7 @@ for ((i=0;i<${#backends[@]}; ++i)); do
         continue
     fi
 
-    # grep to pass test t103, t104, t105, t106 on error
+    # grep to pass test t103, t104, t105, t106, t107 on error
     if grep -F -q -e 'access' ${output}.err \
             && [[ "$1" = "t103"* || "$1" = "t104"* || "$1" = "t105"* || "$1" = "t106"* || "$1" = "t107"* ]] ; then
         printf "ok $i0 PASS - expected failure $1 $backend\n"
