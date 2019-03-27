@@ -99,6 +99,11 @@ int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize,
   return 0;
 }
 
+static int CeedGetPreferredMemType_Cuda(CeedMemType *type) {
+  *type = CEED_MEM_DEVICE;
+  return 0;
+}
+
 static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   int ierr;
   const int nrc = 9; // number of characters in resource
@@ -121,6 +126,8 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   data->optblocksize = deviceProp.maxThreadsPerBlock;
 
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
+                                CeedGetPreferredMemType_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VecCreate",
                                 CeedVectorCreate_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",

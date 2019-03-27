@@ -341,6 +341,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Set lookup table
   foffset foffsets[CEED_NUM_BACKEND_FUNCTIONS] = {
     {"CeedError",                  ceedoffsetof(Ceed, Error)},
+    {"CeedGetPreferredMemType",    ceedoffsetof(Ceed, GetPreferredMemType)},
     {"CeedDestroy",                ceedoffsetof(Ceed, Destroy)},
     {"CeedVecCreate",              ceedoffsetof(Ceed, VecCreate)},
     {"CeedElemRestrictionCreate",  ceedoffsetof(Ceed, ElemRestrictionCreate)},
@@ -431,6 +432,27 @@ int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
 int CeedSetDelegate(Ceed ceed, Ceed *delegate) {
   ceed->delegate = *delegate;
   (*delegate)->parent = ceed;
+  return 0;
+}
+
+/**
+  @brief Return Ceed perferred memory type
+
+  @param ceed           Ceed to get preferred memory type of
+  @param[out] delegate  Address to save preferred memory type to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type) {
+  int ierr;
+  if (ceed->GetPreferredMemType) {
+    ierr = ceed->GetPreferredMemType(type); CeedChk(ierr);
+  } else {
+    *type = CEED_MEM_HOST;
+  }
+
   return 0;
 }
 

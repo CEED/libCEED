@@ -28,7 +28,7 @@
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
 
-#define CEED_NUM_BACKEND_FUNCTIONS 29
+#define CEED_NUM_BACKEND_FUNCTIONS 30
 #define CEED_COMPOSITE_MAX 16
 
 // Lookup table field for backend functions
@@ -42,6 +42,7 @@ struct Ceed_private {
   Ceed parent;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *,
                va_list);
+  int (*GetPreferredMemType)(CeedMemType *);
   int (*Destroy)(Ceed);
   int (*VecCreate)(CeedInt, CeedVector);
   int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode,
