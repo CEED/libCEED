@@ -2,7 +2,6 @@
 /// Test QR Factorization
 /// \test Test QR Factorization
 #include <ceed.h>
-#include <ceed-impl.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;
