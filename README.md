@@ -112,7 +112,8 @@ The `/cpu/self/ref/*` backends are written in pure C and provide basic functiona
 The `/cpu/self/avx/*` backends rely upon AVX instructions to provide vectorized CPU performance.
 
 The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](http://github.com/hfp/libxsmm) package
-to provide vectorized CPU performance.
+to provide vectorized CPU performance. The LIBXSMM backend does not use BLAS or MKL; however,
+if LIBXSMM was linked to MKL, this can be specified with the compilation flag `MKL=1`.
 
 The `/*/occa` backends rely upon the [OCCA](http://github.com/libocca/occa) package to provide
 cross platform performance.

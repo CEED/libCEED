@@ -248,7 +248,13 @@ endif
 # libXSMM Backends
 ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   $(libceed) : LDFLAGS += -L$(XSMM_DIR)/lib -Wl,-rpath,$(abspath $(XSMM_DIR)/lib)
-  $(libceed) : LDLIBS += -lxsmm -ldl -lblas
+  $(libceed) : LDLIBS += -lxsmm -ldl
+  MKL ?= 0
+  ifneq (0,$(MKL))
+    $(libceed) : LDLIBS += -mkl
+  else
+    $(libceed) : LDLIBS += -lblas
+  endif
   libceed.c += $(xsmm.c)
   $(xsmm.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(XSMM_DIR)/include
   BACKENDS += /cpu/self/xsmm/serial /cpu/self/xsmm/blocked

@@ -450,11 +450,11 @@ int CeedSetDelegate(Ceed ceed, Ceed *delegate) {
 int CeedSetBackendFunction(Ceed ceed,
                            const char *type, void *object,
                            const char *fname, int (*f)()) {
-  char lookupname[100];
-  strcpy(lookupname, "");
+  char lookupname[CEED_MAX_RESOURCE_LEN+1] = "";
 
   // Build lookup name
-  strcat(strcat(lookupname, type), fname);
+  strncat(lookupname, type, CEED_MAX_RESOURCE_LEN);
+  strncat(lookupname, fname, CEED_MAX_RESOURCE_LEN);
 
   // Find and use offset
   for (CeedInt i = 0; i < CEED_NUM_BACKEND_FUNCTIONS; i++) {
