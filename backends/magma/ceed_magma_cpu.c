@@ -50,7 +50,7 @@ static int CeedBasisApply_MagmaCPU(CeedBasis basis, CeedTransposeMode tmode,
                                    const CeedScalar *u, CeedScalar *v) {
   #define tmp(i) ( tmp + (i)*ldtmp)
  
-  CeedBasis_Magma *impl = basis->data;
+  //CeedBasis_Magma *impl = basis->data;
   int ierr;
   const CeedInt dim = basis->dim;
   const CeedInt ndof = basis->ncomp;

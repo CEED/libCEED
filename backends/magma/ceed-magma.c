@@ -627,11 +627,11 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   #define tmp(i) ( tmp + (i)*ldtmp)
  
   CeedBasis_Magma *impl = basis->data;
-  int ierr;
   const CeedInt dim = basis->dim;
   const CeedInt ncomp = basis->ncomp;
   const CeedInt nqpt = ncomp*CeedIntPow(basis->Q1d, dim);
   #ifndef USE_MAGMA_BATCH4
+  int ierr;
   const CeedInt add = (tmode == CEED_TRANSPOSE);
   #endif
 
@@ -643,10 +643,9 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
             ncomp*CeedIntPow(basis->P1d, dim));
 
   if (tmode == CEED_TRANSPOSE) {
-    const CeedInt vsize = ncomp*CeedIntPow(basis->P1d, dim);
-
     #ifdef USE_MAGMA_BATCH3
         #ifndef USE_MAGMA_BATCH4
+        const CeedInt vsize = ncomp*CeedIntPow(basis->P1d, dim);
         magmablas_dlaset( MagmaFull, vsize, 1, 0., 0., v, vsize );
         #endif                             
     #else
@@ -659,7 +658,10 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     if (tmode == CEED_TRANSPOSE) {
       P = basis->Q1d; Q = basis->P1d;
     }
+
+    #ifndef USE_MAGMA_BATCH4
     int ldtmp = ncomp*Q*CeedIntPow(P>Q?P:Q,dim-1);
+    #endif
 
     #ifdef USE_MAGMA_BATCH3
         #ifndef USE_MAGMA_BATCH4
@@ -708,7 +710,9 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
       P = basis->Q1d, Q = basis->P1d;
     }
 
+    #ifndef USE_MAGMA_BATCH4
     int ldtmp = ncomp*Q*CeedIntPow(P>Q?P:Q,dim-1); 
+    #endif
 
     #ifdef USE_MAGMA_BATCH3
         #ifndef USE_MAGMA_BATCH4
