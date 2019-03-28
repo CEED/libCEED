@@ -234,7 +234,6 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)
 libceed.c += $(ref.c)
 libceed.c += $(template.c)
 libceed.c += $(blocked.c)
-libceed.c += $(avx.c)
 
 # AVX Backed
 AVX_STATUS = Disabled
@@ -362,7 +361,7 @@ prove : $(tests) $(examples)
 # run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
-allexamples := $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples)) $(if $(PETSC_DIR),$(navierstokesexample))
+allexamples := $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
 alltests := $(tests) $(allexamples)
 fulltestlist = $(alltests) $(if $(NEK5K_DIR), $(nekexamples))
 prepnektests:
