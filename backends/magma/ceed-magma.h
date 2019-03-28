@@ -30,12 +30,6 @@ void magma_dtensor_contract(Ceed ceed,
                             const CeedInt Add,
                             const CeedScalar *u, CeedScalar *v);
 
-static int magma_dbasisApply_batched(
-        CeedBasis basis, CeedInt nelem, 
-        CeedTransposeMode tmode, CeedEvalMode emode,
-        const CeedScalar *u, CeedInt ustride, 
-              CeedScalar *v, CeedInt vstride) ;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
