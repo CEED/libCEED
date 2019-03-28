@@ -101,6 +101,16 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
 }
 
 // *****************************************************************************
+int CeedElemRestrictionApplyBlock_Occa(CeedElemRestriction r,
+    CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
+    CeedVector u, CeedVector v, CeedRequest *request) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
+  return CeedError(ceed, 1, "Backend does not implement blocked restrictions");
+}
+
+// *****************************************************************************
 static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
   int ierr;
   Ceed ceed;
@@ -172,6 +182,9 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
     return CeedError(ceed, 1, "Only MemType = HOST supported");
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",
                                 CeedElemRestrictionApply_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyBlock",
+                                CeedElemRestrictionApplyBlock_Occa);
+  CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy",
                                 CeedElemRestrictionDestroy_Occa); CeedChk(ierr);
   // Allocating occa & device **************************************************
@@ -243,6 +256,7 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
   ierr = CeedFree(&tindices); CeedChk(ierr);
   return 0;
 }
+
 // *****************************************************************************
 int CeedElemRestrictionCreateBlocked_Occa(const CeedMemType mtype,
     const CeedCopyMode cmode,
