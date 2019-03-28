@@ -37,7 +37,7 @@ endif
 OCCA_DIR ?= ../occa
 
 # env variable MAGMA_DIR can be used too
-MAGMA_DIR ?= ../../magma
+MAGMA_DIR ?= ../magma
 # If CUDA_DIR is not set, check for nvcc, or resort to /usr/local/cuda
 CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
                $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
@@ -46,7 +46,7 @@ CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-OPT    = -O3 -g
+OPT    = -O -g
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 NVCCFLAGS = $(OPT)
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
