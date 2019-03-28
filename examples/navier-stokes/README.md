@@ -10,11 +10,6 @@ with different problem definitions according to the application of interest.
 
 Build by using
 
-<<<<<<< HEAD
-`make OPT="-O3 -march=native -ffp-contract=fast -fopenmp-simd"`
-
-for best performance.
-=======
 `make`
 
 and run with
@@ -49,7 +44,6 @@ Available runtime options are:
 | `-resx`                  | Resolution in x                                    |
 | `-resy`                  | Resolution in y                                    |
 | `-resz`                  | Resolution in z                                    |
->>>>>>> upstream/master
 
 ## Advection
 

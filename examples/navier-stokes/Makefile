@@ -14,11 +14,8 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-<<<<<<< HEAD
-=======
 OPT ?= -O -g -march=native -ffp-contract=fast -fopenmp-simd
 
->>>>>>> upstream/master
 PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
 CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
@@ -38,12 +35,7 @@ $(navierstokes): | $(PETSc.pc) $(ceed.pc)
 
 # Rules for building the example
 %: %.c
-<<<<<<< HEAD
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(abspath $<) -o $@ \
-	  $(LDLIBS)
-=======
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(abspath $<) -o $@ $(LDLIBS)
->>>>>>> upstream/master
 
 print: $(PETSc.pc) $(ceed.pc)
 	$(info CC      : $(CC))
@@ -51,10 +43,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	$(info CPPFLAGS: $(CPPFLAGS))
 	$(info LDFLAGS : $(LDFLAGS))
 	$(info LDLIBS  : $(LDLIBS))
-<<<<<<< HEAD
-=======
 	$(info OPT     : $(OPT))
->>>>>>> upstream/master
 	@true
 
 clean:

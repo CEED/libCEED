@@ -14,8 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-<<<<<<< HEAD
-=======
 /// @file
 /// Geometric factors and mass operator for Navier-Stokes example using PETSc
 
@@ -31,7 +29,6 @@
 #  endif
 #endif
 
->>>>>>> upstream/master
 #include <math.h>
 
 // *****************************************************************************
@@ -82,10 +79,7 @@ static int Setup(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar *qdata = out[0];
 
-<<<<<<< HEAD
-=======
   CeedPragmaOMP(simd)
->>>>>>> upstream/master
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -138,7 +132,6 @@ static int Setup(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-<<<<<<< HEAD
 // This QFunction sets up the geometric factors required for integration and
 //   coordinate transformations on a disc
 //
@@ -197,8 +190,6 @@ static int SetupDisc(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-=======
->>>>>>> upstream/master
 // This QFunction applies the mass matrix to five interlaced fields.
 //
 // Inputs:
@@ -214,11 +205,8 @@ static int Mass(void *ctx, CeedInt Q,
   (void)ctx;
   const CeedScalar *u = in[0], *w = in[1];
   CeedScalar *v = out[0];
-<<<<<<< HEAD
-=======
 
   CeedPragmaOMP(simd)
->>>>>>> upstream/master
   for (CeedInt i=0; i<Q; i++) {
     v[i+0*Q] = w[i+0*Q] * u[i+0*Q];
     v[i+1*Q] = w[i+0*Q] * u[i+1*Q];
@@ -230,7 +218,4 @@ static int Mass(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-<<<<<<< HEAD
-=======
 #endif
->>>>>>> upstream/master

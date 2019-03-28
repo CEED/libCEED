@@ -8,19 +8,6 @@
 //
 // Build with:
 //
-<<<<<<< HEAD
-//     make ns [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>]
-//
-// Sample runs:
-//
-//     ns
-//     ns -ceed /cpu/self
-//     ns -ceed /gpu/occa
-//     ns -ceed /cpu/occa
-//     ns -ceed /omp/occa
-//     ns -ceed /ocl/occa
-//
-=======
 //     make [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>]
 //
 // Sample runs:
@@ -36,7 +23,6 @@
 /// @file
 /// Navier-Stokes example using PETSc
 
->>>>>>> upstream/master
 const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 
 #include <petscts.h>
@@ -47,15 +33,8 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include "common.h"
 #include "advection.h"
 #include "densitycurrent.h"
-<<<<<<< HEAD
 #include "windturbine.h"
 #include "actuatordisc.h"
-
-#if PETSC_VERSION_LT(3,11,0)
-#  define VecScatterCreateWithData VecScatterCreate
-#endif
-=======
->>>>>>> upstream/master
 
 // Utility function, compute three factors of an integer
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
@@ -110,21 +89,12 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
             for (CeedInt kk=0; kk<P; kk++) {
               if (0) { // This is the C-style (i,j,k) ordering that I prefer
                 idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mdof[1]
-<<<<<<< HEAD
                                        + (j*(P-1)+jj))*mdof[2]
                                        + (k*(P-1)+kk));
               } else { // (k,j,i) ordering for consistency with MFEM example
                 idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mdof[1]
                                        + (j*(P-1)+jj))*mdof[2]
                                        + (k*(P-1)+kk));
-=======
-                                         + (j*(P-1)+jj))*mdof[2]
-                                        + (k*(P-1)+kk));
-              } else { // (k,j,i) ordering for consistency with MFEM example
-                idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mdof[1]
-                                         + (j*(P-1)+jj))*mdof[2]
-                                        + (k*(P-1)+kk));
->>>>>>> upstream/master
               }
             }
           }
@@ -137,7 +107,6 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
   PetscFunctionReturn(0);
 }
 
-<<<<<<< HEAD
 // Utility function to create local CEED restriction on a disc
 static int CreateRestrictionDisc(Ceed ceed, const CeedInt melem[3],
                              const CeedInt P, const CeedInt ncomp,
@@ -208,8 +177,6 @@ ondiscfound:
   PetscFunctionReturn(0);
 }
 
-=======
->>>>>>> upstream/master
 // PETSc user data
 typedef struct User_ *User;
 struct User_ {
@@ -226,10 +193,7 @@ struct User_ {
   VecScatter gtogD;             // global-to-global; only Dirichlet values for Q
   Vec Qloc, Gloc, M, BC;
   char outputfolder[PETSC_MAX_PATH_LEN];
-<<<<<<< HEAD
-=======
   PetscInt contsteps;
->>>>>>> upstream/master
 };
 
 // This is the RHS of the ODE, given as u_t = G(t,u)
@@ -266,7 +230,6 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
 
   // Global-to-global
   // G on the boundary = BC
-<<<<<<< HEAD
   ierr = VecScatterBegin(user->gtogD, user->BC, G, INSERT_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
   ierr = VecScatterEnd(user->gtogD, user->BC, G, INSERT_VALUES, SCATTER_FORWARD);
@@ -277,18 +240,6 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog0, user->Gloc, G, ADD_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
-=======
-  ierr = VecScatterBegin(user->gtogD, user->BC, G, INSERT_VALUES,
-                         SCATTER_FORWARD); CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->gtogD, user->BC, G, INSERT_VALUES,
-                       SCATTER_FORWARD); CHKERRQ(ierr);
-
-  // Local-to-global
-  ierr = VecScatterBegin(user->ltog0, user->Gloc, G, ADD_VALUES,
-                         SCATTER_FORWARD); CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog0, user->Gloc, G, ADD_VALUES,
-                       SCATTER_FORWARD); CHKERRQ(ierr);
->>>>>>> upstream/master
 
   // Inverse of the lumped mass matrix
   ierr = VecPointwiseMult(G,G,user->M); // M is Minv
@@ -323,12 +274,8 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
     for (PetscInt j=0; j<info.ym; j++) {
       for (PetscInt k=0; k<info.xm; k++) {
         for (PetscInt c=0; c<5; c++) {
-<<<<<<< HEAD
-          u[info.zs+i][info.ys+j][(info.xs+k)*5+c] = q[((i*info.ym+j)*info.xm+k)*5 + c];
-=======
           u[info.zs+i][info.ys+j][(info.xs+k)*5+c] =
                   q[((i*info.ym+j)*info.xm+k)*5 + c];
->>>>>>> upstream/master
         }
       }
     }
@@ -337,16 +284,6 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = DMDAVecRestoreArray(user->dm, U, &u); CHKERRQ(ierr);
 
   // Output
-<<<<<<< HEAD
-  ierr = PetscSNPrintf(filepath, sizeof filepath, user->outputfolder, stepno);
-  CHKERRQ(ierr);
-  ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)U), filepath,
-                            FILE_MODE_WRITE, &viewer);
-  CHKERRQ(ierr);
-  ierr = VecView(U, viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  ierr = DMRestoreGlobalVector(user->dm, &U); CHKERRQ(ierr);
-=======
   ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-%03D.vts",
                        user->outputfolder, stepno + user->contsteps);
   CHKERRQ(ierr);
@@ -373,7 +310,6 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
->>>>>>> upstream/master
   PetscFunctionReturn(0);
 }
 
@@ -388,11 +324,7 @@ int main(int argc, char **argv) {
   PetscFunctionList icsflist = NULL, qflist = NULL;
   char problemtype[256] = "advection";
   PetscInt degree, qextra, localNelem, lsize, outputfreq,
-<<<<<<< HEAD
-           steps, melem[3], mdof[3], p[3], irank[3], ldof[3];
-=======
            steps, melem[3], mdof[3], p[3], irank[3], ldof[3], contsteps;
->>>>>>> upstream/master
   PetscMPIInt size, rank;
   PetscScalar ftime;
   PetscScalar *q0, *m, *mult, *x;
@@ -400,7 +332,6 @@ int main(int argc, char **argv) {
   VecScatter ltog, ltog0, gtogD, ltogX;
 
   Ceed ceed;
-<<<<<<< HEAD
   CeedInt numP, numQ, numQdisc, degreedisc;
   CeedVector xcorners, xceed, qdata, qdatadisc,
              q0ceed, mceed, onesvec, multevec, multlvec;
@@ -412,16 +343,6 @@ int main(int argc, char **argv) {
   CeedQFunction qf_setup, qf_setupdisc, qf_mass, qf_ics, qf, qf_disc;
   CeedOperator op_setup, op_setupdisc, op_mass, op_ics,
                op, op_disc, op_compsetup, op_comp;
-=======
-  CeedInt numP, numQ;
-  CeedVector xcorners, xceed, qdata, q0ceed, mceed,
-             onesvec, multevec, multlvec;
-  CeedBasis basisx, basisxc, basisq;
-  CeedElemRestriction restrictx, restrictxc, restrictxi,
-                      restrictq, restrictqdi, restrictmult;
-  CeedQFunction qf_setup, qf_mass, qf_ics, qf;
-  CeedOperator op_setup, op_mass, op_ics, op;
->>>>>>> upstream/master
 
   // Create the libCEED contexts
   CeedScalar theta0     = 300.;     // K
@@ -435,26 +356,16 @@ int main(int argc, char **argv) {
   CeedScalar lambda     = -2./3.;   // -
   CeedScalar mu         = 75.;      // Pa s (dynamic viscosity, not physical for air, but good for numerical stability)
   CeedScalar k          = 0.02638;  // W/m K
-<<<<<<< HEAD
   CeedScalar  rc;                   // m
-  PetscScalar lx;                   // m
-  PetscScalar ly;                   // m
-  PetscScalar lz;                   // m
-  PetscScalar resx;                 // m
-  PetscScalar resy;                 // m
-  PetscScalar resz;                 // m
-  CeedScalar Adisc;                 // m^2 (Area of actuator disc)
-  CeedScalar CT          = 0.75;    // - (Actuator disc thrust coefficient)
-  PetscScalar  eps;                 // m
-=======
-  CeedScalar rc;                    // m (Radius of bubble)
   PetscScalar lx;                   // m
   PetscScalar ly;                   // m
   PetscScalar lz;                   // m
   PetscScalar resx;                 // m (resolution in x)
   PetscScalar resy;                 // m (resolution in y)
   PetscScalar resz;                 // m (resolution in z)
->>>>>>> upstream/master
+  CeedScalar Adisc;                 // m^2 (Area of actuator disc)
+  CeedScalar CT          = 0.75;    // - (Actuator disc thrust coefficient)
+  PetscScalar  eps;                 // m
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -465,17 +376,12 @@ int main(int argc, char **argv) {
   // Set up problem type command line option
   PetscFunctionListAdd(&icsflist, "advection", &ICsAdvection);
   PetscFunctionListAdd(&icsflist, "density_current", &ICsDC);
-<<<<<<< HEAD
   PetscFunctionListAdd(&icsflist, "wind_turbine", &ICsWindTurbine);
   PetscFunctionListAdd(&icsflist, "actuator_disc", &ICsActuatorDisc);
   PetscFunctionListAdd(&qflist, "advection", &Advection);
   PetscFunctionListAdd(&qflist, "density_current", &DC);
   PetscFunctionListAdd(&qflist, "wind_turbine", &WT);
   PetscFunctionListAdd(&qflist, "actuator_disc", &AD);
-=======
-  PetscFunctionListAdd(&qflist, "advection", &Advection);
-  PetscFunctionListAdd(&qflist, "density_current", &DC);
->>>>>>> upstream/master
 
   // Parse command line options
   comm = PETSC_COMM_WORLD;
@@ -487,7 +393,6 @@ int main(int argc, char **argv) {
   PetscOptionsFList("-problem", "Problem to solve", NULL, icsflist,
                     problemtype, problemtype, sizeof problemtype, NULL);
   ierr = PetscOptionsScalar("-theta0", "Reference potential temperature",
-<<<<<<< HEAD
                          NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-thetaC", "Perturbation of potential temperature",
                          NULL, thetaC, &thetaC, NULL); CHKERRQ(ierr);
@@ -522,59 +427,19 @@ int main(int argc, char **argv) {
   rc = PetscMin(PetscMin(lx,ly),lz)/4.;
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble or actuator disc",
                          NULL, rc, &rc, NULL); CHKERRQ(ierr);
-=======
-                            NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-thetaC", "Perturbation of potential temperature",
-                            NULL, thetaC, &thetaC, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-P0", "Atmospheric pressure",
-                            NULL, P0, &P0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-N", "Brunt-Vaisala frequency",
-                            NULL, N, &N, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-cv", "Heat capacity at constant volume",
-                            NULL, cv, &cv, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-cp", "Heat capacity at constant pressure",
-                            NULL, cp, &cp, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
-                            NULL, g, &g, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-lambda", "Stokes hypothesis second viscosity coefficient",
-                            NULL, lambda, &lambda, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-mu", "Shear dynamic viscosity coefficient",
-                            NULL, mu, &mu, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-k", "Thermal conductivity",
-                            NULL, k, &k, NULL); CHKERRQ(ierr);
-  lx = 8000.;
-  ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
-                            NULL, lx, &lx, NULL); CHKERRQ(ierr);
-  lx = fabs(lx);
-  ly = 8000.;
-  ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
-                            NULL, ly, &ly, NULL); CHKERRQ(ierr);
-  ly = fabs(ly);
-  lz = 4000.;
-  ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
-                            NULL, lz, &lz, NULL); CHKERRQ(ierr);
-  lz = fabs(lz);
-  rc = PetscMin(PetscMin(lx,ly),lz)/4.;
-  ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
-                            NULL, rc, &rc, NULL); CHKERRQ(ierr);
->>>>>>> upstream/master
   rc = fabs(rc);
   outputfreq = 10;
   ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
-<<<<<<< HEAD
-=======
   contsteps = 0;
   ierr = PetscOptionsInt("-continue", "Continue from previous solution",
                          NULL, contsteps, &contsteps, NULL); CHKERRQ(ierr);
->>>>>>> upstream/master
   degree = 3;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
   qextra = 2;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
-<<<<<<< HEAD
   PetscStrcpy(user->outputfolder, "./");
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
@@ -595,24 +460,6 @@ int main(int argc, char **argv) {
   eps = 2*PetscMin(PetscMin(lx,ly),lz);
   ierr = PetscOptionsScalar("-eps", "Width of regularization function for actuator disc",
                          NULL, eps, &eps, NULL); CHKERRQ(ierr);
-=======
-  PetscStrcpy(user->outputfolder, ".");
-  ierr = PetscOptionsString("-of", "Output folder",
-                            NULL, user->outputfolder, user->outputfolder,
-                            sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
-  resx = 1000.;
-  ierr = PetscOptionsScalar("-resx","Resolution in x",
-                            NULL, resx, &resx, NULL); CHKERRQ(ierr);
-  resx = fabs(resx);
-  resy = 1000.;
-  ierr = PetscOptionsScalar("-resy","Resolution in y",
-                            NULL, resy, &resy, NULL); CHKERRQ(ierr);
-  resy = fabs(resy);
-  resz = 1000.;
-  ierr = PetscOptionsScalar("-resz","Resolution in z",
-                            NULL, resz, &resz, NULL); CHKERRQ(ierr);
-  resz = fabs(resz);
->>>>>>> upstream/master
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Determine size of process grid
@@ -713,21 +560,12 @@ int main(int argc, char **argv) {
           PetscInt dofind = (i*ldof[1]+j)*ldof[2]+k;
           ltogind[dofind] =
             gstart[ir][jr][kr] + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk;
-<<<<<<< HEAD
-          if ((irank[0] == 0 && i == 0)
-              || (irank[1] == 0 && j == 0)
-              || (irank[2] == 0 && k == 0)
-              || (irank[0]+1 == p[0] && i+1 == ldof[0])
-              || (irank[1]+1 == p[1] && j+1 == ldof[1])
-              || (irank[2]+1 == p[2] && k+1 == ldof[2]))
-=======
           if ((irank[0] == 0 && i == 0) ||
               (irank[1] == 0 && j == 0) ||
               (irank[2] == 0 && k == 0) ||
               (irank[0]+1 == p[0] && i+1 == ldof[0]) ||
               (irank[1]+1 == p[1] && j+1 == ldof[1]) ||
               (irank[2]+1 == p[2] && k+1 == ldof[2]))
->>>>>>> upstream/master
             continue;
           ltogind0[l0count] = ltogind[dofind];
           locind[l0count++] = dofind;
@@ -738,29 +576,17 @@ int main(int argc, char **argv) {
     // Create local-to-global scatters
     ierr = ISCreateBlock(comm, 3, lsize, ltogind, PETSC_COPY_VALUES, &ltogxis);
     CHKERRQ(ierr);
-<<<<<<< HEAD
-    ierr = VecScatterCreateWithData(Xloc, NULL, X, ltogxis, &ltogX);
-    CHKERRQ(ierr);
-    ierr = ISCreateBlock(comm, 5, lsize, ltogind, PETSC_OWN_POINTER, &ltogis);
-    CHKERRQ(ierr);
-    ierr = VecScatterCreateWithData(Qloc, NULL, Q, ltogis, &ltog);
-=======
     ierr = VecScatterCreate(Xloc, NULL, X, ltogxis, &ltogX);
     CHKERRQ(ierr);
     ierr = ISCreateBlock(comm, 5, lsize, ltogind, PETSC_OWN_POINTER, &ltogis);
     CHKERRQ(ierr);
     ierr = VecScatterCreate(Qloc, NULL, Q, ltogis, &ltog);
->>>>>>> upstream/master
     CHKERRQ(ierr);
     ierr = ISCreateBlock(comm, 5, l0count, ltogind0, PETSC_OWN_POINTER, &ltogis0);
     CHKERRQ(ierr);
     ierr = ISCreateBlock(comm, 5, l0count, locind, PETSC_OWN_POINTER, &locis);
     CHKERRQ(ierr);
-<<<<<<< HEAD
-    ierr = VecScatterCreateWithData(Qloc, locis, Q, ltogis0, &ltog0);
-=======
     ierr = VecScatterCreate(Qloc, locis, Q, ltogis0, &ltog0);
->>>>>>> upstream/master
     CHKERRQ(ierr);
 
     {
@@ -786,11 +612,7 @@ int main(int argc, char **argv) {
       ierr = ISCreateGeneral(comm, countD, indD, PETSC_COPY_VALUES, &isD);
       CHKERRQ(ierr);
       ierr = PetscFree(indD); CHKERRQ(ierr);
-<<<<<<< HEAD
-      ierr = VecScatterCreateWithData(Q, isD, Q, isD, &gtogD); CHKERRQ(ierr);
-=======
       ierr = VecScatterCreate(Q, isD, Q, isD, &gtogD); CHKERRQ(ierr);
->>>>>>> upstream/master
       ierr = ISDestroy(&isD); CHKERRQ(ierr);
     }
     ierr = ISDestroy(&ltogis); CHKERRQ(ierr);
@@ -833,7 +655,6 @@ int main(int argc, char **argv) {
   CeedInit(ceedresource, &ceed);
   numP = degree + 1;
   numQ = numP + qextra;
-<<<<<<< HEAD
   degreedisc = 10;
   numQdisc = numP + degreedisc + qextra;
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 5, numP, numQ, CEED_GAUSS, &basisq);
@@ -846,12 +667,6 @@ int main(int argc, char **argv) {
                                   &basisxc);
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, numP, CEED_GAUSS_LOBATTO,
                                   &basisxcdisc);
-=======
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, 5, numP, numQ, CEED_GAUSS, &basisq);
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, numQ, CEED_GAUSS, &basisx);
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, numP, CEED_GAUSS_LOBATTO,
-                                  &basisxc);
->>>>>>> upstream/master
 
   // CEED Restrictions
   CreateRestriction(ceed, melem, numP, 5, &restrictq);
@@ -868,32 +683,18 @@ int main(int argc, char **argv) {
   // Find physical cordinates of the corners of local elements
   {
     CeedScalar *xloc;
-<<<<<<< HEAD
     CeedInt shape[3] = {melem[0]+1, melem[1]+1, melem[2]+1},
                  len = shape[0]*shape[1]*shape[2];
-=======
-    CeedInt shape[3] = {melem[0]+1, melem[1]+1, melem[2]+1}, len =
-                         shape[0]*shape[1]*shape[2];
->>>>>>> upstream/master
     xloc = malloc(len*3*sizeof xloc[0]);
     for (CeedInt i=0; i<shape[0]; i++) {
       for (CeedInt j=0; j<shape[1]; j++) {
         for (CeedInt k=0; k<shape[2]; k++) {
-<<<<<<< HEAD
-          xloc[((i*shape[1]+j)*shape[2]+k) + 0*len] = lx*(irank[0]*melem[0]+i) /
-              (p[0]*melem[0]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 1*len] = ly*(irank[1]*melem[1]+j) /
-              (p[1]*melem[1]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 2*len] = lz*(irank[2]*melem[2]+k) /
-              (p[2]*melem[2]);
-=======
           xloc[((i*shape[1]+j)*shape[2]+k) + 0*len] =
                  lx * (irank[0]*melem[0]+i) / (p[0]*melem[0]);
           xloc[((i*shape[1]+j)*shape[2]+k) + 1*len] =
                  ly * (irank[1]*melem[1]+j) / (p[1]*melem[1]);
           xloc[((i*shape[1]+j)*shape[2]+k) + 2*len] =
                  lz * (irank[2]*melem[2]+k) / (p[2]*melem[2]);
->>>>>>> upstream/master
         }
       }
     }
@@ -901,7 +702,6 @@ int main(int argc, char **argv) {
     CeedVectorSetArray(xcorners, CEED_MEM_HOST, CEED_OWN_POINTER, xloc);
   }
 
-<<<<<<< HEAD
   // CEED Restrictions on disc
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
   CeedInt Nelemdisc = 0;
@@ -924,14 +724,6 @@ int main(int argc, char **argv) {
   for (int d=0; d<3; d++) Ndofs *= numP;
   CeedVectorCreate(ceed, 16*localNelem*Nqpts, &qdata);
   CeedVectorCreate(ceed, Nelemdisc*Nqptsdisc, &qdatadisc);
-=======
-  // Create the CEED vectors that will be needed in setup
-  CeedInt Nqpts;
-  CeedBasisGetNumQuadraturePoints(basisq, &Nqpts);
-  CeedInt Ndofs = 1;
-  for (int d=0; d<3; d++) Ndofs *= numP;
-  CeedVectorCreate(ceed, 16*localNelem*Nqpts, &qdata);
->>>>>>> upstream/master
   CeedVectorCreate(ceed, 5*lsize, &q0ceed);
   CeedVectorCreate(ceed, 5*lsize, &mceed);
   CeedVectorCreate(ceed, 5*lsize, &onesvec);
@@ -952,7 +744,6 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup, "qdata", 16, CEED_EVAL_NONE);
 
-<<<<<<< HEAD
   // Create the Q-function that builds the quadrature data for the disc operator
   CeedQFunctionCreateInterior(ceed, 1,
                               SetupDisc, __FILE__ ":SetupDisc", &qf_setupdisc);
@@ -960,8 +751,6 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_setupdisc, "weightdisc", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setupdisc, "qdatadisc", 1, CEED_EVAL_NONE);
 
-=======
->>>>>>> upstream/master
   // Create the Q-function that defines the action of the mass operator
   CeedQFunctionCreateInterior(ceed, 1,
                               Mass, __FILE__ ":Mass", &qf_mass);
@@ -977,12 +766,8 @@ int main(int argc, char **argv) {
   char str[256] = __FILE__":ICs";
   strcat(str, problemtype);
   CeedQFunctionCreateInterior(ceed, 1,
-<<<<<<< HEAD
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))icsfp, str, &qf_ics);
-=======
                               (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))icsfp,
                               str, &qf_ics);
->>>>>>> upstream/master
   CeedQFunctionAddInput(qf_ics, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", 5, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_ics, "coords", 3, CEED_EVAL_NONE);
@@ -995,12 +780,8 @@ int main(int argc, char **argv) {
   strcpy(str, __FILE__":");
   strcat(str, problemtype);
   CeedQFunctionCreateInterior(ceed, 1,
-<<<<<<< HEAD
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))fp, str, &qf);
-=======
                               (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))fp,
                               str, &qf);
->>>>>>> upstream/master
   CeedQFunctionAddInput(qf, "q", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf, "dq", 5, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf, "qdata", 16, CEED_EVAL_NONE);
@@ -1008,7 +789,6 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf, "v", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf, "dv", 5, CEED_EVAL_GRAD);
 
-<<<<<<< HEAD
   // Create the Q-function that defines the action of the operator for the disc
   CeedQFunctionCreateInterior(ceed, 1,
                               AD, __FILE__ ":AD", &qf_disc);
@@ -1019,8 +799,6 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_disc, "vdisc", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_disc, "dvdisc", 5, CEED_EVAL_GRAD);
 
-=======
->>>>>>> upstream/master
   // Create the operator that builds the quadrature data for the NS operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
   CeedOperatorSetField(op_setup, "dx", restrictx, CEED_NOTRANSPOSE,
@@ -1030,7 +808,6 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup, "qdata", restrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-<<<<<<< HEAD
   // Create the operator that builds the quadrature data for the disc operator
   CeedOperatorCreate(ceed, qf_setupdisc, NULL, NULL, &op_setupdisc);
   CeedOperatorSetField(op_setupdisc, "dxdisc", restrictxdisc, CEED_NOTRANSPOSE,
@@ -1040,8 +817,6 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setupdisc, "qdatadisc", restrictqdidisc, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-=======
->>>>>>> upstream/master
   // Create the mass operator
   CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
   CeedOperatorSetField(op_mass, "q", restrictq, CEED_TRANSPOSE,
@@ -1060,11 +835,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_ics, "coords", restrictxc, CEED_TRANSPOSE,
                        CEED_BASIS_COLLOCATED, xceed);
 
-<<<<<<< HEAD
   // Create the physics operator for the NS solver
-=======
-  // Create the physics operator
->>>>>>> upstream/master
   CeedOperatorCreate(ceed, qf, NULL, NULL, &op);
   CeedOperatorSetField(op, "q", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
@@ -1079,7 +850,6 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op, "dv", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
 
-<<<<<<< HEAD
   // Create the physics operator for the disc
   CeedOperatorCreate(ceed, qf_disc, NULL, NULL, &op_disc);
   CeedOperatorSetField(op_disc, "qdisc", restrictqdisc, CEED_TRANSPOSE,
@@ -1110,32 +880,18 @@ int main(int argc, char **argv) {
   CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
   CeedScalar ctxAD[7] = {Adisc, CT, eps, rc, lx, ly, lz};
   CeedQFunctionSetContext(qf_disc, &ctxAD, sizeof ctxAD);
-=======
-  // Set up the libCEED context
-  CeedScalar ctxSetup[12] = {theta0, thetaC, P0, N, cv, cp, Rd, g, rc, lx, ly, lz};
-  CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
-  CeedScalar ctxNS[6] = {lambda, mu, k, cv, cp, g};
-  CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
->>>>>>> upstream/master
 
   // Set up PETSc context
   user->comm = comm;
   user->degree = degree;
   for (int d=0; d<3; d++) user->melem[d] = melem[d];
   user->outputfreq = outputfreq;
-<<<<<<< HEAD
-=======
   user->contsteps = contsteps;
->>>>>>> upstream/master
   user->dm = dm;
   user->ceed = ceed;
   CeedVectorCreate(ceed, 5*lsize, &user->qceed);
   CeedVectorCreate(ceed, 5*lsize, &user->gceed);
-<<<<<<< HEAD
   user->op = op_comp;
-=======
-  user->op = op;
->>>>>>> upstream/master
   user->ltog = ltog;
   user->ltog0 = ltog0;
   user->gtogD = gtogD;
@@ -1159,12 +915,8 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
   // Apply Setup Ceed Operators
-<<<<<<< HEAD
   CeedOperatorApply(op_setup,xcorners,qdata,CEED_REQUEST_IMMEDIATE);
   CeedOperatorApply(op_setupdisc,xcorners,qdatadisc,CEED_REQUEST_IMMEDIATE);
-=======
-  CeedOperatorApply(op_setup, xcorners, qdata, CEED_REQUEST_IMMEDIATE);
->>>>>>> upstream/master
   CeedOperatorApply(op_ics, xcorners, q0ceed, CEED_REQUEST_IMMEDIATE);
   CeedVectorSetValue(onesvec, 1.0);
   CeedOperatorApply(op_mass, onesvec, mceed, CEED_REQUEST_IMMEDIATE);
@@ -1190,12 +942,6 @@ int main(int argc, char **argv) {
 
   // Gather initial Q values
   ierr = VecRestoreArray(Qloc, &q0); CHKERRQ(ierr);
-<<<<<<< HEAD
-  ierr = VecScatterBegin(ltog, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterEnd(ltog, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-=======
   // In case of continuation of simulation, set up initial values from binary file
   if (contsteps){ // continue from existent solution
     PetscViewer viewer;
@@ -1214,7 +960,6 @@ int main(int argc, char **argv) {
     ierr = VecScatterEnd(ltog, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
     CHKERRQ(ierr);
   }
->>>>>>> upstream/master
   CeedVectorDestroy(&q0ceed);
 
   // Copy boundary values
@@ -1263,9 +1008,6 @@ int main(int argc, char **argv) {
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
   ierr = TSAdaptSetStepLimits(adapt, 1.e-12, 1.e-2); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
-<<<<<<< HEAD
-  ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
-=======
   if (!contsteps){ // print initial condition
     ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
   } else { // continue from time of last output
@@ -1282,7 +1024,6 @@ int main(int argc, char **argv) {
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
     ierr = TSSetTime(ts, time); CHKERRQ(ierr);
   }
->>>>>>> upstream/master
   ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
 
   // Solve
@@ -1297,10 +1038,7 @@ int main(int argc, char **argv) {
 
   // Clean up libCEED
   CeedVectorDestroy(&qdata);
-<<<<<<< HEAD
   CeedVectorDestroy(&qdatadisc);
-=======
->>>>>>> upstream/master
   CeedVectorDestroy(&user->qceed);
   CeedVectorDestroy(&user->gceed);
   CeedVectorDestroy(&xceed);
@@ -1310,7 +1048,6 @@ int main(int argc, char **argv) {
   CeedBasisDestroy(&basisx);
   CeedBasisDestroy(&basisxc);
   CeedElemRestrictionDestroy(&restrictq);
-<<<<<<< HEAD
   CeedElemRestrictionDestroy(&restrictqdisc);
   CeedElemRestrictionDestroy(&restrictx);
   CeedElemRestrictionDestroy(&restrictxdisc);
@@ -1325,15 +1062,6 @@ int main(int argc, char **argv) {
   CeedQFunctionDestroy(&qf);
   CeedOperatorDestroy(&op_setup);
   CeedOperatorDestroy(&op_compsetup);
-=======
-  CeedElemRestrictionDestroy(&restrictx);
-  CeedElemRestrictionDestroy(&restrictqdi);
-  CeedElemRestrictionDestroy(&restrictxi);
-  CeedQFunctionDestroy(&qf_setup);
-  CeedQFunctionDestroy(&qf_ics);
-  CeedQFunctionDestroy(&qf);
-  CeedOperatorDestroy(&op_setup);
->>>>>>> upstream/master
   CeedOperatorDestroy(&op_ics);
   CeedOperatorDestroy(&op);
   CeedDestroy(&ceed);
