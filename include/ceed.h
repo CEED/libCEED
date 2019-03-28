@@ -133,6 +133,8 @@ typedef enum {
   CEED_MEM_DEVICE,
 } CeedMemType;
 
+CEED_EXTERN int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type);
+
 /// Conveys ownership status of arrays passed to Ceed interfaces.
 /// @ingroup Ceed
 typedef enum {

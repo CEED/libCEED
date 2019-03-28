@@ -64,6 +64,12 @@ void fCeedInit(const char *resource, int *ceed, int *err,
   }
 }
 
+#define fCeedGetPreferredMemType \
+    FORTRAN_NAME(ceedgetpreferredmemtype,CEEDGETPREFERREDMEMTYPE)
+void fCeedGetPreferredMemType(int *ceed, int *type, int *err) {
+  *err = CeedGetPreferredMemType(Ceed_dict[*ceed], (CeedMemType *)type);
+}
+
 #define fCeedDestroy FORTRAN_NAME(ceeddestroy,CEEDDESTROY)
 void fCeedDestroy(int *ceed, int *err) {
   *err = CeedDestroy(&Ceed_dict[*ceed]);
