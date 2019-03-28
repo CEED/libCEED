@@ -108,7 +108,7 @@ def main():
         if (numparts == 2): partsinit[2] = partsinit[2]
 
         # Prepare the magma_template kernel and write it in the .cu file ###
-        kernel  = "__global__ void                                      \n"
+        kernel  = "static __global__ void                                      \n"
         kernel +=  kname+"_kernel(                                      \n"
         for i in range(numparts):
             kernel += "    int "+parts[i]+"begin, int "+parts[i]+"end,  \n"
