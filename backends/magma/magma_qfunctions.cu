@@ -5,7 +5,7 @@
 
 // t20 QFunctions ===============================================================
 
-__global__
+static __global__
 void t20_setup_kernel(const CeedScalar *in, CeedScalar *out) 
 {
    out[threadIdx.x] = in[threadIdx.x];
@@ -30,7 +30,7 @@ extern "C" int t20_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
 // ====================================
 
-__global__ void 
+static __global__ void 
 t20_mass_kernel(const CeedScalar *qdata, const CeedScalar *u, CeedScalar *v)
 {
    v[threadIdx.x] = qdata[threadIdx.x] * u[threadIdx.x];
@@ -55,7 +55,7 @@ extern "C" int t20_mass(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
 // t30 QFunctions ===============================================================
 
-__global__ void
+static __global__ void
 t30_setup_kernel(const CeedScalar *weight, const CeedScalar *u, CeedScalar *v)
 {
    v[threadIdx.x] = weight[threadIdx.x]*u[threadIdx.x];
@@ -80,7 +80,7 @@ extern "C" int t30_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
 // ====================================
 
-__global__ void
+static __global__ void
 t30_mass_kernel(const CeedScalar *rho, const CeedScalar *u, CeedScalar *v)
 {
    v[threadIdx.x] = rho[threadIdx.x]*u[threadIdx.x];
@@ -107,20 +107,20 @@ extern "C" int t30_mass(void *ctx, CeedInt Q, const CeedScalar *const *in,
 /// A structure used to pass additional data to f_build_mass
 struct BuildContext { CeedInt dim, space_dim; };
 
-__global__ void
+static __global__ void
 ex1_setup_kernel1(const CeedScalar *weight, const CeedScalar *u, CeedScalar *v)
 {
    v[threadIdx.x] = weight[threadIdx.x]*u[threadIdx.x];
 }
 
-__global__ void
+static __global__ void
 ex1_setup_kernel2(const CeedScalar *J, const CeedScalar *qw, CeedScalar *qd)
 {
    int i = threadIdx.x, Q = blockDim.x;
    qd[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
 }
 
-__global__ void
+static __global__ void
 ex1_setup_kernel3(const CeedScalar *J, const CeedScalar *qw, CeedScalar *qd)
 {
    int i = threadIdx.x, Q = blockDim.x;
@@ -181,7 +181,7 @@ extern "C" int ex1_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
 // ====================================
 
-__global__ void
+static __global__ void
 ex1_mass_kernel(const CeedScalar *rho, const CeedScalar *u, CeedScalar *v)
 {
    v[threadIdx.x] = rho[threadIdx.x]*u[threadIdx.x];
@@ -205,7 +205,7 @@ extern "C" int ex1_mass(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
 // t400 QFunctions ==============================================================
 
-__global__
+static __global__
 void t400_setup_kernel(const CeedScalar *in, CeedScalar *out)
 {
    out[threadIdx.x] = in[threadIdx.x];
@@ -230,7 +230,7 @@ extern "C" int t400_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
 // ====================================
 
-__global__ void
+static __global__ void
 t400_mass_kernel(const CeedScalar *qdata, const CeedScalar *u, CeedScalar *v)
 {
    v[threadIdx.x] = qdata[threadIdx.x] * u[threadIdx.x];
@@ -255,7 +255,7 @@ extern "C" int t400_mass(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
 // t500 QFunctions ==============================================================
 
-__global__ void
+static __global__ void
 t500_setup_kernel(const CeedScalar *weight, const CeedScalar *u, CeedScalar *v)
 {
    v[threadIdx.x] = weight[threadIdx.x]*u[threadIdx.x];
@@ -280,7 +280,7 @@ extern "C" int t500_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
 // ====================================
 
-__global__ void
+static __global__ void
 t500_mass_kernel(const CeedScalar *rho, const CeedScalar *u, CeedScalar *v)
 {
    v[threadIdx.x] = rho[threadIdx.x]*u[threadIdx.x];
