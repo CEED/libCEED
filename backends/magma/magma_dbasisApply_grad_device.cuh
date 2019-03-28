@@ -3,7 +3,7 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<int P, int Q>
-__device__ __inline__ void
+static __device__ __inline__ void
 dbasis_apply_eval_grad_device( 
     const int p, 
     const int dim, const int ncomp, const int pre_org, const int post_org, const int tmp_size, 

@@ -9,7 +9,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 extern __shared__ double shared_data[];
 template<int P, int Q>
-__global__ void
+static __global__ void
 dbasis_apply_eval_grad_kernel_batched( 
     const int dim, const int ncomp, const int nqpt, 
     const int pre_org, const int tmp_size, 
@@ -49,7 +49,7 @@ dbasis_apply_eval_grad_kernel_batched(
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<int P, int Q>
-magma_int_t 
+static magma_int_t 
 dbasis_apply_eval_grad_kernel_batched_driver( 
                 magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt, 
                 const double* dinterp1d, const double *dgrad1d, magma_trans_t transT,
@@ -88,7 +88,7 @@ dbasis_apply_eval_grad_kernel_batched_driver(
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<int P>
-magma_int_t 
+static magma_int_t 
 magmablas_dbasis_apply_batched_eval_grad_2( 
     magma_int_t Q, 
     magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt, 
@@ -115,7 +115,7 @@ magmablas_dbasis_apply_batched_eval_grad_2(
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-magma_int_t 
+static magma_int_t 
 magmablas_dbasis_apply_batched_eval_grad_1( 
     magma_int_t P, magma_int_t Q, 
     magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt, 

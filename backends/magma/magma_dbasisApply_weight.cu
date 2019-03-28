@@ -3,7 +3,7 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<int Q>
-__device__ __inline__ void
+static __device__ __inline__ void
 dbasis_apply_eval_weight_device( 
     const int dim, 
     const int pre_org, const int post_org,  
@@ -71,7 +71,7 @@ dbasis_apply_eval_weight_device(
 //////////////////////////////////////////////////////////////////////////////////////////
 extern __shared__ double shared_data[];
 template<int Q>
-__global__ void
+static __global__ void
 dbasis_apply_eval_weight_kernel_batched( 
     const int dim, const int pre_org, const int post_org, 
     const double *dqweight1d, 
@@ -84,7 +84,7 @@ dbasis_apply_eval_weight_kernel_batched(
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<int Q>
-magma_int_t 
+static magma_int_t 
 dbasis_apply_eval_weight_kernel_batched_driver( 
                 magma_int_t dim,   
                 const double *dqweight1d, 
@@ -115,7 +115,7 @@ dbasis_apply_eval_weight_kernel_batched_driver(
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-magma_int_t 
+static magma_int_t 
 magmablas_dbasis_apply_batched_eval_weight_1( 
     magma_int_t Q, magma_int_t dim, 
     const double *dqweight1d, 
