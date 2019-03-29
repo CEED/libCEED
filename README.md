@@ -84,6 +84,7 @@ or, using the `prove` tool distributed with Perl (recommended)
 
 There are multiple supported backends, which can be selected at runtime in the examples:
 
+<<<<<<< HEAD
 |  CEED resource           | Backend                                           |
 | :----------------------- | :------------------------------------------------ |
 | `/cpu/self/ref/serial`   | Serial reference implementation                   |
@@ -101,6 +102,25 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/gpu/cuda/ref`          | Reference pure CUDA kernels                       |
 | `/gpu/cuda/reg`          | Pure CUDA kernels using one thread per element    |
 | `/gpu/magma`             | CUDA MAGMA kernels                                |
+=======
+|  CEED resource                | Backend                                                |
+| :---------------------------- | :----------------------------------------------------- |
+| `/cpu/self/ref/serial`        | Serial reference implementation                        |
+| `/cpu/self/ref/blocked`       | Blocked refrence implementation                        |
+| `/cpu/self/ref/blocked/full`  | Blocked refrence implementation with full Evectors     |
+| `/cpu/self/tmpl`              | Backend template, delegates to `/cpu/self/ref/blocked` |
+| `/cpu/self/avx/serial`        | Serial AVX implementation                              |
+| `/cpu/self/avx/blocked`       | Blocked AVX implementation                             |
+| `/cpu/self/xsmm/serial`       | Serial LIBXSMM implementation                          |
+| `/cpu/self/xsmm/blocked`      | Blocked LIBXSMM implementation                         |
+| `/cpu/occa`                   | Serial OCCA kernels                                    |
+| `/gpu/occa`                   | CUDA OCCA kernels                                      |
+| `/omp/occa`                   | OpenMP OCCA kernels                                    |
+| `/ocl/occa`                   | OpenCL OCCA kernels                                    |
+| `/gpu/cuda/ref`               | Reference pure CUDA kernels                            |
+| `/gpu/cuda/reg`               | Pure CUDA kernels using one thread per element         |
+| `/gpu/magma`                  | CUDA MAGMA kernels                                     |
+>>>>>>> Include full evec blocked backend
 
 
 The `/cpu/self/*/serial` backends process one element at a time and are intended for meshes

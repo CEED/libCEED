@@ -112,7 +112,7 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.c := $(wildcard interface/ceed*.c)
-BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/tmpl
+BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/ref/blocked/full /cpu/self/tmpl
 BACKENDS := $(BACKENDS_BUILTIN)
 
 # Tests
@@ -149,6 +149,7 @@ cuda-reg.cu    := $(sort $(wildcard backends/cuda-reg/*.cu))
 cuda-shared.c  := $(sort $(wildcard backends/cuda-shared/*.c))
 cuda-shared.cu := $(sort $(wildcard backends/cuda-shared/*.cu))
 blocked.c      := $(sort $(wildcard backends/blocked/*.c))
+blockedfull.c  := $(sort $(wildcard backends/blockedfull/*.c))
 ceedmemcheck.c := $(sort $(wildcard backends/memcheck/*.c))
 avx.c          := $(sort $(wildcard backends/avx/*.c))
 xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
@@ -237,6 +238,7 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)
 libceed.c += $(ref.c)
 libceed.c += $(template.c)
 libceed.c += $(blocked.c)
+libceed.c += $(blockedfull.c)
 
 # Memcheck Backend
 ifneq ($(shell which valgrind 2> /dev/null),)
