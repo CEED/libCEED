@@ -52,7 +52,7 @@ can be built using
 
 or, with optimization flags
 
-    make OPT='-O3 -march=skylake-avx512 -ffp-contract=fast'
+    make OPT='-O3 -march=skylake-avx512 -ffp-contract=fast -fopenmp-simd'
 
 These optimization flags are used by all languages (C, C++, Fortran) and this
 makefile variable can also be set for testing and examples (below).
