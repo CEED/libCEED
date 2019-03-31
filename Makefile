@@ -211,7 +211,7 @@ info:
 	$(info XSMM_DIR   = $(XSMM_DIR)$(call backend_status,/cpu/self/xsmm/serial /cpu/self/xsmm/blocked))
 	$(info OCCA_DIR   = $(OCCA_DIR)$(call backend_status,/cpu/occa /gpu/occa /omp/occa))
 	$(info MAGMA_DIR  = $(MAGMA_DIR)$(call backend_status,/gpu/magma))
-	$(info CUDA_DIR   = $(CUDA_DIR)$(call backend_status,/gpu/magma))
+	$(info CUDA_DIR   = $(CUDA_DIR)$(call backend_status,$(CUDA_BACKENDS)))
 	$(info ------------------------------------)
 	$(info MFEM_DIR   = $(MFEM_DIR))
 	$(info NEK5K_DIR  = $(NEK5K_DIR))
@@ -271,13 +271,14 @@ endif
 # Cuda Backend
 CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
 CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
+CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg
 ifneq ($(CUDA_LIB_DIR),)
   $(libceed) : CFLAGS += -I$(CUDA_DIR)/include
   $(libceed) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
   $(libceed) : LDLIBS += -lcudart -lnvrtc -lcuda
   libceed.c  += $(cuda.c) $(cuda-reg.c)
   libceed.cu += $(cuda.cu) $(cuda-reg.cu)
-  BACKENDS += /gpu/cuda/ref /gpu/cuda/reg
+  BACKENDS += $(CUDA_BACKENDS)
 endif
 
 # MAGMA Backend
