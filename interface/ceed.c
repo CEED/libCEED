@@ -483,9 +483,8 @@ int CeedSetBackendFunction(Ceed ceed,
   for (CeedInt i = 0; i < CEED_NUM_BACKEND_FUNCTIONS; i++) {
     if (!strcmp(ceed->foffsets[i].fname, lookupname)) {
       size_t offset = ceed->foffsets[i].offset;
-      size_t *fpointer;
-      fpointer = (size_t *)(object + offset);
-      *fpointer = (size_t) f;
+      int (**fpointer)(void) = (int (**)(void))((char*)object + offset);
+      *fpointer = f;
       return 0;
     }
   }
