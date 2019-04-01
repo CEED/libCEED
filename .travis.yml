@@ -50,11 +50,11 @@ install:
   - cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..;
   - export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH;
 # PETSc
-  - export PETSC_INSTALL=$HOME/install/petsc-3.10.0
+  - export PETSC_INSTALL=$HOME/install/petsc-3.11.0
   - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
-        || ( curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.10.0.tar.gz
-        && tar xf petsc-lite-3.10.0.tar.gz
-        && cd petsc-3.10.0
+        || ( curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.11.0.tar.gz
+        && tar xf petsc-lite-3.11.0.tar.gz
+        && cd petsc-3.11.0
         && ./configure --with-debugging=0 COPTFLAGS=-O --with-mpi=0 --with-fc=0 --with-cxx=0 --prefix=$PETSC_INSTALL
         && make
         && make install )
