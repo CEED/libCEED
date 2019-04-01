@@ -28,7 +28,6 @@
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
 
-#define CEED_NUM_BACKEND_FUNCTIONS 31
 #define CEED_COMPOSITE_MAX 16
 
 // Lookup table field for backend functions
@@ -62,7 +61,7 @@ struct Ceed_private {
   int (*CompositeOperatorCreate)(CeedOperator);
   int refcount;
   void *data;
-  foffset foffsets[CEED_NUM_BACKEND_FUNCTIONS];
+  foffset *foffsets;
 };
 
 struct CeedVector_private {
