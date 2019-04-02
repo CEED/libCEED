@@ -6,7 +6,7 @@ os:
 
 dist: xenial
 
-osx_image: xcode10.1
+osx_image: xcode10.2
 
 compiler:
   - gcc
@@ -26,98 +26,35 @@ addons:
     - openblas
 
 env:
-  - FC=gfortran OCCA_HEAD=HEAD
-  - FC=gfortran OCCA_HEAD=5b11d0c
-
-matrix:
-  fast_finish: true
-  allow_failures:
-    - os: linux
-      env: FC=gfortran OCCA_HEAD=HEAD
-      compiler: gcc
-  exclude:
-    - os: linux
-      env: FC=gfortran OCCA_HEAD=HEAD
-      compiler: clang
-    - os: osx
-      env: FC=gfortran OCCA_HEAD=HEAD
-      compiler: gcc
-    - os: osx
-      env: FC=gfortran OCCA_HEAD=HEAD
-      compiler: clang
+  - FC=gfortran
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         export PATH="/usr/local/opt/ccache/libexec:$PATH"
         && brew link --overwrite gcc;
     fi
-  - export CURR_DIR=$PWD
-  - cd $HOME/install
 # OCCA
-  - if [[ -d occa ]]; then
-        git -C occa pull --allow-unrelated-histories;
-        if [[ $? -eq 0 ]]; then
-          git -C occa reset --hard $OCCA_HEAD;
-        else
-          rm -rf occa
-          && git clone https://github.com/libocca/occa.git
-          && git -C occa reset --hard $OCCA_HEAD;
-        fi
-    else
-        git clone https://github.com/libocca/occa.git
-        && git -C occa reset --hard $OCCA_HEAD;
-    fi
+  - git clone --depth 1 https://github.com/libocca/occa.git;
   - make -C occa -j2
-  - export OCCA_DIR=$HOME/install/occa
+  - export OCCA_DIR=$PWD/occa
 # libXSMM
-  - if [[ -d libxsmm ]]; then
-        git -C libxsmm pull --depth 1 --allow-unrelated-histories;
-        if [[ $? -eq 0 ]]; then
-          git -C libxsmm gc --prune=all;
-        else 
-          rm -rf libxsmm
-          && git clone --depth 1 https://github.com/hfp/libxsmm.git;
-        fi
-    else
-        git clone --depth 1 https://github.com/hfp/libxsmm.git;
-    fi
-  - make -C libxsmm
-  - export XSMM_DIR=$HOME/install/libxsmm
+  - git clone --depth 1 https://github.com/hfp/libxsmm.git;
+  - make -C libxsmm -j2
+  - export XSMM_DIR=$PWD/libxsmm
 # MFEM
-  - if [[ -d mfem ]]; then
-        git -C mfem pull --depth 1 --allow-unrelated-histories;
-        if [[ $? -eq 0 ]]; then
-          git -C mfem gc --prune=all;
-        else 
-          rm -rf mfem
-          && git clone --depth 1 https://github.com/mfem/mfem.git;
-        fi
-    else
-        git clone --depth 1 https://github.com/mfem/mfem.git;
-    fi
+  - git clone --depth 1 https://github.com/mfem/mfem.git;
   - make -C mfem -j2 serial MFEM_CXXFLAGS=-O
-  - export MFEM_DIR=$HOME/install/mfem
+  - export MFEM_DIR=$PWD/mfem
 # Nek5k
-  - if [[ -d Nek5000 ]]; then
-        git -C Nek5000 pull --depth 1 --allow-unrelated-histories;
-        if [[ $? -eq 0 ]]; then
-          git -C Nek5000 gc --prune=all;
-        else 
-          rm -rf Nek5000
-          && git clone --depth 1 https://github.com/Nek5000/Nek5000.git;
-        fi
-    else
-        git clone --depth 1 https://github.com/Nek5000/Nek5000.git;
-    fi
+  - git clone --depth 1 https://github.com/Nek5000/Nek5000.git;
   - cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..;
-  - export NEK5K_DIR=$HOME/install/Nek5000 PATH=$HOME/install/Nek5000/bin:$PATH;
+  - export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH;
 # PETSc
-  - cd $CURR_DIR
-  - export PETSC_INSTALL=$HOME/install/petsc-3.10.0
+  - export PETSC_INSTALL=$HOME/install/petsc-3.11.0
   - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
-        || ( curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.10.0.tar.gz
-        && tar xf petsc-lite-3.10.0.tar.gz
-        && cd petsc-3.10.0
+        || ( curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.11.0.tar.gz
+        && tar xf petsc-lite-3.11.0.tar.gz
+        && cd petsc-3.11.0
         && ./configure --with-debugging=0 COPTFLAGS=-O --with-mpi=0 --with-fc=0 --with-cxx=0 --prefix=$PETSC_INSTALL
         && make
         && make install )

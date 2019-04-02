@@ -2,16 +2,15 @@
 /// Test creation and destruction of a CEED object
 /// \test Test creation and destruction of a CEED object
 #include <ceed.h>
-#include <limits.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedMemType type = INT_MAX;
+  CeedInt type = -1;
 
   CeedInit(argv[1], &ceed);
-  CeedGetPreferredMemType(ceed, &type);
+  CeedGetPreferredMemType(ceed, (CeedMemType *)&type);
 
-  if (type == INT_MAX)
+  if (type == -1)
     printf("Error getting preferred memory type. %d \n",type);
 
   CeedDestroy(&ceed);
