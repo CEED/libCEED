@@ -25,12 +25,11 @@ typedef double CeedScalar;
                    const int *iOf7, const int *oOf7, 
                    const CeedScalar *in, CeedScalar *out) {
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
-    // OCCA parser can't insert an __global here
-    /*const CeedScalar *weight = in + iOf7[0];
+    const CeedScalar *weight = in + iOf7[0];
     const CeedScalar *dxdX = in + iOf7[1];
     CeedScalar *rho = out + oOf7[0];
-    rho[i] = weight[i] * dxdX[i];*/
-    out[oOf7[0]+i] = in[iOf7[0]+i] * in[iOf7[1]+i];
+
+    rho[i] = weight[i] * dxdX[i];
   }
 }
 
@@ -39,11 +38,10 @@ typedef double CeedScalar;
                   const int *iOf7, const int *oOf7,
                   const CeedScalar *in, CeedScalar *out) {
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
-    // OCCA parser can't insert an __global here
-    /*const CeedScalar *rho = in + iOf7[0];
+    const CeedScalar *rho = in + iOf7[0];
     const CeedScalar *u = in + iOf7[1];
     CeedScalar *v = out + oOf7[0];
-    v[i] = rho[i] * u[i];*/
-    out[oOf7[0]+i] = in[iOf7[0]+i] * in[iOf7[1]+i];
+
+    v[i] = rho[i] * u[i];
   }
 }

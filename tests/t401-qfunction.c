@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &vv);
   for (CeedInt i=0; i<Q; i++) {
     if (fabs(ctx[4] * v[i] - vv[i]) > 1.e-14)
-      printf("[%d] v %f != vv %f\n",i, v[i], vv[i]);
+      printf("[%d] v %f != vv %f\n",i, ctx[4]*v[i], vv[i]);
   }
   CeedVectorRestoreArrayRead(V, &vv);
 

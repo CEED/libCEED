@@ -2,6 +2,7 @@
 /// Test creation, evaluation, and destruction for qfunction
 /// \test Test creation, evaluation, and destruction for qfunction
 #include <ceed.h>
+#include <math.h>
 #include "t400-qfunction.h"
 
 int main(int argc, char **argv) {
@@ -55,7 +56,8 @@ int main(int argc, char **argv) {
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &vv);
   for (CeedInt i=0; i<Q; i++) {
-    if (v[i] != vv[i]) printf("[%d] v %f != vv %f\n",i, v[i], vv[i]);
+    if (fabs(v[i] - vv[i]) > 1.e-14)
+      printf("[%d] v %f != vv %f\n",i, v[i], vv[i]);
   }
   CeedVectorRestoreArrayRead(V, &vv);
 
