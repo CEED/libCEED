@@ -20,7 +20,7 @@ endif
 ifeq (,$(filter-out undefined default,$(origin FC)))
   FC = gfortran
 endif
-NVCC = nvcc
+NVCC = $(CUDA_DIR)/bin/nvcc
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
@@ -48,7 +48,7 @@ AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 OPT    = -O -g
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-NVCCFLAGS = $(OPT)
+NVCCFLAGS = -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
   FFLAGS = $(OPT) -qpreprocess -qextname -qpic -MMD
