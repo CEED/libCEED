@@ -47,6 +47,8 @@ if [[ "$#" -eq 1 && "$1" -eq "clean" ]]; then
   for i in `seq 1 6`; do
     rm -f bp$i bp$i.f bp$i*log*              2> /dev/null
   done
+  rm -f build.log
+  rm -f .state
   find ./boxes -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
   exit 0
 fi
