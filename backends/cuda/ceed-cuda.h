@@ -62,19 +62,11 @@ typedef struct {
   CeedInt *d_ind;
   CeedInt *d_ind_allocated;
 } CeedElemRestriction_Cuda;
-
-// We use a struct to avoid having to memCpy the array of pointers
-// __global__ copies by value the struct.
-typedef struct {
-  const CeedScalar *inputs[16];
-  CeedScalar *outputs[16];
-} Fields_Cuda;
-
 typedef struct {
   CUmodule module;
   char *qFunctionName;
   CUfunction qFunction;
-  Fields_Cuda fields;
+  CeedQFunctionArguments fields;
   void *d_c;
 } CeedQFunction_Cuda;
 

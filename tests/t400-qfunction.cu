@@ -15,9 +15,11 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 // *****************************************************************************
-extern "C" __global__ void setup(void *ctx, CeedInt Q, Fields_Cuda fields) {
-  const CeedScalar *w = (const CeedScalar *)fields.inputs[0];
-  CeedScalar *qdata = fields.outputs[0];
+extern "C" __global__ void setup(void *ctx, CeedInt Q,
+                                 CeedQFunctionArguments args) {
+  const CeedScalar *w = (const CeedScalar *)args.in[0];
+  CeedScalar *qdata = args.out[0];
+
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
     i < Q;
     i += blockDim.x * gridDim.x)
@@ -27,10 +29,12 @@ extern "C" __global__ void setup(void *ctx, CeedInt Q, Fields_Cuda fields) {
 }
 
 // *****************************************************************************
-extern "C" __global__ void mass(void *ctx, CeedInt Q, Fields_Cuda fields) {
-  const CeedScalar *qdata = (const CeedScalar *)fields.inputs[0];
-  const CeedScalar *u = (const CeedScalar *)fields.inputs[1];
-  CeedScalar *v = fields.outputs[0];
+extern "C" __global__ void mass(void *ctx, CeedInt Q,
+                                CeedQFunctionArguments args) {
+  const CeedScalar *qdata = (const CeedScalar *)args.in[0];
+  const CeedScalar *u = (const CeedScalar *)args.in[1];
+  CeedScalar *v = args.out[0];
+
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
     i < Q;
     i += blockDim.x * gridDim.x)

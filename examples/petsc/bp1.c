@@ -25,7 +25,9 @@
 /// Mass operator example using PETSc
 const char help[] = "Solve CEED BP1 using PETSc\n";
 
+#include <petscksp.h>
 #include <stdbool.h>
+#include <ceed.h>
 #include "bp1.h"
 
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {

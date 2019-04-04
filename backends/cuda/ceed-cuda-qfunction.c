@@ -34,12 +34,12 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
   const int blocksize = ceed_Cuda->optblocksize;
 
   for (CeedInt i = 0; i < numinputfields; i++) {
-    ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_DEVICE, &data->fields.inputs[i]);
+    ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_DEVICE, &data->fields.in[i]);
     CeedChk(ierr);
   }
 
   for (CeedInt i = 0; i < numoutputfields; i++) {
-    ierr = CeedVectorGetArray(V[i], CEED_MEM_DEVICE, &data->fields.outputs[i]);
+    ierr = CeedVectorGetArray(V[i], CEED_MEM_DEVICE, &data->fields.out[i]);
     CeedChk(ierr);
   }
 
@@ -66,12 +66,12 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
   CeedChk(ierr);
 
   for (CeedInt i = 0; i < numinputfields; i++) {
-    ierr = CeedVectorRestoreArrayRead(U[i], &data->fields.inputs[i]);
+    ierr = CeedVectorRestoreArrayRead(U[i], &data->fields.in[i]);
     CeedChk(ierr);
   }
 
   for (CeedInt i = 0; i < numoutputfields; i++) {
-    ierr = CeedVectorRestoreArray(V[i], &data->fields.outputs[i]);
+    ierr = CeedVectorRestoreArray(V[i], &data->fields.out[i]);
     CeedChk(ierr);
   }
 
@@ -129,7 +129,7 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
 
   //FIXME: the magic number 16 should be defined somewhere...
   char *fields_string =
-    "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda;";
+    "typedef struct { const CeedScalar* in[16]; CeedScalar* out[16]; } CeedQFunctionArguments;";
   char *source = (char *) malloc(1 + strlen(fields_string)+ strlen(buffer) );
   strcpy(source, fields_string);
   strcat(source, buffer);

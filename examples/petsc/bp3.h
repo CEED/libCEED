@@ -15,19 +15,15 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// libCEED QFunctions for diffusion operator example using PETSc
+/// QFunction definitions for diffusion operator example using PETSc
 
-#include <petscksp.h>
-#include <ceed.h>
-
-// *****************************************************************************
-static int Setup(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
+static int Setup(void *ctx, CeedInt Q, CeedQFunctionArguments args) {
   #ifndef M_PI
 #define M_PI    3.14159265358979323846
   #endif
-  const CeedScalar *x = in[0], *J = in[1], *w = in[2];
-  CeedScalar *qd = out[0], *true_soln = out[1], *rhs = out[2];
+  const CeedScalar *x = args.in[0], *J = args.in[1], *w = args.in[2];
+  CeedScalar *qd = args.out[0], *true_soln = args.out[1], *rhs = args.out[2];
+
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar J11 = J[i+Q*0];
     const CeedScalar J21 = J[i+Q*1];
@@ -66,10 +62,10 @@ static int Setup(void *ctx, CeedInt Q,
   return 0;
 }
 
-static int Diff(void *ctx, CeedInt Q,
-                const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *ug = in[0], *qd = in[1];
-  CeedScalar *vg = out[0];
+static int Diff(void *ctx, CeedInt Q, CeedQFunctionArguments args) {
+  const CeedScalar *ug = args.in[0], *qd = args.in[1];
+  CeedScalar *vg = args.out[0];
+
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar ug0 = ug[i+Q*0];
     const CeedScalar ug1 = ug[i+Q*1];
@@ -81,10 +77,10 @@ static int Diff(void *ctx, CeedInt Q,
   return 0;
 }
 
-static int Error(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *u = in[0], *target = in[1];
-  CeedScalar *err = out[0];
+static int Error(void *ctx, CeedInt Q, CeedQFunctionArguments args) {
+  const CeedScalar *u = args.in[0], *target = args.in[1];
+  CeedScalar *err = args.out[0];
+
   for (CeedInt i=0; i<Q; i++) {
     err[i] = u[i] - target[i];
   }

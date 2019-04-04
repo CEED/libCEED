@@ -19,13 +19,14 @@ struct BuildContext { CeedInt dim, space_dim; };
 
 /// libCEED Q-function for building quadrature data for a mass operator
 extern "C" __global__ void f_build_mass(void *ctx, CeedInt Q,
-                        Fields_Cuda fields) {
+                        CeedQFunctionArugments args) {
   // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
   struct BuildContext *bc = (struct BuildContext*)ctx;
-  const CeedScalar *J = (const CeedScalar *)fields.inputs[0];
-  const CeedScalar *qw = (const CeedScalar *)fields.inputs[1];
-  CeedScalar *qd = fields.outputs[0];
+  const CeedScalar *J = (const CeedScalar *)args.in[0];
+  const CeedScalar *qw = (const CeedScalar *)args.in[1];
+  CeedScalar *qd = args.out[0];
+
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
     for (int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -60,10 +61,11 @@ extern "C" __global__ void f_build_mass(void *ctx, CeedInt Q,
 
 /// libCEED Q-function for applying a mass operator
 extern "C" __global__ void f_apply_mass(void *ctx, CeedInt Q,
-                        Fields_Cuda fields) {
-  const CeedScalar *u = (const CeedScalar *)fields.inputs[0];
-  const CeedScalar *w = (const CeedScalar *)fields.inputs[1];
-  CeedScalar *v = fields.outputs[0];
+                        CeedQFunctionArguments args) {
+  const CeedScalar *u = (const CeedScalar *)args.in[0];
+  const CeedScalar *w = (const CeedScalar *)args.in[1];
+  CeedScalar *v = args.out[0];
+
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
        i += blockDim.x * gridDim.x) {

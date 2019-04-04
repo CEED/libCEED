@@ -19,9 +19,6 @@
 static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
                                   CeedVector *U, CeedVector *V) {
   int ierr;
-  CeedQFunction_Ref *impl;
-  ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);
-
   void *ctx;
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
 
@@ -31,36 +28,29 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
   CeedInt nIn, nOut;
   ierr = CeedQFunctionGetNumArgs(qf, &nIn, &nOut); CeedChk(ierr);
 
+  CeedQFunctionArguments args;
   for (int i = 0; i<nIn; i++) {
-    ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_HOST, &impl->inputs[i]);
+    ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_HOST, &args.in[i]);
     CeedChk(ierr);
   }
   for (int i = 0; i<nOut; i++) {
-    ierr = CeedVectorGetArray(V[i], CEED_MEM_HOST, &impl->outputs[i]);
+    ierr = CeedVectorGetArray(V[i], CEED_MEM_HOST, &args.out[i]);
     CeedChk(ierr);
   }
 
-  ierr = f(ctx, Q, impl->inputs, impl->outputs); CeedChk(ierr);
+  ierr = f(ctx, Q, args); CeedChk(ierr);
 
   for (int i = 0; i<nIn; i++) {
-    ierr = CeedVectorRestoreArrayRead(U[i], &impl->inputs[i]); CeedChk(ierr);
+    ierr = CeedVectorRestoreArrayRead(U[i], &args.in[i]); CeedChk(ierr);
   }
   for (int i = 0; i<nOut; i++) {
-    ierr = CeedVectorRestoreArray(V[i], &impl->outputs[i]); CeedChk(ierr);
+    ierr = CeedVectorRestoreArray(V[i], &args.out[i]); CeedChk(ierr);
   }
 
   return 0;
 }
 
 static int CeedQFunctionDestroy_Ref(CeedQFunction qf) {
-  int ierr;
-  CeedQFunction_Ref *impl;
-  ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);
-
-  ierr = CeedFree(&impl->inputs); CeedChk(ierr);
-  ierr = CeedFree(&impl->outputs); CeedChk(ierr);
-  ierr = CeedFree(&impl); CeedChk(ierr);
-
   return 0;
 }
 
@@ -68,12 +58,6 @@ int CeedQFunctionCreate_Ref(CeedQFunction qf) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
-
-  CeedQFunction_Ref *impl;
-  ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedCalloc(16, &impl->inputs); CeedChk(ierr);
-  ierr = CeedCalloc(16, &impl->outputs); CeedChk(ierr);
-  ierr = CeedQFunctionSetData(qf, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Ref); CeedChk(ierr);

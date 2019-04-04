@@ -32,12 +32,6 @@ typedef struct {
 } CeedElemRestriction_Ref;
 
 typedef struct {
-  const CeedScalar **inputs;
-  CeedScalar **outputs;
-  bool setupdone;
-} CeedQFunction_Ref;
-
-typedef struct {
   bool add;
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)

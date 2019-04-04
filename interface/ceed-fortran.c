@@ -451,15 +451,18 @@ static int CeedQFunction_n = 0;
 static int CeedQFunction_count_max = 0;
 
 static int CeedQFunctionFortranStub(void *ctx, int nq,
-                                    const CeedScalar *const *u, CeedScalar *const *v) {
+                                    CeedQFunctionArguments args) {
   fContext *fctx = ctx;
   int ierr;
 
   CeedScalar *ctx_ = (CeedScalar *) fctx->innerctx;
-  fctx->f((void *)ctx_,&nq,u[0],u[1],u[2],u[3],u[4],u[5],u[6],
-          u[7],u[8],u[9],u[10],u[11],u[12],u[13],u[14],u[15],
-          v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8],v[9],
-          v[10],v[11],v[12],v[13],v[14],v[15],&ierr);
+  fctx->f((void *)ctx_,&nq,args.in[0],args.in[1],args.in[2],args.in[3],
+          args.in[4],args.in[5],args.in[6], args.in[7],args.in[8],args.in[9],
+          args.in[10],args.in[11],args.in[12],args.in[13],args.in[14],
+          args.in[15],args.out[0],args.out[1],args.out[2],args.out[3],
+          args.out[4],args.out[5],args.out[6],args.out[7],args.out[8],
+          args.out[9],args.out[10],args.out[11],args.out[12],args.out[13],
+          args.out[14],args.out[15],&ierr);
   return ierr;
 }
 

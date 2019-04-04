@@ -2,26 +2,7 @@
 /// Test creation, evaluation, and destruction for qfunction
 /// \test Test creation, evaluation, and destruction for qfunction
 #include <ceed.h>
-
-static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                 CeedScalar *const *out) {
-  const CeedScalar *w = in[0];
-  CeedScalar *qdata = out[0];
-  for (CeedInt i=0; i<Q; i++) {
-    qdata[i] = w[i];
-  }
-  return 0;
-}
-
-static int mass(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                CeedScalar *const *out) {
-  const CeedScalar *qdata = in[0], *u = in[1];
-  CeedScalar *v = out[0];
-  for (CeedInt i=0; i<Q; i++) {
-    v[i] = qdata[i] * u[i];
-  }
-  return 0;
-}
+#include "t400-qfunction.h"
 
 int main(int argc, char **argv) {
   Ceed ceed;

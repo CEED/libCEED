@@ -88,6 +88,12 @@ typedef struct CeedElemRestriction_private *CeedElemRestriction;
 typedef struct CeedBasis_private *CeedBasis;
 /// Handle for object describing functions evaluated independently at quadrature points
 /// @ingroup CeedQFunction
+typedef struct {
+  const CeedScalar *in[16];
+  CeedScalar *out[16];
+} CeedQFunctionArguments;
+/// Struct to hold pointers to QFunction arguments
+/// @ingroup CeedQFunction
 typedef struct CeedQFunction_private *CeedQFunction;
 /// Handle for object describing FE-type operators acting on vectors
 ///
@@ -298,23 +304,20 @@ CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m,
 ///
 /// @param Q - number of quadrature points at which to evaluate
 ///
-/// @param in - array of pointers to each input argument in the order provided
-///             by the user in CeedQFunctionAddInput().  Each array has shape
-///             `[dim, ncomp, Q]` where `dim` is the geometric dimension for
-///             \ref CEED_EVAL_GRAD (`dim=1` for \ref CEED_EVAL_INTERP) and
-///             `ncomp` is the number of field components (`ncomp=1` for
-///             scalar fields).  This results in indexing the `i`th input at
-///             quadarture point `j` as `in[i][(d*ncomp + c)*Q + j]`.
-///
-/// @param out - array of pointers to each output array in the order provided
-///              using CeedQFunctionAddOutput().  The shapes are as above for
-///              \a in.
+/// @param args - struct of pointers to each argument in the order provided
+///              by the user in CeedQFunctionAddInput().  Each array has shape
+///              `[dim, ncomp, Q]` where `dim` is the geometric dimension for
+///              \ref CEED_EVAL_GRAD (`dim=1` for \ref CEED_EVAL_INTERP) and
+///              `ncomp` is the number of field components (`ncomp=1` for
+///              scalar fields).  This results in indexing the `i`th input at
+///              quadarture point `j` as `in[i][(d*ncomp + c)*Q + j]` and the
+///              similarly described output is `out[i][(d*ncomp + c)*Q + j]`.
 ///
 /// @return 0 on success, nonzero for failure.
 ///
 /// @ingroup CeedQFunction
 typedef int (*CeedQFunctionUser)(void *ctx, const CeedInt Q,
-                                 const CeedScalar *const *in, CeedScalar *const *out);
+                                 CeedQFunctionArguments args);
 
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     CeedQFunctionUser f, const char *focca, CeedQFunction *qf);

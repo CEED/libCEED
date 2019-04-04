@@ -153,6 +153,7 @@ consider the implementation of the action of a simple 1D mass matrix
 (cf. [tests/t500-operator.c](https://github.com/CEED/libCEED/blob/master/tests/t500-operator.c)).
 
 \include t500-operator.c
+\include t500-operator.h
 
 The constructor
 

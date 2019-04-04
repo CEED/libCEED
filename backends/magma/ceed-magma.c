@@ -32,11 +32,6 @@ typedef struct {
 } CeedElemRestriction_Magma;
 
 typedef struct {
-  const CeedScalar **inputs;
-  CeedScalar **outputs;
-} CeedQFunction_Magma;
-
-typedef struct {
   CeedVector *Evecs; /// E-vectors needed to apply operator (in followed by out)
   CeedScalar **Edata;
   CeedVector *evecsin;   /// Input E-vectors needed to apply operator
@@ -705,8 +700,6 @@ static int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim,
 static int CeedQFunctionApply_Magma(CeedQFunction qf, CeedInt Q,
                                     CeedVector *U, CeedVector *V) {
   int ierr;
-  CeedQFunction_Ref *impl;
-  ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);
 
   void *ctx;
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
@@ -716,16 +709,17 @@ static int CeedQFunctionApply_Magma(CeedQFunction qf, CeedInt Q,
 
   CeedInt nIn, nOut;
   ierr = CeedQFunctionGetNumArgs(qf, &nIn, &nOut); CeedChk(ierr);
+  CeedQFunctionArguments args;
 
   for (int i = 0; i<nIn; i++) {
     if (U[i]) {
-      ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_HOST, &impl->inputs[i]);
+      ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_HOST, &args.in[i]);
       CeedChk(ierr);
     }
   }
   for (int i = 0; i<nOut; i++) {
     if (U[i]) {
-      ierr = CeedVectorGetArray(V[i], CEED_MEM_HOST, &impl->outputs[i]);
+      ierr = CeedVectorGetArray(V[i], CEED_MEM_HOST, &args.out[i]);
       CeedChk(ierr);
     }
   }
@@ -734,26 +728,18 @@ static int CeedQFunctionApply_Magma(CeedQFunction qf, CeedInt Q,
 
   for (int i = 0; i<nIn; i++) {
     if (U[i]) {
-      ierr = CeedVectorRestoreArrayRead(U[i], &impl->inputs[i]); CeedChk(ierr);
+      ierr = CeedVectorRestoreArrayRead(U[i], &args.in[i]); CeedChk(ierr);
     }
   }
   for (int i = 0; i<nOut; i++) {
     if (U[i]) {
-      ierr = CeedVectorRestoreArray(V[i], &impl->outputs[i]); CeedChk(ierr);
+      ierr = CeedVectorRestoreArray(V[i], &args.out[i]); CeedChk(ierr);
     }
   }
   return 0;
 }
 
 static int CeedQFunctionDestroy_Magma(CeedQFunction qf) {
-  int ierr;
-  CeedQFunction_Magma *impl;
-  ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);
-
-  ierr = CeedFree(&impl->inputs); CeedChk(ierr);
-  ierr = CeedFree(&impl->outputs); CeedChk(ierr);
-  ierr = CeedFree(&impl); CeedChk(ierr);
-
   return 0;
 }
 
@@ -761,12 +747,6 @@ static int CeedQFunctionCreate_Magma(CeedQFunction qf) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
-
-  CeedQFunction_Magma *impl;
-  ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedCalloc(16, &impl->inputs); CeedChk(ierr);
-  ierr = CeedCalloc(16, &impl->outputs); CeedChk(ierr);
-  ierr = CeedQFunctionSetData(qf, (void *)&impl); CeedChk(ierr);
 
   qf->Apply = CeedQFunctionApply_Magma;
   qf->Destroy = CeedQFunctionDestroy_Magma;

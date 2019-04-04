@@ -19,14 +19,15 @@
 
 // *****************************************************************************
 extern "C" __global__ void diffsetupf(void *ctx, CeedInt Q,
-                                 Fields_Cuda fields) {
+                                      CeedQFunctionArguments args) {
   #ifndef M_PI
   #define M_PI    3.14159265358979323846
   #endif
-  const CeedScalar *x = (const CeedScalar *)fields.inputs[0];
-  const CeedScalar *J = (const CeedScalar *)fields.inputs[1];
-  const CeedScalar *w = (const CeedScalar *)fields.inputs[2];
-  CeedScalar *qd = fields.outputs[0], *rhs = fields.outputs[1];
+  const CeedScalar *x = (const CeedScalar *)args.in[0];
+  const CeedScalar *J = (const CeedScalar *)args.in[1];
+  const CeedScalar *w = (const CeedScalar *)args.in[2];
+  CeedScalar *qd = args.out[0], *rhs = args.out[1];
+
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
        i += blockDim.x * gridDim.x) {
@@ -66,10 +67,11 @@ extern "C" __global__ void diffsetupf(void *ctx, CeedInt Q,
 }
 
 extern "C" __global__ void diffusionf(void *ctx, CeedInt Q,
-                                Fields_Cuda fields) {
-  const CeedScalar *ug = (const CeedScalar *)fields.inputs[0];
-  const CeedScalar *qd = (const CeedScalar *)fields.inputs[1];
-  CeedScalar *vg = fields.outputs[0];
+                                      CeedQFunctionArguments args) {
+  const CeedScalar *ug = (const CeedScalar *)args.in[0];
+  const CeedScalar *qd = (const CeedScalar *)args.in[1];
+  CeedScalar *vg = args.out[0];
+
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
        i += blockDim.x * gridDim.x) {

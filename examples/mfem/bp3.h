@@ -1,47 +1,28 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
-//
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
-//
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+/// @file
+/// Qfunction definitions for diffusion operator example using MFEM
 
 /// A structure used to pass additional data to f_build_diff and f_apply_diff
 struct BuildContext { CeedInt dim, space_dim; };
 
 /// libCEED Q-function for building quadrature data for a diffusion operator
-extern "C" __global__ void f_build_diff(void *ctx, CeedInt Q,
-                        CeedQFunctionArguments args) {
-  BuildContext *bc = (BuildContext*)ctx;
+static int f_build_diff(void *ctx, CeedInt Q, CeedQFunctionArguments args) {
+  BuildContext *bc = (BuildContext *)ctx;
   // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
   //
   // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
   // the symmetric part of the result.
-  const CeedScalar *J = (const CeedScalar *)args.in[0];
-  const CeedScalar *qw = (const CeedScalar *)args.in[1];
+  const CeedScalar *J = args.in[0], *qw = args.in[1];
   CeedScalar *qd = args.out[0];
 
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-         i < Q;
-         i += blockDim.x * gridDim.x) {
+    for (CeedInt i=0; i<Q; i++) {
       qd[i] = qw[i] / J[i];
     }
     break;
   case 22:
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-         i < Q;
-         i += blockDim.x * gridDim.x) {
+    for (CeedInt i=0; i<Q; i++) {
       // J: 0 2   qd: 0 1   adj(J):  J22 -J12
       //    1 3       1 2           -J21  J11
       const CeedScalar J11 = J[i+Q*0];
@@ -55,9 +36,7 @@ extern "C" __global__ void f_build_diff(void *ctx, CeedInt Q,
     }
     break;
   case 33:
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-         i < Q;
-         i += blockDim.x * gridDim.x) {
+    for (CeedInt i=0; i<Q; i++) {
       // J: 0 3 6   qd: 0 1 2
       //    1 4 7       1 3 4
       //    2 5 8       2 4 5
@@ -88,29 +67,28 @@ extern "C" __global__ void f_build_diff(void *ctx, CeedInt Q,
       qd[i+Q*5] = w * (A31*A31 + A32*A32 + A33*A33);
     }
     break;
+  default:
+    return CeedError(NULL, 1, "dim=%d, space_dim=%d is not supported",
+                     bc->dim, bc->space_dim);
   }
+  return 0;
 }
 
 /// libCEED Q-function for applying a diff operator
-extern "C" __global__ void f_apply_diff(void *ctx, CeedInt Q,
-                                        CeedQFunctionArguments args) {
-  BuildContext *bc = (BuildContext*)ctx;
+static int f_apply_diff(void *ctx, CeedInt Q, CeedQFunctionArguments args) {
+  BuildContext *bc = (BuildContext *)ctx;
   // in[0], out[0] have shape [dim, nc=1, Q]
-  const CeedScalar *ug = (const CeedScalar *)args.in[0];
-  const CeedScalar *qd = (const CeedScalar *)args.in[1];
+  const CeedScalar *ug = args.in[0], *qd = args.in[1];
   CeedScalar *vg = args.out[0];
+
   switch (bc->dim) {
   case 1:
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-         i < Q;
-         i += blockDim.x * gridDim.x) {
+    for (CeedInt i=0; i<Q; i++) {
       vg[i] = ug[i] * qd[i];
     }
     break;
   case 2:
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-         i < Q;
-         i += blockDim.x * gridDim.x) {
+    for (CeedInt i=0; i<Q; i++) {
       const CeedScalar ug0 = ug[i+Q*0];
       const CeedScalar ug1 = ug[i+Q*1];
       vg[i+Q*0] = qd[i+Q*0]*ug0 + qd[i+Q*1]*ug1;
@@ -118,9 +96,7 @@ extern "C" __global__ void f_apply_diff(void *ctx, CeedInt Q,
     }
     break;
   case 3:
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-         i < Q;
-         i += blockDim.x * gridDim.x) {
+    for (CeedInt i=0; i<Q; i++) {
       const CeedScalar ug0 = ug[i+Q*0];
       const CeedScalar ug1 = ug[i+Q*1];
       const CeedScalar ug2 = ug[i+Q*2];
@@ -129,6 +105,8 @@ extern "C" __global__ void f_apply_diff(void *ctx, CeedInt Q,
       vg[i+Q*2] = qd[i+Q*2]*ug0 + qd[i+Q*4]*ug1 + qd[i+Q*5]*ug2;
     }
     break;
+  default:
+    return CeedError(NULL, 1, "topo_dim=%d is not supported", bc->dim);
   }
+  return 0;
 }
-
