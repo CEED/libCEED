@@ -1,0 +1,13 @@
+stages:
+  - test
+
+petsc:
+  stage: test
+  image: jedbrown/petsc:latest
+  script:
+    - make junit
+  artifacts:
+    paths:
+      - build/*.junit
+    reports:
+      junit: build/*.junit
