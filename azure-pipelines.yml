@@ -16,7 +16,7 @@ steps:
     make
   displayName: 'make'
 - script: |
-    make junit
+    make -k junit
   displayName: 'junit'
 - task: PublishTestResults@2
   inputs:

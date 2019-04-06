@@ -5,7 +5,8 @@ petsc:
   stage: test
   image: jedbrown/petsc:latest
   script:
-    - make junit
+    - make -j$(nproc)
+    - make -k -j$(nproc) junit
   artifacts:
     paths:
       - build/*.junit

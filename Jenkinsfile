@@ -22,7 +22,7 @@ pipeline {
                         }
                         stage('Test') {
                             steps {
-                                sh "make junit"
+                                sh "make -k junit"
                             }
                             post {
                                 always {

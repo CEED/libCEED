@@ -50,6 +50,7 @@ def run(test, backends):
     source = get_source(test)
     args = get_testargs(source)
     testcases = []
+    badcount = 0
     for ceed_resource in backends:
         rargs = [os.path.join('build', test)] + args.copy()
         rargs[rargs.index('{ceed_resource}')] = ceed_resource
@@ -100,7 +101,9 @@ def run(test, backends):
             elif proc.stdout:
                 case.add_failure_info('stdout', output=proc.stdout)
         testcases.append(case)
-    return TestSuite(test, testcases)
+        if case.is_error() or case.is_failure():
+            badcount += 1
+    return TestSuite(test, testcases), badcount
 
 if __name__ == '__main__':
     import argparse
@@ -115,10 +118,10 @@ if __name__ == '__main__':
     else:
         backends = os.environ['BACKENDS'].split()
 
-        result = run(args.test, backends)
+        result, badcount = run(args.test, backends)
         output = (os.path.join('build', args.test + '.junit')
                   if args.output is None
                   else args.output)
         with open(output, 'w') as fd:
             TestSuite.to_file(fd, [result])
-    
+        exit(min(badcount, 100))
