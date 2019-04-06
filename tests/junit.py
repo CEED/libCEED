@@ -9,9 +9,12 @@ def parse_testargs(file):
     if os.path.splitext(file)[1] in ['.c', '.cpp']:
         return sum([line.split()[1:] for line in open(file).readlines()
                     if line.startswith('//TESTARGS')], [])
-    elif os.path.splitext(file)[1] == '.usr':
+    elif os.path.splitext(file)[1] in ['.f', '.usr']:
         return sum([line.split()[2:] for line in open(file).readlines()
                     if line.startswith('C TESTARGS')], [])
+    elif os.path.splitext(file)[1] in ['.f90']:
+        return sum([line.split()[2:] for line in open(file).readlines()
+                    if line.startswith('! TESTARGS')], [])
     raise RuntimeError('Unrecognized extension for file: {}'.format(file))
 
 def get_source(test):
@@ -23,12 +26,16 @@ def get_source(test):
         return os.path.join('examples', 'nek5000', test[4:] + '.usr')
     elif test.startswith('ex'):
         return os.path.join('examples', 'ceed', test + '.c')
+    elif test.endswith('-f'):
+        return os.path.join('tests', test + '.f90')
+    else:
+        return os.path.join('tests', test + '.c')
 
-def get_testargs(test):
-    source = get_source(test)
-    if source is None:
-        return ['{ceed_resource}']
-    return parse_testargs(source)
+def get_testargs(source):
+    args = parse_testargs(source)
+    if not args:
+        args = ['{ceed_resource}']
+    return args
 
 def check_required_failure(case, stderr, required):
     if required in stderr:
@@ -40,7 +47,8 @@ def run(test, backends):
     import subprocess
     import time
     import difflib
-    args = get_testargs(test)
+    source = get_source(test)
+    args = get_testargs(source)
     testcases = []
     for ceed_resource in backends:
         rargs = [os.path.join('build', test)] + args.copy()
@@ -53,6 +61,7 @@ def run(test, backends):
         proc.stderr = proc.stderr.decode('utf-8')
 
         case = TestCase('{} {}'.format(test, ceed_resource),
+                        classname=os.path.dirname(source),
                         elapsed_sec=time.time()-start,
                         timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
                         stdout=proc.stdout,
