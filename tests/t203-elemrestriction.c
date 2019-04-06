@@ -44,6 +44,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionApply(r, CEED_TRANSPOSE, CEED_NOTRANSPOSE, y, x,
                            CEED_REQUEST_IMMEDIATE);
   CeedVectorView(x, "%12.8f", stdout);
+  printf("bug\n");
 
   CeedVectorDestroy(&x);
   CeedVectorDestroy(&y);
