@@ -43,7 +43,7 @@ install:
   - export XSMM_DIR=$PWD/libxsmm
 # MFEM
   - git clone --depth 1 https://github.com/mfem/mfem.git;
-  - make -C mfem -j2 serial MFEM_CXXFLAGS=-O
+  - make -C mfem -j2 serial CXXFLAGS="-O -std=c++11"
   - export MFEM_DIR=$PWD/mfem
 # Nek5k
   - git clone --depth 1 https://github.com/Nek5000/Nek5000.git;
