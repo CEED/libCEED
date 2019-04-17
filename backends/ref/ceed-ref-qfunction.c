@@ -22,8 +22,8 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
   void *ctx;
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
 
-  int (*f)() = NULL;
-  ierr = CeedQFunctionGetUserFunction(qf, (int (* *)())&f); CeedChk(ierr);
+  CeedQFunctionUser f = NULL;
+  ierr = CeedQFunctionGetUserFunction(qf, &f); CeedChk(ierr);
 
   CeedInt nIn, nOut;
   ierr = CeedQFunctionGetNumArgs(qf, &nIn, &nOut); CeedChk(ierr);
@@ -38,7 +38,7 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
     CeedChk(ierr);
   }
 
-  ierr = f(ctx, Q, args); CeedChk(ierr);
+  ierr = f(ctx, Q, Q, args); CeedChk(ierr);
 
   for (int i = 0; i<nIn; i++) {
     ierr = CeedVectorRestoreArrayRead(U[i], &args.in[i]); CeedChk(ierr);

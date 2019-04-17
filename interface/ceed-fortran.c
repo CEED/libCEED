@@ -450,13 +450,13 @@ static int CeedQFunction_count = 0;
 static int CeedQFunction_n = 0;
 static int CeedQFunction_count_max = 0;
 
-static int CeedQFunctionFortranStub(void *ctx, int nq,
+static int CeedQFunctionFortranStub(void *ctx, int nq, int n,
                                     CeedQFunctionArguments args) {
   fContext *fctx = ctx;
   int ierr;
 
   CeedScalar *ctx_ = (CeedScalar *) fctx->innerctx;
-  fctx->f((void *)ctx_,&nq,args.in[0],args.in[1],args.in[2],args.in[3],
+  fctx->f((void *)ctx_,&nq,&n,args.in[0],args.in[1],args.in[2],args.in[3],
           args.in[4],args.in[5],args.in[6], args.in[7],args.in[8],args.in[9],
           args.in[10],args.in[11],args.in[12],args.in[13],args.in[14],
           args.in[15],args.out[0],args.out[1],args.out[2],args.out[3],
@@ -469,7 +469,7 @@ static int CeedQFunctionFortranStub(void *ctx, int nq,
 #define fCeedQFunctionCreateInterior \
     FORTRAN_NAME(ceedqfunctioncreateinterior, CEEDQFUNCTIONCREATEINTERIOR)
 void fCeedQFunctionCreateInterior(int *ceed, int *vlength,
-                                  void (*f)(void *ctx, int *nq,
+                                  void (*f)(void *ctx, int *nq, int *n,
                                       const CeedScalar *u,const CeedScalar *u1,
                                       const CeedScalar *u2,const CeedScalar *u3,
                                       const CeedScalar *u4,const CeedScalar *u5,

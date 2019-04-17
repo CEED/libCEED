@@ -131,7 +131,7 @@ CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf,
                                         CeedInt *numoutputfields);
 CEED_EXTERN int CeedQFunctionGetFOCCA(CeedQFunction qf, char* *focca);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
-    int (**f)());
+    CeedQFunctionUser *f);
 CEED_EXTERN int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize);
 CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, void* *ctx);
 CEED_EXTERN int CeedQFunctionGetInnerContext(CeedQFunction qf, void* *ctx);

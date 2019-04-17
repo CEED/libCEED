@@ -163,7 +163,7 @@ struct CeedQFunction_private {
 typedef struct {
   CeedScalar *innerctx;
   size_t innerctxsize;
-  void (*f)(void *ctx, int *nq,
+  void (*f)(void *ctx, int *nq, int *n,
             const CeedScalar *u,const CeedScalar *u1,
             const CeedScalar *u2,const CeedScalar *u3,
             const CeedScalar *u4,const CeedScalar *u5,

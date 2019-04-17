@@ -2,7 +2,7 @@
 /// QFunction definitions for t500-operator.c
 
 //! [QFunction User Code]
-static int setup(void *ctx, CeedInt Q, CeedQFunctionArguments args) {
+static int setup(void *ctx, CeedInt Q, CeedInt N, CeedQFunctionArguments args) {
   const CeedScalar *weight = args.in[0], *dxdX = args.in[1];
   CeedScalar *rho = args.out[0];
 
@@ -12,7 +12,7 @@ static int setup(void *ctx, CeedInt Q, CeedQFunctionArguments args) {
   return 0;
 }
 
-static int mass(void *ctx, CeedInt Q, CeedQFunctionArguments args) {
+static int mass(void *ctx, CeedInt Q, CeedInt N, CeedQFunctionArguments args) {
   const CeedScalar *rho = args.in[0], *u = args.in[1];
   CeedScalar *v = args.out[0];
 

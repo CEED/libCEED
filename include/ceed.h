@@ -304,6 +304,8 @@ CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m,
 ///
 /// @param Q - number of quadrature points at which to evaluate
 ///
+/// @param N - leading dimension of the stride in argument arrays
+///
 /// @param args - struct of pointers to each argument in the order provided
 ///              by the user in CeedQFunctionAddInput().  Each array has shape
 ///              `[dim, ncomp, Q]` where `dim` is the geometric dimension for
@@ -316,7 +318,7 @@ CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m,
 /// @return 0 on success, nonzero for failure.
 ///
 /// @ingroup CeedQFunction
-typedef int (*CeedQFunctionUser)(void *ctx, const CeedInt Q,
+typedef int (*CeedQFunctionUser)(void *ctx, const CeedInt Q, const CeedInt N,
                                  CeedQFunctionArguments args);
 
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,

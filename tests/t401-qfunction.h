@@ -1,7 +1,7 @@
 /// @file
 /// QFunction definitions for t400-qfunction.c
 
-static int setup(void *ctx, CeedInt Q, CeedQFunctionArguments args) {
+static int setup(void *ctx, CeedInt Q, CeedInt N, CeedQFunctionArguments args) {
   const CeedScalar *w = args.in[0];
   CeedScalar *qdata = args.out[0];
 
@@ -11,7 +11,7 @@ static int setup(void *ctx, CeedInt Q, CeedQFunctionArguments args) {
   return 0;
 }
 
-static int mass(void *ctx, CeedInt Q, CeedQFunctionArguments args) {
+static int mass(void *ctx, CeedInt Q, CeedInt N, CeedQFunctionArguments args) {
   CeedScalar *scale = (CeedScalar *)ctx;
   const CeedScalar *qdata = args.in[0], *u = args.in[1];
   CeedScalar *v = args.out[0];
