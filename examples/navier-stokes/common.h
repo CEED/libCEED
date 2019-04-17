@@ -72,26 +72,25 @@
 //         12 14 15
 //
 // *****************************************************************************
-static int Setup(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
+static int Setup(void *ctx, CeedInt Q, CeedInt N, CeedQFunctionArguments args) {
   // Inputs
-  const CeedScalar *J = in[0], *w = in[1];
+  const CeedScalar *J = args.in[0], *w = args.in[1];
   // Outputs
-  CeedScalar *qdata = out[0];
+  CeedScalar *qdata = args.out[0];
 
   CeedPragmaOMP(simd)
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
-    const CeedScalar J11 = J[i+Q*0];
-    const CeedScalar J21 = J[i+Q*1];
-    const CeedScalar J31 = J[i+Q*2];
-    const CeedScalar J12 = J[i+Q*3];
-    const CeedScalar J22 = J[i+Q*4];
-    const CeedScalar J32 = J[i+Q*5];
-    const CeedScalar J13 = J[i+Q*6];
-    const CeedScalar J23 = J[i+Q*7];
-    const CeedScalar J33 = J[i+Q*8];
+    const CeedScalar J11 = J[i+N*0];
+    const CeedScalar J21 = J[i+N*1];
+    const CeedScalar J31 = J[i+N*2];
+    const CeedScalar J12 = J[i+N*3];
+    const CeedScalar J22 = J[i+N*4];
+    const CeedScalar J32 = J[i+N*5];
+    const CeedScalar J13 = J[i+N*6];
+    const CeedScalar J23 = J[i+N*7];
+    const CeedScalar J33 = J[i+N*8];
     const CeedScalar A11 = J22*J33 - J23*J32;
     const CeedScalar A12 = J13*J32 - J12*J33;
     const CeedScalar A13 = J12*J23 - J13*J22;
@@ -106,24 +105,24 @@ static int Setup(void *ctx, CeedInt Q,
 
     // Qdata
     // -- Interp-to-Interp qdata
-    qdata[i+ 0*Q] = w[i] * detJ;
+    qdata[i+ 0*N] = w[i] * detJ;
     // -- Interp-to-Grad qdata
-    qdata[i+ 1*Q] = w[i] * A11;
-    qdata[i+ 2*Q] = w[i] * A12;
-    qdata[i+ 3*Q] = w[i] * A13;
-    qdata[i+ 4*Q] = w[i] * A21;
-    qdata[i+ 5*Q] = w[i] * A22;
-    qdata[i+ 6*Q] = w[i] * A23;
-    qdata[i+ 7*Q] = w[i] * A31;
-    qdata[i+ 8*Q] = w[i] * A32;
-    qdata[i+ 9*Q] = w[i] * A33;
+    qdata[i+ 1*N] = w[i] * A11;
+    qdata[i+ 2*N] = w[i] * A12;
+    qdata[i+ 3*N] = w[i] * A13;
+    qdata[i+ 4*N] = w[i] * A21;
+    qdata[i+ 5*N] = w[i] * A22;
+    qdata[i+ 6*N] = w[i] * A23;
+    qdata[i+ 7*N] = w[i] * A31;
+    qdata[i+ 8*N] = w[i] * A32;
+    qdata[i+ 9*N] = w[i] * A33;
     // -- Grad-to-Grad qdata
-    qdata[i+10*Q] = qw * (A11*A11 + A12*A12 + A13*A13);
-    qdata[i+11*Q] = qw * (A11*A21 + A12*A22 + A13*A23);
-    qdata[i+12*Q] = qw * (A11*A31 + A12*A32 + A13*A33);
-    qdata[i+13*Q] = qw * (A21*A21 + A22*A22 + A23*A23);
-    qdata[i+14*Q] = qw * (A21*A31 + A22*A32 + A23*A33);
-    qdata[i+15*Q] = qw * (A31*A31 + A32*A32 + A33*A33);
+    qdata[i+10*N] = qw * (A11*A11 + A12*A12 + A13*A13);
+    qdata[i+11*N] = qw * (A11*A21 + A12*A22 + A13*A23);
+    qdata[i+12*N] = qw * (A11*A31 + A12*A32 + A13*A33);
+    qdata[i+13*N] = qw * (A21*A21 + A22*A22 + A23*A23);
+    qdata[i+14*N] = qw * (A21*A31 + A22*A32 + A23*A33);
+    qdata[i+15*N] = qw * (A31*A31 + A32*A32 + A33*A33);
 
   } // End of Quadrature Point Loop
 
@@ -142,19 +141,18 @@ static int Setup(void *ctx, CeedInt Q,
 //   v - Output vector at quadrature points
 //
 // *****************************************************************************
-static int Mass(void *ctx, CeedInt Q,
-                const CeedScalar *const *in, CeedScalar *const *out) {
+static int Mass(void *ctx, CeedInt Q, CeedInt N, CeedQFunctionArguments args) {
   (void)ctx;
-  const CeedScalar *u = in[0], *w = in[1];
-  CeedScalar *v = out[0];
+  const CeedScalar *u = args.in[0], *w = args.in[1];
+  CeedScalar *v = args.out[0];
 
   CeedPragmaOMP(simd)
   for (CeedInt i=0; i<Q; i++) {
-    v[i+0*Q] = w[i+0*Q] * u[i+0*Q];
-    v[i+1*Q] = w[i+0*Q] * u[i+1*Q];
-    v[i+2*Q] = w[i+0*Q] * u[i+2*Q];
-    v[i+3*Q] = w[i+0*Q] * u[i+3*Q];
-    v[i+4*Q] = w[i+0*Q] * u[i+4*Q];
+    v[i+0*N] = w[i+0*N] * u[i+0*N];
+    v[i+1*N] = w[i+0*N] * u[i+1*N];
+    v[i+2*N] = w[i+0*N] * u[i+2*N];
+    v[i+3*N] = w[i+0*N] * u[i+3*N];
+    v[i+4*N] = w[i+0*N] * u[i+4*N];
   }
   return 0;
 }

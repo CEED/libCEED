@@ -650,8 +650,7 @@ int main(int argc, char **argv) {
   char str[PETSC_MAX_PATH_LEN] = __FILE__":ICs";
   PetscStrlcat(str, problemtype, PETSC_MAX_PATH_LEN);
   CeedQFunctionCreateInterior(ceed, 1,
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))icsfp,
-                              str, &qf_ics);
+                              (CeedQFunctionUser)icsfp, str, &qf_ics);
   CeedQFunctionAddInput(qf_ics, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", 5, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_ics, "coords", 3, CEED_EVAL_NONE);
@@ -664,8 +663,7 @@ int main(int argc, char **argv) {
   PetscStrncpy(str, __FILE__":", PETSC_MAX_PATH_LEN);
   PetscStrlcat(str, problemtype, PETSC_MAX_PATH_LEN);
   CeedQFunctionCreateInterior(ceed, 1,
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))fp,
-                              str, &qf);
+                              (CeedQFunctionUser)fp, str, &qf);
   CeedQFunctionAddInput(qf, "q", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf, "dq", 5, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf, "qdata", 16, CEED_EVAL_NONE);
