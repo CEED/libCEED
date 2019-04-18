@@ -139,17 +139,18 @@ petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 navierstokesexample.c := $(sort $(wildcard examples/navier-stokes/*.c))
 navierstokesexample  := $(navierstokesexample.c:examples/navier-stokes/%.c=$(OBJDIR)/navier-stokes-%)
 
-# backends/[ref, template, blocked, avx, occa, magma]
-ref.c      := $(sort $(wildcard backends/ref/*.c))
-template.c := $(sort $(wildcard backends/template/*.c))
-cuda.c     := $(sort $(wildcard backends/cuda/*.c))
-cuda.cu    := $(sort $(wildcard backends/cuda/*.cu))
-cuda-reg.c := $(sort $(wildcard backends/cuda-reg/*.c))
-cuda-reg.cu:= $(sort $(wildcard backends/cuda-reg/*.cu))
-blocked.c  := $(sort $(wildcard backends/blocked/*.c))
-avx.c      := $(sort $(wildcard backends/avx/*.c))
-xsmm.c     := $(sort $(wildcard backends/xsmm/*.c))
-occa.c     := $(sort $(wildcard backends/occa/*.c))
+# backends/[ref, template, blocked, memcheck, avx, occa, magma]
+ref.c          := $(sort $(wildcard backends/ref/*.c))
+template.c     := $(sort $(wildcard backends/template/*.c))
+cuda.c         := $(sort $(wildcard backends/cuda/*.c))
+cuda.cu        := $(sort $(wildcard backends/cuda/*.cu))
+cuda-reg.c     := $(sort $(wildcard backends/cuda-reg/*.c))
+cuda-reg.cu    := $(sort $(wildcard backends/cuda-reg/*.cu))
+blocked.c      := $(sort $(wildcard backends/blocked/*.c))
+ceedmemcheck.c := $(sort $(wildcard backends/memcheck/*.c))
+avx.c          := $(sort $(wildcard backends/avx/*.c))
+xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
+occa.c         := $(sort $(wildcard backends/occa/*.c))
 magma_preprocessor := python backends/magma/gccm.py
 magma_pre_src  := $(filter-out %_tmp.c, $(wildcard backends/magma/ceed-*.c))
 magma_dsrc     := $(wildcard backends/magma/magma_d*.c)
@@ -234,6 +235,12 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)
 libceed.c += $(ref.c)
 libceed.c += $(template.c)
 libceed.c += $(blocked.c)
+
+# Memcheck Backend
+ifneq ($(shell which valgrind 2> /dev/null),)
+  libceed.c += $(ceedmemcheck.c)
+  BACKENDS += /cpu/self/ref/memcheck
+endif
 
 # AVX Backed
 AVX_STATUS = Disabled

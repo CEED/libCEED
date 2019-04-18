@@ -18,12 +18,14 @@ addons:
     - gfortran
     - liblapack-dev
     - libopenblas-dev
+    - valgrind-dbg
   homebrew:
     packages:
     - ccache
     - gcc
     - lapack
     - openblas
+    - valgrind
 
 env:
   - FC=gfortran

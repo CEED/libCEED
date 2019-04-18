@@ -14,14 +14,12 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <string.h>
-#include <stdio.h>
-#include "ceed-ref.h"
+#include "ceed-memcheck.h"
 
-static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
-                                  CeedVector *U, CeedVector *V) {
+static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
+                                         CeedVector *U, CeedVector *V) {
   int ierr;
-  CeedQFunction_Ref *impl;
+  CeedQFunction_Memcheck *impl;
   ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);
 
   void *ctx;
@@ -40,6 +38,9 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
   for (int i = 0; i<nOut; i++) {
     ierr = CeedVectorGetArray(V[i], CEED_MEM_HOST, &impl->outputs[i]);
     CeedChk(ierr);
+    CeedInt len;
+    ierr = CeedVectorGetLength(V[i], &len); CeedChk(ierr);
+    VALGRIND_MAKE_MEM_UNDEFINED(impl->outputs[i], len);
   }
 
   ierr = f(ctx, Q, impl->inputs, impl->outputs); CeedChk(ierr);
@@ -54,9 +55,9 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
   return 0;
 }
 
-static int CeedQFunctionDestroy_Ref(CeedQFunction qf) {
+static int CeedQFunctionDestroy_Memcheck(CeedQFunction qf) {
   int ierr;
-  CeedQFunction_Ref *impl;
+  CeedQFunction_Memcheck *impl;
   ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedFree(&impl->inputs); CeedChk(ierr);
@@ -66,21 +67,21 @@ static int CeedQFunctionDestroy_Ref(CeedQFunction qf) {
   return 0;
 }
 
-int CeedQFunctionCreate_Ref(CeedQFunction qf) {
+int CeedQFunctionCreate_Memcheck(CeedQFunction qf) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
 
-  CeedQFunction_Ref *impl;
+  CeedQFunction_Memcheck *impl;
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->inputs); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->outputs); CeedChk(ierr);
   ierr = CeedQFunctionSetData(qf, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
-                                CeedQFunctionApply_Ref); CeedChk(ierr);
+                                CeedQFunctionApply_Memcheck); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
-                                CeedQFunctionDestroy_Ref); CeedChk(ierr);
+                                CeedQFunctionDestroy_Memcheck); CeedChk(ierr);
 
   return 0;
 }
