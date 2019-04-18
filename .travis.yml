@@ -25,7 +25,6 @@ addons:
     - gcc
     - lapack
     - openblas
-    - valgrind
 
 env:
   - FC=gfortran
