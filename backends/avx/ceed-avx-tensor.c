@@ -14,8 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <string.h>
-#include <immintrin.h>
 #include "ceed-avx.h"
 
 // Blocked Tensor Contact

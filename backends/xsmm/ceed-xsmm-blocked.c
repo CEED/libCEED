@@ -14,7 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <string.h>
 #include "ceed-xsmm.h"
 
 static int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
