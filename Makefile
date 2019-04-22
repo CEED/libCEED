@@ -156,7 +156,10 @@ magma_dsrc     := $(wildcard backends/magma/magma_d*.c)
 magma_tmp.c    := $(magma_pre_src:%.c=%_tmp.c)
 magma_tmp.cu   := $(magma_pre_src:%.c=%_cuda.cu)
 magma_allsrc.c := $(magma_dsrc) $(magma_tmp.c)
-magma_allsrc.cu:= $(magma_tmp.cu)
+magma_allsrc.cu:= $(magma_tmp.cu) backends/magma/magma_qfunctions.cu backends/magma/magma_devptr.cu
+magma_allsrc.cu+= backends/magma/magma_dbasisApply_grad.cu backends/magma/magma_dbasisApply_interp.cu backends/magma/magma_dbasisApply_weight.cu
+
+#magma_qfunctions.cu
 
 # Output using the 216-color rules mode
 rule_file = $(notdir $(1))
@@ -284,13 +287,12 @@ endif
 # MAGMA Backend
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   ifneq ($(CUDA_LIB_DIR),)
-  cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
-  omp_link = -fopenmp
-  magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
-  magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
-  magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
-  $(libceed)           : LDLIBS += $(magma_link)
-  $(tests) $(examples) : LDLIBS += $(magma_link)
+  magma_allsrc.o = $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o)
+  $(libceed)           : LDFLAGS += -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)
+  $(tests) $(examples) : LDFLAGS += -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)
+  $(libceed)           : LDLIBS += -lmagma -L$(CUDA_LIB_DIR) -lcudart
+  $(tests) $(examples) : LDLIBS += -lmagma -L$(CUDA_LIB_DIR) -lcudart
+  $(libceed) : $(magma_allsrc.o)
   libceed.c  += $(magma_allsrc.c)
   libceed.cu += $(magma_allsrc.cu)
   $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
