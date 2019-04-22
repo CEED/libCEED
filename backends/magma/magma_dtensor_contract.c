@@ -15,9 +15,6 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include "ceed-magma.h"
-#include <ceed-impl.h>
-#include <string.h>
-#include "magma.h"
 
 // Contracts on the middle index
 // NOTRANSPOSE: V_ajc = T_jb U_abc
