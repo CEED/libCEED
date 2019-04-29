@@ -33,12 +33,12 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   const CeedScalar *u;
   CeedScalar *v;
   if (U) {
-    ierr = CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u); CeedChk(ierr);
+    ierr = CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &u); CeedChk(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
     return CeedError(ceed, 1,
                      "An input vector is required for this CeedEvalMode");
   }
-  ierr = CeedVectorGetArray(V, CEED_MEM_HOST, &v); CeedChk(ierr);
+  ierr = CeedVectorGetArray(V, CEED_MEM_DEVICE, &v); CeedChk(ierr);
 
   // If input scalar is on CPU, call CPU code
   if (magma_is_devptr(v)!=1)
