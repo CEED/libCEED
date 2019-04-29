@@ -55,7 +55,8 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
   if (!ceed->ElemRestrictionCreate) {
     Ceed delegate;
-    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction");
+    CeedChk(ierr);
 
     if (!delegate)
       return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreate");
@@ -105,7 +106,8 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
 
   if (!ceed->ElemRestrictionCreate) {
     Ceed delegate;
-    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction");
+    CeedChk(ierr);
 
     if (!delegate)
       return CeedError(ceed, 1,
@@ -200,7 +202,8 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
   if (!ceed->ElemRestrictionCreateBlocked) {
     Ceed delegate;
-    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction");
+    CeedChk(ierr);
 
     if (!delegate)
       return CeedError(ceed, 1,

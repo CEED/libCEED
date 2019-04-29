@@ -50,7 +50,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 
   if (!ceed->QFunctionCreate) {
     Ceed delegate;
-    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "QFunction"); CeedChk(ierr);
 
     if (!delegate)
       return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
