@@ -20,37 +20,6 @@
 #include <ceed-backend.h>
 #include "magma.h"
 
-// CPU implementations
-#include "ceed-magma-cpu.c"
-
-typedef struct {
-  CeedScalar *array;
-  CeedScalar *darray;
-  int  own_;
-  int down_;
-} CeedVector_Magma;
-
-typedef struct {
-  CeedInt *indices;
-  CeedInt *dindices;
-  int  own_;
-  int down_;            // cover a case where we own Device memory
-} CeedElemRestriction_Magma;
-
-typedef struct {
-    CeedVector  *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
-    CeedScalar **edata;
-    CeedScalar **qdata;   /// Inputs followed by outputs
-    CeedScalar
-    **qdata_alloc; /// Allocated quadrature data arrays (to be freed by us)
-    CeedScalar **indata;
-    CeedScalar **outdata;
-    CeedInt    numein;
-    CeedInt    numeout;
-    CeedInt    numqin;
-    CeedInt    numqout;
-} CeedOperator_Magma;
-
 typedef struct {
     CeedScalar *dqref1d;
     CeedScalar *dinterp1d;
@@ -106,27 +75,6 @@ magmablas_dbasis_apply_batched_eval_weight(
 magma_int_t
 magma_isdevptr( const void* A );
 
-CEED_INTERN int t30_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
-              CeedScalar *const *out);
-CEED_INTERN int t30_mass( void *ctx, CeedInt Q, const CeedScalar *const *in,
-              CeedScalar *const *out);
-CEED_INTERN int t20_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
-              CeedScalar *const *out);
-CEED_INTERN int t20_mass(void *ctx,  CeedInt Q, const CeedScalar *const *in,
-              CeedScalar *const *out);
-CEED_INTERN int ex1_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
-              CeedScalar *const *out);
-CEED_INTERN int ex1_mass(void *ctx,  CeedInt Q, const CeedScalar *const *in,
-             CeedScalar *const *out);
-CEED_INTERN int t400_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
-              CeedScalar *const *out);
-CEED_INTERN int t400_mass(void *ctx,  CeedInt Q, const CeedScalar *const *in,
-             CeedScalar *const *out);
-CEED_INTERN int t500_setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
-               CeedScalar *const *out);
-CEED_INTERN int t500_mass(void *ctx,  CeedInt Q, const CeedScalar *const *in,
-              CeedScalar *const *out);
-
 #ifdef __cplusplus
 }
 #endif
@@ -142,11 +90,6 @@ CEED_INTERN int t500_mass(void *ctx,  CeedInt Q, const CeedScalar *const *in,
 #define MAGMA_BATCH_STRIDE (1000)
 #endif
 
-CEED_INTERN int CeedVectorCreate_Magma(CeedInt n, CeedVector vec);
-
-CEED_INTERN int CeedElemRestrictionCreate_Magma(CeedMemType mtype,
-    CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r);
-
 CEED_INTERN int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d,
     const CeedScalar *grad1d,
@@ -161,9 +104,3 @@ CEED_INTERN int CeedBasisCreateH1_Magma(CeedElemTopology topo,
                                         const CeedScalar *qref,
                                         const CeedScalar *qweight,
                                         CeedBasis basis);
-
-CEED_INTERN int CeedQFunctionCreate_Magma(CeedQFunction qf);
-
-CEED_INTERN int CeedOperatorCreate_Magma(CeedOperator op);
-
-CEED_INTERN int CeedCompositeOperatorCreate_Magma(CeedOperator op);

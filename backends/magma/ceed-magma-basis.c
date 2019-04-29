@@ -293,12 +293,12 @@ static int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
 }
 
 static int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim,
-                          CeedInt ndof, CeedInt nqpts,
-                          const CeedScalar *interp,
-                          const CeedScalar *grad,
-                          const CeedScalar *qref,
-                          const CeedScalar *qweight,
-                          CeedBasis basis) {
+                                   CeedInt ndof, CeedInt nqpts,
+                                   const CeedScalar *interp,
+                                   const CeedScalar *grad,
+                                   const CeedScalar *qref,
+                                   const CeedScalar *qweight,
+                                   CeedBasis basis) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(op, &ceed); CeedChk(ierr);

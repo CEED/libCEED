@@ -21,28 +21,20 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/gpu/magma"))
     return CeedError(ceed, 1, "Magma backend cannot use resource: %s", resource);
 
+  Ceed ceedref;
+
+  // Create refrence CEED that implementation will be dispatched
+  //   through unless overridden
+  CeedInit("/gpu/cuda/ref", &ceedref);
+  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+
   ierr = magma_init();
   if (ierr) return CeedError(ceed, 1, "error in magma_init(): %d\n", ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VecCreate",
-                                CeedVectorCreate_Magma); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Magma); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
                                 CeedBasisCreateH1_Magma); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
-                                CeedElemRestrictionCreate_Magma); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
-                                "ElemRestrictionCreateBlocked",
-                                CeedElemRestrictionCreateBlocked_Magma);
-  CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
-                                CeedQFunctionCreate_Magma); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Magma); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
-                                CeedCompositeOperatorCreate_Magma);
-  CeedChk(ierr);
   return 0;
 }
 
