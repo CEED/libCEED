@@ -33,7 +33,7 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
   const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : 0;
 
-  ierr = cudaSetDevice(deviceID); CeedChk(ierr);
+  // ierr = cudaSetDevice(deviceID); CeedChk(ierr);
 
   Ceed_Cuda_reg *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
