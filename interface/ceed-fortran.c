@@ -107,8 +107,9 @@ void fCeedVectorCreate(int *ceed, int *length, int *vec, int *err) {
 
 #define fCeedVectorSetArray FORTRAN_NAME(ceedvectorsetarray,CEEDVECTORSETARRAY)
 void fCeedVectorSetArray(int *vec, int *memtype, int *copymode,
-                         CeedScalar *array, int *err) {
-  *err = CeedVectorSetArray(CeedVector_dict[*vec], *memtype, *copymode, array);
+                         CeedScalar *array, int64_t *offset, int *err) {
+  *err = CeedVectorSetArray(CeedVector_dict[*vec], *memtype, *copymode,
+                            (CeedScalar *)(array + *offset));
 }
 
 #define fCeedVectorSyncArray FORTRAN_NAME(ceedvectorsyncarray,CEEDVECTORSYNCARRAY)

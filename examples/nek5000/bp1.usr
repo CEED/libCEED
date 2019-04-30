@@ -714,6 +714,7 @@ C     Solution to BP1 using libCEED
       integer qf_mass,qf_setup
       integer op_mass,op_setup
       real*8  x,y,z
+      integer*8 offset
 
       external massf,masssetupf
 
@@ -784,8 +785,9 @@ C     Create ceed vectors
       call ceedvectorcreate(ceed,ldim*lx*nelt,vec_coords,err)
       call ceedvectorcreate(ceed,nelt*q**ldim,vec_qdata,err)
 
+      offset=0
       call ceedvectorsetarray(vec_coords,ceed_mem_host,
-     $  ceed_use_pointer,coords,err)
+     $  ceed_use_pointer,coords,offset,err)
 
 C     Create ceed qfunctions for masssetupf and massf
       call ceedqfunctioncreateinterior(ceed,1,masssetupf,
@@ -839,7 +841,7 @@ C     Create ceed operators
 
 C     Compute setup data
       call ceedvectorsetarray(vec_rhs,ceed_mem_host,
-     $  ceed_use_pointer,r1,err)
+     $  ceed_use_pointer,r1,offset,err)
       call ceedoperatorapply(op_setup,vec_coords,vec_qdata,
      $  ceed_request_immediate,err)
 
@@ -848,9 +850,9 @@ C     Set up true RHS
 
 C     Set up algebraic RHS with libCEED
       call ceedvectorsetarray(vec_p1,ceed_mem_host,
-     $  ceed_use_pointer,h1,err)
+     $  ceed_use_pointer,h1,offset,err)
       call ceedvectorsetarray(vec_ap1,ceed_mem_host,
-     $  ceed_use_pointer,r2,err)
+     $  ceed_use_pointer,r2,offset,err)
       call ceedoperatorapply(op_mass,vec_p1,vec_ap1,
      $  ceed_request_immediate,err)                ! r2 = A_ceed*h1
       call dssum         (r2,nx1,ny1,nz1)
@@ -1020,6 +1022,7 @@ C     Solution to BP3 using libCEED
       integer op_diffusion,op_setup
       integer ii,i,ngeo
       real*8  x,y,z
+      integer*8 offset
 
       external diffusionf,diffsetupf
 
@@ -1098,8 +1101,9 @@ C     Create ceed vectors
       call ceedvectorcreate(ceed,ldim*lx*nelt,vec_coords,err)
       call ceedvectorcreate(ceed,nelt*ngeo*q**ldim,vec_qdata,err)
 
+      offset=0
       call ceedvectorsetarray(vec_coords,ceed_mem_host,
-     $  ceed_use_pointer,coords,err)
+     $  ceed_use_pointer,coords,offset,err)
 
 C     Create ceed qfunctions for diffsetupf and diffusionf
       call ceedqfunctioncreateinterior(ceed,1,diffsetupf,
@@ -1153,7 +1157,7 @@ C     Create ceed operators
 
 C     Compute setup data
       call ceedvectorsetarray(vec_rhs,ceed_mem_host,
-     $  ceed_use_pointer,r1,err)
+     $  ceed_use_pointer,r1,offset,err)
       call ceedoperatorapply(op_setup,vec_coords,vec_qdata,
      $  ceed_request_immediate,err)
 
@@ -1163,9 +1167,9 @@ C     Set up true RHS
 
 C     Set up algebraic RHS with libCEED
       call ceedvectorsetarray(vec_p1,ceed_mem_host,
-     $  ceed_use_pointer,h1,err)
+     $  ceed_use_pointer,h1,offset,err)
       call ceedvectorsetarray(vec_ap1,ceed_mem_host,
-     $  ceed_use_pointer,r2,err)
+     $  ceed_use_pointer,r2,offset,err)
       call ceedoperatorapply(op_diffusion,vec_p1,vec_ap1,
      $  ceed_request_immediate,err)                ! r2 = A_ceed*h1
       call dssum         (r2,nx1,ny1,nz1)
@@ -1434,11 +1438,13 @@ C     Output: ap1
       real*8    h1(lx,lelt),h2(lx,lelt)
       integer ceed,ceed_op,vec_ap1,vec_p1,err
       integer i,e
+      integer*8 offset
 
+      offset=0
       call ceedvectorsetarray(vec_p1,ceed_mem_host,ceed_use_pointer,
-     $  p1,err)
+     $  p1,offset,err)
       call ceedvectorsetarray(vec_ap1,ceed_mem_host,ceed_use_pointer,
-     $  ap1,err)
+     $  ap1,offset,err)
 
       call ceedoperatorapply(ceed_op,vec_p1,vec_ap1,
      $  ceed_request_immediate,err)

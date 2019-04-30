@@ -57,7 +57,7 @@
       parameter(nqpts=nelem*q)
       integer indx(nelem*p)
       real*8 arrx(d*ndofs)
-      integer*8 voffset
+      integer*8 voffset,xoffset
 
       real*8 qref(d*q)
       real*8 qweight(q)
@@ -136,7 +136,8 @@
       call ceedoperatorcreate(ceed,qf_mass,ceed_null,ceed_null,op_mass,err)
 
       call ceedvectorcreate(ceed,d*ndofs,x,err)
-      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,err)
+      xoffset=0
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,xoffset,err)
       call ceedvectorcreate(ceed,nqpts,qdata,err)
 
       call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&

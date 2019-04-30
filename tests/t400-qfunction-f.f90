@@ -43,7 +43,7 @@
       real*8 vvv(q)
       real*8 x
       character arg*32
-      integer*8 offset
+      integer*8 uoffset,voffset,woffset
 
       external setup,mass
 
@@ -71,9 +71,11 @@
       enddo
 
       call ceedvectorcreate(ceed,q,w,err)
-      call ceedvectorsetarray(w,ceed_mem_host,ceed_use_pointer,ww,err)
+      woffset=0
+      call ceedvectorsetarray(w,ceed_mem_host,ceed_use_pointer,ww,woffset,err)
       call ceedvectorcreate(ceed,q,u,err)
-      call ceedvectorsetarray(u,ceed_mem_host,ceed_use_pointer,uu,err)
+      uoffset=0
+      call ceedvectorsetarray(u,ceed_mem_host,ceed_use_pointer,uu,uoffset,err)
       call ceedvectorcreate(ceed,q,v,err)
       call ceedvectorsetvalue(v,0.d0,err)
       call ceedvectorcreate(ceed,q,qdata,err)
@@ -93,13 +95,13 @@
              &ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,ceed_null,&
              &ceed_null,ceed_null,ceed_null,ceed_null,err)
 
-      call ceedvectorgetarrayread(v,ceed_mem_host,vv,offset,err)
+      call ceedvectorgetarrayread(v,ceed_mem_host,vv,voffset,err)
       do i=1,q
-        if (abs(vv(i+offset)-vvv(i)) > 1.0D-14) then
-          write(*,*) 'v(i)=',vv(i+offset),', vv(i)=',vvv(i)
+        if (abs(vv(i+voffset)-vvv(i)) > 1.0D-14) then
+          write(*,*) 'v(i)=',vv(i+voffset),', vv(i)=',vvv(i)
         endif
       enddo
-      call ceedvectorrestorearrayread(v,vv,offset,err)
+      call ceedvectorrestorearrayread(v,vv,voffset,err)
 
       call ceedvectordestroy(u,err)
       call ceedvectordestroy(v,err)
