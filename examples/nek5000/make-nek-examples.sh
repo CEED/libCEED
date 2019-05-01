@@ -53,6 +53,7 @@ fi
 
 # Set defaults for the parameters
 : ${NEK5K_DIR:=`cd "../../../Nek5000"; pwd`}
+: ${NEKTOOLS_DIR:=`cd "${NEK5K_DIR}/bin"; pwd`}
 : ${CEED_DIR:=`cd "../../"; pwd`}
 : ${FC:="mpif77"}
 : ${CC:="mpicc"}

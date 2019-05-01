@@ -54,13 +54,18 @@ function genbb()
   cp $1.box ttt.box
   echo
   echo "Running genbox ..."
-  printf "ttt.box\n" | $NEK5K_DIR/bin/genbox || return 1
+  if [ -z ${NEKTOOLS_DIR+x} ]; then
+    echo "Required variable NEKTOOLS_DIR not found."
+    exit 1
+  fi
+
+  printf "ttt.box\n" | $NEKTOOLS_DIR/bin/genbox || return 1
   echo
   echo "Running genmap ..."
-  printf "box\n.1\n" | $NEK5K_DIR/bin/genmap || return 1
+  printf "box\n.1\n" | $NEKTOOLS_DIR/bin/genmap || return 1
   echo
   echo "Running reatore2 ..."
-  printf "box\n$1\n" | $NEK5K_DIR/bin/reatore2 || return 1
+  printf "box\n$1\n" | $NEKTOOLS_DIR/bin/reatore2 || return 1
   rm ttt.box
   rm box.rea
   rm box.tmp
