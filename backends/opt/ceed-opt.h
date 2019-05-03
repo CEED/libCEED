@@ -18,8 +18,12 @@
 #include <string.h>
 
 typedef struct {
+  CeedInt blksize;
+} Ceed_Opt;
+
+typedef struct {
   CeedScalar *colograd1d;
-} CeedBasis_BlockedFull;
+} CeedBasis_Opt;
 
 typedef struct {
   bool add;
@@ -34,6 +38,6 @@ typedef struct {
   CeedVector *qvecsout;  /// Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
-} CeedOperator_BlockedFull;
+} CeedOperator_Opt;
 
-CEED_INTERN int CeedOperatorCreate_BlockedFull(CeedOperator op);
+CEED_INTERN int CeedOperatorCreate_Opt(CeedOperator op);

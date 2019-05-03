@@ -15,13 +15,22 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <string.h>
-#include "ceed-blocked-full.h"
+#include "ceed-opt.h"
 
-static int CeedInit_BlockedFull(const char *resource, Ceed ceed) {
+static int CeedDestroy_Opt(Ceed ceed) {
+  int ierr;
+  Ceed_Opt *data;
+  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedFree(&data); CeedChk(ierr);
+
+  return 0;
+}
+
+static int CeedInit_Opt_Blocked(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/ref/blocked/full"))
-    return CeedError(ceed, 1, "Blocked backend cannot use resource: %s", resource);
+      && strcmp(resource, "/cpu/self/opt/blocked"))
+    return CeedError(ceed, 1, "Opt backend cannot use resource: %s", resource);
 
   Ceed ceedref;
 
@@ -30,13 +39,21 @@ static int CeedInit_BlockedFull(const char *resource, Ceed ceed) {
   CeedInit("/cpu/self/ref/serial", &ceedref);
   ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
 
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
+                                CeedDestroy_Opt); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_BlockedFull); CeedChk(ierr);
+                                CeedOperatorCreate_Opt); CeedChk(ierr);
+
+  // Set blocksize
+  Ceed_Opt *data;
+  ierr = CeedCalloc(1, &data); CeedChk(ierr);
+  data->blksize = 8;
+  ierr = CeedSetData(ceed, (void *)&data); CeedChk(ierr);
 
   return 0;
 }
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/ref/blocked/full", CeedInit_BlockedFull, 35);
+  CeedRegister("/cpu/self/opt/blocked", CeedInit_Opt_Blocked, 40);
 }
