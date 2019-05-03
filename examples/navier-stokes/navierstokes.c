@@ -140,7 +140,7 @@ struct Units_ {
   PetscScalar WpermK;
   PetscScalar kgpercubicm;
   PetscScalar kgpersquaredms;
-  PetscScalar Joule;
+  PetscScalar Joulepercubicm;
 };
 
 // This is the RHS of the ODE, given as u_t = G(t,u)
@@ -230,7 +230,7 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
         u[info.zs+i][info.ys+j][(info.xs+k)*5 + 3] =
             q[((i*info.ym+j)*info.xm+k)*5 + 3] / user->units->kgpersquaredms;
         u[info.zs+i][info.ys+j][(info.xs+k)*5 + 4] =
-            q[((i*info.ym+j)*info.xm+k)*5 + 4] / user->units->Joule;
+            q[((i*info.ym+j)*info.xm+k)*5 + 4] / user->units->Joulepercubicm;
       }
     }
   }
@@ -299,7 +299,7 @@ int main(int argc, char **argv) {
   CeedOperator op_setup, op_mass, op_ics, op;
   CeedScalar Rd;
   PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
-              kgpersquaredms, Joule;
+              kgpersquaredms, Joulepercubicm;
 
   // Create the libCEED contexts
   PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
@@ -417,7 +417,7 @@ int main(int argc, char **argv) {
   WpermK = kilogram * meter / (pow(second,3) * Kelvin);
   kgpercubicm = kilogram / pow(meter,3);
   kgpersquaredms = kilogram / (PetscSqr(meter) * second);
-  Joule = kilogram * PetscSqr(meter) / PetscSqr(second);
+  Joulepercubicm = kilogram / (meter * PetscSqr(second));
 
   // Scale variables to desired units
   theta0 *= Kelvin;
@@ -794,7 +794,7 @@ int main(int argc, char **argv) {
   units->WpermK = WpermK;
   units->kgpercubicm = kgpercubicm;
   units->kgpersquaredms = kgpersquaredms;
-  units->Joule = Joule;
+  units->Joulepercubicm = Joulepercubicm;
 
   // Set up user structure
   user->comm = comm;
