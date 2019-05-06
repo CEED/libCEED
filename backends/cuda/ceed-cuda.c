@@ -23,6 +23,7 @@
 int compile(Ceed ceed, const char *source, CUmodule *module,
             const CeedInt numopts, ...) {
   int ierr;
+  cudaFree(0);//Make sure a Context exists for nvrtc
   nvrtcProgram prog;
   CeedChk_Nvrtc(ceed, nvrtcCreateProgram(&prog, source, NULL, 0, NULL, NULL));
 
