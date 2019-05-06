@@ -392,11 +392,11 @@ all: $(alltests)
 examples : $(allexamples)
 
 # Benchmarks
-allbenchmarks = petsc-bp1 petsc-bp3
+allbenchmarks = petsc-bps
 bench_targets = $(addprefix bench-,$(allbenchmarks))
 .PHONY: $(bench_targets) benchmarks
 $(bench_targets): bench-%: $(OBJDIR)/%
-	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(*).sh
+	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r petsc-bp3.sh
 benchmarks: $(bench_targets)
 
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)

@@ -17,40 +17,10 @@
 
 function run_tests()
 {
-   $dry_run cd "$test_exe_dir"
-
-   # Some of the available options are:
-   # -degree <1>: Polynomial degree of tensor product basis
-   # -qextra <2>: Number of extra quadrature points
-   # -ceed </cpu/self>: CEED resource specifier
-   # -local <1000>: Target number of locally (per rank) owned degrees of freedom
-
-   # The variables 'max_dofs_node', and 'max_p' can be set on the command line
-   # invoking the 'benchmark.sh' script.
-   local ceed="${ceed:-/cpu/self}"
-   local common_args=(-ceed $ceed -qextra 2 -pc_type none -benchmark -ksp_max_it 20)
-   local max_dofs_node_def=$((3*2**20))
-   local max_dofs_node=${max_dofs_node:-$max_dofs_node_def}
-   local max_loc_dofs=$((max_dofs_node/num_proc_node))
-   local max_p=${max_p:-8}
-   local sol_p=
-   for ((sol_p = 1; sol_p <= max_p; sol_p++)); do
-      local loc_el=
-      for ((loc_el = 1; loc_el*sol_p**3 <= max_loc_dofs; loc_el = 2*loc_el)); do
-         local loc_dofs=$((loc_el*sol_p**3))
-         local all_args=("${common_args[@]}" -degree $sol_p -local $loc_dofs)
-         if [ -z "$dry_run" ]; then
-            echo
-            echo "Running test:"
-            quoted_echo $mpi_run ./petsc-bp3 "${all_args[@]}"
-            $mpi_run ./petsc-bp3 "${all_args[@]}" || \
-               printf "\nError in the test, error code: $?\n\n"
-         else
-            $dry_run $mpi_run ./petsc-bp3 "${all_args[@]}"
-         fi
-      done
-   done
+  bp="bp3"
+  . "petsc-bps.sh" || $exit_cmd 1
+  run_petsc_tests >> $output_file
 }
 
 
-test_required_examples="petsc-bp3"
+test_required_examples="petsc-bps"

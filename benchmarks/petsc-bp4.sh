@@ -17,7 +17,7 @@
 
 function run_tests()
 {
-  bp="bp1"
+  bp="bp4"
   . "petsc-bps.sh" || $exit_cmd 1
   run_petsc_tests >> $output_file
 }
