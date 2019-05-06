@@ -17,6 +17,10 @@
 /// @file
 /// Density current initial condition and operator for Navier-Stokes example using PETSc
 
+// Model from:
+//   Semi-Implicit Formulations of the Navier-Stokes Equations: Application to
+//   Nonhydrostatic Atmospheric Modeling, Giraldo, Restelli, and Lauter (2010).
+
 #ifndef densitycurrent_h
 #define densitycurrent_h
 

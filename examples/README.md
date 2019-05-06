@@ -22,13 +22,25 @@ Bakeoff problem 1 is the *L<sup>2</sup>* projection problem into the finite elem
 
 The supplied examples solve *_B_ u = f*, where *_B_* is the mass matrix.
 
+### Bakeoff Problem 2
+
+Bakeoff problem 2 is the *L<sup>2</sup>* projection problem into the finite element space on a vector system.
+
+The supplied examples solve *_B_ _u_ = f*, where *_B_* is the mass matrix.
+
 ### Bakeoff Problem 3
 
-Bakeoff problem 1 is the Poisson problem.
+Bakeoff problem 3 is the Poisson problem.
 
 The supplied examples solve *_A_ u = f*, where *_A_* is the Poisson operator.
 
-### Navier-Stokes Solver
+### Bakeoff Problem 4
+
+Bakeoff problem 4 is the Poisson problem on a vector system.
+
+The supplied examples solve *_A_ _u_ = f*, where *_A_* is the Poisson operator.
+
+## Navier-Stokes Solver
 
 The Navier-Stokes problem solves the compressible Navier-Stokes equations using an explicit time integration.
 
@@ -55,8 +67,8 @@ cd ../..
 # PETSc+libCEED examples on CPU and GPU
 cd petsc
 make
-./bp1 -ceed /cpu/self
-./bp1 -ceed /gpu/occa
+./bps -problem bp1 -ceed /cpu/self
+./bps -problem bp1 -ceed /gpu/occa
 cd ../..
 
 cd navier-stokes

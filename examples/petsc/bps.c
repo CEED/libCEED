@@ -1,14 +1,14 @@
-//                        libCEED + PETSc Example: BP1
+//                        libCEED + PETSc Example: CEED BPs
 //
 // This example demonstrates a simple usage of libCEED with PETSc to solve the
-// CEED BP1 benchmark problem, see http://ceed.exascaleproject.org/bps.
+// CEED BP benchmark problems, see http://ceed.exascaleproject.org/bps.
 //
 // The code is intentionally "raw", using only low-level communication
 // primitives.
 //
 // Build with:
 //
-//     make bp1 [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>]
+//     make bps [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>]
 //
 // Sample runs:
 //
