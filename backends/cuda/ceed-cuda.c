@@ -113,7 +113,12 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
   const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : 0;
 
-  // ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
+  int currentDeviceID;
+  ierr = cudaGetDevice(&currentDeviceID); CeedChk_Cu(ceed,ierr);
+  if (currentDeviceID!=deviceID)
+  {
+    ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
+  }
 
   Ceed_Cuda *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);

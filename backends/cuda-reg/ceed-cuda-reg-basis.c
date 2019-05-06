@@ -572,6 +572,8 @@ int CeedBasisCreateTensorH1_Cuda_reg(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                                      const CeedScalar *qweight1d,
                                      CeedBasis basis) {
   int ierr;
+  Ceed ceed;
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   CeedBasis_Cuda_reg *data;
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
 
@@ -606,8 +608,6 @@ int CeedBasisCreateTensorH1_Cuda_reg(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   ierr = get_kernel(basis->ceed, data->module, "weight", &data->weight);
   CeedChk(ierr);
 
-  Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   ierr = CeedBasisSetData(basis, (void *)&data);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
