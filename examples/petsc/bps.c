@@ -26,11 +26,14 @@
 const char help[] = "Solve CEED BPs using PETSc\n";
 
 #include <stdbool.h>
+#include <string.h>
 #include "common.h"
 #include "bp1.h"
 #include "bp2.h"
 #include "bp3.h"
 #include "bp4.h"
+
+#define PATH(BASE) __DIR__ #BASE
 
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   for (PetscInt d=0,sizeleft=size; d<3; d++) {
@@ -119,8 +122,8 @@ struct User_ {
 typedef enum {
   CEED_BP1, CEED_BP2, CEED_BP3, CEED_BP4, CEED_BP5, CEED_BP6
 } bpType;
-static const char *const bpOptions[] = {"bp1","bp2","bp3","bp4","bp5","bp6",
-                                        "bpType","CEED_BP",0};
+static const char *const bpTypes[] = {"bp1","bp2","bp3","bp4","bp5","bp6",
+                                      "bpType","CEED_BP",0};
 
 // This function uses libCEED to compute the action of the mass matrix
 static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
@@ -263,7 +266,7 @@ int main(int argc, char **argv) {
   bpChoice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
-                          bpOptions, (PetscEnum)bpChoice, (PetscEnum*)&bpChoice,
+                          bpTypes, (PetscEnum)bpChoice, (PetscEnum*)&bpChoice,
                           NULL); CHKERRQ(ierr);
   vscale = (bpChoice == CEED_BP1 || bpChoice == CEED_BP3 ||
             bpChoice == CEED_BP5) ? 1 : 3;
@@ -461,22 +464,22 @@ int main(int argc, char **argv) {
   // quadrature data) and set its context data.
   switch (bpChoice) {
     case CEED_BP1:
-      CeedQFunctionCreateInterior(ceed, 1,
-                                  SetupMass, __FILE__ ":SetupMass", &qf_setup);
+      CeedQFunctionCreateInterior(ceed, 1, SetupMass,
+                                  PATH(bp1.h)":SetupMass", &qf_setup);
       break;
     case CEED_BP2:
-      CeedQFunctionCreateInterior(ceed, 1,
-                                  SetupMass3, __FILE__ ":SetupMass3", &qf_setup);
+      CeedQFunctionCreateInterior(ceed, 1, SetupMass3,
+                                  PATH(bp2.h)":SetupMass3", &qf_setup);
       break;
     case CEED_BP3:
     case CEED_BP5:
-      CeedQFunctionCreateInterior(ceed, 1,
-                                  SetupDiff, __FILE__ ":SetupDiff", &qf_setup);
+      CeedQFunctionCreateInterior(ceed, 1, SetupDiff,
+                                  PATH(bp3.h)":SetupDiff", &qf_setup);
       break;
     case CEED_BP4:
     case CEED_BP6:
-      CeedQFunctionCreateInterior(ceed, 1,
-                                  SetupDiff3, __FILE__ ":SetupDiff3", &qf_setup);
+      CeedQFunctionCreateInterior(ceed, 1, SetupDiff3,
+                                  PATH(bp4.h)":SetupDiff3", &qf_setup);
   }
   CeedQFunctionAddInput(qf_setup, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setup, "dx", 3, CEED_EVAL_GRAD);
@@ -492,25 +495,25 @@ int main(int argc, char **argv) {
   switch (bpChoice) {
     case CEED_BP1:
       // Create the Q-function that defines the action of the mass operator.
-      CeedQFunctionCreateInterior(ceed, 1,
-                                  Mass, __FILE__ ":Mass", &qf_apply);
+      CeedQFunctionCreateInterior(ceed, 1, Mass,
+                                  PATH(bp1.h)":Mass", &qf_apply);
        break;
      case CEED_BP2:
       // Create the Q-function that defines the action of the vector mass operator.
-      CeedQFunctionCreateInterior(ceed, 1,
-                                  Mass3, __FILE__ ":Mass3", &qf_apply);
+      CeedQFunctionCreateInterior(ceed, 1, Mass3,
+                                  PATH(bp2.h)":Mass3", &qf_apply);
        break;
     case CEED_BP3:
     case CEED_BP5:
       // Create the Q-function that defines the action of the diff operator.
-      CeedQFunctionCreateInterior(ceed, 1,
-                                  Diff, __FILE__ ":Diff", &qf_apply);
+      CeedQFunctionCreateInterior(ceed, 1, Diff,
+                                  PATH(bp3.h)":Diff", &qf_apply);
       break;
     case CEED_BP4:
     case CEED_BP6:
       // Create the Q-function that defines the action of the vector diff operator.
-      CeedQFunctionCreateInterior(ceed, 1,
-                                  Diff3, __FILE__ ":Diff3", &qf_apply);
+      CeedQFunctionCreateInterior(ceed, 1, Diff3,
+                                  PATH(bp4.h)":Diff3", &qf_apply);
   }
   // Add inputs and outputs
   if (bpChoice == CEED_BP1 || bpChoice == CEED_BP2) {
@@ -525,11 +528,11 @@ int main(int argc, char **argv) {
 
   // Create the error qfunction
   if (bpChoice == CEED_BP1 || bpChoice == CEED_BP3 || bpChoice == CEED_BP5)
-    CeedQFunctionCreateInterior(ceed, 1,
-                                Error, __FILE__ ":Error", &qf_error);
+    CeedQFunctionCreateInterior(ceed, 1, Error,
+                                PATH(common.h)":Error", &qf_error);
   else
-    CeedQFunctionCreateInterior(ceed, 1,
-                                Error3, __FILE__ ":Error3", &qf_error);
+    CeedQFunctionCreateInterior(ceed, 1, Error3,
+                                PATH(common.h)":Error3", &qf_error);
   CeedQFunctionAddInput(qf_error, "u", vscale, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_error, "true_soln", vscale, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_error, "error", vscale, CEED_EVAL_NONE);
