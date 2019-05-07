@@ -106,6 +106,7 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
   PetscFunctionReturn(0);
 }
 
+// Data for PETSc
 typedef struct User_ *User;
 struct User_ {
   MPI_Comm comm;
@@ -119,11 +120,43 @@ struct User_ {
   Ceed ceed;
 };
 
+// BP Options
 typedef enum {
-  CEED_BP1, CEED_BP2, CEED_BP3, CEED_BP4, CEED_BP5, CEED_BP6
+  CEED_BP1 = 0, CEED_BP2 = 1, CEED_BP3 = 2,
+  CEED_BP4 = 3, CEED_BP5 = 4, CEED_BP6 = 5
 } bpType;
 static const char *const bpTypes[] = {"bp1","bp2","bp3","bp4","bp5","bp6",
                                       "bpType","CEED_BP",0};
+
+// BP specific data
+typedef struct {
+  CeedInt qdatasize;
+  CeedQFunctionUser setup, apply, error;
+  const char setupfname[PETSC_MAX_PATH_LEN], applyfname[PETSC_MAX_PATH_LEN],
+             errorfname[PETSC_MAX_PATH_LEN];
+  CeedEvalMode inmode, outmode;
+} bpData;
+
+bpData bpOptions[6] = {
+  {1, SetupMass,  Mass,  Error,
+     PATH(bp1.h:SetupMass), PATH(bp1.h:Mass), PATH(common.h:Error),
+     CEED_EVAL_INTERP, CEED_EVAL_INTERP},
+  {1, SetupMass3, Mass3, Error3,
+     PATH(bp2.h:SetupMass3), PATH(bp2.h:Mass3), PATH(common.h:Error3),
+     CEED_EVAL_INTERP, CEED_EVAL_INTERP},
+  {6, SetupDiff,  Diff,  Error,
+     PATH(bp3.h:SetupDiff), PATH(bp3.h:Diff), PATH(common.h:Error),
+     CEED_EVAL_GRAD,   CEED_EVAL_GRAD},
+  {6, SetupDiff3, Diff3, Error3,
+     PATH(bp4.h:SetupDiff3), PATH(bp4.h:Diff3), PATH(common.h:Error3),
+     CEED_EVAL_GRAD,   CEED_EVAL_GRAD},
+  {6, SetupDiff,  Diff,  Error,
+     PATH(bp3.h:SetupDiff), PATH(bp3.h:Diff), PATH(common.h:Error),
+     CEED_EVAL_GRAD,   CEED_EVAL_GRAD},
+  {6, SetupDiff3, Diff3, Error3,
+     PATH(bp4.h:SetupDiff3), PATH(bp4.h:Diff3), PATH(common.h:Error3),
+     CEED_EVAL_GRAD,   CEED_EVAL_GRAD}
+};
 
 // This function uses libCEED to compute the action of the mass matrix
 static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
@@ -201,6 +234,7 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
   PetscFunctionReturn(0);
 }
 
+// This function calculates the error in the final solution
 static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
                                       CeedVector target, PetscReal *maxerror) {
   PetscErrorCode ierr;
@@ -237,7 +271,7 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  char ceedresource[4096] = "/cpu/self";
+  char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   PetscInt degree, qextra, localdof, localelem, melem[3], mdof[3], p[3],
            irank[3], ldof[3], lsize, vscale = 1;
   PetscScalar *r;
@@ -268,8 +302,7 @@ int main(int argc, char **argv) {
                           "CEED benchmark problem to solve", NULL,
                           bpTypes, (PetscEnum)bpChoice, (PetscEnum*)&bpChoice,
                           NULL); CHKERRQ(ierr);
-  vscale = (bpChoice == CEED_BP1 || bpChoice == CEED_BP3 ||
-            bpChoice == CEED_BP5) ? 1 : 3;
+  vscale = (bpChoice %2) ? 3 : 1;
   test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
@@ -430,13 +463,10 @@ int main(int argc, char **argv) {
   CeedInt nelem = melem[0]*melem[1]*melem[2];
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, vscale,
                                     &Erestrictui);
-  if (bpChoice == CEED_BP1 || bpChoice == CEED_BP2)
-    CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
-                                      1, &Erestrictqdi);
-  else
-    CeedElemRestrictionCreateIdentity(ceed, nelem, 6*Q*Q*Q, 6*nelem*Q*Q*Q,
-                                      1, &Erestrictqdi);
-    
+  CeedElemRestrictionCreateIdentity(ceed, nelem,
+                                    bpOptions[bpChoice].qdatasize*Q*Q*Q,
+                                    bpOptions[bpChoice].qdatasize*nelem*Q*Q*Q,
+                                    1, &Erestrictqdi);
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1,
                                     &Erestrictxi);
   {
@@ -462,77 +492,28 @@ int main(int argc, char **argv) {
 
   // Create the Q-function that builds the operator (i.e. computes its
   // quadrature data) and set its context data.
-  switch (bpChoice) {
-    case CEED_BP1:
-      CeedQFunctionCreateInterior(ceed, 1, SetupMass,
-                                  PATH(bp1.h)":SetupMass", &qf_setup);
-      break;
-    case CEED_BP2:
-      CeedQFunctionCreateInterior(ceed, 1, SetupMass3,
-                                  PATH(bp2.h)":SetupMass3", &qf_setup);
-      break;
-    case CEED_BP3:
-    case CEED_BP5:
-      CeedQFunctionCreateInterior(ceed, 1, SetupDiff,
-                                  PATH(bp3.h)":SetupDiff", &qf_setup);
-      break;
-    case CEED_BP4:
-    case CEED_BP6:
-      CeedQFunctionCreateInterior(ceed, 1, SetupDiff3,
-                                  PATH(bp4.h)":SetupDiff3", &qf_setup);
-  }
+  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setup,
+                              bpOptions[bpChoice].setupfname, &qf_setup);
   CeedQFunctionAddInput(qf_setup, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setup, "dx", 3, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
-  if (bpChoice == CEED_BP1 || bpChoice == CEED_BP2)
-    CeedQFunctionAddOutput(qf_setup, "rho", 1, CEED_EVAL_NONE);
-  else
-    CeedQFunctionAddOutput(qf_setup, "rho", 6, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_setup, "rho", bpOptions[bpChoice].qdatasize,
+                         CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_setup, "true_soln", vscale, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_setup, "rhs", vscale, CEED_EVAL_INTERP);
 
   // Set up PDE operator
-  switch (bpChoice) {
-    case CEED_BP1:
-      // Create the Q-function that defines the action of the mass operator.
-      CeedQFunctionCreateInterior(ceed, 1, Mass,
-                                  PATH(bp1.h)":Mass", &qf_apply);
-       break;
-     case CEED_BP2:
-      // Create the Q-function that defines the action of the vector mass operator.
-      CeedQFunctionCreateInterior(ceed, 1, Mass3,
-                                  PATH(bp2.h)":Mass3", &qf_apply);
-       break;
-    case CEED_BP3:
-    case CEED_BP5:
-      // Create the Q-function that defines the action of the diff operator.
-      CeedQFunctionCreateInterior(ceed, 1, Diff,
-                                  PATH(bp3.h)":Diff", &qf_apply);
-      break;
-    case CEED_BP4:
-    case CEED_BP6:
-      // Create the Q-function that defines the action of the vector diff operator.
-      CeedQFunctionCreateInterior(ceed, 1, Diff3,
-                                  PATH(bp4.h)":Diff3", &qf_apply);
-  }
+  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].apply,
+                              bpOptions[bpChoice].applyfname, &qf_apply);
   // Add inputs and outputs
-  if (bpChoice == CEED_BP1 || bpChoice == CEED_BP2) {
-    CeedQFunctionAddInput(qf_apply, "u", vscale, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_apply, "rho", 1, CEED_EVAL_NONE);
-    CeedQFunctionAddOutput(qf_apply, "v", vscale, CEED_EVAL_INTERP);
-  } else {
-    CeedQFunctionAddInput(qf_apply, "u", vscale, CEED_EVAL_GRAD);
-    CeedQFunctionAddInput(qf_apply, "rho", 6, CEED_EVAL_NONE);
-    CeedQFunctionAddOutput(qf_apply, "v", vscale, CEED_EVAL_GRAD);
-  }
+  CeedQFunctionAddInput(qf_apply, "u", vscale, bpOptions[bpChoice].inmode);
+  CeedQFunctionAddInput(qf_apply, "rho", bpOptions[bpChoice].qdatasize,
+                        CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_apply, "v", vscale, bpOptions[bpChoice].outmode);
 
   // Create the error qfunction
-  if (bpChoice == CEED_BP1 || bpChoice == CEED_BP3 || bpChoice == CEED_BP5)
-    CeedQFunctionCreateInterior(ceed, 1, Error,
-                                PATH(common.h)":Error", &qf_error);
-  else
-    CeedQFunctionCreateInterior(ceed, 1, Error3,
-                                PATH(common.h)":Error3", &qf_error);
+  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].error,
+                              bpOptions[bpChoice].errorfname, &qf_error);
   CeedQFunctionAddInput(qf_error, "u", vscale, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_error, "true_soln", vscale, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_error, "error", vscale, CEED_EVAL_NONE);
@@ -540,10 +521,7 @@ int main(int argc, char **argv) {
   // Create the persistent vectors that will be needed in setup
   CeedInt Nqpts, Nelem = melem[0]*melem[1]*melem[2];
   CeedBasisGetNumQuadraturePoints(basisu, &Nqpts);
-  if (bpChoice == CEED_BP1 || bpChoice == CEED_BP2)
-    CeedVectorCreate(ceed, Nelem*Nqpts, &rho);
-  else
-    CeedVectorCreate(ceed, 6*Nelem*Nqpts, &rho);
+  CeedVectorCreate(ceed, bpOptions[bpChoice].qdatasize*Nelem*Nqpts, &rho);
   CeedVectorCreate(ceed, Nelem*Nqpts*vscale, &target);
   CeedVectorCreate(ceed, lsize*vscale, &rhsceed);
 
