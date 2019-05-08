@@ -23,7 +23,7 @@
 int compile(Ceed ceed, const char *source, CUmodule *module,
             const CeedInt numopts, ...) {
   int ierr;
-  cudaFree(0);
+  cudaFree(0);//Make sure a Context exists for nvrtc
   nvrtcProgram prog;
   CeedChk_Nvrtc(ceed, nvrtcCreateProgram(&prog, source, NULL, 0, NULL, NULL));
 
@@ -55,7 +55,7 @@ int compile(Ceed ceed, const char *source, CUmodule *module,
   }else{
     ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
   }
-  cudaGetDeviceProperties(&prop, ceed_data->deviceId);
+  ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId); CeedChk_Cu(ceed, ierr);
   char buff[optslen];
   snprintf(buff, optslen,"-arch=compute_%d%d", prop.major, prop.minor);
   opts[numopts + 2] = buff;
@@ -114,14 +114,19 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
   const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : 0;
 
-  ierr = cudaSetDevice(deviceID); CeedChk(ierr);
+  int currentDeviceID;
+  ierr = cudaGetDevice(&currentDeviceID); CeedChk_Cu(ceed,ierr);
+  if (currentDeviceID!=deviceID)
+  {
+    ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
+  }
 
   Ceed_Cuda *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   data->deviceId = deviceID;
 
   struct cudaDeviceProp deviceProp;
-  cudaGetDeviceProperties(&deviceProp, deviceID);
+  ierr = cudaGetDeviceProperties(&deviceProp, deviceID); CeedChk_Cu(ceed,ierr);
 
   data->optblocksize = deviceProp.maxThreadsPerBlock;
 

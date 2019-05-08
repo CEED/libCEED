@@ -18,6 +18,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include "ceed-cuda-reg.h"
+#include "../cuda/ceed-cuda.h"
 
 static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   int ierr;
@@ -33,7 +34,12 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
   const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : 0;
 
-  ierr = cudaSetDevice(deviceID); CeedChk(ierr);
+  int currentDeviceID;
+  ierr = cudaGetDevice(&currentDeviceID); CeedChk_Cu(ceed,ierr);
+  if (currentDeviceID!=deviceID)
+  {
+    ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
+  }
 
   Ceed_Cuda_reg *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
