@@ -195,6 +195,7 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   // Set up output
   PetscFunctionBeginUser;
   ierr = DMGetGlobalVector(user->dm, &U); CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject)U, "StateVec");
   ierr = DMDAGetLocalInfo(user->dm, &info); CHKERRQ(ierr);
   ierr = DMDAVecGetArray(user->dm, U, &u); CHKERRQ(ierr);
   ierr = VecGetArrayRead(Q, &q); CHKERRQ(ierr);
