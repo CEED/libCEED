@@ -918,11 +918,13 @@ int main(int argc, char **argv) {
   ierr = TSSetType(ts, TSRK); CHKERRQ(ierr);
   ierr = TSRKSetType(ts, TSRK5F); CHKERRQ(ierr);
   ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
-  ierr = TSSetMaxTime(ts, 500.); CHKERRQ(ierr);
+  ierr = TSSetMaxTime(ts, 500. * units->second); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
-  ierr = TSSetTimeStep(ts, 1.e-5); CHKERRQ(ierr);
+  ierr = TSSetTimeStep(ts, 1.e-5 * units->second); CHKERRQ(ierr);
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
-  ierr = TSAdaptSetStepLimits(adapt, 1.e-12, 1.e-2); CHKERRQ(ierr);
+  ierr = TSAdaptSetStepLimits(adapt,
+                              1.e-12 * units->second,
+                              1.e-2 * units->second); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   if (!contsteps){ // print initial condition
     ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
