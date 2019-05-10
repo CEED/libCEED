@@ -143,7 +143,7 @@ inline __device__ void writeDofs2d(const int elem, const int tidx, const int tid
                                    const int nelem, const CeedScalar &r_V, CeedScalar *d_V) {
   if (tidx<P1D && tidy<P1D)
   {
-      d_V[tidx + tidy*P1D + comp*P1D*P1D + elem*BASIS_NCOMP*P1D*P1D ] = r_V;
+    d_V[tidx + tidy*P1D + comp*P1D*P1D + elem*BASIS_NCOMP*P1D*P1D ] = r_V;
   }
 }
 
@@ -154,7 +154,7 @@ inline __device__ void readQuads2d(const int elem, const int tidx, const int tid
 
 inline __device__ void writeQuads2d(const int elem, const int tidx, const int tidy, const int comp,
                                     const int dim, const int nelem, const CeedScalar &r_V, CeedScalar *d_V) {
-    d_V[tidx + tidy*Q1D + elem*Q1D*Q1D + comp*Q1D*Q1D*nelem + dim*BASIS_NCOMP*nelem*Q1D*Q1D ] = r_V;
+  d_V[tidx + tidy*Q1D + elem*Q1D*Q1D + comp*Q1D*Q1D*nelem + dim*BASIS_NCOMP*nelem*Q1D*Q1D ] = r_V;
 }
 
 inline __device__ void ContractX2d(CeedScalar *slice, const int tidx, const int tidy,
@@ -267,12 +267,12 @@ inline __device__ void grad2d(const CeedInt nelem, const int transpose,
       } else {
         dim = 0;
         readQuads2d(elem, tidx, tidy, comp, dim, nelem, d_U, r_U);
-        ContractTransposeY2d(slice, tidx, tidy, r_U, c_G, r_t);
-        ContractTransposeX2d(slice, tidx, tidy, r_t, c_B, r_V);
+        ContractTransposeY2d(slice, tidx, tidy, r_U, c_B, r_t);
+        ContractTransposeX2d(slice, tidx, tidy, r_t, c_G, r_V);
         dim = 1;
         readQuads2d(elem, tidx, tidy, comp, dim, nelem, d_U, r_U);
-        ContractTransposeY2d(slice, tidx, tidy, r_U, c_B, r_t);
-        ContractTransposeX2d(slice, tidx, tidy, r_t, c_G, r_U);
+        ContractTransposeY2d(slice, tidx, tidy, r_U, c_G, r_t);
+        ContractTransposeX2d(slice, tidx, tidy, r_t, c_B, r_U);
         r_V+=r_U;
         writeDofs2d(elem, tidx, tidy, comp, nelem, r_V, d_V);
       }
@@ -474,9 +474,9 @@ inline __device__ void grad3d(const CeedInt nelem, const int transpose,
       } else {
         dim = 0;
         readQuads3d(elem, tidx, tidy, comp, dim, nelem, d_U, r_U);
-        ContractTransposeZ3d(slice, tidx, tidy, r_U, c_G, r_t);
+        ContractTransposeZ3d(slice, tidx, tidy, r_U, c_B, r_t);
         ContractTransposeY3d(slice, tidx, tidy, r_t, c_B, r_U);
-        ContractTransposeX3d(slice, tidx, tidy, r_U, c_B, r_V);
+        ContractTransposeX3d(slice, tidx, tidy, r_U, c_G, r_V);
         dim = 1;
         readQuads3d(elem, tidx, tidy, comp, dim, nelem, d_U, r_U);
         ContractTransposeZ3d(slice, tidx, tidy, r_U, c_B, r_t);
@@ -485,9 +485,9 @@ inline __device__ void grad3d(const CeedInt nelem, const int transpose,
         add(r_V, r_t);
         dim = 2;
         readQuads3d(elem, tidx, tidy, comp, dim, nelem, d_U, r_U);
-        ContractTransposeZ3d(slice, tidx, tidy, r_U, c_B, r_t);
+        ContractTransposeZ3d(slice, tidx, tidy, r_U, c_G, r_t);
         ContractTransposeY3d(slice, tidx, tidy, r_t, c_B, r_U);
-        ContractTransposeX3d(slice, tidx, tidy, r_U, c_G, r_t);
+        ContractTransposeX3d(slice, tidx, tidy, r_U, c_B, r_t);
         add(r_V, r_t);
         writeDofs3d(elem, tidx, tidy, comp, nelem, r_V, d_V);
       }
