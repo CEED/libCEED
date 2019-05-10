@@ -116,6 +116,10 @@ CEED_INTERN int get_kernel(Ceed ceed, CUmodule module, const char *name,
 CEED_INTERN int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize,
                            const int blockSize, void **args);
 
+CEED_INTERN int run_kernel_dim(Ceed ceed, CUfunction kernel, const int gridSize,
+                               const int blockSizeX, const int blockSizeY,
+                               const int blockSizeZ, void **args);
+
 CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
