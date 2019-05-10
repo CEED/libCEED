@@ -30,7 +30,17 @@ typedef struct {
   CeedScalar *d_qweight1d;
   CeedScalar *c_B;
   CeedScalar *c_G;
-} CeedBasis_Cuda_shared;
+} CeedBasisTensor_Cuda_shared;
+
+typedef struct {
+  CUmodule module;
+  CUfunction interp;
+  CUfunction grad;
+  CUfunction weight;
+  CeedScalar *d_interp;
+  CeedScalar *d_grad;
+  CeedScalar *d_qweight;
+} CeedBasisNonTensor_Cuda_shared;
 
 typedef struct {
 } Ceed_Cuda_shared;
