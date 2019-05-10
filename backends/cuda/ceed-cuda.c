@@ -99,6 +99,17 @@ int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize,
   return 0;
 }
 
+int run_kernel_dim(Ceed ceed, CUfunction kernel, const int gridSize,
+                   const int blockSizeX, const int blockSizeY,
+                   const int blockSizeZ, void **args) {
+  CeedChk_Cu(ceed, cuLaunchKernel(kernel,
+                                  gridSize, 1, 1,
+                                  blockSizeX, blockSizeY, blockSizeZ,
+                                  0, NULL,
+                                  args, NULL));
+  return 0;
+}
+
 static int CeedGetPreferredMemType_Cuda(CeedMemType *type) {
   *type = CEED_MEM_DEVICE;
   return 0;

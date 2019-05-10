@@ -84,11 +84,11 @@ inline __device__ void interp1d(const CeedInt nelem, const int transpose,
   CeedScalar r_V;
   CeedScalar r_t;
 
-  const int tidx = threadIdx.x%Q1D;
-  const int tidy = threadIdx.x/Q1D;
+  const int tidx = threadIdx.x;
+  const int tidy = threadIdx.y;
 
 
-  for (CeedInt elem = blockIdx.x; elem < nelem; elem += gridDim.x) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
       if(!transpose) {
         readDofs1d(elem, tidx, tidy, comp, nelem, d_U, slice);
@@ -110,11 +110,11 @@ inline __device__ void grad1d(const CeedInt nelem, const int transpose,
   CeedScalar r_U;
   CeedScalar r_V;
 
-  const int tidx = threadIdx.x%Q1D;
-  const int tidy = threadIdx.x/Q1D;//=>this is really a nb of elements per block
+  const int tidx = threadIdx.x;
+  const int tidy = threadIdx.y;//=>this is really a nb of elements per block
   int dim;
 
-  for (CeedInt elem = blockIdx.x; elem < nelem; elem += gridDim.x) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
       if(!transpose) {
         readDofs1d(elem, tidx, tidy, comp, nelem, d_U, slice);
@@ -218,10 +218,10 @@ inline __device__ void interp2d(const CeedInt nelem, const int transpose,
   CeedScalar r_V;
   CeedScalar r_t;
 
-  const int tidx = threadIdx.x%Q1D;
-  const int tidy = threadIdx.x/Q1D;
+  const int tidx = threadIdx.x;
+  const int tidy = threadIdx.y;
 
-  for (CeedInt elem = blockIdx.x; elem < nelem; elem += gridDim.x) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
       r_V = 0.0;
       r_t = 0.0;
@@ -248,11 +248,11 @@ inline __device__ void grad2d(const CeedInt nelem, const int transpose,
   CeedScalar r_V;
   CeedScalar r_t;
 
-  const int tidx = threadIdx.x%Q1D;
-  const int tidy = threadIdx.x/Q1D;
+  const int tidx = threadIdx.x;
+  const int tidy = threadIdx.y;
   int dim;
 
-  for (CeedInt elem = blockIdx.x; elem < nelem; elem += gridDim.x) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
       if(!transpose) {
         readDofs2d(elem, tidx, tidy, comp, nelem, d_U, r_U);
@@ -412,10 +412,10 @@ inline __device__ void interp3d(const CeedInt nelem, const int transpose,
   CeedScalar r_V[Q1D];
   CeedScalar r_t[Q1D];
 
-  const int tidx = threadIdx.x%Q1D;
-  const int tidy = threadIdx.x/Q1D;
+  const int tidx = threadIdx.x;
+  const int tidy = threadIdx.y;
 
-  for (CeedInt elem = blockIdx.x; elem < nelem; elem += gridDim.x) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
       for (int i = 0; i < Q1D; ++i)
       {
@@ -448,11 +448,11 @@ inline __device__ void grad3d(const CeedInt nelem, const int transpose,
   CeedScalar r_V[Q1D];
   CeedScalar r_t[Q1D];
 
-  const int tidx = threadIdx.x%Q1D;
-  const int tidy = threadIdx.x/Q1D;
+  const int tidx = threadIdx.x;
+  const int tidy = threadIdx.y;
   int dim;
 
-  for (CeedInt elem = blockIdx.x; elem < nelem; elem += gridDim.x) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
       if(!transpose) {
         readDofs3d(elem, tidx, tidy, comp, nelem, d_U, r_U);
@@ -1077,12 +1077,15 @@ int CeedBasisApply_Cuda_reg(CeedBasis basis, const CeedInt nelem,
   CeedBasis_Cuda_reg *data;
   CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
-  const int warpsize  = 32;
+  // const int warpsize  = 32;
   // const int blocksize = warpsize;
-  const int blocksize = basis->Q1d*basis->Q1d;
+  // const int blocksize = basis->Q1d*basis->Q1d;
   // const int gridsize  = nelem/warpsize + ( (nelem/warpsize*warpsize<nelem)? 1 :
   //                       0 );
-  const int gridsize  = nelem;
+  // const int gridsize  = nelem;
+  const int optElems[7] = {0,32,8,3,2,1,8};
+  int elemsPerBlock = 1;//basis->Q1d < 7 ? optElems[basis->Q1d] : 1;
+  int grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
 
   const CeedScalar *d_u;
   CeedScalar *d_v;
@@ -1100,14 +1103,14 @@ int CeedBasisApply_Cuda_reg(CeedBasis basis, const CeedInt nelem,
                                  &data->c_B);
     CeedChk(ierr);
     void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B, &d_u, &d_v};
-    ierr = run_kernel(ceed, data->interp, gridsize, blocksize, interpargs);
+    ierr = run_kernel_dim(ceed, data->interp, grid, basis->Q1d, basis->Q1d, elemsPerBlock, interpargs);
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_GRAD) {
     ierr = CeedCudaRegInitInterpGrad(data->d_interp1d, data->d_grad1d, basis->P1d,
                                      basis->Q1d, &data->c_B, &data->c_G);
     CeedChk(ierr);
     void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B, &data->c_G, &d_u, &d_v};
-    ierr = run_kernel(ceed, data->grad, gridsize, blocksize, gradargs);
+    ierr = run_kernel_dim(ceed, data->grad, grid, basis->Q1d, basis->Q1d, elemsPerBlock, gradargs);
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_WEIGHT) {
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight1d, &d_v};
