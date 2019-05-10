@@ -603,7 +603,7 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
 
   const double* U;
   double V;
-  //TODO load B and G in shared memory
+  //TODO load B in shared memory if blockDim.z > 1?
 
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
@@ -628,16 +628,50 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
   }
 }
 
-extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
-                                const CeedScalar *c_B, const CeedScalar *c_G,
+extern "C" __global__ void grad(const CeedInt nelem, const int transpose, const CeedScalar *d_G,
                                 const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+  const int tid = threadIdx.x;
 
+  const double* U;
+  //TODO load G in shared memory if blockDim.z > 1?
+
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
+    for(int comp=0; comp<BASIS_NCOMP; comp++) {
+      if(!transpose) {//run with Q threads
+        double V[BASIS_DIM];
+        U = d_U + elem*BASIS_NCOMP*P + comp*P;
+        for(int dim=0; dim<BASIS_DIM; dim++) {
+          V[dim] = 0.0;
+        }
+        for (int i = 0; i < P; ++i)
+        {
+          const double val = U[i];
+          for(int dim=0; dim<BASIS_DIM; dim++) {
+            V[dim] += d_G[i+tid*P+dim*P*Q]*val;
+          }
+        }
+        for(int dim=0; dim<BASIS_DIM; dim++) {
+          d_V[elem*Q + comp*nelem*Q + dim*BASIS_NCOMP*nelem*Q + tid] = V[dim];
+        }
+      } else {//run with P threads
+        double V = 0.0;
+        for(int dim=0; dim<BASIS_DIM; dim++) {
+          U = d_U + elem*Q + comp*nelem*Q +dim*BASIS_NCOMP*nelem*Q;
+          for (int i = 0; i < Q; ++i)
+          {
+            V += d_G[tid+i*P+dim*P*Q]*U[i];
+          }
+        }
+        d_V[elem*BASIS_NCOMP*P + comp*P + tid] = V;
+      }
+    }
+  }
 }
 
 extern "C" __global__ void weight(const CeedInt nelem,
                                   const CeedScalar *__restrict__ qweight, CeedScalar *__restrict__ d_V) {
   const int tid = threadIdx.x;
-  //TODO load qweight in shared memory
+  //TODO load qweight in shared memory if blockDim.z > 1?
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
     d_V[elem*Q + tid] = qweight[tid];
   }
@@ -747,10 +781,15 @@ int CeedBasisApplyNonTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
       CeedChk(ierr);      
     }
   } else if (emode == CEED_EVAL_GRAD) {
-    return CeedError(ceed, 1, "Backend does not implement generic H1 basis gradient apply");
-    // void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->d_interp, &data->d_grad, &d_u, &d_v};
-    // ierr = run_kernel_dim(ceed, data->grad, grid, basis->Q1d, basis->Q1d, elemsPerBlock, gradargs);
-    // CeedChk(ierr);
+    void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->d_grad, &d_u, &d_v};
+    if (transpose)
+    {
+      ierr = run_kernel_dim(ceed, data->grad, grid, nqpt, 1, elemsPerBlock, gradargs);
+      CeedChk(ierr);
+    } else {
+      ierr = run_kernel_dim(ceed, data->grad, grid, ndof, 1, elemsPerBlock, gradargs);
+      CeedChk(ierr);      
+    }
   } else if (emode == CEED_EVAL_WEIGHT) {
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight, &d_v};
     ierr = run_kernel_dim(ceed, data->weight, grid, nqpt, 1, elemsPerBlock, weightargs);
