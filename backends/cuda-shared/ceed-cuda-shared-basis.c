@@ -610,13 +610,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
   CeedBasis_Cuda_shared *data;
   CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
-  // const int warpsize  = 32;
-  // const int blocksize = warpsize;
-  // const int blocksize = basis->Q1d*basis->Q1d;
-  // const int gridsize  = nelem/warpsize + ( (nelem/warpsize*warpsize<nelem)? 1 :
-  //                       0 );
-  // const int gridsize  = nelem;
-  const int optElems[7] = {0,32,8,3,2,1,8};
+  // const int optElems[7] = {0,32,8,3,2,1,8};
   int elemsPerBlock = 1;//basis->Q1d < 7 ? optElems[basis->Q1d] : 1;
   int grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
 
