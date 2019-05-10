@@ -623,7 +623,7 @@ int main(int argc, char **argv) {
       ierr = DMDASetFieldName(dm, 1, "MomentumX"); CHKERRQ(ierr);
       ierr = DMDASetFieldName(dm, 2, "MomentumY"); CHKERRQ(ierr);
       ierr = DMDASetFieldName(dm, 3, "MomentumZ"); CHKERRQ(ierr);
-      ierr = DMDASetFieldName(dm, 4, "Total Energy"); CHKERRQ(ierr);
+      ierr = DMDASetFieldName(dm, 4, "EnergyDensity"); CHKERRQ(ierr);
     }
   }
 
