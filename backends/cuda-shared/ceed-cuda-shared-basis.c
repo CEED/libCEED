@@ -772,7 +772,7 @@ int CeedBasisApplyNonTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
   }
   if (emode == CEED_EVAL_INTERP) {
     void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->d_interp, &d_u, &d_v};
-    if (transpose)
+    if (!transpose)
     {
       ierr = run_kernel_dim(ceed, data->interp, grid, nqpt, 1, elemsPerBlock, interpargs);
       CeedChk(ierr);
@@ -782,7 +782,7 @@ int CeedBasisApplyNonTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     }
   } else if (emode == CEED_EVAL_GRAD) {
     void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->d_grad, &d_u, &d_v};
-    if (transpose)
+    if (!transpose)
     {
       ierr = run_kernel_dim(ceed, data->grad, grid, nqpt, 1, elemsPerBlock, gradargs);
       CeedChk(ierr);
