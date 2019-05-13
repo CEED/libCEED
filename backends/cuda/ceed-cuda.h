@@ -89,6 +89,16 @@ typedef struct {
 } CeedBasis_Cuda;
 
 typedef struct {
+  CUmodule module;
+  CUfunction interp;
+  CUfunction grad;
+  CUfunction weight;
+  CeedScalar *d_interp;
+  CeedScalar *d_grad;
+  CeedScalar *d_qweight;
+} CeedBasisNonTensor_Cuda;
+
+typedef struct {
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
   CeedScalar **edata;

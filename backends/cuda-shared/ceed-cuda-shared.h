@@ -33,16 +33,6 @@ typedef struct {
 } CeedBasisTensor_Cuda_shared;
 
 typedef struct {
-  CUmodule module;
-  CUfunction interp;
-  CUfunction grad;
-  CUfunction weight;
-  CeedScalar *d_interp;
-  CeedScalar *d_grad;
-  CeedScalar *d_qweight;
-} CeedBasisNonTensor_Cuda_shared;
-
-typedef struct {
 } Ceed_Cuda_shared;
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d,
@@ -52,8 +42,3 @@ CEED_INTERN int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d,
                                                     const CeedScalar *qref1d,
                                                     const CeedScalar *qweight1d,
                                                     CeedBasis basis);
-
-CEED_INTERN int CeedBasisCreateH1_Cuda_shared(CeedElemTopology, CeedInt, CeedInt,
-                                              CeedInt, const CeedScalar *,
-                                              const CeedScalar *, const CeedScalar *,
-                                              const CeedScalar *, CeedBasis);
