@@ -688,9 +688,9 @@ static int CeedBasisDestroy_Cuda_shared(CeedBasis basis) {
 
   CeedChk_Cu(ceed, cuModuleUnload(data->module));
 
-  ierr = cudaFree(data->d_qweight1d); CeedChk(ierr);
-  ierr = cudaFree(data->d_interp1d); CeedChk(ierr);
-  ierr = cudaFree(data->d_grad1d); CeedChk(ierr);
+  ierr = cudaFree(data->d_qweight1d); CeedChk_Cu(ceed, ierr);
+  ierr = cudaFree(data->d_interp1d); CeedChk_Cu(ceed, ierr);
+  ierr = cudaFree(data->d_grad1d); CeedChk_Cu(ceed, ierr);
 
   ierr = CeedFree(&data); CeedChk(ierr);
 
@@ -710,18 +710,18 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
 
   const CeedInt qBytes = Q1d * sizeof(CeedScalar);
-  ierr = cudaMalloc((void **)&data->d_qweight1d, qBytes); CeedChk(ierr);
+  ierr = cudaMalloc((void **)&data->d_qweight1d, qBytes); CeedChk_Cu(ceed, ierr);
   ierr = cudaMemcpy(data->d_qweight1d, qweight1d, qBytes,
-                    cudaMemcpyHostToDevice); CeedChk(ierr);
+                    cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
   const CeedInt iBytes = qBytes * P1d;
-  ierr = cudaMalloc((void **)&data->d_interp1d, iBytes); CeedChk(ierr);
+  ierr = cudaMalloc((void **)&data->d_interp1d, iBytes); CeedChk_Cu(ceed, ierr);
   ierr = cudaMemcpy(data->d_interp1d, interp1d, iBytes,
-                    cudaMemcpyHostToDevice); CeedChk(ierr);
+                    cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
-  ierr = cudaMalloc((void **)&data->d_grad1d, iBytes); CeedChk(ierr);
+  ierr = cudaMalloc((void **)&data->d_grad1d, iBytes); CeedChk_Cu(ceed, ierr);
   ierr = cudaMemcpy(data->d_grad1d, grad1d, iBytes,
-                    cudaMemcpyHostToDevice); CeedChk(ierr);
+                    cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
