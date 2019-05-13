@@ -324,10 +324,10 @@ int main(int argc, char **argv) {
   PetscScalar resx      = 1000.;    // m (resolution in x)
   PetscScalar resy      = 1000.;    // m (resolution in y)
   PetscScalar resz      = 1000.;    // m (resolution in z)
-  PetscInt outputfreq   = 10;
-  PetscInt contsteps    = 0;
-  PetscInt degree       = 3;
-  PetscInt qextra       = 2;
+  PetscInt outputfreq   = 10;       // -
+  PetscInt contsteps    = 0;        // -
+  PetscInt degree       = 3;        // -
+  PetscInt qextra       = 2;        // -
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -465,7 +465,8 @@ int main(int argc, char **argv) {
 
   // Set up global state vector
   ierr = VecCreate(comm, &Q); CHKERRQ(ierr);
-  ierr = VecSetSizes(Q, 5*mdof[0]*mdof[1]*mdof[2], PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetSizes(Q, 5*mdof[0]*mdof[1]*mdof[2], PETSC_DECIDE);
+  CHKERRQ(ierr);
   ierr = VecSetUp(Q); CHKERRQ(ierr);
 
   // Set up local state vector
@@ -499,7 +500,8 @@ int main(int argc, char **argv) {
 
   // Set up global coordinates vector
   ierr = VecCreate(comm, &X); CHKERRQ(ierr);
-  ierr = VecSetSizes(X, 3*mdof[0]*mdof[1]*mdof[2], PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetSizes(X, 3*mdof[0]*mdof[1]*mdof[2], PETSC_DECIDE);
+  CHKERRQ(ierr);
   ierr = VecSetUp(X); CHKERRQ(ierr);
 
   // Set up local coordinates vector
@@ -611,8 +613,8 @@ int main(int argc, char **argv) {
           ldofs[d][r] = ijkdof[d];
         }
       }
-      ierr = DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
-                          DMDA_STENCIL_STAR,
+      ierr = DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
+                          DM_BOUNDARY_NONE, DMDA_STENCIL_STAR,
                           degree*melem[2]*p[2]+1, degree*melem[1]*p[1]+1,
                           degree*melem[0]*p[0]+1,
                           p[2], p[1], p[0], 5, 0,
