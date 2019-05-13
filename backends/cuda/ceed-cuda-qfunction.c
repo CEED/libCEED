@@ -14,7 +14,7 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
+#include <ceed-backend.h>
 #include <string.h>
 #include <stdio.h>
 #include "ceed-cuda.h"
@@ -161,11 +161,13 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
   ierr = cudaMalloc(&data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);
 
-  const char *funname = strrchr(qf->focca, ':') + 1;
+  char* focca;
+  ierr = CeedQFunctionGetFOCCA(qf, &focca); CeedChk(ierr);
+  const char *funname = strrchr(focca, ':') + 1;
   data->qFunctionName = (char *)funname;
-  const int filenamelen = funname - qf->focca;
+  const int filenamelen = funname - focca;
   char filename[filenamelen];
-  memcpy(filename, qf->focca, filenamelen - 1);
+  memcpy(filename, focca, filenamelen - 1);
   filename[filenamelen - 1] = '\0';
   ierr = loadCudaFunction(qf, filename); CeedChk(ierr);
 

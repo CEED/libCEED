@@ -14,7 +14,7 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
+#include <ceed-backend.h>
 #include "ceed-cuda-reg.h"
 #include "../cuda/ceed-cuda.h"
 
@@ -313,7 +313,7 @@ static int CeedElemRestrictionDestroy_Cuda_reg(CeedElemRestriction r) {
   ierr = cudaFree(impl->d_ind_allocated); CeedChk_Cu(ceed, ierr);
   ierr = cudaFree(impl->d_toffsets); CeedChk_Cu(ceed, ierr);
   ierr = cudaFree(impl->d_tindices); CeedChk_Cu(ceed, ierr);
-  ierr = CeedFree(&r->data); CeedChk(ierr);
+  ierr = CeedFree(&impl); CeedChk(ierr);
   return 0;
 }
 

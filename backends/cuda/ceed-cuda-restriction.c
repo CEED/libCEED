@@ -14,7 +14,7 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
+#include <ceed-backend.h>
 #include "ceed-cuda.h"
 
 static const char *restrictionkernels = QUOTE(
@@ -186,15 +186,16 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
 }
 
 static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
-  CeedElemRestriction_Cuda *impl = (CeedElemRestriction_Cuda *)r->data;
   int ierr;
+  CeedElemRestriction_Cuda *impl;
+  ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
 
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
   ierr = cuModuleUnload(impl->module); CeedChk_Cu(ceed, ierr);
   ierr = CeedFree(&impl->h_ind_allocated); CeedChk(ierr);
   ierr = cudaFree(impl->d_ind_allocated); CeedChk_Cu(ceed, ierr);
-  ierr = CeedFree(&r->data); CeedChk(ierr);
+  ierr = CeedFree(&impl); CeedChk(ierr);
   return 0;
 }
 
