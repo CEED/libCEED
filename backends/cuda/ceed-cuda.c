@@ -50,9 +50,9 @@ int compile(Ceed ceed, const char *source, CUmodule *module,
   Ceed delegate;
   CeedGetDelegate(ceed, &delegate);
   //We assume that the delegate is always the Cuda one
-  if (delegate){
+  if (delegate) {
     ierr = CeedGetData(delegate, (void *)&ceed_data); CeedChk(ierr);
-  }else{
+  } else {
     ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
   }
   ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId); CeedChk_Cu(ceed, ierr);

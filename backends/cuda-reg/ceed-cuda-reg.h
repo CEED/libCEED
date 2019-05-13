@@ -63,11 +63,12 @@ CEED_INTERN int CeedBasisCreateH1_Cuda_reg(CeedElemTopology, CeedInt, CeedInt,
     const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
 
 CEED_INTERN int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype,
-                                                   CeedCopyMode cmode,
-                                                   const CeedInt *indices,
-                                                   CeedElemRestriction r);
+    CeedCopyMode cmode,
+    const CeedInt *indices,
+    CeedElemRestriction r);
 
-CEED_INTERN int CeedElemRestrictionCreateBlocked_Cuda_reg(const CeedMemType mtype,
-                                                          const CeedCopyMode cmode,
-                                                          const CeedInt *indices,
-                                                          const CeedElemRestriction r);
+CEED_INTERN int CeedElemRestrictionCreateBlocked_Cuda_reg(
+  const CeedMemType mtype,
+  const CeedCopyMode cmode,
+  const CeedInt *indices,
+  const CeedElemRestriction r);

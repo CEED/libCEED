@@ -23,12 +23,12 @@
 // reg kernels
 static const char *kernels3dreg = QUOTE(
 
-typedef CeedScalar real;
+                                    typedef CeedScalar real;
 
 //TODO remove the magic number 32
 
 //Read non interleaved dofs
-inline __device__ void readDofs(const int bid, const int tid, const int comp,
+                                    inline __device__ void readDofs(const int bid, const int tid, const int comp,
 const int size, const int nelem, const CeedScalar *d_U, real *r_U) {
   for (int i = 0; i < size; i++)
     //r_U[i] = d_U[tid + i*32 + bid*32*size + comp*size*nelem];
@@ -483,12 +483,12 @@ extern "C" __global__ void weight(const CeedInt nelem,
   }
 }
 
-);
+                                  );
 
 int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
-                          CeedScalar **c_B);
+                       CeedScalar **c_B);
 int CeedCudaInitInterpGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P1d,
-                              CeedInt Q1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr);
+                           CeedInt Q1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr);
 
 int CeedBasisApply_Cuda_reg(CeedBasis basis, const CeedInt nelem,
                             CeedTransposeMode tmode,
@@ -532,7 +532,8 @@ int CeedBasisApply_Cuda_reg(CeedBasis basis, const CeedInt nelem,
     CeedInt P1d, Q1d;
     ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
-    ierr = CeedCudaInitInterpGrad(data->d_interp1d, data->d_grad1d, P1d, Q1d, &data->c_B, &data->c_G);
+    ierr = CeedCudaInitInterpGrad(data->d_interp1d, data->d_grad1d, P1d, Q1d,
+                                  &data->c_B, &data->c_G);
     CeedChk(ierr);
     void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B, &data->c_G, &d_u, &d_v};
     ierr = run_kernel(ceed, data->grad, gridsize, blocksize, gradargs);

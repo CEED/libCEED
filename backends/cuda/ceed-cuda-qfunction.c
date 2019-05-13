@@ -161,7 +161,7 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
   ierr = cudaMalloc(&data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);
 
-  char* focca;
+  char *focca;
   ierr = CeedQFunctionGetFOCCA(qf, &focca); CeedChk(ierr);
   const char *funname = strrchr(focca, ':') + 1;
   data->qFunctionName = (char *)funname;
