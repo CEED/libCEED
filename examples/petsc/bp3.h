@@ -20,7 +20,7 @@
 // *****************************************************************************
 static int Setup(void *ctx, CeedInt Q, CeedInt N, CeedQFunctionArguments args) {
   #ifndef M_PI
-  #define M_PI    3.14159265358979323846
+#define M_PI    3.14159265358979323846
   #endif
   const CeedScalar *x = args.in[0], *J = args.in[1], *w = args.in[2];
   CeedScalar *qd = args.out[0], *true_soln = args.out[1], *rhs = args.out[2];
