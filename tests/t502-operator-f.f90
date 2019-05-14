@@ -50,7 +50,7 @@
       integer indx(nelem*2)
       integer indu(nelem*p)
       real*8 arrx(nx)
-      integer*8 voffset
+      integer*8 voffset,xoffset
 
       real*8 hu(nu*2),hv(nu*2)
       real*8 total1,total2
@@ -107,7 +107,8 @@
       call ceedoperatorcreate(ceed,qf_mass,ceed_null,ceed_null,op_mass,err)
 
       call ceedvectorcreate(ceed,nx,x,err)
-      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,err)
+      xoffset=0
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,xoffset,err)
       call ceedvectorcreate(ceed,nelem*q,qdata,err)
 
       call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&

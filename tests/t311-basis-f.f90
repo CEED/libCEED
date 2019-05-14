@@ -32,7 +32,7 @@
       real*8 ooutput(q)
       real*8 val,diff
       real*8 x1,x2
-      integer*8 offset
+      integer*8 ioffset,ooffset
 
       integer b
 
@@ -58,25 +58,27 @@
       enddo
 
       call ceedvectorcreate(ceed,p,input,err)
-      call ceedvectorsetarray(input,ceed_mem_host,ceed_use_pointer,iinput,err)
+      ioffset=0
+      call ceedvectorsetarray(input,ceed_mem_host,ceed_use_pointer,iinput,&
+     & ioffset,err)
       call ceedvectorcreate(ceed,q,output,err)
       call ceedvectorsetvalue(output,0.d0,err)
 
       call ceedbasisapply(b,1,ceed_notranspose,ceed_eval_interp,input,output,&
      & err)
 
-      call ceedvectorgetarrayread(output,ceed_mem_host,ooutput,offset,err)
+      call ceedvectorgetarrayread(output,ceed_mem_host,ooutput,ooffset,err)
       do i=1,q
         x1=xq(0*q+i)
         x2=xq(1*q+i)
         call feval(x1,x2,val)
-        diff=val-ooutput(i+offset)
+        diff=val-ooutput(i+ooffset)
         if (abs(diff)>1.0d-10) then
-          write(*,'(A,I1,A,F12.8,A,F12.8)')  '[',i,'] ',ooutput(i+offset),&
+          write(*,'(A,I1,A,F12.8,A,F12.8)')  '[',i,'] ',ooutput(i+ooffset),&
      &     ' != ',val
         endif
       enddo
-      call ceedvectorrestorearrayread(output,ooutput,offset,err)
+      call ceedvectorrestorearrayread(output,ooutput,ooffset,err)
 
       call ceedvectordestroy(input,err)
       call ceedvectordestroy(output,err)

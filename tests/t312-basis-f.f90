@@ -32,7 +32,7 @@
       real*8 wweights(q)
       real*8 val,diff
       real*8 x1,x2
-      integer*8 offset1,offset2
+      integer*8 ioffset,offset1,offset2
 
       integer b
 
@@ -58,7 +58,9 @@
       enddo
 
       call ceedvectorcreate(ceed,p,input,err)
-      call ceedvectorsetarray(input,ceed_mem_host,ceed_use_pointer,iinput,err)
+      ioffset=0
+      call ceedvectorsetarray(input,ceed_mem_host,ceed_use_pointer,iinput,&
+     & ioffset,err)
       call ceedvectorcreate(ceed,q,output,err)
       call ceedvectorsetvalue(output,0.d0,err)
       call ceedvectorcreate(ceed,q,weights,err)

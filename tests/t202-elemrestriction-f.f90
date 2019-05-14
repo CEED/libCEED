@@ -27,7 +27,8 @@
         a(i)=10+i-1
       enddo
 
-      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,err)
+      aoffset=0
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,aoffset,err)
 
       do i=1,ne
         ind(2*i-1)=i-1

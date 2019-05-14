@@ -2,7 +2,8 @@ ex1
 ex1.f
 ex1.log*
 *.out
-*.build.log
+*build.log
+*.state
 makefile
 makenek*
 obj/
