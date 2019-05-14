@@ -17,8 +17,6 @@
 // *****************************************************************************
 typedef int CeedInt;
 typedef double CeedScalar;
-// OCCA parser doesn't like __global here
-//typedef __global double gCeedScalar;
 
 // *****************************************************************************
 @kernel void setup(void *ctx, CeedInt Q,

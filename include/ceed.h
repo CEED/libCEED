@@ -312,7 +312,7 @@ CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m,
 ///              \ref CEED_EVAL_GRAD (`dim=1` for \ref CEED_EVAL_INTERP) and
 ///              `ncomp` is the number of field components (`ncomp=1` for
 ///              scalar fields).  This results in indexing the `i`th input at
-///              quadarture point `j` as `in[i][(d*ncomp + c)*Q + j]` and the
+///              quadrature point `j` as `in[i][(d*ncomp + c)*Q + j]` and the
 ///              similarly described output is `out[i][(d*ncomp + c)*Q + j]`.
 ///
 /// @return 0 on success, nonzero for failure.

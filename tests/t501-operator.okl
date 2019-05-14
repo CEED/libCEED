@@ -17,8 +17,6 @@
 // *****************************************************************************
 typedef int CeedInt;
 typedef double CeedScalar;
-// OCCA parser doesn't like __global here
-//typedef __global double gCeedScalar;
 
 // *****************************************************************************
 @kernel void setup(void *ctx, CeedInt Q,
@@ -27,7 +25,7 @@ typedef double CeedScalar;
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
     const CeedScalar *weight = in + iOf7[0];
     const CeedScalar *dxdX = in + iOf7[1];
-   CeedScalar *rho = out + oOf7[0];
+    CeedScalar *rho = out + oOf7[0];
 
     rho[i] = weight[i] * dxdX[i];
   }

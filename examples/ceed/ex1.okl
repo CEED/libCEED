@@ -18,16 +18,6 @@
 typedef int CeedInt;
 typedef double CeedScalar;
 
-// OCCA parser doesn't like __global here
-typedef /*__global*/ double gCeedScalar;
-
-// OCCA parser doesn't like struct here
-//typedef /*__global*/ struct BuildContext gBuildContext;
-
-// *****************************************************************************
-// OCCA parser doesn't like struct here either
-//struct BuildContext { CeedInt dim, space_dim; };
-
 // *****************************************************************************
 @kernel void f_build_mass(int *ctx, CeedInt Q,
                           const int *iOf7, const int *oOf7, 
@@ -36,7 +26,6 @@ typedef /*__global*/ double gCeedScalar;
     const CeedScalar *J = u + iOf7[0];
     const CeedScalar *qw = u + iOf7[1];
     CeedScalar *qd = v + oOf7[0];
-    //const struct BuildContext *bc = (struct BuildContext*)ctx;
     const int dim = ctx[0];
     const int space_dim = ctx[1];
     const CeedInt dims = dim + 10*space_dim;

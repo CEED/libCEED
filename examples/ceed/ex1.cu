@@ -15,10 +15,12 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// A structure used to pass additional data to f_build_mass
+// *****************************************************************************
 struct BuildContext { CeedInt dim, space_dim; };
 
 /// libCEED Q-function for building quadrature data for a mass operator
-extern "C" __global__ void f_build_mass(void *ctx, CeedInt Q,
+// *****************************************************************************
+extern "C" __global__ void f_build_mass(void *ctx, CeedInt Q, CeedInt N,
                                         CeedQFunctionArguments args) {
   // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
@@ -41,7 +43,7 @@ extern "C" __global__ void f_build_mass(void *ctx, CeedInt Q,
          i += blockDim.x * gridDim.x) {
       // 0 2
       // 1 3
-      qd[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
+      qd[i] = (J[i+N*0]*J[i+N*3] - J[i+N*1]*J[i+N*2]) * qw[i];
     }
     break;
   case 33:
@@ -51,16 +53,17 @@ extern "C" __global__ void f_build_mass(void *ctx, CeedInt Q,
       // 0 3 6
       // 1 4 7
       // 2 5 8
-      qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
-               J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-               J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * qw[i];
+      qd[i] = (J[i+N*0]*(J[i+N*4]*J[i+N*8] - J[i+N*5]*J[i+N*7]) -
+               J[i+N*1]*(J[i+N*3]*J[i+N*8] - J[i+N*5]*J[i+N*6]) +
+               J[i+N*2]*(J[i+N*3]*J[i+N*7] - J[i+N*4]*J[i+N*6])) * qw[i];
     }
     break;
   }
 }
 
 /// libCEED Q-function for applying a mass operator
-extern "C" __global__ void f_apply_mass(void *ctx, CeedInt Q,
+// *****************************************************************************
+extern "C" __global__ void f_apply_mass(void *ctx, CeedInt Q, CeedInt N,
                                         CeedQFunctionArguments args) {
   const CeedScalar *u = (const CeedScalar *)args.in[0];
   const CeedScalar *w = (const CeedScalar *)args.in[1];
@@ -72,4 +75,3 @@ extern "C" __global__ void f_apply_mass(void *ctx, CeedInt Q,
     v[i] = w[i] * u[i];
   }
 }
-

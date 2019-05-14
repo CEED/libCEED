@@ -15,7 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 // *****************************************************************************
-extern "C" __global__ void masssetupf(void *ctx, CeedInt Q,
+extern "C" __global__ void masssetupf(void *ctx, CeedInt Q, CeedInt N,
                                       CeedQFunctionArguments args) {
   const CeedScalar *x = (const CeedScalar *)args.in[0];
   const CeedScalar *J = (const CeedScalar *)args.in[1];
@@ -25,16 +25,17 @@ extern "C" __global__ void masssetupf(void *ctx, CeedInt Q,
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
        i += blockDim.x * gridDim.x) {
-    CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
-                      J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-                      J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
+    CeedScalar det = (J[i+Q*0]*(J[i+N*4]*J[i+N*8] - J[i+N*5]*J[i+N*7]) -
+                      J[i+Q*1]*(J[i+N*3]*J[i+N*8] - J[i+N*5]*J[i+N*6]) +
+                      J[i+Q*2]*(J[i+N*3]*J[i+N*7] - J[i+N*4]*J[i+N*6]));
     rho[i] = det * w[i];
     rhs[i] = rho[i] * w[i] * 
-               sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
+               sqrt(x[i]*x[i] + x[i+N]*x[i+N] + x[i+2*N]*x[i+2*N]);
   }
 }
 
-extern "C" __global__ void massf(void *ctx, CeedInt Q,
+// *****************************************************************************
+extern "C" __global__ void massf(void *ctx, CeedInt Q, CeedInt N,
                                  CeedQFunctionArguments args) {
   const CeedScalar *u = (const CeedScalar *)args.in[0];
   const CeedScalar *rho = (const CeedScalar *)args.in[1];

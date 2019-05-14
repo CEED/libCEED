@@ -15,7 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 // *****************************************************************************
-extern "C" __global__ void setup(void *ctx, CeedInt Q,
+extern "C" __global__ void setup(void *ctx, CeedInt Q, CeedInt N,
                                  CeedQFunctionArguments args) {
   const CeedScalar *w = (const CeedScalar *)args.in[0];
   CeedScalar *qdata = args.out[0];
@@ -29,7 +29,7 @@ extern "C" __global__ void setup(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-extern "C" __global__ void mass(void *ctx, CeedInt Q,
+extern "C" __global__ void mass(void *ctx, CeedInt Q, CeedInt N,
                                 CeedQFunctionArguments args) {
   const CeedScalar *qdata = (const CeedScalar *)args.in[0];
   const CeedScalar *u = (const CeedScalar *)args.in[1];

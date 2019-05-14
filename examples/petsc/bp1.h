@@ -17,6 +17,7 @@
 /// @file
 /// QFunction definitions for mass operator example using PETSc
 
+// *****************************************************************************
 static int Setup(void *ctx, CeedInt Q, CeedInt N, CeedQFunctionArguments args) {
   const CeedScalar (*x)[N] = (const CeedScalar (*)[N])args.in[0];
   const CeedScalar (*J)[3][N] = (const CeedScalar (*)[3][N])args.in[1];
@@ -35,6 +36,7 @@ static int Setup(void *ctx, CeedInt Q, CeedInt N, CeedQFunctionArguments args) {
   return 0;
 }
 
+// *****************************************************************************
 static int Mass(void *ctx, CeedInt Q, CeedInt N, CeedQFunctionArguments args) {
   const CeedScalar *u = args.in[0], *rho = args.in[1];
   CeedScalar *v = args.out[0];
@@ -45,6 +47,7 @@ static int Mass(void *ctx, CeedInt Q, CeedInt N, CeedQFunctionArguments args) {
   return 0;
 }
 
+// *****************************************************************************
 static int Error(void *ctx, CeedInt Q, CeedInt N, CeedQFunctionArguments args) {
   const CeedScalar *u = args.in[0], *target = args.in[1];
   CeedScalar *err = args.out[0];

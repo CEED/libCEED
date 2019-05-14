@@ -59,8 +59,8 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
 
   void *ctx;
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
-  // void *args[] = {&ctx, (void*)&Q, &data->d_u, &data->d_v};
-  void *args[] = {&data->d_c, (void *) &Q, &data->fields};
+  // *args[] = { context, Q, N, argument Fields }
+  void *args[] = {&data->d_c, (void *) &Q, (void *) &Q, &data->fields};
   ierr = run_kernel(ceed, data->qFunction, CeedDivUpInt(Q, blocksize), blocksize,
                     args);
   CeedChk(ierr);

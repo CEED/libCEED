@@ -19,10 +19,6 @@ typedef int CeedInt;
 typedef double CeedScalar;
 
 // *****************************************************************************
-// OCCA parser doesn't like struct here
-//struct BuildContext { CeedInt dim, space_dim; };
-
-// *****************************************************************************
 @kernel void f_build_diff(int *ctx, CeedInt Q,
                           const int *iOf7, const int *oOf7,
                           const CeedScalar *in, CeedScalar *out) {

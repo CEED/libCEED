@@ -34,6 +34,7 @@ extern "C" __global__ void Setup(void *ctx, CeedInt Q,
   }
 }
 
+// *****************************************************************************
 extern "C" __global__ void Mass(void *ctx, CeedInt Q,
                                 CeedQFunctionArguments args) {
   const CeedScalar *u = (const CeedScalar *)args.in[0];
@@ -47,6 +48,7 @@ extern "C" __global__ void Mass(void *ctx, CeedInt Q,
   }
 }
 
+// *****************************************************************************
 extern "C" __global__ void Error(void *ctx, CeedInt Q,
                                  CeedQFunctionArguments args) {
   const CeedScalar *u = (const CeedScalar *)args.in[0];
