@@ -312,7 +312,9 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
   @brief Restrict an L-vector to a block of an E-vector or apply transpose
 
   @param rstr    CeedElemRestriction
-  @param block   Block number to restrict to/from
+  @param block   Block number to restrict to/from, i.e. block=0 will handle
+                 elements [0 : blksize] and block=3 will handle elements
+                 [3*blksize : 4*blksize]
   @param tmode   Apply restriction or transpose
   @param lmode   Ordering of the ncomp components
   @param u       Input vector (of size @a ndof when tmode=CEED_NOTRANSPOSE)
