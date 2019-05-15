@@ -14,28 +14,14 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include "ceed-blocked.h"
+#include <string.h>
+#include <ceed-backend.h>
+#include <valgrind/memcheck.h>
 
-static int CeedInit_Blocked(const char *resource, Ceed ceed) {
-  int ierr;
-  if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/ref/blocked"))
-    return CeedError(ceed, 1, "Blocked backend cannot use resource: %s", resource);
+typedef struct {
+  const CeedScalar **inputs;
+  CeedScalar **outputs;
+  bool setupdone;
+} CeedQFunction_Memcheck;
 
-  Ceed ceedref;
-
-  // Create refrence CEED that implementation will be dispatched
-  //   through unless overridden
-  CeedInit("/cpu/self/ref/serial", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
-
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Blocked); CeedChk(ierr);
-
-  return 0;
-}
-
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/cpu/self/ref/blocked", CeedInit_Blocked, 30);
-}
+CEED_INTERN int CeedQFunctionCreate_Memcheck(CeedQFunction qf);

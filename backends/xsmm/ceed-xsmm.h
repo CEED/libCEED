@@ -17,6 +17,7 @@
 #include <ceed-backend.h>
 #include <libxsmm.h>
 #include <string.h>
+#include <math.h>
 
 typedef struct {
   libxsmm_dmmfunction *kernels;

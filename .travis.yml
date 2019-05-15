@@ -18,6 +18,7 @@ addons:
     - gfortran
     - liblapack-dev
     - libopenblas-dev
+    - valgrind-dbg
   homebrew:
     packages:
     - ccache
