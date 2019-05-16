@@ -60,47 +60,40 @@ static PetscInt GlobalStart(const PetscInt p[2], const PetscInt irank[2],
   // Dumb brute-force is easier to read
   for (PetscInt i=0; i<p[0]; i++) {
     for (PetscInt j=0; j<p[1]; j++) {
-        PetscInt mdof[2], ijkrank[] = {i,j};
+        PetscInt mdof[2], ijrank[] = {i,j};
         if (i == irank[0] && j == irank[1]) return start;
-        GlobalDof(p, ijkrank, degree, melem, mdof);
+        GlobalDof(p, ijrank, degree, melem, mdof);
         start += mdof[0] * mdof[1];
       }
   }
   return -1;
 }
 
-// TO DO
 // Utility function to create local CEED restriction
-static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
+static int CreateRestriction(Ceed ceed, const CeedInt melem[2],
                              CeedInt P, CeedInt ncomp,
                              CeedElemRestriction *Erestrict) {
-  const PetscInt Nelem = melem[0]*melem[1]*melem[2];
-  PetscInt mdof[3], *idx, *idxp;
+  const PetscInt Nelem = melem[0]*melem[1];
+  PetscInt mdof[2], *idx, *idxp;
 
-  for (int d=0; d<3; d++) mdof[d] = melem[d]*(P-1) + 1;
-  idxp = idx = malloc(Nelem*P*P*P*sizeof idx[0]);
+  for (int d=0; d<2; d++) mdof[d] = melem[d]*(P-1) + 1;
+  idxp = idx = malloc(Nelem*P*P*sizeof idx[0]);
   for (CeedInt i=0; i<melem[0]; i++) {
-    for (CeedInt j=0; j<melem[1]; j++) {
-      for (CeedInt k=0; k<melem[2]; k++,idxp += P*P*P) {
-        for (CeedInt ii=0; ii<P; ii++) {
-          for (CeedInt jj=0; jj<P; jj++) {
-            for (CeedInt kk=0; kk<P; kk++) {
-              if (0) { // This is the C-style (i,j,k) ordering that I prefer
-                  idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mdof[1]
-                                         + (j*(P-1)+jj))*mdof[2]
-                                         + (k*(P-1)+kk));
-                } else { // (k,j,i) ordering for consistency with MFEM example
-                  idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mdof[1]
-                                         + (j*(P-1)+jj))*mdof[2]
-                                         + (k*(P-1)+kk));
-              }
-            }
+    for (CeedInt j=0; j<melem[1]; j++,idxp += P*P) {
+      for (CeedInt ii=0; ii<P; ii++) {
+        for (CeedInt jj=0; jj<P; jj++) {
+          if (0) { // This is the C-style (i,j) ordering that I prefer
+            idxp[ii*P+jj] = (((i*(P-1)+ii)*mdof[1]
+                            + (j*(P-1)+jj)));
+          } else { // (j,i) ordering for consistency with MFEM example
+            idxp[ii+P*jj] = (((i*(P-1)+ii)*mdof[1]
+                            + (j*(P-1)+jj)));
           }
         }
       }
     }
   }
-  CeedElemRestrictionCreate(ceed, Nelem, P*P*P, mdof[0]*mdof[1]*mdof[2], ncomp,
+  CeedElemRestrictionCreate(ceed, Nelem, P*P, mdof[0]*mdof[1], ncomp,
                             CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
   PetscFunctionReturn(0);
 }
@@ -346,7 +339,7 @@ int main(int argc, char **argv) {
   // Find my location in the process grid
   ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
   for (int d=0,rankleft=rank; d<2; d++) {
-    const int pstride[3] = {p[1]*p[2], p[2], 1}; // TO DO
+    const int pstride[2] = {p[1], 1};
     irank[d] = rankleft / pstride[d];
     rankleft -= irank[d] * pstride[d];
   }
@@ -404,7 +397,7 @@ int main(int argc, char **argv) {
     // Create local-to-global scatters
     PetscInt *ltogind, *ltogind0, *locind, l0count;
     IS ltogis, ltogxis, ltogis0, locis;
-    PetscInt gstart[2][2], gmdof[2][2][3];
+    PetscInt gstart[2][2], gmdof[2][2][2];
 
     for (int i=0; i<2; i++) {
       for (int j=0; j<2; j++) {
@@ -414,7 +407,6 @@ int main(int argc, char **argv) {
       }
     }
 
-    // TO DO
     // Get indices of dofs except Dirichlet BC dofs
     ierr = PetscMalloc1(lsize, &ltogind); CHKERRQ(ierr);
     ierr = PetscMalloc1(lsize, &ltogind0); CHKERRQ(ierr);
@@ -422,20 +414,16 @@ int main(int argc, char **argv) {
     l0count = 0;
     for (PetscInt i=0,ir,ii; ir=i>=mdof[0], ii=i-ir*mdof[0], i<ldof[0]; i++) {
       for (PetscInt j=0,jr,jj; jr=j>=mdof[1], jj=j-jr*mdof[1], j<ldof[1]; j++) {
-        for (PetscInt k=0,kr,kk; kr=k>=mdof[2], kk=k-kr*mdof[2], k<ldof[2]; k++) {
-          PetscInt dofind = (i*ldof[1]+j)*ldof[2]+k;
-          ltogind[dofind] =
-            gstart[ir][jr][kr] + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk;
-          if ((irank[0] == 0 && i == 0) ||
-              (irank[1] == 0 && j == 0) ||
-              (irank[2] == 0 && k == 0) ||
-              (irank[0]+1 == p[0] && i+1 == ldof[0]) ||
-              (irank[1]+1 == p[1] && j+1 == ldof[1]) ||
-              (irank[2]+1 == p[2] && k+1 == ldof[2]))
-            continue;
-          ltogind0[l0count] = ltogind[dofind];
-          locind[l0count++] = dofind;
-        }
+        PetscInt dofind = i*ldof[1]+j;
+        ltogind[dofind] =
+          gstart[ir][jr] + ii*gmdof[ir][jr][1]+jj;
+        if ((irank[0] == 0 && i == 0) ||
+            (irank[1] == 0 && j == 0) ||
+            (irank[0]+1 == p[0] && i+1 == ldof[0]) ||
+            (irank[1]+1 == p[1] && j+1 == ldof[1]))
+          continue;
+        ltogind0[l0count] = ltogind[dofind];
+        locind[l0count++] = dofind;
       }
     }
 
@@ -527,8 +515,8 @@ int main(int argc, char **argv) {
   CreateRestriction(ceed, melem, 2, 2, &restrictx);
   CreateRestriction(ceed, melem, numP, 2, &restrictxc);
   CreateRestriction(ceed, melem, numP, 1, &restrictmult);
-  CeedElemRestrictionCreateIdentity(ceed, localNelem, 4*numQ*numQ,
-                                    4*localNelem*numQ*numQ, 1,
+  CeedElemRestrictionCreateIdentity(ceed, localNelem, 8*numQ*numQ,
+                                    8*localNelem*numQ*numQ, 1,
                                     &restricthdi);
   CeedElemRestrictionCreateIdentity(ceed, localNelem, numQ*numQ,
                                     localNelem*numQ*numQ, 1,
@@ -542,14 +530,10 @@ int main(int argc, char **argv) {
     xloc = malloc(len*2*sizeof xloc[0]);
     for (CeedInt i=0; i<shape[0]; i++) {
       for (CeedInt j=0; j<shape[1]; j++) {
-        for (CeedInt k=0; k<shape[2]; k++) { // TO DO
-          xloc[((i*shape[1]+j)*shape[2]+k) + 0*len] =
-                 lx * (irank[0]*melem[0]+i) / (p[0]*melem[0]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 1*len] =
-                 ly * (irank[1]*melem[1]+j) / (p[1]*melem[1]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 2*len] =
-                 lz * (irank[2]*melem[2]+k) / (p[2]*melem[2]);
-        }
+        xloc[(i*shape[1]+j) + 0*len] =
+               lx * (irank[0]*melem[0]+i) / (p[0]*melem[0]);
+        xloc[(i*shape[1]+j) + 1*len] =
+               ly * (irank[1]*melem[1]+j) / (p[1]*melem[1]);
       }
     }
     CeedVectorCreate(ceed, len*2, &xcorners);
@@ -561,7 +545,7 @@ int main(int argc, char **argv) {
   CeedBasisGetNumQuadraturePoints(basish, &Nqpts);
   CeedInt Ndofs = 1;
   for (int d=0; d<2; d++) Ndofs *= numP;
-  CeedVectorCreate(ceed, 4*localNelem*Nqpts, &hdata);
+  CeedVectorCreate(ceed, 8*localNelem*Nqpts, &hdata);
   CeedVectorCreate(ceed, lsize, &h0ceed);
   CeedVectorCreate(ceed, lsize, &mceed);
   CeedVectorCreate(ceed, lsize, &onesvec);
@@ -580,13 +564,13 @@ int main(int argc, char **argv) {
                               Setup, __FILE__ ":Setup", &qf_setup);
   CeedQFunctionAddInput(qf_setup, "dx", 2, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setup, "qdata", 4, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_setup, "qdata", 8, CEED_EVAL_NONE);
 
   // Create the Q-function that defines the action of the mass operator
   CeedQFunctionCreateInterior(ceed, 1,
                               Mass, __FILE__ ":Mass", &qf_mass);
   CeedQFunctionAddInput(qf_mass, "q", 1, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_mass, "qdata", 4, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_mass, "qdata", 8, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);
 
   // Create the Q-function that sets the ICs of the operator
@@ -615,7 +599,7 @@ int main(int argc, char **argv) {
                               str, &qf);
   CeedQFunctionAddInput(qf, "h", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf, "dh", 1, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf, "hdata", 4, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf, "hdata", 8, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf, "x", 2, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf, "v", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf, "dv", 1, CEED_EVAL_GRAD);
