@@ -15,7 +15,6 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 #include "ceed-cuda.h"
 #include "string.h"
-// #include "ceed-cuda.cuh"
 #include <cuda.h>
 
 // *****************************************************************************

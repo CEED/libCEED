@@ -17,47 +17,39 @@
 #include <ceed-backend.h>
 #include <string.h>
 #include <stdarg.h>
-#include "ceed-cuda-reg.h"
-#include "../cuda/ceed-cuda.h"
+#include <nvrtc.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include "ceed-cuda-shared.h"
 
-static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
+static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
   int ierr;
   const int nrc = 9; // number of characters in resource
-  if (strncmp(resource, "/gpu/cuda/reg", nrc))
+  if (strncmp(resource, "/gpu/cuda/shared", nrc))
     return CeedError(ceed, 1, "Cuda backend cannot use resource: %s", resource);
 
-  Ceed ceedref;
-  CeedInit("/gpu/cuda/ref", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+  Ceed ceedreg;
+  CeedInit("/gpu/cuda/reg", &ceedreg);
+  ierr = CeedSetDelegate(ceed, &ceedreg); CeedChk(ierr);
 
   const int rlen = strlen(resource);
   const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
   const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : 0;
 
-  int currentDeviceID;
-  ierr = cudaGetDevice(&currentDeviceID); CeedChk_Cu(ceed,ierr);
-  if (currentDeviceID!=deviceID)
-  {
-    ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
-  }
+  ierr = cudaSetDevice(deviceID); CeedChk(ierr);
 
-  Ceed_Cuda_reg *data;
+  Ceed_Cuda_shared *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
 
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
-                                CeedBasisCreateTensorH1_Cuda_reg); CeedChk(ierr);
+                                CeedBasisCreateTensorH1_Cuda_shared); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-                                CeedBasisCreateH1_Cuda_reg); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
-                                CeedElemRestrictionCreate_Cuda_reg); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
-                                "ElemRestrictionCreateBlocked",
-                                CeedElemRestrictionCreateBlocked_Cuda_reg); CeedChk(ierr);
+                                CeedBasisCreateH1_Cuda_shared); CeedChk(ierr);
   return 0;
 }
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/gpu/cuda/reg", CeedInit_Cuda_reg, 30);
+  CeedRegister("/gpu/cuda/shared", CeedInit_Cuda_shared, 40);
 }

@@ -14,34 +14,31 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
+#include <ceed-backend.h>
 #include "ceed-cuda.h"
 
 static const char *restrictionkernels = QUOTE(
 
-#if __CUDA_ARCH__ < 600
-__device__ double atomicAdd(double* address, double val)
-{
-   unsigned long long int* address_as_ull = (unsigned long long int*)address;
-   unsigned long long int old = *address_as_ull, assumed;
-   do
-   {
-      assumed = old;
-      old =
-         atomicCAS(address_as_ull, assumed,
-                   __double_as_longlong(val +
-                                        __longlong_as_double(assumed)));
-      // Note: uses integer comparison to avoid hang in case of NaN
-      // (since NaN != NaN)
-   }
-   while (assumed != old);
-   return __longlong_as_double(old);
+    #if __CUDA_ARCH__ < 600
+__device__ double atomicAdd(double *address, double val) {
+  unsigned long long int *address_as_ull = (unsigned long long int *)address;
+  unsigned long long int old = *address_as_ull, assumed;
+  do {
+    assumed = old;
+    old =
+      atomicCAS(address_as_ull, assumed,
+                __double_as_longlong(val +
+                                     __longlong_as_double(assumed)));
+    // Note: uses integer comparison to avoid hang in case of NaN
+    // (since NaN != NaN)
+  } while (assumed != old);
+  return __longlong_as_double(old);
 }
-#endif // __CUDA_ARCH__ < 600
+    #endif // __CUDA_ARCH__ < 600
 
-    extern "C" __global__ void noTrNoTr(const CeedInt nelem,
-                                        const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
-CeedScalar *__restrict__ v) {
+extern "C" __global__ void noTrNoTr(const CeedInt nelem,
+                                    const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
+                                    CeedScalar *__restrict__ v) {
   const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
   if (indices) {
     for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
@@ -186,15 +183,16 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
 }
 
 static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
-  CeedElemRestriction_Cuda *impl = (CeedElemRestriction_Cuda *)r->data;
   int ierr;
+  CeedElemRestriction_Cuda *impl;
+  ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
 
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
   ierr = cuModuleUnload(impl->module); CeedChk_Cu(ceed, ierr);
   ierr = CeedFree(&impl->h_ind_allocated); CeedChk(ierr);
   ierr = cudaFree(impl->d_ind_allocated); CeedChk_Cu(ceed, ierr);
-  ierr = CeedFree(&r->data); CeedChk(ierr);
+  ierr = CeedFree(&impl); CeedChk(ierr);
   return 0;
 }
 
