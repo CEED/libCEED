@@ -752,16 +752,3 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   CeedChk(ierr);
   return 0;
 }
-
-int CeedBasisCreateH1_Cuda_shared(CeedElemTopology topo, CeedInt dim,
-                                  CeedInt ndof, CeedInt nqpts,
-                                  const CeedScalar *interp,
-                                  const CeedScalar *grad,
-                                  const CeedScalar *qref,
-                                  const CeedScalar *qweight,
-                                  CeedBasis basis) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1, "Backend does not implement generic H1 basis");
-}

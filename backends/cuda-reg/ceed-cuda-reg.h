@@ -58,10 +58,6 @@ CEED_INTERN int CeedBasisCreateTensorH1_Cuda_reg(CeedInt dim, CeedInt P1d,
     const CeedScalar *qweight1d,
     CeedBasis basis);
 
-CEED_INTERN int CeedBasisCreateH1_Cuda_reg(CeedElemTopology, CeedInt, CeedInt,
-    CeedInt, const CeedScalar *,
-    const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
-
 CEED_INTERN int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype,
     CeedCopyMode cmode,
     const CeedInt *indices,
