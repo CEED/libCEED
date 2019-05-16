@@ -36,8 +36,7 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
 
   int currentDeviceID;
   ierr = cudaGetDevice(&currentDeviceID); CeedChk_Cu(ceed,ierr);
-  if (currentDeviceID!=deviceID)
-  {
+  if (currentDeviceID!=deviceID) {
     ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
   }
 
