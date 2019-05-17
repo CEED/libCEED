@@ -19,9 +19,9 @@
 #include "../cuda/ceed-cuda.h"
 
 static const char *restrictionkernels = QUOTE(
-    extern "C" __global__ void noTrNoTr(const CeedInt nelem,
-                                        const CeedInt *__restrict__ indices,
-                                        const CeedScalar *__restrict__ u,
+extern "C" __global__ void noTrNoTr_old(const CeedInt nelem,
+                                    const CeedInt *__restrict__ indices,
+                                    const CeedScalar *__restrict__ u,
 CeedScalar *__restrict__ v) {
   if (indices) {
     const CeedInt esize = RESTRICTION_ELEMSIZE * nelem;
@@ -35,6 +35,39 @@ CeedScalar *__restrict__ v) {
           v[dof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP] =
             u[ind + RESTRICTION_NDOF * comp];
         }
+      }
+    }
+  } else {
+    const CeedInt esize = RESTRICTION_ELEMSIZE * nelem;
+    for(CeedInt e = blockIdx.x * blockDim.x + threadIdx.x;
+        e < nelem;
+        e += blockDim.x * gridDim.x) {
+      for (CeedInt dof = 0; dof < RESTRICTION_ELEMSIZE; ++dof) {
+        const CeedInt ind = dof + e * RESTRICTION_ELEMSIZE;
+        for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
+          v[dof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP] =
+            u[ind + RESTRICTION_NDOF * comp];
+        }
+      }
+    }
+  }
+}
+
+extern "C" __global__ void noTrNoTr(const CeedInt nelem,
+                                    const CeedInt *__restrict__ indices,
+                                    const CeedScalar *__restrict__ u,
+CeedScalar *__restrict__ v) {
+  if (indices) {
+    const CeedInt esize = RESTRICTION_ELEMSIZE * nelem;
+    for(CeedInt dof = blockIdx.x * blockDim.x + threadIdx.x;
+        dof < nelem*RESTRICTION_ELEMSIZE;
+        dof += blockDim.x * gridDim.x) {
+      const CeedInt ind = indices[dof];
+      const CeedInt locDof = dof%RESTRICTION_ELEMSIZE;
+      const CeedInt e = dof/RESTRICTION_ELEMSIZE;
+      for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
+        v[locDof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP] =
+          u[ind + RESTRICTION_NDOF * comp];
       }
     }
   } else {
