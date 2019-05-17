@@ -128,7 +128,9 @@ static int Mass(void *ctx, CeedInt Q,
 
   CeedPragmaOMP(simd)
   for (CeedInt i=0; i<Q; i++) {
-    v[i] = w[i] * u[i];
+    v[i+0*Q] = w[i+0*Q] * u[i+0*Q];
+    v[i+1*Q] = w[i+0*Q] * u[i+1*Q];
+    v[i+2*Q] = w[i+0*Q] * u[i+2*Q];
   }
   return 0;
 }
