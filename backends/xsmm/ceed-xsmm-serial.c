@@ -26,7 +26,7 @@ static int CeedInit_Xsmm_Serial(const char *resource, Ceed ceed) {
 
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
-  CeedInit("/cpu/self/ref/serial", &ceedref);
+  CeedInit("/cpu/self/opt/serial", &ceedref);
   ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
@@ -37,5 +37,5 @@ static int CeedInit_Xsmm_Serial(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/xsmm/serial", CeedInit_Xsmm_Serial, 30);
+  CeedRegister("/cpu/self/xsmm/serial", CeedInit_Xsmm_Serial, 25);
 }

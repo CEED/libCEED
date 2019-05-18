@@ -363,6 +363,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     {"VectorRestoreArrayRead",     ceedoffsetof(CeedVector, RestoreArrayRead)},
     {"VectorDestroy",              ceedoffsetof(CeedVector, Destroy)},
     {"ElemRestrictionApply",       ceedoffsetof(CeedElemRestriction, Apply)},
+    {"ElemRestrictionApplyBlock",  ceedoffsetof(CeedElemRestriction, ApplyBlock)},
     {"ElemRestrictionDestroy",     ceedoffsetof(CeedElemRestriction, Destroy)},
     {"BasisApply",                 ceedoffsetof(CeedBasis, Apply)},
     {"BasisDestroy",               ceedoffsetof(CeedBasis, Destroy)},

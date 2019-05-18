@@ -88,6 +88,8 @@ There are multiple supported backends, which can be selected at runtime in the e
 | :----------------------- | :------------------------------------------------ |
 | `/cpu/self/ref/serial`   | Serial reference implementation                   |
 | `/cpu/self/ref/blocked`  | Blocked refrence implementation                   |
+| `/cpu/self/opt/serial`   | Serial optimized C implementation                 |
+| `/cpu/self/opt/blocked`  | Blocked optimized C implementation                |
 | `/cpu/self/tmpl`         | Backend template, delegates to `/cpu/self/ref/blocked` |
 | `/cpu/self/ref/memcheck` | Memcheck backend, undefined value checks          |
 | `/cpu/self/avx/serial`   | Serial AVX implementation                         |
@@ -102,13 +104,14 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/gpu/cuda/reg`          | Pure CUDA kernels using one thread per element    |
 | `/gpu/magma`             | CUDA MAGMA kernels                                |
 
-
 The `/cpu/self/*/serial` backends process one element at a time and are intended for meshes
 with a smaller number of high order elements. The `/cpu/self/*/blocked` backends process
 blocked batches of eight interlaced elements and are intended for meshes with higher numbers
 of elements.
 
 The `/cpu/self/ref/*` backends are written in pure C and provide basic functionality.
+
+The `/cpu/self/opt/*` backends are written in pure C and use partial e-vectors to improve performance.
 
 The `/cpu/self/avx/*` backends rely upon AVX instructions to provide vectorized CPU performance.
 

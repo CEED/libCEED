@@ -112,7 +112,7 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.c := $(wildcard interface/ceed*.c)
-BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/tmpl
+BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked /cpu/self/tmpl
 BACKENDS := $(BACKENDS_BUILTIN)
 
 # Tests
@@ -139,19 +139,20 @@ petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 navierstokesexample.c := $(sort $(wildcard examples/navier-stokes/*.c))
 navierstokesexample  := $(navierstokesexample.c:examples/navier-stokes/%.c=$(OBJDIR)/navier-stokes-%)
 
-# backends/[ref, template, blocked, memcheck, avx, occa, magma]
+# backends/[ref, blocked, template, memcheck, opt, avx, occa, magma]
 ref.c          := $(sort $(wildcard backends/ref/*.c))
+blocked.c      := $(sort $(wildcard backends/blocked/*.c))
 template.c     := $(sort $(wildcard backends/template/*.c))
+ceedmemcheck.c := $(sort $(wildcard backends/memcheck/*.c))
+opt.c          := $(sort $(wildcard backends/opt/*.c))
+avx.c          := $(sort $(wildcard backends/avx/*.c))
+xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 cuda.c         := $(sort $(wildcard backends/cuda/*.c))
 cuda.cu        := $(sort $(wildcard backends/cuda/*.cu))
 cuda-reg.c     := $(sort $(wildcard backends/cuda-reg/*.c))
 cuda-reg.cu    := $(sort $(wildcard backends/cuda-reg/*.cu))
 cuda-shared.c  := $(sort $(wildcard backends/cuda-shared/*.c))
 cuda-shared.cu := $(sort $(wildcard backends/cuda-shared/*.cu))
-blocked.c      := $(sort $(wildcard backends/blocked/*.c))
-ceedmemcheck.c := $(sort $(wildcard backends/memcheck/*.c))
-avx.c          := $(sort $(wildcard backends/avx/*.c))
-xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 occa.c         := $(sort $(wildcard backends/occa/*.c))
 magma_preprocessor := python backends/magma/gccm.py
 magma_pre_src  := $(filter-out %_tmp.c, $(wildcard backends/magma/ceed-*.c))
@@ -237,6 +238,7 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)
 libceed.c += $(ref.c)
 libceed.c += $(template.c)
 libceed.c += $(blocked.c)
+libceed.c += $(opt.c)
 
 # Memcheck Backend
 ifneq ($(shell which valgrind 2> /dev/null),)

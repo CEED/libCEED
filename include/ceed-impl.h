@@ -28,7 +28,7 @@
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
 
-#define CEED_NUM_BACKEND_FUNCTIONS 30
+#define CEED_NUM_BACKEND_FUNCTIONS 31
 #define CEED_COMPOSITE_MAX 16
 
 // Lookup table field for backend functions
@@ -86,6 +86,8 @@ struct CeedElemRestriction_private {
   Ceed ceed;
   int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedTransposeMode,
                CeedVector, CeedVector, CeedRequest *);
+  int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode,
+                    CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*Destroy)(CeedElemRestriction);
   int refcount;
   CeedInt nelem;    /* number of elements */
