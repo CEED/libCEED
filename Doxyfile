@@ -800,9 +800,16 @@ INPUT                  = . \
                          examples/petsc \
                          examples/navier-stokes \
                          backends/ref \
-                         backends/occa \
                          backends/blocked \
                          backends/template \
+                         backends/memcheck \
+                         backends/opt \
+                         backends/avx \
+                         backends/xsmm \
+                         backends/cuda \
+                         backends/cuda-reg \
+                         backends/cuda-shared \
+                         backends/occa \
                          backends/magma \
                          tests \
 
