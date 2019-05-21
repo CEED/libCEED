@@ -15,7 +15,7 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 
-function run_petsc_tests()
+function run_tests()
 {
    $dry_run cd "$test_exe_dir"
 
