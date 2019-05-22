@@ -180,7 +180,7 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
   // ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
-  CeedInt Q, numelements, elemsize, numinputfields, numoutputfields, ncomp;
+  CeedInt Q, P1d, Q1d = 1, numelements, elemsize, numinputfields, numoutputfields, ncomp, dim;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
@@ -199,13 +199,13 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
 
   // Setup
   ierr = CeedOperatorSetup_Cuda_gen(op); CeedChk(ierr);
-  printf("extern \"C\" __global__ void operator(CudaFields in, CudaFields out) {\n");
+  printf("extern \"C\" __global__ void operator(CudaFields in, CudaFields B, CudaFields G, CeedScalar* W, CudaFields out) {\n");
   // Input Evecs and Restriction
   for (CeedInt i = 0; i < numinputfields; i++) {
     // ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
     // CeedChk(ierr);
-    // if (emode == CEED_EVAL_WEIGHT) { // Skip
-    // } else {
+    if (emode == CEED_EVAL_WEIGHT) { // Skip
+    } else {
       // Get input vector
       // ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChk(ierr);
       // if (vec == CEED_VECTOR_ACTIVE)
@@ -214,6 +214,12 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
     //   // Restrict
     //   ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
       printf("CeedScalar* d_u%d = in.fields[%d];\n", i, i);
+      if (emode != CEED_EVAL_NONE)
+      {
+        //TODO check that all Q1d are the same?
+        // ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
+        // ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
+      }
     //   CeedChk(ierr);
     //   ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
     //   ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE,
@@ -223,7 +229,7 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
     //   ierr = CeedVectorGetArrayRead(impl->evecs[i], CEED_MEM_DEVICE,
     //                                 (const CeedScalar **) &impl->edata[i]);
     //   CeedChk(ierr);
-    // }
+    }
   }
 
   for (CeedInt i = 0; i < numoutputfields; i++) {
@@ -237,6 +243,9 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
     // }
   }
 
+  printf("const CeedInt Q1d = %d;\n", Q1d);
+  printf("const CeedInt Q = %d;\n", Q);
+  printf("for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {\n");
   // Input basis apply if needed
   for (CeedInt i = 0; i < numinputfields; i++) {
     // Get elemsize, emode, ncomp
@@ -251,35 +260,49 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
     // Basis action
     switch (emode) {
     case CEED_EVAL_NONE:
-      printf("  CeedScalar r_t%d[Q];\n", i);
-      printf("  ReadQuads(d_u%d,r_t%d);\n", i, i);
+      printf("  const CeedInt NCOMP_IN_%d = %d;\n", i, ncomp);
+      printf("  CeedScalar r_t%d[NCOMP_IN_%d*Q1d];\n", i, i);
+      printf("  readQuads<NCOMP_IN_%d,Q1d>(elem, d_u%d, r_t%d);\n", i, i, i);
       // ierr = CeedVectorSetArray(impl->qvecsin[i], CEED_MEM_DEVICE,
       //                           CEED_USE_POINTER,
       //                           impl->edata[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_INTERP:
-      printf("  CeedScalar r_u%d[P];\n", i);
-      printf("  ReadDofs(d_u%d,r_u%d);\n", i, i);
-      printf("  CeedScalar r_t%d[Q];\n", i);
-      printf("  interp(r_u%d,r_t%d);\n", i, i);
+      ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
+      ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
+      printf("  const CeedInt P_IN_%d = %d;\n", i, P1d);
+      printf("  const CeedInt NCOMP_IN_%d = %d;\n", i, ncomp);
+      printf("  CeedScalar r_u%d[NCOMP_IN_%d*P_IN_%d];\n", i, i, i);
+      printf("  readDofs<NCOMP_IN_%d,P_IN_%d>(elem, d_u%d, r_u%d);\n", i, i, i, i);
+      printf("  CeedScalar r_t%d[NCOMP_IN_%d*Q1d];\n", i, i);
+      printf("  interp<NCOMP_IN_%d,P_IN_%d,Q1d>(r_u%d, B%d, r_t%d);\n", i, i, i, i, i);
       // ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
       // ierr = CeedBasisApply(basis, numelements, CEED_NOTRANSPOSE,
       //                       CEED_EVAL_INTERP, impl->evecs[i],
       //                       impl->qvecsin[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_GRAD:
-      printf("  CeedScalar r_u%d[P];\n", i);
-      printf("  ReadDofs(d_u%d,r_u%d);\n", i, i);
-      printf("  CeedScalar r_t%d[DIM*Q];\n", i);
-      printf("  grad(r_u%d,r_t%d);\n", i, i);
+      ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
+      printf("  const CeedInt NCOMP_IN_%d = %d;\n", i, ncomp);
+      ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
+      printf("  const CeedInt P_IN_%d = %d;\n", i, P1d);
+      printf("  CeedScalar r_u%d[NCOMP_IN_%d*P_IN_%d];\n", i, i, i);
+      printf("  readDofs<NCOMP_IN_%d,P_IN_%d>(elem, d_u%d, r_u%d);\n", i, i, i, i);
+      ierr = CeedBasisGetDimension(basis, &dim);
+      printf("  const CeedInt DIM_IN_%d = %d;\n", i, dim);
+      printf("  CeedScalar r_t%d[NCOMP_IN_%d*DIM_IN_%d*Q1d];\n", i, i, i);
+      printf("  grad<NCOMP_IN_%d,DIM_IN_%d,P_IN_%d,Q1d>(r_u%d, B%d, G%d, r_t%d);\n", i, i, i, i, i, i, i);
       // ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
       // ierr = CeedBasisApply(basis, numelements, CEED_NOTRANSPOSE,
       //                       CEED_EVAL_GRAD, impl->evecs[i],
       //                       impl->qvecsin[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_WEIGHT:
-      printf("  CeedScalar r_t%d[Q];\n", i);
-      printf("  weight(d_u%d,r_t%d);\n", i, i);
+      ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
+      printf("  CeedScalar r_t%d[Q1d];\n", i);
+      ierr = CeedBasisGetDimension(basis, &dim);
+      printf("  const CeedInt DIM_IN_%d = %d;\n", i, dim);
+      printf("  weight<DIM_IN_%d,Q1d>(W, r_t%d);\n", i, i);
       break; // No action
     case CEED_EVAL_DIV:
       break; // TODO: Not implemented
@@ -289,9 +312,9 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
   }
   // Output pointers
   for (CeedInt i = 0; i < numoutputfields; i++) {
-    ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
-    CeedChk(ierr);
-    if (emode == CEED_EVAL_NONE) {
+    // ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
+    // CeedChk(ierr);
+    // if (emode == CEED_EVAL_NONE) {
       // ierr = CeedVectorGetArray(impl->evecs[i + impl->numein], CEED_MEM_DEVICE,
       //                           &impl->edata[i + numinputfields]); CeedChk(ierr);
       // ierr = CeedQFunctionFieldGetNumComponents(qfoutputfields[i], &ncomp);
@@ -300,30 +323,39 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
       //                           CEED_USE_POINTER,
       //                           impl->edata[i + numinputfields]);
       // CeedChk(ierr);
-    }
+    // }
   }
   // Q function
   for (CeedInt i = 0; i < numoutputfields; i++) {
     ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
     CeedChk(ierr);
+    ierr = CeedQFunctionFieldGetNumComponents(qfoutputfields[i], &ncomp);
+    CeedChk(ierr);
     if (emode==CEED_EVAL_GRAD)
     {
-      printf("CeedScalar r_tt%d[DIM*Q];\n", i);
+      printf("  const CeedInt NCOMP_OUT_%d = %d;\n", i, ncomp);
+      ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis); CeedChk(ierr);
+      int dim;
+      ierr = CeedBasisGetDimension(basis, &dim);
+      printf("  const CeedInt DIM_OUT_%d = %d;\n", i, dim);
+      printf("  CeedScalar r_tt%d[NCOMP_OUT_%d*DIM_OUT_%d*Q1d];\n", i, i, i);
     }
     if (emode==CEED_EVAL_NONE || emode==CEED_EVAL_INTERP)
     {
-      printf("CeedScalar r_tt%d[Q];\n", i);
+      printf("  const CeedInt NCOMP_OUT_%d = %d;\n", i, ncomp);
+      printf("  CeedScalar r_tt%d[NCOMP_OUT_%d*Q1d];\n", i, i);
     }
   }
+  //TODO write qfunction load for this backend
   printf("  qfunction(");
   for (CeedInt i = 0; i < numinputfields; i++) {
-    printf("r_t%d,", i);
+    printf("r_t%d, ", i);
   }
   for (CeedInt i = 0; i < numoutputfields; i++) {
     printf("r_tt%d", i);
     if (i<numoutputfields-1)
     {
-      printf(",");
+      printf(", ");
     }
   }
   printf(");\n");
@@ -344,12 +376,15 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
     // Basis action
     switch (emode) {
     case CEED_EVAL_NONE:
-      printf("  WriteQuads(r_tt%d,d_v%d);\n", i, i);
+      printf("  writeQuads<NCOMP_OUT_%d,NCOMP_OUT_%d,Q1d>(elem, r_tt%d, d_v%d);\n", i, i, i, i);
       break; // No action
     case CEED_EVAL_INTERP:
-      printf("  CeedScalar r_v%d[P];\n", i);
-      printf("  interp(r_tt%d,r_v%d);\n", i, i);
-      printf("  WriteDofs(r_v%d,d_v%d);\n", i, i);
+      ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis); CeedChk(ierr);
+      ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
+      printf("  const CeedInt P_OUT_%d = %d;\n", i, P1d);
+      printf("  CeedScalar r_v%d[NCOMP_OUT_%d*P_OUT_%d];\n", i, i, i);
+      printf("  interpTranspose<NCOMP_OUT_%d,P_OUT_%d,Q1d>(r_tt%d, B%d, r_v%d);\n", i, i, i, i, i);
+      printf("  writeDofs<NCOMP_OUT_%d,P_OUT_%d>(elem, r_v%d, d_v%d);\n", i, i, i, i);
       // ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis);
       // CeedChk(ierr);
       // ierr = CeedBasisApply(basis, numelements, CEED_TRANSPOSE,
@@ -357,9 +392,12 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
       //                       impl->evecs[i + impl->numein]); CeedChk(ierr);
       break;
     case CEED_EVAL_GRAD:
-      printf("  CeedScalar r_v%d[P];\n", i);
-      printf("  grad(r_tt%d,r_v%d);\n", i, i);
-      printf("  WriteDofs(r_v%d,d_v%d);\n", i, i);
+      ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis); CeedChk(ierr);
+      ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
+      printf("  const CeedInt P_OUT_%d = %d;\n", i, P1d);
+      printf("  CeedScalar r_v%d[NCOMP_OUT_%d*P_OUT_%d];\n", i, i, i);
+      printf("  gradTranspose<NCOMP_OUT_%d,DIM_OUT_%d,P_OUT_%d,Q1d>(r_tt%d, B%d, G%d, r_v%d);\n", i, i, i ,i, i, i ,i);
+      printf("  writeDofs<NCOMP_OUT_%d,P_OUT_%d>(elem, r_v%d, d_v%d);\n", i, i, i, i);
       // ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis);
       // CeedChk(ierr);
       // ierr = CeedBasisApply(basis, numelements, CEED_TRANSPOSE,
@@ -423,7 +461,7 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
     //   CeedChk(ierr);
     // }
   }
-
+  printf("  }\n");
   printf("}\n\n");
 
   return 0;
