@@ -22,7 +22,7 @@
 //TESTARGS -ceed {ceed_resource} -test -problem bp3
 
 /// @file
-/// Mass operator example using PETSc
+/// CEED BPs example using PETSc
 const char help[] = "Solve CEED BPs using PETSc\n";
 
 #include <stdbool.h>
