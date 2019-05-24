@@ -144,7 +144,7 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
                                 CeedGetPreferredMemType_Cuda); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VecCreate",
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate",
                                 CeedVectorCreate_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Cuda); CeedChk(ierr);

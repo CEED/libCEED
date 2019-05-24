@@ -1200,7 +1200,7 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   if (ierr) return CeedError(ceed, 1, "error in magma_init(): %d\n", ierr);
   //magma_print_environment();
 
-  ceed->VecCreate = CeedVectorCreate_Magma;
+  ceed->VectorCreate = CeedVectorCreate_Magma;
   ceed->BasisCreateTensorH1 = CeedBasisCreateTensorH1_Magma;
   ceed->BasisCreateH1 = CeedBasisCreateH1_Magma;
   ceed->ElemRestrictionCreate = CeedElemRestrictionCreate_Magma;
