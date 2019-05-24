@@ -243,7 +243,7 @@ libceed.c += $(opt.c)
 
 # Memcheck Backend
 MEMCHK_STATUS = Disabled
-MEMCHK := $(shell if echo "\#include <valgrind/memcheck.h>" | $(CC) -x c -c - >/dev/null 2>&1; then echo 1; fi;)
+MEMCHK := $(shell echo "\#include <valgrind/memcheck.h>" | $(CC) $(CPPFLAGS) -E - >/dev/null 2>&1 && echo 1)
 ifeq ($(MEMCHK),1)
   MEMCHK_STATUS = Enabled
   libceed.c += $(ceedmemcheck.c)
