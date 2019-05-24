@@ -14,28 +14,30 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include "ceed-avx.h"
+#include <ceed-backend.h>
+#include <string.h>
 
-static int CeedInit_Avx(const char *resource, Ceed ceed) {
-  int ierr;
-  if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/avx/serial"))
-    return CeedError(ceed, 1, "AVX backend cannot use resource: %s", resource);
+typedef struct {
+  CeedInt blksize;
+} Ceed_Opt;
 
-  Ceed ceedref;
+typedef struct {
+  CeedScalar *colograd1d;
+} CeedBasis_Opt;
 
-  // Create refrence CEED that implementation will be dispatched
-  //   through unless overridden
-  CeedInit("/cpu/self/opt/serial", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+typedef struct {
+  bool add;
+  CeedElemRestriction *blkrestr; /// Blocked versions of restrictions
+  CeedVector
+  *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
+  CeedScalar **edata;
+  uint64_t *inputstate;  /// State counter of inputs
+  CeedVector *evecsin;   /// Input E-vectors needed to apply operator
+  CeedVector *evecsout;  /// Output E-vectors needed to apply operator
+  CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
+  CeedVector *qvecsout;  /// Output Q-vectors needed to apply operator
+  CeedInt    numein;
+  CeedInt    numeout;
+} CeedOperator_Opt;
 
-
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
-                                CeedTensorContractCreate_Avx); CeedChk(ierr);
-  return 0;
-}
-
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/cpu/self/avx/serial", CeedInit_Avx, 35);
-}
+CEED_INTERN int CeedOperatorCreate_Opt(CeedOperator op);

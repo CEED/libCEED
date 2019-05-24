@@ -182,6 +182,15 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
   return 0;
 }
 
+int CeedElemRestrictionApplyBlock_Cuda(CeedElemRestriction r,
+    CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
+    CeedVector u, CeedVector v, CeedRequest *request) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
+  return CeedError(ceed, 1, "Backend does not implement blocked restrictions");
+}
+
 static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
   int ierr;
   CeedElemRestriction_Cuda *impl;
@@ -272,6 +281,9 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
   ierr = CeedElemRestrictionSetData(r, (void *)&impl); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",
                                 CeedElemRestrictionApply_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyBlock",
+                                CeedElemRestrictionApplyBlock_Cuda);
+  CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy",
                                 CeedElemRestrictionDestroy_Cuda); CeedChk(ierr);
   return 0;

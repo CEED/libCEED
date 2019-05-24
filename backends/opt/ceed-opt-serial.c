@@ -14,28 +14,46 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include "ceed-avx.h"
+#include <string.h>
+#include "ceed-opt.h"
 
-static int CeedInit_Avx(const char *resource, Ceed ceed) {
+static int CeedDestroy_Opt(Ceed ceed) {
+  int ierr;
+  Ceed_Opt *data;
+  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedFree(&data); CeedChk(ierr);
+
+  return 0;
+}
+
+static int CeedInit_Opt_Serial(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/avx/serial"))
-    return CeedError(ceed, 1, "AVX backend cannot use resource: %s", resource);
+      && strcmp(resource, "/cpu/self/opt/serial"))
+    return CeedError(ceed, 1, "Opt backend cannot use resource: %s", resource);
 
   Ceed ceedref;
 
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
-  CeedInit("/cpu/self/opt/serial", &ceedref);
+  CeedInit("/cpu/self/ref/serial", &ceedref);
   ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
 
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
+                                CeedDestroy_Opt); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
+                                CeedOperatorCreate_Opt); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
-                                CeedTensorContractCreate_Avx); CeedChk(ierr);
+  // Set blocksize
+  Ceed_Opt *data;
+  ierr = CeedCalloc(1, &data); CeedChk(ierr);
+  data->blksize = 1;
+  ierr = CeedSetData(ceed, (void *)&data); CeedChk(ierr);
+
   return 0;
 }
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/avx/serial", CeedInit_Avx, 35);
+  CeedRegister("/cpu/self/opt/serial", CeedInit_Opt_Serial, 45);
 }

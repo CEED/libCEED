@@ -210,6 +210,9 @@ CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem,
 CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr,
     CeedTransposeMode tmode, CeedTransposeMode lmode, CeedVector u,
     CeedVector ru, CeedRequest *request);
+CEED_EXTERN int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr,
+    CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
+    CeedVector u, CeedVector ru, CeedRequest *request);
 CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *rstr);
 
 // The formalism here is that we have the structure

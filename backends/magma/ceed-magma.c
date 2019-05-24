@@ -429,6 +429,15 @@ magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
   return 0;
 }
 
+int CeedElemRestrictionApplyBlock_Magma(CeedElemRestriction r,
+    CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
+    CeedVector u, CeedVector v, CeedRequest *request) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
+  return CeedError(ceed, 1, "Backend does not implement blocked restrictions");
+}
+
 static int CeedElemRestrictionDestroy_Magma(CeedElemRestriction r) {
   CeedElemRestriction_Magma *impl = r->data;
   int ierr;
@@ -524,6 +533,7 @@ static int CeedElemRestrictionCreate_Magma(CeedMemType mtype,
 
   r->data    = impl;
   r->Apply   = CeedElemRestrictionApply_Magma;
+  r->ApplyBlock = CeedElemRestrictionApplyBlock_Magma;
   r->Destroy = CeedElemRestrictionDestroy_Magma;
 
   return 0;
