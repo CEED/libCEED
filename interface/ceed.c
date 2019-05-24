@@ -344,7 +344,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(Ceed, Error),
     CEED_FTABLE_ENTRY(Ceed, GetPreferredMemType),
     CEED_FTABLE_ENTRY(Ceed, Destroy),
-    CEED_FTABLE_ENTRY(Ceed, VecCreate),
+    CEED_FTABLE_ENTRY(Ceed, VectorCreate),
     CEED_FTABLE_ENTRY(Ceed, ElemRestrictionCreate),
     CEED_FTABLE_ENTRY(Ceed, ElemRestrictionCreateBlocked),
     CEED_FTABLE_ENTRY(Ceed, BasisCreateTensorH1),
@@ -461,7 +461,7 @@ int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type) {
 
   This function is used for a backend to set the function associated with
   the CEED objects. For example,
-    CeedSetBackendFunction(ceed, "Ceed", ceed, "VecCreate", BackendVecCreate)
+    CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", BackendVectorCreate)
   sets the backend implementation of 'CeedVectorCreate' and
     CeedSetBackendFunction(ceed, "Basis", basis, "Apply", BackendBasisApply)
   sets the backend implementation of 'CeedBasisApply'. Note, the prefix 'Ceed'
