@@ -27,7 +27,7 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
   CeedInit("/cpu/self/ref/blocked", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
                                 CeedQFunctionCreate_Memcheck); CeedChk(ierr);

@@ -37,7 +37,7 @@ static int CeedInit_Opt_Blocked(const char *resource, Ceed ceed) {
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
   CeedInit("/cpu/self/ref/serial", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
                                 CeedDestroy_Opt); CeedChk(ierr);

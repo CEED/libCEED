@@ -436,9 +436,9 @@ int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
 
   @ref Advanced
 **/
-int CeedSetDelegate(Ceed ceed, Ceed *delegate) {
-  ceed->delegate = *delegate;
-  (*delegate)->parent = ceed;
+int CeedSetDelegate(Ceed ceed, Ceed delegate) {
+  ceed->delegate = delegate;
+  delegate->parent = ceed;
   return 0;
 }
 
@@ -479,7 +479,7 @@ int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *objname) {
 
   @ref Advanced
 **/
-int CeedSetObjectDelegate(Ceed ceed, Ceed *delegate, const char *objname) {
+int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
   CeedInt ierr;
   CeedInt count = ceed->objdelegatecount;
 
@@ -493,13 +493,13 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed *delegate, const char *objname) {
   ceed->objdelegatecount++;
 
   // Set object delegate
-  ceed->objdelegates[count].delegate = *delegate;
+  ceed->objdelegates[count].delegate = delegate;
   ierr = CeedCalloc(strlen(objname)+1, &ceed->objdelegates[count].objname);
   CeedChk(ierr);
   strncpy(ceed->objdelegates[count].objname, objname, strlen(objname)+1);
 
   // Set delegate parent
-  (*delegate)->parent = ceed;
+  delegate->parent = ceed;
 
   return 0;
 }

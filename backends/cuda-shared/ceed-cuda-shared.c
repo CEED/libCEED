@@ -30,7 +30,7 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
 
   Ceed ceedreg;
   CeedInit("/gpu/cuda/reg", &ceedreg);
-  ierr = CeedSetDelegate(ceed, &ceedreg); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedreg); CeedChk(ierr);
 
   const int rlen = strlen(resource);
   const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;

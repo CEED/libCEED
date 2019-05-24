@@ -27,20 +27,20 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
   CeedInit("/cpu/self/ref/blocked", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   // Create refrence CEED for objects
   Ceed basisceedref;
   CeedInit("/cpu/self/ref/blocked", &basisceedref);
-  ierr = CeedSetObjectDelegate(ceed, &basisceedref, "Basis");
+  ierr = CeedSetObjectDelegate(ceed, basisceedref, "Basis");
   CeedChk(ierr);
   Ceed tensorceedref;
   CeedInit("/cpu/self/ref/blocked", &tensorceedref);
-  ierr = CeedSetObjectDelegate(ceed, &tensorceedref, "TensorContract");
+  ierr = CeedSetObjectDelegate(ceed, tensorceedref, "TensorContract");
   CeedChk(ierr);
   Ceed opceedref;
   CeedInit("/cpu/self/ref/blocked", &opceedref);
-  ierr = CeedSetObjectDelegate(ceed, &opceedref, "Operator");
+  ierr = CeedSetObjectDelegate(ceed, opceedref, "Operator");
   CeedChk(ierr);
 
   return 0;
