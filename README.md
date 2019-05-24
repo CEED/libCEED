@@ -122,7 +122,8 @@ if LIBXSMM was linked to MKL, this can be specified with the compilation flag `M
 
 The `/cpu/self/ref/memcheck` backend relies upon the [Valgrind](http://valgrind.org/) Memcheck tool
 to help verify that user QFunctions have no undefined values. To use, run your code with
-Valgrind and the Memcheck backend, e.g. `valgrind ./build/ex1 -ceed /cpu/self/ref/memcheck`.
+Valgrind and the Memcheck backend, e.g. `valgrind ./build/ex1 -ceed /cpu/self/ref/memcheck`. A
+'development' or 'debugging' version of Valgrind with headers is required to use this backend.
 
 The `/*/occa` backends rely upon the [OCCA](http://github.com/libocca/occa) package to provide
 cross platform performance.
