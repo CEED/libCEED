@@ -459,6 +459,14 @@ int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type) {
 /**
   @brief Set a backend function
 
+  This function is used for a backend to set the function associated with
+  the CEED objects. For example,
+    CeedSetBackendFunction(ceed, "Ceed", ceed, "VecCreate", BackendVecCreate)
+  sets the backend implementation of 'CeedVectorCreate' and
+    CeedSetBackendFunction(ceed, "Basis", basis, "Apply", BackendBasisApply)
+  sets the backend implementation of 'CeedBasisApply'. Note, the prefix 'Ceed'
+  is not required for the object type ("Basis" vs "CeedBasis").
+
   @param ceed           Ceed for error handling
   @param type           Type of Ceed object to set function for
   @param[out] object    Ceed object to set function for
