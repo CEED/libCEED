@@ -100,7 +100,7 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/ocl/occa`              | OpenCL OCCA kernels                               |
 | `/gpu/cuda/ref`          | Reference pure CUDA kernels                       |
 | `/gpu/cuda/reg`          | Pure CUDA kernels using one thread per element    |
-| `/gpu/cuda/shared        | Optimized pure CUDA kernels using shared memory   |
+| `/gpu/cuda/shared`       | Optimized pure CUDA kernels using shared memory   |
 | `/gpu/magma`             | CUDA MAGMA kernels                                |
 
 
