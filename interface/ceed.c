@@ -429,6 +429,9 @@ int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
 /**
   @brief Set a delegate CEED
 
+  This function allows a CEED to set a delegate CEED. All backend
+  implementations default to the delegate CEED, unless overridden.
+
   @param ceed           Ceed to set delegate of
   @param[out] delegate  Address to set the delegate to
 
@@ -471,6 +474,12 @@ int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *objname) {
 
 /**
   @brief Set a delegate CEED for a specific object type
+
+  This function allows a CEED to set a delegate CEED for a given type of
+  CEED object. All backend implementations default to the delegate CEED for
+  this object. For example,
+    CeedSetObjectDelegate(ceed, refceed, "Basis")
+  uses refceed implementations for all CeedBasis backend functions.
 
   @param ceed           Ceed to set delegate of
   @param[out] delegate  Address to set the delegate to
