@@ -111,8 +111,10 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
+CEED_LIBS := -lceed
 libceed.c := $(wildcard interface/ceed*.c)
-BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked /cpu/self/tmpl /cpu/self/tmpl/sub
+libceed_test := $(LIBDIR)/libceed_test.$(SO_EXT)
+BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked
 BACKENDS := $(BACKENDS_BUILTIN)
 
 # Tests
@@ -237,9 +239,12 @@ $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)
 
 # Standard Backends
 libceed.c += $(ref.c)
-libceed.c += $(template.c)
 libceed.c += $(blocked.c)
 libceed.c += $(opt.c)
+
+# Testing Backends
+test_backends.c := $(template.c)
+TEST_BACKENDS := /cpu/self/tmpl /cpu/self/tmpl/sub
 
 # Memcheck Backend
 MEMCHK_STATUS = Disabled
@@ -332,16 +337,16 @@ $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 	$(call quiet,NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
-	$(call quiet,LINK.c) -o $@ $(abspath $<) -lceed $(LDLIBS)
+	$(call quiet,LINK.c) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : tests/%.f90 | $$(@D)/.DIR
-	$(call quiet,LINK.F) -o $@ $(abspath $<) -lceed $(LDLIBS)
+	$(call quiet,LINK.F) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
-	$(call quiet,LINK.c) -o $@ $(abspath $<) -lceed $(LDLIBS)
+	$(call quiet,LINK.c) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
-	$(call quiet,LINK.F) -o $@ $(abspath $<) -lceed $(LDLIBS)
+	$(call quiet,LINK.F) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
@@ -358,7 +363,13 @@ $(OBJDIR)/navier-stokes-% : examples/navier-stokes/%.c $(libceed) $(ceed.pc) | $
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
 	mv examples/navier-stokes/$* $@
 
-$(tests) $(examples) : $(libceed)
+libceed_test.o = $(test_backends.c:%.c=$(OBJDIR)/%.o) $(libceed.o)
+$(libceed_test) : $(libceed)
+$(libceed_test) : $(libceed_test.o) | $$(@D)/.DIR
+	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
+
+$(examples) : $(libceed)
+$(prove) $(prove-all) $(tests) : $(libceed_test) | $(eval CEED_LIBS+=-lceed_test)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
 run-% : $(OBJDIR)/%
@@ -372,19 +383,20 @@ tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
 prove : $(tests) $(examples)
+	$(eval BACKENDS+=$(TEST_BACKENDS))
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)
 # run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
 allexamples := $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
-alltests := $(tests) $(allexamples)
-fulltestlist = $(alltests) $(if $(NEK5K_DIR), $(nekexamples))
+fullexamplelist = $(allexamples) $(if $(NEK5K_DIR), $(nekexamples))
 prepnektests:
 	(export CC FC && cd examples && make prepnektests)
-prove-all : $(alltests) $(if $(NEK5K_DIR), prepnektests)
+prove-all : $(tests) $(allexamples) $(if $(NEK5K_DIR), prepnektests)
+	make prove
 	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(fulltestlist:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(fullexamplelist:$(OBJDIR)/%=%)
 
 junit-% : $(OBJDIR)/%
 	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py $(<:$(OBJDIR)/%=%)
