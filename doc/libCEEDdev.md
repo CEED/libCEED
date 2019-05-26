@@ -29,3 +29,17 @@ and
 
 are purely implicit -- one just indexes the same array using the
 appropriate convention.
+
+## Clang-tidy
+
+Please check your code for common issues by running
+```
+make tidy
+````
+which uses the `clang-tidy` utility included in recent releases of Clang.  This
+tool is much slower than actual compilation (`make -j8` parallelism helps).  To
+run on a single file, use
+```
+make interface/ceed.c.tidy
+```
+for example.  All issues reported by `make tidy` should be fixed.

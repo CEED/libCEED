@@ -118,9 +118,15 @@ CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
 ///
 /// @ingroup Ceed
 /// @sa CeedSetErrorHandler()
-#define CeedError(ceed, ecode, ...)                                     \
-  CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__)
-
+#if defined(__clang__)
+  // Use nonstandard ternary to convince the compiler/clang-tidy that this
+  // function never returns zero.
+#  define CeedError(ceed, ecode, ...)                                     \
+  (CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__) ?: (ecode))
+#else
+#  define CeedError(ceed, ecode, ...)                                     \
+  CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__) ?: (ecode)
+#endif
 /// Specify memory type
 ///
 /// Many Ceed interfaces take or return pointers to memory.  This enum is used to

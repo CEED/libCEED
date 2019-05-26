@@ -102,9 +102,16 @@ CeedRequest *const CEED_REQUEST_ORDERED = &ceed_request_ordered;
 int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
                   int ecode, const char *format, ...) {
   va_list args;
+  int retval;
   va_start(args, format);
-  if (ceed) return ceed->Error(ceed, filename, lineno, func, ecode, format, args);
-  return CeedErrorAbort(ceed, filename, lineno, func, ecode, format, args);
+  if (ceed) {
+    retval = ceed->Error(ceed, filename, lineno, func, ecode, format, args);
+  } else {
+    // This function doesn't actually return
+    retval = CeedErrorAbort(ceed, filename, lineno, func, ecode, format, args);
+  }
+  va_end(args);
+  return retval;
 }
 
 /**

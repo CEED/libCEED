@@ -141,7 +141,7 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype) {
   int ierr;
 
-  if (vec && (vec->state % 2) == 1)
+  if (vec->state % 2 == 1)
     return CeedError(vec->ceed, 1,
                      "Cannot sync CeedVector, the access lock is already in use");
 
