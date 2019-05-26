@@ -270,7 +270,7 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
     $(libceed) : LDLIBS += -lblas
   endif
   libceed.c += $(xsmm.c)
-  $(xsmm.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(XSMM_DIR)/include
+  $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) : CPPFLAGS += -I$(XSMM_DIR)/include
   BACKENDS += /cpu/self/xsmm/serial /cpu/self/xsmm/blocked
 endif
 
@@ -279,7 +279,7 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceed) : LDLIBS += -locca
   libceed.c += $(occa.c)
-  $(occa.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -I$(OCCA_DIR)/include
+  $(occa.c:%.c=$(OBJDIR)/%.o) $(occa.c:%=%.tidy) : CPPFLAGS += -I$(OCCA_DIR)/include
   BACKENDS += /cpu/occa /gpu/occa /omp/occa
 endif
 
@@ -308,7 +308,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   $(tests) $(examples) : LDLIBS += $(magma_link)
   libceed.c  += $(magma_allsrc.c)
   libceed.cu += $(magma_allsrc.cu)
-  $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) : CFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
+  $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) $(magma_allsrc.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
   $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o) : NVCCFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
   BACKENDS += /gpu/magma
   endif
@@ -427,7 +427,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(if $(OCCA_ON),$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/")
 
-.PHONY : cln clean doc lib install all print test tst prove prv prove-all junit examples style okl-cache okl-clear info info-backends
+.PHONY : cln clean doc lib install all print test tst prove prv prove-all junit examples style tidy okl-cache okl-clear info info-backends
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
@@ -446,6 +446,12 @@ style :
           $(filter-out include/ceedf.h tests/t310-basis-f.h, \
             $(wildcard include/*.h interface/*.[ch] tests/*.[ch] backends/*/*.[ch] \
               examples/*/*.[ch] examples/*/*.[ch]pp))
+
+CLANG_TIDY ?= clang-tidy
+%.c.tidy : %.c
+	$(CLANG_TIDY) $^ -- $(CPPFLAGS)
+
+tidy : $(libceed.c:%=%.tidy)
 
 print :
 	@echo $(VAR)=$($(VAR))

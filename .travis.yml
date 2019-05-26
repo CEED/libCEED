@@ -65,6 +65,7 @@ script:
   - export COVERAGE=1
   - make -j2
   - make -j2 prove-all PROVE_OPTS=-v
+  - clang-tidy --version && make -j2 tidy || true
 
 after_success:
   - bash <(curl -s https://codecov.io/bash) -F interface
