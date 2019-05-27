@@ -349,17 +349,17 @@ $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
 	$(call quiet,LINK.F) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
-	$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
+	+$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
 	  MFEM_DIR="$(abspath $(MFEM_DIR))" $*
 	mv examples/mfem/$* $@
 
 $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	$(MAKE) -C examples/petsc CEED_DIR=`pwd` \
+	+$(MAKE) -C examples/petsc CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
 	mv examples/petsc/$* $@
 
 $(OBJDIR)/navier-stokes-% : examples/navier-stokes/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	$(MAKE) -C examples/navier-stokes CEED_DIR=`pwd` \
+	+$(MAKE) -C examples/navier-stokes CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
 	mv examples/navier-stokes/$* $@
 
