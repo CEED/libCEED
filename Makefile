@@ -114,6 +114,7 @@ libceed := $(LIBDIR)/libceed.$(SO_EXT)
 CEED_LIBS = -lceed
 libceed.c := $(wildcard interface/ceed*.c)
 libceed_test := $(LIBDIR)/libceed_test.$(SO_EXT)
+libceeds = $(libceed) $(libceed_test)
 BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked
 BACKENDS := $(BACKENDS_BUILTIN)
 
@@ -236,6 +237,7 @@ info-backends:
 .PHONY: lib all par info info-backends
 
 $(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)))
+$(libceed_test) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed_test)))
 
 # Standard Backends
 libceed.c += $(ref.c)
@@ -266,13 +268,13 @@ endif
 
 # libXSMM Backends
 ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
-  $(libceed) : LDFLAGS += -L$(XSMM_DIR)/lib -Wl,-rpath,$(abspath $(XSMM_DIR)/lib)
-  $(libceed) : LDLIBS += -lxsmm -ldl
+  $(libceeds) : LDFLAGS += -L$(XSMM_DIR)/lib -Wl,-rpath,$(abspath $(XSMM_DIR)/lib)
+  $(libceeds) : LDLIBS += -lxsmm -ldl
   MKL ?= 0
   ifneq (0,$(MKL))
-    $(libceed) : LDLIBS += -mkl
+    $(libceeds) : LDLIBS += -mkl
   else
-    $(libceed) : LDLIBS += -lblas
+    $(libceeds) : LDLIBS += -lblas
   endif
   libceed.c += $(xsmm.c)
   $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) : CPPFLAGS += -I$(XSMM_DIR)/include
@@ -281,8 +283,8 @@ endif
 
 # OCCA Backends
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-  $(libceed) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
-  $(libceed) : LDLIBS += -locca
+  $(libceeds) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
+  $(libceeds) : LDLIBS += -locca
   libceed.c += $(occa.c)
   $(occa.c:%.c=$(OBJDIR)/%.o) $(occa.c:%=%.tidy) : CPPFLAGS += -I$(OCCA_DIR)/include
   BACKENDS += /cpu/occa /gpu/occa /omp/occa
@@ -293,9 +295,9 @@ CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_E
 CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg /gpu/cuda/shared
 ifneq ($(CUDA_LIB_DIR),)
-  $(libceed) : CFLAGS += -I$(CUDA_DIR)/include
-  $(libceed) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
-  $(libceed) : LDLIBS += -lcudart -lnvrtc -lcuda
+  $(libceeds) : CFLAGS += -I$(CUDA_DIR)/include
+  $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
+  $(libceeds) : LDLIBS += -lcudart -lnvrtc -lcuda
   libceed.c  += $(cuda.c) $(cuda-reg.c) $(cuda-shared.c)
   libceed.cu += $(cuda.cu) $(cuda-reg.cu) $(cuda-shared.cu)
   BACKENDS += $(CUDA_BACKENDS)
@@ -309,7 +311,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
   magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
   magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
-  $(libceed)           : LDLIBS += $(magma_link)
+  $(libceeds)           : LDLIBS += $(magma_link)
   $(tests) $(examples) : LDLIBS += $(magma_link)
   libceed.c  += $(magma_allsrc.c)
   libceed.cu += $(magma_allsrc.cu)
@@ -364,13 +366,12 @@ $(OBJDIR)/navier-stokes-% : examples/navier-stokes/%.c $(libceed) $(ceed.pc) | $
 	mv examples/navier-stokes/$* $@
 
 libceed_test.o = $(test_backends.c:%.c=$(OBJDIR)/%.o)
-$(libceed_test) : $(libceed)
-$(libceed_test) : $(libceed_test.o) | $$(@D)/.DIR
+$(libceed_test) : $(libceed.o) $(libceed_test.o) | $$(@D)/.DIR
 	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(examples) : $(libceed)
-$(tests) : $(libceed) $(libceed_test)
-$(tests) : CEED_LIBS += -lceed_test
+$(tests) : $(libceed_test)
+$(tests) : CEED_LIBS = -lceed_test
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
 run-t% : BACKENDS += $(TEST_BACKENDS)
