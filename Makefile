@@ -363,13 +363,13 @@ $(OBJDIR)/navier-stokes-% : examples/navier-stokes/%.c $(libceed) $(ceed.pc) | $
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
 	mv examples/navier-stokes/$* $@
 
-libceed_test.o = $(test_backends.c:%.c=$(OBJDIR)/%.o) $(libceed.o)
+libceed_test.o = $(test_backends.c:%.c=$(OBJDIR)/%.o)
 $(libceed_test) : $(libceed)
 $(libceed_test) : $(libceed_test.o) | $$(@D)/.DIR
 	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(examples) : $(libceed)
-$(tests) : $(libceed_test)
+$(tests) : $(libceed) $(libceed_test)
 $(tests) : CEED_LIBS += -lceed_test
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
