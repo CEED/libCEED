@@ -133,7 +133,7 @@ mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
 mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
 #nekexamples
 nekexamples.usr := $(sort $(wildcard examples/nek5000/*.usr))
-nekexamples  := $(nekexamples.usr:examples/nek5000/%.usr=nek-%)
+nekexamples  := $(nekexamples.usr:examples/nek5000/%.usr=$(OBJDIR)/nek-%)
 #petscexamples
 petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
 petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
@@ -369,35 +369,56 @@ $(libceed_test) : $(libceed_test.o) | $$(@D)/.DIR
 	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(examples) : $(libceed)
-$(prove) $(prove-all) $(tests) : $(libceed_test) | $(eval CEED_LIBS+=-lceed_test)
+$(tests) : $(libceed_test)
+$(tests) : CEED_LIBS += -lceed_test
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
+run-t% : BACKENDS += $(TEST_BACKENDS)
 run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:$(OBJDIR)/%=%)
+
+external_examples := \
+	$(if $(MFEM_DIR),$(mfemexamples)) \
+	$(if $(PETSC_DIR),$(petscexamples)) \
+	$(if $(NEK5K_DIR),$(nekexamples))
+
+allexamples = $(examples) $(external_examples)
+
+# The test and prove targets can be controlled via pattern searches.  The
+# default is to run tests and those examples that have no external dependencies.
+# Examples of finer grained control:
+#
+#   make test search='petsc mfem'      # PETSc and MFEM examples
+#   make prove search='t3'             # t3xx series tests
+#   make junit search='ex petsc'       # core ex* and PETSc tests
+search ?= t ex
+realsearch = $(search:%=%%)
+matched = $(foreach pattern,$(realsearch),$(filter $(OBJDIR)/$(pattern),$(tests) $(allexamples)))
+# Work around Nek examples not having normal targets
+matched_prereq = $(filter-out $(OBJDIR)/nek%,$(matched)) $(if $(findstring nek,$(matched)),prepnektests)
+
 # Test core libCEED
-test : $(tests:$(OBJDIR)/%=run-%) $(examples:$(OBJDIR)/%=run-%)
+test : $(matched:$(OBJDIR)/%=run-%)
 
 # run test target in parallel
 tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
 # CPU C tests only for backend %
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
-prove : $(tests) $(examples)
-	$(eval BACKENDS+=$(TEST_BACKENDS))
+prove : BACKENDS += $(TEST_BACKENDS)
+prove : $(matched_prereq)
 	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(tests:$(OBJDIR)/%=%) $(examples:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(matched:$(OBJDIR)/%=%)
 # run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
-allexamples := $(examples) $(if $(MFEM_DIR),$(mfemexamples)) $(if $(PETSC_DIR),$(petscexamples))
-fullexamplelist = $(allexamples) $(if $(NEK5K_DIR), $(nekexamples))
 prepnektests:
 	(export CC FC && cd examples && make prepnektests)
-prove-all : $(tests) $(allexamples) $(if $(NEK5K_DIR), prepnektests)
-	make prove
-	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(fullexamplelist:$(OBJDIR)/%=%)
 
+prove-all :
+	+$(MAKE) prove realsearch=%
+
+junit-t% : BACKENDS += $(TEST_BACKENDS)
 junit-% : $(OBJDIR)/%
 	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py $(<:$(OBJDIR)/%=%)
 

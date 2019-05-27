@@ -6,8 +6,17 @@ ulimit -c 0 # Do not dump core
 export CEED_ERROR_HANDLER=exit
 
 output=$(mktemp $1.XXXX)
-
 backends=(${BACKENDS:?Variable must be set, e.g., \"/cpu/self/ref /cpu/self/blocked\"})
+target="$1"
+# Only the unit tests (txxx) link with libceed_test (where /cpu/self/tmpl is
+# defined), so filter those backends out for everything else.  Note that this is
+# only relevant for the prove target; the test and junit targets are managed in
+# the makefile and set BACKENDS appropriately.
+if [ "t" != "${target::1}" ]; then
+    for idx in ${!backends[@]}; do
+        test /cpu/self/tmpl = ${backends[$idx]::14} && unset backends[$idx]
+    done
+fi
 printf "1..$[3*${#backends[@]}]\n";
 
 # for examples/ceed petsc*, mfem*, or ex* grep the code to fetch arguments from a TESTARGS line
