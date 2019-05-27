@@ -41,7 +41,7 @@ EXAMPLES=(bp1 bp3)
 # See if its just cleaning and if yes, clean and exit
 if [[ "$#" -eq 1 && "$1" -eq "clean" ]]; then
   if [[ -f ./makenek ]]; then
-    printf "y\n" | ./makenek clean 2>&1 >> /dev/null
+    printf "y\n" | NEK_SOURCE_ROOT=${NEK5K_DIR} ./makenek clean 2>&1 >> /dev/null
   fi
   rm makenek* SESSION.NAME 2> /dev/null
   for i in `seq 1 6`; do

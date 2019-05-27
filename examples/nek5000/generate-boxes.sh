@@ -22,8 +22,10 @@ max_elem=$2
 ###############################################################################
 # DONT'T TOUCH WHAT FOLLOWS !!!
 ###############################################################################
-# Get the value of NEK5K_DIR which is needed by function genbb
-source make-nek-examples.sh
+if [ -z ${NEK5K_DIR} ]; then
+  echo "ERROR: Must set NEK5K_DIR" 1>&2
+  exit 1
+fi
 
 # Functions needed for creating box meshes
 function xyz()
