@@ -88,10 +88,9 @@ There are multiple supported backends, which can be selected at runtime in the e
 | :----------------------- | :------------------------------------------------ |
 | `/cpu/self/ref/serial`   | Serial reference implementation                   |
 | `/cpu/self/ref/blocked`  | Blocked refrence implementation                   |
+| `/cpu/self/ref/memcheck` | Memcheck backend, undefined value checks          |
 | `/cpu/self/opt/serial`   | Serial optimized C implementation                 |
 | `/cpu/self/opt/blocked`  | Blocked optimized C implementation                |
-| `/cpu/self/tmpl`         | Backend template, delegates to `/cpu/self/ref/blocked` |
-| `/cpu/self/ref/memcheck` | Memcheck backend, undefined value checks          |
 | `/cpu/self/avx/serial`   | Serial AVX implementation                         |
 | `/cpu/self/avx/blocked`  | Blocked AVX implementation                        |
 | `/cpu/self/xsmm/serial`  | Serial LIBXSMM implementation                     |
