@@ -50,7 +50,9 @@ static int ICsSW(void *ctx, CeedInt Q,
   CeedScalar *q0 = out[0], *coords = out[1];
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
-  const CeedScalar h0     = context[0];
+  const CeedScalar u0     = context[0];
+  const CeedScalar v0     = context[1];
+  const CeedScalar h0     = context[2];
 
   CeedPragmaOMP(simd)
   // Quadrature Point Loop
@@ -61,7 +63,9 @@ static int ICsSW(void *ctx, CeedInt Q,
     const CeedScalar y = X[i+1*Q];
 
     // Initial Conditions
-    q0[i+0*Q] = h0;
+    q0[i+0*Q] = u0;
+    q0[i+1*Q] = v0;
+    q0[i+2*Q] = h0;
 
     // Coordinates
     coords[i+0*Q] = x;
@@ -74,7 +78,7 @@ static int ICsSW(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-// This QFunction implements the following formulation of the shallow-water
+// This QFunction implements the explicit terms of the shallow-water
 // equations
 //
 // The equations represent 2D shallow-water flow on a spherical surface, where
@@ -82,10 +86,10 @@ static int ICsSW(void *ctx, CeedInt Q,
 //
 // State (scalar) variable: h
 //
-// Shallow-water Equations:
+// Shallow-water Equations explicit terms:
 //   TO DO
 // *****************************************************************************
-static int SW(void *ctx, CeedInt Q,
+static int SWExplicit(void *ctx, CeedInt Q,
               const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
@@ -99,34 +103,114 @@ static int SW(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar h     =   q[i+0*Q];
+    const CeedScalar u[2]   = { q[i+0*Q] / rho,
+                                q[i+1*Q] / rho
+                                };
+    const CeedScalar h      =   q[i+2*Q];
         // -- Grad in
-    const CeedScalar dh[3] = { dq[i+0*Q],
-                               dq[i+1*Q],
-                               dq[i+2*Q]
-                              };
+    const CeedScalar du[4]  =  { dq[i+(0+3*0)*Q],
+                                 dq[i+(0+3*1)*Q],
+                                 dq[i+(1+3*0)*Q],
+                                 dq[i+(2+3*1)*Q]
+                                };
+    const CeedScalar dh[2]  = { dq[i+(2+3*0)*Q],
+                                dq[i+(2+3*1)*Q]
+                               };
     // -- Interp-to-Interp qdata
-    const CeedScalar wJ    =   qdata[i+ 0*Q];
+    const CeedScalar wJ     =   qdata[i+ 0*Q];
     // -- Interp-to-Grad qdata
     //      Symmetric 3x3 matrix
-    const CeedScalar wBJ[9]   = { qdata[i+ 1*Q],
-                                  qdata[i+ 2*Q],
-                                  qdata[i+ 3*Q],
-                                  qdata[i+ 4*Q],
-                                  qdata[i+ 5*Q],
-                                  qdata[i+ 6*Q],
-                                  qdata[i+ 7*Q],
-                                  qdata[i+ 8*Q],
-                                  qdata[i+ 9*Q]
-                                };
+    const CeedScalar wBJ[4] = { qdata[i+ 1*Q],
+                                qdata[i+ 2*Q],
+                                qdata[i+ 3*Q],
+                                qdata[i+ 4*Q]
+                              };
     // -- Grad-to-Grad qdata
-    const CeedScalar wBBJ[6]  = { qdata[i+10*Q],
-                                  qdata[i+11*Q],
-                                  qdata[i+12*Q],
-                                  qdata[i+13*Q],
-                                  qdata[i+14*Q],
-                                  qdata[i+15*Q]
+    const CeedScalar wBBJ[3]  = { qdata[i+5*Q],
+                                  qdata[i+6*Q],
+                                  qdata[i+7*Q]
                                 };
+
+    // -- curl u
+    const CeedScalar curlu[2] = { du[2],
+                                 -du[1]
+                                 };
+
+    // The Physics
+
+    // -- Equation for h
+    // ---- u h
+    dv[i+0*Q]  = rho*u[0]*wBJ[0] + rho*u[1]*wBJ[1] + rho*u[2]*wBJ[2];
+    dv[i+1*Q]  = rho*u[0]*wBJ[3] + rho*u[1]*wBJ[4] + rho*u[2]*wBJ[5];
+    dv[i+2*Q]  = rho*u[0]*wBJ[6] + rho*u[1]*wBJ[7] + rho*u[2]*wBJ[8];
+    // ---- No Change
+    v[i+0*Q] = 0;
+
+
+  } // End Quadrature Point Loop
+
+  // Return
+  return 0;
+}
+
+// *****************************************************************************
+// This QFunction implements the implicit terms of the shallow-water
+// equations
+//
+// The equations represent 2D shallow-water flow on a spherical surface, where
+// the state variable, h, represents the height function.
+//
+// State (scalar) variable: h
+//
+// Shallow-water Equations implicit terms:
+//   TO DO
+// *****************************************************************************
+static int SWImplicit(void *ctx, CeedInt Q,
+              const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
+  // Outputs
+  CeedScalar *v = out[0], *dv = out[1];
+  // Context
+  const CeedScalar *context = (const CeedScalar*)ctx;
+
+  CeedPragmaOMP(simd)
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // -- Interp in
+    const CeedScalar u[2]   = { q[i+0*Q] / rho,
+                                q[i+1*Q] / rho
+                                };
+    const CeedScalar h      =   q[i+2*Q];
+        // -- Grad in
+    const CeedScalar du[4]  =  { dq[i+(0+3*0)*Q],
+                                 dq[i+(0+3*1)*Q],
+                                 dq[i+(1+3*0)*Q],
+                                 dq[i+(2+3*1)*Q]
+                                };
+    const CeedScalar dh[2]  = { dq[i+(2+3*0)*Q],
+                                dq[i+(2+3*1)*Q]
+                               };
+    // -- Interp-to-Interp qdata
+    const CeedScalar wJ     =   qdata[i+ 0*Q];
+    // -- Interp-to-Grad qdata
+    //      Symmetric 3x3 matrix
+    const CeedScalar wBJ[4] = { qdata[i+ 1*Q],
+                                qdata[i+ 2*Q],
+                                qdata[i+ 3*Q],
+                                qdata[i+ 4*Q]
+                              };
+    // -- Grad-to-Grad qdata
+    const CeedScalar wBBJ[3]  = { qdata[i+5*Q],
+                                  qdata[i+6*Q],
+                                  qdata[i+7*Q]
+                                };
+
+    // -- curl u
+    const CeedScalar curlu[2] = { du[2],
+                                 -du[1]
+                                 };
 
     // The Physics
 
