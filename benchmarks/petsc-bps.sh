@@ -28,7 +28,7 @@ function run_tests()
    # The variables 'max_dofs_node', and 'max_p' can be set on the command line
    # invoking the 'benchmark.sh' script.
    local ceed="${ceed:-/cpu/self}"
-   local common_args=(-ceed $ceed -pc_type none -benchmark -ksp_max_it 20)
+   local common_args=(-ceed $ceed -pc_type none -benchmark)
    local max_dofs_node_def=$((3*2**20))
    local max_dofs_node=${max_dofs_node:-$max_dofs_node_def}
    local max_loc_dofs=$((max_dofs_node/num_proc_node))
