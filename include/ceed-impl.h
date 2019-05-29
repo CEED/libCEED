@@ -36,9 +36,17 @@ typedef struct {
   size_t offset;
 } foffset;
 
+// Lookup table field for object delegates
+typedef struct {
+  char *objname;
+  Ceed delegate;
+} objdelegate;
+
 struct Ceed_private {
   Ceed delegate;
   Ceed parent;
+  objdelegate *objdelegates;
+  int objdelegatecount;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *,
                va_list);
   int (*GetPreferredMemType)(CeedMemType *);

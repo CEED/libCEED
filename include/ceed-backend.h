@@ -52,7 +52,11 @@ CEED_EXTERN int CeedRegister(const char *prefix,
 
 CEED_EXTERN int CeedGetParent(Ceed ceed, Ceed *parent);
 CEED_EXTERN int CeedGetDelegate(Ceed ceed, Ceed *delegate);
-CEED_EXTERN int CeedSetDelegate(Ceed ceed, Ceed *delegate);
+CEED_EXTERN int CeedSetDelegate(Ceed ceed, Ceed delegate);
+CEED_EXTERN int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate,
+                                      const char *objname);
+CEED_EXTERN int CeedSetObjectDelegate(Ceed ceed, Ceed delegate,
+                                      const char *objname);
 CEED_EXTERN int CeedSetBackendFunction(Ceed ceed,
                                        const char *type, void *object,
                                        const char *fname, int (*f)());

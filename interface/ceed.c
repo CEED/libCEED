@@ -429,6 +429,9 @@ int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
 /**
   @brief Set a delegate CEED
 
+  This function allows a CEED to set a delegate CEED. All backend
+  implementations default to the delegate CEED, unless overridden.
+
   @param ceed           Ceed to set delegate of
   @param[out] delegate  Address to set the delegate to
 
@@ -436,9 +439,77 @@ int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
 
   @ref Advanced
 **/
-int CeedSetDelegate(Ceed ceed, Ceed *delegate) {
-  ceed->delegate = *delegate;
-  (*delegate)->parent = ceed;
+int CeedSetDelegate(Ceed ceed, Ceed delegate) {
+  ceed->delegate = delegate;
+  delegate->parent = ceed;
+  return 0;
+}
+
+/**
+  @brief Retrieve a delegate CEED for a specific object type
+
+  @param ceed           Ceed to retrieve delegate of
+  @param[out] delegate  Address to save the delegate to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *objname) {
+  CeedInt ierr;
+
+  // Check for object delegate
+  for (CeedInt i=0; i<ceed->objdelegatecount; i++) {
+    if (!strcmp(objname, ceed->objdelegates->objname)) {
+      *delegate = ceed->objdelegates->delegate;
+      return 0;
+    }
+  }
+
+  // Use default delegate if no object delegate
+  ierr = CeedGetDelegate(ceed, delegate); CeedChk(ierr);
+ 
+  return 0;
+}
+
+/**
+  @brief Set a delegate CEED for a specific object type
+
+  This function allows a CEED to set a delegate CEED for a given type of
+  CEED object. All backend implementations default to the delegate CEED for
+  this object. For example,
+    CeedSetObjectDelegate(ceed, refceed, "Basis")
+  uses refceed implementations for all CeedBasis backend functions.
+
+  @param ceed           Ceed to set delegate of
+  @param[out] delegate  Address to set the delegate to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
+  CeedInt ierr;
+  CeedInt count = ceed->objdelegatecount;
+
+  // Malloc or Realloc
+  if (count) {
+    ierr = CeedRealloc(count+1, &ceed->objdelegates);
+    CeedChk(ierr);
+  } else {
+    ierr = CeedCalloc(1, &ceed->objdelegates); CeedChk(ierr);
+  }
+  ceed->objdelegatecount++;
+
+  // Set object delegate
+  ceed->objdelegates[count].delegate = delegate;
+  ierr = CeedCalloc(strlen(objname)+1, &ceed->objdelegates[count].objname);
+  CeedChk(ierr);
+  strncpy(ceed->objdelegates[count].objname, objname, strlen(objname)+1);
+
+  // Set delegate parent
+  delegate->parent = ceed;
+
   return 0;
 }
 
@@ -554,6 +625,13 @@ int CeedDestroy(Ceed *ceed) {
   if (!*ceed || --(*ceed)->refcount > 0) return 0;
   if ((*ceed)->delegate) {
     ierr = CeedDestroy(&(*ceed)->delegate); CeedChk(ierr);
+  }
+  if ((*ceed)->objdelegatecount > 0) {
+    for (int i=0; i<(*ceed)->objdelegatecount; i++) {
+      ierr = CeedDestroy(&((*ceed)->objdelegates[i].delegate)); CeedChk(ierr);
+      ierr = CeedFree(&(*ceed)->objdelegates[i].objname); CeedChk(ierr);
+    }
+    ierr = CeedFree(&(*ceed)->objdelegates); CeedChk(ierr);
   }
   if ((*ceed)->Destroy) {
     ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);

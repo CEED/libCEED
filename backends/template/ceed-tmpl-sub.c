@@ -20,20 +20,33 @@
 static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/tmpl"))
+      && strcmp(resource, "/cpu/self/tmpl/sub"))
     return CeedError(ceed, 1, "Tmpl backend cannot use resource: %s", resource);
 
   Ceed ceedref;
-
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
   CeedInit("/cpu/self/ref/blocked", &ceedref);
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
+
+  // Create refrence CEED for objects
+  Ceed basisceedref;
+  CeedInit("/cpu/self/ref/blocked", &basisceedref);
+  ierr = CeedSetObjectDelegate(ceed, basisceedref, "Basis");
+  CeedChk(ierr);
+  Ceed tensorceedref;
+  CeedInit("/cpu/self/ref/blocked", &tensorceedref);
+  ierr = CeedSetObjectDelegate(ceed, tensorceedref, "TensorContract");
+  CeedChk(ierr);
+  Ceed opceedref;
+  CeedInit("/cpu/self/ref/blocked", &opceedref);
+  ierr = CeedSetObjectDelegate(ceed, opceedref, "Operator");
+  CeedChk(ierr);
 
   return 0;
 }
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/tmpl", CeedInit_Tmpl, 60);
+  CeedRegister("/cpu/self/tmpl/sub", CeedInit_Tmpl, 70);
 }

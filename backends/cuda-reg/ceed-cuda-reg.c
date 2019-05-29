@@ -28,7 +28,7 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
 
   Ceed ceedref;
   CeedInit("/gpu/cuda/ref", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   const int rlen = strlen(resource);
   const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;

@@ -45,7 +45,7 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
 
   if (!ceed->VectorCreate) {
     Ceed delegate;
-    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "Vector"); CeedChk(ierr);
 
     if (!delegate)
       return CeedError(ceed, 1, "Backend does not support VectorCreate");
