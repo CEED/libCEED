@@ -130,7 +130,7 @@ static const char *const bpTypes[] = {"bp1","bp2","bp3","bp4","bp5","bp6",
 
 // BP specific data
 typedef struct {
-  CeedInt qdatasize;
+  CeedInt vscale, qdatasize, qextra;
   CeedQFunctionUser setup, apply, error;
   const char setupfname[PETSC_MAX_PATH_LEN], applyfname[PETSC_MAX_PATH_LEN],
              errorfname[PETSC_MAX_PATH_LEN];
@@ -138,24 +138,78 @@ typedef struct {
 } bpData;
 
 bpData bpOptions[6] = {
-  {1, SetupMass,  Mass,  Error,
-     PATH(bp1.h:SetupMass), PATH(bp1.h:Mass), PATH(common.h:Error),
-     CEED_EVAL_INTERP, CEED_EVAL_INTERP},
-  {1, SetupMass3, Mass3, Error3,
-     PATH(bp2.h:SetupMass3), PATH(bp2.h:Mass3), PATH(common.h:Error3),
-     CEED_EVAL_INTERP, CEED_EVAL_INTERP},
-  {6, SetupDiff,  Diff,  Error,
-     PATH(bp3.h:SetupDiff), PATH(bp3.h:Diff), PATH(common.h:Error),
-     CEED_EVAL_GRAD,   CEED_EVAL_GRAD},
-  {6, SetupDiff3, Diff3, Error3,
-     PATH(bp4.h:SetupDiff3), PATH(bp4.h:Diff3), PATH(common.h:Error3),
-     CEED_EVAL_GRAD,   CEED_EVAL_GRAD},
-  {6, SetupDiff,  Diff,  Error,
-     PATH(bp3.h:SetupDiff), PATH(bp3.h:Diff), PATH(common.h:Error),
-     CEED_EVAL_GRAD,   CEED_EVAL_GRAD},
-  {6, SetupDiff3, Diff3, Error3,
-     PATH(bp4.h:SetupDiff3), PATH(bp4.h:Diff3), PATH(common.h:Error3),
-     CEED_EVAL_GRAD,   CEED_EVAL_GRAD}
+  [CEED_BP1] = {
+    .vscale = 1,
+    .qdatasize = 1,
+    .qextra = 2,
+    .setup = SetupMass,
+    .apply = Mass,
+    .error = Error,
+    .setupfname = PATH(bp1.h:SetupMass),
+    .applyfname = PATH(bp1.h:Mass),
+    .errorfname = PATH(common.h:Error),
+    .inmode = CEED_EVAL_INTERP,
+    .outmode = CEED_EVAL_INTERP},
+  [CEED_BP2] = {
+    .vscale = 3,
+    .qdatasize = 1,
+    .qextra = 2,
+    .setup = SetupMass3,
+    .apply = Mass3,
+    .error = Error3,
+    .setupfname = PATH(bp2.h:SetupMass3),
+    .applyfname = PATH(bp2.h:Mass3),
+    .errorfname = PATH(common.h:Error3),
+    .inmode = CEED_EVAL_INTERP,
+    .outmode = CEED_EVAL_INTERP},
+  [CEED_BP3] = {
+    .vscale = 1,
+    .qdatasize = 6,
+    .qextra = 2,
+    .setup = SetupDiff,
+    .apply = Diff,
+    .error = Error,
+    .setupfname = PATH(bp3.h:SetupDiff),
+    .applyfname = PATH(bp3.h:Diff),
+    .errorfname = PATH(common.h:Error),
+    .inmode = CEED_EVAL_GRAD,
+    .outmode = CEED_EVAL_GRAD},
+  [CEED_BP4] = {
+    .vscale = 3,
+    .qdatasize = 6,
+    .qextra = 2,
+    .setup = SetupDiff3,
+    .apply = Diff3,
+    .error = Error,
+    .setupfname = PATH(bp4.h:SetupDiff3),
+    .applyfname = PATH(bp4.h:Diff),
+    .errorfname = PATH(common.h:Error3),
+    .inmode = CEED_EVAL_GRAD,
+    .outmode = CEED_EVAL_GRAD},
+  [CEED_BP5] = {
+    .vscale = 1,
+    .qdatasize = 6,
+    .qextra = 1,
+    .setup = SetupDiff,
+    .apply = Diff,
+    .error = Error,
+    .setupfname = PATH(bp3.h:SetupDiff),
+    .applyfname = PATH(bp3.h:Diff),
+    .errorfname = PATH(common.h:Error),
+    .inmode = CEED_EVAL_GRAD,
+    .outmode = CEED_EVAL_GRAD},
+  [CEED_BP6] = {
+    .vscale = 3,
+    .qdatasize = 6,
+    .qextra = 1,
+    .setup = SetupDiff3,
+    .apply = Diff3,
+    .error = Error,
+    .setupfname = PATH(bp4.h:SetupDiff3),
+    .applyfname = PATH(bp4.h:Diff),
+    .errorfname = PATH(common.h:Error3),
+    .inmode = CEED_EVAL_GRAD,
+    .outmode = CEED_EVAL_GRAD}
 };
 
 // This function uses libCEED to compute the action of the mass matrix
@@ -302,7 +356,7 @@ int main(int argc, char **argv) {
                           "CEED benchmark problem to solve", NULL,
                           bpTypes, (PetscEnum)bpChoice, (PetscEnum*)&bpChoice,
                           NULL); CHKERRQ(ierr);
-  vscale = (bpChoice %2) ? 3 : 1;
+  vscale = bpOptions[bpChoice].vscale;
   test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
@@ -315,7 +369,7 @@ int main(int argc, char **argv) {
   degree = test_mode ? 3 : 1;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
-  qextra = (bpChoice == CEED_BP5 || bpChoice == CEED_BP6) ? 1 : 2;
+  qextra = bpOptions[bpChoice].qextra;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
@@ -618,11 +672,28 @@ int main(int argc, char **argv) {
       ierr = PCSetType(pc, PCNONE); CHKERRQ(ierr);
     }
     ierr = KSPSetType(ksp, KSPCG); CHKERRQ(ierr);
+    ierr = KSPSetNormType(ksp, KSP_NORM_NATURAL); CHKERRQ(ierr);
     ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
                             PETSC_DEFAULT); CHKERRQ(ierr);
   }
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp, mat, mat); CHKERRQ(ierr);
+  // First run, if benchmarking
+  if (benchmark_mode) {
+    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 1);
+    CHKERRQ(ierr);
+    my_rt_start = MPI_Wtime();
+    ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
+    my_rt = MPI_Wtime() - my_rt_start;
+    // Set maxits based on first iteration timing
+    if (my_rt > 0.02) {
+      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 5);
+      CHKERRQ(ierr);
+    } else {
+      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 20);
+      CHKERRQ(ierr);
+    }
+  }
   // Timed solve
   my_rt_start = MPI_Wtime();
   ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
