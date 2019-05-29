@@ -54,7 +54,7 @@ function genbb()
   cp $1.box ttt.box
   echo
   echo "Running genbox ..."
-  if [ -z ${NEKTOOLS_DIR+x} ]; then
+  if [ -z ${NEKTOOLS_DIR} ]; then
     echo "Required variable NEKTOOLS_DIR not found."
     exit 1
   fi
