@@ -59,13 +59,13 @@ function genbb()
     exit 1
   fi
 
-  printf "ttt.box\n" | $NEKTOOLS_DIR/bin/genbox || return 1
+  printf "ttt.box\n" | $NEKTOOLS_DIR/genbox || return 1
   echo
   echo "Running genmap ..."
-  printf "box\n.1\n" | $NEKTOOLS_DIR/bin/genmap || return 1
+  printf "box\n.1\n" | $NEKTOOLS_DIR/genmap || return 1
   echo
   echo "Running reatore2 ..."
-  printf "box\n$1\n" | $NEKTOOLS_DIR/bin/reatore2 || return 1
+  printf "box\n$1\n" | $NEKTOOLS_DIR/reatore2 || return 1
   rm ttt.box
   rm box.rea
   rm box.tmp
