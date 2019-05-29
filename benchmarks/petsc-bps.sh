@@ -51,3 +51,5 @@ function run_tests()
       done
    done
 }
+
+test_required_examples="petsc-bps"
