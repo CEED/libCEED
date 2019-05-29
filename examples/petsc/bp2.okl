@@ -21,9 +21,9 @@ typedef double CeedScalar;
 #define Sqr(a) ((a)*(a))
 
 // *****************************************************************************
-@kernel void SetupMass(void *ctx, CeedInt Q,
-                       const int *iOf7, const int *oOf7,
-                       const CeedScalar *in, CeedScalar *out) {
+@kernel void SetupMass3(void *ctx, CeedInt Q,
+                        const int *iOf7, const int *oOf7,
+                        const CeedScalar *in, CeedScalar *out) {
 //  const CeedScalar
 //    *x = in + iOf7[0],
 //    *J = in + iOf7[1],
@@ -42,19 +42,26 @@ typedef double CeedScalar;
                       + in[iOf7[1]+(0*D+2)*Q+i] *
                           (in[iOf7[1]+(1*D+0)*Q+i]*in[iOf7[1]+(2*D+1)*Q+i] -
                            in[iOf7[1]+(1*D+1)*Q+i]*in[iOf7[1]+(2*D+0)*Q+i]));
-    out[oOf7[0]+i] = det * in[iOf7[2]+i];
-    out[oOf7[1]+i] = sqrt(Sqr(in[iOf7[0]+0*Q+i]) +
-                          Sqr(in[iOf7[0]+1*Q+i]) +
-                          Sqr(in[iOf7[0]+2*Q+i]));
-    out[oOf7[2]+i] = det * in[iOf7[2]+i] *
-                       sqrt(Sqr(in[iOf7[0]+0*Q+i]) +
-                            Sqr(in[iOf7[0]+1*Q+i]) +
-                            Sqr(in[iOf7[0]+2*Q+i]));
+
+    out[oOf7[0]+i+0*Q] = det * in[iOf7[2]+i];
+
+    out[oOf7[1]+i+0*Q] = sqrt(Sqr(in[iOf7[0]+0*Q+i]) +
+                              Sqr(in[iOf7[0]+1*Q+i]) +
+                              Sqr(in[iOf7[0]+2*Q+i]));
+    out[oOf7[1]+i+1*Q] = out[oOf7[1]+i+0*Q];
+    out[oOf7[1]+i+2*Q] = out[oOf7[1]+i+0*Q];
+
+    out[oOf7[2]+i+0*Q] = det * in[iOf7[2]+i] *
+                           sqrt(Sqr(in[iOf7[0]+0*Q+i]) +
+                                Sqr(in[iOf7[0]+1*Q+i]) +
+                                Sqr(in[iOf7[0]+2*Q+i]));
+    out[oOf7[2]+i+1*Q] = out[oOf7[2]+i+0*Q];
+    out[oOf7[2]+i+2*Q] = out[oOf7[2]+i+0*Q];   
   }
 }
 
 // *****************************************************************************
-@kernel void Mass(void *ctx, CeedInt Q,
+@kernel void Mass3(void *ctx, CeedInt Q,
                           const int *iOf7, const int *oOf7,
                           const CeedScalar *in, CeedScalar *out) {
 //  const CeedScalar
@@ -63,6 +70,8 @@ typedef double CeedScalar;
 //    *target = in + iOf7[2];
 //  CeedScalar *v = out + oOf7[0];
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
-    out[oOf7[0]+i] = in[iOf7[1]+i] * in[iOf7[0]+i];
+    out[oOf7[0]+i+0*Q] = in[iOf7[1]+i] * in[iOf7[0]+i+0*Q];
+    out[oOf7[0]+i+1*Q] = in[iOf7[1]+i] * in[iOf7[0]+i+1*Q];
+    out[oOf7[0]+i+2*Q] = in[iOf7[1]+i] * in[iOf7[0]+i+2*Q];
   }
 }

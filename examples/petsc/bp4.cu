@@ -15,8 +15,8 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 // *****************************************************************************
-extern "C" __global__ void SetupDiff(void *ctx, CeedInt Q,
-                                     Fields_Cuda fields) {
+extern "C" __global__ void SetupDiff3(void *ctx, CeedInt Q,
+                                      Fields_Cuda fields) {
   #ifndef M_PI
   #define M_PI    3.14159265358979323846
   #endif
@@ -52,29 +52,51 @@ extern "C" __global__ void SetupDiff(void *ctx, CeedInt Q,
     qd[i+Q*3] = qw * (A21*A21 + A22*A22 + A23*A23);
     qd[i+Q*4] = qw * (A21*A31 + A22*A32 + A23*A33);
     qd[i+Q*5] = qw * (A31*A31 + A32*A32 + A33*A33);
+
     const CeedScalar c[3] = { 0, 1., 2. };
     const CeedScalar k[3] = { 1., 2., 3. };
-    true_soln[i] = sin(M_PI*(c[0] + k[0]*x[i+Q*0])) *
-                   sin(M_PI*(c[1] + k[1]*x[i+Q*1])) *
-                   sin(M_PI*(c[2] + k[2]*x[i+Q*2]));
+
+    true_soln[i+0*Q] = sin(M_PI*(c[0] + k[0]*x[i+Q*0])) *
+                       sin(M_PI*(c[1] + k[1]*x[i+Q*1])) *
+                       sin(M_PI*(c[2] + k[2]*x[i+Q*2]));
+    true_soln[i+1*Q] = true_soln[i+0*Q];
+    true_soln[i+2*Q] = true_soln[i+0*Q];
+
     const CeedScalar rho = w[i] * (J11*A11 + J21*A12 + J31*A13);
-    rhs[i] = rho * M_PI*M_PI * (k[0]*k[0] + k[1]*k[1] + k[2]*k[2]) * true_soln[i];
+    rhs[i+0*Q] = rho * M_PI*M_PI * (k[0]*k[0] + k[1]*k[1] + k[2]*k[2]) *
+                 true_soln[i+0*Q];
+    rhs[i+1*Q] = rhs[i+0*Q];
+    rhs[i+2*Q] = rhs[i+0*Q];
   }
 }
 
-extern "C" __global__ void Diff(void *ctx, CeedInt Q,
-                                Fields_Cuda fields) {
+extern "C" __global__ void Diff3(void *ctx, CeedInt Q,
+                                 Fields_Cuda fields) {
   const CeedScalar *ug = (const CeedScalar *)fields.inputs[0];
   const CeedScalar *qd = (const CeedScalar *)fields.inputs[1];
   CeedScalar *vg = fields.outputs[0];
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
        i += blockDim.x * gridDim.x) {
-    const CeedScalar ug0 = ug[i+Q*0];
-    const CeedScalar ug1 = ug[i+Q*1];
-    const CeedScalar ug2 = ug[i+Q*2];
-    vg[i+Q*0] = qd[i+Q*0]*ug0 + qd[i+Q*1]*ug1 + qd[i+Q*2]*ug2;
-    vg[i+Q*1] = qd[i+Q*1]*ug0 + qd[i+Q*3]*ug1 + qd[i+Q*4]*ug2;
-    vg[i+Q*2] = qd[i+Q*2]*ug0 + qd[i+Q*4]*ug1 + qd[i+Q*5]*ug2;
+    const CeedScalar ug00 = ug[i+Q*(0+0*3)];
+    const CeedScalar ug01 = ug[i+Q*(0+1*3)];
+    const CeedScalar ug02 = ug[i+Q*(0+2*3)];
+    vg[i+Q*(0+0*3)] = qd[i+Q*0]*ug00 + qd[i+Q*1]*ug01 + qd[i+Q*2]*ug02;
+    vg[i+Q*(0+1*3)] = qd[i+Q*1]*ug00 + qd[i+Q*3]*ug01 + qd[i+Q*4]*ug02;
+    vg[i+Q*(0+2*3)] = qd[i+Q*2]*ug00 + qd[i+Q*4]*ug01 + qd[i+Q*5]*ug02;
+
+    const CeedScalar ug10 = ug[i+Q*(1+0*3)];
+    const CeedScalar ug11 = ug[i+Q*(1+1*3)];
+    const CeedScalar ug12 = ug[i+Q*(1+2*3)];
+    vg[i+Q*(1+0*3)] = qd[i+Q*0]*ug10 + qd[i+Q*1]*ug11 + qd[i+Q*2]*ug12;
+    vg[i+Q*(1+1*3)] = qd[i+Q*1]*ug10 + qd[i+Q*3]*ug11 + qd[i+Q*4]*ug12;
+    vg[i+Q*(1+2*3)] = qd[i+Q*2]*ug10 + qd[i+Q*4]*ug11 + qd[i+Q*5]*ug12;
+
+    const CeedScalar ug20 = ug[i+Q*(2+0*3)];
+    const CeedScalar ug21 = ug[i+Q*(2+1*3)];
+    const CeedScalar ug22 = ug[i+Q*(2+2*3)];
+    vg[i+Q*(2+0*3)] = qd[i+Q*0]*ug20 + qd[i+Q*1]*ug21 + qd[i+Q*2]*ug22;
+    vg[i+Q*(2+1*3)] = qd[i+Q*1]*ug20 + qd[i+Q*3]*ug21 + qd[i+Q*4]*ug22;
+    vg[i+Q*(2+2*3)] = qd[i+Q*2]*ug20 + qd[i+Q*4]*ug21 + qd[i+Q*5]*ug22;
   }
 }

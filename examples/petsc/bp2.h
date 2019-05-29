@@ -21,8 +21,8 @@
 #include <ceed.h>
 
 // *****************************************************************************
-static int SetupMass(void *ctx, CeedInt Q,
-                     const CeedScalar *const *in, CeedScalar *const *out) {
+static int SetupMass3(void *ctx, CeedInt Q,
+                      const CeedScalar *const *in, CeedScalar *const *out) {
   CeedScalar *rho = out[0], *true_soln = out[1], *rhs = out[2];
   const CeedScalar (*x)[Q] = (const CeedScalar (*)[Q])in[0];
   const CeedScalar (*J)[3][Q] = (const CeedScalar (*)[3][Q])in[1];
@@ -33,20 +33,37 @@ static int SetupMass(void *ctx, CeedInt Q,
                       + J[0][2][i] * (J[1][0][i]*J[2][1][i] - J[1][1][i]*J[2][0][i]));
     rho[i] = det * w[i];
 
-    true_soln[i] = PetscSqrtScalar(PetscSqr(x[0][i]) + PetscSqr(x[1][i]) +
-                                   PetscSqr(x[2][i]));
+    // Component 1
+    true_soln[i+0*Q] = PetscSqrtScalar(PetscSqr(x[0][i]) + PetscSqr(x[1][i]) +
+                                       PetscSqr(x[2][i]));
+    // Component 2
+    true_soln[i+1*Q] = true_soln[i+0*Q];
+    // Component 3
+    true_soln[i+2*Q] = true_soln[i+0*Q];
 
-    rhs[i] = rho[i] * true_soln[i];
+    // Component 1
+    rhs[i+0*Q] = rho[i] * true_soln[i+0*Q];
+    // Component 2
+    rhs[i+1*Q] = rhs[i+0*Q];
+    // Component 3
+    rhs[i+2*Q] = rhs[i+0*Q];
   }
   return 0;
 }
 
-static int Mass(void *ctx, CeedInt Q,
-                const CeedScalar *const *in, CeedScalar *const *out) {
+static int Mass3(void *ctx, CeedInt Q,
+                 const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *rho = in[1];
   CeedScalar *v = out[0];
   for (CeedInt i=0; i<Q; i++) {
-    v[i] = rho[i] * u[i];
+    // Component 1
+    v[i+0*Q] = rho[i] * u[i+0*Q];
+
+    // Component 2
+    v[i+1*Q] = rho[i] * u[i+1*Q];
+
+    // Component 3
+    v[i+2*Q] = rho[i] * u[i+2*Q];
   }
   return 0;
 }

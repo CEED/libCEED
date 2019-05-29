@@ -28,7 +28,7 @@ function run_tests()
    # The variables 'max_dofs_node', and 'max_p' can be set on the command line
    # invoking the 'benchmark.sh' script.
    local ceed="${ceed:-/cpu/self}"
-   local common_args=(-ceed $ceed -qextra 2 -pc_type none -benchmark -ksp_max_it 20)
+   local common_args=(-ceed $ceed -pc_type none -benchmark)
    local max_dofs_node_def=$((3*2**20))
    local max_dofs_node=${max_dofs_node:-$max_dofs_node_def}
    local max_loc_dofs=$((max_dofs_node/num_proc_node))
@@ -38,19 +38,16 @@ function run_tests()
       local loc_el=
       for ((loc_el = 1; loc_el*sol_p**3 <= max_loc_dofs; loc_el = 2*loc_el)); do
          local loc_dofs=$((loc_el*sol_p**3))
-         local all_args=("${common_args[@]}" -degree $sol_p -local $loc_dofs)
+         local all_args=("${common_args[@]}" -degree $sol_p -local $loc_dofs -problem $bp)
          if [ -z "$dry_run" ]; then
             echo
             echo "Running test:"
-            quoted_echo $mpi_run ./petsc-bp1 "${all_args[@]}"
-            $mpi_run ./petsc-bp1 "${all_args[@]}" || \
+            quoted_echo $mpi_run ./petsc-bps "${all_args[@]}"
+            $mpi_run ./petsc-bps "${all_args[@]}" || \
                printf "\nError in the test, error code: $?\n\n"
          else
-            $dry_run $mpi_run ./petsc-bp1 "${all_args[@]}"
+            $dry_run $mpi_run ./petsc-bps "${all_args[@]}"
          fi
       done
    done
 }
-
-
-test_required_examples="petsc-bp1"
