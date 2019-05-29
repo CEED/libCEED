@@ -7,7 +7,7 @@
       integer x,n
       real*8 a(10)
       real*8 b(10)
-      integer*8 aoffset, boffset
+      integer*8 aoffset,boffset
       character arg*32
 
       call getarg(1,arg)

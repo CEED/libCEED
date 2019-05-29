@@ -107,6 +107,8 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
 
 // PETSc user data
 typedef struct User_ *User;
+typedef struct Units_ *Units;
+
 struct User_ {
   MPI_Comm comm;
   PetscInt degree;
@@ -114,6 +116,7 @@ struct User_ {
   PetscInt outputfreq;
   DM dm;
   Ceed ceed;
+  Units units;
   CeedVector qceed, gceed;
   CeedOperator op;
   VecScatter ltog;              // Scatter for all entries
@@ -122,6 +125,22 @@ struct User_ {
   Vec Qloc, Gloc, M, BC;
   char outputfolder[PETSC_MAX_PATH_LEN];
   PetscInt contsteps;
+};
+
+struct Units_ {
+  // fundamental units
+  PetscScalar meter;
+  PetscScalar kilogram;
+  PetscScalar second;
+  PetscScalar Kelvin;
+  // derived units
+  PetscScalar Pascal;
+  PetscScalar JperkgK;
+  PetscScalar mpersquareds;
+  PetscScalar WpermK;
+  PetscScalar kgpercubicm;
+  PetscScalar kgpersquaredms;
+  PetscScalar Joulepercubicm;
 };
 
 // This is the RHS of the ODE, given as u_t = G(t,u)
@@ -195,16 +214,24 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   // Set up output
   PetscFunctionBeginUser;
   ierr = DMGetGlobalVector(user->dm, &U); CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject)U, "StateVec");
   ierr = DMDAGetLocalInfo(user->dm, &info); CHKERRQ(ierr);
   ierr = DMDAVecGetArray(user->dm, U, &u); CHKERRQ(ierr);
   ierr = VecGetArrayRead(Q, &q); CHKERRQ(ierr);
   for (PetscInt i=0; i<info.zm; i++) {
     for (PetscInt j=0; j<info.ym; j++) {
       for (PetscInt k=0; k<info.xm; k++) {
-        for (PetscInt c=0; c<5; c++) {
-          u[info.zs+i][info.ys+j][(info.xs+k)*5+c] =
-                  q[((i*info.ym+j)*info.xm+k)*5 + c];
-        }
+        // scale back each component of solution vector
+        u[info.zs+i][info.ys+j][(info.xs+k)*5 + 0] =
+            q[((i*info.ym+j)*info.xm+k)*5 + 0] / user->units->kgpercubicm;
+        u[info.zs+i][info.ys+j][(info.xs+k)*5 + 1] =
+            q[((i*info.ym+j)*info.xm+k)*5 + 1] / user->units->kgpersquaredms;
+        u[info.zs+i][info.ys+j][(info.xs+k)*5 + 2] =
+            q[((i*info.ym+j)*info.xm+k)*5 + 2] / user->units->kgpersquaredms;
+        u[info.zs+i][info.ys+j][(info.xs+k)*5 + 3] =
+            q[((i*info.ym+j)*info.xm+k)*5 + 3] / user->units->kgpersquaredms;
+        u[info.zs+i][info.ys+j][(info.xs+k)*5 + 4] =
+            q[((i*info.ym+j)*info.xm+k)*5 + 4] / user->units->Joulepercubicm;
       }
     }
   }
@@ -230,6 +257,8 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   // Save time stamp
+  // Dimensionalize time back
+  time /= user->units->second;
   ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.bin",
                        user->outputfolder); CHKERRQ(ierr);
   ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
@@ -248,11 +277,12 @@ int main(int argc, char **argv) {
   TS ts;
   TSAdapt adapt;
   User user;
+  Units units;
   char ceedresource[4096] = "/cpu/self";
   PetscFunctionList icsflist = NULL, qflist = NULL;
   char problemtype[PETSC_MAX_PATH_LEN] = "advection";
-  PetscInt degree, qextra, localNelem, lsize, outputfreq,
-           steps, melem[3], mdof[3], p[3], irank[3], ldof[3], contsteps;
+  PetscInt localNelem, lsize, steps,
+           melem[3], mdof[3], p[3], irank[3], ldof[3];
   PetscMPIInt size, rank;
   PetscScalar ftime;
   PetscScalar *q0, *m, *mult, *x;
@@ -268,32 +298,43 @@ int main(int argc, char **argv) {
                       restrictq, restrictqdi, restrictmult;
   CeedQFunction qf_setup, qf_mass, qf_ics, qf;
   CeedOperator op_setup, op_mass, op_ics, op;
+  CeedScalar Rd;
+  PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
+              kgpersquaredms, Joulepercubicm;
 
   // Create the libCEED contexts
+  PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
+  PetscScalar second    = 1e-2;     // 1 second in scaled time units
+  PetscScalar kilogram  = 1e-6;     // 1 kilogram in scaled mass units
+  PetscScalar Kelvin    = 1;        // 1 Kelvin in scaled temperature units
   CeedScalar theta0     = 300.;     // K
   CeedScalar thetaC     = -15.;     // K
-  CeedScalar P0         = 1.e5;     // kg/m s^2
+  CeedScalar P0         = 1.e5;     // Pa
   CeedScalar N          = 0.01;     // 1/s
-  CeedScalar cv         = 717.;     // J/kg K
-  CeedScalar cp         = 1004.;    // J/kg K
-  CeedScalar Rd         = cp - cv;  // J/kg K
+  CeedScalar cv         = 717.;     // J/(kg K)
+  CeedScalar cp         = 1004.;    // J/(kg K)
   CeedScalar g          = 9.81;     // m/s^2
   CeedScalar lambda     = -2./3.;   // -
   CeedScalar mu         = 75.;      // Pa s (dynamic viscosity, not physical for air, but good for numerical stability)
-  CeedScalar k          = 0.02638;  // W/m K
-  CeedScalar rc;                    // m (Radius of bubble)
-  PetscScalar lx;                   // m
-  PetscScalar ly;                   // m
-  PetscScalar lz;                   // m
-  PetscScalar resx;                 // m (resolution in x)
-  PetscScalar resy;                 // m (resolution in y)
-  PetscScalar resz;                 // m (resolution in z)
+  CeedScalar k          = 0.02638;  // W/(m K)
+  PetscScalar lx        = 8000.;    // m
+  PetscScalar ly        = 8000.;    // m
+  PetscScalar lz        = 4000.;    // m
+  CeedScalar rc         = 1000.;    // m (Radius of bubble)
+  PetscScalar resx      = 1000.;    // m (resolution in x)
+  PetscScalar resy      = 1000.;    // m (resolution in y)
+  PetscScalar resz      = 1000.;    // m (resolution in z)
+  PetscInt outputfreq   = 10;       // -
+  PetscInt contsteps    = 0;        // -
+  PetscInt degree       = 3;        // -
+  PetscInt qextra       = 2;        // -
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
 
   // Allocate PETSc context
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
 
   // Set up problem type command line option
   PetscFunctionListAdd(&icsflist, "advection", &ICsAdvection);
@@ -310,6 +351,18 @@ int main(int argc, char **argv) {
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
   PetscOptionsFList("-problem", "Problem to solve", NULL, icsflist,
                     problemtype, problemtype, sizeof problemtype, NULL);
+  ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
+                            NULL, meter, &meter, NULL); CHKERRQ(ierr);
+  meter = fabs(meter);
+  ierr = PetscOptionsScalar("-units_second","1 second in scaled time units",
+                            NULL, second, &second, NULL); CHKERRQ(ierr);
+  second = fabs(second);
+  ierr = PetscOptionsScalar("-units_kilogram","1 kilogram in scaled mass units",
+                            NULL, kilogram, &kilogram, NULL); CHKERRQ(ierr);
+  kilogram = fabs(kilogram);
+  ierr = PetscOptionsScalar("-units_Kelvin","1 Kelvin in scaled temperature units",
+                            NULL, Kelvin, &Kelvin, NULL); CHKERRQ(ierr);
+  Kelvin = fabs(Kelvin);
   ierr = PetscOptionsScalar("-theta0", "Reference potential temperature",
                             NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-thetaC", "Perturbation of potential temperature",
@@ -330,51 +383,61 @@ int main(int argc, char **argv) {
                             NULL, mu, &mu, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-k", "Thermal conductivity",
                             NULL, k, &k, NULL); CHKERRQ(ierr);
-  lx = 8000.;
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                             NULL, lx, &lx, NULL); CHKERRQ(ierr);
-  lx = fabs(lx);
-  ly = 8000.;
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
                             NULL, ly, &ly, NULL); CHKERRQ(ierr);
-  ly = fabs(ly);
-  lz = 4000.;
   ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
                             NULL, lz, &lz, NULL); CHKERRQ(ierr);
-  lz = fabs(lz);
-  rc = PetscMin(PetscMin(lx,ly),lz)/4.;
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                             NULL, rc, &rc, NULL); CHKERRQ(ierr);
-  rc = fabs(rc);
-  outputfreq = 10;
+  ierr = PetscOptionsScalar("-resx","Resolution in x",
+                            NULL, resx, &resx, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-resy","Resolution in y",
+                            NULL, resy, &resy, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-resz","Resolution in z",
+                            NULL, resz, &resz, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
-  contsteps = 0;
   ierr = PetscOptionsInt("-continue", "Continue from previous solution",
                          NULL, contsteps, &contsteps, NULL); CHKERRQ(ierr);
-  degree = 3;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
-  qextra = 2;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
   PetscStrncpy(user->outputfolder, ".", 2);
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
                             sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
-  resx = 1000.;
-  ierr = PetscOptionsScalar("-resx","Resolution in x",
-                            NULL, resx, &resx, NULL); CHKERRQ(ierr);
-  resx = fabs(resx);
-  resy = 1000.;
-  ierr = PetscOptionsScalar("-resy","Resolution in y",
-                            NULL, resy, &resy, NULL); CHKERRQ(ierr);
-  resy = fabs(resy);
-  resz = 1000.;
-  ierr = PetscOptionsScalar("-resz","Resolution in z",
-                            NULL, resz, &resz, NULL); CHKERRQ(ierr);
-  resz = fabs(resz);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  // Define derived units
+  Pascal = kilogram / (meter * PetscSqr(second));
+  JperkgK =  PetscSqr(meter) / (PetscSqr(second) * Kelvin);
+  mpersquareds = meter / PetscSqr(second);
+  WpermK = kilogram * meter / (pow(second,3) * Kelvin);
+  kgpercubicm = kilogram / pow(meter,3);
+  kgpersquaredms = kilogram / (PetscSqr(meter) * second);
+  Joulepercubicm = kilogram / (meter * PetscSqr(second));
+
+  // Scale variables to desired units
+  theta0 *= Kelvin;
+  thetaC *= Kelvin;
+  P0 *= Pascal;
+  N *= (1./second);
+  cv *= JperkgK;
+  cp *= JperkgK;
+  Rd = cp - cv;
+  g *= mpersquareds;
+  mu *= Pascal * second;
+  k *= WpermK;
+  lx = fabs(lx) * meter;
+  ly = fabs(ly) * meter;
+  lz = fabs(lz) * meter;
+  rc = fabs(rc) * meter;
+  resx = fabs(resx) * meter;
+  resy = fabs(resy) * meter;
+  resz = fabs(resz) * meter;
 
   // Determine size of process grid
   ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
@@ -402,7 +465,8 @@ int main(int argc, char **argv) {
 
   // Set up global state vector
   ierr = VecCreate(comm, &Q); CHKERRQ(ierr);
-  ierr = VecSetSizes(Q, 5*mdof[0]*mdof[1]*mdof[2], PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetSizes(Q, 5*mdof[0]*mdof[1]*mdof[2], PETSC_DECIDE);
+  CHKERRQ(ierr);
   ierr = VecSetUp(Q); CHKERRQ(ierr);
 
   // Set up local state vector
@@ -436,7 +500,8 @@ int main(int argc, char **argv) {
 
   // Set up global coordinates vector
   ierr = VecCreate(comm, &X); CHKERRQ(ierr);
-  ierr = VecSetSizes(X, 3*mdof[0]*mdof[1]*mdof[2], PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetSizes(X, 3*mdof[0]*mdof[1]*mdof[2], PETSC_DECIDE);
+  CHKERRQ(ierr);
   ierr = VecSetUp(X); CHKERRQ(ierr);
 
   // Set up local coordinates vector
@@ -548,8 +613,8 @@ int main(int argc, char **argv) {
           ldofs[d][r] = ijkdof[d];
         }
       }
-      ierr = DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
-                          DMDA_STENCIL_STAR,
+      ierr = DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
+                          DM_BOUNDARY_NONE, DMDA_STENCIL_STAR,
                           degree*melem[2]*p[2]+1, degree*melem[1]*p[1]+1,
                           degree*melem[0]*p[0]+1,
                           p[2], p[1], p[0], 5, 0,
@@ -560,7 +625,7 @@ int main(int argc, char **argv) {
       ierr = DMDASetFieldName(dm, 1, "MomentumX"); CHKERRQ(ierr);
       ierr = DMDASetFieldName(dm, 2, "MomentumY"); CHKERRQ(ierr);
       ierr = DMDASetFieldName(dm, 3, "MomentumZ"); CHKERRQ(ierr);
-      ierr = DMDASetFieldName(dm, 4, "Total Energy"); CHKERRQ(ierr);
+      ierr = DMDASetFieldName(dm, 4, "EnergyDensity"); CHKERRQ(ierr);
     }
   }
 
@@ -721,11 +786,26 @@ int main(int argc, char **argv) {
   CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
 
   // Set up PETSc context
+  // Set up units structure
+  units->meter = meter;
+  units->kilogram = kilogram;
+  units->second = second;
+  units->Kelvin = Kelvin;
+  units->Pascal = Pascal;
+  units->JperkgK = JperkgK;
+  units->mpersquareds = mpersquareds;
+  units->WpermK = WpermK;
+  units->kgpercubicm = kgpercubicm;
+  units->kgpersquaredms = kgpersquaredms;
+  units->Joulepercubicm = Joulepercubicm;
+
+  // Set up user structure
   user->comm = comm;
   user->degree = degree;
   for (int d=0; d<3; d++) user->melem[d] = melem[d];
   user->outputfreq = outputfreq;
-  user->contsteps = contsteps;
+  user->contsteps = contsteps;  
+  user->units = units;
   user->dm = dm;
   user->ceed = ceed;
   CeedVectorCreate(ceed, 5*lsize, &user->qceed);
@@ -840,11 +920,13 @@ int main(int argc, char **argv) {
   ierr = TSSetType(ts, TSRK); CHKERRQ(ierr);
   ierr = TSRKSetType(ts, TSRK5F); CHKERRQ(ierr);
   ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
-  ierr = TSSetMaxTime(ts, 500.); CHKERRQ(ierr);
+  ierr = TSSetMaxTime(ts, 500. * units->second); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
-  ierr = TSSetTimeStep(ts, 1.e-5); CHKERRQ(ierr);
+  ierr = TSSetTimeStep(ts, 1.e-5 * units->second); CHKERRQ(ierr);
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
-  ierr = TSAdaptSetStepLimits(adapt, 1.e-12, 1.e-2); CHKERRQ(ierr);
+  ierr = TSAdaptSetStepLimits(adapt,
+                              1.e-12 * units->second,
+                              1.e-2 * units->second); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   if (!contsteps){ // print initial condition
     ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
@@ -860,7 +942,7 @@ int main(int argc, char **argv) {
     ierr = PetscViewerBinaryRead(viewer, &time, 1, &count, PETSC_REAL);
     CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-    ierr = TSSetTime(ts, time); CHKERRQ(ierr);
+    ierr = TSSetTime(ts, time * user->units->second); CHKERRQ(ierr);
   }
   ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
 
@@ -908,6 +990,7 @@ int main(int argc, char **argv) {
   ierr = VecScatterDestroy(&ltogX); CHKERRQ(ierr);
   ierr = TSDestroy(&ts); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
+  ierr = PetscFree(units); CHKERRQ(ierr);
   ierr = PetscFree(user); CHKERRQ(ierr);
   return PetscFinalize();
 }

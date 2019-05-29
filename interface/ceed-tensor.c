@@ -40,7 +40,8 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
 
   if (!ceed->TensorContractCreate) {
     Ceed delegate;
-    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "TensorContract");
+    CeedChk(ierr);
 
     if (!delegate)
       return CeedError(ceed, 1,

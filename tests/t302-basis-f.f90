@@ -31,7 +31,7 @@
       real*8 xxq(q)
       real*8 uuq(q)
       real*8 px
-      integer*8 offset1,offset2
+      integer*8 uqoffset,xoffset,offset1,offset2
 
       character arg*32
 
@@ -42,7 +42,8 @@
       call ceedinit(trim(arg)//char(0),ceed,err)
 
       call ceedvectorcreate(ceed,2,x,err)
-      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,xx,err)
+      xoffset=0
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,xx,xoffset,err)
       call ceedvectorcreate(ceed,q,xq,err)
       call ceedvectorsetvalue(xq,0.d0,err)
       call ceedvectorcreate(ceed,q,u,err)
@@ -62,7 +63,9 @@
         call polyeval(xxq(i+offset1),6,p,uuq(i))
       enddo
       call ceedvectorrestorearrayread(xq,xxq,offset1,err)
-      call ceedvectorsetarray(uq,ceed_mem_host,ceed_use_pointer,uuq,err)
+      uqoffset=0
+      call ceedvectorsetarray(uq,ceed_mem_host,ceed_use_pointer,uuq,uqoffset,&
+     & err)
 
       call ceedbasisapply(bul,1,ceed_transpose,ceed_eval_interp,uq,u,err)
 

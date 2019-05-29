@@ -14,7 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <string.h>
 #include "ceed-xsmm.h"
 
 static int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
@@ -27,8 +26,8 @@ static int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
 
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
-  CeedInit("/cpu/self/ref/blocked", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+  CeedInit("/cpu/self/opt/blocked", &ceedref);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
                                 CeedTensorContractCreate_Xsmm); CeedChk(ierr);

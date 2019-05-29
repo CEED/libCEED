@@ -14,8 +14,7 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 #include <ceed-backend.h>
-#include "../include/ceed.h"
-#include <ceed-impl.h>
+#include <ceed.h>
 #include <nvrtc.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -64,11 +63,12 @@ CEED_INTERN int CeedBasisCreateH1_Cuda_reg(CeedElemTopology, CeedInt, CeedInt,
     const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
 
 CEED_INTERN int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype,
-                                                   CeedCopyMode cmode,
-                                                   const CeedInt *indices,
-                                                   CeedElemRestriction r);
+    CeedCopyMode cmode,
+    const CeedInt *indices,
+    CeedElemRestriction r);
 
-CEED_INTERN int CeedElemRestrictionCreateBlocked_Cuda_reg(const CeedMemType mtype,
-                                                          const CeedCopyMode cmode,
-                                                          const CeedInt *indices,
-                                                          const CeedElemRestriction r);
+CEED_INTERN int CeedElemRestrictionCreateBlocked_Cuda_reg(
+  const CeedMemType mtype,
+  const CeedCopyMode cmode,
+  const CeedInt *indices,
+  const CeedElemRestriction r);

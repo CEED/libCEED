@@ -20,15 +20,15 @@ const int sizeMax = 16;
 __constant__ double c_B[sizeMax*sizeMax];
 __constant__ double c_G[sizeMax*sizeMax];
 
-extern "C" int CeedCudaRegInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
-                                     CeedScalar **c_B_ptr) {
+extern "C" int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
+                                  CeedScalar **c_B_ptr) {
   const int Bsize = P1d*Q1d*sizeof(CeedScalar);
   cudaMemcpyToSymbol(c_B, d_B, Bsize, 0, cudaMemcpyDeviceToDevice);
   cudaGetSymbolAddress((void **)c_B_ptr, c_B);
   return 0;
 }
 
-extern "C" int CeedCudaRegInitInterpGrad(CeedScalar *d_B, CeedScalar *d_G,
+extern "C" int CeedCudaInitInterpGrad(CeedScalar *d_B, CeedScalar *d_G,
     CeedInt P1d, CeedInt Q1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
   const int Bsize = P1d*Q1d*sizeof(CeedScalar);
   cudaMemcpyToSymbol(c_B, d_B, Bsize, 0, cudaMemcpyDeviceToDevice);

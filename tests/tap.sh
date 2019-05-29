@@ -6,8 +6,17 @@ ulimit -c 0 # Do not dump core
 export CEED_ERROR_HANDLER=exit
 
 output=$(mktemp $1.XXXX)
-
 backends=(${BACKENDS:?Variable must be set, e.g., \"/cpu/self/ref /cpu/self/blocked\"})
+target="$1"
+# Only the unit tests (txxx) link with libceed_test (where /cpu/self/tmpl is
+# defined), so filter those backends out for everything else.  Note that this is
+# only relevant for the prove target; the test and junit targets are managed in
+# the makefile and set BACKENDS appropriately.
+if [ "t" != "${target::1}" ]; then
+    for idx in ${!backends[@]}; do
+        test /cpu/self/tmpl = ${backends[$idx]::14} && unset backends[$idx]
+    done
+fi
 printf "1..$[3*${#backends[@]}]\n";
 
 # for examples/ceed petsc*, mfem*, or ex* grep the code to fetch arguments from a TESTARGS line
@@ -53,7 +62,7 @@ for ((i=0;i<${#backends[@]}; ++i)); do
         continue
     fi
 
-    # grep to pass test t103, t104, t105, t106 on error
+    # grep to pass test t103, t104, t105, t106, t107 on error
     if grep -F -q -e 'access' ${output}.err \
             && [[ "$1" = "t103"* || "$1" = "t104"* || "$1" = "t105"* || "$1" = "t106"* || "$1" = "t107"* ]] ; then
         printf "ok $i0 PASS - expected failure $1 $backend\n"
@@ -68,6 +77,15 @@ for ((i=0;i<${#backends[@]}; ++i)); do
         printf "ok $i0 PASS - expected failure $1 $backend\n"
         printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
         printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
+        continue
+    fi
+
+    # grep to skip test if Device memory is not supported
+    if grep -F -q -e 'Can only provide to HOST memory' \
+            ${output}.err ; then
+        printf "ok $i0 # SKIP - not supported $1 $backend\n"
+        printf "ok $i1 # SKIP - not supported $1 $backend stdout\n"
+        printf "ok $i2 # SKIP - not supported $1 $backend stderr\n"
         continue
     fi
 

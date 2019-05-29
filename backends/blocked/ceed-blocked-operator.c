@@ -14,7 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <string.h>
 #include "ceed-blocked.h"
 #include "../ref/ceed-ref.h"
 
@@ -53,8 +52,8 @@ static int CeedOperatorDestroy_Blocked(CeedOperator op) {
 /*
   Setup infields or outfields
  */
-static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op,
-    bool inOrOut,
+static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
+    CeedOperator op, bool inOrOut,
     CeedElemRestriction *blkrestr,
     CeedVector *fullevecs, CeedVector *evecs,
     CeedVector *qvecs, CeedInt starte,
@@ -208,7 +207,8 @@ static int CeedOperatorSetup_Blocked(CeedOperator op) {
 }
 
 static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
-                                     CeedVector outvec, CeedRequest *request) {
+                                     CeedVector outvec,
+                                     CeedRequest *request) {
   int ierr;
   CeedOperator_Blocked *impl;
   ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);

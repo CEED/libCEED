@@ -55,7 +55,8 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
   if (!ceed->ElemRestrictionCreate) {
     Ceed delegate;
-    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction");
+    CeedChk(ierr);
 
     if (!delegate)
       return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreate");
@@ -105,7 +106,8 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
 
   if (!ceed->ElemRestrictionCreate) {
     Ceed delegate;
-    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction");
+    CeedChk(ierr);
 
     if (!delegate)
       return CeedError(ceed, 1,
@@ -200,7 +202,8 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
   if (!ceed->ElemRestrictionCreateBlocked) {
     Ceed delegate;
-    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction");
+    CeedChk(ierr);
 
     if (!delegate)
       return CeedError(ceed, 1,
@@ -304,6 +307,56 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
                      "Output vector size %d not compatible with element restriction (%d, %d)",
                      v->length, m, n);
   ierr = rstr->Apply(rstr, tmode, lmode, u, v, request); CeedChk(ierr);
+
+  return 0;
+}
+
+/**
+  @brief Restrict an L-vector to a block of an E-vector or apply transpose
+
+  @param rstr    CeedElemRestriction
+  @param block   Block number to restrict to/from, i.e. block=0 will handle
+                 elements [0 : blksize] and block=3 will handle elements
+                 [3*blksize : 4*blksize]
+  @param tmode   Apply restriction or transpose
+  @param lmode   Ordering of the ncomp components
+  @param u       Input vector (of size @a ndof when tmode=CEED_NOTRANSPOSE)
+  @param v       Output vector (of size @a nelem * @a elemsize when tmode=CEED_NOTRANSPOSE)
+  @param request Request or CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
+                                  CeedTransposeMode tmode,
+                                  CeedTransposeMode lmode,
+                                  CeedVector u, CeedVector v,
+                                  CeedRequest *request) {
+  CeedInt m,n;
+  int ierr;
+
+  if (tmode == CEED_NOTRANSPOSE) {
+    m = rstr->blksize * rstr->elemsize * rstr->ncomp;
+    n = rstr->ndof * rstr->ncomp;
+  } else {
+    m = rstr->ndof * rstr->ncomp;
+    n = rstr->blksize * rstr->elemsize * rstr->ncomp;
+  }
+  if (n != u->length)
+    return CeedError(rstr->ceed, 2,
+                     "Input vector size %d not compatible with element restriction (%d, %d)",
+                     u->length, m, n);
+  if (m != v->length)
+    return CeedError(rstr->ceed, 2,
+                     "Output vector size %d not compatible with element restriction (%d, %d)",
+                     v->length, m, n);
+  if (rstr->blksize*block > rstr->nelem)
+    return CeedError(rstr->ceed, 2,
+                     "Cannot retrieve block %d, element %d > total elements %d",
+                     block, rstr->blksize*block, rstr->nelem);
+  ierr = rstr->ApplyBlock(rstr, block, tmode, lmode, u, v, request);
+  CeedChk(ierr);
 
   return 0;
 }

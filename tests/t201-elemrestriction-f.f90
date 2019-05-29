@@ -13,7 +13,7 @@
       real*8 a(2*ne)
       real*8 yy(2*ne)
       real*8 diff
-      integer*8 yoffset
+      integer*8 aoffset,yoffset
 
       character arg*32
 
@@ -26,7 +26,8 @@
         a(i)=10+i-1
       enddo
 
-      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,err)
+      aoffset=0
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,aoffset,err)
 
       call ceedelemrestrictioncreateidentity(ceed,ne,2,2*ne,1,r,err)
 

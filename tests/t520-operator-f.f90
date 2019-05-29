@@ -66,7 +66,7 @@
       parameter(nqpts=nqptstet+nqptshex)
       integer indxtet(nelemtet*ptet),indxhex(nelemhex*phex*phex)
       real*8 arrx(d*ndofs)
-      integer*8 voffset
+      integer*8 voffset,xoffset
 
       real*8 qref(d*qtet)
       real*8 qweight(qtet)
@@ -92,7 +92,8 @@
       enddo
 
       call ceedvectorcreate(ceed,d*ndofs,x,err)
-      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,err)
+      xoffset=0
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,xoffset,err)
 
 ! Qdata Vectors
       call ceedvectorcreate(ceed,nqptstet,qdatatet,err)
