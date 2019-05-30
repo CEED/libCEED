@@ -65,7 +65,9 @@ script:
   - export COVERAGE=1
   - make -j2
   - make -j2 prove-all PROVE_OPTS=-v
-  - clang-tidy --version && make -j2 tidy || true
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        clang-tidy --version && make -j2 tidy;
+    fi
 
 after_success:
   - bash <(curl -s https://codecov.io/bash) -F interface
