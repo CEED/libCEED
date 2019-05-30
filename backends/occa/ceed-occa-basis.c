@@ -125,6 +125,7 @@ static int CeedTensorContract_Occa(CeedInt A, CeedInt B, CeedInt C, CeedInt J,
       for (CeedInt j=0; j<J; j++) {
         CeedScalar tq = t[j*tstride0 + b*tstride1];
         for (CeedInt c=0; c<C; c++)
+          // NOLINTNEXTLINE: False positive for unitalized values
           v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
       }
   return 0;
