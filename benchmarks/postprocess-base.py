@@ -107,16 +107,14 @@ while True:
       parts=line.split()
       i=0
       while i < len(parts):
-         if parts[i]=='-qextra':
-            i=i+1
-            data['quadrature-pts']=int(parts[i])
-         elif parts[i]=='-degree':
+         if parts[i]=='-degree':
             i=i+1
             data['order']=int(parts[i])
          elif parts[i]=='-ceed':
             i=i+1
             data['ceed']=parts[i]
          i=i+1
+      data['quadrature-pts']=2 #(default)
       qpts=data['quadrature-pts']+data['order']
       data['quadrature-pts']=qpts**3
       state=1
