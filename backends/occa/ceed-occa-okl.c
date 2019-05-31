@@ -32,6 +32,7 @@ int CeedOklPath_Occa(const Ceed ceed, const char *c_src_file,
   if (!last_dot)
     return CeedError(ceed, 1, "Cannot find file's extension!");
   const size_t okl_path_len = last_dot - okl;
+  // TODO: Update strncpy to avoid memory corruption
   strncpy(&okl[okl_path_len],".okl",5);
   dbg("[CeedOklPath] Current OKL is %s",okl);
   // Test if we can get file's status,
