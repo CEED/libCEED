@@ -32,7 +32,6 @@ exec(compile(open('postprocess-base.py').read(), 'postprocess-base.py', 'exec'))
 
 
 #####   Sample plot output
-
 from matplotlib import use
 if not show_figures:
    use('pdf')
@@ -49,15 +48,13 @@ elif 'colors' in cm.__dict__:
    cm_size=len(cm.__dict__['colors'])
 colors=[cm(1.*i/(cm_size-1)) for i in range(cm_size)]
 
-# colors=['blue','green','crimson','turquoise','m','gold','cornflowerblue',
-#         'darkorange']
-
+##### Get runs
 sel_runs=runs
-
 tests=list(set([run['test'].rsplit('/',1)[-1].rsplit('.sh',1)[0]
                 for run in sel_runs]))
-# print 'Present tests:', tests
 test=tests[0]
+
+##### Run information
 print('Using test:', test)
 test_short=test
 sel_runs=[run for run in sel_runs if
@@ -74,12 +71,13 @@ codes = list(set([run['code'] for run in sel_runs]))
 code  = codes[0]
 sel_runs=[run for run in sel_runs if run['code']==code]
 
+##### Group plots
 pl_set=[(run['backend'],run['num-procs'],run['num-procs-node'])
         for run in sel_runs]
 pl_set=sorted(set(pl_set))
 print()
-pprint.pprint(pl_set)
 
+##### Plotting
 for plt in pl_set:
    backend=plt[0]
    num_procs=plt[1]
@@ -92,7 +90,6 @@ for plt in pl_set:
    if len(pl_runs)==0:
       continue
 
-   print()
    print('backend: %s, compute nodes: %i, number of MPI tasks = %i'%(
       backend,num_nodes,num_procs))
 
@@ -111,9 +108,6 @@ for plt in pl_set:
          for run in pl_runs
          if run['order']==sol_p and
             run['quadrature-pts']==qpts[0]]
-      # print
-      # print 'order = %i'%sol_p
-      # pprint.pprint(sorted(d))
       d=[[e[2],e[3]] for e in d if e[0]==sol_p]
       # (DOFs/[sec/iter]/node)/(DOFs/node) = iter/sec
       d=[[nun,
@@ -168,10 +162,6 @@ for plt in pl_set:
       xlim(x_range)
    if 'y_range' in vars() and len(y_range)==2:
       ylim(y_range)
-   # rng=arange(1e7,1.02e8,1e7)
-   # yticks(rng,['%i'%int(v/1e6) for v in rng])
-   # ylim(min(rng),max(rng))
-   # xlim(0.5,max([run['order'] for run in pl_runs])+0.5)
    grid('on', color='gray', ls='dotted')
    grid('on', axis='both', which='minor', color='gray', ls='dotted')
    gca().set_axisbelow(True)
@@ -183,7 +173,7 @@ for plt in pl_set:
       shortbackend=backend.replace('/','')
       pdf_file='plot_%s_%s_%s_N%03i_pn%i.pdf'%(
                code,test_short,shortbackend,num_nodes,num_procs_node)
-      print('saving figure --> %s'%pdf_file)
+      print('\nsaving figure --> %s'%pdf_file)
       savefig(pdf_file, format='pdf', bbox_inches='tight')
 
 if show_figures: # show the figures?

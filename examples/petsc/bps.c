@@ -415,7 +415,7 @@ int main(int argc, char **argv) {
     ierr = PetscPrintf(comm,
                        "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
                        "  libCEED:\n"
-                       "    libCEED backend                    : %s\n"
+                       "    libCEED Backend                    : %s\n"
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
