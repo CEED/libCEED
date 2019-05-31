@@ -525,10 +525,18 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
 **/
 int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type) {
   int ierr;
+
   if (ceed->GetPreferredMemType) {
     ierr = ceed->GetPreferredMemType(type); CeedChk(ierr);
   } else {
-    *type = CEED_MEM_HOST;
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+
+    if (delegate) {
+      ierr = CeedGetPreferredMemType(delegate, type); CeedChk(ierr);
+    } else {
+      *type = CEED_MEM_HOST;
+    }
   }
 
   return 0;
