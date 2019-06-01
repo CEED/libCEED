@@ -21,6 +21,7 @@
 #include <ceed.h>
 #include <petscdmplex.h>
 #include <petsc/private/petscfeimpl.h>
+#include "petscds.h"   
 
 // *****************************************************************************
 static int Setup(void *ctx, CeedInt Q,
