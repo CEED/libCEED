@@ -87,7 +87,7 @@ while True:
                                   or ('Problem 5' in line)) else 'vector'
       ## Backend
       elif 'libCEED Backend' in line:
-         data['backend']=line.split(':')[1]
+         data['backend']=line.split(':')[1].strip()
       ## P
       elif 'Basis Nodes' in line:
          data['order']=int(line.split(':')[1])
