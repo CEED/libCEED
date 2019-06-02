@@ -280,10 +280,12 @@ endif
 # Cuda Backend
 CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
 CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
+CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg /gpu/cuda/shared
 ifneq ($(CUDA_LIB_DIR),)
-  $(libceed) : CFLAGS += -I$(CUDA_DIR)/include
+  $(libceed) : CPPFLAGS += -I$(CUDA_DIR)/include
   $(libceed) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
+  $(libceed) : LDFLAGS += -L$(CUDA_LIB_DIR_STUBS)
   $(libceed) : LDLIBS += -lcudart -lnvrtc -lcuda
   libceed.c  += $(cuda.c) $(cuda-reg.c) $(cuda-shared.c)
   libceed.cu += $(cuda.cu) $(cuda-reg.cu) $(cuda-shared.cu)
