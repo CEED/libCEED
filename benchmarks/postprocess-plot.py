@@ -56,7 +56,10 @@ test=tests[0]
 
 ##### Run information
 print('Using test:', test)
-test_short=test
+
+if 'CEED Benchmark Problem' in test:
+   test_short = 'bp' + test.strip().split(' ')[-1]
+
 sel_runs=[run for run in sel_runs if
           run['test'].rsplit('/',1)[-1].rsplit('.sh',1)[0]==test]
 
@@ -152,8 +155,8 @@ for plt in pl_set:
       plot(y/slope1,y,'k--',label='%g iter/s'%(slope1/vdim))
       plot(y/slope2,y,'k-',label='%g iter/s'%(slope2/vdim))
 
-   title('Config: %s (%i node%s, %i tasks/node), %s, %s'%(
-         code,num_nodes,'' if num_nodes==1 else 's',
+   title('(%i node%s, %i tasks/node), %s, %s'%(
+         num_nodes,'' if num_nodes==1 else 's',
          num_procs_node,backend,test_short))
    xscale('log') # subsx=[2,4,6,8]
    if log_y:
