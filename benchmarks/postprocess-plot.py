@@ -119,7 +119,7 @@ for plt in pl_set:
          for nun in set([e[0] for e in d])]
       d=asarray(sorted(d))
       plot(d[:,0],d[:,2],'o-',color=colors[i%cm_size],
-           label='p=%i'%(sol_p))
+           label='p=%i'%(sol_p-1))
       if list(d[:,1]) != list(d[:,2]):
          plot(d[:,0],d[:,1],'o-',color=colors[i])
          fill_between(d[:,0],d[:,1],d[:,2],facecolor=colors[i],alpha=0.2)
@@ -141,7 +141,7 @@ for plt in pl_set:
          for nun in set([e[0] for e in d])]
       d=asarray(sorted(d))
       plot(d[:,0],d[:,2],'s--',color=colors[i],
-           label='p=%i, q=p+%i'%(sol_p,qpts_1d[1]-sol_p))
+           label='p=%i'%(sol_p-1))
       if list(d[:,1]) != list(d[:,2]):
          plot(d[:,0],d[:,1],'s--',color=colors[i])
       ##
