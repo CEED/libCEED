@@ -500,4 +500,30 @@ print-% :
 	$(info )
 	@true
 
+# "make configure" will autodetect any variables not passed on the
+# command line, caching the result in config.mk to be used on any
+# subsequent invocations of make.  For example,
+#
+#   make configure CC=/path/to/my/cc CUDA_DIR=/opt/cuda
+#   make
+#   make prove
+configure :
+	@echo "CC = $(CC)" | tee config.mk
+	@echo "FC = $(FC)" | tee config.mk
+	@echo "NVCC = $(NVCC)" | tee config.mk
+	@echo "CFLAGS = $(CFLAGS)" | tee -a config.mk
+	@echo "CPPFLAGS = $(CPPFLAGS)" | tee -a config.mk
+	@echo "FFLAGS = $(FFLAGS)" | tee -a config.mk
+	@echo "LDFLAGS = $(LDFLAGS)" | tee -a config.mk
+	@echo "LDLIBS = $(LDLIBS)" | tee -a config.mk
+	@echo "MAGMA_DIR = $(MAGMA_DIR)" | tee -a config.mk
+	@echo "XSMM_DIR = $(XSMM_DIR)" | tee -a config.mk
+	@echo "CUDA_DIR = $(CUDA_DIR)" | tee -a config.mk
+	@echo "MFEM_DIR = $(MFEM_DIR)" | tee -a config.mk
+	@echo "PETSC_DIR = $(PETSC_DIR)" | tee -a config.mk
+	@echo "NEK5K_DIR = $(NEK5K_DIR)" | tee -a config.mk
+	@echo "Configuration cached in config.mk"
+
+.PHONY : configure
+
 -include $(libceed.c:%.c=$(OBJDIR)/%.d) $(tests.c:tests/%.c=$(OBJDIR)/%.d)
