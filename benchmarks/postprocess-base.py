@@ -15,12 +15,12 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 from sys import stdout as out
+import pandas as pd
 import fileinput
 import pprint
 
 #####   Read all input files specified on the command line, or stdin and parse
-#####   the content, storing it as a list of dictionaries - one dictionary for
-#####   each test run.
+#####   the content, storing it as a pandas dataframe
 
 it=fileinput.input()
 state=0
@@ -66,17 +66,20 @@ while True:
          ##
          ## This is the beginning of a new run.
          ##
-         if 'cg-iteration-dps' in data:
+
+         ## Add last row
+         if 'cg_iteration_dps' in data:
             runs.append(data)
+         ## New row
          data={}
          data['file']=fileinput.filename()
          data['config']=config
          data['backend']=backend
          data['test']=test
-         data['num-procs']=num_procs
-         data['num-procs-node']=num_procs_node
+         data['num_procs']=num_procs
+         data['num_procs_node']=num_procs_node
          data['order']=mesh_p
-         data['quadrature-pts']=mesh_p
+         data['quadrature_pts']=mesh_p
          data['code']="libCEED"
          test_=test.rsplit('/',1)[-1]
          data['case']='scalar'
@@ -94,19 +97,24 @@ while True:
       ## Q
       elif 'Quadrature Points' in line:
          qpts=int(line.split(':')[1])
-         data['quadrature-pts']=qpts**3
+         data['quadrature_pts']=qpts**3
       ## Total DOFs
       elif 'Global DOFs' in line:
-         data['num-unknowns']=int(line.split(':')[1])
+         data['num_unknowns']=int(line.split(':')[1])
       ## Number of elements
       elif 'Local Elements' in line:
-         data['num-elem']=int(line.split(':')[1].split()[0])*data['num-procs']
+         data['num_elem']=int(line.split(':')[1].split()[0])*data['num_procs']
       ## CG DOFs/Sec
       elif 'DOFs/Sec in CG' in line:
-         data['cg-iteration-dps']=1e6*float(line.split(':')[1].split()[0])
+         data['cg_iteration_dps']=1e6*float(line.split(':')[1].split()[0])
       ## End of output
 
-if 'cg-iteration-dps' in data:
+## Add last row
+if 'cg_iteration_dps' in data:
    runs.append(data)
 
+## Convert to dataframe
+runs = pd.DataFrame(runs)
+
+## Summary
 print('Number of test runs read: %i'%len(runs))
