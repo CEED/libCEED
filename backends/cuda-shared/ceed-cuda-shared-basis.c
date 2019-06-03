@@ -33,12 +33,12 @@ inline __device__ void add(CeedScalar *r_V, const CeedScalar *r_U) {
 //////////
 
 inline __device__ void readDofs1d(const int elem, const int tidx,
-                                  const int tidy, const int comp,
+                                  const int tidy, const int tidz,const int comp,
                                   const int nelem, const CeedScalar *d_U, CeedScalar *slice) {
   for (int i = 0; i < P1D; i++)
-    slice[i] = d_U[i + comp*P1D + elem*BASIS_NCOMP*P1D];
+    slice[i+tidz*Q1D] = d_U[i + comp*P1D + elem*BASIS_NCOMP*P1D];
   for (int i = P1D; i < Q1D; i++)
-    slice[i] = 0.0;
+    slice[i+tidz*Q1D] = 0.0;
 }
 
 inline __device__ void writeDofs1d(const int elem, const int tidx,
@@ -50,10 +50,10 @@ inline __device__ void writeDofs1d(const int elem, const int tidx,
 }
 
 inline __device__ void readQuads1d(const int elem, const int tidx,
-                                   const int tidy, const int comp,
+                                   const int tidy, const int tidz, const int comp,
                                    const int dim, const int nelem, const CeedScalar *d_U, CeedScalar *slice) {
   for (int i = 0; i < Q1D; i++)
-    slice[i] = d_U[i + elem*Q1D + comp*Q1D*nelem + dim*BASIS_NCOMP*nelem*Q1D];
+    slice[i+tidz*Q1D] = d_U[i + elem*Q1D + comp*Q1D*nelem + dim*BASIS_NCOMP*nelem*Q1D];
 }
 
 inline __device__ void writeQuads1d(const int elem, const int tidx,
@@ -63,20 +63,20 @@ inline __device__ void writeQuads1d(const int elem, const int tidx,
 }
 
 inline __device__ void ContractX1d(CeedScalar *slice, const int tidx,
-                                   const int tidy,
+                                   const int tidy, const int tidz,
                                    const CeedScalar &U, const CeedScalar *B, CeedScalar &V) {
   V = 0.0;
   for (int i = 0; i < P1D; ++i) {
-    V += B[i + tidx*P1D] * slice[i];//contract x direction
+    V += B[i + tidx*P1D] * slice[i+tidz*Q1D];//contract x direction
   }
 }
 
 inline __device__ void ContractTransposeX1d(CeedScalar *slice, const int tidx,
-    const int tidy,
+    const int tidy, const int tidz,
     const CeedScalar &U, const CeedScalar *B, CeedScalar &V) {
   V = 0.0;
   for (int i = 0; i < Q1D; ++i) {
-    V += B[tidx + i*P1D] * slice[i];//contract x direction
+    V += B[tidx + i*P1D] * slice[i+tidz*Q1D];//contract x direction
   }
 }
 
@@ -89,18 +89,19 @@ inline __device__ void interp1d(const CeedInt nelem, const int transpose,
 
   const int tidx = threadIdx.x;
   const int tidy = threadIdx.y;
+  const int tidz = threadIdx.z;
 
 
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
        elem += gridDim.x*blockDim.z) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
       if(!transpose) {
-        readDofs1d(elem, tidx, tidy, comp, nelem, d_U, slice);
-        ContractX1d(slice, tidx, tidy, r_t, c_B, r_V);
+        readDofs1d(elem, tidx, tidy, tidz, comp, nelem, d_U, slice);
+        ContractX1d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
         writeQuads1d(elem, tidx, tidy, comp, 0, nelem, r_V, d_V);
       } else {
-        readQuads1d(elem, tidx, tidy, comp, 0, nelem, d_U, slice);
-        ContractTransposeX1d(slice, tidx, tidy, r_t, c_B, r_V);
+        readQuads1d(elem, tidx, tidy, tidz, comp, 0, nelem, d_U, slice);
+        ContractTransposeX1d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
         writeDofs1d(elem, tidx, tidy, comp, nelem, r_V, d_V);
       }
     }
@@ -115,21 +116,22 @@ inline __device__ void grad1d(const CeedInt nelem, const int transpose,
   CeedScalar r_V;
 
   const int tidx = threadIdx.x;
-  const int tidy = threadIdx.y;//=>this is really a nb of elements per block
+  const int tidy = threadIdx.y;
+  const int tidz = threadIdx.z;
   int dim;
 
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
        elem += gridDim.x*blockDim.z) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
       if(!transpose) {
-        readDofs1d(elem, tidx, tidy, comp, nelem, d_U, slice);
-        ContractX1d(slice, tidx, tidy, r_U, c_G, r_V);
+        readDofs1d(elem, tidx, tidy, tidz, comp, nelem, d_U, slice);
+        ContractX1d(slice, tidx, tidy, tidz, r_U, c_G, r_V);
         dim = 0;
         writeQuads1d(elem, tidx, tidy, comp, dim, nelem, r_V, d_V);
       } else {
         dim = 0;
-        readQuads1d(elem, tidx, tidy, comp, dim, nelem, d_U, slice);
-        ContractTransposeX1d(slice, tidx, tidy, r_U, c_G, r_V);
+        readQuads1d(elem, tidx, tidy, tidz, comp, dim, nelem, d_U, slice);
+        ContractTransposeX1d(slice, tidx, tidy, tidz, r_U, c_G, r_V);
         writeDofs1d(elem, tidx, tidy, comp, nelem, r_V, d_V);
       }
     }
@@ -647,9 +649,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     // void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->d_interp1d, &d_u, &d_v};
     if (dim==1)
     {
-      CeedInt elemsPerBlock = 1;
+      CeedInt elemsPerBlock = 32;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
-      CeedInt sharedMem = Q1d*sizeof(CeedScalar);
+      CeedInt sharedMem = elemsPerBlock*Q1d*sizeof(CeedScalar);
       ierr = run_kernel_dim_shared(ceed, data->interp, grid, Q1d, 1, elemsPerBlock, sharedMem,
                             interpargs);
       CeedChk(ierr);
@@ -686,9 +688,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     // void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->d_interp1d, &data->d_grad1d, &d_u, &d_v};
     if (dim==1)
     {
-      CeedInt elemsPerBlock = 1;
+      CeedInt elemsPerBlock = 32;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
-      CeedInt sharedMem = Q1d*sizeof(CeedScalar);
+      CeedInt sharedMem = elemsPerBlock*Q1d*sizeof(CeedScalar);
       ierr = run_kernel_dim_shared(ceed, data->grad, grid, Q1d, 1, elemsPerBlock, sharedMem,
                           gradargs);
       CeedChk(ierr);
