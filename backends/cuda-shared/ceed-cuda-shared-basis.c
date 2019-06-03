@@ -344,35 +344,35 @@ inline __device__ void writeQuads3d(const int elem, const int tidx,
 }
 
 inline __device__ void ContractX3d(CeedScalar *slice, const int tidx,
-                                   const int tidy,
+                                   const int tidy, const int tidz,
                                    const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
-    slice[tidx+tidy*Q1D] = U[k];
+    slice[tidx+tidy*Q1D+tidz*Q1D*Q1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
     for (int i = 0; i < P1D; ++i) {
-      V[k] += B[i + tidx*P1D] * slice[i + tidy*Q1D];//contract x direction
+      V[k] += B[i + tidx*P1D] * slice[i + tidy*Q1D + tidz*Q1D*Q1D];//contract x direction
     }
     __syncthreads();
   }
 }
 
 inline __device__ void ContractY3d(CeedScalar *slice, const int tidx,
-                                   const int tidy,
+                                   const int tidy, const int tidz,
                                    const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
-    slice[tidx+tidy*Q1D] = U[k];
+    slice[tidx+tidy*Q1D+tidz*Q1D*Q1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
     for (int i = 0; i < P1D; ++i) {
-      V[k] += B[i + tidy*P1D] * slice[tidx + i*Q1D];//contract y direction
+      V[k] += B[i + tidy*P1D] * slice[tidx + i*Q1D + tidz*Q1D*Q1D];//contract y direction
     }
     __syncthreads();
   }
 }
 
 inline __device__ void ContractZ3d(CeedScalar *slice, const int tidx,
-                                   const int tidy,
+                                   const int tidy, const int tidz,
                                    const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   for (int k = 0; k < Q1D; ++k) {
     V[k] = 0.0;
@@ -383,7 +383,7 @@ inline __device__ void ContractZ3d(CeedScalar *slice, const int tidx,
 }
 
 inline __device__ void ContractTransposeZ3d(CeedScalar *slice, const int tidx,
-    const int tidy,
+    const int tidy, const int tidz,
     const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   for (int k = 0; k < Q1D; ++k) {
     V[k] = 0.0;
@@ -396,15 +396,15 @@ inline __device__ void ContractTransposeZ3d(CeedScalar *slice, const int tidx,
 }
 
 inline __device__ void ContractTransposeY3d(CeedScalar *slice, const int tidx,
-    const int tidy,
+    const int tidy, const int tidz,
     const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
-    slice[tidx+tidy*Q1D] = U[k];
+    slice[tidx+tidy*Q1D+tidz*Q1D*Q1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
     if (tidy<P1D) {
       for (int i = 0; i < Q1D; ++i) {
-        V[k] += B[tidy + i*P1D] * slice[tidx + i*Q1D];//contract y direction
+        V[k] += B[tidy + i*P1D] * slice[tidx + i*Q1D + tidz*Q1D*Q1D];//contract y direction
       }
     }
     __syncthreads();
@@ -412,15 +412,15 @@ inline __device__ void ContractTransposeY3d(CeedScalar *slice, const int tidx,
 }
 
 inline __device__ void ContractTransposeX3d(CeedScalar *slice, const int tidx,
-    const int tidy,
+    const int tidy, const int tidz,
     const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
-    slice[tidx+tidy*Q1D] = U[k];
+    slice[tidx+tidy*Q1D+tidz*Q1D*Q1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
     if (tidx<P1D) {
       for (int i = 0; i < Q1D; ++i) {
-        V[k] += B[tidx + i*P1D] * slice[i + tidy*Q1D];//contract x direction
+        V[k] += B[tidx + i*P1D] * slice[i + tidy*Q1D + tidz*Q1D*Q1D];//contract x direction
       }
     }
     __syncthreads();
@@ -436,28 +436,32 @@ inline __device__ void interp3d(const CeedInt nelem, const int transpose,
 
   const int tidx = threadIdx.x;
   const int tidy = threadIdx.y;
+  const int tidz = threadIdx.z;
+  const int blockElem = tidz/BASIS_NCOMP;
+  const int elemsPerBlock = blockDim.z/BASIS_NCOMP;
+  const int comp = tidz%BASIS_NCOMP;
 
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
-       elem += gridDim.x*blockDim.z) {
-    for(int comp=0; comp<BASIS_NCOMP; comp++) {
+  for (CeedInt elem = blockIdx.x*elemsPerBlock + blockElem; elem < nelem;
+       elem += gridDim.x*elemsPerBlock) {
+    // for(int comp=0; comp<BASIS_NCOMP; comp++) {
       for (int i = 0; i < Q1D; ++i) {
         r_V[i] = 0.0;
         r_t[i] = 0.0;
       }
       if(!transpose) {
         readDofs3d(elem, tidx, tidy, comp, nelem, d_U, r_V);
-        ContractX3d(slice, tidx, tidy, r_V, c_B, r_t);
-        ContractY3d(slice, tidx, tidy, r_t, c_B, r_V);
-        ContractZ3d(slice, tidx, tidy, r_V, c_B, r_t);
+        ContractX3d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
+        ContractY3d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
+        ContractZ3d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
         writeQuads3d(elem, tidx, tidy, comp, 0, nelem, r_t, d_V);
       } else {
         readQuads3d(elem, tidx, tidy, comp, 0, nelem, d_U, r_V);
-        ContractTransposeZ3d(slice, tidx, tidy, r_V, c_B, r_t);
-        ContractTransposeY3d(slice, tidx, tidy, r_t, c_B, r_V);
-        ContractTransposeX3d(slice, tidx, tidy, r_V, c_B, r_t);
+        ContractTransposeZ3d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
+        ContractTransposeY3d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
+        ContractTransposeX3d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
         writeDofs3d(elem, tidx, tidy, comp, nelem, r_t, d_V);
       }
-    }
+    // }
   }
 }
 
@@ -472,49 +476,53 @@ inline __device__ void grad3d(const CeedInt nelem, const int transpose,
 
   const int tidx = threadIdx.x;
   const int tidy = threadIdx.y;
+  const int tidz = threadIdx.z;
+  const int blockElem = tidz/BASIS_NCOMP;
+  const int elemsPerBlock = blockDim.z/BASIS_NCOMP;
+  const int comp = tidz%BASIS_NCOMP;
   int dim;
 
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
-       elem += gridDim.x*blockDim.z) {
-    for(int comp=0; comp<BASIS_NCOMP; comp++) {
+  for (CeedInt elem = blockIdx.x*elemsPerBlock + blockElem; elem < nelem;
+       elem += gridDim.x*elemsPerBlock) {
+    // for(int comp=0; comp<BASIS_NCOMP; comp++) {
       if(!transpose) {
         readDofs3d(elem, tidx, tidy, comp, nelem, d_U, r_U);
-        ContractX3d(slice, tidx, tidy, r_U, c_G, r_V);
-        ContractY3d(slice, tidx, tidy, r_V, c_B, r_t);
-        ContractZ3d(slice, tidx, tidy, r_t, c_B, r_V);
+        ContractX3d(slice, tidx, tidy, tidz, r_U, c_G, r_V);
+        ContractY3d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
+        ContractZ3d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
         dim = 0;
         writeQuads3d(elem, tidx, tidy, comp, dim, nelem, r_V, d_V);
-        ContractX3d(slice, tidx, tidy, r_U, c_B, r_V);
-        ContractY3d(slice, tidx, tidy, r_V, c_G, r_t);
-        ContractZ3d(slice, tidx, tidy, r_t, c_B, r_V);
+        ContractX3d(slice, tidx, tidy, tidz, r_U, c_B, r_V);
+        ContractY3d(slice, tidx, tidy, tidz, r_V, c_G, r_t);
+        ContractZ3d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
         dim = 1;
         writeQuads3d(elem, tidx, tidy, comp, dim, nelem, r_V, d_V);
-        ContractX3d(slice, tidx, tidy, r_U, c_B, r_V);
-        ContractY3d(slice, tidx, tidy, r_V, c_B, r_t);
-        ContractZ3d(slice, tidx, tidy, r_t, c_G, r_V);
+        ContractX3d(slice, tidx, tidy, tidz, r_U, c_B, r_V);
+        ContractY3d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
+        ContractZ3d(slice, tidx, tidy, tidz, r_t, c_G, r_V);
         dim = 2;
         writeQuads3d(elem, tidx, tidy, comp, dim, nelem, r_V, d_V);
       } else {
         dim = 0;
         readQuads3d(elem, tidx, tidy, comp, dim, nelem, d_U, r_U);
-        ContractTransposeZ3d(slice, tidx, tidy, r_U, c_B, r_t);
-        ContractTransposeY3d(slice, tidx, tidy, r_t, c_B, r_U);
-        ContractTransposeX3d(slice, tidx, tidy, r_U, c_G, r_V);
+        ContractTransposeZ3d(slice, tidx, tidy, tidz, r_U, c_B, r_t);
+        ContractTransposeY3d(slice, tidx, tidy, tidz, r_t, c_B, r_U);
+        ContractTransposeX3d(slice, tidx, tidy, tidz, r_U, c_G, r_V);
         dim = 1;
         readQuads3d(elem, tidx, tidy, comp, dim, nelem, d_U, r_U);
-        ContractTransposeZ3d(slice, tidx, tidy, r_U, c_B, r_t);
-        ContractTransposeY3d(slice, tidx, tidy, r_t, c_G, r_U);
-        ContractTransposeX3d(slice, tidx, tidy, r_U, c_B, r_t);
+        ContractTransposeZ3d(slice, tidx, tidy, tidz, r_U, c_B, r_t);
+        ContractTransposeY3d(slice, tidx, tidy, tidz, r_t, c_G, r_U);
+        ContractTransposeX3d(slice, tidx, tidy, tidz, r_U, c_B, r_t);
         add(r_V, r_t);
         dim = 2;
         readQuads3d(elem, tidx, tidy, comp, dim, nelem, d_U, r_U);
-        ContractTransposeZ3d(slice, tidx, tidy, r_U, c_G, r_t);
-        ContractTransposeY3d(slice, tidx, tidy, r_t, c_B, r_U);
-        ContractTransposeX3d(slice, tidx, tidy, r_U, c_B, r_t);
+        ContractTransposeZ3d(slice, tidx, tidy, tidz, r_U, c_G, r_t);
+        ContractTransposeY3d(slice, tidx, tidy, tidz, r_t, c_B, r_U);
+        ContractTransposeX3d(slice, tidx, tidy, tidz, r_U, c_B, r_t);
         add(r_V, r_t);
         writeDofs3d(elem, tidx, tidy, comp, nelem, r_V, d_V);
       }
-    }
+    // }
   }
 }
 
@@ -664,10 +672,10 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
                             interpargs);
       CeedChk(ierr);
     } else if (dim==3) {
-      CeedInt elemsPerBlock = 1;
+      CeedInt elemsPerBlock = 2;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
-      CeedInt sharedMem = Q1d*Q1d*Q1d*sizeof(CeedScalar);
-      ierr = run_kernel_dim_shared(ceed, data->interp, grid, Q1d, Q1d, elemsPerBlock, sharedMem,
+      CeedInt sharedMem = ncomp*elemsPerBlock*Q1d*Q1d*sizeof(CeedScalar);
+      ierr = run_kernel_dim_shared(ceed, data->interp, grid, Q1d, Q1d, ncomp*elemsPerBlock, sharedMem,
                             interpargs);
       CeedChk(ierr);
     }
@@ -703,10 +711,10 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
                           gradargs);
       CeedChk(ierr);
     } else if (dim==3) {
-      CeedInt elemsPerBlock = 1;
+      CeedInt elemsPerBlock = 2;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
-      CeedInt sharedMem = Q1d*Q1d*Q1d*sizeof(CeedScalar);
-      ierr = run_kernel_dim_shared(ceed, data->grad, grid, Q1d, Q1d, elemsPerBlock, sharedMem,
+      CeedInt sharedMem = ncomp*elemsPerBlock*Q1d*Q1d*sizeof(CeedScalar);
+      ierr = run_kernel_dim_shared(ceed, data->grad, grid, Q1d, Q1d, ncomp*elemsPerBlock, sharedMem,
                           gradargs);
       CeedChk(ierr);
     }
