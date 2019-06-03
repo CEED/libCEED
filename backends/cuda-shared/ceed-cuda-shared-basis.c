@@ -697,7 +697,8 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
       const CeedInt gridsize = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
       ierr = run_kernel_dim(ceed, data->weight, gridsize, Q1d, elemsPerBlock, 1, weightargs);
     } else if(dim==2) {
-      const CeedInt elemsPerBlock = 32/(Q1d*Q1d);
+      const CeedInt optElems = 32/(Q1d*Q1d);
+      const CeedInt elemsPerBlock = optElems>0?optElems:1;
       const CeedInt gridsize = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
       ierr = run_kernel_dim(ceed, data->weight, gridsize, Q1d, Q1d, elemsPerBlock, weightargs);
     } else if(dim==3) {
