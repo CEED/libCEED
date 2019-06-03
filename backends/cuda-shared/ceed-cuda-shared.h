@@ -32,6 +32,9 @@ typedef struct {
 } CeedBasis_Cuda_shared;
 
 typedef struct {
+  CeedInt Q1d;
+  CeedInt P1d;
+  bool grad;
 } Ceed_Cuda_shared;
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d,

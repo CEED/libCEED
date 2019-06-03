@@ -22,6 +22,11 @@
 #include <cuda_runtime.h>
 #include "ceed-cuda-shared.h"
 
+static int CeedGetPreferredMemType_Cuda_shared(CeedMemType *type) {
+  *type = CEED_MEM_DEVICE;
+  return 0;
+}
+
 static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
   int ierr;
   const int nrc = 9; // number of characters in resource
@@ -40,8 +45,13 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
 
   Ceed_Cuda_shared *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
+  data->Q1d  = -1;
+  data->P1d  = -1;
+  data->grad = false;
 
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
+                                CeedGetPreferredMemType_Cuda_shared); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Cuda_shared); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
