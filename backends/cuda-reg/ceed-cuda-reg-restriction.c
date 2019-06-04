@@ -19,10 +19,11 @@
 #include "../cuda/ceed-cuda.h"
 
 static const char *restrictionkernels = QUOTE(
-    extern "C" __global__ void noTrNoTr(const CeedInt nelem,
-                                        const CeedInt *__restrict__ indices,
-                                        const CeedScalar *__restrict__ u,
-CeedScalar *__restrict__ v) {
+
+extern "C" __global__ void noTrNoTr(const CeedInt nelem,
+                                    const CeedInt *__restrict__ indices,
+                                    const CeedScalar *__restrict__ u,
+                                    CeedScalar *__restrict__ v) {
   if (indices) {
     const CeedInt esize = RESTRICTION_ELEMSIZE * nelem;
     for(CeedInt e = blockIdx.x * blockDim.x + threadIdx.x;
@@ -233,7 +234,8 @@ extern "C" __global__ void trTrIdentity(const CeedInt nelem,
     v [ RESTRICTION_NCOMP * (s + RESTRICTION_ELEMSIZE * e) + d ] = u[i];
   }
 }
-                                        );
+
+);
 
 static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedTransposeMode lmode,
