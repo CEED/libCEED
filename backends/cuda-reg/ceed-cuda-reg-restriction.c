@@ -19,39 +19,6 @@
 #include "../cuda/ceed-cuda.h"
 
 static const char *restrictionkernels = QUOTE(
-extern "C" __global__ void noTrNoTr_old(const CeedInt nelem,
-                                    const CeedInt *__restrict__ indices,
-                                    const CeedScalar *__restrict__ u,
-CeedScalar *__restrict__ v) {
-  if (indices) {
-    const CeedInt esize = RESTRICTION_ELEMSIZE * nelem;
-    for(CeedInt e = blockIdx.x * blockDim.x + threadIdx.x;
-        e < nelem;
-        e += blockDim.x * gridDim.x) {
-      for (CeedInt dof = 0; dof < RESTRICTION_ELEMSIZE; ++dof) {
-        const CeedInt ind = indices[dof + e *
-                                        RESTRICTION_ELEMSIZE];//could be interesting to reorder this to coalesce
-        for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
-          v[dof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP] =
-            u[ind + RESTRICTION_NDOF * comp];
-        }
-      }
-    }
-  } else {
-    const CeedInt esize = RESTRICTION_ELEMSIZE * nelem;
-    for(CeedInt e = blockIdx.x * blockDim.x + threadIdx.x;
-        e < nelem;
-        e += blockDim.x * gridDim.x) {
-      for (CeedInt dof = 0; dof < RESTRICTION_ELEMSIZE; ++dof) {
-        const CeedInt ind = dof + e * RESTRICTION_ELEMSIZE;
-        for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
-          v[dof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP] =
-            u[ind + RESTRICTION_NDOF * comp];
-        }
-      }
-    }
-  }
-}
 
 extern "C" __global__ void noTrNoTr(const CeedInt nelem,
                                     const CeedInt *__restrict__ indices,
@@ -113,40 +80,6 @@ extern "C" __global__ void noTrNoTrInterleaved(const CeedInt nelem,
         for(CeedInt d = 0; d < RESTRICTION_NCOMP; ++d) {
           v[tid + dof*32 + bid*32*RESTRICTION_ELEMSIZE + d*esize] = u[ind +
               RESTRICTION_NDOF * d];
-        }
-      }
-    }
-  }
-}
-
-extern "C" __global__ void noTrTr_old(const CeedInt nelem,
-                                  const CeedInt *__restrict__ indices,
-                                  const CeedScalar *__restrict__ u,
-                                  CeedScalar *__restrict__ v) {
-  if (indices) {
-    const CeedInt esize = RESTRICTION_ELEMSIZE * nelem;
-    for(CeedInt e = blockIdx.x * blockDim.x + threadIdx.x;
-        e < nelem;
-        e += blockDim.x * gridDim.x) {
-      for (CeedInt dof = 0; dof < RESTRICTION_ELEMSIZE; ++dof) {
-        const CeedInt ind = indices[dof + e *
-                                        RESTRICTION_ELEMSIZE];//could be interesting to reorder this to coalesce
-        for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
-          v[dof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP] =
-            u[ind * RESTRICTION_NCOMP + comp];
-        }
-      }
-    }
-  } else {
-    const CeedInt esize = RESTRICTION_ELEMSIZE * nelem;
-    for(CeedInt e = blockIdx.x * blockDim.x + threadIdx.x;
-        e < nelem;
-        e += blockDim.x * gridDim.x) {
-      for (CeedInt dof = 0; dof < RESTRICTION_ELEMSIZE; ++dof) {
-        const CeedInt ind = dof + e * RESTRICTION_ELEMSIZE;
-        for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
-          v[dof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP] =
-            u[ind * RESTRICTION_NCOMP + comp];
         }
       }
     }
@@ -323,7 +256,10 @@ static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
     } else {
       kernel = impl->noTrTr;
     }
+    CeedInt elemsize;
+    ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
     void *args[] = {&nelem, &impl->d_ind, &d_u, &d_v};
+    CeedInt blocksize = elemsize<1024?(elemsize>32?elemsize:32):1024;
     ierr = run_kernel(ceed, kernel, CeedDivUpInt(ndof, blocksize), blocksize,
                       args); CeedChk(ierr);
   } else {

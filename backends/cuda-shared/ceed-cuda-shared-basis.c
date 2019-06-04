@@ -672,7 +672,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
                             interpargs);
       CeedChk(ierr);
     } else if (dim==3) {
-      CeedInt elemsPerBlock = 2;
+      CeedInt elemsPerBlock = 1;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
       CeedInt sharedMem = ncomp*elemsPerBlock*Q1d*Q1d*sizeof(CeedScalar);
       ierr = run_kernel_dim_shared(ceed, data->interp, grid, Q1d, Q1d, ncomp*elemsPerBlock, sharedMem,
@@ -711,7 +711,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
                           gradargs);
       CeedChk(ierr);
     } else if (dim==3) {
-      CeedInt elemsPerBlock = 2;
+      CeedInt elemsPerBlock = 1;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
       CeedInt sharedMem = ncomp*elemsPerBlock*Q1d*Q1d*sizeof(CeedScalar);
       ierr = run_kernel_dim_shared(ceed, data->grad, grid, Q1d, Q1d, ncomp*elemsPerBlock, sharedMem,
