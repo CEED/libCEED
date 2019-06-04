@@ -20,11 +20,6 @@
 #include "ceed-cuda-reg.h"
 #include "../cuda/ceed-cuda.h"
 
-static int CeedGetPreferredMemType_Cuda_reg(CeedMemType *type) {
-  *type = CEED_MEM_DEVICE;
-  return 0;
-}
-
 static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   int ierr;
   const int nrc = 9; // number of characters in resource
@@ -49,8 +44,6 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   Ceed_Cuda_reg *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
-                                CeedGetPreferredMemType_Cuda_reg); CeedChk(ierr);
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Cuda_reg); CeedChk(ierr);
