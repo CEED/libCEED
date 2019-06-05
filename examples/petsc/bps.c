@@ -180,7 +180,7 @@ bpData bpOptions[6] = {
     .qextra = 2,
     .setup = SetupDiff3,
     .apply = Diff3,
-    .error = Error,
+    .error = Error3,
     .setupfname = PATH(bp4.h:SetupDiff3),
     .applyfname = PATH(bp4.h:Diff),
     .errorfname = PATH(common.h:Error3),
@@ -204,7 +204,7 @@ bpData bpOptions[6] = {
     .qextra = 1,
     .setup = SetupDiff3,
     .apply = Diff3,
-    .error = Error,
+    .error = Error3,
     .setupfname = PATH(bp4.h:SetupDiff3),
     .applyfname = PATH(bp4.h:Diff),
     .errorfname = PATH(common.h:Error3),
@@ -331,7 +331,7 @@ int main(int argc, char **argv) {
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode;
   PetscMPIInt size, rank;
-  VecScatter ltog, ltog0, gtogD;;
+  VecScatter ltog, ltog0, gtogD;
   Ceed ceed;
   CeedBasis basisx, basisu;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui,
@@ -545,7 +545,7 @@ int main(int argc, char **argv) {
   }
 
   // Create the Q-function that builds the operator (i.e. computes its
-  // quadrature data) and set its context data.
+  // quadrature data) and set its context data
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setup,
                               bpOptions[bpChoice].setupfname, &qf_setup);
   CeedQFunctionAddInput(qf_setup, "x", 3, CEED_EVAL_INTERP);
@@ -579,7 +579,7 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, Nelem*Nqpts*vscale, &target);
   CeedVectorCreate(ceed, lsize*vscale, &rhsceed);
 
-  // Create the operator that builds the quadrature data for the ceed operator.
+  // Create the operator that builds the quadrature data for the ceed operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
   CeedOperatorSetField(op_setup, "x", Erestrictx, CEED_NOTRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
@@ -594,7 +594,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup, "rhs", Erestrictu, CEED_TRANSPOSE,
                        basisu, rhsceed);
 
-  // Create the mass or diff operator.
+  // Create the mass or diff operator
   CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
   CeedOperatorSetField(op_apply, "u", Erestrictu, CEED_TRANSPOSE,
                        basisu, CEED_VECTOR_ACTIVE);
