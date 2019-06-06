@@ -23,6 +23,9 @@ endif
 ifeq (,$(filter-out undefined default,$(origin FC)))
   FC = gfortran
 endif
+ifeq (,$(filter-out undefined default,$(origin LINK)))
+  LINK = $(CC)
+endif
 NVCC = $(CUDA_DIR)/bin/nvcc
 
 # ASAN must be left empty if you don't want to use it
@@ -328,7 +331,7 @@ export BACKENDS
 libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o)
 $(libceed.o): | info-backends
 $(libceed) : $(libceed.o) | $$(@D)/.DIR
-	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
+	$(call quiet,LINK) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
