@@ -17,6 +17,9 @@
 ifeq (,$(filter-out undefined default,$(origin CC)))
   CC = gcc
 endif
+ifeq (,$(filter-out undefined default,$(origin CXX)))
+  CXX = g++
+endif
 ifeq (,$(filter-out undefined default,$(origin FC)))
   FC = gfortran
 endif
@@ -61,6 +64,7 @@ AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 OPT    = -O -g -march=native -ffp-contract=fast -fopenmp-simd
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
+CXXFLAGS = $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC 
 NVCCFLAGS = -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
@@ -149,6 +153,7 @@ cuda-reg.cu    := $(sort $(wildcard backends/cuda-reg/*.cu))
 cuda-shared.c  := $(sort $(wildcard backends/cuda-shared/*.c))
 cuda-shared.cu := $(sort $(wildcard backends/cuda-shared/*.cu))
 cuda-gen.c     := $(sort $(wildcard backends/cuda-gen/*.c))
+cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
 cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/*.cu))
 blocked.c      := $(sort $(wildcard backends/blocked/*.c))
 ceedmemcheck.c := $(sort $(wildcard backends/memcheck/*.c))
@@ -203,6 +208,7 @@ info:
 	$(info FC         = $(FC))
 	$(info CPPFLAGS   = $(CPPFLAGS))
 	$(info CFLAGS     = $(value CFLAGS))
+	$(info CXXFLAGS   = $(value CXXFLAGS))
 	$(info FFLAGS     = $(value FFLAGS))
 	$(info NVCCFLAGS  = $(value NVCCFLAGS))
 	$(info LDFLAGS    = $(value LDFLAGS))
@@ -285,10 +291,13 @@ CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
   $(libceed) : CFLAGS += -I$(CUDA_DIR)/include
+  $(libceed) : CXXFLAGS += -I$(CUDA_DIR)/include
   $(libceed) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
   $(libceed) : LDLIBS += -lcudart -lnvrtc -lcuda
-  libceed.c  += $(cuda.c) $(cuda-reg.c) $(cuda-shared.c) $(cuda-gen.c)
-  libceed.cu += $(cuda.cu) $(cuda-reg.cu) $(cuda-shared.cu) $(cuda-gen.cu)
+  $(libceed) : LINK = $(CXX)
+  libceed.c   += $(cuda.c) $(cuda-reg.c) $(cuda-shared.c) $(cuda-gen.c)
+  libceed.cpp += $(cuda-gen.cpp)
+  libceed.cu  += $(cuda.cu) $(cuda-reg.cu) $(cuda-shared.cu) $(cuda-gen.cu)
   BACKENDS += $(CUDA_BACKENDS)
 endif
 
@@ -316,13 +325,16 @@ export BACKENDS
 %_tmp.c %_cuda.cu : %.c
 	$(magma_preprocessor) $<
 
-libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o)
+libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o)
 $(libceed.o): | info-backends
 $(libceed) : $(libceed.o) | $$(@D)/.DIR
 	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
+
+$(OBJDIR)/%.o : $(CURDIR)/%.cpp | $$(@D)/.DIR
+	$(call quiet,CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 	$(call quiet,NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $(abspath $<)
