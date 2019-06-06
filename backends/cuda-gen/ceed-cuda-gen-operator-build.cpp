@@ -159,6 +159,9 @@ template <int Q1d>
 inline __device__ void weight3d(const CeedScalar *qweight1d, CeedScalar *w) {
 }
 
+inline __device__ void qfunction(...) {
+}
+
 );
 
 extern "C" int CeedCudaGenOperatorBuild(CeedOperator op, CeedVector invec,
@@ -251,7 +254,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op, CeedVector invec,
 
   code << "const CeedInt Dim = "<<dim<<";\n";
   code << "const CeedInt Q1d = "<<Q1d<<";\n";
-  code << "const CeedInt Q   = "<<Q<<";\n";
+  // code << "const CeedInt Q   = "<<Q<<";\n";
   code << "for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {\n";
   // Input basis apply if needed
   for (CeedInt i = 0; i < numinputfields; i++) {
