@@ -85,7 +85,7 @@ while True:
          data['case']='scalar'
       ## Benchmark Problem
       elif "CEED Benchmark Problem" in line:
-        data['test'] = line.split('-- ')[1]
+        data['test'] = line.split()[-2] + " " + line.split('-- ')[1]
         data['case']='scalar' if (('Problem 1' in line) or ('Problem 3' in line)
                                   or ('Problem 5' in line)) else 'vector'
       ## Backend

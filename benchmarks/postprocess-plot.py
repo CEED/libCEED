@@ -56,7 +56,7 @@ test=tests[0]
 print('Using test:', test)
 
 if 'CEED Benchmark Problem' in test:
-   test_short = 'bp' + test.strip().split(' ')[-1]
+   test_short = test.strip().split()[0] + ' BP' + test.strip().split()[-1]
 
 ##### Plot same BP
 sel_runs=sel_runs.loc[sel_runs['test'] == test]
@@ -156,9 +156,9 @@ for index, row in pl_set.iterrows():
       plot(y/slope2,y,'k-',label='%g iter/s'%(slope2/vdim))
 
    # Plot information
-   title('(%i node%s, %i tasks/node), %s, %s'%(
+   title('(%i node%s, %i tasks), %s, %s'%(
          num_nodes,'' if num_nodes==1 else 's',
-         num_procs_node,backend,test_short))
+         num_procs,backend,test_short))
    xscale('log') # subsx=[2,4,6,8]
    if log_y:
       yscale('log')
@@ -175,9 +175,10 @@ for index, row in pl_set.iterrows():
 
    # Write
    if write_figures: # write .pdf file?
-      shortbackend=backend.replace('/','')
+      short_backend=backend.replace('/','')
+      test_short_save=test_short.replace(' ','')
       pdf_file='plot_%s_%s_%s_N%03i_pn%i.pdf'%(
-               code,test_short,shortbackend,num_nodes,num_procs_node)
+               code,test_short_save,short_backend,num_nodes,num_procs_node)
       print('\nsaving figure --> %s'%pdf_file)
       savefig(pdf_file, format='pdf', bbox_inches='tight')
 
