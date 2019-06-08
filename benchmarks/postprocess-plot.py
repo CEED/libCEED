@@ -156,7 +156,7 @@ for index, row in pl_set.iterrows():
       plot(y/slope2,y,'k-',label='%g iter/s'%(slope2/vdim))
 
    # Plot information
-   title('(%i node%s, %i tasks), %s, %s'%(
+   title('(%i node%s, %i ranks), %s, %s'%(
          num_nodes,'' if num_nodes==1 else 's',
          num_procs,backend,test_short))
    xscale('log') # subsx=[2,4,6,8]
