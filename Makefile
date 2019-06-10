@@ -508,9 +508,10 @@ print-% :
 #   make
 #   make prove
 configure :
-	@echo "CC = $(CC)" | tee config.mk
-	@echo "FC = $(FC)" | tee config.mk
-	@echo "NVCC = $(NVCC)" | tee config.mk
+	@: > config.mk
+	@echo "CC = $(CC)" | tee -a config.mk
+	@echo "FC = $(FC)" | tee -a config.mk
+	@echo "NVCC = $(NVCC)" | tee -a config.mk
 	@echo "CFLAGS = $(CFLAGS)" | tee -a config.mk
 	@echo "CPPFLAGS = $(CPPFLAGS)" | tee -a config.mk
 	@echo "FFLAGS = $(FFLAGS)" | tee -a config.mk
