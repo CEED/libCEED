@@ -169,7 +169,6 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op, CeedVector invec,
 
 	using std::ostringstream;
   using std::string;
-  using std::cout;
   int ierr;
   // CeedOperator_Cuda *impl;
   // ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
@@ -475,7 +474,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op, CeedVector invec,
   code << "  }\n";
   code << "}\n\n";
 
-  cout << code.str();
+  std::cout << code.str();
 
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
