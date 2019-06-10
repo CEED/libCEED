@@ -156,9 +156,9 @@ for index, row in pl_set.iterrows():
       plot(y/slope2,y,'k-',label='%g iter/s'%(slope2/vdim))
 
    # Plot information
-   title('(%i node%s, %i ranks), %s, %s'%(
+   title(r'%i node%s $\times$ %i ranks, %s, %s'%(
          num_nodes,'' if num_nodes==1 else 's',
-         num_procs,backend,test_short))
+         num_procs,backend,test_short),fontsize=16)
    xscale('log') # subsx=[2,4,6,8]
    if log_y:
       yscale('log')
@@ -168,10 +168,13 @@ for index, row in pl_set.iterrows():
       ylim(y_range)
    grid('on', color='gray', ls='dotted')
    grid('on', axis='both', which='minor', color='gray', ls='dotted')
+   plt.tick_params(labelsize=14)
+   exptext = gca().yaxis.get_offset_text()
+   exptext.set_size(14)
    gca().set_axisbelow(True)
-   xlabel('Points per compute node')
-   ylabel('[DOFs x CG iterations] / [compute nodes x seconds]')
-   legend(ncol=legend_ncol, loc='best')
+   xlabel('Points per compute node',fontsize=14)
+   ylabel('[DOFs x CG iterations] / [compute nodes x seconds]',fontsize=14)
+   legend(ncol=legend_ncol, loc='best',fontsize=13)
 
    # Write
    if write_figures: # write .pdf file?
