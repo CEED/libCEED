@@ -22,7 +22,7 @@ endif
 ifeq (,$(filter-out undefined default,$(origin FC)))
   FC = gfortran
 endif
-NVCC = $(CUDA_DIR)/bin/nvcc
+NVCC ?= $(CUDA_DIR)/bin/nvcc
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
@@ -469,10 +469,10 @@ cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
 	$(MAKE) -C examples clean
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
-	$(RM) -rf benchmarks/*output.txt
+	$(RM) benchmarks/*output.txt
 
 distclean : clean
-	$(RM) -r doc/html
+	$(RM) -r doc/html config.mk
 
 doc :
 	doxygen Doxyfile
