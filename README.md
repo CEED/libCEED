@@ -88,7 +88,9 @@ There are multiple supported backends, which can be selected at runtime in the e
 | :----------------------- | :------------------------------------------------ |
 | `/cpu/self/ref/serial`   | Serial reference implementation                   |
 | `/cpu/self/ref/blocked`  | Blocked refrence implementation                   |
-| `/cpu/self/tmpl`         | Backend template, delegates to `/cpu/self/ref/blocked` |
+| `/cpu/self/ref/memcheck` | Memcheck backend, undefined value checks          |
+| `/cpu/self/opt/serial`   | Serial optimized C implementation                 |
+| `/cpu/self/opt/blocked`  | Blocked optimized C implementation                |
 | `/cpu/self/avx/serial`   | Serial AVX implementation                         |
 | `/cpu/self/avx/blocked`  | Blocked AVX implementation                        |
 | `/cpu/self/xsmm/serial`  | Serial LIBXSMM implementation                     |
@@ -99,8 +101,8 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/ocl/occa`              | OpenCL OCCA kernels                               |
 | `/gpu/cuda/ref`          | Reference pure CUDA kernels                       |
 | `/gpu/cuda/reg`          | Pure CUDA kernels using one thread per element    |
+| `/gpu/cuda/shared`       | Optimized pure CUDA kernels using shared memory   |
 | `/gpu/magma`             | CUDA MAGMA kernels                                |
-
 
 The `/cpu/self/*/serial` backends process one element at a time and are intended for meshes
 with a smaller number of high order elements. The `/cpu/self/*/blocked` backends process
@@ -109,11 +111,18 @@ of elements.
 
 The `/cpu/self/ref/*` backends are written in pure C and provide basic functionality.
 
+The `/cpu/self/opt/*` backends are written in pure C and use partial e-vectors to improve performance.
+
 The `/cpu/self/avx/*` backends rely upon AVX instructions to provide vectorized CPU performance.
 
 The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](http://github.com/hfp/libxsmm) package
 to provide vectorized CPU performance. The LIBXSMM backend does not use BLAS or MKL; however,
 if LIBXSMM was linked to MKL, this can be specified with the compilation flag `MKL=1`.
+
+The `/cpu/self/ref/memcheck` backend relies upon the [Valgrind](http://valgrind.org/) Memcheck tool
+to help verify that user QFunctions have no undefined values. To use, run your code with
+Valgrind and the Memcheck backend, e.g. `valgrind ./build/ex1 -ceed /cpu/self/ref/memcheck`. A
+'development' or 'debugging' version of Valgrind with headers is required to use this backend.
 
 The `/*/occa` backends rely upon the [OCCA](http://github.com/libocca/occa) package to provide
 cross platform performance.

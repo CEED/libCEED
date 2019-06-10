@@ -15,8 +15,8 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 // *****************************************************************************
-extern "C" __global__ void Setup(void *ctx, CeedInt Q,
-                                 Fields_Cuda fields) {
+extern "C" __global__ void SetupMass(void *ctx, CeedInt Q,
+                                     Fields_Cuda fields) {
   CeedScalar *rho = fields.outputs[0], *true_soln = fields.outputs[1], *rhs = fields.outputs[2];
   const CeedScalar *x = (const CeedScalar *)fields.inputs[0];
   const CeedScalar *J = (const CeedScalar *)fields.inputs[1];
@@ -42,17 +42,5 @@ extern "C" __global__ void Mass(void *ctx, CeedInt Q,
        i < Q;
        i += blockDim.x * gridDim.x) {
     v[i] = rho[i] * u[i];
-  }
-}
-
-extern "C" __global__ void Error(void *ctx, CeedInt Q,
-                                 Fields_Cuda fields) {
-  const CeedScalar *u = (const CeedScalar *)fields.inputs[0];
-  const CeedScalar *target = (const CeedScalar *)fields.inputs[1];
-  CeedScalar *err = fields.outputs[0];
-  for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-       i < Q;
-       i += blockDim.x * gridDim.x) {
-    err[i] = u[i] - target[i];
   }
 }

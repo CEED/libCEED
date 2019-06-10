@@ -14,7 +14,7 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
+#include <ceed-backend.h>
 #include <string.h>
 #include <stdarg.h>
 #include "ceed-cuda.h"
@@ -50,9 +50,9 @@ int compile(Ceed ceed, const char *source, CUmodule *module,
   Ceed delegate;
   CeedGetDelegate(ceed, &delegate);
   //We assume that the delegate is always the Cuda one
-  if (delegate){
+  if (delegate) {
     ierr = CeedGetData(delegate, (void *)&ceed_data); CeedChk(ierr);
-  }else{
+  } else {
     ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
   }
   ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId); CeedChk_Cu(ceed, ierr);
@@ -99,6 +99,17 @@ int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize,
   return 0;
 }
 
+int run_kernel_dim(Ceed ceed, CUfunction kernel, const int gridSize,
+                   const int blockSizeX, const int blockSizeY,
+                   const int blockSizeZ, void **args) {
+  CeedChk_Cu(ceed, cuLaunchKernel(kernel,
+                                  gridSize, 1, 1,
+                                  blockSizeX, blockSizeY, blockSizeZ,
+                                  0, NULL,
+                                  args, NULL));
+  return 0;
+}
+
 static int CeedGetPreferredMemType_Cuda(CeedMemType *type) {
   *type = CEED_MEM_DEVICE;
   return 0;
@@ -133,7 +144,7 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
                                 CeedGetPreferredMemType_Cuda); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VecCreate",
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate",
                                 CeedVectorCreate_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Cuda); CeedChk(ierr);

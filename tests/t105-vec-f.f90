@@ -6,7 +6,7 @@
       integer ceed,err
       integer x,n
       real*8 a(10), b(10)
-      integer*8 offset
+      integer*8 aoffset,boffset
       character arg*32
 
       call getarg(1,arg)
@@ -17,11 +17,11 @@
 
       call ceedvectorcreate(ceed,n,x,err)
 
-      call ceedvectorgetarrayread(x,ceed_mem_host,a,offset,err)
-      call ceedvectorgetarray(x,ceed_mem_host,b,offset,err)
+      call ceedvectorgetarrayread(x,ceed_mem_host,a,aoffset,err)
+      call ceedvectorgetarray(x,ceed_mem_host,b,boffset,err)
 
-      call ceedvectorrestorearrayread(x,a,offset,err)
-      call ceedvectorrestorearray(x,b,offset,err)
+      call ceedvectorrestorearrayread(x,a,aoffset,err)
+      call ceedvectorrestorearray(x,b,boffset,err)
 
       call ceedvectordestroy(x,err)
       call ceeddestroy(ceed,err)

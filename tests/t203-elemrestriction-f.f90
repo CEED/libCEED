@@ -31,7 +31,8 @@
         a(i+2*(ne+1))=30+i-1
       enddo
 
-      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,err)
+      aoffset=0
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,aoffset,err)
       call ceedvectorview(x,err)
 
       do i=1,ne

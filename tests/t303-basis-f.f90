@@ -41,7 +41,7 @@
       real*8 xxq(qdimmax*maxdim)
       real*8 uuq(qdimmax)
       real*8 fx
-      integer*8 offset1,offset2
+      integer*8 uqoffset,xoffset,offset1,offset2
 
       character arg*32
 
@@ -63,7 +63,8 @@
         enddo
 
         call ceedvectorcreate(ceed,xdim*dimn,x,err)
-        call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,xx,err)
+        xoffset=0
+        call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,xx,xoffset,err)
         call ceedvectorcreate(ceed,qdim*dimn,xq,err)
         call ceedvectorsetvalue(xq,0.d0,err)
         call ceedvectorcreate(ceed,qdim,u,err)
@@ -85,7 +86,9 @@
           call eval(dimn,xxx,uuq(i))
         enddo
         call ceedvectorrestorearrayread(xq,xxq,offset1,err)
-        call ceedvectorsetarray(uq,ceed_mem_host,ceed_use_pointer,uuq,err)
+        uqoffset=0
+        call ceedvectorsetarray(uq,ceed_mem_host,ceed_use_pointer,uuq,uqoffset,&
+     &   err)
 
         call ceedbasisapply(bul,1,ceed_transpose,ceed_eval_interp,uq,u,err)
 

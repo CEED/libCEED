@@ -21,8 +21,8 @@
 #include <ceed.h>
 
 // *****************************************************************************
-static int Setup(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
+static int SetupMass(void *ctx, CeedInt Q,
+                     const CeedScalar *const *in, CeedScalar *const *out) {
   CeedScalar *rho = out[0], *true_soln = out[1], *rhs = out[2];
   const CeedScalar (*x)[Q] = (const CeedScalar (*)[Q])in[0];
   const CeedScalar (*J)[3][Q] = (const CeedScalar (*)[3][Q])in[1];
@@ -32,8 +32,10 @@ static int Setup(void *ctx, CeedInt Q,
                       - J[0][1][i] * (J[1][0][i]*J[2][2][i] - J[1][2][i]*J[2][0][i])
                       + J[0][2][i] * (J[1][0][i]*J[2][1][i] - J[1][1][i]*J[2][0][i]));
     rho[i] = det * w[i];
-    true_soln[i] = PetscSqrtScalar(PetscSqr(x[0][i]) + PetscSqr(x[1][i]) + PetscSqr(
-                                     x[2][i]));
+
+    true_soln[i] = PetscSqrtScalar(PetscSqr(x[0][i]) + PetscSqr(x[1][i]) +
+                                   PetscSqr(x[2][i]));
+
     rhs[i] = rho[i] * true_soln[i];
   }
   return 0;
@@ -45,16 +47,6 @@ static int Mass(void *ctx, CeedInt Q,
   CeedScalar *v = out[0];
   for (CeedInt i=0; i<Q; i++) {
     v[i] = rho[i] * u[i];
-  }
-  return 0;
-}
-
-static int Error(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *u = in[0], *target = in[1];
-  CeedScalar *err = out[0];
-  for (CeedInt i=0; i<Q; i++) {
-    err[i] = u[i] - target[i];
   }
   return 0;
 }

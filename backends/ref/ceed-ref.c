@@ -14,7 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <string.h>
 #include "ceed-ref.h"
 
 static int CeedInit_Ref(const char *resource, Ceed ceed) {
@@ -22,7 +21,7 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/ref/serial"))
     return CeedError(ceed, 1, "Ref backend cannot use resource: %s", resource);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VecCreate",
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate",
                                 CeedVectorCreate_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Ref); CeedChk(ierr);
@@ -47,6 +46,6 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
 __attribute__((constructor))
 static void Register(void) {
 //! [Register]
-  CeedRegister("/cpu/self/ref/serial", CeedInit_Ref, 40);
+  CeedRegister("/cpu/self/ref/serial", CeedInit_Ref, 55);
 //! [Register]
 }

@@ -148,6 +148,7 @@ static int CeedOperatorSetupFields_Occa(CeedQFunction qf, CeedOperator op,
           i + starte);
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
+      CeedChk(ierr);
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
       ierr = CeedQFunctionFieldGetNumComponents(qffields[i], &ncomp);
       CeedChk(ierr);
@@ -192,6 +193,7 @@ static int CeedOperatorSetup_Occa(CeedOperator op) {
   CeedInt Q, numinputfields, numoutputfields;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
+  CeedChk(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
   ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
   CeedChk(ierr);
@@ -461,6 +463,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
         ierr = CeedVectorSetArray(data->evecsout[i], CEED_MEM_HOST,
                                   CEED_USE_POINTER,
                                   &data->Edata[i + numinputfields][e*elemsize*ncomp]);
+        CeedChk(ierr);
         ierr = CeedBasisApply(basis, 1, CEED_TRANSPOSE,
                               CEED_EVAL_INTERP, data->qvecsout[i],
                               data->evecsout[i]); CeedChk(ierr);
@@ -471,6 +474,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
         ierr = CeedVectorSetArray(data->evecsout[i], CEED_MEM_HOST,
                                   CEED_USE_POINTER,
                                   &data->Edata[i + numinputfields][e*elemsize*ncomp]);
+        CeedChk(ierr);
         ierr = CeedBasisApply(basis, 1, CEED_TRANSPOSE,
                               CEED_EVAL_GRAD, data->qvecsout[i],
                               data->evecsout[i]); CeedChk(ierr);
@@ -537,7 +541,7 @@ int CeedOperatorCreate_Occa(CeedOperator op) {
 
   dbg("[CeedOperator][Create]");
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedOperatorSetData(op, (void *)&impl);
+  ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
                                 CeedOperatorApply_Occa); CeedChk(ierr);
