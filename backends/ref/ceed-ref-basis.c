@@ -85,51 +85,82 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
       }
       CeedBasis_Ref *impl;
       ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
-      CeedScalar interp[nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
       CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
-      CeedScalar tmp[2][nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
       CeedScalar *interp1d;
       ierr = CeedBasisGetInterp(basis, &interp1d); CeedChk(ierr);
-      // Interpolate to quadrature points (NoTranspose)
-      //  or Grad to quadrature points (Transpose)
-      for (CeedInt d=0; d<dim; d++) {
-        ierr = CeedTensorContractApply(contract, pre, P, post, Q,
-                                       (tmode == CEED_NOTRANSPOSE
-                                        ? interp1d
-                                        : impl->colograd1d),
-                                       tmode, add&&(d>0),
-                                       (tmode == CEED_NOTRANSPOSE
-                                        ? (d==0?u:tmp[d%2])
-                                        : u + d*nqpt*ncomp*nelem),
-                                       (tmode == CEED_NOTRANSPOSE
-                                        ? (d==dim-1?interp:tmp[(d+1)%2])
-                                        : interp));
-        CeedChk(ierr);
-        pre /= P;
-        post *= Q;
-      }
-      // Grad to quadrature points (NoTranspose)
-      //  or Interpolate to dofs (Transpose)
-      P = Q1d, Q = Q1d;
-      if (tmode == CEED_TRANSPOSE) {
-        P = Q1d, Q = P1d;
-      }
-      pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
-      for (CeedInt d=0; d<dim; d++) {
-        ierr = CeedTensorContractApply(contract, pre, P, post, Q,
-                                       (tmode == CEED_NOTRANSPOSE
-                                        ? impl->colograd1d
-                                        : interp1d),
-                                       tmode, add&&(d==dim-1),
-                                       (tmode == CEED_NOTRANSPOSE
-                                        ? interp
-                                        : (d==0?interp:tmp[d%2])),
-                                       (tmode == CEED_NOTRANSPOSE
-                                        ? v + d*nqpt*ncomp*nelem
-                                        : (d==dim-1?v:tmp[(d+1)%2])));
-        CeedChk(ierr);
-        pre /= P;
-        post *= Q;
+      if (impl->colograd1d) {
+        CeedScalar tmp[2][nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
+        CeedScalar interp[nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
+        // Interpolate to quadrature points (NoTranspose)
+        //  or Grad to quadrature points (Transpose)
+        for (CeedInt d=0; d<dim; d++) {
+          ierr = CeedTensorContractApply(contract, pre, P, post, Q,
+                                         (tmode == CEED_NOTRANSPOSE
+                                          ? interp1d
+                                          : impl->colograd1d),
+                                         tmode, add&&(d>0),
+                                         (tmode == CEED_NOTRANSPOSE
+                                          ? (d==0?u:tmp[d%2])
+                                          : u + d*nqpt*ncomp*nelem),
+                                         (tmode == CEED_NOTRANSPOSE
+                                          ? (d==dim-1?interp:tmp[(d+1)%2])
+                                          : interp));
+          CeedChk(ierr);
+          pre /= P;
+          post *= Q;
+        }
+        // Grad to quadrature points (NoTranspose)
+        //  or Interpolate to dofs (Transpose)
+        P = Q1d, Q = Q1d;
+        if (tmode == CEED_TRANSPOSE) {
+          P = Q1d, Q = P1d;
+        }
+        pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
+        for (CeedInt d=0; d<dim; d++) {
+          ierr = CeedTensorContractApply(contract, pre, P, post, Q,
+                                         (tmode == CEED_NOTRANSPOSE
+                                          ? impl->colograd1d
+                                          : interp1d),
+                                         tmode, add&&(d==dim-1),
+                                         (tmode == CEED_NOTRANSPOSE
+                                          ? interp
+                                          : (d==0?interp:tmp[d%2])),
+                                         (tmode == CEED_NOTRANSPOSE
+                                          ? v + d*nqpt*ncomp*nelem
+                                          : (d==dim-1?v:tmp[(d+1)%2])));
+          CeedChk(ierr);
+          pre /= P;
+          post *= Q;
+        }
+      } else { // Underintegration, P > Q
+        CeedScalar *grad1d;
+        ierr = CeedBasisGetGrad(basis, &grad1d); CeedChk(ierr);
+
+        if (tmode == CEED_TRANSPOSE) {
+          P = Q1d, Q = P1d;
+        }
+        CeedScalar tmp[2][nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
+
+        // Dim**2 contractions, apply grad when pass == dim
+        for (CeedInt p=0; p<dim; p++) {
+          CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
+          for (CeedInt d=0; d<dim; d++) {
+            ierr = CeedTensorContractApply(contract, pre, P, post, Q,
+                                           (p==d)? grad1d : interp1d,
+                                           tmode, add&&(d==dim-1),
+                                           (d == 0
+                                            ? (tmode == CEED_NOTRANSPOSE
+                                               ? u : u+p*ncomp*nqpt*nelem)
+                                            : tmp[d%2]),
+                                           (d == dim-1
+                                            ? (tmode == CEED_TRANSPOSE
+                                               ? v : v+p*ncomp*nqpt*nelem)
+                                            : tmp[(d+1)%2]));
+            CeedChk(ierr);
+            pre /= P;
+            post *= Q;
+          }
+        }
       }
     } break;
     // Retrieve interpolation weights
@@ -255,8 +286,10 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P1d,
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   CeedBasis_Ref *impl;
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedMalloc(Q1d*Q1d, &impl->colograd1d); CeedChk(ierr);
-  ierr = CeedBasisGetCollocatedGrad(basis, impl->colograd1d); CeedChk(ierr);
+  if (Q1d >= P1d) {
+    ierr = CeedMalloc(Q1d*Q1d, &impl->colograd1d); CeedChk(ierr);
+    ierr = CeedBasisGetCollocatedGrad(basis, impl->colograd1d); CeedChk(ierr);
+  }
   ierr = CeedBasisSetData(basis, (void *)&impl); CeedChk(ierr);
 
   Ceed parent;
