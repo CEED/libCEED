@@ -38,7 +38,7 @@ The supplied examples solve *_A_ u = f*, where *_A_* is the Poisson operator.
 
 Bakeoff problem 4 is the Poisson problem on a vector system.
 
-The supplied examples solve *_A_ _u_ = f*, where *_A_* is the Poisson operator.
+The supplied examples solve *_A_ _u_ = f*, where *_A_* is the Laplace operator for the Poisson equation.
 
 ## Navier-Stokes Solver
 
