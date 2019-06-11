@@ -178,22 +178,23 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
   int ierr;
   // // CeedOperator_Cuda *impl;
   // // ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
-  // CeedQFunction qf;
-  // ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
+  CeedQFunction qf;
+  ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   // CeedInt Q, P1d, Q1d = -1, numelements, elemsize, numinputfields, numoutputfields, ncomp, dim;
+  CeedInt numinputfields, numoutputfields;
   // ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
   // ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);
-  // ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
+  ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   // CeedChk(ierr);
   // CeedTransposeMode lmode;
-  // CeedOperatorField *opinputfields, *opoutputfields;
-  // ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
+  CeedOperatorField *opinputfields, *opoutputfields;
+  ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
   // CeedChk(ierr);
   // CeedQFunctionField *qfinputfields, *qfoutputfields;
   // ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
   // CeedChk(ierr);
   // CeedEvalMode emode;
-  // CeedVector vec;
+  CeedVector vec;
   // CeedBasis basis;
   // CeedElemRestriction Erestrict;
 
@@ -424,13 +425,13 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
   //   }
   // }
 
-  // // Zero lvecs
-  // for (CeedInt i = 0; i < numoutputfields; i++) {
-  //   ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
-  //   if (vec == CEED_VECTOR_ACTIVE)
-  //     vec = outvec;
-  //   ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-  // }
+  // Zero lvecs
+  for (CeedInt i = 0; i < numoutputfields; i++) {
+    ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
+    if (vec == CEED_VECTOR_ACTIVE)
+      vec = outvec;
+    ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
+  }
 
   // // Output restriction
   // for (CeedInt i = 0; i < numoutputfields; i++) {
