@@ -158,7 +158,7 @@ for index, row in pl_set.iterrows():
    # Plot information
    title(r'%i node%s $\times$ %i ranks, %s, %s'%(
          num_nodes,'' if num_nodes==1 else 's',
-         num_procs,backend,test_short),fontsize=16)
+         num_procs_node,backend,test_short),fontsize=16)
    xscale('log') # subsx=[2,4,6,8]
    if log_y:
       yscale('log')
