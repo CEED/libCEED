@@ -22,6 +22,7 @@
 static const char *deviceFunctions = QUOTE(
 // typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } CudaFields;
 typedef struct { CeedScalar* in[16]; CeedScalar* out[16]; } CudaFields;
+typedef struct { CeedInt* in[16]; CeedInt* out[16]; } CudaFieldsInt;
 
 typedef struct {
   CeedInt tidx;
@@ -30,22 +31,95 @@ typedef struct {
   CeedScalar* slice;
 } BackendData;
 
+#if __CUDA_ARCH__ < 600
+__device__ double atomicAdd(double *address, double val) {
+  unsigned long long int *address_as_ull = (unsigned long long int *)address;
+  unsigned long long int old = *address_as_ull, assumed;
+  do {
+    assumed = old;
+    old =
+      atomicCAS(address_as_ull, assumed,
+                __double_as_longlong(val +
+                                     __longlong_as_double(assumed)));
+    // Note: uses integer comparison to avoid hang in case of NaN
+    // (since NaN != NaN)
+  } while (assumed != old);
+  return __longlong_as_double(old);
+}
+#endif // __CUDA_ARCH__ < 600
+
 //****
 // 1D
 template <int NCOMP, int P1d>
-inline __device__ void readDofs1d(BackendData& data, const CeedInt elem, const CeedScalar* d_u, CeedScalar* r_u) {
-}
-
-template <int NCOMP, int Q1d>
-inline __device__ void readQuads1d(BackendData& data, const CeedInt elem, const CeedScalar* d_u, CeedScalar* r_u) {
+inline __device__ void readDofs1d(BackendData& data, const CeedInt ndofs, const CeedInt elem, const CeedInt* indices, const CeedScalar* d_u, CeedScalar* r_u) {
+  const CeedInt dof = data.tidx;
+  const CeedInt ind = indices[dof + elem * P1d];
+  for(CeedInt comp = 0; comp < NCOMP; ++comp) {
+    r_u[comp] = d_u[ind + ndofs * comp];
+  }
 }
 
 template <int NCOMP, int P1d>
-inline __device__ void writeDofs1d(BackendData& data, const CeedInt elem, CeedScalar* r_v, const CeedScalar* d_v) {
+inline __device__ void readDofsTranspose1d(BackendData& data, const CeedInt ndofs, const CeedInt elem, const CeedInt* indices, const CeedScalar* d_u, CeedScalar* r_u) {
+  const CeedInt dof = data.tidx;
+  const CeedInt ind = indices[dof + elem * P1d];
+  for(CeedInt comp = 0; comp < NCOMP; ++comp) {
+    r_u[comp] = d_u[ind * NCOMP + comp];
+  }
 }
 
 template <int NCOMP, int Q1d>
-inline __device__ void writeQuads1d(BackendData& data, const CeedInt elem, CeedScalar* r_v, const CeedScalar* d_v) {
+inline __device__ void readQuads1d(BackendData& data, const CeedInt nquads, const CeedInt elem, const CeedScalar* d_u, CeedScalar* r_u) {
+  const CeedInt dof = data.tidx;
+  const CeedInt ind = dof + elem * Q1d;
+  for(CeedInt comp = 0; comp < NCOMP; ++comp) {
+    r_u[comp] = d_u[ind + nquads * comp];
+  }
+}
+
+template <int NCOMP, int Q1d>
+inline __device__ void readQuadsTranspose1d(BackendData& data, const CeedInt nquads, const CeedInt elem, const CeedScalar* d_u, CeedScalar* r_u) {
+  const CeedInt dof = data.tidx;
+  const CeedInt ind = dof + elem * Q1d;
+  for(CeedInt comp = 0; comp < NCOMP; ++comp) {
+    r_u[comp] = d_u[ind * NCOMP + comp];
+  }
+}
+
+template <int NCOMP, int P1d>
+inline __device__ void writeDofs1d(BackendData& data, const CeedInt ndofs, const CeedInt elem, const CeedInt* indices, const CeedScalar* r_v, CeedScalar* d_v) {
+  const CeedInt dof = data.tidx;
+  const CeedInt ind = indices[dof + elem * P1d];
+  for(CeedInt comp = 0; comp < NCOMP; ++comp) {
+    atomicAdd(&d_v[ind + ndofs * comp], r_v[comp]);
+  }
+}
+
+template <int NCOMP, int P1d>
+inline __device__ void writeDofsTranspose1d(BackendData& data, const CeedInt ndofs, const CeedInt elem, const CeedInt* indices, const CeedScalar* r_v, CeedScalar* d_v) {
+  const CeedInt dof = data.tidx;
+  const CeedInt ind = indices[dof + elem * P1d];
+  for(CeedInt comp = 0; comp < NCOMP; ++comp) {
+    atomicAdd(&d_v[ind * NCOMP + comp], r_v[comp]);
+  }
+}
+
+template <int NCOMP, int Q1d>
+inline __device__ void writeQuads1d(BackendData& data, const CeedInt nquads, const CeedInt elem, const CeedScalar* r_v, CeedScalar* d_v) {
+  const CeedInt dof = data.tidx;
+  const CeedInt ind = dof + elem * Q1d;
+  for(CeedInt comp = 0; comp < NCOMP; ++comp) {
+    d_v[ind + nquads * comp] = r_v[comp];
+  }
+}
+
+template <int NCOMP, int Q1d>
+inline __device__ void writeQuadsTranspose1d(BackendData& data, const CeedInt nquads, const CeedInt elem, const CeedScalar* r_v, CeedScalar* d_v) {
+  const CeedInt dof = data.tidx;
+  const CeedInt ind = dof + elem * Q1d;
+  for(CeedInt comp = 0; comp < NCOMP; ++comp) {
+    d_v[ind * NCOMP + comp] = r_v[comp];
+  }
 }
 
 template <int NCOMP, int P1d, int Q1d>
@@ -213,7 +287,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op, CeedVector invec,
   // ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
-  CeedInt Q, P1d, Q1d = -1, numelements, elemsize, numinputfields, numoutputfields, ncomp, dim;
+  CeedInt Q, P1d, Q1d = -1, numelements, elemsize, numinputfields, numoutputfields, ncomp, dim, ndof;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
@@ -226,6 +300,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op, CeedVector invec,
   ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
   CeedChk(ierr);
   CeedEvalMode emode;
+  CeedTransposeMode lmode;
   CeedVector vec;
   CeedBasis basis;
   CeedElemRestriction Erestrict;
@@ -239,7 +314,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op, CeedVector invec,
 
   // Setup
   // ierr = CeedOperatorSetup_Cuda_gen(op); CeedChk(ierr);
-  code << "\nextern \"C\" __global__ void oper(CeedInt nelem, CudaFields fields, CudaFields B, CudaFields G, CeedScalar* W) {\n";
+  code << "\nextern \"C\" __global__ void oper(CeedInt nelem, CudaFieldsInt indices, CudaFields fields, CudaFields B, CudaFields G, CeedScalar* W) {\n";
   // Input Evecs and Restriction
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
@@ -310,9 +385,12 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op, CeedVector invec,
     // Basis action
     switch (emode) {
     case CEED_EVAL_NONE:
+      ierr = CeedElemRestrictionGetNumDoF(Erestrict, &ndof); CeedChk(ierr);
       code << "  const CeedInt ncomp_in_"<<i<<" = "<<ncomp<<";\n";
+      code << "  const CeedInt nquads_in_"<<i<<" = "<<ndof<<";\n";
       code << "  CeedScalar r_t"<<i<<"[ncomp_in_"<<i<<"*Q1d];\n";
-      code << "  readQuads"<<dim<<"d<ncomp_in_"<<i<<",Q1d>(data, elem, d_u"<<i<<", r_t"<<i<<");\n";
+      ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
+      code << "  readQuads"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",Q1d>(data, nquads_in_"<<i<<", elem, d_u"<<i<<", r_t"<<i<<");\n";
       // ierr = CeedVectorSetArray(impl->qvecsin[i], CEED_MEM_DEVICE,
       //                           CEED_USE_POINTER,
       //                           impl->edata[i]); CeedChk(ierr);
@@ -320,13 +398,16 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op, CeedVector invec,
     case CEED_EVAL_INTERP:
       ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
       ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
+      CeedChk(ierr);
+      ierr = CeedElemRestrictionGetNumDoF(Erestrict, &ndof); CeedChk(ierr);
       code << "  const CeedInt P_in_"<<i<<" = "<<P1d<<";\n";
       code << "  const CeedInt ncomp_in_"<<i<<" = "<<ncomp<<";\n";
+      code << "  const CeedInt ndofs_in_"<<i<<" = "<<ndof<<";\n";
       code << "  CeedScalar r_u"<<i<<"[ncomp_in_"<<i<<"*P_in_"<<i<<"];\n";
-      code << "  readDofs"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<">(data, elem, d_u"<<i<<", r_u"<<i<<");\n";
+      ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
+      code << "  readDofs"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<">(data, ndofs_in_"<<i<<", elem, indices.in["<<i<<"], d_u"<<i<<", r_u"<<i<<");\n";
       code << "  CeedScalar r_t"<<i<<"[ncomp_in_"<<i<<"*Q1d];\n";
-      code << "  CeedScalar* B_in_"<<i<<" = B.in["<<i<<"];\n";
-      code << "  interp"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<",Q1d>(data, r_u"<<i<<", B_in_"<<i<<", r_t"<<i<<");\n";
+      code << "  interp"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<",Q1d>(data, r_u"<<i<<", B.in["<<i<<"], r_t"<<i<<");\n";
       // ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
       // ierr = CeedBasisApply(basis, numelements, CEED_NOTRANSPOSE,
       //                       CEED_EVAL_INTERP, impl->evecs[i],
@@ -334,15 +415,17 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op, CeedVector invec,
       break;
     case CEED_EVAL_GRAD:
       ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
+      CeedChk(ierr);
+      ierr = CeedElemRestrictionGetNumDoF(Erestrict, &ndof); CeedChk(ierr);
       code << "  const CeedInt ncomp_in_"<<i<<" = "<<ncomp<<";\n";
+      code << "  const CeedInt ndofs_in_"<<i<<" = "<<ndof<<";\n";
       ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
       code << "  const CeedInt P_in_"<<i<<" = "<<P1d<<";\n";
       code << "  CeedScalar r_u"<<i<<"[ncomp_in_"<<i<<"*P_in_"<<i<<"];\n";
-      code << "  readDofs"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<">(data, elem, d_u"<<i<<", r_u"<<i<<");\n";
+      ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
+      code << "  readDofs"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<">(data, ndofs_in_"<<i<<", elem, indices.in["<<i<<"], d_u"<<i<<", r_u"<<i<<");\n";
       code << "  CeedScalar r_t"<<i<<"[ncomp_in_"<<i<<"*Dim*Q1d];\n";
-      code << "  CeedScalar* B_in_"<<i<<" = B.in["<<i<<"];\n";
-      code << "  CeedScalar* G_in_"<<i<<" = G.in["<<i<<"];\n";
-      code << "  grad"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<",Q1d>(data, r_u"<<i<<", B_in_"<<i<<", G_in_"<<i<<", r_t"<<i<<");\n";
+      code << "  grad"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<",Q1d>(data, r_u"<<i<<", B.in["<<i<<"], G.in["<<i<<"], r_t"<<i<<");\n";
       // ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
       // ierr = CeedBasisApply(basis, numelements, CEED_NOTRANSPOSE,
       //                       CEED_EVAL_GRAD, impl->evecs[i],
@@ -423,16 +506,21 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op, CeedVector invec,
     // Basis action
     switch (emode) {
     case CEED_EVAL_NONE:
-      code << "  writeQuads"<<dim<<"d<ncomp_out_"<<i<<",Q1d>(data, elem, r_tt"<<i<<", d_v"<<i<<");\n";
+      ierr = CeedElemRestrictionGetNumDoF(Erestrict, &ndof); CeedChk(ierr);
+      ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
+      code << "  const CeedInt nquads_out_"<<i<<" = "<<ndof<<";\n";
+      code << "  writeQuads"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_out_"<<i<<",Q1d>(data, nquads_out_"<<i<<", elem, r_tt"<<i<<", d_v"<<i<<");\n";
       break; // No action
     case CEED_EVAL_INTERP:
       ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis); CeedChk(ierr);
       ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
       code << "  const CeedInt P_out_"<<i<<" = "<<P1d<<";\n";
       code << "  CeedScalar r_v"<<i<<"[ncomp_out_"<<i<<"*P_out_"<<i<<"];\n";
-      code << "  CeedScalar* B_out_"<<i<<" = B.out["<<i<<"];\n";
-      code << "  interpTranspose"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<",Q1d>(data, r_tt"<<i<<", B_out_"<<i<<", r_v"<<i<<");\n";
-      code << "  writeDofs"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<">(data, elem, r_v"<<i<<", d_v"<<i<<");\n";
+      code << "  interpTranspose"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<",Q1d>(data, r_tt"<<i<<", B.out["<<i<<"], r_v"<<i<<");\n";
+      ierr = CeedElemRestrictionGetNumDoF(Erestrict, &ndof); CeedChk(ierr);
+      code << "  const CeedInt ndofs_out_"<<i<<" = "<<ndof<<";\n";
+      ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
+      code << "  writeDofs"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<">(data, ndofs_out_"<<i<<", elem, indices.out["<<i<<"], r_v"<<i<<", d_v"<<i<<");\n";
       // ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis);
       // CeedChk(ierr);
       // ierr = CeedBasisApply(basis, numelements, CEED_TRANSPOSE,
@@ -444,10 +532,11 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op, CeedVector invec,
       ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
       code << "  const CeedInt P_out_"<<i<<" = "<<P1d<<";\n";
       code << "  CeedScalar r_v"<<i<<"[ncomp_out_"<<i<<"*P_out_"<<i<<"];\n";
-      code << "  CeedScalar* B_out_"<<i<<" = B.out["<<i<<"];\n";
-      code << "  CeedScalar* G_out_"<<i<<" = G.out["<<i<<"];\n";
-      code << "  gradTranspose"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<",Q1d>(data, r_tt"<<i<<", B_out_"<<i<<", G_out_"<<i<<", r_v"<<i<<");\n";
-      code << "  writeDofs"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<">(data, elem, r_v"<<i<<", d_v"<<i<<");\n";
+      code << "  gradTranspose"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<",Q1d>(data, r_tt"<<i<<", B.out["<<i<<"], G.out["<<i<<"], r_v"<<i<<");\n";
+      ierr = CeedElemRestrictionGetNumDoF(Erestrict, &ndof); CeedChk(ierr);
+      code << "  const CeedInt ndofs_out_"<<i<<" = "<<ndof<<";\n";
+      ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
+      code << "  writeDofs"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<">(data, ndofs_out_"<<i<<", elem, indices.out["<<i<<"], r_v"<<i<<", d_v"<<i<<");\n";
       // ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis);
       // CeedChk(ierr);
       // ierr = CeedBasisApply(basis, numelements, CEED_TRANSPOSE,
