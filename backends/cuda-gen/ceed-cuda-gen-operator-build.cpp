@@ -279,25 +279,101 @@ inline __device__ void writeQuadsTranspose2d(BackendData& data, const CeedInt nq
 }
 
 template <int NCOMP, int P1d, int Q1d>
+inline __device__ void ContractX2d(BackendData& data,
+                                   const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+  data.slice[data.tidx+data.tidy*Q1d] = *U;
+  __syncthreads();
+  *V = 0.0;
+  for (int i = 0; i < P1d; ++i) {
+    *V += B[i + data.tidx*P1d] * data.slice[i + data.tidy*Q1d];//contract x direction
+  }
+  __syncthreads();
+}
+
+template <int NCOMP, int P1d, int Q1d>
+inline __device__ void ContractY2d(BackendData& data,
+                                   const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+  data.slice[data.tidx+data.tidy*Q1d] = *U;
+  __syncthreads();
+  *V = 0.0;
+  for (int i = 0; i < P1d; ++i) {
+    *V += B[i + data.tidy*P1d] * data.slice[data.tidx + i*Q1d];//contract y direction
+  }
+  __syncthreads();
+}
+
+template <int NCOMP, int P1d, int Q1d>
+inline __device__ void ContractYTranspose2d(BackendData& data,
+                                            const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+  data.slice[data.tidx+data.tidy*Q1d] = *U;
+  __syncthreads();
+  *V = 0.0;
+  if (data.tidy<P1d) {
+    for (int i = 0; i < Q1d; ++i) {
+      *V += B[data.tidy + i*P1d] * data.slice[data.tidx + i*Q1d];//contract y direction
+    }
+  }
+  __syncthreads();
+}
+
+template <int NCOMP, int P1d, int Q1d>
+inline __device__ void ContractXTranspose2d(BackendData& data,
+                                            const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+  data.slice[data.tidx+data.tidy*Q1d] = *U;
+  __syncthreads();
+  *V = 0.0;
+  if (data.tidx<P1d) {
+    for (int i = 0; i < Q1d; ++i) {
+      *V += B[data.tidx + i*P1d] * data.slice[i + data.tidy*Q1d];//contract x direction
+    }
+  }
+  __syncthreads();
+}
+
+template <int NCOMP, int P1d, int Q1d>
 inline __device__ void interp2d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
                                 CeedScalar *__restrict__ r_V) {
+  CeedScalar r_t[1];
+  for(int comp=0; comp<NCOMP; comp++) {
+    ContractX2d<NCOMP,P1d,Q1d>(data, r_U+comp, c_B, r_t);
+    ContractY2d<NCOMP,P1d,Q1d>(data, r_t, c_B, r_V+comp);
+  }
 }
 
 template <int NCOMP, int P1d, int Q1d>
 inline __device__ void interpTranspose2d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
                                 CeedScalar *__restrict__ r_V) {
+  CeedScalar r_t[1];
+  for(int comp=0; comp<NCOMP; comp++) {
+    ContractYTranspose2d<NCOMP,P1d,Q1d>(data, r_U+comp, c_B, r_t);
+    ContractXTranspose2d<NCOMP,P1d,Q1d>(data, r_t, c_B, r_V+comp);
+  }
 }
 
 template <int NCOMP, int P1d, int Q1d>
 inline __device__ void grad2d(BackendData& data, const CeedScalar *__restrict__ r_U,
                               const CeedScalar *c_B, const CeedScalar *c_G,
                               CeedScalar *__restrict__ r_V) {
+  CeedScalar r_t[1];
+  for(int comp=0; comp<NCOMP; comp++) {
+    ContractX2d<NCOMP,P1d,Q1d>(data, r_U+comp, c_G, r_t);
+    ContractY2d<NCOMP,P1d,Q1d>(data, r_t, c_B, r_V+comp+0*NCOMP);
+    ContractX2d<NCOMP,P1d,Q1d>(data, r_U+comp, c_B, r_t);
+    ContractY2d<NCOMP,P1d,Q1d>(data, r_t, c_G, r_V+comp+1*NCOMP);
+  }
 }
 
 template <int NCOMP, int P1d, int Q1d>
 inline __device__ void gradTranspose2d(BackendData& data, const CeedScalar *__restrict__ r_U,
                               const CeedScalar *c_B, const CeedScalar *c_G,
                               CeedScalar *__restrict__ r_V) {
+  CeedScalar r_t[1];
+  for(int comp=0; comp<NCOMP; comp++) {
+    ContractYTranspose2d<NCOMP,P1d,Q1d>(data, r_U+comp, c_B, r_t);
+    ContractXTranspose2d<NCOMP,P1d,Q1d>(data, r_t, c_G, r_V+comp+0*NCOMP);
+    ContractYTranspose2d<NCOMP,P1d,Q1d>(data, r_U+comp, c_G, r_t);
+    ContractXTranspose2d<NCOMP,P1d,Q1d>(data, r_t, c_B, r_V+comp+1*NCOMP);
+  }
 }
 
 //****
