@@ -380,6 +380,8 @@ int main(int argc, char **argv) {
                          "Target number of locally owned degrees of freedom per process",
                          NULL, localdof, &localdof, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  P = degree + 1;
+  Q = P + qextra;
 
   // Determine size of process grid
   ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
@@ -410,13 +412,21 @@ int main(int argc, char **argv) {
   if (!test_mode) {
     CeedInt gsize;
     ierr = VecGetSize(X, &gsize); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Global dofs: %D\n", gsize/vscale); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
-                       p[0], p[1], p[2]); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localelem,
-                       melem[0], melem[1], melem[2]); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Owned dofs: %D = %D %D %D\n",
-                       mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm,
+                       "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
+                       "  libCEED:\n"
+                       "    libCEED Backend                    : %s\n"
+                       "  Mesh:\n"
+                       "    Number of 1D Basis Nodes (p)       : %d\n"
+                       "    Number of 1D Quadrature Points (q) : %d\n"
+                       "    Global DOFs                        : %D\n"
+                       "    Process Decomposition              : %D %D %D\n"
+                       "    Local Elements                     : %D = %D %D %D\n"
+                       "    Owned DOFs                         : %D = %D %D %D\n",
+                       bpChoice+1, ceedresource, P, Q,  gsize/vscale, p[0],
+                       p[1], p[2], localelem, melem[0], melem[1], melem[2],
+                       mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]);
+    CHKERRQ(ierr);
   }
 
   {
@@ -507,8 +517,6 @@ int main(int argc, char **argv) {
 
   // Set up libCEED
   CeedInit(ceedresource, &ceed);
-  P = degree + 1;
-  Q = P + qextra;
   CeedBasisCreateTensorH1Lagrange(ceed, 3, vscale, P, Q, CEED_GAUSS, &basisu);
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, Q, CEED_GAUSS, &basisx);
 
@@ -708,8 +716,14 @@ int main(int argc, char **argv) {
     ierr = KSPGetIterationNumber(ksp, &its); CHKERRQ(ierr);
     ierr = KSPGetResidualNorm(ksp, &rnorm); CHKERRQ(ierr);
     if (!test_mode || reason < 0 || rnorm > 1e-8) {
-      ierr = PetscPrintf(comm, "KSP %s %s iterations %D rnorm %e\n", ksptype,
-                         KSPConvergedReasons[reason], its, (double)rnorm); CHKERRQ(ierr);
+      ierr = PetscPrintf(comm,
+                         "  KSP:\n"
+                         "    KSP Type                           : %s\n"
+                         "    KSP Convergence                    : %s\n"
+                         "    Total KSP Iterations               : %D\n"
+                         "    Final rnorm                        : %e\n",
+                         ksptype, KSPConvergedReasons[reason], its,
+                         (double)rnorm); CHKERRQ(ierr);
     }
     if (benchmark_mode && (!test_mode)) {
       CeedInt gsize;
@@ -717,11 +731,11 @@ int main(int argc, char **argv) {
       MPI_Reduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, 0, comm);
       MPI_Reduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
       ierr = PetscPrintf(comm,
-                         "CG solve time  : %g (%g) sec.\n"
-                         "DOFs/sec in CG : %g (%g) million.\n",
-                         rt_max, rt_min,
-                         1e-6*gsize*its/rt_max, 1e-6*gsize*its/rt_min);
-      CHKERRQ(ierr);
+                         "  Performance:\n"
+                         "    CG Solve Time                      : %g (%g) sec\n"
+                         "    DOFs/Sec in CG                     : %g (%g) million\n",
+                         rt_max, rt_min, 1e-6*gsize*its/rt_max,
+                         1e-6*gsize*its/rt_min); CHKERRQ(ierr);
     }
   }
 
@@ -730,8 +744,9 @@ int main(int argc, char **argv) {
     ierr = ComputeErrorMax(user, op_error, X, target, &maxerror); CHKERRQ(ierr);
     PetscReal tol = (bpChoice == CEED_BP1 || bpChoice == CEED_BP2) ? 5e-3 : 5e-2;
     if (!test_mode || maxerror > tol) {
-      ierr = PetscPrintf(comm, "Pointwise error (max) %e\n", (double)maxerror);
-      CHKERRQ(ierr);
+      ierr = PetscPrintf(comm,
+                         "    Pointwise Error (max)              : %e\n",
+                         (double)maxerror); CHKERRQ(ierr);
     }
   }
 
