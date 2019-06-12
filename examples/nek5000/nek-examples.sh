@@ -255,7 +255,6 @@ function run() {
   for nek_ex in "${nek_examples[@]}"; do
     if [ ${nek_test} == "test" ]; then
       nek_ex="build/"${nek_ex}
-      NEK_BOX_DIR="build/boxes"
     else
       echo "Running Nek5000 Example: $nek_ex"
     fi
