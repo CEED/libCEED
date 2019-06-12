@@ -850,7 +850,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     case CEED_EVAL_NONE:
       ierr = CeedElemRestrictionGetNumDoF(Erestrict, &ndof); CeedChk(ierr);
       ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
-      code << "  const CeedInt nquads_out_"<<i<<" = "<<ndof<<";\n";
+      code << "  const CeedInt nquads_out_"<<i<<" = "<<ndof<<"/ncomp_out_"<<i<<";\n";
       code << "  writeQuads"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_out_"<<i<<",Q1d>(data, nquads_out_"<<i<<", elem, r_tt"<<i<<", d_v"<<i<<");\n";
       break; // No action
     case CEED_EVAL_INTERP:
@@ -901,7 +901,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "  }\n";
   code << "}\n\n";
 
-  // std::cout << code.str();
+  std::cout << code.str();
 
   ierr = compile(ceed, code.str().c_str(), &data->module, 0); CeedChk(ierr);
   ierr = get_kernel(ceed, data->module, "oper", &data->op);
