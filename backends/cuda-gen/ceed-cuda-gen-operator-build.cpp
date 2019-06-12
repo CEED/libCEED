@@ -57,7 +57,7 @@ inline __device__ void readDofs1d(BackendData& data, const CeedInt ndofs, const 
   if (data.tidx<P1d)
   {
     const CeedInt dof = data.tidx;
-    const CeedInt ind = indices[dof + elem * P1d];//TODO handle indices==NULL
+    const CeedInt ind = indices ? indices[dof + elem * P1d] : dof + elem * P1d;
     for(CeedInt comp = 0; comp < NCOMP; ++comp) {
       r_u[comp] = d_u[ind + ndofs * comp];
     }
@@ -69,7 +69,7 @@ inline __device__ void readDofsTranspose1d(BackendData& data, const CeedInt ndof
   if (data.tidx<P1d)
   {
     const CeedInt dof = data.tidx;
-    const CeedInt ind = indices[dof + elem * P1d];
+    const CeedInt ind = indices ? indices[dof + elem * P1d] : dof + elem * P1d;
     for(CeedInt comp = 0; comp < NCOMP; ++comp) {
       r_u[comp] = d_u[ind * NCOMP + comp];
     }
@@ -99,7 +99,7 @@ inline __device__ void writeDofs1d(BackendData& data, const CeedInt ndofs, const
   if (data.tidx<P1d)
   {
     const CeedInt dof = data.tidx;
-    const CeedInt ind = indices[dof + elem * P1d];
+    const CeedInt ind = indices ? indices[dof + elem * P1d] : dof + elem * P1d;
     for(CeedInt comp = 0; comp < NCOMP; ++comp) {
       atomicAdd(&d_v[ind + ndofs * comp], r_v[comp]);
     }
@@ -111,7 +111,7 @@ inline __device__ void writeDofsTranspose1d(BackendData& data, const CeedInt ndo
   if (data.tidx<P1d)
   {
     const CeedInt dof = data.tidx;
-    const CeedInt ind = indices[dof + elem * P1d];
+    const CeedInt ind = indices ? indices[dof + elem * P1d] : dof + elem * P1d;
     for(CeedInt comp = 0; comp < NCOMP; ++comp) {
       atomicAdd(&d_v[ind * NCOMP + comp], r_v[comp]);
     }
@@ -201,7 +201,7 @@ inline __device__ void readDofs2d(BackendData& data, const CeedInt ndofs, const 
   if (data.tidx<P1d && data.tidy<P1d)
   {
     const CeedInt dof = data.tidx + data.tidy*P1d;
-    const CeedInt ind = indices[dof + elem * P1d*P1d];//TODO handle indices==NULL
+    const CeedInt ind = indices ? indices[dof + elem * P1d*P1d] : dof + elem * P1d*P1d;
     for(CeedInt comp = 0; comp < NCOMP; ++comp) {
       r_u[comp] = d_u[ind + ndofs * comp];
     }
@@ -213,7 +213,7 @@ inline __device__ void readDofsTranspose2d(BackendData& data, const CeedInt ndof
   if (data.tidx<P1d && data.tidy<P1d)
   {
     const CeedInt dof = data.tidx + data.tidy*P1d;
-    const CeedInt ind = indices[dof + elem * P1d*P1d];//TODO handle indices==NULL
+    const CeedInt ind = indices ? indices[dof + elem * P1d*P1d] : dof + elem * P1d*P1d;
     for(CeedInt comp = 0; comp < NCOMP; ++comp) {
       r_u[comp] = d_u[ind * NCOMP + comp];
     }
@@ -243,7 +243,7 @@ inline __device__ void writeDofs2d(BackendData& data, const CeedInt ndofs, const
   if (data.tidx<P1d && data.tidy<P1d)
   {
     const CeedInt dof = data.tidx + data.tidy*P1d;
-    const CeedInt ind = indices[dof + elem * P1d*P1d];
+    const CeedInt ind = indices ? indices[dof + elem * P1d*P1d] : dof + elem * P1d*P1d;
     for(CeedInt comp = 0; comp < NCOMP; ++comp) {
       atomicAdd(&d_v[ind + ndofs * comp], r_v[comp]);
     }
@@ -255,7 +255,7 @@ inline __device__ void writeDofsTranspose2d(BackendData& data, const CeedInt ndo
   if (data.tidx<P1d && data.tidy<P1d)
   {
     const CeedInt dof = data.tidx + data.tidy*P1d;
-    const CeedInt ind = indices[dof + elem * P1d*P1d];
+    const CeedInt ind = indices ? indices[dof + elem * P1d*P1d] : dof + elem * P1d*P1d;
     for(CeedInt comp = 0; comp < NCOMP; ++comp) {
       atomicAdd(&d_v[ind * NCOMP + comp], r_v[comp]);
     }
@@ -385,7 +385,7 @@ inline __device__ void readDofs3d(BackendData& data, const CeedInt ndofs, const 
   if (data.tidx<P1d && data.tidy<P1d)
   {
     for(CeedInt dof = data.tidx + data.tidy*P1d; dof < P1d*P1d*P1d; dof += P1d*P1d){
-      const CeedInt ind = indices[dof + elem * P1d*P1d*P1d];//TODO handle indices==NULL
+      const CeedInt ind = indices ? indices[dof + elem * P1d*P1d*P1d] : dof + elem * P1d*P1d*P1d;
       for(CeedInt comp = 0; comp < NCOMP; ++comp) {
         r_u[comp] = d_u[ind + ndofs * comp];
       }
@@ -398,7 +398,7 @@ inline __device__ void readDofsTranspose3d(BackendData& data, const CeedInt ndof
   if (data.tidx<P1d && data.tidy<P1d)
   {
     for(CeedInt dof = data.tidx + data.tidy*P1d; dof < P1d*P1d*P1d; dof += P1d*P1d){
-      const CeedInt ind = indices[dof + elem * P1d*P1d*P1d];//TODO handle indices==NULL
+      const CeedInt ind = indices ? indices[dof + elem * P1d*P1d*P1d] : dof + elem * P1d*P1d*P1d;
       for(CeedInt comp = 0; comp < NCOMP; ++comp) {
         r_u[comp] = d_u[ind * NCOMP + comp];
       }
@@ -431,7 +431,7 @@ inline __device__ void writeDofs3d(BackendData& data, const CeedInt ndofs, const
   if (data.tidx<P1d && data.tidy<P1d)
   {
     for(CeedInt dof = data.tidx + data.tidy*P1d; dof < P1d*P1d*P1d; dof += P1d*P1d){
-      const CeedInt ind = indices[dof + elem * P1d*P1d*P1d];//TODO handle indices==NULL
+      const CeedInt ind = indices ? indices[dof + elem * P1d*P1d*P1d] : dof + elem * P1d*P1d*P1d;
       for(CeedInt comp = 0; comp < NCOMP; ++comp) {
         atomicAdd(&d_v[ind + ndofs * comp], r_v[comp]);
       }
@@ -444,7 +444,7 @@ inline __device__ void writeDofsTranspose3d(BackendData& data, const CeedInt ndo
   if (data.tidx<P1d && data.tidy<P1d)
   {
     for(CeedInt dof = data.tidx + data.tidy*P1d; dof < P1d*P1d*P1d; dof += P1d*P1d){
-      const CeedInt ind = indices[dof + elem * P1d*P1d*P1d];//TODO handle indices==NULL
+      const CeedInt ind = indices ? indices[dof + elem * P1d*P1d*P1d] : dof + elem * P1d*P1d*P1d;
       for(CeedInt comp = 0; comp < NCOMP; ++comp) {
         atomicAdd(&d_v[ind * NCOMP + comp], r_v[comp]);
       }

@@ -16,7 +16,7 @@
 
 //TODO make these functions valid in any dimension using the ctx
 inline __device__ void f_build_mass(void *ctx, CeedInt Q, const CeedScalar *J, const CeedScalar *qw, CeedScalar *qd) {
-  for (int i = 0; i < Q; ++i)
+  for (CeedInt i = 0; i < Q; ++i)
   {
 	  qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
   		       J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
@@ -25,7 +25,7 @@ inline __device__ void f_build_mass(void *ctx, CeedInt Q, const CeedScalar *J, c
 }
 
 inline __device__ void f_apply_mass(void *ctx, CeedInt Q, const CeedScalar *u, const CeedScalar *w, CeedScalar *v) {
-  for (CeedInt i=0; i<Q; i++) {
+  for (CeedInt i = 0; i < Q; ++i) {
     v[i] = w[i] * u[i];
   }
 }
