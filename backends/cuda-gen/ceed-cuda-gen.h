@@ -18,16 +18,26 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+typedef struct { CeedScalar* in[16]; CeedScalar* out[16]; } CudaFields;
+typedef struct { CeedInt* in[16]; CeedInt* out[16]; } CudaFieldsInt;
+
 typedef struct {
+  CeedInt dim;
+  CeedInt Q1d;
   CUmodule module;
   CUfunction op;
+  CudaFieldsInt indices;
+  CudaFields fields;
+  CudaFields B;
+  CudaFields G;
+  CeedScalar* W;
   // CeedVector
   // *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
   // CeedScalar **edata;
   // CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
   // CeedVector *qvecsout;   /// Output Q-vectors needed to apply operator
-  CeedInt    numein;
-  CeedInt    numeout;
+  // CeedInt    numein;
+  // CeedInt    numeout;
 } CeedOperator_Cuda_gen;
 
 typedef struct {
