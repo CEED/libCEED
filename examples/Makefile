@@ -56,7 +56,7 @@ ns:
 	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C navier-stokes all
 
 clean:
-	cd nek5000 && ./make-nek-examples.sh clean
+	cd nek5000 && ./nek-examples.sh -clean
 	make -C mfem clean
 	make -C petsc clean
 	make -C navier-stokes clean
