@@ -41,7 +41,7 @@ ceed:
 nek:
 	cd nek5000 && NEK5K_DIR=$(NEK5K_DIR) CEED_DIR=$(CEED_DIR) \
 		 FC=$(NEK5K_FC) CC=$(NEK5K_CC) \
-		 EXAMPLES=$(NEK5K_EXAMPLES) ./make-nek-examples.sh
+		 ./nek-examples.sh -make -e $(NEK5K_EXAMPLES)
 
 prepnektests:
 	cd nek5000 && NEK5K_DIR=$(NEK5K_DIR) ./make-nek-tests.sh
