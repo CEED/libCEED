@@ -643,9 +643,6 @@ inline __device__ void weight3d(BackendData& data, const CeedScalar *qweight1d, 
   }
 }
 
-inline __device__ void qfunction(...) {
-}
-
 );
 
 extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
@@ -661,7 +658,9 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   CeedOperator_Cuda_gen *data;
   ierr = CeedOperatorGetData(op, (void**)&data); CeedChk(ierr);
   CeedQFunction qf;
+  CeedQFunction_Cuda_gen *qf_data;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, (void **)&qf_data); CeedChk(ierr);
   CeedInt Q, P1d, Q1d = -1, numelements, elemsize, numinputfields, numoutputfields, ncomp, dim, ndof;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);
@@ -684,6 +683,9 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   string devFunctions(deviceFunctions);
 
   code << devFunctions;
+
+  string qFunction(qf_data->qFunctionSource);
+  code << qFunction;
 
   // Setup
   code << "\nextern \"C\" __global__ void oper(CeedInt nelem, CudaFieldsInt indices, CudaFields fields, CudaFields B, CudaFields G, CeedScalar* W) {\n";
@@ -817,7 +819,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     }
   }
   //TODO write qfunction load for this backend
-  code << "  qfunction(";
+  string qFunctionName(qf_data->qFunctionName);
+  code << "  "<<qFunctionName<<"(";
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "r_t"<<i<<", ";
   }

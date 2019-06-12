@@ -31,13 +31,6 @@ typedef struct {
   CudaFields B;
   CudaFields G;
   CeedScalar* W;
-  // CeedVector
-  // *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
-  // CeedScalar **edata;
-  // CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
-  // CeedVector *qvecsout;   /// Output Q-vectors needed to apply operator
-  // CeedInt    numein;
-  // CeedInt    numeout;
 } CeedOperator_Cuda_gen;
 
 typedef struct {
@@ -53,7 +46,15 @@ typedef struct {
 } CeedBasis_Cuda_gen;
 
 typedef struct {
+  char *qFunctionName;
+  char *qFunctionSource;
+  void *d_c;
+} CeedQFunction_Cuda_gen;
+
+typedef struct {
 } Ceed_Cuda_gen;
+
+CEED_INTERN int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Cuda_gen(CeedOperator op);
 
