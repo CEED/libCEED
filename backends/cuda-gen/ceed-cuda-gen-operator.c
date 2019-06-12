@@ -89,7 +89,7 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
       // Get input vector
       ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChk(ierr);
       if (vec == CEED_VECTOR_ACTIVE) vec = invec;
-      ierr = CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, (const CeedScalar **) &data->fields.in[i]);
+      ierr = CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.in[i]);
       CeedChk(ierr);
     }
   }
@@ -139,7 +139,7 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
     } else {
       ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChk(ierr);
       if (vec == CEED_VECTOR_ACTIVE) vec = invec;
-      ierr = CeedVectorRestoreArrayRead(vec, (const CeedScalar **) &data->fields.in[i]);
+      ierr = CeedVectorRestoreArrayRead(vec, &data->fields.in[i]);
       CeedChk(ierr);
     }
   }

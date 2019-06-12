@@ -23,7 +23,7 @@
 
 static const char *deviceFunctions = QUOTE(
 
-typedef struct { CeedScalar* in[16]; CeedScalar* out[16]; } CudaFields;
+typedef struct { const CeedScalar* in[16]; CeedScalar* out[16]; } CudaFields;
 typedef struct { CeedInt* in[16]; CeedInt* out[16]; } CudaFieldsInt;
 
 typedef struct {
@@ -333,6 +333,19 @@ inline __device__ void ContractXTranspose2d(BackendData& data,
 }
 
 template <int NCOMP, int P1d, int Q1d>
+inline __device__ void ContractXTransposeAdd2d(BackendData& data,
+                                            const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+  data.slice[data.tidx+data.tidy*Q1d] = *U;
+  __syncthreads();
+  if (data.tidx<P1d) {
+    for (int i = 0; i < Q1d; ++i) {
+      *V += B[data.tidx + i*P1d] * data.slice[i + data.tidy*Q1d];//contract x direction
+    }
+  }
+  __syncthreads();
+}
+
+template <int NCOMP, int P1d, int Q1d>
 inline __device__ void interp2d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
                                 CeedScalar *__restrict__ r_V) {
   CeedScalar r_t[1];
@@ -371,10 +384,10 @@ inline __device__ void gradTranspose2d(BackendData& data, const CeedScalar *__re
                               CeedScalar *__restrict__ r_V) {
   CeedScalar r_t[1];
   for(int comp=0; comp<NCOMP; comp++) {
-    ContractYTranspose2d<NCOMP,P1d,Q1d>(data, r_U+comp, c_B, r_t);
-    ContractXTranspose2d<NCOMP,P1d,Q1d>(data, r_t, c_G, r_V+comp+0*NCOMP);
-    ContractYTranspose2d<NCOMP,P1d,Q1d>(data, r_U+comp, c_G, r_t);
-    ContractXTranspose2d<NCOMP,P1d,Q1d>(data, r_t, c_B, r_V+comp+1*NCOMP);
+    ContractYTranspose2d<NCOMP,P1d,Q1d>(data, r_U+comp+0*NCOMP, c_B, r_t);
+    ContractXTranspose2d<NCOMP,P1d,Q1d>(data, r_t, c_G, r_V+comp);
+    ContractYTranspose2d<NCOMP,P1d,Q1d>(data, r_U+comp+1*NCOMP, c_G, r_t);
+    ContractXTransposeAdd2d<NCOMP,P1d,Q1d>(data, r_t, c_B, r_V+comp);
   }
 }
 
@@ -557,6 +570,21 @@ inline __device__ void ContractTransposeX3d(BackendData& data,
 }
 
 template <int NCOMP, int P1d, int Q1d>
+inline __device__ void ContractTransposeAddX3d(BackendData& data,
+    const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+  for (int k = 0; k < P1d; ++k) {
+    data.slice[data.tidx+data.tidy*Q1d] = U[k];
+    __syncthreads();
+    if (data.tidx<P1d) {
+      for (int i = 0; i < Q1d; ++i) {
+        V[k] += B[data.tidx + i*P1d] * data.slice[i + data.tidy*Q1d];//contract x direction
+      }
+    }
+    __syncthreads();
+  }
+}
+
+template <int NCOMP, int P1d, int Q1d>
 inline __device__ void interp3d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
                                 CeedScalar *__restrict__ r_V) {
   CeedScalar r_t1[Q1d];
@@ -614,13 +642,13 @@ inline __device__ void gradTranspose3d(BackendData& data, const CeedScalar *__re
   for(int comp=0; comp<NCOMP; comp++) {
     ContractTransposeZ3d<NCOMP,P1d,Q1d>(data, r_U+comp*Q1d+0*NCOMP*Q1d, c_B, r_t1);
     ContractTransposeY3d<NCOMP,P1d,Q1d>(data, r_t1, c_B, r_t2);
-    ContractTransposeX3d<NCOMP,P1d,Q1d>(data, r_t2, c_G, r_V+comp*Q1d+0*NCOMP*Q1d);
+    ContractTransposeX3d<NCOMP,P1d,Q1d>(data, r_t2, c_G, r_V+comp*Q1d);
     ContractTransposeZ3d<NCOMP,P1d,Q1d>(data, r_U+comp*Q1d+1*NCOMP*Q1d, c_B, r_t1);
     ContractTransposeY3d<NCOMP,P1d,Q1d>(data, r_t1, c_G, r_t2);
-    ContractTransposeX3d<NCOMP,P1d,Q1d>(data, r_t2, c_B, r_V+comp*Q1d+1*NCOMP*Q1d);
+    ContractTransposeAddX3d<NCOMP,P1d,Q1d>(data, r_t2, c_B, r_V+comp*Q1d);
     ContractTransposeZ3d<NCOMP,P1d,Q1d>(data, r_U+comp*Q1d+2*NCOMP*Q1d, c_G, r_t1);
     ContractTransposeY3d<NCOMP,P1d,Q1d>(data, r_t1, c_B, r_t2);
-    ContractTransposeX3d<NCOMP,P1d,Q1d>(data, r_t2, c_B, r_V+comp*Q1d+2*NCOMP*Q1d);
+    ContractTransposeAddX3d<NCOMP,P1d,Q1d>(data, r_t2, c_B, r_V+comp*Q1d);
   }
 }
 
@@ -695,7 +723,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     CeedChk(ierr);
     if (emode == CEED_EVAL_WEIGHT) { // Skip
     } else {
-      code << "CeedScalar* d_u" <<i<<" = fields.in["<<i<<"];\n";
+      code << "const CeedScalar* d_u" <<i<<" = fields.in["<<i<<"];\n";
       if (emode != CEED_EVAL_NONE)
       {
         ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
@@ -746,7 +774,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     case CEED_EVAL_NONE:
       ierr = CeedElemRestrictionGetNumDoF(Erestrict, &ndof); CeedChk(ierr);
       code << "  const CeedInt ncomp_in_"<<i<<" = "<<ncomp<<";\n";
-      code << "  const CeedInt nquads_in_"<<i<<" = "<<ndof<<";\n";
+      code << "  const CeedInt nquads_in_"<<i<<" = "<<ndof/ncomp<<";\n";
       code << "  CeedScalar r_t"<<i<<"[ncomp_in_"<<i<<"*Q1d];\n";
       ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
       code << "  readQuads"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",Q1d>(data, nquads_in_"<<i<<", elem, d_u"<<i<<", r_t"<<i<<");\n";
@@ -901,7 +929,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "  }\n";
   code << "}\n\n";
 
-  std::cout << code.str();
+  // std::cout << code.str();
 
   ierr = compile(ceed, code.str().c_str(), &data->module, 0); CeedChk(ierr);
   ierr = get_kernel(ceed, data->module, "oper", &data->op);
