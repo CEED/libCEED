@@ -20,5 +20,5 @@ inline __device__ void setup(void *ctx, CeedInt Q, const CeedScalar *weight, con
 
 inline __device__ void mass(void *ctx, CeedInt Q, const CeedScalar *rho, const CeedScalar *u, CeedScalar *v) {
   v[0] = rho[0] * u[0];
-  v[1] = rho[1] * u[1];
+  v[1] = rho[0] * u[1];
 }
