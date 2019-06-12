@@ -20,6 +20,14 @@
 #include "../cuda/ceed-cuda.h"
 #include "ceed-cuda-gen.h"
 
+static int CeedQFunctionApply_Cuda_gen(CeedQFunction qf, CeedInt Q,
+                                   CeedVector *U, CeedVector *V) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  return CeedError(ceed, 1, "Backend does not implement QFunctionApply");
+}
+
 static int CeedQFunctionDestroy_Cuda_gen(CeedQFunction qf) {
   // int ierr;
   // CeedQFunction_Cuda_gen *data;
@@ -110,8 +118,8 @@ int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
   filename[filenamelen - 1] = '\0';
   ierr = loadCudaFunction(qf, filename); CeedChk(ierr);
 
-  // ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
-  //                               CeedQFunctionApply_Cuda_gen); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
+                                CeedQFunctionApply_Cuda_gen); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
                                 CeedQFunctionDestroy_Cuda_gen); CeedChk(ierr);
   return 0;

@@ -820,7 +820,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   }
   //TODO write qfunction load for this backend
   string qFunctionName(qf_data->qFunctionName);
-  code << "  "<<qFunctionName<<"(";
+  code << "  "<<qFunctionName<<"(NULL, Q1d, ";
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "r_t"<<i<<", ";
   }
