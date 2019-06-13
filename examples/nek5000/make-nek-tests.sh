@@ -29,6 +29,7 @@ cp nek-examples.sh ../../build/nek-bp1
 cp nek-examples.sh ../../build/nek-bp3
 mv bp1 ../../build/bp1
 mv bp3 ../../build/bp3
+cp -r boxes ../../build/
 
 # Clean
 (export NEK5K_DIR && ./nek-examples.sh -clean)

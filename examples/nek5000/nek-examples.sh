@@ -190,23 +190,21 @@ function genbb()
 {
   cp $1.box ttt.box
   echo
-  echo "Running genbox ..."
+  echo "Running genbox ..." >box.log
   if [ -z ${NEKTOOLS_DIR} ]; then
     echo "Required variable NEKTOOLS_DIR not found."
     exit 1
   fi
 
-  printf "ttt.box\n" | $NEKTOOLS_DIR/genbox || return 1
-  echo
-  echo "Running genmap ..."
-  printf "box\n.1\n" | $NEKTOOLS_DIR/genmap || return 1
-  echo
-  echo "Running reatore2 ..."
-  printf "box\n$1\n" | $NEKTOOLS_DIR/reatore2 || return 1
+  printf "ttt.box\n" | $NEKTOOLS_DIR/genbox 2>&1 1>>box.log || return 1
+  echo "Running genmap ..." >>box.log
+  printf "box\n.1\n" | $NEKTOOLS_DIR/genmap 2>&1 1>>box.log || return 1
+  echo "Running reatore2 ..." >>box.log
+  printf "box\n$1\n" | $NEKTOOLS_DIR/reatore2 2>&1 1>>box.log || return 1
   rm ttt.box 2>/dev/null
   rm box.rea 2>/dev/null
   rm box.tmp 2>/dev/null
-  mv box.map $1.map
+  mv box.map $1.map 2>/dev/null
 }
 
 function generate_boxes()
