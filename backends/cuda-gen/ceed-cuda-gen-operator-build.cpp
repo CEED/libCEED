@@ -846,7 +846,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   }
   //TODO write qfunction load for this backend
   string qFunctionName(qf_data->qFunctionName);
-  code << "  "<<qFunctionName<<"(NULL, Q1d, ";
+  code << "  "<<qFunctionName<<"(NULL, "<<(dim==3?"Q1d":"1")<<", ";
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "r_t"<<i<<", ";
   }

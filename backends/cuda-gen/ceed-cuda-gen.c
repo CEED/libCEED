@@ -22,6 +22,11 @@
 #include <cuda_runtime.h>
 #include "ceed-cuda-gen.h"
 
+static int CeedGetPreferredMemType_Cuda_gen(CeedMemType *type) {
+  *type = CEED_MEM_DEVICE;
+  return 0;
+}
+
 static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   int ierr;
   const int nrc = 9; // number of characters in resource
@@ -42,6 +47,8 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
 
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
+                                CeedGetPreferredMemType_Cuda_gen); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
                                 CeedQFunctionCreate_Cuda_gen); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
