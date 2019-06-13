@@ -31,4 +31,4 @@ mv bp1 ../../build/bp1
 mv bp3 ../../build/bp3
 
 # Clean
-(export NEK5K_DIR && ./nek-examples.sh clean)
+(export NEK5K_DIR && ./nek-examples.sh -clean)
