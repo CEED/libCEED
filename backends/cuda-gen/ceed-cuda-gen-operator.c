@@ -54,7 +54,9 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
   CeedOperator_Cuda_gen *data;
   ierr = CeedOperatorGetData(op, (void *)&data); CeedChk(ierr);
   CeedQFunction qf;
+  CeedQFunction_Cuda_gen *qf_data;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, (void **)&qf_data); CeedChk(ierr);
   CeedInt nelem, numinputfields, numoutputfields;
   ierr = CeedOperatorGetNumElements(op, &nelem); CeedChk(ierr);
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
@@ -109,8 +111,21 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
     }
   }
 
+  // Copy the context
+  size_t ctxsize;
+  ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
+  if (ctxsize > 0) {
+    if(!qf_data->d_c) {
+      ierr = cudaMalloc(&qf_data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);
+    }
+    void *ctx;
+    ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChk(ierr);
+    ierr = cudaMemcpy(qf_data->d_c, ctx, ctxsize, cudaMemcpyHostToDevice);
+    CeedChk_Cu(ceed, ierr);
+  }
+
   // Apply operator
-  void *opargs[] = {(void *) &nelem, &data->indices, &data->fields, &data->B, &data->G, &data->W};
+  void *opargs[] = {(void *) &nelem, &qf_data->d_c, &data->indices, &data->fields, &data->B, &data->G, &data->W};
   const CeedInt dim = data->dim;
   const CeedInt Q1d = data->Q1d;
   if (dim==1) {

@@ -714,7 +714,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << qFunction;
 
   // Setup
-  code << "\nextern \"C\" __global__ void oper(CeedInt nelem, CudaFieldsInt indices, CudaFields fields, CudaFields B, CudaFields G, CeedScalar* W) {\n";
+  code << "\nextern \"C\" __global__ void oper(CeedInt nelem, void* ctx, CudaFieldsInt indices, CudaFields fields, CudaFields B, CudaFields G, CeedScalar* W) {\n";
   // Input Evecs and Restriction
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
@@ -846,7 +846,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   }
   //TODO write qfunction load for this backend
   string qFunctionName(qf_data->qFunctionName);
-  code << "  "<<qFunctionName<<"(NULL, "<<(dim==3?"Q1d":"1")<<", ";
+  code << "  "<<qFunctionName<<"(ctx, "<<(dim==3?"Q1d":"1")<<", ";
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "r_t"<<i<<", ";
   }
