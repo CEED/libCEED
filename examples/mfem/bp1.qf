@@ -18,7 +18,7 @@
 struct BuildContext { CeedInt dim, space_dim; };
 
 /// libCEED Q-function for building quadrature data for a mass operator
-inline __device__ void f_build_mass(void *ctx, CeedInt Q, const CeedScalar *J, const CeedScalar *qw, CeedScalar *qd) {
+inline __device__ void f_build_mass(void *ctx, const CeedInt Q, const CeedScalar *J, const CeedScalar *qw, CeedScalar *qd) {
   // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
   struct BuildContext *bc = (struct BuildContext*)ctx;
@@ -49,7 +49,7 @@ inline __device__ void f_build_mass(void *ctx, CeedInt Q, const CeedScalar *J, c
 }
 
 /// libCEED Q-function for applying a mass operator
-inline __device__ void f_apply_mass(void *ctx, CeedInt Q, const CeedScalar *u, const CeedScalar *w, CeedScalar *v) {
+inline __device__ void f_apply_mass(void *ctx, const CeedInt Q, const CeedScalar *u, const CeedScalar *w, CeedScalar *v) {
   for (CeedInt i = 0; i < Q; ++i) {
   	v[i] = w[i] * u[i];
   }

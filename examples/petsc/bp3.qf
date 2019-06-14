@@ -18,7 +18,7 @@
 /// libCEED QFunctions for diffusion operator example using PETSc
 
 // *****************************************************************************
-inline __device__ void Setup(void *ctx, CeedInt Q, const CeedScalar *x, const CeedScalar *J, const CeedScalar *w, CeedScalar *qd, CeedScalar *true_soln, CeedScalar *rhs) {
+inline __device__ void Setup(void *ctx, const CeedInt Q, const CeedScalar *x, const CeedScalar *J, const CeedScalar *w, CeedScalar *qd, CeedScalar *true_soln, CeedScalar *rhs) {
   #ifndef M_PI
   #define M_PI    3.14159265358979323846
   #endif
@@ -58,7 +58,7 @@ inline __device__ void Setup(void *ctx, CeedInt Q, const CeedScalar *x, const Ce
   }
 }
 
-inline __device__ void Diff(void *ctx, CeedInt Q, const CeedScalar *ug, const CeedScalar *qd, CeedScalar *vg) {
+inline __device__ void Diff(void *ctx, const CeedInt Q, const CeedScalar *ug, const CeedScalar *qd, CeedScalar *vg) {
   for (CeedInt i=0; i<Q ;++i) {
     const CeedScalar ug0 = ug[i+Q*0];
     const CeedScalar ug1 = ug[i+Q*1];
@@ -69,7 +69,7 @@ inline __device__ void Diff(void *ctx, CeedInt Q, const CeedScalar *ug, const Ce
   }
 }
 
-inline __device__ void Error(void *ctx, CeedInt Q, const CeedScalar *u, const CeedScalar *target, CeedScalar *err) {
+inline __device__ void Error(void *ctx, const CeedInt Q, const CeedScalar *u, const CeedScalar *target, CeedScalar *err) {
   for (CeedInt i=0; i<Q ;++i) {
     err[i] = u[i] - target[i];
   }

@@ -14,10 +14,10 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-inline __device__ void setup(void *ctx, CeedInt Q, const CeedScalar *weight, const CeedScalar *dxdX, CeedScalar *rho) {
+inline __device__ void setup(void *ctx, const CeedInt Q, const CeedScalar *weight, const CeedScalar *dxdX, CeedScalar *rho) {
   *rho = *weight * *dxdX;
 }
 
-inline __device__ void mass(void *ctx, CeedInt Q, const CeedScalar *rho, const CeedScalar *u, CeedScalar *v) {
+inline __device__ void mass(void *ctx, const CeedInt Q, const CeedScalar *rho, const CeedScalar *u, CeedScalar *v) {
   *v = *rho * *u;
 }

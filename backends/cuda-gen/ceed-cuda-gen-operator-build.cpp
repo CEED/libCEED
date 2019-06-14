@@ -745,15 +745,15 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   for (CeedInt i = 0; i < numoutputfields; i++) {
     code << "CeedScalar* d_v"<<i<<" = fields.out["<<i<<"];\n";
   }
+  code << "const CeedInt Dim = "<<dim<<";\n";
+  code << "const CeedInt Q1d = "<<Q1d<<";\n";
+  // code << "const CeedInt Q   = "<<Q<<";\n";
   code << "extern __shared__ CeedScalar slice[];\n";
   code << "BackendData data;\n";
   code << "data.tidx = threadIdx.x;\n";
   code << "data.tidy = threadIdx.y;\n";
   code << "data.tidz = threadIdx.z;\n";
-  code << "data.slice = slice;\n";
-  code << "const CeedInt Dim = "<<dim<<";\n";
-  code << "const CeedInt Q1d = "<<Q1d<<";\n";
-  // code << "const CeedInt Q   = "<<Q<<";\n";
+  code << "data.slice = slice+data.tidz*Q1d"<<(dim>1?"*Q1d":"")<<";\n";
   code << "for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {\n";
   // Input basis apply if needed
   for (CeedInt i = 0; i < numinputfields; i++) {
