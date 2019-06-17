@@ -156,10 +156,10 @@ make
 cd ../..
 
 # PETSc+libCEED examples on CPU and GPU
-cd examples/petsc
+cd petsc
 make
-./bp1 -ceed /cpu/self
-./bp1 -ceed /gpu/occa
+./bps -problem bp1 -ceed /cpu/self
+./bps -problem bp1 -ceed /gpu/occa
 cd ../..
 
 cd navier-stokes
