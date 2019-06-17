@@ -526,7 +526,7 @@ int CeedBasisApply_Cuda_reg(CeedBasis basis, const CeedInt nelem,
     ierr = CeedCudaInitInterp(data->d_interp1d, P1d, Q1d, &data->c_B);
     CeedChk(ierr);
     void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B, &d_u, &d_v};
-    ierr = run_kernel(ceed, data->interp, gridsize, blocksize, interpargs);
+    ierr = CeedRunKernelCuda(ceed, data->interp, gridsize, blocksize, interpargs);
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_GRAD) {
     CeedInt P1d, Q1d;
@@ -536,7 +536,7 @@ int CeedBasisApply_Cuda_reg(CeedBasis basis, const CeedInt nelem,
                                   &data->c_B, &data->c_G);
     CeedChk(ierr);
     void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B, &data->c_G, &d_u, &d_v};
-    ierr = run_kernel(ceed, data->grad, gridsize, blocksize, gradargs);
+    ierr = CeedRunKernelCuda(ceed, data->grad, gridsize, blocksize, gradargs);
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_WEIGHT) {
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight1d, &d_v};
@@ -544,7 +544,7 @@ int CeedBasisApply_Cuda_reg(CeedBasis basis, const CeedInt nelem,
     int gridsize = nelem/32;
     if (blocksize * gridsize < nelem)
       gridsize += 1;
-    ierr = run_kernel(ceed, data->weight, gridsize, blocksize, weightargs);
+    ierr = CeedRunKernelCuda(ceed, data->weight, gridsize, blocksize, weightargs);
   }
 
   if(emode!=CEED_EVAL_WEIGHT) {
@@ -602,21 +602,21 @@ int CeedBasisCreateTensorH1_Cuda_reg(CeedInt dim, CeedInt P1d, CeedInt Q1d,
 
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
-  ierr = compile(ceed, kernels3dreg, &data->module, 7,
-                 "Q1D", Q1d,
-                 "P1D", P1d,
-                 "BASIS_BUF_LEN", ncomp * CeedIntPow(Q1d > P1d ?
-                     Q1d : P1d, dim),
-                 "BASIS_DIM", dim,
-                 "BASIS_NCOMP", ncomp,
-                 "BASIS_ELEMSIZE", CeedIntPow(P1d, dim),
-                 "BASIS_NQPT", CeedIntPow(Q1d, dim)
-                ); CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "interp", &data->interp);
+  ierr = CeedCompileCuda(ceed, kernels3dreg, &data->module, 7,
+                         "Q1D", Q1d,
+                         "P1D", P1d,
+                         "BASIS_BUF_LEN", ncomp * CeedIntPow(Q1d > P1d ?
+                             Q1d : P1d, dim),
+                         "BASIS_DIM", dim,
+                         "BASIS_NCOMP", ncomp,
+                         "BASIS_ELEMSIZE", CeedIntPow(P1d, dim),
+                         "BASIS_NQPT", CeedIntPow(Q1d, dim)
+                        ); CeedChk(ierr);
+  ierr = CeedGetKernelCuda(ceed, data->module, "interp", &data->interp);
   CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "grad", &data->grad);
+  ierr = CeedGetKernelCuda(ceed, data->module, "grad", &data->grad);
   CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "weight", &data->weight);
+  ierr = CeedGetKernelCuda(ceed, data->module, "weight", &data->weight);
   CeedChk(ierr);
 
   ierr = CeedBasisSetData(basis, (void *)&data);

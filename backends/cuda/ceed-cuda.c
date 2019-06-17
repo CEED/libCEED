@@ -20,7 +20,7 @@
 #include "ceed-cuda.h"
 
 
-int compile(Ceed ceed, const char *source, CUmodule *module,
+int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
             const CeedInt numopts, ...) {
   int ierr;
   cudaFree(0);//Make sure a Context exists for nvrtc
@@ -84,13 +84,13 @@ int compile(Ceed ceed, const char *source, CUmodule *module,
   return 0;
 }
 
-int get_kernel(Ceed ceed, CUmodule module, const char *name,
+int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name,
                CUfunction *kernel) {
   CeedChk_Cu(ceed, cuModuleGetFunction(kernel, module, name));
   return 0;
 }
 
-int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize,
+int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int gridSize,
                const int blockSize, void **args) {
   CeedChk_Cu(ceed, cuLaunchKernel(kernel,
                                   gridSize, 1, 1,
@@ -100,7 +100,7 @@ int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize,
   return 0;
 }
 
-int run_kernel_dim(Ceed ceed, CUfunction kernel, const int gridSize,
+int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel, const int gridSize,
                    const int blockSizeX, const int blockSizeY,
                    const int blockSizeZ, void **args) {
   CeedChk_Cu(ceed, cuLaunchKernel(kernel,

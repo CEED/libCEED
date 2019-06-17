@@ -482,19 +482,19 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
     ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
     CeedInt blocksize = CeedIntPow(Q1d, dim);
     blocksize = blocksize > maxblocksize ? maxblocksize : blocksize;
-    ierr = run_kernel(ceed, data->interp, nelem, blocksize, interpargs);
+    ierr = CeedRunKernelCuda(ceed, data->interp, nelem, blocksize, interpargs);
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_GRAD) {
     void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->d_interp1d, &data->d_grad1d, &d_u, &d_v};
     CeedInt blocksize = maxblocksize;
-    ierr = run_kernel(ceed, data->grad, nelem, blocksize, gradargs); CeedChk(ierr);
+    ierr = CeedRunKernelCuda(ceed, data->grad, nelem, blocksize, gradargs); CeedChk(ierr);
   } else if (emode == CEED_EVAL_WEIGHT) {
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight1d, &d_v};
     const int blocksize = 32;
     int gridsize = nelem/blocksize;
     if (blocksize * gridsize < nelem)
       gridsize += 1;
-    ierr = run_kernel(ceed, data->weight, gridsize, blocksize, weightargs);
+    ierr = CeedRunKernelCuda(ceed, data->weight, gridsize, blocksize, weightargs);
     CeedChk(ierr);
   }
 
@@ -540,26 +540,26 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt nelem,
   if (emode == CEED_EVAL_INTERP) {
     void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->d_interp, &d_u, &d_v};
     if (!transpose) {
-      ierr = run_kernel_dim(ceed, data->interp, grid, nqpt, 1, elemsPerBlock,
+      ierr = CeedRunKernelDimCuda(ceed, data->interp, grid, nqpt, 1, elemsPerBlock,
                             interpargs);
       CeedChk(ierr);
     } else {
-      ierr = run_kernel_dim(ceed, data->interp, grid, ndof, 1, elemsPerBlock,
+      ierr = CeedRunKernelDimCuda(ceed, data->interp, grid, ndof, 1, elemsPerBlock,
                             interpargs);
       CeedChk(ierr);
     }
   } else if (emode == CEED_EVAL_GRAD) {
     void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->d_grad, &d_u, &d_v};
     if (!transpose) {
-      ierr = run_kernel_dim(ceed, data->grad, grid, nqpt, 1, elemsPerBlock, gradargs);
+      ierr = CeedRunKernelDimCuda(ceed, data->grad, grid, nqpt, 1, elemsPerBlock, gradargs);
       CeedChk(ierr);
     } else {
-      ierr = run_kernel_dim(ceed, data->grad, grid, ndof, 1, elemsPerBlock, gradargs);
+      ierr = CeedRunKernelDimCuda(ceed, data->grad, grid, ndof, 1, elemsPerBlock, gradargs);
       CeedChk(ierr);
     }
   } else if (emode == CEED_EVAL_WEIGHT) {
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight, &d_v};
-    ierr = run_kernel_dim(ceed, data->weight, grid, nqpt, 1, elemsPerBlock,
+    ierr = CeedRunKernelDimCuda(ceed, data->weight, grid, nqpt, 1, elemsPerBlock,
                           weightargs);
     CeedChk(ierr);
   }
@@ -637,21 +637,21 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q1d,
 
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
-  ierr = compile(ceed, basiskernels, &data->module, 7,
-                 "BASIS_Q1D", Q1d,
-                 "BASIS_P1D", P1d,
-                 "BASIS_BUF_LEN", ncomp * CeedIntPow(Q1d > P1d ?
-                     Q1d : P1d, dim),
-                 "BASIS_DIM", dim,
-                 "BASIS_NCOMP", ncomp,
-                 "BASIS_ELEMSIZE", CeedIntPow(P1d, dim),
-                 "BASIS_NQPT", CeedIntPow(Q1d, dim)
-                ); CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "interp", &data->interp);
+  ierr = CeedCompileCuda(ceed, basiskernels, &data->module, 7,
+                         "BASIS_Q1D", Q1d,
+                         "BASIS_P1D", P1d,
+                         "BASIS_BUF_LEN", ncomp * CeedIntPow(Q1d > P1d ?
+                             Q1d : P1d, dim),
+                         "BASIS_DIM", dim,
+                         "BASIS_NCOMP", ncomp,
+                         "BASIS_ELEMSIZE", CeedIntPow(P1d, dim),
+                         "BASIS_NQPT", CeedIntPow(Q1d, dim)
+                        ); CeedChk(ierr);
+  ierr = CeedGetKernelCuda(ceed, data->module, "interp", &data->interp);
   CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "grad", &data->grad);
+  ierr = CeedGetKernelCuda(ceed, data->module, "grad", &data->grad);
   CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "weight", &data->weight);
+  ierr = CeedGetKernelCuda(ceed, data->module, "weight", &data->weight);
   CeedChk(ierr);
 
   ierr = CeedBasisSetData(basis, (void *)&data);
@@ -695,17 +695,17 @@ int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim,
 
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
-  ierr = compile(ceed, kernelsNonTensorRef, &data->module, 4,
-                 "Q", nqpts,
-                 "P", ndof,
-                 "BASIS_DIM", dim,
-                 "BASIS_NCOMP", ncomp
-                ); CeedChk_Cu(ceed, ierr);
-  ierr = get_kernel(ceed, data->module, "interp", &data->interp);
+  ierr = CeedCompileCuda(ceed, kernelsNonTensorRef, &data->module, 4,
+                         "Q", nqpts,
+                         "P", ndof,
+                         "BASIS_DIM", dim,
+                         "BASIS_NCOMP", ncomp
+                        ); CeedChk_Cu(ceed, ierr);
+  ierr = CeedGetKernelCuda(ceed, data->module, "interp", &data->interp);
   CeedChk_Cu(ceed, ierr);
-  ierr = get_kernel(ceed, data->module, "grad", &data->grad);
+  ierr = CeedGetKernelCuda(ceed, data->module, "grad", &data->grad);
   CeedChk_Cu(ceed, ierr);
-  ierr = get_kernel(ceed, data->module, "weight", &data->weight);
+  ierr = CeedGetKernelCuda(ceed, data->module, "weight", &data->weight);
   CeedChk_Cu(ceed, ierr);
 
   ierr = CeedBasisSetData(basis, (void *)&data);

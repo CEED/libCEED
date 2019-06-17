@@ -116,18 +116,18 @@ static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
   return (numer + denom - 1) / denom;
 }
 
-CEED_INTERN int compile(Ceed ceed, const char *source, CUmodule *module,
-                        const CeedInt numopts, ...);
+CEED_INTERN int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
+                                const CeedInt numopts, ...);
 
-CEED_INTERN int get_kernel(Ceed ceed, CUmodule module, const char *name,
-                           CUfunction *kernel);
+CEED_INTERN int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name,
+                                  CUfunction *kernel);
 
-CEED_INTERN int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize,
-                           const int blockSize, void **args);
+CEED_INTERN int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int gridSize,
+                                  const int blockSize, void **args);
 
-CEED_INTERN int run_kernel_dim(Ceed ceed, CUfunction kernel, const int gridSize,
-                               const int blockSizeX, const int blockSizeY,
-                               const int blockSizeZ, void **args);
+CEED_INTERN int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel, const int gridSize,
+                                     const int blockSizeX, const int blockSizeY,
+                                     const int blockSizeZ, void **args);
 
 CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
 
