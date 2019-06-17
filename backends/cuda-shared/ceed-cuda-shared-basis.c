@@ -648,7 +648,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     CeedChk(ierr);
     void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B, &d_u, &d_v};
     ierr = CeedRunKernelDimCuda(ceed, data->interp, grid, Q1d, Q1d, elemsPerBlock,
-                          interpargs);
+                                interpargs);
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_GRAD) {
     CeedInt P1d, Q1d;
@@ -659,7 +659,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     CeedChk(ierr);
     void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B, &data->c_G, &d_u, &d_v};
     ierr = CeedRunKernelDimCuda(ceed, data->grad, grid, Q1d, Q1d, elemsPerBlock,
-                          gradargs);
+                                gradargs);
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_WEIGHT) {
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight1d, &d_v};

@@ -61,7 +61,8 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
   // void *args[] = {&ctx, (void*)&Q, &data->d_u, &data->d_v};
   void *args[] = {&data->d_c, (void *) &Q, &data->fields};
-  ierr = CeedRunKernelCuda(ceed, data->qFunction, CeedDivUpInt(Q, blocksize), blocksize,
+  ierr = CeedRunKernelCuda(ceed, data->qFunction, CeedDivUpInt(Q, blocksize),
+                           blocksize,
                            args);
   CeedChk(ierr);
 
@@ -138,7 +139,8 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   ierr = CeedCompileCuda(ceed, source, &data->module, 0); CeedChk(ierr);
-  ierr = CeedGetKernelCuda(ceed, data->module, data->qFunctionName, &data->qFunction);
+  ierr = CeedGetKernelCuda(ceed, data->module, data->qFunctionName,
+                           &data->qFunction);
   CeedChk(ierr);
 
   //********************

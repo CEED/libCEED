@@ -122,10 +122,12 @@ CEED_INTERN int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
 CEED_INTERN int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name,
                                   CUfunction *kernel);
 
-CEED_INTERN int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int gridSize,
+CEED_INTERN int CeedRunKernelCuda(Ceed ceed, CUfunction kernel,
+                                  const int gridSize,
                                   const int blockSize, void **args);
 
-CEED_INTERN int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel, const int gridSize,
+CEED_INTERN int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel,
+                                     const int gridSize,
                                      const int blockSizeX, const int blockSizeY,
                                      const int blockSizeZ, void **args);
 

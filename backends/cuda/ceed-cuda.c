@@ -21,7 +21,7 @@
 
 
 int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
-            const CeedInt numopts, ...) {
+                    const CeedInt numopts, ...) {
   int ierr;
   cudaFree(0);//Make sure a Context exists for nvrtc
   nvrtcProgram prog;
@@ -85,13 +85,13 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
 }
 
 int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name,
-               CUfunction *kernel) {
+                      CUfunction *kernel) {
   CeedChk_Cu(ceed, cuModuleGetFunction(kernel, module, name));
   return 0;
 }
 
 int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int gridSize,
-               const int blockSize, void **args) {
+                      const int blockSize, void **args) {
   CeedChk_Cu(ceed, cuLaunchKernel(kernel,
                                   gridSize, 1, 1,
                                   blockSize, 1, 1,
@@ -101,8 +101,8 @@ int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int gridSize,
 }
 
 int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel, const int gridSize,
-                   const int blockSizeX, const int blockSizeY,
-                   const int blockSizeZ, void **args) {
+                         const int blockSizeX, const int blockSizeY,
+                         const int blockSizeZ, void **args) {
   CeedChk_Cu(ceed, cuLaunchKernel(kernel,
                                   gridSize, 1, 1,
                                   blockSizeX, blockSizeY, blockSizeZ,
