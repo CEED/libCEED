@@ -425,7 +425,7 @@ junit-t% : BACKENDS += $(TEST_BACKENDS)
 junit-% : $(OBJDIR)/%
 	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py $(<:$(OBJDIR)/%=%)
 
-junit : $(alltests:$(OBJDIR)/%=junit-%)
+junit : $(matched:$(OBJDIR)/%=junit-%)
 
 all: $(alltests)
 

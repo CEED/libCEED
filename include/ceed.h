@@ -298,8 +298,8 @@ CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d,
                                     CeedScalar *qweight1d);
 CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
                                       CeedScalar *qweight1d);
-CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m,
-                                    CeedInt n);
+CEED_EXTERN int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
+                                    CeedInt m, CeedInt n);
 
 /// Handle for the object describing the user CeedQFunction
 ///
