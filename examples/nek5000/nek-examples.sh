@@ -69,11 +69,18 @@ options:
    -c|-ceed     Ceed backend to be used for the run (optional, default: /cpu/self)
    -e|-example  Example name (optional, default: bp1)
    -n|-np       Specify number of MPI ranks for the run (optional, default: 1)
-   -t|-test     Run in test mode
+   -t|-test     Run in test mode (not on by default)
    -b|-box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
+   -clean       clean the examples directory
+   -m|-make     Make the examples
 
 Example:
-  ./nek-examples.sh -c /cpu/self -e \"bp1 bp3\" -n 4 -b 3
+  Build examples with:
+    ./nek-examples.sh -m -e \"bp1 bp3\"
+  Run them with:
+    ./nek-examples.sh -c /cpu/self -e \"bp1 bp3\" -n 4 -b 3
+  Clean the examples directory with:
+    ./nek-examples.sh -clean
 "
 
 # Read in parameter values
@@ -232,7 +239,6 @@ function generate_boxes()
       ney=$( echo $xyz | cut -f 2 -d ' ' )
       nez=$( echo $xyz | cut -f 3 -d ' ' )
 
-      echo "Generating a box with 2^$i elements : $nex x $ney x $nez ..."
       mkdir -p b$i
       sed "5s/.*/-$nex -$ney -$nez/" b.box > b$i/b$i.box
       cp b1e.rea b$i
@@ -257,7 +263,7 @@ function run() {
       echo "Running Nek5000 Example: $nek_ex"
     fi
     if [[ ! -f ${nek_ex} ]]; then
-      echo "  Example ${nek_ex} does not exist. Build it with make-nek-examples.sh"
+      echo "  Example ${nek_ex} does not exist. Build it with nek-examples.sh -m -e \"${nek_ex}\""
       ${NEK_EXIT_CMD} 1
     fi
     if [[ ! -f ${NEK_BOX_DIR}/b${nek_box}/b${nek_box}.rea || \
@@ -304,8 +310,8 @@ if [ "${nek_make}" == "true" ]; then
 fi
 if [ "${nek_run}" == "true" ]; then
   if [[ -z "${nek_box}" ]]; then
-      echo "$0: You must specify option -b <number of boxes>."
-      echo "$NEK_HELP_MSG"
+      echo "Box size not specified. Try setting it with -b option."
+      echo "Try ./nek-examples.sh -h for more help."
       ${NEK_EXIT_CMD} 1
   fi
   run
