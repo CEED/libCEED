@@ -196,7 +196,6 @@ function xyz()
 function genbb()
 {
   cp $1.box ttt.box
-  echo
   echo "Running genbox ..." >box.log
   if [ -z ${NEKTOOLS_DIR} ]; then
     echo "Required variable NEKTOOLS_DIR not found."
@@ -228,8 +227,7 @@ function generate_boxes()
 
   cd ${NEK_BOX_DIR}
   # Run thorugh the box sizes
-  for i in `seq $min_elem 1 $max_elem`
-  do
+  for i in `seq $min_elem 1 $max_elem`; do
     # Generate the boxes only if they have not
     # been generated before.
     if [[ ! -f b$i/b$i.map ]]; then
