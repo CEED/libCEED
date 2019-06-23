@@ -25,7 +25,7 @@
 do { \
   nvrtcResult result = x; \
   if (result != NVRTC_SUCCESS) \
-    return CeedError((ceed), result, nvrtcGetErrorString(result)); \
+    return CeedError((ceed), (int)result, nvrtcGetErrorString(result)); \
 } while (0)
 
 #define CeedChk_Cu(ceed, x) \
@@ -34,7 +34,7 @@ do { \
   if (result != CUDA_SUCCESS) { \
     const char *msg; \
     cuGetErrorName(result, &msg); \
-    return CeedError((ceed), result, msg); \
+    return CeedError((ceed), (int)result, msg); \
   } \
 } while (0)
 

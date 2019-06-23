@@ -68,7 +68,7 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
     char *log;
     ierr = CeedMalloc(logsize, &log); CeedChk(ierr);
     CeedChk_Nvrtc(ceed, nvrtcGetProgramLog(prog, log));
-    return CeedError(ceed, result, "%s\n%s", nvrtcGetErrorString(result), log);
+    return CeedError(ceed, (int)result, "%s\n%s", nvrtcGetErrorString(result), log);
   }
 
   size_t ptxsize;
