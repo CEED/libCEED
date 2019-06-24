@@ -135,13 +135,14 @@ typedef struct {
   const char setupfname[PETSC_MAX_PATH_LEN], applyfname[PETSC_MAX_PATH_LEN],
              errorfname[PETSC_MAX_PATH_LEN];
   CeedEvalMode inmode, outmode;
+  CeedQuadMode qmode;
 } bpData;
 
 bpData bpOptions[6] = {
   [CEED_BP1] = {
     .vscale = 1,
     .qdatasize = 1,
-    .qextra = 2,
+    .qextra = 1,
     .setup = SetupMass,
     .apply = Mass,
     .error = Error,
@@ -149,11 +150,12 @@ bpData bpOptions[6] = {
     .applyfname = PATH(bp1.h:Mass),
     .errorfname = PATH(common.h:Error),
     .inmode = CEED_EVAL_INTERP,
-    .outmode = CEED_EVAL_INTERP},
+    .outmode = CEED_EVAL_INTERP,
+    .qmode = CEED_GAUSS},
   [CEED_BP2] = {
     .vscale = 3,
     .qdatasize = 1,
-    .qextra = 2,
+    .qextra = 1,
     .setup = SetupMass3,
     .apply = Mass3,
     .error = Error3,
@@ -161,11 +163,12 @@ bpData bpOptions[6] = {
     .applyfname = PATH(bp2.h:Mass3),
     .errorfname = PATH(common.h:Error3),
     .inmode = CEED_EVAL_INTERP,
-    .outmode = CEED_EVAL_INTERP},
+    .outmode = CEED_EVAL_INTERP,
+    .qmode = CEED_GAUSS},
   [CEED_BP3] = {
     .vscale = 1,
     .qdatasize = 6,
-    .qextra = 2,
+    .qextra = 1,
     .setup = SetupDiff,
     .apply = Diff,
     .error = Error,
@@ -173,11 +176,12 @@ bpData bpOptions[6] = {
     .applyfname = PATH(bp3.h:Diff),
     .errorfname = PATH(common.h:Error),
     .inmode = CEED_EVAL_GRAD,
-    .outmode = CEED_EVAL_GRAD},
+    .outmode = CEED_EVAL_GRAD,
+    .qmode = CEED_GAUSS},
   [CEED_BP4] = {
     .vscale = 3,
     .qdatasize = 6,
-    .qextra = 2,
+    .qextra = 1,
     .setup = SetupDiff3,
     .apply = Diff3,
     .error = Error3,
@@ -185,11 +189,12 @@ bpData bpOptions[6] = {
     .applyfname = PATH(bp4.h:Diff),
     .errorfname = PATH(common.h:Error3),
     .inmode = CEED_EVAL_GRAD,
-    .outmode = CEED_EVAL_GRAD},
+    .outmode = CEED_EVAL_GRAD,
+    .qmode = CEED_GAUSS},
   [CEED_BP5] = {
     .vscale = 1,
     .qdatasize = 6,
-    .qextra = 1,
+    .qextra = 0,
     .setup = SetupDiff,
     .apply = Diff,
     .error = Error,
@@ -197,11 +202,12 @@ bpData bpOptions[6] = {
     .applyfname = PATH(bp3.h:Diff),
     .errorfname = PATH(common.h:Error),
     .inmode = CEED_EVAL_GRAD,
-    .outmode = CEED_EVAL_GRAD},
+    .outmode = CEED_EVAL_GRAD,
+    .qmode = CEED_GAUSS_LOBATTO},
   [CEED_BP6] = {
     .vscale = 3,
     .qdatasize = 6,
-    .qextra = 1,
+    .qextra = 0,
     .setup = SetupDiff3,
     .apply = Diff3,
     .error = Error3,
@@ -209,7 +215,8 @@ bpData bpOptions[6] = {
     .applyfname = PATH(bp4.h:Diff),
     .errorfname = PATH(common.h:Error3),
     .inmode = CEED_EVAL_GRAD,
-    .outmode = CEED_EVAL_GRAD}
+    .outmode = CEED_EVAL_GRAD,
+    .qmode = CEED_GAUSS_LOBATTO}
 };
 
 // This function uses libCEED to compute the action of the mass matrix
@@ -517,8 +524,10 @@ int main(int argc, char **argv) {
 
   // Set up libCEED
   CeedInit(ceedresource, &ceed);
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, vscale, P, Q, CEED_GAUSS, &basisu);
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, Q, CEED_GAUSS, &basisx);
+  CeedBasisCreateTensorH1Lagrange(ceed, 3, vscale, P, Q,
+                                  bpOptions[bpChoice].qmode, &basisu);
+  CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, Q,
+                                  bpOptions[bpChoice].qmode, &basisx);
 
   CreateRestriction(ceed, melem, P, vscale, &Erestrictu);
   CreateRestriction(ceed, melem, 2, 3, &Erestrictx);
