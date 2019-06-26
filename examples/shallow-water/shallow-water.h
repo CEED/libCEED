@@ -47,7 +47,7 @@ static int ICsSW(void *ctx, CeedInt Q,
   // Inputs
   const CeedScalar *X = in[0];
   // Outputs
-  CeedScalar *q0 = out[0], *coords = out[1];
+  CeedScalar *q0 = out[0], *h_s = out[1], *coords = out[2];
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
   const CeedScalar u0     = context[0];
@@ -59,17 +59,19 @@ static int ICsSW(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Coordinates
-    const CeedScalar x = X[i+0*Q];
-    const CeedScalar y = X[i+1*Q];
+    const CeedScalar x    = X[i+0*Q];
+    const CeedScalar y    = X[i+1*Q];
 
     // Initial Conditions
-    q0[i+0*Q] = u0;
-    q0[i+1*Q] = v0;
-    q0[i+2*Q] = h0;
+    q0[i+0*Q]             = u0;
+    q0[i+1*Q]             = v0;
+    q0[i+2*Q]             = h0;
+    // Terrain topography
+    h_s[i+0*Q]            = sin(x) + cos(y); // put 0 for constant flat topography
 
     // Coordinates
-    coords[i+0*Q] = x;
-    coords[i+1*Q] = y;
+    coords[i+0*Q]         = x;
+    coords[i+1*Q]         = y;
 
   } // End of Quadrature Point Loop
 
