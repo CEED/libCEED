@@ -16,7 +16,7 @@
 #include "../include/ceed.h"
 #include <cuda.h>
 
-__global__ void setValueK(CeedScalar * __restrict__ vec, CeedInt size, CeedScalar val) {
+__global__ static void setValueK(CeedScalar * __restrict__ vec, CeedInt size, CeedScalar val) {
   int idx = threadIdx.x + blockDim.x * blockIdx.x;
   if (idx >= size)
     return;

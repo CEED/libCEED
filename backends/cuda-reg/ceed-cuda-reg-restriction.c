@@ -19,10 +19,11 @@
 #include "../cuda/ceed-cuda.h"
 
 static const char *restrictionkernels = QUOTE(
-    extern "C" __global__ void noTrNoTr(const CeedInt nelem,
-                                        const CeedInt *__restrict__ indices,
-                                        const CeedScalar *__restrict__ u,
-CeedScalar *__restrict__ v) {
+
+extern "C" __global__ void noTrNoTr(const CeedInt nelem,
+                                    const CeedInt *__restrict__ indices,
+                                    const CeedScalar *__restrict__ u,
+                                    CeedScalar *__restrict__ v) {
   if (indices) {
     const CeedInt esize = RESTRICTION_ELEMSIZE * nelem;
     for(CeedInt e = blockIdx.x * blockDim.x + threadIdx.x;
@@ -233,7 +234,8 @@ extern "C" __global__ void trTrIdentity(const CeedInt nelem,
     v [ RESTRICTION_NCOMP * (s + RESTRICTION_ELEMSIZE * e) + d ] = u[i];
   }
 }
-                                        );
+
+);
 
 static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedTransposeMode lmode,
@@ -263,8 +265,9 @@ static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
       kernel = impl->noTrTr;
     }
     void *args[] = {&nelem, &impl->d_ind, &d_u, &d_v};
-    ierr = run_kernel(ceed, kernel, CeedDivUpInt(nelem, blocksize), blocksize,
-                      args); CeedChk(ierr);
+    ierr = CeedRunKernelCuda(ceed, kernel, CeedDivUpInt(nelem, blocksize),
+                             blocksize,
+                             args); CeedChk(ierr);
   } else {
     if (impl->d_ind) {
       if (lmode == CEED_NOTRANSPOSE) {
@@ -273,8 +276,8 @@ static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
         kernel = impl->trTr;
       }
       void *args[] = {&impl->d_tindices, &impl->d_toffsets, &d_u, &d_v};
-      ierr = run_kernel(ceed, kernel, CeedDivUpInt(ndof, blocksize), blocksize,
-                        args); CeedChk(ierr);
+      ierr = CeedRunKernelCuda(ceed, kernel, CeedDivUpInt(ndof, blocksize), blocksize,
+                               args); CeedChk(ierr);
     } else {
       if (lmode == CEED_NOTRANSPOSE) {
         kernel = impl->trNoTrIdentity;
@@ -282,8 +285,8 @@ static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
         kernel = impl->trTrIdentity;
       }
       void *args[] = {&nelem, &d_u, &d_v};
-      ierr = run_kernel(ceed, kernel, CeedDivUpInt(ndof, blocksize), blocksize,
-                        args); CeedChk(ierr);
+      ierr = CeedRunKernelCuda(ceed, kernel, CeedDivUpInt(ndof, blocksize), blocksize,
+                               args); CeedChk(ierr);
     }
   }
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
@@ -430,18 +433,23 @@ int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype,
   CeedInt ncomp, ndof;
   ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
   ierr = CeedElemRestrictionGetNumDoF(r, &ndof); CeedChk(ierr);
-  ierr = compile(ceed, restrictionkernels, &impl->module, 3,
-                 "RESTRICTION_ELEMSIZE", elemsize,
-                 "RESTRICTION_NCOMP", ncomp,
-                 "RESTRICTION_NDOF", ndof); CeedChk(ierr);
-  ierr = get_kernel(ceed, impl->module, "noTrNoTr", &impl->noTrNoTr);
+  ierr = CeedCompileCuda(ceed, restrictionkernels, &impl->module, 3,
+                         "RESTRICTION_ELEMSIZE", elemsize,
+                         "RESTRICTION_NCOMP", ncomp,
+                         "RESTRICTION_NDOF", ndof); CeedChk(ierr);
+  ierr = CeedGetKernelCuda(ceed, impl->module, "noTrNoTr", &impl->noTrNoTr);
   CeedChk(ierr);
-  ierr = get_kernel(ceed, impl->module, "noTrTr", &impl->noTrTr); CeedChk(ierr);
-  ierr = get_kernel(ceed, impl->module, "trNoTr", &impl->trNoTr); CeedChk(ierr);
-  ierr = get_kernel(ceed, impl->module, "trTr", &impl->trTr); CeedChk(ierr);
-  ierr = get_kernel(ceed, impl->module, "trNoTrIdentity", &impl->trNoTrIdentity);
+  ierr = CeedGetKernelCuda(ceed, impl->module, "noTrTr", &impl->noTrTr);
   CeedChk(ierr);
-  ierr = get_kernel(ceed, impl->module, "trTrIdentity", &impl->trTrIdentity);
+  ierr = CeedGetKernelCuda(ceed, impl->module, "trNoTr", &impl->trNoTr);
+  CeedChk(ierr);
+  ierr = CeedGetKernelCuda(ceed, impl->module, "trTr", &impl->trTr);
+  CeedChk(ierr);
+  ierr = CeedGetKernelCuda(ceed, impl->module, "trNoTrIdentity",
+                           &impl->trNoTrIdentity);
+  CeedChk(ierr);
+  ierr = CeedGetKernelCuda(ceed, impl->module, "trTrIdentity",
+                           &impl->trTrIdentity);
   CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",

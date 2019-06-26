@@ -604,7 +604,7 @@ extern "C" __global__ void weight(const CeedInt nelem,
   }
 }
 
-                                   );
+);
 
 int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
                        CeedScalar **c_B);
@@ -647,8 +647,8 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     ierr = CeedCudaInitInterp(data->d_interp1d, P1d, Q1d, &data->c_B);
     CeedChk(ierr);
     void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B, &d_u, &d_v};
-    ierr = run_kernel_dim(ceed, data->interp, grid, Q1d, Q1d, elemsPerBlock,
-                          interpargs);
+    ierr = CeedRunKernelDimCuda(ceed, data->interp, grid, Q1d, Q1d, elemsPerBlock,
+                                interpargs);
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_GRAD) {
     CeedInt P1d, Q1d;
@@ -658,8 +658,8 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
                                   Q1d, &data->c_B, &data->c_G);
     CeedChk(ierr);
     void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B, &data->c_G, &d_u, &d_v};
-    ierr = run_kernel_dim(ceed, data->grad, grid, Q1d, Q1d, elemsPerBlock,
-                          gradargs);
+    ierr = CeedRunKernelDimCuda(ceed, data->grad, grid, Q1d, Q1d, elemsPerBlock,
+                                gradargs);
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_WEIGHT) {
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight1d, &d_v};
@@ -667,7 +667,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     int gridsize = nelem/32;
     if (blocksize * gridsize < nelem)
       gridsize += 1;
-    ierr = run_kernel(ceed, data->weight, gridsize, blocksize, weightargs);
+    ierr = CeedRunKernelCuda(ceed, data->weight, gridsize, blocksize, weightargs);
   }
 
   if(emode!=CEED_EVAL_WEIGHT) {
@@ -725,21 +725,21 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
 
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
-  ierr = compile(ceed, kernelsShared, &data->module, 7,
-                 "Q1D", Q1d,
-                 "P1D", P1d,
-                 "BASIS_BUF_LEN", ncomp * CeedIntPow(Q1d > P1d ?
-                     Q1d : P1d, dim),
-                 "BASIS_DIM", dim,
-                 "BASIS_NCOMP", ncomp,
-                 "BASIS_ELEMSIZE", CeedIntPow(P1d, dim),
-                 "BASIS_NQPT", CeedIntPow(Q1d, dim)
-                ); CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "interp", &data->interp);
+  ierr = CeedCompileCuda(ceed, kernelsShared, &data->module, 7,
+                         "Q1D", Q1d,
+                         "P1D", P1d,
+                         "BASIS_BUF_LEN", ncomp * CeedIntPow(Q1d > P1d ?
+                             Q1d : P1d, dim),
+                         "BASIS_DIM", dim,
+                         "BASIS_NCOMP", ncomp,
+                         "BASIS_ELEMSIZE", CeedIntPow(P1d, dim),
+                         "BASIS_NQPT", CeedIntPow(Q1d, dim)
+                        ); CeedChk(ierr);
+  ierr = CeedGetKernelCuda(ceed, data->module, "interp", &data->interp);
   CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "grad", &data->grad);
+  ierr = CeedGetKernelCuda(ceed, data->module, "grad", &data->grad);
   CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "weight", &data->weight);
+  ierr = CeedGetKernelCuda(ceed, data->module, "weight", &data->weight);
   CeedChk(ierr);
 
   ierr = CeedBasisSetData(basis, (void *)&data);
@@ -751,17 +751,4 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                                 CeedBasisDestroy_Cuda_shared);
   CeedChk(ierr);
   return 0;
-}
-
-int CeedBasisCreateH1_Cuda_shared(CeedElemTopology topo, CeedInt dim,
-                                  CeedInt ndof, CeedInt nqpts,
-                                  const CeedScalar *interp,
-                                  const CeedScalar *grad,
-                                  const CeedScalar *qref,
-                                  const CeedScalar *qweight,
-                                  CeedBasis basis) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1, "Backend does not implement generic H1 basis");
 }
