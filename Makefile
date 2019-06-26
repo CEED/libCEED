@@ -274,10 +274,11 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   $(libceeds) : LDLIBS += -lxsmm -ldl
   MKL ?= 0
   ifneq (0,$(MKL))
-    $(libceeds) : LDLIBS += -mkl
+    BLAS_LIB = -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
   else
-    $(libceeds) : LDLIBS += -lblas
+    BLAS_LIB = -lblas
   endif
+  $(libceeds) : LDLIBS += $(BLAS_LIB)
   libceed.c += $(xsmm.c)
   $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) : CPPFLAGS += -I$(XSMM_DIR)/include
   BACKENDS += /cpu/self/xsmm/serial /cpu/self/xsmm/blocked
