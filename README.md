@@ -156,10 +156,10 @@ make
 cd ../..
 
 # PETSc+libCEED examples on CPU and GPU
-cd examples/petsc
+cd petsc
 make
-./bp1 -ceed /cpu/self
-./bp1 -ceed /gpu/occa
+./bps -problem bp1 -ceed /cpu/self
+./bps -problem bp1 -ceed /gpu/occa
 cd ../..
 
 cd navier-stokes
@@ -193,13 +193,12 @@ and they can be viewed using the commands (requires python with matplotlib):
 
 ```console
 cd benchmarks
-python postprocess-plot.py petsc-bp1-*-output.txt
-python postprocess-plot.py petsc-bp3-*-output.txt
+python postprocess-plot.py petsc-bps-bp1-*-output.txt
+python postprocess-plot.py petsc-bps-bp3-*-output.txt
 ```
 
 Using the `benchmarks` target runs a comprehensive set of benchmarks which may
-take some time to run. Subsets of the benchmarks can be run using targets such
-as `make bench-petsc-bp1`, or `make bench-petsc-bp3`.
+take some time to run. Subsets of the benchmarks can be run using the scripts in the `benchmarks` folder.
 
 For more details about the benchmarks, see
 [`benchmarks/README.md`](benchmarks/README.md)

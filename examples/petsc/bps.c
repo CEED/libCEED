@@ -135,13 +135,14 @@ typedef struct {
   const char setupfname[PETSC_MAX_PATH_LEN], applyfname[PETSC_MAX_PATH_LEN],
              errorfname[PETSC_MAX_PATH_LEN];
   CeedEvalMode inmode, outmode;
+  CeedQuadMode qmode;
 } bpData;
 
 bpData bpOptions[6] = {
   [CEED_BP1] = {
     .vscale = 1,
     .qdatasize = 1,
-    .qextra = 2,
+    .qextra = 1,
     .setup = SetupMass,
     .apply = Mass,
     .error = Error,
@@ -149,11 +150,12 @@ bpData bpOptions[6] = {
     .applyfname = PATH(bp1.h:Mass),
     .errorfname = PATH(common.h:Error),
     .inmode = CEED_EVAL_INTERP,
-    .outmode = CEED_EVAL_INTERP},
+    .outmode = CEED_EVAL_INTERP,
+    .qmode = CEED_GAUSS},
   [CEED_BP2] = {
     .vscale = 3,
     .qdatasize = 1,
-    .qextra = 2,
+    .qextra = 1,
     .setup = SetupMass3,
     .apply = Mass3,
     .error = Error3,
@@ -161,11 +163,12 @@ bpData bpOptions[6] = {
     .applyfname = PATH(bp2.h:Mass3),
     .errorfname = PATH(common.h:Error3),
     .inmode = CEED_EVAL_INTERP,
-    .outmode = CEED_EVAL_INTERP},
+    .outmode = CEED_EVAL_INTERP,
+    .qmode = CEED_GAUSS},
   [CEED_BP3] = {
     .vscale = 1,
     .qdatasize = 6,
-    .qextra = 2,
+    .qextra = 1,
     .setup = SetupDiff,
     .apply = Diff,
     .error = Error,
@@ -173,23 +176,25 @@ bpData bpOptions[6] = {
     .applyfname = PATH(bp3.h:Diff),
     .errorfname = PATH(common.h:Error),
     .inmode = CEED_EVAL_GRAD,
-    .outmode = CEED_EVAL_GRAD},
+    .outmode = CEED_EVAL_GRAD,
+    .qmode = CEED_GAUSS},
   [CEED_BP4] = {
     .vscale = 3,
     .qdatasize = 6,
-    .qextra = 2,
+    .qextra = 1,
     .setup = SetupDiff3,
     .apply = Diff3,
-    .error = Error,
+    .error = Error3,
     .setupfname = PATH(bp4.h:SetupDiff3),
     .applyfname = PATH(bp4.h:Diff),
     .errorfname = PATH(common.h:Error3),
     .inmode = CEED_EVAL_GRAD,
-    .outmode = CEED_EVAL_GRAD},
+    .outmode = CEED_EVAL_GRAD,
+    .qmode = CEED_GAUSS},
   [CEED_BP5] = {
     .vscale = 1,
     .qdatasize = 6,
-    .qextra = 1,
+    .qextra = 0,
     .setup = SetupDiff,
     .apply = Diff,
     .error = Error,
@@ -197,19 +202,21 @@ bpData bpOptions[6] = {
     .applyfname = PATH(bp3.h:Diff),
     .errorfname = PATH(common.h:Error),
     .inmode = CEED_EVAL_GRAD,
-    .outmode = CEED_EVAL_GRAD},
+    .outmode = CEED_EVAL_GRAD,
+    .qmode = CEED_GAUSS_LOBATTO},
   [CEED_BP6] = {
     .vscale = 3,
     .qdatasize = 6,
-    .qextra = 1,
+    .qextra = 0,
     .setup = SetupDiff3,
     .apply = Diff3,
-    .error = Error,
+    .error = Error3,
     .setupfname = PATH(bp4.h:SetupDiff3),
     .applyfname = PATH(bp4.h:Diff),
     .errorfname = PATH(common.h:Error3),
     .inmode = CEED_EVAL_GRAD,
-    .outmode = CEED_EVAL_GRAD}
+    .outmode = CEED_EVAL_GRAD,
+    .qmode = CEED_GAUSS_LOBATTO}
 };
 
 // This function uses libCEED to compute the action of the mass matrix
@@ -331,7 +338,7 @@ int main(int argc, char **argv) {
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode;
   PetscMPIInt size, rank;
-  VecScatter ltog, ltog0, gtogD;;
+  VecScatter ltog, ltog0, gtogD;
   Ceed ceed;
   CeedBasis basisx, basisu;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui,
@@ -380,6 +387,8 @@ int main(int argc, char **argv) {
                          "Target number of locally owned degrees of freedom per process",
                          NULL, localdof, &localdof, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  P = degree + 1;
+  Q = P + qextra;
 
   // Determine size of process grid
   ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
@@ -410,13 +419,21 @@ int main(int argc, char **argv) {
   if (!test_mode) {
     CeedInt gsize;
     ierr = VecGetSize(X, &gsize); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Global dofs: %D\n", gsize/vscale); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
-                       p[0], p[1], p[2]); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localelem,
-                       melem[0], melem[1], melem[2]); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Owned dofs: %D = %D %D %D\n",
-                       mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm,
+                       "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
+                       "  libCEED:\n"
+                       "    libCEED Backend                    : %s\n"
+                       "  Mesh:\n"
+                       "    Number of 1D Basis Nodes (p)       : %d\n"
+                       "    Number of 1D Quadrature Points (q) : %d\n"
+                       "    Global DOFs                        : %D\n"
+                       "    Process Decomposition              : %D %D %D\n"
+                       "    Local Elements                     : %D = %D %D %D\n"
+                       "    Owned DOFs                         : %D = %D %D %D\n",
+                       bpChoice+1, ceedresource, P, Q,  gsize/vscale, p[0],
+                       p[1], p[2], localelem, melem[0], melem[1], melem[2],
+                       mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]);
+    CHKERRQ(ierr);
   }
 
   {
@@ -507,10 +524,10 @@ int main(int argc, char **argv) {
 
   // Set up libCEED
   CeedInit(ceedresource, &ceed);
-  P = degree + 1;
-  Q = P + qextra;
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, vscale, P, Q, CEED_GAUSS, &basisu);
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, Q, CEED_GAUSS, &basisx);
+  CeedBasisCreateTensorH1Lagrange(ceed, 3, vscale, P, Q,
+                                  bpOptions[bpChoice].qmode, &basisu);
+  CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, Q,
+                                  bpOptions[bpChoice].qmode, &basisx);
 
   CreateRestriction(ceed, melem, P, vscale, &Erestrictu);
   CreateRestriction(ceed, melem, 2, 3, &Erestrictx);
@@ -545,7 +562,7 @@ int main(int argc, char **argv) {
   }
 
   // Create the Q-function that builds the operator (i.e. computes its
-  // quadrature data) and set its context data.
+  // quadrature data) and set its context data
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setup,
                               bpOptions[bpChoice].setupfname, &qf_setup);
   CeedQFunctionAddInput(qf_setup, "x", 3, CEED_EVAL_INTERP);
@@ -579,7 +596,7 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, Nelem*Nqpts*vscale, &target);
   CeedVectorCreate(ceed, lsize*vscale, &rhsceed);
 
-  // Create the operator that builds the quadrature data for the ceed operator.
+  // Create the operator that builds the quadrature data for the ceed operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
   CeedOperatorSetField(op_setup, "x", Erestrictx, CEED_NOTRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
@@ -594,7 +611,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup, "rhs", Erestrictu, CEED_TRANSPOSE,
                        basisu, rhsceed);
 
-  // Create the mass or diff operator.
+  // Create the mass or diff operator
   CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
   CeedOperatorSetField(op_apply, "u", Erestrictu, CEED_TRANSPOSE,
                        basisu, CEED_VECTOR_ACTIVE);
@@ -708,8 +725,14 @@ int main(int argc, char **argv) {
     ierr = KSPGetIterationNumber(ksp, &its); CHKERRQ(ierr);
     ierr = KSPGetResidualNorm(ksp, &rnorm); CHKERRQ(ierr);
     if (!test_mode || reason < 0 || rnorm > 1e-8) {
-      ierr = PetscPrintf(comm, "KSP %s %s iterations %D rnorm %e\n", ksptype,
-                         KSPConvergedReasons[reason], its, (double)rnorm); CHKERRQ(ierr);
+      ierr = PetscPrintf(comm,
+                         "  KSP:\n"
+                         "    KSP Type                           : %s\n"
+                         "    KSP Convergence                    : %s\n"
+                         "    Total KSP Iterations               : %D\n"
+                         "    Final rnorm                        : %e\n",
+                         ksptype, KSPConvergedReasons[reason], its,
+                         (double)rnorm); CHKERRQ(ierr);
     }
     if (benchmark_mode && (!test_mode)) {
       CeedInt gsize;
@@ -717,11 +740,11 @@ int main(int argc, char **argv) {
       MPI_Reduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, 0, comm);
       MPI_Reduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
       ierr = PetscPrintf(comm,
-                         "CG solve time  : %g (%g) sec.\n"
-                         "DOFs/sec in CG : %g (%g) million.\n",
-                         rt_max, rt_min,
-                         1e-6*gsize*its/rt_max, 1e-6*gsize*its/rt_min);
-      CHKERRQ(ierr);
+                         "  Performance:\n"
+                         "    CG Solve Time                      : %g (%g) sec\n"
+                         "    DOFs/Sec in CG                     : %g (%g) million\n",
+                         rt_max, rt_min, 1e-6*gsize*its/rt_max,
+                         1e-6*gsize*its/rt_min); CHKERRQ(ierr);
     }
   }
 
@@ -730,8 +753,9 @@ int main(int argc, char **argv) {
     ierr = ComputeErrorMax(user, op_error, X, target, &maxerror); CHKERRQ(ierr);
     PetscReal tol = (bpChoice == CEED_BP1 || bpChoice == CEED_BP2) ? 5e-3 : 5e-2;
     if (!test_mode || maxerror > tol) {
-      ierr = PetscPrintf(comm, "Pointwise error (max) %e\n", (double)maxerror);
-      CHKERRQ(ierr);
+      ierr = PetscPrintf(comm,
+                         "    Pointwise Error (max)              : %e\n",
+                         (double)maxerror); CHKERRQ(ierr);
     }
   }
 

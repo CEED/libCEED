@@ -22,7 +22,7 @@ endif
 ifeq (,$(filter-out undefined default,$(origin FC)))
   FC = gfortran
 endif
-NVCC = $(CUDA_DIR)/bin/nvcc
+NVCC ?= $(CUDA_DIR)/bin/nvcc
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
@@ -261,7 +261,7 @@ endif
 
 # AVX Backed
 AVX_STATUS = Disabled
-AVX := $(shell $(CC) $(OPT) -v -E - < /dev/null 2>&1 | grep -c avx)
+AVX := $(shell $(CC) $(OPT) -v -E - < /dev/null 2>&1 | grep -c ' -mavx')
 ifeq ($(AVX),1)
   AVX_STATUS = Enabled
   libceed.c += $(avx.c)
@@ -295,10 +295,12 @@ endif
 # Cuda Backend
 CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
 CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
+CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg /gpu/cuda/shared
 ifneq ($(CUDA_LIB_DIR),)
-  $(libceeds) : CFLAGS += -I$(CUDA_DIR)/include
+  $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
+  $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR_STUBS)
   $(libceeds) : LDLIBS += -lcudart -lnvrtc -lcuda
   libceed.c  += $(cuda.c) $(cuda-reg.c) $(cuda-shared.c)
   libceed.cu += $(cuda.cu) $(cuda-reg.cu) $(cuda-shared.cu)
@@ -425,7 +427,7 @@ junit-t% : BACKENDS += $(TEST_BACKENDS)
 junit-% : $(OBJDIR)/%
 	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py $(<:$(OBJDIR)/%=%)
 
-junit : $(alltests:$(OBJDIR)/%=junit-%)
+junit : $(matched:$(OBJDIR)/%=junit-%)
 
 all: $(alltests)
 
@@ -469,10 +471,10 @@ cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
 	$(MAKE) -C examples clean
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
-	$(RM) -rf benchmarks/*output.txt
+	$(RM) benchmarks/*output.txt
 
 distclean : clean
-	$(RM) -r doc/html
+	$(RM) -r doc/html config.mk
 
 doc :
 	doxygen Doxyfile
@@ -499,5 +501,32 @@ print-% :
 	$(info [expanded value]: $($*))
 	$(info )
 	@true
+
+# "make configure" will autodetect any variables not passed on the
+# command line, caching the result in config.mk to be used on any
+# subsequent invocations of make.  For example,
+#
+#   make configure CC=/path/to/my/cc CUDA_DIR=/opt/cuda
+#   make
+#   make prove
+configure :
+	@: > config.mk
+	@echo "CC = $(CC)" | tee -a config.mk
+	@echo "FC = $(FC)" | tee -a config.mk
+	@echo "NVCC = $(NVCC)" | tee -a config.mk
+	@echo "CFLAGS = $(CFLAGS)" | tee -a config.mk
+	@echo "CPPFLAGS = $(CPPFLAGS)" | tee -a config.mk
+	@echo "FFLAGS = $(FFLAGS)" | tee -a config.mk
+	@echo "LDFLAGS = $(LDFLAGS)" | tee -a config.mk
+	@echo "LDLIBS = $(LDLIBS)" | tee -a config.mk
+	@echo "MAGMA_DIR = $(MAGMA_DIR)" | tee -a config.mk
+	@echo "XSMM_DIR = $(XSMM_DIR)" | tee -a config.mk
+	@echo "CUDA_DIR = $(CUDA_DIR)" | tee -a config.mk
+	@echo "MFEM_DIR = $(MFEM_DIR)" | tee -a config.mk
+	@echo "PETSC_DIR = $(PETSC_DIR)" | tee -a config.mk
+	@echo "NEK5K_DIR = $(NEK5K_DIR)" | tee -a config.mk
+	@echo "Configuration cached in config.mk"
+
+.PHONY : configure
 
 -include $(libceed.c:%.c=$(OBJDIR)/%.d) $(tests.c:tests/%.c=$(OBJDIR)/%.d)

@@ -36,8 +36,7 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
 
   int currentDeviceID;
   ierr = cudaGetDevice(&currentDeviceID); CeedChk_Cu(ceed,ierr);
-  if (currentDeviceID!=deviceID)
-  {
+  if (currentDeviceID!=deviceID) {
     ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
   }
 
@@ -47,8 +46,6 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Cuda_reg); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-                                CeedBasisCreateH1_Cuda_reg); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
                                 CeedElemRestrictionCreate_Cuda_reg); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
