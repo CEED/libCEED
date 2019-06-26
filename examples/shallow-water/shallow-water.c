@@ -108,7 +108,7 @@ struct User_ {
   DM dm;
   Ceed ceed;
   CeedVector qceed, gceed;
-  CeedOperator op;
+  CeedOperator op_explicit, op_implicit;
   VecScatter ltog;              // Scatter for all entries
   VecScatter ltog0;             // Skip Dirichlet values for Q
   VecScatter gtogD;             // global-to-global; only Dirichlet values for Q
@@ -140,7 +140,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   CeedVectorSetArray(user->gceed, CEED_MEM_HOST, CEED_USE_POINTER, g);
 
   // Apply CEED operator
-  CeedOperatorApply(user->op, user->qceed, user->gceed,
+  CeedOperatorApply(user->op_explicit, user->qceed, user->gceed,
                     CEED_REQUEST_IMMEDIATE);
 
   // Restore vectors
@@ -255,13 +255,13 @@ int main(int argc, char **argv) {
 
   Ceed ceed;
   CeedInt numP, numQ;
-  CeedVector xcorners, xceed, hdata, q0ceed, mceed,
+  CeedVector xcorners, xceed, qdata, q0ceed, mceed,
              onesvec, multevec, multlvec;
   CeedBasis basisx, basisxc, basisq;
   CeedElemRestriction restrictx, restrictxc, restrictxi,
                       restrictq, restrictqdi, restrictmult;
-  CeedQFunction qf_setup, qf_mass, qf_ics, qf;
-  CeedOperator op_setup, op_mass, op_ics, op;
+  CeedQFunction qf_setup, qf_mass, qf_ics, qf_explicit, qf_implicit;
+  CeedOperator op_setup, op_mass, op_ics, op_explicit, op_implicit;
 
   // Create the libCEED contexts
   PetscScalar lx;                   // m
@@ -277,8 +277,8 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
 
   // Set up problem type command line option
-  PetscFunctionListAdd(&icsflist, "sphere", &ICsSW);
-  PetscFunctionListAdd(&qflist, "shallow-water", &SW);
+  //PetscFunctionListAdd(&icsflist, "sphere", &ICsSW);
+  //PetscFunctionListAdd(&qflist, "shallow-water", &SW);
 
   // Parse command line options
   comm = PETSC_COMM_WORLD;
@@ -547,7 +547,7 @@ int main(int argc, char **argv) {
   CeedBasisGetNumQuadraturePoints(basisq, &Nqpts);
   CeedInt Ndofs = 1;
   for (int d=0; d<2; d++) Ndofs *= numP;
-  CeedVectorCreate(ceed, 8*localNelem*Nqpts, &hdata);
+  CeedVectorCreate(ceed, 8*localNelem*Nqpts, &qdata);
   CeedVectorCreate(ceed, 3*lsize, &q0ceed);
   CeedVectorCreate(ceed, 3*lsize, &mceed);
   CeedVectorCreate(ceed, 3*lsize, &onesvec);
@@ -576,35 +576,31 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_mass, "v", 3, CEED_EVAL_INTERP);
 
   // Create the Q-function that sets the ICs of the operator
-  void (*icsfp)(void);
-  PetscFunctionListFind(icsflist, problemtype, &icsfp);
-  if (!icsfp)
-      return CeedError(ceed, 1, "Function not found in the list");
-  char str[PETSC_MAX_PATH_LEN] = __FILE__":ICs";
-  PetscStrlcat(str, problemtype, PETSC_MAX_PATH_LEN);
-  CeedQFunctionCreateInterior(ceed, 1,
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))icsfp,
-                              str, &qf_ics);
+  CeedQFunctionCreateInterior(ceed, 1, Setup, __FILE__ ":ICsSW", &qf_ics);
   CeedQFunctionAddInput(qf_ics, "x", 2, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", 3, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_ics, "h_s", 1, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_ics, "coords", 2, CEED_EVAL_NONE);
 
-  // Create the Q-function that defines the action of the operator
-  void (*fp)(void);
-  PetscFunctionListFind(qflist, problemtype, &fp);
-  if (!fp)
-      return CeedError(ceed, 1, "Function not found in the list");
-  PetscStrncpy(str, __FILE__":", PETSC_MAX_PATH_LEN);
-  PetscStrlcat(str, problemtype, PETSC_MAX_PATH_LEN);
+  // Create the Q-function that defines the action of the explicit operator
   CeedQFunctionCreateInterior(ceed, 1,
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))fp,
-                              str, &qf);
-  CeedQFunctionAddInput(qf, "q", 3, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf, "dq", 3, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf, "qdata", 8, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf, "x", 2, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf, "v", 3, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf, "dv", 3, CEED_EVAL_GRAD);
+                              SWExplicit,  __FILE__ ":SWExplicit", &qf_explicit);
+  CeedQFunctionAddInput(qf_explicit, "q", 3, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_explicit, "dq", 3, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_explicit, "qdata", 8, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_explicit, "x", 2, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_explicit, "v", 3, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_explicit, "dv", 3, CEED_EVAL_GRAD);
+
+  // Create the Q-function that defines the action of the implicit operator
+  CeedQFunctionCreateInterior(ceed, 1,
+                              SWImplicit,  __FILE__ ":SWImplicit", &qf_implicit);
+  CeedQFunctionAddInput(qf_implicit, "q", 3, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_implicit, "dq", 3, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_implicit, "qdata", 8, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_implicit, "x", 2, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_implicit, "v", 3, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_implicit, "dv", 3, CEED_EVAL_GRAD);
 
   // Create the operator that builds the quadrature data for the NS operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
@@ -620,7 +616,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_mass, "q", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "qdata", restrictqdi, CEED_NOTRANSPOSE,
-                       basisx, hdata);
+                       basisx, qdata);
   CeedOperatorSetField(op_mass, "v", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
 
@@ -630,22 +626,39 @@ int main(int argc, char **argv) {
                        basisxc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_ics, "q0", restrictq, CEED_TRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_ics, "h_s", restrictq, CEED_TRANSPOSE,
+                       CEED_BASIS_COLLOCATED, xceed); // TO DO: check if I need a different restriction
   CeedOperatorSetField(op_ics, "coords", restrictxc, CEED_TRANSPOSE,
                        CEED_BASIS_COLLOCATED, xceed);
 
-  // Create the physics operator
-  CeedOperatorCreate(ceed, qf, NULL, NULL, &op);
-  CeedOperatorSetField(op, "q", restrictq, CEED_TRANSPOSE,
+  // Create the explicit part of physics operator
+  CeedOperatorCreate(ceed, qf_explicit, NULL, NULL, &op_explicit);
+  CeedOperatorSetField(op_explicit, "q", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op, "dq", restrictq, CEED_TRANSPOSE,
+  CeedOperatorSetField(op_explicit, "dq", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op, "qdata", restrictqdi, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_explicit, "qdata", restrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op, "x", restrictx, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_explicit, "x", restrictx, CEED_NOTRANSPOSE,
                        basisx, xcorners);
-  CeedOperatorSetField(op, "v", restrictq, CEED_TRANSPOSE,
+  CeedOperatorSetField(op_explicit, "v", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op, "dv", restrictq, CEED_TRANSPOSE,
+  CeedOperatorSetField(op_explicit, "dv", restrictq, CEED_TRANSPOSE,
+                       basisq, CEED_VECTOR_ACTIVE);
+
+  // Create the implicit part of physics operator
+  CeedOperatorCreate(ceed, qf_implicit, NULL, NULL, &op_implicit);
+  CeedOperatorSetField(op_implicit, "q", restrictq, CEED_TRANSPOSE,
+                       basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_implicit, "dq", restrictq, CEED_TRANSPOSE,
+                       basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_implicit, "qdata", restrictqdi, CEED_NOTRANSPOSE,
+                       CEED_BASIS_COLLOCATED, qdata);
+  CeedOperatorSetField(op_implicit, "x", restrictx, CEED_NOTRANSPOSE,
+                       basisx, xcorners);
+  CeedOperatorSetField(op_implicit, "v", restrictq, CEED_TRANSPOSE,
+                       basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_implicit, "dv", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
 
   // Set up the libCEED context
@@ -662,7 +675,8 @@ int main(int argc, char **argv) {
   user->ceed = ceed;
   CeedVectorCreate(ceed, 3*lsize, &user->qceed);
   CeedVectorCreate(ceed, 3*lsize, &user->gceed);
-  user->op = op;
+  user->op_explicit = op_explicit;
+  user->op_implicit = op_implicit;
   user->ltog = ltog;
   user->ltog0 = ltog0;
   user->gtogD = gtogD;
@@ -686,7 +700,7 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
   // Apply Setup Ceed Operators
-  CeedOperatorApply(op_setup, xcorners, hdata, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_setup, xcorners, qdata, CEED_REQUEST_IMMEDIATE);
   CeedOperatorApply(op_ics, xcorners, q0ceed, CEED_REQUEST_IMMEDIATE);
   CeedVectorSetValue(onesvec, 1.0);
   CeedOperatorApply(op_mass, onesvec, mceed, CEED_REQUEST_IMMEDIATE);
@@ -807,7 +821,7 @@ int main(int argc, char **argv) {
                      steps,(double)ftime); CHKERRQ(ierr);
 
   // Clean up libCEED
-  CeedVectorDestroy(&hdata);
+  CeedVectorDestroy(&qdata);
   CeedVectorDestroy(&user->qceed);
   CeedVectorDestroy(&user->gceed);
   CeedVectorDestroy(&xceed);
@@ -822,10 +836,12 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&restrictxi);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_ics);
-  CeedQFunctionDestroy(&qf);
+  CeedQFunctionDestroy(&qf_explicit);
+  CeedQFunctionDestroy(&qf_implicit);
   CeedOperatorDestroy(&op_setup);
   CeedOperatorDestroy(&op_ics);
-  CeedOperatorDestroy(&op);
+  CeedOperatorDestroy(&op_explicit);
+  CeedOperatorDestroy(&op_implicit);
   CeedDestroy(&ceed);
 
   // Clean up PETSc
