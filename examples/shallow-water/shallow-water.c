@@ -99,6 +99,11 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[2],
 }
 
 // PETSc user data
+
+typedef struct {
+  PetscScalar u, v, h;
+} Field;
+
 typedef struct User_ *User;
 struct User_ {
   MPI_Comm comm;
@@ -107,19 +112,19 @@ struct User_ {
   PetscInt outputfreq;
   DM dm;
   Ceed ceed;
-  CeedVector qceed, gceed;
+  CeedVector qceed, fceed, gceed;
   CeedOperator op_explicit, op_implicit;
   VecScatter ltog;              // Scatter for all entries
   VecScatter ltog0;             // Skip Dirichlet values for Q
   VecScatter gtogD;             // global-to-global; only Dirichlet values for Q
-  Vec Qloc, Gloc, M, BC;
+  Vec Qloc, Qdotloc, Floc, Gloc, M, BC;
   char outputfolder[PETSC_MAX_PATH_LEN];
   PetscInt contsteps;
 };
 
-// This is the RHS of the ODE, given as u_t = G(t,u)
+// This is the RHS of the IMEX ODE, given as F(t,Q,Q_t) = G(t,Q)
 // This function takes in a state vector Q and writes into G
-static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
+static PetscErrorCode FormRHSFunction(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   PetscErrorCode ierr;
   User user = *(User*)userData;
   PetscScalar *q, *g;
@@ -129,8 +134,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   ierr = VecScatterBegin(user->ltog, Q, user->Qloc, INSERT_VALUES,
                          SCATTER_REVERSE); CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog, Q, user->Qloc, INSERT_VALUES,
-                       SCATTER_REVERSE);
-  CHKERRQ(ierr);
+                       SCATTER_REVERSE); CHKERRQ(ierr);
   ierr = VecZeroEntries(user->Gloc); CHKERRQ(ierr);
 
   // Ceed Vectors
@@ -139,7 +143,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   CeedVectorSetArray(user->qceed, CEED_MEM_HOST, CEED_USE_POINTER, q);
   CeedVectorSetArray(user->gceed, CEED_MEM_HOST, CEED_USE_POINTER, g);
 
-  // Apply CEED operator
+  // Apply the CEED operator for the spatial terms of explicit function
   CeedOperatorApply(user->op_explicit, user->qceed, user->gceed,
                     CEED_REQUEST_IMMEDIATE);
 
@@ -169,12 +173,77 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   PetscFunctionReturn(0);
 }
 
+// This is the LHS of the IMEX ODE, given as F(t,Q,Qdot) = G(t,Q)
+// This function takes in the state vector Q and its derivative Qdot
+// and writes into F
+static PetscErrorCode FormIFunction(TS ts, PetscReal t, Vec Q, Vec Qdot,
+                                    Vec F, void *userData)
+{
+  User user = *(User*)userData;
+  PetscScalar *q, *qdot, *f;
+  PetscInt qstart, qend;
+  PetscErrorCode ierr;
+
+  PetscFunctionBeginUser;
+
+  // Global-to-local
+  PetscFunctionBeginUser;
+  ierr = VecScatterBegin(user->ltog, Q, user->Qloc, INSERT_VALUES,
+                         SCATTER_REVERSE); CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->ltog, Q, user->Qloc, INSERT_VALUES,
+                       SCATTER_REVERSE); CHKERRQ(ierr);
+  ierr = VecScatterBegin(user->ltog, Qdot, user->Qdotloc, INSERT_VALUES,
+                         SCATTER_REVERSE); CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->ltog, Qdot, user->Qdotloc, INSERT_VALUES,
+                       SCATTER_REVERSE); CHKERRQ(ierr);
+  ierr = VecZeroEntries(user->Floc); CHKERRQ(ierr);
+
+  // Ceed Vectors
+  ierr = VecGetArrayRead(user->Qloc, (const PetscScalar**)&q); CHKERRQ(ierr);
+  ierr = VecGetArray(user->Qdotloc, &qdot); CHKERRQ(ierr);
+  ierr = VecGetArray(user->Floc, &f); CHKERRQ(ierr);
+  CeedVectorSetArray(user->qceed, CEED_MEM_HOST, CEED_USE_POINTER, q);
+  CeedVectorSetArray(user->fceed, CEED_MEM_HOST, CEED_USE_POINTER, f);
+
+  // Apply the CEED operator for the spatial terms of implicit function
+  CeedOperatorApply(user->op_implicit, user->qceed, user->fceed,
+                    CEED_REQUEST_IMMEDIATE);
+
+  // Add the Qdot to the spatial terms to complete implicit function F(t,Q,Qdot)
+  ierr = VecGetOwnershipRange(Q, &qstart, &qend); CHKERRQ(ierr);
+  for (PetscInt i=0; i<qend-qstart; i++) {
+      qdot[i] += q[i];
+  }
+
+  // Restore vectors
+  ierr = VecRestoreArrayRead(user->Qloc, (const PetscScalar**)&q); CHKERRQ(ierr);
+  ierr = VecRestoreArray(user->Qdotloc, &qdot); CHKERRQ(ierr);
+  ierr = VecRestoreArray(user->Floc, &f); CHKERRQ(ierr);
+
+  ierr = VecZeroEntries(F); CHKERRQ(ierr);
+
+  // Global-to-global
+  // F on the boundary = BC // TO DO: figure out periodic BCs
+  ierr = VecScatterBegin(user->gtogD, user->BC, F, INSERT_VALUES,
+                         SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->gtogD, user->BC, F, INSERT_VALUES,
+                       SCATTER_FORWARD); CHKERRQ(ierr);
+
+  // Local-to-global
+  ierr = VecScatterBegin(user->ltog0, user->Floc, F, ADD_VALUES,
+                         SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->ltog0, user->Floc, F, ADD_VALUES,
+                       SCATTER_FORWARD); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 // User provided TS Monitor
 static PetscErrorCode TSMonitor_SW(TS ts, PetscInt stepno, PetscReal time,
-                                   Vec h, void *ctx) {
+                                   Vec Q, void *ctx) {
   User user = ctx;
-  const PetscScalar *hpt;
-  PetscScalar ***u;
+  const PetscScalar *q;
+  PetscScalar **u;
   Vec U;
   DMDALocalInfo info;
   char filepath[PETSC_MAX_PATH_LEN];
@@ -191,18 +260,15 @@ static PetscErrorCode TSMonitor_SW(TS ts, PetscInt stepno, PetscReal time,
   ierr = PetscObjectSetName((PetscObject)U, "StateVec");
   ierr = DMDAGetLocalInfo(user->dm, &info); CHKERRQ(ierr);
   ierr = DMDAVecGetArray(user->dm, U, &u); CHKERRQ(ierr);
-  ierr = VecGetArrayRead(h, &hpt); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(Q, &q); CHKERRQ(ierr);
   for (PetscInt i=0; i<info.zm; i++) {
     for (PetscInt j=0; j<info.ym; j++) {
-      for (PetscInt k=0; k<info.xm; k++) {
-        for (PetscInt c=0; c<5; c++) {
-          u[info.zs+i][info.ys+j][(info.xs+k)*5 + c] =
-                  hpt[((i*info.ym+j)*info.xm+k)*5 + c];
-        }
-      }
+      u[info.zs+i][(info.ys+j)*3 + 0] = q[(i*info.ym+j)*3 + 0];
+      u[info.zs+i][(info.ys+j)*3 + 1] = q[(i*info.ym+j)*3 + 1];
+      u[info.zs+i][(info.ys+j)*3 + 2] = q[(i*info.ym+j)*3 + 2];
     }
   }
-  ierr = VecRestoreArrayRead(h, &hpt); CHKERRQ(ierr);
+  ierr = VecRestoreArrayRead(Q, &q); CHKERRQ(ierr);
   ierr = DMDAVecRestoreArray(user->dm, U, &u); CHKERRQ(ierr);
 
   // Output
@@ -220,7 +286,7 @@ static PetscErrorCode TSMonitor_SW(TS ts, PetscInt stepno, PetscReal time,
                        user->outputfolder); CHKERRQ(ierr);
   ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
   CHKERRQ(ierr);
-  ierr = VecView(h, viewer); CHKERRQ(ierr);
+  ierr = VecView(Q, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   // Save time stamp
@@ -250,7 +316,7 @@ int main(int argc, char **argv) {
   PetscMPIInt size, rank;
   PetscScalar ftime;
   PetscScalar *q0, *m, *mult, *x;
-  Vec Q, Qloc, Mloc, X, Xloc;
+  Vec Q, Qloc, Qdotloc, Mloc, X, Xloc;
   VecScatter ltog, ltog0, gtogD, ltogX;
 
   Ceed ceed;
@@ -450,6 +516,7 @@ int main(int argc, char **argv) {
       IS isD;
       const PetscScalar *q;
       ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
+      ierr = VecDuplicate(Qloc, &Qdotloc); CHKERRQ(ierr);
       ierr = VecSet(Q, 1.0); CHKERRQ(ierr);
       ierr = VecScatterBegin(ltog0, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
       CHKERRQ(ierr);
@@ -674,6 +741,7 @@ int main(int argc, char **argv) {
   user->dm = dm;
   user->ceed = ceed;
   CeedVectorCreate(ceed, 3*lsize, &user->qceed);
+  CeedVectorCreate(ceed, 3*lsize, &user->fceed);
   CeedVectorCreate(ceed, 3*lsize, &user->gceed);
   user->op_explicit = op_explicit;
   user->op_implicit = op_implicit;
@@ -681,7 +749,9 @@ int main(int argc, char **argv) {
   user->ltog0 = ltog0;
   user->gtogD = gtogD;
   user->Qloc = Qloc;
+  user->Qdotloc = Qdotloc;
   ierr = VecDuplicate(Qloc, &user->Gloc); CHKERRQ(ierr);
+  ierr = VecDuplicate(Qloc, &user->Floc); CHKERRQ(ierr);
 
   // Calculate qdata and ICs
   // Set up state global and local vectors
@@ -727,7 +797,7 @@ int main(int argc, char **argv) {
   // Gather initial h values
   ierr = VecRestoreArray(Qloc, &q0); CHKERRQ(ierr);
   // In case of continuation of simulation, set up initial values from binary file
-  if (contsteps){ // continue from existent solution
+  if (contsteps){ // continue from existing solution
     PetscViewer viewer;
     char filepath[PETSC_MAX_PATH_LEN];
     // Read input
@@ -785,7 +855,8 @@ int main(int argc, char **argv) {
   ierr = TSCreate(comm, &ts); CHKERRQ(ierr);
   ierr = TSSetType(ts, TSRK); CHKERRQ(ierr);
   ierr = TSRKSetType(ts, TSRK5F); CHKERRQ(ierr);
-  ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
+  ierr = TSSetRHSFunction(ts, NULL, FormRHSFunction, &user); CHKERRQ(ierr);
+  ierr = TSSetIFunction(ts, NULL, FormIFunction, &user);CHKERRQ(ierr);
   ierr = TSSetMaxTime(ts, 500.); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
   ierr = TSSetTimeStep(ts, 1.e-5); CHKERRQ(ierr);
@@ -823,6 +894,7 @@ int main(int argc, char **argv) {
   // Clean up libCEED
   CeedVectorDestroy(&qdata);
   CeedVectorDestroy(&user->qceed);
+  CeedVectorDestroy(&user->fceed);
   CeedVectorDestroy(&user->gceed);
   CeedVectorDestroy(&xceed);
   CeedVectorDestroy(&xcorners);
