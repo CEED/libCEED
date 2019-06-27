@@ -99,11 +99,6 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[2],
 }
 
 // PETSc user data
-
-typedef struct {
-  PetscScalar u, v, h;
-} Field;
-
 typedef struct User_ *User;
 struct User_ {
   MPI_Comm comm;
@@ -263,9 +258,9 @@ static PetscErrorCode TSMonitor_SW(TS ts, PetscInt stepno, PetscReal time,
   ierr = VecGetArrayRead(Q, &q); CHKERRQ(ierr);
   for (PetscInt i=0; i<info.zm; i++) {
     for (PetscInt j=0; j<info.ym; j++) {
-      u[info.zs+i][(info.ys+j)*3 + 0] = q[(i*info.ym+j)*3 + 0];
-      u[info.zs+i][(info.ys+j)*3 + 1] = q[(i*info.ym+j)*3 + 1];
-      u[info.zs+i][(info.ys+j)*3 + 2] = q[(i*info.ym+j)*3 + 2];
+      for (PetscInt c=0; c<3; c++) {
+        u[info.zs+i][(info.ys+j)*3 + c] = q[(i*info.ym+j)*3 + c];
+      }
     }
   }
   ierr = VecRestoreArrayRead(Q, &q); CHKERRQ(ierr);
