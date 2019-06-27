@@ -228,15 +228,15 @@ static int DC(void *ctx, CeedInt Q,
                                   dq[i+(0+5*1)*Q],
                                   dq[i+(0+5*2)*Q]
                                };
-    const CeedScalar du[9]   = { (dq[i+(1+5*0)*Q] - drho[0]*u[0]) / rho,
-                                 (dq[i+(1+5*1)*Q] - drho[1]*u[0]) / rho,
-                                 (dq[i+(1+5*2)*Q] - drho[2]*u[0]) / rho,
-                                 (dq[i+(2+5*0)*Q] - drho[0]*u[1]) / rho,
-                                 (dq[i+(2+5*1)*Q] - drho[1]*u[1]) / rho,
-                                 (dq[i+(2+5*2)*Q] - drho[2]*u[1]) / rho,
-                                 (dq[i+(3+5*0)*Q] - drho[0]*u[2]) / rho,
-                                 (dq[i+(3+5*1)*Q] - drho[1]*u[2]) / rho,
-                                 (dq[i+(3+5*2)*Q] - drho[2]*u[2]) / rho
+    const CeedScalar du[9]   = { (dq[i+(0+5*1)*Q] - drho[0]*u[0]) / rho,
+                                 (dq[i+(1+5*1)*Q] - drho[0]*u[1]) / rho,
+                                 (dq[i+(2+5*1)*Q] - drho[0]*u[2]) / rho,
+                                 (dq[i+(0+5*2)*Q] - drho[1]*u[0]) / rho,
+                                 (dq[i+(1+5*2)*Q] - drho[1]*u[1]) / rho,
+                                 (dq[i+(2+5*2)*Q] - drho[1]*u[2]) / rho,
+                                 (dq[i+(0+5*3)*Q] - drho[2]*u[0]) / rho,
+                                 (dq[i+(1+5*3)*Q] - drho[2]*u[1]) / rho,
+                                 (dq[i+(2+5*3)*Q] - drho[2]*u[2]) / rho
                                };
     const CeedScalar dE[3]   = {  dq[i+(4+5*0)*Q],
                                   dq[i+(4+5*1)*Q],
