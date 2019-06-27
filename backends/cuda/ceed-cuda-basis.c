@@ -19,10 +19,12 @@
 #include "ceed-cuda.h"
 
 static const char *basiskernels = QUOTE(
-                                    extern "C" __global__ void interpInterleaved(const CeedInt nelem,
-                                        const int transpose,
-                                        const CeedScalar *__restrict__ interp1d, const CeedScalar *__restrict__ u,
-CeedScalar *__restrict__ v) {
+
+extern "C" __global__ void interpInterleaved(const CeedInt nelem,
+                                             const int transpose,
+                                             const CeedScalar *__restrict__ interp1d,
+                                             const CeedScalar *__restrict__ u,
+                                             CeedScalar *__restrict__ v) {
   const CeedInt i = threadIdx.x;
 
   __shared__ CeedScalar s_mem[BASIS_Q1D * BASIS_P1D + 2 * BASIS_BUF_LEN];
@@ -362,7 +364,92 @@ extern "C" __global__ void weight(const CeedInt nelem,
   }
 }
 
-                                  );
+);
+
+static const char *kernelsNonTensorRef = QUOTE(
+
+extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
+                                  const CeedScalar *d_B, const CeedScalar *__restrict__ d_U,
+                                  CeedScalar *__restrict__ d_V) {
+  const int tid = threadIdx.x;
+
+  const double *U;
+  double V;
+  //TODO load B in shared memory if blockDim.z > 1?
+
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
+       elem += gridDim.x*blockDim.z) {
+    for(int comp=0; comp<BASIS_NCOMP; comp++) {
+      if(!transpose) {//run with Q threads
+        U = d_U + elem*BASIS_NCOMP*P + comp*P;
+        V = 0.0;
+        for (int i = 0; i < P; ++i) {
+          V += d_B[i+tid*P]*U[i];
+        }
+        d_V[elem*Q + comp*nelem*Q + tid] = V;
+      } else {//run with P threads
+        U = d_U + elem*Q + comp*nelem*Q;
+        V = 0.0;
+        for (int i = 0; i < Q; ++i) {
+          V += d_B[tid+i*P]*U[i];
+        }
+        d_V[elem*BASIS_NCOMP*P + comp*P + tid] = V;
+      }
+    }
+  }
+}
+
+extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
+                                const CeedScalar *d_G,
+                                const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+  const int tid = threadIdx.x;
+
+  const double *U;
+  //TODO load G in shared memory if blockDim.z > 1?
+
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
+       elem += gridDim.x*blockDim.z) {
+    for(int comp=0; comp<BASIS_NCOMP; comp++) {
+      if(!transpose) {//run with Q threads
+        double V[BASIS_DIM];
+        U = d_U + elem*BASIS_NCOMP*P + comp*P;
+        for(int dim=0; dim<BASIS_DIM; dim++) {
+          V[dim] = 0.0;
+        }
+        for (int i = 0; i < P; ++i) {
+          const double val = U[i];
+          for(int dim=0; dim<BASIS_DIM; dim++) {
+            V[dim] += d_G[i+tid*P+dim*P*Q]*val;
+          }
+        }
+        for(int dim=0; dim<BASIS_DIM; dim++) {
+          d_V[elem*Q + comp*nelem*Q + dim*BASIS_NCOMP*nelem*Q + tid] = V[dim];
+        }
+      } else {//run with P threads
+        double V = 0.0;
+        for(int dim=0; dim<BASIS_DIM; dim++) {
+          U = d_U + elem*Q + comp*nelem*Q +dim*BASIS_NCOMP*nelem*Q;
+          for (int i = 0; i < Q; ++i) {
+            V += d_G[tid+i*P+dim*P*Q]*U[i];
+          }
+        }
+        d_V[elem*BASIS_NCOMP*P + comp*P + tid] = V;
+      }
+    }
+  }
+}
+
+extern "C" __global__ void weight(const CeedInt nelem,
+                                  const CeedScalar *__restrict__ qweight, CeedScalar *__restrict__ d_V) {
+  const int tid = threadIdx.x;
+  //TODO load qweight in shared memory if blockDim.z > 1?
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
+       elem += gridDim.x*blockDim.z) {
+    d_V[elem*Q + tid] = qweight[tid];
+  }
+}
+
+);
 
 int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
                         CeedTransposeMode tmode,
@@ -396,19 +483,20 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
     ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
     CeedInt blocksize = CeedIntPow(Q1d, dim);
     blocksize = blocksize > maxblocksize ? maxblocksize : blocksize;
-    ierr = run_kernel(ceed, data->interp, nelem, blocksize, interpargs);
+    ierr = CeedRunKernelCuda(ceed, data->interp, nelem, blocksize, interpargs);
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_GRAD) {
     void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->d_interp1d, &data->d_grad1d, &d_u, &d_v};
     CeedInt blocksize = maxblocksize;
-    ierr = run_kernel(ceed, data->grad, nelem, blocksize, gradargs); CeedChk(ierr);
+    ierr = CeedRunKernelCuda(ceed, data->grad, nelem, blocksize, gradargs);
+    CeedChk(ierr);
   } else if (emode == CEED_EVAL_WEIGHT) {
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight1d, &d_v};
     const int blocksize = 32;
     int gridsize = nelem/blocksize;
     if (blocksize * gridsize < nelem)
       gridsize += 1;
-    ierr = run_kernel(ceed, data->weight, gridsize, blocksize, weightargs);
+    ierr = CeedRunKernelCuda(ceed, data->weight, gridsize, blocksize, weightargs);
     CeedChk(ierr);
   }
 
@@ -417,6 +505,73 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
   }
   ierr = CeedVectorRestoreArray(v, &d_v); CeedChk(ierr);
 
+  return 0;
+}
+
+int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt nelem,
+                                 CeedTransposeMode tmode,
+                                 CeedEvalMode emode, CeedVector u, CeedVector v) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  Ceed_Cuda *ceed_Cuda;
+  CeedGetData(ceed, (void *) &ceed_Cuda); CeedChk(ierr);
+  CeedBasisNonTensor_Cuda *data;
+  CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
+  CeedInt ndof, nqpt;
+  ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
+  ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
+  const CeedInt transpose = tmode == CEED_TRANSPOSE;
+  // const int optElems[7] = {0,32,8,3,2,1,8};
+  int elemsPerBlock = 1;//basis->Q1d < 7 ? optElems[basis->Q1d] : 1;
+  int grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)?
+                                     1 : 0 );
+
+  const CeedScalar *d_u;
+  CeedScalar *d_v;
+  if(emode!=CEED_EVAL_WEIGHT) {
+    ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChk(ierr);
+  }
+  ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChk(ierr);
+
+  if (tmode == CEED_TRANSPOSE) {
+    CeedInt length;
+    ierr = CeedVectorGetLength(v, &length); CeedChk(ierr);
+    ierr = cudaMemset(d_v, 0, length * sizeof(CeedScalar)); CeedChk_Cu(ceed, ierr);
+  }
+  if (emode == CEED_EVAL_INTERP) {
+    void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->d_interp, &d_u, &d_v};
+    if (!transpose) {
+      ierr = CeedRunKernelDimCuda(ceed, data->interp, grid, nqpt, 1, elemsPerBlock,
+                                  interpargs);
+      CeedChk(ierr);
+    } else {
+      ierr = CeedRunKernelDimCuda(ceed, data->interp, grid, ndof, 1, elemsPerBlock,
+                                  interpargs);
+      CeedChk(ierr);
+    }
+  } else if (emode == CEED_EVAL_GRAD) {
+    void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->d_grad, &d_u, &d_v};
+    if (!transpose) {
+      ierr = CeedRunKernelDimCuda(ceed, data->grad, grid, nqpt, 1, elemsPerBlock,
+                                  gradargs);
+      CeedChk(ierr);
+    } else {
+      ierr = CeedRunKernelDimCuda(ceed, data->grad, grid, ndof, 1, elemsPerBlock,
+                                  gradargs);
+      CeedChk(ierr);
+    }
+  } else if (emode == CEED_EVAL_WEIGHT) {
+    void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight, &d_v};
+    ierr = CeedRunKernelDimCuda(ceed, data->weight, grid, nqpt, 1, elemsPerBlock,
+                                weightargs);
+    CeedChk(ierr);
+  }
+
+  if(emode!=CEED_EVAL_WEIGHT) {
+    ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChk(ierr);
+  }
+  ierr = CeedVectorRestoreArray(v, &d_v); CeedChk(ierr);
   return 0;
 }
 
@@ -433,6 +588,25 @@ static int CeedBasisDestroy_Cuda(CeedBasis basis) {
   ierr = cudaFree(data->d_qweight1d); CeedChk_Cu(ceed,ierr);
   ierr = cudaFree(data->d_interp1d); CeedChk_Cu(ceed,ierr);
   ierr = cudaFree(data->d_grad1d); CeedChk_Cu(ceed,ierr);
+
+  ierr = CeedFree(&data); CeedChk(ierr);
+
+  return 0;
+}
+
+static int CeedBasisDestroyNonTensor_Cuda(CeedBasis basis) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+
+  CeedBasisNonTensor_Cuda *data;
+  ierr = CeedBasisGetData(basis, (void *) &data); CeedChk(ierr);
+
+  CeedChk_Cu(ceed, cuModuleUnload(data->module));
+
+  ierr = cudaFree(data->d_qweight); CeedChk_Cu(ceed, ierr);
+  ierr = cudaFree(data->d_interp); CeedChk_Cu(ceed, ierr);
+  ierr = cudaFree(data->d_grad); CeedChk_Cu(ceed, ierr);
 
   ierr = CeedFree(&data); CeedChk(ierr);
 
@@ -467,21 +641,21 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q1d,
 
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
-  ierr = compile(ceed, basiskernels, &data->module, 7,
-                 "BASIS_Q1D", Q1d,
-                 "BASIS_P1D", P1d,
-                 "BASIS_BUF_LEN", ncomp * CeedIntPow(Q1d > P1d ?
-                     Q1d : P1d, dim),
-                 "BASIS_DIM", dim,
-                 "BASIS_NCOMP", ncomp,
-                 "BASIS_ELEMSIZE", CeedIntPow(P1d, dim),
-                 "BASIS_NQPT", CeedIntPow(Q1d, dim)
-                ); CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "interp", &data->interp);
+  ierr = CeedCompileCuda(ceed, basiskernels, &data->module, 7,
+                         "BASIS_Q1D", Q1d,
+                         "BASIS_P1D", P1d,
+                         "BASIS_BUF_LEN", ncomp * CeedIntPow(Q1d > P1d ?
+                             Q1d : P1d, dim),
+                         "BASIS_DIM", dim,
+                         "BASIS_NCOMP", ncomp,
+                         "BASIS_ELEMSIZE", CeedIntPow(P1d, dim),
+                         "BASIS_NQPT", CeedIntPow(Q1d, dim)
+                        ); CeedChk(ierr);
+  ierr = CeedGetKernelCuda(ceed, data->module, "interp", &data->interp);
   CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "grad", &data->grad);
+  ierr = CeedGetKernelCuda(ceed, data->module, "grad", &data->grad);
   CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "weight", &data->weight);
+  ierr = CeedGetKernelCuda(ceed, data->module, "weight", &data->weight);
   CeedChk(ierr);
 
   ierr = CeedBasisSetData(basis, (void *)&data);
@@ -505,5 +679,46 @@ int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim,
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1, "Backend does not implement generic H1 basis");
+  CeedBasisNonTensor_Cuda *data;
+  ierr = CeedCalloc(1, &data); CeedChk(ierr);
+
+  const CeedInt qBytes = nqpts * sizeof(CeedScalar);
+  ierr = cudaMalloc((void **)&data->d_qweight, qBytes); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMemcpy(data->d_qweight, qweight, qBytes,
+                    cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
+
+  const CeedInt iBytes = qBytes * ndof;
+  ierr = cudaMalloc((void **)&data->d_interp, iBytes); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMemcpy(data->d_interp, interp, iBytes,
+                    cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
+
+  const CeedInt gBytes = qBytes * ndof * dim;
+  ierr = cudaMalloc((void **)&data->d_grad, gBytes); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMemcpy(data->d_grad, grad, gBytes,
+                    cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
+
+  CeedInt ncomp;
+  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
+  ierr = CeedCompileCuda(ceed, kernelsNonTensorRef, &data->module, 4,
+                         "Q", nqpts,
+                         "P", ndof,
+                         "BASIS_DIM", dim,
+                         "BASIS_NCOMP", ncomp
+                        ); CeedChk_Cu(ceed, ierr);
+  ierr = CeedGetKernelCuda(ceed, data->module, "interp", &data->interp);
+  CeedChk_Cu(ceed, ierr);
+  ierr = CeedGetKernelCuda(ceed, data->module, "grad", &data->grad);
+  CeedChk_Cu(ceed, ierr);
+  ierr = CeedGetKernelCuda(ceed, data->module, "weight", &data->weight);
+  CeedChk_Cu(ceed, ierr);
+
+  ierr = CeedBasisSetData(basis, (void *)&data);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
+                                CeedBasisApplyNonTensor_Cuda);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
+                                CeedBasisDestroyNonTensor_Cuda);
+  CeedChk(ierr);
+  return 0;
 }

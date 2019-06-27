@@ -13,31 +13,29 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-#include <ceed-backend.h>
-#include <ceed.h>
-#include <nvrtc.h>
-#include <cuda.h>
-#include <cuda_runtime.h>
 
-typedef struct {
-  CUmodule module;
-  CUfunction interp;
-  CUfunction grad;
-  CUfunction weight;
-  CeedScalar *d_interp1d;
-  CeedScalar *d_grad1d;
-  CeedScalar *d_qweight1d;
-  CeedScalar *c_B;
-  CeedScalar *c_G;
-} CeedBasis_Cuda_shared;
+// *****************************************************************************
+extern "C" __global__ void setup(void *ctx, CeedInt Q, Fields_Cuda fields) {
+  const CeedScalar *weight = (const CeedScalar *)fields.inputs[0];
+  const CeedScalar *J = (const CeedScalar *)fields.inputs[1];
+  CeedScalar *rho = fields.outputs[0];
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+    i < Q;
+    i += blockDim.x * gridDim.x)
+  {
+    rho[i] = weight[i] * (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]);
+  }
+}
 
-typedef struct {
-} Ceed_Cuda_shared;
-
-CEED_INTERN int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d,
-    CeedInt Q1d,
-    const CeedScalar *interp1d,
-    const CeedScalar *grad1d,
-    const CeedScalar *qref1d,
-    const CeedScalar *qweight1d,
-    CeedBasis basis);
+// *****************************************************************************
+extern "C" __global__ void mass(void *ctx, CeedInt Q, Fields_Cuda fields) {
+  const CeedScalar *rho = (const CeedScalar *)fields.inputs[0];
+  const CeedScalar *u = (const CeedScalar *)fields.inputs[1];
+  CeedScalar *v = fields.outputs[0];
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+    i < Q;
+    i += blockDim.x * gridDim.x)
+  {
+    v[i] = rho[i] * u[i];
+  }
+}
