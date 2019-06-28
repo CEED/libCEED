@@ -92,8 +92,8 @@ static int ICsSW(void *ctx, CeedInt Q,
 // G_1(t,q) = - (omega + f) * khat curl u - grad(|u|^2/2)
 // G_2(t,q) = - div(h u)
 // *****************************************************************************
-static int SWExplicit(void *ctx, CeedInt Q,
-              const CeedScalar *const *in, CeedScalar *const *out) {
+static int SWExplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                      CeedScalar *const *out) {
   // Inputs
   const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
   // Outputs
@@ -183,8 +183,8 @@ static int SWExplicit(void *ctx, CeedInt Q,
 // F_1(t,q) = g * grad(h + h_s)
 // F_2(t,q) = h0 * div u
 // *****************************************************************************
-static int SWImplicit(void *ctx, CeedInt Q,
-              const CeedScalar *const *in, CeedScalar *const *out) {
+static int SWImplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                      CeedScalar *const *out) {
   // Inputs
   const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
   // Outputs
@@ -256,6 +256,39 @@ static int SWImplicit(void *ctx, CeedInt Q,
   // Return
   return 0;
 }
+
+// *****************************************************************************
+// This QFunction implements the Jacobian of the shallow-water
+// equations
+//
+// The equations represent 2D shallow-water flow on a spherical surface, where
+// the state variable, h, represents the height function.
+//
+// State (scalar) variable: u, v, h
+// *****************************************************************************
+static int SWJacobian(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                      CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
+  // Outputs
+  CeedScalar *v = out[0], *dv = out[1];
+  // Context
+  const CeedScalar *context        =  (const CeedScalar*)ctx;
+  const CeedScalar h0           = context[0];
+  const CeedScalar g            = context[1];
+
+  CeedPragmaOMP(simd)
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+
+    // TO DO
+
+  } // End Quadrature Point Loop
+
+  // Return
+  return 0;
+}
+
 
 // *****************************************************************************
 #endif
