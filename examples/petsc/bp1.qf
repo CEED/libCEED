@@ -18,7 +18,11 @@
 /// libCEED QFunctions for mass operator example using PETSc
 
 // *****************************************************************************
-inline __device__ void Setup(void *ctx, const CeedInt Q, const CeedScalar *x, const CeedScalar *J, const CeedScalar *w, CeedScalar *rho, CeedScalar *true_soln, CeedScalar *rhs) {
+CEED_QFUNCTION void Setup(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  CeedScalar *rho = out[0], *true_soln = out[1], *rhs = out[2];
+  const CeedScalar *x = in[0];
+  const CeedScalar *J = in[1];
+  const CeedScalar *w = in[2];
   for (CeedInt i=0; i<Q; i++) {
     CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
                       J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
@@ -29,13 +33,17 @@ inline __device__ void Setup(void *ctx, const CeedInt Q, const CeedScalar *x, co
   }
 }
 
-inline __device__ void Mass(void *ctx, const CeedInt Q, const CeedScalar *u, const CeedScalar *rho, CeedScalar *v) {
+CEED_QFUNCTION void Mass(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar *u = in[0], *rho = in[1];
+  CeedScalar *v = out[0];
   for (CeedInt i=0; i<Q; i++) {
     v[i] = rho[i] * u[i];
   }
 }
 
-inline __device__ void Error(void *ctx, const CeedInt Q, const CeedScalar *u, const CeedScalar *target, CeedScalar *err) {
+CEED_QFUNCTION void Error(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar *u = in[0], *target = in[1];
+  CeedScalar *err = out[0];
   for (CeedInt i=0; i<Q; i++) {
     err[i] = u[i] - target[i];
   }

@@ -14,21 +14,28 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-CEED_QFUNCTION void setup(void *ctx, const CeedInt Q, const CeedScalar *const *in,
-                 CeedScalar *const *out) {
-  const CeedScalar *w = in[0];
-  CeedScalar *qdata = out[0];
+// *****************************************************************************
+CEED_QFUNCTION void masssetupf(void *ctx, CeedInt Q,
+                                 const CeedScalar *const *in, CeedScalar *const *out) {
+  CeedScalar *rho = out[0], *rhs = out[1];
+  const CeedScalar *x = in[0];
+  const CeedScalar *J = in[1];
+  const CeedScalar *w = in[2];
   for (CeedInt i=0; i<Q; i++) {
-    qdata[i] = w[i];
+    CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
+                      J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
+                      J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
+    rho[i] = det * w[i];
+    rhs[i] = rho[i] * w[i] * 
+               sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
   }
 }
 
-CEED_QFUNCTION void mass(void *ctx, const CeedInt Q, const CeedScalar *const *in,
-                CeedScalar *const *out) {
-  CeedScalar *scale = (CeedScalar *)ctx;
-  const CeedScalar *qdata = in[0], *u = in[1];
+CEED_QFUNCTION void massf(void *ctx, CeedInt Q,
+                const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar *u = in[0], *rho = in[1];
   CeedScalar *v = out[0];
   for (CeedInt i=0; i<Q; i++) {
-    v[i] = scale[4] * qdata[i] * u[i];
+    v[i] = rho[i] * u[i];
   }
 }

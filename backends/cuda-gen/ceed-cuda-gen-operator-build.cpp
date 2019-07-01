@@ -711,6 +711,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << devFunctions;
 
   string qFunction(qf_data->qFunctionSource);
+
+  code << "\n#define CEED_QFUNCTION inline __device__\n";
   code << qFunction;
 
   // Setup
@@ -844,7 +846,6 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "  CeedScalar r_tt"<<i<<"[ncomp_out_"<<i<<"*Q1d];\n";
     }
   }
-  //FIXME double pointer test
   code << "  CeedScalar* in["<<numinputfields<<"];\n";
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "  in["<<i<<"] = r_t"<<i<<";\n";
@@ -853,20 +854,9 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   for (CeedInt i = 0; i < numoutputfields; i++) {
     code << "  out["<<i<<"] = r_tt"<<i<<";\n";
   }
-  //TODO write qfunction load for this backend
   string qFunctionName(qf_data->qFunctionName);
   code << "  "<<qFunctionName<<"(ctx, "<<(dim==3?"Q1d":"1")<<", ";
   code << "in, out";
-  // for (CeedInt i = 0; i < numinputfields; i++) {
-  //   code << "r_t"<<i<<", ";
-  // }
-  // for (CeedInt i = 0; i < numoutputfields; i++) {
-  //   code << "r_tt"<<i;
-  //   if (i<numoutputfields-1)
-  //   {
-  //     code << ", ";
-  //   }
-  // }
   code << ");\n";
 
   // Output basis apply if needed
