@@ -18,12 +18,16 @@ CEED_QFUNCTION void setup(void *ctx, const CeedInt Q, const CeedScalar *const *i
                  CeedScalar *const *out) {
   const CeedScalar *weight = in[0], *dxdX = in[1];
   CeedScalar *rho = out[0];
-  *rho = *weight * *dxdX;
+  for (CeedInt i=0; i<Q; i++) {
+  	rho[i] = weight[i] * dxdX[i];
+  }
 }
 
 CEED_QFUNCTION void mass(void *ctx, const CeedInt Q, const CeedScalar *const *in,
                 CeedScalar *const *out) {
   const CeedScalar *rho = in[0], *u = in[1];
   CeedScalar *v = out[0];
-  *v = *rho * *u;
+  for (CeedInt i=0; i<Q; i++) {
+  	v[i] = rho[i] * u[i];
+  }
 }

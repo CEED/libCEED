@@ -150,6 +150,7 @@ navierstokesexample  := $(navierstokesexample.c:examples/navier-stokes/%.c=$(OBJ
 ref.c          := $(sort $(wildcard backends/ref/*.c))
 template.c     := $(sort $(wildcard backends/template/*.c))
 cuda.c         := $(sort $(wildcard backends/cuda/*.c))
+cuda.cpp       := $(sort $(wildcard backends/cuda/*.cpp))
 cuda.cu        := $(sort $(wildcard backends/cuda/*.cu))
 cuda-reg.c     := $(sort $(wildcard backends/cuda-reg/*.c))
 cuda-reg.cu    := $(sort $(wildcard backends/cuda-reg/*.cu))
@@ -299,7 +300,7 @@ ifneq ($(CUDA_LIB_DIR),)
   $(libceed) : LDLIBS += -lcudart -lnvrtc -lcuda
   $(libceed) : LINK = $(CXX)
   libceed.c   += $(cuda.c) $(cuda-reg.c) $(cuda-shared.c) $(cuda-gen.c)
-  libceed.cpp += $(cuda-gen.cpp)
+  libceed.cpp += $(cuda.cpp) $(cuda-gen.cpp)
   libceed.cu  += $(cuda.cu) $(cuda-reg.cu) $(cuda-shared.cu) $(cuda-gen.cu)
   BACKENDS += $(CUDA_BACKENDS)
 endif
