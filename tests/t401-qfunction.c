@@ -4,26 +4,28 @@
 #include <ceed.h>
 #include <math.h>
 
-static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                 CeedScalar *const *out) {
-  const CeedScalar *w = in[0];
-  CeedScalar *qdata = out[0];
-  for (CeedInt i=0; i<Q; i++) {
-    qdata[i] = w[i];
-  }
-  return 0;
-}
+#include "t401-qfunction.qf"
 
-static int mass(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                CeedScalar *const *out) {
-  CeedScalar *scale = (CeedScalar *)ctx;
-  const CeedScalar *qdata = in[0], *u = in[1];
-  CeedScalar *v = out[0];
-  for (CeedInt i=0; i<Q; i++) {
-    v[i] = scale[4] * qdata[i] * u[i];
-  }
-  return 0;
-}
+// static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
+//                  CeedScalar *const *out) {
+//   const CeedScalar *w = in[0];
+//   CeedScalar *qdata = out[0];
+//   for (CeedInt i=0; i<Q; i++) {
+//     qdata[i] = w[i];
+//   }
+//   return 0;
+// }
+
+// static int mass(void *ctx, CeedInt Q, const CeedScalar *const *in,
+//                 CeedScalar *const *out) {
+//   CeedScalar *scale = (CeedScalar *)ctx;
+//   const CeedScalar *qdata = in[0], *u = in[1];
+//   CeedScalar *v = out[0];
+//   for (CeedInt i=0; i<Q; i++) {
+//     v[i] = scale[4] * qdata[i] * u[i];
+//   }
+//   return 0;
+// }
 
 int main(int argc, char **argv) {
   Ceed ceed;

@@ -26,7 +26,9 @@
 const char help[] = "Solve CEED BP1 using PETSc\n";
 
 #include <stdbool.h>
-#include "bp1.h"
+#include <ceed.h>
+#include "bp1.qf"
+#include <petscksp.h>
 
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   for (PetscInt d=0,sizeleft=size; d<3; d++) {

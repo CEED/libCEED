@@ -54,6 +54,9 @@
 #else
 #  define CEED_EXTERN extern
 #endif
+#ifndef CEED_QFUNCTION
+#  define CEED_QFUNCTION static
+#endif
 
 #include <assert.h>
 #include <stdint.h>
