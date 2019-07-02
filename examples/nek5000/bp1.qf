@@ -15,7 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 // *****************************************************************************
-CEED_QFUNCTION void masssetupf(void *ctx, CeedInt Q,
+CEED_QFUNCTION int masssetupf(void *ctx, CeedInt Q,
                                  const CeedScalar *const *in, CeedScalar *const *out) {
   CeedScalar *rho = out[0], *rhs = out[1];
   const CeedScalar *x = in[0];
@@ -29,13 +29,15 @@ CEED_QFUNCTION void masssetupf(void *ctx, CeedInt Q,
     rhs[i] = rho[i] * w[i] * 
                sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
   }
+  return 0;
 }
 
-CEED_QFUNCTION void massf(void *ctx, CeedInt Q,
+CEED_QFUNCTION int massf(void *ctx, CeedInt Q,
                 const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *rho = in[1];
   CeedScalar *v = out[0];
   for (CeedInt i=0; i<Q; i++) {
     v[i] = rho[i] * u[i];
   }
+  return 0;
 }
