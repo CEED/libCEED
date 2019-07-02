@@ -17,6 +17,10 @@
 /// @file
 /// libCEED QFunctions for diffusion operator example using PETSc
 
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
+
 // *****************************************************************************
 CEED_QFUNCTION int Setup(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   #ifndef M_PI
