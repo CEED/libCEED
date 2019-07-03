@@ -21,7 +21,7 @@
 #include "ceed-cuda-gen.h"
 
 static int CeedQFunctionApply_Cuda_gen(CeedQFunction qf, CeedInt Q,
-                                   CeedVector *U, CeedVector *V) {
+                                       CeedVector *U, CeedVector *V) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
