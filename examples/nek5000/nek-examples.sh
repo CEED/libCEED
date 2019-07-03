@@ -22,10 +22,10 @@
 #NEK5K_DIR=
 
 ## NEKTOOLS path
-#NEKTOOLS_DIR=
+#NEK5K_TOOLS_DIR=
 
 ## NEK Box dir path
-#NEK_BOX_DIR=
+#NEK5K_BOX_DIR=
 
 ## CEED path
 #CEED_DIR=
@@ -41,23 +41,27 @@
 ###############################################################################
 # Set defaults for the parameters
 : ${NEK5K_DIR:=`cd "../../../Nek5000"; pwd`}
-: ${NEKTOOLS_DIR:=`cd "${NEK5K_DIR}/bin"; pwd`}
-: ${NEK_BOX_DIR:=./boxes}
+: ${NEK5K_TOOLS_DIR:=`cd "${NEK5K_DIR}/bin"; pwd`}
+: ${NEK5K_BOX_DIR:=./boxes}
 : ${CEED_DIR:=`cd "../../"; pwd`}
 : ${FC:="mpif77"}
 : ${CC:="mpicc"}
 
 # Exit if being sourced
 if [[ "${#BASH_ARGV[@]}" -ne "$#" ]]; then
-   NEK_EXIT_CMD=return
+   nek_exit_cmd=return
 else
-   NEK_EXIT_CMD=exit
+   nek_exit_cmd=exit
 fi
 
-nek_examples=("bp1" "bp3")
+# Read in parameter values
+nek_examples=("bp1")
 nek_spec=/cpu/self
 nek_np=1
 nek_box=
+nek_clean="false"
+nek_make="false"
+nek_run="true"
 
 # Set constants
 NEK_THIS_FILE="${BASH_SOURCE[0]}"
@@ -83,17 +87,15 @@ Example:
     ./nek-examples.sh -clean
 "
 
-# Read in parameter values
-nek_test="notest"
+nek_verbose="true"
+nek_mpi="true"
 nek_test_rst="PASS"
-nek_clean="false"
-nek_make="false"
-nek_run="true"
+
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|-help)
        echo "$NEK_HELP_MSG"
-       $NEK_EXIT_CMD
+       $nek_exit_cmd
        ;;
     -e|-example)
        shift
@@ -112,7 +114,8 @@ while [ $# -gt 0 ]; do
        nek_box="$1"
        ;;
     -t|-test)
-       nek_test="test"
+       nek_verbose="false"
+       nek_mpi="false"
        ;;
     -clean)
       nek_clean="true"
@@ -147,9 +150,10 @@ function make() {
     CC=$CC FC=$FC NEK_SOURCE_ROOT="${NEK5K_DIR}" FFLAGS="$FFLAGS" \
       USR_LFLAGS="$USR_LFLAGS" ./makenek $ex >> $ex.build.log 2>&1
 
-    if [[ ! -f ./nek5000 ]]; then
+    if [ ! -f ./nek5000 ]; then
       echo "  Building $ex failed. See $ex.build.log for details."
-    else
+      ${nek_exit_cmd} 1
+    elif [ ${nek_verbose} = "true" ]; then
       mv ./nek5000 $ex
       echo "  Built $ex successfully. See $ex.build.log for details."
     fi
@@ -158,15 +162,18 @@ function make() {
 
 # Function to clean
 function clean() {
-  echo "Cleaning ..."
-  if [[ -f ./makenek ]]; then
+  if [ ${nek_verbose} = "true" ]; then
+    echo "Cleaning ..."
+  fi
+
+  if [ -f ./makenek ]; then
     printf "y\n" | NEK_SOURCE_ROOT=${NEK5K_DIR} ./makenek clean 2>&1 >> /dev/null
   fi
   rm makenek* SESSION.NAME 2> /dev/null
   for i in `seq 1 6`; do
-    rm -f bp$i bp$i.f bp$i*log*              2> /dev/null
+    rm -f bp$i bp$i.f bp$i*log* 2> /dev/null
   done
-  find ${NEK_BOX_DIR} -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
+  find ${NEK5K_BOX_DIR} -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
 }
 
 # Functions needed for creating box meshes
@@ -179,10 +186,10 @@ function xyz()
   nez=$split
   ney=$split
 
-  if [[ $((prod%3)) -ne 0 ]]; then
+  if [ $((prod%3)) -ne 0 ]; then
     nex=$((split + 1))
   fi
-  if [[ $((prod%3)) -eq 2 ]]; then
+  if [ $((prod%3)) -eq 2 ]; then
     ney=$((split + 1))
   fi
 
@@ -196,17 +203,27 @@ function xyz()
 function genbb()
 {
   cp $1.box ttt.box
-  echo "Running genbox ..." >box.log
-  if [ -z ${NEKTOOLS_DIR} ]; then
-    echo "Required variable NEKTOOLS_DIR not found."
-    exit 1
+  if [ ${nek_verbose} = "true" ]; then
+    echo "Running genbox ..."
   fi
 
-  printf "ttt.box\n" | $NEKTOOLS_DIR/genbox 2>&1 1>>box.log || return 1
-  echo "Running genmap ..." >>box.log
-  printf "box\n.1\n" | $NEKTOOLS_DIR/genmap 2>&1 1>>box.log || return 1
-  echo "Running reatore2 ..." >>box.log
-  printf "box\n$1\n" | $NEKTOOLS_DIR/reatore2 2>&1 1>>box.log || return 1
+  if [ -z ${NEK5K_TOOLS_DIR} ]; then
+    echo "Required variable NEKTOOLS_DIR not found."
+    ${nek_exit_cmd} 1
+  fi
+
+  printf "ttt.box\n" | $NEK5K_TOOLS_DIR/genbox 2>&1 1>>box.log || return 1
+
+  if [ ${nek_verbose} = "true" ]; then
+    echo "Running genmap ..."
+  fi
+  printf "box\n.1\n" | $NEK5K_TOOLS_DIR/genmap 2>&1 1>>box.log || return 1
+
+  if [ ${nek_verbose} = "true" ]; then
+    echo "Running reatore2 ..."
+  fi
+  printf "box\n$1\n" | $NEK5K_TOOLS_DIR/reatore2 2>&1 1>>box.log || return 1
+
   rm ttt.box 2>/dev/null
   rm box.rea 2>/dev/null
   rm box.tmp 2>/dev/null
@@ -215,22 +232,22 @@ function genbb()
 
 function generate_boxes()
 {
-  if [[ $# -ne 2 ]]; then
+  if [ $# -ne 2 ]; then
     echo "Error: should be called with two parameters. See syntax below."
     echo "Syntax: generate_boxes log_2(<min_elem>) log_2(<max_elem>)."
     echo "Example: generate-boxes 2 4"
-    exit 1
+    ${nek_exit_cmd} 1
   fi
   local min_elem=$1
   local max_elem=$2
   local pwd_=`pwd`
 
-  cd ${NEK_BOX_DIR}
+  cd ${NEK5K_BOX_DIR}
   # Run thorugh the box sizes
   for i in `seq $min_elem 1 $max_elem`; do
     # Generate the boxes only if they have not
     # been generated before.
-    if [[ ! -f b$i/b$i.map ]]; then
+    if [ ! -f b$i/b$i.map ]; then
       # Set the number of elements in box file.
       xyz=$(xyz $i)
       nex=$( echo $xyz | cut -f 1 -d ' ' )
@@ -255,63 +272,61 @@ function generate_boxes()
 
 function run() {
   for nek_ex in "${nek_examples[@]}"; do
-    if [ ${nek_test} == "test" ]; then
-      nek_ex="build/"${nek_ex}
-    else
+    if [ ${nek_verbose} = "true" ]; then
       echo "Running Nek5000 Example: $nek_ex"
     fi
-    if [[ ! -f ${nek_ex} ]]; then
+    if [ ! -f ${nek_ex} ]; then
       echo "  Example ${nek_ex} does not exist. Build it with nek-examples.sh -m -e \"${nek_ex}\""
-      ${NEK_EXIT_CMD} 1
+      ${nek_exit_cmd} 1
     fi
-    if [[ ! -f ${NEK_BOX_DIR}/b${nek_box}/b${nek_box}.rea || \
-  	  ! -f ${NEK_BOX_DIR}/b${nek_box}/b${nek_box}.map ]]; then
+    if [ ! -f ${NEK5K_BOX_DIR}/b${nek_box}/b${nek_box}.rea ] || \
+  	 [ ! -f ${NEK5K_BOX_DIR}/b${nek_box}/b${nek_box}.map ]; then
       generate_boxes ${nek_box} ${nek_box}
     fi
 
     echo b${nek_box}                              > SESSION.NAME
-    echo `cd ${NEK_BOX_DIR}/b${nek_box}; pwd`'/' >> SESSION.NAME
+    echo `cd ${NEK5K_BOX_DIR}/b${nek_box}; pwd`'/' >> SESSION.NAME
     rm -f logfile
     rm -f ioinfo
     mv ${nek_ex}.log.${nek_np}.b${nek_box} ${nek_ex}.log1.${nek_np}.b${nek_box} 2>/dev/null
 
     nek_spec_short=${nek_spec//[\/]}
 
-    if [ ${nek_test} == "test" ]; then
+    if [ ${nek_mpi} = "false" ]; then
         ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}
       wait $!
     else
-      ${MPIEXEC:-mpiexec} -np ${nek_np} ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}
+      ${MPIEXEC:-mpiexec} -np ${nek_np} ./${nek_ex} ${nek_spec} ${nek_test} > \
+        ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}
       wait $!
     fi
 
-    if [ ! ${nek_test} == "test" ]; then
+    if [ ! ${nek_verbose} = "true" ]; then
       echo "  Run finished. Output was written to ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}"
     fi
-    if [ ${nek_test} == "test" ]; then
-      if [[ $(grep "ERROR IS TOO LARGE" ${nek_ex}.${nek_spec_short}.log*) ]]; then
-        nek_test_rst="FAIL"
-      else
-        rm -f ${nek_ex}.${nek_spec_short}.log*
-      fi
+
+    if [ $(grep "ERROR IS TOO LARGE" ${nek_ex}.${nek_spec_short}.log*) ]; then
+      nek_test_rst="FAIL"
+    else
+      rm -f ${nek_ex}.${nek_spec_short}.log*
     fi
   done
 
-  exit 0
+  ${nek_exit_cmd} 0
 }
 
-if [ "${nek_clean}" == "true" ]; then
+if [ "${nek_clean}" = "true" ]; then
   clean
 fi
-if [ "${nek_make}" == "true" ]; then
+if [ "${nek_make}" = "true" ]; then
   make
 fi
-if [ "${nek_run}" == "true" ]; then
+if [ "${nek_run}" = "true" ]; then
   if [[ -z "${nek_box}" ]]; then
       echo "Box size not specified. Try setting it with -b option."
       echo "Try ./nek-examples.sh -h for more help."
-      ${NEK_EXIT_CMD} 1
+      ${nek_exit_cmd} 1
   fi
   run
 fi
-exit 0
+${nek_exit_cmd} 0
