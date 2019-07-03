@@ -42,7 +42,7 @@ endif
 XSMM_DIR ?= ../libxsmm
 
 # OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
-OCCA_DIR ?= ../occa
+#OCCA_DIR ?= ../occa
 
 # env variable MAGMA_DIR can be used too
 MAGMA_DIR ?= ../magma
@@ -355,6 +355,11 @@ $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	  MFEM_DIR="$(abspath $(MFEM_DIR))" $*
 	mv examples/mfem/$* $@
 
+$(OBJDIR)/nek-% : $(libceed) | $$(@D)/.DIR
+	cd examples/nek5000 && CEED_DIR=../../ \
+	  NEK5K_DIR="$(abspath $(NEK5K_DIR))" ./nek-examples.sh -m -e $*
+	mv examples/nek5000/$* $(OBJDIR)/$*
+
 $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(MAKE) -C examples/petsc CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
@@ -395,8 +400,6 @@ allexamples = $(examples) $(external_examples)
 search ?= t ex
 realsearch = $(search:%=%%)
 matched = $(foreach pattern,$(realsearch),$(filter $(OBJDIR)/$(pattern),$(tests) $(allexamples)))
-# Work around Nek examples not having normal targets
-matched_prereq = $(filter-out $(OBJDIR)/nek%,$(matched)) $(if $(findstring nek,$(matched)),prepnektests)
 
 # Test core libCEED
 test : $(matched:$(OBJDIR)/%=run-%)
@@ -407,14 +410,11 @@ tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
 prove : BACKENDS += $(TEST_BACKENDS)
-prove : $(matched_prereq)
+prove :
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(matched:$(OBJDIR)/%=%)
 # run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
-
-prepnektests:
-	(export CC FC && cd examples && make prepnektests)
 
 prove-all :
 	+$(MAKE) prove realsearch=%
