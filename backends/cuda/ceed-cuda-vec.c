@@ -60,17 +60,20 @@ static int CeedVectorSetArrayHost_Cuda(const CeedVector vec,
   switch (cmode) {
   case CEED_COPY_VALUES: ;
     CeedInt length;
-    ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
-    ierr = CeedMalloc(length, &data->h_array_allocated); CeedChk(ierr);
-    data->h_array = data->h_array_allocated;
-
+    if(!data->h_array) {
+      ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
+      ierr = CeedMalloc(length, &data->h_array_allocated); CeedChk(ierr);
+      data->h_array = data->h_array_allocated;
+    }
     if (array) memcpy(data->h_array, array, bytes(vec));
     break;
   case CEED_OWN_POINTER:
+    ierr = CeedFree(&data->h_array_allocated); CeedChk(ierr);
     data->h_array_allocated = array;
     data->h_array = array;
     break;
   case CEED_USE_POINTER:
+    ierr = CeedFree(&data->h_array_allocated); CeedChk(ierr);
     data->h_array = array;
     break;
   }
@@ -88,20 +91,24 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec,
 
   switch (cmode) {
   case CEED_COPY_VALUES:
-    ierr = cudaMalloc((void **)&data->d_array_allocated, bytes(vec));
-    CeedChk_Cu(ceed, ierr);
-    data->d_array = data->d_array_allocated;
-
+    if (!data->d_array) {
+      ierr = cudaMalloc((void **)&data->d_array_allocated, bytes(vec));
+      CeedChk_Cu(ceed, ierr);
+      data->d_array = data->d_array_allocated;
+    }
     if (array) {
       ierr = cudaMemcpy(data->d_array, array, bytes(vec), cudaMemcpyDeviceToDevice);
       CeedChk_Cu(ceed, ierr);
     }
     break;
   case CEED_OWN_POINTER:
+    ierr = cudaFree(data->d_array_allocated); CeedChk_Cu(ceed, ierr);
     data->d_array_allocated = array;
     data->d_array = array;
     break;
   case CEED_USE_POINTER:
+    ierr = cudaFree(data->d_array_allocated); CeedChk_Cu(ceed, ierr);
+    data->d_array_allocated = NULL;
     data->d_array = array;
     break;
   }
@@ -125,10 +132,8 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec,
 
   switch (mtype) {
   case CEED_MEM_HOST:
-    ierr = CeedFree(&data->h_array_allocated); CeedChk(ierr);
     return CeedVectorSetArrayHost_Cuda(vec, cmode, array);
   case CEED_MEM_DEVICE:
-    ierr = cudaFree(data->d_array_allocated); CeedChk_Cu(ceed, ierr);
     return CeedVectorSetArrayDevice_Cuda(vec, cmode, array);
   }
   return 1;
