@@ -24,24 +24,6 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   CeedOperator_Cuda_gen *impl;
   ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
 
-  // for (CeedInt i = 0; i < impl->numein + impl->numeout; i++) {
-  //   ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);
-  // }
-  // ierr = CeedFree(&impl->evecs); CeedChk(ierr);
-  // ierr = CeedFree(&impl->edata); CeedChk(ierr);
-
-  // for (CeedInt i = 0; i < impl->numein; i++) {
-  //   ierr = CeedVectorDestroy(&impl->qvecsin[i]); CeedChk(ierr);
-  // }
-  // ierr = CeedFree(&impl->qvecsin); CeedChk(ierr);
-
-  // for (CeedInt i = 0; i < impl->numeout; i++) {
-  //   ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
-  // }
-  // ierr = CeedFree(&impl->qvecsout); CeedChk(ierr);
-
-  // ierr = CeedFree(&impl->W); CeedChk(ierr);
-
   ierr = CeedFree(&impl); CeedChk(ierr);
   return 0;
 }

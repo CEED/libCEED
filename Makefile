@@ -67,7 +67,7 @@ AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 OPT    = -O -g -march=native -ffp-contract=fast -fopenmp-simd
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-CXXFLAGS = $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC 
+CXXFLAGS = $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD
 NVCCFLAGS = -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
@@ -208,6 +208,7 @@ backend_status = $(if $(filter $1,$(BACKENDS)), [backends: $1], [not found])
 info:
 	$(info ------------------------------------)
 	$(info CC         = $(CC))
+	$(info CXX        = $(CXX))
 	$(info FC         = $(FC))
 	$(info CPPFLAGS   = $(CPPFLAGS))
 	$(info CFLAGS     = $(value CFLAGS))
@@ -294,7 +295,7 @@ CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
   $(libceed) : CFLAGS += -I$(CUDA_DIR)/include
-  $(libceed) : CXXFLAGS += -I$(CUDA_DIR)/include
+  $(libceed) : CPPFLAGS += -I$(CUDA_DIR)/include
   $(libceed) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
   $(libceed) : LDLIBS += -lcudart -lnvrtc -lcuda
   $(libceed) : LINK = $(CXX)
