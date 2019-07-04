@@ -24,9 +24,6 @@
 ## NEKTOOLS path
 #NEK5K_TOOLS_DIR=
 
-## NEK Box dir path
-#NEK5K_BOX_DIR=
-
 ## CEED path
 #CEED_DIR=
 
@@ -42,7 +39,6 @@
 # Set defaults for the parameters
 : ${NEK5K_DIR:=`cd "../../../Nek5000"; pwd`}
 : ${NEK5K_TOOLS_DIR:=`cd "${NEK5K_DIR}/bin"; pwd`}
-: ${NEK5K_BOX_DIR:=./boxes}
 : ${CEED_DIR:=`cd "../../"; pwd`}
 : ${FC:="mpif77"}
 : ${CC:="mpicc"}
@@ -62,6 +58,8 @@ nek_box=
 nek_clean="false"
 nek_make="false"
 nek_run="true"
+# Won't work if there is a symlink.
+nek_box_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/boxes"
 
 # Set constants
 nek_this_file="${BASH_SOURCE[0]}"
@@ -74,7 +72,7 @@ options:
    -e|-example  Example name (optional, default: bp1)
    -n|-np       Specify number of MPI ranks for the run (optional, default: 1)
    -t|-test     Run in test mode (not on by default)
-   -b|-box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
+   -b|-box      Box case in boxes sub-directory found along with this script (default: 2x2x2)
    -clean       clean the examples directory
    -m|-make     Make the examples
 
@@ -173,7 +171,7 @@ function clean() {
   for i in `seq 1 6`; do
     rm -f bp$i bp$i.f bp$i*log* 2> /dev/null
   done
-  find ${NEK5K_BOX_DIR} -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
+  find ${nek_box_dir} -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
 }
 
 # Functions needed for creating box meshes
@@ -242,7 +240,7 @@ function generate_boxes()
   local max_elem=$2
   local pwd_=`pwd`
 
-  mkdir -p ${NEK5K_BOX_DIR} && cd ${NEK5K_BOX_DIR}
+  mkdir -p ${nek_box_dir} && cd ${nek_box_dir}
   # Run thorugh the box sizes
   for i in `seq $min_elem 1 $max_elem`; do
     # Generate the boxes only if they have not
@@ -279,8 +277,8 @@ function run() {
       echo "  Example ${nek_ex} does not exist. Build it with nek-examples.sh -m -e \"${nek_ex}\""
       ${nek_exit_cmd} 1
     fi
-    if [ ! -f ${NEK5K_BOX_DIR}/b${nek_box}/b${nek_box}.rea ] || \
-  	 [ ! -f ${NEK5K_BOX_DIR}/b${nek_box}/b${nek_box}.map ]; then
+    if [ ! -f ${nek_box_dir}/b${nek_box}/b${nek_box}.rea ] || \
+  	 [ ! -f ${nek_box_dir}/b${nek_box}/b${nek_box}.map ]; then
        if [ -z ${nek_box} ]; then
          nek_box=3
        fi
@@ -288,7 +286,7 @@ function run() {
     fi
 
     echo b${nek_box}                              > SESSION.NAME
-    echo `cd ${NEK5K_BOX_DIR}/b${nek_box}; pwd`'/' >> SESSION.NAME
+    echo `cd ${nek_box_dir}/b${nek_box}; pwd`'/' >> SESSION.NAME
     rm -f logfile
     rm -f ioinfo
     mv ${nek_ex}.log.${nek_np}.b${nek_box} ${nek_ex}.log1.${nek_np}.b${nek_box} 2>/dev/null
@@ -304,7 +302,7 @@ function run() {
       wait $!
     fi
 
-    if [ ! ${nek_verbose} = "true" ]; then
+    if [ ${nek_verbose} = "true" ]; then
       echo "  Run finished. Output was written to ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}"
     fi
 
