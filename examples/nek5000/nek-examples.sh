@@ -64,9 +64,9 @@ nek_make="false"
 nek_run="true"
 
 # Set constants
-NEK_THIS_FILE="${BASH_SOURCE[0]}"
-NEK_HELP_MSG="
-$NEK_THIS_FILE [options]
+nek_this_file="${BASH_SOURCE[0]}"
+nek_help_msg="
+$nek_this_file [options]
 
 options:
    -h|-help     Print this usage information and exit
@@ -94,7 +94,7 @@ nek_test_rst="PASS"
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|-help)
-       echo "$NEK_HELP_MSG"
+       echo "$nek_help_msg"
        $nek_exit_cmd
        ;;
     -e|-example)
@@ -242,7 +242,7 @@ function generate_boxes()
   local max_elem=$2
   local pwd_=`pwd`
 
-  cd ${NEK5K_BOX_DIR}
+  mkdir -p ${NEK5K_BOX_DIR} && cd ${NEK5K_BOX_DIR}
   # Run thorugh the box sizes
   for i in `seq $min_elem 1 $max_elem`; do
     # Generate the boxes only if they have not
@@ -255,8 +255,8 @@ function generate_boxes()
       nez=$( echo $xyz | cut -f 3 -d ' ' )
 
       mkdir -p b$i
-      sed "5s/.*/-$nex -$ney -$nez/" b.box > b$i/b$i.box
-      cp b1e.rea b$i
+      sed "5s/.*/-$nex -$ney -$nez/" ${CEED_DIR}/examples/nek5000/boxes/b.box > b$i/b$i.box
+      cp ${CEED_DIR}/examples/nek5000/boxes/b1e.rea b$i/
 
       cd b$i
       genbb b$i
@@ -325,11 +325,6 @@ if [ "${nek_make}" = "true" ]; then
   make
 fi
 if [ "${nek_run}" = "true" ]; then
-  if [[ -z "${nek_box}" ]]; then
-      echo "Box size not specified. Try setting it with -b option."
-      echo "Try ./nek-examples.sh -h for more help."
-      ${nek_exit_cmd} 1
-  fi
   run
 fi
 ${nek_exit_cmd} 0
