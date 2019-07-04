@@ -4,6 +4,7 @@ ulimit -c 0 # Do not dump core
 
 # Make CeedError exit nonzero without using signals/abort()
 export CEED_ERROR_HANDLER=exit
+export CEED_DIR=`pwd`
 
 output=$(mktemp $1.XXXX)
 backends=(${BACKENDS:?Variable must be set, e.g., \"/cpu/self/ref /cpu/self/blocked\"})
