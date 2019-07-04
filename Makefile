@@ -411,7 +411,7 @@ tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
 prove : BACKENDS += $(TEST_BACKENDS)
-prove :
+prove : $(matched)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(matched:$(OBJDIR)/%=%)
 # run prove target in parallel
