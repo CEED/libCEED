@@ -281,6 +281,9 @@ function run() {
     fi
     if [ ! -f ${NEK5K_BOX_DIR}/b${nek_box}/b${nek_box}.rea ] || \
   	 [ ! -f ${NEK5K_BOX_DIR}/b${nek_box}/b${nek_box}.map ]; then
+       if [ -z ${nek_box} ]; then
+         nek_box=3
+       fi
       generate_boxes ${nek_box} ${nek_box}
     fi
 
