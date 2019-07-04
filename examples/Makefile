@@ -25,7 +25,7 @@ CONFIG_MK ?= $(or $(wildcard $(MFEM_DIR)/config/config.mk),$(wildcard\
 
 NEK5K_DIR ?= $(abspath ../../Nek5000)
 NEK5K_FC = $(if $(findstring mpi,$(FC)),$(FC),mpif77)
-NEK5K_CC = $(if $(findstring mpi,$(CC)),$(FC),mpicc)
+NEK5K_CC = $(if $(findstring mpi,$(CC)),$(CC),mpicc)
 NEK5K_EXAMPLES ?= bp1 bp3
 
 PETSC_DIR ?=
@@ -42,9 +42,6 @@ nek:
 	cd nek5000 && NEK5K_DIR=$(NEK5K_DIR) CEED_DIR=$(CEED_DIR) \
 		 FC=$(NEK5K_FC) CC=$(NEK5K_CC) \
 		 ./nek-examples.sh -m -e "$(NEK5K_EXAMPLES)"
-
-prepnektests:
-	cd nek5000 && NEK5K_DIR=$(NEK5K_DIR) ./make-nek-tests.sh
 
 mfem:
 	make CEED_DIR=$(CEED_DIR) MFEM_DIR=$(MFEM_DIR) -C mfem all
