@@ -355,7 +355,7 @@ $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	  MFEM_DIR="$(abspath $(MFEM_DIR))" $*
 	mv examples/mfem/$* $@
 
-$(OBJDIR)/nek-% : examples/nek5000/%.usr $(libceed) | $$(@D)/.DIR
+$(OBJDIR)/nek-% : examples/nek5000/%.usr examples/nek5000/nek-examples.sh $(libceed) | $$(@D)/.DIR
 	+$(MAKE) -C examples CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" \
 	  NEK5K_EXAMPLES=$* nek
 	mv examples/nek5000/$* $(OBJDIR)/$*
