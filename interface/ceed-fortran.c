@@ -316,6 +316,14 @@ void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode, int *lmo
   }
 }
 
+#define fCeedElemRestrictionGetMultiplicity \
+    FORTRAN_NAME(ceedelemrestrictiongetmultiplicity,CEEDELEMRESTRICTIONGETMULTIPLICITY)
+void fCeedElemRestrictionGetMultiplicity(int *elemr, int *mult, int *err) {
+  *err = CeedElemRestrictionGetMultiplicity(CeedElemRestriction_dict[*elemr],
+                                            CeedVector_dict[*mult]);
+}
+ 
+
 #define fCeedRequestWait FORTRAN_NAME(ceedrequestwait, CEEDREQUESTWAIT)
 void fCeedRequestWait(int *rqst, int *err) {
   // TODO Uncomment this once CeedRequestWait is implemented
