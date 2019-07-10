@@ -929,8 +929,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
 
   // std::cout << code.str();
 
-  ierr = compile(ceed, code.str().c_str(), &data->module, 0); CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "oper", &data->op);
+  ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 0); CeedChk(ierr);
+  ierr = CeedGetKernelCuda(ceed, data->module, "oper", &data->op);
   CeedChk(ierr);
 
   ierr = CeedOperatorSetSetupDone(op); CeedChk(ierr);

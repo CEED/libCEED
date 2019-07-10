@@ -28,7 +28,6 @@
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
 
-#define CEED_NUM_BACKEND_FUNCTIONS 30
 #define CEED_COMPOSITE_MAX 16
 
 // Lookup table field for backend functions
@@ -37,14 +36,22 @@ typedef struct {
   size_t offset;
 } foffset;
 
+// Lookup table field for object delegates
+typedef struct {
+  char *objname;
+  Ceed delegate;
+} objdelegate;
+
 struct Ceed_private {
   Ceed delegate;
   Ceed parent;
+  objdelegate *objdelegates;
+  int objdelegatecount;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *,
                va_list);
   int (*GetPreferredMemType)(CeedMemType *);
   int (*Destroy)(Ceed);
-  int (*VecCreate)(CeedInt, CeedVector);
+  int (*VectorCreate)(CeedInt, CeedVector);
   int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode,
                                const CeedInt *, CeedElemRestriction);
   int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode,
@@ -62,7 +69,7 @@ struct Ceed_private {
   int (*CompositeOperatorCreate)(CeedOperator);
   int refcount;
   void *data;
-  foffset foffsets[CEED_NUM_BACKEND_FUNCTIONS];
+  foffset *foffsets;
 };
 
 struct CeedVector_private {
@@ -86,6 +93,8 @@ struct CeedElemRestriction_private {
   Ceed ceed;
   int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedTransposeMode,
                CeedVector, CeedVector, CeedRequest *);
+  int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode,
+                    CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*Destroy)(CeedElemRestriction);
   int refcount;
   CeedInt nelem;    /* number of elements */

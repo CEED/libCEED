@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
-  CeedQRFactorization(qr, tau, 4, 3);
+  CeedQRFactorization(ceed, qr, tau, 4, 3);
   for (int i=0; i<12; i++) {
     if (qr[i] <= 1E-14 && qr[i] >= -1E-14) qr[i] = 0;
     fprintf(stdout, "%12.8f\n", qr[i]);

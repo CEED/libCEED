@@ -15,12 +15,12 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 from sys import stdout as out
+import pandas as pd
 import fileinput
 import pprint
 
 #####   Read all input files specified on the command line, or stdin and parse
-#####   the content, storing it as a list of dictionaries - one dictionary for
-#####   each test run.
+#####   the content, storing it as a pandas dataframe
 
 it=fileinput.input()
 state=0
@@ -53,83 +53,68 @@ while True:
          ##
          ## This is the beginning of a new file.
          ##
-         # out.write('\n'+lnfmt%i+': %s'%line)
          config=line.split()[2]
          num_procs=0
          num_procs_node=0
-      elif 'Using backend' in line:
-         # out.write(lnfmt%i+': %s'%line)
-         backend=line.split()[2]
-      elif 'Example(s) required by the test: ' in line:
-         # out.write(lnfmt%i+': %s'%line)
-         test=line.strip().split('Example(s) required by the test: ',1)[-1]
+      ## Number of MPI tasks
       elif 'Running the tests using a total of' in line:
-         # out.write(lnfmt%i+': %s'%line)
          num_procs=int(line.split('a total of ',1)[1].split(None,1)[0])
+      ## MPI tasks per node
       elif 'tasks per node' in line:
-         # out.write(lnfmt%i+': %s'%line)
          num_procs_node=int(line.split(' tasks per',1)[0].rsplit(None,1)[1])
       elif line == 'Running test:\n':
          ##
          ## This is the beginning of a new run.
          ##
-         if 'cg-iteration-dps' in data:
+
+         ## Add last row
+         if 'cg_iteration_dps' in data:
             runs.append(data)
-            # print
-            # pprint.pprint(data)
+         ## New row
          data={}
          data['file']=fileinput.filename()
          data['config']=config
          data['backend']=backend
          data['test']=test
-         data['num-procs']=num_procs
-         data['num-procs-node']=num_procs_node
-         data['mesh-order']=mesh_p
+         data['num_procs']=num_procs
+         data['num_procs_node']=num_procs_node
+         data['order']=mesh_p
+         data['quadrature_pts']=mesh_p
          data['code']="libCEED"
          test_=test.rsplit('/',1)[-1]
-         data['case']='scalar' if (('bp1' in test_) or ('bp3' in test_) or
-                                   ('bp5' in test_)) else 'vector'
-         # out.write('\n'+lnfmt%i+': %s'%line)
-         # out.write('*'*len(lnfmt%i)+':    --mesh-p %i\n'%mesh_p)
-         state=2
-      elif 'DOFs/sec in CG :' in line:
-         # out.write(lnfmt%i+': %s'%line)
-         data['cg-iteration-dps']=1e6*float(line.split(' ')[4])
-      elif 'Global dofs:' in line:
-         # out.write(lnfmt%i+': %s'%line)
-         data['num-unknowns']=int(line.rsplit(None,1)[1])
-      elif 'Local elements:' in line:
-         # out.write(lnfmt%i+': %s'%line)
-         data['num-elem']=int(line.split(' ')[2])*data['num-procs']
-      ##
-   elif state==3:
-      ##
-      parts=line.split()
-      i=0
-      while i < len(parts):
-         if parts[i]=='-qextra':
-            i=i+1
-            data['quadrature-pts']=int(parts[i])
-         elif parts[i]=='-degree':
-            i=i+1
-            data['order']=int(parts[i])
-         elif parts[i]=='-ceed':
-            i=i+1
-            data['ceed']=parts[i]
-         i=i+1
-      qpts=data['quadrature-pts']+data['order']
-      data['quadrature-pts']=qpts**3
-      state=1
+         data['case']='scalar'
+      ## Benchmark Problem
+      elif "CEED Benchmark Problem" in line:
+        data['test'] = line.split()[-2] + " " + line.split('-- ')[1]
+        data['case']='scalar' if (('Problem 1' in line) or ('Problem 3' in line)
+                                  or ('Problem 5' in line)) else 'vector'
+      ## Backend
+      elif 'libCEED Backend' in line:
+         data['backend']=line.split(':')[1].strip()
+      ## P
+      elif 'Basis Nodes' in line:
+         data['order']=int(line.split(':')[1])
+      ## Q
+      elif 'Quadrature Points' in line:
+         qpts=int(line.split(':')[1])
+         data['quadrature_pts']=qpts**3
+      ## Total DOFs
+      elif 'Global DOFs' in line:
+         data['num_unknowns']=int(line.split(':')[1])
+      ## Number of elements
+      elif 'Local Elements' in line:
+         data['num_elem']=int(line.split(':')[1].split()[0])*data['num_procs']
+      ## CG DOFs/Sec
+      elif 'DOFs/Sec in CG' in line:
+         data['cg_iteration_dps']=1e6*float(line.split(':')[1].split()[0])
+      ## End of output
 
-if 'cg-iteration-dps' in data:
+## Add last row
+if 'cg_iteration_dps' in data:
    runs.append(data)
-   # print
-   # pprint.pprint(data)
-for run in runs:
-   if not 'quadrature-pts' in run:
-      run['quadrature-pts']=0
-# print
-# print
-# pprint.pprint(runs)
 
+## Convert to dataframe
+runs = pd.DataFrame(runs)
+
+## Summary
 print('Number of test runs read: %i'%len(runs))

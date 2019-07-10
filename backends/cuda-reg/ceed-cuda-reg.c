@@ -28,7 +28,7 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
 
   Ceed ceedref;
   CeedInit("/gpu/cuda/ref", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   const int rlen = strlen(resource);
   const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
@@ -46,8 +46,6 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Cuda_reg); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-                                CeedBasisCreateH1_Cuda_reg); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
                                 CeedElemRestrictionCreate_Cuda_reg); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,

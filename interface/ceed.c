@@ -19,6 +19,7 @@
 #include <ceed-backend.h>
 #include <limits.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,8 +35,8 @@ static struct {
 } backends[32];
 static size_t num_backends;
 
-#define ceedoffsetof(st, m) \
-    ((size_t) ( (char *)&((st)(0))->m - (char *)0 ))
+#define CEED_FTABLE_ENTRY(class, method) \
+  {#class #method, offsetof(struct class ##_private, method)}
 /// @endcond
 
 /// @file
@@ -101,9 +102,16 @@ CeedRequest *const CEED_REQUEST_ORDERED = &ceed_request_ordered;
 int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
                   int ecode, const char *format, ...) {
   va_list args;
+  int retval;
   va_start(args, format);
-  if (ceed) return ceed->Error(ceed, filename, lineno, func, ecode, format, args);
-  return CeedErrorAbort(ceed, filename, lineno, func, ecode, format, args);
+  if (ceed) {
+    retval = ceed->Error(ceed, filename, lineno, func, ecode, format, args);
+  } else {
+    // This function doesn't actually return
+    retval = CeedErrorAbort(ceed, filename, lineno, func, ecode, format, args);
+  }
+  va_end(args);
+  return retval;
 }
 
 /**
@@ -339,44 +347,43 @@ int CeedInit(const char *resource, Ceed *ceed) {
   (*ceed)->data = NULL;
 
   // Set lookup table
-  foffset foffsets[CEED_NUM_BACKEND_FUNCTIONS] = {
-    {"CeedError",                  ceedoffsetof(Ceed, Error)},
-    {"CeedGetPreferredMemType",    ceedoffsetof(Ceed, GetPreferredMemType)},
-    {"CeedDestroy",                ceedoffsetof(Ceed, Destroy)},
-    {"CeedVecCreate",              ceedoffsetof(Ceed, VecCreate)},
-    {"CeedElemRestrictionCreate",  ceedoffsetof(Ceed, ElemRestrictionCreate)},
-    {
-      "CeedElemRestrictionCreateBlocked",
-      ceedoffsetof(Ceed, ElemRestrictionCreateBlocked)
-    },
-    {"CeedBasisCreateTensorH1",    ceedoffsetof(Ceed, BasisCreateTensorH1)},
-    {"CeedBasisCreateH1",          ceedoffsetof(Ceed, BasisCreateH1)},
-    {"CeedTensorContractCreate",   ceedoffsetof(Ceed, TensorContractCreate)},
-    {"CeedQFunctionCreate",        ceedoffsetof(Ceed, QFunctionCreate)},
-    {"CeedOperatorCreate",         ceedoffsetof(Ceed, OperatorCreate)},
-    {"CeedCompositeOperatorCreate",ceedoffsetof(Ceed, CompositeOperatorCreate)},
-    {"VectorSetArray",             ceedoffsetof(CeedVector, SetArray)},
-    {"VectorSetValue",             ceedoffsetof(CeedVector, SetValue)},
-    {"VectorGetArray",             ceedoffsetof(CeedVector, GetArray)},
-    {"VectorGetArrayRead",         ceedoffsetof(CeedVector, GetArrayRead)},
-    {"VectorRestoreArray",         ceedoffsetof(CeedVector, RestoreArray)},
-    {"VectorRestoreArrayRead",     ceedoffsetof(CeedVector, RestoreArrayRead)},
-    {"VectorDestroy",              ceedoffsetof(CeedVector, Destroy)},
-    {"ElemRestrictionApply",       ceedoffsetof(CeedElemRestriction, Apply)},
-    {"ElemRestrictionDestroy",     ceedoffsetof(CeedElemRestriction, Destroy)},
-    {"BasisApply",                 ceedoffsetof(CeedBasis, Apply)},
-    {"BasisDestroy",               ceedoffsetof(CeedBasis, Destroy)},
-    {"TensorContractApply",        ceedoffsetof(CeedTensorContract, Apply)},
-    {"TensorContractDestroy",      ceedoffsetof(CeedTensorContract, Destroy)},
-    {"QFunctionApply",             ceedoffsetof(CeedQFunction, Apply)},
-    {"QFunctionDestroy",           ceedoffsetof(CeedQFunction, Destroy)},
-    {"OperatorApply",              ceedoffsetof(CeedOperator, Apply)},
-    {"OperatorApplyJacobian",      ceedoffsetof(CeedOperator, ApplyJacobian)},
-    {"OperatorDestroy",            ceedoffsetof(CeedOperator, Destroy)}
+  foffset foffsets[] = {
+    CEED_FTABLE_ENTRY(Ceed, Error),
+    CEED_FTABLE_ENTRY(Ceed, GetPreferredMemType),
+    CEED_FTABLE_ENTRY(Ceed, Destroy),
+    CEED_FTABLE_ENTRY(Ceed, VectorCreate),
+    CEED_FTABLE_ENTRY(Ceed, ElemRestrictionCreate),
+    CEED_FTABLE_ENTRY(Ceed, ElemRestrictionCreateBlocked),
+    CEED_FTABLE_ENTRY(Ceed, BasisCreateTensorH1),
+    CEED_FTABLE_ENTRY(Ceed, BasisCreateH1),
+    CEED_FTABLE_ENTRY(Ceed, TensorContractCreate),
+    CEED_FTABLE_ENTRY(Ceed, QFunctionCreate),
+    CEED_FTABLE_ENTRY(Ceed, OperatorCreate),
+    CEED_FTABLE_ENTRY(Ceed, CompositeOperatorCreate),
+    CEED_FTABLE_ENTRY(CeedVector, SetArray),
+    CEED_FTABLE_ENTRY(CeedVector, SetValue),
+    CEED_FTABLE_ENTRY(CeedVector, GetArray),
+    CEED_FTABLE_ENTRY(CeedVector, GetArrayRead),
+    CEED_FTABLE_ENTRY(CeedVector, RestoreArray),
+    CEED_FTABLE_ENTRY(CeedVector, RestoreArrayRead),
+    CEED_FTABLE_ENTRY(CeedVector, Destroy),
+    CEED_FTABLE_ENTRY(CeedElemRestriction, Apply),
+    CEED_FTABLE_ENTRY(CeedElemRestriction, ApplyBlock),
+    CEED_FTABLE_ENTRY(CeedElemRestriction, Destroy),
+    CEED_FTABLE_ENTRY(CeedBasis, Apply),
+    CEED_FTABLE_ENTRY(CeedBasis, Destroy),
+    CEED_FTABLE_ENTRY(CeedTensorContract, Apply),
+    CEED_FTABLE_ENTRY(CeedTensorContract, Destroy),
+    CEED_FTABLE_ENTRY(CeedQFunction, Apply),
+    CEED_FTABLE_ENTRY(CeedQFunction, Destroy),
+    CEED_FTABLE_ENTRY(CeedOperator, Apply),
+    CEED_FTABLE_ENTRY(CeedOperator, ApplyJacobian),
+    CEED_FTABLE_ENTRY(CeedOperator, Destroy),
+    {NULL, 0} // End of lookup table - used in SetBackendFunction loop
   };
 
-  memcpy((*ceed)->foffsets, foffsets,
-         CEED_NUM_BACKEND_FUNCTIONS*sizeof(foffset));
+  ierr = CeedCalloc(sizeof(foffsets), &(*ceed)->foffsets); CeedChk(ierr);
+  memcpy((*ceed)->foffsets, foffsets, sizeof(foffsets));
 
   // Backend specific setup
   ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);
@@ -422,6 +429,9 @@ int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
 /**
   @brief Set a delegate CEED
 
+  This function allows a CEED to set a delegate CEED. All backend
+  implementations default to the delegate CEED, unless overridden.
+
   @param ceed           Ceed to set delegate of
   @param[out] delegate  Address to set the delegate to
 
@@ -429,9 +439,77 @@ int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
 
   @ref Advanced
 **/
-int CeedSetDelegate(Ceed ceed, Ceed *delegate) {
-  ceed->delegate = *delegate;
-  (*delegate)->parent = ceed;
+int CeedSetDelegate(Ceed ceed, Ceed delegate) {
+  ceed->delegate = delegate;
+  delegate->parent = ceed;
+  return 0;
+}
+
+/**
+  @brief Retrieve a delegate CEED for a specific object type
+
+  @param ceed           Ceed to retrieve delegate of
+  @param[out] delegate  Address to save the delegate to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *objname) {
+  CeedInt ierr;
+
+  // Check for object delegate
+  for (CeedInt i=0; i<ceed->objdelegatecount; i++) {
+    if (!strcmp(objname, ceed->objdelegates->objname)) {
+      *delegate = ceed->objdelegates->delegate;
+      return 0;
+    }
+  }
+
+  // Use default delegate if no object delegate
+  ierr = CeedGetDelegate(ceed, delegate); CeedChk(ierr);
+ 
+  return 0;
+}
+
+/**
+  @brief Set a delegate CEED for a specific object type
+
+  This function allows a CEED to set a delegate CEED for a given type of
+  CEED object. All backend implementations default to the delegate CEED for
+  this object. For example,
+    CeedSetObjectDelegate(ceed, refceed, "Basis")
+  uses refceed implementations for all CeedBasis backend functions.
+
+  @param ceed           Ceed to set delegate of
+  @param[out] delegate  Address to set the delegate to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
+  CeedInt ierr;
+  CeedInt count = ceed->objdelegatecount;
+
+  // Malloc or Realloc
+  if (count) {
+    ierr = CeedRealloc(count+1, &ceed->objdelegates);
+    CeedChk(ierr);
+  } else {
+    ierr = CeedCalloc(1, &ceed->objdelegates); CeedChk(ierr);
+  }
+  ceed->objdelegatecount++;
+
+  // Set object delegate
+  ceed->objdelegates[count].delegate = delegate;
+  ierr = CeedCalloc(strlen(objname)+1, &ceed->objdelegates[count].objname);
+  CeedChk(ierr);
+  strncpy(ceed->objdelegates[count].objname, objname, strlen(objname)+1);
+
+  // Set delegate parent
+  delegate->parent = ceed;
+
   return 0;
 }
 
@@ -447,10 +525,18 @@ int CeedSetDelegate(Ceed ceed, Ceed *delegate) {
 **/
 int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type) {
   int ierr;
+
   if (ceed->GetPreferredMemType) {
     ierr = ceed->GetPreferredMemType(type); CeedChk(ierr);
   } else {
-    *type = CEED_MEM_HOST;
+    Ceed delegate;
+    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+
+    if (delegate) {
+      ierr = CeedGetPreferredMemType(delegate, type); CeedChk(ierr);
+    } else {
+      *type = CEED_MEM_HOST;
+    }
   }
 
   return 0;
@@ -458,6 +544,14 @@ int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type) {
 
 /**
   @brief Set a backend function
+
+  This function is used for a backend to set the function associated with
+  the CEED objects. For example,
+    CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", BackendVectorCreate)
+  sets the backend implementation of 'CeedVectorCreate' and
+    CeedSetBackendFunction(ceed, "Basis", basis, "Apply", BackendBasisApply)
+  sets the backend implementation of 'CeedBasisApply'. Note, the prefix 'Ceed'
+  is not required for the object type ("Basis" vs "CeedBasis").
 
   @param ceed           Ceed for error handling
   @param type           Type of Ceed object to set function for
@@ -475,16 +569,17 @@ int CeedSetBackendFunction(Ceed ceed,
   char lookupname[CEED_MAX_RESOURCE_LEN+1] = "";
 
   // Build lookup name
+  if (strcmp(type, "Ceed"))
+    strncat (lookupname, "Ceed", CEED_MAX_RESOURCE_LEN);
   strncat(lookupname, type, CEED_MAX_RESOURCE_LEN);
   strncat(lookupname, fname, CEED_MAX_RESOURCE_LEN);
 
   // Find and use offset
-  for (CeedInt i = 0; i < CEED_NUM_BACKEND_FUNCTIONS; i++) {
+  for (CeedInt i = 0; ceed->foffsets[i].fname; i++) {
     if (!strcmp(ceed->foffsets[i].fname, lookupname)) {
       size_t offset = ceed->foffsets[i].offset;
-      size_t *fpointer;
-      fpointer = (size_t *)(object + offset);
-      *fpointer = (size_t) f;
+      int (**fpointer)(void) = (int (**)(void))((char*)object + offset);
+      *fpointer = f;
       return 0;
     }
   }
@@ -539,9 +634,17 @@ int CeedDestroy(Ceed *ceed) {
   if ((*ceed)->delegate) {
     ierr = CeedDestroy(&(*ceed)->delegate); CeedChk(ierr);
   }
+  if ((*ceed)->objdelegatecount > 0) {
+    for (int i=0; i<(*ceed)->objdelegatecount; i++) {
+      ierr = CeedDestroy(&((*ceed)->objdelegates[i].delegate)); CeedChk(ierr);
+      ierr = CeedFree(&(*ceed)->objdelegates[i].objname); CeedChk(ierr);
+    }
+    ierr = CeedFree(&(*ceed)->objdelegates); CeedChk(ierr);
+  }
   if ((*ceed)->Destroy) {
     ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);
   }
+  ierr = CeedFree(&(*ceed)->foffsets); CeedChk(ierr);
   ierr = CeedFree(ceed); CeedChk(ierr);
   return 0;
 }

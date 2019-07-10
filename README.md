@@ -88,8 +88,9 @@ There are multiple supported backends, which can be selected at runtime in the e
 | :----------------------- | :------------------------------------------------ |
 | `/cpu/self/ref/serial`   | Serial reference implementation                   |
 | `/cpu/self/ref/blocked`  | Blocked refrence implementation                   |
-| `/cpu/self/tmpl`         | Backend template, delegates to `/cpu/self/ref/blocked` |
 | `/cpu/self/ref/memcheck` | Memcheck backend, undefined value checks          |
+| `/cpu/self/opt/serial`   | Serial optimized C implementation                 |
+| `/cpu/self/opt/blocked`  | Blocked optimized C implementation                |
 | `/cpu/self/avx/serial`   | Serial AVX implementation                         |
 | `/cpu/self/avx/blocked`  | Blocked AVX implementation                        |
 | `/cpu/self/xsmm/serial`  | Serial LIBXSMM implementation                     |
@@ -100,8 +101,8 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/ocl/occa`              | OpenCL OCCA kernels                               |
 | `/gpu/cuda/ref`          | Reference pure CUDA kernels                       |
 | `/gpu/cuda/reg`          | Pure CUDA kernels using one thread per element    |
+| `/gpu/cuda/shared`       | Optimized pure CUDA kernels using shared memory   |
 | `/gpu/magma`             | CUDA MAGMA kernels                                |
-
 
 The `/cpu/self/*/serial` backends process one element at a time and are intended for meshes
 with a smaller number of high order elements. The `/cpu/self/*/blocked` backends process
@@ -109,6 +110,8 @@ blocked batches of eight interlaced elements and are intended for meshes with hi
 of elements.
 
 The `/cpu/self/ref/*` backends are written in pure C and provide basic functionality.
+
+The `/cpu/self/opt/*` backends are written in pure C and use partial e-vectors to improve performance.
 
 The `/cpu/self/avx/*` backends rely upon AVX instructions to provide vectorized CPU performance.
 
@@ -118,7 +121,8 @@ if LIBXSMM was linked to MKL, this can be specified with the compilation flag `M
 
 The `/cpu/self/ref/memcheck` backend relies upon the [Valgrind](http://valgrind.org/) Memcheck tool
 to help verify that user QFunctions have no undefined values. To use, run your code with
-Valgrind and the Memcheck backend, e.g. `valgrind ./build/ex1 -ceed /cpu/self/ref/memcheck`.
+Valgrind and the Memcheck backend, e.g. `valgrind ./build/ex1 -ceed /cpu/self/ref/memcheck`. A
+'development' or 'debugging' version of Valgrind with headers is required to use this backend.
 
 The `/*/occa` backends rely upon the [OCCA](http://github.com/libocca/occa) package to provide
 cross platform performance.
@@ -152,10 +156,10 @@ make
 cd ../..
 
 # PETSc+libCEED examples on CPU and GPU
-cd examples/petsc
+cd petsc
 make
-./bp1 -ceed /cpu/self
-./bp1 -ceed /gpu/occa
+./bps -problem bp1 -ceed /cpu/self
+./bps -problem bp1 -ceed /gpu/occa
 cd ../..
 
 cd navier-stokes
@@ -189,13 +193,12 @@ and they can be viewed using the commands (requires python with matplotlib):
 
 ```console
 cd benchmarks
-python postprocess-plot.py petsc-bp1-*-output.txt
-python postprocess-plot.py petsc-bp3-*-output.txt
+python postprocess-plot.py petsc-bps-bp1-*-output.txt
+python postprocess-plot.py petsc-bps-bp3-*-output.txt
 ```
 
 Using the `benchmarks` target runs a comprehensive set of benchmarks which may
-take some time to run. Subsets of the benchmarks can be run using targets such
-as `make bench-petsc-bp1`, or `make bench-petsc-bp3`.
+take some time to run. Subsets of the benchmarks can be run using the scripts in the `benchmarks` folder.
 
 For more details about the benchmarks, see
 [`benchmarks/README.md`](benchmarks/README.md)

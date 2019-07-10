@@ -36,4 +36,4 @@ rm -rf ../../build/boxes
 cp -r boxes ../../build/boxes
 
 # Clean
-(./make-nek-examples.sh clean)
+(export NEK5K_DIR && ./make-nek-examples.sh clean)

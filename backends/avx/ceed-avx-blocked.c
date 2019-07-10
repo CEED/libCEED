@@ -26,8 +26,8 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
 
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
-  CeedInit("/cpu/self/ref/blocked", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+  CeedInit("/cpu/self/opt/blocked", &ceedref);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
                                 CeedTensorContractCreate_Avx); CeedChk(ierr);
@@ -36,5 +36,5 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/avx/blocked", CeedInit_Avx, 10);
+  CeedRegister("/cpu/self/avx/blocked", CeedInit_Avx, 30);
 }
