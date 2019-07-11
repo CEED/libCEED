@@ -16,7 +16,7 @@ C testbed platforms, in support of the nation's exascale computing imperative.
 
 C> @file
 C> Diffusion operator example using Nek5000
-C TESTARGS -c {ceed_resource} -e build/bp3 -n 1 -b 6 -test
+C TESTARGS -c {ceed_resource} -e build/bp3 -n 1 -b 4 -test
 
 C-----------------------------------------------------------------------
       subroutine masssetupf(ctx,q,u1,u2,u3,u4,u5,u6,u7,

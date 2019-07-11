@@ -170,7 +170,7 @@ function clean() {
   fi
   rm makenek* SESSION.NAME 2> /dev/null
   for i in `seq 1 6`; do
-    rm -f bp$i bp$i.f bp$i*log* 2> /dev/null
+    rm -f bp$i bp$i.f bp$i*log* SIZE 2> /dev/null
   done
   find ${nek_box_dir} -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
 }

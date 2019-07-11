@@ -1,6 +1,6 @@
-ex1
-ex1.f
-ex1.log*
+ex*
+ex*.f
+ex*.log*
 *.out
 *build.log
 *.state

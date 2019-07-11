@@ -24,8 +24,8 @@ CONFIG_MK ?= $(or $(wildcard $(MFEM_DIR)/config/config.mk),$(wildcard\
   $(MFEM_DIR)/share/mfem/config.mk),invalid_mfem_dir)
 
 NEK5K_DIR ?= $(abspath ../../Nek5000)
-NEK5K_FC = $(if $(findstring mpi,$(FC)),$(FC),mpif77)
-NEK5K_CC = $(if $(findstring mpi,$(CC)),$(CC),mpicc)
+NEK5K_FC:= $(if $(FC),$(FC),mpif77)
+NEK5K_CC:= $(if $(CC),$(CC),mpicc)
 NEK5K_EXAMPLES ?= bp1 bp3
 
 PETSC_DIR ?=

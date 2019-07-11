@@ -125,25 +125,25 @@ tests.f   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f90))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 ctests    := $(tests)
 tests     += $(tests.f:tests/%.f90=$(OBJDIR)/%)
-#examples
+# Examples
 examples.c := $(sort $(wildcard examples/ceed/*.c))
 examples.f := $(sort $(wildcard examples/ceed/*.f))
 examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%)
 examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
-#mfemexamples
+# MFEM Examples
 mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
 mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
-#nekexamples
+# Nek5K Examples
 nekexamples.usr := $(sort $(wildcard examples/nek5000/*.usr))
 nekexamples  := $(nekexamples.usr:examples/nek5000/%.usr=$(OBJDIR)/nek-%)
-#petscexamples
+# PETSc Examples
 petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
 petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
-#navierstokesexample
+# Navier-Stokes Example
 navierstokesexample.c := $(sort $(wildcard examples/navier-stokes/*.c))
 navierstokesexample  := $(navierstokesexample.c:examples/navier-stokes/%.c=$(OBJDIR)/navier-stokes-%)
 
-# backends/[ref, blocked, template, memcheck, opt, avx, occa, magma]
+# Backends/[ref, blocked, template, memcheck, opt, avx, occa, magma]
 ref.c          := $(sort $(wildcard backends/ref/*.c))
 blocked.c      := $(sort $(wildcard backends/blocked/*.c))
 template.c     := $(sort $(wildcard backends/template/*.c))
@@ -291,7 +291,7 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   BACKENDS += /cpu/occa /gpu/occa /omp/occa
 endif
 
-# Cuda Backend
+# CUDA Backends
 CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
 CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg /gpu/cuda/shared
@@ -324,7 +324,7 @@ endif
 
 export BACKENDS
 
-# generate magma_tmp.c and magma_cuda.cu from magma.c
+# Generate magma_tmp.c and magma_cuda.cu from magma.c
 %_tmp.c %_cuda.cu : %.c
 	$(magma_preprocessor) $<
 
@@ -357,7 +357,7 @@ $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	mv examples/mfem/$* $@
 
 $(OBJDIR)/nek-% : examples/nek5000/%.usr examples/nek5000/nek-examples.sh $(libceed) | $$(@D)/.DIR
-	+$(MAKE) -C examples FC=$(FC) CC=$(CC) CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" \
+	$(MAKE) -C examples CC=$(CC) FC=$(FC) CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" \
 	  NEK5K_EXAMPLES=$* nek
 	mv examples/nek5000/$* $(OBJDIR)/$*
 	cp examples/nek5000/nek-examples.sh $(OBJDIR)/nek-$*
@@ -406,7 +406,7 @@ matched = $(foreach pattern,$(realsearch),$(filter $(OBJDIR)/$(pattern),$(tests)
 # Test core libCEED
 test : $(matched:$(OBJDIR)/%=run-%)
 
-# run test target in parallel
+# Run test target in parallel
 tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
 # CPU C tests only for backend %
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
@@ -415,11 +415,12 @@ prove : BACKENDS += $(TEST_BACKENDS)
 prove : $(matched)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(matched:$(OBJDIR)/%=%)
-# run prove target in parallel
+# Run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
-prove-all :
-	+$(MAKE) CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" \
+prove-all : lib
+	$(MAKE) -j1 examples
+	+$(MAKE) CC=$(CC) FC=$(FC) CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" \
 prove realsearch=%
 
 junit-t% : BACKENDS += $(TEST_BACKENDS)
@@ -468,7 +469,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
-	$(MAKE) -C examples clean
+	$(MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
 	$(RM) -rf benchmarks/*output.txt
 
