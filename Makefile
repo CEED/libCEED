@@ -37,6 +37,7 @@ endif
 ifneq ($(wildcard ../Nek5000/*),)
   NEK5K_DIR ?= ../Nek5000
 endif
+export NEK5K_DIR
 
 # XSMM_DIR env variable should point to XSMM master (github.com/hfp/libxsmm)
 XSMM_DIR ?= ../libxsmm
@@ -418,7 +419,8 @@ prove : $(matched)
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
 prove-all :
-	+$(MAKE) prove realsearch=%
+	+$(MAKE) CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" \
+prove realsearch=%
 
 junit-t% : BACKENDS += $(TEST_BACKENDS)
 junit-% : $(OBJDIR)/%
