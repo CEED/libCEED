@@ -389,7 +389,7 @@ $(OBJDIR)/navier-stokes-% : examples/navier-stokes/%.c $(libceed) $(ceed.pc) | $
 
 libceed_test.o = $(test_backends.c:%.c=$(OBJDIR)/%.o)
 $(libceed_test) : $(libceed.o) $(libceed_test.o) | $$(@D)/.DIR
-	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
+	$(call quiet,LINK) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(examples) : $(libceed)
 $(tests) : $(libceed_test)
