@@ -42,6 +42,7 @@
 : ${CEED_DIR:=`cd "../../"; pwd`}
 : ${FC:="mpif77"}
 : ${CC:="mpicc"}
+: ${MPI:=0}
 
 # Exit if being sourced
 if [[ "${#BASH_ARGV[@]}" -ne "$#" ]]; then
@@ -145,7 +146,7 @@ function make() {
       cp SIZE.in SIZE
     fi
 
-    CC=$CC FC=$FC NEK_SOURCE_ROOT="${NEK5K_DIR}" FFLAGS="$FFLAGS" \
+    CC=$CC FC=$FC MPI=$MPI NEK_SOURCE_ROOT="${NEK5K_DIR}" FFLAGS="$FFLAGS" \
       USR_LFLAGS="$USR_LFLAGS" ./makenek $ex >> $ex.build.log 2>&1
 
     if [ ! -f ./nek5000 ]; then
