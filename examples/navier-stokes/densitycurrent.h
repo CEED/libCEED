@@ -217,17 +217,17 @@ static int DC(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar rho     =   q[i+0*Q];
-    const CeedScalar u[3]    = { q[i+1*Q] / rho,
-                                 q[i+2*Q] / rho,
-                                 q[i+3*Q] / rho
-                               };
-    const CeedScalar E       =   q[i+4*Q];
+    const CeedScalar rho      =    q[i+0*Q];
+    const CeedScalar u[3]     =  { q[i+1*Q] / rho,
+                                   q[i+2*Q] / rho,
+                                   q[i+3*Q] / rho
+                                 };
+    const CeedScalar E        =    q[i+4*Q];
     // -- Grad in
-    const CeedScalar drho[3] = {  dq[i+(0+5*0)*Q],
-                                  dq[i+(0+5*1)*Q],
-                                  dq[i+(0+5*2)*Q]
-                               };
+    const CeedScalar drho[3]  =  { dq[i+(0+5*0)*Q],
+                                   dq[i+(0+5*1)*Q],
+                                   dq[i+(0+5*2)*Q]
+                                 };
     const CeedScalar du[3][3] = {{(dq[i+(1+5*0)*Q] - drho[0]*u[0]) / rho,
                                   (dq[i+(1+5*1)*Q] - drho[1]*u[0]) / rho,
                                   (dq[i+(1+5*2)*Q] - drho[2]*u[0]) / rho},
@@ -238,65 +238,63 @@ static int DC(void *ctx, CeedInt Q,
                                   (dq[i+(3+5*1)*Q] - drho[1]*u[2]) / rho,
                                   (dq[i+(3+5*2)*Q] - drho[2]*u[2]) / rho}
                                 };
-    const CeedScalar dE[3]   = {  dq[i+(4+5*0)*Q],
-                                  dq[i+(4+5*1)*Q],
-                                  dq[i+(4+5*2)*Q]
-                               };
+    const CeedScalar dE[3]    =  { dq[i+(4+5*0)*Q],
+                                   dq[i+(4+5*1)*Q],
+                                   dq[i+(4+5*2)*Q]
+                                 };
     // -- Interp-to-Interp qdata
-    const CeedScalar wJ       =   qdata[i+ 0*Q];
+    const CeedScalar wJ       =    qdata[i+ 0*Q];
     // -- Interp-to-Grad qdata
     //      Symmetric 3x3 matrix
-    const CeedScalar wBJ[9]   = { qdata[i+ 1*Q],
-                                  qdata[i+ 2*Q],
-                                  qdata[i+ 3*Q],
-                                  qdata[i+ 4*Q],
-                                  qdata[i+ 5*Q],
-                                  qdata[i+ 6*Q],
-                                  qdata[i+ 7*Q],
-                                  qdata[i+ 8*Q],
-                                  qdata[i+ 9*Q]
-                                };
+    const CeedScalar wBJ[9]   =  { qdata[i+ 1*Q],
+                                   qdata[i+ 2*Q],
+                                   qdata[i+ 3*Q],
+                                   qdata[i+ 4*Q],
+                                   qdata[i+ 5*Q],
+                                   qdata[i+ 6*Q],
+                                   qdata[i+ 7*Q],
+                                   qdata[i+ 8*Q],
+                                   qdata[i+ 9*Q]
+                                 };
     // -- Grad-to-Grad qdata
-    const CeedScalar wBBJ[6]  = { qdata[i+10*Q],
-                                  qdata[i+11*Q],
-                                  qdata[i+12*Q],
-                                  qdata[i+13*Q],
-                                  qdata[i+14*Q],
-                                  qdata[i+15*Q]
-                                };
+    const CeedScalar wBBJ[6]  =  { qdata[i+10*Q],
+                                   qdata[i+11*Q],
+                                   qdata[i+12*Q],
+                                   qdata[i+13*Q],
+                                   qdata[i+14*Q],
+                                   qdata[i+15*Q]
+                                 };
     // -- gradT
-    const CeedScalar gradT[3] = {
-      (dE[0]/rho - E*drho[0]/(rho*rho)
-       - (u[0]*du[0][0] + u[1]*du[1][0] + u[2]*du[2][0])) / cv,
-      (dE[1]/rho - E*drho[1]/(rho*rho)
-       - (u[0]*du[0][1] + u[1]*du[1][1] + u[2]*du[2][1])) / cv,
-      (dE[2]/rho - E*drho[2]/(rho*rho)
-       - (u[0]*du[0][2] + u[1]*du[1][2] + u[2]*du[2][2]) - g) / cv
-    };
+    const CeedScalar gradT[3] = {( dE[0]/rho - E*drho[0]/(rho*rho) -
+                                 ( u[0]*du[0][0] + u[1]*du[1][0] + u[2]*du[2][0])) / cv,
+                                 ( dE[1]/rho - E*drho[1]/(rho*rho) -
+                                 ( u[0]*du[0][1] + u[1]*du[1][1] + u[2]*du[2][1])) / cv,
+                                 ( dE[2]/rho - E*drho[2]/(rho*rho) -
+                                 ( u[0]*du[0][2] + u[1]*du[1][2] + u[2]*du[2][2]) - g) / cv
+                                };
     // -- Fuvisc
     //      Symmetric 3x3 matrix
-    const CeedScalar Fu[6] =  { mu * (du[0][0] * (2 + lambda) +
-                                      lambda * (du[1][1] + du[2][2])),
-                                mu * (du[0][1] + du[1][0]),
-                                mu * (du[0][2] + du[2][0]),
-                                mu * (du[1][1] * (2 + lambda) +
-                                      lambda * (du[0][0] + du[2][2])),
-                                mu * (du[1][2] + du[2][1]),
-                                mu * (du[2][2] * (2 + lambda) +
-                                      lambda * (du[0][0] + du[1][1]))
-                              };
-
+    const CeedScalar Fu[6]    =  { mu * (du[0][0] * (2 + lambda) +
+                                   lambda * (du[1][1] + du[2][2])),
+                                   mu * (du[0][1] + du[1][0]),
+                                   mu * (du[0][2] + du[2][0]),
+                                   mu * (du[1][1] * (2 + lambda) +
+                                   lambda * (du[0][0] + du[2][2])),
+                                   mu * (du[1][2] + du[2][1]),
+                                   mu * (du[2][2] * (2 + lambda) +
+                                   lambda * (du[0][0] + du[1][1]))
+                                 };
     // -- Fevisc
-    const CeedScalar Fe[3] = { u[0]*Fu[0] + u[1]*Fu[1] + u[2]*Fu[2] +
-                               k * gradT[0],
-                               u[0]*Fu[1] + u[1]*Fu[3] + u[2]*Fu[4] +
-                               k * gradT[1],
-                               u[0]*Fu[2] + u[1]*Fu[4] + u[2]*Fu[5] +
-                               k * gradT[2]
-                             };
+    const CeedScalar Fe[3]    =  { u[0]*Fu[0] + u[1]*Fu[1] + u[2]*Fu[2] +
+                                   k * gradT[0],
+                                   u[0]*Fu[1] + u[1]*Fu[3] + u[2]*Fu[4] +
+                                   k * gradT[1],
+                                   u[0]*Fu[2] + u[1]*Fu[4] + u[2]*Fu[5] +
+                                   k * gradT[2]
+                                 };
     // -- P
-    const CeedScalar P = (E - (u[0]*u[0] + u[1]*u[1] + u[2]*u[2])*rho/2 -
-                          rho*g*x[i+Q*2]) * (gamma - 1);
+    const CeedScalar P        =  ( E - (u[0]*u[0] + u[1]*u[1] + u[2]*u[2])*rho / 2 -
+                                   rho*g*x[i+Q*2] ) * (gamma - 1);
 
     // The Physics
 
