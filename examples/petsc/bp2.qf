@@ -18,19 +18,28 @@
 /// libCEED QFunctions for mass operator example using PETSc
 
 // *****************************************************************************
-inline __device__ void SetupMass(void *ctx, const CeedInt Q, const CeedScalar *x, const CeedScalar *J, const CeedScalar *w, CeedScalar *rho, CeedScalar *true_soln, CeedScalar *rhs) {
+inline __device__ void SetupMass3(void *ctx, const CeedInt Q, const CeedScalar *x, const CeedScalar *J, const CeedScalar *w, CeedScalar *rho, CeedScalar *true_soln, CeedScalar *rhs) {
   for (CeedInt i=0; i<Q; i++) {
-    CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
-                      J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-                      J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
-    rho[i] = det * w[i];
-    true_soln[i] = sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
-    rhs[i] = rho[i] * true_soln[i];
+    const CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
+                            J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
+                            J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
+    const CeedScalar r = det * w[i];
+    rho[i] = r;
+    const CeedScalar true_sol = sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
+    true_soln[i+0*Q] = true_sol;
+    true_soln[i+1*Q] = true_sol;
+    true_soln[i+2*Q] = true_sol;
+    rhs[i+0*Q] = r * true_sol;
+    rhs[i+1*Q] = r * true_sol;
+    rhs[i+2*Q] = r * true_sol;
   }
 }
 
-inline __device__ void Mass(void *ctx, const CeedInt Q, const CeedScalar *u, const CeedScalar *rho, CeedScalar *v) {
+inline __device__ void Mass3(void *ctx, const CeedInt Q, const CeedScalar *u, const CeedScalar *rho, CeedScalar *v) {
   for (CeedInt i=0; i<Q; i++) {
-    v[i] = rho[i] * u[i];
+    const CeedScalar r = rho[i];
+    v[i+0*Q] = r * u[i+0*Q];
+    v[i+1*Q] = r * u[i+1*Q];
+    v[i+2*Q] = r * u[i+2*Q];
   }
 }

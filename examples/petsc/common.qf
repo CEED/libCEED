@@ -17,20 +17,14 @@
 /// @file
 /// libCEED QFunctions for mass operator example using PETSc
 
-// *****************************************************************************
-inline __device__ void SetupMass(void *ctx, const CeedInt Q, const CeedScalar *x, const CeedScalar *J, const CeedScalar *w, CeedScalar *rho, CeedScalar *true_soln, CeedScalar *rhs) {
+inline __device__ void Error(void *ctx, const CeedInt Q, const CeedScalar *u, const CeedScalar *target, CeedScalar *err) {
   for (CeedInt i=0; i<Q; i++) {
-    CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
-                      J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-                      J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
-    rho[i] = det * w[i];
-    true_soln[i] = sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
-    rhs[i] = rho[i] * true_soln[i];
+    err[i] = u[i] - target[i];
   }
 }
 
-inline __device__ void Mass(void *ctx, const CeedInt Q, const CeedScalar *u, const CeedScalar *rho, CeedScalar *v) {
-  for (CeedInt i=0; i<Q; i++) {
-    v[i] = rho[i] * u[i];
+inline __device__ void Error3(void *ctx, const CeedInt Q, const CeedScalar *u, const CeedScalar *target, CeedScalar *err) {
+  for (CeedInt i=0; i<3*Q; i++) {
+    err[i] = u[i] - target[i];
   }
 }
