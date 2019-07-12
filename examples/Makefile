@@ -24,8 +24,8 @@ CONFIG_MK ?= $(or $(wildcard $(MFEM_DIR)/config/config.mk),$(wildcard\
   $(MFEM_DIR)/share/mfem/config.mk),invalid_mfem_dir)
 
 NEK5K_DIR ?= $(abspath ../../Nek5000)
-NEK5K_FC:= $(if $(FC),$(FC),mpif77)
-NEK5K_CC:= $(if $(CC),$(CC),mpicc)
+NEK5K_FC ?= $(if eq($(MPI),0),$(FC),mpif77)
+NEK5K_CC ?= $(if eq($(MPI),0),$(CC),mpicc)
 NEK5K_EXAMPLES ?= bp1 bp3
 
 PETSC_DIR ?=
@@ -40,7 +40,7 @@ ceed:
 
 nek:
 	cd nek5000 && NEK5K_DIR=$(NEK5K_DIR) CEED_DIR=$(CEED_DIR) \
-		 FC=$(NEK5K_FC) CC=$(NEK5K_CC) \
+		 FC=$(NEK5K_FC) CC=$(NEK5K_CC) MPI=$(MPI) \
 		 ./nek-examples.sh -m -e "$(NEK5K_EXAMPLES)"
 
 mfem:

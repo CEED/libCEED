@@ -42,7 +42,6 @@
 : ${CEED_DIR:=`cd "../../"; pwd`}
 : ${FC:="mpif77"}
 : ${CC:="mpicc"}
-: ${MPI:=0}
 
 # Exit if being sourced
 if [[ "${#BASH_ARGV[@]}" -ne "$#" ]]; then

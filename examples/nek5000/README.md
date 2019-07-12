@@ -38,8 +38,8 @@ You can build the Nek5000 libCEED examples by invoking `make-nek-examples.sh` sc
   ./make-nek-examples.sh
 ```
 
-By default, the examples are built without MPI. To build the examples with MPI,
-set the environment variable `MPI=1`.
+By default, the examples are built with MPI. To build the examples without MPI,
+set the environment variable `MPI=0`.
 
 ### Running Nek5000 examples
 

@@ -49,7 +49,7 @@ install:
 # Nek5k
   - git clone --depth 1 https://github.com/Nek5000/Nek5000.git;
   - cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..;
-  - export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH;
+  - export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH MPI=0;
 # PETSc
   - export PETSC_INSTALL=$HOME/install/petsc-3.11.0
   - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
