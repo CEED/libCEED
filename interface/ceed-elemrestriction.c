@@ -362,6 +362,154 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
 }
 
 /**
+  @brief Restrict an L-vector to an E-vector or apply transpose with shared DoF
+           averaging
+
+  @param rstr    CeedElemRestriction
+  @param tmode   Apply restriction or transpose
+  @param lmode   Ordering of the ncomp components
+  @param mtype   Type of mean for shared DoFs (only used when tmode=CEED_TRANSPOSE)
+  @param u       Input vector (of size @a ndof when tmode=CEED_NOTRANSPOSE)
+  @param v       Output vector (of size @a nelem * @a elemsize when tmode=CEED_NOTRANSPOSE)
+  @param request Request or CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedElemRestrictionApplyMean(CeedElemRestriction rstr,
+                                 CeedTransposeMode tmode,
+                                 CeedTransposeMode lmode, CeedMeanType mtype,
+                                 CeedVector u, CeedVector v,
+                                 CeedRequest *request) {
+  CeedInt m,n;
+  int ierr;
+
+  if (!rstr->ApplyMean)
+    return CeedError(rstr->ceed, 1,
+                     "Backend does not support ElemRestrictionApplyMean");
+
+  if (tmode == CEED_NOTRANSPOSE) {
+    m = rstr->nblk * rstr->blksize * rstr->elemsize * rstr->ncomp;
+    n = rstr->ndof * rstr->ncomp;
+  } else {
+    m = rstr->ndof * rstr->ncomp;
+    n = rstr->nblk * rstr->blksize * rstr->elemsize * rstr->ncomp;
+  }
+  if (n != u->length)
+    return CeedError(rstr->ceed, 2,
+                     "Input vector size %d not compatible with element restriction (%d, %d)",
+                     u->length, m, n);
+  if (m != v->length)
+    return CeedError(rstr->ceed, 2,
+                     "Output vector size %d not compatible with element restriction (%d, %d)",
+                     v->length, m, n);
+  ierr = rstr->ApplyMean(rstr, tmode, lmode, mtype, u, v, request);
+  CeedChk(ierr);
+
+  return 0;
+}
+
+/**
+  @brief Restrict an L-vector to a block of an E-vector or apply transpose with
+           shared DoF averaging
+
+  @param rstr    CeedElemRestriction
+  @param block   Block number to restrict to/from, i.e. block=0 will handle
+                 elements [0 : blksize] and block=3 will handle elements
+                 [3*blksize : 4*blksize]
+  @param tmode   Apply restriction or transpose
+  @param lmode   Ordering of the ncomp components
+  @param mtype   Type of mean for shared DoFs (only used when tmode=CEED_TRANSPOSE)
+  @param u       Input vector (of size @a ndof when tmode=CEED_NOTRANSPOSE)
+  @param v       Output vector (of size @a nelem * @a elemsize when tmode=CEED_NOTRANSPOSE)
+  @param request Request or CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedElemRestrictionApplyMeanBlock(CeedElemRestriction rstr, CeedInt block,
+                                      CeedTransposeMode tmode,
+                                      CeedTransposeMode lmode,
+                                      CeedMeanType mtype, CeedVector u,
+                                      CeedVector v, CeedRequest *request) {
+  CeedInt m,n;
+  int ierr;
+
+  if (!rstr->ApplyMeanBlock)
+    return CeedError(rstr->ceed, 1,
+                     "Backend does not support ElemRestrictionApplyMeanBlock");
+
+  if (tmode == CEED_NOTRANSPOSE) {
+    m = rstr->blksize * rstr->elemsize * rstr->ncomp;
+    n = rstr->ndof * rstr->ncomp;
+  } else {
+    m = rstr->ndof * rstr->ncomp;
+    n = rstr->blksize * rstr->elemsize * rstr->ncomp;
+  }
+  if (n != u->length)
+    return CeedError(rstr->ceed, 2,
+                     "Input vector size %d not compatible with element restriction (%d, %d)",
+                     u->length, m, n);
+  if (m != v->length)
+    return CeedError(rstr->ceed, 2,
+                     "Output vector size %d not compatible with element restriction (%d, %d)",
+                     v->length, m, n);
+  if (rstr->blksize*block > rstr->nelem)
+    return CeedError(rstr->ceed, 2,
+                     "Cannot retrieve block %d, element %d > total elements %d",
+                     block, rstr->blksize*block, rstr->nelem);
+  ierr = rstr->ApplyMeanBlock(rstr, block, tmode, lmode, mtype, u, v, request);
+  CeedChk(ierr);
+
+  return 0;
+}
+
+/**
+  @brief Finalize restriction an L-vector to a block of an E-vector or
+           transpose with shared DoF averaging
+
+  @param rstr    CeedElemRestriction
+  @param tmode   Apply restriction or transpose
+  @param mtype   Type of mean for shared DoFs (only used when tmode=CEED_TRANSPOSE)
+  @param v       Output vector (of size @a nelem * @a elemsize when tmode=CEED_NOTRANSPOSE)
+  @param request Request or CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedElemRestrictionApplyMeanBlockFinalize(CeedElemRestriction rstr,
+                                              CeedTransposeMode tmode, 
+                                              CeedMeanType mtype, CeedVector v,
+                                              CeedRequest *request) {
+  CeedInt m,n;
+  int ierr;
+
+  if (!rstr->ApplyMeanBlockFinalize)
+    return CeedError(rstr->ceed, 1,
+                     "Backend does not support ElemRestrictionApplyMeanBlock");
+
+  if (tmode == CEED_NOTRANSPOSE) {
+    m = rstr->blksize * rstr->elemsize * rstr->ncomp;
+    n = rstr->ndof * rstr->ncomp;
+  } else {
+    m = rstr->ndof * rstr->ncomp;
+    n = rstr->blksize * rstr->elemsize * rstr->ncomp;
+  }
+  if (m != v->length)
+    return CeedError(rstr->ceed, 2,
+                     "Output vector size %d not compatible with element restriction (%d, %d)",
+                     v->length, m, n);
+
+  ierr = rstr->ApplyMeanBlockFinalize(rstr, tmode, mtype, v, request);
+  CeedChk(ierr);
+
+  return 0;
+}
+
+/**
   @brief Get the multiplicity of DoFs in a CeedElemRestriction
 
   @param rstr      CeedElemRestriction

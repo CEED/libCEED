@@ -203,6 +203,18 @@ typedef enum {
   CEED_TRANSPOSE
 } CeedTransposeMode;
 
+/// Denotes which averaging technique should be used for a transpose restriction
+/// with shared DoFs
+/// @ingroup CeedElemRestriction
+typedef enum {
+  /// No mean
+  CEED_MEAN_NONE,
+  /// Arithmetic mean
+  CEED_MEAN_ARITHMETIC,
+  /// Harmonic mean
+  CEED_MEAN_HARMONIC
+} CeedMeanType;
+
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem,
     CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype,
     CeedCopyMode cmode,
@@ -219,6 +231,15 @@ CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr,
 CEED_EXTERN int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr,
     CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
     CeedVector u, CeedVector ru, CeedRequest *request);
+CEED_EXTERN int CeedElemRestrictionApplyMean(CeedElemRestriction rstr,
+    CeedTransposeMode tmode, CeedTransposeMode lmode, CeedMeanType mtype,
+    CeedVector u, CeedVector ru, CeedRequest *request);
+CEED_EXTERN int CeedElemRestrictionApplyMeanBlock(CeedElemRestriction rstr,
+    CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
+    CeedMeanType mtype, CeedVector u, CeedVector ru, CeedRequest *request);
+CEED_EXTERN int CeedElemRestrictionApplyMeanBlockFinalize(CeedElemRestriction rstr,
+    CeedTransposeMode tmode, CeedMeanType mtype, CeedVector ru,
+    CeedRequest *request);
 CEED_EXTERN int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
     CeedVector mult);
 CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *rstr);

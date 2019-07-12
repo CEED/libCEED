@@ -95,6 +95,13 @@ struct CeedElemRestriction_private {
                CeedVector, CeedVector, CeedRequest *);
   int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode,
                     CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
+  int (*ApplyMean)(CeedElemRestriction, CeedTransposeMode, CeedTransposeMode,
+                   CeedMeanType, CeedVector, CeedVector, CeedRequest *);
+  int (*ApplyMeanBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode,
+                        CeedMeanType, CeedTransposeMode, CeedVector, CeedVector,
+                        CeedRequest *);
+  int (*ApplyMeanBlockFinalize)(CeedElemRestriction, CeedTransposeMode,
+                                CeedMeanType, CeedVector, CeedRequest *);
   int (*Destroy)(CeedElemRestriction);
   int refcount;
   CeedInt nelem;    /* number of elements */
