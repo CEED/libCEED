@@ -23,10 +23,9 @@ static int CeedInit_Xsmm_Serial(const char *resource, Ceed ceed) {
     return CeedError(ceed, 1, "serial libXSMM backend cannot use resource: %s",
                      resource);
 
-  Ceed ceedref;
-
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
+  Ceed ceedref;
   CeedInit("/cpu/self/opt/serial", &ceedref);
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 

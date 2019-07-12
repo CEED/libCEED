@@ -23,9 +23,9 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
       && strcmp(resource, "/cpu/self/tmpl/sub"))
     return CeedError(ceed, 1, "Tmpl backend cannot use resource: %s", resource);
 
-  Ceed ceedref;
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
+  Ceed ceedref;
   CeedInit("/cpu/self/ref/blocked", &ceedref);
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 

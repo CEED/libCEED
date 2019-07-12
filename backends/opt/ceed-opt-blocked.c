@@ -28,14 +28,13 @@ static int CeedDestroy_Opt(Ceed ceed) {
 
 static int CeedInit_Opt_Blocked(const char *resource, Ceed ceed) {
   int ierr;
-  if (strcmp(resource, "/cpu/self")
+  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/opt")
       && strcmp(resource, "/cpu/self/opt/blocked"))
     return CeedError(ceed, 1, "Opt backend cannot use resource: %s", resource);
 
-  Ceed ceedref;
-
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
+  Ceed ceedref;
   CeedInit("/cpu/self/ref/serial", &ceedref);
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
