@@ -418,8 +418,9 @@ prove : $(matched)
 # Run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
-prove-all : lib
+prove-all-prep : lib
 	$(MAKE) -j1 examples
+prove-all : prove-all-prep
 	+$(MAKE) CC=$(CC) FC=$(FC) CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" \
 prove realsearch=%
 
