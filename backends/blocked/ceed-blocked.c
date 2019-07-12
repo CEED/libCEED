@@ -22,10 +22,9 @@ static int CeedInit_Blocked(const char *resource, Ceed ceed) {
       && strcmp(resource, "/cpu/self/ref/blocked"))
     return CeedError(ceed, 1, "Blocked backend cannot use resource: %s", resource);
 
-  Ceed ceedref;
-
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
+  Ceed ceedref;
   CeedInit("/cpu/self/ref/serial", &ceedref);
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 

@@ -18,14 +18,13 @@
 
 static int CeedInit_Avx(const char *resource, Ceed ceed) {
   int ierr;
-  if (strcmp(resource, "/cpu/self")
+  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/avx")
       && strcmp(resource, "/cpu/self/avx/blocked"))
     return CeedError(ceed, 1, "AVX backend cannot use resource: %s", resource);
 
-  Ceed ceedref;
-
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
+  Ceed ceedref;
   CeedInit("/cpu/self/opt/blocked", &ceedref);
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
