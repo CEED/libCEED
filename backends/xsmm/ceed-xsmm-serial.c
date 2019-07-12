@@ -18,7 +18,8 @@
 
 static int CeedInit_Xsmm_Serial(const char *resource, Ceed ceed) {
   int ierr;
-  if (strcmp(resource, "/cpu/self/xsmm/serial"))
+  if (strcmp(resource, "/cpu/self")
+      && strcmp(resource, "/cpu/self/xsmm/serial"))
     return CeedError(ceed, 1, "serial libXSMM backend cannot use resource: %s",
                      resource);
 
