@@ -221,6 +221,9 @@ CEED_EXTERN int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr,
     CeedVector u, CeedVector ru, CeedRequest *request);
 CEED_EXTERN int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
     CeedVector mult);
+CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
+    CeedVector *lvec, CeedVector *evec);
+CEED_EXTERN int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream);
 CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *rstr);
 
 // The formalism here is that we have the structure

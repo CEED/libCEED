@@ -536,6 +536,23 @@ int CeedElemRestrictionSetData(CeedElemRestriction rstr,
 }
 
 /**
+  @brief View a CeedElemRestriction
+
+  @param[in] rstr CeedElemRestriction to view
+  @param[in] stream Stream to write; typically stdout/stderr or a file
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
+  fprintf(stream,
+          "CeedElemRestriction from (%d, %d) to %d elements with %d nodes each\n",
+          rstr->ndof, rstr->ncomp, rstr->nelem, rstr->elemsize);
+  return 0;
+}
+
+/**
   @brief Destroy a CeedElemRestriction
 
   @param rstr CeedElemRestriction to destroy

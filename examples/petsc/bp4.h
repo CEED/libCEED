@@ -17,10 +17,15 @@
 /// @file
 /// libCEED QFunctions for mass operator example using PETSc
 
-#include <petscksp.h>
+#include <petscsys.h>
 #include <ceed.h>
-#include <petscdmplex.h>
-#include <petsc/private/petscfeimpl.h>
+
+static PetscErrorCode TrueSolution(PetscInt dim, PetscReal time,
+                                   const PetscReal x[], PetscInt Nc,
+                                   PetscScalar *u, void *ctx) {
+  u[0] = PetscSqrtReal(PetscSqr(x[0]) + PetscSqr(x[1]) + PetscSqr(x[2]));
+  return 0;
+}
 
 // *****************************************************************************
 static int Setup(void *ctx, CeedInt Q,
@@ -33,9 +38,9 @@ static int Setup(void *ctx, CeedInt Q,
     CeedScalar det = (+ J[0][0][i] * (J[1][1][i]*J[2][2][i] - J[1][2][i]*J[2][1][i])
                       - J[0][1][i] * (J[1][0][i]*J[2][2][i] - J[1][2][i]*J[2][0][i])
                       + J[0][2][i] * (J[1][0][i]*J[2][1][i] - J[1][1][i]*J[2][0][i]));
+    const PetscReal xyz[] = {x[0][i], x[1][i], x[2][i]};
     rho[i] = det * w[i];
-    true_soln[i] = PetscSqrtScalar(PetscSqr(x[0][i]) + PetscSqr(x[1][i]) + PetscSqr(
-                                     x[2][i]));
+    TrueSolution(3,0.,xyz,1,&true_soln[i],NULL);
     rhs[i] = rho[i] * true_soln[i];
   }
   return 0;
