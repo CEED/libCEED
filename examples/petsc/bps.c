@@ -323,8 +323,8 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
     *maxerror = PetscMax(*maxerror, PetscAbsScalar(e[i]));
   }
   CeedVectorRestoreArrayRead(collocated_error, &e);
-  ierr = MPI_Allreduce(MPI_IN_PLACE, &maxerror,
-                       1, MPIU_SCALAR, MPIU_MAX, user->comm); CHKERRQ(ierr);
+  ierr = MPI_Allreduce(MPI_IN_PLACE, maxerror,
+                       1, MPIU_REAL, MPIU_MAX, user->comm); CHKERRQ(ierr);
   CeedVectorDestroy(&collocated_error);
   PetscFunctionReturn(0);
 }
