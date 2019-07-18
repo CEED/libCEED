@@ -50,7 +50,7 @@
       enddo
       call ceedvectorrestorearrayread(mult,mm,moffset,err)
 
-      call ceedvectordestroy(m,err)
+      call ceedvectordestroy(mult,err)
       call ceedelemrestrictiondestroy(r,err)
       call ceeddestroy(ceed,err)
 
