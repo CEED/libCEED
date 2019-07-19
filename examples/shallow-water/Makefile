@@ -1,3 +1,4 @@
+
 # Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
 # the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
 # reserved. See files LICENSE and NOTICE for details.
@@ -47,7 +48,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-  $(RM) $(shallowwater) *.vtr *.vts
+	$(RM) $(shallowwater) *.vtr *.vts
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
