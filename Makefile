@@ -35,9 +35,10 @@ endif
 
 # NEK5K_DIR env variable should point to sibling directory
 ifneq ($(wildcard ../Nek5000/*),)
-  NEK5K_DIR ?= ../Nek5000
+  NEK5K_DIR ?= $(abspath ../Nek5000)
 endif
 export NEK5K_DIR
+export CEED_DIR = $(abspath .)
 
 # XSMM_DIR env variable should point to XSMM master (github.com/hfp/libxsmm)
 XSMM_DIR ?= ../libxsmm
@@ -402,6 +403,12 @@ allexamples = $(examples) $(external_examples)
 search ?= t ex
 realsearch = $(search:%=%%)
 matched = $(foreach pattern,$(realsearch),$(filter $(OBJDIR)/$(pattern),$(tests) $(allexamples)))
+# Work around Nek needing serial build
+matched_prereq = $(filter-out $(OBJDIR)/nek%,$(matched))
+
+# Build Nek in serial
+nek-prep : $(matched_prereq)
+	$(if $(findstring nek,$(matched)),$(MAKE) nekexamples -j1 CC=$(CC) FC=$(FC) MPI=$(MPI),)
 
 # Test core libCEED
 test : $(matched:$(OBJDIR)/%=run-%)
@@ -412,18 +419,14 @@ tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
 prove : BACKENDS += $(TEST_BACKENDS)
-prove : $(matched)
+prove : $(matched_prereq) nek-prep
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(matched:$(OBJDIR)/%=%)
 # Run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
-prove-all-prep :
-	+$(MAKE) NEK5K_DIR= examples
-	$(MAKE) -j1 examples
-prove-all : prove-all-prep
-	+$(MAKE) CC=$(CC) FC=$(FC) CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" \
-prove realsearch=%
+prove-all :
+	+$(MAKE) prove realsearch=%
 
 junit-t% : BACKENDS += $(TEST_BACKENDS)
 junit-% : $(OBJDIR)/%
@@ -434,6 +437,10 @@ junit : $(alltests:$(OBJDIR)/%=junit-%)
 all: $(alltests)
 
 examples : $(allexamples)
+ceedexamples : $(examples)
+nekexamples : $(nekexamples)
+mfemexamples : $(mfemexamples)
+petscexamples : $(petscexamples)
 
 # Benchmarks
 allbenchmarks = petsc-bp1 petsc-bp3

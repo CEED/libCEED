@@ -24,8 +24,16 @@ CONFIG_MK ?= $(or $(wildcard $(MFEM_DIR)/config/config.mk),$(wildcard\
   $(MFEM_DIR)/share/mfem/config.mk),invalid_mfem_dir)
 
 NEK5K_DIR ?= $(abspath ../../Nek5000)
-NEK5K_FC ?= $(if eq($(MPI),0),$(FC),mpif77)
-NEK5K_CC ?= $(if eq($(MPI),0),$(CC),mpicc)
+MPI ?= 1
+ifeq ($(MPI),0)
+  FC ?= gfortran
+  CC ?= gcc
+  NEK5K_FC = $(FC)
+  NEK5K_CC = $(CC)
+else
+  NEK5K_FC = mpif77
+  NEK5K_CC = mpicc
+endif
 NEK5K_EXAMPLES ?= bp1 bp3
 
 PETSC_DIR ?=
