@@ -329,6 +329,11 @@ CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
                                       CeedScalar *qweight1d);
 CEED_EXTERN int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
                                     CeedInt m, CeedInt n);
+CEED_EXTERN int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
+                                       CeedScalar *lambda, CeedInt n);
+CEED_EXTERN int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *matA,
+                                    CeedScalar *matB, CeedScalar *x,
+                                    CeedScalar *lambda, CeedInt n);
 
 /// Handle for the object describing the user CeedQFunction
 ///

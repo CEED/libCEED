@@ -438,6 +438,22 @@ void fCeedQRFactorization(int *ceed, CeedScalar *mat, CeedScalar *tau, int *m,
   *err = CeedQRFactorization(Ceed_dict[*ceed], mat, tau, *m, *n);
 }
 
+#define fCeedSymmetricSchurDecomposition \
+    FORTRAN_NAME(ceedsymmetricschurdecomposition, CEEDSYMMETRICSCHURDECOMPOSITION)
+void fCeedSymmetricSchurDecomposition(int *ceed, CeedScalar *mat,
+                                      CeedScalar *lambda, int *n, int *err) {
+  *err = CeedSymmetricSchurDecomposition(Ceed_dict[*ceed], mat, lambda, *n);
+}
+
+#define fCeedSimultaneousDiagonalization \
+    FORTRAN_NAME(ceedsimultaneousdiagonalization, CEEDSIMULTANEOUSDIAGONALIZATION)
+void fCeedSimultaneousDiagonalization(int *ceed, CeedScalar *matA,
+                                      CeedScalar *matB, CeedScalar *x,
+                                      CeedScalar *lambda, int *n, int *err) {
+  *err = CeedSimultaneousDiagonalization(Ceed_dict[*ceed], matA, matB, x,
+                                         lambda, *n);
+}
+
 #define fCeedBasisGetCollocatedGrad \
     FORTRAN_NAME(ceedbasisgetcollocatedgrad, CEEDBASISGETCOLLOCATEDGRAD)
 void fCeedBasisGetCollocatedGrad(int *basis, CeedScalar *colograd1d,

@@ -433,18 +433,18 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
 }
 
 /**
-  @brief Compute Householder Reflection
+  @brief Compute Householder reflection
 
     Computes A = (I - b v v^T) A
     where A is an mxn matrix indexed as A[i*row + j*col]
 
-  @param[out] A  Matrix to apply Householder reflection to, in place
-  @param v       Householder vector
-  @param b       Scaling factor
-  @param m       Number of rows in A
-  @param n       Number of columns in A
-  @param row     Col stride
-  @param col     Row stride
+  @param[in,out] A  Matrix to apply Householder reflection to, in place
+  @param v          Householder vector
+  @param b          Scaling factor
+  @param m          Number of rows in A
+  @param n          Number of columns in A
+  @param row        Row stride
+  @param col        Col stride
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -467,15 +467,15 @@ static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v,
 
     Compute A = Q A where Q is mxk and A is mxn. k<m
 
-  @param[out] A  Matrix to apply Householder Q to, in place
-  @param Q       Householder Q matrix
-  @param tau     Householder scaling factors
-  @param tmode   Transpose mode for application
-  @param m       Number of rows in A
-  @param n       Number of columns in A
-  @param k       Index of row targeted
-  @param row     Col stride
-  @param col     Row stride
+  @param[in,out] A  Matrix to apply Householder Q to, in place
+  @param Q          Householder Q matrix
+  @param tau        Householder scaling factors
+  @param tmode      Transpose mode for application
+  @param m          Number of rows in A
+  @param n          Number of columns in A
+  @param k          Index of row targeted
+  @param row        Row stride
+  @param col        Col stride
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -498,12 +498,48 @@ static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
 }
 
 /**
+  @brief Compute Givens rotation
+
+    Computes A = G A (or G^T A in transpose mode)
+    where A is an mxn matrix indexed as A[i*row + j*col]
+
+  @param[in,out] A  Row major matrix to apply Givens rotation to, in place
+  @param c          Cosine factor
+  @param s          Sine factor
+  @param i          First row/column to apply rotation
+  @param k          Second row/column to apply rotation
+  @param m          Number of rows in A
+  @param n          Number of columns in A
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s,
+                              CeedTransposeMode tmode, CeedInt i, CeedInt k,
+                              CeedInt m, CeedInt n) {
+  CeedInt stridej = 1, strideik = m, numits = n;
+  if (tmode == CEED_NOTRANSPOSE) {
+    stridej = n; strideik = 1; numits = m;
+  }
+
+  // Apply rotation
+  for (CeedInt j=0; j<numits; j++) {
+    CeedScalar tau1 = A[i*strideik+j*stridej], tau2 = A[k*strideik+j*stridej];
+    A[i*strideik+j*stridej] = c*tau1 - s*tau2;
+    A[k*strideik+j*stridej] = s*tau1 + c*tau2;
+  }
+
+  return 0;
+}
+
+/**
   @brief Return QR Factorization of matrix
 
-  @param[out] mat  Row-major matrix to be factorized in place
-  @param[out] tau  Vector of length m of scaling factors
-  @param m         Number of rows
-  @param n         Number of columns
+  @param[in,out] mat  Row-major matrix to be factorized in place
+  @param[in,out] tau  Vector of length m of scaling fators
+  @param m            Number of rows
+  @param n            Number of columns
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -511,18 +547,17 @@ static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
 **/
 int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
                         CeedInt m, CeedInt n) {
-  CeedInt i, j;
   CeedScalar v[m];
 
   // Check m >= n
   if (n > m)
     return CeedError(ceed, 1, "Cannot compute QR factorization with n > m");
 
-  for (i=0; i<n; i++) {
+  for (CeedInt i=0; i<n; i++) {
     // Calculate Householder vector, magnitude
     CeedScalar sigma = 0.0;
     v[i] = mat[i+n*i];
-    for (j=i+1; j<m; j++) {
+    for (CeedInt j=i+1; j<m; j++) {
       v[j] = mat[i+n*j];
       sigma += v[j] * v[j];
     }
@@ -533,18 +568,174 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
     //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
     //   tau = 2 / (norm*norm)
     tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
-    for (j=i+1; j<m; j++) v[j] /= v[i];
+    for (CeedInt j=i+1; j<m; j++) v[j] /= v[i];
 
     // Apply Householder reflector to lower right panel
     CeedHouseholderReflect(&mat[i*n+i+1], &v[i], tau[i], m-i, n-i-1, n, 1);
     // Save v
     mat[i+n*i] = Rii;
-    for (j=i+1; j<m; j++) {
+    for (CeedInt j=i+1; j<m; j++) {
       mat[i+n*j] = v[j];
     }
   }
 
   return 0;
+}
+
+/**
+  @brief Return symmetric Schur decomposition of the symmetric matrix mat via
+           symmetric QR factorization
+
+  @param[in,out] mat  Row-major matrix to be factorized in place
+  @param[out] lambda  Vector of length m of eigenvalues
+  @param n            Number of rows/columns
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
+                                    CeedScalar *lambda, CeedInt n) {
+  CeedScalar v[n-1], tau[n-1], matT[n*n];
+
+  // Copy mat to matT and set mat to I
+  memcpy(matT, mat, n*n*sizeof(mat[0]));
+  for (CeedInt i=0; i<n; i++)
+    for (CeedInt j=0; j<n; j++)
+      mat[j+n*i] = (i==j) ? 1 : 0;
+
+  // Reduce to tridiagonal
+  for (CeedInt i=0; i<n-1; i++) {
+    // Calculate Householder vector, magnitude
+    CeedScalar sigma = 0.0;
+    v[i] = matT[i+n*(i+1)];
+    for (CeedInt j=i+1; j<n-1; j++) {
+      v[j] = matT[i+n*(j+1)];
+      sigma += v[j] * v[j];
+    }
+    CeedScalar norm = sqrt(v[i]*v[i] + sigma); // norm of v[i:n-1]
+    CeedScalar Rii = -copysign(norm, v[i]);
+    v[i] -= Rii;
+    // norm of v[i:m] after modification above and scaling below
+    //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
+    //   tau = 2 / (norm*norm)
+    tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
+    for (CeedInt j=i+1; j<n-1; j++) v[j] /= v[i];
+
+    // Update sub and super diagonal
+    matT[i+n*(i+1)] = Rii;
+    matT[(i+1)+n*i] = Rii;
+    for (CeedInt j=i+2; j<n; j++) {
+      matT[i+n*j] = 0; matT[j+n*i] = 0;
+    }
+    // Apply symmetric Householder reflector to lower right panel
+    CeedHouseholderReflect(&matT[(i+1)+n*(i+1)], &v[i], tau[i],
+                           n-(i+1), n-(i+1), n, 1);
+    CeedHouseholderReflect(&matT[(i+1)+n*(i+1)], &v[i], tau[i],
+                           n-(i+1), n-(i+1), 1, n);
+    // Save v
+    for (CeedInt j=i+1; j<n-1; j++) {
+      matT[i+n*(j+1)] = v[j];
+    }
+  }
+  // Backwards accumulation of Q
+  for (CeedInt i=n-2; i>=0; i--) {
+    v[i] = 1;
+    for (CeedInt j=i+1; j<n-1; j++) {
+      v[j] = matT[i+n*(j+1)];
+      matT[i+n*(j+1)] = 0;
+    }
+    CeedHouseholderReflect(&mat[(i+1)+n*(i+1)], &v[i], tau[i], n-(i+1), n-(i+1), n, 1);
+  }
+
+  // Reduce sub and super diagonal
+  CeedInt p = 0, q = 0, itr = 0, maxitr = n*n*n;
+  CeedScalar tol = 1e-12;
+
+  while (q < n && itr < maxitr) {
+    // Update p, q, size of reduced portions of diagonal
+    p = 0; q = 0;
+    for (CeedInt i=n-2; i>=0; i--) {
+      if (fabs(matT[i+n*(i+1)]) < tol)
+        q += 1;
+      else
+         break;
+    }
+    for (CeedInt i=0; i<n-1-q; i++) {
+      if (fabs(matT[i+n*(i+1)]) < tol)
+        p += 1;
+      else
+        break;
+    }
+    if (q == n-1) break; // Finished reducing
+
+    // Reduce tridiagonal portion
+    CeedScalar tnn = matT[(n-1-q)+n*(n-1-q)],
+               tnnm1 = matT[(n-2-q)+n*(n-1-q)];
+    CeedScalar d = (matT[(n-2-q)+n*(n-2-q)] - tnn)/2;
+    CeedScalar root = sqrt(d*d + tnnm1*tnnm1);
+    CeedScalar mu = tnn - tnnm1*tnnm1 / (d + copysign(root, d));
+    CeedScalar x = matT[p+n*p] - mu;
+    CeedScalar z = matT[p+n*(p+1)];
+    for (CeedInt k=p; k<n-1-q; k++) {
+      // Compute Givens rotation
+      CeedScalar c = 1, s = 0;
+      if (fabs(z) > tol) {
+        if (fabs(z) > fabs(x)) {
+          CeedScalar tau = -x/z;
+          s = 1/sqrt(1+tau*tau), c = s*tau;
+        } else {
+          CeedScalar tau = -z/x;
+          c = 1/sqrt(1+tau*tau), s = c*tau;
+        }
+      }
+
+      // Apply Givens rotation to T
+      CeedGivensRotation(matT, c, s, CEED_NOTRANSPOSE, k, k+1, n, n);
+      CeedGivensRotation(matT, c, s, CEED_TRANSPOSE, k, k+1, n, n);
+
+      // Apply Givens rotation to Q
+      CeedGivensRotation(mat, c, s, CEED_TRANSPOSE, k, k+1, n, n);
+
+      // Update x, z
+      if (k < n-q-2) {
+        x = matT[k+n*(k+1)];
+        z = matT[k+n*(k+2)];
+      }
+    }
+    itr++;
+  }
+
+  // Save eigenvalues
+  for (CeedInt i=0; i<n; i++)
+    lambda[i] = matT[i+n*i];
+
+  // Check convergence
+  if (itr == maxitr && q < n-1)
+    return CeedError(ceed, 1, "Symmetric QR failed to converge");
+
+  return 0;
+}
+/**
+  @brief Return Simultaneous Diagonalization of two matrices. This solves the
+           generalized eigenvalue problem A x = lambda B x, where A and B
+           are symmetric and B is positive definite. We generate the matrix X
+           and vector Lambda such that X^T A X = Lambda and X^T B X = I.
+
+  @param[in] matA     Row-major matrix to be factorized with eigenvalues
+  @param[in] matB     Row-major matrix to be factorized to identity
+  @param[out] x       Row-major orthogonal matrix
+  @param[out] lambda  Vector of length m of generalized eigenvalues
+  @param n            Number of rows/columns
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *matA,
+                                    CeedScalar *matB, CeedScalar *x,
+                                    CeedScalar *lambda, CeedInt n) {
+  return CeedError(ceed, 1, "Not implemented");
 }
 
 /**
