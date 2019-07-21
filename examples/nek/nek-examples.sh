@@ -160,7 +160,7 @@ function make() {
 
     # Attempt build
     CC=$CC FC=$FC MPI=$MPI NEK_SOURCE_ROOT="${NEK5K_DIR}" FFLAGS="$FFLAGS" \
-      USR_LFLAGS="$USR_LFLAGS" ./makenek $ex >> $ex.build.log 2>&1
+      USR_LFLAGS="$USR_LFLAGS" ./makenek $ex #>> $ex.build.log 2>&1
 
     # Check and report
     if [ ! -f ./nek5000 ]; then
