@@ -139,8 +139,8 @@ examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
 mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
 mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
 # Nek5K Examples
-nekexamples.usr := $(sort $(wildcard examples/nek5000/*.usr))
-nekexamples  := $(nekexamples.usr:examples/nek5000/%.usr=$(OBJDIR)/nek-%)
+nekexamples.usr := $(sort $(wildcard examples/nek/*.usr))
+nekexamples  := $(nekexamples.usr:examples/nek/%.usr=$(OBJDIR)/nek-%)
 # PETSc Examples
 petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
 petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
@@ -364,11 +364,11 @@ $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	  MFEM_DIR="$(abspath $(MFEM_DIR))" $*
 	mv examples/mfem/$* $@
 
-$(OBJDIR)/nek-% : examples/nek5000/%.usr examples/nek5000/nek-examples.sh $(libceed) | $$(@D)/.DIR
+$(OBJDIR)/nek-% : examples/nek/%.usr examples/nek/nek-examples.sh $(libceed) | $$(@D)/.DIR
 	$(MAKE) -C examples CC=$(CC) FC=$(FC) MPI=$(MPI) CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" \
 	  NEK5K_EXAMPLES=$* nek
-	mv examples/nek5000/$* $(OBJDIR)/$*
-	cp examples/nek5000/nek-examples.sh $(OBJDIR)/nek-$*
+	mv examples/nek/$* $(OBJDIR)/$*
+	cp examples/nek/nek-examples.sh $(OBJDIR)/nek-$*
 
 $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(MAKE) -C examples/petsc CEED_DIR=`pwd` \

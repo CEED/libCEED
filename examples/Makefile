@@ -52,7 +52,7 @@ ceed:
 	make CEED_DIR=$(CEED_DIR) -C ceed all
 
 nek:
-	cd nek5000 && NEK5K_DIR=$(NEK5K_DIR) CEED_DIR=$(CEED_DIR) \
+	cd nek && NEK5K_DIR=$(NEK5K_DIR) CEED_DIR=$(CEED_DIR) \
 		 FC=$(NEK5K_FC) CC=$(NEK5K_CC) MPI=$(MPI) \
 		 ./nek-examples.sh -m -e "$(NEK5K_EXAMPLES)"
 
@@ -66,7 +66,7 @@ ns:
 	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C navier-stokes all
 
 clean:
-	cd nek5000 && ./nek-examples.sh -clean
+	cd nek && ./nek-examples.sh -clean
 	make -C mfem clean
 	make -C petsc clean
 	make -C navier-stokes clean

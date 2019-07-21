@@ -129,11 +129,6 @@ while [ $# -gt 0 ]; do
 done
 
 function make() {
-  # Build dir
-  if [[ ! -d build ]]; then
-    mkdir build
-  fi
-
   # Set flags
   FFLAGS="-g -std=legacy -I${CEED_DIR}/include"
   USR_LFLAGS="-g -L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed"
@@ -144,7 +139,7 @@ function make() {
 
     # BP dir
     if [[ ! -d build/$ex ]]; then
-      mkdir build/$ex
+      mkdir -p build/$ex
     fi
 
     # Copy makenek from NEK5K_DIR/bin/
@@ -279,8 +274,8 @@ function generate_boxes()
       nez=$( echo $xyz | cut -f 3 -d ' ' )
 
       mkdir -p b$i
-      sed "5s/.*/-$nex -$ney -$nez/" ${CEED_DIR}/examples/nek5000/boxes/b.box > b$i/b$i.box
-      cp ${CEED_DIR}/examples/nek5000/boxes/b1e.rea b$i/
+      sed "5s/.*/-$nex -$ney -$nez/" ${CEED_DIR}/examples/nek/boxes/b.box > b$i/b$i.box
+      cp ${CEED_DIR}/examples/nek/boxes/b1e.rea b$i/
 
       cd b$i
       genbb b$i

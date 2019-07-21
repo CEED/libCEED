@@ -1,0 +1,4 @@
+boxes/b[0-9]*/
+build/
+ex*
+obj/
