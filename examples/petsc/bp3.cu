@@ -1,6 +1,6 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// All Rights reserved. See files LICENSE and NOTICE for details.
 //
 // This file is part of CEED, a collection of benchmarks, miniapps, software
 // libraries and APIs for efficient high-order finite element and spectral
@@ -14,12 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-/// @file
-/// libCEED QFunctions for diffusion operator example using PETSc
-
 // *****************************************************************************
-extern "C" __global__ void Setup(void *ctx, CeedInt Q,
-                                 Fields_Cuda fields) {
+extern "C" __global__ void SetupDiff(void *ctx, CeedInt Q,
+                                     Fields_Cuda fields) {
   #ifndef M_PI
   #define M_PI    3.14159265358979323846
   #endif
@@ -79,17 +76,5 @@ extern "C" __global__ void Diff(void *ctx, CeedInt Q,
     vg[i+Q*0] = qd[i+Q*0]*ug0 + qd[i+Q*1]*ug1 + qd[i+Q*2]*ug2;
     vg[i+Q*1] = qd[i+Q*1]*ug0 + qd[i+Q*3]*ug1 + qd[i+Q*4]*ug2;
     vg[i+Q*2] = qd[i+Q*2]*ug0 + qd[i+Q*4]*ug1 + qd[i+Q*5]*ug2;
-  }
-}
-
-extern "C" __global__ void Error(void *ctx, CeedInt Q,
-                                 Fields_Cuda fields) {
-  const CeedScalar *u = (const CeedScalar *)fields.inputs[0];
-  const CeedScalar *target = (const CeedScalar *)fields.inputs[1];
-  CeedScalar *err = fields.outputs[0];
-  for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-       i < Q;
-       i += blockDim.x * gridDim.x) {
-    err[i] = u[i] - target[i];
   }
 }

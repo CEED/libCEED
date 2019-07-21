@@ -21,8 +21,8 @@
 #include <ceed.h>
 
 // *****************************************************************************
-static int Setup(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
+static int SetupDiff(void *ctx, CeedInt Q,
+                     const CeedScalar *const *in, CeedScalar *const *out) {
   #ifndef M_PI
 #define M_PI    3.14159265358979323846
   #endif
@@ -54,11 +54,14 @@ static int Setup(void *ctx, CeedInt Q,
     qd[i+Q*3] = qw * (A21*A21 + A22*A22 + A23*A23);
     qd[i+Q*4] = qw * (A21*A31 + A22*A32 + A23*A33);
     qd[i+Q*5] = qw * (A31*A31 + A32*A32 + A33*A33);
+
     const CeedScalar c[3] = { 0, 1., 2. };
     const CeedScalar k[3] = { 1., 2., 3. };
+
     true_soln[i] = sin(M_PI*(c[0] + k[0]*x[i+Q*0])) *
                    sin(M_PI*(c[1] + k[1]*x[i+Q*1])) *
                    sin(M_PI*(c[2] + k[2]*x[i+Q*2]));
+
     const CeedScalar rho = w[i] * (J11*A11 + J21*A12 + J31*A13);
     rhs[i] = rho * M_PI*M_PI * (k[0]*k[0] + k[1]*k[1] + k[2]*k[2]) *
              true_soln[i];
@@ -77,16 +80,6 @@ static int Diff(void *ctx, CeedInt Q,
     vg[i+Q*0] = qd[i+Q*0]*ug0 + qd[i+Q*1]*ug1 + qd[i+Q*2]*ug2;
     vg[i+Q*1] = qd[i+Q*1]*ug0 + qd[i+Q*3]*ug1 + qd[i+Q*4]*ug2;
     vg[i+Q*2] = qd[i+Q*2]*ug0 + qd[i+Q*4]*ug1 + qd[i+Q*5]*ug2;
-  }
-  return 0;
-}
-
-static int Error(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *u = in[0], *target = in[1];
-  CeedScalar *err = out[0];
-  for (CeedInt i=0; i<Q; i++) {
-    err[i] = u[i] - target[i];
   }
   return 0;
 }

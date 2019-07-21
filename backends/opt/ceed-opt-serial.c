@@ -32,10 +32,9 @@ static int CeedInit_Opt_Serial(const char *resource, Ceed ceed) {
       && strcmp(resource, "/cpu/self/opt/serial"))
     return CeedError(ceed, 1, "Opt backend cannot use resource: %s", resource);
 
-  Ceed ceedref;
-
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
+  Ceed ceedref;
   CeedInit("/cpu/self/ref/serial", &ceedref);
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 

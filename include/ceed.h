@@ -219,6 +219,8 @@ CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr,
 CEED_EXTERN int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr,
     CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
     CeedVector u, CeedVector ru, CeedRequest *request);
+CEED_EXTERN int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
+    CeedVector mult);
 CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *rstr);
 
 // The formalism here is that we have the structure
@@ -298,8 +300,8 @@ CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d,
                                     CeedScalar *qweight1d);
 CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
                                       CeedScalar *qweight1d);
-CEED_EXTERN int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau, CeedInt m,
-                                    CeedInt n);
+CEED_EXTERN int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
+                                    CeedInt m, CeedInt n);
 
 /// Handle for the object describing the user CeedQFunction
 ///

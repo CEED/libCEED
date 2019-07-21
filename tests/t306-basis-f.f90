@@ -13,7 +13,7 @@
       call getarg(1,arg)
 
       call ceedinit(trim(arg)//char(0),ceed,err)
-      call ceedqrfactorization(qr,tau,4,3,err);
+      call ceedqrfactorization(ceed,qr,tau,4,3,err);
       do i=1,12
         if (abs(qr(i))<1.0D-14) then
           qr(i) = 0
