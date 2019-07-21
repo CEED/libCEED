@@ -129,9 +129,12 @@ while [ $# -gt 0 ]; do
 done
 
 function make() {
-  # Copy makenek from NEK5K_DIR/bin/
-  cp $NEK5K_DIR/bin/makenek .
+  # Build dir
+  if [[ ! -d build ]]; then
+    mkdir build
+  fi
 
+  # Set flags
   FFLAGS="-g -std=legacy -I${CEED_DIR}/include"
   USR_LFLAGS="-g -L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed"
 
@@ -139,23 +142,43 @@ function make() {
   for ex in "${nek_examples[@]}"; do
     echo "Building example: $ex ..."
 
-    # makenek appends generated lines in SIZE, which we don't want versioned
-    # So we copy SIZE.in to SIZE and use that with Nek5000. Once copied,
-    # user can reuse the SIZE file until we clean the examples directory.
-    if [[ ! -f SIZE ]]; then
-      cp SIZE.in SIZE
+    # BP dir
+    if [[ ! -d build/$ex ]]; then
+      mkdir build/$ex
     fi
 
+    # Copy makenek from NEK5K_DIR/bin/
+    if [[ ! -f build/$ex/makenek ]]; then
+      cp $NEK5K_DIR/bin/makenek build/$ex/
+    fi
+
+    # Copy BP files
+    cp $ex.* build/$ex/
+
+    # Copy SIZE file
+    if [[ ! -f build/$ex/SIZE ]]; then
+      cp SIZE.in build/$ex/SIZE
+    fi
+
+    # Change to build directory
+    cd build/$ex
+
+    # Attempt build
     CC=$CC FC=$FC MPI=$MPI NEK_SOURCE_ROOT="${NEK5K_DIR}" FFLAGS="$FFLAGS" \
       USR_LFLAGS="$USR_LFLAGS" ./makenek $ex >> $ex.build.log 2>&1
 
+    # Check and report
     if [ ! -f ./nek5000 ]; then
-      echo "  Building $ex failed. See $ex.build.log for details."
+      echo "  Building $ex failed. See build/$ex/$ex.build.log for details."
+      cd ../..
       ${nek_exit_cmd} 1
     elif [ ${nek_verbose} = "true" ]; then
-      mv ./nek5000 $ex
-      echo "  Built $ex successfully. See $ex.build.log for details."
+      mv nek5000 $ex
+      cd ../..
+      mv build/$ex/$ex .
+      echo "  Built $ex successfully. See build/$ex/$ex.build.log for details."
     fi
+
   done
 }
 
@@ -165,13 +188,15 @@ function clean() {
     echo "Cleaning ..."
   fi
 
-  if [ -f ./makenek ]; then
-    printf "y\n" | NEK_SOURCE_ROOT=${NEK5K_DIR} ./makenek clean 2>&1 >> /dev/null
-  fi
-  rm makenek* SESSION.NAME 2> /dev/null
+  # Remove build dir
+  rm -rf build
+
+  # Remove BPs
   for i in `seq 1 6`; do
-    rm -f bp$i bp$i.f bp$i*log* SIZE 2> /dev/null
+    rm -f bp$i 2> /dev/null
   done
+
+  # Clean box dir
   find ${nek_box_dir} -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
 }
 

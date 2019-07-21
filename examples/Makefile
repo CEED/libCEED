@@ -14,6 +14,13 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
+ifeq (,$(filter-out undefined default,$(origin CC)))
+  CC = gcc
+endif
+ifeq (,$(filter-out undefined default,$(origin FC)))
+  FC = gfortran
+endif
+
 CEED_DIR ?= $(abspath ..)
 CEED_FLAGS ?= -I$(CEED_DIR)/include
 CEED_LIBS ?= -Wl,-rpath,$(CEED_DIR)/lib -L$(CEED_DIR)/lib -lceed
@@ -26,8 +33,6 @@ CONFIG_MK ?= $(or $(wildcard $(MFEM_DIR)/config/config.mk),$(wildcard\
 NEK5K_DIR ?= $(abspath ../../Nek5000)
 MPI ?= 1
 ifeq ($(MPI),0)
-  FC ?= gfortran
-  CC ?= gcc
   NEK5K_FC = $(FC)
   NEK5K_CC = $(CC)
 else

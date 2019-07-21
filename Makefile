@@ -38,6 +38,8 @@ ifneq ($(wildcard ../Nek5000/*),)
   NEK5K_DIR ?= $(abspath ../Nek5000)
 endif
 export NEK5K_DIR
+
+# CEED_DIR env for NEK5K testing
 export CEED_DIR = $(abspath .)
 
 # XSMM_DIR env variable should point to XSMM master (github.com/hfp/libxsmm)
@@ -403,12 +405,6 @@ allexamples = $(examples) $(external_examples)
 search ?= t ex
 realsearch = $(search:%=%%)
 matched = $(foreach pattern,$(realsearch),$(filter $(OBJDIR)/$(pattern),$(tests) $(allexamples)))
-# Work around Nek needing serial build
-matched_prereq = $(filter-out $(OBJDIR)/nek%,$(matched))
-
-# Build Nek in serial
-nek-prep : $(matched_prereq)
-	$(if $(findstring nek,$(matched)),$(MAKE) nekexamples -j1 CC=$(CC) FC=$(FC) MPI=$(MPI),)
 
 # Test core libCEED
 test : $(matched:$(OBJDIR)/%=run-%)
@@ -419,7 +415,7 @@ tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
 prove : BACKENDS += $(TEST_BACKENDS)
-prove : $(matched_prereq) nek-prep
+prove : $(matched)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(matched:$(OBJDIR)/%=%)
 # Run prove target in parallel
