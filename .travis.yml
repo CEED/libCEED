@@ -65,10 +65,6 @@ script:
   - export COVERAGE=1
   - make -j2
   - make -j2 prove-all PROVE_OPTS=-v
-  - echo "----BP1----"
-  - cat examples/nek/build/bp1/build.log
-  - echo "----BP3----"
-  - cat examples/nek/build/bp3/build.log
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         clang-tidy --version && make -j2 tidy;
     fi

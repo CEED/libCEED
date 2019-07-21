@@ -39,7 +39,6 @@ else
   NEK5K_FC = mpif77
   NEK5K_CC = mpicc
 endif
-NEK5K_EXAMPLES ?= bp1 bp3
 
 PETSC_DIR ?=
 PETSC_ARCH ?=
@@ -54,7 +53,7 @@ ceed:
 nek:
 	cd nek && NEK5K_DIR=$(NEK5K_DIR) CEED_DIR=$(CEED_DIR) \
 		 FC=$(NEK5K_FC) CC=$(NEK5K_CC) MPI=$(MPI) \
-		 ./nek-examples.sh -m -e "$(NEK5K_EXAMPLES)"
+		 ./nek-examples.sh -m
 
 mfem:
 	make CEED_DIR=$(CEED_DIR) MFEM_DIR=$(MFEM_DIR) -C mfem all

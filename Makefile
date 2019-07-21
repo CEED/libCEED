@@ -367,7 +367,7 @@ $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 $(OBJDIR)/nek-% : examples/nek/%.usr examples/nek/nek-examples.sh $(libceed) | $$(@D)/.DIR
 	$(MAKE) -C examples CC=$(CC) FC=$(FC) MPI=$(MPI) CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" \
 	  NEK5K_EXAMPLES=$* nek
-	mv examples/nek/$* $(OBJDIR)/$*
+	mv examples/nek/build/$* $(OBJDIR)/$*
 	cp examples/nek/nek-examples.sh $(OBJDIR)/nek-$*
 
 $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR

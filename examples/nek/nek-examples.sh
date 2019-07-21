@@ -134,47 +134,43 @@ function make() {
   USR_LFLAGS="-g -L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed"
 
   # Build examples
-  for ex in "${nek_examples[@]}"; do
-    echo "Building example: $ex ..."
+  echo "Building examples:"
 
-    # BP dir
-    if [[ ! -d build/$ex ]]; then
-      mkdir -p build/$ex
-    fi
+  # BP dir
+  if [[ ! -d build ]]; then
+    mkdir build
+  fi
 
-    # Copy makenek from NEK5K_DIR/bin/
-    if [[ ! -f build/$ex/makenek ]]; then
-      cp $NEK5K_DIR/bin/makenek build/$ex/
-    fi
+  # Copy makenek from NEK5K_DIR/bin/
+  if [[ ! -f build/makenek ]]; then
+    cp $NEK5K_DIR/bin/makenek build/
+  fi
 
-    # Copy BP files
-    cp $ex.* build/$ex/
+  # Copy BP files
+  cp bps.* build/
 
-    # Copy SIZE file
-    if [[ ! -f build/$ex/SIZE ]]; then
-      cp SIZE.in build/$ex/SIZE
-    fi
+  # Copy SIZE file
+  if [[ ! -f build/SIZE ]]; then
+    cp SIZE.in build/SIZE
+  fi
 
-    # Change to build directory
-    cd build/$ex
+  # Change to build directory
+  cd build
 
-    # Attempt build
-    CC=$CC FC=$FC MPI=$MPI NEK_SOURCE_ROOT="${NEK5K_DIR}" FFLAGS="$FFLAGS" \
-      USR_LFLAGS="$USR_LFLAGS" ./makenek $ex #>> $ex.build.log 2>&1
+  # Attempt build
+  CC=$CC FC=$FC MPI=$MPI NEK_SOURCE_ROOT="${NEK5K_DIR}" FFLAGS="$FFLAGS" \
+    USR_LFLAGS="$USR_LFLAGS" ./makenek bps >> bps.build.log 2>&1
 
     # Check and report
-    if [ ! -f ./nek5000 ]; then
-      echo "  Building $ex failed. See build/$ex/$ex.build.log for details."
-      cd ../..
-      ${nek_exit_cmd} 1
-    elif [ ${nek_verbose} = "true" ]; then
-      mv nek5000 $ex
-      cd ../..
-      mv build/$ex/$ex .
-      echo "  Built $ex successfully. See build/$ex/$ex.build.log for details."
-    fi
-
-  done
+  if [ ! -f ./nek5000 ]; then
+    echo "  Building examples failed. See build/bps.build.log for details."
+    cd ../..
+    ${nek_exit_cmd} 1
+  elif [ ${nek_verbose} = "true" ]; then
+    mv nek5000 bps
+    cd ../
+    echo "  Built examples successfully. See build/bps.build.log for details."
+  fi
 }
 
 # Function to clean
@@ -183,13 +179,18 @@ function clean() {
     echo "Cleaning ..."
   fi
 
+  # Run clean
+  if [[ -f ./build/makenek ]]; then
+    cd build
+    printf "y\n" | NEK_SOURCE_ROOT=${NEK5K_DIR} ./makenek clean 2>&1 >> /dev/null
+    cd ..
+  fi
+
   # Remove build dir
   rm -rf build
 
   # Remove BPs
-  for i in `seq 1 6`; do
-    rm -f bp$i 2> /dev/null
-  done
+  rm -f bps  *log* SESSION.NAME 2> /dev/null
 
   # Clean box dir
   find ${nek_box_dir} -type d -regex ".*/b[0-9]+" -exec rm -rf "{}" \; 2>/dev/null
@@ -294,10 +295,14 @@ function run() {
     if [ ${nek_verbose} = "true" ]; then
       echo "Running Nek5000 Example: $nek_ex"
     fi
-    if [ ! -f ${nek_ex} ]; then
-      echo "  Example ${nek_ex} does not exist. Build it with nek-examples.sh -m -e \"${nek_ex}\""
+
+    # Check for build
+    if [ ! -f $bps ]; then
+      echo "  Examples file does not exist. Build it with nek-examples.sh -m"
       ${nek_exit_cmd} 1
     fi
+
+    # Generate boxes, if needed
     if [ ! -f ${nek_box_dir}/b${nek_box}/b${nek_box}.rea ] || \
   	 [ ! -f ${nek_box_dir}/b${nek_box}/b${nek_box}.map ]; then
        if [ -z ${nek_box} ]; then
@@ -306,30 +311,35 @@ function run() {
       generate_boxes ${nek_box} ${nek_box}
     fi
 
+    # Get CEED spec
+    nek_spec_short=${nek_spec//[\/]}
+
+    # Logging
     echo b${nek_box}                              > SESSION.NAME
     echo `cd ${nek_box_dir}/b${nek_box}; pwd`'/' >> SESSION.NAME
     rm -f logfile
     rm -f ioinfo
-    mv ${nek_ex}.log.${nek_np}.b${nek_box} ${nek_ex}.log1.${nek_np}.b${nek_box} 2>/dev/null
+    mv ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box} ${nek_ex}.${nek_spec_short}.log1.${nek_np}.b${nek_box} 2>/dev/null
 
-    nek_spec_short=${nek_spec//[\/]}
-
+    # Run example
     if [ ${nek_mpi} = "false" ]; then
-        ./${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}
+        ./build/bps ${nek_ex} ${nek_spec} ${nek_test} > ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}
       wait $!
     else
-      ${MPIEXEC:-mpiexec} -np ${nek_np} ./${nek_ex} ${nek_spec} ${nek_test} > \
+      ${MPIEXEC:-mpiexec} -np ${nek_np} ./build/bps ${nek_ex} ${nek_spec} ${nek_test} > \
         ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}
       wait $!
     fi
 
+    # Log output location
     if [ ${nek_verbose} = "true" ]; then
       echo "  Run finished. Output was written to ${nek_ex}.${nek_spec_short}.log.${nek_np}.b${nek_box}"
     fi
 
+    # Check error
     if [ $(grep "ERROR IS TOO LARGE" ${nek_ex}.${nek_spec_short}.log*) ]; then
       nek_test_rst="FAIL"
-    else
+    elif [ ${nek_verbose} != "true" ]; then # Cleanup if test mode
       rm -f ${nek_ex}.${nek_spec_short}.log*
     fi
   done
