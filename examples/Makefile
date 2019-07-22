@@ -39,8 +39,11 @@ ceed:
 mfem:
 	make CEED_DIR=$(CEED_DIR) MFEM_DIR=$(MFEM_DIR) -C mfem all
 
+# Note: Multiple Nek files cannot be built in parallel. The '+' here enables
+#       this single Nek bps file to be built in parallel with other examples,
+#       such as when calling `make prove-all -j2` for the top level Makefile.
 nek:
-	make CEED_DIR=$(CEED_DIR) NEK5K_DIR=$(NEK5K_DIR) MPI=$(MPI) -C nek bps
+	+make CEED_DIR=$(CEED_DIR) NEK5K_DIR=$(NEK5K_DIR) MPI=$(MPI) -C nek bps
 
 petsc:
 	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C petsc all
