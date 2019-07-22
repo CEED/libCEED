@@ -15,8 +15,8 @@ C software, applications, hardware, advanced system engineering and early
 C testbed platforms, in support of the nation's exascale computing imperative.
 
 C> @file
-C> Mass operator example using Nek5000
-C TESTARGS -c {ceed_resource} -e bp1 -n 1 -b 6 -test
+C> Mass and diffusion operators examples using Nek5000
+C TESTARGS -c {ceed_resource} -e bp1 -n 1 -b 4 -test
 
 C-----------------------------------------------------------------------
       subroutine masssetupf(ctx,q,u1,u2,u3,u4,u5,u6,u7,
@@ -678,7 +678,17 @@ C-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
 
-      if (istep.gt.0) call bp1
+      integer bp
+
+      call get_bp(bp)
+
+      if (bp==1) then
+        if (istep.gt.0) call bp1
+      elseif (bp==3) then
+        if (istep.gt.0) call bp3
+      else
+        write(6,*) "INVALID BP SPECIFICED"
+      endif
 
       return
       end
@@ -915,7 +925,7 @@ C     Output
         if (maxit>=100) then
           write(6,*) "UNCONVERGED CG"
         endif
-        if (dabs(er1)>1e-4) then
+        if (dabs(er1)>1e-5) then
           write(6,*) "ERROR IS TOO LARGE"
         endif
       endif
@@ -950,7 +960,7 @@ C     Output
         if (maxit>=100) then
           write(6,*) "UNCONVERGED CG"
         endif
-        if (dabs(er1)>1e-4) then
+        if (dabs(er1)>1e-5) then
           write(6,*) "ERROR IS TOO LARGE"
         endif
       endif
@@ -1199,7 +1209,7 @@ C     Output
         if (maxit>=100) then
           write(6,*) "UNCONVERGED CG"
         endif
-        if (dabs(er1)>1e-4) then
+        if (dabs(er1)>1e-3) then
           write(6,*) "ERROR IS TOO LARGE"
         endif
       endif
@@ -1234,7 +1244,7 @@ C     Output
         if (maxit>=100) then
           write(6,*) "UNCONVERGED CG"
         endif
-        if (dabs(er1)>1e-4) then
+        if (dabs(er1)>1e-9) then
           write(6,*) "ERROR IS TOO LARGE"
         endif
       endif
@@ -1269,7 +1279,7 @@ C     Output
         if (maxit>=100) then
           write(6,*) "UNCONVERGED CG"
         endif
-        if (dabs(er1)>1e-4) then
+        if (dabs(er1)>1e-9) then
           write(6,*) "ERROR IS TOO LARGE"
         endif
       endif
@@ -1621,6 +1631,25 @@ C     Input: pap,p1,h1,h2,bpname    Output: ap1
       return
       end
 C-----------------------------------------------------------------------
+      subroutine get_bp(bp)
+C     Get BP to run
+C     Input:                        Output: bp
+      integer i,bp
+      character*64 bpval
+
+      bp=0
+      if(iargc().ge.1) then
+        call getarg(1,bpval)
+      endif
+      if(bpval.eq."bp1") then
+        bp=1
+      elseif(bpval.eq."bp3") then
+        bp=3
+      endif
+
+      return
+      end
+C-----------------------------------------------------------------------
       subroutine get_spec(spec)
 C     Get CEED backend specification
 C     Input:                        Output: spec
@@ -1628,8 +1657,8 @@ C     Input:                        Output: spec
       character*64 spec
 
       spec = '/cpu/self'
-      if(iargc().ge.1) then
-        call getarg(1,spec)
+      if(iargc().ge.2) then
+        call getarg(2,spec)
       endif
 
       return
@@ -1642,8 +1671,8 @@ C     Input:                        Output: test
       character*64 testval
 
       test=0
-      if(iargc().ge.2) then
-        call getarg(2,testval)
+      if(iargc().ge.3) then
+        call getarg(3,testval)
       endif
       if(testval.eq."test") then
         test=1

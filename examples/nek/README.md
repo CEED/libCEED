@@ -11,20 +11,7 @@ For example, you could set
 ```
 if that is where it is located.
 
-### Generate meshes (boxes)
-
-You can generate box geometries using `generate-boxes.sh` script:
-```sh
-  ./generate-boxes.sh log_2(<min_elem>) log_2(<max_elem>)."
-```
-For example:
-```sh
-  ./generate-boxes.sh 2 4
-```
-will generate three boxes with 4(=2^2), 8 and 16(=2^4) elements inside the
-`boxes/b*` directories.
-
-The `generate-boxes.sh` script depends on the Nek5000 tools: `genbox`, `genmap`,
+The Nek5000 examples depend on the Nek5000 tools: `genbox`, `genmap`,
 and `reatore2`. They can be built using
 ```sh
    ( cd $NEK5K_DIR/tools && ./maketools genbox genmap reatore2 )
@@ -33,18 +20,28 @@ See also the [Nek5000 documentation](https://nek5000.mcs.anl.gov/getstarted/).
 
 ### Building the Nek5000 examples
 
-You can build the Nek5000 libCEED examples by invoking `make-nek-examples.sh` script.
+You can build the Nek5000 libCEED examples with the command `make bps`.
+
+You can also build the Nek5000 libCEED examples by invoking `nek-examples.sh` script.
 ```sh
-  ./make-nek-examples.sh
+  ./nek-examples.sh -m
 ```
+
+By default, the examples are built with MPI. To build the examples without MPI,
+set the environment variable `MPI=0`.
+
+Note: Nek5000 examples must be built sequentially. Due to the Nek5000 build
+process, multiple examples cannot be built in parallel. At present, there is
+only one Nek5000 example file to build, which handles both CEED BP 1 and
+CEED BP 3.
 
 ### Running Nek5000 examples
 
-You can run the Nek5000 libCEED examples by invoking `run-nek-examples.sh`
+You can run the Nek5000 libCEED examples by invoking `nek-examples.sh`
 script. The syntax is:
 ```sh
-  ./run-nek-example.sh -c <ceed_backend> -e <example_name> \
-                                            -n <mpi_ranks> -b <box_geometry>
+  ./nek-examples.sh -c <ceed_backend> -e <example_name> \
+                   -n <mpi_ranks> -b <box_geometry>
 ```
 The different options that can be used for the script are listed below:
 ```
@@ -52,8 +49,11 @@ options:
    -h|-help     Print this usage information and exit
    -c|-ceed     Ceed backend to be used for the run (optional, default: /cpu/self)
    -e|-example  Example name (optional, default: bp1)
-   -n|-np       Specify number of MPI ranks for the run (optional, default: 4)
-   -b|-box      Specify the box geometry to be found in ./boxes/ directory (Mandatory)
+   -n|-np       Specify number of MPI ranks for the run (optional, default: 1)
+   -t|-test     Run in test mode (not on by default)
+   -b|-box      Box case in boxes sub-directory found along with this script (default: 2x2x2)
+   -clean       clean the examples directory
+   -m|-make     Make the examples
 ```
 The only mandatory argument is `-b` or `-box` which sets the box geometry to be
 used. This geometry should be found in `./boxes` directory.

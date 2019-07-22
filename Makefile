@@ -37,8 +37,13 @@ endif
 
 # NEK5K_DIR env variable should point to sibling directory
 ifneq ($(wildcard ../Nek5000/*),)
-  NEK5K_DIR ?= ../Nek5000
+  NEK5K_DIR ?= $(abspath ../Nek5000)
 endif
+export NEK5K_DIR
+MPI ?= 1
+
+# CEED_DIR env for NEK5K testing
+export CEED_DIR = $(abspath .)
 
 # XSMM_DIR env variable should point to XSMM master (github.com/hfp/libxsmm)
 XSMM_DIR ?= ../libxsmm
@@ -126,25 +131,24 @@ tests.f   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f90))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 ctests    := $(tests)
 tests     += $(tests.f:tests/%.f90=$(OBJDIR)/%)
-#examples
+# Examples
 examples.c := $(sort $(wildcard examples/ceed/*.c))
 examples.f := $(sort $(wildcard examples/ceed/*.f))
 examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%)
 examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
-#mfemexamples
+# MFEM Examples
 mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
 mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
-#nekexamples
-nekexamples.usr := $(sort $(wildcard examples/nek5000/*.usr))
-nekexamples  := $(nekexamples.usr:examples/nek5000/%.usr=$(OBJDIR)/nek-%)
-#petscexamples
+# Nek5K Examples
+nekexamples  := $(OBJDIR)/nek-bps
+# PETSc Examples
 petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
 petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
-#navierstokesexample
+# Navier-Stokes Example
 navierstokesexample.c := $(sort $(wildcard examples/navier-stokes/*.c))
 navierstokesexample  := $(navierstokesexample.c:examples/navier-stokes/%.c=$(OBJDIR)/navier-stokes-%)
 
-# backends/[ref, blocked, template, memcheck, opt, avx, occa, magma]
+# Backends/[ref, blocked, template, memcheck, opt, avx, occa, magma]
 ref.c          := $(sort $(wildcard backends/ref/*.c))
 blocked.c      := $(sort $(wildcard backends/blocked/*.c))
 template.c     := $(sort $(wildcard backends/template/*.c))
@@ -293,7 +297,7 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   BACKENDS += /cpu/occa /gpu/occa /omp/occa
 endif
 
-# Cuda Backend
+# CUDA Backends
 CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
 CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
@@ -328,7 +332,7 @@ endif
 
 export BACKENDS
 
-# generate magma_tmp.c and magma_cuda.cu from magma.c
+# Generate magma_tmp.c and magma_cuda.cu from magma.c
 %_tmp.c %_cuda.cu : %.c
 	$(magma_preprocessor) $<
 
@@ -359,6 +363,14 @@ $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	+$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
 	  MFEM_DIR="$(abspath $(MFEM_DIR))" $*
 	mv examples/mfem/$* $@
+
+# Note: Multiple Nek files cannot be built in parallel. The '+' here enables
+#       this single Nek bps file to be built in parallel with other examples,
+#       such as when calling `make prove-all -j2`.
+$(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh $(libceed) | $$(@D)/.DIR
+	+$(MAKE) -C examples MPI=$(MPI) CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" nek
+	mv examples/nek/build/bps $(OBJDIR)/bps
+	cp examples/nek/nek-examples.sh $(OBJDIR)/nek-bps
 
 $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(MAKE) -C examples/petsc CEED_DIR=`pwd` \
@@ -400,26 +412,21 @@ allexamples = $(examples) $(external_examples)
 search ?= t ex
 realsearch = $(search:%=%%)
 matched = $(foreach pattern,$(realsearch),$(filter $(OBJDIR)/$(pattern),$(tests) $(allexamples)))
-# Work around Nek examples not having normal targets
-matched_prereq = $(filter-out $(OBJDIR)/nek%,$(matched)) $(if $(findstring nek,$(matched)),prepnektests)
 
 # Test core libCEED
 test : $(matched:$(OBJDIR)/%=run-%)
 
-# run test target in parallel
+# Run test target in parallel
 tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
 # CPU C tests only for backend %
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
 prove : BACKENDS += $(TEST_BACKENDS)
-prove : $(matched_prereq)
+prove : $(matched)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(matched:$(OBJDIR)/%=%)
-# run prove target in parallel
+# Run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
-
-prepnektests:
-	(export CC FC && cd examples && make prepnektests)
 
 prove-all :
 	+$(MAKE) prove realsearch=%
@@ -433,6 +440,10 @@ junit : $(matched:$(OBJDIR)/%=junit-%)
 all: $(alltests)
 
 examples : $(allexamples)
+ceedexamples : $(examples)
+nekexamples : $(nekexamples)
+mfemexamples : $(mfemexamples)
+petscexamples : $(petscexamples)
 
 # Benchmarks
 allbenchmarks = petsc-bps
@@ -470,7 +481,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR)
-	$(MAKE) -C examples clean
+	$(MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
 	$(RM) benchmarks/*output.txt
 

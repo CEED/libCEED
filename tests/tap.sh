@@ -25,7 +25,7 @@ if [ ${1::6} == "petsc-" ]; then
 elif [ ${1::5} == "mfem-" ]; then
     args=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
 elif [ ${1::4} == "nek-" ]; then
-    args=$(grep -F "C TESTARGS" examples/nek5000/${1:4}.usr* | cut -d\  -f2- )
+    args=$(grep -F "C TESTARGS" examples/nek/bps/${1:4}.usr* | cut -d\  -f3- )
 elif [ ${1::2} == "ex" ]; then
     args=$(grep -F //TESTARGS examples/ceed/$1.c | cut -d\  -f2- )
 else

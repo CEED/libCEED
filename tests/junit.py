@@ -20,7 +20,7 @@ def get_source(test):
     elif test.startswith('mfem-'):
         return os.path.join('examples', 'mfem', test[5:] + '.cpp')
     elif test.startswith('nek-'):
-        return os.path.join('examples', 'nek5000', test[4:] + '.usr')
+        return os.path.join('examples', 'nek', 'bps', test[4:] + '.usr')
     elif test.startswith('ex'):
         return os.path.join('examples', 'ceed', test + '.c')
 

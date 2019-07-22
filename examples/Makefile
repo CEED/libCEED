@@ -24,9 +24,7 @@ CONFIG_MK ?= $(or $(wildcard $(MFEM_DIR)/config/config.mk),$(wildcard\
   $(MFEM_DIR)/share/mfem/config.mk),invalid_mfem_dir)
 
 NEK5K_DIR ?= $(abspath ../../Nek5000)
-NEK5K_FC = $(if $(findstring mpi,$(FC)),$(FC),mpif77)
-NEK5K_CC = $(if $(findstring mpi,$(CC)),$(FC),mpicc)
-NEK5K_EXAMPLES ?= bp1
+MPI ?= 1
 
 PETSC_DIR ?=
 PETSC_ARCH ?=
@@ -38,16 +36,14 @@ all: ceed nek ns mfem petsc ceed
 ceed:
 	make CEED_DIR=$(CEED_DIR) -C ceed all
 
-nek:
-	cd nek5000 && NEK5K_DIR=$(NEK5K_DIR) CEED_DIR=$(CEED_DIR) \
-		 FC=$(NEK5K_FC) CC=$(NEK5K_CC) \
-		 EXAMPLES=$(NEK5K_EXAMPLES) ./make-nek-examples.sh
-
-prepnektests:
-	cd nek5000 && NEK5K_DIR=$(NEK5K_DIR) ./make-nek-tests.sh
-
 mfem:
 	make CEED_DIR=$(CEED_DIR) MFEM_DIR=$(MFEM_DIR) -C mfem all
+
+# Note: Multiple Nek files cannot be built in parallel. The '+' here enables
+#       this single Nek bps file to be built in parallel with other examples,
+#       such as when calling `make prove-all -j2` for the top level Makefile.
+nek:
+	+make CEED_DIR=$(CEED_DIR) NEK5K_DIR=$(NEK5K_DIR) MPI=$(MPI) -C nek bps
 
 petsc:
 	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C petsc all
@@ -56,7 +52,7 @@ ns:
 	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C navier-stokes all
 
 clean:
-	cd nek5000 && ./make-nek-examples.sh clean
+	make -C nek clean
 	make -C mfem clean
 	make -C petsc clean
 	make -C navier-stokes clean
