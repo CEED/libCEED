@@ -152,27 +152,31 @@ cd ../..
 cd examples/mfem
 make
 ./bp1 -ceed /cpu/self -no-vis
-./bp1 -ceed /gpu/occa -no-vis
+./bp3 -ceed /gpu/occa -no-vis
+cd ../..
+
+# Nek5000+libCEED examples on CPU and GPU
+cd examples/nek
+make
+./nek-examples.sh -e bp1 -ceed /cpu/self -b 3
+./nek-examples.sh -e bp3 -ceed /gpu/occa -b 3
 cd ../..
 
 # PETSc+libCEED examples on CPU and GPU
-cd petsc
+cd examples/petsc
 make
 ./bps -problem bp1 -ceed /cpu/self
-./bps -problem bp1 -ceed /gpu/occa
+./bps -problem bp2 -ceed /gpu/occa
+./bps -problem bp3 -ceed /cpu/self
+./bps -problem bp4 -ceed /gpu/occa
+./bps -problem bp5 -ceed /cpu/self
+./bps -problem bp6 -ceed /gpu/occa
 cd ../..
 
-cd navier-stokes
+cd examples/navier-stokes
 make
 ./navierstokes -ceed /cpu/self
 ./navierstokes -ceed /gpu/occa
-cd ../..
-
-# Nek+libCEED examples on CPU and GPU
-cd examples/nek5000
-./make-nek-examples.sh
-./run-nek-example.sh -ceed /cpu/self -b 3
-./run-nek-example.sh -ceed /gpu/occa -b 3
 cd ../..
 ```
 
