@@ -59,6 +59,7 @@ nek_box=
 nek_clean="false"
 nek_make="false"
 nek_run="true"
+nek_test="notest"
 # Won't work if there is a symlink.
 nek_box_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/boxes"
 
@@ -88,7 +89,6 @@ Example:
 
 nek_verbose="true"
 nek_mpi="true"
-nek_test_rst="PASS"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -115,6 +115,7 @@ while [ $# -gt 0 ]; do
     -t|-test)
        nek_verbose="false"
        nek_mpi="false"
+       nek_test="test"
        ;;
     -clean)
       nek_clean="true"
@@ -337,8 +338,9 @@ function run() {
     fi
 
     # Check error
-    if [ $(grep "ERROR IS TOO LARGE" ${nek_ex}.${nek_spec_short}.log*) ]; then
-      nek_test_rst="FAIL"
+    if [[ $(grep 'ERROR IS TOO LARGE' ${nek_ex}.${nek_spec_short}.log*) ]]; then
+      echo "ERROR IS TOO LARGE"
+      ${nek_exit_cmd} 1
     elif [ ${nek_verbose} != "true" ]; then # Cleanup if test mode
       rm -f ${nek_ex}.${nek_spec_short}.log*
     fi

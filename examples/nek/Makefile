@@ -14,22 +14,19 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-ifeq (,$(filter-out undefined default,$(origin CC)))
-  CC = gcc
-endif
-ifeq (,$(filter-out undefined default,$(origin FC)))
-  FC = gfortran
-endif
-
 NEK5K_DIR ?= $(abspath ../../../Nek5000)
 MPI ?= 1
 
 ifeq ($(MPI),0)
-  NEK5K_FC = $(FC)
-  NEK5K_CC = $(CC)
+  ifeq (,$(filter-out undefined default,$(origin CC)))
+    CC = gcc
+  endif
+  ifeq (,$(filter-out undefined default,$(origin FC)))
+    FC = gfortran
+  endif
 else
-  NEK5K_FC = mpif77
-  NEK5K_CC = mpicc
+  FC = mpif77
+  CC = mpicc
 endif
 
 CEED_DIR ?= $(abspath ../..)
@@ -41,7 +38,7 @@ CEED_LIBS ?= -Wl,-rpath,$(CEED_DIR)/lib -L$(CEED_DIR)/lib -lceed
 all: bps
 
 bps: bps/bps.usr
-	FC=$(FC) CC=$(CC) NEK5K_FC=$(NEK5K_FC) NEK5K_CC=$(NEK5K_CC) MPI=$(MPI) NEK5K_DIR=$(NEK5K_DIR) CEED_DIR=$(CEED_DIR) && ./nek-examples.sh -m
+	FC=$(FC) CC=$(CC) MPI=$(MPI) NEK5K_DIR=$(NEK5K_DIR) CEED_DIR=$(CEED_DIR) && ./nek-examples.sh -m
 
 clean:
 	NEK5K_DIR=$(NEK5K_DIR) && ./nek-examples.sh -clean

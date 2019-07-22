@@ -368,7 +368,7 @@ $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 #       this single Nek bps file to be built in parallel with other examples,
 #       such as when calling `make prove-all -j2`.
 $(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh $(libceed) | $$(@D)/.DIR
-	+$(MAKE) -C examples CC=$(CC) FC=$(FC) MPI=$(MPI) CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" nek
+	+$(MAKE) -C examples MPI=$(MPI) CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" nek
 	mv examples/nek/build/bps $(OBJDIR)/bps
 	cp examples/nek/nek-examples.sh $(OBJDIR)/nek-bps
 
