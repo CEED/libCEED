@@ -147,7 +147,7 @@ function make() {
   fi
 
   # Copy BP files
-  cp bps.* build/
+  cp bps/bps.* build/
 
   # Copy SIZE file
   if [[ ! -f build/SIZE ]]; then

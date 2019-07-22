@@ -14,42 +14,34 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-CEED_DIR ?= $(abspath ..)
+ifeq (,$(filter-out undefined default,$(origin CC)))
+  CC = gcc
+endif
+ifeq (,$(filter-out undefined default,$(origin FC)))
+  FC = gfortran
+endif
+
+NEK5K_DIR ?= $(abspath ../../../Nek5000)
+MPI ?= 1
+
+ifeq ($(MPI),0)
+  NEK5K_FC = $(FC)
+  NEK5K_CC = $(CC)
+else
+  NEK5K_FC = mpif77
+  NEK5K_CC = mpicc
+endif
+
+CEED_DIR ?= $(abspath ../..)
 CEED_FLAGS ?= -I$(CEED_DIR)/include
 CEED_LIBS ?= -Wl,-rpath,$(CEED_DIR)/lib -L$(CEED_DIR)/lib -lceed
 
-# Use an MFEM build directory or an MFEM install directory
-MFEM_DIR ?= $(abspath ../../mfem)
-CONFIG_MK ?= $(or $(wildcard $(MFEM_DIR)/config/config.mk),$(wildcard\
-  $(MFEM_DIR)/share/mfem/config.mk),invalid_mfem_dir)
+.PHONY: all bps clean
 
-NEK5K_DIR ?= $(abspath ../../Nek5000)
-MPI ?= 1
+all: bps
 
-PETSC_DIR ?=
-PETSC_ARCH ?=
-
-.PHONY: all nek ns mfem petsc ceed clean
-
-all: ceed nek ns mfem petsc ceed
-
-ceed:
-	make CEED_DIR=$(CEED_DIR) -C ceed all
-
-mfem:
-	make CEED_DIR=$(CEED_DIR) MFEM_DIR=$(MFEM_DIR) -C mfem all
-
-nek:
-	make CEED_DIR=$(CEED_DIR) NEK5K_DIR=$(NEK5K_DIR) MPI=$(MPI) -C nek bps
-
-petsc:
-	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C petsc all
-
-ns:
-	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C navier-stokes all
+bps: bps/bps.usr
+	FC=$(FC) CC=$(CC) NEK5K_FC=$(NEK5K_FC) NEK5K_CC=$(NEK5K_CC) MPI=$(MPI) NEK5K_DIR=$(NEK5K_DIR) CEED_DIR=$(CEED_DIR) && ./nek-examples.sh -m
 
 clean:
-	make -C nek clean
-	make -C mfem clean
-	make -C petsc clean
-	make -C navier-stokes clean
+	NEK5K_DIR=$(NEK5K_DIR) && ./nek-examples.sh -clean
