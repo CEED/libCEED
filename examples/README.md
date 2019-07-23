@@ -80,21 +80,21 @@ cd ceed
 make
 ./ex1 -ceed /cpu/self
 ./ex1 -ceed /gpu/occa
-cd ../..
+cd ..
 
 # MFEM+libCEED examples on CPU and GPU
 cd mfem
 make
 ./bp1 -ceed /cpu/self -no-vis
 ./bp3 -ceed /gpu/occa -no-vis
-cd ../..
+cd ..
 
 # Nek5000+libCEED examples on CPU and GPU
 cd nek
 make
 ./nek-examples.sh -e bp1 -ceed /cpu/self -b 3
 ./nek-examples.sh -e bp3 -ceed /gpu/occa -b 3
-cd ../..
+cd ..
 
 # PETSc+libCEED examples on CPU and GPU
 cd petsc
@@ -105,13 +105,13 @@ make
 ./bps -problem bp4 -ceed /gpu/occa
 ./bps -problem bp5 -ceed /cpu/self
 ./bps -problem bp6 -ceed /gpu/occa
-cd ../..
+cd ..
 
 cd navier-stokes
 make
 ./navierstokes -ceed /cpu/self
 ./navierstokes -ceed /gpu/occa
-cd ../..
+cd ..
 ```
 
 The above code assumes a GPU-capable machine with the OCCA backend 
