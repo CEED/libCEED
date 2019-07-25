@@ -136,6 +136,12 @@ CEED_INTERN int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel, const i
                                            const int blockSizeZ, const int sharedMemSize,
                                            void **args);
 
+CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
+                                      const int gridSize,
+                                      const int blockSizeX, const int blockSizeY,
+                                      const int blockSizeZ, const int sharedMemSize,
+                                      void **args);
+
 CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,

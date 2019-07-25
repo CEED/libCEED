@@ -19,8 +19,14 @@
 ifeq (,$(filter-out undefined default,$(origin CC)))
   CC = gcc
 endif
+ifeq (,$(filter-out undefined default,$(origin CXX)))
+  CXX = g++
+endif
 ifeq (,$(filter-out undefined default,$(origin FC)))
   FC = gfortran
+endif
+ifeq (,$(filter-out undefined default,$(origin LINK)))
+  LINK = $(CC)
 endif
 NVCC ?= $(CUDA_DIR)/bin/nvcc
 
@@ -68,6 +74,7 @@ AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 OPT    = -O -g -march=native -ffp-contract=fast -fopenmp-simd
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
+CXXFLAGS = $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 NVCCFLAGS = -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
@@ -162,6 +169,9 @@ cuda-reg.c     := $(sort $(wildcard backends/cuda-reg/*.c))
 cuda-reg.cu    := $(sort $(wildcard backends/cuda-reg/*.cu))
 cuda-shared.c  := $(sort $(wildcard backends/cuda-shared/*.c))
 cuda-shared.cu := $(sort $(wildcard backends/cuda-shared/*.cu))
+cuda-gen.c     := $(sort $(wildcard backends/cuda-gen/*.c))
+cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
+cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/*.cu))
 occa.c         := $(sort $(wildcard backends/occa/*.c))
 magma_preprocessor := python backends/magma/gccm.py
 magma_pre_src  := $(filter-out %_tmp.c, $(wildcard backends/magma/ceed-*.c))
@@ -208,9 +218,11 @@ backend_status = $(if $(filter $1,$(BACKENDS)), [backends: $1], [not found])
 info:
 	$(info ------------------------------------)
 	$(info CC            = $(CC))
+	$(info CXX           = $(CXX))
 	$(info FC            = $(FC))
 	$(info CPPFLAGS      = $(CPPFLAGS))
 	$(info CFLAGS        = $(value CFLAGS))
+	$(info CXXFLAGS      = $(value CXXFLAGS))
 	$(info FFLAGS        = $(value FFLAGS))
 	$(info NVCCFLAGS     = $(value NVCCFLAGS))
 	$(info LDFLAGS       = $(value LDFLAGS))
@@ -301,14 +313,16 @@ endif
 CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
 CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
-CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg /gpu/cuda/shared
+CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
+  $(libceeds) : CFLAGS += -I$(CUDA_DIR)/include
   $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
-  $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR_STUBS)
   $(libceeds) : LDLIBS += -lcudart -lnvrtc -lcuda
-  libceed.c  += $(cuda.c) $(cuda-reg.c) $(cuda-shared.c)
-  libceed.cu += $(cuda.cu) $(cuda-reg.cu) $(cuda-shared.cu)
+  $(libceeds) : LINK = $(CXX)
+  libceed.c   += $(cuda.c) $(cuda-reg.c) $(cuda-shared.c) $(cuda-gen.c)
+  libceed.cpp += $(cuda-gen.cpp)
+  libceed.cu  += $(cuda.cu) $(cuda-reg.cu) $(cuda-shared.cu) $(cuda-gen.cu)
   BACKENDS += $(CUDA_BACKENDS)
 endif
 
@@ -336,13 +350,16 @@ export BACKENDS
 %_tmp.c %_cuda.cu : %.c
 	$(magma_preprocessor) $<
 
-libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o)
+libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o)
 $(libceed.o): | info-backends
 $(libceed) : $(libceed.o) | $$(@D)/.DIR
-	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
+	$(call quiet,LINK) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
+
+$(OBJDIR)/%.o : $(CURDIR)/%.cpp | $$(@D)/.DIR
+	$(call quiet,CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 	$(call quiet,NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $(abspath $<)
@@ -384,7 +401,7 @@ $(OBJDIR)/navier-stokes-% : examples/navier-stokes/%.c $(libceed) $(ceed.pc) | $
 
 libceed_test.o = $(test_backends.c:%.c=$(OBJDIR)/%.o)
 $(libceed_test) : $(libceed.o) $(libceed_test.o) | $$(@D)/.DIR
-	$(call quiet,CC) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
+	$(call quiet,LINK) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 $(examples) : $(libceed)
 $(tests) : $(libceed_test)
