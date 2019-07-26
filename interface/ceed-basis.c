@@ -651,7 +651,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
 
   // Reduce sub and super diagonal
   CeedInt p = 0, q = 0, itr = 0, maxitr = n*n*n;
-  CeedScalar tol = 1e-12;
+  CeedScalar tol = 1e-15;
 
   while (q < n && itr < maxitr) {
     // Update p, q, size of reduced portions of diagonal
