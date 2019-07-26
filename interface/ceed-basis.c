@@ -645,7 +645,8 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
       v[j] = matT[i+n*(j+1)];
       matT[i+n*(j+1)] = 0;
     }
-    CeedHouseholderReflect(&mat[(i+1)+n*(i+1)], &v[i], tau[i], n-(i+1), n-(i+1), n, 1);
+    CeedHouseholderReflect(&mat[(i+1)+n*(i+1)], &v[i], tau[i],
+                           n-(i+1), n-(i+1), n, 1);
   }
 
   // Reduce sub and super diagonal
@@ -673,8 +674,8 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
     CeedScalar tnn = matT[(n-1-q)+n*(n-1-q)],
                tnnm1 = matT[(n-2-q)+n*(n-1-q)];
     CeedScalar d = (matT[(n-2-q)+n*(n-2-q)] - tnn)/2;
-    CeedScalar root = sqrt(d*d + tnnm1*tnnm1);
-    CeedScalar mu = tnn - tnnm1*tnnm1 / (d + copysign(root, d));
+    CeedScalar mu = tnn - tnnm1*tnnm1 /
+                      (d + copysign(sqrt(d*d + tnnm1*tnnm1), d));
     CeedScalar x = matT[p+n*p] - mu;
     CeedScalar z = matT[p+n*(p+1)];
     for (CeedInt k=p; k<n-1-q; k++) {
@@ -695,7 +696,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
       CeedGivensRotation(matT, c, s, CEED_TRANSPOSE, k, k+1, n, n);
 
       // Apply Givens rotation to Q
-      CeedGivensRotation(mat, c, s, CEED_TRANSPOSE, k, k+1, n, n);
+      CeedGivensRotation(mat, c, s, CEED_NOTRANSPOSE, k, k+1, n, n);
 
       // Update x, z
       if (k < n-q-2) {
@@ -705,7 +706,6 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
     }
     itr++;
   }
-
   // Save eigenvalues
   for (CeedInt i=0; i<n; i++)
     lambda[i] = matT[i+n*i];
@@ -716,6 +716,33 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
 
   return 0;
 }
+
+/**
+  @brief Return C = A B
+
+  @param[in] matA     Row-major matrix A
+  @param[in] matB     Row-major matrix B
+  @param[out] matC    Row-major output matrix C
+  @param m            Number of rows of C
+  @param n            Number of columns of C
+  @param kk           Number of columns of A/rows of B
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedMatrixMultiply(Ceed ceed, CeedScalar *matA, CeedScalar *matB,
+                       CeedScalar *matC, CeedInt m, CeedInt n, CeedInt kk) {
+  for (CeedInt i=0; i<m; i++)
+    for (CeedInt j=0; j<n; j++) {
+      CeedScalar sum = 0;
+      for (CeedInt k=0; k<kk; k++)
+        sum += matA[k+i*kk]*matB[j+k*n];
+      matC[j+i*n] = sum;
+    }
+  return 0;
+}
+
 /**
   @brief Return Simultaneous Diagonalization of two matrices. This solves the
            generalized eigenvalue problem A x = lambda B x, where A and B
@@ -735,7 +762,33 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
 int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *matA,
                                     CeedScalar *matB, CeedScalar *x,
                                     CeedScalar *lambda, CeedInt n) {
-  return CeedError(ceed, 1, "Not implemented");
+  int ierr;
+  CeedScalar matC[n*n], matG[n*n], vecD[n];
+
+  // Compute B = G D G^T
+  memcpy(matG, matB, n*n*sizeof(matB[0]));
+  ierr = CeedSymmetricSchurDecomposition(ceed, matG, vecD, n); CeedChk(ierr);
+  for (CeedInt i=0; i<n; i++) vecD[i] = sqrt(vecD[i]);
+
+  // Compute C = (G D^-1/2)^-1 A (G D^-1/2)^-T
+  //           = D^1/2 G^T A D^1/2 G 
+  for (CeedInt i=0; i<n; i++)
+    for (CeedInt j=0; j<n; j++)
+      matC[j+i*n] = vecD[i] * matG[i+j*n];
+  CeedMatrixMultiply(ceed, matC, matA, x, n, n, n);
+  for (CeedInt i=0; i<n; i++)
+    for (CeedInt j=0; j<n; j++)
+      matG[j+i*n] = vecD[i] * matG[j+i*n];
+  CeedMatrixMultiply(ceed, x, matG, matC, n, n, n);
+
+  // Compute Q^T C Q = lambda
+  ierr = CeedSymmetricSchurDecomposition(ceed, matC, lambda, n); CeedChk(ierr);
+
+  // Set x = (G D^-1/2)^-T Q
+  //       = D^1/2 G Q
+  CeedMatrixMultiply(ceed, matG, matC, x, n, n, n);
+
+  return 0;
 }
 
 /**
