@@ -32,6 +32,7 @@ navierstokes := $(navierstokes.c:%.c=%)
 
 all: $(navierstokes)
 $(navierstokes): | $(PETSc.pc) $(ceed.pc)
+nsplex: | $(PETSc.pc) $(ceed.pc)
 
 # Rules for building the example
 %: %.c

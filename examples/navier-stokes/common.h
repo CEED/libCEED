@@ -113,6 +113,39 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
   return 0;
 }
 
+CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
+                      const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar (*J)[2][Q] = (CeedScalar(*)[2][Q])in[0],
+                   (*w) = in[1];
+  // Outputs
+  CeedScalar (*qdata)[Q] = (CeedScalar(*)[Q])out[0];
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    const CeedScalar J11 = J[0][0][i];
+    const CeedScalar J21 = J[0][1][i];
+    const CeedScalar J12 = J[1][0][i];
+    const CeedScalar J22 = J[1][1][i];
+    const CeedScalar detJ = J11*J22 - J21*J12;
+
+    // Qdata
+    // -- Interp-to-Interp qdata
+    qdata[0][i] = w[i] * detJ;
+    // -- Interp-to-Grad qdata
+    // Inverse of change of coordinate matrix: X_i,j
+    qdata[1][i] =  J22 / detJ;
+    qdata[2][i] = -J21 / detJ;
+    qdata[3][i] = -J12 / detJ;
+    qdata[4][i] =  J11 / detJ;
+  } // End of Quadrature Point Loop
+
+  // Return
+  return 0;
+}
+
 // *****************************************************************************
 // This QFunction applies the mass matrix to five interlaced fields.
 //
