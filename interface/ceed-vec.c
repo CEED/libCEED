@@ -43,12 +43,12 @@ static struct CeedVector_private ceed_vector_none;
 int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   int ierr;
 
-  if (!ceed->VecCreate) {
+  if (!ceed->VectorCreate) {
     Ceed delegate;
-    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "Vector"); CeedChk(ierr);
 
     if (!delegate)
-      return CeedError(ceed, 1, "Backend does not support VecCreate");
+      return CeedError(ceed, 1, "Backend does not support VectorCreate");
 
     ierr = CeedVectorCreate(delegate, length, vec); CeedChk(ierr);
     return 0;
@@ -60,7 +60,7 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   (*vec)->refcount = 1;
   (*vec)->length = length;
   (*vec)->state = 0;
-  ierr = ceed->VecCreate(length, *vec); CeedChk(ierr);
+  ierr = ceed->VectorCreate(length, *vec); CeedChk(ierr);
   return 0;
 }
 
@@ -141,7 +141,7 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype) {
   int ierr;
 
-  if (vec && (vec->state % 2) == 1)
+  if (vec->state % 2 == 1)
     return CeedError(vec->ceed, 1,
                      "Cannot sync CeedVector, the access lock is already in use");
 

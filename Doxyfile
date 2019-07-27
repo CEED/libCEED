@@ -791,19 +791,26 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = . \
+                         backends/avx \
+                         backends/blocked \
+                         backends/cuda \
+                         backends/cuda-reg \
+                         backends/cuda-shared \
+                         backends/magma \
+                         backends/memcheck \
+                         backends/occa \
+                         backends/opt \
+                         backends/ref \
+                         backends/template \
+                         backends/xsmm \
                          doc \
-                         include \
-                         interface \
                          examples/ceed \
                          examples/mfem \
+                         examples/navier-stokes \
                          examples/nek5000 \
                          examples/petsc \
-                         examples/navier-stokes \
-                         backends/ref \
-                         backends/occa \
-                         backends/blocked \
-                         backends/template \
-                         backends/magma \
+                         include \
+                         interface \
                          tests \
 
 # This tag can be used to specify the character encoding of the source files

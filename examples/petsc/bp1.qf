@@ -22,7 +22,7 @@
 #endif
 
 // *****************************************************************************
-CEED_QFUNCTION int Setup(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION int SetupMass(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   CeedScalar *rho = out[0], *true_soln = out[1], *rhs = out[2];
   const CeedScalar *x = in[0];
   const CeedScalar *J = in[1];
@@ -43,15 +43,6 @@ CEED_QFUNCTION int Mass(void *ctx, const CeedInt Q, const CeedScalar *const *in,
   CeedScalar *v = out[0];
   for (CeedInt i=0; i<Q; i++) {
     v[i] = rho[i] * u[i];
-  }
-  return 0;
-}
-
-CEED_QFUNCTION int Error(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *u = in[0], *target = in[1];
-  CeedScalar *err = out[0];
-  for (CeedInt i=0; i<Q; i++) {
-    err[i] = u[i] - target[i];
   }
   return 0;
 }

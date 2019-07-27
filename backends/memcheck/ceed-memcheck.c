@@ -22,12 +22,11 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
     return CeedError(ceed, 1, "Valgrind Memcheck backend cannot use resource: %s",
                      resource);
 
-  Ceed ceedref;
-
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
+  Ceed ceedref;
   CeedInit("/cpu/self/ref/blocked", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
                                 CeedQFunctionCreate_Memcheck); CeedChk(ierr);

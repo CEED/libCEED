@@ -21,7 +21,7 @@
 #include "ceed-cuda-gen.h"
 
 static int CeedQFunctionApply_Cuda_gen(CeedQFunction qf, CeedInt Q,
-                                   CeedVector *U, CeedVector *V) {
+                                       CeedVector *U, CeedVector *V) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
@@ -29,16 +29,15 @@ static int CeedQFunctionApply_Cuda_gen(CeedQFunction qf, CeedInt Q,
 }
 
 static int CeedQFunctionDestroy_Cuda_gen(CeedQFunction qf) {
-  // int ierr;
-  // CeedQFunction_Cuda_gen *data;
-  // ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
-  // Ceed ceed;
-  // ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  int ierr;
+  CeedQFunction_Cuda_gen *data;
+  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
+  Ceed ceed;
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
 
-  // CeedChk_Cu(ceed, cuModuleUnload(data->module));
-  // ierr = cudaFree(data->d_c); CeedChk_Cu(ceed, ierr);
+  ierr = cudaFree(data->d_c); CeedChk_Cu(ceed, ierr);
 
-  // ierr = CeedFree(&data); CeedChk(ierr);
+  ierr = CeedFree(&data); CeedChk(ierr);
 
   return 0;
 }
@@ -102,8 +101,6 @@ int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
   CeedQFunction_Cuda_gen *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   ierr = CeedQFunctionSetData(qf, (void *)&data); CeedChk(ierr);
-  // CeedInt numinputfields, numoutputfields;
-  // ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   size_t ctxsize;
   ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
   ierr = cudaMalloc(&data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);

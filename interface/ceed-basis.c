@@ -62,7 +62,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
 
   if (!ceed->BasisCreateTensorH1) {
     Ceed delegate;
-    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "Basis"); CeedChk(ierr);
 
     if (!delegate)
       return CeedError(ceed, 1, "Backend does not support BasisCreateTensorH1");
@@ -202,7 +202,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt ncomp,
 
   if (!ceed->BasisCreateH1) {
     Ceed delegate;
-    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "Basis"); CeedChk(ierr);
 
     if (!delegate)
       return CeedError(ceed, 1, "Backend does not support BasisCreateH1");
@@ -502,10 +502,14 @@ static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
 
   @ref Utility
 **/
-int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau,
+int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
                         CeedInt m, CeedInt n) {
   CeedInt i, j;
   CeedScalar v[m];
+
+  // Check m >= n
+  if (n > m)
+    return CeedError(ceed, 1, "Cannot compute QR factorization with n > m");
 
   for (i=0; i<n; i++) {
     // Calculate Householder vector, magnitude
@@ -549,6 +553,7 @@ int CeedQRFactorization(CeedScalar *mat, CeedScalar *tau,
 **/
 int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
   int i, j, k;
+  Ceed ceed;
   CeedInt ierr, P1d=(basis)->P1d, Q1d=(basis)->Q1d;
   CeedScalar *interp1d, *grad1d, tau[Q1d];
 
@@ -558,7 +563,8 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
   memcpy(grad1d, (basis)->grad1d, Q1d*P1d*sizeof(basis)->interp1d[0]);
 
   // QR Factorization, interp1d = Q R
-  ierr = CeedQRFactorization(interp1d, tau, Q1d, P1d); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  ierr = CeedQRFactorization(ceed, interp1d, tau, Q1d, P1d); CeedChk(ierr);
 
   // Apply Rinv, colograd1d = grad1d Rinv
   for (i=0; i<Q1d; i++) { // Row i

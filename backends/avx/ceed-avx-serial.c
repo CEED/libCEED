@@ -22,12 +22,11 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
       && strcmp(resource, "/cpu/self/avx/serial"))
     return CeedError(ceed, 1, "AVX backend cannot use resource: %s", resource);
 
-  Ceed ceedref;
-
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
-  CeedInit("/cpu/self/ref/serial", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+  Ceed ceedref;
+  CeedInit("/cpu/self/opt/serial", &ceedref);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
@@ -37,5 +36,5 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/avx/serial", CeedInit_Avx, 20);
+  CeedRegister("/cpu/self/avx/serial", CeedInit_Avx, 35);
 }

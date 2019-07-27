@@ -61,8 +61,8 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   //********************
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
-  ierr = compile(ceed, code.str().c_str(), &data->module, 0); CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, "qfunction", &data->qFunction);
+  ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 0); CeedChk(ierr);
+  ierr = CeedGetKernelCuda(ceed, data->module, "qfunction", &data->qFunction);
   CeedChk(ierr);
   ierr = CeedFree(&data->qFunctionSource); CeedChk(ierr);
 

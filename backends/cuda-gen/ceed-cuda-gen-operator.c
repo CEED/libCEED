@@ -24,30 +24,12 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   CeedOperator_Cuda_gen *impl;
   ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
 
-  // for (CeedInt i = 0; i < impl->numein + impl->numeout; i++) {
-  //   ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);
-  // }
-  // ierr = CeedFree(&impl->evecs); CeedChk(ierr);
-  // ierr = CeedFree(&impl->edata); CeedChk(ierr);
-
-  // for (CeedInt i = 0; i < impl->numein; i++) {
-  //   ierr = CeedVectorDestroy(&impl->qvecsin[i]); CeedChk(ierr);
-  // }
-  // ierr = CeedFree(&impl->qvecsin); CeedChk(ierr);
-
-  // for (CeedInt i = 0; i < impl->numeout; i++) {
-  //   ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
-  // }
-  // ierr = CeedFree(&impl->qvecsout); CeedChk(ierr);
-
-  // ierr = CeedFree(&impl->W); CeedChk(ierr);
-
   ierr = CeedFree(&impl); CeedChk(ierr);
   return 0;
 }
 
 static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
-                                  CeedVector outvec, CeedRequest *request) {
+                                      CeedVector outvec, CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -130,19 +112,25 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
   const CeedInt Q1d = data->Q1d;
   if (dim==1) {
     const CeedInt elemsPerBlock = 32;
-    CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
+    CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
+                                           ? 1 : 0 );
     CeedInt sharedMem = elemsPerBlock*Q1d*sizeof(CeedScalar);
-    ierr = run_kernel_dim_shared(ceed, data->op, grid, Q1d, 1, elemsPerBlock, sharedMem, opargs);
+    ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, Q1d, 1, elemsPerBlock,
+                                      sharedMem, opargs);
   } else if (dim==2) {
     const CeedInt elemsPerBlock = Q1d<4? 16 : 2;
-    CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
+    CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
+                                           ? 1 : 0 );
     CeedInt sharedMem = elemsPerBlock*Q1d*Q1d*sizeof(CeedScalar);
-    ierr = run_kernel_dim_shared(ceed, data->op, grid, Q1d, Q1d, elemsPerBlock, sharedMem, opargs);
+    ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, Q1d, Q1d, elemsPerBlock,
+                                      sharedMem, opargs);
   } else if (dim==3) {
     const CeedInt elemsPerBlock = Q1d<8? 4 : 1;
-    CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
+    CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
+                                           ? 1 : 0 );
     CeedInt sharedMem = elemsPerBlock*Q1d*Q1d*sizeof(CeedScalar);
-    ierr = run_kernel_dim_shared(ceed, data->op, grid, Q1d, Q1d, elemsPerBlock, sharedMem, opargs);
+    ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, Q1d, Q1d, elemsPerBlock,
+                                      sharedMem, opargs);
   }
   CeedChk(ierr);
 

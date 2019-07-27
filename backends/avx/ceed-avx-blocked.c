@@ -18,16 +18,15 @@
 
 static int CeedInit_Avx(const char *resource, Ceed ceed) {
   int ierr;
-  if (strcmp(resource, "/cpu/self")
+  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/avx")
       && strcmp(resource, "/cpu/self/avx/blocked"))
     return CeedError(ceed, 1, "AVX backend cannot use resource: %s", resource);
 
-  Ceed ceedref;
-
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
-  CeedInit("/cpu/self/ref/blocked", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+  Ceed ceedref;
+  CeedInit("/cpu/self/opt/blocked", &ceedref);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
                                 CeedTensorContractCreate_Avx); CeedChk(ierr);
@@ -36,5 +35,5 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/avx/blocked", CeedInit_Avx, 10);
+  CeedRegister("/cpu/self/avx/blocked", CeedInit_Avx, 30);
 }

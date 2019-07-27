@@ -28,11 +28,11 @@ show_figures=1        # display the figures on the screen?
 
 
 #####   Load the data
+import pandas as pd
 exec(compile(open('postprocess-base.py').read(), 'postprocess-base.py', 'exec'))
 
 
 #####   Sample plot output
-
 from matplotlib import use
 if not show_figures:
    use('pdf')
@@ -42,78 +42,72 @@ rcParams['font.sans-serif'].insert(0,'Noto Sans')
 rcParams['font.sans-serif'].insert(1,'Open Sans')
 rcParams['figure.figsize']=[10, 8] # default: 8 x 6
 
-cm=get_cmap('Set1') # 'Accent', 'Dark2', 'Set1', 'Set2', 'Set3'
-if '_segmentdata' in cm.__dict__:
-   cm_size=len(cm.__dict__['_segmentdata']['red'])
-elif 'colors' in cm.__dict__:
-   cm_size=len(cm.__dict__['colors'])
-colors=[cm(1.*i/(cm_size-1)) for i in range(cm_size)]
+cm_size=16
+colors=['dimgrey','black','saddlebrown','firebrick','red','orange',
+        'gold','lightgreen','green','cyan','teal','blue','navy',
+        'purple','magenta','pink']
 
-# colors=['blue','green','crimson','turquoise','m','gold','cornflowerblue',
-#         'darkorange']
-
+##### Get test names
 sel_runs=runs
-
-tests=list(set([run['test'].rsplit('/',1)[-1].rsplit('.sh',1)[0]
-                for run in sel_runs]))
-# print 'Present tests:', tests
+tests=list(sel_runs.test.unique())
 test=tests[0]
+
+##### Run information
 print('Using test:', test)
-test_short=test
-sel_runs=[run for run in sel_runs if
-          run['test'].rsplit('/',1)[-1].rsplit('.sh',1)[0]==test]
 
-if 'case' in sel_runs[0]:
-   cases=list(set([run['case'] for run in sel_runs]))
-   case=cases[0]
-   vdim=1 if case=='scalar' else 3
-   print('Using case:', case)
-   sel_runs=[run for run in sel_runs if run['case']==case]
+if 'CEED Benchmark Problem' in test:
+   test_short = test.strip().split()[0] + ' BP' + test.strip().split()[-1]
 
-codes = list(set([run['code'] for run in sel_runs]))
+##### Plot same BP
+sel_runs=sel_runs.loc[sel_runs['test'] == test]
+
+##### Plot same case (scalar vs vector)
+cases=list(sel_runs.case.unique())
+case=cases[0]
+vdim=1 if case=='scalar' else 3
+print('Using case:', case)
+sel_runs=sel_runs.loc[sel_runs['case'] == case]
+
+##### Plot same 'code'
+codes = list(sel_runs.code.unique())
 code  = codes[0]
-sel_runs=[run for run in sel_runs if run['code']==code]
+sel_runs=sel_runs.loc[sel_runs['code'] == code]
 
-pl_set=[(run['backend'],run['num-procs'],run['num-procs-node'])
-        for run in sel_runs]
-pl_set=sorted(set(pl_set))
-print()
-pprint.pprint(pl_set)
+##### Group plots by backend and number of processes
+pl_set=sel_runs[['backend', 'num_procs', 'num_procs_node']]
+pl_set=pl_set.drop_duplicates()
 
-for plt in pl_set:
-   backend=plt[0]
-   num_procs=plt[1]
-   num_procs_node=plt[2]
+##### Plotting
+for index, row in pl_set.iterrows():
+   backend=row['backend']
+   num_procs=float(row['num_procs'])
+   num_procs_node=float(row['num_procs_node'])
    num_nodes=num_procs/num_procs_node
-   pl_runs=[run for run in sel_runs
-            if run['backend']==backend and
-               run['num-procs']==num_procs and
-               run['num-procs-node']==num_procs_node]
-   if len(pl_runs)==0:
+   pl_runs=sel_runs[(sel_runs.backend==backend) |
+                    (sel_runs.num_procs==num_procs) |
+                    (sel_runs.num_procs_node==num_procs_node)]
+   if len(pl_runs.index)==0:
       continue
 
-   print()
    print('backend: %s, compute nodes: %i, number of MPI tasks = %i'%(
       backend,num_nodes,num_procs))
 
    figure()
    i=0
-   sol_p_set=sorted(set([run['order'] for run in pl_runs]))
+   sol_p_set=sel_runs['order'].drop_duplicates()
+   sol_p_set=sol_p_set.sort_values()
+   ##### Iterate over P
    for sol_p in sol_p_set:
-      qpts=sorted(list(set([run['quadrature-pts'] for run in pl_runs
-                            if run['order']==sol_p])))
-      qpts.reverse()
-      print('Order: %i, quadrature points:'%sol_p, qpts)
-      qpts_1d=[int(q**(1./3)+0.5) for q in qpts]
-
-      d=[[run['order'],run['num-elem'],1.*run['num-unknowns']/num_nodes/vdim,
-          run['cg-iteration-dps']/num_nodes]
-         for run in pl_runs
-         if run['order']==sol_p and
-            run['quadrature-pts']==qpts[0]]
-      # print
-      # print 'order = %i'%sol_p
-      # pprint.pprint(sorted(d))
+      qpts=sel_runs['quadrature_pts'].loc[pl_runs['order']==sol_p]
+      qpts=qpts.drop_duplicates().sort_values(ascending=False)
+      qpts=qpts.reset_index(drop=True)
+      print('Order: %i, quadrature points:'%sol_p, qpts[0])
+      # Generate plot data
+      d=[[run['order'],run['num_elem'],1.*run['num_unknowns']/num_nodes/vdim,
+          run['cg_iteration_dps']/num_nodes]
+         for index, run in
+         pl_runs.loc[(pl_runs['order']==sol_p) |
+                     (pl_runs['quadrature_pts']==qpts[0])].iterrows()]
       d=[[e[2],e[3]] for e in d if e[0]==sol_p]
       # (DOFs/[sec/iter]/node)/(DOFs/node) = iter/sec
       d=[[nun,
@@ -121,19 +115,22 @@ for plt in pl_set:
           max([e[1] for e in d if e[0]==nun])]
          for nun in set([e[0] for e in d])]
       d=asarray(sorted(d))
+      # Plot
       plot(d[:,0],d[:,2],'o-',color=colors[i%cm_size],
-           label='p=%i, q=p+%i'%(sol_p,qpts_1d[0]-sol_p))
+           label='p=%i'%(sol_p-1))
       if list(d[:,1]) != list(d[:,2]):
          plot(d[:,0],d[:,1],'o-',color=colors[i])
          fill_between(d[:,0],d[:,1],d[:,2],facecolor=colors[i],alpha=0.2)
-      ##
+      # Continue if only 1 set of qpts
       if len(qpts)==1:
          i=i+1
          continue
-      d=[[run['order'],run['num-elem'],1.*run['num-unknowns']/num_nodes/vdim,
-          run['cg-iteration-dps']/num_nodes]
-         for run in pl_runs
-         if run['order']==sol_p and (run['quadrature-pts']==qpts[1])]
+      # Second set of qpts
+      d=[[run['order'],run['num_elem'],1.*run['num_unknowns']/num_nodes/vdim,
+          run['cg_iteration_dps']/num_nodes]
+         for index, run in
+         pl_runs.loc[(pl_runs['order']==sol_p) |
+                     (pl_runs['quadrature_pts']==qpts[1])].iterrows()]
       d=[[e[2],e[3]] for e in d if e[0]==sol_p]
       if len(d)==0:
          i=i+1
@@ -144,7 +141,7 @@ for plt in pl_set:
          for nun in set([e[0] for e in d])]
       d=asarray(sorted(d))
       plot(d[:,0],d[:,2],'s--',color=colors[i],
-           label='p=%i, q=p+%i'%(sol_p,qpts_1d[1]-sol_p))
+           label='p=%i'%(sol_p-1))
       if list(d[:,1]) != list(d[:,2]):
          plot(d[:,0],d[:,1],'s--',color=colors[i])
       ##
@@ -158,9 +155,10 @@ for plt in pl_set:
       plot(y/slope1,y,'k--',label='%g iter/s'%(slope1/vdim))
       plot(y/slope2,y,'k-',label='%g iter/s'%(slope2/vdim))
 
-   title('Config: %s (%i node%s, %i tasks/node), %s, %s'%(
-         code,num_nodes,'' if num_nodes==1 else 's',
-         num_procs_node,backend,test_short))
+   # Plot information
+   title(r'%i node%s $\times$ %i ranks, %s, %s'%(
+         num_nodes,'' if num_nodes==1 else 's',
+         num_procs_node,backend,test_short),fontsize=16)
    xscale('log') # subsx=[2,4,6,8]
    if log_y:
       yscale('log')
@@ -168,24 +166,25 @@ for plt in pl_set:
       xlim(x_range)
    if 'y_range' in vars() and len(y_range)==2:
       ylim(y_range)
-   # rng=arange(1e7,1.02e8,1e7)
-   # yticks(rng,['%i'%int(v/1e6) for v in rng])
-   # ylim(min(rng),max(rng))
-   # xlim(0.5,max([run['order'] for run in pl_runs])+0.5)
    grid('on', color='gray', ls='dotted')
    grid('on', axis='both', which='minor', color='gray', ls='dotted')
+   plt.tick_params(labelsize=14)
+   exptext = gca().yaxis.get_offset_text()
+   exptext.set_size(14)
    gca().set_axisbelow(True)
-   xlabel('Points per compute node')
-   ylabel('[DOFs x CG iterations] / [compute nodes x seconds]')
-   legend(ncol=legend_ncol, loc='best')
+   xlabel('Points per compute node',fontsize=14)
+   ylabel('[DOFs x CG iterations] / [compute nodes x seconds]',fontsize=14)
+   legend(ncol=legend_ncol, loc='best',fontsize=13)
 
+   # Write
    if write_figures: # write .pdf file?
-      shortbackend=backend.replace('/','')
+      short_backend=backend.replace('/','')
+      test_short_save=test_short.replace(' ','')
       pdf_file='plot_%s_%s_%s_N%03i_pn%i.pdf'%(
-               code,test_short,shortbackend,num_nodes,num_procs_node)
-      print('saving figure --> %s'%pdf_file)
+               code,test_short_save,short_backend,num_nodes,num_procs_node)
+      print('\nsaving figure --> %s'%pdf_file)
       savefig(pdf_file, format='pdf', bbox_inches='tight')
 
 if show_figures: # show the figures?
-   print('\nshowing figures ...')
+   print('\nShowing figures ...')
    show()

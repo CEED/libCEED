@@ -285,6 +285,45 @@ void fCeedElemRestrictionApply(int *elemr, int *tmode, int *lmode,
   }
 }
 
+
+
+#define fCeedElemRestrictionApplyBlock \
+    FORTRAN_NAME(ceedelemrestrictionapplyblock,CEEDELEMRESTRICTIONAPPLYBLOCK)
+void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode, int *lmode,
+                                    int *uvec, int *ruvec, int *rqst, int *err) {
+  int createRequest = 1;
+  // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
+  if (*rqst == FORTRAN_REQUEST_IMMEDIATE || *rqst == FORTRAN_REQUEST_ORDERED)
+    createRequest = 0;
+
+  if (createRequest && CeedRequest_count == CeedRequest_count_max) {
+    CeedRequest_count_max += CeedRequest_count_max/2 + 1;
+    CeedRealloc(CeedRequest_count_max, &CeedRequest_dict);
+  }
+
+  CeedRequest *rqst_;
+  if      (*rqst == FORTRAN_REQUEST_IMMEDIATE) rqst_ = CEED_REQUEST_IMMEDIATE;
+  else if (*rqst == FORTRAN_REQUEST_ORDERED  ) rqst_ = CEED_REQUEST_ORDERED;
+  else rqst_ = &CeedRequest_dict[CeedRequest_count];
+
+  *err = CeedElemRestrictionApplyBlock(CeedElemRestriction_dict[*elemr], *block, 
+                                       *tmode, *lmode, CeedVector_dict[*uvec],
+                                       CeedVector_dict[*ruvec], rqst_);
+
+  if (*err == 0 && createRequest) {
+    *rqst = CeedRequest_count++;
+    CeedRequest_n++;
+  }
+}
+
+#define fCeedElemRestrictionGetMultiplicity \
+    FORTRAN_NAME(ceedelemrestrictiongetmultiplicity,CEEDELEMRESTRICTIONGETMULTIPLICITY)
+void fCeedElemRestrictionGetMultiplicity(int *elemr, int *mult, int *err) {
+  *err = CeedElemRestrictionGetMultiplicity(CeedElemRestriction_dict[*elemr],
+                                            CeedVector_dict[*mult]);
+}
+ 
+
 #define fCeedRequestWait FORTRAN_NAME(ceedrequestwait, CEEDREQUESTWAIT)
 void fCeedRequestWait(int *rqst, int *err) {
   // TODO Uncomment this once CeedRequestWait is implemented
@@ -386,9 +425,9 @@ void fCeedBasisView(int *basis, int *err) {
 
 #define fCeedQRFactorization \
     FORTRAN_NAME(ceedqrfactorization, CEEDQRFACTORIZATION)
-void fCeedQRFactorization(CeedScalar *mat, CeedScalar *tau, int *m, int *n,
-                          int *err) {
-  *err = CeedQRFactorization(mat, tau, *m, *n);
+void fCeedQRFactorization(int *ceed, CeedScalar *mat, CeedScalar *tau, int *m,
+                          int *n, int *err) {
+  *err = CeedQRFactorization(Ceed_dict[*ceed], mat, tau, *m, *n);
 }
 
 #define fCeedBasisGetCollocatedGrad \

@@ -60,4 +60,3 @@ CEED_QFUNCTION int f_apply_mass(void *ctx, const CeedInt Q, const CeedScalar *co
   }
   return 0;
 }
-

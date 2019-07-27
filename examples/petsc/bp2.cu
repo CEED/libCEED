@@ -15,9 +15,9 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 // *****************************************************************************
-extern "C" __global__ void masssetupf(void *ctx, CeedInt Q,
-                                 Fields_Cuda fields) {
-  CeedScalar *rho = fields.outputs[0], *rhs = fields.outputs[1];
+extern "C" __global__ void SetupMass3(void *ctx, CeedInt Q,
+                                      Fields_Cuda fields) {
+  CeedScalar *rho = fields.outputs[0], *true_soln = fields.outputs[1], *rhs = fields.outputs[2];
   const CeedScalar *x = (const CeedScalar *)fields.inputs[0];
   const CeedScalar *J = (const CeedScalar *)fields.inputs[1];
   const CeedScalar *w = (const CeedScalar *)fields.inputs[2];
@@ -28,12 +28,18 @@ extern "C" __global__ void masssetupf(void *ctx, CeedInt Q,
                       J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
                       J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
     rho[i] = det * w[i];
-    rhs[i] = rho[i] * w[i] * 
-               sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
+
+    true_soln[i+0*Q] = sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
+    true_soln[i+1*Q] = true_soln[i+0*Q];
+    true_soln[i+2*Q] = true_soln[i+0*Q];
+
+    rhs[i+0*Q] = rho[i] * true_soln[i+0*Q];
+    rhs[i+1*Q] = rhs[i+0*Q];
+    rhs[i+2*Q] = rhs[i+0*Q];
   }
 }
 
-extern "C" __global__ void massf(void *ctx, CeedInt Q,
+extern "C" __global__ void Mass3(void *ctx, CeedInt Q,
                 Fields_Cuda fields) {
   const CeedScalar *u = (const CeedScalar *)fields.inputs[0];
   const CeedScalar *rho = (const CeedScalar *)fields.inputs[1];
@@ -41,6 +47,8 @@ extern "C" __global__ void massf(void *ctx, CeedInt Q,
   for (int i = blockIdx.x * blockDim.x + threadIdx.x;
        i < Q;
        i += blockDim.x * gridDim.x) {
-    v[i] = rho[i] * u[i];
+    v[i+0*Q] = rho[i] * u[i+0*Q];
+    v[i+1*Q] = rho[i] * u[i+1*Q];
+    v[i+2*Q] = rho[i] * u[i+2*Q];
   }
 }
