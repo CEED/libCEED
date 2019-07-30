@@ -14,8 +14,12 @@ LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 bps.c := bps.c
 bps := $(bps.c:%.c=%)
 
-all: $(bps)
+bpsdmplex.c := bpsdmplex.c
+bpsdmplex := $(bpsdmplex.c:%.c=%)
+
+all: $(bps) $(bpsdmplex)
 $(bps): | $(PETSc.pc) $(ceed.pc)
+$(bpsdmplex): | $(PETSc.pc) $(ceed.pc)
 
 # Rules for building the examples
 %: %.c
@@ -31,7 +35,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) $(bps)
+	$(RM) $(bps) $(bpsdmplex)
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \

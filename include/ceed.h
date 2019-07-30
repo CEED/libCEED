@@ -213,6 +213,8 @@ CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem,
     CeedInt elemsize, CeedInt blksize, CeedInt ndof, CeedInt ncomp,
     CeedMemType mtype,
     CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction *rstr);
+CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
+    CeedVector *lvec, CeedVector *evec);
 CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr,
     CeedTransposeMode tmode, CeedTransposeMode lmode, CeedVector u,
     CeedVector ru, CeedRequest *request);
