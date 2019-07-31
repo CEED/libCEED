@@ -318,6 +318,7 @@ int main(int argc, char **argv) {
 
     // Multiplicity
     CeedElemRestrictionGetMultiplicity(ceeddata[i]->Erestrictu,
+                                       CEED_NOTRANSPOSE,
                                        ceeddata[i]->xceed);
 
     // Restore vector
