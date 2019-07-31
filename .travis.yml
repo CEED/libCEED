@@ -14,6 +14,7 @@ compiler:
 
 addons:
   apt:
+    update: true
     packages:
     - gfortran
     - liblapack-dev
@@ -27,7 +28,7 @@ addons:
     - openblas
 
 env:
-  - FC=gfortran
+  - FC=gfortran PETSC_VER=73f49a0
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -51,11 +52,12 @@ install:
   - cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..;
   - export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH MPI=0;
 # PETSc
-  - export PETSC_INSTALL=$HOME/install/petsc-3.11.0
+  - export PETSC_INSTALL=$HOME/install/petsc-$PETSC_VER
   - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
-        || ( curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.11.0.tar.gz
-        && tar xf petsc-lite-3.11.0.tar.gz
-        && cd petsc-3.11.0
+        || ( rm -rf $HOME/install/petsc*
+        && git clone https://github.com/petsc/petsc.git
+        && cd petsc
+        && git reset --hard $PETSC_VER
         && ./configure --with-debugging=0 COPTFLAGS=-O --with-mpi=0 --with-fc=0 --with-cxx=0 --prefix=$PETSC_INSTALL
         && make
         && make install )

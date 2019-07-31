@@ -39,7 +39,7 @@ clean:
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
-	  PETSc config not found. Please set PETSC_DIR and PETSC_ARCH))
+	  PETSc config not found at $@. Please set PETSC_DIR and PETSC_ARCH))
 
 .PHONY: all print clean
 

@@ -149,9 +149,7 @@ mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
 # Nek5K Examples
 nekexamples  := $(OBJDIR)/nek-bps
 # PETSc Examples
-#  -- Disable bpsdmplex.c at the top level until
-#       DMPlexSetClosurePermutationTensor is in a PETSc release
-petscexamples.c := $(filter-out examples/petsc/bpsdmplex.c,$(sort $(wildcard examples/petsc/*.c))) 
+petscexamples.c := $(wildcard examples/petsc/*.c)
 petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 # Navier-Stokes Example
 navierstokesexample.c := $(sort $(wildcard examples/navier-stokes/*.c))
