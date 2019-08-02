@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "t502-operator.qf"
+#include "t502-operator.h"
 
 // static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
 //                  CeedScalar *const *out) {

@@ -3,7 +3,7 @@
 /// \test Test creation, evaluation, and destruction for qfunction
 #include <ceed.h>
 
-#include "t400-qfunction.qf"
+#include "t400-qfunction.h"
 
 // static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
 //                  CeedScalar *const *out) {

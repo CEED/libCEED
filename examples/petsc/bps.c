@@ -29,10 +29,10 @@ const char help[] = "Solve CEED BPs using PETSc\n";
 #include <ceed.h>
 #include <string.h>
 #include "common.qf"
-#include "bp1.qf"
-#include "bp2.qf"
-#include "bp3.qf"
-#include "bp4.qf"
+#include "bp1.h"
+#include "bp2.h"
+#include "bp3.h"
+#include "bp4.h"
 #include <petscksp.h>
 
 #define PATH(BASE) __DIR__ #BASE

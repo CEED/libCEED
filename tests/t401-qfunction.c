@@ -4,7 +4,7 @@
 #include <ceed.h>
 #include <math.h>
 
-#include "t401-qfunction.qf"
+#include "t401-qfunction.h"
 
 // static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
 //                  CeedScalar *const *out) {

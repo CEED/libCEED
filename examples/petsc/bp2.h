@@ -17,53 +17,41 @@
 /// @file
 /// libCEED QFunctions for mass operator example using PETSc
 
-#include <petscksp.h>
-#include <ceed.h>
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
 
 // *****************************************************************************
-static int SetupMass3(void *ctx, CeedInt Q,
-                      const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION int SetupMass3(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   CeedScalar *rho = out[0], *true_soln = out[1], *rhs = out[2];
-  const CeedScalar (*x)[Q] = (const CeedScalar (*)[Q])in[0];
-  const CeedScalar (*J)[3][Q] = (const CeedScalar (*)[3][Q])in[1];
+  const CeedScalar *x = in[0];
+  const CeedScalar *J = in[1];
   const CeedScalar *w = in[2];
   for (CeedInt i=0; i<Q; i++) {
-    CeedScalar det = (+ J[0][0][i] * (J[1][1][i]*J[2][2][i] - J[1][2][i]*J[2][1][i])
-                      - J[0][1][i] * (J[1][0][i]*J[2][2][i] - J[1][2][i]*J[2][0][i])
-                      + J[0][2][i] * (J[1][0][i]*J[2][1][i] - J[1][1][i]*J[2][0][i]));
-    rho[i] = det * w[i];
-
-    // Component 1
-    true_soln[i+0*Q] = PetscSqrtScalar(PetscSqr(x[0][i]) + PetscSqr(x[1][i]) +
-                                       PetscSqr(x[2][i]));
-    // Component 2
-    true_soln[i+1*Q] = true_soln[i+0*Q];
-    // Component 3
-    true_soln[i+2*Q] = true_soln[i+0*Q];
-
-    // Component 1
-    rhs[i+0*Q] = rho[i] * true_soln[i+0*Q];
-    // Component 2
-    rhs[i+1*Q] = rhs[i+0*Q];
-    // Component 3
-    rhs[i+2*Q] = rhs[i+0*Q];
+    const CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
+                            J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
+                            J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
+    const CeedScalar r = det * w[i];
+    rho[i] = r;
+    const CeedScalar true_sol = sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
+    true_soln[i+0*Q] = true_sol;
+    true_soln[i+1*Q] = true_sol;
+    true_soln[i+2*Q] = true_sol;
+    rhs[i+0*Q] = r * true_sol;
+    rhs[i+1*Q] = r * true_sol;
+    rhs[i+2*Q] = r * true_sol;
   }
   return 0;
 }
 
-static int Mass3(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION int Mass3(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *rho = in[1];
   CeedScalar *v = out[0];
   for (CeedInt i=0; i<Q; i++) {
-    // Component 1
-    v[i+0*Q] = rho[i] * u[i+0*Q];
-
-    // Component 2
-    v[i+1*Q] = rho[i] * u[i+1*Q];
-
-    // Component 3
-    v[i+2*Q] = rho[i] * u[i+2*Q];
+    const CeedScalar r = rho[i];
+    v[i+0*Q] = r * u[i+0*Q];
+    v[i+1*Q] = r * u[i+1*Q];
+    v[i+2*Q] = r * u[i+2*Q];
   }
   return 0;
 }

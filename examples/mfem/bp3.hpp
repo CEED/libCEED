@@ -19,7 +19,7 @@
 #include <ceed.h>
 #include <mfem.hpp>
 
-#include "bp3.qf"
+#include "bp3.h"
 
 /// Wrapper for a diffusion CeedOperator as an mfem::Operator
 class CeedDiffusionOperator : public mfem::Operator {

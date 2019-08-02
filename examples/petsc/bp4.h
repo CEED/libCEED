@@ -17,12 +17,12 @@
 /// @file
 /// libCEED QFunctions for diffusion operator example using PETSc
 
-#include <petscksp.h>
-#include <ceed.h>
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
 
 // *****************************************************************************
-static int SetupDiff3(void *ctx, CeedInt Q,
-                      const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION int SetupDiff3(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   #ifndef M_PI
 #define M_PI    3.14159265358979323846
   #endif
@@ -79,8 +79,7 @@ static int SetupDiff3(void *ctx, CeedInt Q,
   return 0;
 }
 
-static int Diff3(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION int Diff3(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *ug = in[0], *qd = in[1];
   CeedScalar *vg = out[0];
   for (CeedInt i=0; i<Q; i++) {

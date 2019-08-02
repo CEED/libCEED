@@ -19,7 +19,7 @@
 #include <ceed.h>
 #include <mfem.hpp>
 
-#include "bp1.qf"
+#include "bp1.h"
 
 /// Wrapper for a mass CeedOperator as an mfem::Operator
 class CeedMassOperator : public mfem::Operator {

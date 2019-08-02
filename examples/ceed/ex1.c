@@ -35,7 +35,7 @@
 #include <math.h>
 #include <string.h>
 
-#include "ex1.qf"
+#include "ex1.h"
 
 // Auxiliary functions.
 int GetCartesianMeshSize(int dim, int order, int prob_size, int nxyz[3]);

@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "t500-operator.qf"
+#include "t500-operator.h"
 
 //! [QFunction User Code]
 // static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,

@@ -107,7 +107,7 @@ static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
   if (!last_dot)
     return CeedError(ceed, 1, "Cannot find file's extension!");
   const size_t cuda_path_len = last_dot - cuda_file;
-  strcpy(&cuda_file[cuda_path_len], ".qf");
+  strcpy(&cuda_file[cuda_path_len], ".h");
   //*******************
   FILE *fp;
   long lSize;

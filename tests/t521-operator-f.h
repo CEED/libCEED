@@ -21,6 +21,7 @@ CEED_QFUNCTION int setup(void *ctx, const CeedInt Q, const CeedScalar *const *in
   for (CeedInt i=0; i<Q; i++) {
     rho[i] = weight[i] * (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]);
   }
+  return 0;
 }
 
 CEED_QFUNCTION int mass(void *ctx, const CeedInt Q, const CeedScalar *const *in,
@@ -30,4 +31,5 @@ CEED_QFUNCTION int mass(void *ctx, const CeedInt Q, const CeedScalar *const *in,
   for (CeedInt i=0; i<Q; i++) {
     v[i] = rho[i] * u[i];
   }
+  return 0;
 }
