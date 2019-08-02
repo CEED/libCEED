@@ -28,9 +28,9 @@ typedef CeedScalar real;
 //TODO remove the magic number 32
 
 //Read non interleaved dofs
-                                    inline __device__ void readDofs(const int bid, const int tid, const int comp,
-                                        const int size, const int nelem,
-const CeedScalar *d_U, real *r_U) {
+inline __device__ void readDofs(const int bid, const int tid, const int comp,
+                                const int size, const int nelem,
+                                const CeedScalar *d_U, real *r_U) {
   for (int i = 0; i < size; i++)
     //r_U[i] = d_U[tid + i*32 + bid*32*size + comp*size*nelem];
     //r_U[i] = d_U[i + tid*size + bid*32*size + comp*size*nelem ];

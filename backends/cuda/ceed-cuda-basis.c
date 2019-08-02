@@ -364,13 +364,13 @@ extern "C" __global__ void weight(const CeedInt nelem,
   }
 }
 
-                                  );
+);
 
 static const char *kernelsNonTensorRef = QUOTE(
 
-      extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
-                                        const CeedScalar *d_B, const CeedScalar *__restrict__ d_U,
-CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
+                                  const CeedScalar *d_B, const CeedScalar *__restrict__ d_U,
+                                  CeedScalar *__restrict__ d_V) {
   const int tid = threadIdx.x;
 
   const double *U;

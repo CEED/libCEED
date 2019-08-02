@@ -33,8 +33,7 @@ extern "C" __global__ void noTrNoTr(const CeedInt nelem,
       const CeedInt e = dof/RESTRICTION_ELEMSIZE;
       for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
         v[locDof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP]
-          =
-            u[ind + RESTRICTION_NDOF * comp];
+          = u[ind + RESTRICTION_NDOF * comp];
       }
     }
   } else {
@@ -46,8 +45,7 @@ extern "C" __global__ void noTrNoTr(const CeedInt nelem,
       const CeedInt e = dof/RESTRICTION_ELEMSIZE;
       for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
         v[locDof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP]
-          =
-            u[ind + RESTRICTION_NDOF * comp];
+          = u[ind + RESTRICTION_NDOF * comp];
       }
     }
   }
@@ -101,8 +99,7 @@ extern "C" __global__ void noTrTr(const CeedInt nelem,
       const CeedInt e = dof/RESTRICTION_ELEMSIZE;
       for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
         v[locDof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP]
-          =
-            u[ind * RESTRICTION_NCOMP + comp];
+          = u[ind * RESTRICTION_NCOMP + comp];
       }
     }
   } else {
@@ -114,8 +111,7 @@ extern "C" __global__ void noTrTr(const CeedInt nelem,
       const CeedInt e = dof/RESTRICTION_ELEMSIZE;
       for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
         v[locDof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP]
-          =
-            u[ind * RESTRICTION_NCOMP + comp];
+          = u[ind * RESTRICTION_NCOMP + comp];
       }
     }
   }
