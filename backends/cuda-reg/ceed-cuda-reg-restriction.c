@@ -20,10 +20,10 @@
 
 static const char *restrictionkernels = QUOTE(
 
-    extern "C" __global__ void noTrNoTr(const CeedInt nelem,
-                                        const CeedInt *__restrict__ indices,
-                                        const CeedScalar *__restrict__ u,
-CeedScalar *__restrict__ v) {
+extern "C" __global__ void noTrNoTr(const CeedInt nelem,
+                                    const CeedInt *__restrict__ indices,
+                                    const CeedScalar *__restrict__ u,
+                                    CeedScalar *__restrict__ v) {
   if (indices) {
     for(CeedInt dof = blockIdx.x * blockDim.x + threadIdx.x;
         dof < nelem*RESTRICTION_ELEMSIZE;
@@ -232,7 +232,7 @@ extern "C" __global__ void trTrIdentity(const CeedInt nelem,
   }
 }
 
-                                        );
+);
 
 static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedTransposeMode lmode,

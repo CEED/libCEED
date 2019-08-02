@@ -23,7 +23,7 @@
 // reg kernels
 static const char *kernels3dreg = QUOTE(
 
-                                    typedef CeedScalar real;
+typedef CeedScalar real;
 
 //TODO remove the magic number 32
 
@@ -484,7 +484,7 @@ extern "C" __global__ void weight(const CeedInt nelem,
   }
 }
 
-                                  );
+);
 
 int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
                        CeedScalar **c_B);
