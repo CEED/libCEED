@@ -20,10 +20,10 @@
 
 static const char *restrictionkernels = QUOTE(
 
-extern "C" __global__ void noTrNoTr(const CeedInt nelem,
-                                    const CeedInt *__restrict__ indices,
-                                    const CeedScalar *__restrict__ u,
-                                    CeedScalar *__restrict__ v) {
+    extern "C" __global__ void noTrNoTr(const CeedInt nelem,
+                                        const CeedInt *__restrict__ indices,
+                                        const CeedScalar *__restrict__ u,
+CeedScalar *__restrict__ v) {
   if (indices) {
     for(CeedInt dof = blockIdx.x * blockDim.x + threadIdx.x;
         dof < nelem*RESTRICTION_ELEMSIZE;
@@ -32,8 +32,9 @@ extern "C" __global__ void noTrNoTr(const CeedInt nelem,
       const CeedInt locDof = dof%RESTRICTION_ELEMSIZE;
       const CeedInt e = dof/RESTRICTION_ELEMSIZE;
       for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
-        v[locDof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP] =
-          u[ind + RESTRICTION_NDOF * comp];
+        v[locDof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP]
+          =
+            u[ind + RESTRICTION_NDOF * comp];
       }
     }
   } else {
@@ -44,8 +45,9 @@ extern "C" __global__ void noTrNoTr(const CeedInt nelem,
       const CeedInt locDof = dof%RESTRICTION_ELEMSIZE;
       const CeedInt e = dof/RESTRICTION_ELEMSIZE;
       for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
-        v[locDof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP] =
-          u[ind + RESTRICTION_NDOF * comp];
+        v[locDof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP]
+          =
+            u[ind + RESTRICTION_NDOF * comp];
       }
     }
   }
@@ -92,26 +94,28 @@ extern "C" __global__ void noTrTr(const CeedInt nelem,
                                   CeedScalar *__restrict__ v) {
   if (indices) {
     for(CeedInt dof = blockIdx.x * blockDim.x + threadIdx.x;
-      dof < nelem*RESTRICTION_ELEMSIZE;
-      dof += blockDim.x * gridDim.x) {
+        dof < nelem*RESTRICTION_ELEMSIZE;
+        dof += blockDim.x * gridDim.x) {
       const CeedInt ind = indices[dof];
       const CeedInt locDof = dof%RESTRICTION_ELEMSIZE;
       const CeedInt e = dof/RESTRICTION_ELEMSIZE;
       for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
-        v[locDof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP] =
-          u[ind * RESTRICTION_NCOMP + comp];
+        v[locDof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP]
+          =
+            u[ind * RESTRICTION_NCOMP + comp];
       }
     }
   } else {
     for(CeedInt dof = blockIdx.x * blockDim.x + threadIdx.x;
-      dof < nelem*RESTRICTION_ELEMSIZE;
-      dof += blockDim.x * gridDim.x) {
+        dof < nelem*RESTRICTION_ELEMSIZE;
+        dof += blockDim.x * gridDim.x) {
       const CeedInt ind = dof;
       const CeedInt locDof = dof%RESTRICTION_ELEMSIZE;
       const CeedInt e = dof/RESTRICTION_ELEMSIZE;
       for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
-        v[locDof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP] =
-          u[ind * RESTRICTION_NCOMP + comp];
+        v[locDof + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP]
+          =
+            u[ind * RESTRICTION_NCOMP + comp];
       }
     }
   }
@@ -228,7 +232,7 @@ extern "C" __global__ void trTrIdentity(const CeedInt nelem,
   }
 }
 
-);
+                                        );
 
 static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedTransposeMode lmode,
@@ -262,7 +266,7 @@ static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
     void *args[] = {&nelem, &impl->d_ind, &d_u, &d_v};
     CeedInt blocksize = elemsize<1024?(elemsize>32?elemsize:32):1024;
     ierr = CeedRunKernelCuda(ceed, kernel, CeedDivUpInt(ndof, blocksize), blocksize,
-                      args); CeedChk(ierr);
+                             args); CeedChk(ierr);
   } else {
     if (impl->d_ind) {
       if (lmode == CEED_NOTRANSPOSE) {

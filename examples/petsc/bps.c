@@ -128,14 +128,15 @@ typedef enum {
   CEED_BP4 = 3, CEED_BP5 = 4, CEED_BP6 = 5
 } bpType;
 static const char *const bpTypes[] = {"bp1","bp2","bp3","bp4","bp5","bp6",
-                                      "bpType","CEED_BP",0};
+                                      "bpType","CEED_BP",0
+                                     };
 
 // BP specific data
 typedef struct {
   CeedInt vscale, qdatasize, qextra;
   CeedQFunctionUser setup, apply, error;
   const char setupfname[PETSC_MAX_PATH_LEN], applyfname[PETSC_MAX_PATH_LEN],
-             errorfname[PETSC_MAX_PATH_LEN];
+        errorfname[PETSC_MAX_PATH_LEN];
   CeedEvalMode inmode, outmode;
   CeedQuadMode qmode;
 } bpData;
@@ -153,7 +154,8 @@ bpData bpOptions[6] = {
     .errorfname = PATH(common.h:Error),
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
-    .qmode = CEED_GAUSS},
+    .qmode = CEED_GAUSS
+  },
   [CEED_BP2] = {
     .vscale = 3,
     .qdatasize = 1,
@@ -166,7 +168,8 @@ bpData bpOptions[6] = {
     .errorfname = PATH(common.h:Error3),
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
-    .qmode = CEED_GAUSS},
+    .qmode = CEED_GAUSS
+  },
   [CEED_BP3] = {
     .vscale = 1,
     .qdatasize = 6,
@@ -179,7 +182,8 @@ bpData bpOptions[6] = {
     .errorfname = PATH(common.h:Error),
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
-    .qmode = CEED_GAUSS},
+    .qmode = CEED_GAUSS
+  },
   [CEED_BP4] = {
     .vscale = 3,
     .qdatasize = 6,
@@ -192,7 +196,8 @@ bpData bpOptions[6] = {
     .errorfname = PATH(common.h:Error3),
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
-    .qmode = CEED_GAUSS},
+    .qmode = CEED_GAUSS
+  },
   [CEED_BP5] = {
     .vscale = 1,
     .qdatasize = 6,
@@ -205,7 +210,8 @@ bpData bpOptions[6] = {
     .errorfname = PATH(common.h:Error),
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
-    .qmode = CEED_GAUSS_LOBATTO},
+    .qmode = CEED_GAUSS_LOBATTO
+  },
   [CEED_BP6] = {
     .vscale = 3,
     .qdatasize = 6,
@@ -218,7 +224,8 @@ bpData bpOptions[6] = {
     .errorfname = PATH(common.h:Error3),
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
-    .qmode = CEED_GAUSS_LOBATTO}
+    .qmode = CEED_GAUSS_LOBATTO
+  }
 };
 
 // This function uses libCEED to compute the action of the mass matrix
@@ -363,7 +370,7 @@ int main(int argc, char **argv) {
   bpChoice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
-                          bpTypes, (PetscEnum)bpChoice, (PetscEnum*)&bpChoice,
+                          bpTypes, (PetscEnum)bpChoice, (PetscEnum *)&bpChoice,
                           NULL); CHKERRQ(ierr);
   vscale = bpOptions[bpChoice].vscale;
   test_mode = PETSC_FALSE;

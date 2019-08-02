@@ -23,14 +23,14 @@
 // reg kernels
 static const char *kernels3dreg = QUOTE(
 
-typedef CeedScalar real;
+                                    typedef CeedScalar real;
 
 //TODO remove the magic number 32
 
 //Read non interleaved dofs
-inline __device__ void readDofs(const int bid, const int tid, const int comp,
-                                const int size, const int nelem,
-                                const CeedScalar *d_U, real *r_U) {
+                                    inline __device__ void readDofs(const int bid, const int tid, const int comp,
+                                        const int size, const int nelem,
+const CeedScalar *d_U, real *r_U) {
   for (int i = 0; i < size; i++)
     //r_U[i] = d_U[tid + i*32 + bid*32*size + comp*size*nelem];
     //r_U[i] = d_U[i + tid*size + bid*32*size + comp*size*nelem ];
@@ -484,7 +484,7 @@ extern "C" __global__ void weight(const CeedInt nelem,
   }
 }
 
-);
+                                  );
 
 int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
                        CeedScalar **c_B);
@@ -584,8 +584,7 @@ int CeedBasisCreateTensorH1_Cuda_reg(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-  if (Q1d<P1d)
-  {
+  if (Q1d<P1d) {
     return CeedError(ceed, 1, "Backend does not implement underintegrated basis.");
   }
   CeedBasis_Cuda_reg *data;

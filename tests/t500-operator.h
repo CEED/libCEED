@@ -14,22 +14,23 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-CEED_QFUNCTION int setup(void *ctx, const CeedInt Q, const CeedScalar *const *in,
-                 CeedScalar *const *out) {
+CEED_QFUNCTION int setup(void *ctx, const CeedInt Q,
+                         const CeedScalar *const *in,
+                         CeedScalar *const *out) {
   const CeedScalar *weight = in[0], *dxdX = in[1];
   CeedScalar *rho = out[0];
   for (CeedInt i=0; i<Q; i++) {
-  	rho[i] = weight[i] * dxdX[i];
+    rho[i] = weight[i] * dxdX[i];
   }
   return 0;
 }
 
 CEED_QFUNCTION int mass(void *ctx, const CeedInt Q, const CeedScalar *const *in,
-                CeedScalar *const *out) {
+                        CeedScalar *const *out) {
   const CeedScalar *rho = in[0], *u = in[1];
   CeedScalar *v = out[0];
   for (CeedInt i=0; i<Q; i++) {
-  	v[i] = rho[i] * u[i];
+    v[i] = rho[i] * u[i];
   }
   return 0;
 }

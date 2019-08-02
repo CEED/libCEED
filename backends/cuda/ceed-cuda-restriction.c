@@ -19,7 +19,7 @@
 
 static const char *restrictionkernels = QUOTE(
 
-#if __CUDA_ARCH__ < 600
+    #if __CUDA_ARCH__ < 600
 __device__ double atomicAdd(double *address, double val) {
   unsigned long long int *address_as_ull = (unsigned long long int *)address;
   unsigned long long int old = *address_as_ull, assumed;
@@ -34,7 +34,7 @@ __device__ double atomicAdd(double *address, double val) {
   } while (assumed != old);
   return __longlong_as_double(old);
 }
-#endif // __CUDA_ARCH__ < 600
+    #endif // __CUDA_ARCH__ < 600
 
 extern "C" __global__ void noTrNoTr(const CeedInt nelem,
                                     const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
@@ -138,7 +138,7 @@ extern "C" __global__ void trTr(const CeedInt nelem,
   }
 }
 
-);
+                                        );
 
 static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedTransposeMode lmode,
@@ -184,8 +184,8 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
 }
 
 int CeedElemRestrictionApplyBlock_Cuda(CeedElemRestriction r,
-    CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
-    CeedVector u, CeedVector v, CeedRequest *request) {
+                                       CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
+                                       CeedVector u, CeedVector v, CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
