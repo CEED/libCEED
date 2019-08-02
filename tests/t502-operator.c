@@ -7,27 +7,6 @@
 
 #include "t502-operator.h"
 
-// static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
-//                  CeedScalar *const *out) {
-//   const CeedScalar *weight = in[0], *dxdX = in[1];
-//   CeedScalar *rho = out[0];
-//   for (CeedInt i=0; i<Q; i++) {
-//     rho[i] = weight[i] * dxdX[i];
-//   }
-//   return 0;
-// }
-
-// static int mass(void *ctx, CeedInt Q, const CeedScalar *const *in,
-//                 CeedScalar *const *out) {
-//   const CeedScalar *rho = in[0], *u = in[1];
-//   CeedScalar *v = out[0];
-//   for (CeedInt i=0; i<Q; i++) {
-//     v[i]   = rho[i] * u[i];
-//     v[Q+i] = rho[i] * u[Q+i];
-//   }
-//   return 0;
-// }
-
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui;
