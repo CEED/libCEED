@@ -310,6 +310,16 @@ PetscErrorCode zero(PetscInt dim, PetscReal time, const PetscReal x[],
   return 0;
 }
 
+static PetscErrorCode CreateBCLabel(DM dm, const char name[])
+{
+DMLabel        label;
+DMCreateLabel(dm, name);
+DMGetLabel(dm, name, &label);
+DMPlexMarkBoundaryFaces(dm, 1, label);
+DMPlexLabelComplete(dm, label);
+return(0);
+}
+
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
@@ -407,8 +417,11 @@ int main(int argc, char **argv) {
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMAddField(dm, NULL, (PetscObject)fe); CHKERRQ(ierr);
   ierr = DMCreateDS(dm); CHKERRQ(ierr);
-  if (enforce_bc) {
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "marker", 0, 0, NULL,
+  if (enforce_bc) { 
+     PetscBool hasLabel;
+     DMHasLabel(dm, "marker", &hasLabel);
+     if (!hasLabel) {CreateBCLabel(dm, "marker");}
+     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "marker", 0, 0, NULL,
                          (void(*)(void))zero, 1, marker_ids, NULL);
     CHKERRQ(ierr);
   }
@@ -671,6 +684,14 @@ int main(int argc, char **argv) {
                          (double)maxerror); CHKERRQ(ierr);
     }
   }
+
+ PetscViewer     vtkviewersoln;
+  
+ ierr = PetscViewerCreate(comm, &vtkviewersoln);CHKERRQ(ierr);
+ ierr = PetscViewerSetType(vtkviewersoln,PETSCVIEWERVTK);CHKERRQ(ierr);
+ ierr = PetscViewerFileSetName(vtkviewersoln, "solution.vtk");CHKERRQ(ierr);
+ ierr = VecView(X, vtkviewersoln);CHKERRQ(ierr);
+ ierr = PetscViewerDestroy(&vtkviewersoln);CHKERRQ(ierr);
 
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
   ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
