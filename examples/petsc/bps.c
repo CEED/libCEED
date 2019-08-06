@@ -377,7 +377,7 @@ int main(int argc, char **argv) {
   PetscInt degree, qextra, localdof, localelem, melem[3], mdof[3], p[3],
            irank[3], ldof[3], lsize, vscale = 1;
   PetscScalar *r;
-  PetscBool test_mode, benchmark_mode;
+  PetscBool test_mode, benchmark_mode, write_solution;
   PetscMPIInt size, rank;
   Vec X, Xloc, rhs, rhsloc;
   Mat mat;
@@ -412,6 +412,11 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsBool("-benchmark",
                           "Benchmarking mode (prints benchmark statistics)",
                           NULL, benchmark_mode, &benchmark_mode, NULL);
+  CHKERRQ(ierr);
+  write_solution = PETSC_FALSE;
+  ierr = PetscOptionsBool("-write_solution",
+                          "Write solution for visualization",
+                          NULL, write_solution, &write_solution, NULL);
   CHKERRQ(ierr);
   degree = test_mode ? 3 : 1;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
@@ -799,6 +804,16 @@ int main(int argc, char **argv) {
                          "    Pointwise Error (max)              : %e\n",
                          (double)maxerror); CHKERRQ(ierr);
     }
+  }
+
+  if (write_solution) {
+    PetscViewer vtkviewersoln;
+
+    ierr = PetscViewerCreate(comm, &vtkviewersoln); CHKERRQ(ierr);
+    ierr = PetscViewerSetType(vtkviewersoln, PETSCVIEWERVTK); CHKERRQ(ierr);
+    ierr = PetscViewerFileSetName(vtkviewersoln, "solution.vtk"); CHKERRQ(ierr);
+    ierr = VecView(X, vtkviewersoln); CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&vtkviewersoln); CHKERRQ(ierr);
   }
 
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);

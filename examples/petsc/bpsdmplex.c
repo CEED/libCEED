@@ -100,6 +100,51 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
   PetscFunctionReturn(0);
 }
 
+// BC functions
+PetscErrorCode BCsMass(PetscInt dim, PetscReal time, const PetscReal x[],
+                       PetscInt vscale, PetscScalar *u, void *ctx) {
+  PetscFunctionBeginUser;
+
+  for (PetscInt i = 0; i < vscale; i++)
+    u[i] = PetscSqrtScalar(PetscSqr(x[0]) + PetscSqr(x[1]) +
+                           PetscSqr(x[2]));
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode BCsDiff(PetscInt dim, PetscReal time, const PetscReal x[],
+                       PetscInt vscale, PetscScalar *u, void *ctx) {
+  #ifndef M_PI
+#define M_PI    3.14159265358979323846
+  #endif
+  const CeedScalar c[3] = { 0, 1., 2. };
+  const CeedScalar k[3] = { 1., 2., 3. };
+
+  PetscFunctionBeginUser;
+
+  for (PetscInt i = 0; i < vscale; i++) 
+    u[i] = sin(M_PI*(c[0] + k[0]*x[0])) *
+           sin(M_PI*(c[1] + k[1]*x[1])) *
+           sin(M_PI*(c[2] + k[2]*x[2]));
+
+  PetscFunctionReturn(0);
+}
+
+// Create BC label
+static PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
+  int ierr;
+  DMLabel label;
+
+  PetscFunctionBeginUser;
+
+  ierr = DMCreateLabel(dm, name); CHKERRQ(ierr);
+  ierr = DMGetLabel(dm, name, &label); CHKERRQ(ierr);
+  ierr = DMPlexMarkBoundaryFaces(dm, 1, label); CHKERRQ(ierr);
+  ierr = DMPlexLabelComplete(dm, label); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 // Data for PETSc
 typedef struct User_ *User;
 struct User_ {
@@ -129,6 +174,8 @@ typedef struct {
   CeedEvalMode inmode, outmode;
   CeedQuadMode qmode;
   PetscBool enforce_bc;
+  PetscErrorCode (*bcs_func)(PetscInt, PetscReal, const PetscReal*,
+                             PetscInt, PetscScalar *, void*);
 } bpData;
 
 bpData bpOptions[6] = {
@@ -145,7 +192,8 @@ bpData bpOptions[6] = {
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
     .qmode = CEED_GAUSS,
-    .enforce_bc = false},
+    .enforce_bc = false,
+    .bcs_func = BCsMass},
   [CEED_BP2] = {
     .vscale = 3,
     .qdatasize = 1,
@@ -159,7 +207,8 @@ bpData bpOptions[6] = {
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
     .qmode = CEED_GAUSS,
-    .enforce_bc = false},
+    .enforce_bc = false,
+    .bcs_func = BCsMass},
   [CEED_BP3] = {
     .vscale = 1,
     .qdatasize = 6,
@@ -173,7 +222,8 @@ bpData bpOptions[6] = {
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS,
-    .enforce_bc = true},
+    .enforce_bc = true,
+    .bcs_func = BCsDiff},
   [CEED_BP4] = {
     .vscale = 3,
     .qdatasize = 6,
@@ -187,7 +237,8 @@ bpData bpOptions[6] = {
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS,
-    .enforce_bc = true},
+    .enforce_bc = true,
+    .bcs_func = BCsDiff},
   [CEED_BP5] = {
     .vscale = 1,
     .qdatasize = 6,
@@ -201,7 +252,8 @@ bpData bpOptions[6] = {
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS_LOBATTO,
-    .enforce_bc = true},
+    .enforce_bc = true,
+    .bcs_func = BCsDiff},
   [CEED_BP6] = {
     .vscale = 3,
     .qdatasize = 6,
@@ -215,7 +267,8 @@ bpData bpOptions[6] = {
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS_LOBATTO,
-    .enforce_bc = true}
+    .enforce_bc = true,
+    .bcs_func = BCsDiff}
 };
 
 // This function uses libCEED to compute the action of the operator
@@ -300,26 +353,6 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
   PetscFunctionReturn(0);
 }
 
-// Zero function
-PetscErrorCode zero(PetscInt dim, PetscReal time, const PetscReal x[],
-                    PetscInt Nf, PetscScalar *u, void *ctx) {
-  const PetscInt ncomp = dim;
-  PetscInt comp;
-
-  for (comp = 0; comp < ncomp; ++comp) u[comp] = 0.0;
-  return 0;
-}
-
-static PetscErrorCode CreateBCLabel(DM dm, const char name[])
-{
-DMLabel        label;
-DMCreateLabel(dm, name);
-DMGetLabel(dm, name, &label);
-DMPlexMarkBoundaryFaces(dm, 1, label);
-DMPlexLabelComplete(dm, label);
-return(0);
-}
-
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
@@ -330,7 +363,7 @@ int main(int argc, char **argv) {
            vscale = 1, cStart, cEnd, nelem, marker_ids[1] = {1}, Xlocsize;
   PetscScalar *r;
   const PetscScalar *coordArray;
-  PetscBool test_mode, benchmark_mode, read_mesh, enforce_bc;
+  PetscBool test_mode, benchmark_mode, read_mesh, enforce_bc, write_solution;
   Vec X, Xloc, rhs, rhsloc, coords;
   Mat mat;
   KSP ksp;
@@ -369,6 +402,11 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsBool("-benchmark",
                           "Benchmarking mode (prints benchmark statistics)",
                           NULL, benchmark_mode, &benchmark_mode, NULL);
+  CHKERRQ(ierr);
+  write_solution = PETSC_FALSE;
+  ierr = PetscOptionsBool("-write_solution",
+                          "Write solution for visualization",
+                          NULL, write_solution, &write_solution, NULL);
   CHKERRQ(ierr);
   qextra = bpOptions[bpChoice].qextra;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
@@ -422,8 +460,8 @@ int main(int argc, char **argv) {
      DMHasLabel(dm, "marker", &hasLabel);
      if (!hasLabel) {CreateBCLabel(dm, "marker");}
      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "marker", 0, 0, NULL,
-                         (void(*)(void))zero, 1, marker_ids, NULL);
-    CHKERRQ(ierr);
+                          (void(*)(void))bpOptions[bpChoice].bcs_func, 1,
+                          marker_ids, NULL); CHKERRQ(ierr);
   }
   ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
@@ -685,13 +723,15 @@ int main(int argc, char **argv) {
     }
   }
 
- PetscViewer     vtkviewersoln;
-  
- ierr = PetscViewerCreate(comm, &vtkviewersoln);CHKERRQ(ierr);
- ierr = PetscViewerSetType(vtkviewersoln,PETSCVIEWERVTK);CHKERRQ(ierr);
- ierr = PetscViewerFileSetName(vtkviewersoln, "solution.vtk");CHKERRQ(ierr);
- ierr = VecView(X, vtkviewersoln);CHKERRQ(ierr);
- ierr = PetscViewerDestroy(&vtkviewersoln);CHKERRQ(ierr);
+  if (write_solution) {
+    PetscViewer vtkviewersoln;
+
+    ierr = PetscViewerCreate(comm, &vtkviewersoln); CHKERRQ(ierr);
+    ierr = PetscViewerSetType(vtkviewersoln, PETSCVIEWERVTK); CHKERRQ(ierr);
+    ierr = PetscViewerFileSetName(vtkviewersoln, "solution.vtk"); CHKERRQ(ierr);
+    ierr = VecView(X, vtkviewersoln); CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&vtkviewersoln); CHKERRQ(ierr);
+  }
 
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
   ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
