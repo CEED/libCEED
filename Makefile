@@ -149,8 +149,8 @@ mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
 # Nek5K Examples
 nekexamples  := $(OBJDIR)/nek-bps
 # PETSc Examples
-petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
-petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
+petscexamples.c := $(wildcard examples/petsc/*.c)
+petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 # Navier-Stokes Example
 navierstokesexample.c := $(sort $(wildcard examples/navier-stokes/*.c))
 navierstokesexample  := $(navierstokesexample.c:examples/navier-stokes/%.c=$(OBJDIR)/navier-stokes-%)

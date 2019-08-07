@@ -19,32 +19,32 @@
 // This example demonstrates a simple usage of libCEED with PETSc to solve the
 // CEED BP benchmark problems, see http://ceed.exascaleproject.org/bps.
 //
-// The code is intentionally "raw", using only low-level communication
-// primitives.
+// The code uses higher level communication protocols in DMPlex.
 //
 // Build with:
 //
-//     make bps [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>]
+//     make bpsdmplex [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>]
 //
 // Sample runs:
 //
-//     bps -problem bp1
-//     bps -problem bp2 -ceed /cpu/self
-//     bps -problem bp3 -ceed /gpu/occa
-//     bps -problem bp4 -ceed /cpu/occa
-//     bps -problem bp5 -ceed /omp/occa
-//     bps -problem bp6 -ceed /ocl/occa
+//     bps -problem bp1 -petscspace_degree 3
+//     bps -problem bp2 -ceed /cpu/self -petscspace_degree 3
+//     bps -problem bp3 -ceed /gpu/occa -petscspace_degree 3
+//     bps -problem bp4 -ceed /cpu/occa -petscspace_degree 3
+//     bps -problem bp5 -ceed /omp/occa -petscspace_degree 3
+//     bps -problem bp6 -ceed /ocl/occa -petscspace_degree 3
 //
-//TESTARGS -ceed {ceed_resource} -test -problem bp2
+//TESTARGS -ceed {ceed_resource} -test -problem bp3 -petscspace_degree 3
 
 /// @file
-/// CEED BPs example using PETSc
-/// See bpsdmplex.c for an implementation using DMPlex unstructured grids.
-const char help[] = "Solve CEED BPs using PETSc\n";
+/// CEED BPs example using PETSc with DMPlex
+/// See bps.c for a "raw" implementation using a structured grid.
+const char help[] = "Solve CEED BPs using PETSc with DMPlex\n";
 
 #include <stdbool.h>
 #include <string.h>
 #include "common.h"
+#include <petscdmplex.h>
 #include "bp1.h"
 #include "bp2.h"
 #include "bp3.h"
@@ -52,77 +52,95 @@ const char help[] = "Solve CEED BPs using PETSc\n";
 
 #define PATH(BASE) __DIR__ #BASE
 
-static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
-  for (PetscInt d=0,sizeleft=size; d<3; d++) {
-    PetscInt try = (PetscInt)PetscCeilReal(PetscPowReal(sizeleft, 1./(3 - d)));
-    while (try * (sizeleft / try) != sizeleft) try++;
-    m[reverse ? 2-d : d] = try;
-    sizeleft /= try;
-  }
-}
+// Get CEED restriction data from DMPlex
+static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
+				 CeedElemRestriction *Erestrict, DM dm) {
+  PetscInt ierr;
+  PetscInt c, cStart, cEnd, nelem, ndof, *erestrict, eoffset;
+  PetscSection section;
+  Vec Uloc;
 
-static PetscInt Max3(const PetscInt a[3]) {
-  return PetscMax(a[0], PetscMax(a[1], a[2]));
-}
-static PetscInt Min3(const PetscInt a[3]) {
-  return PetscMin(a[0], PetscMin(a[1], a[2]));
-}
-static void GlobalDof(const PetscInt p[3], const PetscInt irank[3],
-                      PetscInt degree, const PetscInt melem[3],
-                      PetscInt mdof[3]) {
-  for (int d=0; d<3; d++)
-    mdof[d] = degree*melem[d] + (irank[d] == p[d]-1);
-}
-static PetscInt GlobalStart(const PetscInt p[3], const PetscInt irank[3],
-                            PetscInt degree, const PetscInt melem[3]) {
-  PetscInt start = 0;
-  // Dumb brute-force is easier to read
-  for (PetscInt i=0; i<p[0]; i++) {
-    for (PetscInt j=0; j<p[1]; j++) {
-      for (PetscInt k=0; k<p[2]; k++) {
-        PetscInt mdof[3], ijkrank[] = {i,j,k};
-        if (i == irank[0] && j == irank[1] && k == irank[2]) return start;
-        GlobalDof(p, ijkrank, degree, melem, mdof);
-        start += mdof[0] * mdof[1] * mdof[2];
-      }
-    }
-  }
-  return -1;
-}
-static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
-                             CeedInt P, CeedInt ncomp,
-                             CeedElemRestriction *Erestrict) {
-  const PetscInt nelem = melem[0]*melem[1]*melem[2];
-  PetscInt mdof[3], *idx, *idxp;
+  PetscFunctionBegin;
 
-  // Get indicies
-  for (int d=0; d<3; d++) mdof[d] = melem[d]*(P-1) + 1;
-  idxp = idx = malloc(nelem*P*P*P*sizeof idx[0]);
-  for (CeedInt i=0; i<melem[0]; i++) {
-    for (CeedInt j=0; j<melem[1]; j++) {
-      for (CeedInt k=0; k<melem[2]; k++,idxp += P*P*P) {
-        for (CeedInt ii=0; ii<P; ii++) {
-          for (CeedInt jj=0; jj<P; jj++) {
-            for (CeedInt kk=0; kk<P; kk++) {
-              if (0) { // This is the C-style (i,j,k) ordering that I prefer
-                idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mdof[1]
-                                         + (j*(P-1)+jj))*mdof[2]
-                                        + (k*(P-1)+kk));
-              } else { // (k,j,i) ordering for consistency with MFEM example
-                idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mdof[1]
-                                         + (j*(P-1)+jj))*mdof[2]
-                                        + (k*(P-1)+kk));
-              }
-            }
-          }
-        }
+  // Get Nelem
+  ierr = DMGetDefaultSection(dm, &section); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 0, &cStart,& cEnd); CHKERRQ(ierr);
+  nelem = cEnd - cStart;
+
+  // Get indices
+  ierr = PetscMalloc1(nelem*P*P*P, &erestrict); CHKERRQ(ierr);
+  for (c=cStart, eoffset=0; c<cEnd; c++) {
+    PetscInt numindices, *indices, i;
+    ierr = DMPlexGetClosureIndices(dm, section, section, c, &numindices,
+                                   &indices, NULL); CHKERRQ(ierr);
+    for (i=0; i<numindices; i+=ncomp) {
+      for (PetscInt j=0; j<ncomp; j++) {
+        if (indices[i+j] != indices[i] + copysign(j, indices[i]))
+          SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
+                   "Cell %D closure indices not interlaced", c);
       }
+      // Essential boundary conditions are encoded as -(loc+1)
+      PetscInt loc = indices[i] >= 0 ? indices[i] : -(indices[i] + 1);
+      erestrict[eoffset++] = loc/ncomp;
     }
+    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, &numindices,
+                                       &indices, NULL); CHKERRQ(ierr);
   }
 
   // Setup CEED restriction
-  CeedElemRestrictionCreate(ceed, nelem, P*P*P, mdof[0]*mdof[1]*mdof[2], ncomp,
-                            CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
+  ierr = DMGetLocalVector(dm, &Uloc); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(Uloc, &ndof); CHKERRQ(ierr);
+
+  ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
+  CeedElemRestrictionCreate(ceed, nelem, P*P*P, ndof/ncomp, ncomp,
+                            CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
+                            Erestrict);
+  ierr = PetscFree(erestrict); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+// BC functions
+PetscErrorCode BCsMass(PetscInt dim, PetscReal time, const PetscReal x[],
+                       PetscInt vscale, PetscScalar *u, void *ctx) {
+  PetscFunctionBeginUser;
+
+  for (PetscInt i = 0; i < vscale; i++)
+    u[i] = PetscSqrtScalar(PetscSqr(x[0]) + PetscSqr(x[1]) +
+                           PetscSqr(x[2]));
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode BCsDiff(PetscInt dim, PetscReal time, const PetscReal x[],
+                       PetscInt vscale, PetscScalar *u, void *ctx) {
+  #ifndef M_PI
+#define M_PI    3.14159265358979323846
+  #endif
+  const CeedScalar c[3] = { 0, 1., 2. };
+  const CeedScalar k[3] = { 1., 2., 3. };
+
+  PetscFunctionBeginUser;
+
+  for (PetscInt i = 0; i < vscale; i++) 
+    u[i] = sin(M_PI*(c[0] + k[0]*x[0])) *
+           sin(M_PI*(c[1] + k[1]*x[1])) *
+           sin(M_PI*(c[2] + k[2]*x[2]));
+
+  PetscFunctionReturn(0);
+}
+
+// Create BC label
+static PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
+  int ierr;
+  DMLabel label;
+
+  PetscFunctionBeginUser;
+
+  ierr = DMCreateLabel(dm, name); CHKERRQ(ierr);
+  ierr = DMGetLabel(dm, name, &label); CHKERRQ(ierr);
+  ierr = DMPlexMarkBoundaryFaces(dm, 1, label); CHKERRQ(ierr);
+  ierr = DMPlexLabelComplete(dm, label); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -131,14 +149,12 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
 typedef struct User_ *User;
 struct User_ {
   MPI_Comm comm;
-  VecScatter ltog;              // Scatter for all entries
-  VecScatter ltog0;             // Skip Dirichlet values
-  VecScatter gtogD;             // global-to-global; only Dirichlet values
   Vec Xloc, Yloc;
   CeedVector xceed, yceed;
   CeedOperator op;
   CeedVector rho;
   Ceed ceed;
+  DM   dm;
 };
 
 // BP Options
@@ -157,6 +173,9 @@ typedef struct {
              errorfname[PETSC_MAX_PATH_LEN];
   CeedEvalMode inmode, outmode;
   CeedQuadMode qmode;
+  PetscBool enforce_bc;
+  PetscErrorCode (*bcs_func)(PetscInt, PetscReal, const PetscReal*,
+                             PetscInt, PetscScalar *, void*);
 } bpData;
 
 bpData bpOptions[6] = {
@@ -172,7 +191,9 @@ bpData bpOptions[6] = {
     .errorfname = PATH(common.h:Error),
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
-    .qmode = CEED_GAUSS},
+    .qmode = CEED_GAUSS,
+    .enforce_bc = false,
+    .bcs_func = BCsMass},
   [CEED_BP2] = {
     .vscale = 3,
     .qdatasize = 1,
@@ -185,7 +206,9 @@ bpData bpOptions[6] = {
     .errorfname = PATH(common.h:Error3),
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
-    .qmode = CEED_GAUSS},
+    .qmode = CEED_GAUSS,
+    .enforce_bc = false,
+    .bcs_func = BCsMass},
   [CEED_BP3] = {
     .vscale = 1,
     .qdatasize = 6,
@@ -198,7 +221,9 @@ bpData bpOptions[6] = {
     .errorfname = PATH(common.h:Error),
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
-    .qmode = CEED_GAUSS},
+    .qmode = CEED_GAUSS,
+    .enforce_bc = true,
+    .bcs_func = BCsDiff},
   [CEED_BP4] = {
     .vscale = 3,
     .qdatasize = 6,
@@ -211,7 +236,9 @@ bpData bpOptions[6] = {
     .errorfname = PATH(common.h:Error3),
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
-    .qmode = CEED_GAUSS},
+    .qmode = CEED_GAUSS,
+    .enforce_bc = true,
+    .bcs_func = BCsDiff},
   [CEED_BP5] = {
     .vscale = 1,
     .qdatasize = 6,
@@ -224,7 +251,9 @@ bpData bpOptions[6] = {
     .errorfname = PATH(common.h:Error),
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
-    .qmode = CEED_GAUSS_LOBATTO},
+    .qmode = CEED_GAUSS_LOBATTO,
+    .enforce_bc = true,
+    .bcs_func = BCsDiff},
   [CEED_BP6] = {
     .vscale = 3,
     .qdatasize = 6,
@@ -237,48 +266,13 @@ bpData bpOptions[6] = {
     .errorfname = PATH(common.h:Error3),
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
-    .qmode = CEED_GAUSS_LOBATTO}
+    .qmode = CEED_GAUSS_LOBATTO,
+    .enforce_bc = true,
+    .bcs_func = BCsDiff}
 };
 
-// This function uses libCEED to compute the action of the mass matrix
-static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
-  PetscErrorCode ierr;
-  User user;
-  PetscScalar *x, *y;
-
-  PetscFunctionBeginUser;
-  ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
-  ierr = VecScatterBegin(user->ltog, X, user->Xloc, INSERT_VALUES,
-                         SCATTER_REVERSE); CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES, SCATTER_REVERSE);
-  CHKERRQ(ierr);
-  ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
-
-  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
-  ierr = VecGetArray(user->Yloc, &y); CHKERRQ(ierr);
-  CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
-  CeedVectorSetArray(user->yceed, CEED_MEM_HOST, CEED_USE_POINTER, y);
-
-  CeedOperatorApply(user->op, user->xceed, user->yceed,
-                    CEED_REQUEST_IMMEDIATE);
-  ierr = CeedVectorSyncArray(user->yceed, CEED_MEM_HOST); CHKERRQ(ierr);
-
-  ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
-  ierr = VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
-
-  if (Y) {
-    ierr = VecZeroEntries(Y); CHKERRQ(ierr);
-    ierr = VecScatterBegin(user->ltog, user->Yloc, Y, ADD_VALUES, SCATTER_FORWARD);
-    CHKERRQ(ierr);
-    ierr = VecScatterEnd(user->ltog, user->Yloc, Y, ADD_VALUES, SCATTER_FORWARD);
-    CHKERRQ(ierr);
-  }
-  PetscFunctionReturn(0);
-}
-
-// This function uses libCEED to compute the action of the Laplacian with
-// Dirichlet boundary conditions
-static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
+// This function uses libCEED to compute the action of the operator
+static PetscErrorCode MatMult_User(Mat A, Vec X, Vec Y) {
   PetscErrorCode ierr;
   User user;
   PetscScalar *x, *y;
@@ -287,11 +281,10 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
   ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
 
   // Global-to-local
-  ierr = VecScatterBegin(user->ltog0, X, user->Xloc, INSERT_VALUES,
-                         SCATTER_REVERSE); CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog0, X, user->Xloc, INSERT_VALUES,
-                       SCATTER_REVERSE);
-  CHKERRQ(ierr);
+  DMGlobalToLocalBegin(user->dm, X, INSERT_VALUES, user->Xloc);
+  DMGlobalToLocalEnd(user->dm, X, INSERT_VALUES, user->Xloc);
+  DMGlobalToLocalBegin(user->dm, Y, INSERT_VALUES, user->Yloc);
+  DMGlobalToLocalEnd(user->dm, Y, INSERT_VALUES, user->Yloc);
   ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
   // Setup CEED vectors
@@ -311,14 +304,8 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
 
   // Local-to-global
   ierr = VecZeroEntries(Y); CHKERRQ(ierr);
-  ierr = VecScatterBegin(user->gtogD, X, Y, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->gtogD, X, Y, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterBegin(user->ltog0, user->Yloc, Y, ADD_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog0, user->Yloc, Y, ADD_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
+  DMLocalToGlobalBegin(user->dm, user->Yloc, ADD_VALUES, Y);
+  DMLocalToGlobalEnd(user->dm, user->Yloc, ADD_VALUES, Y);
 
   PetscFunctionReturn(0);
 }
@@ -336,10 +323,7 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
   CeedVectorCreate(user->ceed, length, &collocated_error);
 
   // Global-to-local
-  ierr = VecScatterBegin(user->ltog, X, user->Xloc, INSERT_VALUES,
-                         SCATTER_REVERSE); CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES, SCATTER_REVERSE);
-  CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, X, INSERT_VALUES, user->Xloc);CHKERRQ(ierr);
 
   // Setup CEED vector
   ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
@@ -372,17 +356,21 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
+  char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
+       filename[PETSC_MAX_PATH_LEN];
   double my_rt_start, my_rt, rt_min, rt_max;
-  PetscInt degree, qextra, localdof, localelem, melem[3], mdof[3], p[3],
-           irank[3], ldof[3], lsize, vscale = 1;
+  PetscInt degree, qextra, lsize, gsize, dim =3, melem[3] = {3, 3, 3},
+           vscale = 1, cStart, cEnd, nelem, marker_ids[1] = {1}, Xlocsize;
   PetscScalar *r;
-  PetscBool test_mode, benchmark_mode, write_solution;
-  PetscMPIInt size, rank;
-  Vec X, Xloc, rhs, rhsloc;
+  const PetscScalar *coordArray;
+  PetscBool test_mode, benchmark_mode, read_mesh, enforce_bc, write_solution;
+  Vec X, Xloc, rhs, rhsloc, coords;
   Mat mat;
   KSP ksp;
-  VecScatter ltog, ltog0, gtogD;
+  DM  dm, dmcoord;
+  PetscSpace sp;
+  PetscFE fe;
+  PetscSection section;
   User user;
   Ceed ceed;
   CeedBasis basisx, basisu;
@@ -397,6 +385,8 @@ int main(int argc, char **argv) {
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
   comm = PETSC_COMM_WORLD;
+
+  // Read CL options
   ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
   bpChoice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
@@ -418,49 +408,79 @@ int main(int argc, char **argv) {
                           "Write solution for visualization",
                           NULL, write_solution, &write_solution, NULL);
   CHKERRQ(ierr);
-  degree = test_mode ? 3 : 1;
-  ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
-                         NULL, degree, &degree, NULL); CHKERRQ(ierr);
   qextra = bpOptions[bpChoice].qextra;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
-  localdof = 1000;
-  ierr = PetscOptionsInt("-local",
-                         "Target number of locally owned degrees of freedom per process",
-                         NULL, localdof, &localdof, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-mesh", "Read mesh from file", NULL,
+                            filename, filename, sizeof(filename), &read_mesh);
+  CHKERRQ(ierr);
+  if (!read_mesh) {
+    PetscInt tmp = dim;
+    ierr = PetscOptionsIntArray("-cells","Number of cells per dimension", NULL,
+                                melem, &tmp, NULL); CHKERRQ(ierr);
+  }
+  enforce_bc = bpOptions[bpChoice].enforce_bc;
+  ierr = PetscOptionsBool("-enforce_bc", "Enforce essential BCs", NULL,
+                          enforce_bc, &enforce_bc, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  // Setup DM
+  if (read_mesh) {
+    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dm);
+    CHKERRQ(ierr);
+  } else {
+    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, melem, NULL,
+                                NULL, NULL, PETSC_TRUE ,&dm); CHKERRQ(ierr);
+  }
+
+  {
+    DM dmDist = NULL;
+    PetscPartitioner part;
+
+    ierr = DMPlexGetPartitioner(dm, &part);CHKERRQ(ierr);
+    ierr = PetscPartitionerSetFromOptions(part);CHKERRQ(ierr);
+    ierr = DMPlexDistribute(dm, 0, NULL, &dmDist);CHKERRQ(ierr);
+    if (dmDist) {
+      ierr = DMDestroy(&dm); CHKERRQ(ierr);
+      dm  = dmDist;
+    }
+  }
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  ierr = PetscFECreateDefault(PETSC_COMM_SELF, dim, vscale, PETSC_FALSE, NULL,
+                              PETSC_DETERMINE, &fe);
+  CHKERRQ(ierr);
+  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+  ierr = DMAddField(dm, NULL, (PetscObject)fe); CHKERRQ(ierr);
+  ierr = DMCreateDS(dm); CHKERRQ(ierr);
+  if (enforce_bc) { 
+     PetscBool hasLabel;
+     DMHasLabel(dm, "marker", &hasLabel);
+     if (!hasLabel) {CreateBCLabel(dm, "marker");}
+     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "marker", 0, 0, NULL,
+                          (void(*)(void))bpOptions[bpChoice].bcs_func, 1,
+                          marker_ids, NULL); CHKERRQ(ierr);
+  }
+  ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
+  CHKERRQ(ierr);
+
+  // Get basis space degree
+  ierr = PetscFEGetBasisSpace(fe, &sp); CHKERRQ(ierr);
+  ierr = PetscSpaceGetDegree(sp, &degree, NULL); CHKERRQ(ierr);
+  ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
+  if (degree < 1) SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
+                           "-petscspace_degree %D must be at least 1", degree);
   P = degree + 1;
   Q = P + qextra;
 
-  // Determine size of process grid
-  ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
-  Split3(size, p, false);
-
-  // Find a nicely composite number of elements no less than localdof
-  for (localelem = PetscMax(1, localdof / (degree*degree*degree)); ;
-       localelem++) {
-    Split3(localelem, melem, true);
-    if (Max3(melem) / Min3(melem) <= 2) break;
-  }
-
-  // Find my location in the process grid
-  ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
-  for (int d=0,rankleft=rank; d<3; d++) {
-    const int pstride[3] = {p[1] *p[2], p[2], 1};
-    irank[d] = rankleft / pstride[d];
-    rankleft -= irank[d] * pstride[d];
-  }
-
-  GlobalDof(p, irank, degree, melem, mdof);
-
-  // Setup global vector
-  ierr = VecCreate(comm, &X); CHKERRQ(ierr);
-  ierr = VecSetSizes(X, mdof[0]*mdof[1]*mdof[2]*vscale, PETSC_DECIDE);
-  CHKERRQ(ierr);
-  ierr = VecSetUp(X); CHKERRQ(ierr);
+  // Setup global and local vectors
+  ierr = DMCreateGlobalVector(dm, &X); CHKERRQ(ierr);
+  ierr = DMCreateLocalVector(dm, &Xloc); CHKERRQ(ierr);
+  ierr = VecGetSize(Xloc, &Xlocsize); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(X, &lsize); CHKERRQ(ierr);
+  ierr = VecGetSize(X, &gsize); CHKERRQ(ierr);
 
   // Print summary
   if (!test_mode) {
@@ -474,111 +494,31 @@ int main(int argc, char **argv) {
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
                        "    Global DOFs                        : %D\n"
-                       "    Process Decomposition              : %D %D %D\n"
-                       "    Local Elements                     : %D = %D %D %D\n"
-                       "    Owned DOFs                         : %D = %D %D %D\n",
-                       bpChoice+1, ceedresource, P, Q,  gsize/vscale, p[0],
-                       p[1], p[2], localelem, melem[0], melem[1], melem[2],
-                       mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]);
-    CHKERRQ(ierr);
-  }
-
-  {
-    lsize = 1;
-    for (int d=0; d<3; d++) {
-      ldof[d] = melem[d]*degree + 1;
-      lsize *= ldof[d];
-    }
-    ierr = VecCreate(PETSC_COMM_SELF, &Xloc); CHKERRQ(ierr);
-    ierr = VecSetSizes(Xloc, lsize*vscale, PETSC_DECIDE); CHKERRQ(ierr);
-    ierr = VecSetUp(Xloc); CHKERRQ(ierr);
-
-    // Create local-to-global scatter
-    PetscInt *ltogind, *ltogind0, *locind, l0count;
-    IS ltogis, ltogis0, locis;
-    PetscInt gstart[2][2][2], gmdof[2][2][2][3];
-
-    for (int i=0; i<2; i++) {
-      for (int j=0; j<2; j++) {
-        for (int k=0; k<2; k++) {
-          PetscInt ijkrank[3] = {irank[0]+i, irank[1]+j, irank[2]+k};
-          gstart[i][j][k] = GlobalStart(p, ijkrank, degree, melem);
-          GlobalDof(p, ijkrank, degree, melem, gmdof[i][j][k]);
-        }
-      }
-    }
-
-    ierr = PetscMalloc1(lsize, &ltogind); CHKERRQ(ierr);
-    ierr = PetscMalloc1(lsize, &ltogind0); CHKERRQ(ierr);
-    ierr = PetscMalloc1(lsize, &locind); CHKERRQ(ierr);
-    l0count = 0;
-    for (PetscInt i=0,ir,ii; ir=i>=mdof[0], ii=i-ir*mdof[0], i<ldof[0]; i++) {
-      for (PetscInt j=0,jr,jj; jr=j>=mdof[1], jj=j-jr*mdof[1], j<ldof[1]; j++) {
-        for (PetscInt k=0,kr,kk; kr=k>=mdof[2], kk=k-kr*mdof[2], k<ldof[2]; k++) {
-          PetscInt here = (i*ldof[1]+j)*ldof[2]+k;
-          ltogind[here] =
-            gstart[ir][jr][kr] + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk;
-          if ((irank[0] == 0 && i == 0)
-              || (irank[1] == 0 && j == 0)
-              || (irank[2] == 0 && k == 0)
-              || (irank[0]+1 == p[0] && i+1 == ldof[0])
-              || (irank[1]+1 == p[1] && j+1 == ldof[1])
-              || (irank[2]+1 == p[2] && k+1 == ldof[2]))
-            continue;
-          ltogind0[l0count] = ltogind[here];
-          locind[l0count++] = here;
-        }
-      }
-    }
-    ierr = ISCreateBlock(comm, vscale, lsize, ltogind, PETSC_OWN_POINTER,
-                         &ltogis); CHKERRQ(ierr);
-    ierr = VecScatterCreate(Xloc, NULL, X, ltogis, &ltog); CHKERRQ(ierr);
-    CHKERRQ(ierr);
-    ierr = ISCreateBlock(comm, vscale, l0count, ltogind0, PETSC_OWN_POINTER,
-                         &ltogis0); CHKERRQ(ierr);
-    ierr = ISCreateBlock(comm, vscale, l0count, locind, PETSC_OWN_POINTER,
-                         &locis); CHKERRQ(ierr);
-    ierr = VecScatterCreate(Xloc, locis, X, ltogis0, &ltog0); CHKERRQ(ierr);
-    {
-      // Create global-to-global scatter for Dirichlet values (everything not in
-      // ltogis0, which is the range of ltog0)
-      PetscInt xstart, xend, *indD, countD = 0;
-      IS isD;
-      const PetscScalar *x;
-      ierr = VecZeroEntries(Xloc); CHKERRQ(ierr);
-      ierr = VecSet(X, 1.0); CHKERRQ(ierr);
-      ierr = VecScatterBegin(ltog0, Xloc, X, INSERT_VALUES, SCATTER_FORWARD);
-      CHKERRQ(ierr);
-      ierr = VecScatterEnd(ltog0, Xloc, X, INSERT_VALUES, SCATTER_FORWARD);
-      CHKERRQ(ierr);
-      ierr = VecGetOwnershipRange(X, &xstart, &xend); CHKERRQ(ierr);
-      ierr = PetscMalloc1(xend-xstart, &indD); CHKERRQ(ierr);
-      ierr = VecGetArrayRead(X, &x); CHKERRQ(ierr);
-      for (PetscInt i=0; i<xend-xstart; i++) {
-        if (x[i] == 1.) indD[countD++] = xstart + i;
-      }
-      ierr = VecRestoreArrayRead(X, &x); CHKERRQ(ierr);
-      ierr = ISCreateGeneral(comm, countD, indD, PETSC_COPY_VALUES, &isD);
-      CHKERRQ(ierr);
-      ierr = PetscFree(indD); CHKERRQ(ierr);
-      ierr = VecScatterCreate(X, isD, X, isD, &gtogD); CHKERRQ(ierr);
-      ierr = ISDestroy(&isD); CHKERRQ(ierr);
-    }
-    ierr = ISDestroy(&ltogis); CHKERRQ(ierr);
-    ierr = ISDestroy(&ltogis0); CHKERRQ(ierr);
-    ierr = ISDestroy(&locis); CHKERRQ(ierr);
+                       "    Owned DOFs                         : %D\n",
+                       bpChoice+1, ceedresource, P, Q,  gsize/vscale,
+                       lsize/vscale); CHKERRQ(ierr);
   }
 
   // Set up libCEED
   CeedInit(ceedresource, &ceed);
+
+  // CEED bases
   CeedBasisCreateTensorH1Lagrange(ceed, 3, vscale, P, Q,
                                   bpOptions[bpChoice].qmode, &basisu);
   CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, Q,
                                   bpOptions[bpChoice].qmode, &basisx);
 
-  CreateRestriction(ceed, melem, P, vscale, &Erestrictu);
-  CreateRestriction(ceed, melem, 2, 3, &Erestrictx);
-  CeedInt nelem = melem[0]*melem[1]*melem[2];
+  // CEED restrictions
+  ierr = DMGetCoordinateDM(dm, &dmcoord); CHKERRQ(ierr);
+  ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
+  CHKERRQ(ierr);
+
+  CreateRestrictionPlex(ceed, 2, 3, &Erestrictx, dmcoord);
+  CreateRestrictionPlex(ceed, P, vscale, &Erestrictu, dm);
+
+  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd);CHKERRQ(ierr);
+  nelem = cEnd - cStart;
+
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, vscale,
                                     &Erestrictui);
   CeedElemRestrictionCreateIdentity(ceed, nelem,
@@ -587,26 +527,16 @@ int main(int argc, char **argv) {
                                     1, &Erestrictqdi);
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1,
                                     &Erestrictxi);
-  {
-    CeedScalar *xloc;
-    CeedInt shape[3] = {melem[0]+1, melem[1]+1, melem[2]+1}, len =
-                         shape[0]*shape[1]*shape[2];
-    xloc = malloc(len*3*sizeof xloc[0]);
-    for (CeedInt i=0; i<shape[0]; i++) {
-      for (CeedInt j=0; j<shape[1]; j++) {
-        for (CeedInt k=0; k<shape[2]; k++) {
-          xloc[((i*shape[1]+j)*shape[2]+k) + 0*len] = 1.*(irank[0]*melem[0]+i) /
-              (p[0]*melem[0]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 1*len] = 1.*(irank[1]*melem[1]+j) /
-              (p[1]*melem[1]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 2*len] = 1.*(irank[2]*melem[2]+k) /
-              (p[2]*melem[2]);
-        }
-      }
-    }
-    CeedVectorCreate(ceed, len*3, &xcoord);
-    CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_OWN_POINTER, xloc);
-  }
+
+  // Element coordinates
+  ierr = DMGetCoordinatesLocal(dm, &coords); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(coords, &coordArray); CHKERRQ(ierr);
+  ierr = DMGetDefaultSection(dmcoord, &section); CHKERRQ(ierr);
+
+  CeedElemRestrictionCreateVector(Erestrictx, &xcoord, NULL);
+  CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_COPY_VALUES,
+                    (PetscScalar*)coordArray);
+  ierr = VecRestoreArrayRead(coords, &coordArray); CHKERRQ(ierr);
 
   // Create the Q-function that builds the operator (i.e. computes its
   // quadrature data) and set its context data
@@ -641,13 +571,13 @@ int main(int argc, char **argv) {
   CeedBasisGetNumQuadraturePoints(basisu, &nqpts);
   CeedVectorCreate(ceed, bpOptions[bpChoice].qdatasize*nelem*nqpts, &rho);
   CeedVectorCreate(ceed, nelem*nqpts*vscale, &target);
-  CeedVectorCreate(ceed, lsize*vscale, &rhsceed);
+  CeedVectorCreate(ceed, Xlocsize, &rhsceed);
 
   // Create the operator that builds the quadrature data for the ceed operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
-  CeedOperatorSetField(op_setup, "x", Erestrictx, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setup, "x", Erestrictx, CEED_TRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_TRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "weight", Erestrictxi, CEED_NOTRANSPOSE,
                        basisx, CEED_VECTOR_NONE);
@@ -676,33 +606,22 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_error, "error", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-
   // Set up Mat
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
   user->comm = comm;
-  user->ltog = ltog;
-  if (bpChoice != CEED_BP1 && bpChoice != CEED_BP2) {
-    user->ltog0 = ltog0;
-    user->gtogD = gtogD;
-  }
+  user->dm =dm;
   user->Xloc = Xloc;
   ierr = VecDuplicate(Xloc, &user->Yloc); CHKERRQ(ierr);
-  CeedVectorCreate(ceed, lsize*vscale, &user->xceed);
-  CeedVectorCreate(ceed, lsize*vscale, &user->yceed);
+  CeedVectorCreate(ceed, Xlocsize, &user->xceed);
+  CeedVectorCreate(ceed, Xlocsize, &user->yceed);
   user->op = op_apply;
   user->rho = rho;
   user->ceed = ceed;
 
-  ierr = MatCreateShell(comm, mdof[0]*mdof[1]*mdof[2]*vscale,
-                        mdof[0]*mdof[1]*mdof[2]*vscale,
-                        PETSC_DECIDE, PETSC_DECIDE, user, &mat); CHKERRQ(ierr);
-  if (bpChoice == CEED_BP1 || bpChoice == CEED_BP2) {
-    ierr = MatShellSetOperation(mat, MATOP_MULT, (void(*)(void))MatMult_Mass);
-    CHKERRQ(ierr);
-  } else {
-    ierr = MatShellSetOperation(mat, MATOP_MULT, (void(*)(void))MatMult_Diff);
-    CHKERRQ(ierr);
-  }
+  ierr = MatCreateShell(comm, lsize, lsize, gsize, gsize, user, &mat);
+  CHKERRQ(ierr);
+  ierr = MatShellSetOperation(mat, MATOP_MULT, (void(*)(void))MatMult_User);
+  CHKERRQ(ierr);
   ierr = MatCreateVecs(mat, &rhs, NULL); CHKERRQ(ierr);
 
   // Get RHS vector
@@ -719,10 +638,8 @@ int main(int argc, char **argv) {
   // Gather RHS
   ierr = VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
   ierr = VecZeroEntries(rhs); CHKERRQ(ierr);
-  ierr = VecScatterBegin(ltog, rhsloc, rhs, ADD_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterEnd(ltog, rhsloc, rhs, ADD_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
+  ierr = DMLocalToGlobalBegin(dm, rhsloc, ADD_VALUES, rhs); CHKERRQ(ierr);
+  ierr = DMLocalToGlobalEnd(dm, rhsloc, ADD_VALUES, rhs); CHKERRQ(ierr);
   CeedVectorDestroy(&rhsceed);
 
   ierr = KSPCreate(comm, &ksp); CHKERRQ(ierr);
@@ -821,11 +738,9 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&X); CHKERRQ(ierr);
   ierr = VecDestroy(&user->Xloc); CHKERRQ(ierr);
   ierr = VecDestroy(&user->Yloc); CHKERRQ(ierr);
-  ierr = VecScatterDestroy(&ltog); CHKERRQ(ierr);
-  ierr = VecScatterDestroy(&ltog0); CHKERRQ(ierr);
-  ierr = VecScatterDestroy(&gtogD); CHKERRQ(ierr);
   ierr = MatDestroy(&mat); CHKERRQ(ierr);
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
+  ierr = DMDestroy(&dm); CHKERRQ(ierr);
 
   CeedVectorDestroy(&user->xceed);
   CeedVectorDestroy(&user->yceed);

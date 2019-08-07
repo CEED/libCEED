@@ -68,9 +68,6 @@ CEED_EXTERN int CeedVectorGetState(CeedVector vec, uint64_t *state);
 CEED_EXTERN int CeedVectorGetData(CeedVector vec, void* *data);
 CEED_EXTERN int CeedVectorSetData(CeedVector vec, void* *data);
 
-CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
-    CeedVector *lvec,
-    CeedVector *evec);
 CEED_EXTERN int CeedElemRestrictionGetCeed(CeedElemRestriction rstr,
     Ceed *ceed);
 CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
