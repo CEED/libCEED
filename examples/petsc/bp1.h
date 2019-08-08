@@ -21,8 +21,8 @@
 #include <ceed.h>
 
 // *****************************************************************************
-static int SetupMass(void *ctx, CeedInt Q,
-                     const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(SetupMass)(void *ctx, CeedInt Q,
+                          const CeedScalar *const *in, CeedScalar *const *out) {
   CeedScalar *rho = out[0], *true_soln = out[1], *rhs = out[2];
   const CeedScalar (*x)[Q] = (const CeedScalar (*)[Q])in[0];
   const CeedScalar (*J)[3][Q] = (const CeedScalar (*)[3][Q])in[1];
@@ -41,8 +41,8 @@ static int SetupMass(void *ctx, CeedInt Q,
   return 0;
 }
 
-static int Mass(void *ctx, CeedInt Q,
-                const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
+                     const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *rho = in[1];
   CeedScalar *v = out[0];
   for (CeedInt i=0; i<Q; i++) {

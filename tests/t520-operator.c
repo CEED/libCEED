@@ -103,12 +103,12 @@ int main(int argc, char **argv) {
                     qweight, &buTet);
 
   // -- QFunctions
-  CeedQFunctionCreateInterior(ceed, 1, setup, __FILE__ ":setup", &qf_setupTet);
+  CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setupTet);
   CeedQFunctionAddInput(qf_setupTet, "_weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddInput(qf_setupTet, "dx", dim, CEED_EVAL_GRAD);
   CeedQFunctionAddOutput(qf_setupTet, "rho", 1, CEED_EVAL_NONE);
 
-  CeedQFunctionCreateInterior(ceed, 1, mass, __FILE__ ":mass", &qf_massTet);
+  CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_massTet);
   CeedQFunctionAddInput(qf_massTet, "rho", 1, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_massTet, "u", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_massTet, "v", 1, CEED_EVAL_INTERP);
@@ -160,12 +160,12 @@ int main(int argc, char **argv) {
   CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, PHex, QHex, CEED_GAUSS, &buHex);
 
   // -- QFunctions
-  CeedQFunctionCreateInterior(ceed, 1, setup, __FILE__ ":setup", &qf_setupHex);
+  CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setupHex);
   CeedQFunctionAddInput(qf_setupHex, "_weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddInput(qf_setupHex, "dx", dim, CEED_EVAL_GRAD);
   CeedQFunctionAddOutput(qf_setupHex, "rho", 1, CEED_EVAL_NONE);
 
-  CeedQFunctionCreateInterior(ceed, 1, mass, __FILE__ ":mass", &qf_massHex);
+  CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_massHex);
   CeedQFunctionAddInput(qf_massHex, "rho", 1, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_massHex, "u", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_massHex, "v", 1, CEED_EVAL_INTERP);

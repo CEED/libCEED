@@ -55,7 +55,9 @@
 #  define CEED_EXTERN extern
 #endif
 #ifndef CEED_QFUNCTION
-#  define CEED_QFUNCTION static
+#define CEED_QFUNCTION(name) \
+  static const char name ## _loc[] = __FILE__ ":" #name;        \
+  static int name
 #endif
 
 #include <assert.h>

@@ -18,11 +18,11 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
-  CeedQFunctionCreateInterior(ceed, 1, setup, __FILE__ ":setup", &qf_setup);
+  CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
   CeedQFunctionAddInput(qf_setup, "w", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_setup, "qdata", 1, CEED_EVAL_INTERP);
 
-  CeedQFunctionCreateInterior(ceed, 1, mass, __FILE__ ":mass", &qf_mass);
+  CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_mass);
   CeedQFunctionAddInput(qf_mass, "qdata", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_mass, "u", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);

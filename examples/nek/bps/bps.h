@@ -21,7 +21,7 @@
 // *****************************************************************************
 //   BP 1
 // *****************************************************************************
-CEED_QFUNCTION int masssetupf(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(masssetupf)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   CeedScalar *rho = out[0], *rhs = out[1];
   const CeedScalar *x = in[0];
   const CeedScalar *J = in[1];
@@ -49,7 +49,7 @@ CEED_QFUNCTION int massf(void *ctx, CeedInt Q, const CeedScalar *const *in, Ceed
 // *****************************************************************************
 //   BP 3
 // *****************************************************************************
-CEED_QFUNCTION int diffsetupf(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(diffsetupf)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   #ifndef M_PI
   #define M_PI    3.14159265358979323846
   #endif

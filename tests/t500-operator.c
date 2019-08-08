@@ -51,12 +51,12 @@ int main(int argc, char **argv) {
 //! [Basis Create]
 
 //! [QFunction Create]
-  CeedQFunctionCreateInterior(ceed, 1, setup, __FILE__ ":setup", &qf_setup);
+  CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
   CeedQFunctionAddInput(qf_setup, "_weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddInput(qf_setup, "x", 1, CEED_EVAL_GRAD);
   CeedQFunctionAddOutput(qf_setup, "rho", 1, CEED_EVAL_NONE);
 
-  CeedQFunctionCreateInterior(ceed, 1, mass, __FILE__ ":mass", &qf_mass);
+  CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_mass);
   CeedQFunctionAddInput(qf_mass, "rho", 1, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_mass, "u", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);

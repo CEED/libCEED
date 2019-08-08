@@ -154,7 +154,7 @@ int main(int argc, const char *argv[]) {
   // quadrature data) and set its context data.
   CeedQFunction build_qfunc;
   CeedQFunctionCreateInterior(ceed, 1, f_build_mass,
-                              __FILE__":f_build_mass", &build_qfunc);
+                              f_build_mass_loc, &build_qfunc);
   CeedQFunctionAddInput(build_qfunc, "dx", dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(build_qfunc, "rho", 1, CEED_EVAL_NONE);
@@ -190,7 +190,7 @@ int main(int argc, const char *argv[]) {
   // Create the Q-function that defines the action of the mass operator.
   CeedQFunction apply_qfunc;
   CeedQFunctionCreateInterior(ceed, 1, f_apply_mass,
-                              __FILE__":f_apply_mass", &apply_qfunc);
+                              f_apply_mass_loc, &apply_qfunc);
   CeedQFunctionAddInput(apply_qfunc, "u", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(apply_qfunc, "rho", 1, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(apply_qfunc, "v", 1, CEED_EVAL_INTERP);

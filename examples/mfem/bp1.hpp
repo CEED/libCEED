@@ -142,7 +142,7 @@ class CeedMassOperator : public mfem::Operator {
     // Create the Q-function that builds the mass operator (i.e. computes its
     // quadrature data) and set its context data.
     CeedQFunctionCreateInterior(ceed, 1, f_build_mass,
-                                __FILE__":f_build_mass", &build_qfunc);
+                                f_build_mass_loc, &build_qfunc);
     CeedQFunctionAddInput(build_qfunc, "dx", mesh->SpaceDimension(),
                           CEED_EVAL_GRAD);
     CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
@@ -164,7 +164,7 @@ class CeedMassOperator : public mfem::Operator {
 
     // Create the Q-function that defines the action of the mass operator.
     CeedQFunctionCreateInterior(ceed, 1, f_apply_mass,
-                                __FILE__":f_apply_mass", &apply_qfunc);
+                                f_apply_mass_loc, &apply_qfunc);
     CeedQFunctionAddInput(apply_qfunc, "u", 1, CEED_EVAL_INTERP);
     CeedQFunctionAddInput(apply_qfunc, "rho", 1, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(apply_qfunc, "v", 1, CEED_EVAL_INTERP);

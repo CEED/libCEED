@@ -22,8 +22,8 @@
 #endif
 
 // *****************************************************************************
-CEED_QFUNCTION int SetupMass3(void *ctx, const CeedInt Q,
-                              const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(SetupMass3)(void *ctx, const CeedInt Q,
+                           const CeedScalar *const *in, CeedScalar *const *out) {
   CeedScalar *rho = out[0], *true_soln = out[1], *rhs = out[2];
   const CeedScalar *x = in[0];
   const CeedScalar *J = in[1];
@@ -45,8 +45,8 @@ CEED_QFUNCTION int SetupMass3(void *ctx, const CeedInt Q,
   return 0;
 }
 
-CEED_QFUNCTION int Mass3(void *ctx, const CeedInt Q,
-                         const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Mass3)(void *ctx, const CeedInt Q,
+                      const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *rho = in[1];
   CeedScalar *v = out[0];
   for (CeedInt i=0; i<Q; i++) {
