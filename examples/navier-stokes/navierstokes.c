@@ -279,7 +279,8 @@ int main(int argc, char **argv) {
   User user;
   Units units;
   char ceedresource[4096] = "/cpu/self";
-  PetscFunctionList icsflist = NULL, qflist = NULL;
+  PetscFunctionList icsflist = NULL, qflist = NULL,
+                    icsfnamelist = NULL, qfnamelist = NULL;
   char problemtype[PETSC_MAX_PATH_LEN] = "advection";
   PetscInt localNelem, lsize, steps,
            melem[3], mdof[3], p[3], irank[3], ldof[3];
@@ -338,9 +339,13 @@ int main(int argc, char **argv) {
 
   // Set up problem type command line option
   PetscFunctionListAdd(&icsflist, "advection", &ICsAdvection);
-  PetscFunctionListAdd(&icsflist, "density_current", &ICsDC);
+  PetscFunctionListAdd(&icsfnamelist, "advection", &ICsAdvection_loc);
   PetscFunctionListAdd(&qflist, "advection", &Advection);
+  PetscFunctionListAdd(&qfnamelist, "advection", &Advection_loc);
+  PetscFunctionListAdd(&icsflist, "density_current", &ICsDC);
+  PetscFunctionListAdd(&icsfnamelist, "density_current", &ICsDC_loc);
   PetscFunctionListAdd(&qflist, "density_current", &DC);
+  PetscFunctionListAdd(&qfnamelist, "density_current", &DC_loc);
 
   // Parse command line options
   comm = PETSC_COMM_WORLD;
@@ -693,15 +698,13 @@ int main(int argc, char **argv) {
                            multevec, multlvec, CEED_REQUEST_IMMEDIATE);
 
   // Create the Q-function that builds the quadrature data for the NS operator
-  CeedQFunctionCreateInterior(ceed, 1,
-                              Setup, __FILE__ ":Setup", &qf_setup);
+  CeedQFunctionCreateInterior(ceed, 1, Setup, Setup_loc, &qf_setup);
   CeedQFunctionAddInput(qf_setup, "dx", 3, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup, "qdata", 16, CEED_EVAL_NONE);
 
   // Create the Q-function that defines the action of the mass operator
-  CeedQFunctionCreateInterior(ceed, 1,
-                              Mass, __FILE__ ":Mass", &qf_mass);
+  CeedQFunctionCreateInterior(ceed, 1, Mass, Mass_loc, &qf_mass);
   CeedQFunctionAddInput(qf_mass, "q", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_mass, "qdata", 16, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_mass, "v", 5, CEED_EVAL_INTERP);
@@ -711,11 +714,11 @@ int main(int argc, char **argv) {
   PetscFunctionListFind(icsflist, problemtype, &icsfp);
   if (!icsfp)
       return CeedError(ceed, 1, "Function not found in the list");
-  char str[PETSC_MAX_PATH_LEN] = __FILE__":ICs";
-  PetscStrlcat(str, problemtype, PETSC_MAX_PATH_LEN);
-  CeedQFunctionCreateInterior(ceed, 1,
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))icsfp,
-                              str, &qf_ics);
+  char *str;
+  PetscFunctionListFind(icsfnamelist, problemtype, &str);
+  if (!str)
+      return CeedError(ceed, 1, "Function not found in the list");
+  CeedQFunctionCreateInterior(ceed, 1, (CeedQFunctionUser)icsfp, str, &qf_ics);
   CeedQFunctionAddInput(qf_ics, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", 5, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_ics, "coords", 3, CEED_EVAL_NONE);
@@ -725,11 +728,11 @@ int main(int argc, char **argv) {
   PetscFunctionListFind(qflist, problemtype, &fp);
   if (!fp)
       return CeedError(ceed, 1, "Function not found in the list");
-  PetscStrncpy(str, __FILE__":", PETSC_MAX_PATH_LEN);
-  PetscStrlcat(str, problemtype, PETSC_MAX_PATH_LEN);
-  CeedQFunctionCreateInterior(ceed, 1,
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))fp,
-                              str, &qf);
+  str = NULL;
+  PetscFunctionListFind(qfnamelist, problemtype, &str);
+  if (!str)
+      return CeedError(ceed, 1, "Function not found in the list");
+  CeedQFunctionCreateInterior(ceed, 1, (CeedQFunctionUser)fp, str, &qf);
   CeedQFunctionAddInput(qf, "q", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf, "dq", 5, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf, "qdata", 16, CEED_EVAL_NONE);

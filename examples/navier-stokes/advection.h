@@ -52,8 +52,8 @@
 //      0.0 flux
 //
 // *****************************************************************************
-static int ICsAdvection(void *ctx, CeedInt Q,
-                        const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q,
+                             const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar *X = in[0];
   // Outputs
@@ -123,8 +123,8 @@ static int ICsAdvection(void *ctx, CeedInt Q,
 //   dE/dt + div( E u ) = 0
 //
 // *****************************************************************************
-static int Advection(void *ctx, CeedInt Q,
-                     const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
+                          const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
   // Outputs

@@ -84,8 +84,8 @@
 //   lz              ,  Characteristic length scale of domain in z
 //
 // *****************************************************************************
-static int ICsDC(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
+                      const CeedScalar *const *in, CeedScalar *const *out) {
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846
@@ -196,8 +196,8 @@ static int ICsDC(void *ctx, CeedInt Q,
 //   gamma  = cp / cv,  Specific heat ratio
 //
 // *****************************************************************************
-static int DC(void *ctx, CeedInt Q,
-              const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
+                   const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
   // Outputs
