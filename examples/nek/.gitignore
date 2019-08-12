@@ -1,0 +1,6 @@
+boxes/b[0-9]*/
+build/
+ex*
+*log*
+SESSION.NAME
+obj/

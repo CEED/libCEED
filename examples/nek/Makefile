@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
 # the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
 # reserved. See files LICENSE and NOTICE for details.
@@ -16,24 +14,31 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-# Set parameters
-: ${FC:="gfortran"}
-: ${CC:="gcc"}
-MPI=0
+NEK5K_DIR ?= $(abspath ../../../Nek5000)
+MPI ?= 1
 
-# Make examples
-(export FC CC MPI NEK5K_DIR && ./make-nek-examples.sh)
+ifeq ($(MPI),0)
+  ifeq (,$(filter-out undefined default,$(origin CC)))
+    CC = gcc
+  endif
+  ifeq (,$(filter-out undefined default,$(origin FC)))
+    FC = gfortran
+  endif
+else
+  FC = mpif77
+  CC = mpicc
+endif
 
-# Build boxes
-(export FC CC MPI NEK5K_DIR && ./generate-boxes.sh 6 6)
+CEED_DIR ?= $(abspath ../..)
+CEED_FLAGS ?= -I$(CEED_DIR)/include
+CEED_LIBS ?= -Wl,-rpath,$(CEED_DIR)/lib -L$(CEED_DIR)/lib -lceed
 
-# Copy
-cp run-nek-example.sh ../../build/nek-bp1
-cp run-nek-example.sh ../../build/nek-bp3
-mv bp1 ../../build/bp1
-mv bp3 ../../build/bp3
-rm -rf ../../build/boxes
-cp -r boxes ../../build/boxes
+.PHONY: all bps clean
 
-# Clean
-(export NEK5K_DIR && ./make-nek-examples.sh clean)
+all: bps
+
+bps: bps/bps.usr
+	FC=$(FC) CC=$(CC) MPI=$(MPI) NEK5K_DIR=$(NEK5K_DIR) CEED_DIR=$(CEED_DIR) && ./nek-examples.sh -m
+
+clean:
+	NEK5K_DIR=$(NEK5K_DIR) && ./nek-examples.sh -clean

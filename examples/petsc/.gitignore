@@ -1,2 +1,5 @@
+*.vtk
 bps
-bps-petsc
+petsc-bps
+bpsdmplex
+bpsdmplex-bps

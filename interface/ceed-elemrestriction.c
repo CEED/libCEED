@@ -362,6 +362,35 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
 }
 
 /**
+  @brief Get the multiplicity of DoFs in a CeedElemRestriction
+
+  @param rstr      CeedElemRestriction
+  @param[out] mult Vector to store multiplicity (of size ndof)
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
+                             CeedVector mult) {
+  int ierr;
+  CeedVector evec;
+
+  // Create and set evec
+  ierr = CeedElemRestrictionCreateVector(rstr, NULL, &evec); CeedChk(ierr);
+  ierr = CeedVectorSetValue(evec, 1.0); CeedChk(ierr);
+
+  // Apply to get multiplicity
+  ierr = CeedElemRestrictionApply(rstr, CEED_TRANSPOSE, CEED_NOTRANSPOSE, evec,
+                                  mult, CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
+
+  // Cleanup
+  ierr = CeedVectorDestroy(&evec); CeedChk(ierr);
+
+  return 0;
+}
+
+/**
   @brief Get the Ceed associated with a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
@@ -503,6 +532,23 @@ int CeedElemRestrictionGetData(CeedElemRestriction rstr,
 int CeedElemRestrictionSetData(CeedElemRestriction rstr,
                                void* *data) {
   rstr->data = *data;
+  return 0;
+}
+
+/**
+  @brief View a CeedElemRestriction
+
+  @param[in] rstr CeedElemRestriction to view
+  @param[in] stream Stream to write; typically stdout/stderr or a file
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
+  fprintf(stream,
+          "CeedElemRestriction from (%d, %d) to %d elements with %d nodes each\n",
+          rstr->ndof, rstr->ncomp, rstr->nelem, rstr->elemsize);
   return 0;
 }
 
