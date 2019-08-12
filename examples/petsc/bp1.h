@@ -17,9 +17,6 @@
 /// @file
 /// libCEED QFunctions for mass operator example using PETSc
 
-#include <petscksp.h>
-#include <ceed.h>
-
 // *****************************************************************************
 CEED_QFUNCTION(SetupMass)(void *ctx, CeedInt Q,
                           const CeedScalar *const *in, CeedScalar *const *out) {

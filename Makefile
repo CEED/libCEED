@@ -75,7 +75,7 @@ AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 OPT    = -O -g -march=native -ffp-contract=fast -fopenmp-simd
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 CXXFLAGS = $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-NVCCFLAGS = -Xcompiler "$(OPT)" -Xcompiler -fPIC
+NVCCFLAGS = -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
   FFLAGS = $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD
@@ -149,8 +149,8 @@ mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
 # Nek5K Examples
 nekexamples  := $(OBJDIR)/nek-bps
 # PETSc Examples
-petscexamples.c := $(sort $(wildcard examples/petsc/*.c))
-petscexamples  := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
+petscexamples.c := $(wildcard examples/petsc/*.c)
+petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 # Navier-Stokes Example
 navierstokesexample.c := $(sort $(wildcard examples/navier-stokes/*.c))
 navierstokesexample  := $(navierstokesexample.c:examples/navier-stokes/%.c=$(OBJDIR)/navier-stokes-%)
