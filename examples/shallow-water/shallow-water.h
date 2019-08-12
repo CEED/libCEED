@@ -113,11 +113,11 @@ static int SWExplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                       };
     const CeedScalar h             =   q[i+2*Q];
     // Grad in
-    const CeedScalar du[4]         = { dq[i+(0+4*0)*Q],
-                                       dq[i+(0+4*1)*Q],
-                                       dq[i+(1+4*0)*Q],
-                                       dq[i+(1+4*1)*Q]
-                                      };
+    const CeedScalar du[2][2]      = {{dq[i+(0+4*0)*Q],  // du/dx
+                                       dq[i+(0+4*1)*Q]}, // du/dy
+                                      {dq[i+(1+4*0)*Q],  // dv/dx
+                                       dq[i+(1+4*1)*Q]}  // dv/dy
+                                     };
     const CeedScalar dh[2]         = { dq[i+(2+4*0)*Q],
                                        dq[i+(2+4*1)*Q]
                                       };
@@ -140,7 +140,7 @@ static int SWExplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                        u[1]
                                      };*/
     // curl u
-    const CeedScalar curlu         =   du[2]-du[1];
+    const CeedScalar curlu         =   du[1][0]-du[0][1]; // dv/dx - du/dy
 
     // The Physics
 
