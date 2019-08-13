@@ -772,6 +772,16 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   ierr = cudaMemcpy(data->d_grad1d, grad1d, iBytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
+  data->d_colograd1d = NULL;
+  if (dim==3 && Q1d >= P1d) {
+    CeedScalar *colograd1d;
+    ierr = CeedMalloc(Q1d*Q1d, &colograd1d); CeedChk(ierr);
+    ierr = CeedBasisGetCollocatedGrad(basis, colograd1d); CeedChk(ierr);
+    ierr = cudaMalloc((void **)&data->d_colograd1d, qBytes * Q1d); CeedChk_Cu(ceed, ierr);
+    ierr = cudaMemcpy(data->d_colograd1d, colograd1d, qBytes * Q1d,
+                      cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
+  }
+
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
   ierr = CeedCompileCuda(ceed, kernelsShared, &data->module, 7,

@@ -56,7 +56,7 @@ inline __device__ void loadMatrix(BackendData& data, const CeedScalar* d_B, Ceed
   for(int i=data.tid; i<P*Q; i+=blockDim.x*blockDim.y*blockDim.z) {
     B[i] = d_B[i];
   }
-  __syncthreads;
+  //__syncthreads;
 }
 
 //****
@@ -567,6 +567,21 @@ inline __device__ void ContractTransposeY3d(BackendData& data,
 }
 
 template <int NCOMP, int P1d, int Q1d>
+inline __device__ void ContractTransposeAddY3d(BackendData& data,
+    const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+  for (int k = 0; k < P1d; ++k) {
+    data.slice[data.tidx+data.tidy*Q1d] = U[k];
+    __syncthreads();
+    if (data.tidy<P1d) {
+      for (int i = 0; i < Q1d; ++i) {
+        V[k] += B[data.tidy + i*P1d] * data.slice[data.tidx + i*Q1d];//contract y direction
+      }
+    }
+    __syncthreads();
+  }
+}
+
+template <int NCOMP, int P1d, int Q1d>
 inline __device__ void ContractTransposeX3d(BackendData& data,
     const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   for (int k = 0; k < P1d; ++k) {
@@ -642,8 +657,8 @@ inline __device__ void grad3d(BackendData& data, const CeedScalar *__restrict__ 
 
 template <int NCOMP, int P1d, int Q1d>
 inline __device__ void gradTranspose3d(BackendData& data, const CeedScalar *__restrict__ r_U,
-                              const CeedScalar *c_B, const CeedScalar *c_G,
-                              CeedScalar *__restrict__ r_V) {
+                                       const CeedScalar *c_B, const CeedScalar *c_G,
+                                       CeedScalar *__restrict__ r_V) {
   CeedScalar r_t1[Q1d];
   CeedScalar r_t2[Q1d];
   for(int comp=0; comp<NCOMP; comp++) {
@@ -656,6 +671,38 @@ inline __device__ void gradTranspose3d(BackendData& data, const CeedScalar *__re
     ContractTransposeZ3d<NCOMP,P1d,Q1d>(data, r_U+comp*Q1d+2*NCOMP*Q1d, c_G, r_t1);
     ContractTransposeY3d<NCOMP,P1d,Q1d>(data, r_t1, c_B, r_t2);
     ContractTransposeAddX3d<NCOMP,P1d,Q1d>(data, r_t2, c_B, r_V+comp*P1d);
+  }
+}
+
+template <int NCOMP, int P1d, int Q1d>
+inline __device__ void gradColo3d(BackendData& data, const CeedScalar *__restrict__ r_U,
+                                  const CeedScalar *c_B, const CeedScalar *c_G,
+                                  CeedScalar *__restrict__ r_V) {
+  CeedScalar r_t1[Q1d];
+  CeedScalar r_t2[Q1d];
+  for(int comp=0; comp<NCOMP; comp++) {
+    ContractX3d<NCOMP,P1d,Q1d>(data, r_U+comp*P1d, c_B, r_t1);
+    ContractY3d<NCOMP,P1d,Q1d>(data, r_t1, c_B, r_t2);
+    ContractZ3d<NCOMP,P1d,Q1d>(data, r_t2, c_B, r_t1);
+    ContractX3d<NCOMP,Q1d,Q1d>(data, r_t1, c_G, r_V+comp*Q1d+0*NCOMP*Q1d);
+    ContractY3d<NCOMP,Q1d,Q1d>(data, r_t1, c_G, r_V+comp*Q1d+1*NCOMP*Q1d);
+    ContractZ3d<NCOMP,Q1d,Q1d>(data, r_t1, c_G, r_V+comp*Q1d+2*NCOMP*Q1d);
+  }
+}
+
+template <int NCOMP, int P1d, int Q1d>
+inline __device__ void gradColoTranspose3d(BackendData& data, const CeedScalar *__restrict__ r_U,
+                                           const CeedScalar *c_B, const CeedScalar *c_G,
+                                           CeedScalar *__restrict__ r_V) {
+  CeedScalar r_t1[Q1d];
+  CeedScalar r_t2[Q1d];
+  for(int comp=0; comp<NCOMP; comp++) {
+    ContractTransposeZ3d<NCOMP,Q1d,Q1d>(data, r_U+comp*Q1d+2*NCOMP*Q1d, c_G, r_t1);
+    ContractTransposeAddY3d<NCOMP,Q1d,Q1d>(data, r_U+comp*Q1d+1*NCOMP*Q1d, c_G, r_t1);
+    ContractTransposeAddX3d<NCOMP,Q1d,Q1d>(data, r_U+comp*Q1d+0*NCOMP*Q1d, c_G, r_t1);
+    ContractTransposeZ3d<NCOMP,P1d,Q1d>(data, r_t1, c_B, r_t2);
+    ContractTransposeY3d<NCOMP,P1d,Q1d>(data, r_t2, c_B, r_t1);
+    ContractTransposeX3d<NCOMP,P1d,Q1d>(data, r_t1, c_B, r_V+comp*P1d);
   }
 }
 
@@ -803,11 +850,17 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "  const CeedInt P_in_"<<i<<" = "<<P1d<<";\n";
       ierr = CeedBasisGetData(basis, (void **)&basis_data); CeedChk(ierr);
       data->B.in[i] = basis_data->d_interp1d;
-      data->G.in[i] = basis_data->d_grad1d;
       code << "  __shared__ double s_B_in_"<<i<<"["<<P1d*Q1d<<"];\n";
-      code << "  __shared__ double s_G_in_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, B.in["<<i<<"], s_B_in_"<<i<<");\n";
-      code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, G.in["<<i<<"], s_G_in_"<<i<<");\n";
+      if (basis_data->d_colograd1d) {
+        data->G.in[i] = basis_data->d_colograd1d;
+        code << "  __shared__ double s_G_in_"<<i<<"["<<Q1d*Q1d<<"];\n";
+        code << "  loadMatrix<Q1d,Q1d>(data, G.in["<<i<<"], s_G_in_"<<i<<");\n";
+      } else {
+        data->G.in[i] = basis_data->d_grad1d;
+        code << "  __shared__ double s_G_in_"<<i<<"["<<P1d*Q1d<<"];\n";
+        code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, G.in["<<i<<"], s_G_in_"<<i<<");\n";
+      }
       break;
     case CEED_EVAL_WEIGHT:
       break; // No action
@@ -855,11 +908,17 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "  const CeedInt P_out_"<<i<<" = "<<P1d<<";\n";
       ierr = CeedBasisGetData(basis, (void **)&basis_data); CeedChk(ierr);
       data->B.out[i] = basis_data->d_interp1d;
-      data->G.out[i] = basis_data->d_grad1d;
       code << "  __shared__ double s_B_out_"<<i<<"["<<P1d*Q1d<<"];\n";
-      code << "  __shared__ double s_G_out_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, B.out["<<i<<"], s_B_out_"<<i<<");\n";
-      code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, G.out["<<i<<"], s_G_out_"<<i<<");\n";
+      if (basis_data->d_colograd1d) {
+        data->G.out[i] = basis_data->d_colograd1d;
+        code << "  __shared__ double s_G_out_"<<i<<"["<<Q1d*Q1d<<"];\n";
+        code << "  loadMatrix<Q1d,Q1d>(data, G.out["<<i<<"], s_G_out_"<<i<<");\n";
+      } else {
+        data->G.out[i] = basis_data->d_grad1d;
+        code << "  __shared__ double s_G_out_"<<i<<"["<<P1d*Q1d<<"];\n";
+        code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, G.out["<<i<<"], s_G_out_"<<i<<");\n";
+      }
       ierr = CeedElemRestrictionGetNumDoF(Erestrict, &ndof); CeedChk(ierr);
       code << "  const CeedInt ndofs_out_"<<i<<" = "<<ndof<<";\n";
       break;
@@ -912,7 +971,12 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       data->indices.in[i] = restr_data->d_ind;
       code << "  readDofs"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<">(data, ndofs_in_"<<i<<", elem, indices.in["<<i<<"], d_u"<<i<<", r_u"<<i<<");\n";
       code << "  CeedScalar r_t"<<i<<"[ncomp_in_"<<i<<"*Dim*Q1d];\n";
-      code << "  grad"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<",Q1d>(data, r_u"<<i<<", s_B_in_"<<i<<", s_G_in_"<<i<<", r_t"<<i<<");\n";
+      if (basis_data->d_colograd1d) {
+        code << "  gradColo";
+      } else {
+        code << "  grad";
+      }
+      code<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<",Q1d>(data, r_u"<<i<<", s_B_in_"<<i<<", s_G_in_"<<i<<", r_t"<<i<<");\n";
       break;
     case CEED_EVAL_WEIGHT:
       code << "  CeedScalar r_t"<<i<<"[Q1d];\n";
@@ -984,7 +1048,12 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       break;
     case CEED_EVAL_GRAD:
       code << "  CeedScalar r_v"<<i<<"[ncomp_out_"<<i<<"*P_out_"<<i<<"];\n";
-      code << "  gradTranspose"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<",Q1d>(data, r_tt"<<i<<", s_B_out_"<<i<<", s_G_out_"<<i<<", r_v"<<i<<");\n";
+      if (basis_data->d_colograd1d) {
+        code << "  gradColoTranspose";
+      } else {
+        code << "  gradTranspose";
+      }
+      code<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<",Q1d>(data, r_tt"<<i<<", s_B_out_"<<i<<", s_G_out_"<<i<<", r_v"<<i<<");\n";
       ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
       ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
       data->indices.out[i] = restr_data->d_ind;
