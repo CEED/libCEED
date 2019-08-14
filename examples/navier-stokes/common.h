@@ -46,7 +46,7 @@
 //     Aij = Adjoint ij
 //
 // Stored: w detJ
-//   qd: 0
+//     qd: 0
 //
 // We require the transpose of the inverse of the Jacobian to properly compute
 //   integrals of the form: int( gradv u )
@@ -55,12 +55,12 @@
 //   Bij = Aij / detJ
 //
 // Stored: w B detJ = w A
-//   qd: 1 2 3
-//       4 5 6
-//       7 8 9
+//     qd: 1 2 3
+//         4 5 6
+//         7 8 9
 //
 // We require the product of the inverse of the Jacobian and its transpose to
-//   properly compute integrals of the form: int( gradv gradu)
+//   properly compute integrals of the form: int( gradv gradu )
 //
 // Product of Inverse and Transpose:
 //   BBij = sum( Bik Bkj )

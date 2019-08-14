@@ -1,4 +1,4 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
+﻿// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
 // the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
 // reserved. See files LICENSE and NOTICE for details.
 //
@@ -47,7 +47,7 @@ static int ICsSW(void *ctx, CeedInt Q,
   // Inputs
   const CeedScalar *X = in[0];
   // Outputs
-  CeedScalar *q0 = out[0], *h_s = out[1], *coords = out[2];
+  CeedScalar *q0 = out[0], *h_s = out[1], *H_0 = out[2], *coords = out[3];
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
   const CeedScalar u0     = context[0];
@@ -68,6 +68,8 @@ static int ICsSW(void *ctx, CeedInt Q,
     q0[i+2*Q]             = h0;
     // Terrain topography
     h_s[i+0*Q]            = sin(x) + cos(y); // put 0 for constant flat topography
+    // Reference height
+    H_0[i+0*Q]            = 0; // flat
 
     // Coordinates
     coords[i+0*Q]         = x;
@@ -84,13 +86,14 @@ static int ICsSW(void *ctx, CeedInt Q,
 // equations
 //
 // The equations represent 2D shallow-water flow on a spherical surface, where
-// the state variable, h, represents the height function.
+// the state variables, u, v, represent the longitudinal and latitudinal components
+// of the velocity field, and h, represents the height function.
 //
-// State (scalar) variable: h
+// State variable vector: q = (u, v, h)
 //
 // Shallow-water Equations spatial terms of explicit function G(t,q) = (G_1(t,q), G_2(t,q)):
 // G_1(t,q) = - (omega + f) * khat curl u - grad(|u|^2/2)
-// G_2(t,q) = - div(h u)
+// G_2(t,q) = 0
 // *****************************************************************************
 static int SWExplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
                       CeedScalar *const *out) {
@@ -100,8 +103,7 @@ static int SWExplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
   CeedScalar *v = out[0], *dv = out[1];
   // Context
   const CeedScalar *context        =  (const CeedScalar*)ctx;
-  const CeedScalar omega           =   context[0];
-  const CeedScalar f               =   context[1];
+  const CeedScalar f               =   context[0];
 
   CeedPragmaOMP(simd)
   // Quadrature Point Loop
@@ -118,8 +120,8 @@ static int SWExplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                       {dq[i+(1+4*0)*Q],  // dv/dx
                                        dq[i+(1+4*1)*Q]}  // dv/dy
                                      };
-    const CeedScalar dh[2]         = { dq[i+(2+4*0)*Q],
-                                       dq[i+(2+4*1)*Q]
+    const CeedScalar dh[2]         = { dq[i+(2+4*0)*Q],  // dh/dx
+                                       dq[i+(2+4*1)*Q]   // dh/dy
                                       };
     // Interp-to-Interp qdata
     const CeedScalar wJ            =   qdata[i+ 0*Q];
@@ -135,34 +137,25 @@ static int SWExplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                        qdata[i+6*Q],
                                        qdata[i+7*Q]
                                      };
-    // |u|^2
-    /*const CeedScalar gradmodusq[2] = { u[0],
-                                       u[1]
-                                     };*/
-    // curl u
-    const CeedScalar curlu         =   du[1][0]-du[0][1]; // dv/dx - du/dy
 
     // The Physics
 
-    // Explicit spatial equation for u
-    // - |u|^2/2
-    dv[i+(0+4*0)*Q]  -= u[0]*wBJ[0] + u[0]*wBJ[1];
-    dv[i+(0+4*1)*Q]  -= u[0]*wBJ[2] + u[0]*wBJ[3];
-    dv[i+(1+4*0)*Q]  -= u[1]*wBJ[0] + u[1]*wBJ[1];
-    dv[i+(1+4*1)*Q]  -= u[1]*wBJ[2] + u[1]*wBJ[3];
-    // - (omega + f) * khat curl u
-    v[i+0*Q] = 0;
-    v[i+1*Q] = 0;
-    v[i+2*Q] = - (omega + f) * wJ * curlu;
+    // Explicit spatial equation for (u,v)
+    // No explicit terms in (u,v) eqn.s multiplying dv
+    dv[i+(0+4*0)*Q]  = 0;
+    dv[i+(0+4*1)*Q]  = 0;
+    dv[i+(1+4*0)*Q]  = 0;
+    dv[i+(1+4*1)*Q]  = 0;
+    // - (omega + f) * khat curl u - grad(|u|^2/2)
+    v[i+0*Q] -= u[0]*du[0][0] + u[1]*du[0][1] + f*u[1];
+    v[i+1*Q] -= u[0]*du[1][0] + u[1]*du[1][1] - f*u[0];
 
     // Explicit spatial equation for h
-    // h u
-    dv[i+(1+4*0)*Q]  = h*u[0]*wBJ[0] + h*u[1]*wBJ[1];
-    dv[i+(1+4*1)*Q]  = h*u[0]*wBJ[2] + h*u[1]*wBJ[3];
-    // No Change
-    v[i+1*Q] = 0;
+    // No explicit terms in h eqn. multiplying dv
+    dv[i+(2+4*0)*Q]  = 0;
+    dv[i+(2+4*1)*Q]  = 0;
+    // No explicit terms in h eqn. multiplying v
     v[i+2*Q] = 0;
-
 
   } // End Quadrature Point Loop
 
@@ -175,24 +168,24 @@ static int SWExplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // equations
 //
 // The equations represent 2D shallow-water flow on a spherical surface, where
-// the state variable, h, represents the height function.
+// the state variables, u, v, represent the longitudinal and latitudinal components
+// of the velocity field, and h, represents the height function.
 //
-// State (scalar) variable: h
+// State variable vector: q = (u, v, h)
 //
 // Shallow-water Equations spatial terms of implicit function: F(t,q) = (F_1(t,q), F_2(t,q)):
-// F_1(t,q) = g * grad(h + h_s)
-// F_2(t,q) = h0 * div u
+// F_1(t,q) = g(grad(h + h_s))
+// F_2(t,q) = div((h + H_0) u)
 // *****************************************************************************
 static int SWImplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
                       CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
+  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3], *h_s = in[4], *H_0 = in[5];
   // Outputs
   CeedScalar *v = out[0], *dv = out[1];
   // Context
   const CeedScalar *context     = (const CeedScalar*)ctx;
-  const CeedScalar h0           = context[0];
-  const CeedScalar g            = context[1];
+  const CeedScalar g            = context[0];
 
   CeedPragmaOMP(simd)
   // Quadrature Point Loop
@@ -201,21 +194,18 @@ static int SWImplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // Interp in
     const CeedScalar u[2]     = { q[i+0*Q],
                                   q[i+1*Q]
-                                  };
+                                };
     const CeedScalar h        =   q[i+2*Q];
-    const CeedScalar h_s      =   q[i+3*Q];;
     // Grad in
-    const CeedScalar du[4]    = { dq[i+(0+4*0)*Q],
-                                  dq[i+(0+4*1)*Q],
-                                  dq[i+(1+4*0)*Q],
-                                  dq[i+(1+4*1)*Q]
+    const CeedScalar du[2][2] = {{dq[i+(0+4*0)*Q],  // du/dx
+                                  dq[i+(0+4*1)*Q]}, // du/dy
+                                 {dq[i+(1+4*0)*Q],  // dv/dx
+                                  dq[i+(1+4*1)*Q]}  // dv/dy
+                                };
+    const CeedScalar dh[2]    = { dq[i+(2+4*0)*Q],  // dh/dx
+                                  dq[i+(2+4*1)*Q]   // dh/dy
                                  };
-    const CeedScalar dh[2]    = { dq[i+(2+4*0)*Q],
-                                  dq[i+(2+4*1)*Q]
-                                 };
-    const CeedScalar dh_s[2]  = { dq[i+(3+4*0)*Q],
-                                  dq[i+(3+4*1)*Q]
-                                 };
+
     // Interp-to-Interp qdata
     const CeedScalar wJ       =   qdata[i+ 0*Q];
     // Interp-to-Grad qdata
@@ -226,29 +216,29 @@ static int SWImplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                 };
     // Grad-to-Grad qdata
     // Symmetric 2x2 matrix (only store 3 entries)
-    const CeedScalar wBBJ[3]  = { qdata[i+5*Q],
-                                  qdata[i+6*Q],
-                                  qdata[i+7*Q]
-                                };
+//    const CeedScalar wBBJ[3]  = { qdata[i+5*Q],
+//                                  qdata[i+6*Q],
+//                                  qdata[i+7*Q]
+//                                };
 
     // The Physics
 
-    // Implicit spatial equation for u
+    // Implicit spatial equation for (u,v)
     // g * grad(h + h_s)
-    dv[i+(0+4*0)*Q]  = g*(dh[0] + dh_s[0])*wBJ[0] + g*(dh[0] + dh_s[1])*wBJ[1];
-    dv[i+(0+4*1)*Q]  = g*(dh[0] + dh_s[0])*wBJ[2] + g*(dh[0] + dh_s[1])*wBJ[3];
-    dv[i+(1+4*0)*Q]  = g*(dh[1] + dh_s[0])*wBJ[0] + g*(dh[1] + dh_s[1])*wBJ[1];
-    dv[i+(1+4*1)*Q]  = g*(dh[1] + dh_s[0])*wBJ[2] + g*(dh[1] + dh_s[1])*wBJ[3];
-    // No Change
+    dv[i+(0+4*0)*Q]  = g*(h + h_s)*wBJ[0];
+    dv[i+(0+4*1)*Q]  = g*(h + h_s)*wBJ[1];
+    dv[i+(1+4*0)*Q]  = g*(h + h_s)*wBJ[2];
+    dv[i+(1+4*1)*Q]  = g*(h + h_s)*wBJ[3];
+    // No implicit terms in (u,v) eqn.s multiplying v
     v[i+0*Q] = 0;
     v[i+1*Q] = 0;
 
     // Implicit spatial equation for h
-    // h0 * div u
-    dv[i+(1+4*0)*Q]  = h0*(u[0]*wBJ[0] + u[1]*wBJ[1]);
-    dv[i+(1+4*1)*Q]  = h0*(u[0]*wBJ[2] + u[1]*wBJ[3]);
-    // No Change
-    v[i+3*Q] = 0;
+    // div((h + H_0) u)
+    dv[i+(2+4*0)*Q]  = (h + H_0)*(u[0]*wBJ[0] + u[1]*wBJ[1]);
+    dv[i+(2+4*1)*Q]  = (h + H_0)*(u[0]*wBJ[2] + u[1]*wBJ[3]);
+    // No implicit terms in h eqn. multiplying v
+    v[i+2*Q] = 0;
 
 
   } // End Quadrature Point Loop
@@ -262,26 +252,56 @@ static int SWImplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // equations
 //
 // The equations represent 2D shallow-water flow on a spherical surface, where
-// the state variable, h, represents the height function.
+// the state variables, u, v, represent the longitudinal and latitudinal components
+// of the velocity field, and h, represents the height function.
 //
-// State (scalar) variable: u, v, h
+// Discrete Jacobian: dF/dq^n = sigma * dF/dqdot|q^n + dF/dq|q^n
 // *****************************************************************************
 static int SWJacobian(void *ctx, CeedInt Q, const CeedScalar *const *in,
                       CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
+  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2];
   // Outputs
-  CeedScalar *v = out[0], *dv = out[1];
+  CeedScalar *dv = out[0];
   // Context
   const CeedScalar *context        =  (const CeedScalar*)ctx;
-  const CeedScalar h0           = context[0];
-  const CeedScalar g            = context[1];
+  const CeedScalar g           = context[0];  const CeedScalar g            = context[1];
 
   CeedPragmaOMP(simd)
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // Interp in
+    const CeedScalar u[2]     = { q[i+0*Q],
+                                  q[i+1*Q]
+                                };
+    const CeedScalar h        =   q[i+2*Q];
+    // Grad in
+    const CeedScalar du[2][2] = {{dq[i+(0+4*0)*Q],  // du/dx
+                                  dq[i+(0+4*1)*Q]}, // du/dy
+                                 {dq[i+(1+4*0)*Q],  // dv/dx
+                                  dq[i+(1+4*1)*Q]}  // dv/dy
+                                };
+    const CeedScalar dh[2]    = { dq[i+(2+4*0)*Q],  // dh/dx
+                                  dq[i+(2+4*1)*Q]   // dh/dy
+                                 };
+    // Interp-to-Grad qdata
+    const CeedScalar wBJ[4]   = { qdata[i+ 1*Q],
+                                  qdata[i+ 2*Q],
+                                  qdata[i+ 3*Q],
+                                  qdata[i+ 4*Q]
+                                };
+    // The Physics
 
-    // TO DO
+    // Jacobian w.r.t. d(u,v)
+    dv[i+(0+4*0)*Q]  = g*wBJ[0] * dh[0];
+    dv[i+(0+4*1)*Q]  = g*wBJ[1] * dh[1];
+    dv[i+(1+4*0)*Q]  = g*wBJ[2] * dh[0];
+    dv[i+(1+4*1)*Q]  = g*wBJ[3] * dh[1];
+
+    // Jacobian w.r.t. dh
+    dv[i+(2+4*0)*Q]  = du[0][0]*wBJ[0] + du[0][1]*wBJ[1];
+    dv[i+(2+4*1)*Q]  = du[1][0]*wBJ[2] + du[1][1]*wBJ[3];
 
   } // End Quadrature Point Loop
 

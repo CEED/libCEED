@@ -233,8 +233,8 @@ static PetscErrorCode FormIFunction(TS ts, PetscReal t, Vec Q, Vec Qdot,
   PetscFunctionReturn(0);
 }
 
-// User provided IJacobian = dF/dU + a dF/dUdot
-PetscErrorCode FormIJacobian(TS ts, PetscReal t, Vec Q, Vec Qdot, PetscReal a,
+// User provided IJacobian = dF/dQ + sigma dF/dQdot
+PetscErrorCode FormIJacobian(TS ts, PetscReal t, Vec Q, Vec Qdot, PetscReal sigma,
                              Mat J, Mat Jpre, void *userData)
 {
   User user = *(User*)userData;
@@ -689,6 +689,7 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_ics, "x", 2, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", 3, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_ics, "h_s", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_ics, "H_0", 1, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_ics, "coords", 2, CEED_EVAL_NONE);
 
   // Create the Q-function that defines the action of the explicit operator
@@ -708,6 +709,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_implicit, "dq", 3, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_implicit, "qdata", 8, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_implicit, "x", 2, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_implicit, "h_s", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_implicit, "H_0", 1, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_implicit, "v", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_implicit, "dv", 3, CEED_EVAL_GRAD);
 
@@ -717,8 +720,6 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_jacobian, "q", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_jacobian, "dq", 3, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_jacobian, "qdata", 8, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_jacobian, "x", 2, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_jacobian, "v", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_jacobian, "dv", 3, CEED_EVAL_GRAD);
 
   // Create the operator that builds the quadrature data for the NS operator
@@ -745,7 +746,9 @@ int main(int argc, char **argv) {
                        basisxc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_ics, "q0", restrictq, CEED_TRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ics, "h_s", restrictq, CEED_TRANSPOSE,
+  CeedOperatorSetField(op_ics, "h_s", restrictqdi, CEED_NOTRANSPOSE,
+                       CEED_BASIS_COLLOCATED, xceed); // TO DO: check if I need a different restriction
+  CeedOperatorSetField(op_ics, "H_0", restrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, xceed); // TO DO: check if I need a different restriction
   CeedOperatorSetField(op_ics, "coords", restrictxc, CEED_TRANSPOSE,
                        CEED_BASIS_COLLOCATED, xceed);
@@ -775,6 +778,10 @@ int main(int argc, char **argv) {
                        CEED_BASIS_COLLOCATED, qdata);
   CeedOperatorSetField(op_implicit, "x", restrictx, CEED_NOTRANSPOSE,
                        basisx, xcorners);
+  CeedOperatorSetField(op_implicit, "h_s", restrictx, CEED_NOTRANSPOSE,
+                       basisx, xcorners); // TO DO: again, check the restriction
+  CeedOperatorSetField(op_implicit, "H_0", restrictx, CEED_NOTRANSPOSE,
+                       basisx, xcorners);
   CeedOperatorSetField(op_implicit, "v", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_implicit, "dv", restrictq, CEED_TRANSPOSE,
@@ -788,16 +795,18 @@ int main(int argc, char **argv) {
                        basisq, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_jacobian, "qdata", restrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_jacobian, "x", restrictx, CEED_NOTRANSPOSE,
-                       basisx, xcorners);
-  CeedOperatorSetField(op_jacobian, "v", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_jacobian, "dv", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
 
   // Set up the libCEED context
   CeedScalar ctxSetup[3] = {lx, ly, lz};
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
+  CeedScalar ctxSWExplicit = f;
+  CeedQFunctionSetContext(qf_explicit, &ctxSWExplicit, sizeof ctxSWExplicit);
+  CeedScalar ctxSWImplicit = g;
+  CeedQFunctionSetContext(qf_implicit, &ctxSWImplicit, sizeof ctxSWImplicit);
+  // same context for Jacobian qfunction
+  CeedQFunctionSetContext(qf_jacobian, &ctxSWImplicit, sizeof ctxSWImplicit);
 
   // Set up PETSc context
   user->comm = comm;
