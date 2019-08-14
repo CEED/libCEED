@@ -162,8 +162,8 @@ static PetscErrorCode FormRHSFunction(TS ts, PetscReal t, Vec Q, Vec G, void *us
                        SCATTER_FORWARD); CHKERRQ(ierr);
 
   // Inverse of the lumped mass matrix
-  ierr = VecPointwiseMult(G,G,user->M); // M is Minv
-  CHKERRQ(ierr);
+  //ierr = VecPointwiseMult(G,G,user->M); // M is Minv
+  //CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -239,6 +239,7 @@ PetscErrorCode FormIJacobian(TS ts, PetscReal t, Vec Q, Vec Qdot, PetscReal sigm
 {
   User user = *(User*)userData;
   PetscScalar *q, *qdot, *j;
+  Vec JVec, JPreVec;
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
@@ -261,7 +262,7 @@ PetscErrorCode FormIJacobian(TS ts, PetscReal t, Vec Q, Vec Qdot, PetscReal sigm
   CeedVectorSetArray(user->qceed, CEED_MEM_HOST, CEED_USE_POINTER, q);
   CeedVectorSetArray(user->jceed, CEED_MEM_HOST, CEED_USE_POINTER, j);
 
-  // Apply the CEED operator for the spatial terms of implicit function
+  // Apply the CEED operator for the dF/dQ terms
   CeedOperatorApply(user->op_jacobian, user->qceed, user->jceed,
                     CEED_REQUEST_IMMEDIATE);
 
@@ -270,11 +271,32 @@ PetscErrorCode FormIJacobian(TS ts, PetscReal t, Vec Q, Vec Qdot, PetscReal sigm
   ierr = VecRestoreArrayRead(user->Qloc, (const PetscScalar**)&qdot); CHKERRQ(ierr);
   ierr = VecRestoreArray(user->Jloc, &j); CHKERRQ(ierr);
 
-  ierr = MatAssemblyBegin(Jpre, MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(Jpre, MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  // Local-to-global
+  ierr = VecScatterBegin(user->ltog0, user->Jloc, JVec, ADD_VALUES,
+                         SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->ltog0, user->Jloc, JVec, ADD_VALUES,
+                       SCATTER_FORWARD); CHKERRQ(ierr);
+
+  // Add the shift times mass matrix, sigma M
+  ierr = VecAXPY(JVec, sigma, user->M); CHKERRQ(ierr);
+
+  // Set the preconditioning for the Jacobian, Jpre, to be = sigma M
+  ierr = VecScale(user->M, sigma); CHKERRQ(ierr);
+  ierr = VecCopy(M, JPreVec); CHKERRQ(ierr);
+
+  // TO DO: Think of how to set the values from vector to blocked matrix. Something like from ts/examples/22 & 25:
+  // ierr = MatSetValuesBlocked(Jpre,1,&i,1,&i,&v[0][0],INSERT_VALUES);CHKERRQ(ierr);
+
+  // Assembly the Jacobian matrix
+  ierr = MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+  ierr = MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+
+  // Assembly the preconditioning for the Jacobian
+  ierr = MatAssemblyBegin(Jpre, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+  ierr = MatAssemblyEnd(Jpre, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   if (J != Jpre) {
-    ierr = MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-    ierr = MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+    ierr = MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
 }
@@ -926,8 +948,8 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&mceed);
 
   // Invert diagonally lumped mass vector for RHS function
-  ierr = VecReciprocal(user->M); // M is now Minv
-  CHKERRQ(ierr);
+  //ierr = VecReciprocal(user->M); // M is now Minv
+  //CHKERRQ(ierr);
 
   // Create and setup TS
   ierr = TSCreate(comm, &ts); CHKERRQ(ierr);
