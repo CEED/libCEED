@@ -1028,43 +1028,43 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     }
   }
   //We treat quadrature points per slice in 3d to save registers
-  if (dim==3)
-  {
+  if (dim==3) {
     code << "for(CeedInt q=0; q<Q1d; q++) {\n";
     for (CeedInt i = 0; i < numinputfields; i++) {
-    code << "// Input field "<<i<<"\n";
-    // Get elemsize, emode, ncomp
-    ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
-    CeedChk(ierr);
-    // Basis action
-    switch (emode) {
-    case CEED_EVAL_NONE:
-      code << "  CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"];\n";
-      ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
-      code << "  readSliceQuads"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<"3d<ncomp_in_"<<i<<",Q1d>(data, nquads_in_"<<i<<", elem, q, d_u"<<i<<", r_t"<<i<<");\n";
-      break;
-    case CEED_EVAL_INTERP:
-      code << "  CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"];\n";
-      code << "  for (CeedInt j = 0; j < ncomp_in_"<<i<<" ; ++j) {\n";
-      code << "    r_q[j] = r_t[q + j*Q1d];\n";
-      code << "  }\n";
-      break;
-    case CEED_EVAL_GRAD:
-      code << "  CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"*Dim];\n";
-      code << "  for (CeedInt j = 0; j < ncomp_in_"<<i<<" ; ++j) {\n";
-      code << "    for (CeedInt k = 0; k < Dim ; ++k) {\n";
-      code << "      r_q[j+ ncomp_in_"<<i<<"*k] = r_t[q + j*Q1d + k*Q1d*ncomp_in_"<<i<<"];\n";
-      code << "    }\n";
-      code << "  }\n";
-      break;
-    case CEED_EVAL_WEIGHT:
-      code << "  CeedScalar r_q"<<i<<"[1];\n";
-      code << "  r_q[0] = r_t[q];\n";
-      break; // No action
-    case CEED_EVAL_DIV:
-      break; // TODO: Not implemented
-    case CEED_EVAL_CURL:
-      break; // TODO: Not implemented
+      code << "// Input field "<<i<<"\n";
+      // Get elemsize, emode, ncomp
+      ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
+      CeedChk(ierr);
+      // Basis action
+      switch (emode) {
+      case CEED_EVAL_NONE:
+        code << "  CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"];\n";
+        ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
+        code << "  readSliceQuads"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<"3d<ncomp_in_"<<i<<",Q1d>(data, nquads_in_"<<i<<", elem, q, d_u"<<i<<", r_t"<<i<<");\n";
+        break;
+      case CEED_EVAL_INTERP:
+        code << "  CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"];\n";
+        code << "  for (CeedInt j = 0; j < ncomp_in_"<<i<<" ; ++j) {\n";
+        code << "    r_q[j] = r_t[q + j*Q1d];\n";
+        code << "  }\n";
+        break;
+      case CEED_EVAL_GRAD:
+        code << "  CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"*Dim];\n";
+        code << "  for (CeedInt j = 0; j < ncomp_in_"<<i<<" ; ++j) {\n";
+        code << "    for (CeedInt k = 0; k < Dim ; ++k) {\n";
+        code << "      r_q[j+ ncomp_in_"<<i<<"*k] = r_t[q + j*Q1d + k*Q1d*ncomp_in_"<<i<<"];\n";
+        code << "    }\n";
+        code << "  }\n";
+        break;
+      case CEED_EVAL_WEIGHT:
+        code << "  CeedScalar r_q"<<i<<"[1];\n";
+        code << "  r_q[0] = r_t[q];\n";
+        break; // No action
+      case CEED_EVAL_DIV:
+        break; // TODO: Not implemented
+      case CEED_EVAL_CURL:
+        break; // TODO: Not implemented
+      }
     }
     for (CeedInt i = 0; i < numoutputfields; i++) {
       ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
@@ -1087,6 +1087,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         break; // TODO: Not implemented
       case CEED_EVAL_CURL:
         break; // TODO: Not implemented
+      }
     }
   } else {
     for (CeedInt i = 0; i < numinputfields; i++) {
