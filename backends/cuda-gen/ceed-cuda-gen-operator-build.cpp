@@ -1141,6 +1141,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         break; // TODO: Not implemented
       case CEED_EVAL_CURL:
         break; // TODO: Not implemented
+      }
     }
     code << "  }\n";
   }
