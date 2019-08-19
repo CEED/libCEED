@@ -780,7 +780,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     case CEED_EVAL_NONE:
       ierr = CeedElemRestrictionGetNumDoF(Erestrict, &ndof); CeedChk(ierr);
       code << "  const CeedInt ncomp_in_"<<i<<" = "<<ncomp<<";\n";
-      code << "  const CeedInt nquads_in_"<<i<<" = "<<ndof/ncomp<<";\n";
+      code << "  const CeedInt nquads_in_"<<i<<" = "<<ndof<<";\n";
       break;
     case CEED_EVAL_INTERP:
       ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
@@ -834,7 +834,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "  const CeedInt ncomp_out_"<<i<<" = "<<ncomp<<";\n";
       ierr = CeedElemRestrictionGetNumDoF(Erestrict, &ndof); CeedChk(ierr);
       ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
-      code << "  const CeedInt nquads_out_"<<i<<" = "<<ndof<<"/ncomp_out_"<<i<<";\n";
+      code << "  const CeedInt nquads_out_"<<i<<" = "<<ndof<<";\n";
       break; // No action
     case CEED_EVAL_INTERP:
       code << "  const CeedInt ncomp_out_"<<i<<" = "<<ncomp<<";\n";
