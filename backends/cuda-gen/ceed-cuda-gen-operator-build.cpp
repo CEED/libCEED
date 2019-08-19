@@ -725,7 +725,6 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   ierr = CeedGetData(delegate, (void **)&ceed_data); CeedChk(ierr);
   ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId);
   if(prop.major<6){
-    std::cout<< "I'm an old GPU" << std::endl;
     code << atomicAdd;
   }
 
