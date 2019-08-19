@@ -582,9 +582,9 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, vscale,
                                     &Erestrictui);
   CeedElemRestrictionCreateIdentity(ceed, nelem,
-                                    bpOptions[bpChoice].qdatasize*Q*Q*Q,
-                                    bpOptions[bpChoice].qdatasize*nelem*Q*Q*Q,
-                                    1, &Erestrictqdi);
+                                    Q*Q*Q,
+                                    nelem*Q*Q*Q,
+                                    bpOptions[bpChoice].qdatasize, &Erestrictqdi);
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1,
                                     &Erestrictxi);
   {
