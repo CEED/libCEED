@@ -17,6 +17,18 @@
 #include <ceed-impl.h>
 #include <ceed-backend.h>
 #include <string.h>
+#include <limits.h>
+
+/// @cond DOXYGEN_SKIP
+static struct {
+  char name[CEED_MAX_RESOURCE_LEN];
+  char source[CEED_MAX_RESOURCE_LEN];
+  CeedInt vlength;
+  CeedQFunctionUser f;
+  int (*init)(const char *resource, CeedQFunction qf);
+} qfunctions[1024];
+static size_t num_qfunctions;
+/// @endcond
 
 /// @file
 /// Implementation of public CeedQFunction interfaces
@@ -32,9 +44,9 @@
                     points is a multiple of vlength.
   @param f          Function pointer to evaluate action at quadrature points.
                     See \ref CeedQFunctionUser.
-  @param focca      OCCA identifier "file.c:function_name" for definition of `f`
+  @param source     Path to source of QFunction, "\path\file.h:function_name"
   @param[out] qf    Address of the variable where the newly created
-                     CeedQFunction will be stored
+                      CeedQFunction will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -45,9 +57,9 @@
 **/
 int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
                                 CeedQFunctionUser f,
-                                const char *focca, CeedQFunction *qf) {
+                                const char *source, CeedQFunction *qf) {
   int ierr;
-  char *focca_copy;
+  char *source_copy;
 
   if (!ceed->QFunctionCreate) {
     Ceed delegate;
@@ -56,7 +68,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     if (!delegate)
       return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
 
-    ierr = CeedQFunctionCreateInterior(delegate, vlength, f, focca, qf);
+    ierr = CeedQFunctionCreateInterior(delegate, vlength, f, source, qf);
     CeedChk(ierr);
     return 0;
   }
@@ -67,12 +79,80 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
   (*qf)->refcount = 1;
   (*qf)->vlength = vlength;
   (*qf)->function = f;
-  ierr = CeedCalloc(strlen(focca)+1, &focca_copy); CeedChk(ierr);
-  strncpy(focca_copy, focca, strlen(focca)+1);
-  (*qf)->focca = focca_copy;
+  ierr = CeedCalloc(strlen(source)+1, &source_copy); CeedChk(ierr);
+  strncpy(source_copy, source, strlen(source)+1);
+  (*qf)->sourcepath = source_copy;
   ierr = CeedCalloc(16, &(*qf)->inputfields); CeedChk(ierr);
   ierr = CeedCalloc(16, &(*qf)->outputfields); CeedChk(ierr);
   ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
+  return 0;
+}
+
+/**
+  @brief Register a gallery QFunction
+
+  @param name   Name for this backend to respond to.
+  @param init   Initialization function called by CeedQFunctionInit() when the
+                    QFunction is selected.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedQFunctionRegister(const char *name, const char *source,
+                          CeedInt vlength, CeedQFunctionUser f,
+                          int (*init)(const char *, CeedQFunction)) {
+  if (num_qfunctions >= sizeof(qfunctions) / sizeof(qfunctions[0])) {
+    return CeedError(NULL, 1, "Too many gallery QFunctions");
+  }
+  strncpy(qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);
+  strncpy(qfunctions[num_qfunctions].source, source, CEED_MAX_RESOURCE_LEN);
+  qfunctions[num_qfunctions].vlength = vlength;
+  qfunctions[num_qfunctions].f = f;
+  qfunctions[num_qfunctions].init = init;
+  num_qfunctions++;
+  return 0;
+}
+
+/**
+  @brief Create a CeedQFunction for evaluating interior (volumetric) terms by name.
+
+  @param ceed       A Ceed object where the CeedQFunction will be created
+  @param source     Name of QFunction to use from gallery
+  @param[out] qf    Address of the variable where the newly created
+                      CeedQFunction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
+                                      CeedQFunction *qf) {
+  int ierr;
+  size_t matchlen = 0, matchidx = UINT_MAX;
+
+  // Find matching backend
+  if (!name) return CeedError(NULL, 1, "No QFunction name provided");
+  for (size_t i=0; i<num_qfunctions; i++) {
+    size_t n;
+    const char *currname = qfunctions[i].name;
+    for (n = 0; currname[n] && currname[n] == name[n]; n++) {}
+    if (n > matchlen) {
+      matchlen = n;
+      matchidx = i;
+    }
+  }
+  if (!matchlen) return CeedError(NULL, 1, "No suitable gallery QFunction");
+
+  // Create QFunction
+  ierr = CeedQFunctionCreateInterior(ceed, qfunctions[matchidx].vlength,
+                                     qfunctions[matchidx].f,
+                                     qfunctions[matchidx].source, qf);
+  CeedChk(ierr);
+
+  // QFunction specific setup
+  ierr = qfunctions[matchidx].init(name, *qf); CeedChk(ierr);
+
   return 0;
 }
 
@@ -209,18 +289,18 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
 }
 
 /**
-  @brief Get the FOCCA string for a CeedQFunction
+  @brief Get the source path string for a CeedQFunction
 
   @param qf              CeedQFunction
-  @param[out] focca      Variable to store focca string
+  @param[out] source     Variable to store source path string
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Advanced
 **/
 
-int CeedQFunctionGetFOCCA(CeedQFunction qf, char* *focca) {
-  *focca = (char *) qf->focca;
+int CeedQFunctionGetSourcePath(CeedQFunction qf, char* *source) {
+  *source = (char *) qf->sourcepath;
   return 0;
 }
 
@@ -489,7 +569,7 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   ierr = CeedFree(&(*qf)->inputfields); CeedChk(ierr);
   ierr = CeedFree(&(*qf)->outputfields); CeedChk(ierr);
 
-  ierr = CeedFree(&(*qf)->focca); CeedChk(ierr);
+  ierr = CeedFree(&(*qf)->sourcepath); CeedChk(ierr);
   ierr = CeedDestroy(&(*qf)->ceed); CeedChk(ierr);
   ierr = CeedFree(qf); CeedChk(ierr);
   return 0;

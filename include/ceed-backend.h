@@ -130,7 +130,7 @@ CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf,
 CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf,
                                         CeedInt *numinputfields,
                                         CeedInt *numoutputfields);
-CEED_EXTERN int CeedQFunctionGetFOCCA(CeedQFunction qf, char* *focca);
+CEED_EXTERN int CeedQFunctionGetSourcePath(CeedQFunction qf, char* *source);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
     int (**f)());
 CEED_EXTERN int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize);

@@ -105,13 +105,13 @@ int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
   ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
   ierr = cudaMalloc(&data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);
 
-  char *focca;
-  ierr = CeedQFunctionGetFOCCA(qf, &focca); CeedChk(ierr);
-  const char *funname = strrchr(focca, ':') + 1;
+  char *source;
+  ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);
+  const char *funname = strrchr(source, ':') + 1;
   data->qFunctionName = (char *)funname;
-  const int filenamelen = funname - focca;
+  const int filenamelen = funname - source;
   char filename[filenamelen];
-  memcpy(filename, focca, filenamelen - 1);
+  memcpy(filename, source, filenamelen - 1);
   filename[filenamelen - 1] = '\0';
   ierr = loadCudaFunction(qf, filename); CeedChk(ierr);
 
