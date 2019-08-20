@@ -28,11 +28,11 @@ LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc)
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
 LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
-shallowwater.c := $(wildcard shallowwater*.c)
-shallowwater := $(shallowwater.c:%.c=%)
+shallow-water.c := $(wildcard shallow-water*.c)
+shallow-water := $(shallow-water.c:%.c=%)
 
-all: $(shallowwater)
-$(shallowwater): | $(PETSc.pc) $(ceed.pc)
+all: $(shallow-water)
+$(shallow-water): | $(PETSc.pc) $(ceed.pc)
 
 # Rules for building the example
 %: %.c
@@ -48,7 +48,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) $(shallowwater) *.vtr *.vts
+	$(RM) $(shallow-water) *.vtr *.vts
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
