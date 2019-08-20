@@ -37,7 +37,7 @@
 //  TO DO
 //
 // *****************************************************************************
-static int ICsSW(void *ctx, CeedInt Q,
+static int SWICs(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
 
 #ifndef M_PI
@@ -180,7 +180,7 @@ static int SWExplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
 static int SWImplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
                       CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3], *h_s = in[4], *H_0 = in[5];
+  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3], *h_sq = in[4], *H_0q = in[5];
   // Outputs
   CeedScalar *v = out[0], *dv = out[1];
   // Context
@@ -214,6 +214,10 @@ static int SWImplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                   qdata[i+ 3*Q],
                                   qdata[i+ 4*Q]
                                 };
+    // h_s
+    const CeedScalar h_s      =   h_sq[i+0*Q];
+    // H0
+    const CeedScalar H_0      =   H_0q[i+0*Q];
     // Grad-to-Grad qdata
     // Symmetric 2x2 matrix (only store 3 entries)
 //    const CeedScalar wBBJ[3]  = { qdata[i+5*Q],
@@ -265,7 +269,7 @@ static int SWJacobian(void *ctx, CeedInt Q, const CeedScalar *const *in,
   CeedScalar *dv = out[0];
   // Context
   const CeedScalar *context        =  (const CeedScalar*)ctx;
-  const CeedScalar g           = context[0];  const CeedScalar g            = context[1];
+  const CeedScalar g           = context[0];
 
   CeedPragmaOMP(simd)
   // Quadrature Point Loop

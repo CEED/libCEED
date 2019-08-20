@@ -115,6 +115,7 @@ struct User_ {
   Vec Qloc, Qdotloc, Floc, Gloc, Jloc, M, BC;
   char outputfolder[PETSC_MAX_PATH_LEN];
   PetscInt contsteps;
+  TS ts;
 };
 
 // This is the RHS of the IMEX ODE, given as F(t,Q,Q_t) = G(t,Q)
@@ -232,7 +233,7 @@ static PetscErrorCode FormIFunction(TS ts, PetscReal t, Vec Q, Vec Qdot,
   PetscFunctionReturn(0);
 }
 
-// User provided wrapper function for MatShellSetOperation
+// User provided wrapper function for MATOP_MULT MatShellOperation
 // Computes the matrix-vector product
 // y = mat*invec.
 
@@ -241,13 +242,14 @@ static PetscErrorCode FormIFunction(TS ts, PetscReal t, Vec Q, Vec Qdot,
 // Q    - input vector
 //
 // Output Parameters:
-// Jvec - solution vector
+// Jvec - output vector
 //
 static PetscErrorCode JacobianProductMat(Mat mat, Vec Q, Vec JVec) {
   User user;
   PetscScalar *q, *qdot, *j;
-  Vec JVec, JPreVec;
   CeedInt lsize;
+  PetscReal *dt = NULL;
+  PetscReal sigma;
   PetscErrorCode ierr;
 
   MatShellGetContext(mat, &user);
@@ -261,7 +263,7 @@ static PetscErrorCode JacobianProductMat(Mat mat, Vec Q, Vec JVec) {
                          SCATTER_REVERSE); CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog, Q, user->Qloc, INSERT_VALUES,
                        SCATTER_REVERSE); CHKERRQ(ierr);
-  ierr = VecGetSize(Qloc, &lsize); CHKERRQ(ierr);
+  ierr = VecGetSize(user->Qloc, &lsize); CHKERRQ(ierr);
   ierr = VecZeroEntries(user->Jloc); CHKERRQ(ierr);
 
   // Ceed Vectors
@@ -284,12 +286,15 @@ static PetscErrorCode JacobianProductMat(Mat mat, Vec Q, Vec JVec) {
                          SCATTER_FORWARD); CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog0, user->Jloc, JVec, ADD_VALUES,
                        SCATTER_FORWARD); CHKERRQ(ierr);
-
+  // Get the timestep size from TS
+  ierr =  TSGetTimeStep(user->ts, dt);
+  sigma = 1 / (*dt);
   // Add the shift times mass matrix, sigma M
   ierr = VecAXPY(JVec, sigma, user->M); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
+
 
 // User provided wrapper function for MatShellSetOperation
 // Computes the matrix-matrix product
@@ -302,11 +307,11 @@ static PetscErrorCode JacobianProductMat(Mat mat, Vec Q, Vec JVec) {
 // Output Parameters:
 // matC    - output matrix
 //
-static PetscErrorCode PreJacobianProductMat(Mat A, Mat B, MatReuse scall, PetscReal fill, Mat *C) {
+//static PetscErrorCode PreJacobianProductMat(Mat A, Mat B, MatReuse scall, PetscReal fill, Mat *C) {
 
-// implement your own MatMatMultiply
+// implement your own MatMatMultiply, if using Jpre different from J
 
-}
+//}
 
 // User provided IJacobian = dF/dQ + sigma dF/dQdot
 static PetscErrorCode FormIJacobian(TS ts, PetscReal t, Vec Q, Vec Qdot, PetscReal sigma,
@@ -315,20 +320,21 @@ static PetscErrorCode FormIJacobian(TS ts, PetscReal t, Vec Q, Vec Qdot, PetscRe
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
+  // empty body
 
-  // Set the preconditioning for the Jacobian, Jpre, to be = sigma M
-  ierr = VecScale(user->M, sigma); CHKERRQ(ierr);
-  ierr = VecCopy(M, JPreVec); CHKERRQ(ierr);
+//  // Set the preconditioning for the Jacobian, Jpre, to be = sigma M
+//  ierr = VecScale(user->M, sigma); CHKERRQ(ierr);
+//  ierr = VecCopy(M, JPreVec); CHKERRQ(ierr);
 
-  // Set up the MatShell for the associated Jacobian operator
-  MatCreateShell(PETSC_COMM_SELF, lsize, lsize, PETSC_DETERMINE,
-                 PETSC_DETERMINE, (void*)&user, &J);
-  MatShellSetOperation(J, MATOP_MULT, (void(*)(void))JacobianProductMat);
+//  // Set up the MatShell for the associated Jacobian operator
+//  MatCreateShell(PETSC_COMM_SELF, lsize, lsize, PETSC_DETERMINE,
+//                 PETSC_DETERMINE, (void*)&user, &J);
+//  MatShellSetOperation(J, MATOP_MULT, (void(*)(void))JacobianProductMat);
 
-  // Set up the MatShell for the associated Jacobian operator
-  MatCreateShell(PETSC_COMM_SELF, lsize, lsize, PETSC_DETERMINE,
-                 PETSC_DETERMINE, (void*)&user, &Jpre);
-  MatShellSetOperation(Jpre, MATOP_MATMAT_MULT, (void(*)(void))PreJacobianProductMat);
+//  // Set up the MatShell for the associated Jacobian preconditioning operator
+//  MatCreateShell(PETSC_COMM_SELF, lsize, lsize, PETSC_DETERMINE,
+//                 PETSC_DETERMINE, (void*)&user, &Jpre);
+//  MatShellSetOperation(Jpre, MATOP_MATMAT_MULT, (void(*)(void))PreJacobianProductMat);
 
   PetscFunctionReturn(0);
 }
@@ -428,9 +434,10 @@ int main(int argc, char **argv) {
   // Create the libCEED contexts
   PetscScalar lx;                   // m
   PetscScalar ly;                   // m
-  PetscScalar lz;                   // m
   PetscScalar resx;                 // m (resolution in x)
   PetscScalar resy;                 // m (resolution in y)
+  PetscScalar f = 0.0001;           // mid-latitude Coriolis parameter
+  PetscScalar g = 9.81;             // m/s^2
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -487,7 +494,7 @@ int main(int argc, char **argv) {
 
   // Determine size of process grid
   ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
-  Split3(size, p, false);
+  Split2(size, p, false);
 
   // Find a nicely composite number of elements given the resolution
   melem[0] = (PetscInt)(PetscRoundReal(lx / resx));
@@ -655,7 +662,7 @@ int main(int argc, char **argv) {
                           DMDA_STENCIL_STAR,
                           degree*melem[1]*p[1]+1,
                           degree*melem[0]*p[0]+1,
-                          p[1], p[0], 1, 0,
+                          p[1], p[0], 3, 0,
                           ldofs[1], ldofs[0], &dm); CHKERRQ(ierr);
       ierr = PetscFree2(ldofs[0], ldofs[1]); CHKERRQ(ierr);
       ierr = DMSetUp(dm); CHKERRQ(ierr);
@@ -739,7 +746,7 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_mass, "v", 3, CEED_EVAL_INTERP);
 
   // Create the Q-function that sets the ICs of the operator
-  CeedQFunctionCreateInterior(ceed, 1, Setup, __FILE__ ":ICsSW", &qf_ics);
+  CeedQFunctionCreateInterior(ceed, 1, SWICs, __FILE__ ":SWICs", &qf_ics);
   CeedQFunctionAddInput(qf_ics, "x", 2, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", 3, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_ics, "h_s", 1, CEED_EVAL_NONE);
@@ -853,8 +860,8 @@ int main(int argc, char **argv) {
                        basisq, CEED_VECTOR_ACTIVE);
 
   // Set up the libCEED context
-  CeedScalar ctxSetup[3] = {lx, ly, lz};
-  CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
+  CeedScalar ctxSWICs[3] = {1, 1, 0.1};
+  CeedQFunctionSetContext(qf_ics, &ctxSWICs, sizeof ctxSWICs);
   CeedScalar ctxSWExplicit = f;
   CeedQFunctionSetContext(qf_explicit, &ctxSWExplicit, sizeof ctxSWExplicit);
   CeedScalar ctxSWImplicit = g;
@@ -882,6 +889,7 @@ int main(int argc, char **argv) {
   user->gtogD = gtogD;
   user->Qloc = Qloc;
   user->Qdotloc = Qdotloc;
+  user->ts = ts;
   ierr = VecDuplicate(Qloc, &user->Gloc); CHKERRQ(ierr);
   ierr = VecDuplicate(Qloc, &user->Floc); CHKERRQ(ierr);
   ierr = VecDuplicate(Qloc, &user->Jloc); CHKERRQ(ierr);
@@ -980,20 +988,27 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&Mloc); CHKERRQ(ierr);
   CeedVectorDestroy(&mceed);
 
-  // Invert diagonally lumped mass vector for RHS function
-  //ierr = VecReciprocal(user->M); // M is now Minv
-  //CHKERRQ(ierr);
+  // Set up the MatShell for the associated Jacobian operator
+  MatCreateShell(PETSC_COMM_SELF, lsize, lsize, PETSC_DETERMINE,
+                 PETSC_DETERMINE, (void*)&user, &J);
+  // Set the MatShell operation needed for the Jacobian
+  MatShellSetOperation(J, MATOP_MULT, (void(*)(void))JacobianProductMat);
+
+  // Set up the MatShell for the associated Jacobian preconditioning operator
+//  MatCreateShell(PETSC_COMM_SELF, lsize, lsize, PETSC_DETERMINE,
+//                 PETSC_DETERMINE, (void*)&user, &Jpre);
+//  MatShellSetOperation(Jpre, MATOP_MATMAT_MULT, (void(*)(void))PreJacobianProductMat);
 
   // Create and setup TS
   ierr = TSCreate(comm, &ts); CHKERRQ(ierr);
-  ierr = TSSetType(ts, TSRK); CHKERRQ(ierr);
-  ierr = TSRKSetType(ts, TSRK5F); CHKERRQ(ierr);
+  ierr = TSSetType(ts, TSROSW); CHKERRQ(ierr);
+  ierr = TSRKSetType(ts, TSROSWRODAS3); CHKERRQ(ierr);
   ierr = TSSetRHSFunction(ts, NULL, FormRHSFunction, &user); CHKERRQ(ierr);
   ierr = TSSetIFunction(ts, NULL, FormIFunction, &user); CHKERRQ(ierr);
   ierr = DMSetMatType(dm, MATSHELL); CHKERRQ(ierr);
   ierr = DMCreateMatrix(dm, &J); CHKERRQ(ierr);
-  ierr = DMCreateMatrix(dm, &JPre); CHKERRQ(ierr);
-  ierr = TSSetIJacobian(ts, J, JPre, FormIJacobian, &user); CHKERRQ(ierr);
+  //ierr = DMCreateMatrix(dm, &JPre); CHKERRQ(ierr);
+  ierr = TSSetIJacobian(ts, J, J, FormIJacobian, &user); CHKERRQ(ierr);
   // TS options
   ierr = TSSetMaxTime(ts, 500.); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
