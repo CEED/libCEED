@@ -839,6 +839,10 @@ int main(int argc, char **argv) {
   CeedVectorSetValue(onesvec, 1.0);
   CeedOperatorApply(op_mass, onesvec, mceed, CEED_REQUEST_IMMEDIATE);
 
+  // Destroy xcorners and onesvec
+  CeedVectorDestroy(&xcorners);
+  CeedVectorDestroy(&onesvec);
+
   // Fix multiplicity for output of ICs
   CeedVectorGetArray(q0ceed, CEED_MEM_HOST, &q0);
   CeedVectorGetArray(xceed, CEED_MEM_HOST, &x);
@@ -895,6 +899,7 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
 
   // Clean up
+  CeedVectorDestroy(&xceed);
   ierr = VecDestroy(&Xloc); CHKERRQ(ierr);
 
   // Set dof coordinates in DMDA
@@ -959,9 +964,6 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&qdata);
   CeedVectorDestroy(&user->qceed);
   CeedVectorDestroy(&user->gceed);
-  CeedVectorDestroy(&xceed);
-  CeedVectorDestroy(&xcorners);
-  CeedVectorDestroy(&onesvec);
   CeedBasisDestroy(&basisq);
   CeedBasisDestroy(&basisx);
   CeedBasisDestroy(&basisxc);
