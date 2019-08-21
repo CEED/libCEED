@@ -895,7 +895,6 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
 
   // Clean up
-  CeedVectorDestroy(&xceed);
   ierr = VecDestroy(&Xloc); CHKERRQ(ierr);
 
   // Set dof coordinates in DMDA
