@@ -34,7 +34,7 @@
 // *****************************************************************************
 // This QFunction sets the the initial conditions and boundary conditions
 //
-//  TO DO
+//  For now we have sinusoidal terrain and constant reference height H0
 //
 // *****************************************************************************
 static int SWICs(void *ctx, CeedInt Q,
@@ -86,10 +86,10 @@ static int SWICs(void *ctx, CeedInt Q,
 // equations
 //
 // The equations represent 2D shallow-water flow on a spherical surface, where
-// the state variables, u, v, represent the longitudinal and latitudinal components
+// the state variables, u_lambda, u_theta, represent the longitudinal and latitudinal components
 // of the velocity field, and h, represents the height function.
 //
-// State variable vector: q = (u, v, h)
+// State variable vector: q = (u_lambda,u_theta,h)
 //
 // Shallow-water Equations spatial terms of explicit function G(t,q) = (G_1(t,q), G_2(t,q)):
 // G_1(t,q) = - (omega + f) * khat curl u - grad(|u|^2/2)
@@ -131,24 +131,18 @@ static int SWExplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                        qdata[i+ 3*Q],
                                        qdata[i+ 4*Q]
                                      };
-    // Grad-to-Grad qdata
-    // Symmetric 2x2 matrix (only store 3 entries)
-    const CeedScalar wBBJ[3]       = { qdata[i+5*Q],
-                                       qdata[i+6*Q],
-                                       qdata[i+7*Q]
-                                     };
 
     // The Physics
 
-    // Explicit spatial equation for (u,v)
-    // No explicit terms in (u,v) eqn.s multiplying dv
+    // Explicit spatial equation for (u_lambda,u_theta)
+    // No explicit terms in (u_lambda,u_theta) eqn.s multiplying dv
     dv[i+(0+4*0)*Q]  = 0;
     dv[i+(0+4*1)*Q]  = 0;
     dv[i+(1+4*0)*Q]  = 0;
     dv[i+(1+4*1)*Q]  = 0;
     // - (omega + f) * khat curl u - grad(|u|^2/2)
-    v[i+0*Q] -= u[0]*du[0][0] + u[1]*du[0][1] + f*u[1];
-    v[i+1*Q] -= u[0]*du[1][0] + u[1]*du[1][1] - f*u[0];
+    v[i+0*Q] = - (u[0]*du[0][0] + u[1]*du[0][1] + f*u[1]);
+    v[i+1*Q] = - (u[0]*du[1][0] + u[1]*du[1][1] - f*u[0]);
 
     // Explicit spatial equation for h
     // No explicit terms in h eqn. multiplying dv
@@ -168,10 +162,10 @@ static int SWExplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // equations
 //
 // The equations represent 2D shallow-water flow on a spherical surface, where
-// the state variables, u, v, represent the longitudinal and latitudinal components
+// the state variables, u_lambda, u_theta, represent the longitudinal and latitudinal components
 // of the velocity field, and h, represents the height function.
 //
-// State variable vector: q = (u, v, h)
+// State variable vector: q = (u_lambda, u_theta, h)
 //
 // Shallow-water Equations spatial terms of implicit function: F(t,q) = (F_1(t,q), F_2(t,q)):
 // F_1(t,q) = g(grad(h + h_s))
@@ -218,30 +212,24 @@ static int SWImplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
     const CeedScalar h_s      =   h_sq[i+0*Q];
     // H0
     const CeedScalar H_0      =   H_0q[i+0*Q];
-    // Grad-to-Grad qdata
-    // Symmetric 2x2 matrix (only store 3 entries)
-//    const CeedScalar wBBJ[3]  = { qdata[i+5*Q],
-//                                  qdata[i+6*Q],
-//                                  qdata[i+7*Q]
-//                                };
 
     // The Physics
 
-    // Implicit spatial equation for (u,v)
+    // Implicit spatial equations for (u_lambda,u_theta)
     // g * grad(h + h_s)
-    dv[i+(0+4*0)*Q]  = g*(h + h_s)*wBJ[0];
-    dv[i+(0+4*1)*Q]  = g*(h + h_s)*wBJ[1];
-    dv[i+(1+4*0)*Q]  = g*(h + h_s)*wBJ[2];
-    dv[i+(1+4*1)*Q]  = g*(h + h_s)*wBJ[3];
-    // No implicit terms in (u,v) eqn.s multiplying v
+    dv[i+(0+4*0)*Q]  = - g*(h + h_s)*(wBJ[0] + wBJ[1]);
+    dv[i+(0+4*1)*Q]  = 0;
+    dv[i+(1+4*0)*Q]  = 0;
+    dv[i+(1+4*1)*Q]  = - g*(h + h_s)*(wBJ[2] + wBJ[3]);
+    // No implicit terms in (u_lambda,u_theta) eqn.s multiplying test function v
     v[i+0*Q] = 0;
     v[i+1*Q] = 0;
 
     // Implicit spatial equation for h
     // div((h + H_0) u)
-    dv[i+(2+4*0)*Q]  = (h + H_0)*(u[0]*wBJ[0] + u[1]*wBJ[1]);
-    dv[i+(2+4*1)*Q]  = (h + H_0)*(u[0]*wBJ[2] + u[1]*wBJ[3]);
-    // No implicit terms in h eqn. multiplying v
+    dv[i+(2+4*0)*Q]  = - (h + H_0)*(u[0]*wBJ[0] + u[1]*wBJ[1]);
+    dv[i+(2+4*1)*Q]  = - (h + H_0)*(u[0]*wBJ[2] + u[1]*wBJ[3]);
+    // No implicit terms in h eqn. multiplying  test function v
     v[i+2*Q] = 0;
 
 
@@ -256,7 +244,7 @@ static int SWImplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // equations
 //
 // The equations represent 2D shallow-water flow on a spherical surface, where
-// the state variables, u, v, represent the longitudinal and latitudinal components
+// the state variables, u_lambda, u_theta, represent the longitudinal and latitudinal components
 // of the velocity field, and h, represents the height function.
 //
 // Discrete Jacobian: dF/dq^n = sigma * dF/dqdot|q^n + dF/dq|q^n
@@ -266,7 +254,7 @@ static int SWJacobian(void *ctx, CeedInt Q, const CeedScalar *const *in,
   // Inputs
   const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2];
   // Outputs
-  CeedScalar *dv = out[0];
+  CeedScalar *v = out[0], *dv = out[1];
   // Context
   const CeedScalar *context        =  (const CeedScalar*)ctx;
   const CeedScalar g           = context[0];
@@ -295,17 +283,21 @@ static int SWJacobian(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                   qdata[i+ 3*Q],
                                   qdata[i+ 4*Q]
                                 };
+
     // The Physics
 
-    // Jacobian w.r.t. d(u,v)
-    dv[i+(0+4*0)*Q]  = g*wBJ[0] * dh[0];
-    dv[i+(0+4*1)*Q]  = g*wBJ[1] * dh[1];
-    dv[i+(1+4*0)*Q]  = g*wBJ[2] * dh[0];
-    dv[i+(1+4*1)*Q]  = g*wBJ[3] * dh[1];
+    // Jacobian w.r.t. d(u_lambda,u_theta)
+    dv[i+(0+4*0)*Q]  = - g*wBJ[0] * dh[0];
+    dv[i+(0+4*1)*Q]  = 0;
+    dv[i+(1+4*0)*Q]  = 0;
+    dv[i+(1+4*1)*Q]  = - g*wBJ[3] * dh[1];
+    v[i+0*Q] = 0;
+    v[i+1*Q] = 0;
 
     // Jacobian w.r.t. dh
-    dv[i+(2+4*0)*Q]  = du[0][0]*wBJ[0] + du[0][1]*wBJ[1];
-    dv[i+(2+4*1)*Q]  = du[1][0]*wBJ[2] + du[1][1]*wBJ[3];
+    dv[i+(2+4*0)*Q]  = - (du[0][0]*wBJ[0] + u[0]*dh[0]*wBJ[1]);
+    dv[i+(2+4*1)*Q]  = - (du[1][1]*wBJ[2] + u[1]*dh[1]*wBJ[3]);
+    v[i+2*Q] = 0;
 
   } // End Quadrature Point Loop
 
