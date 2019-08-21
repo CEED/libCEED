@@ -412,7 +412,6 @@ int main(int argc, char **argv) {
   User user;
   char ceedresource[4096] = "/cpu/self";
   PetscFunctionList icsflist = NULL, qflist = NULL;
-  char problemtype[PETSC_MAX_PATH_LEN] = "sphere";
   PetscInt degree, qextra, localNelem, lsize, outputfreq,
            steps, melem[2], mdof[2], p[2], irank[2], ldof[2], contsteps;
   PetscMPIInt size, rank;
@@ -423,7 +422,7 @@ int main(int argc, char **argv) {
 
   Ceed ceed;
   CeedInt numP, numQ;
-  CeedVector xcorners, xceed, qdata, q0ceed, mceed,
+  CeedVector xcorners, xceed, qdata, q0ceed, mceed, hsceed, H0ceed,
              onesvec, multevec, multlvec;
   CeedBasis basisx, basisxc, basisq;
   CeedElemRestriction restrictx, restrictxc, restrictxi,
@@ -456,8 +455,6 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
-  PetscOptionsFList("-problem", "Problem to solve", NULL, icsflist,
-                    problemtype, problemtype, sizeof problemtype, NULL);
   lx = 8000.;
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                             NULL, lx, &lx, NULL); CHKERRQ(ierr);
@@ -722,6 +719,8 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, 3*lsize, &mceed);
   CeedVectorCreate(ceed, 3*lsize, &onesvec);
   CeedVectorCreate(ceed, 2*lsize, &xceed);
+  CeedVectorCreate(ceed, lsize, &hsceed);
+  CeedVectorCreate(ceed, lsize, &H0ceed);
   CeedVectorCreate(ceed, lsize, &multlvec);
   CeedVectorCreate(ceed, localNelem*Ndofs, &multevec);
 
@@ -770,8 +769,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_implicit, "dq", 3, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_implicit, "qdata", 8, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_implicit, "x", 2, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_implicit, "h_s", 1, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_implicit, "H_0", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_implicit, "h_s", 1, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_implicit, "H_0", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_implicit, "v", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_implicit, "dv", 3, CEED_EVAL_GRAD);
 
@@ -780,7 +779,8 @@ int main(int argc, char **argv) {
                               SWJacobian,  __FILE__ ":SWJacobian", &qf_jacobian);
   CeedQFunctionAddInput(qf_jacobian, "q", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_jacobian, "dq", 3, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_jacobian, "qdata", 8, CEED_EVAL_NONE); // TO DO: or CEED_EVAL_GRAD?
+  CeedQFunctionAddInput(qf_jacobian, "qdata", 8, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_jacobian, "v", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_jacobian, "dv", 3, CEED_EVAL_GRAD);
 
   // Create the operator that builds the quadrature data for the NS operator
@@ -807,10 +807,10 @@ int main(int argc, char **argv) {
                        basisxc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_ics, "q0", restrictq, CEED_TRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ics, "h_s", restrictqdi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, xceed); // TO DO: check if I need a different restriction
-  CeedOperatorSetField(op_ics, "H_0", restrictqdi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, xceed); // TO DO: check if I need a different restriction
+  CeedOperatorSetField(op_ics, "h_s", restrictxi, CEED_TRANSPOSE,
+                       CEED_BASIS_COLLOCATED, hsceed);
+  CeedOperatorSetField(op_ics, "H_0", restrictxi, CEED_TRANSPOSE,
+                       CEED_BASIS_COLLOCATED, H0ceed);
   CeedOperatorSetField(op_ics, "coords", restrictxc, CEED_TRANSPOSE,
                        CEED_BASIS_COLLOCATED, xceed);
 
@@ -839,10 +839,10 @@ int main(int argc, char **argv) {
                        CEED_BASIS_COLLOCATED, qdata);
   CeedOperatorSetField(op_implicit, "x", restrictx, CEED_NOTRANSPOSE,
                        basisx, xcorners);
-  CeedOperatorSetField(op_implicit, "h_s", restrictx, CEED_NOTRANSPOSE,
-                       basisx, xcorners); // TO DO: again, check the restriction
-  CeedOperatorSetField(op_implicit, "H_0", restrictx, CEED_NOTRANSPOSE,
-                       basisx, xcorners);
+  CeedOperatorSetField(op_implicit, "h_s", restrictxi, CEED_NOTRANSPOSE,
+                       CEED_BASIS_COLLOCATED, hsceed);
+  CeedOperatorSetField(op_implicit, "H_0", restrictxi, CEED_NOTRANSPOSE,
+                       CEED_BASIS_COLLOCATED, H0ceed);
   CeedOperatorSetField(op_implicit, "v", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_implicit, "dv", restrictq, CEED_TRANSPOSE,
@@ -855,7 +855,9 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_jacobian, "dq", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_jacobian, "qdata", restrictqdi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, qdata); // TO DO: Check if I need different restriction than restricqdi
+                       CEED_BASIS_COLLOCATED, qdata);
+  CeedOperatorSetField(op_jacobian, "v", restrictq, CEED_TRANSPOSE,
+                       basisq, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_jacobian, "dv", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
 
@@ -972,7 +974,6 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
 
   // Clean up
-  CeedVectorDestroy(&xceed);
   ierr = VecDestroy(&Xloc); CHKERRQ(ierr);
 
   // Set dof coordinates in DMDA
@@ -1052,6 +1053,8 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&user->jceed);
   CeedVectorDestroy(&xceed);
   CeedVectorDestroy(&xcorners);
+  CeedVectorDestroy(&hsceed);
+  CeedVectorDestroy(&H0ceed);
   CeedVectorDestroy(&onesvec);
   CeedBasisDestroy(&basisq);
   CeedBasisDestroy(&basisx);
