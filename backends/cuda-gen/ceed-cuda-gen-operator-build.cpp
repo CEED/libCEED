@@ -21,20 +21,7 @@
 #include "../cuda-reg/ceed-cuda-reg.h"
 #include "../cuda-shared/ceed-cuda-shared.h"
 
-static const char *deviceFunctions = QUOTE(
-
-typedef struct { const CeedScalar* in[16]; CeedScalar* out[16]; } CudaFields;
-typedef struct { CeedInt* in[16]; CeedInt* out[16]; } CudaFieldsInt;
-
-typedef struct {
-  CeedInt tidx;
-  CeedInt tidy;
-  CeedInt tidz;
-  CeedInt tid;
-  CeedScalar* slice;
-} BackendData;
-
-#if __CUDA_ARCH__ < 600
+static const char *atomicAdd = QUOTE(
 __device__ double atomicAdd(double *address, double val) {
   unsigned long long int *address_as_ull = (unsigned long long int *)address;
   unsigned long long int old = *address_as_ull, assumed;
@@ -49,7 +36,20 @@ __device__ double atomicAdd(double *address, double val) {
   } while (assumed != old);
   return __longlong_as_double(old);
 }
-#endif // __CUDA_ARCH__ < 600
+);
+
+static const char *deviceFunctions = QUOTE(
+
+typedef struct { const CeedScalar* in[16]; CeedScalar* out[16]; } CudaFields;
+typedef struct { CeedInt* in[16]; CeedInt* out[16]; } CudaFieldsInt;
+
+typedef struct {
+  CeedInt tidx;
+  CeedInt tidy;
+  CeedInt tidz;
+  CeedInt tid;
+  CeedScalar* slice;
+} BackendData;
 
 template <int P, int Q>
 inline __device__ void loadMatrix(BackendData& data, const CeedScalar* d_B, CeedScalar* B) {
@@ -717,6 +717,17 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   ostringstream code;
   string devFunctions(deviceFunctions);
 
+  // Add atomicAdd function for old NVidia architectures
+  struct cudaDeviceProp prop;
+  Ceed delegate;
+  CeedGetDelegate(ceed, &delegate);
+  Ceed_Cuda *ceed_data;
+  ierr = CeedGetData(delegate, (void **)&ceed_data); CeedChk(ierr);
+  ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId);
+  if(prop.major<6){
+    code << atomicAdd;
+  }
+
   code << devFunctions;
 
   string qFunction(qf_data->qFunctionSource);
@@ -780,7 +791,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     case CEED_EVAL_NONE:
       ierr = CeedElemRestrictionGetNumDoF(Erestrict, &ndof); CeedChk(ierr);
       code << "  const CeedInt ncomp_in_"<<i<<" = "<<ncomp<<";\n";
-      code << "  const CeedInt nquads_in_"<<i<<" = "<<ndof/ncomp<<";\n";
+      code << "  const CeedInt nquads_in_"<<i<<" = "<<ndof<<";\n";
       break;
     case CEED_EVAL_INTERP:
       ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
@@ -834,7 +845,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "  const CeedInt ncomp_out_"<<i<<" = "<<ncomp<<";\n";
       ierr = CeedElemRestrictionGetNumDoF(Erestrict, &ndof); CeedChk(ierr);
       ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
-      code << "  const CeedInt nquads_out_"<<i<<" = "<<ndof<<"/ncomp_out_"<<i<<";\n";
+      code << "  const CeedInt nquads_out_"<<i<<" = "<<ndof<<";\n";
       break; // No action
     case CEED_EVAL_INTERP:
       code << "  const CeedInt ncomp_out_"<<i<<" = "<<ncomp<<";\n";
