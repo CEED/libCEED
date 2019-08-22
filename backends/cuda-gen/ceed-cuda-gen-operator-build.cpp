@@ -56,7 +56,7 @@ inline __device__ void loadMatrix(BackendData& data, const CeedScalar* d_B, Ceed
   for(int i=data.tid; i<P*Q; i+=blockDim.x*blockDim.y*blockDim.z) {
     B[i] = d_B[i];
   }
-  //__syncthreads;
+  // __syncthreads();
 }
 
 //****
@@ -984,6 +984,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     }
   }
   code << "\n";
+  code << "__syncthreads();\n";
   code << "for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {\n";
   // Input basis apply if needed
   for (CeedInt i = 0; i < numinputfields; i++) {
@@ -1000,8 +1001,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     // Basis action
     switch (emode) {
     case CEED_EVAL_NONE:
-      if (dim<3)
-      {
+      if (!basis_data->d_colograd1d) {
         code << "  CeedScalar r_t"<<i<<"[ncomp_in_"<<i<<"];\n";
         ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
         code << "  readQuads"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",Q1d>(data, nquads_in_"<<i<<", elem, d_u"<<i<<", r_t"<<i<<");\n";
@@ -1109,7 +1109,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "    // Z derivative\n";
         code << "    r_q"<<i<<"[comp+2*ncomp_in_"<<i<<"] = 0.0;\n";
         code << "    for (int i = 0; i < Q1d; ++i) {\n";
-        code << "      r_q"<<i<<"[comp+2*ncomp_in_"<<i<<"] += s_G_in_"<<i<<"[i + q*Q1d] * r_t"<<i<<"[i +comp*Q1d];//contract z direction (Z derivative)\n";
+        code << "      r_q"<<i<<"[comp+2*ncomp_in_"<<i<<"] += s_G_in_"<<i<<"[i + q*Q1d] * r_t"<<i<<"[i + comp*Q1d];//contract z direction (Z derivative)\n";
         code << "    }\n";
         code << "    __syncthreads();\n";
         code << "  }\n";
@@ -1140,7 +1140,6 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "  CeedScalar r_qq"<<i<<"[ncomp_out_"<<i<<"*Dim];\n";
         break;
       case CEED_EVAL_WEIGHT:
-        code << "  CeedScalar r_qq"<<i<<"[1];\n";
         break; // Should not occur
       case CEED_EVAL_DIV:
         break; // TODO: Not implemented
@@ -1169,8 +1168,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     }
   }
   code << ");\n";
-  if (basis_data->d_colograd1d)
-  {
+  if (basis_data->d_colograd1d) {
     for (CeedInt i = 0; i < numoutputfields; i++) {
       code << "  // Output field "<<i<<"\n";
       ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
@@ -1201,7 +1199,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "    data.slice[data.tidx+data.tidy*Q1d] = r_qq"<<i<<"[comp + 1*ncomp_out_"<<i<<"];\n";
         code << "    __syncthreads();\n";
         code << "    for (int i = 0; i < Q1d; ++i) {\n";
-        code << "      r_tt"<<i<<"[q+comp*Q1d] += s_G_out_"<<i<<"[data.tidy +i*Q1d] * data.slice[data.tidx + i*Q1d];//contract y direction (Y derivative)\n";
+        code << "      r_tt"<<i<<"[q+comp*Q1d] += s_G_out_"<<i<<"[data.tidy + i*Q1d] * data.slice[data.tidx + i*Q1d];//contract y direction (Y derivative)\n";
         code << "    }\n";
         code << "    __syncthreads();\n";
         code << "    // Z derivative\n";
