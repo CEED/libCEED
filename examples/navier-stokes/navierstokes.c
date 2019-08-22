@@ -839,8 +839,7 @@ int main(int argc, char **argv) {
   CeedVectorSetValue(onesvec, 1.0);
   CeedOperatorApply(op_mass, onesvec, mceed, CEED_REQUEST_IMMEDIATE);
 
-  // Destroy xcorners and onesvec
-  CeedVectorDestroy(&xcorners);
+  // Destroy onesvec
   CeedVectorDestroy(&onesvec);
 
   // Fix multiplicity for output of ICs
@@ -964,6 +963,7 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&qdata);
   CeedVectorDestroy(&user->qceed);
   CeedVectorDestroy(&user->gceed);
+  CeedVectorDestroy(&xcorners);
   CeedBasisDestroy(&basisq);
   CeedBasisDestroy(&basisx);
   CeedBasisDestroy(&basisxc);
