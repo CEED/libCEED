@@ -204,13 +204,13 @@ typedef enum {
 } CeedTransposeMode;
 
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype,
+    CeedInt elemsize, CeedInt nnodes, CeedInt ncomp, CeedMemType mtype,
     CeedCopyMode cmode,
     const CeedInt *indices, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedElemRestriction *rstr);
+    CeedInt elemsize, CeedInt nnodes, CeedInt ncomp, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt blksize, CeedInt ndof, CeedInt ncomp,
+    CeedInt elemsize, CeedInt blksize, CeedInt nnodes, CeedInt ncomp,
     CeedMemType mtype,
     CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
@@ -290,7 +290,7 @@ CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp,
                                         const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis *basis);
 CEED_EXTERN int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo,
                                   CeedInt ncomp,
-                                  CeedInt ndof, CeedInt nqpts,
+                                  CeedInt nnodes, CeedInt nqpts,
                                   const CeedScalar *interp, const CeedScalar *grad,
                                   const CeedScalar *qref, const CeedScalar *qweight, CeedBasis *basis);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);

@@ -90,13 +90,13 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
       ierr = CeedElemRestrictionGetData(r, (void *)&data); CeedChk(ierr);
       Ceed ceed;
       ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
-      CeedInt nelem, elemsize, ndof;
+      CeedInt nelem, elemsize, nnodes;
       ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
       ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
-      ierr = CeedElemRestrictionGetNumDoF(r, &ndof); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetNumNodes(r, &nnodes); CeedChk(ierr);
       ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
       ierr = CeedElemRestrictionCreateBlocked(ceed, nelem, elemsize,
-                                              blksize, ndof, ncomp,
+                                              blksize, nnodes, ncomp,
                                               CEED_MEM_HOST, CEED_COPY_VALUES,
                                               data->indices, &blkrestr[i+starte]);
       CeedChk(ierr);

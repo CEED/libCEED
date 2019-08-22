@@ -131,16 +131,20 @@ CEED_INTERN int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel,
                                      const int blockSizeX, const int blockSizeY,
                                      const int blockSizeZ, void **args);
 
-CEED_INTERN int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel, const int gridSize,
-                                           const int blockSizeX, const int blockSizeY,
-                                           const int blockSizeZ, const int sharedMemSize,
+CEED_INTERN int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel,
+                                           const int gridSize,
+                                           const int blockSizeX,
+                                           const int blockSizeY,
+                                           const int blockSizeZ,
+                                           const int sharedMemSize,
                                            void **args);
 
 CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
                                       const int gridSize,
-                                      const int blockSizeX, const int blockSizeY,
-                                      const int blockSizeZ, const int sharedMemSize,
-                                      void **args);
+                                      const int blockSizeX,
+                                      const int blockSizeY,
+                                      const int blockSizeZ,
+                                      const int sharedMemSize, void **args);
 
 CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
 
@@ -167,7 +171,8 @@ CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d,
 
 CEED_INTERN int CeedBasisCreateH1_Cuda(CeedElemTopology, CeedInt, CeedInt,
                                        CeedInt, const CeedScalar *,
-                                       const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
+                                       const CeedScalar *, const CeedScalar *,
+                                       const CeedScalar *, CeedBasis);
 
 CEED_INTERN int CeedQFunctionCreate_Cuda(CeedQFunction qf);
 

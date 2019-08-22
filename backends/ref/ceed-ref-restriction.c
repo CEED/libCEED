@@ -24,11 +24,11 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
   ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);;
   const CeedScalar *uu;
   CeedScalar *vv;
-  CeedInt blksize, nelem, elemsize, ndof, ncomp, voffset;
+  CeedInt blksize, nelem, elemsize, nnodes, ncomp, voffset;
   ierr = CeedElemRestrictionGetBlockSize(r, &blksize); CeedChk(ierr);
   ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetNumDoF(r, &ndof); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumNodes(r, &nnodes); CeedChk(ierr);
   ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
   voffset = start*blksize*elemsize*ncomp;
 
@@ -47,13 +47,13 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
     } else {
       // Indices provided, standard or blocked restriction
       // vv has shape [elemsize, ncomp, nelem], row-major
-      // uu has shape [ndof, ncomp]
+      // uu has shape [nnodes, ncomp]
       for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
         for (CeedInt d = 0; d < ncomp; d++)
           for (CeedInt i = 0; i < elemsize*blksize; i++)
             vv[i+elemsize*(d*blksize+ncomp*e) - voffset]
               = uu[lmode == CEED_NOTRANSPOSE
-                         ? impl->indices[i+elemsize*e]+ndof*d
+                         ? impl->indices[i+elemsize*e]+nnodes*d
                          : d+ncomp*impl->indices[i+elemsize*e]];
     }
   } else {
@@ -69,14 +69,14 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
     } else {
       // Indices provided, standard or blocked restriction
       // uu has shape [elemsize, ncomp, nelem]
-      // vv has shape [ndof, ncomp]
+      // vv has shape [nnodes, ncomp]
       for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize) {
         for (CeedInt d = 0; d < ncomp; d++)
           for (CeedInt i = 0; i < elemsize*blksize; i+=blksize)
             // Iteration bound set to discard padding elements
             for (CeedInt j = i; j < i+CeedIntMin(blksize, nelem-e); j++)
               vv[lmode == CEED_NOTRANSPOSE
-                       ? impl->indices[j+e*elemsize]+ndof*d
+                       ? impl->indices[j+e*elemsize]+nnodes*d
                        : d+ncomp*impl->indices[j+e*elemsize]]
               += uu[j+elemsize*(d*blksize+ncomp*e) - voffset];
       }

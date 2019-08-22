@@ -38,7 +38,8 @@
 
   @return An error code: 0 - success, otherwise - failure
 
-  See \ref CeedQFunctionUser for details on the call-back function @a f's arguments.
+  See \ref CeedQFunctionUser for details on the call-back function @a f's
+    arguments.
 
   @ref Basic
 **/

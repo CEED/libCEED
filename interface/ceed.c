@@ -227,7 +227,8 @@ int CeedMallocArray(size_t n, size_t unit, void *p) {
   int ierr = posix_memalign((void **)p, CEED_ALIGN, n*unit);
   if (ierr)
     return CeedError(NULL, ierr,
-                     "posix_memalign failed to allocate %zd members of size %zd\n", n, unit);
+                     "posix_memalign failed to allocate %zd members of size %zd\n", 
+                     n, unit);
   return 0;
 }
 

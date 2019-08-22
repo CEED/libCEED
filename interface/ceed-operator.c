@@ -117,7 +117,8 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   input and at most one active output.
 
   @param op         CeedOperator on which to provide the field
-  @param fieldname  Name of the field (to be matched with the name used by CeedQFunction)
+  @param fieldname  Name of the field (to be matched with the name used by
+                      CeedQFunction)
   @param r          CeedElemRestriction
   @param lmode      CeedTransposeMode which specifies the ordering of the
                       components of the l-vector used by this CeedOperatorField,

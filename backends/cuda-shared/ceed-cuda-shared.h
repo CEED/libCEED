@@ -35,9 +35,5 @@ typedef struct {
 } Ceed_Cuda_shared;
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d,
-    CeedInt Q1d,
-    const CeedScalar *interp1d,
-    const CeedScalar *grad1d,
-    const CeedScalar *qref1d,
-    const CeedScalar *qweight1d,
-    CeedBasis basis);
+    CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
+    const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
