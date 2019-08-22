@@ -54,11 +54,11 @@ static int CeedOperatorDestroy_Opt(CeedOperator op) {
   Setup infields or outfields
  */
 static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
-    bool inOrOut, const CeedInt blksize,
-    CeedElemRestriction *blkrestr,
-    CeedVector *fullevecs, CeedVector *evecs,
-    CeedVector *qvecs, CeedInt starte,
-    CeedInt numfields, CeedInt Q) {
+                                       bool inOrOut, const CeedInt blksize,
+                                       CeedElemRestriction *blkrestr,
+                                       CeedVector *fullevecs, CeedVector *evecs,
+                                       CeedVector *qvecs, CeedInt starte,
+                                       CeedInt numfields, CeedInt Q) {
   CeedInt dim, ierr, ncomp, P;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -359,7 +359,7 @@ static inline int CeedOperatorApply_Opt(CeedOperator op,
       case CEED_EVAL_GRAD:
         ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis);
         CeedChk(ierr);
-         if (!activein) {
+        if (!activein) {
           ierr = CeedVectorSetArray(impl->evecsin[i], CEED_MEM_HOST,
                                     CEED_USE_POINTER,
                                     &impl->edata[i][e*elemsize*ncomp]);
@@ -464,7 +464,7 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   Ceed_Opt *ceedimpl;
-  ierr = CeedGetData(ceed, (void*)&ceedimpl); CeedChk(ierr);
+  ierr = CeedGetData(ceed, (void *)&ceedimpl); CeedChk(ierr);
   CeedInt blksize = ceedimpl->blksize;
   CeedOperator_Opt *impl;
 

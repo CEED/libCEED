@@ -102,8 +102,8 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
 
 // *****************************************************************************
 int CeedElemRestrictionApplyBlock_Occa(CeedElemRestriction r,
-    CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
-    CeedVector u, CeedVector v, CeedRequest *request) {
+                                       CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
+                                       CeedVector u, CeedVector v, CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);

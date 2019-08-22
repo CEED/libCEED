@@ -65,7 +65,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
         for (CeedInt j = 0; j < CeedIntMin(blksize, nelem-e); j++)
           for (CeedInt k = 0; k < ncomp*elemsize; k++)
             vv[(e+j)*ncomp*elemsize + k]
-              += uu[e*elemsize*ncomp + k*blksize + j - voffset];
+            += uu[e*elemsize*ncomp + k*blksize + j - voffset];
     } else {
       // Indices provided, standard or blocked restriction
       // uu has shape [elemsize, ncomp, nelem]
@@ -90,20 +90,21 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
 }
 
 static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
-    CeedTransposeMode tmode, CeedTransposeMode lmode, CeedVector u,
-    CeedVector v, CeedRequest *request) {
+                                        CeedTransposeMode tmode,
+                                        CeedTransposeMode lmode, CeedVector u,
+                                        CeedVector v, CeedRequest *request) {
   int ierr;
   CeedInt nblk;
   ierr = CeedElemRestrictionGetNumBlocks(r, &nblk); CeedChk(ierr);
   return  CeedElemRestrictionApply_Ref_Core(r, 0, nblk, tmode, lmode, u, v,
-                                            request);
+          request);
 }
 
 static int CeedElemRestrictionApplyBlock_Ref(CeedElemRestriction r,
     CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
     CeedVector u, CeedVector v, CeedRequest *request) {
   return CeedElemRestrictionApply_Ref_Core(r, block, block+1, tmode, lmode, u,
-                                           v, request);
+         v, request);
 }
 
 static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {

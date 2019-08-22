@@ -291,7 +291,8 @@ void fCeedElemRestrictionApply(int *elemr, int *tmode, int *lmode,
 
 #define fCeedElemRestrictionApplyBlock \
     FORTRAN_NAME(ceedelemrestrictionapplyblock,CEEDELEMRESTRICTIONAPPLYBLOCK)
-void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode, int *lmode,
+void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode,
+                                    int *lmode,
                                     int *uvec, int *ruvec, int *rqst, int *err) {
   int createRequest = 1;
   // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
@@ -308,7 +309,7 @@ void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode, int *lmo
   else if (*rqst == FORTRAN_REQUEST_ORDERED  ) rqst_ = CEED_REQUEST_ORDERED;
   else rqst_ = &CeedRequest_dict[CeedRequest_count];
 
-  *err = CeedElemRestrictionApplyBlock(CeedElemRestriction_dict[*elemr], *block, 
+  *err = CeedElemRestrictionApplyBlock(CeedElemRestriction_dict[*elemr], *block,
                                        *tmode, *lmode, CeedVector_dict[*uvec],
                                        CeedVector_dict[*ruvec], rqst_);
 
@@ -322,9 +323,9 @@ void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode, int *lmo
     FORTRAN_NAME(ceedelemrestrictiongetmultiplicity,CEEDELEMRESTRICTIONGETMULTIPLICITY)
 void fCeedElemRestrictionGetMultiplicity(int *elemr, int *mult, int *err) {
   *err = CeedElemRestrictionGetMultiplicity(CeedElemRestriction_dict[*elemr],
-                                            CeedVector_dict[*mult]);
+         CeedVector_dict[*mult]);
 }
- 
+
 
 #define fCeedRequestWait FORTRAN_NAME(ceedrequestwait, CEEDREQUESTWAIT)
 void fCeedRequestWait(int *rqst, int *err) {
@@ -514,22 +515,22 @@ static int CeedQFunctionFortranStub(void *ctx, int nq,
     FORTRAN_NAME(ceedqfunctioncreateinterior, CEEDQFUNCTIONCREATEINTERIOR)
 void fCeedQFunctionCreateInterior(int *ceed, int *vlength,
                                   void (*f)(void *ctx, int *nq,
-                                    const CeedScalar *u,const CeedScalar *u1,
-                                    const CeedScalar *u2,const CeedScalar *u3,
-                                    const CeedScalar *u4,const CeedScalar *u5,
-                                    const CeedScalar *u6,const CeedScalar *u7,
-                                    const CeedScalar *u8,const CeedScalar *u9,
-                                    const CeedScalar *u10,const CeedScalar *u11,
-                                    const CeedScalar *u12,const CeedScalar *u13,
-                                    const CeedScalar *u14,const CeedScalar *u15,
-                                    CeedScalar *v,CeedScalar *v1,CeedScalar *v2,
-                                    CeedScalar *v3,CeedScalar *v4,
-                                    CeedScalar *v5,CeedScalar *v6,
-                                    CeedScalar *v7,CeedScalar *v8,
-                                    CeedScalar *v9,CeedScalar *v10,
-                                    CeedScalar *v11,CeedScalar *v12,
-                                    CeedScalar *v13,CeedScalar *v14,
-                                    CeedScalar *v15,int *err),
+                                      const CeedScalar *u,const CeedScalar *u1,
+                                      const CeedScalar *u2,const CeedScalar *u3,
+                                      const CeedScalar *u4,const CeedScalar *u5,
+                                      const CeedScalar *u6,const CeedScalar *u7,
+                                      const CeedScalar *u8,const CeedScalar *u9,
+                                      const CeedScalar *u10,const CeedScalar *u11,
+                                      const CeedScalar *u12,const CeedScalar *u13,
+                                      const CeedScalar *u14,const CeedScalar *u15,
+                                      CeedScalar *v,CeedScalar *v1,CeedScalar *v2,
+                                      CeedScalar *v3,CeedScalar *v4,
+                                      CeedScalar *v5,CeedScalar *v6,
+                                      CeedScalar *v7,CeedScalar *v8,
+                                      CeedScalar *v9,CeedScalar *v10,
+                                      CeedScalar *v11,CeedScalar *v12,
+                                      CeedScalar *v13,CeedScalar *v14,
+                                      CeedScalar *v15,int *err),
                                   const char *focca, int *qf, int *err,
                                   fortran_charlen_t focca_len) {
   FIX_STRING(focca);
@@ -678,8 +679,8 @@ void fCeedOperatorCreate(int *ceed,
                          int *qf, int *dqf, int *dqfT, int *op, int *err) {
   if (CeedOperator_count == CeedOperator_count_max)
     CeedOperator_count_max += CeedOperator_count_max/2 + 1,
-    CeedOperator_dict = realloc(CeedOperator_dict, 
-                                sizeof(CeedOperator)*CeedOperator_count_max);
+                              CeedOperator_dict = realloc(CeedOperator_dict,
+                                  sizeof(CeedOperator)*CeedOperator_count_max);
 
   CeedOperator *op_ = &CeedOperator_dict[CeedOperator_count];
 
@@ -699,8 +700,8 @@ void fCeedOperatorCreate(int *ceed,
 void fCeedCompositeOperatorCreate(int *ceed, int *op, int *err) {
   if (CeedOperator_count == CeedOperator_count_max)
     CeedOperator_count_max += CeedOperator_count_max/2 + 1,
-    CeedOperator_dict = realloc(CeedOperator_dict,
-                                sizeof(CeedOperator)*CeedOperator_count_max);
+                              CeedOperator_dict = realloc(CeedOperator_dict,
+                                  sizeof(CeedOperator)*CeedOperator_count_max);
 
   CeedOperator *op_ = &CeedOperator_dict[CeedOperator_count];
 

@@ -625,7 +625,8 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
     ierr = CeedVectorGetLength(u, &ulength); CeedChk(ierr);
   }
 
-  if ((tmode == CEED_TRANSPOSE   && (vlength % nnodes != 0 || ulength % nqpt != 0))
+  if ((tmode == CEED_TRANSPOSE   && (vlength % nnodes != 0
+                                     || ulength % nqpt != 0))
       ||
       (tmode == CEED_NOTRANSPOSE && (ulength % nnodes != 0 || vlength % nqpt != 0)))
     return CeedError(basis->ceed, 1,

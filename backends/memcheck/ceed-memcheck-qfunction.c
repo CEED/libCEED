@@ -17,7 +17,7 @@
 #include "ceed-memcheck.h"
 
 static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
-                                         CeedVector *U, CeedVector *V) {
+                                       CeedVector *U, CeedVector *V) {
   int ierr;
   CeedQFunction_Memcheck *impl;
   ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);

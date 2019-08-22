@@ -54,7 +54,7 @@ const char help[] = "Solve CEED BPs using PETSc with DMPlex\n";
 
 // Get CEED restriction data from DMPlex
 static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
-				 CeedElemRestriction *Erestrict, DM dm) {
+                                 CeedElemRestriction *Erestrict, DM dm) {
   PetscInt ierr;
   PetscInt c, cStart, cEnd, nelem, ndof, *erestrict, eoffset;
   PetscSection section;
@@ -122,7 +122,7 @@ PetscErrorCode BCsDiff(PetscInt dim, PetscReal time, const PetscReal x[],
 
   PetscFunctionBeginUser;
 
-  for (PetscInt i = 0; i < vscale; i++) 
+  for (PetscInt i = 0; i < vscale; i++)
     u[i] = sin(M_PI*(c[0] + k[0]*x[0])) *
            sin(M_PI*(c[1] + k[1]*x[1])) *
            sin(M_PI*(c[2] + k[2]*x[2]));
@@ -170,12 +170,12 @@ typedef struct {
   CeedInt vscale, qdatasize, qextra;
   CeedQFunctionUser setup, apply, error;
   const char setupfname[PETSC_MAX_PATH_LEN], applyfname[PETSC_MAX_PATH_LEN],
-             errorfname[PETSC_MAX_PATH_LEN];
+        errorfname[PETSC_MAX_PATH_LEN];
   CeedEvalMode inmode, outmode;
   CeedQuadMode qmode;
   PetscBool enforce_bc;
-  PetscErrorCode (*bcs_func)(PetscInt, PetscReal, const PetscReal*,
-                             PetscInt, PetscScalar *, void*);
+  PetscErrorCode (*bcs_func)(PetscInt, PetscReal, const PetscReal *,
+                             PetscInt, PetscScalar *, void *);
 } bpData;
 
 bpData bpOptions[6] = {
@@ -193,7 +193,8 @@ bpData bpOptions[6] = {
     .outmode = CEED_EVAL_INTERP,
     .qmode = CEED_GAUSS,
     .enforce_bc = false,
-    .bcs_func = BCsMass},
+    .bcs_func = BCsMass
+  },
   [CEED_BP2] = {
     .vscale = 3,
     .qdatasize = 1,
@@ -208,7 +209,8 @@ bpData bpOptions[6] = {
     .outmode = CEED_EVAL_INTERP,
     .qmode = CEED_GAUSS,
     .enforce_bc = false,
-    .bcs_func = BCsMass},
+    .bcs_func = BCsMass
+  },
   [CEED_BP3] = {
     .vscale = 1,
     .qdatasize = 6,
@@ -223,7 +225,8 @@ bpData bpOptions[6] = {
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS,
     .enforce_bc = true,
-    .bcs_func = BCsDiff},
+    .bcs_func = BCsDiff
+  },
   [CEED_BP4] = {
     .vscale = 3,
     .qdatasize = 6,
@@ -238,7 +241,8 @@ bpData bpOptions[6] = {
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS,
     .enforce_bc = true,
-    .bcs_func = BCsDiff},
+    .bcs_func = BCsDiff
+  },
   [CEED_BP5] = {
     .vscale = 1,
     .qdatasize = 6,
@@ -253,7 +257,8 @@ bpData bpOptions[6] = {
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS_LOBATTO,
     .enforce_bc = true,
-    .bcs_func = BCsDiff},
+    .bcs_func = BCsDiff
+  },
   [CEED_BP6] = {
     .vscale = 3,
     .qdatasize = 6,
@@ -268,7 +273,8 @@ bpData bpOptions[6] = {
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS_LOBATTO,
     .enforce_bc = true,
-    .bcs_func = BCsDiff}
+    .bcs_func = BCsDiff
+  }
 };
 
 // This function uses libCEED to compute the action of the operator
@@ -323,7 +329,7 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
   CeedVectorCreate(user->ceed, length, &collocated_error);
 
   // Global-to-local
-  ierr = DMGlobalToLocal(user->dm, X, INSERT_VALUES, user->Xloc);CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, X, INSERT_VALUES, user->Xloc); CHKERRQ(ierr);
 
   // Setup CEED vector
   ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
@@ -357,10 +363,10 @@ int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
   char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
-       filename[PETSC_MAX_PATH_LEN];
+                                          filename[PETSC_MAX_PATH_LEN];
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree, qextra, lsize, gsize, dim =3, melem[3] = {3, 3, 3},
-           vscale = 1, cStart, cEnd, nelem, marker_ids[1] = {1}, Xlocsize;
+                                         vscale = 1, cStart, cEnd, nelem, marker_ids[1] = {1}, Xlocsize;
   PetscScalar *r;
   const PetscScalar *coordArray;
   PetscBool test_mode, benchmark_mode, read_mesh, enforce_bc, write_solution;
@@ -391,7 +397,7 @@ int main(int argc, char **argv) {
   bpChoice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
-                          bpTypes, (PetscEnum)bpChoice, (PetscEnum*)&bpChoice,
+                          bpTypes, (PetscEnum)bpChoice, (PetscEnum *)&bpChoice,
                           NULL); CHKERRQ(ierr);
   vscale = bpOptions[bpChoice].vscale;
   test_mode = PETSC_FALSE;
@@ -433,16 +439,16 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
   } else {
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, melem, NULL,
-                                NULL, NULL, PETSC_TRUE ,&dm); CHKERRQ(ierr);
+                               NULL, NULL, PETSC_TRUE,&dm); CHKERRQ(ierr);
   }
 
   {
     DM dmDist = NULL;
     PetscPartitioner part;
 
-    ierr = DMPlexGetPartitioner(dm, &part);CHKERRQ(ierr);
-    ierr = PetscPartitionerSetFromOptions(part);CHKERRQ(ierr);
-    ierr = DMPlexDistribute(dm, 0, NULL, &dmDist);CHKERRQ(ierr);
+    ierr = DMPlexGetPartitioner(dm, &part); CHKERRQ(ierr);
+    ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
+    ierr = DMPlexDistribute(dm, 0, NULL, &dmDist); CHKERRQ(ierr);
     if (dmDist) {
       ierr = DMDestroy(&dm); CHKERRQ(ierr);
       dm  = dmDist;
@@ -455,13 +461,13 @@ int main(int argc, char **argv) {
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMAddField(dm, NULL, (PetscObject)fe); CHKERRQ(ierr);
   ierr = DMCreateDS(dm); CHKERRQ(ierr);
-  if (enforce_bc) { 
-     PetscBool hasLabel;
-     DMHasLabel(dm, "marker", &hasLabel);
-     if (!hasLabel) {CreateBCLabel(dm, "marker");}
-     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "marker", 0, 0, NULL,
-                          (void(*)(void))bpOptions[bpChoice].bcs_func, 1,
-                          marker_ids, NULL); CHKERRQ(ierr);
+  if (enforce_bc) {
+    PetscBool hasLabel;
+    DMHasLabel(dm, "marker", &hasLabel);
+    if (!hasLabel) {CreateBCLabel(dm, "marker");}
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "marker", 0, 0, NULL,
+                         (void(*)(void))bpOptions[bpChoice].bcs_func, 1,
+                         marker_ids, NULL); CHKERRQ(ierr);
   }
   ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
@@ -471,7 +477,7 @@ int main(int argc, char **argv) {
   ierr = PetscSpaceGetDegree(sp, &degree, NULL); CHKERRQ(ierr);
   ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
   if (degree < 1) SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
-                           "-petscspace_degree %D must be at least 1", degree);
+                             "-petscspace_degree %D must be at least 1", degree);
   P = degree + 1;
   Q = P + qextra;
 
@@ -516,7 +522,7 @@ int main(int argc, char **argv) {
   CreateRestrictionPlex(ceed, 2, 3, &Erestrictx, dmcoord);
   CreateRestrictionPlex(ceed, P, vscale, &Erestrictu, dm);
 
-  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
 
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, vscale,
@@ -535,7 +541,7 @@ int main(int argc, char **argv) {
 
   CeedElemRestrictionCreateVector(Erestrictx, &xcoord, NULL);
   CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_COPY_VALUES,
-                    (PetscScalar*)coordArray);
+                     (PetscScalar *)coordArray);
   ierr = VecRestoreArrayRead(coords, &coordArray); CHKERRQ(ierr);
 
   // Create the Q-function that builds the operator (i.e. computes its

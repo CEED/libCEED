@@ -103,8 +103,9 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   @ref Basic
 **/
 int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
-                                      CeedInt elemsize,
-                                      CeedInt nnodes, CeedInt ncomp, CeedElemRestriction *rstr) {
+                                      CeedInt elemsize, CeedInt nnodes,
+                                      CeedInt ncomp,
+                                      CeedElemRestriction *rstr) {
   int ierr;
 
   if (!ceed->ElemRestrictionCreate) {
@@ -382,7 +383,7 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
   @ref Advanced
 **/
 int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
-                             CeedVector mult) {
+                                       CeedVector mult) {
   int ierr;
   CeedVector evec;
 
