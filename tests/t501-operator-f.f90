@@ -136,7 +136,9 @@
         total=total+hv(voffset+i)
       enddo
       if (abs(total-1.)>1.0d-10) then
+! LCOV_EXCL_START
         write(*,*) 'Computed Area: ',total,' != True Area: 1.0'
+! LCOV_EXCL_END
       endif
       call ceedvectorrestorearrayread(v,hv,voffset,err)
 
