@@ -26,9 +26,11 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++) a[i] = 20 + i;
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
 
+  // LCOV_EXCL_START
   CeedVectorRestoreArrayRead(x, &b);
 
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);
   return 0;
+  // LCOV_EXCL_END
 }

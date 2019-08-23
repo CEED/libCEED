@@ -38,10 +38,12 @@
       enddo
       call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,aoffset,err)
 
+! LCOV_EXCL_START
       call ceedvectorrestorearrayread(x,b,boffset,err)
 
       call ceedvectordestroy(x,err)
       call ceeddestroy(ceed,err)
 
       end
+! LCOV_EXCL_END
 !-----------------------------------------------------------------------
