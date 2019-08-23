@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
         printf("[%d] %f != %f=f(%f", dim, u[i], fx, xx[0]);
         for (CeedInt d=1; d<dim; d++) printf(",%f", xx[d]);
         puts(")");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
       }
     }
     CeedVectorRestoreArrayRead(Xq, &xq);

@@ -40,7 +40,7 @@
         if (abs(vv(i+voffset)-1.) > 1.D-15) then
 ! LCOV_EXCL_START
           write(*,*) 'v(',i,'=',vv(i+voffset),' not eqaul to 1.0'
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(v,vv,voffset,err)

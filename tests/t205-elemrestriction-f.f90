@@ -53,14 +53,14 @@
 ! LCOV_EXCL_START
             write(*,*) 'Error in restricted array y(',i*4+n,')=',&
      &       yy(i*4+n+yoffset),'!=',10+(2*i+n)/2
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
           endif
           diff=20+(2*i+n)/2-yy(i*4+n+2+yoffset)
           if (abs(diff) > 1.0D-15) then
 ! LCOV_EXCL_START
             write(*,*) 'Error in restricted array y(',i*4+n+2,')=',&
      &       yy(i*4+n+2+yoffset),'!=',20+(2*i+n)/2
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
           endif
         enddo
       enddo

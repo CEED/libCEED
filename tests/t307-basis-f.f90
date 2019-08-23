@@ -38,7 +38,7 @@
         if (abs(colograd1d(i))<1.0D-14) then
 ! LCOV_EXCL_START
           colograd1d(i) = 0
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
         endif
       enddo
       do i=0,3
@@ -56,7 +56,7 @@
         if (abs(colograd1d2(i))<1.0D-14) then
 ! LCOV_EXCL_START
           colograd1d2(i) = 0
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
         endif
       enddo
       do i=0,5

@@ -27,5 +27,5 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&V);
   CeedDestroy(&ceed);
   return 0;
-  // LCOV_EXCL_END
+  // LCOV_EXCL_STOP
 }

@@ -38,7 +38,7 @@
         if (abs(diff)>1.0D-15) then
 ! LCOV_EXCL_START
           write(*,*) 'Error reading array y(',i,')=',yy(i+yoffset)
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
         endif
       enddo
 

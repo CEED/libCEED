@@ -59,14 +59,14 @@
 ! LCOV_EXCL_START
           write(*,*) 'Error in restricted array y(',i+1,')=',&
      &     yy(i+1+yoffset),'!=',(10+i)*mult
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
         endif
         diff=(20+i)*mult-yy(i+ne+2+yoffset)
         if (abs(diff) > 1.0D-15) then
 ! LCOV_EXCL_START
           write(*,*) 'Error in restricted array y(',i+ne+2,')=',&
      &     yy(i+ne+2+yoffset),'!=',(20+i)*mult
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(y,yy,yoffset,err)

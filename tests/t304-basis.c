@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
     if (fabs(sum1 - sum2) > 1e-10)
       // LCOV_EXCL_START
       printf("[%d] %f != %f\n", dim, sum1, sum2);
-      // LCOV_EXCL_END
+      // LCOV_EXCL_STOP
 
     CeedVectorDestroy(&X);
     CeedVectorDestroy(&Xq);

@@ -31,7 +31,7 @@
         if (abs(diff)>1.0D-15) then
 ! LCOV_EXCL_START
           write(*,*) 'Error reading array b(',i,')=',b(i+boffset)
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
         endif
       enddo
 
@@ -47,5 +47,5 @@
       call ceeddestroy(ceed,err)
 
       end
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
 !-----------------------------------------------------------------------

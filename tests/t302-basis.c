@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
     if (fabs(uuq[i] - px) > 1e-14)
       // LCOV_EXCL_START
       printf("%f != %f=p(%f)\n", uuq[i], px, xq[i]);
-      // LCOV_EXCL_END
+      // LCOV_EXCL_STOP
   }
   CeedVectorRestoreArrayRead(Xq, &xq);
   CeedVectorRestoreArrayRead(Uq, &uuq);

@@ -13,7 +13,7 @@ static int CheckValues(Ceed ceed, CeedVector x, CeedScalar value) {
       // LCOV_EXCL_START
       printf("Error reading array b[%d] = %f",i,
              (double)b[i]);
-      // LCOV_EXCL_END
+      // LCOV_EXCL_STOP
   }
   CeedVectorRestoreArrayRead(x, &b);
   return 0;
@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
       // LCOV_EXCL_START
       printf("Error reading array b[%d] = %f",i,
              (double)b[i]);
-      // LCOV_EXCL_END
+      // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(x, &b);
 
   CeedVectorSetValue(x, 3.0);

@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
     if (fabs(out[i] - value) > 1e-10)
       // LCOV_EXCL_START
       printf("[%d] %f != %f\n", i, out[i], value);
-      // LCOV_EXCL_END
+      // LCOV_EXCL_STOP
   }
   CeedVectorRestoreArrayRead(Out, &out);
 

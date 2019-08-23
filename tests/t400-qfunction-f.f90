@@ -100,7 +100,7 @@
         if (abs(vv(i+voffset)-vvv(i)) > 1.0D-14) then
 ! LCOV_EXCL_START
           write(*,*) 'v(i)=',vv(i+voffset),', vv(i)=',vvv(i)
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(v,vv,voffset,err)

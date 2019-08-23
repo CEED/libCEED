@@ -42,7 +42,7 @@
         if (abs(diff) > 1.0D-15) then
 ! LCOV_EXCL_START
           write(*,*) 'Error in restricted array y(',i,')=',yy(yoffset+i)
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(y,yy,yoffset,err)

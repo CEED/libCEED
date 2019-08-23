@@ -146,12 +146,12 @@
       if (abs(total1-1.)>1.0d-10) then
 ! LCOV_EXCL_START
         write(*,*) 'Computed Area: ',total1,' != True Area: 1.0'
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
       endif
       if (abs(total2-2.)>1.0d-10) then
 ! LCOV_EXCL_START
         write(*,*) 'Computed Area: ',total2,' != True Area: 2.0'
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
       endif
       call ceedvectorrestorearrayread(v,hv,voffset,err)
 

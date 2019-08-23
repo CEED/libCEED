@@ -122,7 +122,7 @@
 ! LCOV_EXCL_START
           write(*,'(A,I1,A,F12.6,A,F12.6)')'[',dimn,'] Error: ',sum1,  ' != ',&
      &     sum2
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
         endif
 
         call ceedvectordestroy(x,err)

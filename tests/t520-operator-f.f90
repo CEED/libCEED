@@ -263,7 +263,7 @@
         if (abs(hv(voffset+i))>1.0d-10) then
 ! LCOV_EXCL_START
           write(*,*) '[',i,'] v ',hv(voffset+i),' != 0.0'
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(v,hv,voffset,err)

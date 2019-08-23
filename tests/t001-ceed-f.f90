@@ -17,7 +17,7 @@
       if (mtype == 1024) then
 ! LCOV_EXCL_START
           write(*,*) 'Error getting preferred memory type.'
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
       endif
 
       call ceeddestroy(ceed,err)

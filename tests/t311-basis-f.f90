@@ -77,7 +77,7 @@
 ! LCOV_EXCL_START
           write(*,'(A,I1,A,F12.8,A,F12.8)')  '[',i,'] ',ooutput(i+ooffset),&
      &     ' != ',val
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(output,ooutput,ooffset,err)

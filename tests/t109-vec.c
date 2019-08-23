@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
     if (c[i] != 10+i)
       // LCOV_EXCL_START
       printf("Error reading array c[%d] = %f",i,(double)c[i]);
-      // LCOV_EXCL_END
+      // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(y, &c);
 
   CeedVectorDestroy(&x);

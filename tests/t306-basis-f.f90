@@ -18,7 +18,7 @@
         if (abs(qr(i))<1.0D-14) then
 ! LCOV_EXCL_START
           qr(i) = 0
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
         endif
         write(*,'(A,F12.8)') '',qr(i)
       enddo
@@ -26,7 +26,7 @@
         if (abs(tau(i))<1.0D-14) then
 ! LCOV_EXCL_START
           tau(i) = 0
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
         endif
         write(*,'(A,F12.8)') '',tau(i)
       enddo

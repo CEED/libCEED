@@ -98,7 +98,7 @@
       if (abs(error) > 1e-10) then
 ! LCOV_EXCL_START
         write(*,*) 'Error ',error,' sum ',summ,' exact ',p1-pm1
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
       endif
 
       call ceedvectordestroy(x,err)

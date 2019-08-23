@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
       // LCOV_EXCL_START
       printf("Error in restricted array y[%d] = %f",
              i, (double)yy[i]);
-      // LCOV_EXCL_END
+      // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(y, &yy);
 
   CeedVectorDestroy(&x);

@@ -23,5 +23,5 @@
       call ceeddestroy(ceed,err)
 
       end
-! LCOV_EXCL_END
+! LCOV_EXCL_STOP
 !-----------------------------------------------------------------------

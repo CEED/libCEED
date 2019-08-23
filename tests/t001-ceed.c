@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
   if (type == -1)
     // LCOV_EXCL_START
     printf("Error getting preferred memory type. %d \n",type);
-    // LCOV_EXCL_END
+    // LCOV_EXCL_STOP
   CeedDestroy(&ceed);
   return 0;
 }
