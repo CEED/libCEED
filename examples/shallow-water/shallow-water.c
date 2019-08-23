@@ -785,7 +785,7 @@ int main(int argc, char **argv) {
 
   // Create the operator that builds the quadrature data for the NS operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
-  CeedOperatorSetField(op_setup, "dx", restrictx, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setup, "dx", restrictx, CEED_TRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "weight", restrictxi, CEED_NOTRANSPOSE,
                        basisx, CEED_VECTOR_NONE);
@@ -803,7 +803,7 @@ int main(int argc, char **argv) {
 
   // Create the operator that sets the ICs
   CeedOperatorCreate(ceed, qf_ics, NULL, NULL, &op_ics);
-  CeedOperatorSetField(op_ics, "x", restrictx, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_ics, "x", restrictx, CEED_TRANSPOSE,
                        basisxc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_ics, "q0", restrictq, CEED_TRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
