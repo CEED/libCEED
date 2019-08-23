@@ -136,18 +136,18 @@ static int SWExplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
     // Explicit spatial equation for (u_lambda,u_theta)
     // No explicit terms in (u_lambda,u_theta) eqn.s multiplying dv
-    dv[i+(0+4*0)*Q]  = 0;
-    dv[i+(0+4*1)*Q]  = 0;
-    dv[i+(1+4*0)*Q]  = 0;
-    dv[i+(1+4*1)*Q]  = 0;
+    dv[i+(0+3*0)*Q]  = 0;
+    dv[i+(0+3*1)*Q]  = 0;
+    dv[i+(1+3*0)*Q]  = 0;
+    dv[i+(1+3*1)*Q]  = 0;
     // - (omega + f) * khat curl u - grad(|u|^2/2)
     v[i+0*Q] = - (u[0]*du[0][0] + u[1]*du[0][1] + f*u[1]);
     v[i+1*Q] = - (u[0]*du[1][0] + u[1]*du[1][1] - f*u[0]);
 
     // Explicit spatial equation for h
     // No explicit terms in h eqn. multiplying dv
-    dv[i+(2+4*0)*Q]  = 0;
-    dv[i+(2+4*1)*Q]  = 0;
+    dv[i+(2+3*0)*Q]  = 0;
+    dv[i+(2+3*1)*Q]  = 0;
     // No explicit terms in h eqn. multiplying v
     v[i+2*Q] = 0;
 
@@ -217,18 +217,18 @@ static int SWImplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
     // Implicit spatial equations for (u_lambda,u_theta)
     // g * grad(h + h_s)
-    dv[i+(0+4*0)*Q]  = - g*(h + h_s)*(wBJ[0] + wBJ[1]);
-    dv[i+(0+4*1)*Q]  = 0;
-    dv[i+(1+4*0)*Q]  = 0;
-    dv[i+(1+4*1)*Q]  = - g*(h + h_s)*(wBJ[2] + wBJ[3]);
+    dv[i+(0+3*0)*Q]  = - g*(h + h_s)*(wBJ[0] + wBJ[1]);
+    dv[i+(0+3*1)*Q]  = 0;
+    dv[i+(1+3*0)*Q]  = 0;
+    dv[i+(1+3*1)*Q]  = - g*(h + h_s)*(wBJ[2] + wBJ[3]);
     // No implicit terms in (u_lambda,u_theta) eqn.s multiplying test function v
     v[i+0*Q] = 0;
     v[i+1*Q] = 0;
 
     // Implicit spatial equation for h
-    // div((h + H_0) u)
-    dv[i+(2+4*0)*Q]  = - (h + H_0)*(u[0]*wBJ[0] + u[1]*wBJ[1]);
-    dv[i+(2+4*1)*Q]  = - (h + H_0)*(u[0]*wBJ[2] + u[1]*wBJ[3]);
+    // div((h + H_0) u) = grad(h + H_0) \cdot u + (h + H_0) * div(u) (for now we don't use prod rule)
+    dv[i+(2+3*0)*Q]  = - (h + H_0)*(u[0]*wBJ[0] + u[1]*wBJ[1]);
+    dv[i+(2+3*1)*Q]  = - (h + H_0)*(u[0]*wBJ[2] + u[1]*wBJ[3]);
     // No implicit terms in h eqn. multiplying  test function v
     v[i+2*Q] = 0;
 
@@ -287,16 +287,16 @@ static int SWJacobian(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // The Physics
 
     // Jacobian w.r.t. d(u_lambda,u_theta)
-    dv[i+(0+4*0)*Q]  = - g*wBJ[0] * dh[0];
-    dv[i+(0+4*1)*Q]  = 0;
-    dv[i+(1+4*0)*Q]  = 0;
-    dv[i+(1+4*1)*Q]  = - g*wBJ[3] * dh[1];
+    dv[i+(0+3*0)*Q]  = - g*wBJ[0] * dh[0];
+    dv[i+(0+3*1)*Q]  = 0;
+    dv[i+(1+3*0)*Q]  = 0;
+    dv[i+(1+3*1)*Q]  = - g*wBJ[3] * dh[1];
     v[i+0*Q] = 0;
     v[i+1*Q] = 0;
 
     // Jacobian w.r.t. dh
-    dv[i+(2+4*0)*Q]  = - (du[0][0]*wBJ[0] + u[0]*dh[0]*wBJ[1]);
-    dv[i+(2+4*1)*Q]  = - (du[1][1]*wBJ[2] + u[1]*dh[1]*wBJ[3]);
+    dv[i+(2+3*0)*Q]  = - (du[0][0]*wBJ[0] + u[0]*dh[0]*wBJ[1]);
+    dv[i+(2+3*1)*Q]  = - (du[1][1]*wBJ[2] + u[1]*dh[1]*wBJ[3]);
     v[i+2*Q] = 0;
 
   } // End Quadrature Point Loop
