@@ -56,7 +56,7 @@ const char help[] = "Solve CEED BPs using PETSc with DMPlex\n";
 static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
                                  CeedElemRestriction *Erestrict, DM dm) {
   PetscInt ierr;
-  PetscInt c, cStart, cEnd, nelem, ndof, *erestrict, eoffset;
+  PetscInt c, cStart, cEnd, nelem, nnodes, *erestrict, eoffset;
   PetscSection section;
   Vec Uloc;
 
@@ -89,10 +89,10 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
 
   // Setup CEED restriction
   ierr = DMGetLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  ierr = VecGetLocalSize(Uloc, &ndof); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(Uloc, &nnodes); CHKERRQ(ierr);
 
   ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, nelem, P*P*P, ndof/ncomp, ncomp,
+  CeedElemRestrictionCreate(ceed, nelem, P*P*P, nnodes/ncomp, ncomp,
                             CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
                             Erestrict);
   ierr = PetscFree(erestrict); CHKERRQ(ierr);
@@ -499,8 +499,8 @@ int main(int argc, char **argv) {
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
-                       "    Global DOFs                        : %D\n"
-                       "    Owned DOFs                         : %D\n",
+                       "    Global nodes                       : %D\n"
+                       "    Owned nodes                        : %D\n",
                        bpChoice+1, ceedresource, P, Q,  gsize/vscale,
                        lsize/vscale); CHKERRQ(ierr);
   }
@@ -712,7 +712,7 @@ int main(int argc, char **argv) {
       ierr = PetscPrintf(comm,
                          "  Performance:\n"
                          "    CG Solve Time                      : %g (%g) sec\n"
-                         "    DOFs/Sec in CG                     : %g (%g) million\n",
+                         "    DoFs/Sec in CG                     : %g (%g) million\n",
                          rt_max, rt_min, 1e-6*gsize*its/rt_max,
                          1e-6*gsize*its/rt_min); CHKERRQ(ierr);
     }

@@ -67,11 +67,11 @@ static PetscInt Max3(const PetscInt a[3]) {
 static PetscInt Min3(const PetscInt a[3]) {
   return PetscMin(a[0], PetscMin(a[1], a[2]));
 }
-static void GlobalDof(const PetscInt p[3], const PetscInt irank[3],
+static void GlobalNodes(const PetscInt p[3], const PetscInt irank[3],
                       PetscInt degree, const PetscInt melem[3],
-                      PetscInt mdof[3]) {
+                      PetscInt mnodes[3]) {
   for (int d=0; d<3; d++)
-    mdof[d] = degree*melem[d] + (irank[d] == p[d]-1);
+    mnodes[d] = degree*melem[d] + (irank[d] == p[d]-1);
 }
 static PetscInt GlobalStart(const PetscInt p[3], const PetscInt irank[3],
                             PetscInt degree, const PetscInt melem[3]) {
@@ -80,10 +80,10 @@ static PetscInt GlobalStart(const PetscInt p[3], const PetscInt irank[3],
   for (PetscInt i=0; i<p[0]; i++) {
     for (PetscInt j=0; j<p[1]; j++) {
       for (PetscInt k=0; k<p[2]; k++) {
-        PetscInt mdof[3], ijkrank[] = {i,j,k};
+        PetscInt mnodes[3], ijkrank[] = {i,j,k};
         if (i == irank[0] && j == irank[1] && k == irank[2]) return start;
-        GlobalDof(p, ijkrank, degree, melem, mdof);
-        start += mdof[0] * mdof[1] * mdof[2];
+        GlobalNodes(p, ijkrank, degree, melem, mnodes);
+        start += mnodes[0] * mnodes[1] * mnodes[2];
       }
     }
   }
@@ -93,10 +93,10 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
                              CeedInt P, CeedInt ncomp,
                              CeedElemRestriction *Erestrict) {
   const PetscInt nelem = melem[0]*melem[1]*melem[2];
-  PetscInt mdof[3], *idx, *idxp;
+  PetscInt mnodes[3], *idx, *idxp;
 
   // Get indicies
-  for (int d=0; d<3; d++) mdof[d] = melem[d]*(P-1) + 1;
+  for (int d=0; d<3; d++) mnodes[d] = melem[d]*(P-1) + 1;
   idxp = idx = malloc(nelem*P*P*P*sizeof idx[0]);
   for (CeedInt i=0; i<melem[0]; i++) {
     for (CeedInt j=0; j<melem[1]; j++) {
@@ -105,12 +105,12 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
           for (CeedInt jj=0; jj<P; jj++) {
             for (CeedInt kk=0; kk<P; kk++) {
               if (0) { // This is the C-style (i,j,k) ordering that I prefer
-                idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mdof[1]
-                                         + (j*(P-1)+jj))*mdof[2]
+                idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mnodes[1]
+                                         + (j*(P-1)+jj))*mnodes[2]
                                         + (k*(P-1)+kk));
               } else { // (k,j,i) ordering for consistency with MFEM example
-                idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mdof[1]
-                                         + (j*(P-1)+jj))*mdof[2]
+                idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mnodes[1]
+                                         + (j*(P-1)+jj))*mnodes[2]
                                         + (k*(P-1)+kk));
               }
             }
@@ -121,7 +121,7 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
   }
 
   // Setup CEED restriction
-  CeedElemRestrictionCreate(ceed, nelem, P*P*P, mdof[0]*mdof[1]*mdof[2], ncomp,
+  CeedElemRestrictionCreate(ceed, nelem, P*P*P, mnodes[0]*mnodes[1]*mnodes[2], ncomp,
                             CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
 
   PetscFunctionReturn(0);
@@ -380,8 +380,8 @@ int main(int argc, char **argv) {
   MPI_Comm comm;
   char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   double my_rt_start, my_rt, rt_min, rt_max;
-  PetscInt degree, qextra, localdof, localelem, melem[3], mdof[3], p[3],
-           irank[3], ldof[3], lsize, vscale = 1;
+  PetscInt degree, qextra, localnodes, localelem, melem[3], mnodes[3], p[3],
+           irank[3], lnodes[3], lsize, vscale = 1;
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode, write_solution;
   PetscMPIInt size, rank;
@@ -433,10 +433,10 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
-  localdof = 1000;
+  localnodes = 1000;
   ierr = PetscOptionsInt("-local",
                          "Target number of locally owned degrees of freedom per process",
-                         NULL, localdof, &localdof, NULL); CHKERRQ(ierr);
+                         NULL, localnodes, &localnodes, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   P = degree + 1;
   Q = P + qextra;
@@ -445,8 +445,8 @@ int main(int argc, char **argv) {
   ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
   Split3(size, p, false);
 
-  // Find a nicely composite number of elements no less than localdof
-  for (localelem = PetscMax(1, localdof / (degree*degree*degree)); ;
+  // Find a nicely composite number of elements no less than localnodes
+  for (localelem = PetscMax(1, localnodes / (degree*degree*degree)); ;
        localelem++) {
     Split3(localelem, melem, true);
     if (Max3(melem) / Min3(melem) <= 2) break;
@@ -460,11 +460,11 @@ int main(int argc, char **argv) {
     rankleft -= irank[d] * pstride[d];
   }
 
-  GlobalDof(p, irank, degree, melem, mdof);
+  GlobalNodes(p, irank, degree, melem, mnodes);
 
   // Setup global vector
   ierr = VecCreate(comm, &X); CHKERRQ(ierr);
-  ierr = VecSetSizes(X, mdof[0]*mdof[1]*mdof[2]*vscale, PETSC_DECIDE);
+  ierr = VecSetSizes(X, mnodes[0]*mnodes[1]*mnodes[2]*vscale, PETSC_DECIDE);
   CHKERRQ(ierr);
   ierr = VecSetUp(X); CHKERRQ(ierr);
 
@@ -479,21 +479,21 @@ int main(int argc, char **argv) {
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
-                       "    Global DOFs                        : %D\n"
+                       "    Global nodes                       : %D\n"
                        "    Process Decomposition              : %D %D %D\n"
                        "    Local Elements                     : %D = %D %D %D\n"
-                       "    Owned DOFs                         : %D = %D %D %D\n",
+                       "    Owned nodes                        : %D = %D %D %D\n",
                        bpChoice+1, ceedresource, P, Q,  gsize/vscale, p[0],
                        p[1], p[2], localelem, melem[0], melem[1], melem[2],
-                       mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]);
+                       mnodes[0]*mnodes[1]*mnodes[2], mnodes[0], mnodes[1], mnodes[2]);
     CHKERRQ(ierr);
   }
 
   {
     lsize = 1;
     for (int d=0; d<3; d++) {
-      ldof[d] = melem[d]*degree + 1;
-      lsize *= ldof[d];
+      lnodes[d] = melem[d]*degree + 1;
+      lsize *= lnodes[d];
     }
     ierr = VecCreate(PETSC_COMM_SELF, &Xloc); CHKERRQ(ierr);
     ierr = VecSetSizes(Xloc, lsize*vscale, PETSC_DECIDE); CHKERRQ(ierr);
@@ -502,14 +502,14 @@ int main(int argc, char **argv) {
     // Create local-to-global scatter
     PetscInt *ltogind, *ltogind0, *locind, l0count;
     IS ltogis, ltogis0, locis;
-    PetscInt gstart[2][2][2], gmdof[2][2][2][3];
+    PetscInt gstart[2][2][2], gmnodes[2][2][2][3];
 
     for (int i=0; i<2; i++) {
       for (int j=0; j<2; j++) {
         for (int k=0; k<2; k++) {
           PetscInt ijkrank[3] = {irank[0]+i, irank[1]+j, irank[2]+k};
           gstart[i][j][k] = GlobalStart(p, ijkrank, degree, melem);
-          GlobalDof(p, ijkrank, degree, melem, gmdof[i][j][k]);
+          GlobalNodes(p, ijkrank, degree, melem, gmnodes[i][j][k]);
         }
       }
     }
@@ -518,18 +518,18 @@ int main(int argc, char **argv) {
     ierr = PetscMalloc1(lsize, &ltogind0); CHKERRQ(ierr);
     ierr = PetscMalloc1(lsize, &locind); CHKERRQ(ierr);
     l0count = 0;
-    for (PetscInt i=0,ir,ii; ir=i>=mdof[0], ii=i-ir*mdof[0], i<ldof[0]; i++) {
-      for (PetscInt j=0,jr,jj; jr=j>=mdof[1], jj=j-jr*mdof[1], j<ldof[1]; j++) {
-        for (PetscInt k=0,kr,kk; kr=k>=mdof[2], kk=k-kr*mdof[2], k<ldof[2]; k++) {
-          PetscInt here = (i*ldof[1]+j)*ldof[2]+k;
+    for (PetscInt i=0,ir,ii; ir=i>=mnodes[0], ii=i-ir*mnodes[0], i<lnodes[0]; i++) {
+      for (PetscInt j=0,jr,jj; jr=j>=mnodes[1], jj=j-jr*mnodes[1], j<lnodes[1]; j++) {
+        for (PetscInt k=0,kr,kk; kr=k>=mnodes[2], kk=k-kr*mnodes[2], k<lnodes[2]; k++) {
+          PetscInt here = (i*lnodes[1]+j)*lnodes[2]+k;
           ltogind[here] =
-            gstart[ir][jr][kr] + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk;
+            gstart[ir][jr][kr] + (ii*gmnodes[ir][jr][kr][1]+jj)*gmnodes[ir][jr][kr][2]+kk;
           if ((irank[0] == 0 && i == 0)
               || (irank[1] == 0 && j == 0)
               || (irank[2] == 0 && k == 0)
-              || (irank[0]+1 == p[0] && i+1 == ldof[0])
-              || (irank[1]+1 == p[1] && j+1 == ldof[1])
-              || (irank[2]+1 == p[2] && k+1 == ldof[2]))
+              || (irank[0]+1 == p[0] && i+1 == lnodes[0])
+              || (irank[1]+1 == p[1] && j+1 == lnodes[1])
+              || (irank[2]+1 == p[2] && k+1 == lnodes[2]))
             continue;
           ltogind0[l0count] = ltogind[here];
           locind[l0count++] = here;
@@ -699,8 +699,8 @@ int main(int argc, char **argv) {
   user->rho = rho;
   user->ceed = ceed;
 
-  ierr = MatCreateShell(comm, mdof[0]*mdof[1]*mdof[2]*vscale,
-                        mdof[0]*mdof[1]*mdof[2]*vscale,
+  ierr = MatCreateShell(comm, mnodes[0]*mnodes[1]*mnodes[2]*vscale,
+                        mnodes[0]*mnodes[1]*mnodes[2]*vscale,
                         PETSC_DECIDE, PETSC_DECIDE, user, &mat); CHKERRQ(ierr);
   if (bpChoice == CEED_BP1 || bpChoice == CEED_BP2) {
     ierr = MatShellSetOperation(mat, MATOP_MULT, (void(*)(void))MatMult_Mass);
@@ -795,7 +795,7 @@ int main(int argc, char **argv) {
       ierr = PetscPrintf(comm,
                          "  Performance:\n"
                          "    CG Solve Time                      : %g (%g) sec\n"
-                         "    DOFs/Sec in CG                     : %g (%g) million\n",
+                         "    DoFs/Sec in CG                     : %g (%g) million\n",
                          rt_max, rt_min, 1e-6*gsize*its/rt_max,
                          1e-6*gsize*its/rt_min); CHKERRQ(ierr);
     }
