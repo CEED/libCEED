@@ -1071,6 +1071,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   //We treat quadrature points per slice in 3d to save registers
   code << "// QFunction\n";
   if (basis_data->d_colograd1d) {
+    code << "#pragma unroll\n";
     code << "for(CeedInt q=0; q<Q1d; q++) {\n";
     for (CeedInt i = 0; i < numinputfields; i++) {
       code << "  // Input field "<<i<<"\n";
