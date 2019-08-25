@@ -674,17 +674,16 @@ int main(int argc, char **argv) {
   }
 
   // Create the CEED vectors that will be needed in setup
-  CeedInt Nqpts;
+  CeedInt Nqpts, Nnodes;
   CeedBasisGetNumQuadraturePoints(basisq, &Nqpts);
-  CeedInt Ndofs = 1;
-  for (int d=0; d<3; d++) Ndofs *= numP;
+  CeedBasisGetNumNodes(basisq, &Nnodes);
   CeedVectorCreate(ceed, 16*localNelem*Nqpts, &qdata);
   CeedVectorCreate(ceed, 5*lsize, &q0ceed);
   CeedVectorCreate(ceed, 5*lsize, &mceed);
   CeedVectorCreate(ceed, 5*lsize, &onesvec);
   CeedVectorCreate(ceed, 3*lsize, &xceed);
   CeedVectorCreate(ceed, lsize, &multlvec);
-  CeedVectorCreate(ceed, localNelem*Ndofs, &multevec);
+  CeedVectorCreate(ceed, localNelem*Nnodes, &multevec);
 
   // Find multiplicity of each local point
   CeedVectorSetValue(multevec, 1.0);
