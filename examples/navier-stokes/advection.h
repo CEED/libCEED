@@ -160,6 +160,8 @@ static int Advection(void *ctx, CeedInt Q,
                                   dq[i+(4+5*1)*Q],
                                   dq[i+(4+5*2)*Q]
                                };
+    // -- Interp-to-Interp qdata
+    const CeedScalar wJ       =    qdata[i+ 0*Q];
     // -- Interp-to-Grad qdata
     //      Symmetric 3x3 matrix
     const CeedScalar wBJ[9]   = { qdata[i+ 1*Q],
@@ -198,21 +200,22 @@ static int Advection(void *ctx, CeedInt Q,
     v[i+3*Q] = 0;
 
     // -- Total Energy
-    // ---- Version 1: dv E u
+    // ---- Version 1: dv \cdot (E u)
     if (1) {
       dv[i+(4+5*0)*Q] = E*(u[0]*wBJ[0] + u[1]*wBJ[1] + u[2]*wBJ[2]);
       dv[i+(4+5*1)*Q] = E*(u[0]*wBJ[3] + u[1]*wBJ[4] + u[2]*wBJ[5]);
       dv[i+(4+5*2)*Q] = E*(u[0]*wBJ[6] + u[1]*wBJ[7] + u[2]*wBJ[8]);
       v[i+4*Q] = 0;
     }
-    // ---- Version 2: v E du
+    // ---- Version 2: - v (E div(u) + u \cdot grad(E))
     if (0) {
       dv[i+(4+0*5)*Q] = 0;
       dv[i+(4+1*5)*Q] = 0;
       dv[i+(4+2*5)*Q] = 0;
       v[i+4*Q] = -E*(du[0]*wBJ[0] + du[3]*wBJ[1] + du[6]*wBJ[2] +
                      du[1]*wBJ[3] + du[4]*wBJ[4] + du[7]*wBJ[5] +
-                     du[2]*wBJ[6] + du[5]*wBJ[7] + du[8]*wBJ[8]);
+                     du[2]*wBJ[6] + du[5]*wBJ[7] + du[8]*wBJ[8]) -
+                 wJ*(u[0]*dE[0] + u[1]*dE[1] + u[2]*dE[2]);
     }
 
   } // End Quadrature Point Loop
