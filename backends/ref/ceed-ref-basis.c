@@ -141,7 +141,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
           pre /= P;
           post *= Q;
         }
-      } else if (impl->collointerp) { // DoFs collocated at qpts
+      } else if (impl->collointerp) { // Qpts collocated with nodes
         CeedScalar *grad1d;
         ierr = CeedBasisGetGrad(basis, &grad1d); CeedChk(ierr);
 
