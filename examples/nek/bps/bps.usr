@@ -896,16 +896,16 @@ C     Output
       endif
 
       nx     = nx1-1
-      nnode   = nelgt           ! nnodes
-      nnode   = nnode*(nx**ldim) ! nnodes
+      nnode  = nelgt            ! nnodes
+      nnode  = nnode*(nx**ldim) ! nnodes
       nppp   = nnode/np         ! nnodes/proc
 
-      nodepss = nnode/telaps     ! DOF/sec - scalar form
-      titers = telaps/maxits   ! time per iteration
-      tppp_s = titers/nppp     ! time per iteraton per local point
+      dofps  = nnode/telaps     ! DOF/sec - scalar form
+      titers = telaps/maxits    ! time per iteration
+      tppp_s = titers/nppp      ! time per iteraton per local point
 
       if (nid.eq.0) write(6,1) 'case scalar:'
-     $ ,np,nx,nelt,nelgt,nnode,nppp,maxits,telaps,nodepss,titers,tppp_s
+     $ ,np,nx,nelt,nelgt,nnode,nppp,maxits,telaps,dofps,titers,tppp_s
 
 C     Solve libCEED algebraic RHS
       if (nid.eq.0) write (6,*) "libCEED algebraic RHS"
@@ -930,17 +930,17 @@ C     Output
         endif
       endif
 
-      nx     = nx1-1
-      nnode   = nelgt           ! nnodes
+      nx      = nx1-1
+      nnode   = nelgt            ! nnodes
       nnode   = nnode*(nx**ldim) ! nnodes
-      nppp   = nnode/np         ! nnodes/proc
+      nppp    = nnode/np         ! nnodes/proc
 
-      nodepss = nnode/telaps     ! DOF/sec - scalar form
-      titers = telaps/maxits   ! time per iteration
-      tppp_s = titers/nppp     ! time per iteraton per local point
+      dofps   = nnode/telaps     ! DOF/sec - scalar form
+      titers  = telaps/maxits    ! time per iteration
+      tppp_s  = titers/nppp      ! time per iteraton per local point
 
       if (nid.eq.0) write(6,1) 'case scalar:'
-     $ ,np,nx,nelt,nelgt,nnode,nppp,maxits,telaps,nodepss,titers,tppp_s
+     $ ,np,nx,nelt,nelgt,nnode,nppp,maxits,telaps,dofps,titers,tppp_s
 
 C     Solve Nek5000 algebraic RHS
       if (nid.eq.0) write (6,*) "Nek5000 algebraic RHS"
@@ -965,17 +965,17 @@ C     Output
         endif
       endif
 
-      nx     = nx1-1
-      nnode   = nelgt           ! nnodes
+      nx      = nx1-1
+      nnode   = nelgt            ! nnodes
       nnode   = nnode*(nx**ldim) ! nnodes
-      nppp   = nnode/np         ! nnodes/proc
+      nppp    = nnode/np         ! nnodes/proc
 
-      nodepss = nnode/telaps     ! DOF/sec - scalar form
-      titers = telaps/maxits   ! time per iteration
-      tppp_s = titers/nppp     ! time per iteraton per local point
+      dofps   = nnode/telaps     ! DOF/sec - scalar form
+      titers  = telaps/maxits    ! time per iteration
+      tppp_s  = titers/nppp      ! time per iteraton per local point
 
       if (nid.eq.0) write(6,1) 'case scalar:'
-     $ ,np,nx,nelt,nelgt,nnode,nppp,maxits,telaps,nodepss,titers,tppp_s
+     $ ,np,nx,nelt,nelgt,nnode,nppp,maxits,telaps,dofps,titers,tppp_s
 
     1 format(a12,i7,i3,i7,i10,i14,i10,i4,1p4e13.5)
     3 format(i3,i9,e12.4,1x,a8,i9)
@@ -1214,17 +1214,17 @@ C     Output
         endif
       endif
 
-      nx     = nx1-1
-      nnode   = nelgt           ! nnodes
+      nx      = nx1-1
+      nnode   = nelgt            ! nnodes
       nnode   = nnode*(nx**ldim) ! nnodes
-      nppp   = nnode/np         ! nnodes/proc
+      nppp    = nnode/np         ! nnodes/proc
 
-      nodepss = nnode/telaps     ! DOF/sec - scalar form
-      titers = telaps/maxits   ! time per iteration
-      tppp_s = titers/nppp     ! time per iteraton per local point
+      dofps   = nnode/telaps     ! DOF/sec - scalar form
+      titers  = telaps/maxits    ! time per iteration
+      tppp_s  = titers/nppp      ! time per iteraton per local point
 
       if (nid.eq.0) write(6,1) 'case scalar:'
-     $ ,np,nx,nelt,nelgt,nnode,nppp,maxits,telaps,nodepss,titers,tppp_s
+     $ ,np,nx,nelt,nelgt,nnode,nppp,maxits,telaps,dofps,titers,tppp_s
 
 C     Solve libCEED algebraic RHS
       if (nid.eq.0) write (6,*) "libCEED algebraic RHS"
@@ -1249,17 +1249,17 @@ C     Output
         endif
       endif
 
-      nx     = nx1-1
-      nnode   = nelgt           ! nnodes
+      nx      = nx1-1
+      nnode   = nelgt            ! nnodes
       nnode   = nnode*(nx**ldim) ! nnodes
-      nppp   = nnode/np         ! nnodes/proc
+      nppp    = nnode/np         ! nnodes/proc
 
-      nodepss = nnode/telaps     ! DOF/sec - scalar form
-      titers = telaps/maxits   ! time per iteration
-      tppp_s = titers/nppp     ! time per iteraton per local point
+      dofps   = nnode/telaps     ! DOF/sec - scalar form
+      titers  = telaps/maxits    ! time per iteration
+      tppp_s  = titers/nppp      ! time per iteraton per local point
 
       if (nid.eq.0) write(6,1) 'case scalar:'
-     $ ,np,nx,nelt,nelgt,nnode,nppp,maxits,telaps,nodepss,titers,tppp_s
+     $ ,np,nx,nelt,nelgt,nnode,nppp,maxits,telaps,dofps,titers,tppp_s
 
 C     Solve Nek5000 algebraic RHS
       if (nid.eq.0) write (6,*) "Nek5000 algebraic RHS"
