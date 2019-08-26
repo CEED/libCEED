@@ -22,6 +22,10 @@ Available runtime options are:
 | :----------------------- | :--------------------------------------------------|
 | `-ceed`                  | CEED resource specifier                            |
 | `-problem`               | Problem to solve (`advection` or `density_current`)|
+| `-meter`                 | 1 meter in scaled length units                     |
+| `-second`                | 1 second in scaled length units                    |
+| `-kilogram`              | 1 kilogram in scaled length units                  |
+| `-Kelvin`                | 1 Kelvin in scaled length units                    |
 | `-theta0`                | Reference potential temperature                    |
 | `-thetaC`                | Perturbation of potential temperature              |
 | `-P0`                    | Atmospheric pressure                               |
