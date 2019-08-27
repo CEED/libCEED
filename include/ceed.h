@@ -179,7 +179,7 @@ CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
 /// Argument for CeedOperatorSetField that vector is collocated with
-/// quadrature points, used with qfunction eval mode CEED_EVAL_NONE
+/// quadrature points, used with QFunction eval mode CEED_EVAL_NONE
 /// or CEED_EVAL_INTERP only, not with CEED_EVAL_GRAD, CEED_EVAL_DIV,
 /// or CEED_EVAL_CURL
 /// @ingroup CeedBasis
@@ -320,7 +320,7 @@ CEED_EXTERN int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
 ///             \ref CEED_EVAL_GRAD (`dim=1` for \ref CEED_EVAL_INTERP) and
 ///             `ncomp` is the number of field components (`ncomp=1` for
 ///             scalar fields).  This results in indexing the `i`th input at
-///             quadarture point `j` as `in[i][(d*ncomp + c)*Q + j]`.
+///             quadrature point `j` as `in[i][(d*ncomp + c)*Q + j]`.
 ///
 /// @param out - array of pointers to each output array in the order provided
 ///              using CeedQFunctionAddOutput().  The shapes are as above for
@@ -379,7 +379,7 @@ static inline CeedInt CeedIntPow(CeedInt base, CeedInt power) {
 }
 
 /**
-  @brief Return mimimum of two integers
+  @brief Return minimum of two integers
 
   @param[in] a  The first integer to compare
   @param[in] b  The second integer to compare
