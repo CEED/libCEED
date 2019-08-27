@@ -135,45 +135,45 @@ static int Advection(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar rho     =   q[i+0*Q];
-    const CeedScalar u[3]    = { q[i+1*Q] / rho,
-                                 q[i+2*Q] / rho,
-                                 q[i+3*Q] / rho
-                               };
-    const CeedScalar E       =   q[i+4*Q];
-    // -- Grad in
-    const CeedScalar drho[3] = {  dq[i+(0+5*0)*Q],
-                                  dq[i+(0+5*1)*Q],
-                                  dq[i+(0+5*2)*Q]
-                               };
-    const CeedScalar du[3][3] = {{(dq[i+(1+5*0)*Q] - drho[0]*u[0]) / rho,
-                                  (dq[i+(1+5*1)*Q] - drho[1]*u[0]) / rho,
-                                  (dq[i+(1+5*2)*Q] - drho[2]*u[0]) / rho},
-                                 {(dq[i+(2+5*0)*Q] - drho[0]*u[1]) / rho,
-                                  (dq[i+(2+5*1)*Q] - drho[1]*u[1]) / rho,
-                                  (dq[i+(2+5*2)*Q] - drho[2]*u[1]) / rho},
-                                 {(dq[i+(3+5*0)*Q] - drho[0]*u[2]) / rho,
-                                  (dq[i+(3+5*1)*Q] - drho[1]*u[2]) / rho,
-                                  (dq[i+(3+5*2)*Q] - drho[2]*u[2]) / rho}
+    const CeedScalar rho      =   q[i+0*Q];
+    const CeedScalar u[3]     = { q[i+1*Q] / rho,
+                                  q[i+2*Q] / rho,
+                                  q[i+3*Q] / rho
                                 };
-    const CeedScalar dE[3]   = {  dq[i+(4+5*0)*Q],
-                                  dq[i+(4+5*1)*Q],
-                                  dq[i+(4+5*2)*Q]
-                               };
+    const CeedScalar E        =   q[i+4*Q];
+    // -- Grad in
+    const CeedScalar drho[3]  = {  dq[i+(0+5*0)*Q],
+                                   dq[i+(0+5*1)*Q],
+                                   dq[i+(0+5*2)*Q]
+                                };
+    const CeedScalar du[3][3]  = {{(dq[i+(1+5*0)*Q] - drho[0]*u[0]) / rho,
+                                   (dq[i+(1+5*1)*Q] - drho[1]*u[0]) / rho,
+                                   (dq[i+(1+5*2)*Q] - drho[2]*u[0]) / rho},
+                                  {(dq[i+(2+5*0)*Q] - drho[0]*u[1]) / rho,
+                                   (dq[i+(2+5*1)*Q] - drho[1]*u[1]) / rho,
+                                   (dq[i+(2+5*2)*Q] - drho[2]*u[1]) / rho},
+                                  {(dq[i+(3+5*0)*Q] - drho[0]*u[2]) / rho,
+                                   (dq[i+(3+5*1)*Q] - drho[1]*u[2]) / rho,
+                                   (dq[i+(3+5*2)*Q] - drho[2]*u[2]) / rho}
+                                 };
+    const CeedScalar dE[3]    = {  dq[i+(4+5*0)*Q],
+                                   dq[i+(4+5*1)*Q],
+                                   dq[i+(4+5*2)*Q]
+                                };
     // -- Interp-to-Interp qdata
-    const CeedScalar wJ       =    qdata[i+ 0*Q];
+    const CeedScalar wJ        =    qdata[i+ 0*Q];
     // -- Interp-to-Grad qdata
     //      Symmetric 3x3 matrix
-    const CeedScalar wBJ[9]   = { qdata[i+ 1*Q],
-                                  qdata[i+ 2*Q],
-                                  qdata[i+ 3*Q],
-                                  qdata[i+ 4*Q],
-                                  qdata[i+ 5*Q],
-                                  qdata[i+ 6*Q],
-                                  qdata[i+ 7*Q],
-                                  qdata[i+ 8*Q],
-                                  qdata[i+ 9*Q]
-                                };
+    const CeedScalar wBJ[3][3] = {{qdata[i+ 1*Q],
+                                   qdata[i+ 2*Q],
+                                   qdata[i+ 3*Q]},
+                                  {qdata[i+ 4*Q],
+                                   qdata[i+ 5*Q],
+                                   qdata[i+ 6*Q]},
+                                  {qdata[i+ 7*Q],
+                                   qdata[i+ 8*Q],
+                                   qdata[i+ 9*Q]}
+                                 };
 
     // The Physics
 
@@ -201,21 +201,23 @@ static int Advection(void *ctx, CeedInt Q,
 
     // -- Total Energy
     // ---- Version 1: dv \cdot (E u)
-    if (1) {
-      dv[i+(4+5*0)*Q] = E*(u[0]*wBJ[0] + u[1]*wBJ[1] + u[2]*wBJ[2]);
-      dv[i+(4+5*1)*Q] = E*(u[0]*wBJ[3] + u[1]*wBJ[4] + u[2]*wBJ[5]);
-      dv[i+(4+5*2)*Q] = E*(u[0]*wBJ[6] + u[1]*wBJ[7] + u[2]*wBJ[8]);
+    if (0) {
+      dv[i+(4+5*0)*Q] = E*(u[0]*wBJ[0][0] + u[1]*wBJ[0][1] + u[2]*wBJ[0][2]);
+      dv[i+(4+5*1)*Q] = E*(u[0]*wBJ[1][0] + u[1]*wBJ[1][1] + u[2]*wBJ[1][2]);
+      dv[i+(4+5*2)*Q] = E*(u[0]*wBJ[2][0] + u[1]*wBJ[2][1] + u[2]*wBJ[2][2]);
       v[i+4*Q] = 0;
     }
     // ---- Version 2: - v (E div(u) + u \cdot grad(E))
-    if (0) {
+    if (1) {
       dv[i+(4+0*5)*Q] = 0;
       dv[i+(4+1*5)*Q] = 0;
       dv[i+(4+2*5)*Q] = 0;
-      v[i+4*Q] = -E*(du[0][0]*wBJ[0] + du[1][0]*wBJ[1] + du[2][0]*wBJ[2] +
-                     du[0][1]*wBJ[3] + du[1][1]*wBJ[4] + du[2][1]*wBJ[5] +
-                     du[0][2]*wBJ[6] + du[1][2]*wBJ[7] + du[2][2]*wBJ[8]) -
-                 wJ*(u[0]*dE[0] + u[1]*dE[1] + u[2]*dE[2]);
+      v[i+4*Q] = -E*(du[0][0]*wBJ[0][0] + du[1][0]*wBJ[0][1] + du[2][0]*wBJ[0][2] +
+                     du[0][1]*wBJ[1][0] + du[1][1]*wBJ[1][1] + du[2][1]*wBJ[1][2] +
+                     du[0][2]*wBJ[2][0] + du[1][2]*wBJ[2][1] + du[2][2]*wBJ[2][2]) -
+                 u[0]*(dE[0]*wBJ[0][0] + dE[1]*wBJ[0][1] + dE[2]*wBJ[0][2]) -
+                 u[1]*(dE[0]*wBJ[1][0] + dE[1]*wBJ[1][1] + dE[2]*wBJ[1][2]) -
+                 u[2]*(dE[0]*wBJ[2][0] + dE[1]*wBJ[2][1] + dE[2]*wBJ[2][2]);
     }
 
   } // End Quadrature Point Loop
