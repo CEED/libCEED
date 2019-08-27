@@ -30,7 +30,7 @@ static int Error(void *ctx, CeedInt Q,
 }
 
 static int Error3(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
+                  const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *target = in[1];
   CeedScalar *err = out[0];
   for (CeedInt i=0; i<3*Q; i++) {

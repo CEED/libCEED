@@ -119,8 +119,8 @@ CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
 /// @ingroup Ceed
 /// @sa CeedSetErrorHandler()
 #if defined(__clang__)
-  // Use nonstandard ternary to convince the compiler/clang-tidy that this
-  // function never returns zero.
+// Use nonstandard ternary to convince the compiler/clang-tidy that this
+// function never returns zero.
 #  define CeedError(ceed, ecode, ...)                                     \
   (CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__) ?: (ecode))
 #else
@@ -179,7 +179,7 @@ CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
 /// Argument for CeedOperatorSetField that vector is collocated with
-/// quadrature points, used with qfunction eval mode CEED_EVAL_NONE
+/// quadrature points, used with QFunction eval mode CEED_EVAL_NONE
 /// or CEED_EVAL_INTERP only, not with CEED_EVAL_GRAD, CEED_EVAL_DIV,
 /// or CEED_EVAL_CURL
 /// @ingroup CeedBasis
@@ -204,13 +204,13 @@ typedef enum {
 } CeedTransposeMode;
 
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedMemType mtype,
+    CeedInt elemsize, CeedInt nnodes, CeedInt ncomp, CeedMemType mtype,
     CeedCopyMode cmode,
     const CeedInt *indices, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt ndof, CeedInt ncomp, CeedElemRestriction *rstr);
+    CeedInt elemsize, CeedInt nnodes, CeedInt ncomp, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt blksize, CeedInt ndof, CeedInt ncomp,
+    CeedInt elemsize, CeedInt blksize, CeedInt nnodes, CeedInt ncomp,
     CeedMemType mtype,
     CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
@@ -286,13 +286,19 @@ typedef enum {
 CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,
     CeedInt ncomp, CeedInt P, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);
 CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp,
-                                        CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
-                                        const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis *basis);
+                                        CeedInt P1d, CeedInt Q1d,
+                                        const CeedScalar *interp1d,
+                                        const CeedScalar *grad1d,
+                                        const CeedScalar *qref1d,
+                                        const CeedScalar *qweight1d,
+                                        CeedBasis *basis);
 CEED_EXTERN int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo,
                                   CeedInt ncomp,
-                                  CeedInt ndof, CeedInt nqpts,
-                                  const CeedScalar *interp, const CeedScalar *grad,
-                                  const CeedScalar *qref, const CeedScalar *qweight, CeedBasis *basis);
+                                  CeedInt nnodes, CeedInt nqpts,
+                                  const CeedScalar *interp,
+                                  const CeedScalar *grad,
+                                  const CeedScalar *qref,
+                                  const CeedScalar *qweight, CeedBasis *basis);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
 CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
 CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);
@@ -320,7 +326,7 @@ CEED_EXTERN int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
 ///             \ref CEED_EVAL_GRAD (`dim=1` for \ref CEED_EVAL_INTERP) and
 ///             `ncomp` is the number of field components (`ncomp=1` for
 ///             scalar fields).  This results in indexing the `i`th input at
-///             quadarture point `j` as `in[i][(d*ncomp + c)*Q + j]`.
+///             quadrature point `j` as `in[i][(d*ncomp + c)*Q + j]`.
 ///
 /// @param out - array of pointers to each output array in the order provided
 ///              using CeedQFunctionAddOutput().  The shapes are as above for
@@ -330,7 +336,8 @@ CEED_EXTERN int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
 ///
 /// @ingroup CeedQFunction
 typedef int (*CeedQFunctionUser)(void *ctx, const CeedInt Q,
-                                 const CeedScalar *const *in, CeedScalar *const *out);
+                                 const CeedScalar *const *in,
+                                 CeedScalar *const *out);
 
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     CeedQFunctionUser f, const char *focca, CeedQFunction *qf);
@@ -379,7 +386,7 @@ static inline CeedInt CeedIntPow(CeedInt base, CeedInt power) {
 }
 
 /**
-  @brief Return mimimum of two integers
+  @brief Return minimum of two integers
 
   @param[in] a  The first integer to compare
   @param[in] b  The second integer to compare

@@ -38,7 +38,8 @@
 
   @return An error code: 0 - success, otherwise - failure
 
-  See \ref CeedQFunctionUser for details on the call-back function @a f's arguments.
+  See \ref CeedQFunctionUser for details on the call-back function @a f's
+    arguments.
 
   @ref Basic
 **/
@@ -145,7 +146,7 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                            CeedInt ncomp, CeedEvalMode emode) {
   if (emode == CEED_EVAL_WEIGHT)
     return CeedError(qf->ceed, 1,
-                     "Cannot create qfunction output with CEED_EVAL_WEIGHT");
+                     "Cannot create QFunction output with CEED_EVAL_WEIGHT");
   int ierr = CeedQFunctionFieldSet(&qf->outputfields[qf->numoutputfields],
                                    fieldname, ncomp, emode);
   CeedChk(ierr);

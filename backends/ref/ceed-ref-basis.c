@@ -22,10 +22,10 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-  CeedInt dim, ncomp, ndof, nqpt;
+  CeedInt dim, ncomp, nnodes, nqpt;
   ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
-  ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
+  ierr = CeedBasisGetNumNodes(basis, &nnodes); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   CeedTensorContract contract;
   ierr = CeedBasisGetTensorContract(basis, &contract); CeedChk(ierr);
@@ -42,7 +42,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
 
   // Clear v if operating in transpose
   if (tmode == CEED_TRANSPOSE) {
-    const CeedInt vsize = nelem*ncomp*ndof;
+    const CeedInt vsize = nelem*ncomp*nnodes;
     for (CeedInt i = 0; i < vsize; i++)
       v[i] = (CeedScalar) 0.0;
   }
@@ -110,7 +110,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
           post *= Q;
         }
         // Grad to quadrature points (NoTranspose)
-        //  or Interpolate to dofs (Transpose)
+        //  or Interpolate to nodes (Transpose)
         P = Q1d, Q = Q1d;
         if (tmode == CEED_TRANSPOSE) {
           P = Q1d, Q = P1d;
@@ -199,11 +199,11 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     switch (emode) {
     // Interpolate to/from quadrature points
     case CEED_EVAL_INTERP: {
-      CeedInt P = ndof, Q = nqpt;
+      CeedInt P = nnodes, Q = nqpt;
       CeedScalar *interp;
       ierr = CeedBasisGetInterp(basis, &interp); CeedChk(ierr);
       if (tmode == CEED_TRANSPOSE) {
-        P = nqpt; Q = ndof;
+        P = nqpt; Q = nnodes;
       }
       ierr = CeedTensorContractApply(contract, ncomp, P, nelem, Q,
                                      interp, tmode, add, u, v);
@@ -212,11 +212,11 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     break;
     // Evaluate the gradient to/from quadrature points
     case CEED_EVAL_GRAD: {
-      CeedInt P = ndof, Q = dim*nqpt;
+      CeedInt P = nnodes, Q = dim*nqpt;
       CeedScalar *grad;
       ierr = CeedBasisGetGrad(basis, &grad); CeedChk(ierr);
       if (tmode == CEED_TRANSPOSE) {
-        P = dim*nqpt; Q = ndof;
+        P = dim*nqpt; Q = nnodes;
       }
       ierr = CeedTensorContractApply(contract, ncomp, P, nelem, Q,
                                      grad, tmode, add, u, v);
@@ -308,7 +308,7 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P1d,
 
 
 int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim,
-                          CeedInt ndof, CeedInt nqpts,
+                          CeedInt nnodes, CeedInt nqpts,
                           const CeedScalar *interp,
                           const CeedScalar *grad,
                           const CeedScalar *qref,

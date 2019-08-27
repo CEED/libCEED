@@ -65,12 +65,14 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
 }
 
 /**
-  @brief Set the array used by a CeedVector, freeing any previously allocated array if applicable
+  @brief Set the array used by a CeedVector, freeing any previously allocated
+    array if applicable
 
   @param vec   CeedVector
   @param mtype Memory type of the array being passed
   @param cmode Copy mode for the array
-  @param array Array to be used, or NULL with CEED_COPY_VALUES to have the library allocate
+  @param array Array to be used, or NULL with CEED_COPY_VALUES to have the
+                 library allocate
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -402,7 +404,8 @@ int CeedVectorDestroy(CeedVector *vec) {
 }
 
 /// @cond DOXYGEN_SKIP
-// Indicate that vector will be provided as an explicit argument to CeedOperatorApply().
+// Indicate that vector will be provided as an explicit argument to
+//   CeedOperatorApply().
 CeedVector CEED_VECTOR_ACTIVE = &ceed_vector_active;
 
 // Indicate that no vector is applicable (i.e., for CEED_EVAL_WEIGHTS).
