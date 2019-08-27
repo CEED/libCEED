@@ -714,7 +714,7 @@ int main(int argc, char **argv) {
   CeedBasisGetNumQuadraturePoints(basisq, &Nqpts);
   CeedInt Ndofs = 1;
   for (int d=0; d<2; d++) Ndofs *= numP;
-  CeedVectorCreate(ceed, 8*localNelem*Nqpts, &qdata);
+  CeedVectorCreate(ceed, 10*localNelem*Nqpts, &qdata);
   CeedVectorCreate(ceed, 3*lsize, &q0ceed);
   CeedVectorCreate(ceed, 3*lsize, &mceed);
   CeedVectorCreate(ceed, 3*lsize, &onesvec);
@@ -733,23 +733,22 @@ int main(int argc, char **argv) {
   // Create the Q-function that builds the quadrature data for the NS operator
   CeedQFunctionCreateInterior(ceed, 1,
                               Setup, __FILE__ ":Setup", &qf_setup);
+  CeedQFunctionAddInput(qf_setup, "x", 2, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setup, "dx", 2, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setup, "qdata", 8, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_setup, "qdata", 10, CEED_EVAL_NONE);
 
   // Create the Q-function that defines the action of the mass operator
   CeedQFunctionCreateInterior(ceed, 1,
                               Mass, __FILE__ ":Mass", &qf_mass);
   CeedQFunctionAddInput(qf_mass, "q", 3, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_mass, "qdata", 8, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_mass, "qdata", 10, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_mass, "v", 3, CEED_EVAL_INTERP);
 
   // Create the Q-function that sets the ICs of the operator
   CeedQFunctionCreateInterior(ceed, 1, SWICs, __FILE__ ":SWICs", &qf_ics);
   CeedQFunctionAddInput(qf_ics, "x", 2, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", 3, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_ics, "h_s", 1, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_ics, "H_0", 1, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_ics, "coords", 2, CEED_EVAL_NONE);
 
   // Create the Q-function that defines the action of the explicit operator
@@ -757,7 +756,7 @@ int main(int argc, char **argv) {
                               SWExplicit,  __FILE__ ":SWExplicit", &qf_explicit);
   CeedQFunctionAddInput(qf_explicit, "q", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_explicit, "dq", 3, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_explicit, "qdata", 8, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_explicit, "qdata", 10, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_explicit, "x", 2, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_explicit, "v", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_explicit, "dv", 3, CEED_EVAL_GRAD);
@@ -767,10 +766,8 @@ int main(int argc, char **argv) {
                               SWImplicit,  __FILE__ ":SWImplicit", &qf_implicit);
   CeedQFunctionAddInput(qf_implicit, "q", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_implicit, "dq", 3, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_implicit, "qdata", 8, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_implicit, "qdata", 10, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_implicit, "x", 2, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_implicit, "h_s", 1, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_implicit, "H_0", 1, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_implicit, "v", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_implicit, "dv", 3, CEED_EVAL_GRAD);
 
@@ -778,13 +775,14 @@ int main(int argc, char **argv) {
   CeedQFunctionCreateInterior(ceed, 1,
                               SWJacobian,  __FILE__ ":SWJacobian", &qf_jacobian);
   CeedQFunctionAddInput(qf_jacobian, "q", 3, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_jacobian, "dq", 3, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_jacobian, "qdata", 8, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_jacobian, "v", 3, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_jacobian, "deltaq", 3, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_jacobian, "qdata", 10, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_jacobian, "dv", 3, CEED_EVAL_GRAD);
 
   // Create the operator that builds the quadrature data for the NS operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
+  CeedOperatorSetField(op_setup, "x", restrictx, CEED_TRANSPOSE,
+                       basisxc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "dx", restrictx, CEED_TRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "weight", restrictxi, CEED_NOTRANSPOSE,
@@ -807,10 +805,6 @@ int main(int argc, char **argv) {
                        basisxc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_ics, "q0", restrictq, CEED_TRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ics, "h_s", restrictmult, CEED_TRANSPOSE,
-                       CEED_BASIS_COLLOCATED, hsceed);
-  CeedOperatorSetField(op_ics, "H_0", restrictmult, CEED_TRANSPOSE,
-                       CEED_BASIS_COLLOCATED, H0ceed);
   CeedOperatorSetField(op_ics, "coords", restrictxc, CEED_TRANSPOSE,
                        CEED_BASIS_COLLOCATED, xceed);
 
@@ -839,10 +833,6 @@ int main(int argc, char **argv) {
                        CEED_BASIS_COLLOCATED, qdata);
   CeedOperatorSetField(op_implicit, "x", restrictx, CEED_NOTRANSPOSE,
                        basisx, xcorners);
-  CeedOperatorSetField(op_implicit, "h_s", restrictmult, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, hsceed);
-  CeedOperatorSetField(op_implicit, "H_0", restrictmult, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, H0ceed);
   CeedOperatorSetField(op_implicit, "v", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_implicit, "dv", restrictq, CEED_TRANSPOSE,
@@ -852,12 +842,10 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_jacobian, NULL, NULL, &op_jacobian);
   CeedOperatorSetField(op_jacobian, "q", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_jacobian, "dq", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_jacobian, "deltaq", restrictq, CEED_TRANSPOSE,
+                       basisq, CEED_VECTOR_ACTIVE); // TO DO: Check restriction for delta q
   CeedOperatorSetField(op_jacobian, "qdata", restrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_jacobian, "v", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_jacobian, "dv", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
 

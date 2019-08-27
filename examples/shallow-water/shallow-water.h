@@ -47,7 +47,7 @@ static int SWICs(void *ctx, CeedInt Q,
   // Inputs
   const CeedScalar *X = in[0];
   // Outputs
-  CeedScalar *q0 = out[0], *h_s = out[1], *H_0 = out[2], *coords = out[3];
+  CeedScalar *q0 = out[0], *coords = out[1];
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
   const CeedScalar u0     = context[0];
@@ -67,9 +67,9 @@ static int SWICs(void *ctx, CeedInt Q,
     q0[i+1*Q]             = v0;
     q0[i+2*Q]             = h0;
     // Terrain topography
-    h_s[i+0*Q]            = sin(x) + cos(y); // put 0 for constant flat topography
+//    h_s[i+0*Q]            = sin(x) + cos(y); // put 0 for constant flat topography
     // Reference height
-    H_0[i+0*Q]            = 0; // flat
+//    H_0[i+0*Q]            = 0; // flat
 
     // Coordinates
     coords[i+0*Q]         = x;
@@ -110,46 +110,47 @@ static int SWExplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // Interp in
-    const CeedScalar u[2]          = { q[i+0*Q],
-                                       q[i+1*Q]
-                                      };
-    const CeedScalar h             =   q[i+2*Q];
+    const CeedScalar u[2]      = { q[i+0*Q],
+                                   q[i+1*Q]
+                                  };
+    const CeedScalar h         =   q[i+2*Q];
     // Grad in
-    const CeedScalar du[2][2]      = {{dq[i+(0+4*0)*Q],  // du/dx
-                                       dq[i+(0+4*1)*Q]}, // du/dy
-                                      {dq[i+(1+4*0)*Q],  // dv/dx
-                                       dq[i+(1+4*1)*Q]}  // dv/dy
-                                     };
-    const CeedScalar dh[2]         = { dq[i+(2+4*0)*Q],  // dh/dx
-                                       dq[i+(2+4*1)*Q]   // dh/dy
-                                      };
+    const CeedScalar du[2][2]  = {{dq[i+(0+4*0)*Q],  // du/dx
+                                   dq[i+(0+4*1)*Q]}, // du/dy
+                                  {dq[i+(1+4*0)*Q],  // dv/dx
+                                   dq[i+(1+4*1)*Q]}  // dv/dy
+                                 };
+    const CeedScalar dh[2]     = { dq[i+(2+4*0)*Q],  // dh/dx
+                                   dq[i+(2+4*1)*Q]   // dh/dy
+                                  };
     // Interp-to-Interp qdata
-    const CeedScalar wJ            =   qdata[i+ 0*Q];
-    // Interp-to-Grad qdata
-    const CeedScalar wBJ[4]        = { qdata[i+ 1*Q],
-                                       qdata[i+ 2*Q],
-                                       qdata[i+ 3*Q],
-                                       qdata[i+ 4*Q]
-                                     };
+    const CeedScalar wJ        =   qdata[i+ 0*Q];
 
     // The Physics
 
-    // Explicit spatial equation for (u_lambda,u_theta)
-    // No explicit terms in (u_lambda,u_theta) eqn.s multiplying dv
+    // Explicit spatial terms of G_1(t,q):
+    // Explicit terms multiplying v
+    // - (omega + f) * khat curl u - grad(|u|^2/2)
+    v[i+0*Q] = - wJ*(u[0]*du[0][0] + u[1]*du[0][1] + f*u[1]);
+    // No explicit terms multiplying dv
     dv[i+(0+3*0)*Q]  = 0;
     dv[i+(0+3*1)*Q]  = 0;
+
+    // Explicit spatial terms of G_2(t,q):
+    // Explicit terms multiplying v
+    // - (omega + f) * khat curl u - grad(|u|^2/2)
+    v[i+1*Q] = - wJ*(u[0]*du[1][0] + u[1]*du[1][1] - f*u[0]);
+    // No explicit terms multiplying dv
     dv[i+(1+3*0)*Q]  = 0;
     dv[i+(1+3*1)*Q]  = 0;
-    // - (omega + f) * khat curl u - grad(|u|^2/2)
-    v[i+0*Q] = - (u[0]*du[0][0] + u[1]*du[0][1] + f*u[1]);
-    v[i+1*Q] = - (u[0]*du[1][0] + u[1]*du[1][1] - f*u[0]);
 
-    // Explicit spatial equation for h
-    // No explicit terms in h eqn. multiplying dv
+    // Explicit spatial terms for G_3(t,q):
+    // No explicit terms multiplying v
+    v[i+2*Q] = 0;
+    // No explicit terms multiplying dv
     dv[i+(2+3*0)*Q]  = 0;
     dv[i+(2+3*1)*Q]  = 0;
-    // No explicit terms in h eqn. multiplying v
-    v[i+2*Q] = 0;
+
 
   } // End Quadrature Point Loop
 
@@ -174,7 +175,7 @@ static int SWExplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
 static int SWImplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
                       CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3], *h_sq = in[4], *H_0q = in[5];
+  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
   // Outputs
   CeedScalar *v = out[0], *dv = out[1];
   // Context
@@ -186,52 +187,58 @@ static int SWImplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // Interp in
-    const CeedScalar u[2]     = { q[i+0*Q],
-                                  q[i+1*Q]
-                                };
-    const CeedScalar h        =   q[i+2*Q];
-    // Grad in
-    const CeedScalar du[2][2] = {{dq[i+(0+4*0)*Q],  // du/dx
-                                  dq[i+(0+4*1)*Q]}, // du/dy
-                                 {dq[i+(1+4*0)*Q],  // dv/dx
-                                  dq[i+(1+4*1)*Q]}  // dv/dy
-                                };
-    const CeedScalar dh[2]    = { dq[i+(2+4*0)*Q],  // dh/dx
-                                  dq[i+(2+4*1)*Q]   // dh/dy
+    const CeedScalar u[2]      = { q[i+0*Q],
+                                   q[i+1*Q]
                                  };
+    const CeedScalar h         =   q[i+2*Q];
+    // Grad in
+    const CeedScalar du[2][2]  = {{dq[i+(0+4*0)*Q],  // du/dx
+                                   dq[i+(0+4*1)*Q]}, // du/dy
+                                  {dq[i+(1+4*0)*Q],  // dv/dx
+                                   dq[i+(1+4*1)*Q]}  // dv/dy
+                                 };
+    const CeedScalar dh[2]     = { dq[i+(2+4*0)*Q],  // dh/dx
+                                   dq[i+(2+4*1)*Q]   // dh/dy
+                                  };
 
     // Interp-to-Interp qdata
-    const CeedScalar wJ       =   qdata[i+ 0*Q];
+    const CeedScalar wJ        =   qdata[i+ 0*Q];
     // Interp-to-Grad qdata
-    const CeedScalar wBJ[4]   = { qdata[i+ 1*Q],
-                                  qdata[i+ 2*Q],
-                                  qdata[i+ 3*Q],
-                                  qdata[i+ 4*Q]
-                                };
+    const CeedScalar wBJ[2][2] = {{qdata[i+ 1*Q],
+                                   qdata[i+ 2*Q]},
+                                  {qdata[i+ 3*Q],
+                                   qdata[i+ 4*Q]}
+                                 };
     // h_s
-    const CeedScalar h_s      =   h_sq[i+0*Q];
+    const CeedScalar h_s       =   qdata[i+8*Q];
     // H0
-    const CeedScalar H_0      =   H_0q[i+0*Q];
+    const CeedScalar H_0       =   qdata[i+9*Q];
 
     // The Physics
 
-    // Implicit spatial equations for (u_lambda,u_theta)
-    // g * grad(h + h_s)
-    dv[i+(0+3*0)*Q]  = - g*(h + h_s)*(wBJ[0] + wBJ[1]);
-    dv[i+(0+3*1)*Q]  = 0;
-    dv[i+(1+3*0)*Q]  = 0;
-    dv[i+(1+3*1)*Q]  = - g*(h + h_s)*(wBJ[2] + wBJ[3]);
-    // No implicit terms in (u_lambda,u_theta) eqn.s multiplying test function v
+    // Implicit spatial terms for F_1(t,q):
+    // No implicit terms multiplying v
     v[i+0*Q] = 0;
+    // Implicit terms multiplying dv
+    // g * grad(h + h_s)
+    dv[i+(0+3*0)*Q]  = - g*(h + h_s)*(wBJ[0][0] + wBJ[0][1]); // lambda component
+    dv[i+(0+3*1)*Q]  = 0;                                     // theta component
+
+    // Implicit spatial terms for F_2(t,q):
+    // No implicit terms multiplying v
     v[i+1*Q] = 0;
+    // Implicit terms multiplying dv
+    // g * grad(h + h_s)
+    dv[i+(1+3*0)*Q]  = 0;                                     // lambda component
+    dv[i+(1+3*1)*Q]  = - g*(h + h_s)*(wBJ[1][0] + wBJ[1][1]); // theta component
 
-    // Implicit spatial equation for h
-    // div((h + H_0) u) = grad(h + H_0) \cdot u + (h + H_0) * div(u) (for now we don't use prod rule)
-    dv[i+(2+3*0)*Q]  = - (h + H_0)*(u[0]*wBJ[0] + u[1]*wBJ[1]);
-    dv[i+(2+3*1)*Q]  = - (h + H_0)*(u[0]*wBJ[2] + u[1]*wBJ[3]);
-    // No implicit terms in h eqn. multiplying  test function v
+    // Implicit spatial terms for F_3(t,q):
+    // No implicit terms multiplying v
     v[i+2*Q] = 0;
-
+    // Implicit terms multiplying dv
+    // div((h + H_0) u)
+    dv[i+(2+3*0)*Q]  = - (h + H_0)*(u[0]*wBJ[0][0] + u[1]*wBJ[0][1]);
+    dv[i+(2+3*1)*Q]  = - (h + H_0)*(u[0]*wBJ[1][0] + u[1]*wBJ[1][1]);
 
   } // End Quadrature Point Loop
 
@@ -247,16 +254,16 @@ static int SWImplicit(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // the state variables, u_lambda, u_theta, represent the longitudinal and latitudinal components
 // of the velocity field, and h, represents the height function.
 //
-// Discrete Jacobian: dF/dq^n = sigma * dF/dqdot|q^n + dF/dq|q^n
+// Discrete Jacobian: dF/dq^n = sigma * dF/dqdot|q^n + dF/dq|q^n ("sigma * dF/dqdot|q^n" will be added later)
 // *****************************************************************************
 static int SWJacobian(void *ctx, CeedInt Q, const CeedScalar *const *in,
                       CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2];
+  const CeedScalar *q = in[0], *deltaq = in[1], *qdata = in[2];
   // Outputs
-  CeedScalar *v = out[0], *dv = out[1];
+  CeedScalar *dv = out[0];
   // Context
-  const CeedScalar *context        =  (const CeedScalar*)ctx;
+  const CeedScalar *context    =  (const CeedScalar*)ctx;
   const CeedScalar g           = context[0];
 
   CeedPragmaOMP(simd)
@@ -264,40 +271,39 @@ static int SWJacobian(void *ctx, CeedInt Q, const CeedScalar *const *in,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // Interp in
-    const CeedScalar u[2]     = { q[i+0*Q],
-                                  q[i+1*Q]
-                                };
-    const CeedScalar h        =   q[i+2*Q];
-    // Grad in
-    const CeedScalar du[2][2] = {{dq[i+(0+4*0)*Q],  // du/dx
-                                  dq[i+(0+4*1)*Q]}, // du/dy
-                                 {dq[i+(1+4*0)*Q],  // dv/dx
-                                  dq[i+(1+4*1)*Q]}  // dv/dy
-                                };
-    const CeedScalar dh[2]    = { dq[i+(2+4*0)*Q],  // dh/dx
-                                  dq[i+(2+4*1)*Q]   // dh/dy
+    const CeedScalar u[2]      = { q[i+0*Q],
+                                   q[i+1*Q]
                                  };
+    const CeedScalar h         =   q[i+2*Q];
+    // Functional derivatives in
+    const CeedScalar deltau[2] = { deltaq[i+0*Q],
+                                   deltaq[i+1*Q]
+                                 };
+    const CeedScalar deltah    =   deltaq[i+2*Q];
+
     // Interp-to-Grad qdata
-    const CeedScalar wBJ[4]   = { qdata[i+ 1*Q],
-                                  qdata[i+ 2*Q],
-                                  qdata[i+ 3*Q],
-                                  qdata[i+ 4*Q]
-                                };
+    const CeedScalar wBJ[2][2] = {{qdata[i+ 1*Q],
+                                   qdata[i+ 2*Q]},
+                                  {qdata[i+ 3*Q],
+                                   qdata[i+ 4*Q]}
+                                 };
+    // H0
+    const CeedScalar H_0       =   qdata[i+9*Q];
 
     // The Physics
 
-    // Jacobian w.r.t. d(u_lambda,u_theta)
-    dv[i+(0+3*0)*Q]  = - g*wBJ[0] * dh[0];
-    dv[i+(0+3*1)*Q]  = 0;
-    dv[i+(1+3*0)*Q]  = 0;
-    dv[i+(1+3*1)*Q]  = - g*wBJ[3] * dh[1];
-    v[i+0*Q] = 0;
-    v[i+1*Q] = 0;
-
-    // Jacobian w.r.t. dh
-    dv[i+(2+3*0)*Q]  = - (du[0][0]*wBJ[0] + u[0]*dh[0]*wBJ[1]);
-    dv[i+(2+3*1)*Q]  = - (du[1][1]*wBJ[2] + u[1]*dh[1]*wBJ[3]);
-    v[i+2*Q] = 0;
+    // Jacobian spatial terms for F_1(t,q):
+    // - dv \cdot (dh u)
+    dv[i+(0+3*0)*Q] = - g*wBJ[0][0]*deltah; // lambda component
+    dv[i+(0+3*1)*Q] = 0;                    // theta component
+    // Jacobian spatial terms for F_2(t,q):
+    // - dv \cdot (dh u)
+    dv[i+(1+3*0)*Q] = 0;                    // lambda component
+    dv[i+(1+3*1)*Q] = - g*wBJ[1][1]*deltah; // theta component
+    // Jacobian spatial terms for F_3(t,q):
+    // - dv \cdot ((H_0 + h) du)
+    dv[i+(2+3*0)*Q] = - (H_0 + h)*(deltau[0]*wBJ[0][0] + deltau[1]*wBJ[0][1]);
+    dv[i+(2+3*1)*Q] = - (H_0 + h)*(deltau[0]*wBJ[1][0] + deltau[1]*wBJ[1][1]);
 
   } // End Quadrature Point Loop
 

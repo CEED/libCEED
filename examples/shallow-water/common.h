@@ -72,7 +72,7 @@
 static int Setup(void *ctx, CeedInt Q,
                  const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *J = in[0], *w = in[1];
+  const CeedScalar *X = in[0], *J = in[1], *w = in[2];
   // Outputs
   CeedScalar *qdata = out[0];
 
@@ -92,6 +92,7 @@ static int Setup(void *ctx, CeedInt Q,
     const CeedScalar qw   =   w[i] / detJ;
 
     // Qdata
+    // Geometric Factors
     // -- Interp-to-Interp qdata
     qdata[i+ 0*Q] = w[i] * detJ;
     // -- Interp-to-Grad qdata
@@ -103,6 +104,14 @@ static int Setup(void *ctx, CeedInt Q,
     qdata[i+5*Q] = qw * (A11*A11 + A12*A12);
     qdata[i+6*Q] = qw * (A11*A21 + A12*A22);
     qdata[i+7*Q] = qw * (A21*A21 + A22*A22);
+
+    // -- Coordinates
+    const CeedScalar x    = X[i+0*Q];
+    const CeedScalar y    = X[i+1*Q];
+    // h_s terrain function
+    qdata[i+8*Q] = sin(x) + cos(y); // put 0 for constant flat topography
+    // H_0 reference height function
+    qdata[i+9*Q] = 0; // flat
   } // End of Quadrature Point Loop
 
   // Return
