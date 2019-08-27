@@ -301,7 +301,7 @@ static int SWJacobian(void *ctx, CeedInt Q, const CeedScalar *const *in,
     dv[i+(1+3*0)*Q] = 0;                    // lambda component
     dv[i+(1+3*1)*Q] = - g*wBJ[1][1]*deltah; // theta component
     // Jacobian spatial terms for F_3(t,q):
-    // - dv \cdot ((H_0 + h) du)
+    // - dv \cdot ((H_0 + h) delta u)
     dv[i+(2+3*0)*Q] = - (H_0 + h)*(deltau[0]*wBJ[0][0] + deltau[1]*wBJ[0][1]);
     dv[i+(2+3*1)*Q] = - (H_0 + h)*(deltau[0]*wBJ[1][0] + deltau[1]*wBJ[1][1]);
 
