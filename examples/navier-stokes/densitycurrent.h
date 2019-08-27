@@ -92,23 +92,24 @@ static int ICsDC(void *ctx, CeedInt Q,
 #endif
 
   // Inputs
-  const CeedScalar *X = in[0];
+  const CeedScalar (*X)[Q] = (CeedScalar(*)[Q])in[0];
   // Outputs
-  CeedScalar *q0 = out[0], *coords = out[1];
+  CeedScalar (*q0)[Q] = (CeedScalar(*)[Q])out[0],
+             (*coords)[Q] = (CeedScalar(*)[Q])out[1];
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
-  const CeedScalar theta0     = context[0];
-  const CeedScalar thetaC     = context[1];
-  const CeedScalar P0         = context[2];
-  const CeedScalar N          = context[3];
-  const CeedScalar cv         = context[4];
-  const CeedScalar cp         = context[5];
-  const CeedScalar Rd         = context[6];
-  const CeedScalar g          = context[7];
-  const CeedScalar rc         = context[8];
-  const CeedScalar lx         = context[9];
-  const CeedScalar ly         = context[10];
-  const CeedScalar lz         = context[11];
+  const CeedScalar theta0 = context[0];
+  const CeedScalar thetaC = context[1];
+  const CeedScalar P0     = context[2];
+  const CeedScalar N      = context[3];
+  const CeedScalar cv     = context[4];
+  const CeedScalar cp     = context[5];
+  const CeedScalar Rd     = context[6];
+  const CeedScalar g      = context[7];
+  const CeedScalar rc     = context[8];
+  const CeedScalar lx     = context[9];
+  const CeedScalar ly     = context[10];
+  const CeedScalar lz     = context[11];
   // Setup
   const CeedScalar tol = 1.e-14;
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
@@ -118,9 +119,9 @@ static int ICsDC(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Coordinates
-    const CeedScalar x = X[i+0*Q];
-    const CeedScalar y = X[i+1*Q];
-    const CeedScalar z = X[i+2*Q];
+    const CeedScalar x = X[0][i];
+    const CeedScalar y = X[1][i];
+    const CeedScalar z = X[2][i];
     // -- Potential temperature, density current
     const CeedScalar r = sqrt(pow((x - center[0]), 2) +
                               pow((y - center[1]), 2) +
@@ -133,25 +134,25 @@ static int ICsDC(void *ctx, CeedInt Q,
     const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta);
 
     // Initial Conditions
-    q0[i+0*Q] = rho;
-    q0[i+1*Q] = 0.0;
-    q0[i+2*Q] = 0.0;
-    q0[i+3*Q] = 0.0;
-    q0[i+4*Q] = rho * (cv*theta*Pi + g*z);
+    q0[0][i] = rho;
+    q0[1][i] = 0.0;
+    q0[2][i] = 0.0;
+    q0[3][i] = 0.0;
+    q0[4][i] = rho * (cv*theta*Pi + g*z);
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
     if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol ||
          fabs(y - 0.0) < tol || fabs(y - ly) < tol ||
          fabs(z - 0.0) < tol || fabs(z - lz) < tol ) {
-      q0[i+1*Q] = 0.0;
-      q0[i+2*Q] = 0.0;
-      q0[i+3*Q] = 0.0;
+      q0[1][i] = 0.0;
+      q0[2][i] = 0.0;
+      q0[3][i] = 0.0;
     }
 
     // Coordinates
-    coords[i+0*Q] = x;
-    coords[i+1*Q] = y;
-    coords[i+2*Q] = z;
+    coords[0][i] = x;
+    coords[1][i] = y;
+    coords[2][i] = z;
 
   } // End of Quadrature Point Loop
 
@@ -199,70 +200,74 @@ static int ICsDC(void *ctx, CeedInt Q,
 static int DC(void *ctx, CeedInt Q,
               const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
+  const CeedScalar (*q)[Q] = (CeedScalar(*)[Q])in[0],
+                   (*dq)[5][Q] = (CeedScalar(*)[5][Q])in[1],
+                   (*qdata)[Q] = (CeedScalar(*)[Q])in[2],
+                   (*x)[Q] = (CeedScalar(*)[Q])in[3];
   // Outputs
-  CeedScalar *v = out[0], *dv = out[1];
+  CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
+             (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
-  const CeedScalar lambda     = context[0];
-  const CeedScalar mu         = context[1];
-  const CeedScalar k          = context[2];
-  const CeedScalar cv         = context[3];
-  const CeedScalar cp         = context[4];
-  const CeedScalar g          = context[5];
-  const CeedScalar gamma      = cp / cv;
+  const CeedScalar lambda = context[0];
+  const CeedScalar mu     = context[1];
+  const CeedScalar k      = context[2];
+  const CeedScalar cv     = context[3];
+  const CeedScalar cp     = context[4];
+  const CeedScalar g      = context[5];
+  const CeedScalar gamma  = cp / cv;
 
   CeedPragmaOMP(simd)
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar rho       =    q[i+0*Q];
-    const CeedScalar u[3]      =  { q[i+1*Q] / rho,
-                                    q[i+2*Q] / rho,
-                                    q[i+3*Q] / rho
+    const CeedScalar rho       =    q[0][i];
+    const CeedScalar u[3]      =  { q[1][i] / rho,
+                                    q[2][i] / rho,
+                                    q[3][i] / rho
                                   };
-    const CeedScalar E         =    q[i+4*Q];
+    const CeedScalar E         =    q[4][i];
     // -- Grad in
-    const CeedScalar drho[3]   =  { dq[i+(0+5*0)*Q],
-                                    dq[i+(0+5*1)*Q],
-                                    dq[i+(0+5*2)*Q]
+    const CeedScalar drho[3]   =  { dq[0][0][i],
+                                    dq[1][0][i],
+                                    dq[2][0][i]
                                   };
-    const CeedScalar du[3][3]  = {{(dq[i+(1+5*0)*Q] - drho[0]*u[0]) / rho,
-                                   (dq[i+(1+5*1)*Q] - drho[1]*u[0]) / rho,
-                                   (dq[i+(1+5*2)*Q] - drho[2]*u[0]) / rho},
-                                  {(dq[i+(2+5*0)*Q] - drho[0]*u[1]) / rho,
-                                   (dq[i+(2+5*1)*Q] - drho[1]*u[1]) / rho,
-                                   (dq[i+(2+5*2)*Q] - drho[2]*u[1]) / rho},
-                                  {(dq[i+(3+5*0)*Q] - drho[0]*u[2]) / rho,
-                                   (dq[i+(3+5*1)*Q] - drho[1]*u[2]) / rho,
-                                   (dq[i+(3+5*2)*Q] - drho[2]*u[2]) / rho}
+    const CeedScalar du[3][3]  = {{(dq[0][1][i] - drho[0]*u[0]) / rho,
+                                   (dq[1][1][i] - drho[1]*u[0]) / rho,
+                                   (dq[2][1][i] - drho[2]*u[0]) / rho},
+                                  {(dq[0][2][i] - drho[0]*u[1]) / rho,
+                                   (dq[1][2][i] - drho[1]*u[1]) / rho,
+                                   (dq[2][2][i] - drho[2]*u[1]) / rho},
+                                  {(dq[0][3][i] - drho[0]*u[2]) / rho,
+                                   (dq[1][3][i] - drho[1]*u[2]) / rho,
+                                   (dq[2][3][i] - drho[2]*u[2]) / rho}
                                  };
-    const CeedScalar dE[3]     =  { dq[i+(4+5*0)*Q],
-                                    dq[i+(4+5*1)*Q],
-                                    dq[i+(4+5*2)*Q]
+    const CeedScalar dE[3]     =  { dq[0][4][i],
+                                    dq[1][4][i],
+                                    dq[2][4][i]
                                   };
     // -- Interp-to-Interp qdata
-    const CeedScalar wJ        =    qdata[i+ 0*Q];
+    const CeedScalar wJ        =    qdata[0][i];
     // -- Interp-to-Grad qdata
     //      Symmetric 3x3 matrix
-    const CeedScalar wBJ[3][3] = {{qdata[i+ 1*Q],
-                                   qdata[i+ 2*Q],
-                                   qdata[i+ 3*Q]},
-                                  {qdata[i+ 4*Q],
-                                   qdata[i+ 5*Q],
-                                   qdata[i+ 6*Q]},
-                                  {qdata[i+ 7*Q],
-                                   qdata[i+ 8*Q],
-                                   qdata[i+ 9*Q]}
+    const CeedScalar wBJ[3][3] = {{qdata[1][i],
+                                   qdata[2][i],
+                                   qdata[3][i]},
+                                  {qdata[4][i],
+                                   qdata[5][i],
+                                   qdata[6][i]},
+                                  {qdata[7][i],
+                                   qdata[8][i],
+                                   qdata[9][i]}
                                  };
     // -- Grad-to-Grad qdata
-    const CeedScalar wBBJ[6]   =  { qdata[i+10*Q],
-                                    qdata[i+11*Q],
-                                    qdata[i+12*Q],
-                                    qdata[i+13*Q],
-                                    qdata[i+14*Q],
-                                    qdata[i+15*Q]
+    const CeedScalar wBBJ[6]   =  { qdata[10][i],
+                                    qdata[11][i],
+                                    qdata[12][i],
+                                    qdata[13][i],
+                                    qdata[14][i],
+                                    qdata[15][i]
                                   };
     // -- gradT
     const CeedScalar gradT[3]  = {(dE[0]/rho - E*drho[0]/(rho*rho) -
@@ -294,64 +299,64 @@ static int DC(void *ctx, CeedInt Q,
                                   };
     // -- P
     const CeedScalar P         =  (E - (u[0]*u[0] + u[1]*u[1] + u[2]*u[2])*rho/2 -
-                                   rho*g*x[i+Q*2] ) * (gamma - 1);
+                                   rho*g*x[2][i] ) * (gamma - 1);
 
     // The Physics
 
     // -- Density
     // ---- u rho
-    dv[i+(0+5*0)*Q]  = rho*u[0]*wBJ[0][0] + rho*u[1]*wBJ[0][1] + rho*u[2]*wBJ[0][2];
-    dv[i+(0+5*1)*Q]  = rho*u[0]*wBJ[1][0] + rho*u[1]*wBJ[1][1] + rho*u[2]*wBJ[1][2];
-    dv[i+(0+5*2)*Q]  = rho*u[0]*wBJ[2][0] + rho*u[1]*wBJ[2][1] + rho*u[2]*wBJ[2][2];
+    dv[0][0][i]  = rho*u[0]*wBJ[0][0] + rho*u[1]*wBJ[0][1] + rho*u[2]*wBJ[0][2];
+    dv[1][0][i]  = rho*u[0]*wBJ[1][0] + rho*u[1]*wBJ[1][1] + rho*u[2]*wBJ[1][2];
+    dv[2][0][i]  = rho*u[0]*wBJ[2][0] + rho*u[1]*wBJ[2][1] + rho*u[2]*wBJ[2][2];
     // ---- No Change
-    v[i+0*Q] = 0;
+    v[0][i] = 0;
 
     // -- Momentum
     // ---- rho (u x u) + P I3
-    dv[i+(1+5*0)*Q]  = (rho*u[0]*u[0]+P)*wBJ[0][0] + rho*u[0]*u[1]*wBJ[0][1] +
-                       rho*u[0]*u[2]*wBJ[0][2];
-    dv[i+(1+5*1)*Q]  = (rho*u[0]*u[0]+P)*wBJ[1][0] + rho*u[0]*u[1]*wBJ[1][1] +
-                       rho*u[0]*u[2]*wBJ[1][2];
-    dv[i+(1+5*2)*Q]  = (rho*u[0]*u[0]+P)*wBJ[2][0] + rho*u[0]*u[1]*wBJ[2][1] +
-                       rho*u[0]*u[2]*wBJ[2][2];
-    dv[i+(2+5*0)*Q]  =  rho*u[1]*u[0]*wBJ[0][0] +   (rho*u[1]*u[1]+P)*wBJ[0][1] +
-                        rho*u[1]*u[2]*wBJ[0][2];
-    dv[i+(2+5*1)*Q]  =  rho*u[1]*u[0]*wBJ[1][0] +   (rho*u[1]*u[1]+P)*wBJ[1][1] +
-                        rho*u[1]*u[2]*wBJ[1][2];
-    dv[i+(2+5*2)*Q]  =  rho*u[1]*u[0]*wBJ[2][0] +   (rho*u[1]*u[1]+P)*wBJ[2][1] +
-                        rho*u[1]*u[2]*wBJ[2][2];
-    dv[i+(3+5*0)*Q]  =  rho*u[2]*u[0]*wBJ[0][0] +    rho*u[2]*u[1]*wBJ[0][1] +
-                        (rho*u[2]*u[2]+P)*wBJ[0][2];
-    dv[i+(3+5*1)*Q]  =  rho*u[2]*u[0]*wBJ[1][0] +    rho*u[2]*u[1]*wBJ[1][1] +
-                        (rho*u[2]*u[2]+P)*wBJ[1][2];
-    dv[i+(3+5*2)*Q]  =  rho*u[2]*u[0]*wBJ[2][0] +    rho*u[2]*u[1]*wBJ[2][1] +
-                        (rho*u[2]*u[2]+P)*wBJ[2][2];
+    dv[0][1][i]  = (rho*u[0]*u[0]+P)*wBJ[0][0] + rho*u[0]*u[1]*wBJ[0][1] +
+                    rho*u[0]*u[2]*wBJ[0][2];
+    dv[1][1][i]  = (rho*u[0]*u[0]+P)*wBJ[1][0] + rho*u[0]*u[1]*wBJ[1][1] +
+                    rho*u[0]*u[2]*wBJ[1][2];
+    dv[2][1][i]  = (rho*u[0]*u[0]+P)*wBJ[2][0] + rho*u[0]*u[1]*wBJ[2][1] +
+                    rho*u[0]*u[2]*wBJ[2][2];
+    dv[0][2][i]  =  rho*u[1]*u[0]*wBJ[0][0] +   (rho*u[1]*u[1]+P)*wBJ[0][1] +
+                    rho*u[1]*u[2]*wBJ[0][2];
+    dv[1][2][i]  =  rho*u[1]*u[0]*wBJ[1][0] +   (rho*u[1]*u[1]+P)*wBJ[1][1] +
+                    rho*u[1]*u[2]*wBJ[1][2];
+    dv[2][2][i]  =  rho*u[1]*u[0]*wBJ[2][0] +   (rho*u[1]*u[1]+P)*wBJ[2][1] +
+                    rho*u[1]*u[2]*wBJ[2][2];
+    dv[0][3][i]  =  rho*u[2]*u[0]*wBJ[0][0] +    rho*u[2]*u[1]*wBJ[0][1] +
+                   (rho*u[2]*u[2]+P)*wBJ[0][2];
+    dv[1][3][i]  =  rho*u[2]*u[0]*wBJ[1][0] +    rho*u[2]*u[1]*wBJ[1][1] +
+                   (rho*u[2]*u[2]+P)*wBJ[1][2];
+    dv[2][3][i]  =  rho*u[2]*u[0]*wBJ[2][0] +    rho*u[2]*u[1]*wBJ[2][1] +
+                   (rho*u[2]*u[2]+P)*wBJ[2][2];
     // ---- Fuvisc
-    dv[i+(1+5*0)*Q] -= Fu[0]*wBBJ[0] + Fu[1]*wBBJ[1] + Fu[2]*wBBJ[2];
-    dv[i+(1+5*1)*Q] -= Fu[0]*wBBJ[1] + Fu[1]*wBBJ[3] + Fu[2]*wBBJ[4];
-    dv[i+(1+5*2)*Q] -= Fu[0]*wBBJ[2] + Fu[1]*wBBJ[4] + Fu[2]*wBBJ[5];
-    dv[i+(2+5*0)*Q] -= Fu[1]*wBBJ[0] + Fu[3]*wBBJ[1] + Fu[4]*wBBJ[2];
-    dv[i+(2+5*1)*Q] -= Fu[1]*wBBJ[1] + Fu[3]*wBBJ[3] + Fu[4]*wBBJ[4];
-    dv[i+(2+5*2)*Q] -= Fu[1]*wBBJ[2] + Fu[3]*wBBJ[4] + Fu[4]*wBBJ[5];
-    dv[i+(3+5*0)*Q] -= Fu[2]*wBBJ[0] + Fu[4]*wBBJ[1] + Fu[5]*wBBJ[2];
-    dv[i+(3+5*1)*Q] -= Fu[2]*wBBJ[1] + Fu[4]*wBBJ[3] + Fu[5]*wBBJ[4];
-    dv[i+(3+5*2)*Q] -= Fu[2]*wBBJ[2] + Fu[4]*wBBJ[4] + Fu[5]*wBBJ[5];
+    dv[0][1][i] -= Fu[0]*wBBJ[0] + Fu[1]*wBBJ[1] + Fu[2]*wBBJ[2];
+    dv[1][1][i] -= Fu[0]*wBBJ[1] + Fu[1]*wBBJ[3] + Fu[2]*wBBJ[4];
+    dv[2][1][i] -= Fu[0]*wBBJ[2] + Fu[1]*wBBJ[4] + Fu[2]*wBBJ[5];
+    dv[0][2][i] -= Fu[1]*wBBJ[0] + Fu[3]*wBBJ[1] + Fu[4]*wBBJ[2];
+    dv[1][2][i] -= Fu[1]*wBBJ[1] + Fu[3]*wBBJ[3] + Fu[4]*wBBJ[4];
+    dv[2][2][i] -= Fu[1]*wBBJ[2] + Fu[3]*wBBJ[4] + Fu[4]*wBBJ[5];
+    dv[0][3][i] -= Fu[2]*wBBJ[0] + Fu[4]*wBBJ[1] + Fu[5]*wBBJ[2];
+    dv[1][3][i] -= Fu[2]*wBBJ[1] + Fu[4]*wBBJ[3] + Fu[5]*wBBJ[4];
+    dv[2][3][i] -= Fu[2]*wBBJ[2] + Fu[4]*wBBJ[4] + Fu[5]*wBBJ[5];
     // ---- -rho g khat
-    v[i+1*Q] = 0;
-    v[i+2*Q] = 0;
-    v[i+3*Q] = - rho*g*wJ;
+    v[1][i] = 0;
+    v[2][i] = 0;
+    v[3][i] = -rho*g*wJ;
 
     // -- Total Energy
     // ---- (E + P) u
-    dv[i+(4+5*0)*Q]  = (E + P)*(u[0]*wBJ[0][0] + u[1]*wBJ[0][1] + u[2]*wBJ[0][2]);
-    dv[i+(4+5*1)*Q]  = (E + P)*(u[0]*wBJ[1][0] + u[1]*wBJ[1][1] + u[2]*wBJ[1][2]);
-    dv[i+(4+5*2)*Q]  = (E + P)*(u[0]*wBJ[2][0] + u[1]*wBJ[2][1] + u[2]*wBJ[2][2]);
+    dv[0][4][i]  = (E + P)*(u[0]*wBJ[0][0] + u[1]*wBJ[0][1] + u[2]*wBJ[0][2]);
+    dv[1][4][i]  = (E + P)*(u[0]*wBJ[1][0] + u[1]*wBJ[1][1] + u[2]*wBJ[1][2]);
+    dv[2][4][i]  = (E + P)*(u[0]*wBJ[2][0] + u[1]*wBJ[2][1] + u[2]*wBJ[2][2]);
     // ---- Fevisc
-    dv[i+(4+5*0)*Q] -= Fe[0]*wBBJ[0] + Fe[1]*wBBJ[1] + Fe[2]*wBBJ[2];
-    dv[i+(4+5*1)*Q] -= Fe[0]*wBBJ[1] + Fe[1]*wBBJ[3] + Fe[2]*wBBJ[4];
-    dv[i+(4+5*2)*Q] -= Fe[0]*wBBJ[2] + Fe[1]*wBBJ[4] + Fe[2]*wBBJ[5];
+    dv[0][0][i] -= Fe[0]*wBBJ[0] + Fe[1]*wBBJ[1] + Fe[2]*wBBJ[2];
+    dv[1][4][i] -= Fe[0]*wBBJ[1] + Fe[1]*wBBJ[3] + Fe[2]*wBBJ[4];
+    dv[2][4][i] -= Fe[0]*wBBJ[2] + Fe[1]*wBBJ[4] + Fe[2]*wBBJ[5];
     // ---- No Change
-    v[i+4*Q] = 0;
+    v[4][i] = 0;
 
   } // End Quadrature Point Loop
 
