@@ -514,7 +514,7 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
 }
 
 /**
-  @brief Return Ceed perferred memory type
+  @brief Return Ceed preferred memory type
 
   @param ceed           Ceed to get preferred memory type of
   @param[out] delegate  Address to save preferred memory type to
