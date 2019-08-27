@@ -3,7 +3,7 @@
 ## CEED bakeoff problems - bps
 
 This code solves the CEED bakeoff problems on a structured grid generated and
-refrenced using only low-level communication primitives.
+referenced using only low-level communication primitives.
 
 To build, run `make bps`.
 
