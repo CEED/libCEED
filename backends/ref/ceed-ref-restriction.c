@@ -37,7 +37,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
   // Restriction from lvector to evector
   // Perform: v = r * u
   if (tmode == CEED_NOTRANSPOSE) {
-    // No indicies provided, Identity Restriction
+    // No indices provided, Identity Restriction
     if (!impl->indices) {
       for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
         for (CeedInt j = 0; j < blksize; j++)
@@ -45,7 +45,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
             vv[e*elemsize*ncomp + k*blksize + j - voffset]
               = uu[CeedIntMin(e+j,nelem-1)*ncomp*elemsize + k];
     } else {
-      // Indicies provided, standard or blocked restriction
+      // Indices provided, standard or blocked restriction
       // vv has shape [elemsize, ncomp, nelem], row-major
       // uu has shape [ndof, ncomp]
       for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
@@ -59,7 +59,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
   } else {
     // Restriction from evector to lvector
     // Performing v += r^T * u
-    // No indicies provided, Identity Restriction
+    // No indices provided, Identity Restriction
     if (!impl->indices) {
       for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
         for (CeedInt j = 0; j < CeedIntMin(blksize, nelem-e); j++)
@@ -67,7 +67,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
             vv[(e+j)*ncomp*elemsize + k]
               += uu[e*elemsize*ncomp + k*blksize + j - voffset];
     } else {
-      // Indicies provided, standard or blocked restriction
+      // Indices provided, standard or blocked restriction
       // uu has shape [elemsize, ncomp, nelem]
       // vv has shape [ndof, ncomp]
       for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize) {

@@ -494,7 +494,7 @@ static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
   @brief Return QR Factorization of matrix
 
   @param[out] mat  Row-major matrix to be factorized in place
-  @param[out] tau  Vector of length m of scaling fators
+  @param[out] tau  Vector of length m of scaling factors
   @param m         Number of rows
   @param n         Number of columns
 
@@ -764,11 +764,11 @@ int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
 }
 
 /**
-  @brief Get refrence coordinates of quadrature points (in dim dimensions)
+  @brief Get reference coordinates of quadrature points (in dim dimensions)
          of a CeedBasis
 
   @param basis      CeedBasis
-  @param[out] qref  Variable to store refrence coordinates of quadrature points
+  @param[out] qref  Variable to store reference coordinates of quadrature points
 
   @return An error code: 0 - success, otherwise - failure
 
