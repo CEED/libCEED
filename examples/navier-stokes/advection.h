@@ -146,16 +146,16 @@ static int Advection(void *ctx, CeedInt Q,
                                   dq[i+(0+5*1)*Q],
                                   dq[i+(0+5*2)*Q]
                                };
-    const CeedScalar du[9]   = { (dq[i+(1+5*0)*Q] - drho[0]*u[0]) / rho,
-                                 (dq[i+(1+5*1)*Q] - drho[1]*u[0]) / rho,
-                                 (dq[i+(1+5*2)*Q] - drho[2]*u[0]) / rho,
-                                 (dq[i+(2+5*0)*Q] - drho[0]*u[1]) / rho,
-                                 (dq[i+(2+5*1)*Q] - drho[1]*u[1]) / rho,
-                                 (dq[i+(2+5*2)*Q] - drho[2]*u[1]) / rho,
-                                 (dq[i+(3+5*0)*Q] - drho[0]*u[2]) / rho,
-                                 (dq[i+(3+5*1)*Q] - drho[1]*u[2]) / rho,
-                                 (dq[i+(3+5*2)*Q] - drho[2]*u[2]) / rho
-                               };
+    const CeedScalar du[3][3] = {{(dq[i+(1+5*0)*Q] - drho[0]*u[0]) / rho,
+                                  (dq[i+(1+5*1)*Q] - drho[1]*u[0]) / rho,
+                                  (dq[i+(1+5*2)*Q] - drho[2]*u[0]) / rho},
+                                 {(dq[i+(2+5*0)*Q] - drho[0]*u[1]) / rho,
+                                  (dq[i+(2+5*1)*Q] - drho[1]*u[1]) / rho,
+                                  (dq[i+(2+5*2)*Q] - drho[2]*u[1]) / rho},
+                                 {(dq[i+(3+5*0)*Q] - drho[0]*u[2]) / rho,
+                                  (dq[i+(3+5*1)*Q] - drho[1]*u[2]) / rho,
+                                  (dq[i+(3+5*2)*Q] - drho[2]*u[2]) / rho}
+                                };
     const CeedScalar dE[3]   = {  dq[i+(4+5*0)*Q],
                                   dq[i+(4+5*1)*Q],
                                   dq[i+(4+5*2)*Q]
@@ -212,9 +212,9 @@ static int Advection(void *ctx, CeedInt Q,
       dv[i+(4+0*5)*Q] = 0;
       dv[i+(4+1*5)*Q] = 0;
       dv[i+(4+2*5)*Q] = 0;
-      v[i+4*Q] = -E*(du[0]*wBJ[0] + du[3]*wBJ[1] + du[6]*wBJ[2] +
-                     du[1]*wBJ[3] + du[4]*wBJ[4] + du[7]*wBJ[5] +
-                     du[2]*wBJ[6] + du[5]*wBJ[7] + du[8]*wBJ[8]) -
+      v[i+4*Q] = -E*(du[0][0]*wBJ[0] + du[1][0]*wBJ[1] + du[2][0]*wBJ[2] +
+                     du[0][1]*wBJ[3] + du[1][1]*wBJ[4] + du[2][1]*wBJ[5] +
+                     du[0][2]*wBJ[6] + du[1][2]*wBJ[7] + du[2][2]*wBJ[8]) -
                  wJ*(u[0]*dE[0] + u[1]*dE[1] + u[2]*dE[2]);
     }
 
