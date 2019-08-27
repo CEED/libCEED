@@ -293,11 +293,11 @@ static int SWJacobian(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // The Physics
 
     // Jacobian spatial terms for F_1(t,q):
-    // - dv \cdot (dh u)
+    // - dv \cdot (delta h u)
     dv[i+(0+3*0)*Q] = - g*wBJ[0][0]*deltah; // lambda component
     dv[i+(0+3*1)*Q] = 0;                    // theta component
     // Jacobian spatial terms for F_2(t,q):
-    // - dv \cdot (dh u)
+    // - dv \cdot (delta h u)
     dv[i+(1+3*0)*Q] = 0;                    // lambda component
     dv[i+(1+3*1)*Q] = - g*wBJ[1][1]*deltah; // theta component
     // Jacobian spatial terms for F_3(t,q):
