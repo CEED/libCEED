@@ -185,8 +185,9 @@ static int CeedElemRestriction_count_max = 0;
 #define fCeedElemRestrictionCreate \
     FORTRAN_NAME(ceedelemrestrictioncreate, CEEDELEMRESTRICTIONCREATE)
 void fCeedElemRestrictionCreate(int *ceed, int *nelements,
-                                int *esize, int *ndof, int *ncomp, int *memtype, int *copymode,
-                                const int *indices, int *elemrestriction, int *err) {
+                                int *esize, int *nnodes, int *ncomp,
+                                int *memtype, int *copymode, const int *indices,
+                                int *elemrestriction, int *err) {
   if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
     CeedElemRestriction_count_max += CeedElemRestriction_count_max/2 + 1;
     CeedRealloc(CeedElemRestriction_count_max, &CeedElemRestriction_dict);
@@ -196,9 +197,9 @@ void fCeedElemRestrictionCreate(int *ceed, int *nelements,
 
   CeedElemRestriction *elemrestriction_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
-  *err = CeedElemRestrictionCreate(Ceed_dict[*ceed], *nelements, *esize, *ndof,
-                                   *ncomp,
-                                   *memtype, *copymode, indices_, elemrestriction_);
+  *err = CeedElemRestrictionCreate(Ceed_dict[*ceed], *nelements, *esize,
+                                   *nnodes, *ncomp, *memtype, *copymode,
+                                   indices_, elemrestriction_);
 
   if (*err == 0) {
     *elemrestriction = CeedElemRestriction_count++;
@@ -209,7 +210,7 @@ void fCeedElemRestrictionCreate(int *ceed, int *nelements,
 #define fCeedElemRestrictionCreateIdentity \
     FORTRAN_NAME(ceedelemrestrictioncreateidentity, CEEDELEMRESTRICTIONCREATEIDENTITY)
 void fCeedElemRestrictionCreateIdentity(int *ceed, int *nelements,
-                                        int *esize, int *ndof, int *ncomp,
+                                        int *esize, int *nnodes, int *ncomp,
                                         int *elemrestriction, int *err) {
   if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
     CeedElemRestriction_count_max += CeedElemRestriction_count_max/2 + 1;
@@ -219,8 +220,7 @@ void fCeedElemRestrictionCreateIdentity(int *ceed, int *nelements,
   CeedElemRestriction *elemrestriction_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
   *err = CeedElemRestrictionCreateIdentity(Ceed_dict[*ceed], *nelements, *esize,
-         *ndof,
-         *ncomp, elemrestriction_);
+         *nnodes, *ncomp, elemrestriction_);
 
   if (*err == 0) {
     *elemrestriction = CeedElemRestriction_count++;
@@ -231,9 +231,10 @@ void fCeedElemRestrictionCreateIdentity(int *ceed, int *nelements,
 #define fCeedElemRestrictionCreateBlocked \
     FORTRAN_NAME(ceedelemrestrictioncreateblocked,CEEDELEMRESTRICTIONCREATEBLOCKED)
 void fCeedElemRestrictionCreateBlocked(int *ceed, int *nelements,
-                                       int *esize, int *blocksize, int *ndof, int *ncomp,
-                                       int *mtype, int *cmode,
-                                       int *blkindices, int *elemrestriction, int *err) {
+                                       int *esize, int *blocksize, int *nnodes,
+                                       int *ncomp, int *mtype, int *cmode,
+                                       int *blkindices, int *elemrestriction,
+                                       int *err) {
 
   if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
     CeedElemRestriction_count_max += CeedElemRestriction_count_max/2 + 1;
@@ -243,8 +244,8 @@ void fCeedElemRestrictionCreateBlocked(int *ceed, int *nelements,
   CeedElemRestriction *elemrestriction_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
   *err = CeedElemRestrictionCreateBlocked(Ceed_dict[*ceed], *nelements, *esize,
-                                          *blocksize, *ndof, *ncomp, *mtype, *cmode, blkindices,
-                                          elemrestriction_);
+                                          *blocksize, *nnodes, *ncomp, *mtype,
+                                          *cmode, blkindices, elemrestriction_);
 
   if (*err == 0) {
     *elemrestriction = CeedElemRestriction_count++;
@@ -277,7 +278,8 @@ void fCeedElemRestrictionApply(int *elemr, int *tmode, int *lmode,
   else rqst_ = &CeedRequest_dict[CeedRequest_count];
 
   *err = CeedElemRestrictionApply(CeedElemRestriction_dict[*elemr], *tmode,
-                                  *lmode, CeedVector_dict[*uvec], CeedVector_dict[*ruvec], rqst_);
+                                  *lmode, CeedVector_dict[*uvec],
+                                  CeedVector_dict[*ruvec], rqst_);
 
   if (*err == 0 && createRequest) {
     *rqst = CeedRequest_count++;
@@ -289,7 +291,8 @@ void fCeedElemRestrictionApply(int *elemr, int *tmode, int *lmode,
 
 #define fCeedElemRestrictionApplyBlock \
     FORTRAN_NAME(ceedelemrestrictionapplyblock,CEEDELEMRESTRICTIONAPPLYBLOCK)
-void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode, int *lmode,
+void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode,
+                                    int *lmode,
                                     int *uvec, int *ruvec, int *rqst, int *err) {
   int createRequest = 1;
   // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
@@ -306,7 +309,7 @@ void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode, int *lmo
   else if (*rqst == FORTRAN_REQUEST_ORDERED  ) rqst_ = CEED_REQUEST_ORDERED;
   else rqst_ = &CeedRequest_dict[CeedRequest_count];
 
-  *err = CeedElemRestrictionApplyBlock(CeedElemRestriction_dict[*elemr], *block, 
+  *err = CeedElemRestrictionApplyBlock(CeedElemRestriction_dict[*elemr], *block,
                                        *tmode, *lmode, CeedVector_dict[*uvec],
                                        CeedVector_dict[*ruvec], rqst_);
 
@@ -320,9 +323,9 @@ void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode, int *lmo
     FORTRAN_NAME(ceedelemrestrictiongetmultiplicity,CEEDELEMRESTRICTIONGETMULTIPLICITY)
 void fCeedElemRestrictionGetMultiplicity(int *elemr, int *mult, int *err) {
   *err = CeedElemRestrictionGetMultiplicity(CeedElemRestriction_dict[*elemr],
-                                            CeedVector_dict[*mult]);
+         CeedVector_dict[*mult]);
 }
- 
+
 
 #define fCeedRequestWait FORTRAN_NAME(ceedrequestwait, CEEDREQUESTWAIT)
 void fCeedRequestWait(int *rqst, int *err) {
@@ -362,15 +365,16 @@ static int CeedBasis_count_max = 0;
 #define fCeedBasisCreateTensorH1Lagrange \
     FORTRAN_NAME(ceedbasiscreatetensorh1lagrange, CEEDBASISCREATETENSORH1LAGRANGE)
 void fCeedBasisCreateTensorH1Lagrange(int *ceed, int *dim,
-                                      int *ncomp, int *P, int *Q, int *quadmode, int *basis,
-                                      int *err) {
+                                      int *ncomp, int *P, int *Q, int *quadmode,
+                                      int *basis, int *err) {
   if (CeedBasis_count == CeedBasis_count_max) {
     CeedBasis_count_max += CeedBasis_count_max/2 + 1;
     CeedRealloc(CeedBasis_count_max, &CeedBasis_dict);
   }
 
   *err = CeedBasisCreateTensorH1Lagrange(Ceed_dict[*ceed], *dim, *ncomp, *P, *Q,
-                                         *quadmode, &CeedBasis_dict[CeedBasis_count]);
+                                         *quadmode,
+                                         &CeedBasis_dict[CeedBasis_count]);
 
   if (*err == 0) {
     *basis = CeedBasis_count++;
@@ -381,16 +385,19 @@ void fCeedBasisCreateTensorH1Lagrange(int *ceed, int *dim,
 #define fCeedBasisCreateTensorH1 \
     FORTRAN_NAME(ceedbasiscreatetensorh1, CEEDBASISCREATETENSORH1)
 void fCeedBasisCreateTensorH1(int *ceed, int *dim, int *ncomp, int *P1d,
-                              int *Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
-                              const CeedScalar *qref1d, const CeedScalar *qweight1d, int *basis, int *err) {
+                              int *Q1d, const CeedScalar *interp1d,
+                              const CeedScalar *grad1d,
+                              const CeedScalar *qref1d,
+                              const CeedScalar *qweight1d, int *basis,
+                              int *err) {
   if (CeedBasis_count == CeedBasis_count_max) {
     CeedBasis_count_max += CeedBasis_count_max/2 + 1;
     CeedRealloc(CeedBasis_count_max, &CeedBasis_dict);
   }
 
   *err = CeedBasisCreateTensorH1(Ceed_dict[*ceed], *dim, *ncomp, *P1d, *Q1d,
-                                 interp1d, grad1d,
-                                 qref1d, qweight1d, &CeedBasis_dict[CeedBasis_count]);
+                                 interp1d, grad1d, qref1d, qweight1d,
+                                 &CeedBasis_dict[CeedBasis_count]);
 
   if (*err == 0) {
     *basis = CeedBasis_count++;
@@ -400,17 +407,18 @@ void fCeedBasisCreateTensorH1(int *ceed, int *dim, int *ncomp, int *P1d,
 
 #define fCeedBasisCreateH1 \
     FORTRAN_NAME(ceedbasiscreateh1, CEEDBASISCREATEH1)
-void fCeedBasisCreateH1(int *ceed, int *topo, int *ncomp, int *ndof,
-                        int *nqpts, const CeedScalar *interp, const CeedScalar *grad,
-                        const CeedScalar *qref, const CeedScalar *qweight, int *basis, int *err) {
+void fCeedBasisCreateH1(int *ceed, int *topo, int *ncomp, int *nnodes,
+                        int *nqpts, const CeedScalar *interp,
+                        const CeedScalar *grad, const CeedScalar *qref,
+                        const CeedScalar *qweight, int *basis, int *err) {
   if (CeedBasis_count == CeedBasis_count_max) {
     CeedBasis_count_max += CeedBasis_count_max/2 + 1;
     CeedRealloc(CeedBasis_count_max, &CeedBasis_dict);
   }
 
-  *err = CeedBasisCreateH1(Ceed_dict[*ceed], *topo, *ncomp,
-                           *ndof, *nqpts, interp, grad,
-                           qref, qweight, &CeedBasis_dict[CeedBasis_count]);
+  *err = CeedBasisCreateH1(Ceed_dict[*ceed], *topo, *ncomp, *nnodes, *nqpts,
+                           interp, grad, qref, qweight,
+                           &CeedBasis_dict[CeedBasis_count]);
 
   if (*err == 0) {
     *basis = CeedBasis_count++;
@@ -490,7 +498,8 @@ static int CeedQFunction_n = 0;
 static int CeedQFunction_count_max = 0;
 
 static int CeedQFunctionFortranStub(void *ctx, int nq,
-                                    const CeedScalar *const *u, CeedScalar *const *v) {
+                                    const CeedScalar *const *u,
+                                    CeedScalar *const *v) {
   fContext *fctx = ctx;
   int ierr;
 
@@ -515,10 +524,12 @@ void fCeedQFunctionCreateInterior(int *ceed, int *vlength,
                                       const CeedScalar *u12,const CeedScalar *u13,
                                       const CeedScalar *u14,const CeedScalar *u15,
                                       CeedScalar *v,CeedScalar *v1,CeedScalar *v2,
-                                      CeedScalar *v3,CeedScalar *v4,CeedScalar *v5,
-                                      CeedScalar *v6,CeedScalar *v7,CeedScalar *v8,
-                                      CeedScalar *v9,CeedScalar *v10,CeedScalar *v11,
-                                      CeedScalar *v12,CeedScalar *v13,CeedScalar *v14,
+                                      CeedScalar *v3,CeedScalar *v4,
+                                      CeedScalar *v5,CeedScalar *v6,
+                                      CeedScalar *v7,CeedScalar *v8,
+                                      CeedScalar *v9,CeedScalar *v10,
+                                      CeedScalar *v11,CeedScalar *v12,
+                                      CeedScalar *v13,CeedScalar *v14,
                                       CeedScalar *v15,int *err),
                                   const char *focca, int *qf, int *err,
                                   fortran_charlen_t focca_len) {
@@ -668,8 +679,8 @@ void fCeedOperatorCreate(int *ceed,
                          int *qf, int *dqf, int *dqfT, int *op, int *err) {
   if (CeedOperator_count == CeedOperator_count_max)
     CeedOperator_count_max += CeedOperator_count_max/2 + 1,
-                              CeedOperator_dict =
-                                realloc(CeedOperator_dict, sizeof(CeedOperator)*CeedOperator_count_max);
+                              CeedOperator_dict = realloc(CeedOperator_dict,
+                                  sizeof(CeedOperator)*CeedOperator_count_max);
 
   CeedOperator *op_ = &CeedOperator_dict[CeedOperator_count];
 
@@ -689,8 +700,8 @@ void fCeedOperatorCreate(int *ceed,
 void fCeedCompositeOperatorCreate(int *ceed, int *op, int *err) {
   if (CeedOperator_count == CeedOperator_count_max)
     CeedOperator_count_max += CeedOperator_count_max/2 + 1,
-                              CeedOperator_dict =
-                                realloc(CeedOperator_dict, sizeof(CeedOperator)*CeedOperator_count_max);
+                              CeedOperator_dict = realloc(CeedOperator_dict,
+                                  sizeof(CeedOperator)*CeedOperator_count_max);
 
   CeedOperator *op_ = &CeedOperator_dict[CeedOperator_count];
 
@@ -784,7 +795,8 @@ void fCeedOperatorApply(int *op, int *ustatevec,
 #define fCeedOperatorApplyJacobian \
     FORTRAN_NAME(ceedoperatorapplyjacobian, CEEDOPERATORAPPLYJACOBIAN)
 void fCeedOperatorApplyJacobian(int *op, int *qdatavec, int *ustatevec,
-                                int *dustatevec, int *dresvec, int *rqst, int *err) {
+                                int *dustatevec, int *dresvec, int *rqst,
+                                int *err) {
 // TODO Uncomment this when CeedOperatorApplyJacobian is implemented
 //  *err = CeedOperatorApplyJacobian(CeedOperator_dict[*op], CeedVector_dict[*qdatavec],
 //             CeedVector_dict[*ustatevec], CeedVector_dict[*dustatevec],

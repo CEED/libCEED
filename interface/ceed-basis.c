@@ -175,14 +175,14 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
   @param ceed       A Ceed object where the CeedBasis will be created
   @param topo       Topology of element, e.g. hypercube, simplex, ect
   @param ncomp      Number of field components (1 for scalar fields)
-  @param ndof       Total number of nodes
+  @param nnodes       Total number of nodes
   @param nqpts      Total number of quadrature points
-  @param interp     Row-major nqpts × ndof matrix expressing the values of nodal
-                      basis functions at quadrature points
-  @param grad       Row-major (nqpts x dim) × ndof matrix expressing derivatives
-                      of nodal basis functions at quadrature points
-  @param qref       Array of length nqpts holding the locations of quadrature points
-                      on the reference element [-1, 1]
+  @param interp     Row-major nqpts × nnodes matrix expressing the values of
+                      nodal basis functions at quadrature points
+  @param grad       Row-major (nqpts x dim) × nnodes matrix expressing
+                      derivatives of nodal basis functions at quadrature points
+  @param qref       Array of length nqpts holding the locations of quadrature
+                      points on the reference element [-1, 1]
   @param qweight    Array of length nqpts holding the quadrature weights on the
                       reference element
   @param[out] basis Address of the variable where the newly created
@@ -193,12 +193,12 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
   @ref Basic
 **/
 int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt ncomp,
-                      CeedInt ndof, CeedInt nqpts,
+                      CeedInt nnodes, CeedInt nqpts,
                       const CeedScalar *interp,
                       const CeedScalar *grad, const CeedScalar *qref,
                       const CeedScalar *qweight, CeedBasis *basis) {
   int ierr;
-  CeedInt P = ndof, Q = nqpts, dim = 0;
+  CeedInt P = nnodes, Q = nqpts, dim = 0;
 
   if (!ceed->BasisCreateH1) {
     Ceed delegate;
@@ -207,7 +207,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt ncomp,
     if (!delegate)
       return CeedError(ceed, 1, "Backend does not support BasisCreateH1");
 
-    ierr = CeedBasisCreateH1(delegate, topo, ncomp, ndof,
+    ierr = CeedBasisCreateH1(delegate, topo, ncomp, nnodes,
                              nqpts, interp, grad, qref,
                              qweight, basis); CeedChk(ierr);
     return 0;
@@ -403,8 +403,8 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
             basis->Q1d);
     ierr = CeedScalarView("qref1d", "\t% 12.8f", 1, basis->Q1d, basis->qref1d,
                           stream); CeedChk(ierr);
-    ierr = CeedScalarView("qweight1d", "\t% 12.8f", 1, basis->Q1d, basis->qweight1d,
-                          stream); CeedChk(ierr);
+    ierr = CeedScalarView("qweight1d", "\t% 12.8f", 1, basis->Q1d,
+                          basis->qweight1d, stream); CeedChk(ierr);
     ierr = CeedScalarView("interp1d", "\t% 12.8f", basis->Q1d, basis->P1d,
                           basis->interp1d, stream); CeedChk(ierr);
     ierr = CeedScalarView("grad1d", "\t% 12.8f", basis->Q1d, basis->P1d,
@@ -613,11 +613,11 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
 int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
                    CeedEvalMode emode, CeedVector u, CeedVector v) {
   int ierr;
-  CeedInt ulength = 0, vlength, ndof, nqpt;
+  CeedInt ulength = 0, vlength, nnodes, nqpt;
   if (!basis->Apply) return CeedError(basis->ceed, 1,
                                         "Backend does not support BasisApply");
   // check compatibility of topological and geometrical dimensions
-  ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
+  ierr = CeedBasisGetNumNodes(basis, &nnodes); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   ierr = CeedVectorGetLength(v, &vlength); CeedChk(ierr);
 
@@ -625,9 +625,10 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
     ierr = CeedVectorGetLength(u, &ulength); CeedChk(ierr);
   }
 
-  if ((tmode == CEED_TRANSPOSE   && (vlength % ndof != 0 || ulength % nqpt != 0))
+  if ((tmode == CEED_TRANSPOSE   && (vlength % nnodes != 0
+                                     || ulength % nqpt != 0))
       ||
-      (tmode == CEED_NOTRANSPOSE && (ulength % ndof != 0 || vlength % nqpt != 0)))
+      (tmode == CEED_NOTRANSPOSE && (ulength % nnodes != 0 || vlength % nqpt != 0)))
     return CeedError(basis->ceed, 1,
                      "Length of input/output vectors incompatible with basis dimensions");
 
@@ -929,7 +930,7 @@ int CeedBasisDestroy(CeedBasis *basis) {
 }
 
 /// @cond DOXYGEN_SKIP
-// Indicate that the quadrature points are collocated with the dofs
+// Indicate that the quadrature points are collocated with the nodes
 CeedBasis CEED_BASIS_COLLOCATED = &ceed_basis_collocated;
 /// @endcond
 /// @}

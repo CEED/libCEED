@@ -44,12 +44,12 @@ static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   }
 }
 
-// Utility function, compute the number of DoFs from the global grid
-static void GlobalDof(const PetscInt p[3], const PetscInt irank[3],
+// Utility function, compute the number of nodes from the global grid
+static void GlobalNode(const PetscInt p[3], const PetscInt irank[3],
                       PetscInt degree, const PetscInt melem[3],
-                      PetscInt mdof[3]) {
+                      PetscInt mnode[3]) {
   for (int d=0; d<3; d++)
-    mdof[d] = degree*melem[d] + (irank[d] == p[d]-1);
+    mnode[d] = degree*melem[d] + (irank[d] == p[d]-1);
 }
 
 // Utility function
@@ -60,10 +60,10 @@ static PetscInt GlobalStart(const PetscInt p[3], const PetscInt irank[3],
   for (PetscInt i=0; i<p[0]; i++) {
     for (PetscInt j=0; j<p[1]; j++) {
       for (PetscInt k=0; k<p[2]; k++) {
-        PetscInt mdof[3], ijkrank[] = {i,j,k};
+        PetscInt mnode[3], ijkrank[] = {i,j,k};
         if (i == irank[0] && j == irank[1] && k == irank[2]) return start;
-        GlobalDof(p, ijkrank, degree, melem, mdof);
-        start += mdof[0] * mdof[1] * mdof[2];
+        GlobalNode(p, ijkrank, degree, melem, mnode);
+        start += mnode[0] * mnode[1] * mnode[2];
       }
     }
   }
@@ -75,9 +75,9 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
                              CeedInt P, CeedInt ncomp,
                              CeedElemRestriction *Erestrict) {
   const PetscInt Nelem = melem[0]*melem[1]*melem[2];
-  PetscInt mdof[3], *idx, *idxp;
+  PetscInt mnode[3], *idx, *idxp;
 
-  for (int d=0; d<3; d++) mdof[d] = melem[d]*(P-1) + 1;
+  for (int d=0; d<3; d++) mnode[d] = melem[d]*(P-1) + 1;
   idxp = idx = malloc(Nelem*P*P*P*sizeof idx[0]);
   for (CeedInt i=0; i<melem[0]; i++) {
     for (CeedInt j=0; j<melem[1]; j++) {
@@ -86,12 +86,12 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
           for (CeedInt jj=0; jj<P; jj++) {
             for (CeedInt kk=0; kk<P; kk++) {
               if (0) { // This is the C-style (i,j,k) ordering that I prefer
-                  idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mdof[1]
-                                         + (j*(P-1)+jj))*mdof[2]
+                  idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mnode[1]
+                                         + (j*(P-1)+jj))*mnode[2]
                                          + (k*(P-1)+kk));
                 } else { // (k,j,i) ordering for consistency with MFEM example
-                  idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mdof[1]
-                                         + (j*(P-1)+jj))*mdof[2]
+                  idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mnode[1]
+                                         + (j*(P-1)+jj))*mnode[2]
                                          + (k*(P-1)+kk));
               }
             }
@@ -100,7 +100,7 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
       }
     }
   }
-  CeedElemRestrictionCreate(ceed, Nelem, P*P*P, mdof[0]*mdof[1]*mdof[2], ncomp,
+  CeedElemRestrictionCreate(ceed, Nelem, P*P*P, mnode[0]*mnode[1]*mnode[2], ncomp,
                             CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
   PetscFunctionReturn(0);
 }
@@ -282,7 +282,7 @@ int main(int argc, char **argv) {
   PetscFunctionList icsflist = NULL, qflist = NULL;
   char problemtype[PETSC_MAX_PATH_LEN] = "density_current";
   PetscInt localNelem, lsize, steps,
-           melem[3], mdof[3], p[3], irank[3], ldof[3];
+           melem[3], mnode[3], p[3], irank[3], lnode[3];
   PetscMPIInt size, rank;
   PetscScalar ftime;
   PetscScalar *q0, *m, *mult, *x;
@@ -461,19 +461,19 @@ int main(int argc, char **argv) {
     rankleft -= irank[d] * pstride[d];
   }
 
-  GlobalDof(p, irank, degree, melem, mdof);
+  GlobalNode(p, irank, degree, melem, mnode);
 
   // Set up global state vector
   ierr = VecCreate(comm, &Q); CHKERRQ(ierr);
-  ierr = VecSetSizes(Q, 5*mdof[0]*mdof[1]*mdof[2], PETSC_DECIDE);
+  ierr = VecSetSizes(Q, 5*mnode[0]*mnode[1]*mnode[2], PETSC_DECIDE);
   CHKERRQ(ierr);
   ierr = VecSetUp(Q); CHKERRQ(ierr);
 
   // Set up local state vector
   lsize = 1;
   for (int d=0; d<3; d++) {
-    ldof[d] = melem[d]*degree + 1;
-    lsize *= ldof[d];
+    lnode[d] = melem[d]*degree + 1;
+    lsize *= lnode[d];
   }
   ierr = VecCreate(PETSC_COMM_SELF, &Qloc); CHKERRQ(ierr);
   ierr = VecSetSizes(Qloc, 5*lsize, PETSC_DECIDE); CHKERRQ(ierr);
@@ -483,13 +483,13 @@ int main(int argc, char **argv) {
   CeedInt gsize;
   ierr = VecGetSize(Q, &gsize); CHKERRQ(ierr);
   gsize /= 5;
-  ierr = PetscPrintf(comm, "Global dofs: %D\n", gsize); CHKERRQ(ierr);
+  ierr = PetscPrintf(comm, "Global nodes: %D\n", gsize); CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
                      p[0], p[1], p[2]); CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localNelem,
                      melem[0], melem[1], melem[2]); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Owned dofs: %D = %D %D %D\n",
-                     mdof[0]*mdof[1]*mdof[2], mdof[0], mdof[1], mdof[2]);
+  ierr = PetscPrintf(comm, "Owned nodes: %D = %D %D %D\n",
+                     mnode[0]*mnode[1]*mnode[2], mnode[0], mnode[1], mnode[2]);
   CHKERRQ(ierr);
 
   // Set up global mass vector
@@ -500,7 +500,7 @@ int main(int argc, char **argv) {
 
   // Set up global coordinates vector
   ierr = VecCreate(comm, &X); CHKERRQ(ierr);
-  ierr = VecSetSizes(X, 3*mdof[0]*mdof[1]*mdof[2], PETSC_DECIDE);
+  ierr = VecSetSizes(X, 3*mnode[0]*mnode[1]*mnode[2], PETSC_DECIDE);
   CHKERRQ(ierr);
   ierr = VecSetUp(X); CHKERRQ(ierr);
 
@@ -516,38 +516,38 @@ int main(int argc, char **argv) {
     // Create local-to-global scatters
     PetscInt *ltogind, *ltogind0, *locind, l0count;
     IS ltogis, ltogxis, ltogis0, locis;
-    PetscInt gstart[2][2][2], gmdof[2][2][2][3];
+    PetscInt gstart[2][2][2], gmnode[2][2][2][3];
 
     for (int i=0; i<2; i++) {
       for (int j=0; j<2; j++) {
         for (int k=0; k<2; k++) {
           PetscInt ijkrank[3] = {irank[0]+i, irank[1]+j, irank[2]+k};
           gstart[i][j][k] = GlobalStart(p, ijkrank, degree, melem);
-          GlobalDof(p, ijkrank, degree, melem, gmdof[i][j][k]);
+          GlobalNode(p, ijkrank, degree, melem, gmnode[i][j][k]);
         }
       }
     }
 
-    // Get indices of dofs except Dirichlet BC dofs
+    // Get indices of nodes except Dirichlet BC nodes
     ierr = PetscMalloc1(lsize, &ltogind); CHKERRQ(ierr);
     ierr = PetscMalloc1(lsize, &ltogind0); CHKERRQ(ierr);
     ierr = PetscMalloc1(lsize, &locind); CHKERRQ(ierr);
     l0count = 0;
-    for (PetscInt i=0,ir,ii; ir=i>=mdof[0], ii=i-ir*mdof[0], i<ldof[0]; i++) {
-      for (PetscInt j=0,jr,jj; jr=j>=mdof[1], jj=j-jr*mdof[1], j<ldof[1]; j++) {
-        for (PetscInt k=0,kr,kk; kr=k>=mdof[2], kk=k-kr*mdof[2], k<ldof[2]; k++) {
-          PetscInt dofind = (i*ldof[1]+j)*ldof[2]+k;
-          ltogind[dofind] =
-            gstart[ir][jr][kr] + (ii*gmdof[ir][jr][kr][1]+jj)*gmdof[ir][jr][kr][2]+kk;
+    for (PetscInt i=0,ir,ii; ir=i>=mnode[0], ii=i-ir*mnode[0], i<lnode[0]; i++) {
+      for (PetscInt j=0,jr,jj; jr=j>=mnode[1], jj=j-jr*mnode[1], j<lnode[1]; j++) {
+        for (PetscInt k=0,kr,kk; kr=k>=mnode[2], kk=k-kr*mnode[2], k<lnode[2]; k++) {
+          PetscInt nodeind = (i*lnode[1]+j)*lnode[2]+k;
+          ltogind[nodeind] =
+            gstart[ir][jr][kr] + (ii*gmnode[ir][jr][kr][1]+jj)*gmnode[ir][jr][kr][2]+kk;
           if ((irank[0] == 0 && i == 0) ||
               (irank[1] == 0 && j == 0) ||
               (irank[2] == 0 && k == 0) ||
-              (irank[0]+1 == p[0] && i+1 == ldof[0]) ||
-              (irank[1]+1 == p[1] && j+1 == ldof[1]) ||
-              (irank[2]+1 == p[2] && k+1 == ldof[2]))
+              (irank[0]+1 == p[0] && i+1 == lnode[0]) ||
+              (irank[1]+1 == p[1] && j+1 == lnode[1]) ||
+              (irank[2]+1 == p[2] && k+1 == lnode[2]))
             continue;
-          ltogind0[l0count] = ltogind[dofind];
-          locind[l0count++] = dofind;
+          ltogind0[l0count] = ltogind[nodeind];
+          locind[l0count++] = nodeind;
         }
       }
     }
@@ -601,16 +601,16 @@ int main(int argc, char **argv) {
 
     {
       // Set up DMDA
-      PetscInt *ldofs[3];
-      ierr = PetscMalloc3(p[0], &ldofs[0], p[1], &ldofs[1], p[2], &ldofs[2]);
+      PetscInt *lnodes[3];
+      ierr = PetscMalloc3(p[0], &lnodes[0], p[1], &lnodes[1], p[2], &lnodes[2]);
       CHKERRQ(ierr);
       for (PetscInt d=0; d<3; d++) {
         for (PetscInt r=0; r<p[d]; r++) {
           PetscInt ijkrank[3] = {irank[0], irank[1], irank[2]};
           ijkrank[d] = r;
-          PetscInt ijkdof[3];
-          GlobalDof(p, ijkrank, degree, melem, ijkdof);
-          ldofs[d][r] = ijkdof[d];
+          PetscInt ijknode[3];
+          GlobalNode(p, ijkrank, degree, melem, ijknode);
+          lnodes[d][r] = ijknode[d];
         }
       }
       ierr = DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
@@ -618,8 +618,8 @@ int main(int argc, char **argv) {
                           degree*melem[2]*p[2]+1, degree*melem[1]*p[1]+1,
                           degree*melem[0]*p[0]+1,
                           p[2], p[1], p[0], 5, 0,
-                          ldofs[2], ldofs[1], ldofs[0], &dm); CHKERRQ(ierr);
-      ierr = PetscFree3(ldofs[0], ldofs[1], ldofs[2]); CHKERRQ(ierr);
+                          lnodes[2], lnodes[1], lnodes[0], &dm); CHKERRQ(ierr);
+      ierr = PetscFree3(lnodes[0], lnodes[1], lnodes[2]); CHKERRQ(ierr);
       ierr = DMSetUp(dm); CHKERRQ(ierr);
       ierr = DMDASetFieldName(dm, 0, "Density"); CHKERRQ(ierr);
       ierr = DMDASetFieldName(dm, 1, "MomentumX"); CHKERRQ(ierr);
@@ -827,7 +827,7 @@ int main(int argc, char **argv) {
   ierr = VecGetArray(Mloc, &m); CHKERRQ(ierr);
   CeedVectorSetArray(mceed, CEED_MEM_HOST, CEED_USE_POINTER, m);
 
-  // Set up dof coordinate global and local vectors
+  // Set up node coordinate global and local vectors
   ierr = VecZeroEntries(X); CHKERRQ(ierr);
   ierr = VecGetArray(Xloc, &x); CHKERRQ(ierr);
   CeedVectorSetArray(xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
@@ -889,7 +889,7 @@ int main(int argc, char **argv) {
   ierr = VecScatterEnd(gtogD, Q, user->BC, INSERT_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
 
-  // Gather dof coordinates
+  // Gather node coordinates
   ierr = VecRestoreArray(Xloc, &x); CHKERRQ(ierr);
   ierr = VecScatterBegin(ltogX, Xloc, X, INSERT_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
@@ -900,7 +900,7 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&xceed);
   ierr = VecDestroy(&Xloc); CHKERRQ(ierr);
 
-  // Set dof coordinates in DMDA
+  // Set node coordinates in DMDA
   ierr = DMSetCoordinates(dm, X); CHKERRQ(ierr);
   ierr = VecDestroy(&X); CHKERRQ(ierr);
 

@@ -74,14 +74,14 @@ int main(int argc, char *argv[]) {
   int order = 2;
   bool visualization = true;
   bool test = false;
-  double max_dofs = 50000;
+  double max_nnodes = 50000;
 
   mfem::OptionsParser args(argc, argv);
   args.AddOption(&ceed_spec, "-c", "-ceed", "Ceed specification.");
   args.AddOption(&mesh_file, "-m", "--mesh", "Mesh file to use.");
   args.AddOption(&order, "-o", "--order",
                  "Finite element order (polynomial degree).");
-  args.AddOption(&max_dofs, "-s", "--size", "Maximum size (number of DoFs)");
+  args.AddOption(&max_nnodes, "-s", "--size", "Maximum size (number of DoFs)");
   args.AddOption(&visualization, "-vis", "--visualization", "-no-vis",
                  "--no-visualization",
                  "Enable or disable GLVis visualization.");
@@ -111,7 +111,7 @@ int main(int argc, char *argv[]) {
   //    unknowns, approximately.
   {
     int ref_levels =
-      (int)floor((log(max_dofs/mesh->GetNE())-dim*log(order))/log(2.)/dim);
+      (int)floor((log(max_nnodes/mesh->GetNE())-dim*log(order))/log(2.)/dim);
     for (int l = 0; l < ref_levels; l++) {
       mesh->UniformRefinement();
     }
