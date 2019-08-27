@@ -262,12 +262,15 @@ static int DC(void *ctx, CeedInt Q,
                                    qdata[9][i]}
                                  };
     // -- Grad-to-Grad qdata
-    const CeedScalar wBBJ[6]   =  { qdata[10][i],
+    const CeedScalar wBBJ[3][3] = {{qdata[10][i],
                                     qdata[11][i],
-                                    qdata[12][i],
+                                    qdata[12][i]},
+                                   {qdata[11][i],
                                     qdata[13][i],
+                                    qdata[14][i]},
+                                   {qdata[12][i],
                                     qdata[14][i],
-                                    qdata[15][i]
+                                    qdata[15][i]}
                                   };
     // -- gradT
     const CeedScalar gradT[3]  = {(dE[0]/rho - E*drho[0]/(rho*rho) -
@@ -332,15 +335,15 @@ static int DC(void *ctx, CeedInt Q,
     dv[2][3][i]  =  rho*u[2]*u[0]*wBJ[2][0] +    rho*u[2]*u[1]*wBJ[2][1] +
                    (rho*u[2]*u[2]+P)*wBJ[2][2];
     // ---- Fuvisc
-    dv[0][1][i] -= Fu[0]*wBBJ[0] + Fu[1]*wBBJ[1] + Fu[2]*wBBJ[2];
-    dv[1][1][i] -= Fu[0]*wBBJ[1] + Fu[1]*wBBJ[3] + Fu[2]*wBBJ[4];
-    dv[2][1][i] -= Fu[0]*wBBJ[2] + Fu[1]*wBBJ[4] + Fu[2]*wBBJ[5];
-    dv[0][2][i] -= Fu[1]*wBBJ[0] + Fu[3]*wBBJ[1] + Fu[4]*wBBJ[2];
-    dv[1][2][i] -= Fu[1]*wBBJ[1] + Fu[3]*wBBJ[3] + Fu[4]*wBBJ[4];
-    dv[2][2][i] -= Fu[1]*wBBJ[2] + Fu[3]*wBBJ[4] + Fu[4]*wBBJ[5];
-    dv[0][3][i] -= Fu[2]*wBBJ[0] + Fu[4]*wBBJ[1] + Fu[5]*wBBJ[2];
-    dv[1][3][i] -= Fu[2]*wBBJ[1] + Fu[4]*wBBJ[3] + Fu[5]*wBBJ[4];
-    dv[2][3][i] -= Fu[2]*wBBJ[2] + Fu[4]*wBBJ[4] + Fu[5]*wBBJ[5];
+    dv[0][1][i] -= Fu[0]*wBBJ[0][0] + Fu[1]*wBBJ[0][1] + Fu[2]*wBBJ[0][2];
+    dv[1][1][i] -= Fu[0]*wBBJ[1][0] + Fu[1]*wBBJ[1][1] + Fu[2]*wBBJ[1][2];
+    dv[2][1][i] -= Fu[0]*wBBJ[2][0] + Fu[1]*wBBJ[2][1] + Fu[2]*wBBJ[2][2];
+    dv[0][2][i] -= Fu[1]*wBBJ[0][0] + Fu[3]*wBBJ[0][1] + Fu[4]*wBBJ[0][2];
+    dv[1][2][i] -= Fu[1]*wBBJ[1][0] + Fu[3]*wBBJ[1][1] + Fu[4]*wBBJ[1][2];
+    dv[2][2][i] -= Fu[1]*wBBJ[2][0] + Fu[3]*wBBJ[2][1] + Fu[4]*wBBJ[2][2];
+    dv[0][3][i] -= Fu[2]*wBBJ[0][0] + Fu[4]*wBBJ[0][1] + Fu[5]*wBBJ[0][2];
+    dv[1][3][i] -= Fu[2]*wBBJ[1][0] + Fu[4]*wBBJ[1][1] + Fu[5]*wBBJ[2][1];
+    dv[2][3][i] -= Fu[2]*wBBJ[2][0] + Fu[4]*wBBJ[2][1] + Fu[5]*wBBJ[2][2];
     // ---- -rho g khat
     v[1][i] = 0;
     v[2][i] = 0;
@@ -352,9 +355,9 @@ static int DC(void *ctx, CeedInt Q,
     dv[1][4][i]  = (E + P)*(u[0]*wBJ[1][0] + u[1]*wBJ[1][1] + u[2]*wBJ[1][2]);
     dv[2][4][i]  = (E + P)*(u[0]*wBJ[2][0] + u[1]*wBJ[2][1] + u[2]*wBJ[2][2]);
     // ---- Fevisc
-    dv[0][0][i] -= Fe[0]*wBBJ[0] + Fe[1]*wBBJ[1] + Fe[2]*wBBJ[2];
-    dv[1][4][i] -= Fe[0]*wBBJ[1] + Fe[1]*wBBJ[3] + Fe[2]*wBBJ[4];
-    dv[2][4][i] -= Fe[0]*wBBJ[2] + Fe[1]*wBBJ[4] + Fe[2]*wBBJ[5];
+    dv[0][0][i] -= Fe[0]*wBBJ[0][0] + Fe[1]*wBBJ[0][1] + Fe[2]*wBBJ[0][2];
+    dv[1][4][i] -= Fe[0]*wBBJ[1][0] + Fe[1]*wBBJ[1][1] + Fe[2]*wBBJ[1][2];
+    dv[2][4][i] -= Fe[0]*wBBJ[2][0] + Fe[1]*wBBJ[2][1] + Fe[2]*wBBJ[2][2];
     // ---- No Change
     v[4][i] = 0;
 
