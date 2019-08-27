@@ -217,12 +217,12 @@ static int Advection(void *ctx, CeedInt Q,
       dv[0][4][i] = 0;
       dv[1][4][i] = 0;
       dv[2][4][i] = 0;
-      v[4][i] = -E*(du[0][0]*wBJ[0][0] + du[1][0]*wBJ[0][1] + du[2][0]*wBJ[0][2] +
-                    du[0][1]*wBJ[1][0] + du[1][1]*wBJ[1][1] + du[2][1]*wBJ[1][2] +
-                    du[0][2]*wBJ[2][0] + du[1][2]*wBJ[2][1] + du[2][2]*wBJ[2][2]) -
-                u[0]*(dE[0]*wBJ[0][0] + dE[1]*wBJ[0][1] + dE[2]*wBJ[0][2]) -
-                u[1]*(dE[0]*wBJ[1][0] + dE[1]*wBJ[1][1] + dE[2]*wBJ[1][2]) -
-                u[2]*(dE[0]*wBJ[2][0] + dE[1]*wBJ[2][1] + dE[2]*wBJ[2][2]);
+      v[4][i] = -E*(du[0][0]*wBJ[0][0] + du[1][0]*wBJ[1][0] + du[2][0]*wBJ[2][0] +
+                    du[0][1]*wBJ[0][1] + du[1][1]*wBJ[1][1] + du[2][1]*wBJ[2][1] +
+                    du[0][2]*wBJ[0][2] + du[1][2]*wBJ[1][2] + du[2][2]*wBJ[2][2]) -
+                u[0]*(dE[0]*wBJ[0][0] + dE[1]*wBJ[1][0] + dE[2]*wBJ[2][0]) -
+                u[1]*(dE[0]*wBJ[0][1] + dE[1]*wBJ[1][1] + dE[2]*wBJ[2][1]) -
+                u[2]*(dE[0]*wBJ[0][2] + dE[1]*wBJ[1][2] + dE[2]*wBJ[2][2]);
     }
 
   } // End Quadrature Point Loop
