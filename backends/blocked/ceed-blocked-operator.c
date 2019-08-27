@@ -312,9 +312,9 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
       case CEED_EVAL_WEIGHT:
         break;  // No action
       case CEED_EVAL_DIV:
-        break; // Not implimented
+        break; // Not implemented
       case CEED_EVAL_CURL:
-        break; // Not implimented
+        break; // Not implemented
       }
     }
 
@@ -380,9 +380,9 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
         break; // Should not occur
       }
       case CEED_EVAL_DIV:
-        break; // Not implimented
+        break; // Not implemented
       case CEED_EVAL_CURL:
-        break; // Not implimented
+        break; // Not implemented
       }
     }
   }
