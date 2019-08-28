@@ -16,9 +16,13 @@
 
 #include "ceed-magma.h"
 
-static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem, 
+#ifdef __cplusplus
+extern "C"
+#endif
+int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem, 
                                 CeedTransposeMode tmode, CeedEvalMode emode,
-                                CeedVector U, CeedVector V) {
+                                CeedVector U, CeedVector V) 
+{
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
@@ -29,7 +33,6 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   CeedTensorContract contract;
   ierr = CeedBasisGetTensorContract(basis, &contract); CeedChk(ierr);
-  const CeedInt add = (tmode == CEED_TRANSPOSE);
   const CeedScalar *u;
   CeedScalar *v;
   if (U) {
@@ -41,13 +44,13 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   ierr = CeedVectorGetArray(V, CEED_MEM_DEVICE, &v); CeedChk(ierr);
 
   // If input scalar is on CPU, call CPU code
-  if (magma_is_devptr(v)!=1)
-      return CeedBasisApply_MagmaCPU(basis, tmode, emode, u, v);
+  //if (magma_is_devptr(v)!=1)
+  //    return CeedBasisApply_MagmaCPU(basis, tmode, emode, u, v);
 
   #define tmp(i) ( tmp + (i)*ldtmp)
  
   CeedBasis_Magma *impl;
-  ierr = CeedBasisGetData(vec, (void*)&impl; CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, (void*)&impl); CeedChk(ierr);
   #ifndef USE_MAGMA_BATCH4
   const CeedInt add = (tmode == CEED_TRANSPOSE);
   #endif
@@ -213,7 +216,11 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   return 0;
 }
 
-static int CeedBasisDestroy_Magma(CeedBasis basis) {
+#ifdef __cplusplus
+extern "C"
+#endif
+int CeedBasisDestroy_Magma(CeedBasis basis) 
+{
   int ierr;
   CeedBasis_Magma *impl;
   ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
@@ -235,15 +242,21 @@ static int CeedBasisDestroy_Magma(CeedBasis basis) {
   return 0;
 }
 
-static int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
+#ifdef __cplusplus
+extern "C"
+#endif
+int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d,
     const CeedScalar *grad1d,
     const CeedScalar *qref1d,
     const CeedScalar *qweight1d,
-    CeedBasis basis) {
+    CeedBasis basis) 
+{
   int ierr;
   CeedBasis_Magma *impl;
-
+  Ceed ceed;
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                 CeedBasisApply_Magma); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
@@ -292,16 +305,20 @@ static int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
   return 0;
 }
 
-static int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim,
+#ifdef __cplusplus
+extern "C"
+#endif
+int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim,
                                    CeedInt ndof, CeedInt nqpts,
                                    const CeedScalar *interp,
                                    const CeedScalar *grad,
                                    const CeedScalar *qref,
                                    const CeedScalar *qweight,
-                                   CeedBasis basis) {
+                                   CeedBasis basis) 
+{
   int ierr;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(op, &ceed); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
 
-  return CeedError(basis->ceed, 1, "Backend does not implement non-tensor bases");
+  return CeedError(ceed, 1, "Backend does not implement non-tensor bases");
 }
