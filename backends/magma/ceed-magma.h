@@ -75,6 +75,25 @@ magmablas_dbasis_apply_batched_eval_weight(
 magma_int_t
 magma_isdevptr( const void* A );
 
+CEED_INTERN
+int CeedBasisCreateTensorH1_Magma(
+    CeedInt dim, CeedInt P1d,
+    CeedInt Q1d, const CeedScalar *interp1d,
+    const CeedScalar *grad1d,
+    const CeedScalar *qref1d,
+    const CeedScalar *qweight1d,
+    CeedBasis basis);
+
+CEED_INTERN
+int CeedBasisCreateH1_Magma(
+    CeedElemTopology topo,
+    CeedInt dim, CeedInt ndof,
+    CeedInt nqpts, const CeedScalar *interp,
+    const CeedScalar *grad,
+    const CeedScalar *qref,
+    const CeedScalar *qweight,
+    CeedBasis basis);
+
 #ifdef __cplusplus
 }
 #endif
@@ -90,17 +109,3 @@ magma_isdevptr( const void* A );
 #define MAGMA_BATCH_STRIDE (1000)
 #endif
 
-CEED_INTERN int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
-    CeedInt Q1d, const CeedScalar *interp1d,
-    const CeedScalar *grad1d,
-    const CeedScalar *qref1d,
-    const CeedScalar *qweight1d,
-    CeedBasis basis);
-
-CEED_INTERN int CeedBasisCreateH1_Magma(CeedElemTopology topo,
-                                        CeedInt dim, CeedInt ndof,
-                                        CeedInt nqpts, const CeedScalar *interp,
-                                        const CeedScalar *grad,
-                                        const CeedScalar *qref,
-                                        const CeedScalar *qweight,
-                                        CeedBasis basis);
