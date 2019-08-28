@@ -206,14 +206,14 @@ static int Advection(void *ctx, CeedInt Q,
 
     // -- Total Energy
     // ---- Version 1: dv \cdot (E u)
-    if (0) {
+    if (1) {
       dv[0][4][i] = E*(u[0]*wBJ[0][0] + u[1]*wBJ[0][1] + u[2]*wBJ[0][2]);
       dv[1][4][i] = E*(u[0]*wBJ[1][0] + u[1]*wBJ[1][1] + u[2]*wBJ[1][2]);
       dv[2][4][i] = E*(u[0]*wBJ[2][0] + u[1]*wBJ[2][1] + u[2]*wBJ[2][2]);
       v[4][i] = 0;
     }
     // ---- Version 2: - v (E div(u) + u \cdot grad(E))
-    if (1) {
+    if (0) {
       dv[0][4][i] = 0;
       dv[1][4][i] = 0;
       dv[2][4][i] = 0;
