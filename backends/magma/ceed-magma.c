@@ -31,6 +31,8 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   ierr = magma_init();
   if (ierr) return CeedError(ceed, 1, "error in magma_init(): %d\n", ierr);
 
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", 
+                                   CeedVectorCreate_Magma); Ceedchk(ierr);
   //ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
   //                              CeedBasisCreateTensorH1_Magma); CeedChk(ierr);
   //ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",

@@ -21,6 +21,13 @@
 #include "magma.h"
 
 typedef struct {
+  CeedScalar *array;
+  CeedScalar *darray;
+  int  own_;
+  int down_;
+} CeedVector_Magma;
+
+typedef struct {
     CeedScalar *dqref1d;
     CeedScalar *dinterp1d;
     CeedScalar *dgrad1d;
