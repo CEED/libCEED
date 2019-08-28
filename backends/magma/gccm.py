@@ -51,7 +51,7 @@ def main():
     fname  = fname.replace("-", "_")
     fname  = fname[fname.rfind("/")+1:]
 
-    cufile.write("#include <ceed-impl.h>                       \n\n")
+    cufile.write("#include <ceed.h>                       \n\n")
     cufile.write("#include \"atomics.cuh\"                       \n")
     cufile.write("#include \"magma_check_cudaerror.h\"         \n\n")
     cufile.write("#define  MAX_TB_XDIM      2147483647           \n")
