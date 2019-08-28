@@ -22,29 +22,29 @@
 #endif
 
 // *****************************************************************************
-CEED_QFUNCTION(SetupMass)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(SetupMass)(void *ctx, const CeedInt Q,
                           const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar *x = in[0], *J = in[1], *w = in[2];
   CeedScalar *rho = out[0], *true_soln = out[1], *rhs = out[2];
-  const CeedScalar *x = in[0];
-  const CeedScalar *J = in[1];
-  const CeedScalar *w = in[2];
+
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
                             J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
                             J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
-    const CeedScalar r = det * w[i];
-    rho[i] = r;
-    const CeedScalar true_sol = sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
-    true_soln[i] = true_sol;
-    rhs[i] = r * true_sol;
+    rho[i] = det * w[i];
+
+    true_soln[i] = sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
+
+    rhs[i] = rho[i] * true_soln[i];
   }
   return 0;
 }
 
-CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *rho = in[1];
   CeedScalar *v = out[0];
+
   for (CeedInt i=0; i<Q; i++) {
     v[i] = rho[i] * u[i];
   }
