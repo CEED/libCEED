@@ -125,8 +125,8 @@ class CeedDiffusionOperator : public mfem::Operator {
     FESpace2Ceed(mesh_fes, ir, ceed, &mesh_basis, &mesh_restr);
     CeedBasisGetNumQuadraturePoints(basis, &nqpts);
 
-    CeedElemRestrictionCreateIdentity(ceed, nelem, nqpts*dim*(dim+1)/2,
-                                      nqpts*nelem*dim*(dim+1)/2, 1, &restr_i);
+    CeedElemRestrictionCreateIdentity(ceed, nelem, nqpts,
+                                      nqpts*nelem, dim*(dim+1)/2, &restr_i);
     CeedElemRestrictionCreateIdentity(ceed, nelem, nqpts,
                                       nqpts*nelem, 1, &mesh_restr_i);
 
