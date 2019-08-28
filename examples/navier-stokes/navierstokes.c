@@ -453,13 +453,26 @@ int main(int argc, char **argv) {
     ierr = PetscOptionsBoolArray("-periodic", "Periodic boundary conditions",
                                  NULL, periodic, &len, NULL); CHKERRQ(ierr);
   }
+  {
+    PetscInt len = 3;
+    // Determine shape of process grid
+    ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
+    Split3(size, p, false);
+    ierr = PetscOptionsIntArray("-process_grid",
+                                "Shape of process grid (must sum to total size)",
+                                NULL, p, &len, NULL); CHKERRQ(ierr);
+    if (p[0] * p[1] * p[2] != size)
+      SETERRQ4(comm, PETSC_ERR_ARG_INCOMP,
+               "Process grid (%D, %D, %D) incompatible with total number of procs %d",
+               p[0], p[1], p[2], size);
+  }
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                             NULL, rc, &rc, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-resx","Resolution in x",
+  ierr = PetscOptionsScalar("-resx","Target resolution in x",
                             NULL, resx, &resx, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-resy","Resolution in y",
+  ierr = PetscOptionsScalar("-resy","Target resolution in y",
                             NULL, resy, &resy, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-resz","Resolution in z",
+  ierr = PetscOptionsScalar("-resz","Target resolution in z",
                             NULL, resz, &resz, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
@@ -503,19 +516,18 @@ int main(int argc, char **argv) {
   resy = fabs(resy) * meter;
   resz = fabs(resz) * meter;
 
-  // Determine size of process grid
-  ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
-  Split3(size, p, false);
-
   // Find a nicely composite number of elements given the resolution
-  melem[0] = (PetscInt)(PetscRoundReal(lx / resx));
-  melem[1] = (PetscInt)(PetscRoundReal(ly / resy));
-  melem[2] = (PetscInt)(PetscRoundReal(lz / resz));
+  melem[0] = (PetscInt)(PetscRoundReal(lx / resx / p[0]));
+  melem[1] = (PetscInt)(PetscRoundReal(ly / resy / p[1]));
+  melem[2] = (PetscInt)(PetscRoundReal(lz / resz / p[2]));
   for (int d=0; d<3; d++) {
     if (melem[d] == 0)
       melem[d]++;
   }
   localNelem = melem[0] * melem[1] * melem[2];
+  resx = lx / (melem[0] * p[0]);
+  resy = ly / (melem[1] * p[1]);
+  resz = lz / (melem[2] * p[2]);
 
   // Find my location in the process grid
   ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
@@ -555,6 +567,11 @@ int main(int argc, char **argv) {
                      melem[0], melem[1], melem[2]); CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "Owned nodes: %D = %D %D %D\n",
                      mnode[0]*mnode[1]*mnode[2], mnode[0], mnode[1], mnode[2]);
+  CHKERRQ(ierr);
+  ierr = PetscPrintf(comm, "Physical domain: %g %g %g\n",
+                     lx/meter, ly/meter, lz/meter);CHKERRQ(ierr);
+  ierr = PetscPrintf(comm, "Physical resolution: %g %g %g\n",
+                     resx/meter, resy/meter, resz/meter);CHKERRQ(ierr);
   CHKERRQ(ierr);
 
   // Set up global mass vector
