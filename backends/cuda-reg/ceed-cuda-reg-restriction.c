@@ -98,7 +98,7 @@ extern "C" __global__ void noTrTr(const CeedInt nelem,
       const CeedInt locNode = node%RESTRICTION_ELEMSIZE;
       const CeedInt e = node/RESTRICTION_ELEMSIZE;
       for(CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp) {
-        v[locNodoe + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP]
+        v[locNode + comp*RESTRICTION_ELEMSIZE + e*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP]
           = u[ind * RESTRICTION_NCOMP + comp];
       }
     }
