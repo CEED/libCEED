@@ -14,7 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include "ceed-magma.h"
+#include <ceed.h>
+#include <magma.h>
 #include "magma_tc_device.cuh"
 #include "magma_dbasisApply_interp_device.cuh"
 
