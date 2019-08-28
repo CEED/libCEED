@@ -10,7 +10,7 @@ Example:
 benchmark.sh -c /cpu/self -r petsc-bps.sh -b bp1 -n 16 -p 16
 ```
 where the option `-c <specs-list>` specifies a list of libCEED specs to
-benchmark, `-b <bp-list>` specifices a list of CEED benchmark problems to run,
+benchmark, `-b <bp-list>` specifies a list of CEED benchmark problems to run,
 `-n 16` is the total number of processors and `-p 16` is the number
 of processors per node.
 

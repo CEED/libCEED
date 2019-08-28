@@ -355,9 +355,9 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
         break; // Should not occur
       }
       case CEED_EVAL_DIV:
-        break; // Not implimented
+        break; // Not implemented
       case CEED_EVAL_CURL:
-        break; // Not implimented
+        break; // Not implemented
       }
     }
   }

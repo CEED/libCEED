@@ -116,8 +116,9 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   CeedVector) is passed in CeedOperatorApply().  There can be at most one active
   input and at most one active output.
 
-  @param op         Ceedoperator on which to provide the field
-  @param fieldname  Name of the field (to be matched with the name used by CeedQFunction)
+  @param op         CeedOperator on which to provide the field
+  @param fieldname  Name of the field (to be matched with the name used by
+                      CeedQFunction)
   @param r          CeedElemRestriction
   @param lmode      CeedTransposeMode which specifies the ordering of the
                       components of the l-vector used by this CeedOperatorField,
@@ -128,7 +129,7 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
                       if collocated with quadrature points
   @param v          CeedVector to be used by CeedOperator or CEED_VECTOR_ACTIVE
                       if field is active or CEED_VECTOR_NONE if using
-                      CEED_EVAL_WEIGHT in the qfunction
+                      CEED_EVAL_WEIGHT in the QFunction
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -340,7 +341,7 @@ int CeedOperatorGetSetupStatus(CeedOperator op, bool *setupdone) {
   @brief Get the QFunction associated with a CeedOperator
 
   @param op              CeedOperator
-  @param[out] qf         Variable to store qfunction
+  @param[out] qf         Variable to store QFunction
 
   @return An error code: 0 - success, otherwise - failure
 

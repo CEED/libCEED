@@ -134,8 +134,8 @@ int main(int argc, const char *argv[]) {
   BuildCartesianRestriction(ceed, dim, nxyz, sol_order, 1, &sol_size,
                             num_qpts, &sol_restr, &sol_restr_i);
   if (!test) {
-    printf("Number of mesh nodes    : %d\n", mesh_size/dim);
-    printf("Number of solution dofs : %d\n", sol_size);
+    printf("Number of mesh nodes     : %d\n", mesh_size/dim);
+    printf("Number of solution nodes : %d\n", sol_size);
   }
 
   // Create a CeedVector with the mesh coordinates.
@@ -290,7 +290,7 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
                               CeedElemRestriction *restr,
                               CeedElemRestriction *restr_i) {
   CeedInt p = order, pp1 = p+1;
-  CeedInt ndof = CeedIntPow(pp1, dim); // number of scal. dofs per element
+  CeedInt nnodes = CeedIntPow(pp1, dim); // number of scal. nodes per element
   CeedInt elem_qpts = CeedIntPow(num_qpts, dim); // number of qpts per element
   CeedInt nd[3], num_elem = 1, scalar_size = 1;
   for (int d = 0; d < dim; d++) {
@@ -301,29 +301,29 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
   *size = scalar_size*ncomp;
   // elem:         0             1                 n-1
   //        |---*-...-*---|---*-...-*---|- ... -|--...--|
-  // dof:   0   1    p-1  p  p+1       2*p             n*p
-  CeedInt *el_dof = malloc(sizeof(CeedInt)*num_elem*ndof);
+  // nnodes:   0   1    p-1  p  p+1       2*p             n*p
+  CeedInt *el_nodes = malloc(sizeof(CeedInt)*num_elem*nnodes);
   for (CeedInt e = 0; e < num_elem; e++) {
     CeedInt exyz[3], re = e;
     for (int d = 0; d < dim; d++) { exyz[d] = re%nxyz[d]; re /= nxyz[d]; }
-    CeedInt *loc_el_dof = el_dof + e*ndof;
-    for (int ldof = 0; ldof < ndof; ldof++) {
-      CeedInt gdof = 0, gdof_stride = 1, rdof = ldof;
+    CeedInt *loc_el_nodes = el_nodes + e*nnodes;
+    for (int lnodes = 0; lnodes < nnodes; lnodes++) {
+      CeedInt gnodes = 0, gnodes_stride = 1, rnodes = lnodes;
       for (int d = 0; d < dim; d++) {
-        gdof += (exyz[d]*p + rdof%pp1) * gdof_stride;
-        gdof_stride *= nd[d];
-        rdof /= pp1;
+        gnodes += (exyz[d]*p + rnodes%pp1) * gnodes_stride;
+        gnodes_stride *= nd[d];
+        rnodes /= pp1;
       }
-      loc_el_dof[ldof] = gdof;
+      loc_el_nodes[lnodes] = gnodes;
     }
   }
-  CeedElemRestrictionCreate(ceed, num_elem, ndof, scalar_size,
+  CeedElemRestrictionCreate(ceed, num_elem, nnodes, scalar_size,
                             ncomp, CEED_MEM_HOST,
-                            CEED_COPY_VALUES, el_dof, restr);
+                            CEED_COPY_VALUES, el_nodes, restr);
   CeedElemRestrictionCreateIdentity(ceed, num_elem, elem_qpts,
                                     elem_qpts*num_elem,
                                     ncomp, restr_i);
-  free(el_dof);
+  free(el_nodes);
   return 0;
 }
 
@@ -342,12 +342,12 @@ int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_order,
   // The H1 basis uses Lobatto quadrature points as nodes.
   CeedLobattoQuadrature(p+1, nodes, NULL); // nodes are in [-1,1]
   for (CeedInt i = 0; i <= p; i++) { nodes[i] = 0.5+0.5*nodes[i]; }
-  for (CeedInt gsdof = 0; gsdof < scalar_size; gsdof++) {
-    CeedInt rdof = gsdof;
+  for (CeedInt gsnodes = 0; gsnodes < scalar_size; gsnodes++) {
+    CeedInt rnodes = gsnodes;
     for (int d = 0; d < dim; d++) {
-      CeedInt d1d = rdof%nd[d];
-      coords[gsdof+scalar_size*d] = ((d1d/p)+nodes[d1d%p]) / nxyz[d];
-      rdof /= nd[d];
+      CeedInt d1d = rnodes%nd[d];
+      coords[gsnodes+scalar_size*d] = ((d1d/p)+nodes[d1d%p]) / nxyz[d];
+      rnodes /= nd[d];
     }
   }
   free(nodes);

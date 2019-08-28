@@ -518,9 +518,9 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt nelem,
   CeedGetData(ceed, (void *) &ceed_Cuda); CeedChk(ierr);
   CeedBasisNonTensor_Cuda *data;
   CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
-  CeedInt ndof, nqpt;
+  CeedInt nnodes, nqpt;
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
-  ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
+  ierr = CeedBasisGetNumNodes(basis, &nnodes); CeedChk(ierr);
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
   // const int optElems[7] = {0,32,8,3,2,1,8};
   int elemsPerBlock = 1;//basis->Q1d < 7 ? optElems[basis->Q1d] : 1;
@@ -546,7 +546,7 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt nelem,
                                   interpargs);
       CeedChk(ierr);
     } else {
-      ierr = CeedRunKernelDimCuda(ceed, data->interp, grid, ndof, 1, elemsPerBlock,
+      ierr = CeedRunKernelDimCuda(ceed, data->interp, grid, nnodes, 1, elemsPerBlock,
                                   interpargs);
       CeedChk(ierr);
     }
@@ -557,7 +557,7 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt nelem,
                                   gradargs);
       CeedChk(ierr);
     } else {
-      ierr = CeedRunKernelDimCuda(ceed, data->grad, grid, ndof, 1, elemsPerBlock,
+      ierr = CeedRunKernelDimCuda(ceed, data->grad, grid, nnodes, 1, elemsPerBlock,
                                   gradargs);
       CeedChk(ierr);
     }
@@ -670,7 +670,7 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q1d,
 }
 
 int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim,
-                           CeedInt ndof, CeedInt nqpts,
+                           CeedInt nnodes, CeedInt nqpts,
                            const CeedScalar *interp,
                            const CeedScalar *grad,
                            const CeedScalar *qref,
@@ -687,12 +687,12 @@ int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim,
   ierr = cudaMemcpy(data->d_qweight, qweight, qBytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
-  const CeedInt iBytes = qBytes * ndof;
+  const CeedInt iBytes = qBytes * nnodes;
   ierr = cudaMalloc((void **)&data->d_interp, iBytes); CeedChk_Cu(ceed, ierr);
   ierr = cudaMemcpy(data->d_interp, interp, iBytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
-  const CeedInt gBytes = qBytes * ndof * dim;
+  const CeedInt gBytes = qBytes * nnodes * dim;
   ierr = cudaMalloc((void **)&data->d_grad, gBytes); CeedChk_Cu(ceed, ierr);
   ierr = cudaMemcpy(data->d_grad, grad, gBytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
@@ -701,7 +701,7 @@ int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim,
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
   ierr = CeedCompileCuda(ceed, kernelsNonTensorRef, &data->module, 4,
                          "Q", nqpts,
-                         "P", ndof,
+                         "P", nnodes,
                          "BASIS_DIM", dim,
                          "BASIS_NCOMP", ncomp
                         ); CeedChk_Cu(ceed, ierr);
