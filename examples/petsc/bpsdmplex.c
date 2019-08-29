@@ -563,10 +563,12 @@ int main(int argc, char **argv) {
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].apply,
                               *bpOptions[bpChoice].applyfname, &qf_apply);
   // Add inputs and outputs
-  CeedQFunctionAddInput(qf_apply, "u", vscale*gradInScale, bpOptions[bpChoice].inmode);
+  CeedQFunctionAddInput(qf_apply, "u", vscale*gradInScale,
+                        bpOptions[bpChoice].inmode);
   CeedQFunctionAddInput(qf_apply, "rho", bpOptions[bpChoice].qdatasize,
                         CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_apply, "v", vscale*gradOutScale, bpOptions[bpChoice].outmode);
+  CeedQFunctionAddOutput(qf_apply, "v", vscale*gradOutScale,
+                         bpOptions[bpChoice].outmode);
 
   // Create the error qfunction
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].error,
