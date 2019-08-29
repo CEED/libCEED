@@ -49,7 +49,7 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
     char *name;
     ierr = CeedQFunctionFieldGetName(inputfields[i], &name); CeedChk(ierr);
     CeedInt ncomp;
-    ierr = CeedQFunctionFieldGetNumComponents(inputfields[i], &ncomp);
+    ierr = CeedQFunctionFieldGetSize(inputfields[i], &ncomp);
     CeedChk(ierr);
     CeedEvalMode emode;
     ierr = CeedQFunctionFieldGetEvalMode(inputfields[i], &emode); CeedChk(ierr);
@@ -66,6 +66,7 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
       idx+=1;
       break;
     case CEED_EVAL_GRAD:
+      ncomp /= dim;
       dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > GRAD (%d)",name,Q*ncomp*dim);
       iOf7[idx+1]=iOf7[idx]+Q*ncomp*dim;;
       idx+=1;
@@ -130,8 +131,7 @@ int CeedQFunctionAllocOpOut_Occa(CeedQFunction qf, CeedInt Q,
     char *name;
     ierr = CeedQFunctionFieldGetName(outputfields[i], &name); CeedChk(ierr);
     CeedInt ncomp;
-    ierr = CeedQFunctionFieldGetNumComponents(outputfields[i], &ncomp);
-    CeedChk(ierr);
+    ierr = CeedQFunctionFieldGetSize(outputfields[i], &ncomp); CeedChk(ierr);
     CeedEvalMode emode;
     ierr = CeedQFunctionFieldGetEvalMode(outputfields[i], &emode); CeedChk(ierr);
     CeedBasis basis;
@@ -152,6 +152,7 @@ int CeedQFunctionAllocOpOut_Occa(CeedQFunction qf, CeedInt Q,
       odx+=1;
       break;
     case CEED_EVAL_GRAD:
+      ncomp /= dim;
       dbg("\t[CeedQFunction][AllocOpOut] \"%s\" > GRAD (%d)",name,Q*ncomp*dim);
       oOf7[odx+1]=oOf7[odx]+Q*ncomp*dim;
       odx+=1;
@@ -201,8 +202,7 @@ int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
     char *name;
     ierr = CeedQFunctionFieldGetName(inputfields[i], &name); CeedChk(ierr);
     CeedInt ncomp;
-    ierr = CeedQFunctionFieldGetNumComponents(inputfields[i], &ncomp);
-    CeedChk(ierr);
+    ierr = CeedQFunctionFieldGetSize(inputfields[i], &ncomp); CeedChk(ierr);
     CeedEvalMode emode;
     ierr = CeedQFunctionFieldGetEvalMode(inputfields[i], &emode); CeedChk(ierr);
     switch(emode) {
