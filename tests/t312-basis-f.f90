@@ -82,7 +82,9 @@
 
       diff=val-17.d0/24.d0
       if (abs(diff)>1.0d-10) then
+! LCOV_EXCL_START
         write(*,'(A,I1,A,F12.8,A,F12.8)')'[',i,'] ',val,' != ',17.d0/24.d0
+! LCOV_EXCL_STOP
       endif
 
       call ceedvectordestroy(input,err)

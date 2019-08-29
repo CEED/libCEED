@@ -28,9 +28,11 @@ int main(int argc, char **argv) {
   CeedBasisApply(b, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, V);
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
-  for (i = 0; i < len; i++) {
-    if (fabs(v[i] - 1.) > 1e-15) printf("v[%d] = %f != 1.\n", i, v[i]);
-  }
+  for (i = 0; i < len; i++)
+    if (fabs(v[i] - 1.) > 1e-15)
+      // LCOV_EXCL_START
+      printf("v[%d] = %f != 1.\n", i, v[i]);
+      // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(V, &v);
 
   CeedBasisDestroy(&b);

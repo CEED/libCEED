@@ -36,7 +36,9 @@
       call ceedbasisview(b,err)
       do i=1,16
         if (abs(colograd1d(i))<1.0D-14) then
+! LCOV_EXCL_START
           colograd1d(i) = 0
+! LCOV_EXCL_STOP
         endif
       enddo
       do i=0,3
@@ -52,7 +54,9 @@
       call ceedbasisview(b,err)
       do i=1,36
         if (abs(colograd1d2(i))<1.0D-14) then
+! LCOV_EXCL_START
           colograd1d2(i) = 0
+! LCOV_EXCL_STOP
         endif
       enddo
       do i=0,5

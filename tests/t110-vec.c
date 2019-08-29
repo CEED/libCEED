@@ -24,11 +24,13 @@ int main(int argc, char **argv) {
   CeedVectorRestoreArray(X, &x);
 
   CeedVectorGetArrayRead(Y, CEED_MEM_HOST, &y);
-  for (CeedInt i=0; i<n; i++) {
+  for (CeedInt i=0; i<n; i++)
     if (y[i] != 10+i)
+      // LCOV_EXCL_START
       printf("Error reading array y[%d] = %f",i,(double)y[i]);
-  }
+      // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(Y, &y);
+
   CeedVectorDestroy(&X);
   CeedVectorDestroy(&Y);
   CeedDestroy(&ceed);

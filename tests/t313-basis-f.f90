@@ -80,14 +80,18 @@
         call dfeval(x1,x2,val)
         diff=val-ooutput(0*q+i+ooffset)
         if (abs(diff)>1.0d-10) then
+! LCOV_EXCL_START
           write(*,'(A,I1,A,F12.8,A,F12.8)')  '[',i,'] ',ooutput(i+ooffset),&
      &     ' != ',val
+! LCOV_EXCL_STOP
         endif
         call dfeval(x2,x1,val)
         diff=val-ooutput(1*q+i+ooffset)
         if (abs(diff)>1.0d-10) then
+! LCOV_EXCL_START
           write(*,'(A,I1,A,F12.8,A,F12.8)')  '[',i,'] ',ooutput(i+ooffset),&
      &     ' != ',val
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(output,ooutput,ooffset,err)

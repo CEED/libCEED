@@ -29,7 +29,9 @@
       do i=1,10
         diff=b(i+boffset)-10-i
         if (abs(diff)>1.0D-15) then
+! LCOV_EXCL_START
           write(*,*) 'Error reading array b(',i,')=',b(i+boffset)
+! LCOV_EXCL_STOP
         endif
       enddo
 
@@ -38,10 +40,12 @@
       enddo
       call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,aoffset,err)
 
+! LCOV_EXCL_START
       call ceedvectorrestorearrayread(x,b,boffset,err)
 
       call ceedvectordestroy(x,err)
       call ceeddestroy(ceed,err)
 
       end
+! LCOV_EXCL_STOP
 !-----------------------------------------------------------------------

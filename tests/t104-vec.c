@@ -16,6 +16,8 @@ int main(int argc, char **argv) {
 
   // Write access not restored should generate an error
   CeedVectorDestroy(&x);
+  // LCOV_EXCL_START
   CeedDestroy(&ceed);
   return 0;
+  // LCOV_EXCL_STOP
 }

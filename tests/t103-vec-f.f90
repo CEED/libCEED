@@ -21,6 +21,7 @@
       call ceedvectorgetarray(x,ceed_mem_host,a,aoffset,err)
       call ceedvectorgetarray(x,ceed_mem_host,b,boffset,err)
 
+! LCOV_EXCL_START
       call ceedvectorrestorearray(x,a,aoffset,err)
       call ceedvectorrestorearray(x,b,boffset,err)
 
@@ -28,4 +29,5 @@
       call ceeddestroy(ceed,err)
 
       end
+! LCOV_EXCL_STOP
 !-----------------------------------------------------------------------
