@@ -146,7 +146,7 @@ struct CeedTensorContract_private {
 
 struct CeedQFunctionField_private {
   const char *fieldname;
-  CeedInt ncomp;
+  CeedInt size;
   CeedEvalMode emode;
 };
 

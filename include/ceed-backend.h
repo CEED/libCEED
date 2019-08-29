@@ -146,8 +146,8 @@ CEED_EXTERN int CeedQFunctionGetFields(CeedQFunction qf,
                                        CeedQFunctionField* *outputfields);
 CEED_EXTERN int CeedQFunctionFieldGetName(CeedQFunctionField qffield,
     char* *fieldname);
-CEED_EXTERN int CeedQFunctionFieldGetNumComponents(CeedQFunctionField qffield,
-    CeedInt *numcomp);
+CEED_EXTERN int CeedQFunctionFieldGetSize(CeedQFunctionField qffield,
+    CeedInt *size);
 CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
     CeedEvalMode *emode);
 

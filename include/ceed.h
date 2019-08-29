@@ -347,9 +347,9 @@ typedef int (*CeedQFunctionUser)(void *ctx, const CeedInt Q,
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     CeedQFunctionUser f, const char *focca, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
-                                      CeedInt ncomp, CeedEvalMode emode);
+                                      CeedInt size, CeedEvalMode emode);
 CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
-                                       CeedInt ncomp, CeedEvalMode emode);
+                                       CeedInt size, CeedEvalMode emode);
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx,
                                         size_t ctxsize);
 CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
