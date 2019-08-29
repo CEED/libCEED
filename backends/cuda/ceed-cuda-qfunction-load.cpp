@@ -22,16 +22,16 @@
 
 
 static const char *qReadWrite = QUOTE(
-template <int NCOMP>
+template <int SIZE>
 inline __device__ void readQuads(const CeedInt quad, const CeedInt nquads, const CeedScalar* d_u, CeedScalar* r_u) {
-  for(CeedInt comp = 0; comp < NCOMP; ++comp) {
+  for(CeedInt comp = 0; comp < SIZE; ++comp) {
     r_u[comp] = d_u[quad + nquads * comp];
   }
 }
 
-template <int NCOMP>
+template <int SIZE>
 inline __device__ void writeQuads(const CeedInt quad, const CeedInt nquads, const CeedScalar* r_v, CeedScalar* d_v) {
-  for(CeedInt comp = 0; comp < NCOMP; ++comp) {
+  for(CeedInt comp = 0; comp < SIZE; ++comp) {
     d_v[quad + nquads * comp] = r_v[comp];
   }
 }
@@ -48,7 +48,7 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
     return 0;
   }
   //qFunction kernel generation
-  CeedInt numinputfields, numoutputfields, ncomp;
+  CeedInt numinputfields, numoutputfields, size;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedQFunctionField *qfinputfields, *qfoutputfields;
   ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
@@ -66,17 +66,15 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   code << "extern \"C\" __global__ void qfunction(void *ctx, CeedInt Q, Fields_Cuda fields) {\n";
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "// Input field "<<i<<"\n";
-    ierr = CeedQFunctionFieldGetNumComponents(qfinputfields[i], &ncomp);
-    CeedChk(ierr);
-    code << "  const CeedInt ncomp_in_"<<i<<" = "<<ncomp<<";\n";
-    code << "  CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"];\n";
+    ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size); CeedChk(ierr);
+    code << "  const CeedInt size_in_"<<i<<" = "<<size<<";\n";
+    code << "  CeedScalar r_q"<<i<<"[size_in_"<<i<<"];\n";
   }
   for (CeedInt i = 0; i < numoutputfields; i++) {
     code << "// Output field "<<i<<"\n";
-    ierr = CeedQFunctionFieldGetNumComponents(qfoutputfields[i], &ncomp);
-    CeedChk(ierr);
-    code << "  const CeedInt ncomp_out_"<<i<<" = "<<ncomp<<";\n";
-    code << "  CeedScalar r_qq"<<i<<"[ncomp_out_"<<i<<"];\n";
+    ierr = CeedQFunctionFieldGetSize(qfoutputfields[i], &size); CeedChk(ierr);
+    code << "  const CeedInt size_out_"<<i<<" = "<<size<<";\n";
+    code << "  CeedScalar r_qq"<<i<<"[size_out_"<<i<<"];\n";
   }
   code << "  const CeedScalar* in["<<numinputfields<<"];\n";
   for (CeedInt i = 0; i < numinputfields; i++) {
@@ -89,14 +87,14 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   code << "  for (CeedInt q = blockIdx.x * blockDim.x + threadIdx.x; q < Q; q += blockDim.x * gridDim.x) {\n";
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "// Input field "<<i<<"\n";
-    code << "  readQuads<ncomp_in_"<<i<<">(q, Q, fields.inputs["<<i<<"], r_q"<<i<<");\n";
+    code << "  readQuads<size_in_"<<i<<">(q, Q, fields.inputs["<<i<<"], r_q"<<i<<");\n";
   }
   code << "//QFunction\n";
   string qFunctionName(data->qFunctionName);
   code << "    "<<qFunctionName<<"(ctx, 1, in, out);\n";
   for (CeedInt i = 0; i < numoutputfields; i++) {
     code << "// Output field "<<i<<"\n";
-    code << "  writeQuads<ncomp_out_"<<i<<">(q, Q, r_qq"<<i<<", fields.outputs["<<i<<"]);\n";
+    code << "  writeQuads<size_out_"<<i<<">(q, Q, r_qq"<<i<<", fields.outputs["<<i<<"]);\n";
   }
   code << "  }\n";
   code << "}\n";
