@@ -1,6 +1,6 @@
 /// @file
-/// Test grad in multiple dimensions
-/// \test Test grad in multiple dimensions
+/// Test inderintegrated grad in multiple dimensions
+/// \test Test inderintegraded grad in multiple dimensions
 #include <ceed.h>
 #include <math.h>
 
@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   for (CeedInt dim=1; dim<=3; dim++) {
     CeedVector X, Xq, U, Uq, Ones, Gtposeones;
     CeedBasis bxl, bug;
-    CeedInt P = 8, Q = 10, Pdim = CeedIntPow(P, dim), Qdim = CeedIntPow(Q, dim),
+    CeedInt P = 8, Q = 7, Pdim = CeedIntPow(P, dim), Qdim = CeedIntPow(Q, dim),
             Xdim = CeedIntPow(2, dim);
     CeedScalar x[Xdim*dim], u[Pdim];
     const CeedScalar *xq, *uq, *gtposeones;
@@ -71,10 +71,9 @@ int main(int argc, char **argv) {
     }
     CeedVectorRestoreArrayRead(Gtposeones, &gtposeones);
     CeedVectorRestoreArrayRead(Uq, &uq);
-    if (fabs(sum1 - sum2) > 1e-10)
-      // LCOV_EXCL_START
+    if (fabs(sum1 - sum2) > 1e-10) {
       printf("[%d] %f != %f\n", dim, sum1, sum2);
-      // LCOV_EXCL_STOP
+    }
 
     CeedVectorDestroy(&X);
     CeedVectorDestroy(&Xq);

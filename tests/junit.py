@@ -74,7 +74,7 @@ def run(test, backends):
                 check_required_failure(case, proc.stderr, 'Cannot destroy CeedVector, the access lock is in use')
             if test[:4] in 't107'.split():
                 check_required_failure(case, proc.stderr, 'Cannot restore CeedVector array access, access was not granted')
-            if test[:4] in 't308'.split():
+            if test[:4] in 't303'.split():
                 check_required_failure(case, proc.stderr, 'Length of input/output vectors incompatible with basis dimensions')
 
         if not case.is_skipped() and not case.status:
