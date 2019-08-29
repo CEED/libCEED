@@ -115,7 +115,7 @@ class CeedMassOperator : public mfem::Operator {
     const int ir_order = 2*(order + 2) - 1; // <-----
     const mfem::IntegrationRule &ir =
       mfem::IntRules.Get(mfem::Geometry::SEGMENT, ir_order);
-    CeedInt nqpts, nelem = mesh->GetNE();
+    CeedInt nqpts, nelem = mesh->GetNE(), dim = mesh->SpaceDimension();
 
     FESpace2Ceed(fes, ir, ceed, &basis, &restr);
 
@@ -137,13 +137,13 @@ class CeedMassOperator : public mfem::Operator {
 
     // Context data to be passed to the 'f_build_mass' Q-function.
     build_ctx.dim = mesh->Dimension();
-    build_ctx.space_dim = mesh->SpaceDimension();
+    build_ctx.space_dim = dim;
 
     // Create the Q-function that builds the mass operator (i.e. computes its
     // quadrature data) and set its context data.
     CeedQFunctionCreateInterior(ceed, 1, f_build_mass,
                                 f_build_mass_loc, &build_qfunc);
-    CeedQFunctionAddInput(build_qfunc, "dx", mesh->SpaceDimension(),
+    CeedQFunctionAddInput(build_qfunc, "dx", dim*dim,
                           CEED_EVAL_GRAD);
     CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
     CeedQFunctionAddOutput(build_qfunc, "rho", 1, CEED_EVAL_NONE);
