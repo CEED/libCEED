@@ -59,9 +59,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
       CeedBasis_Ref *impl;
       ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
       if (impl->collointerp) {
-        const CeedInt vsize = nelem*ncomp*ndof;
-        for (CeedInt i = 0; i < vsize; i++)
-        v[i] = u[i];
+        memcpy(v, u, nelem*ncomp*nnodes*sizeof(u[0]));
       } else {
         CeedInt P = P1d, Q = Q1d;
         if (tmode == CEED_TRANSPOSE) {
