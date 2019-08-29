@@ -33,7 +33,7 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
   CeedInt numinputfields, numoutputfields;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
-  const int blocksize = ceed_Cuda->optblocksize;
+  const int blocksize = 32;
 
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_DEVICE, &data->fields.inputs[i]);
