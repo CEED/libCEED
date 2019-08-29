@@ -620,7 +620,7 @@ int main(int argc, char **argv) {
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setup,
                               *bpOptions[bpChoice].setupfname, &qf_setup);
   CeedQFunctionAddInput(qf_setup, "x", 3, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_setup, "dx", 3, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setup, "dx", 9, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup, "rho", bpOptions[bpChoice].qdatasize,
                          CEED_EVAL_NONE);
@@ -631,10 +631,20 @@ int main(int argc, char **argv) {
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].apply,
                               *bpOptions[bpChoice].applyfname, &qf_apply);
   // Add inputs and outputs
-  CeedQFunctionAddInput(qf_apply, "u", vscale, bpOptions[bpChoice].inmode);
+  CeedInt gradInScale = 1;
+  if (bpOptions[bpChoice].inmode==CEED_EVAL_GRAD)
+  {
+    gradInScale = 3;
+  }
+  CeedInt gradOutScale = 1;
+  if (bpOptions[bpChoice].outmode==CEED_EVAL_GRAD)
+  {
+    gradOutScale = 3;
+  }
+  CeedQFunctionAddInput(qf_apply, "u", vscale*gradInScale, bpOptions[bpChoice].inmode);
   CeedQFunctionAddInput(qf_apply, "rho", bpOptions[bpChoice].qdatasize,
                         CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_apply, "v", vscale, bpOptions[bpChoice].outmode);
+  CeedQFunctionAddOutput(qf_apply, "v", vscale*gradOutScale, bpOptions[bpChoice].outmode);
 
   // Create the error qfunction
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].error,
