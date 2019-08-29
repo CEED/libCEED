@@ -169,15 +169,15 @@ static int Advection(void *ctx, CeedInt Q,
     const CeedScalar wJ        =    qdata[0][i];
     // -- Interp-to-Grad qdata
     //    3x3 matrix
-    const CeedScalar wBJ[3][3] = {{qdata[1][i] * wJ,
-                                   qdata[2][i] * wJ,
-                                   qdata[3][i] * wJ},
-                                  {qdata[4][i] * wJ,
-                                   qdata[5][i] * wJ,
-                                   qdata[6][i] * wJ},
-                                  {qdata[7][i] * wJ,
-                                   qdata[8][i] * wJ,
-                                   qdata[9][i] * wJ}
+    const CeedScalar dXdx[3][3] = {{qdata[1][i],
+                                    qdata[2][i],
+                                    qdata[3][i]},
+                                   {qdata[4][i],
+                                    qdata[5][i],
+                                    qdata[6][i]},
+                                   {qdata[7][i],
+                                    qdata[8][i],
+                                    qdata[9][i]}
                                  };
 
     // The Physics
@@ -205,24 +205,27 @@ static int Advection(void *ctx, CeedInt Q,
     v[3][i] = 0;
 
     // -- Total Energy
+    switch (1) {
     // ---- Version 1: dv \cdot (E u)
-    if (1) {
-      dv[0][4][i] = E*(u[0]*wBJ[0][0] + u[1]*wBJ[0][1] + u[2]*wBJ[0][2]);
-      dv[1][4][i] = E*(u[0]*wBJ[1][0] + u[1]*wBJ[1][1] + u[2]*wBJ[1][2]);
-      dv[2][4][i] = E*(u[0]*wBJ[2][0] + u[1]*wBJ[2][1] + u[2]*wBJ[2][2]);
+    case 1: {
+      for (int j=0; j<3; j++)
+        dv[j][4][i] = wJ * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] + u[2]*dXdx[j][2]);
       v[4][i] = 0;
-    }
+    } break;
     // ---- Version 2: - v (E div(u) + u \cdot grad(E))
-    if (0) {
-      dv[0][4][i] = 0;
-      dv[1][4][i] = 0;
-      dv[2][4][i] = 0;
-      v[4][i] = -E*(du[0][0]*wBJ[0][0] + du[1][0]*wBJ[1][0] + du[2][0]*wBJ[2][0] +
-                    du[0][1]*wBJ[0][1] + du[1][1]*wBJ[1][1] + du[2][1]*wBJ[2][1] +
-                    du[0][2]*wBJ[0][2] + du[1][2]*wBJ[1][2] + du[2][2]*wBJ[2][2]) -
-                u[0]*(dE[0]*wBJ[0][0] + dE[1]*wBJ[1][0] + dE[2]*wBJ[2][0]) -
-                u[1]*(dE[0]*wBJ[0][1] + dE[1]*wBJ[1][1] + dE[2]*wBJ[2][1]) -
-                u[2]*(dE[0]*wBJ[0][2] + dE[1]*wBJ[1][2] + dE[2]*wBJ[2][2]);
+    case 2: {
+      CeedScalar div_u = 0, u_dot_grad_E = 0;
+      for (int j=0; j<3; j++) {
+        dv[j][4][i] = 0;
+        CeedScalar dEdx_j = 0;
+        for (int k=0; k<3; k++) {
+          div_u += du[j][k] * dXdx[j][k]; // u_{k,j} = u_{k,J} X_{J,j}
+          dEdx_j += dE[k] * dXdx[k][j];
+        }
+        u_dot_grad_E += u[j] * dEdx_j;
+      }
+      v[4][i] = -wJ * (E*div_u + u_dot_grad_E);
+    } break;
     }
 
   } // End Quadrature Point Loop
