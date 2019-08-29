@@ -168,16 +168,16 @@ static int Advection(void *ctx, CeedInt Q,
     // -- Interp-to-Interp qdata
     const CeedScalar wJ        =    qdata[0][i];
     // -- Interp-to-Grad qdata
-    //      Symmetric 3x3 matrix
-    const CeedScalar wBJ[3][3] = {{qdata[1][i],
-                                   qdata[2][i],
-                                   qdata[3][i]},
-                                  {qdata[4][i],
-                                   qdata[5][i],
-                                   qdata[6][i]},
-                                  {qdata[7][i],
-                                   qdata[8][i],
-                                   qdata[9][i]}
+    //    3x3 matrix
+    const CeedScalar wBJ[3][3] = {{qdata[1][i] * wJ,
+                                   qdata[2][i] * wJ,
+                                   qdata[3][i] * wJ},
+                                  {qdata[4][i] * wJ,
+                                   qdata[5][i] * wJ,
+                                   qdata[6][i] * wJ},
+                                  {qdata[7][i] * wJ,
+                                   qdata[8][i] * wJ,
+                                   qdata[9][i] * wJ}
                                  };
 
     // The Physics

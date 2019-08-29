@@ -111,34 +111,21 @@ static int Setup(void *ctx, CeedInt Q,
     const CeedScalar A32 = J12*J31 - J11*J32;
     const CeedScalar A33 = J11*J22 - J12*J21;
     const CeedScalar detJ = J11*A11 + J21*A12 + J31*A13;
-    // Inverse of change of coordinate matrix (symmetric)
-    const CeedScalar dXdx00 = (A11*A11 + A12*A12 + A13*A13) / detJ;
-    const CeedScalar dXdx01 = (A11*A21 + A12*A22 + A13*A23) / detJ;
-    const CeedScalar dXdx02 = (A11*A31 + A12*A32 + A13*A33) / detJ;
-    const CeedScalar dXdx11 = (A21*A21 + A22*A22 + A23*A23) / detJ;
-    const CeedScalar dXdx12 = (A21*A31 + A22*A32 + A23*A33) / detJ;
-    const CeedScalar dXdx22 = (A31*A31 + A32*A32 + A33*A33) / detJ;
 
     // Qdata
     // -- Interp-to-Interp qdata
     qdata[0][i] = w[i] * detJ;
     // -- Interp-to-Grad qdata
-    qdata[1][i] = w[i] * A11;
-    qdata[2][i] = w[i] * A12;
-    qdata[3][i] = w[i] * A13;
-    qdata[4][i] = w[i] * A21;
-    qdata[5][i] = w[i] * A22;
-    qdata[6][i] = w[i] * A23;
-    qdata[7][i] = w[i] * A31;
-    qdata[8][i] = w[i] * A32;
-    qdata[9][i] = w[i] * A33;
-    // -- Grad-to-Grad qdata
-    qdata[10][i] = w[i] * dXdx00;
-    qdata[11][i] = w[i] * dXdx01;
-    qdata[12][i] = w[i] * dXdx02;
-    qdata[13][i] = w[i] * dXdx11;
-    qdata[14][i] = w[i] * dXdx12;
-    qdata[15][i] = w[i] * dXdx22;
+    // Inverse of change of coordinate matrix X_i,j
+    qdata[1][i] = A11 / detJ;
+    qdata[2][i] = A12 / detJ;
+    qdata[3][i] = A13 / detJ;
+    qdata[4][i] = A21 / detJ;
+    qdata[5][i] = A22 / detJ;
+    qdata[6][i] = A23 / detJ;
+    qdata[7][i] = A31 / detJ;
+    qdata[8][i] = A32 / detJ;
+    qdata[9][i] = A33 / detJ;
 
   } // End of Quadrature Point Loop
 

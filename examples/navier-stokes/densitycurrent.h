@@ -250,27 +250,37 @@ static int DC(void *ctx, CeedInt Q,
     // -- Interp-to-Interp qdata
     const CeedScalar wJ        =    qdata[0][i];
     // -- Interp-to-Grad qdata
-    //      Symmetric 3x3 matrix
-    const CeedScalar wBJ[3][3] = {{qdata[1][i],
-                                   qdata[2][i],
-                                   qdata[3][i]},
-                                  {qdata[4][i],
-                                   qdata[5][i],
-                                   qdata[6][i]},
-                                  {qdata[7][i],
-                                   qdata[8][i],
-                                   qdata[9][i]}
+    //    3x3 matrix
+    const CeedScalar wBJ[3][3] = {{qdata[1][i] * wJ,
+                                   qdata[2][i] * wJ,
+                                   qdata[3][i] * wJ},
+                                  {qdata[4][i] * wJ,
+                                   qdata[5][i] * wJ,
+                                   qdata[6][i] * wJ},
+                                  {qdata[7][i] * wJ,
+                                   qdata[8][i] * wJ,
+                                   qdata[9][i] * wJ}
                                  };
+    // X_i,j * X_j,i / detJ^2
+    const CeedScalar dXdx00 = wBJ[0][0]*wBJ[0][0] + wBJ[0][1]*wBJ[0][1] + wBJ[0][2]*wBJ[0][2];
+    const CeedScalar dXdx01 = wBJ[0][0]*wBJ[1][0] + wBJ[0][1]*wBJ[1][1] + wBJ[0][2]*wBJ[1][2];
+    const CeedScalar dXdx02 = wBJ[0][0]*wBJ[2][0] + wBJ[0][1]*wBJ[2][1] + wBJ[0][2]*wBJ[2][2];
+    const CeedScalar dXdx10 = wBJ[1][0]*wBJ[0][0] + wBJ[1][1]*wBJ[0][1] + wBJ[1][2]*wBJ[1][2];
+    const CeedScalar dXdx12 = wBJ[1][0]*wBJ[1][0] + wBJ[1][1]*wBJ[1][1] + wBJ[1][2]*wBJ[1][2];
+    const CeedScalar dXdx13 = wBJ[1][0]*wBJ[2][0] + wBJ[1][1]*wBJ[2][1] + wBJ[1][2]*wBJ[2][2];
+    const CeedScalar dXdx20 = wBJ[2][0]*wBJ[0][0] + wBJ[2][1]*wBJ[0][1] + wBJ[2][2]*wBJ[0][2];
+    const CeedScalar dXdx21 = wBJ[2][0]*wBJ[1][0] + wBJ[2][1]*wBJ[1][1] + wBJ[2][2]*wBJ[1][2];
+    const CeedScalar dXdx22 = wBJ[2][0]*wBJ[2][0] + wBJ[2][1]*wBJ[2][1] + wBJ[2][2]*wBJ[2][2];
     // -- Grad-to-Grad qdata
-    const CeedScalar wBBJ[3][3] = {{qdata[10][i],
-                                    qdata[11][i],
-                                    qdata[12][i]},
-                                   {qdata[11][i],
-                                    qdata[13][i],
-                                    qdata[14][i]},
-                                   {qdata[12][i],
-                                    qdata[14][i],
-                                    qdata[15][i]}
+    const CeedScalar wBBJ[3][3] = {{dXdx00 * wJ,
+                                    dXdx01 * wJ,
+                                    dXdx02 * wJ},
+                                   {dXdx10 * wJ,
+                                    dXdx12 * wJ,
+                                    dXdx13 * wJ},
+                                   {dXdx20 * wJ,
+                                    dXdx21 * wJ,
+                                    dXdx22 * wJ}
                                   };
     // -- gradT
     const CeedScalar gradT[3]  = {(dE[0]/rho - E*drho[0]/(rho*rho) -
