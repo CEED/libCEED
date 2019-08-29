@@ -596,6 +596,10 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
 **/
 int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
                                     CeedScalar *lambda, CeedInt n) {
+  // Check bounds for clang-tidy
+  if (n<2)
+    return CeedError(ceed, 1, "Cannot compute symmetric Schur decomposition of scalars");
+
   CeedScalar v[n-1], tau[n-1], matT[n*n];
 
   // Copy mat to matT and set mat to I
