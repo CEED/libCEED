@@ -112,8 +112,7 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
       ierr = CeedVectorCreate(ceed, Q*size*blksize, &qvecs[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_INTERP:
-      ierr = CeedQFunctionFieldGetSize(qffields[i], &size);
-      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetSize(qffields[i], &size); CeedChk(ierr);
       ierr = CeedElemRestrictionGetElementSize(r, &P);
       CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, P*size*blksize, &evecs[i]); CeedChk(ierr);
@@ -121,8 +120,7 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
       break;
     case CEED_EVAL_GRAD:
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
-      ierr = CeedQFunctionFieldGetSize(qffields[i], &size);
-      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetSize(qffields[i], &size); CeedChk(ierr);
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
       ierr = CeedElemRestrictionGetElementSize(r, &P);
       CeedChk(ierr);
@@ -320,8 +318,7 @@ static inline int CeedOperatorApply_Opt(CeedOperator op,
       CeedChk(ierr);
       ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
       CeedChk(ierr);
-      ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size);
-      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size); CeedChk(ierr);
       // Restrict block active input
       ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChk(ierr);
       if (vec == CEED_VECTOR_ACTIVE) {
