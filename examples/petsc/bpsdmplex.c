@@ -63,7 +63,7 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
   PetscFunctionBegin;
 
   // Get Nelem
-  ierr = DMGetDefaultSection(dm, &section); CHKERRQ(ierr);
+  ierr = DMGetSection(dm, &section); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart,& cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
 
@@ -537,7 +537,7 @@ int main(int argc, char **argv) {
   // Element coordinates
   ierr = DMGetCoordinatesLocal(dm, &coords); CHKERRQ(ierr);
   ierr = VecGetArrayRead(coords, &coordArray); CHKERRQ(ierr);
-  ierr = DMGetDefaultSection(dmcoord, &section); CHKERRQ(ierr);
+  ierr = DMGetSection(dmcoord, &section); CHKERRQ(ierr);
 
   CeedElemRestrictionCreateVector(Erestrictx, &xcoord, NULL);
   CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_COPY_VALUES,
