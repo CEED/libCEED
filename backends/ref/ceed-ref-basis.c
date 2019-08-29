@@ -146,14 +146,13 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
         // Dim contractions, identity in other directions
         for (CeedInt d=0; d<dim; d++) {
           CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
-            ierr = CeedTensorContractApply(contract, pre, P, post, Q,
-                                           grad1d,
-                                           tmode, add&&(d>0),
-                                           tmode == CEED_NOTRANSPOSE
-                                             ? u : u+d*ncomp*nqpt*nelem,
-                                           tmode == CEED_TRANSPOSE
-                                             ? v : v+d*ncomp*nqpt*nelem);
-            CeedChk(ierr);
+          ierr = CeedTensorContractApply(contract, pre, P, post, Q,
+                                         grad1d, tmode, add&&(d>0),
+                                         tmode == CEED_NOTRANSPOSE
+                                           ? u : u+d*ncomp*nqpt*nelem,
+                                         tmode == CEED_TRANSPOSE
+                                           ? v : v+d*ncomp*nqpt*nelem);
+          CeedChk(ierr);
         }      
       } else { // Underintegration, P > Q
         CeedScalar *grad1d;
