@@ -107,13 +107,11 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
 
     switch(emode) {
     case CEED_EVAL_NONE:
-      ierr = CeedQFunctionFieldGetSize(qffields[i], &size);
-      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetSize(qffields[i], &size); CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, Q*size*blksize, &qvecs[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_INTERP:
-      ierr = CeedQFunctionFieldGetSize(qffields[i], &size);
-      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetSize(qffields[i], &size); CeedChk(ierr);
       ierr = CeedElemRestrictionGetElementSize(r, &P);
       CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, P*size*blksize, &evecs[i]); CeedChk(ierr);
@@ -121,8 +119,7 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
       break;
     case CEED_EVAL_GRAD:
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
-      ierr = CeedQFunctionFieldGetSize(qffields[i], &size);
-      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetSize(qffields[i], &size); CeedChk(ierr);
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
       ierr = CeedElemRestrictionGetElementSize(r, &P);
       CeedChk(ierr);
@@ -137,9 +134,9 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
 
       break;
     case CEED_EVAL_DIV:
-      break; // Not implimented
+      break; // Not implemented
     case CEED_EVAL_CURL:
-      break; // Not implimented
+      break; // Not implemented
     }
   }
   return 0;
@@ -280,8 +277,7 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
       CeedChk(ierr);
       ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
       CeedChk(ierr);
-      ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size);
-      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size); CeedChk(ierr);
       // Basis action
       switch(emode) {
       case CEED_EVAL_NONE:
@@ -345,8 +341,7 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
       CeedChk(ierr);
       ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
       CeedChk(ierr);
-      ierr = CeedQFunctionFieldGetSize(qfoutputfields[i], &size);
-      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetSize(qfoutputfields[i], &size); CeedChk(ierr);
       // Basis action
       switch(emode) {
       case CEED_EVAL_NONE:

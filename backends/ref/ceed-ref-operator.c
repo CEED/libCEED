@@ -88,13 +88,11 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
 
     switch(emode) {
     case CEED_EVAL_NONE:
-      ierr = CeedQFunctionFieldGetSize(qffields[i], &size);
-      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetSize(qffields[i], &size); CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, Q*size, &qvecs[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_INTERP:
-      ierr = CeedQFunctionFieldGetSize(qffields[i], &size);
-      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetSize(qffields[i], &size); CeedChk(ierr);
       ierr = CeedElemRestrictionGetElementSize(Erestrict, &P);
       CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, P*size, &evecs[i]); CeedChk(ierr);
@@ -102,8 +100,7 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
       break;
     case CEED_EVAL_GRAD:
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
-      ierr = CeedQFunctionFieldGetSize(qffields[i], &size);
-      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetSize(qffields[i], &size); CeedChk(ierr);
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
       ierr = CeedElemRestrictionGetElementSize(Erestrict, &P);
       CeedChk(ierr);
@@ -257,8 +254,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
       CeedChk(ierr);
       ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
       CeedChk(ierr);
-      ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size);
-      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size); CeedChk(ierr);
       // Basis action
       switch(emode) {
       case CEED_EVAL_NONE:
@@ -320,8 +316,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
       CeedChk(ierr);
       ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
       CeedChk(ierr);
-      ierr = CeedQFunctionFieldGetSize(qfoutputfields[i], &size);
-      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetSize(qfoutputfields[i], &size); CeedChk(ierr);
       // Basis action
       switch(emode) {
       case CEED_EVAL_NONE:
