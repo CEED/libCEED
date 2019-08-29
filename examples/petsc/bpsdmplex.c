@@ -170,8 +170,8 @@ static const char *const bpTypes[] = {"bp1","bp2","bp3","bp4","bp5","bp6",
 typedef struct {
   CeedInt vscale, qdatasize, qextra;
   CeedQFunctionUser setup, apply, error;
-  const char *setupfname[PETSC_MAX_PATH_LEN], *applyfname[PETSC_MAX_PATH_LEN],
-        *errorfname[PETSC_MAX_PATH_LEN];
+  const char *setupfname, *applyfname,
+        *errorfname;
   CeedEvalMode inmode, outmode;
   CeedQuadMode qmode;
   PetscBool enforce_bc;
@@ -187,9 +187,9 @@ bpData bpOptions[6] = {
     .setup = SetupMass,
     .apply = Mass,
     .error = Error,
-    .setupfname = {SetupMass_loc},
-    .applyfname = {Mass_loc},
-    .errorfname = {Error_loc},
+    .setupfname = SetupMass_loc,
+    .applyfname = Mass_loc,
+    .errorfname = Error_loc,
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
     .qmode = CEED_GAUSS,
@@ -203,9 +203,9 @@ bpData bpOptions[6] = {
     .setup = SetupMass3,
     .apply = Mass3,
     .error = Error3,
-    .setupfname = {SetupMass3_loc},
-    .applyfname = {Mass3_loc},
-    .errorfname = {Error3_loc},
+    .setupfname = SetupMass3_loc,
+    .applyfname = Mass3_loc,
+    .errorfname = Error3_loc,
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
     .qmode = CEED_GAUSS,
@@ -219,9 +219,9 @@ bpData bpOptions[6] = {
     .setup = SetupDiff,
     .apply = Diff,
     .error = Error,
-    .setupfname = {SetupDiff_loc},
-    .applyfname = {Diff_loc},
-    .errorfname = {Error_loc},
+    .setupfname = SetupDiff_loc,
+    .applyfname = Diff_loc,
+    .errorfname = Error_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS,
@@ -235,9 +235,9 @@ bpData bpOptions[6] = {
     .setup = SetupDiff3,
     .apply = Diff3,
     .error = Error3,
-    .setupfname = {SetupDiff3_loc},
-    .applyfname = {Diff3_loc},
-    .errorfname = {Error3_loc},
+    .setupfname = SetupDiff3_loc,
+    .applyfname = Diff3_loc,
+    .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS,
@@ -251,9 +251,9 @@ bpData bpOptions[6] = {
     .setup = SetupDiff,
     .apply = Diff,
     .error = Error,
-    .setupfname = {SetupDiff_loc},
-    .applyfname = {Diff_loc},
-    .errorfname = {Error_loc},
+    .setupfname = SetupDiff_loc,
+    .applyfname = Diff_loc,
+    .errorfname = Error_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS_LOBATTO,
@@ -267,9 +267,9 @@ bpData bpOptions[6] = {
     .setup = SetupDiff3,
     .apply = Diff3,
     .error = Error3,
-    .setupfname = {SetupDiff3_loc},
-    .applyfname = {Diff3_loc},
-    .errorfname = {Error3_loc},
+    .setupfname = SetupDiff3_loc,
+    .applyfname = Diff3_loc,
+    .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS_LOBATTO,
@@ -548,7 +548,7 @@ int main(int argc, char **argv) {
   // Create the Q-function that builds the operator (i.e. computes its
   // quadrature data) and set its context data
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setup,
-                              *bpOptions[bpChoice].setupfname, &qf_setup);
+                              bpOptions[bpChoice].setupfname, &qf_setup);
   CeedQFunctionAddInput(qf_setup, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setup, "dx", 3, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
@@ -559,7 +559,7 @@ int main(int argc, char **argv) {
 
   // Set up PDE operator
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].apply,
-                              *bpOptions[bpChoice].applyfname, &qf_apply);
+                              bpOptions[bpChoice].applyfname, &qf_apply);
   // Add inputs and outputs
   CeedQFunctionAddInput(qf_apply, "u", vscale, bpOptions[bpChoice].inmode);
   CeedQFunctionAddInput(qf_apply, "rho", bpOptions[bpChoice].qdatasize,
@@ -568,7 +568,7 @@ int main(int argc, char **argv) {
 
   // Create the error qfunction
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].error,
-                              *bpOptions[bpChoice].errorfname, &qf_error);
+                              bpOptions[bpChoice].errorfname, &qf_error);
   CeedQFunctionAddInput(qf_error, "u", vscale, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_error, "true_soln", vscale, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_error, "error", vscale, CEED_EVAL_NONE);
