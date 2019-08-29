@@ -66,6 +66,7 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
       idx+=1;
       break;
     case CEED_EVAL_GRAD:
+      assert(dim>0);
       ncomp /= dim;
       dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > GRAD (%d)",name,Q*ncomp*dim);
       iOf7[idx+1]=iOf7[idx]+Q*ncomp*dim;;
@@ -152,6 +153,7 @@ int CeedQFunctionAllocOpOut_Occa(CeedQFunction qf, CeedInt Q,
       odx+=1;
       break;
     case CEED_EVAL_GRAD:
+      assert(dim>0);
       ncomp /= dim;
       dbg("\t[CeedQFunction][AllocOpOut] \"%s\" > GRAD (%d)",name,Q*ncomp*dim);
       oOf7[odx+1]=oOf7[odx]+Q*ncomp*dim;
