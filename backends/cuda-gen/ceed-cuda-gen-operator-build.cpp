@@ -785,7 +785,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     CeedChk(ierr);
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
     CeedChk(ierr);
-    ierr = CeedQFunctionFieldGetNumComponents(qfinputfields[i], &ncomp);
+    ierr = CeedElemRestrictionGetNumComponents(Erestrict, &ncomp);
     CeedChk(ierr);
     // Basis action
     switch (emode) {
@@ -838,7 +838,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     CeedChk(ierr);
     ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
     CeedChk(ierr);
-    ierr = CeedQFunctionFieldGetNumComponents(qfoutputfields[i], &ncomp);
+    ierr = CeedElemRestrictionGetNumComponents(Erestrict, &ncomp);
     CeedChk(ierr);
     // Basis action
     switch (emode) {
@@ -899,7 +899,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     CeedChk(ierr);
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
     CeedChk(ierr);
-    ierr = CeedQFunctionFieldGetNumComponents(qfinputfields[i], &ncomp);
+    ierr = CeedElemRestrictionGetNumComponents(Erestrict, &ncomp);
     CeedChk(ierr);
     // Basis action
     switch (emode) {
@@ -976,7 +976,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     CeedChk(ierr);
     ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
     CeedChk(ierr);
-    ierr = CeedQFunctionFieldGetNumComponents(qfoutputfields[i], &ncomp);
+    ierr = CeedElemRestrictionGetNumComponents(Erestrict, &ncomp);
     CeedChk(ierr);
     // Basis action
     switch (emode) {

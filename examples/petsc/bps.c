@@ -631,16 +631,8 @@ int main(int argc, char **argv) {
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].apply,
                               *bpOptions[bpChoice].applyfname, &qf_apply);
   // Add inputs and outputs
-  CeedInt gradInScale = 1;
-  if (bpOptions[bpChoice].inmode==CEED_EVAL_GRAD)
-  {
-    gradInScale = 3;
-  }
-  CeedInt gradOutScale = 1;
-  if (bpOptions[bpChoice].outmode==CEED_EVAL_GRAD)
-  {
-    gradOutScale = 3;
-  }
+  CeedInt gradInScale = bpOptions[bpChoice].inmode==CEED_EVAL_GRAD ? 3 : 1;
+  CeedInt gradOutScale = bpOptions[bpChoice].outmode==CEED_EVAL_GRAD ? 3 : 1;
   CeedQFunctionAddInput(qf_apply, "u", vscale*gradInScale, bpOptions[bpChoice].inmode);
   CeedQFunctionAddInput(qf_apply, "rho", bpOptions[bpChoice].qdatasize,
                         CEED_EVAL_NONE);
