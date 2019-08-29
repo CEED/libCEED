@@ -805,7 +805,7 @@ C     Create ceed qfunctions for masssetupf and massf
      $  //':masssetupf',qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'x',ldim,
      $  ceed_eval_interp,err)
-      call ceedqfunctionaddinput(qf_setup,'dx',ldim,
+      call ceedqfunctionaddinput(qf_setup,'dx',ldim*ldim,
      $  ceed_eval_grad,err)
       call ceedqfunctionaddinput(qf_setup,'weight',1,
      $  ceed_eval_weight,err)
@@ -1121,7 +1121,7 @@ C     Create ceed qfunctions for diffsetupf and diffusionf
      $  //':diffsetupf'//char(0),qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'x',ldim,
      $  ceed_eval_interp,err)
-      call ceedqfunctionaddinput(qf_setup,'dx',ldim,
+      call ceedqfunctionaddinput(qf_setup,'dx',ldim*ldim,
      $  ceed_eval_grad,err)
       call ceedqfunctionaddinput(qf_setup,'weight',1,
      $  ceed_eval_weight,err)
@@ -1133,11 +1133,11 @@ C     Create ceed qfunctions for diffsetupf and diffusionf
       call ceedqfunctioncreateinterior(ceed,1,diffusionf,
      $  __FILE__
      $  //':diffusionf'//char(0),qf_diffusion,err)
-      call ceedqfunctionaddinput(qf_diffusion,'u',1,
+      call ceedqfunctionaddinput(qf_diffusion,'u',1*ldim,
      $  ceed_eval_grad,err)
       call ceedqfunctionaddinput(qf_diffusion,'rho',ngeo,
      $  ceed_eval_none,err)
-      call ceedqfunctionaddoutput(qf_diffusion,'v',1,
+      call ceedqfunctionaddoutput(qf_diffusion,'v',1*ldim,
      $  ceed_eval_grad,err)  
 
 C     Create ceed operators
