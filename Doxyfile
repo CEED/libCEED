@@ -794,6 +794,7 @@ INPUT                  = . \
                          backends/avx \
                          backends/blocked \
                          backends/cuda \
+                         backends/cuda-gen \
                          backends/cuda-reg \
                          backends/cuda-shared \
                          backends/magma \
