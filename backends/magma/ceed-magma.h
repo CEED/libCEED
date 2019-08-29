@@ -101,6 +101,31 @@ int CeedBasisCreateH1_Magma(
     const CeedScalar *qweight,
     CeedBasis basis);
 
+CEED_INTERN
+int CeedVectorSetArray_Magma(CeedVector vec, CeedMemType mtype,
+                             CeedCopyMode cmode, CeedScalar *array);
+
+CEED_INTERN
+int CeedVectorGetArray_Magma(CeedVector vec, CeedMemType mtype,
+                                    CeedScalar **array);
+
+CEED_INTERN
+int CeedVectorGetArrayRead_Magma(CeedVector vec, CeedMemType mtype,
+                                        const CeedScalar **array);
+
+CEED_INTERN
+int CeedVectorRestoreArray_Magma(CeedVector vec, CeedScalar **array);
+
+CEED_INTERN
+int CeedVectorRestoreArrayRead_Magma(CeedVector vec,
+    const CeedScalar **array);
+
+CEED_INTERN
+int CeedVectorDestroy_Magma(CeedVector vec);
+
+CEED_INTERN
+int CeedVectorCreate_Magma(CeedInt n, CeedVector vec);
+
 #ifdef __cplusplus
 }
 #endif
