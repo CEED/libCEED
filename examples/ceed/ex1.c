@@ -155,7 +155,7 @@ int main(int argc, const char *argv[]) {
   CeedQFunction build_qfunc;
   CeedQFunctionCreateInterior(ceed, 1, f_build_mass,
                               f_build_mass_loc, &build_qfunc);
-  CeedQFunctionAddInput(build_qfunc, "dx", dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(build_qfunc, "dx", dim*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(build_qfunc, "rho", 1, CEED_EVAL_NONE);
   CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
