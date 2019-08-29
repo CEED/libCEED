@@ -154,8 +154,6 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
                                            tmode == CEED_TRANSPOSE
                                              ? v : v+d*ncomp*nqpt*nelem);
             CeedChk(ierr);
-            pre /= P;
-            post *= Q;
         }      
       } else { // Underintegration, P > Q
         CeedScalar *grad1d;
