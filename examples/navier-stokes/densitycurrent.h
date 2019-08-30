@@ -223,16 +223,16 @@ static int DC(void *ctx, CeedInt Q,
     // Setup
     // -- Interp in
     const CeedScalar rho        =    q[0][i];
-    const CeedScalar u[3]       = {  q[1][i] / rho,
+    const CeedScalar u[3]       =   {q[1][i] / rho,
                                      q[2][i] / rho,
                                      q[3][i] / rho
-                                  };
+                                    };
     const CeedScalar E          =    q[4][i];
     // -- Grad in
-    const CeedScalar drho[3]    = {  dq[0][0][i],
+    const CeedScalar drho[3]    =   {dq[0][0][i],
                                      dq[1][0][i],
                                      dq[2][0][i]
-                                  };
+                                    };
     const CeedScalar du[3][3]   = {{(dq[0][1][i] - drho[0]*u[0]) / rho,
                                     (dq[1][1][i] - drho[1]*u[0]) / rho,
                                     (dq[2][1][i] - drho[2]*u[0]) / rho},
@@ -243,30 +243,34 @@ static int DC(void *ctx, CeedInt Q,
                                     (dq[1][3][i] - drho[1]*u[2]) / rho,
                                     (dq[2][3][i] - drho[2]*u[2]) / rho}
                                   };
-    const CeedScalar dE[3]      = {  dq[0][4][i],
+    const CeedScalar dE[3]      =   {dq[0][4][i],
                                      dq[1][4][i],
                                      dq[2][4][i]
-                                  };
+                                    };
     // -- Interp-to-Interp qdata
-    const CeedScalar wJ         =   qdata[0][i];
+    const CeedScalar wJ         =    qdata[0][i];
     // -- Interp-to-Grad qdata
     // ---- Inverse of change of coordinate matrix: X_i,j
-    const CeedScalar dXdx[3][3] = {{qdata[1][i],
-                                    qdata[2][i],
-                                    qdata[3][i]},
-                                   {qdata[4][i],
-                                    qdata[5][i],
-                                    qdata[6][i]},
-                                   {qdata[7][i],
-                                    qdata[8][i],
-                                    qdata[9][i]}
-                                  };
+    const CeedScalar dXdx[3][3] =  {{qdata[1][i],
+                                     qdata[2][i],
+                                     qdata[3][i]},
+                                    {qdata[4][i],
+                                     qdata[5][i],
+                                     qdata[6][i]},
+                                    {qdata[7][i],
+                                     qdata[8][i],
+                                     qdata[9][i]}
+                                   };
     // -- Grad-to-Grad qdata
     // ---- dXdx_j,k * dXdx_k,j
     CeedScalar dXdxdXdxT[3][3];
-    for (int j=0; j<3; j++)
-      for (int k=0; k<3; k++)
-        dXdxdXdxT[j][k] = dXdx[j][k] * dXdx[k][j];
+      for (int j=0; j<3; j++) {
+        for (int k=0; k<3; k++) {
+          dXdxdXdxT[j][k] = 0;
+          for (int l=0; l<3; l++)
+            dXdxdXdxT[j][k] += dXdx[j][l]*dXdx[k][l];
+        }
+      }
 
     // -- gradT
     const CeedScalar gradT[3]  = {(dE[0]/rho - E*drho[0]/(rho*rho) -
