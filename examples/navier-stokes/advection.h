@@ -140,12 +140,12 @@ static int Advection(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar rho        =  q[0][i];
-    const CeedScalar u[3]       = {q[1][i] / rho,
-                                   q[2][i] / rho,
-                                   q[3][i] / rho
+    const CeedScalar rho        =    q[0][i];
+    const CeedScalar u[3]       = {  q[1][i] / rho,
+                                     q[2][i] / rho,
+                                     q[3][i] / rho
                                   };
-    const CeedScalar E          =  q[4][i];
+    const CeedScalar E          =    q[4][i];
     // -- Grad in
     const CeedScalar drho[3]    = {  dq[0][0][i],
                                      dq[1][0][i],
@@ -166,9 +166,9 @@ static int Advection(void *ctx, CeedInt Q,
                                      dq[2][4][i]
                                   };
     // -- Interp-to-Interp qdata
-    const CeedScalar wJ         =  qdata[0][i];
+    const CeedScalar wJ         =   qdata[0][i];
     // -- Interp-to-Grad qdata
-    //    3x3 matrix
+    // ---- Inverse of change of coordinate matrix: X_i,j
     const CeedScalar dXdx[3][3] = {{qdata[1][i],
                                     qdata[2][i],
                                     qdata[3][i]},

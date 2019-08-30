@@ -222,12 +222,12 @@ static int DC(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar rho        =  q[0][i];
-    const CeedScalar u[3]       = {q[1][i] / rho,
-                                   q[2][i] / rho,
-                                   q[3][i] / rho
+    const CeedScalar rho        =    q[0][i];
+    const CeedScalar u[3]       = {  q[1][i] / rho,
+                                     q[2][i] / rho,
+                                     q[3][i] / rho
                                   };
-    const CeedScalar E          =  q[4][i];
+    const CeedScalar E          =    q[4][i];
     // -- Grad in
     const CeedScalar drho[3]    = {  dq[0][0][i],
                                      dq[1][0][i],
