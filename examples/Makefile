@@ -48,6 +48,9 @@ nek:
 petsc:
 	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C petsc all
 
+multigrid:
+	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C multigrid all
+
 ns:
 	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C navier-stokes all
 
@@ -56,4 +59,5 @@ clean:
 	+make -C mfem clean
 	+make -C nek clean
 	+make -C petsc clean
+	+make -C multigrid clean
 	+make -C navier-stokes clean
