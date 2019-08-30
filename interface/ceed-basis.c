@@ -751,7 +751,8 @@ int CeedMatrixMultiply(Ceed ceed, CeedScalar *matA, CeedScalar *matB,
   @brief Return Simultaneous Diagonalization of two matrices. This solves the
            generalized eigenvalue problem A x = lambda B x, where A and B
            are symmetric and B is positive definite. We generate the matrix X
-           and vector Lambda such that X^T A X = Lambda and X^T B X = I.
+           and vector Lambda such that X^T A X = Lambda and X^T B X = I. This
+           is equivalent to the LAPACK routine 'sygv' with TYPE = 1.
 
   @param[in] matA     Row-major matrix to be factorized with eigenvalues
   @param[in] matB     Row-major matrix to be factorized to identity
