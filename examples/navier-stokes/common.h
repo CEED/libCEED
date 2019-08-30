@@ -116,7 +116,7 @@ static int Setup(void *ctx, CeedInt Q,
     // -- Interp-to-Interp qdata
     qdata[0][i] = w[i] * detJ;
     // -- Interp-to-Grad qdata
-    // Inverse of change of coordinate matrix X_i,j
+    // Inverse of change of coordinate matrix: X_i,j
     qdata[1][i] = A11 / detJ;
     qdata[2][i] = A12 / detJ;
     qdata[3][i] = A13 / detJ;
