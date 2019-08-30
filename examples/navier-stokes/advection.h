@@ -219,7 +219,7 @@ static int Advection(void *ctx, CeedInt Q,
         dv[j][4][i] = 0;
         CeedScalar dEdx_j = 0;
         for (int k=0; k<3; k++) {
-          div_u += du[j][k] * dXdx[j][k]; // u_{k,j} = u_{k,J} X_{J,j}
+          div_u += du[k][j] * dXdx[k][j]; // u_{j,j} = u_{j,K} X_{K,j}
           dEdx_j += dE[k] * dXdx[k][j];
         }
         u_dot_grad_E += u[j] * dEdx_j;
