@@ -53,7 +53,7 @@
 //     Jij = Jacobian entry ij
 //     Aij = Adjoint ij
 //
-// Stored: detJ
+// Stored: w detJ
 //   qd: 0
 //
 // We require the transpose of the inverse of the Jacobian to properly compute

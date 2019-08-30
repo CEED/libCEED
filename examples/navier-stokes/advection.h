@@ -140,35 +140,35 @@ static int Advection(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar rho      =   q[0][i];
-    const CeedScalar u[3]     = { q[1][i] / rho,
-                                  q[2][i] / rho,
-                                  q[3][i] / rho
-                                };
-    const CeedScalar E        =   q[4][i];
+    const CeedScalar rho        =    q[0][i];
+    const CeedScalar u[3]       = {  q[1][i] / rho,
+                                     q[2][i] / rho,
+                                     q[3][i] / rho
+                                  };
+    const CeedScalar E          =    q[4][i];
     // -- Grad in
-    const CeedScalar drho[3]  = {  dq[0][0][i],
-                                   dq[1][0][i],
-                                   dq[2][0][i]
-                                };
-    const CeedScalar du[3][3]  = {{(dq[0][1][i] - drho[0]*u[0]) / rho,
-                                   (dq[1][1][i] - drho[1]*u[0]) / rho,
-                                   (dq[2][1][i] - drho[2]*u[0]) / rho},
-                                  {(dq[0][2][i] - drho[0]*u[1]) / rho,
-                                   (dq[1][2][i] - drho[1]*u[1]) / rho,
-                                   (dq[2][2][i] - drho[2]*u[1]) / rho},
-                                  {(dq[0][3][i] - drho[0]*u[2]) / rho,
-                                   (dq[1][3][i] - drho[1]*u[2]) / rho,
-                                   (dq[2][3][i] - drho[2]*u[2]) / rho}
-                                 };
-    const CeedScalar dE[3]    = {  dq[0][4][i],
-                                   dq[1][4][i],
-                                   dq[2][4][i]
-                                };
+    const CeedScalar drho[3]    = {  dq[0][0][i],
+                                     dq[1][0][i],
+                                     dq[2][0][i]
+                                  };
+    const CeedScalar du[3][3]   = {{(dq[0][1][i] - drho[0]*u[0]) / rho,
+                                    (dq[1][1][i] - drho[1]*u[0]) / rho,
+                                    (dq[2][1][i] - drho[2]*u[0]) / rho},
+                                   {(dq[0][2][i] - drho[0]*u[1]) / rho,
+                                    (dq[1][2][i] - drho[1]*u[1]) / rho,
+                                    (dq[2][2][i] - drho[2]*u[1]) / rho},
+                                   {(dq[0][3][i] - drho[0]*u[2]) / rho,
+                                    (dq[1][3][i] - drho[1]*u[2]) / rho,
+                                    (dq[2][3][i] - drho[2]*u[2]) / rho}
+                                  };
+    const CeedScalar dE[3]      = {  dq[0][4][i],
+                                     dq[1][4][i],
+                                     dq[2][4][i]
+                                  };
     // -- Interp-to-Interp qdata
-    const CeedScalar wJ        =    qdata[0][i];
+    const CeedScalar wJ         =   qdata[0][i];
     // -- Interp-to-Grad qdata
-    //    3x3 matrix
+    // ---- Inverse of change of coordinate matrix: X_i,j
     const CeedScalar dXdx[3][3] = {{qdata[1][i],
                                     qdata[2][i],
                                     qdata[3][i]},
@@ -178,7 +178,7 @@ static int Advection(void *ctx, CeedInt Q,
                                    {qdata[7][i],
                                     qdata[8][i],
                                     qdata[9][i]}
-                                 };
+                                  };
 
     // The Physics
 

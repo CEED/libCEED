@@ -222,16 +222,16 @@ static int DC(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar rho        =   q[0][i];
-    const CeedScalar u[3]       = { q[1][i] / rho,
-                                    q[2][i] / rho,
-                                    q[3][i] / rho
+    const CeedScalar rho        =    q[0][i];
+    const CeedScalar u[3]       = {  q[1][i] / rho,
+                                     q[2][i] / rho,
+                                     q[3][i] / rho
                                   };
-    const CeedScalar E          =   q[4][i];
+    const CeedScalar E          =    q[4][i];
     // -- Grad in
-    const CeedScalar drho[3]    = { dq[0][0][i],
-                                    dq[1][0][i],
-                                    dq[2][0][i]
+    const CeedScalar drho[3]    = {  dq[0][0][i],
+                                     dq[1][0][i],
+                                     dq[2][0][i]
                                   };
     const CeedScalar du[3][3]   = {{(dq[0][1][i] - drho[0]*u[0]) / rho,
                                     (dq[1][1][i] - drho[1]*u[0]) / rho,
@@ -243,9 +243,9 @@ static int DC(void *ctx, CeedInt Q,
                                     (dq[1][3][i] - drho[1]*u[2]) / rho,
                                     (dq[2][3][i] - drho[2]*u[2]) / rho}
                                   };
-    const CeedScalar dE[3]      = { dq[0][4][i],
-                                    dq[1][4][i],
-                                    dq[2][4][i]
+    const CeedScalar dE[3]      = {  dq[0][4][i],
+                                     dq[1][4][i],
+                                     dq[2][4][i]
                                   };
     // -- Interp-to-Interp qdata
     const CeedScalar wJ         =   qdata[0][i];
@@ -264,11 +264,9 @@ static int DC(void *ctx, CeedInt Q,
     // -- Grad-to-Grad qdata
     // ---- dXdx_j,k * dXdx_k,j
     CeedScalar dXdxdXdxT[3][3];
-    for (int j=0; j<3; j++) {
-      for (int k=0; k<3; k++) {
+    for (int j=0; j<3; j++)
+      for (int k=0; k<3; k++)
         dXdxdXdxT[j][k] = dXdx[j][k] * dXdx[k][j];
-      }
-    }
     // -- gradT
     const CeedScalar gradT[3]  = {(dE[0]/rho - E*drho[0]/(rho*rho) -
                                   (u[0]*du[0][0] + u[1]*du[1][0] + u[2]*du[2][0]))/cv,
@@ -306,28 +304,24 @@ static int DC(void *ctx, CeedInt Q,
     // -- Density
     // ---- u rho
     for (int j=0; j<3; j++)
-      dv[j][0][i]  = wJ * (rho*u[0]*dXdx[j][0] + rho*u[1]*dXdx[j][1] + rho*u[2]*dXdx[j][2]);
+      dv[j][0][i]  = wJ*(rho*u[0]*dXdx[j][0] + rho*u[1]*dXdx[j][1] + rho*u[2]*dXdx[j][2]);
     // ---- No Change
     v[0][i] = 0;
 
     // -- Momentum
     // ---- rho (u x u) + P I3
-    for (int j=0; j<3; j++) {
-      for (int k=0; k<3; k++) {
-        dv[k][j+1][i]  = wJ * ((rho*u[j]*u[0] + (j==0?P:0))*dXdx[k][0] +
-                               (rho*u[j]*u[1] + (j==1?P:0))*dXdx[k][1] +
-                               (rho*u[j]*u[2] + (j==2?P:0))*dXdx[k][2]);
-      }
-    }
+    for (int j=0; j<3; j++)
+      for (int k=0; k<3; k++)
+        dv[k][j+1][i]  = wJ*((rho*u[j]*u[0] + (j==0?P:0))*dXdx[k][0] +
+                             (rho*u[j]*u[1] + (j==1?P:0))*dXdx[k][1] +
+                             (rho*u[j]*u[2] + (j==2?P:0))*dXdx[k][2]);
     // ---- Fuvisc
     const CeedInt Fuviscidx[3][3] = {{0, 1, 2}, {1, 3, 4}, {2, 4, 5}}; // symmetric matrix indices
-    for (int j=0; j<3; j++) {
-      for (int k=0; k<3; k++) {
-        dv[k][j+1][i] -= wJ * (Fu[Fuviscidx[j][0]]*dXdxdXdxT[k][0] +
-                               Fu[Fuviscidx[j][1]]*dXdxdXdxT[k][1] +
-                               Fu[Fuviscidx[j][2]]*dXdxdXdxT[k][2]);
-      }
-    }
+    for (int j=0; j<3; j++)
+      for (int k=0; k<3; k++)
+        dv[k][j+1][i] -= wJ*(Fu[Fuviscidx[j][0]]*dXdxdXdxT[k][0] +
+                             Fu[Fuviscidx[j][1]]*dXdxdXdxT[k][1] +
+                             Fu[Fuviscidx[j][2]]*dXdxdXdxT[k][2]);
     // ---- -rho g khat
     v[1][i] = 0;
     v[2][i] = 0;
