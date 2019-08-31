@@ -55,7 +55,7 @@ int CeedQFunctionAllocOpIn_Occa(CeedQFunction qf, CeedInt Q,
     ierr = CeedQFunctionFieldGetEvalMode(inputfields[i], &emode); CeedChk(ierr);
     CeedBasis basis;
     ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
-    CeedInt dim = 0;
+    CeedInt dim = 1;
     if (basis != CEED_BASIS_COLLOCATED) {
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
     }
@@ -137,7 +137,7 @@ int CeedQFunctionAllocOpOut_Occa(CeedQFunction qf, CeedInt Q,
     ierr = CeedQFunctionFieldGetEvalMode(outputfields[i], &emode); CeedChk(ierr);
     CeedBasis basis;
     ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
-    CeedInt dim = 0;
+    CeedInt dim = 1;
     if (basis != CEED_BASIS_COLLOCATED) {
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
     }
@@ -153,7 +153,6 @@ int CeedQFunctionAllocOpOut_Occa(CeedQFunction qf, CeedInt Q,
       odx+=1;
       break;
     case CEED_EVAL_GRAD:
-      assert(dim>0);
       ncomp /= dim;
       dbg("\t[CeedQFunction][AllocOpOut] \"%s\" > GRAD (%d)",name,Q*ncomp*dim);
       oOf7[odx+1]=oOf7[odx]+Q*ncomp*dim;
