@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
   // QFunctions
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
   CeedQFunctionAddInput(qf_setup, "_weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddInput(qf_setup, "x", dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setup, "x", dim*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddOutput(qf_setup, "rho", 1, CEED_EVAL_NONE);
 
   CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_mass);

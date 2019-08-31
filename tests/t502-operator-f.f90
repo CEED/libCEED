@@ -93,7 +93,7 @@
      &__FILE__&
      &//':setup'//char(0),qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'_weight',1,ceed_eval_weight,err)
-      call ceedqfunctionaddinput(qf_setup,'x',1,ceed_eval_grad,err)
+      call ceedqfunctionaddinput(qf_setup,'dx',1,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setup,'rho',1,ceed_eval_none,err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,&
@@ -113,7 +113,7 @@
 
       call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&
      & ceed_notranspose,bx,ceed_vector_none,err)
-      call ceedoperatorsetfield(op_setup,'x',erestrictx,&
+      call ceedoperatorsetfield(op_setup,'dx',erestrictx,&
      & ceed_notranspose,bx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rho',erestrictui,&
      & ceed_notranspose,ceed_basis_collocated,ceed_vector_active,err)
