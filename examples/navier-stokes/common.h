@@ -35,7 +35,15 @@
 // This QFunction sets up the geometric factors required for integration and
 //   coordinate transformations
 //
-// All data is stored in 16 field vector of quadrature data.
+// Reference (parent) coordinates: X
+// Physical (current) coordinates: x
+// Change of coordinate matrix: dxdX_{i,j} = x_{i,j} (indicial notation)
+// Inverse of change of coordinate matrix: dXdx_{i,j} = (detJ^-1) * X_{i,j}
+//
+// All quadrature data is stored in 16 field vector of quadrature data.
+//
+// Quadrature weights:
+// Stored: w
 //
 // We require the determinant of the Jacobian to properly compute integrals of
 //   the form: int( v u )
@@ -65,7 +73,7 @@
 // Product of Inverse and Transpose:
 //   BBij = sum( Bik Bkj )
 //
-// Stored: w B^T B detJ = w A^T A / detJ
+// Stored: w B B^T detJ = w A A^T / detJ
 //   Note: This matrix is symmetric
 //     qd: 10 11 12
 //         11 13 14
@@ -103,28 +111,21 @@ static int Setup(void *ctx, CeedInt Q,
     const CeedScalar A32 = J12*J31 - J11*J32;
     const CeedScalar A33 = J11*J22 - J12*J21;
     const CeedScalar detJ = J11*A11 + J21*A12 + J31*A13;
-    const CeedScalar qw = w[i] / detJ;
 
     // Qdata
     // -- Interp-to-Interp qdata
     qdata[0][i] = w[i] * detJ;
     // -- Interp-to-Grad qdata
-    qdata[1][i] = w[i] * A11;
-    qdata[2][i] = w[i] * A12;
-    qdata[3][i] = w[i] * A13;
-    qdata[4][i] = w[i] * A21;
-    qdata[5][i] = w[i] * A22;
-    qdata[6][i] = w[i] * A23;
-    qdata[7][i] = w[i] * A31;
-    qdata[8][i] = w[i] * A32;
-    qdata[9][i] = w[i] * A33;
-    // -- Grad-to-Grad qdata
-    qdata[10][i] = qw * (A11*A11 + A12*A12 + A13*A13);
-    qdata[11][i] = qw * (A11*A21 + A12*A22 + A13*A23);
-    qdata[12][i] = qw * (A11*A31 + A12*A32 + A13*A33);
-    qdata[13][i] = qw * (A21*A21 + A22*A22 + A23*A23);
-    qdata[14][i] = qw * (A21*A31 + A22*A32 + A23*A33);
-    qdata[15][i] = qw * (A31*A31 + A32*A32 + A33*A33);
+    // Inverse of change of coordinate matrix: X_i,j
+    qdata[1][i] = A11 / detJ;
+    qdata[2][i] = A12 / detJ;
+    qdata[3][i] = A13 / detJ;
+    qdata[4][i] = A21 / detJ;
+    qdata[5][i] = A22 / detJ;
+    qdata[6][i] = A23 / detJ;
+    qdata[7][i] = A31 / detJ;
+    qdata[8][i] = A32 / detJ;
+    qdata[9][i] = A33 / detJ;
 
   } // End of Quadrature Point Loop
 

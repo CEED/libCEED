@@ -222,56 +222,56 @@ static int DC(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar rho       =    q[0][i];
-    const CeedScalar u[3]      =  { q[1][i] / rho,
-                                    q[2][i] / rho,
-                                    q[3][i] / rho
-                                  };
-    const CeedScalar E         =    q[4][i];
+    const CeedScalar rho        =    q[0][i];
+    const CeedScalar u[3]       =   {q[1][i] / rho,
+                                     q[2][i] / rho,
+                                     q[3][i] / rho
+                                    };
+    const CeedScalar E          =    q[4][i];
     // -- Grad in
-    const CeedScalar drho[3]   =  { dq[0][0][i],
-                                    dq[1][0][i],
-                                    dq[2][0][i]
+    const CeedScalar drho[3]    =   {dq[0][0][i],
+                                     dq[1][0][i],
+                                     dq[2][0][i]
+                                    };
+    const CeedScalar du[3][3]   = {{(dq[0][1][i] - drho[0]*u[0]) / rho,
+                                    (dq[1][1][i] - drho[1]*u[0]) / rho,
+                                    (dq[2][1][i] - drho[2]*u[0]) / rho},
+                                   {(dq[0][2][i] - drho[0]*u[1]) / rho,
+                                    (dq[1][2][i] - drho[1]*u[1]) / rho,
+                                    (dq[2][2][i] - drho[2]*u[1]) / rho},
+                                   {(dq[0][3][i] - drho[0]*u[2]) / rho,
+                                    (dq[1][3][i] - drho[1]*u[2]) / rho,
+                                    (dq[2][3][i] - drho[2]*u[2]) / rho}
                                   };
-    const CeedScalar du[3][3]  = {{(dq[0][1][i] - drho[0]*u[0]) / rho,
-                                   (dq[1][1][i] - drho[1]*u[0]) / rho,
-                                   (dq[2][1][i] - drho[2]*u[0]) / rho},
-                                  {(dq[0][2][i] - drho[0]*u[1]) / rho,
-                                   (dq[1][2][i] - drho[1]*u[1]) / rho,
-                                   (dq[2][2][i] - drho[2]*u[1]) / rho},
-                                  {(dq[0][3][i] - drho[0]*u[2]) / rho,
-                                   (dq[1][3][i] - drho[1]*u[2]) / rho,
-                                   (dq[2][3][i] - drho[2]*u[2]) / rho}
-                                 };
-    const CeedScalar dE[3]     =  { dq[0][4][i],
-                                    dq[1][4][i],
-                                    dq[2][4][i]
-                                  };
+    const CeedScalar dE[3]      =   {dq[0][4][i],
+                                     dq[1][4][i],
+                                     dq[2][4][i]
+                                    };
     // -- Interp-to-Interp qdata
-    const CeedScalar wJ        =    qdata[0][i];
+    const CeedScalar wJ         =    qdata[0][i];
     // -- Interp-to-Grad qdata
-    //      Symmetric 3x3 matrix
-    const CeedScalar wBJ[3][3] = {{qdata[1][i],
-                                   qdata[2][i],
-                                   qdata[3][i]},
-                                  {qdata[4][i],
-                                   qdata[5][i],
-                                   qdata[6][i]},
-                                  {qdata[7][i],
-                                   qdata[8][i],
-                                   qdata[9][i]}
-                                 };
+    // ---- Inverse of change of coordinate matrix: X_i,j
+    const CeedScalar dXdx[3][3] =  {{qdata[1][i],
+                                     qdata[2][i],
+                                     qdata[3][i]},
+                                    {qdata[4][i],
+                                     qdata[5][i],
+                                     qdata[6][i]},
+                                    {qdata[7][i],
+                                     qdata[8][i],
+                                     qdata[9][i]}
+                                   };
     // -- Grad-to-Grad qdata
-    const CeedScalar wBBJ[3][3] = {{qdata[10][i],
-                                    qdata[11][i],
-                                    qdata[12][i]},
-                                   {qdata[11][i],
-                                    qdata[13][i],
-                                    qdata[14][i]},
-                                   {qdata[12][i],
-                                    qdata[14][i],
-                                    qdata[15][i]}
-                                  };
+    // ---- dXdx_j,k * dXdx_k,j
+    CeedScalar dXdxdXdxT[3][3];
+      for (int j=0; j<3; j++) {
+        for (int k=0; k<3; k++) {
+          dXdxdXdxT[j][k] = 0;
+          for (int l=0; l<3; l++)
+            dXdxdXdxT[j][k] += dXdx[j][l]*dXdx[k][l];
+        }
+      }
+
     // -- gradT
     const CeedScalar gradT[3]  = {(dE[0]/rho - E*drho[0]/(rho*rho) -
                                   (u[0]*du[0][0] + u[1]*du[1][0] + u[2]*du[2][0]))/cv,
@@ -281,7 +281,7 @@ static int DC(void *ctx, CeedInt Q,
                                   (u[0]*du[0][2] + u[1]*du[1][2] + u[2]*du[2][2]) - g)/cv
                                  };
     // -- Fuvisc
-    //      Symmetric 3x3 matrix
+    // ---- Symmetric 3x3 matrix
     const CeedScalar Fu[6]     =  { mu * (du[0][0] * (2 + lambda) +
                                     lambda * (du[1][1] + du[2][2])),
                                     mu * (du[0][1] + du[1][0]),
@@ -308,56 +308,37 @@ static int DC(void *ctx, CeedInt Q,
 
     // -- Density
     // ---- u rho
-    dv[0][0][i]  = rho*u[0]*wBJ[0][0] + rho*u[1]*wBJ[0][1] + rho*u[2]*wBJ[0][2];
-    dv[1][0][i]  = rho*u[0]*wBJ[1][0] + rho*u[1]*wBJ[1][1] + rho*u[2]*wBJ[1][2];
-    dv[2][0][i]  = rho*u[0]*wBJ[2][0] + rho*u[1]*wBJ[2][1] + rho*u[2]*wBJ[2][2];
+    for (int j=0; j<3; j++)
+      dv[j][0][i]  = wJ*(rho*u[0]*dXdx[j][0] + rho*u[1]*dXdx[j][1] + rho*u[2]*dXdx[j][2]);
     // ---- No Change
     v[0][i] = 0;
 
     // -- Momentum
     // ---- rho (u x u) + P I3
-    dv[0][1][i]  = (rho*u[0]*u[0]+P)*wBJ[0][0] + rho*u[0]*u[1]*wBJ[0][1] +
-                    rho*u[0]*u[2]*wBJ[0][2];
-    dv[1][1][i]  = (rho*u[0]*u[0]+P)*wBJ[1][0] + rho*u[0]*u[1]*wBJ[1][1] +
-                    rho*u[0]*u[2]*wBJ[1][2];
-    dv[2][1][i]  = (rho*u[0]*u[0]+P)*wBJ[2][0] + rho*u[0]*u[1]*wBJ[2][1] +
-                    rho*u[0]*u[2]*wBJ[2][2];
-    dv[0][2][i]  =  rho*u[1]*u[0]*wBJ[0][0] +   (rho*u[1]*u[1]+P)*wBJ[0][1] +
-                    rho*u[1]*u[2]*wBJ[0][2];
-    dv[1][2][i]  =  rho*u[1]*u[0]*wBJ[1][0] +   (rho*u[1]*u[1]+P)*wBJ[1][1] +
-                    rho*u[1]*u[2]*wBJ[1][2];
-    dv[2][2][i]  =  rho*u[1]*u[0]*wBJ[2][0] +   (rho*u[1]*u[1]+P)*wBJ[2][1] +
-                    rho*u[1]*u[2]*wBJ[2][2];
-    dv[0][3][i]  =  rho*u[2]*u[0]*wBJ[0][0] +    rho*u[2]*u[1]*wBJ[0][1] +
-                   (rho*u[2]*u[2]+P)*wBJ[0][2];
-    dv[1][3][i]  =  rho*u[2]*u[0]*wBJ[1][0] +    rho*u[2]*u[1]*wBJ[1][1] +
-                   (rho*u[2]*u[2]+P)*wBJ[1][2];
-    dv[2][3][i]  =  rho*u[2]*u[0]*wBJ[2][0] +    rho*u[2]*u[1]*wBJ[2][1] +
-                   (rho*u[2]*u[2]+P)*wBJ[2][2];
+    for (int j=0; j<3; j++)
+      for (int k=0; k<3; k++)
+        dv[k][j+1][i]  = wJ*((rho*u[j]*u[0] + (j==0?P:0))*dXdx[k][0] +
+                             (rho*u[j]*u[1] + (j==1?P:0))*dXdx[k][1] +
+                             (rho*u[j]*u[2] + (j==2?P:0))*dXdx[k][2]);
     // ---- Fuvisc
-    dv[0][1][i] -= Fu[0]*wBBJ[0][0] + Fu[1]*wBBJ[0][1] + Fu[2]*wBBJ[0][2];
-    dv[1][1][i] -= Fu[0]*wBBJ[1][0] + Fu[1]*wBBJ[1][1] + Fu[2]*wBBJ[1][2];
-    dv[2][1][i] -= Fu[0]*wBBJ[2][0] + Fu[1]*wBBJ[2][1] + Fu[2]*wBBJ[2][2];
-    dv[0][2][i] -= Fu[1]*wBBJ[0][0] + Fu[3]*wBBJ[0][1] + Fu[4]*wBBJ[0][2];
-    dv[1][2][i] -= Fu[1]*wBBJ[1][0] + Fu[3]*wBBJ[1][1] + Fu[4]*wBBJ[1][2];
-    dv[2][2][i] -= Fu[1]*wBBJ[2][0] + Fu[3]*wBBJ[2][1] + Fu[4]*wBBJ[2][2];
-    dv[0][3][i] -= Fu[2]*wBBJ[0][0] + Fu[4]*wBBJ[0][1] + Fu[5]*wBBJ[0][2];
-    dv[1][3][i] -= Fu[2]*wBBJ[1][0] + Fu[4]*wBBJ[1][1] + Fu[5]*wBBJ[2][1];
-    dv[2][3][i] -= Fu[2]*wBBJ[2][0] + Fu[4]*wBBJ[2][1] + Fu[5]*wBBJ[2][2];
+    const CeedInt Fuviscidx[3][3] = {{0, 1, 2}, {1, 3, 4}, {2, 4, 5}}; // symmetric matrix indices
+    for (int j=0; j<3; j++)
+      for (int k=0; k<3; k++)
+        dv[k][j+1][i] -= wJ*(Fu[Fuviscidx[j][0]]*dXdxdXdxT[k][0] +
+                             Fu[Fuviscidx[j][1]]*dXdxdXdxT[k][1] +
+                             Fu[Fuviscidx[j][2]]*dXdxdXdxT[k][2]);
     // ---- -rho g khat
     v[1][i] = 0;
     v[2][i] = 0;
     v[3][i] = -rho*g*wJ;
 
-    // -- Total Energy
+    // -- Total Energy Density
     // ---- (E + P) u
-    dv[0][4][i]  = (E + P)*(u[0]*wBJ[0][0] + u[1]*wBJ[0][1] + u[2]*wBJ[0][2]);
-    dv[1][4][i]  = (E + P)*(u[0]*wBJ[1][0] + u[1]*wBJ[1][1] + u[2]*wBJ[1][2]);
-    dv[2][4][i]  = (E + P)*(u[0]*wBJ[2][0] + u[1]*wBJ[2][1] + u[2]*wBJ[2][2]);
+    for (int j=0; j<3; j++)
+      dv[j][4][i]  = wJ * (E + P) * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] + u[2]*dXdx[j][2]);
     // ---- Fevisc
-    dv[0][0][i] -= Fe[0]*wBBJ[0][0] + Fe[1]*wBBJ[0][1] + Fe[2]*wBBJ[0][2];
-    dv[1][4][i] -= Fe[0]*wBBJ[1][0] + Fe[1]*wBBJ[1][1] + Fe[2]*wBBJ[1][2];
-    dv[2][4][i] -= Fe[0]*wBBJ[2][0] + Fe[1]*wBBJ[2][1] + Fe[2]*wBBJ[2][2];
+    for (int j=0; j<3; j++)
+      dv[j][4][i] -= wJ * (Fe[0]*dXdxdXdxT[j][0] + Fe[1]*dXdxdXdxT[j][1] + Fe[2]*dXdxdXdxT[j][2]);
     // ---- No Change
     v[4][i] = 0;
 
