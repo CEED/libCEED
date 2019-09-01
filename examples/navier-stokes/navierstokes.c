@@ -47,6 +47,34 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include "advection.h"
 #include "densitycurrent.h"
 
+// Problem Options
+typedef enum {
+  NS_DENSITY_CURRENT = 0, NS_ADVECTION = 1
+} problemType;
+static const char *const problemTypes[] = {"density_current", "advection",
+                                           "problemType","NS_",0};
+
+// Problem specific data
+typedef struct {
+  CeedQFunctionUser ics, apply;
+  const char *icsfname, *applyfname;
+} problemData;
+
+problemData problemOptions[2] = {
+  [NS_DENSITY_CURRENT] = {
+    .ics = ICsDC,
+    .apply = DC,
+    .icsfname = ICsDC_loc,
+    .applyfname = DC_loc
+  },
+  [NS_ADVECTION] = {
+    .ics = ICsAdvection,
+    .apply = Advection,
+    .icsfname = ICsAdvection_loc,
+    .applyfname = Advection_loc,
+  }
+};
+
 // Utility function, compute three factors of an integer
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   for (PetscInt d=0,sizeleft=size; d<3; d++) {
@@ -315,6 +343,7 @@ int main(int argc, char **argv) {
   CeedScalar Rd;
   PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
               kgpersquaredms, Joulepercubicm;
+  problemType problemChoice;
 
   // Create the libCEED contexts
   PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
@@ -350,16 +379,6 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
 
-  // Set up problem type command line option
-  PetscFunctionListAdd(&icsflist, "advection", &ICsAdvection);
-  PetscFunctionListAdd(&icsfnamelist, "advection", &ICsAdvection_loc);
-  PetscFunctionListAdd(&qflist, "advection", &Advection);
-  PetscFunctionListAdd(&qfnamelist, "advection", &Advection_loc);
-  PetscFunctionListAdd(&icsflist, "density_current", &ICsDC);
-  PetscFunctionListAdd(&icsfnamelist, "density_current", &ICsDC_loc);
-  PetscFunctionListAdd(&qflist, "density_current", &DC);
-  PetscFunctionListAdd(&qfnamelist, "density_current", &DC_loc);
-
   // Parse command line options
   comm = PETSC_COMM_WORLD;
   ierr = PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED",
@@ -367,8 +386,10 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
-  PetscOptionsFList("-problem", "Problem to solve", NULL, icsflist,
-                    problemtype, problemtype, sizeof problemtype, NULL);
+  problemChoice = NS_DENSITY_CURRENT;
+  ierr = PetscOptionsEnum("-problem", "Problem to solve", NULL,
+                          problemTypes, (PetscEnum)problemChoice,
+                         (PetscEnum *)&problemChoice, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, meter, &meter, NULL); CHKERRQ(ierr);
   meter = fabs(meter);
@@ -722,29 +743,15 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_mass, "v", 5, CEED_EVAL_INTERP);
 
   // Create the Q-function that sets the ICs of the operator
-  void (*icsfp)(void);
-  PetscFunctionListFind(icsflist, problemtype, &icsfp);
-  if (!icsfp)
-      return CeedError(ceed, 1, "Function not found in the list");
-  char *str;
-  PetscFunctionListFind(icsfnamelist, problemtype, &str);
-  if (!str)
-      return CeedError(ceed, 1, "Function not found in the list");
-  CeedQFunctionCreateInterior(ceed, 1, (CeedQFunctionUser)icsfp, str, &qf_ics);
+  CeedQFunctionCreateInterior(ceed, 1, problemOptions[problemChoice].ics,
+                              problemOptions[problemChoice].icsfname, &qf_ics);
   CeedQFunctionAddInput(qf_ics, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", 5, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_ics, "coords", 3, CEED_EVAL_NONE);
 
   // Create the Q-function that defines the action of the operator
-  void (*fp)(void);
-  PetscFunctionListFind(qflist, problemtype, &fp);
-  if (!fp)
-      return CeedError(ceed, 1, "Function not found in the list");
-  str = NULL;
-  PetscFunctionListFind(qfnamelist, problemtype, &str);
-  if (!str)
-      return CeedError(ceed, 1, "Function not found in the list");
-  CeedQFunctionCreateInterior(ceed, 1, (CeedQFunctionUser)fp, str, &qf);
+  CeedQFunctionCreateInterior(ceed, 1, problemOptions[problemChoice].apply,
+                              problemOptions[problemChoice].applyfname, &qf);
   CeedQFunctionAddInput(qf, "q", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf, "dq", 5*3, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf, "qdata", 10, CEED_EVAL_NONE);
