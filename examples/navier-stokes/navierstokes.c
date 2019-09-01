@@ -295,8 +295,8 @@ int main(int argc, char **argv) {
   PetscFunctionList icsflist = NULL, qflist = NULL,
                     icsfnamelist = NULL, qfnamelist = NULL;
   char problemtype[PETSC_MAX_PATH_LEN] = "density_current";
-  PetscInt localNelem, lsize, steps,
-           melem[3], mnode[3], p[3], irank[3], lnode[3];
+  PetscInt localNelem, lsize, steps, melem[3], mnode[3], p[3], irank[3],
+           lnode[3];
   PetscMPIInt size, rank;
   PetscScalar ftime;
   PetscScalar *q0, *m, *mult, *x;
@@ -711,7 +711,7 @@ int main(int argc, char **argv) {
 
   // Create the Q-function that builds the quadrature data for the NS operator
   CeedQFunctionCreateInterior(ceed, 1, Setup, Setup_loc, &qf_setup);
-  CeedQFunctionAddInput(qf_setup, "dx", 3, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setup, "dx", 3*3, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup, "qdata", 10, CEED_EVAL_NONE);
 
@@ -746,11 +746,11 @@ int main(int argc, char **argv) {
       return CeedError(ceed, 1, "Function not found in the list");
   CeedQFunctionCreateInterior(ceed, 1, (CeedQFunctionUser)fp, str, &qf);
   CeedQFunctionAddInput(qf, "q", 5, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf, "dq", 5, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf, "dq", 5*3, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf, "qdata", 10, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf, "v", 5, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf, "dv", 5, CEED_EVAL_GRAD);
+  CeedQFunctionAddOutput(qf, "dv", 5*3, CEED_EVAL_GRAD);
 
   // Create the operator that builds the quadrature data for the NS operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
