@@ -435,7 +435,7 @@ int main(int argc, char **argv) {
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
   localnodes = 1000;
   ierr = PetscOptionsInt("-local",
-                         "Target number of locally owned degrees of freedom per process",
+                         "Target number of locally owned nodes per process",
                          NULL, localnodes, &localnodes, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   P = degree + 1;

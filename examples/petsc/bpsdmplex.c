@@ -27,12 +27,12 @@
 //
 // Sample runs:
 //
-//     bps -problem bp1 -petscspace_degree 3
-//     bps -problem bp2 -ceed /cpu/self -petscspace_degree 3
-//     bps -problem bp3 -ceed /gpu/occa -petscspace_degree 3
-//     bps -problem bp4 -ceed /cpu/occa -petscspace_degree 3
-//     bps -problem bp5 -ceed /omp/occa -petscspace_degree 3
-//     bps -problem bp6 -ceed /ocl/occa -petscspace_degree 3
+//     bpsdmplex -problem bp1 -petscspace_degree 3
+//     bpsdmplex -problem bp2 -ceed /cpu/self -petscspace_degree 3
+//     bpsdmplex -problem bp3 -ceed /gpu/occa -petscspace_degree 3
+//     bpsdmplex -problem bp4 -ceed /cpu/occa -petscspace_degree 3
+//     bpsdmplex -problem bp5 -ceed /omp/occa -petscspace_degree 3
+//     bpsdmplex -problem bp6 -ceed /ocl/occa -petscspace_degree 3
 //
 //TESTARGS -ceed {ceed_resource} -test -problem bp3 -petscspace_degree 3
 
@@ -63,7 +63,7 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
   PetscFunctionBegin;
 
   // Get Nelem
-  ierr = DMGetDefaultSection(dm, &section); CHKERRQ(ierr);
+  ierr = DMGetSection(dm, &section); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart,& cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
 
@@ -367,7 +367,7 @@ int main(int argc, char **argv) {
                                           filename[PETSC_MAX_PATH_LEN];
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree, qextra, lsize, gsize, dim =3, melem[3] = {3, 3, 3},
-                                         vscale = 1, cStart, cEnd, nelem, marker_ids[1] = {1}, Xlocsize;
+           vscale = 1, cStart, cEnd, nelem, marker_ids[1] = {1}, Xlocsize;
   PetscScalar *r;
   const PetscScalar *coordArray;
   PetscBool test_mode, benchmark_mode, read_mesh, enforce_bc, write_solution;
@@ -538,7 +538,7 @@ int main(int argc, char **argv) {
   // Element coordinates
   ierr = DMGetCoordinatesLocal(dm, &coords); CHKERRQ(ierr);
   ierr = VecGetArrayRead(coords, &coordArray); CHKERRQ(ierr);
-  ierr = DMGetDefaultSection(dmcoord, &section); CHKERRQ(ierr);
+  ierr = DMGetSection(dmcoord, &section); CHKERRQ(ierr);
 
   CeedElemRestrictionCreateVector(Erestrictx, &xcoord, NULL);
   CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_COPY_VALUES,

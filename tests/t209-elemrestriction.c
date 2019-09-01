@@ -28,11 +28,12 @@ int main(int argc, char **argv) {
   CeedElemRestrictionGetMultiplicity(r, mult);
 
   CeedVectorGetArrayRead(mult, CEED_MEM_HOST, &mm);
-  for (CeedInt i=0; i<3*ne+1; i++) {
+  for (CeedInt i=0; i<3*ne+1; i++)
     if ((1 + (i > 0 && i < 3*ne && (i%3==0) ? 1 : 0)) != mm[i])
+      // LCOV_EXCL_START
       printf("Error in multiplicity vector: mult[%d] = %f\n",
              i, (double)mm[i]);
-  }
+      // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(mult, &mm);
 
   CeedVectorDestroy(&mult);

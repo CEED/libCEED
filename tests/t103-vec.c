@@ -16,10 +16,12 @@ int main(int argc, char **argv) {
   CeedVectorGetArray(x, CEED_MEM_HOST, &a);
   CeedVectorGetArray(x, CEED_MEM_HOST, &b);
 
+  // LCOV_EXCL_START
   CeedVectorRestoreArray(x, &a);
   CeedVectorRestoreArray(x, &b);
 
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);
   return 0;
+  // LCOV_EXCL_STOP
 }

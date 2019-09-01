@@ -40,11 +40,15 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<ne; i++) {
     for (CeedInt n=0; n<2; n++) {
       if (yy[i*4+n] != 10+(2*i+n+1)/2)
+        // LCOV_EXCL_START
         printf("Error in restricted array y[%d] = %f != %f\n",
                i*4+n, (double)yy[i*4+n], 10.+(2*i+n+1)/2);
+        // LCOV_EXCL_STOP
       if (yy[i*4+n+2] != 20+(2*i+n+1)/2)
+        // LCOV_EXCL_START
         printf("Error in restricted array y[%d] = %f != %f\n",
                i*4+n+2, (double)yy[i*4+n+2], 20.+(2*i+n+1)/2);
+        // LCOV_EXCL_STOP
     }
   }
 

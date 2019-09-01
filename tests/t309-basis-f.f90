@@ -26,7 +26,7 @@
       integer p
       integer q
       parameter(p=8)
-      parameter(q=10)
+      parameter(q=8)
       integer maxdim
       parameter(maxdim=3)
       integer qdimnmax
@@ -99,7 +99,8 @@
         uoffset=0
         call ceedvectorsetarray(u,ceed_mem_host,ceed_use_pointer,uu,uoffset,err)
 
-        call ceedbasiscreatetensorh1lagrange(ceed,dimn,1,p,q,ceed_gauss,bug,err)
+        call ceedbasiscreatetensorh1lagrange(ceed,dimn,1,p,q,&
+     &    ceed_gauss_lobatto,bug,err)
 
         call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_grad,u,uq,err)
         call ceedbasisapply(bug,1,ceed_transpose,ceed_eval_grad,ones,&
@@ -119,10 +120,8 @@
         call ceedvectorrestorearrayread(u,uu,offset2,err)
         call ceedvectorrestorearrayread(uq,uuq,offset3,err)
         if(abs(sum1-sum2) > 1.0D-10) then
-! LCOV_EXCL_START
           write(*,'(A,I1,A,F12.6,A,F12.6)')'[',dimn,'] Error: ',sum1,  ' != ',&
      &     sum2
-! LCOV_EXCL_STOP
         endif
 
         call ceedvectordestroy(x,err)

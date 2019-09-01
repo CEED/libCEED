@@ -662,8 +662,8 @@ int main(int argc, char **argv) {
   CreateRestriction(ceed, melem, 2, 3, &restrictx);
   CreateRestriction(ceed, melem, numP, 3, &restrictxc);
   CreateRestriction(ceed, melem, numP, 1, &restrictmult);
-  CeedElemRestrictionCreateIdentity(ceed, localNelem, 16*numQ*numQ*numQ,
-                                    16*localNelem*numQ*numQ*numQ, 1,
+  CeedElemRestrictionCreateIdentity(ceed, localNelem, 10*numQ*numQ*numQ,
+                                    10*localNelem*numQ*numQ*numQ, 1,
                                     &restrictqdi);
   CeedElemRestrictionCreateIdentity(ceed, localNelem, numQ*numQ*numQ,
                                     localNelem*numQ*numQ*numQ, 1,
@@ -695,7 +695,7 @@ int main(int argc, char **argv) {
   CeedInt Nqpts, Nnodes;
   CeedBasisGetNumQuadraturePoints(basisq, &Nqpts);
   CeedBasisGetNumNodes(basisq, &Nnodes);
-  CeedVectorCreate(ceed, 16*localNelem*Nqpts, &qdata);
+  CeedVectorCreate(ceed, 10*localNelem*Nqpts, &qdata);
   CeedVectorCreate(ceed, 5*lsize, &q0ceed);
   CeedVectorCreate(ceed, 5*lsize, &mceed);
   CeedVectorCreate(ceed, 5*lsize, &onesvec);
@@ -713,12 +713,12 @@ int main(int argc, char **argv) {
   CeedQFunctionCreateInterior(ceed, 1, Setup, Setup_loc, &qf_setup);
   CeedQFunctionAddInput(qf_setup, "dx", 3, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setup, "qdata", 16, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_setup, "qdata", 10, CEED_EVAL_NONE);
 
   // Create the Q-function that defines the action of the mass operator
   CeedQFunctionCreateInterior(ceed, 1, Mass, Mass_loc, &qf_mass);
   CeedQFunctionAddInput(qf_mass, "q", 5, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_mass, "qdata", 16, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_mass, "qdata", 10, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_mass, "v", 5, CEED_EVAL_INTERP);
 
   // Create the Q-function that sets the ICs of the operator
@@ -747,7 +747,7 @@ int main(int argc, char **argv) {
   CeedQFunctionCreateInterior(ceed, 1, (CeedQFunctionUser)fp, str, &qf);
   CeedQFunctionAddInput(qf, "q", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf, "dq", 5, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf, "qdata", 16, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf, "qdata", 10, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf, "v", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf, "dv", 5, CEED_EVAL_GRAD);

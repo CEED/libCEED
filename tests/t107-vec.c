@@ -16,7 +16,9 @@ int main(int argc, char **argv) {
   // Should error because no GetArray was not called
   CeedVectorRestoreArray(x, &a);
 
+  // LCOV_EXCL_START
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);
   return 0;
+  // LCOV_EXCL_STOP
 }

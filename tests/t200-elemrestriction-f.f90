@@ -48,7 +48,9 @@
       do i=1,ne*2
         diff=10+i/2-yy(i+yoffset)
         if (abs(diff) > 1.0D-15) then
+! LCOV_EXCL_START
           write(*,*) 'Error in restricted array y(',i,')=',yy(i+yoffset)
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(y,yy,yoffset,err)

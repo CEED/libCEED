@@ -42,11 +42,15 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<ne+1; i++) {
     mult = i>0&&i<ne ? 2 : 1;
     if (yy[2*i] != (10+i)*mult)
+      // LCOV_EXCL_START
       printf("Error in restricted array y[%d] = %f != %f\n",
              2*i, (double)yy[2*i], (10.+i)*mult);
+      // LCOV_EXCL_STOP
     if (yy[2*i+1] != (20+i)*mult)
+      // LCOV_EXCL_START
       printf("Error in restricted array y[%d] = %f != %f\n",
              2*i+1, (double)yy[2*i+1], (20.+i)*mult);
+      // LCOV_EXCL_STOP
   }
 
   CeedVectorRestoreArrayRead(y, &yy);

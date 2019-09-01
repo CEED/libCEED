@@ -74,8 +74,10 @@
         call feval(x1,x2,val)
         diff=val-ooutput(i+ooffset)
         if (abs(diff)>1.0d-10) then
+! LCOV_EXCL_START
           write(*,'(A,I1,A,F12.8,A,F12.8)')  '[',i,'] ',ooutput(i+ooffset),&
      &     ' != ',val
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(output,ooutput,ooffset,err)

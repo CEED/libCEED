@@ -36,7 +36,9 @@
       do i=1,10
         diff=yy(i+yoffset)-10-i
         if (abs(diff)>1.0D-15) then
+! LCOV_EXCL_START
           write(*,*) 'Error reading array y(',i,')=',yy(i+yoffset)
+! LCOV_EXCL_STOP
         endif
       enddo
 

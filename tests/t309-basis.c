@@ -1,6 +1,6 @@
 /// @file
-/// Test grad in multiple dimensions
-/// \test Test grad in multiple dimensions
+/// Test collocated grad in multiple dimensions
+/// \test Test collocated grad in multiple dimensions
 #include <ceed.h>
 #include <math.h>
 
@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   for (CeedInt dim=1; dim<=3; dim++) {
     CeedVector X, Xq, U, Uq, Ones, Gtposeones;
     CeedBasis bxl, bug;
-    CeedInt P = 8, Q = 10, Pdim = CeedIntPow(P, dim), Qdim = CeedIntPow(Q, dim),
+    CeedInt P = 8, Q = 8, Pdim = CeedIntPow(P, dim), Qdim = CeedIntPow(Q, dim),
             Xdim = CeedIntPow(2, dim);
     CeedScalar x[Xdim*dim], u[Pdim];
     const CeedScalar *xq, *uq, *gtposeones;
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     CeedVectorSetArray(U, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&u);
 
     // Calculate G u at quadrature points, G' * 1 at dofs
-    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P, Q, CEED_GAUSS, &bug);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P, Q, CEED_GAUSS_LOBATTO, &bug);
     CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, U, Uq);
     CeedBasisApply(bug, 1, CEED_TRANSPOSE, CEED_EVAL_GRAD, Ones, Gtposeones);
 
@@ -71,10 +71,9 @@ int main(int argc, char **argv) {
     }
     CeedVectorRestoreArrayRead(Gtposeones, &gtposeones);
     CeedVectorRestoreArrayRead(Uq, &uq);
-    if (fabs(sum1 - sum2) > 1e-10)
-      // LCOV_EXCL_START
+    if (fabs(sum1 - sum2) > 1e-10) {
       printf("[%d] %f != %f\n", dim, sum1, sum2);
-      // LCOV_EXCL_STOP
+    }
 
     CeedVectorDestroy(&X);
     CeedVectorDestroy(&Xq);

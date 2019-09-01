@@ -23,7 +23,7 @@
       call ceedvectorcreate(ceed,length+1,v,err)
 
       call ceedbasiscreatetensorh1lagrange(ceed,dimn,ncomp,p,q,ceed_gauss,b,err)
-
+! LCOV_EXCL_START
       call ceedbasisapply(b,1,ceed_notranspose,ceed_eval_interp,u,v,err)
 
       call ceedbasisdestroy(b,err)
@@ -32,4 +32,5 @@
       call ceeddestroy(ceed,err)
 
       end
+! LCOV_EXCL_STOP
 !-----------------------------------------------------------------------

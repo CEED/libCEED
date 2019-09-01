@@ -18,9 +18,10 @@
       call ceedvectorcreate(ceed,n,x,err)
 
       call ceedvectorrestorearray(x,a,offset,err)
-
+! LCOV_EXCL_START
       call ceedvectordestroy(x,err)
       call ceeddestroy(ceed,err)
 
       end
+! LCOV_EXCL_STOP
 !-----------------------------------------------------------------------
