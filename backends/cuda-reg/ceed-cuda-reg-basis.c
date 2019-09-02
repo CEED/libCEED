@@ -584,8 +584,7 @@ int CeedBasisCreateTensorH1_Cuda_reg(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-  if (Q1d<P1d)
-  {
+  if (Q1d<P1d) {
     return CeedError(ceed, 1, "Backend does not implement underintegrated basis.");
   }
   CeedBasis_Cuda_reg *data;

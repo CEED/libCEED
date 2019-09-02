@@ -1,3 +1,19 @@
+// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
+// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
+// reserved. See files LICENSE and NOTICE for details.
+//
+// This file is part of CEED, a collection of benchmarks, miniapps, software
+// libraries and APIs for efficient high-order finite element and spectral
+// element discretizations for exascale applications. For more information and
+// source code availability see http://github.com/ceed.
+//
+// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
+// a collaborative effort of two U.S. Department of Energy organizations (Office
+// of Science and the National Nuclear Security Administration) responsible for
+// the planning and preparation of a capable exascale ecosystem, including
+// software, applications, hardware, advanced system engineering and early
+// testbed platforms, in support of the nation's exascale computing imperative.
+
 //                        libCEED + PETSc Example: Navier-Stokes
 //
 // This example demonstrates a simple usage of libCEED with PETSc to solve a
@@ -13,11 +29,8 @@
 // Sample runs:
 //
 //     navierstokes
-//     navierstokes -ceed /cpu/self
-//     navierstokes -ceed /gpu/occa
-//     navierstokes -ceed /cpu/occa
-//     navierstokes -ceed /omp/occa
-//     navierstokes -ceed /ocl/occa
+//     navierstokes -ceed -problem density_current /cpu/self
+//     navierstokes -ceed -problem advection /gpu/occa
 //
 
 /// @file
@@ -33,6 +46,34 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include "common.h"
 #include "advection.h"
 #include "densitycurrent.h"
+
+// Problem Options
+typedef enum {
+  NS_DENSITY_CURRENT = 0, NS_ADVECTION = 1
+} problemType;
+static const char *const problemTypes[] = {"density_current", "advection",
+                                           "problemType","NS_",0};
+
+// Problem specific data
+typedef struct {
+  CeedQFunctionUser ics, apply;
+  const char *icsfname, *applyfname;
+} problemData;
+
+problemData problemOptions[2] = {
+  [NS_DENSITY_CURRENT] = {
+    .ics = ICsDC,
+    .apply = DC,
+    .icsfname = ICsDC_loc,
+    .applyfname = DC_loc
+  },
+  [NS_ADVECTION] = {
+    .ics = ICsAdvection,
+    .apply = Advection,
+    .icsfname = ICsAdvection_loc,
+    .applyfname = Advection_loc,
+  }
+};
 
 // Utility function, compute three factors of an integer
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
@@ -279,10 +320,11 @@ int main(int argc, char **argv) {
   User user;
   Units units;
   char ceedresource[4096] = "/cpu/self";
-  PetscFunctionList icsflist = NULL, qflist = NULL;
+  PetscFunctionList icsflist = NULL, qflist = NULL,
+                    icsfnamelist = NULL, qfnamelist = NULL;
   char problemtype[PETSC_MAX_PATH_LEN] = "density_current";
-  PetscInt localNelem, lsize, steps,
-           melem[3], mnode[3], p[3], irank[3], lnode[3];
+  PetscInt localNelem, lsize, steps, melem[3], mnode[3], p[3], irank[3],
+           lnode[3];
   PetscMPIInt size, rank;
   PetscScalar ftime;
   PetscScalar *q0, *m, *mult, *x;
@@ -301,6 +343,7 @@ int main(int argc, char **argv) {
   CeedScalar Rd;
   PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
               kgpersquaredms, Joulepercubicm;
+  problemType problemChoice;
 
   // Create the libCEED contexts
   PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
@@ -336,12 +379,6 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
 
-  // Set up problem type command line option
-  PetscFunctionListAdd(&icsflist, "advection", &ICsAdvection);
-  PetscFunctionListAdd(&icsflist, "density_current", &ICsDC);
-  PetscFunctionListAdd(&qflist, "advection", &Advection);
-  PetscFunctionListAdd(&qflist, "density_current", &DC);
-
   // Parse command line options
   comm = PETSC_COMM_WORLD;
   ierr = PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED",
@@ -349,8 +386,10 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
-  PetscOptionsFList("-problem", "Problem to solve", NULL, icsflist,
-                    problemtype, problemtype, sizeof problemtype, NULL);
+  problemChoice = NS_DENSITY_CURRENT;
+  ierr = PetscOptionsEnum("-problem", "Problem to solve", NULL,
+                          problemTypes, (PetscEnum)problemChoice,
+                         (PetscEnum *)&problemChoice, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, meter, &meter, NULL); CHKERRQ(ierr);
   meter = fabs(meter);
@@ -692,49 +731,33 @@ int main(int argc, char **argv) {
                            multevec, multlvec, CEED_REQUEST_IMMEDIATE);
 
   // Create the Q-function that builds the quadrature data for the NS operator
-  CeedQFunctionCreateInterior(ceed, 1,
-                              Setup, __FILE__ ":Setup", &qf_setup);
-  CeedQFunctionAddInput(qf_setup, "dx", 3, CEED_EVAL_GRAD);
+  CeedQFunctionCreateInterior(ceed, 1, Setup, Setup_loc, &qf_setup);
+  CeedQFunctionAddInput(qf_setup, "dx", 3*3, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup, "qdata", 10, CEED_EVAL_NONE);
 
   // Create the Q-function that defines the action of the mass operator
-  CeedQFunctionCreateInterior(ceed, 1,
-                              Mass, __FILE__ ":Mass", &qf_mass);
+  CeedQFunctionCreateInterior(ceed, 1, Mass, Mass_loc, &qf_mass);
   CeedQFunctionAddInput(qf_mass, "q", 5, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_mass, "qdata", 10, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_mass, "v", 5, CEED_EVAL_INTERP);
 
   // Create the Q-function that sets the ICs of the operator
-  void (*icsfp)(void);
-  PetscFunctionListFind(icsflist, problemtype, &icsfp);
-  if (!icsfp)
-      return CeedError(ceed, 1, "Function not found in the list");
-  char str[PETSC_MAX_PATH_LEN] = __FILE__":ICs";
-  PetscStrlcat(str, problemtype, PETSC_MAX_PATH_LEN);
-  CeedQFunctionCreateInterior(ceed, 1,
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))icsfp,
-                              str, &qf_ics);
+  CeedQFunctionCreateInterior(ceed, 1, problemOptions[problemChoice].ics,
+                              problemOptions[problemChoice].icsfname, &qf_ics);
   CeedQFunctionAddInput(qf_ics, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", 5, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_ics, "coords", 3, CEED_EVAL_NONE);
 
   // Create the Q-function that defines the action of the operator
-  void (*fp)(void);
-  PetscFunctionListFind(qflist, problemtype, &fp);
-  if (!fp)
-      return CeedError(ceed, 1, "Function not found in the list");
-  PetscStrncpy(str, __FILE__":", PETSC_MAX_PATH_LEN);
-  PetscStrlcat(str, problemtype, PETSC_MAX_PATH_LEN);
-  CeedQFunctionCreateInterior(ceed, 1,
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))fp,
-                              str, &qf);
+  CeedQFunctionCreateInterior(ceed, 1, problemOptions[problemChoice].apply,
+                              problemOptions[problemChoice].applyfname, &qf);
   CeedQFunctionAddInput(qf, "q", 5, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf, "dq", 5, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf, "dq", 5*3, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf, "qdata", 10, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf, "v", 5, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf, "dv", 5, CEED_EVAL_GRAD);
+  CeedQFunctionAddOutput(qf, "dv", 5*3, CEED_EVAL_GRAD);
 
   // Create the operator that builds the quadrature data for the NS operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);

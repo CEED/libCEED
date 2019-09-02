@@ -80,8 +80,8 @@
 //         12 14 15
 //
 // *****************************************************************************
-static int Setup(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
+                      const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar (*J)[3][Q] = (CeedScalar(*)[3][Q])in[0],
                    (*w) = in[1];
@@ -144,8 +144,8 @@ static int Setup(void *ctx, CeedInt Q,
 //   v - Output vector at quadrature points
 //
 // *****************************************************************************
-static int Mass(void *ctx, CeedInt Q,
-                const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
+                     const CeedScalar *const *in, CeedScalar *const *out) {
   (void)ctx;
   const CeedScalar (*u)[Q] = (CeedScalar(*)[Q])in[0],
                    (*w) = in[1];

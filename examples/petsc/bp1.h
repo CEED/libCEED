@@ -17,34 +17,34 @@
 /// @file
 /// libCEED QFunctions for mass operator example using PETSc
 
-#include <petscksp.h>
-#include <ceed.h>
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
 
 // *****************************************************************************
-static int SetupMass(void *ctx, CeedInt Q,
-                     const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(SetupMass)(void *ctx, const CeedInt Q,
+                          const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar *x = in[0], *J = in[1], *w = in[2];
   CeedScalar *rho = out[0], *true_soln = out[1], *rhs = out[2];
-  const CeedScalar (*x)[Q] = (const CeedScalar (*)[Q])in[0];
-  const CeedScalar (*J)[3][Q] = (const CeedScalar (*)[3][Q])in[1];
-  const CeedScalar *w = in[2];
+
   for (CeedInt i=0; i<Q; i++) {
-    CeedScalar det = (+ J[0][0][i] * (J[1][1][i]*J[2][2][i] - J[1][2][i]*J[2][1][i])
-                      - J[0][1][i] * (J[1][0][i]*J[2][2][i] - J[1][2][i]*J[2][0][i])
-                      + J[0][2][i] * (J[1][0][i]*J[2][1][i] - J[1][1][i]*J[2][0][i]));
+    const CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
+                            J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
+                            J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
     rho[i] = det * w[i];
 
-    true_soln[i] = PetscSqrtScalar(PetscSqr(x[0][i]) + PetscSqr(x[1][i]) +
-                                   PetscSqr(x[2][i]));
+    true_soln[i] = sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
 
     rhs[i] = rho[i] * true_soln[i];
   }
   return 0;
 }
 
-static int Mass(void *ctx, CeedInt Q,
-                const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
+                     const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *rho = in[1];
   CeedScalar *v = out[0];
+
   for (CeedInt i=0; i<Q; i++) {
     v[i] = rho[i] * u[i];
   }

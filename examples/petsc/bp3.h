@@ -17,17 +17,19 @@
 /// @file
 /// libCEED QFunctions for diffusion operator example using PETSc
 
-#include <petscksp.h>
-#include <ceed.h>
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
 
 // *****************************************************************************
-static int SetupDiff(void *ctx, CeedInt Q,
-                     const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(SetupDiff)(void *ctx, const CeedInt Q,
+                          const CeedScalar *const *in, CeedScalar *const *out) {
   #ifndef M_PI
 #define M_PI    3.14159265358979323846
   #endif
   const CeedScalar *x = in[0], *J = in[1], *w = in[2];
   CeedScalar *qd = out[0], *true_soln = out[1], *rhs = out[2];
+
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar J11 = J[i+Q*0];
     const CeedScalar J21 = J[i+Q*1];
@@ -63,16 +65,17 @@ static int SetupDiff(void *ctx, CeedInt Q,
                    sin(M_PI*(c[2] + k[2]*x[i+Q*2]));
 
     const CeedScalar rho = w[i] * (J11*A11 + J21*A12 + J31*A13);
-    rhs[i] = rho * M_PI*M_PI * (k[0]*k[0] + k[1]*k[1] + k[2]*k[2]) *
-             true_soln[i];
+
+    rhs[i] = rho * M_PI*M_PI * (k[0]*k[0] + k[1]*k[1] + k[2]*k[2]) * true_soln[i];
   }
   return 0;
 }
 
-static int Diff(void *ctx, CeedInt Q,
-                const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Diff)(void *ctx, const CeedInt Q,
+                     const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *ug = in[0], *qd = in[1];
   CeedScalar *vg = out[0];
+
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar ug0 = ug[i+Q*0];
     const CeedScalar ug1 = ug[i+Q*1];

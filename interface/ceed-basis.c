@@ -60,6 +60,9 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
                             const CeedScalar *qweight1d, CeedBasis *basis) {
   int ierr;
 
+  if (dim<1)
+    return CeedError(ceed, 1, "Basis dimension must be a positive value");
+
   if (!ceed->BasisCreateTensorH1) {
     Ceed delegate;
     ierr = CeedGetObjectDelegate(ceed, &delegate, "Basis"); CeedChk(ierr);
@@ -120,6 +123,10 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
   // Allocate
   int ierr, i, j, k;
   CeedScalar c1, c2, c3, c4, dx, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
+
+  if (dim<1)
+    return CeedError(ceed, 1, "Basis dimension must be a positive value");
+
   ierr = CeedCalloc(P*Q, &interp1d); CeedChk(ierr);
   ierr = CeedCalloc(P*Q, &grad1d); CeedChk(ierr);
   ierr = CeedCalloc(P, &nodes); CeedChk(ierr);

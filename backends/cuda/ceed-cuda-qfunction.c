@@ -18,12 +18,14 @@
 #include <string.h>
 #include <stdio.h>
 #include "ceed-cuda.h"
+#include "ceed-cuda-qfunction-load.h"
 
 static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
                                    CeedVector *U, CeedVector *V) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  ierr = CeedCudaBuildQFunction(qf); CeedChk(ierr);
   CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   Ceed_Cuda *ceed_Cuda;
@@ -86,7 +88,6 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
 
-  CeedChk_Cu(ceed, cuModuleUnload(data->module));
   ierr = cudaFree(data->d_c); CeedChk_Cu(ceed, ierr);
 
   ierr = CeedFree(&data); CeedChk(ierr);
@@ -94,7 +95,7 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   return 0;
 }
 
-static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
+static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
   int ierr;
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
@@ -105,7 +106,7 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   if (!last_dot)
     return CeedError(ceed, 1, "Cannot find file's extension!");
   const size_t cuda_path_len = last_dot - cuda_file;
-  strcpy(&cuda_file[cuda_path_len], ".cu");
+  strcpy(&cuda_file[cuda_path_len], ".h");
   //*******************
   FILE *fp;
   long lSize;
@@ -128,24 +129,11 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
     CeedError(ceed, 1, "Couldn't read the Cuda file for the QFunction.");
   }
 
-  //FIXME: the magic number 16 should be defined somewhere...
-  char *fields_string =
-    "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda;";
-  char *source = (char *) malloc(1 + strlen(fields_string)+ strlen(buffer) );
-  strcpy(source, fields_string);
-  strcat(source, buffer);
-
-  //********************
-  CeedQFunction_Cuda *data;
-  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
-  ierr = CeedCompileCuda(ceed, source, &data->module, 0); CeedChk(ierr);
-  ierr = CeedGetKernelCuda(ceed, data->module, data->qFunctionName,
-                           &data->qFunction);
-  CeedChk(ierr);
-
   //********************
   fclose(fp);
-  ierr = CeedFree(&buffer); CeedChk(ierr);
+  CeedQFunction_Cuda *data;
+  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
+  data->qFunctionSource = buffer;
 
   return 0;
 }
@@ -171,7 +159,7 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   char filename[filenamelen];
   memcpy(filename, focca, filenamelen - 1);
   filename[filenamelen - 1] = '\0';
-  ierr = loadCudaFunction(qf, filename); CeedChk(ierr);
+  ierr = CeedCudaLoadQFunction(qf, filename); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Cuda); CeedChk(ierr);

@@ -72,6 +72,7 @@ typedef struct {
 typedef struct {
   CUmodule module;
   char *qFunctionName;
+  char *qFunctionSource;
   CUfunction qFunction;
   Fields_Cuda fields;
   void *d_c;
@@ -145,6 +146,13 @@ CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
                                       const int blockSizeY,
                                       const int blockSizeZ,
                                       const int sharedMemSize, void **args);
+
+CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
+                                      const int gridSize,
+                                      const int blockSizeX, const int blockSizeY,
+                                      const int blockSizeZ,
+                                      const int sharedMemSize,
+                                      void **args);
 
 CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
 

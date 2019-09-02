@@ -17,17 +17,19 @@
 /// @file
 /// libCEED QFunctions for diffusion operator example using PETSc
 
-#include <petscksp.h>
-#include <ceed.h>
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
 
 // *****************************************************************************
-static int SetupDiff3(void *ctx, CeedInt Q,
-                      const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(SetupDiff3)(void *ctx, const CeedInt Q,
+                           const CeedScalar *const *in, CeedScalar *const *out) {
   #ifndef M_PI
 #define M_PI    3.14159265358979323846
   #endif
   const CeedScalar *x = in[0], *J = in[1], *w = in[2];
   CeedScalar *qd = out[0], *true_soln = out[1], *rhs = out[2];
+
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar J11 = J[i+Q*0];
     const CeedScalar J21 = J[i+Q*1];
@@ -79,10 +81,11 @@ static int SetupDiff3(void *ctx, CeedInt Q,
   return 0;
 }
 
-static int Diff3(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Diff3)(void *ctx, const CeedInt Q,
+                      const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *ug = in[0], *qd = in[1];
   CeedScalar *vg = out[0];
+
   for (CeedInt i=0; i<Q; i++) {
     // Component 1
     const CeedScalar ug00 = ug[i+(0+0*3)*Q];
