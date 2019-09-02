@@ -290,8 +290,6 @@ static PetscErrorCode MatMult_User(Mat A, Vec X, Vec Y) {
   // Global-to-local
   DMGlobalToLocalBegin(user->dm, X, INSERT_VALUES, user->Xloc);
   DMGlobalToLocalEnd(user->dm, X, INSERT_VALUES, user->Xloc);
-  DMGlobalToLocalBegin(user->dm, Y, INSERT_VALUES, user->Yloc);
-  DMGlobalToLocalEnd(user->dm, Y, INSERT_VALUES, user->Yloc);
   ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
   // Setup CEED vectors
@@ -520,18 +518,17 @@ int main(int argc, char **argv) {
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
-  CreateRestrictionPlex(ceed, 2, 3, &Erestrictx, dmcoord);
-  CreateRestrictionPlex(ceed, P, vscale, &Erestrictu, dm);
+  CreateRestrictionPlex(ceed, 2, 3, &Erestrictx, dmcoord); CHKERRQ(ierr);
+  CreateRestrictionPlex(ceed, P, vscale, &Erestrictu, dm); CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
 
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, vscale,
                                     &Erestrictui);
-  CeedElemRestrictionCreateIdentity(ceed, nelem,
-                                    Q*Q*Q,
-                                    nelem*Q*Q*Q,
-                                    bpOptions[bpChoice].qdatasize, &Erestrictqdi);
+  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
+                                    bpOptions[bpChoice].qdatasize,
+                                    &Erestrictqdi);
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1,
                                     &Erestrictxi);
 
@@ -620,7 +617,7 @@ int main(int argc, char **argv) {
   // Set up Mat
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
   user->comm = comm;
-  user->dm =dm;
+  user->dm = dm;
   user->Xloc = Xloc;
   ierr = VecDuplicate(Xloc, &user->Yloc); CHKERRQ(ierr);
   CeedVectorCreate(ceed, Xlocsize, &user->xceed);
@@ -670,6 +667,7 @@ int main(int argc, char **argv) {
   }
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp, mat, mat); CHKERRQ(ierr);
+
   // First run, if benchmarking
   if (benchmark_mode) {
     ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 1);
@@ -686,6 +684,7 @@ int main(int argc, char **argv) {
       CHKERRQ(ierr);
     }
   }
+
   // Timed solve
   my_rt_start = MPI_Wtime();
   ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
@@ -734,6 +733,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  // Output solution
   if (write_solution) {
     PetscViewer vtkviewersoln;
 
@@ -744,6 +744,7 @@ int main(int argc, char **argv) {
     ierr = PetscViewerDestroy(&vtkviewersoln); CHKERRQ(ierr);
   }
 
+  // Cleanup
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
   ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
   ierr = VecDestroy(&X); CHKERRQ(ierr);
