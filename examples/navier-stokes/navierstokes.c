@@ -278,7 +278,6 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
                              user->units->kgpersquaredms,
                              user->units->kgpersquaredms,
                              user->units->Joulepercubicm};
-  const PetscScalar *q;
   Vec U;
   char filepath[PETSC_MAX_PATH_LEN];
   PetscViewer viewer;
@@ -339,9 +338,6 @@ int main(int argc, char **argv) {
   User user;
   Units units;
   char ceedresource[4096] = "/cpu/self";
-  PetscFunctionList icsflist = NULL, qflist = NULL,
-                    icsfnamelist = NULL, qfnamelist = NULL;
-  char problemtype[PETSC_MAX_PATH_LEN] = "density_current";
   PetscInt localNelem, lsize, steps, melem[3], mnode[3], p[3], irank[3],
            lnode[3];
   PetscBool periodic[3] = {PETSC_FALSE, PETSC_FALSE, PETSC_FALSE};
