@@ -41,7 +41,8 @@ install:
   - make -C occa -j2
   - export OCCA_DIR=$PWD/occa
 # libXSMM
-  - git clone --depth 1 https://github.com/hfp/libxsmm.git;
+  - git clone https://github.com/hfp/libxsmm.git;
+  - cd libxsmm && git reset --hard 07e360a && cd ..; # Workaround for LIBXSM bug
   - make -C libxsmm -j2
   - export XSMM_DIR=$PWD/libxsmm
 # MFEM
