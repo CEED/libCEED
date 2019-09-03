@@ -124,6 +124,8 @@ CEED_EXTERN int CeedTensorContractSetData(CeedTensorContract contract,
     void* *data);
 CEED_EXTERN int CeedTensorContractDestroy(CeedTensorContract *contract);
 
+CEED_EXTERN int CeedQFunctionRegister(const char *, const char *, CeedInt,
+     CeedQFunctionUser, int (*init)(Ceed, const char *, CeedQFunction));
 CEED_EXTERN int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
 CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf,
     CeedInt *vlength);

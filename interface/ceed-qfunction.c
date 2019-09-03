@@ -25,7 +25,7 @@ static struct {
   char source[CEED_MAX_RESOURCE_LEN];
   CeedInt vlength;
   CeedQFunctionUser f;
-  int (*init)(const char *resource, CeedQFunction qf);
+  int (*init)(Ceed ceed, const char *name, CeedQFunction qf);
 } qfunctions[1024];
 static size_t num_qfunctions;
 /// @endcond
@@ -101,7 +101,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 **/
 int CeedQFunctionRegister(const char *name, const char *source,
                           CeedInt vlength, CeedQFunctionUser f,
-                          int (*init)(const char *, CeedQFunction)) {
+                          int (*init)(Ceed, const char *, CeedQFunction)) {
   if (num_qfunctions >= sizeof(qfunctions) / sizeof(qfunctions[0])) {
     return CeedError(NULL, 1, "Too many gallery QFunctions");
   }
@@ -151,7 +151,7 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
   CeedChk(ierr);
 
   // QFunction specific setup
-  ierr = qfunctions[matchidx].init(name, *qf); CeedChk(ierr);
+  ierr = qfunctions[matchidx].init(ceed, name, *qf); CeedChk(ierr);
 
   return 0;
 }
