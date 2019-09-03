@@ -40,10 +40,7 @@
 // Change of coordinate matrix: dxdX_{i,j} = x_{i,j} (indicial notation)
 // Inverse of change of coordinate matrix: dXdx_{i,j} = (detJ^-1) * X_{i,j}
 //
-// All quadrature data is stored in 16 field vector of quadrature data.
-//
-// Quadrature weights:
-// Stored: w
+// All quadrature data is stored in 10 field vector of quadrature data.
 //
 // We require the determinant of the Jacobian to properly compute integrals of
 //   the form: int( v u )
@@ -54,30 +51,19 @@
 //     Aij = Adjoint ij
 //
 // Stored: w detJ
-//   qd: 0
+//   in qdata[0]
 //
 // We require the transpose of the inverse of the Jacobian to properly compute
 //   integrals of the form: int( gradv u )
 //
 // Inverse of Jacobian:
-//   Bij = Aij / detJ
+//   dXdx_i,j = Aij / detJ
 //
-// Stored: w B detJ = w A
-//   qd: 1 2 3
-//       4 5 6
-//       7 8 9
-//
-// We require the product of the inverse of the Jacobian and its transpose to
-//   properly compute integrals of the form: int( gradv gradu)
-//
-// Product of Inverse and Transpose:
-//   BBij = sum( Bik Bkj )
-//
-// Stored: w B B^T detJ = w A A^T / detJ
-//   Note: This matrix is symmetric
-//     qd: 10 11 12
-//         11 13 14
-//         12 14 15
+// Stored: Aij / detJ
+//   in qdata[1:9] as
+//   (detJ^-1) * [A11 A12 A13]
+//               [A21 A22 A23]
+//               [A31 A32 A33]
 //
 // *****************************************************************************
 CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
