@@ -44,6 +44,7 @@ trap 'rm -f ${tmpfiles}' EXIT
 # test configurations loop
 for ((j=0;j<${#allargs[@]};++j)); do
 args=${allargs[$j]}
+printf "# TESTARGS: $args\n"
 
 # backends loop
 for ((i=0;i<${#backends[@]};++i)); do
