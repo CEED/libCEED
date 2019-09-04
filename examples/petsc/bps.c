@@ -152,7 +152,7 @@ static const char *const bpTypes[] = {"bp1","bp2","bp3","bp4","bp5","bp6",
 
 // BP specific data
 typedef struct {
-  CeedInt vscale, qdatasize, qextra;
+  CeedInt ncompu, qdatasize, qextra;
   CeedQFunctionUser setup, apply, error;
   const char *setupfname, *applyfname, *errorfname;
   CeedEvalMode inmode, outmode;
@@ -161,7 +161,7 @@ typedef struct {
 
 bpData bpOptions[6] = {
   [CEED_BP1] = {
-    .vscale = 1,
+    .ncompu = 1,
     .qdatasize = 1,
     .qextra = 1,
     .setup = SetupMass,
@@ -175,7 +175,7 @@ bpData bpOptions[6] = {
     .qmode = CEED_GAUSS
   },
   [CEED_BP2] = {
-    .vscale = 3,
+    .ncompu = 3,
     .qdatasize = 1,
     .qextra = 1,
     .setup = SetupMass3,
@@ -189,7 +189,7 @@ bpData bpOptions[6] = {
     .qmode = CEED_GAUSS
   },
   [CEED_BP3] = {
-    .vscale = 1,
+    .ncompu = 1,
     .qdatasize = 6,
     .qextra = 1,
     .setup = SetupDiff,
@@ -203,7 +203,7 @@ bpData bpOptions[6] = {
     .qmode = CEED_GAUSS
   },
   [CEED_BP4] = {
-    .vscale = 3,
+    .ncompu = 3,
     .qdatasize = 6,
     .qextra = 1,
     .setup = SetupDiff3,
@@ -217,7 +217,7 @@ bpData bpOptions[6] = {
     .qmode = CEED_GAUSS
   },
   [CEED_BP5] = {
-    .vscale = 1,
+    .ncompu = 1,
     .qdatasize = 6,
     .qextra = 0,
     .setup = SetupDiff,
@@ -231,7 +231,7 @@ bpData bpOptions[6] = {
     .qmode = CEED_GAUSS_LOBATTO
   },
   [CEED_BP6] = {
-    .vscale = 3,
+    .ncompu = 3,
     .qdatasize = 6,
     .qextra = 0,
     .setup = SetupDiff3,
@@ -381,7 +381,7 @@ int main(int argc, char **argv) {
   char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree, qextra, localnodes, localelem, melem[3], mnodes[3], p[3],
-           irank[3], lnodes[3], lsize, vscale = 1;
+           irank[3], lnodes[3], lsize, ncompu = 1;
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode, write_solution;
   PetscMPIInt size, rank;
@@ -398,6 +398,7 @@ int main(int argc, char **argv) {
   CeedOperator op_setup, op_apply, op_error;
   CeedVector xcoord, rho, rhsceed, target;
   CeedInt P, Q;
+  const CeedInt dim = 3, ncompx = 3;
   bpType bpChoice;
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
@@ -409,7 +410,7 @@ int main(int argc, char **argv) {
                           "CEED benchmark problem to solve", NULL,
                           bpTypes, (PetscEnum)bpChoice, (PetscEnum *)&bpChoice,
                           NULL); CHKERRQ(ierr);
-  vscale = bpOptions[bpChoice].vscale;
+  ncompu = bpOptions[bpChoice].ncompu;
   test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
@@ -454,7 +455,7 @@ int main(int argc, char **argv) {
 
   // Find my location in the process grid
   ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
-  for (int d=0,rankleft=rank; d<3; d++) {
+  for (int d=0,rankleft=rank; d<dim; d++) {
     const int pstride[3] = {p[1] *p[2], p[2], 1};
     irank[d] = rankleft / pstride[d];
     rankleft -= irank[d] * pstride[d];
@@ -464,7 +465,7 @@ int main(int argc, char **argv) {
 
   // Setup global vector
   ierr = VecCreate(comm, &X); CHKERRQ(ierr);
-  ierr = VecSetSizes(X, mnodes[0]*mnodes[1]*mnodes[2]*vscale, PETSC_DECIDE);
+  ierr = VecSetSizes(X, mnodes[0]*mnodes[1]*mnodes[2]*ncompu, PETSC_DECIDE);
   CHKERRQ(ierr);
   ierr = VecSetUp(X); CHKERRQ(ierr);
 
@@ -483,7 +484,7 @@ int main(int argc, char **argv) {
                        "    Process Decomposition              : %D %D %D\n"
                        "    Local Elements                     : %D = %D %D %D\n"
                        "    Owned nodes                        : %D = %D %D %D\n",
-                       bpChoice+1, ceedresource, P, Q,  gsize/vscale, p[0],
+                       bpChoice+1, ceedresource, P, Q,  gsize/ncompu, p[0],
                        p[1], p[2], localelem, melem[0], melem[1], melem[2],
                        mnodes[0]*mnodes[1]*mnodes[2], mnodes[0], mnodes[1], mnodes[2]);
     CHKERRQ(ierr);
@@ -491,18 +492,18 @@ int main(int argc, char **argv) {
 
   {
     lsize = 1;
-    for (int d=0; d<3; d++) {
+    for (int d=0; d<dim; d++) {
       lnodes[d] = melem[d]*degree + 1;
       lsize *= lnodes[d];
     }
     ierr = VecCreate(PETSC_COMM_SELF, &Xloc); CHKERRQ(ierr);
-    ierr = VecSetSizes(Xloc, lsize*vscale, PETSC_DECIDE); CHKERRQ(ierr);
+    ierr = VecSetSizes(Xloc, lsize*ncompu, PETSC_DECIDE); CHKERRQ(ierr);
     ierr = VecSetUp(Xloc); CHKERRQ(ierr);
 
     // Create local-to-global scatter
     PetscInt *ltogind, *ltogind0, *locind, l0count;
     IS ltogis, ltogis0, locis;
-    PetscInt gstart[2][2][2], gmnodes[2][2][2][3];
+    PetscInt gstart[2][2][2], gmnodes[2][2][2][dim];
 
     for (int i=0; i<2; i++) {
       for (int j=0; j<2; j++) {
@@ -536,13 +537,13 @@ int main(int argc, char **argv) {
         }
       }
     }
-    ierr = ISCreateBlock(comm, vscale, lsize, ltogind, PETSC_OWN_POINTER,
+    ierr = ISCreateBlock(comm, ncompu, lsize, ltogind, PETSC_OWN_POINTER,
                          &ltogis); CHKERRQ(ierr);
     ierr = VecScatterCreate(Xloc, NULL, X, ltogis, &ltog); CHKERRQ(ierr);
     CHKERRQ(ierr);
-    ierr = ISCreateBlock(comm, vscale, l0count, ltogind0, PETSC_OWN_POINTER,
+    ierr = ISCreateBlock(comm, ncompu, l0count, ltogind0, PETSC_OWN_POINTER,
                          &ltogis0); CHKERRQ(ierr);
-    ierr = ISCreateBlock(comm, vscale, l0count, locind, PETSC_OWN_POINTER,
+    ierr = ISCreateBlock(comm, ncompu, l0count, locind, PETSC_OWN_POINTER,
                          &locis); CHKERRQ(ierr);
     ierr = VecScatterCreate(Xloc, locis, X, ltogis0, &ltog0); CHKERRQ(ierr);
     {
@@ -577,15 +578,18 @@ int main(int argc, char **argv) {
 
   // Set up libCEED
   CeedInit(ceedresource, &ceed);
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, vscale, P, Q,
+
+  // CEED bases
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompu, P, Q,
                                   bpOptions[bpChoice].qmode, &basisu);
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, Q,
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, Q,
                                   bpOptions[bpChoice].qmode, &basisx);
 
-  CreateRestriction(ceed, melem, P, vscale, &Erestrictu);
-  CreateRestriction(ceed, melem, 2, 3, &Erestrictx);
+  // CEED restrictions
+  CreateRestriction(ceed, melem, P, ncompu, &Erestrictu);
+  CreateRestriction(ceed, melem, 2, dim, &Erestrictx);
   CeedInt nelem = melem[0]*melem[1]*melem[2];
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, vscale,
+  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompu,
                                     &Erestrictui);
   CeedElemRestrictionCreateIdentity(ceed, nelem,
                                     Q*Q*Q,
@@ -597,7 +601,7 @@ int main(int argc, char **argv) {
     CeedScalar *xloc;
     CeedInt shape[3] = {melem[0]+1, melem[1]+1, melem[2]+1}, len =
                          shape[0]*shape[1]*shape[2];
-    xloc = malloc(len*3*sizeof xloc[0]);
+    xloc = malloc(len*ncompx*sizeof xloc[0]);
     for (CeedInt i=0; i<shape[0]; i++) {
       for (CeedInt j=0; j<shape[1]; j++) {
         for (CeedInt k=0; k<shape[2]; k++) {
@@ -610,7 +614,7 @@ int main(int argc, char **argv) {
         }
       }
     }
-    CeedVectorCreate(ceed, len*3, &xcoord);
+    CeedVectorCreate(ceed, len*ncompx, &xcoord);
     CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_OWN_POINTER, xloc);
   }
 
@@ -618,13 +622,13 @@ int main(int argc, char **argv) {
   // quadrature data) and set its context data
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setup,
                               bpOptions[bpChoice].setupfname, &qf_setup);
-  CeedQFunctionAddInput(qf_setup, "x", 3, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_setup, "dx", 9, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setup, "x", ncompx, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_setup, "dx", ncompx*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup, "rho", bpOptions[bpChoice].qdatasize,
                          CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_setup, "true_soln", vscale, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_setup, "rhs", vscale, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_setup, "true_soln", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_setup, "rhs", ncompu, CEED_EVAL_INTERP);
 
   // Set up PDE operator
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].apply,
@@ -632,26 +636,26 @@ int main(int argc, char **argv) {
   // Add inputs and outputs
   CeedInt gradInScale = bpOptions[bpChoice].inmode==CEED_EVAL_GRAD ? 3 : 1;
   CeedInt gradOutScale = bpOptions[bpChoice].outmode==CEED_EVAL_GRAD ? 3 : 1;
-  CeedQFunctionAddInput(qf_apply, "u", vscale*gradInScale,
+  CeedQFunctionAddInput(qf_apply, "u", ncompu*gradInScale,
                          bpOptions[bpChoice].inmode);
   CeedQFunctionAddInput(qf_apply, "rho", bpOptions[bpChoice].qdatasize,
                         CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_apply, "v", vscale*gradOutScale,
+  CeedQFunctionAddOutput(qf_apply, "v", ncompu*gradOutScale,
                          bpOptions[bpChoice].outmode);
 
   // Create the error qfunction
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].error,
                               bpOptions[bpChoice].errorfname, &qf_error);
-  CeedQFunctionAddInput(qf_error, "u", vscale, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_error, "true_soln", vscale, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_error, "error", vscale, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_error, "u", ncompu, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_error, "true_soln", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_error, "error", ncompu, CEED_EVAL_NONE);
 
   // Create the persistent vectors that will be needed in setup
   CeedInt nqpts;
   CeedBasisGetNumQuadraturePoints(basisu, &nqpts);
   CeedVectorCreate(ceed, bpOptions[bpChoice].qdatasize*nelem*nqpts, &rho);
-  CeedVectorCreate(ceed, nelem*nqpts*vscale, &target);
-  CeedVectorCreate(ceed, lsize*vscale, &rhsceed);
+  CeedVectorCreate(ceed, nelem*nqpts*ncompu, &target);
+  CeedVectorCreate(ceed, lsize*ncompu, &rhsceed);
 
   // Create the operator that builds the quadrature data for the ceed operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
@@ -697,14 +701,14 @@ int main(int argc, char **argv) {
   }
   user->Xloc = Xloc;
   ierr = VecDuplicate(Xloc, &user->Yloc); CHKERRQ(ierr);
-  CeedVectorCreate(ceed, lsize*vscale, &user->xceed);
-  CeedVectorCreate(ceed, lsize*vscale, &user->yceed);
+  CeedVectorCreate(ceed, lsize*ncompu, &user->xceed);
+  CeedVectorCreate(ceed, lsize*ncompu, &user->yceed);
   user->op = op_apply;
   user->rho = rho;
   user->ceed = ceed;
 
-  ierr = MatCreateShell(comm, mnodes[0]*mnodes[1]*mnodes[2]*vscale,
-                        mnodes[0]*mnodes[1]*mnodes[2]*vscale,
+  ierr = MatCreateShell(comm, mnodes[0]*mnodes[1]*mnodes[2]*ncompu,
+                        mnodes[0]*mnodes[1]*mnodes[2]*ncompu,
                         PETSC_DECIDE, PETSC_DECIDE, user, &mat); CHKERRQ(ierr);
   if (bpChoice == CEED_BP1 || bpChoice == CEED_BP2) {
     ierr = MatShellSetOperation(mat, MATOP_MULT, (void(*)(void))MatMult_Mass);

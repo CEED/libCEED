@@ -53,6 +53,7 @@ CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords);
 int main(int argc, const char *argv[]) {
   const char *ceed_spec = "/cpu/self";
   int dim        = 3;           // dimension of the mesh
+  int ncompx      = 3;           // number of x components
   int mesh_order = 4;           // polynomial degree for the mesh
   int sol_order  = 4;           // polynomial degree for the solution
   int num_qpts   = sol_order+2; // number of 1D quadrature points
@@ -109,7 +110,7 @@ int main(int argc, const char *argv[]) {
 
   // Construct the mesh and solution bases.
   CeedBasis mesh_basis, sol_basis;
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, mesh_order+1, num_qpts,
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, mesh_order+1, num_qpts,
                                   CEED_GAUSS, &mesh_basis);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, sol_order+1, num_qpts,
                                   CEED_GAUSS, &sol_basis);
@@ -129,7 +130,7 @@ int main(int argc, const char *argv[]) {
   // representations.
   CeedInt mesh_size, sol_size;
   CeedElemRestriction mesh_restr, sol_restr, mesh_restr_i, sol_restr_i;
-  BuildCartesianRestriction(ceed, dim, nxyz, mesh_order, dim, &mesh_size,
+  BuildCartesianRestriction(ceed, dim, nxyz, mesh_order, ncompx, &mesh_size,
                             num_qpts, &mesh_restr, &mesh_restr_i);
   BuildCartesianRestriction(ceed, dim, nxyz, sol_order, 1, &sol_size,
                             num_qpts, &sol_restr, &sol_restr_i);
@@ -155,7 +156,7 @@ int main(int argc, const char *argv[]) {
   CeedQFunction build_qfunc;
   CeedQFunctionCreateInterior(ceed, 1, f_build_mass,
                               f_build_mass_loc, &build_qfunc);
-  CeedQFunctionAddInput(build_qfunc, "dx", dim*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(build_qfunc, "dx", ncompx*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(build_qfunc, "rho", 1, CEED_EVAL_NONE);
   CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
@@ -205,7 +206,7 @@ int main(int argc, const char *argv[]) {
   CeedOperatorSetField(oper, "v", sol_restr, CEED_NOTRANSPOSE,
                        sol_basis, CEED_VECTOR_ACTIVE);
 
-  // Compute the mesh volume using the mass operator: vol = 1^T.M.1.
+  // Compute the mesh volume using the mass operator: vol = 1^T \cdot M \cdot 1
   if (!test) {
     printf("Computing the mesh volume using the formula: vol = 1^T.M.1 ...");
     fflush(stdout);
