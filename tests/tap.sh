@@ -101,6 +101,15 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
+    # grep to skip tests t410 and ex1 for OCCA' \
+    if grep -F -q -e 'OklPath' ${output}.err \
+            && [[ "$1" = "t410"* || "$1" = "ex1" ]] ; then
+        printf "ok $i0 # SKIP - gallery not supported $1 $backend\n"
+        printf "ok $i1 # SKIP - gallery not supported $1 $backend stdout\n"
+        printf "ok $i2 # SKIP - gallery not supported $1 $backend stderr\n"
+        continue
+    fi
+
     if [ $status -eq 0 ]; then
         printf "ok $i0 $1 $backend\n"
     else

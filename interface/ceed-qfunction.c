@@ -105,8 +105,8 @@ int CeedQFunctionRegister(const char *name, const char *source,
   if (num_qfunctions >= sizeof(qfunctions) / sizeof(qfunctions[0])) {
     return CeedError(NULL, 1, "Too many gallery QFunctions");
   }
-  strncpy(qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);
-  strncpy(qfunctions[num_qfunctions].source, source, CEED_MAX_RESOURCE_LEN);
+  strncpy(qfunctions[num_qfunctions].name, name, strlen(name)+1);
+  strncpy(qfunctions[num_qfunctions].source, source, strlen(source)+1);
   qfunctions[num_qfunctions].vlength = vlength;
   qfunctions[num_qfunctions].f = f;
   qfunctions[num_qfunctions].init = init;
