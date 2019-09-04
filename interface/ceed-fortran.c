@@ -546,7 +546,6 @@ void fCeedQFunctionCreateInterior(int *ceed, int *vlength,
   if (*err == 0) {
     *qf = CeedQFunction_count++;
     CeedQFunction_n++;
-
   }
 
   fContext *fctx;
@@ -571,6 +570,11 @@ void fCeedQFunctionCreateInteriorByName(int *ceed, const char *name, int *qf,
 
   CeedQFunction *qf_ = &CeedQFunction_dict[CeedQFunction_count];
   *err = CeedQFunctionCreateInteriorByName(Ceed_dict[*ceed], name_c, qf_);
+
+  if (*err == 0) {
+    *qf = CeedQFunction_count++;
+    CeedQFunction_n++;
+  }
 }
 
 #define fCeedQFunctionAddInput \
