@@ -1,6 +1,6 @@
 /// @file
-/// Test inderintegrated grad in multiple dimensions
-/// \test Test inderintegraded grad in multiple dimensions
+/// Test underintegrated grad in multiple dimensions
+/// \test Test underintegraded grad in multiple dimensions
 #include <ceed.h>
 #include <math.h>
 
