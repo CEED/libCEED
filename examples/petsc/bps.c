@@ -598,7 +598,7 @@ int main(int argc, char **argv) {
     CeedScalar *xloc;
     CeedInt shape[3] = {melem[0]+1, melem[1]+1, melem[2]+1}, len =
                          shape[0]*shape[1]*shape[2];
-    xloc = malloc(len*dim*sizeof xloc[0]);
+    xloc = malloc(len*ncompx*sizeof xloc[0]);
     for (CeedInt i=0; i<shape[0]; i++) {
       for (CeedInt j=0; j<shape[1]; j++) {
         for (CeedInt k=0; k<shape[2]; k++) {
@@ -611,7 +611,7 @@ int main(int argc, char **argv) {
         }
       }
     }
-    CeedVectorCreate(ceed, len*dim, &xcoord);
+    CeedVectorCreate(ceed, len*ncompx, &xcoord);
     CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_OWN_POINTER, xloc);
   }
 

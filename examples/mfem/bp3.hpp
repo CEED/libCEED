@@ -117,7 +117,7 @@ class CeedDiffusionOperator : public mfem::Operator {
     const mfem::IntegrationRule &ir =
       mfem::IntRules.Get(mfem::Geometry::SEGMENT, ir_order);
     CeedInt nqpts, nelem = mesh->GetNE(), dim = mesh->SpaceDimension(),
-            ncomp = dim;
+            ncompx = dim;
 
     FESpace2Ceed(fes, ir, ceed, &basis, &restr);
 
@@ -145,7 +145,7 @@ class CeedDiffusionOperator : public mfem::Operator {
     // quadrature data) and set its context data.
     CeedQFunctionCreateInterior(ceed, 1, f_build_diff,
                                 f_build_diff_loc, &build_qfunc);
-    CeedQFunctionAddInput(build_qfunc, "dx", ncomp*dim, CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(build_qfunc, "dx", ncompx*dim, CEED_EVAL_GRAD);
     CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
     CeedQFunctionAddOutput(build_qfunc, "rho", dim*(dim+1)/2, CEED_EVAL_NONE);
     CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
