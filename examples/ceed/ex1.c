@@ -1,3 +1,19 @@
+// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// All Rights reserved. See files LICENSE and NOTICE for details.
+//
+// This file is part of CEED, a collection of benchmarks, miniapps, software
+// libraries and APIs for efficient high-order finite element and spectral
+// element discretizations for exascale applications. For more information and
+// source code availability see http://github.com/ceed.
+//
+// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
+// a collaborative effort of two U.S. Department of Energy organizations (Office
+// of Science and the National Nuclear Security Administration) responsible for
+// the planning and preparation of a capable exascale ecosystem, including
+// software, applications, hardware, advanced system engineering and early
+// testbed platforms, in support of the nation's exascale computing imperative.
+
 //                             libCEED Example 1
 //
 // This example illustrates a simple usage of libCEED to compute the volume of a
@@ -154,12 +170,25 @@ int main(int argc, const char *argv[]) {
   // Create the Q-function that builds the mass operator (i.e. computes its
   // quadrature data) and set its context data.
   CeedQFunction build_qfunc;
-  CeedQFunctionCreateInterior(ceed, 1, f_build_mass,
-                              f_build_mass_loc, &build_qfunc);
-  CeedQFunctionAddInput(build_qfunc, "dx", ncompx*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(build_qfunc, "rho", 1, CEED_EVAL_NONE);
-  CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
+  switch(1) {
+    case (1): {
+      // This creates the QFunction via the gallary.
+      char name[13] = "buildMass", buffer[2];
+      sprintf(buffer, "%d", dim);
+      strcat(name, buffer); strcat(name, "D");
+      CeedQFunctionCreateInteriorByName(ceed, name, &build_qfunc);
+      break;
+    }
+    case (2):
+      // This creates the QFunction directly.
+      CeedQFunctionCreateInterior(ceed, 1, f_build_mass,
+                                  f_build_mass_loc, &build_qfunc);
+      CeedQFunctionAddInput(build_qfunc, "dx", ncompx*dim, CEED_EVAL_GRAD);
+      CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
+      CeedQFunctionAddOutput(build_qfunc, "rho", 1, CEED_EVAL_NONE);
+      CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
+      break;
+  }
 
   // Create the operator that builds the quadrature data for the mass operator.
   CeedOperator build_oper;
@@ -168,7 +197,7 @@ int main(int argc, const char *argv[]) {
                        mesh_basis,CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(build_oper, "weights", mesh_restr_i, CEED_NOTRANSPOSE,
                        mesh_basis, CEED_VECTOR_NONE);
-  CeedOperatorSetField(build_oper, "rho", sol_restr_i, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(build_oper, "qdata", sol_restr_i, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Compute the quadrature data for the mass operator.
@@ -190,18 +219,27 @@ int main(int argc, const char *argv[]) {
 
   // Create the Q-function that defines the action of the mass operator.
   CeedQFunction apply_qfunc;
-  CeedQFunctionCreateInterior(ceed, 1, f_apply_mass,
-                              f_apply_mass_loc, &apply_qfunc);
-  CeedQFunctionAddInput(apply_qfunc, "u", 1, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(apply_qfunc, "rho", 1, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(apply_qfunc, "v", 1, CEED_EVAL_INTERP);
+  switch(1) {
+    case (1):
+      // This creates the QFunction via the gallary.
+      CeedQFunctionCreateInteriorByName(ceed, "applyMass", &apply_qfunc);
+      break;
+    case (2):
+      // This creates the QFunction directly.
+      CeedQFunctionCreateInterior(ceed, 1, f_apply_mass,
+                                  f_apply_mass_loc, &apply_qfunc);
+      CeedQFunctionAddInput(apply_qfunc, "u", 1, CEED_EVAL_INTERP);
+      CeedQFunctionAddInput(apply_qfunc, "qdata", 1, CEED_EVAL_NONE);
+      CeedQFunctionAddOutput(apply_qfunc, "v", 1, CEED_EVAL_INTERP);
+      break;
+  }
 
   // Create the mass operator.
   CeedOperator oper;
   CeedOperatorCreate(ceed, apply_qfunc, NULL, NULL, &oper);
   CeedOperatorSetField(oper, "u", sol_restr, CEED_NOTRANSPOSE,
                        sol_basis, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(oper, "rho", sol_restr_i, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(oper, "qdata", sol_restr_i, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, rho);
   CeedOperatorSetField(oper, "v", sol_restr, CEED_NOTRANSPOSE,
                        sol_basis, CEED_VECTOR_ACTIVE);
