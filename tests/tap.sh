@@ -17,26 +17,37 @@ if [ "t" != "${target::1}" ]; then
         test /cpu/self/tmpl = ${backends[$idx]::14} && unset backends[$idx]
     done
 fi
-printf "1..$[3*${#backends[@]}]\n";
 
 # for examples/ceed petsc*, mfem*, or ex* grep the code to fetch arguments from a TESTARGS line
+declare -a allargs
 if [ ${1::6} == "petsc-" ]; then
-    args=$(grep -F //TESTARGS examples/petsc/${1:6}.c* | cut -d\  -f2- )
+    allargs=$(grep -F //TESTARGS examples/petsc/${1:6}.c* | cut -d\  -f2- )
 elif [ ${1::5} == "mfem-" ]; then
-    args=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
+    allargs=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
 elif [ ${1::4} == "nek-" ]; then
-    args=$(grep -F "C TESTARGS" examples/nek/bps/${1:4}.usr* | cut -d\  -f3- )
+    allargs=$(grep -F "C TESTARGS" examples/nek/bps/${1:4}.usr* | cut -d\  -f3- )
 elif [ ${1::2} == "ex" ]; then
-    args=$(grep -F //TESTARGS examples/ceed/$1.c | cut -d\  -f2- )
+    # get all test configurations
+    numconfig=$(grep -F //TESTARGS examples/ceed/$1.c* | wc -l)
+    for ((i=0;i<${numconfig};++i)); do
+      allargs+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/ceed/$1.c | cut -d\  -f2- )")
+    done
 else
-    args='{ceed_resource}'
+    allargs='{ceed_resource}'
 fi
+
+printf "1..$[3*${#backends[@]}*${#allargs[@]}]\n";
 
 tmpfiles="${output} ${output}.out ${output}.diff ${output}.err SESSION.NAME"
 trap 'rm -f ${tmpfiles}' EXIT
 
-for ((i=0;i<${#backends[@]}; ++i)); do
-    i0=$((3*$i+1)) # return code
+# test configurations loop
+for ((j=0;j<${#allargs[@]};++j)); do
+args=${allargs[$j]}
+
+# backends loop
+for ((i=0;i<${#backends[@]};++i)); do
+    i0=$((3*$i+1+j*3*${#backends[@]})) # return code
     i1=$(($i0+1))  # stdout
     i2=$(($i0+2))  # stderr
     backend=${backends[$i]}
@@ -123,4 +134,5 @@ for ((i=0;i<${#backends[@]}; ++i)); do
     else
         printf "ok $i2 $1 $backend stderr\n"
     fi
-done
+done # backend loop
+done # test configuration loop

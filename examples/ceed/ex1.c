@@ -42,6 +42,12 @@
 //     ex1 -m ../../../mfem/data/fichera.mesh
 //     ex1 -m ../../../mfem/data/star.vtk -o 3
 //     ex1 -m ../../../mfem/data/inline-segment.mesh -o 8
+//
+// Next line is grep'd from tap.sh to set its arguments
+// Test in 1D-3D
+//TESTARGS -ceed {ceed_resource} -d 1 -t
+//TESTARGS -ceed {ceed_resource} -d 2 -t
+//TESTARGS -ceed {ceed_resource} -d 3 -t
 
 /// @file
 /// libCEED example using mass operator to compute volume
@@ -64,8 +70,6 @@ int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_order,
 CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords);
 
 
-// Next line is grep'd from tap.sh to set its arguments
-//TESTARGS -ceed {ceed_resource} -t
 int main(int argc, const char *argv[]) {
   const char *ceed_spec = "/cpu/self";
   int dim        = 3;           // dimension of the mesh
@@ -283,7 +287,9 @@ int main(int argc, const char *argv[]) {
     printf("Computed mesh volume : % .14g\n", vol);
     printf("Volume error         : % .14g\n", vol-exact_vol);
   } else {
-    printf("Volume error : % .1e\n", vol-exact_vol);
+    CeedScalar tol = (dim==1? 1E-14 : dim==2? 1E-7 : 1E-5);
+    if (fabs(vol-exact_vol)>tol)
+      printf("Volume error : % .1e\n", vol-exact_vol);
   }
 
   // Free dynamically allocated memory.
