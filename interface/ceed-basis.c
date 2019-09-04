@@ -735,8 +735,9 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
 
   @ref Utility
 **/
-int CeedMatrixMultiply(Ceed ceed, CeedScalar *matA, CeedScalar *matB,
-                       CeedScalar *matC, CeedInt m, CeedInt n, CeedInt kk) {
+static int CeedMatrixMultiply(Ceed ceed, CeedScalar *matA, CeedScalar *matB,
+                              CeedScalar *matC, CeedInt m, CeedInt n,
+                              CeedInt kk) {
   for (CeedInt i=0; i<m; i++)
     for (CeedInt j=0; j<n; j++) {
       CeedScalar sum = 0;
