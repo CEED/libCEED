@@ -57,7 +57,7 @@ def run(test, backends):
                         timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
                         stdout=proc.stdout,
                         stderr=proc.stderr)
-        ref_stdout = os.path.join('output', test + '.out')
+        ref_stdout = os.path.join('tests/output', test + '.out')
 
         if proc.stderr:
             if 'OCCA backend failed to use' in proc.stderr:

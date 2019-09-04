@@ -107,8 +107,8 @@ for ((i=0;i<${#backends[@]};++i)); do
     fi
 
     # stdout
-    if [ -f output/$1.out ]; then
-        if diff -u output/$1.out ${output}.out > ${output}.diff; then
+    if [ -f tests/output/$1.out ]; then
+        if diff -u tests/output/$1.out ${output}.out > ${output}.diff; then
             printf "ok $i1 $1 $backend stdout\n"
         else
             printf "not ok $i1 $1 $backend stdout\n"
