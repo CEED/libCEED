@@ -55,10 +55,11 @@ static int CeedQFunctionInit_ApplyDiff2D(Ceed ceed, const char *name,
     return CeedError(ceed, 1, "QFunction does not mach name: %s", name);
 
   // Add QFunction fields
-  ierr = CeedQFunctionAddInput(qf, "du", 2, CEED_EVAL_GRAD); CeedChk(ierr);
-  ierr = CeedQFunctionAddInput(qf, "qdata", 2*(2+1)/2, CEED_EVAL_NONE);
+  const CeedInt dim = 2;
+  ierr = CeedQFunctionAddInput(qf, "du", dim, CEED_EVAL_GRAD); CeedChk(ierr);
+  ierr = CeedQFunctionAddInput(qf, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
   CeedChk(ierr);
-  ierr = CeedQFunctionAddOutput(qf, "dv", 2, CEED_EVAL_GRAD); CeedChk(ierr);
+  ierr = CeedQFunctionAddOutput(qf, "dv", dim, CEED_EVAL_GRAD); CeedChk(ierr);
 
   return 0;
 }

@@ -48,14 +48,15 @@ static int CeedQFunctionInit_ApplyDiff1D(Ceed ceed, const char *name,
   int ierr;
 
   // Check QFunction name
-  if (strcmp(name, "buildDiff1D"))
+  if (strcmp(name, "applyDiff1D"))
     return CeedError(ceed, 1, "QFunction does not mach name: %s", name);
 
   // Add QFunction fields
-  ierr = CeedQFunctionAddInput(qf, "du", 1, CEED_EVAL_GRAD); CeedChk(ierr);
-  ierr = CeedQFunctionAddInput(qf, "qdata", 1*(1+1)/2, CEED_EVAL_NONE);
+  const CeedInt dim = 1;
+  ierr = CeedQFunctionAddInput(qf, "du", dim, CEED_EVAL_GRAD); CeedChk(ierr);
+  ierr = CeedQFunctionAddInput(qf, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
   CeedChk(ierr);
-  ierr = CeedQFunctionAddOutput(qf, "dv", 1, CEED_EVAL_GRAD); CeedChk(ierr);
+  ierr = CeedQFunctionAddOutput(qf, "dv", dim, CEED_EVAL_GRAD); CeedChk(ierr);
 
   return 0;
 }
@@ -66,6 +67,6 @@ static int CeedQFunctionInit_ApplyDiff1D(Ceed ceed, const char *name,
 **/
 __attribute__((constructor))
 static void Register(void) {
-  CeedQFunctionRegister("buildDiff1D", buildDiff1D_loc, 1, buildDiff1D,
+  CeedQFunctionRegister("applyDiff1D", buildDiff1D_loc, 1, buildDiff1D,
                         CeedQFunctionInit_ApplyDiff1D);
 }

@@ -53,7 +53,9 @@ static int CeedQFunctionInit_BuildMass3D(Ceed ceed, const char *name,
     return CeedError(ceed, 1, "QFunction does not mach name: %s", name);
 
   // Add QFunction fields
-  ierr = CeedQFunctionAddInput(qf, "dx", 3*3, CEED_EVAL_GRAD); CeedChk(ierr);
+  const CeedInt dim = 3;
+  ierr = CeedQFunctionAddInput(qf, "dx", dim*dim, CEED_EVAL_GRAD);
+  CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qf, "weights", 1, CEED_EVAL_WEIGHT);
   CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf, "qdata", 1, CEED_EVAL_NONE); CeedChk(ierr);
