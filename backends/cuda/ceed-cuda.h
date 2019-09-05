@@ -40,14 +40,15 @@ do { \
 
 #define QUOTE(...) #__VA_ARGS__
 
-typedef enum {HOST_SYNC, DEVICE_SYNC, BOTH_SYNC, NONE_SYNC} SyncState;
+typedef enum {CEED_CUDA_HOST_SYNC, CEED_CUDA_DEVICE_SYNC, CEED_CUDA_BOTH_SYNC,
+              CEED_CUDA_NONE_SYNC} CeedCudaSyncState;
 
 typedef struct {
   CeedScalar *h_array;
   CeedScalar *h_array_allocated;
   CeedScalar *d_array;
   CeedScalar *d_array_allocated;
-  SyncState memState;
+  CeedCudaSyncState memState;
 } CeedVector_Cuda;
 
 typedef struct {
