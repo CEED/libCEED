@@ -791,25 +791,10 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = . \
-                         backends/avx \
-                         backends/blocked \
-                         backends/cuda \
-                         backends/cuda-gen \
-                         backends/cuda-reg \
-                         backends/cuda-shared \
-                         backends/magma \
-                         backends/memcheck \
-                         backends/occa \
-                         backends/opt \
-                         backends/ref \
-                         backends/template \
-                         backends/xsmm \
+                         backends \
                          doc \
-                         examples/ceed \
-                         examples/mfem \
-                         examples/navier-stokes \
-                         examples/nek5000 \
-                         examples/petsc \
+                         examples \
+                         gallery \
                          include \
                          interface \
                          tests \
@@ -887,7 +872,7 @@ FILE_PATTERNS          = *.c \
 # be searched for input files as well.
 # The default value is: NO.
 
-RECURSIVE              = NO
+RECURSIVE              = YES
 
 # The EXCLUDE tag can be used to specify files and/or directories that should be
 # excluded from the INPUT source files. This way you can easily exclude a
@@ -896,7 +881,10 @@ RECURSIVE              = NO
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
-EXCLUDE                = include/ceedf.h \
+EXCLUDE                = benchmarks \
+                         include/ceedf.h \
+                         tests/output \
+                         tests/junit-xml \
                          include/ceed-fortran-name.h
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
@@ -1007,7 +995,7 @@ FILTER_SOURCE_PATTERNS =
 # (index.html). This can be useful if you have a project on for instance GitHub
 # and want to reuse the introduction page also for the doxygen output.
 
-USE_MDFILE_AS_MAINPAGE = README.md
+USE_MDFILE_AS_MAINPAGE = ./README.md
 
 #---------------------------------------------------------------------------
 # Configuration options related to source browsing

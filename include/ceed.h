@@ -27,19 +27,19 @@
 /// @defgroup CeedOperator CeedOperator: composed FE-type operations on vectors
 ///
 /// @page FunctionCategories libCEED: Types of Functions
-/// @subsection Types of Functions
+/// @section Library Functions
 ///   libCEED provides three different header files depending upon the type of
 ///   functions a user requires.
-/// @section Utility Utility Functions
+/// @subsection Utility Utility Functions
 ///   These functions are intended general utilities that may be useful to
 ///   libCEED developers and users. These functions can generally be found in "ceed.h".
-/// @section Basic User Functions
+/// @subsection Basic User Functions
 ///   These functions are intended to be used by general users of the libCEED
 ///   interface. These functions can generally be found in "ceed.h".
-/// @section Advanced Backend Developer Functions
+/// @subsection Advanced Backend Developer Functions
 ///   These functions are intended to be used by backend developers of the
 ///   libCEED interface. These functions can generally be found in "ceed-backend.h".
-/// @section Developer Frontend Developer Functions
+/// @subsection Developer Frontend Developer Functions
 ///   These functions are intended to be used by frontend developers of the
 ///   libCEED interface. These functions can generally be found in "ceed-impl.h".
 
