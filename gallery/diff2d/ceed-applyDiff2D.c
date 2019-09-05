@@ -28,7 +28,7 @@ static int CeedQFunctionInit_ApplyDiff2D(Ceed ceed, const char *name,
 
   // Check QFunction name
   if (strcmp(name, "applyDiff2D"))
-    return CeedError(ceed, 1, "QFunction does not mach name: %s", name);
+    return CeedError(ceed, 1, "QFunction does not match name: %s", name);
 
   // Add QFunction fields
   const CeedInt dim = 2;

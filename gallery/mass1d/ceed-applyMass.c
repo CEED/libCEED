@@ -27,7 +27,7 @@ static int CeedQFunctionInit_ApplyMass(Ceed ceed, const char *name,
 
   // Check QFunction name
   if (strcmp(name, "applyMass"))
-    return CeedError(ceed, 1, "QFunction does not mach name: %s", name);
+    return CeedError(ceed, 1, "QFunction does not match name: %s", name);
 
   // Add QFunction fields
   ierr = CeedQFunctionAddInput(qf, "u", 1, CEED_EVAL_INTERP); CeedChk(ierr);
