@@ -14,11 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef __CUDACC__
-#  include "ceed-backend.h"
-#  include <string.h>
-#endif
-
 /**
   @brief Ceed QFunction for building the geometric data for the 3D diff operator
 **/
@@ -67,38 +62,4 @@ CEED_QFUNCTION(buildDiff3D)(void *ctx, const CeedInt Q,
   }
 
   return 0;
-}
-
-/**
-  @brief Set fields for Ceed QFunction building the geometric data for the 3D
-           diff operator
-**/
-static int CeedQFunctionInit_BuildDiff3D(Ceed ceed, const char *name,
-    CeedQFunction qf) {
-  int ierr;
-
-  // Check QFunction name
-  if (strcmp(name, "buildDiff3D"))
-    return CeedError(ceed, 1, "QFunction does not mach name: %s", name);
-
-  // Add QFunction fields
-  const CeedInt dim = 3;
-  ierr = CeedQFunctionAddInput(qf, "dx", dim*dim, CEED_EVAL_GRAD);
-  CeedChk(ierr);
-  ierr = CeedQFunctionAddInput(qf, "weights", 1, CEED_EVAL_WEIGHT);
-  CeedChk(ierr);
-  ierr = CeedQFunctionAddOutput(qf, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
-  CeedChk(ierr);
-
-  return 0;
-}
-
-/**
-  @brief Register Ceed QFunction for building the geometric data for the 3D diff
-           operator
-**/
-__attribute__((constructor))
-static void Register(void) {
-  CeedQFunctionRegister("buildDiff3D", buildDiff3D_loc, 1, buildDiff3D,
-                        CeedQFunctionInit_BuildDiff3D);
 }

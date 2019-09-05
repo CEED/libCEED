@@ -14,42 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef __CUDACC__
-#  include "ceed-backend.h"
-#  include <string.h>
-#endif
-
-/**
-  @brief Ceed QFunction for building the geometric data for the 2D diff operator
-**/
-CEED_QFUNCTION(buildDiff2D)(void *ctx, const CeedInt Q,
-                            const CeedScalar *const *in, CeedScalar *const *out) {
-  // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
-  // the symmetric part of the result.
-
-  // in[0] is Jacobians with shape [2, nc=2, Q]
-  // in[1] is quadrature weights, size (Q)
-  const CeedScalar *J = in[0], *qw = in[1];
-
-  // out[0] is qdata, size (Q)
-  CeedScalar *qd = out[0];
-
-  // Quadrature point loop
-  for (CeedInt i=0; i<Q; i++) {
-    // J: 0 2   qd: 0 1   adj(J):  J22 -J12
-    //    1 3       1 2           -J21  J11
-    const CeedScalar J11 = J[i+Q*0];
-    const CeedScalar J21 = J[i+Q*1];
-    const CeedScalar J12 = J[i+Q*2];
-    const CeedScalar J22 = J[i+Q*3];
-    const CeedScalar w = qw[i] / (J11*J22 - J21*J12);
-    qd[i+Q*0] =   w * (J12*J12 + J22*J22);
-    qd[i+Q*1] = - w * (J11*J12 + J21*J22);
-    qd[i+Q*2] =   w * (J11*J11 + J21*J21);
-  }
-
-  return 0;
-}
+#include <string.h>
+#include "ceed-backend.h"
+#include "ceed-buildDiff2D.h"
 
 /**
   @brief Set fields for Ceed QFunction building the geometric data for the 2D

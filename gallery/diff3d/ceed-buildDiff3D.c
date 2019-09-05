@@ -14,48 +14,24 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef __CUDACC__
-#  include "ceed-backend.h"
-#  include <string.h>
-#endif
+#include <string.h>
+#include "ceed-backend.h"
+#include "ceed-buildDiff3D.h"
 
 /**
-  @brief Ceed QFunction for building the geometric data for the 1D diff operator
-**/
-CEED_QFUNCTION(buildDiff1D)(void *ctx, const CeedInt Q,
-                            const CeedScalar *const *in, CeedScalar *const *out) {
-  // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
-  // the symmetric part of the result.
-
-  // in[0] is Jacobians, size (Q)
-  // in[1] is quadrature weights, size (Q)
-  const CeedScalar *J = in[0], *qw = in[1];
-
-  // out[0] is qdata, size (Q)
-  CeedScalar *qd = out[0];
-
-  // Quadrature point loop
-  for (CeedInt i=0; i<Q; i++) {
-    qd[i] = qw[i] / J[i];
-  }
-
-  return 0;
-}
-
-/**
-  @brief Set fields for Ceed QFunction building the geometric data for the 1D
+  @brief Set fields for Ceed QFunction building the geometric data for the 3D
            diff operator
 **/
-static int CeedQFunctionInit_BuildDiff1D(Ceed ceed, const char *name,
+static int CeedQFunctionInit_BuildDiff3D(Ceed ceed, const char *name,
     CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name
-  if (strcmp(name, "buildDiff1D"))
+  if (strcmp(name, "buildDiff3D"))
     return CeedError(ceed, 1, "QFunction does not mach name: %s", name);
 
   // Add QFunction fields
-  const CeedInt dim = 1;
+  const CeedInt dim = 3;
   ierr = CeedQFunctionAddInput(qf, "dx", dim*dim, CEED_EVAL_GRAD);
   CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qf, "weights", 1, CEED_EVAL_WEIGHT);
@@ -67,11 +43,11 @@ static int CeedQFunctionInit_BuildDiff1D(Ceed ceed, const char *name,
 }
 
 /**
-  @brief Register Ceed QFunction for building the geometric data for the 1D diff
+  @brief Register Ceed QFunction for building the geometric data for the 3D diff
            operator
 **/
 __attribute__((constructor))
 static void Register(void) {
-  CeedQFunctionRegister("buildDiff1D", buildDiff1D_loc, 1, buildDiff1D,
-                        CeedQFunctionInit_BuildDiff1D);
+  CeedQFunctionRegister("buildDiff3D", buildDiff3D_loc, 1, buildDiff3D,
+                        CeedQFunctionInit_BuildDiff3D);
 }

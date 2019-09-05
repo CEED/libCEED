@@ -14,11 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef __CUDACC__
-#  include "ceed-backend.h"
-#  include <string.h>
-#endif
-
 /**
   @brief Ceed QFunction for applying mass matrix
 **/
@@ -36,32 +31,4 @@ CEED_QFUNCTION(applyMass)(void *ctx, const CeedInt Q,
   }
 
   return 0;
-}
-
-/**
-  @brief Set fields for Ceed QFunction for applying mass matrix
-**/
-static int CeedQFunctionInit_ApplyMass(Ceed ceed, const char *name,
-    CeedQFunction qf) {
-  int ierr;
-
-  // Check QFunction name
-  if (strcmp(name, "applyMass"))
-    return CeedError(ceed, 1, "QFunction does not mach name: %s", name);
-
-  // Add QFunction fields
-  ierr = CeedQFunctionAddInput(qf, "u", 1, CEED_EVAL_INTERP); CeedChk(ierr);
-  ierr = CeedQFunctionAddInput(qf, "qdata", 1, CEED_EVAL_NONE); CeedChk(ierr);
-  ierr = CeedQFunctionAddOutput(qf, "v", 1, CEED_EVAL_INTERP); CeedChk(ierr);
-
-  return 0;
-}
-
-/**
-  @brief Register Ceed QFunction for applying mass matrix
-**/
-__attribute__((constructor))
-static void Register(void) {
-  CeedQFunctionRegister("applyMass", applyMass_loc, 1, applyMass,
-                        CeedQFunctionInit_ApplyMass);
 }
