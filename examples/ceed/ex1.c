@@ -73,7 +73,7 @@ CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords);
 int main(int argc, const char *argv[]) {
   const char *ceed_spec = "/cpu/self";
   int dim        = 3;           // dimension of the mesh
-  int ncompx      = 3;           // number of x components
+  int ncompx     = 3;           // number of x components
   int mesh_order = 4;           // polynomial degree for the mesh
   int sol_order  = 4;           // polynomial degree for the solution
   int num_qpts   = sol_order+2; // number of 1D quadrature points
@@ -89,6 +89,7 @@ int main(int argc, const char *argv[]) {
       parse_error = next_arg ? ceed_spec = argv[++ia], 0 : 1;
     } else if (!strcmp(argv[ia],"-d")) {
       parse_error = next_arg ? dim = atoi(argv[++ia]), 0 : 1;
+      ncompx = dim;
     } else if (!strcmp(argv[ia],"-m")) {
       parse_error = next_arg ? mesh_order = atoi(argv[++ia]), 0 : 1;
     } else if (!strcmp(argv[ia],"-o")) {
