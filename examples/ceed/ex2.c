@@ -51,7 +51,7 @@
 //TESTARGS -ceed {ceed_resource} -d 3 -t
 
 /// @file
-/// libCEED example using diff operator to compute surface area
+/// libCEED example using diffusion operator to compute surface area
 
 #include <ceed.h>
 #include <stdlib.h>
@@ -180,15 +180,15 @@ int main(int argc, const char *argv[]) {
   struct BuildContext build_ctx;
   build_ctx.dim = build_ctx.space_dim = dim;
 
-  // Create the Q-function that builds the diff operator (i.e. computes its
+  // Create the Q-function that builds the diffusion operator (i.e. computes its
   // quadrature data) and set its context data.
   CeedQFunction build_qfunc;
   switch(1) {
     case (1): {
       // This creates the QFunction via the gallery.
-      char name[13] = "buildDiff", buffer[2];
+      char name[13] = "diff", buffer[2];
       sprintf(buffer, "%d", dim);
-      strcat(name, buffer); strcat(name, "D");
+      strcat(name, buffer); strcat(name, "DBuild");
       CeedQFunctionCreateInteriorByName(ceed, name, &build_qfunc);
       break;
     }
@@ -203,7 +203,8 @@ int main(int argc, const char *argv[]) {
       break;
   }
 
-  // Create the operator that builds the quadrature data for the diff operator.
+  // Create the operator that builds the quadrature data for the diffusion
+  // operator.
   CeedOperator build_oper;
   CeedOperatorCreate(ceed, build_qfunc, NULL, NULL, &build_oper);
   CeedOperatorSetField(build_oper, "dx", mesh_restr, CEED_NOTRANSPOSE,
@@ -213,7 +214,7 @@ int main(int argc, const char *argv[]) {
   CeedOperatorSetField(build_oper, "qdata", qdata_restr_i, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  // Compute the quadrature data for the diff operator.
+  // Compute the quadrature data for the diffusion operator.
   CeedVector qdata;
   CeedInt elem_qpts = CeedIntPow(num_qpts, dim);
   CeedInt num_elem = 1;
@@ -230,14 +231,14 @@ int main(int argc, const char *argv[]) {
     printf(" done.\n");
   }
 
-  // Create the Q-function that defines the action of the diff operator.
+  // Create the Q-function that defines the action of the diffusion operator.
   CeedQFunction apply_qfunc;
   switch(1) {
     case (1): {
       // This creates the QFunction via the gallery.
-      char name[13] = "applyDiff", buffer[2];
+      char name[13] = "diff", buffer[2];
       sprintf(buffer, "%d", dim);
-      strcat(name, buffer); strcat(name, "D");
+      strcat(name, buffer); strcat(name, "DApply");
       CeedQFunctionCreateInteriorByName(ceed, name, &apply_qfunc);
       break;
     }
@@ -251,7 +252,7 @@ int main(int argc, const char *argv[]) {
       break;
   }
 
-  // Create the diff operator.
+  // Create the diffusion operator.
   CeedOperator oper;
   CeedOperatorCreate(ceed, apply_qfunc, NULL, NULL, &oper);
   CeedOperatorSetField(oper, "du", sol_restr, CEED_NOTRANSPOSE,
@@ -286,7 +287,7 @@ int main(int argc, const char *argv[]) {
   CeedVectorRestoreArray(u, &u_host);
   CeedVectorRestoreArrayRead(mesh_coords, &x_host);
 
-  // Apply the diff operator: 'u' -> 'v'.
+  // Apply the diffusion operator: 'u' -> 'v'.
   CeedOperatorApply(oper, u, v, CEED_REQUEST_IMMEDIATE);
 
   // Compute and print the sum of the entries of 'v' giving the mesh surface area.

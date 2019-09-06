@@ -20,8 +20,8 @@
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-      call ceedqfunctioncreateinteriorbyname(ceed,'buildMass1D',qf_setup,err)
-      call ceedqfunctioncreateinteriorbyname(ceed,'applyMass',qf_mass,err)
+      call ceedqfunctioncreateinteriorbyname(ceed,'mass1DBuild',qf_setup,err)
+      call ceedqfunctioncreateinteriorbyname(ceed,'massApply',qf_mass,err)
 
       do i=0,q-1
         jj(i+1)=1

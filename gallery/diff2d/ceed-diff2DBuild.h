@@ -17,7 +17,7 @@
 /**
   @brief Ceed QFunction for building the geometric data for the 2D diff operator
 **/
-CEED_QFUNCTION(buildDiff2D)(void *ctx, const CeedInt Q,
+CEED_QFUNCTION(diff2DBuild)(void *ctx, const CeedInt Q,
                             const CeedScalar *const *in, CeedScalar *const *out) {
   // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
   // the symmetric part of the result.

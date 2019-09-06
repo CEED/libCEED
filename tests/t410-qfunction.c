@@ -15,8 +15,8 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
-  CeedQFunctionCreateInteriorByName(ceed, "buildMass1D", &qf_setup);
-  CeedQFunctionCreateInteriorByName(ceed, "applyMass", &qf_mass);
+  CeedQFunctionCreateInteriorByName(ceed, "mass1DBuild", &qf_setup);
+  CeedQFunctionCreateInteriorByName(ceed, "massApply", &qf_mass);
 
   for (CeedInt i=0; i<Q; i++) {
     CeedScalar x = 2.*i/(Q-1) - 1;

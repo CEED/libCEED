@@ -15,23 +15,20 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /**
-  @brief Ceed QFunction for building the geometric data for the 1D diff operator
+  @brief Ceed QFunction for applying the 1D diffusion operator
 **/
-CEED_QFUNCTION(buildDiff1D)(void *ctx, const CeedInt Q,
+CEED_QFUNCTION(diff1DApply)(void *ctx, const CeedInt Q,
                             const CeedScalar *const *in, CeedScalar *const *out) {
-  // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
-  // the symmetric part of the result.
+  // in[0] is gradient u, size (Q)
+  // in[1] is quadrature data, size (Q)
+  const CeedScalar *du = in[0], *qd = in[1];
 
-  // in[0] is Jacobians, size (Q)
-  // in[1] is quadrature weights, size (Q)
-  const CeedScalar *J = in[0], *qw = in[1];
-
-  // out[0] is qdata, size (Q)
-  CeedScalar *qd = out[0];
+  // out[0] is output to multiply against gradient v, size (Q)
+  CeedScalar *dv = out[0];
 
   // Quadrature point loop
   for (CeedInt i=0; i<Q; i++) {
-    qd[i] = qw[i] / J[i];
+    dv[i] = du[i] * qd[i];
   }
 
   return 0;

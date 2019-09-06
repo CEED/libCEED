@@ -16,19 +16,21 @@
 
 #include <string.h>
 #include "ceed-backend.h"
-#include "ceed-buildDiff3D.h"
+#include "ceed-diff3DBuild.h"
 
 /**
   @brief Set fields for Ceed QFunction building the geometric data for the 3D
-           diff operator
+           diffusion operator
 **/
-static int CeedQFunctionInit_BuildDiff3D(Ceed ceed, const char *name,
+static int CeedQFunctionInit_diff3DBuild(Ceed ceed, const char *requested,
     CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name
-  if (strcmp(name, "buildDiff3D"))
-    return CeedError(ceed, 1, "QFunction does not match name: %s", name);
+  const char *name = "diff3DBuild";
+  if (strcmp(name, requested))
+    return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
+                     name, requested);
 
   // Add QFunction fields
   const CeedInt dim = 3;
@@ -43,11 +45,11 @@ static int CeedQFunctionInit_BuildDiff3D(Ceed ceed, const char *name,
 }
 
 /**
-  @brief Register Ceed QFunction for building the geometric data for the 3D diff
-           operator
+  @brief Register Ceed QFunction for building the geometric data for the 3D
+           diffusion operator
 **/
 __attribute__((constructor))
 static void Register(void) {
-  CeedQFunctionRegister("buildDiff3D", buildDiff3D_loc, 1, buildDiff3D,
-                        CeedQFunctionInit_BuildDiff3D);
+  CeedQFunctionRegister("diff3DBuild", diff3DBuild_loc, 1, diff3DBuild,
+                        CeedQFunctionInit_diff3DBuild);
 }

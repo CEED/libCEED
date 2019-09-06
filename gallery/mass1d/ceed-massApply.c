@@ -14,21 +14,36 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-/**
-  @brief Ceed QFunction for applying mass matrix
-**/
-CEED_QFUNCTION(applyMass)(void *ctx, const CeedInt Q,
-                          const CeedScalar *const *in, CeedScalar *const *out) {
-  // in[0] is u, size (Q)
-  // in[1] is quadrature data, size (Q)
-  const CeedScalar *u = in[0], *qd = in[1];
-  // out[0] is v, size (Q)
-  CeedScalar *v = out[0];
+#include <string.h>
+#include "ceed-backend.h"
+#include "ceed-massApply.h"
 
-  // Quadrature point loop
-  for (CeedInt i=0; i<Q; i++) {
-    v[i] = u[i] * qd[i];
-  }
+/**
+  @brief Set fields for Ceed QFunction for applying the mass matrix
+**/
+static int CeedQFunctionInit_massApply(Ceed ceed, const char *requested,
+    CeedQFunction qf) {
+  int ierr;
+
+  // Check QFunction name
+  const char *name = "massApply";
+  if (strcmp(name, requested))
+    return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
+                     name, requested);
+
+  // Add QFunction fields
+  ierr = CeedQFunctionAddInput(qf, "u", 1, CEED_EVAL_INTERP); CeedChk(ierr);
+  ierr = CeedQFunctionAddInput(qf, "qdata", 1, CEED_EVAL_NONE); CeedChk(ierr);
+  ierr = CeedQFunctionAddOutput(qf, "v", 1, CEED_EVAL_INTERP); CeedChk(ierr);
 
   return 0;
+}
+
+/**
+  @brief Register Ceed QFunction for applying the mass matrix
+**/
+__attribute__((constructor))
+static void Register(void) {
+  CeedQFunctionRegister("massApply", massApply_loc, 1, massApply,
+                        CeedQFunctionInit_massApply);
 }

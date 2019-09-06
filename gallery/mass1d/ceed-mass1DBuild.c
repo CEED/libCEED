@@ -16,38 +16,39 @@
 
 #include <string.h>
 #include "ceed-backend.h"
-#include "ceed-buildDiff2D.h"
+#include "ceed-mass1DBuild.h"
 
 /**
-  @brief Set fields for Ceed QFunction building the geometric data for the 2D
-           diff operator
+  @brief Set fields for Ceed QFunction building the geometric data for the 1D
+           mass matrix
 **/
-static int CeedQFunctionInit_BuildDiff2D(Ceed ceed, const char *name,
+static int CeedQFunctionInit_mass1DBuild(Ceed ceed, const char *requested,
     CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name
-  if (strcmp(name, "buildDiff2D"))
-    return CeedError(ceed, 1, "QFunction does not match name: %s", name);
+  const char *name = "mass1DBuild";
+  if (strcmp(name, requested))
+    return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
+                     name, requested);
 
   // Add QFunction fields
-  const CeedInt dim = 2;
+  const CeedInt dim = 1;
   ierr = CeedQFunctionAddInput(qf, "dx", dim*dim, CEED_EVAL_GRAD);
   CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qf, "weights", 1, CEED_EVAL_WEIGHT);
   CeedChk(ierr);
-  ierr = CeedQFunctionAddOutput(qf, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
-  CeedChk(ierr);
+  ierr = CeedQFunctionAddOutput(qf, "qdata", 1, CEED_EVAL_NONE); CeedChk(ierr);
 
   return 0;
 }
 
 /**
-  @brief Register Ceed QFunction for building the geometric data for the 2D diff
-           operator
+  @brief Register Ceed QFunction for building the geometric data for the 1D mass
+           matrix
 **/
 __attribute__((constructor))
 static void Register(void) {
-  CeedQFunctionRegister("buildDiff2D", buildDiff2D_loc, 1, buildDiff2D,
-                        CeedQFunctionInit_BuildDiff2D);
+  CeedQFunctionRegister("mass1DBuild", mass1DBuild_loc, 1, mass1DBuild,
+                        CeedQFunctionInit_mass1DBuild);
 }

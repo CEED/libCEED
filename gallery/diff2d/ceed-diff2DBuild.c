@@ -16,32 +16,40 @@
 
 #include <string.h>
 #include "ceed-backend.h"
-#include "ceed-applyMass.h"
+#include "ceed-diff2DBuild.h"
 
 /**
-  @brief Set fields for Ceed QFunction for applying mass matrix
+  @brief Set fields for Ceed QFunction building the geometric data for the 2D
+           diffusion operator
 **/
-static int CeedQFunctionInit_ApplyMass(Ceed ceed, const char *name,
+static int CeedQFunctionInit_diff2DBuild(Ceed ceed, const char *requested,
     CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name
-  if (strcmp(name, "applyMass"))
-    return CeedError(ceed, 1, "QFunction does not match name: %s", name);
+  const char *name = "diff2DBuild";
+  if (strcmp(name, requested))
+    return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
+                     name, requested);
 
   // Add QFunction fields
-  ierr = CeedQFunctionAddInput(qf, "u", 1, CEED_EVAL_INTERP); CeedChk(ierr);
-  ierr = CeedQFunctionAddInput(qf, "qdata", 1, CEED_EVAL_NONE); CeedChk(ierr);
-  ierr = CeedQFunctionAddOutput(qf, "v", 1, CEED_EVAL_INTERP); CeedChk(ierr);
+  const CeedInt dim = 2;
+  ierr = CeedQFunctionAddInput(qf, "dx", dim*dim, CEED_EVAL_GRAD);
+  CeedChk(ierr);
+  ierr = CeedQFunctionAddInput(qf, "weights", 1, CEED_EVAL_WEIGHT);
+  CeedChk(ierr);
+  ierr = CeedQFunctionAddOutput(qf, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
+  CeedChk(ierr);
 
   return 0;
 }
 
 /**
-  @brief Register Ceed QFunction for applying mass matrix
+  @brief Register Ceed QFunction for building the geometric data for the 2D
+           diffusion operator
 **/
 __attribute__((constructor))
 static void Register(void) {
-  CeedQFunctionRegister("applyMass", applyMass_loc, 1, applyMass,
-                        CeedQFunctionInit_ApplyMass);
+  CeedQFunctionRegister("diff2DBuild", diff2DBuild_loc, 1, diff2DBuild,
+                        CeedQFunctionInit_diff2DBuild);
 }

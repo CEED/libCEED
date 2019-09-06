@@ -16,22 +16,24 @@
 
 #include <string.h>
 #include "ceed-backend.h"
-#include "ceed-buildMass1D.h"
+#include "ceed-mass3DBuild.h"
 
 /**
-  @brief Set fields for Ceed QFunction building the geometric data for the 1D
+  @brief Set fields for Ceed QFunction building the geometric data for the 3D
            mass matrix
 **/
-static int CeedQFunctionInit_BuildMass1D(Ceed ceed, const char *name,
+static int CeedQFunctionInit_mass3DBuild(Ceed ceed, const char *requested,
     CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name
-  if (strcmp(name, "buildMass1D"))
-    return CeedError(ceed, 1, "QFunction does not match name: %s", name);
+  const char *name = "mass3DBuild";
+  if (strcmp(name, requested))
+    return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
+                     name, requested);
 
   // Add QFunction fields
-  const CeedInt dim = 1;
+  const CeedInt dim = 3;
   ierr = CeedQFunctionAddInput(qf, "dx", dim*dim, CEED_EVAL_GRAD);
   CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qf, "weights", 1, CEED_EVAL_WEIGHT);
@@ -42,11 +44,11 @@ static int CeedQFunctionInit_BuildMass1D(Ceed ceed, const char *name,
 }
 
 /**
-  @brief Register Ceed QFunction for building the geometric data for the 1D mass
+  @brief Register Ceed QFunction for building the geometric data for the 3D mass
            matrix
 **/
 __attribute__((constructor))
 static void Register(void) {
-  CeedQFunctionRegister("buildMass1D", buildMass1D_loc, 1, buildMass1D,
-                        CeedQFunctionInit_BuildMass1D);
+  CeedQFunctionRegister("mass3DBuild", mass3DBuild_loc, 1, mass3DBuild,
+                        CeedQFunctionInit_mass3DBuild);
 }
