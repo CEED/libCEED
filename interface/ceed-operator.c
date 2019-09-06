@@ -211,6 +211,51 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop,
 }
 
 /**
+  @brief Assemble a linear CeedQFunction associated with a CeedOperator
+
+  This returns a CeedVector containing a matrix at each quadrature point
+    providing the action of the CeedQFunction associated with the CeedOperator.
+    The vector 'assembled' is of size
+                                (size of output fields)*(size of input fields)*
+                                (num of quadrature pts)*(num of elements)
+    and contains row-major matrices representing the action of the
+    CeedQFunction for a corresponding quadrature point on an element.
+
+  @param op             CeedOperator to assemble CeedQFunction
+  @param[out] assembled CeedVector to store assembled Ceed QFunction at
+                          quadrature points
+  @param[out] rstr      CeedElemRestriction for CeedVector containing assembled
+                          CeedQFunction
+  @param request        Address of CeedRequest for non-blocking completion, else
+                          CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector assembled,
+    CeedElemRestriction *rstr, CeedRequest *request) {
+  int ierr;
+  Ceed ceed = op->ceed;
+  CeedQFunction qf = op->qf;
+
+  if (op->composite) {
+    return CeedError(ceed, 1, "Cannot assemble QFunction for composite operator");
+  } else {
+    if (op->nfields == 0) return CeedError(ceed, 1, "No operator fields set");
+    if (op->nfields < qf->numinputfields + qf->numoutputfields) return CeedError(
+            ceed, 1, "Not all operator fields set");
+    if (op->numelements == 0) return CeedError(ceed, 1,
+                                       "At least one restriction required");
+    if (op->numqpoints == 0) return CeedError(ceed, 1,
+                                      "At least one non-collocated basis required");
+  }
+  ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
+  CeedChk(ierr);
+  return 0;
+}
+
+/**
   @brief Apply CeedOperator to a vector
 
   This computes the action of the operator on the specified (active) input,
