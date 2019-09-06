@@ -27,13 +27,15 @@
 /**
   @brief Set fields for new Ceed QFunction
 **/
-static int CeedQFunctionInit_GalleryTemplate(Ceed ceed, const char *name,
+static int CeedQFunctionInit_GalleryTemplate(Ceed ceed, const char *requested,
     CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name
-  if (strcmp(name, "galleryTemplate"))
-    return CeedError(ceed, 1, "QFunction does not mach name: %s", name);
+  const char *name = "galleryTemplate";
+  if (strcmp(name, requested))
+    return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
+                     name, requested);
 
   // Add QFunction fields
   ierr = CeedQFunctionAddInput(qf, "u", 1, CEED_EVAL_INTERP); CeedChk(ierr);
