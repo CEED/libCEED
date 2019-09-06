@@ -180,35 +180,17 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   return 0;
 }
 
-static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
-                                 CeedVector outvec, CeedRequest *request) {
-  int ierr;
-  CeedOperator_Ref *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
-  CeedQFunction qf;
-  ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
-  CeedInt Q, numelements, elemsize, numinputfields, numoutputfields, size, dim;
-  ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
-  ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);
-  ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
-  CeedChk(ierr);
-  CeedTransposeMode lmode;
-  CeedOperatorField *opinputfields, *opoutputfields;
-  ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
-  CeedChk(ierr);
-  CeedQFunctionField *qfinputfields, *qfoutputfields;
-  ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
-  CeedChk(ierr);
+// Setup Input fields
+static inline int CeedOperatorSetupInputs_Ref(CeedInt numinputfields,
+    CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
+    CeedVector invec, CeedOperator_Ref *impl, CeedRequest *request) {
+  CeedInt ierr;
   CeedEvalMode emode;
   CeedVector vec;
-  CeedBasis basis;
   CeedElemRestriction Erestrict;
+  CeedTransposeMode lmode;
   uint64_t state;
 
-  // Setup
-  ierr = CeedOperatorSetup_Ref(op); CeedChk(ierr);
-
-  // Input Evecs and Restriction
   for (CeedInt i=0; i<numinputfields; i++) {
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
     CeedChk(ierr);
@@ -224,7 +206,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
       if (state != impl->inputstate[i] || vec == invec) {
         ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
         CeedChk(ierr);
-        ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
+        ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode);
+        CeedChk(ierr);
         ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE,
                                         lmode, vec, impl->evecs[i],
                                         request); CeedChk(ierr);
@@ -236,6 +219,179 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
       CeedChk(ierr);
     }
   }
+  return 0;
+}
+
+// Input basis action
+static inline int CeedOperatorInputBasis_Ref(CeedInt e, CeedInt Q,
+    CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
+    CeedInt numinputfields, CeedOperator_Ref *impl) {
+  CeedInt ierr;
+  CeedInt dim, elemsize, size;
+  CeedElemRestriction Erestrict;
+  CeedEvalMode emode;
+  CeedBasis basis;
+
+  for (CeedInt i=0; i<numinputfields; i++) {
+    // Get elemsize, emode, size
+    ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
+    CeedChk(ierr);
+    ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize);
+    CeedChk(ierr);
+    ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
+    CeedChk(ierr);
+    ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size); CeedChk(ierr);
+    // Basis action
+    switch(emode) {
+    case CEED_EVAL_NONE:
+      ierr = CeedVectorSetArray(impl->qvecsin[i], CEED_MEM_HOST,
+                                CEED_USE_POINTER,
+                                &impl->edata[i][e*Q*size]); CeedChk(ierr);
+      break;
+    case CEED_EVAL_INTERP:
+      ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
+      ierr = CeedVectorSetArray(impl->evecsin[i], CEED_MEM_HOST,
+                                CEED_USE_POINTER,
+                                &impl->edata[i][e*elemsize*size]);
+      CeedChk(ierr);
+      ierr = CeedBasisApply(basis, 1, CEED_NOTRANSPOSE,
+                            CEED_EVAL_INTERP, impl->evecsin[i],
+                            impl->qvecsin[i]); CeedChk(ierr);
+      break;
+    case CEED_EVAL_GRAD:
+      ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
+      ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+      ierr = CeedVectorSetArray(impl->evecsin[i], CEED_MEM_HOST,
+                                CEED_USE_POINTER,
+                                &impl->edata[i][e*elemsize*size/dim]);
+      CeedChk(ierr);
+      ierr = CeedBasisApply(basis, 1, CEED_NOTRANSPOSE,
+                            CEED_EVAL_GRAD, impl->evecsin[i],
+                            impl->qvecsin[i]); CeedChk(ierr);
+      break;
+    case CEED_EVAL_WEIGHT:
+      break;  // No action
+    case CEED_EVAL_DIV:
+      break; // Not implemented
+    case CEED_EVAL_CURL:
+      break; // Not implemented
+    }
+  }
+  return 0;
+}
+
+// Output basis action
+static inline int CeedOperatorOutputBasis_Ref(CeedInt e, CeedInt Q,
+    CeedQFunctionField *qfoutputfields, CeedOperatorField *opoutputfields,
+    CeedInt numinputfields, CeedInt numoutputfields, CeedOperator op,
+    CeedOperator_Ref *impl) {
+  CeedInt ierr;
+  CeedInt dim, elemsize, size;
+  CeedElemRestriction Erestrict;
+  CeedEvalMode emode;
+  CeedBasis basis;
+
+  for (CeedInt i=0; i<numoutputfields; i++) {
+    // Get elemsize, emode, size
+    ierr = CeedOperatorFieldGetElemRestriction(opoutputfields[i], &Erestrict);
+    CeedChk(ierr);
+    ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize);
+    CeedChk(ierr);
+    ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
+    CeedChk(ierr);
+    ierr = CeedQFunctionFieldGetSize(qfoutputfields[i], &size); CeedChk(ierr);
+    // Basis action
+    switch(emode) {
+    case CEED_EVAL_NONE:
+      break; // No action
+    case CEED_EVAL_INTERP:
+      ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis);
+      CeedChk(ierr);
+      ierr = CeedVectorSetArray(impl->evecsout[i], CEED_MEM_HOST,
+                                CEED_USE_POINTER,
+                                &impl->edata[i + numinputfields][e*elemsize*size]);
+      CeedChk(ierr);
+      ierr = CeedBasisApply(basis, 1, CEED_TRANSPOSE,
+                            CEED_EVAL_INTERP, impl->qvecsout[i],
+                            impl->evecsout[i]); CeedChk(ierr);
+      break;
+    case CEED_EVAL_GRAD:
+      ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis);
+      CeedChk(ierr);
+      ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+      ierr = CeedVectorSetArray(impl->evecsout[i], CEED_MEM_HOST,
+                                CEED_USE_POINTER,
+                                &impl->edata[i + numinputfields][e*elemsize*size/dim]);
+      CeedChk(ierr);
+      ierr = CeedBasisApply(basis, 1, CEED_TRANSPOSE,
+                            CEED_EVAL_GRAD, impl->qvecsout[i],
+                            impl->evecsout[i]); CeedChk(ierr);
+      break;
+    case CEED_EVAL_WEIGHT: {
+      Ceed ceed;
+      ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+      return CeedError(ceed, 1,
+                       "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
+      break; // Should not occur
+    }
+    case CEED_EVAL_DIV:
+      break; // Not implemented
+    case CEED_EVAL_CURL:
+      break; // Not implemented
+    }
+  }
+  return 0;
+}
+
+// Restore Inputs
+static inline int CeedOperatorRestoreInputs_Ref(CeedInt numinputfields,
+    CeedQFunctionField *qfinputfields, CeedOperator_Ref *impl) {
+  CeedInt ierr;
+  CeedEvalMode emode;
+
+  for (CeedInt i=0; i<numinputfields; i++) {
+    ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
+    CeedChk(ierr);
+    if (emode == CEED_EVAL_WEIGHT) { // Skip
+    } else {
+      ierr = CeedVectorRestoreArrayRead(impl->evecs[i],
+                                        (const CeedScalar **) &impl->edata[i]);
+      CeedChk(ierr);
+    }
+  }
+  return 0;
+}
+
+// Apply Operator
+static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
+                                 CeedVector outvec, CeedRequest *request) {
+  int ierr;
+  CeedOperator_Ref *impl;
+  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  CeedQFunction qf;
+  ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
+  CeedInt Q, numelements, numinputfields, numoutputfields, size;
+  ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
+  ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);
+  ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
+  CeedChk(ierr);
+  CeedTransposeMode lmode;
+  CeedOperatorField *opinputfields, *opoutputfields;
+  ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
+  CeedChk(ierr);
+  CeedQFunctionField *qfinputfields, *qfoutputfields;
+  ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
+  CeedChk(ierr);
+  CeedEvalMode emode;
+  CeedVector vec;
+  CeedElemRestriction Erestrict;
+
+  // Setup
+  ierr = CeedOperatorSetup_Ref(op); CeedChk(ierr);
+
+  // Input Evecs and Restriction
+  ierr = CeedOperatorSetupInputs_Ref(numinputfields, qfinputfields,
+    opinputfields, invec, impl, request); CeedChk(ierr);
 
   // Output Evecs
   for (CeedInt i=0; i<numoutputfields; i++) {
@@ -245,52 +401,10 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
 
   // Loop through elements
   for (CeedInt e=0; e<numelements; e++) {
-    // Input basis apply if needed
-    for (CeedInt i=0; i<numinputfields; i++) {
-      // Get elemsize, emode, size
-      ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
-      CeedChk(ierr);
-      ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize);
-      CeedChk(ierr);
-      ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
-      CeedChk(ierr);
-      ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size); CeedChk(ierr);
-      // Basis action
-      switch(emode) {
-      case CEED_EVAL_NONE:
-        ierr = CeedVectorSetArray(impl->qvecsin[i], CEED_MEM_HOST,
-                                  CEED_USE_POINTER,
-                                  &impl->edata[i][e*Q*size]); CeedChk(ierr);
-        break;
-      case CEED_EVAL_INTERP:
-        ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
-        ierr = CeedVectorSetArray(impl->evecsin[i], CEED_MEM_HOST,
-                                  CEED_USE_POINTER,
-                                  &impl->edata[i][e*elemsize*size]);
-        CeedChk(ierr);
-        ierr = CeedBasisApply(basis, 1, CEED_NOTRANSPOSE,
-                              CEED_EVAL_INTERP, impl->evecsin[i],
-                              impl->qvecsin[i]); CeedChk(ierr);
-        break;
-      case CEED_EVAL_GRAD:
-        ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
-        ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
-        ierr = CeedVectorSetArray(impl->evecsin[i], CEED_MEM_HOST,
-                                  CEED_USE_POINTER,
-                                  &impl->edata[i][e*elemsize*size/dim]);
-        CeedChk(ierr);
-        ierr = CeedBasisApply(basis, 1, CEED_NOTRANSPOSE,
-                              CEED_EVAL_GRAD, impl->evecsin[i],
-                              impl->qvecsin[i]); CeedChk(ierr);
-        break;
-      case CEED_EVAL_WEIGHT:
-        break;  // No action
-      case CEED_EVAL_DIV:
-        break; // Not implemented
-      case CEED_EVAL_CURL:
-        break; // Not implemented
-      }
-    }
+    // Input basis apply
+    ierr = CeedOperatorInputBasis_Ref(e, Q, qfinputfields, opinputfields,
+                                      numinputfields, impl); CeedChk(ierr);
+
     // Output pointers
     for (CeedInt i=0; i<numoutputfields; i++) {
       ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
@@ -304,59 +418,14 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
         CeedChk(ierr);
       }
     }
+
     // Q function
     ierr = CeedQFunctionApply(qf, Q, impl->qvecsin, impl->qvecsout); CeedChk(ierr);
 
-    // Output basis apply if needed
-    for (CeedInt i=0; i<numoutputfields; i++) {
-      // Get elemsize, emode, size
-      ierr = CeedOperatorFieldGetElemRestriction(opoutputfields[i], &Erestrict);
-      CeedChk(ierr);
-      ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize);
-      CeedChk(ierr);
-      ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
-      CeedChk(ierr);
-      ierr = CeedQFunctionFieldGetSize(qfoutputfields[i], &size); CeedChk(ierr);
-      // Basis action
-      switch(emode) {
-      case CEED_EVAL_NONE:
-        break; // No action
-      case CEED_EVAL_INTERP:
-        ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis);
-        CeedChk(ierr);
-        ierr = CeedVectorSetArray(impl->evecsout[i], CEED_MEM_HOST,
-                                  CEED_USE_POINTER,
-                                  &impl->edata[i + numinputfields][e*elemsize*size]);
-        CeedChk(ierr);
-        ierr = CeedBasisApply(basis, 1, CEED_TRANSPOSE,
-                              CEED_EVAL_INTERP, impl->qvecsout[i],
-                              impl->evecsout[i]); CeedChk(ierr);
-        break;
-      case CEED_EVAL_GRAD:
-        ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis);
-        CeedChk(ierr);
-        ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
-        ierr = CeedVectorSetArray(impl->evecsout[i], CEED_MEM_HOST,
-                                  CEED_USE_POINTER,
-                                  &impl->edata[i + numinputfields][e*elemsize*size/dim]);
-        CeedChk(ierr);
-        ierr = CeedBasisApply(basis, 1, CEED_TRANSPOSE,
-                              CEED_EVAL_GRAD, impl->qvecsout[i],
-                              impl->evecsout[i]); CeedChk(ierr);
-        break;
-      case CEED_EVAL_WEIGHT: {
-        Ceed ceed;
-        ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-        return CeedError(ceed, 1,
-                         "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
-        break; // Should not occur
-      }
-      case CEED_EVAL_DIV:
-        break; // Not implemented
-      case CEED_EVAL_CURL:
-        break; // Not implemented
-      }
-    }
+    // Output basis apply
+    ierr = CeedOperatorOutputBasis_Ref(e, Q, qfoutputfields, opoutputfields,
+                                       numinputfields, numoutputfields, op, impl);
+    CeedChk(ierr);
   }
 
   // Zero lvecs
@@ -394,16 +463,8 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
   }
 
   // Restore input arrays
-  for (CeedInt i=0; i<numinputfields; i++) {
-    ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
-    CeedChk(ierr);
-    if (emode == CEED_EVAL_WEIGHT) { // Skip
-    } else {
-      ierr = CeedVectorRestoreArrayRead(impl->evecs[i],
-                                        (const CeedScalar **) &impl->edata[i]);
-      CeedChk(ierr);
-    }
-  }
+  ierr = CeedOperatorRestoreInputs_Ref(numinputfields, qfinputfields, impl);
+  CeedChk(ierr);
 
   return 0;
 }
