@@ -186,7 +186,7 @@ int main(int argc, const char *argv[]) {
   switch(1) {
     case (1): {
       // This creates the QFunction via the gallery.
-      char name[13] = "diff", buffer[2];
+      char name[16] = "poisson", buffer[2];
       sprintf(buffer, "%d", dim);
       strcat(name, buffer); strcat(name, "DBuild");
       CeedQFunctionCreateInteriorByName(ceed, name, &build_qfunc);
@@ -222,7 +222,7 @@ int main(int argc, const char *argv[]) {
     num_elem *= nxyz[d];
   CeedVectorCreate(ceed, num_elem*elem_qpts*dim*(dim+1)/2, &qdata);
   if (!test) {
-    printf("Computing the quadrature data for the diff operator ...");
+    printf("Computing the quadrature data for the diffusion operator ...");
     fflush(stdout);
   }
   CeedOperatorApply(build_oper, mesh_coords, qdata,
@@ -236,7 +236,7 @@ int main(int argc, const char *argv[]) {
   switch(1) {
     case (1): {
       // This creates the QFunction via the gallery.
-      char name[13] = "diff", buffer[2];
+      char name[16] = "poisson", buffer[2];
       sprintf(buffer, "%d", dim);
       strcat(name, buffer); strcat(name, "DApply");
       CeedQFunctionCreateInteriorByName(ceed, name, &apply_qfunc);

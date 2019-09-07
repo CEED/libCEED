@@ -16,24 +16,24 @@
 
 #include <string.h>
 #include "ceed-backend.h"
-#include "ceed-diff2DBuild.h"
+#include "ceed-poisson3DBuild.h"
 
 /**
-  @brief Set fields for Ceed QFunction building the geometric data for the 2D
-           diffusion operator
+  @brief Set fields for Ceed QFunction building the geometric data for the 3D
+           poisson operator
 **/
-static int CeedQFunctionInit_diff2DBuild(Ceed ceed, const char *requested,
+static int CeedQFunctionInit_poisson3DBuild(Ceed ceed, const char *requested,
     CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name
-  const char *name = "diff2DBuild";
+  const char *name = "poisson3DBuild";
   if (strcmp(name, requested))
     return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
                      name, requested);
 
   // Add QFunction fields
-  const CeedInt dim = 2;
+  const CeedInt dim = 3;
   ierr = CeedQFunctionAddInput(qf, "dx", dim*dim, CEED_EVAL_GRAD);
   CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qf, "weights", 1, CEED_EVAL_WEIGHT);
@@ -45,11 +45,11 @@ static int CeedQFunctionInit_diff2DBuild(Ceed ceed, const char *requested,
 }
 
 /**
-  @brief Register Ceed QFunction for building the geometric data for the 2D
-           diffusion operator
+  @brief Register Ceed QFunction for building the geometric data for the 3D
+           poisson operator
 **/
 __attribute__((constructor))
 static void Register(void) {
-  CeedQFunctionRegister("diff2DBuild", diff2DBuild_loc, 1, diff2DBuild,
-                        CeedQFunctionInit_diff2DBuild);
+  CeedQFunctionRegister("poisson3DBuild", poisson3DBuild_loc, 1, poisson3DBuild,
+                        CeedQFunctionInit_poisson3DBuild);
 }

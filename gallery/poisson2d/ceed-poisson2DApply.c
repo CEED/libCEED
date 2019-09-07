@@ -16,17 +16,17 @@
 
 #include <string.h>
 #include "ceed-backend.h"
-#include "ceed-diff2DApply.h"
+#include "ceed-poisson2DApply.h"
 
 /**
-  @brief Set fields for Ceed QFunction applying the 2D diffusion operator
+  @brief Set fields for Ceed QFunction applying the 2D poisson operator
 **/
-static int CeedQFunctionInit_diff2DApply(Ceed ceed, const char *requested,
+static int CeedQFunctionInit_poisson2DApply(Ceed ceed, const char *requested,
     CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name
-  const char *name = "diff2DApply";
+  const char *name = "poisson2DApply";
   if (strcmp(name, requested))
     return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
                      name, requested);
@@ -42,10 +42,10 @@ static int CeedQFunctionInit_diff2DApply(Ceed ceed, const char *requested,
 }
 
 /**
-  @brief Register Ceed QFunction for applying the 2D diffusion operator
+  @brief Register Ceed QFunction for applying the 2D poisson operator
 **/
 __attribute__((constructor))
 static void Register(void) {
-  CeedQFunctionRegister("diff2DApply", diff2DApply_loc, 1, diff2DApply,
-                        CeedQFunctionInit_diff2DApply);
+  CeedQFunctionRegister("poisson2DApply", poisson2DApply_loc, 1, poisson2DApply,
+                        CeedQFunctionInit_poisson2DApply);
 }

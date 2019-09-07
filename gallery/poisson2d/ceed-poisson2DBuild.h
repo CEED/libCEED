@@ -15,15 +15,15 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /**
-  @brief Ceed QFunction for building the geometric data for the 3D diffusion
-           operator
+  @brief Ceed QFunction for building the geometric data for the 2D poisson operator
 **/
-CEED_QFUNCTION(diff3DBuild)(void *ctx, const CeedInt Q,
-                            const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(poisson2DBuild)(void *ctx, const CeedInt Q,
+                               const CeedScalar *const *in,
+                               CeedScalar *const *out) {
   // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
   // the symmetric part of the result.
 
-  // in[0] is Jacobians with shape [3, nc=3, Q]
+  // in[0] is Jacobians with shape [2, nc=2, Q]
   // in[1] is quadrature weights, size (Q)
   const CeedScalar *J = in[0], *qw = in[1];
 
@@ -32,25 +32,16 @@ CEED_QFUNCTION(diff3DBuild)(void *ctx, const CeedInt Q,
 
   // Quadrature point loop
   for (CeedInt i=0; i<Q; i++) {
-    // Compute the adjoint
-    CeedScalar A[3][3];
-    for (CeedInt j=0; j<3; j++)
-      for (CeedInt k=0; k<3; k++)
-//      A[k][j] = J[j+1][k+1]*J[j+2][k+2] - J[j+1][k+2]*J[j+2][k+1]
-        A[k][j] = J[i+Q*((j+1)%3+3*((k+1)%3))]*J[i+Q*((j+2)%3+3*((k+2)%3))] -
-                  J[i+Q*((j+1)%3+3*((k+2)%3))]*J[i+Q*((j+2)%3+3*((k+1)%3))];
-
-    // Compute quadrature weight / det(J)
-    const CeedScalar w = qw[i] / (J[i+Q*0]*A[0][0] + J[i+Q*1]*A[1][1] +
-                                  J[i+Q*2]*A[2][2]);
-
-    // Compute geometric factors
-    qd[i+Q*0] = w * (A[0][0]*A[0][0] + A[0][1]*A[0][1] + A[0][2]*A[0][2]);
-    qd[i+Q*1] = w * (A[0][0]*A[1][0] + A[0][1]*A[1][1] + A[0][2]*A[1][2]);
-    qd[i+Q*2] = w * (A[0][0]*A[2][0] + A[0][1]*A[2][1] + A[0][2]*A[2][2]);
-    qd[i+Q*3] = w * (A[1][0]*A[1][0] + A[1][1]*A[1][1] + A[1][2]*A[1][2]);
-    qd[i+Q*4] = w * (A[1][0]*A[2][0] + A[1][1]*A[2][1] + A[1][2]*A[2][2]);
-    qd[i+Q*5] = w * (A[2][0]*A[2][0] + A[2][1]*A[2][1] + A[2][2]*A[2][2]);
+    // J: 0 2   qd: 0 1   adj(J):  J22 -J12
+    //    1 3       1 2           -J21  J11
+    const CeedScalar J11 = J[i+Q*0];
+    const CeedScalar J21 = J[i+Q*1];
+    const CeedScalar J12 = J[i+Q*2];
+    const CeedScalar J22 = J[i+Q*3];
+    const CeedScalar w = qw[i] / (J11*J22 - J21*J12);
+    qd[i+Q*0] =   w * (J12*J12 + J22*J22);
+    qd[i+Q*1] = - w * (J11*J12 + J21*J22);
+    qd[i+Q*2] =   w * (J11*J11 + J21*J21);
   }
 
   return 0;

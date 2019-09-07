@@ -15,20 +15,24 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /**
-  @brief Ceed QFunction for applying the 1D diffusion operator
+  @brief Ceed QFunction for applying the 2D poisson operator
 **/
-CEED_QFUNCTION(diff1DApply)(void *ctx, const CeedInt Q,
-                            const CeedScalar *const *in, CeedScalar *const *out) {
-  // in[0] is gradient u, size (Q)
-  // in[1] is quadrature data, size (Q)
+CEED_QFUNCTION(poisson2DApply)(void *ctx, const CeedInt Q,
+                               const CeedScalar *const *in,
+                               CeedScalar *const *out) {
+  // in[0] is gradient u, shape [2, nc=1, Q]
+  // in[1] is quadrature data, size (3*Q)
   const CeedScalar *du = in[0], *qd = in[1];
 
-  // out[0] is output to multiply against gradient v, size (Q)
+  // out[0] is output to multiply against gradient v, shape [2, nc=1, Q]
   CeedScalar *dv = out[0];
 
   // Quadrature point loop
   for (CeedInt i=0; i<Q; i++) {
-    dv[i] = du[i] * qd[i];
+    const CeedScalar du0 = du[i+Q*0];
+    const CeedScalar du1 = du[i+Q*1];
+    dv[i+Q*0] = qd[i+Q*0]*du0 + qd[i+Q*1]*du1;
+    dv[i+Q*1] = qd[i+Q*1]*du0 + qd[i+Q*2]*du1;
   }
 
   return 0;
