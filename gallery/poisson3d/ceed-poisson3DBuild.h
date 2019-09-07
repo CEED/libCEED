@@ -37,7 +37,8 @@ CEED_QFUNCTION(poisson3DBuild)(void *ctx, const CeedInt Q,
     CeedScalar A[3][3];
     for (CeedInt j=0; j<3; j++)
       for (CeedInt k=0; k<3; k++)
-//      A[k][j] = J[j+1][k+1]*J[j+2][k+2] - J[j+1][k+2]*J[j+2][k+1]
+        // Equivalent code with J as a VLA and no mod operations:
+        // A[k][j] = J[j+1][k+1]*J[j+2][k+2] - J[j+1][k+2]*J[j+2][k+1]
         A[k][j] = J[i+Q*((j+1)%3+3*((k+1)%3))]*J[i+Q*((j+2)%3+3*((k+2)%3))] -
                   J[i+Q*((j+1)%3+3*((k+2)%3))]*J[i+Q*((j+2)%3+3*((k+1)%3))];
 
