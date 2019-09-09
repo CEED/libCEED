@@ -17,6 +17,15 @@
 /// @file
 /// libCEED QFunctions for mass operator example using PETSc
 
+#ifndef CeedPragmaOMP
+#  ifdef _OPENMP
+#    define CeedPragmaOMP_(a) _Pragma(#a)
+#    define CeedPragmaOMP(a) CeedPragmaOMP_(omp a)
+#  else
+#    define CeedPragmaOMP(a)
+#  endif
+#endif
+
 #ifndef __CUDACC__
 #  include <math.h>
 #endif
@@ -27,6 +36,8 @@ CEED_QFUNCTION(SetupMass)(void *ctx, const CeedInt Q,
   const CeedScalar *x = in[0], *J = in[1], *w = in[2];
   CeedScalar *rho = out[0], *true_soln = out[1], *rhs = out[2];
 
+  // Quadrature Point Loop
+  CeedPragmaOMP(simd)
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
                             J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
@@ -45,6 +56,8 @@ CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
   const CeedScalar *u = in[0], *rho = in[1];
   CeedScalar *v = out[0];
 
+  // Quadrature Point Loop
+  CeedPragmaOMP(simd)
   for (CeedInt i=0; i<Q; i++) {
     v[i] = rho[i] * u[i];
   }
