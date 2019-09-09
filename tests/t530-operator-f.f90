@@ -52,7 +52,7 @@
       parameter(nqpts=nelem*q*q)
       integer indx(nelem*p*p)
       real*8 arrx(d*ndofs),aa(nqpts),qq(nqpts),vv(ndofs)
-      integer*8 xoffset,aoffset,boffset,qoffset,voffset
+      integer*8 xoffset,aoffset,qoffset,voffset
       real*8 total
 
       character arg*32
@@ -155,8 +155,10 @@
       call ceedvectorgetarrayread(qdata,ceed_mem_host,qq,qoffset,err)
       do i=1,nqpts
         if (abs(qq(qoffset+i)-aa(aoffset+i))>1.0d-9) then
+! LCOV_EXCL_START
           write(*,*) 'Error: A[',i,'] = ',aa(aoffset+i),' != ',&
      &      qq(qoffset+i)
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(a,aa,aoffset,err)
@@ -176,7 +178,9 @@
         total=total+vv(voffset+i)
       enddo
       if (abs(total-1.)>1.0d-14) then
+! LCOV_EXCL_START
         write(*,*) 'Error: True operator computed area = ',total,' != 1.0'
+! LCOV_EXCL_STOP
       endif
       call ceedvectorrestorearrayread(v,vv,voffset,err)
 
@@ -197,7 +201,9 @@
         total=total+vv(voffset+i)
       enddo
       if (abs(total-1.)>1.0d-10) then
+! LCOV_EXCL_START
         write(*,*) 'Error: Assembled operator computed area = ',total,' != 1.0'
+! LCOV_EXCL_STOP
       endif
       call ceedvectorrestorearrayread(v,vv,voffset,err)
 

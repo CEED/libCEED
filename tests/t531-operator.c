@@ -1,20 +1,20 @@
 /// @file
-/// Test assembly of mass matrix operator QFunction
-/// \test Test assembly of mass matrix operator QFunction
+/// Test assembly of Poisson operator QFunction
+/// \test Test assembly of Poisson operator QFunction
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
-#include "t530-operator.h"
+#include "t531-operator.h"
 
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedElemRestriction Erestrictx, Erestrictu,
-                      Erestrictxi, Erestrictui, Erestrictlini;
+                      Erestrictxi, Erestrictui,
+                      Erestrictqi, Erestrictlini;
   CeedBasis bx, bu;
-  CeedQFunction qf_setup, qf_mass;
-  CeedOperator op_setup, op_mass;
+  CeedQFunction qf_setup, qf_diff, qf_diff_lin;
+  CeedOperator op_setup, op_diff, op_diff_lin;
   CeedVector qdata, X, A, u, v;
-  const CeedScalar *a, *q;
   CeedInt nelem = 6, P = 3, Q = 4, dim = 2;
   CeedInt nx = 3, ny = 2;
   CeedInt ndofs = (nx*2+1)*(ny*2+1),
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
   // Qdata Vector
-  CeedVectorCreate(ceed, nqpts, &qdata);
+  CeedVectorCreate(ceed, nqpts*dim*(dim+1)/2, &qdata);
 
   // Element Setup
   for (CeedInt i=0; i<nelem; i++) {
@@ -60,105 +60,109 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q, nqpts, 1,
                                     &Erestrictui);
 
+  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q, nqpts, dim*(dim+1)/2,
+                                    &Erestrictqi);
+
   // Bases
   CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, P, Q, CEED_GAUSS,
                                   &bx);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P, Q, CEED_GAUSS, &bu);
 
-  // QFunctions
+  // QFunction - setup
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
-  CeedQFunctionAddInput(qf_setup, "_weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddInput(qf_setup, "dx", dim*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddOutput(qf_setup, "rho", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_setup, "_weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddOutput(qf_setup, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
 
-  CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_mass);
-  CeedQFunctionAddInput(qf_mass, "rho", 1, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_mass, "u", 1, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);
-
-  // Operators
+  // Operator - setup
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
-  CeedOperatorSetField(op_setup, "_weight", Erestrictxi, CEED_NOTRANSPOSE,
-                       bx, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE,
                        bx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "rho", Erestrictui, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setup, "_weight", Erestrictxi, CEED_NOTRANSPOSE,
+                       bx, CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setup, "qdata", Erestrictqi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-
-  CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
-  CeedOperatorSetField(op_mass, "rho", Erestrictui, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_mass, "u", Erestrictu, CEED_NOTRANSPOSE,
-                       bu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_mass, "v", Erestrictu, CEED_NOTRANSPOSE,
-                       bu, CEED_VECTOR_ACTIVE);
 
   // Apply Setup Operator
   CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
 
-  // Assemble QFunction
-  CeedVectorCreate(ceed, nqpts, &A);
-  CeedOperatorAssembleLinearQFunction(op_mass, A, &Erestrictlini,
-                                      CEED_REQUEST_IMMEDIATE);
+  // QFunction - apply
+  CeedQFunctionCreateInterior(ceed, 1, diff, diff_loc, &qf_diff);
+  CeedQFunctionAddInput(qf_diff, "du", dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_diff, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_diff, "dv", dim, CEED_EVAL_GRAD);
 
-  // Check output
-  CeedVectorGetArrayRead(A, CEED_MEM_HOST, &a);
-  CeedVectorGetArrayRead(qdata, CEED_MEM_HOST, &q);  
-  for (CeedInt i=0; i<nqpts; i++)
-    if (fabs(q[i] - a[i]) > 1E-9)
-      // LCOV_EXCL_START
-      printf("Error: A[%d] = %f != %f\n", i, a[i], q[i]);
-      // LCOV_EXCL_STOP
-  CeedVectorRestoreArrayRead(A, &a);
-  CeedVectorRestoreArrayRead(qdata, &q);
+  // Operator - apply
+  CeedOperatorCreate(ceed, qf_diff, NULL, NULL, &op_diff);
+  CeedOperatorSetField(op_diff, "du", Erestrictu, CEED_NOTRANSPOSE,
+                       bu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diff, "qdata", Erestrictqi, CEED_NOTRANSPOSE,
+                       CEED_BASIS_COLLOCATED, qdata);
+  CeedOperatorSetField(op_diff, "dv", Erestrictu, CEED_NOTRANSPOSE,
+                       bu, CEED_VECTOR_ACTIVE);
 
-  // Apply original Mass Operator
+  // Apply original Poisson Operator
   CeedVectorCreate(ceed, ndofs, &u);
   CeedVectorSetValue(u, 1.0);
   CeedVectorCreate(ceed, ndofs, &v);
   CeedVectorSetValue(v, 0.0);
-  CeedOperatorApply(op_mass, u, v, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_diff, u, v, CEED_REQUEST_IMMEDIATE);
 
   // Check output
-  CeedScalar area = 0.0;
   const CeedScalar *vv;
   CeedVectorGetArrayRead(v, CEED_MEM_HOST, &vv);
   for (CeedInt i=0; i<ndofs; i++)
-    area += vv[i];
-  CeedVectorRestoreArrayRead(v, &vv);
-  if (fabs(area - 1.0) > 1E-14)
+    if (fabs(vv[i]) > 1E-14)
       // LCOV_EXCL_START
-    printf("Error: True operator computed area = %f != 1.0\n", area);
+      printf("Error: Operator computed v[i] = %f != 0.0\n", vv[i]);
       // LCOV_EXCL_STOP
+  CeedVectorRestoreArrayRead(v, &vv);
 
-  // Switch to new qdata
-  CeedVectorGetArrayRead(A, CEED_MEM_HOST, &a);
-  CeedVectorSetArray(qdata, CEED_MEM_HOST, CEED_COPY_VALUES, (CeedScalar *)a);
-  CeedVectorRestoreArrayRead(A, &a);
+  // Assemble QFunction
+  CeedVectorCreate(ceed, nqpts*dim*dim, &A);
+  CeedOperatorAssembleLinearQFunction(op_diff, A, &Erestrictlini,
+                                      CEED_REQUEST_IMMEDIATE);
 
-  // Apply new Mass Operator
-  CeedOperatorApply(op_mass, u, v, CEED_REQUEST_IMMEDIATE);
+  // QFunction - apply linearized
+  CeedQFunctionCreateInterior(ceed, 1, diff_lin, diff_lin_loc, &qf_diff_lin);
+  CeedQFunctionAddInput(qf_diff_lin, "du", dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_diff_lin, "qdata", dim*dim, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_diff_lin, "dv", dim, CEED_EVAL_GRAD);
+
+  // Operator - apply - linearized
+  CeedOperatorCreate(ceed, qf_diff_lin, NULL, NULL, &op_diff_lin);
+  CeedOperatorSetField(op_diff_lin, "du", Erestrictu, CEED_NOTRANSPOSE,
+                       bu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diff_lin, "qdata", Erestrictlini, CEED_NOTRANSPOSE,
+                       CEED_BASIS_COLLOCATED, A);
+  CeedOperatorSetField(op_diff_lin, "dv", Erestrictu, CEED_NOTRANSPOSE,
+                       bu, CEED_VECTOR_ACTIVE);
+
+  // Apply new Poisson Operator
+  CeedVectorSetValue(v, 0.0);
+  CeedOperatorApply(op_diff_lin, u, v, CEED_REQUEST_IMMEDIATE);
 
   // Check output
-  area = 0.0;
   CeedVectorGetArrayRead(v, CEED_MEM_HOST, &vv);
   for (CeedInt i=0; i<ndofs; i++)
-    area += vv[i];
-  CeedVectorRestoreArrayRead(v, &vv);
-  if (fabs(area - 1.0) > 1E-10)
+    if (fabs(vv[i]) > 1E-14)
       // LCOV_EXCL_START
-    printf("Error: Linearized operator computed area = %f != 1.0\n", area);
+      printf("Error: Linerized operator computed v[i] = %f != 0.0\n", vv[i]);
       // LCOV_EXCL_STOP
+  CeedVectorRestoreArrayRead(v, &vv);
 
   // Cleanup
   CeedQFunctionDestroy(&qf_setup);
-  CeedQFunctionDestroy(&qf_mass);
+  CeedQFunctionDestroy(&qf_diff);
+  CeedQFunctionDestroy(&qf_diff_lin);
   CeedOperatorDestroy(&op_setup);
-  CeedOperatorDestroy(&op_mass);
+  CeedOperatorDestroy(&op_diff);
+  CeedOperatorDestroy(&op_diff_lin);
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
   CeedElemRestrictionDestroy(&Erestrictui);
   CeedElemRestrictionDestroy(&Erestrictxi);
+  CeedElemRestrictionDestroy(&Erestrictqi);
   CeedElemRestrictionDestroy(&Erestrictlini);
   CeedBasisDestroy(&bu);
   CeedBasisDestroy(&bx);
