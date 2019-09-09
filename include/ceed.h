@@ -59,6 +59,14 @@
   static const char name ## _loc[] = __FILE__ ":" #name;        \
   static int name
 #endif
+#ifndef CeedPragmaOMP
+#  ifdef _OPENMP
+#    define CeedPragmaOMP_(a) _Pragma(#a)
+#    define CeedPragmaOMP(a) CeedPragmaOMP_(omp a)
+#  else
+#    define CeedPragmaOMP(a)
+#  endif
+#endif
 
 #include <assert.h>
 #include <stdint.h>
