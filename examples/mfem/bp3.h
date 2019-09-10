@@ -29,13 +29,16 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q,
   // the symmetric part of the result.
   const CeedScalar *J = in[0], *qw = in[1];
   CeedScalar *qd = out[0];
+
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
+    CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       qd[i] = qw[i] / J[i];
     }
     break;
   case 22:
+    CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       // J: 0 2   qd: 0 1   adj(J):  J22 -J12
       //    1 3       1 2           -J21  J11
@@ -50,6 +53,7 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q,
     }
     break;
   case 33:
+    CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       // J: 0 3 6   qd: 0 1 2
       //    1 4 7       1 3 4
@@ -92,13 +96,16 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q,
   // in[0], out[0] have shape [dim, nc=1, Q]
   const CeedScalar *ug = in[0], *qd = in[1];
   CeedScalar *vg = out[0];
+
   switch (bc->dim) {
   case 1:
+    CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       vg[i] = ug[i] * qd[i];
     }
     break;
   case 2:
+    CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       const CeedScalar ug0 = ug[i+Q*0];
       const CeedScalar ug1 = ug[i+Q*1];
@@ -107,6 +114,7 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q,
     }
     break;
   case 3:
+    CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       const CeedScalar ug0 = ug[i+Q*0];
       const CeedScalar ug1 = ug[i+Q*1];
