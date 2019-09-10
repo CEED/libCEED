@@ -20,15 +20,6 @@
 #ifndef advection_h
 #define advection_h
 
-#ifndef CeedPragmaOMP
-#  ifdef _OPENMP
-#    define CeedPragmaOMP_(a) _Pragma(#a)
-#    define CeedPragmaOMP(a) CeedPragmaOMP_(omp a)
-#  else
-#    define CeedPragmaOMP(a)
-#  endif
-#endif
-
 #include <math.h>
 
 // *****************************************************************************
