@@ -32,12 +32,14 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q,
 
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
+    // Quadrature Point Loop
     CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       qd[i] = qw[i] / J[i];
     }
     break;
   case 22:
+    // Quadrature Point Loop
     CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       // J: 0 2   qd: 0 1   adj(J):  J22 -J12
@@ -53,6 +55,7 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q,
     }
     break;
   case 33:
+    // Quadrature Point Loop
     CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       // J: 0 3 6   qd: 0 1 2
@@ -99,12 +102,14 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q,
 
   switch (bc->dim) {
   case 1:
+    // Quadrature Point Loop
     CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       vg[i] = ug[i] * qd[i];
     }
     break;
   case 2:
+    // Quadrature Point Loop
     CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       const CeedScalar ug0 = ug[i+Q*0];
@@ -114,6 +119,7 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q,
     }
     break;
   case 3:
+    // Quadrature Point Loop
     CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       const CeedScalar ug0 = ug[i+Q*0];
