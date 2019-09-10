@@ -82,11 +82,11 @@ CEED_QFUNCTION(Diff)(void *ctx, const CeedInt Q,
   CeedPragmaOMP(simd)
   for (CeedInt i=0; i<Q; i++) {
     // Read spatial derivatives of u
-    const CeedScalar uJ[3]        =  {ug[i+Q*0],
+    const CeedScalar du[3]        =  {ug[i+Q*0],
                                       ug[i+Q*1],
                                       ug[i+Q*2]
                                      };
-    // Read qdata
+    // Read qdata (6 distinct entries of dXdxdXdxT symmetric matrix)
     const CeedScalar dXdxdXdxT[6] =  {qd[i+0*Q],
                                       qd[i+1*Q],
                                       qd[i+2*Q],
@@ -100,7 +100,7 @@ CEED_QFUNCTION(Diff)(void *ctx, const CeedInt Q,
     for (int j=0; j<3; j++) {
       vg[i+Q*j]  = 0;
       for (int k=0; k<3; k++)
-        vg[i+Q*j] += uJ[k] * dXdxdXdxT[idx[j][k]];
+        vg[i+Q*j] += du[k] * dXdxdXdxT[idx[j][k]];
     }
   } // End of Quadrature Point Loop
   return 0;
