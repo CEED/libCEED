@@ -38,7 +38,7 @@ CEED_QFUNCTION(SetupMass)(void *ctx, const CeedInt Q,
     true_soln[i] = sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
 
     rhs[i] = rho[i] * true_soln[i];
-  }
+  } // End of Quadrature Point Loop
   return 0;
 }
 
@@ -49,8 +49,8 @@ CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
 
   // Quadrature Point Loop
   CeedPragmaOMP(simd)
-  for (CeedInt i=0; i<Q; i++) {
+  for (CeedInt i=0; i<Q; i++)
     v[i] = rho[i] * u[i];
-  }
+
   return 0;
 }
