@@ -99,13 +99,13 @@ while True:
          qpts=int(line.split(':')[1])
          data['quadrature_pts']=qpts**3
       ## Total DOFs
-      elif 'Global DOFs' in line:
+      elif 'Global nodes' in line:
          data['num_unknowns']=int(line.split(':')[1])
       ## Number of elements
       elif 'Local Elements' in line:
          data['num_elem']=int(line.split(':')[1].split()[0])*data['num_procs']
       ## CG DOFs/Sec
-      elif 'DOFs/Sec in CG' in line:
+      elif 'DoFs/Sec in CG' in line:
          data['cg_iteration_dps']=1e6*float(line.split(':')[1].split()[0])
       ## End of output
 
