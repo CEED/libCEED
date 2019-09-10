@@ -54,11 +54,13 @@
 #else
 #  define CEED_EXTERN extern
 #endif
+
 #ifndef CEED_QFUNCTION
 #define CEED_QFUNCTION(name) \
   static const char name ## _loc[] = __FILE__ ":" #name;        \
   static int name
 #endif
+
 #ifndef CeedPragmaOMP
 #  ifdef _OPENMP
 #    define CeedPragmaOMP_(a) _Pragma(#a)

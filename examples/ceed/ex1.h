@@ -27,11 +27,15 @@ CEED_QFUNCTION(f_build_mass)(void *ctx, const CeedInt Q,
   CeedScalar *qd = out[0];
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
+    // Quadrature Point Loop
+    CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       qd[i] = J[i] * qw[i];
     }
     break;
   case 22:
+    // Quadrature Point Loop
+    CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       // 0 2
       // 1 3
@@ -39,6 +43,8 @@ CEED_QFUNCTION(f_build_mass)(void *ctx, const CeedInt Q,
     }
     break;
   case 33:
+    // Quadrature Point Loop
+    CeedPragmaOMP(simd)
     for (CeedInt i=0; i<Q; i++) {
       // 0 3 6
       // 1 4 7
@@ -57,6 +63,9 @@ CEED_QFUNCTION(f_apply_mass)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *w = in[1];
   CeedScalar *v = out[0];
+
+  // Quadrature Point Loop
+  CeedPragmaOMP(simd)
   for (CeedInt i=0; i<Q; i++) {
     v[i] = w[i] * u[i];
   }

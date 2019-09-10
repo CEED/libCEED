@@ -17,15 +17,6 @@
 /// @file
 /// libCEED QFunctions for diffusion operator example using PETSc
 
-#ifndef CeedPragmaOMP
-#  ifdef _OPENMP
-#    define CeedPragmaOMP_(a) _Pragma(#a)
-#    define CeedPragmaOMP(a) CeedPragmaOMP_(omp a)
-#  else
-#    define CeedPragmaOMP(a)
-#  endif
-#endif
-
 #ifndef __CUDACC__
 #  include <math.h>
 #endif
