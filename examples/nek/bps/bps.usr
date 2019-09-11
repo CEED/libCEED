@@ -21,7 +21,7 @@ C TESTARGS -c {ceed_resource} -e bp1 -n 1 -b 4 -test
 C PragmaOMP preprocessor directive
 #ifndef CeedPragmaOMP
 #  ifdef _OPENMP
-#    define CeedPragmaOMP_(a) _Pragma(#a)
+#    define CeedPragmaOMP_(a) C$#a
 #    define CeedPragmaOMP(a) CeedPragmaOMP_(omp a)
 #  else
 #    define CeedPragmaOMP(a)
@@ -46,7 +46,7 @@ C     Input: u1,u2,u3,q             Output: v1,v2,ierr
       real*8 jacmq
 
 C     Quadrature Point Loop
-      CeedPragmaOMP(simd)
+CeedPragmaOMP(simd)
       do i=1,q
         a11=u2(i+q*0)
         a12=u2(i+q*3)
@@ -99,7 +99,7 @@ C     Input: u1,u2,q                Output: v1,ierr
       real*8 v1(q)
 
 C     Quadrature Point Loop
-      CeedPragmaOMP(simd)
+CeedPragmaOMP(simd)
       do i=1,q
         v1(i)=u2(i)*u1(i)
       enddo
@@ -125,7 +125,7 @@ C     Input: u1,u2,u3,q             Output: v1,v2,ierr
       real*8 c(3),k(3)
 
 C     Quadrature Point Loop
-      CeedPragmaOMP(simd)
+CeedPragmaOMP(simd)
       do i=1,q
         pi = 3.14159265358979323846
 
@@ -196,7 +196,7 @@ C     Input: u1,u2,q                Output: v1,ierr
       real*8 v1(3*q)
 
 C     Quadrature Point Loop
-      CeedPragmaOMP(simd)
+CeedPragmaOMP(simd)
       do i=1,q
         v1(i+0*q)=
      $     u2(i+0*q)*u1(i)+u2(i+1*q)*u1(i+q)+u2(i+2*q)*u1(i+2*q)
