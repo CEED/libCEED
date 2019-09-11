@@ -31,7 +31,7 @@ CEED_QFUNCTION(SetupDiff3)(void *ctx, const CeedInt Q,
   CeedScalar *qd = out[0], *true_soln = out[1], *rhs = out[2];
 
   // Quadrature Point Loop
-  CeedPragmaOMP(simd)
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar J11 = J[i+Q*0];
     const CeedScalar J21 = J[i+Q*1];
@@ -89,7 +89,7 @@ CEED_QFUNCTION(Diff3)(void *ctx, const CeedInt Q,
   CeedScalar *vg = out[0];
 
   // Quadrature Point Loop
-  CeedPragmaOMP(simd)
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Read spatial derivatives of u components
     const CeedScalar uJ[3][3]        = {{ug[i+(0+0*3)*Q],

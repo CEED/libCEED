@@ -65,7 +65,7 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*qdata)[Q] = (CeedScalar(*)[Q])out[0];
 
-  CeedPragmaOMP(simd)
+  CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -128,7 +128,7 @@ CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
                    (*w) = in[1];
   CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0];
 
-  CeedPragmaOMP(simd)
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     v[0][i] = w[i] * u[0][i];
     v[1][i] = w[i] * u[1][i];

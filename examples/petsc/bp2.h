@@ -28,7 +28,7 @@ CEED_QFUNCTION(SetupMass3)(void *ctx, const CeedInt Q,
   CeedScalar *rho = out[0], *true_soln = out[1], *rhs = out[2];
 
   // Quadrature Point Loop
-  CeedPragmaOMP(simd)
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
                             J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
@@ -58,7 +58,7 @@ CEED_QFUNCTION(Mass3)(void *ctx, const CeedInt Q,
   CeedScalar *v = out[0];
 
   // Quadrature Point Loop
-  CeedPragmaOMP(simd)
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar r = rho[i];
     // Component 1

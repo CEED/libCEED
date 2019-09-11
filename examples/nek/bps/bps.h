@@ -26,6 +26,8 @@ CEED_QFUNCTION(masssetupf)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
   const CeedScalar *x = in[0];
   const CeedScalar *J = in[1];
   const CeedScalar *w = in[2];
+
+  // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
                       J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
@@ -33,7 +35,7 @@ CEED_QFUNCTION(masssetupf)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
     rho[i] = det * w[i];
     rhs[i] = rho[i] * w[i] * 
                sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
-  }
+  } // End of Quadrature Point Loop
   return 0;
 }
 
@@ -41,9 +43,11 @@ CEED_QFUNCTION int massf(void *ctx, CeedInt Q, const CeedScalar *const *in, Ceed
   const CeedScalar *u = in[0];
   const CeedScalar *rho = in[1];
   CeedScalar *v = out[0];
-  for (CeedInt i=0; i<Q; i++) {
+
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++)
     v[i] = rho[i] * u[i];
-  }
+
   return 0;
 }
 // *****************************************************************************
@@ -57,6 +61,8 @@ CEED_QFUNCTION(diffsetupf)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
   const CeedScalar *J = in[1];
   const CeedScalar *w = in[2];
   CeedScalar *qd = out[0], *rhs = out[1];
+
+  // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar J11 = J[i+Q*0];
     const CeedScalar J21 = J[i+Q*1];
@@ -90,7 +96,7 @@ CEED_QFUNCTION(diffsetupf)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
                sin(M_PI*(c[0] + k[0]*x[i+Q*0])) *
                sin(M_PI*(c[1] + k[1]*x[i+Q*1])) *
                sin(M_PI*(c[2] + k[2]*x[i+Q*2]));
-  }
+  } // End of Quadrature Point Loop
   return 0;
 }
 
@@ -98,6 +104,8 @@ CEED_QFUNCTION int diffusionf(void *ctx, CeedInt Q, const CeedScalar *const *in,
   const CeedScalar *ug = in[0];
   const CeedScalar *qd = in[1];
   CeedScalar *vg = out[0];
+
+  // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar ug0 = ug[i+Q*0];
     const CeedScalar ug1 = ug[i+Q*1];
@@ -105,6 +113,6 @@ CEED_QFUNCTION int diffusionf(void *ctx, CeedInt Q, const CeedScalar *const *in,
     vg[i+Q*0] = qd[i+Q*0]*ug0 + qd[i+Q*1]*ug1 + qd[i+Q*2]*ug2;
     vg[i+Q*1] = qd[i+Q*1]*ug0 + qd[i+Q*3]*ug1 + qd[i+Q*4]*ug2;
     vg[i+Q*2] = qd[i+Q*2]*ug0 + qd[i+Q*4]*ug1 + qd[i+Q*5]*ug2;
-  }
+  } // End of Quadrature Point Loop
   return 0;
 }

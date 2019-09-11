@@ -106,7 +106,7 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
   const CeedScalar tol = 1.e-14;
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
-  CeedPragmaOMP(simd)
+  CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -219,7 +219,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
   const CeedScalar g      = context[5];
   const CeedScalar gamma  = cp / cv;
 
-  CeedPragmaOMP(simd)
+  CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup

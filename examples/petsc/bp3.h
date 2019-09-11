@@ -31,7 +31,7 @@ CEED_QFUNCTION(SetupDiff)(void *ctx, const CeedInt Q,
   CeedScalar *qd = out[0], *true_soln = out[1], *rhs = out[2];
 
   // Quadrature Point Loop
-  CeedPragmaOMP(simd)
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar J11 = J[i+Q*0];
     const CeedScalar J21 = J[i+Q*1];
@@ -75,11 +75,11 @@ CEED_QFUNCTION(SetupDiff)(void *ctx, const CeedInt Q,
 
 CEED_QFUNCTION(Diff)(void *ctx, const CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *ug = in[0], *qd = in[1];
-  CeedScalar *vg = out[0];
+  const CeedScalar *restrict ug = in[0], *restrict qd = in[1];
+  CeedScalar *restrict vg = out[0];
 
   // Quadrature Point Loop
-  CeedPragmaOMP(simd)
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Read spatial derivatives of u
     const CeedScalar du[3]        =  {ug[i+Q*0],
@@ -87,21 +87,21 @@ CEED_QFUNCTION(Diff)(void *ctx, const CeedInt Q,
                                       ug[i+Q*2]
                                      };
     // Read qdata (6 distinct entries of dXdxdXdxT symmetric matrix)
-    const CeedScalar dXdxdXdxT[6] =  {qd[i+0*Q],
-                                      qd[i+1*Q],
-                                      qd[i+2*Q],
-                                      qd[i+3*Q],
-                                      qd[i+4*Q],
-                                      qd[i+5*Q]
-                                     };
+    const CeedScalar dXdxdXdxT[3][3] = {{qd[i+0*Q],
+                                         qd[i+1*Q],
+                                         qd[i+2*Q]},
+                                        {qd[i+1*Q],
+                                         qd[i+3*Q],
+                                         qd[i+4*Q]},
+                                        {qd[i+2*Q],
+                                         qd[i+4*Q],
+                                         qd[i+5*Q]}
+                                       };
 
-    const CeedInt idx[3][3] = {{0, 1, 2}, {1, 3, 4}, {2, 4, 5}}; // symmetric matrix indices
-
-    for (int j=0; j<3; j++) {
-      vg[i+Q*j]  = 0;
-      for (int k=0; k<3; k++)
-        vg[i+Q*j] += du[k] * dXdxdXdxT[idx[j][k]];
-    }
+    for (int j=0; j<3; j++) // j = direction of vg
+      vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +
+                   du[1] * dXdxdXdxT[1][j] +
+                   du[2] * dXdxdXdxT[2][j]);
   } // End of Quadrature Point Loop
   return 0;
 }
