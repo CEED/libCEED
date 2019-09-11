@@ -21,8 +21,7 @@ C TESTARGS -c {ceed_resource} -e bp1 -n 1 -b 4 -test
 C PragmaOMP preprocessor directive
 #ifndef CeedPragmaOMP
 #  ifdef _OPENMP
-#    define CeedPragmaOMP_(a) C$#a
-#    define CeedPragmaOMP(a) CeedPragmaOMP_(omp a)
+#    define CeedPragmaOMP(a) !$omp a
 #  else
 #    define CeedPragmaOMP(a)
 #  endif
