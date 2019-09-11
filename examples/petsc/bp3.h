@@ -75,8 +75,8 @@ CEED_QFUNCTION(SetupDiff)(void *ctx, const CeedInt Q,
 
 CEED_QFUNCTION(Diff)(void *ctx, const CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *restrict ug = in[0], *restrict qd = in[1];
-  CeedScalar *restrict vg = out[0];
+  const CeedScalar *ug = in[0], *qd = in[1];
+  CeedScalar *vg = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -86,7 +86,7 @@ CEED_QFUNCTION(Diff)(void *ctx, const CeedInt Q,
                                       ug[i+Q*1],
                                       ug[i+Q*2]
                                      };
-    // Read qdata (6 distinct entries of dXdxdXdxT symmetric matrix)
+    // Read qdata (dXdxdXdxT symmetric matrix)
     const CeedScalar dXdxdXdxT[3][3] = {{qd[i+0*Q],
                                          qd[i+1*Q],
                                          qd[i+2*Q]},

@@ -102,7 +102,7 @@ CEED_QFUNCTION(Diff3)(void *ctx, const CeedInt Q,
                                          ug[i+(2+1*3)*Q],
                                          ug[i+(2+2*3)*Q]}
                                        };
-    // Read qdata (6 distinct entries of dXdxdXdxT symmetric matrix)
+    // Read qdata (dXdxdXdxT symmetric matrix)
     const CeedScalar dXdxdXdxT[3][3] = {{qd[i+0*Q],
                                          qd[i+1*Q],
                                          qd[i+2*Q]},
