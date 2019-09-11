@@ -60,6 +60,7 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   ostringstream code;
 
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
+  code << "\n#define CeedPragmaSIMD\n";
   code << "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda;\n";
   code << qReadWriteS;
   code << qFunction;

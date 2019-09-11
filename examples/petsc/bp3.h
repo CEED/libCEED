@@ -24,12 +24,14 @@
 // *****************************************************************************
 CEED_QFUNCTION(SetupDiff)(void *ctx, const CeedInt Q,
                           const CeedScalar *const *in, CeedScalar *const *out) {
-  #ifndef M_PI
-#define M_PI    3.14159265358979323846
-  #endif
+#ifndef M_PI
+#  define M_PI    3.14159265358979323846
+#endif
   const CeedScalar *x = in[0], *J = in[1], *w = in[2];
   CeedScalar *qd = out[0], *true_soln = out[1], *rhs = out[2];
 
+  // Quadrature Point Loop
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar J11 = J[i+Q*0];
     const CeedScalar J21 = J[i+Q*1];
@@ -67,7 +69,7 @@ CEED_QFUNCTION(SetupDiff)(void *ctx, const CeedInt Q,
     const CeedScalar rho = w[i] * (J11*A11 + J21*A12 + J31*A13);
 
     rhs[i] = rho * M_PI*M_PI * (k[0]*k[0] + k[1]*k[1] + k[2]*k[2]) * true_soln[i];
-  }
+  } // End of Quadrature Point Loop
   return 0;
 }
 
@@ -76,13 +78,30 @@ CEED_QFUNCTION(Diff)(void *ctx, const CeedInt Q,
   const CeedScalar *ug = in[0], *qd = in[1];
   CeedScalar *vg = out[0];
 
+  // Quadrature Point Loop
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar ug0 = ug[i+Q*0];
-    const CeedScalar ug1 = ug[i+Q*1];
-    const CeedScalar ug2 = ug[i+Q*2];
-    vg[i+Q*0] = qd[i+Q*0]*ug0 + qd[i+Q*1]*ug1 + qd[i+Q*2]*ug2;
-    vg[i+Q*1] = qd[i+Q*1]*ug0 + qd[i+Q*3]*ug1 + qd[i+Q*4]*ug2;
-    vg[i+Q*2] = qd[i+Q*2]*ug0 + qd[i+Q*4]*ug1 + qd[i+Q*5]*ug2;
-  }
+    // Read spatial derivatives of u
+    const CeedScalar du[3]        =  {ug[i+Q*0],
+                                      ug[i+Q*1],
+                                      ug[i+Q*2]
+                                     };
+    // Read qdata (dXdxdXdxT symmetric matrix)
+    const CeedScalar dXdxdXdxT[3][3] = {{qd[i+0*Q],
+                                         qd[i+1*Q],
+                                         qd[i+2*Q]},
+                                        {qd[i+1*Q],
+                                         qd[i+3*Q],
+                                         qd[i+4*Q]},
+                                        {qd[i+2*Q],
+                                         qd[i+4*Q],
+                                         qd[i+5*Q]}
+                                       };
+
+    for (int j=0; j<3; j++) // j = direction of vg
+      vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +
+                   du[1] * dXdxdXdxT[1][j] +
+                   du[2] * dXdxdXdxT[2][j]);
+  } // End of Quadrature Point Loop
   return 0;
 }

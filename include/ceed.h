@@ -54,10 +54,21 @@
 #else
 #  define CEED_EXTERN extern
 #endif
+
 #ifndef CEED_QFUNCTION
 #define CEED_QFUNCTION(name) \
   static const char name ## _loc[] = __FILE__ ":" #name;        \
   static int name
+#endif
+
+#ifndef CeedPragmaSIMD
+#  if defined(__GNUC__) && __GNUC__ >= 5
+#    define CeedPragmaSIMD _Pragma("GCC ivdep")
+#  elif defined(_OPENMP) && _OPENMP >= 201307 // OpenMP-4.0 (July, 2013)
+#    define CeedPragmaSIMD _Pragma("omp simd")
+#  else
+#    define CeedPragmaSIMD
+#  endif
 #endif
 
 #include <assert.h>

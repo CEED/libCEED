@@ -35,6 +35,7 @@ C     Input: u1,u2,u3,q             Output: v1,v2,ierr
       real*8 g11,g12,g13,g21,g22,g23,g31,g32,g33
       real*8 jacmq
 
+C     Quadrature Point Loop
       do i=1,q
         a11=u2(i+q*0)
         a12=u2(i+q*3)
@@ -86,6 +87,7 @@ C     Input: u1,u2,q                Output: v1,ierr
       real*8 u2(q)
       real*8 v1(q)
 
+C     Quadrature Point Loop
       do i=1,q
         v1(i)=u2(i)*u1(i)
       enddo
@@ -110,6 +112,7 @@ C     Input: u1,u2,u3,q             Output: v1,v2,ierr
       real*8 jacmq,scl
       real*8 c(3),k(3)
 
+C     Quadrature Point Loop
       do i=1,q
         pi = 3.14159265358979323846
 
@@ -179,6 +182,7 @@ C     Input: u1,u2,q                Output: v1,ierr
       real*8 u2(6*q)
       real*8 v1(3*q)
 
+C     Quadrature Point Loop
       do i=1,q
         v1(i+0*q)=
      $     u2(i+0*q)*u1(i)+u2(i+1*q)*u1(i+q)+u2(i+2*q)*u1(i+2*q)

@@ -20,15 +20,6 @@
 #ifndef advection_h
 #define advection_h
 
-#ifndef CeedPragmaOMP
-#  ifdef _OPENMP
-#    define CeedPragmaOMP_(a) _Pragma(#a)
-#    define CeedPragmaOMP(a) CeedPragmaOMP_(omp a)
-#  else
-#    define CeedPragmaOMP(a)
-#  endif
-#endif
-
 #include <math.h>
 
 // *****************************************************************************
@@ -71,7 +62,7 @@ CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q,
   const CeedScalar x0[3] = {0.25*lx, 0.5*ly, 0.5*lz};
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
-  CeedPragmaOMP(simd)
+  CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
@@ -136,7 +127,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
   CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
              (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
 
-  CeedPragmaOMP(simd)
+  CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
