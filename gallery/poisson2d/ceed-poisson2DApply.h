@@ -28,11 +28,12 @@ CEED_QFUNCTION(poisson2DApply)(void *ctx, const CeedInt Q,
   CeedScalar *dv = out[0];
 
   // Quadrature point loop
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar du0 = du[i+Q*0];
     const CeedScalar du1 = du[i+Q*1];
-    dv[i+Q*0] = qd[i+Q*0]*du0 + qd[i+Q*1]*du1;
-    dv[i+Q*1] = qd[i+Q*1]*du0 + qd[i+Q*2]*du1;
+    dv[i+Q*0] = qd[i+Q*0]*du0 + qd[i+Q*2]*du1;
+    dv[i+Q*1] = qd[i+Q*2]*du0 + qd[i+Q*1]*du1;
   }
 
   return 0;

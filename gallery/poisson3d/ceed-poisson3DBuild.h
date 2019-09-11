@@ -32,6 +32,7 @@ CEED_QFUNCTION(poisson3DBuild)(void *ctx, const CeedInt Q,
   CeedScalar *qd = out[0];
 
   // Quadrature point loop
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Compute the adjoint
     CeedScalar A[3][3];
@@ -47,12 +48,16 @@ CEED_QFUNCTION(poisson3DBuild)(void *ctx, const CeedInt Q,
                                   J[i+Q*2]*A[2][2]);
 
     // Compute geometric factors
+    // Stored in Voigt convention
+    // 0 5 4
+    // 5 1 3
+    // 4 3 2
     qd[i+Q*0] = w * (A[0][0]*A[0][0] + A[0][1]*A[0][1] + A[0][2]*A[0][2]);
-    qd[i+Q*1] = w * (A[0][0]*A[1][0] + A[0][1]*A[1][1] + A[0][2]*A[1][2]);
-    qd[i+Q*2] = w * (A[0][0]*A[2][0] + A[0][1]*A[2][1] + A[0][2]*A[2][2]);
-    qd[i+Q*3] = w * (A[1][0]*A[1][0] + A[1][1]*A[1][1] + A[1][2]*A[1][2]);
-    qd[i+Q*4] = w * (A[1][0]*A[2][0] + A[1][1]*A[2][1] + A[1][2]*A[2][2]);
-    qd[i+Q*5] = w * (A[2][0]*A[2][0] + A[2][1]*A[2][1] + A[2][2]*A[2][2]);
+    qd[i+Q*1] = w * (A[1][0]*A[1][0] + A[1][1]*A[1][1] + A[1][2]*A[1][2]);
+    qd[i+Q*2] = w * (A[2][0]*A[2][0] + A[2][1]*A[2][1] + A[2][2]*A[2][2]);
+    qd[i+Q*3] = w * (A[1][0]*A[2][0] + A[1][1]*A[2][1] + A[1][2]*A[2][2]);
+    qd[i+Q*4] = w * (A[0][0]*A[2][0] + A[0][1]*A[2][1] + A[0][2]*A[2][2]);
+    qd[i+Q*5] = w * (A[0][0]*A[1][0] + A[0][1]*A[1][1] + A[0][2]*A[1][2]);
   }
 
   return 0;

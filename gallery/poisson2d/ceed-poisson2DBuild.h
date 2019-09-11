@@ -31,17 +31,19 @@ CEED_QFUNCTION(poisson2DBuild)(void *ctx, const CeedInt Q,
   CeedScalar *qd = out[0];
 
   // Quadrature point loop
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    // J: 0 2   qd: 0 1   adj(J):  J22 -J12
-    //    1 3       1 2           -J21  J11
+    // Stored in Voigt convention
+    // J: 0 2   qd: 0 2   adj(J):  J22 -J12
+    //    1 3       2 1           -J21  J11
     const CeedScalar J11 = J[i+Q*0];
     const CeedScalar J21 = J[i+Q*1];
     const CeedScalar J12 = J[i+Q*2];
     const CeedScalar J22 = J[i+Q*3];
     const CeedScalar w = qw[i] / (J11*J22 - J21*J12);
     qd[i+Q*0] =   w * (J12*J12 + J22*J22);
-    qd[i+Q*1] = - w * (J11*J12 + J21*J22);
-    qd[i+Q*2] =   w * (J11*J11 + J21*J21);
+    qd[i+Q*1] =   w * (J11*J11 + J21*J21);
+    qd[i+Q*2] = - w * (J11*J12 + J21*J22);
   }
 
   return 0;

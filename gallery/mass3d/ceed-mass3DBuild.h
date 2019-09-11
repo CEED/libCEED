@@ -26,6 +26,7 @@ CEED_QFUNCTION(mass3DBuild)(void *ctx, const CeedInt Q,
   CeedScalar *qd = out[0];
 
   // Quadrature point loop
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
              J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +

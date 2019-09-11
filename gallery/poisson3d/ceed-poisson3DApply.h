@@ -29,13 +29,18 @@ CEED_QFUNCTION(poisson3DApply)(void *ctx, const CeedInt Q,
   CeedScalar *dv = out[0];
 
   // Quadrature point loop
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
+    // Quadrature data stored in Voigt convention
+    // 0 5 4
+    // 5 1 3
+    // 4 3 2
       const CeedScalar du0 = du[i+Q*0];
       const CeedScalar du1 = du[i+Q*1];
       const CeedScalar du2 = du[i+Q*2];
-      dv[i+Q*0] = qd[i+Q*0]*du0 + qd[i+Q*1]*du1 + qd[i+Q*2]*du2;
-      dv[i+Q*1] = qd[i+Q*1]*du0 + qd[i+Q*3]*du1 + qd[i+Q*4]*du2;
-      dv[i+Q*2] = qd[i+Q*2]*du0 + qd[i+Q*4]*du1 + qd[i+Q*5]*du2;
+      dv[i+Q*0] = qd[i+Q*0]*du0 + qd[i+Q*5]*du1 + qd[i+Q*4]*du2;
+      dv[i+Q*1] = qd[i+Q*5]*du0 + qd[i+Q*1]*du1 + qd[i+Q*3]*du2;
+      dv[i+Q*2] = qd[i+Q*4]*du0 + qd[i+Q*3]*du1 + qd[i+Q*2]*du2;
   }
 
   return 0;

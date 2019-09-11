@@ -31,6 +31,7 @@ CEED_QFUNCTION(poisson1DBuild)(void *ctx, const CeedInt Q,
   CeedScalar *qd = out[0];
 
   // Quadrature point loop
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     qd[i] = qw[i] / J[i];
   }

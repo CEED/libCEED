@@ -28,6 +28,7 @@ CEED_QFUNCTION(poisson1DApply)(void *ctx, const CeedInt Q,
   CeedScalar *dv = out[0];
 
   // Quadrature point loop
+  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     dv[i] = du[i] * qd[i];
   }
