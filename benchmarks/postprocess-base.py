@@ -102,7 +102,7 @@ while True:
       elif 'Global nodes' in line:
          data['num_unknowns']=int(line.split(':')[1])
          if data['case']=='vector':
-            data['num_unknowns']/=3
+            data['num_unknowns']*=3
       ## Number of elements
       elif 'Local Elements' in line:
          data['num_elem']=int(line.split(':')[1].split()[0])*data['num_procs']
