@@ -29,16 +29,16 @@
 /// @page FunctionCategories libCEED: Types of Functions
 ///   libCEED provides three different header files depending upon the type of
 ///   functions a user requires.
-/// @subsection Utility Utility Functions
+/// @section Utility Utility Functions
 ///   These functions are intended general utilities that may be useful to
 ///   libCEED developers and users. These functions can generally be found in "ceed.h".
-/// @subsection Basic User Functions
+/// @section Basic User Functions
 ///   These functions are intended to be used by general users of the libCEED
 ///   interface. These functions can generally be found in "ceed.h".
-/// @subsection Advanced Backend Developer Functions
+/// @section Advanced Backend Developer Functions
 ///   These functions are intended to be used by backend developers of the
 ///   libCEED interface. These functions can generally be found in "ceed-backend.h".
-/// @subsection Developer Frontend Developer Functions
+/// @section Developer Frontend Developer Functions
 ///   These functions are intended to be used by frontend developers of the
 ///   libCEED interface. These functions can generally be found in "ceed-impl.h".
 
