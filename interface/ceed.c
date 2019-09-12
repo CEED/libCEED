@@ -201,6 +201,7 @@ int CeedRegister(const char *prefix,
     return CeedError(NULL, 1, "Too many backends");
   }
   strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
+  backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN-1] = 0;
   backends[num_backends].init = init;
   backends[num_backends].priority = priority;
   num_backends++;
@@ -506,7 +507,9 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
   ceed->objdelegates[count].delegate = delegate;
   ierr = CeedCalloc(strlen(objname)+1, &ceed->objdelegates[count].objname);
   CeedChk(ierr);
-  strncpy(ceed->objdelegates[count].objname, objname, strlen(objname)+1);
+  CeedInt len = strlen(ceed->objdelegates[count].objname);
+  strncpy(ceed->objdelegates[count].objname, objname, len);
+  ceed->objdelegates[count].objname[len-1] = 0;
 
   // Set delegate parent
   delegate->parent = ceed;

@@ -80,7 +80,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
   (*qf)->vlength = vlength;
   (*qf)->function = f;
   ierr = CeedCalloc(strlen(source)+1, &source_copy); CeedChk(ierr);
-  strncpy(source_copy, source, strlen(source)+1);
+  strncpy(source_copy, source, strlen(source));
   (*qf)->sourcepath = source_copy;
   ierr = CeedCalloc(16, &(*qf)->inputfields); CeedChk(ierr);
   ierr = CeedCalloc(16, &(*qf)->outputfields); CeedChk(ierr);
@@ -105,8 +105,10 @@ int CeedQFunctionRegister(const char *name, const char *source,
   if (num_qfunctions >= sizeof(qfunctions) / sizeof(qfunctions[0])) {
     return CeedError(NULL, 1, "Too many gallery QFunctions");
   }
-  strncpy(qfunctions[num_qfunctions].name, name, strlen(name)+1);
-  strncpy(qfunctions[num_qfunctions].source, source, strlen(source)+1);
+  strncpy(qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);
+  qfunctions[num_qfunctions].name[CEED_MAX_RESOURCE_LEN-1] = 0;
+  strncpy(qfunctions[num_qfunctions].source, source, CEED_MAX_RESOURCE_LEN);
+  qfunctions[num_qfunctions].source[CEED_MAX_RESOURCE_LEN-1] = 0;
   qfunctions[num_qfunctions].vlength = vlength;
   qfunctions[num_qfunctions].f = f;
   qfunctions[num_qfunctions].init = init;
