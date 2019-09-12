@@ -22,7 +22,7 @@
   @brief Set fields for Ceed QFunction for applying the mass matrix
 **/
 static int CeedQFunctionInit_MassApply(Ceed ceed, const char *requested,
-    CeedQFunction qf) {
+                                       CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name
