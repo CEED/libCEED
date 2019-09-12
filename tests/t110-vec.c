@@ -12,11 +12,13 @@ int main(int argc, char **argv) {
   const CeedScalar *y;
 
   CeedInit(argv[1], &ceed);
+
   n = 10;
   CeedVectorCreate(ceed, n, &X);
   CeedVectorCreate(ceed, n, &Y);
 
-  for (CeedInt i=0; i<n; i++) a[i] = 10 + i;
+  for (CeedInt i=0; i<n; i++)
+    a[i] = 10 + i;
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, a);
 
   CeedVectorGetArray(X, CEED_MEM_HOST, &x);

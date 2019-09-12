@@ -14,8 +14,8 @@ int main(int argc, char **argv) {
   buildmats(qref, qweight, interp, grad);
 
   CeedInit(argv[1], &ceed);
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, qref, qweight,
-                    &b);
+  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, qref,
+                    qweight, &b);
   CeedBasisView(b, stdout);
 
   CeedBasisDestroy(&b);

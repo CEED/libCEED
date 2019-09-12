@@ -29,15 +29,15 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, qref, qweight,
-                    &b);
+  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, qref,
+                    qweight, &b);
 
   // Interpolate function to quadrature points
   for (int i=0; i<P; i++)
     in[i] = feval(xr[0*P+i], xr[1*P+i]);
 
   CeedVectorCreate(ceed, P, &In);
-  CeedVectorSetArray(In, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&in);
+  CeedVectorSetArray(In, CEED_MEM_HOST, CEED_USE_POINTER, in);
   CeedVectorCreate(ceed, Q*dim, &Out);
   CeedVectorSetValue(Out, 0);
 

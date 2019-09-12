@@ -27,11 +27,11 @@ int main(int argc, char **argv) {
   }
 
   CeedVectorCreate(ceed, Q, &J);
-  CeedVectorSetArray(J, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&j);
+  CeedVectorSetArray(J, CEED_MEM_HOST, CEED_USE_POINTER, j);
   CeedVectorCreate(ceed, Q, &W);
-  CeedVectorSetArray(W, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&w);
+  CeedVectorSetArray(W, CEED_MEM_HOST, CEED_USE_POINTER, w);
   CeedVectorCreate(ceed, Q, &U);
-  CeedVectorSetArray(U, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&u);
+  CeedVectorSetArray(U, CEED_MEM_HOST, CEED_USE_POINTER, u);
   CeedVectorCreate(ceed, Q, &V);
   CeedVectorSetValue(V, 0);
   CeedVectorCreate(ceed, Q, &Qdata);

@@ -13,7 +13,8 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
 
   CeedVectorCreate(ceed, n, &x);
-  for (CeedInt i=0; i<n; i++) a[i] = 10 + i;
+  for (CeedInt i=0; i<n; i++)
+    a[i] = 10 + i;
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, a);
 
   CeedVectorGetArrayRead(x, CEED_MEM_HOST, &b);
@@ -24,7 +25,8 @@ int main(int argc, char **argv) {
   // LCOV_EXCL_STOP
 
   // Try to set vector again (should fail)
-  for (CeedInt i=0; i<n; i++) a[i] = 20 + i;
+  for (CeedInt i=0; i<n; i++)
+    a[i] = 20 + i;
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
 
   // LCOV_EXCL_START

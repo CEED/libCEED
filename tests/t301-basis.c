@@ -18,12 +18,12 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, len, &U);
   CeedVectorCreate(ceed, len, &V);
 
-  for (i = 0; i < len; i++) {
+  for (i = 0; i < len; i++)
     u[i] = 1.0;
-  }
-  CeedVectorSetArray(U, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&u);
+  CeedVectorSetArray(U, CEED_MEM_HOST, CEED_USE_POINTER, u);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P1d, Q1d, CEED_GAUSS_LOBATTO, &b);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P1d, Q1d,
+                                  CEED_GAUSS_LOBATTO, &b);
 
   CeedBasisApply(b, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, V);
 
