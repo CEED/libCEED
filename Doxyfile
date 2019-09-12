@@ -923,8 +923,9 @@ RECURSIVE              = YES
 
 EXCLUDE                = benchmarks \
                          include/ceedf.h \
-                         tests/output \
                          tests/junit-xml \
+                         tests/output \
+                         tests/README.md \
                          include/ceed-fortran-name.h
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
