@@ -91,9 +91,14 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 /**
   @brief Register a gallery QFunction
 
-  @param name   Name for this backend to respond to.
-  @param init   Initialization function called by CeedQFunctionInit() when the
-                    QFunction is selected.
+  @param name    Name for this backend to respond to
+  @param source  Path to source of QFunction, "\path\file.h:function_name"
+  @param vlength Vector length.  Caller must ensure that number of quadrature
+                   points is a multiple of vlength.
+  @param f       Function pointer to evaluate action at quadrature points.
+                   See \ref CeedQFunctionUser.
+  @param init    Initialization function called by CeedQFunctionInit() when the
+                   QFunction is selected.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -120,7 +125,7 @@ int CeedQFunctionRegister(const char *name, const char *source,
   @brief Create a CeedQFunction for evaluating interior (volumetric) terms by name.
 
   @param ceed       A Ceed object where the CeedQFunction will be created
-  @param source     Name of QFunction to use from gallery
+  @param name       Name of QFunction to use from gallery
   @param[out] qf    Address of the variable where the newly created
                       CeedQFunction will be stored
 
@@ -258,8 +263,8 @@ int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
 /**
   @brief Get the vector length of a CeedQFunction
 
-  @param qf              CeedQFunction
-  @param[out] veclength  Variable to store vector length
+  @param qf            CeedQFunction
+  @param[out] vlength  Variable to store vector length
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -529,7 +534,7 @@ int CeedQFunctionFieldGetSize(CeedQFunctionField qffield, CeedInt *size) {
   @brief Get the CeedEvalMode of a CeedQFunctionField
 
   @param qffield         CeedQFunctionField
-  @param[out] vec        Variable to store the number of components
+  @param[out] emode      Variable to store the field evaluation mode
 
   @return An error code: 0 - success, otherwise - failure
 
