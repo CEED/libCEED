@@ -27,7 +27,6 @@
 /// @defgroup CeedOperator CeedOperator: composed FE-type operations on vectors
 ///
 /// @page FunctionCategories libCEED: Types of Functions
-/// @section Library Functions
 ///   libCEED provides three different header files depending upon the type of
 ///   functions a user requires.
 /// @subsection Utility Utility Functions
