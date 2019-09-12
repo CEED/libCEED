@@ -190,9 +190,8 @@ int main(int argc, const char *argv[]) {
       break;
     case 1: {
       // This creates the QFunction via the gallery.
-      char name[13] = "mass", buffer[2];
-      sprintf(buffer, "%d", dim);
-      strcat(name, buffer); strcat(name, "DBuild");
+      char name[13] = "";
+      snprintf(name, sizeof name, "mass%dDBuild", dim);
       CeedQFunctionCreateInteriorByName(ceed, name, &build_qfunc);
       break;
     }

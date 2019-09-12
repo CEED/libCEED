@@ -198,9 +198,8 @@ int main(int argc, const char *argv[]) {
       break;
     case 1: {
       // This creates the QFunction via the gallery.
-      char name[16] = "poisson", buffer[2];
-      sprintf(buffer, "%d", dim);
-      strcat(name, buffer); strcat(name, "DBuild");
+      char name[16] = "";
+      snprintf(name, sizeof name, "poisson%dDBuild", dim);
       CeedQFunctionCreateInteriorByName(ceed, name, &build_qfunc);
       break;
     }
@@ -248,9 +247,8 @@ int main(int argc, const char *argv[]) {
       break;
     case 1: {
       // This creates the QFunction via the gallery.
-      char name[16] = "poisson", buffer[2];
-      sprintf(buffer, "%d", dim);
-      strcat(name, buffer); strcat(name, "DApply");
+      char name[16] = "";
+      snprintf(name, sizeof name, "poisson%dDApply", dim);
       CeedQFunctionCreateInteriorByName(ceed, name, &apply_qfunc);
       break;
     }
