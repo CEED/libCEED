@@ -45,9 +45,7 @@
 //
 // Next line is grep'd from tap.sh to set its arguments
 // Test in 1D-3D
-//TESTARGS -ceed {ceed_resource} -d 1 -t
 //TESTARGS -ceed {ceed_resource} -d 2 -t
-//TESTARGS -ceed {ceed_resource} -d 3 -t
 //TESTARGS -ceed {ceed_resource} -d 1 -t -g
 //TESTARGS -ceed {ceed_resource} -d 2 -t -g
 //TESTARGS -ceed {ceed_resource} -d 3 -t -g
