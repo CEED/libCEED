@@ -24,9 +24,9 @@
 // *****************************************************************************
 CEED_QFUNCTION(SetupDiff)(void *ctx, const CeedInt Q,
                           const CeedScalar *const *in, CeedScalar *const *out) {
-  #ifndef M_PI
+#ifndef M_PI
 #  define M_PI    3.14159265358979323846
-  #endif
+#endif
   const CeedScalar *x = in[0], *J = in[1], *w = in[2];
   CeedScalar *qd = out[0], *true_soln = out[1], *rhs = out[2];
 
@@ -91,22 +91,16 @@ CEED_QFUNCTION(Diff)(void *ctx, const CeedInt Q,
                                       ug[i+Q*2]
                                      };
     // Read qdata (dXdxdXdxT symmetric matrix)
-    const CeedScalar dXdxdXdxT[3][3] = {{
-        qd[i+0*Q],
-        qd[i+5*Q],
-        qd[i+4*Q]
-      },
-      {
-        qd[i+5*Q],
-        qd[i+1*Q],
-        qd[i+3*Q]
-      },
-      {
-        qd[i+4*Q],
-        qd[i+3*Q],
-        qd[i+2*Q]
-      }
-    };
+    const CeedScalar dXdxdXdxT[3][3] = {{qd[i+0*Q],
+                                         qd[i+5*Q],
+                                         qd[i+4*Q]},
+                                        {qd[i+5*Q],
+                                         qd[i+1*Q],
+                                         qd[i+3*Q]},
+                                        {qd[i+4*Q],
+                                         qd[i+3*Q],
+                                         qd[i+2*Q]}
+                                       };
 
     for (int j=0; j<3; j++) // j = direction of vg
       vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +

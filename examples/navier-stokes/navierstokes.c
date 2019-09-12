@@ -130,13 +130,13 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
           for (CeedInt jj=0; jj<P; jj++) {
             for (CeedInt kk=0; kk<P; kk++) {
               if (0) { // This is the C-style (i,j,k) ordering that I prefer
-                idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mnode[1]
-                                         + (j*(P-1)+jj))*mnode[2]
-                                        + (k*(P-1)+kk));
+                idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mnode[1] +
+                                         (j*(P-1)+jj))*mnode[2] +
+                                         (k*(P-1)+kk));
               } else { // (k,j,i) ordering for consistency with MFEM example
-                idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mnode[1]
-                                         + (j*(P-1)+jj))*mnode[2]
-                                        + (k*(P-1)+kk));
+                idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mnode[1] +
+                                         (j*(P-1)+jj))*mnode[2] +
+                                         (k*(P-1)+kk));
               }
             }
           }
@@ -378,8 +378,8 @@ int main(int argc, char **argv) {
   CeedScalar cp         = 1004.;    // J/(kg K)
   CeedScalar g          = 9.81;     // m/s^2
   CeedScalar lambda     = -2./3.;   // -
-  CeedScalar mu         =
-    75.;      // Pa s (dynamic viscosity, not physical for air, but good for numerical stability)
+  CeedScalar mu         = 75.;      // Pa s, dynamic viscosity
+  // mu = 75 is not physical for air, but is good for numerical stability
   CeedScalar k          = 0.02638;  // W/(m K)
   PetscScalar lx        = 8000.;    // m
   PetscScalar ly        = 8000.;    // m
@@ -536,7 +536,7 @@ int main(int argc, char **argv) {
   // Find my location in the process grid
   ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
   for (int d=0,rankleft=rank; d<dim; d++) {
-    const int pstride[3] = {p[1] *p[2], p[2], 1};
+    const int pstride[3] = {p[1] * p[2], p[2], 1};
     irank[d] = rankleft / pstride[d];
     rankleft -= irank[d] * pstride[d];
   }
@@ -724,8 +724,8 @@ int main(int argc, char **argv) {
                                   &basisq);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numQ, CEED_GAUSS,
                                   &basisx);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numP, CEED_GAUSS_LOBATTO,
-                                  &basisxc);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numP,
+                                  CEED_GAUSS_LOBATTO, &basisxc);
 
   // CEED Restrictions
   CreateRestriction(ceed, melem, numP, ncompq, &restrictq);
