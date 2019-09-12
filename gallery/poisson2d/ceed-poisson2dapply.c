@@ -16,39 +16,36 @@
 
 #include <string.h>
 #include "ceed-backend.h"
-#include "ceed-mass1DBuild.h"
+#include "ceed-poisson2dapply.h"
 
 /**
-  @brief Set fields for Ceed QFunction building the geometric data for the 1D
-           mass matrix
+  @brief Set fields for Ceed QFunction applying the 2D poisson operator
 **/
-static int CeedQFunctionInit_mass1DBuild(Ceed ceed, const char *requested,
+static int CeedQFunctionInit_Poisson2DApply(Ceed ceed, const char *requested,
     CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name
-  const char *name = "mass1DBuild";
+  const char *name = "Poisson2DApply";
   if (strcmp(name, requested))
     return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
                      name, requested);
 
   // Add QFunction fields
-  const CeedInt dim = 1;
-  ierr = CeedQFunctionAddInput(qf, "dx", dim*dim, CEED_EVAL_GRAD);
+  const CeedInt dim = 2;
+  ierr = CeedQFunctionAddInput(qf, "du", dim, CEED_EVAL_GRAD); CeedChk(ierr);
+  ierr = CeedQFunctionAddInput(qf, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
   CeedChk(ierr);
-  ierr = CeedQFunctionAddInput(qf, "weights", 1, CEED_EVAL_WEIGHT);
-  CeedChk(ierr);
-  ierr = CeedQFunctionAddOutput(qf, "qdata", 1, CEED_EVAL_NONE); CeedChk(ierr);
+  ierr = CeedQFunctionAddOutput(qf, "dv", dim, CEED_EVAL_GRAD); CeedChk(ierr);
 
   return 0;
 }
 
 /**
-  @brief Register Ceed QFunction for building the geometric data for the 1D mass
-           matrix
+  @brief Register Ceed QFunction for applying the 2D poisson operator
 **/
 __attribute__((constructor))
 static void Register(void) {
-  CeedQFunctionRegister("mass1DBuild", mass1DBuild_loc, 1, mass1DBuild,
-                        CeedQFunctionInit_mass1DBuild);
+  CeedQFunctionRegister("Poisson2DApply", Poisson2DApply_loc, 1, Poisson2DApply,
+                        CeedQFunctionInit_Poisson2DApply);
 }

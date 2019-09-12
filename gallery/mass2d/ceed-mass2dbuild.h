@@ -15,11 +15,11 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /**
-  @brief Ceed QFunction for building the geometric data for the 1D mass matrix
+  @brief Ceed QFunction for building the geometric data for the 2D mass matrix
 **/
-CEED_QFUNCTION(mass1DBuild)(void *ctx, const CeedInt Q,
+CEED_QFUNCTION(Mass2DBuild)(void *ctx, const CeedInt Q,
                             const CeedScalar *const *in, CeedScalar *const *out) {
-  // in[0] is Jacobians, size (Q)
+  // in[0] is Jacobians with shape [2, nc=2, Q]
   // in[1] is quadrature weights, size (Q)
   const CeedScalar *J = in[0], *qw = in[1];
   // out[0] is quadrature data, size (Q)
@@ -28,7 +28,7 @@ CEED_QFUNCTION(mass1DBuild)(void *ctx, const CeedInt Q,
   // Quadrature point loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    qd[i] = J[i] * qw[i];
+    qd[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
   }
 
   return 0;

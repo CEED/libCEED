@@ -199,7 +199,7 @@ int main(int argc, const char *argv[]) {
     case 1: {
       // This creates the QFunction via the gallery.
       char name[16] = "";
-      snprintf(name, sizeof name, "poisson%dDBuild", dim);
+      snprintf(name, sizeof name, "Poisson%dDBuild", dim);
       CeedQFunctionCreateInteriorByName(ceed, name, &build_qfunc);
       break;
     }
@@ -248,7 +248,7 @@ int main(int argc, const char *argv[]) {
     case 1: {
       // This creates the QFunction via the gallery.
       char name[16] = "";
-      snprintf(name, sizeof name, "poisson%dDApply", dim);
+      snprintf(name, sizeof name, "Poisson%dDApply", dim);
       CeedQFunctionCreateInteriorByName(ceed, name, &apply_qfunc);
       break;
     }

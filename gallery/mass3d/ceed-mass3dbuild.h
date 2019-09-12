@@ -15,25 +15,22 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /**
-  @brief Ceed QFunction for building the geometric data for the 1D poisson operator
+  @brief Ceed QFunction for building the geometric data for the 3D mass matrix
 **/
-CEED_QFUNCTION(poisson1DBuild)(void *ctx, const CeedInt Q,
-                               const CeedScalar *const *in,
-                               CeedScalar *const *out) {
-  // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
-  // the symmetric part of the result.
-
-  // in[0] is Jacobians, size (Q)
+CEED_QFUNCTION(Mass3DBuild)(void *ctx, const CeedInt Q,
+                            const CeedScalar *const *in, CeedScalar *const *out) {
+  // in[0] is Jacobians with shape [3, nc=3, Q]
   // in[1] is quadrature weights, size (Q)
   const CeedScalar *J = in[0], *qw = in[1];
-
-  // out[0] is qdata, size (Q)
+  // out[0] is quadrature data, size (Q)
   CeedScalar *qd = out[0];
 
   // Quadrature point loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    qd[i] = qw[i] / J[i];
+    qd[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
+             J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
+             J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * qw[i];
   }
 
   return 0;

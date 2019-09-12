@@ -17,7 +17,7 @@
 /**
   @brief Ceed QFunction for building the geometric data for the 2D poisson operator
 **/
-CEED_QFUNCTION(poisson2DBuild)(void *ctx, const CeedInt Q,
+CEED_QFUNCTION(Poisson2DBuild)(void *ctx, const CeedInt Q,
                                const CeedScalar *const *in,
                                CeedScalar *const *out) {
   // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store

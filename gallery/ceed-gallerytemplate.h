@@ -15,10 +15,17 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /**
-  @brief Ceed QFunction for applying the mass matrix
+ This file is not compiled into libCEED. This file provides a template to
+   build additional gallery QFunctions. Copy this file and the registeration/
+   initalization .c file to a new folder in this directory and modify.
 **/
-CEED_QFUNCTION(massApply)(void *ctx, const CeedInt Q,
-                          const CeedScalar *const *in, CeedScalar *const *out) {
+
+/**
+  @brief New Ceed QFunction
+**/
+CEED_QFUNCTION(GalleryTemplate)(void *ctx, const CeedInt Q,
+                                const CeedScalar *const *in,
+                                CeedScalar *const *out) {
   // in[0] is u, size (Q)
   // in[1] is quadrature data, size (Q)
   const CeedScalar *u = in[0], *qd = in[1];
@@ -26,7 +33,6 @@ CEED_QFUNCTION(massApply)(void *ctx, const CeedInt Q,
   CeedScalar *v = out[0];
 
   // Quadrature point loop
-  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     v[i] = u[i] * qd[i];
   }

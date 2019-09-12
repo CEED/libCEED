@@ -16,40 +16,40 @@
 
 #include <string.h>
 #include "ceed-backend.h"
-#include "ceed-poisson3DBuild.h"
+#include "ceed-gallerytemplate.h"
 
 /**
-  @brief Set fields for Ceed QFunction building the geometric data for the 3D
-           poisson operator
+ This file is not compiled into libCEED. This file provides a template to
+   build additional gallery QFunctions. Copy this file and the header to a
+   new folder in this directory and modify.
 **/
-static int CeedQFunctionInit_poisson3DBuild(Ceed ceed, const char *requested,
+
+/**
+  @brief Set fields for new Ceed QFunction
+**/
+static int CeedQFunctionInit_GalleryTemplate(Ceed ceed, const char *requested,
     CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name
-  const char *name = "poisson3DBuild";
+  const char *name = "GalleryTemplate";
   if (strcmp(name, requested))
     return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
                      name, requested);
 
   // Add QFunction fields
-  const CeedInt dim = 3;
-  ierr = CeedQFunctionAddInput(qf, "dx", dim*dim, CEED_EVAL_GRAD);
-  CeedChk(ierr);
-  ierr = CeedQFunctionAddInput(qf, "weights", 1, CEED_EVAL_WEIGHT);
-  CeedChk(ierr);
-  ierr = CeedQFunctionAddOutput(qf, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
-  CeedChk(ierr);
+  ierr = CeedQFunctionAddInput(qf, "u", 1, CEED_EVAL_INTERP); CeedChk(ierr);
+  ierr = CeedQFunctionAddInput(qf, "qdata", 1, CEED_EVAL_NONE); CeedChk(ierr);
+  ierr = CeedQFunctionAddOutput(qf, "v", 1, CEED_EVAL_INTERP); CeedChk(ierr);
 
   return 0;
 }
 
 /**
-  @brief Register Ceed QFunction for building the geometric data for the 3D
-           poisson operator
+  @brief Register new Ceed QFunction
 **/
 __attribute__((constructor))
 static void Register(void) {
-  CeedQFunctionRegister("poisson3DBuild", poisson3DBuild_loc, 1, poisson3DBuild,
-                        CeedQFunctionInit_poisson3DBuild);
+  CeedQFunctionRegister("GalleryTemplate", GalleryTemplate_loc, 1,
+                        GalleryTemplate, CeedQFunctionInit_GalleryTemplate);
 }

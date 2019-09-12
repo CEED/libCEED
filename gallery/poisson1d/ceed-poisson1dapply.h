@@ -15,32 +15,22 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /**
-  @brief Ceed QFunction for applying the geometric data for the 3D poisson
-           operator
+  @brief Ceed QFunction for applying the 1D poisson operator
 **/
-CEED_QFUNCTION(poisson3DApply)(void *ctx, const CeedInt Q,
+CEED_QFUNCTION(Poisson1DApply)(void *ctx, const CeedInt Q,
                                const CeedScalar *const *in,
                                CeedScalar *const *out) {
-  // in[0] is gradient u, shape [3, nc=1, Q]
-  // in[1] is quadrature data, size (6*Q)
+  // in[0] is gradient u, size (Q)
+  // in[1] is quadrature data, size (Q)
   const CeedScalar *du = in[0], *qd = in[1];
 
-  // out[0] is output to multiply against gradient v, shape [3, nc=1, Q]
+  // out[0] is output to multiply against gradient v, size (Q)
   CeedScalar *dv = out[0];
 
   // Quadrature point loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    // Quadrature data stored in Voigt convention
-    // 0 5 4
-    // 5 1 3
-    // 4 3 2
-      const CeedScalar du0 = du[i+Q*0];
-      const CeedScalar du1 = du[i+Q*1];
-      const CeedScalar du2 = du[i+Q*2];
-      dv[i+Q*0] = qd[i+Q*0]*du0 + qd[i+Q*5]*du1 + qd[i+Q*4]*du2;
-      dv[i+Q*1] = qd[i+Q*5]*du0 + qd[i+Q*1]*du1 + qd[i+Q*3]*du2;
-      dv[i+Q*2] = qd[i+Q*4]*du0 + qd[i+Q*3]*du1 + qd[i+Q*2]*du2;
+    dv[i] = du[i] * qd[i];
   }
 
   return 0;
