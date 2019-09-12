@@ -29,7 +29,7 @@ CEED_QFUNCTION(MassApply)(void *ctx, const CeedInt Q,
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     v[i] = u[i] * qd[i];
-  }
+  } // End of Quadrature Point Loop
 
   return 0;
 }

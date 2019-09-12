@@ -29,7 +29,7 @@ CEED_QFUNCTION(Mass1DBuild)(void *ctx, const CeedInt Q,
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     qd[i] = J[i] * qw[i];
-  }
+  } // End of Quadrature Point Loop
 
   return 0;
 }

@@ -22,19 +22,33 @@ CEED_QFUNCTION(Poisson2DApply)(void *ctx, const CeedInt Q,
                                CeedScalar *const *out) {
   // in[0] is gradient u, shape [2, nc=1, Q]
   // in[1] is quadrature data, size (3*Q)
-  const CeedScalar *du = in[0], *qd = in[1];
+  const CeedScalar *ug = in[0], *qd = in[1];
 
   // out[0] is output to multiply against gradient v, shape [2, nc=1, Q]
-  CeedScalar *dv = out[0];
+  CeedScalar *vg = out[0];
 
   // Quadrature point loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar du0 = du[i+Q*0];
-    const CeedScalar du1 = du[i+Q*1];
-    dv[i+Q*0] = qd[i+Q*0]*du0 + qd[i+Q*2]*du1;
-    dv[i+Q*1] = qd[i+Q*2]*du0 + qd[i+Q*1]*du1;
-  }
+    // Read spatial derivatives of u
+    const CeedScalar du[2]        =  {ug[i+Q*0],
+                                      ug[i+Q*1]
+                                     };
+
+    // Read qdata (dXdxdXdxT symmetric matrix)
+    // Stored in Voigt convention
+    // 0 2
+    // 2 1
+    const CeedScalar dXdxdXdxT[2][2] = {{qd[i+0*Q],
+                                         qd[i+2*Q]},
+                                        {qd[i+2*Q],
+                                         qd[i+1*Q]}
+                                       };
+    // j = direction of vg
+    for (int j=0; j<2; j++)
+      vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +
+                   du[1] * dXdxdXdxT[1][j]);
+  } // End of Quadrature Point Loop
 
   return 0;
 }

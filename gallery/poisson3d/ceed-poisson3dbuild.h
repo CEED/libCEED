@@ -58,7 +58,7 @@ CEED_QFUNCTION(Poisson3DBuild)(void *ctx, const CeedInt Q,
     qd[i+Q*3] = w * (A[1][0]*A[2][0] + A[1][1]*A[2][1] + A[1][2]*A[2][2]);
     qd[i+Q*4] = w * (A[0][0]*A[2][0] + A[0][1]*A[2][1] + A[0][2]*A[2][2]);
     qd[i+Q*5] = w * (A[0][0]*A[1][0] + A[0][1]*A[1][1] + A[0][2]*A[1][2]);
-  }
+  } // End of Quadrature Point Loop
 
   return 0;
 }

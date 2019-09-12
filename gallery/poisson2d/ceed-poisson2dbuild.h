@@ -44,7 +44,7 @@ CEED_QFUNCTION(Poisson2DBuild)(void *ctx, const CeedInt Q,
     qd[i+Q*0] =   w * (J12*J12 + J22*J22);
     qd[i+Q*1] =   w * (J11*J11 + J21*J21);
     qd[i+Q*2] = - w * (J11*J12 + J21*J22);
-  }
+  } // End of Quadrature Point Loop
 
   return 0;
 }
