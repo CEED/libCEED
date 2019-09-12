@@ -617,8 +617,8 @@ int main(int argc, char **argv) {
     ierr = PetscMalloc1(lsize, &ltogind0); CHKERRQ(ierr);
     ierr = PetscMalloc1(lsize, &locind); CHKERRQ(ierr);
     l0count = 0;
-    for (PetscInt i=0,ir,ii; ir=i>=mnode[0], ii=i-ir*mnode[0], i<lnode[0]; i++) {
-      for (PetscInt j=0,jr,jj; jr=j>=mnode[1], jj=j-jr*mnode[1], j<lnode[1]; j++) {
+    for (PetscInt i=0,ir,ii; ir=i>=mnode[0], ii=i-ir*mnode[0], i<lnode[0]; i++)
+      for (PetscInt j=0,jr,jj; jr=j>=mnode[1], jj=j-jr*mnode[1], j<lnode[1]; j++)
         for (PetscInt k=0,kr,kk; kr=k>=mnode[2], kk=k-kr*mnode[2], k<lnode[2]; k++) {
           PetscInt nodeind = (i*lnode[1]+j)*lnode[2]+k;
           ltogind[nodeind] =
@@ -633,19 +633,16 @@ int main(int argc, char **argv) {
           ltogind0[l0count] = ltogind[nodeind];
           locind[l0count++] = nodeind;
         }
-      }
-    }
 
     // Create local-to-global scatters
-    ierr = ISCreateBlock(comm, ncompq, lsize, ltogind, PETSC_OWN_POINTER, &ltogis);
-    CHKERRQ(ierr);
+    ierr = ISCreateBlock(comm, ncompq, lsize, ltogind, PETSC_OWN_POINTER,
+                         &ltogis); CHKERRQ(ierr);
     ierr = VecScatterCreate(Qloc, NULL, Q, ltogis, &ltog);
     CHKERRQ(ierr);
     ierr = ISCreateBlock(comm, ncompq, l0count, ltogind0, PETSC_OWN_POINTER,
-                         &ltogis0);
-    CHKERRQ(ierr);
-    ierr = ISCreateBlock(comm, ncompq, l0count, locind, PETSC_OWN_POINTER, &locis);
-    CHKERRQ(ierr);
+                         &ltogis0); CHKERRQ(ierr);
+    ierr = ISCreateBlock(comm, ncompq, l0count, locind, PETSC_OWN_POINTER,
+                         &locis); CHKERRQ(ierr);
     ierr = VecScatterCreate(Qloc, locis, Q, ltogis0, &ltog0);
     CHKERRQ(ierr);
 

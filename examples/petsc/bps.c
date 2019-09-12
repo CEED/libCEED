@@ -520,8 +520,8 @@ int main(int argc, char **argv) {
     ierr = PetscMalloc1(lsize, &ltogind0); CHKERRQ(ierr);
     ierr = PetscMalloc1(lsize, &locind); CHKERRQ(ierr);
     l0count = 0;
-    for (PetscInt i=0,ir,ii; ir=i>=mnodes[0], ii=i-ir*mnodes[0], i<lnodes[0]; i++) {
-      for (PetscInt j=0,jr,jj; jr=j>=mnodes[1], jj=j-jr*mnodes[1], j<lnodes[1]; j++) {
+    for (PetscInt i=0,ir,ii; ir=i>=mnodes[0], ii=i-ir*mnodes[0], i<lnodes[0]; i++)
+      for (PetscInt j=0,jr,jj; jr=j>=mnodes[1], jj=j-jr*mnodes[1], j<lnodes[1]; j++)
         for (PetscInt k=0,kr,kk; kr=k>=mnodes[2], kk=k-kr*mnodes[2], k<lnodes[2]; k++) {
           PetscInt here = (i*lnodes[1]+j)*lnodes[2]+k;
           ltogind[here] =
@@ -536,8 +536,6 @@ int main(int argc, char **argv) {
           ltogind0[l0count] = ltogind[here];
           locind[l0count++] = here;
         }
-      }
-    }
     ierr = ISCreateBlock(comm, ncompu, lsize, ltogind, PETSC_OWN_POINTER,
                          &ltogis); CHKERRQ(ierr);
     ierr = VecScatterCreate(Xloc, NULL, X, ltogis, &ltog); CHKERRQ(ierr);
