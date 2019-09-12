@@ -138,7 +138,7 @@ extern "C" __global__ void trTr(const CeedInt nelem,
   }
 }
 
-);
+                                        );
 
 static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedTransposeMode lmode,

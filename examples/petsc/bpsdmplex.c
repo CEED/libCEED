@@ -365,8 +365,8 @@ int main(int argc, char **argv) {
                                           filename[PETSC_MAX_PATH_LEN];
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree, qextra, lsize, gsize, dim =3, melem[3] = {3, 3, 3},
-           ncompx = 3, ncompu = 1, cStart, cEnd, nelem, marker_ids[1] = {1},
-           Xlocsize;
+                                         ncompx = 3, ncompu = 1, cStart, cEnd, nelem, marker_ids[1] = {1},
+                                             Xlocsize;
   PetscScalar *r;
   const PetscScalar *coordArray;
   PetscBool test_mode, benchmark_mode, read_mesh, enforce_bc, write_solution;

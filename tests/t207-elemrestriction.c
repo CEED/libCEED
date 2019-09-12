@@ -45,12 +45,12 @@ int main(int argc, char **argv) {
       // LCOV_EXCL_START
       printf("Error in restricted array y[%d] = %f != %f\n",
              2*i, (double)yy[2*i], (10.+i)*mult);
-      // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
     if (yy[2*i+1] != (20+i)*mult)
       // LCOV_EXCL_START
       printf("Error in restricted array y[%d] = %f != %f\n",
              2*i+1, (double)yy[2*i+1], (20.+i)*mult);
-      // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
   }
 
   CeedVectorRestoreArrayRead(y, &yy);

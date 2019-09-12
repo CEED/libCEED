@@ -20,11 +20,11 @@
 
 static const char *basiskernels = QUOTE(
 
-extern "C" __global__ void interpInterleaved(const CeedInt nelem,
-                                             const int transpose,
-                                             const CeedScalar *__restrict__ interp1d,
-                                             const CeedScalar *__restrict__ u,
-                                             CeedScalar *__restrict__ v) {
+                                    extern "C" __global__ void interpInterleaved(const CeedInt nelem,
+                                        const int transpose,
+                                        const CeedScalar *__restrict__ interp1d,
+                                        const CeedScalar *__restrict__ u,
+CeedScalar *__restrict__ v) {
   const CeedInt i = threadIdx.x;
 
   __shared__ CeedScalar s_mem[BASIS_Q1D * BASIS_P1D + 2 * BASIS_BUF_LEN];
@@ -364,13 +364,13 @@ extern "C" __global__ void weight(const CeedInt nelem,
   }
 }
 
-);
+                                  );
 
 static const char *kernelsNonTensorRef = QUOTE(
 
-extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
-                                  const CeedScalar *d_B, const CeedScalar *__restrict__ d_U,
-                                  CeedScalar *__restrict__ d_V) {
+      extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
+                                        const CeedScalar *d_B, const CeedScalar *__restrict__ d_U,
+CeedScalar *__restrict__ d_V) {
   const int tid = threadIdx.x;
 
   const double *U;
@@ -449,7 +449,7 @@ extern "C" __global__ void weight(const CeedInt nelem,
   }
 }
 
-);
+    );
 
 int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
                         CeedTransposeMode tmode,

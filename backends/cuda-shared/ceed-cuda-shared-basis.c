@@ -601,7 +601,7 @@ extern "C" __global__ void weight(const CeedInt nelem,
   }
 }
 
-);
+                                   );
 
 int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
                        CeedScalar **c_B);

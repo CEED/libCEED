@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
   if (a[3] != -3.14)
     // LCOV_EXCL_START
     printf("Error writing array a[3] = %f", (double)b[3]);
-    // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
 
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);

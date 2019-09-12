@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
     // LCOV_EXCL_START
     printf("Error %e  sum %g  exact %g\n", error, sum,
            PolyEval(1, ALEN(pint), pint) - PolyEval(-1, ALEN(pint), pint));
-    // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
 
   CeedVectorDestroy(&X);
   CeedVectorDestroy(&Xq);

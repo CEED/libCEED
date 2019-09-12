@@ -24,9 +24,9 @@
 // *****************************************************************************
 CEED_QFUNCTION(SetupDiff3)(void *ctx, const CeedInt Q,
                            const CeedScalar *const *in, CeedScalar *const *out) {
-#ifndef M_PI
+  #ifndef M_PI
 #  define M_PI    3.14159265358979323846
-#endif
+  #endif
   const CeedScalar *x = in[0], *J = in[1], *w = in[2];
   CeedScalar *qd = out[0], *true_soln = out[1], *rhs = out[2];
 
@@ -96,27 +96,39 @@ CEED_QFUNCTION(Diff3)(void *ctx, const CeedInt Q,
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Read spatial derivatives of u components
-    const CeedScalar uJ[3][3]        = {{ug[i+(0+0*3)*Q],
-                                         ug[i+(0+1*3)*Q],
-                                         ug[i+(0+2*3)*Q]},
-                                        {ug[i+(1+0*3)*Q],
-                                         ug[i+(1+1*3)*Q],
-                                         ug[i+(1+2*3)*Q]},
-                                        {ug[i+(2+0*3)*Q],
-                                         ug[i+(2+1*3)*Q],
-                                         ug[i+(2+2*3)*Q]}
-                                       };
+    const CeedScalar uJ[3][3]        = {{
+        ug[i+(0+0*3)*Q],
+        ug[i+(0+1*3)*Q],
+        ug[i+(0+2*3)*Q]
+      },
+      {
+        ug[i+(1+0*3)*Q],
+        ug[i+(1+1*3)*Q],
+        ug[i+(1+2*3)*Q]
+      },
+      {
+        ug[i+(2+0*3)*Q],
+        ug[i+(2+1*3)*Q],
+        ug[i+(2+2*3)*Q]
+      }
+    };
     // Read qdata (dXdxdXdxT symmetric matrix)
-    const CeedScalar dXdxdXdxT[3][3] = {{qd[i+0*Q],
-                                         qd[i+5*Q],
-                                         qd[i+4*Q]},
-                                        {qd[i+5*Q],
-                                         qd[i+1*Q],
-                                         qd[i+3*Q]},
-                                        {qd[i+4*Q],
-                                         qd[i+3*Q],
-                                         qd[i+2*Q]}
-                                       };
+    const CeedScalar dXdxdXdxT[3][3] = {{
+        qd[i+0*Q],
+        qd[i+5*Q],
+        qd[i+4*Q]
+      },
+      {
+        qd[i+5*Q],
+        qd[i+1*Q],
+        qd[i+3*Q]
+      },
+      {
+        qd[i+4*Q],
+        qd[i+3*Q],
+        qd[i+2*Q]
+      }
+    };
 
     for (int k=0; k<3; k++) // k = component
       for (int j=0; j<3; j++) // j = direction of vg

@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
       // LCOV_EXCL_START
       printf("Error in multiplicity vector: mult[%d] = %f\n",
              i, (double)mm[i]);
-      // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(mult, &mm);
 
   CeedVectorDestroy(&mult);

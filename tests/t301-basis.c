@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     if (fabs(v[i] - 1.) > 1e-15)
       // LCOV_EXCL_START
       printf("v[%d] = %f != 1.\n", i, v[i]);
-      // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(V, &v);
 
   CeedBasisDestroy(&b);

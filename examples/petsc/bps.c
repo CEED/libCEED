@@ -68,8 +68,8 @@ static PetscInt Min3(const PetscInt a[3]) {
   return PetscMin(a[0], PetscMin(a[1], a[2]));
 }
 static void GlobalNodes(const PetscInt p[3], const PetscInt irank[3],
-                      PetscInt degree, const PetscInt melem[3],
-                      PetscInt mnodes[3]) {
+                        PetscInt degree, const PetscInt melem[3],
+                        PetscInt mnodes[3]) {
   for (int d=0; d<3; d++)
     mnodes[d] = degree*melem[d] + (irank[d] == p[d]-1);
 }
@@ -121,7 +121,8 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
   }
 
   // Setup CEED restriction
-  CeedElemRestrictionCreate(ceed, nelem, P*P*P, mnodes[0]*mnodes[1]*mnodes[2], ncomp,
+  CeedElemRestrictionCreate(ceed, nelem, P*P*P, mnodes[0]*mnodes[1]*mnodes[2],
+                            ncomp,
                             CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
 
   PetscFunctionReturn(0);
@@ -637,7 +638,7 @@ int main(int argc, char **argv) {
   CeedInt gradInScale = bpOptions[bpChoice].inmode==CEED_EVAL_GRAD ? 3 : 1;
   CeedInt gradOutScale = bpOptions[bpChoice].outmode==CEED_EVAL_GRAD ? 3 : 1;
   CeedQFunctionAddInput(qf_apply, "u", ncompu*gradInScale,
-                         bpOptions[bpChoice].inmode);
+                        bpOptions[bpChoice].inmode);
   CeedQFunctionAddInput(qf_apply, "rho", bpOptions[bpChoice].qdatasize,
                         CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_apply, "v", ncompu*gradOutScale,

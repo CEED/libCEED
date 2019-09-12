@@ -179,22 +179,22 @@ int main(int argc, const char *argv[]) {
   // quadrature data) and set its context data.
   CeedQFunction build_qfunc;
   switch (gallery) {
-    case 0:
-      // This creates the QFunction directly.
-      CeedQFunctionCreateInterior(ceed, 1, f_build_mass,
-                                  f_build_mass_loc, &build_qfunc);
-      CeedQFunctionAddInput(build_qfunc, "dx", ncompx*dim, CEED_EVAL_GRAD);
-      CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
-      CeedQFunctionAddOutput(build_qfunc, "qdata", 1, CEED_EVAL_NONE);
-      CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
-      break;
-    case 1: {
-      // This creates the QFunction via the gallery.
-      char name[13] = "";
-      snprintf(name, sizeof name, "Mass%dDBuild", dim);
-      CeedQFunctionCreateInteriorByName(ceed, name, &build_qfunc);
-      break;
-    }
+  case 0:
+    // This creates the QFunction directly.
+    CeedQFunctionCreateInterior(ceed, 1, f_build_mass,
+                                f_build_mass_loc, &build_qfunc);
+    CeedQFunctionAddInput(build_qfunc, "dx", ncompx*dim, CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
+    CeedQFunctionAddOutput(build_qfunc, "qdata", 1, CEED_EVAL_NONE);
+    CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
+    break;
+  case 1: {
+    // This creates the QFunction via the gallery.
+    char name[13] = "";
+    snprintf(name, sizeof name, "Mass%dDBuild", dim);
+    CeedQFunctionCreateInteriorByName(ceed, name, &build_qfunc);
+    break;
+  }
   }
 
   // Create the operator that builds the quadrature data for the mass operator.
@@ -227,18 +227,18 @@ int main(int argc, const char *argv[]) {
   // Create the Q-function that defines the action of the mass operator.
   CeedQFunction apply_qfunc;
   switch (gallery) {
-    case 0:
-      // This creates the QFunction directly.
-      CeedQFunctionCreateInterior(ceed, 1, f_apply_mass,
-                                  f_apply_mass_loc, &apply_qfunc);
-      CeedQFunctionAddInput(apply_qfunc, "u", 1, CEED_EVAL_INTERP);
-      CeedQFunctionAddInput(apply_qfunc, "qdata", 1, CEED_EVAL_NONE);
-      CeedQFunctionAddOutput(apply_qfunc, "v", 1, CEED_EVAL_INTERP);
-      break;
-    case 1:
-      // This creates the QFunction via the gallery.
-      CeedQFunctionCreateInteriorByName(ceed, "MassApply", &apply_qfunc);
-      break;
+  case 0:
+    // This creates the QFunction directly.
+    CeedQFunctionCreateInterior(ceed, 1, f_apply_mass,
+                                f_apply_mass_loc, &apply_qfunc);
+    CeedQFunctionAddInput(apply_qfunc, "u", 1, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(apply_qfunc, "qdata", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(apply_qfunc, "v", 1, CEED_EVAL_INTERP);
+    break;
+  case 1:
+    // This creates the QFunction via the gallery.
+    CeedQFunctionCreateInteriorByName(ceed, "MassApply", &apply_qfunc);
+    break;
   }
 
   // Create the mass operator.

@@ -149,11 +149,11 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
           ierr = CeedTensorContractApply(contract, pre, P, post, Q,
                                          grad1d, tmode, add&&(d>0),
                                          tmode == CEED_NOTRANSPOSE
-                                           ? u : u+d*ncomp*nqpt*nelem,
+                                         ? u : u+d*ncomp*nqpt*nelem,
                                          tmode == CEED_TRANSPOSE
-                                           ? v : v+d*ncomp*nqpt*nelem);
+                                         ? v : v+d*ncomp*nqpt*nelem);
           CeedChk(ierr);
-        }      
+        }
       } else { // Underintegration, P > Q
         CeedScalar *grad1d;
         ierr = CeedBasisGetGrad(basis, &grad1d); CeedChk(ierr);
