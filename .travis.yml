@@ -20,6 +20,7 @@ addons:
     - liblapack-dev
     - libopenblas-dev
     - valgrind-dbg
+    - lcov
   homebrew:
     packages:
     - ccache
@@ -40,7 +41,8 @@ install:
   - make -C occa -j2
   - export OCCA_DIR=$PWD/occa
 # libXSMM
-  - git clone --depth 1 https://github.com/hfp/libxsmm.git;
+  - git clone https://github.com/hfp/libxsmm.git;
+  - cd libxsmm && git reset --hard 07e360a && cd ..; # Workaround for LIBXSM bug
   - make -C libxsmm -j2
   - export XSMM_DIR=$PWD/libxsmm
 # MFEM
@@ -72,10 +74,13 @@ script:
     fi
 
 after_success:
-  - bash <(curl -s https://codecov.io/bash) -F interface
-  - bash <(curl -s https://codecov.io/bash) -F backends
-  - bash <(curl -s https://codecov.io/bash) -F tests
-  - bash <(curl -s https://codecov.io/bash) -F examples
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        lcov --directory . --capture --output-file coverage.info
+        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F interface
+        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F backends
+        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F tests
+        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F examples;
+    fi
 
 cache:
   ccache: true

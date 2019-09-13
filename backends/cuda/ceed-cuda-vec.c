@@ -77,7 +77,7 @@ static int CeedVectorSetArrayHost_Cuda(const CeedVector vec,
     data->h_array = array;
     break;
   }
-  data->memState = HOST_SYNC;
+  data->memState = CEED_CUDA_HOST_SYNC;
   return 0;
 }
 
@@ -112,7 +112,7 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec,
     data->d_array = array;
     break;
   }
-  data->memState = DEVICE_SYNC;
+  data->memState = CEED_CUDA_DEVICE_SYNC;
   return 0;
 }
 
@@ -160,11 +160,11 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
   CeedInt length;
   ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
   switch(data->memState) {
-  case HOST_SYNC:
+  case CEED_CUDA_HOST_SYNC:
     ierr = CeedHostSetValue(data->h_array, length, val);
     CeedChk(ierr);
     break;
-  case NONE_SYNC:
+  case CEED_CUDA_NONE_SYNC:
     /*
       Handles the case where SetValue is used without SetArray.
       Default allocation then happens on the GPU.
@@ -174,15 +174,15 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
       CeedChk_Cu(ceed, ierr);
       data->d_array = data->d_array_allocated;
     }
-    data->memState = DEVICE_SYNC;
+    data->memState = CEED_CUDA_DEVICE_SYNC;
     ierr = CeedDeviceSetValue(data->d_array, length, val);
     CeedChk(ierr);
     break;
-  case DEVICE_SYNC:
+  case CEED_CUDA_DEVICE_SYNC:
     ierr = CeedDeviceSetValue(data->d_array, length, val);
     CeedChk(ierr);
     break;
-  case BOTH_SYNC:
+  case CEED_CUDA_BOTH_SYNC:
     ierr = CeedHostSetValue(data->h_array, length, val);
     CeedChk(ierr);
     ierr = CeedDeviceSetValue(data->d_array, length, val);
@@ -216,10 +216,10 @@ static int CeedVectorGetArrayRead_Cuda(const CeedVector vec,
       CeedChk(ierr);
       data->h_array = data->h_array_allocated;
     }
-    if(data->memState==DEVICE_SYNC) {
+    if(data->memState==CEED_CUDA_DEVICE_SYNC) {
       ierr = CeedSyncD2H_Cuda(vec);
       CeedChk(ierr);
-      data->memState = BOTH_SYNC;
+      data->memState = CEED_CUDA_BOTH_SYNC;
     }
     *array = data->h_array;
     break;
@@ -229,10 +229,10 @@ static int CeedVectorGetArrayRead_Cuda(const CeedVector vec,
       CeedChk_Cu(ceed, ierr);
       data->d_array = data->d_array_allocated;
     }
-    if (data->memState==HOST_SYNC) {
+    if (data->memState==CEED_CUDA_HOST_SYNC) {
       ierr = CeedSyncH2D_Cuda(vec);
       CeedChk(ierr);
-      data->memState = BOTH_SYNC;
+      data->memState = CEED_CUDA_BOTH_SYNC;
     }
     *array = data->d_array;
     break;
@@ -259,10 +259,10 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec,
       CeedChk(ierr);
       data->h_array = data->h_array_allocated;
     }
-    if(data->memState==DEVICE_SYNC) {
+    if(data->memState==CEED_CUDA_DEVICE_SYNC) {
       ierr = CeedSyncD2H_Cuda(vec); CeedChk(ierr);
     }
-    data->memState = HOST_SYNC;
+    data->memState = CEED_CUDA_HOST_SYNC;
     *array = data->h_array;
     break;
   case CEED_MEM_DEVICE:
@@ -271,10 +271,10 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec,
       CeedChk_Cu(ceed, ierr);
       data->d_array = data->d_array_allocated;
     }
-    if (data->memState==HOST_SYNC) {
+    if (data->memState==CEED_CUDA_HOST_SYNC) {
       ierr = CeedSyncH2D_Cuda(vec); CeedChk(ierr);
     }
-    data->memState = DEVICE_SYNC;
+    data->memState = CEED_CUDA_DEVICE_SYNC;
     *array = data->d_array;
     break;
   }
@@ -333,6 +333,6 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
 
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
   ierr = CeedVectorSetData(vec, (void *)&data); CeedChk(ierr);
-  data->memState = NONE_SYNC;
+  data->memState = CEED_CUDA_NONE_SYNC;
   return 0;
 }

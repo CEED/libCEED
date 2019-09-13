@@ -18,11 +18,14 @@ int main(int argc, char **argv) {
 
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncomp, P, Q, CEED_GAUSS, &b);
 
+  // Basis apply will error because dimensions don't agree
   CeedBasisApply(b, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, V);
 
+  // LCOV_EXCL_START
   CeedBasisDestroy(&b);
   CeedVectorDestroy(&U);
   CeedVectorDestroy(&V);
   CeedDestroy(&ceed);
   return 0;
+  // LCOV_EXCL_STOP
 }

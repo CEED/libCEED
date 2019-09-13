@@ -410,7 +410,7 @@ int CeedBasisCreateTensorH1_Occa(CeedInt dim, CeedInt P1d, CeedInt Q1d,
 // * CeedBasisCreateH1_Occa
 // *****************************************************************************
 int CeedBasisCreateH1_Occa(CeedElemTopology topo, CeedInt dim,
-                           CeedInt ndof, CeedInt nqpts,
+                           CeedInt nnodes, CeedInt nqpts,
                            const CeedScalar *interp,
                            const CeedScalar *grad,
                            const CeedScalar *qref,

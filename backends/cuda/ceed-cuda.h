@@ -40,14 +40,15 @@ do { \
 
 #define QUOTE(...) #__VA_ARGS__
 
-typedef enum {HOST_SYNC, DEVICE_SYNC, BOTH_SYNC, NONE_SYNC} SyncState;
+typedef enum {CEED_CUDA_HOST_SYNC, CEED_CUDA_DEVICE_SYNC, CEED_CUDA_BOTH_SYNC,
+              CEED_CUDA_NONE_SYNC} CeedCudaSyncState;
 
 typedef struct {
   CeedScalar *h_array;
   CeedScalar *h_array_allocated;
   CeedScalar *d_array;
   CeedScalar *d_array_allocated;
-  SyncState memState;
+  CeedCudaSyncState memState;
 } CeedVector_Cuda;
 
 typedef struct {
@@ -72,6 +73,7 @@ typedef struct {
 typedef struct {
   CUmodule module;
   char *qFunctionName;
+  char *qFunctionSource;
   CUfunction qFunction;
   Fields_Cuda fields;
   void *d_c;
@@ -131,15 +133,26 @@ CEED_INTERN int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel,
                                      const int blockSizeX, const int blockSizeY,
                                      const int blockSizeZ, void **args);
 
-CEED_INTERN int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel, const int gridSize,
-                                           const int blockSizeX, const int blockSizeY,
-                                           const int blockSizeZ, const int sharedMemSize,
+CEED_INTERN int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel,
+                                           const int gridSize,
+                                           const int blockSizeX,
+                                           const int blockSizeY,
+                                           const int blockSizeZ,
+                                           const int sharedMemSize,
                                            void **args);
 
 CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
                                       const int gridSize,
+                                      const int blockSizeX,
+                                      const int blockSizeY,
+                                      const int blockSizeZ,
+                                      const int sharedMemSize, void **args);
+
+CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
+                                      const int gridSize,
                                       const int blockSizeX, const int blockSizeY,
-                                      const int blockSizeZ, const int sharedMemSize,
+                                      const int blockSizeZ,
+                                      const int sharedMemSize,
                                       void **args);
 
 CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
@@ -167,7 +180,8 @@ CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d,
 
 CEED_INTERN int CeedBasisCreateH1_Cuda(CeedElemTopology, CeedInt, CeedInt,
                                        CeedInt, const CeedScalar *,
-                                       const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
+                                       const CeedScalar *, const CeedScalar *,
+                                       const CeedScalar *, CeedBasis);
 
 CEED_INTERN int CeedQFunctionCreate_Cuda(CeedQFunction qf);
 

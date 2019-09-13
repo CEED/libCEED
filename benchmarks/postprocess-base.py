@@ -85,8 +85,8 @@ while True:
          data['case']='scalar'
       ## Benchmark Problem
       elif "CEED Benchmark Problem" in line:
-        data['test'] = line.split()[-2] + " " + line.split('-- ')[1]
-        data['case']='scalar' if (('Problem 1' in line) or ('Problem 3' in line)
+         data['test'] = line.split()[-2] + " " + line.split('-- ')[1]
+         data['case']='scalar' if (('Problem 1' in line) or ('Problem 3' in line)
                                   or ('Problem 5' in line)) else 'vector'
       ## Backend
       elif 'libCEED Backend' in line:
@@ -99,13 +99,15 @@ while True:
          qpts=int(line.split(':')[1])
          data['quadrature_pts']=qpts**3
       ## Total DOFs
-      elif 'Global DOFs' in line:
+      elif 'Global nodes' in line:
          data['num_unknowns']=int(line.split(':')[1])
+         if data['case']=='vector':
+            data['num_unknowns']*=3
       ## Number of elements
       elif 'Local Elements' in line:
          data['num_elem']=int(line.split(':')[1].split()[0])*data['num_procs']
       ## CG DOFs/Sec
-      elif 'DOFs/Sec in CG' in line:
+      elif 'DoFs/Sec in CG' in line:
          data['cg_iteration_dps']=1e6*float(line.split(':')[1].split()[0])
       ## End of output
 

@@ -98,8 +98,8 @@ struct CeedElemRestriction_private {
   int (*Destroy)(CeedElemRestriction);
   int refcount;
   CeedInt nelem;    /* number of elements */
-  CeedInt elemsize; /* number of dofs per element */
-  CeedInt ndof;     /* size of the L-vector, can be used for checking for
+  CeedInt elemsize; /* number of nodes per element */
+  CeedInt nnodes;   /* size of the L-vector, can be used for checking for
                       correct vector sizes */
   CeedInt ncomp;    /* number of components */
   CeedInt blksize;  /* number of elements in a batch */
@@ -146,7 +146,7 @@ struct CeedTensorContract_private {
 
 struct CeedQFunctionField_private {
   const char *fieldname;
-  CeedInt ncomp;
+  CeedInt size;
   CeedEvalMode emode;
 };
 

@@ -17,20 +17,18 @@
 /// @file
 /// libCEED QFunctions for mass operator example using PETSc
 
-#include <ceed.h>
-
-static int Error(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Error)(void *ctx, const CeedInt Q,
+                      const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *target = in[1];
   CeedScalar *err = out[0];
-  for (CeedInt i=0; i<Q; i++) {
+  for (CeedInt i=0; i<Q ; ++i) {
     err[i] = u[i] - target[i];
   }
   return 0;
 }
 
-static int Error3(void *ctx, CeedInt Q,
-                 const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Error3)(void *ctx, const CeedInt Q,
+                       const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *target = in[1];
   CeedScalar *err = out[0];
   for (CeedInt i=0; i<3*Q; i++) {

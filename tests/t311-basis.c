@@ -44,7 +44,9 @@ int main(int argc, char **argv) {
   for (int i=0; i<Q; i++) {
     value = feval(xq[0*Q+i], xq[1*Q+i]);
     if (fabs(out[i] - value) > 1e-10)
+      // LCOV_EXCL_START
       printf("[%d] %f != %f\n", i, out[i], value);
+      // LCOV_EXCL_STOP
   }
   CeedVectorRestoreArrayRead(Out, &out);
 

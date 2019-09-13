@@ -108,7 +108,9 @@
           call eval(dimn,xxx,fx)
 
           if(dabs(uuq(i+offset2)-fx) > 1.0D-4) then
+! LCOV_EXCL_START
           write(*,*) uuq(i+offset2),' not equal to ',fx,dimn,i
+! LCOV_EXCL_STOP
           endif
         enddo
         call ceedvectorrestorearrayread(xq,xxq,offset1,err)

@@ -227,7 +227,8 @@ int CeedMallocArray(size_t n, size_t unit, void *p) {
   int ierr = posix_memalign((void **)p, CEED_ALIGN, n*unit);
   if (ierr)
     return CeedError(NULL, ierr,
-                     "posix_memalign failed to allocate %zd members of size %zd\n", n, unit);
+                     "posix_memalign failed to allocate %zd members of size %zd\n",
+                     n, unit);
   return 0;
 }
 
@@ -468,7 +469,7 @@ int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *objname) {
 
   // Use default delegate if no object delegate
   ierr = CeedGetDelegate(ceed, delegate); CeedChk(ierr);
- 
+
   return 0;
 }
 
@@ -514,7 +515,7 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
 }
 
 /**
-  @brief Return Ceed perferred memory type
+  @brief Return Ceed preferred memory type
 
   @param ceed           Ceed to get preferred memory type of
   @param[out] delegate  Address to save preferred memory type to
@@ -578,14 +579,15 @@ int CeedSetBackendFunction(Ceed ceed,
   for (CeedInt i = 0; ceed->foffsets[i].fname; i++) {
     if (!strcmp(ceed->foffsets[i].fname, lookupname)) {
       size_t offset = ceed->foffsets[i].offset;
-      int (**fpointer)(void) = (int (**)(void))((char*)object + offset);
+      int (**fpointer)(void) = (int (* *)(void))((char *)object + offset);
       *fpointer = f;
       return 0;
     }
   }
 
   return CeedError(ceed, 1,
-                   "Requested function '%s' was not found for CEED object '%s'", fname, type);
+                   "Requested function '%s' was not found for CEED object '%s'",
+                   fname, type);
 }
 
 /**

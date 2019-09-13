@@ -38,7 +38,8 @@
 
   @return An error code: 0 - success, otherwise - failure
 
-  See \ref CeedQFunctionUser for details on the call-back function @a f's arguments.
+  See \ref CeedQFunctionUser for details on the call-back function @a f's
+    arguments.
 
   @ref Basic
 **/
@@ -80,7 +81,8 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 
   @param f          CeedQFunctionField
   @param fieldname  Name of QFunction field
-  @param ncomp      Number of components per quadrature node
+  @param size       Size of QFunction field, ncomp * (dim for CEED_EVAL_GRAD or
+                      1 for CEED_EVAL_NONE and CEED_EVAL_INTERP)
   @param emode      \ref CEED_EVAL_NONE to use values directly,
                       \ref CEED_EVAL_INTERP to use interpolated values,
                       \ref CEED_EVAL_GRAD to use gradients.
@@ -90,7 +92,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
   @ref Developer
 **/
 static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
-                                 CeedInt ncomp, CeedEvalMode emode) {
+                                 CeedInt size, CeedEvalMode emode) {
   size_t len = strlen(fieldname);
   char *tmp;
   int ierr;
@@ -99,7 +101,7 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
   ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
   memcpy(tmp, fieldname, len+1);
   (*f)->fieldname = tmp;
-  (*f)->ncomp = ncomp;
+  (*f)->size = size;
   (*f)->emode = emode;
   return 0;
 }
@@ -109,7 +111,8 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
 
   @param qf         CeedQFunction
   @param fieldname  Name of QFunction field
-  @param ncomp      Number of components per quadrature node
+  @param size       Size of QFunction field, ncomp * (dim for CEED_EVAL_GRAD or
+                      1 for CEED_EVAL_NONE and CEED_EVAL_INTERP)
   @param emode      \ref CEED_EVAL_NONE to use values directly,
                       \ref CEED_EVAL_INTERP to use interpolated values,
                       \ref CEED_EVAL_GRAD to use gradients.
@@ -119,9 +122,9 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
   @ref Basic
 **/
 int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
-                          CeedInt ncomp, CeedEvalMode emode) {
+                          CeedInt size, CeedEvalMode emode) {
   int ierr = CeedQFunctionFieldSet(&qf->inputfields[qf->numinputfields],
-                                   fieldname, ncomp, emode);
+                                   fieldname, size, emode);
   CeedChk(ierr);
   qf->numinputfields++;
   return 0;
@@ -132,7 +135,8 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
 
   @param qf         CeedQFunction
   @param fieldname  Name of QFunction field
-  @param ncomp      Number of components per quadrature node
+  @param size       Size of QFunction field, ncomp * (dim for CEED_EVAL_GRAD or
+                      1 for CEED_EVAL_NONE and CEED_EVAL_INTERP)
   @param emode      \ref CEED_EVAL_NONE to use values directly,
                       \ref CEED_EVAL_INTERP to use interpolated values,
                       \ref CEED_EVAL_GRAD to use gradients.
@@ -142,12 +146,12 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
   @ref Basic
 **/
 int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
-                           CeedInt ncomp, CeedEvalMode emode) {
+                           CeedInt size, CeedEvalMode emode) {
   if (emode == CEED_EVAL_WEIGHT)
     return CeedError(qf->ceed, 1,
-                     "Cannot create qfunction output with CEED_EVAL_WEIGHT");
+                     "Cannot create QFunction output with CEED_EVAL_WEIGHT");
   int ierr = CeedQFunctionFieldSet(&qf->outputfields[qf->numoutputfields],
-                                   fieldname, ncomp, emode);
+                                   fieldname, size, emode);
   CeedChk(ierr);
   qf->numoutputfields++;
   return 0;
@@ -426,17 +430,16 @@ int CeedQFunctionFieldGetName(CeedQFunctionField qffield,
 /**
   @brief Get the number of components of a CeedQFunctionField
 
-  @param qffield         CeedQFunctionField
-  @param[out] numcomp    Variable to store the number of components
+  @param qffield    CeedQFunctionField
+  @param[out] size  Variable to store the size of the field
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Advanced
 **/
 
-int CeedQFunctionFieldGetNumComponents(CeedQFunctionField qffield,
-                                       CeedInt *numcomp) {
-  *numcomp = qffield->ncomp;
+int CeedQFunctionFieldGetSize(CeedQFunctionField qffield, CeedInt *size) {
+  *size = qffield->size;
   return 0;
 }
 

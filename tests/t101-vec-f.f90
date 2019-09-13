@@ -32,7 +32,9 @@
       do i=1,10
         diff=b(boffset+i)-10-i
         if (abs(diff)>1.0D-15) then
+! LCOV_EXCL_START
           write(*,*) 'Error reading array b(',i,')=',b(boffset+i)
+! LCOV_EXCL_STOP
         endif
       enddo
 
@@ -44,7 +46,9 @@
       do i=1,10
         diff=b(boffset+i)-val
         if (abs(diff)>1.0D-15) then
+! LCOV_EXCL_START
           write(*,*) 'Error reading array b(',i,')=',b(boffset+i)
+! LCOV_EXCL_STOP
         endif
       enddo
 

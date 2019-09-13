@@ -105,7 +105,9 @@
       call ceedvectorgetarrayread(v,ceed_mem_host,vv,voffset,err)
       do i=1,q
         if (abs(vv(i+voffset)-ctx(5)*vvv(i)) > 1.0D-14) then
+! LCOV_EXCL_START
           write(*,*) 'v(i)=',vv(i+voffset),', 5*vv(i)=',ctx(5)*vvv(i)
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(v,vv,voffset,err)

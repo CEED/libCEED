@@ -16,9 +16,11 @@
 
 #include <ceed-backend.h>
 #include <string.h>
+#include <math.h>
 
 typedef struct {
-  CeedScalar *colograd1d;
+  CeedScalar *collograd1d;
+  bool collointerp;
 } CeedBasis_Ref;
 
 typedef struct {

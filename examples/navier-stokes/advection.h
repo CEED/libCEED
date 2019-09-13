@@ -20,15 +20,6 @@
 #ifndef advection_h
 #define advection_h
 
-#ifndef CeedPragmaOMP
-#  ifdef _OPENMP
-#    define CeedPragmaOMP_(a) _Pragma(#a)
-#    define CeedPragmaOMP(a) CeedPragmaOMP_(omp a)
-#  else
-#    define CeedPragmaOMP(a)
-#  endif
-#endif
-
 #include <math.h>
 
 // *****************************************************************************
@@ -52,56 +43,58 @@
 //      0.0 flux
 //
 // *****************************************************************************
-static int ICsAdvection(void *ctx, CeedInt Q,
-                        const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q,
+                             const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *X = in[0];
+  const CeedScalar (*X)[Q] = (CeedScalar(*)[Q])in[0];
   // Outputs
-  CeedScalar *q0 = out[0], *coords = out[1];
+  CeedScalar (*q0)[Q] = (CeedScalar(*)[Q])out[0],
+             (*coords)[Q] = (CeedScalar(*)[Q])out[1];
   // Context
   const CeedScalar *context = (const CeedScalar*)ctx;
-  const CeedScalar rc         = context[8];
-  const CeedScalar lx         = context[9];
-  const CeedScalar ly         = context[10];
-  const CeedScalar lz         = context[11];
+  const CeedScalar rc = context[8];
+  const CeedScalar lx = context[9];
+  const CeedScalar ly = context[10];
+  const CeedScalar lz = context[11];
+  const CeedScalar *periodic = &context[12];
   // Setup
   const CeedScalar tol = 1.e-14;
   const CeedScalar x0[3] = {0.25*lx, 0.5*ly, 0.5*lz};
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
-  CeedPragmaOMP(simd)
+  CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Coordinates
-    const CeedScalar x = X[i+0*Q];
-    const CeedScalar y = X[i+1*Q];
-    const CeedScalar z = X[i+2*Q];
+    const CeedScalar x = X[0][i];
+    const CeedScalar y = X[1][i];
+    const CeedScalar z = X[2][i];
     // -- Energy
     const CeedScalar r = sqrt(pow((x - x0[0]), 2) +
                               pow((y - x0[1]), 2) +
                               pow((z - x0[2]), 2));
 
     // Initial Conditions
-    q0[i+0*Q] = 1.;
-    q0[i+1*Q] = -0.5*(y - center[1]);
-    q0[i+2*Q] =  0.5*(x - center[0]);
-    q0[i+3*Q] = 0.0;
-    q0[i+4*Q] = r <= rc ? (1.-r/rc) : 0.;
+    q0[0][i] = 1.;
+    q0[1][i] = -0.5*(y - center[1]);
+    q0[2][i] =  0.5*(x - center[0]);
+    q0[3][i] = 0.0;
+    q0[4][i] = r <= rc ? (1.-r/rc) : 0.;
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
-    if ( fabs(x - 0.0) < tol || fabs(x - lx) < tol
-         || fabs(y - 0.0) < tol || fabs(y - ly) < tol
-         || fabs(z - 0.0) < tol || fabs(z - lz) < tol ) {
-      q0[i+1*Q] = 0.0;
-      q0[i+2*Q] = 0.0;
-      q0[i+3*Q] = 0.0;
+    if (   (!periodic[0] && (fabs(x - 0.0) < tol || fabs(x - lx) < tol))
+        || (!periodic[1] && (fabs(y - 0.0) < tol || fabs(y - ly) < tol))
+        || (!periodic[2] && (fabs(z - 0.0) < tol || fabs(z - lz) < tol))) {
+      q0[1][i] = 0.0;
+      q0[2][i] = 0.0;
+      q0[3][i] = 0.0;
     }
 
     // Coordinates
-    coords[i+0*Q] = x;
-    coords[i+1*Q] = y;
-    coords[i+2*Q] = z;
+    coords[0][i] = x;
+    coords[1][i] = y;
+    coords[2][i] = z;
 
   } // End of Quadrature Point Loop
 
@@ -123,96 +116,108 @@ static int ICsAdvection(void *ctx, CeedInt Q,
 //   dE/dt + div( E u ) = 0
 //
 // *****************************************************************************
-static int Advection(void *ctx, CeedInt Q,
-                     const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
+                          const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *q = in[0], *dq = in[1], *qdata = in[2], *x = in[3];
+  const CeedScalar (*q)[Q] = (CeedScalar(*)[Q])in[0],
+                   (*dq)[5][Q] = (CeedScalar(*)[5][Q])in[1],
+                   (*qdata)[Q] = (CeedScalar(*)[Q])in[2],
+                   (*x)[Q] = (CeedScalar(*)[Q])in[3];
   // Outputs
-  CeedScalar *v = out[0], *dv = out[1];
+  CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
+             (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
 
-  CeedPragmaOMP(simd)
+  CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar rho     =   q[i+0*Q];
-    const CeedScalar u[3]    = { q[i+1*Q] / rho,
-                                 q[i+2*Q] / rho,
-                                 q[i+3*Q] / rho
-                               };
-    const CeedScalar E       =   q[i+4*Q];
+    const CeedScalar rho        =    q[0][i];
+    const CeedScalar u[3]       =   {q[1][i] / rho,
+                                     q[2][i] / rho,
+                                     q[3][i] / rho
+                                    };
+    const CeedScalar E          =    q[4][i];
     // -- Grad in
-    const CeedScalar drho[3] = {  dq[i+(0+5*0)*Q],
-                                  dq[i+(0+5*1)*Q],
-                                  dq[i+(0+5*2)*Q]
-                               };
-    const CeedScalar du[9]   = { (dq[i+(1+5*0)*Q] - drho[0]*u[0]) / rho,
-                                 (dq[i+(1+5*1)*Q] - drho[1]*u[0]) / rho,
-                                 (dq[i+(1+5*2)*Q] - drho[2]*u[0]) / rho,
-                                 (dq[i+(2+5*0)*Q] - drho[0]*u[1]) / rho,
-                                 (dq[i+(2+5*1)*Q] - drho[1]*u[1]) / rho,
-                                 (dq[i+(2+5*2)*Q] - drho[2]*u[1]) / rho,
-                                 (dq[i+(3+5*0)*Q] - drho[0]*u[2]) / rho,
-                                 (dq[i+(3+5*1)*Q] - drho[1]*u[2]) / rho,
-                                 (dq[i+(3+5*2)*Q] - drho[2]*u[2]) / rho
-                               };
-    const CeedScalar dE[3]   = {  dq[i+(4+5*0)*Q],
-                                  dq[i+(4+5*1)*Q],
-                                  dq[i+(4+5*2)*Q]
-                               };
+    const CeedScalar drho[3]    =   {dq[0][0][i],
+                                     dq[1][0][i],
+                                     dq[2][0][i]
+                                    };
+    const CeedScalar du[3][3]   = {{(dq[0][1][i] - drho[0]*u[0]) / rho,
+                                    (dq[1][1][i] - drho[1]*u[0]) / rho,
+                                    (dq[2][1][i] - drho[2]*u[0]) / rho},
+                                   {(dq[0][2][i] - drho[0]*u[1]) / rho,
+                                    (dq[1][2][i] - drho[1]*u[1]) / rho,
+                                    (dq[2][2][i] - drho[2]*u[1]) / rho},
+                                   {(dq[0][3][i] - drho[0]*u[2]) / rho,
+                                    (dq[1][3][i] - drho[1]*u[2]) / rho,
+                                    (dq[2][3][i] - drho[2]*u[2]) / rho}
+                                  };
+    const CeedScalar dE[3]      =   {dq[0][4][i],
+                                     dq[1][4][i],
+                                     dq[2][4][i]
+                                    };
+    // -- Interp-to-Interp qdata
+    const CeedScalar wJ         =    qdata[0][i];
     // -- Interp-to-Grad qdata
-    //      Symmetric 3x3 matrix
-    const CeedScalar wBJ[9]   = { qdata[i+ 1*Q],
-                                  qdata[i+ 2*Q],
-                                  qdata[i+ 3*Q],
-                                  qdata[i+ 4*Q],
-                                  qdata[i+ 5*Q],
-                                  qdata[i+ 6*Q],
-                                  qdata[i+ 7*Q],
-                                  qdata[i+ 8*Q],
-                                  qdata[i+ 9*Q]
-                                };
+    // ---- Inverse of change of coordinate matrix: X_i,j
+    const CeedScalar dXdx[3][3] =  {{qdata[1][i],
+                                     qdata[2][i],
+                                     qdata[3][i]},
+                                    {qdata[4][i],
+                                     qdata[5][i],
+                                     qdata[6][i]},
+                                    {qdata[7][i],
+                                     qdata[8][i],
+                                     qdata[9][i]}
+                                   };
 
     // The Physics
 
     // -- Density
     // ---- No Change
-    dv[i+(0+0*5)*Q] = 0;
-    dv[i+(0+1*5)*Q] = 0;
-    dv[i+(0+2*5)*Q] = 0;
-    v[i+0*Q] = 0;
+    dv[0][0][i] = 0;
+    dv[1][0][i] = 0;
+    dv[2][0][i] = 0;
+    v[0][1] = 0;
 
     // -- Momentum
     // ---- No Change
-    dv[i+(1+0*5)*Q] = 0;
-    dv[i+(1+1*5)*Q] = 0;
-    dv[i+(1+2*5)*Q] = 0;
-    dv[i+(2+0*5)*Q] = 0;
-    dv[i+(2+1*5)*Q] = 0;
-    dv[i+(2+2*5)*Q] = 0;
-    dv[i+(3+0*5)*Q] = 0;
-    dv[i+(3+1*5)*Q] = 0;
-    dv[i+(3+2*5)*Q] = 0;
-    v[i+1*Q] = 0;
-    v[i+2*Q] = 0;
-    v[i+3*Q] = 0;
+    dv[0][1][i] = 0;
+    dv[1][1][i] = 0;
+    dv[2][1][i] = 0;
+    dv[0][2][i] = 0;
+    dv[1][2][i] = 0;
+    dv[2][2][i] = 0;
+    dv[0][3][i] = 0;
+    dv[1][3][i] = 0;
+    dv[2][3][i] = 0;
+    v[1][i] = 0;
+    v[2][i] = 0;
+    v[3][i] = 0;
 
     // -- Total Energy
-    // ---- Version 1: dv E u
-    if (1) {
-      dv[i+(4+5*0)*Q]  = E*(u[0]*wBJ[0] + u[1]*wBJ[1] + u[2]*wBJ[2]);
-      dv[i+(4+5*1)*Q]  = E*(u[0]*wBJ[3] + u[1]*wBJ[4] + u[2]*wBJ[5]);
-      dv[i+(4+5*2)*Q]  = E*(u[0]*wBJ[6] + u[1]*wBJ[7] + u[2]*wBJ[8]);
-      v[i+4*Q] = 0;
-    }
-    // ---- Version 2: v E du
-    if (0) {
-      dv[i+(4+0*5)*Q] = 0;
-      dv[i+(4+1*5)*Q] = 0;
-      dv[i+(4+2*5)*Q] = 0;
-      v[i+4*Q]   = E*(du[0]*wBJ[0] + du[3]*wBJ[1] + du[6]*wBJ[2]);
-      v[i+4*Q]  -= E*(du[1]*wBJ[3] + du[4]*wBJ[4] + du[7]*wBJ[5]);
-      v[i+4*Q]  -= E*(du[2]*wBJ[6] + du[5]*wBJ[7] + du[8]*wBJ[8]);
+    switch (1) {
+    // ---- Version 1: dv \cdot (E u)
+    case 1: {
+      for (int j=0; j<3; j++)
+        dv[j][4][i] = wJ * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] + u[2]*dXdx[j][2]);
+      v[4][i] = 0;
+    } break;
+    // ---- Version 2: - v (E div(u) + u \cdot grad(E))
+    case 2: {
+      CeedScalar div_u = 0, u_dot_grad_E = 0;
+      for (int j=0; j<3; j++) {
+        dv[j][4][i] = 0;
+        CeedScalar dEdx_j = 0;
+        for (int k=0; k<3; k++) {
+          div_u += du[k][j] * dXdx[k][j]; // u_{j,j} = u_{j,K} X_{K,j}
+          dEdx_j += dE[k] * dXdx[k][j];
+        }
+        u_dot_grad_E += u[j] * dEdx_j;
+      }
+      v[4][i] = -wJ * (E*div_u + u_dot_grad_E);
+    } break;
     }
 
   } // End Quadrature Point Loop

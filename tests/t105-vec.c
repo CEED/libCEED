@@ -18,10 +18,12 @@ int main(int argc, char **argv) {
   // Write access with read access generate an error
   CeedVectorGetArray(x, CEED_MEM_HOST, &b);
 
+  // LCOV_EXCL_START
   CeedVectorRestoreArrayRead(x, &a);
   CeedVectorRestoreArray(x, &b);
 
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);
   return 0;
+  // LCOV_EXCL_STOP
 }

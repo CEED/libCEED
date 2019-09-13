@@ -30,7 +30,9 @@
       call ceedvectorrestorearray(x,b,boffset,err)
       diff=a(3)+3.14
       if (abs(diff)>1.0D-15) then
+! LCOV_EXCL_START
         write(*,*) 'Error writing array a(3)=',a(3)
+! LCOV_EXCL_STOP
       endif
 
       call ceedvectordestroy(x,err)

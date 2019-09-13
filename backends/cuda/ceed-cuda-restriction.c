@@ -19,7 +19,7 @@
 
 static const char *restrictionkernels = QUOTE(
 
-#if __CUDA_ARCH__ < 600
+    #if __CUDA_ARCH__ < 600
 __device__ double atomicAdd(double *address, double val) {
   unsigned long long int *address_as_ull = (unsigned long long int *)address;
   unsigned long long int old = *address_as_ull, assumed;
@@ -34,7 +34,7 @@ __device__ double atomicAdd(double *address, double val) {
   } while (assumed != old);
   return __longlong_as_double(old);
 }
-#endif // __CUDA_ARCH__ < 600
+    #endif // __CUDA_ARCH__ < 600
 
 extern "C" __global__ void noTrNoTr(const CeedInt nelem,
                                     const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
@@ -47,7 +47,7 @@ extern "C" __global__ void noTrNoTr(const CeedInt nelem,
       const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
       const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-      v[i] = u[indices[s + RESTRICTION_ELEMSIZE * e] + RESTRICTION_NDOF * d];
+      v[i] = u[indices[s + RESTRICTION_ELEMSIZE * e] + RESTRICTION_NNODES * d];
     }
   } else {
     for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
@@ -56,7 +56,7 @@ extern "C" __global__ void noTrNoTr(const CeedInt nelem,
       const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
       const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-      v[i] = u[s + RESTRICTION_ELEMSIZE * e + RESTRICTION_NDOF * d];
+      v[i] = u[s + RESTRICTION_ELEMSIZE * e + RESTRICTION_NNODES * d];
     }
   }
 }
@@ -97,7 +97,7 @@ extern "C" __global__ void trNoTr(const CeedInt nelem,
       const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
       const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-      atomicAdd(v + (indices[s + RESTRICTION_ELEMSIZE * e] + RESTRICTION_NDOF * d),
+      atomicAdd(v + (indices[s + RESTRICTION_ELEMSIZE * e] + RESTRICTION_NNODES * d),
                 u[i]);
     }
   } else {
@@ -107,7 +107,7 @@ extern "C" __global__ void trNoTr(const CeedInt nelem,
       const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
       const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-      atomicAdd(v + (s + RESTRICTION_ELEMSIZE * e + RESTRICTION_NDOF * d), u[i]);
+      atomicAdd(v + (s + RESTRICTION_ELEMSIZE * e + RESTRICTION_NNODES * d), u[i]);
     }
   }
 }
@@ -184,8 +184,8 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
 }
 
 int CeedElemRestrictionApplyBlock_Cuda(CeedElemRestriction r,
-    CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
-    CeedVector u, CeedVector v, CeedRequest *request) {
+                                       CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
+                                       CeedVector u, CeedVector v, CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
@@ -266,13 +266,13 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
   } else
     return CeedError(ceed, 1, "Only MemType = HOST or DEVICE supported");
 
-  CeedInt ncomp, ndof;
+  CeedInt ncomp, nnodes;
   ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetNumDoF(r, &ndof); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumNodes(r, &nnodes); CeedChk(ierr);
   ierr = CeedCompileCuda(ceed, restrictionkernels, &impl->module, 3,
                          "RESTRICTION_ELEMSIZE", elemsize,
                          "RESTRICTION_NCOMP", ncomp,
-                         "RESTRICTION_NDOF", ndof); CeedChk(ierr);
+                         "RESTRICTION_NNODES", nnodes); CeedChk(ierr);
   ierr = CeedGetKernelCuda(ceed, impl->module, "noTrNoTr", &impl->noTrNoTr);
   CeedChk(ierr);
   ierr = CeedGetKernelCuda(ceed, impl->module, "noTrTr", &impl->noTrTr);

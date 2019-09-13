@@ -18,14 +18,16 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++) a[i] = 10 + i;
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
   CeedVectorGetArrayRead(x, CEED_MEM_DEVICE, &b);
-  CeedVectorSetArray(y, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar*)b);
+  CeedVectorSetArray(y, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)b);
   CeedVectorRestoreArrayRead(x, &b);
   CeedVectorGetArrayRead(y, CEED_MEM_HOST, &c);
-  for (CeedInt i=0; i<n; i++) {
+  for (CeedInt i=0; i<n; i++)
     if (c[i] != 10+i)
+      // LCOV_EXCL_START
       printf("Error reading array c[%d] = %f",i,(double)c[i]);
-  }
+      // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(y, &c);
+
   CeedVectorDestroy(&x);
   CeedVectorDestroy(&y);
   CeedDestroy(&ceed);

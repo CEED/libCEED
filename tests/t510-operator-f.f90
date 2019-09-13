@@ -121,7 +121,7 @@
      &__FILE__&
      &//':setup'//char(0),qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'_weight',1,ceed_eval_weight,err)
-      call ceedqfunctionaddinput(qf_setup,'x',d,ceed_eval_grad,err)
+      call ceedqfunctionaddinput(qf_setup,'x',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setup,'rho',1,ceed_eval_none,err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,&
@@ -162,7 +162,9 @@
       call ceedvectorgetarrayread(v,ceed_mem_host,hv,voffset,err)
       do i=1,ndofs
         if (abs(hv(voffset+i))>1.0d-10) then
+! LCOV_EXCL_START
           write(*,*) '[',i,'] v ',hv(voffset+i),' != 0.0'
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(v,hv,voffset,err)

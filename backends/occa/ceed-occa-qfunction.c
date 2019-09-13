@@ -158,7 +158,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
     char *name;
     ierr = CeedQFunctionFieldGetName(outputfields[i], &name); CeedChk(ierr);
     CeedInt ncomp;
-    ierr = CeedQFunctionFieldGetNumComponents(outputfields[i], &ncomp);
+    ierr = CeedQFunctionFieldGetSize(outputfields[i], &ncomp);
     CeedChk(ierr);
     CeedEvalMode emode;
     ierr = CeedQFunctionFieldGetEvalMode(outputfields[i], &emode); CeedChk(ierr);
@@ -176,6 +176,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
       break;
     case CEED_EVAL_GRAD:
       dbg("[CeedQFunction][Apply] out \"%s\" GRAD",name);
+      ncomp /= dim;
       occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*dim*nelem*bytes,data->oOf7[i]*bytes,
                        NO_PROPS);
       break;

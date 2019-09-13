@@ -32,7 +32,7 @@
     for (int d = 0; d < ncomp; d++){
       for (int i=0; i<elemsize; i++) {
         vv[i+elemsize*(d+ncomp*e)] =
-          uu[indices[i+elemsize*e]+ndof*d];
+          uu[indices[i+elemsize*e]+nnodes*d];
       }
     }
   }
@@ -58,7 +58,7 @@
                          const int *toffsets,
                          const double* uu,
                          double* vv) {
-  for (int i=0; i<ndof; i++; @tile(TILE_SIZE,@outer,@inner)){
+  for (int i=0; i<nnodes; i++; @tile(TILE_SIZE,@outer,@inner)){
     const int rng1 = toffsets[i];
     const int rngN = toffsets[i+1];
     double value = 0.0;
@@ -76,7 +76,7 @@
                          const int *toffsets,
                          const double* uu,
                          double* vv) {
-  for (int i=0; i<ndof; i++; @tile(TILE_SIZE,@outer,@inner)){
+  for (int i=0; i<nnodes; i++; @tile(TILE_SIZE,@outer,@inner)){
     const int rng1 = toffsets[i];
     const int rngN = toffsets[i+1];
     for (int d = 0; d < ncomp; ++d) {
@@ -86,7 +86,7 @@
         int e = tindices[j] / elemsize;
         value += uu[(e*ncomp + d)*elemsize + n];
       }
-      vv[d*ndof+i] = value;
+      vv[d*nnodes+i] = value;
     }
   }
 }
@@ -97,7 +97,7 @@
                          const int *toffsets,
                          const double* uu,
                          double* vv) {
-  for (int i=0; i<ndof; i++; @tile(TILE_SIZE,@outer,@inner)){
+  for (int i=0; i<nnodes; i++; @tile(TILE_SIZE,@outer,@inner)){
     const int rng1 = toffsets[i];
     const int rngN = toffsets[i+1];
     for (int d = 0; d < ncomp; ++d) {

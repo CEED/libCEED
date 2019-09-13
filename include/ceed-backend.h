@@ -74,8 +74,8 @@ CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
     CeedInt *numelem);
 CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
     CeedInt *elemsize);
-CEED_EXTERN int CeedElemRestrictionGetNumDoF(CeedElemRestriction rstr,
-    CeedInt *numdof);
+CEED_EXTERN int CeedElemRestrictionGetNumNodes(CeedElemRestriction rstr,
+    CeedInt *numnodes);
 CEED_EXTERN int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
     CeedInt *numcomp);
 CEED_EXTERN int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
@@ -146,8 +146,8 @@ CEED_EXTERN int CeedQFunctionGetFields(CeedQFunction qf,
                                        CeedQFunctionField* *outputfields);
 CEED_EXTERN int CeedQFunctionFieldGetName(CeedQFunctionField qffield,
     char* *fieldname);
-CEED_EXTERN int CeedQFunctionFieldGetNumComponents(CeedQFunctionField qffield,
-    CeedInt *numcomp);
+CEED_EXTERN int CeedQFunctionFieldGetSize(CeedQFunctionField qffield,
+    CeedInt *size);
 CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
     CeedEvalMode *emode);
 

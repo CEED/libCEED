@@ -34,7 +34,9 @@
       do i=1,10
         diff = c(i+coffset)-(9+i)
         if (abs(diff)>1.0D-15) then
+! LCOV_EXCL_START
           write(*,*) 'Error reading array c(',i,') = ',c(i+coffset),' != ',9+i
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(y,c,coffset,err)

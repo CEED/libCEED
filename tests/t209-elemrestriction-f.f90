@@ -45,7 +45,9 @@
         endif
         diff=1+offset-mm(i+moffset)
         if (abs(diff) > 1.0D-15) then
+! LCOV_EXCL_START
           write(*,*) 'Error in multiplicity vector: mult(',i,')=',mm(i+moffset)
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(mult,mm,moffset,err)

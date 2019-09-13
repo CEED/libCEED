@@ -19,57 +19,7 @@
 #include <ceed.h>
 #include <mfem.hpp>
 
-/// A structure used to pass additional data to f_build_mass
-struct BuildContext { CeedInt dim, space_dim; };
-
-/// libCEED Q-function for building quadrature data for a mass operator
-static int f_build_mass(void *ctx, CeedInt Q,
-                        const CeedScalar *const *in, CeedScalar *const *out) {
-  // in[0] is Jacobians with shape [dim, nc=dim, Q]
-  // in[1] is quadrature weights, size (Q)
-  BuildContext *bc = (BuildContext *)ctx;
-  const CeedScalar *J = in[0], *qw = in[1];
-  CeedScalar *rho = out[0];
-  switch (bc->dim + 10*bc->space_dim) {
-  case 11:
-    for (CeedInt i=0; i<Q; i++) {
-      rho[i] = J[i] * qw[i];
-    }
-    break;
-  case 22:
-    for (CeedInt i=0; i<Q; i++) {
-      // 0 2
-      // 1 3
-      rho[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
-    }
-    break;
-  case 33:
-    for (CeedInt i=0; i<Q; i++) {
-      // 0 3 6
-      // 1 4 7
-      // 2 5 8
-      rho[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
-                J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-                J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * qw[i];
-    }
-    break;
-  default:
-    return CeedError(NULL, 1, "dim=%d, space_dim=%d is not supported",
-                     bc->dim, bc->space_dim);
-  }
-  return 0;
-}
-
-/// libCEED Q-function for applying a mass operator
-static int f_apply_mass(void *ctx, CeedInt Q,
-                        const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *u = in[0], *w = in[1];
-  CeedScalar *v = out[0];
-  for (CeedInt i=0; i<Q; i++) {
-    v[i] = w[i] * u[i];
-  }
-  return 0;
-}
+#include "bp1.h"
 
 /// Wrapper for a mass CeedOperator as an mfem::Operator
 class CeedMassOperator : public mfem::Operator {
@@ -165,7 +115,8 @@ class CeedMassOperator : public mfem::Operator {
     const int ir_order = 2*(order + 2) - 1; // <-----
     const mfem::IntegrationRule &ir =
       mfem::IntRules.Get(mfem::Geometry::SEGMENT, ir_order);
-    CeedInt nqpts, nelem = mesh->GetNE();
+    CeedInt nqpts, nelem = mesh->GetNE(), dim = mesh->SpaceDimension(),
+            ncompx = dim;
 
     FESpace2Ceed(fes, ir, ceed, &basis, &restr);
 
@@ -187,13 +138,13 @@ class CeedMassOperator : public mfem::Operator {
 
     // Context data to be passed to the 'f_build_mass' Q-function.
     build_ctx.dim = mesh->Dimension();
-    build_ctx.space_dim = mesh->SpaceDimension();
+    build_ctx.space_dim = dim;
 
     // Create the Q-function that builds the mass operator (i.e. computes its
     // quadrature data) and set its context data.
     CeedQFunctionCreateInterior(ceed, 1, f_build_mass,
-                                __FILE__":f_build_mass", &build_qfunc);
-    CeedQFunctionAddInput(build_qfunc, "dx", mesh->SpaceDimension(),
+                                f_build_mass_loc, &build_qfunc);
+    CeedQFunctionAddInput(build_qfunc, "dx", ncompx*dim,
                           CEED_EVAL_GRAD);
     CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
     CeedQFunctionAddOutput(build_qfunc, "rho", 1, CEED_EVAL_NONE);
@@ -214,7 +165,7 @@ class CeedMassOperator : public mfem::Operator {
 
     // Create the Q-function that defines the action of the mass operator.
     CeedQFunctionCreateInterior(ceed, 1, f_apply_mass,
-                                __FILE__":f_apply_mass", &apply_qfunc);
+                                f_apply_mass_loc, &apply_qfunc);
     CeedQFunctionAddInput(apply_qfunc, "u", 1, CEED_EVAL_INTERP);
     CeedQFunctionAddInput(apply_qfunc, "rho", 1, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(apply_qfunc, "v", 1, CEED_EVAL_INTERP);

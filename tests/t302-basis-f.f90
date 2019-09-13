@@ -80,7 +80,9 @@
       do i=1,q
         call polyeval(xxq(i+offset1),6,p,px)
         if (abs(uuq(i+offset2)-px) > 1e-14) then
+! LCOV_EXCL_START
           write(*,*) uuq(i+offset2),' not eqaul to ',px,'=p(',xxq(i+offset1),')'
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(xq,xxq,offset1,err)

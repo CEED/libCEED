@@ -38,7 +38,9 @@
       call ceedvectorgetarrayread(v,ceed_mem_host,vv,voffset,err)
       do i=1,length
         if (abs(vv(i+voffset)-1.) > 1.D-15) then
+! LCOV_EXCL_START
           write(*,*) 'v(',i,'=',vv(i+voffset),' not eqaul to 1.0'
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(v,vv,voffset,err)

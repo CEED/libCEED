@@ -27,12 +27,12 @@
 //
 // Sample runs:
 //
-//     bps -problem bp1 -petscspace_degree 3
-//     bps -problem bp2 -ceed /cpu/self -petscspace_degree 3
-//     bps -problem bp3 -ceed /gpu/occa -petscspace_degree 3
-//     bps -problem bp4 -ceed /cpu/occa -petscspace_degree 3
-//     bps -problem bp5 -ceed /omp/occa -petscspace_degree 3
-//     bps -problem bp6 -ceed /ocl/occa -petscspace_degree 3
+//     bpsdmplex -problem bp1 -petscspace_degree 3
+//     bpsdmplex -problem bp2 -ceed /cpu/self -petscspace_degree 3
+//     bpsdmplex -problem bp3 -ceed /gpu/occa -petscspace_degree 3
+//     bpsdmplex -problem bp4 -ceed /cpu/occa -petscspace_degree 3
+//     bpsdmplex -problem bp5 -ceed /omp/occa -petscspace_degree 3
+//     bpsdmplex -problem bp6 -ceed /ocl/occa -petscspace_degree 3
 //
 //TESTARGS -ceed {ceed_resource} -test -problem bp3 -petscspace_degree 3
 
@@ -43,27 +43,27 @@ const char help[] = "Solve CEED BPs using PETSc with DMPlex\n";
 
 #include <stdbool.h>
 #include <string.h>
-#include "common.h"
+#include <petscksp.h>
 #include <petscdmplex.h>
+#include <ceed.h>
+#include "common.h"
 #include "bp1.h"
 #include "bp2.h"
 #include "bp3.h"
 #include "bp4.h"
 
-#define PATH(BASE) __DIR__ #BASE
-
 // Get CEED restriction data from DMPlex
 static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
-				 CeedElemRestriction *Erestrict, DM dm) {
+                                 CeedElemRestriction *Erestrict, DM dm) {
   PetscInt ierr;
-  PetscInt c, cStart, cEnd, nelem, ndof, *erestrict, eoffset;
+  PetscInt c, cStart, cEnd, nelem, nnodes, *erestrict, eoffset;
   PetscSection section;
   Vec Uloc;
 
   PetscFunctionBegin;
 
   // Get Nelem
-  ierr = DMGetDefaultSection(dm, &section); CHKERRQ(ierr);
+  ierr = DMGetSection(dm, &section); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart,& cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
 
@@ -89,10 +89,10 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
 
   // Setup CEED restriction
   ierr = DMGetLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  ierr = VecGetLocalSize(Uloc, &ndof); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(Uloc, &nnodes); CHKERRQ(ierr);
 
   ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, nelem, P*P*P, ndof/ncomp, ncomp,
+  CeedElemRestrictionCreate(ceed, nelem, P*P*P, nnodes/ncomp, ncomp,
                             CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
                             Erestrict);
   ierr = PetscFree(erestrict); CHKERRQ(ierr);
@@ -102,10 +102,10 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
 
 // BC functions
 PetscErrorCode BCsMass(PetscInt dim, PetscReal time, const PetscReal x[],
-                       PetscInt vscale, PetscScalar *u, void *ctx) {
+                       PetscInt ncompu, PetscScalar *u, void *ctx) {
   PetscFunctionBeginUser;
 
-  for (PetscInt i = 0; i < vscale; i++)
+  for (PetscInt i = 0; i < ncompu; i++)
     u[i] = PetscSqrtScalar(PetscSqr(x[0]) + PetscSqr(x[1]) +
                            PetscSqr(x[2]));
 
@@ -113,7 +113,7 @@ PetscErrorCode BCsMass(PetscInt dim, PetscReal time, const PetscReal x[],
 }
 
 PetscErrorCode BCsDiff(PetscInt dim, PetscReal time, const PetscReal x[],
-                       PetscInt vscale, PetscScalar *u, void *ctx) {
+                       PetscInt ncompu, PetscScalar *u, void *ctx) {
   #ifndef M_PI
 #define M_PI    3.14159265358979323846
   #endif
@@ -122,7 +122,7 @@ PetscErrorCode BCsDiff(PetscInt dim, PetscReal time, const PetscReal x[],
 
   PetscFunctionBeginUser;
 
-  for (PetscInt i = 0; i < vscale; i++) 
+  for (PetscInt i = 0; i < ncompu; i++)
     u[i] = sin(M_PI*(c[0] + k[0]*x[0])) *
            sin(M_PI*(c[1] + k[1]*x[1])) *
            sin(M_PI*(c[2] + k[2]*x[2]));
@@ -163,112 +163,119 @@ typedef enum {
   CEED_BP4 = 3, CEED_BP5 = 4, CEED_BP6 = 5
 } bpType;
 static const char *const bpTypes[] = {"bp1","bp2","bp3","bp4","bp5","bp6",
-                                      "bpType","CEED_BP",0};
+                                      "bpType","CEED_BP",0
+                                     };
 
 // BP specific data
 typedef struct {
-  CeedInt vscale, qdatasize, qextra;
+  CeedInt ncompu, qdatasize, qextra;
   CeedQFunctionUser setup, apply, error;
-  const char setupfname[PETSC_MAX_PATH_LEN], applyfname[PETSC_MAX_PATH_LEN],
-             errorfname[PETSC_MAX_PATH_LEN];
+  const char *setupfname, *applyfname,
+        *errorfname;
   CeedEvalMode inmode, outmode;
   CeedQuadMode qmode;
   PetscBool enforce_bc;
-  PetscErrorCode (*bcs_func)(PetscInt, PetscReal, const PetscReal*,
-                             PetscInt, PetscScalar *, void*);
+  PetscErrorCode (*bcs_func)(PetscInt, PetscReal, const PetscReal *,
+                             PetscInt, PetscScalar *, void *);
 } bpData;
 
 bpData bpOptions[6] = {
   [CEED_BP1] = {
-    .vscale = 1,
+    .ncompu = 1,
     .qdatasize = 1,
     .qextra = 1,
     .setup = SetupMass,
     .apply = Mass,
     .error = Error,
-    .setupfname = PATH(bp1.h:SetupMass),
-    .applyfname = PATH(bp1.h:Mass),
-    .errorfname = PATH(common.h:Error),
+    .setupfname = SetupMass_loc,
+    .applyfname = Mass_loc,
+    .errorfname = Error_loc,
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
     .qmode = CEED_GAUSS,
     .enforce_bc = false,
-    .bcs_func = BCsMass},
+    .bcs_func = BCsMass
+  },
   [CEED_BP2] = {
-    .vscale = 3,
+    .ncompu = 3,
     .qdatasize = 1,
     .qextra = 1,
     .setup = SetupMass3,
     .apply = Mass3,
     .error = Error3,
-    .setupfname = PATH(bp2.h:SetupMass3),
-    .applyfname = PATH(bp2.h:Mass3),
-    .errorfname = PATH(common.h:Error3),
+    .setupfname = SetupMass3_loc,
+    .applyfname = Mass3_loc,
+    .errorfname = Error3_loc,
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
     .qmode = CEED_GAUSS,
     .enforce_bc = false,
-    .bcs_func = BCsMass},
+    .bcs_func = BCsMass
+  },
   [CEED_BP3] = {
-    .vscale = 1,
+    .ncompu = 1,
     .qdatasize = 6,
     .qextra = 1,
     .setup = SetupDiff,
     .apply = Diff,
     .error = Error,
-    .setupfname = PATH(bp3.h:SetupDiff),
-    .applyfname = PATH(bp3.h:Diff),
-    .errorfname = PATH(common.h:Error),
+    .setupfname = SetupDiff_loc,
+    .applyfname = Diff_loc,
+    .errorfname = Error_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS,
     .enforce_bc = true,
-    .bcs_func = BCsDiff},
+    .bcs_func = BCsDiff
+  },
   [CEED_BP4] = {
-    .vscale = 3,
+    .ncompu = 3,
     .qdatasize = 6,
     .qextra = 1,
     .setup = SetupDiff3,
     .apply = Diff3,
     .error = Error3,
-    .setupfname = PATH(bp4.h:SetupDiff3),
-    .applyfname = PATH(bp4.h:Diff3),
-    .errorfname = PATH(common.h:Error3),
+    .setupfname = SetupDiff3_loc,
+    .applyfname = Diff3_loc,
+    .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS,
     .enforce_bc = true,
-    .bcs_func = BCsDiff},
+    .bcs_func = BCsDiff
+  },
   [CEED_BP5] = {
-    .vscale = 1,
+    .ncompu = 1,
     .qdatasize = 6,
     .qextra = 0,
     .setup = SetupDiff,
     .apply = Diff,
     .error = Error,
-    .setupfname = PATH(bp3.h:SetupDiff),
-    .applyfname = PATH(bp3.h:Diff),
-    .errorfname = PATH(common.h:Error),
+    .setupfname = SetupDiff_loc,
+    .applyfname = Diff_loc,
+    .errorfname = Error_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS_LOBATTO,
     .enforce_bc = true,
-    .bcs_func = BCsDiff},
+    .bcs_func = BCsDiff
+  },
   [CEED_BP6] = {
-    .vscale = 3,
+    .ncompu = 3,
     .qdatasize = 6,
     .qextra = 0,
     .setup = SetupDiff3,
     .apply = Diff3,
     .error = Error3,
-    .setupfname = PATH(bp4.h:SetupDiff3),
-    .applyfname = PATH(bp4.h:Diff3),
-    .errorfname = PATH(common.h:Error3),
+    .setupfname = SetupDiff3_loc,
+    .applyfname = Diff3_loc,
+    .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS_LOBATTO,
     .enforce_bc = true,
-    .bcs_func = BCsDiff}
+    .bcs_func = BCsDiff
+  }
 };
 
 // This function uses libCEED to compute the action of the operator
@@ -283,8 +290,6 @@ static PetscErrorCode MatMult_User(Mat A, Vec X, Vec Y) {
   // Global-to-local
   DMGlobalToLocalBegin(user->dm, X, INSERT_VALUES, user->Xloc);
   DMGlobalToLocalEnd(user->dm, X, INSERT_VALUES, user->Xloc);
-  DMGlobalToLocalBegin(user->dm, Y, INSERT_VALUES, user->Yloc);
-  DMGlobalToLocalEnd(user->dm, Y, INSERT_VALUES, user->Yloc);
   ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
   // Setup CEED vectors
@@ -323,7 +328,7 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
   CeedVectorCreate(user->ceed, length, &collocated_error);
 
   // Global-to-local
-  ierr = DMGlobalToLocal(user->dm, X, INSERT_VALUES, user->Xloc);CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, X, INSERT_VALUES, user->Xloc); CHKERRQ(ierr);
 
   // Setup CEED vector
   ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
@@ -357,10 +362,11 @@ int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
   char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
-       filename[PETSC_MAX_PATH_LEN];
+                                          filename[PETSC_MAX_PATH_LEN];
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree, qextra, lsize, gsize, dim =3, melem[3] = {3, 3, 3},
-           vscale = 1, cStart, cEnd, nelem, marker_ids[1] = {1}, Xlocsize;
+           ncompx = 3, ncompu = 1, cStart, cEnd, nelem, marker_ids[1] = {1},
+           Xlocsize;
   PetscScalar *r;
   const PetscScalar *coordArray;
   PetscBool test_mode, benchmark_mode, read_mesh, enforce_bc, write_solution;
@@ -391,9 +397,9 @@ int main(int argc, char **argv) {
   bpChoice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
-                          bpTypes, (PetscEnum)bpChoice, (PetscEnum*)&bpChoice,
+                          bpTypes, (PetscEnum)bpChoice, (PetscEnum *)&bpChoice,
                           NULL); CHKERRQ(ierr);
-  vscale = bpOptions[bpChoice].vscale;
+  ncompu = bpOptions[bpChoice].ncompu;
   test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
@@ -433,35 +439,35 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
   } else {
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, melem, NULL,
-                                NULL, NULL, PETSC_TRUE ,&dm); CHKERRQ(ierr);
+                               NULL, NULL, PETSC_TRUE,&dm); CHKERRQ(ierr);
   }
 
   {
     DM dmDist = NULL;
     PetscPartitioner part;
 
-    ierr = DMPlexGetPartitioner(dm, &part);CHKERRQ(ierr);
-    ierr = PetscPartitionerSetFromOptions(part);CHKERRQ(ierr);
-    ierr = DMPlexDistribute(dm, 0, NULL, &dmDist);CHKERRQ(ierr);
+    ierr = DMPlexGetPartitioner(dm, &part); CHKERRQ(ierr);
+    ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
+    ierr = DMPlexDistribute(dm, 0, NULL, &dmDist); CHKERRQ(ierr);
     if (dmDist) {
       ierr = DMDestroy(&dm); CHKERRQ(ierr);
       dm  = dmDist;
     }
   }
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-  ierr = PetscFECreateDefault(PETSC_COMM_SELF, dim, vscale, PETSC_FALSE, NULL,
+  ierr = PetscFECreateDefault(PETSC_COMM_SELF, dim, ncompu, PETSC_FALSE, NULL,
                               PETSC_DETERMINE, &fe);
   CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMAddField(dm, NULL, (PetscObject)fe); CHKERRQ(ierr);
   ierr = DMCreateDS(dm); CHKERRQ(ierr);
-  if (enforce_bc) { 
-     PetscBool hasLabel;
-     DMHasLabel(dm, "marker", &hasLabel);
-     if (!hasLabel) {CreateBCLabel(dm, "marker");}
-     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "marker", 0, 0, NULL,
-                          (void(*)(void))bpOptions[bpChoice].bcs_func, 1,
-                          marker_ids, NULL); CHKERRQ(ierr);
+  if (enforce_bc) {
+    PetscBool hasLabel;
+    DMHasLabel(dm, "marker", &hasLabel);
+    if (!hasLabel) {CreateBCLabel(dm, "marker");}
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "marker", 0, 0, NULL,
+                         (void(*)(void))bpOptions[bpChoice].bcs_func, 1,
+                         marker_ids, NULL); CHKERRQ(ierr);
   }
   ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
@@ -471,7 +477,7 @@ int main(int argc, char **argv) {
   ierr = PetscSpaceGetDegree(sp, &degree, NULL); CHKERRQ(ierr);
   ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
   if (degree < 1) SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
-                           "-petscspace_degree %D must be at least 1", degree);
+                             "-petscspace_degree %D must be at least 1", degree);
   P = degree + 1;
   Q = P + qextra;
 
@@ -493,19 +499,19 @@ int main(int argc, char **argv) {
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
-                       "    Global DOFs                        : %D\n"
-                       "    Owned DOFs                         : %D\n",
-                       bpChoice+1, ceedresource, P, Q,  gsize/vscale,
-                       lsize/vscale); CHKERRQ(ierr);
+                       "    Global nodes                       : %D\n"
+                       "    Owned nodes                        : %D\n",
+                       bpChoice+1, ceedresource, P, Q,  gsize/ncompu,
+                       lsize/ncompu); CHKERRQ(ierr);
   }
 
   // Set up libCEED
   CeedInit(ceedresource, &ceed);
 
   // CEED bases
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, vscale, P, Q,
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompu, P, Q,
                                   bpOptions[bpChoice].qmode, &basisu);
-  CeedBasisCreateTensorH1Lagrange(ceed, 3, 3, 2, Q,
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, Q,
                                   bpOptions[bpChoice].qmode, &basisx);
 
   // CEED restrictions
@@ -513,64 +519,67 @@ int main(int argc, char **argv) {
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
-  CreateRestrictionPlex(ceed, 2, 3, &Erestrictx, dmcoord);
-  CreateRestrictionPlex(ceed, P, vscale, &Erestrictu, dm);
+  CreateRestrictionPlex(ceed, 2, ncompx, &Erestrictx, dmcoord); CHKERRQ(ierr);
+  CreateRestrictionPlex(ceed, P, ncompu, &Erestrictu, dm); CHKERRQ(ierr);
 
-  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
 
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, vscale,
+  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompu,
                                     &Erestrictui);
-  CeedElemRestrictionCreateIdentity(ceed, nelem,
-                                    bpOptions[bpChoice].qdatasize*Q*Q*Q,
-                                    bpOptions[bpChoice].qdatasize*nelem*Q*Q*Q,
-                                    1, &Erestrictqdi);
+  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
+                                    bpOptions[bpChoice].qdatasize,
+                                    &Erestrictqdi);
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1,
                                     &Erestrictxi);
 
   // Element coordinates
   ierr = DMGetCoordinatesLocal(dm, &coords); CHKERRQ(ierr);
   ierr = VecGetArrayRead(coords, &coordArray); CHKERRQ(ierr);
-  ierr = DMGetDefaultSection(dmcoord, &section); CHKERRQ(ierr);
+  ierr = DMGetSection(dmcoord, &section); CHKERRQ(ierr);
 
   CeedElemRestrictionCreateVector(Erestrictx, &xcoord, NULL);
   CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_COPY_VALUES,
-                    (PetscScalar*)coordArray);
+                     (PetscScalar *)coordArray);
   ierr = VecRestoreArrayRead(coords, &coordArray); CHKERRQ(ierr);
 
   // Create the Q-function that builds the operator (i.e. computes its
   // quadrature data) and set its context data
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setup,
                               bpOptions[bpChoice].setupfname, &qf_setup);
-  CeedQFunctionAddInput(qf_setup, "x", 3, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_setup, "dx", 3, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setup, "x", ncompx, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_setup, "dx", ncompx*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup, "rho", bpOptions[bpChoice].qdatasize,
                          CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_setup, "true_soln", vscale, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_setup, "rhs", vscale, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_setup, "true_soln", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_setup, "rhs", ncompu, CEED_EVAL_INTERP);
 
-  // Set up PDE operator
+  // Set up PDE operator  CeedInt gradInScale = 1;
+  CeedInt gradInScale = bpOptions[bpChoice].inmode==CEED_EVAL_GRAD ? 3 : 1;
+  CeedInt gradOutScale = bpOptions[bpChoice].outmode==CEED_EVAL_GRAD ? 3 : 1;
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].apply,
                               bpOptions[bpChoice].applyfname, &qf_apply);
   // Add inputs and outputs
-  CeedQFunctionAddInput(qf_apply, "u", vscale, bpOptions[bpChoice].inmode);
+  CeedQFunctionAddInput(qf_apply, "u", ncompu*gradInScale,
+                        bpOptions[bpChoice].inmode);
   CeedQFunctionAddInput(qf_apply, "rho", bpOptions[bpChoice].qdatasize,
                         CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_apply, "v", vscale, bpOptions[bpChoice].outmode);
+  CeedQFunctionAddOutput(qf_apply, "v", ncompu*gradOutScale,
+                         bpOptions[bpChoice].outmode);
 
   // Create the error qfunction
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].error,
                               bpOptions[bpChoice].errorfname, &qf_error);
-  CeedQFunctionAddInput(qf_error, "u", vscale, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_error, "true_soln", vscale, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_error, "error", vscale, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_error, "u", ncompu, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_error, "true_soln", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_error, "error", ncompu, CEED_EVAL_NONE);
 
   // Create the persistent vectors that will be needed in setup
   CeedInt nqpts;
   CeedBasisGetNumQuadraturePoints(basisu, &nqpts);
   CeedVectorCreate(ceed, bpOptions[bpChoice].qdatasize*nelem*nqpts, &rho);
-  CeedVectorCreate(ceed, nelem*nqpts*vscale, &target);
+  CeedVectorCreate(ceed, nelem*nqpts*ncompu, &target);
   CeedVectorCreate(ceed, Xlocsize, &rhsceed);
 
   // Create the operator that builds the quadrature data for the ceed operator
@@ -609,7 +618,7 @@ int main(int argc, char **argv) {
   // Set up Mat
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
   user->comm = comm;
-  user->dm =dm;
+  user->dm = dm;
   user->Xloc = Xloc;
   ierr = VecDuplicate(Xloc, &user->Yloc); CHKERRQ(ierr);
   CeedVectorCreate(ceed, Xlocsize, &user->xceed);
@@ -659,6 +668,7 @@ int main(int argc, char **argv) {
   }
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp, mat, mat); CHKERRQ(ierr);
+
   // First run, if benchmarking
   if (benchmark_mode) {
     ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 1);
@@ -675,6 +685,7 @@ int main(int argc, char **argv) {
       CHKERRQ(ierr);
     }
   }
+
   // Timed solve
   my_rt_start = MPI_Wtime();
   ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
@@ -706,7 +717,7 @@ int main(int argc, char **argv) {
       ierr = PetscPrintf(comm,
                          "  Performance:\n"
                          "    CG Solve Time                      : %g (%g) sec\n"
-                         "    DOFs/Sec in CG                     : %g (%g) million\n",
+                         "    DoFs/Sec in CG                     : %g (%g) million\n",
                          rt_max, rt_min, 1e-6*gsize*its/rt_max,
                          1e-6*gsize*its/rt_min); CHKERRQ(ierr);
     }
@@ -723,6 +734,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  // Output solution
   if (write_solution) {
     PetscViewer vtkviewersoln;
 
@@ -733,6 +745,7 @@ int main(int argc, char **argv) {
     ierr = PetscViewerDestroy(&vtkviewersoln); CHKERRQ(ierr);
   }
 
+  // Cleanup
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
   ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
   ierr = VecDestroy(&X); CHKERRQ(ierr);
