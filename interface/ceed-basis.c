@@ -465,7 +465,7 @@ static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v,
 /**
   @brief Apply Householder Q matrix
 
-    Compute A = Q A where Q is mxk and A is mxn. k<m
+    Compute A = Q A where Q is mxm and A is mxn.
 
   @param[in,out] A  Matrix to apply Householder Q to, in place
   @param Q          Householder Q matrix
@@ -473,9 +473,9 @@ static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v,
   @param tmode      Transpose mode for application
   @param m          Number of rows in A
   @param n          Number of columns in A
-  @param k          Index of row targeted
-  @param row        Row stride
-  @param col        Col stride
+  @param k          Number of elementary reflectors in Q, k<m
+  @param row        Row stride in A
+  @param col        Col stride in A
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -488,9 +488,8 @@ static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
   CeedScalar v[m];
   for (CeedInt ii=0; ii<k; ii++) {
     CeedInt i = tmode == CEED_TRANSPOSE ? ii : k-1-ii;
-    for (CeedInt j=i+1; j<m; j++) {
+    for (CeedInt j=i+1; j<m; j++)
       v[j] = Q[j*k+i];
-    }
     // Apply Householder reflector (I - tau v v^T) colograd1d^T
     CeedHouseholderReflect(&A[i*row], &v[i], tau[i], m-i, n, row, col);
   }
@@ -501,7 +500,7 @@ static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
   @brief Compute Givens rotation
 
     Computes A = G A (or G^T A in transpose mode)
-    where A is an mxn matrix indexed as A[i*row + j*col]
+    where A is an mxn matrix indexed as A[i*n + j*m]
 
   @param[in,out] A  Row major matrix to apply Givens rotation to, in place
   @param c          Cosine factor
