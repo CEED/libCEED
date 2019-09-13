@@ -538,7 +538,7 @@ static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s,
 
   @param ceed         A Ceed object currently in use
   @param[in,out] mat  Row-major matrix to be factorized in place
-  @param[in,out] tau  Vector of length m of scaling fators
+  @param[in,out] tau  Vector of length m of scaling factors
   @param m            Number of rows
   @param n            Number of columns
 
