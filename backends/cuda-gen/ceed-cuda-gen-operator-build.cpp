@@ -721,35 +721,55 @@ inline __device__ void gradTranspose3d(BackendData& data, const CeedScalar *__re
   }
 }
 
-template <int NCOMP, int P1d, int Q1d>
-inline __device__ void gradCollo3d(BackendData& data, const CeedScalar *__restrict__ r_U,
-                                  const CeedScalar *c_B, const CeedScalar *c_G,
-                                  CeedScalar *__restrict__ r_V) {
-  CeedScalar r_t1[Q1d];
-  CeedScalar r_t2[Q1d];
-  for(int comp=0; comp<NCOMP; comp++) {
-    ContractX3d<NCOMP,P1d,Q1d>(data, r_U+comp*P1d, c_B, r_t1);
-    ContractY3d<NCOMP,P1d,Q1d>(data, r_t1, c_B, r_t2);
-    ContractZ3d<NCOMP,P1d,Q1d>(data, r_t2, c_B, r_t1);
-    ContractX3d<NCOMP,Q1d,Q1d>(data, r_t1, c_G, r_V+comp*Q1d+0*NCOMP*Q1d);
-    ContractY3d<NCOMP,Q1d,Q1d>(data, r_t1, c_G, r_V+comp*Q1d+1*NCOMP*Q1d);
-    ContractZ3d<NCOMP,Q1d,Q1d>(data, r_t1, c_G, r_V+comp*Q1d+2*NCOMP*Q1d);
+template <int NCOMP, int Q1d>
+inline __device__ void gradCollo3d(BackendData& data, const CeedInt q, 
+                                   const CeedScalar *__restrict__ r_U,
+                                   const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+  for (int comp = 0; comp < NCOMP; ++comp) {
+    data.slice[data.tidx+data.tidy*Q1d] = r_U[q + comp*Q1d];
+    __syncthreads();
+    // X derivative
+    r_V[comp+0*NCOMP] = 0.0;
+    for (int i = 0; i < Q1d; ++i) {
+      r_V[comp+0*NCOMP] += c_G[i + data.tidx*Q1d] * data.slice[i + data.tidy*Q1d];//contract x direction (X derivative)
+    }
+    // Y derivative
+    r_V[comp+1*NCOMP] = 0.0;
+    for (int i = 0; i < Q1d; ++i) {
+      r_V[comp+1*NCOMP] += c_G[i + data.tidy*Q1d] * data.slice[data.tidx + i*Q1d];//contract y direction (Y derivative)
+    }
+    // Z derivative
+    r_V[comp+2*NCOMP] = 0.0;
+    for (int i = 0; i < Q1d; ++i) {
+      r_V[comp+2*NCOMP] += c_G[i + q*Q1d] * r_U[i + comp*Q1d];//contract z direction (Z derivative)
+    }
+    __syncthreads();
   }
 }
 
-template <int NCOMP, int P1d, int Q1d>
-inline __device__ void gradColloTranspose3d(BackendData& data, const CeedScalar *__restrict__ r_U,
-                                           const CeedScalar *c_B, const CeedScalar *c_G,
-                                           CeedScalar *__restrict__ r_V) {
-  CeedScalar r_t1[Q1d];
-  CeedScalar r_t2[Q1d];
-  for(int comp=0; comp<NCOMP; comp++) {
-    ContractTransposeZ3d<NCOMP,Q1d,Q1d>(data, r_U+comp*Q1d+2*NCOMP*Q1d, c_G, r_t1);
-    ContractTransposeAddY3d<NCOMP,Q1d,Q1d>(data, r_U+comp*Q1d+1*NCOMP*Q1d, c_G, r_t1);
-    ContractTransposeAddX3d<NCOMP,Q1d,Q1d>(data, r_U+comp*Q1d+0*NCOMP*Q1d, c_G, r_t1);
-    ContractTransposeZ3d<NCOMP,P1d,Q1d>(data, r_t1, c_B, r_t2);
-    ContractTransposeY3d<NCOMP,P1d,Q1d>(data, r_t2, c_B, r_t1);
-    ContractTransposeX3d<NCOMP,P1d,Q1d>(data, r_t1, c_B, r_V+comp*P1d);
+template <int NCOMP, int Q1d>
+inline __device__ void gradColloTranspose3d(BackendData& data, const CeedInt q, 
+                                            const CeedScalar *__restrict__ r_U,
+                                            const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+  for (int comp = 0; comp < NCOMP; ++comp) {
+    // X derivative
+    data.slice[data.tidx+data.tidy*Q1d] = r_U[comp + 0*NCOMP];
+    __syncthreads();
+    for (int i = 0; i < Q1d; ++i) {
+      r_V[q+comp*Q1d] += c_G[data.tidx + i*Q1d] * data.slice[i + data.tidy*Q1d];//contract x direction (X derivative)
+    }
+    __syncthreads();
+    // Y derivative
+    data.slice[data.tidx+data.tidy*Q1d] = r_U[comp + 1*NCOMP];
+    __syncthreads();
+    for (int i = 0; i < Q1d; ++i) {
+      r_V[q+comp*Q1d] += c_G[data.tidy + i*Q1d] * data.slice[data.tidx + i*Q1d];//contract y direction (Y derivative)
+    }
+    __syncthreads();
+    // Z derivative
+    for (int i = 0; i < Q1d; ++i) {
+      r_V[i+comp*Q1d] += c_G[i + q*Q1d] * r_U[comp + 2*NCOMP];// PARTIAL contract z direction (Z derivative)
+    }
   }
 }
 
@@ -1106,27 +1126,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         break;
       case CEED_EVAL_GRAD:
         code << "  CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"*Dim];\n";
-        //TODO put the following in collograd3d
-        code << "  for (int comp = 0; comp < ncomp_in_"<<i<<"; ++comp) {\n";
-        code << "    data.slice[data.tidx+data.tidy*Q1d] = r_t"<<i<<"[q + comp*Q1d];\n";
-        code << "    __syncthreads();\n";
-        code << "    // X derivative\n";
-        code << "    r_q"<<i<<"[comp+0*ncomp_in_"<<i<<"] = 0.0;\n";
-        code << "    for (int i = 0; i < Q1d; ++i) {\n";
-        code << "      r_q"<<i<<"[comp+0*ncomp_in_"<<i<<"] += s_G_in_"<<i<<"[i + data.tidx*Q1d] * data.slice[i + data.tidy*Q1d];//contract x direction (X derivative)\n";
-        code << "    }\n";
-        code << "    // Y derivative\n";
-        code << "    r_q"<<i<<"[comp+1*ncomp_in_"<<i<<"] = 0.0;\n";
-        code << "    for (int i = 0; i < Q1d; ++i) {\n";
-        code << "      r_q"<<i<<"[comp+1*ncomp_in_"<<i<<"] += s_G_in_"<<i<<"[i + data.tidy*Q1d] * data.slice[data.tidx + i*Q1d];//contract y direction (Y derivative)\n";
-        code << "    }\n";
-        code << "    // Z derivative\n";
-        code << "    r_q"<<i<<"[comp+2*ncomp_in_"<<i<<"] = 0.0;\n";
-        code << "    for (int i = 0; i < Q1d; ++i) {\n";
-        code << "      r_q"<<i<<"[comp+2*ncomp_in_"<<i<<"] += s_G_in_"<<i<<"[i + q*Q1d] * r_t"<<i<<"[i + comp*Q1d];//contract z direction (Z derivative)\n";
-        code << "    }\n";
-        code << "    __syncthreads();\n";
-        code << "  }\n";
+        code << "  gradCollo3d<ncomp_in_"<<i<<",Q1d>(data, q, r_t"<<i<<", s_G_in_"<<i<<", r_q"<<i<<");\n";
         break;
       case CEED_EVAL_WEIGHT:
         code << "  CeedScalar r_q"<<i<<"[1];\n";
@@ -1199,27 +1199,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "  }\n";
         break;
       case CEED_EVAL_GRAD:
-        //TODO put the following in collograd3dTranspose
-        code << "  for (int comp = 0; comp < ncomp_out_"<<i<<"; ++comp) {\n";
-        code << "    // X derivative\n";
-        code << "    data.slice[data.tidx+data.tidy*Q1d] = r_qq"<<i<<"[comp + 0*ncomp_out_"<<i<<"];\n";
-        code << "    __syncthreads();\n";
-        code << "    for (int i = 0; i < Q1d; ++i) {\n";
-        code << "      r_tt"<<i<<"[q+comp*Q1d] += s_G_out_"<<i<<"[data.tidx + i*Q1d] * data.slice[i + data.tidy*Q1d];//contract x direction (X derivative)\n";
-        code << "    }\n";
-        code << "    __syncthreads();\n";
-        code << "    // Y derivative\n";
-        code << "    data.slice[data.tidx+data.tidy*Q1d] = r_qq"<<i<<"[comp + 1*ncomp_out_"<<i<<"];\n";
-        code << "    __syncthreads();\n";
-        code << "    for (int i = 0; i < Q1d; ++i) {\n";
-        code << "      r_tt"<<i<<"[q+comp*Q1d] += s_G_out_"<<i<<"[data.tidy + i*Q1d] * data.slice[data.tidx + i*Q1d];//contract y direction (Y derivative)\n";
-        code << "    }\n";
-        code << "    __syncthreads();\n";
-        code << "    // Z derivative\n";
-        code << "    for (int i = 0; i < Q1d; ++i) {\n";
-        code << "      r_tt"<<i<<"[i+comp*Q1d] += s_G_out_"<<i<<"[i + q*Q1d] * r_qq"<<i<<"[comp + 2*ncomp_out_"<<i<<"];// PARTIAL contract z direction (Z derivative)\n";
-        code << "    }\n";
-        code << "  }\n";
+        code << "  gradColloTranspose3d<ncomp_out_"<<i<<",Q1d>(data, q, r_qq"<<i<<", s_G_out_"<<i<<", r_tt"<<i<<");\n";
         break;
       case CEED_EVAL_WEIGHT:
         break; // Should not occur
