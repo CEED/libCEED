@@ -90,7 +90,7 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
 
     if (!delegate)
       return CeedError(ceed, 1, "Backend does not support \
-                                   CompositeOperatorCreate");
+                         CompositeOperatorCreate");
 
     ierr = CeedCompositeOperatorCreate(delegate, op); CeedChk(ierr);
     return 0;
@@ -146,17 +146,17 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
   ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
   if (op->numelements && op->numelements != numelements)
     return CeedError(op->ceed, 1,
-                     "ElemRestriction with %d elements incompatible with prior %d elements",
-                     numelements, op->numelements);
+                     "ElemRestriction with %d elements incompatible with prior \
+                       %d elements", numelements, op->numelements);
   op->numelements = numelements;
 
   if (b != CEED_BASIS_COLLOCATED) {
     CeedInt numqpoints;
     ierr = CeedBasisGetNumQuadraturePoints(b, &numqpoints); CeedChk(ierr);
     if (op->numqpoints && op->numqpoints != numqpoints)
-      return CeedError(op->ceed, 1,
-                       "Basis with %d quadrature points incompatible with prior %d points",
-                       numqpoints, op->numqpoints);
+      return CeedError(op->ceed, 1, "Basis with %d quadrature points \
+                         incompatible with prior %d points", numqpoints,
+                       op->numqpoints);
     op->numqpoints = numqpoints;
   }
   CeedOperatorField *ofield;
@@ -197,12 +197,11 @@ found:
 int CeedCompositeOperatorAddSub(CeedOperator compositeop,
                                 CeedOperator subop) {
   if (!compositeop->composite)
-    return CeedError(compositeop->ceed, 1,
-                     "CeedOperator is not a composite operator");
+    return CeedError(compositeop->ceed, 1, "CeedOperator is not a composite \
+                       operator");
 
   if (compositeop->numsub == CEED_COMPOSITE_MAX)
-    return CeedError(compositeop->ceed, 1,
-                     "Cannot add additional suboperators");
+    return CeedError(compositeop->ceed, 1, "Cannot add additional suboperators");
 
   compositeop->suboperators[compositeop->numsub] = subop;
   subop->refcount++;
@@ -215,11 +214,11 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop,
 
   This returns a CeedVector containing a matrix at each quadrature point
     providing the action of the CeedQFunction associated with the CeedOperator.
-    The vector 'assembled' is of size
-                                (size of output fields)*(size of input fields)*
-                                (num of quadrature pts)*(num of elements)
-    and contains row-major matrices representing the action of the
-    CeedQFunction for a corresponding quadrature point on an element.
+    The vector 'assembled' is of shape
+      [num_elements, num_input_fields, num_output_fields, num_quad_points]
+    and contains column-major matrices representing the action of the
+    CeedQFunction for a corresponding quadrature point on an element. Inputs and
+    outputs are in the order provided by the user when adding CeedOperator fields.
 
   @param op             CeedOperator to assemble CeedQFunction
   @param[out] assembled CeedVector to store assembled Ceed QFunction at
@@ -242,13 +241,14 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector assembled,
   if (op->composite) {
     return CeedError(ceed, 1, "Cannot assemble QFunction for composite operator");
   } else {
-    if (op->nfields == 0) return CeedError(ceed, 1, "No operator fields set");
-    if (op->nfields < qf->numinputfields + qf->numoutputfields) return CeedError(
-            ceed, 1, "Not all operator fields set");
-    if (op->numelements == 0) return CeedError(ceed, 1,
-                                       "At least one restriction required");
-    if (op->numqpoints == 0) return CeedError(ceed, 1,
-                                      "At least one non-collocated basis required");
+    if (op->nfields == 0)
+      return CeedError(ceed, 1, "No operator fields set");
+    if (op->nfields < qf->numinputfields + qf->numoutputfields)
+      return CeedError( ceed, 1, "Not all operator fields set");
+    if (op->numelements == 0)
+      return CeedError(ceed, 1, "At least one restriction required");
+    if (op->numqpoints == 0)
+      return CeedError(ceed, 1, "At least one non-collocated basis required");
   }
   ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
   CeedChk(ierr);
@@ -283,13 +283,14 @@ int CeedOperatorApply(CeedOperator op, CeedVector in,
   if (op->composite) {
     if (!op->numsub) return CeedError(ceed, 1, "No suboperators set");
   } else {
-    if (op->nfields == 0) return CeedError(ceed, 1, "No operator fields set");
-    if (op->nfields < qf->numinputfields + qf->numoutputfields) return CeedError(
-            ceed, 1, "Not all operator fields set");
-    if (op->numelements == 0) return CeedError(ceed, 1,
-                                       "At least one restriction required");
-    if (op->numqpoints == 0) return CeedError(ceed, 1,
-                                      "At least one non-collocated basis required");
+    if (op->nfields == 0)
+      return CeedError(ceed, 1, "No operator fields set");
+    if (op->nfields < qf->numinputfields + qf->numoutputfields)
+      return CeedError( ceed, 1, "Not all operator fields set");
+    if (op->numelements == 0)
+      return CeedError(ceed, 1, "At least one restriction required");
+    if (op->numqpoints == 0)
+      return CeedError(ceed, 1, "At least one non-collocated basis required");
   }
   ierr = op->Apply(op, in, out, request); CeedChk(ierr);
   return 0;
@@ -363,6 +364,7 @@ int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
 int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
   if (op->composite)
     return CeedError(op->ceed, 1, "Not defined for composite operators");
+
   *numargs = op->nfields;
   return 0;
 }
