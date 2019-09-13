@@ -36,8 +36,8 @@ typedef double CeedScalar;
     const CeedScalar J22 = in[iOf7[0]+i+Q*3];
     const CeedScalar w = in[iOf7[1]+i] / (J11*J22 - J21*J12);
     out[oOf7[0]+i+Q*0] =   w * (J12*J12 + J22*J22);
-    out[oOf7[0]+i+Q*1] = - w * (J11*J12 + J21*J22);
-    out[oOf7[0]+i+Q*2] =   w * (J11*J11 + J21*J21);
+    out[oOf7[0]+i+Q*1] =   w * (J11*J11 + J21*J21);
+    out[oOf7[0]+i+Q*2] = - w * (J11*J12 + J21*J22);
   }
 }
 
@@ -52,15 +52,15 @@ typedef double CeedScalar;
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
     const CeedScalar ug0 = in[iOf7[0]+i+Q*0];
     const CeedScalar ug1 = in[iOf7[0]+i+Q*1];
-    out[oOf7[0]+i+Q*0] = in[iOf7[1]+i+Q*0]*ug0 + in[iOf7[1]+i+Q*1]*ug1;
-    out[oOf7[0]+i+Q*1] = in[iOf7[1]+i+Q*1]*ug0 + in[iOf7[1]+i+Q*2]*ug1;
+    out[oOf7[0]+i+Q*0] = in[iOf7[1]+i+Q*0]*ug0 + in[iOf7[1]+i+Q*2]*ug1;
+    out[oOf7[0]+i+Q*1] = in[iOf7[1]+i+Q*2]*ug0 + in[iOf7[1]+i+Q*1]*ug1;
   }
 }
 
 // *****************************************************************************
-@kernel void diff_full(int *ctx, CeedInt Q,
-                       const int *iOf7, const int *oOf7,
-                       const CeedScalar *in, CeedScalar *out) {
+@kernel void diff_lin(int *ctx, CeedInt Q,
+                      const int *iOf7, const int *oOf7,
+                      const CeedScalar *in, CeedScalar *out) {
 //  const CeedScalar
 //    *ug = in + iOf7[0],
 //    *qd = in + iOf7[1];

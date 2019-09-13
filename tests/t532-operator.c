@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
   CeedVectorRestoreArrayRead(v, &vv);
   if (fabs(area - 1.0) > 1E-14)
       // LCOV_EXCL_START
-    printf("Error: True operator computed area = %f != 1.0\n", area);
+    printf("Error: Linearized operator computed area = %f != 1.0\n", area);
       // LCOV_EXCL_STOP
 
   // Cleanup
