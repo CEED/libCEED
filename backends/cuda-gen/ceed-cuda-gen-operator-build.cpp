@@ -1169,10 +1169,6 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "  CeedScalar* r_qq"<<i<<" = r_tt"<<i<<";\n";
     }
   }
-  // string qFunctionName(qf_data->qFunctionName);
-  // code << "  "<<qFunctionName<<"(ctx, 1, ";
-  // for (CeedInt i = 0; i < numinputfields; i++) {
-  //   code << "r_q"<<i<<", ";
   code << "  CeedScalar* in["<<numinputfields<<"];\n";
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "  in["<<i<<"] = r_q"<<i<<";\n";
