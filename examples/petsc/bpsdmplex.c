@@ -490,8 +490,6 @@ int main(int argc, char **argv) {
 
   // Print summary
   if (!test_mode) {
-    CeedInt gsize;
-    ierr = VecGetSize(X, &gsize); CHKERRQ(ierr);
     ierr = PetscPrintf(comm,
                        "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
                        "  libCEED:\n"
@@ -555,7 +553,7 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_setup, "true_soln", ncompu, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_setup, "rhs", ncompu, CEED_EVAL_INTERP);
 
-  // Set up PDE operator  CeedInt gradInScale = 1;
+  // Set up PDE operator
   CeedInt gradInScale = bpOptions[bpChoice].inmode==CEED_EVAL_GRAD ? 3 : 1;
   CeedInt gradOutScale = bpOptions[bpChoice].outmode==CEED_EVAL_GRAD ? 3 : 1;
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].apply,
