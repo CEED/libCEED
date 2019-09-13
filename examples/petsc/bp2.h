@@ -54,13 +54,13 @@ CEED_QFUNCTION(SetupMass3)(void *ctx, const CeedInt Q,
 
 CEED_QFUNCTION(Mass3)(void *ctx, const CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *u = in[0], *qw = in[1];
+  const CeedScalar *u = in[0], *qdata = in[1];
   CeedScalar *v = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar r = qw[i];
+    const CeedScalar r = qdata[i];
     // Component 1
     v[i+0*Q] = r * u[i+0*Q];
     // Component 2

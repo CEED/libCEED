@@ -24,16 +24,16 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q,
   // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
   //
-  // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
+  // At every quadrature point, compute w/det(J).adj(J).adj(J)^T and store
   // the symmetric part of the result.
-  const CeedScalar *J = in[0], *qw = in[1];
+  const CeedScalar *J = in[0], *w = in[1];
   CeedScalar *qdata = out[0];
 
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
   CeedPragmaSIMD
     for (CeedInt i=0; i<Q; i++) {
-      qdata[i] = qw[i] / J[i];
+      qdata[i] = w[i] / J[i];
     } // End of Quadrature Point Loop
     break;
   case 22:
@@ -45,10 +45,10 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q,
       const CeedScalar J21 = J[i+Q*1];
       const CeedScalar J12 = J[i+Q*2];
       const CeedScalar J22 = J[i+Q*3];
-      const CeedScalar w = qw[i] / (J11*J22 - J21*J12);
-      qdata[i+Q*0] =   w * (J12*J12 + J22*J22);
-      qdata[i+Q*1] =   w * (J11*J11 + J21*J21);
-      qdata[i+Q*2] = - w * (J11*J12 + J21*J22);
+      const CeedScalar qw = w[i] / (J11*J22 - J21*J12);
+      qdata[i+Q*0] =   qw * (J12*J12 + J22*J22);
+      qdata[i+Q*1] =   qw * (J11*J11 + J21*J21);
+      qdata[i+Q*2] = - qw * (J11*J12 + J21*J22);
     } // End of Quadrature Point Loop
     break;
   case 33:
@@ -64,7 +64,7 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q,
                     J[i+Q*((j+1)%3+3*((k+2)%3))]*J[i+Q*((j+2)%3+3*((k+1)%3))];
 
       // Compute quadrature weight / det(J)
-      const CeedScalar w = qw[i] / (J[i+Q*0]*A[0][0] + J[i+Q*1]*A[1][1] +
+      const CeedScalar qw = w[i] / (J[i+Q*0]*A[0][0] + J[i+Q*1]*A[1][1] +
                                     J[i+Q*2]*A[2][2]);
 
       // Compute geometric factors
@@ -72,12 +72,12 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q,
       // 0 5 4
       // 5 1 3
       // 4 3 2
-      qdata[i+Q*0] = w * (A[0][0]*A[0][0] + A[0][1]*A[0][1] + A[0][2]*A[0][2]);
-      qdata[i+Q*1] = w * (A[1][0]*A[1][0] + A[1][1]*A[1][1] + A[1][2]*A[1][2]);
-      qdata[i+Q*2] = w * (A[2][0]*A[2][0] + A[2][1]*A[2][1] + A[2][2]*A[2][2]);
-      qdata[i+Q*3] = w * (A[1][0]*A[2][0] + A[1][1]*A[2][1] + A[1][2]*A[2][2]);
-      qdata[i+Q*4] = w * (A[0][0]*A[2][0] + A[0][1]*A[2][1] + A[0][2]*A[2][2]);
-      qdata[i+Q*5] = w * (A[0][0]*A[1][0] + A[0][1]*A[1][1] + A[0][2]*A[1][2]);
+      qdata[i+Q*0] = qw * (A[0][0]*A[0][0] + A[0][1]*A[0][1] + A[0][2]*A[0][2]);
+      qdata[i+Q*1] = qw * (A[1][0]*A[1][0] + A[1][1]*A[1][1] + A[1][2]*A[1][2]);
+      qdata[i+Q*2] = qw * (A[2][0]*A[2][0] + A[2][1]*A[2][1] + A[2][2]*A[2][2]);
+      qdata[i+Q*3] = qw * (A[1][0]*A[2][0] + A[1][1]*A[2][1] + A[1][2]*A[2][2]);
+      qdata[i+Q*4] = qw * (A[0][0]*A[2][0] + A[0][1]*A[2][1] + A[0][2]*A[2][2]);
+      qdata[i+Q*5] = qw * (A[0][0]*A[1][0] + A[0][1]*A[1][1] + A[0][2]*A[1][2]);
       } // End of Quadrature Point Loop
     break;
   }

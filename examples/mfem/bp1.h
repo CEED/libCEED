@@ -23,7 +23,7 @@ CEED_QFUNCTION(f_build_mass)(void *ctx, const CeedInt Q,
   // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
   BuildContext *bc = (BuildContext *)ctx;
-  const CeedScalar *J = in[0], *qw = in[1];
+  const CeedScalar *J = in[0], *w = in[1];
   CeedScalar *qdata = out[0];
 
   switch (bc->dim + 10*bc->space_dim) {
@@ -31,7 +31,7 @@ CEED_QFUNCTION(f_build_mass)(void *ctx, const CeedInt Q,
     // Quadrature Point Loop
     CeedPragmaSIMD
     for (CeedInt i=0; i<Q; i++) {
-      qdata[i] = J[i] * qw[i];
+      qdata[i] = J[i] * w[i];
     }
     break;
   case 22:
@@ -40,7 +40,7 @@ CEED_QFUNCTION(f_build_mass)(void *ctx, const CeedInt Q,
     for (CeedInt i=0; i<Q; i++) {
       // 0 2
       // 1 3
-      qdata[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
+      qdata[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * w[i];
     }
     break;
   case 33:
@@ -52,7 +52,7 @@ CEED_QFUNCTION(f_build_mass)(void *ctx, const CeedInt Q,
       // 2 5 8
       qdata[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
                 J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-                J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * qw[i];
+                J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * w[i];
     }
     break;
   }
@@ -62,13 +62,13 @@ CEED_QFUNCTION(f_build_mass)(void *ctx, const CeedInt Q,
 /// libCEED Q-function for applying a mass operator
 CEED_QFUNCTION(f_apply_mass)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *u = in[0], *w = in[1];
+  const CeedScalar *u = in[0], *qdata = in[1];
   CeedScalar *v = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    v[i] = w[i] * u[i];
+    v[i] = qdata[i] * u[i];
   }
   return 0;
 }
