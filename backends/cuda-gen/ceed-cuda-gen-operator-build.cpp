@@ -722,7 +722,7 @@ inline __device__ void gradTranspose3d(BackendData& data, const CeedScalar *__re
 }
 
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void gradColo3d(BackendData& data, const CeedScalar *__restrict__ r_U,
+inline __device__ void gradCollo3d(BackendData& data, const CeedScalar *__restrict__ r_U,
                                   const CeedScalar *c_B, const CeedScalar *c_G,
                                   CeedScalar *__restrict__ r_V) {
   CeedScalar r_t1[Q1d];
@@ -738,7 +738,7 @@ inline __device__ void gradColo3d(BackendData& data, const CeedScalar *__restric
 }
 
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void gradColoTranspose3d(BackendData& data, const CeedScalar *__restrict__ r_U,
+inline __device__ void gradColloTranspose3d(BackendData& data, const CeedScalar *__restrict__ r_U,
                                            const CeedScalar *c_B, const CeedScalar *c_G,
                                            CeedScalar *__restrict__ r_V) {
   CeedScalar r_t1[Q1d];
@@ -913,8 +913,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       data->B.in[i] = basis_data->d_interp1d;
       code << "__shared__ double s_B_in_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "loadMatrix<P_in_"<<i<<",Q1d>(data, B.in["<<i<<"], s_B_in_"<<i<<");\n";
-      if (basis_data->d_colograd1d) {
-        data->G.in[i] = basis_data->d_colograd1d;
+      if (basis_data->d_collograd1d) {
+        data->G.in[i] = basis_data->d_collograd1d;
         code << "__shared__ double s_G_in_"<<i<<"["<<Q1d*Q1d<<"];\n";
         code << "loadMatrix<Q1d,Q1d>(data, G.in["<<i<<"], s_G_in_"<<i<<");\n";
       } else {
@@ -971,8 +971,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       data->B.out[i] = basis_data->d_interp1d;
       code << "__shared__ double s_B_out_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "loadMatrix<P_out_"<<i<<",Q1d>(data, B.out["<<i<<"], s_B_out_"<<i<<");\n";
-      if (basis_data->d_colograd1d) {
-        data->G.out[i] = basis_data->d_colograd1d;
+      if (basis_data->d_collograd1d) {
+        data->G.out[i] = basis_data->d_collograd1d;
         code << "__shared__ double s_G_out_"<<i<<"["<<Q1d*Q1d<<"];\n";
         code << "loadMatrix<Q1d,Q1d>(data, G.out["<<i<<"], s_G_out_"<<i<<");\n";
       } else {
@@ -1014,7 +1014,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     // Basis action
     switch (emode) {
     case CEED_EVAL_NONE:
-      if (!basis_data->d_colograd1d) {
+      if (!basis_data->d_collograd1d) {
         code << "  CeedScalar r_t"<<i<<"[ncomp_in_"<<i<<"];\n";
         ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
         code << "  readQuads"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",Q1d>(data, nquads_in_"<<i<<", elem, d_u"<<i<<", r_t"<<i<<");\n";
@@ -1035,7 +1035,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
       data->indices.in[i] = restr_data->d_ind;
       code << "  readDofs"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<">(data, nnodes_in_"<<i<<", elem, indices.in["<<i<<"], d_u"<<i<<", r_u"<<i<<");\n";
-      if (basis_data->d_colograd1d) {
+      if (basis_data->d_collograd1d) {
         code << "  CeedScalar r_t"<<i<<"[ncomp_in_"<<i<<"*Q1d];\n";
         code << "  interp"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<",Q1d>(data, r_u"<<i<<", s_B_in_"<<i<<", r_t"<<i<<");\n";
       } else {
@@ -1064,7 +1064,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     CeedChk(ierr);
     if (emode==CEED_EVAL_GRAD)
     {
-      if (basis_data->d_colograd1d) {
+      if (basis_data->d_collograd1d) {
         //Accumulator for gradient slices
         code << "  CeedScalar r_tt"<<i<<"[ncomp_out_"<<i<<"*Q1d];\n";
         code << "  for (int i = 0; i < ncomp_out_"<<i<<"; ++i) {\n";
@@ -1083,7 +1083,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   }
   //We treat quadrature points per slice in 3d to save registers
   code << "// QFunction\n";
-  if (basis_data->d_colograd1d) {
+  if (basis_data->d_collograd1d) {
     code << "#pragma unroll\n";
     code << "for(CeedInt q=0; q<Q1d; q++) {\n";
     for (CeedInt i = 0; i < numinputfields; i++) {
@@ -1106,7 +1106,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         break;
       case CEED_EVAL_GRAD:
         code << "  CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"*Dim];\n";
-        //TODO put the following in colograd3d
+        //TODO put the following in collograd3d
         code << "  for (int comp = 0; comp < ncomp_in_"<<i<<"; ++comp) {\n";
         code << "    data.slice[data.tidx+data.tidy*Q1d] = r_t"<<i<<"[q + comp*Q1d];\n";
         code << "    __syncthreads();\n";
@@ -1185,7 +1185,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "  "<<qFunctionName<<"(ctx, 1, ";
   code << "in, out";
   code << ");\n";
-  if (basis_data->d_colograd1d) {
+  if (basis_data->d_collograd1d) {
     for (CeedInt i = 0; i < numoutputfields; i++) {
       code << "  // Output field "<<i<<"\n";
       ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
@@ -1203,7 +1203,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "  }\n";
         break;
       case CEED_EVAL_GRAD:
-        //TODO put the following in colograd3dTranspose
+        //TODO put the following in collograd3dTranspose
         code << "  for (int comp = 0; comp < ncomp_out_"<<i<<"; ++comp) {\n";
         code << "    // X derivative\n";
         code << "    data.slice[data.tidx+data.tidy*Q1d] = r_qq"<<i<<"[comp + 0*ncomp_out_"<<i<<"];\n";
@@ -1264,7 +1264,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       break;
     case CEED_EVAL_GRAD:
       code << "  CeedScalar r_v"<<i<<"[ncomp_out_"<<i<<"*P_out_"<<i<<"];\n";
-      if (basis_data->d_colograd1d) {
+      if (basis_data->d_collograd1d) {
         code << "  interpTranspose"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<",Q1d>(data, r_tt"<<i<<", s_B_out_"<<i<<", r_v"<<i<<");\n";
       } else {
         code << "  gradTranspose"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<",Q1d>(data, r_tt"<<i<<", s_B_out_"<<i<<", s_G_out_"<<i<<", r_v"<<i<<");\n";
