@@ -209,17 +209,17 @@ int main(int argc, const char *argv[]) {
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Compute the quadrature data for the mass operator.
-  CeedVector rho;
+  CeedVector qdata;
   CeedInt elem_qpts = CeedIntPow(num_qpts, dim);
   CeedInt num_elem = 1;
   for (int d = 0; d < dim; d++)
     num_elem *= nxyz[d];
-  CeedVectorCreate(ceed, num_elem*elem_qpts, &rho);
+  CeedVectorCreate(ceed, num_elem*elem_qpts, &qdata);
   if (!test) {
     printf("Computing the quadrature data for the mass operator ...");
     fflush(stdout);
   }
-  CeedOperatorApply(build_oper, mesh_coords, rho,
+  CeedOperatorApply(build_oper, mesh_coords, qdata,
                     CEED_REQUEST_IMMEDIATE);
   if (!test) {
     printf(" done.\n");
@@ -248,7 +248,7 @@ int main(int argc, const char *argv[]) {
   CeedOperatorSetField(oper, "u", sol_restr, CEED_NOTRANSPOSE,
                        sol_basis, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(oper, "qdata", sol_restr_i, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, rho);
+                       CEED_BASIS_COLLOCATED, qdata);
   CeedOperatorSetField(oper, "v", sol_restr, CEED_NOTRANSPOSE,
                        sol_basis, CEED_VECTOR_ACTIVE);
 
@@ -299,7 +299,7 @@ int main(int argc, const char *argv[]) {
   // Free dynamically allocated memory.
   CeedVectorDestroy(&u);
   CeedVectorDestroy(&v);
-  CeedVectorDestroy(&rho);
+  CeedVectorDestroy(&qdata);
   CeedVectorDestroy(&mesh_coords);
   CeedOperatorDestroy(&oper);
   CeedQFunctionDestroy(&apply_qfunc);
