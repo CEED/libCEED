@@ -336,9 +336,15 @@ static inline int CeedOperatorInputBasis_Opt(CeedInt e, CeedInt Q,
     case CEED_EVAL_WEIGHT:
       break;  // No action
     case CEED_EVAL_DIV:
-      break; // Not implimented
-    case CEED_EVAL_CURL:
-      break; // Not implimented
+    case CEED_EVAL_CURL: {
+      ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis);
+      CeedChk(ierr);
+      Ceed ceed;
+      ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+      return CeedError(ceed, 1,
+                       "Ceed evaluation mode not implemented");
+      break; // Not implemented
+    }
     }
   }
   return 0;
@@ -389,9 +395,13 @@ static inline int CeedOperatorOutputBasis_Opt(CeedInt e, CeedInt Q,
       break; // Should not occur
     }
     case CEED_EVAL_DIV:
-      break; // Not implimented
-    case CEED_EVAL_CURL:
-      break; // Not implimented
+    case CEED_EVAL_CURL: {
+      Ceed ceed;
+      ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+      return CeedError(ceed, 1,
+                       "Ceed evaluation mode not implemented");
+      break; // Not implemented
+    }
     }
     // Restrict output block
     // Get output vector
@@ -439,11 +449,14 @@ static inline int CeedOperatorRestoreInputs_Opt(CeedInt numinputfields,
 }
 
 // Apply Ceed Operator
-static inline int CeedOperatorApply_Opt(CeedOperator op,
-                                        const CeedInt blksize, CeedVector invec,
-                                        CeedVector outvec,
-                                        CeedRequest *request) {
+static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
+                                 CeedVector outvec, CeedRequest *request) {
   int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  Ceed_Opt *ceedimpl;
+  ierr = CeedGetData(ceed, (void *)&ceedimpl); CeedChk(ierr);
+  CeedInt blksize = ceedimpl->blksize;
   CeedOperator_Opt *impl;
   ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields, numelements;
@@ -526,10 +539,14 @@ static inline int CeedOperatorApply_Opt(CeedOperator op,
 }
 
 // Assemble Linear QFunction
-static inline int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
-    const CeedInt blksize, CeedVector assembled, CeedElemRestriction *rstr,
-    CeedRequest *request) {
+static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
+    CeedVector assembled, CeedElemRestriction *rstr, CeedRequest *request) {
   int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  Ceed_Opt *ceedimpl;
+  ierr = CeedGetData(ceed, (void *)&ceedimpl); CeedChk(ierr);
+  const CeedInt blksize = ceedimpl->blksize;
   CeedOperator_Opt *impl;
   ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields, numelements, size;
@@ -550,8 +567,6 @@ static inline int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
   CeedInt numactivein = 0, numactiveout = 0;
   CeedScalar **activein = NULL;
   CeedScalar *a, *tmp;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
 
   // Setup
   ierr = CeedOperatorSetup_Opt(op); CeedChk(ierr);
@@ -680,29 +695,6 @@ static inline int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
   return 0;
 }
 
-
-// OperatorApply inline versions
-int CeedOperatorApply_Opt_1(CeedOperator op, CeedVector invec,
-                            CeedVector outvec, CeedRequest *request) {
-  return CeedOperatorApply_Opt(op, 1, invec, outvec, request);
-}
-
-int CeedOperatorApply_Opt_8(CeedOperator op, CeedVector invec,
-                            CeedVector outvec, CeedRequest *request) {
-  return CeedOperatorApply_Opt(op, 8, invec, outvec, request);
-}
-
-// OperatorAssembleLinearQFunction inline versions
-int CeedOperatorAssembleLinearQFunction_Opt_1(CeedOperator op,
-    CeedVector assembled, CeedElemRestriction *rstr, CeedRequest *request) {
-  return CeedOperatorAssembleLinearQFunction_Opt(op, 1, assembled, rstr, request);
-}
-
-int CeedOperatorAssembleLinearQFunction_Opt_8(CeedOperator op,
-    CeedVector assembled, CeedElemRestriction *rstr, CeedRequest *request) {
-  return CeedOperatorAssembleLinearQFunction_Opt(op, 8, assembled, rstr, request);
-}
-
 int CeedOperatorCreate_Opt(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -715,18 +707,12 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
 
-  if (blksize == 1) {
+  if (blksize == 1 || blksize == 8) {
     ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
-                                  CeedOperatorAssembleLinearQFunction_Opt_1);
+                                  CeedOperatorAssembleLinearQFunction_Opt);
     CeedChk(ierr);
     ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
-                                  CeedOperatorApply_Opt_1); CeedChk(ierr);
-  } else if (blksize == 8) {
-    ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
-                                  CeedOperatorAssembleLinearQFunction_Opt_8);
-    CeedChk(ierr);
-    ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
-                                  CeedOperatorApply_Opt_8); CeedChk(ierr);
+                                  CeedOperatorApply_Opt); CeedChk(ierr);
   } else {
     return CeedError(ceed, 1, "Opt backend cannot use blocksize: %d", blksize);
   }

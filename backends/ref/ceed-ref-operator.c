@@ -286,9 +286,15 @@ static inline int CeedOperatorInputBasis_Ref(CeedInt e, CeedInt Q,
     case CEED_EVAL_WEIGHT:
       break;  // No action
     case CEED_EVAL_DIV:
+    case CEED_EVAL_CURL: {
+      ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis);
+      CeedChk(ierr);
+      Ceed ceed;
+      ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+      return CeedError(ceed, 1,
+                       "Ceed evaluation mode not implemented");
       break; // Not implemented
-    case CEED_EVAL_CURL:
-      break; // Not implemented
+    }
     }
   }
   return 0;
@@ -349,9 +355,13 @@ static inline int CeedOperatorOutputBasis_Ref(CeedInt e, CeedInt Q,
       break; // Should not occur
     }
     case CEED_EVAL_DIV:
+    case CEED_EVAL_CURL: {
+      Ceed ceed;
+      ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+      return CeedError(ceed, 1,
+                       "Ceed evaluation mode not implemented");
       break; // Not implemented
-    case CEED_EVAL_CURL:
-      break; // Not implemented
+    }
     }
   }
   return 0;
