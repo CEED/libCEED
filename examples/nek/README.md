@@ -1,4 +1,4 @@
-## Nek5000 + libCEED Examples
+## libCEED + Nek5000 Examples
 
 ### Prerequisites
 

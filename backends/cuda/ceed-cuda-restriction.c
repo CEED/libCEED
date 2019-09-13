@@ -37,7 +37,8 @@ __device__ double atomicAdd(double *address, double val) {
     #endif // __CUDA_ARCH__ < 600
 
 extern "C" __global__ void noTrNoTr(const CeedInt nelem,
-                                    const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
+                                    const CeedInt *__restrict__ indices,
+                                    const CeedScalar *__restrict__ u,
                                     CeedScalar *__restrict__ v) {
   const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
   if (indices) {
@@ -62,7 +63,8 @@ extern "C" __global__ void noTrNoTr(const CeedInt nelem,
 }
 
 extern "C" __global__ void noTrTr(const CeedInt nelem,
-                                  const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
+                                  const CeedInt *__restrict__ indices,
+                                  const CeedScalar *__restrict__ u,
                                   CeedScalar *__restrict__ v) {
   const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
   if (indices) {
@@ -97,8 +99,8 @@ extern "C" __global__ void trNoTr(const CeedInt nelem,
       const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
       const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-      atomicAdd(v + (indices[s + RESTRICTION_ELEMSIZE * e] + RESTRICTION_NNODES * d),
-                u[i]);
+      atomicAdd(v + (indices[s + RESTRICTION_ELEMSIZE * e] +
+                RESTRICTION_NNODES * d), u[i]);
     }
   } else {
     for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
@@ -113,7 +115,8 @@ extern "C" __global__ void trNoTr(const CeedInt nelem,
 }
 
 extern "C" __global__ void trTr(const CeedInt nelem,
-                                const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
+                                const CeedInt *__restrict__ indices,
+                                const CeedScalar *__restrict__ u,
                                 CeedScalar *__restrict__ v) {
   const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
   if (indices) {
@@ -184,8 +187,9 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
 }
 
 int CeedElemRestrictionApplyBlock_Cuda(CeedElemRestriction r,
-                                       CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
-                                       CeedVector u, CeedVector v, CeedRequest *request) {
+                                       CeedInt block, CeedTransposeMode tmode,
+                                       CeedTransposeMode lmode, CeedVector u,
+                                       CeedVector v, CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
@@ -207,7 +211,8 @@ static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
 }
 
 int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
-                                   CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r) {
+                                   CeedCopyMode cmode, const CeedInt *indices,
+                                   CeedElemRestriction r) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);

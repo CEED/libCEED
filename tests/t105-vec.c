@@ -11,6 +11,7 @@ int main(int argc, char **argv) {
   CeedScalar *b;
 
   CeedInit(argv[1], &ceed);
+
   n = 10;
   CeedVectorCreate(ceed, n, &x);
   CeedVectorGetArrayRead(x, CEED_MEM_HOST, &a);

@@ -34,15 +34,17 @@ int main(int argc, char **argv) {
 
   CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
 
-  for (int i = 0; i < 2; i++) x[i] = CeedIntPow(-1, i+1);
-  CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&x);
+  for (int i = 0; i < 2; i++)
+    x[i] = CeedIntPow(-1, i+1);
+  CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
   CeedBasisApply(bxl, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
 
   CeedVectorGetArrayRead(Xq, CEED_MEM_HOST, &xq);
-  for (CeedInt i=0; i<Q; i++) u[i] = PolyEval(xq[i], ALEN(p), p);
+  for (CeedInt i=0; i<Q; i++)
+    u[i] = PolyEval(xq[i], ALEN(p), p);
   CeedVectorRestoreArrayRead(Xq, &xq);
-  CeedVectorSetArray(U, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&u);
+  CeedVectorSetArray(U, CEED_MEM_HOST, CEED_USE_POINTER, u);
 
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bxg);
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q, Q, CEED_GAUSS, &bug);
@@ -54,20 +56,20 @@ int main(int argc, char **argv) {
   CeedVectorGetArrayRead(W, CEED_MEM_HOST, &w);
   CeedVectorGetArrayRead(Uq, CEED_MEM_HOST, &uq);
   sum = 0;
-  for (CeedInt i=0; i<Q; i++) {
+  for (CeedInt i=0; i<Q; i++)
     sum += w[i] * uq[i];
-  }
   CeedVectorRestoreArrayRead(W, &w);
   CeedVectorRestoreArrayRead(Uq, &uq);
 
   pint[0] = 0;
-  for (CeedInt i=0; i<(int)ALEN(p); i++) pint[i+1] = p[i] / (i+1);
+  for (CeedInt i=0; i<(int)ALEN(p); i++)
+    pint[i+1] = p[i] / (i+1);
   error = sum - PolyEval(1, ALEN(pint), pint) + PolyEval(-1, ALEN(pint), pint);
   if (error > 1.e-10)
     // LCOV_EXCL_START
     printf("Error %e  sum %g  exact %g\n", error, sum,
            PolyEval(1, ALEN(pint), pint) - PolyEval(-1, ALEN(pint), pint));
-    // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
 
   CeedVectorDestroy(&X);
   CeedVectorDestroy(&Xq);

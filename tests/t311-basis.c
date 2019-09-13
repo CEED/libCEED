@@ -33,13 +33,15 @@ int main(int argc, char **argv) {
   CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q, Q, CEED_GAUSS_LOBATTO, &bul);
 
-  for (int i = 0; i < 2; i++) x[i] = CeedIntPow(-1, i+1);
+  for (int i = 0; i < 2; i++)
+    x[i] = CeedIntPow(-1, i+1);
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&x);
 
   CeedBasisApply(bxl, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
 
   CeedVectorGetArrayRead(Xq, CEED_MEM_HOST, &xq);
-  for (CeedInt i=0; i<Q; i++) uq[i] = PolyEval(xq[i], ALEN(p), p);
+  for (CeedInt i=0; i<Q; i++)
+    uq[i] = PolyEval(xq[i], ALEN(p), p);
   CeedVectorRestoreArrayRead(Xq, &xq);
   CeedVectorSetArray(Uq, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&uq);
 
@@ -59,7 +61,7 @@ int main(int argc, char **argv) {
     if (fabs(uuq[i] - px) > 1e-14)
       // LCOV_EXCL_START
       printf("%f != %f=p(%f)\n", uuq[i], px, xq[i]);
-      // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
   }
   CeedVectorRestoreArrayRead(Xq, &xq);
   CeedVectorRestoreArrayRead(Uq, &uuq);

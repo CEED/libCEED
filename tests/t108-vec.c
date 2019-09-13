@@ -11,16 +11,20 @@ int main(int argc, char **argv) {
   CeedScalar *b;
 
   CeedInit(argv[1], &ceed);
+
   CeedVectorCreate(ceed, n, &x);
-  for (CeedInt i=0; i<n; i++) a[i] = 0;
+  for (CeedInt i=0; i<n; i++)
+    a[i] = 0;
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
+
   CeedVectorGetArray(x, CEED_MEM_HOST, &b);
   b[3] = -3.14;
   CeedVectorRestoreArray(x, &b);
+
   if (a[3] != -3.14)
     // LCOV_EXCL_START
     printf("Error writing array a[3] = %f", (double)b[3]);
-    // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
 
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);

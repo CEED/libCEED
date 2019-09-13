@@ -420,7 +420,7 @@ int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed) {
   @brief Get the total number of elements in the range of a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
-  @param[out] numelements Variable to store number of elements
+  @param[out] numelem     Variable to store number of elements
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -501,7 +501,7 @@ int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
 /**
   @brief Get the size of blocks in the CeedElemRestriction
 
-  @param r                CeedElemRestriction
+  @param rstr             CeedElemRestriction
   @param[out] blksize     Variable to store size of blocks
 
   @return An error code: 0 - success, otherwise - failure
@@ -517,7 +517,7 @@ int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
 /**
   @brief Get the backend data of a CeedElemRestriction
 
-  @param r                CeedElemRestriction
+  @param rstr             CeedElemRestriction
   @param[out] data        Variable to store data
 
   @return An error code: 0 - success, otherwise - failure
@@ -533,7 +533,7 @@ int CeedElemRestrictionGetData(CeedElemRestriction rstr,
 /**
   @brief Set the backend data of a CeedElemRestriction
 
-  @param[out] r           CeedElemRestriction
+  @param[out] rstr        CeedElemRestriction
   @param data             Data to set
 
   @return An error code: 0 - success, otherwise - failure

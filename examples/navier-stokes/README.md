@@ -1,4 +1,4 @@
-# libCEED: Navier-Stokes Example
+## libCEED: Navier-Stokes Example
 
 This page provides a description of the Navier-Stokes example for the libCEED library, based on PETSc.
 
@@ -49,7 +49,7 @@ Available runtime options are:
 | `-resy`                  | Resolution in y                                    |
 | `-resz`                  | Resolution in z                                    |
 
-## Advection
+### Advection
 
 This problem solves the convection (advection) equation for the total (scalar) energy density,
 transported by the (vector) velocity field.
@@ -70,7 +70,7 @@ Advection Equation:
 
    *dE/dt + div( E _u_ ) = 0*
 
-### Initial Conditions
+#### Initial Conditions
 
 Mass Density:
     Constant mass density of 1.0
@@ -82,7 +82,7 @@ Energy Density:
     Maximum of 1. x0 decreasing linearly to 0. as radial distance increases
     to 1/8, then 0. everywhere else
 
-### Boundary Conditions
+#### Boundary Conditions
 
 Mass Density:
     0.0 flux
@@ -93,7 +93,7 @@ Momentum Density:
 Energy Density:
     0.0 flux
 
-## Density Current
+### Density Current
 
 This problem solves the full compressible Navier-Stokes equations, using
 operator composition and design of coupled solvers in the context of atmospheric
@@ -154,7 +154,7 @@ Constants:
  
    *gamma  = c<sub>p</sub> / c<sub>v</sub>*,  Specific heat ratio
 
-### Initial Conditions
+#### Initial Conditions
 
 Potential Temperature:
 
@@ -214,7 +214,7 @@ Constants:
    *l<sub>z</sub>*              ,  Characteristic length scale of domain in z
    
 
-### Boundary Conditions
+#### Boundary Conditions
 
 Mass Density:
     0.0 flux
@@ -225,12 +225,12 @@ Momentum Density:
 Energy Density:
     0.0 flux
 
-## Time Discretization
+### Time Discretization
 
 For all different problems, the time integration is performed with an explicit formulation, therefore
 it can be subject to numerical instability, if run for large times or with large time steps.
 
-## Space Discretization
+### Space Discretization
 
 The geometric factors and coordinate transformations required for the integration of the weak form
 are described in the file [`common.h`](common.h)

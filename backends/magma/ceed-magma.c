@@ -430,8 +430,9 @@ magma_template<<e=0:nelem, d=0:ncomp, i=0:elemsize>>
 }
 
 int CeedElemRestrictionApplyBlock_Magma(CeedElemRestriction r,
-    CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
-    CeedVector u, CeedVector v, CeedRequest *request) {
+                                        CeedInt block, CeedTransposeMode tmode,
+                                        CeedTransposeMode lmode, CeedVector u,
+                                        CeedVector v, CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);

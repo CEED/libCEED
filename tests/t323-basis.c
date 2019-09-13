@@ -29,15 +29,15 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, qref, qweight,
-                    &b);
+  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, qref,
+                    qweight, &b);
 
   // Interpolate function to quadrature points
   for (int i=0; i<P; i++)
     in[i] = feval(xr[0*P+i], xr[1*P+i]);
 
   CeedVectorCreate(ceed, P, &In);
-  CeedVectorSetArray(In, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&in);
+  CeedVectorSetArray(In, CEED_MEM_HOST, CEED_USE_POINTER, in);
   CeedVectorCreate(ceed, Q*dim, &Out);
   CeedVectorSetValue(Out, 0);
 
@@ -50,12 +50,12 @@ int main(int argc, char **argv) {
     if (fabs(out[0*Q+i] - value) > 1e-10)
       // LCOV_EXCL_START
       printf("[%d] %f != %f\n", i, out[0*Q+i], value);
-      // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
     value = dfeval(xq[1*Q+i], xq[0*Q+i]);
     if (fabs(out[1*Q+i] - value) > 1e-10)
       // LCOV_EXCL_START
       printf("[%d] %f != %f\n", i, out[1*Q+i], value);
-      // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
   }
   CeedVectorRestoreArrayRead(Out, &out);
 

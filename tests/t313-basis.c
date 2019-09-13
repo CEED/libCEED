@@ -25,14 +25,12 @@ int main(int argc, char **argv) {
     const CeedScalar *xq, *u;
     CeedScalar uq[Qdim];
 
-    for (CeedInt d=0; d<dim; d++) {
-      for (CeedInt i=0; i<Xdim; i++) {
+    for (CeedInt d=0; d<dim; d++)
+      for (CeedInt i=0; i<Xdim; i++)
         x[d*Xdim + i] = (i % CeedIntPow(2, dim-d)) / CeedIntPow(2, dim-d-1) ? 1 : -1;
-      }
-    }
 
     CeedVectorCreate(ceed, Xdim*dim, &X);
-    CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&x);
+    CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
     CeedVectorCreate(ceed, Qdim*dim, &Xq);
     CeedVectorSetValue(Xq, 0);
     CeedVectorCreate(ceed, Qdim, &U);
@@ -47,11 +45,12 @@ int main(int argc, char **argv) {
     CeedVectorGetArrayRead(Xq, CEED_MEM_HOST, &xq);
     for (CeedInt i=0; i<Qdim; i++) {
       CeedScalar xx[dim];
-      for (CeedInt d=0; d<dim; d++) xx[d] = xq[d*Qdim + i];
+      for (CeedInt d=0; d<dim; d++)
+        xx[d] = xq[d*Qdim + i];
       uq[i] = Eval(dim, xx);
     }
     CeedVectorRestoreArrayRead(Xq, &xq);
-    CeedVectorSetArray(Uq, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&uq);
+    CeedVectorSetArray(Uq, CEED_MEM_HOST, CEED_USE_POINTER, uq);
 
     // This operation is the identity because the quadrature is collocated
     CeedBasisApply(bul, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, Uq, U);
@@ -66,7 +65,8 @@ int main(int argc, char **argv) {
     CeedVectorGetArrayRead(Uq, CEED_MEM_HOST, &u);
     for (CeedInt i=0; i<Qdim; i++) {
       CeedScalar xx[dim];
-      for (CeedInt d=0; d<dim; d++) xx[d] = xq[d*Qdim + i];
+      for (CeedInt d=0; d<dim; d++)
+        xx[d] = xq[d*Qdim + i];
       CeedScalar fx = Eval(dim, xx);
       if (fabs(u[i] - fx) > 1e-4) {
         // LCOV_EXCL_START

@@ -68,8 +68,8 @@ static PetscInt Min3(const PetscInt a[3]) {
   return PetscMin(a[0], PetscMin(a[1], a[2]));
 }
 static void GlobalNodes(const PetscInt p[3], const PetscInt irank[3],
-                      PetscInt degree, const PetscInt melem[3],
-                      PetscInt mnodes[3]) {
+                        PetscInt degree, const PetscInt melem[3],
+                        PetscInt mnodes[3]) {
   for (int d=0; d<3; d++)
     mnodes[d] = degree*melem[d] + (irank[d] == p[d]-1);
 }
@@ -121,7 +121,8 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
   }
 
   // Setup CEED restriction
-  CeedElemRestrictionCreate(ceed, nelem, P*P*P, mnodes[0]*mnodes[1]*mnodes[2], ncomp,
+  CeedElemRestrictionCreate(ceed, nelem, P*P*P, mnodes[0]*mnodes[1]*mnodes[2],
+                            ncomp,
                             CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
 
   PetscFunctionReturn(0);
@@ -519,8 +520,8 @@ int main(int argc, char **argv) {
     ierr = PetscMalloc1(lsize, &ltogind0); CHKERRQ(ierr);
     ierr = PetscMalloc1(lsize, &locind); CHKERRQ(ierr);
     l0count = 0;
-    for (PetscInt i=0,ir,ii; ir=i>=mnodes[0], ii=i-ir*mnodes[0], i<lnodes[0]; i++) {
-      for (PetscInt j=0,jr,jj; jr=j>=mnodes[1], jj=j-jr*mnodes[1], j<lnodes[1]; j++) {
+    for (PetscInt i=0,ir,ii; ir=i>=mnodes[0], ii=i-ir*mnodes[0], i<lnodes[0]; i++)
+      for (PetscInt j=0,jr,jj; jr=j>=mnodes[1], jj=j-jr*mnodes[1], j<lnodes[1]; j++)
         for (PetscInt k=0,kr,kk; kr=k>=mnodes[2], kk=k-kr*mnodes[2], k<lnodes[2]; k++) {
           PetscInt here = (i*lnodes[1]+j)*lnodes[2]+k;
           ltogind[here] =
@@ -535,8 +536,6 @@ int main(int argc, char **argv) {
           ltogind0[l0count] = ltogind[here];
           locind[l0count++] = here;
         }
-      }
-    }
     ierr = ISCreateBlock(comm, ncompu, lsize, ltogind, PETSC_OWN_POINTER,
                          &ltogis); CHKERRQ(ierr);
     ierr = VecScatterCreate(Xloc, NULL, X, ltogis, &ltog); CHKERRQ(ierr);
@@ -637,7 +636,7 @@ int main(int argc, char **argv) {
   CeedInt gradInScale = bpOptions[bpChoice].inmode==CEED_EVAL_GRAD ? 3 : 1;
   CeedInt gradOutScale = bpOptions[bpChoice].outmode==CEED_EVAL_GRAD ? 3 : 1;
   CeedQFunctionAddInput(qf_apply, "u", ncompu*gradInScale,
-                         bpOptions[bpChoice].inmode);
+                        bpOptions[bpChoice].inmode);
   CeedQFunctionAddInput(qf_apply, "rho", bpOptions[bpChoice].qdatasize,
                         CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_apply, "v", ncompu*gradOutScale,

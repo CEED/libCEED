@@ -41,7 +41,8 @@ do { \
 #define QUOTE(...) #__VA_ARGS__
 
 typedef enum {CEED_CUDA_HOST_SYNC, CEED_CUDA_DEVICE_SYNC, CEED_CUDA_BOTH_SYNC,
-              CEED_CUDA_NONE_SYNC} CeedCudaSyncState;
+              CEED_CUDA_NONE_SYNC
+             } CeedCudaSyncState;
 
 typedef struct {
   CeedScalar *h_array;
@@ -134,12 +135,8 @@ CEED_INTERN int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel,
                                      const int blockSizeZ, void **args);
 
 CEED_INTERN int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel,
-                                           const int gridSize,
-                                           const int blockSizeX,
-                                           const int blockSizeY,
-                                           const int blockSizeZ,
-                                           const int sharedMemSize,
-                                           void **args);
+    const int gridSize, const int blockSizeX, const int blockSizeY,
+    const int blockSizeZ, const int sharedMemSize, void **args);
 
 CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
                                       const int gridSize,
