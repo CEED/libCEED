@@ -49,7 +49,8 @@ static int CeedOperatorDestroy_Cuda(CeedOperator op) {
 static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
                                         bool inOrOut, CeedVector *evecs,
                                         CeedVector *qvecs, CeedInt starte,
-                                        CeedInt numfields, CeedInt Q, CeedInt numelements) {
+                                        CeedInt numfields, CeedInt Q,
+                                        CeedInt numelements) {
   CeedInt dim, ierr, size;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);

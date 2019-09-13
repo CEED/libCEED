@@ -51,7 +51,7 @@ CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q,
   CeedScalar (*q0)[Q] = (CeedScalar(*)[Q])out[0],
              (*coords)[Q] = (CeedScalar(*)[Q])out[1];
   // Context
-  const CeedScalar *context = (const CeedScalar*)ctx;
+  const CeedScalar *context = (const CeedScalar *)ctx;
   const CeedScalar rc = context[8];
   const CeedScalar lx = context[9];
   const CeedScalar ly = context[10];
@@ -83,7 +83,7 @@ CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q,
     q0[4][i] = r <= rc ? (1.-r/rc) : 0.;
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
-    if (   (!periodic[0] && (fabs(x - 0.0) < tol || fabs(x - lx) < tol))
+    if ((!periodic[0] && (fabs(x - 0.0) < tol || fabs(x - lx) < tol))
         || (!periodic[1] && (fabs(y - 0.0) < tol || fabs(y - ly) < tol))
         || (!periodic[2] && (fabs(z - 0.0) < tol || fabs(z - lz) < tol))) {
       q0[1][i] = 0.0;
@@ -125,7 +125,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
                    (*x)[Q] = (CeedScalar(*)[Q])in[3];
   // Outputs
   CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
-             (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
+                       (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
 
   CeedPragmaSIMD
   // Quadrature Point Loop

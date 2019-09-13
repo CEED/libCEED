@@ -107,7 +107,8 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
   }
 
   // Apply operator
-  void *opargs[] = {(void *) &nelem, &qf_data->d_c, &data->indices, &data->fields, &data->B, &data->G, &data->W};
+  void *opargs[] = {(void *) &nelem, &qf_data->d_c, &data->indices,
+                    &data->fields, &data->B, &data->G, &data->W};
   const CeedInt dim = data->dim;
   const CeedInt Q1d = data->Q1d;
   if (dim==1) {
@@ -122,15 +123,15 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
     CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                            ? 1 : 0 );
     CeedInt sharedMem = elemsPerBlock*Q1d*Q1d*sizeof(CeedScalar);
-    ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, Q1d, Q1d, elemsPerBlock,
-                                      sharedMem, opargs);
+    ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, Q1d, Q1d,
+                                      elemsPerBlock, sharedMem, opargs);
   } else if (dim==3) {
     const CeedInt elemsPerBlock = Q1d<8? 4 : 1;
     CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                            ? 1 : 0 );
     CeedInt sharedMem = elemsPerBlock*Q1d*Q1d*sizeof(CeedScalar);
-    ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, Q1d, Q1d, elemsPerBlock,
-                                      sharedMem, opargs);
+    ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, Q1d, Q1d,
+                                      elemsPerBlock, sharedMem, opargs);
   }
   CeedChk(ierr);
 

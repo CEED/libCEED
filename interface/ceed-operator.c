@@ -186,8 +186,9 @@ found:
 
 /**
   @brief Add a sub-operator to a composite CeedOperator
-  @param[out] op Address of the composite CeedOperator
-  @param      op Address of the sub-operator CeedOperator
+
+  @param[out] compositeop Address of the composite CeedOperator
+  @param      subop       Address of the sub-operator CeedOperator
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -324,8 +325,8 @@ int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
 /**
   @brief Get the setup status of a CeedOperator
 
-  @param op              CeedOperator
-  @param[out] numelem    Variable to store setup status
+  @param op             CeedOperator
+  @param[out] setupdone Variable to store setup status
 
   @return An error code: 0 - success, otherwise - failure
 

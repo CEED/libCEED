@@ -500,6 +500,7 @@ static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
 /**
   @brief Return QR Factorization of matrix
 
+  @param ceed      A Ceed object currently in use
   @param[out] mat  Row-major matrix to be factorized in place
   @param[out] tau  Vector of length m of scaling factors
   @param m         Number of rows
@@ -694,8 +695,8 @@ int CeedBasisGetTensorStatus(CeedBasis basis, bool *tensor) {
 /**
   @brief Get number of components for given CeedBasis
 
-  @param basis     CeedBasis
-  @param[out] dim  Variable to store number of components of basis
+  @param basis        CeedBasis
+  @param[out] numcomp Variable to store number of components of basis
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -806,8 +807,8 @@ int CeedBasisGetQWeights(CeedBasis basis, CeedScalar* *qweight) {
 /**
   @brief Get interpolation matrix of a CeedBasis
 
-  @param basis      CeedBasis
-  @param[out] qref  Variable to store interpolation matrix
+  @param basis       CeedBasis
+  @param[out] interp Variable to store interpolation matrix
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -822,7 +823,7 @@ int CeedBasisGetInterp(CeedBasis basis, CeedScalar* *interp) {
   @brief Get gradient matrix of a CeedBasis
 
   @param basis      CeedBasis
-  @param[out] qref  Variable to store gradient matrix
+  @param[out] grad  Variable to store gradient matrix
 
   @return An error code: 0 - success, otherwise - failure
 

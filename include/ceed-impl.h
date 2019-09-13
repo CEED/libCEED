@@ -160,7 +160,8 @@ struct CeedQFunction_private {
   CeedQFunctionField *outputfields;
   CeedInt numinputfields, numoutputfields;
   CeedQFunctionUser function;
-  const char *focca;
+  const char *sourcepath;
+  const char *qfname;
   bool fortranstatus;
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */

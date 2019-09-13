@@ -244,30 +244,30 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   data->nelem = data->elemsize = 1;
   data->e = 0;
   ierr = CeedQFunctionSetData(qf, (void *)&data); CeedChk(ierr);
-  // Locate last ':' character in qf->focca ************************************
-  char *focca;
-  ierr = CeedQFunctionGetFOCCA(qf, &focca); CeedChk(ierr);
-  dbg("[CeedQFunction][Create] focca: %s",focca);
-  const char *last_colon = strrchr(focca,':');
-  const char *last_dot = strrchr(focca,'.');
+  // Locate last ':' character in qf->source ************************************
+  char *source;
+  ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);
+  dbg("[CeedQFunction][Create] source path: %s",source);
+  const char *last_colon = strrchr(source,':');
+  const char *last_dot = strrchr(source,'.');
   if (!last_colon)
-    return CeedError(ceed, 1, "Can not find ':' in focca field!");
+    return CeedError(ceed, 1, "Can not find ':' in source path field!");
   if (!last_dot)
-    return CeedError(ceed, 1, "Can not find '.' in focca field!");
+    return CeedError(ceed, 1, "Can not find '.' in source path field!");
   // get the function name
   data->qFunctionName = last_colon+1;
   dbg("[CeedQFunction][Create] qFunctionName: %s",data->qFunctionName);
   // extract file base name
-  const char *last_slash_pos = strrchr(focca,'/');
-  // if no slash has been found, revert to focca field
-  const char *last_slash = last_slash_pos?last_slash_pos+1:focca;
+  const char *last_slash_pos = strrchr(source,'/');
+  // if no slash has been found, revert to source field
+  const char *last_slash = last_slash_pos?last_slash_pos+1:source;
   dbg("[CeedQFunction][Create] last_slash: %s",last_slash);
   // extract c_src_file & okl_base_name
   char *c_src_file, *okl_base_name;
   ierr = CeedCalloc(OCCA_PATH_MAX,&okl_base_name); CeedChk(ierr);
   ierr = CeedCalloc(OCCA_PATH_MAX,&c_src_file); CeedChk(ierr);
   memcpy(okl_base_name,last_slash,last_dot-last_slash);
-  memcpy(c_src_file,focca,last_colon-focca);
+  memcpy(c_src_file,source,last_colon-source);
   dbg("[CeedQFunction][Create] c_src_file: %s",c_src_file);
   dbg("[CeedQFunction][Create] okl_base_name: %s",okl_base_name);
   // Now fetch OKL filename ****************************************************
