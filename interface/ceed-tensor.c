@@ -45,8 +45,7 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
     CeedChk(ierr);
 
     if (!delegate)
-      return CeedError(ceed, 1,
-                       "Backend does not support TensorContractCreate");
+      return CeedError(ceed, 1, "Backend does not support TensorContractCreate");
 
     ierr = CeedTensorContractCreate(delegate, basis, contract);
     CeedChk(ierr);
@@ -110,7 +109,6 @@ int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B,
 **/
 int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed) {
   *ceed = contract->ceed;
-
   return 0;
 };
 
@@ -156,7 +154,8 @@ int CeedTensorContractSetData(CeedTensorContract contract, void* *data) {
 int CeedTensorContractDestroy(CeedTensorContract *contract) {
   int ierr;
 
-  if (!*contract || --(*contract)->refcount > 0) return 0;
+  if (!*contract || --(*contract)->refcount > 0)
+    return 0;
   if ((*contract)->Destroy) {
     ierr = (*contract)->Destroy(*contract); CeedChk(ierr);
   }

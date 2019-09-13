@@ -89,8 +89,8 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
     ierr = CeedGetObjectDelegate(ceed, &delegate, "Operator"); CeedChk(ierr);
 
     if (!delegate)
-      return CeedError(ceed, 1, "Backend does not support \
-                         CompositeOperatorCreate");
+      return CeedError(ceed, 1, "Backend does not support "
+                       "CompositeOperatorCreate");
 
     ierr = CeedCompositeOperatorCreate(delegate, op); CeedChk(ierr);
     return 0;
@@ -146,16 +146,16 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
   ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
   if (op->numelements && op->numelements != numelements)
     return CeedError(op->ceed, 1,
-                     "ElemRestriction with %d elements incompatible with prior \
-                       %d elements", numelements, op->numelements);
+                     "ElemRestriction with %d elements incompatible with prior "
+                     "%d elements", numelements, op->numelements);
   op->numelements = numelements;
 
   if (b != CEED_BASIS_COLLOCATED) {
     CeedInt numqpoints;
     ierr = CeedBasisGetNumQuadraturePoints(b, &numqpoints); CeedChk(ierr);
     if (op->numqpoints && op->numqpoints != numqpoints)
-      return CeedError(op->ceed, 1, "Basis with %d quadrature points \
-                         incompatible with prior %d points", numqpoints,
+      return CeedError(op->ceed, 1, "Basis with %d quadrature points "
+                       "incompatible with prior %d points", numqpoints,
                        op->numqpoints);
     op->numqpoints = numqpoints;
   }
@@ -197,8 +197,8 @@ found:
 int CeedCompositeOperatorAddSub(CeedOperator compositeop,
                                 CeedOperator subop) {
   if (!compositeop->composite)
-    return CeedError(compositeop->ceed, 1, "CeedOperator is not a composite \
-                       operator");
+    return CeedError(compositeop->ceed, 1, "CeedOperator is not a composite "
+                     "operator");
 
   if (compositeop->numsub == CEED_COMPOSITE_MAX)
     return CeedError(compositeop->ceed, 1, "Cannot add additional suboperators");
@@ -417,7 +417,8 @@ int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
 
 int CeedOperatorGetNumSub(CeedOperator op, CeedInt *numsub) {
   Ceed ceed = op->ceed;
-  if (!op->composite) return CeedError(ceed, 1, "Not a composite operator");
+  if (!op->composite)
+    return CeedError(ceed, 1, "Not a composite operator");
 
   *numsub = op->numsub;
   return 0;
@@ -436,7 +437,8 @@ int CeedOperatorGetNumSub(CeedOperator op, CeedInt *numsub) {
 
 int CeedOperatorGetSubList(CeedOperator op, CeedOperator* *suboperators) {
   Ceed ceed = op->ceed;
-  if (!op->composite) return CeedError(ceed, 1, "Not a composite operator");
+  if (!op->composite)
+    return CeedError(ceed, 1, "Not a composite operator");
 
   *suboperators = op->suboperators;
   return 0;
@@ -596,22 +598,19 @@ int CeedOperatorDestroy(CeedOperator *op) {
   }
   ierr = CeedDestroy(&(*op)->ceed); CeedChk(ierr);
   // Free fields
-  for (int i=0; i<(*op)->nfields; i++) {
+  for (int i=0; i<(*op)->nfields; i++)
     if ((*op)->inputfields[i]) {
       ierr = CeedFree(&(*op)->inputfields[i]); CeedChk(ierr);
     }
-  }
-  for (int i=0; i<(*op)->nfields; i++) {
+  for (int i=0; i<(*op)->nfields; i++)
     if ((*op)->outputfields[i]) {
       ierr = CeedFree(&(*op)->outputfields[i]); CeedChk(ierr);
     }
-  }
   // Destroy suboperators
-  for (int i=0; i<(*op)->numsub; i++) {
+  for (int i=0; i<(*op)->numsub; i++)
     if ((*op)->suboperators[i]) {
       ierr = CeedOperatorDestroy(&(*op)->suboperators[i]); CeedChk(ierr);
     }
-  }
   ierr = CeedQFunctionDestroy(&(*op)->qf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqfT); CeedChk(ierr);

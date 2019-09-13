@@ -109,9 +109,8 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 int CeedQFunctionRegister(const char *name, const char *source,
                           CeedInt vlength, CeedQFunctionUser f,
                           int (*init)(Ceed, const char *, CeedQFunction)) {
-  if (num_qfunctions >= sizeof(qfunctions) / sizeof(qfunctions[0])) {
+  if (num_qfunctions >= sizeof(qfunctions) / sizeof(qfunctions[0]))
     return CeedError(NULL, 1, "Too many gallery QFunctions");
-  }
   strncpy(qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);
   qfunctions[num_qfunctions].name[CEED_MAX_RESOURCE_LEN-1] = 0;
   strncpy(qfunctions[num_qfunctions].source, source, CEED_MAX_RESOURCE_LEN);
@@ -151,7 +150,8 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
       matchidx = i;
     }
   }
-  if (!matchlen) return CeedError(NULL, 1, "No suitable gallery QFunction");
+  if (!matchlen)
+    return CeedError(NULL, 1, "No suitable gallery QFunction");
 
   // Create QFunction
   ierr = CeedQFunctionCreateInterior(ceed, qfunctions[matchidx].vlength,
@@ -210,8 +210,8 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
 
   @ref Basic
 **/
-int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
-                          CeedInt size, CeedEvalMode emode) {
+int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname, CeedInt size,
+                          CeedEvalMode emode) {
   int ierr = CeedQFunctionFieldSet(&qf->inputfields[qf->numinputfields],
                                    fieldname, size, emode);
   CeedChk(ierr);
@@ -237,8 +237,8 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
 int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                            CeedInt size, CeedEvalMode emode) {
   if (emode == CEED_EVAL_WEIGHT)
-    return CeedError(qf->ceed, 1,
-                     "Cannot create QFunction output with CEED_EVAL_WEIGHT");
+    return CeedError(qf->ceed, 1, "Cannot create QFunction output with "
+                     "CEED_EVAL_WEIGHT");
   int ierr = CeedQFunctionFieldSet(&qf->outputfields[qf->numoutputfields],
                                    fieldname, size, emode);
   CeedChk(ierr);
@@ -472,9 +472,8 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
   if (!qf->Apply)
     return CeedError(qf->ceed, 1, "Backend does not support QFunctionApply");
   if (Q % qf->vlength)
-    return CeedError(qf->ceed, 2,
-                     "Number of quadrature points %d must be a multiple of %d",
-                     Q, qf->vlength);
+    return CeedError(qf->ceed, 2, "Number of quadrature points %d must be a "
+                     "multiple of %d", Q, qf->vlength);
   ierr = qf->Apply(qf, Q, u, v); CeedChk(ierr);
   return 0;
 }
@@ -494,8 +493,10 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
 int CeedQFunctionGetFields(CeedQFunction qf,
                            CeedQFunctionField* *inputfields,
                            CeedQFunctionField* *outputfields) {
-  if (inputfields) *inputfields = qf->inputfields;
-  if (outputfields) *outputfields = qf->outputfields;
+  if (inputfields)
+    *inputfields = qf->inputfields;
+  if (outputfields)
+    *outputfields = qf->outputfields;
   return 0;
 }
 
@@ -561,7 +562,8 @@ int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
 int CeedQFunctionDestroy(CeedQFunction *qf) {
   int ierr;
 
-  if (!*qf || --(*qf)->refcount > 0) return 0;
+  if (!*qf || --(*qf)->refcount > 0)
+    return 0;
   // Backend destroy
   if ((*qf)->Destroy) {
     ierr = (*qf)->Destroy(*qf); CeedChk(ierr);
