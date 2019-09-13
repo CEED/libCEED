@@ -8,7 +8,10 @@ as required.
 0. Ceed Tests
 1. CeedVector Tests
 2. CeedElemRestriction Tests
-3. CeedBasis Tests
+3. CeedBasis Tests  
+    3.0. CeedBasis utility tests  
+    3.1. CeedBasis tensor basis tests  
+    3.2. CeedBasis simplex basis tests
 4. CeedQFunction Tests  
     4.0. CeedQFunction user code tests  
     4.1. CeedQFunction gallery code tests

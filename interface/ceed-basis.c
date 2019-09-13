@@ -536,18 +536,11 @@ static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s,
 /**
   @brief Return QR Factorization of matrix
 
-<<<<<<< HEAD
+  @param ceed         A Ceed object currently in use
   @param[in,out] mat  Row-major matrix to be factorized in place
   @param[in,out] tau  Vector of length m of scaling fators
   @param m            Number of rows
   @param n            Number of columns
-=======
-  @param ceed      A Ceed object currently in use
-  @param[out] mat  Row-major matrix to be factorized in place
-  @param[out] tau  Vector of length m of scaling factors
-  @param m         Number of rows
-  @param n         Number of columns
->>>>>>> origin/master
 
   @return An error code: 0 - success, otherwise - failure
 
