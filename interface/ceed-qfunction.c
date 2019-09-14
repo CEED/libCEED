@@ -44,7 +44,8 @@ static size_t num_qfunctions;
                     points is a multiple of vlength.
   @param f          Function pointer to evaluate action at quadrature points.
                     See \ref CeedQFunctionUser.
-  @param source     Path to source of QFunction, "\path\file.h:function_name"
+  @param source     Absolute path to source of QFunction,
+                      "\abs_path\file.h:function_name"
   @param[out] qf    Address of the variable where the newly created
                       CeedQFunction will be stored
 
@@ -92,7 +93,8 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
   @brief Register a gallery QFunction
 
   @param name    Name for this backend to respond to
-  @param source  Path to source of QFunction, "\path\file.h:function_name"
+  @param source  Absolute path to source of QFunction,
+                   "\path\CEED_DIR\gallery\folder\file.h:function_name"
   @param vlength Vector length.  Caller must ensure that number of quadrature
                    points is a multiple of vlength.
   @param f       Function pointer to evaluate action at quadrature points.
