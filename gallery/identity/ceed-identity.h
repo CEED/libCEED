@@ -27,7 +27,7 @@ CEED_QFUNCTION(Identity)(void *ctx, const CeedInt Q,
                          const CeedScalar *const *in,
                          CeedScalar *const *out) {
   // Ctx holds field size
-  const CeedInt size = *(CeedInt *)ctx;
+  const CeedInt size = ctx ? *(CeedInt *)ctx : 1;
 
   // in[0] is input, size (Q*size)
   const CeedScalar *input = in[0];

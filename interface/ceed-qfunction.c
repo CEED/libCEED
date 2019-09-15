@@ -183,10 +183,12 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedQFunction *qf) {
   ierr = CeedQFunctionCreateInteriorByName(ceed, "Identity", qf); CeedChk(ierr);
 
   (*qf)->identity = 1;
-  CeedInt *ctx;
-  ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
-  ctx[0] = size;
-  ierr = CeedQFunctionSetContext(*qf, ctx, sizeof(ctx)); CeedChk(ierr);
+  if (size > 1) {
+    CeedInt *ctx;
+    ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
+    ctx[0] = size;
+    ierr = CeedQFunctionSetContext(*qf, ctx, sizeof(ctx)); CeedChk(ierr);
+  }
 
   return 0;
 }
@@ -619,6 +621,10 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   }
   ierr = CeedFree(&(*qf)->inputfields); CeedChk(ierr);
   ierr = CeedFree(&(*qf)->outputfields); CeedChk(ierr);
+  // Free ctx if identity
+  if ((*qf)->identity && (*qf)->ctx) {
+    ierr = CeedFree(&(*qf)->ctx); CeedChk(ierr);
+  }
 
   ierr = CeedFree(&(*qf)->sourcepath); CeedChk(ierr);
   ierr = CeedDestroy(&(*qf)->ceed); CeedChk(ierr);
