@@ -138,8 +138,8 @@
 
 ! QFunction - setup 
       call ceedqfunctioncreateinterior(ceed,1,setup,&
-     &__FILE__&
-     &//':setup'//char(0),qf_setup,err)
+     &SOURCE_DIR&
+     &//'t531-operator.h:setup'//char(0),qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddinput(qf_setup,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddoutput(qf_setup,'qdata',d*(d+1)/2,ceed_eval_none,err)
@@ -159,8 +159,8 @@
 
 ! QFunction - apply
       call ceedqfunctioncreateinterior(ceed,1,diff,&
-     &__FILE__&
-     &//':diff'//char(0),qf_diff,err)
+     &SOURCE_DIR&
+     &//'t531-operator.h:diff'//char(0),qf_diff,err)
       call ceedqfunctionaddinput(qf_diff,'du',d,ceed_eval_grad,err)
       call ceedqfunctionaddinput(qf_diff,'qdata',d*(d+1)/2,ceed_eval_none,err)
       call ceedqfunctionaddoutput(qf_diff,'dv',d,ceed_eval_grad,err)
@@ -200,8 +200,8 @@
 
 ! QFunction - apply linearized
       call ceedqfunctioncreateinterior(ceed,1,diff_lin,&
-     &__FILE__&
-     &//':diff_lin'//char(0),qf_diff_lin,err)
+     &SOURCE_DIR&
+     &//'t531-operator.h:diff_lin'//char(0),qf_diff_lin,err)
       call ceedqfunctionaddinput(qf_diff_lin,'du',d,ceed_eval_grad,err)
       call ceedqfunctionaddinput(qf_diff_lin,'qdata',d*d,ceed_eval_none,err)
       call ceedqfunctionaddoutput(qf_diff_lin,'dv',d,ceed_eval_grad,err)

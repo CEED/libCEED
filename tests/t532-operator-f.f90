@@ -165,8 +165,8 @@
 
 ! QFunction - setup mass
       call ceedqfunctioncreateinterior(ceed,1,setup_mass,&
-     &__FILE__&
-     &//':setup_mass'//char(0),qf_setup_mass,err)
+     &SOURCE_DIR&
+     &//'t532-operator.h:setup_mass'//char(0),qf_setup_mass,err)
       call ceedqfunctionaddinput(qf_setup_mass,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddinput(qf_setup_mass,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddoutput(qf_setup_mass,'qdata',1,ceed_eval_none,err)
@@ -183,8 +183,8 @@
 
 ! QFunction - setup diff
       call ceedqfunctioncreateinterior(ceed,1,setup_diff,&
-     &__FILE__&
-     &//':setup_diff'//char(0),qf_setup_diff,err)
+     &SOURCE_DIR&
+     &//'t532-operator.h:setup_diff'//char(0),qf_setup_diff,err)
       call ceedqfunctionaddinput(qf_setup_diff,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddinput(qf_setup_diff,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddoutput(qf_setup_diff,'qdata',&
@@ -208,8 +208,8 @@
 
 ! QFunction - apply
       call ceedqfunctioncreateinterior(ceed,1,apply,&
-     &__FILE__&
-     &//':apply'//char(0),qf_apply,err)
+     &SOURCE_DIR&
+     &//'t532-operator.h:apply'//char(0),qf_apply,err)
       call ceedqfunctionaddinput(qf_apply,'du',d,ceed_eval_grad,err)
       call ceedqfunctionaddinput(qf_apply,'qdata_mass',1,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_apply,'qdata_diff',&
@@ -261,8 +261,8 @@
 
 ! QFunction - apply linearized
       call ceedqfunctioncreateinterior(ceed,1,apply_lin,&
-     &__FILE__&
-     &//':apply_lin'//char(0),qf_apply_lin,err)
+     &SOURCE_DIR&
+     &//'t532-operator.h:apply_lin'//char(0),qf_apply_lin,err)
       call ceedqfunctionaddinput(qf_apply_lin,'du',d,ceed_eval_grad,err)
       call ceedqfunctionaddinput(qf_apply_lin,'qdata',(d+1)*(d+1),&
      & ceed_eval_none,err)
