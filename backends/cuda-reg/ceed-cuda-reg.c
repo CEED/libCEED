@@ -14,10 +14,11 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
+#include <ceed-backend.h>
 #include <string.h>
 #include <stdarg.h>
 #include "ceed-cuda-reg.h"
+#include "../cuda/ceed-cuda.h"
 
 static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   int ierr;
@@ -27,13 +28,17 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
 
   Ceed ceedref;
   CeedInit("/gpu/cuda/ref", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   const int rlen = strlen(resource);
   const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
   const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : 0;
 
-  ierr = cudaSetDevice(deviceID); CeedChk(ierr);
+  int currentDeviceID;
+  ierr = cudaGetDevice(&currentDeviceID); CeedChk_Cu(ceed,ierr);
+  if (currentDeviceID!=deviceID) {
+    ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
+  }
 
   Ceed_Cuda_reg *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
@@ -41,8 +46,6 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Cuda_reg); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-                                CeedBasisCreateH1_Cuda_reg); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
                                 CeedElemRestrictionCreate_Cuda_reg); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,

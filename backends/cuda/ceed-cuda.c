@@ -14,16 +14,16 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
+#include <ceed-backend.h>
 #include <string.h>
 #include <stdarg.h>
 #include "ceed-cuda.h"
 
 
-int compile(Ceed ceed, const char *source, CUmodule *module,
-            const CeedInt numopts, ...) {
+int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
+                    const CeedInt numopts, ...) {
   int ierr;
-  cudaFree(0);
+  cudaFree(0);//Make sure a Context exists for nvrtc
   nvrtcProgram prog;
   CeedChk_Nvrtc(ceed, nvrtcCreateProgram(&prog, source, NULL, 0, NULL, NULL));
 
@@ -50,12 +50,13 @@ int compile(Ceed ceed, const char *source, CUmodule *module,
   Ceed delegate;
   CeedGetDelegate(ceed, &delegate);
   //We assume that the delegate is always the Cuda one
-  if (delegate){
+  if (delegate) {
     ierr = CeedGetData(delegate, (void *)&ceed_data); CeedChk(ierr);
-  }else{
+  } else {
     ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
   }
-  cudaGetDeviceProperties(&prop, ceed_data->deviceId);
+  ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId);
+  CeedChk_Cu(ceed, ierr);
   char buff[optslen];
   snprintf(buff, optslen,"-arch=compute_%d%d", prop.major, prop.minor);
   opts[numopts + 2] = buff;
@@ -67,7 +68,7 @@ int compile(Ceed ceed, const char *source, CUmodule *module,
     char *log;
     ierr = CeedMalloc(logsize, &log); CeedChk(ierr);
     CeedChk_Nvrtc(ceed, nvrtcGetProgramLog(prog, log));
-    return CeedError(ceed, result, "%s\n%s", nvrtcGetErrorString(result), log);
+    return CeedError(ceed, (int)result, "%s\n%s", nvrtcGetErrorString(result), log);
   }
 
   size_t ptxsize;
@@ -83,18 +84,41 @@ int compile(Ceed ceed, const char *source, CUmodule *module,
   return 0;
 }
 
-int get_kernel(Ceed ceed, CUmodule module, const char *name,
-               CUfunction *kernel) {
+int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name,
+                      CUfunction *kernel) {
   CeedChk_Cu(ceed, cuModuleGetFunction(kernel, module, name));
   return 0;
 }
 
-int run_kernel(Ceed ceed, CUfunction kernel, const int gridSize,
-               const int blockSize, void **args) {
+int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int gridSize,
+                      const int blockSize, void **args) {
   CeedChk_Cu(ceed, cuLaunchKernel(kernel,
                                   gridSize, 1, 1,
                                   blockSize, 1, 1,
                                   0, NULL,
+                                  args, NULL));
+  return 0;
+}
+
+int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel, const int gridSize,
+                         const int blockSizeX, const int blockSizeY,
+                         const int blockSizeZ, void **args) {
+  CeedChk_Cu(ceed, cuLaunchKernel(kernel,
+                                  gridSize, 1, 1,
+                                  blockSizeX, blockSizeY, blockSizeZ,
+                                  0, NULL,
+                                  args, NULL));
+  return 0;
+}
+
+int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel, const int gridSize,
+                               const int blockSizeX, const int blockSizeY,
+                               const int blockSizeZ, const int sharedMemSize,
+                               void **args) {
+  CeedChk_Cu(ceed, cuLaunchKernel(kernel,
+                                  gridSize, 1, 1,
+                                  blockSizeX, blockSizeY, blockSizeZ,
+                                  sharedMemSize, NULL,
                                   args, NULL));
   return 0;
 }
@@ -114,21 +138,25 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
   const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : 0;
 
-  ierr = cudaSetDevice(deviceID); CeedChk(ierr);
+  int currentDeviceID;
+  ierr = cudaGetDevice(&currentDeviceID); CeedChk_Cu(ceed,ierr);
+  if (currentDeviceID!=deviceID) {
+    ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
+  }
 
   Ceed_Cuda *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   data->deviceId = deviceID;
 
   struct cudaDeviceProp deviceProp;
-  cudaGetDeviceProperties(&deviceProp, deviceID);
+  ierr = cudaGetDeviceProperties(&deviceProp, deviceID); CeedChk_Cu(ceed,ierr);
 
   data->optblocksize = deviceProp.maxThreadsPerBlock;
 
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
                                 CeedGetPreferredMemType_Cuda); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VecCreate",
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate",
                                 CeedVectorCreate_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Cuda); CeedChk(ierr);

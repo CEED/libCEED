@@ -16,6 +16,7 @@
 
 #include <ceed-backend.h>
 #include <string.h>
+#include <immintrin.h>
 
 CEED_INTERN int CeedTensorContractCreate_Avx(CeedBasis basis,
     CeedTensorContract contract);

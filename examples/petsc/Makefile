@@ -5,17 +5,21 @@ CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
 
 CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc) $(ceed.pc))
-CFLAGS = -std=c99 $(call pkgconf, --variable=cflags_extra $(PETSc.pc)) $(call pkgconf, --cflags-only-other $(PETSc.pc)) $(OPT)
+CFLAGS = -std=c99 $(call pkgconf, --variable=cflags_extra $(PETSc.pc)) $(call pkgconf, --cflags-only-other $(PETSc.pc)) $(OPT) -D__DIR__=\"$(dir $(abspath $(lastword $<)))\"
 CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc))
 LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
 LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
-bp.c := $(sort $(wildcard bp*.c))
-bp := $(bp.c:%.c=%)
+bps.c := bps.c
+bps := $(bps.c:%.c=%)
 
-all: $(bp)
-$(bp): | $(PETSc.pc) $(ceed.pc)
+bpsdmplex.c := bpsdmplex.c
+bpsdmplex := $(bpsdmplex.c:%.c=%)
+
+all: $(bps) $(bpsdmplex)
+$(bps): | $(PETSc.pc) $(ceed.pc)
+$(bpsdmplex): | $(PETSc.pc) $(ceed.pc)
 
 # Rules for building the examples
 %: %.c
@@ -31,11 +35,11 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) $(bp)
+	$(RM) $(bps) $(bpsdmplex)
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
-	  PETSc config not found. Please set PETSC_DIR and PETSC_ARCH))
+	  PETSc config not found at $@. Please set PETSC_DIR and PETSC_ARCH))
 
 .PHONY: all print clean
 

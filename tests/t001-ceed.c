@@ -8,10 +8,12 @@ int main(int argc, char **argv) {
   CeedInt type = -1;
 
   CeedInit(argv[1], &ceed);
-  CeedGetPreferredMemType(ceed, (CeedMemType *)&type);
 
+  CeedGetPreferredMemType(ceed, (CeedMemType *)&type);
   if (type == -1)
+    // LCOV_EXCL_START
     printf("Error getting preferred memory type. %d \n",type);
+  // LCOV_EXCL_STOP
 
   CeedDestroy(&ceed);
   return 0;

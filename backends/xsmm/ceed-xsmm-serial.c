@@ -14,21 +14,20 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <string.h>
 #include "ceed-xsmm.h"
 
 static int CeedInit_Xsmm_Serial(const char *resource, Ceed ceed) {
   int ierr;
-  if (strcmp(resource, "/cpu/self/xsmm/serial"))
+  if (strcmp(resource, "/cpu/self")
+      && strcmp(resource, "/cpu/self/xsmm/serial"))
     return CeedError(ceed, 1, "serial libXSMM backend cannot use resource: %s",
                      resource);
 
-  Ceed ceedref;
-
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
-  CeedInit("/cpu/self/ref/serial", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+  Ceed ceedref;
+  CeedInit("/cpu/self/opt/serial", &ceedref);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
                                 CeedTensorContractCreate_Xsmm); CeedChk(ierr);
@@ -38,5 +37,5 @@ static int CeedInit_Xsmm_Serial(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/xsmm/serial", CeedInit_Xsmm_Serial, 30);
+  CeedRegister("/cpu/self/xsmm/serial", CeedInit_Xsmm_Serial, 25);
 }

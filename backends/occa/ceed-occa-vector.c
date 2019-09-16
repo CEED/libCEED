@@ -67,13 +67,14 @@ static int CeedVectorSetArray_Occa(const CeedVector vec,
   dbg("[CeedVector][Set]");
   if (mtype != CEED_MEM_HOST)
     return CeedError(ceed, 1, "Only MemType = HOST supported");
-  ierr = CeedFree(&data->h_array_allocated); CeedChk(ierr);
   switch (cmode) {
   // Implementation will copy the values and not store the passed pointer.
   case CEED_COPY_VALUES:
     dbg("\t[CeedVector][Set] CEED_COPY_VALUES");
-    ierr = CeedMalloc(length, &data->h_array); CeedChk(ierr);
-    data->h_array_allocated = data->h_array;
+    if (!data->h_array) {
+      ierr = CeedMalloc(length, &data->h_array_allocated); CeedChk(ierr);
+      data->h_array = data->h_array_allocated;
+    }
     if (array) memcpy(data->h_array, array, bytes(vec));
     if (array) CeedSyncH2D_Occa(vec);
     break;
@@ -81,6 +82,7 @@ static int CeedVectorSetArray_Occa(const CeedVector vec,
   // and will free using CeedFree() when done using it
   case CEED_OWN_POINTER:
     dbg("\t[CeedVector][Set] CEED_OWN_POINTER");
+    ierr = CeedFree(&data->h_array_allocated); CeedChk(ierr);
     data->h_array = array;
     data->h_array_allocated = array;
     CeedSyncH2D_Occa(vec);
@@ -88,6 +90,7 @@ static int CeedVectorSetArray_Occa(const CeedVector vec,
   // Implementation can use and modify the data provided by the user
   case CEED_USE_POINTER:
     dbg("\t[CeedVector][Set] CEED_USE_POINTER");
+    ierr = CeedFree(&data->h_array_allocated); CeedChk(ierr);
     data->h_array = array;
     CeedSyncH2D_Occa(vec);
     break;

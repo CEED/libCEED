@@ -107,24 +107,27 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
 // * CeedScalars are used here, not CeedVectors: we don't touch it yet
 // *****************************************************************************
 static int CeedTensorContract_Occa(CeedInt A, CeedInt B, CeedInt C, CeedInt J,
-                                   const CeedScalar *t, CeedTransposeMode tmode,
-                                   const CeedInt Add,
-                                   const CeedScalar *u, CeedScalar *v) {
-  const CeedInt transpose = tmode == CEED_TRANSPOSE;
-  const CeedInt tstride0 = transpose?1:B;
-  const CeedInt tstride1 = transpose?J:1;
-  for (CeedInt a=0; a<A; a++) {
-    for (CeedInt j=0; j<J; j++) {
-      if (!Add)
-        for (CeedInt c=0; c<C; c++)
-          v[(a*J+j)*C+c] = 0.0;
-      for (CeedInt b=0; b<B; b++) {
-        for (CeedInt c=0; c<C; c++) {
-          v[(a*J+j)*C+c] += t[j*tstride0 + b*tstride1] * u[(a*B+b)*C+c];
-        }
-      }
-    }
+                                   const CeedScalar *restrict t,
+                                   CeedTransposeMode tmode, const CeedInt Add,
+                                   const CeedScalar *restrict u,
+                                   CeedScalar *restrict v) {
+  CeedInt tstride0 = B, tstride1 = 1;
+  if (tmode == CEED_TRANSPOSE) {
+    tstride0 = 1; tstride1 = J;
   }
+
+  if (!Add)
+    for (CeedInt q=0; q<A*J*C; q++)
+      v[q] = (CeedScalar) 0.0;
+
+  for (CeedInt a=0; a<A; a++)
+    for (CeedInt b=0; b<B; b++)
+      for (CeedInt j=0; j<J; j++) {
+        CeedScalar tq = t[j*tstride0 + b*tstride1];
+        for (CeedInt c=0; c<C; c++)
+          // NOLINTNEXTLINE: False positive for unitalized values
+          v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
+      }
   return 0;
 }
 
@@ -407,7 +410,7 @@ int CeedBasisCreateTensorH1_Occa(CeedInt dim, CeedInt P1d, CeedInt Q1d,
 // * CeedBasisCreateH1_Occa
 // *****************************************************************************
 int CeedBasisCreateH1_Occa(CeedElemTopology topo, CeedInt dim,
-                           CeedInt ndof, CeedInt nqpts,
+                           CeedInt nnodes, CeedInt nqpts,
                            const CeedScalar *interp,
                            const CeedScalar *grad,
                            const CeedScalar *qref,

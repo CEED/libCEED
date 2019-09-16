@@ -7,7 +7,7 @@
       integer x,y
       integer r
       integer i,n,mult
-      integer*8 offset
+      integer*8 aoffset,yoffset
 
       integer ne
       parameter(ne=3)
@@ -31,7 +31,8 @@
         enddo
       enddo
 
-      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,err)
+      aoffset=0
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,aoffset,err)
 
       do i=1,ne
         ind(2*i-1)=i-1
@@ -46,25 +47,29 @@
       call ceedelemrestrictionapply(r,ceed_transpose,ceed_notranspose,x,y,&
      & ceed_request_immediate,err)
 
-      call ceedvectorgetarrayread(y,ceed_mem_host,yy,offset,err)
+      call ceedvectorgetarrayread(y,ceed_mem_host,yy,yoffset,err)
       do i=0,ne
         if (i > 0 .and. i < ne) then
           mult = 2
         else
           mult = 1
         endif
-        diff=(10+i)*mult-yy(i+1+offset)
+        diff=(10+i)*mult-yy(i+1+yoffset)
         if (abs(diff) > 1.0D-15) then
+! LCOV_EXCL_START
           write(*,*) 'Error in restricted array y(',i+1,')=',&
-     &     yy(i+1+offset),'!=',(10+i)*mult
+     &     yy(i+1+yoffset),'!=',(10+i)*mult
+! LCOV_EXCL_STOP
         endif
-        diff=(20+i)*mult-yy(i+ne+2+offset)
+        diff=(20+i)*mult-yy(i+ne+2+yoffset)
         if (abs(diff) > 1.0D-15) then
+! LCOV_EXCL_START
           write(*,*) 'Error in restricted array y(',i+ne+2,')=',&
-     &     yy(i+ne+2+offset),'!=',(20+i)*mult
+     &     yy(i+ne+2+yoffset),'!=',(20+i)*mult
+! LCOV_EXCL_STOP
         endif
       enddo
-      call ceedvectorrestorearrayread(y,yy,offset,err)
+      call ceedvectorrestorearrayread(y,yy,yoffset,err)
 
       call ceedvectordestroy(x,err)
       call ceedvectordestroy(y,err)

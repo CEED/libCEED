@@ -14,16 +14,18 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
+#include <ceed-backend.h>
 #include <string.h>
 #include <stdio.h>
 #include "ceed-cuda.h"
+#include "ceed-cuda-qfunction-load.h"
 
 static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
                                    CeedVector *U, CeedVector *V) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  ierr = CeedCudaBuildQFunction(qf); CeedChk(ierr);
   CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   Ceed_Cuda *ceed_Cuda;
@@ -61,8 +63,9 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
   // void *args[] = {&ctx, (void*)&Q, &data->d_u, &data->d_v};
   void *args[] = {&data->d_c, (void *) &Q, &data->fields};
-  ierr = run_kernel(ceed, data->qFunction, CeedDivUpInt(Q, blocksize), blocksize,
-                    args);
+  ierr = CeedRunKernelCuda(ceed, data->qFunction, CeedDivUpInt(Q, blocksize),
+                           blocksize,
+                           args);
   CeedChk(ierr);
 
   for (CeedInt i = 0; i < numinputfields; i++) {
@@ -85,7 +88,6 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
 
-  CeedChk_Cu(ceed, cuModuleUnload(data->module));
   ierr = cudaFree(data->d_c); CeedChk_Cu(ceed, ierr);
 
   ierr = CeedFree(&data); CeedChk(ierr);
@@ -93,7 +95,7 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   return 0;
 }
 
-static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
+static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
   int ierr;
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
@@ -104,7 +106,7 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   if (!last_dot)
     return CeedError(ceed, 1, "Cannot find file's extension!");
   const size_t cuda_path_len = last_dot - cuda_file;
-  strcpy(&cuda_file[cuda_path_len], ".cu");
+  strcpy(&cuda_file[cuda_path_len], ".h");
   //*******************
   FILE *fp;
   long lSize;
@@ -127,23 +129,11 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
     CeedError(ceed, 1, "Couldn't read the Cuda file for the QFunction.");
   }
 
-  //FIXME: the magic number 16 should be defined somewhere...
-  char *fields_string =
-    "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda;";
-  char *source = (char *) malloc(1 + strlen(fields_string)+ strlen(buffer) );
-  strcpy(source, fields_string);
-  strcat(source, buffer);
-
-  //********************
-  CeedQFunction_Cuda *data;
-  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
-  ierr = compile(ceed, source, &data->module, 0); CeedChk(ierr);
-  ierr = get_kernel(ceed, data->module, data->qFunctionName, &data->qFunction);
-  CeedChk(ierr);
-
   //********************
   fclose(fp);
-  ierr = CeedFree(&buffer); CeedChk(ierr);
+  CeedQFunction_Cuda *data;
+  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
+  data->qFunctionSource = buffer;
 
   return 0;
 }
@@ -161,13 +151,15 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
   ierr = cudaMalloc(&data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);
 
-  const char *funname = strrchr(qf->focca, ':') + 1;
+  char *source;
+  ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);
+  const char *funname = strrchr(source, ':') + 1;
   data->qFunctionName = (char *)funname;
-  const int filenamelen = funname - qf->focca;
+  const int filenamelen = funname - source;
   char filename[filenamelen];
-  memcpy(filename, qf->focca, filenamelen - 1);
+  memcpy(filename, source, filenamelen - 1);
   filename[filenamelen - 1] = '\0';
-  ierr = loadCudaFunction(qf, filename); CeedChk(ierr);
+  ierr = CeedCudaLoadQFunction(qf, filename); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Cuda); CeedChk(ierr);

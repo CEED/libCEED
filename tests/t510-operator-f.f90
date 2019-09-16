@@ -2,7 +2,7 @@
 ! 
 ! Header with common subroutine
 ! 
-      include 't310-basis-f.h'
+      include 't320-basis-f.h'
 !-----------------------------------------------------------------------
       subroutine setup(ctx,q,u1,u2,u3,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,&
 &           u15,u16,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15,v16,ierr)
@@ -57,7 +57,7 @@
       parameter(nqpts=nelem*q)
       integer indx(nelem*p)
       real*8 arrx(d*ndofs)
-      integer*8 voffset
+      integer*8 voffset,xoffset
 
       real*8 qref(d*q)
       real*8 qweight(q)
@@ -118,15 +118,15 @@
      & bu,err)
 
       call ceedqfunctioncreateinterior(ceed,1,setup,&
-     &__FILE__&
-     &//':setup'//char(0),qf_setup,err)
+     &SOURCE_DIR&
+     &//'t510-operator.h:setup'//char(0),qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'_weight',1,ceed_eval_weight,err)
-      call ceedqfunctionaddinput(qf_setup,'x',d,ceed_eval_grad,err)
+      call ceedqfunctionaddinput(qf_setup,'x',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setup,'rho',1,ceed_eval_none,err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,&
-     &__FILE__&
-     &//':mass'//char(0),qf_mass,err)
+     &SOURCE_DIR&
+     &//'t510-operator.h:mass'//char(0),qf_mass,err)
       call ceedqfunctionaddinput(qf_mass,'rho',1,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_mass,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_mass,'v',1,ceed_eval_interp,err)
@@ -135,7 +135,8 @@
       call ceedoperatorcreate(ceed,qf_mass,ceed_null,ceed_null,op_mass,err)
 
       call ceedvectorcreate(ceed,d*ndofs,x,err)
-      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,err)
+      xoffset=0
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,xoffset,err)
       call ceedvectorcreate(ceed,nqpts,qdata,err)
 
       call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&
@@ -161,7 +162,9 @@
       call ceedvectorgetarrayread(v,ceed_mem_host,hv,voffset,err)
       do i=1,ndofs
         if (abs(hv(voffset+i))>1.0d-10) then
+! LCOV_EXCL_START
           write(*,*) '[',i,'] v ',hv(voffset+i),' != 0.0'
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(v,hv,voffset,err)

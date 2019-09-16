@@ -13,7 +13,7 @@
       real*8 a(2*ne)
       real*8 yy(2*ne)
       real*8 diff
-      integer*8 yoffset
+      integer*8 aoffset,yoffset
 
       character arg*32
 
@@ -26,7 +26,8 @@
         a(i)=10+i-1
       enddo
 
-      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,err)
+      aoffset=0
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,aoffset,err)
 
       call ceedelemrestrictioncreateidentity(ceed,ne,2,2*ne,1,r,err)
 
@@ -39,7 +40,9 @@
       do i=1,ne*2
         diff=10+i-1-yy(yoffset+i)
         if (abs(diff) > 1.0D-15) then
+! LCOV_EXCL_START
           write(*,*) 'Error in restricted array y(',i,')=',yy(yoffset+i)
+! LCOV_EXCL_STOP
         endif
       enddo
       call ceedvectorrestorearrayread(y,yy,yoffset,err)

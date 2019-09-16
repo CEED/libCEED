@@ -180,13 +180,16 @@ often satisfied automatically due to the element size or by batching elements
 together to facilitate vectorization in other stages, and can always be ensured
 by padding.
 
-Different input and output fields are added individually, specifying the field
-name, number of components, and evaluation mode.
-
 In addition to the function pointers (`setup` and `mass`), `CeedQFunction`
 constructors take a string representation specifying where the source for the
 implementation is found. This is used by backends that support Just-In-Time
-(JIT) compilation (i.e., OCCA) to compile for coprocessors.
+(JIT) compilation (i.e., CUDA and OCCA) to compile for coprocessors.
+
+Different input and output fields are added individually, specifying the field
+name, size of the field, and evaluation mode.
+
+The size of the field is provided by a combination of the number of components
+the effect of any basis evaluations.
 
 The evaluation mode `CEED_EVAL_INTERP` for both input and output fields
 indicates that the mass operator only contains terms of the form
@@ -200,6 +203,11 @@ where *v* are test functions. More general operators, such as those of the form
 ![](https://latex.codecogs.com/svg.latex?$$\int_\Omega v f_0(u \nabla u)+\nabla v \cdot f_1(u \nabla u)$$)
 
 can be expressed.
+
+For fields with derivatives, such as with the basis evaluation mode
+`CEED_EVAL_GRAD`, the size of the field needs to reflect both the number of
+components and the geometric dimension. A 3-dimensional gradient on four components
+would therefore mean the field has a size of 12.
 
 The **B** operators for the mesh nodes, `bx`, and the unknown field, `bu`, are
 defined in the calls to the function `CeedBasisCreateTensorH1Lagrange()`. In this

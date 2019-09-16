@@ -5,7 +5,7 @@
 
       integer ceed,err
       integer x,n
-      integer*8 offset
+      integer*8 aoffset,boffset
       real*8 a(10)
       real*8 b(10)
       real*8 diff
@@ -23,17 +23,20 @@
         a(i)=10+i
       enddo
 
-      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,err)
-      call ceedvectorgetarrayread(x,ceed_mem_host,b,offset,err)
+      aoffset=0
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,aoffset,err)
+      call ceedvectorgetarrayread(x,ceed_mem_host,b,boffset,err)
 
       do i=1,10
-        diff=b(i+offset)-10-i
+        diff=b(i+boffset)-10-i
         if (abs(diff)>1.0D-15) then
-          write(*,*) 'Error reading array b(',i,')=',b(i+offset)
+! LCOV_EXCL_START
+          write(*,*) 'Error reading array b(',i,')=',b(i+boffset)
+! LCOV_EXCL_STOP
         endif
       enddo
 
-      call ceedvectorrestorearrayread(x,b,offset,err)
+      call ceedvectorrestorearrayread(x,b,boffset,err)
       call ceedvectordestroy(x,err)
       call ceeddestroy(ceed,err)
 

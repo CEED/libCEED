@@ -3,7 +3,7 @@
   <!-- Navigation index tabs for HTML output -->
   <navindex>
     <tab type="mainpage" visible="yes" title="Main Page"/>
-    <tab type="modules" visible="yes" title="libCeed Interface" intro=""/>
+    <tab type="modules" visible="yes" title="libCEED Interface" intro=""/>
     <tab type="pages" visible="yes" title="Contributing and Developing" intro=""/>
     <tab type="namespaces" visible="yes" title="">
       <tab type="namespacelist" visible="yes" title="" intro=""/>

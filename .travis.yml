@@ -14,10 +14,13 @@ compiler:
 
 addons:
   apt:
+    update: true
     packages:
     - gfortran
     - liblapack-dev
     - libopenblas-dev
+    - valgrind-dbg
+    - lcov
   homebrew:
     packages:
     - ccache
@@ -26,7 +29,7 @@ addons:
     - openblas
 
 env:
-  - FC=gfortran
+  - FC=gfortran PETSC_VER=73f49a0
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -38,7 +41,8 @@ install:
   - make -C occa -j2
   - export OCCA_DIR=$PWD/occa
 # libXSMM
-  - git clone --depth 1 https://github.com/hfp/libxsmm.git;
+  - git clone https://github.com/hfp/libxsmm.git;
+  - cd libxsmm && git reset --hard 07e360a && cd ..; # Workaround for LIBXSM bug
   - make -C libxsmm -j2
   - export XSMM_DIR=$PWD/libxsmm
 # MFEM
@@ -48,13 +52,14 @@ install:
 # Nek5k
   - git clone --depth 1 https://github.com/Nek5000/Nek5000.git;
   - cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..;
-  - export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH;
+  - export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH MPI=0;
 # PETSc
-  - export PETSC_INSTALL=$HOME/install/petsc-3.11.0
+  - export PETSC_INSTALL=$HOME/install/petsc-$PETSC_VER
   - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
-        || ( curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.11.0.tar.gz
-        && tar xf petsc-lite-3.11.0.tar.gz
-        && cd petsc-3.11.0
+        || ( rm -rf $HOME/install/petsc*
+        && git clone https://github.com/petsc/petsc.git
+        && cd petsc
+        && git reset --hard $PETSC_VER
         && ./configure --with-debugging=0 COPTFLAGS=-O --with-mpi=0 --with-fc=0 --with-cxx=0 --prefix=$PETSC_INSTALL
         && make
         && make install )
@@ -64,12 +69,18 @@ script:
   - export COVERAGE=1
   - make -j2
   - make -j2 prove-all PROVE_OPTS=-v
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        clang-tidy --version && make -j2 tidy;
+    fi
 
 after_success:
-  - bash <(curl -s https://codecov.io/bash) -F interface
-  - bash <(curl -s https://codecov.io/bash) -F backends
-  - bash <(curl -s https://codecov.io/bash) -F tests
-  - bash <(curl -s https://codecov.io/bash) -F examples
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        lcov --directory . --capture --output-file coverage.info
+        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F interface
+        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F backends
+        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F tests
+        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F examples;
+    fi
 
 cache:
   ccache: true

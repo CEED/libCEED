@@ -50,7 +50,7 @@
       integer indx(nelem*2)
       integer indu(nelem*p)
       real*8 arrx(nx)
-      integer*8 voffset
+      integer*8 voffset,xoffset
 
       real*8 hu(nu*2),hv(nu*2)
       real*8 total1,total2
@@ -90,15 +90,15 @@
       call ceedbasiscreatetensorh1lagrange(ceed,1,2,p,q,ceed_gauss,bu,err)
 
       call ceedqfunctioncreateinterior(ceed,1,setup,&
-     &__FILE__&
-     &//':setup'//char(0),qf_setup,err)
+     &SOURCE_DIR&
+     &//'t502-operator.h:setup'//char(0),qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'_weight',1,ceed_eval_weight,err)
-      call ceedqfunctionaddinput(qf_setup,'x',1,ceed_eval_grad,err)
+      call ceedqfunctionaddinput(qf_setup,'dx',1,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setup,'rho',1,ceed_eval_none,err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,&
-     &__FILE__&
-     &//':mass'//char(0),qf_mass,err)
+     &SOURCE_DIR&
+     &//'t502-operator.h:mass'//char(0),qf_mass,err)
       call ceedqfunctionaddinput(qf_mass,'rho',1,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_mass,'u',2,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_mass,'v',2,ceed_eval_interp,err)
@@ -107,12 +107,13 @@
       call ceedoperatorcreate(ceed,qf_mass,ceed_null,ceed_null,op_mass,err)
 
       call ceedvectorcreate(ceed,nx,x,err)
-      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,err)
+      xoffset=0
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,xoffset,err)
       call ceedvectorcreate(ceed,nelem*q,qdata,err)
 
       call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&
      & ceed_notranspose,bx,ceed_vector_none,err)
-      call ceedoperatorsetfield(op_setup,'x',erestrictx,&
+      call ceedoperatorsetfield(op_setup,'dx',erestrictx,&
      & ceed_notranspose,bx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rho',erestrictui,&
      & ceed_notranspose,ceed_basis_collocated,ceed_vector_active,err)
@@ -143,10 +144,14 @@
         total2=total2+hv(voffset+2*i)
       enddo
       if (abs(total1-1.)>1.0d-10) then
+! LCOV_EXCL_START
         write(*,*) 'Computed Area: ',total1,' != True Area: 1.0'
+! LCOV_EXCL_STOP
       endif
       if (abs(total2-2.)>1.0d-10) then
+! LCOV_EXCL_START
         write(*,*) 'Computed Area: ',total2,' != True Area: 2.0'
+! LCOV_EXCL_STOP
       endif
       call ceedvectorrestorearrayread(v,hv,voffset,err)
 

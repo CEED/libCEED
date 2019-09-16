@@ -43,12 +43,12 @@ static struct CeedVector_private ceed_vector_none;
 int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   int ierr;
 
-  if (!ceed->VecCreate) {
+  if (!ceed->VectorCreate) {
     Ceed delegate;
-    ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "Vector"); CeedChk(ierr);
 
     if (!delegate)
-      return CeedError(ceed, 1, "Backend does not support VecCreate");
+      return CeedError(ceed, 1, "Backend does not support VectorCreate");
 
     ierr = CeedVectorCreate(delegate, length, vec); CeedChk(ierr);
     return 0;
@@ -60,17 +60,19 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   (*vec)->refcount = 1;
   (*vec)->length = length;
   (*vec)->state = 0;
-  ierr = ceed->VecCreate(length, *vec); CeedChk(ierr);
+  ierr = ceed->VectorCreate(length, *vec); CeedChk(ierr);
   return 0;
 }
 
 /**
-  @brief Set the array used by a CeedVector, freeing any previously allocated array if applicable
+  @brief Set the array used by a CeedVector, freeing any previously allocated
+    array if applicable
 
   @param vec   CeedVector
   @param mtype Memory type of the array being passed
   @param cmode Copy mode for the array
-  @param array Array to be used, or NULL with CEED_COPY_VALUES to have the library allocate
+  @param array Array to be used, or NULL with CEED_COPY_VALUES to have the
+                 library allocate
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -141,7 +143,7 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype) {
   int ierr;
 
-  if (vec && (vec->state % 2) == 1)
+  if (vec->state % 2 == 1)
     return CeedError(vec->ceed, 1,
                      "Cannot sync CeedVector, the access lock is already in use");
 
@@ -362,7 +364,7 @@ int CeedVectorGetData(CeedVector vec, void* *data) {
   @brief Set the backend data of a CeedVector
 
   @param[out] vec     CeedVector to retrieve state
-  @paramdata          Data to set
+  @param data         Data to set
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -402,7 +404,8 @@ int CeedVectorDestroy(CeedVector *vec) {
 }
 
 /// @cond DOXYGEN_SKIP
-// Indicate that vector will be provided as an explicit argument to CeedOperatorApply().
+// Indicate that vector will be provided as an explicit argument to
+//   CeedOperatorApply().
 CeedVector CEED_VECTOR_ACTIVE = &ceed_vector_active;
 
 // Indicate that no vector is applicable (i.e., for CEED_EVAL_WEIGHTS).

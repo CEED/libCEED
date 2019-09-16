@@ -49,7 +49,7 @@ static int CeedDestroy_Occa(Ceed ceed) {
   dbg("[CeedDestroy]");
   ierr = CeedFree(&data->occa_cache_dir); CeedChk(ierr);
   occaFree(data->device);
-  ierr = CeedFree(&data->libceed_dir);
+  ierr = CeedFree(&data->libceed_dir); CeedChk(ierr);
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
@@ -110,7 +110,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
                                 CeedError_Occa); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
                                 CeedDestroy_Occa); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VecCreate",
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate",
                                 CeedVectorCreate_Occa); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Occa); CeedChk(ierr);

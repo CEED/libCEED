@@ -1,4 +1,4 @@
-# libCEED: Navier-Stokes Example
+## libCEED: Navier-Stokes Example
 
 This page provides a description of the Navier-Stokes example for the libCEED library, based on PETSc.
 
@@ -22,6 +22,10 @@ Available runtime options are:
 | :----------------------- | :--------------------------------------------------|
 | `-ceed`                  | CEED resource specifier                            |
 | `-problem`               | Problem to solve (`advection` or `density_current`)|
+| `-meter`                 | 1 meter in scaled length units                     |
+| `-second`                | 1 second in scaled time units                      |
+| `-kilogram`              | 1 kilogram in scaled mass units                    |
+| `-Kelvin`                | 1 Kelvin in scaled temperature units               |
 | `-theta0`                | Reference potential temperature                    |
 | `-thetaC`                | Perturbation of potential temperature              |
 | `-P0`                    | Atmospheric pressure                               |
@@ -45,7 +49,7 @@ Available runtime options are:
 | `-resy`                  | Resolution in y                                    |
 | `-resz`                  | Resolution in z                                    |
 
-## Advection
+### Advection
 
 This problem solves the convection (advection) equation for the total (scalar) energy density,
 transported by the (vector) velocity field.
@@ -66,7 +70,7 @@ Advection Equation:
 
    *dE/dt + div( E _u_ ) = 0*
 
-### Initial Conditions
+#### Initial Conditions
 
 Mass Density:
     Constant mass density of 1.0
@@ -78,7 +82,7 @@ Energy Density:
     Maximum of 1. x0 decreasing linearly to 0. as radial distance increases
     to 1/8, then 0. everywhere else
 
-### Boundary Conditions
+#### Boundary Conditions
 
 Mass Density:
     0.0 flux
@@ -89,10 +93,13 @@ Momentum Density:
 Energy Density:
     0.0 flux
 
-## Density Current
+### Density Current
 
 This problem solves the full compressible Navier-Stokes equations, using
-operator composition and design of coupled solvers in the context of atmospheric modeling.
+operator composition and design of coupled solvers in the context of atmospheric
+modeling. This problem uses the formulation given in Semi-Implicit Formulations
+of the Navier-Stokes Equations: Application to Nonhydrostatic Atmospheric Modeling,
+Giraldo, Restelli, and Lauter (2010).
 
 The 3D compressible Navier-Stokes equations are formulated in conservation form with state
 variables of density, momentum density, and total energy density.
@@ -147,7 +154,7 @@ Constants:
  
    *gamma  = c<sub>p</sub> / c<sub>v</sub>*,  Specific heat ratio
 
-### Initial Conditions
+#### Initial Conditions
 
 Potential Temperature:
 
@@ -207,7 +214,7 @@ Constants:
    *l<sub>z</sub>*              ,  Characteristic length scale of domain in z
    
 
-### Boundary Conditions
+#### Boundary Conditions
 
 Mass Density:
     0.0 flux
@@ -218,12 +225,12 @@ Momentum Density:
 Energy Density:
     0.0 flux
 
-## Time Discretization
+### Time Discretization
 
 For all different problems, the time integration is performed with an explicit formulation, therefore
 it can be subject to numerical instability, if run for large times or with large time steps.
 
-## Space Discretization
+### Space Discretization
 
 The geometric factors and coordinate transformations required for the integration of the weak form
 are described in the file [`common.h`](common.h)

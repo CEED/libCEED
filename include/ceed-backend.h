@@ -48,11 +48,15 @@ CEED_INTERN int CeedFree(void *p);
 #define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
 CEED_EXTERN int CeedRegister(const char *prefix,
-                             int (*init)(const char *, Ceed), unsigned int priority);
+    int (*init)(const char *, Ceed), unsigned int priority);
 
 CEED_EXTERN int CeedGetParent(Ceed ceed, Ceed *parent);
 CEED_EXTERN int CeedGetDelegate(Ceed ceed, Ceed *delegate);
-CEED_EXTERN int CeedSetDelegate(Ceed ceed, Ceed *delegate);
+CEED_EXTERN int CeedSetDelegate(Ceed ceed, Ceed delegate);
+CEED_EXTERN int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate,
+                                      const char *objname);
+CEED_EXTERN int CeedSetObjectDelegate(Ceed ceed, Ceed delegate,
+                                      const char *objname);
 CEED_EXTERN int CeedSetBackendFunction(Ceed ceed,
                                        const char *type, void *object,
                                        const char *fname, int (*f)());
@@ -64,17 +68,14 @@ CEED_EXTERN int CeedVectorGetState(CeedVector vec, uint64_t *state);
 CEED_EXTERN int CeedVectorGetData(CeedVector vec, void* *data);
 CEED_EXTERN int CeedVectorSetData(CeedVector vec, void* *data);
 
-CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
-    CeedVector *lvec,
-    CeedVector *evec);
 CEED_EXTERN int CeedElemRestrictionGetCeed(CeedElemRestriction rstr,
     Ceed *ceed);
 CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
     CeedInt *numelem);
 CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
     CeedInt *elemsize);
-CEED_EXTERN int CeedElemRestrictionGetNumDoF(CeedElemRestriction rstr,
-    CeedInt *numdof);
+CEED_EXTERN int CeedElemRestrictionGetNumNodes(CeedElemRestriction rstr,
+    CeedInt *numnodes);
 CEED_EXTERN int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
     CeedInt *numcomp);
 CEED_EXTERN int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
@@ -112,9 +113,11 @@ CEED_EXTERN int CeedBasisSetTensorContract(CeedBasis basis,
 CEED_EXTERN int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
     CeedTensorContract *contract);
 CEED_EXTERN int CeedTensorContractApply(CeedTensorContract contract, CeedInt A,
-                                        CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
-                                        CeedTransposeMode tmode, const CeedInt Add, const CeedScalar *restrict u,
-                                        CeedScalar *restrict v);
+                                        CeedInt B, CeedInt C, CeedInt J,
+                                        const CeedScalar *t,
+                                        CeedTransposeMode tmode,
+                                        const CeedInt Add, const CeedScalar *u,
+                                        CeedScalar *v);
 CEED_EXTERN int CeedTensorContractGetCeed(CeedTensorContract contract,
     Ceed *ceed);
 CEED_EXTERN int CeedTensorContractGetData(CeedTensorContract contract,
@@ -123,13 +126,15 @@ CEED_EXTERN int CeedTensorContractSetData(CeedTensorContract contract,
     void* *data);
 CEED_EXTERN int CeedTensorContractDestroy(CeedTensorContract *contract);
 
+CEED_EXTERN int CeedQFunctionRegister(const char *, const char *, CeedInt,
+    CeedQFunctionUser, int (*init)(Ceed, const char *, CeedQFunction));
 CEED_EXTERN int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
 CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf,
     CeedInt *vlength);
 CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf,
                                         CeedInt *numinputfields,
                                         CeedInt *numoutputfields);
-CEED_EXTERN int CeedQFunctionGetFOCCA(CeedQFunction qf, char* *focca);
+CEED_EXTERN int CeedQFunctionGetSourcePath(CeedQFunction qf, char* *source);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
     int (**f)());
 CEED_EXTERN int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize);
@@ -145,8 +150,8 @@ CEED_EXTERN int CeedQFunctionGetFields(CeedQFunction qf,
                                        CeedQFunctionField* *outputfields);
 CEED_EXTERN int CeedQFunctionFieldGetName(CeedQFunctionField qffield,
     char* *fieldname);
-CEED_EXTERN int CeedQFunctionFieldGetNumComponents(CeedQFunctionField qffield,
-    CeedInt *numcomp);
+CEED_EXTERN int CeedQFunctionFieldGetSize(CeedQFunctionField qffield,
+    CeedInt *size);
 CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
     CeedEvalMode *emode);
 

@@ -5,26 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-static int setup(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                 CeedScalar *const *out) {
-  const CeedScalar *weight = in[0], *dxdX = in[1];
-  CeedScalar *rho = out[0];
-  for (CeedInt i=0; i<Q; i++) {
-    rho[i] = weight[i] * dxdX[i];
-  }
-  return 0;
-}
-
-static int mass(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                CeedScalar *const *out) {
-  const CeedScalar *rho = in[0], *u = in[1];
-  CeedScalar *v = out[0];
-  for (CeedInt i=0; i<Q; i++) {
-    v[i]   = rho[i] * u[i];
-    v[Q+i] = rho[i] * u[Q+i];
-  }
-  return 0;
-}
+#include "t502-operator.h"
 
 int main(int argc, char **argv) {
   Ceed ceed;
@@ -42,7 +23,9 @@ int main(int argc, char **argv) {
   CeedScalar sum1, sum2;
 
   CeedInit(argv[1], &ceed);
-  for (CeedInt i=0; i<Nx; i++) x[i] = (CeedScalar) i / (Nx - 1);
+
+  for (CeedInt i=0; i<Nx; i++)
+    x[i] = (CeedScalar) i / (Nx - 1);
   for (CeedInt i=0; i<nelem; i++) {
     indx[2*i+0] = i;
     indx[2*i+1] = i+1;
@@ -66,12 +49,12 @@ int main(int argc, char **argv) {
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 2, P, Q, CEED_GAUSS, &bu);
 
   // QFunctions
-  CeedQFunctionCreateInterior(ceed, 1, setup, __FILE__ ":setup", &qf_setup);
+  CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
   CeedQFunctionAddInput(qf_setup, "_weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddInput(qf_setup, "x", 1, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setup, "dx", 1*1, CEED_EVAL_GRAD);
   CeedQFunctionAddOutput(qf_setup, "rho", 1, CEED_EVAL_NONE);
 
-  CeedQFunctionCreateInterior(ceed, 1, mass, __FILE__ ":mass", &qf_mass);
+  CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_mass);
   CeedQFunctionAddInput(qf_mass, "rho", 1, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_mass, "u", 2, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_mass, "v", 2, CEED_EVAL_INTERP);
@@ -87,7 +70,7 @@ int main(int argc, char **argv) {
 
   CeedOperatorSetField(op_setup, "_weight", Erestrictxi, CEED_NOTRANSPOSE,
                        bx, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "x", Erestrictx, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE,
                        bx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "rho", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);

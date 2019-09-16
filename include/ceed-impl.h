@@ -28,7 +28,6 @@
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
 
-#define CEED_NUM_BACKEND_FUNCTIONS 30
 #define CEED_COMPOSITE_MAX 16
 
 // Lookup table field for backend functions
@@ -37,14 +36,22 @@ typedef struct {
   size_t offset;
 } foffset;
 
+// Lookup table field for object delegates
+typedef struct {
+  char *objname;
+  Ceed delegate;
+} objdelegate;
+
 struct Ceed_private {
   Ceed delegate;
   Ceed parent;
+  objdelegate *objdelegates;
+  int objdelegatecount;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *,
                va_list);
   int (*GetPreferredMemType)(CeedMemType *);
   int (*Destroy)(Ceed);
-  int (*VecCreate)(CeedInt, CeedVector);
+  int (*VectorCreate)(CeedInt, CeedVector);
   int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode,
                                const CeedInt *, CeedElemRestriction);
   int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode,
@@ -62,7 +69,7 @@ struct Ceed_private {
   int (*CompositeOperatorCreate)(CeedOperator);
   int refcount;
   void *data;
-  foffset foffsets[CEED_NUM_BACKEND_FUNCTIONS];
+  foffset *foffsets;
 };
 
 struct CeedVector_private {
@@ -86,11 +93,13 @@ struct CeedElemRestriction_private {
   Ceed ceed;
   int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedTransposeMode,
                CeedVector, CeedVector, CeedRequest *);
+  int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode,
+                    CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*Destroy)(CeedElemRestriction);
   int refcount;
   CeedInt nelem;    /* number of elements */
-  CeedInt elemsize; /* number of dofs per element */
-  CeedInt ndof;     /* size of the L-vector, can be used for checking for
+  CeedInt elemsize; /* number of nodes per element */
+  CeedInt nnodes;   /* size of the L-vector, can be used for checking for
                       correct vector sizes */
   CeedInt ncomp;    /* number of components */
   CeedInt blksize;  /* number of elements in a batch */
@@ -137,7 +146,7 @@ struct CeedTensorContract_private {
 
 struct CeedQFunctionField_private {
   const char *fieldname;
-  CeedInt ncomp;
+  CeedInt size;
   CeedEvalMode emode;
 };
 
@@ -151,7 +160,8 @@ struct CeedQFunction_private {
   CeedQFunctionField *outputfields;
   CeedInt numinputfields, numoutputfields;
   CeedQFunctionUser function;
-  const char *focca;
+  const char *sourcepath;
+  const char *qfname;
   bool fortranstatus;
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */

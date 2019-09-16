@@ -20,7 +20,9 @@
       call ceedvectorgetarray(x,ceed_mem_host,a,aoffset,err)
 
       call ceedvectordestroy(x,err)
+! LCOV_EXCL_START
       call ceeddestroy(ceed,err)
 
       end
+! LCOV_EXCL_STOP
 !-----------------------------------------------------------------------

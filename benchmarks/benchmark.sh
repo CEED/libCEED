@@ -26,6 +26,7 @@ else
 fi
 test_file=""
 backend_list="/cpu/self"
+bp_list="bp1 bp3"
 run=""
 num_proc_run=${num_proc_run:-""}
 num_proc_node=${num_proc_node:-""}
@@ -67,6 +68,7 @@ $this_file [options]
 
 Options:
    -h|--help                print this usage information and exit
+   -b|--bp \"list\"           choose the benchmark problems to run
    -c|--ceed \"list\"         choose the libCEED backends to benchmark
    -r|--run <name>          run the tests in the script <name>
    -n|--num-proc \"list\"     total number of MPI tasks to use in the tests
@@ -81,7 +83,7 @@ This script builds and runs a set of benchmarks for a list of specified
 backends.
 
 Example usage:
-  $this_file  --run petsc-bp1.sh
+  $this_file  --run petsc-bps.sh
 "
 
 
@@ -151,6 +153,12 @@ case "$1" in
       echo "$help_msg"
       $exit_cmd
       ;;
+   -b|--bp)
+      shift
+      [ $# -gt 0 ] || {
+      echo "Missing \"list\" in --bp \"list\""; $exit_cmd 1; }
+      bp_list="$1"
+      ;;
    -c|--ceed)
       shift
       [ $# -gt 0 ] || {
@@ -216,6 +224,9 @@ as the size of the number-of-processors-per-node list (option --proc-node)."
    $exit_cmd 1
 }
 
+### Loop over BPs
+
+for bp in $bp_list; do
 
 ### Loop over backends
 
@@ -231,7 +242,7 @@ test_file="${test_dir}/${test_basename}"
 ### Backend name
 short_backend=${backend//[\/]}
 ### Output file
-output_file="${test_file%%.*}-$short_backend-output.txt"
+output_file="${test_file%%.*}-$bp-$short_backend-output.txt"
 rm -rf output_file
 
 ### Setup the environment based on $backend
@@ -328,6 +339,8 @@ $exit_cmd 0
    $exit_cmd 1
 }
 done ## Loop over $backend_list
+
+done ## Loop over $bp_list
 
 
 $exit_cmd 0
