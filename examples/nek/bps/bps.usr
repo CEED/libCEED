@@ -810,8 +810,8 @@ C     Create ceed vectors
 
 C     Create ceed qfunctions for masssetupf and massf
       call ceedqfunctioncreateinterior(ceed,1,masssetupf,
-     $  __FILE__
-     $  //':masssetupf',qf_setup,err)
+     $  EXAMPLE_DIR
+     $  //'bps/bps.h:masssetupf',qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'x',ncompx,
      $  ceed_eval_interp,err)
       call ceedqfunctionaddinput(qf_setup,'dx',ncompx*ldim,
@@ -824,8 +824,8 @@ C     Create ceed qfunctions for masssetupf and massf
      $  ceed_eval_interp,err)
 
       call ceedqfunctioncreateinterior(ceed,1,massf,
-     $  __FILE__
-     $  //':massf',qf_mass,err)
+     $  EXAMPLE_DIR
+     $  //'bps/bps.h:massf',qf_mass,err)
       call ceedqfunctionaddinput(qf_mass,'u',ncompu,
      $  ceed_eval_interp,err)
       call ceedqfunctionaddinput(qf_mass,'qdata',ncompu,
@@ -1127,8 +1127,8 @@ C     Create ceed vectors
 
 C     Create ceed qfunctions for diffsetupf and diffusionf
       call ceedqfunctioncreateinterior(ceed,1,diffsetupf,
-     $  __FILE__
-     $  //':diffsetupf'//char(0),qf_setup,err)
+     $  EXAMPLE_DIR
+     $  //'bps/bps.h:diffsetupf'//char(0),qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'x',ncompx,
      $  ceed_eval_interp,err)
       call ceedqfunctionaddinput(qf_setup,'dx',ncompx*ldim,
@@ -1141,8 +1141,8 @@ C     Create ceed qfunctions for diffsetupf and diffusionf
      $  ceed_eval_interp,err)
 
       call ceedqfunctioncreateinterior(ceed,1,diffusionf,
-     $  __FILE__
-     $  //':diffusionf'//char(0),qf_diffusion,err)
+     $  EXAMPLE_DIR
+     $  //'bps/bps.h:diffusionf'//char(0),qf_diffusion,err)
       call ceedqfunctionaddinput(qf_diffusion,'u',ncompu*ldim,
      $  ceed_eval_grad,err)
       call ceedqfunctionaddinput(qf_diffusion,'qdata',ngeo,

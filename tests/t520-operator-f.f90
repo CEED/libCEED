@@ -141,15 +141,15 @@
 
 ! -- QFunctions
       call ceedqfunctioncreateinterior(ceed,1,setup,&
-     &__FILE__&
-     &//':setup'//char(0),qf_setuptet,err)
+     &SOURCE_DIR&
+     &//'t520-operator.h:setup'//char(0),qf_setuptet,err)
       call ceedqfunctionaddinput(qf_setuptet,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setuptet,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setuptet,'rho',1,ceed_eval_none,err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,&
-     &__FILE__&
-     &//':mass'//char(0),qf_masstet,err)
+     &SOURCE_DIR&
+     &//'t520-operator.h:mass'//char(0),qf_masstet,err)
       call ceedqfunctionaddinput(qf_masstet,'rho',1,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_masstet,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_masstet,'v',1,ceed_eval_interp,err)
@@ -205,15 +205,15 @@
 
 ! -- QFunctions
       call ceedqfunctioncreateinterior(ceed,1,setup,&
-     &__FILE__&
-     &//':setup'//char(0),qf_setuphex,err)
+     &SOURCE_DIR&
+     &//'t520-operator.h:setup'//char(0),qf_setuphex,err)
       call ceedqfunctionaddinput(qf_setuphex,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setuphex,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setuphex,'rho',1,ceed_eval_none,err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,&
-     &__FILE__&
-     &//':mass'//char(0),qf_masshex,err)
+     &SOURCE_DIR&
+     &//'t520-operator.h:mass'//char(0),qf_masshex,err)
       call ceedqfunctionaddinput(qf_masshex,'rho',1,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_masshex,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_masshex,'v',1,ceed_eval_interp,err)

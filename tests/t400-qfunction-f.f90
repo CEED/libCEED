@@ -51,14 +51,14 @@
       call ceedinit(trim(arg)//char(0),ceed,err)
 
       call ceedqfunctioncreateinterior(ceed,1,setup,&
-     &__FILE__&
-     &//':setup'//char(0),qf_setup,err)
+     &SOURCE_DIR&
+     &//'t400-qfunction.h:setup'//char(0),qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'w', 1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_setup,'qdata',1,ceed_eval_interp,err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,&
-     &__FILE__&
-     &//':mass'//char(0),qf_mass,err)
+     &SOURCE_DIR&
+     &//'t400-qfunction.h:mass'//char(0),qf_mass,err)
       call ceedqfunctionaddinput(qf_mass,'qdata',1,ceed_eval_interp,err)
       call ceedqfunctionaddinput(qf_mass,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_mass,'v',1,ceed_eval_interp,err)
