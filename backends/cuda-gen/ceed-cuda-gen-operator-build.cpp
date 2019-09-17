@@ -887,6 +887,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "data.tidz = threadIdx.z;\n";
   code << "data.tid  = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;\n";
   code << "data.slice = slice+data.tidz*Q1d"<<(dim>1?"*Q1d":"")<<";\n";
+  //Initialize constants, and matrices B and G
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "// Input field "<<i<<"\n";
     // Get elemsize, emode, ncomp
@@ -1015,6 +1016,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "__syncthreads();\n";
   code << "for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {\n";
   // Input basis apply if needed
+  // Generate the correct eval mode code for each input
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "  // Input field "<<i<<"\n";
     // Get elemsize, emode, ncomp
@@ -1212,6 +1214,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   }
 
   // Output basis apply if needed
+  // Generate the correct eval mode code for each output
   for (CeedInt i = 0; i < numoutputfields; i++) {
     code << "  // Output field "<<i<<"\n";
     // Get elemsize, emode, ncomp
