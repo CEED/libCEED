@@ -26,7 +26,7 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
   CeedInit("/gpu/cuda/ref", &ceedref);
-  ierr = CeedSetDelegate(ceed, &ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   ierr = magma_init();
   if (ierr) return CeedError(ceed, 1, "error in magma_init(): %d\n", ierr);
