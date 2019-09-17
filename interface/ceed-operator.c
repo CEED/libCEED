@@ -25,7 +25,9 @@
 ///   @{
 
 /**
-  @brief Create an operator from element restriction, basis, and QFunction
+  @brief Create a CeedOperator and associate a CeedQFunction. A CeedBasis and
+           CeedElemRestriction can be associated with CeedQFunction fields with
+           \ref CeedOperatorSetField.
 
   @param ceed    A Ceed object where the CeedOperator will be created
   @param qf      QFunction defining the action of the operator at quadrature points

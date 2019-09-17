@@ -166,12 +166,12 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
 
 /**
   @brief Create an identity CeedQFunction. Inputs are written into outputs in
-           the order given. This is useful for CeedOperators of the form
-           A = G^T B^T I B G. These operators can be represented with only the
-           action of a CeedRestriction and CeedBasis, such as restriction and
-           prolongation operators for p-multigrid. Backends may optimize
-           CeedOperators with this CeedQFunction to avoid the copy of input data
-           to output fields by using the same memory location for both.
+           the order given. This is useful for CeedOperators that can be
+           represented with only the action of a CeedRestriction and CeedBasis,
+           such as restriction and prolongation operators for p-multigrid.
+           Backends may optimize CeedOperators with this CeedQFunction to avoid
+           the copy of input data to output fields by using the same memory
+           location for both.
 
   @param ceed       A Ceed object where the CeedQFunction will be created
   @param size       Size of the qfunction fields
