@@ -141,6 +141,12 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
   int ierr;
   if (op->composite)
     return CeedError(op->ceed, 1, "Cannot add field to composite operator.");
+  if (!r)
+    return CeedError(op->ceed, 1, "ElemRestriction r for field \"%s\" must be non-NULL.", fieldname);
+  if (!b)
+    return CeedError(op->ceed, 1, "Basis b for field \"%s\" must be non-NULL.", fieldname);
+  if (!v)
+    return CeedError(op->ceed, 1, "Vector v for field \"%s\" must be non-NULL.", fieldname);
 
   CeedInt numelements;
   ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
