@@ -16,8 +16,8 @@
 
 /**
  This file is not compiled into libCEED. This file provides a template to
-   build additional gallery QFunctions. Copy this file and the registeration/
-   initalization .c file to a new folder in this directory and modify.
+   build additional gallery QFunctions. Copy this file and the registration/
+   initialization .c file to a new folder in this directory and modify.
 **/
 
 /**

@@ -19,13 +19,7 @@
 #include "ceed-identity.h"
 
 /**
- This file is not compiled into libCEED. This file provides a template to
-   build additional gallery QFunctions. Copy this file and the header to a
-   new folder in this directory and modify.
-**/
-
-/**
-  @brief Set fields for new Ceed QFunction
+  @brief Set fields identity QFunction that copies inputs directly into outputs
 **/
 static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested,
     CeedQFunction qf) {
@@ -46,7 +40,7 @@ static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested,
 }
 
 /**
-  @brief Register new Ceed QFunction
+  @brief Register identity QFunction that copies inputs directly into outputs
 **/
 __attribute__((constructor))
 static void Register(void) {
