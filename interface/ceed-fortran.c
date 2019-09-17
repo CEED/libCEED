@@ -593,6 +593,23 @@ void fCeedQFunctionCreateInteriorByName(int *ceed, const char *name, int *qf,
   }
 }
 
+#define fCeedQFunctionCreateIdentity \
+    FORTRAN_NAME(ceedqfunctioncreateidentity, CEEDQFUNCTIONCREATEIDENTITY)
+void fCeedQFunctionCreateIdentity(int *ceed, int *size, int *qf, int *err) {
+  if (CeedQFunction_count == CeedQFunction_count_max) {
+    CeedQFunction_count_max += CeedQFunction_count_max/2 + 1;
+    CeedRealloc(CeedQFunction_count_max, &CeedQFunction_dict);
+  }
+
+  CeedQFunction *qf_ = &CeedQFunction_dict[CeedQFunction_count];
+  *err = CeedQFunctionCreateIdentity(Ceed_dict[*ceed], *size, qf_);
+
+  if (*err == 0) {
+    *qf = CeedQFunction_count++;
+    CeedQFunction_n++;
+  }
+}
+
 #define fCeedQFunctionAddInput \
     FORTRAN_NAME(ceedqfunctionaddinput,CEEDQFUNCTIONADDINPUT)
 void fCeedQFunctionAddInput(int *qf, const char *fieldname,

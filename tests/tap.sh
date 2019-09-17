@@ -101,9 +101,10 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to skip tests t410 and ex1 for OCCA' \
+    # grep to skip tests t41*, ex1, and ex2 for OCCA
+    #  This exception will be removed with the OCCA backend overhaul
     if grep -F -q -e 'OklPath' ${output}.err \
-            && [[ "$1" = "t410"* || "$1" = "ex"* ]] ; then
+            && [[ "$1" = "t41"* || "$1" = "ex"* ]] ; then
         printf "ok $i0 # SKIP - gallery not supported $1 $backend\n"
         printf "ok $i1 # SKIP - gallery not supported $1 $backend stdout\n"
         printf "ok $i2 # SKIP - gallery not supported $1 $backend stderr\n"

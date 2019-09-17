@@ -14,28 +14,36 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-/**
- This file is not compiled into libCEED. This file provides a template to
-   build additional gallery QFunctions. Copy this file and the registration/
-   initialization .c file to a new folder in this directory and modify.
-**/
+#include <string.h>
+#include "ceed-backend.h"
+#include "ceed-identity.h"
 
 /**
-  @brief New Ceed QFunction
+  @brief Set fields identity QFunction that copies inputs directly into outputs
 **/
-CEED_QFUNCTION(GalleryTemplate)(void *ctx, const CeedInt Q,
-                                const CeedScalar *const *in,
-                                CeedScalar *const *out) {
-  // in[0] is u, size (Q)
-  // in[1] is quadrature data, size (Q)
-  const CeedScalar *u = in[0], *qd = in[1];
-  // out[0] is v, size (Q)
-  CeedScalar *v = out[0];
+static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested,
+    CeedQFunction qf) {
+  int ierr;
 
-  // Quadrature point loop
-  for (CeedInt i=0; i<Q; i++) {
-    v[i] = u[i] * qd[i];
-  }
+  // Check QFunction name
+  const char *name = "Identity";
+  if (strcmp(name, requested))
+    return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
+                     name, requested);
+
+  // Add QFunction fields
+  ierr = CeedQFunctionAddInput(qf, "input", 1, CEED_EVAL_INTERP); CeedChk(ierr);
+  ierr = CeedQFunctionAddOutput(qf, "output", 1, CEED_EVAL_INTERP);
+  CeedChk(ierr);
 
   return 0;
+}
+
+/**
+  @brief Register identity QFunction that copies inputs directly into outputs
+**/
+__attribute__((constructor))
+static void Register(void) {
+  CeedQFunctionRegister("Identity", Identity_loc, 1, Identity,
+                        CeedQFunctionInit_Identity);
 }

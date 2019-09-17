@@ -142,6 +142,8 @@ CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, void* *ctx);
 CEED_EXTERN int CeedQFunctionGetInnerContext(CeedQFunction qf, void* *ctx);
 CEED_EXTERN int CeedQFunctionGetFortranStatus(CeedQFunction qf,
     bool *fortranstatus);
+CEED_EXTERN int CeedQFunctionGetIdentityStatus(CeedQFunction qf,
+    bool *identity);
 CEED_EXTERN int CeedQFunctionGetData(CeedQFunction qf, void* *data);
 CEED_EXTERN int CeedQFunctionSetData(CeedQFunction qf, void* *data);
 

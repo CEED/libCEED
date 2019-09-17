@@ -79,6 +79,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
   ceed->refcount++;
   (*qf)->refcount = 1;
   (*qf)->vlength = vlength;
+  (*qf)->identity = 0;
   (*qf)->function = f;
   ierr = CeedCalloc(strlen(source)+1, &source_copy); CeedChk(ierr);
   strncpy(source_copy, source, strlen(source));
@@ -161,6 +162,40 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
 
   // QFunction specific setup
   ierr = qfunctions[matchidx].init(ceed, name, *qf); CeedChk(ierr);
+
+  return 0;
+}
+
+/**
+  @brief Create an identity CeedQFunction. Inputs are written into outputs in
+           the order given. This is useful for CeedOperators that can be
+           represented with only the action of a CeedRestriction and CeedBasis,
+           such as restriction and prolongation operators for p-multigrid.
+           Backends may optimize CeedOperators with this CeedQFunction to avoid
+           the copy of input data to output fields by using the same memory
+           location for both.
+
+  @param ceed       A Ceed object where the CeedQFunction will be created
+  @param size       Size of the qfunction fields
+  @param[out] qf    Address of the variable where the newly created
+                      CeedQFunction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedQFunction *qf) {
+  int ierr;
+
+  ierr = CeedQFunctionCreateInteriorByName(ceed, "Identity", qf); CeedChk(ierr);
+
+  (*qf)->identity = 1;
+  if (size > 1) {
+    CeedInt *ctx;
+    ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
+    ctx[0] = size;
+    ierr = CeedQFunctionSetContext(*qf, ctx, sizeof(ctx)); CeedChk(ierr);
+  }
 
   return 0;
 }
@@ -383,6 +418,22 @@ int CeedQFunctionGetFortranStatus(CeedQFunction qf, bool *fortranstatus) {
 }
 
 /**
+  @brief Determine if QFunction is identity
+
+  @param qf               CeedQFunction
+  @param[out] identity    Variable to store identity status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionGetIdentityStatus(CeedQFunction qf, bool *identity) {
+  *identity = qf->identity;
+  return 0;
+}
+
+/**
   @brief Get true user context for a CeedQFunction
 
   @param qf              CeedQFunction
@@ -577,6 +628,10 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   }
   ierr = CeedFree(&(*qf)->inputfields); CeedChk(ierr);
   ierr = CeedFree(&(*qf)->outputfields); CeedChk(ierr);
+  // Free ctx if identity
+  if ((*qf)->identity) {
+    ierr = CeedFree(&(*qf)->ctx); CeedChk(ierr);
+  }
 
   ierr = CeedFree(&(*qf)->sourcepath); CeedChk(ierr);
   ierr = CeedDestroy(&(*qf)->ceed); CeedChk(ierr);
