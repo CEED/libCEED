@@ -2,7 +2,7 @@
 ! 
 ! Header with common subroutine
 ! 
-      include 't310-basis-f.h'
+      include 't320-basis-f.h'
 !-----------------------------------------------------------------------
       subroutine setup(ctx,q,u1,u2,u3,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,&
 &           u15,u16,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15,v16,ierr)
@@ -141,15 +141,15 @@
 
 ! -- QFunctions
       call ceedqfunctioncreateinterior(ceed,1,setup,&
-     &__FILE__&
-     &//':setup'//char(0),qf_setuptet,err)
+     &SOURCE_DIR&
+     &//'t520-operator.h:setup'//char(0),qf_setuptet,err)
       call ceedqfunctionaddinput(qf_setuptet,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setuptet,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setuptet,'rho',1,ceed_eval_none,err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,&
-     &__FILE__&
-     &//':mass'//char(0),qf_masstet,err)
+     &SOURCE_DIR&
+     &//'t520-operator.h:mass'//char(0),qf_masstet,err)
       call ceedqfunctionaddinput(qf_masstet,'rho',1,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_masstet,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_masstet,'v',1,ceed_eval_interp,err)
@@ -205,15 +205,15 @@
 
 ! -- QFunctions
       call ceedqfunctioncreateinterior(ceed,1,setup,&
-     &__FILE__&
-     &//':setup'//char(0),qf_setuphex,err)
+     &SOURCE_DIR&
+     &//'t520-operator.h:setup'//char(0),qf_setuphex,err)
       call ceedqfunctionaddinput(qf_setuphex,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setuphex,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setuphex,'rho',1,ceed_eval_none,err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,&
-     &__FILE__&
-     &//':mass'//char(0),qf_masshex,err)
+     &SOURCE_DIR&
+     &//'t520-operator.h:mass'//char(0),qf_masshex,err)
       call ceedqfunctionaddinput(qf_masshex,'rho',1,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_masshex,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_masshex,'v',1,ceed_eval_interp,err)

@@ -47,7 +47,7 @@ content changes (see atomicity above).
 
 By submitting a pull request, you are affirming the following.
 
-## [Developer's Certificate of Origin 1.1](https://developercertificate.org/).
+## [Developer's Certificate of Origin 1.1](https://developercertificate.org/)
 
 By making a contribution to this project, I certify that:
 

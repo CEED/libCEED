@@ -52,7 +52,8 @@ static inline int CeedSyncD2H_Cuda(const CeedVector vec) {
 }
 
 static int CeedVectorSetArrayHost_Cuda(const CeedVector vec,
-                                       const CeedCopyMode cmode, CeedScalar *array) {
+                                       const CeedCopyMode cmode,
+                                       CeedScalar *array) {
   int ierr;
   CeedVector_Cuda *data;
   ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
@@ -97,7 +98,8 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec,
       data->d_array = data->d_array_allocated;
     }
     if (array) {
-      ierr = cudaMemcpy(data->d_array, array, bytes(vec), cudaMemcpyDeviceToDevice);
+      ierr = cudaMemcpy(data->d_array, array, bytes(vec),
+                        cudaMemcpyDeviceToDevice);
       CeedChk_Cu(ceed, ierr);
     }
     break;

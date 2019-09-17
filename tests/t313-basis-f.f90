@@ -1,20 +1,19 @@
 !-----------------------------------------------------------------------
-! 
-! Header with common subroutine
-! 
-      include 't310-basis-f.h'
-!-----------------------------------------------------------------------
-      subroutine feval(x1,x2,val)
-      real*8 x1,x2,val
+      subroutine eval(dimn,x,rslt)
+      integer dimn
+      real*8 x(1)
+      real*8 rslt
+      real*8 center
 
-      val=x1*x1+x2*x2+x1*x2+1
+      integer d
 
-      end
-!-----------------------------------------------------------------------
-      subroutine dfeval(x1,x2,val)
-      real*8 x1,x2,val
+      rslt=1
+      center=0.1
 
-      val=2*x1+x2
+      do d=1,dimn
+        rslt=rslt*tanh(x(d)-center)
+        center=center+0.1
+      enddo
 
       end
 !-----------------------------------------------------------------------
@@ -23,83 +22,110 @@
       include 'ceedf.h'
 
       integer ceed,err
-      integer input,output
-      integer p,q,d
-      parameter(p=6)
-      parameter(q=4)
-      parameter(d=2)
+      integer x,xq,u,uq
+      integer bxl,bul,bxg,bug
+      integer dimn,d
+      integer i
+      integer q
+      parameter(q=10)
+      integer maxdim
+      parameter(maxdim=3)
+      integer qdimmax
+      parameter(qdimmax=q**maxdim)
+      integer xdimmax
+      parameter(xdimmax=2**maxdim)
+      integer qdim,xdim
 
-      real*8 qref(d*q)
-      real*8 qweight(q)
-      real*8 interp(p*q)
-      real*8 grad(d*p*q)
-      real*8 xq(d*q)
-      real*8 xr(d*p)
-      real*8 iinput(p)
-      real*8 ooutput(d*q)
-      real*8 val,diff
-      real*8 x1,x2
-      integer*8 ioffset,ooffset
-
-      integer b
+      real*8 xx(xdimmax*maxdim)
+      real*8 xxx(maxdim)
+      real*8 xxq(qdimmax*maxdim)
+      real*8 uuq(qdimmax)
+      real*8 fx
+      integer*8 uqoffset,xoffset,offset1,offset2
 
       character arg*32
 
-      xq=(/2.d-1,6.d-1,1.d0/3.d0,2.d-1,2.d-1,2.d-1,   1.d0/3.d0,6.d-1/)
-      xr=(/0.d0,5.d-1,1.d0,0.d0,5.d-1,0.d0,0.d0,0.d0,   0.d0,5.d-1,5.d-1,1.d0/)
-
       call getarg(1,arg)
-
-      call buildmats(qref,qweight,interp,grad)
-
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-      call ceedbasiscreateh1(ceed,ceed_triangle,1,p,q,interp,grad,qref,qweight,&
-     & b,err)
+      do dimn=1,maxdim
+        qdim=q**dimn
+        xdim=2**dimn
 
-      do i=1,p
-        x1=xr(0*p+i)
-        x2=xr(1*p+i)
-        call feval(x1,x2,val)
-        iinput(i)=val
+        do d=0,dimn-1
+          do i=1,xdim
+            if ((mod(i-1,2**(dimn-d))/(2**(dimn-d-1))).ne.0) then
+              xx(d*xdim+i)=1
+            else
+              xx(d*xdim+i)=-1
+            endif
+          enddo
+        enddo
+
+        call ceedvectorcreate(ceed,xdim*dimn,x,err)
+        xoffset=0
+        call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,xx,xoffset,err)
+        call ceedvectorcreate(ceed,qdim*dimn,xq,err)
+        call ceedvectorsetvalue(xq,0.d0,err)
+        call ceedvectorcreate(ceed,qdim,u,err)
+        call ceedvectorsetvalue(u,0.d0,err)
+        call ceedvectorcreate(ceed,qdim,uq,err)
+
+        call ceedbasiscreatetensorh1lagrange(ceed,dimn,dimn,2,q,&
+     &   ceed_gauss_lobatto,bxl,err)
+        call ceedbasiscreatetensorh1lagrange(ceed,dimn,1,q,q,&
+     &   ceed_gauss_lobatto,bul,err)
+
+        call ceedbasisapply(bxl,1,ceed_notranspose,ceed_eval_interp,x,xq,err)
+
+        call ceedvectorgetarrayread(xq,ceed_mem_host,xxq,offset1,err)
+        do i=1,qdim
+          do d=0,dimn-1
+            xxx(d+1)=xxq(d*qdim+i+offset1)
+          enddo
+          call eval(dimn,xxx,uuq(i))
+        enddo
+        call ceedvectorrestorearrayread(xq,xxq,offset1,err)
+        uqoffset=0
+        call ceedvectorsetarray(uq,ceed_mem_host,ceed_use_pointer,uuq,uqoffset,&
+     &   err)
+
+        call ceedbasisapply(bul,1,ceed_transpose,ceed_eval_interp,uq,u,err)
+
+        call ceedbasiscreatetensorh1lagrange(ceed,dimn,dimn,2,q,ceed_gauss,bxg,&
+     &   err)
+        call ceedbasiscreatetensorh1lagrange(ceed,dimn,1,q,q,ceed_gauss,bug,err)
+
+        call ceedbasisapply(bxg,1,ceed_notranspose,ceed_eval_interp,x,xq,err)
+        call ceedbasisapply(bug,1,ceed_notranspose,ceed_eval_interp,u,uq,err)
+
+        call ceedvectorgetarrayread(xq,ceed_mem_host,xxq,offset1,err)
+        call ceedvectorgetarrayread(uq,ceed_mem_host,uuq,offset2,err)
+        do i=1,qdim
+          do d=0,dimn-1
+            xxx(d+1)=xxq(d*qdim+i+offset1)
+          enddo
+          call eval(dimn,xxx,fx)
+
+          if(dabs(uuq(i+offset2)-fx) > 1.0D-4) then
+! LCOV_EXCL_START
+          write(*,*) uuq(i+offset2),' not equal to ',fx,dimn,i
+! LCOV_EXCL_STOP
+          endif
+        enddo
+        call ceedvectorrestorearrayread(xq,xxq,offset1,err)
+        call ceedvectorrestorearrayread(uq,uuq,offest2,err)
+
+        call ceedvectordestroy(x,err)
+        call ceedvectordestroy(xq,err)
+        call ceedvectordestroy(u,err)
+        call ceedvectordestroy(uq,err)
+        call ceedbasisdestroy(bxl,err)
+        call ceedbasisdestroy(bul,err)
+        call ceedbasisdestroy(bxg,err)
+        call ceedbasisdestroy(bug,err)
       enddo
 
-      call ceedvectorcreate(ceed,p,input,err)
-      ioffset=0
-      call ceedvectorsetarray(input,ceed_mem_host,ceed_use_pointer,iinput,&
-     & ioffset,err)
-      call ceedvectorcreate(ceed,q*d,output,err)
-      call ceedvectorsetvalue(output,0.d0,err)
-
-      call ceedbasisapply(b,1,ceed_notranspose,ceed_eval_grad,input,output,err)
-
-      call ceedvectorgetarrayread(output,ceed_mem_host,ooutput,ooffset,err)
-      do i=1,q
-        x1=xq(0*q+i)
-        x2=xq(1*q+i)
-        call dfeval(x1,x2,val)
-        diff=val-ooutput(0*q+i+ooffset)
-        if (abs(diff)>1.0d-10) then
-! LCOV_EXCL_START
-          write(*,'(A,I1,A,F12.8,A,F12.8)')  '[',i,'] ',ooutput(i+ooffset),&
-     &     ' != ',val
-! LCOV_EXCL_STOP
-        endif
-        call dfeval(x2,x1,val)
-        diff=val-ooutput(1*q+i+ooffset)
-        if (abs(diff)>1.0d-10) then
-! LCOV_EXCL_START
-          write(*,'(A,I1,A,F12.8,A,F12.8)')  '[',i,'] ',ooutput(i+ooffset),&
-     &     ' != ',val
-! LCOV_EXCL_STOP
-        endif
-      enddo
-      call ceedvectorrestorearrayread(output,ooutput,ooffset,err)
-
-      call ceedvectordestroy(input,err)
-      call ceedvectordestroy(output,err)
-      call ceedbasisdestroy(b,err)
       call ceeddestroy(ceed,err)
-
       end
 !-----------------------------------------------------------------------

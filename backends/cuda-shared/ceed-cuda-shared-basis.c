@@ -43,7 +43,8 @@ inline __device__ void readDofs1d(const int elem, const int tidx,
 
 inline __device__ void writeDofs1d(const int elem, const int tidx,
                                    const int tidy, const int comp,
-                                   const int nelem, const CeedScalar &r_V, CeedScalar *d_V) {
+                                   const int nelem, const CeedScalar &r_V,
+                                   CeedScalar *d_V) {
   if (tidx<P1D) {
     d_V[tidx + comp*P1D + elem*BASIS_NCOMP*P1D] = r_V;
   }
@@ -51,7 +52,8 @@ inline __device__ void writeDofs1d(const int elem, const int tidx,
 
 inline __device__ void readQuads1d(const int elem, const int tidx,
                                    const int tidy, const int tidz, const int comp,
-                                   const int dim, const int nelem, const CeedScalar *d_U, CeedScalar *slice) {
+                                   const int dim, const int nelem,
+                                   const CeedScalar *d_U, CeedScalar *slice) {
   for (int i = 0; i < Q1D; i++)
     slice[i+tidz*Q1D] = d_U[i + elem*Q1D + comp*Q1D*nelem +
                             dim*BASIS_NCOMP*nelem*Q1D];
@@ -59,13 +61,15 @@ inline __device__ void readQuads1d(const int elem, const int tidx,
 
 inline __device__ void writeQuads1d(const int elem, const int tidx,
                                     const int tidy, const int comp,
-                                    const int dim, const int nelem, const CeedScalar &r_V, CeedScalar *d_V) {
+                                    const int dim, const int nelem,
+                                    const CeedScalar &r_V, CeedScalar *d_V) {
   d_V[tidx + elem*Q1D + comp*Q1D*nelem + dim*BASIS_NCOMP*nelem*Q1D] = r_V;
 }
 
 inline __device__ void ContractX1d(CeedScalar *slice, const int tidx,
                                    const int tidy, const int tidz,
-                                   const CeedScalar &U, const CeedScalar *B, CeedScalar &V) {
+                                   const CeedScalar &U, const CeedScalar *B,
+                                   CeedScalar &V) {
   V = 0.0;
   for (int i = 0; i < P1D; ++i) {
     V += B[i + tidx*P1D] * slice[i+tidz*Q1D];//contract x direction
@@ -82,7 +86,8 @@ inline __device__ void ContractTransposeX1d(CeedScalar *slice, const int tidx,
 }
 
 inline __device__ void interp1d(const CeedInt nelem, const int transpose,
-                                const CeedScalar *c_B, const CeedScalar *__restrict__ d_U,
+                                const CeedScalar *c_B,
+                                const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V,
                                 CeedScalar *slice) {
   CeedScalar r_V;
@@ -111,7 +116,8 @@ inline __device__ void interp1d(const CeedInt nelem, const int transpose,
 
 inline __device__ void grad1d(const CeedInt nelem, const int transpose,
                               const CeedScalar *c_B, const CeedScalar *c_G,
-                              const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V,
+                              const CeedScalar *__restrict__ d_U,
+                              CeedScalar *__restrict__ d_V,
                               CeedScalar *slice) {
   CeedScalar r_U;
   CeedScalar r_V;
@@ -144,7 +150,8 @@ inline __device__ void grad1d(const CeedInt nelem, const int transpose,
 
 inline __device__ void readDofs2d(const int elem, const int tidx,
                                   const int tidy, const int comp,
-                                  const int nelem, const CeedScalar *d_U, CeedScalar &U) {
+                                  const int nelem, const CeedScalar *d_U,
+                                  CeedScalar &U) {
   U = (tidx<P1D
        && tidy<P1D) ? d_U[tidx + tidy*P1D + comp*P1D*P1D + elem*BASIS_NCOMP*P1D*P1D ] :
       0.0;
@@ -152,7 +159,8 @@ inline __device__ void readDofs2d(const int elem, const int tidx,
 
 inline __device__ void writeDofs2d(const int elem, const int tidx,
                                    const int tidy, const int comp,
-                                   const int nelem, const CeedScalar &r_V, CeedScalar *d_V) {
+                                   const int nelem, const CeedScalar &r_V,
+                                   CeedScalar *d_V) {
   if (tidx<P1D && tidy<P1D) {
     d_V[tidx + tidy*P1D + comp*P1D*P1D + elem*BASIS_NCOMP*P1D*P1D ] = r_V;
   }
@@ -160,21 +168,24 @@ inline __device__ void writeDofs2d(const int elem, const int tidx,
 
 inline __device__ void readQuads2d(const int elem, const int tidx,
                                    const int tidy, const int comp,
-                                   const int dim, const int nelem, const CeedScalar *d_U, CeedScalar &U ) {
+                                   const int dim, const int nelem,
+                                   const CeedScalar *d_U, CeedScalar &U ) {
   U = d_U[tidx + tidy*Q1D + elem*Q1D*Q1D + comp*Q1D*Q1D*nelem +
                dim*BASIS_NCOMP*nelem*Q1D*Q1D];
 }
 
 inline __device__ void writeQuads2d(const int elem, const int tidx,
                                     const int tidy, const int comp,
-                                    const int dim, const int nelem, const CeedScalar &r_V, CeedScalar *d_V) {
+                                    const int dim, const int nelem,
+                                    const CeedScalar &r_V, CeedScalar *d_V) {
   d_V[tidx + tidy*Q1D + elem*Q1D*Q1D + comp*Q1D*Q1D*nelem +
            dim*BASIS_NCOMP*nelem*Q1D*Q1D ] = r_V;
 }
 
 inline __device__ void ContractX2d(CeedScalar *slice, const int tidx,
                                    const int tidy, const int tidz,
-                                   const CeedScalar &U, const CeedScalar *B, CeedScalar &V) {
+                                   const CeedScalar &U, const CeedScalar *B,
+                                   CeedScalar &V) {
   slice[tidx+tidy*Q1D+tidz*Q1D*Q1D] = U;
   __syncthreads();
   V = 0.0;
@@ -186,7 +197,8 @@ inline __device__ void ContractX2d(CeedScalar *slice, const int tidx,
 
 inline __device__ void ContractY2d(CeedScalar *slice, const int tidx,
                                    const int tidy, const int tidz,
-                                   const CeedScalar &U, const CeedScalar *B, CeedScalar &V) {
+                                   const CeedScalar &U, const CeedScalar *B,
+                                   CeedScalar &V) {
   slice[tidx+tidy*Q1D+tidz*Q1D*Q1D] = U;
   __syncthreads();
   V = 0.0;
@@ -225,7 +237,8 @@ inline __device__ void ContractTransposeX2d(CeedScalar *slice, const int tidx,
 }
 
 inline __device__ void interp2d(const CeedInt nelem, const int transpose,
-                                const CeedScalar *c_B, const CeedScalar *__restrict__ d_U,
+                                const CeedScalar *c_B,
+                                const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V,
                                 CeedScalar *slice) {
   CeedScalar r_V;

@@ -87,7 +87,7 @@ CeedRequest *const CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
   which allows the sequence to complete asynchronously but does not start
   `op2` until `op1` has completed.
 
-  @fixme The current implementation is overly strict, offering equivalent
+  @todo The current implementation is overly strict, offering equivalent
   semantics to CEED_REQUEST_IMMEDIATE.
 
   @sa CEED_REQUEST_IMMEDIATE
@@ -201,6 +201,7 @@ int CeedRegister(const char *prefix,
     return CeedError(NULL, 1, "Too many backends");
   }
   strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
+  backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN-1] = 0;
   backends[num_backends].init = init;
   backends[num_backends].priority = priority;
   num_backends++;
@@ -451,6 +452,7 @@ int CeedSetDelegate(Ceed ceed, Ceed delegate) {
 
   @param ceed           Ceed to retrieve delegate of
   @param[out] delegate  Address to save the delegate to
+  @param[in] objname    Name of the object type to retrieve delegate for
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -484,6 +486,7 @@ int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *objname) {
 
   @param ceed           Ceed to set delegate of
   @param[out] delegate  Address to set the delegate to
+  @param[in] objname    Name of the object type to set delegate for
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -506,7 +509,9 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
   ceed->objdelegates[count].delegate = delegate;
   ierr = CeedCalloc(strlen(objname)+1, &ceed->objdelegates[count].objname);
   CeedChk(ierr);
-  strncpy(ceed->objdelegates[count].objname, objname, strlen(objname)+1);
+  CeedInt len = strlen(ceed->objdelegates[count].objname);
+  strncpy(ceed->objdelegates[count].objname, objname, len);
+  ceed->objdelegates[count].objname[len-1] = 0;
 
   // Set delegate parent
   delegate->parent = ceed;
@@ -518,7 +523,7 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
   @brief Return Ceed preferred memory type
 
   @param ceed           Ceed to get preferred memory type of
-  @param[out] delegate  Address to save preferred memory type to
+  @param[out] type      Address to save preferred memory type to
 
   @return An error code: 0 - success, otherwise - failure
 

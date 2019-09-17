@@ -54,7 +54,8 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Cuda_gen); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
-                                CeedCompositeOperatorCreate_Cuda_gen); CeedChk(ierr);
+                                CeedCompositeOperatorCreate_Cuda_gen);
+  CeedChk(ierr);
   return 0;
 }
 

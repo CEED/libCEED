@@ -1,6 +1,6 @@
-## PETSc + libCEED Examples
+## libCEED + PETSc Examples
 
-## CEED bakeoff problems - bps
+### CEED bakeoff problems - bps
 
 This code solves the CEED bakeoff problems on a structured grid generated and
 referenced using only low-level communication primitives.
@@ -14,7 +14,7 @@ In addition to the common arguments, the following arguments may be set:
 - `-local`             - Target number of locally owned DoFs per process
 - `-degree`            - Polynomial degree of tensor product basis
 
-## CEED bakeoff problems with DMPlex - bpsdmplex
+### CEED bakeoff problems with DMPlex - bpsdmplex
 
 This code solves the CEED bakeoff problems on a unstructured grid using DMPlex.
 This example requires a PETSc version later than 3.11.3.
@@ -30,7 +30,7 @@ In addition to the common arguments, the following arguments may be set:
 - `-petscspace_degree` - Polynomial degree of tensor product basis (Mandatory)
 - `-enforce_bc`        - Enforce essential BCs
 
-## Command line arguments
+### Command line arguments
 
 The following arguments can be specified for both examples:
 
