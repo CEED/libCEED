@@ -23,7 +23,8 @@ int main(int argc, char **argv) {
 //! [Ceed Init]
   CeedInit(argv[1], &ceed);
 //! [Ceed Init]
-  for (CeedInt i=0; i<Nx; i++) x[i] = (CeedScalar) i / (Nx - 1);
+  for (CeedInt i=0; i<Nx; i++)
+    x[i] = (CeedScalar) i / (Nx - 1);
   for (CeedInt i=0; i<nelem; i++) {
     indx[2*i+0] = i;
     indx[2*i+1] = i+1;

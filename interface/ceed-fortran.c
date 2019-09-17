@@ -438,6 +438,22 @@ void fCeedQRFactorization(int *ceed, CeedScalar *mat, CeedScalar *tau, int *m,
   *err = CeedQRFactorization(Ceed_dict[*ceed], mat, tau, *m, *n);
 }
 
+#define fCeedSymmetricSchurDecomposition \
+    FORTRAN_NAME(ceedsymmetricschurdecomposition, CEEDSYMMETRICSCHURDECOMPOSITION)
+void fCeedSymmetricSchurDecomposition(int *ceed, CeedScalar *mat,
+                                      CeedScalar *lambda, int *n, int *err) {
+  *err = CeedSymmetricSchurDecomposition(Ceed_dict[*ceed], mat, lambda, *n);
+}
+
+#define fCeedSimultaneousDiagonalization \
+    FORTRAN_NAME(ceedsimultaneousdiagonalization, CEEDSIMULTANEOUSDIAGONALIZATION)
+void fCeedSimultaneousDiagonalization(int *ceed, CeedScalar *matA,
+                                      CeedScalar *matB, CeedScalar *x,
+                                      CeedScalar *lambda, int *n, int *err) {
+  *err = CeedSimultaneousDiagonalization(Ceed_dict[*ceed], matA, matB, x,
+                                         lambda, *n);
+}
+
 #define fCeedBasisGetCollocatedGrad \
     FORTRAN_NAME(ceedbasisgetcollocatedgrad, CEEDBASISGETCOLLOCATEDGRAD)
 void fCeedBasisGetCollocatedGrad(int *basis, CeedScalar *colograd1d,
@@ -531,9 +547,9 @@ void fCeedQFunctionCreateInterior(int *ceed, int *vlength,
                                       CeedScalar *v11,CeedScalar *v12,
                                       CeedScalar *v13,CeedScalar *v14,
                                       CeedScalar *v15,int *err),
-                                  const char *focca, int *qf, int *err,
-                                  fortran_charlen_t focca_len) {
-  FIX_STRING(focca);
+                                  const char *source, int *qf, int *err,
+                                  fortran_charlen_t source_len) {
+  FIX_STRING(source);
   if (CeedQFunction_count == CeedQFunction_count_max) {
     CeedQFunction_count_max += CeedQFunction_count_max/2 + 1;
     CeedRealloc(CeedQFunction_count_max, &CeedQFunction_dict);
@@ -541,12 +557,11 @@ void fCeedQFunctionCreateInterior(int *ceed, int *vlength,
 
   CeedQFunction *qf_ = &CeedQFunction_dict[CeedQFunction_count];
   *err = CeedQFunctionCreateInterior(Ceed_dict[*ceed], *vlength,
-                                     CeedQFunctionFortranStub, focca_c, qf_);
+                                     CeedQFunctionFortranStub, source_c, qf_);
 
   if (*err == 0) {
     *qf = CeedQFunction_count++;
     CeedQFunction_n++;
-
   }
 
   fContext *fctx;
@@ -557,6 +572,25 @@ void fCeedQFunctionCreateInterior(int *ceed, int *vlength,
   *err = CeedQFunctionSetContext(*qf_, fctx, sizeof(fContext));
 
   (*qf_)->fortranstatus = true;
+}
+
+#define fCeedQFunctionCreateInteriorByName \
+    FORTRAN_NAME(ceedqfunctioncreateinteriorbyname, CEEDQFUNCTIONCREATEINTERIORBYNAME)
+void fCeedQFunctionCreateInteriorByName(int *ceed, const char *name, int *qf,
+                                        int *err, fortran_charlen_t name_len) {
+  FIX_STRING(name);
+  if (CeedQFunction_count == CeedQFunction_count_max) {
+    CeedQFunction_count_max += CeedQFunction_count_max/2 + 1;
+    CeedRealloc(CeedQFunction_count_max, &CeedQFunction_dict);
+  }
+
+  CeedQFunction *qf_ = &CeedQFunction_dict[CeedQFunction_count];
+  *err = CeedQFunctionCreateInteriorByName(Ceed_dict[*ceed], name_c, qf_);
+
+  if (*err == 0) {
+    *qf = CeedQFunction_count++;
+    CeedQFunction_n++;
+  }
 }
 
 #define fCeedQFunctionAddInput \

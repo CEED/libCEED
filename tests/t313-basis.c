@@ -1,67 +1,93 @@
 /// @file
-/// Test grad with a 2D Simplex non-tensor H1 basis
-/// \test Test grad with a 2D Simplex non-tensor H1 basis
+/// Test interpolation in multiple dimensions
+/// \test Test interpolation in multiple dimensions
 #include <ceed.h>
 #include <math.h>
-#include "t310-basis.h"
 
-double feval(double x1, double x2) {
-  return x1*x1 + x2*x2 + x1*x2 + 1;
-}
-
-double dfeval(double x1, double x2) {
-  return 2*x1 + x2;
+static CeedScalar Eval(CeedInt dim, const CeedScalar x[]) {
+  CeedScalar result = 1, center = 0.1;
+  for (CeedInt d=0; d<dim; d++) {
+    result *= tanh(x[d] - center);
+    center += 0.1;
+  }
+  return result;
 }
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedVector In, Out;
-  const CeedInt P = 6, Q = 4, dim = 2;
-  CeedBasis b;
-  CeedScalar qref[dim*Q], qweight[Q];
-  CeedScalar interp[P*Q], grad[dim*P*Q];
-  CeedScalar xq[] = {0.2, 0.6, 1./3., 0.2, 0.2, 0.2, 1./3., 0.6};
-  CeedScalar xr[] = {0., 0.5, 1., 0., 0.5, 0., 0., 0., 0., 0.5, 0.5, 1.};
-  const CeedScalar *out;
-  CeedScalar in[P], value;
-
-  buildmats(qref, qweight, interp, grad);
 
   CeedInit(argv[1], &ceed);
+  for (CeedInt dim=1; dim<=3; dim++) {
+    CeedVector X, Xq, U, Uq;
+    CeedBasis bxl, bul, bxg, bug;
+    CeedInt Q = 10, Qdim = CeedIntPow(Q, dim), Xdim = CeedIntPow(2, dim);
+    CeedScalar x[Xdim*dim];
+    const CeedScalar *xq, *u;
+    CeedScalar uq[Qdim];
 
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, qref, qweight,
-                    &b);
+    for (CeedInt d=0; d<dim; d++)
+      for (CeedInt i=0; i<Xdim; i++)
+        x[d*Xdim + i] = (i % CeedIntPow(2, dim-d)) / CeedIntPow(2, dim-d-1) ? 1 : -1;
 
-  // Interpolate function to quadrature points
-  for (int i=0; i<P; i++)
-    in[i] = feval(xr[0*P+i], xr[1*P+i]);
+    CeedVectorCreate(ceed, Xdim*dim, &X);
+    CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
+    CeedVectorCreate(ceed, Qdim*dim, &Xq);
+    CeedVectorSetValue(Xq, 0);
+    CeedVectorCreate(ceed, Qdim, &U);
+    CeedVectorSetValue(U, 0);
+    CeedVectorCreate(ceed, Qdim, &Uq);
 
-  CeedVectorCreate(ceed, P, &In);
-  CeedVectorSetArray(In, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&in);
-  CeedVectorCreate(ceed, Q*dim, &Out);
-  CeedVectorSetValue(Out, 0);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, Q, Q, CEED_GAUSS_LOBATTO, &bul);
 
-  CeedBasisApply(b, 1, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, In, Out);
+    CeedBasisApply(bxl, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
 
-  // Check values at quadrature points
-  CeedVectorGetArrayRead(Out, CEED_MEM_HOST, &out);
-  for (int i=0; i<Q; i++) {
-    value = dfeval(xq[0*Q+i], xq[1*Q+i]);
-    if (fabs(out[0*Q+i] - value) > 1e-10)
-      // LCOV_EXCL_START
-      printf("[%d] %f != %f\n", i, out[0*Q+i], value);
-      // LCOV_EXCL_STOP
-    value = dfeval(xq[1*Q+i], xq[0*Q+i]);
-    if (fabs(out[1*Q+i] - value) > 1e-10)
-      // LCOV_EXCL_START
-      printf("[%d] %f != %f\n", i, out[1*Q+i], value);
-      // LCOV_EXCL_STOP
+    CeedVectorGetArrayRead(Xq, CEED_MEM_HOST, &xq);
+    for (CeedInt i=0; i<Qdim; i++) {
+      CeedScalar xx[dim];
+      for (CeedInt d=0; d<dim; d++)
+        xx[d] = xq[d*Qdim + i];
+      uq[i] = Eval(dim, xx);
+    }
+    CeedVectorRestoreArrayRead(Xq, &xq);
+    CeedVectorSetArray(Uq, CEED_MEM_HOST, CEED_USE_POINTER, uq);
+
+    // This operation is the identity because the quadrature is collocated
+    CeedBasisApply(bul, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, Uq, U);
+
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, Q, CEED_GAUSS, &bxg);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, Q, Q, CEED_GAUSS, &bug);
+
+    CeedBasisApply(bxg, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
+    CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, Uq);
+
+    CeedVectorGetArrayRead(Xq, CEED_MEM_HOST, &xq);
+    CeedVectorGetArrayRead(Uq, CEED_MEM_HOST, &u);
+    for (CeedInt i=0; i<Qdim; i++) {
+      CeedScalar xx[dim];
+      for (CeedInt d=0; d<dim; d++)
+        xx[d] = xq[d*Qdim + i];
+      CeedScalar fx = Eval(dim, xx);
+      if (fabs(u[i] - fx) > 1e-4) {
+        // LCOV_EXCL_START
+        printf("[%d] %f != %f=f(%f", dim, u[i], fx, xx[0]);
+        for (CeedInt d=1; d<dim; d++) printf(",%f", xx[d]);
+        puts(")");
+        // LCOV_EXCL_STOP
+      }
+    }
+    CeedVectorRestoreArrayRead(Xq, &xq);
+    CeedVectorRestoreArrayRead(Uq, &u);
+
+    CeedVectorDestroy(&X);
+    CeedVectorDestroy(&Xq);
+    CeedVectorDestroy(&U);
+    CeedVectorDestroy(&Uq);
+    CeedBasisDestroy(&bxl);
+    CeedBasisDestroy(&bul);
+    CeedBasisDestroy(&bxg);
+    CeedBasisDestroy(&bug);
   }
-  CeedVectorRestoreArrayRead(Out, &out);
-
-  CeedVectorDestroy(&In);
-  CeedVectorDestroy(&Out);
-  CeedBasisDestroy(&b);
   CeedDestroy(&ceed);
   return 0;
 }

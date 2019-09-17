@@ -364,7 +364,7 @@ int CeedVectorGetData(CeedVector vec, void* *data) {
   @brief Set the backend data of a CeedVector
 
   @param[out] vec     CeedVector to retrieve state
-  @paramdata          Data to set
+  @param data         Data to set
 
   @return An error code: 0 - success, otherwise - failure
 

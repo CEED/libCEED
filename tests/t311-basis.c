@@ -1,58 +1,79 @@
 /// @file
-/// Test interpolation with a 2D Simplex non-tensor H1 basis
-/// \test Test interpolaton with a 2D Simplex non-tensor H1 basis
+/// Test polynomial interpolation in 1D
+/// \test Test polynomial interpolation in 1D
 #include <ceed.h>
 #include <math.h>
-#include "t310-basis.h"
 
-double feval(double x1, double x2) {
-  return x1*x1 + x2*x2 + x1*x2 + 1;
+#define ALEN(a) (sizeof(a) / sizeof((a)[0]))
+
+static CeedScalar PolyEval(CeedScalar x, CeedInt n, const CeedScalar *p) {
+  CeedScalar y = p[n-1];
+  for (CeedInt i=n-2; i>=0; i--) y = y*x + p[i];
+  return y;
 }
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedVector In, Out;
-  const CeedInt P = 6, Q = 4, dim = 2;
-  CeedBasis b;
-  CeedScalar qref[dim*Q], qweight[Q];
-  CeedScalar interp[P*Q], grad[dim*P*Q];
-  CeedScalar xq[] = {0.2, 0.6, 1./3., 0.2, 0.2, 0.2, 1./3., 0.6};
-  CeedScalar xr[] = {0., 0.5, 1., 0., 0.5, 0., 0., 0., 0., 0.5, 0.5, 1.};
-  const CeedScalar *out;
-  CeedScalar in[P], value;
-
-  buildmats(qref, qweight, interp, grad);
+  CeedVector X, Xq, U, Uq;
+  CeedBasis bxl, bul, bxg, bug;
+  CeedInt Q = 6;
+  const CeedScalar p[6] = {1, 2, 3, 4, 5, 6}; // 1 + 2x + 3x^2 + ...
+  const CeedScalar *xq, *uuq;
+  CeedScalar x[2], uq[Q];
 
   CeedInit(argv[1], &ceed);
 
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, qref, qweight,
-                    &b);
+  CeedVectorCreate(ceed, 2, &X);
+  CeedVectorCreate(ceed, Q, &Xq);
+  CeedVectorSetValue(Xq, 0);
+  CeedVectorCreate(ceed, Q, &U);
+  CeedVectorSetValue(U, 0);
+  CeedVectorCreate(ceed, Q, &Uq);
 
-  // Interpolate function to quadrature points
-  for (int i=0; i<P; i++)
-    in[i] = feval(xr[0*P+i], xr[1*P+i]);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q, Q, CEED_GAUSS_LOBATTO, &bul);
 
-  CeedVectorCreate(ceed, P, &In);
-  CeedVectorSetArray(In, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&in);
-  CeedVectorCreate(ceed, Q, &Out);
-  CeedVectorSetValue(Out, 0);
+  for (int i = 0; i < 2; i++)
+    x[i] = CeedIntPow(-1, i+1);
+  CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&x);
 
-  CeedBasisApply(b, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, In, Out);
+  CeedBasisApply(bxl, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
 
-  // Check values at quadrature points
-  CeedVectorGetArrayRead(Out, CEED_MEM_HOST, &out);
-  for (int i=0; i<Q; i++) {
-    value = feval(xq[0*Q+i], xq[1*Q+i]);
-    if (fabs(out[i] - value) > 1e-10)
+  CeedVectorGetArrayRead(Xq, CEED_MEM_HOST, &xq);
+  for (CeedInt i=0; i<Q; i++)
+    uq[i] = PolyEval(xq[i], ALEN(p), p);
+  CeedVectorRestoreArrayRead(Xq, &xq);
+  CeedVectorSetArray(Uq, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&uq);
+
+  // This operation is the identity because the quadrature is collocated
+  CeedBasisApply(bul, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, Uq, U);
+
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bxg);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q, Q, CEED_GAUSS, &bug);
+
+  CeedBasisApply(bxg, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
+  CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, Uq);
+
+  CeedVectorGetArrayRead(Xq, CEED_MEM_HOST, &xq);
+  CeedVectorGetArrayRead(Uq, CEED_MEM_HOST, &uuq);
+  for (CeedInt i=0; i<Q; i++) {
+    CeedScalar px = PolyEval(xq[i], ALEN(p), p);
+    if (fabs(uuq[i] - px) > 1e-14)
       // LCOV_EXCL_START
-      printf("[%d] %f != %f\n", i, out[i], value);
-      // LCOV_EXCL_STOP
+      printf("%f != %f=p(%f)\n", uuq[i], px, xq[i]);
+    // LCOV_EXCL_STOP
   }
-  CeedVectorRestoreArrayRead(Out, &out);
+  CeedVectorRestoreArrayRead(Xq, &xq);
+  CeedVectorRestoreArrayRead(Uq, &uuq);
 
-  CeedVectorDestroy(&In);
-  CeedVectorDestroy(&Out);
-  CeedBasisDestroy(&b);
+  CeedVectorDestroy(&X);
+  CeedVectorDestroy(&Xq);
+  CeedVectorDestroy(&U);
+  CeedVectorDestroy(&Uq);
+  CeedBasisDestroy(&bxl);
+  CeedBasisDestroy(&bul);
+  CeedBasisDestroy(&bxg);
+  CeedBasisDestroy(&bug);
   CeedDestroy(&ceed);
   return 0;
 }

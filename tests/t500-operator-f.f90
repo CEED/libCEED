@@ -88,15 +88,15 @@
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,p,q,ceed_gauss,bu,err)
 
       call ceedqfunctioncreateinterior(ceed,1,setup,&
-     &__FILE__&
-     &//':setup'//char(0),qf_setup,err)
+     &SOURCE_DIR&
+     &//'t500-operator.h:setup'//char(0),qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setup,'dx',1,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setup,'rho',1,ceed_eval_none,err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,&
-     &__FILE__&
-     &//':mass'//char(0),qf_mass,err)
+     &SOURCE_DIR&
+     &//'t500-operator.h:mass'//char(0),qf_mass,err)
       call ceedqfunctionaddinput(qf_mass,'rho',1,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_mass,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_mass,'v',1,ceed_eval_interp,err)

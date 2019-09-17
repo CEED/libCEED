@@ -1,3 +1,19 @@
+// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// All Rights reserved. See files LICENSE and NOTICE for details.
+//
+// This file is part of CEED, a collection of benchmarks, miniapps, software
+// libraries and APIs for efficient high-order finite element and spectral
+// element discretizations for exascale applications. For more information and
+// source code availability see http://github.com/ceed.
+//
+// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
+// a collaborative effort of two U.S. Department of Energy organizations (Office
+// of Science and the National Nuclear Security Administration) responsible for
+// the planning and preparation of a capable exascale ecosystem, including
+// software, applications, hardware, advanced system engineering and early
+// testbed platforms, in support of the nation's exascale computing imperative.
+
 //                             libCEED Example 1
 //
 // This example illustrates a simple usage of libCEED to compute the volume of a
@@ -26,6 +42,13 @@
 //     ex1 -m ../../../mfem/data/fichera.mesh
 //     ex1 -m ../../../mfem/data/star.vtk -o 3
 //     ex1 -m ../../../mfem/data/inline-segment.mesh -o 8
+//
+// Next line is grep'd from tap.sh to set its arguments
+// Test in 1D-3D
+//TESTARGS -ceed {ceed_resource} -d 2 -t
+//TESTARGS -ceed {ceed_resource} -d 1 -t -g
+//TESTARGS -ceed {ceed_resource} -d 2 -t -g
+//TESTARGS -ceed {ceed_resource} -d 3 -t -g
 
 /// @file
 /// libCEED example using mass operator to compute volume
@@ -48,17 +71,15 @@ int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_order,
 CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords);
 
 
-// Next line is grep'd from tap.sh to set its arguments
-//TESTARGS -ceed {ceed_resource} -t
 int main(int argc, const char *argv[]) {
   const char *ceed_spec = "/cpu/self";
   int dim        = 3;           // dimension of the mesh
-  int ncompx      = 3;           // number of x components
+  int ncompx     = 3;           // number of x components
   int mesh_order = 4;           // polynomial degree for the mesh
   int sol_order  = 4;           // polynomial degree for the solution
   int num_qpts   = sol_order+2; // number of 1D quadrature points
   int prob_size  = -1;          // approximate problem size
-  int help = 0, test = 0;
+  int help = 0, test = 0, gallery = 0;
 
   // Process command line arguments.
   for (int ia = 1; ia < argc; ia++) {
@@ -69,6 +90,7 @@ int main(int argc, const char *argv[]) {
       parse_error = next_arg ? ceed_spec = argv[++ia], 0 : 1;
     } else if (!strcmp(argv[ia],"-d")) {
       parse_error = next_arg ? dim = atoi(argv[++ia]), 0 : 1;
+      ncompx = dim;
     } else if (!strcmp(argv[ia],"-m")) {
       parse_error = next_arg ? mesh_order = atoi(argv[++ia]), 0 : 1;
     } else if (!strcmp(argv[ia],"-o")) {
@@ -79,6 +101,8 @@ int main(int argc, const char *argv[]) {
       parse_error = next_arg ? prob_size = atoi(argv[++ia]), 0 : 1;
     } else if (!strcmp(argv[ia],"-t")) {
       test = 1;
+    } else if (!strcmp(argv[ia],"-g")) {
+      gallery = 1;
     }
     if (parse_error) {
       printf("Error parsing command line options.\n");
@@ -96,6 +120,7 @@ int main(int argc, const char *argv[]) {
     printf("  Solution order     [-o] : %d\n", sol_order);
     printf("  Num. 1D quadr. pts [-q] : %d\n", num_qpts);
     printf("  Approx. # unknowns [-s] : %d\n", prob_size);
+    printf("  QFunction source   [-g] : %s\n", gallery?"gallery":"header");
     if (help) {
       printf("Test/quiet mode is %s\n", (test?"ON":"OFF (use -t to enable)"));
       return 0;
@@ -154,12 +179,24 @@ int main(int argc, const char *argv[]) {
   // Create the Q-function that builds the mass operator (i.e. computes its
   // quadrature data) and set its context data.
   CeedQFunction build_qfunc;
-  CeedQFunctionCreateInterior(ceed, 1, f_build_mass,
-                              f_build_mass_loc, &build_qfunc);
-  CeedQFunctionAddInput(build_qfunc, "dx", ncompx*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(build_qfunc, "rho", 1, CEED_EVAL_NONE);
-  CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
+  switch (gallery) {
+  case 0:
+    // This creates the QFunction directly.
+    CeedQFunctionCreateInterior(ceed, 1, f_build_mass,
+                                f_build_mass_loc, &build_qfunc);
+    CeedQFunctionAddInput(build_qfunc, "dx", ncompx*dim, CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
+    CeedQFunctionAddOutput(build_qfunc, "qdata", 1, CEED_EVAL_NONE);
+    CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
+    break;
+  case 1: {
+    // This creates the QFunction via the gallery.
+    char name[13] = "";
+    snprintf(name, sizeof name, "Mass%dDBuild", dim);
+    CeedQFunctionCreateInteriorByName(ceed, name, &build_qfunc);
+    break;
+  }
+  }
 
   // Create the operator that builds the quadrature data for the mass operator.
   CeedOperator build_oper;
@@ -168,21 +205,21 @@ int main(int argc, const char *argv[]) {
                        mesh_basis,CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(build_oper, "weights", mesh_restr_i, CEED_NOTRANSPOSE,
                        mesh_basis, CEED_VECTOR_NONE);
-  CeedOperatorSetField(build_oper, "rho", sol_restr_i, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(build_oper, "qdata", sol_restr_i, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Compute the quadrature data for the mass operator.
-  CeedVector rho;
+  CeedVector qdata;
   CeedInt elem_qpts = CeedIntPow(num_qpts, dim);
   CeedInt num_elem = 1;
   for (int d = 0; d < dim; d++)
     num_elem *= nxyz[d];
-  CeedVectorCreate(ceed, num_elem*elem_qpts, &rho);
+  CeedVectorCreate(ceed, num_elem*elem_qpts, &qdata);
   if (!test) {
     printf("Computing the quadrature data for the mass operator ...");
     fflush(stdout);
   }
-  CeedOperatorApply(build_oper, mesh_coords, rho,
+  CeedOperatorApply(build_oper, mesh_coords, qdata,
                     CEED_REQUEST_IMMEDIATE);
   if (!test) {
     printf(" done.\n");
@@ -190,19 +227,28 @@ int main(int argc, const char *argv[]) {
 
   // Create the Q-function that defines the action of the mass operator.
   CeedQFunction apply_qfunc;
-  CeedQFunctionCreateInterior(ceed, 1, f_apply_mass,
-                              f_apply_mass_loc, &apply_qfunc);
-  CeedQFunctionAddInput(apply_qfunc, "u", 1, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(apply_qfunc, "rho", 1, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(apply_qfunc, "v", 1, CEED_EVAL_INTERP);
+  switch (gallery) {
+  case 0:
+    // This creates the QFunction directly.
+    CeedQFunctionCreateInterior(ceed, 1, f_apply_mass,
+                                f_apply_mass_loc, &apply_qfunc);
+    CeedQFunctionAddInput(apply_qfunc, "u", 1, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(apply_qfunc, "qdata", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(apply_qfunc, "v", 1, CEED_EVAL_INTERP);
+    break;
+  case 1:
+    // This creates the QFunction via the gallery.
+    CeedQFunctionCreateInteriorByName(ceed, "MassApply", &apply_qfunc);
+    break;
+  }
 
   // Create the mass operator.
   CeedOperator oper;
   CeedOperatorCreate(ceed, apply_qfunc, NULL, NULL, &oper);
   CeedOperatorSetField(oper, "u", sol_restr, CEED_NOTRANSPOSE,
                        sol_basis, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(oper, "rho", sol_restr_i, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, rho);
+  CeedOperatorSetField(oper, "qdata", sol_restr_i, CEED_NOTRANSPOSE,
+                       CEED_BASIS_COLLOCATED, qdata);
   CeedOperatorSetField(oper, "v", sol_restr, CEED_NOTRANSPOSE,
                        sol_basis, CEED_VECTOR_ACTIVE);
 
@@ -245,13 +291,15 @@ int main(int argc, const char *argv[]) {
     printf("Computed mesh volume : % .14g\n", vol);
     printf("Volume error         : % .14g\n", vol-exact_vol);
   } else {
-    printf("Volume error : % .1e\n", vol-exact_vol);
+    CeedScalar tol = (dim==1? 1E-14 : dim==2? 1E-7 : 1E-5);
+    if (fabs(vol-exact_vol)>tol)
+      printf("Volume error : % .1e\n", vol-exact_vol);
   }
 
   // Free dynamically allocated memory.
   CeedVectorDestroy(&u);
   CeedVectorDestroy(&v);
-  CeedVectorDestroy(&rho);
+  CeedVectorDestroy(&qdata);
   CeedVectorDestroy(&mesh_coords);
   CeedOperatorDestroy(&oper);
   CeedQFunctionDestroy(&apply_qfunc);

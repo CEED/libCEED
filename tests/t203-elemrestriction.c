@@ -14,6 +14,7 @@ int main(int argc, char **argv) {
   CeedElemRestriction r;
 
   CeedInit(argv[1], &ceed);
+
   CeedVectorCreate(ceed, (ne+1)*ncomp, &x);
   for (CeedInt i=0; i<(ne+1); i++) {
     a[i+0*(ne+1)] = 10 + i;
@@ -27,8 +28,7 @@ int main(int argc, char **argv) {
     ind[2*i+1] = i+1;
   }
   CeedElemRestrictionCreateBlocked(ceed, ne, 2, blksize, ne+1, ncomp,
-                                   CEED_MEM_HOST,
-                                   CEED_USE_POINTER, ind, &r);
+                                   CEED_MEM_HOST, CEED_USE_POINTER, ind, &r);
   CeedVectorCreate(ceed, 2*blksize*2*ncomp, &y);
   CeedVectorSetValue(y, 0); // Allocates array
 
@@ -39,7 +39,8 @@ int main(int argc, char **argv) {
 
   // Transpose
   CeedVectorGetArray(x, CEED_MEM_HOST, (CeedScalar **)&a);
-  for (CeedInt i=0; i<(ne+1)*ncomp; i++) a[i] = 0;
+  for (CeedInt i=0; i<(ne+1)*ncomp; i++)
+    a[i] = 0;
   CeedVectorRestoreArray(x, (CeedScalar **)&a);
   CeedElemRestrictionApply(r, CEED_TRANSPOSE, CEED_NOTRANSPOSE, y, x,
                            CEED_REQUEST_IMMEDIATE);

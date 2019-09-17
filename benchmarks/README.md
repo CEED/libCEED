@@ -1,4 +1,4 @@
-# libCEED Benchmarks
+# libCEED: Benchmarks
 
 This directory contains benchmark problems for performance evaluation of libCEED
 backends.

@@ -26,7 +26,7 @@
       integer p
       integer q
       parameter(p=8)
-      parameter(q=7)
+      parameter(q=10)
       integer maxdim
       parameter(maxdim=3)
       integer qdimnmax

@@ -48,7 +48,7 @@ CEED_INTERN int CeedFree(void *p);
 #define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
 CEED_EXTERN int CeedRegister(const char *prefix,
-                             int (*init)(const char *, Ceed), unsigned int priority);
+    int (*init)(const char *, Ceed), unsigned int priority);
 
 CEED_EXTERN int CeedGetParent(Ceed ceed, Ceed *parent);
 CEED_EXTERN int CeedGetDelegate(Ceed ceed, Ceed *delegate);
@@ -113,8 +113,10 @@ CEED_EXTERN int CeedBasisSetTensorContract(CeedBasis basis,
 CEED_EXTERN int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
     CeedTensorContract *contract);
 CEED_EXTERN int CeedTensorContractApply(CeedTensorContract contract, CeedInt A,
-                                        CeedInt B, CeedInt C, CeedInt J, const CeedScalar *t,
-                                        CeedTransposeMode tmode, const CeedInt Add, const CeedScalar *u,
+                                        CeedInt B, CeedInt C, CeedInt J,
+                                        const CeedScalar *t,
+                                        CeedTransposeMode tmode,
+                                        const CeedInt Add, const CeedScalar *u,
                                         CeedScalar *v);
 CEED_EXTERN int CeedTensorContractGetCeed(CeedTensorContract contract,
     Ceed *ceed);
@@ -124,13 +126,15 @@ CEED_EXTERN int CeedTensorContractSetData(CeedTensorContract contract,
     void* *data);
 CEED_EXTERN int CeedTensorContractDestroy(CeedTensorContract *contract);
 
+CEED_EXTERN int CeedQFunctionRegister(const char *, const char *, CeedInt,
+    CeedQFunctionUser, int (*init)(Ceed, const char *, CeedQFunction));
 CEED_EXTERN int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
 CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf,
     CeedInt *vlength);
 CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf,
                                         CeedInt *numinputfields,
                                         CeedInt *numoutputfields);
-CEED_EXTERN int CeedQFunctionGetFOCCA(CeedQFunction qf, char* *focca);
+CEED_EXTERN int CeedQFunctionGetSourcePath(CeedQFunction qf, char* *source);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
     int (**f)());
 CEED_EXTERN int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize);

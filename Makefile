@@ -78,9 +78,9 @@ CXXFLAGS = $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 NVCCFLAGS = -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
-  FFLAGS = $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD
+  FFLAGS = $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD -DSOURCE_DIR='"$(abspath $(<D))/"'
 else # gfortran/Intel-style options
-  FFLAGS = -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
+  FFLAGS = -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP -DSOURCE_DIR='"$(abspath $(<D))/"'
 endif
 
 ifeq ($(UNDERSCORE), 1)
@@ -127,6 +127,8 @@ ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 CEED_LIBS = -lceed
 libceed.c := $(wildcard interface/ceed*.c)
+gallery.c := $(wildcard gallery/*/ceed*.c)
+libceed.c += $(gallery.c)
 libceed_test := $(LIBDIR)/libceed_test.$(SO_EXT)
 libceeds = $(libceed) $(libceed_test)
 BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked
@@ -513,7 +515,7 @@ style :
 	@astyle --options=.astylerc \
           $(filter-out include/ceedf.h tests/t310-basis-f.h, \
             $(wildcard include/*.h interface/*.[ch] tests/*.[ch] backends/*/*.[ch] \
-              examples/*/*.[ch] examples/*/*.[ch]pp))
+              examples/*/*.[ch] examples/*/*.[ch]pp gallery/*/*.[ch]))
 
 CLANG_TIDY ?= clang-tidy
 %.c.tidy : %.c

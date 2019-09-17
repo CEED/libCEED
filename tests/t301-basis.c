@@ -1,43 +1,24 @@
 /// @file
-/// Test square Gauss Lobatto interp1d is identity
-/// \test Test square Gauss Lobatto interp1d is identity
+/// Test QR Factorization
+/// \test Test QR Factorization
 #include <ceed.h>
-#include <stdio.h>
-#include <math.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedBasis b;
-  CeedVector U, V;
-  int i, dim = 2, P1d = 4, Q1d = 4, len = (int)(pow((double)(Q1d), dim) + 0.4);
-  CeedScalar u[len];
-  const CeedScalar *v;
+  CeedScalar qr[12] = {1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0};
+  CeedScalar tau[3];
 
   CeedInit(argv[1], &ceed);
 
-  CeedVectorCreate(ceed, len, &U);
-  CeedVectorCreate(ceed, len, &V);
-
-  for (i = 0; i < len; i++) {
-    u[i] = 1.0;
+  CeedQRFactorization(ceed, qr, tau, 4, 3);
+  for (int i=0; i<12; i++) {
+    if (qr[i] <= 1E-14 && qr[i] >= -1E-14) qr[i] = 0;
+    fprintf(stdout, "%12.8f\n", qr[i]);
   }
-  CeedVectorSetArray(U, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&u);
-
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P1d, Q1d, CEED_GAUSS_LOBATTO, &b);
-
-  CeedBasisApply(b, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, V);
-
-  CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
-  for (i = 0; i < len; i++)
-    if (fabs(v[i] - 1.) > 1e-15)
-      // LCOV_EXCL_START
-      printf("v[%d] = %f != 1.\n", i, v[i]);
-      // LCOV_EXCL_STOP
-  CeedVectorRestoreArrayRead(V, &v);
-
-  CeedBasisDestroy(&b);
-  CeedVectorDestroy(&U);
-  CeedVectorDestroy(&V);
+  for (int i=0; i<3; i++) {
+    if (tau[i] <= 1E-14 && qr[i] >= -1E-14) tau[i] = 0;
+    fprintf(stdout, "%12.8f\n", tau[i]);
+  }
   CeedDestroy(&ceed);
   return 0;
 }

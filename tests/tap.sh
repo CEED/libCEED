@@ -17,26 +17,38 @@ if [ "t" != "${target::1}" ]; then
         test /cpu/self/tmpl = ${backends[$idx]::14} && unset backends[$idx]
     done
 fi
-printf "1..$[3*${#backends[@]}]\n";
 
 # for examples/ceed petsc*, mfem*, or ex* grep the code to fetch arguments from a TESTARGS line
+declare -a allargs
 if [ ${1::6} == "petsc-" ]; then
-    args=$(grep -F //TESTARGS examples/petsc/${1:6}.c* | cut -d\  -f2- )
+    allargs=$(grep -F //TESTARGS examples/petsc/${1:6}.c* | cut -d\  -f2- )
 elif [ ${1::5} == "mfem-" ]; then
-    args=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
+    allargs=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
 elif [ ${1::4} == "nek-" ]; then
-    args=$(grep -F "C TESTARGS" examples/nek/bps/${1:4}.usr* | cut -d\  -f3- )
+    allargs=$(grep -F "C TESTARGS" examples/nek/bps/${1:4}.usr* | cut -d\  -f3- )
 elif [ ${1::2} == "ex" ]; then
-    args=$(grep -F //TESTARGS examples/ceed/$1.c | cut -d\  -f2- )
+    # get all test configurations
+    numconfig=$(grep -F //TESTARGS examples/ceed/$1.c* | wc -l)
+    for ((i=0;i<${numconfig};++i)); do
+      allargs+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/ceed/$1.c | cut -d\  -f2- )")
+    done
 else
-    args='{ceed_resource}'
+    allargs='{ceed_resource}'
 fi
+
+printf "1..$[3*${#backends[@]}*${#allargs[@]}]\n";
 
 tmpfiles="${output} ${output}.out ${output}.diff ${output}.err SESSION.NAME"
 trap 'rm -f ${tmpfiles}' EXIT
 
-for ((i=0;i<${#backends[@]}; ++i)); do
-    i0=$((3*$i+1)) # return code
+# test configurations loop
+for ((j=0;j<${#allargs[@]};++j)); do
+args=${allargs[$j]}
+printf "# TESTARGS: $args\n"
+
+# backends loop
+for ((i=0;i<${#backends[@]};++i)); do
+    i0=$((3*$i+1+j*3*${#backends[@]})) # return code
     i1=$(($i0+1))  # stdout
     i2=$(($i0+2))  # stderr
     backend=${backends[$i]}
@@ -71,9 +83,9 @@ for ((i=0;i<${#backends[@]}; ++i)); do
         continue
     fi
 
-    # grep to pass test t308 on error
+    # grep to pass test t303 on error
     if grep -F -q -e 'vectors incompatible' ${output}.err \
-            && [[ "$1" = "t308"* ]] ; then
+            && [[ "$1" = "t303"* ]] ; then
         printf "ok $i0 PASS - expected failure $1 $backend\n"
         printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
         printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
@@ -89,6 +101,15 @@ for ((i=0;i<${#backends[@]}; ++i)); do
         continue
     fi
 
+    # grep to skip tests t410 and ex1 for OCCA' \
+    if grep -F -q -e 'OklPath' ${output}.err \
+            && [[ "$1" = "t410"* || "$1" = "ex"* ]] ; then
+        printf "ok $i0 # SKIP - gallery not supported $1 $backend\n"
+        printf "ok $i1 # SKIP - gallery not supported $1 $backend stdout\n"
+        printf "ok $i2 # SKIP - gallery not supported $1 $backend stderr\n"
+        continue
+    fi
+
     if [ $status -eq 0 ]; then
         printf "ok $i0 $1 $backend\n"
     else
@@ -96,8 +117,8 @@ for ((i=0;i<${#backends[@]}; ++i)); do
     fi
 
     # stdout
-    if [ -f output/$1.out ]; then
-        if diff -u output/$1.out ${output}.out > ${output}.diff; then
+    if [ -f tests/output/$1.out ]; then
+        if diff -u tests/output/$1.out ${output}.out > ${output}.diff; then
             printf "ok $i1 $1 $backend stdout\n"
         else
             printf "not ok $i1 $1 $backend stdout\n"
@@ -123,4 +144,5 @@ for ((i=0;i<${#backends[@]}; ++i)); do
     else
         printf "ok $i2 $1 $backend stderr\n"
     fi
-done
+done # backend loop
+done # test configuration loop

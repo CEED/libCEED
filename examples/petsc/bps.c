@@ -68,8 +68,8 @@ static PetscInt Min3(const PetscInt a[3]) {
   return PetscMin(a[0], PetscMin(a[1], a[2]));
 }
 static void GlobalNodes(const PetscInt p[3], const PetscInt irank[3],
-                      PetscInt degree, const PetscInt melem[3],
-                      PetscInt mnodes[3]) {
+                        PetscInt degree, const PetscInt melem[3],
+                        PetscInt mnodes[3]) {
   for (int d=0; d<3; d++)
     mnodes[d] = degree*melem[d] + (irank[d] == p[d]-1);
 }
@@ -121,7 +121,8 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
   }
 
   // Setup CEED restriction
-  CeedElemRestrictionCreate(ceed, nelem, P*P*P, mnodes[0]*mnodes[1]*mnodes[2], ncomp,
+  CeedElemRestrictionCreate(ceed, nelem, P*P*P, mnodes[0]*mnodes[1]*mnodes[2],
+                            ncomp,
                             CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
 
   PetscFunctionReturn(0);
@@ -137,7 +138,7 @@ struct User_ {
   Vec Xloc, Yloc;
   CeedVector xceed, yceed;
   CeedOperator op;
-  CeedVector rho;
+  CeedVector qdata;
   Ceed ceed;
 };
 
@@ -396,7 +397,7 @@ int main(int argc, char **argv) {
                       Erestrictqdi;
   CeedQFunction qf_setup, qf_apply, qf_error;
   CeedOperator op_setup, op_apply, op_error;
-  CeedVector xcoord, rho, rhsceed, target;
+  CeedVector xcoord, qdata, rhsceed, target;
   CeedInt P, Q;
   const CeedInt dim = 3, ncompx = 3;
   bpType bpChoice;
@@ -519,8 +520,8 @@ int main(int argc, char **argv) {
     ierr = PetscMalloc1(lsize, &ltogind0); CHKERRQ(ierr);
     ierr = PetscMalloc1(lsize, &locind); CHKERRQ(ierr);
     l0count = 0;
-    for (PetscInt i=0,ir,ii; ir=i>=mnodes[0], ii=i-ir*mnodes[0], i<lnodes[0]; i++) {
-      for (PetscInt j=0,jr,jj; jr=j>=mnodes[1], jj=j-jr*mnodes[1], j<lnodes[1]; j++) {
+    for (PetscInt i=0,ir,ii; ir=i>=mnodes[0], ii=i-ir*mnodes[0], i<lnodes[0]; i++)
+      for (PetscInt j=0,jr,jj; jr=j>=mnodes[1], jj=j-jr*mnodes[1], j<lnodes[1]; j++)
         for (PetscInt k=0,kr,kk; kr=k>=mnodes[2], kk=k-kr*mnodes[2], k<lnodes[2]; k++) {
           PetscInt here = (i*lnodes[1]+j)*lnodes[2]+k;
           ltogind[here] =
@@ -535,8 +536,6 @@ int main(int argc, char **argv) {
           ltogind0[l0count] = ltogind[here];
           locind[l0count++] = here;
         }
-      }
-    }
     ierr = ISCreateBlock(comm, ncompu, lsize, ltogind, PETSC_OWN_POINTER,
                          &ltogis); CHKERRQ(ierr);
     ierr = VecScatterCreate(Xloc, NULL, X, ltogis, &ltog); CHKERRQ(ierr);
@@ -625,7 +624,7 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_setup, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setup, "dx", ncompx*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setup, "rho", bpOptions[bpChoice].qdatasize,
+  CeedQFunctionAddOutput(qf_setup, "qdata", bpOptions[bpChoice].qdatasize,
                          CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_setup, "true_soln", ncompu, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_setup, "rhs", ncompu, CEED_EVAL_INTERP);
@@ -637,8 +636,8 @@ int main(int argc, char **argv) {
   CeedInt gradInScale = bpOptions[bpChoice].inmode==CEED_EVAL_GRAD ? 3 : 1;
   CeedInt gradOutScale = bpOptions[bpChoice].outmode==CEED_EVAL_GRAD ? 3 : 1;
   CeedQFunctionAddInput(qf_apply, "u", ncompu*gradInScale,
-                         bpOptions[bpChoice].inmode);
-  CeedQFunctionAddInput(qf_apply, "rho", bpOptions[bpChoice].qdatasize,
+                        bpOptions[bpChoice].inmode);
+  CeedQFunctionAddInput(qf_apply, "qdata", bpOptions[bpChoice].qdatasize,
                         CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_apply, "v", ncompu*gradOutScale,
                          bpOptions[bpChoice].outmode);
@@ -653,7 +652,7 @@ int main(int argc, char **argv) {
   // Create the persistent vectors that will be needed in setup
   CeedInt nqpts;
   CeedBasisGetNumQuadraturePoints(basisu, &nqpts);
-  CeedVectorCreate(ceed, bpOptions[bpChoice].qdatasize*nelem*nqpts, &rho);
+  CeedVectorCreate(ceed, bpOptions[bpChoice].qdatasize*nelem*nqpts, &qdata);
   CeedVectorCreate(ceed, nelem*nqpts*ncompu, &target);
   CeedVectorCreate(ceed, lsize*ncompu, &rhsceed);
 
@@ -665,7 +664,7 @@ int main(int argc, char **argv) {
                        basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "weight", Erestrictxi, CEED_NOTRANSPOSE,
                        basisx, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "rho", Erestrictqdi, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setup, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "true_soln", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, target);
@@ -676,8 +675,8 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
   CeedOperatorSetField(op_apply, "u", Erestrictu, CEED_TRANSPOSE,
                        basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "rho", Erestrictqdi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, rho);
+  CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
+                       CEED_BASIS_COLLOCATED, qdata);
   CeedOperatorSetField(op_apply, "v", Erestrictu, CEED_TRANSPOSE,
                        basisu, CEED_VECTOR_ACTIVE);
 
@@ -704,7 +703,7 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, lsize*ncompu, &user->xceed);
   CeedVectorCreate(ceed, lsize*ncompu, &user->yceed);
   user->op = op_apply;
-  user->rho = rho;
+  user->qdata = qdata;
   user->ceed = ceed;
 
   ierr = MatCreateShell(comm, mnodes[0]*mnodes[1]*mnodes[2]*ncompu,
@@ -725,8 +724,8 @@ int main(int argc, char **argv) {
   ierr = VecGetArray(rhsloc, &r); CHKERRQ(ierr);
   CeedVectorSetArray(rhsceed, CEED_MEM_HOST, CEED_USE_POINTER, r);
 
-  // Setup rho, rhs, and target
-  CeedOperatorApply(op_setup, xcoord, rho, CEED_REQUEST_IMMEDIATE);
+  // Setup qdata, rhs, and target
+  CeedOperatorApply(op_setup, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
   ierr = CeedVectorSyncArray(rhsceed, CEED_MEM_HOST); CHKERRQ(ierr);
   CeedVectorDestroy(&xcoord);
 
@@ -843,7 +842,7 @@ int main(int argc, char **argv) {
 
   CeedVectorDestroy(&user->xceed);
   CeedVectorDestroy(&user->yceed);
-  CeedVectorDestroy(&user->rho);
+  CeedVectorDestroy(&user->qdata);
   CeedVectorDestroy(&target);
   CeedOperatorDestroy(&op_setup);
   CeedOperatorDestroy(&op_apply);
