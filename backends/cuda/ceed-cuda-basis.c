@@ -275,31 +275,6 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
   }
 }
 
-// extern "C" __global__ void weight(const CeedScalar * __restrict__ qweight1d, CeedScalar * __restrict__ v) {
-//   CeedInt pre = BASIS_NQPT;
-//   CeedInt post = 1;
-//   for (CeedInt d=0; d<BASIS_DIM; d++) {
-//     pre /= BASIS_Q1D;
-//     for (CeedInt i=0; i<pre; i++) {
-//       for (CeedInt j=0; j<BASIS_Q1D; j++) {
-//         for (CeedInt k=0; k<post; k++) {
-//           v[(i*BASIS_Q1D + j)*post + k] = qweight1d[j] * (d == 0 ? 1 : v[(i*BASIS_Q1D + j)*post + k]);
-//         }
-//       }
-//     }
-//     post *= BASIS_Q1D;
-//   }
-// }
-// extern "C" __global__ void weight(const CeedInt nelem,
-//                                   const CeedScalar * __restrict__ qweight1d, CeedScalar * __restrict__ v) {
-//   CeedScalar r_w = qweight1d[threadIdx.x%BASIS_Q1D];
-//   for (int q = blockIdx.x * blockDim.x + threadIdx.x;
-//        q < nelem*BASIS_DIM*BASIS_Q1D;
-//        q += blockDim.x * gridDim.x) {
-//     if (threadIdx.x < BASIS_DIM*BASIS_Q1D) v[q] = r_w;
-//   }
-// }
-
 __device__ void weight1d(const CeedInt nelem, const CeedScalar *qweight1d,
                          CeedScalar *w) {
   CeedScalar w1d[BASIS_Q1D];

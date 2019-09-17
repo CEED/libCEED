@@ -116,7 +116,7 @@ class CeedMassOperator : public mfem::Operator {
     const mfem::IntegrationRule &ir =
       mfem::IntRules.Get(mfem::Geometry::SEGMENT, ir_order);
     CeedInt nqpts, nelem = mesh->GetNE(), dim = mesh->SpaceDimension(),
-            ncompx = dim;
+                   ncompx = dim;
 
     FESpace2Ceed(fes, ir, ceed, &basis, &restr);
 

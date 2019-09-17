@@ -26,6 +26,7 @@ typedef struct {
   CUfunction weight;
   CeedScalar *d_interp1d;
   CeedScalar *d_grad1d;
+  CeedScalar *d_collograd1d;
   CeedScalar *d_qweight1d;
   CeedScalar *c_B;
   CeedScalar *c_G;
