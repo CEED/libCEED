@@ -1035,7 +1035,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     switch (emode) {
     case CEED_EVAL_NONE:
       if (!basis_data->d_collograd1d) {
-        code << "  CeedScalar r_t"<<i<<"[ncomp_in_"<<i<<"];\n";
+        code << "  CeedScalar r_t"<<i<<"[ncomp_in_"<<i<<"*Q1d];\n";
         ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
         code << "  readQuads"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",Q1d>(data, nquads_in_"<<i<<", elem, d_u"<<i<<", r_t"<<i<<");\n";
       }
@@ -1178,9 +1178,13 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     code << "  out["<<i<<"] = r_qq"<<i<<";\n";
   }
   string qFunctionName(qf_data->qFunctionName);
-  code << "  "<<qFunctionName<<"(ctx, 1, ";
-  code << "in, out";
-  code << ");\n";
+  code << "  "<<qFunctionName<<"(ctx, ";
+  if(dim!=3 || basis_data->d_collograd1d) {
+    code << "1 ";
+  }else{
+    code << "Q1d ";
+  }
+  code << ", in, out);\n";
   if (basis_data->d_collograd1d) {
     for (CeedInt i = 0; i < numoutputfields; i++) {
       code << "  // Output field "<<i<<"\n";
