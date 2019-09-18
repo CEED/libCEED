@@ -45,8 +45,10 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
     CeedChk(ierr);
 
     if (!delegate)
+      // LCOV_EXCL_START
       return CeedError(ceed, 1,
                        "Backend does not support TensorContractCreate");
+    // LCOV_EXCL_STOP
 
     ierr = CeedTensorContractCreate(delegate, basis, contract);
     CeedChk(ierr);
