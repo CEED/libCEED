@@ -67,17 +67,17 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
 
   // Get nelem and current dim
   CeedScalar currdim = log(C/blksize) / log(J);
-  if (!(C % blksize) && currdim - (int)currdim < 1e-15)
+  if (!(C % blksize) && currdim - (int)currdim < 1e-15) {
     nelem = blksize;
-  else {
+  } else {
     nelem = 1;
     currdim = log(C) / log(J);
   }
 
   // Get kernel index
   if (impl->tensorbasis)
-    ind = CeedGetXsmmInd_Tensor(nelem, add, tmode==CEED_TRANSPOSE?1:0, B, C,
-                                J, (CeedInt)currdim, impl->dim);
+    ind = CeedGetXsmmInd_Tensor(nelem, add, tmode==CEED_TRANSPOSE?1:0, B, C, J,
+                                (CeedInt)currdim, impl->dim);
   else
     ind = CeedGetXsmmInd_NonTensor(add, impl->P, impl->Q, B, C, J);
 
@@ -118,10 +118,10 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
     // Set up kernel pointer array
     impl->numkernels = 2*2*4*impl->dim;
     ierr = CeedCalloc(impl->numkernels, &impl->kernels); CeedChk(ierr);
-    for (CeedInt nelem = 1; nelem <= 8; nelem+=7) {
-      for (CeedInt add = 0; add <= 1; add++) {
-        for (CeedInt tmode = 0; tmode <= 1; tmode++) {
-          for (CeedInt grad = 0; grad <=1; grad++) {
+    for (CeedInt nelem = 1; nelem <= 8; nelem+=7)
+      for (CeedInt add = 0; add <= 1; add++)
+        for (CeedInt tmode = 0; tmode <= 1; tmode++)
+          for (CeedInt grad = 0; grad <=1; grad++)
             for (CeedInt dim = 0; dim < impl->dim; dim++) {
               const int flags = LIBXSMM_GEMM_FLAGS('N', tmode ? 'T' : 'N');
               CeedInt B = grad ? impl->Q : (tmode ? impl->Q : impl->P),
@@ -139,10 +139,6 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
                 return CeedError(ceed, 1, "LIBXSMM kernel failed to build.");
               // LCOV_EXCL_STOP
             }
-          }
-        }
-      }
-    }
   } else {
     ierr = CeedBasisGetNumNodes(basis, &impl->P); CeedChk(ierr);
     ierr = CeedBasisGetNumQuadraturePoints(basis, &impl->Q); CeedChk(ierr);
@@ -150,9 +146,9 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
     // Set up kernel pointer array
     impl->numkernels = 4*2*2;
     ierr = CeedCalloc(impl->numkernels, &impl->kernels); CeedChk(ierr);
-    for (CeedInt nelem = 1; nelem <= 8; nelem+=7) {
-      for (CeedInt add = 0; add <= 1; add++) {
-        for (CeedInt tmode = 0; tmode <= 1; tmode++) {
+    for (CeedInt nelem = 1; nelem <= 8; nelem+=7)
+      for (CeedInt add = 0; add <= 1; add++)
+        for (CeedInt tmode = 0; tmode <= 1; tmode++)
           for (CeedInt grad = 1; grad <= impl->dim; grad+=impl->dim-1) {
             const int flags = LIBXSMM_GEMM_FLAGS('N', tmode ? 'T' : 'N');
             CeedInt B = tmode ? grad*impl->Q : impl->P,
@@ -169,9 +165,6 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
               return CeedError(ceed, 1, "LIBXSMM kernel failed to build.");
             // LCOV_EXCL_STOP
           }
-        }
-      }
-    }
   }
   ierr = CeedTensorContractSetData(contract, (void *)&impl); CeedChk(ierr);
 
