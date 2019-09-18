@@ -117,7 +117,7 @@ The `/cpu/self/opt/*` backends are written in pure C and use partial e-vectors t
 The `/cpu/self/avx/*` backends rely upon AVX instructions to provide vectorized CPU performance.
 
 The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](http://github.com/hfp/libxsmm) package
-to provide vectorized CPU performance. If LIBXSMM was linked against MKL but
+to provide vectorized CPU performance. If linking MKL and LIBXSMM is desired but
 the Makefile is not detecting `MKLROOT`, linking libCEED against MKL can be
 forced by setting the environment variable `MKL=1`.
 
