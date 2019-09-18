@@ -405,10 +405,12 @@ static inline int CeedOperatorApply_Opt(CeedOperator op,
                               impl->evecsout[i]); CeedChk(ierr);
         break;
       case CEED_EVAL_WEIGHT: {
+        // LCOV_EXCL_START
         Ceed ceed;
         ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
         return CeedError(ceed, 1,
                          "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
+        // LCOV_EXCL_STOP
         break; // Should not occur
       }
       case CEED_EVAL_DIV:
@@ -475,7 +477,9 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
     ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
                                   CeedOperatorApply_Opt_8); CeedChk(ierr);
   } else {
+  // LCOV_EXCL_START
     return CeedError(ceed, 1, "Opt backend cannot use blocksize: %d", blksize);
+  // LCOV_EXCL_STOP
   }
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",

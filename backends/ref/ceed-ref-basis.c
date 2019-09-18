@@ -35,8 +35,10 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
   if (U) {
     ierr = CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u); CeedChk(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
+    // LCOV_EXCL_START
     return CeedError(ceed, 1,
                      "An input vector is required for this CeedEvalMode");
+    // LCOV_EXCL_STOP
   }
   ierr = CeedVectorGetArray(V, CEED_MEM_HOST, &v); CeedChk(ierr);
 
@@ -188,8 +190,10 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     // Retrieve interpolation weights
     case CEED_EVAL_WEIGHT: {
       if (tmode == CEED_TRANSPOSE)
+        // LCOV_EXCL_START
         return CeedError(ceed, 1,
                          "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+      // LCOV_EXCL_STOP
       CeedInt Q = Q1d;
       CeedScalar *qweight1d;
       ierr = CeedBasisGetQWeights(basis, &qweight1d); CeedChk(ierr);
@@ -205,6 +209,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
             }
       }
     } break;
+    // LCOV_EXCL_START
     // Evaluate the divergence to/from the quadrature points
     case CEED_EVAL_DIV:
       return CeedError(ceed, 1, "CEED_EVAL_DIV not supported");
@@ -215,6 +220,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     case CEED_EVAL_NONE:
       return CeedError(ceed, 1,
                        "CEED_EVAL_NONE does not make sense in this context");
+    // LCOV_EXCL_STOP
     }
   } else {
     // Non-tensor basis
@@ -248,14 +254,17 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     // Retrieve interpolation weights
     case CEED_EVAL_WEIGHT: {
       if (tmode == CEED_TRANSPOSE)
+        // LCOV_EXCL_START
         return CeedError(ceed, 1,
                          "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+      // LCOV_EXCL_STOP
       CeedScalar *qweight;
       ierr = CeedBasisGetQWeights(basis, &qweight); CeedChk(ierr);
       for (CeedInt i=0; i<nqpt; i++)
         for (CeedInt e=0; e<nelem; e++)
           v[i*nelem + e] = qweight[i];
     } break;
+    // LCOV_EXCL_START
     // Evaluate the divergence to/from the quadrature points
     case CEED_EVAL_DIV:
       return CeedError(ceed, 1, "CEED_EVAL_DIV not supported");
@@ -266,6 +275,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     case CEED_EVAL_NONE:
       return CeedError(ceed, 1,
                        "CEED_EVAL_NONE does not make sense in this context");
+    // LCOV_EXCL_STOP
     }
   }
   if (U) {
