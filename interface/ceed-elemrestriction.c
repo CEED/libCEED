@@ -61,7 +61,9 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
     CeedChk(ierr);
 
     if (!delegate)
+      // LCOV_EXCL_START
       return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreate");
+    // LCOV_EXCL_STOP
 
     ierr = CeedElemRestrictionCreate(delegate, nelem, elemsize,
                                      nnodes, ncomp, mtype, cmode,
@@ -114,8 +116,10 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
     CeedChk(ierr);
 
     if (!delegate)
+      // LCOV_EXCL_START
       return CeedError(ceed, 1,
                        "Backend does not support ElemRestrictionCreate");
+    // LCOV_EXCL_STOP
 
     ierr = CeedElemRestrictionCreateIdentity(delegate, nelem, elemsize,
            nnodes, ncomp, rstr); CeedChk(ierr);
@@ -213,8 +217,10 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
     CeedChk(ierr);
 
     if (!delegate)
+      // LCOV_EXCL_START
       return CeedError(ceed, 1,
                        "Backend does not support ElemRestrictionCreateBlocked");
+    // LCOV_EXCL_STOP
 
     ierr = CeedElemRestrictionCreateBlocked(delegate, nelem, elemsize,
                                             blksize, nnodes, ncomp, mtype, cmode,
@@ -308,13 +314,17 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
     n = rstr->nblk * rstr->blksize * rstr->elemsize * rstr->ncomp;
   }
   if (n != u->length)
+    // LCOV_EXCL_START
     return CeedError(rstr->ceed, 2,
                      "Input vector size %d not compatible with element restriction (%d, %d)",
                      u->length, m, n);
+  // LCOV_EXCL_STOP
   if (m != v->length)
+    // LCOV_EXCL_START
     return CeedError(rstr->ceed, 2,
                      "Output vector size %d not compatible with element restriction (%d, %d)",
                      v->length, m, n);
+  // LCOV_EXCL_STOP
   ierr = rstr->Apply(rstr, tmode, lmode, u, v, request); CeedChk(ierr);
 
   return 0;
@@ -355,17 +365,23 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
     n = rstr->blksize * rstr->elemsize * rstr->ncomp;
   }
   if (n != u->length)
+    // LCOV_EXCL_START
     return CeedError(rstr->ceed, 2,
                      "Input vector size %d not compatible with element restriction (%d, %d)",
                      u->length, m, n);
+  // LCOV_EXCL_STOP
   if (m != v->length)
+    // LCOV_EXCL_START
     return CeedError(rstr->ceed, 2,
                      "Output vector size %d not compatible with element restriction (%d, %d)",
                      v->length, m, n);
+  // LCOV_EXCL_STOP
   if (rstr->blksize*block > rstr->nelem)
+    // LCOV_EXCL_START
     return CeedError(rstr->ceed, 2,
                      "Cannot retrieve block %d, element %d > total elements %d",
                      block, rstr->blksize*block, rstr->nelem);
+  // LCOV_EXCL_STOP
   ierr = rstr->ApplyBlock(rstr, block, tmode, lmode, u, v, request);
   CeedChk(ierr);
 

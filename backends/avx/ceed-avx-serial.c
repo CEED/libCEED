@@ -20,7 +20,9 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/avx/serial"))
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "AVX backend cannot use resource: %s", resource);
+  // LCOV_EXCL_STOP
 
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden

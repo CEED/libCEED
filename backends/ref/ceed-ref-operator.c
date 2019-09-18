@@ -345,10 +345,12 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
                               impl->evecsout[i]); CeedChk(ierr);
         break;
       case CEED_EVAL_WEIGHT: {
+        // LCOV_EXCL_START
         Ceed ceed;
         ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
         return CeedError(ceed, 1,
                          "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
+        // LCOV_EXCL_STOP
         break; // Should not occur
       }
       case CEED_EVAL_DIV:

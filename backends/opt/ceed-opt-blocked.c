@@ -30,7 +30,9 @@ static int CeedInit_Opt_Blocked(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/opt")
       && strcmp(resource, "/cpu/self/opt/blocked"))
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Opt backend cannot use resource: %s", resource);
+  // LCOV_EXCL_STOP
 
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
