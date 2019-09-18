@@ -70,12 +70,16 @@ def run(test, backends):
                     case.add_skipped_info('device memory not supported {} {}'.format(test, ceed_resource))
 
             if not case.is_skipped():
-                if test[:4] in 't103 t105 t106'.split():
+                if test[:4] in 't110 t111 t112 t113 t114'.split():
                     check_required_failure(case, proc.stderr, 'Cannot grant CeedVector array access')
-                if test[:4] in 't104'.split():
+                if test[:4] in 't115'.split():
+                    check_required_failure(case, proc.stderr, 'Cannot grant CeedVector read-only array access, the access lock is already in use')
+                if test[:4] in 't116'.split():
                     check_required_failure(case, proc.stderr, 'Cannot destroy CeedVector, the access lock is in use')
-                if test[:4] in 't107'.split():
+                if test[:4] in 't117'.split():
                     check_required_failure(case, proc.stderr, 'Cannot restore CeedVector array access, access was not granted')
+                if test[:4] in 't118'.split():
+                    check_required_failure(case, proc.stderr, 'Cannot sync CeedVector, the access lock is already in use')
                 if test[:4] in 't303'.split():
                     check_required_failure(case, proc.stderr, 'Length of input/output vectors incompatible with basis dimensions')
 

@@ -1,25 +1,26 @@
 /// @file
-/// Test CeedVectorGetArray state counter
-/// \test Test CeedVectorGetArray state counter
+/// Test CeedVector readers counter
+/// \test Test CeedVector readers counter
 #include <ceed.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedVector x;
   CeedInt n;
-  CeedScalar *a, *b;
+  const CeedScalar *a;
+  CeedScalar *b;
 
   CeedInit(argv[1], &ceed);
 
   n = 10;
   CeedVectorCreate(ceed, n, &x);
+  CeedVectorGetArrayRead(x, CEED_MEM_HOST, &a);
 
-  // Two write accesses should generate an error
-  CeedVectorGetArray(x, CEED_MEM_HOST, &a);
+  // Write access with read access generate an error
   CeedVectorGetArray(x, CEED_MEM_HOST, &b);
 
   // LCOV_EXCL_START
-  CeedVectorRestoreArray(x, &a);
+  CeedVectorRestoreArrayRead(x, &a);
   CeedVectorRestoreArray(x, &b);
 
   CeedVectorDestroy(&x);

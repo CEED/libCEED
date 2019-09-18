@@ -7,7 +7,7 @@
       integer x,n
       real*8 a(10)
       real*8 b(10)
-      integer*8 aoffset,boffset
+      integer*8 aoffset
       character arg*32
 
       call getarg(1,arg)
@@ -19,7 +19,7 @@
       call ceedvectorcreate(ceed,n,x,err)
 
       call ceedvectorgetarray(x,ceed_mem_host,a,aoffset,err)
-      call ceedvectorgetarray(x,ceed_mem_host,b,boffset,err)
+      call ceedvectorsetvalue(x,1.0,err)
 
 ! LCOV_EXCL_START
       call ceedvectorrestorearray(x,a,aoffset,err)

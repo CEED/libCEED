@@ -6,7 +6,9 @@ The tests are organized by API object, and some tests are further organized,
 as required.
 
 0. Ceed Tests
-1. CeedVector Tests
+1. CeedVector Tests  
+    1.0. CeedVector general tests  
+    1.1. CeedVector error tests
 2. CeedElemRestriction Tests
 3. CeedBasis Tests  
     3.0. CeedBasis utility tests  

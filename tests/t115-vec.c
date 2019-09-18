@@ -7,20 +7,21 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedVector x;
   CeedInt n;
-  CeedScalar *a, *b;
+  CeedScalar *a;
+  const CeedScalar *b;
 
   CeedInit(argv[1], &ceed);
 
   n = 10;
   CeedVectorCreate(ceed, n, &x);
 
-  // Two write accesses should generate an error
+  // Write access followed by read access should generate an error
   CeedVectorGetArray(x, CEED_MEM_HOST, &a);
-  CeedVectorGetArray(x, CEED_MEM_HOST, &b);
+  CeedVectorGetArrayRead(x, CEED_MEM_HOST, &b);
 
   // LCOV_EXCL_START
   CeedVectorRestoreArray(x, &a);
-  CeedVectorRestoreArray(x, &b);
+  CeedVectorRestoreArrayRead(x, &b);
 
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);
