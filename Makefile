@@ -291,13 +291,11 @@ endif
 ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   $(libceeds) : LDFLAGS += -L$(XSMM_DIR)/lib -Wl,-rpath,$(abspath $(XSMM_DIR)/lib)
   $(libceeds) : LDLIBS += -lxsmm -ldl
-  MKL ?= 0
-  ifeq (0,$(MKL))
-  ifeq ($(MKLROOT),)
+  MKL ?=
+  ifeq (,$(MKL)$(MKLROOT))
     BLAS_LIB = -lblas
   else
     BLAS_LIB = -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
-  endif
   endif
   $(libceeds) : LDLIBS += $(BLAS_LIB)
   libceed.c += $(xsmm.c)
