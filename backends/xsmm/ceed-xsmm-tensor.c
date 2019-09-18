@@ -31,7 +31,7 @@ int CeedGetXsmmInd_NonTensor(CeedInt add, CeedInt P, CeedInt Q, CeedInt B,
 }
 
 // Default Tensor Contact
-static int CeedTensorContract_Xsmm_Default(CeedTensorContract contract,
+static int CeedTensorContract_Xsmm_C1(CeedTensorContract contract,
     CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
     CeedTransposeMode tmode, const CeedInt Add, const CeedScalar *restrict u,
     CeedScalar *restrict v) {
@@ -44,17 +44,10 @@ static int CeedTensorContract_Xsmm_Default(CeedTensorContract contract,
   if (!Add)
     beta = 0.0;
 
-  if (C != 1)
-    for (CeedInt a=0; a<A; a++)
-      // libXSMM GEMM
-      libxsmm_dgemm(&transu, &transt, &C, &J, &B,
-                    &alpha, &u[a*B*C], NULL, &t[0], NULL,
-                    &beta, &v[a*J*C], NULL);
-  else
-    // libXSMM GEMM
-    libxsmm_dgemm(&transt, &transu, &J, &A, &B,
-                  &alpha, &t[0], NULL, &u[0], NULL,
-                  &beta, &v[0], NULL);
+  // libXSMM GEMM
+  libxsmm_dgemm(&transt, &transu, &J, &A, &B,
+                &alpha, &t[0], NULL, &u[0], NULL,
+                &beta, &v[0], NULL);
 
   return 0;
 }
@@ -89,11 +82,11 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
     ind = CeedGetXsmmInd_NonTensor(add, impl->P, impl->Q, B, C, J);
 
   // Run kernel or fallback to default implementation
-  if (C != 1 && impl->kernels[ind])
+  if (C != 1)
     for (CeedInt a=0; a<A; a++)
       impl->kernels[ind](&u[a*B*C], &t[0], &v[a*J*C], NULL, NULL, NULL);
   else
-    CeedTensorContract_Xsmm_Default(contract, A, B, C, J, t, tmode, add, u, v);
+    CeedTensorContract_Xsmm_C1(contract, A, B, C, J, t, tmode, add, u, v);
 
   return 0;
 }
@@ -143,8 +136,7 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
                                    &beta, &flags, NULL);
               if (!impl->kernels[ind])
                 // LCOV_EXCL_START
-                return CeedError(ceed, 1,
-                                 "LIBXSMM kernel failed to build.");
+                return CeedError(ceed, 1, "LIBXSMM kernel failed to build.");
               // LCOV_EXCL_STOP
             }
           }
@@ -174,8 +166,7 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
                                  &beta, &flags, NULL);
             if (!impl->kernels[ind])
               // LCOV_EXCL_START
-              return CeedError(ceed, 1,
-                               "LIBXSMM kernel failed to build.");
+              return CeedError(ceed, 1, "LIBXSMM kernel failed to build.");
             // LCOV_EXCL_STOP
           }
         }
