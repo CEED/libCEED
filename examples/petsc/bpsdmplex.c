@@ -439,7 +439,7 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
   } else {
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, melem, NULL,
-                               NULL, NULL, PETSC_TRUE,&dm); CHKERRQ(ierr);
+                               NULL, NULL, PETSC_TRUE, &dm); CHKERRQ(ierr);
   }
 
   {
