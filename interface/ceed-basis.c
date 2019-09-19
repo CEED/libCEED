@@ -892,7 +892,7 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
     return CeedError(basis->ceed, 1, "Backend does not support BasisApply");
   // LCOV_EXCL_STOP
 
-  // check compatibility of topological and geometrical dimensions
+  // Check compatibility of topological and geometrical dimensions
   ierr = CeedBasisGetNumNodes(basis, &nnodes); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   ierr = CeedVectorGetLength(v, &vlength); CeedChk(ierr);
@@ -922,7 +922,6 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
 **/
 int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed) {
   *ceed = basis->ceed;
-
   return 0;
 };
 
