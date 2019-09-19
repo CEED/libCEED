@@ -29,6 +29,7 @@ ifeq (,$(filter-out undefined default,$(origin LINK)))
   LINK = $(CC)
 endif
 NVCC ?= $(CUDA_DIR)/bin/nvcc
+NVCC_CXX ?= $(CXX)
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
@@ -544,11 +545,14 @@ print-% :
 configure :
 	@: > config.mk
 	@echo "CC = $(CC)" | tee -a config.mk
+	@echo "CXX = $(CXX)" | tee -a config.mk
 	@echo "FC = $(FC)" | tee -a config.mk
 	@echo "NVCC = $(NVCC)" | tee -a config.mk
+	@echo "NVCC_CXX = $(NVCC_CXX)" | tee -a config.mk
 	@echo "CFLAGS = $(CFLAGS)" | tee -a config.mk
 	@echo "CPPFLAGS = $(CPPFLAGS)" | tee -a config.mk
 	@echo "FFLAGS = $(FFLAGS)" | tee -a config.mk
+	@echo "NVCCFLAGS = $(NVCCFLAGS)" | tee -a config.mk
 	@echo "LDFLAGS = $(LDFLAGS)" | tee -a config.mk
 	@echo "LDLIBS = $(LDLIBS)" | tee -a config.mk
 	@echo "MAGMA_DIR = $(MAGMA_DIR)" | tee -a config.mk

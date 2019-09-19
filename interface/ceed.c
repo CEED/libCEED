@@ -519,11 +519,9 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
 
   // Set object delegate
   ceed->objdelegates[count].delegate = delegate;
-  ierr = CeedCalloc(strlen(objname)+1, &ceed->objdelegates[count].objname);
-  CeedChk(ierr);
-  CeedInt len = strlen(ceed->objdelegates[count].objname);
-  strncpy(ceed->objdelegates[count].objname, objname, len);
-  ceed->objdelegates[count].objname[len-1] = 0;
+  size_t slen = strlen(objname) + 1;
+  ierr = CeedMalloc(slen, &ceed->objdelegates[count].objname); CeedChk(ierr);
+  memcpy(ceed->objdelegates[count].objname, objname, slen);
 
   // Set delegate parent
   delegate->parent = ceed;
