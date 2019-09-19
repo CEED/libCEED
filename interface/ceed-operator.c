@@ -540,7 +540,9 @@ int CeedOperatorFieldGetLMode(CeedOperatorField opfield,
                               CeedTransposeMode *lmode) {
   *lmode = opfield->lmode;
   return 0;
-}/**
+}
+
+/**
   @brief Get the CeedElemRestriction of a CeedOperatorField
 
   @param opfield         CeedOperatorField
