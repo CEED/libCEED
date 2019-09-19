@@ -83,8 +83,9 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
   (*qf)->vlength = vlength;
   (*qf)->identity = 0;
   (*qf)->function = f;
-  ierr = CeedCalloc(strlen(source)+1, &source_copy); CeedChk(ierr);
-  strncpy(source_copy, source, strlen(source));
+  size_t slen = strlen(source) + 1;
+  ierr = CeedMalloc(slen, &source_copy); CeedChk(ierr);
+  memcpy(source_copy, source, slen);
   (*qf)->sourcepath = source_copy;
   ierr = CeedCalloc(16, &(*qf)->inputfields); CeedChk(ierr);
   ierr = CeedCalloc(16, &(*qf)->outputfields); CeedChk(ierr);
