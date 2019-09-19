@@ -25,15 +25,13 @@ int CeedOklPath_Occa(const Ceed ceed, const char *c_src_file,
   int ierr;
   Ceed_Occa *ceed_data;
   ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
-  ierr = CeedCalloc(OCCA_PATH_MAX,okl_file); CeedChk(ierr);
-  memcpy(*okl_file,c_src_file,strlen(c_src_file));
+  ierr = CeedCalloc(OCCA_PATH_MAX+1, okl_file); CeedChk(ierr);
   char *okl = *okl_file;
-  const char *last_dot = strrchr(okl,'.');
+  strncpy(okl, c_src_file, OCCA_PATH_MAX);
+  char *last_dot = strrchr(okl, '.');
   if (!last_dot)
     return CeedError(ceed, 1, "Cannot find file's extension!");
-  const size_t okl_path_len = last_dot - okl;
-  // TODO: Update strncpy to avoid memory corruption
-  strncpy(&okl[okl_path_len],".okl",5);
+  strncpy(last_dot, ".okl", OCCA_PATH_MAX - (last_dot - okl));
   dbg("[CeedOklPath] Current OKL is %s",okl);
   // Test if we can get file's status,
   if (stat(okl, &buf)!=0) { // if not revert to occa cache

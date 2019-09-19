@@ -17,7 +17,7 @@ of processors per node.
 Multiple backends, benchmark problems, and processor configurations can be
 benchmarked with:
 ```sh
-benchmark.sh -c "/cpu/self /cpu/self/blocked" -r petsc-bps.sh -b "bp1 bp3" -n "16 32 64" -p "16 32 64"
+benchmark.sh -c "/cpu/self/ref/serial /cpu/self/ref/blocked" -r petsc-bps.sh -b "bp1 bp3" -n "16 32 64" -p "16 32 64"
 ```
 
 The results from the benchmarks are written to files named `*-output.txt`.

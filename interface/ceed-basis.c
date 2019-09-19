@@ -61,14 +61,18 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
   int ierr;
 
   if (dim<1)
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Basis dimension must be a positive value");
+  // LCOV_EXCL_STOP
 
   if (!ceed->BasisCreateTensorH1) {
     Ceed delegate;
     ierr = CeedGetObjectDelegate(ceed, &delegate, "Basis"); CeedChk(ierr);
 
     if (!delegate)
+      // LCOV_EXCL_START
       return CeedError(ceed, 1, "Backend does not support BasisCreateTensorH1");
+    // LCOV_EXCL_STOP
 
     ierr = CeedBasisCreateTensorH1(delegate, dim, ncomp, P1d,
                                    Q1d, interp1d, grad1d, qref1d,
@@ -125,7 +129,9 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
   CeedScalar c1, c2, c3, c4, dx, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
 
   if (dim<1)
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Basis dimension must be a positive value");
+  // LCOV_EXCL_STOP
 
   ierr = CeedCalloc(P*Q, &interp1d); CeedChk(ierr);
   ierr = CeedCalloc(P*Q, &grad1d); CeedChk(ierr);
@@ -212,7 +218,9 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt ncomp,
     ierr = CeedGetObjectDelegate(ceed, &delegate, "Basis"); CeedChk(ierr);
 
     if (!delegate)
+      // LCOV_EXCL_START
       return CeedError(ceed, 1, "Backend does not support BasisCreateH1");
+    // LCOV_EXCL_STOP
 
     ierr = CeedBasisCreateH1(delegate, topo, ncomp, nnodes,
                              nqpts, interp, grad, qref,
@@ -554,7 +562,9 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
 
   // Check m >= n
   if (n > m)
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Cannot compute QR factorization with n > m");
+  // LCOV_EXCL_STOP
 
   for (CeedInt i=0; i<n; i++) {
     // Calculate Householder vector, magnitude
@@ -601,7 +611,10 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
                                     CeedScalar *lambda, CeedInt n) {
   // Check bounds for clang-tidy
   if (n<2)
-    return CeedError(ceed, 1, "Cannot compute symmetric Schur decomposition of scalars");
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1,
+                     "Cannot compute symmetric Schur decomposition of scalars");
+  // LCOV_EXCL_STOP
 
   CeedScalar v[n-1], tau[n-1], matT[n*n];
 
@@ -719,7 +732,9 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
 
   // Check convergence
   if (itr == maxitr && q < n-1)
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Symmetric QR failed to converge");
+  // LCOV_EXCL_STOP
 
   return 0;
 }
@@ -873,7 +888,10 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
   int ierr;
   CeedInt ulength = 0, vlength, nnodes, nqpt;
   if (!basis->Apply)
+    // LCOV_EXCL_START
     return CeedError(basis->ceed, 1, "Backend does not support BasisApply");
+  // LCOV_EXCL_STOP
+
   // check compatibility of topological and geometrical dimensions
   ierr = CeedBasisGetNumNodes(basis, &nnodes); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
@@ -965,7 +983,9 @@ int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *numcomp) {
 **/
 int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P1d) {
   if (!basis->tensorbasis)
+    // LCOV_EXCL_START
     return CeedError(basis->ceed, 1, "Cannot supply P1d for non-tensor basis");
+  // LCOV_EXCL_STOP
 
   *P1d = basis->P1d;
   return 0;
@@ -983,7 +1003,9 @@ int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P1d) {
 **/
 int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q1d) {
   if (!basis->tensorbasis)
+    // LCOV_EXCL_START
     return CeedError(basis->ceed, 1, "Cannot supply Q1d for non-tensor basis");
+  // LCOV_EXCL_STOP
 
   *Q1d = basis->Q1d;
   return 0;

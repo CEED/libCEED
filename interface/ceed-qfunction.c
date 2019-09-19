@@ -67,7 +67,9 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     ierr = CeedGetObjectDelegate(ceed, &delegate, "QFunction"); CeedChk(ierr);
 
     if (!delegate)
+      // LCOV_EXCL_START
       return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
+    // LCOV_EXCL_STOP
 
     ierr = CeedQFunctionCreateInterior(delegate, vlength, f, source, qf);
     CeedChk(ierr);
@@ -79,9 +81,11 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
   ceed->refcount++;
   (*qf)->refcount = 1;
   (*qf)->vlength = vlength;
+  (*qf)->identity = 0;
   (*qf)->function = f;
-  ierr = CeedCalloc(strlen(source)+1, &source_copy); CeedChk(ierr);
-  strncpy(source_copy, source, strlen(source));
+  size_t slen = strlen(source) + 1;
+  ierr = CeedMalloc(slen, &source_copy); CeedChk(ierr);
+  memcpy(source_copy, source, slen);
   (*qf)->sourcepath = source_copy;
   ierr = CeedCalloc(16, &(*qf)->inputfields); CeedChk(ierr);
   ierr = CeedCalloc(16, &(*qf)->outputfields); CeedChk(ierr);
@@ -110,7 +114,10 @@ int CeedQFunctionRegister(const char *name, const char *source,
                           CeedInt vlength, CeedQFunctionUser f,
                           int (*init)(Ceed, const char *, CeedQFunction)) {
   if (num_qfunctions >= sizeof(qfunctions) / sizeof(qfunctions[0]))
+    // LCOV_EXCL_START
     return CeedError(NULL, 1, "Too many gallery QFunctions");
+  // LCOV_EXCL_STOP
+
   strncpy(qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);
   qfunctions[num_qfunctions].name[CEED_MAX_RESOURCE_LEN-1] = 0;
   strncpy(qfunctions[num_qfunctions].source, source, CEED_MAX_RESOURCE_LEN);
@@ -161,6 +168,40 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
 
   // QFunction specific setup
   ierr = qfunctions[matchidx].init(ceed, name, *qf); CeedChk(ierr);
+
+  return 0;
+}
+
+/**
+  @brief Create an identity CeedQFunction. Inputs are written into outputs in
+           the order given. This is useful for CeedOperators that can be
+           represented with only the action of a CeedRestriction and CeedBasis,
+           such as restriction and prolongation operators for p-multigrid.
+           Backends may optimize CeedOperators with this CeedQFunction to avoid
+           the copy of input data to output fields by using the same memory
+           location for both.
+
+  @param ceed       A Ceed object where the CeedQFunction will be created
+  @param size       Size of the qfunction fields
+  @param[out] qf    Address of the variable where the newly created
+                      CeedQFunction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedQFunction *qf) {
+  int ierr;
+
+  ierr = CeedQFunctionCreateInteriorByName(ceed, "Identity", qf); CeedChk(ierr);
+
+  (*qf)->identity = 1;
+  if (size > 1) {
+    CeedInt *ctx;
+    ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
+    ctx[0] = size;
+    ierr = CeedQFunctionSetContext(*qf, ctx, sizeof(ctx)); CeedChk(ierr);
+  }
 
   return 0;
 }
@@ -237,8 +278,10 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname, CeedInt size,
 int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                            CeedInt size, CeedEvalMode emode) {
   if (emode == CEED_EVAL_WEIGHT)
+    // LCOV_EXCL_START
     return CeedError(qf->ceed, 1, "Cannot create QFunction output with "
                      "CEED_EVAL_WEIGHT");
+  // LCOV_EXCL_STOP
   int ierr = CeedQFunctionFieldSet(&qf->outputfields[qf->numoutputfields],
                                    fieldname, size, emode);
   CeedChk(ierr);
@@ -383,6 +426,22 @@ int CeedQFunctionGetFortranStatus(CeedQFunction qf, bool *fortranstatus) {
 }
 
 /**
+  @brief Determine if QFunction is identity
+
+  @param qf               CeedQFunction
+  @param[out] identity    Variable to store identity status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedQFunctionGetIdentityStatus(CeedQFunction qf, bool *identity) {
+  *identity = qf->identity;
+  return 0;
+}
+
+/**
   @brief Get true user context for a CeedQFunction
 
   @param qf              CeedQFunction
@@ -470,10 +529,14 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
                        CeedVector *u, CeedVector *v) {
   int ierr;
   if (!qf->Apply)
+    // LCOV_EXCL_START
     return CeedError(qf->ceed, 1, "Backend does not support QFunctionApply");
+  // LCOV_EXCL_STOP
   if (Q % qf->vlength)
+    // LCOV_EXCL_START
     return CeedError(qf->ceed, 2, "Number of quadrature points %d must be a "
                      "multiple of %d", Q, qf->vlength);
+  // LCOV_EXCL_STOP
   ierr = qf->Apply(qf, Q, u, v); CeedChk(ierr);
   return 0;
 }
@@ -579,6 +642,10 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   }
   ierr = CeedFree(&(*qf)->inputfields); CeedChk(ierr);
   ierr = CeedFree(&(*qf)->outputfields); CeedChk(ierr);
+  // Free ctx if identity
+  if ((*qf)->identity) {
+    ierr = CeedFree(&(*qf)->ctx); CeedChk(ierr);
+  }
 
   ierr = CeedFree(&(*qf)->sourcepath); CeedChk(ierr);
   ierr = CeedDestroy(&(*qf)->ceed); CeedChk(ierr);
