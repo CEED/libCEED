@@ -17,7 +17,6 @@ int main(int argc, char **argv) {
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, P, Q, CEED_GAUSS_LOBATTO, &b);
   CeedBasisGetCollocatedGrad(b, collograd1d);
 
-  CeedBasisView(b, stdout);
   for (int i=0; i<Q; i++) {
     fprintf(stdout, "%12s[%d]:", "collograd1d", i);
     for (int j=0; j<Q; j++) {
@@ -32,7 +31,6 @@ int main(int argc, char **argv) {
   CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, P, Q, CEED_GAUSS, &b);
   CeedBasisGetCollocatedGrad(b, collograd1d);
 
-  CeedBasisView(b, stdout);
   for (int i=0; i<Q; i++) {
     fprintf(stdout, "%12s[%d]:", "collograd1d", i);
     for (int j=0; j<Q; j++) {
@@ -47,7 +45,6 @@ int main(int argc, char **argv) {
   CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, P, P+2, CEED_GAUSS, &b);
   CeedBasisGetCollocatedGrad(b, collograd1d2);
 
-  CeedBasisView(b, stdout);
   for (int i=0; i<P+2; i++) {
     fprintf(stdout, "%12s[%d]:", "collograd1d", i);
     for (int j=0; j<P+2; j++) {

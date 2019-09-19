@@ -17,7 +17,6 @@
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,4,ceed_gauss_lobatto,b,&
      & err)
       call ceedbasisgetcollocatedgrad(b,collograd1d,err)
-      call ceedbasisview(b,err)
       do i=1,16
         if (abs(collograd1d(i))<1.0D-14) then
           collograd1d(i) = 0
@@ -33,7 +32,6 @@
 !     Q = P, not already collocated
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,4,ceed_gauss,b,err)
       call ceedbasisgetcollocatedgrad(b,collograd1d,err)
-      call ceedbasisview(b,err)
       do i=1,16
         if (abs(collograd1d(i))<1.0D-14) then
 ! LCOV_EXCL_START
@@ -51,7 +49,6 @@
 !     Q = P + 2, not already collocated
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,6,ceed_gauss,b,err)
       call ceedbasisgetcollocatedgrad(b,collograd1d2,err)
-      call ceedbasisview(b,err)
       do i=1,36
         if (abs(collograd1d2(i))<1.0D-14) then
 ! LCOV_EXCL_START

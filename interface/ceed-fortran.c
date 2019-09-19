@@ -287,8 +287,6 @@ void fCeedElemRestrictionApply(int *elemr, int *tmode, int *lmode,
   }
 }
 
-
-
 #define fCeedElemRestrictionApplyBlock \
     FORTRAN_NAME(ceedelemrestrictionapplyblock,CEEDELEMRESTRICTIONAPPLYBLOCK)
 void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode,
@@ -326,6 +324,11 @@ void fCeedElemRestrictionGetMultiplicity(int *elemr, int *mult, int *err) {
          CeedVector_dict[*mult]);
 }
 
+#define fCeedElemRestrictionView \
+    FORTRAN_NAME(ceedelemrestrictionview,CEEDELEMRESTRICTIONVIEW)
+void fCeedElemRestrictionView(int *elemr, int *err) {
+  *err = CeedElemRestrictionView(CeedElemRestriction_dict[*elemr], stdout);
+}
 
 #define fCeedRequestWait FORTRAN_NAME(ceedrequestwait, CEEDREQUESTWAIT)
 void fCeedRequestWait(int *rqst, int *err) {
@@ -704,9 +707,14 @@ void fCeedQFunctionApply(int *qf, int *Q,
 #define fCeedQFunctionDestroy \
     FORTRAN_NAME(ceedqfunctiondestroy,CEEDQFUNCTIONDESTROY)
 void fCeedQFunctionDestroy(int *qf, int *err) {
-  fContext *fctx = CeedQFunction_dict[*qf]->ctx;
-  *err = CeedFree(&fctx);
+  bool fstatus;
+  *err = CeedQFunctionGetFortranStatus(CeedQFunction_dict[*qf], &fstatus);
   if (*err) return;
+  if (fstatus) {
+    fContext *fctx = CeedQFunction_dict[*qf]->ctx;
+    *err = CeedFree(&fctx);
+    if (*err) return;
+  }
 
   *err = CeedQFunctionDestroy(&CeedQFunction_dict[*qf]);
   if (*err) return;

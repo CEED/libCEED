@@ -19,11 +19,11 @@
       call ceedvectorcreate(ceed,n,x,err)
 
       call ceedvectorgetarray(x,ceed_mem_host,a,aoffset,err)
-      call ceedvectorgetarray(x,ceed_mem_host,b,boffset,err)
+      boffset=0
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_copy_values,b,boffset,err)
 
 ! LCOV_EXCL_START
       call ceedvectorrestorearray(x,a,aoffset,err)
-      call ceedvectorrestorearray(x,b,boffset,err)
 
       call ceedvectordestroy(x,err)
       call ceeddestroy(ceed,err)
