@@ -213,6 +213,11 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     }
     #endif
   }
+
+  if(emode!=CEED_EVAL_WEIGHT) {
+    ierr = CeedVectorRestoreArrayRead(U, &u); CeedChk(ierr);
+  }
+  ierr = CeedVectorRestoreArray(V, &v); CeedChk(ierr);
   return 0;
 }
 
