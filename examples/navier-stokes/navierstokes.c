@@ -521,9 +521,9 @@ int main(int argc, char **argv) {
   resz = fabs(resz) * meter;
 
   // Find a nicely composite number of elements given the resolution
-  melem[0] = (PetscInt)(PetscRoundReal(lx / resx / p[0]));
-  melem[1] = (PetscInt)(PetscRoundReal(ly / resy / p[1]));
-  melem[2] = (PetscInt)(PetscRoundReal(lz / resz / p[2]));
+  melem[0] = (PetscInt)(PetscCeilReal(lx / resx / p[0]));
+  melem[1] = (PetscInt)(PetscCeilReal(ly / resy / p[1]));
+  melem[2] = (PetscInt)(PetscCeilReal(lz / resz / p[2]));
   for (int d=0; d<dim; d++) {
     if (melem[d] == 0)
       melem[d]++;
