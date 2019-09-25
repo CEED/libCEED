@@ -773,7 +773,7 @@ int main(int argc, char **argv) {
     }
   }
   // Timed solve
-  ierr = PetscBarrier(NULL); CHKERRQ(ierr);
+  ierr = PetscBarrier((PetscObject)ksp); CHKERRQ(ierr);
   my_rt_start = MPI_Wtime();
   ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
   my_rt = MPI_Wtime() - my_rt_start;
