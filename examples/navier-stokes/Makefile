@@ -14,7 +14,7 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-OPT ?= -O3 -g -march=native -ffp-contract=fast -fopenmp-simd
+OPT ?= -O -g -march=native -ffp-contract=fast -fopenmp-simd
 
 PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
 CEED_DIR ?= ../..
