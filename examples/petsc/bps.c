@@ -762,7 +762,7 @@ int main(int argc, char **argv) {
     my_rt_start = MPI_Wtime();
     ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
     my_rt = MPI_Wtime() - my_rt_start;
-    MPI_Reduce(&my_rt, &my_rt, 1, MPI_DOUBLE, MPI_MIN, 0, comm);
+    MPI_Allreduce(&my_rt, &my_rt, 1, MPI_DOUBLE, MPI_MIN, comm);
     // Set maxits based on first iteration timing
     if (my_rt > 0.02) {
       ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 5);
@@ -773,7 +773,7 @@ int main(int argc, char **argv) {
     }
   }
   // Timed solve
-  ierr = PetscBarrier(NULL); CHKERRQ(ierr);
+  ierr = PetscBarrier((PetscObject)ksp); CHKERRQ(ierr);
   my_rt_start = MPI_Wtime();
   ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
   my_rt = MPI_Wtime() - my_rt_start;
