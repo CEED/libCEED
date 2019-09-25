@@ -799,8 +799,8 @@ int main(int argc, char **argv) {
     if (benchmark_mode && (!test_mode)) {
       CeedInt gsize;
       ierr = VecGetSize(X, &gsize); CHKERRQ(ierr);
-      MPI_Reduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, 0, comm);
-      MPI_Reduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
+      MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
+      MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm);
       ierr = PetscPrintf(comm,
                          "  Performance:\n"
                          "    CG Solve Time                      : %g (%g) sec\n"
