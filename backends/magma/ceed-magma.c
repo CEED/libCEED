@@ -33,10 +33,10 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
 
   //ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VecCreate", 
   //                                 CeedVectorCreate_Magma); CeedChk(ierr);
-  //ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
-  //                              CeedBasisCreateTensorH1_Magma); CeedChk(ierr);
-  //ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-  //                              CeedBasisCreateH1_Magma); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
+                                CeedBasisCreateTensorH1_Magma); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
+                                CeedBasisCreateH1_Magma); CeedChk(ierr);
   return 0;
 }
 
