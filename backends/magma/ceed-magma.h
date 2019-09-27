@@ -70,7 +70,9 @@ magmablas_dbasis_apply_batched_eval_grad(
     const double* dinterp1d, const double *dgrad1d, CeedTransposeMode tmode,
     const double *dU, magma_int_t ustride, 
           double *dV, magma_int_t vstride,
-    magma_int_t batchCount );
+      magma_int_t batchCount,
+      magma_int_t dim_ctr );
+//    magma_int_t batchCount );
 
 void 
 magmablas_dbasis_apply_batched_eval_weight( 

@@ -64,13 +64,45 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
       P = Q1d; Q = P1d;
     }
 
-    int elquadsize = ncomp*CeedIntPow(Q, dim);
-    int eldofssize = ncomp*CeedIntPow(P, dim);
-    magmablas_dbasis_apply_batched_eval_interp(P, Q, dim, ncomp,
-					       impl->dinterp1d, tmode, 
-					       u, eldofssize, 
-					       v, elquadsize, 
+    // Define element sizes for dofs/quad
+    CeedInt elquadsize = CeedIntPow(Q1d, dim);
+    CeedInt eldofssize = CeedIntPow(P1d, dim);
+
+     // E-vector ordering -------------- Q-vector ordering 
+     //  elem                            component
+     //    component                        elem
+     //       node                            node
+
+    // ---  Define strides for NOTRANSPOSE mode: --- 
+    // Input (u) is E-vector, output (v) is Q-vector
+
+    // Element strides
+    CeedInt u_elstride = ncomp * eldofssize;
+    CeedInt v_elstride = elquadsize;
+    // Component strides 
+    CeedInt u_compstride = eldofssize;
+    CeedInt v_compstride = nelem * elquadsize;
+
+    // ---  Swap strides for TRANSPOSE mode: --- 
+    if(tmode == CEED_TRANSPOSE) {
+        // Input (u) is Q-vector, output (v) is E-vector
+        // Element strides
+        v_elstride = ncomp * eldofssize;
+        u_elstride = elquadsize;
+        // Component strides 
+        v_compstride = eldofssize;
+        u_compstride = nelem * elquadsize;
+    }
+
+    // Loop through components and apply batch over elements
+    for (CeedInt comp_ctr = 0; comp_ctr < ncomp; comp_ctr++){
+           magmablas_dbasis_apply_batched_eval_interp(P, Q, dim, ncomp,
+	   				       impl->dinterp1d, tmode, 
+   					       u + u_compstride * comp_ctr, u_elstride, 
+					       v + v_compstride * comp_ctr, v_elstride, 
 					       nelem);  
+     }
+
   }
   if (emode & CEED_EVAL_GRAD) {
     CeedInt P = P1d, Q = Q1d;
@@ -82,20 +114,62 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
       P = Q1d, Q = P1d;
     }
 
-    int elquadsize = ncomp*CeedIntPow(Q, dim);
-    int eldofssize = ncomp*CeedIntPow(P, dim);
-    magmablas_dbasis_apply_batched_eval_grad(P, Q, dim, ncomp, nqpt,                                    
-					     impl->dinterp1d, impl->dgrad1d, tmode, 
-					     u, eldofssize, 
-					     v, elquadsize, 
-					     nelem);       
+    // Define element sizes for dofs/quad
+    CeedInt elquadsize = CeedIntPow(Q1d, dim);
+    CeedInt eldofssize = CeedIntPow(P1d, dim);
+
+     // E-vector ordering -------------- Q-vector ordering 
+     //                                  dim
+     //  elem                             component
+     //    component                        elem
+     //       node                            node
+
+
+    // ---  Define strides for NOTRANSPOSE mode: --- 
+    // Input (u) is E-vector, output (v) is Q-vector
+
+    // Element strides
+    CeedInt u_elstride = ncomp * eldofssize;
+    CeedInt v_elstride = elquadsize;
+    // Component strides
+    CeedInt u_compstride = eldofssize;
+    CeedInt v_compstride = nelem * elquadsize;
+    // Dimension strides
+    CeedInt u_dimstride = 0;
+    CeedInt v_dimstride = nelem * elquadsize * ncomp;
+
+    // ---  Swap strides for TRANSPOSE mode: --- 
+    if(tmode == CEED_TRANSPOSE) {
+        // Input (u) is Q-vector, output (v) is E-vector
+        // Element strides
+        v_elstride = ncomp * eldofssize;
+        u_elstride = elquadsize;
+        // Component strides
+        v_compstride = eldofssize;
+        u_compstride = nelem * elquadsize;
+        // Dimension strides
+        v_dimstride = 0;
+        u_dimstride = nelem * elquadsize * ncomp;
+
+      }
+
+     // Loop through grad dimensions and components, batch call over elements
+     for(CeedInt dim_ctr = 0; dim_ctr < dim; dim_ctr++){
+        for (CeedInt comp_ctr = 0; comp_ctr < ncomp; comp_ctr++){
+             magmablas_dbasis_apply_batched_eval_grad(P, Q, dim, ncomp, nqpt,                                    
+	    				     impl->dinterp1d, impl->dgrad1d, tmode, 
+   					     u + dim_ctr * u_dimstride + u_compstride * comp_ctr, u_elstride, 
+					     v + dim_ctr * v_dimstride + v_compstride * comp_ctr, v_elstride, 
+					     nelem, dim_ctr);       
+        }
+     }
    }
   if (emode & CEED_EVAL_WEIGHT) {
     if (tmode == CEED_TRANSPOSE)
       return CeedError(ceed, 1,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     CeedInt Q = Q1d;
-    int eldofssize = ncomp*CeedIntPow(Q, dim);
+    int eldofssize = CeedIntPow(Q, dim);
     magmablas_dbasis_apply_batched_eval_weight(Q, dim, impl->dqweight1d, 
 					       v, eldofssize, 
 					       nelem);

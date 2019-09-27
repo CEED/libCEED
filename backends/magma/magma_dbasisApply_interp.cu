@@ -44,14 +44,14 @@ dbasis_apply_eval_interp_kernel_batched_driver(
                 const double *dU, magma_int_t ustride, double *dV, magma_int_t vstride, 
                 magma_int_t batchCount )
 {
-    magma_int_t pre  = ncomp * ipow(P, dim-1); //ncomp*CeedIntPow(P, dim-1);
+    magma_int_t pre = ipow(P, dim-1); //ncomp*CeedIntPow(P, dim-1);
     magma_int_t post = 1; 
 
     // ncomp*Q*CeedIntPow(P>Q?P:Q,dim-1);
     // originally the exponent is (dim-1), but we use dim because 
     // we have to read the original u in shared memory
     // the original implementation access u directly
-    magma_int_t tmp_size = ncomp * ipow(max(P,Q), dim); //ncomp * Q * ipow(max(P,Q), dim); 
+    magma_int_t tmp_size = ipow(max(P,Q), dim); //ncomp * Q * ipow(max(P,Q), dim); 
     magma_int_t shmem = P * Q * sizeof(double);
     shmem += 2 * tmp_size * sizeof(double); 
     
