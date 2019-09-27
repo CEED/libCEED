@@ -72,7 +72,6 @@ magmablas_dbasis_apply_batched_eval_grad(
           double *dV, magma_int_t vstride,
       magma_int_t batchCount,
       magma_int_t dim_ctr );
-//    magma_int_t batchCount );
 
 void 
 magmablas_dbasis_apply_batched_eval_weight( 

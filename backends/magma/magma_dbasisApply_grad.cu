@@ -27,7 +27,7 @@ extern __shared__ double shared_data[];
 template<int P, int Q>
 static __global__ void
 dbasis_apply_eval_grad_kernel_batched( 
-    const int dim, const int ncomp, const int nqpt, const int ndof,  
+    const int dim, const int ncomp, const int nqpt, 
     const int pre_org, const int tmp_size, 
     const double* dinterp1d, const double *dgrad1d, magma_trans_t transT,
     const double *dU, const int ustride, double *dV, const int vstride, const int dim_ctr)
@@ -77,8 +77,6 @@ dbasis_apply_eval_grad_kernel_batched_driver(
     // using __powf() + integer cast rounds down (like floor)
     magma_int_t pre = CeedIntPow(P, dim-1); 
     
-    magma_int_t ndof = CeedIntPow(P, dim);
-
     magma_int_t nthreads = max(P, CeedIntPow(Q, dim-1) ); 
     nthreads = magma_roundup( nthreads, Q ); // nthreads must be multiple of Q
     
@@ -91,7 +89,7 @@ dbasis_apply_eval_grad_kernel_batched_driver(
         dim3 threads(nthreads, 1, 1);
         dim3 grid(batchCount, 1, 1);
         dbasis_apply_eval_grad_kernel_batched<P, Q><<<grid, threads, shmem, 0>>>
-        ( dim, ncomp, nqpt, ndof, pre, tmp_size, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, dim_ctr);
+        ( dim, ncomp, nqpt, pre, tmp_size, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, dim_ctr);
         return 0;
     } 
 }
