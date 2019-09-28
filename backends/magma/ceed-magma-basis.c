@@ -31,8 +31,6 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
   ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
-  CeedTensorContract contract;
-  ierr = CeedBasisGetTensorContract(basis, &contract); CeedChk(ierr);
   const CeedScalar *u;
   CeedScalar *v;
   if (U) {
