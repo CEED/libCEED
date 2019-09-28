@@ -17,7 +17,7 @@
 #include "ceed-magma.h"
 
 #ifdef __cplusplus
-extern "C"
+CEED_INTERN "C"
 #endif
 int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem, 
 			 CeedTransposeMode tmode, CeedEvalMode emode,
@@ -156,8 +156,10 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
         for (CeedInt comp_ctr = 0; comp_ctr < ncomp; comp_ctr++){
              magmablas_dbasis_apply_batched_eval_grad(P, Q, dim, ncomp, nqpt,                                    
 	    				     impl->dinterp1d, impl->dgrad1d, tmode, 
-   					     u + dim_ctr * u_dimstride + u_compstride * comp_ctr, u_elstride, 
-					     v + dim_ctr * v_dimstride + v_compstride * comp_ctr, v_elstride, 
+   					     u + dim_ctr * u_dimstride + u_compstride * comp_ctr,
+                                             u_elstride, 
+					     v + dim_ctr * v_dimstride + v_compstride * comp_ctr,
+                                             v_elstride, 
 					     nelem, dim_ctr);       
         }
      }
@@ -181,7 +183,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
 }
 
 #ifdef __cplusplus
-extern "C"
+CEED_INTERN "C"
 #endif
 int CeedBasisDestroy_Magma(CeedBasis basis) 
 {
@@ -200,7 +202,7 @@ int CeedBasisDestroy_Magma(CeedBasis basis)
 }
 
 #ifdef __cplusplus
-extern "C"
+CEED_INTERN "C"
 #endif
 int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d,
@@ -246,7 +248,7 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
 }
 
 #ifdef __cplusplus
-extern "C"
+CEED_INTERN "C"
 #endif
 int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim,
                                    CeedInt ndof, CeedInt nqpts,
