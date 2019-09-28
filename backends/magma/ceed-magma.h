@@ -21,13 +21,6 @@
 #include "magma.h"
 
 typedef struct {
-  CeedScalar *array;
-  CeedScalar *darray;
-  int  own_;
-  int down_;
-} CeedVector_Magma;
-
-typedef struct {
     CeedScalar *dqref1d;
     CeedScalar *dinterp1d;
     CeedScalar *dgrad1d;
@@ -101,31 +94,6 @@ int CeedBasisCreateH1_Magma(
     const CeedScalar *qref,
     const CeedScalar *qweight,
     CeedBasis basis);
-
-CEED_INTERN
-int CeedVectorSetArray_Magma(CeedVector vec, CeedMemType mtype,
-                             CeedCopyMode cmode, CeedScalar *array);
-
-CEED_INTERN
-int CeedVectorGetArray_Magma(CeedVector vec, CeedMemType mtype,
-                                    CeedScalar **array);
-
-CEED_INTERN
-int CeedVectorGetArrayRead_Magma(CeedVector vec, CeedMemType mtype,
-                                        const CeedScalar **array);
-
-CEED_INTERN
-int CeedVectorRestoreArray_Magma(CeedVector vec, CeedScalar **array);
-
-CEED_INTERN
-int CeedVectorRestoreArrayRead_Magma(CeedVector vec,
-    const CeedScalar **array);
-
-CEED_INTERN
-int CeedVectorDestroy_Magma(CeedVector vec);
-
-CEED_INTERN
-int CeedVectorCreate_Magma(CeedInt n, CeedVector vec);
 
 #ifdef __cplusplus
 }
