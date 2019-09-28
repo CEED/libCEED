@@ -197,9 +197,11 @@ int CeedSetErrorHandler(Ceed ceed,
 **/
 int CeedRegister(const char *prefix,
                  int (*init)(const char *, Ceed), unsigned int priority) {
-  if (num_backends >= sizeof(backends) / sizeof(backends[0])) {
+  if (num_backends >= sizeof(backends) / sizeof(backends[0]))
+    // LCOV_EXCL_START
     return CeedError(NULL, 1, "Too many backends");
-  }
+  // LCOV_EXCL_STOP
+
   strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
   backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN-1] = 0;
   backends[num_backends].init = init;
@@ -227,9 +229,12 @@ int CeedRegister(const char *prefix,
 int CeedMallocArray(size_t n, size_t unit, void *p) {
   int ierr = posix_memalign((void **)p, CEED_ALIGN, n*unit);
   if (ierr)
+    // LCOV_EXCL_START
     return CeedError(NULL, ierr,
                      "posix_memalign failed to allocate %zd members of size %zd\n",
                      n, unit);
+  // LCOV_EXCL_STOP
+
   return 0;
 }
 
@@ -251,8 +256,12 @@ int CeedMallocArray(size_t n, size_t unit, void *p) {
 int CeedCallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = calloc(n, unit);
   if (n && unit && !*(void **)p)
-    return CeedError(NULL, 1, "calloc failed to allocate %zd members of size %zd\n",
+    // LCOV_EXCL_START
+    return CeedError(NULL, 1,
+                     "calloc failed to allocate %zd members of size %zd\n",
                      n, unit);
+  // LCOV_EXCL_STOP
+
   return 0;
 }
 
@@ -274,9 +283,12 @@ int CeedCallocArray(size_t n, size_t unit, void *p) {
 int CeedReallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = realloc(*(void **)p, n*unit);
   if (n && unit && !*(void **)p)
+    // LCOV_EXCL_START
     return CeedError(NULL, 1,
                      "realloc failed to allocate %zd members of size %zd\n",
                      n, unit);
+  // LCOV_EXCL_STOP
+
   return 0;
 }
 
@@ -507,11 +519,9 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
 
   // Set object delegate
   ceed->objdelegates[count].delegate = delegate;
-  ierr = CeedCalloc(strlen(objname)+1, &ceed->objdelegates[count].objname);
-  CeedChk(ierr);
-  CeedInt len = strlen(ceed->objdelegates[count].objname);
-  strncpy(ceed->objdelegates[count].objname, objname, len);
-  ceed->objdelegates[count].objname[len-1] = 0;
+  size_t slen = strlen(objname) + 1;
+  ierr = CeedMalloc(slen, &ceed->objdelegates[count].objname); CeedChk(ierr);
+  memcpy(ceed->objdelegates[count].objname, objname, slen);
 
   // Set delegate parent
   delegate->parent = ceed;
@@ -590,9 +600,11 @@ int CeedSetBackendFunction(Ceed ceed,
     }
   }
 
+  // LCOV_EXCL_START
   return CeedError(ceed, 1,
                    "Requested function '%s' was not found for CEED object '%s'",
                    fname, type);
+  // LCOV_EXCL_STOP
 }
 
 /**

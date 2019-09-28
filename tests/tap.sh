@@ -74,9 +74,9 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to pass test t103, t104, t105, t106, t107 on error
+    # grep to pass test t11* on error
     if grep -F -q -e 'access' ${output}.err \
-            && [[ "$1" = "t103"* || "$1" = "t104"* || "$1" = "t105"* || "$1" = "t106"* || "$1" = "t107"* ]] ; then
+            && [[ "$1" = "t11"* ]] ; then
         printf "ok $i0 PASS - expected failure $1 $backend\n"
         printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
         printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
@@ -101,9 +101,10 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to skip tests t410 and ex1 for OCCA' \
+    # grep to skip tests t41*, ex1, and ex2 for OCCA
+    #  This exception will be removed with the OCCA backend overhaul
     if grep -F -q -e 'OklPath' ${output}.err \
-            && [[ "$1" = "t410"* || "$1" = "ex"* ]] ; then
+            && [[ "$1" = "t41"* || "$1" = "ex"* ]] ; then
         printf "ok $i0 # SKIP - gallery not supported $1 $backend\n"
         printf "ok $i1 # SKIP - gallery not supported $1 $backend stdout\n"
         printf "ok $i2 # SKIP - gallery not supported $1 $backend stderr\n"

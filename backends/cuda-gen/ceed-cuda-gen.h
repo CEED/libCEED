@@ -34,18 +34,6 @@ typedef struct {
 } CeedOperator_Cuda_gen;
 
 typedef struct {
-  CUmodule module;
-  CUfunction interp;
-  CUfunction grad;
-  CUfunction weight;
-  CeedScalar *d_interp1d;
-  CeedScalar *d_grad1d;
-  CeedScalar *d_qweight1d;
-  CeedScalar *c_B;
-  CeedScalar *c_G;
-} CeedBasis_Cuda_gen;
-
-typedef struct {
   char *qFunctionName;
   char *qFunctionSource;
   void *d_c;

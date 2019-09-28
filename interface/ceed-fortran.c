@@ -287,8 +287,6 @@ void fCeedElemRestrictionApply(int *elemr, int *tmode, int *lmode,
   }
 }
 
-
-
 #define fCeedElemRestrictionApplyBlock \
     FORTRAN_NAME(ceedelemrestrictionapplyblock,CEEDELEMRESTRICTIONAPPLYBLOCK)
 void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode,
@@ -326,6 +324,11 @@ void fCeedElemRestrictionGetMultiplicity(int *elemr, int *mult, int *err) {
          CeedVector_dict[*mult]);
 }
 
+#define fCeedElemRestrictionView \
+    FORTRAN_NAME(ceedelemrestrictionview,CEEDELEMRESTRICTIONVIEW)
+void fCeedElemRestrictionView(int *elemr, int *err) {
+  *err = CeedElemRestrictionView(CeedElemRestriction_dict[*elemr], stdout);
+}
 
 #define fCeedRequestWait FORTRAN_NAME(ceedrequestwait, CEEDREQUESTWAIT)
 void fCeedRequestWait(int *rqst, int *err) {
@@ -593,6 +596,23 @@ void fCeedQFunctionCreateInteriorByName(int *ceed, const char *name, int *qf,
   }
 }
 
+#define fCeedQFunctionCreateIdentity \
+    FORTRAN_NAME(ceedqfunctioncreateidentity, CEEDQFUNCTIONCREATEIDENTITY)
+void fCeedQFunctionCreateIdentity(int *ceed, int *size, int *qf, int *err) {
+  if (CeedQFunction_count == CeedQFunction_count_max) {
+    CeedQFunction_count_max += CeedQFunction_count_max/2 + 1;
+    CeedRealloc(CeedQFunction_count_max, &CeedQFunction_dict);
+  }
+
+  CeedQFunction *qf_ = &CeedQFunction_dict[CeedQFunction_count];
+  *err = CeedQFunctionCreateIdentity(Ceed_dict[*ceed], *size, qf_);
+
+  if (*err == 0) {
+    *qf = CeedQFunction_count++;
+    CeedQFunction_n++;
+  }
+}
+
 #define fCeedQFunctionAddInput \
     FORTRAN_NAME(ceedqfunctionaddinput,CEEDQFUNCTIONADDINPUT)
 void fCeedQFunctionAddInput(int *qf, const char *fieldname,
@@ -687,9 +707,14 @@ void fCeedQFunctionApply(int *qf, int *Q,
 #define fCeedQFunctionDestroy \
     FORTRAN_NAME(ceedqfunctiondestroy,CEEDQFUNCTIONDESTROY)
 void fCeedQFunctionDestroy(int *qf, int *err) {
-  fContext *fctx = CeedQFunction_dict[*qf]->ctx;
-  *err = CeedFree(&fctx);
+  bool fstatus;
+  *err = CeedQFunctionGetFortranStatus(CeedQFunction_dict[*qf], &fstatus);
   if (*err) return;
+  if (fstatus) {
+    fContext *fctx = CeedQFunction_dict[*qf]->ctx;
+    *err = CeedFree(&fctx);
+    if (*err) return;
+  }
 
   *err = CeedQFunctionDestroy(&CeedQFunction_dict[*qf]);
   if (*err) return;

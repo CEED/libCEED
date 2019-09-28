@@ -25,7 +25,9 @@
       do i=0,3
         do j=1,4
           if (abs(x(i*4+j))<1.0D-14) then
+! LCOV_EXCL_START
             x(i*4+j) = 0
+! LCOV_EXCL_STOP
           endif
         enddo
         write(*,'(A,F12.8,F12.8,F12.8,F12.8)') '',&
@@ -34,7 +36,9 @@
       write (*,*) 'lambda:'
       do i=1,4
         if (abs(lambda(i))<1.0D-14) then
+! LCOV_EXCL_START
           lambda(i) = 0
+! LCOV_EXCL_STOP
         endif
         write(*,'(A,F12.8)') '',lambda(i)
       enddo

@@ -363,6 +363,8 @@ CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
     CeedQFunctionUser f, const char *source, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionCreateInteriorByName(Ceed ceed, const char *name,
     CeedQFunction *qf);
+CEED_EXTERN int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size,
+                                            CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                                       CeedInt size, CeedEvalMode emode);
 CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,

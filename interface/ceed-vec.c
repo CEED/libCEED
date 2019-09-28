@@ -48,7 +48,9 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
     ierr = CeedGetObjectDelegate(ceed, &delegate, "Vector"); CeedChk(ierr);
 
     if (!delegate)
+      // LCOV_EXCL_START
       return CeedError(ceed, 1, "Backend does not support VectorCreate");
+    // LCOV_EXCL_STOP
 
     ierr = CeedVectorCreate(delegate, length, vec); CeedChk(ierr);
     return 0;
@@ -83,7 +85,9 @@ int CeedVectorSetArray(CeedVector vec, CeedMemType mtype, CeedCopyMode cmode,
   int ierr;
 
   if (!vec->SetArray)
-    return CeedError(vec->ceed, 1, "Not supported");
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, 1, "Backend does not support VectorSetArray");
+  // LCOV_EXCL_STOP
 
   if (vec->state % 2 == 1)
     return CeedError(vec->ceed, 1,
@@ -180,7 +184,9 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
   int ierr;
 
   if (!vec->GetArray)
-    return CeedError(vec->ceed, 1, "Not supported");
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, 1, "Backend does not support GetArray");
+  // LCOV_EXCL_STOP
 
   if (vec->state % 2 == 1)
     return CeedError(vec->ceed, 1,
@@ -214,7 +220,9 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
   int ierr;
 
   if (!vec->GetArrayRead)
-    return CeedError(vec->ceed, 1, "Not supported");
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, 1, "Backend does not support GetArrayRead");
+  // LCOV_EXCL_STOP
 
   if (vec->state % 2 == 1)
     return CeedError(vec->ceed, 1,
@@ -240,7 +248,9 @@ int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
   int ierr;
 
   if (!vec->RestoreArray)
-    return CeedError(vec->ceed, 1, "Not supported");
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, 1, "Backend does not support RestoreArray");
+  // LCOV_EXCL_STOP
 
   if (vec->state % 2 != 1)
     return CeedError(vec->ceed, 1,
@@ -267,7 +277,9 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
   int ierr;
 
   if (!vec->RestoreArrayRead)
-    return CeedError(vec->ceed, 1, "Not supported");
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, 1, "Backend does not support RestoreArrayRead");
+  // LCOV_EXCL_STOP
 
   ierr = vec->RestoreArrayRead(vec); CeedChk(ierr);
   *array = NULL;
