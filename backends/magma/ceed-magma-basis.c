@@ -36,8 +36,10 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   if (U) {
     ierr = CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &u); CeedChk(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
+    // LCOV_EXCL_START
     return CeedError(ceed, 1,
                      "An input vector is required for this CeedEvalMode");
+    // LCOV_EXCL_STOP
   }
   ierr = CeedVectorGetArray(V, CEED_MEM_DEVICE, &v); CeedChk(ierr);
 
@@ -166,8 +168,10 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
    }
   if (emode & CEED_EVAL_WEIGHT) {
     if (tmode == CEED_TRANSPOSE)
+      // LCOV_EXCL_START
       return CeedError(ceed, 1,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+    // LCOV_EXCL_STOP
     CeedInt Q = Q1d;
     int eldofssize = CeedIntPow(Q, dim);
     magmablas_dbasis_apply_batched_eval_weight(Q, dim, impl->dqweight1d, 

@@ -19,17 +19,22 @@
 static int CeedInit_Magma(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/gpu/magma"))
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Magma backend cannot use resource: %s", resource);
+  // LCOV_EXCL_STOP
 
-  Ceed ceedref;
 
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
+  Ceed ceedref;
   CeedInit("/gpu/cuda/ref", &ceedref);
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   ierr = magma_init();
-  if (ierr) return CeedError(ceed, 1, "error in magma_init(): %d\n", ierr);
+  if (ierr)
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "error in magma_init(): %d\n", ierr);
+  // LCOV_EXCL_STOP
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Magma); CeedChk(ierr);
