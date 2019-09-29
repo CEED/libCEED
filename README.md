@@ -117,8 +117,9 @@ The `/cpu/self/opt/*` backends are written in pure C and use partial e-vectors t
 The `/cpu/self/avx/*` backends rely upon AVX instructions to provide vectorized CPU performance.
 
 The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](http://github.com/hfp/libxsmm) package
-to provide vectorized CPU performance. The LIBXSMM backend does not use BLAS or MKL; however,
-if LIBXSMM was linked to MKL, this can be specified with the compilation flag `MKL=1`.
+to provide vectorized CPU performance. If linking MKL and LIBXSMM is desired but
+the Makefile is not detecting `MKLROOT`, linking libCEED against MKL can be
+forced by setting the environment variable `MKL=1`.
 
 The `/cpu/self/ref/memcheck` backend relies upon the [Valgrind](http://valgrind.org/) Memcheck tool
 to help verify that user QFunctions have no undefined values. To use, run your code with

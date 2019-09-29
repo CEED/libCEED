@@ -128,7 +128,9 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
 
   if (mtype != CEED_MEM_HOST)
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Only MemType = HOST supported");
+  // LCOV_EXCL_STOP
   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
   switch (cmode) {
   case CEED_COPY_VALUES:
