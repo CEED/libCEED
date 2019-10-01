@@ -398,7 +398,7 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
 }
 
 /**
-  @brief Get the multiplicity of DoFs in a CeedElemRestriction
+  @brief Get the multiplicity of nodes in a CeedElemRestriction
 
   @param rstr      CeedElemRestriction
   @param[out] mult Vector to store multiplicity (of size nnodes)
