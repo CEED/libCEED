@@ -21,10 +21,10 @@
 #include "magma.h"
 
 typedef struct {
-    CeedScalar *dqref1d;
-    CeedScalar *dinterp1d;
-    CeedScalar *dgrad1d;
-    CeedScalar *dqweight1d;
+  CeedScalar *dqref1d;
+  CeedScalar *dinterp1d;
+  CeedScalar *dgrad1d;
+  CeedScalar *dqweight1d;
 } CeedBasis_Magma;
 
 typedef struct {
@@ -38,62 +38,41 @@ typedef struct {
 #define USE_MAGMA_BATCH3
 #define USE_MAGMA_BATCH4
 
-CEED_INTERN void magma_dtensor_contract(Ceed ceed,
-                            CeedInt A, CeedInt B, CeedInt C, CeedInt J,
-                            const CeedScalar *t, CeedTransposeMode tmode,
-                            const CeedInt Add,
-                            const CeedScalar *u, CeedScalar *v);
+CEED_INTERN void magma_dtensor_contract(Ceed ceed, CeedInt A, CeedInt B,
+                                        CeedInt C, CeedInt J,
+                                        const CeedScalar *t,
+                                        CeedTransposeMode tmode,
+                                        const CeedInt Add, const CeedScalar *u,
+                                        CeedScalar *v);
 
 #ifdef __cplusplus
 CEED_INTERN {
 #endif
-void
-magmablas_dbasis_apply_batched_eval_interp( 
-    magma_int_t P, magma_int_t Q, 
-    magma_int_t dim, magma_int_t ncomp,  
-    const double *dT, CeedTransposeMode tmode,
-    const double *dU, magma_int_t ustride, 
-          double *dV, magma_int_t vstride, 
-    magma_int_t batchCount );
-    
-void 
-magmablas_dbasis_apply_batched_eval_grad( 
-    magma_int_t P, magma_int_t Q, 
-    magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt, 
-    const double* dinterp1d, const double *dgrad1d, CeedTransposeMode tmode,
-    const double *dU, magma_int_t ustride, 
-          double *dV, magma_int_t vstride,
-      magma_int_t batchCount,
-      magma_int_t dim_ctr );
+void magmablas_dbasis_apply_batched_eval_interp(magma_int_t P, magma_int_t Q,
+  magma_int_t dim, magma_int_t ncomp, const double *dT, CeedTransposeMode tmode,
+  const double *dU, magma_int_t ustride, double *dV, magma_int_t vstride,
+  magma_int_t batchCount);
 
-void 
-magmablas_dbasis_apply_batched_eval_weight( 
-    magma_int_t Q, magma_int_t dim, 
-    const double *dqweight1d, 
-    double *dV, magma_int_t vstride, 
-    magma_int_t batchCount );
+void magmablas_dbasis_apply_batched_eval_grad(magma_int_t P, magma_int_t Q,
+  magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt, const double* dinterp1d,
+  const double *dgrad1d, CeedTransposeMode tmode, const double *dU,
+  magma_int_t ustride, double *dV, magma_int_t vstride, magma_int_t batchCount,
+  magma_int_t dim_ctr);
+
+void magmablas_dbasis_apply_batched_eval_weight(magma_int_t Q, magma_int_t dim,
+  const double *dqweight1d, double *dV, magma_int_t vstride,
+  magma_int_t batchCount);
 
 magma_int_t
-magma_isdevptr( const void* A );
+magma_isdevptr(const void *A);
 
-CEED_INTERN
-int CeedBasisCreateTensorH1_Magma(
-    CeedInt dim, CeedInt P1d,
-    CeedInt Q1d, const CeedScalar *interp1d,
-    const CeedScalar *grad1d,
-    const CeedScalar *qref1d,
-    const CeedScalar *qweight1d,
-    CeedBasis basis);
+CEED_INTERN int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
+  CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
+  const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
 
-CEED_INTERN
-int CeedBasisCreateH1_Magma(
-    CeedElemTopology topo,
-    CeedInt dim, CeedInt ndof,
-    CeedInt nqpts, const CeedScalar *interp,
-    const CeedScalar *grad,
-    const CeedScalar *qref,
-    const CeedScalar *qweight,
-    CeedBasis basis);
+CEED_INTERN int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim,
+  CeedInt ndof, CeedInt nqpts, const CeedScalar *interp, const CeedScalar *grad,
+  const CeedScalar *qref, const CeedScalar *qweight, CeedBasis basis);
 
 #ifdef __cplusplus
 }
@@ -109,4 +88,3 @@ int CeedBasisCreateH1_Magma(
 #ifndef MAGMA_BATCH_STRIDE
 #define MAGMA_BATCH_STRIDE (1000)
 #endif
-
