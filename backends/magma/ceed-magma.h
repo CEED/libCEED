@@ -38,13 +38,6 @@ typedef struct {
 #define USE_MAGMA_BATCH3
 #define USE_MAGMA_BATCH4
 
-CEED_INTERN void magma_dtensor_contract(Ceed ceed, CeedInt A, CeedInt B,
-                                        CeedInt C, CeedInt J,
-                                        const CeedScalar *t,
-                                        CeedTransposeMode tmode,
-                                        const CeedInt Add, const CeedScalar *u,
-                                        CeedScalar *v);
-
 #ifdef __cplusplus
 CEED_INTERN {
 #endif
