@@ -19,10 +19,9 @@
 #ifdef __cplusplus
 CEED_INTERN "C"
 #endif
-int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem, 
-			 CeedTransposeMode tmode, CeedEvalMode emode,
-			 CeedVector U, CeedVector V) 
-{
+int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
+                         CeedTransposeMode tmode, CeedEvalMode emode,
+                         CeedVector U, CeedVector V) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
@@ -44,7 +43,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   ierr = CeedVectorGetArray(V, CEED_MEM_DEVICE, &v); CeedChk(ierr);
 
   CeedBasis_Magma *impl;
-  ierr = CeedBasisGetData(basis, (void*)&impl); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
 
   CeedInt P1d, Q1d;
   ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
@@ -54,11 +53,12 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
             ncomp*CeedIntPow(P1d, dim), ncomp);
 
   if (tmode == CEED_TRANSPOSE) {
-     CeedInt length;
-     ierr = CeedVectorGetLength(V, &length);
-     magmablas_dlaset(MagmaFull, length, 1, 0., 0., v, length );
+    CeedInt length;
+    ierr = CeedVectorGetLength(V, &length);
+    magmablas_dlaset(MagmaFull, length, 1, 0., 0., v, length);
   }
-  if (emode & CEED_EVAL_INTERP) {
+  switch (emode) {
+  case CEED_EVAL_INTERP: {
     CeedInt P = P1d, Q = Q1d;
     if (tmode == CEED_TRANSPOSE) {
       P = Q1d; Q = P1d;
@@ -68,43 +68,42 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     CeedInt elquadsize = CeedIntPow(Q1d, dim);
     CeedInt eldofssize = CeedIntPow(P1d, dim);
 
-     // E-vector ordering -------------- Q-vector ordering 
-     //  elem                            component
-     //    component                        elem
-     //       node                            node
+    // E-vector ordering -------------- Q-vector ordering
+    //  elem                            component
+    //    component                        elem
+    //       node                            node
 
-    // ---  Define strides for NOTRANSPOSE mode: --- 
+    // ---  Define strides for NOTRANSPOSE mode: ---
     // Input (u) is E-vector, output (v) is Q-vector
 
     // Element strides
     CeedInt u_elstride = ncomp * eldofssize;
     CeedInt v_elstride = elquadsize;
-    // Component strides 
+    // Component strides
     CeedInt u_compstride = eldofssize;
     CeedInt v_compstride = nelem * elquadsize;
 
-    // ---  Swap strides for TRANSPOSE mode: --- 
-    if(tmode == CEED_TRANSPOSE) {
-        // Input (u) is Q-vector, output (v) is E-vector
-        // Element strides
-        v_elstride = ncomp * eldofssize;
-        u_elstride = elquadsize;
-        // Component strides 
-        v_compstride = eldofssize;
-        u_compstride = nelem * elquadsize;
+    // ---  Swap strides for TRANSPOSE mode: ---
+    if (tmode == CEED_TRANSPOSE) {
+      // Input (u) is Q-vector, output (v) is E-vector
+      // Element strides
+      v_elstride = ncomp * eldofssize;
+      u_elstride = elquadsize;
+      // Component strides
+      v_compstride = eldofssize;
+      u_compstride = nelem * elquadsize;
     }
 
     // Loop through components and apply batch over elements
-    for (CeedInt comp_ctr = 0; comp_ctr < ncomp; comp_ctr++){
-           magmablas_dbasis_apply_batched_eval_interp(P, Q, dim, ncomp,
-	   				       impl->dinterp1d, tmode, 
-   					       u + u_compstride * comp_ctr, u_elstride, 
-					       v + v_compstride * comp_ctr, v_elstride, 
-					       nelem);  
-     }
-
+    for (CeedInt comp_ctr = 0; comp_ctr < ncomp; comp_ctr++)
+      magmablas_dbasis_apply_batched_eval_interp(P, Q, dim, ncomp,
+          impl->dinterp1d, tmode,
+          u + u_compstride * comp_ctr, u_elstride,
+          v + v_compstride * comp_ctr, v_elstride,
+          nelem);
   }
-  if (emode & CEED_EVAL_GRAD) {
+  break;
+  case CEED_EVAL_GRAD: {
     CeedInt P = P1d, Q = Q1d;
     // In CEED_NOTRANSPOSE mode:
     // u is (P^dim x nc), column-major layout (nc = ncomp)
@@ -118,14 +117,14 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     CeedInt elquadsize = CeedIntPow(Q1d, dim);
     CeedInt eldofssize = CeedIntPow(P1d, dim);
 
-     // E-vector ordering -------------- Q-vector ordering 
-     //                                  dim
-     //  elem                             component
-     //    component                        elem
-     //       node                            node
+    // E-vector ordering -------------- Q-vector ordering
+    //                                  dim
+    //  elem                             component
+    //    component                        elem
+    //       node                            node
 
 
-    // ---  Define strides for NOTRANSPOSE mode: --- 
+    // ---  Define strides for NOTRANSPOSE mode: ---
     // Input (u) is E-vector, output (v) is Q-vector
 
     // Element strides
@@ -138,35 +137,32 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     CeedInt u_dimstride = 0;
     CeedInt v_dimstride = nelem * elquadsize * ncomp;
 
-    // ---  Swap strides for TRANSPOSE mode: --- 
-    if(tmode == CEED_TRANSPOSE) {
-        // Input (u) is Q-vector, output (v) is E-vector
-        // Element strides
-        v_elstride = ncomp * eldofssize;
-        u_elstride = elquadsize;
-        // Component strides
-        v_compstride = eldofssize;
-        u_compstride = nelem * elquadsize;
-        // Dimension strides
-        v_dimstride = 0;
-        u_dimstride = nelem * elquadsize * ncomp;
+    // ---  Swap strides for TRANSPOSE mode: ---
+    if (tmode == CEED_TRANSPOSE) {
+      // Input (u) is Q-vector, output (v) is E-vector
+      // Element strides
+      v_elstride = ncomp * eldofssize;
+      u_elstride = elquadsize;
+      // Component strides
+      v_compstride = eldofssize;
+      u_compstride = nelem * elquadsize;
+      // Dimension strides
+      v_dimstride = 0;
+      u_dimstride = nelem * elquadsize * ncomp;
 
-      }
+    }
 
-     // Loop through grad dimensions and components, batch call over elements
-     for(CeedInt dim_ctr = 0; dim_ctr < dim; dim_ctr++){
-        for (CeedInt comp_ctr = 0; comp_ctr < ncomp; comp_ctr++){
-             magmablas_dbasis_apply_batched_eval_grad(P, Q, dim, ncomp, nqpt,                                    
-	    				     impl->dinterp1d, impl->dgrad1d, tmode, 
-   					     u + dim_ctr * u_dimstride + u_compstride * comp_ctr,
-                                             u_elstride, 
-					     v + dim_ctr * v_dimstride + v_compstride * comp_ctr,
-                                             v_elstride, 
-					     nelem, dim_ctr);       
-        }
-     }
-   }
-  if (emode & CEED_EVAL_WEIGHT) {
+    // Loop through grad dimensions and components, batch call over elements
+    for (CeedInt dim_ctr = 0; dim_ctr < dim; dim_ctr++)
+      for (CeedInt comp_ctr = 0; comp_ctr < ncomp; comp_ctr++)
+        magmablas_dbasis_apply_batched_eval_grad(P, Q, dim, ncomp, nqpt,
+            impl->dinterp1d, impl->dgrad1d, tmode,
+            u + dim_ctr * u_dimstride + u_compstride * comp_ctr, u_elstride,
+            v + dim_ctr * v_dimstride + v_compstride * comp_ctr,
+            v_elstride, nelem, dim_ctr);
+  }
+  break;
+  case CEED_EVAL_WEIGHT: {
     if (tmode == CEED_TRANSPOSE)
       // LCOV_EXCL_START
       return CeedError(ceed, 1,
@@ -174,12 +170,23 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     // LCOV_EXCL_STOP
     CeedInt Q = Q1d;
     int eldofssize = CeedIntPow(Q, dim);
-    magmablas_dbasis_apply_batched_eval_weight(Q, dim, impl->dqweight1d, 
-					       v, eldofssize, 
-					       nelem);
+    magmablas_dbasis_apply_batched_eval_weight(Q, dim, impl->dqweight1d,
+        v, eldofssize,
+        nelem);
+  }
+  break;
+  // LCOV_EXCL_START
+  case CEED_EVAL_DIV:
+    return CeedError(ceed, 1, "CEED_EVAL_DIV not supported");
+  case CEED_EVAL_CURL:
+    return CeedError(ceed, 1, "CEED_EVAL_CURL not supported");
+  case CEED_EVAL_NONE:
+    return CeedError(ceed, 1,
+                     "CEED_EVAL_NONE does not make sense in this context");
+    // LCOV_EXCL_STOP
   }
 
-  if(emode!=CEED_EVAL_WEIGHT) {
+  if (emode!=CEED_EVAL_WEIGHT) {
     ierr = CeedVectorRestoreArrayRead(U, &u); CeedChk(ierr);
   }
   ierr = CeedVectorRestoreArray(V, &v); CeedChk(ierr);
@@ -189,12 +196,11 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
 #ifdef __cplusplus
 CEED_INTERN "C"
 #endif
-int CeedBasisDestroy_Magma(CeedBasis basis) 
-{
+int CeedBasisDestroy_Magma(CeedBasis basis) {
   int ierr;
   CeedBasis_Magma *impl;
   ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
-  
+
   ierr = magma_free(impl->dqref1d); CeedChk(ierr);
   ierr = magma_free(impl->dinterp1d); CeedChk(ierr);
   ierr = magma_free(impl->dgrad1d); CeedChk(ierr);
@@ -208,18 +214,16 @@ int CeedBasisDestroy_Magma(CeedBasis basis)
 #ifdef __cplusplus
 CEED_INTERN "C"
 #endif
-int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
-    CeedInt Q1d, const CeedScalar *interp1d,
-    const CeedScalar *grad1d,
-    const CeedScalar *qref1d,
-    const CeedScalar *qweight1d,
-    CeedBasis basis) 
-{
+int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
+                                  const CeedScalar *interp1d,
+                                  const CeedScalar *grad1d,
+                                  const CeedScalar *qref1d,
+                                  const CeedScalar *qweight1d, CeedBasis basis) {
   int ierr;
   CeedBasis_Magma *impl;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-  
+
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                 CeedBasisApply_Magma); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
@@ -229,22 +233,22 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
   ierr = CeedBasisSetData(basis, (void *)&impl); CeedChk(ierr);
 
   // Copy qref1d to the GPU
-  ierr = magma_malloc((void**)&impl->dqref1d, Q1d*sizeof(qref1d[0]));
+  ierr = magma_malloc((void **)&impl->dqref1d, Q1d*sizeof(qref1d[0]));
   CeedChk(ierr);
   magma_setvector(Q1d, sizeof(qref1d[0]), qref1d, 1, impl->dqref1d, 1);
-  
+
   // Copy interp1d to the GPU
-  ierr = magma_malloc((void**)&impl->dinterp1d, Q1d*P1d*sizeof(interp1d[0]));
+  ierr = magma_malloc((void **)&impl->dinterp1d, Q1d*P1d*sizeof(interp1d[0]));
   CeedChk(ierr);
   magma_setvector(Q1d*P1d, sizeof(interp1d[0]), interp1d, 1, impl->dinterp1d, 1);
 
   // Copy grad1d to the GPU
-  ierr = magma_malloc((void**)&impl->dgrad1d, Q1d*P1d*sizeof(grad1d[0]));
+  ierr = magma_malloc((void **)&impl->dgrad1d, Q1d*P1d*sizeof(grad1d[0]));
   CeedChk(ierr);
   magma_setvector(Q1d*P1d, sizeof(grad1d[0]), grad1d, 1, impl->dgrad1d, 1);
 
   // Copy qweight1d to the GPU
-  ierr = magma_malloc((void**)&impl->dqweight1d, Q1d*sizeof(qweight1d[0]));
+  ierr = magma_malloc((void **)&impl->dqweight1d, Q1d*sizeof(qweight1d[0]));
   CeedChk(ierr);
   magma_setvector(Q1d, sizeof(qweight1d[0]), qweight1d, 1, impl->dqweight1d, 1);
 
@@ -254,14 +258,10 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
 #ifdef __cplusplus
 CEED_INTERN "C"
 #endif
-int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim,
-                                   CeedInt ndof, CeedInt nqpts,
-                                   const CeedScalar *interp,
-                                   const CeedScalar *grad,
-                                   const CeedScalar *qref,
-                                   const CeedScalar *qweight,
-                                   CeedBasis basis) 
-{
+int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
+                            CeedInt nqpts, const CeedScalar *interp,
+                            const CeedScalar *grad, const CeedScalar *qref,
+                            const CeedScalar *qweight, CeedBasis basis) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
