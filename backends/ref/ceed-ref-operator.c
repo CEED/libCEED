@@ -574,6 +574,7 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
     // Check if active input
     if (vec == CEED_VECTOR_ACTIVE) {
       ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size); CeedChk(ierr);
+      ierr = CeedVectorSetValue(impl->qvecsin[i], 0.0); CeedChk(ierr);
       ierr = CeedVectorGetArray(impl->qvecsin[i], CEED_MEM_HOST, &tmp);
       CeedChk(ierr);
       ierr = CeedRealloc(numactivein + size, &activein); CeedChk(ierr);
