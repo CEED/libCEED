@@ -285,11 +285,16 @@ int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *lvec,
 }
 
 /**
-  @brief Restrict an L-vector to an E-vector or apply transpose
+  @brief Restrict an L-vector to an E-vector or apply its transpose
 
   @param rstr    CeedElemRestriction
   @param tmode   Apply restriction or transpose
-  @param lmode   Ordering of the ncomp components
+  @param lmode   Ordering of the ncomp components, i.e. it specifies
+                   the ordering of the components of the l-vector used
+                   by this CeedElemRestriction. CEED_NOTRANSPOSE indicates
+                   the component is the outermost index and CEED_TRANSPOSE
+                   indicates the component is the innermost index in
+                   ordering of the l-vector
   @param u       Input vector (of size @a nnodes * @a ncomp when
                    tmode=CEED_NOTRANSPOSE)
   @param v       Output vector (of size @a nelem * @a elemsize when
@@ -329,15 +334,19 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
 }
 
 /**
-  @brief Restrict an L-vector to a block of an E-vector or apply transpose
+  @brief Restrict an L-vector to a block of an E-vector or apply its transpose
 
   @param rstr    CeedElemRestriction
   @param block   Block number to restrict to/from, i.e. block=0 will handle
-                 elements [0 : blksize] and block=3 will handle elements
-                 [3*blksize : 4*blksize]
+                   elements [0 : blksize] and block=3 will handle elements
+                   [3*blksize : 4*blksize]
   @param tmode   Apply restriction or transpose
-  @param lmode   Ordering of the ncomp components
-  @param u       Input vector (of size @a nnodes * @a ncomp when
+  @param lmode   Ordering of the ncomp components, i.e. it specifies
+                   the ordering of the components of the l-vector used
+                   by this CeedElemRestriction. CEED_NOTRANSPOSE indicates
+                   the component is the outermost index and CEED_TRANSPOSE
+                   indicates the component is the innermost index in
+                   ordering of the l-vector
                    tmode=CEED_NOTRANSPOSE)
   @param v       Output vector (of size @a nelem * @a elemsize when
                    tmode=CEED_NOTRANSPOSE)
@@ -385,10 +394,10 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
 }
 
 /**
-  @brief Get the multiplicity of DoFs in a CeedElemRestriction
+  @brief Get the multiplicity of nodes in a CeedElemRestriction
 
   @param rstr      CeedElemRestriction
-  @param[out] mult Vector to store multiplicity (of size ndof)
+  @param[out] mult Vector to store multiplicity (of size nnodes)
 
   @return An error code: 0 - success, otherwise - failure
 

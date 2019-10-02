@@ -201,6 +201,8 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedQFunction *qf) {
     ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
     ctx[0] = size;
     ierr = CeedQFunctionSetContext(*qf, ctx, sizeof(ctx)); CeedChk(ierr);
+    (*qf)->inputfields[0]->size = size;
+    (*qf)->outputfields[0]->size = size;
   }
 
   return 0;
