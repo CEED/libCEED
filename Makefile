@@ -178,12 +178,14 @@ cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
 cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/*.cu))
 occa.c         := $(sort $(wildcard backends/occa/*.c))
 magma_preprocessor := python backends/magma/gccm.py
-magma_pre_src  := $(filter-out %_tmp.c, $(wildcard backends/magma/ceed-*.c))
+magma_pre_src  := $(filter-out %ceed-magma.c %_tmp.c, $(wildcard backends/magma/ceed-*.c))
 magma_dsrc     := $(wildcard backends/magma/magma_d*.c)
+magma_dsrc     += backends/magma/ceed-magma.c
 magma_tmp.c    := $(magma_pre_src:%.c=%_tmp.c)
 magma_tmp.cu   := $(magma_pre_src:%.c=%_cuda.cu)
 magma_allsrc.c := $(magma_dsrc) $(magma_tmp.c)
-magma_allsrc.cu:= $(magma_tmp.cu)
+magma_allsrc.cu:= $(magma_tmp.cu) backends/magma/magma_devptr.cu
+magma_allsrc.cu+= backends/magma/magma_dbasisApply_grad.cu backends/magma/magma_dbasisApply_interp.cu backends/magma/magma_dbasisApply_weight.cu
 
 # Output using the 216-color rules mode
 rule_file = $(notdir $(1))
