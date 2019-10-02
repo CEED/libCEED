@@ -253,6 +253,10 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop,
     and contains column-major matrices representing the action of the
     CeedQFunction for a corresponding quadrature point on an element. Inputs and
     outputs are in the order provided by the user when adding CeedOperator fields.
+    For example, a QFunction with inputs 'u' and 'gradu' and outputs 'gradv' and
+    'v', provided in that order, would result in an assembled QFunction that
+    consists of (1 + dim) x (dim + 1) matrices at each quadrature point acting
+    on the input [u, du_0, du_1] and producing the output [dv_0, dv_1, v].
 
   @param op             CeedOperator to assemble CeedQFunction
   @param[out] assembled CeedVector to store assembled Ceed QFunction at
