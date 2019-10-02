@@ -202,8 +202,8 @@ struct CeedOperatorField_private {
 struct CeedOperator_private {
   Ceed ceed;
   int refcount;
-  int (*AssembleLinearQFunction)(CeedOperator, CeedVector, CeedElemRestriction*, 
-                                 CeedRequest *);
+  int (*AssembleLinearQFunction)(CeedOperator, CeedVector *,
+                                 CeedElemRestriction *, CeedRequest *);
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector,
                        CeedVector, CeedRequest *);

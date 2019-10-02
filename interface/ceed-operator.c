@@ -266,7 +266,7 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop,
 
   @ref Advanced
 **/
-int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector assembled,
+int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
     CeedElemRestriction *rstr, CeedRequest *request) {
   int ierr;
   Ceed ceed = op->ceed;

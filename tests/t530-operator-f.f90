@@ -146,7 +146,6 @@
       call ceedoperatorapply(op_setup,x,qdata,ceed_request_immediate,err)
 
 ! Assemble QFunction
-      call ceedvectorcreate(ceed,nqpts,a,err)
       call ceedoperatorassemblelinearqfunction(op_mass,a,erestrictlini,&
      & ceed_request_immediate,err)
 

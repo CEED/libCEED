@@ -144,8 +144,7 @@ int main(int argc, char **argv) {
       // LCOV_EXCL_STOP
 
   // Assemble QFunction
-  CeedVectorCreate(ceed, nqpts*(dim+1)*(dim+1), &A);
-  CeedOperatorAssembleLinearQFunction(op_apply, A, &Erestrictlini,
+  CeedOperatorAssembleLinearQFunction(op_apply, &A, &Erestrictlini,
                                       CEED_REQUEST_IMMEDIATE);
 
   // QFunction - apply linearized

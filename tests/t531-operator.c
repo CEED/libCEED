@@ -114,8 +114,7 @@ int main(int argc, char **argv) {
   CeedVectorRestoreArrayRead(v, &vv);
 
   // Assemble QFunction
-  CeedVectorCreate(ceed, nqpts*dim*dim, &A);
-  CeedOperatorAssembleLinearQFunction(op_diff, A, &Erestrictlini,
+  CeedOperatorAssembleLinearQFunction(op_diff, &A, &Erestrictlini,
                                       CEED_REQUEST_IMMEDIATE);
 
   // QFunction - apply linearized

@@ -821,7 +821,12 @@ void fCeedCompositeOperatorAddSub(int *compositeop, int *subop, int *err) {
 #define fCeedOperatorAssembleLinearQFunction FORTRAN_NAME(ceedoperatorassemblelinearqfunction, CEEDOPERATORASSEMBLELINEARQFUNCTION)
 void fCeedOperatorAssembleLinearQFunction(int *op, int *assembledvec,
                         int *assembledrstr, int *rqst, int *err) {
-  CeedVector assembledvec_ = CeedVector_dict[*assembledvec];
+  // Vector
+  if (CeedVector_count == CeedVector_count_max) {
+    CeedVector_count_max += CeedVector_count_max/2 + 1;
+    CeedRealloc(CeedVector_count_max, &CeedVector_dict);
+  }
+  CeedVector *assembledvec_ = &CeedVector_dict[CeedVector_count];
 
   // Restriction
   if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
@@ -830,7 +835,6 @@ void fCeedOperatorAssembleLinearQFunction(int *op, int *assembledvec,
   }
   CeedElemRestriction *rstr_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
-
 
   int createRequest = 1;
   // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
@@ -859,6 +863,8 @@ void fCeedOperatorAssembleLinearQFunction(int *op, int *assembledvec,
   if (*err == 0) {
     *assembledrstr = CeedElemRestriction_count++;
     CeedElemRestriction_n++;
+    *assembledvec = CeedVector_count++;
+    CeedVector_n++;
   }
 }
 

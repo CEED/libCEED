@@ -194,7 +194,6 @@
       call ceedvectorrestorearrayread(v,vv,voffset,err)
 
 ! Assemble QFunction
-      call ceedvectorcreate(ceed,nqpts*d*d,a,err)
       call ceedoperatorassemblelinearqfunction(op_diff,a,erestrictlini,&
      & ceed_request_immediate,err)
 

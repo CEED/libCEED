@@ -531,7 +531,7 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
 
 // Assemble Linear QFunction
 static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
-    CeedVector assembled, CeedElemRestriction *rstr, CeedRequest *request) {
+    CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
   int ierr;
   CeedOperator_Blocked *impl;
   ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
@@ -595,14 +595,11 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
   }
 
   // Check sizes
-  if (!numactivein || !numactiveout) {
-    Ceed ceed;
-    ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  if (!numactivein || !numactiveout)
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Cannot assemble QFunction without active inputs "
                      "and outputs");
     // LCOV_EXCL_STOP
-  }
 
   // Setup lvec
   ierr = CeedVectorCreate(ceed, nblks*blksize*Q*numactivein*numactiveout,
@@ -614,6 +611,9 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
                                            numelements*Q,
                                            numactivein*numactiveout, rstr);
   CeedChk(ierr);
+  // Create assembled vector
+  ierr = CeedVectorCreate(ceed, numelements*Q*numactivein*numactiveout,
+                          assembled); CeedChk(ierr);
 
   // Loop through elements
   for (CeedInt e=0; e<nblks*blksize; e+=blksize) {
@@ -676,7 +676,7 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
                                           CEED_MEM_HOST, CEED_COPY_VALUES,
                                           NULL, &blkrstr); CeedChk(ierr);
   ierr = CeedElemRestrictionApply(blkrstr, CEED_TRANSPOSE, CEED_NOTRANSPOSE,
-                                  lvec, assembled, request); CeedChk(ierr);
+                                  lvec, *assembled, request); CeedChk(ierr);
 
   // Cleanup
   ierr = CeedFree(&activein); CeedChk(ierr);

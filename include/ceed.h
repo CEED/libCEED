@@ -386,7 +386,7 @@ CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *fieldname,
 CEED_EXTERN int CeedCompositeOperatorAddSub(CeedOperator compositeop,
     CeedOperator subop);
 CEED_EXTERN int CeedOperatorAssembleLinearQFunction(CeedOperator op,
-    CeedVector assembled, CeedElemRestriction *rstr, CeedRequest *request);
+    CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);

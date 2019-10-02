@@ -536,7 +536,7 @@ static int CeedCompositeOperatorApply_Ref(CeedOperator op, CeedVector invec,
 
 // Assemble Linear QFunction
 static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
-    CeedVector assembled, CeedElemRestriction *rstr, CeedRequest *request) {
+    CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
   int ierr;
   CeedOperator_Ref *impl;
   ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
@@ -557,10 +557,11 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   CeedInt numactivein = 0, numactiveout = 0;
   CeedScalar **activein = NULL;
   CeedScalar *a, *tmp;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
 
   // Setup
   ierr = CeedOperatorSetup_Ref(op); CeedChk(ierr);
-  ierr = CeedVectorGetArray(assembled, CEED_MEM_HOST, &a); CeedChk(ierr);
 
   // Input Evecs and Restriction
   ierr = CeedOperatorSetupInputs_Ref(numinputfields, qfinputfields,
@@ -596,22 +597,19 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   }
 
   // Check sizes
-  if (!numactivein || !numactiveout) {
-    Ceed ceed;
-    ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  if (!numactivein || !numactiveout) 
     return CeedError(ceed, 1,
                        "Cannot assemble QFunction without active inputs and outputs");
-  }
 
   // Create output restriction
-  {
-    Ceed ceed;
-    ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-    ierr = CeedElemRestrictionCreateIdentity(ceed, numelements, Q,
-                                             numelements*Q,
-                                             numactivein*numactiveout, rstr);
-    CeedChk(ierr);
-  }
+  ierr = CeedElemRestrictionCreateIdentity(ceed, numelements, Q,
+                                           numelements*Q,
+                                           numactivein*numactiveout, rstr);
+  CeedChk(ierr);
+  // Create assembled vector
+  ierr = CeedVectorCreate(ceed, numelements*Q*numactivein*numactiveout,
+                          assembled); CeedChk(ierr);
+  ierr = CeedVectorGetArray(*assembled, CEED_MEM_HOST, &a); CeedChk(ierr);
 
   // Loop through elements
   for (CeedInt e=0; e<numelements; e++) {
@@ -666,7 +664,7 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   CeedChk(ierr);
 
   // Restore output
-  ierr = CeedVectorRestoreArray(assembled, &a); CeedChk(ierr);
+  ierr = CeedVectorRestoreArray(*assembled, &a); CeedChk(ierr);
 
   // Cleanup
   ierr = CeedFree(&activein); CeedChk(ierr);
