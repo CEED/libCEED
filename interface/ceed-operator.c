@@ -206,9 +206,14 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
 found:
   ierr = CeedCalloc(1, ofield); CeedChk(ierr);
   (*ofield)->Erestrict = r;
+  r->refcount += 1;
   (*ofield)->lmode = lmode;
   (*ofield)->basis = b;
+  if (b != CEED_BASIS_COLLOCATED)
+    b->refcount += 1;
   (*ofield)->vec = v;
+  if (v != CEED_VECTOR_ACTIVE && v != CEED_VECTOR_NONE)
+    v->refcount += 1;
   op->nfields += 1;
   return 0;
 }
@@ -613,11 +618,29 @@ int CeedOperatorDestroy(CeedOperator *op) {
   // Free fields
   for (int i=0; i<(*op)->nfields; i++) {
     if ((*op)->inputfields[i]) {
+      ierr = CeedElemRestrictionDestroy(&(*op)->inputfields[i]->Erestrict);
+      CeedChk(ierr);
+      if ((*op)->inputfields[i]->basis != CEED_BASIS_COLLOCATED) {
+        ierr = CeedBasisDestroy(&(*op)->inputfields[i]->basis); CeedChk(ierr);
+      }
+      if ((*op)->inputfields[i]->vec != CEED_VECTOR_ACTIVE &&
+          (*op)->inputfields[i]->vec != CEED_VECTOR_NONE ) {
+        ierr = CeedVectorDestroy(&(*op)->inputfields[i]->vec); CeedChk(ierr);
+      }
       ierr = CeedFree(&(*op)->inputfields[i]); CeedChk(ierr);
     }
   }
   for (int i=0; i<(*op)->nfields; i++) {
     if ((*op)->outputfields[i]) {
+      ierr = CeedElemRestrictionDestroy(&(*op)->outputfields[i]->Erestrict);
+      CeedChk(ierr);
+      if ((*op)->outputfields[i]->basis != CEED_BASIS_COLLOCATED) {
+        ierr = CeedBasisDestroy(&(*op)->outputfields[i]->basis); CeedChk(ierr);
+      }
+      if ((*op)->outputfields[i]->vec != CEED_VECTOR_ACTIVE &&
+          (*op)->outputfields[i]->vec != CEED_VECTOR_NONE ) {
+        ierr = CeedVectorDestroy(&(*op)->outputfields[i]->vec); CeedChk(ierr);
+      }
       ierr = CeedFree(&(*op)->outputfields[i]); CeedChk(ierr);
     }
   }
