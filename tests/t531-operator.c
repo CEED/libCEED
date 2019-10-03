@@ -117,13 +117,13 @@ int main(int argc, char **argv) {
   CeedOperatorAssembleLinearQFunction(op_diff, &A, &Erestrictlini,
                                       CEED_REQUEST_IMMEDIATE);
 
-  // QFunction - apply linearized
+  // QFunction - apply assembled
   CeedQFunctionCreateInterior(ceed, 1, diff_lin, diff_lin_loc, &qf_diff_lin);
   CeedQFunctionAddInput(qf_diff_lin, "du", dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_diff_lin, "qdata", dim*dim, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_diff_lin, "dv", dim, CEED_EVAL_GRAD);
 
-  // Operator - apply - linearized
+  // Operator - apply assembled
   CeedOperatorCreate(ceed, qf_diff_lin, NULL, NULL, &op_diff_lin);
   CeedOperatorSetField(op_diff_lin, "du", Erestrictu, CEED_NOTRANSPOSE, bu,
                        CEED_VECTOR_ACTIVE);

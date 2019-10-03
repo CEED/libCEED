@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
   CeedOperatorAssembleLinearQFunction(op_apply, &A, &Erestrictlini,
                                       CEED_REQUEST_IMMEDIATE);
 
-  // QFunction - apply linearized
+  // QFunction - apply assembled
   CeedQFunctionCreateInterior(ceed, 1, apply_lin, apply_lin_loc, &qf_apply_lin);
   CeedQFunctionAddInput(qf_apply_lin, "du", dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_apply_lin, "qdata", (dim+1)*(dim+1), CEED_EVAL_NONE);
@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_apply_lin, "v", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_apply_lin, "dv", dim, CEED_EVAL_GRAD);
 
-  // Operator - apply - linearized
+  // Operator - apply assembled
   CeedOperatorCreate(ceed, qf_apply_lin, NULL, NULL, &op_apply_lin);
   CeedOperatorSetField(op_apply_lin, "du", Erestrictu, CEED_NOTRANSPOSE, bu,
                        CEED_VECTOR_ACTIVE);
@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_apply_lin, "dv", Erestrictu, CEED_NOTRANSPOSE, bu,
                        CEED_VECTOR_ACTIVE);
 
-  // Apply linearized QFunction operator
+  // Apply assembled QFunction operator
   CeedVectorSetValue(v, 0.0);
   CeedOperatorApply(op_apply_lin, u, v, CEED_REQUEST_IMMEDIATE);
 
@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
   CeedVectorRestoreArrayRead(v, &vv);
   if (fabs(area - 1.0) > 1E-14)
       // LCOV_EXCL_START
-    printf("Error: Linearized operator computed area = %f != 1.0\n", area);
+    printf("Error: Assembled operator computed area = %f != 1.0\n", area);
       // LCOV_EXCL_STOP
 
   // Cleanup
