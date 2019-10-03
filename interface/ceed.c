@@ -135,8 +135,8 @@ int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
   @ref Developer
 **/
 int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
-                   const char *func, int ecode,
-                   const char *format, va_list args) {
+                   const char *func, int ecode, const char *format,
+                   va_list args) {
   fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
   vfprintf(stderr, format, args);
   fprintf(stderr, "\n");
@@ -230,9 +230,8 @@ int CeedMallocArray(size_t n, size_t unit, void *p) {
   int ierr = posix_memalign((void **)p, CEED_ALIGN, n*unit);
   if (ierr)
     // LCOV_EXCL_START
-    return CeedError(NULL, ierr,
-                     "posix_memalign failed to allocate %zd members of size %zd\n",
-                     n, unit);
+    return CeedError(NULL, ierr, "posix_memalign failed to allocate %zd "
+                     "members of size %zd\n", n, unit);
   // LCOV_EXCL_STOP
 
   return 0;
@@ -257,9 +256,8 @@ int CeedCallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = calloc(n, unit);
   if (n && unit && !*(void **)p)
     // LCOV_EXCL_START
-    return CeedError(NULL, 1,
-                     "calloc failed to allocate %zd members of size %zd\n",
-                     n, unit);
+    return CeedError(NULL, 1, "calloc failed to allocate %zd members of size "
+                     "%zd\n", n, unit);
   // LCOV_EXCL_STOP
 
   return 0;
@@ -284,9 +282,8 @@ int CeedReallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = realloc(*(void **)p, n*unit);
   if (n && unit && !*(void **)p)
     // LCOV_EXCL_START
-    return CeedError(NULL, 1,
-                     "realloc failed to allocate %zd members of size %zd\n",
-                     n, unit);
+    return CeedError(NULL, 1, "realloc failed to allocate %zd members of size "
+                     "%zd\n", n, unit);
   // LCOV_EXCL_STOP
 
   return 0;
@@ -315,7 +312,8 @@ int CeedFree(void *p) {
   @ref Advanced
 **/
 int CeedRequestWait(CeedRequest *req) {
-  if (!*req) return 0;
+  if (!*req)
+    return 0;
   return CeedError(NULL, 2, "CeedRequestWait not implemented");
 }
 
@@ -335,7 +333,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
   size_t matchlen = 0, matchidx = UINT_MAX, matchpriority = UINT_MAX, priority;
 
   // Find matching backend
-  if (!resource) return CeedError(NULL, 1, "No resource provided");
+  if (!resource)
+    return CeedError(NULL, 1, "No resource provided");
   for (size_t i=0; i<num_backends; i++) {
     size_t n;
     const char *prefix = backends[i].prefix;
@@ -347,12 +346,14 @@ int CeedInit(const char *resource, Ceed *ceed) {
       matchidx = i;
     }
   }
-  if (!matchlen) return CeedError(NULL, 1, "No suitable backend");
+  if (!matchlen)
+    return CeedError(NULL, 1, "No suitable backend");
 
   // Setup Ceed
   ierr = CeedCalloc(1,ceed); CeedChk(ierr);
   const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
-  if (!ceed_error_handler) ceed_error_handler = "abort";
+  if (!ceed_error_handler)
+    ceed_error_handler = "abort";
   if (!strcmp(ceed_error_handler, "exit"))
     (*ceed)->Error = CeedErrorExit;
   else
@@ -390,6 +391,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedTensorContract, Destroy),
     CEED_FTABLE_ENTRY(CeedQFunction, Apply),
     CEED_FTABLE_ENTRY(CeedQFunction, Destroy),
+    CEED_FTABLE_ENTRY(CeedOperator, AssembleLinearQFunction),
     CEED_FTABLE_ENTRY(CeedOperator, Apply),
     CEED_FTABLE_ENTRY(CeedOperator, ApplyJacobian),
     CEED_FTABLE_ENTRY(CeedOperator, Destroy),
@@ -474,12 +476,11 @@ int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *objname) {
   CeedInt ierr;
 
   // Check for object delegate
-  for (CeedInt i=0; i<ceed->objdelegatecount; i++) {
+  for (CeedInt i=0; i<ceed->objdelegatecount; i++)
     if (!strcmp(objname, ceed->objdelegates->objname)) {
       *delegate = ceed->objdelegates->delegate;
       return 0;
     }
-  }
 
   // Use default delegate if no object delegate
   ierr = CeedGetDelegate(ceed, delegate); CeedChk(ierr);
@@ -510,8 +511,7 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
 
   // Malloc or Realloc
   if (count) {
-    ierr = CeedRealloc(count+1, &ceed->objdelegates);
-    CeedChk(ierr);
+    ierr = CeedRealloc(count+1, &ceed->objdelegates); CeedChk(ierr);
   } else {
     ierr = CeedCalloc(1, &ceed->objdelegates); CeedChk(ierr);
   }
@@ -591,19 +591,17 @@ int CeedSetBackendFunction(Ceed ceed,
   strncat(lookupname, fname, CEED_MAX_RESOURCE_LEN);
 
   // Find and use offset
-  for (CeedInt i = 0; ceed->foffsets[i].fname; i++) {
+  for (CeedInt i = 0; ceed->foffsets[i].fname; i++) 
     if (!strcmp(ceed->foffsets[i].fname, lookupname)) {
       size_t offset = ceed->foffsets[i].offset;
       int (**fpointer)(void) = (int (* *)(void))((char *)object + offset);
       *fpointer = f;
       return 0;
     }
-  }
 
   // LCOV_EXCL_START
-  return CeedError(ceed, 1,
-                   "Requested function '%s' was not found for CEED object '%s'",
-                   fname, type);
+  return CeedError(ceed, 1, "Requested function '%s' was not found for CEED "
+                   "object '%s'", fname, type);
   // LCOV_EXCL_STOP
 }
 
@@ -649,7 +647,8 @@ int CeedSetData(Ceed ceed, void* *data) {
 int CeedDestroy(Ceed *ceed) {
   int ierr;
 
-  if (!*ceed || --(*ceed)->refcount > 0) return 0;
+  if (!*ceed || --(*ceed)->refcount > 0)
+    return 0;
   if ((*ceed)->delegate) {
     ierr = CeedDestroy(&(*ceed)->delegate); CeedChk(ierr);
   }

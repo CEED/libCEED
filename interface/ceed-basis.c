@@ -390,11 +390,12 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
 static int CeedScalarView(const char *name, const char *fpformat, CeedInt m,
                           CeedInt n, const CeedScalar *a, FILE *stream) {
   for (int i=0; i<m; i++) {
-    if (m > 1) fprintf(stream, "%12s[%d]:", name, i);
-    else fprintf(stream, "%12s:", name);
-    for (int j=0; j<n; j++) {
+    if (m > 1)
+      fprintf(stream, "%12s[%d]:", name, i);
+    else
+      fprintf(stream, "%12s:", name);
+    for (int j=0; j<n; j++)
       fprintf(stream, fpformat, fabs(a[i*n+j]) > 1E-14 ? a[i*n+j] : 0);
-    }
     fputs("\n", stream);
   }
   return 0;
@@ -463,9 +464,11 @@ static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v,
                                   CeedInt row, CeedInt col) {
   for (CeedInt j=0; j<n; j++) {
     CeedScalar w = A[0*row + j*col];
-    for (CeedInt i=1; i<m; i++) w += v[i] * A[i*row + j*col];
+    for (CeedInt i=1; i<m; i++)
+      w += v[i] * A[i*row + j*col];
     A[0*row + j*col] -= b * w;
-    for (CeedInt i=1; i<m; i++) A[i*row + j*col] -= b * w * v[i];
+    for (CeedInt i=1; i<m; i++)
+      A[i*row + j*col] -= b * w * v[i];
   }
   return 0;
 }
@@ -578,15 +581,15 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
     //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
     //   tau = 2 / (norm*norm)
     tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
-    for (CeedInt j=i+1; j<m; j++) v[j] /= v[i];
+    for (CeedInt j=i+1; j<m; j++)
+      v[j] /= v[i];
 
     // Apply Householder reflector to lower right panel
     CeedHouseholderReflect(&mat[i*n+i+1], &v[i], tau[i], m-i, n-i-1, n, 1);
     // Save v
     mat[i+n*i] = Rii;
-    for (CeedInt j=i+1; j<m; j++) {
+    for (CeedInt j=i+1; j<m; j++)
       mat[i+n*j] = v[j];
-    }
   }
 
   return 0;
@@ -843,14 +846,12 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
     colograd1d[Q1d*i] = grad1d[P1d*i]/interp1d[0];
     for (j=1; j<P1d; j++) { // Column j
       colograd1d[j+Q1d*i] = grad1d[j+P1d*i];
-      for (k=0; k<j; k++) {
+      for (k=0; k<j; k++)
         colograd1d[j+Q1d*i] -= interp1d[j+P1d*k]*colograd1d[k+Q1d*i];
-      }
       colograd1d[j+Q1d*i] /= interp1d[j+P1d*j];
     }
-    for (j=P1d; j<Q1d; j++) {
+    for (j=P1d; j<Q1d; j++)
       colograd1d[j+Q1d*i] = 0;
-    }
   }
 
   // Apply Qtranspose, colograd = colograd Qtranspose
@@ -900,12 +901,10 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
     ierr = CeedVectorGetLength(u, &ulength); CeedChk(ierr);
   }
 
-  if ((tmode == CEED_TRANSPOSE   && (vlength % nnodes != 0
-                                     || ulength % nqpt != 0))
-      ||
-      (tmode == CEED_NOTRANSPOSE && (ulength % nnodes != 0 || vlength % nqpt != 0)))
-    return CeedError(basis->ceed, 1,
-                     "Length of input/output vectors incompatible with basis dimensions");
+  if ((tmode == CEED_TRANSPOSE && (vlength%nnodes != 0 || ulength%nqpt != 0)) ||
+      (tmode == CEED_NOTRANSPOSE && (ulength%nnodes != 0 || vlength%nqpt != 0)))
+    return CeedError(basis->ceed, 1, "Length of input/output vectors "
+                     "incompatible with basis dimensions");
 
   ierr = basis->Apply(basis, nelem, tmode, emode, u, v); CeedChk(ierr);
   return 0;
@@ -923,7 +922,6 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
 **/
 int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed) {
   *ceed = basis->ceed;
-
   return 0;
 };
 
@@ -939,7 +937,6 @@ int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed) {
 **/
 int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim) {
   *dim = basis->dim;
-
   return 0;
 };
 
@@ -955,7 +952,6 @@ int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim) {
 **/
 int CeedBasisGetTensorStatus(CeedBasis basis, bool *tensor) {
   *tensor = basis->tensorbasis;
-
   return 0;
 };
 
@@ -971,7 +967,6 @@ int CeedBasisGetTensorStatus(CeedBasis basis, bool *tensor) {
 **/
 int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *numcomp) {
   *numcomp = basis->ncomp;
-
   return 0;
 };
 
@@ -1147,8 +1142,7 @@ int CeedBasisSetData(CeedBasis basis, void* *data) {
 
   @ref Advanced
 **/
-int CeedBasisGetTensorContract(CeedBasis basis,
-                               CeedTensorContract *contract) {
+int CeedBasisGetTensorContract(CeedBasis basis, CeedTensorContract *contract) {
   *contract = basis->contract;
   return 0;
 }
@@ -1163,8 +1157,7 @@ int CeedBasisGetTensorContract(CeedBasis basis,
 
   @ref Advanced
 **/
-int CeedBasisSetTensorContract(CeedBasis basis,
-                               CeedTensorContract *contract) {
+int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract *contract) {
   basis->contract = *contract;
   return 0;
 }
@@ -1181,7 +1174,6 @@ int CeedBasisSetTensorContract(CeedBasis basis,
 **/
 int CeedBasisGetTopologyDimension(CeedElemTopology topo, CeedInt *dim) {
   *dim = (CeedInt) topo >> 16;
-
   return 0;
 };
 
@@ -1197,7 +1189,8 @@ int CeedBasisGetTopologyDimension(CeedElemTopology topo, CeedInt *dim) {
 int CeedBasisDestroy(CeedBasis *basis) {
   int ierr;
 
-  if (!*basis || --(*basis)->refcount > 0) return 0;
+  if (!*basis || --(*basis)->refcount > 0)
+    return 0;
   if ((*basis)->Destroy) {
     ierr = (*basis)->Destroy(*basis); CeedChk(ierr);
   }

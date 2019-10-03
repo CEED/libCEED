@@ -90,12 +90,12 @@ int CeedVectorSetArray(CeedVector vec, CeedMemType mtype, CeedCopyMode cmode,
   // LCOV_EXCL_STOP
 
   if (vec->state % 2 == 1)
-    return CeedError(vec->ceed, 1,
-                     "Cannot grant CeedVector array access, the access lock is already in use");
+    return CeedError(vec->ceed, 1, "Cannot grant CeedVector array access, the "
+                     "access lock is already in use");
 
   if (vec->numreaders > 0)
-    return CeedError(vec->ceed, 1,
-                     "Cannot grant CeedVector array access, a process has read access");
+    return CeedError(vec->ceed, 1, "Cannot grant CeedVector array access, a "
+                     "process has read access");
 
   ierr = vec->SetArray(vec, mtype, cmode, array); CeedChk(ierr);
   vec->state += 2;
@@ -117,8 +117,8 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
   int ierr;
 
   if (vec->state % 2 == 1)
-    return CeedError(vec->ceed, 1,
-                     "Cannot grant CeedVector array access, the access lock is already in use");
+    return CeedError(vec->ceed, 1, "Cannot grant CeedVector array access, the "
+                     "access lock is already in use");
 
   if (vec->SetValue) {
     ierr = vec->SetValue(vec, value); CeedChk(ierr);
@@ -148,8 +148,8 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype) {
   int ierr;
 
   if (vec->state % 2 == 1)
-    return CeedError(vec->ceed, 1,
-                     "Cannot sync CeedVector, the access lock is already in use");
+    return CeedError(vec->ceed, 1, "Cannot sync CeedVector, the access lock is "
+                     "already in use");
 
   if (vec->SyncArray) {
     ierr = vec->SyncArray(vec, mtype); CeedChk(ierr);
@@ -189,12 +189,12 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
   // LCOV_EXCL_STOP
 
   if (vec->state % 2 == 1)
-    return CeedError(vec->ceed, 1,
-                     "Cannot grant CeedVector array access, the access lock is already in use");
+    return CeedError(vec->ceed, 1, "Cannot grant CeedVector array access, the "
+                     "access lock is already in use");
 
   if (vec->numreaders > 0)
-    return CeedError(vec->ceed, 1,
-                     "Cannot grant CeedVector array access, a process has read access");
+    return CeedError(vec->ceed, 1, "Cannot grant CeedVector array access, a "
+                     "process has read access");
 
   ierr = vec->GetArray(vec, mtype, array); CeedChk(ierr);
   vec->state += 1;
@@ -225,8 +225,8 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
   // LCOV_EXCL_STOP
 
   if (vec->state % 2 == 1)
-    return CeedError(vec->ceed, 1,
-                     "Cannot grant CeedVector read-only array access, the access lock is already in use");
+    return CeedError(vec->ceed, 1, "Cannot grant CeedVector read-only array "
+                     "access, the access lock is already in use");
 
   ierr = vec->GetArrayRead(vec, mtype, array); CeedChk(ierr);
   vec->numreaders++;
@@ -253,8 +253,8 @@ int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
   // LCOV_EXCL_STOP
 
   if (vec->state % 2 != 1)
-    return CeedError(vec->ceed, 1,
-                     "Cannot restore CeedVector array access, access was not granted");
+    return CeedError(vec->ceed, 1, "Cannot restore CeedVector array access, "
+                     "access was not granted");
 
   ierr = vec->RestoreArray(vec); CeedChk(ierr);
   *array = NULL;
@@ -303,9 +303,8 @@ int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
   char fmt[1024];
   fprintf(stream, "CeedVector length %ld\n", (long)vec->length);
   snprintf(fmt, sizeof fmt, "  %s\n", fpfmt ? fpfmt : "%g");
-  for (CeedInt i=0; i<vec->length; i++) {
+  for (CeedInt i=0; i<vec->length; i++)
     fprintf(stream, fmt, x[i]);
-  }
 
   ierr = CeedVectorRestoreArrayRead(vec, &x); CeedChk(ierr);
 
@@ -399,11 +398,12 @@ int CeedVectorSetData(CeedVector vec, void* *data) {
 int CeedVectorDestroy(CeedVector *vec) {
   int ierr;
 
-  if (!*vec || --(*vec)->refcount > 0) return 0;
+  if (!*vec || --(*vec)->refcount > 0)
+    return 0;
 
   if ((*vec) && ((*vec)->state % 2) == 1)
-    return CeedError((*vec)->ceed, 1,
-                     "Cannot destroy CeedVector, the access lock is in use");
+    return CeedError((*vec)->ceed, 1, "Cannot destroy CeedVector, the access "
+                     "lock is in use");
 
   if ((*vec)->Destroy) {
     ierr = (*vec)->Destroy(*vec); CeedChk(ierr);

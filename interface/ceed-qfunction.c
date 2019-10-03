@@ -157,7 +157,8 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
       matchidx = i;
     }
   }
-  if (!matchlen) return CeedError(NULL, 1, "No suitable gallery QFunction");
+  if (!matchlen)
+    return CeedError(NULL, 1, "No suitable gallery QFunction");
 
   // Create QFunction
   ierr = CeedQFunctionCreateInterior(ceed, qfunctions[matchidx].vlength,
@@ -252,8 +253,8 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
 
   @ref Basic
 **/
-int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
-                          CeedInt size, CeedEvalMode emode) {
+int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname, CeedInt size,
+                          CeedEvalMode emode) {
   int ierr = CeedQFunctionFieldSet(&qf->inputfields[qf->numinputfields],
                                    fieldname, size, emode);
   CeedChk(ierr);
@@ -280,8 +281,8 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                            CeedInt size, CeedEvalMode emode) {
   if (emode == CEED_EVAL_WEIGHT)
     // LCOV_EXCL_START
-    return CeedError(qf->ceed, 1,
-                     "Cannot create QFunction output with CEED_EVAL_WEIGHT");
+    return CeedError(qf->ceed, 1, "Cannot create QFunction output with "
+                     "CEED_EVAL_WEIGHT");
   // LCOV_EXCL_STOP
   int ierr = CeedQFunctionFieldSet(&qf->outputfields[qf->numoutputfields],
                                    fieldname, size, emode);
@@ -535,9 +536,8 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
   // LCOV_EXCL_STOP
   if (Q % qf->vlength)
     // LCOV_EXCL_START
-    return CeedError(qf->ceed, 2,
-                     "Number of quadrature points %d must be a multiple of %d",
-                     Q, qf->vlength);
+    return CeedError(qf->ceed, 2, "Number of quadrature points %d must be a "
+                     "multiple of %d", Q, qf->vlength);
   // LCOV_EXCL_STOP
   ierr = qf->Apply(qf, Q, u, v); CeedChk(ierr);
   return 0;
@@ -558,8 +558,10 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
 int CeedQFunctionGetFields(CeedQFunction qf,
                            CeedQFunctionField* *inputfields,
                            CeedQFunctionField* *outputfields) {
-  if (inputfields) *inputfields = qf->inputfields;
-  if (outputfields) *outputfields = qf->outputfields;
+  if (inputfields)
+    *inputfields = qf->inputfields;
+  if (outputfields)
+    *outputfields = qf->outputfields;
   return 0;
 }
 
@@ -625,7 +627,8 @@ int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
 int CeedQFunctionDestroy(CeedQFunction *qf) {
   int ierr;
 
-  if (!*qf || --(*qf)->refcount > 0) return 0;
+  if (!*qf || --(*qf)->refcount > 0)
+    return 0;
   // Backend destroy
   if ((*qf)->Destroy) {
     ierr = (*qf)->Destroy(*qf); CeedChk(ierr);
