@@ -657,7 +657,7 @@ static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
                              CEED_USE_POINTER, a); CeedChk(ierr);
           ierr = CeedQFunctionFieldGetSize(qfoutputfields[out], &size);
           CeedChk(ierr);
-          a +=size*Q*blksize; // Advance the pointer by the size of the output
+          a += size*Q*blksize; // Advance the pointer by the size of the output
         }
       }
       // Apply QFunction
@@ -685,6 +685,7 @@ static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
 
   // Output blocked restriction
   ierr = CeedVectorRestoreArray(lvec, &a); CeedChk(ierr);
+  ierr = CeedVectorSetValue(*assembled, 0.0); CeedChk(ierr);
   CeedElemRestriction blkrstr;
   ierr = CeedElemRestrictionCreateBlocked(ceed, numelements, Q, blksize,
                                           numelements*Q,

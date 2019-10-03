@@ -610,6 +610,7 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   // Create assembled vector
   ierr = CeedVectorCreate(ceed, numelements*Q*numactivein*numactiveout,
                           assembled); CeedChk(ierr);
+  ierr = CeedVectorSetValue(*assembled, 0.0); CeedChk(ierr);
   ierr = CeedVectorGetArray(*assembled, CEED_MEM_HOST, &a); CeedChk(ierr);
 
   // Loop through elements
@@ -638,7 +639,7 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
                              CEED_USE_POINTER, a); CeedChk(ierr);
           ierr = CeedQFunctionFieldGetSize(qfoutputfields[out], &size);
           CeedChk(ierr);
-          a +=size*Q; // Advance the pointer by the size of the output
+          a += size*Q; // Advance the pointer by the size of the output
         }
       }
       // Apply QFunction
