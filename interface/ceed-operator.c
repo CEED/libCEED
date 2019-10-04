@@ -264,7 +264,7 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop,
     on the input [u, du_0, du_1] and producing the output [dv_0, dv_1, v].
 
   @param op             CeedOperator to assemble CeedQFunction
-  @param[out] assembled CeedVector to store assembled Ceed QFunction at
+  @param[out] assembled CeedVector to store assembled CeedQFunction at
                           quadrature points
   @param[out] rstr      CeedElemRestriction for CeedVector containing assembled
                           CeedQFunction
@@ -273,7 +273,7 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Advanced
+  @ref Basic
 **/
 int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
     CeedElemRestriction *rstr, CeedRequest *request) {
@@ -305,6 +305,43 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
   }
   ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
   CeedChk(ierr);
+  return 0;
+}
+
+/**
+  @brief Assemble the diagonal of a linear Operator
+
+  This returns a CeedVector containing the diagonal of a linear CeedOperator.
+
+  @param op             CeedOperator to assemble CeedQFunction
+  @param[out] assembled CeedVector to store assembled CeedOperator diagonal
+  @param request        Address of CeedRequest for non-blocking completion, else
+                          CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
+    CeedVector *assembled, CeedRequest *request) {
+  int ierr;
+  Ceed ceed = op->ceed;
+  CeedQFunction qf = op->qf;
+
+  if (op->composite) {
+    return CeedError(ceed, 1, "Cannot assemble QFunction for composite operator");
+  } else {
+    if (op->nfields == 0)
+      return CeedError(ceed, 1, "No operator fields set");
+    if (op->nfields < qf->numinputfields + qf->numoutputfields)
+      return CeedError( ceed, 1, "Not all operator fields set");
+    if (op->numelements == 0)
+      return CeedError(ceed, 1, "At least one restriction required");
+    if (op->numqpoints == 0)
+      return CeedError(ceed, 1, "At least one non-collocated basis required");
+  }
+  return CeedError(ceed, 1, "Not implemented");
+
   return 0;
 }
 
