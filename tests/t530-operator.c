@@ -157,7 +157,6 @@ int main(int argc, char **argv) {
   CeedBasisDestroy(&bu);
   CeedBasisDestroy(&bx);
   CeedVectorDestroy(&X);
-  CeedVectorDestroy(&u);
   CeedVectorDestroy(&A);
   CeedVectorDestroy(&qdata);
   CeedVectorDestroy(&u);
