@@ -21,7 +21,7 @@ CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q,
   CeedScalar *qd = out[0];
 
   for (CeedInt i=0; i<Q; i++) {
-    // Stored in Voigt convention
+    // Qdata stored in Voigt convention
     // J: 0 2   qd: 0 2   adj(J):  J22 -J12
     //    1 3       2 1           -J21  J11
     const CeedScalar J11 = J[i+Q*0];
