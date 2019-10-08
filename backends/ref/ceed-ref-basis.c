@@ -240,15 +240,25 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     break;
     // Evaluate the gradient to/from quadrature points
     case CEED_EVAL_GRAD: {
-      CeedInt P = nnodes, Q = dim*nqpt;
+      CeedInt P = nnodes, Q = nqpt;
+      CeedInt dimstride = nqpt * ncomp * nelem;
+      CeedInt gradstride = nqpt * nnodes;
       CeedScalar *grad;
       ierr = CeedBasisGetGrad(basis, &grad); CeedChk(ierr);
       if (tmode == CEED_TRANSPOSE) {
-        P = dim*nqpt; Q = nnodes;
+        P = nqpt; Q = nnodes;
+        for (CeedInt d = 0; d < dim; d++) {
+          ierr = CeedTensorContractApply(contract, ncomp, P, nelem, Q,
+                                         grad + d * gradstride, tmode, add,
+                                         u + d * dimstride, v); CeedChk(ierr);
+        }
+      } else {
+        for (CeedInt d = 0; d < dim; d++) {
+          ierr = CeedTensorContractApply(contract, ncomp, P, nelem, Q,
+                                         grad + d * gradstride, tmode, add,
+                                         u, v + d * dimstride); CeedChk(ierr);
+        }
       }
-      ierr = CeedTensorContractApply(contract, ncomp, P, nelem, Q,
-                                     grad, tmode, add, u, v);
-      CeedChk(ierr);
     }
     break;
     // Retrieve interpolation weights
