@@ -1106,18 +1106,18 @@ int CeedBasisGetGrad(CeedBasis basis, CeedScalar* *grad) {
   @brief Get value in CeedEvalMode matrix of a CeedBasis
 
   @param basis       CeedBasis
-  @param[out] value  Variable to store value
   @param[in] emode   CeedEvalMode to retrieve value
   @param[in] node    Node (column) to retrieve value
   @param[in] qpt     Quadrature point (row) to retrieve value
   @param[in] dim     Dimension to retrieve value for, for CEED_EVAL_GRAD
+  @param[out] value  Variable to store value
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Advanced
 **/
-int CeedBasisGetValue(CeedBasis basis, CeedScalar *value, CeedEvalMode emode,
-                      CeedInt node, CeedInt qpt, CeedInt dim) {
+int CeedBasisGetValue(CeedBasis basis, CeedEvalMode emode, CeedInt qpt,
+                      CeedInt node, CeedInt dim, CeedScalar *value) {
   bool tensor = basis->tensorbasis;
 
   switch (emode) {

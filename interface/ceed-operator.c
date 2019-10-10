@@ -309,7 +309,7 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
 }
 
 /**
-  @brief Assemble the diagonal of a linear Operator
+  @brief Assemble the diagonal of a square linear Operator
 
   This returns a CeedVector containing the diagonal of a linear CeedOperator.
 
@@ -463,23 +463,23 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
         CeedScalar bt = 1.0;
         if (emodeout[eout] == CEED_EVAL_GRAD)
           dout += 1;
-        ierr = CeedBasisGetValue(basisout, &bt, emodeout[eout], n, q, dout);
+        ierr = CeedBasisGetValue(basisout, emodeout[eout], q, n, dout, &bt);
         CeedChk(ierr);
         CeedInt din = -1;
         for (CeedInt ein=0; ein<numemodein; ein++) {
           CeedScalar b = 0.0;
           if (emodein[ein] == CEED_EVAL_GRAD)
             din += 1;
-          ierr = CeedBasisGetValue(basisin, &b, emodein[ein], n, q, din);
+          ierr = CeedBasisGetValue(basisin, emodein[ein], q, n, din, &b);
           CeedChk(ierr);
           // Each element and component
           for (CeedInt e=0; e<nelem; e++)
             for (CeedInt cout=0; cout<ncomp; cout++) {
               CeedScalar db = 0.0;
               for (CeedInt cin=0; cin<ncomp; cin++)
-                db += assembledqfarray[((((e*numemodein+ein)*ncomp+cin) *
+                db += assembledqfarray[((((e*numemodein+ein)*ncomp+cin)*
                                        numemodeout+eout)*ncomp+cout)*nqpts+q]*b;
-            elemdiagarray[(e*ncomp+cout)*nnodes+n] += bt * db;
+              elemdiagarray[(e*ncomp+cout)*nnodes+n] += bt * db;
             }
         }
       }
