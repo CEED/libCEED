@@ -601,9 +601,11 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   }
 
   // Check sizes
-  if (!numactivein || !numactiveout) 
-    return CeedError(ceed, 1,
-                       "Cannot assemble QFunction without active inputs and outputs");
+  if (!numactivein || !numactiveout)
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Cannot assemble QFunction without active inputs "
+                     "and outputs");
+  // LCOV_EXCL_STOP
 
   // Create output restriction
   ierr = CeedElemRestrictionCreateIdentity(ceed, numelements, Q,

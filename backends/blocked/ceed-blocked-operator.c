@@ -603,7 +603,7 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Cannot assemble QFunction without active inputs "
                      "and outputs");
-    // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
 
   // Setup lvec
   ierr = CeedVectorCreate(ceed, nblks*blksize*Q*numactivein*numactiveout,
