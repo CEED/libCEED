@@ -569,7 +569,7 @@ static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
   CeedChk(ierr);
   CeedVector vec, lvec;
   CeedInt numactivein = 0, numactiveout = 0;
-  CeedScalar **activein = NULL;
+  CeedVector *activein = NULL;
   CeedScalar *a, *tmp;
 
   // Setup
@@ -592,7 +592,10 @@ static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
       CeedChk(ierr);
       ierr = CeedRealloc(numactivein + size, &activein); CeedChk(ierr);
       for (CeedInt field=0; field<size; field++) {
-        activein[numactivein+field] = &tmp[field*Q];
+        ierr = CeedVectorCreate(ceed, Q*blksize, &activein[numactivein+field]);
+        CeedChk(ierr);
+        ierr = CeedVectorSetArray(activein[numactivein+field], CEED_MEM_HOST,
+                                  CEED_USE_POINTER, &tmp[field*Q*blksize]);
       }
       numactivein += size;
       ierr = CeedVectorRestoreArray(impl->qvecsin[i], &tmp); CeedChk(ierr);
@@ -641,11 +644,11 @@ static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
     // Assemble QFunction
     for (CeedInt in=0; in<numactivein; in++) {
       // Set Inputs
-      for (CeedInt q=0; q<Q*blksize; q++)
-        activein[in][q] = 1;
-      if (numactivein > 1)
-        for (CeedInt q=0; q<Q*blksize; q++)
-          activein[(in+numactivein-1)%numactivein][q] = 0;
+      ierr = CeedVectorSetValue(activein[in], 1.0); CeedChk(ierr);
+      if (numactivein > 1) {
+        ierr = CeedVectorSetValue(activein[(in+numactivein-1)%numactivein],
+                                  0.0); CeedChk(ierr);
+      }
       // Set Outputs
       for (CeedInt out=0; out<numoutputfields; out++) {
         // Get output vector
@@ -696,6 +699,9 @@ static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
                                   lvec, *assembled, request); CeedChk(ierr);
 
   // Cleanup
+  for (CeedInt i=0; i<numactivein; i++) {
+    ierr = CeedVectorDestroy(&activein[i]); CeedChk(ierr);
+  }
   ierr = CeedFree(&activein); CeedChk(ierr);
   ierr = CeedVectorDestroy(&lvec); CeedChk(ierr);
   ierr = CeedElemRestrictionDestroy(&blkrstr); CeedChk(ierr);
