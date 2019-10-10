@@ -19,18 +19,18 @@ int main(int argc, char **argv) {
   CeedInt nelem = 12, dim = 2, P = 6, Q = 4;
   CeedInt nx = 3, ny = 2;
   CeedInt row, col, offset;
-  CeedInt Ndofs = (nx*2+1)*(ny*2+1), Nqpts = nelem*Q;
+  CeedInt ndofs = (nx*2+1)*(ny*2+1), nqpts = nelem*Q;
   CeedInt indx[nelem*P];
-  CeedScalar x[dim*Ndofs];
+  CeedScalar x[dim*ndofs];
   CeedScalar qref[dim*Q], qweight[Q];
   CeedScalar interp[P*Q], grad[dim*P*Q];
   CeedScalar sum;
 
   CeedInit(argv[1], &ceed);
 
-  for (CeedInt i=0; i<Ndofs; i++) {
+  for (CeedInt i=0; i<ndofs; i++) {
     x[i] = (1. / (nx*2)) * (CeedScalar) (i % (nx*2+1));
-    x[i+Ndofs] = (1. / (ny*2)) * (CeedScalar) (i / (nx*2+1));
+    x[i+ndofs] = (1. / (ny*2)) * (CeedScalar) (i / (nx*2+1));
   }
   for (CeedInt i=0; i<nelem/2; i++) {
     col = i % nx;
@@ -53,13 +53,13 @@ int main(int argc, char **argv) {
   }
 
   // Restrictions
-  CeedElemRestrictionCreate(ceed, nelem, P, Ndofs, dim, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, nelem, P, ndofs, dim, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictx);
   CeedElemRestrictionCreateIdentity(ceed, nelem, P, nelem*P, dim, &Erestrictxi);
 
-  CeedElemRestrictionCreate(ceed, nelem, P, Ndofs, 1, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, nelem, P, ndofs, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictu);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q, Nqpts, 1, &Erestrictui);
+  CeedElemRestrictionCreateIdentity(ceed, nelem, Q, nqpts, 1, &Erestrictui);
 
 
   // Bases
@@ -87,9 +87,9 @@ int main(int argc, char **argv) {
 
   CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
 
-  CeedVectorCreate(ceed, dim*Ndofs, &X);
+  CeedVectorCreate(ceed, dim*ndofs, &X);
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
-  CeedVectorCreate(ceed, Nqpts, &qdata);
+  CeedVectorCreate(ceed, nqpts, &qdata);
 
   CeedOperatorSetField(op_setup, "_weight", Erestrictxi, CEED_NOTRANSPOSE,
                        bx, CEED_VECTOR_NONE);
@@ -107,16 +107,16 @@ int main(int argc, char **argv) {
 
   CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
 
-  CeedVectorCreate(ceed, Ndofs, &U);
+  CeedVectorCreate(ceed, ndofs, &U);
   CeedVectorSetValue(U, 1.0);
-  CeedVectorCreate(ceed, Ndofs, &V);
+  CeedVectorCreate(ceed, ndofs, &V);
 
   CeedOperatorApply(op_mass, U, V, CEED_REQUEST_IMMEDIATE);
 
   // Check output
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &hv);
   sum = 0.;
-  for (CeedInt i=0; i<Ndofs; i++)
+  for (CeedInt i=0; i<ndofs; i++)
     sum += hv[i];
   if (fabs(sum-1.)>1e-10) printf("Computed Area: %f != True Area: 1.0\n", sum);
   CeedVectorRestoreArrayRead(V, &hv);
