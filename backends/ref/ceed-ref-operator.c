@@ -555,7 +555,7 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   CeedChk(ierr);
   CeedVector vec;
   CeedInt numactivein = 0, numactiveout = 0;
-  CeedScalar **activein = NULL;
+  CeedVector *activein = NULL;
   CeedScalar *a, *tmp;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -579,7 +579,10 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
       CeedChk(ierr);
       ierr = CeedRealloc(numactivein + size, &activein); CeedChk(ierr);
       for (CeedInt field=0; field<size; field++) {
-        activein[numactivein+field] = &tmp[field*Q];
+        ierr = CeedVectorCreate(ceed, Q, &activein[numactivein+field]);
+        CeedChk(ierr);
+        ierr = CeedVectorSetArray(activein[numactivein+field], CEED_MEM_HOST,
+                                  CEED_USE_POINTER, &tmp[field*Q]);
       }
       numactivein += size;
       ierr = CeedVectorRestoreArray(impl->qvecsin[i], &tmp); CeedChk(ierr);
@@ -598,9 +601,11 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   }
 
   // Check sizes
-  if (!numactivein || !numactiveout) 
-    return CeedError(ceed, 1,
-                       "Cannot assemble QFunction without active inputs and outputs");
+  if (!numactivein || !numactiveout)
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Cannot assemble QFunction without active inputs "
+                     "and outputs");
+  // LCOV_EXCL_STOP
 
   // Create output restriction
   ierr = CeedElemRestrictionCreateIdentity(ceed, numelements, Q,
@@ -623,11 +628,11 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
     // Assemble QFunction
     for (CeedInt in=0; in<numactivein; in++) {
       // Set Inputs
-      for (CeedInt q=0; q<Q; q++)
-        activein[in][q] = 1;
-      if (numactivein > 1)
-        for (CeedInt q=0; q<Q; q++)
-          activein[(in+numactivein-1)%numactivein][q] = 0;
+      ierr = CeedVectorSetValue(activein[in], 1.0); CeedChk(ierr);
+      if (numactivein > 1) {
+        ierr = CeedVectorSetValue(activein[(in+numactivein-1)%numactivein],
+                                  0.0); CeedChk(ierr);
+      }
       // Set Outputs
       for (CeedInt out=0; out<numoutputfields; out++) {
         // Get output vector
@@ -669,6 +674,9 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   ierr = CeedVectorRestoreArray(*assembled, &a); CeedChk(ierr);
 
   // Cleanup
+  for (CeedInt i=0; i<numactivein; i++) {
+    ierr = CeedVectorDestroy(&activein[i]); CeedChk(ierr);
+  }
   ierr = CeedFree(&activein); CeedChk(ierr);
 
   return 0;

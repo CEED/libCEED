@@ -282,16 +282,26 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
   CeedQFunction qf = op->qf;
 
   if (op->composite) {
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Cannot assemble QFunction for composite operator");
+    // LCOV_EXCL_STOP
   } else {
     if (op->nfields == 0)
+      // LCOV_EXCL_START
       return CeedError(ceed, 1, "No operator fields set");
+      // LCOV_EXCL_STOP
     if (op->nfields < qf->numinputfields + qf->numoutputfields)
+      // LCOV_EXCL_START
       return CeedError( ceed, 1, "Not all operator fields set");
+    // LCOV_EXCL_STOP
     if (op->numelements == 0)
+      // LCOV_EXCL_START
       return CeedError(ceed, 1, "At least one restriction required");
+    // LCOV_EXCL_STOP
     if (op->numqpoints == 0)
+      // LCOV_EXCL_START
       return CeedError(ceed, 1, "At least one non-collocated basis required");
+    // LCOV_EXCL_STOP
   }
   ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
   CeedChk(ierr);

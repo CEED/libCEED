@@ -158,7 +158,9 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
     }
   }
   if (!matchlen)
+    // LCOV_EXCL_START
     return CeedError(NULL, 1, "No suitable gallery QFunction");
+  // LCOV_EXCL_STOP
 
   // Create QFunction
   ierr = CeedQFunctionCreateInterior(ceed, qfunctions[matchidx].vlength,
