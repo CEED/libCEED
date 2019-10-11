@@ -4,22 +4,24 @@
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
-#include "t532-operator.h"
+#include "t535-operator.h"
 
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedElemRestriction Erestrictx, Erestrictu,
                       Erestrictxi, Erestrictui,
-                      Erestrictqi, Erestrictlini;
+                      Erestrictqi;
   CeedBasis bx, bu;
-  CeedQFunction qf_setup_mass, qf_setup_diff, qf_apply, qf_apply_lin;
-  CeedOperator op_setup_mass, op_setup_diff, op_apply, op_apply_lin;
-  CeedVector qdata_mass, qdata_diff, X, A, u, v;
+  CeedQFunction qf_setup_mass, qf_setup_diff, qf_apply;
+  CeedOperator op_setup_mass, op_setup_diff, op_apply;
+  CeedVector qdata_mass, qdata_diff, X, A, U, V;
   CeedInt nelem = 6, P = 3, Q = 4, dim = 2;
   CeedInt nx = 3, ny = 2;
   CeedInt ndofs = (nx*2+1)*(ny*2+1), nqpts = nelem*Q*Q;
   CeedInt indx[nelem*P*P];
-  CeedScalar x[dim*ndofs];
+  CeedScalar x[dim*ndofs], assembledTrue[ndofs];
+  CeedScalar *u;
+  const CeedScalar *a, *v;
 
   CeedInit(argv[1], &ceed);
 
@@ -124,88 +126,58 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_apply, "dv", Erestrictu, CEED_NOTRANSPOSE, bu,
                        CEED_VECTOR_ACTIVE);
 
-  // Apply original operator
-  CeedVectorCreate(ceed, ndofs, &u);
-  CeedVectorSetValue(u, 1.0);
-  CeedVectorCreate(ceed, ndofs, &v);
-  CeedVectorSetValue(v, 0.0);
-  CeedOperatorApply(op_apply, u, v, CEED_REQUEST_IMMEDIATE);
+  // Assemble diagonal
+  CeedOperatorAssembleLinearDiagonal(op_apply, &A, CEED_REQUEST_IMMEDIATE);
+
+  // Manually assemble diagonal
+  CeedVectorCreate(ceed, ndofs, &U);
+  CeedVectorSetValue(U, 0.0);
+  CeedVectorCreate(ceed, ndofs, &V);
+  for (int i=0; i<ndofs; i++) {
+    // Set input
+    CeedVectorGetArray(U, CEED_MEM_HOST, &u);
+    u[i] = 1.0;
+    if (i)
+      u[i-1] = 0.0;
+    CeedVectorRestoreArray(U, &u);
+
+    // Compute diag entry for DoF i
+    CeedOperatorApply(op_apply, U, V, CEED_REQUEST_IMMEDIATE);
+
+    // Retrieve entry
+    CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
+    assembledTrue[i] = v[i];
+    CeedVectorRestoreArrayRead(V, &v);
+  }
 
   // Check output
-  CeedScalar area = 0.0;
-  const CeedScalar *vv;
-  CeedVectorGetArrayRead(v, CEED_MEM_HOST, &vv);
-  for (CeedInt i=0; i<ndofs; i++)
-    area += vv[i];
-  CeedVectorRestoreArrayRead(v, &vv);
-  if (fabs(area - 1.0) > 1E-14)
+  CeedVectorGetArrayRead(A, CEED_MEM_HOST, &a);
+  for (int i=0; i<ndofs; i++)
+    if (fabs(a[i] - assembledTrue[i]) > 1E-14)
       // LCOV_EXCL_START
-    printf("Error: True operator computed area = %f != 1.0\n", area);
-      // LCOV_EXCL_STOP
-
-  // Assemble QFunction
-  CeedOperatorAssembleLinearQFunction(op_apply, &A, &Erestrictlini,
-                                      CEED_REQUEST_IMMEDIATE);
-
-  // QFunction - apply assembled
-  CeedQFunctionCreateInterior(ceed, 1, apply_lin, apply_lin_loc, &qf_apply_lin);
-  CeedQFunctionAddInput(qf_apply_lin, "du", dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_apply_lin, "qdata", (dim+1)*(dim+1), CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_apply_lin, "u", 1, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_apply_lin, "v", 1, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_apply_lin, "dv", dim, CEED_EVAL_GRAD);
-
-  // Operator - apply assembled
-  CeedOperatorCreate(ceed, qf_apply_lin, NULL, NULL, &op_apply_lin);
-  CeedOperatorSetField(op_apply_lin, "du", Erestrictu, CEED_NOTRANSPOSE, bu,
-                       CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply_lin, "qdata", Erestrictlini, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, A);
-  CeedOperatorSetField(op_apply_lin, "u", Erestrictu, CEED_NOTRANSPOSE, bu,
-                       CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply_lin, "v", Erestrictu, CEED_NOTRANSPOSE, bu,
-                       CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply_lin, "dv", Erestrictu, CEED_NOTRANSPOSE, bu,
-                       CEED_VECTOR_ACTIVE);
-
-  // Apply assembled QFunction operator
-  CeedVectorSetValue(v, 0.0);
-  CeedOperatorApply(op_apply_lin, u, v, CEED_REQUEST_IMMEDIATE);
-
-  // Check output
-  area = 0.0;
-  CeedVectorGetArrayRead(v, CEED_MEM_HOST, &vv);
-  for (CeedInt i=0; i<ndofs; i++)
-    area += vv[i];
-  CeedVectorRestoreArrayRead(v, &vv);
-  if (fabs(area - 1.0) > 1E-14)
-      // LCOV_EXCL_START
-    printf("Error: Assembled operator computed area = %f != 1.0\n", area);
-      // LCOV_EXCL_STOP
+      printf("[%d] Error in assembly: %f != %f\n", i, a[i], assembledTrue[i]);
+  // LCOV_EXCL_STOP
 
   // Cleanup
   CeedQFunctionDestroy(&qf_setup_mass);
   CeedQFunctionDestroy(&qf_setup_diff);
   CeedQFunctionDestroy(&qf_apply);
-  CeedQFunctionDestroy(&qf_apply_lin);
   CeedOperatorDestroy(&op_setup_mass);
   CeedOperatorDestroy(&op_setup_diff);
   CeedOperatorDestroy(&op_apply);
-  CeedOperatorDestroy(&op_apply_lin);
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
   CeedElemRestrictionDestroy(&Erestrictui);
   CeedElemRestrictionDestroy(&Erestrictxi);
   CeedElemRestrictionDestroy(&Erestrictqi);
-  CeedElemRestrictionDestroy(&Erestrictlini);
   CeedBasisDestroy(&bu);
   CeedBasisDestroy(&bx);
   CeedVectorDestroy(&X);
   CeedVectorDestroy(&A);
   CeedVectorDestroy(&qdata_mass);
   CeedVectorDestroy(&qdata_diff);
-  CeedVectorDestroy(&u);
-  CeedVectorDestroy(&v);
+  CeedVectorDestroy(&U);
+  CeedVectorDestroy(&V);
   CeedDestroy(&ceed);
   return 0;
 }

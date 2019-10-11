@@ -1103,6 +1103,84 @@ int CeedBasisGetGrad(CeedBasis basis, CeedScalar* *grad) {
 }
 
 /**
+  @brief Get value in CeedEvalMode matrix of a CeedBasis
+
+  @param basis       CeedBasis
+  @param[in] emode   CeedEvalMode to retrieve value
+  @param[in] node    Node (column) to retrieve value
+  @param[in] qpt     Quadrature point (row) to retrieve value
+  @param[in] dim     Dimension to retrieve value for, for CEED_EVAL_GRAD
+  @param[out] value  Variable to store value
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetValue(CeedBasis basis, CeedEvalMode emode, CeedInt qpt,
+                      CeedInt node, CeedInt dim, CeedScalar *value) {
+  bool tensor = basis->tensorbasis;
+
+  switch (emode) {
+  case CEED_EVAL_NONE:
+    if (node == qpt)
+      *value = 0.0;
+    else
+      *value = 1.0;
+    break;
+  case CEED_EVAL_INTERP: {
+    CeedScalar *interp = basis->interp1d;
+
+    if (tensor) {
+      CeedInt n, q;
+
+      *value = 1.0;
+      for (CeedInt d=0; d<basis->dim; d++) {
+        n = (node / CeedIntPow(basis->P1d, d)) % basis->P1d;
+        q = (qpt / CeedIntPow(basis->Q1d, d)) % basis->Q1d;
+        *value *= interp[q*(basis->P1d)+n];
+      }
+    } else {
+      *value = interp[qpt*(basis->P)+node];
+    }
+  } break;
+  case CEED_EVAL_GRAD: {
+    CeedScalar *grad = basis->grad1d;
+
+    if (tensor) {
+      CeedInt n, q;
+      CeedScalar *interp = basis->interp1d;
+
+      *value = 1.0;
+      for (CeedInt d=0; d<basis->dim; d++) {
+        n = (node / CeedIntPow(basis->P1d, d)) % basis->P1d;
+        q = (qpt / CeedIntPow(basis->Q1d, d)) % basis->Q1d;
+        if (d == dim)
+          *value *= grad[q*(basis->P1d)+n];
+        else
+          *value *= interp[q*(basis->P1d)+n];
+      }
+     } else {
+       *value = grad[(dim*(basis->Q)+qpt)*(basis->P)+node];
+     }
+  } break;
+  case CEED_EVAL_WEIGHT:
+    // LCOV_EXCL_START
+    return CeedError(basis->ceed, 1, "CEED_EVAL_WEIGHT does not make sense in "
+                                     "this context");
+  // LCOV_EXCL_STOP
+  case CEED_EVAL_DIV:
+    // LCOV_EXCL_START
+    return CeedError(basis->ceed, 1, "CEED_EVAL_DIV not supported");
+  // LCOV_EXCL_STOP
+  case CEED_EVAL_CURL:
+    // LCOV_EXCL_START
+    return CeedError(basis->ceed, 1, "CEED_EVAL_CURL not supported");
+  // LCOV_EXCL_STOP
+  }
+  return 0;
+}
+
+/**
   @brief Get backend data of a CeedBasis
 
   @param basis      CeedBasis

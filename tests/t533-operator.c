@@ -4,22 +4,23 @@
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
-#include "t530-operator.h"
+#include "t533-operator.h"
 
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedElemRestriction Erestrictx, Erestrictu,
-                      Erestrictxi, Erestrictui, Erestrictlini;
+                      Erestrictxi, Erestrictui;
   CeedBasis bx, bu;
   CeedQFunction qf_setup, qf_mass;
   CeedOperator op_setup, op_mass;
-  CeedVector qdata, X, A, u, v;
-  const CeedScalar *a, *q;
+  CeedVector qdata, X, A, U, V;
   CeedInt nelem = 6, P = 3, Q = 4, dim = 2;
   CeedInt nx = 3, ny = 2;
   CeedInt ndofs = (nx*2+1)*(ny*2+1), nqpts = nelem*Q*Q;
   CeedInt indx[nelem*P*P];
-  CeedScalar x[dim*ndofs];
+  CeedScalar x[dim*ndofs], assembledTrue[ndofs];
+  CeedScalar *u;
+  const CeedScalar *a, *v;
 
   CeedInit(argv[1], &ceed);
 
@@ -91,58 +92,37 @@ int main(int argc, char **argv) {
   // Apply Setup Operator
   CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
 
-  // Assemble QFunction
-  CeedOperatorAssembleLinearQFunction(op_mass, &A, &Erestrictlini,
-                                      CEED_REQUEST_IMMEDIATE);
+  // Assemble diagonal
+  CeedOperatorAssembleLinearDiagonal(op_mass, &A, CEED_REQUEST_IMMEDIATE);
+
+  // Manually assemble diagonal
+  CeedVectorCreate(ceed, ndofs, &U);
+  CeedVectorSetValue(U, 0.0);
+  CeedVectorCreate(ceed, ndofs, &V);
+  for (int i=0; i<ndofs; i++) {
+    // Set input
+    CeedVectorGetArray(U, CEED_MEM_HOST, &u);
+    u[i] = 1.0;
+    if (i)
+      u[i-1] = 0.0;
+    CeedVectorRestoreArray(U, &u);
+
+    // Compute diag entry for DoF i
+    CeedOperatorApply(op_mass, U, V, CEED_REQUEST_IMMEDIATE);
+
+    // Retrieve entry
+    CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
+    assembledTrue[i] = v[i];
+    CeedVectorRestoreArrayRead(V, &v);
+  }
 
   // Check output
   CeedVectorGetArrayRead(A, CEED_MEM_HOST, &a);
-  CeedVectorGetArrayRead(qdata, CEED_MEM_HOST, &q);  
-  for (CeedInt i=0; i<nqpts; i++)
-    if (fabs(q[i] - a[i]) > 1E-9)
+  for (int i=0; i<ndofs; i++)
+    if (fabs(a[i] - assembledTrue[i]) > 1E-14)
       // LCOV_EXCL_START
-      printf("Error: A[%d] = %f != %f\n", i, a[i], q[i]);
-      // LCOV_EXCL_STOP
-  CeedVectorRestoreArrayRead(A, &a);
-  CeedVectorRestoreArrayRead(qdata, &q);
-
-  // Apply original Mass Operator
-  CeedVectorCreate(ceed, ndofs, &u);
-  CeedVectorSetValue(u, 1.0);
-  CeedVectorCreate(ceed, ndofs, &v);
-  CeedVectorSetValue(v, 0.0);
-  CeedOperatorApply(op_mass, u, v, CEED_REQUEST_IMMEDIATE);
-
-  // Check output
-  CeedScalar area = 0.0;
-  const CeedScalar *vv;
-  CeedVectorGetArrayRead(v, CEED_MEM_HOST, &vv);
-  for (CeedInt i=0; i<ndofs; i++)
-    area += vv[i];
-  CeedVectorRestoreArrayRead(v, &vv);
-  if (fabs(area - 1.0) > 1E-14)
-      // LCOV_EXCL_START
-    printf("Error: True operator computed area = %f != 1.0\n", area);
-      // LCOV_EXCL_STOP
-
-  // Switch to new qdata
-  CeedVectorGetArrayRead(A, CEED_MEM_HOST, &a);
-  CeedVectorSetArray(qdata, CEED_MEM_HOST, CEED_COPY_VALUES, (CeedScalar *)a);
-  CeedVectorRestoreArrayRead(A, &a);
-
-  // Apply new Mass Operator
-  CeedOperatorApply(op_mass, u, v, CEED_REQUEST_IMMEDIATE);
-
-  // Check output
-  area = 0.0;
-  CeedVectorGetArrayRead(v, CEED_MEM_HOST, &vv);
-  for (CeedInt i=0; i<ndofs; i++)
-    area += vv[i];
-  CeedVectorRestoreArrayRead(v, &vv);
-  if (fabs(area - 1.0) > 1E-10)
-      // LCOV_EXCL_START
-    printf("Error: Linearized operator computed area = %f != 1.0\n", area);
-      // LCOV_EXCL_STOP
+      printf("[%d] Error in assembly: %f != %f\n", i, a[i], assembledTrue[i]);
+  // LCOV_EXCL_STOP
 
   // Cleanup
   CeedQFunctionDestroy(&qf_setup);
@@ -153,14 +133,13 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&Erestrictx);
   CeedElemRestrictionDestroy(&Erestrictui);
   CeedElemRestrictionDestroy(&Erestrictxi);
-  CeedElemRestrictionDestroy(&Erestrictlini);
   CeedBasisDestroy(&bu);
   CeedBasisDestroy(&bx);
   CeedVectorDestroy(&X);
   CeedVectorDestroy(&A);
   CeedVectorDestroy(&qdata);
-  CeedVectorDestroy(&u);
-  CeedVectorDestroy(&v);
+  CeedVectorDestroy(&U);
+  CeedVectorDestroy(&V);
   CeedDestroy(&ceed);
   return 0;
 }

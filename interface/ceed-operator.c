@@ -264,7 +264,7 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop,
     on the input [u, du_0, du_1] and producing the output [dv_0, dv_1, v].
 
   @param op             CeedOperator to assemble CeedQFunction
-  @param[out] assembled CeedVector to store assembled Ceed QFunction at
+  @param[out] assembled CeedVector to store assembled CeedQFunction at
                           quadrature points
   @param[out] rstr      CeedElemRestriction for CeedVector containing assembled
                           CeedQFunction
@@ -273,7 +273,7 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Advanced
+  @ref Basic
 **/
 int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
     CeedElemRestriction *rstr, CeedRequest *request) {
@@ -305,6 +305,200 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
   }
   ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
   CeedChk(ierr);
+  return 0;
+}
+
+/**
+  @brief Assemble the diagonal of a square linear Operator
+
+  This returns a CeedVector containing the diagonal of a linear CeedOperator.
+
+  @param op             CeedOperator to assemble CeedQFunction
+  @param[out] assembled CeedVector to store assembled CeedOperator diagonal
+  @param request        Address of CeedRequest for non-blocking completion, else
+                          CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
+    CeedVector *assembled, CeedRequest *request) {
+  int ierr;
+  Ceed ceed = op->ceed;
+  CeedQFunction qf = op->qf;
+
+  if (op->composite) {
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Cannot assemble QFunction for composite operator");
+  // LCOV_EXCL_STOP
+  } else {
+    if (op->nfields == 0)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1, "No operator fields set");
+    // LCOV_EXCL_STOP
+    if (op->nfields < qf->numinputfields + qf->numoutputfields)
+      // LCOV_EXCL_START
+      return CeedError( ceed, 1, "Not all operator fields set");
+    // LCOV_EXCL_STOP
+    if (op->numelements == 0)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1, "At least one restriction required");
+    // LCOV_EXCL_STOP
+    if (op->numqpoints == 0)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1, "At least one non-collocated basis required");
+    // LCOV_EXCL_STOP
+  }
+
+  // Use backend version, if available
+  if (op->AssembleLinearDiagonal) {
+    ierr = op->AssembleLinearDiagonal(op, assembled, request); CeedChk(ierr);
+    return 0;
+  }
+
+  // Assemble QFunction
+  CeedVector assembledqf;
+  CeedElemRestriction rstr;
+  ierr = CeedOperatorAssembleLinearQFunction(op,  &assembledqf, &rstr, request);
+  CeedChk(ierr);
+  ierr = CeedElemRestrictionDestroy(&rstr); CeedChk(ierr);
+
+  // Determine active input basis
+  CeedInt numemodein = 0, ncomp, dim;
+  CeedEvalMode *emodein = NULL;
+  CeedBasis basisin;
+  CeedElemRestriction rstrin;
+  for (CeedInt i=0; i<qf->numinputfields; i++)
+    if (op->inputfields[i]->vec == CEED_VECTOR_ACTIVE) {
+      ierr = CeedOperatorFieldGetBasis(op->inputfields[i], &basisin);
+      CeedChk(ierr);
+      ierr = CeedBasisGetNumComponents(basisin, &ncomp); CeedChk(ierr);
+      ierr = CeedBasisGetDimension(basisin, &dim); CeedChk(ierr);
+      ierr = CeedOperatorFieldGetElemRestriction(op->inputfields[i], &rstrin);
+      CeedChk(ierr);
+      CeedEvalMode emode;
+      ierr = CeedQFunctionFieldGetEvalMode(qf->inputfields[i], &emode);
+      CeedChk(ierr);
+      switch (emode) {
+      case CEED_EVAL_NONE:
+      case CEED_EVAL_INTERP:
+        ierr = CeedRealloc(numemodein + 1, &emodein); CeedChk(ierr);
+        emodein[numemodein] = emode;
+        numemodein += 1;
+        break;
+      case CEED_EVAL_GRAD:
+        ierr = CeedRealloc(numemodein + dim, &emodein); CeedChk(ierr);
+        for (CeedInt d=0; d<dim; d++)
+          emodein[numemodein+d] = emode;
+        numemodein += dim;
+        break;
+      case CEED_EVAL_WEIGHT:
+      case CEED_EVAL_DIV:
+      case CEED_EVAL_CURL:
+        break; // Caught by QF Assembly
+      }
+    }
+
+  // Determine active output basis
+  CeedInt numemodeout = 0;
+  CeedEvalMode *emodeout = NULL;
+  CeedBasis basisout;
+  CeedElemRestriction rstrout;
+  CeedTransposeMode lmodeout;
+  for (CeedInt i=0; i<qf->numoutputfields; i++)
+    if (op->outputfields[i]->vec == CEED_VECTOR_ACTIVE) {
+      ierr = CeedOperatorFieldGetBasis(op->outputfields[i], &basisout);
+      CeedChk(ierr);
+      ierr = CeedOperatorFieldGetElemRestriction(op->outputfields[i], &rstrout);
+      CeedChk(ierr);
+      ierr = CeedOperatorFieldGetLMode(op->outputfields[i], &lmodeout);
+      CeedChk(ierr);
+      CeedEvalMode emode;
+      ierr = CeedQFunctionFieldGetEvalMode(qf->outputfields[i], &emode);
+      CeedChk(ierr);
+      switch (emode) {
+      case CEED_EVAL_NONE:
+      case CEED_EVAL_INTERP:
+        ierr = CeedRealloc(numemodeout + 1, &emodeout); CeedChk(ierr);
+        emodeout[numemodeout] = emode;
+        numemodeout += 1;
+        break;
+      case CEED_EVAL_GRAD:
+        ierr = CeedRealloc(numemodeout + dim, &emodeout); CeedChk(ierr);
+        for (CeedInt d=0; d<dim; d++)
+          emodeout[numemodeout+d] = emode;
+        numemodeout += dim;
+        break;
+      case CEED_EVAL_WEIGHT:
+      case CEED_EVAL_DIV:
+      case CEED_EVAL_CURL:
+        break; // Caught by QF Assembly
+      }
+    }
+
+  // Create diagonal vector
+  CeedVector elemdiag;
+  ierr = CeedElemRestrictionCreateVector(rstrin, assembled, &elemdiag);
+  CeedChk(ierr);
+
+  // Assemble element operator diagonals
+  CeedScalar *elemdiagarray, *assembledqfarray;
+  ierr = CeedVectorSetValue(elemdiag, 0.0); CeedChk(ierr);
+  ierr = CeedVectorGetArray(elemdiag, CEED_MEM_HOST, &elemdiagarray);
+  CeedChk(ierr);
+  ierr = CeedVectorGetArray(assembledqf, CEED_MEM_HOST, &assembledqfarray);
+  CeedChk(ierr);
+  CeedInt nelem, nnodes, nqpts;
+  ierr = CeedElemRestrictionGetNumElements(rstrin, &nelem); CeedChk(ierr);
+  ierr = CeedBasisGetNumNodes(basisin, &nnodes); CeedChk(ierr);
+  ierr = CeedBasisGetNumQuadraturePoints(basisin, &nqpts); CeedChk(ierr);
+  // Compute the diagonal of B^T D B
+  // Each node, qpt pair
+  for (CeedInt n=0; n<nnodes; n++)
+    for (CeedInt q=0; q<nqpts; q++) {
+      CeedInt dout = -1;
+      // Each basis eval mode pair
+      for (CeedInt eout=0; eout<numemodeout; eout++) {
+        CeedScalar bt = 1.0;
+        if (emodeout[eout] == CEED_EVAL_GRAD)
+          dout += 1;
+        ierr = CeedBasisGetValue(basisout, emodeout[eout], q, n, dout, &bt);
+        CeedChk(ierr);
+        CeedInt din = -1;
+        for (CeedInt ein=0; ein<numemodein; ein++) {
+          CeedScalar b = 0.0;
+          if (emodein[ein] == CEED_EVAL_GRAD)
+            din += 1;
+          ierr = CeedBasisGetValue(basisin, emodein[ein], q, n, din, &b);
+          CeedChk(ierr);
+          // Each element and component
+          for (CeedInt e=0; e<nelem; e++)
+            for (CeedInt cout=0; cout<ncomp; cout++) {
+              CeedScalar db = 0.0;
+              for (CeedInt cin=0; cin<ncomp; cin++)
+                db += assembledqfarray[((((e*numemodein+ein)*ncomp+cin)*
+                                       numemodeout+eout)*ncomp+cout)*nqpts+q]*b;
+              elemdiagarray[(e*ncomp+cout)*nnodes+n] += bt * db;
+            }
+        }
+      }
+    }
+
+  ierr = CeedVectorRestoreArray(elemdiag, &elemdiagarray); CeedChk(ierr);
+  ierr = CeedVectorRestoreArray(assembledqf, &assembledqfarray); CeedChk(ierr);
+
+  // Assemble local operator diagonal
+  ierr = CeedVectorSetValue(*assembled, 0.0); CeedChk(ierr);
+  ierr = CeedElemRestrictionApply(rstrout, CEED_TRANSPOSE, lmodeout, elemdiag,
+                                  *assembled, request); CeedChk(ierr);
+
+  // Cleanup
+  ierr = CeedVectorDestroy(&assembledqf); CeedChk(ierr);
+  ierr = CeedVectorDestroy(&elemdiag); CeedChk(ierr);
+  ierr = CeedFree(&emodein); CeedChk(ierr);
+  ierr = CeedFree(&emodeout); CeedChk(ierr);
+
   return 0;
 }
 

@@ -4,22 +4,24 @@
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
-#include "t531-operator.h"
+#include "t534-operator.h"
 
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedElemRestriction Erestrictx, Erestrictu,
                       Erestrictxi, Erestrictui,
-                      Erestrictqi, Erestrictlini;
+                      Erestrictqi;
   CeedBasis bx, bu;
-  CeedQFunction qf_setup, qf_diff, qf_diff_lin;
-  CeedOperator op_setup, op_diff, op_diff_lin;
-  CeedVector qdata, X, A, u, v;
+  CeedQFunction qf_setup, qf_diff;
+  CeedOperator op_setup, op_diff;
+  CeedVector qdata, X, A, U, V;
   CeedInt nelem = 6, P = 3, Q = 4, dim = 2;
   CeedInt nx = 3, ny = 2;
   CeedInt ndofs = (nx*2+1)*(ny*2+1), nqpts = nelem*Q*Q;
   CeedInt indx[nelem*P*P];
-  CeedScalar x[dim*ndofs];
+  CeedScalar x[dim*ndofs], assembledTrue[ndofs];
+  CeedScalar *u;
+  const CeedScalar *a, *v;
 
   CeedInit(argv[1], &ceed);
 
@@ -96,75 +98,55 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_diff, "dv", Erestrictu, CEED_NOTRANSPOSE, bu,
                        CEED_VECTOR_ACTIVE);
 
-  // Apply original Poisson Operator
-  CeedVectorCreate(ceed, ndofs, &u);
-  CeedVectorSetValue(u, 1.0);
-  CeedVectorCreate(ceed, ndofs, &v);
-  CeedVectorSetValue(v, 0.0);
-  CeedOperatorApply(op_diff, u, v, CEED_REQUEST_IMMEDIATE);
+  // Assemble diagonal
+  CeedOperatorAssembleLinearDiagonal(op_diff, &A, CEED_REQUEST_IMMEDIATE);
+
+  // Manually assemble diagonal
+  CeedVectorCreate(ceed, ndofs, &U);
+  CeedVectorSetValue(U, 0.0);
+  CeedVectorCreate(ceed, ndofs, &V);
+  for (int i=0; i<ndofs; i++) {
+    // Set input
+    CeedVectorGetArray(U, CEED_MEM_HOST, &u);
+    u[i] = 1.0;
+    if (i)
+      u[i-1] = 0.0;
+    CeedVectorRestoreArray(U, &u);
+
+    // Compute diag entry for DoF i
+    CeedOperatorApply(op_diff, U, V, CEED_REQUEST_IMMEDIATE);
+
+    // Retrieve entry
+    CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
+    assembledTrue[i] = v[i];
+    CeedVectorRestoreArrayRead(V, &v);
+  }
 
   // Check output
-  const CeedScalar *vv;
-  CeedVectorGetArrayRead(v, CEED_MEM_HOST, &vv);
-  for (CeedInt i=0; i<ndofs; i++)
-    if (fabs(vv[i]) > 1E-14)
+  CeedVectorGetArrayRead(A, CEED_MEM_HOST, &a);
+  for (int i=0; i<ndofs; i++)
+    if (fabs(a[i] - assembledTrue[i]) > 1E-14)
       // LCOV_EXCL_START
-      printf("Error: Operator computed v[i] = %f != 0.0\n", vv[i]);
-      // LCOV_EXCL_STOP
-  CeedVectorRestoreArrayRead(v, &vv);
-
-  // Assemble QFunction
-  CeedOperatorAssembleLinearQFunction(op_diff, &A, &Erestrictlini,
-                                      CEED_REQUEST_IMMEDIATE);
-
-  // QFunction - apply assembled
-  CeedQFunctionCreateInterior(ceed, 1, diff_lin, diff_lin_loc, &qf_diff_lin);
-  CeedQFunctionAddInput(qf_diff_lin, "du", dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_diff_lin, "qdata", dim*dim, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_diff_lin, "dv", dim, CEED_EVAL_GRAD);
-
-  // Operator - apply assembled
-  CeedOperatorCreate(ceed, qf_diff_lin, NULL, NULL, &op_diff_lin);
-  CeedOperatorSetField(op_diff_lin, "du", Erestrictu, CEED_NOTRANSPOSE, bu,
-                       CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_diff_lin, "qdata", Erestrictlini, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, A);
-  CeedOperatorSetField(op_diff_lin, "dv", Erestrictu, CEED_NOTRANSPOSE, bu,
-                       CEED_VECTOR_ACTIVE);
-
-  // Apply new Poisson Operator
-  CeedVectorSetValue(v, 0.0);
-  CeedOperatorApply(op_diff_lin, u, v, CEED_REQUEST_IMMEDIATE);
-
-  // Check output
-  CeedVectorGetArrayRead(v, CEED_MEM_HOST, &vv);
-  for (CeedInt i=0; i<ndofs; i++)
-    if (fabs(vv[i]) > 1E-14)
-      // LCOV_EXCL_START
-      printf("Error: Linerized operator computed v[i] = %f != 0.0\n", vv[i]);
-      // LCOV_EXCL_STOP
-  CeedVectorRestoreArrayRead(v, &vv);
+      printf("[%d] Error in assembly: %f != %f\n", i, a[i], assembledTrue[i]);
+  // LCOV_EXCL_STOP
 
   // Cleanup
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_diff);
-  CeedQFunctionDestroy(&qf_diff_lin);
   CeedOperatorDestroy(&op_setup);
   CeedOperatorDestroy(&op_diff);
-  CeedOperatorDestroy(&op_diff_lin);
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
   CeedElemRestrictionDestroy(&Erestrictui);
   CeedElemRestrictionDestroy(&Erestrictxi);
   CeedElemRestrictionDestroy(&Erestrictqi);
-  CeedElemRestrictionDestroy(&Erestrictlini);
   CeedBasisDestroy(&bu);
   CeedBasisDestroy(&bx);
   CeedVectorDestroy(&X);
   CeedVectorDestroy(&A);
   CeedVectorDestroy(&qdata);
-  CeedVectorDestroy(&u);
-  CeedVectorDestroy(&v);
+  CeedVectorDestroy(&U);
+  CeedVectorDestroy(&V);
   CeedDestroy(&ceed);
   return 0;
 }
