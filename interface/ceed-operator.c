@@ -58,7 +58,7 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
     return 0;
   }
 
-  ierr = CeedCalloc(1,op); CeedChk(ierr);
+  ierr = CeedCalloc(1, op); CeedChk(ierr);
   (*op)->ceed = ceed;
   ceed->refcount++;
   (*op)->refcount = 1;
@@ -304,7 +304,28 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
       return CeedError(ceed, 1, "At least one non-collocated basis required");
     // LCOV_EXCL_STOP
   }
-  ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
+  if (op->AssembleLinearQFunction) {
+    ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
+  } else {
+    // Reference Ceed
+    Ceed ceedref;
+    ierr = CeedInit("/cpu/self/ref/serial", &ceedref);
+
+    // Reference Operator
+    CeedOperator opref;
+    ierr = CeedCalloc(1, &opref); CeedChk(ierr);
+    memcpy(&opref, &op, sizeof(op));
+    opref->data = NULL;
+    ierr = ceedref->OperatorCreate(opref); CeedChk(ierr);
+
+    // Assemble
+    ierr = op->AssembleLinearQFunction(opref, assembled, rstr, request);
+
+    // Cleanup
+    ierr =  opref->Destroy(opref); CeedChk(ierr);
+    ierr = CeedFree(&opref); CeedChk(ierr);
+    ierr = CeedDestroy(&ceedref); CeedChk(ierr);
+  }
   CeedChk(ierr);
   return 0;
 }

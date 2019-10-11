@@ -531,17 +531,6 @@ static int CeedOperatorApply_Occa(CeedOperator op,
 }
 
 // *****************************************************************************
-// * Assemble a linear QFunction
-// *****************************************************************************
-int CeedOperatorAssembleLinearQFunction_Occa(CeedOperator op,
-    CeedVector assembled, CeedElemRestriction *rstr, CeedRequest *request) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1, "Backend does not implement assembling QFunctions");
-}
-
-// *****************************************************************************
 // * Create an operator
 // *****************************************************************************
 int CeedOperatorCreate_Occa(CeedOperator op) {
@@ -554,9 +543,6 @@ int CeedOperatorCreate_Occa(CeedOperator op) {
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
-                                CeedOperatorAssembleLinearQFunction_Occa);
-  CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
                                 CeedOperatorApply_Occa); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
