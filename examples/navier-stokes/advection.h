@@ -192,7 +192,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
     dv[0][0][i] = 0;
     dv[1][0][i] = 0;
     dv[2][0][i] = 0;
-    v[0][1] = 0;
+    v[0][i] = 0;
 
     // -- Momentum
     // ---- No Change
