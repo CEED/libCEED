@@ -14,24 +14,12 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-/**
-  @brief Ceed QFunction for building the geometric data for the 2D poisson operator
-**/
-CEED_QFUNCTION(Poisson2DBuild)(void *ctx, const CeedInt Q,
-                               const CeedScalar *const *in,
-                               CeedScalar *const *out) {
-  // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
-  // the symmetric part of the result.
-
-  // in[0] is Jacobians with shape [2, nc=2, Q]
-  // in[1] is quadrature weights, size (Q)
-  const CeedScalar *J = in[0], *qw = in[1];
-
-  // out[0] is qdata, size (Q)
+CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q,
+                      const CeedScalar *const *in,
+                      CeedScalar *const *out) {
+  const CeedScalar *qw = in[0], *J = in[1];
   CeedScalar *qd = out[0];
 
-  // Quadrature point loop
-  CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Qdata stored in Voigt convention
     // J: 0 2   qd: 0 2   adj(J):  J22 -J12
@@ -45,6 +33,33 @@ CEED_QFUNCTION(Poisson2DBuild)(void *ctx, const CeedInt Q,
     qd[i+Q*1] =   w * (J11*J11 + J21*J21);
     qd[i+Q*2] = - w * (J11*J12 + J21*J22);
   } // End of Quadrature Point Loop
+  return 0;
+}
 
+CEED_QFUNCTION(diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
+                     CeedScalar *const *out) {
+  const CeedScalar *qd = in[0], *ug = in[1];
+  CeedScalar *vg = out[0];
+
+  for (CeedInt i=0; i<Q; i++) {
+    // Read spatial derivatives of u
+    const CeedScalar du[2]        =  {ug[i+Q*0],
+                                      ug[i+Q*1]
+                                     };
+
+    // Read qdata (dXdxdXdxT symmetric matrix)
+    // Stored in Voigt convention
+    // 0 2
+    // 2 1
+    const CeedScalar dXdxdXdxT[2][2] = {{qd[i+0*Q],
+                                         qd[i+2*Q]},
+                                        {qd[i+2*Q],
+                                         qd[i+1*Q]}
+                                       };
+    // j = direction of vg
+    for (int j=0; j<2; j++)
+      vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +
+                   du[1] * dXdxdXdxT[1][j]);
+  }
   return 0;
 }
