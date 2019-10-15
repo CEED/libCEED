@@ -43,18 +43,20 @@ CEED_INTERN {
 #endif
 void magmablas_dbasis_apply_batched_eval_interp(magma_int_t P, magma_int_t Q,
   magma_int_t dim, magma_int_t ncomp, const double *dT, CeedTransposeMode tmode,
-  const double *dU, magma_int_t ustride, double *dV, magma_int_t vstride,
-  magma_int_t batchCount);
+  const double *dU, magma_int_t u_elemstride, magma_int_t u_compstride,
+  double *dV, magma_int_t v_elemstride, magma_int_t v_compstride,
+  magma_int_t nelem);
 
 void magmablas_dbasis_apply_batched_eval_grad(magma_int_t P, magma_int_t Q,
   magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt, const double* dinterp1d,
-  const double *dgrad1d, CeedTransposeMode tmode, const double *dU,
-  magma_int_t ustride, double *dV, magma_int_t vstride, magma_int_t batchCount,
-  magma_int_t dim_ctr);
+  const double *dgrad1d, CeedTransposeMode tmode,
+  const double *dU, magma_int_t u_elemstride, magma_int_t u_compstride, magma_int_t u_dimstride,
+  double *dV, magma_int_t v_elemstride, magma_int_t v_compstride, magma_int_t v_dimstride,
+  magma_int_t dim_id, magma_int_t nelem);
 
 void magmablas_dbasis_apply_batched_eval_weight(magma_int_t Q, magma_int_t dim,
-  const double *dqweight1d, double *dV, magma_int_t vstride,
-  magma_int_t batchCount);
+  const double *dqweight1d, double *dV, magma_int_t v_elemstride,
+  magma_int_t nelem);
 
 magma_int_t
 magma_isdevptr(const void *A);

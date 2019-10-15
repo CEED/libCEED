@@ -95,12 +95,11 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     }
 
     // Loop through components and apply batch over elements
-    for (CeedInt comp_ctr = 0; comp_ctr < ncomp; comp_ctr++)
-      magmablas_dbasis_apply_batched_eval_interp(P, Q, dim, ncomp,
-          impl->dinterp1d, tmode,
-          u + u_compstride * comp_ctr, u_elstride,
-          v + v_compstride * comp_ctr, v_elstride,
-          nelem);
+    magmablas_dbasis_apply_batched_eval_interp(P, Q, dim, ncomp,
+	   				       impl->dinterp1d, tmode, 
+   					       u, u_elstride, u_compstride, 
+					       v, v_elstride, v_compstride,  
+					       nelem);
   }
   break;
   case CEED_EVAL_GRAD: {
@@ -152,14 +151,13 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
 
     }
 
-    // Loop through grad dimensions and components, batch call over elements
+    // Loop through grad dimensions only, batch call over elements and components
     for (CeedInt dim_ctr = 0; dim_ctr < dim; dim_ctr++)
-      for (CeedInt comp_ctr = 0; comp_ctr < ncomp; comp_ctr++)
         magmablas_dbasis_apply_batched_eval_grad(P, Q, dim, ncomp, nqpt,
             impl->dinterp1d, impl->dgrad1d, tmode,
-            u + dim_ctr * u_dimstride + u_compstride * comp_ctr, u_elstride,
-            v + dim_ctr * v_dimstride + v_compstride * comp_ctr,
-            v_elstride, nelem, dim_ctr);
+            u + dim_ctr * u_dimstride, u_elstride, u_compstride, u_dimstride, 
+            v + dim_ctr * v_dimstride, v_elstride, v_compstride, v_dimstride,
+            dim_ctr, nelem);
   }
   break;
   case CEED_EVAL_WEIGHT: {
