@@ -276,7 +276,8 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop,
   @ref Basic
 **/
 int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
-    CeedElemRestriction *rstr, CeedRequest *request) {
+                                        CeedElemRestriction *rstr,
+                                        CeedRequest *request) {
   int ierr;
   Ceed ceed = op->ceed;
   CeedQFunction qf = op->qf;
@@ -289,7 +290,7 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
     if (op->nfields == 0)
       // LCOV_EXCL_START
       return CeedError(ceed, 1, "No operator fields set");
-      // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
     if (op->nfields < qf->numinputfields + qf->numoutputfields)
       // LCOV_EXCL_START
       return CeedError( ceed, 1, "Not all operator fields set");
@@ -322,8 +323,8 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
 
   @ref Basic
 **/
-int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
-    CeedVector *assembled, CeedRequest *request) {
+int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
+                                       CeedRequest *request) {
   int ierr;
   Ceed ceed = op->ceed;
   CeedQFunction qf = op->qf;
@@ -331,7 +332,7 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
   if (op->composite) {
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Cannot assemble QFunction for composite operator");
-  // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
   } else {
     if (op->nfields == 0)
       // LCOV_EXCL_START
@@ -478,7 +479,7 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
               CeedScalar db = 0.0;
               for (CeedInt cin=0; cin<ncomp; cin++)
                 db += assembledqfarray[((((e*numemodein+ein)*ncomp+cin)*
-                                       numemodeout+eout)*ncomp+cout)*nqpts+q]*b;
+                                         numemodeout+eout)*ncomp+cout)*nqpts+q]*b;
               elemdiagarray[(e*ncomp+cout)*nnodes+n] += bt * db;
             }
         }

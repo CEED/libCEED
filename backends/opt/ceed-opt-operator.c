@@ -258,7 +258,7 @@ static inline int CeedOperatorSetupInputs_Opt(CeedInt numinputfields,
 }
 
 // Input basis action
-static inline int CeedOperatorInputBasis_Opt(CeedInt e, CeedInt Q, 
+static inline int CeedOperatorInputBasis_Opt(CeedInt e, CeedInt Q,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
     CeedInt numinputfields, CeedInt blksize, CeedVector invec, bool skipactive,
     CeedOperator_Opt *impl, CeedRequest *request) {
@@ -355,7 +355,7 @@ static inline int CeedOperatorInputBasis_Opt(CeedInt e, CeedInt Q,
 static inline int CeedOperatorOutputBasis_Opt(CeedInt e, CeedInt Q,
     CeedQFunctionField *qfoutputfields, CeedOperatorField *opoutputfields,
     CeedInt blksize, CeedInt numinputfields, CeedInt numoutputfields,
-    CeedOperator op, CeedVector outvec, CeedOperator_Opt *impl, 
+    CeedOperator op, CeedVector outvec, CeedOperator_Opt *impl,
     CeedRequest *request) {
   CeedInt ierr;
   CeedElemRestriction Erestrict;
@@ -485,7 +485,7 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
 
   // Input Evecs and Restriction
   ierr = CeedOperatorSetupInputs_Opt(numinputfields, qfinputfields,
-    opinputfields, invec, impl, request); CeedChk(ierr);
+                                     opinputfields, invec, impl, request); CeedChk(ierr);
 
   // Output Lvecs, Evecs, and Qvecs
   for (CeedInt i=0; i<numoutputfields; i++) {
@@ -530,12 +530,13 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
 
     // Output basis apply and restrict
     ierr = CeedOperatorOutputBasis_Opt(e, Q, qfoutputfields, opoutputfields,
-             blksize, numinputfields, numoutputfields, op, outvec, impl,
-    request); CeedChk(ierr);
+                                       blksize, numinputfields, numoutputfields,
+                                       op, outvec, impl, request);
+    CeedChk(ierr);
   }
 
   // Restore input arrays
-  ierr = CeedOperatorRestoreInputs_Opt(numinputfields, qfinputfields, 
+  ierr = CeedOperatorRestoreInputs_Opt(numinputfields, qfinputfields,
                                        opinputfields, false, impl);
   CeedChk(ierr);
 
@@ -627,9 +628,7 @@ static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
 
   // Create output restriction
   ierr = CeedElemRestrictionCreateIdentity(ceed, numelements, Q,
-                                           numelements*Q,
-                                           numactivein*numactiveout, rstr);
-  CeedChk(ierr);
+         numelements*Q, numactivein*numactiveout, rstr); CeedChk(ierr);
   // Create assembled vector
   ierr = CeedVectorCreate(ceed, numelements*Q*numactivein*numactiveout,
                           assembled); CeedChk(ierr);
@@ -682,7 +681,7 @@ static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
   }
 
   // Restore input arrays
-  ierr = CeedOperatorRestoreInputs_Opt(numinputfields, qfinputfields, 
+  ierr = CeedOperatorRestoreInputs_Opt(numinputfields, qfinputfields,
                                        opinputfields, true, impl);
   CeedChk(ierr);
 
@@ -728,9 +727,9 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
     ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
                                   CeedOperatorApply_Opt); CeedChk(ierr);
   } else {
-  // LCOV_EXCL_START
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Opt backend cannot use blocksize: %d", blksize);
-  // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
   }
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",

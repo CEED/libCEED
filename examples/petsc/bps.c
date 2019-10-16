@@ -255,7 +255,8 @@ bpData bpOptions[6] = {
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
-    .qmode = CEED_GAUSS_LOBATTO}
+    .qmode = CEED_GAUSS_LOBATTO
+  }
 };
 
 // This function uses libCEED to compute the action of the mass matrix

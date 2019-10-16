@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
   char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
-                                          filename[PETSC_MAX_PATH_LEN];
+       filename[PETSC_MAX_PATH_LEN];
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree = 3, qextra, lsize, gsize, dim =3, melem[3] = {3, 3, 3},
            ncompu = 1, xlsize;
@@ -290,28 +290,27 @@ int main(int argc, char **argv) {
     if (!test_mode) {
       ierr = PetscPrintf(comm,"  Performance:\n"); CHKERRQ(ierr);
     }
-  {
-    PetscReal maxerror;
-    ierr = ComputeErrorMax(userO, op_error, X, target, &maxerror);
-    CHKERRQ(ierr);
-    PetscReal tol = 5e-2;
-    if (!test_mode || maxerror > tol) {
-      ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
+    {
+      PetscReal maxerror;
+      ierr = ComputeErrorMax(userO, op_error, X, target, &maxerror);
       CHKERRQ(ierr);
-      ierr = MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm);
-      CHKERRQ(ierr);
-      ierr = PetscPrintf(comm,
-                         "    Pointwise Error (max)              : %e\n"
-                         "    CG Solve Time                      : %g (%g) sec\n",
-                         (double)maxerror, rt_max, rt_min); CHKERRQ(ierr);
+      PetscReal tol = 5e-2;
+      if (!test_mode || maxerror > tol) {
+        ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
+        CHKERRQ(ierr);
+        ierr = MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm);
+        CHKERRQ(ierr);
+        ierr = PetscPrintf(comm,
+                           "    Pointwise Error (max)              : %e\n"
+                           "    CG Solve Time                      : %g (%g) sec\n",
+                           (double)maxerror, rt_max, rt_min); CHKERRQ(ierr);
+      }
     }
-  }
     if (benchmark_mode && (!test_mode)) {
       ierr = PetscPrintf(comm,
                          "    DoFs/Sec in CG                     : %g (%g) million\n",
                          1e-6*gsize*its/rt_max,
-                         1e-6*gsize*its/rt_min);
-      CHKERRQ(ierr);
+                         1e-6*gsize*its/rt_min); CHKERRQ(ierr);
     }
   }
 

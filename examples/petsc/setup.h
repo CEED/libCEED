@@ -77,11 +77,12 @@ struct CeedData_ {
 // -----------------------------------------------------------------------------
 
 // Coarsening options
-typedef enum{
+typedef enum {
   COARSEN_UNIFORM = 0, COARSEN_LOGRITHMIC = 1
 } coarsenType;
 static const char *const coarsenTypes [] = {"uniform","logrithmic",
-                                            "coarsenType","COARSEN",0};
+                                            "coarsenType","COARSEN",0
+                                           };
 
 // -----------------------------------------------------------------------------
 // Boundary Conditions
@@ -278,7 +279,8 @@ bpData bpOptions[6] = {
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS_LOBATTO,
     .enforce_bc = true,
-    .bcs_func = BCsDiff}
+    .bcs_func = BCsDiff
+  }
 };
 
 // -----------------------------------------------------------------------------
@@ -287,7 +289,8 @@ bpData bpOptions[6] = {
 
 // Create FE by degree
 static int PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
-    PetscBool isSimplex, const char prefix[], PetscInt order, PetscFE *fem) {
+                                 PetscBool isSimplex, const char prefix[],
+                                 PetscInt order, PetscFE *fem) {
   PetscQuadrature q, fq;
   DM              K;
   PetscSpace      P;
@@ -337,8 +340,7 @@ static int PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
                                         &q); CHKERRQ(ierr);
     ierr = PetscDTGaussJacobiQuadrature(dim-1, 1, quadPointsPerEdge, -1.0, 1.0,
                                         &fq); CHKERRQ(ierr);
-  }
-  else {
+  } else {
     ierr = PetscDTGaussTensorQuadrature(dim,   1, quadPointsPerEdge, -1.0, 1.0,
                                         &q); CHKERRQ(ierr);
     ierr = PetscDTGaussTensorQuadrature(dim-1, 1, quadPointsPerEdge, -1.0, 1.0,
@@ -469,9 +471,10 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
 
 // Set up libCEED for a given degree
 static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
-    CeedInt qextra, PetscInt ncompu, PetscInt gsize, PetscInt xlsize,
-    bpType bpChoice, CeedData data, PetscBool setup_rhs,
-    CeedVector rhsceed, CeedVector *target) {
+                                CeedInt qextra, PetscInt ncompu, PetscInt gsize,
+                                PetscInt xlsize, bpType bpChoice, CeedData data,
+                                PetscBool setup_rhs, CeedVector rhsceed,
+                                CeedVector *target) {
   int ierr;
   DM dmcoord;
   PetscSection section;

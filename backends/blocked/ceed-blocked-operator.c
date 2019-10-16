@@ -249,7 +249,7 @@ static inline int CeedOperatorSetupInputs_Blocked(CeedInt numinputfields,
 }
 
 // Input basis action
-static inline int CeedOperatorInputBasis_Blocked(CeedInt e, CeedInt Q, 
+static inline int CeedOperatorInputBasis_Blocked(CeedInt e, CeedInt Q,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
     CeedInt numinputfields, CeedInt blksize, bool skipactive,
     CeedOperator_Blocked *impl) {
@@ -450,7 +450,8 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
 
   // Input Evecs and Restriction
   ierr = CeedOperatorSetupInputs_Blocked(numinputfields, qfinputfields,
-    opinputfields, invec, false, impl, request); CeedChk(ierr);
+                                         opinputfields, invec, false, impl,
+                                         request); CeedChk(ierr);
 
   // Output Evecs
   for (CeedInt i=0; i<numoutputfields; i++) {
@@ -485,7 +486,8 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
 
     // Output basis apply
     ierr = CeedOperatorOutputBasis_Blocked(e, Q, qfoutputfields, opoutputfields,
-             blksize, numinputfields, numoutputfields, op, impl);
+                                           blksize, numinputfields,
+                                           numoutputfields, op, impl);
     CeedChk(ierr);
   }
 
@@ -522,9 +524,8 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
   }
 
   // Restore input arrays
-  ierr = CeedOperatorRestoreInputs_Blocked(numinputfields, qfinputfields, 
-                                           opinputfields, false, impl);
-  CeedChk(ierr);
+  ierr = CeedOperatorRestoreInputs_Blocked(numinputfields, qfinputfields,
+         opinputfields, false, impl); CeedChk(ierr);
 
   return 0;
 }
@@ -612,9 +613,7 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
 
   // Create output restriction
   ierr = CeedElemRestrictionCreateIdentity(ceed, numelements, Q,
-                                           numelements*Q,
-                                           numactivein*numactiveout, rstr);
-  CeedChk(ierr);
+         numelements*Q, numactivein*numactiveout, rstr); CeedChk(ierr);
   // Create assembled vector
   ierr = CeedVectorCreate(ceed, numelements*Q*numactivein*numactiveout,
                           assembled); CeedChk(ierr);
@@ -667,9 +666,8 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
   }
 
   // Restore input arrays
-  ierr = CeedOperatorRestoreInputs_Blocked(numinputfields, qfinputfields, 
-                                           opinputfields, true, impl);
-  CeedChk(ierr);
+  ierr = CeedOperatorRestoreInputs_Blocked(numinputfields, qfinputfields,
+         opinputfields, true, impl); CeedChk(ierr);
 
   // Output blocked restriction
   ierr = CeedVectorRestoreArray(lvec, &a); CeedChk(ierr);

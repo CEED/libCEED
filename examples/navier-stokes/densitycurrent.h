@@ -79,7 +79,7 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
 
 #ifndef M_PI
-#  define M_PI    3.14159265358979323846
+#define M_PI    3.14159265358979323846
 #endif
 
   // Inputs
@@ -254,14 +254,14 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     // -- Interp-to-Grad qdata
     // ---- Inverse of change of coordinate matrix: X_i,j
     const CeedScalar dXdx[3][3] =  {{qdata[1][i],
-                                    qdata[2][i],
-                                    qdata[3][i]},
-                                   {qdata[4][i],
-                                    qdata[5][i],
-                                    qdata[6][i]},
-                                   {qdata[7][i],
-                                    qdata[8][i],
-                                    qdata[9][i]}
+                                     qdata[2][i],
+                                     qdata[3][i]},
+                                    {qdata[4][i],
+                                     qdata[5][i],
+                                     qdata[6][i]},
+                                    {qdata[7][i],
+                                     qdata[8][i],
+                                     qdata[9][i]}
                                    };
     // -- Grad-to-Grad qdata
     // ---- dXdx_j,k * dXdx_k,j
@@ -275,11 +275,11 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
 
     // -- gradT
     const CeedScalar gradT[3]  = {(dE[0]/rho - E*drho[0]/(rho*rho) -
-                                  (u[0]*du[0][0] + u[1]*du[1][0] + u[2]*du[2][0]))/cv,
+                                   (u[0]*du[0][0] + u[1]*du[1][0] + u[2]*du[2][0]))/cv,
                                   (dE[1]/rho - E*drho[1]/(rho*rho) -
-                                  (u[0]*du[0][1] + u[1]*du[1][1] + u[2]*du[2][1]))/cv,
+                                   (u[0]*du[0][1] + u[1]*du[1][1] + u[2]*du[2][1]))/cv,
                                   (dE[2]/rho - E*drho[2]/(rho*rho) -
-                                  (u[0]*du[0][2] + u[1]*du[1][2] + u[2]*du[2][2]) - g)/cv
+                                   (u[0]*du[0][2] + u[1]*du[1][2] + u[2]*du[2][2]) - g)/cv
                                  };
     // -- Fuvisc
     // ---- Symmetric 3x3 matrix

@@ -248,8 +248,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   (*rstr)->nblk = nblk;
   (*rstr)->blksize = blksize;
   ierr = ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER,
-                                            (const CeedInt *) blkindices, *rstr);
-  CeedChk(ierr);
+         (const CeedInt *) blkindices, *rstr); CeedChk(ierr);
 
   if (cmode == CEED_OWN_POINTER) {
     ierr = CeedFree(&indices); CeedChk(ierr);

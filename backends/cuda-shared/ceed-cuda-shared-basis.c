@@ -34,7 +34,8 @@ inline __device__ void add(CeedScalar *r_V, const CeedScalar *r_U) {
 
 inline __device__ void readDofs1d(const int elem, const int tidx,
                                   const int tidy, const int tidz,const int comp,
-                                  const int nelem, const CeedScalar *d_U, CeedScalar *slice) {
+                                  const int nelem, const CeedScalar *d_U,
+                                  CeedScalar *slice) {
   for (int i = 0; i < P1D; i++)
     slice[i+tidz*Q1D] = d_U[i + comp*P1D + elem*BASIS_NCOMP*P1D];
   for (int i = P1D; i < Q1D; i++)
@@ -153,7 +154,8 @@ inline __device__ void readDofs2d(const int elem, const int tidx,
                                   const int nelem, const CeedScalar *d_U,
                                   CeedScalar &U) {
   U = (tidx<P1D
-       && tidy<P1D) ? d_U[tidx + tidy*P1D + comp*P1D*P1D + elem*BASIS_NCOMP*P1D*P1D ] :
+       && tidy<P1D) ? d_U[tidx + tidy*P1D + comp*P1D*P1D +
+                          elem*BASIS_NCOMP*P1D*P1D ] :
       0.0;
 }
 
@@ -272,8 +274,8 @@ inline __device__ void interp2d(const CeedInt nelem, const int transpose,
 
 inline __device__ void grad2d(const CeedInt nelem, const int transpose,
                               const CeedScalar *c_B, const CeedScalar *c_G,
-                              const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V,
-                              CeedScalar *slice) {
+                              const CeedScalar *__restrict__ d_U,
+                              CeedScalar *__restrict__ d_V, CeedScalar *slice) {
   CeedScalar r_U;
   CeedScalar r_V;
   CeedScalar r_t;
@@ -318,7 +320,8 @@ inline __device__ void grad2d(const CeedInt nelem, const int transpose,
 
 inline __device__ void readDofs3d(const int elem, const int tidx,
                                   const int tidy, const int comp,
-                                  const int nelem, const CeedScalar *d_U, CeedScalar *r_U) {
+                                  const int nelem, const CeedScalar *d_U,
+                                  CeedScalar *r_U) {
   for (int i = 0; i < P1D; i++)
     r_U[i] = (tidx<P1D
               && tidy<P1D) ? d_U[tidx + tidy*P1D + i*P1D*P1D + comp*P1D*P1D*P1D +
@@ -329,7 +332,8 @@ inline __device__ void readDofs3d(const int elem, const int tidx,
 
 inline __device__ void readQuads3d(const int elem, const int tidx,
                                    const int tidy, const int comp,
-                                   const int dim, const int nelem, const CeedScalar *d_U, CeedScalar *r_U) {
+                                   const int dim, const int nelem,
+                                   const CeedScalar *d_U, CeedScalar *r_U) {
   for (int i = 0; i < Q1D; i++)
     r_U[i] = d_U[tidx + tidy*Q1D + i*Q1D*Q1D + elem*Q1D*Q1D*Q1D +
                  comp*Q1D*Q1D*Q1D*nelem + dim*BASIS_NCOMP*nelem*Q1D*Q1D*Q1D];
@@ -337,7 +341,8 @@ inline __device__ void readQuads3d(const int elem, const int tidx,
 
 inline __device__ void writeDofs3d(const int elem, const int tidx,
                                    const int tidy, const int comp,
-                                   const int nelem, const CeedScalar *r_V, CeedScalar *d_V) {
+                                   const int nelem, const CeedScalar *r_V,
+                                   CeedScalar *d_V) {
   if (tidx<P1D && tidy<P1D) {
     for (int i = 0; i < P1D; i++)
       d_V[tidx + tidy*P1D + i*P1D*P1D + comp*P1D*P1D*P1D +
@@ -347,7 +352,8 @@ inline __device__ void writeDofs3d(const int elem, const int tidx,
 
 inline __device__ void writeQuads3d(const int elem, const int tidx,
                                     const int tidy, const int comp,
-                                    const int dim, const int nelem, const CeedScalar *r_V, CeedScalar *d_V) {
+                                    const int dim, const int nelem,
+                                    const CeedScalar *r_V, CeedScalar *d_V) {
   for (int i = 0; i < Q1D; i++)
     d_V[tidx + tidy*Q1D + i*Q1D*Q1D + elem*Q1D*Q1D*Q1D + comp*Q1D*Q1D*Q1D*nelem +
         dim*BASIS_NCOMP*nelem*Q1D*Q1D*Q1D ] = r_V[i];
@@ -355,7 +361,8 @@ inline __device__ void writeQuads3d(const int elem, const int tidx,
 
 inline __device__ void ContractX3d(CeedScalar *slice, const int tidx,
                                    const int tidy, const int tidz,
-                                   const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+                                   const CeedScalar *U, const CeedScalar *B,
+                                   CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
     slice[tidx+tidy*Q1D+tidz*Q1D*Q1D] = U[k];
     __syncthreads();
@@ -370,7 +377,8 @@ inline __device__ void ContractX3d(CeedScalar *slice, const int tidx,
 
 inline __device__ void ContractY3d(CeedScalar *slice, const int tidx,
                                    const int tidy, const int tidz,
-                                   const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+                                   const CeedScalar *U, const CeedScalar *B,
+                                   CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
     slice[tidx+tidy*Q1D+tidz*Q1D*Q1D] = U[k];
     __syncthreads();
@@ -385,7 +393,8 @@ inline __device__ void ContractY3d(CeedScalar *slice, const int tidx,
 
 inline __device__ void ContractZ3d(CeedScalar *slice, const int tidx,
                                    const int tidy, const int tidz,
-                                   const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+                                   const CeedScalar *U, const CeedScalar *B,
+                                   CeedScalar *V) {
   for (int k = 0; k < Q1D; ++k) {
     V[k] = 0.0;
     for (int i = 0; i < P1D; ++i) {
@@ -442,7 +451,8 @@ inline __device__ void ContractTransposeX3d(CeedScalar *slice, const int tidx,
 }
 
 inline __device__ void interp3d(const CeedInt nelem, const int transpose,
-                                const CeedScalar *c_B, const CeedScalar *__restrict__ d_U,
+                                const CeedScalar *c_B,
+                                const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V,
                                 CeedScalar *slice) {
   CeedScalar r_V[Q1D];
@@ -479,7 +489,8 @@ inline __device__ void interp3d(const CeedInt nelem, const int transpose,
 
 inline __device__ void grad3d(const CeedInt nelem, const int transpose,
                               const CeedScalar *c_B, const CeedScalar *c_G,
-                              const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V,
+                              const CeedScalar *__restrict__ d_U,
+                              CeedScalar *__restrict__ d_V,
                               CeedScalar *slice) {
   //use P1D for one of these
   CeedScalar r_U[Q1D];
@@ -540,7 +551,8 @@ inline __device__ void grad3d(const CeedInt nelem, const int transpose,
 // Kernels //
 /////////////
 extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
-                                  const CeedScalar *c_B, const CeedScalar *__restrict__ d_U,
+                                  const CeedScalar *c_B,
+                                  const CeedScalar *__restrict__ d_U,
                                   CeedScalar *__restrict__ d_V) {
   extern __shared__ double slice[];
   if (BASIS_DIM==1) {
@@ -554,7 +566,8 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
 
 extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
                                 const CeedScalar *c_B, const CeedScalar *c_G,
-                                const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+                                const CeedScalar *__restrict__ d_U,
+                                CeedScalar *__restrict__ d_V) {
   extern __shared__ double slice[];
   if (BASIS_DIM==1) {
     grad1d(nelem, transpose, c_B, c_G, d_U, d_V, slice);
@@ -604,7 +617,8 @@ __device__ void weight3d(const CeedInt nelem, const CeedScalar *qweight1d,
 }
 
 extern "C" __global__ void weight(const CeedInt nelem,
-                                  const CeedScalar *__restrict__ qweight1d, CeedScalar *__restrict__ v) {
+                                  const CeedScalar *__restrict__ qweight1d,
+                                  CeedScalar *__restrict__ v) {
   if (BASIS_DIM==1) {
     weight1d(nelem, qweight1d, v);
   } else if (BASIS_DIM==2) {
@@ -619,11 +633,13 @@ extern "C" __global__ void weight(const CeedInt nelem,
 int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
                        CeedScalar **c_B);
 int CeedCudaInitInterpGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P1d,
-                           CeedInt Q1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr);
+                           CeedInt Q1d, CeedScalar **c_B_ptr,
+                           CeedScalar **c_G_ptr);
 
 int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
                                      CeedTransposeMode tmode,
-                                     CeedEvalMode emode, CeedVector u, CeedVector v) {
+                                     CeedEvalMode emode, CeedVector u,
+                                     CeedVector v) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
@@ -729,8 +745,8 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
       const CeedInt elemsPerBlock = 32/Q1d;
       const CeedInt gridsize = nelem/elemsPerBlock + ( (
                                  nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
-      ierr = CeedRunKernelDimCuda(ceed, data->weight, gridsize, Q1d, elemsPerBlock, 1,
-                                  weightargs);
+      ierr = CeedRunKernelDimCuda(ceed, data->weight, gridsize, Q1d,
+                                  elemsPerBlock, 1, weightargs);
       CeedChk(ierr);
     } else if(dim==2) {
       const CeedInt optElems = 32/(Q1d*Q1d);

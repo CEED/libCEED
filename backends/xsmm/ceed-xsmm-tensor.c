@@ -32,9 +32,12 @@ int CeedGetXsmmInd_NonTensor(CeedInt add, CeedInt P, CeedInt Q, CeedInt B,
 
 // Default Tensor Contact
 static int CeedTensorContract_Xsmm_C1(CeedTensorContract contract,
-    CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
-    CeedTransposeMode tmode, const CeedInt Add, const CeedScalar *restrict u,
-    CeedScalar *restrict v) {
+                                      CeedInt A, CeedInt B, CeedInt C,
+                                      CeedInt J, const CeedScalar *restrict t,
+                                      CeedTransposeMode tmode,
+                                      const CeedInt Add,
+                                      const CeedScalar *restrict u,
+                                      CeedScalar *restrict v) {
   CeedScalar alpha = 1.0, beta = 1.0;
   char transu = 'N', transt = 'N';
   if ((tmode == CEED_TRANSPOSE && C != 1)

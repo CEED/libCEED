@@ -22,7 +22,7 @@
   @brief Set fields identity QFunction that copies inputs directly into outputs
 **/
 static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested,
-    CeedQFunction qf) {
+                                      CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name

@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsEnum("-coarsen",
                           "Coarsening strategy to use", NULL,
                           coarsenTypes, (PetscEnum)coarsen,
-                          (PetscEnum*)&coarsen, NULL); CHKERRQ(ierr);
+                          (PetscEnum *)&coarsen, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-mesh", "Read mesh from file", NULL,
                             filename, filename, sizeof(filename), &read_mesh);
   CHKERRQ(ierr);
@@ -142,22 +142,22 @@ int main(int argc, char **argv) {
 
   // Allocate arrays for PETSc objects for each level
   switch (coarsen) {
-    case COARSEN_UNIFORM:
-      numlevels = degree;
-      break;
-    case COARSEN_LOGRITHMIC:
-      numlevels = ceil(log(degree)/log(2)) + 1;
-      break;
+  case COARSEN_UNIFORM:
+    numlevels = degree;
+    break;
+  case COARSEN_LOGRITHMIC:
+    numlevels = ceil(log(degree)/log(2)) + 1;
+    break;
   }
   ierr = PetscMalloc1(numlevels, &leveldegrees); CHKERRQ(ierr);
   switch (coarsen) {
-    case COARSEN_UNIFORM:
-      for (int i=0; i<numlevels; i++) leveldegrees[i] = i + 1;
-      break;
-    case COARSEN_LOGRITHMIC:
-      for (int i=0; i<numlevels-1; i++) leveldegrees[i] = pow(2,i);
-      leveldegrees[numlevels-1] = degree;
-      break;
+  case COARSEN_UNIFORM:
+    for (int i=0; i<numlevels; i++) leveldegrees[i] = i + 1;
+    break;
+  case COARSEN_LOGRITHMIC:
+    for (int i=0; i<numlevels-1; i++) leveldegrees[i] = pow(2,i);
+    leveldegrees[numlevels-1] = degree;
+    break;
   }
   ierr = PetscMalloc1(numlevels, &dm); CHKERRQ(ierr);
   ierr = PetscMalloc1(numlevels, &X); CHKERRQ(ierr);
@@ -261,8 +261,9 @@ int main(int argc, char **argv) {
     }
     ierr = PetscMalloc1(1, &ceeddata[i]); CHKERRQ(ierr);
     ierr = SetupLibceedByDegree(dm[i], ceed, leveldegrees[i], dim, qextra,
-                          ncompu, gsize[i], xlsize[i], bpChoice, ceeddata[i],
-                          i==(numlevels-1), rhsceed, &target); CHKERRQ(ierr);
+                                ncompu, gsize[i], xlsize[i], bpChoice,
+                                ceeddata[i], i==(numlevels-1), rhsceed,
+                                &target); CHKERRQ(ierr);
   }
 
   // Gather RHS
@@ -539,22 +540,22 @@ int main(int argc, char **argv) {
     if (!test_mode) {
       ierr = PetscPrintf(comm,"  Performance:\n"); CHKERRQ(ierr);
     }
-  {
-    PetscReal maxerror;
-    ierr = ComputeErrorMax(userO[numlevels-1], op_error, X[numlevels-1], target,
-                           &maxerror); CHKERRQ(ierr);
-    PetscReal tol = 5e-2;
-    if (!test_mode || maxerror > tol) {
-      ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
-      CHKERRQ(ierr);
-      ierr = MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm);
-      CHKERRQ(ierr);
-      ierr = PetscPrintf(comm,
-                         "    Pointwise Error (max)              : %e\n"
-                         "    CG Solve Time                      : %g (%g) sec\n",
-                         (double)maxerror, rt_max, rt_min); CHKERRQ(ierr);
+    {
+      PetscReal maxerror;
+      ierr = ComputeErrorMax(userO[numlevels-1], op_error, X[numlevels-1], target,
+                             &maxerror); CHKERRQ(ierr);
+      PetscReal tol = 5e-2;
+      if (!test_mode || maxerror > tol) {
+        ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
+        CHKERRQ(ierr);
+        ierr = MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm);
+        CHKERRQ(ierr);
+        ierr = PetscPrintf(comm,
+                           "    Pointwise Error (max)              : %e\n"
+                           "    CG Solve Time                      : %g (%g) sec\n",
+                           (double)maxerror, rt_max, rt_min); CHKERRQ(ierr);
+      }
     }
-  }
     if (benchmark_mode && (!test_mode)) {
       ierr = PetscPrintf(comm,
                          "    DoFs/Sec in CG                     : %g (%g) million\n",

@@ -680,7 +680,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
       if (fabs(matT[i+n*(i+1)]) < tol)
         q += 1;
       else
-         break;
+        break;
     }
     for (CeedInt i=0; i<n-1-q; i++) {
       if (fabs(matT[i+n*(i+1)]) < tol)
@@ -695,7 +695,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
                tnnm1 = matT[(n-2-q)+n*(n-1-q)];
     CeedScalar d = (matT[(n-2-q)+n*(n-2-q)] - tnn)/2;
     CeedScalar mu = tnn - tnnm1*tnnm1 /
-                      (d + copysign(sqrt(d*d + tnnm1*tnnm1), d));
+                    (d + copysign(sqrt(d*d + tnnm1*tnnm1), d));
     CeedScalar x = matT[p+n*p] - mu;
     CeedScalar z = matT[p+n*(p+1)];
     for (CeedInt k=p; k<n-1-q; k++) {
@@ -795,7 +795,7 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *matA,
   for (CeedInt i=0; i<n; i++) vecD[i] = sqrt(vecD[i]);
 
   // Compute C = (G D^-1/2)^-1 A (G D^-1/2)^-T
-  //           = D^1/2 G^T A D^1/2 G 
+  //           = D^1/2 G^T A D^1/2 G
   for (CeedInt i=0; i<n; i++)
     for (CeedInt j=0; j<n; j++)
       matC[j+i*n] = vecD[i] * matG[i+j*n];
@@ -1159,14 +1159,14 @@ int CeedBasisGetValue(CeedBasis basis, CeedEvalMode emode, CeedInt qpt,
         else
           *value *= interp[q*(basis->P1d)+n];
       }
-     } else {
-       *value = grad[(dim*(basis->Q)+qpt)*(basis->P)+node];
-     }
+    } else {
+      *value = grad[(dim*(basis->Q)+qpt)*(basis->P)+node];
+    }
   } break;
   case CEED_EVAL_WEIGHT:
     // LCOV_EXCL_START
     return CeedError(basis->ceed, 1, "CEED_EVAL_WEIGHT does not make sense in "
-                                     "this context");
+                     "this context");
   // LCOV_EXCL_STOP
   case CEED_EVAL_DIV:
     // LCOV_EXCL_START
@@ -1175,7 +1175,7 @@ int CeedBasisGetValue(CeedBasis basis, CeedEvalMode emode, CeedInt qpt,
   case CEED_EVAL_CURL:
     // LCOV_EXCL_START
     return CeedError(basis->ceed, 1, "CEED_EVAL_CURL not supported");
-  // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
   }
   return 0;
 }

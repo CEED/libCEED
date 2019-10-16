@@ -48,7 +48,8 @@ CEED_INTERN int CeedFree(void *p);
 #define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
 CEED_EXTERN int CeedRegister(const char *prefix,
-    int (*init)(const char *, Ceed), unsigned int priority);
+                             int (*init)(const char *, Ceed),
+                             unsigned int priority);
 
 CEED_EXTERN int CeedGetParent(Ceed ceed, Ceed *parent);
 CEED_EXTERN int CeedGetDelegate(Ceed ceed, Ceed *delegate);
