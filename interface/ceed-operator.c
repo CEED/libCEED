@@ -107,6 +107,7 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   (*op)->ceed = ceed;
   ceed->refcount++;
   (*op)->composite = true;
+  (*op)->numelements = -2;
   ierr = CeedCalloc(16, &(*op)->suboperators); CeedChk(ierr);
   ierr = ceed->CompositeOperatorCreate(*op); CeedChk(ierr);
   return 0;
@@ -552,7 +553,9 @@ int CeedOperatorApply(CeedOperator op, CeedVector in,
       return CeedError(ceed, 1,"At least one non-collocated basis required");
     // LCOV_EXCL_STOP
   }
-  ierr = op->Apply(op, in, out, request); CeedChk(ierr);
+  if (op->numelements) {
+    ierr = op->Apply(op, in, out, request); CeedChk(ierr);
+  }
   return 0;
 }
 
