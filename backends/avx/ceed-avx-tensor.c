@@ -26,10 +26,6 @@ static inline int CeedTensorContract_Avx_Blocked(CeedTensorContract contract,
     tstride0 = 1; tstride1 = J;
   }
 
-  if (!Add)
-    for (CeedInt q=0; q<A*J*C; q++)
-      v[q] = (CeedScalar) 0.0;
-
   for (CeedInt a=0; a<A; a++) {
     // Blocks of 4 rows
     for (CeedInt j=0; j<(J/JJ)*JJ; j+=JJ) {
@@ -138,10 +134,6 @@ static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract,
   if (tmode == CEED_TRANSPOSE) {
     tstride0 = 1; tstride1 = J;
   }
-
-  if (!Add)
-    for (CeedInt q=0; q<A*J*C; q++)
-      v[q] = (CeedScalar) 0.0;
 
   // Blocks of 4 rows
   for (CeedInt a=0; a<(A/AA)*AA; a+=AA) {
