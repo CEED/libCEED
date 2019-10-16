@@ -583,6 +583,7 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
         CeedChk(ierr);
         ierr = CeedVectorSetArray(activein[numactivein+field], CEED_MEM_HOST,
                                   CEED_USE_POINTER, &tmp[field*Q]);
+        CeedChk(ierr);
       }
       numactivein += size;
       ierr = CeedVectorRestoreArray(impl->qvecsin[i], &tmp); CeedChk(ierr);

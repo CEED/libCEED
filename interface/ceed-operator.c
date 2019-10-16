@@ -366,10 +366,10 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
   ierr = CeedElemRestrictionDestroy(&rstr); CeedChk(ierr);
 
   // Determine active input basis
-  CeedInt numemodein = 0, ncomp, dim;
+  CeedInt numemodein = 0, ncomp, dim = 1;
   CeedEvalMode *emodein = NULL;
-  CeedBasis basisin;
-  CeedElemRestriction rstrin;
+  CeedBasis basisin = NULL;
+  CeedElemRestriction rstrin = NULL;
   for (CeedInt i=0; i<qf->numinputfields; i++)
     if (op->inputfields[i]->vec == CEED_VECTOR_ACTIVE) {
       ierr = CeedOperatorFieldGetBasis(op->inputfields[i], &basisin);
@@ -404,9 +404,9 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
   // Determine active output basis
   CeedInt numemodeout = 0;
   CeedEvalMode *emodeout = NULL;
-  CeedBasis basisout;
-  CeedElemRestriction rstrout;
-  CeedTransposeMode lmodeout;
+  CeedBasis basisout = NULL;
+  CeedElemRestriction rstrout = NULL;
+  CeedTransposeMode lmodeout = CEED_NOTRANSPOSE;
   for (CeedInt i=0; i<qf->numoutputfields; i++)
     if (op->outputfields[i]->vec == CEED_VECTOR_ACTIVE) {
       ierr = CeedOperatorFieldGetBasis(op->outputfields[i], &basisout);
