@@ -68,6 +68,7 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
   if (dqf) dqf->refcount++;
   (*op)->dqfT = dqfT;
   if (dqfT) dqfT->refcount++;
+  (*op)->numelements = -1;
   ierr = CeedCalloc(16, &(*op)->inputfields); CeedChk(ierr);
   ierr = CeedCalloc(16, &(*op)->outputfields); CeedChk(ierr);
   ierr = ceed->OperatorCreate(*op); CeedChk(ierr);
@@ -168,7 +169,7 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
 
   CeedInt numelements;
   ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
-  if (op->numelements && op->numelements != numelements)
+  if (op->numelements != -1 && op->numelements != numelements)
     // LCOV_EXCL_START
     return CeedError(op->ceed, 1,
                      "ElemRestriction with %d elements incompatible with prior "
@@ -295,7 +296,7 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
       // LCOV_EXCL_START
       return CeedError( ceed, 1, "Not all operator fields set");
     // LCOV_EXCL_STOP
-    if (op->numelements == 0)
+    if (op->numelements == -1)
       // LCOV_EXCL_START
       return CeedError(ceed, 1, "At least one restriction required");
     // LCOV_EXCL_STOP
@@ -342,7 +343,7 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
       // LCOV_EXCL_START
       return CeedError( ceed, 1, "Not all operator fields set");
     // LCOV_EXCL_STOP
-    if (op->numelements == 0)
+    if (op->numelements == -1)
       // LCOV_EXCL_START
       return CeedError(ceed, 1, "At least one restriction required");
     // LCOV_EXCL_STOP
