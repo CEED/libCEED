@@ -219,6 +219,7 @@ struct CeedOperator_private {
   CeedQFunction dqfT;
   bool setupdone;
   bool composite;
+  bool restrictionadded;
   CeedOperator *suboperators;
   CeedInt numsub;
   void *data;
