@@ -34,7 +34,7 @@
 //     bpsdmplex -problem bp5 -ceed /omp/occa -degree 3
 //     bpsdmplex -problem bp6 -ceed /ocl/occa -degree 3
 //
-//TESTARGS -ceed {ceed_resource} -test -problem bp1 -degree 3
+//TESTARGS -ceed {ceed_resource} -test -problem bp5 -degree 3
 
 /// @file
 /// CEED BPs example using PETSc with DMPlex
