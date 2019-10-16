@@ -98,11 +98,11 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
   // Get indicies
   for (int d=0; d<3; d++) mnodes[d] = melem[d]*(P-1) + 1;
   idxp = idx = malloc(nelem*P*P*P*sizeof idx[0]);
-  for (CeedInt i=0; i<melem[0]; i++) {
-    for (CeedInt j=0; j<melem[1]; j++) {
-      for (CeedInt k=0; k<melem[2]; k++,idxp += P*P*P) {
-        for (CeedInt ii=0; ii<P; ii++) {
-          for (CeedInt jj=0; jj<P; jj++) {
+  for (CeedInt i=0; i<melem[0]; i++)
+    for (CeedInt j=0; j<melem[1]; j++)
+      for (CeedInt k=0; k<melem[2]; k++,idxp += P*P*P)
+        for (CeedInt ii=0; ii<P; ii++)
+          for (CeedInt jj=0; jj<P; jj++)
             for (CeedInt kk=0; kk<P; kk++) {
               if (0) { // This is the C-style (i,j,k) ordering that I prefer
                 idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mnodes[1]
@@ -114,16 +114,11 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
                                         + (k*(P-1)+kk));
               }
             }
-          }
-        }
-      }
-    }
-  }
 
   // Setup CEED restriction
   CeedElemRestrictionCreate(ceed, nelem, P*P*P, mnodes[0]*mnodes[1]*mnodes[2],
-                            ncomp,
-                            CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
+                            ncomp, CEED_MEM_HOST, CEED_OWN_POINTER, idx,
+                            Erestrict);
 
   PetscFunctionReturn(0);
 }
