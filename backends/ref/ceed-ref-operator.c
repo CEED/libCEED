@@ -442,7 +442,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
     // Input basis apply
     ierr = CeedOperatorInputBasis_Ref(e, Q, qfinputfields, opinputfields,
                                       numinputfields, false, impl);
-   CeedChk(ierr);
+    CeedChk(ierr);
 
     // Output pointers
     for (CeedInt i=0; i<numoutputfields; i++) {
@@ -565,7 +565,7 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
 
   // Input Evecs and Restriction
   ierr = CeedOperatorSetupInputs_Ref(numinputfields, qfinputfields,
-    opinputfields, NULL, true, impl, request); CeedChk(ierr);
+                                     opinputfields, NULL, true, impl, request); CeedChk(ierr);
 
   // Count number of active input fields
   for (CeedInt i=0; i<numinputfields; i++) {
@@ -583,6 +583,7 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
         CeedChk(ierr);
         ierr = CeedVectorSetArray(activein[numactivein+field], CEED_MEM_HOST,
                                   CEED_USE_POINTER, &tmp[field*Q]);
+        CeedChk(ierr);
       }
       numactivein += size;
       ierr = CeedVectorRestoreArray(impl->qvecsin[i], &tmp); CeedChk(ierr);
@@ -609,9 +610,7 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
 
   // Create output restriction
   ierr = CeedElemRestrictionCreateIdentity(ceed, numelements, Q,
-                                           numelements*Q,
-                                           numactivein*numactiveout, rstr);
-  CeedChk(ierr);
+         numelements*Q, numactivein*numactiveout, rstr); CeedChk(ierr);
   // Create assembled vector
   ierr = CeedVectorCreate(ceed, numelements*Q*numactivein*numactiveout,
                           assembled); CeedChk(ierr);

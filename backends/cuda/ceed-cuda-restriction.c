@@ -89,7 +89,8 @@ extern "C" __global__ void noTrTr(const CeedInt nelem,
 }
 
 extern "C" __global__ void trNoTr(const CeedInt nelem,
-                                  const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
+                                  const CeedInt *__restrict__ indices,
+                                  const CeedScalar *__restrict__ u,
                                   CeedScalar *__restrict__ v) {
   const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
   if (indices) {
@@ -100,7 +101,7 @@ extern "C" __global__ void trNoTr(const CeedInt nelem,
       const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
       atomicAdd(v + (indices[s + RESTRICTION_ELEMSIZE * e] +
-                RESTRICTION_NNODES * d), u[i]);
+                     RESTRICTION_NNODES * d), u[i]);
     }
   } else {
     for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;

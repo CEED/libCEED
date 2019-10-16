@@ -220,7 +220,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     case CEED_EVAL_NONE:
       return CeedError(ceed, 1,
                        "CEED_EVAL_NONE does not make sense in this context");
-    // LCOV_EXCL_STOP
+      // LCOV_EXCL_STOP
     }
   } else {
     // Non-tensor basis
@@ -285,7 +285,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     case CEED_EVAL_NONE:
       return CeedError(ceed, 1,
                        "CEED_EVAL_NONE does not make sense in this context");
-    // LCOV_EXCL_STOP
+      // LCOV_EXCL_STOP
     }
   }
   if (U) {

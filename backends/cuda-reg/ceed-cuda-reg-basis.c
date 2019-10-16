@@ -510,7 +510,8 @@ int CeedBasisApply_Cuda_reg(CeedBasis basis, const CeedInt nelem,
     ierr = CeedCudaInitInterp(data->d_interp1d, P1d, Q1d, &data->c_B);
     CeedChk(ierr);
     void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B,
-                          &d_u, &d_v};
+                          &d_u, &d_v
+                         };
     ierr = CeedRunKernelCuda(ceed, data->interp, gridsize, blocksize, interpargs);
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_GRAD) {
@@ -521,7 +522,8 @@ int CeedBasisApply_Cuda_reg(CeedBasis basis, const CeedInt nelem,
                                   &data->c_B, &data->c_G);
     CeedChk(ierr);
     void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B,
-                        &data->c_G, &d_u, &d_v};
+                        &data->c_G, &d_u, &d_v
+                       };
     ierr = CeedRunKernelCuda(ceed, data->grad, gridsize, blocksize, gradargs);
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_WEIGHT) {

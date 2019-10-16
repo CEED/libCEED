@@ -21,11 +21,12 @@
 #  include <math.h>
 #endif
 
-// *****************************************************************************
-CEED_QFUNCTION(SetupMass)(void *ctx, const CeedInt Q,
-                          const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *x = in[0], *J = in[1], *w = in[2];
-  CeedScalar *qdata = out[0], *true_soln = out[1], *rhs = out[2];
+// -----------------------------------------------------------------------------
+CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
+                             const CeedScalar *const *in,
+                             CeedScalar *const *out) {
+  const CeedScalar *J = in[0], *w = in[1];
+  CeedScalar *qdata = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -34,14 +35,32 @@ CEED_QFUNCTION(SetupMass)(void *ctx, const CeedInt Q,
                             J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
                             J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
     qdata[i] = det * w[i];
-
-    true_soln[i] = sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
-
-    rhs[i] = qdata[i] * true_soln[i];
   } // End of Quadrature Point Loop
   return 0;
 }
 
+// -----------------------------------------------------------------------------
+CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q,
+                             const CeedScalar *const *in,
+                             CeedScalar *const *out) {
+  const CeedScalar *x = in[0], *J = in[1], *w = in[2];
+  CeedScalar *true_soln = out[0], *rhs = out[1];
+
+  // Quadrature Point Loop
+  CeedPragmaSIMD
+  for (CeedInt i=0; i<Q; i++) {
+    const CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
+                            J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
+                            J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
+
+    true_soln[i] = sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
+
+    rhs[i] = det * w[i] * true_soln[i];
+  } // End of Quadrature Point Loop
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
 CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *qdata = in[1];
@@ -54,3 +73,4 @@ CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
 
   return 0;
 }
+// -----------------------------------------------------------------------------

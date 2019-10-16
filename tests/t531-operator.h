@@ -65,8 +65,7 @@ CEED_QFUNCTION(diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
 }
 
 CEED_QFUNCTION(diff_lin)(void *ctx, const CeedInt Q,
-                          const CeedScalar *const *in,
-                          CeedScalar *const *out) {
+                         const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] is gradient u, shape [2, nc=1, Q]
   // in[1] is quadrature data, size (4*Q)
   const CeedScalar *du = in[0], *qd = in[1];

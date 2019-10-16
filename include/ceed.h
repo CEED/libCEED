@@ -329,10 +329,9 @@ CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
 CEED_EXTERN int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
                                     CeedInt m, CeedInt n);
 CEED_EXTERN int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
-                                       CeedScalar *lambda, CeedInt n);
+    CeedScalar *lambda, CeedInt n);
 CEED_EXTERN int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *matA,
-                                    CeedScalar *matB, CeedScalar *x,
-                                    CeedScalar *lambda, CeedInt n);
+    CeedScalar *matB, CeedScalar *x, CeedScalar *lambda, CeedInt n);
 
 /// Handle for the object describing the user CeedQFunction
 ///
@@ -364,7 +363,7 @@ CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 CEED_EXTERN int CeedQFunctionCreateInteriorByName(Ceed ceed, const char *name,
     CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size,
-                                            CeedQFunction *qf);
+    CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                                       CeedInt size, CeedEvalMode emode);
 CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
