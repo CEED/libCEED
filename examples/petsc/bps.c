@@ -35,7 +35,7 @@
 //     bps -problem bp5 -ceed /omp/occa
 //     bps -problem bp6 -ceed /ocl/occa
 //
-//TESTARGS -ceed {ceed_resource} -test -problem bp2 -degree 3
+//TESTARGS -ceed {ceed_resource} -test -problem bp2 -degree 5 -qextra 5
 
 /// @file
 /// CEED BPs example using PETSc
