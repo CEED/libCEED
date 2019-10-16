@@ -83,19 +83,10 @@ CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q,
 
     // Initial Conditions
     q0[0][i] = 1.;
-    q0[1][i] = -0.5*(y - center[1]);
-    q0[2][i] =  0.5*(x - center[0]);
-    q0[3][i] = 0.0;
+    q0[1][i] = -(y - center[1]);
+    q0[2][i] =  (x - center[0]);
+    q0[3][i] = 0;
     q0[4][i] = r <= rc ? (1.-r/rc) : 0.;
-
-    // Homogeneous Dirichlet Boundary Conditions for Momentum
-    if ((!periodic[0] && (fabs(x - 0.0) < tol || fabs(x - lx) < tol))
-        || (!periodic[1] && (fabs(y - 0.0) < tol || fabs(y - ly) < tol))
-        || (!periodic[2] && (fabs(z - 0.0) < tol || fabs(z - lz) < tol))) {
-      q0[1][i] = 0.0;
-      q0[2][i] = 0.0;
-      q0[3][i] = 0.0;
-    }
 
     // Coordinates
     coords[0][i] = x;
