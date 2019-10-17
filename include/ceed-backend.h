@@ -84,18 +84,6 @@ CEED_EXTERN int CeedVectorSetData(CeedVector vec, void **data);
 
 CEED_EXTERN int CeedElemRestrictionGetCeed(CeedElemRestriction rstr,
     Ceed *ceed);
-CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
-    CeedInt *numelem);
-CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
-    CeedInt *elemsize);
-CEED_EXTERN int CeedElemRestrictionGetNumNodes(CeedElemRestriction rstr,
-    CeedInt *numnodes);
-CEED_EXTERN int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
-    CeedInt *numcomp);
-CEED_EXTERN int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
-    CeedInt *numblk);
-CEED_EXTERN int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
-    CeedInt *blksize);
 CEED_EXTERN int CeedElemRestrictionGetData(CeedElemRestriction rstr,
     void **data);
 CEED_EXTERN int CeedElemRestrictionSetData(CeedElemRestriction rstr,
