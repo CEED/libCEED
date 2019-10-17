@@ -100,7 +100,7 @@
 
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
-     &//'t500-operator.h:setup'//char(0),qf_setup,err)
+     &//'t500-operator.h:setup'//char(0),qf_setup,err) eval modes
       call ceedqfunctionaddinput(qf_setup,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setup,'dx',1,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setup,'rho',1,ceed_eval_none,err)
