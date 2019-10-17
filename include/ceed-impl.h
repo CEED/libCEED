@@ -43,6 +43,7 @@ typedef struct {
 } objdelegate;
 
 struct Ceed_private {
+  const char *resource;
   Ceed delegate;
   Ceed parent;
   objdelegate *objdelegates;

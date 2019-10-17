@@ -405,6 +405,13 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Backend specific setup
   ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);
 
+  // Copy resource prefix, if backend setup sucessful
+  size_t len = strlen(backends[matchidx].prefix);
+  char *tmp;
+  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
+  memcpy(tmp, backends[matchidx].prefix, len+1);
+  (*ceed)->resource = tmp;
+
   return 0;
 }
 
@@ -637,6 +644,22 @@ int CeedSetData(Ceed ceed, void* *data) {
 }
 
 /**
+  @brief Get the full resource name for a CEED
+
+  @param ceed            Ceed to get resource name of
+  @param[out] resource   Variable to store resource name
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+
+int CeedGetResource(Ceed ceed, const char **resource) {
+  *resource = (const char *)ceed->resource;
+  return 0;
+}
+
+/**
   @brief Destroy a Ceed context
 
   @param ceed Address of Ceed context to destroy
@@ -664,6 +687,7 @@ int CeedDestroy(Ceed *ceed) {
     ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);
   }
   ierr = CeedFree(&(*ceed)->foffsets); CeedChk(ierr);
+  ierr = CeedFree(&(*ceed)->resource); CeedChk(ierr);
   ierr = CeedFree(ceed); CeedChk(ierr);
   return 0;
 }
