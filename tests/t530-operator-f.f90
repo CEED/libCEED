@@ -110,14 +110,14 @@
 ! -- Setup 
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
-     &//'t530-operator.h:setup'//char(0),qf_setup,err)
+     &//'t510-operator.h:setup'//char(0),qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setup,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setup,'rho',1,ceed_eval_none,err)
 ! -- Mass
       call ceedqfunctioncreateinterior(ceed,1,mass,&
      &SOURCE_DIR&
-     &//'t530-operator.h:mass'//char(0),qf_mass,err)
+     &//'t510-operator.h:mass'//char(0),qf_mass,err)
       call ceedqfunctionaddinput(qf_mass,'rho',1,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_mass,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_mass,'v',1,ceed_eval_interp,err)

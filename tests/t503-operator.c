@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "t503-operator.h"
+#include "t500-operator.h"
 
 int main(int argc, char **argv) {
   Ceed ceed;

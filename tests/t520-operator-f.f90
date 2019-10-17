@@ -206,14 +206,14 @@
 ! -- QFunctions
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
-     &//'t520-operator.h:setup'//char(0),qf_setuphex,err)
+     &//'t510-operator.h:setup'//char(0),qf_setuphex,err)
       call ceedqfunctionaddinput(qf_setuphex,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setuphex,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setuphex,'rho',1,ceed_eval_none,err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,&
      &SOURCE_DIR&
-     &//'t520-operator.h:mass'//char(0),qf_masshex,err)
+     &//'t510-operator.h:mass'//char(0),qf_masshex,err)
       call ceedqfunctionaddinput(qf_masshex,'rho',1,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_masshex,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_masshex,'v',1,ceed_eval_interp,err)
