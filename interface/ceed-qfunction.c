@@ -216,10 +216,11 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedQFunction *qf) {
   @param f          CeedQFunctionField
   @param fieldname  Name of QFunction field
   @param size       Size of QFunction field, ncomp * (dim for CEED_EVAL_GRAD or
-                      1 for CEED_EVAL_NONE and CEED_EVAL_INTERP)
+                      1 for CEED_EVAL_NONE, CEED_EVAL_INTERP, and CEED_EVAL_WEIGHT)
   @param emode      \ref CEED_EVAL_NONE to use values directly,
                       \ref CEED_EVAL_INTERP to use interpolated values,
-                      \ref CEED_EVAL_GRAD to use gradients.
+                      \ref CEED_EVAL_GRAD to use gradients,
+                      \ref CEED_EVAL_WEIGHT to use quadrature weights.
 
   @return An error code: 0 - success, otherwise - failure
 
