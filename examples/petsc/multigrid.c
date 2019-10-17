@@ -347,7 +347,7 @@ int main(int argc, char **argv) {
 
   // Set up Mat
   for (int i=0; i<numlevels; i++) {
-    // Diff Operator
+    // User Operator
     userO[i]->comm = comm;
     userO[i]->dm = dm[i];
     userO[i]->Xloc = Xloc[i];
