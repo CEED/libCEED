@@ -41,7 +41,7 @@
                       ordered list of the indices (into the input CeedVector)
                       for the unknowns corresponding to element i, where
                       0 <= i < @a nelements. All indices must be in the range
-                      [0, @a nnodes].
+                      [0, @a nnodes - 1].
   @param[out] rstr  Address of the variable where the newly created
                       CeedElemRestriction will be stored
 
