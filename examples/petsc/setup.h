@@ -34,7 +34,7 @@
 // PETSc Operator Structs
 // -----------------------------------------------------------------------------
 
-// Data for PETSc Diff operator
+// Data for PETSc Matshell
 typedef struct UserO_ *UserO;
 struct UserO_ {
   MPI_Comm comm;
@@ -45,7 +45,7 @@ struct UserO_ {
   Ceed ceed;
 };
 
-// Data for PETSc Interp/Restrict operators
+// Data for PETSc Interp/Restrict Matshells
 typedef struct UserIR_ *UserIR;
 struct UserIR_ {
   MPI_Comm comm;
@@ -486,14 +486,15 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   CeedQFunction qf_setupgeo, qf_apply;
   CeedOperator op_setupgeo, op_apply;
   CeedVector xcoord, qdata, xceed, yceed;
-  CeedInt P, Q, cStart, cEnd, nelem, qdatasize = bpOptions[bpChoice].qdatasize;
+  CeedInt P, Q, cStart, cEnd, nelem, qdatasize = bpOptions[bpChoice].qdatasize,
+          ncompx = dim;
 
   // CEED bases
   P = degree + 1;
   Q = P + qextra;
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompu, P, Q,
                                   bpOptions[bpChoice].qmode, &basisu);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, Q,
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, Q,
                                   bpOptions[bpChoice].qmode, &basisx);
 
   // CEED restrictions
@@ -501,7 +502,7 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
-  CreateRestrictionPlex(ceed, 2, dim, &Erestrictx, dmcoord);
+  CreateRestrictionPlex(ceed, 2, ncompx, &Erestrictx, dmcoord);
   CreateRestrictionPlex(ceed, P, ncompu, &Erestrictu, dm);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
@@ -511,7 +512,7 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
                                     &Erestrictui); CHKERRQ(ierr);
   CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
                                     qdatasize, &Erestrictqdi); CHKERRQ(ierr);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, dim,
+  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompx,
                                     &Erestrictxi); CHKERRQ(ierr);
 
   // Element coordinates
@@ -535,7 +536,7 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   // quadrature data) and set its context data
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setupgeo,
                               bpOptions[bpChoice].setupgeofname, &qf_setupgeo);
-  CeedQFunctionAddInput(qf_setupgeo, "dx", dim*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setupgeo, "dx", ncompx*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setupgeo, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setupgeo, "qdata", qdatasize, CEED_EVAL_NONE);
 
@@ -559,7 +560,7 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   CeedOperatorSetField(op_setupgeo, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  // Create the diff operator
+  // Create the operator
   CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
   CeedOperatorSetField(op_apply, "u", Erestrictu, CEED_TRANSPOSE,
                        basisu, CEED_VECTOR_ACTIVE);
@@ -581,7 +582,7 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
     CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setuprhs,
                                 bpOptions[bpChoice].setuprhsfname, &qf_setuprhs);
     CeedQFunctionAddInput(qf_setuprhs, "x", dim, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_setuprhs, "dx", dim*dim, CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(qf_setuprhs, "dx", ncompx*dim, CEED_EVAL_GRAD);
     CeedQFunctionAddInput(qf_setuprhs, "weight", 1, CEED_EVAL_WEIGHT);
     CeedQFunctionAddOutput(qf_setuprhs, "true_soln", ncompu, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qf_setuprhs, "rhs", ncompu, CEED_EVAL_INTERP);

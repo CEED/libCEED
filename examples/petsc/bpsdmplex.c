@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
   char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
        filename[PETSC_MAX_PATH_LEN];
   double my_rt_start, my_rt, rt_min, rt_max;
-  PetscInt degree = 3, qextra, lsize, gsize, dim =3, melem[3] = {3, 3, 3},
+  PetscInt degree = 3, qextra, lsize, gsize, dim = 3, melem[3] = {3, 3, 3},
            ncompu = 1, xlsize;
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
