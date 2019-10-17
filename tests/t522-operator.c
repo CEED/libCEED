@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include "t320-basis.h"
-
 #include "t522-operator.h"
 
 /* The mesh comprises of two rows of 3 quadralaterals followed by one row
