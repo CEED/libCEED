@@ -28,8 +28,10 @@ static int CeedQFunctionInit_Poisson1DApply(Ceed ceed, const char *requested,
   // Check QFunction name
   const char *name = "Poisson1DApply";
   if (strcmp(name, requested))
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
                      name, requested);
+  // LCOV_EXCL_STOP
 
   // Add QFunction fields
   const CeedInt dim = 1;

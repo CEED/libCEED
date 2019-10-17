@@ -20,6 +20,9 @@ flags:
   interface:
     paths:
       - interface/
+  gallery:
+    paths:
+      - gallery/
   backends:
     paths:
       - backends/
