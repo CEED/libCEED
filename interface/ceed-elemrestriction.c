@@ -347,7 +347,9 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
                    indicates the component is the innermost index in
                    ordering of the l-vector
                    tmode=CEED_NOTRANSPOSE)
-  @param v       Output vector (of size @a nelem * @a elemsize when
+  @param u       Input vector (of size @a nnodes * @a ncomp when
+                   tmode=CEED_NOTRANSPOSE)
+  @param v       Output vector (of size @a blksize * @a elemsize when
                    tmode=CEED_NOTRANSPOSE)
   @param request Request or CEED_REQUEST_IMMEDIATE
 

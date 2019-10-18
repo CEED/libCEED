@@ -598,6 +598,7 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
   @brief Return symmetric Schur decomposition of the symmetric matrix mat via
            symmetric QR factorization
 
+  @param ceed         A Ceed object for error handling
   @param[in,out] mat  Row-major matrix to be factorized in place
   @param[out] lambda  Vector of length m of eigenvalues
   @param n            Number of rows/columns
@@ -772,6 +773,7 @@ static int CeedMatrixMultiply(Ceed ceed, CeedScalar *matA, CeedScalar *matB,
            and vector Lambda such that X^T A X = Lambda and X^T B X = I. This
            is equivalent to the LAPACK routine 'sygv' with TYPE = 1.
 
+  @param ceed         A Ceed object for error handling
   @param[in] matA     Row-major matrix to be factorized with eigenvalues
   @param[in] matB     Row-major matrix to be factorized to identity
   @param[out] x       Row-major orthogonal matrix
