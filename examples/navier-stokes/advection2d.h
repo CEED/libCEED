@@ -124,6 +124,9 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
              (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
+  const CeedScalar *context = (const CeedScalar *)ctx;
+  const CeedScalar CtauS = context[0];
+  const CeedScalar strong_form = context[1];
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -170,11 +173,34 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q,
     }
 
     // -- Total Energy
-    // ---- Version 1: dv \cdot (E u)
+    // Evaluate the strong form using div(E u) = u . grad(E) + E div(u)
+    // or in index notation: (u_j E)_{,j} = u_j E_j + E u_{j,j}
+    CeedScalar div_u = 0, u_dot_grad_E = 0;
+    for (int j=0; j<2; j++) {
+      CeedScalar dEdx_j = 0;
+      for (int k=0; k<2; k++) {
+        div_u += du[k][j] * dXdx[k][j]; // u_{j,j} = u_{j,K} X_{K,j}
+        dEdx_j += dE[k] * dXdx[k][j];
+      }
+      u_dot_grad_E += u[j] * dEdx_j;
+    }
+    CeedScalar strongConv = E*div_u + u_dot_grad_E;
+
+    // Weak Galerkin convection term: dv \cdot (E u)
     for (int j=0; j<2; j++)
-      dv[j][4][i] = wJ * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1]);
+      dv[j][4][i] = (1 - strong_form) * wJ * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1]);
     v[4][i] = 0;
 
+    // Strong Galerkin convection term: - v div(E u)
+    v[4][i] = -strong_form * wJ * strongConv;
+
+    // Stabilization requires a measure of element transit time in the velocity
+    // field u.
+    CeedScalar uX[2];
+    for (int j=0; j<2; j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1];
+    const CeedScalar TauS = CtauS / sqrt(uX[0]*uX[0] + uX[1]*uX[1]);
+    for (int j=0; j<2; j++)
+      dv[j][4][i] -= wJ * TauS * strongConv * uX[j];
   } // End Quadrature Point Loop
 
   return 0;

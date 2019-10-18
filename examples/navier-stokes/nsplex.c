@@ -444,6 +444,8 @@ int main(int argc, char **argv) {
   CeedScalar mu         = 75.;      // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
   CeedScalar k          = 0.02638;  // W/(m K)
+  CeedScalar CtauS      = 0.;       // dimensionless
+  CeedScalar strong_form = 0.;      // [0,1]
   PetscScalar lx        = 8000.;    // m
   PetscScalar ly        = 8000.;    // m
   PetscScalar lz        = 4000.;    // m
@@ -510,6 +512,10 @@ int main(int argc, char **argv) {
                             NULL, mu, &mu, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-k", "Thermal conductivity",
                             NULL, k, &k, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-CtauS", "Scale coefficient for tau (nondimensional)",
+                            NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-strong_form", "Strong (1) or weak/integrated by parts (0) advection residual",
+                            NULL, strong_form, &strong_form, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                             NULL, lx, &lx, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
@@ -570,9 +576,10 @@ int main(int argc, char **argv) {
 
   const CeedInt dim = problem->dim, ncompx = problem->dim, qdatasize = problem->qdatasize;
   // Set up the libCEED context
-  CeedScalar ctxSetup[15] = {theta0, thetaC, P0, N, cv, cp, Rd, g, rc,
-                             lx, ly, lz, periodicity[0], periodicity[1], periodicity[2]
-                            };
+  CeedScalar ctxSetup[] = {theta0, thetaC, P0, N, cv, cp, Rd, g, rc,
+                           lx, ly, lz,
+                           periodicity[0], periodicity[1], periodicity[2],
+                          };
 
   ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, (PetscReal[]){lx, ly, lz}, periodicity, PETSC_TRUE, &dm);CHKERRQ(ierr);
   if (1) {
@@ -730,7 +737,15 @@ int main(int argc, char **argv) {
 
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
   CeedScalar ctxNS[6] = {lambda, mu, k, cv, cp, g};
-  CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
+  CeedScalar ctxAdvection[2] = {CtauS, strong_form};
+  switch (problemChoice) {
+  case NS_DENSITY_CURRENT:
+    CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
+    break;
+  case NS_ADVECTION:
+  case NS_ADVECTION2D:
+    CeedQFunctionSetContext(qf, &ctxAdvection, sizeof ctxAdvection);
+  }
 
   // Set up PETSc context
   // Set up units structure
