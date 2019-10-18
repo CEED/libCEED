@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
   CeedGetResource(ceed, &usedresource);
   if (!test_mode) {
     ierr = PetscPrintf(comm,
-                       "\n-- CEED -- libCEED + PETSc Surface Area problem --\n"
+                       "\n-- libCEED + PETSc Surface Area problem --\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
                        "  Mesh:\n"
