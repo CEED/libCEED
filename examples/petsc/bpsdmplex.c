@@ -157,9 +157,14 @@ int main(int argc, char **argv) {
                               (void(*)(void))MatMult_Ceed);
   CHKERRQ(ierr);
 
+  // Set up libCEED
+  CeedInit(ceedresource, &ceed);
+
   // Print summary
   if (!test_mode) {
     PetscInt P = degree + 1, Q = P + qextra;
+    const char *usedresource;
+    CeedGetResource(ceed, &usedresource);
     ierr = PetscPrintf(comm,
                        "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
                        "  libCEED:\n"
@@ -169,12 +174,9 @@ int main(int argc, char **argv) {
                        "    Number of 1D Quadrature Points (q) : %d\n"
                        "    Global nodes                       : %D\n"
                        "    Owned nodes                        : %D\n",
-                       bpChoice+1, ceedresource, P, Q, gsize/ncompu,
+                       bpChoice+1, usedresource, P, Q, gsize/ncompu,
                        lsize/ncompu); CHKERRQ(ierr);
   }
-
-  // Set up libCEED
-  CeedInit(ceedresource, &ceed);
 
   // Create RHS vector
   ierr = VecDuplicate(Xloc, &rhsloc); CHKERRQ(ierr);

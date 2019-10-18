@@ -161,8 +161,8 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
   @ref Utility
 **/
 int CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
-                          CeedInt nblk, CeedInt nelem,
-                          CeedInt blksize, CeedInt elemsize) {
+                          CeedInt nblk, CeedInt nelem, CeedInt blksize,
+                          CeedInt elemsize) {
   for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
     for (int j = 0; j < blksize; j++)
       for (int k = 0; k < elemsize; k++)
@@ -305,8 +305,8 @@ int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *lvec,
   @ref Advanced
 **/
 int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
-                             CeedTransposeMode lmode,
-                             CeedVector u, CeedVector v, CeedRequest *request) {
+                             CeedTransposeMode lmode, CeedVector u,
+                             CeedVector v, CeedRequest *request) {
   CeedInt m,n;
   int ierr;
 
@@ -357,9 +357,8 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
 **/
 int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
                                   CeedTransposeMode tmode,
-                                  CeedTransposeMode lmode,
-                                  CeedVector u, CeedVector v,
-                                  CeedRequest *request) {
+                                  CeedTransposeMode lmode, CeedVector u,
+                                  CeedVector v, CeedRequest *request) {
   CeedInt m,n;
   int ierr;
 
@@ -544,7 +543,7 @@ int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
 
   @ref Advanced
 **/
-int CeedElemRestrictionGetData(CeedElemRestriction rstr, void* *data) {
+int CeedElemRestrictionGetData(CeedElemRestriction rstr, void **data) {
   *data = rstr->data;
   return 0;
 }
@@ -559,7 +558,7 @@ int CeedElemRestrictionGetData(CeedElemRestriction rstr, void* *data) {
 
   @ref Advanced
 **/
-int CeedElemRestrictionSetData(CeedElemRestriction rstr, void* *data) {
+int CeedElemRestrictionSetData(CeedElemRestriction rstr, void **data) {
   rstr->data = *data;
   return 0;
 }

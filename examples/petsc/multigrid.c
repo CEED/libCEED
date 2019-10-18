@@ -218,9 +218,14 @@ int main(int argc, char **argv) {
   }
   ierr = VecDuplicate(X[numlevels-1], &rhs); CHKERRQ(ierr);
 
+  // Set up libCEED
+  CeedInit(ceedresource, &ceed);
+
   // Print global grid information
   if (!test_mode) {
     PetscInt P = degree + 1, Q = P + qextra;
+    const char *usedresource;
+    CeedGetResource(ceed, &usedresource);
     ierr = PetscPrintf(comm,
                        "\n-- CEED Benchmark Problem %d -- libCEED + PETSc + PCMG --\n"
                        "  libCEED:\n"
@@ -232,13 +237,10 @@ int main(int argc, char **argv) {
                        "    Owned Nodes                        : %D\n"
                        "  Multigrid:\n"
                        "    Number of Levels                   : %d\n",
-                       bpChoice+1, ceedresource, P, Q,
+                       bpChoice+1, usedresource, P, Q,
                        gsize[numlevels-1]/ncompu, lsize[numlevels-1]/ncompu,
                        numlevels); CHKERRQ(ierr);
   }
-
-  // Set up libCEED
-  CeedInit(ceedresource, &ceed);
 
   // Create RHS vector
   ierr = VecDuplicate(Xloc[numlevels-1], &rhsloc); CHKERRQ(ierr);
