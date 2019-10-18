@@ -477,10 +477,15 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   ierr = VecSetUp(X); CHKERRQ(ierr);
 
+  // Set up libCEED
+  CeedInit(ceedresource, &ceed);
+
   // Print summary
   if (!test_mode) {
     CeedInt gsize;
     ierr = VecGetSize(X, &gsize); CHKERRQ(ierr);
+    const char *usedresource;
+    CeedGetResource(ceed, &usedresource);
     ierr = PetscPrintf(comm,
                        "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
                        "  libCEED:\n"
@@ -492,10 +497,10 @@ int main(int argc, char **argv) {
                        "    Process Decomposition              : %D %D %D\n"
                        "    Local Elements                     : %D = %D %D %D\n"
                        "    Owned nodes                        : %D = %D %D %D\n",
-                       bpChoice+1, ceedresource, P, Q,  gsize/ncompu, p[0],
+                       bpChoice+1, usedresource, P, Q,  gsize/ncompu, p[0],
                        p[1], p[2], localelem, melem[0], melem[1], melem[2],
-                       mnodes[0]*mnodes[1]*mnodes[2], mnodes[0], mnodes[1], mnodes[2]);
-    CHKERRQ(ierr);
+                       mnodes[0]*mnodes[1]*mnodes[2], mnodes[0], mnodes[1],
+                       mnodes[2]); CHKERRQ(ierr);
   }
 
   {
@@ -581,9 +586,6 @@ int main(int argc, char **argv) {
     ierr = ISDestroy(&ltogis0); CHKERRQ(ierr);
     ierr = ISDestroy(&locis); CHKERRQ(ierr);
   }
-
-  // Set up libCEED
-  CeedInit(ceedresource, &ceed);
 
   // CEED bases
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompu, P, Q,

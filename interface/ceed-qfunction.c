@@ -56,8 +56,7 @@ static size_t num_qfunctions;
 
   @ref Basic
 **/
-int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
-                                CeedQFunctionUser f,
+int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedQFunctionUser f,
                                 const char *source, CeedQFunction *qf) {
   int ierr;
   char *source_copy;
@@ -356,7 +355,7 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
   @ref Advanced
 **/
 
-int CeedQFunctionGetSourcePath(CeedQFunction qf, char* *source) {
+int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source) {
   *source = (char *) qf->sourcepath;
   return 0;
 }
@@ -409,7 +408,7 @@ int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize) {
   @ref Advanced
 **/
 
-int CeedQFunctionGetContext(CeedQFunction qf, void* *ctx) {
+int CeedQFunctionGetContext(CeedQFunction qf, void **ctx) {
   *ctx = qf->ctx;
   return 0;
 }
@@ -457,7 +456,7 @@ int CeedQFunctionGetIdentityStatus(CeedQFunction qf, bool *identity) {
   @ref Advanced
 **/
 
-int CeedQFunctionGetInnerContext(CeedQFunction qf, void* *ctx) {
+int CeedQFunctionGetInnerContext(CeedQFunction qf, void **ctx) {
   if (qf->fortranstatus) {
     fContext *fctx = qf->ctx;
     *ctx = fctx->innerctx;
@@ -480,7 +479,7 @@ int CeedQFunctionGetInnerContext(CeedQFunction qf, void* *ctx) {
   @ref Advanced
 **/
 
-int CeedQFunctionGetData(CeedQFunction qf, void* *data) {
+int CeedQFunctionGetData(CeedQFunction qf, void **data) {
   *data = qf->data;
   return 0;
 }
@@ -496,7 +495,7 @@ int CeedQFunctionGetData(CeedQFunction qf, void* *data) {
   @ref Advanced
 **/
 
-int CeedQFunctionSetData(CeedQFunction qf, void* *data) {
+int CeedQFunctionSetData(CeedQFunction qf, void **data) {
   qf->data = *data;
   return 0;
 }
@@ -558,9 +557,8 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
   @ref Advanced
 **/
 
-int CeedQFunctionGetFields(CeedQFunction qf,
-                           CeedQFunctionField* *inputfields,
-                           CeedQFunctionField* *outputfields) {
+int CeedQFunctionGetFields(CeedQFunction qf, CeedQFunctionField **inputfields,
+                           CeedQFunctionField **outputfields) {
   if (inputfields)
     *inputfields = qf->inputfields;
   if (outputfields)
@@ -579,8 +577,7 @@ int CeedQFunctionGetFields(CeedQFunction qf,
   @ref Advanced
 **/
 
-int CeedQFunctionFieldGetName(CeedQFunctionField qffield,
-                              char* *fieldname) {
+int CeedQFunctionFieldGetName(CeedQFunctionField qffield, char **fieldname) {
   *fieldname = (char *)qffield->fieldname;
   return 0;
 }

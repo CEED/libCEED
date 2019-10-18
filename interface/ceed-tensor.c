@@ -124,7 +124,7 @@ int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed) {
 
   @ref Advanced
 **/
-int CeedTensorContractGetData(CeedTensorContract contract, void* *data) {
+int CeedTensorContractGetData(CeedTensorContract contract, void **data) {
   *data = contract->data;
   return 0;
 }
@@ -139,7 +139,7 @@ int CeedTensorContractGetData(CeedTensorContract contract, void* *data) {
 
   @ref Advanced
 **/
-int CeedTensorContractSetData(CeedTensorContract contract, void* *data) {
+int CeedTensorContractSetData(CeedTensorContract contract, void **data) {
   contract->data = *data;
   return 0;
 }

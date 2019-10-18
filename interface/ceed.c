@@ -154,9 +154,8 @@ int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
 
   @ref Developer
 **/
-int CeedErrorExit(Ceed ceed, const char *filename, int lineno,
-                  const char *func, int ecode,
-                  const char *format, va_list args) {
+int CeedErrorExit(Ceed ceed, const char *filename, int lineno, const char *func,
+                  int ecode, const char *format, va_list args) {
   fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
   vfprintf(stderr, format, args);
   fprintf(stderr, "\n");
@@ -195,8 +194,8 @@ int CeedSetErrorHandler(Ceed ceed,
 
   @ref Advanced
 **/
-int CeedRegister(const char *prefix,
-                 int (*init)(const char *, Ceed), unsigned int priority) {
+int CeedRegister(const char *prefix, int (*init)(const char *, Ceed),
+                 unsigned int priority) {
   if (num_backends >= sizeof(backends) / sizeof(backends[0]))
     // LCOV_EXCL_START
     return CeedError(NULL, 1, "Too many backends");
@@ -405,6 +404,13 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Backend specific setup
   ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);
 
+  // Copy resource prefix, if backend setup sucessful
+  size_t len = strlen(backends[matchidx].prefix);
+  char *tmp;
+  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
+  memcpy(tmp, backends[matchidx].prefix, len+1);
+  (*ceed)->resource = tmp;
+
   return 0;
 }
 
@@ -580,8 +586,7 @@ int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type) {
 
   @ref Advanced
 **/
-int CeedSetBackendFunction(Ceed ceed,
-                           const char *type, void *object,
+int CeedSetBackendFunction(Ceed ceed, const char *type, void *object,
                            const char *fname, int (*f)()) {
   char lookupname[CEED_MAX_RESOURCE_LEN+1] = "";
 
@@ -595,7 +600,7 @@ int CeedSetBackendFunction(Ceed ceed,
   for (CeedInt i = 0; ceed->foffsets[i].fname; i++)
     if (!strcmp(ceed->foffsets[i].fname, lookupname)) {
       size_t offset = ceed->foffsets[i].offset;
-      int (**fpointer)(void) = (int (* *)(void))((char *)object + offset);
+      int (**fpointer)(void) = (int (**)(void))((char *)object + offset);
       *fpointer = f;
       return 0;
     }
@@ -616,7 +621,7 @@ int CeedSetBackendFunction(Ceed ceed,
 
   @ref Advanced
 **/
-int CeedGetData(Ceed ceed, void* *data) {
+int CeedGetData(Ceed ceed, void **data) {
   *data = ceed->data;
   return 0;
 }
@@ -631,8 +636,24 @@ int CeedGetData(Ceed ceed, void* *data) {
 
   @ref Advanced
 **/
-int CeedSetData(Ceed ceed, void* *data) {
+int CeedSetData(Ceed ceed, void **data) {
   ceed->data = *data;
+  return 0;
+}
+
+/**
+  @brief Get the full resource name for a CEED
+
+  @param ceed            Ceed to get resource name of
+  @param[out] resource   Variable to store resource name
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+
+int CeedGetResource(Ceed ceed, const char **resource) {
+  *resource = (const char *)ceed->resource;
   return 0;
 }
 
@@ -664,6 +685,7 @@ int CeedDestroy(Ceed *ceed) {
     ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);
   }
   ierr = CeedFree(&(*ceed)->foffsets); CeedChk(ierr);
+  ierr = CeedFree(&(*ceed)->resource); CeedChk(ierr);
   ierr = CeedFree(ceed); CeedChk(ierr);
   return 0;
 }
