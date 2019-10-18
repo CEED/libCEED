@@ -35,7 +35,7 @@
 //
 //     mpiexec -n 4 areadmplex -petscspace_degree 3
 //
-//TESTARGS -ceed {ceed_resource} -petscspace_degree 3
+//TESTARGS -ceed {ceed_resource} -test -petscspace_degree 3
 
 /// @file
 /// libCEED example using the mass operator to compute surface area using PETSc with DMPlex
@@ -106,7 +106,8 @@ int main(int argc, char **argv) {
            ncompu  = 1, // dimension of field to which apply mass operator
            topodim = 2, // topological dimension of manifold
            degree  = 3; // default degree for finite element bases
-  PetscBool read_mesh = PETSC_FALSE;
+  PetscBool read_mesh = PETSC_FALSE,
+            test_mode = PETSC_FALSE;
   PetscSpace sp;
   PetscFE fe;
   Vec X, Xloc, V, Vloc;
@@ -126,6 +127,9 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-test",
+                          "Testing mode (do not print unless error is large)",
+                          NULL, test_mode, &test_mode, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-mesh", "Read mesh from file", NULL,
                             filename, filename, sizeof(filename), &read_mesh);
   CHKERRQ(ierr);
@@ -193,16 +197,18 @@ int main(int argc, char **argv) {
   Q = P + qextra;
   const char *usedresource;
   CeedGetResource(ceed, &usedresource);
-  ierr = PetscPrintf(comm,
-                     "\n-- CEED -- libCEED + PETSc Surface Area problem --\n"
-                     "  libCEED:\n"
-                     "    libCEED Backend                    : %s\n"
-                     "  Mesh:\n"
-                     "    Number of 1D Basis Nodes (p)       : %d\n"
-                     "    Number of 1D Quadrature Points (q) : %d\n"
-                     "    Global nodes                       : %D\n",
-                     usedresource, P, Q,  gsize/ncompu);
-  CHKERRQ(ierr);
+  if (!test_mode) {
+    ierr = PetscPrintf(comm,
+                       "\n-- CEED -- libCEED + PETSc Surface Area problem --\n"
+                       "  libCEED:\n"
+                       "    libCEED Backend                    : %s\n"
+                       "  Mesh:\n"
+                       "    Number of 1D Basis Nodes (p)       : %d\n"
+                       "    Number of 1D Quadrature Points (q) : %d\n"
+                       "    Global nodes                       : %D\n",
+                       usedresource, P, Q,  gsize/ncompu);
+    CHKERRQ(ierr);
+  }
 
   // Setup libCEED's objects
   // Create CEED operators and API objects they need
@@ -300,9 +306,11 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(vceed, CEED_MEM_HOST, CEED_USE_POINTER, v);
 
   // Compute the mesh volume using the mass operator: vol = 1^T \cdot M \cdot 1
-  ierr = PetscPrintf(comm,
-                     "Computing the mesh volume using the formula: vol = 1^T M 1\n");
-  CHKERRQ(ierr);
+  if (!test_mode) {
+    ierr = PetscPrintf(comm,
+                       "Computing the mesh volume using the formula: vol = 1^T M 1\n");
+    CHKERRQ(ierr);
+  }
 
   // Initialize u and v with ones
   CeedVectorSetValue(uceed, 1.0);
@@ -324,12 +332,14 @@ int main(int argc, char **argv) {
 
   // Compute the exact surface area and print the result
   CeedScalar exact_surfarea = 6 * (2*l) * (2*l);
-  ierr = PetscPrintf(comm, "Exact mesh surface area    : % .14g\n",
-                     exact_surfarea); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Computed mesh surface area : % .14g\n", area);
-  CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Area error                 : % .14g\n",
-                     fabs(area - exact_surfarea)); CHKERRQ(ierr);
+  if (!test_mode) {
+    ierr = PetscPrintf(comm, "Exact mesh surface area    : % .14g\n",
+                       exact_surfarea); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Computed mesh surface area : % .14g\n", area);
+    CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Area error                 : % .14g\n",
+                       fabs(area - exact_surfarea)); CHKERRQ(ierr);
+  }
 
   // PETSc cleanup
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
