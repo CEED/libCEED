@@ -46,11 +46,11 @@ const char help[] = "Solve CEED BPs using PETSc\n";
 #include <string.h>
 #include <petscksp.h>
 #include <ceed.h>
-#include "qfunctions/common.h"
-#include "qfunctions/bp1.h"
-#include "qfunctions/bp2.h"
-#include "qfunctions/bp3.h"
-#include "qfunctions/bp4.h"
+#include "qfunctions/bps/common.h"
+#include "qfunctions/bps/bp1.h"
+#include "qfunctions/bps/bp2.h"
+#include "qfunctions/bps/bp3.h"
+#include "qfunctions/bps/bp4.h"
 
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   for (PetscInt d=0,sizeleft=size; d<3; d++) {

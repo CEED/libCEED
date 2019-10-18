@@ -1,5 +1,8 @@
 *.vtk
+*.vtu
 bps
 petsc-bps
 bpsdmplex
 petsc-bpsdmplex
+areadmplex
+petsc-areadmplex
