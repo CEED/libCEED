@@ -47,8 +47,16 @@ CEED_INTERN int CeedFree(void *p);
 #define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
 #define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
+/// Handle for object describing CeedQFunction fields
+/// @ingroup CeedQFunction
+typedef struct CeedQFunctionField_private *CeedQFunctionField;
+/// Handle for object describing CeedOperator fields
+/// @ingroup CeedOperator
+typedef struct CeedOperatorField_private *CeedOperatorField;
+
 CEED_EXTERN int CeedRegister(const char *prefix,
-    int (*init)(const char *, Ceed), unsigned int priority);
+                             int (*init)(const char *, Ceed),
+                             unsigned int priority);
 
 CEED_EXTERN int CeedGetParent(Ceed ceed, Ceed *parent);
 CEED_EXTERN int CeedGetDelegate(Ceed ceed, Ceed *delegate);

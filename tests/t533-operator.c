@@ -4,7 +4,7 @@
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
-#include "t533-operator.h"
+#include "t510-operator.h"
 
 int main(int argc, char **argv) {
   Ceed ceed;

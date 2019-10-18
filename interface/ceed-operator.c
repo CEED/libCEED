@@ -168,13 +168,14 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
 
   CeedInt numelements;
   ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
-  if (op->numelements && op->numelements != numelements)
+  if (op->hasrestriction && op->numelements != numelements)
     // LCOV_EXCL_START
     return CeedError(op->ceed, 1,
                      "ElemRestriction with %d elements incompatible with prior "
                      "%d elements", numelements, op->numelements);
   // LCOV_EXCL_STOP
   op->numelements = numelements;
+  op->hasrestriction = true; // Restriction set, but numelements may be 0
 
   if (b != CEED_BASIS_COLLOCATED) {
     CeedInt numqpoints;
@@ -276,7 +277,8 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop,
   @ref Basic
 **/
 int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
-    CeedElemRestriction *rstr, CeedRequest *request) {
+                                        CeedElemRestriction *rstr,
+                                        CeedRequest *request) {
   int ierr;
   Ceed ceed = op->ceed;
   CeedQFunction qf = op->qf;
@@ -289,12 +291,12 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
     if (op->nfields == 0)
       // LCOV_EXCL_START
       return CeedError(ceed, 1, "No operator fields set");
-      // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
     if (op->nfields < qf->numinputfields + qf->numoutputfields)
       // LCOV_EXCL_START
       return CeedError( ceed, 1, "Not all operator fields set");
     // LCOV_EXCL_STOP
-    if (op->numelements == 0)
+    if (!op->hasrestriction)
       // LCOV_EXCL_START
       return CeedError(ceed, 1, "At least one restriction required");
     // LCOV_EXCL_STOP
@@ -322,8 +324,8 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
 
   @ref Basic
 **/
-int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
-    CeedVector *assembled, CeedRequest *request) {
+int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
+                                       CeedRequest *request) {
   int ierr;
   Ceed ceed = op->ceed;
   CeedQFunction qf = op->qf;
@@ -331,7 +333,7 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
   if (op->composite) {
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Cannot assemble QFunction for composite operator");
-  // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
   } else {
     if (op->nfields == 0)
       // LCOV_EXCL_START
@@ -341,7 +343,7 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
       // LCOV_EXCL_START
       return CeedError( ceed, 1, "Not all operator fields set");
     // LCOV_EXCL_STOP
-    if (op->numelements == 0)
+    if (!op->hasrestriction)
       // LCOV_EXCL_START
       return CeedError(ceed, 1, "At least one restriction required");
     // LCOV_EXCL_STOP
@@ -365,10 +367,10 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
   ierr = CeedElemRestrictionDestroy(&rstr); CeedChk(ierr);
 
   // Determine active input basis
-  CeedInt numemodein = 0, ncomp, dim;
+  CeedInt numemodein = 0, ncomp, dim = 1;
   CeedEvalMode *emodein = NULL;
-  CeedBasis basisin;
-  CeedElemRestriction rstrin;
+  CeedBasis basisin = NULL;
+  CeedElemRestriction rstrin = NULL;
   for (CeedInt i=0; i<qf->numinputfields; i++)
     if (op->inputfields[i]->vec == CEED_VECTOR_ACTIVE) {
       ierr = CeedOperatorFieldGetBasis(op->inputfields[i], &basisin);
@@ -403,9 +405,9 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
   // Determine active output basis
   CeedInt numemodeout = 0;
   CeedEvalMode *emodeout = NULL;
-  CeedBasis basisout;
-  CeedElemRestriction rstrout;
-  CeedTransposeMode lmodeout;
+  CeedBasis basisout = NULL;
+  CeedElemRestriction rstrout = NULL;
+  CeedTransposeMode lmodeout = CEED_NOTRANSPOSE;
   for (CeedInt i=0; i<qf->numoutputfields; i++)
     if (op->outputfields[i]->vec == CEED_VECTOR_ACTIVE) {
       ierr = CeedOperatorFieldGetBasis(op->outputfields[i], &basisout);
@@ -478,7 +480,7 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
               CeedScalar db = 0.0;
               for (CeedInt cin=0; cin<ncomp; cin++)
                 db += assembledqfarray[((((e*numemodein+ein)*ncomp+cin)*
-                                       numemodeout+eout)*ncomp+cout)*nqpts+q]*b;
+                                         numemodeout+eout)*ncomp+cout)*nqpts+q]*b;
               elemdiagarray[(e*ncomp+cout)*nnodes+n] += bt * db;
             }
         }
@@ -541,7 +543,7 @@ int CeedOperatorApply(CeedOperator op, CeedVector in,
       // LCOV_EXCL_START
       return CeedError(ceed, 1, "Not all operator fields set");
     // LCOV_EXCL_STOP
-    if (op->numelements == 0)
+    if (!op->hasrestriction)
       // LCOV_EXCL_START
       return CeedError(ceed, 1,"At least one restriction required");
     // LCOV_EXCL_STOP
@@ -550,7 +552,9 @@ int CeedOperatorApply(CeedOperator op, CeedVector in,
       return CeedError(ceed, 1,"At least one non-collocated basis required");
     // LCOV_EXCL_STOP
   }
-  ierr = op->Apply(op, in, out, request); CeedChk(ierr);
+  if (op->numelements || op->composite) {
+    ierr = op->Apply(op, in, out, request); CeedChk(ierr);
+  }
   return 0;
 }
 

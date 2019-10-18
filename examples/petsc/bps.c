@@ -35,7 +35,7 @@
 //     bps -problem bp5 -ceed /omp/occa
 //     bps -problem bp6 -ceed /ocl/occa
 //
-//TESTARGS -ceed {ceed_resource} -test -problem bp2
+//TESTARGS -ceed {ceed_resource} -test -problem bp2 -degree 5 -qextra 5
 
 /// @file
 /// CEED BPs example using PETSc
@@ -46,11 +46,11 @@ const char help[] = "Solve CEED BPs using PETSc\n";
 #include <string.h>
 #include <petscksp.h>
 #include <ceed.h>
-#include "common.h"
-#include "bp1.h"
-#include "bp2.h"
-#include "bp3.h"
-#include "bp4.h"
+#include "qfunctions/common.h"
+#include "qfunctions/bp1.h"
+#include "qfunctions/bp2.h"
+#include "qfunctions/bp3.h"
+#include "qfunctions/bp4.h"
 
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   for (PetscInt d=0,sizeleft=size; d<3; d++) {
@@ -98,11 +98,11 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
   // Get indicies
   for (int d=0; d<3; d++) mnodes[d] = melem[d]*(P-1) + 1;
   idxp = idx = malloc(nelem*P*P*P*sizeof idx[0]);
-  for (CeedInt i=0; i<melem[0]; i++) {
-    for (CeedInt j=0; j<melem[1]; j++) {
-      for (CeedInt k=0; k<melem[2]; k++,idxp += P*P*P) {
-        for (CeedInt ii=0; ii<P; ii++) {
-          for (CeedInt jj=0; jj<P; jj++) {
+  for (CeedInt i=0; i<melem[0]; i++)
+    for (CeedInt j=0; j<melem[1]; j++)
+      for (CeedInt k=0; k<melem[2]; k++,idxp += P*P*P)
+        for (CeedInt ii=0; ii<P; ii++)
+          for (CeedInt jj=0; jj<P; jj++)
             for (CeedInt kk=0; kk<P; kk++) {
               if (0) { // This is the C-style (i,j,k) ordering that I prefer
                 idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mnodes[1]
@@ -114,16 +114,11 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
                                         + (k*(P-1)+kk));
               }
             }
-          }
-        }
-      }
-    }
-  }
 
   // Setup CEED restriction
   CeedElemRestrictionCreate(ceed, nelem, P*P*P, mnodes[0]*mnodes[1]*mnodes[2],
-                            ncomp,
-                            CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
+                            ncomp, CEED_MEM_HOST, CEED_OWN_POINTER, idx,
+                            Erestrict);
 
   PetscFunctionReturn(0);
 }
@@ -154,8 +149,8 @@ static const char *const bpTypes[] = {"bp1","bp2","bp3","bp4","bp5","bp6",
 // BP specific data
 typedef struct {
   CeedInt ncompu, qdatasize, qextra;
-  CeedQFunctionUser setup, apply, error;
-  const char *setupfname, *applyfname, *errorfname;
+  CeedQFunctionUser setupgeo, setuprhs, apply, error;
+  const char *setupgeofname, *setuprhsfname, *applyfname, *errorfname;
   CeedEvalMode inmode, outmode;
   CeedQuadMode qmode;
 } bpData;
@@ -165,10 +160,12 @@ bpData bpOptions[6] = {
     .ncompu = 1,
     .qdatasize = 1,
     .qextra = 1,
-    .setup = SetupMass,
+    .setupgeo = SetupMassGeo,
+    .setuprhs = SetupMassRhs,
     .apply = Mass,
     .error = Error,
-    .setupfname = SetupMass_loc,
+    .setupgeofname = SetupMassGeo_loc,
+    .setuprhsfname = SetupMassRhs_loc,
     .applyfname = Mass_loc,
     .errorfname = Error_loc,
     .inmode = CEED_EVAL_INTERP,
@@ -179,10 +176,12 @@ bpData bpOptions[6] = {
     .ncompu = 3,
     .qdatasize = 1,
     .qextra = 1,
-    .setup = SetupMass3,
+    .setupgeo = SetupMassGeo,
+    .setuprhs = SetupMassRhs3,
     .apply = Mass3,
     .error = Error3,
-    .setupfname = SetupMass3_loc,
+    .setupgeofname = SetupMassGeo_loc,
+    .setuprhsfname = SetupMassRhs3_loc,
     .applyfname = Mass3_loc,
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_INTERP,
@@ -193,10 +192,12 @@ bpData bpOptions[6] = {
     .ncompu = 1,
     .qdatasize = 6,
     .qextra = 1,
-    .setup = SetupDiff,
+    .setupgeo = SetupDiffGeo,
+    .setuprhs = SetupDiffRhs,
     .apply = Diff,
     .error = Error,
-    .setupfname = SetupDiff_loc,
+    .setupgeofname = SetupDiffGeo_loc,
+    .setuprhsfname = SetupDiffRhs_loc,
     .applyfname = Diff_loc,
     .errorfname = Error_loc,
     .inmode = CEED_EVAL_GRAD,
@@ -207,11 +208,13 @@ bpData bpOptions[6] = {
     .ncompu = 3,
     .qdatasize = 6,
     .qextra = 1,
-    .setup = SetupDiff3,
+    .setupgeo = SetupDiffGeo,
+    .setuprhs = SetupDiffRhs3,
     .apply = Diff3,
     .error = Error3,
-    .setupfname = SetupDiff3_loc,
-    .applyfname = Diff3_loc,
+    .setupgeofname = SetupDiffGeo_loc,
+    .setuprhsfname = SetupDiffRhs3_loc,
+    .applyfname = Diff_loc,
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
@@ -221,10 +224,12 @@ bpData bpOptions[6] = {
     .ncompu = 1,
     .qdatasize = 6,
     .qextra = 0,
-    .setup = SetupDiff,
+    .setupgeo = SetupDiffGeo,
+    .setuprhs = SetupDiffRhs,
     .apply = Diff,
     .error = Error,
-    .setupfname = SetupDiff_loc,
+    .setupgeofname = SetupDiffGeo_loc,
+    .setuprhsfname = SetupDiffRhs_loc,
     .applyfname = Diff_loc,
     .errorfname = Error_loc,
     .inmode = CEED_EVAL_GRAD,
@@ -235,11 +240,13 @@ bpData bpOptions[6] = {
     .ncompu = 3,
     .qdatasize = 6,
     .qextra = 0,
-    .setup = SetupDiff3,
+    .setupgeo = SetupDiffGeo,
+    .setuprhs = SetupDiffRhs3,
     .apply = Diff3,
     .error = Error3,
-    .setupfname = SetupDiff3_loc,
-    .applyfname = Diff3_loc,
+    .setupgeofname = SetupDiffGeo_loc,
+    .setuprhsfname = SetupDiffRhs3_loc,
+    .applyfname = Diff_loc,
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
@@ -395,8 +402,8 @@ int main(int argc, char **argv) {
   CeedBasis basisx, basisu;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui,
                       Erestrictqdi;
-  CeedQFunction qf_setup, qf_apply, qf_error;
-  CeedOperator op_setup, op_apply, op_error;
+  CeedQFunction qf_setupgeo, qf_setuprhs, qf_apply, qf_error;
+  CeedOperator op_setupgeo, op_setuprhs, op_apply, op_error;
   CeedVector xcoord, qdata, rhsceed, target;
   CeedInt P, Q;
   const CeedInt dim = 3, ncompx = 3;
@@ -617,29 +624,34 @@ int main(int argc, char **argv) {
     CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_OWN_POINTER, xloc);
   }
 
-  // Create the Q-function that builds the operator (i.e. computes its
-  // quadrature data) and set its context data
-  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setup,
-                              bpOptions[bpChoice].setupfname, &qf_setup);
-  CeedQFunctionAddInput(qf_setup, "x", ncompx, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_setup, "dx", ncompx*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setup, "qdata", bpOptions[bpChoice].qdatasize,
+  // Create the Qfunction that builds the operator quadrature data
+  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setupgeo,
+                              bpOptions[bpChoice].setupgeofname, &qf_setupgeo);
+  CeedQFunctionAddInput(qf_setupgeo, "dx", ncompx*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setupgeo, "weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddOutput(qf_setupgeo, "qdata", bpOptions[bpChoice].qdatasize,
                          CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_setup, "true_soln", ncompu, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_setup, "rhs", ncompu, CEED_EVAL_INTERP);
+
+  // Create the Qfunction that sets up the RHS and true solution
+  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setuprhs,
+                              bpOptions[bpChoice].setuprhsfname, &qf_setuprhs);
+  CeedQFunctionAddInput(qf_setuprhs, "x", ncompx, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_setuprhs, "dx", ncompx*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setuprhs, "weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddOutput(qf_setuprhs, "true_soln", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_setuprhs, "rhs", ncompu, CEED_EVAL_INTERP);
 
   // Set up PDE operator
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].apply,
                               bpOptions[bpChoice].applyfname, &qf_apply);
   // Add inputs and outputs
-  CeedInt gradInScale = bpOptions[bpChoice].inmode==CEED_EVAL_GRAD ? 3 : 1;
-  CeedInt gradOutScale = bpOptions[bpChoice].outmode==CEED_EVAL_GRAD ? 3 : 1;
-  CeedQFunctionAddInput(qf_apply, "u", ncompu*gradInScale,
+  CeedInt inscale = bpOptions[bpChoice].inmode==CEED_EVAL_GRAD ? 3 : 1;
+  CeedInt outscale = bpOptions[bpChoice].outmode==CEED_EVAL_GRAD ? 3 : 1;
+  CeedQFunctionAddInput(qf_apply, "u", ncompu*inscale,
                         bpOptions[bpChoice].inmode);
   CeedQFunctionAddInput(qf_apply, "qdata", bpOptions[bpChoice].qdatasize,
                         CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_apply, "v", ncompu*gradOutScale,
+  CeedQFunctionAddOutput(qf_apply, "v", ncompu*outscale,
                          bpOptions[bpChoice].outmode);
 
   // Create the error qfunction
@@ -657,19 +669,26 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, lsize*ncompu, &rhsceed);
 
   // Create the operator that builds the quadrature data for the ceed operator
-  CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
-  CeedOperatorSetField(op_setup, "x", Erestrictx, CEED_NOTRANSPOSE,
+  CeedOperatorCreate(ceed, qf_setupgeo, NULL, NULL, &op_setupgeo);
+  CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, CEED_NOTRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE,
-                       basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "weight", Erestrictxi, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setupgeo, "weight", Erestrictxi, CEED_NOTRANSPOSE,
                        basisx, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setupgeo, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "true_soln", Erestrictui, CEED_NOTRANSPOSE,
+
+  // Create the operator that builds the RHS and true solution
+  CeedOperatorCreate(ceed, qf_setuprhs, NULL, NULL, &op_setuprhs);
+  CeedOperatorSetField(op_setuprhs, "x", Erestrictx, CEED_NOTRANSPOSE,
+                       basisx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setuprhs, "dx", Erestrictx, CEED_NOTRANSPOSE,
+                       basisx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setuprhs, "weight", Erestrictxi, CEED_NOTRANSPOSE,
+                       basisx, CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setuprhs, "true_soln", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_setup, "rhs", Erestrictu, CEED_TRANSPOSE,
-                       basisu, rhsceed);
+  CeedOperatorSetField(op_setuprhs, "rhs", Erestrictu, CEED_TRANSPOSE,
+                       basisu, CEED_VECTOR_ACTIVE);
 
   // Create the mass or diff operator
   CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
@@ -688,7 +707,6 @@ int main(int argc, char **argv) {
                        CEED_BASIS_COLLOCATED, target);
   CeedOperatorSetField(op_error, "error", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-
 
   // Set up Mat
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
@@ -725,7 +743,8 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(rhsceed, CEED_MEM_HOST, CEED_USE_POINTER, r);
 
   // Setup qdata, rhs, and target
-  CeedOperatorApply(op_setup, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_setupgeo, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_setuprhs, xcoord, rhsceed, CEED_REQUEST_IMMEDIATE);
   ierr = CeedVectorSyncArray(rhsceed, CEED_MEM_HOST); CHKERRQ(ierr);
   CeedVectorDestroy(&xcoord);
 
@@ -849,7 +868,8 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&user->yceed);
   CeedVectorDestroy(&user->qdata);
   CeedVectorDestroy(&target);
-  CeedOperatorDestroy(&op_setup);
+  CeedOperatorDestroy(&op_setupgeo);
+  CeedOperatorDestroy(&op_setuprhs);
   CeedOperatorDestroy(&op_apply);
   CeedOperatorDestroy(&op_error);
   CeedElemRestrictionDestroy(&Erestrictu);
@@ -857,7 +877,8 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&Erestrictui);
   CeedElemRestrictionDestroy(&Erestrictxi);
   CeedElemRestrictionDestroy(&Erestrictqdi);
-  CeedQFunctionDestroy(&qf_setup);
+  CeedQFunctionDestroy(&qf_setupgeo);
+  CeedQFunctionDestroy(&qf_setuprhs);
   CeedQFunctionDestroy(&qf_apply);
   CeedQFunctionDestroy(&qf_error);
   CeedBasisDestroy(&basisu);

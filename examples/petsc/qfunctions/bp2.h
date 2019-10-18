@@ -21,11 +21,12 @@
 #  include <math.h>
 #endif
 
-// *****************************************************************************
-CEED_QFUNCTION(SetupMass3)(void *ctx, const CeedInt Q,
-                           const CeedScalar *const *in, CeedScalar *const *out) {
+// -----------------------------------------------------------------------------
+CEED_QFUNCTION(SetupMassRhs3)(void *ctx, const CeedInt Q,
+                              const CeedScalar *const *in,
+                              CeedScalar *const *out) {
   const CeedScalar *x = in[0], *J = in[1], *w = in[2];
-  CeedScalar *qdata = out[0], *true_soln = out[1], *rhs = out[2];
+  CeedScalar *true_soln = out[0], *rhs = out[1];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -33,25 +34,25 @@ CEED_QFUNCTION(SetupMass3)(void *ctx, const CeedInt Q,
     const CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
                             J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
                             J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
-    qdata[i] = det * w[i];
 
     // Component 1
-    true_soln[i+0*Q] =  sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);;
+    true_soln[i+0*Q] =  sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
     // Component 2
     true_soln[i+1*Q] = true_soln[i+0*Q];
     // Component 3
     true_soln[i+2*Q] = true_soln[i+0*Q];
 
     // Component 1
-    rhs[i+0*Q] = qdata[i] * true_soln[i+0*Q];
+    rhs[i+0*Q] = det * w[i] * true_soln[i+0*Q];
     // Component 2
-    rhs[i+1*Q] = qdata[i] * true_soln[i+0*Q];
+    rhs[i+1*Q] = rhs[i+0*Q];
     // Component 3
-    rhs[i+2*Q] = qdata[i] * true_soln[i+0*Q];
+    rhs[i+2*Q] = rhs[i+0*Q];
   } // End of Quadrature Point Loop
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 CEED_QFUNCTION(Mass3)(void *ctx, const CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *qdata = in[1];
@@ -70,3 +71,4 @@ CEED_QFUNCTION(Mass3)(void *ctx, const CeedInt Q,
   } // End of Quadrature Point Loop
   return 0;
 }
+// -----------------------------------------------------------------------------

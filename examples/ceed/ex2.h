@@ -31,13 +31,13 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q,
 
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
-  CeedPragmaSIMD
+    CeedPragmaSIMD
     for (CeedInt i=0; i<Q; i++) {
       qdata[i] = w[i] / J[i];
     } // End of Quadrature Point Loop
     break;
   case 22:
-  CeedPragmaSIMD
+    CeedPragmaSIMD
     for (CeedInt i=0; i<Q; i++) {
       // J: 0 2   qdata: 0 2   adj(J):  J22 -J12
       //    1 3          2 1           -J21  J11
@@ -52,7 +52,7 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q,
     } // End of Quadrature Point Loop
     break;
   case 33:
-  CeedPragmaSIMD
+    CeedPragmaSIMD
     for (CeedInt i=0; i<Q; i++) {
       // Compute the adjoint
       CeedScalar A[3][3];
@@ -78,7 +78,7 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q,
       qdata[i+Q*3] = qw * (A[1][0]*A[2][0] + A[1][1]*A[2][1] + A[1][2]*A[2][2]);
       qdata[i+Q*4] = qw * (A[0][0]*A[2][0] + A[0][1]*A[2][1] + A[0][2]*A[2][2]);
       qdata[i+Q*5] = qw * (A[0][0]*A[1][0] + A[0][1]*A[1][1] + A[0][2]*A[1][2]);
-      } // End of Quadrature Point Loop
+    } // End of Quadrature Point Loop
     break;
   }
   return 0;
@@ -114,13 +114,12 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q,
       const CeedScalar dXdxdXdxT[2][2] = {{qdata[i+0*Q],
                                            qdata[i+2*Q]},
                                           {qdata[i+2*Q],
-                                           qdata[i+1*Q]}
-                                         };
+                                           qdata[i+1*Q]}};
       // j = direction of vg
       for (int j=0; j<2; j++)
         vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +
                      du[1] * dXdxdXdxT[1][j]);
-      } // End of Quadrature Point Loop
+    } // End of Quadrature Point Loop
     break;
   case 3:
     CeedPragmaSIMD

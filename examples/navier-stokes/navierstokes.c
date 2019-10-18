@@ -132,11 +132,11 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
               if (0) { // This is the C-style (i,j,k) ordering that I prefer
                 idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mnode[1] +
                                          (j*(P-1)+jj))*mnode[2] +
-                                         (k*(P-1)+kk));
+                                        (k*(P-1)+kk));
               } else { // (k,j,i) ordering for consistency with MFEM example
                 idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mnode[1] +
                                          (j*(P-1)+jj))*mnode[2] +
-                                         (k*(P-1)+kk));
+                                        (k*(P-1)+kk));
               }
             }
           }
@@ -536,7 +536,7 @@ int main(int argc, char **argv) {
   // Find my location in the process grid
   ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
   for (int d=0,rankleft=rank; d<dim; d++) {
-    const int pstride[3] = {p[1] * p[2], p[2], 1};
+    const int pstride[3] = {p[1]*p[2], p[2], 1};
     irank[d] = rankleft / pstride[d];
     rankleft -= irank[d] * pstride[d];
   }

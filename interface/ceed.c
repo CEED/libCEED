@@ -592,7 +592,7 @@ int CeedSetBackendFunction(Ceed ceed,
   strncat(lookupname, fname, CEED_MAX_RESOURCE_LEN);
 
   // Find and use offset
-  for (CeedInt i = 0; ceed->foffsets[i].fname; i++) 
+  for (CeedInt i = 0; ceed->foffsets[i].fname; i++)
     if (!strcmp(ceed->foffsets[i].fname, lookupname)) {
       size_t offset = ceed->foffsets[i].offset;
       int (**fpointer)(void) = (int (* *)(void))((char *)object + offset);

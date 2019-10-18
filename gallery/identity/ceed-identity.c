@@ -22,14 +22,16 @@
   @brief Set fields identity QFunction that copies inputs directly into outputs
 **/
 static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested,
-    CeedQFunction qf) {
+                                      CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name
   const char *name = "Identity";
   if (strcmp(name, requested))
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
                      name, requested);
+  // LCOV_EXCL_STOP
 
   // Add QFunction fields
   ierr = CeedQFunctionAddInput(qf, "input", 1, CEED_EVAL_INTERP); CeedChk(ierr);

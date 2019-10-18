@@ -17,9 +17,13 @@ bps := $(bps.c:%.c=%)
 bpsdmplex.c := bpsdmplex.c
 bpsdmplex := $(bpsdmplex.c:%.c=%)
 
-all: $(bps) $(bpsdmplex)
+multigrid.c := multigrid.c
+multigrid := $(multigrid.c:%.c=%)
+
+all: $(bps) $(bpsdmplex) $(multigrid)
 $(bps): | $(PETSc.pc) $(ceed.pc)
 $(bpsdmplex): | $(PETSc.pc) $(ceed.pc)
+$(multigrid): | $(PETSc.pc) $(ceed.pc)
 
 # Rules for building the examples
 %: %.c
@@ -35,7 +39,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) $(bps) $(bpsdmplex)
+	$(RM) $(bps) $(bpsdmplex) $(multigrid)
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \

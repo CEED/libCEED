@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
     if (fabs(vv[i]) > 1E-14)
       // LCOV_EXCL_START
       printf("Error: Operator computed v[i] = %f != 0.0\n", vv[i]);
-      // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(v, &vv);
 
   // Assemble QFunction
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
     if (fabs(vv[i]) > 1E-14)
       // LCOV_EXCL_START
       printf("Error: Linerized operator computed v[i] = %f != 0.0\n", vv[i]);
-      // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(v, &vv);
 
   // Cleanup

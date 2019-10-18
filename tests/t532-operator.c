@@ -139,9 +139,9 @@ int main(int argc, char **argv) {
     area += vv[i];
   CeedVectorRestoreArrayRead(v, &vv);
   if (fabs(area - 1.0) > 1E-14)
-      // LCOV_EXCL_START
+    // LCOV_EXCL_START
     printf("Error: True operator computed area = %f != 1.0\n", area);
-      // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
 
   // Assemble QFunction
   CeedOperatorAssembleLinearQFunction(op_apply, &A, &Erestrictlini,
@@ -179,9 +179,9 @@ int main(int argc, char **argv) {
     area += vv[i];
   CeedVectorRestoreArrayRead(v, &vv);
   if (fabs(area - 1.0) > 1E-14)
-      // LCOV_EXCL_START
+    // LCOV_EXCL_START
     printf("Error: Assembled operator computed area = %f != 1.0\n", area);
-      // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
 
   // Cleanup
   CeedQFunctionDestroy(&qf_setup_mass);

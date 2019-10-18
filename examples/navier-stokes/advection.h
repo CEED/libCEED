@@ -125,7 +125,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
                    (*x)[Q] = (CeedScalar(*)[Q])in[3];
   // Outputs
   CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
-                       (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
+             (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
 
   CeedPragmaSIMD
   // Quadrature Point Loop

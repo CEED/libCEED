@@ -61,14 +61,24 @@
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
 
+      call ceedvectorcreate(ceed,nu,u,err)
+      call ceedvectorsetvalue(u,1.d0,err)
+
+      call ceedvectorcreate(ceed,nu,v,err)
+
       do i=0,nx-1
         arrx(i+1)=i/(nx-1.d0)
       enddo
+      call ceedvectorcreate(ceed,nx,x,err)
+      xoffset=0
+      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,xoffset,err)
+
+      call ceedvectorcreate(ceed,nelem*q,qdata,err)
+
       do i=0,nelem-1
         indx(2*i+1)=i
         indx(2*i+2)=i+1
       enddo
-
       call ceedelemrestrictioncreate(ceed,nelem,2,nx,1,ceed_mem_host,&
      & ceed_use_pointer,indx,erestrictx,err)
       call ceedelemrestrictioncreateidentity(ceed,nelem,2,2*nelem,1,&
@@ -105,30 +115,23 @@
       call ceedoperatorcreate(ceed,qf_setup,ceed_null,ceed_null,op_setup,err)
       call ceedoperatorcreate(ceed,qf_mass,ceed_null,ceed_null,op_mass,err)
 
-      call ceedvectorcreate(ceed,nx,x,err)
-      xoffset=0
-      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,xoffset,err)
-      call ceedvectorcreate(ceed,nelem*q,qdata,err)
-
       call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&
      & ceed_notranspose,bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'dx',erestrictx,&
-     & ceed_notranspose,bx,ceed_vector_active,err)
+     & ceed_notranspose,bx,x,err)
       call ceedoperatorsetfield(op_setup,'rho',erestrictui,&
-     & ceed_notranspose,ceed_basis_collocated,ceed_vector_active,err)
+     & ceed_notranspose,ceed_basis_collocated,qdata,err)
       call ceedoperatorsetfield(op_mass,'rho',erestrictui,&
      & ceed_notranspose,ceed_basis_collocated,qdata,err)
       call ceedoperatorsetfield(op_mass,'u',erestrictu,&
-     & ceed_notranspose,bu,ceed_vector_active,err)
+     & ceed_notranspose,bu,u,err)
       call ceedoperatorsetfield(op_mass,'v',erestrictu,&
-     & ceed_notranspose,bu,ceed_vector_active,err)
+     & ceed_notranspose,bu,v,err)
 
-      call ceedoperatorapply(op_setup,x,qdata,ceed_request_immediate,err)
-
-      call ceedvectorcreate(ceed,nu,u,err)
-      call ceedvectorsetvalue(u,1.d0,err)
-      call ceedvectorcreate(ceed,nu,v,err)
-      call ceedoperatorapply(op_mass,u,v,ceed_request_immediate,err)
+      call ceedoperatorapply(op_setup,ceed_null,ceed_null,&
+     & ceed_request_immediate,err)
+      call ceedoperatorapply(op_mass,ceed_null,ceed_null,&
+     & ceed_request_immediate,err)
 
       call ceedvectorgetarrayread(v,ceed_mem_host,hv,voffset,err)
       total=0.

@@ -146,8 +146,8 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
         ierr = CeedBasisGetGrad(basis, &grad1d); CeedChk(ierr);
 
         // Dim contractions, identity in other directions
+        CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
         for (CeedInt d=0; d<dim; d++) {
-          CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
           ierr = CeedTensorContractApply(contract, pre, P, post, Q,
                                          grad1d, tmode, add&&(d>0),
                                          tmode == CEED_NOTRANSPOSE
@@ -155,6 +155,8 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
                                          tmode == CEED_TRANSPOSE
                                          ? v : v+d*ncomp*nqpt*nelem);
           CeedChk(ierr);
+          pre /= P;
+          post *= Q;
         }
       } else { // Underintegration, P > Q
         CeedScalar *grad1d;
@@ -220,7 +222,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     case CEED_EVAL_NONE:
       return CeedError(ceed, 1,
                        "CEED_EVAL_NONE does not make sense in this context");
-    // LCOV_EXCL_STOP
+      // LCOV_EXCL_STOP
     }
   } else {
     // Non-tensor basis
@@ -285,7 +287,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     case CEED_EVAL_NONE:
       return CeedError(ceed, 1,
                        "CEED_EVAL_NONE does not make sense in this context");
-    // LCOV_EXCL_STOP
+      // LCOV_EXCL_STOP
     }
   }
   if (U) {

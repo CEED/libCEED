@@ -459,7 +459,8 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
   }
   if (emode == CEED_EVAL_INTERP) {
     void *interpargs[] = {(void *) &nelem, (void *) &transpose,
-                          &data->d_interp1d, &d_u, &d_v};
+                          &data->d_interp1d, &d_u, &d_v
+                         };
     CeedInt Q1d, dim;
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
     ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
@@ -469,7 +470,8 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
     CeedChk(ierr);
   } else if (emode == CEED_EVAL_GRAD) {
     void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->d_interp1d,
-                        &data->d_grad1d, &d_u, &d_v};
+                        &data->d_grad1d, &d_u, &d_v
+                       };
     CeedInt blocksize = maxblocksize;
     ierr = CeedRunKernelCuda(ceed, data->grad, nelem, blocksize, gradargs);
     CeedChk(ierr);
@@ -524,7 +526,8 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt nelem,
   }
   if (emode == CEED_EVAL_INTERP) {
     void *interpargs[] = {(void *) &nelem, (void *) &transpose,
-                          &data->d_interp, &d_u, &d_v};
+                          &data->d_interp, &d_u, &d_v
+                         };
     if (!transpose) {
       ierr = CeedRunKernelDimCuda(ceed, data->interp, grid, nqpt, 1, elemsPerBlock,
                                   interpargs);
@@ -536,7 +539,8 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt nelem,
     }
   } else if (emode == CEED_EVAL_GRAD) {
     void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->d_grad,
-                        &d_u, &d_v};
+                        &d_u, &d_v
+                       };
     if (!transpose) {
       ierr = CeedRunKernelDimCuda(ceed, data->grad, grid, nqpt, 1, elemsPerBlock,
                                   gradargs);

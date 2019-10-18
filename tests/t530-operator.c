@@ -4,7 +4,7 @@
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
-#include "t530-operator.h"
+#include "t510-operator.h"
 
 int main(int argc, char **argv) {
   Ceed ceed;
@@ -97,12 +97,12 @@ int main(int argc, char **argv) {
 
   // Check output
   CeedVectorGetArrayRead(A, CEED_MEM_HOST, &a);
-  CeedVectorGetArrayRead(qdata, CEED_MEM_HOST, &q);  
+  CeedVectorGetArrayRead(qdata, CEED_MEM_HOST, &q);
   for (CeedInt i=0; i<nqpts; i++)
     if (fabs(q[i] - a[i]) > 1E-9)
       // LCOV_EXCL_START
       printf("Error: A[%d] = %f != %f\n", i, a[i], q[i]);
-      // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(A, &a);
   CeedVectorRestoreArrayRead(qdata, &q);
 
@@ -121,9 +121,9 @@ int main(int argc, char **argv) {
     area += vv[i];
   CeedVectorRestoreArrayRead(v, &vv);
   if (fabs(area - 1.0) > 1E-14)
-      // LCOV_EXCL_START
+    // LCOV_EXCL_START
     printf("Error: True operator computed area = %f != 1.0\n", area);
-      // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
 
   // Switch to new qdata
   CeedVectorGetArrayRead(A, CEED_MEM_HOST, &a);
@@ -140,9 +140,9 @@ int main(int argc, char **argv) {
     area += vv[i];
   CeedVectorRestoreArrayRead(v, &vv);
   if (fabs(area - 1.0) > 1E-10)
-      // LCOV_EXCL_START
+    // LCOV_EXCL_START
     printf("Error: Linearized operator computed area = %f != 1.0\n", area);
-      // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
 
   // Cleanup
   CeedQFunctionDestroy(&qf_setup);
