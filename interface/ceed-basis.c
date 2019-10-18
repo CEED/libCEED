@@ -122,8 +122,8 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
   @ref Basic
 **/
 int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
-                                    CeedInt P, CeedInt Q,
-                                    CeedQuadMode qmode, CeedBasis *basis) {
+                                    CeedInt P, CeedInt Q, CeedQuadMode qmode,
+                                    CeedBasis *basis) {
   // Allocate
   int ierr, i, j, k;
   CeedScalar c1, c2, c3, c4, dx, *nodes, *interp1d, *grad1d, *qref1d, *qweight1d;
@@ -206,8 +206,7 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
   @ref Basic
 **/
 int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt ncomp,
-                      CeedInt nnodes, CeedInt nqpts,
-                      const CeedScalar *interp,
+                      CeedInt nnodes, CeedInt nqpts, const CeedScalar *interp,
                       const CeedScalar *grad, const CeedScalar *qref,
                       const CeedScalar *qweight, CeedBasis *basis) {
   int ierr;
@@ -1051,7 +1050,7 @@ int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
 
   @ref Advanced
 **/
-int CeedBasisGetQRef(CeedBasis basis, CeedScalar* *qref) {
+int CeedBasisGetQRef(CeedBasis basis, CeedScalar **qref) {
   *qref = basis->qref1d;
   return 0;
 }
@@ -1067,7 +1066,7 @@ int CeedBasisGetQRef(CeedBasis basis, CeedScalar* *qref) {
 
   @ref Advanced
 **/
-int CeedBasisGetQWeights(CeedBasis basis, CeedScalar* *qweight) {
+int CeedBasisGetQWeights(CeedBasis basis, CeedScalar **qweight) {
   *qweight = basis->qweight1d;
   return 0;
 }
@@ -1082,7 +1081,7 @@ int CeedBasisGetQWeights(CeedBasis basis, CeedScalar* *qweight) {
 
   @ref Advanced
 **/
-int CeedBasisGetInterp(CeedBasis basis, CeedScalar* *interp) {
+int CeedBasisGetInterp(CeedBasis basis, CeedScalar **interp) {
   *interp = basis->interp1d;
   return 0;
 }
@@ -1097,7 +1096,7 @@ int CeedBasisGetInterp(CeedBasis basis, CeedScalar* *interp) {
 
   @ref Advanced
 **/
-int CeedBasisGetGrad(CeedBasis basis, CeedScalar* *grad) {
+int CeedBasisGetGrad(CeedBasis basis, CeedScalar **grad) {
   *grad = basis->grad1d;
   return 0;
 }
@@ -1105,8 +1104,7 @@ int CeedBasisGetGrad(CeedBasis basis, CeedScalar* *grad) {
 /**
   @brief Get value in CeedEvalMode matrix of a CeedBasis
 
-  @param basis       CeedBasis
-  @param[in] emode   CeedEvalMode to retrieve value
+  @param basis       CeedBasis  @param[in] emode   CeedEvalMode to retrieve value
   @param[in] node    Node (column) to retrieve value
   @param[in] qpt     Quadrature point (row) to retrieve value
   @param[in] dim     Dimension to retrieve value for, for CEED_EVAL_GRAD
@@ -1190,7 +1188,7 @@ int CeedBasisGetValue(CeedBasis basis, CeedEvalMode emode, CeedInt qpt,
 
   @ref Advanced
 **/
-int CeedBasisGetData(CeedBasis basis, void* *data) {
+int CeedBasisGetData(CeedBasis basis, void **data) {
   *data = basis->data;
   return 0;
 }
@@ -1205,7 +1203,7 @@ int CeedBasisGetData(CeedBasis basis, void* *data) {
 
   @ref Advanced
 **/
-int CeedBasisSetData(CeedBasis basis, void* *data) {
+int CeedBasisSetData(CeedBasis basis, void **data) {
   basis->data = *data;
   return 0;
 }

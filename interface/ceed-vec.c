@@ -366,7 +366,7 @@ int CeedVectorGetState(CeedVector vec, uint64_t *state) {
 
   @ref Advanced
 **/
-int CeedVectorGetData(CeedVector vec, void* *data) {
+int CeedVectorGetData(CeedVector vec, void **data) {
   *data = vec->data;
   return 0;
 }
@@ -381,7 +381,7 @@ int CeedVectorGetData(CeedVector vec, void* *data) {
 
   @ref Advanced
 **/
-int CeedVectorSetData(CeedVector vec, void* *data) {
+int CeedVectorSetData(CeedVector vec, void **data) {
   vec->data = *data;
   return 0;
 }

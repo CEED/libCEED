@@ -230,8 +230,7 @@ found:
 
   @ref Basic
  */
-int CeedCompositeOperatorAddSub(CeedOperator compositeop,
-                                CeedOperator subop) {
+int CeedCompositeOperatorAddSub(CeedOperator compositeop, CeedOperator subop) {
   if (!compositeop->composite)
     // LCOV_EXCL_START
     return CeedError(compositeop->ceed, 1, "CeedOperator is not a composite "
@@ -523,8 +522,8 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
 
   @ref Basic
 **/
-int CeedOperatorApply(CeedOperator op, CeedVector in,
-                      CeedVector out, CeedRequest *request) {
+int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out,
+                      CeedRequest *request) {
   int ierr;
   Ceed ceed = op->ceed;
   CeedQFunction qf = op->qf;
@@ -706,7 +705,7 @@ int CeedOperatorGetNumSub(CeedOperator op, CeedInt *numsub) {
   @ref Advanced
 **/
 
-int CeedOperatorGetSubList(CeedOperator op, CeedOperator* *suboperators) {
+int CeedOperatorGetSubList(CeedOperator op, CeedOperator **suboperators) {
   if (!op->composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, 1, "Not a composite operator");
@@ -727,7 +726,7 @@ int CeedOperatorGetSubList(CeedOperator op, CeedOperator* *suboperators) {
   @ref Advanced
 **/
 
-int CeedOperatorSetData(CeedOperator op, void* *data) {
+int CeedOperatorSetData(CeedOperator op, void **data) {
   op->data = *data;
   return 0;
 }
@@ -743,7 +742,7 @@ int CeedOperatorSetData(CeedOperator op, void* *data) {
   @ref Advanced
 **/
 
-int CeedOperatorGetData(CeedOperator op, void* *data) {
+int CeedOperatorGetData(CeedOperator op, void **data) {
   *data = op->data;
   return 0;
 }
@@ -775,9 +774,8 @@ int CeedOperatorSetSetupDone(CeedOperator op) {
   @ref Advanced
 **/
 
-int CeedOperatorGetFields(CeedOperator op,
-                          CeedOperatorField* *inputfields,
-                          CeedOperatorField* *outputfields) {
+int CeedOperatorGetFields(CeedOperator op, CeedOperatorField **inputfields,
+                          CeedOperatorField **outputfields) {
   if (op->composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, 1, "Not defined for composite operator");
@@ -833,8 +831,7 @@ int CeedOperatorFieldGetElemRestriction(CeedOperatorField opfield,
   @ref Advanced
 **/
 
-int CeedOperatorFieldGetBasis(CeedOperatorField opfield,
-                              CeedBasis *basis) {
+int CeedOperatorFieldGetBasis(CeedOperatorField opfield, CeedBasis *basis) {
   *basis = opfield->basis;
   return 0;
 }
@@ -850,8 +847,7 @@ int CeedOperatorFieldGetBasis(CeedOperatorField opfield,
   @ref Advanced
 **/
 
-int CeedOperatorFieldGetVector(CeedOperatorField opfield,
-                               CeedVector *vec) {
+int CeedOperatorFieldGetVector(CeedOperatorField opfield, CeedVector *vec) {
   *vec = opfield->vec;
   return 0;
 }
