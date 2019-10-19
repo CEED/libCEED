@@ -101,8 +101,7 @@ int main(int argc, char **argv) {
        filename[PETSC_MAX_PATH_LEN];
   PetscInt lsize, gsize, xlsize,
            qextra  = 1, // default number of extra quadrature points
-           geomdim = 3, // geometrical dimension of mesh
-           ncompx  = geomdim, // 3D physical coordinates
+           ncompx  = 3, // number of components of 3D physical coordinates
            ncompu  = 1, // dimension of field to which apply mass operator
            topodim = 2, // topological dimension of manifold
            degree  = 3; // default degree for finite element bases
@@ -143,8 +142,9 @@ int main(int argc, char **argv) {
   } else {
     // Create the mesh as a 0-refined sphere. This will create a cubic surface, not a box.
     PetscBool simplex = PETSC_FALSE;
-    ierr = DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topodim, simplex, &dm); CHKERRQ(ierr);
+    ierr = DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topodim, simplex, &dm);
     CHKERRQ(ierr);
+    // Set the object name
     ierr = PetscObjectSetName((PetscObject) dm, "Cube"); CHKERRQ(ierr);
     // Distribute mesh over processes
     {
