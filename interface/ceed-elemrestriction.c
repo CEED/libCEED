@@ -294,10 +294,11 @@ int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *lvec,
                    the component is the outermost index and CEED_TRANSPOSE
                    indicates the component is the innermost index in
                    ordering of the l-vector
-  @param u       Input vector (of size @a nnodes * @a ncomp when
-                   tmode=CEED_NOTRANSPOSE)
-  @param v       Output vector (of size @a nelem * @a elemsize when
-                   tmode=CEED_NOTRANSPOSE)
+  @param u       Input vector (of shape [@a nnodes, @a ncomp] when
+                   tmode=CEED_NOTRANSPOSE, lmode=CEED_TRANSPOSE)
+  @param v       Output vector (of shape [@a nelem * @a elemsize] when
+                   tmode=CEED_NOTRANSPOSE). Ordering of the e-vector is decided
+                   by the backend.
   @param request Request or CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
@@ -347,8 +348,11 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
                    indicates the component is the innermost index in
                    ordering of the l-vector
                    tmode=CEED_NOTRANSPOSE)
-  @param v       Output vector (of size @a nelem * @a elemsize when
-                   tmode=CEED_NOTRANSPOSE)
+  @param u       Input vector (of shape [@a nnodes, @a ncomp] when
+                   tmode=CEED_NOTRANSPOSE, lmode=CEED_TRANSPOSE)
+  @param v       Output vector (of shape [@a blksize * @a elemsize] when
+                   tmode=CEED_NOTRANSPOSE). Ordering of the e-vector is decided
+                   by the backend.
   @param request Request or CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
