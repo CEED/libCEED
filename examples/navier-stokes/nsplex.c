@@ -86,7 +86,7 @@ typedef struct {
 problemData problemOptions[] = {
   [NS_DENSITY_CURRENT] = {
     .dim = 3,
-    .qdatasize = 16,
+    .qdatasize = 10,
     .setup = Setup,
     .setup_loc = Setup_loc,
     .ics = ICsDC,
@@ -97,7 +97,7 @@ problemData problemOptions[] = {
   },
   [NS_ADVECTION] = {
     .dim = 3,
-    .qdatasize = 16,
+    .qdatasize = 10,
     .setup = Setup,
     .setup_loc = Setup_loc,
     .ics = ICsAdvection,
@@ -105,6 +105,8 @@ problemData problemOptions[] = {
     .bc = NULL,
     .ics_loc = ICsAdvection_loc,
     .apply_rhs_loc = Advection_loc,
+    .apply_ifunction = IFunction_Advection,
+    .apply_ifunction_loc = IFunction_Advection_loc,
   },
   [NS_ADVECTION2D] = {
     .dim = 2,
