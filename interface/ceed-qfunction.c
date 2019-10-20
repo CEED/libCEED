@@ -65,6 +65,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedQFunctionUser f,
   int ierr;
   char *source_copy;
 
+  if (!f) return CeedError(ceed, 1, "Must pass valid function f");
   if (!ceed->QFunctionCreate) {
     Ceed delegate;
     ierr = CeedGetObjectDelegate(ceed, &delegate, "QFunction"); CeedChk(ierr);
@@ -86,10 +87,13 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedQFunctionUser f,
   (*qf)->vlength = vlength;
   (*qf)->identity = 0;
   (*qf)->function = f;
-  size_t slen = strlen(source) + 1;
-  ierr = CeedMalloc(slen, &source_copy); CeedChk(ierr);
-  memcpy(source_copy, source, slen);
-  (*qf)->sourcepath = source_copy;
+  (*qf)->sourcepath = NULL;
+  if (source) {
+    size_t slen = strlen(source) + 1;
+    ierr = CeedMalloc(slen, &source_copy); CeedChk(ierr);
+    memcpy(source_copy, source, slen);
+    (*qf)->sourcepath = source_copy;
+  }
   ierr = CeedCalloc(16, &(*qf)->inputfields); CeedChk(ierr);
   ierr = CeedCalloc(16, &(*qf)->outputfields); CeedChk(ierr);
   ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
