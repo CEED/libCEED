@@ -488,7 +488,7 @@ int main(int argc, char **argv) {
   problemType problemChoice;
   problemData *problem;
   StabilizationType stab;
-  PetscBool   test, implicit;
+  PetscBool   test, implicit, naturalz;
 
   // Create the libCEED contexts
   PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
@@ -547,6 +547,8 @@ int main(int argc, char **argv) {
                           (PetscEnum *)&stab, NULL);CHKERRQ(ierr);
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-naturalz", "Use natural boundary conditions in the z direction",
+                          NULL, naturalz=PETSC_FALSE, &naturalz, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, meter, &meter, NULL); CHKERRQ(ierr);
   meter = fabs(meter);
@@ -674,7 +676,11 @@ int main(int argc, char **argv) {
     ierr = DMAddField(dm,NULL,(PetscObject)fe);CHKERRQ(ierr);
 
     ierr = DMCreateDS(dm);CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","marker",0,0,NULL,(void(*)(void))problem->bc,1,(PetscInt[]){1},ctxSetup);CHKERRQ(ierr);
+    if (naturalz) {
+      ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","Face Sets",0,0,NULL,(void(*)(void))problem->bc,4,(PetscInt[]){3,4,5,6},ctxSetup);CHKERRQ(ierr);
+    } else {
+      ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","marker",0,0,NULL,(void(*)(void))problem->bc,1,(PetscInt[]){1},ctxSetup);CHKERRQ(ierr);
+    }
     ierr = DMPlexSetClosurePermutationTensor(dm,PETSC_DETERMINE,NULL);CHKERRQ(ierr);
     ierr = PetscFEGetBasisSpace(fe, &fespace);CHKERRQ(ierr);
     ierr = PetscSpaceGetDegree(fespace, &degree, NULL);CHKERRQ(ierr);
