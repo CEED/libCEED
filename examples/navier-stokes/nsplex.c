@@ -962,12 +962,12 @@ int main(int argc, char **argv) {
   }
   ierr = TSSetMaxTime(ts, 500. * units->second); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
-  ierr = TSSetTimeStep(ts, 1.e-5 * units->second); CHKERRQ(ierr);
+  ierr = TSSetTimeStep(ts, 1.e-2 * units->second); CHKERRQ(ierr);
   if (test) {ierr = TSSetMaxSteps(ts, 1); CHKERRQ(ierr);}
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
   ierr = TSAdaptSetStepLimits(adapt,
                               1.e-12 * units->second,
-                              1.e-2 * units->second); CHKERRQ(ierr);
+                              1.e2 * units->second); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   if (!contsteps) { // print initial condition
     if (!test) {
