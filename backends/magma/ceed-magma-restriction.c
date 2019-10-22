@@ -17,13 +17,34 @@
 #include "ceed-magma.h"
 
 static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
-                                        CeedTransposeMode tmode,
-                                        CeedTransposeMode lmode, CeedVector u,
-                                        CeedVector v, CeedRequest *request) {
-//***
-// Implementation here 
-//***
-//
+					  CeedTransposeMode tmode,
+					  CeedTransposeMode lmode, CeedVector u,
+					  CeedVector v, CeedRequest *request) {
+    CeedElemRestriction_Magma *impl;
+    ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
+
+    CeedInt nelem;
+    CeedElemRestrictionGetNumElements(r, &nelem);
+
+    CeedInt nnodes;
+    CeedElemRestrictionGetNumNodes(r, &nnodes);
+
+    CeedInt NCOMP;
+    CeedElemRestrictionGetNumComponents(r, &NCOMP);
+
+    int ierr;
+    const CeedScalar *du;
+    CeedScalar *dv;
+    ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &du); CeedChk(ierr);
+    ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &dv); CeedChk(ierr);
+
+    if (lmode == CEED_TRANSPOSE)
+        magma_readDofsTranspose(NCOMP, nnodes, nelem, impl->indices, du, dv);
+    else
+        magma_readDofs(NCOMP, nnodes, nelem, impl->indices, du, dv);
+
+    ierr = CeedVectorRestoreArrayRead(u, &du); CeedChk(ierr);
+    ierr = CeedVectorRestoreArray(v, &dv); CeedChk(ierr);
 }
 
 int CeedElemRestrictionApplyBlock_Magma(CeedElemRestriction r,
