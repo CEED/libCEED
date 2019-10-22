@@ -28,6 +28,13 @@ typedef struct {
 } CeedBasis_Magma;
 
 typedef struct {
+  CeedScalar *dqref;
+  CeedScalar *dinterp;
+  CeedScalar *dgrad;
+  CeedScalar *dqweight;
+} CeedBasisNonTensor_Magma;
+
+typedef struct {
   const CeedScalar **inputs;
   CeedScalar **outputs;
   bool setupdone;

@@ -99,6 +99,21 @@ dbasis_apply_eval_weight_kernel_batched(
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
+
+static __global__ void 
+magma_weight_kernel(const CeedInt nelem,
+                    const CeedScalar *__restrict__ qweight,
+                    CeedScalar *__restrict__ d_V) {
+  const int tid = threadIdx.x;
+  //TODO load qweight in shared memory if blockDim.z > 1?                                           
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
+       elem += gridDim.x*blockDim.z) {
+    d_V[elem*Q + tid] = qweight[tid];
+  }
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
 template<int Q>
 static magma_int_t 
 dbasis_apply_eval_weight_kernel_batched_driver( 
@@ -170,4 +185,14 @@ magmablas_dbasis_apply_batched_eval_weight(
         // fall back to a ref. impl.
         //printf("launch failed. TODO: add ref. impl.\n");
     }
+}
+
+// NonTensor weight function
+extern "C" void 
+magma_weight(magma_int_t grid, magma_int_t threads, magma_int_t nelem, 
+             double *dqweight, double *dv)
+{
+    magma_int_t err = 0;
+    err = magma_weight_kernel<<<grid, threads, 0, NULL>>>(nelem, dqweight, dv);
+    return err;
 }
