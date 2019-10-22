@@ -35,6 +35,13 @@ typedef struct {
 } CeedBasisNonTensor_Magma;
 
 typedef struct {
+  CeedInt *indices;
+  CeedInt *dindices;
+  int  own_;
+  int down_;            // cover a case where we own Device memory
+} CeedElemRestriction_Magma;
+
+typedef struct {
   const CeedScalar **inputs;
   CeedScalar **outputs;
   bool setupdone;
@@ -48,6 +55,7 @@ typedef struct {
 #ifdef __cplusplus
 CEED_INTERN {
 #endif
+<<<<<<< HEAD
   void magmablas_dbasis_apply_batched_eval_interp(magma_int_t P, magma_int_t Q,
       magma_int_t dim, magma_int_t ncomp, const double *dT,
       CeedTransposeMode tmode, const double *dU, magma_int_t ustride,
@@ -67,8 +75,12 @@ CEED_INTERN {
   magma_isdevptr(const void *A);
 
   CEED_INTERN int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
-      CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
-      const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
+                                                CeedInt Q1d, 
+                                                const CeedScalar *interp1d,
+                                                const CeedScalar *grad1d,
+                                                const CeedScalar *qref1d,
+                                                const CeedScalar *qweight1d,
+                                                CeedBasis basis);
 
   CEED_INTERN int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim,
                                           CeedInt ndof, CeedInt nqpts,
@@ -77,6 +89,16 @@ CEED_INTERN {
                                           const CeedScalar *qref,
                                           const CeedScalar *qweight,
                                           CeedBasis basis);
+
+  CEED_INTERN int CeedElemRestrictionCreate_Magma(CeedMemType mtype,
+                                                  CeedCopyMode cmode,
+                                                  const CeedInt *indices,
+                                                  CeedElemRestriction r);
+
+  CEED_INTERN int CeedElemRestrictionCreateBlocked_Magma(const CeedMemType mtype,
+                                                         const CeedCopyMode cmode,
+                                                         const CeedInt *indices,
+                                                         const CeedElemRestriction res);
   #ifdef __cplusplus
 }
   #endif

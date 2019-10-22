@@ -36,6 +36,11 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
     return CeedError(ceed, 1, "error in magma_init(): %d\n", ierr);
   // LCOV_EXCL_STOP
 
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
+                                CeedElemRestrictionCreate_Magma); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
+                                "ElemRestrictionCreateBlocked",
+                                CeedElemRestrictionCreateBlocked_Magma); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Magma); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",

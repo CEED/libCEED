@@ -65,6 +65,26 @@ magma_readDofsTranspose_kernel(int NCOMP, int nnodes, int nelem,
     }
 }
 
+static __global__ void 
+magma_writeDofs_kernel(int NCOMP, int nnodes, int nelem,
+                      int *indices, 
+                      double *du, double *dv)
+{
+// fill kernal here
+
+}
+
+static __global__ void
+magma_writeDofsTranspose_kernel(int NCOMP, int nnodes, int nelem,
+                               int *indices,
+                               double *du, double *dv)
+{
+
+ //fill kernel here
+
+}
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 
 // ReadDofs 
@@ -95,6 +115,38 @@ magma_readDofsTranspose(magma_int NCOMP,
     magma_int_t err = 0;
 
     err = magma_readDofsTranspose_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, nelem,
+                                                                     indices, du, dv);
+    return err;
+}
+
+// WriteDofs 
+extern "C" int
+magma_writeDofs(magma_int NCOMP, 
+               magma_int_t nnodes, 
+               magma_int_t nelem, magma_int_t *indices, 
+	       double *du, double *dv)
+{
+    magma_int_t grid    = nelem;
+    magma_int_t threads = 256;
+    magma_int_t err = 0;
+
+    err = magma_writeDofs_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, nelem, 
+                                                            indices, du, dv);
+    return err;
+}
+
+// NonTensor weight function
+extern "C" int
+magma_writeDofsTranspose(magma_int NCOMP,
+                        magma_int_t nnodes,
+                        magma_int_t nelem, magma_int_t *indices,
+                        double *du, double *dv)
+{
+    magma_int_t grid    = nelem;
+    magma_int_t threads = 256;
+    magma_int_t err = 0;
+
+    err = magma_writeDofsTranspose_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, nelem,
                                                                      indices, du, dv);
     return err;
 }
