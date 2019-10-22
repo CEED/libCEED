@@ -20,6 +20,7 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
 					  CeedTransposeMode tmode,
 					  CeedTransposeMode lmode, CeedVector u,
 					  CeedVector v, CeedRequest *request) {
+    int ierr;
     CeedElemRestriction_Magma *impl;
     ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
 
@@ -32,7 +33,6 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     CeedInt NCOMP;
     CeedElemRestrictionGetNumComponents(r, &NCOMP);
 
-    int ierr;
     const CeedScalar *du;
     CeedScalar *dv;
     ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &du); CeedChk(ierr);
@@ -51,6 +51,8 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     }
     ierr = CeedVectorRestoreArrayRead(u, &du); CeedChk(ierr);
     ierr = CeedVectorRestoreArray(v, &dv); CeedChk(ierr);
+
+    return 0;
 }
 
 int CeedElemRestrictionApplyBlock_Magma(CeedElemRestriction r,
@@ -70,7 +72,13 @@ static int CeedElemRestrictionDestroy_Magma(CeedElemRestriction r) {
   CeedElemRestriction_Magma *impl;
   ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
 
-  ierr = CeedFree(&impl->indices_allocated); CeedChk(ierr);
+  // Free if we own the data
+  if (impl->own_) {
+    ierr = magma_free_pinned(impl->indices); CeedChk(ierr);
+    ierr = magma_free(impl->dindices);       CeedChk(ierr);
+  } else if (impl->down_) {
+    ierr = magma_free(impl->dindices);       CeedChk(ierr);
+  }
   ierr = CeedFree(&impl); CeedChk(ierr);
   return 0;
 }
@@ -84,6 +92,7 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
   CeedInt elemsize, nelem;
   ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
+  CeedInt size = elemsize * nelem;
 
   CeedElemRestriction_Magma *impl;
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
@@ -156,7 +165,7 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
     }
 
   } else
-    return CeedError(r->ceed, 1, "Only MemType = HOST or DEVICE supported");
+    return CeedError(ceed, 1, "Only MemType = HOST or DEVICE supported");
 
   ierr = CeedElemRestrictionSetData(r, (void *)&impl); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",
@@ -179,4 +188,6 @@ int CeedElemRestrictionCreateBlocked_Magma(const CeedMemType mtype,
     // LCOV_EXCL_START
   return CeedError(ceed, 1, "Backend does not implement blocked restrictions");
   // LCOV_EXCL_STOP
+
+  return 0;
 }

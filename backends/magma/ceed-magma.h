@@ -55,7 +55,6 @@ typedef struct {
 #ifdef __cplusplus
 CEED_INTERN {
 #endif
-<<<<<<< HEAD
   void magmablas_dbasis_apply_batched_eval_interp(magma_int_t P, magma_int_t Q,
       magma_int_t dim, magma_int_t ncomp, const double *dT,
       CeedTransposeMode tmode, const double *dU, magma_int_t ustride,
@@ -70,6 +69,29 @@ CEED_INTERN {
   void magmablas_dbasis_apply_batched_eval_weight(magma_int_t Q,
       magma_int_t dim, const double *dqweight1d, double *dV,
       magma_int_t vstride, magma_int_t batchCount);
+
+  void magma_weight(magma_int_t grid, magma_int_t threads, magma_int_t nelem,
+                    double *dqweight, double *dv);
+
+  void magma_readDofs(const magma_int_t NCOMP, 
+                      const magma_int_t nnodes, 
+                      const magma_int_t nelem, magma_int_t *indices, 
+	              const double *du, double *dv);
+
+  void magma_readDofsTranspose(const magma_int_t NCOMP, 
+                               const magma_int_t nnodes, 
+                               const magma_int_t nelem, magma_int_t *indices, 
+       	                       const double *du, double *dv);
+
+  void magma_writeDofs(const magma_int_t NCOMP, 
+                       const magma_int_t nnodes, 
+                       const magma_int_t nelem, magma_int_t *indices, 
+	               const double *du, double *dv);
+
+  void magma_writeDofsTranspose(const magma_int_t NCOMP, 
+                                const magma_int_t nnodes, 
+                                const magma_int_t nelem, magma_int_t *indices, 
+	                        const double *du, double *dv);
 
   magma_int_t
   magma_isdevptr(const void *A);

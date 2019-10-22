@@ -234,13 +234,13 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     if (tmode == CEED_TRANSPOSE) 
       magma_dgemm(MagmaNoTrans, MagmaNoTrans,
 		  P, nelem*ncomp, Q,
-		  1.0, impl->interp, P,
+		  1.0, impl->dinterp, P,
 		  du,Q,
 		  0.0, dv, P);
     else
       magma_dgemm(MagmaTrans, MagmaNoTrans,
 		  Q, nelem*ncomp, P,
-		  1.0, impl->interp, P,
+		  1.0, impl->dinterp, P,
 		  du, Q,
 		  0.0, dv, Q);
   }
@@ -254,19 +254,19 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
 	if (d>0)
           beta = 1.0;
 	magma_dgemm(MagmaNoTrans, MagmaNoTrans,
-		    P, nelem*NCOMP, Q,
+		    P, nelem*ncomp, Q,
 		    1.0, impl->dgrad + d*P*Q, P,
-		    du + d*nelem*NCOMP, Q,
+		    du + d*nelem*ncomp, Q,
 		    beta, dv, P);
       }
     }
     else {
       for(int d=0; d< dim; d++)
 	magma_dgemm(MagmaTrans, MagmaNoTrans,
-		    Q, nelem*NCOMP, P,
+		    Q, nelem*ncomp, P,
 		    1.0, impl->dgrad + d*P*Q, P,
 		    du, Q,
-		    0.0, dv + d*nelem*NCOMP, Q);
+		    0.0, dv + d*nelem*ncomp, Q);
     }
   }
     break;
@@ -281,7 +281,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     int elemsPerBlock = 1;//basis->Q1d < 7 ? optElems[basis->Q1d] : 1;
     int grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)?
 				       1 : 0 );
-    ierr = magma_weight(grid, nqpt, nelem, impl->dqweight, dv);
+    magma_weight(grid, nqpt, nelem, impl->dqweight, dv);
     CeedChk(ierr);
   }
     break;
@@ -316,6 +316,24 @@ int CeedBasisDestroy_Magma(CeedBasis basis) {
   ierr = magma_free(impl->dinterp1d); CeedChk(ierr);
   ierr = magma_free(impl->dgrad1d); CeedChk(ierr);
   ierr = magma_free(impl->dqweight1d); CeedChk(ierr);
+
+  ierr = CeedFree(&impl); CeedChk(ierr);
+
+  return 0;
+}
+
+#ifdef __cplusplus
+CEED_INTERN "C"
+#endif
+int CeedBasisDestroyNonTensor_Magma(CeedBasis basis) {
+  int ierr;
+  CeedBasisNonTensor_Magma *impl;
+  ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
+
+  ierr = magma_free(impl->dqref); CeedChk(ierr);
+  ierr = magma_free(impl->dinterp); CeedChk(ierr);
+  ierr = magma_free(impl->dgrad); CeedChk(ierr);
+  ierr = magma_free(impl->dqweight); CeedChk(ierr);
 
   ierr = CeedFree(&impl); CeedChk(ierr);
 
