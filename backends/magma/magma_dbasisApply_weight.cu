@@ -101,7 +101,7 @@ dbasis_apply_eval_weight_kernel_batched(
 //////////////////////////////////////////////////////////////////////////////////////////
 
 static __global__ void 
-magma_weight_kernel(const CeedInt nelem,
+magma_weight_kernel(const CeedInt nelem, const CeedInt Q,
                     const CeedScalar *__restrict__ qweight,
                     CeedScalar *__restrict__ d_V) {
   const int tid = threadIdx.x;
@@ -189,10 +189,8 @@ magmablas_dbasis_apply_batched_eval_weight(
 
 // NonTensor weight function
 extern "C" void 
-magma_weight(magma_int_t grid, magma_int_t threads, magma_int_t nelem, 
+magma_weight(magma_int_t grid, magma_int_t threads, magma_int_t nelem, magma_int_t Q, 
              double *dqweight, double *dv)
 {
-    magma_int_t err = 0;
-    err = magma_weight_kernel<<<grid, threads, 0, NULL>>>(nelem, dqweight, dv);
-    return err;
+    magma_weight_kernel<<<grid, threads, 0, NULL>>>(nelem, Q, dqweight, dv);
 }
