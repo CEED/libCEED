@@ -35,6 +35,13 @@ typedef struct {
 } CeedBasisNonTensor_Magma;
 
 typedef struct {
+  CeedInt *indices;
+  CeedInt *dindices;
+  int  own_;
+  int down_;            // cover a case where we own Device memory
+} CeedElemRestriction_Magma;
+
+typedef struct {
   const CeedScalar **inputs;
   CeedScalar **outputs;
   bool setupdone;
@@ -67,6 +74,13 @@ void magmablas_dbasis_apply_batched_eval_weight(magma_int_t Q, magma_int_t dim,
 
 magma_int_t
 magma_isdevptr(const void *A);
+
+CEED_INTERN int CeedElemRestrictionCreate_Magma(CeedMemType mtype,
+    CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r);
+
+CEED_INTERN int CeedElemRestrictionCreateBlocked_Magma(const CeedMemType mtype,
+    const CeedCopyMode cmode, const CeedInt *indices,
+    const CeedElemRestriction res);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,

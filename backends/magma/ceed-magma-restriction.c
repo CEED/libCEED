@@ -38,11 +38,17 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &du); CeedChk(ierr);
     ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &dv); CeedChk(ierr);
 
-    if (lmode == CEED_TRANSPOSE)
-        magma_readDofsTranspose(NCOMP, nnodes, nelem, impl->indices, du, dv);
-    else
-        magma_readDofs(NCOMP, nnodes, nelem, impl->indices, du, dv);
-
+    if (tmode == CEED_TRANSPOSE) { 
+      if (lmode == CEED_TRANSPOSE)
+          magma_writeDofsTranspose(NCOMP, nnodes, nelem, impl->indices, du, dv);
+      else
+          magma_writeDofs(NCOMP, nnodes, nelem, impl->indices, du, dv);
+    } else {
+      if (lmode == CEED_TRANSPOSE)
+          magma_readDofsTranspose(NCOMP, nnodes, nelem, impl->indices, du, dv);
+      else
+          magma_readDofs(NCOMP, nnodes, nelem, impl->indices, du, dv);
+    }
     ierr = CeedVectorRestoreArrayRead(u, &du); CeedChk(ierr);
     ierr = CeedVectorRestoreArray(v, &dv); CeedChk(ierr);
 }
@@ -72,17 +78,85 @@ static int CeedElemRestrictionDestroy_Magma(CeedElemRestriction r) {
 int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
                                   const CeedInt *indices, CeedElemRestriction r) {
   int ierr;
-  CeedElemRestriction_Magma *impl;
-  CeedInt elemsize, nelem;
-  ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
 
-//***
-// Do more setup stuff...
-// ***
+  CeedInt elemsize, nelem;
+  ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
 
+  CeedElemRestriction_Magma *impl;
+  ierr = CeedCalloc(1, &impl); CeedChk(ierr);
+
+  impl->dindices = NULL;
+  impl->indices  = NULL;
+  impl->own_ = 0;
+  impl->down_= 0;
+
+  if (mtype == CEED_MEM_HOST) {
+    // memory is on the host; own_ = 0
+    switch (cmode) {
+    case CEED_COPY_VALUES:
+      ierr = magma_malloc( (void**)&impl->dindices,
+                           size * sizeof(CeedInt)); CeedChk(ierr);
+      ierr = magma_malloc_pinned( (void**)&impl->indices,
+                                  size * sizeof(CeedInt)); CeedChk(ierr);
+      impl->own_ = 1;
+
+      if (indices != NULL) {
+        memcpy(impl->indices, indices, size * sizeof(indices[0]));
+        magma_setvector(size, sizeof(CeedInt),
+                        impl->indices, 1, impl->dindices, 1);
+      }
+      break;
+    case CEED_OWN_POINTER:
+      ierr = magma_malloc( (void**)&impl->dindices,
+                           size * sizeof(CeedInt)); CeedChk(ierr);
+      // TODO: possible problem here is if we are passed non-pinned memory;
+      //       (as we own it, lter in destroy, we use free for pinned memory).
+      impl->indices = (CeedInt *)indices;
+      impl->own_ = 1;
+
+      if (indices != NULL)
+        magma_setvector(size, sizeof(CeedInt),
+                        indices, 1, impl->dindices, 1);
+      break;
+    case CEED_USE_POINTER:
+      ierr = magma_malloc( (void**)&impl->dindices,
+                           size * sizeof(CeedInt)); CeedChk(ierr);
+      magma_setvector(size, sizeof(CeedInt),
+                      indices, 1, impl->dindices, 1);
+      impl->down_ = 1;
+      impl->indices  = (CeedInt *)indices;
+    }
+  } else if (mtype == CEED_MEM_DEVICE) {
+    // memory is on the device; own = 0
+    switch (cmode) {
+    case CEED_COPY_VALUES:
+      ierr = magma_malloc( (void**)&impl->dindices,
+                           size * sizeof(CeedInt)); CeedChk(ierr);
+      ierr = magma_malloc_pinned( (void**)&impl->indices,
+                                  size * sizeof(CeedInt)); CeedChk(ierr);
+      impl->own_ = 1;
+
+      if (indices)
+        magma_copyvector(size, sizeof(CeedInt),
+                         indices, 1, impl->dindices, 1);
+      break;
+    case CEED_OWN_POINTER:
+      impl->dindices = (CeedInt *)indices;
+      ierr = magma_malloc_pinned( (void**)&impl->indices,
+                                  size * sizeof(CeedInt)); CeedChk(ierr);
+      impl->own_ = 1;
+
+      break;
+    case CEED_USE_POINTER:
+      impl->dindices = (CeedInt *)indices;
+      impl->indices  = NULL;
+    }
+
+  } else
+    return CeedError(r->ceed, 1, "Only MemType = HOST or DEVICE supported");
 
   ierr = CeedElemRestrictionSetData(r, (void *)&impl); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",
