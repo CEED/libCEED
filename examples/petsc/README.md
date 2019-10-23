@@ -62,7 +62,7 @@ To run, `./area -ceed [ceed-resource] -petscspace_degree [degree]`
 
 ### Command line arguments
 
-The following arguments can be specified for both examples:
+The following arguments can be specified for this examples:
 
 - `-ceed`              - CEED resource specifier
 - `-petscspace_degree` - Polynomial degree of tensor product basis
