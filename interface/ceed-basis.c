@@ -579,10 +579,7 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
     // norm of v[i:m] after modification above and scaling below
     //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
     //   tau = 2 / (norm*norm)
-    if (sigma > 1e-15)
-      tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
-    else
-      tau[i] = 0;
+    tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
 
     for (CeedInt j=i+1; j<m; j++)
       v[j] /= v[i];

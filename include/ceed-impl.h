@@ -244,4 +244,8 @@ CEED_INTERN int CeedSetErrorHandler(Ceed ceed,
                                         const char *, int, const char *,
                                         va_list));
 
+CEED_INTERN int CeedMatrixMultiply(Ceed ceed, CeedScalar *matA,
+                                   CeedScalar *matB, CeedScalar *matC,
+                                   CeedInt m, CeedInt n, CeedInt kk);
+
 #endif

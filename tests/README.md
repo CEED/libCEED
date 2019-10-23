@@ -21,4 +21,5 @@ as required.
     5.0. CeedOperator with tensor bases tests  
     5.1. CeedOperator with simplex bases tests  
     5.2. CeedOperator with operator composition tests  
-    5.3. CeedOperator and CeedQFunction assembly tests
+    5.3. CeedOperator and CeedQFunction assembly tests  
+    5.4. CeedOperator element inverse tests
