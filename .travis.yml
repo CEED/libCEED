@@ -65,7 +65,9 @@ install:
   - export PETSC_DIR=$PETSC_INSTALL
 
 script:
-  - export COVERAGE=1
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        export COVERAGE=1;
+    fi
   - make -j2
   - make -j2 prove-all PROVE_OPTS=-v
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
