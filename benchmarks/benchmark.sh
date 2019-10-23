@@ -83,7 +83,7 @@ This script builds and runs a set of benchmarks for a list of specified
 backends.
 
 Example usage:
-  $this_file  --run petsc-bps.sh
+  $this_file  --run petsc-bpsraw.sh
 "
 
 

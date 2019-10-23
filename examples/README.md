@@ -109,12 +109,12 @@ cd ..
 # PETSc+libCEED examples on CPU and GPU
 cd petsc
 make
-./bps -problem bp1 -ceed /cpu/self
-./bps -problem bp2 -ceed /gpu/occa
-./bps -problem bp3 -ceed /cpu/self
-./bps -problem bp4 -ceed /gpu/occa
-./bps -problem bp5 -ceed /cpu/self
-./bps -problem bp6 -ceed /gpu/occa
+./bpsraw -problem bp1 -ceed /cpu/self
+./bpsraw -problem bp2 -ceed /gpu/occa
+./bpsraw -problem bp3 -ceed /cpu/self
+./bpsraw -problem bp4 -ceed /gpu/occa
+./bpsraw -problem bp5 -ceed /cpu/self
+./bpsraw -problem bp6 -ceed /gpu/occa
 cd ..
 
 cd navier-stokes

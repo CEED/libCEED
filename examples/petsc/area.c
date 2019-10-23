@@ -24,16 +24,16 @@
 //
 // Build with:
 //
-//     make areadmplex [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>]
+//     make area [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>]
 //
 // Sample runs:
 //   Sequential:
 //
-//     areadmplex -petscspace_degree 3
+//     area -petscspace_degree 3
 //
 //   In parallel:
 //
-//     mpiexec -n 4 areadmplex -petscspace_degree 3
+//     mpiexec -n 4 area -petscspace_degree 3
 //
 //TESTARGS -ceed {ceed_resource} -test -petscspace_degree 3
 

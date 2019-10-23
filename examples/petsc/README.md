@@ -5,22 +5,22 @@
 This code solves the CEED bakeoff problems on a structured grid generated and
 referenced using only low-level communication primitives.
 
-To build, run `make bps`
+To build, run `make bpsraw`
 
-To run, `./bps -ceed [ceed-resource] -problem bp[1-6] -degree [degree]`
+To run, `./bpsraw -ceed [ceed-resource] -problem bp[1-6] -degree [degree]`
 
 In addition to the common arguments, the following arguments may be set:
 
 - `-local`             - Target number of locally owned DoFs per process
 
-### CEED bakeoff problems with DMPlex - bpsdmplex
+### CEED bakeoff problems with DMPlex - bps
 
 This code solves the CEED bakeoff problems on a unstructured grid using DMPlex.
 This example requires a PETSc version later than 3.11.3.
 
-To build, run `make bpsdmplex`
+To build, run `make bps`
 
-To run, `./bpsdmplex -ceed [ceed-resource] -problem bp[1-6] -degree [degree]`
+To run, `./bps -ceed [ceed-resource] -problem bp[1-6] -degree [degree]`
 
 In addition to the common arguments, the following arguments may be set:
 
@@ -56,9 +56,9 @@ The following arguments can be specified for all of the above examples:
 
 This example uses the mass matrix to compute the surface area of a cube, defined via DMPlex. 
 
-To build, run `make areaplex`
+To build, run `make area`
 
-To run, `./areaplex -ceed [ceed-resource] -petscspace_degree [degree]`
+To run, `./area -ceed [ceed-resource] -petscspace_degree [degree]`
 
 ### Command line arguments
 
