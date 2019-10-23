@@ -105,6 +105,7 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
+  read_mesh = PETSC_FALSE;
   ierr = PetscOptionsString("-mesh", "Read mesh from file", NULL,
                             filename, filename, sizeof(filename), &read_mesh);
   CHKERRQ(ierr);
