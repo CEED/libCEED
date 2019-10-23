@@ -444,7 +444,7 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
                                    &indices, NULL); CHKERRQ(ierr);
     for (i=0; i<numindices; i+=ncomp) {
       for (PetscInt j=0; j<ncomp; j++) {
-        if (indices[i+j] != indices[i] + copysign(j, indices[i]))
+        if (indices[i+j] != indices[i] + (PetscInt)(copysign(j, indices[i])))
           SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
                    "Cell %D closure indices not interlaced", c);
       }
