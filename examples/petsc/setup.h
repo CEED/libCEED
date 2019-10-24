@@ -23,12 +23,12 @@
 #include <petscdmplex.h>
 #include <petscfe.h>
 #include <ceed.h>
-#include "qfunctions/common.h"
-#include "qfunctions/identity.h"
-#include "qfunctions/bp1.h"
-#include "qfunctions/bp2.h"
-#include "qfunctions/bp3.h"
-#include "qfunctions/bp4.h"
+#include "qfunctions/bps/common.h"
+#include "qfunctions/bps/identity.h"
+#include "qfunctions/bps/bp1.h"
+#include "qfunctions/bps/bp2.h"
+#include "qfunctions/bps/bp3.h"
+#include "qfunctions/bps/bp4.h"
 
 // -----------------------------------------------------------------------------
 // PETSc Operator Structs
@@ -444,7 +444,7 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
                                    &indices, NULL); CHKERRQ(ierr);
     for (i=0; i<numindices; i+=ncomp) {
       for (PetscInt j=0; j<ncomp; j++) {
-        if (indices[i+j] != indices[i] + copysign(j, indices[i]))
+        if (indices[i+j] != indices[i] + (PetscInt)(copysign(j, indices[i])))
           SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
                    "Cell %D closure indices not interlaced", c);
       }

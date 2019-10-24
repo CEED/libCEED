@@ -108,6 +108,7 @@ int main(int argc, char **argv) {
                           "Coarsening strategy to use", NULL,
                           coarsenTypes, (PetscEnum)coarsen,
                           (PetscEnum *)&coarsen, NULL); CHKERRQ(ierr);
+  read_mesh = PETSC_FALSE;
   ierr = PetscOptionsString("-mesh", "Read mesh from file", NULL,
                             filename, filename, sizeof(filename), &read_mesh);
   CHKERRQ(ierr);

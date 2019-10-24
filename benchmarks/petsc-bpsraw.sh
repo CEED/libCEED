@@ -42,14 +42,14 @@ function run_tests()
          if [ -z "$dry_run" ]; then
             echo
             echo "Running test:"
-            quoted_echo $mpi_run ./petsc-bps "${all_args[@]}"
-            $mpi_run ./petsc-bps "${all_args[@]}" || \
+            quoted_echo $mpi_run ./petsc-bpsraw "${all_args[@]}"
+            $mpi_run ./petsc-bpsraw "${all_args[@]}" || \
                printf "\nError in the test, error code: $?\n\n"
          else
-            $dry_run $mpi_run ./petsc-bps "${all_args[@]}"
+            $dry_run $mpi_run ./petsc-bpsraw "${all_args[@]}"
          fi
       done
    done
 }
 
-test_required_examples="petsc-bps"
+test_required_examples="petsc-bpsraw"
