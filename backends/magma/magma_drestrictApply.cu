@@ -16,6 +16,7 @@
 
 #include <ceed.h>
 #include <magma.h>
+#include "atomics.cuh"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -37,7 +38,8 @@ magma_readDofs_kernel(const int NCOMP, const int nnodes, const int nelem,
   }
 }
 
-// dv(i, c, e) = du( c, ind(i,e))  
+// dv(i, c, e) = du( c, ind(i,e))
+template<int TBLOCK, int MAXCOMP>
 static __global__ void
 magma_readDofsTranspose_kernel(const int NCOMP, const int nnodes, const int nelem,
                                int *indices,
@@ -46,17 +48,18 @@ magma_readDofsTranspose_kernel(const int NCOMP, const int nnodes, const int nele
     const int  pid = threadIdx.x;
     const int elem = blockIdx.x;
 
-    CeedInt   cb = pid%NCOMP;
-    CeedInt   tb = blockDim.x;
-    __shared__ CeedScalar dofs[tb][NCOMP];
-    __shared__ const CeedInt  ind[nnodes];
-    for (CeedInt i = pid; i < nnodes; i += tb) {
-        ind[i] = indices ? indices[i + elem * nnodes] : i + elem * nnodes;
+    const CeedInt   cb = pid%NCOMP;
+    __shared__ CeedScalar    dofs[TBLOCK][MAXCOMP];
+    __shared__ CeedInt        ind[TBLOCK];
+    for (CeedInt i = pid, k = 0; i < nnodes; i += TBLOCK, k += TBLOCK) {
+        ind[pid] = indices ? indices[i + elem * nnodes] : i + elem * nnodes;
 
         __syncthreads();
 
-        for (CeedInt j = i/NCOMP; j<min(tb, nnodes); j+=NCOMP)
-            dofs[j][cb] = du[cb + ind[j] * NCOMP];
+        int ncols = (k + TBLOCK < nnodes) ? TBLOCK: nnodes - k;
+        for(int j=0, row = pid/NCOMP; j<ncols; j+=TBLOCK/NCOMP)
+            if (row < TBLOCK/NCOMP)
+                dofs[j+row][cb] = du[cb + ind[j+row] * NCOMP];
 
         __syncthreads();
 
@@ -88,6 +91,7 @@ magma_writeDofs_kernel(const int NCOMP, const int nnodes, const int nelem,
 }
 
 // dv( c, ind(i,e)) = du(i, c, e)
+template<int TBLOCK, int MAXCOMP>
 static __global__ void
 magma_writeDofsTranspose_kernel(const int NCOMP, const int nnodes, const int nelem,
                                int *indices,
@@ -97,23 +101,24 @@ magma_writeDofsTranspose_kernel(const int NCOMP, const int nnodes, const int nel
     const int elem = blockIdx.x;
 
     CeedInt   cb = pid%NCOMP;
-    CeedInt   tb = blockDim.x;
-    __shared__ CeedScalar dofs[tb][NCOMP];
-    __shared__ const CeedInt  ind[nnodes];
-    for (CeedInt i = pid; i < nnodes; i += tb) {
-        ind[i] = indices ? indices[i + elem * nnodes] : i + elem * nnodes;
+    __shared__ CeedScalar dofs[TBLOCK][MAXCOMP];
+    __shared__ CeedInt     ind[TBLOCK];
+    for (CeedInt i = pid, k=0; i < nnodes; i += TBLOCK, k+= TBLOCK) {
+        ind[pid] = indices ? indices[i + elem * nnodes] : i + elem * nnodes;
 
         __syncthreads();
         
         for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-            dofs[i][comp] = du[i+comp*nnodes+elem*NCOMP*nnodes];
+            //dofs[i][comp] = du[i+comp*nnodes+elem*NCOMP*nnodes];
             dofs[i][comp] = du[i+elem*nnodes+comp*nnodes*nelem];
         }
 
         __syncthreads();
 
-        for (CeedInt j = i/NCOMP; j<min(tb, nnodes); j+=NCOMP)
-            magmablas_datomic_add(&dv[cb + ind[j] * NCOMP], dofs[j][cb]);
+        int ncols = (k + TBLOCK < nnodes) ? TBLOCK: nnodes - k;
+        for(int j=0, row = pid/NCOMP; j<ncols; j+=TBLOCK/NCOMP)
+            if (row < TBLOCK/NCOMP)
+                magmablas_datomic_add(&dv[cb + ind[j+row] * NCOMP], dofs[j+row][cb]);
     }
 }
 
@@ -146,7 +151,8 @@ magma_readDofsTranspose(const magma_int_t NCOMP,
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    magma_readDofsTranspose_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, nelem,
+    assert(NCOMP<=4);
+    magma_readDofsTranspose_kernel<256,4><<<grid, threads, 0, NULL>>>(NCOMP, nnodes, nelem,
                                                                indices, du, dv);
 }
 
@@ -176,6 +182,7 @@ magma_writeDofsTranspose(const magma_int_t NCOMP,
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    magma_writeDofsTranspose_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, nelem,
-                                                                indices, du, dv);
+    assert(NCOMP<=4);
+    magma_writeDofsTranspose_kernel<256,4><<<grid, threads, 0, NULL>>>(NCOMP, nnodes, nelem,
+                                                                       indices, du, dv);
 }
