@@ -50,7 +50,7 @@
 //
 // Conversion to Conserved Variables:
 //   rho = P0 Pi**(cv/Rd) / (Rd theta)
-//   E   = rho (cv theta Pi + (u u)/2 + g z)
+//   E   = rho (cv theta Pi + (u u)/2)
 //
 //  Boundary Conditions:
 //    Mass Density:
@@ -137,7 +137,7 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
     q0[1][i] = 0.0;
     q0[2][i] = 0.0;
     q0[3][i] = 0.0;
-    q0[4][i] = rho * (cv*theta*Pi + g*z);
+    q0[4][i] = rho * (cv*theta*Pi);
 
     // Homogeneous Dirichlet Boundary Conditions for Momentum
     if ((!periodic[0] && (fabs(x - 0.0) < tol || fabs(x - lx) < tol))
@@ -168,12 +168,12 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 // State Variables: q = ( rho, U1, U2, U3, E )
 //   rho - Mass Density
 //   Ui  - Momentum Density   ,  Ui = rho ui
-//   E   - Total Energy Density,  E  = rho cv T + rho (u u) / 2 + rho g z
+//   E   - Total Energy Density,  E  = rho cv T + rho (u u) / 2
 //
 // Navier-Stokes Equations:
 //   drho/dt + div( U )                               = 0
 //   dU/dt   + div( rho (u x u) + P I3 ) + rho g khat = div( Fu )
-//   dE/dt   + div( (E + P) u )                       = div( Fe )
+//   dE/dt   + div( (E + P) u )          + rho g u[z] = div( Fe )
 //
 // Viscous Stress:
 //   Fu = mu (grad( u ) + grad( u )^T + lambda div ( u ) I3)
@@ -181,10 +181,10 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 //   Fe = u Fu + k grad( T )
 //
 // Equation of State:
-//   P = (gamma - 1) (E - rho (u u) / 2 - rho g z)
+//   P = (gamma - 1) (E - rho (u u) / 2)
 //
 // Temperature:
-//   T = (E / rho - (u u) / 2 - g z) / cv
+//   T = (E / rho - (u u) / 2 ) / cv
 //
 // Constants:
 //   lambda = - 2 / 3,  From Stokes hypothesis
@@ -292,7 +292,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
                                   (dEdx[1]/rho - E*drhodx[1]/(rho*rho) -
                                   (u[0]*dudx[0][1] + u[1]*dudx[1][1] + u[2]*dudx[2][1]))/cv,
                                   (dEdx[2]/rho - E*drhodx[2]/(rho*rho) -
-                                  (u[0]*dudx[0][2] + u[1]*dudx[1][2] + u[2]*dudx[2][2]) - g)/cv
+                                  (u[0]*dudx[0][2] + u[1]*dudx[1][2] + u[2]*dudx[2][2]))/cv
                                  };
 
     // -- Fuvisc
@@ -316,8 +316,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
                                     k *gradT[2]
                                   };
     // -- P
-    const CeedScalar P         =  (E - (u[0]*u[0] + u[1]*u[1] + u[2]*u[2])*rho/2 -
-                                   rho*g*x[2][i] ) * (gamma - 1);
+    const CeedScalar P         =  (E - (u[0]*u[0] + u[1]*u[1] + u[2]*u[2])*rho/2) * (gamma - 1);
     // *INDENT-ON*
 
     // The Physics
@@ -359,7 +358,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
       dv[j][4][i] -= wJ * (Fe[0]*dXdx[j][0] + Fe[1]*dXdx[j][1] +
                            Fe[2]*dXdx[j][2]);
     // ---- No Change
-    v[4][i] = 0;
+    v[4][i] = -rho*g*u[2]*wJ;
 
   } // End Quadrature Point Loop
 
