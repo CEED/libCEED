@@ -862,7 +862,7 @@ int main(int argc, char **argv) {
                              lx, ly, lz, periodic[0], periodic[1], periodic[2]
                             };
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
-  CeedScalar ctxNS[6] = {lambda, mu, k, cv, cp, g};
+  CeedScalar ctxNS[7] = {lambda, mu, k, cv, cp, g, Rd};
   CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
 
   // Set up PETSc context

@@ -263,7 +263,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
 
   return 0;
 }
-
+// *****************************************************************************
 CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
                           const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -372,9 +372,9 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
       switch (context->stabilization) {
       case 0:
         break;
-      case 1: dv[j][4][i] += wJ * TauS * strongConv * uX[j];
+      case 1: dv[j][4][i] += wJ * TauS * strongConv * uX[j];  //SU
         break;
-      case 2: dv[j][4][i] += wJ * TauS * strongResid * uX[j];
+      case 2: dv[j][4][i] += wJ * TauS * strongResid * uX[j];  //SUPG
         break;
       }
   } // End Quadrature Point Loop
