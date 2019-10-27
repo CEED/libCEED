@@ -1,8 +1,10 @@
 *.vtk
 *.vtu
+bpsraw
+petsc-bpsraw
 bps
 petsc-bps
-bpsdmplex
-petsc-bpsdmplex
-areadmplex
-petsc-areadmplex
+area
+petsc-area
+multigrid
+petsc-multigrid
