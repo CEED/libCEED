@@ -24,10 +24,10 @@ area.c := area.c
 area := $(area.c:%.c=%)
 
 all: $(bpsraw) $(bps) $(multigrid) $(area)
+$(bpsraw): | $(PETSc.pc) $(ceed.pc)
 $(bps): | $(PETSc.pc) $(ceed.pc)
-$(bpsdmplex): | $(PETSc.pc) $(ceed.pc)
 $(multigrid): | $(PETSc.pc) $(ceed.pc)
-$(areadmplex): | $(PETSc.pc) $(ceed.pc)
+$(area): | $(PETSc.pc) $(ceed.pc)
 
 # Rules for building the examples
 %: %.c
