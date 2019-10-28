@@ -63,7 +63,9 @@
 #endif
 
 #ifndef CeedPragmaSIMD
-#  if defined(__GNUC__) && __GNUC__ >= 5
+#  if defined(__INTEL_COMPILER) &&__INTEL_COMPILER >= 900
+#    define CeedPragmaSIMD _Pragma("simd")
+#  elif defined(__GNUC__) && __GNUC__ >= 5
 #    define CeedPragmaSIMD _Pragma("GCC ivdep")
 #  elif defined(_OPENMP) && _OPENMP >= 201307 // OpenMP-4.0 (July, 2013)
 #    define CeedPragmaSIMD _Pragma("omp simd")
