@@ -263,16 +263,9 @@ int main(int argc, const char *argv[]) {
   CeedVectorCreate(ceed, sol_size, &u);
   CeedVectorCreate(ceed, sol_size, &v);
 
-  // Initialize 'u' with ones.
-  CeedScalar *u_host, *i_host;
-  CeedVectorGetArray(u, CEED_MEM_HOST, &u_host);
-  CeedVectorGetArray(v, CEED_MEM_HOST, &i_host);
-  for (CeedInt i = 0; i < sol_size; i++) {
-    u_host[i] = 1.;
-    i_host[i] = 1.;
-  }
-  CeedVectorRestoreArray(u, &u_host);
-  CeedVectorRestoreArray(v, &i_host);
+  // Initialize 'u' and 'v' with ones.
+  CeedVectorSetValue(u, 1.0);
+  CeedVectorSetValue(v, 1.0);
 
   // Apply the mass operator: 'u' -> 'v'.
   CeedOperatorApply(oper, u, v, CEED_REQUEST_IMMEDIATE);
