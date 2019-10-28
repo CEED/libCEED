@@ -141,7 +141,7 @@ int main(int argc, const char *argv[]) {
                                   CEED_GAUSS, &sol_basis);
 
   // Determine the mesh size based on the given approximate problem size.
-  int nxyz[3];
+  int nxyz[dim];
   GetCartesianMeshSize(dim, sol_order, prob_size, nxyz);
 
   if (!test) {
@@ -316,7 +316,7 @@ int main(int argc, const char *argv[]) {
 }
 
 
-int GetCartesianMeshSize(int dim, int order, int prob_size, int nxyz[3]) {
+int GetCartesianMeshSize(int dim, int order, int prob_size, int nxyz[dim]) {
   // Use the approximate formula:
   //    prob_size ~ num_elem * order^dim
   CeedInt num_elem = prob_size / CeedIntPow(order, dim);
@@ -334,7 +334,7 @@ int GetCartesianMeshSize(int dim, int order, int prob_size, int nxyz[3]) {
   return 0;
 }
 
-int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
+int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[dim], int order,
                               int ncomp, CeedInt *size, CeedInt num_qpts,
                               CeedElemRestriction *restr,
                               CeedElemRestriction *restr_i) {
@@ -376,7 +376,7 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
   return 0;
 }
 
-int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_order,
+int SetCartesianMeshCoords(int dim, int nxyz[dim], int mesh_order,
                            CeedVector mesh_coords) {
   CeedInt p = mesh_order;
   CeedInt nd[3], num_elem = 1, scalar_size = 1;
