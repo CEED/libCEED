@@ -38,17 +38,23 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
   if (tmode == CEED_NOTRANSPOSE) {
     // No indices provided, Identity Restriction
     if (!impl->indices) {
+      CeedPragmaSIMD
       for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
+        CeedPragmaSIMD
         for (CeedInt j = 0; j < blksize; j++)
+          CeedPragmaSIMD
           for (CeedInt k = 0; k < ncomp*elemsize; k++)
             vv[e*elemsize*ncomp + k*blksize + j - voffset]
-              = uu[CeedIntMin(e+j,nelem-1)*ncomp*elemsize + k];
+              = uu[CeedIntMin(e+j, nelem-1)*ncomp*elemsize + k];
     } else {
       // Indices provided, standard or blocked restriction
       // vv has shape [elemsize, ncomp, nelem], row-major
       // uu has shape [nnodes, ncomp]
+      CeedPragmaSIMD
       for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
+        CeedPragmaSIMD
         for (CeedInt d = 0; d < ncomp; d++)
+          CeedPragmaSIMD
           for (CeedInt i = 0; i < elemsize*blksize; i++)
             vv[i+elemsize*(d*blksize+ncomp*e) - voffset]
               = uu[lmode == CEED_NOTRANSPOSE
@@ -69,7 +75,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
       // Indices provided, standard or blocked restriction
       // uu has shape [elemsize, ncomp, nelem]
       // vv has shape [nnodes, ncomp]
-      for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize) {
+      for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
         for (CeedInt d = 0; d < ncomp; d++)
           for (CeedInt i = 0; i < elemsize*blksize; i+=blksize)
             // Iteration bound set to discard padding elements
@@ -77,8 +83,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
               vv[lmode == CEED_NOTRANSPOSE
                        ? impl->indices[j+e*elemsize]+nnodes*d
                        : d+ncomp*impl->indices[j+e*elemsize]]
-              += uu[j+elemsize*(d*blksize+ncomp*e) - voffset];
-      }
+              += uu[elemsize*(d*blksize+ncomp*e) + j - voffset];
     }
   }
   ierr = CeedVectorRestoreArrayRead(u, &uu); CeedChk(ierr);
