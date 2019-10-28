@@ -17,18 +17,18 @@
 #include "ceed-ref.h"
 
 static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
-    const CeedInt blksize, CeedInt start, CeedInt stop, CeedTransposeMode tmode,
-    CeedTransposeMode lmode, CeedVector u, CeedVector v, CeedRequest *request) {
+    const CeedInt blksize, const CeedInt ncomp, CeedInt start, CeedInt stop,
+    CeedTransposeMode tmode, CeedTransposeMode lmode, CeedVector u,
+    CeedVector v, CeedRequest *request) {
   int ierr;
   CeedElemRestriction_Ref *impl;
   ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);;
   const CeedScalar *uu;
   CeedScalar *vv;
-  CeedInt nelem, elemsize, nnodes, ncomp, voffset;
+  CeedInt nelem, elemsize, nnodes, voffset;
   ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
   ierr = CeedElemRestrictionGetNumNodes(r, &nnodes); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
   voffset = start*blksize*elemsize*ncomp;
 
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
@@ -88,18 +88,33 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
   return 0;
 }
 
-static int CeedElemRestrictionApply_Ref_Core_1(CeedElemRestriction r,
+static int CeedElemRestrictionApply_Ref_Core_11(CeedElemRestriction r,
     CeedInt start, CeedInt stop, CeedTransposeMode tmode,
     CeedTransposeMode lmode, CeedVector u, CeedVector v, CeedRequest *request) {
-  return  CeedElemRestrictionApply_Ref_Core(r, 1, start, stop, tmode, lmode, u,
-           v, request);
+  return  CeedElemRestrictionApply_Ref_Core(r, 1, 1, start, stop, tmode, lmode,
+          u, v, request);
 }
 
-static int CeedElemRestrictionApply_Ref_Core_8(CeedElemRestriction r,
+static int CeedElemRestrictionApply_Ref_Core_18(CeedElemRestriction r,
     CeedInt start, CeedInt stop, CeedTransposeMode tmode,
     CeedTransposeMode lmode, CeedVector u, CeedVector v, CeedRequest *request) {
-  return  CeedElemRestrictionApply_Ref_Core(r, 8, start, stop, tmode, lmode, u,
-           v, request);
+  return  CeedElemRestrictionApply_Ref_Core(r, 8, 1, start, stop, tmode, lmode,
+          u, v, request);
+
+}
+
+static int CeedElemRestrictionApply_Ref_Core_31(CeedElemRestriction r,
+    CeedInt start, CeedInt stop, CeedTransposeMode tmode,
+    CeedTransposeMode lmode, CeedVector u, CeedVector v, CeedRequest *request) {
+  return  CeedElemRestrictionApply_Ref_Core(r, 1, 3, start, stop, tmode, lmode,
+          u, v, request);
+}
+
+static int CeedElemRestrictionApply_Ref_Core_38(CeedElemRestriction r,
+    CeedInt start, CeedInt stop, CeedTransposeMode tmode,
+    CeedTransposeMode lmode, CeedVector u, CeedVector v, CeedRequest *request) {
+  return  CeedElemRestrictionApply_Ref_Core(r, 8, 3, start, stop, tmode, lmode,
+          u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
@@ -107,41 +122,73 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
                                         CeedTransposeMode lmode, CeedVector u,
                                         CeedVector v, CeedRequest *request) {
   int ierr;
-  CeedInt numblk, blksize;
+  CeedInt numblk, ncomp, blksize;
   ierr = CeedElemRestrictionGetNumBlocks(r, &numblk); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
   ierr = CeedElemRestrictionGetBlockSize(r, &blksize); CeedChk(ierr);
 
-  if (blksize == 1)
-    return CeedElemRestrictionApply_Ref_Core_1(r, 0, numblk, tmode, lmode, u,
+  CeedInt idx = -1;
+  if (blksize < 10)
+    idx = 10*ncomp + blksize;
+  switch (idx) {
+  case 11:
+    return CeedElemRestrictionApply_Ref_Core_11(r, 0, numblk, tmode, lmode, u,
            v, request);
-  else if (blksize == 8)
-    return CeedElemRestrictionApply_Ref_Core_8(r, 0, numblk, tmode, lmode, u,
+    break;
+  case 18:
+    return CeedElemRestrictionApply_Ref_Core_18(r, 0, numblk, tmode, lmode, u,
            v, request);
-  else
+    break;
+  case 31:
+    return CeedElemRestrictionApply_Ref_Core_31(r, 0, numblk, tmode, lmode, u,
+           v, request);
+    break;
+  case 38:
+    return CeedElemRestrictionApply_Ref_Core_38(r, 0, numblk, tmode, lmode, u,
+           v, request);
+    break;
+  default:
     // LCOV_EXCL_START
-    return CeedElemRestrictionApply_Ref_Core(r, blksize, 0, numblk, tmode,
-           lmode, u, v, request);
-  // LCOV_EXCL_STOP
+    return CeedElemRestrictionApply_Ref_Core(r, blksize, ncomp, 0, numblk,
+           tmode, lmode, u, v, request);
+    // LCOV_EXCL_STOP
+  }
 }
 
 static int CeedElemRestrictionApplyBlock_Ref(CeedElemRestriction r,
     CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
     CeedVector u, CeedVector v, CeedRequest *request) {
   int ierr;
-  CeedInt blksize;
+  CeedInt ncomp, blksize;
+  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
   ierr = CeedElemRestrictionGetBlockSize(r, &blksize); CeedChk(ierr);
 
-  if (blksize == 1)
-    return CeedElemRestrictionApply_Ref_Core_1(r, block, block+1, tmode, lmode,
+  CeedInt idx = -1;
+  if (blksize < 10)
+    idx = 10*ncomp + blksize;
+  switch (idx) {
+  case 11:
+    return CeedElemRestrictionApply_Ref_Core_11(r, block, block+1, tmode, lmode,
            u, v, request);
-  else if (blksize == 8)
-    return CeedElemRestrictionApply_Ref_Core_8(r, block, block+1, tmode, lmode,
+    break;
+  case 18:
+    return CeedElemRestrictionApply_Ref_Core_18(r, block, block+1, tmode, lmode,
            u, v, request);
-  else
+    break;
+  case 31:
+    return CeedElemRestrictionApply_Ref_Core_31(r, block, block+1, tmode, lmode,
+           u, v, request);
+    break;
+  case 38:
+    return CeedElemRestrictionApply_Ref_Core_38(r, block, block+1, tmode, lmode,
+           u, v, request);
+    break;
+  default:
     // LCOV_EXCL_START
-    return CeedElemRestrictionApply_Ref_Core(r, blksize, block, block+1, tmode,
-           lmode, u, v, request);
-  // LCOV_EXCL_STOP
+    return CeedElemRestrictionApply_Ref_Core(r, blksize, ncomp, block, block+1,
+           tmode, lmode, u, v, request);
+    // LCOV_EXCL_STOP
+  }
 }
 
 static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {
