@@ -78,9 +78,9 @@ struct CeedData_ {
 
 // Coarsening options
 typedef enum {
-  COARSEN_UNIFORM = 0, COARSEN_LOGRITHMIC = 1
+  COARSEN_UNIFORM = 0, COARSEN_LOGARITHMIC = 1
 } coarsenType;
-static const char *const coarsenTypes [] = {"uniform","logrithmic",
+static const char *const coarsenTypes [] = {"uniform","logarithmic",
                                             "coarsenType","COARSEN",0
                                            };
 
