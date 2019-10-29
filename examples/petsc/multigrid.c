@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
   case COARSEN_UNIFORM:
     numlevels = degree;
     break;
-  case COARSEN_LOGRITHMIC:
+  case COARSEN_LOGARITHMIC:
     numlevels = ceil(log(degree)/log(2)) + 1;
     break;
   }
@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
   case COARSEN_UNIFORM:
     for (int i=0; i<numlevels; i++) leveldegrees[i] = i + 1;
     break;
-  case COARSEN_LOGRITHMIC:
+  case COARSEN_LOGARITHMIC:
     for (int i=0; i<numlevels-1; i++) leveldegrees[i] = pow(2,i);
     leveldegrees[numlevels-1] = degree;
     break;
