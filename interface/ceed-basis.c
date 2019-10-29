@@ -500,7 +500,7 @@ static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
     CeedInt i = tmode == CEED_TRANSPOSE ? ii : k-1-ii;
     for (CeedInt j=i+1; j<m; j++)
       v[j] = Q[j*k+i];
-    // Apply Householder reflector (I - tau v v^T) colograd1d^T
+    // Apply Householder reflector (I - tau v v^T) collograd1d^T
     CeedHouseholderReflect(&A[i*row], &v[i], tau[i], m-i, n, row, col);
   }
   return 0;
@@ -820,14 +820,14 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *matA,
   @brief Return collocated grad matrix
 
   @param basis           CeedBasis
-  @param[out] colograd1d Row-major Q1d × Q1d matrix expressing derivatives of
+  @param[out] collograd1d Row-major Q1d × Q1d matrix expressing derivatives of
                            basis functions at quadrature points
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Advanced
 **/
-int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
+int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collograd1d) {
   int i, j, k;
   Ceed ceed;
   CeedInt ierr, P1d=(basis)->P1d, Q1d=(basis)->Q1d;
@@ -842,21 +842,21 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colograd1d) {
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   ierr = CeedQRFactorization(ceed, interp1d, tau, Q1d, P1d); CeedChk(ierr);
 
-  // Apply Rinv, colograd1d = grad1d Rinv
+  // Apply Rinv, collograd1d = grad1d Rinv
   for (i=0; i<Q1d; i++) { // Row i
-    colograd1d[Q1d*i] = grad1d[P1d*i]/interp1d[0];
+    collograd1d[Q1d*i] = grad1d[P1d*i]/interp1d[0];
     for (j=1; j<P1d; j++) { // Column j
-      colograd1d[j+Q1d*i] = grad1d[j+P1d*i];
+      collograd1d[j+Q1d*i] = grad1d[j+P1d*i];
       for (k=0; k<j; k++)
-        colograd1d[j+Q1d*i] -= interp1d[j+P1d*k]*colograd1d[k+Q1d*i];
-      colograd1d[j+Q1d*i] /= interp1d[j+P1d*j];
+        collograd1d[j+Q1d*i] -= interp1d[j+P1d*k]*collograd1d[k+Q1d*i];
+      collograd1d[j+Q1d*i] /= interp1d[j+P1d*j];
     }
     for (j=P1d; j<Q1d; j++)
-      colograd1d[j+Q1d*i] = 0;
+      collograd1d[j+Q1d*i] = 0;
   }
 
-  // Apply Qtranspose, colograd = colograd Qtranspose
-  CeedHouseholderApplyQ(colograd1d, interp1d, tau, CEED_NOTRANSPOSE,
+  // Apply Qtranspose, collograd = collograd Qtranspose
+  CeedHouseholderApplyQ(collograd1d, interp1d, tau, CEED_NOTRANSPOSE,
                         Q1d, Q1d, P1d, 1, Q1d);
 
   ierr = CeedFree(&interp1d); CeedChk(ierr);

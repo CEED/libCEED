@@ -11,23 +11,23 @@ LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc)
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
 LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
-bpsraw.c := bpsraw.c
-bpsraw := $(bpsraw.c:%.c=%)
+area.c := area.c
+area := $(area.c:%.c=%)
 
 bps.c := bps.c
 bps := $(bps.c:%.c=%)
 
+bpsraw.c := bpsraw.c
+bpsraw := $(bpsraw.c:%.c=%)
+
 multigrid.c := multigrid.c
 multigrid := $(multigrid.c:%.c=%)
 
-area.c := area.c
-area := $(area.c:%.c=%)
-
-all: $(bpsraw) $(bps) $(multigrid) $(area)
+all: $(area) $(bps) $(bpsraw) $(multigrid) 
+$(area): | $(PETSc.pc) $(ceed.pc)
 $(bps): | $(PETSc.pc) $(ceed.pc)
-$(bpsdmplex): | $(PETSc.pc) $(ceed.pc)
+$(bpsraw): | $(PETSc.pc) $(ceed.pc)
 $(multigrid): | $(PETSc.pc) $(ceed.pc)
-$(areadmplex): | $(PETSc.pc) $(ceed.pc)
 
 # Rules for building the examples
 %: %.c
@@ -43,7 +43,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) $(bpsraw) $(bps) $(multigrid) $(area)
+	$(RM) $(area) $(bps) $(bpsraw) $(multigrid)
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
