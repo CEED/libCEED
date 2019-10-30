@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
   // Check output
   CeedVectorGetArrayRead(A, CEED_MEM_HOST, &a);
   for (int i=0; i<ndofs; i++)
-    if (fabs(a[i] - assembledTrue[i]) > 1E-14)
+    if (fabs(a[i] - assembledTrue[i]) > 1e-14)
       // LCOV_EXCL_START
       printf("[%d] Error in assembly: %f != %f\n", i, a[i], assembledTrue[i]);
   // LCOV_EXCL_STOP

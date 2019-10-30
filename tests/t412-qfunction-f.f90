@@ -38,7 +38,7 @@
 
       call ceedvectorgetarrayread(v,ceed_mem_host,vv,voffset,err)
       do i=1,q*s
-        if (abs(vv(i+voffset)-(i-1)*(i-1)) > 1.0D-14) then
+        if (abs(vv(i+voffset)-(i-1)*(i-1)) > 1.0D-12) then
 ! LCOV_EXCL_START
           write(*,*) 'v(i)=',vv(i+voffset),', u(i)=',(i-1)*(i-1)
 ! LCOV_EXCL_STOP
