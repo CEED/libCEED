@@ -58,7 +58,7 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
     return 0;
   }
 
-  ierr = CeedCalloc(1,op); CeedChk(ierr);
+  ierr = CeedCalloc(1, op); CeedChk(ierr);
   (*op)->ceed = ceed;
   ceed->refcount++;
   (*op)->refcount = 1;
@@ -304,8 +304,58 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
       return CeedError(ceed, 1, "At least one non-collocated basis required");
     // LCOV_EXCL_STOP
   }
-  ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
-  CeedChk(ierr);
+  if (op->AssembleLinearQFunction) {
+    ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
+    CeedChk(ierr);
+  } else { // Delegate to /cpu/self/ref/serial
+    Ceed ceedref;
+    ierr = CeedInit("/cpu/self/ref/serial", &ceedref); CeedChk(ierr);
+
+    // Clone Op
+    CeedOperator opref;
+    ierr = CeedCalloc(1, &opref); CeedChk(ierr);
+    memcpy(opref, op, sizeof(*opref)); CeedChk(ierr);
+    opref->data = NULL;
+    opref->setupdone = 0;
+    opref->ceed = ceedref;
+    ierr = ceedref->OperatorCreate(opref); CeedChk(ierr);
+
+    // Clone QF
+    CeedQFunction qfref;
+    ierr = CeedCalloc(1, &qfref); CeedChk(ierr);
+    memcpy(qfref, (op->qf), sizeof(*qfref)); CeedChk(ierr);
+    qfref->data = NULL;
+    qfref->ceed = ceedref;
+    ierr = ceedref->QFunctionCreate(qfref); CeedChk(ierr);
+    opref->qf = qfref;
+
+    // Assemble
+    CeedVector vecref;
+    CeedElemRestriction rstrref;
+    ierr = opref->AssembleLinearQFunction(opref, &vecref, &rstrref,
+                                          request); CeedChk(ierr);
+
+    // Copy data into original Ceed objects
+    const CeedScalar *vecarray;
+    ierr = CeedVectorGetArrayRead(vecref, CEED_MEM_HOST, &vecarray);
+    CeedChk(ierr);
+    ierr = CeedVectorCreate(ceed, vecref->length, assembled); CeedChk(ierr);
+    ierr = CeedVectorSetArray(*assembled, CEED_MEM_HOST, CEED_COPY_VALUES,
+                              (CeedScalar *)vecarray); CeedChk(ierr);
+    ierr = CeedVectorRestoreArrayRead(vecref, &vecarray); CeedChk(ierr);
+    ierr = CeedElemRestrictionCreateIdentity(ceed, rstrref->nelem,
+         rstrref->elemsize, rstrref->nnodes, rstrref->ncomp, rstr);
+    CeedChk(ierr);
+
+    // Cleanup
+    ierr = qfref->Destroy(qfref); CeedChk(ierr);
+    ierr = CeedFree(&qfref); CeedChk(ierr);
+    ierr = opref->Destroy(opref); CeedChk(ierr);
+    ierr = CeedFree(&opref); CeedChk(ierr);
+    ierr = CeedVectorDestroy(&vecref);
+    ierr = CeedElemRestrictionDestroy(&rstrref); CeedChk(ierr);
+    ierr = CeedDestroy(&ceedref); CeedChk(ierr);
+  }
   return 0;
 }
 
