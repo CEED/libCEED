@@ -154,7 +154,7 @@ typedef struct {
   CeedInt ncompu, qdatasize, qextra;
   CeedQFunctionUser setupgeo, setuprhs, apply, error, ident;
   const char *setupgeofname, *setuprhsfname, *applyfname, *errorfname,
-             *identfname;
+        *identfname;
   CeedEvalMode inmode, outmode;
   CeedQuadMode qmode;
   PetscBool enforce_bc;

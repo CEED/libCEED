@@ -39,7 +39,8 @@
 
 /// @file
 /// libCEED example using the mass operator to compute surface area using PETSc with DMPlex
-static const char help[] = "Compute surface area of a cube using DMPlex in PETSc\n";
+static const char help[] =
+  "Compute surface area of a cube using DMPlex in PETSc\n";
 
 #include <string.h>
 #include <petscdmplex.h>
@@ -119,7 +120,8 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
 
   // Read CL options
-  ierr = PetscOptionsBegin(comm, NULL, "CEED surface area problem with PETSc", NULL);
+  ierr = PetscOptionsBegin(comm, NULL, "CEED surface area problem with PETSc",
+                           NULL);
   CHKERRQ(ierr);
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
@@ -178,7 +180,7 @@ int main(int argc, char **argv) {
   ierr = PetscSpaceGetDegree(sp, &degree, NULL); CHKERRQ(ierr);
   ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
   if (degree < 1) SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
-                           "-petscspace_degree %D must be at least 1", degree);
+                             "-petscspace_degree %D must be at least 1", degree);
 
   // Create vectors
   ierr = DMCreateGlobalVector(dm, &X); CHKERRQ(ierr);
@@ -254,7 +256,7 @@ int main(int argc, char **argv) {
   CeedVector xcoord;
   CeedElemRestrictionCreateVector(Erestrictx, &xcoord, NULL);
   CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_COPY_VALUES,
-                    (PetscScalar *)coordArray);
+                     (PetscScalar *)coordArray);
   ierr = VecRestoreArrayRead(coords, &coordArray);
 
   // Create the vectors that will be needed in setup and apply

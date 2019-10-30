@@ -26,7 +26,8 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
 
   CeedQFunctionUser f = NULL;
-  ierr = CeedQFunctionGetUserFunction(qf, (int (**)())&f); CeedChk(ierr); // *NOPAD*
+  ierr = CeedQFunctionGetUserFunction(qf, (int (**)())&f); // *NOPAD*
+  CeedChk(ierr);
 
   CeedInt nIn, nOut;
   ierr = CeedQFunctionGetNumArgs(qf, &nIn, &nOut); CeedChk(ierr);
