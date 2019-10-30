@@ -26,7 +26,7 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
 
   CeedQFunctionUser f = NULL;
-  ierr = CeedQFunctionGetUserFunction(qf, (int (**)())&f); CeedChk(ierr);
+  ierr = CeedQFunctionGetUserFunction(qf, (int (**)())&f); CeedChk(ierr); // *NOPAD*
 
   CeedInt nIn, nOut;
   ierr = CeedQFunctionGetNumArgs(qf, &nIn, &nOut); CeedChk(ierr);

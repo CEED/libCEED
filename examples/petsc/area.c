@@ -97,8 +97,8 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
-       filename[PETSC_MAX_PATH_LEN];
+  char filename[PETSC_MAX_PATH_LEN],
+       ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   PetscInt lsize, gsize, xlsize,
            qextra  = 1, // default number of extra quadrature points
            ncompx  = 3, // number of components of 3D physical coordinates

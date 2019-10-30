@@ -21,6 +21,7 @@
 
 //*********************
 // shared mem kernels
+// *INDENT-OFF*
 static const char *kernelsShared = QUOTE(
 
 inline __device__ void add(CeedScalar *r_V, const CeedScalar *r_U) {
@@ -629,6 +630,7 @@ extern "C" __global__ void weight(const CeedInt nelem,
 }
 
 );
+// *INDENT-ON*
 
 int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
                        CeedScalar **c_B);
@@ -670,7 +672,8 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
     ierr = CeedCudaInitInterp(data->d_interp1d, P1d, Q1d, &data->c_B);
     CeedChk(ierr);
-    void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B, &d_u, &d_v};
+    void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B,
+                          &d_u, &d_v};
     if (dim==1) {
       CeedInt elemsPerBlock = 32;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
@@ -707,7 +710,8 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     ierr = CeedCudaInitInterpGrad(data->d_interp1d, data->d_grad1d, P1d,
                                   Q1d, &data->c_B, &data->c_G);
     CeedChk(ierr);
-    void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B, &data->c_G, &d_u, &d_v};
+    void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B,
+                        &data->c_G, &d_u, &d_v};
     if (dim==1) {
       CeedInt elemsPerBlock = 32;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)

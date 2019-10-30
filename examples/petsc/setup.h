@@ -91,9 +91,11 @@ static const char *const coarsenTypes [] = {"uniform","logarithmic",
 // Diff boundary condition function
 PetscErrorCode BCsDiff(PetscInt dim, PetscReal time, const PetscReal x[],
                        PetscInt ncompu, PetscScalar *u, void *ctx) {
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
+  // *INDENT-OFF*
+  #ifndef M_PI
+  #define M_PI    3.14159265358979323846
+  #endif
+  // *INDENT-ON*
   const CeedScalar c[3] = { 0, 1., 2. };
   const CeedScalar k[3] = { 1., 2., 3. };
 
@@ -486,8 +488,8 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   CeedQFunction qf_setupgeo, qf_apply;
   CeedOperator op_setupgeo, op_apply;
   CeedVector xcoord, qdata, xceed, yceed;
-  CeedInt P, Q, cStart, cEnd, nelem, qdatasize = bpOptions[bpChoice].qdatasize,
-          ncompx = dim;
+  CeedInt qdatasize = bpOptions[bpChoice].qdatasize, ncompx = dim, P, Q,
+          cStart, cEnd, nelem;
 
   // CEED bases
   P = degree + 1;

@@ -21,6 +21,7 @@
 
 //*********************
 // reg kernels
+// *INDENT-OFF*
 static const char *kernels3dreg = QUOTE(
 
 typedef CeedScalar real;
@@ -266,7 +267,7 @@ inline __device__ void Contract3d(const real *A, const real *B,
     for (int a3 = 0; a3 < nA3; a3++)
       for (int b2 = 0; b2 < nB2; b2++)
         for (int t = 0; t < nB1; t++) {
-          T[a2 + a3*nA2 + b2*nA2*nA3] += B[b2*nB1 + t] * A[a3*nA2*nA1 + a2*nA1 + t];
+          T[a2 + a3*nA2 + b2*nA2*nA3] += B[b2*nB1+t] * A[a3*nA2*nA1+a2*nA1+t];
         }
 }
 
@@ -278,7 +279,7 @@ inline __device__ void ContractTranspose3d(const real *A, const real *B,
     for (int a3 = 0; a3 < nA3; a3++)
       for (int b1 = 0; b1 < nB1; b1++)
         for (int t = 0; t < nB2; t++) {
-          T[a2 + a3*nA2 + b1*nA2*nA3] += B[t*nB1 + b1] * A[a3*nA2*nA1 + a2*nA1 + t];
+          T[a2 + a3*nA2 + b1*nA2*nA3] += B[t*nB1+b1] * A[a3*nA2*nA1+a2*nA1+t];
         }
 }
 
@@ -468,6 +469,7 @@ extern "C" __global__ void weight(const CeedInt nelem,
 }
 
 );
+// *INDENT-ON*
 
 int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
                        CeedScalar **c_B);

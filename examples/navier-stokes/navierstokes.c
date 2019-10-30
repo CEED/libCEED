@@ -535,7 +535,7 @@ int main(int argc, char **argv) {
   // Find my location in the process grid
   ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
   for (int d=0,rankleft=rank; d<dim; d++) {
-    const int pstride[3] = {p[1]*p[2], p[2], 1};
+    const int pstride[3] = {p[1]*p[2], p[2], 1}; // *NOPAD*
     irank[d] = rankleft / pstride[d];
     rankleft -= irank[d] * pstride[d];
   }
