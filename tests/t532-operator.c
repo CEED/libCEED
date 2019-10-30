@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<ndofs; i++)
     area += vv[i];
   CeedVectorRestoreArrayRead(v, &vv);
-  if (fabs(area - 1.0) > 1E-14)
+  if (fabs(area - 1.0) > 1e-14)
     // LCOV_EXCL_START
     printf("Error: True operator computed area = %f != 1.0\n", area);
   // LCOV_EXCL_STOP
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<ndofs; i++)
     area += vv[i];
   CeedVectorRestoreArrayRead(v, &vv);
-  if (fabs(area - 1.0) > 1E-14)
+  if (fabs(area - 1.0) > 1e-14)
     // LCOV_EXCL_START
     printf("Error: Assembled operator computed area = %f != 1.0\n", area);
   // LCOV_EXCL_STOP
