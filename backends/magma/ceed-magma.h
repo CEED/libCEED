@@ -42,19 +42,19 @@ typedef struct {
 CEED_INTERN {
 #endif
   void magmablas_dbasis_apply_batched_eval_interp(magma_int_t P, magma_int_t Q,
-      magma_int_t dim, magma_int_t ncomp, const double *dT, CeedTransposeMode tmode,
-      const double *dU, magma_int_t ustride, double *dV, magma_int_t vstride,
-      magma_int_t batchCount);
+      magma_int_t dim, magma_int_t ncomp, const double *dT,
+      CeedTransposeMode tmode, const double *dU, magma_int_t ustride,
+      double *dV, magma_int_t vstride, magma_int_t batchCount);
 
   void magmablas_dbasis_apply_batched_eval_grad(magma_int_t P, magma_int_t Q,
-      magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt, const double* dinterp1d,
-      const double *dgrad1d, CeedTransposeMode tmode, const double *dU,
-      magma_int_t ustride, double *dV, magma_int_t vstride, magma_int_t batchCount,
-      magma_int_t dim_ctr);
+      magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt,
+      const double* dinterp1d, const double *dgrad1d, CeedTransposeMode tmode,
+      const double *dU, magma_int_t ustride, double *dV, magma_int_t vstride,
+      magma_int_t batchCount, magma_int_t dim_ctr);
 
-  void magmablas_dbasis_apply_batched_eval_weight(magma_int_t Q, magma_int_t dim,
-      const double *dqweight1d, double *dV, magma_int_t vstride,
-      magma_int_t batchCount);
+  void magmablas_dbasis_apply_batched_eval_weight(magma_int_t Q,
+      magma_int_t dim, const double *dqweight1d, double *dV,
+      magma_int_t vstride, magma_int_t batchCount);
 
   magma_int_t
   magma_isdevptr(const void *A);
@@ -64,9 +64,12 @@ CEED_INTERN {
       const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
 
   CEED_INTERN int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim,
-                                          CeedInt ndof, CeedInt nqpts, const CeedScalar *interp, const CeedScalar *grad,
-                                          const CeedScalar *qref, const CeedScalar *qweight, CeedBasis basis);
-
+                                          CeedInt ndof, CeedInt nqpts,
+                                          const CeedScalar *interp,
+                                          const CeedScalar *grad,
+                                          const CeedScalar *qref,
+                                          const CeedScalar *qweight,
+                                          CeedBasis basis);
   #ifdef __cplusplus
 }
   #endif

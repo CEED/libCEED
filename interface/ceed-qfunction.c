@@ -371,8 +371,8 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source) {
   @ref Advanced
 **/
 
-int CeedQFunctionGetUserFunction(CeedQFunction qf, int (**f)()) {
-  *f = (int (*)())qf->function;
+int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f) {
+  *f = qf->function;
   return 0;
 }
 
