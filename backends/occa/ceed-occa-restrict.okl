@@ -61,7 +61,7 @@
   for (int i=0; i<nnodes; i++; @tile(TILE_SIZE,@outer,@inner)){
     const int rng1 = toffsets[i];
     const int rngN = toffsets[i+1];
-    double value = 0.0;
+    double value = vv[i];
     for (int j=rng1; j<rngN; ++j){
       const int tid = tindices[j];
       value += uu[tid];
@@ -80,7 +80,7 @@
     const int rng1 = toffsets[i];
     const int rngN = toffsets[i+1];
     for (int d = 0; d < ncomp; ++d) {
-      double value = 0.0;
+      double value = vv[d*nnodes+i];
       for (int j=rng1; j<rngN; ++j) {
         int n = tindices[j] % elemsize;
         int e = tindices[j] / elemsize;
@@ -101,7 +101,7 @@
     const int rng1 = toffsets[i];
     const int rngN = toffsets[i+1];
     for (int d = 0; d < ncomp; ++d) {
-      double value = 0.0;
+      double value = vv[d+i*ncomp];
       for (int j=rng1; j<rngN; ++j) {
         int n = tindices[j] % elemsize;
         int e = tindices[j] / elemsize;
