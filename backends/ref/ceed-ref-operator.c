@@ -37,7 +37,9 @@ static int CeedOperatorDestroy_Ref(CeedOperator op) {
 
   for (CeedInt i=0; i<impl->numeout; i++) {
     ierr = CeedVectorDestroy(&impl->evecsout[i]); CeedChk(ierr);
-    ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
+    if (!impl->identityqf) {
+      ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
+    }
   }
   ierr = CeedFree(&impl->evecsout); CeedChk(ierr);
   ierr = CeedFree(&impl->qvecsout); CeedChk(ierr);
@@ -62,15 +64,11 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
   CeedOperatorField *opfields;
   CeedQFunctionField *qffields;
   if (inOrOut) {
-    ierr = CeedOperatorGetFields(op, NULL, &opfields);
-    CeedChk(ierr);
-    ierr = CeedQFunctionGetFields(qf, NULL, &qffields);
-    CeedChk(ierr);
+    ierr = CeedOperatorGetFields(op, NULL, &opfields); CeedChk(ierr);
+    ierr = CeedQFunctionGetFields(qf, NULL, &qffields); CeedChk(ierr);
   } else {
-    ierr = CeedOperatorGetFields(op, &opfields, NULL);
-    CeedChk(ierr);
-    ierr = CeedQFunctionGetFields(qf, &qffields, NULL);
-    CeedChk(ierr);
+    ierr = CeedOperatorGetFields(op, &opfields, NULL); CeedChk(ierr);
+    ierr = CeedQFunctionGetFields(qf, &qffields, NULL); CeedChk(ierr);
   }
 
   // Loop over fields
@@ -139,6 +137,7 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
+  ierr = CeedQFunctionGetIdentityStatus(qf, &impl->identityqf); CeedChk(ierr);
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
@@ -168,12 +167,34 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
                                      impl->evecsin, impl->qvecsin, 0,
                                      numinputfields, Q);
   CeedChk(ierr);
-
   // Outfields
   ierr = CeedOperatorSetupFields_Ref(qf, op, 1, impl->evecs,
                                      impl->evecsout, impl->qvecsout,
                                      numinputfields, numoutputfields, Q);
   CeedChk(ierr);
+
+  // Identity QFunctions
+  if (impl->identityqf) {
+    CeedEvalMode inmode, outmode;
+    CeedQFunctionField *infields, *outfields;
+    ierr = CeedQFunctionGetFields(qf, &infields, &outfields); CeedChk(ierr);
+
+    for (CeedInt i=0; i<numinputfields; i++) {
+      ierr = CeedQFunctionFieldGetEvalMode(infields[i], &inmode);
+      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetEvalMode(outfields[i], &outmode);
+      CeedChk(ierr);
+
+      if (inmode == CEED_EVAL_NONE && outmode == CEED_EVAL_NONE)
+        // LCOV_EXCL_START
+        return CeedError(ceed, 1, "CEED_EVAL_NONE for a matching input and "
+                         "output does not make sense with identity QFunction");
+      // LCOV_EXCL_STOP
+
+      ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
+      impl->qvecsout[i] = impl->qvecsin[i];
+    }
+  }
 
   ierr = CeedOperatorSetSetupDone(op); CeedChk(ierr);
 
@@ -439,11 +460,6 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
 
   // Loop through elements
   for (CeedInt e=0; e<numelements; e++) {
-    // Input basis apply
-    ierr = CeedOperatorInputBasis_Ref(e, Q, qfinputfields, opinputfields,
-                                      numinputfields, false, impl);
-    CeedChk(ierr);
-
     // Output pointers
     for (CeedInt i=0; i<numoutputfields; i++) {
       ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
@@ -458,8 +474,16 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
       }
     }
 
+    // Input basis apply
+    ierr = CeedOperatorInputBasis_Ref(e, Q, qfinputfields, opinputfields,
+                                      numinputfields, false, impl);
+    CeedChk(ierr);
+
     // Q function
-    ierr = CeedQFunctionApply(qf, Q, impl->qvecsin, impl->qvecsout); CeedChk(ierr);
+    if (!impl->identityqf) {
+      ierr = CeedQFunctionApply(qf, Q, impl->qvecsin, impl->qvecsout);
+      CeedChk(ierr);
+    }
 
     // Output basis apply
     ierr = CeedOperatorOutputBasis_Ref(e, Q, qfoutputfields, opoutputfields,
@@ -563,9 +587,16 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   // Setup
   ierr = CeedOperatorSetup_Ref(op); CeedChk(ierr);
 
+  // Check for identity
+  if (impl->identityqf)
+   // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Assembling identity qfunction does not make sense");
+  // LCOV_EXCL_STOP
+
   // Input Evecs and Restriction
   ierr = CeedOperatorSetupInputs_Ref(numinputfields, qfinputfields,
-                                     opinputfields, NULL, true, impl, request); CeedChk(ierr);
+                                     opinputfields, NULL, true, impl, request);
+  CeedChk(ierr);
 
   // Count number of active input fields
   for (CeedInt i=0; i<numinputfields; i++) {

@@ -40,7 +40,9 @@ static int CeedOperatorDestroy_Blocked(CeedOperator op) {
 
   for (CeedInt i=0; i<impl->numeout; i++) {
     ierr = CeedVectorDestroy(&impl->evecsout[i]); CeedChk(ierr);
-    ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
+    if (!impl->identityqf) {
+      ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
+    }
   }
   ierr = CeedFree(&impl->evecsout); CeedChk(ierr);
   ierr = CeedFree(&impl->qvecsout); CeedChk(ierr);
@@ -159,6 +161,7 @@ static int CeedOperatorSetup_Blocked(CeedOperator op) {
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
+  ierr = CeedQFunctionGetIdentityStatus(qf, &impl->identityqf); CeedChk(ierr);
   ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
@@ -198,11 +201,33 @@ static int CeedOperatorSetup_Blocked(CeedOperator op) {
                                          numoutputfields, Q);
   CeedChk(ierr);
 
+  // Identity QFunctions
+  if (impl->identityqf) {
+    CeedEvalMode inmode, outmode;
+    CeedQFunctionField *infields, *outfields;
+    ierr = CeedQFunctionGetFields(qf, &infields, &outfields); CeedChk(ierr);
+
+    for (CeedInt i=0; i<numinputfields; i++) {
+      ierr = CeedQFunctionFieldGetEvalMode(infields[i], &inmode);
+      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetEvalMode(outfields[i], &outmode);
+      CeedChk(ierr);
+
+      if (inmode == CEED_EVAL_NONE && outmode == CEED_EVAL_NONE)
+       // LCOV_EXCL_START
+        return CeedError(ceed, 1, "CEED_EVAL_NONE for a matching input and "
+                         "output does not make sense with identity QFunction");
+      // LCOV_EXCL_STOP
+
+      ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
+      impl->qvecsout[i] = impl->qvecsin[i];
+    }
+  }
+
   ierr = CeedOperatorSetSetupDone(op); CeedChk(ierr);
 
   return 0;
 }
-
 
 // Setup Input fields
 static inline int CeedOperatorSetupInputs_Blocked(CeedInt numinputfields,
@@ -461,11 +486,6 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
 
   // Loop through elements
   for (CeedInt e=0; e<nblks*blksize; e+=blksize) {
-    // Input basis apply
-    ierr = CeedOperatorInputBasis_Blocked(e, Q, qfinputfields, opinputfields,
-                                          numinputfields, blksize, false, impl);
-    CeedChk(ierr);
-
     // Output pointers
     for (CeedInt i=0; i<numoutputfields; i++) {
       ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
@@ -480,9 +500,16 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
       }
     }
 
-    // Q function
-    ierr = CeedQFunctionApply(qf, Q*blksize, impl->qvecsin, impl->qvecsout);
+    // Input basis apply
+    ierr = CeedOperatorInputBasis_Blocked(e, Q, qfinputfields, opinputfields,
+                                          numinputfields, blksize, false, impl);
     CeedChk(ierr);
+
+    // Q function
+    if (!impl->identityqf) {
+      ierr = CeedQFunctionApply(qf, Q*blksize, impl->qvecsin, impl->qvecsout);
+      CeedChk(ierr);
+    }
 
     // Output basis apply
     ierr = CeedOperatorOutputBasis_Blocked(e, Q, qfoutputfields, opoutputfields,
@@ -560,6 +587,12 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
 
   // Setup
   ierr = CeedOperatorSetup_Blocked(op); CeedChk(ierr);
+
+  // Check for identity
+  if (impl->identityqf)
+   // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Assembling identity qfunction does not make sense");
+  // LCOV_EXCL_STOP
 
   // Input Evecs and Restriction
   ierr = CeedOperatorSetupInputs_Blocked(numinputfields, qfinputfields,
@@ -701,7 +734,6 @@ int CeedOperatorCreate_Blocked(CeedOperator op) {
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
-
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
                                 CeedOperatorAssembleLinearQFunction_Blocked);
