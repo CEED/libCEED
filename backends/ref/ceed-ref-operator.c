@@ -185,12 +185,6 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
       ierr = CeedQFunctionFieldGetEvalMode(outfields[i], &outmode);
       CeedChk(ierr);
 
-      if (inmode == CEED_EVAL_NONE && outmode == CEED_EVAL_NONE)
-        // LCOV_EXCL_START
-        return CeedError(ceed, 1, "CEED_EVAL_NONE for a matching input and "
-                         "output does not make sense with identity QFunction");
-      // LCOV_EXCL_STOP
-
       ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
       impl->qvecsout[i] = impl->qvecsin[i];
     }

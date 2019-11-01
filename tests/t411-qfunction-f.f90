@@ -16,7 +16,8 @@
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-      call ceedqfunctioncreateidentity(ceed,1,qf,err)
+      call ceedqfunctioncreateidentity(ceed,1,ceed_eval_interp,&
+     & ceed_eval_interp,qf,err)
 
       do i=0,q-1
         uu(i+1)=i*i
