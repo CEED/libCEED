@@ -706,6 +706,7 @@ int main(int argc, char **argv) {
     ierr = DMPlexSetClosurePermutationTensor(dm,PETSC_DETERMINE,NULL);CHKERRQ(ierr);
     ierr = PetscFEGetBasisSpace(fe, &fespace);CHKERRQ(ierr);
     ierr = PetscSpaceGetDegree(fespace, &degree, NULL);CHKERRQ(ierr);
+    if (degree < 1) SETERRQ1(comm, PETSC_ERR_ARG_OUTOFRANGE, "Degree %D; must specify -petscspace_degree 1 (or greater)", degree);
     ierr = PetscFEDestroy(&fe);CHKERRQ(ierr);
   }
   { // Empty name for conserved field
