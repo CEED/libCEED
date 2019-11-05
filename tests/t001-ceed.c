@@ -1,6 +1,6 @@
 /// @file
-/// Test creation and destruction of a CEED object
-/// \test Test creation and destruction of a CEED object
+/// Test return of CEED backend prefered memory type
+/// \test Test return of CEED backend prefered memory type
 #include <ceed.h>
 
 int main(int argc, char **argv) {
