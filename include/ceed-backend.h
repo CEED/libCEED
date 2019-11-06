@@ -138,7 +138,7 @@ CEED_EXTERN int CeedTensorContractSetData(CeedTensorContract contract,
 CEED_EXTERN int CeedTensorContractDestroy(CeedTensorContract *contract);
 
 CEED_EXTERN int CeedQFunctionRegister(const char *, const char *, CeedInt,
-    CeedQFunctionUser, int (*init)(Ceed, const char *, CeedQFunction));
+                                      CeedQFunctionUser, int (*init)(Ceed, const char *, CeedQFunction));
 CEED_EXTERN int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
 CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf,
     CeedInt *vlength);
@@ -147,7 +147,7 @@ CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf,
                                         CeedInt *numoutputfields);
 CEED_EXTERN int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
-    int (**f)());
+    CeedQFunctionUser *f);
 CEED_EXTERN int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize);
 CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, void **ctx);
 CEED_EXTERN int CeedQFunctionGetInnerContext(CeedQFunction qf, void **ctx);

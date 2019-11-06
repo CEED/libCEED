@@ -17,6 +17,7 @@
 #include <ceed-backend.h>
 #include "ceed-cuda.h"
 
+// *INDENT-OFF*
 static const char *restrictionkernels = QUOTE(
 
 #if __CUDA_ARCH__ < 600
@@ -110,7 +111,7 @@ extern "C" __global__ void trNoTr(const CeedInt nelem,
       const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
       const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-      atomicAdd(v + (s + RESTRICTION_ELEMSIZE * e + RESTRICTION_NNODES * d), u[i]);
+      atomicAdd(v + (s + RESTRICTION_ELEMSIZE*e + RESTRICTION_NNODES*d), u[i]);
     }
   }
 }
@@ -127,7 +128,7 @@ extern "C" __global__ void trTr(const CeedInt nelem,
       const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
       const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-      atomicAdd(v + (RESTRICTION_NCOMP * indices[s + RESTRICTION_ELEMSIZE * e] + d),
+      atomicAdd(v + (RESTRICTION_NCOMP*indices[s + RESTRICTION_ELEMSIZE*e] + d),
                 u[i]);
     }
   } else {
@@ -137,12 +138,13 @@ extern "C" __global__ void trTr(const CeedInt nelem,
       const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
       const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-      atomicAdd(v + (RESTRICTION_NCOMP * (s + RESTRICTION_ELEMSIZE * e) + d), u[i]);
+      atomicAdd(v + (RESTRICTION_NCOMP*(s + RESTRICTION_ELEMSIZE*e) + d), u[i]);
     }
   }
 }
 
 );
+// *INDENT-ON*
 
 static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedTransposeMode lmode,

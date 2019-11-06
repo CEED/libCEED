@@ -519,13 +519,13 @@ doc :
 
 style :
 	@astyle --options=.astylerc \
-          $(filter-out include/ceedf.h tests/t310-basis-f.h, \
+          $(filter-out include/ceedf.h tests/t320-basis-f.h, \
             $(wildcard include/*.h interface/*.[ch] tests/*.[ch] backends/*/*.[ch] \
               examples/*/*.[ch] examples/*/*.[ch]pp gallery/*/*.[ch]))
 
 CLANG_TIDY ?= clang-tidy
 %.c.tidy : %.c
-	$(CLANG_TIDY) $^ -- $(CPPFLAGS)
+	$(CLANG_TIDY) $^ -- $(CPPFLAGS) --std=c99
 
 tidy : $(libceed.c:%=%.tidy)
 

@@ -51,11 +51,13 @@ CEED_QFUNCTION(diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
     // Stored in Voigt convention
     // 0 2
     // 2 1
+    // *INDENT-OFF*
     const CeedScalar dXdxdXdxT[2][2] = {{qd[i+0*Q],
                                          qd[i+2*Q]},
                                         {qd[i+2*Q],
                                          qd[i+1*Q]}
                                        };
+    // *INDENT-ON*
     // j = direction of vg
     for (int j=0; j<2; j++)
       vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +

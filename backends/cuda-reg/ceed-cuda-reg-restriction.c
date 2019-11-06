@@ -18,6 +18,7 @@
 #include "ceed-cuda-reg.h"
 #include "../cuda/ceed-cuda.h"
 
+// *INDENT-OFF*
 static const char *restrictionkernels = QUOTE(
 
 extern "C" __global__ void noTrNoTr(const CeedInt nelem,
@@ -230,6 +231,7 @@ extern "C" __global__ void trTrIdentity(const CeedInt nelem,
 }
 
 );
+// *INDENT-ON*
 
 static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedTransposeMode lmode,
@@ -449,9 +451,11 @@ int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype,
   CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",
-                                CeedElemRestrictionApply_Cuda_reg); CeedChk(ierr);
+                                CeedElemRestrictionApply_Cuda_reg);
+  CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy",
-                                CeedElemRestrictionDestroy_Cuda_reg); CeedChk(ierr);
+                                CeedElemRestrictionDestroy_Cuda_reg);
+  CeedChk(ierr);
   return 0;
 }
 
