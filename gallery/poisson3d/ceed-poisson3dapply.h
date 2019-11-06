@@ -54,6 +54,8 @@ CEED_QFUNCTION(Poisson3DApply)(void *ctx, const CeedInt Q,
                                          qd[i+2*Q]}
                                        };
     // *INDENT-ON*
+
+    // Apply Poisson Operator
     // j = direction of vg
     for (int j=0; j<3; j++)
       vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +
