@@ -344,7 +344,7 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
                               (CeedScalar *)vecarray); CeedChk(ierr);
     ierr = CeedVectorRestoreArrayRead(vecref, &vecarray); CeedChk(ierr);
     ierr = CeedElemRestrictionCreateIdentity(ceed, rstrref->nelem,
-         rstrref->elemsize, rstrref->nnodes, rstrref->ncomp, rstr);
+           rstrref->elemsize, rstrref->nnodes, rstrref->ncomp, rstr);
     CeedChk(ierr);
 
     // Cleanup
