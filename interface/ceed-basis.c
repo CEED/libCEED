@@ -646,7 +646,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
       tau[i] = 0;
 
     for (CeedInt j=i+1; j<n-1; j++)
-        v[j] /= v[i];
+      v[j] /= v[i];
 
     // Update sub and super diagonal
     matT[i+n*(i+1)] = Rii;
