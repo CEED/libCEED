@@ -584,7 +584,7 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
 
   // Check for identity
   if (impl->identityqf)
-   // LCOV_EXCL_START
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Assembling identity qfunction does not make sense");
   // LCOV_EXCL_STOP
 

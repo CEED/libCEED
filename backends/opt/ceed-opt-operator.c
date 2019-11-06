@@ -546,7 +546,7 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
     if (!impl->identityqf) {
       ierr = CeedQFunctionApply(qf, Q*blksize, impl->qvecsin, impl->qvecsout);
       CeedChk(ierr);
-   }
+    }
 
     // Output basis apply and restrict
     ierr = CeedOperatorOutputBasis_Opt(e, Q, qfoutputfields, opoutputfields,
@@ -598,7 +598,7 @@ static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
 
   // Check for identity
   if (impl->identityqf)
-   // LCOV_EXCL_START
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Assembling identity qfunction does not make sense");
   // LCOV_EXCL_STOP
 
