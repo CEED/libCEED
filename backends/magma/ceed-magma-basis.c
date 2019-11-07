@@ -235,13 +235,13 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
       magma_dgemm(MagmaNoTrans, MagmaNoTrans,
 		  P, nelem*ncomp, Q,
 		  1.0, impl->dinterp, P,
-		  du,Q,
+		  du, Q,
 		  0.0, dv, P);
     else
       magma_dgemm(MagmaTrans, MagmaNoTrans,
 		  Q, nelem*ncomp, P,
 		  1.0, impl->dinterp, P,
-		  du, Q,
+		  du, P,
 		  0.0, dv, Q);
   }
     break;
@@ -256,7 +256,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
 	magma_dgemm(MagmaNoTrans, MagmaNoTrans,
 		    P, nelem*ncomp, Q,
 		    1.0, impl->dgrad + d*P*Q, P,
-		    du + d*nelem*ncomp, Q,
+		    du + d*nelem*ncomp*Q, Q,
 		    beta, dv, P);
       }
     }
@@ -265,8 +265,8 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
 	magma_dgemm(MagmaTrans, MagmaNoTrans,
 		    Q, nelem*ncomp, P,
 		    1.0, impl->dgrad + d*P*Q, P,
-		    du, Q,
-		    0.0, dv + d*nelem*ncomp, Q);
+		    du, P,
+		    0.0, dv + d*nelem*ncomp*Q, Q);
     }
   }
     break;
@@ -281,7 +281,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     int elemsPerBlock = 1;//basis->Q1d < 7 ? optElems[basis->Q1d] : 1;
     int grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)?
 				       1 : 0 );
-    magma_weight(grid, nqpt, nelem, impl->dqweight, dv);
+    magma_weight(grid, nqpt, nelem, nqpt, impl->dqweight, dv);
     CeedChk(ierr);
   }
     break;

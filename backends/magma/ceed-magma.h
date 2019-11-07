@@ -73,7 +73,8 @@ void magmablas_dbasis_apply_batched_eval_weight(magma_int_t Q, magma_int_t dim,
   magma_int_t nelem);
 
 void magma_weight(magma_int_t grid, magma_int_t threads, magma_int_t nelem,
-             double *dqweight, double *dv);
+                  magma_int_t Q,
+                  double *dqweight, double *dv);
 
 void magma_readDofs(const magma_int_t NCOMP, 
                const magma_int_t nnodes, 
