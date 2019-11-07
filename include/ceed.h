@@ -402,6 +402,8 @@ CEED_EXTERN int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
 CEED_EXTERN int CeedOperatorView(CeedOperator op, FILE *stream);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
+CEED_EXTERN int CeedOperatorApplyAdd(CeedOperator op, CeedVector in,
+                                     CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
 
 /**

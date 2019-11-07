@@ -486,14 +486,6 @@ static int CeedOperatorApply_Occa(CeedOperator op,
     }
   } // numelements
 
-  // Zero lvecs
-  for (CeedInt i=0; i<numoutputfields; i++) {
-    ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
-    if (vec == CEED_VECTOR_ACTIVE)
-      vec = outvec;
-    ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-  }
-
   // Output restriction
   for (CeedInt i=0; i<numoutputfields; i++) {
     // Restore evec
@@ -543,7 +535,7 @@ int CeedOperatorCreate_Occa(CeedOperator op) {
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                 CeedOperatorApply_Occa); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
                                 CeedOperatorDestroy_Occa); CeedChk(ierr);

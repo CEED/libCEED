@@ -495,7 +495,6 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
   ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
   CeedChk(ierr);
   CeedEvalMode emode;
-  CeedVector vec;
 
   // Setup
   ierr = CeedOperatorSetup_Opt(op); CeedChk(ierr);
@@ -507,16 +506,6 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
 
   // Output Lvecs, Evecs, and Qvecs
   for (CeedInt i=0; i<numoutputfields; i++) {
-    // Zero Lvecs
-    ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
-    if (vec == CEED_VECTOR_ACTIVE) {
-      if (!impl->add) {
-        vec = outvec;
-        ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-      }
-    } else {
-      ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-    }
     // Set Qvec if needed
     ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
     CeedChk(ierr);
@@ -533,7 +522,6 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
       CeedChk(ierr);
     }
   }
-  impl->add = false;
 
   // Loop through elements
   for (CeedInt e=0; e<nblks*blksize; e+=blksize) {
@@ -751,7 +739,7 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
     ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
                                   CeedOperatorAssembleLinearQFunction_Opt);
     CeedChk(ierr);
-    ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
+    ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                   CeedOperatorApply_Opt); CeedChk(ierr);
   } else {
     // LCOV_EXCL_START

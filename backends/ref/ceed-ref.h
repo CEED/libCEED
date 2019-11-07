@@ -40,7 +40,6 @@ typedef struct {
 } CeedQFunction_Ref;
 
 typedef struct {
-  bool add;
   bool identityqf;
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)

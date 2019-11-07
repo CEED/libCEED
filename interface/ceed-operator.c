@@ -574,7 +574,7 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
 }
 
 /**
-  @brief Apply CeedOperator to a vector
+  @brief Apply CeedOperator to a vector and overwrite output vector
 
   This computes the action of the operator on the specified (active) input,
   yielding its (active) output.  All inputs and outputs must be specified using
@@ -622,8 +622,83 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out,
     // LCOV_EXCL_STOP
   }
   if (op->numelements || op->composite) {
-    ierr = op->Apply(op, in != CEED_VECTOR_NONE ? in : NULL,
-                     out != CEED_VECTOR_NONE ? out : NULL, request);
+    if (op->Apply) {
+      ierr = op->Apply(op, in != CEED_VECTOR_NONE ? in : NULL,
+                       out != CEED_VECTOR_NONE ? out : NULL, request);
+      CeedChk(ierr);
+    } else {
+      // Zero all output vectors
+      if (!op->composite) {
+        for (CeedInt i=0; i<qf->numoutputfields; i++) {
+          CeedVector vec = op->outputfields[i]->vec;
+          if (vec == CEED_VECTOR_ACTIVE)
+            vec = out;
+          if (vec != CEED_VECTOR_NONE) {
+            ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
+          }
+        }
+      } else if (out != CEED_VECTOR_NONE) { // Zero active output if composite
+        ierr = CeedVectorSetValue(out, 0.0); CeedChk(ierr);
+      }
+      ierr = op->ApplyAdd(op, in != CEED_VECTOR_NONE ? in : NULL,
+                          out != CEED_VECTOR_NONE ? out : NULL, request);
+      CeedChk(ierr);
+    }
+  }
+  return 0;
+}
+
+/**
+  @brief Apply CeedOperator to a vector and add result to output vector
+
+  This computes the action of the operator on the specified (active) input,
+  yielding its (active) output.  All inputs and outputs must be specified using
+  CeedOperatorSetField().
+
+  @param op        CeedOperator to apply
+  @param[in] in    CeedVector containing input state or NULL if there are no
+                     active inputs
+  @param[out] out  CeedVector to sum in result of applying operator (must be
+                     distinct from @a in) or NULL if there are no active outputs
+  @param request   Address of CeedRequest for non-blocking completion, else
+                     CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out,
+                         CeedRequest *request) {
+  int ierr;
+  Ceed ceed = op->ceed;
+  CeedQFunction qf = op->qf;
+
+  if (op->composite) {
+    if (!op->numsub)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1, "No suboperators set");
+    // LCOV_EXCL_STOP
+  } else {
+    if (op->nfields == 0)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1, "No operator fields set");
+    // LCOV_EXCL_STOP
+    if (op->nfields < qf->numinputfields + qf->numoutputfields)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1, "Not all operator fields set");
+    // LCOV_EXCL_STOP
+    if (!op->hasrestriction)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1,"At least one restriction required");
+    // LCOV_EXCL_STOP
+    if (op->numqpoints == 0)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1,"At least one non-collocated basis required");
+    // LCOV_EXCL_STOP
+  }
+  if (op->numelements || op->composite) {
+    ierr = op->ApplyAdd(op, in != CEED_VECTOR_NONE ? in : NULL,
+                        out != CEED_VECTOR_NONE ? out : NULL, request);
     CeedChk(ierr);
   }
   return 0;

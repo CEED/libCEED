@@ -211,6 +211,7 @@ struct CeedOperator_private {
                                  CeedElemRestriction *, CeedRequest *);
   int (*AssembleLinearDiagonal)(CeedOperator, CeedVector *, CeedRequest *);
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
+  int (*ApplyAdd)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector,
                        CeedVector, CeedRequest *);
   int (*Destroy)(CeedOperator);

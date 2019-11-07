@@ -393,6 +393,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedOperator, AssembleLinearQFunction),
     CEED_FTABLE_ENTRY(CeedOperator, AssembleLinearDiagonal),
     CEED_FTABLE_ENTRY(CeedOperator, Apply),
+    CEED_FTABLE_ENTRY(CeedOperator, ApplyAdd),
     CEED_FTABLE_ENTRY(CeedOperator, ApplyJacobian),
     CEED_FTABLE_ENTRY(CeedOperator, Destroy),
     {NULL, 0} // End of lookup table - used in SetBackendFunction loop
