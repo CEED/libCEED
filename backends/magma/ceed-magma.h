@@ -74,7 +74,6 @@ CEED_INTERN {
                     magma_int_t Q,
                     double *dqweight, double *dv);
 
-
   void magma_readDofs(const magma_int_t NCOMP, 
                       const magma_int_t nnodes, 
                       const magma_int_t nelem, magma_int_t *indices, 
