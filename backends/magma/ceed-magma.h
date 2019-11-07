@@ -71,7 +71,9 @@ CEED_INTERN {
       magma_int_t vstride, magma_int_t batchCount);
 
   void magma_weight(magma_int_t grid, magma_int_t threads, magma_int_t nelem,
+                    magma_int_t Q,
                     double *dqweight, double *dv);
+
 
   void magma_readDofs(const magma_int_t NCOMP, 
                       const magma_int_t nnodes, 
