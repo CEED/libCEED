@@ -541,13 +541,3 @@ int CeedOperatorCreate_Occa(CeedOperator op) {
                                 CeedOperatorDestroy_Occa); CeedChk(ierr);
   return 0;
 }
-
-// *****************************************************************************
-// * Create a composite operator
-// *****************************************************************************
-int CeedCompositeOperatorCreate_Occa(CeedOperator op) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1, "Backend does not implement composite operators");
-}
