@@ -73,6 +73,7 @@ CEED_EXTERN int CeedSetData(Ceed ceed, void **data);
 
 CEED_EXTERN int CeedVectorGetCeed(CeedVector vec, Ceed *ceed);
 CEED_EXTERN int CeedVectorGetState(CeedVector vec, uint64_t *state);
+CEED_EXTERN int CeedVectorAddReference(CeedVector vec);
 CEED_EXTERN int CeedVectorGetData(CeedVector vec, void **data);
 CEED_EXTERN int CeedVectorSetData(CeedVector vec, void **data);
 

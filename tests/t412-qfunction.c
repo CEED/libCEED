@@ -15,7 +15,8 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
-  CeedQFunctionCreateIdentity(ceed, size, &qf);
+  CeedQFunctionCreateIdentity(ceed, size, CEED_EVAL_INTERP, CEED_EVAL_INTERP,
+                              &qf);
 
   for (CeedInt i=0; i<Q*size; i++)
     u[i] = i*i;
