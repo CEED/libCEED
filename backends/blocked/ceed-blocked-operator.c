@@ -40,9 +40,7 @@ static int CeedOperatorDestroy_Blocked(CeedOperator op) {
 
   for (CeedInt i=0; i<impl->numeout; i++) {
     ierr = CeedVectorDestroy(&impl->evecsout[i]); CeedChk(ierr);
-    if (!impl->identityqf) {
-      ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
-    }
+    ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
   }
   ierr = CeedFree(&impl->evecsout); CeedChk(ierr);
   ierr = CeedFree(&impl->qvecsout); CeedChk(ierr);
@@ -215,6 +213,7 @@ static int CeedOperatorSetup_Blocked(CeedOperator op) {
 
       ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
       impl->qvecsout[i] = impl->qvecsin[i];
+      ierr = CeedVectorAddReference(impl->qvecsin[i]); CeedChk(ierr);
     }
   }
 

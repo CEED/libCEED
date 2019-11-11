@@ -387,6 +387,20 @@ int CeedVectorSetData(CeedVector vec, void **data) {
 }
 
 /**
+  @brief Add a refrence to a CeedVector
+
+  @param[out] vec     CeedVector to increment refrence counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedVectorAddReference(CeedVector vec) {
+  vec->refcount++;
+  return 0;
+}
+
+/**
   @brief Destroy a CeedVector
 
   @param vec   CeedVector to destroy
