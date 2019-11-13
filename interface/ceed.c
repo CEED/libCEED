@@ -401,6 +401,11 @@ int CeedInit(const char *resource, Ceed *ceed) {
   ierr = CeedCalloc(sizeof(foffsets), &(*ceed)->foffsets); CeedChk(ierr);
   memcpy((*ceed)->foffsets, foffsets, sizeof(foffsets));
 
+  // Set fallback for advanced CeedOperator functions
+  const char fallbackresource[] = "/cpu/self/ref/serial";
+  ierr = CeedSetOperatorFallbackResource(*ceed, fallbackresource);
+  CeedChk(ierr);
+
   // Backend specific setup
   ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);
 
@@ -533,6 +538,67 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
   // Set delegate parent
   delegate->parent = ceed;
 
+  return 0;
+}
+
+/**
+  @brief Set the fallback resource for CeedOperators. The current resource, if
+           any, is freed by calling this function. This string is freed upon the
+           destruction of the Ceed.
+
+  @param[out] ceed Ceed context
+  @param resource  Fallback resource to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
+  int ierr;
+
+  // Free old
+  ierr = CeedFree(&ceed->opfallbackresource); CeedChk(ierr);
+
+  // Set new
+  size_t len = strlen(resource);
+  char *tmp;
+  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
+  memcpy(tmp, resource, len+1);
+  ceed->opfallbackresource = tmp;
+
+  return 0;
+}
+
+/**
+  @brief Get the fallback resource for CeedOperators
+
+  @param ceed          Ceed context
+  @param[out] resource Variable to store fallback resource
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
+  *resource = (const char *)ceed->opfallbackresource;
+  return 0;
+}
+
+/**
+  @brief Get the parent Ceed associated with a fallback Ceed for a CeedOperator
+
+  @param ceed            Ceed context
+  @param[out] ceed       Variable to store parent Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent) {
+  *parent = ceed->opfallbackparent;
   return 0;
 }
 
@@ -686,6 +752,8 @@ int CeedDestroy(Ceed *ceed) {
   }
   ierr = CeedFree(&(*ceed)->foffsets); CeedChk(ierr);
   ierr = CeedFree(&(*ceed)->resource); CeedChk(ierr);
+  ierr = CeedDestroy(&(*ceed)->opfallbackceed); CeedChk(ierr);
+  ierr = CeedFree(&(*ceed)->opfallbackresource); CeedChk(ierr);
   ierr = CeedFree(ceed); CeedChk(ierr);
   return 0;
 }

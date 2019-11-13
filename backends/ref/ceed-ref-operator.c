@@ -576,7 +576,7 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   CeedScalar *a, *tmp;
   Ceed ceed, ceedparent;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  ierr = CeedOperatorFallbackGetParentCeed(op, &ceedparent); CeedChk(ierr);
+  ierr = CeedGetOperatorFallbackParentCeed(ceed, &ceedparent); CeedChk(ierr);
   ceedparent = ceedparent ? ceedparent : ceed;
 
   // Setup

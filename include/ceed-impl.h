@@ -48,6 +48,8 @@ struct Ceed_private {
   Ceed parent;
   objdelegate *objdelegates;
   int objdelegatecount;
+  Ceed opfallbackceed, opfallbackparent;
+  const char *opfallbackresource;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *,
                va_list);
   int (*GetPreferredMemType)(CeedMemType *);
@@ -201,9 +203,8 @@ struct CeedOperatorField_private {
 };
 
 struct CeedOperator_private {
-  Ceed ceed, fallbackceed, parentceed;
-  const char *fallbackresource;
-  CeedOperator fallback;
+  Ceed ceed;
+  CeedOperator opfallback;
   CeedQFunction qffallback;
   int refcount;
   int (*AssembleLinearQFunction)(CeedOperator, CeedVector *,
