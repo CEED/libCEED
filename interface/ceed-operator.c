@@ -280,6 +280,7 @@ int CeedOperatorCreateFallback(CeedOperator op) {
   opref->setupdone = 0;
   opref->ceed = ceedref;
   ierr = ceedref->OperatorCreate(opref); CeedChk(ierr);
+  opref->parentceed = op->ceed;
   op->fallback = opref;
 
   // Clone QF
@@ -354,32 +355,15 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
   if (op->AssembleLinearQFunction) {
     ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
     CeedChk(ierr);
-  } else { // Fallback to reference Ceed
+  } else {
+    // Fallback to reference Ceed
     if (!op->fallback) {
       ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
     }
 
     // Assemble
-    CeedVector vecref;
-    CeedElemRestriction rstrref;
-    ierr = op->fallback->AssembleLinearQFunction(op->fallback, &vecref,
-           &rstrref, request); CeedChk(ierr);
-
-    // Copy data into original Ceed objects
-    const CeedScalar *vecarray;
-    ierr = CeedVectorGetArrayRead(vecref, CEED_MEM_HOST, &vecarray);
-    CeedChk(ierr);
-    ierr = CeedVectorCreate(ceed, vecref->length, assembled); CeedChk(ierr);
-    ierr = CeedVectorSetArray(*assembled, CEED_MEM_HOST, CEED_COPY_VALUES,
-                              (CeedScalar *)vecarray); CeedChk(ierr);
-    ierr = CeedVectorRestoreArrayRead(vecref, &vecarray); CeedChk(ierr);
-    ierr = CeedElemRestrictionCreateIdentity(ceed, rstrref->nelem,
-           rstrref->elemsize, rstrref->nnodes, rstrref->ncomp, rstr);
-    CeedChk(ierr);
-
-    // Cleanup
-    ierr = CeedVectorDestroy(&vecref);
-    ierr = CeedElemRestrictionDestroy(&rstrref); CeedChk(ierr);
+    ierr = op->fallback->AssembleLinearQFunction(op->fallback, assembled, rstr,
+                                                 request); CeedChk(ierr);
   }
   return 0;
 }
@@ -862,6 +846,22 @@ int CeedOperatorSetFallbackResource(CeedOperator op, const char *resource) {
 
 int CeedOperatorGetFallbackResource(CeedOperator op, const char **resource) {
   *resource = (const char *)op->fallbackresource;
+  return 0;
+}
+
+/**
+  @brief Get the parent Ceed associated with a fallback CeedOperator
+
+  @param op              CeedOperator
+  @param[out] ceed       Variable to store parent Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedOperatorFallbackGetParentCeed(CeedOperator op, Ceed *ceed) {
+  *ceed = op->parentceed;
   return 0;
 }
 

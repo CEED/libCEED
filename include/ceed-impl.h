@@ -201,7 +201,7 @@ struct CeedOperatorField_private {
 };
 
 struct CeedOperator_private {
-  Ceed ceed, fallbackceed;
+  Ceed ceed, fallbackceed, parentceed;
   const char *fallbackresource;
   CeedOperator fallback;
   CeedQFunction qffallback;

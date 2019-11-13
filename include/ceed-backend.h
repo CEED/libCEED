@@ -183,6 +183,7 @@ CEED_EXTERN int CeedOperatorGetFallbackResource(CeedOperator op,
     const char **resource);
 CEED_EXTERN int CeedOperatorSetFallbackResource(CeedOperator op,
     const char *resource);
+CEED_EXTERN int CeedOperatorFallbackGetParentCeed(CeedOperator op, Ceed *ceed);
 CEED_EXTERN int CeedOperatorGetData(CeedOperator op, void **data);
 CEED_EXTERN int CeedOperatorSetData(CeedOperator op, void **data);
 CEED_EXTERN int CeedOperatorSetSetupDone(CeedOperator op);
