@@ -70,6 +70,8 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
   if (dqfT) dqfT->refcount++;
   ierr = CeedCalloc(16, &(*op)->inputfields); CeedChk(ierr);
   ierr = CeedCalloc(16, &(*op)->outputfields); CeedChk(ierr);
+  const char resource[] = "/cpu/self/ref/serial";
+  ierr = CeedOperatorSetFallbackResource(*op, resource); CeedChk(ierr);
   ierr = ceed->OperatorCreate(*op); CeedChk(ierr);
   return 0;
 }
@@ -107,6 +109,8 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   ceed->refcount++;
   (*op)->composite = true;
   ierr = CeedCalloc(16, &(*op)->suboperators); CeedChk(ierr);
+  const char resource[] = "/cpu/self/ref/serial";
+  ierr = CeedOperatorSetFallbackResource(*op, resource); CeedChk(ierr);
   ierr = ceed->CompositeOperatorCreate(*op); CeedChk(ierr);
   return 0;
 }
@@ -249,6 +253,49 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop, CeedOperator subop) {
 }
 
 /**
+  @brief Duplicate a CeedOperator with a refrence Ceed to fallback for advanced
+           CeedOperator functionality
+
+  @param op           CeedOperator to create fallback for
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+int CeedOperatorCreateFallback(CeedOperator op) {
+  int ierr;
+
+  // Fallback Ceed
+  const char *resource;
+  ierr = CeedOperatorGetFallbackResource(op, &resource);
+  Ceed ceedref;
+  ierr = CeedInit(resource, &ceedref); CeedChk(ierr);
+  op->fallbackceed = ceedref;
+
+  // Clone Op
+  CeedOperator opref;
+  ierr = CeedCalloc(1, &opref); CeedChk(ierr);
+  memcpy(opref, op, sizeof(*opref)); CeedChk(ierr);
+  opref->data = NULL;
+  opref->setupdone = 0;
+  opref->ceed = ceedref;
+  ierr = ceedref->OperatorCreate(opref); CeedChk(ierr);
+  op->fallback = opref;
+
+  // Clone QF
+  CeedQFunction qfref;
+  ierr = CeedCalloc(1, &qfref); CeedChk(ierr);
+  memcpy(qfref, (op->qf), sizeof(*qfref)); CeedChk(ierr);
+  qfref->data = NULL;
+  qfref->ceed = ceedref;
+  ierr = ceedref->QFunctionCreate(qfref); CeedChk(ierr);
+  opref->qf = qfref;
+  op->qffallback = qfref;
+
+  return 0;
+}
+
+/**
   @brief Assemble a linear CeedQFunction associated with a CeedOperator
 
   This returns a CeedVector containing a matrix at each quadrature point
@@ -307,33 +354,16 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
   if (op->AssembleLinearQFunction) {
     ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
     CeedChk(ierr);
-  } else { // Delegate to /cpu/self/ref/serial
-    Ceed ceedref;
-    ierr = CeedInit("/cpu/self/ref/serial", &ceedref); CeedChk(ierr);
-
-    // Clone Op
-    CeedOperator opref;
-    ierr = CeedCalloc(1, &opref); CeedChk(ierr);
-    memcpy(opref, op, sizeof(*opref)); CeedChk(ierr);
-    opref->data = NULL;
-    opref->setupdone = 0;
-    opref->ceed = ceedref;
-    ierr = ceedref->OperatorCreate(opref); CeedChk(ierr);
-
-    // Clone QF
-    CeedQFunction qfref;
-    ierr = CeedCalloc(1, &qfref); CeedChk(ierr);
-    memcpy(qfref, (op->qf), sizeof(*qfref)); CeedChk(ierr);
-    qfref->data = NULL;
-    qfref->ceed = ceedref;
-    ierr = ceedref->QFunctionCreate(qfref); CeedChk(ierr);
-    opref->qf = qfref;
+  } else { // Fallback to reference Ceed
+    if (!op->fallback) {
+      ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
+    }
 
     // Assemble
     CeedVector vecref;
     CeedElemRestriction rstrref;
-    ierr = opref->AssembleLinearQFunction(opref, &vecref, &rstrref,
-                                          request); CeedChk(ierr);
+    ierr = op->fallback->AssembleLinearQFunction(op->fallback, &vecref,
+           &rstrref, request); CeedChk(ierr);
 
     // Copy data into original Ceed objects
     const CeedScalar *vecarray;
@@ -348,13 +378,8 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
     CeedChk(ierr);
 
     // Cleanup
-    ierr = qfref->Destroy(qfref); CeedChk(ierr);
-    ierr = CeedFree(&qfref); CeedChk(ierr);
-    ierr = opref->Destroy(opref); CeedChk(ierr);
-    ierr = CeedFree(&opref); CeedChk(ierr);
     ierr = CeedVectorDestroy(&vecref);
     ierr = CeedElemRestrictionDestroy(&rstrref); CeedChk(ierr);
-    ierr = CeedDestroy(&ceedref); CeedChk(ierr);
   }
   return 0;
 }
@@ -798,6 +823,49 @@ int CeedOperatorGetData(CeedOperator op, void **data) {
 }
 
 /**
+  @brief Set the fallback resource of a CeedOperator
+
+  @param[out] op  CeedOperator
+  @param resource Fallback resource to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedOperatorSetFallbackResource(CeedOperator op, const char *resource) {
+  int ierr;
+
+  // Free old
+  ierr = CeedFree(&op->fallbackresource); CeedChk(ierr);
+
+  // Set new
+  size_t len = strlen(resource);
+  char *tmp;
+  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
+  memcpy(tmp, resource, len+1);
+  op->fallbackresource = tmp;
+
+  return 0;
+}
+
+/**
+  @brief Get the fallback resource of a CeedOperator
+
+  @param op            CeedOperator
+  @param[out] resource Variable to store fallback resource
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+
+int CeedOperatorGetFallbackResource(CeedOperator op, const char **resource) {
+  *resource = (const char *)op->fallbackresource;
+  return 0;
+}
+
+/**
   @brief Set the setup flag of a CeedOperator to True
 
   @param op              CeedOperator
@@ -954,6 +1022,16 @@ int CeedOperatorDestroy(CeedOperator *op) {
   ierr = CeedQFunctionDestroy(&(*op)->qf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqfT); CeedChk(ierr);
+
+  // Destroy fallback
+  if ((*op)->fallback) {
+    ierr = (*op)->qffallback->Destroy((*op)->qffallback); CeedChk(ierr);
+    ierr = CeedFree(&(*op)->qffallback); CeedChk(ierr);
+    ierr = (*op)->fallback->Destroy((*op)->fallback); CeedChk(ierr);
+    ierr = CeedFree(&(*op)->fallback); CeedChk(ierr);
+    ierr = CeedDestroy(&(*op)->fallbackceed); CeedChk(ierr);
+  }
+  ierr = CeedFree(&(*op)->fallbackresource); CeedChk(ierr);
 
   ierr = CeedFree(&(*op)->inputfields); CeedChk(ierr);
   ierr = CeedFree(&(*op)->outputfields); CeedChk(ierr);

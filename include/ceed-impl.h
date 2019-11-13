@@ -201,7 +201,10 @@ struct CeedOperatorField_private {
 };
 
 struct CeedOperator_private {
-  Ceed ceed;
+  Ceed ceed, fallbackceed;
+  const char *fallbackresource;
+  CeedOperator fallback;
+  CeedQFunction qffallback;
   int refcount;
   int (*AssembleLinearQFunction)(CeedOperator, CeedVector *,
                                  CeedElemRestriction *, CeedRequest *);
