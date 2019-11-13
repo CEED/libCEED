@@ -262,10 +262,18 @@ int CeedOperatorCreateFallback(CeedOperator op) {
   int ierr;
 
   // Fallback Ceed
-  const char *resource;
-  ierr = CeedGetOperatorFallbackResource(op->ceed, &resource);
+  const char *resource, *fallbackresource;
+  ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
+  ierr = CeedGetOperatorFallbackResource(op->ceed, &fallbackresource);
+  CeedChk(ierr);
+  if (!strcmp(resource, fallbackresource))
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, 1, "Backend %s cannot create an operator"
+                     "fallback to resource %s", resource, fallbackresource);
+  // LCOV_EXCL_STOP
+
   Ceed ceedref;
-  ierr = CeedInit(resource, &ceedref); CeedChk(ierr);
+  ierr = CeedInit(fallbackresource, &ceedref); CeedChk(ierr);
   ceedref->opfallbackparent = op->ceed;
   op->ceed->opfallbackceed = ceedref;
 
