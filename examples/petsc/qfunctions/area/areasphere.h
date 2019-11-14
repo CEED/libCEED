@@ -57,14 +57,23 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *J = in[0], *w = in[1];
+  const CeedScalar *X = in[0], *J = in[1], *w = in[2];
   // Outputs
   CeedScalar *qdata = out[0];
 
+  // Context
+  const CeedScalar *context = (const CeedScalar*)ctx;
+  const CeedScalar R        = context[0];
+  const CeedScalar l        = context[1];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
+    // Read global Cartesian coordinates
+    const CeedScalar xx = X[i+0*Q];
+    const CeedScalar yy = X[i+1*Q];
+    const CeedScalar zz = X[i+2*Q];
+
     // Read dxxdX Jacobian entries, stored as
     // 0 3
     // 1 4
@@ -77,22 +86,46 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
                                      J[i+Q*5]}
                                    };
 
-    // Modulus of dxxdX column vectors
-    const CeedScalar modg1 = sqrt(dxxdX[0][0]*dxxdX[0][0] +
-                                  dxxdX[1][0]*dxxdX[1][0] +
-                                  dxxdX[2][0]*dxxdX[2][0]);
-    const CeedScalar modg2 = sqrt(dxxdX[0][1]*dxxdX[0][1] +
-                                  dxxdX[1][1]*dxxdX[1][1] +
-                                  dxxdX[2][1]*dxxdX[2][1]);
+    // Convert to Latitude-Longitude (lambda, theta) geographic system
+    //    const CeedScalar lambda =  asin(zz / R);
+    //    const CeedScalar theta  = atan2(yy, xx);
+    // Convert to Longitude-Latitude: xcirc = (theta, lambda) system (from paper)
+    const CeedScalar theta =  asin(zz / R);
+    const CeedScalar lambda  = atan2(yy, xx);
 
-    // Use normalized column vectors of dxxdX as rows of dxdxx
-    const CeedScalar dxdxx[2][3] = {{dxxdX[0][0] / modg1,
-                                     dxxdX[1][0] / modg1,
-                                     dxxdX[2][0] / modg1},
-                                    {dxxdX[0][1] / modg2,
-                                     dxxdX[1][1] / modg2,
-                                     dxxdX[2][1] / modg2}
-                                   };
+    // Converto to local cubed-sphere system
+    // These are from lat-long online:
+    //    const CeedScalar x = l * cos(lambda) * cos(theta);
+    //    const CeedScalar y = l * cos(lambda) * sin(theta);
+    // These are from paper
+    const CeedScalar x = l * tan(lambda);
+    const CeedScalar y = l * tan(theta) / cos(lambda);
+
+    const CeedScalar delta = sqrt(l*l + x*x + y*y);
+
+    // Setup
+    const CeedScalar dxcircdxx[2][3] = {{0,
+                                         0,
+                                         1. / R*sqrt(1-zz*zz)},
+                                        {yy / (1.+1./(xx*xx)),
+                                         1. / (xx*(1.+yy*yy)),
+                                         0}
+                                       };
+
+    const CeedScalar dxdxcirc[2][2] = {{0,
+                                        l / (cos(lambda)*cos(lambda))},
+                                       {l / (cos(lambda)*cos(theta)*cos(theta)),
+                                        l*sin(theta)*sin(lambda) / (cos(theta)*cos(lambda)*cos(lambda))}
+                                      };
+
+    CeedScalar dxdxx[2][3];
+    for (int j=0; j<2; j++)
+      for (int k=0; k<3; k++) {
+        dxdxx[j][k] = 0;
+        for (int l=0; l<2; l++)
+          dxdxx[j][k] += dxdxcirc[j][l]*dxcircdxx[l][k];
+      }
+
 
     CeedScalar dxdX[2][2];
     for (int j=0; j<2; j++)
