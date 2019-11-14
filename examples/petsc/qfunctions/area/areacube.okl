@@ -1,0 +1,140 @@
+// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
+// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
+// reserved. See files LICENSE and NOTICE for details.
+//
+// This file is part of CEED, a collection of benchmarks, miniapps, software
+// libraries and APIs for efficient high-order finite element and spectral
+// element discretizations for exascale applications. For more information and
+// source code availability see http://github.com/ceed.
+//
+// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
+// a collaborative effort of two U.S. Department of Energy organizations (Office
+// of Science and the National Nuclear Security Administration) responsible for
+// the planning and preparation of a capable exascale ecosystem, including
+// software, applications, hardware, advanced system engineering and early
+// testbed platforms, in support of the nation's exascale computing imperative.
+
+// *****************************************************************************
+typedef int CeedInt;
+typedef double CeedScalar;
+
+#define Sqr(a) ((a)*(a))
+
+// *****************************************************************************
+// This QFunction sets up the geometric factor required for integration when
+//   reference coordinates have a different dimension than the one of
+//   pysical coordinates
+//
+// Reference (parent) 2D coordinates: X \in [-1, 1]^2
+//
+// Global physical coordinates given by the mesh (3D): xx \in [-l, l]^3
+//
+// Local physical coordinates on the manifold (2D): x \in [-l, l]^2
+//
+// Change of coordinates matrix computed by the library:
+//   (pysical 3D coords relative to reference 2D coords)
+//   dxx_j/dX_i (indicial notation) [3 x 2]
+//
+// Change of coordinates x (pysical 2D) relative to xx (phyisical 3D):
+//   dx_i/dxx_j (indicial notation) [2 x 3]
+//
+// Change of coordinates x (physical 2D) relative to X (reference 2D):
+//   (by chain rule)
+//   dx_i/dX_j = dx_i/dxx_k * dxx_k/dX_j
+//
+// The quadrature data is stored in the array qdata.
+//
+// We require the determinant of the Jacobian to properly compute integrals of
+//   the form: int( u v )
+//
+// Qdata: w * det(dx_i/dX_j)
+//
+// *****************************************************************************
+
+// -----------------------------------------------------------------------------
+@kernel void SetupMassGeo(void *ctx, CeedInt Q,
+                          const int *iOf7, const int *oOf7,
+                          const CeedScalar *in, CeedScalar *out) {
+// Inputs
+//  const CeedScalar
+//    *J = in + iOf7[0],
+//    *w = in + iOf7[1];
+// Outputs
+//  CeedScalar
+//    *qdata = out + oOf7[0];
+
+  // Quadrature Point Loop
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    // Read dxxdX Jacobian entries, stored as
+    // 0 3
+    // 1 4
+    // 2 5
+    const CeedScalar dxxdX[3][2] = {{in[iOf7[0]+0*Q+i],
+                                     in[iOf7[0]+3*Q+i]},
+                                    {in[iOf7[0]+1*Q+i],
+                                     in[iOf7[0]+4*Q+i]},
+                                    {in[iOf7[0]+2*Q+i],
+                                     in[iOf7[0]+5*Q+i]}
+                                    };
+
+    // Modulus of dxxdX column vectors
+    const CeedScalar modg1 = sqrt(Sqr(dxxdX[0][0]) +
+                                  Sqr(dxxdX[1][0]) +
+                                  Sqr(dxxdX[2][0]));
+    const CeedScalar modg2 = sqrt(Sqr(dxxdX[0][1]) +
+                                  Sqr(dxxdX[1][1]) +
+                                  Sqr(dxxdX[2][1]));
+
+    // Use normalized column vectors of dxxdX as rows of dxdxx
+    const CeedScalar dxdxx[2][3] = {{dxxdX[0][0] / modg1,
+                                     dxxdX[1][0] / modg1,
+                                     dxxdX[2][0] / modg1},
+                                    {dxxdX[0][1] / modg2,
+                                     dxxdX[1][1] / modg2,
+                                     dxxdX[2][1] / modg2}
+                                   };
+
+    CeedScalar dxdX[2][2];
+    for (int j=0; j<2; j++)
+      for (int k=0; k<2; k++) {
+        dxdX[j][k] = 0;
+        for (int l=0; l<3; l++)
+          dxdX[j][k] += dxdxx[j][l]*dxxdX[l][k];
+      }
+
+    out[oOf7[0]+i] = (dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]) * in[iOf7[1]+i];
+  }
+}
+// -----------------------------------------------------------------------------
+
+// *****************************************************************************
+// This QFunction applies the mass matrix for a scalar field.
+//
+// Inputs:
+//   u     - Input vector at quadrature points
+//   qdata - Geometric factors
+//
+// Output:
+//   v     - Output vector (test function) at quadrature points
+//
+// *****************************************************************************
+
+// -----------------------------------------------------------------------------
+@kernel void Mass(void *ctx, CeedInt Q,
+                          const int *iOf7, const int *oOf7,
+                          const CeedScalar *in, CeedScalar *out) {
+
+// Inputs
+//   const CeedScalar
+//     *u = in + iOf7[0],
+//     *qdata = in + iOf7[1],
+//     *target = in + iOf7[2];
+// Outputs
+//   CeedScalar *v = out + oOf7[0];
+
+// Quadrature Point Loop
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    out[oOf7[0]+i] = in[iOf7[1]+i] * in[iOf7[0]+i];
+  }
+}
+// -----------------------------------------------------------------------------
