@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, Q, &W);
   CeedVectorSetValue(W, 0);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
 
   for (int i = 0; i < 2; i++)
     x[i] = CeedIntPow(-1, i+1);
