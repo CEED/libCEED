@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
     fprintf(stdout, "%12.8f\n", qr[i]);
   }
   for (int i=0; i<3; i++) {
-    if (tau[i] <= 1E-14 && qr[i] >= -1E-14) tau[i] = 0;
+    if (tau[i] <= 1E-14 && tau[i] >= -1E-14) tau[i] = 0;
     fprintf(stdout, "%12.8f\n", tau[i]);
   }
   CeedDestroy(&ceed);
