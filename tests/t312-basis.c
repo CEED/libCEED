@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<(int)ALEN(p); i++)
     pint[i+1] = p[i] / (i+1);
   error = sum - PolyEval(1, ALEN(pint), pint) + PolyEval(-1, ALEN(pint), pint);
-  if (error > 1.e-10)
+  if (error > 1.E-10)
     // LCOV_EXCL_START
     printf("Error %e  sum %g  exact %g\n", error, sum,
            PolyEval(1, ALEN(pint), pint) - PolyEval(-1, ALEN(pint), pint));
