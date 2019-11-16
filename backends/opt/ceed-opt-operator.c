@@ -131,7 +131,8 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, Q*blksize, &qvecs[i]); CeedChk(ierr);
       ierr = CeedBasisApply(basis, blksize, CEED_NOTRANSPOSE,
-                            CEED_EVAL_WEIGHT, NULL, qvecs[i]); CeedChk(ierr);
+                            CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, qvecs[i]);
+      CeedChk(ierr);
 
       break;
     case CEED_EVAL_DIV:

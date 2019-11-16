@@ -162,7 +162,7 @@ static int CeedOperatorSetupFields_Occa(CeedQFunction qf, CeedOperator op,
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, Q, &qvecs[i]); CeedChk(ierr);
       ierr = CeedBasisApply(basis, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
-                            NULL, qvecs[i]); CeedChk(ierr);
+                            CEED_VECTOR_NONE, qvecs[i]); CeedChk(ierr);
       assert(starte==0);
       break;
     case CEED_EVAL_DIV: break; // Not implemented

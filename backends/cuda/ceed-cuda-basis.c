@@ -360,7 +360,7 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
        elem += gridDim.x*blockDim.z) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
-      if(!transpose) {//run with Q threads
+      if (!transpose) {//run with Q threads
         U = d_U + elem*BASIS_NCOMP*P + comp*P;
         V = 0.0;
         for (int i = 0; i < P; ++i) {
@@ -391,7 +391,7 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
        elem += gridDim.x*blockDim.z) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
-      if(!transpose) {//run with Q threads
+      if (!transpose) {//run with Q threads
         double V[BASIS_DIM];
         U = d_U + elem*BASIS_NCOMP*P + comp*P;
         for(int dim=0; dim<BASIS_DIM; dim++) {
@@ -449,7 +449,7 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
 
   const CeedScalar *d_u;
   CeedScalar *d_v;
-  if(emode!=CEED_EVAL_WEIGHT) {
+  if (emode != CEED_EVAL_WEIGHT) {
     ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChk(ierr);
   }
   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChk(ierr);
@@ -488,7 +488,7 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
                              weightargs); CeedChk(ierr);
   }
 
-  if(emode!=CEED_EVAL_WEIGHT) {
+  if (emode != CEED_EVAL_WEIGHT) {
     ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChk(ierr);
   }
   ierr = CeedVectorRestoreArray(v, &d_v); CeedChk(ierr);
@@ -517,7 +517,7 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt nelem,
 
   const CeedScalar *d_u;
   CeedScalar *d_v;
-  if(emode!=CEED_EVAL_WEIGHT) {
+  if (emode != CEED_EVAL_WEIGHT) {
     ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChk(ierr);
   }
   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChk(ierr);
@@ -561,7 +561,7 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt nelem,
     CeedChk(ierr);
   }
 
-  if(emode!=CEED_EVAL_WEIGHT) {
+  if (emode != CEED_EVAL_WEIGHT) {
     ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChk(ierr);
   }
   ierr = CeedVectorRestoreArray(v, &d_v); CeedChk(ierr);
