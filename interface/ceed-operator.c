@@ -560,7 +560,9 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out,
     // LCOV_EXCL_STOP
   }
   if (op->numelements || op->composite) {
-    ierr = op->Apply(op, in, out, request); CeedChk(ierr);
+    ierr = op->Apply(op, in != CEED_VECTOR_NONE ? in : NULL,
+                     out != CEED_VECTOR_NONE ? out : NULL, request);
+    CeedChk(ierr);
   }
   return 0;
 }

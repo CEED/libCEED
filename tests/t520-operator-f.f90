@@ -248,7 +248,8 @@
       call ceedcompositeoperatoraddsub(op_mass,op_masshex,err)
 
 ! Apply Setup Operator
-      call ceedoperatorapply(op_setup,x,ceed_null,ceed_request_immediate,err)
+      call ceedoperatorapply(op_setup,x,ceed_vector_none,&
+     & ceed_request_immediate,err)
 
 ! Apply Mass Operator
       call ceedvectorcreate(ceed,ndofs,u,err)

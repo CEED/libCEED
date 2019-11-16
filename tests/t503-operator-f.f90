@@ -130,9 +130,9 @@
       call ceedoperatorsetfield(op_mass,'v',erestrictu,&
      & ceed_notranspose,bu,v,err)
 
-      call ceedoperatorapply(op_setup,ceed_null,ceed_null,&
+      call ceedoperatorapply(op_setup,ceed_vector_none,ceed_vector_none,&
      & ceed_request_immediate,err)
-      call ceedoperatorapply(op_mass,ceed_null,ceed_null,&
+      call ceedoperatorapply(op_mass,ceed_vector_none,ceed_vector_none,&
      & ceed_request_immediate,err)
 
       call ceedvectorgetarrayread(v,ceed_mem_host,hv,voffset,err)

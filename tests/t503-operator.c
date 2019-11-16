@@ -89,8 +89,10 @@ int main(int argc, char **argv) {
 
   // Note - It is atypical to use only passive fields; this test is intended
   //   as a test for all passive input modes rather than as an example.
-  CeedOperatorApply(op_setup, NULL, NULL, CEED_REQUEST_IMMEDIATE);
-  CeedOperatorApply(op_mass, NULL, NULL, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_setup, CEED_VECTOR_NONE, CEED_VECTOR_NONE,
+                    CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_mass, CEED_VECTOR_NONE, CEED_VECTOR_NONE,
+                    CEED_REQUEST_IMMEDIATE);
 
   // Check output
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &hv);

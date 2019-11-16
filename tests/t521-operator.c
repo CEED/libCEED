@@ -201,7 +201,7 @@ int main(int argc, char **argv) {
   CeedCompositeOperatorAddSub(op_mass, op_massHex);
 
   // Apply Setup Operator
-  CeedOperatorApply(op_setup, X, NULL, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_setup, X, CEED_VECTOR_NONE, CEED_REQUEST_IMMEDIATE);
 
   // Apply Mass Operator
   CeedVectorCreate(ceed, ndofs, &U);
