@@ -917,10 +917,10 @@ void fCeedOperatorApply(int *op, int *ustatevec,
                         int *resvec, int *rqst, int *err) {
   CeedVector ustatevec_ = (*ustatevec == FORTRAN_NULL) ?
                           NULL : (*ustatevec == FORTRAN_VECTOR_NONE ?
-                          CEED_VECTOR_NONE : CeedVector_dict[*ustatevec]);
+                                  CEED_VECTOR_NONE : CeedVector_dict[*ustatevec]);
   CeedVector resvec_ = (*resvec == FORTRAN_NULL) ?
                        NULL : (*resvec == FORTRAN_VECTOR_NONE ?
-                       CEED_VECTOR_NONE : CeedVector_dict[*resvec]);
+                               CEED_VECTOR_NONE : CeedVector_dict[*resvec]);
 
   int createRequest = 1;
   // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
