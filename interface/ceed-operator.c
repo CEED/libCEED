@@ -249,7 +249,7 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop, CeedOperator subop) {
 }
 
 /**
-  @brief Duplicate a CeedOperator with a refrence Ceed to fallback for advanced
+  @brief Duplicate a CeedOperator with a reference Ceed to fallback for advanced
            CeedOperator functionality
 
   @param op           CeedOperator to create fallback for
