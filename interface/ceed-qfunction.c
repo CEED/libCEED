@@ -20,6 +20,10 @@
 #include <limits.h>
 
 /// @cond DOXYGEN_SKIP
+static struct CeedQFunction_private ceed_qfunction_none;
+/// @endcond
+
+/// @cond DOXYGEN_SKIP
 static struct {
   char name[CEED_MAX_RESOURCE_LEN];
   char source[CEED_MAX_RESOURCE_LEN];
@@ -666,4 +670,8 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   return 0;
 }
 
+/// @cond DOXYGEN_SKIP
+// Indicate that no QFunction is provided by the user
+CeedQFunction CEED_QFUNCTION_NONE = &ceed_qfunction_none;
+/// @endcond
 /// @}

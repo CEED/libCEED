@@ -12,6 +12,7 @@
 #define FORTRAN_BASIS_COLLOCATED -1
 #define FORTRAN_VECTOR_ACTIVE -1
 #define FORTRAN_VECTOR_NONE -2
+#define FORTRAN_QFUNCTION_NONE -1
 
 static Ceed *Ceed_dict = NULL;
 static int Ceed_count = 0;
@@ -746,9 +747,9 @@ void fCeedOperatorCreate(int *ceed,
 
   CeedOperator *op_ = &CeedOperator_dict[CeedOperator_count];
 
-  CeedQFunction dqf_  = NULL, dqfT_ = NULL;
-  if (*dqf  != FORTRAN_NULL) dqf_  = CeedQFunction_dict[*dqf ];
-  if (*dqfT != FORTRAN_NULL) dqfT_ = CeedQFunction_dict[*dqfT];
+  CeedQFunction dqf_  = CEED_QFUNCTION_NONE, dqfT_ = CEED_QFUNCTION_NONE;
+  if (*dqf  != FORTRAN_QFUNCTION_NONE) dqf_  = CeedQFunction_dict[*dqf ];
+  if (*dqfT != FORTRAN_QFUNCTION_NONE) dqfT_ = CeedQFunction_dict[*dqfT];
 
   *err = CeedOperatorCreate(Ceed_dict[*ceed], CeedQFunction_dict[*qf], dqf_,
                             dqfT_, op_);
