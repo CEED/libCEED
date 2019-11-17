@@ -107,7 +107,7 @@ int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
 
   char *source;
   ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);
-  cons char *funname = strrchr(source, ':') + 1;
+  const char *funname = strrchr(source, ':') + 1;
   data->qFunctionName = (char *)funname;
   const int filenamelen = funname - source;
   char filename[filenamelen];
