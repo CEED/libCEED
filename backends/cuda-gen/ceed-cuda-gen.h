@@ -17,6 +17,7 @@
 #include <ceed.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include "../cuda/ceed-cuda.h"
 
 typedef struct { const CeedScalar *in[16]; CeedScalar *out[16]; } CudaFields;
 typedef struct { CeedInt *in[16]; CeedInt *out[16]; } CudaFieldsInt;
@@ -40,6 +41,7 @@ typedef struct {
 } CeedQFunction_Cuda_gen;
 
 typedef struct {
+  Ceed_Cuda base;
 } Ceed_Cuda_gen;
 
 CEED_INTERN int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf);

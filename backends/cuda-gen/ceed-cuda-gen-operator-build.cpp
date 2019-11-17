@@ -828,10 +828,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
 
   // Add atomicAdd function for old NVidia architectures
   struct cudaDeviceProp prop;
-  Ceed delegate;
-  CeedGetDelegate(ceed, &delegate);
   Ceed_Cuda *ceed_data;
-  ierr = CeedGetData(delegate, (void **)&ceed_data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, (void **)&ceed_data); CeedChk(ierr);
   ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId);
   if(prop.major<6){
     code << atomicAdd;
