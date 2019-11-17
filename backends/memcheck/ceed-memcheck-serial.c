@@ -18,7 +18,8 @@
 
 static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
   int ierr;
-  if (strcmp(resource, "/cpu/self/ref/memcheck"))
+  if (strcmp(resource, "/cpu/self/memcheck/serial") &&
+      strcmp(resource, "/cpu/self/memcheck"))
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Valgrind Memcheck backend cannot use resource: %s",
                      resource);
@@ -27,7 +28,7 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
   // Create refrence CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceedref;
-  CeedInit("/cpu/self/ref/blocked", &ceedref);
+  CeedInit("/cpu/self/ref/serial", &ceedref);
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
@@ -38,5 +39,5 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/ref/memcheck", CeedInit_Memcheck, 100);
+  CeedRegister("/cpu/self/memcheck/serial", CeedInit_Memcheck, 100);
 }
