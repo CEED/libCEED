@@ -206,7 +206,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_error, "error", ncompu, CEED_EVAL_NONE);
 
   // Create the error operator
-  CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
+  CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_error);
   CeedOperatorSetField(op_error, "u", ceeddata->Erestrictu,
                        CEED_TRANSPOSE, ceeddata->basisu,
                        CEED_VECTOR_ACTIVE);

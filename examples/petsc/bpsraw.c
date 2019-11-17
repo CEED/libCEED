@@ -671,7 +671,8 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, lsize*ncompu, &rhsceed);
 
   // Create the operator that builds the quadrature data for the ceed operator
-  CeedOperatorCreate(ceed, qf_setupgeo, NULL, NULL, &op_setupgeo);
+  CeedOperatorCreate(ceed, qf_setupgeo, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &op_setupgeo);
   CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, CEED_NOTRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setupgeo, "weight", Erestrictxi, CEED_NOTRANSPOSE,
@@ -680,7 +681,8 @@ int main(int argc, char **argv) {
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Create the operator that builds the RHS and true solution
-  CeedOperatorCreate(ceed, qf_setuprhs, NULL, NULL, &op_setuprhs);
+  CeedOperatorCreate(ceed, qf_setuprhs, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &op_setuprhs);
   CeedOperatorSetField(op_setuprhs, "x", Erestrictx, CEED_NOTRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setuprhs, "dx", Erestrictx, CEED_NOTRANSPOSE,
@@ -693,7 +695,8 @@ int main(int argc, char **argv) {
                        basisu, CEED_VECTOR_ACTIVE);
 
   // Create the mass or diff operator
-  CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
+  CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_apply);
   CeedOperatorSetField(op_apply, "u", Erestrictu, CEED_TRANSPOSE,
                        basisu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
@@ -702,7 +705,8 @@ int main(int argc, char **argv) {
                        basisu, CEED_VECTOR_ACTIVE);
 
   // Create the error operator
-  CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
+  CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_error);
   CeedOperatorSetField(op_error, "u", Erestrictu, CEED_TRANSPOSE,
                        basisu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_error, "true_soln", Erestrictui, CEED_NOTRANSPOSE,

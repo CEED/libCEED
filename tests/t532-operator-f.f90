@@ -172,8 +172,8 @@
       call ceedqfunctionaddoutput(qf_setup_mass,'qdata',1,ceed_eval_none,err)
 
 ! Operator - setup mass
-      call ceedoperatorcreate(ceed,qf_setup_mass,ceed_null,ceed_null,&
-     & op_setup_mass,err)
+      call ceedoperatorcreate(ceed,qf_setup_mass,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_setup_mass,err)
       call ceedoperatorsetfield(op_setup_mass,'dx',erestrictx,&
      & ceed_notranspose,bx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup_mass,'_weight',erestrictxi,&
@@ -191,8 +191,8 @@
      & d*(d+1)/2,ceed_eval_none,err)
 
 ! Operator - setup diff
-      call ceedoperatorcreate(ceed,qf_setup_diff,ceed_null,ceed_null,&
-     & op_setup_diff,err)
+      call ceedoperatorcreate(ceed,qf_setup_diff,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_setup_diff,err)
       call ceedoperatorsetfield(op_setup_diff,'dx',erestrictx,&
      & ceed_notranspose,bx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup_diff,'_weight',erestrictxi,&
@@ -219,8 +219,8 @@
       call ceedqfunctionaddoutput(qf_apply,'dv',d,ceed_eval_grad,err)
 
 ! Operator - apply
-      call ceedoperatorcreate(ceed,qf_apply,ceed_null,ceed_null,op_apply,&
-     & err)
+      call ceedoperatorcreate(ceed,qf_apply,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_apply,err)
       call ceedoperatorsetfield(op_apply,'du',erestrictu,&
      & ceed_notranspose,bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_apply,'qdata_mass',erestrictui,&
@@ -270,8 +270,8 @@
       call ceedqfunctionaddoutput(qf_apply_lin,'dv',d,ceed_eval_grad,err)
 
 ! Operator - apply linearized
-      call ceedoperatorcreate(ceed,qf_apply_lin,ceed_null,ceed_null,&
-     & op_apply_lin,err)
+      call ceedoperatorcreate(ceed,qf_apply_lin,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_apply_lin,err)
       call ceedoperatorsetfield(op_apply_lin,'du',erestrictu,&
      & ceed_notranspose,bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_apply_lin,'qdata',erestrictlini,&

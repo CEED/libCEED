@@ -64,11 +64,13 @@ int main(int argc, char **argv) {
 //! [QFunction Create]
 
 //! [Setup Create]
-  CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
+  CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_setup);
 //! [Setup Create]
 
 //! [Operator Create]
-  CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
+  CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_mass);
 //! [Operator Create]
 
   CeedVectorCreate(ceed, Nx, &X);

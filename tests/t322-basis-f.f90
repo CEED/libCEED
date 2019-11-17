@@ -68,8 +68,8 @@
 
       call ceedbasisapply(b,1,ceed_notranspose,ceed_eval_interp,input,output,&
      & err)
-      call ceedbasisapply(b,1,ceed_notranspose,ceed_eval_weight,ceed_null,&
-     & weights,err)
+      call ceedbasisapply(b,1,ceed_notranspose,ceed_eval_weight,&
+     & ceed_vector_none,weights,err)
 
       call ceedvectorgetarrayread(output,ceed_mem_host,ooutput,offset1,err)
       call ceedvectorgetarrayread(weights,ceed_mem_host,wweights,offset2,err)

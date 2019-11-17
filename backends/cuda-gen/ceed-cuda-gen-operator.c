@@ -97,7 +97,7 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
   size_t ctxsize;
   ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
   if (ctxsize > 0) {
-    if(!qf_data->d_c) {
+    if (!qf_data->d_c) {
       ierr = cudaMalloc(&qf_data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);
     }
     void *ctx;

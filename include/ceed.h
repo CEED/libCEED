@@ -203,6 +203,12 @@ CEED_EXTERN CeedVector CEED_VECTOR_ACTIVE;
 /// @ingroup CeedVector
 CEED_EXTERN CeedVector CEED_VECTOR_NONE;
 
+/// Argument for CeedOperatorCreate that QFunction is not created by user.
+/// Only used for QFunctions dqf and dqfT. If implemented, a backend may
+/// attempt to provide the action of these QFunctions.
+/// @ingroup CeedQFunction
+CEED_EXTERN CeedQFunction CEED_QFUNCTION_NONE;
+
 /// Denotes whether a linear transformation or its transpose should be applied
 /// @ingroup CeedBasis
 typedef enum {

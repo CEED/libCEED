@@ -62,12 +62,20 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
   (*op)->ceed = ceed;
   ceed->refcount++;
   (*op)->refcount = 1;
+  if (qf == CEED_QFUNCTION_NONE)
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Operator must have a valid QFunction.");
+  // LCOV_EXCL_STOP
   (*op)->qf = qf;
   qf->refcount++;
-  (*op)->dqf = dqf;
-  if (dqf) dqf->refcount++;
-  (*op)->dqfT = dqfT;
-  if (dqfT) dqfT->refcount++;
+  if (dqf && dqf != CEED_QFUNCTION_NONE) {
+    (*op)->dqf = dqf;
+    dqf->refcount++;
+  }
+  if (dqfT && dqfT != CEED_QFUNCTION_NONE) {
+    (*op)->dqfT = dqfT;
+    dqfT->refcount++;
+  }
   ierr = CeedCalloc(16, &(*op)->inputfields); CeedChk(ierr);
   ierr = CeedCalloc(16, &(*op)->outputfields); CeedChk(ierr);
   ierr = ceed->OperatorCreate(*op); CeedChk(ierr);
@@ -552,7 +560,9 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out,
     // LCOV_EXCL_STOP
   }
   if (op->numelements || op->composite) {
-    ierr = op->Apply(op, in, out, request); CeedChk(ierr);
+    ierr = op->Apply(op, in != CEED_VECTOR_NONE ? in : NULL,
+                     out != CEED_VECTOR_NONE ? out : NULL, request);
+    CeedChk(ierr);
   }
   return 0;
 }
