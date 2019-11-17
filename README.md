@@ -88,7 +88,7 @@ There are multiple supported backends, which can be selected at runtime in the e
 | :----------------------- | :------------------------------------------------ |
 | `/cpu/self/ref/serial`   | Serial reference implementation                   |
 | `/cpu/self/ref/blocked`  | Blocked refrence implementation                   |
-| `/cpu/self/ref/memcheck` | Memcheck backend, undefined value checks          |
+| `/cpu/self/memcheck`     | Memcheck backend, undefined value checks          |
 | `/cpu/self/opt/serial`   | Serial optimized C implementation                 |
 | `/cpu/self/opt/blocked`  | Blocked optimized C implementation                |
 | `/cpu/self/avx/serial`   | Serial AVX implementation                         |
@@ -121,10 +121,12 @@ to provide vectorized CPU performance. If linking MKL and LIBXSMM is desired but
 the Makefile is not detecting `MKLROOT`, linking libCEED against MKL can be
 forced by setting the environment variable `MKL=1`.
 
-The `/cpu/self/ref/memcheck` backend relies upon the [Valgrind](http://valgrind.org/) Memcheck tool
+The `/cpu/self/memcheck/*` backends rely upon the [Valgrind](http://valgrind.org/) Memcheck tool
 to help verify that user QFunctions have no undefined values. To use, run your code with
-Valgrind and the Memcheck backend, e.g. `valgrind ./build/ex1 -ceed /cpu/self/ref/memcheck`. A
+Valgrind and the Memcheck backends, e.g. `valgrind ./build/ex1 -ceed /cpu/self/ref/memcheck`. A
 'development' or 'debugging' version of Valgrind with headers is required to use this backend.
+This backend can be run in serial or blocked mode and defaults to running in the serial mode
+if `/cpu/self/memcheck` is selected at runtime.
 
 The `/*/occa` backends rely upon the [OCCA](http://github.com/libocca/occa) package to provide
 cross platform performance.
