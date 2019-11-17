@@ -1,0 +1,24 @@
+Gallery CeedQFunction Mass1DBuild
+2 Input Fields
+  [0] QFunction Field "dx"
+    Size 1
+    EvalMode "gradient"
+  [1] QFunction Field "weights"
+    Size 1
+    EvalMode "quadrature weights"
+1 Output Field
+  [0] QFunction Field "qdata"
+    Size 1
+    EvalMode "none"
+Gallery CeedQFunction MassApply
+2 Input Fields
+  [0] QFunction Field "u"
+    Size 1
+    EvalMode "interpolation"
+  [1] QFunction Field "qdata"
+    Size 1
+    EvalMode "none"
+1 Output Field
+  [0] QFunction Field "v"
+    Size 1
+    EvalMode "interpolation"

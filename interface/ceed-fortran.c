@@ -649,6 +649,14 @@ void fCeedQFunctionSetContext(int *qf, CeedScalar *ctx, CeedInt *n, int *err) {
   fctx->innerctxsize = ((size_t) *n)*sizeof(CeedScalar);
 }
 
+#define fCeedQFunctionView \
+    FORTRAN_NAME(ceedqfunctionview,CEEDQFUNCTIONVIEW)
+void fCeedQFunctionView(int *qf, int *err) {
+  CeedQFunction qf_ = CeedQFunction_dict[*qf];
+
+  *err = CeedQFunctionView(qf_, stdout);
+}
+
 #define fCeedQFunctionApply \
     FORTRAN_NAME(ceedqfunctionapply,CEEDQFUNCTIONAPPLY)
 //TODO Need Fixing, double pointer
