@@ -28,8 +28,8 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   return 0;
 }
 
-static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
-                                      CeedVector outvec, CeedRequest *request) {
+static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
+                                         CeedVector outvec, CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -54,14 +54,6 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
 
   //Creation of the operator
   ierr = CeedCudaGenOperatorBuild(op); CeedChk(ierr);
-
-  // Zero lvecs
-  for (CeedInt i = 0; i < numoutputfields; i++) {
-    ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
-    if (vec == CEED_VECTOR_ACTIVE)
-      vec = outvec;
-    ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-  }
 
   // Input vectors
   for (CeedInt i = 0; i < numinputfields; i++) {
@@ -174,8 +166,8 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedOperatorSetData(op, (void *)&impl);
 
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
-                                CeedOperatorApply_Cuda_gen); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
+                                CeedOperatorApplyAdd_Cuda_gen); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
                                 CeedOperatorDestroy_Cuda_gen); CeedChk(ierr);
   return 0;
