@@ -58,7 +58,7 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
     return 0;
   }
 
-  ierr = CeedCalloc(1,op); CeedChk(ierr);
+  ierr = CeedCalloc(1, op); CeedChk(ierr);
   (*op)->ceed = ceed;
   ceed->refcount++;
   (*op)->refcount = 1;
@@ -257,6 +257,58 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop, CeedOperator subop) {
 }
 
 /**
+  @brief Duplicate a CeedOperator with a reference Ceed to fallback for advanced
+           CeedOperator functionality
+
+  @param op           CeedOperator to create fallback for
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+int CeedOperatorCreateFallback(CeedOperator op) {
+  int ierr;
+
+  // Fallback Ceed
+  const char *resource, *fallbackresource;
+  ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
+  ierr = CeedGetOperatorFallbackResource(op->ceed, &fallbackresource);
+  CeedChk(ierr);
+  if (!strcmp(resource, fallbackresource))
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, 1, "Backend %s cannot create an operator"
+                     "fallback to resource %s", resource, fallbackresource);
+  // LCOV_EXCL_STOP
+
+  Ceed ceedref;
+  ierr = CeedInit(fallbackresource, &ceedref); CeedChk(ierr);
+  ceedref->opfallbackparent = op->ceed;
+  op->ceed->opfallbackceed = ceedref;
+
+  // Clone Op
+  CeedOperator opref;
+  ierr = CeedCalloc(1, &opref); CeedChk(ierr);
+  memcpy(opref, op, sizeof(*opref)); CeedChk(ierr);
+  opref->data = NULL;
+  opref->setupdone = 0;
+  opref->ceed = ceedref;
+  ierr = ceedref->OperatorCreate(opref); CeedChk(ierr);
+  op->opfallback = opref;
+
+  // Clone QF
+  CeedQFunction qfref;
+  ierr = CeedCalloc(1, &qfref); CeedChk(ierr);
+  memcpy(qfref, (op->qf), sizeof(*qfref)); CeedChk(ierr);
+  qfref->data = NULL;
+  qfref->ceed = ceedref;
+  ierr = ceedref->QFunctionCreate(qfref); CeedChk(ierr);
+  opref->qf = qfref;
+  op->qffallback = qfref;
+
+  return 0;
+}
+
+/**
   @brief Assemble a linear CeedQFunction associated with a CeedOperator
 
   This returns a CeedVector containing a matrix at each quadrature point
@@ -312,8 +364,18 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
       return CeedError(ceed, 1, "At least one non-collocated basis required");
     // LCOV_EXCL_STOP
   }
-  ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
-  CeedChk(ierr);
+  if (op->AssembleLinearQFunction) {
+    ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
+    CeedChk(ierr);
+  } else {
+    // Fallback to reference Ceed
+    if (!op->opfallback) {
+      ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
+    }
+    // Assemble
+    ierr = op->opfallback->AssembleLinearQFunction(op->opfallback, assembled,
+           rstr, request); CeedChk(ierr);
+  }
   return 0;
 }
 
@@ -1014,6 +1076,14 @@ int CeedOperatorDestroy(CeedOperator *op) {
   ierr = CeedQFunctionDestroy(&(*op)->qf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqfT); CeedChk(ierr);
+
+  // Destroy fallback
+  if ((*op)->opfallback) {
+    ierr = (*op)->qffallback->Destroy((*op)->qffallback); CeedChk(ierr);
+    ierr = CeedFree(&(*op)->qffallback); CeedChk(ierr);
+    ierr = (*op)->opfallback->Destroy((*op)->opfallback); CeedChk(ierr);
+    ierr = CeedFree(&(*op)->opfallback); CeedChk(ierr);
+  }
 
   ierr = CeedFree(&(*op)->inputfields); CeedChk(ierr);
   ierr = CeedFree(&(*op)->outputfields); CeedChk(ierr);

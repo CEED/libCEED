@@ -59,7 +59,7 @@ CEED_QFUNCTION(apply)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
                       CeedScalar *const *out) {
   // in[0] is gradient u, shape [2, nc=1, Q]
   // in[1] is mass quadrature data, size (Q)
-  // in[2] is Poisson quadrature data, size (Q)
+  // in[2] is Poisson quadrature data, size (3*Q)
   // in[3] is u, size (Q)
   const CeedScalar *du = in[0], *qd_mass = in[1], *qd_diff = in[2], *u = in[3];
 
@@ -85,7 +85,7 @@ CEED_QFUNCTION(apply_lin)(void *ctx, const CeedInt Q,
                           const CeedScalar *const *in,
                           CeedScalar *const *out) {
   // in[0] is gradient u, shape [2, nc=1, Q]
-  // in[1] is mass quadrature data, size (9*Q)
+  // in[1] is assembled quadrature data, size (9*Q)
   // in[2] is u, size (Q)
   const CeedScalar *du = in[0], *qd = in[1], *u = in[2];
 

@@ -367,13 +367,6 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
   return 0;
 }
 
-static int CeedOperatorAssembleLinearQFunction_Cuda(CeedOperator op) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1, "Backend does not implement QFunction assembly");
-}
-
 int CeedOperatorCreate_Cuda(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -383,9 +376,6 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedOperatorSetData(op, (void *)&impl);
 
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
-                                CeedOperatorAssembleLinearQFunction_Cuda);
-  CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
                                 CeedOperatorApply_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",

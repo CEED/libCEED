@@ -574,8 +574,10 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   CeedInt numactivein = 0, numactiveout = 0;
   CeedVector *activein = NULL;
   CeedScalar *a, *tmp;
-  Ceed ceed;
+  Ceed ceed, ceedparent;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  ierr = CeedGetOperatorFallbackParentCeed(ceed, &ceedparent); CeedChk(ierr);
+  ceedparent = ceedparent ? ceedparent : ceed;
 
   // Setup
   ierr = CeedOperatorSetup_Ref(op); CeedChk(ierr);
@@ -633,10 +635,10 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   // LCOV_EXCL_STOP
 
   // Create output restriction
-  ierr = CeedElemRestrictionCreateIdentity(ceed, numelements, Q,
+  ierr = CeedElemRestrictionCreateIdentity(ceedparent, numelements, Q,
          numelements*Q, numactivein*numactiveout, rstr); CeedChk(ierr);
   // Create assembled vector
-  ierr = CeedVectorCreate(ceed, numelements*Q*numactivein*numactiveout,
+  ierr = CeedVectorCreate(ceedparent, numelements*Q*numactivein*numactiveout,
                           assembled); CeedChk(ierr);
   ierr = CeedVectorSetValue(*assembled, 0.0); CeedChk(ierr);
   ierr = CeedVectorGetArray(*assembled, CEED_MEM_HOST, &a); CeedChk(ierr);
