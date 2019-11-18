@@ -551,11 +551,13 @@ int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
   @ref Utility
 **/
 static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt fieldnumber,
-                                  FILE *stream) {
-  fprintf(stream, "  [%d] QFunction Field \"%s\"\n"
-                  "    Size %d\n"
-                  "    EvalMode \"%s\"\n",
-                  fieldnumber, field->fieldname, field->size,
+                                  bool in, FILE *stream) {
+  const char* inout = in ? "Input" : "Output";
+  fprintf(stream, "    %s Field [%d]:\n"
+                  "      Name: \"%s\"\n"
+                  "      Size: %d\n"
+                  "      EvalMode: \"%s\"\n",
+                  inout, fieldnumber, field->fieldname, field->size,
                   CeedEvalModes[field->emode]);
 
   return 0;
@@ -577,16 +579,17 @@ int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
   fprintf(stream, "%sCeedQFunction %s\n", 
           qf->qfname ? "Gallery " : "User ", qf->qfname ? qf->qfname : "");
 
-  fprintf(stream, "%d Input Field%s\n", qf->numinputfields,
+  fprintf(stream, "  %d Input Field%s:\n", qf->numinputfields,
           qf->numinputfields>1 ? "s" : "");
   for (CeedInt i=0; i<qf->numinputfields; i++) {
-    ierr = CeedQFunctionFieldView(qf->inputfields[i], i, stream); CeedChk(ierr);
+    ierr = CeedQFunctionFieldView(qf->inputfields[i], i, 1, stream);
+    CeedChk(ierr);
   }
 
-  fprintf(stream, "%d Output Field%s\n", qf->numoutputfields,
+  fprintf(stream, "  %d Output Field%s:\n", qf->numoutputfields,
           qf->numoutputfields>1 ? "s" : "");
   for (CeedInt i=0; i<qf->numoutputfields; i++) {
-    ierr = CeedQFunctionFieldView(qf->outputfields[i], i, stream);
+    ierr = CeedQFunctionFieldView(qf->outputfields[i], i, 0, stream);
     CeedChk(ierr);
   }
   return 0;

@@ -113,9 +113,9 @@
       call ceedoperatorsetfield(op_mass,'rho',erestrictui,&
      & ceed_notranspose,ceed_basis_collocated,qdata,err)
       call ceedoperatorsetfield(op_mass,'u',erestrictu,&
-     & ceed_notranspose,bu,ceed_vector_active,err)
+     & ceed_transpose,bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass,'v',erestrictu,&
-     & ceed_notranspose,bu,ceed_vector_active,err)
+     & ceed_transpose,bu,ceed_vector_active,err)
 
       call ceedoperatorview(op_setup,err)
       call ceedoperatorview(op_mass,err)
