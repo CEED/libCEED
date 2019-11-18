@@ -117,7 +117,7 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
                              size * sizeof(CeedInt)); CeedChk(ierr);
         ierr = magma_malloc_pinned( (void**)&impl->indices,
                                     size * sizeof(CeedInt)); CeedChk(ierr);
-        memcpy(impl->indices, indices, size * sizeof(indices[0]));
+        memcpy(impl->indices, indices, size * sizeof(CeedInt));
         ierr = cudaMemcpy(impl->dindices, indices, size * sizeof(CeedInt),
                         cudaMemcpyHostToDevice);
   //**      magma_setvector(size, sizeof(CeedInt),
