@@ -773,6 +773,106 @@ int CeedOperatorSetSetupDone(CeedOperator op) {
 }
 
 /**
+  @brief View a field of a CeedOperator
+
+  @param[in] field       Operator field to view
+  @param[in] fieldnumber Number of field being viewed
+  @param[in] stream      Stream to view to, e.g., stdout
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+static int CeedOperatorFieldView(CeedOperatorField field,
+                                 CeedQFunctionField qffield,
+                                 CeedInt fieldnumber, bool sub, bool in,
+                                 FILE *stream) {
+  const char *pre = sub ? "  " : "";
+  const char *inout = in ? "Input" : "Output";
+
+  fprintf(stream, "%s    %s Field [%d]:\n"
+          "%s      Name: \"%s\"\n"
+          "%s      Lmode: \"%s\"\n",
+          pre, inout, fieldnumber, pre, qffield->fieldname,
+          pre, CeedTransposeModes[field->lmode]);
+
+  if (field->basis == CEED_BASIS_COLLOCATED)
+    fprintf(stream, "%s      Collocated basis\n", pre);
+
+  if (field->vec == CEED_VECTOR_ACTIVE)
+    fprintf(stream, "%s      Active vector\n", pre);
+  else if (field->vec == CEED_VECTOR_NONE)
+    fprintf(stream, "%s      No vector\n", pre);
+
+  return 0;
+}
+
+/**
+  @brief View a single CeedOperator
+
+  @param[in] op     CeedOperator to view
+  @param[in] stream Stream to write; typically stdout/stderr or a file
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
+  int ierr;
+  const char *pre = sub ? "  " : "";
+
+  CeedInt totalfields;
+  ierr = CeedOperatorGetNumArgs(op, &totalfields); CeedChk(ierr);
+
+  fprintf(stream, "%s  %d Field%s\n", pre, totalfields, totalfields>1 ? "s" : "");
+
+  fprintf(stream, "%s  %d Input Field%s:\n", pre, op->qf->numinputfields,
+          op->qf->numinputfields>1 ? "s" : "");
+  for (CeedInt i=0; i<op->qf->numinputfields; i++) {
+    ierr = CeedOperatorFieldView(op->inputfields[i], op->qf->inputfields[i],
+                                 i, sub, 1, stream); CeedChk(ierr);
+  }
+
+  fprintf(stream, "%s  %d Output Field%s:\n", pre, op->qf->numoutputfields,
+          op->qf->numoutputfields>1 ? "s" : "");
+  for (CeedInt i=0; i<op->qf->numoutputfields; i++) {
+    ierr = CeedOperatorFieldView(op->outputfields[i], op->qf->inputfields[i],
+                                 i, sub, 0, stream); CeedChk(ierr);
+  }
+
+  return 0;
+}
+
+/**
+  @brief View a CeedOperator
+
+  @param[in] op     CeedOperator to view
+  @param[in] stream Stream to write; typically stdout/stderr or a file
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedOperatorView(CeedOperator op, FILE *stream) {
+  int ierr;
+
+  if (op->composite) {
+    fprintf(stream, "Composite CeedOperator\n");
+
+    for (CeedInt i=0; i<op->numsub; i++) {
+      fprintf(stream, "  SubOperator [%d]:\n", i);
+      ierr = CeedOperatorSingleView(op->suboperators[i], 1, stream);
+      CeedChk(ierr);
+    }
+  } else {
+    fprintf(stream, "CeedOperator\n");
+    ierr = CeedOperatorSingleView(op, 0, stream); CeedChk(ierr);
+  }
+
+  return 0;
+}
+
+/**
   @brief Get the CeedOperatorFields of a CeedOperator
 
   @param op                 CeedOperator

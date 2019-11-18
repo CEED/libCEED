@@ -649,6 +649,14 @@ void fCeedQFunctionSetContext(int *qf, CeedScalar *ctx, CeedInt *n, int *err) {
   fctx->innerctxsize = ((size_t) *n)*sizeof(CeedScalar);
 }
 
+#define fCeedQFunctionView \
+    FORTRAN_NAME(ceedqfunctionview,CEEDQFUNCTIONVIEW)
+void fCeedQFunctionView(int *qf, int *err) {
+  CeedQFunction qf_ = CeedQFunction_dict[*qf];
+
+  *err = CeedQFunctionView(qf_, stdout);
+}
+
 #define fCeedQFunctionApply \
     FORTRAN_NAME(ceedqfunctionapply,CEEDQFUNCTIONAPPLY)
 //TODO Need Fixing, double pointer
@@ -910,6 +918,14 @@ void fCeedOperatorAssembleLinearDiagonal(int *op, int *assembledvec,
     *assembledvec = CeedVector_count++;
     CeedVector_n++;
   }
+}
+
+#define fCeedOperatorView \
+    FORTRAN_NAME(ceedoperatorview,CEEDOPERATORVIEW)
+void fCeedOperatorView(int *op, int *err) {
+  CeedOperator op_ = CeedOperator_dict[*op];
+
+  *err = CeedOperatorView(op_, stdout);
 }
 
 #define fCeedOperatorApply FORTRAN_NAME(ceedoperatorapply, CEEDOPERATORAPPLY)
