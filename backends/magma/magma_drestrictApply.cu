@@ -20,20 +20,19 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
-// dv(i, c, e) = du( ind(i, e), c)  
+// dv(i, e, c) = du( ind(i, e), c)  
 static __global__ void 
-magma_readDofs_kernel(const int NCOMP, const int nnodes, const int nelem,
+magma_readDofs_kernel(const int NCOMP, const int nnodes, const int esize, const int nelem,
                       int *indices, 
                       const double *du, double *dv)
 {
   const int  pid = threadIdx.x;
   const int elem = blockIdx.x;
  
-  for (CeedInt i = pid; i < nnodes; i += blockDim.x) {
-        const CeedInt ind = indices ? indices[i + elem * nnodes] : i + elem * nnodes;
+  for (CeedInt i = pid; i < esize; i += blockDim.x) {
+        const CeedInt ind = indices ? indices[i + elem * esize] : i + elem * esize;
         for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-            // dv[i+comp*nnodes+elem*NCOMP*nnodes] = du[ind + nnodes * comp];
-            dv[i+elem*nnodes+comp*nnodes*nelem] = du[ind + nnodes * comp];
+            dv[i+elem*esize+comp*esize*nelem] = du[ind + nnodes * comp];
         }
   }
 }
@@ -41,7 +40,7 @@ magma_readDofs_kernel(const int NCOMP, const int nnodes, const int nelem,
 // dv(i, c, e) = du( c, ind(i,e))
 template<int TBLOCK, int MAXCOMP>
 static __global__ void
-magma_readDofsTranspose_kernel(const int NCOMP, const int nnodes, const int nelem,
+magma_readDofsTranspose_kernel(const int NCOMP, const int nnodes, const int esize, const int nelem,
                                int *indices,
                                const double *du, double *dv)
 {
@@ -51,8 +50,8 @@ magma_readDofsTranspose_kernel(const int NCOMP, const int nnodes, const int nele
     const CeedInt   cb = pid%NCOMP;
     __shared__ CeedScalar    dofs[TBLOCK][MAXCOMP];
     __shared__ CeedInt        ind[TBLOCK];
-    for (CeedInt i = pid, k = 0; i < nnodes; i += TBLOCK, k += TBLOCK) {
-        ind[pid] = indices ? indices[i + elem * nnodes] : i + elem * nnodes;
+    for (CeedInt i = pid, k = 0; i < esize; i += TBLOCK, k += TBLOCK) {
+        ind[pid] = indices ? indices[i + elem * esize] : i + elem * esize;
 
         __syncthreads();
 
@@ -64,28 +63,28 @@ magma_readDofsTranspose_kernel(const int NCOMP, const int nnodes, const int nele
         __syncthreads();
 
         for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-            // dv[i+comp*nnodes+elem*NCOMP*nnodes] = dofs[i][comp];
-            dv[i+elem*nnodes+comp*nnodes*nelem] = dofs[i][comp];
+            // dv[i+comp*esize+elem*NCOMP*esize] = dofs[i][comp];
+            dv[i+elem*esize+comp*esize*nelem] = dofs[i][comp];
         }
     }
 }
 
 // dv( ind(i, e), c) = du(i, c, e) 
 static __global__ void 
-magma_writeDofs_kernel(const int NCOMP, const int nnodes, const int nelem,
+magma_writeDofs_kernel(const int NCOMP, const int nnodes, const int esize, const int nelem,
                       int *indices, 
                       const double *du, double *dv)
 {
     const int  pid = threadIdx.x;
     const int elem = blockIdx.x;
 
-    for (CeedInt i = pid; i < nnodes; i += blockDim.x) {
-        const CeedInt ind = indices ? indices[i + elem * nnodes] : i + elem * nnodes;
+    for (CeedInt i = pid; i < esize; i += blockDim.x) {
+        const CeedInt ind = indices ? indices[i + elem * esize] : i + elem * esize;
         for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-            // magmablas_datomic_add(&dv[ind + nnodes * comp], 
-            //                       du[i+comp*nnodes+elem*NCOMP*nnodes]);
-            magmablas_datomic_add(&dv[ind + nnodes * comp],
-                                  du[i+elem*nnodes+comp*nnodes*nelem]);
+            // magmablas_datomic_add(&dv[ind + esize * comp], 
+            //                       du[i+comp*esize+elem*NCOMP*esize]);
+            magmablas_datomic_add(dv + (ind + nnodes * comp),
+                                  du[i+elem*esize+comp*esize*nelem]);
         }
     }
 }
@@ -93,7 +92,7 @@ magma_writeDofs_kernel(const int NCOMP, const int nnodes, const int nelem,
 // dv( c, ind(i,e)) = du(i, c, e)
 template<int TBLOCK, int MAXCOMP>
 static __global__ void
-magma_writeDofsTranspose_kernel(const int NCOMP, const int nnodes, const int nelem,
+magma_writeDofsTranspose_kernel(const int NCOMP, const int nnodes, const int esize, const int nelem,
                                int *indices,
                                const double *du, double *dv)
 {
@@ -103,14 +102,14 @@ magma_writeDofsTranspose_kernel(const int NCOMP, const int nnodes, const int nel
     CeedInt   cb = pid%NCOMP;
     __shared__ CeedScalar dofs[TBLOCK][MAXCOMP];
     __shared__ CeedInt     ind[TBLOCK];
-    for (CeedInt i = pid, k=0; i < nnodes; i += TBLOCK, k+= TBLOCK) {
-        ind[pid] = indices ? indices[i + elem * nnodes] : i + elem * nnodes;
+    for (CeedInt i = pid, k=0; i < esize; i += TBLOCK, k+= TBLOCK) {
+        ind[pid] = indices ? indices[i + elem * esize] : i + elem * esize;
 
         __syncthreads();
         
         for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-            //dofs[i][comp] = du[i+comp*nnodes+elem*NCOMP*nnodes];
-            dofs[i][comp] = du[i+elem*nnodes+comp*nnodes*nelem];
+            //dofs[i][comp] = du[i+comp*esize+elem*NCOMP*esize];
+            dofs[i][comp] = du[i+elem*esize+comp*esize*nelem];
         }
 
         __syncthreads();
@@ -129,14 +128,15 @@ magma_writeDofsTranspose_kernel(const int NCOMP, const int nnodes, const int nel
 // dv(i, c, e) = du( ind(i, e), c)    
 extern "C" void
 magma_readDofs(const magma_int_t NCOMP, 
-               const magma_int_t nnodes, 
+               const magma_int_t nnodes,
+               const magma_int_t esize, 
                const magma_int_t nelem, magma_int_t *indices, 
 	       const double *du, double *dv)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    magma_readDofs_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, nelem, 
+    magma_readDofs_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, esize, nelem, 
                                                       indices, du, dv);
 }
 
@@ -145,6 +145,7 @@ magma_readDofs(const magma_int_t NCOMP,
 extern "C" void
 magma_readDofsTranspose(const magma_int_t NCOMP,
                         const magma_int_t nnodes,
+                        const magma_int_t esize, 
                         const magma_int_t nelem, magma_int_t *indices,
                         const double *du, double *dv)
 {
@@ -152,7 +153,7 @@ magma_readDofsTranspose(const magma_int_t NCOMP,
     magma_int_t threads = 256;
 
     assert(NCOMP<=4);
-    magma_readDofsTranspose_kernel<256,4><<<grid, threads, 0, NULL>>>(NCOMP, nnodes, nelem,
+    magma_readDofsTranspose_kernel<256,4><<<grid, threads, 0, NULL>>>(NCOMP, nnodes, esize, nelem,
                                                                indices, du, dv);
 }
 
@@ -161,13 +162,14 @@ magma_readDofsTranspose(const magma_int_t NCOMP,
 extern "C" void
 magma_writeDofs(const magma_int_t NCOMP, 
                 const magma_int_t nnodes, 
+                const magma_int_t esize, 
                 const magma_int_t nelem, magma_int_t *indices, 
 	        const double *du, double *dv)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    magma_writeDofs_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, nelem, 
+    magma_writeDofs_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, esize, nelem, 
                                                        indices, du, dv);
 }
 
@@ -176,6 +178,7 @@ magma_writeDofs(const magma_int_t NCOMP,
 extern "C" void
 magma_writeDofsTranspose(const magma_int_t NCOMP,
                          const magma_int_t nnodes,
+                         const magma_int_t esize, 
                          const magma_int_t nelem, magma_int_t *indices,
                          const double *du, double *dv)
 {
@@ -183,6 +186,6 @@ magma_writeDofsTranspose(const magma_int_t NCOMP,
     magma_int_t threads = 256;
 
     assert(NCOMP<=4);
-    magma_writeDofsTranspose_kernel<256,4><<<grid, threads, 0, NULL>>>(NCOMP, nnodes, nelem,
+    magma_writeDofsTranspose_kernel<256,4><<<grid, threads, 0, NULL>>>(NCOMP, nnodes, esize, nelem,
                                                                        indices, du, dv);
 }

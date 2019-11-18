@@ -85,21 +85,25 @@ CEED_INTERN {
 
   void magma_readDofs(const magma_int_t NCOMP,
                       const magma_int_t nnodes,
+                      const magma_int_t esize, 
                       const magma_int_t nelem, magma_int_t *indices,
 	              const double *du, double *dv);
 
   void magma_readDofsTranspose(const magma_int_t NCOMP,
                                const magma_int_t nnodes,
+                               const magma_int_t esize, 
                                const magma_int_t nelem, magma_int_t *indices,
        	                       const double *du, double *dv);
 
   void magma_writeDofs(const magma_int_t NCOMP,
                        const magma_int_t nnodes,
+                       const magma_int_t esize, 
                        const magma_int_t nelem, magma_int_t *indices,
 	               const double *du, double *dv);
 
   void magma_writeDofsTranspose(const magma_int_t NCOMP,
                                 const magma_int_t nnodes,
+                                const magma_int_t esize, 
                                 const magma_int_t nelem, magma_int_t *indices,
 	                        const double *du, double *dv);
 

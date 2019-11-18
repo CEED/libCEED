@@ -27,6 +27,9 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     CeedInt nelem;
     CeedElemRestrictionGetNumElements(r, &nelem);
 
+    CeedInt esize;
+    CeedElemRestrictionGetElementSize(r, &esize);
+
     CeedInt nnodes;
     CeedElemRestrictionGetNumNodes(r, &nnodes);
 
@@ -40,14 +43,14 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
 
     if (tmode == CEED_TRANSPOSE) { 
       if (lmode == CEED_TRANSPOSE)
-          magma_writeDofsTranspose(NCOMP, nnodes, nelem, impl->indices, du, dv);
+          magma_writeDofsTranspose(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
       else
-          magma_writeDofs(NCOMP, nnodes, nelem, impl->indices, du, dv);
+          magma_writeDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
     } else {
       if (lmode == CEED_TRANSPOSE)
-          magma_readDofsTranspose(NCOMP, nnodes, nelem, impl->indices, du, dv);
+          magma_readDofsTranspose(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
       else
-          magma_readDofs(NCOMP, nnodes, nelem, impl->indices, du, dv);
+          magma_readDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
     }
     ierr = CeedVectorRestoreArrayRead(u, &du); CeedChk(ierr);
     ierr = CeedVectorRestoreArray(v, &dv); CeedChk(ierr);
@@ -106,37 +109,47 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
     // memory is on the host; own_ = 0
     switch (cmode) {
     case CEED_COPY_VALUES:
-      ierr = magma_malloc( (void**)&impl->dindices,
-                           size * sizeof(CeedInt)); CeedChk(ierr);
-      ierr = magma_malloc_pinned( (void**)&impl->indices,
-                                  size * sizeof(CeedInt)); CeedChk(ierr);
       impl->own_ = 1;
 
       if (indices != NULL) {
+
+        ierr = magma_malloc( (void**)&impl->dindices,
+                             size * sizeof(CeedInt)); CeedChk(ierr);
+        ierr = magma_malloc_pinned( (void**)&impl->indices,
+                                    size * sizeof(CeedInt)); CeedChk(ierr);
         memcpy(impl->indices, indices, size * sizeof(indices[0]));
-        magma_setvector(size, sizeof(CeedInt),
-                        impl->indices, 1, impl->dindices, 1);
+        ierr = cudaMemcpy(impl->dindices, indices, size * sizeof(CeedInt),
+                        cudaMemcpyHostToDevice);
+  //**      magma_setvector(size, sizeof(CeedInt),
+  //**                      impl->indices, 1, impl->dindices, 1);
       }
       break;
     case CEED_OWN_POINTER:
-      ierr = magma_malloc( (void**)&impl->dindices,
+      impl->own_ = 1;
+
+      if (indices != NULL) {
+          ierr = magma_malloc( (void**)&impl->dindices,
                            size * sizeof(CeedInt)); CeedChk(ierr);
       // TODO: possible problem here is if we are passed non-pinned memory;
       //       (as we own it, lter in destroy, we use free for pinned memory).
-      impl->indices = (CeedInt *)indices;
-      impl->own_ = 1;
-
-      if (indices != NULL)
-        magma_setvector(size, sizeof(CeedInt),
-                        indices, 1, impl->dindices, 1);
+        impl->indices = (CeedInt *)indices;
+        ierr = cudaMemcpy(impl->dindices, indices, size * sizeof(CeedInt),
+                        cudaMemcpyHostToDevice);
+//**        magma_setvector(size, sizeof(CeedInt),
+ //**                       indices, 1, impl->dindices, 1);
+      }
       break;
     case CEED_USE_POINTER:
-      ierr = magma_malloc( (void**)&impl->dindices,
-                           size * sizeof(CeedInt)); CeedChk(ierr);
-      magma_setvector(size, sizeof(CeedInt),
-                      indices, 1, impl->dindices, 1);
+      if (indices != NULL) {
+        ierr = magma_malloc( (void**)&impl->dindices,
+                             size * sizeof(CeedInt)); CeedChk(ierr);
+//**      magma_setvector(size, sizeof(CeedInt),
+//**                      indices, 1, impl->dindices, 1);
+        ierr = cudaMemcpy(impl->dindices, indices, size * sizeof(CeedInt),
+                          cudaMemcpyHostToDevice);
+      }
       impl->down_ = 1;
-      impl->indices  = (CeedInt *)indices;
+        impl->indices  = (CeedInt *)indices;
     }
   } else if (mtype == CEED_MEM_DEVICE) {
     // memory is on the device; own = 0
@@ -149,8 +162,10 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
       impl->own_ = 1;
 
       if (indices)
-        magma_copyvector(size, sizeof(CeedInt),
-                         indices, 1, impl->dindices, 1);
+//**        magma_copyvector(size, sizeof(CeedInt),
+//**                         indices, 1, impl->dindices, 1);
+        ierr = cudaMemcpy(impl->dindices, indices, size * sizeof(CeedInt),
+                          cudaMemcpyDeviceToDevice);
       break;
     case CEED_OWN_POINTER:
       impl->dindices = (CeedInt *)indices;
