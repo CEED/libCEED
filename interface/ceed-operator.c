@@ -787,14 +787,14 @@ static int CeedOperatorFieldView(CeedOperatorField field,
                                  CeedQFunctionField qffield,
                                  CeedInt fieldnumber, bool sub, bool in,
                                  FILE *stream) {
-  const char* pre = sub ? "  " : "";
-  const char* inout = in ? "Input" : "Output";
+  const char *pre = sub ? "  " : "";
+  const char *inout = in ? "Input" : "Output";
 
   fprintf(stream, "%s    %s Field [%d]:\n"
-                  "%s      Name: \"%s\"\n"
-                  "%s      Lmode: \"%s\"\n",
-                  pre, inout, fieldnumber, pre, qffield->fieldname,
-                  pre, CeedTransposeModes[field->lmode]);
+          "%s      Name: \"%s\"\n"
+          "%s      Lmode: \"%s\"\n",
+          pre, inout, fieldnumber, pre, qffield->fieldname,
+          pre, CeedTransposeModes[field->lmode]);
 
   if (field->basis == CEED_BASIS_COLLOCATED)
     fprintf(stream, "%s      Collocated basis\n", pre);
@@ -819,7 +819,7 @@ static int CeedOperatorFieldView(CeedOperatorField field,
 **/
 int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   int ierr;
-  const char* pre = sub ? "  " : "";
+  const char *pre = sub ? "  " : "";
 
   CeedInt totalfields;
   ierr = CeedOperatorGetNumArgs(op, &totalfields); CeedChk(ierr);

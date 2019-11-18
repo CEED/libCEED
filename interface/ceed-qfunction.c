@@ -552,13 +552,13 @@ int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
 **/
 static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt fieldnumber,
                                   bool in, FILE *stream) {
-  const char* inout = in ? "Input" : "Output";
+  const char *inout = in ? "Input" : "Output";
   fprintf(stream, "    %s Field [%d]:\n"
-                  "      Name: \"%s\"\n"
-                  "      Size: %d\n"
-                  "      EvalMode: \"%s\"\n",
-                  inout, fieldnumber, field->fieldname, field->size,
-                  CeedEvalModes[field->emode]);
+          "      Name: \"%s\"\n"
+          "      Size: %d\n"
+          "      EvalMode: \"%s\"\n",
+          inout, fieldnumber, field->fieldname, field->size,
+          CeedEvalModes[field->emode]);
 
   return 0;
 }
@@ -576,7 +576,7 @@ static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt fieldnumber,
 int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
   int ierr;
 
-  fprintf(stream, "%sCeedQFunction %s\n", 
+  fprintf(stream, "%sCeedQFunction %s\n",
           qf->qfname ? "Gallery " : "User ", qf->qfname ? qf->qfname : "");
 
   fprintf(stream, "  %d Input Field%s:\n", qf->numinputfields,
