@@ -1,0 +1,27 @@
+CeedOperator
+3 Fields
+2 Input Fields
+  [0] Operator Field "_weight"
+    Lmode "no transpose"
+    No vector
+  [1] Operator Field "dx"
+    Lmode "no transpose"
+    Active vector
+1 Output Field
+  [0] Operator Field "_weight"
+    Lmode "no transpose"
+    Collocated basis
+    Active vector
+CeedOperator
+3 Fields
+2 Input Fields
+  [0] Operator Field "rho"
+    Lmode "no transpose"
+    Collocated basis
+  [1] Operator Field "u"
+    Lmode "transpose"
+    Active vector
+1 Output Field
+  [0] Operator Field "rho"
+    Lmode "transpose"
+    Active vector

@@ -542,9 +542,9 @@ int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
 /**
   @brief View a field of a CeedQFunction
 
-  @param[in] field    QFunction field to view
-  @param[in] fieldnum Number of field being viewed
-  @param[in] stream   Stream to view to, e.g., stdout
+  @param[in] field       QFunction field to view
+  @param[in] fieldnumber Number of field being viewed
+  @param[in] stream      Stream to view to, e.g., stdout
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -576,7 +576,6 @@ int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
 
   fprintf(stream, "%sCeedQFunction %s\n", 
           qf->qfname ? "Gallery " : "User ", qf->qfname ? qf->qfname : "");
-
 
   fprintf(stream, "%d Input Field%s\n", qf->numinputfields,
           qf->numinputfields>1 ? "s" : "");

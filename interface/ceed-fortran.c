@@ -920,6 +920,14 @@ void fCeedOperatorAssembleLinearDiagonal(int *op, int *assembledvec,
   }
 }
 
+#define fCeedOperatorView \
+    FORTRAN_NAME(ceedoperatorview,CEEDOPERATORVIEW)
+void fCeedOperatorView(int *op, int *err) {
+  CeedOperator op_ = CeedOperator_dict[*op];
+
+  *err = CeedOperatorView(op_, stdout);
+}
+
 #define fCeedOperatorApply FORTRAN_NAME(ceedoperatorapply, CEEDOPERATORAPPLY)
 void fCeedOperatorApply(int *op, int *ustatevec,
                         int *resvec, int *rqst, int *err) {
