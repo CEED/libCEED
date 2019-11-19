@@ -73,7 +73,7 @@ endif
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-OPT    = -O -g -march=native -ffp-contract=fast -fopenmp-simd
+OPT   ?= -O -g -march=native -ffp-contract=fast -fopenmp-simd
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 CXXFLAGS = $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 NVCCFLAGS = -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
