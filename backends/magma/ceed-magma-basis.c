@@ -69,28 +69,28 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     CeedInt eldofssize = CeedIntPow(P1d, dim);
 
     // E-vector ordering -------------- Q-vector ordering
-    //  elem                            component
-    //    component                        elem
+    //  component                        component
+    //    elem                             elem
     //       node                            node
 
     // ---  Define strides for NOTRANSPOSE mode: ---
     // Input (u) is E-vector, output (v) is Q-vector
 
     // Element strides
-    CeedInt u_elstride = ncomp * eldofssize;
+    CeedInt u_elstride = eldofssize;
     CeedInt v_elstride = elquadsize;
     // Component strides
-    CeedInt u_compstride = eldofssize;
+    CeedInt u_compstride = nelem * eldofssize;
     CeedInt v_compstride = nelem * elquadsize;
 
     // ---  Swap strides for TRANSPOSE mode: ---
     if (tmode == CEED_TRANSPOSE) {
       // Input (u) is Q-vector, output (v) is E-vector
       // Element strides
-      v_elstride = ncomp * eldofssize;
+      v_elstride = eldofssize;
       u_elstride = elquadsize;
       // Component strides
-      v_compstride = eldofssize;
+      v_compstride = nelem * eldofssize;
       u_compstride = nelem * elquadsize;
     }
 
@@ -118,8 +118,8 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
 
     // E-vector ordering -------------- Q-vector ordering
     //                                  dim
-    //  elem                             component
-    //    component                        elem
+    //  component                        component
+    //    elem                              elem
     //       node                            node
 
 
@@ -127,10 +127,10 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     // Input (u) is E-vector, output (v) is Q-vector
 
     // Element strides
-    CeedInt u_elstride = ncomp * eldofssize;
+    CeedInt u_elstride = eldofssize;
     CeedInt v_elstride = elquadsize;
     // Component strides
-    CeedInt u_compstride = eldofssize;
+    CeedInt u_compstride = nelem * eldofssize;
     CeedInt v_compstride = nelem * elquadsize;
     // Dimension strides
     CeedInt u_dimstride = 0;
@@ -140,10 +140,10 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     if (tmode == CEED_TRANSPOSE) {
       // Input (u) is Q-vector, output (v) is E-vector
       // Element strides
-      v_elstride = ncomp * eldofssize;
+      v_elstride = eldofssize;
       u_elstride = elquadsize;
       // Component strides
-      v_compstride = eldofssize;
+      v_compstride = nelem * eldofssize;
       u_compstride = nelem * elquadsize;
       // Dimension strides
       v_dimstride = 0;
