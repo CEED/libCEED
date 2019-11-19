@@ -79,7 +79,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedQFunctionUser f,
     return 0;
   }
 
-  ierr = CeedCalloc(1,qf); CeedChk(ierr);
+  ierr = CeedCalloc(1, qf); CeedChk(ierr);
   (*qf)->ceed = ceed;
   ceed->refcount++;
   (*qf)->refcount = 1;
