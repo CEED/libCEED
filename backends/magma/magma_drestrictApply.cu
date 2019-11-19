@@ -19,8 +19,15 @@
 #include "atomics.cuh"
 
 //////////////////////////////////////////////////////////////////////////////////////////
-
+// Fastest index listed first
+// i : related to nodes
+// e : elements
+// c: component
+// Go from L-vector (du) to E-vector (dv):
+//
 // dv(i, e, c) = du( ind(i, e), c)  
+//         or
+// dv(i, e, c) = du(i, e, c)
 static __global__ void 
 magma_readDofs_kernel(const int NCOMP, const int nnodes, const int esize, const int nelem,
                       int *indices, 
@@ -37,7 +44,15 @@ magma_readDofs_kernel(const int NCOMP, const int nnodes, const int esize, const 
   }
 }
 
-// dv(i, c, e) = du( c, ind(i,e))
+// Fastest index listed first
+// i : related to nodes
+// e : elements
+// c: component
+// Go from L-vector (du) to E-vector (dv), with L-vector in transpose format:
+//
+// dv(i, e, c) = du(c, ind(i, e))  
+//         or
+// dv(i, e, c) = du(c, i, e)
 template<int TBLOCK, int MAXCOMP>
 static __global__ void
 magma_readDofsTranspose_kernel(const int NCOMP, const int nnodes, const int esize, const int nelem,
@@ -77,7 +92,15 @@ magma_readDofsTranspose_kernel(const int NCOMP, const int nnodes, const int esiz
  //   }
 }
 
-// dv( ind(i, e), c) = du(i, c, e) 
+// Fastest index listed first
+// i : related to nodes
+// e : elements
+// c: component
+// Go from E-vector (du) to L-vector (dv):
+//
+// dv(ind(i, e), c) = du(i, e, c)
+//         or
+// dv(i, e, c) = du(i, e, c)
 static __global__ void 
 magma_writeDofs_kernel(const int NCOMP, const int nnodes, const int esize, const int nelem,
                       int *indices, 
@@ -97,7 +120,15 @@ magma_writeDofs_kernel(const int NCOMP, const int nnodes, const int esize, const
     }
 }
 
-// dv( c, ind(i,e)) = du(i, c, e)
+// Fastest index listed first
+// i : related to nodes
+// e : elements
+// c: component
+// Go from E-vector (du) to L-vector (dv), with L-vector in transpose format:
+//
+// dv(c, ind(i, e)) = du(i, e, c)
+//         or
+// dv(c, i, e) = du(i, e, c)
 template<int TBLOCK, int MAXCOMP>
 static __global__ void
 magma_writeDofsTranspose_kernel(const int NCOMP, const int nnodes, const int esize, const int nelem,
@@ -140,8 +171,9 @@ magma_writeDofsTranspose_kernel(const int NCOMP, const int nnodes, const int esi
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
-// ReadDofs to device memory in tensor dv of size nnodes x NCOMP x nelem
-// dv(i, c, e) = du( ind(i, e), c)    
+// ReadDofs to device memory
+// du is L-vector, size nnodes * NCOMP
+// dv is E-vector, size nelem * esize * NCOMP
 extern "C" void
 magma_readDofs(const magma_int_t NCOMP, 
                const magma_int_t nnodes,
@@ -156,8 +188,9 @@ magma_readDofs(const magma_int_t NCOMP,
                                                       indices, du, dv);
 }
 
-// ReadDofsTranspose to device memory in tensor dv of size nnodes x NCOMP x nelem
-// dv(i, c, e) = du( c, ind(i,e)) 
+// ReadDofsTranspose to device memory
+// du is L-vector (in tranpose format), size nnodes * NCOMP
+// dv is E-vector, size nelem * esize * NCOMP
 extern "C" void
 magma_readDofsTranspose(const magma_int_t NCOMP,
                         const magma_int_t nnodes,
@@ -173,8 +206,9 @@ magma_readDofsTranspose(const magma_int_t NCOMP,
                                                                indices, du, dv);
 }
 
-// WriteDofs 
-// dv( ind(i, e), c) = du(i, c, e)
+// WriteDofs from device memory
+// du is E-vector, size nelem * esize * NCOMP
+// dv is L-vector, size nnodes * NCOMP 
 extern "C" void
 magma_writeDofs(const magma_int_t NCOMP, 
                 const magma_int_t nnodes, 
@@ -189,8 +223,9 @@ magma_writeDofs(const magma_int_t NCOMP,
                                                        indices, du, dv);
 }
 
-// WriteDofsTranspose
-// dv( c, ind(i,e)) = du(i, c, e)
+// WriteDofsTranspose from device memory
+// du is E-vector (in transpose format), size nelem * esize * NCOMP
+// dv is L-vector, size nnodes * NCOMP 
 extern "C" void
 magma_writeDofsTranspose(const magma_int_t NCOMP,
                          const magma_int_t nnodes,
