@@ -21,7 +21,7 @@
 
 /// @defgroup Ceed Ceed: core components
 /// @defgroup CeedVector CeedVector: storing and manipulating vectors
-/// @defgroup CeedElemRestriction CeedElemRestriction: restriction from vectors to elements
+/// @defgroup CeedElemRestriction CeedElemRestriction: restriction from local vectors to elements
 /// @defgroup CeedBasis CeedBasis: fully discrete finite element-like objects
 /// @defgroup CeedQFunction CeedQFunction: independent operations at quadrature points
 /// @defgroup CeedOperator CeedOperator: composed FE-type operations on vectors
@@ -244,8 +244,6 @@ CEED_EXTERN int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr,
     CeedVector u, CeedVector ru, CeedRequest *request);
 CEED_EXTERN int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
     CeedVector mult);
-CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
-    CeedVector *lvec, CeedVector *evec);
 CEED_EXTERN int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream);
 CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *rstr);
 
