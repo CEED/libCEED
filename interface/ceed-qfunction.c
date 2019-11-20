@@ -600,8 +600,8 @@ int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
 
   @param qf      CeedQFunction
   @param Q       Number of quadrature points
-  @param[in] u   Array of input data arrays
-  @param[out] v  Array of output data arrays
+  @param[in] u   Array of input CeedVectors
+  @param[out] v  Array of output CeedVectors
 
   @return An error code: 0 - success, otherwise - failure
 

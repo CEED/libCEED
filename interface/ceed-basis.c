@@ -877,8 +877,8 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collograd1d) {
                   from quadrature points to nodes
   @param emode  \ref CEED_EVAL_INTERP to obtain interpolated values,
                   \ref CEED_EVAL_GRAD to obtain gradients.
-  @param[in] u  Input array
-  @param[out] v Output array
+  @param[in] u  Input CeedVector
+  @param[out] v Output CeedVector
 
   @return An error code: 0 - success, otherwise - failure
 
