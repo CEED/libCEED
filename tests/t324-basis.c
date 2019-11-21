@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
   // Check values at quadrature points
   CeedVectorGetArrayRead(Out, CEED_MEM_HOST, &out);
   for (int i=0; i<P; i++)
-    if (fabs(colsum[i] - out[i]) > 1e-14)
+    if (fabs(colsum[i] - out[i]) > 1E-14)
       // LCOV_EXCL_START
       printf("[%d] %f != %f\n", i, out[i], colsum[i]);
   // LCOV_EXCL_STOP
