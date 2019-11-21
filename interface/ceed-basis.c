@@ -188,7 +188,7 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
   @param ceed       A Ceed object where the CeedBasis will be created
   @param topo       Topology of element, e.g. hypercube, simplex, ect
   @param ncomp      Number of field components (1 for scalar fields)
-  @param nnodes       Total number of nodes
+  @param nnodes     Total number of nodes
   @param nqpts      Total number of quadrature points
   @param interp     Row-major nqpts × nnodes matrix expressing the values of
                       nodal basis functions at quadrature points
