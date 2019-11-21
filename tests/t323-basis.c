@@ -47,12 +47,12 @@ int main(int argc, char **argv) {
   CeedVectorGetArrayRead(Out, CEED_MEM_HOST, &out);
   for (int i=0; i<Q; i++) {
     value = dfeval(xq[0*Q+i], xq[1*Q+i]);
-    if (fabs(out[0*Q+i] - value) > 1e-10)
+    if (fabs(out[0*Q+i] - value) > 1E-10)
       // LCOV_EXCL_START
       printf("[%d] %f != %f\n", i, out[0*Q+i], value);
     // LCOV_EXCL_STOP
     value = dfeval(xq[1*Q+i], xq[0*Q+i]);
-    if (fabs(out[1*Q+i] - value) > 1e-10)
+    if (fabs(out[1*Q+i] - value) > 1E-10)
       // LCOV_EXCL_START
       printf("[%d] %f != %f\n", i, out[1*Q+i], value);
     // LCOV_EXCL_STOP
