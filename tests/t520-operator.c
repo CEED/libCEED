@@ -114,7 +114,8 @@ int main(int argc, char **argv) {
 
   // -- Operators
   // ---- Setup Tet
-  CeedOperatorCreate(ceed, qf_setupTet, NULL, NULL, &op_setupTet);
+  CeedOperatorCreate(ceed, qf_setupTet, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &op_setupTet);
   CeedOperatorSetField(op_setupTet, "_weight", ErestrictxiTet, CEED_NOTRANSPOSE,
                        bxTet, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setupTet, "dx", ErestrictxTet, CEED_NOTRANSPOSE,
@@ -122,7 +123,8 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setupTet, "rho", ErestrictuiTet, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdataTet);
   // ---- Mass Tet
-  CeedOperatorCreate(ceed, qf_massTet, NULL, NULL, &op_massTet);
+  CeedOperatorCreate(ceed, qf_massTet, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_massTet);
   CeedOperatorSetField(op_massTet, "rho", ErestrictuiTet, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdataTet);
   CeedOperatorSetField(op_massTet, "u", ErestrictuTet, CEED_NOTRANSPOSE,
@@ -170,7 +172,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_massHex, "v", 1, CEED_EVAL_INTERP);
 
   // -- Operators
-  CeedOperatorCreate(ceed, qf_setupHex, NULL, NULL, &op_setupHex);
+  CeedOperatorCreate(ceed, qf_setupHex, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &op_setupHex);
   CeedOperatorSetField(op_setupHex, "_weight", ErestrictxiHex, CEED_NOTRANSPOSE,
                        bxHex, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setupHex, "dx", ErestrictxHex, CEED_NOTRANSPOSE,
@@ -178,7 +181,8 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setupHex, "rho", ErestrictuiHex, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdataHex);
 
-  CeedOperatorCreate(ceed, qf_massHex, NULL, NULL, &op_massHex);
+  CeedOperatorCreate(ceed, qf_massHex, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_massHex);
   CeedOperatorSetField(op_massHex, "rho", ErestrictuiHex, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdataHex);
   CeedOperatorSetField(op_massHex, "u", ErestrictuHex, CEED_NOTRANSPOSE,
@@ -200,7 +204,7 @@ int main(int argc, char **argv) {
   CeedCompositeOperatorAddSub(op_mass, op_massHex);
 
   // Apply Setup Operator
-  CeedOperatorApply(op_setup, X, NULL, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_setup, X, CEED_VECTOR_NONE, CEED_REQUEST_IMMEDIATE);
 
   // Apply Mass Operator
   CeedVectorCreate(ceed, ndofs, &U);

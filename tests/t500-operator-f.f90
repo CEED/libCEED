@@ -101,8 +101,10 @@
       call ceedqfunctionaddinput(qf_mass,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_mass,'v',1,ceed_eval_interp,err)
 
-      call ceedoperatorcreate(ceed,qf_setup,ceed_null,ceed_null,op_setup,err)
-      call ceedoperatorcreate(ceed,qf_mass,ceed_null,ceed_null,op_mass,err)
+      call ceedoperatorcreate(ceed,qf_setup,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_setup,err)
+      call ceedoperatorcreate(ceed,qf_mass,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_mass,err)
 
       call ceedvectorcreate(ceed,nx,x,err)
       xoffset=0

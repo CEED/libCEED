@@ -30,8 +30,8 @@
       do i=1,q
         du0=u1(i+q*0)
         du1=u1(i+q*1)
-        v1(i+q*0)=u2(i+q*0)*du0+u2(i+q*1)*du1
-        v1(i+q*1)=u2(i+q*1)*du0+u2(i+q*2)*du1
+        v1(i+q*0)=u2(i+q*0)*du0+u2(i+q*2)*du1
+        v1(i+q*1)=u2(i+q*2)*du0+u2(i+q*1)*du1
       enddo
 
       ierr=0
@@ -125,8 +125,8 @@
       call ceedqfunctionaddoutput(qf_setup,'qdata',d*(d+1)/2,ceed_eval_none,err)
 
 ! Operator - setup 
-      call ceedoperatorcreate(ceed,qf_setup,ceed_null,ceed_null,op_setup,&
-     & err)
+      call ceedoperatorcreate(ceed,qf_setup,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_setup,err)
       call ceedoperatorsetfield(op_setup,'dx',erestrictx,&
      & ceed_notranspose,bx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&
@@ -146,8 +146,8 @@
       call ceedqfunctionaddoutput(qf_diff,'dv',d,ceed_eval_grad,err)
 
 ! Operator - apply
-      call ceedoperatorcreate(ceed,qf_diff,ceed_null,ceed_null,op_diff,&
-     & err)
+      call ceedoperatorcreate(ceed,qf_diff,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_diff,err)
       call ceedoperatorsetfield(op_diff,'du',erestrictu,&
      & ceed_notranspose,bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_diff,'qdata',erestrictqi,&

@@ -12,6 +12,7 @@
 #define FORTRAN_BASIS_COLLOCATED -1
 #define FORTRAN_VECTOR_ACTIVE -1
 #define FORTRAN_VECTOR_NONE -2
+#define FORTRAN_QFUNCTION_NONE -1
 
 static Ceed *Ceed_dict = NULL;
 static int Ceed_count = 0;
@@ -468,7 +469,8 @@ void fCeedBasisGetCollocatedGrad(int *basis, CeedScalar *colograd1d,
 void fCeedBasisApply(int *basis, int *nelem, int *tmode, int *emode,
                      int *u, int *v, int *err) {
   *err = CeedBasisApply(CeedBasis_dict[*basis], *nelem, *tmode, *emode,
-                        *u==FORTRAN_NULL?NULL:CeedVector_dict[*u],
+                        *u==FORTRAN_VECTOR_NONE?
+                        CEED_VECTOR_NONE:CeedVector_dict[*u],
                         CeedVector_dict[*v]);
 }
 
@@ -598,14 +600,16 @@ void fCeedQFunctionCreateInteriorByName(int *ceed, const char *name, int *qf,
 
 #define fCeedQFunctionCreateIdentity \
     FORTRAN_NAME(ceedqfunctioncreateidentity, CEEDQFUNCTIONCREATEIDENTITY)
-void fCeedQFunctionCreateIdentity(int *ceed, int *size, int *qf, int *err) {
+void fCeedQFunctionCreateIdentity(int *ceed, int *size, int *inmode,
+                                  int *outmode, int *qf, int *err) {
   if (CeedQFunction_count == CeedQFunction_count_max) {
     CeedQFunction_count_max += CeedQFunction_count_max/2 + 1;
     CeedRealloc(CeedQFunction_count_max, &CeedQFunction_dict);
   }
 
   CeedQFunction *qf_ = &CeedQFunction_dict[CeedQFunction_count];
-  *err = CeedQFunctionCreateIdentity(Ceed_dict[*ceed], *size, qf_);
+  *err = CeedQFunctionCreateIdentity(Ceed_dict[*ceed], *size, *inmode,
+                                     *outmode, qf_);
 
   if (*err == 0) {
     *qf = CeedQFunction_count++;
@@ -643,6 +647,14 @@ void fCeedQFunctionSetContext(int *qf, CeedScalar *ctx, CeedInt *n, int *err) {
   fContext *fctx = qf_->ctx;
   fctx->innerctx = ctx;
   fctx->innerctxsize = ((size_t) *n)*sizeof(CeedScalar);
+}
+
+#define fCeedQFunctionView \
+    FORTRAN_NAME(ceedqfunctionview,CEEDQFUNCTIONVIEW)
+void fCeedQFunctionView(int *qf, int *err) {
+  CeedQFunction qf_ = CeedQFunction_dict[*qf];
+
+  *err = CeedQFunctionView(qf_, stdout);
 }
 
 #define fCeedQFunctionApply \
@@ -743,9 +755,9 @@ void fCeedOperatorCreate(int *ceed,
 
   CeedOperator *op_ = &CeedOperator_dict[CeedOperator_count];
 
-  CeedQFunction dqf_  = NULL, dqfT_ = NULL;
-  if (*dqf  != FORTRAN_NULL) dqf_  = CeedQFunction_dict[*dqf ];
-  if (*dqfT != FORTRAN_NULL) dqfT_ = CeedQFunction_dict[*dqfT];
+  CeedQFunction dqf_  = CEED_QFUNCTION_NONE, dqfT_ = CEED_QFUNCTION_NONE;
+  if (*dqf  != FORTRAN_QFUNCTION_NONE) dqf_  = CeedQFunction_dict[*dqf ];
+  if (*dqfT != FORTRAN_QFUNCTION_NONE) dqfT_ = CeedQFunction_dict[*dqfT];
 
   *err = CeedOperatorCreate(Ceed_dict[*ceed], CeedQFunction_dict[*qf], dqf_,
                             dqfT_, op_);
@@ -908,13 +920,23 @@ void fCeedOperatorAssembleLinearDiagonal(int *op, int *assembledvec,
   }
 }
 
+#define fCeedOperatorView \
+    FORTRAN_NAME(ceedoperatorview,CEEDOPERATORVIEW)
+void fCeedOperatorView(int *op, int *err) {
+  CeedOperator op_ = CeedOperator_dict[*op];
+
+  *err = CeedOperatorView(op_, stdout);
+}
+
 #define fCeedOperatorApply FORTRAN_NAME(ceedoperatorapply, CEEDOPERATORAPPLY)
 void fCeedOperatorApply(int *op, int *ustatevec,
                         int *resvec, int *rqst, int *err) {
-  CeedVector ustatevec_ = *ustatevec == FORTRAN_NULL
-                          ? NULL : CeedVector_dict[*ustatevec];
-  CeedVector resvec_ = *resvec == FORTRAN_NULL
-                       ? NULL : CeedVector_dict[*resvec];
+  CeedVector ustatevec_ = (*ustatevec == FORTRAN_NULL) ?
+                          NULL : (*ustatevec == FORTRAN_VECTOR_NONE ?
+                                  CEED_VECTOR_NONE : CeedVector_dict[*ustatevec]);
+  CeedVector resvec_ = (*resvec == FORTRAN_NULL) ?
+                       NULL : (*resvec == FORTRAN_VECTOR_NONE ?
+                               CEED_VECTOR_NONE : CeedVector_dict[*resvec]);
 
   int createRequest = 1;
   // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)

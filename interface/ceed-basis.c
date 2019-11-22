@@ -600,7 +600,7 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
 
   @param ceed         A Ceed object for error handling
   @param[in,out] mat  Row-major matrix to be factorized in place
-  @param[out] lambda  Vector of length m of eigenvalues
+  @param[out] lambda  Vector of length n of eigenvalues
   @param n            Number of rows/columns
 
   @return An error code: 0 - success, otherwise - failure
@@ -777,7 +777,7 @@ static int CeedMatrixMultiply(Ceed ceed, CeedScalar *matA, CeedScalar *matB,
   @param[in] matA     Row-major matrix to be factorized with eigenvalues
   @param[in] matB     Row-major matrix to be factorized to identity
   @param[out] x       Row-major orthogonal matrix
-  @param[out] lambda  Vector of length m of generalized eigenvalues
+  @param[out] lambda  Vector of length n of generalized eigenvalues
   @param n            Number of rows/columns
 
   @return An error code: 0 - success, otherwise - failure

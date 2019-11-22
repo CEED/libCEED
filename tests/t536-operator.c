@@ -92,7 +92,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_setup_mass, "qdata", 1, CEED_EVAL_NONE);
 
   // Operator - setup mass
-  CeedOperatorCreate(ceed, qf_setup_mass, NULL, NULL, &op_setup_mass);
+  CeedOperatorCreate(ceed, qf_setup_mass, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &op_setup_mass);
   CeedOperatorSetField(op_setup_mass, "dx", Erestrictx, CEED_NOTRANSPOSE, bx,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_mass, "_weight", Erestrictxi, CEED_NOTRANSPOSE,
@@ -108,7 +109,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_setup_diff, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
 
   // Operator - setup diff
-  CeedOperatorCreate(ceed, qf_setup_diff, NULL, NULL, &op_setup_diff);
+  CeedOperatorCreate(ceed, qf_setup_diff, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &op_setup_diff);
   CeedOperatorSetField(op_setup_diff, "dx", Erestrictx, CEED_NOTRANSPOSE, bx,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_diff, "_weight", Erestrictxi, CEED_NOTRANSPOSE,
@@ -130,7 +132,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_apply, "dv", dim, CEED_EVAL_GRAD);
 
   // Operator - apply
-  CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
+  CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_apply);
   CeedOperatorSetField(op_apply, "du", Erestrictu, CEED_NOTRANSPOSE, bu,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "qdata_mass", Erestrictui, CEED_NOTRANSPOSE,

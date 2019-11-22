@@ -97,7 +97,7 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
   size_t ctxsize;
   ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
   if (ctxsize > 0) {
-    if(!qf_data->d_c) {
+    if (!qf_data->d_c) {
       ierr = cudaMalloc(&qf_data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);
     }
     void *ctx;
@@ -165,13 +165,6 @@ static int CeedOperatorApply_Cuda_gen(CeedOperator op, CeedVector invec,
   return 0;
 }
 
-static int CeedOperatorAssembleLinearQFunction_Cuda_gen(CeedOperator op) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1, "Backend does not implement QFunction assembly");
-}
-
 int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -181,9 +174,6 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedOperatorSetData(op, (void *)&impl);
 
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
-                                CeedOperatorAssembleLinearQFunction_Cuda_gen);
-  CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
                                 CeedOperatorApply_Cuda_gen); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",

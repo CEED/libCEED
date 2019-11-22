@@ -123,8 +123,8 @@
 
 ! Operators
 ! -- Setup 
-      call ceedoperatorcreate(ceed,qf_setup,ceed_null,ceed_null,op_setup,&
-     & err)
+      call ceedoperatorcreate(ceed,qf_setup,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_setup,err)
       call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&
      & ceed_notranspose,bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'dx',erestrictx,&
@@ -132,8 +132,8 @@
       call ceedoperatorsetfield(op_setup,'rho',erestrictui,&
      & ceed_notranspose,ceed_basis_collocated,ceed_vector_active,err)
 ! -- Mass
-      call ceedoperatorcreate(ceed,qf_mass,ceed_null,ceed_null,op_mass,&
-     & err)
+      call ceedoperatorcreate(ceed,qf_mass,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_mass,err)
       call ceedoperatorsetfield(op_mass,'rho',erestrictui,&
      & ceed_notranspose,ceed_basis_collocated,qdata,err)
       call ceedoperatorsetfield(op_mass,'u',erestrictu,&

@@ -111,6 +111,16 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
+    # grep to skip multigrid test for OCCA
+    #  This exception will be removed with the OCCA backend overhaul
+    if [[ "$backend" = *"occa" ]] \
+            && [[ "$1" = "petsc-multigrid" ]] ; then
+        printf "ok $i0 # SKIP - QFunction reuse not supported by $backend\n"
+        printf "ok $i1 # SKIP - QFunction reuse not supported by $backend stdout\n"
+        printf "ok $i2 # SKIP - QFunction reuse not supported by $backend stderr\n"
+        continue
+    fi
+
     if [ $status -eq 0 ]; then
         printf "ok $i0 $1 $backend\n"
     else

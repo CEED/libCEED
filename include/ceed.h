@@ -148,6 +148,8 @@ typedef enum {
   CEED_MEM_DEVICE,
 } CeedMemType;
 
+CEED_EXTERN const char *const CeedMemTypes[];
+
 CEED_EXTERN int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type);
 
 /// Conveys ownership status of arrays passed to Ceed interfaces.
@@ -166,6 +168,8 @@ typedef enum {
   /// memory that can be freed using free(3).
   CEED_OWN_POINTER,
 } CeedCopyMode;
+
+CEED_EXTERN const char *const CeedCopyModes[];
 
 CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedInt len, CeedVector *vec);
 CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mtype,
@@ -203,6 +207,12 @@ CEED_EXTERN CeedVector CEED_VECTOR_ACTIVE;
 /// @ingroup CeedVector
 CEED_EXTERN CeedVector CEED_VECTOR_NONE;
 
+/// Argument for CeedOperatorCreate that QFunction is not created by user.
+/// Only used for QFunctions dqf and dqfT. If implemented, a backend may
+/// attempt to provide the action of these QFunctions.
+/// @ingroup CeedQFunction
+CEED_EXTERN CeedQFunction CEED_QFUNCTION_NONE;
+
 /// Denotes whether a linear transformation or its transpose should be applied
 /// @ingroup CeedBasis
 typedef enum {
@@ -211,6 +221,8 @@ typedef enum {
   /// Apply the transpose
   CEED_TRANSPOSE
 } CeedTransposeMode;
+
+CEED_EXTERN const char *const CeedTransposeModes[];
 
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem,
     CeedInt elemsize, CeedInt nnodes, CeedInt ncomp, CeedMemType mtype,
@@ -261,6 +273,8 @@ typedef enum {
   CEED_EVAL_WEIGHT = 16,
 } CeedEvalMode;
 
+CEED_EXTERN const char *const CeedEvalModes[];
+
 /// Type of quadrature; also used for location of nodes
 /// @ingroup CeedBasis
 typedef enum {
@@ -269,6 +283,8 @@ typedef enum {
   /// Gauss-Legendre-Lobatto quadrature
   CEED_GAUSS_LOBATTO = 1,
 } CeedQuadMode;
+
+CEED_EXTERN const char *const CeedQuadModes[];
 
 /// Type of basis shape to create non-tensor H1 element basis
 ///
@@ -291,6 +307,8 @@ typedef enum {
   /// Hexehedron - 3D shape
   CEED_HEX = 3 << 16 | 6,
 } CeedElemTopology;
+
+CEED_EXTERN const char *const CeedElemTopologies[];
 
 CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,
     CeedInt ncomp, CeedInt P, CeedInt Q, CeedQuadMode qmode, CeedBasis *basis);
@@ -357,13 +375,14 @@ CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength,
 CEED_EXTERN int CeedQFunctionCreateInteriorByName(Ceed ceed, const char *name,
     CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size,
-    CeedQFunction *qf);
+    CeedEvalMode inmode, CeedEvalMode outmode, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                                       CeedInt size, CeedEvalMode emode);
 CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                                        CeedInt size, CeedEvalMode emode);
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx,
                                         size_t ctxsize);
+CEED_EXTERN int CeedQFunctionView(CeedQFunction qf, FILE *stream);
 CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
                                    CeedVector *u, CeedVector *v);
 CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
@@ -382,6 +401,7 @@ CEED_EXTERN int CeedOperatorAssembleLinearQFunction(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request);
 CEED_EXTERN int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
     CeedVector *assembled, CeedRequest *request);
+CEED_EXTERN int CeedOperatorView(CeedOperator op, FILE *stream);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);

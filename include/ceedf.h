@@ -110,7 +110,7 @@
       parameter(ceed_hex         = X'30006' )
 
 !-----------------------------------------------------------------------
-! OperatorFieldConstants
+! Operator and OperatorField Constants
 !-----------------------------------------------------------------------
 
       integer ceed_basis_collocated
@@ -121,3 +121,6 @@
 
       integer ceed_vector_none
       parameter(ceed_vector_none          = -2)
+
+      integer ceed_qfunction_none
+      parameter(ceed_qfunction_none       = -1)

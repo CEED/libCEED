@@ -65,6 +65,11 @@ CEED_EXTERN int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate,
                                       const char *objname);
 CEED_EXTERN int CeedSetObjectDelegate(Ceed ceed, Ceed delegate,
                                       const char *objname);
+CEED_EXTERN int CeedGetOperatorFallbackResource(Ceed ceed,
+    const char **resource);
+CEED_EXTERN int CeedSetOperatorFallbackResource(Ceed ceed,
+    const char *resource);
+CEED_EXTERN int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent);
 CEED_EXTERN int CeedSetBackendFunction(Ceed ceed,
                                        const char *type, void *object,
                                        const char *fname, int (*f)());
@@ -73,6 +78,7 @@ CEED_EXTERN int CeedSetData(Ceed ceed, void **data);
 
 CEED_EXTERN int CeedVectorGetCeed(CeedVector vec, Ceed *ceed);
 CEED_EXTERN int CeedVectorGetState(CeedVector vec, uint64_t *state);
+CEED_EXTERN int CeedVectorAddReference(CeedVector vec);
 CEED_EXTERN int CeedVectorGetData(CeedVector vec, void **data);
 CEED_EXTERN int CeedVectorSetData(CeedVector vec, void **data);
 

@@ -1,0 +1,66 @@
+Composite CeedOperator
+  SubOperator [0]:
+    3 Fields
+    2 Input Fields:
+      Input Field [0]:
+        Name: "_weight"
+        Lmode: "no transpose"
+        No vector
+      Input Field [1]:
+        Name: "dx"
+        Lmode: "no transpose"
+        Active vector
+    1 Output Field:
+      Output Field [0]:
+        Name: "_weight"
+        Lmode: "no transpose"
+        Collocated basis
+  SubOperator [1]:
+    3 Fields
+    2 Input Fields:
+      Input Field [0]:
+        Name: "_weight"
+        Lmode: "no transpose"
+        No vector
+      Input Field [1]:
+        Name: "dx"
+        Lmode: "no transpose"
+        Active vector
+    1 Output Field:
+      Output Field [0]:
+        Name: "_weight"
+        Lmode: "no transpose"
+        Collocated basis
+Composite CeedOperator
+  SubOperator [0]:
+    3 Fields
+    2 Input Fields:
+      Input Field [0]:
+        Name: "rho"
+        Lmode: "no transpose"
+        Collocated basis
+      Input Field [1]:
+        Name: "u"
+        Lmode: "no transpose"
+        Active vector
+    1 Output Field:
+      Output Field [0]:
+        Name: "rho"
+        Lmode: "no transpose"
+        Active vector
+  SubOperator [1]:
+    3 Fields
+    2 Input Fields:
+      Input Field [0]:
+        Name: "rho"
+        Lmode: "no transpose"
+        Collocated basis
+      Input Field [1]:
+        Name: "u"
+        Lmode: "no transpose"
+        Active vector
+    1 Output Field:
+      Output Field [0]:
+        Name: "rho"
+        Lmode: "no transpose"
+        Active vector

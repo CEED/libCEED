@@ -23,6 +23,7 @@ typedef struct {
 
 typedef struct {
   bool add;
+  bool identityqf;
   CeedElemRestriction *blkrestr; /// Blocked versions of restrictions
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)

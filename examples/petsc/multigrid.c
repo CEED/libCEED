@@ -279,14 +279,10 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&rhsceed);
 
   // Create the restriction/interpolation Q-function
-  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].ident,
-                              bpOptions[bpChoice].identfname, &qf_restrict);
-  CeedQFunctionAddInput(qf_restrict, "uin", ncompu, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_restrict, "uout", ncompu, CEED_EVAL_INTERP);
-  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].ident,
-                              bpOptions[bpChoice].identfname, &qf_prolong);
-  CeedQFunctionAddInput(qf_prolong, "uin", ncompu, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_prolong, "uout", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_NONE, CEED_EVAL_INTERP,
+                              &qf_restrict);
+  CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_INTERP, CEED_EVAL_NONE,
+                              &qf_prolong);
 
   // Set up libCEED level transfer operators
   ierr = CeedLevelTransferSetup(ceed, numlevels, ncompu, bpChoice, ceeddata,
@@ -301,7 +297,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_error, "error", ncompu, CEED_EVAL_NONE);
 
   // Create the error operator
-  CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
+  CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_error);
   CeedOperatorSetField(op_error, "u", ceeddata[numlevels-1]->Erestrictu,
                        CEED_TRANSPOSE, ceeddata[numlevels-1]->basisu,
                        CEED_VECTOR_ACTIVE);

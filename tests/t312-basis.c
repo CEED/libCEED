@@ -51,7 +51,8 @@ int main(int argc, char **argv) {
 
   CeedBasisApply(bxg, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
   CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, Uq);
-  CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, NULL, W);
+  CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
+                 CEED_VECTOR_NONE, W);
 
   CeedVectorGetArrayRead(W, CEED_MEM_HOST, &w);
   CeedVectorGetArrayRead(Uq, CEED_MEM_HOST, &uq);
