@@ -68,28 +68,6 @@ magma_readDofsTranspose_kernel(const int NCOMP, const int nnodes, const int esiz
             dv[i+elem*esize+comp*esize*nelem] = du[comp + ind * NCOMP];
         }
    }
-//***
-//    const CeedInt   cb = pid%NCOMP;
-//    __shared__ CeedScalar    dofs[TBLOCK][MAXCOMP];
-//    __shared__ CeedInt        ind[TBLOCK];
-//    for (CeedInt i = pid, k = 0; i < esize; i += TBLOCK, k += TBLOCK) {
-//       ind[pid] = indices ? indices[i + elem * esize] : i + elem * esize;
-//       const CeedInt ind = indices ? indices[i + elem * esize] : i + elem * esize;
-//
-//        __syncthreads();
-//
-//        int ncols = (k + TBLOCK < nnodes) ? TBLOCK: nnodes;// - k;
-//        for(int j=0, row = pid/NCOMP; j<ncols; j+=TBLOCK/NCOMP)
-//           if (row < TBLOCK/NCOMP)
-//                dofs[j+row][cb] = du[cb + ind * NCOMP];
-//
-//        __syncthreads();
-//
-//        for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-//            // dv[i+comp*esize+elem*NCOMP*esize] = dofs[i][comp];
-//            dv[i+elem*esize+comp*esize*nelem] = dofs[i][comp];
-//        }
- //   }
 }
 
 // Fastest index listed first
@@ -145,27 +123,6 @@ magma_writeDofsTranspose_kernel(const int NCOMP, const int nnodes, const int esi
                                   du[i+elem*esize+comp*esize*nelem]);
         }
     }
-
-//***    CeedInt   cb = pid%NCOMP;
-//    __shared__ CeedScalar dofs[TBLOCK][MAXCOMP];
-//    __shared__ CeedInt     ind[TBLOCK];
-//    for (CeedInt i = pid, k=0; i < esize; i += TBLOCK, k+= TBLOCK) {
-//        ind[pid] = indices ? indices[i + elem * esize] : i + elem * esize;
-//
-//        __syncthreads();
-//        
-//        for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-//            //dofs[i][comp] = du[i+comp*esize+elem*NCOMP*esize];
-//            dofs[i][comp] = du[i+elem*esize+comp*esize*nelem];
-//        }
-//
-//        __syncthreads();
-//
-//        int ncols = (k + TBLOCK < nnodes) ? TBLOCK: nnodes; // - k;
-//        for(int j=0, row = pid/NCOMP; j<ncols; j+=TBLOCK/NCOMP)
-//            if (row < TBLOCK/NCOMP)
-//                magmablas_datomic_add(&dv[cb + ind[j+row] * NCOMP], dofs[j+row][cb]);
-//    }
 }
 
 
