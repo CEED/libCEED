@@ -118,10 +118,9 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
         ierr = magma_malloc_pinned( (void**)&impl->indices,
                                     size * sizeof(CeedInt)); CeedChk(ierr);
         memcpy(impl->indices, indices, size * sizeof(CeedInt));
+        // TODO: magma calls
         ierr = cudaMemcpy(impl->dindices, indices, size * sizeof(CeedInt),
                         cudaMemcpyHostToDevice);
-  //**      magma_setvector(size, sizeof(CeedInt),
-  //**                      impl->indices, 1, impl->dindices, 1);
       }
       break;
     case CEED_OWN_POINTER:
@@ -133,18 +132,16 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
       // TODO: possible problem here is if we are passed non-pinned memory;
       //       (as we own it, lter in destroy, we use free for pinned memory).
         impl->indices = (CeedInt *)indices;
+        // TODO: magma calls
         ierr = cudaMemcpy(impl->dindices, indices, size * sizeof(CeedInt),
                         cudaMemcpyHostToDevice);
-//**        magma_setvector(size, sizeof(CeedInt),
- //**                       indices, 1, impl->dindices, 1);
       }
       break;
     case CEED_USE_POINTER:
       if (indices != NULL) {
         ierr = magma_malloc( (void**)&impl->dindices,
                              size * sizeof(CeedInt)); CeedChk(ierr);
-//**      magma_setvector(size, sizeof(CeedInt),
-//**                      indices, 1, impl->dindices, 1);
+        // TODO: magma calls
         ierr = cudaMemcpy(impl->dindices, indices, size * sizeof(CeedInt),
                           cudaMemcpyHostToDevice);
       }
@@ -162,10 +159,9 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
       impl->own_ = 1;
 
       if (indices)
-//**        magma_copyvector(size, sizeof(CeedInt),
-//**                         indices, 1, impl->dindices, 1);
         ierr = cudaMemcpy(impl->dindices, indices, size * sizeof(CeedInt),
                           cudaMemcpyDeviceToDevice);
+        // TODO: magma calls
       break;
     case CEED_OWN_POINTER:
       impl->dindices = (CeedInt *)indices;
