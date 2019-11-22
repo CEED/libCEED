@@ -32,7 +32,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   const CeedScalar *u;
   CeedScalar *v;
-  if (U) {
+  if (emode != CEED_EVAL_WEIGHT) {
     ierr = CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &u); CeedChk(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
     // LCOV_EXCL_START
@@ -207,7 +207,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   const CeedScalar *du;
   CeedScalar *dv;
-  if (U) {
+  if (emode != CEED_EVAL_WEIGHT) {
     ierr = CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &du); CeedChk(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
     // LCOV_EXCL_START
