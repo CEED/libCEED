@@ -135,14 +135,14 @@
 ! -- QFunctions
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
-     &//'t520-operator.h:setup'//char(0),qf_setuptet,err)
+     &//'t510-operator.h:setup'//char(0),qf_setuptet,err)
       call ceedqfunctionaddinput(qf_setuptet,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setuptet,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setuptet,'rho',1,ceed_eval_none,err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,&
      &SOURCE_DIR&
-     &//'t520-operator.h:mass'//char(0),qf_masstet,err)
+     &//'t510-operator.h:mass'//char(0),qf_masstet,err)
       call ceedqfunctionaddinput(qf_masstet,'rho',1,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_masstet,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_masstet,'v',1,ceed_eval_interp,err)
