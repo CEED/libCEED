@@ -166,13 +166,12 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
                                 CeedElemRestrictionCreate_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
                                 "ElemRestrictionCreateBlocked",
-                                CeedElemRestrictionCreateBlocked_Cuda); CeedChk(ierr);
+                                CeedElemRestrictionCreateBlocked_Cuda);
+  CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
                                 CeedQFunctionCreate_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Cuda); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
-                                CeedCompositeOperatorCreate_Cuda); CeedChk(ierr);
   return 0;
 }
 

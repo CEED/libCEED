@@ -22,7 +22,6 @@ typedef struct {
 } CeedBasis_Blocked;
 
 typedef struct {
-  bool add;
   bool identityqf;
   CeedElemRestriction *blkrestr; /// Blocked versions of restrictions
   CeedVector

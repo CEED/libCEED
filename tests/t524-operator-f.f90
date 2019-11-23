@@ -222,7 +222,8 @@
 ! -- Operators
 ! ---- Setup Hex
       call ceedoperatorcreate(ceed,qf_setuphex,ceed_qfunction_none,&
-     & ceed_qfunction_none,op_setuphex,err)
+     & ceed_qfunction_none,op_setuphex,&
+     & err)
       call ceedoperatorsetfield(op_setuphex,'_weight',erestrictxihex,&
      & ceed_notranspose,bxhex,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuphex,'dx',erestrictxhex,&
@@ -231,7 +232,8 @@
      & ceed_notranspose,ceed_basis_collocated,qdatahex,err)
 ! ---- Mass Hex
       call ceedoperatorcreate(ceed,qf_masshex,ceed_qfunction_none,&
-     & ceed_qfunction_none,op_masshex,err)
+     & ceed_qfunction_none,op_masshex,&
+     & err)
       call ceedoperatorsetfield(op_masshex,'rho',erestrictuihex,&
      & ceed_notranspose,ceed_basis_collocated,qdatahex,err)
       call ceedoperatorsetfield(op_masshex,'u',erestrictuhex,&
@@ -256,12 +258,29 @@
       call ceedvectorcreate(ceed,ndofs,u,err)
       call ceedvectorsetvalue(u,1.d0,err)
       call ceedvectorcreate(ceed,ndofs,v,err)
+      call ceedvectorsetvalue(v,0.d0,err)
 
-      call ceedoperatorapply(op_mass,u,v,ceed_request_immediate,err)
+      call ceedoperatorapplyadd(op_mass,u,v,ceed_request_immediate,err)
 
 ! Check Output
       call ceedvectorgetarrayread(v,ceed_mem_host,hv,voffset,err)
       total=0.
+      do i=1,ndofs
+        total=total+hv(voffset+i)
+      enddo
+      if (abs(total-1.)>1.0d-10) then
+! LCOV_EXCL_START
+        write(*,*) 'Computed Area: ',total,' != True Area: 1.0'
+! LCOV_EXCL_STOP
+      endif
+      call ceedvectorrestorearrayread(v,hv,voffset,err)
+
+      call ceedvectorsetvalue(v,1.d0,err)
+      call ceedoperatorapplyadd(op_mass,u,v,ceed_request_immediate,err)
+
+! Check Output
+      call ceedvectorgetarrayread(v,ceed_mem_host,hv,voffset,err)
+      total=-ndofs
       do i=1,ndofs
         total=total+hv(voffset+i)
       enddo

@@ -100,22 +100,21 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
     Ceed delegate;
     ierr = CeedGetObjectDelegate(ceed, &delegate, "Operator"); CeedChk(ierr);
 
-    if (!delegate)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1, "Backend does not support "
-                       "CompositeOperatorCreate");
-    // LCOV_EXCL_STOP
-
-    ierr = CeedCompositeOperatorCreate(delegate, op); CeedChk(ierr);
-    return 0;
+    if (delegate) {
+      ierr = CeedCompositeOperatorCreate(delegate, op); CeedChk(ierr);
+      return 0;
+    }
   }
 
-  ierr = CeedCalloc(1,op); CeedChk(ierr);
+  ierr = CeedCalloc(1, op); CeedChk(ierr);
   (*op)->ceed = ceed;
   ceed->refcount++;
   (*op)->composite = true;
   ierr = CeedCalloc(16, &(*op)->suboperators); CeedChk(ierr);
-  ierr = ceed->CompositeOperatorCreate(*op); CeedChk(ierr);
+
+  if (ceed->CompositeOperatorCreate) {
+    ierr = ceed->CompositeOperatorCreate(*op); CeedChk(ierr);
+  }
   return 0;
 }
 
@@ -309,6 +308,46 @@ int CeedOperatorCreateFallback(CeedOperator op) {
 }
 
 /**
+  @brief Check if a CeedOperator is ready to be used.
+
+  @param[in] ceed Ceed object for error handling
+  @param[in] op   CeedOperator to check
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+static int CeedOperatorCheckReady(Ceed ceed, CeedOperator op) {
+  CeedQFunction qf = op->qf;
+
+  if (op->composite) {
+    if (!op->numsub)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1, "No suboperators set");
+    // LCOV_EXCL_STOP
+  } else {
+    if (op->nfields == 0)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1, "No operator fields set");
+    // LCOV_EXCL_STOP
+    if (op->nfields < qf->numinputfields + qf->numoutputfields)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1, "Not all operator fields set");
+    // LCOV_EXCL_STOP
+    if (!op->hasrestriction)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1,"At least one restriction required");
+    // LCOV_EXCL_STOP
+    if (op->numqpoints == 0)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1,"At least one non-collocated basis required");
+    // LCOV_EXCL_STOP
+  }
+
+  return 0;
+}
+
+/**
   @brief Assemble a linear CeedQFunction associated with a CeedOperator
 
   This returns a CeedVector containing a matrix at each quadrature point
@@ -340,30 +379,8 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
                                         CeedRequest *request) {
   int ierr;
   Ceed ceed = op->ceed;
-  CeedQFunction qf = op->qf;
+  ierr = CeedOperatorCheckReady(ceed, op); CeedChk(ierr);
 
-  if (op->composite) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Cannot assemble QFunction for composite operator");
-    // LCOV_EXCL_STOP
-  } else {
-    if (op->nfields == 0)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1, "No operator fields set");
-    // LCOV_EXCL_STOP
-    if (op->nfields < qf->numinputfields + qf->numoutputfields)
-      // LCOV_EXCL_START
-      return CeedError( ceed, 1, "Not all operator fields set");
-    // LCOV_EXCL_STOP
-    if (!op->hasrestriction)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1, "At least one restriction required");
-    // LCOV_EXCL_STOP
-    if (op->numqpoints == 0)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1, "At least one non-collocated basis required");
-    // LCOV_EXCL_STOP
-  }
   if (op->AssembleLinearQFunction) {
     ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
     CeedChk(ierr);
@@ -376,6 +393,7 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
     ierr = op->opfallback->AssembleLinearQFunction(op->opfallback, assembled,
            rstr, request); CeedChk(ierr);
   }
+
   return 0;
 }
 
@@ -397,30 +415,7 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
                                        CeedRequest *request) {
   int ierr;
   Ceed ceed = op->ceed;
-  CeedQFunction qf = op->qf;
-
-  if (op->composite) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Cannot assemble QFunction for composite operator");
-    // LCOV_EXCL_STOP
-  } else {
-    if (op->nfields == 0)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1, "No operator fields set");
-    // LCOV_EXCL_STOP
-    if (op->nfields < qf->numinputfields + qf->numoutputfields)
-      // LCOV_EXCL_START
-      return CeedError( ceed, 1, "Not all operator fields set");
-    // LCOV_EXCL_STOP
-    if (!op->hasrestriction)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1, "At least one restriction required");
-    // LCOV_EXCL_STOP
-    if (op->numqpoints == 0)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1, "At least one non-collocated basis required");
-    // LCOV_EXCL_STOP
-  }
+  ierr = CeedOperatorCheckReady(ceed, op); CeedChk(ierr);
 
   // Use backend version, if available
   if (op->AssembleLinearDiagonal) {
@@ -429,6 +424,7 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
   }
 
   // Assemble QFunction
+  CeedQFunction qf = op->qf;
   CeedVector assembledqf;
   CeedElemRestriction rstr;
   ierr = CeedOperatorAssembleLinearQFunction(op,  &assembledqf, &rstr, request);
@@ -574,7 +570,7 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
 }
 
 /**
-  @brief Apply CeedOperator to a vector
+  @brief Apply CeedOperator to a vector and overwrite output vector
 
   This computes the action of the operator on the specified (active) input,
   yielding its (active) output.  All inputs and outputs must be specified using
@@ -596,36 +592,104 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out,
                       CeedRequest *request) {
   int ierr;
   Ceed ceed = op->ceed;
-  CeedQFunction qf = op->qf;
+  ierr = CeedOperatorCheckReady(ceed, op); CeedChk(ierr);
 
-  if (op->composite) {
-    if (!op->numsub)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1, "No suboperators set");
-    // LCOV_EXCL_STOP
-  } else {
-    if (op->nfields == 0)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1, "No operator fields set");
-    // LCOV_EXCL_STOP
-    if (op->nfields < qf->numinputfields + qf->numoutputfields)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1, "Not all operator fields set");
-    // LCOV_EXCL_STOP
-    if (!op->hasrestriction)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1,"At least one restriction required");
-    // LCOV_EXCL_STOP
-    if (op->numqpoints == 0)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1,"At least one non-collocated basis required");
-    // LCOV_EXCL_STOP
+  if (op->numelements)  {
+    // Standard Operator
+    if (op->Apply) {
+      ierr = op->Apply(op, in, out, request); CeedChk(ierr);
+    } else {
+      // Zero all output vectors
+      CeedQFunction qf = op->qf;
+      for (CeedInt i=0; i<qf->numoutputfields; i++) {
+        CeedVector vec = op->outputfields[i]->vec;
+        if (vec == CEED_VECTOR_ACTIVE)
+          vec = out;
+        if (vec != CEED_VECTOR_NONE) {
+          ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
+        }
+      }
+      // Apply
+      ierr = op->ApplyAdd(op, in, out, request); CeedChk(ierr);
+    }
+  } else if (op->composite) {
+    // Composite Operator
+    if (op->ApplyComposite) {
+      ierr = op->ApplyComposite(op, in, out, request); CeedChk(ierr);
+    } else {
+      CeedInt numsub;
+      ierr = CeedOperatorGetNumSub(op, &numsub); CeedChk(ierr);
+      CeedOperator *suboperators;
+      ierr = CeedOperatorGetSubList(op, &suboperators); CeedChk(ierr);
+
+      // Zero all output vectors
+      if (out != CEED_VECTOR_NONE) {
+        ierr = CeedVectorSetValue(out, 0.0); CeedChk(ierr);
+      }
+      for (CeedInt i=0; i<numsub; i++) {
+        for (CeedInt j=0; j<suboperators[i]->qf->numoutputfields; j++) {
+          CeedVector vec = suboperators[i]->outputfields[j]->vec;
+          if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) {
+            ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
+          }
+        }
+      }
+      // Apply
+      for (CeedInt i=0; i<op->numsub; i++) {
+        ierr = CeedOperatorApplyAdd(op->suboperators[i], in, out, request);
+        CeedChk(ierr);
+      }
+    }
   }
-  if (op->numelements || op->composite) {
-    ierr = op->Apply(op, in != CEED_VECTOR_NONE ? in : NULL,
-                     out != CEED_VECTOR_NONE ? out : NULL, request);
-    CeedChk(ierr);
+
+  return 0;
+}
+
+/**
+  @brief Apply CeedOperator to a vector and add result to output vector
+
+  This computes the action of the operator on the specified (active) input,
+  yielding its (active) output.  All inputs and outputs must be specified using
+  CeedOperatorSetField().
+
+  @param op        CeedOperator to apply
+  @param[in] in    CeedVector containing input state or NULL if there are no
+                     active inputs
+  @param[out] out  CeedVector to sum in result of applying operator (must be
+                     distinct from @a in) or NULL if there are no active outputs
+  @param request   Address of CeedRequest for non-blocking completion, else
+                     CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out,
+                         CeedRequest *request) {
+  int ierr;
+  Ceed ceed = op->ceed;
+  ierr = CeedOperatorCheckReady(ceed, op); CeedChk(ierr);
+
+  if (op->numelements)  {
+    // Standard Operator
+    ierr = op->ApplyAdd(op, in, out, request); CeedChk(ierr);
+  } else if (op->composite) {
+    // Composite Operator
+    if (op->ApplyAddComposite) {
+      ierr = op->ApplyAddComposite(op, in, out, request); CeedChk(ierr);
+    } else {
+      CeedInt numsub;
+      ierr = CeedOperatorGetNumSub(op, &numsub); CeedChk(ierr);
+      CeedOperator *suboperators;
+      ierr = CeedOperatorGetSubList(op, &suboperators); CeedChk(ierr);
+
+      for (CeedInt i=0; i<numsub; i++) {
+        ierr = CeedOperatorApplyAdd(suboperators[i], in, out, request);
+        CeedChk(ierr);
+      }
+    }
   }
+
   return 0;
 }
 

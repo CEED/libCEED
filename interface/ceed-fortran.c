@@ -963,6 +963,39 @@ void fCeedOperatorApply(int *op, int *ustatevec,
   }
 }
 
+#define fCeedOperatorApplyAdd FORTRAN_NAME(ceedoperatorapplyadd, CEEDOPERATORAPPLYADD)
+void fCeedOperatorApplyAdd(int *op, int *ustatevec,
+                           int *resvec, int *rqst, int *err) {
+  CeedVector ustatevec_ = *ustatevec == FORTRAN_NULL
+                          ? NULL : CeedVector_dict[*ustatevec];
+  CeedVector resvec_ = *resvec == FORTRAN_NULL
+                       ? NULL : CeedVector_dict[*resvec];
+
+  int createRequest = 1;
+  // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
+  if (*rqst == -1 || *rqst == -2) {
+    createRequest = 0;
+  }
+
+  if (createRequest && CeedRequest_count == CeedRequest_count_max) {
+    CeedRequest_count_max += CeedRequest_count_max/2 + 1;
+    CeedRealloc(CeedRequest_count_max, &CeedRequest_dict);
+  }
+
+  CeedRequest *rqst_;
+  if (*rqst == -1) rqst_ = CEED_REQUEST_IMMEDIATE;
+  else if (*rqst == -2) rqst_ = CEED_REQUEST_ORDERED;
+  else rqst_ = &CeedRequest_dict[CeedRequest_count];
+
+  *err = CeedOperatorApplyAdd(CeedOperator_dict[*op],
+                              ustatevec_, resvec_, rqst_);
+  if (*err) return;
+  if (createRequest) {
+    *rqst = CeedRequest_count++;
+    CeedRequest_n++;
+  }
+}
+
 #define fCeedOperatorApplyJacobian \
     FORTRAN_NAME(ceedoperatorapplyjacobian, CEEDOPERATORAPPLYJACOBIAN)
 void fCeedOperatorApplyJacobian(int *op, int *qdatavec, int *ustatevec,
