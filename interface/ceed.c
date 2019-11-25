@@ -121,11 +121,13 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
 
   @ref Developer
 **/
+// LCOV_EXCL_START
 int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
                     const char *func, int ecode, const char *format,
                     va_list args) {
   return ecode;
 }
+// LCOV_EXCL_STOP
 
 /**
   @brief Error handler that prints to stderr and aborts
@@ -134,6 +136,7 @@ int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
 
   @ref Developer
 **/
+// LCOV_EXCL_START
 int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
                    const char *func, int ecode, const char *format,
                    va_list args) {
@@ -143,6 +146,7 @@ int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
   abort();
   return ecode;
 }
+// LCOV_EXCL_STOP
 
 /**
   @brief Error handler that prints to stderr and exits
@@ -333,7 +337,10 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // Find matching backend
   if (!resource)
+    // LCOV_EXCL_START
     return CeedError(NULL, 1, "No resource provided");
+  // LCOV_EXCL_STOP
+
   for (size_t i=0; i<num_backends; i++) {
     size_t n;
     const char *prefix = backends[i].prefix;
@@ -346,10 +353,12 @@ int CeedInit(const char *resource, Ceed *ceed) {
     }
   }
   if (!matchlen)
+    // LCOV_EXCL_START
     return CeedError(NULL, 1, "No suitable backend");
+  // LCOV_EXCL_STOP
 
   // Setup Ceed
-  ierr = CeedCalloc(1,ceed); CeedChk(ierr);
+  ierr = CeedCalloc(1, ceed); CeedChk(ierr);
   const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
   if (!ceed_error_handler)
     ceed_error_handler = "abort";
@@ -393,6 +402,9 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedOperator, AssembleLinearQFunction),
     CEED_FTABLE_ENTRY(CeedOperator, AssembleLinearDiagonal),
     CEED_FTABLE_ENTRY(CeedOperator, Apply),
+    CEED_FTABLE_ENTRY(CeedOperator, ApplyComposite),
+    CEED_FTABLE_ENTRY(CeedOperator, ApplyAdd),
+    CEED_FTABLE_ENTRY(CeedOperator, ApplyAddComposite),
     CEED_FTABLE_ENTRY(CeedOperator, ApplyJacobian),
     CEED_FTABLE_ENTRY(CeedOperator, Destroy),
     {NULL, 0} // End of lookup table - used in SetBackendFunction loop

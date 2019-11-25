@@ -244,8 +244,6 @@ CEED_EXTERN int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr,
     CeedVector u, CeedVector ru, CeedRequest *request);
 CEED_EXTERN int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
     CeedVector mult);
-CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
-    CeedVector *lvec, CeedVector *evec);
 CEED_EXTERN int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream);
 CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *rstr);
 
@@ -404,6 +402,8 @@ CEED_EXTERN int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
 CEED_EXTERN int CeedOperatorView(CeedOperator op, FILE *stream);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
+CEED_EXTERN int CeedOperatorApplyAdd(CeedOperator op, CeedVector in,
+                                     CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
 
 /**

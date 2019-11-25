@@ -213,7 +213,7 @@
 ! -- QFunctions
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
-     &//'t521-operator.h:setup'//char(0),qf_setuphex,err)
+     &//'t522-operator.h:setup'//char(0),qf_setuphex,err)
       call ceedqfunctionaddinput(qf_setuphex,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setuphex,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setuphex,'rho',d*(d+1)/2,ceed_eval_none,&
@@ -221,7 +221,7 @@
 
       call ceedqfunctioncreateinterior(ceed,1,diff,&
      &SOURCE_DIR&
-     &//'t521-operator.h:diff'//char(0),qf_diffhex,err)
+     &//'t522-operator.h:diff'//char(0),qf_diffhex,err)
       call ceedqfunctionaddinput(qf_diffhex,'rho',d*(d+1)/2,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_diffhex,'u',d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_diffhex,'v',d,ceed_eval_grad,err)

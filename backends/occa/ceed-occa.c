@@ -126,8 +126,6 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
                                 CeedQFunctionCreate_Occa); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Occa); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
-                                CeedCompositeOperatorCreate_Occa); CeedChk(ierr);
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   // push env variables CEED_DEBUG or DBG to our data
   data->debug=!!getenv("CEED_DEBUG") || !!getenv("DBG");
