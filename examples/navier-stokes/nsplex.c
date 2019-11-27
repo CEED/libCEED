@@ -524,7 +524,7 @@ int main(int argc, char **argv) {
   if (ierr) return ierr;
 
   // Allocate PETSc context
-  ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &user); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
 
   // Parse command line options
@@ -757,25 +757,29 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_ics, "q0", ncompq, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_ics, "coords", ncompx, CEED_EVAL_NONE);
 
-  // Create the Q-function that defines the action of the RHS operator
-  CeedQFunctionCreateInterior(ceed, 1, problem->apply_rhs,
-                              problem->apply_rhs_loc, &qf_rhs);
-  CeedQFunctionAddInput(qf_rhs, "q", ncompq, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_rhs, "dq", ncompq*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_rhs, "qdata", qdatasize, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_rhs, "x", ncompx, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_rhs, "v", ncompq, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_rhs, "dv", ncompq*dim, CEED_EVAL_GRAD);
+  qf_rhs = NULL;
+  if (problem->apply_rhs) { // Create the Q-function that defines the action of the RHS operator
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_rhs,
+                                problem->apply_rhs_loc, &qf_rhs);
+    CeedQFunctionAddInput(qf_rhs, "q", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_rhs, "dq", ncompq*dim, CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(qf_rhs, "qdata", qdatasize, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qf_rhs, "x", ncompx, CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(qf_rhs, "v", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(qf_rhs, "dv", ncompq*dim, CEED_EVAL_GRAD);
+  }
 
-  // Create the Q-function that defines the action of the IFunction
-  CeedQFunctionCreateInterior(ceed, 1, problem->apply_ifunction,
-                              problem->apply_ifunction_loc, &qf_ifunction);
-  CeedQFunctionAddInput(qf_ifunction, "q", ncompq, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_ifunction, "dq", ncompq*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_ifunction, "qdot", ncompq, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_ifunction, "qdata", qdatasize, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_ifunction, "v", ncompq, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_ifunction, "dv", ncompq*dim, CEED_EVAL_GRAD);
+  qf_ifunction = NULL;
+  if (problem->apply_ifunction) { // Create the Q-function that defines the action of the IFunction
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_ifunction,
+                                problem->apply_ifunction_loc, &qf_ifunction);
+    CeedQFunctionAddInput(qf_ifunction, "q", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_ifunction, "dq", ncompq*dim, CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(qf_ifunction, "qdot", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_ifunction, "qdata", qdatasize, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(qf_ifunction, "v", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(qf_ifunction, "dv", ncompq*dim, CEED_EVAL_GRAD);
+  }
 
   // Create the operator that builds the quadrature data for the NS operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
@@ -799,7 +803,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreateVector(restrictq, &user->qdotceed, NULL);
   CeedElemRestrictionCreateVector(restrictq, &user->gceed, NULL);
 
-  { // Create the RHS physics operator
+  if (qf_rhs) { // Create the RHS physics operator
     CeedOperator op;
     CeedOperatorCreate(ceed, qf_rhs, NULL, NULL, &op);
     CeedOperatorSetField(op, "q", restrictq, CEED_TRANSPOSE,
@@ -817,7 +821,7 @@ int main(int argc, char **argv) {
     user->op_rhs = op;
   }
 
-  { // Create the IFunction operator
+  if (qf_ifunction) { // Create the IFunction operator
     CeedOperator op;
     CeedOperatorCreate(ceed, qf_ifunction, NULL, NULL, &op);
     CeedOperatorSetField(op, "q", restrictq, CEED_TRANSPOSE,
@@ -844,13 +848,13 @@ int main(int argc, char **argv) {
   };
   switch (problemChoice) {
   case NS_DENSITY_CURRENT:
-    CeedQFunctionSetContext(qf_rhs, &ctxNS, sizeof ctxNS);
-    CeedQFunctionSetContext(qf_ifunction, &ctxNS, sizeof ctxNS);
+    if (qf_rhs) CeedQFunctionSetContext(qf_rhs, &ctxNS, sizeof ctxNS);
+    if (qf_ifunction) CeedQFunctionSetContext(qf_ifunction, &ctxNS, sizeof ctxNS);
     break;
   case NS_ADVECTION:
   case NS_ADVECTION2D:
-    CeedQFunctionSetContext(qf_rhs, &ctxAdvection2d, sizeof ctxAdvection2d);
-    CeedQFunctionSetContext(qf_ifunction, &ctxAdvection2d, sizeof ctxAdvection2d);
+    if (qf_rhs) CeedQFunctionSetContext(qf_rhs, &ctxAdvection2d, sizeof ctxAdvection2d);
+    if (qf_ifunction) CeedQFunctionSetContext(qf_ifunction, &ctxAdvection2d, sizeof ctxAdvection2d);
   }
 
   // Set up PETSc context
@@ -942,8 +946,13 @@ int main(int argc, char **argv) {
   ierr = TSCreate(comm, &ts); CHKERRQ(ierr);
   if (implicit) {
     ierr = TSSetType(ts, TSBDF); CHKERRQ(ierr);
-    ierr = TSSetIFunction(ts, NULL, IFunction_NS, &user);CHKERRQ(ierr);
+    if (user->op_ifunction) {
+      ierr = TSSetIFunction(ts, NULL, IFunction_NS, &user);CHKERRQ(ierr);
+    } else {                    // Implicit integrators can fall back to using an RHSFunction
+      ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
+    }
   } else {
+    if (!user->op_rhs) SETERRQ(comm,PETSC_ERR_ARG_NULL,"Problem does not provide RHSFunction");
     ierr = TSSetType(ts, TSRK); CHKERRQ(ierr);
     ierr = TSRKSetType(ts, TSRK5F); CHKERRQ(ierr);
     ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
