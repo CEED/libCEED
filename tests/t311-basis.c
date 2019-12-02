@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
   CeedVectorGetArrayRead(Uq, CEED_MEM_HOST, &uuq);
   for (CeedInt i=0; i<Q; i++) {
     CeedScalar px = PolyEval(xq[i], ALEN(p), p);
-    if (fabs(uuq[i] - px) > 1e-14)
+    if (fabs(uuq[i] - px) > 1E-14)
       // LCOV_EXCL_START
       printf("%f != %f=p(%f)\n", uuq[i], px, xq[i]);
     // LCOV_EXCL_STOP

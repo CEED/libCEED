@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
   sum = 0;
   for (int i=0; i<Q; i++)
     sum += out[i]*weights[i];
-  if (fabs(sum - 17./24.) > 1e-10)
+  if (fabs(sum - 17./24.) > 1E-10)
     printf("%f != %f\n", sum, 17./24.);
   CeedVectorRestoreArrayRead(Out, &out);
   CeedVectorRestoreArrayRead(Weights, &weights);

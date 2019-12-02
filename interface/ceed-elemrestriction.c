@@ -40,7 +40,7 @@
   @param indices    Array of shape [@a nelem, @a elemsize]. Row i holds the
                       ordered list of the indices (into the input CeedVector)
                       for the unknowns corresponding to element i, where
-                      0 <= i < @a nelements. All indices must be in the range
+                      0 <= i < @a nelem. All indices must be in the range
                       [0, @a nnodes - 1].
   @param[out] rstr  Address of the variable where the newly created
                       CeedElemRestriction will be stored
@@ -147,7 +147,7 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
   @param indices    Array of shape [@a nelem, @a elemsize]. Row i holds the
                       ordered list of the indices (into the input CeedVector)
                       for the unknowns corresponding to element i, where
-                      0 <= i < @a nelements. All indices must be in the range
+                      0 <= i < @a nelem. All indices must be in the range
                       [0, @a nnodes).
   @param blkindices Array of permuted and padded indices of
                       shape [@a nblk, @a elemsize, @a blksize].
@@ -189,7 +189,7 @@ int CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
   @param indices    Array of shape [@a nelem, @a elemsize]. Row i holds the
                       ordered list of the indices (into the input CeedVector)
                       for the unknowns corresponding to element i, where
-                      0 <= i < @a nelements. All indices must be in the range
+                      0 <= i < @a nelem. All indices must be in the range
                       [0, @a nnodes). The backend will permute and pad this
                       array to the desired ordering for the blocksize, which is
                       typically given by the backend. The default reordering is

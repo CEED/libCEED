@@ -31,9 +31,10 @@
 
   @param ceed    A Ceed object where the CeedOperator will be created
   @param qf      QFunction defining the action of the operator at quadrature points
-  @param dqf     QFunction defining the action of the Jacobian of @a qf (or NULL)
+  @param dqf     QFunction defining the action of the Jacobian of @a qf (or 
+                   CEED_QFUNCTION_NONE)
   @param dqfT    QFunction defining the action of the transpose of the Jacobian
-                   of @a qf (or NULL)
+                   of @a qf (or CEED_QFUNCTION_NONE)
   @param[out] op Address of the variable where the newly created
                      CeedOperator will be stored
 
@@ -230,8 +231,8 @@ found:
 /**
   @brief Add a sub-operator to a composite CeedOperator
 
-  @param[out] compositeop Address of the composite CeedOperator
-  @param      subop       Address of the sub-operator CeedOperator
+  @param[out] compositeop Composite CeedOperator
+  @param      subop       Sub-operator CeedOperator
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -577,10 +578,11 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
   CeedOperatorSetField().
 
   @param op        CeedOperator to apply
-  @param[in] in    CeedVector containing input state or NULL if there are no
-                     active inputs
+  @param[in] in    CeedVector containing input state or CEED_VECTOR_NONE if
+                  there are no active inputs
   @param[out] out  CeedVector to store result of applying operator (must be
-                     distinct from @a in) or NULL if there are no active outputs
+                     distinct from @a in) or CEED_VECTOR_NONE if there are no
+                     active outputs
   @param request   Address of CeedRequest for non-blocking completion, else
                      CEED_REQUEST_IMMEDIATE
 

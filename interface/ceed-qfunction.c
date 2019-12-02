@@ -45,9 +45,9 @@ static size_t num_qfunctions;
 
   @param ceed       A Ceed object where the CeedQFunction will be created
   @param vlength    Vector length.  Caller must ensure that number of quadrature
-                    points is a multiple of vlength.
+                      points is a multiple of vlength.
   @param f          Function pointer to evaluate action at quadrature points.
-                    See \ref CeedQFunctionUser.
+                      See \ref CeedQFunctionUser.
   @param source     Absolute path to source of QFunction,
                       "\abs_path\file.h:function_name"
   @param[out] qf    Address of the variable where the newly created
@@ -79,7 +79,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedQFunctionUser f,
     return 0;
   }
 
-  ierr = CeedCalloc(1,qf); CeedChk(ierr);
+  ierr = CeedCalloc(1, qf); CeedChk(ierr);
   (*qf)->ceed = ceed;
   ceed->refcount++;
   (*qf)->refcount = 1;
@@ -600,8 +600,8 @@ int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
 
   @param qf      CeedQFunction
   @param Q       Number of quadrature points
-  @param[in] u   Array of input data arrays
-  @param[out] v  Array of output data arrays
+  @param[in] u   Array of input CeedVectors
+  @param[out] v  Array of output CeedVectors
 
   @return An error code: 0 - success, otherwise - failure
 

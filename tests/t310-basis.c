@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
   for (i = 0; i < len; i++)
-    if (fabs(v[i] - 1.) > 1e-15)
+    if (fabs(v[i] - 1.) > 1E-15)
       // LCOV_EXCL_START
       printf("v[%d] = %f != 1.\n", i, v[i]);
   // LCOV_EXCL_STOP

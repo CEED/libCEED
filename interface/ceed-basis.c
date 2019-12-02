@@ -188,7 +188,7 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
   @param ceed       A Ceed object where the CeedBasis will be created
   @param topo       Topology of element, e.g. hypercube, simplex, ect
   @param ncomp      Number of field components (1 for scalar fields)
-  @param nnodes       Total number of nodes
+  @param nnodes     Total number of nodes
   @param nqpts      Total number of quadrature points
   @param interp     Row-major nqpts × nnodes matrix expressing the values of
                       nodal basis functions at quadrature points
@@ -875,10 +875,12 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collograd1d) {
   @param tmode  \ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature
                   points, \ref CEED_TRANSPOSE to apply the transpose, mapping
                   from quadrature points to nodes
-  @param emode  \ref CEED_EVAL_INTERP to obtain interpolated values,
-                  \ref CEED_EVAL_GRAD to obtain gradients.
-  @param[in] u  Input array
-  @param[out] v Output array
+  @param emode  \ref CEED_EVAL_NONE to use values directly,
+                  \ref CEED_EVAL_INTERP to use interpolated values,
+                  \ref CEED_EVAL_GRAD to use gradients,
+                  \ref CEED_EVAL_WEIGHT to use quadrature weights.
+  @param[in] u  Input CeedVector
+  @param[out] v Output CeedVector
 
   @return An error code: 0 - success, otherwise - failure
 

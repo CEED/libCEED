@@ -13,11 +13,11 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
 
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
-  CeedQFunctionAddInput(qf_setup, "w", 1, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_setup, "qdata", 1, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_setup, "w", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddOutput(qf_setup, "qdata", 1, CEED_EVAL_NONE);
 
   CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_mass);
-  CeedQFunctionAddInput(qf_mass, "qdata", 1, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_mass, "qdata", 1, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_mass, "u", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);
 
