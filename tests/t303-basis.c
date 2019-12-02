@@ -1,5 +1,5 @@
 /// @file
-/// Test that topological and geometric dimensions of basis match
+/// Test that length of BasisApply input/output vectors is incompatible with basis dimensions
 /// \test Test that topological and geometric dimensions of basis match
 #include <ceed.h>
 #include <math.h>

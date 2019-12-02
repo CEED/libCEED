@@ -107,7 +107,7 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, Q, &qvecs[i]); CeedChk(ierr);
       ierr = CeedBasisApply(basis, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
-                            NULL, qvecs[i]); CeedChk(ierr);
+                            CEED_VECTOR_NONE, qvecs[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_DIV:
       break; // Not implemented
@@ -484,20 +484,6 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
     CeedChk(ierr);
   }
 
-  // Zero lvecs
-  for (CeedInt i=0; i<numoutputfields; i++) {
-    ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
-    if (vec == CEED_VECTOR_ACTIVE) {
-      if (!impl->add) {
-        vec = outvec;
-        ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-      }
-    } else {
-      ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-    }
-  }
-  impl->add = false;
-
   // Output restriction
   for (CeedInt i=0; i<numoutputfields; i++) {
     // Restore evec
@@ -526,31 +512,6 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
   return 0;
 }
 
-// Composite operators
-static int CeedCompositeOperatorApply_Ref(CeedOperator op, CeedVector invec,
-    CeedVector outvec,
-    CeedRequest *request) {
-  int ierr;
-  CeedInt numsub;
-  CeedOperator_Ref *impl;
-  CeedOperator *suboperators;
-  ierr = CeedOperatorGetNumSub(op, &numsub); CeedChk(ierr);
-  ierr = CeedOperatorGetSubList(op, &suboperators); CeedChk(ierr);
-
-  // Overwrite outvec with first output
-  ierr = CeedOperatorApply(suboperators[0], invec, outvec, request);
-  CeedChk(ierr);
-  // Add to outvec with subsequent outputs
-  for (CeedInt i=1; i<numsub; i++) {
-    ierr = CeedOperatorGetData(suboperators[i], (void *)&impl); CeedChk(ierr);
-    impl->add = true;
-    ierr = CeedOperatorApply(suboperators[i], invec, outvec, request);
-    CeedChk(ierr);
-  }
-
-  return 0;
-}
-
 // Assemble Linear QFunction
 static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
@@ -574,8 +535,10 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   CeedInt numactivein = 0, numactiveout = 0;
   CeedVector *activein = NULL;
   CeedScalar *a, *tmp;
-  Ceed ceed;
+  Ceed ceed, ceedparent;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  ierr = CeedGetOperatorFallbackParentCeed(ceed, &ceedparent); CeedChk(ierr);
+  ceedparent = ceedparent ? ceedparent : ceed;
 
   // Setup
   ierr = CeedOperatorSetup_Ref(op); CeedChk(ierr);
@@ -633,10 +596,10 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   // LCOV_EXCL_STOP
 
   // Create output restriction
-  ierr = CeedElemRestrictionCreateIdentity(ceed, numelements, Q,
+  ierr = CeedElemRestrictionCreateIdentity(ceedparent, numelements, Q,
          numelements*Q, numactivein*numactiveout, rstr); CeedChk(ierr);
   // Create assembled vector
-  ierr = CeedVectorCreate(ceed, numelements*Q*numactivein*numactiveout,
+  ierr = CeedVectorCreate(ceedparent, numelements*Q*numactivein*numactiveout,
                           assembled); CeedChk(ierr);
   ierr = CeedVectorSetValue(*assembled, 0.0); CeedChk(ierr);
   ierr = CeedVectorGetArray(*assembled, CEED_MEM_HOST, &a); CeedChk(ierr);
@@ -712,25 +675,14 @@ int CeedOperatorCreate_Ref(CeedOperator op) {
   CeedOperator_Ref *impl;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  impl->add = false;
   ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
                                 CeedOperatorAssembleLinearQFunction_Ref);
   CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                 CeedOperatorApply_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
                                 CeedOperatorDestroy_Ref); CeedChk(ierr);
-  return 0;
-}
-
-int CeedCompositeOperatorCreate_Ref(CeedOperator op) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
-                                CeedCompositeOperatorApply_Ref); CeedChk(ierr);
   return 0;
 }

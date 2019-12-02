@@ -72,7 +72,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);
 
   // Operators
-  CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
+  CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_setup);
   CeedOperatorSetField(op_setup, "_weight", Erestrictxi, CEED_NOTRANSPOSE, bx,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE, bx,
@@ -80,7 +81,8 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup, "rho", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
+  CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_mass);
   CeedOperatorSetField(op_mass, "rho", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdata);
   CeedOperatorSetField(op_mass, "u", Erestrictu, CEED_NOTRANSPOSE, bu,

@@ -60,7 +60,7 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   char *buffer;
 
   fp = fopen ( cuda_file, "rb" );
-  if( !fp ) CeedError(ceed, 1, "Couldn't open the Cuda file for the QFunction.");
+  if (!fp) CeedError(ceed, 1, "Couldn't open the Cuda file for the QFunction.");
 
   fseek( fp, 0L, SEEK_END);
   lSize = ftell( fp );
@@ -70,7 +70,7 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   ierr = CeedCalloc( lSize+1, &buffer ); CeedChk(ierr);
 
   /* copy the file into the buffer */
-  if( 1!=fread( buffer, lSize, 1, fp) ) {
+  if (1 != fread( buffer, lSize, 1, fp) ) {
     fclose(fp);
     CeedFree(&buffer);
     CeedError(ceed, 1, "Couldn't read the Cuda file for the QFunction.");

@@ -209,7 +209,8 @@ int main(int argc, const char *argv[]) {
   // Create the operator that builds the quadrature data for the diffusion
   // operator.
   CeedOperator build_oper;
-  CeedOperatorCreate(ceed, build_qfunc, NULL, NULL, &build_oper);
+  CeedOperatorCreate(ceed, build_qfunc, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &build_oper);
   CeedOperatorSetField(build_oper, "dx", mesh_restr, CEED_NOTRANSPOSE,
                        mesh_basis,CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(build_oper, "weights", mesh_restr_i, CEED_NOTRANSPOSE,
@@ -257,7 +258,8 @@ int main(int argc, const char *argv[]) {
 
   // Create the diffusion operator.
   CeedOperator oper;
-  CeedOperatorCreate(ceed, apply_qfunc, NULL, NULL, &oper);
+  CeedOperatorCreate(ceed, apply_qfunc, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &oper);
   CeedOperatorSetField(oper, "du", sol_restr, CEED_NOTRANSPOSE,
                        sol_basis, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(oper, "qdata", qdata_restr_i, CEED_NOTRANSPOSE,

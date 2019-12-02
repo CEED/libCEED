@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
   CeedVectorGetArrayRead(Out, CEED_MEM_HOST, &out);
   for (int i=0; i<Q; i++) {
     value = feval(xq[0*Q+i], xq[1*Q+i]);
-    if (fabs(out[i] - value) > 1e-10)
+    if (fabs(out[i] - value) > 1E-10)
       // LCOV_EXCL_START
       printf("[%d] %f != %f\n", i, out[i], value);
     // LCOV_EXCL_STOP

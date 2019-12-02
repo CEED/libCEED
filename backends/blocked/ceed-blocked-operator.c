@@ -130,7 +130,8 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, Q*blksize, &qvecs[i]); CeedChk(ierr);
       ierr = CeedBasisApply(basis, blksize, CEED_NOTRANSPOSE,
-                            CEED_EVAL_WEIGHT, NULL, qvecs[i]); CeedChk(ierr);
+                            CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, qvecs[i]);
+      CeedChk(ierr);
 
       break;
     case CEED_EVAL_DIV:
@@ -511,20 +512,6 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
     CeedChk(ierr);
   }
 
-  // Zero lvecs
-  for (CeedInt i=0; i<numoutputfields; i++) {
-    ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
-    if (vec == CEED_VECTOR_ACTIVE) {
-      if (!impl->add) {
-        vec = outvec;
-        ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-      }
-    } else {
-      ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-    }
-  }
-  impl->add = false;
-
   // Output restriction
   for (CeedInt i=0; i<numoutputfields; i++) {
     // Restore evec
@@ -731,7 +718,7 @@ int CeedOperatorCreate_Blocked(CeedOperator op) {
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
                                 CeedOperatorAssembleLinearQFunction_Blocked);
   CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                 CeedOperatorApply_Blocked); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
                                 CeedOperatorDestroy_Blocked); CeedChk(ierr);

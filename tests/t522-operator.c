@@ -1,6 +1,6 @@
 /// @file
-/// Test creation creation, action, and destruction for diffusion matrix operator
-/// \test Test creation creation, action, and destruction for diffusion matrix operator
+/// Test creation, action, and destruction for diffusion matrix operator
+/// \test Test creation, action, and destruction for diffusion matrix operator
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
@@ -114,7 +114,8 @@ int main(int argc, char **argv) {
 
   // -- Operators
   // ---- Setup Tet
-  CeedOperatorCreate(ceed, qf_setupTet, NULL, NULL, &op_setupTet);
+  CeedOperatorCreate(ceed, qf_setupTet, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &op_setupTet);
   CeedOperatorSetField(op_setupTet, "_weight", ErestrictxiTet, CEED_NOTRANSPOSE,
                        bxTet, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setupTet, "dx", ErestrictxTet, CEED_NOTRANSPOSE,
@@ -122,7 +123,8 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setupTet, "rho", ErestrictqdiTet, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdataTet);
   // ---- diff Tet
-  CeedOperatorCreate(ceed, qf_diffTet, NULL, NULL, &op_diffTet);
+  CeedOperatorCreate(ceed, qf_diffTet, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_diffTet);
   CeedOperatorSetField(op_diffTet, "rho", ErestrictqdiTet, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdataTet);
   CeedOperatorSetField(op_diffTet, "u", ErestrictuTet, CEED_NOTRANSPOSE,
@@ -171,7 +173,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_diffHex, "v", dim, CEED_EVAL_GRAD);
 
   // -- Operators
-  CeedOperatorCreate(ceed, qf_setupHex, NULL, NULL, &op_setupHex);
+  CeedOperatorCreate(ceed, qf_setupHex, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &op_setupHex);
   CeedOperatorSetField(op_setupHex, "_weight", ErestrictxiHex, CEED_NOTRANSPOSE,
                        bxHex, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setupHex, "dx", ErestrictxHex, CEED_NOTRANSPOSE,
@@ -179,7 +182,8 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setupHex, "rho", ErestrictqdiHex, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdataHex);
 
-  CeedOperatorCreate(ceed, qf_diffHex, NULL, NULL, &op_diffHex);
+  CeedOperatorCreate(ceed, qf_diffHex, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_diffHex);
   CeedOperatorSetField(op_diffHex, "rho", ErestrictqdiHex, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdataHex);
   CeedOperatorSetField(op_diffHex, "u", ErestrictuHex, CEED_NOTRANSPOSE,
@@ -197,7 +201,7 @@ int main(int argc, char **argv) {
   CeedCompositeOperatorAddSub(op_diff, op_diffHex);
 
   // Apply Setup Operator
-  CeedOperatorApply(op_setup, X, NULL, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_setup, X, CEED_VECTOR_NONE, CEED_REQUEST_IMMEDIATE);
 
   // Apply diff Operator
   CeedVectorCreate(ceed, ndofs, &U);

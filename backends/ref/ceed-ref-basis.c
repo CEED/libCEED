@@ -32,7 +32,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
   const CeedInt add = (tmode == CEED_TRANSPOSE);
   const CeedScalar *u;
   CeedScalar *v;
-  if (U) {
+  if (U != CEED_VECTOR_NONE) {
     ierr = CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u); CeedChk(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
     // LCOV_EXCL_START
@@ -290,7 +290,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
       // LCOV_EXCL_STOP
     }
   }
-  if (U) {
+  if (U != CEED_VECTOR_NONE) {
     ierr = CeedVectorRestoreArrayRead(U, &u); CeedChk(ierr);
   }
   ierr = CeedVectorRestoreArray(V, &v); CeedChk(ierr);

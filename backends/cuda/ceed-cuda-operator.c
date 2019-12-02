@@ -172,8 +172,8 @@ static int CeedOperatorSetup_Cuda(CeedOperator op) {
   return 0;
 }
 
-static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
-                                  CeedVector outvec, CeedRequest *request) {
+static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
+                                     CeedVector outvec, CeedRequest *request) {
   int ierr;
   CeedOperator_Cuda *impl;
   ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
@@ -320,14 +320,6 @@ static int CeedOperatorApply_Cuda(CeedOperator op, CeedVector invec,
     }
   }
 
-  // Zero lvecs
-  for (CeedInt i = 0; i < numoutputfields; i++) {
-    ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
-    if (vec == CEED_VECTOR_ACTIVE)
-      vec = outvec;
-    ierr = CeedVectorSetValue(vec, 0.0); CeedChk(ierr);
-  }
-
   // Output restriction
   for (CeedInt i = 0; i < numoutputfields; i++) {
     // Restore evec
@@ -386,16 +378,9 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
                                 CeedOperatorAssembleLinearQFunction_Cuda);
   CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Apply",
-                                CeedOperatorApply_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
+                                CeedOperatorApplyAdd_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
                                 CeedOperatorDestroy_Cuda); CeedChk(ierr);
   return 0;
-}
-
-int CeedCompositeOperatorCreate_Cuda(CeedOperator op) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1, "Backend does not implement composite operators");
 }

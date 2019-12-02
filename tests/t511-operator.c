@@ -1,6 +1,6 @@
 /// @file
-/// Test creation creation, action, and destruction for mass matrix operator
-/// \test Test creation creation, action, and destruction for mass matrix operator
+/// Test creation, action, and destruction for mass matrix operator
+/// \test Test creation, action, and destruction for mass matrix operator
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
@@ -82,9 +82,11 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);
 
   // Operators
-  CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
+  CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_setup);
 
-  CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
+  CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_mass);
 
   CeedVectorCreate(ceed, dim*ndofs, &X);
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);

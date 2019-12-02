@@ -238,7 +238,7 @@ info:
 	$(info ASAN          = $(or $(ASAN),(empty)))
 	$(info V             = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info ------------------------------------)
-	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,/cpu/self/ref/memcheck))
+	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,/cpu/self/memcheck/serial /cpu/sef/memcheck/blocked))
 	$(info AVX_STATUS    = $(AVX_STATUS)$(call backend_status,/cpu/self/avx/serial /cpu/self/avx/blocked))
 	$(info XSMM_DIR      = $(XSMM_DIR)$(call backend_status,/cpu/self/xsmm/serial /cpu/self/xsmm/blocked))
 	$(info OCCA_DIR      = $(OCCA_DIR)$(call backend_status,/cpu/occa /gpu/occa /omp/occa))
@@ -278,7 +278,7 @@ MEMCHK := $(shell echo "\#include <valgrind/memcheck.h>" | $(CC) $(CPPFLAGS) -E 
 ifeq ($(MEMCHK),1)
   MEMCHK_STATUS = Enabled
   libceed.c += $(ceedmemcheck.c)
-  BACKENDS += /cpu/self/ref/memcheck
+  BACKENDS += /cpu/self/memcheck/serial /cpu/self/memcheck/blocked
 endif
 
 # AVX Backed

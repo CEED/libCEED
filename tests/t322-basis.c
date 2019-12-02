@@ -39,7 +39,8 @@ int main(int argc, char **argv) {
   CeedVectorSetValue(Weights, 0);
 
   CeedBasisApply(b, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, In, Out);
-  CeedBasisApply(b, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, NULL, Weights);
+  CeedBasisApply(b, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
+                 CEED_VECTOR_NONE, Weights);
 
   // Check values at quadrature points
   CeedVectorGetArrayRead(Out, CEED_MEM_HOST, &out);
@@ -47,7 +48,7 @@ int main(int argc, char **argv) {
   sum = 0;
   for (int i=0; i<Q; i++)
     sum += out[i]*weights[i];
-  if (fabs(sum - 17./24.) > 1e-10)
+  if (fabs(sum - 17./24.) > 1E-10)
     printf("%f != %f\n", sum, 17./24.);
   CeedVectorRestoreArrayRead(Out, &out);
   CeedVectorRestoreArrayRead(Weights, &weights);

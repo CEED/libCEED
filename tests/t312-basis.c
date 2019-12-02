@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, Q, &W);
   CeedVectorSetValue(W, 0);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
 
   for (int i = 0; i < 2; i++)
     x[i] = CeedIntPow(-1, i+1);
@@ -51,7 +51,8 @@ int main(int argc, char **argv) {
 
   CeedBasisApply(bxg, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
   CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, Uq);
-  CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, NULL, W);
+  CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
+                 CEED_VECTOR_NONE, W);
 
   CeedVectorGetArrayRead(W, CEED_MEM_HOST, &w);
   CeedVectorGetArrayRead(Uq, CEED_MEM_HOST, &uq);
@@ -65,7 +66,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<(int)ALEN(p); i++)
     pint[i+1] = p[i] / (i+1);
   error = sum - PolyEval(1, ALEN(pint), pint) + PolyEval(-1, ALEN(pint), pint);
-  if (error > 1.e-10)
+  if (error > 1.E-10)
     // LCOV_EXCL_START
     printf("Error %e  sum %g  exact %g\n", error, sum,
            PolyEval(1, ALEN(pint), pint) - PolyEval(-1, ALEN(pint), pint));

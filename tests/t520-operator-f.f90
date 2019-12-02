@@ -142,22 +142,22 @@
 ! -- QFunctions
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
-     &//'t520-operator.h:setup'//char(0),qf_setuptet,err)
+     &//'t510-operator.h:setup'//char(0),qf_setuptet,err)
       call ceedqfunctionaddinput(qf_setuptet,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setuptet,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setuptet,'rho',1,ceed_eval_none,err)
 
       call ceedqfunctioncreateinterior(ceed,1,mass,&
      &SOURCE_DIR&
-     &//'t520-operator.h:mass'//char(0),qf_masstet,err)
+     &//'t510-operator.h:mass'//char(0),qf_masstet,err)
       call ceedqfunctionaddinput(qf_masstet,'rho',1,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_masstet,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_masstet,'v',1,ceed_eval_interp,err)
 
 ! -- Operators
 ! ---- Setup Tet
-      call ceedoperatorcreate(ceed,qf_setuptet,ceed_null,ceed_null,op_setuptet,&
-     & err)
+      call ceedoperatorcreate(ceed,qf_setuptet,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_setuptet,err)
       call ceedoperatorsetfield(op_setuptet,'_weight',erestrictxitet,&
      & ceed_notranspose,bxtet,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuptet,'dx',erestrictxtet,&
@@ -165,8 +165,8 @@
       call ceedoperatorsetfield(op_setuptet,'rho',erestrictuitet,&
      & ceed_notranspose,ceed_basis_collocated,qdatatet,err)
 ! ---- Mass Tet
-      call ceedoperatorcreate(ceed,qf_masstet,ceed_null,ceed_null,op_masstet,&
-     & err)
+      call ceedoperatorcreate(ceed,qf_masstet,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_masstet,err)
       call ceedoperatorsetfield(op_masstet,'rho',erestrictuitet,&
      & ceed_notranspose,ceed_basis_collocated,qdatatet,err)
       call ceedoperatorsetfield(op_masstet,'u',erestrictutet,&
@@ -220,8 +220,8 @@
 
 ! -- Operators
 ! ---- Setup Hex
-      call ceedoperatorcreate(ceed,qf_setuphex,ceed_null,ceed_null,op_setuphex,&
-     & err)
+      call ceedoperatorcreate(ceed,qf_setuphex,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_setuphex,err)
       call ceedoperatorsetfield(op_setuphex,'_weight',erestrictxihex,&
      & ceed_notranspose,bxhex,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuphex,'dx',erestrictxhex,&
@@ -229,8 +229,8 @@
       call ceedoperatorsetfield(op_setuphex,'rho',erestrictuihex,&
      & ceed_notranspose,ceed_basis_collocated,qdatahex,err)
 ! ---- Mass Hex
-      call ceedoperatorcreate(ceed,qf_masshex,ceed_null,ceed_null,op_masshex,&
-     & err)
+      call ceedoperatorcreate(ceed,qf_masshex,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_masshex,err)
       call ceedoperatorsetfield(op_masshex,'rho',erestrictuihex,&
      & ceed_notranspose,ceed_basis_collocated,qdatahex,err)
       call ceedoperatorsetfield(op_masshex,'u',erestrictuhex,&
@@ -248,7 +248,8 @@
       call ceedcompositeoperatoraddsub(op_mass,op_masshex,err)
 
 ! Apply Setup Operator
-      call ceedoperatorapply(op_setup,x,ceed_null,ceed_request_immediate,err)
+      call ceedoperatorapply(op_setup,x,ceed_vector_none,&
+     & ceed_request_immediate,err)
 
 ! Apply Mass Operator
       call ceedvectorcreate(ceed,ndofs,u,err)

@@ -20,6 +20,10 @@
 #include <limits.h>
 
 /// @cond DOXYGEN_SKIP
+static struct CeedQFunction_private ceed_qfunction_none;
+/// @endcond
+
+/// @cond DOXYGEN_SKIP
 static struct {
   char name[CEED_MAX_RESOURCE_LEN];
   char source[CEED_MAX_RESOURCE_LEN];
@@ -41,9 +45,9 @@ static size_t num_qfunctions;
 
   @param ceed       A Ceed object where the CeedQFunction will be created
   @param vlength    Vector length.  Caller must ensure that number of quadrature
-                    points is a multiple of vlength.
+                      points is a multiple of vlength.
   @param f          Function pointer to evaluate action at quadrature points.
-                    See \ref CeedQFunctionUser.
+                      See \ref CeedQFunctionUser.
   @param source     Absolute path to source of QFunction,
                       "\abs_path\file.h:function_name"
   @param[out] qf    Address of the variable where the newly created
@@ -75,7 +79,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedQFunctionUser f,
     return 0;
   }
 
-  ierr = CeedCalloc(1,qf); CeedChk(ierr);
+  ierr = CeedCalloc(1, qf); CeedChk(ierr);
   (*qf)->ceed = ceed;
   ceed->refcount++;
   (*qf)->refcount = 1;
@@ -144,6 +148,7 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
                                       CeedQFunction *qf) {
   int ierr;
   size_t matchlen = 0, matchidx = UINT_MAX;
+  char *name_copy;
 
   // Find matching backend
   if (!name) return CeedError(NULL, 1, "No QFunction name provided");
@@ -169,6 +174,12 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
 
   // QFunction specific setup
   ierr = qfunctions[matchidx].init(ceed, name, *qf); CeedChk(ierr);
+
+  // Copy name
+  size_t slen = strlen(name) + 1;
+  ierr = CeedMalloc(slen, &name_copy); CeedChk(ierr);
+  memcpy(name_copy, name, slen);
+  (*qf)->qfname = name_copy;
 
   return 0;
 }
@@ -529,12 +540,68 @@ int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
 }
 
 /**
+  @brief View a field of a CeedQFunction
+
+  @param[in] field       QFunction field to view
+  @param[in] fieldnumber Number of field being viewed
+  @param[in] stream      Stream to view to, e.g., stdout
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt fieldnumber,
+                                  bool in, FILE *stream) {
+  const char *inout = in ? "Input" : "Output";
+  fprintf(stream, "    %s Field [%d]:\n"
+          "      Name: \"%s\"\n"
+          "      Size: %d\n"
+          "      EvalMode: \"%s\"\n",
+          inout, fieldnumber, field->fieldname, field->size,
+          CeedEvalModes[field->emode]);
+
+  return 0;
+}
+
+/**
+  @brief View a CeedQFunction
+
+  @param[in] qf     CeedQFunction to view
+  @param[in] stream Stream to write; typically stdout/stderr or a file
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
+  int ierr;
+
+  fprintf(stream, "%sCeedQFunction %s\n",
+          qf->qfname ? "Gallery " : "User ", qf->qfname ? qf->qfname : "");
+
+  fprintf(stream, "  %d Input Field%s:\n", qf->numinputfields,
+          qf->numinputfields>1 ? "s" : "");
+  for (CeedInt i=0; i<qf->numinputfields; i++) {
+    ierr = CeedQFunctionFieldView(qf->inputfields[i], i, 1, stream);
+    CeedChk(ierr);
+  }
+
+  fprintf(stream, "  %d Output Field%s:\n", qf->numoutputfields,
+          qf->numoutputfields>1 ? "s" : "");
+  for (CeedInt i=0; i<qf->numoutputfields; i++) {
+    ierr = CeedQFunctionFieldView(qf->outputfields[i], i, 0, stream);
+    CeedChk(ierr);
+  }
+  return 0;
+}
+
+/**
   @brief Apply the action of a CeedQFunction
 
   @param qf      CeedQFunction
   @param Q       Number of quadrature points
-  @param[in] u   Array of input data arrays
-  @param[out] v  Array of output data arrays
+  @param[in] u   Array of input CeedVectors
+  @param[out] v  Array of output CeedVectors
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -661,9 +728,14 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   }
 
   ierr = CeedFree(&(*qf)->sourcepath); CeedChk(ierr);
+  ierr = CeedFree(&(*qf)->qfname); CeedChk(ierr);
   ierr = CeedDestroy(&(*qf)->ceed); CeedChk(ierr);
   ierr = CeedFree(qf); CeedChk(ierr);
   return 0;
 }
 
+/// @cond DOXYGEN_SKIP
+// Indicate that no QFunction is provided by the user
+CeedQFunction CEED_QFUNCTION_NONE = &ceed_qfunction_none;
+/// @endcond
 /// @}

@@ -105,9 +105,9 @@ inline __device__ void interp1d(const CeedInt nelem, const int transpose,
   const int tid = threadIdx.x;
   const int bid = blockIdx.x;
 
-  if(bid*32+tid<nelem) {
+  if (bid*32+tid<nelem) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
-      if(!transpose) {
+      if (!transpose) {
         const int sizeU = P1D;
         readDofs(bid, tid, comp, sizeU, nelem, d_U, r_V);
         Contract1d(r_V, c_B, P1D, P1D, Q1D, r_t);
@@ -136,9 +136,9 @@ inline __device__ void grad1d(const CeedInt nelem, const int transpose,
   const int bid = blockIdx.x;
   int dim;
 
-  if(bid*32+tid<nelem) {
+  if (bid*32+tid<nelem) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
-      if(!transpose) {
+      if (!transpose) {
         const int sizeU = P1D;
         const int sizeV = Q1D;
         readDofs(bid, tid, comp, sizeU, nelem, d_U, r_U);
@@ -191,9 +191,9 @@ inline __device__ void interp2d(const CeedInt nelem, const int transpose,
   const int tid = threadIdx.x;
   const int bid = blockIdx.x;
 
-  if(bid*32+tid<nelem) {
+  if (bid*32+tid<nelem) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
-      if(!transpose) {
+      if (!transpose) {
         const int sizeU = P1D*P1D;
         readDofs(bid, tid, comp, sizeU, nelem, d_U, r_V);
         Contract2d(r_V, c_B, P1D, P1D, P1D, Q1D, r_t);
@@ -225,9 +225,9 @@ inline __device__ void grad2d(const CeedInt nelem, const int transpose,
   const int bid = blockIdx.x;
   int dim;
 
-  if(bid*32+tid<nelem) {
+  if (bid*32+tid<nelem) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
-      if(!transpose) {
+      if (!transpose) {
         const int sizeU = P1D*P1D;
         const int sizeV = Q1D*Q1D;
         readDofs(bid, tid, comp, sizeU, nelem, d_U, r_U);
@@ -293,9 +293,9 @@ inline __device__ void interp3d(const CeedInt nelem, const int transpose,
   const int tid = threadIdx.x;
   const int bid = blockIdx.x;
 
-  if(bid*32+tid<nelem) {
+  if (bid*32+tid<nelem) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
-      if(!transpose) {
+      if (!transpose) {
         const int sizeU = P1D*P1D*P1D;
         const int sizeV = Q1D*Q1D*Q1D;
         readDofs(bid, tid, comp, sizeU, nelem, d_U, r_V);
@@ -329,9 +329,9 @@ inline __device__ void grad3d(const CeedInt nelem, const int transpose,
   const int bid = blockIdx.x;
   int dim;
 
-  if(bid*32+tid<nelem) {
+  if (bid*32+tid<nelem) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
-      if(!transpose) {
+      if (!transpose) {
         const int sizeU = P1D*P1D*P1D;
         const int sizeV = Q1D*Q1D*Q1D;
         readDofs(bid, tid, comp, sizeU, nelem, d_U, r_U);
@@ -495,7 +495,7 @@ int CeedBasisApply_Cuda_reg(CeedBasis basis, const CeedInt nelem,
 
   const CeedScalar *d_u;
   CeedScalar *d_v;
-  if(emode!=CEED_EVAL_WEIGHT) {
+  if (emode != CEED_EVAL_WEIGHT) {
     ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChk(ierr);
   }
   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChk(ierr);
@@ -537,7 +537,7 @@ int CeedBasisApply_Cuda_reg(CeedBasis basis, const CeedInt nelem,
     ierr = CeedRunKernelCuda(ceed, data->weight, gridsize, blocksize, weightargs);
   }
 
-  if(emode!=CEED_EVAL_WEIGHT) {
+  if (emode != CEED_EVAL_WEIGHT) {
     ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChk(ierr);
   }
   ierr = CeedVectorRestoreArray(v, &d_v); CeedChk(ierr);
