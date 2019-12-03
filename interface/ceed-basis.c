@@ -284,7 +284,7 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) {
     dP2 = (xi*P2 - P0)*(CeedScalar)Q/(xi*xi-1.0);
     xi = xi-P2/dP2;
     // Newton to convergence
-    for (int k=0; k<100 && fabs(P2)>1e-15; k++) {
+    for (int k=0; k<100 && fabs(P2)>10*CEED_EPSILON; k++) {
       P0 = 1.0;
       P1 = xi;
       for (int j = 2; j <= Q; j++) {
@@ -348,7 +348,7 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
     d2P2 = (2*xi*dP2 - (CeedScalar)(Q*(Q-1))*P2)/(1.0-xi*xi);
     xi = xi-dP2/d2P2;
     // Newton to convergence
-    for (int k=0; k<100 && fabs(dP2)>1e-15; k++) {
+    for (int k=0; k<100 && fabs(dP2)>10*CEED_EPSILON; k++) {
       P0 = 1.0;
       P1 = xi;
       for (int j = 2; j < Q; j++) {
@@ -640,7 +640,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
     // norm of v[i:m] after modification above and scaling below
     //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
     //   tau = 2 / (norm*norm)
-    if (sigma > 1e-15)
+    if (sigma > 10*CEED_EPSILON)
       tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
     else
       tau[i] = 0;
@@ -677,7 +677,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
 
   // Reduce sub and super diagonal
   CeedInt p = 0, q = 0, itr = 0, maxitr = n*n*n;
-  CeedScalar tol = 1e-15;
+  CeedScalar tol = 10*CEED_EPSILON;
 
   while (q < n && itr < maxitr) {
     // Update p, q, size of reduced portions of diagonal

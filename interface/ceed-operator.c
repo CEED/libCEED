@@ -682,7 +682,7 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdminv,
     for (CeedInt q=0; q<nqpts; q++)
       for (CeedInt i=0; i<ncomp*ncomp*nfields; i++)
         if (fabs(assembledarray[e*nelem*nqpts*ncomp*ncomp*nfields +
-                                                                  i*nqpts + q]) > 1e-15) {
+                                                                  i*nqpts + q]) > CEED_EPSILON) {
           elemavg[e] += assembledarray[e*nelem*nqpts*ncomp*ncomp*nfields +
                                        i*nqpts + q] / qweightsarray[q];
           count++;
