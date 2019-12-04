@@ -944,6 +944,47 @@ void fCeedOperatorView(int *op, int *err) {
   *err = CeedOperatorView(op_, stdout);
 }
 
+#define fCeedOperatorCreateFDMElementInverse FORTRAN_NAME(ceedoperatorcreatefdmelementinverse, CEEDOPERATORCREATEFDMELEMENTINVERSE)
+void fCeedOperatorCreateFDMElementInverse(int *op, int *fdminv,
+    int *rqst, int *err) {
+  // Operator
+  if (CeedOperator_count == CeedOperator_count_max) {
+    CeedOperator_count_max += CeedOperator_count_max/2 + 1;
+    CeedRealloc(CeedOperator_count_max, &CeedOperator_dict);
+  }
+  CeedOperator *fdminv_ =
+    &CeedOperator_dict[CeedOperator_count];
+
+  int createRequest = 1;
+  // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
+  if (*rqst == -1 || *rqst == -2) {
+    createRequest = 0;
+  }
+
+  if (createRequest && CeedRequest_count == CeedRequest_count_max) {
+    CeedRequest_count_max += CeedRequest_count_max/2 + 1;
+    CeedRealloc(CeedRequest_count_max, &CeedRequest_dict);
+  }
+
+  CeedRequest *rqst_;
+  if (*rqst == -1) rqst_ = CEED_REQUEST_IMMEDIATE;
+  else if (*rqst == -2) rqst_ = CEED_REQUEST_ORDERED;
+  else rqst_ = &CeedRequest_dict[CeedRequest_count];
+
+  *err = CeedOperatorCreateFDMElementInverse(CeedOperator_dict[*op],
+         fdminv_, rqst_);
+  if (*err) return;
+  if (createRequest) {
+    *rqst = CeedRequest_count++;
+    CeedRequest_n++;
+  }
+
+  if (*err == 0) {
+    *fdminv = CeedOperator_count++;
+    CeedOperator_n++;
+  }
+}
+
 #define fCeedOperatorApply FORTRAN_NAME(ceedoperatorapply, CEEDOPERATORAPPLY)
 void fCeedOperatorApply(int *op, int *ustatevec,
                         int *resvec, int *rqst, int *err) {

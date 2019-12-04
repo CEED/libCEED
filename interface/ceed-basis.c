@@ -284,7 +284,7 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) {
     dP2 = (xi*P2 - P0)*(CeedScalar)Q/(xi*xi-1.0);
     xi = xi-P2/dP2;
     // Newton to convergence
-    for (int k=0; k<100 && fabs(P2)>1e-15; k++) {
+    for (int k=0; k<100 && fabs(P2)>10*CEED_EPSILON; k++) {
       P0 = 1.0;
       P1 = xi;
       for (int j = 2; j <= Q; j++) {
@@ -348,7 +348,7 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
     d2P2 = (2*xi*dP2 - (CeedScalar)(Q*(Q-1))*P2)/(1.0-xi*xi);
     xi = xi-dP2/d2P2;
     // Newton to convergence
-    for (int k=0; k<100 && fabs(dP2)>1e-15; k++) {
+    for (int k=0; k<100 && fabs(dP2)>10*CEED_EPSILON; k++) {
       P0 = 1.0;
       P1 = xi;
       for (int j = 2; j < Q; j++) {
@@ -580,6 +580,7 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
     //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
     //   tau = 2 / (norm*norm)
     tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
+
     for (CeedInt j=i+1; j<m; j++)
       v[j] /= v[i];
 
@@ -639,8 +640,13 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
     // norm of v[i:m] after modification above and scaling below
     //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
     //   tau = 2 / (norm*norm)
-    tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
-    for (CeedInt j=i+1; j<n-1; j++) v[j] /= v[i];
+    if (sigma > 10*CEED_EPSILON)
+      tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
+    else
+      tau[i] = 0;
+
+    for (CeedInt j=i+1; j<n-1; j++)
+      v[j] /= v[i];
 
     // Update sub and super diagonal
     matT[i+n*(i+1)] = Rii;
@@ -671,7 +677,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
 
   // Reduce sub and super diagonal
   CeedInt p = 0, q = 0, itr = 0, maxitr = n*n*n;
-  CeedScalar tol = 1e-15;
+  CeedScalar tol = 10*CEED_EPSILON;
 
   while (q < n && itr < maxitr) {
     // Update p, q, size of reduced portions of diagonal
@@ -753,9 +759,8 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
 
   @ref Utility
 **/
-static int CeedMatrixMultiply(Ceed ceed, CeedScalar *matA, CeedScalar *matB,
-                              CeedScalar *matC, CeedInt m, CeedInt n,
-                              CeedInt kk) {
+int CeedMatrixMultiply(Ceed ceed, CeedScalar *matA, CeedScalar *matB,
+                       CeedScalar *matC, CeedInt m, CeedInt n, CeedInt kk) {
   for (CeedInt i=0; i<m; i++)
     for (CeedInt j=0; j<n; j++) {
       CeedScalar sum = 0;
@@ -793,24 +798,25 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *matA,
   // Compute B = G D G^T
   memcpy(matG, matB, n*n*sizeof(matB[0]));
   ierr = CeedSymmetricSchurDecomposition(ceed, matG, vecD, n); CeedChk(ierr);
-  for (CeedInt i=0; i<n; i++) vecD[i] = sqrt(vecD[i]);
+  for (CeedInt i=0; i<n; i++)
+    vecD[i] = sqrt(vecD[i]);
 
-  // Compute C = (G D^-1/2)^-1 A (G D^-1/2)^-T
-  //           = D^1/2 G^T A D^1/2 G
+  // Compute C = (G D^1/2)^-1 A (G D^1/2)^-T
+  //           = D^-1/2 G^T A G D^-1/2
   for (CeedInt i=0; i<n; i++)
     for (CeedInt j=0; j<n; j++)
-      matC[j+i*n] = vecD[i] * matG[i+j*n];
+      matC[j+i*n] = matG[i+j*n] / vecD[i];
   CeedMatrixMultiply(ceed, matC, matA, x, n, n, n);
   for (CeedInt i=0; i<n; i++)
     for (CeedInt j=0; j<n; j++)
-      matG[j+i*n] = vecD[i] * matG[j+i*n];
+      matG[j+i*n] = matG[j+i*n] / vecD[j];
   CeedMatrixMultiply(ceed, x, matG, matC, n, n, n);
 
   // Compute Q^T C Q = lambda
   ierr = CeedSymmetricSchurDecomposition(ceed, matC, lambda, n); CeedChk(ierr);
 
-  // Set x = (G D^-1/2)^-T Q
-  //       = D^1/2 G Q
+  // Set x = (G D^1/2)^-T Q
+  //       = G D^-1/2 Q
   CeedMatrixMultiply(ceed, matG, matC, x, n, n, n);
 
   return 0;
@@ -1108,7 +1114,8 @@ int CeedBasisGetGrad(CeedBasis basis, CeedScalar **grad) {
 /**
   @brief Get value in CeedEvalMode matrix of a CeedBasis
 
-  @param basis       CeedBasis  @param[in] emode   CeedEvalMode to retrieve value
+  @param basis       CeedBasis
+  @param[in] emode   CeedEvalMode to retrieve value
   @param[in] node    Node (column) to retrieve value
   @param[in] qpt     Quadrature point (row) to retrieve value
   @param[in] dim     Dimension to retrieve value for, for CEED_EVAL_GRAD

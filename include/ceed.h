@@ -1,4 +1,4 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
+/// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
 /// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
 /// reserved. See files LICENSE and NOTICE for details.
 //
@@ -6,7 +6,7 @@
 /// libraries and APIs for efficient high-order finite element and spectral
 /// element discretizations for exascale applications. For more information and
 /// source code availability see http://github.com/ceed.
-//
+///
 /// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
 /// a collaborative effort of two U.S. Department of Energy organizations (Office
 /// of Science and the National Nuclear Security Administration) responsible for
@@ -406,6 +406,8 @@ CEED_EXTERN int CeedOperatorAssembleLinearQFunction(CeedOperator op,
 CEED_EXTERN int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
     CeedVector *assembled, CeedRequest *request);
 CEED_EXTERN int CeedOperatorView(CeedOperator op, FILE *stream);
+CEED_EXTERN int CeedOperatorCreateFDMElementInverse(CeedOperator op,
+    CeedOperator *fdminv, CeedRequest *request);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorApplyAdd(CeedOperator op, CeedVector in,
