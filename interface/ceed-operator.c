@@ -31,7 +31,7 @@
 
   @param ceed    A Ceed object where the CeedOperator will be created
   @param qf      QFunction defining the action of the operator at quadrature points
-  @param dqf     QFunction defining the action of the Jacobian of @a qf (or 
+  @param dqf     QFunction defining the action of the Jacobian of @a qf (or
                    CEED_QFUNCTION_NONE)
   @param dqfT    QFunction defining the action of the transpose of the Jacobian
                    of @a qf (or CEED_QFUNCTION_NONE)
