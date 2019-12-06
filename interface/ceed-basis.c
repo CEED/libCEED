@@ -32,23 +32,23 @@ static struct CeedBasis_private ceed_basis_collocated;
 /// @{
 
 /**
-  @brief Create a tensor product basis for H^1 discretizations
+  @brief Create a tensor-product basis for H^1 discretizations
 
-  @param ceed       A Ceed object where the CeedBasis will be created
-  @param dim        Topological dimension
-  @param ncomp      Number of field components (1 for scalar fields)
-  @param P1d        Number of nodes in one dimension
-  @param Q1d        Number of quadrature points in one dimension
-  @param interp1d   Row-major Q1d × P1d matrix expressing the values of nodal
-                      basis functions at quadrature points
-  @param grad1d     Row-major Q1d × P1d matrix expressing derivatives of nodal
-                      basis functions at quadrature points
-  @param qref1d     Array of length Q1d holding the locations of quadrature points
-                      on the 1D reference element [-1, 1]
-  @param qweight1d  Array of length Q1d holding the quadrature weights on the
-                      reference element
-  @param[out] basis Address of the variable where the newly created
-                      CeedBasis will be stored.
+  @param ceed        A Ceed object where the CeedBasis will be created
+  @param dim         Topological dimension
+  @param ncomp       Number of field components (1 for scalar fields)
+  @param P1d         Number of nodes in one dimension
+  @param Q1d         Number of quadrature points in one dimension
+  @param interp1d    Row-major (Q1d * P1d) matrix expressing the values of nodal
+                       basis functions at quadrature points
+  @param grad1d      Row-major (Q1d * P1d) matrix expressing derivatives of nodal
+                       basis functions at quadrature points
+  @param qref1d      Array of length Q1d holding the locations of quadrature points
+                       on the 1D reference element [-1, 1]
+  @param qweight1d   Array of length Q1d holding the quadrature weights on the
+                       reference element
+  @param[out] basis  Address of the variable where the newly created
+                       CeedBasis will be stored.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -104,18 +104,18 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
 }
 
 /**
-  @brief Create a tensor product Lagrange basis
+  @brief Create a tensor-product Lagrange basis
 
-  @param ceed       A Ceed object where the CeedBasis will be created
-  @param dim        Topological dimension of element
-  @param ncomp      Number of field components
-  @param P          Number of Gauss-Lobatto nodes in one dimension.  The
-                      polynomial degree of the resulting Q_k element is k=P-1.
-  @param Q          Number of quadrature points in one dimension.
-  @param qmode      Distribution of the Q quadrature points (affects order of
-                      accuracy for the quadrature)
-  @param[out] basis Address of the variable where the newly created
-                      CeedBasis will be stored.
+  @param ceed        A Ceed object where the CeedBasis will be created
+  @param dim         Topological dimension of element
+  @param ncomp       Number of field components (1 for scalar fields)
+  @param P           Number of Gauss-Lobatto nodes in one dimension.  The
+                       polynomial degree of the resulting Q_k element is k=P-1.
+  @param Q           Number of quadrature points in one dimension.
+  @param qmode       Distribution of the Q quadrature points (affects order of
+                       accuracy for the quadrature)
+  @param[out] basis  Address of the variable where the newly created
+                       CeedBasis will be stored.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -183,23 +183,23 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt ncomp,
 }
 
 /**
-  @brief Create a non tensor product basis for H^1 discretizations
+  @brief Create a non tensor-product basis for H^1 discretizations
 
-  @param ceed       A Ceed object where the CeedBasis will be created
-  @param topo       Topology of element, e.g. hypercube, simplex, ect
-  @param ncomp      Number of field components (1 for scalar fields)
-  @param nnodes     Total number of nodes
-  @param nqpts      Total number of quadrature points
-  @param interp     Row-major nqpts × nnodes matrix expressing the values of
-                      nodal basis functions at quadrature points
-  @param grad       Row-major (nqpts x dim) × nnodes matrix expressing
-                      derivatives of nodal basis functions at quadrature points
-  @param qref       Array of length nqpts holding the locations of quadrature
-                      points on the reference element [-1, 1]
-  @param qweight    Array of length nqpts holding the quadrature weights on the
-                      reference element
-  @param[out] basis Address of the variable where the newly created
-                      CeedBasis will be stored.
+  @param ceed        A Ceed object where the CeedBasis will be created
+  @param topo        Topology of element, e.g. hypercube, simplex, ect
+  @param ncomp       Number of field components (1 for scalar fields)
+  @param nnodes      Total number of nodes
+  @param nqpts       Total number of quadrature points
+  @param interp      Row-major (nqpts * nnodes) matrix expressing the values of
+                       nodal basis functions at quadrature points
+  @param grad        Row-major (nqpts * dim * nnodes) matrix expressing
+                       derivatives of nodal basis functions at quadrature points
+  @param qref        Array of length nqpts holding the locations of quadrature
+                       points on the reference element [-1, 1]
+  @param qweight     Array of length nqpts holding the quadrature weights on the
+                       reference element
+  @param[out] basis  Address of the variable where the newly created
+                       CeedBasis will be stored.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -255,10 +255,10 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt ncomp,
 /**
   @brief Construct a Gauss-Legendre quadrature
 
-  @param Q              Number of quadrature points (integrates polynomials of
-                          degree 2*Q-1 exactly)
-  @param[out] qref1d    Array of length Q to hold the abscissa on [-1, 1]
-  @param[out] qweight1d Array of length Q to hold the weights
+  @param Q               Number of quadrature points (integrates polynomials of
+                           degree 2*Q-1 exactly)
+  @param[out] qref1d     Array of length Q to hold the abscissa on [-1, 1]
+  @param[out] qweight1d  Array of length Q to hold the weights
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -308,10 +308,10 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d, CeedScalar *qweight1d) {
 /**
   @brief Construct a Gauss-Legendre-Lobatto quadrature
 
-  @param Q              Number of quadrature points (integrates polynomials of
-                          degree 2*Q-3 exactly)
-  @param[out] qref1d    Array of length Q to hold the abscissa on [-1, 1]
-  @param[out] qweight1d Array of length Q to hold the weights
+  @param Q               Number of quadrature points (integrates polynomials of
+                           degree 2*Q-3 exactly)
+  @param[out] qref1d     Array of length Q to hold the abscissa on [-1, 1]
+  @param[out] qweight1d  Array of length Q to hold the weights
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -403,8 +403,8 @@ static int CeedScalarView(const char *name, const char *fpformat, CeedInt m,
 /**
   @brief View a CeedBasis
 
-  @param basis  CeedBasis to view
-  @param stream Stream to view to, e.g., stdout
+  @param basis   CeedBasis to view
+  @param stream  Stream to view to, e.g., stdout
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -543,7 +543,7 @@ static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s,
 }
 
 /**
-  @brief Return QR Factorization of matrix
+  @brief Return QR Factorization of a matrix
 
   @param ceed         A Ceed object currently in use
   @param[in,out] mat  Row-major matrix to be factorized in place
@@ -825,9 +825,9 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *matA,
 /**
   @brief Return collocated grad matrix
 
-  @param basis           CeedBasis
-  @param[out] collograd1d Row-major Q1d × Q1d matrix expressing derivatives of
-                           basis functions at quadrature points
+  @param basis             CeedBasis
+  @param[out] collograd1d  Row-major (Q1d * Q1d) matrix expressing derivatives of
+                            basis functions at quadrature points
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -872,21 +872,21 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collograd1d) {
 }
 
 /**
-  @brief Apply basis evaluation from nodes to quadrature points or vice-versa
+  @brief Apply basis evaluation from nodes to quadrature points or vice versa
 
-  @param basis  CeedBasis to evaluate
-  @param nelem  The number of elements to apply the basis evaluation to;
-                  the backend will specify the ordering in
-                  ElemRestrictionCreateBlocked
-  @param tmode  \ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature
-                  points, \ref CEED_TRANSPOSE to apply the transpose, mapping
-                  from quadrature points to nodes
-  @param emode  \ref CEED_EVAL_NONE to use values directly,
-                  \ref CEED_EVAL_INTERP to use interpolated values,
-                  \ref CEED_EVAL_GRAD to use gradients,
-                  \ref CEED_EVAL_WEIGHT to use quadrature weights.
-  @param[in] u  Input CeedVector
-  @param[out] v Output CeedVector
+  @param basis   CeedBasis to evaluate
+  @param nelem   The number of elements to apply the basis evaluation to;
+                   the backend will specify the ordering in
+                   ElemRestrictionCreateBlocked
+  @param tmode   \ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature
+                   points, \ref CEED_TRANSPOSE to apply the transpose, mapping
+                   from quadrature points to nodes
+  @param emode   \ref CEED_EVAL_NONE to use values directly,
+                   \ref CEED_EVAL_INTERP to use interpolated values,
+                   \ref CEED_EVAL_GRAD to use gradients,
+                   \ref CEED_EVAL_WEIGHT to use quadrature weights.
+  @param[in] u   Input CeedVector
+  @param[out] v  Output CeedVector
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -967,8 +967,8 @@ int CeedBasisGetTensorStatus(CeedBasis basis, bool *tensor) {
 /**
   @brief Get number of components for given CeedBasis
 
-  @param basis        CeedBasis
-  @param[out] numcomp Variable to store number of components of basis
+  @param basis         CeedBasis
+  @param[out] numcomp  Variable to store number of components of basis
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1084,8 +1084,8 @@ int CeedBasisGetQWeights(CeedBasis basis, CeedScalar **qweight) {
 /**
   @brief Get interpolation matrix of a CeedBasis
 
-  @param basis       CeedBasis
-  @param[out] interp Variable to store interpolation matrix
+  @param basis        CeedBasis
+  @param[out] interp  Variable to store interpolation matrix
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1207,8 +1207,8 @@ int CeedBasisGetData(CeedBasis basis, void **data) {
 /**
   @brief Set backend data of a CeedBasis
 
-  @param[out] basis CeedBasis
-  @param data       Data to set
+  @param[out] basis  CeedBasis
+  @param data        Data to set
 
   @return An error code: 0 - success, otherwise - failure
 

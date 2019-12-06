@@ -35,6 +35,7 @@
                       used by other CeedElemRestriction objects describing
                       different types of elements.
   @param ncomp      Number of field components per interpolation node
+                      (1 for scalar fields)
   @param mtype      Memory type of the @a indices array, see CeedMemType
   @param cmode      Copy mode for the @a indices array, see CeedCopyMode
   @param indices    Array of shape [@a nelem, @a elemsize]. Row i holds the
@@ -97,6 +98,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
                       used by other CeedElemRestriction objects describing
                       different types of elements.
   @param ncomp      Number of field components per interpolation node
+                      (1 for scalar fields)
   @param rstr       Address of the variable where the newly created
                       CeedElemRestriction will be stored
 
@@ -183,7 +185,8 @@ int CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
                       @a nnodes * @a ncomp. This size may include data
                       used by other CeedElemRestriction objects describing
                       different types of elements.
-  @param ncomp      Number of components stored at each node
+  @param ncomp      Number of field components per interpolation node
+                      (1 for scalar fields)
   @param mtype      Memory type of the @a indices array, see CeedMemType
   @param cmode      Copy mode for the @a indices array, see CeedCopyMode
   @param indices    Array of shape [@a nelem, @a elemsize]. Row i holds the
@@ -347,7 +350,6 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
                    the component is the outermost index and CEED_TRANSPOSE
                    indicates the component is the innermost index in
                    ordering of the l-vector
-                   tmode=CEED_NOTRANSPOSE)
   @param u       Input vector (of shape [@a nnodes, @a ncomp] when
                    tmode=CEED_NOTRANSPOSE, lmode=CEED_TRANSPOSE)
   @param v       Output vector (of shape [@a blksize * @a elemsize] when
@@ -398,8 +400,8 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
 /**
   @brief Get the multiplicity of nodes in a CeedElemRestriction
 
-  @param rstr      CeedElemRestriction
-  @param[out] mult Vector to store multiplicity (of size nnodes)
+  @param rstr             CeedElemRestriction
+  @param[out] mult        Vector to store multiplicity (of size nnodes)
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -570,8 +572,8 @@ int CeedElemRestrictionSetData(CeedElemRestriction rstr, void **data) {
 /**
   @brief View a CeedElemRestriction
 
-  @param[in] rstr CeedElemRestriction to view
-  @param[in] stream Stream to write; typically stdout/stderr or a file
+  @param[in] rstr    CeedElemRestriction to view
+  @param[in] stream  Stream to write; typically stdout/stderr or a file
 
   @return Error code: 0 - success, otherwise - failure
 
@@ -587,7 +589,7 @@ int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
 /**
   @brief Destroy a CeedElemRestriction
 
-  @param rstr CeedElemRestriction to destroy
+  @param rstr  CeedElemRestriction to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
