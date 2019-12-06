@@ -29,8 +29,8 @@
 // Sample runs:
 //
 //     nsplex
-//     nsplex -ceed -problem density_current /cpu/self
-//     nsplex -ceed -problem advection /gpu/occa
+//     nsplex -ceed /cpu/self -problem density_current
+//     nsplex -ceed /gpu/occa -problem advection
 //
 
 /// @file

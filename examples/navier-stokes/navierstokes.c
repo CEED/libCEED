@@ -29,8 +29,8 @@
 // Sample runs:
 //
 //     navierstokes
-//     navierstokes -ceed -problem density_current /cpu/self
-//     navierstokes -ceed -problem advection /gpu/occa
+//     navierstokes -ceed /cpu/self -problem density_current
+//     navierstokes -ceed /gpu/occa -problem advection
 //
 
 /// @file
