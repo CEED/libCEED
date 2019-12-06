@@ -1,0 +1,3 @@
+Global FEM nodes: 0 on 1 ranks
+Local FEM nodes: 8 (0 owned)
+Time integrator took 1 time steps to reach final time 1e-07

@@ -1,0 +1,7 @@
+Global nodes: 1183
+Process decomposition: 1 1 1
+Local elements: 32 = 4 4 2
+Owned nodes: 1183 = 13 13 7
+Physical domain: 8000. 8000. 4000.
+Physical resolution: 2000. 2000. 2000.
+Time integrator took 1 time steps to reach final time 1e-07

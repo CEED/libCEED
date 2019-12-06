@@ -21,6 +21,8 @@ def get_source(test):
         return os.path.join('examples', 'mfem', test[5:] + '.cpp')
     elif test.startswith('nek-'):
         return os.path.join('examples', 'nek', 'bps', test[4:] + '.usr')
+    elif test.startswith('ns-'):
+        return os.path.join('examples', 'navier-stokes', test[3:] + '.c')
     elif test.startswith('ex'):
         return os.path.join('examples', 'ceed', test + '.c')
 
@@ -36,6 +38,15 @@ def check_required_failure(case, stderr, required):
     else:
         case.add_failure_info('required: {}'.format(required))
 
+def contains_any(resource, substrings):
+    return any((sub in resource for sub in substrings))
+
+def skip_rule(test, resource):
+    return any((
+        test.startswith('ns-') and contains_any(resource, ['occa', 'gpu']),
+        test.startswith('petsc-multigrid') and contains_any(resource, ['occa']),
+        ))
+        
 def run(test, backends):
     import subprocess
     import time
@@ -47,21 +58,30 @@ def run(test, backends):
         for ceed_resource in backends:
             rargs = [os.path.join('build', test)] + args.copy()
             rargs[rargs.index('{ceed_resource}')] = ceed_resource
-            start = time.time()
-            proc = subprocess.run(rargs,
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE)
-            proc.stdout = proc.stdout.decode('utf-8')
-            proc.stderr = proc.stderr.decode('utf-8')
 
-            case = TestCase('{} {}'.format(test, ceed_resource),
-                            elapsed_sec=time.time()-start,
-                            timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
-                            stdout=proc.stdout,
-                            stderr=proc.stderr)
-            ref_stdout = os.path.join('tests/output', test + '.out')
+            if skip_rule(test, ceed_resource):
+                case = TestCase('{} {}'.format(test, ceed_resource),
+                                elapsed_sec=0,
+                                timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
+                                stdout='',
+                                stderr='')
+                case.add_skipped_info('Pre-run skip rule')
+            else:
+                start = time.time()
+                proc = subprocess.run(rargs,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE)
+                proc.stdout = proc.stdout.decode('utf-8')
+                proc.stderr = proc.stderr.decode('utf-8')
 
-            if proc.stderr:
+                case = TestCase('{} {}'.format(test, ceed_resource),
+                                elapsed_sec=time.time()-start,
+                                timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
+                                stdout=proc.stdout,
+                                stderr=proc.stderr)
+                ref_stdout = os.path.join('tests/output', test + '.out')
+
+            if not case.is_skipped() and proc.stderr:
                 if 'OCCA backend failed to use' in proc.stderr:
                     case.add_skipped_info('occa mode not supported {} {}'.format(test, ceed_resource))
                 elif 'Backend does not implement' in proc.stderr:

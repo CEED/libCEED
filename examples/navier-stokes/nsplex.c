@@ -32,6 +32,7 @@
 //     nsplex -ceed /cpu/self -problem density_current
 //     nsplex -ceed /gpu/occa -problem advection
 //
+//TESTARGS -ceed {ceed_resource} -test -petscspace_degree 1
 
 /// @file
 /// Navier-Stokes example using PETSc
@@ -487,7 +488,7 @@ int main(int argc, char **argv) {
   problemType problemChoice;
   problemData *problem;
   StabilizationType stab;
-  PetscBool   implicit;
+  PetscBool   test, implicit;
 
   // Create the libCEED contexts
   PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
@@ -534,6 +535,8 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-test", "Run in test mode",
+                          NULL, test=PETSC_FALSE, &test, NULL); CHKERRQ(ierr);
   problemChoice = NS_DENSITY_CURRENT;
   ierr = PetscOptionsEnum("-problem", "Problem to solve", NULL,
                           problemTypes, (PetscEnum)problemChoice,
@@ -960,13 +963,16 @@ int main(int argc, char **argv) {
   ierr = TSSetMaxTime(ts, 500. * units->second); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
   ierr = TSSetTimeStep(ts, 1.e-5 * units->second); CHKERRQ(ierr);
+  if (test) {ierr = TSSetMaxSteps(ts, 1); CHKERRQ(ierr);}
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
   ierr = TSAdaptSetStepLimits(adapt,
                               1.e-12 * units->second,
                               1.e-2 * units->second); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   if (!contsteps) { // print initial condition
-    ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
+    if (!test) {
+      ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
+    }
   } else { // continue from time of last output
     PetscReal time;
     PetscInt count;
@@ -981,7 +987,9 @@ int main(int argc, char **argv) {
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
     ierr = TSSetTime(ts, time * user->units->second); CHKERRQ(ierr);
   }
-  ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
+  if (!test) {
+    ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
+  }
 
   // Solve
   ierr = TSSolve(ts, Q); CHKERRQ(ierr);
