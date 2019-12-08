@@ -44,7 +44,7 @@ static size_t num_qfunctions;
   @brief Create a CeedQFunction for evaluating interior (volumetric) terms.
 
   @param ceed       A Ceed object where the CeedQFunction will be created
-  @param vlength    Vector length.  Caller must ensure that number of quadrature
+  @param vlength    Vector length. Caller must ensure that number of quadrature
                       points is a multiple of vlength.
   @param f          Function pointer to evaluate action at quadrature points.
                       See \ref CeedQFunctionUser.
@@ -99,15 +99,15 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedQFunctionUser f,
 /**
   @brief Register a gallery QFunction
 
-  @param name    Name for this backend to respond to
-  @param source  Absolute path to source of QFunction,
-                   "\path\CEED_DIR\gallery\folder\file.h:function_name"
-  @param vlength Vector length.  Caller must ensure that number of quadrature
-                   points is a multiple of vlength.
-  @param f       Function pointer to evaluate action at quadrature points.
-                   See \ref CeedQFunctionUser.
-  @param init    Initialization function called by CeedQFunctionInit() when the
-                   QFunction is selected.
+  @param name     Name for this backend to respond to
+  @param source   Absolute path to source of QFunction,
+                    "\path\CEED_DIR\gallery\folder\file.h:function_name"
+  @param vlength  Vector length.  Caller must ensure that number of quadrature
+                    points is a multiple of vlength.
+  @param f        Function pointer to evaluate action at quadrature points.
+                    See \ref CeedQFunctionUser.
+  @param init     Initialization function called by CeedQFunctionInit() when the
+                    QFunction is selected.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -193,12 +193,12 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
            the copy of input data to output fields by using the same memory
            location for both.
 
-  @param ceed        A Ceed object where the CeedQFunction will be created
-  @param[in] size    Size of the qfunction fields
-  @param[in] inmode  CeedEvalMode for input to CeedQFunction
-  @param[in] outmode CeedEvalMode for output to CeedQFunction
-  @param[out] qf     Address of the variable where the newly created
-                       CeedQFunction will be stored
+  @param ceed         A Ceed object where the CeedQFunction will be created
+  @param[in] size     Size of the qfunction fields
+  @param[in] inmode   CeedEvalMode for input to CeedQFunction
+  @param[in] outmode  CeedEvalMode for output to CeedQFunction
+  @param[out] qf      Address of the variable where the newly created
+                        CeedQFunction will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -236,8 +236,8 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode inmode,
 
   @param f          CeedQFunctionField
   @param fieldname  Name of QFunction field
-  @param size       Size of QFunction field, ncomp * (dim for CEED_EVAL_GRAD or
-                      1 for CEED_EVAL_NONE, CEED_EVAL_INTERP, and CEED_EVAL_WEIGHT)
+  @param size       Size of QFunction field, (ncomp * dim) for CEED_EVAL_GRAD or
+                      (ncomp * 1) for CEED_EVAL_NONE, CEED_EVAL_INTERP, and CEED_EVAL_WEIGHT
   @param emode      \ref CEED_EVAL_NONE to use values directly,
                       \ref CEED_EVAL_INTERP to use interpolated values,
                       \ref CEED_EVAL_GRAD to use gradients,
@@ -267,8 +267,8 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
 
   @param qf         CeedQFunction
   @param fieldname  Name of QFunction field
-  @param size       Size of QFunction field, ncomp * (dim for CEED_EVAL_GRAD or
-                      1 for CEED_EVAL_NONE and CEED_EVAL_INTERP)
+  @param size       Size of QFunction field, (ncomp * dim) for CEED_EVAL_GRAD or
+                      (ncomp * 1) for CEED_EVAL_NONE and CEED_EVAL_INTERP
   @param emode      \ref CEED_EVAL_NONE to use values directly,
                       \ref CEED_EVAL_INTERP to use interpolated values,
                       \ref CEED_EVAL_GRAD to use gradients.
@@ -291,8 +291,8 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname, CeedInt size,
 
   @param qf         CeedQFunction
   @param fieldname  Name of QFunction field
-  @param size       Size of QFunction field, ncomp * (dim for CEED_EVAL_GRAD or
-                      1 for CEED_EVAL_NONE and CEED_EVAL_INTERP)
+  @param size       Size of QFunction field, (ncomp * dim) for CEED_EVAL_GRAD or
+                      (ncomp * 1) for CEED_EVAL_NONE and CEED_EVAL_INTERP
   @param emode      \ref CEED_EVAL_NONE to use values directly,
                       \ref CEED_EVAL_INTERP to use interpolated values,
                       \ref CEED_EVAL_GRAD to use gradients.
@@ -542,9 +542,9 @@ int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
 /**
   @brief View a field of a CeedQFunction
 
-  @param[in] field       QFunction field to view
-  @param[in] fieldnumber Number of field being viewed
-  @param[in] stream      Stream to view to, e.g., stdout
+  @param[in] field        QFunction field to view
+  @param[in] fieldnumber  Number of field being viewed
+  @param[in] stream       Stream to view to, e.g., stdout
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -566,8 +566,8 @@ static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt fieldnumber,
 /**
   @brief View a CeedQFunction
 
-  @param[in] qf     CeedQFunction to view
-  @param[in] stream Stream to write; typically stdout/stderr or a file
+  @param[in] qf      CeedQFunction to view
+  @param[in] stream  Stream to write; typically stdout/stderr or a file
 
   @return Error code: 0 - success, otherwise - failure
 
