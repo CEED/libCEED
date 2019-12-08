@@ -16,6 +16,7 @@
 
 -include config.mk
 
+
 ifeq (,$(filter-out undefined default,$(origin CC)))
   CC = gcc
 endif
