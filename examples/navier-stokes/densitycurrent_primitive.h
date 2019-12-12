@@ -354,7 +354,7 @@ CEED_QFUNCTION(IFunction_DCPrim)(void *ctx, CeedInt Q,
         for (int l=0; l<5; l++)
           StrongConv[k] += dFconvdq[j][k][l] * dqdx[l][j];
     // Body force
-    const CeedScalar BodyForce[5] = {0, 0, 0, rho*g, rho*g*u[2]};
+    const CeedScalar BodyForce[5] = {0, 0, 0, -rho*g, -rho*g*u[2]};
 
     // d(conservative variables)/d(primitive variables) *
     // d(primitive variables)/dt
@@ -362,19 +362,24 @@ CEED_QFUNCTION(IFunction_DCPrim)(void *ctx, CeedInt Q,
     dConsVardt[0] += qdot[0][i]/(Rd*T) - rho*qdot[4][i]/T;
     dConsVardt[4] += (cv + ke/T)*qdot[0][i]/Rd + rho*u[0]*qdot[1][i] +
                         rho*u[1]*qdot[2][i] + rho*u[2]*qdot[3][i] -
-                        rho*qdot[4][i]/T;
+                        rho*ke*qdot[4][i]/T;
     for (int j=0; j<3; j++)
-      dConsVardt[j] += u[j]*qdot[0][i]/(Rd*T) + rho*qdot[j+1][i] -
+      dConsVardt[j+1] += u[j]*qdot[0][i]/(Rd*T) + rho*qdot[j+1][i] -
                      rho*u[j]*qdot[4][i]/T;
     // Strong residual
     CeedScalar StrongResid[5];
     for (int j=0; j<5; j++)
-      StrongResid[j] = dConsVardt[j] + StrongConv[j] + BodyForce[j];
+      StrongResid[j] = dConsVardt[j] + StrongConv[j] - BodyForce[j];
 
     // The Physics
     //-----mass matrix
     for (int j=0; j<5; j++)
-      v[j][i] += wJ*dConsVardt[j];
+      v[j][i] = wJ*dConsVardt[j];
+    
+    // Zero dv so all future terms can safely sum into it
+    for (int j=0; j<5; j++)
+      for (int k=0; k<3; k++)
+        dv[k][j][i] = 0;
 
     // -- Density
     // ---- u rho
@@ -407,7 +412,7 @@ CEED_QFUNCTION(IFunction_DCPrim)(void *ctx, CeedInt Q,
                            Fe[2]*dXdx[j][2]);
     // Body Force
     for (int j=0; j<5; j++)
-      v[j][i] = wJ*BodyForce[j];
+      v[j][i] -= wJ*BodyForce[j];
     //Stabilization
     CeedScalar uX[3];
     for (int j=0; j<3; j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];

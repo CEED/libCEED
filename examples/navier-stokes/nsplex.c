@@ -136,8 +136,6 @@ problemData problemOptions[] = {
     .apply_ifunction = IFunction_DCPrim,
     .apply_ifunction_loc = IFunction_DCPrim_loc,
     .bc = NULL,
-    .apply_rhs = DC,
-    .apply_rhs_loc = DC_loc,
   },
 };
 
