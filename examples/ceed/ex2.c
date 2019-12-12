@@ -327,6 +327,7 @@ int main(int argc, const char *argv[]) {
   CeedElemRestrictionDestroy(&mesh_restr);
   CeedElemRestrictionDestroy(&sol_restr_i);
   CeedElemRestrictionDestroy(&mesh_restr_i);
+  CeedElemRestrictionDestroy(&qdata_restr_i);
   CeedBasisDestroy(&sol_basis);
   CeedBasisDestroy(&mesh_basis);
   CeedDestroy(&ceed);
