@@ -96,10 +96,10 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
 
     // Loop through components and apply batch over elements
     magmablas_dbasis_apply_batched_eval_interp(P, Q, dim, ncomp,
-	   				       impl->dinterp1d, tmode, 
-   					       u, u_elstride, u_compstride, 
-					       v, v_elstride, v_compstride,  
-					       nelem);
+        impl->dinterp1d, tmode,
+        u, u_elstride, u_compstride,
+        v, v_elstride, v_compstride,
+        nelem);
   }
   break;
   case CEED_EVAL_GRAD: {
@@ -153,11 +153,11 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
 
     // Loop through grad dimensions only, batch call over elements and components
     for (CeedInt dim_ctr = 0; dim_ctr < dim; dim_ctr++)
-        magmablas_dbasis_apply_batched_eval_grad(P, Q, dim, ncomp, nqpt,
-            impl->dinterp1d, impl->dgrad1d, tmode,
-            u + dim_ctr * u_dimstride, u_elstride, u_compstride, u_dimstride, 
-            v + dim_ctr * v_dimstride, v_elstride, v_compstride, v_dimstride,
-            dim_ctr, nelem);
+      magmablas_dbasis_apply_batched_eval_grad(P, Q, dim, ncomp, nqpt,
+          impl->dinterp1d, impl->dgrad1d, tmode,
+          u + dim_ctr * u_dimstride, u_elstride, u_compstride, u_dimstride,
+          v + dim_ctr * v_dimstride, v_elstride, v_compstride, v_dimstride,
+          dim_ctr, nelem);
   }
   break;
   case CEED_EVAL_WEIGHT: {
@@ -195,8 +195,8 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
 CEED_INTERN "C"
 #endif
 int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
-				  CeedTransposeMode tmode, CeedEvalMode emode,
-				  CeedVector U, CeedVector V) {
+                                  CeedTransposeMode tmode, CeedEvalMode emode,
+                                  CeedVector U, CeedVector V) {
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
@@ -231,45 +231,44 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   switch (emode) {
   case CEED_EVAL_INTERP: {
     CeedInt P = ndof, Q = nqpt;
-    if (tmode == CEED_TRANSPOSE) 
+    if (tmode == CEED_TRANSPOSE)
       magma_dgemm(MagmaNoTrans, MagmaNoTrans,
-		  P, nelem*ncomp, Q,
-		  1.0, impl->dinterp, P,
-		  du, Q,
-		  0.0, dv, P);
+                  P, nelem*ncomp, Q,
+                  1.0, impl->dinterp, P,
+                  du, Q,
+                  0.0, dv, P);
     else
       magma_dgemm(MagmaTrans, MagmaNoTrans,
-		  Q, nelem*ncomp, P,
-		  1.0, impl->dinterp, P,
-		  du, P,
-		  0.0, dv, Q);
+                  Q, nelem*ncomp, P,
+                  1.0, impl->dinterp, P,
+                  du, P,
+                  0.0, dv, Q);
   }
-    break;
-    
+  break;
+
   case CEED_EVAL_GRAD: {
     CeedInt P = ndof, Q = nqpt;
-    if (tmode == CEED_TRANSPOSE) { 
+    if (tmode == CEED_TRANSPOSE) {
       double beta = 0.0;
-      for(int d=0; d<dim; d++){
-	if (d>0)
+      for(int d=0; d<dim; d++) {
+        if (d>0)
           beta = 1.0;
-	magma_dgemm(MagmaNoTrans, MagmaNoTrans,
-		    P, nelem*ncomp, Q,
-		    1.0, impl->dgrad + d*P*Q, P,
-		    du + d*nelem*ncomp*Q, Q,
-		    beta, dv, P);
+        magma_dgemm(MagmaNoTrans, MagmaNoTrans,
+                    P, nelem*ncomp, Q,
+                    1.0, impl->dgrad + d*P*Q, P,
+                    du + d*nelem*ncomp*Q, Q,
+                    beta, dv, P);
       }
-    }
-    else {
+    } else {
       for(int d=0; d< dim; d++)
-	magma_dgemm(MagmaTrans, MagmaNoTrans,
-		    Q, nelem*ncomp, P,
-		    1.0, impl->dgrad + d*P*Q, P,
-		    du, P,
-		    0.0, dv + d*nelem*ncomp*Q, Q);
+        magma_dgemm(MagmaTrans, MagmaNoTrans,
+                    Q, nelem*ncomp, P,
+                    1.0, impl->dgrad + d*P*Q, P,
+                    du, P,
+                    0.0, dv + d*nelem*ncomp*Q, Q);
     }
   }
-    break;
+  break;
 
   case CEED_EVAL_WEIGHT: {
     if (tmode == CEED_TRANSPOSE)
@@ -280,13 +279,13 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
 
     int elemsPerBlock = 1;//basis->Q1d < 7 ? optElems[basis->Q1d] : 1;
     int grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)?
-				       1 : 0 );
+                                       1 : 0 );
     magma_weight(grid, nqpt, nelem, nqpt, impl->dqweight, dv);
     CeedChk(ierr);
   }
-    break;
+  break;
 
-    // LCOV_EXCL_START                                                                       
+  // LCOV_EXCL_START
   case CEED_EVAL_DIV:
     return CeedError(ceed, 1, "CEED_EVAL_DIV not supported");
   case CEED_EVAL_CURL:
@@ -294,7 +293,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   case CEED_EVAL_NONE:
     return CeedError(ceed, 1,
                      "CEED_EVAL_NONE does not make sense in this context");
-    // LCOV_EXCL_STOP                                                                        
+    // LCOV_EXCL_STOP
   }
 
   if(emode!=CEED_EVAL_WEIGHT) {
