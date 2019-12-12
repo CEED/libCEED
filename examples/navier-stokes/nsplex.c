@@ -396,6 +396,44 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), filepath,
                             FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
   ierr = VecView(Qloc, viewer); CHKERRQ(ierr);
+  {
+    DM dmrefined;
+    Mat interp;
+    Vec Qrefined, Qrefined_loc;
+    char filepath_refined[PETSC_MAX_PATH_LEN];
+    PetscViewer viewer_refined;
+    PetscFE fe;
+    PetscInt dim;
+    ierr = DMPlexSetRefinementUniform(user->dm, PETSC_TRUE);CHKERRQ(ierr);
+    ierr = DMRefine(user->dm, MPI_COMM_NULL, &dmrefined);CHKERRQ(ierr);
+    ierr = DMGetDimension(dmrefined, &dim);CHKERRQ(ierr);
+    ierr = DMSetCoarseDM(dmrefined, user->dm);CHKERRQ(ierr);
+    ierr = PetscOptionsSetValue(NULL,"-viz_petscspace_degree","1");CHKERRQ(ierr);
+    ierr = PetscFECreateDefault(PETSC_COMM_SELF,dim,5,PETSC_FALSE,"viz_",PETSC_DETERMINE,&fe);CHKERRQ(ierr);
+    ierr = PetscObjectSetName((PetscObject)fe, "Q");CHKERRQ(ierr);
+    ierr = DMAddField(dmrefined,NULL,(PetscObject)fe);CHKERRQ(ierr);
+    ierr = DMCreateDS(dmrefined);CHKERRQ(ierr);
+    ierr = PetscFEDestroy(&fe);CHKERRQ(ierr);
+
+    ierr = DMCreateInterpolation(user->dm, dmrefined, &interp, NULL);CHKERRQ(ierr);
+    ierr = DMGetGlobalVector(dmrefined, &Qrefined);CHKERRQ(ierr);
+    ierr = DMGetLocalVector(dmrefined, &Qrefined_loc);CHKERRQ(ierr);
+    ierr = PetscObjectSetName((PetscObject)Qrefined_loc, "Refined");CHKERRQ(ierr);
+    ierr = MatInterpolate(interp, Q, Qrefined);CHKERRQ(ierr);
+    ierr = VecZeroEntries(Qrefined_loc);CHKERRQ(ierr);
+    ierr = DMGlobalToLocal(dmrefined, Qrefined, INSERT_VALUES, Qrefined_loc); CHKERRQ(ierr);
+    ierr = PetscSNPrintf(filepath_refined, sizeof filepath_refined, "%s/nsrefined-%03D.vtu",
+                         user->outputfolder, stepno + user->contsteps);
+    CHKERRQ(ierr);
+    ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Qrefined), filepath_refined,
+                              FILE_MODE_WRITE, &viewer_refined); CHKERRQ(ierr);
+    ierr = VecView(Qrefined_loc, viewer_refined); CHKERRQ(ierr);
+    ierr = DMRestoreLocalVector(dmrefined, &Qrefined_loc);CHKERRQ(ierr);
+    ierr = DMRestoreGlobalVector(dmrefined, &Qrefined);CHKERRQ(ierr);
+    ierr = MatDestroy(&interp);CHKERRQ(ierr);
+    ierr = DMDestroy(&dmrefined);CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer_refined);CHKERRQ(ierr);
+  }
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
 
@@ -976,7 +1014,7 @@ int main(int argc, char **argv) {
     //ierr = DMLocalToGlobal(dm, Qloc, INSERT_VALUES, Q);CHKERRQ(ierr);
   }
   ierr = DMRestoreLocalVector(dm, &Qloc);CHKERRQ(ierr);
-  
+
   // Create and setup TS
   ierr = TSCreate(comm, &ts); CHKERRQ(ierr);
   if (implicit) {
