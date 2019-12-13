@@ -789,25 +789,58 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
   ierr = CeedBasisGetNumQuadraturePoints(basisin, &nqpts); CeedChk(ierr);
   // Compute the diagonal of B^T D B
   // Each node, qpt pair
-  for (CeedInt n=0; n<nnodes; n++)
+  CeedScalar *interpin, *interpout, *gradin, *gradout;
+  ierr = CeedBasisGetInterp(basisin, &interpin); CeedChk(ierr);
+  ierr = CeedBasisGetInterp(basisout, &interpout); CeedChk(ierr);
+  ierr = CeedBasisGetGrad(basisin, &gradin); CeedChk(ierr);
+  ierr = CeedBasisGetGrad(basisout, &gradout); CeedChk(ierr);
+  // Each element and component
+  for (CeedInt e=0; e<nelem; e++) {
     for (CeedInt q=0; q<nqpts; q++) {
-      CeedInt dout = -1;
-      // Each basis eval mode pair
-      for (CeedInt eout=0; eout<numemodeout; eout++) {
-        CeedScalar bt = 1.0;
-        if (emodeout[eout] == CEED_EVAL_GRAD)
-          dout += 1;
-        ierr = CeedBasisGetValue(basisout, emodeout[eout], q, n, dout, &bt);
-        CeedChk(ierr);
-        CeedInt din = -1;
-        for (CeedInt ein=0; ein<numemodein; ein++) {
-          CeedScalar b = 0.0;
-          if (emodein[ein] == CEED_EVAL_GRAD)
-            din += 1;
-          ierr = CeedBasisGetValue(basisin, emodein[ein], q, n, din, &b);
-          CeedChk(ierr);
-          // Each element and component
-          for (CeedInt e=0; e<nelem; e++)
+      for (CeedInt n=0; n<nnodes; n++) {
+        CeedInt dout = -1;
+        // Each basis eval mode pair
+        for (CeedInt eout=0; eout<numemodeout; eout++) {
+          CeedScalar bt = 0.0;
+          if (emodeout[eout] == CEED_EVAL_GRAD)
+            dout += 1;
+          switch (emodeout[eout]) {
+          case CEED_EVAL_NONE:
+            if (n == q)
+              bt = 1.0;
+            break;
+          case CEED_EVAL_INTERP:
+            bt = interpout[q*nnodes+n];
+            break;
+          case CEED_EVAL_GRAD:
+            bt = gradout[(dout*nqpts+q)*nnodes+n];
+            break;
+          case CEED_EVAL_WEIGHT:
+          case CEED_EVAL_DIV:
+          case CEED_EVAL_CURL:
+            break;
+          }
+          CeedInt din = -1;
+          for (CeedInt ein=0; ein<numemodein; ein++) {
+            CeedScalar b = 0.0;
+            if (emodein[ein] == CEED_EVAL_GRAD)
+              din += 1;
+            switch (emodein[ein]) {
+            case CEED_EVAL_NONE:
+              if (n == q)
+                b = 1.0;
+              break;
+            case CEED_EVAL_INTERP:
+              b = interpin[q*nnodes+n];
+              break;
+            case CEED_EVAL_GRAD:
+              b = gradin[(din*nqpts+q)*nnodes+n];
+              break;
+            case CEED_EVAL_WEIGHT:
+            case CEED_EVAL_DIV:
+            case CEED_EVAL_CURL:
+              break;
+            }
             for (CeedInt cout=0; cout<ncomp; cout++) {
               CeedScalar db = 0.0;
               for (CeedInt cin=0; cin<ncomp; cin++)
@@ -815,9 +848,11 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
                                          numemodeout+eout)*ncomp+cout)*nqpts+q]*b;
               elemdiagarray[(e*ncomp+cout)*nnodes+n] += bt * db;
             }
+          }
         }
       }
     }
+  }
 
   ierr = CeedVectorRestoreArray(elemdiag, &elemdiagarray); CeedChk(ierr);
   ierr = CeedVectorRestoreArray(assembledqf, &assembledqfarray); CeedChk(ierr);

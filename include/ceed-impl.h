@@ -123,7 +123,13 @@ struct CeedBasis_private {
   CeedScalar *qweight1d; /* array of length Q1d holding the quadrature weights on
                             the reference element */
   CeedScalar
+  *interp;    /* row-major matrix of shape [Q, P] expressing the values of
+                            nodal basis functions at quadrature points */
+  CeedScalar
   *interp1d;  /* row-major matrix of shape [Q1d, P1d] expressing the values of
+                            nodal basis functions at quadrature points */
+  CeedScalar
+  *grad;      /* row-major matrix of shape [dim*Q, P] matrix expressing derivatives of
                             nodal basis functions at quadrature points */
   CeedScalar
   *grad1d;    /* row-major matrix of shape [Q1d, P1d] matrix expressing derivatives of

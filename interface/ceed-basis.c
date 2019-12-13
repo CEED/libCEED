@@ -243,10 +243,10 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt ncomp,
   ierr = CeedMalloc(Q,&(*basis)->qweight1d); CeedChk(ierr);
   memcpy((*basis)->qref1d, qref, Q*dim*sizeof(qref[0]));
   memcpy((*basis)->qweight1d, qweight, Q*sizeof(qweight[0]));
-  ierr = CeedMalloc(Q*P,&(*basis)->interp1d); CeedChk(ierr);
-  ierr = CeedMalloc(dim*Q*P,&(*basis)->grad1d); CeedChk(ierr);
-  memcpy((*basis)->interp1d, interp, Q*P*sizeof(interp[0]));
-  memcpy((*basis)->grad1d, grad, dim*Q*P*sizeof(grad[0]));
+  ierr = CeedMalloc(Q*P, &(*basis)->interp); CeedChk(ierr);
+  ierr = CeedMalloc(dim*Q*P, &(*basis)->grad); CeedChk(ierr);
+  memcpy((*basis)->interp, interp, Q*P*sizeof(interp[0]));
+  memcpy((*basis)->grad, grad, dim*Q*P*sizeof(grad[0]));
   ierr = ceed->BasisCreateH1(topo, dim, P, Q, interp, grad, qref,
                              qweight, *basis); CeedChk(ierr);
   return 0;
@@ -433,9 +433,9 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
     ierr = CeedScalarView("qweight", "\t% 12.8f", 1, basis->Q, basis->qweight1d,
                           stream); CeedChk(ierr);
     ierr = CeedScalarView("interp", "\t% 12.8f", basis->Q, basis->P,
-                          basis->interp1d, stream); CeedChk(ierr);
+                          basis->interp, stream); CeedChk(ierr);
     ierr = CeedScalarView("grad", "\t% 12.8f", basis->dim*basis->Q, basis->P,
-                          basis->grad1d, stream); CeedChk(ierr);
+                          basis->grad, stream); CeedChk(ierr);
   }
   return 0;
 }
@@ -1092,7 +1092,48 @@ int CeedBasisGetQWeights(CeedBasis basis, CeedScalar **qweight) {
   @ref Advanced
 **/
 int CeedBasisGetInterp(CeedBasis basis, CeedScalar **interp) {
-  *interp = basis->interp1d;
+  if (!basis->interp && basis->tensorbasis) {
+    // Allocate
+    int ierr;
+    ierr = CeedMalloc(basis->Q*basis->P, &basis->interp); CeedChk(ierr);
+
+    // Initialize
+    for (CeedInt i=0; i<basis->Q*basis->P; i++)
+      basis->interp[i] = 1.0;
+
+    // Calculate
+    for (CeedInt d=0; d<basis->dim; d++)
+      for (CeedInt qpt=0; qpt<basis->Q; qpt++)
+        for (CeedInt node=0; node<basis->P; node++) {
+          CeedInt p = (node / CeedIntPow(basis->P1d, d)) % basis->P1d;
+          CeedInt q = (qpt / CeedIntPow(basis->Q1d, d)) % basis->Q1d;
+          basis->interp[qpt*(basis->P)+node] *= basis->interp1d[q*basis->P1d+p];
+        }
+  }
+
+  *interp = basis->interp;
+
+  return 0;
+}
+
+/**
+  @brief Get 1D interpolation matrix of a tensor product CeedBasis
+
+  @param basis          CeedBasis
+  @param[out] interp1d  Variable to store interpolation matrix
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetInterp1D(CeedBasis basis, CeedScalar **interp1d) {
+  if (!basis->tensorbasis)
+    // LCOV_EXCL_START
+    return CeedError(basis->ceed, 1, "CeedBasis is not a tensor product basis.");
+  // LCOV_EXCL_STOP
+
+  *interp1d = basis->interp1d;
+
   return 0;
 }
 
@@ -1107,85 +1148,55 @@ int CeedBasisGetInterp(CeedBasis basis, CeedScalar **interp) {
   @ref Advanced
 **/
 int CeedBasisGetGrad(CeedBasis basis, CeedScalar **grad) {
-  *grad = basis->grad1d;
+  if (!basis->grad && basis->tensorbasis) {
+    // Allocate
+    int ierr;
+    ierr = CeedMalloc(basis->dim*basis->Q*basis->P, &basis->grad);
+    CeedChk(ierr);
+
+    // Initialize
+    for (CeedInt i=0; i<basis->dim*basis->Q*basis->P; i++)
+      basis->grad[i] = 1.0;
+
+    // Calculate
+    for (CeedInt d=0; d<basis->dim; d++)
+      for (CeedInt i=0; i<basis->dim; i++)
+        for (CeedInt qpt=0; qpt<basis->Q; qpt++)
+          for (CeedInt node=0; node<basis->P; node++) {
+            CeedInt p = (node / CeedIntPow(basis->P1d, d)) % basis->P1d;
+            CeedInt q = (qpt / CeedIntPow(basis->Q1d, d)) % basis->Q1d;
+            if (i == d)
+              basis->grad[(i*basis->Q+qpt)*(basis->P)+node] *=
+                basis->grad1d[q*basis->P1d+p];
+            else
+              basis->grad[(i*basis->Q+qpt)*(basis->P)+node] *=
+                basis->interp1d[q*basis->P1d+p];
+          }
+  }
+
+  *grad = basis->grad;
+
   return 0;
 }
 
 /**
-  @brief Get value in CeedEvalMode matrix of a CeedBasis
+  @brief Get 1D gradient matrix of a tensor product CeedBasis
 
-  @param basis       CeedBasis
-  @param[in] emode   CeedEvalMode to retrieve value
-  @param[in] node    Node (column) to retrieve value
-  @param[in] qpt     Quadrature point (row) to retrieve value
-  @param[in] dim     Dimension to retrieve value for, for CEED_EVAL_GRAD
-  @param[out] value  Variable to store value
+  @param basis        CeedBasis
+  @param[out] grad1d  Variable to store gradient matrix
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Advanced
 **/
-int CeedBasisGetValue(CeedBasis basis, CeedEvalMode emode, CeedInt qpt,
-                      CeedInt node, CeedInt dim, CeedScalar *value) {
-  bool tensor = basis->tensorbasis;
-
-  switch (emode) {
-  case CEED_EVAL_NONE:
-    if (node == qpt)
-      *value = 0.0;
-    else
-      *value = 1.0;
-    break;
-  case CEED_EVAL_INTERP: {
-    CeedScalar *interp = basis->interp1d;
-
-    if (tensor) {
-      CeedInt n, q;
-
-      *value = 1.0;
-      for (CeedInt d=0; d<basis->dim; d++) {
-        n = (node / CeedIntPow(basis->P1d, d)) % basis->P1d;
-        q = (qpt / CeedIntPow(basis->Q1d, d)) % basis->Q1d;
-        *value *= interp[q*(basis->P1d)+n];
-      }
-    } else {
-      *value = interp[qpt*(basis->P)+node];
-    }
-  } break;
-  case CEED_EVAL_GRAD: {
-    CeedScalar *grad = basis->grad1d;
-
-    if (tensor) {
-      CeedInt n, q;
-      CeedScalar *interp = basis->interp1d;
-
-      *value = 1.0;
-      for (CeedInt d=0; d<basis->dim; d++) {
-        n = (node / CeedIntPow(basis->P1d, d)) % basis->P1d;
-        q = (qpt / CeedIntPow(basis->Q1d, d)) % basis->Q1d;
-        if (d == dim)
-          *value *= grad[q*(basis->P1d)+n];
-        else
-          *value *= interp[q*(basis->P1d)+n];
-      }
-    } else {
-      *value = grad[(dim*(basis->Q)+qpt)*(basis->P)+node];
-    }
-  } break;
-  case CEED_EVAL_WEIGHT:
+int CeedBasisGetGrad1D(CeedBasis basis, CeedScalar **grad1d) {
+  if (!basis->tensorbasis)
     // LCOV_EXCL_START
-    return CeedError(basis->ceed, 1, "CEED_EVAL_WEIGHT does not make sense in "
-                     "this context");
+    return CeedError(basis->ceed, 1, "CeedBasis is not a tensor product basis.");
   // LCOV_EXCL_STOP
-  case CEED_EVAL_DIV:
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, 1, "CEED_EVAL_DIV not supported");
-  // LCOV_EXCL_STOP
-  case CEED_EVAL_CURL:
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, 1, "CEED_EVAL_CURL not supported");
-    // LCOV_EXCL_STOP
-  }
+
+  *grad1d = basis->grad1d;
+
   return 0;
 }
 
@@ -1281,7 +1292,9 @@ int CeedBasisDestroy(CeedBasis *basis) {
   if ((*basis)->Destroy) {
     ierr = (*basis)->Destroy(*basis); CeedChk(ierr);
   }
+  ierr = CeedFree(&(*basis)->interp); CeedChk(ierr);
   ierr = CeedFree(&(*basis)->interp1d); CeedChk(ierr);
+  ierr = CeedFree(&(*basis)->grad); CeedChk(ierr);
   ierr = CeedFree(&(*basis)->grad1d); CeedChk(ierr);
   ierr = CeedFree(&(*basis)->qref1d); CeedChk(ierr);
   ierr = CeedFree(&(*basis)->qweight1d); CeedChk(ierr);
