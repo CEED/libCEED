@@ -50,7 +50,7 @@
 //
 // Conversion to Conserved Variables:
 //   rho = P0 Pi**(cv/Rd) / (Rd theta)
-//   E   = rho (cv theta Pi + (u u)/2)
+//   E   = rho (cv theta Pi + (u u)/2 )
 //
 //  Boundary Conditions:
 //    Mass Density:
@@ -185,7 +185,7 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 //   P = (gamma - 1) (E - rho (u u) / 2)
 //
 // Temperature:
-//   T = (E / rho - (u u) / 2 ) / cv
+//   T = (E / rho - (u u) / 2) / cv
 //
 //********************************************
 // Stabilization:
@@ -337,7 +337,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     // ke = kinetic energy
     const CeedScalar ke = ( u[0]*u[0] + u[1]*u[1] + u[2]*u[2] ) / 2.;
     // P = pressure
-    const CeedScalar P  = ( E - ke * rho ) * (gamma - 1.);
+    const CeedScalar P  = (E - ke * rho) * (gamma - 1.);
     // dFconvdq[3][5][5] = dF(convective)/dq at each direction
     CeedScalar dFconvdq[3][5][5] = {{{0}}};
     for (int j=0; j<3; j++) {
@@ -378,7 +378,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
         for (int l=0; l<5; l++)
           StrongConv[k] += dFconvdq[j][k][l] * dqdx[l][j];
     // Body force
-    const CeedScalar BodyForce[5] = {0, 0, 0, -rho*g, 0};
+    const CeedScalar BodyForce[5] = {0, 0, 0, -rho*g, -rho*g*u[2]};
 
     // The Physics
     // -- Density
@@ -412,6 +412,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     // Body Force
     for (int j=0; j<5; j++)
       v[j][i] += wJ * BodyForce[j];
+
     //Stabilization
     CeedScalar uX[3];
     for (int j=0; j<3; j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
@@ -422,7 +423,6 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     const CeedScalar TauC = (Cc * f1) / ( 8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
     const CeedScalar TauM = 1./f1;
     const CeedScalar TauE = TauM / (Ce * cv);
-
     // *INDENT-ON*
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
     CeedScalar stab[5][3];
@@ -588,7 +588,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     // ke = kinetic energy
     const CeedScalar ke = ( u[0]*u[0] + u[1]*u[1] + u[2]*u[2] ) / 2.;
     // P = pressure
-    const CeedScalar P  = ( E - ke * rho ) * (gamma - 1.);
+    const CeedScalar P  = (E - ke * rho) * (gamma - 1.);
     // dFconvdq[3][5][5] = dF(convective)/dq at each direction
     CeedScalar dFconvdq[3][5][5] = {{{0}}};
     for (int j=0; j<3; j++) {
