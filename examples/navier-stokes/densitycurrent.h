@@ -381,16 +381,21 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     const CeedScalar BodyForce[5] = {0, 0, 0, -rho*g, -rho*g*u[2]};
 
     // The Physics
+    // Zero dv so all future terms can safely sum into it
+    for (int j=0; j<5; j++)
+      for (int k=0; k<3; k++)
+        dv[k][j][i] = 0;
+
     // -- Density
     // ---- u rho
     for (int j=0; j<3; j++)
-      dv[j][0][i]  = wJ*(rho*u[0]*dXdx[j][0] + rho*u[1]*dXdx[j][1] +
+      dv[j][0][i]  += wJ*(rho*u[0]*dXdx[j][0] + rho*u[1]*dXdx[j][1] +
                          rho*u[2]*dXdx[j][2]);
     // -- Momentum
     // ---- rho (u x u) + P I3
     for (int j=0; j<3; j++)
       for (int k=0; k<3; k++)
-        dv[k][j+1][i]  = wJ*((rho*u[j]*u[0] + (j==0?P:0))*dXdx[k][0] +
+        dv[k][j+1][i]  += wJ*((rho*u[j]*u[0] + (j==0?P:0))*dXdx[k][0] +
                              (rho*u[j]*u[1] + (j==1?P:0))*dXdx[k][1] +
                              (rho*u[j]*u[2] + (j==2?P:0))*dXdx[k][2]);
     // ---- Fuvisc
@@ -403,7 +408,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     // -- Total Energy Density
     // ---- (E + P) u
     for (int j=0; j<3; j++)
-      dv[j][4][i]  = wJ * (E + P) * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
+      dv[j][4][i]  += wJ * (E + P) * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
                                      u[2]*dXdx[j][2]);
     // ---- Fevisc
     for (int j=0; j<3; j++)
@@ -411,7 +416,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
                            Fe[2]*dXdx[j][2]);
     // Body Force
     for (int j=0; j<5; j++)
-      v[j][i] += wJ * BodyForce[j];
+      v[j][i] = wJ * BodyForce[j];
 
     //Stabilization
     CeedScalar uX[3];
