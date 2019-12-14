@@ -237,7 +237,6 @@ struct User_ {
   Vec M;
   char outputfolder[PETSC_MAX_PATH_LEN];
   PetscInt contsteps;
-  PetscReal dt;
 };
 
 struct Units_ {
@@ -519,7 +518,6 @@ int main(int argc, char **argv) {
   MPI_Comm comm;
   DM dm, dmcoord;
   TS ts;
-  PetscReal dt;
   TSAdapt adapt;
   User user;
   Units units;
@@ -908,7 +906,7 @@ int main(int argc, char **argv) {
   }
 
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
-  CeedScalar ctxNS[8] = {lambda, mu, k, cv, cp, g, Rd, dt=1e-7}; // this dt needs to be updated each time step
+  CeedScalar ctxNS[8] = {lambda, mu, k, cv, cp, g, Rd};
   struct Advection2dContext_ ctxAdvection2d = {
     .CtauS = CtauS,
     .strong_form = strong_form,
@@ -1038,7 +1036,6 @@ int main(int argc, char **argv) {
                               1.e-12 * units->second,
                               1.e2 * units->second); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
-  ierr = TSGetTimeStep (ts, &dt); CHKERRQ(ierr);
   if (!contsteps) { // print initial condition
     if (!test) {
       ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
@@ -1060,9 +1057,6 @@ int main(int argc, char **argv) {
   if (!test) {
     ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
   }
-
-  // Pass dt to the user
-  user->dt = dt;
 
   // Solve
   ierr = TSSolve(ts, Q); CHKERRQ(ierr);

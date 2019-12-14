@@ -378,29 +378,8 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
         for (int l=0; l<5; l++)
           StrongConv[k] += dFconvdq[j][k][l] * dqdx[l][j];
     // Body force
-    const CeedScalar BodyForce[5] = {0, 0, 0, -rho*g, -rho*g*u[2]};
-    // Stabilization
-    // Tau = [TauC, TauM, TauM, TauM, TauE]
-    CeedScalar uX[3];
-    for (int j=0; j<3; j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
-    const CeedScalar uiujgij = uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2];
-    const CeedScalar C1   = 1.;
-    const CeedScalar C2   = 1.;
-    const CeedScalar Cc   = 1.;
-    const CeedScalar Ce   = 1.;
-    const CeedScalar f1   = rho * sqrt(uiujgij);
-    const CeedScalar TauC = (Cc * f1) / ( 8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
-    const CeedScalar TauM = 1./f1;
-    const CeedScalar TauE = TauM / (Ce * cv);
+    const CeedScalar BodyForce[5] = {0, 0, 0, -rho*g, 0};
 
-    // *INDENT-ON*
-    const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
-    // SU
-    CeedScalar stab[5][3];
-    for (int j=0; j<3; j++)
-      for (int k=0; k<5; k++)
-        for (int l=0; l<5; l++)
-          stab[k][j] = dFconvdqT[j][k][l] * Tau[l] * StrongConv[l];
     // The Physics
     // -- Density
     // ---- u rho
@@ -434,20 +413,38 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++)
       v[j][i] += wJ * BodyForce[j];
     //Stabilization
+    CeedScalar uX[3];
+    for (int j=0; j<3; j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
+    const CeedScalar uiujgij = uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2];
+    const CeedScalar Cc   = 1.;
+    const CeedScalar Ce   = 1.;
+    const CeedScalar f1   = rho * sqrt(uiujgij);
+    const CeedScalar TauC = (Cc * f1) / ( 8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
+    const CeedScalar TauM = 1./f1;
+    const CeedScalar TauE = TauM / (Ce * cv);
+
+    // *INDENT-ON*
+    const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
+    CeedScalar stab[5][3];
     AdvectionContext context = ctx;
-    for (int j=0; j<5; j++)
-      for (int k=0; k<3; k++)
-        switch (context->stabilization) {
-        case 0:        // Galerkin
-          break;
-        case 1:        // SU
-          dv[k][j][i] -= stab[j][k] * dXdx[k][0] +
-                         stab[j][k] * dXdx[k][1] +
-                         stab[j][k] * dXdx[k][2];
-          break;
-        case 2:        // SUPG is not implemented for explicit scheme
-          break;
-      }
+    switch (context->stabilization) {
+    case 0:        // Galerkin
+       break;
+    case 1:        // SU
+       for (int j=0; j<3; j++)
+         for (int k=0; k<5; k++)
+           for (int l=0; l<5; l++)
+             stab[k][j] = dFconvdqT[j][k][l] * Tau[l] * StrongConv[l]; 
+
+       for (int j=0; j<5; j++)
+         for (int k=0; k<3; k++)
+           dv[k][j][i] -= stab[j][0] * dXdx[k][0] + 
+                          stab[j][1] * dXdx[k][1] +
+                          stab[j][2] * dXdx[k][2];
+       break;
+    case 2:        // SUPG is not implemented for explicit scheme  
+       break;             
+  }  
 
   } // End Quadrature Point Loop
 
@@ -493,7 +490,6 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
   const CeedScalar cp     = context[4];
   const CeedScalar g      = context[5];
   const CeedScalar Rd     = context[6];
-  const CeedScalar dt     = context[7];
   const CeedScalar gamma  = cp / cv;
 
   CeedPragmaSIMD
@@ -638,6 +634,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     CeedScalar StrongResid[5];
     for (int j=0; j<5; j++)
       StrongResid[j] = qdot[j][i] + StrongConv[j] - BodyForce[j];
+      
     // The Physics
     //-----mass matrix
     for (int j=0; j<5; j++)
@@ -684,31 +681,23 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     CeedScalar uX[3];
     for (int j=0; j<3; j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
     const CeedScalar uiujgij = uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2];
-    //const CeedScalar gijgij =     //needed when we add diffusion to the residual
-    const CeedScalar C1   = 1.;
-    //const CeedScalar C2   = 1.;   //needed when we add diffusion to the residual
     const CeedScalar Cc   = 1.;
     const CeedScalar Ce   = 1.;
-    CeedScalar f1;
-    CeedScalar TauC;
-    CeedScalar TauM;
-    CeedScalar TauE;
+    const CeedScalar f1   = rho * sqrt(uiujgij);
+    const CeedScalar TauC = (Cc * f1) / ( 8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
+    const CeedScalar TauM = 1./f1;
+    const CeedScalar TauE = TauM / (Ce * cv);
+    const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
     CeedScalar stab[5][3];
     AdvectionContext context = ctx;
     switch (context->stabilization) {
     case 0:        // Galerkin
       break;
     case 1:        // SU
-      f1   = rho * sqrt(uiujgij);
-      TauC = (Cc * f1) / ( 8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
-      TauM = 1./f1;
-      TauE = TauM / (Ce * cv);
-      const CeedScalar TauSU[5] = {TauC, TauM, TauM, TauM, TauE};
-
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = dFconvdqT[j][k][l] * TauSU[l] * StrongConv[l];
+            stab[k][j] = dFconvdqT[j][k][l] * Tau[l] * StrongConv[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
@@ -717,16 +706,10 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
                              stab[j][2] * dXdx[k][2]);
       break;
     case 2:        // SUPG
-      f1   = rho * sqrt(2./(C1*dt) + uiujgij);
-      TauC = (Cc * f1) / ( 8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
-      TauM = 1./f1;
-      TauE = TauM / (Ce * cv);
-      const CeedScalar TauSUPG[5] = {TauC, TauM, TauM, TauM, TauE};
-
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = dFconvdqT[j][k][l] * TauSUPG[l] * StrongResid[l];
+            stab[k][j] = dFconvdqT[j][k][l] * Tau[l] * StrongResid[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
