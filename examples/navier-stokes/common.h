@@ -21,6 +21,27 @@
 #define common_h
 
 #include <math.h>
+#include <ceed.h>
+
+typedef struct SetupContext_ *SetupContext;
+struct SetupContext_ {
+  CeedScalar theta0;
+  CeedScalar thetaC;
+  CeedScalar P0;
+  CeedScalar N;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar Rd;
+  CeedScalar g;
+  CeedScalar rc;
+  CeedScalar lx;
+  CeedScalar ly;
+  CeedScalar lz;
+  CeedScalar periodicity0;
+  CeedScalar periodicity1;
+  CeedScalar periodicity2;
+  CeedScalar time;
+};
 
 // PETSc user data
 typedef struct User_ *User;

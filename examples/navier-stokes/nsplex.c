@@ -689,10 +689,24 @@ int main(int argc, char **argv) {
 
   const CeedInt dim = problem->dim, ncompx = problem->dim, qdatasize = problem->qdatasize;
   // Set up the libCEED context
-  CeedScalar ctxSetup[] = {theta0, thetaC, P0, N, cv, cp, Rd, g, rc,
-                           lx, ly, lz,
-                           periodicity[0], periodicity[1], periodicity[2],
-                          };
+  struct SetupContext_ ctxSetup =  {
+    .theta0 = theta0,
+    .thetaC = thetaC,
+    .P0 = P0,
+    .N = N,
+    .cv = cv,
+    .cp = cp,
+    .Rd = Rd,
+    .g = g,
+    .rc = rc,
+    .lx = lx,
+    .ly = ly,
+    .lz = lz,
+    .periodicity0 = periodicity[0],
+    .periodicity1 = periodicity[1],
+    .periodicity2 = periodicity[2],
+    .time = 0,
+  };
 
   ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, (PetscReal[]){lx, ly, lz}, periodicity, PETSC_TRUE, &dm);CHKERRQ(ierr);
   if (1) {
@@ -711,16 +725,15 @@ int main(int argc, char **argv) {
 
   ierr = DMLocalizeCoordinates(dm);CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm);CHKERRQ(ierr);
-  ierr = SetUpDM(dm, problem, NULL, naturalz, ctxSetup, &degree);CHKERRQ(ierr);
+  ierr = SetUpDM(dm, problem, NULL, naturalz, &ctxSetup, &degree);CHKERRQ(ierr);
   dmviz = NULL;
   interpviz = NULL;
   if (viz_refine) {
-    PetscFE fe;
     ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE);CHKERRQ(ierr);
     ierr = DMRefine(dm, MPI_COMM_NULL, &dmviz);CHKERRQ(ierr);
     ierr = DMSetCoarseDM(dmviz, dm);CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-viz_petscspace_degree","1");CHKERRQ(ierr);
-    ierr = SetUpDM(dmviz, problem, "viz_", naturalz, ctxSetup, NULL);CHKERRQ(ierr);
+    ierr = SetUpDM(dmviz, problem, "viz_", naturalz, &ctxSetup, NULL);CHKERRQ(ierr);
     ierr = DMCreateInterpolation(dm, dmviz, &interpviz, NULL);CHKERRQ(ierr);
   }
   ierr = DMCreateGlobalVector(dm, &Q);CHKERRQ(ierr);

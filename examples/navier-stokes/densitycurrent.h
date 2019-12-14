@@ -81,20 +81,21 @@
 // *****************************************************************************
 static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
-  const CeedScalar *context = (const CeedScalar *)ctx;
-  const CeedScalar theta0 = context[0];
-  const CeedScalar thetaC = context[1];
-  const CeedScalar P0     = context[2];
-  const CeedScalar N      = context[3];
-  const CeedScalar cv     = context[4];
-  const CeedScalar cp     = context[5];
-  const CeedScalar Rd     = context[6];
-  const CeedScalar g      = context[7];
-  const CeedScalar rc     = context[8];
-  const CeedScalar lx     = context[9];
-  const CeedScalar ly     = context[10];
-  const CeedScalar lz     = context[11];
-  const CeedScalar *periodic = &context[12];
+  const SetupContext context = ctx;
+
+  const CeedScalar theta0 = context->theta0;
+  const CeedScalar thetaC = context->thetaC;
+  const CeedScalar P0     = context->P0;
+  const CeedScalar N      = context->N;
+  const CeedScalar cv     = context->cv;
+  const CeedScalar cp     = context->cp;
+  const CeedScalar Rd     = context->Rd;
+  const CeedScalar g      = context->g;
+  const CeedScalar rc     = context->rc;
+  const CeedScalar lx     = context->lx;
+  const CeedScalar ly     = context->ly;
+  const CeedScalar lz     = context->lz;
+  const CeedScalar periodic[3] = { context->periodicity0, context->periodicity1, context->periodicity2 };
 
   // Setup
   const CeedScalar tol = 1.e-14;
