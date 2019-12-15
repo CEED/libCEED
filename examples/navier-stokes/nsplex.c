@@ -417,9 +417,11 @@ static PetscErrorCode ICs_PetscMultiplicity(CeedOperator op_ics, CeedVector xcor
   Vec Multiplicity, MultiplicityLoc;
 
   ctxSetup->time = time;
+  ierr = VecZeroEntries(Qloc);CHKERRQ(ierr);
+  ierr = VectorPlacePetscVec(q0ceed, Qloc);CHKERRQ(ierr);
   CeedOperatorApply(op_ics, xcorners, q0ceed, CEED_REQUEST_IMMEDIATE);
+  ierr = VecZeroEntries(Q);CHKERRQ(ierr);
   ierr = DMLocalToGlobal(dm, Qloc, ADD_VALUES, Q);CHKERRQ(ierr);
-  CeedVectorDestroy(&q0ceed);
 
   // Fix multiplicity for output of ICs
   ierr = DMGetLocalVector(dm, &MultiplicityLoc);CHKERRQ(ierr);
@@ -1061,9 +1063,27 @@ int main(int argc, char **argv) {
 
   // Solve
   ierr = TSSolve(ts, Q); CHKERRQ(ierr);
+  ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
+
+  // Get error
+  if (problem->non_zero_time) {
+      Vec Qexact, Qexactloc;
+      PetscReal norm;
+      ierr = DMCreateGlobalVector(dm, &Qexact);CHKERRQ(ierr);
+      ierr = DMGetLocalVector(dm, &Qexactloc);CHKERRQ(ierr);
+      ierr = VecGetSize(Qexactloc, &lnodes);CHKERRQ(ierr);
+
+      ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qexactloc, Qexact, restrictq, &ctxSetup, ftime); CHKERRQ(ierr);
+
+      ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
+      ierr = VecNorm(Q, NORM_MAX, &norm); CHKERRQ(ierr);
+      CeedVectorDestroy(&q0ceed);
+      ierr = PetscPrintf(PETSC_COMM_WORLD,
+                        "Max Error: %g\n",
+                        (double)norm); CHKERRQ(ierr);
+    }
 
   // Output Statistics
-  ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
   ierr = TSGetStepNumber(ts,&steps); CHKERRQ(ierr);
   ierr = PetscPrintf(PETSC_COMM_WORLD,
                      "Time integrator took %D time steps to reach final time %g\n",
