@@ -563,6 +563,7 @@ int main(int argc, char **argv) {
   problemData *problem;
   StabilizationType stab;
   PetscBool   test, implicit, naturalz, viz_refine;
+  double start, cpu_time_used;
 
   // Create the libCEED contexts
   PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
@@ -1062,8 +1063,15 @@ int main(int argc, char **argv) {
   }
 
   // Solve
+  start = MPI_Wtime();
+  ierr = PetscBarrier((PetscObject)ts); CHKERRQ(ierr);
   ierr = TSSolve(ts, Q); CHKERRQ(ierr);
+  cpu_time_used = MPI_Wtime() - start;
   ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
+  ierr = MPI_Allreduce(MPI_IN_PLACE, &cpu_time_used, 1, MPI_DOUBLE, MPI_MIN, comm); CHKERRQ(ierr);
+  ierr = PetscPrintf(PETSC_COMM_WORLD,
+                    "Time taken for solution: %g\n",
+                    (double)cpu_time_used); CHKERRQ(ierr);
 
   // Get error
   if (problem->non_zero_time) {
