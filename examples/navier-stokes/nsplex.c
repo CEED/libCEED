@@ -84,6 +84,7 @@ typedef struct {
   PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                        PetscScalar[], void*);
   const char *setup_loc, *ics_loc, *apply_rhs_loc, *apply_ifunction_loc;
+  const bool non_zero_time;
 } problemData;
 
 problemData problemOptions[] = {
@@ -99,6 +100,7 @@ problemData problemOptions[] = {
     .apply_ifunction = IFunction_DC,
     .apply_ifunction_loc = IFunction_DC_loc,
     .bc = Exact_DC,
+    .non_zero_time = false,
   },
   [NS_ADVECTION] = {
     .dim = 3,
@@ -112,6 +114,7 @@ problemData problemOptions[] = {
     .apply_ifunction = IFunction_Advection,
     .apply_ifunction_loc = IFunction_Advection_loc,
     .bc = Exact_Advection,
+    .non_zero_time = true,
   },
   [NS_ADVECTION2D] = {
     .dim = 2,
@@ -125,6 +128,7 @@ problemData problemOptions[] = {
     .apply_ifunction = IFunction_Advection2d,
     .apply_ifunction_loc = IFunction_Advection2d_loc,
     .bc = Exact_Advection2d,
+    .non_zero_time = true,
   },
   [NS_DENSITY_CURRENT_PRIMITIVE] = {
     .dim = 3,
@@ -136,6 +140,7 @@ problemData problemOptions[] = {
     .apply_ifunction = IFunction_DCPrim,
     .apply_ifunction_loc = IFunction_DCPrim_loc,
     .bc = Exact_DCPrim,
+    .non_zero_time = false,
   },
 };
 
