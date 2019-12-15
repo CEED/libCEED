@@ -411,6 +411,33 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   PetscFunctionReturn(0);
 }
 
+static PetscErrorCode ICs_PetscMultiplicity(CeedOperator op_ics, CeedVector xcorners, CeedVector q0ceed, DM dm, Vec Qloc, Vec Q, CeedElemRestriction restrictq, SetupContext ctxSetup, CeedScalar time) {
+  PetscErrorCode ierr;
+  CeedVector multlvec;
+  Vec Multiplicity, MultiplicityLoc;
+
+  ctxSetup->time = time;
+  CeedOperatorApply(op_ics, xcorners, q0ceed, CEED_REQUEST_IMMEDIATE);
+  ierr = DMLocalToGlobal(dm, Qloc, ADD_VALUES, Q);CHKERRQ(ierr);
+  CeedVectorDestroy(&q0ceed);
+
+  // Fix multiplicity for output of ICs
+  ierr = DMGetLocalVector(dm, &MultiplicityLoc);CHKERRQ(ierr);
+  CeedElemRestrictionCreateVector(restrictq, &multlvec, NULL);
+  ierr = VectorPlacePetscVec(multlvec, MultiplicityLoc);CHKERRQ(ierr);
+  CeedElemRestrictionGetMultiplicity(restrictq, CEED_TRANSPOSE, multlvec);
+  CeedVectorDestroy(&multlvec);
+  ierr = DMGetGlobalVector(dm, &Multiplicity);CHKERRQ(ierr);
+  ierr = VecZeroEntries(Multiplicity);CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(dm, MultiplicityLoc, ADD_VALUES, Multiplicity);CHKERRQ(ierr);
+  ierr = VecPointwiseDivide(Q, Q, Multiplicity);CHKERRQ(ierr);
+  ierr = VecPointwiseDivide(Qloc, Qloc, MultiplicityLoc);CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm, &MultiplicityLoc);CHKERRQ(ierr);
+  ierr = DMRestoreGlobalVector(dm, &Multiplicity);CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
                                               CeedElemRestriction restrictq,
                                               CeedBasis basisq,
@@ -950,26 +977,7 @@ int main(int argc, char **argv) {
   CeedOperatorApply(op_setup, xcorners, qdata, CEED_REQUEST_IMMEDIATE);
   ierr = ComputeLumpedMassMatrix(ceed, dm, restrictq, basisq, restrictqdi, qdata, user->M);CHKERRQ(ierr);
 
-  CeedOperatorApply(op_ics, xcorners, q0ceed, CEED_REQUEST_IMMEDIATE);
-  ierr = DMLocalToGlobal(dm, Qloc, ADD_VALUES, Q);CHKERRQ(ierr);
-  CeedVectorDestroy(&q0ceed);
-  // Fix multiplicity for output of ICs
-  {
-    CeedVector multlvec;
-    Vec Multiplicity, MultiplicityLoc;
-    ierr = DMGetLocalVector(dm, &MultiplicityLoc);CHKERRQ(ierr);
-    CeedElemRestrictionCreateVector(restrictq, &multlvec, NULL);
-    ierr = VectorPlacePetscVec(multlvec, MultiplicityLoc);CHKERRQ(ierr);
-    CeedElemRestrictionGetMultiplicity(restrictq, CEED_TRANSPOSE, multlvec);
-    CeedVectorDestroy(&multlvec);
-    ierr = DMGetGlobalVector(dm, &Multiplicity);CHKERRQ(ierr);
-    ierr = VecZeroEntries(Multiplicity);CHKERRQ(ierr);
-    ierr = DMLocalToGlobal(dm, MultiplicityLoc, ADD_VALUES, Multiplicity);CHKERRQ(ierr);
-    ierr = VecPointwiseDivide(Q, Q, Multiplicity);CHKERRQ(ierr);
-    ierr = VecPointwiseDivide(Qloc, Qloc, MultiplicityLoc);CHKERRQ(ierr);
-    ierr = DMRestoreLocalVector(dm, &MultiplicityLoc);CHKERRQ(ierr);
-    ierr = DMRestoreGlobalVector(dm, &Multiplicity);CHKERRQ(ierr);
-  }
+  ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictq, &ctxSetup, 0.0);
   if (1) { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
     // We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow.  If we
     // disable this, we should still get the same results due to the problem->bc function, but with potentially much
