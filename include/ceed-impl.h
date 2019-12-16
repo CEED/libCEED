@@ -23,8 +23,6 @@
 #include <ceed-backend.h>
 #include <stdbool.h>
 
-#define CEED_EPSILON 1E-16
-
 // Lookup table field for backend functions
 typedef struct {
   const char *fname;
@@ -211,6 +209,7 @@ struct CeedOperator_private {
   int (*AssembleLinearQFunction)(CeedOperator, CeedVector *,
                                  CeedElemRestriction *, CeedRequest *);
   int (*AssembleLinearDiagonal)(CeedOperator, CeedVector *, CeedRequest *);
+  int (*CreateFDMElementInverse)(CeedOperator, CeedOperator *, CeedRequest *);
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyComposite)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyAdd)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
@@ -244,9 +243,5 @@ CEED_INTERN int CeedSetErrorHandler(Ceed ceed,
                                     int (eh)(Ceed, const char *, int,
                                         const char *, int, const char *,
                                         va_list));
-
-CEED_INTERN int CeedMatrixMultiply(Ceed ceed, CeedScalar *matA,
-                                   CeedScalar *matB, CeedScalar *matC,
-                                   CeedInt m, CeedInt n, CeedInt kk);
 
 #endif

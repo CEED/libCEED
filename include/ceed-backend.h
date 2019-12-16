@@ -27,6 +27,7 @@
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
 #define CEED_COMPOSITE_MAX 16
+#define CEED_EPSILON 1E-16
 
 /// Handle for object handling TensorContraction
 /// @ingroup CeedBasis
@@ -198,5 +199,9 @@ CEED_EXTERN int CeedOperatorFieldGetLMode(CeedOperatorField opfield,
     CeedTransposeMode *lmode);
 CEED_EXTERN int CeedOperatorFieldGetVector(CeedOperatorField opfield,
     CeedVector *vec);
+
+CEED_INTERN int CeedMatrixMultiply(Ceed ceed, CeedScalar *matA,
+                                   CeedScalar *matB, CeedScalar *matC,
+                                   CeedInt m, CeedInt n, CeedInt kk);
 
 #endif
