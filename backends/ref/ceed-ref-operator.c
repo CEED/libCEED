@@ -941,13 +941,15 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
   for (CeedInt i=0; i<Q1d; i++)
     for (CeedInt j=0; j<P1d; j++)
       work[i+j*Q1d] = interp1d[i*P1d+j]*qweight1d[i];
-  ierr = CeedMatrixMultiply(ceed, work, interp1d, mass, P1d, P1d, Q1d);
+  ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)work,
+                            (const CeedScalar *)interp1d, mass, P1d, P1d, Q1d);
   CeedChk(ierr);
   // -- Laplacian
   for (CeedInt i=0; i<Q1d; i++)
     for (CeedInt j=0; j<P1d; j++)
       work[i+j*Q1d] = grad1d[i*P1d+j]*qweight1d[i];
-  ierr = CeedMatrixMultiply(ceed, work, grad1d, laplace, P1d, P1d, Q1d);
+  ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)work,
+                            (const CeedScalar *)grad1d, laplace, P1d, P1d, Q1d);
   CeedChk(ierr);
   // -- Diagonalize
   ierr = CeedSimultaneousDiagonalization(ceed, laplace, mass, x, lambda, P1d);

@@ -746,7 +746,9 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
 }
 
 /**
-  @brief Return C = A B
+  @brief Return a reference implementation of matrix multiplication C = A B.
+           Note, this is a reference implementation for CPU CeedScalar pointers
+           that is not intended for high performance.
 
   @param[in] matA     Row-major matrix A
   @param[in] matB     Row-major matrix B
@@ -759,8 +761,9 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
 
   @ref Utility
 **/
-int CeedMatrixMultiply(Ceed ceed, CeedScalar *matA, CeedScalar *matB,
-                       CeedScalar *matC, CeedInt m, CeedInt n, CeedInt kk) {
+int CeedMatrixMultiply(Ceed ceed, const CeedScalar *matA,
+                       const CeedScalar *matB, CeedScalar *matC, CeedInt m,
+                       CeedInt n, CeedInt kk) {
   for (CeedInt i=0; i<m; i++)
     for (CeedInt j=0; j<n; j++) {
       CeedScalar sum = 0;
@@ -806,18 +809,24 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *matA,
   for (CeedInt i=0; i<n; i++)
     for (CeedInt j=0; j<n; j++)
       matC[j+i*n] = matG[i+j*n] / vecD[i];
-  CeedMatrixMultiply(ceed, matC, matA, x, n, n, n);
+  ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)matC,
+                            (const CeedScalar *)matA, x, n, n, n);
+  CeedChk(ierr);
   for (CeedInt i=0; i<n; i++)
     for (CeedInt j=0; j<n; j++)
       matG[j+i*n] = matG[j+i*n] / vecD[j];
-  CeedMatrixMultiply(ceed, x, matG, matC, n, n, n);
+  ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)x,
+                            (const CeedScalar *)matG, matC, n, n, n);
+  CeedChk(ierr);
 
   // Compute Q^T C Q = lambda
   ierr = CeedSymmetricSchurDecomposition(ceed, matC, lambda, n); CeedChk(ierr);
 
   // Set x = (G D^1/2)^-T Q
   //       = G D^-1/2 Q
-  CeedMatrixMultiply(ceed, matG, matC, x, n, n, n);
+  ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)matG,
+                            (const CeedScalar *)matC, x, n, n, n);
+  CeedChk(ierr);
 
   return 0;
 }

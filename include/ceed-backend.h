@@ -200,8 +200,8 @@ CEED_EXTERN int CeedOperatorFieldGetLMode(CeedOperatorField opfield,
 CEED_EXTERN int CeedOperatorFieldGetVector(CeedOperatorField opfield,
     CeedVector *vec);
 
-CEED_INTERN int CeedMatrixMultiply(Ceed ceed, CeedScalar *matA,
-                                   CeedScalar *matB, CeedScalar *matC,
+CEED_INTERN int CeedMatrixMultiply(Ceed ceed, const CeedScalar *matA,
+                                   const CeedScalar *matB, CeedScalar *matC,
                                    CeedInt m, CeedInt n, CeedInt kk);
 
 #endif
