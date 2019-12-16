@@ -795,8 +795,11 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
   ierr = CeedBasisGetGrad(basisin, &gradin); CeedChk(ierr);
   ierr = CeedBasisGetGrad(basisout, &gradout); CeedChk(ierr);
   // Each element and component
+  CeedPragmaSIMD
   for (CeedInt e=0; e<nelem; e++) {
+    CeedPragmaSIMD
     for (CeedInt q=0; q<nqpts; q++) {
+      CeedPragmaSIMD
       for (CeedInt n=0; n<nnodes; n++) {
         CeedInt dout = -1;
         // Each basis eval mode pair
@@ -818,7 +821,7 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
           case CEED_EVAL_WEIGHT:
           case CEED_EVAL_DIV:
           case CEED_EVAL_CURL:
-            break;
+            break; // Caught by QF Assembly
           }
           CeedInt din = -1;
           for (CeedInt ein=0; ein<numemodein; ein++) {
@@ -839,7 +842,7 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
             case CEED_EVAL_WEIGHT:
             case CEED_EVAL_DIV:
             case CEED_EVAL_CURL:
-              break;
+              break; // Caught by QF Assembly
             }
             for (CeedInt cout=0; cout<ncomp; cout++) {
               CeedScalar db = 0.0;
