@@ -16,6 +16,9 @@
 
 #include "ceed-memcheck.h"
 
+//------------------------------------------------------------------------------
+// Backend Init
+//------------------------------------------------------------------------------
 static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self/memcheck/serial") &&
@@ -37,7 +40,11 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Backend Register
+//------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
   CeedRegister("/cpu/self/memcheck/serial", CeedInit_Memcheck, 100);
 }
+//------------------------------------------------------------------------------

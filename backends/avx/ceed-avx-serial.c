@@ -16,6 +16,9 @@
 
 #include "ceed-avx.h"
 
+//------------------------------------------------------------------------------
+// Backend Init
+//------------------------------------------------------------------------------
 static int CeedInit_Avx(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self")
@@ -36,7 +39,11 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Backend Register
+//------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
   CeedRegister("/cpu/self/avx/serial", CeedInit_Avx, 35);
 }
+//------------------------------------------------------------------------------

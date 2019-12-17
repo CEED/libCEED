@@ -16,6 +16,9 @@
 
 #include "ceed-ref.h"
 
+//------------------------------------------------------------------------------
+// Vector Set Array
+//------------------------------------------------------------------------------
 static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mtype,
                                   CeedCopyMode cmode, CeedScalar *array) {
   int ierr;
@@ -47,6 +50,9 @@ static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mtype,
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Vector Get Array
+//------------------------------------------------------------------------------
 static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mtype,
                                   CeedScalar **array) {
   int ierr;
@@ -67,6 +73,9 @@ static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mtype,
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Vector Get Array Read
+//------------------------------------------------------------------------------
 static int CeedVectorGetArrayRead_Ref(CeedVector vec, CeedMemType mtype,
                                       const CeedScalar **array) {
   int ierr;
@@ -87,6 +96,9 @@ static int CeedVectorGetArrayRead_Ref(CeedVector vec, CeedMemType mtype,
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Vector Restore Array
+//------------------------------------------------------------------------------
 static int CeedVectorRestoreArray_Ref(CeedVector vec) {
   return 0;
 }
@@ -95,6 +107,9 @@ static int CeedVectorRestoreArrayRead_Ref(CeedVector vec) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Vector Destroy
+//------------------------------------------------------------------------------
 static int CeedVectorDestroy_Ref(CeedVector vec) {
   int ierr;
   CeedVector_Ref *impl;
@@ -105,6 +120,9 @@ static int CeedVectorDestroy_Ref(CeedVector vec) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Vector Create
+//------------------------------------------------------------------------------
 int CeedVectorCreate_Ref(CeedInt n, CeedVector vec) {
   int ierr;
   CeedVector_Ref *impl;
@@ -127,3 +145,4 @@ int CeedVectorCreate_Ref(CeedInt n, CeedVector vec) {
   ierr = CeedVectorSetData(vec, (void *)&impl); CeedChk(ierr);
   return 0;
 }
+//------------------------------------------------------------------------------

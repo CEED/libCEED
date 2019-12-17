@@ -16,6 +16,9 @@
 
 #include "ceed-ref.h"
 
+//------------------------------------------------------------------------------
+// Core ElemRestriction Apply Code
+//------------------------------------------------------------------------------
 static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
     const CeedInt blksize, const CeedInt ncomp, CeedInt start, CeedInt stop,
     CeedTransposeMode tmode, CeedTransposeMode lmode, CeedVector u,
@@ -92,6 +95,9 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// ElemRestriction Apply - Common Sizes
+//------------------------------------------------------------------------------
 static int CeedElemRestrictionApply_Ref_11(CeedElemRestriction r,
     CeedInt start, CeedInt stop, CeedTransposeMode tmode,
     CeedTransposeMode lmode, CeedVector u, CeedVector v, CeedRequest *request) {
@@ -121,6 +127,9 @@ static int CeedElemRestrictionApply_Ref_38(CeedElemRestriction r,
          u, v, request);
 }
 
+//------------------------------------------------------------------------------
+// ElemRestriction Apply
+//------------------------------------------------------------------------------
 static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
                                         CeedTransposeMode tmode,
                                         CeedTransposeMode lmode, CeedVector u,
@@ -159,6 +168,9 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
   }
 }
 
+//------------------------------------------------------------------------------
+// ElemRestriction Apply Block
+//------------------------------------------------------------------------------
 static int CeedElemRestrictionApplyBlock_Ref(CeedElemRestriction r,
     CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
     CeedVector u, CeedVector v, CeedRequest *request) {
@@ -195,6 +207,9 @@ static int CeedElemRestrictionApplyBlock_Ref(CeedElemRestriction r,
   }
 }
 
+//------------------------------------------------------------------------------
+// ElemRestriction Destroy
+//------------------------------------------------------------------------------
 static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {
   int ierr;
   CeedElemRestriction_Ref *impl;
@@ -205,6 +220,9 @@ static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// ElemRestriction Create
+//------------------------------------------------------------------------------
 int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
                                   const CeedInt *indices, CeedElemRestriction r) {
   int ierr;
@@ -246,3 +264,4 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
                                 CeedElemRestrictionDestroy_Ref); CeedChk(ierr);
   return 0;
 }
+//------------------------------------------------------------------------------
