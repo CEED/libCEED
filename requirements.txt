@@ -1,0 +1,3 @@
+cffi
+numpy
+pytest
