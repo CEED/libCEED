@@ -16,7 +16,9 @@
 
 #include "ceed-xsmm.h"
 
-// Utility functions for index in pointer array
+//------------------------------------------------------------------------------
+// Get Kernel Index
+//------------------------------------------------------------------------------
 int CeedGetXsmmInd_Tensor(CeedInt nelem, CeedInt add, CeedTransposeMode tmode,
                           CeedInt B, CeedInt C, CeedInt J, CeedInt currdim,
                           CeedInt dim) {
@@ -30,7 +32,9 @@ int CeedGetXsmmInd_NonTensor(CeedInt add, CeedInt P, CeedInt Q, CeedInt B,
          (B == P ? (J == Q ? 0:1) : (B == Q ? 2:3));
 }
 
-// Default Tensor Contact
+//------------------------------------------------------------------------------
+// Tensor Contract C=1
+//------------------------------------------------------------------------------
 static int CeedTensorContract_Xsmm_C1(CeedTensorContract contract,
                                       CeedInt A, CeedInt B, CeedInt C,
                                       CeedInt J, const CeedScalar *restrict t,
@@ -55,7 +59,9 @@ static int CeedTensorContract_Xsmm_C1(CeedTensorContract contract,
   return 0;
 }
 
-// Switch for Tensor Contract
+//------------------------------------------------------------------------------
+// Tensor Contract Apply
+//------------------------------------------------------------------------------
 static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
                                         CeedInt B, CeedInt C, CeedInt J,
                                         const CeedScalar *restrict t,
@@ -94,6 +100,9 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Tensor Contract Destroy
+//------------------------------------------------------------------------------
 static int CeedTensorContractDestroy_Xsmm(CeedTensorContract contract) {
   int ierr;
   CeedTensorContract_Xsmm *impl;
@@ -104,6 +113,9 @@ static int CeedTensorContractDestroy_Xsmm(CeedTensorContract contract) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Tensor Contract Create
+//------------------------------------------------------------------------------
 int CeedTensorContractCreate_Xsmm(CeedBasis basis,
                                   CeedTensorContract contract) {
   int ierr;
@@ -178,3 +190,4 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
 
   return 0;
 }
+//------------------------------------------------------------------------------

@@ -16,6 +16,9 @@
 
 #include "ceed-xsmm.h"
 
+//------------------------------------------------------------------------------
+// Backend Init
+//------------------------------------------------------------------------------
 static int CeedInit_Xsmm_Serial(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self")
@@ -37,7 +40,11 @@ static int CeedInit_Xsmm_Serial(const char *resource, Ceed ceed) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Backend Register
+//------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
   CeedRegister("/cpu/self/xsmm/serial", CeedInit_Xsmm_Serial, 25);
 }
+//------------------------------------------------------------------------------
