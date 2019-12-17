@@ -22,3 +22,9 @@ config.mk
 
 # Debugging
 vgcore*
+
+# Python
+dist
+*egg*
+.pytest_cache
+*cffi*
