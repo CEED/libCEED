@@ -235,6 +235,10 @@ This will allow OCCA to find the sources regardless of the location of the CEED
 library. One may occasionally need to clear the OCCA cache, which can be accomplished
 by removing the `~/.occa` directory or by calling `$(OCCA_DIR)/bin/occa clear -a`.
 
+To install libCEED for Python, run
+
+    python setup.py build install
+
 ### pkg-config
 
 In addition to library and header, libCEED provides a [pkg-config][pkg-config1]
