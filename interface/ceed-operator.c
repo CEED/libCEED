@@ -452,7 +452,6 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
   @param op             CeedOperator to create element inverses
   @param[out] fdminv    CeedOperator to apply the action of a FDM based inverse
                           for each element
-  @param[out] qdata     CeedVector to hold qdata for fdminv
   @param request        Address of CeedRequest for non-blocking completion, else
                           CEED_REQUEST_IMMEDIATE
 
@@ -852,6 +851,7 @@ static int CeedOperatorFieldView(CeedOperatorField field,
   @brief View a single CeedOperator
 
   @param[in] op     CeedOperator to view
+  @param[in] sub    Boolean flag for sub-operator
   @param[in] stream Stream to write; typically stdout/stderr or a file
 
   @return Error code: 0 - success, otherwise - failure

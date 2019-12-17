@@ -545,7 +545,7 @@ static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s,
 /**
   @brief Return QR Factorization of a matrix
 
-  @param ceed         A Ceed object currently in use
+  @param ceed         A Ceed context for error handling
   @param[in,out] mat  Row-major matrix to be factorized in place
   @param[in,out] tau  Vector of length m of scaling factors
   @param m            Number of rows
@@ -599,7 +599,7 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
   @brief Return symmetric Schur decomposition of the symmetric matrix mat via
            symmetric QR factorization
 
-  @param ceed         A Ceed object for error handling
+  @param ceed         A Ceed context for error handling
   @param[in,out] mat  Row-major matrix to be factorized in place
   @param[out] lambda  Vector of length n of eigenvalues
   @param n            Number of rows/columns
@@ -750,6 +750,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
            Note, this is a reference implementation for CPU CeedScalar pointers
            that is not intended for high performance.
 
+  @param ceed         A Ceed context for error handling
   @param[in] matA     Row-major matrix A
   @param[in] matB     Row-major matrix B
   @param[out] matC    Row-major output matrix C
@@ -781,7 +782,7 @@ int CeedMatrixMultiply(Ceed ceed, const CeedScalar *matA,
            and vector Lambda such that X^T A X = Lambda and X^T B X = I. This
            is equivalent to the LAPACK routine 'sygv' with TYPE = 1.
 
-  @param ceed         A Ceed object for error handling
+  @param ceed         A Ceed context for error handling
   @param[in] matA     Row-major matrix to be factorized with eigenvalues
   @param[in] matB     Row-major matrix to be factorized to identity
   @param[out] x       Row-major orthogonal matrix

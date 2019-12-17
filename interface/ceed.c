@@ -605,8 +605,8 @@ int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
   @brief Get the parent Ceed context associated with a fallback Ceed context
            for a CeedOperator
 
-  @param ceed            Ceed context
-  @param[out] ceed       Variable to store parent Ceed context
+  @param ceed         Ceed context
+  @param[out] parent  Variable to store parent Ceed context
 
   @return An error code: 0 - success, otherwise - failure
 
