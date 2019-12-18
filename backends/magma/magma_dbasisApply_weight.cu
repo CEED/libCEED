@@ -120,7 +120,7 @@ dbasis_apply_eval_weight_kernel_batched_driver(
                 magma_int_t dim,   
                 const double *dqweight1d, 
                 double *dV, magma_int_t vstride, 
-                magma_int_t batchCount )
+                magma_int_t batchCount, magma_queue_t queue)
 {
     magma_int_t pre_org  = CeedIntPow(Q, dim-0-1);
     magma_int_t post_org = CeedIntPow(Q, 0);
@@ -138,7 +138,7 @@ dbasis_apply_eval_weight_kernel_batched_driver(
     else { 
         dim3 threads(nthreads, 1, 1);
         dim3 grid(batchCount, 1, 1);
-        dbasis_apply_eval_weight_kernel_batched<Q><<<grid, threads, shmem, 0>>>
+        dbasis_apply_eval_weight_kernel_batched<Q><<<grid, threads, shmem, magma_queue_get_cuda_stream(queue)>>>
         ( dim, pre_org, post_org, dqweight1d, dV, vstride );
         
         return 0;
@@ -151,20 +151,20 @@ magmablas_dbasis_apply_batched_eval_weight_1(
     magma_int_t Q, magma_int_t dim, 
     const double *dqweight1d, 
     double *dV, magma_int_t vstride, 
-    magma_int_t batchCount )
+    magma_int_t batchCount, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
     switch(Q){
-        case  1: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 1>(dim, dqweight1d, dV, vstride, batchCount); break;
-        case  2: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 2>(dim, dqweight1d, dV, vstride, batchCount); break;
-        case  3: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 3>(dim, dqweight1d, dV, vstride, batchCount); break;
-        case  4: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 4>(dim, dqweight1d, dV, vstride, batchCount); break;
-        case  5: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 5>(dim, dqweight1d, dV, vstride, batchCount); break;
-        case  6: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 6>(dim, dqweight1d, dV, vstride, batchCount); break;
-        case  7: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 7>(dim, dqweight1d, dV, vstride, batchCount); break;
-        case  8: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 8>(dim, dqweight1d, dV, vstride, batchCount); break;
-        case  9: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 9>(dim, dqweight1d, dV, vstride, batchCount); break;
-        case 10: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver<10>(dim, dqweight1d, dV, vstride, batchCount); break;
+        case  1: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 1>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
+        case  2: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 2>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
+        case  3: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 3>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
+        case  4: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 4>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
+        case  5: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 5>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
+        case  6: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 6>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
+        case  7: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 7>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
+        case  8: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 8>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
+        case  9: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver< 9>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
+        case 10: launch_failed = dbasis_apply_eval_weight_kernel_batched_driver<10>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
         default: launch_failed = 1;
     }
     return launch_failed;
@@ -176,10 +176,10 @@ magmablas_dbasis_apply_batched_eval_weight(
     magma_int_t Q, magma_int_t dim, 
     const double *dqweight1d, 
     double *dV, magma_int_t vstride, 
-    magma_int_t batchCount )
+    magma_int_t batchCount, magma_queue_t queue)
 {    
     magma_int_t launch_failed = 0;
-    launch_failed = magmablas_dbasis_apply_batched_eval_weight_1(Q, dim, dqweight1d, dV, vstride, batchCount);
+    launch_failed = magmablas_dbasis_apply_batched_eval_weight_1(Q, dim, dqweight1d, dV, vstride, batchCount, queue);
     
     if(launch_failed == 1) {
         // fall back to a ref. impl.
@@ -190,7 +190,7 @@ magmablas_dbasis_apply_batched_eval_weight(
 // NonTensor weight function
 extern "C" void 
 magma_weight(magma_int_t grid, magma_int_t threads, magma_int_t nelem, magma_int_t Q, 
-             double *dqweight, double *dv)
+             double *dqweight, double *dv, magma_queue_t queue)
 {
-    magma_weight_kernel<<<grid, threads, 0, NULL>>>(nelem, Q, dqweight, dv);
+    magma_weight_kernel<<<grid, threads, 0, magma_queue_get_cuda_stream(queue)>>>(nelem, Q, dqweight, dv);
 }
