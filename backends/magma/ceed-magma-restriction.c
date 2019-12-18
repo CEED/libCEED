@@ -24,6 +24,12 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
   CeedElemRestriction_Magma *impl;
   ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
 
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
+
+  Ceed_Magma *data; 
+  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+
   CeedInt nelem;
   CeedElemRestrictionGetNumElements(r, &nelem);
 
@@ -43,15 +49,17 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
 
   if (tmode == CEED_TRANSPOSE) {
     if (lmode == CEED_TRANSPOSE)
-      magma_writeDofsTranspose(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
+      magma_writeDofsTranspose(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv, data->queue);
     else
-      magma_writeDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
+      magma_writeDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv, data->queue);
   } else {
     if (lmode == CEED_TRANSPOSE)
-      magma_readDofsTranspose(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
+      magma_readDofsTranspose(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv, data->queue);
     else
-      magma_readDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
+      magma_readDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv, data->queue);
   }
+
+  magma_queue_sync( data->queue );
   ierr = CeedVectorRestoreArrayRead(u, &du); CeedChk(ierr);
   ierr = CeedVectorRestoreArray(v, &dv); CeedChk(ierr);
 
@@ -92,6 +100,9 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
 
+  Ceed_Magma *data; 
+  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+
   CeedInt elemsize, nelem;
   ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
@@ -119,7 +130,7 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
                                     size * sizeof(CeedInt)); CeedChk(ierr);
         memcpy(impl->indices, indices, size * sizeof(CeedInt));
 
-        magma_setvector(size, sizeof(CeedInt), indices, 1, impl->dindices, 1);
+        magma_setvector(size, sizeof(CeedInt), indices, 1, impl->dindices, 1, data->queue);
       }
       break;
     case CEED_OWN_POINTER:
@@ -132,14 +143,14 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
         //       (as we own it, lter in destroy, we use free for pinned memory).
         impl->indices = (CeedInt *)indices;
 
-        magma_setvector(size, sizeof(CeedInt), indices, 1, impl->dindices, 1);
+        magma_setvector(size, sizeof(CeedInt), indices, 1, impl->dindices, 1, data->queue);
       }
       break;
     case CEED_USE_POINTER:
       if (indices != NULL) {
         ierr = magma_malloc( (void **)&impl->dindices,
                              size * sizeof(CeedInt)); CeedChk(ierr);
-        magma_setvector(size, sizeof(CeedInt), indices, 1, impl->dindices, 1);
+        magma_setvector(size, sizeof(CeedInt), indices, 1, impl->dindices, 1, data->queue);
       }
       impl->down_ = 1;
       impl->indices  = (CeedInt *)indices;
@@ -155,7 +166,7 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
       impl->own_ = 1;
 
       if (indices)
-        magma_getvector(size, sizeof(CeedInt), impl->dindices, 1, (void *)indices, 1);
+        magma_getvector(size, sizeof(CeedInt), impl->dindices, 1, (void *)indices, 1, data->queue);
 
       break;
     case CEED_OWN_POINTER:
