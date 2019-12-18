@@ -27,4 +27,5 @@ vgcore*
 dist
 *egg*
 .pytest_cache
-*cffi*
+*cffi.so
+*cffi.dylib
