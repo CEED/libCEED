@@ -48,7 +48,7 @@ dbasis_apply_eval_interp_kernel_batched_driver(
                 const double *dT, magma_trans_t transT,
                 const double *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
                       double *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
-                magma_int_t nelem )
+                magma_int_t nelem, magma_queue_t queue)
 {
     magma_int_t pre = ipow(P, dim-1); //ncomp*CeedIntPow(P, dim-1);
     magma_int_t post = 1; 
@@ -73,7 +73,7 @@ dbasis_apply_eval_interp_kernel_batched_driver(
     else { 
         dim3 threads(nthreads, 1, 1);
         dim3 grid(nelem, ncomp, 1);
-        dbasis_apply_eval_interp_kernel_batched<P, Q><<<grid, threads, shmem, 0>>>
+        dbasis_apply_eval_interp_kernel_batched<P, Q><<<grid, threads, shmem, magma_queue_get_cuda_stream(queue)>>>
         ( dim, ncomp, pre, post, tmp_size, dT, transT, 
           dU, u_elstride, u_compstride, 
           dV, v_elstride, v_compstride );
@@ -91,20 +91,20 @@ magmablas_dbasis_apply_batched_eval_interp_2(
     const double *dT, magma_trans_t transT,
     const double *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
           double *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
-    magma_int_t nelem )
+    magma_int_t nelem, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
     switch(Q){
-        case  1: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 1>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  2: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 2>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  3: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 3>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  4: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 4>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  5: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 5>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  6: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 6>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  7: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 7>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  8: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 8>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  9: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 9>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case 10: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P,10>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
+        case  1: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 1>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  2: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 2>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  3: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 3>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  4: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 4>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  5: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 5>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  6: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 6>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  7: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 7>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  8: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 8>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  9: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P, 9>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case 10: launch_failed = dbasis_apply_eval_interp_kernel_batched_driver<P,10>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         default: launch_failed = 1;
     }
     return launch_failed;
@@ -118,20 +118,20 @@ static magmablas_dbasis_apply_batched_eval_interp_1(
     const double *dT, magma_trans_t transT,
     const double *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
           double *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
-    magma_int_t nelem )
+    magma_int_t nelem, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
     switch(P){
-        case  1: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 1>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  2: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 2>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  3: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 3>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  4: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 4>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  5: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 5>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  6: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 6>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  7: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 7>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  8: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 8>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case  9: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 9>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
-        case 10: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2<10>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem); break;
+        case  1: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 1>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  2: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 2>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  3: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 3>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  4: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 4>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  5: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 5>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  6: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 6>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  7: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 7>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  8: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 8>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  9: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2< 9>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case 10: launch_failed = magmablas_dbasis_apply_batched_eval_interp_2<10>(Q, dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         default: launch_failed = 1;
     }
     return launch_failed;
@@ -145,7 +145,7 @@ magmablas_dbasis_apply_batched_eval_interp(
     const double *dT, CeedTransposeMode tmode,
     const double *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
           double *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
-    magma_int_t nelem )
+    magma_int_t nelem, magma_queue_t queue)
 {    
     magma_int_t launch_failed = 0;
     magma_trans_t transT = (tmode == CEED_NOTRANSPOSE) ? MagmaNoTrans : MagmaTrans;
@@ -154,7 +154,7 @@ magmablas_dbasis_apply_batched_eval_interp(
                         dT, transT, 
                         dU, u_elstride, u_compstride, 
                         dV, v_elstride, v_compstride, 
-                        nelem );
+                        nelem, queue);
     
     if(launch_failed == 1) {
         // fall back to a ref. impl.
