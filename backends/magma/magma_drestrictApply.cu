@@ -136,13 +136,14 @@ magma_readDofs(const magma_int_t NCOMP,
                const magma_int_t nnodes,
                const magma_int_t esize, 
                const magma_int_t nelem, magma_int_t *indices, 
-	       const double *du, double *dv)
+	           const double *du, double *dv, 
+	           magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    magma_readDofs_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, esize, nelem, 
-                                                      indices, du, dv);
+    magma_readDofs_kernel<<<grid, threads, 0, magma_queue_get_cuda_stream(queue)>>>
+    (NCOMP, nnodes, esize, nelem, indices, du, dv);
 }
 
 // ReadDofsTranspose to device memory
@@ -153,14 +154,15 @@ magma_readDofsTranspose(const magma_int_t NCOMP,
                         const magma_int_t nnodes,
                         const magma_int_t esize, 
                         const magma_int_t nelem, magma_int_t *indices,
-                        const double *du, double *dv)
+                        const double *du, double *dv, 
+                        magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
     assert(NCOMP<=4);
-    magma_readDofsTranspose_kernel<256,4><<<grid, threads, 0, NULL>>>(NCOMP, nnodes, esize, nelem,
-                                                               indices, du, dv);
+    magma_readDofsTranspose_kernel<256,4><<<grid, threads, 0, magma_queue_get_cuda_stream(queue)>>>
+    (NCOMP, nnodes, esize, nelem, indices, du, dv);
 }
 
 // WriteDofs from device memory
@@ -171,13 +173,14 @@ magma_writeDofs(const magma_int_t NCOMP,
                 const magma_int_t nnodes, 
                 const magma_int_t esize, 
                 const magma_int_t nelem, magma_int_t *indices, 
-	        const double *du, double *dv)
+	            const double *du, double *dv, 
+	            magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    magma_writeDofs_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, esize, nelem, 
-                                                       indices, du, dv);
+    magma_writeDofs_kernel<<<grid, threads, 0, magma_queue_get_cuda_stream(queue)>>>
+    (NCOMP, nnodes, esize, nelem, indices, du, dv);
 }
 
 // WriteDofsTranspose from device memory
@@ -188,12 +191,13 @@ magma_writeDofsTranspose(const magma_int_t NCOMP,
                          const magma_int_t nnodes,
                          const magma_int_t esize, 
                          const magma_int_t nelem, magma_int_t *indices,
-                         const double *du, double *dv)
+                         const double *du, double *dv, 
+                         magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
     assert(NCOMP<=4);
-    magma_writeDofsTranspose_kernel<256,4><<<grid, threads, 0, NULL>>>(NCOMP, nnodes, esize, nelem,
-                                                                       indices, du, dv);
+    magma_writeDofsTranspose_kernel<256,4><<<grid, threads, 0, magma_queue_get_cuda_stream(queue)>>>
+    (NCOMP, nnodes, esize, nelem, indices, du, dv);
 }
