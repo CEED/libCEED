@@ -18,7 +18,12 @@
 
 #include <string.h>
 #include <ceed-backend.h>
-#include "magma.h"
+#include "magma_v2.h"
+
+typedef struct {
+  magma_device_t device;
+  magma_queue_t queue;
+} Ceed_Magma;
 
 typedef struct {
   CeedScalar *dqref1d;
@@ -62,7 +67,8 @@ CEED_INTERN {
       magma_int_t u_compstride,
       double *dV, magma_int_t v_elemstride,
       magma_int_t v_compstride,
-      magma_int_t nelem);
+      magma_int_t nelem, 
+      magma_queue_t queue);
 
   void magmablas_dbasis_apply_batched_eval_grad(magma_int_t P, magma_int_t Q,
       magma_int_t dim, magma_int_t ncomp,
@@ -72,40 +78,54 @@ CEED_INTERN {
       magma_int_t u_compstride, magma_int_t u_dimstride,
       double *dV, magma_int_t v_elemstride,
       magma_int_t v_compstride, magma_int_t v_dimstride,
-      magma_int_t dim_id, magma_int_t nelem);
+      magma_int_t dim_id, magma_int_t nelem, 
+      magma_queue_t queue);
 
   void magmablas_dbasis_apply_batched_eval_weight(magma_int_t Q, magma_int_t dim,
       const double *dqweight1d, double *dV,
       magma_int_t v_elemstride,
-      magma_int_t nelem);
+      magma_int_t nelem, 
+      magma_queue_t queue);
 
   void magma_weight(magma_int_t grid, magma_int_t threads, magma_int_t nelem,
                     magma_int_t Q,
-                    double *dqweight, double *dv);
+                    double *dqweight, double *dv, magma_queue_t queue);
 
   void magma_readDofs(const magma_int_t NCOMP,
                       const magma_int_t nnodes,
                       const magma_int_t esize,
                       const magma_int_t nelem, magma_int_t *indices,
-                      const double *du, double *dv);
+                      const double *du, double *dv, 
+                      magma_queue_t queue);
 
   void magma_readDofsTranspose(const magma_int_t NCOMP,
                                const magma_int_t nnodes,
                                const magma_int_t esize,
                                const magma_int_t nelem, magma_int_t *indices,
-                               const double *du, double *dv);
+                               const double *du, double *dv, 
+                               magma_queue_t queue);
 
   void magma_writeDofs(const magma_int_t NCOMP,
                        const magma_int_t nnodes,
                        const magma_int_t esize,
                        const magma_int_t nelem, magma_int_t *indices,
-                       const double *du, double *dv);
+                       const double *du, double *dv, 
+                       magma_queue_t queue);
 
   void magma_writeDofsTranspose(const magma_int_t NCOMP,
                                 const magma_int_t nnodes,
                                 const magma_int_t esize,
                                 const magma_int_t nelem, magma_int_t *indices,
-                                const double *du, double *dv);
+                                const double *du, double *dv, 
+                                magma_queue_t queue);
+
+  int magma_dgemm_nontensor( 
+            magma_trans_t transA, magma_trans_t transB, 
+            magma_int_t m, magma_int_t n, magma_int_t k,
+            double alpha, const double *dA, magma_int_t ldda,
+                          const double *dB, magma_int_t lddb,
+            double beta,  double *dC, magma_int_t lddc,
+             magma_queue_t queue );
 
   magma_int_t
   magma_isdevptr(const void *A);
