@@ -21,8 +21,8 @@
 //------------------------------------------------------------------------------
 static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
   int ierr;
-  if (strcmp(resource, "/cpu/self/memcheck/serial") &&
-      strcmp(resource, "/cpu/self/memcheck"))
+  if (strcmp(resource, "/cpu/self/memcheck")
+      && strcmp(resource, "/cpu/self/memcheck/serial"))
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Valgrind Memcheck backend cannot use resource: %s",
                      resource);

@@ -895,7 +895,9 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
     }
   }
   if (!basis)
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "No active field set");
+  // LCOV_EXCL_STOP
   CeedInt P1d, Q1d, elemsize, nqpts, dim, ncomp = 1, nelem = 1, nnodes = 1;
   ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
   ierr = CeedBasisGetNumNodes(basis, &elemsize); CeedChk(ierr);
@@ -910,8 +912,10 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
   bool tensorbasis;
   ierr = CeedBasisGetTensorStatus(basis, &tensorbasis); CeedChk(ierr);
   if (!tensorbasis)
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "FDMElementInverse only supported for tensor "
                      "bases");
+  // LCOV_EXCL_STOP
   CeedScalar *work, *mass, *laplace, *x, *x2, *lambda;
   ierr = CeedMalloc(Q1d*P1d, &work); CeedChk(ierr);
   ierr = CeedMalloc(P1d*P1d, &mass); CeedChk(ierr);
