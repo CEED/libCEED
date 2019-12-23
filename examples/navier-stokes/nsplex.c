@@ -782,6 +782,7 @@ int main(int argc, char **argv) {
   {  // Print grid information
     CeedInt gnodes, onodes;
     int comm_size;
+    char box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
     ierr = VecGetSize(Q, &gnodes); CHKERRQ(ierr);
     gnodes /= ncompq;
     ierr = VecGetLocalSize(Q, &onodes); CHKERRQ(ierr);
@@ -789,6 +790,11 @@ int main(int argc, char **argv) {
     ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
     ierr = PetscPrintf(comm, "Global FEM nodes: %d on %d ranks\n", gnodes, comm_size); CHKERRQ(ierr);
     ierr = PetscPrintf(comm, "Local FEM nodes: %d (%d owned)\n", lnodes, onodes); CHKERRQ(ierr);
+    ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str, sizeof(box_faces_str), NULL);CHKERRQ(ierr);
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                      "dm_plex_box_faces: %s\n",
+                      box_faces_str); CHKERRQ(ierr);
+
   }
 
   // Set up global mass vector
