@@ -761,6 +761,9 @@ int main(int argc, char **argv) {
   ierr = DMLocalizeCoordinates(dm);CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm);CHKERRQ(ierr);
   ierr = SetUpDM(dm, problem, NULL, naturalz, &ctxSetup, &degree);CHKERRQ(ierr);
+  ierr = PetscPrintf(PETSC_COMM_WORLD,
+                     "Degree of FEM Space: %D\n",
+                     (PetscInt)degree); CHKERRQ(ierr);
   dmviz = NULL;
   interpviz = NULL;
   if (viz_refine) {
