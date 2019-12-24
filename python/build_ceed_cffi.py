@@ -37,14 +37,20 @@ ffibuilder.cdef(header)
 # ------------------------------------------------------------------------------
 # Set source of libCEED header file
 # ------------------------------------------------------------------------------
+ceed_dir = os.getenv("CEED_DIR", None)
+if ceed_dir:
+  ceed_lib_dirs = [os.path.abspath("lib"), os.path.join(ceed_dir, "lib")]
+else:
+  ceed_lib_dirs = [os.path.abspath("lib")]
+
 ffibuilder.set_source("_ceed_cffi",
   """
   #include <ceed.h>   // the C header of the library
   """,
-  include_dirs=[os.path.abspath("include")], # include path
-  libraries=["ceed"],   # library name, for the linker
-  library_dirs=[os.path.abspath("lib")], # library path, for the linker
-  runtime_library_dirs=[os.path.abspath("lib")] # library path, at runtime
+  include_dirs = [os.path.abspath("include")], # include path
+  libraries = ["ceed"],   # library name, for the linker
+  library_dirs = [os.path.abspath("lib")], # library path, for the linker
+  runtime_library_dirs = ceed_lib_dirs # library path, at runtime
 )
 
 # ------------------------------------------------------------------------------
