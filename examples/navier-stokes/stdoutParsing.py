@@ -2,17 +2,14 @@ import re
 import pandas as pd
 from pathlib import Path
 
-# Directory location of log files
-runlogDir = Path("./runlogs/")
-
 # Regex to parse STDOUT of the nsplex run
 logreg = re.compile(
-    r"(?:^Global FEM nodes: (\d{2,})).*(?:^Time taken for solution: (\d+\.?\d+)).*(?:^Max Error: (\d+\.?\d+))",
-    re.S | re.M,
+    r".*(?:^Degree of FEM Space: (\d+)).*(?:^Global FEM nodes: (\d{2,})).*(?:^dm_plex_box_faces: (\S+)).*(?:^Time taken for solution: (\d*\.?\d+)).*(?:^Max Error: (\d*\.?\d+))",
+    re.DOTALL | re.MULTILINE,
 )
 
 
-def parseFile(file, filenameRegexStr):
+def parseFile(file):
     """Returns dictionary of parsed logfile contents.
 
     Parameters
@@ -23,26 +20,32 @@ def parseFile(file, filenameRegexStr):
     Returns
     -------
     dict
-        Values of "dofs",  "time", "error", "degree", and "meshres"'
+        Values of "dofs",  "time", "error", "degree", and "box_faces"'
     """
 
     values = {}
-    filenameMatch = re.match(filenameRegexStr, file.as_posix())
-    values["degree"], values["meshres"] = filenameMatch[1], filenameMatch[2]
-
     with file.open() as filer:
         filestring = filer.read()
     match = logreg.match(filestring)
-    values["dofs"] = match[1]
-    values["time"] = match[2]
-    values["error"] = match[3]
+    values["degree"] = match[1]
+    values["dofs"] = match[2]
+    box_faceStr = match[3]
+    values["time"] = match[4]
+    values["error"] = match[5]
+
+    # Splitting box_face argument str into individual entries
+    box_faceList = box_faceStr.split(",")
+    for i, box_face in enumerate(box_faceList):
+        values["box_face" + str(i)] = box_face
 
     return values
 
 
 if __name__ == "__main__":
-    results = pd.DataFrame(columns=["degree", "meshres", "dofs", "time", "error"])
-    filenameRegexStr = r".*(\d)_(\d+).log"
+    # Directory location of log files
+    runlogDir = Path("./")
+
+    results = pd.DataFrame()
     for file in runlogDir.glob("*.log"):
         values = parseFile(file)
         results = results.append(values, ignore_index=True)
