@@ -151,10 +151,10 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
 }
 
 // PETSc user data
-typedef struct User_ *User;
+typedef struct UserNS_ *UserNS;
 typedef struct Units_ *Units;
 
-struct User_ {
+struct UserNS_ {
   MPI_Comm comm;
   PetscInt degree;
   PetscInt melem[3];
@@ -172,27 +172,11 @@ struct User_ {
   PetscInt contsteps;
 };
 
-struct Units_ {
-  // fundamental units
-  PetscScalar meter;
-  PetscScalar kilogram;
-  PetscScalar second;
-  PetscScalar Kelvin;
-  // derived units
-  PetscScalar Pascal;
-  PetscScalar JperkgK;
-  PetscScalar mpersquareds;
-  PetscScalar WpermK;
-  PetscScalar kgpercubicm;
-  PetscScalar kgpersquaredms;
-  PetscScalar Joulepercubicm;
-};
-
 // This is the RHS of the ODE, given as u_t = G(t,u)
 // This function takes in a state vector Q and writes into G
 static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   PetscErrorCode ierr;
-  User user = *(User *)userData;
+  UserNS user = *(UserNS *)userData;
   PetscScalar *q, *g;
 
   // Global-to-local
@@ -240,7 +224,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode MapLocalToDMGlobal(User user, Vec Xloc, Vec Xdm,
+static PetscErrorCode MapLocalToDMGlobal(UserNS user, Vec Xloc, Vec Xdm,
     const PetscReal scale[]) {
   PetscErrorCode ierr;
   DM dm;
@@ -275,7 +259,7 @@ static PetscErrorCode MapLocalToDMGlobal(User user, Vec Xloc, Vec Xdm,
 // User provided TS Monitor
 static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
                                    Vec Q, void *ctx) {
-  User user = ctx;
+  UserNS user = ctx;
   const PetscReal scale[] = {user->units->kgpercubicm,
                              user->units->kgpersquaredms,
                              user->units->kgpersquaredms,
@@ -339,7 +323,7 @@ int main(int argc, char **argv) {
   DM dm;
   TS ts;
   TSAdapt adapt;
-  User user;
+  UserNS user;
   Units units;
   char ceedresource[4096] = "/cpu/self";
   PetscInt localNelem, lsize, steps, melem[3], mnode[3], p[3], irank[3],
