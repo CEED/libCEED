@@ -239,6 +239,13 @@ To install libCEED for Python, run
 
     python setup.py build install
 
+with the desired setuptools options, such as `--user`.
+
+Alternatively, if libCEED is installed in the directory specified by the
+environment variable `CEED_DIR`, then run
+
+    pip install .
+
 ### pkg-config
 
 In addition to library and header, libCEED provides a [pkg-config][pkg-config1]
