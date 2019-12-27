@@ -52,7 +52,8 @@ matrix:
       install:
         - pip install -r requirements.txt
       script:
-        - python setup.py build install
+        - make -j4 && export CEED_DIR=$PWD
+        - pip install .
         - cd tests/python
         - python setup-qfunctions.py build
         - pytest test-*.py --ceed /cpu/self/ref/serial -vv
