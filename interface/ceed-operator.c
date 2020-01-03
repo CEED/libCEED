@@ -281,10 +281,14 @@ int CeedOperatorCreateFallback(CeedOperator op) {
                      "fallback to resource %s", resource, fallbackresource);
   // LCOV_EXCL_STOP
 
+  // Fallback Ceed
   Ceed ceedref;
-  ierr = CeedInit(fallbackresource, &ceedref); CeedChk(ierr);
-  ceedref->opfallbackparent = op->ceed;
-  op->ceed->opfallbackceed = ceedref;
+  if (!op->ceed->opfallbackceed) {
+    ierr = CeedInit(fallbackresource, &ceedref); CeedChk(ierr);
+    ceedref->opfallbackparent = op->ceed;
+    op->ceed->opfallbackceed = ceedref;
+  }
+  ceedref = op->ceed->opfallbackceed;
 
   // Clone Op
   CeedOperator opref;

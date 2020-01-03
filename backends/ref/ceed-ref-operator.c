@@ -704,8 +704,7 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
     CeedVector vec;
     ierr = CeedOperatorFieldGetVector(opfields[i], &vec); CeedChk(ierr);
     if (vec == CEED_VECTOR_ACTIVE) {
-      ierr = CeedOperatorFieldGetBasis(opfields[i], &basisin);
-      CeedChk(ierr);
+      ierr = CeedOperatorFieldGetBasis(opfields[i], &basisin); CeedChk(ierr);
       ierr = CeedBasisGetNumComponents(basisin, &ncomp); CeedChk(ierr);
       ierr = CeedBasisGetDimension(basisin, &dim); CeedChk(ierr);
       ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &rstrin);
@@ -746,15 +745,12 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
     CeedVector vec;
     ierr = CeedOperatorFieldGetVector(opfields[i], &vec); CeedChk(ierr);
     if (vec == CEED_VECTOR_ACTIVE) {
-      ierr = CeedOperatorFieldGetBasis(opfields[i], &basisout);
-      CeedChk(ierr);
+      ierr = CeedOperatorFieldGetBasis(opfields[i], &basisout); CeedChk(ierr);
       ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &rstrout);
       CeedChk(ierr);
-      ierr = CeedOperatorFieldGetLMode(opfields[i], &lmodeout);
-      CeedChk(ierr);
+      ierr = CeedOperatorFieldGetLMode(opfields[i], &lmodeout); CeedChk(ierr);
       CeedEvalMode emode;
-      ierr = CeedQFunctionFieldGetEvalMode(qffields[i], &emode);
-      CeedChk(ierr);
+      ierr = CeedQFunctionFieldGetEvalMode(qffields[i], &emode); CeedChk(ierr);
       switch (emode) {
       case CEED_EVAL_NONE:
       case CEED_EVAL_INTERP:
