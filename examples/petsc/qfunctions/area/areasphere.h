@@ -28,27 +28,31 @@
 //
 // Reference (parent) 2D coordinates: X \in [-1, 1]^2
 //
-// Global physical coordinates given by the mesh (3D): xx \in [-l, l]^3
+// Global 3D physical coordinates given by the mesh: xx \in [-R, R]^3
+//   with R radius of the sphere
 //
-// Local physical coordinates on the manifold (2D): x \in [-l, l]^2
+// Local 3D physical coordinates on the 2D manifold: x \in [-l, l]^3
+//   with l half edge of the cube inscribed in the sphere
 //
 // Change of coordinates matrix computed by the library:
 //   (pysical 3D coords relative to reference 2D coords)
-//   dxx_j/dX_i (indicial notation) [3 x 2]
+//   dxx_j/dX_i (indicial notation) [3 * 2]
 //
-// Change of coordinates x (pysical 2D) relative to xx (phyisical 3D):
-//   dx_i/dxx_j (indicial notation) [2 x 3]
+// Change of coordinates x (on the 2D manifold) relative to xx (phyisical 3D):
+//   dx_i/dxx_j (indicial notation) [3 * 3]
 //
-// Change of coordinates x (physical 2D) relative to X (reference 2D):
+// Change of coordinates x (on the 2D manifold) relative to X (reference 2D):
 //   (by chain rule)
-//   dx_i/dX_j = dx_i/dxx_k * dxx_k/dX_j
+//   dx_i/dX_j = dx_i/dxx_k * dxx_k/dX_j [3 * 2]
+//
+// detJ is given by the magnitude of the cross product of the columns of dx_i/dX_j
 //
 // The quadrature data is stored in the array qdata.
 //
 // We require the determinant of the Jacobian to properly compute integrals of
 //   the form: int( u v )
 //
-// Qdata: w * det(dx_i/dX_j)
+// Qdata: detJ * w
 //
 // *****************************************************************************
 
@@ -61,18 +65,14 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
   // Outputs
   CeedScalar *qdata = out[0];
 
-  // Context
-  const CeedScalar *context = (const CeedScalar*)ctx;
-  const CeedScalar R        = context[0];
-  const CeedScalar l        = context[1];
-
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Read global Cartesian coordinates
-    const CeedScalar xx = X[i+0*Q];
-    const CeedScalar yy = X[i+1*Q];
-    const CeedScalar zz = X[i+2*Q];
+    const CeedScalar xx[3][1] = {{X[i+0*Q]},
+                                 {X[i+1*Q]},
+                                 {X[i+2*Q]}
+                                };
 
     // Read dxxdX Jacobian entries, stored as
     // 0 3
@@ -86,56 +86,43 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
                                      J[i+Q*5]}
                                    };
 
-    // Convert to Latitude-Longitude (lambda, theta) geographic system
-    //    const CeedScalar lambda =  asin(zz / R);
-    //    const CeedScalar theta  = atan2(yy, xx);
-    // Convert to Longitude-Latitude: xcirc = (theta, lambda) system (from paper)
-    const CeedScalar theta =  asin(zz / R);
-    const CeedScalar lambda  = atan2(yy, xx);
-
-    // Converto to local cubed-sphere system
-    // These are from lat-long online:
-    //    const CeedScalar x = l * cos(lambda) * cos(theta);
-    //    const CeedScalar y = l * cos(lambda) * sin(theta);
-    // These are from paper
-    const CeedScalar x = l * tan(lambda);
-    const CeedScalar y = l * tan(theta) / cos(lambda);
-
-    const CeedScalar delta = sqrt(l*l + x*x + y*y);
-
     // Setup
-    const CeedScalar dxcircdxx[2][3] = {{0,
-                                         0,
-                                         1. / R*sqrt(1-zz*zz)},
-                                        {yy / (1.+1./(xx*xx)),
-                                         1. / (xx*(1.+yy*yy)),
-                                         0}
-                                       };
-
-    const CeedScalar dxdxcirc[2][2] = {{0,
-                                        l / (cos(lambda)*cos(lambda))},
-                                       {l / (cos(lambda)*cos(theta)*cos(theta)),
-                                        l*sin(theta)*sin(lambda) / (cos(theta)*cos(lambda)*cos(lambda))}
-                                      };
-
-    CeedScalar dxdxx[2][3];
-    for (int j=0; j<2; j++)
+    const CeedScalar modxxsq = xx[0][0]*xx[0][0]+xx[1][0]*xx[1][0]+xx[2][0]*xx[2][0];
+    CeedScalar xxsq[3][3];
+    for (int j=0; j<3; j++)
       for (int k=0; k<3; k++) {
-        dxdxx[j][k] = 0;
-        for (int l=0; l<2; l++)
-          dxdxx[j][k] += dxdxcirc[j][l]*dxcircdxx[l][k];
+        xxsq[j][k] = 0;
+        for (int l=0; l<1; l++)
+          xxsq[j][k] += xx[j][l]*xx[k][l] / (sqrt(modxxsq) * modxxsq);
       }
 
+    const CeedScalar dxdxx[3][3] = {{1./sqrt(modxxsq) - xxsq[0][0],
+                                     -xxsq[0][1],
+                                     -xxsq[0][2]},
+                                    {-xxsq[1][0],
+                                     1./sqrt(modxxsq) - xxsq[1][1],
+                                     -xxsq[1][2]},
+                                    {-xxsq[2][0],
+                                     -xxsq[2][1],
+                                     1./sqrt(modxxsq) - xxsq[2][2]}
+                                   };
 
-    CeedScalar dxdX[2][2];
-    for (int j=0; j<2; j++)
+    CeedScalar dxdX[3][2];
+    for (int j=0; j<3; j++)
       for (int k=0; k<2; k++) {
         dxdX[j][k] = 0;
         for (int l=0; l<3; l++)
           dxdX[j][k] += dxdxx[j][l]*dxxdX[l][k];
       }
 
-    qdata[i+Q*0] = (dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]) * w[i];
+    // J is given by the cross product of the columns of dxdX
+    const CeedScalar J[3][1] = {{dxdX[1][0]*dxdX[2][1] - dxdX[2][0]*dxdX[1][1]},
+                                {dxdX[2][0]*dxdX[0][1] - dxdX[0][0]*dxdX[2][1]},
+                                {dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]}
+                               };
+    // Use the magnitude of J as our detJ (volume scaling factor)
+    const CeedScalar modJ = sqrt(J[0][0]*J[0][0]+J[1][0]*J[1][0]+J[2][0]*J[2][0]);
+    qdata[i+Q*0] = modJ * w[i];
 
   } // End of Quadrature Point Loop
   return 0;
