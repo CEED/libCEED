@@ -166,8 +166,6 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Setup DM
-  PetscScalar l = 1.0/PetscSqrtReal(3.0); // half edge of the cube
-  PetscScalar R = 1.0; // radius of unit sphere
   if (read_mesh) {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
@@ -336,9 +334,6 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_apply, "v", Erestrictu, CEED_TRANSPOSE,
                        basisu, CEED_VECTOR_ACTIVE);
 
-  // Set up the libCEED context
-  CeedScalar ctxSetup[2] = {R, l};
-  CeedQFunctionSetContext(qf_setupgeo, &ctxSetup, sizeof ctxSetup);
   // Compute the quadrature data for the mass operator
   CeedOperatorApply(op_setupgeo, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
 
@@ -350,7 +345,7 @@ int main(int argc, char **argv) {
   // Compute the mesh volume using the mass operator: vol = 1^T \cdot M \cdot 1
   if (!test_mode) {
     ierr = PetscPrintf(comm,
-                       "Computing the mesh volume using the formula: vol = 1^T M 1\n");
+                       "Computing the mesh area using the formula: vol = 1^T M 1\n");
     CHKERRQ(ierr);
   }
 
