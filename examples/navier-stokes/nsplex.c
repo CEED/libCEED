@@ -1017,6 +1017,7 @@ int main(int argc, char **argv) {
 
   // Create and setup TS
   ierr = TSCreate(comm, &ts); CHKERRQ(ierr);
+  ierr = TSSetDM(ts, dm); CHKERRQ(ierr);
   if (implicit) {
     ierr = TSSetType(ts, TSBDF); CHKERRQ(ierr);
     if (user->op_ifunction) {
