@@ -16,7 +16,9 @@
 
 #include "ceed-avx.h"
 
-// Blocked Tensor Contact
+//------------------------------------------------------------------------------
+// Blocked Tensor Contract
+//------------------------------------------------------------------------------
 static inline int CeedTensorContract_Avx_Blocked(CeedTensorContract contract,
     CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
     CeedTransposeMode tmode, const CeedInt Add, const CeedScalar *restrict u,
@@ -74,7 +76,9 @@ static inline int CeedTensorContract_Avx_Blocked(CeedTensorContract contract,
   return 0;
 }
 
+//------------------------------------------------------------------------------
 // Serial Tensor Contract Remainder
+//------------------------------------------------------------------------------
 static inline int CeedTensorContract_Avx_Remainder(CeedTensorContract contract,
     CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
     CeedTransposeMode tmode, const CeedInt Add, const CeedScalar *restrict u,
@@ -125,7 +129,9 @@ static inline int CeedTensorContract_Avx_Remainder(CeedTensorContract contract,
   return 0;
 }
 
-// Serial Tensor Contract C=1 Case
+//------------------------------------------------------------------------------
+// Serial Tensor Contract C=1
+//------------------------------------------------------------------------------
 static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract,
     CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
     CeedTransposeMode tmode, const CeedInt Add, const CeedScalar *restrict u,
@@ -224,7 +230,9 @@ static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract,
   return 0;
 }
 
-// Specific Variants
+//------------------------------------------------------------------------------
+// Tensor Contract - Common Sizes
+//------------------------------------------------------------------------------
 static int CeedTensorContract_Avx_Blocked_4_8(CeedTensorContract contract,
     CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
     CeedTransposeMode tmode, const CeedInt Add, const CeedScalar *restrict u,
@@ -247,7 +255,9 @@ static int CeedTensorContract_Avx_Single_4_8(CeedTensorContract contract,
                                        v, 4, 8);
 }
 
-// Switch for Tensor Contract
+//------------------------------------------------------------------------------
+// Tensor Contract Apply
+//------------------------------------------------------------------------------
 static int CeedTensorContractApply_Avx(CeedTensorContract contract, CeedInt A,
                                        CeedInt B, CeedInt C, CeedInt J,
                                        const CeedScalar *restrict t,
@@ -279,10 +289,16 @@ static int CeedTensorContractApply_Avx(CeedTensorContract contract, CeedInt A,
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Tensor Contract Destroy
+//------------------------------------------------------------------------------
 static int CeedTensorContractDestroy_Avx(CeedTensorContract contract) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Tensor Contract Create
+//------------------------------------------------------------------------------
 int CeedTensorContractCreate_Avx(CeedBasis basis, CeedTensorContract contract) {
   int ierr;
   Ceed ceed;
@@ -295,3 +311,4 @@ int CeedTensorContractCreate_Avx(CeedBasis basis, CeedTensorContract contract) {
 
   return 0;
 }
+//------------------------------------------------------------------------------

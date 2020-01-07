@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
   KSP ksp;
   PC pc;
   Mat *matO, *matI, *matR;
-  Vec *X, *Xloc, *mult, rhs, rhsloc, diagloc;
+  Vec *X, *Xloc, *mult, rhs, rhsloc;
   UserO *userO;
   UserIR *userI, *userR;
   Ceed ceed;
@@ -359,34 +359,26 @@ int main(int argc, char **argv) {
 
     // Set up diagonal
     const CeedScalar *ceedarray;
-    PetscScalar *petscarray;
-    CeedInt length;
-
     ierr = VecDuplicate(X[i], &userO[i]->diag); CHKERRQ(ierr);
-    ierr = VecDuplicate(Xloc[i], &diagloc); CHKERRQ(ierr);
 
     // -- Local diagonal
     CeedOperatorAssembleLinearDiagonal(userO[i]->op, &diagceed,
                                        CEED_REQUEST_IMMEDIATE);
 
-    // -- Copy values
+    // -- Set PETSc array
     CeedVectorGetArrayRead(diagceed, CEED_MEM_HOST, &ceedarray);
-    ierr = VecGetArray(diagloc, &petscarray); CHKERRQ(ierr);
-    CeedVectorGetLength(diagceed, &length);
-    for (CeedInt i=0; i<length; i++)
-      petscarray[i] = ceedarray[i];
+    ierr = VecPlaceArray(Xloc[i], ceedarray); CHKERRQ(ierr);
     CeedVectorRestoreArrayRead(diagceed, &ceedarray);
-    ierr = VecRestoreArray(diagloc, &petscarray); CHKERRQ(ierr);
 
     // -- Global diagonal
     ierr = VecZeroEntries(userO[i]->diag); CHKERRQ(ierr);
-    ierr = DMLocalToGlobalBegin(userO[i]->dm, diagloc, ADD_VALUES,
+    ierr = DMLocalToGlobalBegin(userO[i]->dm, Xloc[i], ADD_VALUES,
                                 userO[i]->diag); CHKERRQ(ierr);
-    ierr = DMLocalToGlobalEnd(userO[i]->dm, diagloc, ADD_VALUES,
+    ierr = DMLocalToGlobalEnd(userO[i]->dm, Xloc[i], ADD_VALUES,
                               userO[i]->diag); CHKERRQ(ierr);
 
     // -- Cleanup
-    ierr = VecDestroy(&diagloc); CHKERRQ(ierr);
+    ierr = VecResetArray(Xloc[i]); CHKERRQ(ierr);
     CeedVectorDestroy(&diagceed);
 
     if (i > 0) {

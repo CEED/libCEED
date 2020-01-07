@@ -18,41 +18,9 @@
 #include "ceed-opt.h"
 #include "../ref/ceed-ref.h"
 
-static int CeedOperatorDestroy_Opt(CeedOperator op) {
-  int ierr;
-  CeedOperator_Opt *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
-
-  for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
-    ierr = CeedElemRestrictionDestroy(&impl->blkrestr[i]); CeedChk(ierr);
-    ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);
-  }
-  ierr = CeedFree(&impl->blkrestr); CeedChk(ierr);
-  ierr = CeedFree(&impl->evecs); CeedChk(ierr);
-  ierr = CeedFree(&impl->edata); CeedChk(ierr);
-  ierr = CeedFree(&impl->inputstate); CeedChk(ierr);
-
-  for (CeedInt i=0; i<impl->numein; i++) {
-    ierr = CeedVectorDestroy(&impl->evecsin[i]); CeedChk(ierr);
-    ierr = CeedVectorDestroy(&impl->qvecsin[i]); CeedChk(ierr);
-  }
-  ierr = CeedFree(&impl->evecsin); CeedChk(ierr);
-  ierr = CeedFree(&impl->qvecsin); CeedChk(ierr);
-
-  for (CeedInt i=0; i<impl->numeout; i++) {
-    ierr = CeedVectorDestroy(&impl->evecsout[i]); CeedChk(ierr);
-    ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
-  }
-  ierr = CeedFree(&impl->evecsout); CeedChk(ierr);
-  ierr = CeedFree(&impl->qvecsout); CeedChk(ierr);
-
-  ierr = CeedFree(&impl); CeedChk(ierr);
-  return 0;
-}
-
-/*
-  Setup infields or outfields
- */
+//------------------------------------------------------------------------------
+// Setup Input/Output Fields
+//------------------------------------------------------------------------------
 static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
                                        bool inOrOut, const CeedInt blksize,
                                        CeedElemRestriction *blkrestr,
@@ -144,10 +112,9 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
   return 0;
 }
 
-/*
-  CeedOperator needs to connect all the named fields (be they active or passive)
-  to the named inputs and outputs of its CeedQFunction.
- */
+//------------------------------------------------------------------------------
+// Setup Operator
+//------------------------------------------------------------------------------
 static int CeedOperatorSetup_Opt(CeedOperator op) {
   int ierr;
   bool setupdone;
@@ -227,7 +194,9 @@ static int CeedOperatorSetup_Opt(CeedOperator op) {
   return 0;
 }
 
-// Setup Input fields
+//------------------------------------------------------------------------------
+// Setup Input Fields
+//------------------------------------------------------------------------------
 static inline int CeedOperatorSetupInputs_Opt(CeedInt numinputfields,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
     CeedVector invec, CeedOperator_Opt *impl, CeedRequest *request) {
@@ -276,7 +245,9 @@ static inline int CeedOperatorSetupInputs_Opt(CeedInt numinputfields,
   return 0;
 }
 
-// Input basis action
+//------------------------------------------------------------------------------
+// Input Basis Action
+//------------------------------------------------------------------------------
 static inline int CeedOperatorInputBasis_Opt(CeedInt e, CeedInt Q,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
     CeedInt numinputfields, CeedInt blksize, CeedVector invec, bool skipactive,
@@ -370,7 +341,9 @@ static inline int CeedOperatorInputBasis_Opt(CeedInt e, CeedInt Q,
   return 0;
 }
 
-// Output basis action
+//------------------------------------------------------------------------------
+// Output Basis Action
+//------------------------------------------------------------------------------
 static inline int CeedOperatorOutputBasis_Opt(CeedInt e, CeedInt Q,
     CeedQFunctionField *qfoutputfields, CeedOperatorField *opoutputfields,
     CeedInt blksize, CeedInt numinputfields, CeedInt numoutputfields,
@@ -442,7 +415,9 @@ static inline int CeedOperatorOutputBasis_Opt(CeedInt e, CeedInt Q,
   return 0;
 }
 
-// Restore Inputs
+//------------------------------------------------------------------------------
+// Restore Input Vectors
+//------------------------------------------------------------------------------
 static inline int CeedOperatorRestoreInputs_Opt(CeedInt numinputfields,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
     bool skipactive, CeedOperator_Opt *impl) {
@@ -469,7 +444,9 @@ static inline int CeedOperatorRestoreInputs_Opt(CeedInt numinputfields,
   return 0;
 }
 
-// Apply Ceed Operator
+//------------------------------------------------------------------------------
+// Operator Apply
+//------------------------------------------------------------------------------
 static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
                                  CeedVector outvec, CeedRequest *request) {
   int ierr;
@@ -551,7 +528,9 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
   return 0;
 }
 
+//------------------------------------------------------------------------------
 // Assemble Linear QFunction
+//------------------------------------------------------------------------------
 static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
   int ierr;
@@ -723,6 +702,44 @@ static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Operator Destroy
+//------------------------------------------------------------------------------
+static int CeedOperatorDestroy_Opt(CeedOperator op) {
+  int ierr;
+  CeedOperator_Opt *impl;
+  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+
+  for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
+    ierr = CeedElemRestrictionDestroy(&impl->blkrestr[i]); CeedChk(ierr);
+    ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);
+  }
+  ierr = CeedFree(&impl->blkrestr); CeedChk(ierr);
+  ierr = CeedFree(&impl->evecs); CeedChk(ierr);
+  ierr = CeedFree(&impl->edata); CeedChk(ierr);
+  ierr = CeedFree(&impl->inputstate); CeedChk(ierr);
+
+  for (CeedInt i=0; i<impl->numein; i++) {
+    ierr = CeedVectorDestroy(&impl->evecsin[i]); CeedChk(ierr);
+    ierr = CeedVectorDestroy(&impl->qvecsin[i]); CeedChk(ierr);
+  }
+  ierr = CeedFree(&impl->evecsin); CeedChk(ierr);
+  ierr = CeedFree(&impl->qvecsin); CeedChk(ierr);
+
+  for (CeedInt i=0; i<impl->numeout; i++) {
+    ierr = CeedVectorDestroy(&impl->evecsout[i]); CeedChk(ierr);
+    ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
+  }
+  ierr = CeedFree(&impl->evecsout); CeedChk(ierr);
+  ierr = CeedFree(&impl->qvecsout); CeedChk(ierr);
+
+  ierr = CeedFree(&impl); CeedChk(ierr);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+// Operator Create
+//------------------------------------------------------------------------------
 int CeedOperatorCreate_Opt(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -751,3 +768,4 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
                                 CeedOperatorDestroy_Opt); CeedChk(ierr);
   return 0;
 }
+//------------------------------------------------------------------------------

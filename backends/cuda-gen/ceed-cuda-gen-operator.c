@@ -29,7 +29,7 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
 }
 
 static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
-                                         CeedVector outvec, CeedRequest *request) {
+    CeedVector outvec, CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);

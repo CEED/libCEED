@@ -16,6 +16,9 @@
 
 #include "ceed-ref.h"
 
+//------------------------------------------------------------------------------
+// QFunction Apply
+//------------------------------------------------------------------------------
 static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
                                   CeedVector *U, CeedVector *V) {
   int ierr;
@@ -52,6 +55,9 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// QFunction Destroy
+//------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Ref(CeedQFunction qf) {
   int ierr;
   CeedQFunction_Ref *impl;
@@ -64,6 +70,9 @@ static int CeedQFunctionDestroy_Ref(CeedQFunction qf) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// QFunction Create
+//------------------------------------------------------------------------------
 int CeedQFunctionCreate_Ref(CeedQFunction qf) {
   int ierr;
   Ceed ceed;
@@ -82,3 +91,4 @@ int CeedQFunctionCreate_Ref(CeedQFunction qf) {
 
   return 0;
 }
+//------------------------------------------------------------------------------

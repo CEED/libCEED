@@ -16,6 +16,9 @@
 
 #include "ceed-xsmm.h"
 
+//------------------------------------------------------------------------------
+// Backend Init
+//------------------------------------------------------------------------------
 static int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/xsmm")
@@ -37,7 +40,11 @@ static int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Backend Register
+//------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
   CeedRegister("/cpu/self/xsmm/blocked", CeedInit_Xsmm_Blocked, 20);
 }
+//------------------------------------------------------------------------------

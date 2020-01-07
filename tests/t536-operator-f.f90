@@ -97,7 +97,7 @@
 
       character arg*32
 
-      external setup_mass,setup_diff,apply,apply_lin
+      external setup_mass,setup_diff,apply
 
       call getarg(1,arg)
 
