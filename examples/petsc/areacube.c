@@ -35,6 +35,10 @@
 //
 //     mpiexec -n 4 areacube -petscspace_degree 3
 //
+//   The above example runs use one element per cube face.
+//   If a refined cubed is desired, use the additional option -dm_refine k
+//     for k levels of uniform refinement
+//
 //TESTARGS -ceed {ceed_resource} -test -petscspace_degree 3
 
 /// @file

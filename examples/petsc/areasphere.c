@@ -29,11 +29,14 @@
 // Sample runs:
 //   Sequential:
 //
-//     areasphere -petscspace_degree 3
+//     areasphere -petscspace_degree 3 -dm_refine 2
 //
 //   In parallel:
 //
-//     mpiexec -n 4 areasphere -petscspace_degree 3
+//     mpiexec -n 4 areasphere -petscspace_degree 3 -dm_refine 2
+//
+//   The above example runs use 2 levels of refinement for the cubed-sphere.
+//   Use -dm_refine k, for k levels of uniform refinement
 //
 //TESTARGS -ceed {ceed_resource} -test -petscspace_degree 3
 
