@@ -17,8 +17,8 @@
 //                        libCEED + PETSc Example: Surface Area
 //
 // This example demonstrates a simple usage of libCEED with PETSc to calculate
-// the surface area of a simple closed surface, such as the one of a cube
-// via the mass operator.
+// the surface area of a simple closed surface, such as the one of a
+// tensor-product discrete sphere via the mass operator.
 //
 // The code uses higher level communication protocols in DMPlex.
 //
