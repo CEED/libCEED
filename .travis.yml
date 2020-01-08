@@ -1,5 +1,7 @@
 language: c
 
+arch: amd64
+
 os:
   - linux
   - osx
@@ -28,6 +30,13 @@ addons:
     - lapack
     - openblas
 
+jobs:
+  include:
+   - os: linux
+     arch: arm64
+     compiler: gcc
+     env: FC=gfortran
+
 env:
   - FC=gfortran
 
@@ -40,11 +49,13 @@ install:
   - git clone --depth 1 https://github.com/libocca/occa.git;
   - make -C occa -j2
   - export OCCA_DIR=$PWD/occa
-# libXSMM
-  - git clone https://github.com/hfp/libxsmm.git;
-  - cd libxsmm && git reset --hard ed9c10e && cd ..; # LIBXSMM v1.14
-  - make -C libxsmm -j2
-  - export XSMM_DIR=$PWD/libxsmm
+# libXSMM v1.14 (need to use specific commit, XSMM develops on master)
+  - if [[ "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
+        git clone https://github.com/hfp/libxsmm.git
+        && cd libxsmm && git reset --hard ed9c10e && cd ..
+        && make -C libxsmm -j2
+        && export XSMM_DIR=$PWD/libxsmm;
+    fi
 # MFEM
   - git clone --depth 1 https://github.com/mfem/mfem.git;
   - make -C mfem -j2 serial CXXFLAGS="-O -std=c++11"
@@ -70,7 +81,7 @@ script:
     fi
   - make -j2
   - make -j2 prove-all PROVE_OPTS=-v
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
         clang-tidy --version && make -j2 tidy;
     fi
 
