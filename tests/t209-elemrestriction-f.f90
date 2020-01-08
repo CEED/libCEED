@@ -34,7 +34,7 @@
       call ceedelemrestrictioncreate(ceed,ne,4,3*ne+1,1,ceed_mem_host,&
      & ceed_use_pointer,ind,r,err)
 
-      call ceedelemrestrictiongetmultiplicity(r,mult,err)
+      call ceedelemrestrictiongetmultiplicity(r,ceed_notranspose,mult,err)
 
       call ceedvectorgetarrayread(mult,ceed_mem_host,mm,moffset,err)
       do i=1,3*ne+1
