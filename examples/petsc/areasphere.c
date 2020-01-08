@@ -103,19 +103,18 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
 }
 
 // Utility function taken from petsc/src/dm/impls/plex/examples/tutorials/ex7.c
-static PetscErrorCode ProjectToUnitSphere(DM dm)
-{
+static PetscErrorCode ProjectToUnitSphere(DM dm) {
   Vec            coordinates;
   PetscScalar   *coords;
   PetscInt       Nv, v, dim, d;
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
-  ierr = DMGetCoordinatesLocal(dm, &coordinates);CHKERRQ(ierr);
-  ierr = VecGetLocalSize(coordinates, &Nv);CHKERRQ(ierr);
-  ierr = VecGetBlockSize(coordinates, &dim);CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(coordinates, &Nv); CHKERRQ(ierr);
+  ierr = VecGetBlockSize(coordinates, &dim); CHKERRQ(ierr);
   Nv  /= dim;
-  ierr = VecGetArray(coordinates, &coords);CHKERRQ(ierr);
+  ierr = VecGetArray(coordinates, &coords); CHKERRQ(ierr);
   for (v = 0; v < Nv; ++v) {
     PetscReal r = 0.0;
 
@@ -123,7 +122,7 @@ static PetscErrorCode ProjectToUnitSphere(DM dm)
     r = PetscSqrtReal(r);
     for (d = 0; d < dim; ++d) coords[v*dim+d] /= r;
   }
-  ierr = VecRestoreArray(coordinates, &coords);CHKERRQ(ierr);
+  ierr = VecRestoreArray(coordinates, &coords); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
