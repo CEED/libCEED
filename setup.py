@@ -15,8 +15,6 @@
 # testbed platforms, in support of the nation"s exascale computing imperative.
 # pylint: disable=no-name-in-module,import-error,unused-variable
 import os
-import sys
-import subprocess
 from setuptools import setup
 
 # ------------------------------------------------------------------------------
@@ -66,49 +64,6 @@ Topic :: Scientific/Engineering
 Topic :: Software Development :: Libraries
 """
 
-from distutils.errors import LibError
-from distutils.command.build import build as _build
-
-if sys.platform == "darwin":
-    library_file = "libceed.dylib"
-else:
-    library_file = "libceed.so"
-
-def _build_libceed():
-    try:
-        import cffi
-        import numpy
-    except ImportError:
-        raise LibError("You must install cffi and numpy before building libceed")
-
-    env = os.environ.copy()
-    if subprocess.call(["make", "lib"], env=env) != 0:
-        raise LibError("Unable to build libceed")
-
-class build(_build):
-    def run(self, *args):
-        self.execute(_build_libceed, (), msg="Building libceed")
-        _build.run(self, *args)
-
-cmdclass = {
-    "build": build,
-}
-
-try:
-    from setuptools.command.develop import develop as _develop
-    class develop(_develop):
-        def run(self, *args):
-            self.execute(_build_libceed, (), msg="Building libceed")
-            _develop.run(self, *args)
-
-    cmdclass["develop"] = develop
-except ImportError:
-    pass
-
-if "bdist_wheel" in sys.argv:
-    sys.stderr.write("libceed cannot be built as a wheel\n")
-    sys.exit(1)
-
 setup(name="libceed",
       version=version(),
       description="libceed python bindings",
@@ -129,8 +84,6 @@ setup(name="libceed",
 
       setup_requires=["cffi"],
       cffi_modules=["python/build_ceed_cffi.py:ffibuilder"],
-
-      cmdclass=cmdclass,
 )
 
 # ------------------------------------------------------------------------------
