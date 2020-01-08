@@ -52,17 +52,21 @@ The following arguments can be specified for all of the above examples:
 - `-test`              - Testing mode (do not print unless error is large)
 - `-benchmark`         - Benchmarking mode (prints benchmark statistics)
 
-### libCEED example to compute surface area using DMPlex - areaplex
+### libCEED examples to compute surface area using DMPlex - areacube and areasphere
 
-This example uses the mass matrix to compute the surface area of a cube, defined via DMPlex. 
+These examples use the mass matrix to compute the surface area of a cube or a discrete cubed-sphere, defined via DMPlex.
 
-To build, run `make area`
+To build, run `make areacube` or `make areasphere`
 
-To run, `./area -ceed [ceed-resource] -petscspace_degree [degree]`
+To run, `./areacube -ceed [ceed-resource] -petscspace_degree [degree]`
+
+or
+
+`./areasphere -ceed [ceed-resource] -petscspace_degree [degree]`
 
 ### Command line arguments
 
-The following arguments can be specified for this example:
+The following arguments can be specified for these examples:
 
 - `-ceed`              - CEED resource specifier
 - `-petscspace_degree` - Polynomial degree of tensor product basis
