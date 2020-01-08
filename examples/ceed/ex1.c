@@ -267,7 +267,6 @@ int main(int argc, const char *argv[]) {
 
   // Initialize 'u' and 'v' with ones.
   CeedVectorSetValue(u, 1.0);
-  CeedVectorSetValue(v, 1.0);
 
   // Apply the mass operator: 'u' -> 'v'.
   CeedOperatorApply(oper, u, v, CEED_REQUEST_IMMEDIATE);
