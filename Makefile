@@ -73,7 +73,13 @@ endif
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-OPT    = -O -g -march=native -ffp-contract=fast -fopenmp-simd
+MARCH := $(shell $(CC) --version -v < /dev/null 2>&1 | grep -c ' -march=')
+ifeq ($(MARCH),1)
+  MARCHFLAG := -march=native
+else
+  MARCHFLAG := -mtune=native
+endif
+OPT    = -O -g $(MARCHFLAG) -ffp-contract=fast -fopenmp-simd
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 CXXFLAGS = -std=c++11 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 NVCCFLAGS = -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
