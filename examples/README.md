@@ -84,7 +84,7 @@ can be found in the [`navier-stokes`](./navierstokes) folder.
 These examples use the mass operator to compute the surface area of a cube or a discrete cubed-sphere, using PETSc.
 
 These examples show in particular the constructions of geometric factors to handle problems in which the elements topological dimension is different from the
-geometrical dimension and for which the coordinate transformation Jacobian from 3D physical space, to 2D local and reference spaces is a non-square matrix.
+geometrical dimension and for which the coordinate transformation Jacobian from the 2D reference space to a manifold embedded in 3D physical space is a non-square matrix.
 
 ## Running Examples
 
@@ -134,8 +134,8 @@ cd petsc
 make
 ./area -problem cube -ceed /cpu/self -petscspace_degree 3
 ./area -problem cube -ceed /gpu/occa -petscspace_degree 3
-./area -problem sphere /cpu/self -petscspace_degree 3 -dm_refine 2
-./area -problem sphere /gpu/occa -petscspace_degree 3 -dm_refine 2
+./area -problem sphere -ceed /cpu/self -petscspace_degree 3 -dm_refine 2
+./area -problem sphere -ceed /gpu/occa -petscspace_degree 3 -dm_refine 2
 ```
 
 The above code assumes a GPU-capable machine with the OCCA backend 

@@ -1,6 +1,6 @@
 ## libCEED + PETSc Examples
 
-### CEED bakeoff problems - bps
+### CEED bakeoff problems - bpsraw
 
 This code solves the CEED bakeoff problems on a structured grid generated and
 referenced using only low-level communication primitives.
@@ -52,9 +52,9 @@ The following arguments can be specified for all of the above examples:
 - `-test`              - Testing mode (do not print unless error is large)
 - `-benchmark`         - Benchmarking mode (prints benchmark statistics)
 
-### libCEED examples to compute surface area using DMPlex - areacube and areasphere
+### libCEED example to compute surface area using DMPlex - area
 
-These examples use the mass matrix to compute the surface area of a cube or a discrete cubed-sphere, defined via DMPlex.
+This example uses the mass matrix to compute the surface area of a cube or a discrete cubed-sphere, defined via DMPlex.
 
 To build, run `make area`
 
@@ -64,9 +64,9 @@ or
 
 `./area -problem sphere -ceed [ceed-resource] -petscspace_degree [degree]`
 
-### Command line arguments
+#### Command line arguments
 
-The following arguments can be specified for these examples:
+The following arguments can be specified for the area example:
 
 - `-ceed`              - CEED resource specifier
 - `-problem`           - Problem to solve, either 'cube' or 'sphere'
