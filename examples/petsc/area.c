@@ -224,7 +224,7 @@ int main(int argc, char **argv) {
     // Refine DMPlex with uniform refinement using runtime option -dm_refine
     ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE);
     ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-    if (strcmp(problemtype, "sphere") == 0)
+    if (!strcmp(problemtype, "sphere"))
       ierr = ProjectToUnitSphere(dm); CHKERRQ(ierr);
     // View DMPlex via runtime option
     ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
@@ -330,7 +330,7 @@ int main(int argc, char **argv) {
   CeedQFunctionCreateInterior(ceed, 1,
                               (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))geomfp,
                               str, &qf_setupgeo);
-  if (strcmp(problemtype, "sphere") == 0)
+  if (!strcmp(problemtype, "sphere"))
     CeedQFunctionAddInput(qf_setupgeo, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setupgeo, "dx", ncompx*topodim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setupgeo, "weight", 1, CEED_EVAL_WEIGHT);
@@ -344,7 +344,7 @@ int main(int argc, char **argv) {
 
   // Create the operator that builds the quadrature data for the operator
   CeedOperatorCreate(ceed, qf_setupgeo, NULL, NULL, &op_setupgeo);
-  if (strcmp(problemtype, "sphere") == 0)
+  if (!strcmp(problemtype, "sphere"))
     CeedOperatorSetField(op_setupgeo, "x", Erestrictx, CEED_TRANSPOSE,
                          basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, CEED_TRANSPOSE,
@@ -397,7 +397,7 @@ int main(int argc, char **argv) {
 
   // Compute the exact surface area and print the result
   CeedScalar exact_surfarea = 4 * M_PI;
-  if (strcmp(problemtype, "cube") == 0) {
+  if (!strcmp(problemtype, "cube")) {
     PetscScalar l = 1.0/PetscSqrtReal(3.0); // half edge of the cube
     exact_surfarea = 6 * (2*l) * (2*l);
   }
