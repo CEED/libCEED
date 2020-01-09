@@ -83,6 +83,7 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         export COVERAGE=1;
     fi
+  - make info
   - make -j2
   - make -j2 prove-all PROVE_OPTS=-v
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
