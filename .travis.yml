@@ -33,6 +33,10 @@ addons:
 jobs:
   include:
    - os: linux
+     arch: ppc64le
+     compiler: gcc
+     env: FC=gfortran
+   - os: linux
      arch: arm64
      compiler: gcc
      env: FC=gfortran
