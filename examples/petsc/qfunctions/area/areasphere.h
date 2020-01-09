@@ -57,7 +57,7 @@
 // *****************************************************************************
 
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
+CEED_QFUNCTION(SetupMassGeoSphere)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
   // Inputs
@@ -125,35 +125,6 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
     qdata[i+Q*0] = modJ * w[i];
 
   } // End of Quadrature Point Loop
-  return 0;
-}
-// -----------------------------------------------------------------------------
-
-// *****************************************************************************
-// This QFunction applies the mass matrix for a scalar field.
-//
-// Inputs:
-//   u     - Input vector at quadrature points
-//   qdata - Geometric factors
-//
-// Output:
-//   v     - Output vector (test function) at quadrature points
-//
-// *****************************************************************************
-
-// -----------------------------------------------------------------------------
-CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
-                     const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
-  const CeedScalar *u = in[0], *qdata = in[1];
-  // Outputs
-  CeedScalar *v = out[0];
-
-  // Quadrature Point Loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++)
-    v[i] = qdata[i] * u[i];
-
   return 0;
 }
 // -----------------------------------------------------------------------------

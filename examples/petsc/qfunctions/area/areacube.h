@@ -53,7 +53,7 @@
 // *****************************************************************************
 
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
+CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
   // Inputs

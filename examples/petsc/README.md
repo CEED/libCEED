@@ -56,19 +56,20 @@ The following arguments can be specified for all of the above examples:
 
 These examples use the mass matrix to compute the surface area of a cube or a discrete cubed-sphere, defined via DMPlex.
 
-To build, run `make areacube` or `make areasphere`
+To build, run `make area`
 
-To run, `./areacube -ceed [ceed-resource] -petscspace_degree [degree]`
+To run, `./area -problem cube -ceed [ceed-resource] -petscspace_degree [degree]`
 
 or
 
-`./areasphere -ceed [ceed-resource] -petscspace_degree [degree]`
+`./area -problem sphere -ceed [ceed-resource] -petscspace_degree [degree]`
 
 ### Command line arguments
 
 The following arguments can be specified for these examples:
 
 - `-ceed`              - CEED resource specifier
+- `-problem`           - Problem to solve, either 'cube' or 'sphere'
 - `-petscspace_degree` - Polynomial degree of tensor product basis
 - `-qextra`            - Number of extra quadrature points
 - `-test`              - Testing mode (do not print unless error is large)

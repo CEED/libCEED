@@ -56,7 +56,7 @@ typedef double CeedScalar;
 // *****************************************************************************
 
 // -----------------------------------------------------------------------------
-@kernel void SetupMassGeo(void *ctx, CeedInt Q,
+@kernel void SetupMassGeoSphere(void *ctx, CeedInt Q,
                           const int *iOf7, const int *oOf7,
                           const CeedScalar *in, CeedScalar *out) {
 // Inputs
@@ -124,38 +124,6 @@ typedef double CeedScalar;
     // Use the magnitude of J as our detJ (volume scaling factor)
     const CeedScalar modJ = sqrt(J[0][0]*J[0][0]+J[1][0]*J[1][0]+J[2][0]*J[2][0]);
     out[oOf7[0]+i] = modJ * in[iOf7[2]+i];
-  }
-}
-// -----------------------------------------------------------------------------
-
-// *****************************************************************************
-// This QFunction applies the mass matrix for a scalar field.
-//
-// Inputs:
-//   u     - Input vector at quadrature points
-//   qdata - Geometric factors
-//
-// Output:
-//   v     - Output vector (test function) at quadrature points
-//
-// *****************************************************************************
-
-// -----------------------------------------------------------------------------
-@kernel void Mass(void *ctx, CeedInt Q,
-                          const int *iOf7, const int *oOf7,
-                          const CeedScalar *in, CeedScalar *out) {
-
-// Inputs
-//   const CeedScalar
-//     *u = in + iOf7[0],
-//     *qdata = in + iOf7[1],
-//     *target = in + iOf7[2];
-// Outputs
-//   CeedScalar *v = out + oOf7[0];
-
-// Quadrature Point Loop
-  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
-    out[oOf7[0]+i] = in[iOf7[1]+i] * in[iOf7[0]+i];
   }
 }
 // -----------------------------------------------------------------------------

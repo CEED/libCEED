@@ -132,10 +132,10 @@ cd ..
 
 cd petsc
 make
-./areacube -ceed /cpu/self -petscspace_degree 3
-./areacube -ceed /gpu/occa -petscspace_degree 3
-./areasphere /cpu/self -petscspace_degree 3 -dm_refine 2
-./areasphere /gpu/occa -petscspace_degree 3 -dm_refine 2
+./area -problem cube -ceed /cpu/self -petscspace_degree 3
+./area -problem cube -ceed /gpu/occa -petscspace_degree 3
+./area -problem sphere /cpu/self -petscspace_degree 3 -dm_refine 2
+./area -problem sphere /gpu/occa -petscspace_degree 3 -dm_refine 2
 ```
 
 The above code assumes a GPU-capable machine with the OCCA backend 
