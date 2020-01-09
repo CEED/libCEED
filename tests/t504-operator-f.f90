@@ -106,8 +106,6 @@
      & ceed_qfunction_none,op_mass,err)
 
       call ceedvectorcreate(ceed,nx,x,err)
-      xoffset=0
-      call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,xoffset,err)
       call ceedvectorcreate(ceed,nelem*q,qdata,err)
 
       call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&
