@@ -29,15 +29,15 @@
 // Sample runs:
 //   Sequential:
 //
-//     area -problem cube -petscspace_degree 3 -dm_refine 2
+//     ./area -problem cube -petscspace_degree 3 -dm_refine 2
 //
-//     area -problem sphere -petscspace_degree 3 -dm_refine 2
+//     ./area -problem sphere -petscspace_degree 3 -dm_refine 2
 //
 //   In parallel:
 //
-//     mpiexec -n 4 area -probelm cube -petscspace_degree 3 -dm_refine 2
+//     mpiexec -n 4 ./area -probelm cube -petscspace_degree 3 -dm_refine 2
 //
-//     mpiexec -n 4 area -problem sphere -petscspace_degree 3 -dm_refine 2
+//     mpiexec -n 4 ./area -problem sphere -petscspace_degree 3 -dm_refine 2
 //
 //   The above example runs use 2 levels of refinement for the mesh.
 //   Use -dm_refine k, for k levels of uniform refinement.
@@ -163,8 +163,8 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
 
   // Set up problem type command line option
-  PetscFunctionListAdd(&geomfactorlist, "cube", &SetupMassGeoCube);
-  PetscFunctionListAdd(&geomfactorlist, "sphere", &SetupMassGeoSphere);
+  ierr = PetscFunctionListAdd(&geomfactorlist, "cube", &SetupMassGeoCube); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&geomfactorlist, "sphere", &SetupMassGeoSphere); CHKERRQ(ierr);
 
   // Read command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED surface area problem with PETSc",
@@ -188,11 +188,11 @@ int main(int argc, char **argv) {
 
   // Setup function pointer for geometric factors
   void (*geomfp)(void);
-  PetscFunctionListFind(geomfactorlist, problemtype, &geomfp);
+  ierr = PetscFunctionListFind(geomfactorlist, problemtype, &geomfp); CHKERRQ(ierr);
   if (!geomfp)
       return CeedError(ceed, 1, "Function not found in the list");
   char str[PETSC_MAX_PATH_LEN] = __FILE__":SetupMassGeo";
-  PetscStrlcat(str, problemtype, PETSC_MAX_PATH_LEN);
+  ierr = PetscStrlcat(str, problemtype, PETSC_MAX_PATH_LEN); CHKERRQ(ierr);
 
   // Setup DM
   if (read_mesh) {
@@ -204,10 +204,7 @@ int main(int argc, char **argv) {
     ierr = DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topodim, simplex, &dm);
     CHKERRQ(ierr);
     // Set the object name
-    ierr = PetscObjectSetName((PetscObject) dm, "Sphere"); CHKERRQ(ierr);
-    if (strcmp(problemtype, "cube") == 0)
-      // Set the object name
-      ierr = PetscObjectSetName((PetscObject) dm, "Cube"); CHKERRQ(ierr);
+    ierr = PetscObjectSetName((PetscObject)dm, problemtype); CHKERRQ(ierr);
     // Distribute mesh over processes
     {
       DM dmDist = NULL;
@@ -222,7 +219,7 @@ int main(int argc, char **argv) {
       }
     }
     // Refine DMPlex with uniform refinement using runtime option -dm_refine
-    ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE);
+    ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
     ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
     if (!strcmp(problemtype, "sphere"))
       ierr = ProjectToUnitSphere(dm); CHKERRQ(ierr);
@@ -266,7 +263,7 @@ int main(int argc, char **argv) {
   CeedGetResource(ceed, &usedresource);
   if (!test_mode) {
     ierr = PetscPrintf(comm,
-                       "\n-- libCEED + PETSc Surface Area of a Sphere --\n"
+                       "\n-- libCEED + PETSc Surface Area of a Manifold --\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
                        "  Mesh:\n"
@@ -330,8 +327,7 @@ int main(int argc, char **argv) {
   CeedQFunctionCreateInterior(ceed, 1,
                               (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))geomfp,
                               str, &qf_setupgeo);
-  if (!strcmp(problemtype, "sphere"))
-    CeedQFunctionAddInput(qf_setupgeo, "x", ncompx, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_setupgeo, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setupgeo, "dx", ncompx*topodim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setupgeo, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setupgeo, "qdata", qdatasize, CEED_EVAL_NONE);
@@ -344,8 +340,7 @@ int main(int argc, char **argv) {
 
   // Create the operator that builds the quadrature data for the operator
   CeedOperatorCreate(ceed, qf_setupgeo, NULL, NULL, &op_setupgeo);
-  if (!strcmp(problemtype, "sphere"))
-    CeedOperatorSetField(op_setupgeo, "x", Erestrictx, CEED_TRANSPOSE,
+  CeedOperatorSetField(op_setupgeo, "x", Erestrictx, CEED_TRANSPOSE,
                          basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, CEED_TRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);

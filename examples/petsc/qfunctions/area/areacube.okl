@@ -32,7 +32,7 @@ typedef double CeedScalar;
 // Local physical coordinates on the manifold (2D): x \in [-l, l]^2
 //
 // Change of coordinates matrix computed by the library:
-//   (pysical 3D coords relative to reference 2D coords)
+//   (physical 3D coords relative to reference 2D coords)
 //   dxx_j/dX_i (indicial notation) [3 * 2]
 //
 // Change of coordinates x (pysical 2D) relative to xx (phyisical 3D):
@@ -57,8 +57,8 @@ typedef double CeedScalar;
                           const CeedScalar *in, CeedScalar *out) {
 // Inputs
 //  const CeedScalar
-//    *J = in + iOf7[0],
-//    *w = in + iOf7[1];
+//    *J = in + iOf7[1],
+//    *w = in + iOf7[2];
 // Outputs
 //  CeedScalar
 //    *qdata = out + oOf7[0];

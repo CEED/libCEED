@@ -57,7 +57,7 @@ CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *J = in[0], *w = in[1];
+  const CeedScalar *J = in[1], *w = in[2];
   // Outputs
   CeedScalar *qdata = out[0];
 
