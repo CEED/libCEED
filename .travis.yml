@@ -30,7 +30,10 @@ addons:
     - lapack
     - openblas
 
-jobs:
+env:
+  - FC=gfortran
+
+matrix:
   include:
    - os: linux
      arch: ppc64le
@@ -40,24 +43,21 @@ jobs:
      arch: arm64
      compiler: gcc
      env: FC=gfortran
-
-env:
-  - FC=gfortran
-
-matrix:
-  include:
-    - language: python
-      dist: xenial
-      python: 3.8
-      install:
-        - pip install -r requirements.txt
-      script:
-        - make -j4 && export CEED_DIR=$PWD
-        - pip install .
-        - cd tests/python
-        - python setup-qfunctions.py build
-        - pytest test-*.py --ceed /cpu/self/ref/serial -vv
-      after_success: skip
+   - language: python
+     arch: amd64
+     os: linux
+     dist: xenial
+     compiler: gcc
+     python: 3.8
+     install:
+       - pip install -r requirements.txt
+     script:
+       - make info && make -j4 && export CEED_DIR=$PWD
+       - pip install .
+       - cd tests/python
+       - python setup-qfunctions.py build
+       - pytest test-*.py --ceed /cpu/self/ref/serial -vv
+     after_success: skip
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
