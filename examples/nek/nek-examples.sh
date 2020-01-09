@@ -131,8 +131,9 @@ done
 
 function make() {
   # Set flags
-  FFLAGS="-g -std=legacy -I${CEED_DIR}/include -DEXAMPLE_DIR='\"${PWD}/\"'"
-  USR_LFLAGS="-g -L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed"
+  CFLAGS="-fPIC"
+  FFLAGS="-g -std=legacy -I${CEED_DIR}/include -DEXAMPLE_DIR='\"${PWD}/\"' -fPIC"
+  USR_LFLAGS="-g -L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed -fPIC"
 
   # Build examples
   echo "Building examples:"
@@ -159,8 +160,8 @@ function make() {
   cd build
 
   # Attempt build
-  CC=$CC FC=$FC MPI=$MPI NEK_SOURCE_ROOT="${NEK5K_DIR}" FFLAGS="$FFLAGS" \
-    USR_LFLAGS="$USR_LFLAGS" ./makenek bps >> bps.build.log 2>&1
+  CC=$CC FC=$FC MPI=$MPI NEK_SOURCE_ROOT="${NEK5K_DIR}" CFLAGS="$CFLAGS" \
+    FFLAGS="$FFLAGS" USR_LFLAGS="$USR_LFLAGS" ./makenek bps >> bps.build.log 2>&1
 
     # Check and report
   if [ ! -f ./nek5000 ]; then
