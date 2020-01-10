@@ -193,11 +193,13 @@ int main(int argc, char **argv) {
                 CeedScalar *const *out);
   ierr = PetscFunctionListFind(geomfactorlist, problemtype,
                                (void(* *)(void))&geomfp); CHKERRQ(ierr);
-  if (!geomfp)
+  const char *str;
+  if (geomfp == SetupMassGeoCube)
+    str = SetupMassGeoCube_loc;
+  else if (geomfp == SetupMassGeoSphere)
+    str = SetupMassGeoSphere_loc;
+  else
     return CeedError(ceed, 1, "Function not found in the list");
-  char str[PETSC_MAX_PATH_LEN] = __FILE__":SetupMassGeo";
-  ierr = PetscStrlcat(str, problemtype, PETSC_MAX_PATH_LEN); CHKERRQ(ierr);
-  ierr = PetscStrlcat(str, "_loc", PETSC_MAX_PATH_LEN); CHKERRQ(ierr);
 
   // Setup DM
   if (read_mesh) {
