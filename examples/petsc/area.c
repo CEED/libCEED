@@ -187,8 +187,8 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Setup function pointer for geometric factors
-  void (*geomfp)(void);
-  ierr = PetscFunctionListFind(geomfactorlist, problemtype, &geomfp); CHKERRQ(ierr);
+  int (*geomfp)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out);
+  ierr = PetscFunctionListFind(geomfactorlist, problemtype, (void(**)(void))&geomfp); CHKERRQ(ierr);
   if (!geomfp)
       return CeedError(ceed, 1, "Function not found in the list");
   char str[PETSC_MAX_PATH_LEN] = __FILE__":SetupMassGeo";
@@ -324,9 +324,7 @@ int main(int argc, char **argv) {
 
   // Create the Q-function that builds the operator for the geomteric factors
   //   (i.e., the quadrature data)
-  CeedQFunctionCreateInterior(ceed, 1,
-                              (int(*)(void *, CeedInt, const CeedScalar *const *, CeedScalar *const *))geomfp,
-                              str, &qf_setupgeo);
+  CeedQFunctionCreateInterior(ceed, 1, geomfp, str, &qf_setupgeo);
   CeedQFunctionAddInput(qf_setupgeo, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setupgeo, "dx", ncompx*topodim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setupgeo, "weight", 1, CEED_EVAL_WEIGHT);
