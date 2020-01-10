@@ -163,15 +163,17 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
 
   // Set up problem type command line option
-  ierr = PetscFunctionListAdd(&geomfactorlist, "cube", &SetupMassGeoCube); CHKERRQ(ierr);
-  ierr = PetscFunctionListAdd(&geomfactorlist, "sphere", &SetupMassGeoSphere); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&geomfactorlist, "cube", &SetupMassGeoCube);
+  CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&geomfactorlist, "sphere", &SetupMassGeoSphere);
+  CHKERRQ(ierr);
 
   // Read command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED surface area problem with PETSc",
                            NULL);
   CHKERRQ(ierr);
   ierr = PetscOptionsFList("-problem", "Problem to solve", NULL, geomfactorlist,
-                          problemtype, problemtype, sizeof problemtype, NULL);
+                           problemtype, problemtype, sizeof problemtype, NULL);
   CHKERRQ(ierr);
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
@@ -187,10 +189,12 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Setup function pointer for geometric factors
-  int (*geomfp)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out);
-  ierr = PetscFunctionListFind(geomfactorlist, problemtype, (void(**)(void))&geomfp); CHKERRQ(ierr);
+  int (*geomfp)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
+                CeedScalar *const *out);
+  ierr = PetscFunctionListFind(geomfactorlist, problemtype,
+                               (void(* *)(void))&geomfp); CHKERRQ(ierr);
   if (!geomfp)
-      return CeedError(ceed, 1, "Function not found in the list");
+    return CeedError(ceed, 1, "Function not found in the list");
   char str[PETSC_MAX_PATH_LEN] = __FILE__":SetupMassGeo";
   ierr = PetscStrlcat(str, problemtype, PETSC_MAX_PATH_LEN); CHKERRQ(ierr);
 
@@ -339,7 +343,7 @@ int main(int argc, char **argv) {
   // Create the operator that builds the quadrature data for the operator
   CeedOperatorCreate(ceed, qf_setupgeo, NULL, NULL, &op_setupgeo);
   CeedOperatorSetField(op_setupgeo, "x", Erestrictx, CEED_TRANSPOSE,
-                         basisx, CEED_VECTOR_ACTIVE);
+                       basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, CEED_TRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setupgeo, "weight", Erestrictxi, CEED_NOTRANSPOSE,
