@@ -42,6 +42,7 @@ CEED_QFUNCTION(Poisson3DApply)(void *ctx, const CeedInt Q,
     // 0 5 4
     // 5 1 3
     // 4 3 2
+    // *INDENT-OFF*
     const CeedScalar dXdxdXdxT[3][3] = {{qd[i+0*Q],
                                          qd[i+5*Q],
                                          qd[i+4*Q]},
@@ -52,6 +53,9 @@ CEED_QFUNCTION(Poisson3DApply)(void *ctx, const CeedInt Q,
                                          qd[i+3*Q],
                                          qd[i+2*Q]}
                                        };
+    // *INDENT-ON*
+
+    // Apply Poisson Operator
     // j = direction of vg
     for (int j=0; j<3; j++)
       vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +

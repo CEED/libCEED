@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
-  CeedQFunctionCreateIdentity(ceed, 1, &qf);
+  CeedQFunctionCreateIdentity(ceed, 1, CEED_EVAL_INTERP, CEED_EVAL_INTERP, &qf);
 
   for (CeedInt i=0; i<Q; i++)
     u[i] = i*i;
@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
   for (CeedInt i=0; i<Q; i++)
-    if (fabs(v[i] - u[i])>1E-14)
+    if (fabs(v[i] - u[i])>1e-14)
       // LCOV_EXCL_START
       printf("[%d] v %f != u %f\n",i, v[i], u[i]);
   // LCOV_EXCL_STOP

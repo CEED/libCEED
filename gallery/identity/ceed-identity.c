@@ -23,8 +23,6 @@
 **/
 static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested,
                                       CeedQFunction qf) {
-  int ierr;
-
   // Check QFunction name
   const char *name = "Identity";
   if (strcmp(name, requested))
@@ -33,10 +31,8 @@ static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested,
                      name, requested);
   // LCOV_EXCL_STOP
 
-  // Add QFunction fields
-  ierr = CeedQFunctionAddInput(qf, "input", 1, CEED_EVAL_INTERP); CeedChk(ierr);
-  ierr = CeedQFunctionAddOutput(qf, "output", 1, CEED_EVAL_INTERP);
-  CeedChk(ierr);
+  // QFunction fields 'input' and 'output' with requested emodes added
+  //   by the library rather than being added here
 
   return 0;
 }

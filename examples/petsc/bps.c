@@ -51,8 +51,8 @@ const char help[] = "Solve CEED BPs using PETSc with DMPlex\n";
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
-       filename[PETSC_MAX_PATH_LEN];
+  char filename[PETSC_MAX_PATH_LEN],
+       ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree = 3, qextra, lsize, gsize, dim = 3, melem[3] = {3, 3, 3},
            ncompu = 1, xlsize;
@@ -206,7 +206,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_error, "error", ncompu, CEED_EVAL_NONE);
 
   // Create the error operator
-  CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
+  CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_error);
   CeedOperatorSetField(op_error, "u", ceeddata->Erestrictu,
                        CEED_TRANSPOSE, ceeddata->basisu,
                        CEED_VECTOR_ACTIVE);

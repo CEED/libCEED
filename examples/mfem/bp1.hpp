@@ -115,8 +115,8 @@ class CeedMassOperator : public mfem::Operator {
     const int ir_order = 2*(order + 2) - 1; // <-----
     const mfem::IntegrationRule &ir =
       mfem::IntRules.Get(mfem::Geometry::SEGMENT, ir_order);
-    CeedInt nqpts, nelem = mesh->GetNE(), dim = mesh->SpaceDimension(),
-            ncompx = dim;
+    CeedInt nelem = mesh->GetNE(), dim = mesh->SpaceDimension(),
+            ncompx = dim, nqpts;
 
     FESpace2Ceed(fes, ir, ceed, &basis, &restr);
 
@@ -151,7 +151,8 @@ class CeedMassOperator : public mfem::Operator {
     CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
 
     // Create the operator that builds the quadrature data for the mass operator.
-    CeedOperatorCreate(ceed, build_qfunc, NULL, NULL, &build_oper);
+    CeedOperatorCreate(ceed, build_qfunc, CEED_QFUNCTION_NONE,
+                       CEED_QFUNCTION_NONE, &build_oper);
     CeedOperatorSetField(build_oper, "dx", mesh_restr, CEED_NOTRANSPOSE,
                          mesh_basis, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(build_oper, "weights", mesh_restr_i, CEED_NOTRANSPOSE,
@@ -171,7 +172,8 @@ class CeedMassOperator : public mfem::Operator {
     CeedQFunctionAddOutput(apply_qfunc, "v", 1, CEED_EVAL_INTERP);
 
     // Create the mass operator.
-    CeedOperatorCreate(ceed, apply_qfunc, NULL, NULL, &oper);
+    CeedOperatorCreate(ceed, apply_qfunc, CEED_QFUNCTION_NONE,
+                       CEED_QFUNCTION_NONE, &oper);
     CeedOperatorSetField(oper, "u", restr, CEED_NOTRANSPOSE,
                          basis, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(oper, "qdata", restr_i, CEED_NOTRANSPOSE,

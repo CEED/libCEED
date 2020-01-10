@@ -239,7 +239,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
   const CeedInt transpose = (tmode == CEED_TRANSPOSE);
   const CeedScalar *u;
   CeedScalar *v;
-  if (U) {
+  if (U != CEED_VECTOR_NONE) {
     ierr = CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u); CeedChk(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
     return CeedError(ceed, 1,
@@ -269,7 +269,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
     //dbg("[CeedBasis][Apply] CEED_EVAL_INTERP");
     CeedScalar tmp[2][ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
     CeedScalar *interp1d;
-    ierr = CeedBasisGetInterp(basis, &interp1d); CeedChk(ierr);
+    ierr = CeedBasisGetInterp1D(basis, &interp1d); CeedChk(ierr);
     for (CeedInt d=0; d<dim; d++) {
       ierr = CeedTensorContract_Occa(pre, P, post, Q,
                                      interp1d,
@@ -290,8 +290,8 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
     for (CeedInt p=0; p<dim; p++) {
       CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = 1;
       CeedScalar *interp1d, *grad1d;
-      ierr = CeedBasisGetInterp(basis, &interp1d); CeedChk(ierr);
-      ierr = CeedBasisGetGrad(basis, &grad1d); CeedChk(ierr);
+      ierr = CeedBasisGetInterp1D(basis, &interp1d); CeedChk(ierr);
+      ierr = CeedBasisGetGrad1D(basis, &grad1d); CeedChk(ierr);
       for (CeedInt d=0; d<dim; d++) {
         ierr = CeedTensorContract_Occa(pre, P, post, Q,
                                        (p==d)?grad1d:interp1d,
@@ -330,7 +330,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
       }
     }
   }
-  if (U) {
+  if (U != CEED_VECTOR_NONE) {
     ierr = CeedVectorRestoreArrayRead(U, &u); CeedChk(ierr);
   }
   ierr = CeedVectorRestoreArray(V, &v); CeedChk(ierr);

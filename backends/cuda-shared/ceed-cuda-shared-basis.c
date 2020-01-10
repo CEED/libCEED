@@ -21,6 +21,7 @@
 
 //*********************
 // shared mem kernels
+// *INDENT-OFF*
 static const char *kernelsShared = QUOTE(
 
 inline __device__ void add(CeedScalar *r_V, const CeedScalar *r_U) {
@@ -102,7 +103,7 @@ inline __device__ void interp1d(const CeedInt nelem, const int transpose,
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
        elem += gridDim.x*blockDim.z) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
-      if(!transpose) {
+      if (!transpose) {
         readDofs1d(elem, tidx, tidy, tidz, comp, nelem, d_U, slice);
         ContractX1d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
         writeQuads1d(elem, tidx, tidy, comp, 0, nelem, r_V, d_V);
@@ -131,7 +132,7 @@ inline __device__ void grad1d(const CeedInt nelem, const int transpose,
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
        elem += gridDim.x*blockDim.z) {
     for(int comp=0; comp<BASIS_NCOMP; comp++) {
-      if(!transpose) {
+      if (!transpose) {
         readDofs1d(elem, tidx, tidy, tidz, comp, nelem, d_U, slice);
         ContractX1d(slice, tidx, tidy, tidz, r_U, c_G, r_V);
         dim = 0;
@@ -258,7 +259,7 @@ inline __device__ void interp2d(const CeedInt nelem, const int transpose,
     const int comp = tidz%BASIS_NCOMP;
     r_V = 0.0;
     r_t = 0.0;
-    if(!transpose) {
+    if (!transpose) {
       readDofs2d(elem, tidx, tidy, comp, nelem, d_U, r_V);
       ContractX2d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
       ContractY2d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
@@ -290,7 +291,7 @@ inline __device__ void grad2d(const CeedInt nelem, const int transpose,
 
   for (CeedInt elem = blockIdx.x*elemsPerBlock + blockElem; elem < nelem;
        elem += gridDim.x*elemsPerBlock) {
-    if(!transpose) {
+    if (!transpose) {
       readDofs2d(elem, tidx, tidy, comp, nelem, d_U, r_U);
       ContractX2d(slice, tidx, tidy, tidz, r_U, c_G, r_t);
       ContractY2d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
@@ -471,7 +472,7 @@ inline __device__ void interp3d(const CeedInt nelem, const int transpose,
       r_V[i] = 0.0;
       r_t[i] = 0.0;
     }
-    if(!transpose) {
+    if (!transpose) {
       readDofs3d(elem, tidx, tidy, comp, nelem, d_U, r_V);
       ContractX3d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
       ContractY3d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
@@ -507,7 +508,7 @@ inline __device__ void grad3d(const CeedInt nelem, const int transpose,
 
   for (CeedInt elem = blockIdx.x*elemsPerBlock + blockElem; elem < nelem;
        elem += gridDim.x*elemsPerBlock) {
-    if(!transpose) {
+    if (!transpose) {
       readDofs3d(elem, tidx, tidy, comp, nelem, d_U, r_U);
       ContractX3d(slice, tidx, tidy, tidz, r_U, c_G, r_V);
       ContractY3d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
@@ -629,6 +630,7 @@ extern "C" __global__ void weight(const CeedInt nelem,
 }
 
 );
+// *INDENT-ON*
 
 int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
                        CeedScalar **c_B);
@@ -654,7 +656,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
 
   const CeedScalar *d_u;
   CeedScalar *d_v;
-  if(emode!=CEED_EVAL_WEIGHT) {
+  if (emode != CEED_EVAL_WEIGHT) {
     ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChk(ierr);
   }
   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChk(ierr);
@@ -670,7 +672,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
     ierr = CeedCudaInitInterp(data->d_interp1d, P1d, Q1d, &data->c_B);
     CeedChk(ierr);
-    void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B, &d_u, &d_v};
+    void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B,
+                          &d_u, &d_v
+                         };
     if (dim==1) {
       CeedInt elemsPerBlock = 32;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
@@ -707,7 +711,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     ierr = CeedCudaInitInterpGrad(data->d_interp1d, data->d_grad1d, P1d,
                                   Q1d, &data->c_B, &data->c_G);
     CeedChk(ierr);
-    void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B, &data->c_G, &d_u, &d_v};
+    void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B,
+                        &data->c_G, &d_u, &d_v
+                       };
     if (dim==1) {
       CeedInt elemsPerBlock = 32;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
@@ -741,14 +747,14 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     CeedInt Q1d;
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight1d, &d_v};
-    if(dim==1) {
+    if (dim == 1) {
       const CeedInt elemsPerBlock = 32/Q1d;
       const CeedInt gridsize = nelem/elemsPerBlock + ( (
                                  nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
       ierr = CeedRunKernelDimCuda(ceed, data->weight, gridsize, Q1d,
                                   elemsPerBlock, 1, weightargs);
       CeedChk(ierr);
-    } else if(dim==2) {
+    } else if (dim == 2) {
       const CeedInt optElems = 32/(Q1d*Q1d);
       const CeedInt elemsPerBlock = optElems>0?optElems:1;
       const CeedInt gridsize = nelem/elemsPerBlock + ( (
@@ -756,7 +762,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
       ierr = CeedRunKernelDimCuda(ceed, data->weight, gridsize, Q1d, Q1d,
                                   elemsPerBlock, weightargs);
       CeedChk(ierr);
-    } else if(dim==3) {
+    } else if (dim == 3) {
       const CeedInt gridsize = nelem;
       ierr = CeedRunKernelDimCuda(ceed, data->weight, gridsize, Q1d, Q1d, Q1d,
                                   weightargs);
@@ -764,7 +770,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     }
   }
 
-  if(emode!=CEED_EVAL_WEIGHT) {
+  if (emode != CEED_EVAL_WEIGHT) {
     ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChk(ierr);
   }
   ierr = CeedVectorRestoreArray(v, &d_v); CeedChk(ierr);

@@ -1,6 +1,6 @@
 /// @file
-/// Test creation and destruction of a CEED object
-/// \test Test creation and destruction of a CEED object
+/// Test return of CEED backend prefered memory type
+/// \test Test return of CEED backend prefered memory type
 #include <ceed.h>
 
 int main(int argc, char **argv) {
@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
   CeedGetPreferredMemType(ceed, (CeedMemType *)&type);
   if (type == -1)
     // LCOV_EXCL_START
-    printf("Error getting preferred memory type. %d \n",type);
+    printf("Error getting preferred memory type. %d \n", type);
   // LCOV_EXCL_STOP
 
   CeedDestroy(&ceed);

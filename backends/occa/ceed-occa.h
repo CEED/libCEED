@@ -155,8 +155,6 @@ CEED_INTERN int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt Q,
 // *****************************************************************************
 CEED_INTERN int CeedOperatorCreate_Occa(CeedOperator op);
 
-CEED_INTERN int CeedCompositeOperatorCreate_Occa(CeedOperator op);
-
 // *****************************************************************************
 CEED_INTERN int CeedQFunctionCreate_Occa(CeedQFunction qf);
 

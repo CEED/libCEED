@@ -111,10 +111,12 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q,
       // Stored in Voigt convention
       // 0 2
       // 2 1
+      // *INDENT-OFF*
       const CeedScalar dXdxdXdxT[2][2] = {{qdata[i+0*Q],
                                            qdata[i+2*Q]},
                                           {qdata[i+2*Q],
                                            qdata[i+1*Q]}};
+      // *INDENT-ON*
       // j = direction of vg
       for (int j=0; j<2; j++)
         vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +
@@ -135,6 +137,7 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q,
       // 0 5 4
       // 5 1 3
       // 4 3 2
+      // *INDENT-OFF*
       const CeedScalar dXdxdXdxT[3][3] = {{qdata[i+0*Q],
                                            qdata[i+5*Q],
                                            qdata[i+4*Q]},
@@ -145,6 +148,7 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q,
                                            qdata[i+3*Q],
                                            qdata[i+2*Q]}
                                          };
+      // *INDENT-ON*
       // j = direction of vg
       for (int j=0; j<3; j++)
         vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +

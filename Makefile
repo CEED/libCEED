@@ -73,9 +73,15 @@ endif
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-OPT    = -O -g -march=native -ffp-contract=fast -fopenmp-simd
+MARCH := $(shell $(CC) --version -v < /dev/null 2>&1 | grep -c ' -march=')
+ifeq ($(MARCH),1)
+  MARCHFLAG := -march=native
+else
+  MARCHFLAG := -mtune=native
+endif
+OPT    = -O -g $(MARCHFLAG) -ffp-contract=fast -fopenmp-simd
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-CXXFLAGS = $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
+CXXFLAGS = -std=c++11 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 NVCCFLAGS = -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
@@ -238,7 +244,7 @@ info:
 	$(info ASAN          = $(or $(ASAN),(empty)))
 	$(info V             = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info ------------------------------------)
-	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,/cpu/self/ref/memcheck))
+	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,/cpu/self/memcheck/serial /cpu/sef/memcheck/blocked))
 	$(info AVX_STATUS    = $(AVX_STATUS)$(call backend_status,/cpu/self/avx/serial /cpu/self/avx/blocked))
 	$(info XSMM_DIR      = $(XSMM_DIR)$(call backend_status,/cpu/self/xsmm/serial /cpu/self/xsmm/blocked))
 	$(info OCCA_DIR      = $(OCCA_DIR)$(call backend_status,/cpu/occa /gpu/occa /omp/occa))
@@ -278,7 +284,7 @@ MEMCHK := $(shell echo "\#include <valgrind/memcheck.h>" | $(CC) $(CPPFLAGS) -E 
 ifeq ($(MEMCHK),1)
   MEMCHK_STATUS = Enabled
   libceed.c += $(ceedmemcheck.c)
-  BACKENDS += /cpu/self/ref/memcheck
+  BACKENDS += /cpu/self/memcheck/serial /cpu/self/memcheck/blocked
 endif
 
 # AVX Backed
@@ -298,7 +304,10 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   ifeq (,$(MKL)$(MKLROOT))
     BLAS_LIB = -lblas
   else
-    BLAS_LIB = $(if $(MKLROOT),-L$(MKLROOT)/lib/intel64 -Wl,-rpath,$(MKLROOT)/lib/intel64) -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
+    ifneq ($(MKLROOT),)
+      MKL_LINK = -L$(MKLROOT)/lib/intel64 -Wl,-rpath,$(MKLROOT)/lib/intel64
+    endif
+    BLAS_LIB = $(MKL_LINK) -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
   endif
   $(libceeds) : LDLIBS += $(BLAS_LIB)
   libceed.c += $(xsmm.c)
@@ -516,13 +525,13 @@ doc :
 
 style :
 	@astyle --options=.astylerc \
-          $(filter-out include/ceedf.h tests/t310-basis-f.h, \
+          $(filter-out include/ceedf.h tests/t320-basis-f.h, \
             $(wildcard include/*.h interface/*.[ch] tests/*.[ch] backends/*/*.[ch] \
               examples/*/*.[ch] examples/*/*.[ch]pp gallery/*/*.[ch]))
 
 CLANG_TIDY ?= clang-tidy
 %.c.tidy : %.c
-	$(CLANG_TIDY) $^ -- $(CPPFLAGS)
+	$(CLANG_TIDY) $^ -- $(CPPFLAGS) --std=c99
 
 tidy : $(libceed.c:%=%.tidy)
 

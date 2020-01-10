@@ -70,7 +70,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_setup, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
 
   // Operator - setup
-  CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
+  CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_setup);
   CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE, bx,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "_weight", Erestrictxi, CEED_NOTRANSPOSE, bx,
@@ -88,7 +89,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_diff, "dv", dim, CEED_EVAL_GRAD);
 
   // Operator - apply
-  CeedOperatorCreate(ceed, qf_diff, NULL, NULL, &op_diff);
+  CeedOperatorCreate(ceed, qf_diff, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_diff);
   CeedOperatorSetField(op_diff, "du", Erestrictu, CEED_NOTRANSPOSE, bu,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_diff, "qdata", Erestrictqi, CEED_NOTRANSPOSE,
@@ -107,7 +109,7 @@ int main(int argc, char **argv) {
   const CeedScalar *vv;
   CeedVectorGetArrayRead(v, CEED_MEM_HOST, &vv);
   for (CeedInt i=0; i<ndofs; i++)
-    if (fabs(vv[i]) > 1E-14)
+    if (fabs(vv[i]) > 1e-14)
       // LCOV_EXCL_START
       printf("Error: Operator computed v[i] = %f != 0.0\n", vv[i]);
   // LCOV_EXCL_STOP
@@ -124,7 +126,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_diff_lin, "dv", dim, CEED_EVAL_GRAD);
 
   // Operator - apply assembled
-  CeedOperatorCreate(ceed, qf_diff_lin, NULL, NULL, &op_diff_lin);
+  CeedOperatorCreate(ceed, qf_diff_lin, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &op_diff_lin);
   CeedOperatorSetField(op_diff_lin, "du", Erestrictu, CEED_NOTRANSPOSE, bu,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_diff_lin, "qdata", Erestrictlini, CEED_NOTRANSPOSE,
@@ -139,7 +142,7 @@ int main(int argc, char **argv) {
   // Check output
   CeedVectorGetArrayRead(v, CEED_MEM_HOST, &vv);
   for (CeedInt i=0; i<ndofs; i++)
-    if (fabs(vv[i]) > 1E-14)
+    if (fabs(vv[i]) > 1e-14)
       // LCOV_EXCL_START
       printf("Error: Linerized operator computed v[i] = %f != 0.0\n", vv[i]);
   // LCOV_EXCL_STOP

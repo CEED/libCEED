@@ -59,11 +59,14 @@
 // *****************************************************************************
 CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
+  // *INDENT-OFF*
   // Inputs
   const CeedScalar (*J)[3][Q] = (CeedScalar(*)[3][Q])in[0],
                    (*w) = in[1];
+
   // Outputs
   CeedScalar (*qdata)[Q] = (CeedScalar(*)[Q])out[0];
+  // *INDENT-ON*
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -123,10 +126,14 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
 // *****************************************************************************
 CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
-  (void)ctx;
+  // *INDENT-OFF*
+  // Inputs
   const CeedScalar (*u)[Q] = (CeedScalar(*)[Q])in[0],
                    (*qdata) = in[1];
+
+  // Outputs
   CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0];
+  // *INDENT-ON*
 
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {

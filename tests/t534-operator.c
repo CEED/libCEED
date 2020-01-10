@@ -72,7 +72,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_setup, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
 
   // Operator - setup
-  CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
+  CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_setup);
   CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE, bx,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "_weight", Erestrictxi, CEED_NOTRANSPOSE, bx,
@@ -90,7 +91,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_diff, "dv", dim, CEED_EVAL_GRAD);
 
   // Operator - apply
-  CeedOperatorCreate(ceed, qf_diff, NULL, NULL, &op_diff);
+  CeedOperatorCreate(ceed, qf_diff, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_diff);
   CeedOperatorSetField(op_diff, "du", Erestrictu, CEED_NOTRANSPOSE, bu,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_diff, "qdata", Erestrictqi, CEED_NOTRANSPOSE,
@@ -125,7 +127,7 @@ int main(int argc, char **argv) {
   // Check output
   CeedVectorGetArrayRead(A, CEED_MEM_HOST, &a);
   for (int i=0; i<ndofs; i++)
-    if (fabs(a[i] - assembledTrue[i]) > 1E-14)
+    if (fabs(a[i] - assembledTrue[i]) > 1e-14)
       // LCOV_EXCL_START
       printf("[%d] Error in assembly: %f != %f\n", i, a[i], assembledTrue[i]);
   // LCOV_EXCL_STOP

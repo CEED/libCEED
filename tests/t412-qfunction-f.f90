@@ -17,7 +17,8 @@
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
 
-      call ceedqfunctioncreateidentity(ceed,s,qf,err)
+      call ceedqfunctioncreateidentity(ceed,s,ceed_eval_interp,&
+     & ceed_eval_interp,qf,err)
 
       do i=0,q*s-1
         uu(i+1)=i*i
@@ -38,7 +39,7 @@
 
       call ceedvectorgetarrayread(v,ceed_mem_host,vv,voffset,err)
       do i=1,q*s
-        if (abs(vv(i+voffset)-(i-1)*(i-1)) > 1.0D-14) then
+        if (abs(vv(i+voffset)-(i-1)*(i-1)) > 1.0D-12) then
 ! LCOV_EXCL_START
           write(*,*) 'v(i)=',vv(i+voffset),', u(i)=',(i-1)*(i-1)
 ! LCOV_EXCL_STOP

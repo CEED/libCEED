@@ -16,6 +16,9 @@
 
 #include "ceed-ref.h"
 
+//------------------------------------------------------------------------------
+// Tensor Contract Apply
+//------------------------------------------------------------------------------
 int CeedTensorContractApply_Ref(CeedTensorContract contract, CeedInt A,
                                 CeedInt B, CeedInt C, CeedInt J,
                                 const CeedScalar *restrict t,
@@ -41,10 +44,16 @@ int CeedTensorContractApply_Ref(CeedTensorContract contract, CeedInt A,
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Tensor Contract Destroy
+//------------------------------------------------------------------------------
 static int CeedTensorContractDestroy_Ref(CeedTensorContract contract) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Tensor Contract Create
+//------------------------------------------------------------------------------
 int CeedTensorContractCreate_Ref(CeedBasis basis, CeedTensorContract contract) {
   int ierr;
   Ceed ceed;
@@ -57,3 +66,4 @@ int CeedTensorContractCreate_Ref(CeedBasis basis, CeedTensorContract contract) {
 
   return 0;
 }
+//------------------------------------------------------------------------------

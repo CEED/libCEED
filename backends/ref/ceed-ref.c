@@ -16,6 +16,9 @@
 
 #include "ceed-ref.h"
 
+//------------------------------------------------------------------------------
+// Backend Init
+//------------------------------------------------------------------------------
 static int CeedInit_Ref(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/ref")
@@ -41,14 +44,16 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
                                 CeedQFunctionCreate_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Ref); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
-                                CeedCompositeOperatorCreate_Ref); CeedChk(ierr);
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Backend Register
+//------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
 //! [Register]
   CeedRegister("/cpu/self/ref/serial", CeedInit_Ref, 50);
 //! [Register]
 }
+//------------------------------------------------------------------------------

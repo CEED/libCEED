@@ -18,6 +18,7 @@
 #include "ceed-cuda-reg.h"
 #include "../cuda/ceed-cuda.h"
 
+// *INDENT-OFF*
 static const char *restrictionkernels = QUOTE(
 
 extern "C" __global__ void noTrNoTr(const CeedInt nelem,
@@ -66,8 +67,8 @@ extern "C" __global__ void noTrNoTrInterleaved(const CeedInt nelem,
       for (CeedInt node = 0; node < RESTRICTION_ELEMSIZE; ++node) {
         const CeedInt ind = indices[e * RESTRICTION_ELEMSIZE + node];
         for(CeedInt d = 0; d < RESTRICTION_NCOMP; ++d) {
-          v[tid + node*32 + bid*32*RESTRICTION_ELEMSIZE + d*esize] = u[ind +
-              RESTRICTION_NNODES * d]; // TODO: make sure at least 32 elements
+          v[tid + node*32 + bid*32*RESTRICTION_ELEMSIZE + d*esize] = 
+            u[ind + RESTRICTION_NNODES * d]; // TODO: make sure at least 32 elements
         }
       }
     }
@@ -174,7 +175,7 @@ extern "C" __global__ void trNoTr(const CeedInt *__restrict__ tindices,
         value[d] += u[(e*RESTRICTION_NCOMP + d)*RESTRICTION_ELEMSIZE + n];
     }
     for (CeedInt d = 0; d < RESTRICTION_NCOMP; ++d)
-      v[d*RESTRICTION_NNODES+i] = value[d];
+      v[d*RESTRICTION_NNODES+i] += value[d];
   }
 }
 
@@ -198,7 +199,7 @@ extern "C" __global__ void trTr(const CeedInt *__restrict__ tindices,
         value[d] += u[(e*RESTRICTION_NCOMP + d)*RESTRICTION_ELEMSIZE + n];
     }
     for (int d = 0; d < RESTRICTION_NCOMP; ++d)
-      v[d+RESTRICTION_NCOMP*i] = value[d];
+      v[d+RESTRICTION_NCOMP*i] += value[d];
   }
 }
 
@@ -211,7 +212,7 @@ extern "C" __global__ void trNoTrIdentity(const CeedInt nelem,
     const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
     const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-    v[s + RESTRICTION_ELEMSIZE * e + RESTRICTION_NNODES * d] = u[i];
+    v[s + RESTRICTION_ELEMSIZE * e + RESTRICTION_NNODES * d] += u[i];
   }
 }
 
@@ -225,11 +226,12 @@ extern "C" __global__ void trTrIdentity(const CeedInt nelem,
     const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
     const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-    v [ RESTRICTION_NCOMP * (s + RESTRICTION_ELEMSIZE * e) + d ] = u[i];
+    v [ RESTRICTION_NCOMP * (s + RESTRICTION_ELEMSIZE * e) + d ] += u[i];
   }
 }
 
 );
+// *INDENT-ON*
 
 static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedTransposeMode lmode,
@@ -449,9 +451,11 @@ int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype,
   CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",
-                                CeedElemRestrictionApply_Cuda_reg); CeedChk(ierr);
+                                CeedElemRestrictionApply_Cuda_reg);
+  CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy",
-                                CeedElemRestrictionDestroy_Cuda_reg); CeedChk(ierr);
+                                CeedElemRestrictionDestroy_Cuda_reg);
+  CeedChk(ierr);
   return 0;
 }
 

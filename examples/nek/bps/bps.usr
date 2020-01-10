@@ -835,7 +835,7 @@ C     Create ceed qfunctions for masssetupf and massf
 
 C     Create ceed operators
       call ceedoperatorcreate(ceed,qf_setup,
-     $  ceed_null,ceed_null,op_setup,err)
+     $  ceed_qfunction_none,ceed_qfunction_none,op_setup,err)
       call ceedoperatorsetfield(op_setup,'x',erstrctx,
      $  ceed_notranspose,basisx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'dx',erstrctx,
@@ -849,7 +849,7 @@ C     Create ceed operators
      $  ceed_notranspose,basisu,vec_rhs,err)
 
       call ceedoperatorcreate(ceed,qf_mass,
-     $  ceed_null,ceed_null,op_mass,err)
+     $  ceed_qfunction_none,ceed_qfunction_none,op_mass,err)
       call ceedoperatorsetfield(op_mass,'u',erstrctu,
      $  ceed_notranspose,basisu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass,'qdata',erstrctw,
@@ -1152,7 +1152,7 @@ C     Create ceed qfunctions for diffsetupf and diffusionf
 
 C     Create ceed operators
       call ceedoperatorcreate(ceed,qf_setup,
-     $  ceed_null,ceed_null,op_setup,err)
+     $  ceed_qfunction_none,ceed_qfunction_none,op_setup,err)
       call ceedoperatorsetfield(op_setup,'x',erstrctx,
      $  ceed_notranspose,basisx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'dx',erstrctx,
@@ -1166,7 +1166,7 @@ C     Create ceed operators
      $  ceed_notranspose,basisu,vec_rhs,err)
 
       call ceedoperatorcreate(ceed,qf_diffusion,
-     $  ceed_null,ceed_null,op_diffusion,err)
+     $  ceed_qfunction_none,ceed_qfunction_none,op_diffusion,err)
       call ceedoperatorsetfield(op_diffusion,'u',erstrctu,
      $  ceed_notranspose,basisu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_diffusion,'qdata',erstrctw,

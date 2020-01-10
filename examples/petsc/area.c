@@ -39,7 +39,8 @@
 
 /// @file
 /// libCEED example using the mass operator to compute surface area using PETSc with DMPlex
-static const char help[] = "Compute surface area of a cube using DMPlex in PETSc\n";
+static const char help[] =
+  "Compute surface area of a cube using DMPlex in PETSc\n";
 
 #include <string.h>
 #include <petscdmplex.h>
@@ -97,8 +98,8 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
-       filename[PETSC_MAX_PATH_LEN];
+  char filename[PETSC_MAX_PATH_LEN],
+       ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   PetscInt lsize, gsize, xlsize,
            qextra  = 1, // default number of extra quadrature points
            ncompx  = 3, // number of components of 3D physical coordinates
@@ -119,7 +120,8 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
 
   // Read CL options
-  ierr = PetscOptionsBegin(comm, NULL, "CEED surface area problem with PETSc", NULL);
+  ierr = PetscOptionsBegin(comm, NULL, "CEED surface area problem with PETSc",
+                           NULL);
   CHKERRQ(ierr);
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
@@ -178,7 +180,7 @@ int main(int argc, char **argv) {
   ierr = PetscSpaceGetDegree(sp, &degree, NULL); CHKERRQ(ierr);
   ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
   if (degree < 1) SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
-                           "-petscspace_degree %D must be at least 1", degree);
+                             "-petscspace_degree %D must be at least 1", degree);
 
   // Create vectors
   ierr = DMCreateGlobalVector(dm, &X); CHKERRQ(ierr);
@@ -254,7 +256,7 @@ int main(int argc, char **argv) {
   CeedVector xcoord;
   CeedElemRestrictionCreateVector(Erestrictx, &xcoord, NULL);
   CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_COPY_VALUES,
-                    (PetscScalar *)coordArray);
+                     (PetscScalar *)coordArray);
   ierr = VecRestoreArrayRead(coords, &coordArray);
 
   // Create the vectors that will be needed in setup and apply
@@ -280,7 +282,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_apply, "v", ncompu, CEED_EVAL_INTERP);
 
   // Create the operator that builds the quadrature data for the operator
-  CeedOperatorCreate(ceed, qf_setupgeo, NULL, NULL, &op_setupgeo);
+  CeedOperatorCreate(ceed, qf_setupgeo, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &op_setupgeo);
   CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, CEED_TRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setupgeo, "weight", Erestrictxi, CEED_NOTRANSPOSE,
@@ -289,7 +292,8 @@ int main(int argc, char **argv) {
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Create the mass operator
-  CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
+  CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_apply);
   CeedOperatorSetField(op_apply, "u", Erestrictu, CEED_TRANSPOSE,
                        basisu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,

@@ -24,7 +24,6 @@
 #include <petscfe.h>
 #include <ceed.h>
 #include "qfunctions/bps/common.h"
-#include "qfunctions/bps/identity.h"
 #include "qfunctions/bps/bp1.h"
 #include "qfunctions/bps/bp2.h"
 #include "qfunctions/bps/bp3.h"
@@ -91,9 +90,11 @@ static const char *const coarsenTypes [] = {"uniform","logarithmic",
 // Diff boundary condition function
 PetscErrorCode BCsDiff(PetscInt dim, PetscReal time, const PetscReal x[],
                        PetscInt ncompu, PetscScalar *u, void *ctx) {
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
+  // *INDENT-OFF*
+  #ifndef M_PI
+  #define M_PI    3.14159265358979323846
+  #endif
+  // *INDENT-ON*
   const CeedScalar c[3] = { 0, 1., 2. };
   const CeedScalar k[3] = { 1., 2., 3. };
 
@@ -150,9 +151,8 @@ static const char *const bpTypes[] = {"bp1","bp2","bp3","bp4","bp5","bp6",
 // BP specific data
 typedef struct {
   CeedInt ncompu, qdatasize, qextra;
-  CeedQFunctionUser setupgeo, setuprhs, apply, error, ident;
-  const char *setupgeofname, *setuprhsfname, *applyfname, *errorfname,
-             *identfname;
+  CeedQFunctionUser setupgeo, setuprhs, apply, error;
+  const char *setupgeofname, *setuprhsfname, *applyfname, *errorfname;
   CeedEvalMode inmode, outmode;
   CeedQuadMode qmode;
   PetscBool enforce_bc;
@@ -169,12 +169,10 @@ bpData bpOptions[6] = {
     .setuprhs = SetupMassRhs,
     .apply = Mass,
     .error = Error,
-    .ident = IdentQF,
     .setupgeofname = SetupMassGeo_loc,
     .setuprhsfname = SetupMassRhs_loc,
     .applyfname = Mass_loc,
     .errorfname = Error_loc,
-    .identfname = IdentQF_loc,
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
     .qmode = CEED_GAUSS,
@@ -189,12 +187,10 @@ bpData bpOptions[6] = {
     .setuprhs = SetupMassRhs3,
     .apply = Mass3,
     .error = Error3,
-    .ident = IdentQF3,
     .setupgeofname = SetupMassGeo_loc,
     .setuprhsfname = SetupMassRhs3_loc,
     .applyfname = Mass3_loc,
     .errorfname = Error3_loc,
-    .identfname = IdentQF3_loc,
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
     .qmode = CEED_GAUSS,
@@ -209,12 +205,10 @@ bpData bpOptions[6] = {
     .setuprhs = SetupDiffRhs,
     .apply = Diff,
     .error = Error,
-    .ident = IdentQF,
     .setupgeofname = SetupDiffGeo_loc,
     .setuprhsfname = SetupDiffRhs_loc,
     .applyfname = Diff_loc,
     .errorfname = Error_loc,
-    .identfname = IdentQF_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS,
@@ -229,12 +223,10 @@ bpData bpOptions[6] = {
     .setuprhs = SetupDiffRhs3,
     .apply = Diff3,
     .error = Error3,
-    .ident = IdentQF3,
     .setupgeofname = SetupDiffGeo_loc,
     .setuprhsfname = SetupDiffRhs3_loc,
     .applyfname = Diff_loc,
     .errorfname = Error3_loc,
-    .identfname = IdentQF3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS,
@@ -249,12 +241,10 @@ bpData bpOptions[6] = {
     .setuprhs = SetupDiffRhs,
     .apply = Diff,
     .error = Error,
-    .ident = IdentQF,
     .setupgeofname = SetupDiffGeo_loc,
     .setuprhsfname = SetupDiffRhs_loc,
     .applyfname = Diff_loc,
     .errorfname = Error_loc,
-    .identfname = IdentQF_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS_LOBATTO,
@@ -269,12 +259,10 @@ bpData bpOptions[6] = {
     .setuprhs = SetupDiffRhs3,
     .apply = Diff3,
     .error = Error3,
-    .ident = IdentQF3,
     .setupgeofname = SetupDiffGeo_loc,
     .setuprhsfname = SetupDiffRhs3_loc,
     .applyfname = Diff_loc,
     .errorfname = Error3_loc,
-    .identfname = IdentQF3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS_LOBATTO,
@@ -486,8 +474,8 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   CeedQFunction qf_setupgeo, qf_apply;
   CeedOperator op_setupgeo, op_apply;
   CeedVector xcoord, qdata, xceed, yceed;
-  CeedInt P, Q, cStart, cEnd, nelem, qdatasize = bpOptions[bpChoice].qdatasize,
-          ncompx = dim;
+  CeedInt qdatasize = bpOptions[bpChoice].qdatasize, ncompx = dim, P, Q,
+          cStart, cEnd, nelem;
 
   // CEED bases
   P = degree + 1;
@@ -552,7 +540,8 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
                          bpOptions[bpChoice].outmode);
 
   // Create the operator that builds the quadrature data for the operator
-  CeedOperatorCreate(ceed, qf_setupgeo, NULL, NULL, &op_setupgeo);
+  CeedOperatorCreate(ceed, qf_setupgeo, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &op_setupgeo);
   CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, CEED_TRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setupgeo, "weight", Erestrictxi, CEED_NOTRANSPOSE,
@@ -561,7 +550,8 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Create the operator
-  CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
+  CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_apply);
   CeedOperatorSetField(op_apply, "u", Erestrictu, CEED_TRANSPOSE,
                        basisu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
@@ -588,7 +578,8 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
     CeedQFunctionAddOutput(qf_setuprhs, "rhs", ncompu, CEED_EVAL_INTERP);
 
     // Create the operator that builds the RHS and true solution
-    CeedOperatorCreate(ceed, qf_setuprhs, NULL, NULL, &op_setuprhs);
+    CeedOperatorCreate(ceed, qf_setuprhs, CEED_QFUNCTION_NONE,
+                       CEED_QFUNCTION_NONE, &op_setuprhs);
     CeedOperatorSetField(op_setuprhs, "x", Erestrictx, CEED_TRANSPOSE,
                          basisx, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_setuprhs, "dx", Erestrictx, CEED_TRANSPOSE,
@@ -654,11 +645,12 @@ static PetscErrorCode CeedLevelTransferSetup(Ceed ceed, CeedInt numlevels,
                                     CEED_GAUSS_LOBATTO, &basisctof);
 
     // Create the restriction operator
-    CeedOperatorCreate(ceed, qf_restrict, NULL, NULL, &op_restrict);
-    CeedOperatorSetField(op_restrict, "uin", data[i]->Erestrictu,
+    CeedOperatorCreate(ceed, qf_restrict, CEED_QFUNCTION_NONE,
+                       CEED_QFUNCTION_NONE, &op_restrict);
+    CeedOperatorSetField(op_restrict, "input", data[i]->Erestrictu,
                          CEED_NOTRANSPOSE, CEED_BASIS_COLLOCATED,
                          CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_restrict, "uout", data[i-1]->Erestrictu,
+    CeedOperatorSetField(op_restrict, "output", data[i-1]->Erestrictu,
                          CEED_TRANSPOSE, basisctof, CEED_VECTOR_ACTIVE);
 
     // Save libCEED data required for level
@@ -669,10 +661,11 @@ static PetscErrorCode CeedLevelTransferSetup(Ceed ceed, CeedInt numlevels,
     CeedOperator op_interp;
 
     // Create the prolongation operator
-    CeedOperatorCreate(ceed, qf_prolong, NULL, NULL, &op_interp);
-    CeedOperatorSetField(op_interp, "uin", data[i-1]->Erestrictu,
+    CeedOperatorCreate(ceed, qf_prolong, CEED_QFUNCTION_NONE,
+                       CEED_QFUNCTION_NONE, &op_interp);
+    CeedOperatorSetField(op_interp, "input", data[i-1]->Erestrictu,
                          CEED_NOTRANSPOSE, basisctof, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_interp, "uout", data[i]->Erestrictu,
+    CeedOperatorSetField(op_interp, "output", data[i]->Erestrictu,
                          CEED_TRANSPOSE, CEED_BASIS_COLLOCATED,
                          CEED_VECTOR_ACTIVE);
 

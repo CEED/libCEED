@@ -16,6 +16,9 @@
 
 #include "ceed-memcheck.h"
 
+//------------------------------------------------------------------------------
+// QFunction Apply
+//------------------------------------------------------------------------------
 static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
                                        CeedVector *U, CeedVector *V) {
   int ierr;
@@ -26,7 +29,7 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
 
   CeedQFunctionUser f = NULL;
-  ierr = CeedQFunctionGetUserFunction(qf, (int (**)())&f); CeedChk(ierr);
+  ierr = CeedQFunctionGetUserFunction(qf, &f); CeedChk(ierr);
 
   CeedInt nIn, nOut;
   ierr = CeedQFunctionGetNumArgs(qf, &nIn, &nOut); CeedChk(ierr);
@@ -55,6 +58,9 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// QFunction Destroy
+//------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Memcheck(CeedQFunction qf) {
   int ierr;
   CeedQFunction_Memcheck *impl;
@@ -67,6 +73,9 @@ static int CeedQFunctionDestroy_Memcheck(CeedQFunction qf) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// QFunction Create
+//------------------------------------------------------------------------------
 int CeedQFunctionCreate_Memcheck(CeedQFunction qf) {
   int ierr;
   Ceed ceed;
@@ -85,3 +94,4 @@ int CeedQFunctionCreate_Memcheck(CeedQFunction qf) {
 
   return 0;
 }
+//------------------------------------------------------------------------------

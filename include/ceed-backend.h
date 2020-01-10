@@ -27,6 +27,7 @@
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
 #define CEED_COMPOSITE_MAX 16
+#define CEED_EPSILON 1E-16
 
 /// Handle for object handling TensorContraction
 /// @ingroup CeedBasis
@@ -65,6 +66,11 @@ CEED_EXTERN int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate,
                                       const char *objname);
 CEED_EXTERN int CeedSetObjectDelegate(Ceed ceed, Ceed delegate,
                                       const char *objname);
+CEED_EXTERN int CeedGetOperatorFallbackResource(Ceed ceed,
+    const char **resource);
+CEED_EXTERN int CeedSetOperatorFallbackResource(Ceed ceed,
+    const char *resource);
+CEED_EXTERN int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent);
 CEED_EXTERN int CeedSetBackendFunction(Ceed ceed,
                                        const char *type, void *object,
                                        const char *fname, int (*f)());
@@ -73,6 +79,7 @@ CEED_EXTERN int CeedSetData(Ceed ceed, void **data);
 
 CEED_EXTERN int CeedVectorGetCeed(CeedVector vec, Ceed *ceed);
 CEED_EXTERN int CeedVectorGetState(CeedVector vec, uint64_t *state);
+CEED_EXTERN int CeedVectorAddReference(CeedVector vec);
 CEED_EXTERN int CeedVectorGetData(CeedVector vec, void **data);
 CEED_EXTERN int CeedVectorSetData(CeedVector vec, void **data);
 
@@ -107,10 +114,9 @@ CEED_EXTERN int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis,
 CEED_EXTERN int CeedBasisGetQRef(CeedBasis basis, CeedScalar **qref);
 CEED_EXTERN int CeedBasisGetQWeights(CeedBasis basis, CeedScalar **qweight);
 CEED_EXTERN int CeedBasisGetInterp(CeedBasis basis, CeedScalar **interp);
+CEED_EXTERN int CeedBasisGetInterp1D(CeedBasis basis, CeedScalar **interp1d);
 CEED_EXTERN int CeedBasisGetGrad(CeedBasis basis, CeedScalar **grad);
-CEED_EXTERN int CeedBasisGetValue(CeedBasis basis, CeedEvalMode emode,
-                                  CeedInt node, CeedInt qpt, CeedInt dim,
-                                  CeedScalar *value);
+CEED_EXTERN int CeedBasisGetGrad1D(CeedBasis basis, CeedScalar **grad1d);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void **data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void **data);
 
@@ -138,7 +144,7 @@ CEED_EXTERN int CeedTensorContractSetData(CeedTensorContract contract,
 CEED_EXTERN int CeedTensorContractDestroy(CeedTensorContract *contract);
 
 CEED_EXTERN int CeedQFunctionRegister(const char *, const char *, CeedInt,
-    CeedQFunctionUser, int (*init)(Ceed, const char *, CeedQFunction));
+                                      CeedQFunctionUser, int (*init)(Ceed, const char *, CeedQFunction));
 CEED_EXTERN int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
 CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf,
     CeedInt *vlength);
@@ -147,7 +153,7 @@ CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf,
                                         CeedInt *numoutputfields);
 CEED_EXTERN int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
-    int (**f)());
+    CeedQFunctionUser *f);
 CEED_EXTERN int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize);
 CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, void **ctx);
 CEED_EXTERN int CeedQFunctionGetInnerContext(CeedQFunction qf, void **ctx);
@@ -193,5 +199,9 @@ CEED_EXTERN int CeedOperatorFieldGetLMode(CeedOperatorField opfield,
     CeedTransposeMode *lmode);
 CEED_EXTERN int CeedOperatorFieldGetVector(CeedOperatorField opfield,
     CeedVector *vec);
+
+CEED_INTERN int CeedMatrixMultiply(Ceed ceed, const CeedScalar *matA,
+                                   const CeedScalar *matB, CeedScalar *matC,
+                                   CeedInt m, CeedInt n, CeedInt kk);
 
 #endif

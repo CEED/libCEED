@@ -72,7 +72,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);
 
   // Operators
-  CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
+  CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_setup);
   CeedOperatorSetField(op_setup, "_weight", Erestrictxi, CEED_NOTRANSPOSE, bx,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE, bx,
@@ -80,7 +81,8 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup, "rho", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
+  CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_mass);
   CeedOperatorSetField(op_mass, "rho", Erestrictui, CEED_NOTRANSPOSE,
                        CEED_BASIS_COLLOCATED, qdata);
   CeedOperatorSetField(op_mass, "u", Erestrictu, CEED_NOTRANSPOSE, bu,
@@ -99,7 +101,7 @@ int main(int argc, char **argv) {
   CeedVectorGetArrayRead(A, CEED_MEM_HOST, &a);
   CeedVectorGetArrayRead(qdata, CEED_MEM_HOST, &q);
   for (CeedInt i=0; i<nqpts; i++)
-    if (fabs(q[i] - a[i]) > 1E-9)
+    if (fabs(q[i] - a[i]) > 1e-9)
       // LCOV_EXCL_START
       printf("Error: A[%d] = %f != %f\n", i, a[i], q[i]);
   // LCOV_EXCL_STOP
@@ -120,7 +122,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<ndofs; i++)
     area += vv[i];
   CeedVectorRestoreArrayRead(v, &vv);
-  if (fabs(area - 1.0) > 1E-14)
+  if (fabs(area - 1.0) > 1e-14)
     // LCOV_EXCL_START
     printf("Error: True operator computed area = %f != 1.0\n", area);
   // LCOV_EXCL_STOP
@@ -139,7 +141,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<ndofs; i++)
     area += vv[i];
   CeedVectorRestoreArrayRead(v, &vv);
-  if (fabs(area - 1.0) > 1E-10)
+  if (fabs(area - 1.0) > 1e-10)
     // LCOV_EXCL_START
     printf("Error: Linearized operator computed area = %f != 1.0\n", area);
   // LCOV_EXCL_STOP

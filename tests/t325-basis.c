@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
   for (int d=0; d<dim; d++)
     for (int n=0; n<ncomp; n++)
       for (int q=0; q<Q; q++)
-      in[q+(n+d*ncomp)*Q] = n*1.0;
+        in[q+(n+d*ncomp)*Q] = n*1.0;
   CeedVectorRestoreArray(In, &in);
   CeedVectorCreate(ceed, P*ncomp, &Out);
   CeedVectorSetValue(Out, 0);
@@ -45,10 +45,10 @@ int main(int argc, char **argv) {
   CeedVectorGetArrayRead(Out, CEED_MEM_HOST, &out);
   for (int p=0; p<P; p++)
     for (int n=0; n<ncomp; n++)
-      if (fabs(n*colsum[p] - out[p+n*P]) > 1e-14)
+      if (fabs(n*colsum[p] - out[p+n*P]) > 1E-14)
         // LCOV_EXCL_START
         printf("[%d] %f != %f\n", p, out[p+n*P], n*colsum[p]);
-      // LCOV_EXCL_STOP
+  // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(Out, &out);
 
   CeedVectorDestroy(&In);

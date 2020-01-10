@@ -44,8 +44,8 @@ const char help[] = "Solve CEED BPs using p-multigrid with PETSc and DMPlex\n";
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
-       filename[PETSC_MAX_PATH_LEN];
+  char filename[PETSC_MAX_PATH_LEN],
+       ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree = 3, qextra, *lsize, *xlsize, *gsize, dim = 3,
            melem[3] = {3, 3, 3}, ncompu = 1, numlevels = degree, *leveldegrees;
@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
   KSP ksp;
   PC pc;
   Mat *matO, *matI, *matR;
-  Vec *X, *Xloc, *mult, rhs, rhsloc, diagloc;
+  Vec *X, *Xloc, *mult, rhs, rhsloc;
   UserO *userO;
   UserIR *userI, *userR;
   Ceed ceed;
@@ -279,14 +279,10 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&rhsceed);
 
   // Create the restriction/interpolation Q-function
-  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].ident,
-                              bpOptions[bpChoice].identfname, &qf_restrict);
-  CeedQFunctionAddInput(qf_restrict, "uin", ncompu, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_restrict, "uout", ncompu, CEED_EVAL_INTERP);
-  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].ident,
-                              bpOptions[bpChoice].identfname, &qf_prolong);
-  CeedQFunctionAddInput(qf_prolong, "uin", ncompu, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_prolong, "uout", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_NONE, CEED_EVAL_INTERP,
+                              &qf_restrict);
+  CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_INTERP, CEED_EVAL_NONE,
+                              &qf_prolong);
 
   // Set up libCEED level transfer operators
   ierr = CeedLevelTransferSetup(ceed, numlevels, ncompu, bpChoice, ceeddata,
@@ -301,7 +297,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_error, "error", ncompu, CEED_EVAL_NONE);
 
   // Create the error operator
-  CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
+  CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_error);
   CeedOperatorSetField(op_error, "u", ceeddata[numlevels-1]->Erestrictu,
                        CEED_TRANSPOSE, ceeddata[numlevels-1]->basisu,
                        CEED_VECTOR_ACTIVE);
@@ -362,34 +359,26 @@ int main(int argc, char **argv) {
 
     // Set up diagonal
     const CeedScalar *ceedarray;
-    PetscScalar *petscarray;
-    CeedInt length;
-
     ierr = VecDuplicate(X[i], &userO[i]->diag); CHKERRQ(ierr);
-    ierr = VecDuplicate(Xloc[i], &diagloc); CHKERRQ(ierr);
 
     // -- Local diagonal
     CeedOperatorAssembleLinearDiagonal(userO[i]->op, &diagceed,
                                        CEED_REQUEST_IMMEDIATE);
 
-    // -- Copy values
+    // -- Set PETSc array
     CeedVectorGetArrayRead(diagceed, CEED_MEM_HOST, &ceedarray);
-    ierr = VecGetArray(diagloc, &petscarray); CHKERRQ(ierr);
-    CeedVectorGetLength(diagceed, &length);
-    for (CeedInt i=0; i<length; i++)
-      petscarray[i] = ceedarray[i];
+    ierr = VecPlaceArray(Xloc[i], ceedarray); CHKERRQ(ierr);
     CeedVectorRestoreArrayRead(diagceed, &ceedarray);
-    ierr = VecRestoreArray(diagloc, &petscarray); CHKERRQ(ierr);
 
     // -- Global diagonal
     ierr = VecZeroEntries(userO[i]->diag); CHKERRQ(ierr);
-    ierr = DMLocalToGlobalBegin(userO[i]->dm, diagloc, ADD_VALUES,
+    ierr = DMLocalToGlobalBegin(userO[i]->dm, Xloc[i], ADD_VALUES,
                                 userO[i]->diag); CHKERRQ(ierr);
-    ierr = DMLocalToGlobalEnd(userO[i]->dm, diagloc, ADD_VALUES,
+    ierr = DMLocalToGlobalEnd(userO[i]->dm, Xloc[i], ADD_VALUES,
                               userO[i]->diag); CHKERRQ(ierr);
 
     // -- Cleanup
-    ierr = VecDestroy(&diagloc); CHKERRQ(ierr);
+    ierr = VecResetArray(Xloc[i]); CHKERRQ(ierr);
     CeedVectorDestroy(&diagceed);
 
     if (i > 0) {

@@ -51,23 +51,23 @@ int CeedQFunctionAllocNoOpIn_Occa(CeedQFunction qf, CeedInt Q,
     ierr = CeedQFunctionFieldGetEvalMode(inputfields[i], &emode); CeedChk(ierr);
     switch(emode) {
     case CEED_EVAL_INTERP:
-      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > INTERP (%d)", name,Q*ncomp);
+      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > INTERP (%d)", name, Q*ncomp);
       iOf7[idx+1]=iOf7[idx]+Q*ncomp;
       idx+=1;
       break;
     case CEED_EVAL_GRAD:
       ncomp /= dim;
-      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > GRAD (%d)",name,Q*ncomp*dim);
+      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > GRAD (%d)", name, Q*ncomp*dim);
       iOf7[idx+1]=iOf7[idx]+Q*ncomp*dim;;
       idx+=1;
       break;
     case CEED_EVAL_NONE:
-      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > NONE",name);
+      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > NONE", name);
       iOf7[idx+1]=iOf7[idx]+Q*ncomp;
       idx+=1;
       break;
     case CEED_EVAL_WEIGHT:
-      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > WEIGHT (%d)",name,Q);
+      dbg("\t[CeedQFunction][AllocOpIn] \"%s\" > WEIGHT (%d)", name, Q);
       iOf7[idx+1]=iOf7[idx]+Q;
       idx+=1;
       break;
@@ -127,18 +127,18 @@ int CeedQFunctionAllocNoOpOut_Occa(CeedQFunction qf, CeedInt Q,
     ierr = CeedQFunctionFieldGetEvalMode(outputfields[i], &emode); CeedChk(ierr);
     switch(emode) {
     case CEED_EVAL_NONE:
-      dbg("[CeedQFunction][AllocOpOut] out \"%s\" NONE (%d)",name,Q*ncomp);
+      dbg("[CeedQFunction][AllocOpOut] out \"%s\" NONE (%d)", name, Q*ncomp);
       oOf7[odx+1]=oOf7[odx]+Q*ncomp;
       odx+=1;
       break;
     case CEED_EVAL_INTERP:
-      dbg("\t[CeedQFunction][AllocOpOut \"%s\" > INTERP (%d)", name,Q*ncomp);
+      dbg("\t[CeedQFunction][AllocOpOut \"%s\" > INTERP (%d)", name, Q*ncomp);
       oOf7[odx+1]=oOf7[odx]+Q*ncomp;
       odx+=1;
       break;
     case CEED_EVAL_GRAD:
       ncomp /= dim;
-      dbg("\t[CeedQFunction][AllocOpOut] \"%s\" > GRAD (%d)",name,Q*ncomp*dim);
+      dbg("\t[CeedQFunction][AllocOpOut] \"%s\" > GRAD (%d)", name, Q*ncomp*dim);
       oOf7[odx+1]=oOf7[odx]+Q*ncomp*dim;
       odx+=1;
       break;
@@ -187,6 +187,12 @@ int CeedQFunctionFillNoOp_Occa(CeedQFunction qf, CeedInt Q,
     ierr = CeedQFunctionFieldGetEvalMode(inputfields[i], &emode); CeedChk(ierr);
     const CeedInt length = iOf7[i+1]-iOf7[i];
     switch (emode) {
+    case CEED_EVAL_NONE:
+      dbg("[CeedQFunction][FillNoOp] INTERP ilen=%d:%d", ilen, Q*ncomp);
+      dbg("[CeedQFunction][FillNoOp] INTERP iOf7[%d]=%d", i,iOf7[i]);
+      assert(length==Q*ncomp);
+      occaCopyPtrToMem(d_indata,in[i],length*bytes,iOf7[i]*bytes,NO_PROPS);
+      break;
     case CEED_EVAL_INTERP:
       dbg("[CeedQFunction][FillNoOp] INTERP ilen=%d:%d", ilen, Q*ncomp);
       dbg("[CeedQFunction][FillNoOp] INTERP iOf7[%d]=%d", i,iOf7[i]);
@@ -205,8 +211,6 @@ int CeedQFunctionFillNoOp_Occa(CeedQFunction qf, CeedInt Q,
       assert(length==Q);
       occaCopyPtrToMem(d_indata,in[i],length*bytes,iOf7[i]*bytes,NO_PROPS);
       break;
-    case CEED_EVAL_NONE:
-      break; // No action
     case CEED_EVAL_CURL:
       break; // Not implimented
     case CEED_EVAL_DIV:

@@ -535,7 +535,7 @@ int main(int argc, char **argv) {
   // Find my location in the process grid
   ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
   for (int d=0,rankleft=rank; d<dim; d++) {
-    const int pstride[3] = {p[1]*p[2], p[2], 1};
+    const int pstride[3] = {p[1]*p[2], p[2], 1}; // *NOPAD*
     irank[d] = rankleft / pstride[d];
     rankleft -= irank[d] * pstride[d];
   }
@@ -805,7 +805,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf, "dv", ncompq*dim, CEED_EVAL_GRAD);
 
   // Create the operator that builds the quadrature data for the NS operator
-  CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
+  CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_setup);
   CeedOperatorSetField(op_setup, "dx", restrictx, CEED_NOTRANSPOSE,
                        basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "weight", restrictxi, CEED_NOTRANSPOSE,
@@ -814,7 +815,8 @@ int main(int argc, char **argv) {
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Create the mass operator
-  CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
+  CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_mass);
   CeedOperatorSetField(op_mass, "q", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "qdata", restrictqdi, CEED_NOTRANSPOSE,
@@ -823,7 +825,8 @@ int main(int argc, char **argv) {
                        basisq, CEED_VECTOR_ACTIVE);
 
   // Create the operator that sets the ICs
-  CeedOperatorCreate(ceed, qf_ics, NULL, NULL, &op_ics);
+  CeedOperatorCreate(ceed, qf_ics, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_ics);
   CeedOperatorSetField(op_ics, "x", restrictx, CEED_NOTRANSPOSE,
                        basisxc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_ics, "q0", restrictq, CEED_TRANSPOSE,
@@ -832,7 +835,7 @@ int main(int argc, char **argv) {
                        CEED_BASIS_COLLOCATED, xceed);
 
   // Create the physics operator
-  CeedOperatorCreate(ceed, qf, NULL, NULL, &op);
+  CeedOperatorCreate(ceed, qf, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op);
   CeedOperatorSetField(op, "q", restrictq, CEED_TRANSPOSE,
                        basisq, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op, "dq", restrictq, CEED_TRANSPOSE,

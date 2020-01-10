@@ -163,8 +163,8 @@
 
 ! -- Operators
 ! ---- Setup Tet
-      call ceedoperatorcreate(ceed,qf_setuptet,ceed_null,ceed_null,op_setuptet,&
-     & err)
+      call ceedoperatorcreate(ceed,qf_setuptet,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_setuptet,err)
       call ceedoperatorsetfield(op_setuptet,'_weight',erestrictxitet,&
      & ceed_notranspose,bxtet,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuptet,'dx',erestrictxtet,&
@@ -172,8 +172,8 @@
       call ceedoperatorsetfield(op_setuptet,'rho',erestrictqditet,&
      & ceed_notranspose,ceed_basis_collocated,qdatatet,err)
 ! ---- diff Tet
-      call ceedoperatorcreate(ceed,qf_difftet,ceed_null,ceed_null,op_difftet,&
-     & err)
+      call ceedoperatorcreate(ceed,qf_difftet,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_difftet,err)
       call ceedoperatorsetfield(op_difftet,'rho',erestrictqditet,&
      & ceed_notranspose,ceed_basis_collocated,qdatatet,err)
       call ceedoperatorsetfield(op_difftet,'u',erestrictutet,&
@@ -213,7 +213,7 @@
 ! -- QFunctions
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
-     &//'t521-operator.h:setup'//char(0),qf_setuphex,err)
+     &//'t522-operator.h:setup'//char(0),qf_setuphex,err)
       call ceedqfunctionaddinput(qf_setuphex,'_weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setuphex,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setuphex,'rho',d*(d+1)/2,ceed_eval_none,&
@@ -221,15 +221,15 @@
 
       call ceedqfunctioncreateinterior(ceed,1,diff,&
      &SOURCE_DIR&
-     &//'t521-operator.h:diff'//char(0),qf_diffhex,err)
+     &//'t522-operator.h:diff'//char(0),qf_diffhex,err)
       call ceedqfunctionaddinput(qf_diffhex,'rho',d*(d+1)/2,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_diffhex,'u',d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_diffhex,'v',d,ceed_eval_grad,err)
 
 ! -- Operators
 ! ---- Setup Hex
-      call ceedoperatorcreate(ceed,qf_setuphex,ceed_null,ceed_null,op_setuphex,&
-     & err)
+      call ceedoperatorcreate(ceed,qf_setuphex,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_setuphex,err)
       call ceedoperatorsetfield(op_setuphex,'_weight',erestrictxihex,&
      & ceed_notranspose,bxhex,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuphex,'dx',erestrictxhex,&
@@ -237,8 +237,8 @@
       call ceedoperatorsetfield(op_setuphex,'rho',erestrictqdihex,&
      & ceed_notranspose,ceed_basis_collocated,qdatahex,err)
 ! ---- diff Hex
-      call ceedoperatorcreate(ceed,qf_diffhex,ceed_null,ceed_null,op_diffhex,&
-     & err)
+      call ceedoperatorcreate(ceed,qf_diffhex,ceed_qfunction_none,&
+     & ceed_qfunction_none,op_diffhex,err)
       call ceedoperatorsetfield(op_diffhex,'rho',erestrictqdihex,&
      & ceed_notranspose,ceed_basis_collocated,qdatahex,err)
       call ceedoperatorsetfield(op_diffhex,'u',erestrictuhex,&
@@ -256,7 +256,8 @@
       call ceedcompositeoperatoraddsub(op_diff,op_diffhex,err)
 
 ! Apply Setup Operator
-      call ceedoperatorapply(op_setup,x,ceed_null,ceed_request_immediate,err)
+      call ceedoperatorapply(op_setup,x,ceed_vector_none,&
+     & ceed_request_immediate,err)
 
 ! Apply diff Operator
       call ceedvectorcreate(ceed,ndofs,u,err)

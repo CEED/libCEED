@@ -833,7 +833,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   Ceed_Cuda *ceed_data;
   ierr = CeedGetData(delegate, (void **)&ceed_data); CeedChk(ierr);
   ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId);
-  if(prop.major<6){
+  if (prop.major<6){
     code << atomicAdd;
   }
 
@@ -1176,7 +1176,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   }
   string qFunctionName(qf_data->qFunctionName);
   code << "  "<<qFunctionName<<"(ctx, ";
-  if(dim!=3 || basis_data->d_collograd1d) {
+  if (dim != 3 || basis_data->d_collograd1d) {
     code << "1 ";
   }else{
     code << "Q1d ";
