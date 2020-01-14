@@ -96,10 +96,10 @@ typedef double CeedScalar;
 
 // Inputs
 //   const CeedScalar
-//     *u      = in + iOf7[0],
-//     *qdata  = in + iOf7[1],
+//     *ug      = in + iOf7[0],
+//     *qdata   = in + iOf7[1],
 // Outputs
-//   CeedScalar *v = out + oOf7[0];
+//   CeedScalar *vg = out + oOf7[0];
 
 // Quadrature Point Loop
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
