@@ -111,11 +111,11 @@ typedef double CeedScalar;
 // This QFunction applies the mass matrix for a scalar field.
 //
 // Inputs:
-//   u     - Input vector at quadrature points
+//   in     - Input vector at quadrature points
 //   qdata - Geometric factors
 //
 // Output:
-//   v     - Output vector (test function) at quadrature points
+//   out     - Output vector (test function) at quadrature points
 //
 // *****************************************************************************
 
@@ -127,8 +127,7 @@ typedef double CeedScalar;
 // Inputs
 //   const CeedScalar
 //     *u = in + iOf7[0],
-//     *qdata = in + iOf7[1],
-//     *target = in + iOf7[2];
+//     *qdata = in + iOf7[1];
 // Outputs
 //   CeedScalar *v = out + oOf7[0];
 
