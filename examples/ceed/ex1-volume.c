@@ -29,19 +29,19 @@
 //
 // Build with:
 //
-//     make ex1 [CEED_DIR=</path/to/libceed>]
+//     make ex1-volume [CEED_DIR=</path/to/libceed>]
 //
 // Sample runs:
 //
-//     ex1
-//     ex1 -ceed /cpu/self
-//     ex1 -ceed /gpu/occa
-//     ex1 -ceed /cpu/occa
-//     ex1 -ceed /omp/occa
-//     ex1 -ceed /ocl/occa
-//     ex1 -m ../../../mfem/data/fichera.mesh
-//     ex1 -m ../../../mfem/data/star.vtk -o 3
-//     ex1 -m ../../../mfem/data/inline-segment.mesh -o 8
+//     ./ex1-volume
+//     ./ex1-volume -ceed /cpu/self
+//     ./ex1-volume -ceed /gpu/occa
+//     ./ex1-volume -ceed /cpu/occa
+//     ./ex1-volume -ceed /omp/occa
+//     ./ex1-volume -ceed /ocl/occa
+//     ./ex1-volume -m ../../../mfem/data/fichera.mesh
+//     ./ex1-volume -m ../../../mfem/data/star.vtk -o 3
+//     ./ex1-volume -m ../../../mfem/data/inline-segment.mesh -o 8
 //
 // Next line is grep'd from tap.sh to set its arguments
 // Test in 1D-3D
@@ -58,7 +58,7 @@
 #include <math.h>
 #include <string.h>
 
-#include "ex1.h"
+#include "ex1-volume.h"
 
 // Auxiliary functions.
 int GetCartesianMeshSize(int dim, int order, int prob_size, int nxyz[3]);
