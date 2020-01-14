@@ -148,8 +148,10 @@ and run:
 # libCEED examples on CPU and GPU
 cd examples/ceed
 make
-./ex1 -ceed /cpu/self
-./ex1 -ceed /gpu/occa
+./ex1-volume -ceed /cpu/self
+./ex1-volume -ceed /gpu/occa
+./ex2-surface -ceed /cpu/self
+./ex2-surface -ceed /gpu/occa
 cd ../..
 
 # MFEM+libCEED examples on CPU and GPU
@@ -175,6 +177,13 @@ make
 ./bps -problem bp4 -ceed /gpu/occa
 ./bps -problem bp5 -ceed /cpu/self
 ./bps -problem bp6 -ceed /gpu/occa
+cd ../..
+
+cd examples/petsc
+./area -problem cube -ceed /cpu/self -petscspace_degree 3
+./area -problem cube -ceed /gpu/occa -petscspace_degree 3
+./area -problem sphere -ceed /cpu/self -petscspace_degree 3 -dm_refine 2
+./area -problem sphere -ceed /gpu/occa -petscspace_degree 3 -dm_refine 2
 cd ../..
 
 cd examples/navier-stokes

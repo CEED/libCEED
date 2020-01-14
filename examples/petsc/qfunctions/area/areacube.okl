@@ -127,8 +127,7 @@ typedef double CeedScalar;
 // Inputs
 //   const CeedScalar
 //     *u = in + iOf7[0],
-//     *qdata = in + iOf7[1],
-//     *target = in + iOf7[2];
+//     *qdata = in + iOf7[1];
 // Outputs
 //   CeedScalar *v = out + oOf7[0];
 

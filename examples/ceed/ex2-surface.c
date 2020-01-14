@@ -17,7 +17,7 @@
 //                             libCEED Example 2
 //
 // This example illustrates a simple usage of libCEED to compute the surface
-// area of a 3D body using matrix-free application of a diff operator.
+// area of a 3D body using matrix-free application of a diffusion operator.
 // Arbitrary mesh and solution orders in 1D, 2D and 3D are supported from the
 // same code.
 //
@@ -30,19 +30,19 @@
 //
 // Build with:
 //
-//     make ex2 [CEED_DIR=</path/to/libceed>]
+//     make ex2-surface [CEED_DIR=</path/to/libceed>]
 //
 // Sample runs:
 //
-//     ex2
-//     ex2 -ceed /cpu/self
-//     ex2 -ceed /gpu/occa
-//     ex2 -ceed /cpu/occa
-//     ex2 -ceed /omp/occa
-//     ex2 -ceed /ocl/occa
-//     ex2 -m ../../../mfem/data/fichera.mesh
-//     ex2 -m ../../../mfem/data/star.vtk -o 3
-//     ex2 -m ../../../mfem/data/inline-segment.mesh -o 8
+//     ./ex2-surface
+//     ./ex2-surface -ceed /cpu/self
+//     ./ex2-surface -ceed /gpu/occa
+//     ./ex2-surface -ceed /cpu/occa
+//     ./ex2-surface -ceed /omp/occa
+//     ./ex2-surface -ceed /ocl/occa
+//     ./ex2-surface -m ../../../mfem/data/fichera.mesh
+//     ./ex2-surface -m ../../../mfem/data/star.vtk -o 3
+//     ./ex2-surface -m ../../../mfem/data/inline-segment.mesh -o 8
 //
 // Next line is grep'd from tap.sh to set its arguments
 // Test in 1D-3D
@@ -59,7 +59,7 @@
 #include <math.h>
 #include <string.h>
 
-#include "ex2.h"
+#include "ex2-surface.h"
 
 // Auxiliary functions.
 int GetCartesianMeshSize(int dim, int order, int prob_size, int nxyz[3]);

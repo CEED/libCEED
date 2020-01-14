@@ -21,15 +21,15 @@
 //
 // Sample runs:
 //
-//     bp1
-//     bp1 -ceed /cpu/self
-//     bp1 -ceed /gpu/occa
-//     bp1 -ceed /cpu/occa
-//     bp1 -ceed /omp/occa
-//     bp1 -ceed /ocl/occa
-//     bp1 -m ../../../mfem/data/fichera.mesh
-//     bp1 -m ../../../mfem/data/star.vtk -o 3
-//     bp1 -m ../../../mfem/data/inline-segment.mesh -o 8
+//     ./bp1
+//     ./bp1 -ceed /cpu/self
+//     ./bp1 -ceed /gpu/occa
+//     ./bp1 -ceed /cpu/occa
+//     ./bp1 -ceed /omp/occa
+//     ./bp1 -ceed /ocl/occa
+//     ./bp1 -m ../../../mfem/data/fichera.mesh
+//     ./bp1 -m ../../../mfem/data/star.vtk -o 3
+//     ./bp1 -m ../../../mfem/data/inline-segment.mesh -o 8
 
 /// @file
 /// MFEM mass operator based on libCEED

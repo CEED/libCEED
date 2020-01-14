@@ -21,11 +21,11 @@
 //
 // Sample runs:
 //
-//     bp3
-//     bp3 -ceed /cpu/self
-//     bp3 -m ../../../mfem/data/fichera.mesh -o 4
-//     bp3 -m ../../../mfem/data/square-disc-nurbs.mesh -o 6
-//     bp3 -m ../../../mfem/data/inline-segment.mesh -o 8
+//     ./bp3
+//     ./bp3 -ceed /cpu/self
+//     ./bp3 -m ../../../mfem/data/fichera.mesh -o 4
+//     ./bp3 -m ../../../mfem/data/square-disc-nurbs.mesh -o 6
+//     ./bp3 -m ../../../mfem/data/inline-segment.mesh -o 8
 
 /// @file
 /// MFEM diffusion operator based on libCEED
