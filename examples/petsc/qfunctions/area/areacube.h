@@ -34,10 +34,10 @@
 //
 // Change of coordinates matrix computed by the library:
 //   (pysical 3D coords relative to reference 2D coords)
-//   dxx_j/dX_i (indicial notation) [3 x 2]
+//   dxx_j/dX_i (indicial notation) [3 * 2]
 //
 // Change of coordinates x (pysical 2D) relative to xx (phyisical 3D):
-//   dx_i/dxx_j (indicial notation) [2 x 3]
+//   dx_i/dxx_j (indicial notation) [2 * 3]
 //
 // Change of coordinates x (physical 2D) relative to X (reference 2D):
 //   (by chain rule)
@@ -53,14 +53,13 @@
 // *****************************************************************************
 
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
+CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *J = in[0], *w = in[1];
+  const CeedScalar *J = in[1], *w = in[2];
   // Outputs
   CeedScalar *qdata = out[0];
-
 
   // Quadrature Point Loop
   CeedPragmaSIMD

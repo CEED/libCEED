@@ -28,12 +28,12 @@
 //
 // Sample runs:
 //
-//     bpsraw -problem bp1
-//     bpsraw -problem bp2 -ceed /cpu/self
-//     bpsraw -problem bp3 -ceed /gpu/occa
-//     bpsraw -problem bp4 -ceed /cpu/occa
-//     bpsraw -problem bp5 -ceed /omp/occa
-//     bpsraw -problem bp6 -ceed /ocl/occa
+//     ./bpsraw -problem bp1
+//     ./bpsraw -problem bp2 -ceed /cpu/self
+//     ./bpsraw -problem bp3 -ceed /gpu/occa
+//     ./bpsraw -problem bp4 -ceed /cpu/occa
+//     ./bpsraw -problem bp5 -ceed /omp/occa
+//     ./bpsraw -problem bp6 -ceed /ocl/occa
 //
 //TESTARGS -ceed {ceed_resource} -test -problem bp2 -degree 5 -qextra 5
 
@@ -412,6 +412,8 @@ int main(int argc, char **argv) {
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
   comm = PETSC_COMM_WORLD;
+
+  // Read command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
   bpChoice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
