@@ -109,7 +109,7 @@ CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
 // -----------------------------------------------------------------------------
 
 // *****************************************************************************
-// This QFunction applies the mass matrix for a scalar field.
+// This QFunction applies the mass operator for a scalar field.
 //
 // Inputs:
 //   u     - Input vector at quadrature points

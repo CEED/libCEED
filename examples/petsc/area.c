@@ -371,7 +371,7 @@ int main(int argc, char **argv) {
   ierr = VecGetArray(Vloc, &v);
   CeedVectorSetArray(vceed, CEED_MEM_HOST, CEED_USE_POINTER, v);
 
-  // Compute the mesh volume using the mass operator: vol = 1^T \cdot M \cdot 1
+  // Compute the mesh volume using the mass operator: area = 1^T \cdot M \cdot 1
   if (!test_mode) {
     ierr = PetscPrintf(comm,
                        "Computing the mesh area using the formula: area = 1^T M 1\n");
