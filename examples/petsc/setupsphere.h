@@ -536,7 +536,6 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt topodi
     CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setuprhs,
                                 bpOptions[bpChoice].setuprhsfname, &qf_setuprhs);
     CeedQFunctionAddInput(qf_setuprhs, "x", ncompx, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_setuprhs, "dx", ncompx*topodim, CEED_EVAL_GRAD);
     CeedQFunctionAddInput(qf_setuprhs, "weight", 1, CEED_EVAL_WEIGHT);
     CeedQFunctionAddOutput(qf_setuprhs, "true_soln", ncompu, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qf_setuprhs, "rhs", ncompu, CEED_EVAL_INTERP);
@@ -544,8 +543,6 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt topodi
     // Create the operator that builds the RHS and true solution
     CeedOperatorCreate(ceed, qf_setuprhs, NULL, NULL, &op_setuprhs);
     CeedOperatorSetField(op_setuprhs, "x", Erestrictx, CEED_TRANSPOSE,
-                         basisx, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_setuprhs, "dx", Erestrictx, CEED_TRANSPOSE,
                          basisx, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_setuprhs, "weight", Erestrictxi, CEED_NOTRANSPOSE,
                          basisx, CEED_VECTOR_NONE);
@@ -566,7 +563,6 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt topodi
     CeedQFunctionDestroy(&qf_setuprhs);
     CeedOperatorDestroy(&op_setuprhs);
   }
-
 
   // Cleanup
   CeedQFunctionDestroy(&qf_setupgeo);
