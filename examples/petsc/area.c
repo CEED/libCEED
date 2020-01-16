@@ -378,7 +378,7 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
   }
 
-  // Initialize u and v with ones
+  // Initialize u with ones
   CeedVectorSetValue(uceed, 1.0);
 
   // Apply the mass operator: 'u' -> 'v'
