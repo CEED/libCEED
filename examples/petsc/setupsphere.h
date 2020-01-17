@@ -25,7 +25,7 @@
 #include <ceed.h>
 #include "qfunctions/bps/common.h"
 #include "qfunctions/bps/bp1sphere.h"
-//#include "qfunctions/bps/bp2sphere.h"
+#include "qfunctions/bps/bp2sphere.h"
 //#include "qfunctions/bps/bp3sphere.h"
 //#include "qfunctions/bps/bp4sphere.h"
 
@@ -128,23 +128,23 @@ static bpData bpOptions[6] = {
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
     .qmode = CEED_GAUSS
+  },
+  [CEED_BP2] = {
+    .ncompu = 3,
+    .qdatasize = 1,
+    .qextra = 1,
+    .setupgeo = SetupMassGeo,
+    .setuprhs = SetupMassRhs3,
+    .apply = Mass3,
+    .error = Error3,
+    .setupgeofname = SetupMassGeo_loc,
+    .setuprhsfname = SetupMassRhs3_loc,
+    .applyfname = Mass3_loc,
+    .errorfname = Error3_loc,
+    .inmode = CEED_EVAL_INTERP,
+    .outmode = CEED_EVAL_INTERP,
+    .qmode = CEED_GAUSS
   }//,
-//  [CEED_BP2] = {
-//    .ncompu = 3,
-//    .qdatasize = 1,
-//    .qextra = 1,
-//    .setupgeo = SetupMassGeo,
-//    .setuprhs = SetupMassRhs3,
-//    .apply = Mass3,
-//    .error = Error3,
-//    .setupgeofname = SetupMassGeo_loc,
-//    .setuprhsfname = SetupMassRhs3_loc,
-//    .applyfname = Mass3_loc,
-//    .errorfname = Error3_loc,
-//    .inmode = CEED_EVAL_INTERP,
-//    .outmode = CEED_EVAL_INTERP,
-//    .qmode = CEED_GAUSS
-//  },
 //  [CEED_BP3] = {
 //    .ncompu = 1,
 //    .qdatasize = 4,
@@ -536,7 +536,7 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt topodi
     CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setuprhs,
                                 bpOptions[bpChoice].setuprhsfname, &qf_setuprhs);
     CeedQFunctionAddInput(qf_setuprhs, "x", ncompx, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_setuprhs, "weight", 1, CEED_EVAL_WEIGHT);
+    CeedQFunctionAddInput(qf_setuprhs, "qdata", qdatasize, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qf_setuprhs, "true_soln", ncompu, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qf_setuprhs, "rhs", ncompu, CEED_EVAL_INTERP);
 
@@ -544,8 +544,8 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt topodi
     CeedOperatorCreate(ceed, qf_setuprhs, NULL, NULL, &op_setuprhs);
     CeedOperatorSetField(op_setuprhs, "x", Erestrictx, CEED_TRANSPOSE,
                          basisx, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_setuprhs, "weight", Erestrictxi, CEED_NOTRANSPOSE,
-                         basisx, CEED_VECTOR_NONE);
+    CeedOperatorSetField(op_setuprhs, "qdata", Erestrictxi, CEED_NOTRANSPOSE,
+                         CEED_BASIS_COLLOCATED, qdata);
     CeedOperatorSetField(op_setuprhs, "true_soln", Erestrictui, CEED_NOTRANSPOSE,
                          CEED_BASIS_COLLOCATED, *target);
     CeedOperatorSetField(op_setuprhs, "rhs", Erestrictu, CEED_TRANSPOSE,
@@ -669,8 +669,10 @@ static PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
   ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
 
   // Global-to-local
-  DMGlobalToLocalBegin(user->dm, X, INSERT_VALUES, user->Xloc);
-  DMGlobalToLocalEnd(user->dm, X, INSERT_VALUES, user->Xloc);
+  ierr = DMGlobalToLocalBegin(user->dm, X, INSERT_VALUES, user->Xloc);
+  CHKERRQ(ierr);
+  ierr = DMGlobalToLocalEnd(user->dm, X, INSERT_VALUES, user->Xloc);
+  CHKERRQ(ierr);
   ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
   // Setup CEED vectors
@@ -680,18 +682,20 @@ static PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
   CeedVectorSetArray(user->yceed, CEED_MEM_HOST, CEED_USE_POINTER, y);
 
   // Apply CEED operator
-  CeedOperatorApply(user->op, user->xceed, user->yceed,
-                    CEED_REQUEST_IMMEDIATE);
-  ierr = CeedVectorSyncArray(user->yceed, CEED_MEM_HOST); CHKERRQ(ierr);
+  CeedOperatorApply(user->op, user->xceed, user->yceed, CEED_REQUEST_IMMEDIATE);
+  CeedVectorSyncArray(user->yceed, CEED_MEM_HOST);
 
   // Restore PETSc vectors
-  ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
+  ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
+  CHKERRQ(ierr);
   ierr = VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
 
   // Local-to-global
   ierr = VecZeroEntries(Y); CHKERRQ(ierr);
-  DMLocalToGlobalBegin(user->dm, user->Yloc, ADD_VALUES, Y);
-  DMLocalToGlobalEnd(user->dm, user->Yloc, ADD_VALUES, Y);
+  ierr = DMLocalToGlobalBegin(user->dm, user->Yloc, ADD_VALUES, Y);
+  CHKERRQ(ierr);
+  ierr = DMLocalToGlobalEnd(user->dm, user->Yloc, ADD_VALUES, Y);
+  CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
