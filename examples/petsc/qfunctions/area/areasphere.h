@@ -45,14 +45,14 @@
 //   (by chain rule)
 //   dx_i/dX_j = dx_i/dxx_k * dxx_k/dX_j [3 * 2]
 //
-// detJ is given by the magnitude of the cross product of the columns of dx_i/dX_j
+// modJ is given by the magnitude of the cross product of the columns of dx_i/dX_j
 //
 // The quadrature data is stored in the array qdata.
 //
 // We require the determinant of the Jacobian to properly compute integrals of
 //   the form: int( u v )
 //
-// Qdata: detJ * w
+// Qdata: modJ * w
 //
 // *****************************************************************************
 
