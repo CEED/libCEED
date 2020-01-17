@@ -55,15 +55,17 @@ typedef double CeedScalar;
 //
 // *****************************************************************************
 
+#define Sqr(a) ((a)*(a))
+
 // -----------------------------------------------------------------------------
 @kernel void SetupMassGeoSphere(void *ctx, CeedInt Q,
-                          const int *iOf7, const int *oOf7,
-                          const CeedScalar *in, CeedScalar *out) {
+                                const int *iOf7, const int *oOf7,
+                                const CeedScalar *in, CeedScalar *out) {
 // Inputs
 //  const CeedScalar
-//    *X = in + iOf7[0];
-//    *J = in + iOf7[1],
-//    *w = in + iOf7[2];
+//    *X     = in + iOf7[0];
+//    *dxxdX = in + iOf7[1],
+//    *w     = in + iOf7[2];
 // Outputs
 //  CeedScalar
 //    *qdata = out + oOf7[0];
@@ -88,7 +90,7 @@ typedef double CeedScalar;
                                     };
 
     // Setup
-    const CeedScalar modxxsq = xx[0][0]*xx[0][0]+xx[1][0]*xx[1][0]+xx[2][0]*xx[2][0];
+    const CeedScalar modxxsq = Sqr(xx[0][0]) + Sqr(xx[1][0]) + Sqr(xx[2][0]);
     CeedScalar xxsq[3][3];
     for (int j=0; j<3; j++)
       for (int k=0; k<3; k++) {
@@ -122,7 +124,7 @@ typedef double CeedScalar;
                                 {dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]}
                                };
     // Use the magnitude of J as our detJ (volume scaling factor)
-    const CeedScalar modJ = sqrt(J[0][0]*J[0][0]+J[1][0]*J[1][0]+J[2][0]*J[2][0]);
+    const CeedScalar modJ = sqrt(Sqr(J[0][0]) + Sqr(J[1][0]) + Sqr(J[2][0]));
     out[oOf7[0]+i] = modJ * in[iOf7[2]+i];
   }
 }
