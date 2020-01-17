@@ -20,13 +20,17 @@ bps := $(bps.c:%.c=%)
 bpsraw.c := bpsraw.c
 bpsraw := $(bpsraw.c:%.c=%)
 
+bpssphere.c := bpssphere.c
+bpssphere := $(bpssphere.c:%.c=%)
+
 multigrid.c := multigrid.c
 multigrid := $(multigrid.c:%.c=%)
 
-all: $(area) $(bps) $(bpsraw) $(multigrid) 
+all: $(area) $(bps) $(bpsraw) $(bpssphere) $(multigrid) 
 $(area): | $(PETSc.pc) $(ceed.pc)
 $(bps): | $(PETSc.pc) $(ceed.pc)
 $(bpsraw): | $(PETSc.pc) $(ceed.pc)
+$(bpssphere): | $(PETSc.pc) $(ceed.pc)
 $(multigrid): | $(PETSc.pc) $(ceed.pc)
 
 # Rules for building the examples
@@ -43,7 +47,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) $(area) $(bps) $(bpsraw) $(multigrid)
+	$(RM) $(area) $(bps) $(bpsraw) $(bpssphere) $(multigrid)
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
