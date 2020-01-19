@@ -512,8 +512,9 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 .PHONY : cln clean doc lib install all print test tst prove prv prove-all junit examples style tidy okl-cache okl-clear info info-backends
 
 cln clean :
-	$(RM) -r $(OBJDIR) $(LIBDIR)
+	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
 	$(MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
+	$(MAKE) -C tests/python clean
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
 	$(RM) benchmarks/*output.txt
 
