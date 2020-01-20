@@ -401,6 +401,12 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
   @brief Get the multiplicity of nodes in a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
+  @param lmode            Ordering of the ncomp components, i.e. it specifies
+                            the ordering of the components of the l-vector used
+                            by this CeedElemRestriction. CEED_NOTRANSPOSE
+                            indicates the component is the outermost index and
+                            CEED_TRANSPOSE indicates the component is the
+                            innermost index in ordering of the l-vector
   @param[out] mult        Vector to store multiplicity (of size nnodes)
 
   @return An error code: 0 - success, otherwise - failure
@@ -408,6 +414,7 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
   @ref Advanced
 **/
 int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
+                                       CeedTransposeMode lmode,
                                        CeedVector mult) {
   int ierr;
   CeedVector evec;
@@ -417,8 +424,8 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
   ierr = CeedVectorSetValue(evec, 1.0); CeedChk(ierr);
 
   // Apply to get multiplicity
-  ierr = CeedElemRestrictionApply(rstr, CEED_TRANSPOSE, CEED_NOTRANSPOSE, evec,
-                                  mult, CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
+  ierr = CeedElemRestrictionApply(rstr, CEED_TRANSPOSE, lmode, evec, mult,
+                                  CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
 
   // Cleanup
   ierr = CeedVectorDestroy(&evec); CeedChk(ierr);

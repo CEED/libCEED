@@ -317,7 +317,7 @@ int main(int argc, char **argv) {
     CeedVectorSetArray(ceeddata[i]->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
     // Multiplicity
-    CeedElemRestrictionGetMultiplicity(ceeddata[i]->Erestrictu,
+    CeedElemRestrictionGetMultiplicity(ceeddata[i]->Erestrictu, CEED_TRANSPOSE,
                                        ceeddata[i]->xceed);
 
     // Restore vector

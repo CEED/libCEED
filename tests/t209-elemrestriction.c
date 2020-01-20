@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, ne, 4, 3*ne+1, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, ind, &r);
 
-  CeedElemRestrictionGetMultiplicity(r, mult);
+  CeedElemRestrictionGetMultiplicity(r, CEED_NOTRANSPOSE, mult);
 
   CeedVectorGetArrayRead(mult, CEED_MEM_HOST, &mm);
   for (CeedInt i=0; i<3*ne+1; i++)

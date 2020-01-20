@@ -648,7 +648,7 @@ static PetscErrorCode CeedLevelTransferSetup(Ceed ceed, CeedInt numlevels,
     CeedOperatorCreate(ceed, qf_restrict, CEED_QFUNCTION_NONE,
                        CEED_QFUNCTION_NONE, &op_restrict);
     CeedOperatorSetField(op_restrict, "input", data[i]->Erestrictu,
-                         CEED_NOTRANSPOSE, CEED_BASIS_COLLOCATED,
+                         CEED_TRANSPOSE, CEED_BASIS_COLLOCATED,
                          CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_restrict, "output", data[i-1]->Erestrictu,
                          CEED_TRANSPOSE, basisctof, CEED_VECTOR_ACTIVE);
@@ -664,7 +664,7 @@ static PetscErrorCode CeedLevelTransferSetup(Ceed ceed, CeedInt numlevels,
     CeedOperatorCreate(ceed, qf_prolong, CEED_QFUNCTION_NONE,
                        CEED_QFUNCTION_NONE, &op_interp);
     CeedOperatorSetField(op_interp, "input", data[i-1]->Erestrictu,
-                         CEED_NOTRANSPOSE, basisctof, CEED_VECTOR_ACTIVE);
+                         CEED_TRANSPOSE, basisctof, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_interp, "output", data[i]->Erestrictu,
                          CEED_TRANSPOSE, CEED_BASIS_COLLOCATED,
                          CEED_VECTOR_ACTIVE);

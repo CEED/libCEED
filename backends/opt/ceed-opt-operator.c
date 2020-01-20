@@ -752,18 +752,16 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
 
-  if (blksize == 1 || blksize == 8) {
-    ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
-                                  CeedOperatorAssembleLinearQFunction_Opt);
-    CeedChk(ierr);
-    ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
-                                  CeedOperatorApply_Opt); CeedChk(ierr);
-  } else {
+  if (blksize != 1 && blksize != 8)
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Opt backend cannot use blocksize: %d", blksize);
-    // LCOV_EXCL_STOP
-  }
+  // LCOV_EXCL_STOP
 
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
+                                CeedOperatorAssembleLinearQFunction_Opt);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
+                                CeedOperatorApply_Opt); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
                                 CeedOperatorDestroy_Opt); CeedChk(ierr);
   return 0;
