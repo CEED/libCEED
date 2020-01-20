@@ -116,7 +116,7 @@ class _ElemRestrictionBase(ABC):
     return [lvec, evec]
 
   # Get ElemRestriction multiplicity
-  def get_multiplicity(self):
+  def get_multiplicity(self, lmode=NOTRANSPOSE):
     """Get the multiplicity of nodes in an ElemRestriction.
 
        Returns:
@@ -127,7 +127,8 @@ class _ElemRestrictionBase(ABC):
     mult.set_value(0)
 
     # libCEED call
-    lib.CeedElemRestrictionGetMultiplicity(self._pointer[0], mult._pointer[0])
+    lib.CeedElemRestrictionGetMultiplicity(self._pointer[0], lmode,
+                                           mult._pointer[0])
 
     # Return
     return mult
