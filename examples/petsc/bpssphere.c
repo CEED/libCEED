@@ -249,6 +249,12 @@ int main(int argc, char **argv) {
       ierr = PCJacobiSetType(pc, PC_JACOBI_ROWSUM); CHKERRQ(ierr);
     } else {
       ierr = PCSetType(pc, PCNONE); CHKERRQ(ierr);
+      MatNullSpace nullspace;
+
+      ierr = MatNullSpaceCreate(PETSC_COMM_WORLD, PETSC_TRUE, 0, 0, &nullspace);
+      CHKERRQ(ierr);
+      ierr = MatSetNullSpace(matO, nullspace); CHKERRQ(ierr);
+      ierr = MatNullSpaceDestroy(&nullspace); CHKERRQ(ierr);
     }
     ierr = KSPSetType(ksp, KSPCG); CHKERRQ(ierr);
     ierr = KSPSetNormType(ksp, KSP_NORM_NATURAL); CHKERRQ(ierr);
