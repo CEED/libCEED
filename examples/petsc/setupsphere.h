@@ -26,7 +26,7 @@
 #include "qfunctions/bps/common.h"
 #include "qfunctions/bps/bp1sphere.h"
 #include "qfunctions/bps/bp2sphere.h"
-//#include "qfunctions/bps/bp3sphere.h"
+#include "qfunctions/bps/bp3sphere.h"
 //#include "qfunctions/bps/bp4sphere.h"
 
 // -----------------------------------------------------------------------------
@@ -144,23 +144,23 @@ static bpData bpOptions[6] = {
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
     .qmode = CEED_GAUSS
+  },
+  [CEED_BP3] = {
+    .ncompu = 1,
+    .qdatasize = 10,
+    .qextra = 1,
+    .setupgeo = SetupDiffGeo,
+    .setuprhs = SetupDiffRhs,
+    .apply = Diff,
+    .error = Error,
+    .setupgeofname = SetupDiffGeo_loc,
+    .setuprhsfname = SetupDiffRhs_loc,
+    .applyfname = Diff_loc,
+    .errorfname = Error_loc,
+    .inmode = CEED_EVAL_GRAD,
+    .outmode = CEED_EVAL_GRAD,
+    .qmode = CEED_GAUSS
   }//,
-//  [CEED_BP3] = {
-//    .ncompu = 1,
-//    .qdatasize = 4,
-//    .qextra = 1,
-//    .setupgeo = SetupDiffGeo,
-//    .setuprhs = SetupDiffRhs,
-//    .apply = Diff,
-//    .error = Error,
-//    .setupgeofname = SetupDiffGeo_loc,
-//    .setuprhsfname = SetupDiffRhs_loc,
-//    .applyfname = Diff_loc,
-//    .errorfname = Error_loc,
-//    .inmode = CEED_EVAL_GRAD,
-//    .outmode = CEED_EVAL_GRAD,
-//    .qmode = CEED_GAUSS
-//  },
 //  [CEED_BP4] = {
 //    .ncompu = 3,
 //    .qdatasize = 4,
@@ -544,7 +544,7 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt topodi
     CeedOperatorCreate(ceed, qf_setuprhs, NULL, NULL, &op_setuprhs);
     CeedOperatorSetField(op_setuprhs, "x", Erestrictx, CEED_TRANSPOSE,
                          basisx, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_setuprhs, "qdata", Erestrictxi, CEED_NOTRANSPOSE,
+    CeedOperatorSetField(op_setuprhs, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
                          CEED_BASIS_COLLOCATED, qdata);
     CeedOperatorSetField(op_setuprhs, "true_soln", Erestrictui, CEED_NOTRANSPOSE,
                          CEED_BASIS_COLLOCATED, *target);
