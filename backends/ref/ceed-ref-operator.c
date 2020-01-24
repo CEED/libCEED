@@ -174,7 +174,6 @@ static inline int CeedOperatorSetupInputs_Ref(CeedInt numinputfields,
   CeedEvalMode emode;
   CeedVector vec;
   CeedElemRestriction Erestrict;
-  CeedTransposeMode lmode;
   uint64_t state;
 
   for (CeedInt i=0; i<numinputfields; i++) {
@@ -198,11 +197,8 @@ static inline int CeedOperatorSetupInputs_Ref(CeedInt numinputfields,
       if (state != impl->inputstate[i] || vec == invec) {
         ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
         CeedChk(ierr);
-        ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode);
-        CeedChk(ierr);
-        ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE,
-                                        lmode, vec, impl->evecs[i],
-                                        request); CeedChk(ierr);
+        ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE, vec,
+                                        impl->evecs[i], request); CeedChk(ierr);
         impl->inputstate[i] = state;
       }
       // Get evec
@@ -405,7 +401,6 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);
   ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
-  CeedTransposeMode lmode;
   CeedOperatorField *opinputfields, *opoutputfields;
   ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
   CeedChk(ierr);
@@ -477,10 +472,9 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
     // Restrict
     ierr = CeedOperatorFieldGetElemRestriction(opoutputfields[i], &Erestrict);
     CeedChk(ierr);
-    ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
     ierr = CeedElemRestrictionApply(Erestrict, CEED_TRANSPOSE,
-                                    lmode, impl->evecs[i+impl->numein], vec,
-                                    request); CeedChk(ierr);
+                                    impl->evecs[i+impl->numein], vec, request);
+    CeedChk(ierr);
   }
 
   // Restore input arrays
@@ -577,7 +571,8 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   // LCOV_EXCL_STOP
 
   // Create output restriction
-  ierr = CeedElemRestrictionCreateIdentity(ceedparent, numelements, Q,
+  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
+  ierr = CeedElemRestrictionCreateIdentity(ceedparent, lmode, numelements, Q,
          numelements*Q, numactivein*numactiveout, rstr); CeedChk(ierr);
   // Create assembled vector
   ierr = CeedVectorCreate(ceedparent, numelements*Q*numactivein*numactiveout,
@@ -742,7 +737,6 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
   CeedEvalMode *emodeout = NULL;
   CeedBasis basisout = NULL;
   CeedElemRestriction rstrout = NULL;
-  CeedTransposeMode lmodeout = CEED_NOTRANSPOSE;
   for (CeedInt i=0; i<numoutputfields; i++) {
     CeedVector vec;
     ierr = CeedOperatorFieldGetVector(opfields[i], &vec); CeedChk(ierr);
@@ -750,7 +744,6 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basisout); CeedChk(ierr);
       ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &rstrout);
       CeedChk(ierr);
-      ierr = CeedOperatorFieldGetLMode(opfields[i], &lmodeout); CeedChk(ierr);
       CeedEvalMode emode;
       ierr = CeedQFunctionFieldGetEvalMode(qffields[i], &emode); CeedChk(ierr);
       switch (emode) {
@@ -845,7 +838,7 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
 
   // Assemble local operator diagonal
   ierr = CeedVectorSetValue(*assembled, 0.0); CeedChk(ierr);
-  ierr = CeedElemRestrictionApply(rstrout, CEED_TRANSPOSE, lmodeout, elemdiag,
+  ierr = CeedElemRestrictionApply(rstrout, CEED_TRANSPOSE, elemdiag,
                                   *assembled, request); CeedChk(ierr);
 
   // Cleanup
@@ -1034,7 +1027,8 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
 
   // -- Restriction
   CeedElemRestriction rstr_i;
-  ierr = CeedElemRestrictionCreateIdentity(ceedparent, nelem, nnodes,
+  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
+  ierr = CeedElemRestrictionCreateIdentity(ceedparent, lmode, nelem, nnodes,
          nnodes*nelem, ncomp, &rstr_i); CeedChk(ierr);
   // -- QFunction
   CeedQFunction mass_qf;
@@ -1043,12 +1037,12 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
   // -- Operator
   ierr = CeedOperatorCreate(ceedparent, mass_qf, NULL, NULL, fdminv);
   CeedChk(ierr);
-  CeedOperatorSetField(*fdminv, "u", rstr_i, CEED_NOTRANSPOSE,
-                       fdm_basis, CEED_VECTOR_ACTIVE); CeedChk(ierr);
-  CeedOperatorSetField(*fdminv, "qdata", rstr_i, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, qdata); CeedChk(ierr);
-  CeedOperatorSetField(*fdminv, "v", rstr_i, CEED_NOTRANSPOSE,
-                       fdm_basis, CEED_VECTOR_ACTIVE); CeedChk(ierr);
+  CeedOperatorSetField(*fdminv, "u", rstr_i, fdm_basis, CEED_VECTOR_ACTIVE);
+  CeedChk(ierr);
+  CeedOperatorSetField(*fdminv, "qdata", rstr_i, CEED_BASIS_COLLOCATED, qdata);
+  CeedChk(ierr);
+  CeedOperatorSetField(*fdminv, "v", rstr_i, fdm_basis, CEED_VECTOR_ACTIVE);
+  CeedChk(ierr);
 
   // Cleanup
   ierr = CeedVectorDestroy(&qdata); CeedChk(ierr);

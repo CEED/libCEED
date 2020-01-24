@@ -9,6 +9,8 @@
 
       integer ne
       parameter(ne=3)
+      integer lmode
+      parameter(lmode=ceed_notranspose)
 
       integer*4 ind(2*ne)
 
@@ -22,7 +24,7 @@
         ind(2*i  )=i
       enddo
 
-      call ceedelemrestrictioncreate(ceed,ne,2,ne+1,1,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,lmode,ne,2,ne+1,1,ceed_mem_host,&
      & ceed_use_pointer,ind,r,err)
 
       call ceedelemrestrictionview(r,err)

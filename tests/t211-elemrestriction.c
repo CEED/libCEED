@@ -13,6 +13,7 @@ int main(int argc, char **argv) {
   CeedInt *ind = malloc(sizeof(CeedInt)*2*ne);
   CeedScalar a[ncomp*(ne+1)];
   CeedElemRestriction r;
+  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
 
   CeedInit(argv[1], &ceed);
 
@@ -28,14 +29,13 @@ int main(int argc, char **argv) {
     ind[2*i+0] = i;
     ind[2*i+1] = i+1;
   }
-  CeedElemRestrictionCreateBlocked(ceed, ne, 2, blksize, ne+1, ncomp,
+  CeedElemRestrictionCreateBlocked(ceed, lmode, ne, 2, blksize, ne+1, ncomp,
                                    CEED_MEM_HOST, CEED_OWN_POINTER, ind, &r);
   CeedVectorCreate(ceed, 2*blksize*2*ncomp, &y);
   CeedVectorSetValue(y, 0); // Allocates array
 
   // NoTranspose
-  CeedElemRestrictionApply(r, CEED_NOTRANSPOSE, CEED_NOTRANSPOSE, x, y,
-                           CEED_REQUEST_IMMEDIATE);
+  CeedElemRestrictionApply(r, CEED_NOTRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);
   CeedVectorView(y, "%12.8f", stdout);
 
   // Transpose
@@ -43,8 +43,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<(ne+1)*ncomp; i++)
     a[i] = 0;
   CeedVectorRestoreArray(x, (CeedScalar **)&a);
-  CeedElemRestrictionApply(r, CEED_TRANSPOSE, CEED_NOTRANSPOSE, y, x,
-                           CEED_REQUEST_IMMEDIATE);
+  CeedElemRestrictionApply(r, CEED_TRANSPOSE, y, x, CEED_REQUEST_IMMEDIATE);
   CeedVectorView(x, "%12.8f", stdout);
 
   CeedVectorDestroy(&x);

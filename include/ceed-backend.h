@@ -85,6 +85,8 @@ CEED_EXTERN int CeedVectorSetData(CeedVector vec, void **data);
 
 CEED_EXTERN int CeedElemRestrictionGetCeed(CeedElemRestriction rstr,
     Ceed *ceed);
+CEED_EXTERN int CeedElemRestrictionGetLMode(CeedElemRestriction rstr,
+    CeedTransposeMode *lmode);
 CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
     CeedInt *numelem);
 CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
@@ -195,8 +197,6 @@ CEED_EXTERN int CeedOperatorFieldGetElemRestriction(CeedOperatorField opfield,
     CeedElemRestriction *rstr);
 CEED_EXTERN int CeedOperatorFieldGetBasis(CeedOperatorField opfield,
     CeedBasis *basis);
-CEED_EXTERN int CeedOperatorFieldGetLMode(CeedOperatorField opfield,
-    CeedTransposeMode *lmode);
 CEED_EXTERN int CeedOperatorFieldGetVector(CeedOperatorField opfield,
     CeedVector *vec);
 

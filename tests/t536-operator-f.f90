@@ -70,6 +70,8 @@
       include 'ceedf.h'
 
       integer ceed,err,i
+      integer lmode
+      parameter(lmode=ceed_notranspose)
       integer erestrictx,erestrictu,erestrictxi,erestrictui,erestrictqi
       integer bx,bu
       integer qf_setup_mass,qf_setup_diff,qf_apply
@@ -140,17 +142,17 @@
       enddo
 
 ! Restrictions
-      call ceedelemrestrictioncreate(ceed,nelem,p,ndofs,d,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,lmode,nelem,p,ndofs,d,ceed_mem_host,&
      & ceed_use_pointer,indx,erestrictx,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelem,p,nelem*p,d,&
+      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,p,nelem*p,d,&
      & erestrictxi,err)
 
-      call ceedelemrestrictioncreate(ceed,nelem,p,ndofs,1,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,lmode,nelem,p,ndofs,1,ceed_mem_host,&
      & ceed_use_pointer,indx,erestrictu,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelem,q,nqpts,1,&
+      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,q,nqpts,1,&
      & erestrictui,err)
 
-      call ceedelemrestrictioncreateidentity(ceed,nelem,q,nqpts,d*(d+1)/2,&
+      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,q,nqpts,d*(d+1)/2,&
      & erestrictqi,err)
 
 ! Bases
@@ -173,11 +175,11 @@
       call ceedoperatorcreate(ceed,qf_setup_mass,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setup_mass,err)
       call ceedoperatorsetfield(op_setup_mass,'dx',erestrictx,&
-     & ceed_notranspose,bx,ceed_vector_active,err)
+     & bx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup_mass,'_weight',erestrictxi,&
-     & ceed_notranspose,bx,ceed_vector_none,err)
+     & bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup_mass,'qdata',erestrictui,&
-     & ceed_notranspose,ceed_basis_collocated,ceed_vector_active,err)
+     & ceed_basis_collocated,ceed_vector_active,err)
 
 ! QFunction - setup diff
       call ceedqfunctioncreateinterior(ceed,1,setup_diff,&
@@ -192,11 +194,11 @@
       call ceedoperatorcreate(ceed,qf_setup_diff,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setup_diff,err)
       call ceedoperatorsetfield(op_setup_diff,'dx',erestrictx,&
-     & ceed_notranspose,bx,ceed_vector_active,err)
+     & bx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup_diff,'_weight',erestrictxi,&
-     & ceed_notranspose,bx,ceed_vector_none,err)
+     & bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup_diff,'qdata',erestrictqi,&
-     & ceed_notranspose,ceed_basis_collocated,ceed_vector_active,err)
+     & ceed_basis_collocated,ceed_vector_active,err)
 
 ! Apply Setup Operators
       call ceedoperatorapply(op_setup_mass,x,qdata_mass,&
@@ -220,17 +222,17 @@
       call ceedoperatorcreate(ceed,qf_apply,ceed_qfunction_none,&
      & ceed_qfunction_none,op_apply,err)
       call ceedoperatorsetfield(op_apply,'du',erestrictu,&
-     & ceed_notranspose,bu,ceed_vector_active,err)
+     & bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_apply,'qdata_mass',erestrictui,&
-     & ceed_notranspose,ceed_basis_collocated,qdata_mass,err)
+     & ceed_basis_collocated,qdata_mass,err)
       call ceedoperatorsetfield(op_apply,'qdata_diff',erestrictqi,&
-     & ceed_notranspose,ceed_basis_collocated,qdata_diff,err)
+     & ceed_basis_collocated,qdata_diff,err)
       call ceedoperatorsetfield(op_apply,'u',erestrictu,&
-     & ceed_notranspose,bu,ceed_vector_active,err)
+     & bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_apply,'v',erestrictu,&
-     & ceed_notranspose,bu,ceed_vector_active,err)
+     & bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_apply,'dv',erestrictu,&
-     & ceed_notranspose,bu,ceed_vector_active,err)
+     & bu,ceed_vector_active,err)
 
 ! Assemble Diagonal
       call ceedoperatorassemblelineardiagonal(op_apply,a,&

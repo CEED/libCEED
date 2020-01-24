@@ -11,6 +11,7 @@ int main(int argc, char **argv) {
   CeedScalar a[2*(ne+1)];
   const CeedScalar *yy;
   CeedElemRestriction r;
+  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
 
   CeedInit(argv[1], &ceed);
 
@@ -26,14 +27,13 @@ int main(int argc, char **argv) {
     ind[2*i+0] = i;
     ind[2*i+1] = i+1;
   }
-  CeedElemRestrictionCreate(ceed, ne, 2, ne+1, 2, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, lmode, ne, 2, ne+1, 2, CEED_MEM_HOST,
                             CEED_USE_POINTER, ind, &r);
   CeedVectorCreate(ceed, 2*(ne*2), &y);
   CeedVectorSetValue(y, 0); // Allocates array
 
   // Restrict
-  CeedElemRestrictionApply(r, CEED_NOTRANSPOSE, CEED_NOTRANSPOSE, x, y,
-                           CEED_REQUEST_IMMEDIATE);
+  CeedElemRestrictionApply(r, CEED_NOTRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);
 
   // Check
   CeedVectorGetArrayRead(y, CEED_MEM_HOST, &yy);

@@ -34,6 +34,8 @@
       include 'ceedf.h'
 
       integer ceed,err,i,j,k
+      integer lmode
+      parameter(lmode=ceed_notranspose)
       integer erestrictx,erestrictu,erestrictxi,erestrictui
       integer bx,bu
       integer qf_setup,qf_mass
@@ -89,14 +91,14 @@
       enddo
 
 ! Restrictions
-      call ceedelemrestrictioncreate(ceed,nelem,p*p,ndofs,d,&
+      call ceedelemrestrictioncreate(ceed,lmode,nelem,p*p,ndofs,d,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictx,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelem,p*p,&
+      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,p*p,&
      & nelem*p*p,d,erestrictxi,err)
 
-      call ceedelemrestrictioncreate(ceed,nelem,p*p,ndofs,1,&
+      call ceedelemrestrictioncreate(ceed,lmode,nelem,p*p,ndofs,1,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictu,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelem,q*q,nqpts,&
+      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,q*q,nqpts,&
      & 1,erestrictui,err)
 
 ! Bases
@@ -126,20 +128,20 @@
       call ceedoperatorcreate(ceed,qf_setup,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setup,err)
       call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&
-     & ceed_notranspose,bx,ceed_vector_none,err)
+     & bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'dx',erestrictx,&
-     & ceed_notranspose,bx,ceed_vector_active,err)
+     & bx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rho',erestrictui,&
-     & ceed_notranspose,ceed_basis_collocated,ceed_vector_active,err)
+     & ceed_basis_collocated,ceed_vector_active,err)
 ! -- Mass
       call ceedoperatorcreate(ceed,qf_mass,ceed_qfunction_none,&
      & ceed_qfunction_none,op_mass,err)
       call ceedoperatorsetfield(op_mass,'rho',erestrictui,&
-     & ceed_notranspose,ceed_basis_collocated,qdata,err)
+     & ceed_basis_collocated,qdata,err)
       call ceedoperatorsetfield(op_mass,'u',erestrictu,&
-     & ceed_notranspose,bu,ceed_vector_active,err)
+     & bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass,'v',erestrictu,&
-     & ceed_notranspose,bu,ceed_vector_active,err)
+     & bu,ceed_vector_active,err)
 
 ! Apply Setup Operator
       call ceedoperatorapply(op_setup,x,qdata,ceed_request_immediate,err)

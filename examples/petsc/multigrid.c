@@ -301,13 +301,11 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_error);
   CeedOperatorSetField(op_error, "u", ceeddata[numlevels-1]->Erestrictu,
-                       CEED_TRANSPOSE, ceeddata[numlevels-1]->basisu,
-                       CEED_VECTOR_ACTIVE);
+                       ceeddata[numlevels-1]->basisu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_error, "true_soln", ceeddata[numlevels-1]->Erestrictui,
-                       CEED_NOTRANSPOSE, CEED_BASIS_COLLOCATED, target);
+                       CEED_BASIS_COLLOCATED, target);
   CeedOperatorSetField(op_error, "error", ceeddata[numlevels-1]->Erestrictui,
-                       CEED_NOTRANSPOSE, CEED_BASIS_COLLOCATED,
-                       CEED_VECTOR_ACTIVE);
+                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Calculate multiplicity
   for (int i=0; i<numlevels; i++) {
@@ -318,7 +316,7 @@ int main(int argc, char **argv) {
     CeedVectorSetArray(ceeddata[i]->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
     // Multiplicity
-    CeedElemRestrictionGetMultiplicity(ceeddata[i]->Erestrictu, CEED_TRANSPOSE,
+    CeedElemRestrictionGetMultiplicity(ceeddata[i]->Erestrictu,
                                        ceeddata[i]->xceed);
 
     // Restore vector

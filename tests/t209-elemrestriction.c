@@ -10,6 +10,7 @@ int main(int argc, char **argv) {
   CeedInt ind[4*ne];
   const CeedScalar *mm;
   CeedElemRestriction r;
+  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
 
   CeedInit(argv[1], &ceed);
 
@@ -22,10 +23,10 @@ int main(int argc, char **argv) {
     ind[4*i+2] = i*3+2;
     ind[4*i+3] = i*3+3;
   }
-  CeedElemRestrictionCreate(ceed, ne, 4, 3*ne+1, 1, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, lmode, ne, 4, 3*ne+1, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, ind, &r);
 
-  CeedElemRestrictionGetMultiplicity(r, CEED_NOTRANSPOSE, mult);
+  CeedElemRestrictionGetMultiplicity(r, mult);
 
   CeedVectorGetArrayRead(mult, CEED_MEM_HOST, &mm);
   for (CeedInt i=0; i<3*ne+1; i++)

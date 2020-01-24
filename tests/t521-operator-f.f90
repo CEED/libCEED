@@ -39,6 +39,8 @@
       include 'ceedf.h'
 
       integer ceed,err,i,j,k
+      integer lmode
+      parameter(lmode=ceed_notranspose)
       integer erestrictxtet,erestrictutet,erestrictxitet,erestrictuitet,&
 &             erestrictxhex,erestrictuhex,erestrictxihex,erestrictuihex
       integer bxtet,butet,bxhex,buhex
@@ -122,15 +124,15 @@
       enddo
 
 ! -- Restrictions
-      call ceedelemrestrictioncreate(ceed,nelemtet,ptet,ndofs,d,ceed_mem_host,&
-     & ceed_use_pointer,indxtet,erestrictxtet,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelemtet,ptet,nelemtet*ptet,&
-     & d,erestrictxitet,err)
+      call ceedelemrestrictioncreate(ceed,lmode,nelemtet,ptet,ndofs,d,&
+     & ceed_mem_host,ceed_use_pointer,indxtet,erestrictxtet,err)
+      call ceedelemrestrictioncreateidentity(ceed,lmode,nelemtet,ptet,&
+     & nelemtet*ptet,d,erestrictxitet,err)
 
-      call ceedelemrestrictioncreate(ceed,nelemtet,ptet,ndofs,1,ceed_mem_host,&
-     & ceed_use_pointer,indxtet,erestrictutet,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelemtet,qtet,nqptstet,1,&
-     & erestrictuitet,err)
+      call ceedelemrestrictioncreate(ceed,lmode,nelemtet,ptet,ndofs,1,&
+     & ceed_mem_host,ceed_use_pointer,indxtet,erestrictutet,err)
+      call ceedelemrestrictioncreateidentity(ceed,lmode,nelemtet,qtet,nqptstet,&
+     & 1,erestrictuitet,err)
 
 ! -- Bases
       call buildmats(qref,qweight,interp,grad)
@@ -160,20 +162,20 @@
       call ceedoperatorcreate(ceed,qf_setuptet,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setuptet,err)
       call ceedoperatorsetfield(op_setuptet,'_weight',erestrictxitet,&
-     & ceed_notranspose,bxtet,ceed_vector_none,err)
+     & bxtet,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuptet,'dx',erestrictxtet,&
-     & ceed_notranspose,bxtet,ceed_vector_active,err)
+     & bxtet,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setuptet,'rho',erestrictuitet,&
-     & ceed_notranspose,ceed_basis_collocated,qdatatet,err)
+     & ceed_basis_collocated,qdatatet,err)
 ! ---- Mass Tet
       call ceedoperatorcreate(ceed,qf_masstet,ceed_qfunction_none,&
      & ceed_qfunction_none,op_masstet,err)
       call ceedoperatorsetfield(op_masstet,'rho',erestrictuitet,&
-     & ceed_notranspose,ceed_basis_collocated,qdatatet,err)
+     & ceed_basis_collocated,qdatatet,err)
       call ceedoperatorsetfield(op_masstet,'u',erestrictutet,&
-     & ceed_notranspose,butet,ceed_vector_active,err)
+     & butet,ceed_vector_active,err)
       call ceedoperatorsetfield(op_masstet,'v',erestrictutet,&
-     & ceed_notranspose,butet,ceed_vector_active,err)
+     & butet,ceed_vector_active,err)
 
 ! Hex Elements
       do i=0,nelemhex-1
@@ -188,15 +190,15 @@
       enddo
 
 ! -- Restrictions
-      call ceedelemrestrictioncreate(ceed,nelemhex,phex*phex,ndofs,d,&
+      call ceedelemrestrictioncreate(ceed,lmode,nelemhex,phex*phex,ndofs,d,&
      & ceed_mem_host,ceed_use_pointer,indxhex,erestrictxhex,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelemhex,phex*phex,&
+      call ceedelemrestrictioncreateidentity(ceed,lmode,nelemhex,phex*phex,&
      & nelemhex*phex*phex,d,erestrictxihex,err)
 
-      call ceedelemrestrictioncreate(ceed,nelemhex,phex*phex,ndofs,1,&
+      call ceedelemrestrictioncreate(ceed,lmode,nelemhex,phex*phex,ndofs,1,&
      & ceed_mem_host,ceed_use_pointer,indxhex,erestrictuhex,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelemhex,qhex*qhex,nqptshex,&
-     & 1,erestrictuihex,err)
+      call ceedelemrestrictioncreateidentity(ceed,lmode,nelemhex,qhex*qhex,&
+     & nqptshex,1,erestrictuihex,err)
 
 ! -- Bases
       call ceedbasiscreatetensorh1lagrange(ceed,d,d,phex,qhex,ceed_gauss,&
@@ -224,20 +226,20 @@
       call ceedoperatorcreate(ceed,qf_setuphex,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setuphex,err)
       call ceedoperatorsetfield(op_setuphex,'_weight',erestrictxihex,&
-     & ceed_notranspose,bxhex,ceed_vector_none,err)
+     & bxhex,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuphex,'dx',erestrictxhex,&
-     & ceed_notranspose,bxhex,ceed_vector_active,err)
+     & bxhex,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setuphex,'rho',erestrictuihex,&
-     & ceed_notranspose,ceed_basis_collocated,qdatahex,err)
+     & ceed_basis_collocated,qdatahex,err)
 ! ---- Mass Hex
       call ceedoperatorcreate(ceed,qf_masshex,ceed_qfunction_none,&
      & ceed_qfunction_none,op_masshex,err)
       call ceedoperatorsetfield(op_masshex,'rho',erestrictuihex,&
-     & ceed_notranspose,ceed_basis_collocated,qdatahex,err)
+     & ceed_basis_collocated,qdatahex,err)
       call ceedoperatorsetfield(op_masshex,'u',erestrictuhex,&
-     & ceed_notranspose,buhex,ceed_vector_active,err)
+     & buhex,ceed_vector_active,err)
       call ceedoperatorsetfield(op_masshex,'v',erestrictuhex,&
-     & ceed_notranspose,buhex,ceed_vector_active,err)
+     & buhex,ceed_vector_active,err)
 
 ! Composite Operators
       call ceedcompositeoperatorcreate(ceed,op_setup,err)

@@ -281,7 +281,6 @@ static int CeedOperatorApply_Occa(CeedOperator op,
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
-  CeedTransposeMode lmode;
   CeedOperatorField *opinputfields, *opoutputfields;
   ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
   CeedChk(ierr);
@@ -321,10 +320,9 @@ static int CeedOperatorApply_Occa(CeedOperator op,
       // Restrict
       ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
       CeedChk(ierr);
-      ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
       ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE,
-                                      lmode, vec, data->Evecs[i],
-                                      request); CeedChk(ierr);
+                                      vec, data->Evecs[i], request);
+      CeedChk(ierr);
       // Get evec
       ierr = CeedVectorGetArrayRead(data->Evecs[i], CEED_MEM_HOST,
                                     (const CeedScalar **) &data->Edata[i]);
@@ -500,10 +498,9 @@ static int CeedOperatorApply_Occa(CeedOperator op,
     // Restrict
     ierr = CeedOperatorFieldGetElemRestriction(opoutputfields[i], &Erestrict);
     CeedChk(ierr);
-    ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
     ierr = CeedElemRestrictionApply(Erestrict, CEED_TRANSPOSE,
-                                    lmode, data->Evecs[i+data->numein], vec,
-                                    request); CeedChk(ierr);
+                                    data->Evecs[i+data->numein], vec, request);
+    CeedChk(ierr);
     ierr = SyncToHostPointer(vec); CeedChk(ierr);
   }
 

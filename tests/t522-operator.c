@@ -18,6 +18,7 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
+  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
   CeedElemRestriction ErestrictxTet, ErestrictuTet,
                       ErestrictxiTet, ErestrictqdiTet,
                       ErestrictxHex, ErestrictuHex,
@@ -82,14 +83,16 @@ int main(int argc, char **argv) {
   }
 
   // -- Restrictions
-  CeedElemRestrictionCreate(ceed, nelemTet, PTet, ndofs, dim, CEED_MEM_HOST,
-                            CEED_USE_POINTER, indxTet, &ErestrictxTet);
-  CeedElemRestrictionCreateIdentity(ceed, nelemTet, PTet, nelemTet*PTet, dim,
-                                    &ErestrictxiTet);
+  CeedElemRestrictionCreate(ceed, lmode, nelemTet, PTet, ndofs, dim,
+                            CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
+                            &ErestrictxTet);
+  CeedElemRestrictionCreateIdentity(ceed, lmode, nelemTet, PTet, nelemTet*PTet,
+                                    dim, &ErestrictxiTet);
 
-  CeedElemRestrictionCreate(ceed, nelemTet, PTet, ndofs, 1, CEED_MEM_HOST,
-                            CEED_USE_POINTER, indxTet, &ErestrictuTet);
-  CeedElemRestrictionCreateIdentity(ceed, nelemTet, QTet, nqptsTet,
+  CeedElemRestrictionCreate(ceed, lmode, nelemTet, PTet, ndofs, 1,
+                            CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
+                            &ErestrictuTet);
+  CeedElemRestrictionCreateIdentity(ceed, lmode, nelemTet, QTet, nqptsTet,
                                     dim*(dim+1)/2, &ErestrictqdiTet);
 
   // -- Bases
@@ -116,21 +119,21 @@ int main(int argc, char **argv) {
   // ---- Setup Tet
   CeedOperatorCreate(ceed, qf_setupTet, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &op_setupTet);
-  CeedOperatorSetField(op_setupTet, "_weight", ErestrictxiTet, CEED_NOTRANSPOSE,
-                       bxTet, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setupTet, "dx", ErestrictxTet, CEED_NOTRANSPOSE,
-                       bxTet, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setupTet, "rho", ErestrictqdiTet, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setupTet, "_weight", ErestrictxiTet, bxTet,
+                       CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setupTet, "dx", ErestrictxTet, bxTet,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setupTet, "rho", ErestrictqdiTet,
                        CEED_BASIS_COLLOCATED, qdataTet);
   // ---- diff Tet
   CeedOperatorCreate(ceed, qf_diffTet, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_diffTet);
-  CeedOperatorSetField(op_diffTet, "rho", ErestrictqdiTet, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_diffTet, "rho", ErestrictqdiTet,
                        CEED_BASIS_COLLOCATED, qdataTet);
-  CeedOperatorSetField(op_diffTet, "u", ErestrictuTet, CEED_NOTRANSPOSE,
-                       buTet, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_diffTet, "v", ErestrictuTet, CEED_NOTRANSPOSE,
-                       buTet, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diffTet, "u", ErestrictuTet, buTet,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diffTet, "v", ErestrictuTet, buTet,
+                       CEED_VECTOR_ACTIVE);
 
   // Hex Elements
   for (CeedInt i=0; i<nelemHex; i++) {
@@ -143,16 +146,16 @@ int main(int argc, char **argv) {
   }
 
   // -- Restrictions
-  CeedElemRestrictionCreate(ceed, nelemHex, PHex*PHex, ndofs, dim,
+  CeedElemRestrictionCreate(ceed, lmode, nelemHex, PHex*PHex, ndofs, dim,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
                             &ErestrictxHex);
-  CeedElemRestrictionCreateIdentity(ceed, nelemHex, PHex*PHex,
+  CeedElemRestrictionCreateIdentity(ceed, lmode, nelemHex, PHex*PHex,
                                     nelemHex*PHex*PHex, dim, &ErestrictxiHex);
 
-  CeedElemRestrictionCreate(ceed, nelemHex, PHex*PHex, ndofs, 1,
+  CeedElemRestrictionCreate(ceed, lmode, nelemHex, PHex*PHex, ndofs, 1,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
                             &ErestrictuHex);
-  CeedElemRestrictionCreateIdentity(ceed, nelemHex, QHex*QHex,
+  CeedElemRestrictionCreateIdentity(ceed, lmode, nelemHex, QHex*QHex,
                                     nqptsHex, dim*(dim+1)/2,
                                     &ErestrictqdiHex);
 
@@ -175,21 +178,21 @@ int main(int argc, char **argv) {
   // -- Operators
   CeedOperatorCreate(ceed, qf_setupHex, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &op_setupHex);
-  CeedOperatorSetField(op_setupHex, "_weight", ErestrictxiHex, CEED_NOTRANSPOSE,
-                       bxHex, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setupHex, "dx", ErestrictxHex, CEED_NOTRANSPOSE,
-                       bxHex, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setupHex, "rho", ErestrictqdiHex, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setupHex, "_weight", ErestrictxiHex, bxHex,
+                       CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setupHex, "dx", ErestrictxHex, bxHex,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setupHex, "rho", ErestrictqdiHex,
                        CEED_BASIS_COLLOCATED, qdataHex);
 
   CeedOperatorCreate(ceed, qf_diffHex, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_diffHex);
-  CeedOperatorSetField(op_diffHex, "rho", ErestrictqdiHex, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_diffHex, "rho", ErestrictqdiHex,
                        CEED_BASIS_COLLOCATED, qdataHex);
-  CeedOperatorSetField(op_diffHex, "u", ErestrictuHex, CEED_NOTRANSPOSE,
-                       buHex, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_diffHex, "v", ErestrictuHex, CEED_NOTRANSPOSE,
-                       buHex, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diffHex, "u", ErestrictuHex, buHex,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diffHex, "v", ErestrictuHex, buHex,
+                       CEED_VECTOR_ACTIVE);
 
   // Composite Operators
   CeedCompositeOperatorCreate(ceed, &op_setup);

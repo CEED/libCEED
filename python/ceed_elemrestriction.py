@@ -55,25 +55,18 @@ class _ElemRestrictionBase(ABC):
     return out_string
 
   # Apply CeedElemRestriction
-  def apply(self, u, v, tmode=NOTRANSPOSE, lmode=NOTRANSPOSE,
-            request=REQUEST_IMMEDIATE):
+  def apply(self, u, v, tmode=NOTRANSPOSE, request=REQUEST_IMMEDIATE):
     """Restrict a local vector to an element vector or apply its transpose.
 
        Args:
          u: input vector
          v: output vector
          **tmode: apply restriction or transpose, default CEED_NOTRANSPOSE
-         **lmode: ordering of the ncomp components, i.e. it specifies
-                    the ordering of the components of the local vector used
-                    by this CeedElemRestriction. CEED_NOTRANSPOSE indicates
-                    the component is the outermost index and CEED_TRANSPOSE
-                    indicates the component is the innermost index in
-                    ordering of the local vector, default CEED_NOTRANSPOSE
          **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
 
     # libCEED call
-    lib.CeedElemRestrictionApply(self._pointer[0], tmode, lmode,
-                                 u._pointer[0], v._pointer[0], request)
+    lib.CeedElemRestrictionApply(self._pointer[0], tmode, u._pointer[0],
+                                 v._pointer[0], request)
 
   # Transpose an ElemRestriction
   @property
@@ -116,7 +109,7 @@ class _ElemRestrictionBase(ABC):
     return [lvec, evec]
 
   # Get ElemRestriction multiplicity
-  def get_multiplicity(self, lmode=NOTRANSPOSE):
+  def get_multiplicity(self):
     """Get the multiplicity of nodes in an ElemRestriction.
 
        Returns:
@@ -127,8 +120,7 @@ class _ElemRestrictionBase(ABC):
     mult.set_value(0)
 
     # libCEED call
-    lib.CeedElemRestrictionGetMultiplicity(self._pointer[0], lmode,
-                                           mult._pointer[0])
+    lib.CeedElemRestrictionGetMultiplicity(self._pointer[0], mult._pointer[0])
 
     # Return
     return mult
@@ -139,7 +131,7 @@ class ElemRestriction(_ElemRestrictionBase):
 
   # Constructor
   def __init__(self, ceed, nelem, elemsize, nnodes, ncomp, indices,
-               memtype=MEM_HOST, cmode=COPY_VALUES):
+               memtype=MEM_HOST, cmode=COPY_VALUES, lmode=NOTRANSPOSE):
     # CeedVector object
     self._pointer = ffi.new("CeedElemRestriction *")
 
@@ -152,8 +144,8 @@ class ElemRestriction(_ElemRestrictionBase):
                                indices.__array_interface__['data'][0])
 
     # libCEED call
-    lib.CeedElemRestrictionCreate(self._ceed._pointer[0], nelem, elemsize,
-                                  nnodes, ncomp, memtype, cmode,
+    lib.CeedElemRestrictionCreate(self._ceed._pointer[0], lmode, nelem,
+                                  elemsize, nnodes, ncomp, memtype, cmode,
                                   indices_pointer, self._pointer)
 
 # ------------------------------------------------------------------------------
@@ -161,7 +153,7 @@ class IdentityElemRestriction(_ElemRestrictionBase):
   """Ceed Identity ElemRestriction: identity restriction from local vectors to elements."""
 
   # Constructor
-  def __init__(self, ceed, nelem, elemsize, nnodes, ncomp):
+  def __init__(self, ceed, nelem, elemsize, nnodes, ncomp, lmode=NOTRANSPOSE):
     # CeedVector object
     self._pointer = ffi.new("CeedElemRestriction *")
 
@@ -169,7 +161,7 @@ class IdentityElemRestriction(_ElemRestrictionBase):
     self._ceed = ceed
 
     # libCEED call
-    lib.CeedElemRestrictionCreateIdentity(self._ceed._pointer[0], nelem,
+    lib.CeedElemRestrictionCreateIdentity(self._ceed._pointer[0], lmode, nelem,
                                           elemsize, nnodes, ncomp,
                                           self._pointer)
 
@@ -179,7 +171,7 @@ class BlockedElemRestriction(_ElemRestrictionBase):
 
   # Constructor
   def __init__(self, ceed, nelem, elemsize, blksize, nnodes, ncomp, indices,
-               memtype=MEM_HOST, cmode=COPY_VALUES):
+               memtype=MEM_HOST, cmode=COPY_VALUES, lmode=NOTRANSPOSE):
     # CeedVector object
     self._pointer = ffi.new("CeedElemRestriction *")
 
@@ -192,7 +184,7 @@ class BlockedElemRestriction(_ElemRestrictionBase):
                                indices.__array_interface__['data'][0])
 
     # libCEED call
-    lib.CeedElemRestrictionCreateBlocked(self._ceed._pointer[0], nelem,
+    lib.CeedElemRestrictionCreateBlocked(self._ceed._pointer[0], lmode, nelem,
                                          elemsize, blksize, nnodes, ncomp,
                                          memtype, cmode, indices_pointer,
                                          self._pointer)
@@ -212,7 +204,7 @@ class BlockedElemRestriction(_ElemRestrictionBase):
     return TransposeBlockedElemRestriction(self)
 
   # Apply CeedElemRestriction to single block
-  def apply_block(self, block, u, v, tmode=NOTRANSPOSE, lmode=NOTRANSPOSE,
+  def apply_block(self, block, u, v, tmode=NOTRANSPOSE,
                   request=REQUEST_IMMEDIATE):
     """Restrict a local vector to a block of an element vector or apply its transpose.
 
@@ -223,19 +215,11 @@ class BlockedElemRestriction(_ElemRestrictionBase):
          u: input vector
          v: output vector
          **tmode: apply restriction or transpose, default CEED_NOTRANSPOSE
-         **lmode: ordering of the ncomp components, i.e. it specifies
-                    the ordering of the components of the l-vector used
-                    by this CeedElemRestriction. CEED_NOTRANSPOSE indicates
-                    the component is the outermost index and CEED_TRANSPOSE
-                    indicates the component is the innermost index in
-                    ordering of the local vector tmode=CEED_NOTRANSPOSE;
-                    default CEED_NOTRANSPOSE
          **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
 
     # libCEED call
     lib.CeedElemRestrictionApplyBlock(self._pointer[0], block, tmode,
-                                      lmode, u._pointer[0], v._pointer[0],
-                                      request)
+                                      u._pointer[0], v._pointer[0], request)
 
 # ------------------------------------------------------------------------------
 class TransposeElemRestriction():
@@ -256,23 +240,16 @@ class TransposeElemRestriction():
 
 
   # Apply Transpose CeedElemRestriction
-  def apply(self, u, v, request=REQUEST_IMMEDIATE, lmode=NOTRANSPOSE):
+  def apply(self, u, v, request=REQUEST_IMMEDIATE):
     """Restrict an element vector to a local vector.
 
        Args:
          u: input vector
          v: output vector
-         **lmode: ordering of the ncomp components, i.e. it specifies
-                   the ordering of the components of the local vector used
-                   by this CeedElemRestriction. CEED_NOTRANSPOSE indicates
-                   the component is the outermost index and CEED_TRANSPOSE
-                   indicates the component is the innermost index in
-                   ordering of the local vector, default CEED_NOTRANSPOSE
          **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
 
     # libCEED call
-    self._elemrestriction.apply(u, v, request=request, lmode=lmode,
-                                tmode=TRANSPOSE)
+    self._elemrestriction.apply(u, v, request=request, tmode=TRANSPOSE)
 
 # ------------------------------------------------------------------------------
 class TransposeBlockedElemRestriction(TransposeElemRestriction):
@@ -280,8 +257,7 @@ class TransposeBlockedElemRestriction(TransposeElemRestriction):
        to local vectors."""
 
   # Apply Transpose CeedElemRestriction
-  def apply_block(self, block, u, v, request=REQUEST_IMMEDIATE,
-                  lmode=NOTRANSPOSE):
+  def apply_block(self, block, u, v, request=REQUEST_IMMEDIATE):
     """Restrict a block of an element vector to a local vector.
 
        Args:
@@ -290,17 +266,10 @@ class TransposeBlockedElemRestriction(TransposeElemRestriction):
                   [3*blksize : 4*blksize]
          u: input vector
          v: output vector
-         **lmode: ordering of the ncomp components, i.e. it specifies
-                    the ordering of the components of the l-vector used
-                    by this CeedElemRestriction. CEED_NOTRANSPOSE indicates
-                    the component is the outermost index and CEED_TRANSPOSE
-                    indicates the component is the innermost index in
-                    ordering of the local vector tmode=CEED_NOTRANSPOSE),
-                    default CEED_NOTRANSPOSE
          **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
 
     # libCEED call
-    self._elemrestriction.apply_block(block, u, v, request=request, lmode=lmode,
-                                tmode=TRANSPOSE)
+    self._elemrestriction.apply_block(block, u, v, request=request,
+                                      tmode=TRANSPOSE)
 
 # ------------------------------------------------------------------------------
