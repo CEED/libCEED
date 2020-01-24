@@ -346,7 +346,7 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[dim], int order,
   // nnodes:   0   1    p-1  p  p+1       2*p             n*p
   CeedInt *el_nodes = malloc(sizeof(CeedInt)*num_elem*nnodes);
   for (CeedInt e = 0; e < num_elem; e++) {
-    CeedInt exyz[3], re = e;
+    CeedInt exyz[3] = {1, 1, 1}, re = e;
     for (int d = 0; d < dim; d++) { exyz[d] = re%nxyz[d]; re /= nxyz[d]; }
     CeedInt *loc_el_nodes = el_nodes + e*nnodes;
     for (int lnodes = 0; lnodes < nnodes; lnodes++) {
