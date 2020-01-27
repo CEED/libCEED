@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
   CeedInt *ind = malloc(sizeof(CeedInt)*2*ne);
   CeedScalar a[ncomp*(ne+1)];
   CeedElemRestriction r;
-  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
 
   CeedInit(argv[1], &ceed);
 
@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     ind[2*i+0] = i;
     ind[2*i+1] = i+1;
   }
-  CeedElemRestrictionCreateBlocked(ceed, lmode, ne, 2, blksize, ne+1, ncomp,
+  CeedElemRestrictionCreateBlocked(ceed, imode, ne, 2, blksize, ne+1, ncomp,
                                    CEED_MEM_HOST, CEED_OWN_POINTER, ind, &r);
   CeedVectorCreate(ceed, 2*blksize*2*ncomp, &y);
   CeedVectorSetValue(y, 0); // Allocates array

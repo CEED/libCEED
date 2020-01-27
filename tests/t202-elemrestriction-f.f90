@@ -9,8 +9,8 @@
 
       integer ne
       parameter(ne=8)
-      integer lmode
-      parameter(lmode=ceed_notranspose)
+      integer imode
+      parameter(imode=ceed_noninterlaced)
       integer blksize
       parameter(blksize=5)
 
@@ -37,7 +37,7 @@
         ind(2*i  )=i
       enddo
 
-      call ceedelemrestrictioncreateblocked(ceed,lmode,ne,2,blksize,ne+1,1,&
+      call ceedelemrestrictioncreateblocked(ceed,imode,ne,2,blksize,ne+1,1,&
      & ceed_mem_host,ceed_use_pointer,ind,r,err)
 
       call ceedvectorcreate(ceed,2*blksize*2,y,err);

@@ -36,8 +36,8 @@
       include 'ceedf.h'
 
       integer ceed,err,i
-      integer lmode
-      parameter(lmode=ceed_notranspose)
+      integer imode
+      parameter(imode=ceed_noninterlaced)
       integer erestrictxi,erestrictui,erestrictqi
       integer bx,bu
       integer qf_setup_mass,qf_apply
@@ -77,13 +77,13 @@
       call ceedvectorcreate(ceed,nqpts,qdata_mass,err)
 
 ! Restrictions
-      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,2*2,nelem*2*2,d,&
+      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,2*2,nelem*2*2,d,&
      & erestrictxi,err)
 
-      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,p*p,ndofs,1,&
+      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,p*p,ndofs,1,&
      & erestrictui,err)
 
-      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,q*q,nqpts,1,&
+      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,q*q,nqpts,1,&
      & erestrictqi,err)
 
 ! Bases

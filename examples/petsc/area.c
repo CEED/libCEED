@@ -60,7 +60,7 @@ static const char help[] =
 #endif
 
 // Auxiliary function to define CEED restrictions from DMPlex data
-static int CreateRestrictionPlex(Ceed ceed, CeedTransposeMode lmode, CeedInt P,
+static int CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode, CeedInt P,
                                  CeedInt ncomp, CeedElemRestriction *Erestrict,
                                  DM dm) {
   PetscInt ierr;
@@ -100,7 +100,7 @@ static int CreateRestrictionPlex(Ceed ceed, CeedTransposeMode lmode, CeedInt P,
   ierr = VecGetLocalSize(Uloc, &nnodes); CHKERRQ(ierr);
 
   ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, lmode, nelem, P*P, nnodes/ncomp, ncomp,
+  CeedElemRestrictionCreate(ceed, imode, nelem, P*P, nnodes/ncomp, ncomp,
                             CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
                             Erestrict);
   ierr = PetscFree(erestrict); CHKERRQ(ierr);
@@ -154,7 +154,8 @@ int main(int argc, char **argv) {
   CeedOperator op_setupgeo, op_apply;
   CeedQFunction qf_setupgeo, qf_apply;
   CeedBasis basisx, basisu;
-  CeedTransposeMode lmodeceed = CEED_NOTRANSPOSE, lmodepetsc = CEED_TRANSPOSE;
+  CeedInterlaceMode imodeceed = CEED_NONINTERLACED,
+                    imodepetsc = CEED_INTERLACED;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi,
                       Erestrictqdi;
   PetscFunctionList geomfactorlist = NULL;
@@ -296,9 +297,9 @@ int main(int argc, char **argv) {
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
-  CreateRestrictionPlex(ceed, lmodepetsc, 2, ncompx, &Erestrictx, dmcoord);
+  CreateRestrictionPlex(ceed, imodepetsc, 2, ncompx, &Erestrictx, dmcoord);
   CHKERRQ(ierr);
-  CreateRestrictionPlex(ceed, lmodepetsc, P, ncompu, &Erestrictu, dm);
+  CreateRestrictionPlex(ceed, imodepetsc, P, ncompu, &Erestrictu, dm);
   CHKERRQ(ierr);
 
   CeedInt cStart, cEnd;
@@ -307,9 +308,9 @@ int main(int argc, char **argv) {
 
   // CEED identity restrictions
   const CeedInt qdatasize = 1;
-  CeedElemRestrictionCreateIdentity(ceed, lmodeceed, nelem, Q*Q, nelem*Q*Q,
+  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q, nelem*Q*Q,
                                     qdatasize, &Erestrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, lmodeceed, nelem, Q*Q, nelem*Q*Q, 1,
+  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q, nelem*Q*Q, 1,
                                     &Erestrictxi);
 
   // Element coordinates

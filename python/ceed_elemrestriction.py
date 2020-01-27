@@ -18,7 +18,7 @@ from _ceed_cffi import ffi, lib
 import tempfile
 import numpy as np
 from abc import ABC
-from .ceed_constants import REQUEST_IMMEDIATE, REQUEST_ORDERED, MEM_HOST, COPY_VALUES, TRANSPOSE, NOTRANSPOSE
+from .ceed_constants import REQUEST_IMMEDIATE, REQUEST_ORDERED, MEM_HOST, COPY_VALUES, TRANSPOSE, NOTRANSPOSE, INTERLACED, NONINTERLACED
 from .ceed_vector import _VectorWrap
 
 # ------------------------------------------------------------------------------
@@ -131,7 +131,7 @@ class ElemRestriction(_ElemRestrictionBase):
 
   # Constructor
   def __init__(self, ceed, nelem, elemsize, nnodes, ncomp, indices,
-               memtype=MEM_HOST, cmode=COPY_VALUES, lmode=NOTRANSPOSE):
+               memtype=MEM_HOST, cmode=COPY_VALUES, imode=NONINTERLACED):
     # CeedVector object
     self._pointer = ffi.new("CeedElemRestriction *")
 
@@ -144,7 +144,7 @@ class ElemRestriction(_ElemRestrictionBase):
                                indices.__array_interface__['data'][0])
 
     # libCEED call
-    lib.CeedElemRestrictionCreate(self._ceed._pointer[0], lmode, nelem,
+    lib.CeedElemRestrictionCreate(self._ceed._pointer[0], imode, nelem,
                                   elemsize, nnodes, ncomp, memtype, cmode,
                                   indices_pointer, self._pointer)
 
@@ -153,7 +153,7 @@ class IdentityElemRestriction(_ElemRestrictionBase):
   """Ceed Identity ElemRestriction: identity restriction from local vectors to elements."""
 
   # Constructor
-  def __init__(self, ceed, nelem, elemsize, nnodes, ncomp, lmode=NOTRANSPOSE):
+  def __init__(self, ceed, nelem, elemsize, nnodes, ncomp, imode=NONINTERLACED):
     # CeedVector object
     self._pointer = ffi.new("CeedElemRestriction *")
 
@@ -161,7 +161,7 @@ class IdentityElemRestriction(_ElemRestrictionBase):
     self._ceed = ceed
 
     # libCEED call
-    lib.CeedElemRestrictionCreateIdentity(self._ceed._pointer[0], lmode, nelem,
+    lib.CeedElemRestrictionCreateIdentity(self._ceed._pointer[0], imode, nelem,
                                           elemsize, nnodes, ncomp,
                                           self._pointer)
 
@@ -171,7 +171,7 @@ class BlockedElemRestriction(_ElemRestrictionBase):
 
   # Constructor
   def __init__(self, ceed, nelem, elemsize, blksize, nnodes, ncomp, indices,
-               memtype=MEM_HOST, cmode=COPY_VALUES, lmode=NOTRANSPOSE):
+               memtype=MEM_HOST, cmode=COPY_VALUES, imode=NONINTERLACED):
     # CeedVector object
     self._pointer = ffi.new("CeedElemRestriction *")
 
@@ -184,7 +184,7 @@ class BlockedElemRestriction(_ElemRestrictionBase):
                                indices.__array_interface__['data'][0])
 
     # libCEED call
-    lib.CeedElemRestrictionCreateBlocked(self._ceed._pointer[0], lmode, nelem,
+    lib.CeedElemRestrictionCreateBlocked(self._ceed._pointer[0], imode, nelem,
                                          elemsize, blksize, nnodes, ncomp,
                                          memtype, cmode, indices_pointer,
                                          self._pointer)

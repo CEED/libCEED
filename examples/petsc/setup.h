@@ -410,7 +410,7 @@ static PetscErrorCode CeedDataDestroy(CeedInt i, CeedData data) {
 }
 
 // Get CEED restriction data from DMPlex
-static int CreateRestrictionPlex(Ceed ceed, CeedTransposeMode lmode, CeedInt P,
+static int CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode, CeedInt P,
                                  CeedInt ncomp, CeedElemRestriction *Erestrict,
                                  DM dm) {
   PetscInt ierr;
@@ -450,7 +450,7 @@ static int CreateRestrictionPlex(Ceed ceed, CeedTransposeMode lmode, CeedInt P,
   ierr = VecGetLocalSize(Uloc, &nnodes); CHKERRQ(ierr);
 
   ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, lmode, nelem, P*P*P, nnodes/ncomp, ncomp,
+  CeedElemRestrictionCreate(ceed, imode, nelem, P*P*P, nnodes/ncomp, ncomp,
                             CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
                             Erestrict);
   ierr = PetscFree(erestrict); CHKERRQ(ierr);
@@ -470,7 +470,8 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   Vec coords;
   const PetscScalar *coordArray;
   CeedBasis basisx, basisu;
-  CeedTransposeMode lmodeceed = CEED_NOTRANSPOSE, lmodepetsc = CEED_TRANSPOSE;
+  CeedInterlaceMode imodeceed = CEED_NONINTERLACED,
+                    imodepetsc = CEED_INTERLACED;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi,
                       Erestrictui, Erestrictqdi;
   CeedQFunction qf_setupgeo, qf_apply;
@@ -492,17 +493,17 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
-  CreateRestrictionPlex(ceed, lmodepetsc, 2, ncompx, &Erestrictx, dmcoord);
-  CreateRestrictionPlex(ceed, lmodepetsc, P, ncompu, &Erestrictu, dm);
+  CreateRestrictionPlex(ceed, imodepetsc, 2, ncompx, &Erestrictx, dmcoord);
+  CreateRestrictionPlex(ceed, imodepetsc, P, ncompu, &Erestrictu, dm);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
 
-  CeedElemRestrictionCreateIdentity(ceed, lmodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
+  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
                                     ncompu, &Erestrictui); CHKERRQ(ierr);
-  CeedElemRestrictionCreateIdentity(ceed, lmodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
+  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
                                     qdatasize, &Erestrictqdi); CHKERRQ(ierr);
-  CeedElemRestrictionCreateIdentity(ceed, lmodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
+  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
                                     ncompx, &Erestrictxi); CHKERRQ(ierr);
 
   // Element coordinates

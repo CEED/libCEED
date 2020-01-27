@@ -242,15 +242,27 @@ typedef enum {
 
 CEED_EXTERN const char *const CeedTransposeModes[];
 
-CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedTransposeMode lmode,
+/// Denotes whether a L-vector is ordered [component, node] or [node, component]
+///   with the right-most index being contiguous in memory
+/// @ingroup CeedElemRestriction
+typedef enum {
+  /// L-vector data is not interlaced, ordered [component, node]
+  CEED_NONINTERLACED,
+  /// L-vector data is interlaced, ordered [node, component]
+  CEED_INTERLACED
+} CeedInterlaceMode;
+
+CEED_EXTERN const char *const CeedInterlaceModes[];
+
+CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInterlaceMode imode,
     CeedInt nelem, CeedInt elemsize, CeedInt nnodes, CeedInt ncomp,
     CeedMemType mtype, CeedCopyMode cmode, const CeedInt *indices,
     CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateIdentity(Ceed ceed,
-    CeedTransposeMode lmode,CeedInt nelem, CeedInt elemsize, CeedInt nnodes,
+    CeedInterlaceMode imode,CeedInt nelem, CeedInt elemsize, CeedInt nnodes,
     CeedInt ncomp, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed,
-    CeedTransposeMode lmode,CeedInt nelem, CeedInt elemsize, CeedInt blksize,
+    CeedInterlaceMode imode,CeedInt nelem, CeedInt elemsize, CeedInt blksize,
     CeedInt nnodes, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
     const CeedInt *indices, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,

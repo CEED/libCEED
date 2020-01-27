@@ -9,7 +9,7 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui;
   CeedBasis bx, bu;
   CeedQFunction qf_setup, qf_mass;
@@ -26,9 +26,9 @@ int main(int argc, char **argv) {
     indx[2*i+1] = i+1;
   }
   // Restrictions
-  CeedElemRestrictionCreate(ceed, lmode, nelem, 2, Nx, 1, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, imode, nelem, 2, Nx, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictx);
-  CeedElemRestrictionCreateIdentity(ceed, lmode, nelem, 2, nelem*2, 1,
+  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, 2, nelem*2, 1,
                                     &Erestrictxi);
 
   for (CeedInt i=0; i<nelem; i++) {
@@ -36,9 +36,9 @@ int main(int argc, char **argv) {
       indu[P*i+j] = i*(P-1) + j;
     }
   }
-  CeedElemRestrictionCreate(ceed, lmode, nelem, P, Nu, 2, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, imode, nelem, P, Nu, 2, CEED_MEM_HOST,
                             CEED_USE_POINTER, indu, &Erestrictu);
-  CeedElemRestrictionCreateIdentity(ceed, lmode, nelem, Q, Q*nelem, 1,
+  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, Q, Q*nelem, 1,
                                     &Erestrictui);
 
   // Bases

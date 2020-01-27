@@ -94,7 +94,7 @@ struct CeedElemRestriction_private {
                     CeedVector, CeedRequest *);
   int (*Destroy)(CeedElemRestriction);
   int refcount;
-  CeedTransposeMode lmode;  /* Transpose mode for L-vector ordering */
+  CeedInterlaceMode imode;  /* Interlacing mode for L-vector ordering */
   CeedInt nelem;            /* number of elements */
   CeedInt elemsize;         /* number of nodes per element */
   CeedInt nnodes;           /* size of the L-vector, can be used for checking

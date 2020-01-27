@@ -8,7 +8,7 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedElemRestriction Erestrictxi, Erestrictui, Erestrictqi;
   CeedBasis bx, bu;
   CeedQFunction qf_setup_mass, qf_apply;
@@ -36,13 +36,13 @@ int main(int argc, char **argv) {
   // Element Setup
 
   // Restrictions
-  CeedElemRestrictionCreateIdentity(ceed, lmode, nelem, 2*2, nelem*2*2, dim,
+  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, 2*2, nelem*2*2, dim,
                                     &Erestrictxi);
 
-  CeedElemRestrictionCreateIdentity(ceed, lmode, nelem, P*P, ndofs, 1,
+  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, P*P, ndofs, 1,
                                     &Erestrictui);
 
-  CeedElemRestrictionCreateIdentity(ceed, lmode, nelem, Q*Q, nqpts, 1,
+  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, Q*Q, nqpts, 1,
                                     &Erestrictqi);
 
   // Bases

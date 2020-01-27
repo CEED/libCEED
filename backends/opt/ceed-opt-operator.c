@@ -59,13 +59,13 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
       Ceed ceed;
       ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
       CeedInt nelem, elemsize, nnodes;
-      CeedTransposeMode lmode;
-      ierr = CeedElemRestrictionGetLMode(r, &lmode); CeedChk(ierr);
+      CeedInterlaceMode imode;
+      ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
       ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
       ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
       ierr = CeedElemRestrictionGetNumNodes(r, &nnodes); CeedChk(ierr);
       ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
-      ierr = CeedElemRestrictionCreateBlocked(ceed, lmode, nelem, elemsize,
+      ierr = CeedElemRestrictionCreateBlocked(ceed, imode, nelem, elemsize,
                                               blksize, nnodes, ncomp,
                                               CEED_MEM_HOST, CEED_COPY_VALUES,
                                               data->indices, &blkrestr[i+starte]);
@@ -614,8 +614,8 @@ static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
   ierr = CeedVectorGetArray(lvec, CEED_MEM_HOST, &a); CeedChk(ierr);
 
   // Create output restriction
-  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
-  ierr = CeedElemRestrictionCreateIdentity(ceed, lmode, numelements, Q,
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
+  ierr = CeedElemRestrictionCreateIdentity(ceed, imode, numelements, Q,
          numelements*Q, numactivein*numactiveout, rstr); CeedChk(ierr);
   // Create assembled vector
   ierr = CeedVectorCreate(ceed, numelements*Q*numactivein*numactiveout,
@@ -677,7 +677,7 @@ static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
   ierr = CeedVectorRestoreArray(lvec, &a); CeedChk(ierr);
   ierr = CeedVectorSetValue(*assembled, 0.0); CeedChk(ierr);
   CeedElemRestriction blkrstr;
-  ierr = CeedElemRestrictionCreateBlocked(ceed, lmode, numelements, Q, blksize,
+  ierr = CeedElemRestrictionCreateBlocked(ceed, imode, numelements, Q, blksize,
                                           numelements*Q,
                                           numactivein*numactiveout,
                                           CEED_MEM_HOST, CEED_COPY_VALUES,

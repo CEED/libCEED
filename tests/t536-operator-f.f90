@@ -70,8 +70,8 @@
       include 'ceedf.h'
 
       integer ceed,err,i
-      integer lmode
-      parameter(lmode=ceed_notranspose)
+      integer imode
+      parameter(imode=ceed_noninterlaced)
       integer erestrictx,erestrictu,erestrictxi,erestrictui,erestrictqi
       integer bx,bu
       integer qf_setup_mass,qf_setup_diff,qf_apply
@@ -142,17 +142,17 @@
       enddo
 
 ! Restrictions
-      call ceedelemrestrictioncreate(ceed,lmode,nelem,p,ndofs,d,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,imode,nelem,p,ndofs,d,ceed_mem_host,&
      & ceed_use_pointer,indx,erestrictx,err)
-      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,p,nelem*p,d,&
+      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,p,nelem*p,d,&
      & erestrictxi,err)
 
-      call ceedelemrestrictioncreate(ceed,lmode,nelem,p,ndofs,1,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,imode,nelem,p,ndofs,1,ceed_mem_host,&
      & ceed_use_pointer,indx,erestrictu,err)
-      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,q,nqpts,1,&
+      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,q,nqpts,1,&
      & erestrictui,err)
 
-      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,q,nqpts,d*(d+1)/2,&
+      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,q,nqpts,d*(d+1)/2,&
      & erestrictqi,err)
 
 ! Bases

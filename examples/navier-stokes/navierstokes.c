@@ -115,7 +115,7 @@ static PetscInt GlobalStart(const PetscInt p[3], const PetscInt irank[3],
 }
 
 // Utility function to create local CEED restriction
-static int CreateRestriction(Ceed ceed, CeedTransposeMode lmode,
+static int CreateRestriction(Ceed ceed, CeedInterlaceMode imode,
                              const CeedInt melem[3], CeedInt P, CeedInt ncomp,
                              CeedElemRestriction *Erestrict) {
   const PetscInt Nelem = melem[0]*melem[1]*melem[2];
@@ -144,7 +144,7 @@ static int CreateRestriction(Ceed ceed, CeedTransposeMode lmode,
       }
     }
   }
-  CeedElemRestrictionCreate(ceed, lmode, Nelem, P*P*P,
+  CeedElemRestrictionCreate(ceed, imode, Nelem, P*P*P,
                             mnode[0]*mnode[1]*mnode[2], ncomp, CEED_MEM_HOST,
                             CEED_OWN_POINTER, idx, Erestrict);
   PetscFunctionReturn(0);
@@ -356,7 +356,9 @@ int main(int argc, char **argv) {
   const CeedInt dim = 3, ncompx = 3, ncompq = 5;
   CeedVector xcorners, xceed, qdata, q0ceed, mceed, onesvec, multlvec;
   CeedBasis basisx, basisxc, basisq;
-  CeedTransposeMode lmodeceed = CEED_NOTRANSPOSE, lmodepetsc = CEED_TRANSPOSE;
+
+  CeedInterlaceMode imodeceed = CEED_NONINTERLACED,
+                    imodepetsc = CEED_INTERLACED;
   CeedElemRestriction restrictx, restrictxc, restrictxi,
                       restrictq, restrictqdi, restrictmult;
   CeedQFunction qf_setup, qf_mass, qf_ics, qf;
@@ -725,15 +727,15 @@ int main(int argc, char **argv) {
                                   CEED_GAUSS_LOBATTO, &basisxc);
 
   // CEED Restrictions
-  CreateRestriction(ceed, lmodeceed, melem, 2, dim, &restrictx);
-  CreateRestriction(ceed, lmodepetsc, melem, numP, dim, &restrictxc);
-  CreateRestriction(ceed, lmodepetsc, melem, numP, 1, &restrictmult);
-  CreateRestriction(ceed, lmodepetsc, melem, numP, ncompq, &restrictq);
-  CeedElemRestrictionCreateIdentity(ceed, lmodeceed, localNelem,
+  CreateRestriction(ceed, imodeceed, melem, 2, dim, &restrictx);
+  CreateRestriction(ceed, imodepetsc, melem, numP, dim, &restrictxc);
+  CreateRestriction(ceed, imodepetsc, melem, numP, 1, &restrictmult);
+  CreateRestriction(ceed, imodepetsc, melem, numP, ncompq, &restrictq);
+  CeedElemRestrictionCreateIdentity(ceed, imodeceed, localNelem,
                                     10*numQ*numQ*numQ,
                                     10*localNelem*numQ*numQ*numQ, 1,
                                     &restrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, lmodeceed, localNelem, numQ*numQ*numQ,
+  CeedElemRestrictionCreateIdentity(ceed, imodeceed, localNelem, numQ*numQ*numQ,
                                     localNelem*numQ*numQ*numQ, 1,
                                     &restrictxi);
 

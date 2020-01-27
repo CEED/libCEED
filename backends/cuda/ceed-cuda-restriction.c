@@ -153,8 +153,8 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
   ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
-  CeedTransposeMode lmode;
-  ierr = CeedElemRestrictionGetLMode(r, &lmode); CeedChk(ierr);
+  CeedInterlaceMode imode;
+  ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
   Ceed_Cuda *data;
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
   const CeedScalar *d_u;
@@ -163,13 +163,13 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChk(ierr);
   CUfunction kernel;
   if (tmode == CEED_NOTRANSPOSE) {
-    if (lmode == CEED_NOTRANSPOSE) {
+    if (imode == CEED_NONINTERLACED) {
       kernel = impl->noTrNoTr;
     } else {
       kernel = impl->noTrTr;
     }
   } else {
-    if (lmode == CEED_NOTRANSPOSE) {
+    if (imode == CEED_NONINTERLACED) {
       kernel = impl->trNoTr;
     } else {
       kernel = impl->trTr;
@@ -190,9 +190,9 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
   return 0;
 }
 
-int CeedElemRestrictionApplyBlock_Cuda(CeedElemRestriction r,
-                                       CeedInt block, CeedTransposeMode tmode,
-                                       CeedTransposeMode lmode, CeedVector u,
+int CeedElemRestrictionApplyBlock_Cuda(CeedElemRestriction r, CeedInt block,
+                                       CeedTransposeMode tmode,
+                                       CeedInterlaceMode imode, CeedVector u,
                                        CeedVector v, CeedRequest *request) {
   int ierr;
   Ceed ceed;

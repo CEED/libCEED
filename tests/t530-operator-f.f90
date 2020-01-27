@@ -34,8 +34,8 @@
       include 'ceedf.h'
 
       integer ceed,err,i,j,k
-      integer lmode
-      parameter(lmode=ceed_notranspose)
+      integer imode
+      parameter(imode=ceed_noninterlaced)
       integer erestrictx,erestrictu,erestrictxi,erestrictui,erestrictlini
       integer bx,bu
       integer qf_setup,qf_mass
@@ -92,14 +92,14 @@
       enddo
 
 ! Restrictions
-      call ceedelemrestrictioncreate(ceed,lmode,nelem,p*p,ndofs,d,&
+      call ceedelemrestrictioncreate(ceed,imode,nelem,p*p,ndofs,d,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictx,err)
-      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,p*p,&
+      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,p*p,&
      & nelem*p*p,d,erestrictxi,err)
 
-      call ceedelemrestrictioncreate(ceed,lmode,nelem,p*p,ndofs,1,&
+      call ceedelemrestrictioncreate(ceed,imode,nelem,p*p,ndofs,1,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictu,err)
-      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,q*q,nqpts,&
+      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,q*q,nqpts,&
      & 1,erestrictui,err)
 
 ! Bases

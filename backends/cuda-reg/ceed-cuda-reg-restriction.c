@@ -240,8 +240,8 @@ static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
   ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
-  CeedLayoutMode lmode;
-  ierr = CeedElemRestrictionGetLMode(r, &lmode); CeedChk(ierr);
+  CeedInterlaceMode imode;
+  ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
   Ceed_Cuda_reg *data;
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
   const CeedScalar *d_u;
@@ -256,7 +256,7 @@ static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
   ierr = CeedElemRestrictionGetNumNodes(r, &nnodes); CeedChk(ierr);
   CUfunction kernel;
   if (tmode == CEED_NOTRANSPOSE) {
-    if (lmode == CEED_NOTRANSPOSE) {
+    if (imode == CEED_NONINTERLACED) {
       kernel = impl->noTrNoTr;
     } else {
       kernel = impl->noTrTr;
@@ -269,7 +269,7 @@ static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
                              blocksize, args); CeedChk(ierr);
   } else {
     if (impl->d_ind) {
-      if (lmode == CEED_NOTRANSPOSE) {
+      if (imode == CEED_NONINTERLACED) {
         kernel = impl->trNoTr;
       } else {
         kernel = impl->trTr;
@@ -278,7 +278,7 @@ static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
       ierr = CeedRunKernelCuda(ceed, kernel, CeedDivUpInt(nnodes, blocksize),
                                blocksize, args); CeedChk(ierr);
     } else {
-      if (lmode == CEED_NOTRANSPOSE) {
+      if (imode == CEED_NONINTERLACED) {
         kernel = impl->trNoTrIdentity;
       } else {
         kernel = impl->trTrIdentity;

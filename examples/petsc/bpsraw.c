@@ -89,7 +89,7 @@ static PetscInt GlobalStart(const PetscInt p[3], const PetscInt irank[3],
   }
   return -1;
 }
-static int CreateRestriction(Ceed ceed, CeedTransposeMode lmode,
+static int CreateRestriction(Ceed ceed, CeedInterlaceMode imode,
                              const CeedInt melem[3], CeedInt P, CeedInt ncomp,
                              CeedElemRestriction *Erestrict) {
   const PetscInt nelem = melem[0]*melem[1]*melem[2];
@@ -116,7 +116,7 @@ static int CreateRestriction(Ceed ceed, CeedTransposeMode lmode,
             }
 
   // Setup CEED restriction
-  CeedElemRestrictionCreate(ceed, lmode, nelem, P*P*P,
+  CeedElemRestrictionCreate(ceed, imode, nelem, P*P*P,
                             mnodes[0]*mnodes[1]*mnodes[2], ncomp,
                             CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
 
@@ -400,7 +400,8 @@ int main(int argc, char **argv) {
   User user;
   Ceed ceed;
   CeedBasis basisx, basisu;
-  CeedTransposeMode lmodeceed = CEED_NOTRANSPOSE, lmodepetsc = CEED_TRANSPOSE;
+  CeedInterlaceMode imodeceed = CEED_NONINTERLACED,
+                    imodepetsc = CEED_INTERLACED;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui,
                       Erestrictqdi;
   CeedQFunction qf_setupgeo, qf_setuprhs, qf_apply, qf_error;
@@ -598,15 +599,15 @@ int main(int argc, char **argv) {
                                   bpOptions[bpChoice].qmode, &basisx);
 
   // CEED restrictions
-  CreateRestriction(ceed, lmodepetsc, melem, P, ncompu, &Erestrictu);
-  CreateRestriction(ceed, lmodeceed, melem, 2, dim, &Erestrictx);
+  CreateRestriction(ceed, imodepetsc, melem, P, ncompu, &Erestrictu);
+  CreateRestriction(ceed, imodeceed, melem, 2, dim, &Erestrictx);
   CeedInt nelem = melem[0]*melem[1]*melem[2];
-  CeedElemRestrictionCreateIdentity(ceed, lmodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
+  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
                                     ncompu, &Erestrictui);
-  CeedElemRestrictionCreateIdentity(ceed, lmodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
+  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
                                     bpOptions[bpChoice].qdatasize,
                                     &Erestrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, lmodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
+  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
                                     1, &Erestrictxi);
   {
     CeedScalar *xloc;

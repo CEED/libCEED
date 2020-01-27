@@ -18,7 +18,7 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedElemRestriction ErestrictxTet, ErestrictuTet,
                       ErestrictxiTet, ErestrictuiTet,
                       ErestrictxHex, ErestrictuHex,
@@ -75,16 +75,16 @@ int main(int argc, char **argv) {
   }
 
   // -- Restrictions
-  CeedElemRestrictionCreate(ceed, lmode, nelemTet, PTet, ndofs, dim,
+  CeedElemRestrictionCreate(ceed, imode, nelemTet, PTet, ndofs, dim,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
                             &ErestrictxTet);
-  CeedElemRestrictionCreateIdentity(ceed, lmode, nelemTet, PTet, nelemTet*PTet,
+  CeedElemRestrictionCreateIdentity(ceed, imode, nelemTet, PTet, nelemTet*PTet,
                                     dim, &ErestrictxiTet);
 
-  CeedElemRestrictionCreate(ceed, lmode, nelemTet, PTet, ndofs, 1,
+  CeedElemRestrictionCreate(ceed, imode, nelemTet, PTet, ndofs, 1,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
                             &ErestrictuTet);
-  CeedElemRestrictionCreateIdentity(ceed, lmode, nelemTet, QTet, nqptsTet, 1,
+  CeedElemRestrictionCreateIdentity(ceed, imode, nelemTet, QTet, nqptsTet, 1,
                                     &ErestrictuiTet);
 
   // -- Bases
@@ -138,16 +138,16 @@ int main(int argc, char **argv) {
   }
 
   // -- Restrictions
-  CeedElemRestrictionCreate(ceed, lmode, nelemHex, PHex*PHex, ndofs, dim,
+  CeedElemRestrictionCreate(ceed, imode, nelemHex, PHex*PHex, ndofs, dim,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
                             &ErestrictxHex);
-  CeedElemRestrictionCreateIdentity(ceed, lmode, nelemHex, PHex*PHex,
+  CeedElemRestrictionCreateIdentity(ceed, imode, nelemHex, PHex*PHex,
                                     nelemHex*PHex*PHex, dim, &ErestrictxiHex);
 
-  CeedElemRestrictionCreate(ceed, lmode, nelemHex, PHex*PHex, ndofs, 1,
+  CeedElemRestrictionCreate(ceed, imode, nelemHex, PHex*PHex, ndofs, 1,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
                             &ErestrictuHex);
-  CeedElemRestrictionCreateIdentity(ceed, lmode, nelemHex, QHex*QHex, nqptsHex,
+  CeedElemRestrictionCreateIdentity(ceed, imode, nelemHex, QHex*QHex, nqptsHex,
                                     1, &ErestrictuiHex);
 
   // -- Bases

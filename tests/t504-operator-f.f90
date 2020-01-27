@@ -38,8 +38,8 @@
       include 'ceedf.h'
 
       integer ceed,err,i,j
-      integer lmode
-      parameter(lmode=ceed_notranspose)
+      integer imode
+      parameter(imode=ceed_noninterlaced)
       integer erestrictx,erestrictu,erestrictxi,erestrictui
       integer bx,bu
       integer qf_setup,qf_mass
@@ -69,9 +69,9 @@
         indx(2*i+2)=i+1
       enddo
 
-      call ceedelemrestrictioncreate(ceed,lmode,nelem,2,nx,1,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,imode,nelem,2,nx,1,ceed_mem_host,&
      & ceed_use_pointer,indx,erestrictx,err)
-      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,2,2*nelem,1,&
+      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,2,2*nelem,1,&
      & erestrictxi,err)
 
       do i=0,nelem-1
@@ -80,9 +80,9 @@
         enddo
       enddo
 
-      call ceedelemrestrictioncreate(ceed,lmode,nelem,p,nu,1,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,imode,nelem,p,nu,1,ceed_mem_host,&
      & ceed_use_pointer,indu,erestrictu,err)
-      call ceedelemrestrictioncreateidentity(ceed,lmode,nelem,q,q*nelem,1,&
+      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,q,q*nelem,1,&
      & erestrictui,err)
 
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss,bx,err)

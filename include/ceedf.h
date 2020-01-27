@@ -74,6 +74,16 @@
       parameter(ceed_norm_max    = 2 )
 
 !-----------------------------------------------------------------------
+! CeedInterlaceMode
+!-----------------------------------------------------------------------
+
+      integer ceed_noninterlaced
+      parameter(ceed_noninterlaced = 0)
+
+      integer ceed_interlaced
+      parameter(ceed_interlaced = 1)
+
+!-----------------------------------------------------------------------
 ! CeedTransposeMode
 !-----------------------------------------------------------------------
 

@@ -39,8 +39,8 @@
       include 'ceedf.h'
 
       integer ceed,err,i,j,k
-      integer lmode
-      parameter(lmode=ceed_notranspose)
+      integer imode
+      parameter(imode=ceed_noninterlaced)
       integer erestrictxtet,erestrictutet,erestrictxitet,erestrictuitet,&
 &             erestrictxhex,erestrictuhex,erestrictxihex,erestrictuihex
       integer bxtet,butet,bxhex,buhex
@@ -123,14 +123,14 @@
       enddo
 
 ! -- Restrictions
-      call ceedelemrestrictioncreate(ceed,lmode,nelemtet,ptet,ndofs,d,&
+      call ceedelemrestrictioncreate(ceed,imode,nelemtet,ptet,ndofs,d,&
      & ceed_mem_host,ceed_use_pointer,indxtet,erestrictxtet,err)
-      call ceedelemrestrictioncreateidentity(ceed,lmode,nelemtet,ptet,&
+      call ceedelemrestrictioncreateidentity(ceed,imode,nelemtet,ptet,&
      & nelemtet*ptet,d,erestrictxitet,err)
 
-      call ceedelemrestrictioncreate(ceed,lmode,nelemtet,ptet,ndofs,1,&
+      call ceedelemrestrictioncreate(ceed,imode,nelemtet,ptet,ndofs,1,&
      & ceed_mem_host,ceed_use_pointer,indxtet,erestrictutet,err)
-      call ceedelemrestrictioncreateidentity(ceed,lmode,nelemtet,qtet,nqptstet,&
+      call ceedelemrestrictioncreateidentity(ceed,imode,nelemtet,qtet,nqptstet,&
      & 1,erestrictuitet,err)
 
 ! -- Bases
@@ -189,14 +189,14 @@
       enddo
 
 ! -- Restrictions
-      call ceedelemrestrictioncreate(ceed,lmode,nelemhex,phex*phex,ndofs,d,&
+      call ceedelemrestrictioncreate(ceed,imode,nelemhex,phex*phex,ndofs,d,&
      & ceed_mem_host,ceed_use_pointer,indxhex,erestrictxhex,err)
-      call ceedelemrestrictioncreateidentity(ceed,lmode,nelemhex,phex*phex,&
+      call ceedelemrestrictioncreateidentity(ceed,imode,nelemhex,phex*phex,&
      & nelemhex*phex*phex,d,erestrictxihex,err)
 
-      call ceedelemrestrictioncreate(ceed,lmode,nelemhex,phex*phex,ndofs,1,&
+      call ceedelemrestrictioncreate(ceed,imode,nelemhex,phex*phex,ndofs,1,&
      & ceed_mem_host,ceed_use_pointer,indxhex,erestrictuhex,err)
-      call ceedelemrestrictioncreateidentity(ceed,lmode,nelemhex,qhex*qhex,&
+      call ceedelemrestrictioncreateidentity(ceed,imode,nelemhex,qhex*qhex,&
      & nqptshex,1,erestrictuihex,err)
 
 ! -- Bases

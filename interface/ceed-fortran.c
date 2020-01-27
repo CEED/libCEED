@@ -207,7 +207,7 @@ static int CeedElemRestriction_count_max = 0;
 
 #define fCeedElemRestrictionCreate \
     FORTRAN_NAME(ceedelemrestrictioncreate, CEEDELEMRESTRICTIONCREATE)
-void fCeedElemRestrictionCreate(int *ceed, int *lmode, int *nelements,
+void fCeedElemRestrictionCreate(int *ceed, int *imode, int *nelements,
                                 int *esize, int *nnodes, int *ncomp,
                                 int *memtype, int *copymode, const int *indices,
                                 int *elemrestriction, int *err) {
@@ -220,7 +220,7 @@ void fCeedElemRestrictionCreate(int *ceed, int *lmode, int *nelements,
 
   CeedElemRestriction *elemrestriction_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
-  *err = CeedElemRestrictionCreate(Ceed_dict[*ceed], *lmode, *nelements, *esize,
+  *err = CeedElemRestrictionCreate(Ceed_dict[*ceed], *imode, *nelements, *esize,
                                    *nnodes, *ncomp, *memtype, *copymode,
                                    indices_, elemrestriction_);
 
@@ -232,7 +232,7 @@ void fCeedElemRestrictionCreate(int *ceed, int *lmode, int *nelements,
 
 #define fCeedElemRestrictionCreateIdentity \
     FORTRAN_NAME(ceedelemrestrictioncreateidentity, CEEDELEMRESTRICTIONCREATEIDENTITY)
-void fCeedElemRestrictionCreateIdentity(int *ceed, int *lmode, int *nelements,
+void fCeedElemRestrictionCreateIdentity(int *ceed, int *imode, int *nelements,
                                         int *esize, int *nnodes, int *ncomp,
                                         int *elemrestriction, int *err) {
   if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
@@ -242,9 +242,8 @@ void fCeedElemRestrictionCreateIdentity(int *ceed, int *lmode, int *nelements,
 
   CeedElemRestriction *elemrestriction_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
-  *err = CeedElemRestrictionCreateIdentity(Ceed_dict[*ceed], *lmode, *nelements,
+  *err = CeedElemRestrictionCreateIdentity(Ceed_dict[*ceed], *imode, *nelements,
          *esize, *nnodes, *ncomp, elemrestriction_);
-
   if (*err == 0) {
     *elemrestriction = CeedElemRestriction_count++;
     CeedElemRestriction_n++;
@@ -253,7 +252,7 @@ void fCeedElemRestrictionCreateIdentity(int *ceed, int *lmode, int *nelements,
 
 #define fCeedElemRestrictionCreateBlocked \
     FORTRAN_NAME(ceedelemrestrictioncreateblocked,CEEDELEMRESTRICTIONCREATEBLOCKED)
-void fCeedElemRestrictionCreateBlocked(int *ceed, int *lmode, int *nelements,
+void fCeedElemRestrictionCreateBlocked(int *ceed, int *imode, int *nelements,
                                        int *esize, int *blocksize, int *nnodes,
                                        int *ncomp, int *mtype, int *cmode,
                                        int *blkindices, int *elemrestriction,
@@ -266,7 +265,7 @@ void fCeedElemRestrictionCreateBlocked(int *ceed, int *lmode, int *nelements,
 
   CeedElemRestriction *elemrestriction_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
-  *err = CeedElemRestrictionCreateBlocked(Ceed_dict[*ceed], *lmode, *nelements,
+  *err = CeedElemRestrictionCreateBlocked(Ceed_dict[*ceed], *imode, *nelements,
                                           *esize, *blocksize, *nnodes, *ncomp,
                                           *mtype, *cmode, blkindices,
                                           elemrestriction_);

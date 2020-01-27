@@ -247,7 +247,7 @@ def test_502(ceed_resource):
     for j in range(p):
       indu[p*i+j] = i*(p-1) + j
   ru = ceed.ElemRestriction(nelem, p, nu, 2, indu, cmode=libceed.USE_POINTER,
-                            lmode=libceed.TRANSPOSE)
+                            imode=libceed.INTERLACED)
   rui = ceed.IdentityElemRestriction(nelem, q, q*nelem, 1)
 
   # Bases
@@ -342,7 +342,7 @@ def test_503(ceed_resource):
     for j in range(p):
       indu[p*i+j] = i*(p-1) + j
   ru = ceed.ElemRestriction(nelem, p, nu, 1, indu, cmode=libceed.USE_POINTER,
-                            lmode=libceed.TRANSPOSE)
+                            imode=libceed.INTERLACED)
   rui = ceed.IdentityElemRestriction(nelem, q, q*nelem, 1)
 
   # Bases

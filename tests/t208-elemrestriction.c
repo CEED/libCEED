@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
   CeedScalar a[ne+1];
   CeedElemRestriction r;
   CeedScalar *y_array;
-  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
 
   CeedInit(argv[1], &ceed);
 
@@ -27,7 +27,8 @@ int main(int argc, char **argv) {
       ind[elemsize*i+k] = i+k;
     }
   }
-  CeedElemRestrictionCreateBlocked(ceed, lmode, ne, elemsize, blksize, ne+1, 1,
+
+  CeedElemRestrictionCreateBlocked(ceed, imode, ne, elemsize, blksize, ne+1, 1,
                                    CEED_MEM_HOST, CEED_USE_POINTER, ind, &r);
 
   CeedVectorCreate(ceed, blksize*elemsize, &y);

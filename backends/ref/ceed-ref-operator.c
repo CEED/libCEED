@@ -571,8 +571,8 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   // LCOV_EXCL_STOP
 
   // Create output restriction
-  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
-  ierr = CeedElemRestrictionCreateIdentity(ceedparent, lmode, numelements, Q,
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
+  ierr = CeedElemRestrictionCreateIdentity(ceedparent, imode, numelements, Q,
          numelements*Q, numactivein*numactiveout, rstr); CeedChk(ierr);
   // Create assembled vector
   ierr = CeedVectorCreate(ceedparent, numelements*Q*numactivein*numactiveout,
@@ -1027,8 +1027,8 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
 
   // -- Restriction
   CeedElemRestriction rstr_i;
-  CeedTransposeMode lmode = CEED_NOTRANSPOSE;
-  ierr = CeedElemRestrictionCreateIdentity(ceedparent, lmode, nelem, nnodes,
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
+  ierr = CeedElemRestrictionCreateIdentity(ceedparent, imode, nelem, nnodes,
          nnodes*nelem, ncomp, &rstr_i); CeedChk(ierr);
   // -- QFunction
   CeedQFunction mass_qf;
