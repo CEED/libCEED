@@ -96,7 +96,6 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
     const CeedScalar A33 = dxdXdxdXT[1][1]*dxdXdxdXT[2][2] - dxdXdxdXT[1][2]*dxdXdxdXT[2][1];
     const CeedScalar detdXdxdXdxT = dxdXdxdXT[1][1]*A11 + dxdXdxdXT[2][1]*A12 + dxdXdxdXT[3][1]*A13;
 
-
     // Interp-to-Interp qdata
     qdata[i+Q*0] = w[i] * detdXdxdXdxT;
 
