@@ -348,7 +348,7 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
     return CeedError(rstr->ceed, 2, "Output vector size %d not compatible with "
                      "element restriction (%d, %d)", ru->length, m, n);
   // LCOV_EXCL_STOP
-  ierr = rstr->Apply(rstr, tmode, rstr->lmode, u, ru, request); CeedChk(ierr);
+  ierr = rstr->Apply(rstr, tmode, u, ru, request); CeedChk(ierr);
 
   return 0;
 }
@@ -401,7 +401,7 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
                      "total elements %d", block, rstr->blksize*block,
                      rstr->nelem);
   // LCOV_EXCL_STOP
-  ierr = rstr->ApplyBlock(rstr, block, tmode, rstr->lmode, u, ru, request);
+  ierr = rstr->ApplyBlock(rstr, block, tmode, u, ru, request);
   CeedChk(ierr);
 
   return 0;

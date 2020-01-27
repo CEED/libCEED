@@ -131,14 +131,15 @@ static int CeedElemRestrictionApply_Ref_38(CeedElemRestriction r,
 // ElemRestriction Apply
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
-                                        CeedTransposeMode tmode,
-                                        CeedTransposeMode lmode, CeedVector u,
+                                        CeedTransposeMode tmode, CeedVector u,
                                         CeedVector v, CeedRequest *request) {
   int ierr;
   CeedInt numblk, ncomp, blksize;
+  CeedTransposeMode lmode;
   ierr = CeedElemRestrictionGetNumBlocks(r, &numblk); CeedChk(ierr);
   ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
   ierr = CeedElemRestrictionGetBlockSize(r, &blksize); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetLMode(r, &lmode); CeedChk(ierr);
 
   CeedInt idx = -1;
   if (blksize < 10)
@@ -172,12 +173,14 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
 // ElemRestriction Apply Block
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionApplyBlock_Ref(CeedElemRestriction r,
-    CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
-    CeedVector u, CeedVector v, CeedRequest *request) {
+    CeedInt block, CeedTransposeMode tmode, CeedVector u, CeedVector v,
+    CeedRequest *request) {
   int ierr;
   CeedInt ncomp, blksize;
+  CeedTransposeMode lmode;
   ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
   ierr = CeedElemRestrictionGetBlockSize(r, &blksize); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetLMode(r, &lmode); CeedChk(ierr);
 
   CeedInt idx = -1;
   if (blksize < 10)

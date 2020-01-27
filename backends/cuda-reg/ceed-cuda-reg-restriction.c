@@ -234,13 +234,14 @@ extern "C" __global__ void trTrIdentity(const CeedInt nelem,
 // *INDENT-ON*
 
 static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
-    CeedTransposeMode tmode, CeedTransposeMode lmode,
-    CeedVector u, CeedVector v, CeedRequest *request) {
+    CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request) {
   int ierr;
   CeedElemRestriction_Cuda_reg *impl;
   ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
+  CeedLayoutMode lmode;
+  ierr = CeedElemRestrictionGetLMode(r, &lmode); CeedChk(ierr);
   Ceed_Cuda_reg *data;
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
   const CeedScalar *d_u;

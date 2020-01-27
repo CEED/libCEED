@@ -147,13 +147,14 @@ extern "C" __global__ void trTr(const CeedInt nelem,
 // *INDENT-ON*
 
 static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
-    CeedTransposeMode tmode, CeedTransposeMode lmode,
-    CeedVector u, CeedVector v, CeedRequest *request) {
+    CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request) {
   int ierr;
   CeedElemRestriction_Cuda *impl;
   ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
+  CeedTransposeMode lmode;
+  ierr = CeedElemRestrictionGetLMode(r, &lmode); CeedChk(ierr);
   Ceed_Cuda *data;
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
   const CeedScalar *d_u;

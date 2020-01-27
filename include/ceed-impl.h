@@ -88,10 +88,10 @@ struct CeedVector_private {
 
 struct CeedElemRestriction_private {
   Ceed ceed;
-  int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedTransposeMode,
-               CeedVector, CeedVector, CeedRequest *);
-  int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode,
-                    CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
+  int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector,
+               CeedRequest *);
+  int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector,
+                    CeedVector, CeedRequest *);
   int (*Destroy)(CeedElemRestriction);
   int refcount;
   CeedTransposeMode lmode;  /* Transpose mode for L-vector ordering */

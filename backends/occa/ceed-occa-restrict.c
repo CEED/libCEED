@@ -33,7 +33,6 @@ static inline size_t bytes(const CeedElemRestriction res) {
 static
 int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
                                   CeedTransposeMode tmode,
-                                  CeedTransposeMode lmode,
                                   CeedVector u, CeedVector v,
                                   CeedRequest *request) {
   int ierr;
@@ -42,6 +41,8 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
   CeedInt ncomp;
   ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
   dbg("[CeedElemRestriction][Apply]");
+  CeedTransposeMode lmode;
+  ierr = CeedElemRestrictionGetLMode(r, &lmode); CeedChk(ierr);
   CeedElemRestriction_Occa *data;
   ierr = CeedElemRestrictionGetData(r, (void *)&data); CeedChk(ierr);
   const occaMemory id = data->d_indices;
