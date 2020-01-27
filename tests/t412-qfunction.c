@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
   CeedQFunction qf;
   CeedInt Q = 8, size = 3;
   const CeedScalar *v;
-  CeedScalar u[Q];
+  CeedScalar u[Q*size];
 
   CeedInit(argv[1], &ceed);
 
