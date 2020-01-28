@@ -147,7 +147,7 @@ static bpData bpOptions[6] = {
   },
   [CEED_BP3] = {
     .ncompu = 1,
-    .qdatasize = 10,
+    .qdatasize = 4,
     .qextra = 1,
     .setupgeo = SetupDiffGeo,
     .setuprhs = SetupDiffRhs,
