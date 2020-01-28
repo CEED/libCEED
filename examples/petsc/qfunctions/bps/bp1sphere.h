@@ -47,7 +47,7 @@
 //
 // Change of coordinates x (on the 2D manifold) relative to X (reference 2D):
 //   (by chain rule)
-//   dx_i/dX_j = dx_i/dxx_k * dxx_k/dX_j [3 * 2]
+//   dx_i/dX_j [3 * 2] = dx_i/dxx_k [3 * 3] * dxx_k/dX_j [3 * 2]
 //
 // modJ is given by the magnitude of the cross product of the columns of dx_i/dX_j
 //
