@@ -198,8 +198,10 @@ int main(int argc, char **argv) {
     str = SetupMassGeoCube_loc;
   else if (geomfp == SetupMassGeoSphere)
     str = SetupMassGeoSphere_loc;
-  else
-    return CeedError(ceed, 1, "Function not found in the list");
+  else {
+    SETERRQ(comm, PETSC_ERR_USER, "Function not found in the list");
+    return PETSC_ERR_USER;
+  }
 
   // Setup DM
   if (read_mesh) {
