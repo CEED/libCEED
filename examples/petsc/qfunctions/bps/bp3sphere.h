@@ -206,14 +206,14 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar c     = sqrt(5 / (4 * M_PI));
+    const CeedScalar c     = sqrt(5 / M_PI);
     const CeedScalar theta =  asin(X[i+2*Q] / R);
     // Use spherical harmonics of degree 2, order 0 as solution of Laplacian on sphere
-    const CeedScalar P2sin = .5 * c * (3 * sin(theta) * sin(theta) - 1);
+    const CeedScalar P2sin = .25 * c * (3*cos(theta)*cos(theta) -1);
 
     true_soln[i+Q*0] = P2sin;
 
-    rhs[i+Q*0] = qdata[i+Q*0] * true_soln[i+Q*0];
+    rhs[i+Q*0] = qdata[i+Q*0] *  1.5 * c * qdata[i+Q*2] * (sin(theta)*sin(theta) - cos(theta)*cos(theta));
   } // End of Quadrature Point Loop
 
   return 0;
