@@ -356,9 +356,6 @@ int main(int argc, char **argv) {
   const CeedInt dim = 3, ncompx = 3, ncompq = 5;
   CeedVector xcorners, xceed, qdata, q0ceed, mceed, onesvec, multlvec;
   CeedBasis basisx, basisxc, basisq;
-
-  CeedInterlaceMode imodeceed = CEED_NONINTERLACED,
-                    imodepetsc = CEED_INTERLACED;
   CeedElemRestriction restrictx, restrictxc, restrictxi,
                       restrictq, restrictqdi, restrictmult;
   CeedQFunction qf_setup, qf_mass, qf_ics, qf;
@@ -727,17 +724,17 @@ int main(int argc, char **argv) {
                                   CEED_GAUSS_LOBATTO, &basisxc);
 
   // CEED Restrictions
-  CreateRestriction(ceed, imodeceed, melem, 2, dim, &restrictx);
-  CreateRestriction(ceed, imodepetsc, melem, numP, dim, &restrictxc);
-  CreateRestriction(ceed, imodepetsc, melem, numP, 1, &restrictmult);
-  CreateRestriction(ceed, imodepetsc, melem, numP, ncompq, &restrictq);
-  CeedElemRestrictionCreateIdentity(ceed, imodeceed, localNelem,
+  CreateRestriction(ceed, CEED_NONINTERLACED, melem, 2, dim, &restrictx);
+  CreateRestriction(ceed, CEED_INTERLACED, melem, numP, dim, &restrictxc);
+  CreateRestriction(ceed, CEED_INTERLACED, melem, numP, 1, &restrictmult);
+  CreateRestriction(ceed, CEED_INTERLACED, melem, numP, ncompq, &restrictq);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, localNelem,
                                     10*numQ*numQ*numQ,
                                     10*localNelem*numQ*numQ*numQ, 1,
                                     &restrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, imodeceed, localNelem, numQ*numQ*numQ,
-                                    localNelem*numQ*numQ*numQ, 1,
-                                    &restrictxi);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, localNelem,
+                                    numQ*numQ*numQ, localNelem*numQ*numQ*numQ,
+                                    1, &restrictxi);
 
   // Find physical cordinates of the corners of local elements
   {

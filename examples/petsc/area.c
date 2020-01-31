@@ -154,8 +154,6 @@ int main(int argc, char **argv) {
   CeedOperator op_setupgeo, op_apply;
   CeedQFunction qf_setupgeo, qf_apply;
   CeedBasis basisx, basisu;
-  CeedInterlaceMode imodeceed = CEED_NONINTERLACED,
-                    imodepetsc = CEED_INTERLACED;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi,
                       Erestrictqdi;
   PetscFunctionList geomfactorlist = NULL;
@@ -297,9 +295,9 @@ int main(int argc, char **argv) {
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
-  CreateRestrictionPlex(ceed, imodepetsc, 2, ncompx, &Erestrictx, dmcoord);
+  CreateRestrictionPlex(ceed, CEED_INTERLACED, 2, ncompx, &Erestrictx, dmcoord);
   CHKERRQ(ierr);
-  CreateRestrictionPlex(ceed, imodepetsc, P, ncompu, &Erestrictu, dm);
+  CreateRestrictionPlex(ceed, CEED_INTERLACED, P, ncompu, &Erestrictu, dm);
   CHKERRQ(ierr);
 
   CeedInt cStart, cEnd;
@@ -308,10 +306,10 @@ int main(int argc, char **argv) {
 
   // CEED identity restrictions
   const CeedInt qdatasize = 1;
-  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q, nelem*Q*Q,
-                                    qdatasize, &Erestrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q, nelem*Q*Q, 1,
-                                    &Erestrictxi);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q,
+                                    nelem*Q*Q, qdatasize, &Erestrictqdi);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q,
+                                    nelem*Q*Q, 1, &Erestrictxi);
 
   // Element coordinates
   Vec coords;

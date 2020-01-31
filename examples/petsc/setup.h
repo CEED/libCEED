@@ -470,8 +470,6 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   Vec coords;
   const PetscScalar *coordArray;
   CeedBasis basisx, basisu;
-  CeedInterlaceMode imodeceed = CEED_NONINTERLACED,
-                    imodepetsc = CEED_INTERLACED;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi,
                       Erestrictui, Erestrictqdi;
   CeedQFunction qf_setupgeo, qf_apply;
@@ -493,18 +491,21 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
-  CreateRestrictionPlex(ceed, imodepetsc, 2, ncompx, &Erestrictx, dmcoord);
-  CreateRestrictionPlex(ceed, imodepetsc, P, ncompu, &Erestrictu, dm);
+  CreateRestrictionPlex(ceed, CEED_INTERLACED, 2, ncompx, &Erestrictx, dmcoord);
+  CreateRestrictionPlex(ceed, CEED_INTERLACED, P, ncompu, &Erestrictu, dm);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
 
-  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
-                                    ncompu, &Erestrictui); CHKERRQ(ierr);
-  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
-                                    qdatasize, &Erestrictqdi); CHKERRQ(ierr);
-  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
-                                    ncompx, &Erestrictxi); CHKERRQ(ierr);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q*Q,
+                                    nelem*Q*Q*Q, ncompu, &Erestrictui);
+  CHKERRQ(ierr);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q*Q,
+                                    nelem*Q*Q*Q, qdatasize, &Erestrictqdi);
+  CHKERRQ(ierr);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q*Q,
+                                    nelem*Q*Q*Q, ncompx, &Erestrictxi);
+  CHKERRQ(ierr);
 
   // Element coordinates
   ierr = DMGetCoordinatesLocal(dm, &coords); CHKERRQ(ierr);

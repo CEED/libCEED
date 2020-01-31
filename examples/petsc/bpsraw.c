@@ -400,8 +400,6 @@ int main(int argc, char **argv) {
   User user;
   Ceed ceed;
   CeedBasis basisx, basisu;
-  CeedInterlaceMode imodeceed = CEED_NONINTERLACED,
-                    imodepetsc = CEED_INTERLACED;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui,
                       Erestrictqdi;
   CeedQFunction qf_setupgeo, qf_setuprhs, qf_apply, qf_error;
@@ -599,16 +597,16 @@ int main(int argc, char **argv) {
                                   bpOptions[bpChoice].qmode, &basisx);
 
   // CEED restrictions
-  CreateRestriction(ceed, imodepetsc, melem, P, ncompu, &Erestrictu);
-  CreateRestriction(ceed, imodeceed, melem, 2, dim, &Erestrictx);
+  CreateRestriction(ceed, CEED_INTERLACED, melem, P, ncompu, &Erestrictu);
+  CreateRestriction(ceed, CEED_NONINTERLACED, melem, 2, dim, &Erestrictx);
   CeedInt nelem = melem[0]*melem[1]*melem[2];
-  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
-                                    ncompu, &Erestrictui);
-  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
-                                    bpOptions[bpChoice].qdatasize,
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q*Q,
+                                    nelem*Q*Q*Q, ncompu, &Erestrictui);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q*Q,
+                                    nelem*Q*Q*Q, bpOptions[bpChoice].qdatasize,
                                     &Erestrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, imodeceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
-                                    1, &Erestrictxi);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q*Q,
+                                    nelem*Q*Q*Q, 1, &Erestrictxi);
   {
     CeedScalar *xloc;
     CeedInt shape[3] = {melem[0]+1, melem[1]+1, melem[2]+1}, len =
