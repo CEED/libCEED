@@ -236,11 +236,12 @@ int main(int argc, char **argv) {
                        "    Number of 1D Quadrature Points (q) : %d\n"
                        "    Global Nodes                       : %D\n"
                        "    Owned Nodes                        : %D\n"
+                       "    DoF per node                       : %D\n"
                        "  Multigrid:\n"
                        "    Number of Levels                   : %d\n",
                        bpChoice+1, usedresource, P, Q,
                        gsize[numlevels-1]/ncompu, lsize[numlevels-1]/ncompu,
-                       numlevels); CHKERRQ(ierr);
+                       ncompu, numlevels); CHKERRQ(ierr);
   }
 
   // Create RHS vector

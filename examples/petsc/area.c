@@ -276,8 +276,9 @@ int main(int argc, char **argv) {
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
-                       "    Global nodes                       : %D\n",
-                       usedresource, P, Q,  gsize/ncompu);
+                       "    Global nodes                       : %D\n"
+                       "    DoF per node                       : %D\n",
+                       usedresource, P, Q,  gsize/ncompu, ncompu);
     CHKERRQ(ierr);
   }
 
