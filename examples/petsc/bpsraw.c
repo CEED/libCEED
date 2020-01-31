@@ -498,11 +498,12 @@ int main(int argc, char **argv) {
                        "    Global nodes                       : %D\n"
                        "    Process Decomposition              : %D %D %D\n"
                        "    Local Elements                     : %D = %D %D %D\n"
-                       "    Owned nodes                        : %D = %D %D %D\n",
+                       "    Owned nodes                        : %D = %D %D %D\n"
+                       "    DoF per node                       : %D\n",
                        bpChoice+1, usedresource, P, Q,  gsize/ncompu, p[0],
                        p[1], p[2], localelem, melem[0], melem[1], melem[2],
                        mnodes[0]*mnodes[1]*mnodes[2], mnodes[0], mnodes[1],
-                       mnodes[2]); CHKERRQ(ierr);
+                       mnodes[2], ncompu); CHKERRQ(ierr);
   }
 
   {

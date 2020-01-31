@@ -174,9 +174,10 @@ int main(int argc, char **argv) {
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
                        "    Global nodes                       : %D\n"
-                       "    Owned nodes                        : %D\n",
+                       "    Owned nodes                        : %D\n"
+                       "    DoF per node                       : %D\n",
                        bpChoice+1, usedresource, P, Q, gsize/ncompu,
-                       lsize/ncompu); CHKERRQ(ierr);
+                       lsize/ncompu, ncompu); CHKERRQ(ierr);
   }
 
   // Create RHS vector
