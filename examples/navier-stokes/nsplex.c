@@ -761,9 +761,11 @@ int main(int argc, char **argv) {
   ierr = DMLocalizeCoordinates(dm);CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm);CHKERRQ(ierr);
   ierr = SetUpDM(dm, problem, NULL, naturalz, &ctxSetup, &degree);CHKERRQ(ierr);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,
-                     "Degree of FEM Space: %D\n",
-                     (PetscInt)degree); CHKERRQ(ierr);
+  if (!test) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                       "Degree of FEM Space: %D\n",
+                       (PetscInt)degree); CHKERRQ(ierr);
+  }
   dmviz = NULL;
   interpviz = NULL;
   if (viz_refine) {
@@ -788,12 +790,14 @@ int main(int argc, char **argv) {
     ierr = VecGetLocalSize(Q, &onodes); CHKERRQ(ierr);
     onodes /= ncompq;
     ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Global FEM nodes: %d on %d ranks\n", gnodes, comm_size); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Local FEM nodes: %d (%d owned)\n", lnodes, onodes); CHKERRQ(ierr);
     ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str, sizeof(box_faces_str), NULL);CHKERRQ(ierr);
-    ierr = PetscPrintf(PETSC_COMM_WORLD,
-                      "dm_plex_box_faces: %s\n",
-                      box_faces_str); CHKERRQ(ierr);
+    if (!test) {
+      ierr = PetscPrintf(comm, "Global FEM nodes: %d on %d ranks\n", gnodes, comm_size); CHKERRQ(ierr);
+      ierr = PetscPrintf(comm, "Local FEM nodes: %d (%d owned)\n", lnodes, onodes); CHKERRQ(ierr);
+      ierr = PetscPrintf(PETSC_COMM_WORLD,
+                        "dm_plex_box_faces: %s\n",
+                        box_faces_str); CHKERRQ(ierr);
+    }
 
   }
 
@@ -1078,12 +1082,14 @@ int main(int argc, char **argv) {
   cpu_time_used = MPI_Wtime() - start;
   ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
   ierr = MPI_Allreduce(MPI_IN_PLACE, &cpu_time_used, 1, MPI_DOUBLE, MPI_MIN, comm); CHKERRQ(ierr);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,
-                    "Time taken for solution: %g\n",
-                    (double)cpu_time_used); CHKERRQ(ierr);
+  if (!test) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                      "Time taken for solution: %g\n",
+                      (double)cpu_time_used); CHKERRQ(ierr);
+  }
 
   // Get error
-  if (problem->non_zero_time) {
+  if (problem->non_zero_time && !test) {
       Vec Qexact, Qexactloc;
       PetscReal norm;
       ierr = DMCreateGlobalVector(dm, &Qexact);CHKERRQ(ierr);
@@ -1102,9 +1108,11 @@ int main(int argc, char **argv) {
 
   // Output Statistics
   ierr = TSGetStepNumber(ts,&steps); CHKERRQ(ierr);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,
-                     "Time integrator took %D time steps to reach final time %g\n",
-                     steps,(double)ftime); CHKERRQ(ierr);
+  if (!test) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                      "Time integrator took %D time steps to reach final time %g\n",
+                      steps,(double)ftime); CHKERRQ(ierr);
+  }
 
   // Clean up libCEED
   CeedVectorDestroy(&qdata);

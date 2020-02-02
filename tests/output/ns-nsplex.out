@@ -1,6 +1,0 @@
-Degree of FEM Space: 1
-Global FEM nodes: 0 on 1 ranks
-Local FEM nodes: 8 (0 owned)
-dm_plex_box_faces: NONE
-Time taken for solution: 0.00363827
-Time integrator took 1 time steps to reach final time 0.0001
