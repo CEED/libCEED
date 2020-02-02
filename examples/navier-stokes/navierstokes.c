@@ -552,22 +552,24 @@ int main(int argc, char **argv) {
   ierr = VecSetUp(Qloc); CHKERRQ(ierr);
 
   // Print grid information
-  CeedInt gsize;
-  ierr = VecGetSize(Q, &gsize); CHKERRQ(ierr);
-  gsize /= ncompq;
-  ierr = PetscPrintf(comm, "Global nodes: %D\n", gsize); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
-                     p[0], p[1], p[2]); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localNelem,
-                     melem[0], melem[1], melem[2]); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Owned nodes: %D = %D %D %D\n",
-                     mnode[0]*mnode[1]*mnode[2], mnode[0], mnode[1], mnode[2]);
-  CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Physical domain: %g %g %g\n",
-                     lx/meter, ly/meter, lz/meter); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Physical resolution: %g %g %g\n",
-                     resx/meter, resy/meter, resz/meter); CHKERRQ(ierr);
-  CHKERRQ(ierr);
+  if (!test) {
+    CeedInt gsize;
+    ierr = VecGetSize(Q, &gsize); CHKERRQ(ierr);
+    gsize /= ncompq;
+    ierr = PetscPrintf(comm, "Global nodes: %D\n", gsize); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
+                      p[0], p[1], p[2]); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localNelem,
+                      melem[0], melem[1], melem[2]); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Owned nodes: %D = %D %D %D\n",
+                      mnode[0]*mnode[1]*mnode[2], mnode[0], mnode[1], mnode[2]);
+    CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Physical domain: %g %g %g\n",
+                      lx/meter, ly/meter, lz/meter); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Physical resolution: %g %g %g\n",
+                      resx/meter, resy/meter, resz/meter); CHKERRQ(ierr);
+    CHKERRQ(ierr);
+  }
 
   // Set up global mass vector
   ierr = VecDuplicate(Q,&user->M); CHKERRQ(ierr);
@@ -1022,9 +1024,11 @@ int main(int argc, char **argv) {
   // Output Statistics
   ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
   ierr = TSGetStepNumber(ts,&steps); CHKERRQ(ierr);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,
-                     "Time integrator took %D time steps to reach final time %g\n",
-                     steps,(double)ftime); CHKERRQ(ierr);
+  if (!test) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                      "Time integrator took %D time steps to reach final time %g\n",
+                      steps,(double)ftime); CHKERRQ(ierr);
+  }
 
   // Clean up libCEED
   CeedVectorDestroy(&qdata);
