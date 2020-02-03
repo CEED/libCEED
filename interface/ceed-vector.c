@@ -343,7 +343,11 @@ int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
 }
 
 /**
-  @brief Get the norm of a CeedVector
+  @brief Get the norm of a CeedVector.
+
+  Note: This operation is local to the CeedVector. This function will likely
+          not provide the desired results for the norm of the libCEED portion
+          of a parallel vector or a CeedVector with duplicated or hanging nodes. 
 
   @param vec           CeedVector to retrieve maximum value
   @param type          Norm type CEED_NORM_1, CEED_NORM_2, or CEED_NORM_MAX
