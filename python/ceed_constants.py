@@ -34,6 +34,14 @@ copy_modes      = {COPY_VALUES:   "copy values",
                    USE_POINTER:   "use pointer",
                    OWN_POINTER:   "own pointer"}
 
+# CeedNormType
+NORM_1          = lib.CEED_NORM_1
+NORM_2          = lib.CEED_NORM_2
+NORM_MAX        = lib.CEED_NORM_MAX
+norm_types      = {NORM_1:        "L1 norm",
+                   NORM_2:        "L2 norm",
+                   NORM_MAX:      "max norm"}
+
 # CeedTransposeMode
 TRANSPOSE       = lib.CEED_TRANSPOSE
 NOTRANSPOSE     = lib.CEED_NOTRANSPOSE

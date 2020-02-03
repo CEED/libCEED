@@ -77,6 +77,7 @@ struct CeedVector_private {
   int (*GetArrayRead)(CeedVector, CeedMemType, const CeedScalar **);
   int (*RestoreArray)(CeedVector);
   int (*RestoreArrayRead)(CeedVector);
+  int (*Norm)(CeedVector, CeedNormType, CeedScalar *);
   int (*Destroy)(CeedVector);
   int refcount;
   CeedInt length;

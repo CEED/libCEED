@@ -181,7 +181,7 @@
 ! Check Output
       call ceedvectorgetarrayread(a,ceed_mem_host,aa,aoffset,err)
       do i=1,ndofs
-        if (abs(aa(aoffset+i)-atrue(i))>1.0d-14) then
+        if (abs(aa(aoffset+i)-atrue(i))>1.0d-13) then
 ! LCOV_EXCL_START
           write(*,*) '[',i,'] Error in assembly: ',aa(aoffset+i),' != ',&
      &      atrue(i)

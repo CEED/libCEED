@@ -175,6 +175,12 @@ void fCeedVectorRestoreArrayRead(int *vec, const CeedScalar *array,
   *offset = 0;
 }
 
+#define fCeedVectorNorm \
+    FORTRAN_NAME(ceedvectornorm,CEEDVECTORNORM)
+void fCeedVectorNorm(int *vec, int *type, CeedScalar *norm, int *err) {
+  *err = CeedVectorNorm(CeedVector_dict[*vec], *type, norm);
+}
+
 #define fCeedVectorView FORTRAN_NAME(ceedvectorview,CEEDVECTORVIEW)
 void fCeedVectorView(int *vec, int *err) {
   *err = CeedVectorView(CeedVector_dict[*vec], "%12.8f", stdout);
@@ -337,7 +343,7 @@ void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode,
 #define fCeedElemRestrictionGetMultiplicity \
     FORTRAN_NAME(ceedelemrestrictiongetmultiplicity,CEEDELEMRESTRICTIONGETMULTIPLICITY)
 void fCeedElemRestrictionGetMultiplicity(int *elemr, int *lmode, int *mult,
-                                         int *err) {
+    int *err) {
   *err = CeedElemRestrictionGetMultiplicity(CeedElemRestriction_dict[*elemr],
          *lmode, CeedVector_dict[*mult]);
 }

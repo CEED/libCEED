@@ -17,7 +17,7 @@
 from _ceed_cffi import ffi, lib
 import tempfile
 import numpy as np
-from .ceed_constants import MEM_HOST, COPY_VALUES
+from .ceed_constants import MEM_HOST, COPY_VALUES, NORM_2
 
 # ------------------------------------------------------------------------------
 class Vector():
@@ -193,7 +193,7 @@ class Vector():
     lib.CeedVectorSetValue(self._pointer[0], value)
 
   # Sync the Vector to a specified memtype
-  def sync_array(self, memtype):
+  def sync_array(self, memtype=MEM_HOST):
     """Sync the Vector to a specified memtype.
 
        Args:
@@ -201,6 +201,20 @@ class Vector():
 
     # libCEED call
     lib.CeedVectorSyncArray(self._pointer[0], memtype)
+
+  # Compute the norm of a vector
+  def norm(self, normtype=NORM_2):
+    """Get the norm of a Vector.
+
+       Args:
+         **normtype: type of norm to be computed"""
+
+    norm_pointer = ffi.new("CeedScalar *")
+
+    # libCEED call
+    lib.CeedVectorNorm(self._pointer[0], normtype, norm_pointer)
+
+    return norm_pointer[0]
 
 # ------------------------------------------------------------------------------
 class _VectorWrap(Vector):

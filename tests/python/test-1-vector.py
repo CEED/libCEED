@@ -154,3 +154,30 @@ def test_107(ceed_resource, capsys):
   assert stdout == true_output
 
 #-------------------------------------------------------------------------------
+# Test norms
+#-------------------------------------------------------------------------------
+def test_108(ceed_resource, capsys):
+  ceed = libceed.Ceed(ceed_resource)
+
+  n = 10
+  x = ceed.Vector(n)
+
+  a = np.arange(0, n, dtype="float64")
+  for i in range(n):
+    if (i % 2 == 0):
+      a[i] *= -1
+  x.set_array(a, cmode=libceed.USE_POINTER)
+
+  norm = x.norm(normtype=libceed.NORM_1)
+
+  assert abs(norm - 45.) < 1e-14
+
+  norm = x.norm()
+
+  assert abs(norm - np.sqrt(285.)) < 1e-14
+
+  norm = x.norm(normtype=libceed.NORM_MAX)
+
+  assert abs(norm - 9.) < 1e-14
+
+#-------------------------------------------------------------------------------

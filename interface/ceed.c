@@ -390,6 +390,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedVector, GetArrayRead),
     CEED_FTABLE_ENTRY(CeedVector, RestoreArray),
     CEED_FTABLE_ENTRY(CeedVector, RestoreArrayRead),
+    CEED_FTABLE_ENTRY(CeedVector, Norm),
     CEED_FTABLE_ENTRY(CeedVector, Destroy),
     CEED_FTABLE_ENTRY(CeedElemRestriction, Apply),
     CEED_FTABLE_ENTRY(CeedElemRestriction, ApplyBlock),
