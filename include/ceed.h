@@ -174,6 +174,17 @@ typedef enum {
   CEED_OWN_POINTER,
 } CeedCopyMode;
 
+/// Denotes type of vector norm to be computed
+/// @ingroup CeedVector
+typedef enum {
+  /// L_1 norm: sum_i |x_i|
+  CEED_NORM_1,
+  /// L_2 norm: sqrt(sum_i |x_i|^2)
+  CEED_NORM_2,
+  /// L_Infinity norm: max_i |x_i|
+  CEED_NORM_MAX,
+} CeedNormType;
+
 CEED_EXTERN const char *const CeedCopyModes[];
 
 CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedInt len, CeedVector *vec);
@@ -188,6 +199,8 @@ CEED_EXTERN int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
 CEED_EXTERN int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array);
 CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec,
     const CeedScalar **array);
+CEED_EXTERN int CeedVectorNorm(CeedVector vec, CeedNormType type,
+                               CeedScalar *norm);
 CEED_EXTERN int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream);
 CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedInt *length);
 CEED_EXTERN int CeedVectorDestroy(CeedVector *vec);
