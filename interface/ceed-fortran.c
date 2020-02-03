@@ -337,7 +337,7 @@ void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode,
 #define fCeedElemRestrictionGetMultiplicity \
     FORTRAN_NAME(ceedelemrestrictiongetmultiplicity,CEEDELEMRESTRICTIONGETMULTIPLICITY)
 void fCeedElemRestrictionGetMultiplicity(int *elemr, int *lmode, int *mult,
-                                         int *err) {
+    int *err) {
   *err = CeedElemRestrictionGetMultiplicity(CeedElemRestriction_dict[*elemr],
          *lmode, CeedVector_dict[*mult]);
 }

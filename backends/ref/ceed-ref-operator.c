@@ -826,12 +826,15 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
         for (CeedInt cout=0; cout<ncomp; cout++)
           for (CeedInt cin=0; cin<ncomp; cin++)
             // Each qpoint/node pair
-            for (CeedInt q=0; q<nqpts; q++)
-              for (CeedInt n=0; n<nnodes; n++)
-                elemdiagarray[(e*ncomp+cout)*nnodes+n] += bt[q*nnodes+n] *
-                    assembledqfarray[((((e*numemodein+ein)*ncomp+cin)*
-                                       numemodeout+eout)*ncomp+cout)*nqpts+q] *
-                    b[q*nnodes+n];
+            for (CeedInt q=0; q<nqpts; q++) {
+              const CeedScalar qfvalue =
+                assembledqfarray[((((e*numemodein+ein)*ncomp+cin)*
+                                   numemodeout+eout)*ncomp+cout)*nqpts+q];
+              if (fabs(qfvalue) > CEED_EPSILON)
+                for (CeedInt n=0; n<nnodes; n++)
+                  elemdiagarray[(e*ncomp+cout)*nnodes+n] += bt[q*nnodes+n] *
+                      qfvalue * b[q*nnodes+n];
+            }
       }
     }
   }
