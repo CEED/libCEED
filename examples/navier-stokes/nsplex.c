@@ -39,6 +39,7 @@
 
 const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 
+#define nsplex
 #include <petscts.h>
 #include <petscdmplex.h>
 #include <ceed.h>
