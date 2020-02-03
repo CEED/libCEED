@@ -690,6 +690,8 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
   ierr = CeedOperatorAssembleLinearQFunction(op,  &assembledqf, &rstr, request);
   CeedChk(ierr);
   ierr = CeedElemRestrictionDestroy(&rstr); CeedChk(ierr);
+  CeedScalar maxnorm = 0;
+  ierr = CeedVectorNorm(assembledqf, CEED_NORM_MAX, &maxnorm); CeedChk(ierr);
 
   // Determine active input basis
   CeedOperatorField *opfields;
@@ -830,7 +832,7 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
               const CeedScalar qfvalue =
                 assembledqfarray[((((e*numemodein+ein)*ncomp+cin)*
                                    numemodeout+eout)*ncomp+cout)*nqpts+q];
-              if (fabs(qfvalue) > CEED_EPSILON)
+              if (fabs(qfvalue) > maxnorm*1e-12)
                 for (CeedInt n=0; n<nnodes; n++)
                   elemdiagarray[(e*ncomp+cout)*nnodes+n] += bt[q*nnodes+n] *
                       qfvalue * b[q*nnodes+n];
@@ -957,6 +959,8 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
   ierr =  CeedOperatorAssembleLinearQFunction(op, &assembled, &rstr_qf,
           request); CeedChk(ierr);
   ierr = CeedElemRestrictionDestroy(&rstr_qf); CeedChk(ierr);
+  CeedScalar maxnorm = 0;
+  ierr = CeedVectorNorm(assembled, CEED_NORM_MAX, &maxnorm); CeedChk(ierr);
 
   // Calculate element averages
   CeedInt nfields = ((interp?1:0) + (grad?dim:0))*((interp?1:0) + (grad?dim:0));
@@ -976,7 +980,7 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
     for (CeedInt q=0; q<nqpts; q++)
       for (CeedInt i=0; i<ncomp*ncomp*nfields; i++)
         if (fabs(assembledarray[e*nelem*nqpts*ncomp*ncomp*nfields +
-                                                                  i*nqpts + q]) > CEED_EPSILON) {
+                                                                  i*nqpts + q]) > maxnorm*1e-12) {
           elemavg[e] += assembledarray[e*nelem*nqpts*ncomp*ncomp*nfields +
                                        i*nqpts + q] / qweightsarray[q];
           count++;
