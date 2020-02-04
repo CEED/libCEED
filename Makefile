@@ -192,6 +192,7 @@ magma_tmp.cu   := $(magma_pre_src:%.c=%_cuda.cu)
 magma_allsrc.c := $(magma_dsrc) $(magma_tmp.c)
 magma_allsrc.cu:= $(magma_tmp.cu) backends/magma/magma_devptr.cu
 magma_allsrc.cu+= backends/magma/magma_dbasisApply_grad.cu backends/magma/magma_dbasisApply_interp.cu backends/magma/magma_dbasisApply_weight.cu
+magma_allsrc.cu+= backends/magma/magma_drestrictApply.cu
 
 # Output using the 216-color rules mode
 rule_file = $(notdir $(1))
