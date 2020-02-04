@@ -152,7 +152,6 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
 
 // PETSc user data
 typedef struct UserNS_ *UserNS;
-typedef struct Units_ *Units;
 
 struct UserNS_ {
   MPI_Comm comm;
