@@ -233,7 +233,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
                        SCATTER_FORWARD); CHKERRQ(ierr);
 
   // Inverse of the lumped mass matrix
-  ierr = VecPointwiseMult(G,G,user->M); // M is Minv
+  ierr = VecPointwiseMult(G, G, user->M); // M is Minv
   CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
