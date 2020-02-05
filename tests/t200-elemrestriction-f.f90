@@ -11,6 +11,8 @@
 
       integer ne
       parameter(ne=3)
+      integer imode
+      parameter(imode=ceed_noninterlaced)
 
       integer*4 ind(2*ne)
       real*8 a(ne+1)
@@ -36,12 +38,12 @@
         ind(2*i  )=i
       enddo
 
-      call ceedelemrestrictioncreate(ceed,ne,2,ne+1,1,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,imode,ne,2,ne+1,1,ceed_mem_host,&
      & ceed_use_pointer,ind,r,err)
 
       call ceedvectorcreate(ceed,2*ne,y,err);
       call ceedvectorsetvalue(y,0.d0,err);
-      call ceedelemrestrictionapply(r,ceed_notranspose,ceed_notranspose,x,y,&
+      call ceedelemrestrictionapply(r,ceed_notranspose,x,y,&
      & ceed_request_immediate,err)
 
       call ceedvectorgetarrayread(y,ceed_mem_host,yy,yoffset,err)

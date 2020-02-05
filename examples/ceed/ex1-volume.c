@@ -202,12 +202,12 @@ int main(int argc, const char *argv[]) {
   CeedOperator build_oper;
   CeedOperatorCreate(ceed, build_qfunc, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &build_oper);
-  CeedOperatorSetField(build_oper, "dx", mesh_restr, CEED_NOTRANSPOSE,
-                       mesh_basis,CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(build_oper, "weights", mesh_restr_i, CEED_NOTRANSPOSE,
-                       mesh_basis, CEED_VECTOR_NONE);
-  CeedOperatorSetField(build_oper, "qdata", sol_restr_i, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(build_oper, "dx", mesh_restr, mesh_basis,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(build_oper, "weights", mesh_restr_i, mesh_basis,
+                       CEED_VECTOR_NONE);
+  CeedOperatorSetField(build_oper, "qdata", sol_restr_i, CEED_BASIS_COLLOCATED,
+                       CEED_VECTOR_ACTIVE);
 
   // Compute the quadrature data for the mass operator.
   CeedVector qdata;
@@ -247,12 +247,10 @@ int main(int argc, const char *argv[]) {
   CeedOperator oper;
   CeedOperatorCreate(ceed, apply_qfunc, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &oper);
-  CeedOperatorSetField(oper, "u", sol_restr, CEED_NOTRANSPOSE,
-                       sol_basis, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(oper, "qdata", sol_restr_i, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(oper, "v", sol_restr, CEED_NOTRANSPOSE,
-                       sol_basis, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(oper, "u", sol_restr, sol_basis, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(oper, "qdata", sol_restr_i, CEED_BASIS_COLLOCATED,
+                       qdata);
+  CeedOperatorSetField(oper, "v", sol_restr, sol_basis, CEED_VECTOR_ACTIVE);
 
   // Compute the mesh volume using the mass operator: vol = 1^T \cdot M \cdot 1
   if (!test) {
@@ -332,6 +330,7 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[dim], int order,
                               int ncomp, CeedInt *size, CeedInt num_qpts,
                               CeedElemRestriction *restr,
                               CeedElemRestriction *restr_i) {
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedInt p = order, pp1 = p+1;
   CeedInt nnodes = CeedIntPow(pp1, dim); // number of scal. nodes per element
   CeedInt elem_qpts = CeedIntPow(num_qpts, dim); // number of qpts per element
@@ -347,7 +346,7 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[dim], int order,
   // nnodes:   0   1    p-1  p  p+1       2*p             n*p
   CeedInt *el_nodes = malloc(sizeof(CeedInt)*num_elem*nnodes);
   for (CeedInt e = 0; e < num_elem; e++) {
-    CeedInt exyz[3], re = e;
+    CeedInt exyz[3] = {1, 1, 1}, re = e;
     for (int d = 0; d < dim; d++) { exyz[d] = re%nxyz[d]; re /= nxyz[d]; }
     CeedInt *loc_el_nodes = el_nodes + e*nnodes;
     for (int lnodes = 0; lnodes < nnodes; lnodes++) {
@@ -360,12 +359,11 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[dim], int order,
       loc_el_nodes[lnodes] = gnodes;
     }
   }
-  CeedElemRestrictionCreate(ceed, num_elem, nnodes, scalar_size,
-                            ncomp, CEED_MEM_HOST,
-                            CEED_COPY_VALUES, el_nodes, restr);
-  CeedElemRestrictionCreateIdentity(ceed, num_elem, elem_qpts,
-                                    elem_qpts*num_elem,
-                                    ncomp, restr_i);
+  CeedElemRestrictionCreate(ceed, imode, num_elem, nnodes, scalar_size,
+                            ncomp, CEED_MEM_HOST, CEED_COPY_VALUES, el_nodes,
+                            restr);
+  CeedElemRestrictionCreateIdentity(ceed, imode, num_elem, elem_qpts,
+                                    elem_qpts*num_elem, ncomp, restr_i);
   free(el_nodes);
   return 0;
 }

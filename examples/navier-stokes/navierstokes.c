@@ -115,8 +115,8 @@ static PetscInt GlobalStart(const PetscInt p[3], const PetscInt irank[3],
 }
 
 // Utility function to create local CEED restriction
-static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
-                             CeedInt P, CeedInt ncomp,
+static int CreateRestriction(Ceed ceed, CeedInterlaceMode imode,
+                             const CeedInt melem[3], CeedInt P, CeedInt ncomp,
                              CeedElemRestriction *Erestrict) {
   const PetscInt Nelem = melem[0]*melem[1]*melem[2];
   PetscInt mnode[3], *idx, *idxp;
@@ -144,8 +144,9 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
       }
     }
   }
-  CeedElemRestrictionCreate(ceed, Nelem, P*P*P, mnode[0]*mnode[1]*mnode[2], ncomp,
-                            CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
+  CeedElemRestrictionCreate(ceed, imode, Nelem, P*P*P,
+                            mnode[0]*mnode[1]*mnode[2], ncomp, CEED_MEM_HOST,
+                            CEED_OWN_POINTER, idx, Erestrict);
   PetscFunctionReturn(0);
 }
 
@@ -353,8 +354,7 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedInt numP, numQ;
   const CeedInt dim = 3, ncompx = 3, ncompq = 5;
-  CeedVector xcorners, xceed, qdata, q0ceed, mceed,
-             onesvec, multevec, multlvec;
+  CeedVector xcorners, xceed, qdata, q0ceed, mceed, onesvec, multlvec;
   CeedBasis basisx, basisxc, basisq;
   CeedElemRestriction restrictx, restrictxc, restrictxi,
                       restrictq, restrictqdi, restrictmult;
@@ -724,16 +724,17 @@ int main(int argc, char **argv) {
                                   CEED_GAUSS_LOBATTO, &basisxc);
 
   // CEED Restrictions
-  CreateRestriction(ceed, melem, numP, ncompq, &restrictq);
-  CreateRestriction(ceed, melem, 2, dim, &restrictx);
-  CreateRestriction(ceed, melem, numP, dim, &restrictxc);
-  CreateRestriction(ceed, melem, numP, 1, &restrictmult);
-  CeedElemRestrictionCreateIdentity(ceed, localNelem, 10*numQ*numQ*numQ,
+  CreateRestriction(ceed, CEED_NONINTERLACED, melem, 2, dim, &restrictx);
+  CreateRestriction(ceed, CEED_INTERLACED, melem, numP, dim, &restrictxc);
+  CreateRestriction(ceed, CEED_INTERLACED, melem, numP, 1, &restrictmult);
+  CreateRestriction(ceed, CEED_INTERLACED, melem, numP, ncompq, &restrictq);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, localNelem,
+                                    10*numQ*numQ*numQ,
                                     10*localNelem*numQ*numQ*numQ, 1,
                                     &restrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, localNelem, numQ*numQ*numQ,
-                                    localNelem*numQ*numQ*numQ, 1,
-                                    &restrictxi);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, localNelem,
+                                    numQ*numQ*numQ, localNelem*numQ*numQ*numQ,
+                                    1, &restrictxi);
 
   // Find physical cordinates of the corners of local elements
   {
@@ -767,13 +768,10 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, ncompq*lsize, &onesvec);
   CeedVectorCreate(ceed, ncompx*lsize, &xceed);
   CeedVectorCreate(ceed, lsize, &multlvec);
-  CeedVectorCreate(ceed, localNelem*Nnodes, &multevec);
 
   // Find multiplicity of each local point
-  CeedVectorSetValue(multevec, 1.0);
   CeedVectorSetValue(multlvec, 0.);
-  CeedElemRestrictionApply(restrictmult, CEED_TRANSPOSE, CEED_TRANSPOSE,
-                           multevec, multlvec, CEED_REQUEST_IMMEDIATE);
+  CeedElemRestrictionGetMultiplicity(restrictmult, multlvec);
 
   // Create the Q-function that builds the quadrature data for the NS operator
   CeedQFunctionCreateInterior(ceed, 1, Setup, Setup_loc, &qf_setup);
@@ -807,47 +805,36 @@ int main(int argc, char **argv) {
   // Create the operator that builds the quadrature data for the NS operator
   CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_setup);
-  CeedOperatorSetField(op_setup, "dx", restrictx, CEED_NOTRANSPOSE,
-                       basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "weight", restrictxi, CEED_NOTRANSPOSE,
-                       basisx, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "qdata", restrictqdi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "dx", restrictx, basisx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "weight", restrictxi, basisx,
+                       CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setup, "qdata", restrictqdi, CEED_BASIS_COLLOCATED,
+                       CEED_VECTOR_ACTIVE);
 
   // Create the mass operator
   CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_mass);
-  CeedOperatorSetField(op_mass, "q", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_mass, "qdata", restrictqdi, CEED_NOTRANSPOSE,
-                       basisx, qdata);
-  CeedOperatorSetField(op_mass, "v", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "q", restrictq, basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "qdata", restrictqdi, basisx, qdata);
+  CeedOperatorSetField(op_mass, "v", restrictq, basisq, CEED_VECTOR_ACTIVE);
 
   // Create the operator that sets the ICs
   CeedOperatorCreate(ceed, qf_ics, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_ics);
-  CeedOperatorSetField(op_ics, "x", restrictx, CEED_NOTRANSPOSE,
-                       basisxc, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ics, "q0", restrictq, CEED_TRANSPOSE,
-                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ics, "coords", restrictxc, CEED_TRANSPOSE,
-                       CEED_BASIS_COLLOCATED, xceed);
+  CeedOperatorSetField(op_ics, "x", restrictx, basisxc, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_ics, "q0", restrictq, CEED_BASIS_COLLOCATED,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_ics, "coords", restrictxc, CEED_BASIS_COLLOCATED,
+                       xceed);
 
   // Create the physics operator
   CeedOperatorCreate(ceed, qf, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op);
-  CeedOperatorSetField(op, "q", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op, "dq", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op, "qdata", restrictqdi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op, "x", restrictx, CEED_NOTRANSPOSE,
-                       basisx, xcorners);
-  CeedOperatorSetField(op, "v", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op, "dv", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op, "q", restrictq, basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op, "dq", restrictq, basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op, "qdata", restrictqdi, CEED_BASIS_COLLOCATED, qdata);
+  CeedOperatorSetField(op, "x", restrictx, basisx, xcorners);
+  CeedOperatorSetField(op, "v", restrictq, basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op, "dv", restrictq, basisq, CEED_VECTOR_ACTIVE);
 
   // Set up the libCEED context
   CeedScalar ctxSetup[15] = {theta0, thetaC, P0, N, cv, cp, Rd, g, rc,
@@ -930,7 +917,6 @@ int main(int argc, char **argv) {
 
   // Destroy coordinate and mult vecs
   CeedVectorDestroy(&xceed);
-  CeedVectorDestroy(&multevec);
   CeedVectorDestroy(&multlvec);
 
   // Gather initial Q values

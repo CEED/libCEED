@@ -9,6 +9,8 @@
 
       integer ne
       parameter(ne=8)
+      integer imode
+      parameter(imode=ceed_noninterlaced)
       integer blksize
       parameter(blksize=5)
 
@@ -35,14 +37,14 @@
         ind(2*i  )=i
       enddo
 
-      call ceedelemrestrictioncreateblocked(ceed,ne,2,blksize,ne+1,1,&
+      call ceedelemrestrictioncreateblocked(ceed,imode,ne,2,blksize,ne+1,1,&
      & ceed_mem_host,ceed_use_pointer,ind,r,err)
 
       call ceedvectorcreate(ceed,blksize*2,y,err);
       call ceedvectorsetvalue(y,0.d0,err);
 
 !    No Transpose
-      call ceedelemrestrictionapplyblock(r,1,ceed_notranspose,ceed_notranspose,&
+      call ceedelemrestrictionapplyblock(r,1,ceed_notranspose,&
      & x,y,ceed_request_immediate,err)
       call ceedvectorview(y,err)
 
@@ -53,7 +55,7 @@
       enddo
       call ceedvectorrestorearray(x,a,aoffset,err)
       
-      call ceedelemrestrictionapplyblock(r,1,ceed_transpose,ceed_notranspose,&
+      call ceedelemrestrictionapplyblock(r,1,ceed_transpose,&
      & y,x,ceed_request_immediate,err)
 
       call ceedvectorview(x,err)

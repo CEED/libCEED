@@ -135,11 +135,6 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   @param fieldname  Name of the field (to be matched with the name used by
                       CeedQFunction)
   @param r          CeedElemRestriction
-  @param lmode      CeedTransposeMode which specifies the ordering of the
-                      components of the l-vector used by this CeedOperatorField,
-                      CEED_NOTRANSPOSE indicates the component is the
-                      outermost index and CEED_TRANSPOSE indicates the component
-                      is the innermost index in ordering of the l-vector
   @param b          CeedBasis in which the field resides or CEED_BASIS_COLLOCATED
                       if collocated with quadrature points
   @param v          CeedVector to be used by CeedOperator or CEED_VECTOR_ACTIVE
@@ -151,8 +146,7 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   @ref Basic
 **/
 int CeedOperatorSetField(CeedOperator op, const char *fieldname,
-                         CeedElemRestriction r, CeedTransposeMode lmode,
-                         CeedBasis b, CeedVector v) {
+                         CeedElemRestriction r, CeedBasis b, CeedVector v) {
   int ierr;
   if (op->composite)
     // LCOV_EXCL_START
@@ -218,7 +212,6 @@ found:
   ierr = CeedCalloc(1, ofield); CeedChk(ierr);
   (*ofield)->Erestrict = r;
   r->refcount += 1;
-  (*ofield)->lmode = lmode;
   (*ofield)->basis = b;
   if (b != CEED_BASIS_COLLOCATED)
     b->refcount += 1;
@@ -835,10 +828,8 @@ static int CeedOperatorFieldView(CeedOperatorField field,
   const char *inout = in ? "Input" : "Output";
 
   fprintf(stream, "%s    %s Field [%d]:\n"
-          "%s      Name: \"%s\"\n"
-          "%s      Lmode: \"%s\"\n",
-          pre, inout, fieldnumber, pre, qffield->fieldname,
-          pre, CeedTransposeModes[field->lmode]);
+          "%s      Name: \"%s\"\n",
+          pre, inout, fieldnumber, pre, qffield->fieldname);
 
   if (field->basis == CEED_BASIS_COLLOCATED)
     fprintf(stream, "%s      Collocated basis\n", pre);
@@ -938,23 +929,6 @@ int CeedOperatorGetFields(CeedOperator op, CeedOperatorField **inputfields,
 
   if (inputfields) *inputfields = op->inputfields;
   if (outputfields) *outputfields = op->outputfields;
-  return 0;
-}
-
-/**
-  @brief Get the L vector CeedTransposeMode of a CeedOperatorField
-
-  @param opfield         CeedOperatorField
-  @param[out] lmode      Variable to store CeedTransposeMode
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorFieldGetLMode(CeedOperatorField opfield,
-                              CeedTransposeMode *lmode) {
-  *lmode = opfield->lmode;
   return 0;
 }
 

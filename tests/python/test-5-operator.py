@@ -246,7 +246,8 @@ def test_502(ceed_resource):
   for i in range(nelem):
     for j in range(p):
       indu[p*i+j] = i*(p-1) + j
-  ru = ceed.ElemRestriction(nelem, p, nu, 2, indu, cmode=libceed.USE_POINTER)
+  ru = ceed.ElemRestriction(nelem, p, nu, 2, indu, cmode=libceed.USE_POINTER,
+                            imode=libceed.INTERLACED)
   rui = ceed.IdentityElemRestriction(nelem, q, q*nelem, 1)
 
   # Bases
@@ -278,8 +279,8 @@ def test_502(ceed_resource):
 
   op_mass = ceed.Operator(qf_mass)
   op_mass.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
-  op_mass.set_field("u", ru, bu, libceed.VECTOR_ACTIVE, lmode=libceed.TRANSPOSE)
-  op_mass.set_field("v", ru, bu, libceed.VECTOR_ACTIVE, lmode=libceed.TRANSPOSE)
+  op_mass.set_field("u", ru, bu, libceed.VECTOR_ACTIVE)
+  op_mass.set_field("v", ru, bu, libceed.VECTOR_ACTIVE)
 
   # Setup
   op_setup.apply(x, qdata)
@@ -340,7 +341,8 @@ def test_503(ceed_resource):
   for i in range(nelem):
     for j in range(p):
       indu[p*i+j] = i*(p-1) + j
-  ru = ceed.ElemRestriction(nelem, p, nu, 1, indu, cmode=libceed.USE_POINTER)
+  ru = ceed.ElemRestriction(nelem, p, nu, 1, indu, cmode=libceed.USE_POINTER,
+                            imode=libceed.INTERLACED)
   rui = ceed.IdentityElemRestriction(nelem, q, q*nelem, 1)
 
   # Bases
@@ -372,8 +374,8 @@ def test_503(ceed_resource):
 
   op_mass = ceed.Operator(qf_mass)
   op_mass.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
-  op_mass.set_field("u", ru, bu, u, lmode=libceed.TRANSPOSE)
-  op_mass.set_field("v", ru, bu, v, lmode=libceed.TRANSPOSE)
+  op_mass.set_field("u", ru, bu, u)
+  op_mass.set_field("v", ru, bu, v)
 
   # Setup
   op_setup.apply(x, qdata)

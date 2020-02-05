@@ -817,7 +817,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
   CeedChk(ierr);
   CeedEvalMode emode;
-  CeedTransposeMode lmode;
+  CeedInterlaceMode imode;
   CeedBasis basis;
   CeedBasis_Cuda_shared *basis_data;
   CeedElemRestriction Erestrict;
@@ -963,7 +963,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     case CEED_EVAL_NONE:
       code << "  const CeedInt ncomp_out_"<<i<<" = "<<ncomp<<";\n";
       ierr = CeedElemRestrictionGetNumNodes(Erestrict, &nnodes); CeedChk(ierr);
-      ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
       code << "  const CeedInt nquads_out_"<<i<<" = "<<nnodes<<";\n";
       break; // No action
     case CEED_EVAL_INTERP:
@@ -1033,25 +1033,25 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     case CEED_EVAL_NONE:
       if (!basis_data->d_collograd1d) {
         code << "  CeedScalar r_t"<<i<<"[ncomp_in_"<<i<<"*Q1d];\n";
-        ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
-        code << "  readQuads"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",Q1d>(data, nquads_in_"<<i<<", elem, d_u"<<i<<", r_t"<<i<<");\n";
+        ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
+        code << "  readQuads"<<(imode==CEED_NONINTERLACED?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",Q1d>(data, nquads_in_"<<i<<", elem, d_u"<<i<<", r_t"<<i<<");\n";
       }
       break;
     case CEED_EVAL_INTERP:
       code << "  CeedScalar r_u"<<i<<"[ncomp_in_"<<i<<"*P_in_"<<i<<"];\n";
-      ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
       ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
       data->indices.in[i] = restr_data->d_ind;
-      code << "  readDofs"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<">(data, nnodes_in_"<<i<<", elem, indices.in["<<i<<"], d_u"<<i<<", r_u"<<i<<");\n";
+      code << "  readDofs"<<(imode==CEED_NONINTERLACED?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<">(data, nnodes_in_"<<i<<", elem, indices.in["<<i<<"], d_u"<<i<<", r_u"<<i<<");\n";
       code << "  CeedScalar r_t"<<i<<"[ncomp_in_"<<i<<"*Q1d];\n";
       code << "  interp"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<",Q1d>(data, r_u"<<i<<", s_B_in_"<<i<<", r_t"<<i<<");\n";
       break;
     case CEED_EVAL_GRAD:
       code << "  CeedScalar r_u"<<i<<"[ncomp_in_"<<i<<"*P_in_"<<i<<"];\n";
-      ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
       ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
       data->indices.in[i] = restr_data->d_ind;
-      code << "  readDofs"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<">(data, nnodes_in_"<<i<<", elem, indices.in["<<i<<"], d_u"<<i<<", r_u"<<i<<");\n";
+      code << "  readDofs"<<(imode==CEED_NONINTERLACED?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<">(data, nnodes_in_"<<i<<", elem, indices.in["<<i<<"], d_u"<<i<<", r_u"<<i<<");\n";
       if (basis_data->d_collograd1d) {
         code << "  CeedScalar r_t"<<i<<"[ncomp_in_"<<i<<"*Q1d];\n";
         code << "  interp"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<",Q1d>(data, r_u"<<i<<", s_B_in_"<<i<<", r_t"<<i<<");\n";
@@ -1112,8 +1112,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       switch (emode) {
       case CEED_EVAL_NONE:
         code << "  CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"];\n";
-        ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode); CeedChk(ierr);
-        code << "  readSliceQuads"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<"3d<ncomp_in_"<<i<<",Q1d>(data, nquads_in_"<<i<<", elem, q, d_u"<<i<<", r_q"<<i<<");\n";
+        ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
+        code << "  readSliceQuads"<<(imode==CEED_NONINTERLACED?"":"Transpose")<<"3d<ncomp_in_"<<i<<",Q1d>(data, nquads_in_"<<i<<", elem, q, d_u"<<i<<", r_q"<<i<<");\n";
         break;
       case CEED_EVAL_INTERP:
         code << "  CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"];\n";
@@ -1229,16 +1229,16 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     // Basis action
     switch (emode) {
     case CEED_EVAL_NONE:
-      ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
-      code << "  writeQuads"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_out_"<<i<<",Q1d>(data, nquads_out_"<<i<<", elem, r_tt"<<i<<", d_v"<<i<<");\n";
+      ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
+      code << "  writeQuads"<<(imode==CEED_NONINTERLACED?"":"Transpose")<<dim<<"d<ncomp_out_"<<i<<",Q1d>(data, nquads_out_"<<i<<", elem, r_tt"<<i<<", d_v"<<i<<");\n";
       break; // No action
     case CEED_EVAL_INTERP:
       code << "  CeedScalar r_v"<<i<<"[ncomp_out_"<<i<<"*P_out_"<<i<<"];\n";
       code << "  interpTranspose"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<",Q1d>(data, r_tt"<<i<<", s_B_out_"<<i<<", r_v"<<i<<");\n";
-      ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
       ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
       data->indices.out[i] = restr_data->d_ind;
-      code << "  writeDofs"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<">(data, nnodes_out_"<<i<<", elem, indices.out["<<i<<"], r_v"<<i<<", d_v"<<i<<");\n";
+      code << "  writeDofs"<<(imode==CEED_NONINTERLACED?"":"Transpose")<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<">(data, nnodes_out_"<<i<<", elem, indices.out["<<i<<"], r_v"<<i<<", d_v"<<i<<");\n";
       break;
     case CEED_EVAL_GRAD:
       code << "  CeedScalar r_v"<<i<<"[ncomp_out_"<<i<<"*P_out_"<<i<<"];\n";
@@ -1247,10 +1247,10 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       } else {
         code << "  gradTranspose"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<",Q1d>(data, r_tt"<<i<<", s_B_out_"<<i<<", s_G_out_"<<i<<", r_v"<<i<<");\n";
       }
-      ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
       ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
       data->indices.out[i] = restr_data->d_ind;
-      code << "  writeDofs"<<(lmode==CEED_NOTRANSPOSE?"":"Transpose")<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<">(data, nnodes_out_"<<i<<", elem, indices.out["<<i<<"], r_v"<<i<<", d_v"<<i<<");\n";
+      code << "  writeDofs"<<(imode==CEED_NONINTERLACED?"":"Transpose")<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<">(data, nnodes_out_"<<i<<", elem, indices.out["<<i<<"], r_v"<<i<<", d_v"<<i<<");\n";
       break;
     case CEED_EVAL_WEIGHT: {
       Ceed ceed;

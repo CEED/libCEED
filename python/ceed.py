@@ -84,7 +84,8 @@ class Ceed():
 
   # CeedElemRestriction
   def ElemRestriction(self, nelem, elemsize, nnodes, ncomp, indices,
-                      memtype=lib.CEED_MEM_HOST, cmode=lib.CEED_COPY_VALUES):
+                      memtype=lib.CEED_MEM_HOST, cmode=lib.CEED_COPY_VALUES,
+                      imode=lib.CEED_NONINTERLACED):
     """Ceed ElemRestriction: restriction from local vectors to elements.
 
        Args:
@@ -103,14 +104,21 @@ class Ceed():
                       [0, nnodes - 1].
          **memtype: memory type of the indices array, default CEED_MEM_HOST
          **cmode: copy mode for the indices array, default CEED_COPY_VALUES
+         **imode: ordering of the ncomp components, i.e. it specifies
+                    the ordering of the components of the local vector used
+                    by this CeedElemRestriction. CEED_NONINTERLACED indicates
+                    the component is the outermost index and CEED_INTERLACED
+                    indicates the component is the innermost index in
+                    ordering of the local vector, default CEED_NONINTERLACED
 
        Returns:
          elemrestriction: Ceed ElemRestiction"""
 
     return ElemRestriction(self, nelem, elemsize, nnodes, ncomp, indices,
-                           memtype=memtype, cmode=cmode)
+                           memtype=memtype, cmode=cmode, imode=imode)
 
-  def IdentityElemRestriction(self, nelem, elemsize, nnodes, ncomp):
+  def IdentityElemRestriction(self, nelem, elemsize, nnodes, ncomp,
+                              imode=lib.CEED_NONINTERLACED):
     """Ceed Identity ElemRestriction: identity restriction from local vectors to elements.
 
        Args:
@@ -121,16 +129,25 @@ class Ceed():
                    (nnodes * ncomp). This size may include data
                    used by other Ceed ElemRestriction objects describing
                    different types of elements.
-         ncomp: number of field components per interpolation node (1 for scalar fields)
+         ncomp: number of field components per interpolation node
+                  (1 for scalar fields)
+         **imode: ordering of the ncomp components, i.e. it specifies
+                    the ordering of the components of the local vector used
+                    by this CeedElemRestriction. CEED_NONINTERLACED indicates
+                    the component is the outermost index and CEED_INTERLACED
+                    indicates the component is the innermost index in
+                    ordering of the local vector, default CEED_NONINTERLACED
 
        Returns:
          elemrestriction: Ceed Identity ElemRestiction"""
 
-    return IdentityElemRestriction(self, nelem, elemsize, nnodes, ncomp)
+    return IdentityElemRestriction(self, nelem, elemsize, nnodes, ncomp,
+                                   imode=imode)
 
   def BlockedElemRestriction(self, nelem, elemsize, blksize, nnodes, ncomp,
                              indices, memtype=lib.CEED_MEM_HOST,
-                             cmode=lib.CEED_COPY_VALUES):
+                             cmode=lib.CEED_COPY_VALUES,
+                             imode=lib.CEED_NONINTERLACED):
     """Ceed Blocked ElemRestriction: blocked restriction from local vectors to elements.
 
        Args:
@@ -153,13 +170,19 @@ class Ceed():
                       to interlace elements.
          **memtype: memory type of the indices array, default CEED_MEM_HOST
          **cmode: copy mode for the indices array, default CEED_COPY_VALUES
+         **imode: ordering of the ncomp components, i.e. it specifies
+                    the ordering of the components of the local vector used
+                    by this CeedElemRestriction. CEED_NONINTERLACED indicates
+                    the component is the outermost index and CEED_INTERLACED
+                    indicates the component is the innermost index in
+                    ordering of the local vector, default CEED_NONINTERLACED
 
        Returns:
          elemrestriction: Ceed Blocked ElemRestiction"""
 
     return BlockedElemRestriction(self, nelem, elemsize, blksize, nnodes,
                                   ncomp, indices, memtype=memtype,
-                                  cmode=cmode)
+                                  cmode=cmode, imode=imode)
 
   # CeedBasis
   def BasisTensorH1(self, dim, ncomp, P1d, Q1d, interp1d, grad1d,

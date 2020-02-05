@@ -33,7 +33,6 @@ static inline size_t bytes(const CeedElemRestriction res) {
 static
 int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
                                   CeedTransposeMode tmode,
-                                  CeedTransposeMode lmode,
                                   CeedVector u, CeedVector v,
                                   CeedRequest *request) {
   int ierr;
@@ -42,6 +41,8 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
   CeedInt ncomp;
   ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
   dbg("[CeedElemRestriction][Apply]");
+  CeedInterlaceMode imode;
+  ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
   CeedElemRestriction_Occa *data;
   ierr = CeedElemRestrictionGetData(r, (void *)&data); CeedChk(ierr);
   const occaMemory id = data->d_indices;
@@ -54,7 +55,7 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
   const occaMemory ud = u_data->d_array;
   const occaMemory vd = v_data->d_array;
   const CeedTransposeMode restriction = (tmode == CEED_NOTRANSPOSE);
-  const CeedTransposeMode ordering = (lmode == CEED_NOTRANSPOSE);
+  const CeedTransposeMode ordering = (imode == CEED_NONINTERLACED);
   const bool identity = data->identity;
   // ***************************************************************************
   if (identity) {
@@ -102,8 +103,9 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
 
 // *****************************************************************************
 int CeedElemRestrictionApplyBlock_Occa(CeedElemRestriction r,
-                                       CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
-                                       CeedVector u, CeedVector v, CeedRequest *request) {
+                                       CeedInt block, CeedTransposeMode tmode,
+                                       CeedInterlaceMode imode, CeedVector u,
+                                       CeedVector v, CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);

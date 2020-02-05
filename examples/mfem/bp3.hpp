@@ -101,7 +101,8 @@ class CeedDiffusionOperator : public mfem::Operator {
         tp_el_dof[j + el_offset] = el_dof.GetJ()[dof_map[j] + el_offset];
       }
     }
-    CeedElemRestrictionCreate(ceed, mesh->GetNE(), fe->GetDof(),
+    CeedInterlaceMode imode = CEED_NONINTERLACED;
+    CeedElemRestrictionCreate(ceed, imode, mesh->GetNE(), fe->GetDof(),
                               fes->GetNDofs(), fes->GetVDim(), CEED_MEM_HOST,
                               CEED_COPY_VALUES, tp_el_dof.GetData(), restr);
   }
@@ -126,9 +127,10 @@ class CeedDiffusionOperator : public mfem::Operator {
     FESpace2Ceed(mesh_fes, ir, ceed, &mesh_basis, &mesh_restr);
     CeedBasisGetNumQuadraturePoints(basis, &nqpts);
 
-    CeedElemRestrictionCreateIdentity(ceed, nelem, nqpts,
+    CeedInterlaceMode imode = CEED_NONINTERLACED;
+    CeedElemRestrictionCreateIdentity(ceed, imode, nelem, nqpts,
                                       nqpts*nelem, dim*(dim+1)/2, &restr_i);
-    CeedElemRestrictionCreateIdentity(ceed, nelem, nqpts,
+    CeedElemRestrictionCreateIdentity(ceed, imode, nelem, nqpts,
                                       nqpts*nelem, 1, &mesh_restr_i);
 
     CeedVectorCreate(ceed, mesh->GetNodes()->Size(), &node_coords);
@@ -153,12 +155,12 @@ class CeedDiffusionOperator : public mfem::Operator {
     // Create the operator that builds the quadrature data for the diff operator.
     CeedOperatorCreate(ceed, build_qfunc, CEED_QFUNCTION_NONE,
                        CEED_QFUNCTION_NONE, &build_oper);
-    CeedOperatorSetField(build_oper, "dx", mesh_restr, CEED_NOTRANSPOSE,
-                         mesh_basis, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(build_oper, "weights", mesh_restr_i, CEED_NOTRANSPOSE,
-                         mesh_basis, CEED_VECTOR_NONE);
-    CeedOperatorSetField(build_oper, "qdata", restr_i, CEED_NOTRANSPOSE,
-                         CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(build_oper, "dx", mesh_restr, mesh_basis,
+                         CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(build_oper, "weights", mesh_restr_i, mesh_basis,
+                         CEED_VECTOR_NONE);
+    CeedOperatorSetField(build_oper, "qdata", restr_i, CEED_BASIS_COLLOCATED,
+                         CEED_VECTOR_ACTIVE);
 
     // Compute the quadrature data for the diff operator.
     CeedOperatorApply(build_oper, node_coords, qdata,
@@ -175,12 +177,9 @@ class CeedDiffusionOperator : public mfem::Operator {
     // Create the diff operator.
     CeedOperatorCreate(ceed, apply_qfunc, CEED_QFUNCTION_NONE,
                        CEED_QFUNCTION_NONE, &oper);
-    CeedOperatorSetField(oper, "u", restr, CEED_NOTRANSPOSE,
-                         basis, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(oper, "qdata", restr_i, CEED_NOTRANSPOSE,
-                         CEED_BASIS_COLLOCATED, qdata);
-    CeedOperatorSetField(oper, "v", restr, CEED_NOTRANSPOSE,
-                         basis, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(oper, "u", restr, basis, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(oper, "qdata", restr_i, CEED_BASIS_COLLOCATED, qdata);
+    CeedOperatorSetField(oper, "v", restr, basis, CEED_VECTOR_ACTIVE);
 
     CeedVectorCreate(ceed, fes->GetNDofs(), &u);
     CeedVectorCreate(ceed, fes->GetNDofs(), &v);

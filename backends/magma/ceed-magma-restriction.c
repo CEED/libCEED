@@ -17,12 +17,13 @@
 #include "ceed-magma.h"
 
 static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
-    CeedTransposeMode tmode,
-    CeedTransposeMode lmode, CeedVector u,
-    CeedVector v, CeedRequest *request) {
+    CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request) {
   int ierr;
   CeedElemRestriction_Magma *impl;
   ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
+
+  CeedInterlaceMode imode;
+  ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
 
   CeedInt nelem;
   CeedElemRestrictionGetNumElements(r, &nelem);
@@ -42,12 +43,12 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &dv); CeedChk(ierr);
 
   if (tmode == CEED_TRANSPOSE) {
-    if (lmode == CEED_TRANSPOSE)
+    if (imode == CEED_INTERLACED)
       magma_writeDofsTranspose(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
     else
       magma_writeDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
   } else {
-    if (lmode == CEED_TRANSPOSE)
+    if (imode == CEED_INTERLACED)
       magma_readDofsTranspose(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
     else
       magma_readDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
@@ -58,9 +59,8 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
   return 0;
 }
 
-int CeedElemRestrictionApplyBlock_Magma(CeedElemRestriction r,
-                                        CeedInt block, CeedTransposeMode tmode,
-                                        CeedTransposeMode lmode, CeedVector u,
+int CeedElemRestrictionApplyBlock_Magma(CeedElemRestriction r, CeedInt block,
+                                        CeedTransposeMode tmode, CeedVector u,
                                         CeedVector v, CeedRequest *request) {
   int ierr;
   Ceed ceed;

@@ -101,7 +101,7 @@ class Operator(_OperatorBase):
                            self._pointer)
 
   # Add field to CeedOperator
-  def set_field(self, fieldname, restriction, basis, vector, lmode=NOTRANSPOSE):
+  def set_field(self, fieldname, restriction, basis, vector):
     """Provide a field to an Operator for use by its QFunction.
 
        Args:
@@ -112,18 +112,12 @@ class Operator(_OperatorBase):
                   if collocated with quadrature points
          vector: Vector to be used by Operator or CEED_VECTOR_ACTIVE
                    if field is active or CEED_VECTOR_NONE if using
-                   CEED_EVAL_WEIGHT in the QFunction
-         **lmode: CeedTransposeMode which specifies the ordering of the
-                    components of the l-vector used by this CeedOperatorField,
-                    CEED_NOTRANSPOSE indicates the component is the
-                    outermost index and CEED_TRANSPOSE indicates the component
-                    is the innermost index in ordering of the local vector,
-                    default CEED_NOTRANSPOSE"""
+                   CEED_EVAL_WEIGHT in the QFunction"""
 
     # libCEED call
     fieldnameAscii = ffi.new("char[]", fieldname.encode('ascii'))
     lib.CeedOperatorSetField(self._pointer[0], fieldnameAscii,
-                             restriction._pointer[0], lmode, basis._pointer[0],
+                             restriction._pointer[0], basis._pointer[0],
                              vector._pointer[0])
 
 # ------------------------------------------------------------------------------

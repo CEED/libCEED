@@ -13,6 +13,7 @@ int main(int argc, char **argv) {
   CeedScalar a[ne+1];
   CeedElemRestriction r;
   CeedScalar *y_array;
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
 
   CeedInit(argv[1], &ceed);
 
@@ -26,14 +27,15 @@ int main(int argc, char **argv) {
       ind[elemsize*i+k] = i+k;
     }
   }
-  CeedElemRestrictionCreateBlocked(ceed, ne, elemsize, blksize, ne+1, 1, CEED_MEM_HOST,
-                                   CEED_USE_POINTER, ind, &r);
+
+  CeedElemRestrictionCreateBlocked(ceed, imode, ne, elemsize, blksize, ne+1, 1,
+                                   CEED_MEM_HOST, CEED_USE_POINTER, ind, &r);
 
   CeedVectorCreate(ceed, blksize*elemsize, &y);
   CeedVectorSetValue(y, 0); // Allocates array
 
   // NoTranspose
-  CeedElemRestrictionApplyBlock(r, 1, CEED_NOTRANSPOSE, CEED_NOTRANSPOSE, x, y,
+  CeedElemRestrictionApplyBlock(r, 1, CEED_NOTRANSPOSE, x, y,
                                 CEED_REQUEST_IMMEDIATE);
 
   // Zero padded entries
@@ -49,7 +51,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<ne+1; i++)
     a[i] = 0;
   CeedVectorRestoreArray(x, (CeedScalar **)&a);
-  CeedElemRestrictionApplyBlock(r, 1, CEED_TRANSPOSE, CEED_NOTRANSPOSE, y, x,
+  CeedElemRestrictionApplyBlock(r, 1, CEED_TRANSPOSE, y, x,
                                 CEED_REQUEST_IMMEDIATE);
   CeedVectorView(x, "%12.8f", stdout);
 
