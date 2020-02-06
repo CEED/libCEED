@@ -53,12 +53,12 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
   const occaMemory ud = u_data->d_array;
   const occaMemory vd = v_data->d_array;
   const bool strided = data->strided;
-  CeedInterlaceMode imode;
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
   if (!strided) {
     ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
   }
   const CeedTransposeMode restriction = (tmode == CEED_NOTRANSPOSE);
-  const CeedTransposeMode ordering = (imode == CEED_NONINTERLACED);
+  const CeedInterlaceMode ordering = (imode == CEED_NONINTERLACED);
   // ***************************************************************************
   if (restriction) {
     // Perform: v = r * u
