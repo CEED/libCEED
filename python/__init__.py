@@ -17,7 +17,7 @@
 from .ceed import Ceed
 from .ceed_vector import Vector
 from .ceed_basis import Basis, BasisTensorH1, BasisTensorH1Lagrange, BasisH1
-from .ceed_elemrestriction import ElemRestriction, IdentityElemRestriction, BlockedElemRestriction
+from .ceed_elemrestriction import ElemRestriction, StridedElemRestriction, BlockedElemRestriction, BlockedStridedElemRestriction
 from .ceed_qfunction import QFunction, QFunctionByName, IdentityQFunction
 from .ceed_operator import Operator, CompositeOperator
 from .ceed_constants import *
@@ -28,7 +28,7 @@ from .ceed_constants import *
 __all__ = ["Ceed",
            "Vector",
            "Basis", "BasisTensorH1", "BasisTensorH1Lagrange", "BasisH1",
-           "ElemRestriction", "IdentityElemRestriction", "BlockedElemRestriction",
+           "ElemRestriction", "StridedElemRestriction", "BlockedElemRestriction", "BlockedStridedelemRestriction",
            "QFunction", "QFunctionByName", "IdentityQFunction",
            "Operator", "CompositeOperator",
            "MEM_HOST", "MEM_DEVICE", "mem_types",

@@ -70,14 +70,16 @@ def test_500(ceed_resource):
     indx[2*i+0] = i
     indx[2*i+1] = i+1
   rx = ceed.ElemRestriction(nelem, 2, nx, 1, indx, cmode=libceed.USE_POINTER)
-  rxi = ceed.IdentityElemRestriction(nelem, 2, nelem*2, 1)
+  strides = np.array([1, 2, 2], dtype="int32")
+  rxi = ceed.StridedElemRestriction(nelem, 2, nelem*2, 1, strides)
 
   indu = np.zeros(nelem*p, dtype="int32")
   for i in range(nelem):
     for j in range(p):
       indu[p*i+j] = i*(p-1) + j
   ru = ceed.ElemRestriction(nelem, p, nu, 1, indu, cmode=libceed.USE_POINTER)
-  rui = ceed.IdentityElemRestriction(nelem, q, q*nelem, 1)
+  strides = np.array([1, q, q], dtype="int32")
+  rui = ceed.StridedElemRestriction(nelem, q, q*nelem, 1, strides)
 
   # Bases
   bx = ceed.BasisTensorH1Lagrange(1, 1, 2, q, libceed.GAUSS)
@@ -154,14 +156,16 @@ def test_501(ceed_resource):
     indx[2*i+0] = i
     indx[2*i+1] = i+1
   rx = ceed.ElemRestriction(nelem, 2, nx, 1, indx, cmode=libceed.USE_POINTER)
-  rxi = ceed.IdentityElemRestriction(nelem, 2, nelem*2, 1)
+  strides = np.array([1, 2, 2], dtype="int32")
+  rxi = ceed.StridedElemRestriction(nelem, 2, nelem*2, 1, strides)
 
   indu = np.zeros(nelem*p, dtype="int32")
   for i in range(nelem):
     for j in range(p):
       indu[p*i+j] = i*(p-1) + j
   ru = ceed.ElemRestriction(nelem, p, nu, 1, indu, cmode=libceed.USE_POINTER)
-  rui = ceed.IdentityElemRestriction(nelem, q, q*nelem, 1)
+  strides = np.array([1, q, q], dtype="int32")
+  rui = ceed.StridedElemRestriction(nelem, q, q*nelem, 1, strides)
 
   # Bases
   bx = ceed.BasisTensorH1Lagrange(1, 1, 2, q, libceed.GAUSS)
@@ -240,7 +244,8 @@ def test_502(ceed_resource):
     indx[2*i+0] = i
     indx[2*i+1] = i+1
   rx = ceed.ElemRestriction(nelem, 2, nx, 1, indx, cmode=libceed.USE_POINTER)
-  rxi = ceed.IdentityElemRestriction(nelem, 2, nelem*2, 1)
+  strides = np.array([1, 2, 2], dtype="int32")
+  rxi = ceed.StridedElemRestriction(nelem, 2, nelem*2, 1, strides)
 
   indu = np.zeros(nelem*p, dtype="int32")
   for i in range(nelem):
@@ -248,7 +253,8 @@ def test_502(ceed_resource):
       indu[p*i+j] = i*(p-1) + j
   ru = ceed.ElemRestriction(nelem, p, nu, 2, indu, cmode=libceed.USE_POINTER,
                             imode=libceed.INTERLACED)
-  rui = ceed.IdentityElemRestriction(nelem, q, q*nelem, 1)
+  strides = np.array([1, q, q], dtype="int32")
+  rui = ceed.StridedElemRestriction(nelem, q, q*nelem, 1, strides)
 
   # Bases
   bx = ceed.BasisTensorH1Lagrange(1, 1, 2, q, libceed.GAUSS)
@@ -335,7 +341,8 @@ def test_503(ceed_resource):
     indx[2*i+0] = i
     indx[2*i+1] = i+1
   rx = ceed.ElemRestriction(nelem, 2, nx, 1, indx, cmode=libceed.USE_POINTER)
-  rxi = ceed.IdentityElemRestriction(nelem, 2, nelem*2, 1)
+  strides = np.array([1, 2, 2], dtype="int32")
+  rxi = ceed.StridedElemRestriction(nelem, 2, nelem*2, 1, strides)
 
   indu = np.zeros(nelem*p, dtype="int32")
   for i in range(nelem):
@@ -343,7 +350,8 @@ def test_503(ceed_resource):
       indu[p*i+j] = i*(p-1) + j
   ru = ceed.ElemRestriction(nelem, p, nu, 1, indu, cmode=libceed.USE_POINTER,
                             imode=libceed.INTERLACED)
-  rui = ceed.IdentityElemRestriction(nelem, q, q*nelem, 1)
+  strides = np.array([1, q, q], dtype="int32")
+  rui = ceed.StridedElemRestriction(nelem, q, q*nelem, 1, strides)
 
   # Bases
   bx = ceed.BasisTensorH1Lagrange(1, 1, 2, q, libceed.GAUSS)
@@ -414,14 +422,16 @@ def test_504(ceed_resource, capsys):
     indx[2*i+0] = i
     indx[2*i+1] = i+1
   rx = ceed.ElemRestriction(nelem, 2, nx, 1, indx, cmode=libceed.USE_POINTER)
-  rxi = ceed.IdentityElemRestriction(nelem, 2, nelem*2, 1)
+  strides = np.array([1, 2, 2], dtype="int32")
+  rxi = ceed.StridedElemRestriction(nelem, 2, nelem*2, 1, strides)
 
   indu = np.zeros(nelem*p, dtype="int32")
   for i in range(nelem):
     for j in range(p):
       indu[p*i+j] = i*(p-1) + j
   ru = ceed.ElemRestriction(nelem, p, nu, 1, indu, cmode=libceed.USE_POINTER)
-  rui = ceed.IdentityElemRestriction(nelem, q, q*nelem, 1)
+  strides = np.array([1, q, q], dtype="int32")
+  rui = ceed.StridedElemRestriction(nelem, q, q*nelem, 1, strides)
 
   # Bases
   bx = ceed.BasisTensorH1Lagrange(1, 1, 2, q, libceed.GAUSS)
@@ -494,14 +504,16 @@ def test_505(ceed_resource):
     indx[2*i+0] = i
     indx[2*i+1] = i+1
   rx = ceed.ElemRestriction(nelem, 2, nx, 1, indx, cmode=libceed.USE_POINTER)
-  rxi = ceed.IdentityElemRestriction(nelem, 2, nelem*2, 1)
+  strides = np.array([1, 2, 2], dtype="int32")
+  rxi = ceed.StridedElemRestriction(nelem, 2, nelem*2, 1, strides)
 
   indu = np.zeros(nelem*p, dtype="int32")
   for i in range(nelem):
     for j in range(p):
       indu[p*i+j] = i*(p-1) + j
   ru = ceed.ElemRestriction(nelem, p, nu, 1, indu, cmode=libceed.USE_POINTER)
-  rui = ceed.IdentityElemRestriction(nelem, q, q*nelem, 1)
+  strides = np.array([1, q, q], dtype="int32")
+  rui = ceed.StridedElemRestriction(nelem, q, q*nelem, 1, strides)
 
   # Bases
   bx = ceed.BasisTensorH1Lagrange(1, 1, 2, q, libceed.GAUSS)
@@ -614,10 +626,12 @@ def test_510(ceed_resource):
 
   rx = ceed.ElemRestriction(nelem, p, ndofs, dim, indx,
                             cmode=libceed.USE_POINTER)
-  rxi = ceed.IdentityElemRestriction(nelem, p, nelem*p, dim)
+  strides = np.array([1, p, p*dim], dtype="int32")
+  rxi = ceed.StridedElemRestriction(nelem, p, nelem*p, dim, strides)
 
   ru = ceed.ElemRestriction(nelem, p, ndofs, 1, indx, cmode=libceed.USE_POINTER)
-  rui = ceed.IdentityElemRestriction(nelem, q, nqpts, 1)
+  strides = np.array([1, q, q], dtype="int32")
+  rui = ceed.StridedElemRestriction(nelem, q, nqpts, 1, strides)
 
   # Bases
   qref = np.empty(dim*q, dtype="float64")
@@ -718,10 +732,12 @@ def test_511(ceed_resource):
 
   rx = ceed.ElemRestriction(nelem, p, ndofs, dim, indx,
                             cmode=libceed.USE_POINTER)
-  rxi = ceed.IdentityElemRestriction(nelem, p, nelem*p, dim)
+  strides = np.array([1, p, p*dim], dtype="int32")
+  rxi = ceed.StridedElemRestriction(nelem, p, nelem*p, dim, strides)
 
   ru = ceed.ElemRestriction(nelem, p, ndofs, 1, indx, cmode=libceed.USE_POINTER)
-  rui = ceed.IdentityElemRestriction(nelem, q, nqpts, 1)
+  strides = np.array([1, q, q], dtype="int32")
+  rui = ceed.StridedElemRestriction(nelem, q, nqpts, 1, strides)
 
   # Bases
   qref = np.empty(dim*q, dtype="float64")
@@ -828,11 +844,14 @@ def test_520(ceed_resource):
 
   rx_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, dim, indx_tet,
                                 cmode=libceed.USE_POINTER)
-  rxi_tet = ceed.IdentityElemRestriction(nelem_tet, p_tet, nelem_tet*p_tet, dim)
+  strides = np.array([1, p_tet, p_tet*dim], dtype="int32")
+  rxi_tet = ceed.StridedElemRestriction(nelem_tet, p_tet, nelem_tet*p_tet, dim,
+                                        strides)
 
   ru_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, 1, indx_tet,
                                 cmode=libceed.USE_POINTER)
-  rui_tet = ceed.IdentityElemRestriction(nelem_tet, q_tet, nqpts_tet, 1)
+  strides = np.array([1, q_tet, q_tet], dtype="int32")
+  rui_tet = ceed.StridedElemRestriction(nelem_tet, q_tet, nqpts_tet, 1, strides)
 
   # Bases
   qref = np.empty(dim*q_tet, dtype="float64")
@@ -887,12 +906,15 @@ def test_520(ceed_resource):
 
   rx_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, dim, indx_hex,
                             cmode=libceed.USE_POINTER)
-  rxi_hex = ceed.IdentityElemRestriction(nelem_hex, p_hex*p_hex,
-                                         nelem_hex*p_hex*p_hex, dim)
+  strides = np.array([1, p_hex*p_hex, p_hex*p_hex*dim], dtype="int32")
+  rxi_hex = ceed.StridedElemRestriction(nelem_hex, p_hex*p_hex,
+                                        nelem_hex*p_hex*p_hex, dim, strides)
 
   ru_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, 1, indx_hex,
                                 cmode=libceed.USE_POINTER)
-  rui_hex = ceed.IdentityElemRestriction(nelem_hex, q_hex*q_hex, nqpts_hex, 1)
+  strides = np.array([1, q_hex*q_hex, q_hex*q_hex], dtype="int32")
+  rui_hex = ceed.StridedElemRestriction(nelem_hex, q_hex*q_hex, nqpts_hex, 1,
+                                        strides)
 
   # Bases
   bx_hex = ceed.BasisTensorH1Lagrange(dim, dim, p_hex, q_hex, libceed.GAUSS)
@@ -999,11 +1021,14 @@ def test_521(ceed_resource):
 
   rx_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, dim, indx_tet,
                             cmode=libceed.USE_POINTER)
-  rxi_tet = ceed.IdentityElemRestriction(nelem_tet, p_tet, nelem_tet*p_tet, dim)
+  strides = np.array([1, p_tet, p_tet*dim], dtype="int32")
+  rxi_tet = ceed.StridedElemRestriction(nelem_tet, p_tet, nelem_tet*p_tet, dim,
+                                        strides)
 
   ru_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, 1, indx_tet,
                                 cmode=libceed.USE_POINTER)
-  rui_tet = ceed.IdentityElemRestriction(nelem_tet, q_tet, nqpts_tet, 1)
+  strides = np.array([1, q_tet, q_tet], dtype="int32")
+  rui_tet = ceed.StridedElemRestriction(nelem_tet, q_tet, nqpts_tet, 1, strides)
 
   # Bases
   qref = np.empty(dim*q_tet, dtype="float64")
@@ -1058,12 +1083,15 @@ def test_521(ceed_resource):
 
   rx_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, dim, indx_hex,
                                 cmode=libceed.USE_POINTER)
-  rxi_hex = ceed.IdentityElemRestriction(nelem_hex, p_hex*p_hex,
-                                         nelem_hex*p_hex*p_hex, dim)
+  strides = np.array([1, p_hex*p_hex, p_hex*p_hex*dim], dtype="int32")
+  rxi_hex = ceed.StridedElemRestriction(nelem_hex, p_hex*p_hex,
+                                        nelem_hex*p_hex*p_hex, dim, strides)
 
   ru_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, 1, indx_hex,
                                 cmode=libceed.USE_POINTER)
-  rui_hex = ceed.IdentityElemRestriction(nelem_hex, q_hex*q_hex, nqpts_hex, 1)
+  strides = np.array([1, q_hex*q_hex, q_hex*q_hex], dtype="int32")
+  rui_hex = ceed.StridedElemRestriction(nelem_hex, q_hex*q_hex, nqpts_hex, 1,
+                                        strides)
 
   # Bases
   bx_hex = ceed.BasisTensorH1Lagrange(dim, dim, p_hex, q_hex, libceed.GAUSS)
@@ -1161,11 +1189,14 @@ def test_523(ceed_resource, capsys):
 
   rx_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, dim, indx_tet,
                             cmode=libceed.USE_POINTER)
-  rxi_tet = ceed.IdentityElemRestriction(nelem_tet, p_tet, nelem_tet*p_tet, dim)
+  strides = np.array([1, p_tet, p_tet*dim], dtype="int32")
+  rxi_tet = ceed.StridedElemRestriction(nelem_tet, p_tet, nelem_tet*p_tet, dim,
+                                        strides)
 
   ru_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, 1, indx_tet,
                                 cmode=libceed.USE_POINTER)
-  rui_tet = ceed.IdentityElemRestriction(nelem_tet, q_tet, nqpts_tet, 1)
+  strides = np.array([1, q_tet, q_tet], dtype="int32")
+  rui_tet = ceed.StridedElemRestriction(nelem_tet, q_tet, nqpts_tet, 1, strides)
 
   # Bases
   qref = np.empty(dim*q_tet, dtype="float64")
@@ -1220,12 +1251,15 @@ def test_523(ceed_resource, capsys):
 
   rx_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, dim, indx_hex,
                                 cmode=libceed.USE_POINTER)
-  rxi_hex = ceed.IdentityElemRestriction(nelem_hex, p_hex*p_hex,
-                                         nelem_hex*p_hex*p_hex, dim)
+  strides = np.array([1, p_hex*p_hex, p_hex*p_hex*dim], dtype="int32")
+  rxi_hex = ceed.StridedElemRestriction(nelem_hex, p_hex*p_hex,
+                                        nelem_hex*p_hex*p_hex, dim, strides)
 
   ru_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, 1, indx_hex,
                                 cmode=libceed.USE_POINTER)
-  rui_hex = ceed.IdentityElemRestriction(nelem_hex, q_hex*q_hex, nqpts_hex, 1)
+  strides = np.array([1, q_hex*q_hex, q_hex*q_hex], dtype="int32")
+  rui_hex = ceed.StridedElemRestriction(nelem_hex, q_hex*q_hex, nqpts_hex, 1,
+                                        strides)
 
   # Bases
   bx_hex = ceed.BasisTensorH1Lagrange(dim, dim, p_hex, q_hex, libceed.GAUSS)
@@ -1331,11 +1365,14 @@ def test_524(ceed_resource):
 
   rx_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, dim, indx_tet,
                             cmode=libceed.USE_POINTER)
-  rxi_tet = ceed.IdentityElemRestriction(nelem_tet, p_tet, nelem_tet*p_tet, dim)
+  strides = np.array([1, p_tet, p_tet*dim], dtype="int32")
+  rxi_tet = ceed.StridedElemRestriction(nelem_tet, p_tet, nelem_tet*p_tet, dim,
+                                        strides)
 
   ru_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, 1, indx_tet,
                                 cmode=libceed.USE_POINTER)
-  rui_tet = ceed.IdentityElemRestriction(nelem_tet, q_tet, nqpts_tet, 1)
+  strides = np.array([1, q_tet, q_tet], dtype="int32")
+  rui_tet = ceed.StridedElemRestriction(nelem_tet, q_tet, nqpts_tet, 1, strides)
 
   # Bases
   qref = np.empty(dim*q_tet, dtype="float64")
@@ -1390,12 +1427,15 @@ def test_524(ceed_resource):
 
   rx_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, dim, indx_hex,
                                 cmode=libceed.USE_POINTER)
-  rxi_hex = ceed.IdentityElemRestriction(nelem_hex, p_hex*p_hex,
-                                         nelem_hex*p_hex*p_hex, dim)
+  strides = np.array([1, p_hex*p_hex, p_hex*p_hex*dim], dtype="int32")
+  rxi_hex = ceed.StridedElemRestriction(nelem_hex, p_hex*p_hex,
+                                        nelem_hex*p_hex*p_hex, dim, strides)
 
   ru_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, 1, indx_hex,
                                 cmode=libceed.USE_POINTER)
-  rui_hex = ceed.IdentityElemRestriction(nelem_hex, q_hex*q_hex, nqpts_hex, 1)
+  strides = np.array([1, q_hex*q_hex, q_hex*q_hex], dtype="int32")
+  rui_hex = ceed.StridedElemRestriction(nelem_hex, q_hex*q_hex, nqpts_hex, 1,
+                                        strides)
 
   # Bases
   bx_hex = ceed.BasisTensorH1Lagrange(dim, dim, p_hex, q_hex, libceed.GAUSS)

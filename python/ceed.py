@@ -20,7 +20,7 @@ import io
 from abc import ABC
 from .ceed_vector import Vector
 from .ceed_basis import BasisTensorH1, BasisTensorH1Lagrange, BasisH1
-from .ceed_elemrestriction import ElemRestriction, IdentityElemRestriction, BlockedElemRestriction
+from .ceed_elemrestriction import ElemRestriction, StridedElemRestriction, BlockedElemRestriction, BlockedStridedElemRestriction
 from .ceed_qfunction import QFunction, QFunctionByName, IdentityQFunction
 from .ceed_operator import Operator, CompositeOperator
 from .ceed_constants import *
@@ -117,9 +117,8 @@ class Ceed():
     return ElemRestriction(self, nelem, elemsize, nnodes, ncomp, indices,
                            memtype=memtype, cmode=cmode, imode=imode)
 
-  def IdentityElemRestriction(self, nelem, elemsize, nnodes, ncomp,
-                              imode=lib.CEED_NONINTERLACED):
-    """Ceed Identity ElemRestriction: identity restriction from local vectors to elements.
+  def StridedElemRestriction(self, nelem, elemsize, nnodes, ncomp, strides):
+    """Ceed Identity ElemRestriction: strided restriction from local vectors to elements.
 
        Args:
          nelem: number of elements described in the indices array
@@ -131,18 +130,15 @@ class Ceed():
                    different types of elements.
          ncomp: number of field components per interpolation node
                   (1 for scalar fields)
-         **imode: ordering of the ncomp components, i.e. it specifies
-                    the ordering of the components of the local vector used
-                    by this CeedElemRestriction. CEED_NONINTERLACED indicates
-                    the component is the outermost index and CEED_INTERLACED
-                    indicates the component is the innermost index in
-                    ordering of the local vector, default CEED_NONINTERLACED
+         *strides: Array for strides between [nodes, components, elements].
+                     The data for node i, component j, element k in the
+                     L-vector is given by
+                       i*strides[0] + j*strides[1] + k*strides[2]
 
        Returns:
-         elemrestriction: Ceed Identity ElemRestiction"""
+         elemrestriction: Ceed Strided ElemRestiction"""
 
-    return IdentityElemRestriction(self, nelem, elemsize, nnodes, ncomp,
-                                   imode=imode)
+    return StridedElemRestriction(self, nelem, elemsize, nnodes, ncomp, strides)
 
   def BlockedElemRestriction(self, nelem, elemsize, blksize, nnodes, ncomp,
                              indices, memtype=lib.CEED_MEM_HOST,
@@ -183,6 +179,32 @@ class Ceed():
     return BlockedElemRestriction(self, nelem, elemsize, blksize, nnodes,
                                   ncomp, indices, memtype=memtype,
                                   cmode=cmode, imode=imode)
+
+  def BlockedStridedElemRestriction(self, nelem, elemsize, blksize, nnodes,
+                                    ncomp, strides):
+    """Ceed Blocked Strided ElemRestriction: blocked and strided restriction from local vectors to elements.
+
+       Args:
+         nelem: number of elements described in the indices array
+         elemsize: size (number of nodes) per element
+         blksize: number of elements in a block
+         nnodes: the number of nodes in the local vector. The input Ceed Vector
+                   to which the restriction will be applied is of size
+                   (nnodes * ncomp). This size may include data
+                   used by other Ceed ElemRestriction objects describing
+                   different types of elements.
+         ncomp: number of field components per interpolation node
+                  (1 for scalar fields)
+         *strides: Array for strides between [nodes, components, elements].
+                     The data for node i, component j, element k in the
+                     L-vector is given by
+                       i*strides[0] + j*strides[1] + k*strides[2]
+
+       Returns:
+         elemrestriction: Ceed Strided ElemRestiction"""
+
+    return BlockedStridedElemRestriction(self, nelem, elemsize, blksize,
+                                         nnodes, ncomp, strides)
 
   # CeedBasis
   def BasisTensorH1(self, dim, ncomp, P1d, Q1d, interp1d, grad1d,

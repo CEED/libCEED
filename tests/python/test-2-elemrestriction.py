@@ -51,7 +51,7 @@ def test_200(ceed_resource):
   y.restore_array_read()
 
 #-------------------------------------------------------------------------------
-# Test creation, use, and destruction of an identity element restriction
+# Test creation, use, and destruction of a strided element restriction
 #-------------------------------------------------------------------------------
 def test_201(ceed_resource):
   ceed = libceed.Ceed(ceed_resource)
@@ -62,7 +62,8 @@ def test_201(ceed_resource):
   a = np.arange(10, 10 + 2*ne, dtype="float64")
   x.set_array(a, cmode=libceed.USE_POINTER)
 
-  r = ceed.IdentityElemRestriction(ne, 2, 2*ne, 1)
+  strides = np.array([1, 2, 2], dtype="int32")
+  r = ceed.StridedElemRestriction(ne, 2, 2*ne, 1, strides)
 
   y = ceed.Vector(2*ne)
   y.set_value(0)
