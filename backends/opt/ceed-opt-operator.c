@@ -330,16 +330,16 @@ static inline int CeedOperatorInputBasis_Opt(CeedInt e, CeedInt Q,
       break;
     case CEED_EVAL_WEIGHT:
       break;  // No action
+    // LCOV_EXCL_START
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL: {
-      // LCOV_EXCL_START
       ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis);
       CeedChk(ierr);
       Ceed ceed;
       ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
       return CeedError(ceed, 1, "Ceed evaluation mode not implemented");
-      // LCOV_EXCL_STOP
       break; // Not implemented
+      // LCOV_EXCL_STOP
     }
     }
   }
@@ -384,23 +384,21 @@ static inline int CeedOperatorOutputBasis_Opt(CeedInt e, CeedInt Q,
                             CEED_EVAL_GRAD, impl->qvecsout[i],
                             impl->evecsout[i]); CeedChk(ierr);
       break;
+    // LCOV_EXCL_START
     case CEED_EVAL_WEIGHT: {
-      // LCOV_EXCL_START
       Ceed ceed;
       ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
       return CeedError(ceed, 1, "CEED_EVAL_WEIGHT cannot be an output "
                        "evaluation mode");
-      // LCOV_EXCL_STOP
       break; // Should not occur
     }
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL: {
-      // LCOV_EXCL_START
       Ceed ceed;
       ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
       return CeedError(ceed, 1, "Ceed evaluation mode not implemented");
-      // LCOV_EXCL_STOP
       break; // Not implemented
+      // LCOV_EXCL_STOP
     }
     }
     // Restrict output block
