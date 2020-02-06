@@ -198,3 +198,41 @@ def test_210(ceed_resource, capsys):
   assert stdout == true_output
 
 #-------------------------------------------------------------------------------
+# Test creation and view of a strided element restriction
+#-------------------------------------------------------------------------------
+def test_211(ceed_resource, capsys):
+  ceed = libceed.Ceed(ceed_resource)
+
+  ne = 3
+
+  strides = np.array([1, 2, 2], dtype="int32")
+  r = ceed.StridedElemRestriction(ne, 2, ne+1, 1, strides)
+
+  print(r)
+
+  stdout, stderr = capsys.readouterr()
+  with open(os.path.abspath("./output/test_211.out")) as output_file:
+    true_output = output_file.read()
+
+  assert stdout == true_output
+
+#-------------------------------------------------------------------------------
+# Test creation and view of a blocked strided element restriction
+#-------------------------------------------------------------------------------
+def test_212(ceed_resource, capsys):
+  ceed = libceed.Ceed(ceed_resource)
+
+  ne = 3
+
+  strides = np.array([1, 2, 2], dtype="int32")
+  r = ceed.BlockedStridedElemRestriction(ne, 2, 2, ne+1, 1, strides)
+
+  print(r)
+
+  stdout, stderr = capsys.readouterr()
+  with open(os.path.abspath("./output/test_212.out")) as output_file:
+    true_output = output_file.read()
+
+  assert stdout == true_output
+
+#-------------------------------------------------------------------------------

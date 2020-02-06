@@ -254,14 +254,10 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed,  CeedInterlaceMode imode,
 
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
 
-  if (indices) {
-    ierr = CeedCalloc(nblk*blksize*elemsize, &blkindices); CeedChk(ierr);
-    ierr = CeedPermutePadIndices(indices, blkindices, nblk, nelem, blksize,
-                                 elemsize);
-    CeedChk(ierr);
-  } else {
-    blkindices = NULL;
-  }
+  ierr = CeedCalloc(nblk*blksize*elemsize, &blkindices); CeedChk(ierr);
+  ierr = CeedPermutePadIndices(indices, blkindices, nblk, nelem, blksize,
+                               elemsize);
+  CeedChk(ierr);
 
   (*rstr)->ceed = ceed;
   ceed->refcount++;
@@ -711,9 +707,10 @@ int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
     sprintf(stridesstr, "[%d, %d, %d]", rstr->strides[0], rstr->strides[1],
             rstr->strides[2]);
 
-  fprintf(stream, "CeedElemRestriction from (%d, %d) to %d elements with %d "
-          "nodes each and %s %s\n", rstr->nnodes, rstr->ncomp, rstr->nelem,
-          rstr->elemsize, rstr->strides ? "strides" : "L-vector components",
+  fprintf(stream, "%sCeedElemRestriction from (%d, %d) to %d elements with %d "
+          "nodes each and %s %s\n", rstr->blksize > 1 ? "Blocked " : "",
+          rstr->nnodes, rstr->ncomp, rstr->nelem, rstr->elemsize,
+          rstr->strides ? "strides" : "L-vector components",
           rstr->strides ? stridesstr : CeedInterlaceModes[rstr->imode]);
   return 0;
 }
