@@ -600,13 +600,16 @@ int main(int argc, char **argv) {
   CreateRestriction(ceed, CEED_INTERLACED, melem, P, ncompu, &Erestrictu);
   CreateRestriction(ceed, CEED_NONINTERLACED, melem, 2, dim, &Erestrictx);
   CeedInt nelem = melem[0]*melem[1]*melem[2];
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q*Q,
-                                    nelem*Q*Q*Q, ncompu, &Erestrictui);
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q*Q,
-                                    nelem*Q*Q*Q, bpOptions[bpChoice].qdatasize,
-                                    &Erestrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q*Q,
-                                    nelem*Q*Q*Q, 1, &Erestrictxi);
+  CeedInt stridesu[3] = {1, Q *Q*Q, Q *Q *Q*ncompu};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompu,
+                                   stridesu, &Erestrictui);
+  CeedInt stridesqd[3] = {1, Q *Q*Q, Q *Q *Q *bpOptions[bpChoice].qdatasize};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
+                                   bpOptions[bpChoice].qdatasize, stridesqd,
+                                   &Erestrictqdi);
+  CeedInt stridesx[3] = {1, Q *Q*Q, Q *Q*Q};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1, stridesx,
+                                   &Erestrictxi);
   {
     CeedScalar *xloc;
     CeedInt shape[3] = {melem[0]+1, melem[1]+1, melem[2]+1}, len =

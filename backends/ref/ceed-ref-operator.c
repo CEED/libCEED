@@ -571,9 +571,11 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   // LCOV_EXCL_STOP
 
   // Create output restriction
-  CeedInterlaceMode imode = CEED_NONINTERLACED;
-  ierr = CeedElemRestrictionCreateIdentity(ceedparent, imode, numelements, Q,
-         numelements*Q, numactivein*numactiveout, rstr); CeedChk(ierr);
+  CeedInt strides[3] = {1, Q, numactivein *numactiveout*Q};
+  ierr = CeedElemRestrictionCreateStrided(ceedparent, numelements, Q,
+                                          numelements*Q,
+                                          numactivein*numactiveout, strides,
+                                          rstr); CeedChk(ierr);
   // Create assembled vector
   ierr = CeedVectorCreate(ceedparent, numelements*Q*numactivein*numactiveout,
                           assembled); CeedChk(ierr);
@@ -1026,9 +1028,10 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
 
   // -- Restriction
   CeedElemRestriction rstr_i;
-  CeedInterlaceMode imode = CEED_NONINTERLACED;
-  ierr = CeedElemRestrictionCreateIdentity(ceedparent, imode, nelem, nnodes,
-         nnodes*nelem, ncomp, &rstr_i); CeedChk(ierr);
+  CeedInt strides[3] = {1, nnodes, nnodes*ncomp};
+  ierr = CeedElemRestrictionCreateStrided(ceedparent, nelem, nnodes,
+                                          nnodes*nelem, ncomp, strides, &rstr_i);
+  CeedChk(ierr);
   // -- QFunction
   CeedQFunction mass_qf;
   ierr = CeedQFunctionCreateInteriorByName(ceedparent, "MassApply", &mass_qf);

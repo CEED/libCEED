@@ -50,16 +50,19 @@ int main(int argc, char **argv) {
   // Restrictions
   CeedElemRestrictionCreate(ceed, imode, nelem, P*P, ndofs, dim, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictx);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, P*P, nelem*P*P, dim,
-                                    &Erestrictxi);
+  CeedInt stridesx[3] = {1, P*P, P *P*dim};
+  CeedElemRestrictionCreateStrided(ceed,  nelem, P*P, nelem*P*P, dim, stridesx,
+                                   &Erestrictxi);
 
   CeedElemRestrictionCreate(ceed, imode, nelem, P*P, ndofs, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictu);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, Q*Q, nqpts, 1,
-                                    &Erestrictui);
+  CeedInt stridesu[3] = {1, Q*Q, Q *Q*dim};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nqpts, 1, stridesu,
+                                   &Erestrictui);
 
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, Q*Q, nqpts,
-                                    dim*(dim+1)/2, &Erestrictqi);
+  CeedInt stridesqd[3] = {1, Q*Q, Q *Q *dim *(dim+1)/2};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nqpts, dim*(dim+1)/2,
+                                   stridesqd, &Erestrictqi);
 
   // Bases
   CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, P, Q, CEED_GAUSS, &bx);

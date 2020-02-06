@@ -56,11 +56,10 @@
 
   @ref Basic
 **/
-int CeedElemRestrictionCreate(Ceed ceed,  CeedInterlaceMode imode,
-                              CeedInt nelem,
-                              CeedInt elemsize, CeedInt nnodes, CeedInt ncomp,
-                              CeedMemType mtype, CeedCopyMode cmode,
-                              const CeedInt *indices,
+int CeedElemRestrictionCreate(Ceed ceed, CeedInterlaceMode imode,
+                              CeedInt nelem, CeedInt elemsize, CeedInt nnodes,
+                              CeedInt ncomp, CeedMemType mtype,
+                              CeedCopyMode cmode, const CeedInt *indices,
                               CeedElemRestriction *rstr) {
   int ierr;
 
@@ -96,16 +95,10 @@ int CeedElemRestrictionCreate(Ceed ceed,  CeedInterlaceMode imode,
 }
 
 /**
-  @brief Create an identity CeedElemRestriction
+  @brief Create a strided CeedElemRestriction
 
   @param ceed       A Ceed object where the CeedElemRestriction will be created
-  @param imode      Ordering of the ncomp components, i.e. it specifies
-                      the ordering of the components of the L-vector used
-                      by this CeedElemRestriction. CEED_NONINTERLACED indicates
-                      the component is the outermost index and CEED_INTERLACED
-                      indicates the component is the innermost index in
-                      ordering of the L-vector.
-  @param nelem      Number of elements described in the @a indices array
+  @param nelem      Number of elements described by the restriction
   @param elemsize   Size (number of "nodes") per element
   @param nnodes     The number of nodes in the L-vector. The input CeedVector
                       to which the restriction will be applied is of size
@@ -114,6 +107,10 @@ int CeedElemRestrictionCreate(Ceed ceed,  CeedInterlaceMode imode,
                       different types of elements.
   @param ncomp      Number of field components per interpolation node
                       (1 for scalar fields)
+  @param strides    Array for strides between [nodes, components, elements].
+                      The data for node i, component j, element k in the
+                      L-vector is given by
+                        i*strides[0] + j*strides[1] + k*strides[2]
   @param rstr       Address of the variable where the newly created
                       CeedElemRestriction will be stored
 
@@ -121,10 +118,10 @@ int CeedElemRestrictionCreate(Ceed ceed,  CeedInterlaceMode imode,
 
   @ref Basic
 **/
-int CeedElemRestrictionCreateIdentity(Ceed ceed,  CeedInterlaceMode imode,
-                                      CeedInt nelem, CeedInt elemsize,
-                                      CeedInt nnodes, CeedInt ncomp,
-                                      CeedElemRestriction *rstr) {
+int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt nelem, CeedInt elemsize,
+                                     CeedInt nnodes, CeedInt ncomp,
+                                     CeedInt strides[3],
+                                     CeedElemRestriction *rstr) {
   int ierr;
 
   if (!ceed->ElemRestrictionCreate) {
@@ -137,8 +134,8 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed,  CeedInterlaceMode imode,
       return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreate");
     // LCOV_EXCL_STOP
 
-    ierr = CeedElemRestrictionCreateIdentity(delegate, imode, nelem, elemsize,
-           nnodes, ncomp, rstr); CeedChk(ierr);
+    ierr = CeedElemRestrictionCreateStrided(delegate, nelem, elemsize, nnodes,
+                                            ncomp, strides, rstr); CeedChk(ierr);
     return 0;
   }
 
@@ -146,13 +143,15 @@ int CeedElemRestrictionCreateIdentity(Ceed ceed,  CeedInterlaceMode imode,
   (*rstr)->ceed = ceed;
   ceed->refcount++;
   (*rstr)->refcount = 1;
-  (*rstr)->imode = imode;
   (*rstr)->nelem = nelem;
   (*rstr)->elemsize = elemsize;
   (*rstr)->nnodes = nnodes;
   (*rstr)->ncomp = ncomp;
   (*rstr)->nblk = nelem;
   (*rstr)->blksize = 1;
+  ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
+  for (int i = 0; i<3; i++)
+    (*rstr)->strides[i] = strides[i];
   ierr = ceed->ElemRestrictionCreate(CEED_MEM_HOST, CEED_OWN_POINTER, NULL,
                                      *rstr);
   CeedChk(ierr);
@@ -280,6 +279,77 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed,  CeedInterlaceMode imode,
   if (cmode == CEED_OWN_POINTER) {
     ierr = CeedFree(&indices); CeedChk(ierr);
   }
+
+  return 0;
+}
+
+/**
+  @brief Create a blocked strided CeedElemRestriction
+
+  @param ceed       A Ceed object where the CeedElemRestriction will be created
+  @param nelem      Number of elements described by the restriction
+  @param elemsize   Size (number of "nodes") per element
+  @param blksize    Number of elements in a block
+  @param nnodes     The number of nodes in the L-vector. The input CeedVector
+                      to which the restriction will be applied is of size
+                      @a nnodes * @a ncomp. This size may include data
+                      used by other CeedElemRestriction objects describing
+                      different types of elements.
+  @param ncomp      Number of field components per interpolation node
+                      (1 for scalar fields)
+  @param strides    Array for strides between [nodes, components, elements].
+                      The data for node i, component j, element k in the
+                      L-vector is given by
+                        i*strides[0] + j*strides[1] + k*strides[2]
+  @param rstr       Address of the variable where the newly created
+                      CeedElemRestriction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Basic
+**/
+int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt nelem,
+    CeedInt elemsize, CeedInt blksize,
+    CeedInt nnodes, CeedInt ncomp,
+    CeedInt strides[3],
+    CeedElemRestriction *rstr) {
+  int ierr;
+  CeedInt nblk = (nelem / blksize) + !!(nelem % blksize);
+
+  if (!ceed->ElemRestrictionCreateBlocked) {
+    Ceed delegate;
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction");
+    CeedChk(ierr);
+
+    if (!delegate)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1, "Backend does not support "
+                       "ElemRestrictionCreateBlocked");
+    // LCOV_EXCL_STOP
+
+    ierr = CeedElemRestrictionCreateBlockedStrided(delegate, nelem, elemsize,
+           blksize, nnodes, ncomp,
+           strides, rstr);
+    CeedChk(ierr);
+    return 0;
+  }
+
+  ierr = CeedCalloc(1, rstr); CeedChk(ierr);
+
+  (*rstr)->ceed = ceed;
+  ceed->refcount++;
+  (*rstr)->refcount = 1;
+  (*rstr)->nelem = nelem;
+  (*rstr)->elemsize = elemsize;
+  (*rstr)->nnodes = nnodes;
+  (*rstr)->ncomp = ncomp;
+  (*rstr)->nblk = nblk;
+  (*rstr)->blksize = blksize;
+  ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
+  for (int i = 0; i<3; i++)
+    (*rstr)->strides[i] = strides[i];
+  ierr = ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER,
+         NULL, *rstr); CeedChk(ierr);
 
   return 0;
 }
@@ -465,6 +535,12 @@ int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed) {
 **/
 int CeedElemRestrictionGetIMode(CeedElemRestriction rstr,
                                 CeedInterlaceMode *imode) {
+  if (rstr->strides)
+    // LCOV_EXCL_START
+    return CeedError(rstr->ceed, 1, "Strided ElemRestriction has no interlace "
+                     "mode");
+  // LCOV_EXCL_STOP
+
   *imode = rstr->imode;
   return 0;
 }
@@ -568,6 +644,28 @@ int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
 }
 
 /**
+  @brief Get the strides of a strided CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] strides     Variable to store strides array
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
+                                  CeedInt (*strides)[3]) {
+  if (!rstr->strides)
+    // LCOV_EXCL_START
+    return CeedError(rstr->ceed, 1, "ElemRestriction has no stride data");
+  // LCOV_EXCL_STOP
+
+  for (int i = 0; i<3; i++)
+    (*strides)[i] = rstr->strides[i];
+  return 0;
+}
+
+/**
   @brief Get the backend data of a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
@@ -608,9 +706,15 @@ int CeedElemRestrictionSetData(CeedElemRestriction rstr, void **data) {
   @ref Utility
 **/
 int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
+  char stridesstr[500];
+  if (rstr->strides)
+    sprintf(stridesstr, "[%d, %d, %d]", rstr->strides[0], rstr->strides[1],
+            rstr->strides[2]);
+
   fprintf(stream, "CeedElemRestriction from (%d, %d) to %d elements with %d "
-          "nodes each and L-vector components %s\n", rstr->nnodes, rstr->ncomp,
-          rstr->nelem, rstr->elemsize, CeedInterlaceModes[rstr->imode]);
+          "nodes each and %s %s\n", rstr->nnodes, rstr->ncomp, rstr->nelem,
+          rstr->elemsize, rstr->strides ? "strides" : "L-vector components",
+          rstr->strides ? stridesstr : CeedInterlaceModes[rstr->imode]);
   return 0;
 }
 
@@ -631,6 +735,7 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
   if ((*rstr)->Destroy) {
     ierr = (*rstr)->Destroy(*rstr); CeedChk(ierr);
   }
+  ierr = CeedFree(&(*rstr)->strides); CeedChk(ierr);
   ierr = CeedDestroy(&(*rstr)->ceed); CeedChk(ierr);
   ierr = CeedFree(rstr); CeedChk(ierr);
   return 0;

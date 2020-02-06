@@ -831,15 +831,15 @@ int main(int argc, char **argv) {
   DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd);CHKERRQ(ierr);
   localNelem = cEnd - cStart;
   CeedInt numQdim = CeedIntPow(numQ, dim);
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, localNelem, numQdim,
-                                    localNelem*numQdim, qdatasize,
-                                    &restrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, localNelem, numQdim,
-                                    localNelem*numQdim, 1,
-                                    &restrictxi);
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, localNelem, PetscPowInt(numP, dim),
-                                    localNelem*PetscPowInt(numP, dim), ncompx,
-                                    &restrictxcoord);
+  CeedElemRestrictionCreateStrided(ceed, localNelem, numQdim,
+                                   localNelem*numQdim, qdatasize,
+                                   CEED_STRIDES_BACKEND, &restrictqdi);
+  CeedElemRestrictionCreateStrided(ceed, localNelem, numQdim,
+                                   localNelem*numQdim, 1,
+                                   CEED_STRIDES_BACKEND, &restrictxi);
+  CeedElemRestrictionCreateStrided(ceed, localNelem, PetscPowInt(numP, dim),
+                                   localNelem*PetscPowInt(numP, dim), ncompx,
+                                   CEED_STRIDES_BACKEND, &restrictxcoord);
 
   ierr = DMGetCoordinatesLocal(dm, &Xloc);CHKERRQ(ierr);
   ierr = CreateVectorFromPetscVec(ceed, Xloc, &xcorners);CHKERRQ(ierr);
@@ -1152,3 +1152,4 @@ int main(int argc, char **argv) {
   ierr = PetscFree(user); CHKERRQ(ierr);
   return PetscFinalize();
 }
+

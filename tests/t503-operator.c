@@ -44,8 +44,9 @@ int main(int argc, char **argv) {
   }
   CeedElemRestrictionCreate(ceed, imode, nelem, 2, Nx, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictx);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, 2, nelem*2, 1,
-                                    &Erestrictxi);
+  CeedInt stridesx[3] = {1, 2, 2};
+  CeedElemRestrictionCreateStrided(ceed, nelem, 2, nelem*2, 1, stridesx,
+                                   &Erestrictxi);
 
   for (CeedInt i=0; i<nelem; i++) {
     for (CeedInt j=0; j<P; j++) {
@@ -54,8 +55,9 @@ int main(int argc, char **argv) {
   }
   CeedElemRestrictionCreate(ceed, imode, nelem, P, Nu, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, indu, &Erestrictu);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, Q, Q*nelem, 1,
-                                    &Erestrictui);
+  CeedInt stridesu[3] = {1, Q, Q};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q, Q*nelem, 1, stridesu,
+                                   &Erestrictui);
 
   // Bases
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bx);

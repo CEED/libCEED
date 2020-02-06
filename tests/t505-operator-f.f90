@@ -36,6 +36,7 @@
       integer ceed,err,i,j
       integer imode
       parameter(imode=ceed_noninterlaced)
+      integer stridesx(3),stridesu(3)
       integer erestrictx,erestrictu,erestrictxi,erestrictui
       integer bx,bu
       integer qf_setup,qf_mass
@@ -73,7 +74,8 @@
 
       call ceedelemrestrictioncreate(ceed,imode,nelem,2,nx,1,ceed_mem_host,&
      & ceed_use_pointer,indx,erestrictx,err)
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,2,2*nelem,1,&
+      stridesx=[1,2,2]
+      call ceedelemrestrictioncreatestrided(ceed,nelem,2,2*nelem,1,stridesx,&
      & erestrictxi,err)
 
       do i=0,nelem-1
@@ -84,7 +86,8 @@
 
       call ceedelemrestrictioncreate(ceed,imode,nelem,p,nu,1,ceed_mem_host,&
      & ceed_use_pointer,indu,erestrictu,err)
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,q,q*nelem,1,&
+      stridesu=[1,q,q]
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q,q*nelem,1,stridesu,&
      & erestrictui,err)
 
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss,bx,err)

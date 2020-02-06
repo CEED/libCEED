@@ -86,14 +86,17 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, imode, nelemTet, PTet, ndofs, dim,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
                             &ErestrictxTet);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelemTet, PTet, nelemTet*PTet,
-                                    dim, &ErestrictxiTet);
+  CeedInt stridesxTet[3] = {1, PTet, PTet*dim};
+  CeedElemRestrictionCreateStrided(ceed,  nelemTet, PTet, nelemTet*PTet, dim,
+                                   stridesxTet, &ErestrictxiTet);
 
   CeedElemRestrictionCreate(ceed, imode, nelemTet, PTet, ndofs, 1,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
                             &ErestrictuTet);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelemTet, QTet, nqptsTet,
-                                    dim*(dim+1)/2, &ErestrictqdiTet);
+  CeedInt stridesqdTet[3] = {1, QTet, QTet *dim *(dim+1)/2};
+  CeedElemRestrictionCreateStrided(ceed, nelemTet, QTet, nqptsTet,
+                                   dim*(dim+1)/2, stridesqdTet,
+                                   &ErestrictqdiTet);
 
   // -- Bases
   buildmats(qref, qweight, interp, grad);
@@ -149,15 +152,18 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, imode, nelemHex, PHex*PHex, ndofs, dim,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
                             &ErestrictxHex);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelemHex, PHex*PHex,
-                                    nelemHex*PHex*PHex, dim, &ErestrictxiHex);
+  CeedInt stridesxHex[3] = {1, PHex*PHex, PHex *PHex*dim};
+  CeedElemRestrictionCreateStrided(ceed,  nelemHex, PHex*PHex,
+                                   nelemHex*PHex*PHex, dim, stridesxHex,
+                                   &ErestrictxiHex);
 
   CeedElemRestrictionCreate(ceed, imode, nelemHex, PHex*PHex, ndofs, 1,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
                             &ErestrictuHex);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelemHex, QHex*QHex,
-                                    nqptsHex, dim*(dim+1)/2,
-                                    &ErestrictqdiHex);
+  CeedInt stridesqdHex[3] = {1, QHex*QHex, QHex *QHex *dim *(dim+1)/2};
+  CeedElemRestrictionCreateStrided(ceed, nelemHex, QHex*QHex, nqptsHex,
+                                   dim*(dim+1)/2, stridesqdHex,
+                                   &ErestrictqdiHex);
 
   // -- Bases
   CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, PHex, QHex, CEED_GAUSS,

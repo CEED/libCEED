@@ -33,8 +33,9 @@ int main(int argc, char **argv) {
 //! [ElemRestr Create]
   CeedElemRestrictionCreate(ceed, imode, nelem, 2, Nx, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictx);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, 2, nelem*2, 1,
-                                    &Erestrictxi);
+  CeedInt stridesx[3] = {1, 2, 2};
+  CeedElemRestrictionCreateStrided(ceed, nelem, 2, nelem*2, 1, stridesx,
+                                   &Erestrictxi);
 //! [ElemRestr Create]
 
   for (CeedInt i=0; i<nelem; i++) {
@@ -45,8 +46,9 @@ int main(int argc, char **argv) {
 //! [ElemRestrU Create]
   CeedElemRestrictionCreate(ceed, imode, nelem, P, Nu, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, indu, &Erestrictu);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, Q, Q*nelem, 1,
-                                    &Erestrictui);
+  CeedInt stridesu[3] = {1, Q, Q};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q, Q*nelem, 1, stridesu,
+                                   &Erestrictui);
 //! [ElemRestrU Create]
 
 //! [Basis Create]

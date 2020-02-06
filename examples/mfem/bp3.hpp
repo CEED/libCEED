@@ -127,11 +127,12 @@ class CeedDiffusionOperator : public mfem::Operator {
     FESpace2Ceed(mesh_fes, ir, ceed, &mesh_basis, &mesh_restr);
     CeedBasisGetNumQuadraturePoints(basis, &nqpts);
 
-    CeedInterlaceMode imode = CEED_NONINTERLACED;
-    CeedElemRestrictionCreateIdentity(ceed, imode, nelem, nqpts,
-                                      nqpts*nelem, dim*(dim+1)/2, &restr_i);
-    CeedElemRestrictionCreateIdentity(ceed, imode, nelem, nqpts,
-                                      nqpts*nelem, 1, &mesh_restr_i);
+    CeedInt strides[3] = {1, nqpts, nqpts *dim *(dim+1)/2};
+    CeedElemRestrictionCreateStrided(ceed, nelem, nqpts, nqpts*nelem,
+                                     dim*(dim+1)/2, strides, &restr_i);
+    CeedInt strides_mesh[3] = {1, nqpts, nqpts};
+    CeedElemRestrictionCreateStrided(ceed, nelem, nqpts, nqpts*nelem, 1,
+                                     strides_mesh, &mesh_restr_i);
 
     CeedVectorCreate(ceed, mesh->GetNodes()->Size(), &node_coords);
     CeedVectorSetArray(node_coords, CEED_MEM_HOST, CEED_USE_POINTER,

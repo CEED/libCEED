@@ -72,6 +72,7 @@
       integer ceed,err,i
       integer imode
       parameter(imode=ceed_noninterlaced)
+      integer stridesx(3),stridesu(3),stridesqd(3)
       integer erestrictx,erestrictu,erestrictxi,erestrictui,erestrictqi
       integer bx,bu
       integer qf_setup_mass,qf_setup_diff,qf_apply
@@ -142,18 +143,21 @@
       enddo
 
 ! Restrictions
-      call ceedelemrestrictioncreate(ceed,imode,nelem,p,ndofs,d,ceed_mem_host,&
-     & ceed_use_pointer,indx,erestrictx,err)
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,p,nelem*p,d,&
-     & erestrictxi,err)
+      call ceedelemrestrictioncreate(ceed,imode,nelem,p,ndofs,d,&
+     & ceed_mem_host,ceed_use_pointer,indx,erestrictx,err)
+      stridesx=[1,p,p*d]
+      call ceedelemrestrictioncreatestrided(ceed,nelem,p,&
+     & nelem*p,d,stridesx,erestrictxi,err)
 
-      call ceedelemrestrictioncreate(ceed,imode,nelem,p,ndofs,1,ceed_mem_host,&
-     & ceed_use_pointer,indx,erestrictu,err)
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,q,nqpts,1,&
-     & erestrictui,err)
+      call ceedelemrestrictioncreate(ceed,imode,nelem,p,ndofs,1,&
+     & ceed_mem_host,ceed_use_pointer,indx,erestrictu,err)
+      stridesu=[1,q,q]
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q,nqpts,&
+     & 1,stridesu,erestrictui,err)
 
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,q,nqpts,d*(d+1)/2,&
-     & erestrictqi,err)
+      stridesqd=[1,q,q*d*(d+1)/2]
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q,nqpts,&
+     & d*(d+1)/2,stridesqd,erestrictqi,err)
 
 ! Bases
       call buildmats(qref,qweight,interp,grad)

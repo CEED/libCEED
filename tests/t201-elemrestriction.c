@@ -1,6 +1,6 @@
 /// @file
-/// Test creation, use, and destruction of an identity element restriction
-/// \test Test creation, use, and destruction of an identity element restriction
+/// Test creation, use, and destruction of a strided element restriction
+/// \test Test creation, use, and destruction of a strided element restriction
 #include <ceed.h>
 
 int main(int argc, char **argv) {
@@ -9,8 +9,8 @@ int main(int argc, char **argv) {
   CeedInt ne = 3;
   CeedScalar a[ne*2];
   const CeedScalar *yy;
+  CeedInt strides[3] = {1, 2, 2};
   CeedElemRestriction r;
-  CeedInterlaceMode imode = CEED_NONINTERLACED;
 
   CeedInit(argv[1], &ceed);
 
@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     a[i] = 10 + i;
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
 
-  CeedElemRestrictionCreateIdentity(ceed, imode, ne, 2, ne*2, 1, &r);
+  CeedElemRestrictionCreateStrided(ceed, ne, 2, ne*2, 1, strides, &r);
   CeedVectorCreate(ceed, ne*2, &y);
   CeedVectorSetValue(y, 0); // Allocates array
   CeedElemRestrictionApply(r, CEED_NOTRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);

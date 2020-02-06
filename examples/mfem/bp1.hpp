@@ -126,11 +126,11 @@ class CeedMassOperator : public mfem::Operator {
     FESpace2Ceed(mesh_fes, ir, ceed, &mesh_basis, &mesh_restr);
     CeedBasisGetNumQuadraturePoints(basis, &nqpts);
 
-    CeedInterlaceMode imode = CEED_NONINTERLACED;
-    CeedElemRestrictionCreateIdentity(ceed, imode, nelem, nqpts,
-                                      nqpts*nelem, 1, &restr_i);
-    CeedElemRestrictionCreateIdentity(ceed, imode, nelem, nqpts,
-                                      nqpts*nelem, 1, &mesh_restr_i);
+    CeedInt strides[3] = {1, nqpts, nqpts};
+    CeedElemRestrictionCreateStrided(ceed, nelem, nqpts, nqpts*nelem, 1,
+                                     strides, &restr_i);
+    CeedElemRestrictionCreateStrided(ceed, nelem, nqpts, nqpts*nelem, 1,
+                                     strides, &mesh_restr_i);
 
     CeedVectorCreate(ceed, mesh->GetNodes()->Size(), &node_coords);
     CeedVectorSetArray(node_coords, CEED_MEM_HOST, CEED_USE_POINTER,

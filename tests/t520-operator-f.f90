@@ -41,6 +41,7 @@
       integer ceed,err,i,j,k
       integer imode
       parameter(imode=ceed_noninterlaced)
+      integer stridesxtet(3),stridesutet(3),stridesxhex(3),stridesuhex(3)
       integer erestrictxtet,erestrictutet,erestrictxitet,erestrictuitet,&
 &             erestrictxhex,erestrictuhex,erestrictxihex,erestrictuihex
       integer bxtet,butet,bxhex,buhex
@@ -125,13 +126,15 @@
 ! -- Restrictions
       call ceedelemrestrictioncreate(ceed,imode,nelemtet,ptet,ndofs,d,&
      & ceed_mem_host,ceed_use_pointer,indxtet,erestrictxtet,err)
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelemtet,ptet,&
-     & nelemtet*ptet,d,erestrictxitet,err)
+      stridesxtet=[1,ptet,ptet*d]
+      call ceedelemrestrictioncreatestrided(ceed,nelemtet,ptet,&
+     & nelemtet*ptet,d,stridesxtet,erestrictxitet,err)
 
       call ceedelemrestrictioncreate(ceed,imode,nelemtet,ptet,ndofs,1,&
      & ceed_mem_host,ceed_use_pointer,indxtet,erestrictutet,err)
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelemtet,qtet,nqptstet,&
-     & 1,erestrictuitet,err)
+      stridesutet=[1,qtet,qtet]
+      call ceedelemrestrictioncreatestrided(ceed,nelemtet,qtet,nqptstet,&
+     & 1,stridesutet,erestrictuitet,err)
 
 ! -- Bases
       call buildmats(qref,qweight,interp,grad)
@@ -191,13 +194,15 @@
 ! -- Restrictions
       call ceedelemrestrictioncreate(ceed,imode,nelemhex,phex*phex,ndofs,d,&
      & ceed_mem_host,ceed_use_pointer,indxhex,erestrictxhex,err)
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelemhex,phex*phex,&
-     & nelemhex*phex*phex,d,erestrictxihex,err)
+      stridesxhex=[1,phex*phex,phex*phex*d]
+      call ceedelemrestrictioncreatestrided(ceed,nelemhex,phex*phex,&
+     & nelemhex*phex*phex,d,stridesxhex,erestrictxihex,err)
 
       call ceedelemrestrictioncreate(ceed,imode,nelemhex,phex*phex,ndofs,1,&
      & ceed_mem_host,ceed_use_pointer,indxhex,erestrictuhex,err)
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelemhex,qhex*qhex,&
-     & nqptshex,1,erestrictuihex,err)
+      stridesuhex=[1,qhex*qhex,qhex*qhex]
+      call ceedelemrestrictioncreatestrided(ceed,nelemhex,qhex*qhex,&
+     & nqptshex,1,stridesuhex,erestrictuihex,err)
 
 ! -- Bases
       call ceedbasiscreatetensorh1lagrange(ceed,d,d,phex,qhex,ceed_gauss,&

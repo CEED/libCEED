@@ -304,12 +304,14 @@ int main(int argc, char **argv) {
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   const CeedInt nelem = cEnd - cStart;
 
-  // CEED identity restrictions
+  // CEED strided restrictions
   const CeedInt qdatasize = 1;
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q,
-                                    nelem*Q*Q, qdatasize, &Erestrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q,
-                                    nelem*Q*Q, 1, &Erestrictxi);
+  CeedInt stridesqd[3] = {1, Q*Q, Q *Q*qdatasize};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nelem*Q*Q, qdatasize,
+                                   stridesqd, &Erestrictqdi);
+  CeedInt stridesx[3] = {1, Q*Q, Q*Q};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nelem*Q*Q, 1, stridesx,
+                                   &Erestrictxi);
 
   // Element coordinates
   Vec coords;

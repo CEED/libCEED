@@ -347,7 +347,7 @@ int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
 
   Note: This operation is local to the CeedVector. This function will likely
           not provide the desired results for the norm of the libCEED portion
-          of a parallel vector or a CeedVector with duplicated or hanging nodes. 
+          of a parallel vector or a CeedVector with duplicated or hanging nodes.
 
   @param vec           CeedVector to retrieve maximum value
   @param type          Norm type CEED_NORM_1, CEED_NORM_2, or CEED_NORM_MAX
@@ -365,7 +365,7 @@ int CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm) {
     ierr = vec->Norm(vec, type, norm); CeedChk(ierr);
     return 0;
   }
-  
+
   const CeedScalar *array;
   ierr = CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &array); CeedChk(ierr);
 

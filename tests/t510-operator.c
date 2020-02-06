@@ -54,13 +54,15 @@ int main(int argc, char **argv) {
   // Restrictions
   CeedElemRestrictionCreate(ceed, imode, nelem, P, Ndofs, dim, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictx);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, P, nelem*P, dim,
-                                    &Erestrictxi);
+  CeedInt stridesx[3] = {1, P, P*dim};
+  CeedElemRestrictionCreateStrided(ceed, nelem, P, nelem*P, dim, stridesx,
+                                   &Erestrictxi);
 
   CeedElemRestrictionCreate(ceed, imode, nelem, P, Ndofs, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictu);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, Q, Nqpts, 1,
-                                    &Erestrictui);
+  CeedInt stridesu[3] = {1, Q, Q};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q, Nqpts, 1, stridesu,
+                                   &Erestrictui);
 
 
   // Bases

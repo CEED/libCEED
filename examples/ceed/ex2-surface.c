@@ -388,10 +388,15 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
     CeedElemRestrictionCreate(ceed, imode, num_elem, nnodes, scalar_size,
                               ncomp, CEED_MEM_HOST, CEED_COPY_VALUES, el_nodes,
                               restr);
-  if (restr_i)
-    CeedElemRestrictionCreateIdentity(ceed, imode, num_elem, elem_qpts,
-                                      elem_qpts*num_elem, ncomp, restr_i);
   free(el_nodes);
+
+  if (restr_i) {
+    CeedInt strides[3] = {1, elem_qpts, elem_qpts*ncomp};
+    CeedElemRestrictionCreateStrided(ceed, num_elem, elem_qpts,
+                                     elem_qpts*num_elem, ncomp, strides,
+                                     restr_i);
+  }
+
   return 0;
 }
 
