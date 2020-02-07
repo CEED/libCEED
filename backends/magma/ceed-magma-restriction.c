@@ -22,9 +22,6 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
   CeedElemRestriction_Magma *impl;
   ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
 
-  CeedInterlaceMode imode;
-  ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
-
   CeedInt nelem;
   CeedElemRestrictionGetNumElements(r, &nelem);
 
@@ -42,16 +39,36 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &du); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &dv); CeedChk(ierr);
 
-  if (tmode == CEED_TRANSPOSE) {
-    if (imode == CEED_INTERLACED)
-      magma_writeDofsTranspose(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
-    else
-      magma_writeDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
-  } else {
-    if (imode == CEED_INTERLACED)
-      magma_readDofsTranspose(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
-    else
-      magma_readDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
+  if (!impl->indices) {  // Strided Restriction 
+    CeedInt strides[3];
+    ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
+    CeedInt *dstrides;
+    ierr = magma_malloc( (void **)&dstrides, 
+                          3 * sizeof(CeedInt)); CeedChk(ierr);
+    magma_setvector(3, sizeof(CeedInt), strides, 1, dstrides, 1);
+  
+    if (tmode == CEED_TRANSPOSE) {
+      magma_writeDofsStrided(NCOMP, nnodes, esize, nelem, dstrides, du, dv);
+    } else {
+      magma_readDofsStrided(NCOMP, nnodes, esize, nelem, dstrides, du, dv);
+    }
+
+  } else { // Indices array provided, standard restriction
+  
+    CeedInterlaceMode imode;
+    ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
+
+    if (tmode == CEED_TRANSPOSE) {
+      if (imode == CEED_INTERLACED)
+        magma_writeDofsTranspose(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
+      else
+        magma_writeDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
+    } else {
+      if (imode == CEED_INTERLACED)
+        magma_readDofsTranspose(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
+      else
+        magma_readDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
+    }
   }
   ierr = CeedVectorRestoreArrayRead(u, &du); CeedChk(ierr);
   ierr = CeedVectorRestoreArray(v, &dv); CeedChk(ierr);
