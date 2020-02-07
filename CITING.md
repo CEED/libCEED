@@ -2,6 +2,8 @@
 
 If you utilize libCEED please cite
 
-* JOSS paper, as soon as available
-
-* User manual, as soon as available on Zenodo
+* @misc{libceed-github-page,
+    title =  {lib{CEED}'s {G}it{H}ub page},
+    url =    {https://github.com/ceed/libceed},
+    howpublished = {\url{https://github.com/ceed/libceed}}
+  }
