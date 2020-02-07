@@ -39,14 +39,14 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &du); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &dv); CeedChk(ierr);
 
-  if (!impl->indices) {  // Strided Restriction 
+  if (!impl->indices) {  // Strided Restriction
     CeedInt strides[3];
     ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
     CeedInt *dstrides;
-    ierr = magma_malloc( (void **)&dstrides, 
-                          3 * sizeof(CeedInt)); CeedChk(ierr);
+    ierr = magma_malloc( (void **)&dstrides,
+                         3 * sizeof(CeedInt)); CeedChk(ierr);
     magma_setvector(3, sizeof(CeedInt), strides, 1, dstrides, 1);
-  
+
     if (tmode == CEED_TRANSPOSE) {
       magma_writeDofsStrided(NCOMP, nnodes, esize, nelem, dstrides, du, dv);
     } else {
@@ -54,7 +54,7 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     }
 
   } else { // Indices array provided, standard restriction
-  
+
     CeedInterlaceMode imode;
     ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
 
