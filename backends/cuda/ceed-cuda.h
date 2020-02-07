@@ -56,8 +56,10 @@ typedef struct {
 
 typedef struct {
   CUmodule module;
+  CUfunction noTrStrided;
   CUfunction noTrNoTr;
   CUfunction noTrTr;
+  CUfunction trStrided;
   CUfunction trNoTr;
   CUfunction trTr;
   CeedInt *h_ind;
