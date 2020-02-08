@@ -3,10 +3,11 @@
 If you utilize libCEED please cite
 
 ```
-@misc{libceed-github-page,
-  title =  {lib{CEED}'s {G}it{H}ub page},
+@misc{libceed-dev-site,
+  title =  {lib{CEED} development site},
   url =    {https://github.com/ceed/libceed},
-  howpublished = {\url{https://github.com/ceed/libceed}}
+  howpublished = {\url{https://github.com/ceed/libceed}},
+  year = 2020
 }
 ```
 
