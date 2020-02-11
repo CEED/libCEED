@@ -22,6 +22,64 @@
 
 #include <math.h>
 
+static int Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
+  const CeedScalar *context = (const CeedScalar *)ctx;
+  const CeedScalar rc = context[8];
+  const CeedScalar lx = context[9];
+  const CeedScalar ly = context[10];
+  const CeedScalar lz = context[11];
+  const CeedScalar *periodic = &context[12];
+
+  // Setup
+  const CeedScalar tol = 1.e-14;
+  const CeedScalar x0[3] = {0.25*lx, 0.5*ly, 0.5*lz};
+  const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
+
+  // -- Coordinates
+  const CeedScalar x = X[0];
+  const CeedScalar y = X[1];
+  const CeedScalar z = X[2];
+
+  // -- Energy
+  CeedScalar r ;
+  CeedInt dimBubble=2; // 3 is a sphere, 2 is a cylinder
+  switch (dimBubble) {
+    //  original sphere
+  case 3: {
+    r = sqrt(pow((x - x0[0]), 2) +
+             pow((y - x0[1]), 2) +
+             pow((z - x0[2]), 2));
+  } break;
+    // cylinder (needs periodicity to work properly)
+  case 2: {
+    r = sqrt(pow((x - x0[0]), 2) +
+             pow((y - x0[1]), 2) );
+  } break;
+  }
+
+  // Initial Conditions
+  q[0] = 1.;
+  q[1] = -(y - center[1]);
+  q[2] =  (x - center[0]);
+  q[3] = 0.0;
+  CeedInt continuityBubble=-1; // 0 is original sphere switch to -1 to challenge solver with sharp gradients in back half of bubble
+  switch (continuityBubble) {
+    // original continuous, smooth shape
+  case 0: {
+    q[4] = r <= rc ? (1.-r/rc) : 0.;
+  } break;
+    // discontinuous, sharp back half shape
+  case -1: {
+    q[4] = ((r <= rc) && (y<center[1])) ? (1.-r/rc) : 0.;
+  } break;
+    // attempt to define a finite thickness that will get resolved under grid refinement
+  case 2: {
+    q[4] = ((r <= rc) && (y<center[1])) ? (1.-r/rc)*fmin(1.0,(center[1]-y)/1.25) : 0.;
+  } break;
+  }
+  return 0;
+}
+
 // *****************************************************************************
 // This QFunction sets the the initial conditions and boundary conditions
 //
@@ -46,80 +104,19 @@
 CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar (*X)[Q] = (CeedScalar(*)[Q])in[0];
-
   // Outputs
-  CeedScalar (*q0)[Q] = (CeedScalar(*)[Q])out[0],
-             (*coords)[Q] = (CeedScalar(*)[Q])out[1];
-  // *INDENT-ON*
-
-  // Context
-  const CeedScalar *context = (const CeedScalar *)ctx;
-  const CeedScalar rc = context[8];
-  const CeedScalar lx = context[9];
-  const CeedScalar ly = context[10];
-  const CeedScalar lz = context[11];
-  const CeedScalar *periodic = &context[12];
-
-  // Setup
-  const CeedScalar tol = 1.e-14;
-  const CeedScalar x0[3] = {0.25*lx, 0.5*ly, 0.5*lz};
-  const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
+  CeedScalar (*q0)[Q] = (CeedScalar(*)[Q])out[0];
 
   CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
-    // Setup
-    // -- Coordinates
-    const CeedScalar x = X[0][i];
-    const CeedScalar y = X[1][i];
-    const CeedScalar z = X[2][i];
-    // -- Energy
-    CeedScalar r ;
-    CeedInt dimBubble=2; // 3 is a sphere, 2 is a cylinder
-    switch (dimBubble) {
-    //  original sphere
-    case 3: {
-      r = sqrt(pow((x - x0[0]), 2) +
-               pow((y - x0[1]), 2) +
-               pow((z - x0[2]), 2));
-    } break;
-    // cylinder (needs periodicity to work properly)
-    case 2: {
-      r = sqrt(pow((x - x0[0]), 2) +
-               pow((y - x0[1]), 2) );
-    } break;
-    }
+    const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
+    CeedScalar q[5];
 
-    // Initial Conditions
-    q0[0][i] = 1.;
-    q0[1][i] = -(y - center[1]);
-    q0[2][i] =  (x - center[0]);
-    q0[3][i] = 0.0;
-    CeedInt continuityBubble=-1; // 0 is original sphere switch to -1 to challenge solver with sharp gradients in back half of bubble
-    switch (continuityBubble) {
-    // original continuous, smooth shape
-    case 0: {
-      q0[4][i] = r <= rc ? (1.-r/rc) : 0.;
-    } break;
-    // discontinuous, sharp back half shape
-    case -1: {
-      q0[4][i] = ((r <= rc) && (y<center[1])) ? (1.-r/rc) : 0.;
-    } break;
-    // attempt to define a finite thickness that will get resolved under grid refinement
-    case 2: {
-      q0[4][i] = ((r <= rc) && (y<center[1])) ? (1.-r/rc)*fmin(1.0,(center[1]-y)/1.25) : 0.;
-    } break;
-    }
-
-
-    // Coordinates
-    coords[0][i] = x;
-    coords[1][i] = y;
-    coords[2][i] = z;
-
+    Exact_Advection(3, 0., x, 5, q, ctx);
+    for (CeedInt j=0; j<5; j++) q0[j][i] = q[j];
   } // End of Quadrature Point Loop
 
   // Return

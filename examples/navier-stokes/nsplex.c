@@ -98,7 +98,7 @@ problemData problemOptions[] = {
     .apply_rhs_loc = DC_loc,
     .apply_ifunction = IFunction_DC,
     .apply_ifunction_loc = IFunction_DC_loc,
-    .bc = NULL,
+    .bc = Exact_DC,
   },
   [NS_ADVECTION] = {
     .dim = 3,
@@ -111,7 +111,7 @@ problemData problemOptions[] = {
     .apply_rhs_loc = Advection_loc,
     .apply_ifunction = IFunction_Advection,
     .apply_ifunction_loc = IFunction_Advection_loc,
-    .bc = NULL,
+    .bc = Exact_Advection,
   },
   [NS_ADVECTION2D] = {
     .dim = 2,
@@ -124,7 +124,7 @@ problemData problemOptions[] = {
     .apply_rhs_loc = Advection2d_loc,
     .apply_ifunction = IFunction_Advection2d,
     .apply_ifunction_loc = IFunction_Advection2d_loc,
-    .bc = NULL,
+    .bc = Exact_Advection2d,
   },
   [NS_DENSITY_CURRENT_PRIMITIVE] = {
     .dim = 3,
@@ -135,7 +135,7 @@ problemData problemOptions[] = {
     .ics_loc = ICsDCPrim_loc,
     .apply_ifunction = IFunction_DCPrim,
     .apply_ifunction_loc = IFunction_DCPrim_loc,
-    .bc = NULL,
+    .bc = Exact_DCPrim,
   },
 };
 
@@ -551,7 +551,7 @@ int main(int argc, char **argv) {
   Vec Q, Qloc, Xloc;
   Ceed ceed;
   CeedInt numP, numQ;
-  CeedVector xcorners, qdata, q0ceed, xceed;
+  CeedVector xcorners, qdata, q0ceed;
   CeedBasis basisx, basisxc, basisq;
   CeedElemRestriction restrictx, restrictxi, restrictxcoord,
                       restrictq, restrictqdi;
@@ -819,7 +819,6 @@ int main(int argc, char **argv) {
   for (int d=0; d<3; d++) Ndofs *= numP;
   CeedVectorCreate(ceed, qdatasize*localNelem*Nqpts, &qdata);
   CeedElemRestrictionCreateVector(restrictq, &q0ceed, NULL);
-  CeedElemRestrictionCreateVector(restrictxcoord, &xceed, NULL);
 
   // Create the Q-function that builds the quadrature data for the NS operator
   CeedQFunctionCreateInterior(ceed, 1, problem->setup, problem->setup_loc, &qf_setup);
@@ -831,7 +830,6 @@ int main(int argc, char **argv) {
   CeedQFunctionCreateInterior(ceed, 1, problem->ics, problem->ics_loc, &qf_ics);
   CeedQFunctionAddInput(qf_ics, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", ncompq, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_ics, "coords", ncompx, CEED_EVAL_NONE);
 
   qf_rhs = NULL;
   if (problem->apply_rhs) { // Create the Q-function that defines the action of the RHS operator
@@ -872,8 +870,6 @@ int main(int argc, char **argv) {
                        basisxc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_ics, "q0", restrictq, CEED_TRANSPOSE,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ics, "coords", restrictxcoord, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, xceed);
 
   CeedElemRestrictionCreateVector(restrictq, &user->qceed, NULL);
   CeedElemRestrictionCreateVector(restrictq, &user->qdotceed, NULL);
@@ -974,7 +970,6 @@ int main(int argc, char **argv) {
   CeedOperatorApply(op_ics, xcorners, q0ceed, CEED_REQUEST_IMMEDIATE);
   ierr = DMLocalToGlobal(dm, Qloc, ADD_VALUES, Q);CHKERRQ(ierr);
   CeedVectorDestroy(&q0ceed);
-  CeedVectorDestroy(&xceed);
   // Fix multiplicity for output of ICs
   {
     CeedVector multlvec;
@@ -992,7 +987,10 @@ int main(int argc, char **argv) {
     ierr = DMRestoreLocalVector(dm, &MultiplicityLoc);CHKERRQ(ierr);
     ierr = DMRestoreGlobalVector(dm, &Multiplicity);CHKERRQ(ierr);
   }
-  { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
+  if (1) { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
+    // We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow.  If we
+    // disable this, we should still get the same results due to the problem->bc function, but with potentially much
+    // slower execution.
     Vec Qbc;
     ierr = DMGetNamedLocalVector(dm, "Qbc", &Qbc);CHKERRQ(ierr);
     ierr = VecCopy(Qloc, Qbc);CHKERRQ(ierr);

@@ -26,8 +26,12 @@
 
 #include <math.h>
 
+#ifndef M_PI
+#define M_PI    3.14159265358979323846
+#endif
+
 // *****************************************************************************
-// This QFunction sets the the initial conditions and boundary conditions
+// This function sets the the initial conditions and boundary conditions
 //
 // These initial conditions are given in terms of potential temperature and
 //   Exner pressure and then converted to density and total energy.
@@ -75,18 +79,7 @@
 //   lz              ,  Characteristic length scale of domain in z
 //
 // *****************************************************************************
-CEED_QFUNCTION(ICsDCPrim)(void *ctx, CeedInt Q,
-                      const CeedScalar *const *in, CeedScalar *const *out) {
-
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
-
-  // Inputs
-  const CeedScalar (*X)[Q] = (CeedScalar(*)[Q])in[0];
-  // Outputs
-  CeedScalar (*q0)[Q] = (CeedScalar(*)[Q])out[0],
-             (*coords)[Q] = (CeedScalar(*)[Q])out[1];
+static int Exact_DCPrim(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
   const CeedScalar *context = (const CeedScalar *)ctx;
   const CeedScalar theta0 = context[0];
@@ -106,46 +99,56 @@ CEED_QFUNCTION(ICsDCPrim)(void *ctx, CeedInt Q,
   const CeedScalar tol = 1.e-14;
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
+  // -- Coordinates
+  const CeedScalar x = X[0];
+  const CeedScalar y = X[1];
+  const CeedScalar z = X[2];
+  // -- Potential temperature, density current
+  const CeedScalar r = sqrt(pow((x - center[0]), 2) +
+                            pow((y - center[1]), 2) +
+                            pow((z - center[2]), 2));
+  const CeedScalar deltatheta = r <= rc ? thetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
+  const CeedScalar theta = theta0*exp(N*N*z/g) + deltatheta;
+  // -- Exner pressure, hydrostatic balance
+  const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
+  // -- Density
+  //const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta);
+
+  // Initial Conditions
+  q[0] = Pi;
+  q[1] = 0.0;
+  q[2] = 0.0;
+  q[3] = 0.0;
+  q[4] = theta;
+
+  // Homogeneous Dirichlet Boundary Conditions for Momentum
+  if ((!periodic[0] && (fabs(x - 0.0) < tol || fabs(x - lx) < tol))
+      || (!periodic[1] && (fabs(y - 0.0) < tol || fabs(y - ly) < tol))
+      || (!periodic[2] && (fabs(z - 0.0) < tol || fabs(z - lz) < tol))) {
+    q[1] = 0.0;
+    q[2] = 0.0;
+    q[3] = 0.0;
+  }
+  return 0;
+}
+
+CEED_QFUNCTION(ICsDCPrim)(void *ctx, CeedInt Q,
+                      const CeedScalar *const *in, CeedScalar *const *out) {
+
+
+  // Inputs
+  const CeedScalar (*X)[Q] = (CeedScalar(*)[Q])in[0];
+  // Outputs
+  CeedScalar (*q0)[Q] = (CeedScalar(*)[Q])out[0];
+
   CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
-    // Setup
-    // -- Coordinates
-    const CeedScalar x = X[0][i];
-    const CeedScalar y = X[1][i];
-    const CeedScalar z = X[2][i];
-    // -- Potential temperature, density current
-    const CeedScalar r = sqrt(pow((x - center[0]), 2) +
-                              pow((y - center[1]), 2) +
-                              pow((z - center[2]), 2));
-    const CeedScalar deltatheta = r <= rc ? thetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
-    const CeedScalar theta = theta0*exp(N*N*z/g) + deltatheta;
-    // -- Exner pressure, hydrostatic balance
-    const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
-    // -- Density
-    //const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta);
+    const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
+    CeedScalar q[5];
 
-    // Initial Conditions
-    q0[0][i] = Pi;
-    q0[1][i] = 0.0;
-    q0[2][i] = 0.0;
-    q0[3][i] = 0.0;
-    q0[4][i] = theta;
-
-    // Homogeneous Dirichlet Boundary Conditions for Momentum
-    if ((!periodic[0] && (fabs(x - 0.0) < tol || fabs(x - lx) < tol))
-        || (!periodic[1] && (fabs(y - 0.0) < tol || fabs(y - ly) < tol))
-        || (!periodic[2] && (fabs(z - 0.0) < tol || fabs(z - lz) < tol))) {
-      q0[1][i] = 0.0;
-      q0[2][i] = 0.0;
-      q0[3][i] = 0.0;
-    }
-
-    // Coordinates
-    coords[0][i] = x;
-    coords[1][i] = y;
-    coords[2][i] = z;
-
+    Exact_DCPrim(3, 0., x, 5, q, ctx);
+    for (CeedInt j=0; j<5; j++) q0[j][i] = q[j];
   } // End of Quadrature Point Loop
 
   // Return
