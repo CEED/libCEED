@@ -28,9 +28,8 @@
 //
 // Sample runs:
 //
-//     ./navierstokes
-//     ./navierstokes -ceed /cpu/self -problem density_current
-//     ./navierstokes -ceed /gpu/occa -problem advection
+//     ./navierstokes -ceed /cpu/self -problem density_current -petscspace_degree 1
+//     ./navierstokes -ceed /gpu/occa -problem advection -petscspace_degree 1
 //
 //TESTARGS -ceed {ceed_resource} -test -petscspace_degree 1
 
