@@ -206,14 +206,13 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar c     = sqrt(5 / M_PI);
-    const CeedScalar theta =  asin(X[i+2*Q] / R);
-    // Use spherical harmonics of degree 2, order 0 as solution of Laplacian on sphere
-    const CeedScalar P2sin = .25 * c * (3*cos(theta)*cos(theta) -1);
+    const CeedScalar theta  = asin(X[i+2*Q] / R); // latitude
+    const CeedScalar lambda = atan2(X[i+1*Q], X[i+0*Q]); // longitude
 
-    true_soln[i+Q*0] = P2sin;
+    true_soln[i+Q*0] = sin(lambda) * cos(theta);
 
-    rhs[i+Q*0] = qdata[i+Q*0] *  1.5 * c * qdata[i+Q*2] * (sin(theta)*sin(theta) - cos(theta)*cos(theta));
+    rhs[i+Q*0] = - qdata[i+Q*0] * 2 * sin(lambda)*cos(theta) / (R*R);
+
   } // End of Quadrature Point Loop
 
   return 0;
