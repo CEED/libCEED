@@ -230,6 +230,8 @@ struct User_ {
   MPI_Comm comm;
   PetscInt outputfreq;
   DM dm;
+  DM dmviz;
+  Mat interpviz;
   Ceed ceed;
   Units units;
   CeedVector qceed, qdotceed, gceed;
@@ -393,42 +395,25 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), filepath,
                             FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
   ierr = VecView(Qloc, viewer); CHKERRQ(ierr);
-  {
-    DM dmrefined;
-    Mat interp;
+  if (user->dmviz) {
     Vec Qrefined, Qrefined_loc;
     char filepath_refined[PETSC_MAX_PATH_LEN];
     PetscViewer viewer_refined;
-    PetscFE fe;
-    PetscInt dim;
-    ierr = DMPlexSetRefinementUniform(user->dm, PETSC_TRUE);CHKERRQ(ierr);
-    ierr = DMRefine(user->dm, MPI_COMM_NULL, &dmrefined);CHKERRQ(ierr);
-    ierr = DMGetDimension(dmrefined, &dim);CHKERRQ(ierr);
-    ierr = DMSetCoarseDM(dmrefined, user->dm);CHKERRQ(ierr);
-    ierr = PetscOptionsSetValue(NULL,"-viz_petscspace_degree","1");CHKERRQ(ierr);
-    ierr = PetscFECreateDefault(PETSC_COMM_SELF,dim,5,PETSC_FALSE,"viz_",PETSC_DETERMINE,&fe);CHKERRQ(ierr);
-    ierr = PetscObjectSetName((PetscObject)fe, "Q");CHKERRQ(ierr);
-    ierr = DMAddField(dmrefined,NULL,(PetscObject)fe);CHKERRQ(ierr);
-    ierr = DMCreateDS(dmrefined);CHKERRQ(ierr);
-    ierr = PetscFEDestroy(&fe);CHKERRQ(ierr);
 
-    ierr = DMCreateInterpolation(user->dm, dmrefined, &interp, NULL);CHKERRQ(ierr);
-    ierr = DMGetGlobalVector(dmrefined, &Qrefined);CHKERRQ(ierr);
-    ierr = DMGetLocalVector(dmrefined, &Qrefined_loc);CHKERRQ(ierr);
+    ierr = DMGetGlobalVector(user->dmviz, &Qrefined);CHKERRQ(ierr);
+    ierr = DMGetLocalVector(user->dmviz, &Qrefined_loc);CHKERRQ(ierr);
     ierr = PetscObjectSetName((PetscObject)Qrefined_loc, "Refined");CHKERRQ(ierr);
-    ierr = MatInterpolate(interp, Q, Qrefined);CHKERRQ(ierr);
+    ierr = MatInterpolate(user->interpviz, Q, Qrefined);CHKERRQ(ierr);
     ierr = VecZeroEntries(Qrefined_loc);CHKERRQ(ierr);
-    ierr = DMGlobalToLocal(dmrefined, Qrefined, INSERT_VALUES, Qrefined_loc); CHKERRQ(ierr);
+    ierr = DMGlobalToLocal(user->dmviz, Qrefined, INSERT_VALUES, Qrefined_loc); CHKERRQ(ierr);
     ierr = PetscSNPrintf(filepath_refined, sizeof filepath_refined, "%s/nsrefined-%03D.vtu",
                          user->outputfolder, stepno + user->contsteps);
     CHKERRQ(ierr);
     ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Qrefined), filepath_refined,
                               FILE_MODE_WRITE, &viewer_refined); CHKERRQ(ierr);
     ierr = VecView(Qrefined_loc, viewer_refined); CHKERRQ(ierr);
-    ierr = DMRestoreLocalVector(dmrefined, &Qrefined_loc);CHKERRQ(ierr);
-    ierr = DMRestoreGlobalVector(dmrefined, &Qrefined);CHKERRQ(ierr);
-    ierr = MatDestroy(&interp);CHKERRQ(ierr);
-    ierr = DMDestroy(&dmrefined);CHKERRQ(ierr);
+    ierr = DMRestoreLocalVector(user->dmviz, &Qrefined_loc);CHKERRQ(ierr);
+    ierr = DMRestoreGlobalVector(user->dmviz, &Qrefined);CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer_refined);CHKERRQ(ierr);
   }
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
@@ -513,10 +498,44 @@ static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix, PetscBool naturalz, void *ctxSetup, PetscInt *degree) {
+  PetscErrorCode ierr;
+
+  PetscFunctionBeginUser;
+  { // Configure the finite element space and boundary conditions
+    PetscFE fe;
+    PetscSpace fespace;
+    PetscInt ncompq = 5;
+    ierr = PetscFECreateDefault(PETSC_COMM_SELF,problem->dim, ncompq, PETSC_FALSE, prefix, PETSC_DETERMINE, &fe);CHKERRQ(ierr);
+    ierr = PetscObjectSetName((PetscObject)fe, "Q");CHKERRQ(ierr);
+    ierr = DMAddField(dm,NULL,(PetscObject)fe);CHKERRQ(ierr);
+    ierr = DMCreateDS(dm);CHKERRQ(ierr);
+    if (naturalz) {
+      ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","Face Sets",0,0,NULL,(void(*)(void))problem->bc,4,(PetscInt[]){3,4,5,6},ctxSetup);CHKERRQ(ierr);
+    } else {
+      ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","marker",0,0,NULL,(void(*)(void))problem->bc,1,(PetscInt[]){1},ctxSetup);CHKERRQ(ierr);
+    }
+    ierr = DMPlexSetClosurePermutationTensor(dm,PETSC_DETERMINE,NULL);CHKERRQ(ierr);
+    ierr = PetscFEGetBasisSpace(fe, &fespace);CHKERRQ(ierr);
+    if (degree) {
+      ierr = PetscSpaceGetDegree(fespace, degree, NULL);CHKERRQ(ierr);
+      if (*degree < 1) SETERRQ1(PetscObjectComm((PetscObject)dm), PETSC_ERR_ARG_OUTOFRANGE, "Degree %D; must specify -petscspace_degree 1 (or greater)", *degree);
+    }
+    ierr = PetscFEDestroy(&fe);CHKERRQ(ierr);
+  }
+  { // Empty name for conserved field (because there is only one field)
+    PetscSection section;
+    ierr = DMGetSection(dm, &section);CHKERRQ(ierr);
+    ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
+  }
+  PetscFunctionReturn(0);
+}
+
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  DM dm, dmcoord;
+  DM dm, dmcoord, dmviz;
+  Mat interpviz;
   TS ts;
   TSAdapt adapt;
   User user;
@@ -544,7 +563,7 @@ int main(int argc, char **argv) {
   problemType problemChoice;
   problemData *problem;
   StabilizationType stab;
-  PetscBool   test, implicit, naturalz;
+  PetscBool   test, implicit, naturalz, viz_refine;
 
   // Create the libCEED contexts
   PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
@@ -605,6 +624,8 @@ int main(int argc, char **argv) {
                           NULL, implicit=PETSC_FALSE, &implicit, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-naturalz", "Use natural boundary conditions in the z direction",
                           NULL, naturalz=PETSC_FALSE, &naturalz, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-viz_refine", "Use regular refinement for visualization",
+                          NULL, viz_refine=PETSC_FALSE, &viz_refine, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, meter, &meter, NULL); CHKERRQ(ierr);
   meter = fabs(meter);
@@ -725,28 +746,17 @@ int main(int argc, char **argv) {
 
   ierr = DMLocalizeCoordinates(dm);CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm);CHKERRQ(ierr);
-  { // Configure the finite element space and boundary conditions
+  ierr = SetUpDM(dm, problem, NULL, naturalz, ctxSetup, &degree);CHKERRQ(ierr);
+  dmviz = NULL;
+  interpviz = NULL;
+  if (viz_refine) {
     PetscFE fe;
-    PetscSpace fespace;
-    ierr = PetscFECreateDefault(PETSC_COMM_SELF,dim,ncompq,PETSC_FALSE,NULL,PETSC_DETERMINE,&fe);CHKERRQ(ierr);
-    ierr = DMAddField(dm,NULL,(PetscObject)fe);CHKERRQ(ierr);
-
-    ierr = DMCreateDS(dm);CHKERRQ(ierr);
-    if (naturalz) {
-      ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","Face Sets",0,0,NULL,(void(*)(void))problem->bc,4,(PetscInt[]){3,4,5,6},ctxSetup);CHKERRQ(ierr);
-    } else {
-      ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","marker",0,0,NULL,(void(*)(void))problem->bc,1,(PetscInt[]){1},ctxSetup);CHKERRQ(ierr);
-    }
-    ierr = DMPlexSetClosurePermutationTensor(dm,PETSC_DETERMINE,NULL);CHKERRQ(ierr);
-    ierr = PetscFEGetBasisSpace(fe, &fespace);CHKERRQ(ierr);
-    ierr = PetscSpaceGetDegree(fespace, &degree, NULL);CHKERRQ(ierr);
-    if (degree < 1) SETERRQ1(comm, PETSC_ERR_ARG_OUTOFRANGE, "Degree %D; must specify -petscspace_degree 1 (or greater)", degree);
-    ierr = PetscFEDestroy(&fe);CHKERRQ(ierr);
-  }
-  { // Empty name for conserved field
-    PetscSection section;
-    ierr = DMGetSection(dm, &section);CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
+    ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE);CHKERRQ(ierr);
+    ierr = DMRefine(dm, MPI_COMM_NULL, &dmviz);CHKERRQ(ierr);
+    ierr = DMSetCoarseDM(dmviz, dm);CHKERRQ(ierr);
+    ierr = PetscOptionsSetValue(NULL,"-viz_petscspace_degree","1");CHKERRQ(ierr);
+    ierr = SetUpDM(dmviz, problem, "viz_", naturalz, ctxSetup, NULL);CHKERRQ(ierr);
+    ierr = DMCreateInterpolation(dm, dmviz, &interpviz, NULL);CHKERRQ(ierr);
   }
   ierr = DMCreateGlobalVector(dm, &Q);CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm, &Qloc);CHKERRQ(ierr);
@@ -946,6 +956,8 @@ int main(int argc, char **argv) {
   user->contsteps = contsteps;
   user->units = units;
   user->dm = dm;
+  user->dmviz = dmviz;
+  user->interpviz = interpviz;
   user->ceed = ceed;
 
   // Calculate qdata and ICs
@@ -1095,6 +1107,8 @@ int main(int argc, char **argv) {
   // Clean up PETSc
   ierr = VecDestroy(&Q); CHKERRQ(ierr);
   ierr = VecDestroy(&user->M); CHKERRQ(ierr);
+  ierr = MatDestroy(&interpviz);CHKERRQ(ierr);
+  ierr = DMDestroy(&dmviz);CHKERRQ(ierr);
   ierr = TSDestroy(&ts); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFree(units); CHKERRQ(ierr);
