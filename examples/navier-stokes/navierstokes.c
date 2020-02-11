@@ -560,7 +560,7 @@ int main(int argc, char **argv) {
   PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
               kgpersquaredms, Joulepercubicm;
   problemType problemChoice;
-  problemData *problem;
+  problemData *problem = NULL;
   StabilizationType stab;
   PetscBool   test, implicit, naturalz, viz_refine;
   double start, cpu_time_used;
