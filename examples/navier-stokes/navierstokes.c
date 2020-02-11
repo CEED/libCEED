@@ -24,13 +24,13 @@
 //
 // Build with:
 //
-//     make [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>] nsplex
+//     make [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>] navierstokes
 //
 // Sample runs:
 //
-//     nsplex
-//     nsplex -ceed /cpu/self -problem density_current
-//     nsplex -ceed /gpu/occa -problem advection
+//     ./navierstokes
+//     ./navierstokes -ceed /cpu/self -problem density_current
+//     ./navierstokes -ceed /gpu/occa -problem advection
 //
 //TESTARGS -ceed {ceed_resource} -test -petscspace_degree 1
 
@@ -39,7 +39,6 @@
 
 const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 
-#define nsplex
 #include <petscts.h>
 #include <petscdmplex.h>
 #include <ceed.h>

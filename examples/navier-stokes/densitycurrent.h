@@ -474,7 +474,6 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
 //                                       (diffussive terms will be added later)
 //
 // *******************************************************************************
-#ifdef nsplex
 CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
                    const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -728,7 +727,6 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
   // Return
   return 0;
 }
-#endif
 
 // *****************************************************************************
 #endif

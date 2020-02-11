@@ -259,7 +259,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
 
   return 0;
 }
-#ifdef nsplex
+
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
                           const CeedScalar *const *in, CeedScalar *const *out) {
@@ -378,7 +378,6 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
 
   return 0;
 }
-#endif
 
 // *****************************************************************************
 #endif

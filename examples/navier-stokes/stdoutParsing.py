@@ -2,7 +2,7 @@ import re
 import pandas as pd
 from pathlib import Path
 
-# Regex to parse STDOUT of the nsplex run
+# Regex to parse STDOUT of the navierstokes run
 logreg = re.compile(
     r".*(?:^Degree of FEM Space: (\d+)).*(?:^Global FEM nodes: (\d{2,})).*(?:^dm_plex_box_faces: (\S+)).*(?:^Time taken for solution: (\d*\.?\d+)).*(?:^Max Error: (\d*\.?\d+))",
     re.DOTALL | re.MULTILINE,

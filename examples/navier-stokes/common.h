@@ -169,7 +169,6 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
   return 0;
 }
 
-#ifdef nsplex
 CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -202,7 +201,6 @@ CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
   // Return
   return 0;
 }
-#endif
 
 // *****************************************************************************
 // This QFunction applies the mass matrix to five interlaced fields.
