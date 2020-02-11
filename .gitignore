@@ -24,3 +24,9 @@ config.mk
 # Debugging
 vgcore*
 *.json
+
+# Editor Misc
+.history
+.vscode
+.ccls-cache
+.vim

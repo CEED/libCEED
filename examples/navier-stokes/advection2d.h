@@ -27,18 +27,19 @@
 #endif
 
 static int Exact_Advection2d(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
-  const CeedScalar *context = (const CeedScalar *)ctx;
-  const CeedScalar rc = context[8];
-  const CeedScalar lx = context[9];
-  const CeedScalar ly = context[10];
-  const CeedScalar lz = context[11];
-  const CeedScalar *periodic = &context[12];
+  const SetupContext context = ctx;
+  const CeedScalar rc = context->rc;
+  const CeedScalar lx = context->lx;
+  const CeedScalar ly = context->ly;
+  const CeedScalar lz = context->lz;
+
   // Setup
   const CeedScalar tol = 1.e-14;
-  const CeedScalar x0[3] = {0.25*lx, 0.5*ly, 0.5*lz};
-  const CeedScalar x1[3] = {0.625*lx, (0.5 + sqrt(3)/8)*ly, 0.5*lz};
-  const CeedScalar x2[3] = {0.625*lx, (0.5 - sqrt(3)/8)*ly, 0.5*lz};
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
+  const CeedScalar theta[] = {M_PI, -M_PI/3, M_PI/3};
+  const CeedScalar x0[3] = {center[0] + .25*lx*cos(theta[0] + time), center[1] + .25*ly*sin(theta[0] + time), center[2]};
+  const CeedScalar x1[3] = {center[0] + .25*lx*cos(theta[1] + time), center[1] + .25*ly*sin(theta[1] + time), center[2]};
+  const CeedScalar x2[3] = {center[0] + .25*lx*cos(theta[2] + time), center[1] + .25*ly*sin(theta[2] + time), center[2]};
 
   const CeedScalar x = X[0], y = X[1];
 
@@ -50,9 +51,11 @@ static int Exact_Advection2d(CeedInt dim, CeedScalar time, const CeedScalar X[],
   q[4] = 0;
   CeedScalar r = sqrt(pow(x - x0[0], 2) + pow(y - x0[1], 2));
   CeedScalar E = 1 - r/rc;
-  if (q[4] < E) q[4] = E;
-  r = sqrt(pow(x - x1[0], 2) + pow(y - x1[1], 2));
-  if (r <= rc) q[4] = 1;
+  if (0) { // non-smooth initial conditions
+    if (q[4] < E) q[4] = E;
+    r = sqrt(pow(x - x1[0], 2) + pow(y - x1[1], 2));
+    if (r <= rc) q[4] = 1;
+  }
   r = sqrt(pow(x - x2[0], 2) + pow(y - x2[1], 2));
   E = (r <= rc) ? .5 + .5*cos(r*M_PI/rc) : 0;
   if (q[4] < E) q[4] = E;
@@ -86,6 +89,7 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q,
   const CeedScalar (*X)[Q] = (CeedScalar(*)[Q])in[0];
   // Outputs
   CeedScalar (*q0)[Q] = (CeedScalar(*)[Q])out[0];
+  const SetupContext context = ctx;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -93,7 +97,7 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q,
     const CeedScalar x[] = {X[0][i], X[1][i]};
     CeedScalar q[5];
 
-    Exact_Advection2d(2, 0., x, 5, q, ctx);
+    Exact_Advection2d(2, context->time, x, 5, q, ctx);
     for (CeedInt j=0; j<5; j++) q0[j][i] = q[j];
   } // End of Quadrature Point Loop
 

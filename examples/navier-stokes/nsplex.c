@@ -39,6 +39,7 @@
 
 const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 
+#define nsplex
 #include <petscts.h>
 #include <petscdmplex.h>
 #include <ceed.h>
@@ -84,6 +85,7 @@ typedef struct {
   PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                        PetscScalar[], void*);
   const char *setup_loc, *ics_loc, *apply_rhs_loc, *apply_ifunction_loc;
+  const bool non_zero_time;
 } problemData;
 
 problemData problemOptions[] = {
@@ -99,6 +101,7 @@ problemData problemOptions[] = {
     .apply_ifunction = IFunction_DC,
     .apply_ifunction_loc = IFunction_DC_loc,
     .bc = Exact_DC,
+    .non_zero_time = false,
   },
   [NS_ADVECTION] = {
     .dim = 3,
@@ -112,6 +115,7 @@ problemData problemOptions[] = {
     .apply_ifunction = IFunction_Advection,
     .apply_ifunction_loc = IFunction_Advection_loc,
     .bc = Exact_Advection,
+    .non_zero_time = true,
   },
   [NS_ADVECTION2D] = {
     .dim = 2,
@@ -125,6 +129,7 @@ problemData problemOptions[] = {
     .apply_ifunction = IFunction_Advection2d,
     .apply_ifunction_loc = IFunction_Advection2d_loc,
     .bc = Exact_Advection2d,
+    .non_zero_time = true,
   },
   [NS_DENSITY_CURRENT_PRIMITIVE] = {
     .dim = 3,
@@ -136,6 +141,7 @@ problemData problemOptions[] = {
     .apply_ifunction = IFunction_DCPrim,
     .apply_ifunction_loc = IFunction_DCPrim_loc,
     .bc = Exact_DCPrim,
+    .non_zero_time = false,
   },
 };
 
@@ -221,41 +227,6 @@ static int VectorPlacePetscVec(CeedVector c, Vec p) {
   CeedVectorSetArray(c, CEED_MEM_HOST, CEED_USE_POINTER, a);
   PetscFunctionReturn(0);
 }
-
-// PETSc user data
-typedef struct User_ *User;
-typedef struct Units_ *Units;
-
-struct User_ {
-  MPI_Comm comm;
-  PetscInt outputfreq;
-  DM dm;
-  DM dmviz;
-  Mat interpviz;
-  Ceed ceed;
-  Units units;
-  CeedVector qceed, qdotceed, gceed;
-  CeedOperator op_rhs, op_ifunction;
-  Vec M;
-  char outputfolder[PETSC_MAX_PATH_LEN];
-  PetscInt contsteps;
-};
-
-struct Units_ {
-  // fundamental units
-  PetscScalar meter;
-  PetscScalar kilogram;
-  PetscScalar second;
-  PetscScalar Kelvin;
-  // derived units
-  PetscScalar Pascal;
-  PetscScalar JperkgK;
-  PetscScalar mpersquareds;
-  PetscScalar WpermK;
-  PetscScalar kgpercubicm;
-  PetscScalar kgpersquaredms;
-  PetscScalar Joulepercubicm;
-};
 
 static PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insertEssential, Vec Qloc, PetscReal time, Vec faceGeomFVM, Vec cellGeomFVM, Vec gradFVM) {
   PetscErrorCode ierr;
@@ -441,6 +412,35 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   PetscFunctionReturn(0);
 }
 
+static PetscErrorCode ICs_PetscMultiplicity(CeedOperator op_ics, CeedVector xcorners, CeedVector q0ceed, DM dm, Vec Qloc, Vec Q, CeedElemRestriction restrictq, SetupContext ctxSetup, CeedScalar time) {
+  PetscErrorCode ierr;
+  CeedVector multlvec;
+  Vec Multiplicity, MultiplicityLoc;
+
+  ctxSetup->time = time;
+  ierr = VecZeroEntries(Qloc);CHKERRQ(ierr);
+  ierr = VectorPlacePetscVec(q0ceed, Qloc);CHKERRQ(ierr);
+  CeedOperatorApply(op_ics, xcorners, q0ceed, CEED_REQUEST_IMMEDIATE);
+  ierr = VecZeroEntries(Q);CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(dm, Qloc, ADD_VALUES, Q);CHKERRQ(ierr);
+
+  // Fix multiplicity for output of ICs
+  ierr = DMGetLocalVector(dm, &MultiplicityLoc);CHKERRQ(ierr);
+  CeedElemRestrictionCreateVector(restrictq, &multlvec, NULL);
+  ierr = VectorPlacePetscVec(multlvec, MultiplicityLoc);CHKERRQ(ierr);
+  CeedElemRestrictionGetMultiplicity(restrictq, CEED_TRANSPOSE, multlvec);
+  CeedVectorDestroy(&multlvec);
+  ierr = DMGetGlobalVector(dm, &Multiplicity);CHKERRQ(ierr);
+  ierr = VecZeroEntries(Multiplicity);CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(dm, MultiplicityLoc, ADD_VALUES, Multiplicity);CHKERRQ(ierr);
+  ierr = VecPointwiseDivide(Q, Q, Multiplicity);CHKERRQ(ierr);
+  ierr = VecPointwiseDivide(Qloc, Qloc, MultiplicityLoc);CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm, &MultiplicityLoc);CHKERRQ(ierr);
+  ierr = DMRestoreGlobalVector(dm, &Multiplicity);CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
                                               CeedElemRestriction restrictq,
                                               CeedBasis basisq,
@@ -564,6 +564,7 @@ int main(int argc, char **argv) {
   problemData *problem;
   StabilizationType stab;
   PetscBool   test, implicit, naturalz, viz_refine;
+  double start, cpu_time_used;
 
   // Create the libCEED contexts
   PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
@@ -724,10 +725,24 @@ int main(int argc, char **argv) {
 
   const CeedInt dim = problem->dim, ncompx = problem->dim, qdatasize = problem->qdatasize;
   // Set up the libCEED context
-  CeedScalar ctxSetup[] = {theta0, thetaC, P0, N, cv, cp, Rd, g, rc,
-                           lx, ly, lz,
-                           periodicity[0], periodicity[1], periodicity[2],
-                          };
+  struct SetupContext_ ctxSetup =  {
+    .theta0 = theta0,
+    .thetaC = thetaC,
+    .P0 = P0,
+    .N = N,
+    .cv = cv,
+    .cp = cp,
+    .Rd = Rd,
+    .g = g,
+    .rc = rc,
+    .lx = lx,
+    .ly = ly,
+    .lz = lz,
+    .periodicity0 = periodicity[0],
+    .periodicity1 = periodicity[1],
+    .periodicity2 = periodicity[2],
+    .time = 0,
+  };
 
   ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, (PetscReal[]){lx, ly, lz}, periodicity, PETSC_TRUE, &dm);CHKERRQ(ierr);
   if (1) {
@@ -746,16 +761,20 @@ int main(int argc, char **argv) {
 
   ierr = DMLocalizeCoordinates(dm);CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm);CHKERRQ(ierr);
-  ierr = SetUpDM(dm, problem, NULL, naturalz, ctxSetup, &degree);CHKERRQ(ierr);
+  ierr = SetUpDM(dm, problem, NULL, naturalz, &ctxSetup, &degree);CHKERRQ(ierr);
+  if (!test) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                       "Degree of FEM Space: %D\n",
+                       (PetscInt)degree); CHKERRQ(ierr);
+  }
   dmviz = NULL;
   interpviz = NULL;
   if (viz_refine) {
-    PetscFE fe;
     ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE);CHKERRQ(ierr);
     ierr = DMRefine(dm, MPI_COMM_NULL, &dmviz);CHKERRQ(ierr);
     ierr = DMSetCoarseDM(dmviz, dm);CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-viz_petscspace_degree","1");CHKERRQ(ierr);
-    ierr = SetUpDM(dmviz, problem, "viz_", naturalz, ctxSetup, NULL);CHKERRQ(ierr);
+    ierr = SetUpDM(dmviz, problem, "viz_", naturalz, &ctxSetup, NULL);CHKERRQ(ierr);
     ierr = DMCreateInterpolation(dm, dmviz, &interpviz, NULL);CHKERRQ(ierr);
   }
   ierr = DMCreateGlobalVector(dm, &Q);CHKERRQ(ierr);
@@ -766,13 +785,21 @@ int main(int argc, char **argv) {
   {  // Print grid information
     CeedInt gnodes, onodes;
     int comm_size;
+    char box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
     ierr = VecGetSize(Q, &gnodes); CHKERRQ(ierr);
     gnodes /= ncompq;
     ierr = VecGetLocalSize(Q, &onodes); CHKERRQ(ierr);
     onodes /= ncompq;
     ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Global FEM nodes: %d on %d ranks\n", gnodes, comm_size); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Local FEM nodes: %d (%d owned)\n", lnodes, onodes); CHKERRQ(ierr);
+    ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str, sizeof(box_faces_str), NULL);CHKERRQ(ierr);
+    if (!test) {
+      ierr = PetscPrintf(comm, "Global FEM nodes: %d on %d ranks\n", gnodes, comm_size); CHKERRQ(ierr);
+      ierr = PetscPrintf(comm, "Local FEM nodes: %d (%d owned)\n", lnodes, onodes); CHKERRQ(ierr);
+      ierr = PetscPrintf(PETSC_COMM_WORLD,
+                        "dm_plex_box_faces: %s\n",
+                        box_faces_str); CHKERRQ(ierr);
+    }
+
   }
 
   // Set up global mass vector
@@ -967,26 +994,7 @@ int main(int argc, char **argv) {
   CeedOperatorApply(op_setup, xcorners, qdata, CEED_REQUEST_IMMEDIATE);
   ierr = ComputeLumpedMassMatrix(ceed, dm, restrictq, basisq, restrictqdi, qdata, user->M);CHKERRQ(ierr);
 
-  CeedOperatorApply(op_ics, xcorners, q0ceed, CEED_REQUEST_IMMEDIATE);
-  ierr = DMLocalToGlobal(dm, Qloc, ADD_VALUES, Q);CHKERRQ(ierr);
-  CeedVectorDestroy(&q0ceed);
-  // Fix multiplicity for output of ICs
-  {
-    CeedVector multlvec;
-    Vec Multiplicity, MultiplicityLoc;
-    ierr = DMGetLocalVector(dm, &MultiplicityLoc);CHKERRQ(ierr);
-    CeedElemRestrictionCreateVector(restrictq, &multlvec, NULL);
-    ierr = VectorPlacePetscVec(multlvec, MultiplicityLoc);CHKERRQ(ierr);
-    CeedElemRestrictionGetMultiplicity(restrictq, CEED_TRANSPOSE, multlvec);
-    CeedVectorDestroy(&multlvec);
-    ierr = DMGetGlobalVector(dm, &Multiplicity);CHKERRQ(ierr);
-    ierr = VecZeroEntries(Multiplicity);CHKERRQ(ierr);
-    ierr = DMLocalToGlobal(dm, MultiplicityLoc, ADD_VALUES, Multiplicity);CHKERRQ(ierr);
-    ierr = VecPointwiseDivide(Q, Q, Multiplicity);CHKERRQ(ierr);
-    ierr = VecPointwiseDivide(Qloc, Qloc, MultiplicityLoc);CHKERRQ(ierr);
-    ierr = DMRestoreLocalVector(dm, &MultiplicityLoc);CHKERRQ(ierr);
-    ierr = DMRestoreGlobalVector(dm, &Multiplicity);CHKERRQ(ierr);
-  }
+  ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictq, &ctxSetup, 0.0);
   if (1) { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
     // We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow.  If we
     // disable this, we should still get the same results due to the problem->bc function, but with potentially much
@@ -1069,14 +1077,43 @@ int main(int argc, char **argv) {
   }
 
   // Solve
+  start = MPI_Wtime();
+  ierr = PetscBarrier((PetscObject)ts); CHKERRQ(ierr);
   ierr = TSSolve(ts, Q); CHKERRQ(ierr);
+  cpu_time_used = MPI_Wtime() - start;
+  ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
+  ierr = MPI_Allreduce(MPI_IN_PLACE, &cpu_time_used, 1, MPI_DOUBLE, MPI_MIN, comm); CHKERRQ(ierr);
+  if (!test) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                      "Time taken for solution: %g\n",
+                      (double)cpu_time_used); CHKERRQ(ierr);
+  }
+
+  // Get error
+  if (problem->non_zero_time && !test) {
+      Vec Qexact, Qexactloc;
+      PetscReal norm;
+      ierr = DMCreateGlobalVector(dm, &Qexact);CHKERRQ(ierr);
+      ierr = DMGetLocalVector(dm, &Qexactloc);CHKERRQ(ierr);
+      ierr = VecGetSize(Qexactloc, &lnodes);CHKERRQ(ierr);
+
+      ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qexactloc, Qexact, restrictq, &ctxSetup, ftime); CHKERRQ(ierr);
+
+      ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
+      ierr = VecNorm(Q, NORM_MAX, &norm); CHKERRQ(ierr);
+      CeedVectorDestroy(&q0ceed);
+      ierr = PetscPrintf(PETSC_COMM_WORLD,
+                        "Max Error: %g\n",
+                        (double)norm); CHKERRQ(ierr);
+    }
 
   // Output Statistics
-  ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
   ierr = TSGetStepNumber(ts,&steps); CHKERRQ(ierr);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,
-                     "Time integrator took %D time steps to reach final time %g\n",
-                     steps,(double)ftime); CHKERRQ(ierr);
+  if (!test) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                      "Time integrator took %D time steps to reach final time %g\n",
+                      steps,(double)ftime); CHKERRQ(ierr);
+  }
 
   // Clean up libCEED
   CeedVectorDestroy(&qdata);

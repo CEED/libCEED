@@ -23,12 +23,11 @@
 #include <math.h>
 
 static int Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
-  const CeedScalar *context = (const CeedScalar *)ctx;
-  const CeedScalar rc = context[8];
-  const CeedScalar lx = context[9];
-  const CeedScalar ly = context[10];
-  const CeedScalar lz = context[11];
-  const CeedScalar *periodic = &context[12];
+  const SetupContext context = ctx;
+  const CeedScalar rc = context->rc;
+  const CeedScalar lx = context->lx;
+  const CeedScalar ly = context->ly;
+  const CeedScalar lz = context->lz;
 
   // Setup
   const CeedScalar tol = 1.e-14;
@@ -260,6 +259,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
 
   return 0;
 }
+#ifdef nsplex
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
                           const CeedScalar *const *in, CeedScalar *const *out) {
@@ -378,6 +378,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
 
   return 0;
 }
+#endif
 
 // *****************************************************************************
 #endif

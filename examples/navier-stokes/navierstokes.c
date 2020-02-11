@@ -151,10 +151,9 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
 }
 
 // PETSc user data
-typedef struct User_ *User;
-typedef struct Units_ *Units;
+typedef struct UserNS_ *UserNS;
 
-struct User_ {
+struct UserNS_ {
   MPI_Comm comm;
   PetscInt degree;
   PetscInt melem[3];
@@ -172,27 +171,11 @@ struct User_ {
   PetscInt contsteps;
 };
 
-struct Units_ {
-  // fundamental units
-  PetscScalar meter;
-  PetscScalar kilogram;
-  PetscScalar second;
-  PetscScalar Kelvin;
-  // derived units
-  PetscScalar Pascal;
-  PetscScalar JperkgK;
-  PetscScalar mpersquareds;
-  PetscScalar WpermK;
-  PetscScalar kgpercubicm;
-  PetscScalar kgpersquaredms;
-  PetscScalar Joulepercubicm;
-};
-
 // This is the RHS of the ODE, given as u_t = G(t,u)
 // This function takes in a state vector Q and writes into G
 static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   PetscErrorCode ierr;
-  User user = *(User *)userData;
+  UserNS user = *(UserNS *)userData;
   PetscScalar *q, *g;
 
   // Global-to-local
@@ -240,7 +223,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode MapLocalToDMGlobal(User user, Vec Xloc, Vec Xdm,
+static PetscErrorCode MapLocalToDMGlobal(UserNS user, Vec Xloc, Vec Xdm,
     const PetscReal scale[]) {
   PetscErrorCode ierr;
   DM dm;
@@ -275,7 +258,7 @@ static PetscErrorCode MapLocalToDMGlobal(User user, Vec Xloc, Vec Xdm,
 // User provided TS Monitor
 static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
                                    Vec Q, void *ctx) {
-  User user = ctx;
+  UserNS user = ctx;
   const PetscReal scale[] = {user->units->kgpercubicm,
                              user->units->kgpersquaredms,
                              user->units->kgpersquaredms,
@@ -339,7 +322,7 @@ int main(int argc, char **argv) {
   DM dm;
   TS ts;
   TSAdapt adapt;
-  User user;
+  UserNS user;
   Units units;
   char ceedresource[4096] = "/cpu/self";
   PetscInt localNelem, lsize, steps, melem[3], mnode[3], p[3], irank[3],
@@ -568,22 +551,24 @@ int main(int argc, char **argv) {
   ierr = VecSetUp(Qloc); CHKERRQ(ierr);
 
   // Print grid information
-  CeedInt gsize;
-  ierr = VecGetSize(Q, &gsize); CHKERRQ(ierr);
-  gsize /= ncompq;
-  ierr = PetscPrintf(comm, "Global nodes: %D\n", gsize); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
-                     p[0], p[1], p[2]); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localNelem,
-                     melem[0], melem[1], melem[2]); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Owned nodes: %D = %D %D %D\n",
-                     mnode[0]*mnode[1]*mnode[2], mnode[0], mnode[1], mnode[2]);
-  CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Physical domain: %g %g %g\n",
-                     lx/meter, ly/meter, lz/meter); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Physical resolution: %g %g %g\n",
-                     resx/meter, resy/meter, resz/meter); CHKERRQ(ierr);
-  CHKERRQ(ierr);
+  if (!test) {
+    CeedInt gsize;
+    ierr = VecGetSize(Q, &gsize); CHKERRQ(ierr);
+    gsize /= ncompq;
+    ierr = PetscPrintf(comm, "Global nodes: %D\n", gsize); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
+                      p[0], p[1], p[2]); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localNelem,
+                      melem[0], melem[1], melem[2]); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Owned nodes: %D = %D %D %D\n",
+                      mnode[0]*mnode[1]*mnode[2], mnode[0], mnode[1], mnode[2]);
+    CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Physical domain: %g %g %g\n",
+                      lx/meter, ly/meter, lz/meter); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Physical resolution: %g %g %g\n",
+                      resx/meter, resy/meter, resz/meter); CHKERRQ(ierr);
+    CHKERRQ(ierr);
+  }
 
   // Set up global mass vector
   ierr = VecDuplicate(Q,&user->M); CHKERRQ(ierr);
@@ -1038,9 +1023,11 @@ int main(int argc, char **argv) {
   // Output Statistics
   ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
   ierr = TSGetStepNumber(ts,&steps); CHKERRQ(ierr);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,
-                     "Time integrator took %D time steps to reach final time %g\n",
-                     steps,(double)ftime); CHKERRQ(ierr);
+  if (!test) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                      "Time integrator took %D time steps to reach final time %g\n",
+                      steps,(double)ftime); CHKERRQ(ierr);
+  }
 
   // Clean up libCEED
   CeedVectorDestroy(&qdata);
