@@ -333,7 +333,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
 
     // No Change in density or momentum
     for (int f=0; f<4; f++) {
-      for (int j=0; j<2; j++)
+      for (int j=0; j<3; j++)
         dv[j][f][i] = 0;
       v[f][i] = wJ * qdot[f][i]; //K Mass/transient term
     }
