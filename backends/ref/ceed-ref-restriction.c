@@ -43,17 +43,32 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
     if (!impl->indices) {
       CeedInt strides[3];
       ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
-      for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
-        CeedPragmaSIMD
-        for (CeedInt k = 0; k < ncomp; k++)
+      bool backendstrides;
+      ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
+      CeedChk(ierr);
+      if (backendstrides) {
+        for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
           CeedPragmaSIMD
-          for (CeedInt n = 0; n < elemsize; n++)
+          for (CeedInt k = 0; k < ncomp*elemsize; k++)
             CeedPragmaSIMD
             for (CeedInt j = 0; j < blksize; j++) {
-              vv[e*elemsize*ncomp + (k*elemsize+n)*blksize + j - voffset]
-                = uu[n*strides[0] + k*strides[1] +
-                                  CeedIntMin(e+j, nelem-1)*strides[2]];
+              vv[e*elemsize*ncomp + k*blksize + j - voffset] =
+                uu[e*elemsize*ncomp + k*CeedIntMin(blksize, nelem-e) +
+                   CeedIntMin(j, nelem-e)];
+          }
+      } else {
+        for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
+          CeedPragmaSIMD
+          for (CeedInt k = 0; k < ncomp; k++)
+            CeedPragmaSIMD
+            for (CeedInt n = 0; n < elemsize; n++)
+              CeedPragmaSIMD
+              for (CeedInt j = 0; j < blksize; j++) {
+                vv[e*elemsize*ncomp + (k*elemsize+n)*blksize + j - voffset]
+                  = uu[n*strides[0] + k*strides[1] +
+                                    CeedIntMin(e+j, nelem-1)*strides[2]];
             }
+      }
     } else {
       // Indices provided, standard or blocked restriction
       // vv has shape [elemsize, ncomp, nelem], row-major
@@ -75,14 +90,27 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
     if (!impl->indices) {
       CeedInt strides[3];
       ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
-      for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
-        for (CeedInt j = 0; j < CeedIntMin(blksize, nelem-e); j++)
+      bool backendstrides;
+      ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
+      CeedChk(ierr);
+      if (backendstrides) {
+        for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
           CeedPragmaSIMD
-          for (CeedInt k = 0; k < ncomp; k++)
+          for (CeedInt k = 0; k < ncomp*elemsize; k++)
             CeedPragmaSIMD
-            for (CeedInt n = 0; n < elemsize; n++)
-              vv[n*strides[0] + k*strides[1] + (e+j)*strides[2]]
-              += uu[e*elemsize*ncomp + (k*elemsize+n)*blksize + j - voffset];
+            for (CeedInt j = 0; j < CeedIntMin(blksize, nelem-e); j++)
+              vv[e*elemsize*ncomp + k*CeedIntMin(blksize, nelem-e) + j]
+              += uu[e*elemsize*ncomp + k*blksize + j - voffset];
+      } else {
+        for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
+          for (CeedInt j = 0; j < CeedIntMin(blksize, nelem-e); j++)
+            CeedPragmaSIMD
+            for (CeedInt k = 0; k < ncomp; k++)
+              CeedPragmaSIMD
+              for (CeedInt n = 0; n < elemsize; n++)
+                vv[n*strides[0] + k*strides[1] + (e+j)*strides[2]]
+                += uu[e*elemsize*ncomp + (k*elemsize+n)*blksize + j - voffset];
+      }
     } else {
       // Indices provided, standard or blocked restriction
       // uu has shape [elemsize, ncomp, nelem]

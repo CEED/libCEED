@@ -25,6 +25,7 @@
 #define FORTRAN_REQUEST_IMMEDIATE -1
 #define FORTRAN_REQUEST_ORDERED -2
 #define FORTRAN_NULL -3
+#define FORTRAN_STRIDES_BACKEND -1
 #define FORTRAN_BASIS_COLLOCATED -1
 #define FORTRAN_VECTOR_ACTIVE -1
 #define FORTRAN_VECTOR_NONE -2
@@ -243,7 +244,10 @@ void fCeedElemRestrictionCreateStrided(int *ceed, int *nelements, int *esize,
   CeedElemRestriction *elemrestriction_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
   *err = CeedElemRestrictionCreateStrided(Ceed_dict[*ceed], *nelements, *esize,
-                                          *nnodes, *ncomp, strides, elemrestriction_);
+                                          *nnodes, *ncomp,
+                                          *strides == FORTRAN_STRIDES_BACKEND ?
+                                            CEED_STRIDES_BACKEND : strides,
+                                          elemrestriction_);
   if (*err == 0) {
     *elemrestriction = CeedElemRestriction_count++;
     CeedElemRestriction_n++;

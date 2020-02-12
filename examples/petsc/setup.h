@@ -497,15 +497,13 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
 
-  CeedInt stridesu[3] = {1, Q *Q*Q, Q *Q *Q*ncompu};
   CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompu,
-                                   stridesu, &Erestrictui);
-  CeedInt stridesqd[3] = {1, Q *Q*Q, Q *Q *Q*qdatasize};
+                                   CEED_STRIDES_BACKEND, &Erestrictui);
+  CeedInt stridesqd[3] = {1, Q*Q*Q, Q*Q*Q*qdatasize};
   CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, qdatasize,
                                    stridesqd, &Erestrictqdi);
-  CeedInt stridesx[3] = {1, Q *Q*Q, Q *Q *Q*ncompx};
   CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompx,
-                                   stridesx, &Erestrictxi);
+                                   CEED_STRIDES_BACKEND, &Erestrictxi);
 
   // Element coordinates
   ierr = DMGetCoordinatesLocal(dm, &coords); CHKERRQ(ierr);

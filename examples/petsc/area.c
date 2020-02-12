@@ -306,12 +306,10 @@ int main(int argc, char **argv) {
 
   // CEED strided restrictions
   const CeedInt qdatasize = 1;
-  CeedInt stridesqd[3] = {1, Q*Q, Q *Q*qdatasize};
   CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nelem*Q*Q, qdatasize,
-                                   stridesqd, &Erestrictqdi);
-  CeedInt stridesx[3] = {1, Q*Q, Q*Q};
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nelem*Q*Q, 1, stridesx,
-                                   &Erestrictxi);
+                                   CEED_STRIDES_BACKEND, &Erestrictqdi);
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nelem*Q*Q, 1,
+                                   CEED_STRIDES_BACKEND, &Erestrictxi);
 
   // Element coordinates
   Vec coords;

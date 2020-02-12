@@ -662,6 +662,29 @@ int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
 }
 
 /**
+  @brief Get the backend stride status of a CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] bool        Variable to store stride status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedElemRestrictionGetBackendStridesStatus(CeedElemRestriction rstr,
+                                               bool *status) {
+  if (!rstr->strides)
+    // LCOV_EXCL_START
+    return CeedError(rstr->ceed, 1, "ElemRestriction has no stride data");
+  // LCOV_EXCL_STOP
+
+  *status = ((rstr->strides[0] == CEED_STRIDES_BACKEND[0]) &&
+             (rstr->strides[1] == CEED_STRIDES_BACKEND[1]) &&
+             (rstr->strides[2] == CEED_STRIDES_BACKEND[2]));
+  return 0;
+}
+
+/**
   @brief Get the backend data of a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
@@ -737,5 +760,10 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
   ierr = CeedFree(rstr); CeedChk(ierr);
   return 0;
 }
+
+/// @cond DOXYGEN_SKIP
+// Indicate that the stride is determined by the backend
+CeedInt CEED_STRIDES_BACKEND[3] = {};
+/// @endcond
 
 /// @}

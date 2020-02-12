@@ -235,9 +235,14 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
                     occaInt(nelem*elemsize));
   occaPropertiesSet(pKR, "defines/nelem_x_elemsize_x_ncomp",
                     occaInt(nelem*elemsize*ncomp));
-  CeedInt strides[3] = {};
+  CeedInt strides[3] = {1, elemsize, elemsize*ncomp};
   if (data->strided) {
-    ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
+    bool backendstrides;
+    ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
+    CeedChk(ierr);
+    if (!backendstrides) {
+      ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
+    }
   }
   occaPropertiesSet(pKR, "defines/stridenode", occaInt(strides[0]));
   occaPropertiesSet(pKR, "defines/stridecomp", occaInt(strides[1]));

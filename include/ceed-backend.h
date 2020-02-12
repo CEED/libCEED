@@ -87,6 +87,8 @@ CEED_EXTERN int CeedElemRestrictionGetCeed(CeedElemRestriction rstr,
     Ceed *ceed);
 CEED_EXTERN int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
     CeedInt (*strides)[3]);
+CEED_EXTERN int CeedElemRestrictionGetBackendStridesStatus(CeedElemRestriction rstr,
+    bool *status);
 CEED_EXTERN int CeedElemRestrictionGetData(CeedElemRestriction rstr,
     void **data);
 CEED_EXTERN int CeedElemRestrictionSetData(CeedElemRestriction rstr,

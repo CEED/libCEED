@@ -254,6 +254,12 @@ typedef enum {
 
 CEED_EXTERN const char *const CeedInterlaceModes[];
 
+/// Argument for CeedElemRestrictionCreateStrided that L-vector is in
+/// the Ceed backend's preferred layout. This argument should only be used
+/// with vectors created by a Ceed backend.
+/// @ingroup CeedElemRestriction
+CEED_EXTERN CeedInt CEED_STRIDES_BACKEND[3];
+
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInterlaceMode imode,
     CeedInt nelem, CeedInt elemsize, CeedInt nnodes, CeedInt ncomp,
     CeedMemType mtype, CeedCopyMode cmode, const CeedInt *indices,

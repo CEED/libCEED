@@ -797,9 +797,8 @@ C     Create ceed element restrictions for mesh and computation
       stridesu=[1,enode,enode*ncompu]
       call ceedelemrestrictioncreatestrided(ceed,nelt,enode,lnode,
      $  ncompu,stridesu,erstrctu,err)
-      stridesw=[1,q**ldim,q**ldim]
       call ceedelemrestrictioncreatestrided(ceed,nelt,q**ldim,
-     $  nelt*q**ldim,1,stridesw,erstrctw,err)
+     $  nelt*q**ldim,1,ceed_strides_backend,erstrctw,err)
 
 C     Create ceed vectors
       call ceedvectorcreate(ceed,lnode,vec_p1,err)
