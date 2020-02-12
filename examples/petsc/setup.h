@@ -873,3 +873,4 @@ static PetscErrorCode ComputeErrorMax(UserO user, CeedOperator op_error,
   PetscFunctionReturn(0);
 }
 #endif
+
