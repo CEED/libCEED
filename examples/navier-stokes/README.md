@@ -14,40 +14,50 @@ Build by using
 
 and run with
 
-`./navierstokes`
+`./navierstokes -petscspace_degree 1`
 
 Available runtime options are:
 
-|  Option                  | Meaning                                            |
-| :----------------------- | :--------------------------------------------------|
-| `-ceed`                  | CEED resource specifier                            |
-| `-problem`               | Problem to solve (`advection` or `density_current`)|
-| `-meter`                 | 1 meter in scaled length units                     |
-| `-second`                | 1 second in scaled time units                      |
-| `-kilogram`              | 1 kilogram in scaled mass units                    |
-| `-Kelvin`                | 1 Kelvin in scaled temperature units               |
-| `-theta0`                | Reference potential temperature                    |
-| `-thetaC`                | Perturbation of potential temperature              |
-| `-P0`                    | Atmospheric pressure                               |
-| `-N`                     | Brunt-Vaisala frequency                            |
-| `-cv`                    | Heat capacity at constant volume                   |
-| `-cp`                    | Heat capacity at constant pressure                 |
-| `-g`                     | Gravitational acceleration                         |
-| `-lambda`                | Stokes hypothesis second viscosity coefficient     |
-| `-mu`                    | Shear dynamic viscosity coefficient                |
-| `-k`                     | Thermal conductivity                               |
-| `-lx`                    | Length scale in x direction                        |
-| `-ly`                    | Length scale in y direction                        |
-| `-lz`                    | Length scale in z direction                        |
-| `-rc`                    | Characteristic radius of thermal bubble            |
-| `-output_freq`           | Frequency of output, in number of steps            |
-| `-continue`              | Continue from previous solution                    |
-| `-degree`                | Polynomial degree of tensor product basis          |
-| `-qextra`                | Number of extra quadrature points                  |
-| `-of`                    | Output folder                                      |
-| `-resx`                  | Resolution in x                                    |
-| `-resy`                  | Resolution in y                                    |
-| `-resz`                  | Resolution in z                                    |
+|  Option                  | Meaning                                                                                         |
+| :----------------------- | :-----------------------------------------------------------------------------------------------|
+| `-ceed`                  | CEED resource specifier                                                                         |
+| `-test`                  | Run in test mode                                                                                |
+| `-problem`               | Problem to solve (`advection`, `advection2d`, `density_current` or `density_current_primitive`) |
+| `-stab`                  | Stabilization method                                                                            |
+| `-implicit`              | Use implicit time integartor formulation                                                        |
+| `-naturalz`              | Use natural boundary conditions in the z direction                                              |
+| `-viz_refine`            | Use regular refinement for visualization                                                        |
+| `-petscspace_degree`     | Polynomial degree of tensor product basis (needs to be set > 0)                                 |
+| `-units_meter`           | 1 meter in scaled length units                                                                  |
+| `-units_second`          | 1 second in scaled time units                                                                   |
+| `-units_kilogram`        | 1 kilogram in scaled mass units                                                                 |
+| `-units_Kelvin`          | 1 Kelvin in scaled temperature units                                                            |
+| `-theta0`                | Reference potential temperature                                                                 |
+| `-thetaC`                | Perturbation of potential temperature                                                           |
+| `-P0`                    | Atmospheric pressure                                                                            |
+| `-N`                     | Brunt-Vaisala frequency                                                                         |
+| `-cv`                    | Heat capacity at constant volume                                                                |
+| `-cp`                    | Heat capacity at constant pressure                                                              |
+| `-g`                     | Gravitational acceleration                                                                      |
+| `-lambda`                | Stokes hypothesis second viscosity coefficient                                                  |
+| `-mu`                    | Shear dynamic viscosity coefficient                                                             |
+| `-k`                     | Thermal conductivity                                                                            |
+| `-CtauS`                 | Scale coefficient for stabilization tau (nondimensional)                                        |
+| `-strong_form`           | Strong (1) or weak/integrated by parts (0) advection residual                                   |
+| `-lx`                    | Length scale in x direction                                                                     |
+| `-ly`                    | Length scale in y direction                                                                     |
+| `-lz`                    | Length scale in z direction                                                                     |
+| `-rc`                    | Characteristic radius of thermal bubble                                                         |
+| `-resx`                  | Resolution in x                                                                                 |
+| `-resy`                  | Resolution in y                                                                                 |
+| `-resz`                  | Resolution in z                                                                                 |
+| `-periodicity`           | Periodicity per direction                                                                       |
+| `-output_freq`           | Frequency of output, in number of steps                                                         |
+| `-continue`              | Continue from previous solution                                                                 |
+| `-degree`                | Polynomial degree of tensor product basis                                                       |
+| `-qextra`                | Number of extra quadrature points                                                               |
+| `-of`                    | Output folder                                                                                   |
+
 
 ### Advection
 
