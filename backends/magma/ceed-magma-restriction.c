@@ -34,26 +34,56 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
   CeedInt NCOMP;
   CeedElemRestrictionGetNumComponents(r, &NCOMP);
 
-  const CeedScalar *du;
-  CeedScalar *dv;
-  ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &du); CeedChk(ierr);
-  ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &dv); CeedChk(ierr);
-
   if (!impl->indices) {  // Strided Restriction
-    CeedInt strides[3];
-    ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
-    CeedInt *dstrides;
-    ierr = magma_malloc( (void **)&dstrides,
-                         3 * sizeof(CeedInt)); CeedChk(ierr);
-    magma_setvector(3, sizeof(CeedInt), strides, 1, dstrides, 1);
 
-    if (tmode == CEED_TRANSPOSE) {
-      magma_writeDofsStrided(NCOMP, nnodes, esize, nelem, dstrides, du, dv);
+    // Check to see if vector is already in magma Q-Vector layout
+    //  (dimension = slowest index, then component, then element,
+    //    then node)
+    bool backendstrides;
+    ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
+
+    if (backendstrides) {
+
+      CeedScalar *du;
+
+      // Set pointer to same data; no re-ordering needed
+      ierr = CeedVectorGetArray(u, CEED_MEM_DEVICE, &du); CeedChk(ierr);
+      ierr = CeedVectorSetArray(v, CEED_MEM_DEVICE, CEED_USE_POINTER, du);
+      ierr = CeedVectorRestoreArray(u, &du); CeedChk(ierr);
+
     } else {
-      magma_readDofsStrided(NCOMP, nnodes, esize, nelem, dstrides, du, dv);
-    }
 
+      const CeedScalar *du;
+      CeedScalar *dv;
+
+      ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &du); CeedChk(ierr);
+      ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &dv); CeedChk(ierr);
+
+      // Get the new strides
+      CeedInt strides[3];
+      ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
+      CeedInt *dstrides;
+      ierr = magma_malloc( (void **)&dstrides,
+                           3 * sizeof(CeedInt)); CeedChk(ierr);
+      magma_setvector(3, sizeof(CeedInt), strides, 1, dstrides, 1);
+
+      if (tmode == CEED_TRANSPOSE) {
+        magma_writeDofsStrided(NCOMP, nnodes, esize, nelem, dstrides, du, dv);
+      } else {
+        magma_readDofsStrided(NCOMP, nnodes, esize, nelem, dstrides, du, dv);
+      }
+
+      ierr = CeedVectorRestoreArrayRead(u, &du); CeedChk(ierr);
+      ierr = CeedVectorRestoreArray(v, &dv); CeedChk(ierr);
+
+    }
   } else { // Indices array provided, standard restriction
+
+    const CeedScalar *du;
+    CeedScalar *dv;
+
+    ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &du); CeedChk(ierr);
+    ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &dv); CeedChk(ierr);
 
     CeedInterlaceMode imode;
     ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
@@ -69,10 +99,10 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
       else
         magma_readDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
     }
-  }
-  ierr = CeedVectorRestoreArrayRead(u, &du); CeedChk(ierr);
-  ierr = CeedVectorRestoreArray(v, &dv); CeedChk(ierr);
 
+    ierr = CeedVectorRestoreArrayRead(u, &du); CeedChk(ierr);
+    ierr = CeedVectorRestoreArray(v, &dv); CeedChk(ierr);
+  }
   return 0;
 }
 
