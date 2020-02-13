@@ -123,15 +123,6 @@ static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt 
   q[2] = 0.0;
   q[3] = 0.0;
   q[4] = rho * (cv*theta*Pi);
-
-  // Homogeneous Dirichlet Boundary Conditions for Momentum
-  if ((!periodic[0] && (fabs(x - 0.0) < tol || fabs(x - lx) < tol))
-      || (!periodic[1] && (fabs(y - 0.0) < tol || fabs(y - ly) < tol))
-      || (!periodic[2] && (fabs(z - 0.0) < tol || fabs(z - lz) < tol))) {
-    q[1] = 0.0;
-    q[2] = 0.0;
-    q[3] = 0.0;
-  }
   return 0;
 }
 
@@ -159,7 +150,7 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 
 
 // *******************************************************************************
-// This QFunction implements the following formulation of Navier-Stokes with 
+// This QFunction implements the following formulation of Navier-Stokes with
 //   explicit time stepping method
 //
 // This is 3D compressible Navier-Stokes in conservation form with state
@@ -438,17 +429,17 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
        for (int j=0; j<3; j++)
          for (int k=0; k<5; k++)
            for (int l=0; l<5; l++)
-             stab[k][j] = dFconvdqT[j][k][l] * Tau[l] * StrongConv[l]; 
+             stab[k][j] = dFconvdqT[j][k][l] * Tau[l] * StrongConv[l];
 
        for (int j=0; j<5; j++)
          for (int k=0; k<3; k++)
-           dv[k][j][i] -= stab[j][0] * dXdx[k][0] + 
+           dv[k][j][i] -= stab[j][0] * dXdx[k][0] +
                           stab[j][1] * dXdx[k][1] +
                           stab[j][2] * dXdx[k][2];
        break;
-    case 2:        // SUPG is not implemented for explicit scheme  
-       break;             
-  }  
+    case 2:        // SUPG is not implemented for explicit scheme
+       break;
+  }
 
   } // End Quadrature Point Loop
 
@@ -456,7 +447,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
   return 0;
 }
 // *******************************************************************************
-// This QFunction implements the Navier-Stokes equations (mentioned above) with 
+// This QFunction implements the Navier-Stokes equations (mentioned above) with
 //   implicit time stepping method
 //
 //  SU   = Galerkin + grad(v) . ( Ai^T * Tau * (Aj q,j) )
@@ -627,7 +618,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     CeedScalar StrongResid[5];
     for (int j=0; j<5; j++)
       StrongResid[j] = qdot[j][i] + StrongConv[j] - BodyForce[j];
-      
+
     // The Physics
     //-----mass matrix
     for (int j=0; j<5; j++)
