@@ -34,8 +34,7 @@
 // This function sets the the initial conditions and boundary conditions
 //
 // These initial conditions are given in terms of potential temperature and
-//   Exner pressure and then converted to density and total energy.
-//   Initial momentum density is zero.
+//   Exner pressure. Initial velocity is zero.
 //
 // Initial Conditions:
 //   Potential Temperature:
@@ -49,12 +48,8 @@
 //     Pi = Pibar + deltaPi
 //       Pibar      = g**2 (exp( - N**2 z / g ) - 1) / (cp theta0 N**2)
 //       deltaPi    = 0 (hydrostatic balance)
-//   Velocity/Momentum Density:
-//     Ui = ui = 0
-//
-// Conversion to Conserved Variables:
-//   rho = P0 Pi**(cv/Rd) / (Rd theta)
-//   E   = rho (cv theta Pi + (u u)/2)
+//   Velocity:
+//     ui = 0
 //
 //  Boundary Conditions:
 //    Mass Density:
@@ -112,8 +107,6 @@ static int Exact_DCPrim(CeedInt dim, CeedScalar time, const CeedScalar X[], Ceed
   const CeedScalar theta = theta0*exp(N*N*z/g) + deltatheta;
   // -- Exner pressure, hydrostatic balance
   const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
-  // -- Density
-  //const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta);
 
   // Initial Conditions
   q[0] = Pi;
@@ -122,7 +115,7 @@ static int Exact_DCPrim(CeedInt dim, CeedScalar time, const CeedScalar X[], Ceed
   q[3] = 0.0;
   q[4] = theta;
 
-  // Homogeneous Dirichlet Boundary Conditions for Momentum
+  // Homogeneous Dirichlet Boundary Conditions for Velocity
   if ((!periodic[0] && (fabs(x - 0.0) < tol || fabs(x - lx) < tol))
       || (!periodic[1] && (fabs(y - 0.0) < tol || fabs(y - ly) < tol))
       || (!periodic[2] && (fabs(z - 0.0) < tol || fabs(z - lz) < tol))) {
@@ -158,31 +151,46 @@ CEED_QFUNCTION(ICsDCPrim)(void *ctx, CeedInt Q,
 
 
 // *******************************************************************************
-// This QFunction implements the following formulation of Navier-Stokes
+// This QFunction implements the following formulation of Navier-Stokes with 
+//   implicit time stepping method
 //
 // This is 3D compressible Navier-Stokes in conservation form with state
-//   variables of density, momentum density, and total energy density.
+//   variables of pressure, velocity, and temperature.
 //
-// State Variables: q = ( rho, U1, U2, U3, E )
-//   rho - Mass Density
-//   Ui  - Momentum Density   ,  Ui = rho ui
-//   E   - Total Energy Density,  E  = rho cv T + rho (u u) / 2
+// State Variables: q = ( P, u1, u2, u3, T )
+//   P   - Pressure
+//   ui  - Velocity
+//   T   - Temperature
+//
 //
 // Navier-Stokes Equations:
 //   drho/dt + div( U )                               = 0
 //   dU/dt   + div( rho (u x u) + P I3 ) + rho g khat = div( Fu )
 //   dE/dt   + div( (E + P) u )          + rho g u[z] = div( Fe )
 //
+// Mass Density
+//   rho = P / (R x T) 
+// 
+// Momentum Density  
+//   Ui  = rho x ui       
+//
 // Viscous Stress:
 //   Fu = mu (grad( u ) + grad( u )^T + lambda div ( u ) I3)
+//
 // Thermal Stress:
 //   Fe = u Fu + k grad( T )
 //
-// Equation of State:
-//   P = (gamma - 1) (E - rho (u u) / 2)
+// Stabilization:
+//   Tau = [TauC, TauM, TauM, TauM, TauE]
+//     f1=  rho  sqrt( ui uj gij ))
+//     gij = dXi/dX * dXi/dX
+//     TauC = Cc f1 / (8 gii)
+//     TauM = 1 / f1
+//     TauE = TauM / (Ce cv)
 //
-// Temperature:
-//   T = (E / rho - (u u) / 2 ) / cv
+//   SU   = Galerkin + grad(v) . ( Ai^T * Tau * (Aj q,j) )
+//   SUPG = Galerkin + grad(v) . ( Ai^T * Tau * (qdot + Aj q,j - body force) )
+//                                       (diffussive terms will be added later)
 //
 // Constants:
 //   lambda = - 2 / 3,  From Stokes hypothesis
@@ -197,21 +205,7 @@ CEED_QFUNCTION(ICsDCPrim)(void *ctx, CeedInt Q,
 // its transpose (dXdx_k,j) to properly compute integrals of the form:
 // int( gradv gradu )
 //
-// *******************************************************************************
-// Implicit scheme with Galerkin, SU and, SUPG
-//
-// Stabilization:
-// f1=  rho  sqrt( ui uj gij ))
-// gij = dXi/dX * dXi/dX
-// TauC = Cc f1 / (8 gii)
-// TauM = 1 / f1
-// TauE = TauM / (Ce cv)
-// Tau = [TauC, TauM, TauM, TauM, TauE]
-//
-//  SU   = Galerkin + grad(v) . ( Ai^T * Tau * (Aj q,j) )
-//  SUPG = Galerkin + grad(v) . ( Ai^T * Tau * (qdot + Aj q,j - body force) )
-//                                       (diffussive terms will be added later)
-//
+
 // *******************************************************************************
 CEED_QFUNCTION(IFunction_DCPrim)(void *ctx, CeedInt Q,
                    const CeedScalar *const *in, CeedScalar *const *out) {

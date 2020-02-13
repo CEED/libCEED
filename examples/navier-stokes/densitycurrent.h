@@ -159,14 +159,15 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 
 
 // *******************************************************************************
-// This QFunction implements the following formulation of Navier-Stokes
+// This QFunction implements the following formulation of Navier-Stokes with 
+//   explicit time stepping method
 //
 // This is 3D compressible Navier-Stokes in conservation form with state
 //   variables of density, momentum density, and total energy density.
 //
 // State Variables: q = ( rho, U1, U2, U3, E )
 //   rho - Mass Density
-//   Ui  - Momentum Density   ,  Ui = rho ui
+//   Ui  - Momentum Density,      Ui = rho ui
 //   E   - Total Energy Density,  E  = rho cv T + rho (u u) / 2
 //
 // Navier-Stokes Equations:
@@ -176,6 +177,7 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 //
 // Viscous Stress:
 //   Fu = mu (grad( u ) + grad( u )^T + lambda div ( u ) I3)
+//
 // Thermal Stress:
 //   Fe = u Fu + k grad( T )
 //
@@ -185,14 +187,13 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 // Temperature:
 //   T = (E / rho - (u u) / 2) / cv
 //
-//********************************************
 // Stabilization:
 //   Tau = [TauC, TauM, TauM, TauM, TauE]
-//      f1 = rho  sqrt(ui uj gij)
-//           gij = dXi/dX * dXi/dX
-// TauC = Cc f1 / (8 gii)
-// TauM = 1 / f1
-// TauE = TauM / (Ce cv)
+//     f1 = rho  sqrt(ui uj gij)
+//     gij = dXi/dX * dXi/dX
+//     TauC = Cc f1 / (8 gii)
+//     TauM = 1 / f1
+//     TauE = TauM / (Ce cv)
 //
 //  SU   = Galerkin + grad(v) . ( Ai^T * Tau * (Aj q,j) )
 //
@@ -455,19 +456,8 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
   return 0;
 }
 // *******************************************************************************
-//
-// Implicit scheme with Galerkin, SU and, SUPG
-//********************************************
-// Stabilization:
-//
-//  SU   -->  f1=  rho  sqrt( ui uj gij )
-//  SUPG -->  f1 = rho  sqrt( 2 / (C1  dt) + ui uj gij + C2 mu^2 gij gij )
-//
-// gij = dXi/dX * dXi/dX
-// TauC = Cc f1 / (8 gii)
-// TauM = 1 / f1
-// TauE = TauM / (Ce cv)
-// Tau = [TauC, TauM, TauM, TauM, TauE]
+// This QFunction implements the Navier-Stokes equations (mentioned above) with 
+//   implicit time stepping method
 //
 //  SU   = Galerkin + grad(v) . ( Ai^T * Tau * (Aj q,j) )
 //  SUPG = Galerkin + grad(v) . ( Ai^T * Tau * (qdot + Aj q,j - body force) )
