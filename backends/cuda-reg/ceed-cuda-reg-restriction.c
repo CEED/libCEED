@@ -328,9 +328,13 @@ int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype,
   ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
   CeedInt size = nelem * elemsize;
-  CeedInt strides[3] = {};
+  CeedInt strides[3] = {1, size, elemsize};
   if (!indices) {
-    ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
+    bool backendstrides;
+    ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
+    if (!backendstrides) {
+      ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
+    }
   }
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
