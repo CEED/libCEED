@@ -36,38 +36,41 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
 
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
-  // Restriction from lvector to evector
+  // Restriction from L-vector to E-vector
   // Perform: v = r * u
   if (tmode == CEED_NOTRANSPOSE) {
     // No indices provided, Identity Restriction
     if (!impl->indices) {
-      CeedInt strides[3];
-      ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
       bool backendstrides;
       ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
       CeedChk(ierr);
       if (backendstrides) {
-        for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
-          CeedPragmaSIMD
-          for (CeedInt k = 0; k < ncomp*elemsize; k++)
-            CeedPragmaSIMD
-            for (CeedInt j = 0; j < blksize; j++) {
-              vv[e*elemsize*ncomp + k*blksize + j - voffset] =
-                uu[e*elemsize*ncomp + k*CeedIntMin(blksize, nelem-e) +
-                   CeedIntMin(j, nelem-e)];
-          }
-      } else {
+        // CPU backend strides are {1, elemsize, elemsize*ncomp}
+        // This if branch is left separate to allow better inlining
         for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
           CeedPragmaSIMD
           for (CeedInt k = 0; k < ncomp; k++)
             CeedPragmaSIMD
             for (CeedInt n = 0; n < elemsize; n++)
               CeedPragmaSIMD
-              for (CeedInt j = 0; j < blksize; j++) {
+              for (CeedInt j = 0; j < blksize; j++)
+                vv[e*elemsize*ncomp + (k*elemsize+n)*blksize + j - voffset]
+                  = uu[n + k*elemsize +
+                       CeedIntMin(e+j, nelem-1)*elemsize*ncomp];
+      } else {
+        // User provided strides
+        CeedInt strides[3];
+        ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
+        for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
+          CeedPragmaSIMD
+          for (CeedInt k = 0; k < ncomp; k++)
+            CeedPragmaSIMD
+            for (CeedInt n = 0; n < elemsize; n++)
+              CeedPragmaSIMD
+              for (CeedInt j = 0; j < blksize; j++)
                 vv[e*elemsize*ncomp + (k*elemsize+n)*blksize + j - voffset]
                   = uu[n*strides[0] + k*strides[1] +
                                     CeedIntMin(e+j, nelem-1)*strides[2]];
-            }
       }
     } else {
       // Indices provided, standard or blocked restriction
@@ -84,30 +87,36 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
                          : d+ncomp*impl->indices[i+elemsize*e]];
     }
   } else {
-    // Restriction from evector to lvector
+    // Restriction from E-vector to L-vector
     // Performing v += r^T * u
     // No indices provided, Identity Restriction
     if (!impl->indices) {
-      CeedInt strides[3];
-      ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
       bool backendstrides;
       ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
       CeedChk(ierr);
       if (backendstrides) {
+        // CPU backend strides are {1, elemsize, elemsize*ncomp}
+        // This if brach is left separate to allow better inlining
         for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
           CeedPragmaSIMD
-          for (CeedInt k = 0; k < ncomp*elemsize; k++)
+          for (CeedInt k = 0; k < ncomp; k++)
             CeedPragmaSIMD
-            for (CeedInt j = 0; j < CeedIntMin(blksize, nelem-e); j++)
-              vv[e*elemsize*ncomp + k*CeedIntMin(blksize, nelem-e) + j]
-              += uu[e*elemsize*ncomp + k*blksize + j - voffset];
-      } else {
-        for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
-          for (CeedInt j = 0; j < CeedIntMin(blksize, nelem-e); j++)
-            CeedPragmaSIMD
-            for (CeedInt k = 0; k < ncomp; k++)
+            for (CeedInt n = 0; n < elemsize; n++)
               CeedPragmaSIMD
-              for (CeedInt n = 0; n < elemsize; n++)
+              for (CeedInt j = 0; j < CeedIntMin(blksize, nelem-e); j++)
+                vv[n + k*elemsize + (e+j)*elemsize*ncomp]
+                += uu[e*elemsize*ncomp + (k*elemsize+n)*blksize + j - voffset];
+      } else {
+        // User provided strides
+        CeedInt strides[3];
+        ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
+        for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
+          CeedPragmaSIMD
+          for (CeedInt k = 0; k < ncomp; k++)
+            CeedPragmaSIMD
+            for (CeedInt n = 0; n < elemsize; n++)
+              CeedPragmaSIMD
+              for (CeedInt j = 0; j < CeedIntMin(blksize, nelem-e); j++)
                 vv[n*strides[0] + k*strides[1] + (e+j)*strides[2]]
                 += uu[e*elemsize*ncomp + (k*elemsize+n)*blksize + j - voffset];
       }

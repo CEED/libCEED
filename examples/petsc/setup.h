@@ -499,9 +499,8 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
 
   CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompu,
                                    CEED_STRIDES_BACKEND, &Erestrictui);
-  CeedInt stridesqd[3] = {1, Q*Q*Q, Q*Q*Q*qdatasize};
   CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, qdatasize,
-                                   stridesqd, &Erestrictqdi);
+                                   CEED_STRIDES_BACKEND, &Erestrictqdi);
   CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompx,
                                    CEED_STRIDES_BACKEND, &Erestrictxi);
 
