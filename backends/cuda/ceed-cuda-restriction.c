@@ -97,7 +97,7 @@ extern "C" __global__ void trStrided(const CeedInt nelem,
     const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
     const CeedInt s = i % RESTRICTION_ELEMSIZE;
 
-    atomicAdd(v + (s*STRIDE_NODES + d*STRIDE_COMP + e*STRIDE_ELEM), u[i]);
+    v[s*STRIDE_NODES + d*STRIDE_COMP + e*STRIDE_ELEM] += u[i];
   }
 }
 
