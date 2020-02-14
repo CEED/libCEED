@@ -335,12 +335,6 @@ static PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Qdot, Vec G, v
 static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
                                    Vec Q, void *ctx) {
   User user = ctx;
-  const PetscReal scale[] = {1/user->units->kgpercubicm,
-                             1/user->units->kgpersquaredms,
-                             1/user->units->kgpersquaredms,
-                             1/user->units->kgpersquaredms,
-                             1/user->units->Joulepercubicm
-                            };
   PetscScalar *qloc;
   Vec Qloc;
   PetscInt m;
@@ -357,11 +351,6 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = PetscObjectSetName((PetscObject)Qloc, "StateVec"); CHKERRQ(ierr);
   ierr = VecZeroEntries(Qloc);CHKERRQ(ierr);
   ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Qloc); CHKERRQ(ierr);
-  if (0) {
-    // Default scaling is by 1.0.  This should really be done by PETSc so it can be applied after applying boundary
-    // conditions, which is done in VecView to the VTK viewer below.
-    ierr = VecStrideScaleAll(Qloc, scale); CHKERRQ(ierr);
-  }
 
   // Output
   ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-%03D.vtu",
