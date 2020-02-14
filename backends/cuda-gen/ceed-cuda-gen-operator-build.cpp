@@ -1110,7 +1110,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "  CeedScalar r_u"<<i<<"[ncomp_in_"<<i<<"*P_in_"<<i<<"];\n";
       ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
       data->indices.in[i] = restr_data->d_ind;
-      if (data->indicies.in[i]) {
+      if (data->indices.in[i]) {
         ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
       } else {
         ierr = CeedElemRestrictionGetStrides(Erestrict, &(data->strides.in[i])); CeedChk(ierr);
@@ -1123,7 +1123,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "  CeedScalar r_u"<<i<<"[ncomp_in_"<<i<<"*P_in_"<<i<<"];\n";
       ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
       data->indices.in[i] = restr_data->d_ind;
-      if (data->indicies.in[i]) {
+      if (data->indices.in[i]) {
         ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
       } else {
         ierr = CeedElemRestrictionGetStrides(Erestrict, &(data->strides.in[i])); CeedChk(ierr);
@@ -1314,7 +1314,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "  interpTranspose"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<",Q1d>(data, r_tt"<<i<<", s_B_out_"<<i<<", r_v"<<i<<");\n";
       ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
       data->indices.out[i] = restr_data->d_ind;
-      if (data->indicies.out[i]) {
+      if (data->indices.out[i]) {
         ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
       } else {
         ierr = CeedElemRestrictionGetStrides(Erestrict, &(data->strides.out[i])); CeedChk(ierr);
@@ -1330,7 +1330,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       }
       ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
       data->indices.out[i] = restr_data->d_ind;
-      if (data->indicies.out[i]) {
+      if (data->indices.out[i]) {
         ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
       } else {
         ierr = CeedElemRestrictionGetStrides(Erestrict, &(data->strides.out[i])); CeedChk(ierr);

@@ -20,7 +20,7 @@
 
 typedef struct { const CeedScalar *in[16]; CeedScalar *out[16]; } CudaFields;
 typedef struct { CeedInt *in[16]; CeedInt *out[16]; } CudaFieldsInt;
-typedef struct { CeedInt *in[16][3]; CeedInt *out[16][3]; } CudaFields3Int;
+typedef struct { CeedInt in[16][3]; CeedInt out[16][3]; } CudaFields3Int;
 
 typedef struct {
   CeedInt dim;
