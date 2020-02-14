@@ -143,6 +143,12 @@ problemData problemOptions[] = {
   },
 };
 
+typedef struct SimpleBC_ *SimpleBC;
+struct SimpleBC_ {
+  PetscInt nwall, nslip[3];
+  PetscInt walls[10], slips[3][10];
+};
+
 // Essential BC dofs are encoded in closure indices as -(i+1).
 static PetscInt Involute(PetscInt i) {
   return i >= 0 ? i : -(i+1);
@@ -159,7 +165,7 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
 
   PetscFunctionBeginUser;
   ierr = DMGetDimension(dm, &dim);CHKERRQ(ierr);
-  ierr = DMGetSection(dm,&section);CHKERRQ(ierr);
+  ierr = DMGetLocalSection(dm,&section);CHKERRQ(ierr);
   ierr = PetscSectionGetNumFields(section, &nfields);CHKERRQ(ierr);
   PetscInt ncomp[nfields], fieldoff[nfields+1];
   fieldoff[0] = 0;
@@ -496,7 +502,7 @@ static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix, PetscBool naturalz, void *ctxSetup, PetscInt *degree) {
+PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix, SimpleBC bc, void *ctxSetup, PetscInt *degree) {
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
@@ -508,11 +514,12 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix, PetscBoo
     ierr = PetscObjectSetName((PetscObject)fe, "Q");CHKERRQ(ierr);
     ierr = DMAddField(dm,NULL,(PetscObject)fe);CHKERRQ(ierr);
     ierr = DMCreateDS(dm);CHKERRQ(ierr);
-    if (naturalz) {
-      ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","Face Sets",0,0,NULL,(void(*)(void))problem->bc,4,(PetscInt[]){3,4,5,6},ctxSetup);CHKERRQ(ierr);
-    } else {
-      ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","marker",0,0,NULL,(void(*)(void))problem->bc,1,(PetscInt[]){1},ctxSetup);CHKERRQ(ierr);
-    }
+    /* Wall boundary conditions are zero velocity and zero flux for density and energy */
+    //ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","Face Sets",0,3,(PetscInt[]){1,2,3},(void(*)(void))(problem->bc,NULL),nwall,bc_wall,ctxSetup);CHKERRQ(ierr);
+    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","Face Sets",0,0,NULL,(void(*)(void))problem->bc,bc->nwall,bc->walls,ctxSetup);CHKERRQ(ierr);
+    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"slipx","Face Sets",0,1,(PetscInt[]){1},(void(*)(void))NULL,bc->nslip[0],bc->slips[0],ctxSetup);CHKERRQ(ierr);
+    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"slipy","Face Sets",0,1,(PetscInt[]){2},(void(*)(void))NULL,bc->nslip[1],bc->slips[1],ctxSetup);CHKERRQ(ierr);
+    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"slipz","Face Sets",0,1,(PetscInt[]){3},(void(*)(void))NULL,bc->nslip[2],bc->slips[2],ctxSetup);CHKERRQ(ierr);
     ierr = DMPlexSetClosurePermutationTensor(dm,PETSC_DETERMINE,NULL);CHKERRQ(ierr);
     ierr = PetscFEGetBasisSpace(fe, &fespace);CHKERRQ(ierr);
     if (degree) {
@@ -523,7 +530,7 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix, PetscBoo
   }
   { // Empty name for conserved field (because there is only one field)
     PetscSection section;
-    ierr = DMGetSection(dm, &section);CHKERRQ(ierr);
+    ierr = DMGetLocalSection(dm, &section);CHKERRQ(ierr);
     ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
@@ -561,7 +568,11 @@ int main(int argc, char **argv) {
   problemType problemChoice;
   problemData *problem = NULL;
   StabilizationType stab;
-  PetscBool   test, implicit, naturalz, viz_refine;
+  PetscBool   test, implicit, viz_refine;
+  struct SimpleBC_ bc = {
+    .nwall = 6,
+    .walls = {1,2,3,4,5,6},
+  };
   double start, cpu_time_used;
 
   // Create the libCEED contexts
@@ -621,8 +632,17 @@ int main(int argc, char **argv) {
                           (PetscEnum *)&stab, NULL);CHKERRQ(ierr);
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-naturalz", "Use natural boundary conditions in the z direction",
-                          NULL, naturalz=PETSC_FALSE, &naturalz, NULL); CHKERRQ(ierr);
+  {
+    PetscInt len;
+    PetscBool flg;
+    ierr = PetscOptionsIntArray("-bc_wall", "Use wall boundary conditions on this list of faces", NULL, bc.walls, (len = sizeof(bc.walls) / sizeof(bc.walls[0]), &len), &flg);CHKERRQ(ierr);
+    if (flg) bc.nwall = len;
+    for (PetscInt j=0; j<3; j++) {
+      const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
+      ierr = PetscOptionsIntArray(flags[j], "Use slip boundary conditions on this list of faces", NULL, bc.slips[j], (len = sizeof(bc.slips[j]) / sizeof(bc.slips[j][0]), &len), &flg);CHKERRQ(ierr);
+      if (flg) bc.nslip[j] = len;
+    }
+  }
   ierr = PetscOptionsBool("-viz_refine", "Use regular refinement for visualization",
                           NULL, viz_refine=PETSC_FALSE, &viz_refine, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
@@ -759,7 +779,7 @@ int main(int argc, char **argv) {
 
   ierr = DMLocalizeCoordinates(dm);CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm);CHKERRQ(ierr);
-  ierr = SetUpDM(dm, problem, NULL, naturalz, &ctxSetup, &degree);CHKERRQ(ierr);
+  ierr = SetUpDM(dm, problem, NULL, &bc, &ctxSetup, &degree);CHKERRQ(ierr);
   if (!test) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Degree of FEM Space: %D\n",
@@ -772,7 +792,7 @@ int main(int argc, char **argv) {
     ierr = DMRefine(dm, MPI_COMM_NULL, &dmviz);CHKERRQ(ierr);
     ierr = DMSetCoarseDM(dmviz, dm);CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-viz_petscspace_degree","1");CHKERRQ(ierr);
-    ierr = SetUpDM(dmviz, problem, "viz_", naturalz, &ctxSetup, NULL);CHKERRQ(ierr);
+    ierr = SetUpDM(dmviz, problem, "viz_", &bc, &ctxSetup, NULL);CHKERRQ(ierr);
     ierr = DMCreateInterpolation(dm, dmviz, &interpviz, NULL);CHKERRQ(ierr);
   }
   ierr = DMCreateGlobalVector(dm, &Q);CHKERRQ(ierr);
@@ -781,21 +801,17 @@ int main(int argc, char **argv) {
   lnodes /= ncompq;
 
   {  // Print grid information
-    CeedInt gnodes, onodes;
+    CeedInt gdofs, odofs;
     int comm_size;
     char box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
-    ierr = VecGetSize(Q, &gnodes); CHKERRQ(ierr);
-    gnodes /= ncompq;
-    ierr = VecGetLocalSize(Q, &onodes); CHKERRQ(ierr);
-    onodes /= ncompq;
+    ierr = VecGetSize(Q, &gdofs); CHKERRQ(ierr);
+    ierr = VecGetLocalSize(Q, &odofs); CHKERRQ(ierr);
     ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
     ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str, sizeof(box_faces_str), NULL);CHKERRQ(ierr);
     if (!test) {
-      ierr = PetscPrintf(comm, "Global FEM nodes: %d on %d ranks\n", gnodes, comm_size); CHKERRQ(ierr);
-      ierr = PetscPrintf(comm, "Local FEM nodes: %d (%d owned)\n", lnodes, onodes); CHKERRQ(ierr);
-      ierr = PetscPrintf(PETSC_COMM_WORLD,
-                        "dm_plex_box_faces: %s\n",
-                        box_faces_str); CHKERRQ(ierr);
+      ierr = PetscPrintf(comm, "Global FEM dofs: %D (%D owned) on %d ranks\n", gdofs, odofs, comm_size); CHKERRQ(ierr);
+      ierr = PetscPrintf(comm, "Local FEM nodes: %D\n", lnodes); CHKERRQ(ierr);
+      ierr = PetscPrintf(comm, "dm_plex_box_faces: %s\n", box_faces_str); CHKERRQ(ierr);
     }
 
   }
