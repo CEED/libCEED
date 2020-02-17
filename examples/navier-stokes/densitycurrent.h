@@ -96,10 +96,11 @@ static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt 
   const CeedScalar ly     = context->ly;
   const CeedScalar lz     = context->lz;
   const CeedScalar periodic[3] = { context->periodicity0, context->periodicity1, context->periodicity2 };
+  const CeedScalar *center = context->center;
+  const CeedScalar *dc_axis = context->dc_axis;
 
   // Setup
   const CeedScalar tol = 1.e-14;
-  const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
   // -- Coordinates
   const CeedScalar x = X[0];
@@ -107,9 +108,10 @@ static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt 
   const CeedScalar z = X[2];
 
   // -- Potential temperature, density current
-  const CeedScalar r = sqrt(pow((x - center[0]), 2) +
-                            pow((y - center[1]), 2) +
-                            pow((z - center[2]), 2));
+  CeedScalar rr[3] = {x - center[0], y - center[1], z - center[2]};
+  // (I - q q^T) r: distance from dc_axis (or from center if dc_axis is the zero vector)
+  for (int i=0; i<3; i++) rr[i] -= dc_axis[i] * (dc_axis[0]*rr[0] + dc_axis[1]*rr[1] + dc_axis[2]*rr[2]);
+  const CeedScalar r = sqrt(rr[0]*rr[0] + rr[1]*rr[1] + rr[2]*rr[2]);
   const CeedScalar deltatheta = r <= rc ? thetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
   const CeedScalar theta = theta0*exp(N*N*z/g) + deltatheta;
   // -- Exner pressure, hydrostatic balance

@@ -40,6 +40,8 @@ struct SetupContext_ {
   CeedScalar periodicity0;
   CeedScalar periodicity1;
   CeedScalar periodicity2;
+  CeedScalar center[3];
+  CeedScalar dc_axis[3];
   CeedScalar time;
 };
 

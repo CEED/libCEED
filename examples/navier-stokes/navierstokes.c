@@ -593,6 +593,7 @@ int main(int argc, char **argv) {
   PetscInt degree;
   PetscInt qextra       = 2;        // -
   DMBoundaryType periodicity[] = {DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE};
+  PetscReal center[3], dc_axis[3] = {0, 0, 0};
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -689,6 +690,21 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsEnumArray("-periodicity", "Periodicity per direction",
                                NULL, DMBoundaryTypes, (PetscEnum *)periodicity,
                                &n, NULL);CHKERRQ(ierr);
+  n = problem->dim;
+  center[0] = 0.5 * lx;
+  center[1] = 0.5 * ly;
+  center[2] = 0.5 * lz;
+  ierr = PetscOptionsRealArray("-center", "Location of bubble center",
+                               NULL, center, &n, NULL);CHKERRQ(ierr);
+  n = problem->dim;
+  ierr = PetscOptionsRealArray("-dc_axis", "Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric",
+                               NULL, dc_axis, &n, NULL);CHKERRQ(ierr);
+  {
+    PetscReal norm = PetscSqrtReal(PetscSqr(dc_axis[0]) + PetscSqr(dc_axis[1]) + PetscSqr(dc_axis[2]));
+    if (norm > 0) {
+      for (int i=0; i<3; i++) dc_axis[i] /= norm;
+    }
+  }
   ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-continue", "Continue from previous solution",
@@ -728,6 +744,7 @@ int main(int argc, char **argv) {
   resx = fabs(resx) * meter;
   resy = fabs(resy) * meter;
   resz = fabs(resz) * meter;
+  for (int i=0; i<3; i++) center[i] *= meter;
 
   const CeedInt dim = problem->dim, ncompx = problem->dim, qdatasize = problem->qdatasize;
   // Set up the libCEED context
@@ -747,6 +764,12 @@ int main(int argc, char **argv) {
     .periodicity0 = periodicity[0],
     .periodicity1 = periodicity[1],
     .periodicity2 = periodicity[2],
+    .center[0] = center[0],
+    .center[1] = center[1],
+    .center[2] = center[2],
+    .dc_axis[0] = dc_axis[0],
+    .dc_axis[1] = dc_axis[1],
+    .dc_axis[2] = dc_axis[2],
     .time = 0,
   };
 
