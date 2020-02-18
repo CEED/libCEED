@@ -162,7 +162,7 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
     for (int j=0; j<2; j++)
       for (int k=0; k<3; k++) {
         pseudodXdx[j][k] = 0;
-        for (int l=0; l<3; l++)
+        for (int l=0; l<2; l++)
           pseudodXdx[j][k] += dxdXTdxdXinv[j][l]*dxdX[k][l];
       }
 
