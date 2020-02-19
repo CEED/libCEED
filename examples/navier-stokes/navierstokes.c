@@ -335,9 +335,7 @@ static PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Qdot, Vec G, v
 static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
                                    Vec Q, void *ctx) {
   User user = ctx;
-  PetscScalar *qloc;
   Vec Qloc;
-  PetscInt m;
   char filepath[PETSC_MAX_PATH_LEN];
   PetscViewer viewer;
   PetscErrorCode ierr;
@@ -443,7 +441,7 @@ static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
   PetscErrorCode ierr;
   CeedQFunction qf_mass;
   CeedOperator op_mass;
-  CeedVector mceed, onesvec;
+  CeedVector mceed;
   Vec Mloc;
   CeedInt ncompq, qdatasize;
 
@@ -534,13 +532,10 @@ int main(int argc, char **argv) {
   User user;
   Units units;
   char ceedresource[4096] = "/cpu/self";
-  PetscInt cStart, cEnd, localNelem, lnodes, steps,
-           mdof[3], p[3], irank[3], ldof[3];
+  PetscInt cStart, cEnd, localNelem, lnodes, steps;
   const PetscInt ncompq = 5;
-  PetscMPIInt size, rank;
+  PetscMPIInt rank;
   PetscScalar ftime;
-  PetscScalar *q0, *m, *x;
-  const PetscScalar *mult;
   Vec Q, Qloc, Xloc;
   Ceed ceed;
   CeedInt numP, numQ;
@@ -548,7 +543,7 @@ int main(int argc, char **argv) {
   CeedBasis basisx, basisxc, basisq;
   CeedElemRestriction restrictx, restrictxi, restrictxcoord,
                       restrictq, restrictqdi;
-  CeedQFunction qf_setup, qf_mass, qf_ics, qf_rhs, qf_ifunction;
+  CeedQFunction qf_setup, qf_ics, qf_rhs, qf_ifunction;
   CeedOperator op_setup, op_ics;
   CeedScalar Rd;
   PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
@@ -865,7 +860,7 @@ int main(int argc, char **argv) {
   ierr = CreateVectorFromPetscVec(ceed, Xloc, &xcorners);CHKERRQ(ierr);
 
   // Create the CEED vectors that will be needed in setup
-  CeedInt Nqpts, Nnodes;
+  CeedInt Nqpts;
   CeedBasisGetNumQuadraturePoints(basisq, &Nqpts);
   CeedInt Ndofs = 1;
   for (int d=0; d<3; d++) Ndofs *= numP;
