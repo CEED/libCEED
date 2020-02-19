@@ -504,8 +504,7 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix, SimpleBC
     ierr = DMAddField(dm,NULL,(PetscObject)fe);CHKERRQ(ierr);
     ierr = DMCreateDS(dm);CHKERRQ(ierr);
     /* Wall boundary conditions are zero velocity and zero flux for density and energy */
-    //ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","Face Sets",0,3,(PetscInt[]){1,2,3},(void(*)(void))(problem->bc,NULL),nwall,bc_wall,ctxSetup);CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","Face Sets",0,0,NULL,(void(*)(void))problem->bc,bc->nwall,bc->walls,ctxSetup);CHKERRQ(ierr);
+    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","Face Sets",0,3,(PetscInt[]){1,2,3},(void(*)(void))problem->bc,bc->nwall,bc->walls,ctxSetup);CHKERRQ(ierr);
     ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"slipx","Face Sets",0,1,(PetscInt[]){1},(void(*)(void))NULL,bc->nslip[0],bc->slips[0],ctxSetup);CHKERRQ(ierr);
     ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"slipy","Face Sets",0,1,(PetscInt[]){2},(void(*)(void))NULL,bc->nslip[1],bc->slips[1],ctxSetup);CHKERRQ(ierr);
     ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"slipz","Face Sets",0,1,(PetscInt[]){3},(void(*)(void))NULL,bc->nslip[2],bc->slips[2],ctxSetup);CHKERRQ(ierr);
