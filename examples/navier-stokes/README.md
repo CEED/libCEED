@@ -22,7 +22,7 @@ Available runtime options are:
 | :----------------------- | :-----------------------------------------------------------------------------------------------|
 | `-ceed`                  | CEED resource specifier                                                                         |
 | `-test`                  | Run in test mode                                                                                |
-| `-problem`               | Problem to solve (`advection`, `advection2d`, `density_current` or `density_current_primitive`) |
+| `-problem`               | Problem to solve (`advection`, `advection2d`, or `density_current`)                             |
 | `-stab`                  | Stabilization method                                                                            |
 | `-implicit`              | Use implicit time integartor formulation                                                        |
 | `-bc_wall`               | Use wall boundary conditions on this list of faces                                              |
