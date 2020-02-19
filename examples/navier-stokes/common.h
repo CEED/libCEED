@@ -119,7 +119,7 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*J)[3][Q] = (CeedScalar(*)[3][Q])in[0],
+  const CeedScalar (*J)[3][Q] = (const CeedScalar(*)[3][Q])in[0],
                    (*w) = in[1];
 
   // Outputs
@@ -174,7 +174,7 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
 CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*J)[2][Q] = (CeedScalar(*)[2][Q])in[0],
+  const CeedScalar (*J)[2][Q] = (const CeedScalar(*)[2][Q])in[0],
                    (*w) = in[1];
   // Outputs
   CeedScalar (*qdata)[Q] = (CeedScalar(*)[Q])out[0];
@@ -219,7 +219,7 @@ CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*u)[Q] = (CeedScalar(*)[Q])in[0],
+  const CeedScalar (*u)[Q] = (const CeedScalar(*)[Q])in[0],
                    (*qdata) = in[1];
 
   // Outputs

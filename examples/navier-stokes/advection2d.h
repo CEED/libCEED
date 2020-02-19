@@ -86,7 +86,7 @@ static int Exact_Advection2d(CeedInt dim, CeedScalar time, const CeedScalar X[],
 CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q,
                                const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*X)[Q] = (CeedScalar(*)[Q])in[0];
+  const CeedScalar (*X)[Q] = (const CeedScalar(*)[Q])in[0];
   // Outputs
   CeedScalar (*q0)[Q] = (CeedScalar(*)[Q])out[0];
   const SetupContext context = ctx;
@@ -129,10 +129,10 @@ struct Advection2dContext_ {
 CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q,
                             const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*q)[Q] = (CeedScalar(*)[Q])in[0],
-                   (*dq)[5][Q] = (CeedScalar(*)[5][Q])in[1],
-                   (*qdata)[Q] = (CeedScalar(*)[Q])in[2],
-                   (*x)[Q] = (CeedScalar(*)[Q])in[3];
+  const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
+                   (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
+                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[2],
+                   (*x)[Q] = (const CeedScalar(*)[Q])in[3];
   // Outputs
   CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
              (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
@@ -221,10 +221,10 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q,
 CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
     const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*q)[Q] = (CeedScalar(*)[Q])in[0],
-                   (*dq)[5][Q] = (CeedScalar(*)[5][Q])in[1],
-                   (*qdot)[Q] = (CeedScalar(*)[Q])in[2],
-                   (*qdata)[Q] = (CeedScalar(*)[Q])in[3];
+  const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
+                   (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
+                   (*qdot)[Q] = (const CeedScalar(*)[Q])in[2],
+                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[3];
   // Outputs
   CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
              (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
