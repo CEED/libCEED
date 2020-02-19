@@ -74,10 +74,8 @@
 //   Rd     = cp - cv,  Specific heat difference
 //   g               ,  Gravity
 //   rc              ,  Characteristic radius of thermal bubble
-//   lx              ,  Characteristic length scale of domain in x
-//   ly              ,  Characteristic length scale of domain in y
-//   lz              ,  Characteristic length scale of domain in z
-//
+//   center          ,  Location of bubble center
+//   dc_axis         ,  Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric
 // *****************************************************************************
 static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
@@ -92,16 +90,10 @@ static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt 
   const CeedScalar Rd     = context->Rd;
   const CeedScalar g      = context->g;
   const CeedScalar rc     = context->rc;
-  const CeedScalar lx     = context->lx;
-  const CeedScalar ly     = context->ly;
-  const CeedScalar lz     = context->lz;
-  const CeedScalar periodic[3] = { context->periodicity0, context->periodicity1, context->periodicity2 };
   const CeedScalar *center = context->center;
   const CeedScalar *dc_axis = context->dc_axis;
 
   // Setup
-  const CeedScalar tol = 1.e-14;
-
   // -- Coordinates
   const CeedScalar x = X[0];
   const CeedScalar y = X[1];
@@ -210,8 +202,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
   // Inputs
   const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
                    (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
-                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[2],
-                   (*x)[Q] = (const CeedScalar(*)[Q])in[3];
+                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[2];
 
   // Outputs
   CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],

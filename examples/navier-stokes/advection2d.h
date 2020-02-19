@@ -34,7 +34,6 @@ static int Exact_Advection2d(CeedInt dim, CeedScalar time, const CeedScalar X[],
   const CeedScalar lz = context->lz;
 
   // Setup
-  const CeedScalar tol = 1.e-14;
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
   const CeedScalar theta[] = {M_PI, -M_PI/3, M_PI/3};
   const CeedScalar x0[3] = {center[0] + .25*lx*cos(theta[0] + time), center[1] + .25*ly*sin(theta[0] + time), center[2]};
@@ -131,8 +130,7 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q,
   // Inputs
   const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
                    (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
-                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[2],
-                   (*x)[Q] = (const CeedScalar(*)[Q])in[3];
+                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[2];
   // Outputs
   CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
              (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];

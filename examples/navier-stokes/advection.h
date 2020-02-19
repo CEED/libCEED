@@ -30,7 +30,6 @@ static int Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[], C
   const CeedScalar lz = context->lz;
 
   // Setup
-  const CeedScalar tol = 1.e-14;
   const CeedScalar x0[3] = {0.25*lx, 0.5*ly, 0.5*lz};
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
 
@@ -149,8 +148,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
                    (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
-                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[2],
-                   (*x)[Q] = (const CeedScalar(*)[Q])in[3];
+                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[2];
 
   // Outputs
   CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
