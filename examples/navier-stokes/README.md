@@ -25,7 +25,10 @@ Available runtime options are:
 | `-problem`               | Problem to solve (`advection`, `advection2d`, `density_current` or `density_current_primitive`) |
 | `-stab`                  | Stabilization method                                                                            |
 | `-implicit`              | Use implicit time integartor formulation                                                        |
-| `-naturalz`              | Use natural boundary conditions in the z direction                                              |
+| `-bc_wall`               | Use wall boundary conditions on this list of faces                                              |
+| `-bc_slip_x`             | Use slip boundary conditions, for the x component, on this list of faces                        |
+| `-bc_slip_y`             | Use slip boundary conditions, for the y component, on this list of faces                        |
+| `-bc_slip_z`             | Use slip boundary conditions, for the z component, on this list of faces                        |
 | `-viz_refine`            | Use regular refinement for visualization                                                        |
 | `-petscspace_degree`     | Polynomial degree of tensor product basis (needs to be set > 0)                                 |
 | `-units_meter`           | 1 meter in scaled length units                                                                  |
@@ -52,6 +55,8 @@ Available runtime options are:
 | `-resy`                  | Resolution in y                                                                                 |
 | `-resz`                  | Resolution in z                                                                                 |
 | `-periodicity`           | Periodicity per direction                                                                       |
+| `-center`                | Location of bubble center                                                                       |
+| `-dc_axis`               | Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric               |
 | `-output_freq`           | Frequency of output, in number of steps                                                         |
 | `-continue`              | Continue from previous solution                                                                 |
 | `-degree`                | Polynomial degree of tensor product basis                                                       |
