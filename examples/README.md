@@ -135,8 +135,8 @@ make
 
 cd navier-stokes
 make
-./navierstokes -ceed /cpu/self
-./navierstokes -ceed /gpu/occa
+./navierstokes -ceed /cpu/self -petscspace_degree 1
+./navierstokes -ceed /gpu/occa -petscspace_degree 1
 cd ..
 ```
 

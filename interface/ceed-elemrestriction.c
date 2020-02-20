@@ -412,7 +412,7 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
   @brief Get the multiplicity of nodes in a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
-  @param[out] mult        Vector to store multiplicity (of size nnodes)
+  @param[out] mult        Vector to store multiplicity (of size nnodes*ncomp)
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -426,6 +426,7 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
   // Create and set evec
   ierr = CeedElemRestrictionCreateVector(rstr, NULL, &evec); CeedChk(ierr);
   ierr = CeedVectorSetValue(evec, 1.0); CeedChk(ierr);
+  ierr = CeedVectorSetValue(mult, 0.0); CeedChk(ierr);
 
   // Apply to get multiplicity
   ierr = CeedElemRestrictionApply(rstr, CEED_TRANSPOSE, evec, mult,

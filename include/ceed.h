@@ -272,6 +272,20 @@ CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr,
 CEED_EXTERN int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr,
     CeedInt block, CeedTransposeMode tmode, CeedVector u, CeedVector ru,
     CeedRequest *request);
+CEED_EXTERN int CeedElemRestrictionGetIMode(CeedElemRestriction rstr,
+    CeedInterlaceMode *Imode);
+CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
+    CeedInt *numelem);
+CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
+    CeedInt *elemsize);
+CEED_EXTERN int CeedElemRestrictionGetNumNodes(CeedElemRestriction rstr,
+    CeedInt *numnodes);
+CEED_EXTERN int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
+    CeedInt *numcomp);
+CEED_EXTERN int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
+    CeedInt *numblk);
+CEED_EXTERN int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
+    CeedInt *blksize);
 CEED_EXTERN int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
     CeedVector mult);
 CEED_EXTERN int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream);

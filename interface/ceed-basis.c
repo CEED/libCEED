@@ -323,6 +323,8 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
   CeedScalar P0, P1, P2, dP2, d2P2, xi, wi, PI = 4.0*atan(1.0);
   // Build qref1d, qweight1d
   // Set endpoints
+  if (Q < 2)
+    return CeedError(NULL, 1, "Cannot create Lobatto quadrature with Q=%d < 2 points", Q);
   wi = 2.0/((CeedScalar)(Q*(Q-1)));
   if (qweight1d) {
     qweight1d[0] = wi;

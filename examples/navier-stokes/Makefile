@@ -14,7 +14,8 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-OPT ?= -O -g -march=native -ffp-contract=fast -fopenmp-simd
+MARCHFLAG := $(if $(shell $(CC) -E -march=native -x c /dev/null > /dev/null 2>&1 && echo 1),-march=native,-mtune=native)
+OPT ?= -O -g $(MARCHFLAG) -ffp-contract=fast -fopenmp-simd
 
 PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
 CEED_DIR ?= ../..
@@ -47,7 +48,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) $(navierstokes) *.vtr *.vts *.bin*
+	$(RM) $(navierstokes) *.vtr *.vts *.vtu *.bin*
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \

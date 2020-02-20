@@ -14,6 +14,7 @@ config.mk
 .DS_Store
 *.dSYM
 *~
+*.dylib
 
 # Coverage
 *.gcno
@@ -22,6 +23,7 @@ config.mk
 
 # Debugging
 vgcore*
+*.json
 
 # Python
 dist
@@ -29,3 +31,9 @@ dist
 .pytest_cache
 *cffi.so
 *cffi.dylib
+
+# Editor Misc
+.history
+.vscode
+.ccls-cache
+.vim

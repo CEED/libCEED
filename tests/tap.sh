@@ -26,6 +26,8 @@ elif [ ${1::5} == "mfem-" ]; then
     allargs=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
 elif [ ${1::4} == "nek-" ]; then
     allargs=$(grep -F "C TESTARGS" examples/nek/bps/${1:4}.usr* | cut -d\  -f3- )
+elif [ ${1::3} == "ns-" ]; then
+    allargs=$(grep -F //TESTARGS examples/navier-stokes/${1:3}.c* | cut -d\  -f2- )
 elif [ ${1::2} == "ex" ]; then
     # get all test configurations
     numconfig=$(grep -F //TESTARGS examples/ceed/$1.c* | wc -l)
@@ -52,6 +54,23 @@ for ((i=0;i<${#backends[@]};++i)); do
     i1=$(($i0+1))  # stdout
     i2=$(($i0+2))  # stderr
     backend=${backends[$i]}
+
+    # grep to skip multigrid test for OCCA
+    #  This exception will be removed with the OCCA backend overhaul
+    if [[ "$backend" = *"occa" && "$1" = "petsc-multigrid" ]] ; then
+        printf "ok $i0 # SKIP - QFunction reuse not supported by $backend\n"
+        printf "ok $i1 # SKIP - QFunction reuse not supported by $backend stdout\n"
+        printf "ok $i2 # SKIP - QFunction reuse not supported by $backend stderr\n"
+        continue
+    fi
+
+    # Navier-Stokes qfunctions use VLA; not currently supported in cuda/occa
+    if [[ ( "$backend" = *gpu* || "$backend" = *occa ) && "$1" = ns-* ]]; then
+        printf "ok $i0 # SKIP - No support for $backend\n"
+        printf "ok $i1 # SKIP - No support for $backend stdout\n"
+        printf "ok $i2 # SKIP - No support for $backend stderr\n"
+        continue;
+    fi
 
     # Run in subshell
     (build/$1 ${args/\{ceed_resource\}/$backend} || false) > ${output}.out 2> ${output}.err
