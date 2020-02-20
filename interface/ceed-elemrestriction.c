@@ -672,7 +672,7 @@ int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
   @ref Advanced
 **/
 int CeedElemRestrictionGetBackendStridesStatus(CeedElemRestriction rstr,
-                                               bool *status) {
+    bool *status) {
   if (!rstr->strides)
     // LCOV_EXCL_START
     return CeedError(rstr->ceed, 1, "ElemRestriction has no stride data");

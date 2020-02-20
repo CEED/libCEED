@@ -56,7 +56,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
               for (CeedInt j = 0; j < blksize; j++)
                 vv[e*elemsize*ncomp + (k*elemsize+n)*blksize + j - voffset]
                   = uu[n + k*elemsize +
-                       CeedIntMin(e+j, nelem-1)*elemsize*ncomp];
+                         CeedIntMin(e+j, nelem-1)*elemsize*ncomp];
       } else {
         // User provided strides
         CeedInt strides[3];

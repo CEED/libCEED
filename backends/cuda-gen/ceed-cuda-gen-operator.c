@@ -107,7 +107,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
 
   // Apply operator
   void *opargs[] = {(void *) &nelem, &qf_data->d_c, &data->indices,
-                     &data->strides, &data->fields, &data->B, &data->G, &data->W
+                    &data->strides, &data->fields, &data->B, &data->G, &data->W
                    };
   const CeedInt dim = data->dim;
   const CeedInt Q1d = data->Q1d;

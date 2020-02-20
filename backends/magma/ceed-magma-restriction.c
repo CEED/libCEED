@@ -45,7 +45,7 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     CeedInt strides[3];
     CeedInt *dstrides;
     ierr = magma_malloc( (void **)&dstrides,
-                           3 * sizeof(CeedInt)); CeedChk(ierr);
+                         3 * sizeof(CeedInt)); CeedChk(ierr);
 
     // Check to see if we should use magma Q-/E-Vector layout
     //  (dimension = slowest index, then component, then element,
@@ -74,7 +74,7 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
       magma_readDofsStrided(NCOMP, nnodes, esize, nelem, dstrides, du, dv);
     }
 
-   ierr = magma_free(dstrides);  CeedChk(ierr);
+    ierr = magma_free(dstrides);  CeedChk(ierr);
 
   } else { // Indices array provided, standard restriction
 

@@ -22,7 +22,8 @@
 
 #include <math.h>
 
-static int Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
+static int Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[],
+                           CeedInt Nf, CeedScalar q[], void *ctx) {
   const SetupContext context = ctx;
   const CeedScalar rc = context->rc;
   const CeedScalar lx = context->lx;
@@ -42,13 +43,13 @@ static int Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[], C
   CeedScalar r ;
   CeedInt dimBubble=2; // 3 is a sphere, 2 is a cylinder
   switch (dimBubble) {
-    //  original sphere
+  //  original sphere
   case 3: {
     r = sqrt(pow((x - x0[0]), 2) +
              pow((y - x0[1]), 2) +
              pow((z - x0[2]), 2));
   } break;
-    // cylinder (needs periodicity to work properly)
+  // cylinder (needs periodicity to work properly)
   case 2: {
     r = sqrt(pow((x - x0[0]), 2) +
              pow((y - x0[1]), 2) );
@@ -60,19 +61,21 @@ static int Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[], C
   q[1] = -(y - center[1]);
   q[2] =  (x - center[0]);
   q[3] = 0.0;
-  CeedInt continuityBubble=-1; // 0 is original sphere switch to -1 to challenge solver with sharp gradients in back half of bubble
+  CeedInt continuityBubble=
+    -1; // 0 is original sphere switch to -1 to challenge solver with sharp gradients in back half of bubble
   switch (continuityBubble) {
-    // original continuous, smooth shape
+  // original continuous, smooth shape
   case 0: {
     q[4] = r <= rc ? (1.-r/rc) : 0.;
   } break;
-    // discontinuous, sharp back half shape
+  // discontinuous, sharp back half shape
   case -1: {
     q[4] = ((r <= rc) && (y<center[1])) ? (1.-r/rc) : 0.;
   } break;
-    // attempt to define a finite thickness that will get resolved under grid refinement
+  // attempt to define a finite thickness that will get resolved under grid refinement
   case 2: {
-    q[4] = ((r <= rc) && (y<center[1])) ? (1.-r/rc)*fmin(1.0,(center[1]-y)/1.25) : 0.;
+    q[4] = ((r <= rc)
+            && (y<center[1])) ? (1.-r/rc)*fmin(1.0,(center[1]-y)/1.25) : 0.;
   } break;
   }
   return 0;
@@ -240,7 +243,8 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
 
     // Weak Galerkin convection term: dv \cdot (E u)
     for (int j=0; j<3; j++)
-      dv[j][4][i] = (1 - strong_form) * wJ * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] + u[2]*dXdx[j][2]);
+      dv[j][4][i] = (1 - strong_form) * wJ * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
+                    u[2]*dXdx[j][2]);
     v[4][i] = 0;
 
     // Strong Galerkin convection term: - v div(E u)
@@ -249,7 +253,8 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
     // Stabilization requires a measure of element transit time in the velocity
     // field u.
     CeedScalar uX[3];
-    for (int j=0; j<3; j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
+    for (int j=0; j<3;
+         j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
     const CeedScalar TauS = CtauS / sqrt(uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2]);
     for (int j=0; j<3; j++)
       dv[j][4][i] -= wJ * TauS * strongConv * uX[j];
@@ -260,7 +265,9 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
 
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
-                          const CeedScalar *const *in, CeedScalar *const *out) {
+                                    const CeedScalar *const *in,
+                                    CeedScalar *const *out) {
+  // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
                    (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
@@ -269,6 +276,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
              (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
+  // *INDENT-ON*
   AdvectionContext context = ctx;
   const CeedScalar CtauS = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
@@ -289,6 +297,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
                                      dq[1][0][i],
                                      dq[2][0][i]
                                     };
+    // *INDENT-OFF*
     const CeedScalar du[3][3]   = {{(dq[0][1][i] - drho[0]*u[0]) / rho,
                                     (dq[1][1][i] - drho[1]*u[0]) / rho,
                                     (dq[2][1][i] - drho[2]*u[0]) / rho},
@@ -299,6 +308,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
                                     (dq[1][3][i] - drho[1]*u[2]) / rho,
                                     (dq[2][3][i] - drho[2]*u[2]) / rho}
                                   };
+    // *INDENT-ON*
     const CeedScalar dE[3]      =   {dq[0][4][i],
                                      dq[1][4][i],
                                      dq[2][4][i]
@@ -307,6 +317,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
     const CeedScalar wJ         =    qdata[0][i];
     // -- Interp-to-Grad qdata
     // ---- Inverse of change of coordinate matrix: X_i,j
+    // *INDENT-OFF*
     const CeedScalar dXdx[3][3] =  {{qdata[1][i],
                                      qdata[2][i],
                                      qdata[3][i]},
@@ -317,6 +328,8 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
                                      qdata[8][i],
                                      qdata[9][i]}
                                    };
+    // *INDENT-ON*
+
 // Note with the order that du was filled and the order that dXdx was filled
 //   du[j][k]= du_j / dX_K    (note cap K to be clear this is u_{j,xi_k} )
 //   dXdx[k][j] = dX_K / dx_j
@@ -352,7 +365,8 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
 
     // Weak Galerkin convection term: -dv \cdot (E u)
     for (int j=0; j<3; j++)
-      dv[j][4][i] = -wJ * (1 - strong_form) * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] + u[2]*dXdx[j][2]);
+      dv[j][4][i] = -wJ * (1 - strong_form) * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
+                    u[2]*dXdx[j][2]);
 
     // Strong Galerkin convection term: v div(E u)
     v[4][i] += wJ * strong_form * strongConv;
@@ -360,7 +374,8 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
     // Stabilization requires a measure of element transit time in the velocity
     // field u.
     CeedScalar uX[3];
-    for (int j=0; j<3; j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
+    for (int j=0; j<3;
+         j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
     const CeedScalar TauS = CtauS / sqrt(uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2]);
 
     for (int j=0; j<3; j++)
