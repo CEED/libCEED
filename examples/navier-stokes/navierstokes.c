@@ -47,20 +47,17 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include "advection.h"
 #include "advection2d.h"
 #include "densitycurrent.h"
-#include "densitycurrent_primitive.h"
 
 // Problem Options
 typedef enum {
   NS_DENSITY_CURRENT = 0,
   NS_ADVECTION = 1,
   NS_ADVECTION2D = 2,
-  NS_DENSITY_CURRENT_PRIMITIVE = 3
 } problemType;
 static const char *const problemTypes[] = {
   "density_current",
   "advection",
   "advection2d",
-  "density_current_primitive",
   "problemType","NS_",0
 };
 
@@ -128,18 +125,6 @@ problemData problemOptions[] = {
     .apply_ifunction_loc = IFunction_Advection2d_loc,
     .bc = Exact_Advection2d,
     .non_zero_time = true,
-  },
-  [NS_DENSITY_CURRENT_PRIMITIVE] = {
-    .dim = 3,
-    .qdatasize = 10,
-    .setup = Setup,
-    .setup_loc = Setup_loc,
-    .ics = ICsDCPrim,
-    .ics_loc = ICsDCPrim_loc,
-    .apply_ifunction = IFunction_DCPrim,
-    .apply_ifunction_loc = IFunction_DCPrim_loc,
-    .bc = Exact_DCPrim,
-    .non_zero_time = false,
   },
 };
 
@@ -969,9 +954,6 @@ int main(int argc, char **argv) {
   case NS_DENSITY_CURRENT:
     if (qf_rhs) CeedQFunctionSetContext(qf_rhs, &ctxNS, sizeof ctxNS);
     if (qf_ifunction) CeedQFunctionSetContext(qf_ifunction, &ctxNS, sizeof ctxNS);
-    break;
-  case NS_DENSITY_CURRENT_PRIMITIVE: // Formulation requires implicit integrator
-    CeedQFunctionSetContext(qf_ifunction, &ctxNS, sizeof ctxNS);
     break;
   case NS_ADVECTION:
   case NS_ADVECTION2D:
