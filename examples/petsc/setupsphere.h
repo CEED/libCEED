@@ -325,7 +325,6 @@ static int SetupDMByDegree(DM dm, PetscInt degree, PetscInt ncompu, PetscInt dim
   // Setup FE
   ierr = PetscFECreateByDegree(dm, dim, ncompu, PETSC_FALSE, NULL, degree, &fe);
   CHKERRQ(ierr);
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMAddField(dm, NULL, (PetscObject)fe); CHKERRQ(ierr);
 
   // Setup DM
