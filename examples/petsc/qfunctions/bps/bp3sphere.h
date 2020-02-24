@@ -206,9 +206,13 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-
-    const CeedScalar theta  = asin(X[i+2*Q] / R); // latitude
-    const CeedScalar lambda = atan2(X[i+1*Q], X[i+0*Q]); // longitude
+    CeedScalar x = X[i], y = X[i+Q], z = X[i+2*Q];
+    CeedScalar rad = sqrt(x*x + y*y + z*z);
+    x *= R / rad;
+    y *= R / rad;
+    z *= R / rad;
+    const CeedScalar theta  = asin(z / R); // latitude
+    const CeedScalar lambda = atan2(y, x); // longitude
 
     true_soln[i+Q*0] = sin(lambda) * cos(theta);
 
