@@ -206,11 +206,14 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    CeedScalar x = X[i], y = X[i+Q], z = X[i+2*Q];
+    // Read global Cartesian coordinates
+    CeedScalar x = X[i+Q*0], y = X[i+Q*1], z = X[i+Q*2];
+    // Normalize quadrature point coordinates to sphere
     CeedScalar rad = sqrt(x*x + y*y + z*z);
     x *= R / rad;
     y *= R / rad;
     z *= R / rad;
+    // Compute latitude and longitude
     const CeedScalar theta  = asin(z / R); // latitude
     const CeedScalar lambda = atan2(y, x); // longitude
 
