@@ -41,9 +41,9 @@
       integer ceed,err,i,j,k
       integer imode
       parameter(imode=ceed_noninterlaced)
-      integer stridesxtet(3),stridesutet(3),stridesxhex(3),stridesuhex(3)
-      integer erestrictxtet,erestrictutet,erestrictxitet,erestrictuitet,&
-&             erestrictxhex,erestrictuhex,erestrictxihex,erestrictuihex
+      integer stridesutet(3),stridesuhex(3)
+      integer erestrictxtet,erestrictutet,erestrictuitet,&
+&             erestrictxhex,erestrictuhex,erestrictuihex
       integer bxtet,butet,bxhex,buhex
       integer qf_setuptet,qf_masstet,qf_setuphex,qf_masshex
       integer op_setuptet,op_masstet,op_setuphex,op_masshex,op_setup,op_mass
@@ -126,10 +126,6 @@
 ! -- Restrictions
       call ceedelemrestrictioncreate(ceed,imode,nelemtet,ptet,ndofs,d,&
      & ceed_mem_host,ceed_use_pointer,indxtet,erestrictxtet,err)
-      stridesxtet=[1,ptet,ptet*d]
-      call ceedelemrestrictioncreatestrided(ceed,nelemtet,ptet,&
-     & nelemtet*ptet,d,stridesxtet,erestrictxitet,err)
-
       call ceedelemrestrictioncreate(ceed,imode,nelemtet,ptet,ndofs,1,&
      & ceed_mem_host,ceed_use_pointer,indxtet,erestrictutet,err)
       stridesutet=[1,qtet,qtet]
@@ -163,8 +159,8 @@
 ! ---- Setup Tet
       call ceedoperatorcreate(ceed,qf_setuptet,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setuptet,err)
-      call ceedoperatorsetfield(op_setuptet,'_weight',erestrictxitet,&
-     & bxtet,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setuptet,'_weight',&
+     & ceed_elemrestriction_none,bxtet,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuptet,'dx',erestrictxtet,&
      & bxtet,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setuptet,'rho',erestrictuitet,&
@@ -194,9 +190,6 @@
 ! -- Restrictions
       call ceedelemrestrictioncreate(ceed,imode,nelemhex,phex*phex,ndofs,d,&
      & ceed_mem_host,ceed_use_pointer,indxhex,erestrictxhex,err)
-      stridesxhex=[1,phex*phex,phex*phex*d]
-      call ceedelemrestrictioncreatestrided(ceed,nelemhex,phex*phex,&
-     & nelemhex*phex*phex,d,stridesxhex,erestrictxihex,err)
 
       call ceedelemrestrictioncreate(ceed,imode,nelemhex,phex*phex,ndofs,1,&
      & ceed_mem_host,ceed_use_pointer,indxhex,erestrictuhex,err)
@@ -229,8 +222,8 @@
 ! ---- Setup Hex
       call ceedoperatorcreate(ceed,qf_setuphex,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setuphex,err)
-      call ceedoperatorsetfield(op_setuphex,'_weight',erestrictxihex,&
-     & bxhex,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setuphex,'_weight',&
+     & ceed_elemrestriction_none,bxhex,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuphex,'dx',erestrictxhex,&
      & bxhex,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setuphex,'rho',erestrictuihex,&
@@ -290,11 +283,9 @@
       call ceedelemrestrictiondestroy(erestrictutet,err)
       call ceedelemrestrictiondestroy(erestrictxtet,err)
       call ceedelemrestrictiondestroy(erestrictuitet,err)
-      call ceedelemrestrictiondestroy(erestrictxitet,err)
       call ceedelemrestrictiondestroy(erestrictuhex,err)
       call ceedelemrestrictiondestroy(erestrictxhex,err)
       call ceedelemrestrictiondestroy(erestrictuihex,err)
-      call ceedelemrestrictiondestroy(erestrictxihex,err)
       call ceedbasisdestroy(butet,err)
       call ceedbasisdestroy(bxtet,err)
       call ceedbasisdestroy(buhex,err)

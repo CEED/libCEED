@@ -17,6 +17,10 @@
 #include <ceed-impl.h>
 #include <ceed-backend.h>
 
+/// @cond DOXYGEN_SKIP
+static struct CeedElemRestriction_private ceed_elemrestriction_none;
+/// @endcond
+
 /// @file
 /// Implementation of public CeedElemRestriction interfaces
 ///
@@ -764,6 +768,9 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
 /// @cond DOXYGEN_SKIP
 // Indicate that the stride is determined by the backend
 CeedInt CEED_STRIDES_BACKEND[3] = {};
+
+// Indicate that no ElemRestriction is provided by the user
+CeedElemRestriction CEED_ELEMRESTRICTION_NONE = &ceed_elemrestriction_none;
 /// @endcond
 
 /// @}

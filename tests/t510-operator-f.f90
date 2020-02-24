@@ -41,8 +41,8 @@
       integer ceed,err,i
       integer imode
       parameter(imode=ceed_noninterlaced)
-      integer stridesx(3),stridesu(3)
-      integer erestrictx,erestrictu,erestrictxi,erestrictui
+      integer stridesu(3)
+      integer erestrictx,erestrictu,erestrictui
       integer bx,bu
       integer qf_setup,qf_mass
       integer op_setup,op_mass
@@ -105,9 +105,6 @@
 
       call ceedelemrestrictioncreate(ceed,imode,nelem,p,ndofs,d,ceed_mem_host,&
      & ceed_use_pointer,indx,erestrictx,err)
-      stridesx=[1,p,p]
-      call ceedelemrestrictioncreatestrided(ceed,nelem,p,nelem*p,d,stridesx,&
-     & erestrictxi,err)
 
       call ceedelemrestrictioncreate(ceed,imode,nelem,p,ndofs,1,ceed_mem_host,&
      & ceed_use_pointer,indx,erestrictu,err)
@@ -146,8 +143,8 @@
       call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,xoffset,err)
       call ceedvectorcreate(ceed,nqpts,qdata,err)
 
-      call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,bx,&
-     & ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setup,'_weight',ceed_elemrestriction_none,&
+     & bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'x',erestrictx,bx,&
      & ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rho',erestrictui,&
@@ -189,7 +186,6 @@
       call ceedelemrestrictiondestroy(erestrictu,err)
       call ceedelemrestrictiondestroy(erestrictx,err)
       call ceedelemrestrictiondestroy(erestrictui,err)
-      call ceedelemrestrictiondestroy(erestrictxi,err)
       call ceeddestroy(ceed,err)
       end
 !-----------------------------------------------------------------------

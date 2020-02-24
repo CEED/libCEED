@@ -25,11 +25,12 @@
 #define FORTRAN_REQUEST_IMMEDIATE -1
 #define FORTRAN_REQUEST_ORDERED -2
 #define FORTRAN_NULL -3
-#define FORTRAN_STRIDES_BACKEND -1
-#define FORTRAN_BASIS_COLLOCATED -1
-#define FORTRAN_VECTOR_ACTIVE -1
-#define FORTRAN_VECTOR_NONE -2
-#define FORTRAN_QFUNCTION_NONE -1
+#define FORTRAN_STRIDES_BACKEND -4
+#define FORTRAN_VECTOR_ACTIVE -5
+#define FORTRAN_VECTOR_NONE -6
+#define FORTRAN_ELEMRESTRICTION_NONE -7
+#define FORTRAN_BASIS_COLLOCATED -8
+#define FORTRAN_QFUNCTION_NONE -9
 
 static Ceed *Ceed_dict = NULL;
 static int Ceed_count = 0;
@@ -842,6 +843,8 @@ void fCeedOperatorSetField(int *op, const char *fieldname, int *r, int *b,
 
   if (*r == FORTRAN_NULL) {
     r_ = NULL;
+  } else if (*r == FORTRAN_ELEMRESTRICTION_NONE) {
+    r_ = CEED_ELEMRESTRICTION_NONE;
   } else {
     r_ = CeedElemRestriction_dict[*r];
   }

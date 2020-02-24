@@ -90,8 +90,8 @@
       integer ceed,err,i,j,k
       integer imode
       parameter(imode=ceed_noninterlaced)
-      integer stridesx(3),stridesu(3),stridesqd(3)
-      integer erestrictx,erestrictu,erestrictxi,erestrictui
+      integer stridesu(3),stridesqd(3)
+      integer erestrictx,erestrictu,erestrictui
       integer erestrictqi,erestrictlini
       integer bx,bu
       integer qf_setup_mass,qf_setup_diff,qf_apply,qf_apply_lin
@@ -151,9 +151,6 @@
 ! Restrictions
       call ceedelemrestrictioncreate(ceed,imode,nelem,p*p,ndofs,d,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictx,err)
-      stridesx=[1,p*p,p*p*d]
-      call ceedelemrestrictioncreatestrided(ceed,nelem,p*p,&
-     & nelem*p*p,d,stridesx,erestrictxi,err)
 
       call ceedelemrestrictioncreate(ceed,imode,nelem,p*p,ndofs,1,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictu,err)
@@ -182,8 +179,8 @@
      & ceed_qfunction_none,op_setup_mass,err)
       call ceedoperatorsetfield(op_setup_mass,'dx',erestrictx,&
      & bx,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_setup_mass,'_weight',erestrictxi,&
-     & bx,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setup_mass,'_weight',&
+     & ceed_elemrestriction_none,bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup_mass,'qdata',erestrictui,&
      & ceed_basis_collocated,ceed_vector_active,err)
 
@@ -201,8 +198,8 @@
      & ceed_qfunction_none,op_setup_diff,err)
       call ceedoperatorsetfield(op_setup_diff,'dx',erestrictx,&
      & bx,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_setup_diff,'_weight',erestrictxi,&
-     & bx,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setup_diff,'_weight',&
+     & ceed_elemrestriction_none,bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup_diff,'qdata',erestrictqi,&
      & ceed_basis_collocated,ceed_vector_active,err)
 
@@ -317,7 +314,6 @@
       call ceedoperatordestroy(op_apply_lin,err)
       call ceedelemrestrictiondestroy(erestrictu,err)
       call ceedelemrestrictiondestroy(erestrictx,err)
-      call ceedelemrestrictiondestroy(erestrictxi,err)
       call ceedelemrestrictiondestroy(erestrictui,err)
       call ceedelemrestrictiondestroy(erestrictqi,err)
       call ceedelemrestrictiondestroy(erestrictlini,err)

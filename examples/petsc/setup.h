@@ -64,8 +64,7 @@ typedef struct CeedData_ *CeedData;
 struct CeedData_ {
   Ceed ceed;
   CeedBasis basisx, basisu, basisctof;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui,
-                      Erestrictqdi;
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictui, Erestrictqdi;
   CeedQFunction qf_apply;
   CeedOperator op_apply, op_restrict, op_interp;
   CeedVector qdata, xceed, yceed;
@@ -395,7 +394,6 @@ static PetscErrorCode CeedDataDestroy(CeedInt i, CeedData data) {
   CeedElemRestrictionDestroy(&data->Erestrictu);
   CeedElemRestrictionDestroy(&data->Erestrictx);
   CeedElemRestrictionDestroy(&data->Erestrictui);
-  CeedElemRestrictionDestroy(&data->Erestrictxi);
   CeedElemRestrictionDestroy(&data->Erestrictqdi);
   CeedQFunctionDestroy(&data->qf_apply);
   CeedOperatorDestroy(&data->op_apply);
@@ -470,8 +468,7 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   Vec coords;
   const PetscScalar *coordArray;
   CeedBasis basisx, basisu;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi,
-                      Erestrictui, Erestrictqdi;
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictui, Erestrictqdi;
   CeedQFunction qf_setupgeo, qf_apply;
   CeedOperator op_setupgeo, op_apply;
   CeedVector xcoord, qdata, xceed, yceed;
@@ -501,8 +498,6 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
                                    CEED_STRIDES_BACKEND, &Erestrictui);
   CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, qdatasize,
                                    CEED_STRIDES_BACKEND, &Erestrictqdi);
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompx,
-                                   CEED_STRIDES_BACKEND, &Erestrictxi);
 
   // Element coordinates
   ierr = DMGetCoordinatesLocal(dm, &coords); CHKERRQ(ierr);
@@ -545,7 +540,7 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
                      CEED_QFUNCTION_NONE, &op_setupgeo);
   CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, basisx,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setupgeo, "weight", Erestrictxi, basisx,
+  CeedOperatorSetField(op_setupgeo, "weight", CEED_ELEMRESTRICTION_NONE, basisx,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setupgeo, "qdata", Erestrictqdi,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
@@ -583,8 +578,8 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
                          CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_setuprhs, "dx", Erestrictx, basisx,
                          CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_setuprhs, "weight", Erestrictxi, basisx,
-                         CEED_VECTOR_NONE);
+    CeedOperatorSetField(op_setuprhs, "weight", CEED_ELEMRESTRICTION_NONE,
+                         basisx, CEED_VECTOR_NONE);
     CeedOperatorSetField(op_setuprhs, "true_soln", Erestrictui,
                          CEED_BASIS_COLLOCATED, *target);
     CeedOperatorSetField(op_setuprhs, "rhs", Erestrictu, basisu,
@@ -608,7 +603,6 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   data->basisx = basisx; data->basisu = basisu;
   data->Erestrictx = Erestrictx;
   data->Erestrictu = Erestrictu;
-  data->Erestrictxi = Erestrictxi;
   data->Erestrictui = Erestrictui;
   data->Erestrictqdi = Erestrictqdi;
   data->qf_apply = qf_apply;

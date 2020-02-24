@@ -171,14 +171,17 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
 
   CeedInt numelements;
   ierr = CeedElemRestrictionGetNumElements(r, &numelements); CeedChk(ierr);
-  if (op->hasrestriction && op->numelements != numelements)
+  if (r != CEED_ELEMRESTRICTION_NONE && op->hasrestriction &&
+      op->numelements != numelements)
     // LCOV_EXCL_START
     return CeedError(op->ceed, 1,
                      "ElemRestriction with %d elements incompatible with prior "
                      "%d elements", numelements, op->numelements);
   // LCOV_EXCL_STOP
-  op->numelements = numelements;
-  op->hasrestriction = true; // Restriction set, but numelements may be 0
+  if (r != CEED_ELEMRESTRICTION_NONE) {
+    op->numelements = numelements;
+    op->hasrestriction = true; // Restriction set, but numelements may be 0
+  }
 
   if (b != CEED_BASIS_COLLOCATED) {
     CeedInt numqpoints;
@@ -191,15 +194,18 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
     // LCOV_EXCL_STOP
     op->numqpoints = numqpoints;
   }
+  CeedQFunctionField qfield;
   CeedOperatorField *ofield;
   for (CeedInt i=0; i<op->qf->numinputfields; i++) {
     if (!strcmp(fieldname, (*op->qf->inputfields[i]).fieldname)) {
+      qfield = op->qf->inputfields[i];
       ofield = &op->inputfields[i];
       goto found;
     }
   }
   for (CeedInt i=0; i<op->qf->numoutputfields; i++) {
     if (!strcmp(fieldname, (*op->qf->outputfields[i]).fieldname)) {
+      qfield = op->qf->inputfields[i];
       ofield = &op->outputfields[i];
       goto found;
     }
@@ -209,6 +215,9 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                    fieldname);
   // LCOV_EXCL_STOP
 found:
+  if (r == CEED_ELEMRESTRICTION_NONE && qfield->emode != CEED_EVAL_WEIGHT)
+    return CeedError(op->ceed, 1, "CEED_ELEMRESTRICTION_NONE can only be used "
+                     "for a field with eval mode CEED_EVAL_WEIGHT");
   ierr = CeedCalloc(1, ofield); CeedChk(ierr);
   (*ofield)->Erestrict = r;
   r->refcount += 1;
@@ -1001,8 +1010,10 @@ int CeedOperatorDestroy(CeedOperator *op) {
   // Free fields
   for (int i=0; i<(*op)->nfields; i++)
     if ((*op)->inputfields[i]) {
-      ierr = CeedElemRestrictionDestroy(&(*op)->inputfields[i]->Erestrict);
-      CeedChk(ierr);
+      if ((*op)->inputfields[i]->Erestrict != CEED_ELEMRESTRICTION_NONE) {
+        ierr = CeedElemRestrictionDestroy(&(*op)->inputfields[i]->Erestrict);
+        CeedChk(ierr);
+      }
       if ((*op)->inputfields[i]->basis != CEED_BASIS_COLLOCATED) {
         ierr = CeedBasisDestroy(&(*op)->inputfields[i]->basis); CeedChk(ierr);
       }

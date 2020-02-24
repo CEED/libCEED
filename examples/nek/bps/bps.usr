@@ -843,8 +843,8 @@ C     Create ceed operators
      $  basisx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'dx',erstrctx,
      $  basisx,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_setup,'weight',erstrctx,
-     $  basisx,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setup,'weight',
+     $  ceed_elemrestriction_none,basisx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'qdata',erstrctw,
      $  ceed_basis_collocated,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rhs',erstrctu,
@@ -1162,8 +1162,8 @@ C     Create ceed operators
      $  basisx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'dx',erstrctx,
      $  basisx,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_setup,'weight',erstrctx,
-     $  basisx,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setup,'weight',
+     $  ceed_elemrestriction_none,basisx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'qdata',erstrctw,
      $  ceed_basis_collocated,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rhs',erstrctu,

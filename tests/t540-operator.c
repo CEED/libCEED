@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
                      CEED_QFUNCTION_NONE, &op_setup_mass);
   CeedOperatorSetField(op_setup_mass, "dx", Erestrictxi, bx,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup_mass, "_weight", Erestrictxi, bx,
+  CeedOperatorSetField(op_setup_mass, "_weight", CEED_ELEMRESTRICTION_NONE, bx,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_mass, "qdata", Erestrictqi,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);

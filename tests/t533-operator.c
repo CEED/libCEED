@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedElemRestriction Erestrictx, Erestrictu,
-                      Erestrictxi, Erestrictui;
+                      Erestrictui;
   CeedBasis bx, bu;
   CeedQFunction qf_setup, qf_mass;
   CeedOperator op_setup, op_mass;
@@ -51,9 +51,6 @@ int main(int argc, char **argv) {
   // Restrictions
   CeedElemRestrictionCreate(ceed, imode, nelem, P*P, ndofs, dim, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictx);
-  CeedInt stridesx[3] = {1, P*P, P *P*dim};
-  CeedElemRestrictionCreateStrided(ceed,  nelem, P*P, nelem*P*P, dim, stridesx,
-                                   &Erestrictxi);
 
   CeedElemRestrictionCreate(ceed, imode, nelem, P*P, ndofs, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictu);
@@ -79,7 +76,8 @@ int main(int argc, char **argv) {
   // Operators
   CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_setup);
-  CeedOperatorSetField(op_setup, "_weight", Erestrictxi, bx, CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setup, "_weight", CEED_ELEMRESTRICTION_NONE, bx,
+                       CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "dx", Erestrictx, bx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "rho", Erestrictui, CEED_BASIS_COLLOCATED,
                        CEED_VECTOR_ACTIVE);
@@ -134,7 +132,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
   CeedElemRestrictionDestroy(&Erestrictui);
-  CeedElemRestrictionDestroy(&Erestrictxi);
   CeedBasisDestroy(&bu);
   CeedBasisDestroy(&bx);
   CeedVectorDestroy(&X);

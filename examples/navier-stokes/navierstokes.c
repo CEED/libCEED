@@ -563,8 +563,7 @@ int main(int argc, char **argv) {
   CeedInt numP, numQ;
   CeedVector xcorners, qdata, q0ceed;
   CeedBasis basisx, basisxc, basisq;
-  CeedElemRestriction restrictx, restrictxi, restrictxcoord,
-                      restrictq, restrictqdi;
+  CeedElemRestriction restrictx, restrictxcoord, restrictq, restrictqdi;
   CeedQFunction qf_setup, qf_ics, qf_rhs, qf_ifunction;
   CeedOperator op_setup, op_ics;
   CeedScalar Rd;
@@ -889,9 +888,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreateStrided(ceed, localNelem, numQdim,
                                    localNelem*numQdim, qdatasize,
                                    CEED_STRIDES_BACKEND, &restrictqdi);
-  CeedElemRestrictionCreateStrided(ceed, localNelem, numQdim,
-                                   localNelem*numQdim, 1,
-                                   CEED_STRIDES_BACKEND, &restrictxi);
   CeedElemRestrictionCreateStrided(ceed, localNelem, PetscPowInt(numP, dim),
                                    localNelem*PetscPowInt(numP, dim), ncompx,
                                    CEED_STRIDES_BACKEND, &restrictxcoord);
@@ -947,7 +943,7 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
   CeedOperatorSetField(op_setup, "dx", restrictx,
                        basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "weight", restrictxi,
+  CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE,
                        basisx, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "qdata", restrictqdi,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
@@ -1193,7 +1189,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&restrictq);
   CeedElemRestrictionDestroy(&restrictx);
   CeedElemRestrictionDestroy(&restrictqdi);
-  CeedElemRestrictionDestroy(&restrictxi);
   CeedElemRestrictionDestroy(&restrictxcoord);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_ics);

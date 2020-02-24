@@ -221,9 +221,14 @@ CEED_EXTERN CeedBasis CEED_BASIS_COLLOCATED;
 CEED_EXTERN CeedVector CEED_VECTOR_ACTIVE;
 
 /// Argument for CeedOperatorSetField to use no vector, used with
-/// qfunction input with eval mode CEED_EVAL_WEIGHTS
+/// qfunction input with eval mode CEED_EVAL_WEIGHT
 /// @ingroup CeedVector
 CEED_EXTERN CeedVector CEED_VECTOR_NONE;
+
+/// Argument for CeedOperatorSetField to use no ElemRestriction, only used with
+/// eval mode CEED_EVAL_WEIGHT.
+/// @ingroup CeedElemRestriction
+CEED_EXTERN CeedElemRestriction CEED_ELEMRESTRICTION_NONE;
 
 /// Argument for CeedOperatorCreate that QFunction is not created by user.
 /// Only used for QFunctions dqf and dqfT. If implemented, a backend may
