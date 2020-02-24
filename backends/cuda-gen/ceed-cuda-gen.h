@@ -27,7 +27,6 @@ typedef struct {
   CUmodule module;
   CUfunction op;
   CudaFieldsInt indices;
-  CudaFieldsInt strides;
   CudaFields fields;
   CudaFields B;
   CudaFields G;

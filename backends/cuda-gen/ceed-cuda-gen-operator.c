@@ -25,13 +25,7 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Cuda_gen *impl;
   ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
-
-  for (int i=0; i<16; i++) {
-    ierr = cudaFree(impl->strides.in[i]); CeedChk_Cu(ceed, ierr);
-    ierr = cudaFree(impl->strides.out[i]); CeedChk_Cu(ceed, ierr);
-  }
-
-  ierr = CeedFree(&impl); CeedChk(ierr);
+   ierr = CeedFree(&impl); CeedChk(ierr); 
   return 0;
 }
 
@@ -107,7 +101,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
 
   // Apply operator
   void *opargs[] = {(void *) &nelem, &qf_data->d_c, &data->indices,
-                    &data->strides, &data->fields, &data->B, &data->G, &data->W
+                    &data->fields, &data->B, &data->G, &data->W
                    };
   const CeedInt dim = data->dim;
   const CeedInt Q1d = data->Q1d;

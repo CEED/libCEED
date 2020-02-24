@@ -84,14 +84,14 @@ inline __device__ void readDofsTranspose1d(BackendData& data, const CeedInt nnod
   }
 }
 
-template <int NCOMP, int P1d>
-inline __device__ void readDofsStrided1d(BackendData& data, const CeedInt elem, const CeedInt *strides, const CeedScalar* d_u, CeedScalar* r_u) {
+template <int NCOMP, int P1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
+inline __device__ void readDofsStrided1d(BackendData& data, const CeedInt elem, const CeedScalar* d_u, CeedScalar* r_u) {
   if (data.tidx<P1d)
   {
     const CeedInt node = data.tidx;
-    const CeedInt ind = node * strides[0] + elem * strides[2];
+    const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
     for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-      r_u[comp] = d_u[ind + comp * strides[1]];
+      r_u[comp] = d_u[ind + comp * STRIDES_COMP];
     }
   }
 }
@@ -120,14 +120,14 @@ inline __device__ void writeDofsTranspose1d(BackendData& data, const CeedInt nno
   }
 }
 
-template <int NCOMP, int P1d>
-inline __device__ void writeDofsStrided1d(BackendData& data, const CeedInt elem, const CeedInt *strides, const CeedScalar* r_v, CeedScalar* d_v) {
+template <int NCOMP, int P1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
+inline __device__ void writeDofsStrided1d(BackendData& data, const CeedInt elem, const CeedScalar* r_v, CeedScalar* d_v) {
   if (data.tidx<P1d)
   {
     const CeedInt node = data.tidx;
-    const CeedInt ind = node * strides[0] + elem * strides[2];
+    const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
     for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-      d_v[ind + comp * strides[1]] += r_v[comp];
+      d_v[ind + comp * STRIDES_COMP] += r_v[comp];
     }
   }
 }
@@ -216,14 +216,14 @@ inline __device__ void readDofsTranspose2d(BackendData& data, const CeedInt nnod
   }
 }
 
-template <int NCOMP, int P1d>
-inline __device__ void readDofsStrided2d(BackendData& data, const CeedInt elem, const CeedInt *strides, const CeedScalar* d_u, CeedScalar* r_u) {
+template <int NCOMP, int P1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
+inline __device__ void readDofsStrided2d(BackendData& data, const CeedInt elem, const CeedScalar* d_u, CeedScalar* r_u) {
   if (data.tidx<P1d && data.tidy<P1d)
   {
     const CeedInt node = data.tidx + data.tidy*P1d;
-    const CeedInt ind = node * strides[0] + elem * strides[2];
+    const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
     for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-      r_u[comp] = d_u[ind + comp * strides[1]];
+      r_u[comp] = d_u[ind + comp * STRIDES_COMP];
     }
   }
 }
@@ -252,14 +252,14 @@ inline __device__ void writeDofsTranspose2d(BackendData& data, const CeedInt nno
   }
 }
 
-template <int NCOMP, int P1d>
-inline __device__ void writeDofsStrided2d(BackendData& data, const CeedInt elem, const CeedInt *strides, const CeedScalar* r_v, CeedScalar* d_v) {
+template <int NCOMP, int P1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
+inline __device__ void writeDofsStrided2d(BackendData& data, const CeedInt elem, const CeedScalar* r_v, CeedScalar* d_v) {
   if (data.tidx<P1d && data.tidy<P1d)
   {
     const CeedInt node = data.tidx + data.tidy*P1d;
-    const CeedInt ind = node * strides[0] + elem * strides[2];
+    const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
     for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-      d_v[ind + comp * strides[1]] += r_v[comp];
+      d_v[ind + comp * STRIDES_COMP] += r_v[comp];
     }
   }
 }
@@ -403,14 +403,14 @@ inline __device__ void readDofsTranspose3d(BackendData& data, const CeedInt nnod
   }
 }
 
-template <int NCOMP, int P1d>
-inline __device__ void readDofsStrided3d(BackendData& data, const CeedInt elem, const CeedInt *strides, const CeedScalar* d_u, CeedScalar* r_u) {
+template <int NCOMP, int P1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
+inline __device__ void readDofsStrided3d(BackendData& data, const CeedInt elem, const CeedScalar* d_u, CeedScalar* r_u) {
   if (data.tidx<P1d && data.tidy<P1d) {
     for (CeedInt z = 0; z < P1d; ++z) {
       const CeedInt node = data.tidx + data.tidy*P1d + z*P1d*P1d;
-      const CeedInt ind = node * strides[0] + elem * strides[2];
+      const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
       for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-        r_u[z+comp*P1d] = d_u[ind + comp * strides[1]];
+        r_u[z+comp*P1d] = d_u[ind + comp * STRIDES_COMP];
       }
     }
   }
@@ -434,12 +434,12 @@ inline __device__ void readSliceQuadsTranspose3d(BackendData& data, const CeedIn
   }
 }
 
-template <int NCOMP, int Q1d>
+template <int NCOMP, int Q1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
 inline __device__ void readSliceQuadsStrided3d(BackendData& data, const CeedInt elem, const CeedInt q, const CeedInt *strides, const CeedScalar* d_u, CeedScalar* r_u) {
   const CeedInt node = data.tidx + data.tidy*Q1d + q*Q1d*Q1d;
-  const CeedInt ind = node * strides[0] + elem * strides[2];
+  const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
   for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-    r_u[comp] = d_u[ind + comp * strides[1]];
+    r_u[comp] = d_u[ind + comp * STRIDES_COMP];
   }
 }
 
@@ -469,14 +469,14 @@ inline __device__ void writeDofsTranspose3d(BackendData& data, const CeedInt nno
   }
 }
 
-template <int NCOMP, int P1d>
+template <int NCOMP, int P1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
 inline __device__ void writeDofsStrided3d(BackendData& data, const CeedInt elem, const CeedInt *strides, const CeedScalar* r_v, CeedScalar* d_v) {
   if (data.tidx<P1d && data.tidy<P1d) {
     for (CeedInt z = 0; z < P1d; ++z) {
       const CeedInt node = data.tidx + data.tidy*P1d + z*P1d*P1d;
-      const CeedInt ind = node * strides[0] + elem * strides[2];
+      const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
       for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-        d_v[ind + comp * strides[1]] += r_v[z+comp*P1d];
+        d_v[ind + comp * STRIDES_COMP] += r_v[z+comp*P1d];
       }
     }
   }
@@ -813,7 +813,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << qFunction;
 
   // Setup
-  code << "\nextern \"C\" __global__ void oper(CeedInt nelem, void* ctx, CudaFieldsInt indices, CudaFieldsInt strides, CudaFields fields, CudaFields B, CudaFields G, CeedScalar* W) {\n";
+  code << "\nextern \"C\" __global__ void oper(CeedInt nelem, void* ctx, CudaFieldsInt indices, CudaFields fields, CudaFields B, CudaFields G, CeedScalar* W) {\n";
   // Input Evecs and Restriction
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
@@ -1020,13 +1020,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
           ierr = CeedElemRestrictionGetStrides(Erestrict, &strides);
           CeedChk(ierr);
         }
-        ierr = cudaMalloc( (void **)&data->strides.in[i], 3 * sizeof(CeedInt));
-        CeedChk_Cu(ceed, (CUresult)ierr);
-        ierr = cudaMemcpy(data->strides.in[i], strides, 3 * sizeof(CeedInt),
-                          cudaMemcpyHostToDevice);
-        CeedChk_Cu(ceed, (CUresult)ierr);
         code << "  // Strides: {"<<strides[0]<<", "<<strides[1]<<", "<<strides[2]<<"}\n";
-        code << "  readDofsStrided"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<">(data, elem, strides.in["<<i<<"], d_u"<<i<<", r_u"<<i<<");\n";
+        code << "  readDofsStrided"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<","<<strides[0]<<","<<strides[1]<<","<<strides[2]<<">(data, elem, d_u"<<i<<", r_u"<<i<<");\n";
       }
     }
 
@@ -1121,13 +1116,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
             ierr = CeedElemRestrictionGetStrides(Erestrict, &strides);
             CeedChk(ierr);
           }
-          ierr = cudaMalloc( (void **)&data->strides.in[i], 3 * sizeof(CeedInt));
-          CeedChk_Cu(ceed, (CUresult)ierr);
-          ierr = cudaMemcpy(data->strides.in[i], strides, 3 * sizeof(CeedInt),
-                            cudaMemcpyHostToDevice);
-          CeedChk_Cu(ceed, (CUresult)ierr);
           code << "  // Strides: {"<<strides[0]<<", "<<strides[1]<<", "<<strides[2]<<"}\n";
-          code << "  readSliceQuadsStrided"<<"3d<ncomp_in_"<<i<<",Q1d>(data, elem, q, strides.in["<<i<<"], d_u"<<i<<", r_q"<<i<<");\n";
+          code << "  readSliceQuadsStrided"<<"3d<ncomp_in_"<<i<<",Q1d"","<<strides[0]<<","<<strides[1]<<","<<strides[2]<<">(data, elem, q, d_u"<<i<<", r_q"<<i<<");\n";
         }
         break;
       case CEED_EVAL_INTERP:
@@ -1298,13 +1288,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         ierr = CeedElemRestrictionGetStrides(Erestrict, &strides);
         CeedChk(ierr);
       }
-      ierr = cudaMalloc( (void **)&data->strides.out[i], 3 * sizeof(CeedInt));
-      CeedChk_Cu(ceed, (CUresult)ierr);
-      ierr = cudaMemcpy(data->strides.out[i], strides, 3 * sizeof(CeedInt),
-                        cudaMemcpyHostToDevice);
-      CeedChk_Cu(ceed, (CUresult)ierr);
       code << "  // Strides: {"<<strides[0]<<", "<<strides[1]<<", "<<strides[2]<<"}\n";
-      code << "  writeDofsStrided"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<">(data, elem, strides.out["<<i<<"], r_v"<<i<<", d_v"<<i<<");\n";
+      code << "  writeDofsStrided"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<","<<strides[0]<<","<<strides[1]<<","<<strides[2]<<">(data, elem, r_v"<<i<<", d_v"<<i<<");\n";
     }
   }
 
