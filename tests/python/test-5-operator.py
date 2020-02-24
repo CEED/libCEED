@@ -70,8 +70,6 @@ def test_500(ceed_resource):
     indx[2*i+0] = i
     indx[2*i+1] = i+1
   rx = ceed.ElemRestriction(nelem, 2, nx, 1, indx, cmode=libceed.USE_POINTER)
-  strides = np.array([1, 2, 2], dtype="int32")
-  rxi = ceed.StridedElemRestriction(nelem, 2, nelem*2, 1, strides)
 
   indu = np.zeros(nelem*p, dtype="int32")
   for i in range(nelem):
@@ -103,7 +101,8 @@ def test_500(ceed_resource):
 
   # Operators
   op_setup = ceed.Operator(qf_setup)
-  op_setup.set_field("weights", rxi, bx, libceed.VECTOR_NONE)
+  op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
+                     libceed.VECTOR_NONE)
   op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
   op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
                      libceed.VECTOR_ACTIVE)
@@ -156,8 +155,6 @@ def test_501(ceed_resource):
     indx[2*i+0] = i
     indx[2*i+1] = i+1
   rx = ceed.ElemRestriction(nelem, 2, nx, 1, indx, cmode=libceed.USE_POINTER)
-  strides = np.array([1, 2, 2], dtype="int32")
-  rxi = ceed.StridedElemRestriction(nelem, 2, nelem*2, 1, strides)
 
   indu = np.zeros(nelem*p, dtype="int32")
   for i in range(nelem):
@@ -189,7 +186,8 @@ def test_501(ceed_resource):
 
   # Operators
   op_setup = ceed.Operator(qf_setup)
-  op_setup.set_field("weights", rxi, bx, libceed.VECTOR_NONE)
+  op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
+                     libceed.VECTOR_NONE)
   op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
   op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
                      libceed.VECTOR_ACTIVE)
@@ -244,8 +242,6 @@ def test_502(ceed_resource):
     indx[2*i+0] = i
     indx[2*i+1] = i+1
   rx = ceed.ElemRestriction(nelem, 2, nx, 1, indx, cmode=libceed.USE_POINTER)
-  strides = np.array([1, 2, 2], dtype="int32")
-  rxi = ceed.StridedElemRestriction(nelem, 2, nelem*2, 1, strides)
 
   indu = np.zeros(nelem*p, dtype="int32")
   for i in range(nelem):
@@ -278,7 +274,8 @@ def test_502(ceed_resource):
 
   # Operators
   op_setup = ceed.Operator(qf_setup)
-  op_setup.set_field("weights", rxi, bx, libceed.VECTOR_NONE)
+  op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
+                     libceed.VECTOR_NONE)
   op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
   op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
                      libceed.VECTOR_ACTIVE)
@@ -341,8 +338,7 @@ def test_503(ceed_resource):
     indx[2*i+0] = i
     indx[2*i+1] = i+1
   rx = ceed.ElemRestriction(nelem, 2, nx, 1, indx, cmode=libceed.USE_POINTER)
-  strides = np.array([1, 2, 2], dtype="int32")
-  rxi = ceed.StridedElemRestriction(nelem, 2, nelem*2, 1, strides)
+
 
   indu = np.zeros(nelem*p, dtype="int32")
   for i in range(nelem):
@@ -375,7 +371,8 @@ def test_503(ceed_resource):
 
   # Operators
   op_setup = ceed.Operator(qf_setup)
-  op_setup.set_field("weights", rxi, bx, libceed.VECTOR_NONE)
+  op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
+                     libceed.VECTOR_NONE)
   op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
   op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
                      libceed.VECTOR_ACTIVE)
@@ -422,8 +419,6 @@ def test_504(ceed_resource, capsys):
     indx[2*i+0] = i
     indx[2*i+1] = i+1
   rx = ceed.ElemRestriction(nelem, 2, nx, 1, indx, cmode=libceed.USE_POINTER)
-  strides = np.array([1, 2, 2], dtype="int32")
-  rxi = ceed.StridedElemRestriction(nelem, 2, nelem*2, 1, strides)
 
   indu = np.zeros(nelem*p, dtype="int32")
   for i in range(nelem):
@@ -455,7 +450,8 @@ def test_504(ceed_resource, capsys):
 
   # Operators
   op_setup = ceed.Operator(qf_setup)
-  op_setup.set_field("weights", rxi, bx, libceed.VECTOR_NONE)
+  op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
+                     libceed.VECTOR_NONE)
   op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
   op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
                      libceed.VECTOR_ACTIVE)
@@ -504,8 +500,6 @@ def test_505(ceed_resource):
     indx[2*i+0] = i
     indx[2*i+1] = i+1
   rx = ceed.ElemRestriction(nelem, 2, nx, 1, indx, cmode=libceed.USE_POINTER)
-  strides = np.array([1, 2, 2], dtype="int32")
-  rxi = ceed.StridedElemRestriction(nelem, 2, nelem*2, 1, strides)
 
   indu = np.zeros(nelem*p, dtype="int32")
   for i in range(nelem):
@@ -537,7 +531,8 @@ def test_505(ceed_resource):
 
   # Operators
   op_setup = ceed.Operator(qf_setup)
-  op_setup.set_field("weights", rxi, bx, libceed.VECTOR_NONE)
+  op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
+                     libceed.VECTOR_NONE)
   op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
   op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
                      libceed.VECTOR_ACTIVE)
@@ -626,8 +621,6 @@ def test_510(ceed_resource):
 
   rx = ceed.ElemRestriction(nelem, p, ndofs, dim, indx,
                             cmode=libceed.USE_POINTER)
-  strides = np.array([1, p, p*dim], dtype="int32")
-  rxi = ceed.StridedElemRestriction(nelem, p, nelem*p, dim, strides)
 
   ru = ceed.ElemRestriction(nelem, p, ndofs, 1, indx, cmode=libceed.USE_POINTER)
   strides = np.array([1, q, q], dtype="int32")
@@ -659,7 +652,8 @@ def test_510(ceed_resource):
 
   # Operators
   op_setup = ceed.Operator(qf_setup)
-  op_setup.set_field("weights", rxi, bx, libceed.VECTOR_NONE)
+  op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
+                     libceed.VECTOR_NONE)
   op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
   op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
                      libceed.VECTOR_ACTIVE)
@@ -732,8 +726,6 @@ def test_511(ceed_resource):
 
   rx = ceed.ElemRestriction(nelem, p, ndofs, dim, indx,
                             cmode=libceed.USE_POINTER)
-  strides = np.array([1, p, p*dim], dtype="int32")
-  rxi = ceed.StridedElemRestriction(nelem, p, nelem*p, dim, strides)
 
   ru = ceed.ElemRestriction(nelem, p, ndofs, 1, indx, cmode=libceed.USE_POINTER)
   strides = np.array([1, q, q], dtype="int32")
@@ -765,7 +757,8 @@ def test_511(ceed_resource):
 
   # Operators
   op_setup = ceed.Operator(qf_setup)
-  op_setup.set_field("weights", rxi, bx, libceed.VECTOR_NONE)
+  op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
+                     libceed.VECTOR_NONE)
   op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
   op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
                      libceed.VECTOR_ACTIVE)
@@ -844,9 +837,6 @@ def test_520(ceed_resource):
 
   rx_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, dim, indx_tet,
                                 cmode=libceed.USE_POINTER)
-  strides = np.array([1, p_tet, p_tet*dim], dtype="int32")
-  rxi_tet = ceed.StridedElemRestriction(nelem_tet, p_tet, nelem_tet*p_tet, dim,
-                                        strides)
 
   ru_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, 1, indx_tet,
                                 cmode=libceed.USE_POINTER)
@@ -881,7 +871,8 @@ def test_520(ceed_resource):
 
   # Operators
   op_setup_tet = ceed.Operator(qf_setup_tet)
-  op_setup_tet.set_field("weights", rxi_tet, bx_tet, libceed.VECTOR_NONE)
+  op_setup_tet.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_tet,
+                         libceed.VECTOR_NONE)
   op_setup_tet.set_field("dx", rx_tet, bx_tet, libceed.VECTOR_ACTIVE)
   op_setup_tet.set_field("rho", rui_tet, libceed.BASIS_COLLOCATED,
                          qdata_tet)
@@ -906,9 +897,6 @@ def test_520(ceed_resource):
 
   rx_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, dim, indx_hex,
                             cmode=libceed.USE_POINTER)
-  strides = np.array([1, p_hex*p_hex, p_hex*p_hex*dim], dtype="int32")
-  rxi_hex = ceed.StridedElemRestriction(nelem_hex, p_hex*p_hex,
-                                        nelem_hex*p_hex*p_hex, dim, strides)
 
   ru_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, 1, indx_hex,
                                 cmode=libceed.USE_POINTER)
@@ -935,7 +923,8 @@ def test_520(ceed_resource):
 
   # Operators
   op_setup_hex = ceed.Operator(qf_setup_tet)
-  op_setup_hex.set_field("weights", rxi_hex, bx_hex, libceed.VECTOR_NONE)
+  op_setup_hex.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_hex,
+                         libceed.VECTOR_NONE)
   op_setup_hex.set_field("dx", rx_hex, bx_hex, libceed.VECTOR_ACTIVE)
   op_setup_hex.set_field("rho", rui_hex, libceed.BASIS_COLLOCATED,
                          qdata_hex)
@@ -1021,9 +1010,6 @@ def test_521(ceed_resource):
 
   rx_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, dim, indx_tet,
                             cmode=libceed.USE_POINTER)
-  strides = np.array([1, p_tet, p_tet*dim], dtype="int32")
-  rxi_tet = ceed.StridedElemRestriction(nelem_tet, p_tet, nelem_tet*p_tet, dim,
-                                        strides)
 
   ru_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, 1, indx_tet,
                                 cmode=libceed.USE_POINTER)
@@ -1058,7 +1044,8 @@ def test_521(ceed_resource):
 
   # Operators
   op_setup_tet = ceed.Operator(qf_setup_tet)
-  op_setup_tet.set_field("weights", rxi_tet, bx_tet, libceed.VECTOR_NONE)
+  op_setup_tet.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_tet,
+                         libceed.VECTOR_NONE)
   op_setup_tet.set_field("dx", rx_tet, bx_tet, libceed.VECTOR_ACTIVE)
   op_setup_tet.set_field("rho", rui_tet, libceed.BASIS_COLLOCATED,
                          qdata_tet)
@@ -1083,9 +1070,6 @@ def test_521(ceed_resource):
 
   rx_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, dim, indx_hex,
                                 cmode=libceed.USE_POINTER)
-  strides = np.array([1, p_hex*p_hex, p_hex*p_hex*dim], dtype="int32")
-  rxi_hex = ceed.StridedElemRestriction(nelem_hex, p_hex*p_hex,
-                                        nelem_hex*p_hex*p_hex, dim, strides)
 
   ru_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, 1, indx_hex,
                                 cmode=libceed.USE_POINTER)
@@ -1112,7 +1096,8 @@ def test_521(ceed_resource):
 
   # Operators
   op_setup_hex = ceed.Operator(qf_setup_tet)
-  op_setup_hex.set_field("weights", rxi_hex, bx_hex, libceed.VECTOR_NONE)
+  op_setup_hex.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_hex,
+                         libceed.VECTOR_NONE)
   op_setup_hex.set_field("dx", rx_hex, bx_hex, libceed.VECTOR_ACTIVE)
   op_setup_hex.set_field("rho", rui_hex, libceed.BASIS_COLLOCATED,
                          qdata_hex)
@@ -1189,9 +1174,6 @@ def test_523(ceed_resource, capsys):
 
   rx_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, dim, indx_tet,
                             cmode=libceed.USE_POINTER)
-  strides = np.array([1, p_tet, p_tet*dim], dtype="int32")
-  rxi_tet = ceed.StridedElemRestriction(nelem_tet, p_tet, nelem_tet*p_tet, dim,
-                                        strides)
 
   ru_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, 1, indx_tet,
                                 cmode=libceed.USE_POINTER)
@@ -1226,7 +1208,8 @@ def test_523(ceed_resource, capsys):
 
   # Operators
   op_setup_tet = ceed.Operator(qf_setup_tet)
-  op_setup_tet.set_field("weights", rxi_tet, bx_tet, libceed.VECTOR_NONE)
+  op_setup_tet.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_tet,
+                         libceed.VECTOR_NONE)
   op_setup_tet.set_field("dx", rx_tet, bx_tet, libceed.VECTOR_ACTIVE)
   op_setup_tet.set_field("rho", rui_tet, libceed.BASIS_COLLOCATED,
                          qdata_tet)
@@ -1251,9 +1234,6 @@ def test_523(ceed_resource, capsys):
 
   rx_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, dim, indx_hex,
                                 cmode=libceed.USE_POINTER)
-  strides = np.array([1, p_hex*p_hex, p_hex*p_hex*dim], dtype="int32")
-  rxi_hex = ceed.StridedElemRestriction(nelem_hex, p_hex*p_hex,
-                                        nelem_hex*p_hex*p_hex, dim, strides)
 
   ru_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, 1, indx_hex,
                                 cmode=libceed.USE_POINTER)
@@ -1280,7 +1260,8 @@ def test_523(ceed_resource, capsys):
 
   # Operators
   op_setup_hex = ceed.Operator(qf_setup_tet)
-  op_setup_hex.set_field("weights", rxi_hex, bx_hex, libceed.VECTOR_NONE)
+  op_setup_hex.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_hex,
+                         libceed.VECTOR_NONE)
   op_setup_hex.set_field("dx", rx_hex, bx_hex, libceed.VECTOR_ACTIVE)
   op_setup_hex.set_field("rho", rui_hex, libceed.BASIS_COLLOCATED,
                          qdata_hex)
@@ -1365,9 +1346,6 @@ def test_524(ceed_resource):
 
   rx_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, dim, indx_tet,
                             cmode=libceed.USE_POINTER)
-  strides = np.array([1, p_tet, p_tet*dim], dtype="int32")
-  rxi_tet = ceed.StridedElemRestriction(nelem_tet, p_tet, nelem_tet*p_tet, dim,
-                                        strides)
 
   ru_tet = ceed.ElemRestriction(nelem_tet, p_tet, ndofs, 1, indx_tet,
                                 cmode=libceed.USE_POINTER)
@@ -1402,7 +1380,8 @@ def test_524(ceed_resource):
 
   # Operators
   op_setup_tet = ceed.Operator(qf_setup_tet)
-  op_setup_tet.set_field("weights", rxi_tet, bx_tet, libceed.VECTOR_NONE)
+  op_setup_tet.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_tet,
+                         libceed.VECTOR_NONE)
   op_setup_tet.set_field("dx", rx_tet, bx_tet, libceed.VECTOR_ACTIVE)
   op_setup_tet.set_field("rho", rui_tet, libceed.BASIS_COLLOCATED,
                          qdata_tet)
@@ -1427,9 +1406,6 @@ def test_524(ceed_resource):
 
   rx_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, dim, indx_hex,
                                 cmode=libceed.USE_POINTER)
-  strides = np.array([1, p_hex*p_hex, p_hex*p_hex*dim], dtype="int32")
-  rxi_hex = ceed.StridedElemRestriction(nelem_hex, p_hex*p_hex,
-                                        nelem_hex*p_hex*p_hex, dim, strides)
 
   ru_hex = ceed.ElemRestriction(nelem_hex, p_hex*p_hex, ndofs, 1, indx_hex,
                                 cmode=libceed.USE_POINTER)
@@ -1456,7 +1432,8 @@ def test_524(ceed_resource):
 
   # Operators
   op_setup_hex = ceed.Operator(qf_setup_tet)
-  op_setup_hex.set_field("weights", rxi_hex, bx_hex, libceed.VECTOR_NONE)
+  op_setup_hex.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_hex,
+                         libceed.VECTOR_NONE)
   op_setup_hex.set_field("dx", rx_hex, bx_hex, libceed.VECTOR_ACTIVE)
   op_setup_hex.set_field("rho", rui_hex, libceed.BASIS_COLLOCATED,
                          qdata_hex)
