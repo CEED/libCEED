@@ -21,10 +21,6 @@
 #  include <math.h>
 #endif
 
-#ifndef M_PI
-#  define M_PI    3.14159265358979323846
-#endif
-
 // *****************************************************************************
 // This QFunction sets up the rhs and true solution for the problem
 // *****************************************************************************
@@ -63,6 +59,7 @@ CEED_QFUNCTION(SetupMassRhs3)(void *ctx, const CeedInt Q,
     // Component 3
     rhs[i+2*Q] = rhs[i+0*Q];
   } // End of Quadrature Point Loop
+
   return 0;
 }
 
@@ -95,6 +92,7 @@ CEED_QFUNCTION(Mass3)(void *ctx, const CeedInt Q,
     // Component 3
     v[i+2*Q] = r * u[i+2*Q];
   } // End of Quadrature Point Loop
+
   return 0;
 }
 // -----------------------------------------------------------------------------

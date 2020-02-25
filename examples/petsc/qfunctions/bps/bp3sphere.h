@@ -21,10 +21,6 @@
 #  include <math.h>
 #endif
 
-#ifndef M_PI
-#  define M_PI    3.14159265358979323846
-#endif
-
 // *****************************************************************************
 // This QFunction sets up the geometric factors required for integration and
 //   coordinate transformations when reference coordinates have a different
@@ -250,7 +246,7 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q,
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Read spatial derivatives of u
-    const CeedScalar du[3]           =  {ug[i+Q*0],
+    const CeedScalar du[2]           =  {ug[i+Q*0],
                                          ug[i+Q*1]
                                         };
     // Read qdata
@@ -268,6 +264,7 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q,
                         du[1] * dXdxdXdxT[1][j]);
 
   } // End of Quadrature Point Loop
+
   return 0;
 }
 // -----------------------------------------------------------------------------
