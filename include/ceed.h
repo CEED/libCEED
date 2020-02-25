@@ -174,6 +174,17 @@ typedef enum {
   CEED_OWN_POINTER,
 } CeedCopyMode;
 
+/// Denotes type of vector norm to be computed
+/// @ingroup CeedVector
+typedef enum {
+  /// L_1 norm: sum_i |x_i|
+  CEED_NORM_1,
+  /// L_2 norm: sqrt(sum_i |x_i|^2)
+  CEED_NORM_2,
+  /// L_Infinity norm: max_i |x_i|
+  CEED_NORM_MAX,
+} CeedNormType;
+
 CEED_EXTERN const char *const CeedCopyModes[];
 
 CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedInt len, CeedVector *vec);
@@ -188,6 +199,8 @@ CEED_EXTERN int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
 CEED_EXTERN int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array);
 CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec,
     const CeedScalar **array);
+CEED_EXTERN int CeedVectorNorm(CeedVector vec, CeedNormType type,
+                               CeedScalar *norm);
 CEED_EXTERN int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream);
 CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedInt *length);
 CEED_EXTERN int CeedVectorDestroy(CeedVector *vec);
@@ -229,24 +242,50 @@ typedef enum {
 
 CEED_EXTERN const char *const CeedTransposeModes[];
 
-CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt nnodes, CeedInt ncomp, CeedMemType mtype,
-    CeedCopyMode cmode,
+/// Denotes whether a L-vector is ordered [component, node] or [node, component]
+///   with the right-most index being contiguous in memory
+/// @ingroup CeedElemRestriction
+typedef enum {
+  /// L-vector data is not interlaced, ordered [component, node]
+  CEED_NONINTERLACED,
+  /// L-vector data is interlaced, ordered [node, component]
+  CEED_INTERLACED
+} CeedInterlaceMode;
+
+CEED_EXTERN const char *const CeedInterlaceModes[];
+
+CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInterlaceMode imode,
+    CeedInt nelem, CeedInt elemsize, CeedInt nnodes, CeedInt ncomp,
+    CeedMemType mtype, CeedCopyMode cmode, const CeedInt *indices,
+    CeedElemRestriction *rstr);
+CEED_EXTERN int CeedElemRestrictionCreateIdentity(Ceed ceed,
+    CeedInterlaceMode imode,CeedInt nelem, CeedInt elemsize, CeedInt nnodes,
+    CeedInt ncomp, CeedElemRestriction *rstr);
+CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed,
+    CeedInterlaceMode imode,CeedInt nelem, CeedInt elemsize, CeedInt blksize,
+    CeedInt nnodes, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
     const CeedInt *indices, CeedElemRestriction *rstr);
-CEED_EXTERN int CeedElemRestrictionCreateIdentity(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt nnodes, CeedInt ncomp, CeedElemRestriction *rstr);
-CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt blksize, CeedInt nnodes, CeedInt ncomp,
-    CeedMemType mtype,
-    CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
     CeedVector *lvec, CeedVector *evec);
 CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr,
-    CeedTransposeMode tmode, CeedTransposeMode lmode, CeedVector u,
-    CeedVector ru, CeedRequest *request);
+    CeedTransposeMode tmode, CeedVector u, CeedVector ru, CeedRequest *request);
 CEED_EXTERN int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr,
-    CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
-    CeedVector u, CeedVector ru, CeedRequest *request);
+    CeedInt block, CeedTransposeMode tmode, CeedVector u, CeedVector ru,
+    CeedRequest *request);
+CEED_EXTERN int CeedElemRestrictionGetIMode(CeedElemRestriction rstr,
+    CeedInterlaceMode *Imode);
+CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
+    CeedInt *numelem);
+CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
+    CeedInt *elemsize);
+CEED_EXTERN int CeedElemRestrictionGetNumNodes(CeedElemRestriction rstr,
+    CeedInt *numnodes);
+CEED_EXTERN int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
+    CeedInt *numcomp);
+CEED_EXTERN int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
+    CeedInt *numblk);
+CEED_EXTERN int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
+    CeedInt *blksize);
 CEED_EXTERN int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
     CeedVector mult);
 CEED_EXTERN int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream);
@@ -396,8 +435,7 @@ CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf,
                                    CeedOperator *op);
 CEED_EXTERN int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op);
 CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *fieldname,
-                                     CeedElemRestriction r,
-                                     CeedTransposeMode lmode, CeedBasis b,
+                                     CeedElemRestriction r, CeedBasis b,
                                      CeedVector v);
 CEED_EXTERN int CeedCompositeOperatorAddSub(CeedOperator compositeop,
     CeedOperator subop);

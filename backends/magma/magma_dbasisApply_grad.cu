@@ -30,15 +30,18 @@ dbasis_apply_eval_grad_kernel_batched(
     const int dim, const int ncomp, const int nqpt, 
     const int pre_org, const int tmp_size, 
     const double* dinterp1d, const double *dgrad1d, magma_trans_t transT,
-    const double *dU, const int ustride, double *dV, const int vstride, const int dim_ctr)
+    const double *dU, const int u_elstride, const int u_compstride, const int u_dimstride, 
+          double *dV, const int v_elstride, const int v_compstride, const int v_dimstride, 
+    const int dim_id )
 {
-    const int batchid = blockIdx.x;
+    const int elem_id = blockIdx.x;
+    const int comp_id = blockIdx.y;
     int tx = threadIdx.x;
     int pre, post;
     
     // advance to the respective element in the batch
-    dU += batchid * ustride;
-    dV += batchid * vstride;
+    dU += (elem_id * u_elstride) + (comp_id * u_compstride);
+    dV += (elem_id * v_elstride) + (comp_id * v_compstride);
 
     double* sTinterp = (double*)shared_data;
     double* sTgrad = sTinterp + P * Q;
@@ -51,8 +54,7 @@ dbasis_apply_eval_grad_kernel_batched(
     pre  = pre_org; // the value of pre is independent from the loop below
     post = 1;
     dbasis_apply_eval_grad_device<P, Q>
-    ( dim_ctr, dim, ncomp, pre, post, tmp_size, sTinterp, sTgrad, transT, dU, dV, shared_data + (2*P*Q) );
-    __syncthreads();
+    ( dim_id, dim, ncomp, pre, post, tmp_size, sTinterp, sTgrad, transT, dU, dV, shared_data + (2*P*Q) );
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -61,11 +63,10 @@ static magma_int_t
 dbasis_apply_eval_grad_kernel_batched_driver( 
                 magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt, 
                 const double* dinterp1d, const double *dgrad1d, magma_trans_t transT,
-                const double *dU, magma_int_t ustride, 
-                      double *dV, magma_int_t vstride,
-                magma_int_t batchCount, magma_int_t dim_ctr)
+                const double *dU, magma_int_t u_elstride, const int u_compstride, const int u_dimstride,
+                      double *dV, magma_int_t v_elstride, const int v_compstride, const int v_dimstride,
+                magma_int_t dim_id, magma_int_t nelem)
 {
-
     // ncomp*Q*CeedIntPow(P>Q?P:Q,dim-1);
     // originally the exponent is (dim-1), but we use dim because 
     // we have to read the original u in shared memory
@@ -82,14 +83,21 @@ dbasis_apply_eval_grad_kernel_batched_driver(
     
     //printf("%d threads, shared memory = %f KB\n", nthreads, (float)shmem / 1024.0);
     
-    if( nthreads > 1024 || shmem >= 48000 ) {
+    if( shmem >= 49000 ) {
+        cudaFuncSetAttribute(dbasis_apply_eval_grad_kernel_batched<P,Q>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
+    }
+
+    if( nthreads > 1024 ) {
         return 1;    // launch failed
     }
     else { 
         dim3 threads(nthreads, 1, 1);
-        dim3 grid(batchCount, 1, 1);
+        dim3 grid(nelem, ncomp, 1);
         dbasis_apply_eval_grad_kernel_batched<P, Q><<<grid, threads, shmem, 0>>>
-        ( dim, ncomp, nqpt, pre, tmp_size, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, dim_ctr);
+        ( dim, ncomp, nqpt, pre, tmp_size, dinterp1d, dgrad1d, transT, 
+          dU, u_elstride, u_compstride, u_dimstride, 
+          dV, v_elstride, v_compstride, v_dimstride, 
+          dim_id );
         return 0;
     } 
 }
@@ -101,22 +109,22 @@ magmablas_dbasis_apply_batched_eval_grad_2(
     magma_int_t Q, 
     magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt, 
     const double* dinterp1d, const double *dgrad1d, magma_trans_t transT,
-    const double *dU, magma_int_t ustride, 
-          double *dV, magma_int_t vstride,
-    magma_int_t batchCount, magma_int_t dim_ctr)
+    const double *dU, magma_int_t u_elstride, magma_int_t u_compstride, magma_int_t u_dimstride,
+          double *dV, magma_int_t v_elstride,magma_int_t v_compstride, magma_int_t v_dimstride,
+    magma_int_t dim_id, magma_int_t nelem)
 {
     magma_int_t launch_failed = 0;
     switch(Q){
-        case  1: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 1>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  2: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 2>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  3: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 3>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  4: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 4>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  5: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 5>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  6: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 6>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  7: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 7>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  8: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 8>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  9: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 9>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case 10: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P,10>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
+        case  1: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 1>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  2: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 2>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  3: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 3>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  4: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 4>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  5: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 5>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  6: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 6>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  7: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 7>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  8: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 8>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  9: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P, 9>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case 10: launch_failed = dbasis_apply_eval_grad_kernel_batched_driver<P,10>( dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
         default: launch_failed = 1;
     }
     return launch_failed;
@@ -126,24 +134,24 @@ magmablas_dbasis_apply_batched_eval_grad_2(
 static magma_int_t 
 magmablas_dbasis_apply_batched_eval_grad_1( 
     magma_int_t P, magma_int_t Q, 
-    magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt, 
+    magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt,
     const double* dinterp1d, const double *dgrad1d, magma_trans_t transT,
-    const double *dU, magma_int_t ustride, 
-          double *dV, magma_int_t vstride,
-    magma_int_t batchCount, magma_int_t dim_ctr )
+    const double *dU, magma_int_t u_elstride, magma_int_t u_compstride, magma_int_t u_dimstride,
+          double *dV, magma_int_t v_elstride, magma_int_t v_compstride, magma_int_t v_dimstride,
+    magma_int_t dim_id, magma_int_t nelem )
 {
     magma_int_t launch_failed = 0;
     switch(P){
-        case  1: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 1>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  2: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 2>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  3: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 3>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  4: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 4>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  5: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 5>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  6: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 6>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  7: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 7>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  8: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 8>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case  9: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 9>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
-        case 10: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2<10>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, ustride, dV, vstride, batchCount, dim_ctr ); break;
+        case  1: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 1>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  2: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 2>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  3: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 3>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  4: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 4>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  5: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 5>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  6: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 6>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  7: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 7>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  8: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 8>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case  9: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2< 9>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
+        case 10: launch_failed = magmablas_dbasis_apply_batched_eval_grad_2<10>(Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, dim_id, nelem); break;
         default: launch_failed = 1;
     }
     return launch_failed;
@@ -155,13 +163,17 @@ magmablas_dbasis_apply_batched_eval_grad(
     magma_int_t P, magma_int_t Q, 
     magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt, 
     const double* dinterp1d, const double *dgrad1d, CeedTransposeMode tmode,
-    const double *dU, magma_int_t ustride, 
-          double *dV, magma_int_t vstride,
-    magma_int_t batchCount, magma_int_t dim_ctr)
+    const double *dU, magma_int_t u_elstride, magma_int_t u_compstride, magma_int_t u_dimstride, 
+          double *dV, magma_int_t v_elstride, magma_int_t v_compstride, magma_int_t v_dimstride, 
+    magma_int_t dim_id, magma_int_t nelem )
 {    
     magma_int_t launch_failed = 0;
     magma_trans_t transT = (tmode == CEED_NOTRANSPOSE) ? MagmaNoTrans : MagmaTrans;
-    launch_failed = magmablas_dbasis_apply_batched_eval_grad_1(P, Q, dim, ncomp, nqpt, dinterp1d, dgrad1d, transT,  dU, ustride, dV, vstride, batchCount, dim_ctr);
+    launch_failed = magmablas_dbasis_apply_batched_eval_grad_1( P, Q, dim, ncomp, nqpt, 
+                                                                dinterp1d, dgrad1d, transT,  
+                                                                dU, u_elstride, u_compstride, u_dimstride, 
+                                                                dV, v_elstride, v_compstride, v_dimstride, 
+                                                                dim_id, nelem );
     
     if(launch_failed == 1) {
         // fall back to a ref. impl.

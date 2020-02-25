@@ -77,6 +77,7 @@ struct CeedVector_private {
   int (*GetArrayRead)(CeedVector, CeedMemType, const CeedScalar **);
   int (*RestoreArray)(CeedVector);
   int (*RestoreArrayRead)(CeedVector);
+  int (*Norm)(CeedVector, CeedNormType, CeedScalar *);
   int (*Destroy)(CeedVector);
   int refcount;
   CeedInt length;
@@ -87,20 +88,21 @@ struct CeedVector_private {
 
 struct CeedElemRestriction_private {
   Ceed ceed;
-  int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedTransposeMode,
-               CeedVector, CeedVector, CeedRequest *);
-  int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode,
-                    CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
+  int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector,
+               CeedRequest *);
+  int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector,
+                    CeedVector, CeedRequest *);
   int (*Destroy)(CeedElemRestriction);
   int refcount;
-  CeedInt nelem;    /* number of elements */
-  CeedInt elemsize; /* number of nodes per element */
-  CeedInt nnodes;   /* size of the L-vector, can be used for checking for
-                      correct vector sizes */
-  CeedInt ncomp;    /* number of components */
-  CeedInt blksize;  /* number of elements in a batch */
-  CeedInt nblk;     /* number of blocks of elements */
-  void *data;       /* place for the backend to store any data */
+  CeedInterlaceMode imode;  /* Interlacing mode for L-vector ordering */
+  CeedInt nelem;            /* number of elements */
+  CeedInt elemsize;         /* number of nodes per element */
+  CeedInt nnodes;           /* size of the L-vector, can be used for checking
+                                 for correct vector sizes */
+  CeedInt ncomp;            /* number of components */
+  CeedInt blksize;          /* number of elements in a batch */
+  CeedInt nblk;             /* number of blocks of elements */
+  void *data;               /* place for the backend to store any data */
 };
 
 struct CeedBasis_private {
@@ -117,23 +119,24 @@ struct CeedBasis_private {
   CeedInt P;             /* total number of nodes */
   CeedInt Q;             /* total number of quadrature points */
   CeedScalar *qref1d;    /* Array of length Q1d holding the locations of
-                            quadrature points on the 1D reference element [-1, 1] */
+                              quadrature points on the 1D reference
+                              element [-1, 1] */
   CeedScalar *qweight1d; /* array of length Q1d holding the quadrature weights on
-                            the reference element */
+                              the reference element */
   CeedScalar
   *interp;    /* row-major matrix of shape [Q, P] expressing the values of
-                            nodal basis functions at quadrature points */
+                   nodal basis functions at quadrature points */
   CeedScalar
   *interp1d;  /* row-major matrix of shape [Q1d, P1d] expressing the values of
-                            nodal basis functions at quadrature points */
+                   nodal basis functions at quadrature points */
   CeedScalar
-  *grad;      /* row-major matrix of shape [dim*Q, P] matrix expressing derivatives of
-                            nodal basis functions at quadrature points */
+  *grad;      /* row-major matrix of shape [dim*Q, P] matrix expressing
+                   derivatives of nodal basis functions at quadrature points */
   CeedScalar
-  *grad1d;    /* row-major matrix of shape [Q1d, P1d] matrix expressing derivatives of
-                            nodal basis functions at quadrature points */
+  *grad1d;    /* row-major matrix of shape [Q1d, P1d] matrix expressing
+                   derivatives of nodal basis functions at quadrature points */
   CeedTensorContract contract; /* tensor contraction object */
-  void *data;            /* place for the backend to store any data */
+  void *data;                  /* place for the backend to store any data */
 };
 
 struct CeedTensorContract_private {
@@ -157,7 +160,8 @@ struct CeedQFunction_private {
   int (*Apply)(CeedQFunction, CeedInt, CeedVector *, CeedVector *);
   int (*Destroy)(CeedQFunction);
   int refcount;
-  CeedInt vlength;    // Number of quadrature points must be padded to a multiple of vlength
+  CeedInt vlength;    /* Number of quadrature points must be padded to a
+                           multiple of vlength */
   CeedQFunctionField *inputfields;
   CeedQFunctionField *outputfields;
   CeedInt numinputfields, numoutputfields;
@@ -168,7 +172,7 @@ struct CeedQFunction_private {
   bool identity;
   void *ctx;      /* user context for function */
   size_t ctxsize; /* size of user context; may be used to copy to a device */
-  void *data;     /* backend data */
+  void *data;     /* place for the backend to store any data */
 };
 
 /// Struct to handle the context data to use the Fortran QFunction stub
@@ -194,11 +198,11 @@ typedef struct {
 } fContext;
 
 struct CeedOperatorField_private {
-  CeedElemRestriction Erestrict; /// Restriction from L-vector or NULL if identity
-  CeedTransposeMode lmode;       /// Transpose mode for lvector ordering
-  CeedBasis basis;               /// Basis or NULL for collocated fields
-  CeedVector
-  vec;                /// State vector for passive fields, NULL for active fields
+  CeedElemRestriction Erestrict; /* Restriction from L-vector */
+  CeedBasis basis;               /* Basis or CEED_BASIS_COLLOCATED for
+                                      collocated fields */
+  CeedVector vec;                /* State vector for passive fields or
+                                      CEED_VECTOR_NONE for no vector */
 };
 
 struct CeedOperator_private {

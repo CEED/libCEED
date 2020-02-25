@@ -8,6 +8,7 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedElemRestriction Erestrictx, Erestrictu,
                       Erestrictxi, Erestrictui,
                       Erestrictqi;
@@ -49,17 +50,18 @@ int main(int argc, char **argv) {
   }
 
   // Restrictions
-  CeedElemRestrictionCreate(ceed, nelem, P*P, ndofs, dim, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, imode, nelem, P*P, ndofs, dim, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictx);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, P*P, nelem*P*P, dim,
+  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, P*P, nelem*P*P, dim,
                                     &Erestrictxi);
 
-  CeedElemRestrictionCreate(ceed, nelem, P*P, ndofs, 1, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, imode, nelem, P*P, ndofs, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictu);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q, nqpts, 1, &Erestrictui);
+  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, Q*Q, nqpts, 1,
+                                    &Erestrictui);
 
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q, nqpts, dim*(dim+1)/2,
-                                    &Erestrictqi);
+  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, Q*Q, nqpts,
+                                    dim*(dim+1)/2, &Erestrictqi);
 
   // Bases
   CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, P, Q, CEED_GAUSS, &bx);
@@ -74,12 +76,10 @@ int main(int argc, char **argv) {
   // Operator - setup
   CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_setup);
-  CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE, bx,
+  CeedOperatorSetField(op_setup, "dx", Erestrictx, bx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "_weight", Erestrictxi, bx, CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setup, "qdata", Erestrictqi, CEED_BASIS_COLLOCATED,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "_weight", Erestrictxi, CEED_NOTRANSPOSE, bx,
-                       CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "qdata", Erestrictqi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Apply Setup Operator
   CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
@@ -93,12 +93,10 @@ int main(int argc, char **argv) {
   // Operator - apply
   CeedOperatorCreate(ceed, qf_diff, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_diff);
-  CeedOperatorSetField(op_diff, "du", Erestrictu, CEED_NOTRANSPOSE, bu,
-                       CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_diff, "qdata", Erestrictqi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_diff, "dv", Erestrictu, CEED_NOTRANSPOSE, bu,
-                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diff, "du", Erestrictu, bu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diff, "qdata", Erestrictqi, CEED_BASIS_COLLOCATED,
+                       qdata);
+  CeedOperatorSetField(op_diff, "dv", Erestrictu, bu, CEED_VECTOR_ACTIVE);
 
   // Assemble diagonal
   CeedOperatorAssembleLinearDiagonal(op_diff, &A, CEED_REQUEST_IMMEDIATE);
@@ -127,7 +125,7 @@ int main(int argc, char **argv) {
   // Check output
   CeedVectorGetArrayRead(A, CEED_MEM_HOST, &a);
   for (int i=0; i<ndofs; i++)
-    if (fabs(a[i] - assembledTrue[i]) > 1e-14)
+    if (fabs(a[i] - assembledTrue[i]) > 1e-13)
       // LCOV_EXCL_START
       printf("[%d] Error in assembly: %f != %f\n", i, a[i], assembledTrue[i]);
   // LCOV_EXCL_STOP

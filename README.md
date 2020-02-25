@@ -188,8 +188,8 @@ cd ../..
 
 cd examples/navier-stokes
 make
-./navierstokes -ceed /cpu/self
-./navierstokes -ceed /gpu/occa
+./navierstokes -ceed /cpu/self -petscspace_degree 1
+./navierstokes -ceed /gpu/occa -petscspace_degree 1
 cd ../..
 ```
 
@@ -243,6 +243,17 @@ kernel sources inside the user OCCA directory, `~/.occa` using
 This will allow OCCA to find the sources regardless of the location of the CEED
 library. One may occasionally need to clear the OCCA cache, which can be accomplished
 by removing the `~/.occa` directory or by calling `$(OCCA_DIR)/bin/occa clear -a`.
+
+To install libCEED for Python, run
+
+    python setup.py build install
+
+with the desired setuptools options, such as `--user`.
+
+Alternatively, if libCEED is installed in the directory specified by the
+environment variable `CEED_DIR`, then run
+
+    pip install .
 
 ### pkg-config
 

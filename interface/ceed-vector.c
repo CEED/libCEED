@@ -16,6 +16,7 @@
 
 #include <ceed-impl.h>
 #include <ceed-backend.h>
+#include <math.h>
 
 /// @cond DOXYGEN_SKIP
 static struct CeedVector_private ceed_vector_active;
@@ -338,6 +339,59 @@ int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
 **/
 int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
   *length = vec->length;
+  return 0;
+}
+
+/**
+  @brief Get the norm of a CeedVector.
+
+  Note: This operation is local to the CeedVector. This function will likely
+          not provide the desired results for the norm of the libCEED portion
+          of a parallel vector or a CeedVector with duplicated or hanging nodes. 
+
+  @param vec           CeedVector to retrieve maximum value
+  @param type          Norm type CEED_NORM_1, CEED_NORM_2, or CEED_NORM_MAX
+  @param[out] norm     Variable to store norm value
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm) {
+  int ierr;
+
+  // Backend impl for GPU, if added
+  if (vec->Norm) {
+    ierr = vec->Norm(vec, type, norm); CeedChk(ierr);
+    return 0;
+  }
+  
+  const CeedScalar *array;
+  ierr = CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &array); CeedChk(ierr);
+
+  *norm = 0.;
+  switch (type) {
+  case CEED_NORM_1:
+    for (int i=0; i<vec->length; i++) {
+      *norm += fabs(array[i]);
+    }
+    break;
+  case CEED_NORM_2:
+    for (int i=0; i<vec->length; i++) {
+      *norm += fabs(array[i])*fabs(array[i]);
+    }
+    break;
+  case CEED_NORM_MAX:
+    for (int i=0; i<vec->length; i++) {
+      const CeedScalar absi = fabs(array[i]);
+      *norm = *norm > absi ? *norm : absi;
+    }
+  }
+  if (type == CEED_NORM_2)
+    *norm = sqrt(*norm);
+
+  ierr = CeedVectorRestoreArrayRead(vec, &array); CeedChk(ierr);
+
   return 0;
 }
 

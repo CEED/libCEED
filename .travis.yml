@@ -30,7 +30,10 @@ addons:
     - lapack
     - openblas
 
-jobs:
+env:
+  - FC=gfortran
+
+matrix:
   include:
    - os: linux
      arch: ppc64le
@@ -40,9 +43,21 @@ jobs:
      arch: arm64
      compiler: gcc
      env: FC=gfortran
-
-env:
-  - FC=gfortran
+   - language: python
+     arch: amd64
+     os: linux
+     dist: xenial
+     compiler: gcc
+     python: 3.8
+     install:
+       - pip install -r requirements.txt
+     script:
+       - make info && make -j4 && export CEED_DIR=$PWD
+       - pip install .
+       - cd tests/python
+       - python setup-qfunctions.py build
+       - pytest test-*.py --ceed /cpu/self/ref/serial -vv
+     after_success: skip
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -69,11 +84,13 @@ install:
   - cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..;
   - export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH MPI=0;
 # PETSc
-  - export PETSC_INSTALL=$HOME/install/petsc-3.12.0
+  - PETSC_COMMIT=7b0709de4e8bbc57c48540e4a67f216f8a309ed6 # master 2020-02-19
+  - export PETSC_INSTALL=$HOME/install/petsc-$PETSC_COMMIT
   - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
-        || (  curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.12.0.tar.gz
-        && tar xf petsc-lite-3.12.0.tar.gz
-        && cd petsc-3.12.0
+        || (  curl -O https://gitlab.com/petsc/petsc/-/archive/$PETSC_COMMIT/petsc-$PETSC_COMMIT.tar.gz
+        && rm -rf $HOME/install/petsc*
+        && tar xf petsc-$PETSC_COMMIT.tar.gz
+        && cd petsc-$PETSC_COMMIT
         && ./configure --with-debugging=0 COPTFLAGS=-O --with-mpi=0 --with-fc=0 --with-cxx=0 --prefix=$PETSC_INSTALL
         && make
         && make install )

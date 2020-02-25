@@ -24,14 +24,14 @@
 //
 // Build with:
 //
-//     make [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>]
+//     make [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>] navierstokes
 //
 // Sample runs:
 //
-//     navierstokes
-//     navierstokes -ceed -problem density_current /cpu/self
-//     navierstokes -ceed -problem advection /gpu/occa
+//     ./navierstokes -ceed /cpu/self -problem density_current -petscspace_degree 1
+//     ./navierstokes -ceed /gpu/occa -problem advection -petscspace_degree 1
 //
+//TESTARGS -ceed {ceed_resource} -test -petscspace_degree 1
 
 /// @file
 /// Navier-Stokes example using PETSc
@@ -39,153 +39,194 @@
 const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 
 #include <petscts.h>
-#include <petscdmda.h>
+#include <petscdmplex.h>
 #include <ceed.h>
 #include <stdbool.h>
 #include <petscsys.h>
 #include "common.h"
 #include "advection.h"
+#include "advection2d.h"
 #include "densitycurrent.h"
 
 // Problem Options
 typedef enum {
-  NS_DENSITY_CURRENT = 0, NS_ADVECTION = 1
+  NS_DENSITY_CURRENT = 0,
+  NS_ADVECTION = 1,
+  NS_ADVECTION2D = 2,
 } problemType;
-static const char *const problemTypes[] = {"density_current", "advection",
-                                           "problemType","NS_",0
-                                          };
+static const char *const problemTypes[] = {
+  "density_current",
+  "advection",
+  "advection2d",
+  "problemType","NS_",0
+};
+
+typedef enum {
+  STAB_NONE = 0,
+  STAB_SU = 1,   // Streamline Upwind
+  STAB_SUPG = 2, // Streamline Upwind Petrov-Galerkin
+} StabilizationType;
+static const char *const StabilizationTypes[] = {
+  "NONE",
+  "SU",
+  "SUPG",
+  "StabilizationType", "STAB_", NULL
+};
 
 // Problem specific data
 typedef struct {
-  CeedQFunctionUser ics, apply;
-  const char *icsfname, *applyfname;
+  CeedInt dim, qdatasize;
+  CeedQFunctionUser setup, ics, apply_rhs, apply_ifunction;
+  PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
+                       PetscScalar[], void*);
+  const char *setup_loc, *ics_loc, *apply_rhs_loc, *apply_ifunction_loc;
+  const bool non_zero_time;
 } problemData;
 
-problemData problemOptions[2] = {
+problemData problemOptions[] = {
   [NS_DENSITY_CURRENT] = {
+    .dim = 3,
+    .qdatasize = 10,
+    .setup = Setup,
+    .setup_loc = Setup_loc,
     .ics = ICsDC,
-    .apply = DC,
-    .icsfname = ICsDC_loc,
-    .applyfname = DC_loc
+    .apply_rhs = DC,
+    .ics_loc = ICsDC_loc,
+    .apply_rhs_loc = DC_loc,
+    .apply_ifunction = IFunction_DC,
+    .apply_ifunction_loc = IFunction_DC_loc,
+    .bc = Exact_DC,
+    .non_zero_time = false,
   },
   [NS_ADVECTION] = {
+    .dim = 3,
+    .qdatasize = 10,
+    .setup = Setup,
+    .setup_loc = Setup_loc,
     .ics = ICsAdvection,
-    .apply = Advection,
-    .icsfname = ICsAdvection_loc,
-    .applyfname = Advection_loc,
-  }
+    .apply_rhs = Advection,
+    .ics_loc = ICsAdvection_loc,
+    .apply_rhs_loc = Advection_loc,
+    .apply_ifunction = IFunction_Advection,
+    .apply_ifunction_loc = IFunction_Advection_loc,
+    .bc = Exact_Advection,
+    .non_zero_time = true,
+  },
+  [NS_ADVECTION2D] = {
+    .dim = 2,
+    .qdatasize = 5,
+    .setup = Setup2d,
+    .setup_loc = Setup2d_loc,
+    .ics = ICsAdvection2d,
+    .ics_loc = ICsAdvection2d_loc,
+    .apply_rhs = Advection2d,
+    .apply_rhs_loc = Advection2d_loc,
+    .apply_ifunction = IFunction_Advection2d,
+    .apply_ifunction_loc = IFunction_Advection2d_loc,
+    .bc = Exact_Advection2d,
+    .non_zero_time = true,
+  },
 };
 
-// Utility function, compute three factors of an integer
-static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
-  for (PetscInt d=0,sizeleft=size; d<3; d++) {
-    PetscInt try = (PetscInt)PetscCeilReal(PetscPowReal(sizeleft, 1./(3 - d)));
-    while (try * (sizeleft / try) != sizeleft) try++;
-    m[reverse ? 2-d : d] = try;
-    sizeleft /= try;
-  }
-}
+typedef struct SimpleBC_ *SimpleBC;
+struct SimpleBC_ {
+  PetscInt nwall, nslip[3];
+  PetscInt walls[10], slips[3][10];
+};
 
-// Utility function, compute the number of nodes from the global grid
-static void GlobalNode(const PetscInt p[3], const PetscInt irank[3],
-                       const PetscBool periodic[3],
-                       PetscInt degree, const PetscInt melem[3],
-                       PetscInt mnode[3]) {
-  for (int d=0; d<3; d++)
-    mnode[d] = degree*melem[d] + (!periodic[d] && irank[d] == p[d]-1);
-}
-
-// Utility function
-static PetscInt GlobalStart(const PetscInt p[3], const PetscInt irank[3],
-                            const PetscBool periodic[3],
-                            PetscInt degree, const PetscInt melem[3]) {
-  PetscInt start = 0;
-  // Dumb brute-force is easier to read
-  for (PetscInt i=0; i<p[0]; i++) {
-    for (PetscInt j=0; j<p[1]; j++) {
-      for (PetscInt k=0; k<p[2]; k++) {
-        PetscInt mnode[3], ijkrank[] = {i,j,k};
-        if (i == irank[0] && j == irank[1] && k == irank[2]) return start;
-        GlobalNode(p, ijkrank, periodic, degree, melem, mnode);
-        start += mnode[0] * mnode[1] * mnode[2];
-      }
-    }
-  }
-  return -1;
+// Essential BC dofs are encoded in closure indices as -(i+1).
+static PetscInt Involute(PetscInt i) {
+  return i >= 0 ? i : -(i+1);
 }
 
 // Utility function to create local CEED restriction
-static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
-                             CeedInt P, CeedInt ncomp,
-                             CeedElemRestriction *Erestrict) {
-  const PetscInt Nelem = melem[0]*melem[1]*melem[2];
-  PetscInt mnode[3], *idx, *idxp;
+static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
+                                                CeedElemRestriction *Erestrict) {
 
-  for (int d=0; d<3; d++) mnode[d] = melem[d]*(P-1) + 1;
-  idxp = idx = malloc(Nelem*P*P*P*sizeof idx[0]);
-  for (CeedInt i=0; i<melem[0]; i++) {
-    for (CeedInt j=0; j<melem[1]; j++) {
-      for (CeedInt k=0; k<melem[2]; k++,idxp += P*P*P) {
-        for (CeedInt ii=0; ii<P; ii++) {
-          for (CeedInt jj=0; jj<P; jj++) {
-            for (CeedInt kk=0; kk<P; kk++) {
-              if (0) { // This is the C-style (i,j,k) ordering that I prefer
-                idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mnode[1] +
-                                         (j*(P-1)+jj))*mnode[2] +
-                                        (k*(P-1)+kk));
-              } else { // (k,j,i) ordering for consistency with MFEM example
-                idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mnode[1] +
-                                         (j*(P-1)+jj))*mnode[2] +
-                                        (k*(P-1)+kk));
-              }
-            }
-          }
+  PetscSection   section;
+  PetscInt       c, cStart, cEnd, Nelem, Ndof, *erestrict, eoffset, nfields, dim;
+  PetscErrorCode ierr;
+  Vec Uloc;
+
+  PetscFunctionBeginUser;
+  ierr = DMGetDimension(dm, &dim);CHKERRQ(ierr);
+  ierr = DMGetLocalSection(dm,&section);CHKERRQ(ierr);
+  ierr = PetscSectionGetNumFields(section, &nfields);CHKERRQ(ierr);
+  PetscInt ncomp[nfields], fieldoff[nfields+1];
+  fieldoff[0] = 0;
+  for (PetscInt f=0; f<nfields; f++) {
+    ierr = PetscSectionGetFieldComponents(section, f, &ncomp[f]);CHKERRQ(ierr);
+    fieldoff[f+1] = fieldoff[f] + ncomp[f];
+  }
+
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  Nelem = cEnd - cStart;
+  ierr = PetscMalloc1(Nelem*PetscPowInt(P, dim), &erestrict);CHKERRQ(ierr);
+  for (c=cStart,eoffset=0; c<cEnd; c++) {
+    PetscInt numindices, *indices, nnodes;
+    ierr = DMPlexGetClosureIndices(dm,section,section,c,&numindices,&indices,NULL);CHKERRQ(ierr);
+    if (numindices % fieldoff[nfields]) SETERRQ1(PETSC_COMM_SELF,PETSC_ERR_ARG_INCOMP,"Number of closure indices not compatible with Cell %D",c);
+    nnodes = numindices / fieldoff[nfields];
+    for (PetscInt i=0; i<nnodes; i++) {
+      // Check that indices are blocked by node and thus can be coalesced as a single field with
+      // fieldoff[nfields] = sum(ncomp) components.
+      for (PetscInt f=0; f<nfields; f++) {
+        for (PetscInt j=0; j<ncomp[f]; j++) {
+          if (Involute(indices[fieldoff[f]*nnodes + i*ncomp[f] + j])
+              != Involute(indices[i*ncomp[0]]) + fieldoff[f] + j)
+            SETERRQ4(PETSC_COMM_SELF,PETSC_ERR_ARG_INCOMP,"Cell %D closure indices not interlaced for node %D field %D component %D",c,i,f,j);
         }
       }
+      // Essential boundary conditions are encoded as -(loc+1), but we don't care so we decode.
+      PetscInt loc = Involute(indices[i*ncomp[0]]);
+      erestrict[eoffset++] = loc / fieldoff[nfields];
     }
+    ierr = DMPlexRestoreClosureIndices(dm,section,section,c,&numindices,&indices,NULL);CHKERRQ(ierr);
   }
-  CeedElemRestrictionCreate(ceed, Nelem, P*P*P, mnode[0]*mnode[1]*mnode[2], ncomp,
-                            CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
+  if (eoffset != Nelem*PetscPowInt(P, dim)) SETERRQ3(PETSC_COMM_SELF,PETSC_ERR_LIB,"ElemRestriction of size (%D,%D) initialized %D nodes",Nelem,PetscPowInt(P, dim),eoffset);
+  ierr = DMGetLocalVector(dm, &Uloc);CHKERRQ(ierr);
+  ierr = VecGetLocalSize(Uloc, &Ndof);CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm, &Uloc);CHKERRQ(ierr);
+  CeedElemRestrictionCreate(ceed, CEED_INTERLACED, Nelem, PetscPowInt(P, dim), Ndof/fieldoff[nfields], fieldoff[nfields],
+                            CEED_MEM_HOST, CEED_COPY_VALUES, erestrict, Erestrict);
+  ierr = PetscFree(erestrict);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
-// PETSc user data
-typedef struct User_ *User;
-typedef struct Units_ *Units;
+static int CreateVectorFromPetscVec(Ceed ceed, Vec p, CeedVector *v) {
+  PetscErrorCode ierr;
+  PetscInt m;
 
-struct User_ {
-  MPI_Comm comm;
-  PetscInt degree;
-  PetscInt melem[3];
-  PetscInt outputfreq;
-  DM dm;
-  Ceed ceed;
-  Units units;
-  CeedVector qceed, gceed;
-  CeedOperator op;
-  VecScatter ltog;              // Scatter for all entries
-  VecScatter ltog0;             // Skip Dirichlet values for Q
-  VecScatter gtogD;             // global-to-global; only Dirichlet values for Q
-  Vec Qloc, Gloc, M, BC;
-  char outputfolder[PETSC_MAX_PATH_LEN];
-  PetscInt contsteps;
-};
+  PetscFunctionBeginUser;
+  ierr = VecGetLocalSize(p, &m);CHKERRQ(ierr);
+  ierr = CeedVectorCreate(ceed, m, v);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
 
-struct Units_ {
-  // fundamental units
-  PetscScalar meter;
-  PetscScalar kilogram;
-  PetscScalar second;
-  PetscScalar Kelvin;
-  // derived units
-  PetscScalar Pascal;
-  PetscScalar JperkgK;
-  PetscScalar mpersquareds;
-  PetscScalar WpermK;
-  PetscScalar kgpercubicm;
-  PetscScalar kgpersquaredms;
-  PetscScalar Joulepercubicm;
-};
+static int VectorPlacePetscVec(CeedVector c, Vec p) {
+  PetscErrorCode ierr;
+  PetscInt mceed,mpetsc;
+  PetscScalar *a;
+
+  PetscFunctionBeginUser;
+  ierr = CeedVectorGetLength(c, &mceed);CHKERRQ(ierr);
+  ierr = VecGetLocalSize(p, &mpetsc);CHKERRQ(ierr);
+  if (mceed != mpetsc) SETERRQ2(PETSC_COMM_SELF,PETSC_ERR_ARG_INCOMP,"Cannot place PETSc Vec of length %D in CeedVector of length %D",mpetsc,mceed);
+  ierr = VecGetArray(p, &a);CHKERRQ(ierr);
+  CeedVectorSetArray(c, CEED_MEM_HOST, CEED_USE_POINTER, a);
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insertEssential, Vec Qloc, PetscReal time, Vec faceGeomFVM, Vec cellGeomFVM, Vec gradFVM) {
+  PetscErrorCode ierr;
+  Vec Qbc;
+
+  PetscFunctionBegin;
+  ierr = DMGetNamedLocalVector(dm, "Qbc", &Qbc);CHKERRQ(ierr);
+  ierr = VecAXPY(Qloc, 1., Qbc);CHKERRQ(ierr);
+  ierr = DMRestoreNamedLocalVector(dm, "Qbc", &Qbc);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
 
 // This is the RHS of the ODE, given as u_t = G(t,u)
 // This function takes in a state vector Q and writes into G
@@ -193,81 +234,85 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   PetscErrorCode ierr;
   User user = *(User *)userData;
   PetscScalar *q, *g;
+  Vec Qloc, Gloc;
 
   // Global-to-local
   PetscFunctionBeginUser;
-  ierr = VecScatterBegin(user->ltog, Q, user->Qloc, INSERT_VALUES,
-                         SCATTER_REVERSE); CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog, Q, user->Qloc, INSERT_VALUES,
-                       SCATTER_REVERSE);
-  CHKERRQ(ierr);
-  ierr = VecZeroEntries(user->Gloc); CHKERRQ(ierr);
+  ierr = DMGetLocalVector(user->dm, &Qloc);CHKERRQ(ierr);
+  ierr = DMGetLocalVector(user->dm, &Gloc);CHKERRQ(ierr);
+  ierr = VecZeroEntries(Qloc);CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Qloc);CHKERRQ(ierr);
+  ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Qloc, 0.0,
+                                    NULL, NULL, NULL);CHKERRQ(ierr);
+  ierr = VecZeroEntries(Gloc); CHKERRQ(ierr);
 
   // Ceed Vectors
-  ierr = VecGetArrayRead(user->Qloc, (const PetscScalar **)&q); CHKERRQ(ierr);
-  ierr = VecGetArray(user->Gloc, &g); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(Qloc, (const PetscScalar**)&q); CHKERRQ(ierr);
+  ierr = VecGetArray(Gloc, &g); CHKERRQ(ierr);
   CeedVectorSetArray(user->qceed, CEED_MEM_HOST, CEED_USE_POINTER, q);
   CeedVectorSetArray(user->gceed, CEED_MEM_HOST, CEED_USE_POINTER, g);
 
   // Apply CEED operator
-  CeedOperatorApply(user->op, user->qceed, user->gceed,
-                    CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(user->op_rhs, user->qceed, user->gceed, CEED_REQUEST_IMMEDIATE);
 
   // Restore vectors
-  ierr = VecRestoreArrayRead(user->Qloc, (const PetscScalar **)&q); CHKERRQ(ierr);
-  ierr = VecRestoreArray(user->Gloc, &g); CHKERRQ(ierr);
+  ierr = VecRestoreArrayRead(Qloc, (const PetscScalar**)&q); CHKERRQ(ierr);
+  ierr = VecRestoreArray(Gloc, &g); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(G); CHKERRQ(ierr);
-
-  // Global-to-global
-  // G on the boundary = BC
-  ierr = VecScatterBegin(user->gtogD, user->BC, G, INSERT_VALUES,
-                         SCATTER_FORWARD); CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->gtogD, user->BC, G, INSERT_VALUES,
-                       SCATTER_FORWARD); CHKERRQ(ierr);
-
-  // Local-to-global
-  ierr = VecScatterBegin(user->ltog0, user->Gloc, G, ADD_VALUES,
-                         SCATTER_FORWARD); CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog0, user->Gloc, G, ADD_VALUES,
-                       SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(user->dm, Gloc, ADD_VALUES, G);CHKERRQ(ierr);
 
   // Inverse of the lumped mass matrix
   ierr = VecPointwiseMult(G, G, user->M); // M is Minv
   CHKERRQ(ierr);
 
+  ierr = DMRestoreLocalVector(user->dm, &Qloc);CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(user->dm, &Gloc);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode MapLocalToDMGlobal(User user, Vec Xloc, Vec Xdm,
-    const PetscReal scale[]) {
+static PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Qdot, Vec G, void *userData) {
   PetscErrorCode ierr;
-  DM dm;
-  DMDALocalInfo info;
-  PetscScalar ***xdm;
-  const PetscScalar *xloc;
-  PetscInt bs, lnodes[3];
+  User user = *(User *)userData;
+  const PetscScalar *q, *qdot;
+  PetscScalar *g;
+  Vec Qloc, Qdotloc, Gloc;
 
+  // Global-to-local
   PetscFunctionBeginUser;
-  ierr = VecGetDM(Xdm, &dm); CHKERRQ(ierr);
-  for (PetscInt d=0; d<3; d++) lnodes[d] = user->melem[d]*user->degree + 1;
-  ierr = VecGetBlockSize(Xloc, &bs); CHKERRQ(ierr);
-  ierr = DMDAGetLocalInfo(dm, &info); CHKERRQ(ierr);
-  ierr = VecGetArrayRead(Xloc, &xloc); CHKERRQ(ierr);
-  ierr = DMDAVecGetArray(dm, Xdm, &xdm); CHKERRQ(ierr);
-  for (PetscInt i=0; i<info.zm; i++) {
-    for (PetscInt j=0; j<info.ym; j++) {
-      for (PetscInt k=0; k<info.xm; k++) {
-        for (PetscInt c=0; c<bs; c++) {
-          // scale back each component of vector
-          xdm[info.zs+i][info.ys+j][(info.xs+k)*bs + c] =
-            xloc[((i*lnodes[1]+j)*lnodes[2]+k)*bs+c] / scale[c];
-        }
-      }
-    }
-  }
-  ierr = VecRestoreArrayRead(Xloc, &xloc); CHKERRQ(ierr);
-  ierr = DMDAVecRestoreArray(dm, Xdm, &xdm); CHKERRQ(ierr);
+  ierr = DMGetLocalVector(user->dm, &Qloc);CHKERRQ(ierr);
+  ierr = DMGetLocalVector(user->dm, &Qdotloc);CHKERRQ(ierr);
+  ierr = DMGetLocalVector(user->dm, &Gloc);CHKERRQ(ierr);
+  ierr = VecZeroEntries(Qloc);CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Qloc);CHKERRQ(ierr);
+  ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Qloc, 0.0,
+                                    NULL, NULL, NULL);CHKERRQ(ierr);
+  ierr = VecZeroEntries(Qdotloc);CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, Qdot, INSERT_VALUES, Qdotloc);CHKERRQ(ierr);
+  ierr = VecZeroEntries(Gloc); CHKERRQ(ierr);
+
+  // Ceed Vectors
+  ierr = VecGetArrayRead(Qloc, &q); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(Qdotloc, &qdot); CHKERRQ(ierr);
+  ierr = VecGetArray(Gloc, &g); CHKERRQ(ierr);
+  CeedVectorSetArray(user->qceed, CEED_MEM_HOST, CEED_USE_POINTER, (PetscScalar*)q);
+  CeedVectorSetArray(user->qdotceed, CEED_MEM_HOST, CEED_USE_POINTER, (PetscScalar*)qdot);
+  CeedVectorSetArray(user->gceed, CEED_MEM_HOST, CEED_USE_POINTER, g);
+
+  // Apply CEED operator
+  CeedOperatorApply(user->op_ifunction, user->qceed, user->gceed, CEED_REQUEST_IMMEDIATE);
+
+  // Restore vectors
+  ierr = VecRestoreArrayRead(Qloc, &q); CHKERRQ(ierr);
+  ierr = VecRestoreArrayRead(Qdotloc, &qdot); CHKERRQ(ierr);
+  ierr = VecRestoreArray(Gloc, &g); CHKERRQ(ierr);
+
+  ierr = VecZeroEntries(G); CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(user->dm, Gloc, ADD_VALUES, G);CHKERRQ(ierr);
+
+  ierr = DMRestoreLocalVector(user->dm, &Qloc);CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(user->dm, &Qdotloc);CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(user->dm, &Gloc);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -275,13 +320,7 @@ static PetscErrorCode MapLocalToDMGlobal(User user, Vec Xloc, Vec Xdm,
 static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
                                    Vec Q, void *ctx) {
   User user = ctx;
-  const PetscReal scale[] = {user->units->kgpercubicm,
-                             user->units->kgpersquaredms,
-                             user->units->kgpersquaredms,
-                             user->units->kgpersquaredms,
-                             user->units->Joulepercubicm
-                            };
-  Vec U;
+  Vec Qloc;
   char filepath[PETSC_MAX_PATH_LEN];
   PetscViewer viewer;
   PetscErrorCode ierr;
@@ -291,24 +330,41 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   // Print every 'outputfreq' steps
   if (stepno % user->outputfreq != 0)
     PetscFunctionReturn(0);
-
-  ierr = DMGetGlobalVector(user->dm, &U); CHKERRQ(ierr);
-  ierr = PetscObjectSetName((PetscObject)U, "StateVec");
-  ierr = VecScatterBegin(user->ltog, Q, user->Qloc, INSERT_VALUES,
-                         SCATTER_REVERSE); CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog, Q, user->Qloc, INSERT_VALUES,
-                       SCATTER_REVERSE); CHKERRQ(ierr);
-  ierr = MapLocalToDMGlobal(user, user->Qloc, U, scale); CHKERRQ(ierr);
+  ierr = DMGetLocalVector(user->dm, &Qloc);CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject)Qloc, "StateVec"); CHKERRQ(ierr);
+  ierr = VecZeroEntries(Qloc);CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Qloc); CHKERRQ(ierr);
 
   // Output
-  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-%03D.vts",
+  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-%03D.vtu",
                        user->outputfolder, stepno + user->contsteps);
   CHKERRQ(ierr);
-  ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)U), filepath,
+  ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), filepath,
                             FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
-  ierr = VecView(U, viewer); CHKERRQ(ierr);
+  ierr = VecView(Qloc, viewer); CHKERRQ(ierr);
+  if (user->dmviz) {
+    Vec Qrefined, Qrefined_loc;
+    char filepath_refined[PETSC_MAX_PATH_LEN];
+    PetscViewer viewer_refined;
+
+    ierr = DMGetGlobalVector(user->dmviz, &Qrefined);CHKERRQ(ierr);
+    ierr = DMGetLocalVector(user->dmviz, &Qrefined_loc);CHKERRQ(ierr);
+    ierr = PetscObjectSetName((PetscObject)Qrefined_loc, "Refined");CHKERRQ(ierr);
+    ierr = MatInterpolate(user->interpviz, Q, Qrefined);CHKERRQ(ierr);
+    ierr = VecZeroEntries(Qrefined_loc);CHKERRQ(ierr);
+    ierr = DMGlobalToLocal(user->dmviz, Qrefined, INSERT_VALUES, Qrefined_loc); CHKERRQ(ierr);
+    ierr = PetscSNPrintf(filepath_refined, sizeof filepath_refined, "%s/nsrefined-%03D.vtu",
+                         user->outputfolder, stepno + user->contsteps);
+    CHKERRQ(ierr);
+    ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Qrefined), filepath_refined,
+                              FILE_MODE_WRITE, &viewer_refined); CHKERRQ(ierr);
+    ierr = VecView(Qrefined_loc, viewer_refined); CHKERRQ(ierr);
+    ierr = DMRestoreLocalVector(user->dmviz, &Qrefined_loc);CHKERRQ(ierr);
+    ierr = DMRestoreGlobalVector(user->dmviz, &Qrefined);CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer_refined);CHKERRQ(ierr);
+  }
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  ierr = DMRestoreGlobalVector(user->dm, &U); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
 
   // Save data in a binary file for continuation of simulations
   ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin",
@@ -332,38 +388,160 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   PetscFunctionReturn(0);
 }
 
+static PetscErrorCode ICs_PetscMultiplicity(CeedOperator op_ics, CeedVector xcorners, CeedVector q0ceed, DM dm, Vec Qloc, Vec Q, CeedElemRestriction restrictq, SetupContext ctxSetup, CeedScalar time) {
+  PetscErrorCode ierr;
+  CeedVector multlvec;
+  Vec Multiplicity, MultiplicityLoc;
+
+  ctxSetup->time = time;
+  ierr = VecZeroEntries(Qloc);CHKERRQ(ierr);
+  ierr = VectorPlacePetscVec(q0ceed, Qloc);CHKERRQ(ierr);
+  CeedOperatorApply(op_ics, xcorners, q0ceed, CEED_REQUEST_IMMEDIATE);
+  ierr = VecZeroEntries(Q);CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(dm, Qloc, ADD_VALUES, Q);CHKERRQ(ierr);
+
+  // Fix multiplicity for output of ICs
+  ierr = DMGetLocalVector(dm, &MultiplicityLoc);CHKERRQ(ierr);
+  CeedElemRestrictionCreateVector(restrictq, &multlvec, NULL);
+  ierr = VectorPlacePetscVec(multlvec, MultiplicityLoc);CHKERRQ(ierr);
+  CeedElemRestrictionGetMultiplicity(restrictq, multlvec);
+  CeedVectorDestroy(&multlvec);
+  ierr = DMGetGlobalVector(dm, &Multiplicity);CHKERRQ(ierr);
+  ierr = VecZeroEntries(Multiplicity);CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(dm, MultiplicityLoc, ADD_VALUES, Multiplicity);CHKERRQ(ierr);
+  ierr = VecPointwiseDivide(Q, Q, Multiplicity);CHKERRQ(ierr);
+  ierr = VecPointwiseDivide(Qloc, Qloc, MultiplicityLoc);CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm, &MultiplicityLoc);CHKERRQ(ierr);
+  ierr = DMRestoreGlobalVector(dm, &Multiplicity);CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
+                                              CeedElemRestriction restrictq,
+                                              CeedBasis basisq,
+                                              CeedElemRestriction restrictqdi,
+                                              CeedVector qdata,
+                                              Vec M) {
+  PetscErrorCode ierr;
+  CeedQFunction qf_mass;
+  CeedOperator op_mass;
+  CeedVector mceed;
+  Vec Mloc;
+  CeedInt ncompq, qdatasize;
+
+  PetscFunctionBeginUser;
+  CeedElemRestrictionGetNumComponents(restrictq, &ncompq);
+  CeedElemRestrictionGetNumComponents(restrictqdi, &qdatasize);
+  // Create the Q-function that defines the action of the mass operator
+  CeedQFunctionCreateInterior(ceed, 1,
+                              Mass, __FILE__ ":Mass", &qf_mass);
+  CeedQFunctionAddInput(qf_mass, "q", ncompq, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_mass, "qdata", qdatasize, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_mass, "v", ncompq, CEED_EVAL_INTERP);
+
+  // Create the mass operator
+  CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
+  CeedOperatorSetField(op_mass, "q", restrictq,
+                       basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "qdata", restrictqdi,
+                       CEED_BASIS_COLLOCATED, qdata);
+  CeedOperatorSetField(op_mass, "v", restrictq,
+                       basisq, CEED_VECTOR_ACTIVE);
+
+  ierr = DMGetLocalVector(dm, &Mloc); CHKERRQ(ierr);
+  ierr = VecZeroEntries(Mloc);CHKERRQ(ierr);
+  CeedElemRestrictionCreateVector(restrictq, &mceed, NULL);
+  ierr = VectorPlacePetscVec(mceed, Mloc);CHKERRQ(ierr);
+
+  { // Compute a lumped mass matrix
+    CeedVector onesvec;
+    CeedElemRestrictionCreateVector(restrictq, &onesvec, NULL);
+    CeedVectorSetValue(onesvec, 1.0);
+    CeedOperatorApply(op_mass, onesvec, mceed, CEED_REQUEST_IMMEDIATE);
+    CeedVectorDestroy(&onesvec);
+    CeedOperatorDestroy(&op_mass);
+    CeedVectorDestroy(&mceed);
+  }
+  CeedQFunctionDestroy(&qf_mass);
+
+  ierr = VecZeroEntries(M); CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(dm, Mloc, ADD_VALUES, M); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm, &Mloc); CHKERRQ(ierr);
+
+  // Invert diagonally lumped mass vector for RHS function
+  ierr = VecReciprocal(M); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix, SimpleBC bc, void *ctxSetup, PetscInt *degree) {
+  PetscErrorCode ierr;
+
+  PetscFunctionBeginUser;
+  { // Configure the finite element space and boundary conditions
+    PetscFE fe;
+    PetscSpace fespace;
+    PetscInt ncompq = 5;
+    ierr = PetscFECreateDefault(PETSC_COMM_SELF,problem->dim, ncompq, PETSC_FALSE, prefix, PETSC_DETERMINE, &fe);CHKERRQ(ierr);
+    ierr = PetscObjectSetName((PetscObject)fe, "Q");CHKERRQ(ierr);
+    ierr = DMAddField(dm,NULL,(PetscObject)fe);CHKERRQ(ierr);
+    ierr = DMCreateDS(dm);CHKERRQ(ierr);
+    /* Wall boundary conditions are zero velocity and zero flux for density and energy */
+    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","Face Sets",0,3,(PetscInt[]){1,2,3},(void(*)(void))problem->bc,bc->nwall,bc->walls,ctxSetup);CHKERRQ(ierr);
+    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"slipx","Face Sets",0,1,(PetscInt[]){1},(void(*)(void))NULL,bc->nslip[0],bc->slips[0],ctxSetup);CHKERRQ(ierr);
+    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"slipy","Face Sets",0,1,(PetscInt[]){2},(void(*)(void))NULL,bc->nslip[1],bc->slips[1],ctxSetup);CHKERRQ(ierr);
+    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"slipz","Face Sets",0,1,(PetscInt[]){3},(void(*)(void))NULL,bc->nslip[2],bc->slips[2],ctxSetup);CHKERRQ(ierr);
+    ierr = DMPlexSetClosurePermutationTensor(dm,PETSC_DETERMINE,NULL);CHKERRQ(ierr);
+    ierr = PetscFEGetBasisSpace(fe, &fespace);CHKERRQ(ierr);
+    if (degree) {
+      ierr = PetscSpaceGetDegree(fespace, degree, NULL);CHKERRQ(ierr);
+      if (*degree < 1) SETERRQ1(PetscObjectComm((PetscObject)dm), PETSC_ERR_ARG_OUTOFRANGE, "Degree %D; must specify -petscspace_degree 1 (or greater)", *degree);
+    }
+    ierr = PetscFEDestroy(&fe);CHKERRQ(ierr);
+  }
+  { // Empty name for conserved field (because there is only one field)
+    PetscSection section;
+    ierr = DMGetLocalSection(dm, &section);CHKERRQ(ierr);
+    ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
+  }
+  PetscFunctionReturn(0);
+}
+
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  DM dm;
+  DM dm, dmcoord, dmviz;
+  Mat interpviz;
   TS ts;
   TSAdapt adapt;
   User user;
   Units units;
   char ceedresource[4096] = "/cpu/self";
-  PetscInt localNelem, lsize, steps, melem[3], mnode[3], p[3], irank[3],
-           lnode[3];
-  PetscBool periodic[3] = {PETSC_FALSE, PETSC_FALSE, PETSC_FALSE};
-  PetscMPIInt size, rank;
+  PetscInt cStart, cEnd, localNelem, lnodes, steps;
+  const PetscInt ncompq = 5;
+  PetscMPIInt rank;
   PetscScalar ftime;
-  PetscScalar *q0, *m, *mult, *x;
-  Vec Q, Qloc, Mloc, Xloc;
-  VecScatter ltog, ltog0, gtogD;
-
+  Vec Q, Qloc, Xloc;
   Ceed ceed;
   CeedInt numP, numQ;
-  const CeedInt dim = 3, ncompx = 3, ncompq = 5;
-  CeedVector xcorners, xceed, qdata, q0ceed, mceed,
-             onesvec, multevec, multlvec;
+  CeedVector xcorners, qdata, q0ceed;
   CeedBasis basisx, basisxc, basisq;
-  CeedElemRestriction restrictx, restrictxc, restrictxi,
-                      restrictq, restrictqdi, restrictmult;
-  CeedQFunction qf_setup, qf_mass, qf_ics, qf;
-  CeedOperator op_setup, op_mass, op_ics, op;
+  CeedElemRestriction restrictx, restrictxi, restrictxcoord,
+                      restrictq, restrictqdi;
+  CeedQFunction qf_setup, qf_ics, qf_rhs, qf_ifunction;
+  CeedOperator op_setup, op_ics;
   CeedScalar Rd;
   PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
               kgpersquaredms, Joulepercubicm;
-  problemType problemChoice = NS_DENSITY_CURRENT;
+  problemType problemChoice;
+  problemData *problem = NULL;
+  StabilizationType stab;
+  PetscBool   test, implicit, viz_refine;
+  struct SimpleBC_ bc = {
+    .nwall = 6,
+    .walls = {1,2,3,4,5,6},
+  };
+  double start, cpu_time_used;
 
   // Create the libCEED contexts
   PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
@@ -381,6 +559,8 @@ int main(int argc, char **argv) {
   CeedScalar mu         = 75.;      // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
   CeedScalar k          = 0.02638;  // W/(m K)
+  CeedScalar CtauS      = 0.;       // dimensionless
+  CeedScalar strong_form = 0.;      // [0,1]
   PetscScalar lx        = 8000.;    // m
   PetscScalar ly        = 8000.;    // m
   PetscScalar lz        = 4000.;    // m
@@ -390,14 +570,16 @@ int main(int argc, char **argv) {
   PetscScalar resz      = 1000.;    // m (resolution in z)
   PetscInt outputfreq   = 10;       // -
   PetscInt contsteps    = 0;        // -
-  PetscInt degree       = 3;        // -
+  PetscInt degree;
   PetscInt qextra       = 2;        // -
+  DMBoundaryType periodicity[] = {DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE};
+  PetscReal center[3], dc_axis[3] = {0, 0, 0};
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
 
   // Allocate PETSc context
-  ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &user); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
 
   // Parse command line options
@@ -407,9 +589,31 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-test", "Run in test mode",
+                          NULL, test=PETSC_FALSE, &test, NULL); CHKERRQ(ierr);
+  problemChoice = NS_DENSITY_CURRENT;
   ierr = PetscOptionsEnum("-problem", "Problem to solve", NULL,
                           problemTypes, (PetscEnum)problemChoice,
                           (PetscEnum *)&problemChoice, NULL); CHKERRQ(ierr);
+  problem = &problemOptions[problemChoice];
+  ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
+                          StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
+                          (PetscEnum *)&stab, NULL);CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
+                          NULL, implicit=PETSC_FALSE, &implicit, NULL); CHKERRQ(ierr);
+  {
+    PetscInt len;
+    PetscBool flg;
+    ierr = PetscOptionsIntArray("-bc_wall", "Use wall boundary conditions on this list of faces", NULL, bc.walls, (len = sizeof(bc.walls) / sizeof(bc.walls[0]), &len), &flg);CHKERRQ(ierr);
+    if (flg) bc.nwall = len;
+    for (PetscInt j=0; j<3; j++) {
+      const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
+      ierr = PetscOptionsIntArray(flags[j], "Use slip boundary conditions on this list of faces", NULL, bc.slips[j], (len = sizeof(bc.slips[j]) / sizeof(bc.slips[j][0]), &len), &flg);CHKERRQ(ierr);
+      if (flg) bc.nslip[j] = len;
+    }
+  }
+  ierr = PetscOptionsBool("-viz_refine", "Use regular refinement for visualization",
+                          NULL, viz_refine=PETSC_FALSE, &viz_refine, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, meter, &meter, NULL); CHKERRQ(ierr);
   meter = fabs(meter);
@@ -444,30 +648,16 @@ int main(int argc, char **argv) {
                             NULL, mu, &mu, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-k", "Thermal conductivity",
                             NULL, k, &k, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-CtauS", "Scale coefficient for tau (nondimensional)",
+                            NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-strong_form", "Strong (1) or weak/integrated by parts (0) advection residual",
+                            NULL, strong_form, &strong_form, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                             NULL, lx, &lx, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
                             NULL, ly, &ly, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
                             NULL, lz, &lz, NULL); CHKERRQ(ierr);
-  {
-    PetscInt len = 3;
-    ierr = PetscOptionsBoolArray("-periodic", "Periodic boundary conditions",
-                                 NULL, periodic, &len, NULL); CHKERRQ(ierr);
-  }
-  {
-    PetscInt len = 3;
-    // Determine shape of process grid
-    ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
-    Split3(size, p, false);
-    ierr = PetscOptionsIntArray("-process_grid",
-                                "Shape of process grid (must sum to total size)",
-                                NULL, p, &len, NULL); CHKERRQ(ierr);
-    if (p[0] * p[1] * p[2] != size)
-      SETERRQ4(comm, PETSC_ERR_ARG_INCOMP,
-               "Process grid (%D, %D, %D) incompatible with total number of procs %d",
-               p[0], p[1], p[2], size);
-  }
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                             NULL, rc, &rc, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-resx","Target resolution in x",
@@ -476,13 +666,29 @@ int main(int argc, char **argv) {
                             NULL, resy, &resy, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-resz","Target resolution in z",
                             NULL, resz, &resz, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-output_freq",
-                         "Frequency of output, in number of steps",
+  PetscInt n = problem->dim;
+  ierr = PetscOptionsEnumArray("-periodicity", "Periodicity per direction",
+                               NULL, DMBoundaryTypes, (PetscEnum *)periodicity,
+                               &n, NULL);CHKERRQ(ierr);
+  n = problem->dim;
+  center[0] = 0.5 * lx;
+  center[1] = 0.5 * ly;
+  center[2] = 0.5 * lz;
+  ierr = PetscOptionsRealArray("-center", "Location of bubble center",
+                               NULL, center, &n, NULL);CHKERRQ(ierr);
+  n = problem->dim;
+  ierr = PetscOptionsRealArray("-dc_axis", "Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric",
+                               NULL, dc_axis, &n, NULL);CHKERRQ(ierr);
+  {
+    PetscReal norm = PetscSqrtReal(PetscSqr(dc_axis[0]) + PetscSqr(dc_axis[1]) + PetscSqr(dc_axis[2]));
+    if (norm > 0) {
+      for (int i=0; i<3; i++) dc_axis[i] /= norm;
+    }
+  }
+  ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-continue", "Continue from previous solution",
                          NULL, contsteps, &contsteps, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
-                         NULL, degree, &degree, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
   PetscStrncpy(user->outputfolder, ".", 2);
@@ -518,198 +724,91 @@ int main(int argc, char **argv) {
   resx = fabs(resx) * meter;
   resy = fabs(resy) * meter;
   resz = fabs(resz) * meter;
+  for (int i=0; i<3; i++) center[i] *= meter;
 
-  // Find a nicely composite number of elements given the resolution
-  melem[0] = (PetscInt)(PetscCeilReal(lx / resx / p[0]));
-  melem[1] = (PetscInt)(PetscCeilReal(ly / resy / p[1]));
-  melem[2] = (PetscInt)(PetscCeilReal(lz / resz / p[2]));
-  for (int d=0; d<dim; d++) {
-    if (melem[d] == 0)
-      melem[d]++;
+  const CeedInt dim = problem->dim, ncompx = problem->dim, qdatasize = problem->qdatasize;
+  // Set up the libCEED context
+  struct SetupContext_ ctxSetup =  {
+    .theta0 = theta0,
+    .thetaC = thetaC,
+    .P0 = P0,
+    .N = N,
+    .cv = cv,
+    .cp = cp,
+    .Rd = Rd,
+    .g = g,
+    .rc = rc,
+    .lx = lx,
+    .ly = ly,
+    .lz = lz,
+    .periodicity0 = periodicity[0],
+    .periodicity1 = periodicity[1],
+    .periodicity2 = periodicity[2],
+    .center[0] = center[0],
+    .center[1] = center[1],
+    .center[2] = center[2],
+    .dc_axis[0] = dc_axis[0],
+    .dc_axis[1] = dc_axis[1],
+    .dc_axis[2] = dc_axis[2],
+    .time = 0,
+  };
+
+  ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, (PetscReal[]){lx, ly, lz}, periodicity, PETSC_TRUE, &dm);CHKERRQ(ierr);
+  if (1) {
+    DM               dmDist = NULL;
+    PetscPartitioner part;
+
+    ierr = DMPlexGetPartitioner(dm, &part);CHKERRQ(ierr);
+    ierr = PetscPartitionerSetFromOptions(part);CHKERRQ(ierr);
+    ierr = DMPlexDistribute(dm, 0, NULL, &dmDist);CHKERRQ(ierr);
+    if (dmDist) {
+      ierr = DMDestroy(&dm);CHKERRQ(ierr);
+      dm  = dmDist;
+    }
   }
-  localNelem = melem[0] * melem[1] * melem[2];
-  resx = lx / (melem[0] * p[0]);
-  resy = ly / (melem[1] * p[1]);
-  resz = lz / (melem[2] * p[2]);
+  ierr = DMViewFromOptions(dm, NULL, "-dm_view");CHKERRQ(ierr);
 
-  // Find my location in the process grid
-  ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
-  for (int d=0,rankleft=rank; d<dim; d++) {
-    const int pstride[3] = {p[1]*p[2], p[2], 1}; // *NOPAD*
-    irank[d] = rankleft / pstride[d];
-    rankleft -= irank[d] * pstride[d];
+  ierr = DMLocalizeCoordinates(dm);CHKERRQ(ierr);
+  ierr = DMSetFromOptions(dm);CHKERRQ(ierr);
+  ierr = SetUpDM(dm, problem, NULL, &bc, &ctxSetup, &degree);CHKERRQ(ierr);
+  if (!test) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                       "Degree of FEM Space: %D\n",
+                       (PetscInt)degree); CHKERRQ(ierr);
   }
-
-  GlobalNode(p, irank, periodic, degree, melem, mnode);
-
-  // Set up global state vector
-  ierr = VecCreate(comm, &Q); CHKERRQ(ierr);
-  ierr = VecSetSizes(Q, ncompq*mnode[0]*mnode[1]*mnode[2], PETSC_DECIDE);
-  CHKERRQ(ierr);
-  ierr = VecSetUp(Q); CHKERRQ(ierr);
-
-  // Set up local state vector
-  lsize = 1;
-  for (int d=0; d<dim; d++) {
-    lnode[d] = melem[d]*degree + 1;
-    lsize *= lnode[d];
+  dmviz = NULL;
+  interpviz = NULL;
+  if (viz_refine) {
+    ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE);CHKERRQ(ierr);
+    ierr = DMRefine(dm, MPI_COMM_NULL, &dmviz);CHKERRQ(ierr);
+    ierr = DMSetCoarseDM(dmviz, dm);CHKERRQ(ierr);
+    ierr = PetscOptionsSetValue(NULL,"-viz_petscspace_degree","1");CHKERRQ(ierr);
+    ierr = SetUpDM(dmviz, problem, "viz_", &bc, &ctxSetup, NULL);CHKERRQ(ierr);
+    ierr = DMCreateInterpolation(dm, dmviz, &interpviz, NULL);CHKERRQ(ierr);
   }
-  ierr = VecCreate(PETSC_COMM_SELF, &Qloc); CHKERRQ(ierr);
-  ierr = VecSetSizes(Qloc, ncompq*lsize, PETSC_DECIDE); CHKERRQ(ierr);
-  ierr = VecSetBlockSize(Qloc, ncompq); CHKERRQ(ierr);
-  ierr = VecSetUp(Qloc); CHKERRQ(ierr);
+  ierr = DMCreateGlobalVector(dm, &Q);CHKERRQ(ierr);
+  ierr = DMGetLocalVector(dm, &Qloc);CHKERRQ(ierr);
+  ierr = VecGetSize(Qloc, &lnodes);CHKERRQ(ierr);
+  lnodes /= ncompq;
 
-  // Print grid information
-  CeedInt gsize;
-  ierr = VecGetSize(Q, &gsize); CHKERRQ(ierr);
-  gsize /= ncompq;
-  ierr = PetscPrintf(comm, "Global nodes: %D\n", gsize); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Process decomposition: %D %D %D\n",
-                     p[0], p[1], p[2]); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Local elements: %D = %D %D %D\n", localNelem,
-                     melem[0], melem[1], melem[2]); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Owned nodes: %D = %D %D %D\n",
-                     mnode[0]*mnode[1]*mnode[2], mnode[0], mnode[1], mnode[2]);
-  CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Physical domain: %g %g %g\n",
-                     lx/meter, ly/meter, lz/meter); CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Physical resolution: %g %g %g\n",
-                     resx/meter, resy/meter, resz/meter); CHKERRQ(ierr);
-  CHKERRQ(ierr);
+  {  // Print grid information
+    CeedInt gdofs, odofs;
+    int comm_size;
+    char box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
+    ierr = VecGetSize(Q, &gdofs); CHKERRQ(ierr);
+    ierr = VecGetLocalSize(Q, &odofs); CHKERRQ(ierr);
+    ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
+    ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str, sizeof(box_faces_str), NULL);CHKERRQ(ierr);
+    if (!test) {
+      ierr = PetscPrintf(comm, "Global FEM dofs: %D (%D owned) on %d ranks\n", gdofs, odofs, comm_size); CHKERRQ(ierr);
+      ierr = PetscPrintf(comm, "Local FEM nodes: %D\n", lnodes); CHKERRQ(ierr);
+      ierr = PetscPrintf(comm, "dm_plex_box_faces: %s\n", box_faces_str); CHKERRQ(ierr);
+    }
+
+  }
 
   // Set up global mass vector
   ierr = VecDuplicate(Q,&user->M); CHKERRQ(ierr);
-
-  // Set up local mass vector
-  ierr = VecDuplicate(Qloc,&Mloc); CHKERRQ(ierr);
-
-  // Set up local coordinates vector
-  ierr = VecCreate(PETSC_COMM_SELF, &Xloc); CHKERRQ(ierr);
-  ierr = VecSetSizes(Xloc, ncompx*lsize, PETSC_DECIDE); CHKERRQ(ierr);
-  ierr = VecSetBlockSize(Xloc, ncompx); CHKERRQ(ierr);
-  ierr = VecSetUp(Xloc); CHKERRQ(ierr);
-
-  // Set up global boundary values vector
-  ierr = VecDuplicate(Q,&user->BC); CHKERRQ(ierr);
-
-  {
-    // Create local-to-global scatters
-    PetscInt *ltogind, *ltogind0, *locind, l0count;
-    IS ltogis, ltogis0, locis;
-    PetscInt gstart[2][2][2], gmnode[2][2][2][dim];
-
-    for (int i=0; i<2; i++) {
-      for (int j=0; j<2; j++) {
-        for (int k=0; k<2; k++) {
-          PetscInt ijkrank[3] = {irank[0]+i, irank[1]+j, irank[2]+k};
-          for (int d=0; d<dim; d++) {
-            if (periodic[d]) ijkrank[d] %= p[d];
-          }
-          gstart[i][j][k] = GlobalStart(p, ijkrank, periodic, degree, melem);
-          GlobalNode(p, ijkrank, periodic, degree, melem, gmnode[i][j][k]);
-        }
-      }
-    }
-
-    // Get indices of nodes except Dirichlet BC nodes
-    ierr = PetscMalloc1(lsize, &ltogind); CHKERRQ(ierr);
-    ierr = PetscMalloc1(lsize, &ltogind0); CHKERRQ(ierr);
-    ierr = PetscMalloc1(lsize, &locind); CHKERRQ(ierr);
-    l0count = 0;
-    for (PetscInt i=0,ir,ii; ir=i>=mnode[0], ii=i-ir*mnode[0], i<lnode[0]; i++)
-      for (PetscInt j=0,jr,jj; jr=j>=mnode[1], jj=j-jr*mnode[1], j<lnode[1]; j++)
-        for (PetscInt k=0,kr,kk; kr=k>=mnode[2], kk=k-kr*mnode[2], k<lnode[2]; k++) {
-          PetscInt nodeind = (i*lnode[1]+j)*lnode[2]+k;
-          ltogind[nodeind] =
-            gstart[ir][jr][kr] + (ii*gmnode[ir][jr][kr][1]+jj)*gmnode[ir][jr][kr][2]+kk;
-          if ((!periodic[0] && irank[0] == 0 && i == 0) ||
-              (!periodic[1] && irank[1] == 0 && j == 0) ||
-              (!periodic[2] && irank[2] == 0 && k == 0) ||
-              (!periodic[0] && irank[0]+1 == p[0] && i+1 == lnode[0]) ||
-              (!periodic[1] && irank[1]+1 == p[1] && j+1 == lnode[1]) ||
-              (!periodic[2] && irank[2]+1 == p[2] && k+1 == lnode[2]))
-            continue;
-          ltogind0[l0count] = ltogind[nodeind];
-          locind[l0count++] = nodeind;
-        }
-
-    // Create local-to-global scatters
-    ierr = ISCreateBlock(comm, ncompq, lsize, ltogind, PETSC_OWN_POINTER,
-                         &ltogis); CHKERRQ(ierr);
-    ierr = VecScatterCreate(Qloc, NULL, Q, ltogis, &ltog);
-    CHKERRQ(ierr);
-    ierr = ISCreateBlock(comm, ncompq, l0count, ltogind0, PETSC_OWN_POINTER,
-                         &ltogis0); CHKERRQ(ierr);
-    ierr = ISCreateBlock(comm, ncompq, l0count, locind, PETSC_OWN_POINTER,
-                         &locis); CHKERRQ(ierr);
-    ierr = VecScatterCreate(Qloc, locis, Q, ltogis0, &ltog0);
-    CHKERRQ(ierr);
-
-    {
-      // Create global-to-global scatter for Dirichlet values (everything not in
-      // ltogis0, which is the range of ltog0)
-      PetscInt qstart, qend, *indD, countD = 0;
-      IS isD;
-      const PetscScalar *q;
-      ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
-      ierr = VecSet(Q, 1.0); CHKERRQ(ierr);
-      ierr = VecScatterBegin(ltog0, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
-      CHKERRQ(ierr);
-      ierr = VecScatterEnd(ltog0, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
-      CHKERRQ(ierr);
-      ierr = VecGetOwnershipRange(Q, &qstart, &qend); CHKERRQ(ierr);
-      ierr = PetscMalloc1(qend-qstart, &indD); CHKERRQ(ierr);
-      ierr = VecGetArrayRead(Q, &q); CHKERRQ(ierr);
-      for (PetscInt i=0; i<qend-qstart; i++) {
-        if (q[i] == 1. && (i % ncompq == 1 || i % ncompq == 2 || i % ncompq == 3))
-          indD[countD++] = qstart + i;
-      }
-      ierr = VecRestoreArrayRead(Q, &q); CHKERRQ(ierr);
-      ierr = ISCreateGeneral(comm, countD, indD, PETSC_COPY_VALUES, &isD);
-      CHKERRQ(ierr);
-      ierr = PetscFree(indD); CHKERRQ(ierr);
-      ierr = VecScatterCreate(Q, isD, Q, isD, &gtogD); CHKERRQ(ierr);
-      ierr = ISDestroy(&isD); CHKERRQ(ierr);
-    }
-    ierr = ISDestroy(&ltogis); CHKERRQ(ierr);
-    ierr = ISDestroy(&ltogis0); CHKERRQ(ierr);
-    ierr = ISDestroy(&locis); CHKERRQ(ierr);
-
-    {
-      // Set up DMDA
-      PetscInt *lnodes[dim];
-      ierr = PetscMalloc3(p[0], &lnodes[0], p[1], &lnodes[1], p[2], &lnodes[2]);
-      CHKERRQ(ierr);
-      for (PetscInt d=0; d<dim; d++) {
-        for (PetscInt r=0; r<p[d]; r++) {
-          // DMDA coordinate handling for periodic with stencil_width=0 is
-          // ambiguous, so we create a non-periodic DM and map into it from a
-          // local vector; see MapLocalToDMGlobal().
-          const PetscBool noperiodic[3] = {PETSC_FALSE, PETSC_FALSE, PETSC_FALSE};
-          PetscInt ijkrank[3] = {irank[0], irank[1], irank[2]};
-          ijkrank[d] = r;
-          PetscInt ijknode[3];
-          GlobalNode(p, ijkrank, noperiodic, degree, melem, ijknode);
-          lnodes[d][r] = ijknode[d];
-        }
-      }
-      ierr = DMDACreate3d(comm,
-                          DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
-                          DMDA_STENCIL_STAR,
-                          degree*melem[2]*p[2]+1,
-                          degree*melem[1]*p[1]+1,
-                          degree*melem[0]*p[0]+1,
-                          p[2], p[1], p[0], ncompq, 0,
-                          lnodes[2], lnodes[1], lnodes[0], &dm); CHKERRQ(ierr);
-      ierr = PetscFree3(lnodes[0], lnodes[1], lnodes[2]); CHKERRQ(ierr);
-      ierr = DMSetUp(dm); CHKERRQ(ierr);
-      ierr = DMDASetFieldName(dm, 0, "Density"); CHKERRQ(ierr);
-      ierr = DMDASetFieldName(dm, 1, "MomentumX"); CHKERRQ(ierr);
-      ierr = DMDASetFieldName(dm, 2, "MomentumY"); CHKERRQ(ierr);
-      ierr = DMDASetFieldName(dm, 3, "MomentumZ"); CHKERRQ(ierr);
-      ierr = DMDASetFieldName(dm, 4, "EnergyDensity"); CHKERRQ(ierr);
-    }
-  }
 
   // Set up CEED
   // CEED Bases
@@ -723,139 +822,144 @@ int main(int argc, char **argv) {
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numP,
                                   CEED_GAUSS_LOBATTO, &basisxc);
 
-  // CEED Restrictions
-  CreateRestriction(ceed, melem, numP, ncompq, &restrictq);
-  CreateRestriction(ceed, melem, 2, dim, &restrictx);
-  CreateRestriction(ceed, melem, numP, dim, &restrictxc);
-  CreateRestriction(ceed, melem, numP, 1, &restrictmult);
-  CeedElemRestrictionCreateIdentity(ceed, localNelem, 10*numQ*numQ*numQ,
-                                    10*localNelem*numQ*numQ*numQ, 1,
-                                    &restrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, localNelem, numQ*numQ*numQ,
-                                    localNelem*numQ*numQ*numQ, 1,
-                                    &restrictxi);
+  ierr = DMGetCoordinateDM(dm, &dmcoord);CHKERRQ(ierr);
+  ierr = DMPlexSetClosurePermutationTensor(dmcoord,PETSC_DETERMINE,NULL);CHKERRQ(ierr);
 
-  // Find physical cordinates of the corners of local elements
-  {
-    CeedScalar *xloc;
-    CeedInt shape[3] = {melem[0]+1, melem[1]+1, melem[2]+1}, len =
-                         shape[0]*shape[1]*shape[2];
-    xloc = malloc(len*ncompx*sizeof xloc[0]);
-    for (CeedInt i=0; i<shape[0]; i++) {
-      for (CeedInt j=0; j<shape[1]; j++) {
-        for (CeedInt k=0; k<shape[2]; k++) {
-          xloc[((i*shape[1]+j)*shape[2]+k) + 0*len] =
-            lx * (irank[0]*melem[0]+i) / (p[0]*melem[0]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 1*len] =
-            ly * (irank[1]*melem[1]+j) / (p[1]*melem[1]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 2*len] =
-            lz * (irank[2]*melem[2]+k) / (p[2]*melem[2]);
-        }
-      }
-    }
-    CeedVectorCreate(ceed, len*ncompx, &xcorners);
-    CeedVectorSetArray(xcorners, CEED_MEM_HOST, CEED_OWN_POINTER, xloc);
-  }
+  // CEED Restrictions
+  ierr = CreateRestrictionFromPlex(ceed, dm, degree+1, &restrictq);CHKERRQ(ierr);
+  ierr = CreateRestrictionFromPlex(ceed, dmcoord, 2, &restrictx);CHKERRQ(ierr);
+  DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd);CHKERRQ(ierr);
+  localNelem = cEnd - cStart;
+  CeedInt numQdim = CeedIntPow(numQ, dim);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, localNelem, numQdim,
+                                    localNelem*numQdim, qdatasize,
+                                    &restrictqdi);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, localNelem, numQdim,
+                                    localNelem*numQdim, 1,
+                                    &restrictxi);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, localNelem, PetscPowInt(numP, dim),
+                                    localNelem*PetscPowInt(numP, dim), ncompx,
+                                    &restrictxcoord);
+
+  ierr = DMGetCoordinatesLocal(dm, &Xloc);CHKERRQ(ierr);
+  ierr = CreateVectorFromPetscVec(ceed, Xloc, &xcorners);CHKERRQ(ierr);
 
   // Create the CEED vectors that will be needed in setup
-  CeedInt Nqpts, Nnodes;
+  CeedInt Nqpts;
   CeedBasisGetNumQuadraturePoints(basisq, &Nqpts);
-  CeedBasisGetNumNodes(basisq, &Nnodes);
-  CeedVectorCreate(ceed, 10*localNelem*Nqpts, &qdata);
-  CeedVectorCreate(ceed, ncompq*lsize, &q0ceed);
-  CeedVectorCreate(ceed, ncompq*lsize, &mceed);
-  CeedVectorCreate(ceed, ncompq*lsize, &onesvec);
-  CeedVectorCreate(ceed, ncompx*lsize, &xceed);
-  CeedVectorCreate(ceed, lsize, &multlvec);
-  CeedVectorCreate(ceed, localNelem*Nnodes, &multevec);
-
-  // Find multiplicity of each local point
-  CeedVectorSetValue(multevec, 1.0);
-  CeedVectorSetValue(multlvec, 0.);
-  CeedElemRestrictionApply(restrictmult, CEED_TRANSPOSE, CEED_TRANSPOSE,
-                           multevec, multlvec, CEED_REQUEST_IMMEDIATE);
+  CeedInt Ndofs = 1;
+  for (int d=0; d<3; d++) Ndofs *= numP;
+  CeedVectorCreate(ceed, qdatasize*localNelem*Nqpts, &qdata);
+  CeedElemRestrictionCreateVector(restrictq, &q0ceed, NULL);
 
   // Create the Q-function that builds the quadrature data for the NS operator
-  CeedQFunctionCreateInterior(ceed, 1, Setup, Setup_loc, &qf_setup);
+  CeedQFunctionCreateInterior(ceed, 1, problem->setup, problem->setup_loc, &qf_setup);
   CeedQFunctionAddInput(qf_setup, "dx", ncompx*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setup, "qdata", 10, CEED_EVAL_NONE);
-
-  // Create the Q-function that defines the action of the mass operator
-  CeedQFunctionCreateInterior(ceed, 1, Mass, Mass_loc, &qf_mass);
-  CeedQFunctionAddInput(qf_mass, "q", ncompq, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_mass, "qdata", 10, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_mass, "v", ncompq, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_setup, "qdata", qdatasize, CEED_EVAL_NONE);
 
   // Create the Q-function that sets the ICs of the operator
-  CeedQFunctionCreateInterior(ceed, 1, problemOptions[problemChoice].ics,
-                              problemOptions[problemChoice].icsfname, &qf_ics);
+  CeedQFunctionCreateInterior(ceed, 1, problem->ics, problem->ics_loc, &qf_ics);
   CeedQFunctionAddInput(qf_ics, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", ncompq, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_ics, "coords", ncompx, CEED_EVAL_NONE);
 
-  // Create the Q-function that defines the action of the operator
-  CeedQFunctionCreateInterior(ceed, 1, problemOptions[problemChoice].apply,
-                              problemOptions[problemChoice].applyfname, &qf);
-  CeedQFunctionAddInput(qf, "q", ncompq, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf, "dq", ncompq*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf, "qdata", 10, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf, "x", ncompx, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf, "v", ncompq, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf, "dv", ncompq*dim, CEED_EVAL_GRAD);
+  qf_rhs = NULL;
+  if (problem->apply_rhs) { // Create the Q-function that defines the action of the RHS operator
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_rhs,
+                                problem->apply_rhs_loc, &qf_rhs);
+    CeedQFunctionAddInput(qf_rhs, "q", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_rhs, "dq", ncompq*dim, CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(qf_rhs, "qdata", qdatasize, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qf_rhs, "x", ncompx, CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(qf_rhs, "v", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(qf_rhs, "dv", ncompq*dim, CEED_EVAL_GRAD);
+  }
+
+  qf_ifunction = NULL;
+  if (problem->apply_ifunction) { // Create the Q-function that defines the action of the IFunction
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_ifunction,
+                                problem->apply_ifunction_loc, &qf_ifunction);
+    CeedQFunctionAddInput(qf_ifunction, "q", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_ifunction, "dq", ncompq*dim, CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(qf_ifunction, "qdot", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_ifunction, "qdata", qdatasize, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(qf_ifunction, "v", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(qf_ifunction, "dv", ncompq*dim, CEED_EVAL_GRAD);
+  }
 
   // Create the operator that builds the quadrature data for the NS operator
-  CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &op_setup);
-  CeedOperatorSetField(op_setup, "dx", restrictx, CEED_NOTRANSPOSE,
+  CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
+  CeedOperatorSetField(op_setup, "dx", restrictx,
                        basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "weight", restrictxi, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setup, "weight", restrictxi,
                        basisx, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "qdata", restrictqdi, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setup, "qdata", restrictqdi,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-
-  // Create the mass operator
-  CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &op_mass);
-  CeedOperatorSetField(op_mass, "q", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_mass, "qdata", restrictqdi, CEED_NOTRANSPOSE,
-                       basisx, qdata);
-  CeedOperatorSetField(op_mass, "v", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
 
   // Create the operator that sets the ICs
-  CeedOperatorCreate(ceed, qf_ics, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &op_ics);
-  CeedOperatorSetField(op_ics, "x", restrictx, CEED_NOTRANSPOSE,
+  CeedOperatorCreate(ceed, qf_ics, NULL, NULL, &op_ics);
+  CeedOperatorSetField(op_ics, "x", restrictx,
                        basisxc, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ics, "q0", restrictq, CEED_TRANSPOSE,
+  CeedOperatorSetField(op_ics, "q0", restrictq,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ics, "coords", restrictxc, CEED_TRANSPOSE,
-                       CEED_BASIS_COLLOCATED, xceed);
 
-  // Create the physics operator
-  CeedOperatorCreate(ceed, qf, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op);
-  CeedOperatorSetField(op, "q", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op, "dq", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op, "qdata", restrictqdi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op, "x", restrictx, CEED_NOTRANSPOSE,
-                       basisx, xcorners);
-  CeedOperatorSetField(op, "v", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op, "dv", restrictq, CEED_TRANSPOSE,
-                       basisq, CEED_VECTOR_ACTIVE);
+  CeedElemRestrictionCreateVector(restrictq, &user->qceed, NULL);
+  CeedElemRestrictionCreateVector(restrictq, &user->qdotceed, NULL);
+  CeedElemRestrictionCreateVector(restrictq, &user->gceed, NULL);
 
-  // Set up the libCEED context
-  CeedScalar ctxSetup[15] = {theta0, thetaC, P0, N, cv, cp, Rd, g, rc,
-                             lx, ly, lz, periodic[0], periodic[1], periodic[2]
-                            };
+  if (qf_rhs) { // Create the RHS physics operator
+    CeedOperator op;
+    CeedOperatorCreate(ceed, qf_rhs, NULL, NULL, &op);
+    CeedOperatorSetField(op, "q", restrictq,
+                         basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dq", restrictq,
+                         basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "qdata", restrictqdi,
+                         CEED_BASIS_COLLOCATED, qdata);
+    CeedOperatorSetField(op, "x", restrictx,
+                         basisx, xcorners);
+    CeedOperatorSetField(op, "v", restrictq,
+                         basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dv", restrictq,
+                         basisq, CEED_VECTOR_ACTIVE);
+    user->op_rhs = op;
+  }
+
+  if (qf_ifunction) { // Create the IFunction operator
+    CeedOperator op;
+    CeedOperatorCreate(ceed, qf_ifunction, NULL, NULL, &op);
+    CeedOperatorSetField(op, "q", restrictq,
+                         basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dq", restrictq,
+                         basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "qdot", restrictq,
+                         basisq, user->qdotceed);
+    CeedOperatorSetField(op, "qdata", restrictqdi,
+                         CEED_BASIS_COLLOCATED, qdata);
+    CeedOperatorSetField(op, "v", restrictq,
+                         basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dv", restrictq,
+                         basisq, CEED_VECTOR_ACTIVE);
+    user->op_ifunction = op;
+  }
+
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
-  CeedScalar ctxNS[6] = {lambda, mu, k, cv, cp, g};
-  CeedQFunctionSetContext(qf, &ctxNS, sizeof ctxNS);
+  CeedScalar ctxNS[8] = {lambda, mu, k, cv, cp, g, Rd};
+  struct Advection2dContext_ ctxAdvection2d = {
+    .CtauS = CtauS,
+    .strong_form = strong_form,
+    .stabilization = stab,
+  };
+  switch (problemChoice) {
+  case NS_DENSITY_CURRENT:
+    if (qf_rhs) CeedQFunctionSetContext(qf_rhs, &ctxNS, sizeof ctxNS);
+    if (qf_ifunction) CeedQFunctionSetContext(qf_ifunction, &ctxNS, sizeof ctxNS);
+    break;
+  case NS_ADVECTION:
+  case NS_ADVECTION2D:
+    if (qf_rhs) CeedQFunctionSetContext(qf_rhs, &ctxAdvection2d, sizeof ctxAdvection2d);
+    if (qf_ifunction) CeedQFunctionSetContext(qf_ifunction, &ctxAdvection2d, sizeof ctxAdvection2d);
+  }
 
   // Set up PETSc context
   // Set up units structure
@@ -873,68 +977,43 @@ int main(int argc, char **argv) {
 
   // Set up user structure
   user->comm = comm;
-  user->degree = degree;
-  for (int d=0; d<dim; d++) user->melem[d] = melem[d];
   user->outputfreq = outputfreq;
   user->contsteps = contsteps;
   user->units = units;
   user->dm = dm;
+  user->dmviz = dmviz;
+  user->interpviz = interpviz;
   user->ceed = ceed;
-  CeedVectorCreate(ceed, ncompq*lsize, &user->qceed);
-  CeedVectorCreate(ceed, ncompq*lsize, &user->gceed);
-  user->op = op;
-  user->ltog = ltog;
-  user->ltog0 = ltog0;
-  user->gtogD = gtogD;
-  user->Qloc = Qloc;
-  ierr = VecDuplicate(Qloc, &user->Gloc); CHKERRQ(ierr);
 
   // Calculate qdata and ICs
   // Set up state global and local vectors
   ierr = VecZeroEntries(Q); CHKERRQ(ierr);
-  ierr = VecGetArray(Qloc, &q0); CHKERRQ(ierr);
-  CeedVectorSetArray(q0ceed, CEED_MEM_HOST, CEED_USE_POINTER, q0);
 
-  // Set up mass global and local vectors
-  ierr = VecZeroEntries(user->M); CHKERRQ(ierr);
-  ierr = VecGetArray(Mloc, &m); CHKERRQ(ierr);
-  CeedVectorSetArray(mceed, CEED_MEM_HOST, CEED_USE_POINTER, m);
-
-  // Set up node coordinate global and local vectors
-  ierr = VecGetArray(Xloc, &x); CHKERRQ(ierr);
-  CeedVectorSetArray(xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
+  ierr = VectorPlacePetscVec(q0ceed, Qloc);CHKERRQ(ierr);
 
   // Apply Setup Ceed Operators
+  ierr = VectorPlacePetscVec(xcorners, Xloc);CHKERRQ(ierr);
   CeedOperatorApply(op_setup, xcorners, qdata, CEED_REQUEST_IMMEDIATE);
-  CeedOperatorApply(op_ics, xcorners, q0ceed, CEED_REQUEST_IMMEDIATE);
-  CeedVectorSetValue(onesvec, 1.0);
-  CeedOperatorApply(op_mass, onesvec, mceed, CEED_REQUEST_IMMEDIATE);
+  ierr = ComputeLumpedMassMatrix(ceed, dm, restrictq, basisq, restrictqdi, qdata, user->M);CHKERRQ(ierr);
 
-  // Destroy onesvec
-  CeedVectorDestroy(&onesvec);
-
-  // Fix multiplicity for output of ICs
-  CeedVectorGetArray(q0ceed, CEED_MEM_HOST, &q0);
-  CeedVectorGetArray(xceed, CEED_MEM_HOST, &x);
-  CeedVectorGetArray(multlvec, CEED_MEM_HOST, &mult);
-  for (PetscInt i=0; i<lsize; i++) {
-    for (PetscInt f=0; f<ncompq; f++)
-      q0[i*ncompq+f] /= mult[i];
-    for (PetscInt d=0; d<dim; d++)
-      x[i*dim+d] /= mult[i];
+  ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictq, &ctxSetup, 0.0);
+  if (1) { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
+    // We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow.  If we
+    // disable this, we should still get the same results due to the problem->bc function, but with potentially much
+    // slower execution.
+    Vec Qbc;
+    ierr = DMGetNamedLocalVector(dm, "Qbc", &Qbc);CHKERRQ(ierr);
+    ierr = VecCopy(Qloc, Qbc);CHKERRQ(ierr);
+    ierr = VecZeroEntries(Qloc);CHKERRQ(ierr);
+    ierr = DMGlobalToLocal(dm, Q, INSERT_VALUES, Qloc);CHKERRQ(ierr);
+    ierr = VecAXPY(Qbc, -1., Qloc);CHKERRQ(ierr);
+    ierr = DMRestoreNamedLocalVector(dm, "Qbc", &Qbc);CHKERRQ(ierr);
+    ierr = PetscObjectComposeFunction((PetscObject)dm,"DMPlexInsertBoundaryValues_C",DMPlexInsertBoundaryValues_NS);CHKERRQ(ierr);
   }
 
-  CeedVectorRestoreArray(q0ceed, &q0);
-  CeedVectorRestoreArray(xceed, &x);
-  CeedVectorRestoreArray(multlvec, &mult);
-
-  // Destroy coordinate and mult vecs
-  CeedVectorDestroy(&xceed);
-  CeedVectorDestroy(&multevec);
-  CeedVectorDestroy(&multlvec);
-
+  MPI_Comm_rank(comm, &rank);
+  if (!rank) {ierr = PetscMkdir(user->outputfolder);CHKERRQ(ierr);}
   // Gather initial Q values
-  ierr = VecRestoreArray(Qloc, &q0); CHKERRQ(ierr);
   // In case of continuation of simulation, set up initial values from binary file
   if (contsteps) { // continue from existent solution
     PetscViewer viewer;
@@ -948,61 +1027,39 @@ int main(int argc, char **argv) {
     ierr = VecLoad(Q, viewer); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   } else {
-    ierr = VecScatterBegin(ltog, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
-    CHKERRQ(ierr);
-    ierr = VecScatterEnd(ltog, Qloc, Q, INSERT_VALUES, SCATTER_FORWARD);
-    CHKERRQ(ierr);
+    //ierr = DMLocalToGlobal(dm, Qloc, INSERT_VALUES, Q);CHKERRQ(ierr);
   }
-  CeedVectorDestroy(&q0ceed);
-
-  // Copy boundary values
-  ierr = VecZeroEntries(user->BC); CHKERRQ(ierr);
-  ierr = VecScatterBegin(gtogD, Q, user->BC, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterEnd(gtogD, Q, user->BC, INSERT_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-
-  {
-    PetscReal scale[] = {units->meter, units->meter, units->meter};
-    DM cdm;
-    Vec X;
-
-    ierr = DMGetCoordinateDM(dm, &cdm); CHKERRQ(ierr);
-    ierr = DMCreateGlobalVector(cdm, &X); CHKERRQ(ierr);
-    ierr = MapLocalToDMGlobal(user, Xloc, X, scale); CHKERRQ(ierr);
-    ierr = DMSetCoordinates(dm, X); CHKERRQ(ierr);
-    ierr = VecDestroy(&X); CHKERRQ(ierr);
-  }
-  ierr = VecDestroy(&Xloc); CHKERRQ(ierr);
-
-  // Gather the inverse of the mass operator
-  ierr = VecRestoreArray(Mloc, &m); CHKERRQ(ierr);
-  ierr = VecScatterBegin(ltog, Mloc, user->M, ADD_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecScatterEnd(ltog, Mloc, user->M, ADD_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
-  ierr = VecDestroy(&Mloc); CHKERRQ(ierr);
-  CeedVectorDestroy(&mceed);
-
-  // Invert diagonally lumped mass vector for RHS function
-  ierr = VecReciprocal(user->M); // M is now Minv
-  CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm, &Qloc);CHKERRQ(ierr);
 
   // Create and setup TS
   ierr = TSCreate(comm, &ts); CHKERRQ(ierr);
-  ierr = TSSetType(ts, TSRK); CHKERRQ(ierr);
-  ierr = TSRKSetType(ts, TSRK5F); CHKERRQ(ierr);
-  ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
+  ierr = TSSetDM(ts, dm); CHKERRQ(ierr);
+  if (implicit) {
+    ierr = TSSetType(ts, TSBDF); CHKERRQ(ierr);
+    if (user->op_ifunction) {
+      ierr = TSSetIFunction(ts, NULL, IFunction_NS, &user);CHKERRQ(ierr);
+    } else {                    // Implicit integrators can fall back to using an RHSFunction
+      ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
+    }
+  } else {
+    if (!user->op_rhs) SETERRQ(comm,PETSC_ERR_ARG_NULL,"Problem does not provide RHSFunction");
+    ierr = TSSetType(ts, TSRK); CHKERRQ(ierr);
+    ierr = TSRKSetType(ts, TSRK5F); CHKERRQ(ierr);
+    ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
+  }
   ierr = TSSetMaxTime(ts, 500. * units->second); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
-  ierr = TSSetTimeStep(ts, 1.e-5 * units->second); CHKERRQ(ierr);
+  ierr = TSSetTimeStep(ts, 1.e-2 * units->second); CHKERRQ(ierr);
+  if (test) {ierr = TSSetMaxSteps(ts, 1); CHKERRQ(ierr);}
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
   ierr = TSAdaptSetStepLimits(adapt,
                               1.e-12 * units->second,
-                              1.e-2 * units->second); CHKERRQ(ierr);
+                              1.e2 * units->second); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   if (!contsteps) { // print initial condition
-    ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
+    if (!test) {
+      ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
+    }
   } else { // continue from time of last output
     PetscReal time;
     PetscInt count;
@@ -1017,21 +1074,53 @@ int main(int argc, char **argv) {
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
     ierr = TSSetTime(ts, time * user->units->second); CHKERRQ(ierr);
   }
-  ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
+  if (!test) {
+    ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
+  }
 
   // Solve
+  start = MPI_Wtime();
+  ierr = PetscBarrier((PetscObject)ts); CHKERRQ(ierr);
   ierr = TSSolve(ts, Q); CHKERRQ(ierr);
+  cpu_time_used = MPI_Wtime() - start;
+  ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
+  ierr = MPI_Allreduce(MPI_IN_PLACE, &cpu_time_used, 1, MPI_DOUBLE, MPI_MIN, comm); CHKERRQ(ierr);
+  if (!test) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                      "Time taken for solution: %g\n",
+                      (double)cpu_time_used); CHKERRQ(ierr);
+  }
+
+  // Get error
+  if (problem->non_zero_time && !test) {
+      Vec Qexact, Qexactloc;
+      PetscReal norm;
+      ierr = DMCreateGlobalVector(dm, &Qexact);CHKERRQ(ierr);
+      ierr = DMGetLocalVector(dm, &Qexactloc);CHKERRQ(ierr);
+      ierr = VecGetSize(Qexactloc, &lnodes);CHKERRQ(ierr);
+
+      ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qexactloc, Qexact, restrictq, &ctxSetup, ftime); CHKERRQ(ierr);
+
+      ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
+      ierr = VecNorm(Q, NORM_MAX, &norm); CHKERRQ(ierr);
+      CeedVectorDestroy(&q0ceed);
+      ierr = PetscPrintf(PETSC_COMM_WORLD,
+                        "Max Error: %g\n",
+                        (double)norm); CHKERRQ(ierr);
+    }
 
   // Output Statistics
-  ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
   ierr = TSGetStepNumber(ts,&steps); CHKERRQ(ierr);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,
-                     "Time integrator took %D time steps to reach final time %g\n",
-                     steps,(double)ftime); CHKERRQ(ierr);
+  if (!test) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                      "Time integrator took %D time steps to reach final time %g\n",
+                      steps,(double)ftime); CHKERRQ(ierr);
+  }
 
   // Clean up libCEED
   CeedVectorDestroy(&qdata);
   CeedVectorDestroy(&user->qceed);
+  CeedVectorDestroy(&user->qdotceed);
   CeedVectorDestroy(&user->gceed);
   CeedVectorDestroy(&xcorners);
   CeedBasisDestroy(&basisq);
@@ -1041,23 +1130,22 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&restrictx);
   CeedElemRestrictionDestroy(&restrictqdi);
   CeedElemRestrictionDestroy(&restrictxi);
+  CeedElemRestrictionDestroy(&restrictxcoord);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_ics);
-  CeedQFunctionDestroy(&qf);
+  CeedQFunctionDestroy(&qf_rhs);
+  CeedQFunctionDestroy(&qf_ifunction);
   CeedOperatorDestroy(&op_setup);
   CeedOperatorDestroy(&op_ics);
-  CeedOperatorDestroy(&op);
+  CeedOperatorDestroy(&user->op_rhs);
+  CeedOperatorDestroy(&user->op_ifunction);
   CeedDestroy(&ceed);
 
   // Clean up PETSc
   ierr = VecDestroy(&Q); CHKERRQ(ierr);
   ierr = VecDestroy(&user->M); CHKERRQ(ierr);
-  ierr = VecDestroy(&user->BC); CHKERRQ(ierr);
-  ierr = VecDestroy(&user->Qloc); CHKERRQ(ierr);
-  ierr = VecDestroy(&user->Gloc); CHKERRQ(ierr);
-  ierr = VecScatterDestroy(&ltog); CHKERRQ(ierr);
-  ierr = VecScatterDestroy(&ltog0); CHKERRQ(ierr);
-  ierr = VecScatterDestroy(&gtogD); CHKERRQ(ierr);
+  ierr = MatDestroy(&interpviz);CHKERRQ(ierr);
+  ierr = DMDestroy(&dmviz);CHKERRQ(ierr);
   ierr = TSDestroy(&ts); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFree(units); CHKERRQ(ierr);

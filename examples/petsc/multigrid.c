@@ -236,11 +236,12 @@ int main(int argc, char **argv) {
                        "    Number of 1D Quadrature Points (q) : %d\n"
                        "    Global Nodes                       : %D\n"
                        "    Owned Nodes                        : %D\n"
+                       "    DoF per node                       : %D\n"
                        "  Multigrid:\n"
                        "    Number of Levels                   : %d\n",
                        bpChoice+1, usedresource, P, Q,
                        gsize[numlevels-1]/ncompu, lsize[numlevels-1]/ncompu,
-                       numlevels); CHKERRQ(ierr);
+                       ncompu, numlevels); CHKERRQ(ierr);
   }
 
   // Create RHS vector
@@ -300,13 +301,11 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_error);
   CeedOperatorSetField(op_error, "u", ceeddata[numlevels-1]->Erestrictu,
-                       CEED_TRANSPOSE, ceeddata[numlevels-1]->basisu,
-                       CEED_VECTOR_ACTIVE);
+                       ceeddata[numlevels-1]->basisu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_error, "true_soln", ceeddata[numlevels-1]->Erestrictui,
-                       CEED_NOTRANSPOSE, CEED_BASIS_COLLOCATED, target);
+                       CEED_BASIS_COLLOCATED, target);
   CeedOperatorSetField(op_error, "error", ceeddata[numlevels-1]->Erestrictui,
-                       CEED_NOTRANSPOSE, CEED_BASIS_COLLOCATED,
-                       CEED_VECTOR_ACTIVE);
+                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Calculate multiplicity
   for (int i=0; i<numlevels; i++) {

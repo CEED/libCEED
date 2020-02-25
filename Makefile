@@ -73,12 +73,8 @@ endif
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-MARCH := $(shell $(CC) --version -v < /dev/null 2>&1 | grep -c ' -march=')
-ifeq ($(MARCH),1)
-  MARCHFLAG := -march=native
-else
-  MARCHFLAG := -mtune=native
-endif
+MARCHFLAG := $(if $(shell $(CC) -E -march=native -x c /dev/null > /dev/null 2>&1 && echo 1),-march=native,-mtune=native)
+
 OPT    = -O -g $(MARCHFLAG) -ffp-contract=fast -fopenmp-simd
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 CXXFLAGS = -std=c++11 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
@@ -160,9 +156,9 @@ nekexamples  := $(OBJDIR)/nek-bps
 # PETSc Examples
 petscexamples.c := $(wildcard examples/petsc/*.c)
 petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
-# Navier-Stokes Example
-navierstokesexample.c := $(sort $(wildcard examples/navier-stokes/*.c))
-navierstokesexample  := $(navierstokesexample.c:examples/navier-stokes/%.c=$(OBJDIR)/navier-stokes-%)
+# Navier-Stokes Examples
+nsexamples.c := $(sort $(wildcard examples/navier-stokes/*.c))
+nsexamples  := $(nsexamples.c:examples/navier-stokes/%.c=$(OBJDIR)/ns-%)
 
 # Backends/[ref, blocked, template, memcheck, opt, avx, occa, magma]
 ref.c          := $(sort $(wildcard backends/ref/*.c))
@@ -192,6 +188,7 @@ magma_tmp.cu   := $(magma_pre_src:%.c=%_cuda.cu)
 magma_allsrc.c := $(magma_dsrc) $(magma_tmp.c)
 magma_allsrc.cu:= $(magma_tmp.cu) backends/magma/magma_devptr.cu
 magma_allsrc.cu+= backends/magma/magma_dbasisApply_grad.cu backends/magma/magma_dbasisApply_interp.cu backends/magma/magma_dbasisApply_weight.cu
+magma_allsrc.cu+= backends/magma/magma_drestrictApply.cu
 
 # Output using the 216-color rules mode
 rule_file = $(notdir $(1))
@@ -409,7 +406,7 @@ $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
 	mv examples/petsc/$* $@
 
-$(OBJDIR)/navier-stokes-% : examples/navier-stokes/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
+$(OBJDIR)/ns-% : examples/navier-stokes/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(MAKE) -C examples/navier-stokes CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
 	mv examples/navier-stokes/$* $@
@@ -430,7 +427,8 @@ run-% : $(OBJDIR)/%
 external_examples := \
 	$(if $(MFEM_DIR),$(mfemexamples)) \
 	$(if $(PETSC_DIR),$(petscexamples)) \
-	$(if $(NEK5K_DIR),$(nekexamples))
+	$(if $(NEK5K_DIR),$(nekexamples)) \
+	$(if $(PETSC_DIR),$(nsexamples))
 
 allexamples = $(examples) $(external_examples)
 
@@ -512,8 +510,9 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 .PHONY : cln clean doc lib install all print test tst prove prv prove-all junit examples style tidy okl-cache okl-clear info info-backends
 
 cln clean :
-	$(RM) -r $(OBJDIR) $(LIBDIR)
+	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
 	$(MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
+	$(MAKE) -C tests/python clean
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
 	$(RM) benchmarks/*output.txt
 

@@ -59,11 +59,13 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
       Ceed ceed;
       ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
       CeedInt nelem, elemsize, nnodes;
+      CeedInterlaceMode imode;
+      ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
       ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
       ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
       ierr = CeedElemRestrictionGetNumNodes(r, &nnodes); CeedChk(ierr);
       ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
-      ierr = CeedElemRestrictionCreateBlocked(ceed, nelem, elemsize,
+      ierr = CeedElemRestrictionCreateBlocked(ceed, imode, nelem, elemsize,
                                               blksize, nnodes, ncomp,
                                               CEED_MEM_HOST, CEED_COPY_VALUES,
                                               data->indices, &blkrestr[i+starte]);
@@ -200,7 +202,6 @@ static inline int CeedOperatorSetupInputs_Blocked(CeedInt numinputfields,
   CeedInt ierr;
   CeedEvalMode emode;
   CeedVector vec;
-  CeedTransposeMode lmode;
   uint64_t state;
 
   for (CeedInt i=0; i<numinputfields; i++) {
@@ -220,11 +221,9 @@ static inline int CeedOperatorSetupInputs_Blocked(CeedInt numinputfields,
       // Restrict
       ierr = CeedVectorGetState(vec, &state); CeedChk(ierr);
       if (state != impl->inputstate[i] || vec == invec) {
-        ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode);
-        CeedChk(ierr);
         ierr = CeedElemRestrictionApply(impl->blkrestr[i], CEED_NOTRANSPOSE,
-                                        lmode, vec, impl->evecs[i],
-                                        request); CeedChk(ierr); CeedChk(ierr);
+                                        vec, impl->evecs[i], request);
+        CeedChk(ierr);
         impl->inputstate[i] = state;
       }
       // Get evec
@@ -431,7 +430,6 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
-  CeedTransposeMode lmode;
   CeedOperatorField *opinputfields, *opoutputfields;
   ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
   CeedChk(ierr);
@@ -500,10 +498,9 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
     if (vec == CEED_VECTOR_ACTIVE)
       vec = outvec;
     // Restrict
-    ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
-    ierr = CeedElemRestrictionApply(impl->blkrestr[i+impl->numein], CEED_TRANSPOSE,
-                                    lmode, impl->evecs[i+impl->numein], vec,
-                                    request); CeedChk(ierr);
+    ierr = CeedElemRestrictionApply(impl->blkrestr[i+impl->numein],
+                                    CEED_TRANSPOSE, impl->evecs[i+impl->numein],
+                                    vec, request); CeedChk(ierr);
 
   }
 
@@ -605,7 +602,8 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
   ierr = CeedVectorGetArray(lvec, CEED_MEM_HOST, &a); CeedChk(ierr);
 
   // Create output restriction
-  ierr = CeedElemRestrictionCreateIdentity(ceed, numelements, Q,
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
+  ierr = CeedElemRestrictionCreateIdentity(ceed, imode, numelements, Q,
          numelements*Q, numactivein*numactiveout, rstr); CeedChk(ierr);
   // Create assembled vector
   ierr = CeedVectorCreate(ceed, numelements*Q*numactivein*numactiveout,
@@ -666,13 +664,13 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
   ierr = CeedVectorRestoreArray(lvec, &a); CeedChk(ierr);
   ierr = CeedVectorSetValue(*assembled, 0.0); CeedChk(ierr);
   CeedElemRestriction blkrstr;
-  ierr = CeedElemRestrictionCreateBlocked(ceed, numelements, Q, blksize,
+  ierr = CeedElemRestrictionCreateBlocked(ceed, imode, numelements, Q, blksize,
                                           numelements*Q,
                                           numactivein*numactiveout,
                                           CEED_MEM_HOST, CEED_COPY_VALUES,
                                           NULL, &blkrstr); CeedChk(ierr);
-  ierr = CeedElemRestrictionApply(blkrstr, CEED_TRANSPOSE, CEED_NOTRANSPOSE,
-                                  lvec, *assembled, request); CeedChk(ierr);
+  ierr = CeedElemRestrictionApply(blkrstr, CEED_TRANSPOSE, lvec, *assembled,
+                                  request); CeedChk(ierr);
 
   // Cleanup
   for (CeedInt i=0; i<numactivein; i++) {

@@ -390,6 +390,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedVector, GetArrayRead),
     CEED_FTABLE_ENTRY(CeedVector, RestoreArray),
     CEED_FTABLE_ENTRY(CeedVector, RestoreArrayRead),
+    CEED_FTABLE_ENTRY(CeedVector, Norm),
     CEED_FTABLE_ENTRY(CeedVector, Destroy),
     CEED_FTABLE_ENTRY(CeedElemRestriction, Apply),
     CEED_FTABLE_ENTRY(CeedElemRestriction, ApplyBlock),
@@ -750,12 +751,13 @@ int CeedGetResource(Ceed ceed, const char **resource) {
 **/
 int CeedDestroy(Ceed *ceed) {
   int ierr;
-
   if (!*ceed || --(*ceed)->refcount > 0)
     return 0;
+
   if ((*ceed)->delegate) {
     ierr = CeedDestroy(&(*ceed)->delegate); CeedChk(ierr);
   }
+
   if ((*ceed)->objdelegatecount > 0) {
     for (int i=0; i<(*ceed)->objdelegatecount; i++) {
       ierr = CeedDestroy(&((*ceed)->objdelegates[i].delegate)); CeedChk(ierr);
@@ -763,9 +765,11 @@ int CeedDestroy(Ceed *ceed) {
     }
     ierr = CeedFree(&(*ceed)->objdelegates); CeedChk(ierr);
   }
+
   if ((*ceed)->Destroy) {
     ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);
   }
+
   ierr = CeedFree(&(*ceed)->foffsets); CeedChk(ierr);
   ierr = CeedFree(&(*ceed)->resource); CeedChk(ierr);
   ierr = CeedDestroy(&(*ceed)->opfallbackceed); CeedChk(ierr);

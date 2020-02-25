@@ -10,6 +10,7 @@ int main(int argc, char **argv) {
   CeedInt ind[4*ne];
   const CeedScalar *mm;
   CeedElemRestriction r;
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
 
   CeedInit(argv[1], &ceed);
 
@@ -22,7 +23,7 @@ int main(int argc, char **argv) {
     ind[4*i+2] = i*3+2;
     ind[4*i+3] = i*3+3;
   }
-  CeedElemRestrictionCreate(ceed, ne, 4, 3*ne+1, 1, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, imode, ne, 4, 3*ne+1, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, ind, &r);
 
   CeedElemRestrictionGetMultiplicity(r, mult);

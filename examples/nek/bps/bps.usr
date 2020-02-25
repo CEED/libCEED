@@ -790,12 +790,15 @@ C     Create ceed basis for mesh and computation
 C     Create ceed element restrictions for mesh and computation
       enode=p**ldim
       lnode=enode*nelt*ncompu
-      call ceedelemrestrictioncreateidentity(ceed,nelt,enode,lnode,
-     $  ldim,erstrctx,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelt,enode,lnode,
-     $  ncompu,erstrctu,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelt,q**ldim,
-     $  nelt*q**ldim,1,erstrctw,err)
+      call ceedelemrestrictioncreateidentity(ceed,
+     $  ceed_noninterlaced,
+     $  nelt,enode,lnode,ldim,erstrctx,err)
+      call ceedelemrestrictioncreateidentity(ceed,
+     $  ceed_noninterlaced,
+     $  nelt,enode,lnode,ncompu,erstrctu,err)
+      call ceedelemrestrictioncreateidentity(ceed,
+     $  ceed_noninterlaced,
+     $  nelt,q**ldim,nelt*q**ldim,1,erstrctw,err)
 
 C     Create ceed vectors
       call ceedvectorcreate(ceed,lnode,vec_p1,err)
@@ -837,26 +840,24 @@ C     Create ceed operators
       call ceedoperatorcreate(ceed,qf_setup,
      $  ceed_qfunction_none,ceed_qfunction_none,op_setup,err)
       call ceedoperatorsetfield(op_setup,'x',erstrctx,
-     $  ceed_notranspose,basisx,ceed_vector_active,err)
+     $  basisx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'dx',erstrctx,
-     $  ceed_notranspose,basisx,ceed_vector_active,err)
+     $  basisx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'weight',erstrctx,
-     $  ceed_notranspose,basisx,ceed_vector_none,err)
+     $  basisx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'qdata',erstrctw,
-     $  ceed_notranspose,ceed_basis_collocated,
-     $  ceed_vector_active,err)
+     $  ceed_basis_collocated,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rhs',erstrctu,
-     $  ceed_notranspose,basisu,vec_rhs,err)
+     $  basisu,vec_rhs,err)
 
       call ceedoperatorcreate(ceed,qf_mass,
      $  ceed_qfunction_none,ceed_qfunction_none,op_mass,err)
       call ceedoperatorsetfield(op_mass,'u',erstrctu,
-     $  ceed_notranspose,basisu,ceed_vector_active,err)
+     $  basisu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass,'qdata',erstrctw,
-     $  ceed_notranspose,ceed_basis_collocated,
-     $  vec_qdata,err)
+     $  ceed_basis_collocated,vec_qdata,err)
       call ceedoperatorsetfield(op_mass,'v',erstrctu,
-     $  ceed_notranspose,basisu,ceed_vector_active,err)
+     $  basisu,ceed_vector_active,err)
 
 C     Compute setup data
       call ceedvectorsetarray(vec_rhs,ceed_mem_host,
@@ -1107,12 +1108,15 @@ C     Create ceed element restrictions for mesh and computation
       enode=p**ldim
       lnode=enode*nelt*ncompu
       ngeo=(ldim*(ldim+1))/2
-      call ceedelemrestrictioncreateidentity(ceed,nelt,enode,lnode,
-     $  ldim,erstrctx,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelt,enode,lnode,
-     $  ncompu,erstrctu,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelt,q**ldim,
-     $  nelt*q**ldim,ngeo,erstrctw,err)
+      call ceedelemrestrictioncreateidentity(ceed,
+     $  ceed_noninterlaced,
+     $  nelt,enode,lnode,ldim,erstrctx,err)
+      call ceedelemrestrictioncreateidentity(ceed,
+     $  ceed_noninterlaced,
+     $  nelt,enode,lnode,ncompu,erstrctu,err)
+      call ceedelemrestrictioncreateidentity(ceed,
+     $  ceed_noninterlaced,
+     $  nelt,q**ldim,nelt*q**ldim,ngeo,erstrctw,err)
 
 C     Create ceed vectors
       call ceedvectorcreate(ceed,lnode,vec_p1,err)
@@ -1154,26 +1158,24 @@ C     Create ceed operators
       call ceedoperatorcreate(ceed,qf_setup,
      $  ceed_qfunction_none,ceed_qfunction_none,op_setup,err)
       call ceedoperatorsetfield(op_setup,'x',erstrctx,
-     $  ceed_notranspose,basisx,ceed_vector_active,err)
+     $  basisx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'dx',erstrctx,
-     $  ceed_notranspose,basisx,ceed_vector_active,err)
+     $  basisx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'weight',erstrctx,
-     $  ceed_notranspose,basisx,ceed_vector_none,err)
+     $  basisx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'qdata',erstrctw,
-     $  ceed_notranspose,ceed_basis_collocated,
-     $  ceed_vector_active,err)
+     $  ceed_basis_collocated,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rhs',erstrctu,
-     $  ceed_notranspose,basisu,vec_rhs,err)
+     $  basisu,vec_rhs,err)
 
       call ceedoperatorcreate(ceed,qf_diffusion,
      $  ceed_qfunction_none,ceed_qfunction_none,op_diffusion,err)
       call ceedoperatorsetfield(op_diffusion,'u',erstrctu,
-     $  ceed_notranspose,basisu,ceed_vector_active,err)
+     $  basisu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_diffusion,'qdata',erstrctw,
-     $  ceed_notranspose,ceed_basis_collocated,
-     $  vec_qdata,err)
+     $  ceed_basis_collocated,vec_qdata,err)
       call ceedoperatorsetfield(op_diffusion,'v',erstrctu,
-     $  ceed_notranspose,basisu,ceed_vector_active,err)
+     $  basisu,ceed_vector_active,err)
 
 C     Compute setup data
       call ceedvectorsetarray(vec_rhs,ceed_mem_host,
@@ -1294,17 +1296,17 @@ C     Output
         endif
       endif
 
-      nx     = nx1-1
-      nnode   = nelgt           ! nnodes
+      nx      = nx1-1
+      nnode   = nelgt            ! nnodes
       nnode   = nnode*(nx**ldim) ! nnodes
-      nppp   = nnode/np         ! nnodes/proc
+      nppp    = nnode/np         ! nnodes/proc
 
-      nodepss = nnode/telaps     ! DOF/sec - scalar form
-      titers = telaps/maxits   ! time per iteration
-      tppp_s = titers/nppp     ! time per iteraton per local point
+      dofps   = nnode/telaps     ! DOF/sec - scalar form
+      titers  = telaps/maxits    ! time per iteration
+      tppp_s  = titers/nppp      ! time per iteraton per local point
 
       if (nid.eq.0) write(6,1) 'case scalar:'
-     $ ,np,nx,nelt,nelgt,nnode,nppp,maxits,telaps,nodepss,titers,tppp_s
+     $ ,np,nx,nelt,nelgt,nnode,nppp,maxits,telaps,dofps,titers,tppp_s
 
     1 format(a12,i7,i3,i7,i10,i14,i10,i4,1p4e13.5)
     3 format(i3,i9,e12.4,1x,a8,i9)
@@ -1691,3 +1693,4 @@ C     Input:                        Output: test
       return
       end
 C-----------------------------------------------------------------------
+

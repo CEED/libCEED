@@ -174,9 +174,10 @@ int main(int argc, char **argv) {
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
                        "    Global nodes                       : %D\n"
-                       "    Owned nodes                        : %D\n",
+                       "    Owned nodes                        : %D\n"
+                       "    DoF per node                       : %D\n",
                        bpChoice+1, usedresource, P, Q, gsize/ncompu,
-                       lsize/ncompu); CHKERRQ(ierr);
+                       lsize/ncompu, ncompu); CHKERRQ(ierr);
   }
 
   // Create RHS vector
@@ -209,13 +210,11 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_error);
   CeedOperatorSetField(op_error, "u", ceeddata->Erestrictu,
-                       CEED_TRANSPOSE, ceeddata->basisu,
-                       CEED_VECTOR_ACTIVE);
+                       ceeddata->basisu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_error, "true_soln", ceeddata->Erestrictui,
-                       CEED_NOTRANSPOSE, CEED_BASIS_COLLOCATED, target);
+                       CEED_BASIS_COLLOCATED, target);
   CeedOperatorSetField(op_error, "error", ceeddata->Erestrictui,
-                       CEED_NOTRANSPOSE, CEED_BASIS_COLLOCATED,
-                       CEED_VECTOR_ACTIVE);
+                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Set up Mat
   userO->comm = comm;

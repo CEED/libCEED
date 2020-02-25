@@ -60,8 +60,9 @@ static const char help[] =
 #endif
 
 // Auxiliary function to define CEED restrictions from DMPlex data
-static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
-                                 CeedElemRestriction *Erestrict, DM dm) {
+static int CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode, CeedInt P,
+                                 CeedInt ncomp, CeedElemRestriction *Erestrict,
+                                 DM dm) {
   PetscInt ierr;
   PetscInt c, cStart, cEnd, nelem, nnodes, *erestrict, eoffset;
   PetscSection section;
@@ -99,7 +100,7 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
   ierr = VecGetLocalSize(Uloc, &nnodes); CHKERRQ(ierr);
 
   ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, nelem, P*P, nnodes/ncomp, ncomp,
+  CeedElemRestrictionCreate(ceed, imode, nelem, P*P, nnodes/ncomp, ncomp,
                             CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
                             Erestrict);
   ierr = PetscFree(erestrict); CHKERRQ(ierr);
@@ -278,8 +279,9 @@ int main(int argc, char **argv) {
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
-                       "    Global nodes                       : %D\n",
-                       usedresource, P, Q,  gsize/ncompu);
+                       "    Global nodes                       : %D\n"
+                       "    DoF per node                       : %D\n",
+                       usedresource, P, Q,  gsize/ncompu, ncompu);
     CHKERRQ(ierr);
   }
 
@@ -295,8 +297,10 @@ int main(int argc, char **argv) {
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
-  CreateRestrictionPlex(ceed, 2, ncompx, &Erestrictx, dmcoord); CHKERRQ(ierr);
-  CreateRestrictionPlex(ceed, P, ncompu, &Erestrictu, dm); CHKERRQ(ierr);
+  CreateRestrictionPlex(ceed, CEED_INTERLACED, 2, ncompx, &Erestrictx, dmcoord);
+  CHKERRQ(ierr);
+  CreateRestrictionPlex(ceed, CEED_INTERLACED, P, ncompu, &Erestrictu, dm);
+  CHKERRQ(ierr);
 
   CeedInt cStart, cEnd;
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
@@ -304,10 +308,10 @@ int main(int argc, char **argv) {
 
   // CEED identity restrictions
   const CeedInt qdatasize = 1;
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q, nelem*Q*Q,
-                                    qdatasize, &Erestrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q, nelem*Q*Q, 1,
-                                    &Erestrictxi);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q,
+                                    nelem*Q*Q, qdatasize, &Erestrictqdi);
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q,
+                                    nelem*Q*Q, 1, &Erestrictxi);
 
   // Element coordinates
   Vec coords;
@@ -347,23 +351,21 @@ int main(int argc, char **argv) {
 
   // Create the operator that builds the quadrature data for the operator
   CeedOperatorCreate(ceed, qf_setupgeo, NULL, NULL, &op_setupgeo);
-  CeedOperatorSetField(op_setupgeo, "x", Erestrictx, CEED_TRANSPOSE,
-                       basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, CEED_TRANSPOSE,
-                       basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setupgeo, "weight", Erestrictxi, CEED_NOTRANSPOSE,
-                       basisx, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setupgeo, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setupgeo, "x", Erestrictx, basisx,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, basisx,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setupgeo, "weight", Erestrictxi, basisx,
+                       CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setupgeo, "qdata", Erestrictqdi,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Create the mass operator
   CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
-  CeedOperatorSetField(op_apply, "u", Erestrictu, CEED_TRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_apply, "v", Erestrictu, CEED_TRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_apply, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_BASIS_COLLOCATED,
+                       qdata);
+  CeedOperatorSetField(op_apply, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
 
   // Compute the quadrature data for the mass operator
   CeedOperatorApply(op_setupgeo, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
