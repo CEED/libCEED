@@ -103,8 +103,7 @@ static const char *const bpTypes[] = {"bp1","bp2","bp3","bp4","bp5","bp6",
 typedef struct {
   CeedInt ncompu, qdatasize, qextra;
   CeedQFunctionUser setupgeo, setuprhs, apply, error, ident;
-  const char *setupgeofname, *setuprhsfname, *applyfname, *errorfname,
-        *identfname;
+  const char *setupgeofname, *setuprhsfname, *applyfname, *errorfname, *identfname;
   CeedEvalMode inmode, outmode;
   CeedQuadMode qmode;
   PetscBool enforce_bc;
