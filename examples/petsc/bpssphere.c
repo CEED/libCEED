@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
   char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
-       filename[PETSC_MAX_PATH_LEN];
+                                          filename[PETSC_MAX_PATH_LEN];
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree = 3, qextra, lsize, gsize, topodim = 2, ncompx = 3,
            ncompu = 1, xlsize;
@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   simplex = PETSC_FALSE;
   ierr = PetscOptionsBool("-simplex", "Use simplices, or tensor product cells",
-                         NULL, simplex, &simplex, NULL); CHKERRQ(ierr);
+                          NULL, simplex, &simplex, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Setup DM

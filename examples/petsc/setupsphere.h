@@ -104,7 +104,7 @@ typedef struct {
   CeedInt ncompu, qdatasize, qextra;
   CeedQFunctionUser setupgeo, setuprhs, apply, error, ident;
   const char *setupgeofname, *setuprhsfname, *applyfname, *errorfname,
-             *identfname;
+        *identfname;
   CeedEvalMode inmode, outmode;
   CeedQuadMode qmode;
   PetscBool enforce_bc;
@@ -216,19 +216,18 @@ static bpData bpOptions[6] = {
 // -----------------------------------------------------------------------------
 
 // Utility function taken from petsc/src/dm/impls/plex/examples/tutorials/ex7.c
-static PetscErrorCode ProjectToUnitSphere(DM dm)
-{
+static PetscErrorCode ProjectToUnitSphere(DM dm) {
   Vec            coordinates;
   PetscScalar   *coords;
   PetscInt       Nv, v, dim, d;
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
-  ierr = DMGetCoordinatesLocal(dm, &coordinates);CHKERRQ(ierr);
-  ierr = VecGetLocalSize(coordinates, &Nv);CHKERRQ(ierr);
-  ierr = VecGetBlockSize(coordinates, &dim);CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(coordinates, &Nv); CHKERRQ(ierr);
+  ierr = VecGetBlockSize(coordinates, &dim); CHKERRQ(ierr);
   Nv  /= dim;
-  ierr = VecGetArray(coordinates, &coords);CHKERRQ(ierr);
+  ierr = VecGetArray(coordinates, &coords); CHKERRQ(ierr);
   for (v = 0; v < Nv; ++v) {
     PetscReal r = 0.0;
 
@@ -236,7 +235,7 @@ static PetscErrorCode ProjectToUnitSphere(DM dm)
     r = PetscSqrtReal(r);
     for (d = 0; d < dim; ++d) coords[v*dim+d] /= r;
   }
-  ierr = VecRestoreArray(coordinates, &coords);CHKERRQ(ierr);
+  ierr = VecRestoreArray(coordinates, &coords); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -316,7 +315,8 @@ static int PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
 // -----------------------------------------------------------------------------
 
 //// This function sets up a DM for a given degree
-static int SetupDMByDegree(DM dm, PetscInt degree, PetscInt ncompu, PetscInt dim) {
+static int SetupDMByDegree(DM dm, PetscInt degree, PetscInt ncompu,
+                           PetscInt dim) {
   PetscInt ierr;
   PetscFE fe;
 
@@ -415,7 +415,8 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
 }
 
 // Set up libCEED for a given degree
-static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt topodim,
+static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
+                                CeedInt topodim,
                                 CeedInt qextra, PetscInt ncompx, PetscInt ncompu,
                                 PetscInt gsize, PetscInt xlsize, bpType bpChoice,
                                 CeedData data, PetscBool setup_rhs, CeedVector rhsceed,
