@@ -103,7 +103,8 @@ static const char *const bpTypes[] = {"bp1","bp2","bp3","bp4","bp5","bp6",
 typedef struct {
   CeedInt ncompu, qdatasize, qextra;
   CeedQFunctionUser setupgeo, setuprhs, apply, error, ident;
-  const char *setupgeofname, *setuprhsfname, *applyfname, *errorfname, *identfname;
+  const char *setupgeofname, *setuprhsfname, *applyfname, *errorfname,
+        *identfname;
   CeedEvalMode inmode, outmode;
   CeedQuadMode qmode;
   PetscBool enforce_bc;
@@ -449,17 +450,22 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
-  CreateRestrictionPlex(ceed, CEED_INTERLACED, 2, ncompx, &Erestrictx, dmcoord); CHKERRQ(ierr);
-  CreateRestrictionPlex(ceed, CEED_INTERLACED, P, ncompu, &Erestrictu, dm); CHKERRQ(ierr);
+  CreateRestrictionPlex(ceed, CEED_INTERLACED, 2, ncompx, &Erestrictx, dmcoord);
+  CHKERRQ(ierr);
+  CreateRestrictionPlex(ceed, CEED_INTERLACED, P, ncompu, &Erestrictu, dm);
+  CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
 
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q, nelem*Q*Q,
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q,
+                                    nelem*Q*Q,
                                     ncompu, &Erestrictui);
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q, nelem*Q*Q,
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q,
+                                    nelem*Q*Q,
                                     qdatasize, &Erestrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q, nelem*Q*Q,
+  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q,
+                                    nelem*Q*Q,
                                     1, &Erestrictxi);
 
   // Element coordinates
@@ -513,7 +519,8 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
   // Create the mass or diff operator
   CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
   CeedOperatorSetField(op_apply, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_BASIS_COLLOCATED, qdata);
+  CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_BASIS_COLLOCATED,
+                       qdata);
   CeedOperatorSetField(op_apply, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
 
   // Set up the libCEED context
@@ -542,9 +549,11 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
     CeedOperatorSetField(op_setuprhs, "x", Erestrictx, basisx, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_setuprhs, "qdata", Erestrictqdi, CEED_BASIS_COLLOCATED,
                          qdata);
-    CeedOperatorSetField(op_setuprhs, "true_soln", Erestrictui, CEED_BASIS_COLLOCATED,
+    CeedOperatorSetField(op_setuprhs, "true_soln", Erestrictui,
+                         CEED_BASIS_COLLOCATED,
                          *target);
-    CeedOperatorSetField(op_setuprhs, "rhs", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_setuprhs, "rhs", Erestrictu, basisu,
+                         CEED_VECTOR_ACTIVE);
 
     // Set up the libCEED context
     CeedScalar rhsSetup[2] = {R, l};
