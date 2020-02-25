@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
     const char *usedresource;
     CeedGetResource(ceed, &usedresource);
     ierr = PetscPrintf(comm,
-                       "\n-- CEED Benchmark Problem on the Sphere %d -- libCEED + PETSc --\n"
+                       "\n-- CEED Benchmark Problem %d on the Sphere -- libCEED + PETSc --\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
                        "  Mesh:\n"
