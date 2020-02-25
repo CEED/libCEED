@@ -103,9 +103,9 @@ static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
   // -- Potential temperature, density current
   CeedScalar rr[3] = {x - center[0], y - center[1], z - center[2]};
   // (I - q q^T) r: distance from dc_axis (or from center if dc_axis is the zero vector)
-  for (int i=0; i<3;
-       i++) rr[i] -= dc_axis[i] * (dc_axis[0]*rr[0] + dc_axis[1]*rr[1] +
-                                     dc_axis[2]*rr[2]);
+  for (int i=0; i<3; i++)
+    rr[i] -= dc_axis[i] *
+             (dc_axis[0]*rr[0] + dc_axis[1]*rr[1] + dc_axis[2]*rr[2]);
   const CeedScalar r = sqrt(rr[0]*rr[0] + rr[1]*rr[1] + rr[2]*rr[2]);
   const CeedScalar deltatheta = r <= rc ? thetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
   const CeedScalar theta = theta0*exp(N*N*z/g) + deltatheta;
@@ -724,4 +724,3 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
 
 // *****************************************************************************
 #endif
-
