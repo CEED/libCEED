@@ -35,7 +35,7 @@
 //     bpssphere -problem bp5 -ceed /cpu/occa -degree 3
 //     bpssphere -problem bp6 -ceed /cpu/self -degree 3
 //
-//TESTARGS -ceed {ceed_resource} -test -problem bp3 -_degree 3
+//TESTARGS -ceed {ceed_resource} -test -problem bp3 -degree 3
 
 /// @file
 /// CEED BPs example using PETSc with DMPlex
