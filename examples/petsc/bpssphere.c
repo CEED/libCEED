@@ -315,7 +315,7 @@ int main(int argc, char **argv) {
       PetscReal maxerror;
       ierr = ComputeErrorMax(userO, op_error, X, target, &maxerror);
       CHKERRQ(ierr);
-      PetscReal tol = 5e-2;
+      PetscReal tol = 6e-2;
       if (!test_mode || maxerror > tol) {
         ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
         CHKERRQ(ierr);
