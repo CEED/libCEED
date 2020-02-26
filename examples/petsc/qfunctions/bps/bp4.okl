@@ -55,15 +55,15 @@ typedef double CeedScalar;
     out[oOf7[0]+i+0*Q] = sin(M_PI*(c[0] + k[0]*in[iOf7[0]+0*Q+i])) *
                          sin(M_PI*(c[1] + k[1]*in[iOf7[0]+1*Q+i])) *
                          sin(M_PI*(c[2] + k[2]*in[iOf7[0]+2*Q+i]));
-    out[oOf7[0]+i+1*Q] = out[oOf7[0]+i+0*Q];
-    out[oOf7[0]+i+2*Q] = out[oOf7[0]+i+0*Q];
+    out[oOf7[0]+i+1*Q] = 2 * out[oOf7[0]+i+0*Q];
+    out[oOf7[0]+i+2*Q] = 3 * out[oOf7[0]+i+0*Q];
 
     const CeedScalar rho = in[iOf7[2]+i] * (J11*A11 + J21*A12 + J31*A13);
 
     out[oOf7[1]+i+0*Q] = rho * Sqr(M_PI) * (Sqr(k[0]) + Sqr(k[1]) + Sqr(k[2])) *
                          out[oOf7[0]+i+0*Q];
-    out[oOf7[1]+i+1*Q] = out[oOf7[1]+i+0*Q];
-    out[oOf7[1]+i+2*Q] = out[oOf7[1]+i+0*Q];
+    out[oOf7[1]+i+1*Q] = 2 * out[oOf7[1]+i+0*Q];
+    out[oOf7[1]+i+2*Q] = 3 * out[oOf7[1]+i+0*Q];
   } // End of Quadrature Point Loop
 }
 

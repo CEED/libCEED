@@ -38,16 +38,16 @@ CEED_QFUNCTION(SetupMassRhs3)(void *ctx, const CeedInt Q,
     // Component 1
     true_soln[i+0*Q] =  sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
     // Component 2
-    true_soln[i+1*Q] = true_soln[i+0*Q];
+    true_soln[i+1*Q] = 2 * true_soln[i+0*Q];
     // Component 3
-    true_soln[i+2*Q] = true_soln[i+0*Q];
+    true_soln[i+2*Q] = 3 * true_soln[i+0*Q];
 
     // Component 1
     rhs[i+0*Q] = det * w[i] * true_soln[i+0*Q];
     // Component 2
-    rhs[i+1*Q] = rhs[i+0*Q];
+    rhs[i+1*Q] = 2 * rhs[i+0*Q];
     // Component 3
-    rhs[i+2*Q] = rhs[i+0*Q];
+    rhs[i+2*Q] = 3 * rhs[i+0*Q];
   } // End of Quadrature Point Loop
   return 0;
 }

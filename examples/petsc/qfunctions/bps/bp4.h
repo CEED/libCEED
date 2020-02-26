@@ -51,18 +51,18 @@ CEED_QFUNCTION(SetupDiffRhs3)(void *ctx, CeedInt Q,
                        sin(M_PI*(c[1] + k[1]*x[i+Q*1])) *
                        sin(M_PI*(c[2] + k[2]*x[i+Q*2]));
     // Component 2
-    true_soln[i+1*Q] = true_soln[i+0*Q];
+    true_soln[i+1*Q] = 2 * true_soln[i+0*Q];
     // Component 3
-    true_soln[i+2*Q] = true_soln[i+0*Q];
+    true_soln[i+2*Q] = 3 * true_soln[i+0*Q];
 
     const CeedScalar rho = w[i] * (J11*A11 + J21*A12 + J31*A13);
     // Component 1
     rhs[i+0*Q] = rho * M_PI*M_PI * (k[0]*k[0] + k[1]*k[1] + k[2]*k[2]) *
                  true_soln[i+0*Q];
     // Component 2
-    rhs[i+1*Q] = rhs[i+0*Q];
+    rhs[i+1*Q] = 2 * rhs[i+0*Q];
     // Component 3
-    rhs[i+2*Q] = rhs[i+0*Q];
+    rhs[i+2*Q] = 3 * rhs[i+0*Q];
   } // End of Quadrature Point Loop
 
   return 0;

@@ -50,15 +50,15 @@ typedef double CeedScalar;
     out[oOf7[0]+i+0*Q] = sqrt(Sqr(in[iOf7[0]+0*Q+i]) +
                               Sqr(in[iOf7[0]+1*Q+i]) +
                               Sqr(in[iOf7[0]+2*Q+i]));
-    out[oOf7[0]+i+1*Q] = out[oOf7[0]+i+0*Q];
-    out[oOf7[0]+i+2*Q] = out[oOf7[0]+i+0*Q];
+    out[oOf7[0]+i+1*Q] = 2 * out[oOf7[0]+i+0*Q];
+    out[oOf7[0]+i+2*Q] = 3 * out[oOf7[0]+i+0*Q];
 
     out[oOf7[1]+i+0*Q] = det * in[iOf7[2]+i] *
                          sqrt(Sqr(in[iOf7[0]+0*Q+i]) +
                               Sqr(in[iOf7[0]+1*Q+i]) +
                               Sqr(in[iOf7[0]+2*Q+i]));
-    out[oOf7[1]+i+1*Q] = out[oOf7[1]+i+0*Q];
-    out[oOf7[1]+i+2*Q] = out[oOf7[1]+i+0*Q];   
+    out[oOf7[1]+i+1*Q] = 2 * out[oOf7[1]+i+0*Q];
+    out[oOf7[1]+i+2*Q] = 3 * out[oOf7[1]+i+0*Q];   
   } // End of Quadrature Point Loop
 }
 
