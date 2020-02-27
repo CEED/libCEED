@@ -59,7 +59,7 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
       magma_readDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv, data->queue);
   }
 
-  magma_queue_sync( data->queue );
+  ceed_magma_queue_sync( data->queue );
   ierr = CeedVectorRestoreArrayRead(u, &du); CeedChk(ierr);
   ierr = CeedVectorRestoreArray(v, &dv); CeedChk(ierr);
 
