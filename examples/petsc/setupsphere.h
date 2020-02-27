@@ -27,7 +27,7 @@
 #include "qfunctions/bps/bp1sphere.h"
 #include "qfunctions/bps/bp2sphere.h"
 #include "qfunctions/bps/bp3sphere.h"
-//#include "qfunctions/bps/bp4sphere.h"
+#include "qfunctions/bps/bp4sphere.h"
 
 // -----------------------------------------------------------------------------
 // PETSc Operator Structs
@@ -160,23 +160,23 @@ static bpData bpOptions[6] = {
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS
+  },
+  [CEED_BP4] = {
+    .ncompu = 3,
+    .qdatasize = 4,
+    .qextra = 1,
+    .setupgeo = SetupDiffGeo,
+    .setuprhs = SetupDiffRhs3,
+    .apply = Diff3,
+    .error = Error3,
+    .setupgeofname = SetupDiffGeo_loc,
+    .setuprhsfname = SetupDiffRhs3_loc,
+    .applyfname = Diff_loc,
+    .errorfname = Error3_loc,
+    .inmode = CEED_EVAL_GRAD,
+    .outmode = CEED_EVAL_GRAD,
+    .qmode = CEED_GAUSS
   }//,
-//  [CEED_BP4] = {
-//    .ncompu = 3,
-//    .qdatasize = 4,
-//    .qextra = 1,
-//    .setupgeo = SetupDiffGeo,
-//    .setuprhs = SetupDiffRhs3,
-//    .apply = Diff3,
-//    .error = Error3,
-//    .setupgeofname = SetupDiffGeo_loc,
-//    .setuprhsfname = SetupDiffRhs3_loc,
-//    .applyfname = Diff_loc,
-//    .errorfname = Error3_loc,
-//    .inmode = CEED_EVAL_GRAD,
-//    .outmode = CEED_EVAL_GRAD,
-//    .qmode = CEED_GAUSS
-//  },
 //  [CEED_BP5] = {
 //    .ncompu = 1,
 //    .qdatasize = 4,
