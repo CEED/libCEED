@@ -49,8 +49,9 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   ierr = CeedCalloc(sizeof(Ceed_Magma), &data); CeedChk(ierr);
   ierr = CeedSetData(ceed, (void*)&data); CeedChk(ierr);
 
+  // create a queue that uses the null stream
   magma_getdevice( &(data->device) );
-  magma_queue_create( data->device, &(data->queue) );
+  magma_queue_create_from_cuda(data->device, NULL, NULL, NULL, &(data->queue));
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
                                 CeedElemRestrictionCreate_Magma); CeedChk(ierr);
