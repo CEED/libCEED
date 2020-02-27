@@ -33,62 +33,61 @@ magma_dgemm_nontensor(
     magma_dgemm(transA, transB, m, n, k, alpha, dA, ldda, dB, lddb, beta, dC, lddc, queue);
     return 0;
   }
-
   // select batching vs. no-batching (based on offline tuning)
   magma_int_t n1 = n;
   bool use_magmablas = false;
 
   if( NN ) {
-    if     (m <=   2 && k <=    3) { use_magmablas = false; n1 = 125;}
-    else if(m <=   3 && k <=    4) { use_magmablas = false; n1 = 125;}
-    else if(m <=   4 && k <=    5) { use_magmablas = false; n1 = 125;}
+    if     (m <=   2 && k <=    3) { use_magmablas = false; n1 = 128;}
+    else if(m <=   3 && k <=    4) { use_magmablas = false; n1 = 128;}
+    else if(m <=   4 && k <=    5) { use_magmablas = false; n1 = 128;}
     else if(m <=   4 && k <=    9) { use_magmablas = true;  n1 =  16;}
-    else if(m <=   5 && k <=    6) { use_magmablas = false; n1 = 125;}
-    else if(m <=   6 && k <=    7) { use_magmablas = false; n1 = 125;}
-    else if(m <=   7 && k <=    8) { use_magmablas = false; n1 = 125;}
+    else if(m <=   5 && k <=    6) { use_magmablas = false; n1 = 128;}
+    else if(m <=   6 && k <=    7) { use_magmablas = false; n1 = 128;}
+    else if(m <=   7 && k <=    8) { use_magmablas = false; n1 = 128;}
     else if(m <=   8 && k <=    9) { use_magmablas = true;  n1 =  16;}
     else if(m <=   8 && k <=   27) { use_magmablas = true;  n1 =  16;}
-    else if(m <=   9 && k <=   10) { use_magmablas = true;  n1 = 125;}
-    else if(m <=   9 && k <=   16) { use_magmablas = false; n1 = 125;}    
+    else if(m <=   9 && k <=   10) { use_magmablas = true;  n1 = 128;}
+    else if(m <=   9 && k <=   16) { use_magmablas = false; n1 = 128;}    
     else if(m <=  16 && k <=   25) { use_magmablas = true;  n1 =  16;}
-    else if(m <=  25 && k <=   36) { use_magmablas = true;  n1 = 125;}
-    else if(m <=  27 && k <=   64) { use_magmablas = true;  n1 =  20;}
-    else if(m <=  36 && k <=   49) { use_magmablas = false; n1 = 125;}
-    else if(m <=  49 && k <=   64) { use_magmablas = false; n1 = 125;}
-    else if(m <=  64 && k <=   81) { use_magmablas = false; n1 = 125;}
-    else if(m <=  64 && k <=  125) { use_magmablas = false; n1 = 125;}
-    else if(m <=  81 && k <=  100) { use_magmablas = false; n1 = 125;}
-    else if(m <= 125 && k <=  216) { use_magmablas = false; n1 = 250;}
-    else if(m <= 216 && k <=  343) { use_magmablas = false; n1 = 250;}
-    else if(m <= 343 && k <=  512) { use_magmablas = false; n1 = 250;}
-    else if(m <= 512 && k <=  729) { use_magmablas = false; n1 = 250;}
+    else if(m <=  25 && k <=   36) { use_magmablas = true;  n1 = 128;}
+    else if(m <=  27 && k <=   64) { use_magmablas = true;  n1 = 128;}
+    else if(m <=  36 && k <=   49) { use_magmablas = false; n1 = 128;}
+    else if(m <=  49 && k <=   64) { use_magmablas = false; n1 = 128;}
+    else if(m <=  64 && k <=   81) { use_magmablas = false; n1 = 128;}
+    else if(m <=  64 && k <=  125) { use_magmablas = false; n1 = 128;}
+    else if(m <=  81 && k <=  100) { use_magmablas = false; n1 = 128;}
+    else if(m <= 125 && k <=  216) { use_magmablas = false; n1 = 256;}
+    else if(m <= 216 && k <=  343) { use_magmablas = false; n1 = 256;}
+    else if(m <= 343 && k <=  512) { use_magmablas = false; n1 = 256;}
+    else if(m <= 512 && k <=  729) { use_magmablas = false; n1 = 256;}
     else if(m <= 729 && k <= 1000) { use_magmablas = false; n1 =   n;}
     else { use_magmablas = false; n1 =   n;}
   }
   else if( TN ) {
     if     (m <=   2 && k <=    3) { use_magmablas = false; n1 =   4;}
     else if(m <=   3 && k <=    4) { use_magmablas = false; n1 =   4;}
-    else if(m <=   4 && k <=    5) { use_magmablas = false; n1 = 125;}
+    else if(m <=   4 && k <=    5) { use_magmablas = false; n1 = 128;}
     else if(m <=   4 && k <=    9) { use_magmablas = false; n1 =   4;}
-    else if(m <=   5 && k <=    6) { use_magmablas = false; n1 = 125;}
-    else if(m <=   6 && k <=    7) { use_magmablas = false; n1 = 125;}
-    else if(m <=   7 && k <=    8) { use_magmablas = false; n1 = 125;}
-    else if(m <=   8 && k <=    9) { use_magmablas = true;  n1 = 125;}
-    else if(m <=   8 && k <=   27) { use_magmablas = true;  n1 = 125;}
-    else if(m <=   9 && k <=   10) { use_magmablas = true;  n1 = 125;}    
-    else if(m <=   9 && k <=   16) { use_magmablas = false; n1 =  50;}
-    else if(m <=  16 && k <=   25) { use_magmablas = true;  n1 = 125;}
-    else if(m <=  25 && k <=   36) { use_magmablas = true;  n1 = 125;}
-    else if(m <=  27 && k <=   64) { use_magmablas = true;  n1 = 125;}
-    else if(m <=  36 && k <=   49) { use_magmablas = true;  n1 = 125;}
-    else if(m <=  49 && k <=   64) { use_magmablas = false; n1 = 125;}
-    else if(m <=  64 && k <=   81) { use_magmablas = false; n1 = 125;}
-    else if(m <=  64 && k <=  125) { use_magmablas = false; n1 = 125;}
-    else if(m <=  81 && k <=  100) { use_magmablas = false; n1 = 125;}    
-    else if(m <= 125 && k <=  216) { use_magmablas = false; n1 = 125;}
-    else if(m <= 216 && k <=  343) { use_magmablas = false; n1 = 125;}
-    else if(m <= 343 && k <=  512) { use_magmablas = false; n1 = 125;}
-    else if(m <= 512 && k <=  729) { use_magmablas = false; n1 = 125;}
+    else if(m <=   5 && k <=    6) { use_magmablas = false; n1 = 128;}
+    else if(m <=   6 && k <=    7) { use_magmablas = false; n1 = 128;}
+    else if(m <=   7 && k <=    8) { use_magmablas = false; n1 = 128;}
+    else if(m <=   8 && k <=    9) { use_magmablas = true;  n1 = 128;}
+    else if(m <=   8 && k <=   27) { use_magmablas = true;  n1 = 128;}
+    else if(m <=   9 && k <=   10) { use_magmablas = true;  n1 = 128;}    
+    else if(m <=   9 && k <=   16) { use_magmablas = false; n1 = 128;}
+    else if(m <=  16 && k <=   25) { use_magmablas = true;  n1 = 128;}
+    else if(m <=  25 && k <=   36) { use_magmablas = true;  n1 = 128;}
+    else if(m <=  27 && k <=   64) { use_magmablas = true;  n1 = 128;}
+    else if(m <=  36 && k <=   49) { use_magmablas = true;  n1 = 128;}
+    else if(m <=  49 && k <=   64) { use_magmablas = false; n1 = 128;}
+    else if(m <=  64 && k <=   81) { use_magmablas = false; n1 = 128;}
+    else if(m <=  64 && k <=  125) { use_magmablas = false; n1 = 128;}
+    else if(m <=  81 && k <=  100) { use_magmablas = false; n1 = 128;}    
+    else if(m <= 125 && k <=  216) { use_magmablas = false; n1 = 128;}
+    else if(m <= 216 && k <=  343) { use_magmablas = false; n1 = 128;}
+    else if(m <= 343 && k <=  512) { use_magmablas = false; n1 = 128;}
+    else if(m <= 512 && k <=  729) { use_magmablas = false; n1 = 128;}
     else if(m <= 729 && k <= 1000) { use_magmablas = false; n1 =   n;}
     else { use_magmablas = false; n1 =   n;}
   }
@@ -134,17 +133,19 @@ magma_dgemm_nontensor(
 
       // cleanup
       if(n2 > 0) {
-        magma_dgemm(
-            transA, transB, m, n2, k, 
-            alpha, dA, ldda, 
-                   dB + batchCount * strideB, lddb, 
-            beta,  dC + batchCount * strideC, lddc, queue);
+        cublasDgemmStridedBatched(
+            magma_queue_get_cublas_handle( queue ), 
+            cublas_trans_const(transA), cublas_trans_const(transB), 
+            (int)m, (int)n2, (int)k, 
+            &alpha, (const double*) dA, (int)ldda, strideA, 
+                    (const double*) dB + batchCount * strideB, (int)lddb, strideB, 
+            &beta,                  dC + batchCount * strideC, (int)lddc, strideC, 1 );
       }
     }  
   }
   
   // wait for the operation to complete
-  magma_queue_sync( queue );
+  ceed_magma_queue_sync( queue );
 
   return 0;
 }
