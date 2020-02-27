@@ -848,7 +848,7 @@ int main(int argc, char **argv) {
   {
     PetscReal maxerror;
     ierr = ComputeErrorMax(user, op_error, X, target, &maxerror); CHKERRQ(ierr);
-    PetscReal tol = (bpChoice == CEED_BP1 || bpChoice == CEED_BP2) ? 5e-3 : 5e-2;
+    PetscReal tol = 5e-2;
     if (!test_mode || maxerror > tol) {
       ierr = PetscPrintf(comm,
                          "    Pointwise Error (max)              : %e\n",
