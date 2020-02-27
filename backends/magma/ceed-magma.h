@@ -165,6 +165,11 @@ CEED_INTERN {
 // comment the line below to use the default magma_is_devptr function
 #define magma_is_devptr magma_isdevptr
 
+// if magma and cuda/ref are using the null stream, then ceed_magma_queue_sync
+// should do nothing
+#define ceed_magma_queue_sync(...)
+//#define ceed_magma_queue_sync    magma_queue_sync
+
 // batch stride, override using -DMAGMA_BATCH_STRIDE=<desired-value>
 #ifndef MAGMA_BATCH_STRIDE
 #define MAGMA_BATCH_STRIDE (1000)
