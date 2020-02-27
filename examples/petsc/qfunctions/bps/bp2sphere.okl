@@ -42,11 +42,11 @@ typedef double CeedScalar;
 
   // Use absolute value of latitute for true solution
   out[oOf7[0]+i+0*Q] = fabs(theta);
-  out[oOf7[0]+i+1*Q] = out[oOf7[0]+i+0*Q];
-  out[oOf7[0]+i+2*Q] = out[oOf7[0]+i+0*Q];
+  out[oOf7[0]+i+1*Q] = 2 * out[oOf7[0]+i+0*Q];
+  out[oOf7[0]+i+2*Q] = 3 * out[oOf7[0]+i+0*Q];
   out[oOf7[1]+i+0*Q] = in[iOf7[1]+i+0*Q] * out[oOf7[0]+i+0*Q];
-  out[oOf7[1]+i+1*Q] = out[oOf7[1]+i+0*Q];
-  out[oOf7[1]+i+2*Q] = out[oOf7[1]+i+0*Q];
+  out[oOf7[1]+i+1*Q] = 2 * out[oOf7[1]+i+0*Q];
+  out[oOf7[1]+i+2*Q] = 3 * out[oOf7[1]+i+0*Q];
   }
 }
 // -----------------------------------------------------------------------------
