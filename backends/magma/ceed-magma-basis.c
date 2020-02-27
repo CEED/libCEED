@@ -60,7 +60,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     CeedInt length;
     ierr = CeedVectorGetLength(V, &length);
     magmablas_dlaset(MagmaFull, length, 1, 0., 0., v, length, data->queue);
-    magma_queue_sync( data->queue );
+    ceed_magma_queue_sync( data->queue );
   }
   switch (emode) {
   case CEED_EVAL_INTERP: {
@@ -190,7 +190,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   }
 
   // must sync to ensure completeness 
-  magma_queue_sync( data->queue );
+  ceed_magma_queue_sync( data->queue );
 
   if (emode!=CEED_EVAL_WEIGHT) {
     ierr = CeedVectorRestoreArrayRead(U, &u); CeedChk(ierr);
@@ -239,7 +239,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     CeedInt length;
     ierr = CeedVectorGetLength(V, &length);
     magmablas_dlaset(MagmaFull, length, 1, 0., 0., dv, length, data->queue);
-    magma_queue_sync( data->queue );
+    ceed_magma_queue_sync( data->queue );
   }
   switch (emode) {
   case CEED_EVAL_INTERP: {
@@ -310,7 +310,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   }
 
   // must sync to ensure completeness 
-  magma_queue_sync( data->queue );
+  ceed_magma_queue_sync( data->queue );
 
   if(emode!=CEED_EVAL_WEIGHT) {
     ierr = CeedVectorRestoreArrayRead(U, &du); CeedChk(ierr);
