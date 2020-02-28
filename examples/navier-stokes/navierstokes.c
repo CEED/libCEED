@@ -935,6 +935,7 @@ int main(int argc, char **argv) {
     CeedQFunctionAddInput(qf_ifunction, "dq", ncompq*dim, CEED_EVAL_GRAD);
     CeedQFunctionAddInput(qf_ifunction, "qdot", ncompq, CEED_EVAL_INTERP);
     CeedQFunctionAddInput(qf_ifunction, "qdata", qdatasize, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qf_ifunction, "x", ncompx, CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(qf_ifunction, "v", ncompq, CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(qf_ifunction, "dv", ncompq*dim, CEED_EVAL_GRAD);
   }
@@ -988,6 +989,8 @@ int main(int argc, char **argv) {
                          basisq, user->qdotceed);
     CeedOperatorSetField(op, "qdata", restrictqdi,
                          CEED_BASIS_COLLOCATED, qdata);
+    CeedOperatorSetField(op, "x", restrictx,
+                         basisx, xcorners);
     CeedOperatorSetField(op, "v", restrictq,
                          basisq, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "dv", restrictq,
