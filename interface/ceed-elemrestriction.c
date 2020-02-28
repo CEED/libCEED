@@ -124,7 +124,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInterlaceMode imode,
 **/
 int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt nelem, CeedInt elemsize,
                                      CeedInt nnodes, CeedInt ncomp,
-                                     CeedInt strides[3],
+                                     const CeedInt strides[3],
                                      CeedElemRestriction *rstr) {
   int ierr;
 
@@ -309,10 +309,8 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed,  CeedInterlaceMode imode,
   @ref Basic
 **/
 int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt blksize,
-    CeedInt nnodes, CeedInt ncomp,
-    CeedInt strides[3],
-    CeedElemRestriction *rstr) {
+    CeedInt elemsize, CeedInt blksize, CeedInt nnodes, CeedInt ncomp,
+    const CeedInt strides[3], CeedElemRestriction *rstr) {
   int ierr;
   CeedInt nblk = (nelem / blksize) + !!(nelem % blksize);
 
@@ -328,8 +326,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt nelem,
     // LCOV_EXCL_STOP
 
     ierr = CeedElemRestrictionCreateBlockedStrided(delegate, nelem, elemsize,
-           blksize, nnodes, ncomp,
-           strides, rstr);
+           blksize, nnodes, ncomp, strides, rstr);
     CeedChk(ierr);
     return 0;
   }

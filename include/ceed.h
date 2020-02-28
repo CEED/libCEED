@@ -275,10 +275,10 @@ CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed,
     const CeedInt *indices, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateStrided(Ceed ceed,
     CeedInt nelem, CeedInt elemsize, CeedInt nnodes, CeedInt ncomp,
-    CeedInt strides[3], CeedElemRestriction *rstr);
+    const CeedInt strides[3], CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlockedStrided(Ceed ceed,
     CeedInt nelem, CeedInt elemsize, CeedInt blksize, CeedInt nnodes,
-    CeedInt ncomp, CeedInt strides[3], CeedElemRestriction *rstr);
+    CeedInt ncomp, const CeedInt strides[3], CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
     CeedVector *lvec, CeedVector *evec);
 CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr,
