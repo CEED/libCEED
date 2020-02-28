@@ -740,6 +740,6 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
 
 /// @cond DOXYGEN_SKIP
 // Indicate that no QFunction is provided by the user
-CeedQFunction CEED_QFUNCTION_NONE = &ceed_qfunction_none;
+const CeedQFunction CEED_QFUNCTION_NONE = &ceed_qfunction_none;
 /// @endcond
 /// @}

@@ -1318,6 +1318,6 @@ int CeedBasisDestroy(CeedBasis *basis) {
 
 /// @cond DOXYGEN_SKIP
 // Indicate that the quadrature points are collocated with the nodes
-CeedBasis CEED_BASIS_COLLOCATED = &ceed_basis_collocated;
+const CeedBasis CEED_BASIS_COLLOCATED = &ceed_basis_collocated;
 /// @endcond
 /// @}

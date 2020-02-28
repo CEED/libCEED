@@ -764,10 +764,10 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
 
 /// @cond DOXYGEN_SKIP
 // Indicate that the stride is determined by the backend
-CeedInt CEED_STRIDES_BACKEND[3] = {};
+const CeedInt CEED_STRIDES_BACKEND[3] = {};
 
 // Indicate that no ElemRestriction is provided by the user
-CeedElemRestriction CEED_ELEMRESTRICTION_NONE = &ceed_elemrestriction_none;
+const CeedElemRestriction CEED_ELEMRESTRICTION_NONE = &ceed_elemrestriction_none;
 /// @endcond
 
 /// @}
