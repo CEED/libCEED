@@ -248,6 +248,7 @@ sys.path.append(breathe.__path__)
 breathe_projects = {"libCEED": "../../../xml"}
 breathe_default_project = "libCEED"
 breathe_build_directory = "../build/breathe"
+#breathe_domain_by_extension = {"c": "c", "h": "c", "cpp": "cpp", "hpp": "cpp"}
 
 # Run Doxygen if building on Read The Docs
 if os.environ.get('READTHEDOCS'):
