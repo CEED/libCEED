@@ -54,7 +54,7 @@
 //
 // Conversion to Conserved Variables:
 //   rho = P0 Pi**(cv/Rd) / (Rd theta)
-//   E   = rho (cv theta Pi + (u u)/2 + g z)
+//   E   = rho (cv T + (u u)/2 + g z)
 //
 //  Boundary Conditions:
 //    Mass Density:
@@ -156,7 +156,7 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 // State Variables: q = ( rho, U1, U2, U3, E )
 //   rho - Mass Density
 //   Ui  - Momentum Density,      Ui = rho ui
-//   E   - Total Energy Density,  E  = rho cv T + rho (u u) / 2 + rho g z
+//   E   - Total Energy Density,  E  = rho (cv T + (u u)/2 + g z)
 //
 // Navier-Stokes Equations:
 //   drho/dt + div( U )                               = 0
@@ -171,9 +171,6 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 //
 // Equation of State:
 //   P = (gamma - 1) (E - rho (u u) / 2 - rho g z)
-//
-// Temperature:
-//   T = (E / rho - (u u) / 2 - g z) / cv
 //
 // Stabilization:
 //   Tau = [TauC, TauM, TauM, TauM, TauE]
