@@ -63,12 +63,6 @@ typedef double CeedScalar;
 //   [dXdxdXdxT11 dXdxdXdxT12]
 //   [dXdxdXdxT21 dXdxdXdxT22]
 // *****************************************************************************
-
-
-#define Sqr(a) ((a)*(a))
-
-// -----------------------------------------------------------------------------
-// *****************************************************************************
 @kernel void SetupDiffGeo(void *ctx, CeedInt Q,
                           const int *iOf7, const int *oOf7,
                           const CeedScalar *in, CeedScalar *out) {
@@ -185,9 +179,8 @@ typedef double CeedScalar;
 
   } // End of Quadrature Point Loop
 }
-// -----------------------------------------------------------------------------
 
-// -----------------------------------------------------------------------------
+// *****************************************************************************
 @kernel void SetupDiffRhs(CeedScalar *ctx, CeedInt Q,
                           const int *iOf7, const int *oOf7,
                           const CeedScalar *in, CeedScalar *out) {
@@ -220,7 +213,6 @@ typedef double CeedScalar;
 
   } // End of Quadrature Point Loop
 }
-// -----------------------------------------------------------------------------
 
 // *****************************************************************************
 // This QFunction applies the diffusion operator for a scalar field.
@@ -233,7 +225,6 @@ typedef double CeedScalar;
 //   vg     - Output vector (test function) gradient at quadrature points
 //
 // *****************************************************************************
-// -----------------------------------------------------------------------------
 @kernel void Diff(void *ctx, CeedInt Q,
                   const int *iOf7, const int *oOf7,
                   const CeedScalar *in, CeedScalar *out) {
