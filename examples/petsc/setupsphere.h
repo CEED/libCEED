@@ -176,39 +176,39 @@ static bpData bpOptions[6] = {
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS
-  }//,
-//  [CEED_BP5] = {
-//    .ncompu = 1,
-//    .qdatasize = 4,
-//    .qextra = 0,
-//    .setupgeo = SetupDiffGeo,
-//    .setuprhs = SetupDiffRhs,
-//    .apply = Diff,
-//    .error = Error,
-//    .setupgeofname = SetupDiffGeo_loc,
-//    .setuprhsfname = SetupDiffRhs_loc,
-//    .applyfname = Diff_loc,
-//    .errorfname = Error_loc,
-//    .inmode = CEED_EVAL_GRAD,
-//    .outmode = CEED_EVAL_GRAD,
-//    .qmode = CEED_GAUSS_LOBATTO
-//  },
-//  [CEED_BP6] = {
-//    .ncompu = 3,
-//    .qdatasize = 4,
-//    .qextra = 0,
-//    .setupgeo = SetupDiffGeo,
-//    .setuprhs = SetupDiffRhs3,
-//    .apply = Diff3,
-//    .error = Error3,
-//    .setupgeofname = SetupDiffGeo_loc,
-//    .setuprhsfname = SetupDiffRhs3_loc,
-//    .applyfname = Diff_loc,
-//    .errorfname = Error3_loc,
-//    .inmode = CEED_EVAL_GRAD,
-//    .outmode = CEED_EVAL_GRAD,
-//    .qmode = CEED_GAUSS_LOBATTO
-//  }
+  },
+  [CEED_BP5] = {
+    .ncompu = 1,
+    .qdatasize = 4,
+    .qextra = 0,
+    .setupgeo = SetupDiffGeo,
+    .setuprhs = SetupDiffRhs,
+    .apply = Diff,
+    .error = Error,
+    .setupgeofname = SetupDiffGeo_loc,
+    .setuprhsfname = SetupDiffRhs_loc,
+    .applyfname = Diff_loc,
+    .errorfname = Error_loc,
+    .inmode = CEED_EVAL_GRAD,
+    .outmode = CEED_EVAL_GRAD,
+    .qmode = CEED_GAUSS_LOBATTO
+  },
+  [CEED_BP6] = {
+    .ncompu = 3,
+    .qdatasize = 4,
+    .qextra = 0,
+    .setupgeo = SetupDiffGeo,
+    .setuprhs = SetupDiffRhs3,
+    .apply = Diff3,
+    .error = Error3,
+    .setupgeofname = SetupDiffGeo_loc,
+    .setuprhsfname = SetupDiffRhs3_loc,
+    .applyfname = Diff_loc,
+    .errorfname = Error3_loc,
+    .inmode = CEED_EVAL_GRAD,
+    .outmode = CEED_EVAL_GRAD,
+    .qmode = CEED_GAUSS_LOBATTO
+  }
 };
 
 // -----------------------------------------------------------------------------
