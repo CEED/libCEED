@@ -93,10 +93,12 @@ CEED_QFUNCTION(Diff3)(void *ctx, const CeedInt Q,
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Read spatial derivatives of u
-    const CeedScalar uJ[2][2]        = {{ug[i+(0+0*2)*Q],
-                                         ug[i+(0+1*2)*Q]},
-                                        {ug[i+(1+0*2)*Q],
-                                         ug[i+(1+1*2)*Q]}
+    const CeedScalar uJ[3][2]        = {{ug[i+(0+0*3)*Q],
+                                         ug[i+(0+1*3)*Q]},
+                                        {ug[i+(1+0*3)*Q],
+                                         ug[i+(1+1*3)*Q]},
+                                        {ug[i+(2+0*3)*Q],
+                                         ug[i+(2+1*3)*Q]}
                                        };
     // Read qdata
     const CeedScalar wJ              =   qdata[i+Q*0];
@@ -108,9 +110,9 @@ CEED_QFUNCTION(Diff3)(void *ctx, const CeedInt Q,
                                          qdata[i+Q*2]}
                                        };
 
-    for (int k=0; k<2; k++) // k = component
+    for (int k=0; k<3; k++) // k = component
       for (int j=0; j<2; j++) // j = direction of vg
-        vJ[i+(k+j*2)*Q] = wJ * (uJ[k][0] * dXdxdXdxT[0][j] +
+        vJ[i+(k+j*3)*Q] = wJ * (uJ[k][0] * dXdxdXdxT[0][j] +
                                 uJ[k][1] * dXdxdXdxT[1][j]);
 
   } // End of Quadrature Point Loop
