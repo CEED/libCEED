@@ -412,9 +412,9 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     const CeedScalar Cc   = 1.;
     const CeedScalar Ce   = 1.;
     const CeedScalar f1   = rho * sqrt(uiujgij);
-    const CeedScalar TauC = (Cc * f1) / ( 8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] +
-                                          dXdxdXdxT[2][2]));
-    const CeedScalar TauM = 1./f1;
+    const CeedScalar TauC = (Cc * f1) /
+      (8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
+    const CeedScalar TauM = 1. / (f1>1. ? f1 : 1.);
     const CeedScalar TauE = TauM / (Ce * cv);
     // *INDENT-ON*
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
@@ -678,9 +678,9 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     const CeedScalar Cc   = 1.;
     const CeedScalar Ce   = 1.;
     const CeedScalar f1   = rho * sqrt(uiujgij);
-    const CeedScalar TauC = (Cc * f1) / ( 8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] +
-                                          dXdxdXdxT[2][2]));
-    const CeedScalar TauM = 1./f1;
+    const CeedScalar TauC = (Cc * f1) /
+      (8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
+    const CeedScalar TauM = 1. / (f1>1. ? f1 : 1.);
     const CeedScalar TauE = TauM / (Ce * cv);
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
     CeedScalar stab[5][3];
