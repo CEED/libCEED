@@ -8,7 +8,6 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedElemRestriction Erestrictxi, Erestrictui, Erestrictqi;
   CeedBasis bx, bu;
   CeedQFunction qf_setup_mass, qf_apply;
@@ -36,14 +35,17 @@ int main(int argc, char **argv) {
   // Element Setup
 
   // Restrictions
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, 2*2, nelem*2*2, dim,
-                                    &Erestrictxi);
+  CeedInt stridesx[3] = {1, 2*2, 2*2*dim};
+  CeedElemRestrictionCreateStrided(ceed, nelem, 2*2, nelem*2*2, dim, stridesx,
+                                   &Erestrictxi);
 
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, P*P, ndofs, 1,
-                                    &Erestrictui);
+  CeedInt stridesu[3] = {1, P*P, P*P};
+  CeedElemRestrictionCreateStrided(ceed, nelem, P*P, ndofs, 1, stridesu,
+                                   &Erestrictui);
 
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, Q*Q, nqpts, 1,
-                                    &Erestrictqi);
+  CeedInt stridesq[3] = {1, Q*Q, Q*Q};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nqpts, 1, stridesq,
+                                   &Erestrictqi);
 
   // Bases
   CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, Q, CEED_GAUSS, &bx);
@@ -61,7 +63,7 @@ int main(int argc, char **argv) {
                      CEED_QFUNCTION_NONE, &op_setup_mass);
   CeedOperatorSetField(op_setup_mass, "dx", Erestrictxi, bx,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup_mass, "_weight", Erestrictxi, bx,
+  CeedOperatorSetField(op_setup_mass, "_weight", CEED_ELEMRESTRICTION_NONE, bx,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_mass, "qdata", Erestrictqi,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);

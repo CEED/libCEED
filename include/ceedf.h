@@ -84,6 +84,13 @@
       parameter(ceed_interlaced = 1)
 
 !-----------------------------------------------------------------------
+! Ceed Strides Constant
+!-----------------------------------------------------------------------
+
+      integer ceed_strides_backend
+      parameter(ceed_strides_backend     = -4)
+
+!-----------------------------------------------------------------------
 ! CeedTransposeMode
 !-----------------------------------------------------------------------
 
@@ -154,14 +161,17 @@
 ! Operator and OperatorField Constants
 !-----------------------------------------------------------------------
 
-      integer ceed_basis_collocated
-      parameter(ceed_basis_collocated     = -1)
-
       integer ceed_vector_active
-      parameter(ceed_vector_active        = -1)
+      parameter(ceed_vector_active        = -5)
 
       integer ceed_vector_none
-      parameter(ceed_vector_none          = -2)
+      parameter(ceed_vector_none          = -6)
+
+      integer ceed_elemrestriction_none
+      parameter(ceed_elemrestriction_none = -7)
+
+      integer ceed_basis_collocated
+      parameter(ceed_basis_collocated     = -8)
 
       integer ceed_qfunction_none
-      parameter(ceed_qfunction_none       = -1)
+      parameter(ceed_qfunction_none       = -9)

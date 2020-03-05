@@ -36,7 +36,8 @@
       integer ceed,err,i,j,k
       integer imode
       parameter(imode=ceed_noninterlaced)
-      integer erestrictx,erestrictu,erestrictxi,erestrictui,erestrictlini
+      integer stridesu(3)
+      integer erestrictx,erestrictu,erestrictui,erestrictlini
       integer bx,bu
       integer qf_setup,qf_mass
       integer op_setup,op_mass
@@ -94,13 +95,12 @@
 ! Restrictions
       call ceedelemrestrictioncreate(ceed,imode,nelem,p*p,ndofs,d,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictx,err)
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,p*p,&
-     & nelem*p*p,d,erestrictxi,err)
 
       call ceedelemrestrictioncreate(ceed,imode,nelem,p*p,ndofs,1,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictu,err)
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,q*q,nqpts,&
-     & 1,erestrictui,err)
+      stridesu=[1,q*q,q*q]
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q*q,nqpts,&
+     & 1,stridesu,erestrictui,err)
 
 ! Bases
       call ceedbasiscreatetensorh1lagrange(ceed,d,d,p,q,ceed_gauss,&
@@ -128,7 +128,7 @@
 ! -- Setup 
       call ceedoperatorcreate(ceed,qf_setup,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setup,err)
-      call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&
+      call ceedoperatorsetfield(op_setup,'_weight',ceed_elemrestriction_none,&
      & bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'dx',erestrictx,&
      & bx,ceed_vector_active,err)
@@ -216,7 +216,6 @@
       call ceedelemrestrictiondestroy(erestrictu,err)
       call ceedelemrestrictiondestroy(erestrictx,err)
       call ceedelemrestrictiondestroy(erestrictui,err)
-      call ceedelemrestrictiondestroy(erestrictxi,err)
       call ceedelemrestrictiondestroy(erestrictlini,err)
       call ceedbasisdestroy(bu,err)
       call ceedbasisdestroy(bx,err)

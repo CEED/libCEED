@@ -159,10 +159,9 @@ int main(int argc, const char *argv[]) {
   // Build CeedElemRestriction objects describing the mesh and solution discrete
   // representations.
   CeedInt mesh_size, sol_size;
-  CeedElemRestriction mesh_restr, sol_restr, mesh_restr_i, sol_restr_i,
-                      qdata_restr_i;
+  CeedElemRestriction mesh_restr, sol_restr, sol_restr_i, qdata_restr_i;
   BuildCartesianRestriction(ceed, dim, nxyz, mesh_order, ncompx, &mesh_size,
-                            num_qpts, &mesh_restr, &mesh_restr_i);
+                            num_qpts, &mesh_restr, NULL);
   BuildCartesianRestriction(ceed, dim, nxyz, sol_order, dim*(dim+1)/2,
                             &sol_size, num_qpts, NULL, &qdata_restr_i);
   BuildCartesianRestriction(ceed, dim, nxyz, sol_order, 1, &sol_size,
@@ -213,8 +212,8 @@ int main(int argc, const char *argv[]) {
                      CEED_QFUNCTION_NONE, &build_oper);
   CeedOperatorSetField(build_oper, "dx", mesh_restr, mesh_basis,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(build_oper, "weights", mesh_restr_i, mesh_basis,
-                       CEED_VECTOR_NONE);
+  CeedOperatorSetField(build_oper, "weights", CEED_ELEMRESTRICTION_NONE,
+                       mesh_basis, CEED_VECTOR_NONE);
   CeedOperatorSetField(build_oper, "qdata", qdata_restr_i,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
@@ -324,7 +323,6 @@ int main(int argc, const char *argv[]) {
   CeedElemRestrictionDestroy(&sol_restr);
   CeedElemRestrictionDestroy(&mesh_restr);
   CeedElemRestrictionDestroy(&sol_restr_i);
-  CeedElemRestrictionDestroy(&mesh_restr_i);
   CeedElemRestrictionDestroy(&qdata_restr_i);
   CeedBasisDestroy(&sol_basis);
   CeedBasisDestroy(&mesh_basis);
@@ -388,10 +386,14 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
     CeedElemRestrictionCreate(ceed, imode, num_elem, nnodes, scalar_size,
                               ncomp, CEED_MEM_HOST, CEED_COPY_VALUES, el_nodes,
                               restr);
-  if (restr_i)
-    CeedElemRestrictionCreateIdentity(ceed, imode, num_elem, elem_qpts,
-                                      elem_qpts*num_elem, ncomp, restr_i);
   free(el_nodes);
+
+  if (restr_i) {
+    CeedElemRestrictionCreateStrided(ceed, num_elem, elem_qpts,
+                                     elem_qpts*num_elem, ncomp,
+                                     CEED_STRIDES_BACKEND, restr_i);
+  }
+
   return 0;
 }
 

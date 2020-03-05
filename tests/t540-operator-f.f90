@@ -36,8 +36,7 @@
       include 'ceedf.h'
 
       integer ceed,err,i
-      integer imode
-      parameter(imode=ceed_noninterlaced)
+      integer stridesx(3),stridesu(3),stridesq(3)
       integer erestrictxi,erestrictui,erestrictqi
       integer bx,bu
       integer qf_setup_mass,qf_apply
@@ -77,14 +76,17 @@
       call ceedvectorcreate(ceed,nqpts,qdata_mass,err)
 
 ! Restrictions
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,2*2,nelem*2*2,d,&
-     & erestrictxi,err)
+      stridesx=[1,2*2,2*2*d]
+      call ceedelemrestrictioncreatestrided(ceed,nelem,2*2,nelem*2*2,d,&
+     & stridesx,erestrictxi,err)
 
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,p*p,ndofs,1,&
-     & erestrictui,err)
+      stridesu=[1,p*p,p*p]
+      call ceedelemrestrictioncreatestrided(ceed,nelem,p*p,ndofs,1,&
+     & stridesu,erestrictui,err)
 
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,q*q,nqpts,1,&
-     & erestrictqi,err)
+      stridesq=[1,q*q,q*q]
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q*q,nqpts,1,&
+     & stridesq,erestrictqi,err)
 
 ! Bases
       call ceedbasiscreatetensorh1lagrange(ceed,d,d,2,q,ceed_gauss,bx,err)
@@ -103,8 +105,8 @@
      & ceed_qfunction_none,op_setup_mass,err)
       call ceedoperatorsetfield(op_setup_mass,'dx',erestrictxi,&
      & bx,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_setup_mass,'_weight',erestrictxi,&
-     & bx,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setup_mass,'_weight',&
+     & ceed_elemrestriction_none,bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup_mass,'qdata',erestrictqi,&
      & ceed_basis_collocated,ceed_vector_active,err)
 

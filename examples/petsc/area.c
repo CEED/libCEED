@@ -154,8 +154,7 @@ int main(int argc, char **argv) {
   CeedOperator op_setupgeo, op_apply;
   CeedQFunction qf_setupgeo, qf_apply;
   CeedBasis basisx, basisu;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi,
-                      Erestrictqdi;
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictqdi;
   PetscFunctionList geomfactorlist = NULL;
   char problemtype[PETSC_MAX_PATH_LEN] = "sphere";
 
@@ -304,12 +303,10 @@ int main(int argc, char **argv) {
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   const CeedInt nelem = cEnd - cStart;
 
-  // CEED identity restrictions
+  // CEED strided restrictions
   const CeedInt qdatasize = 1;
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q,
-                                    nelem*Q*Q, qdatasize, &Erestrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q,
-                                    nelem*Q*Q, 1, &Erestrictxi);
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nelem*Q*Q, qdatasize,
+                                   CEED_STRIDES_BACKEND, &Erestrictqdi);
 
   // Element coordinates
   Vec coords;
@@ -353,7 +350,7 @@ int main(int argc, char **argv) {
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, basisx,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setupgeo, "weight", Erestrictxi, basisx,
+  CeedOperatorSetField(op_setupgeo, "weight", CEED_ELEMRESTRICTION_NONE, basisx,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setupgeo, "qdata", Erestrictqdi,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
@@ -431,7 +428,6 @@ int main(int argc, char **argv) {
   CeedBasisDestroy(&basisu);
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
-  CeedElemRestrictionDestroy(&Erestrictxi);
   CeedElemRestrictionDestroy(&Erestrictqdi);
   CeedQFunctionDestroy(&qf_apply);
   CeedOperatorDestroy(&op_apply);

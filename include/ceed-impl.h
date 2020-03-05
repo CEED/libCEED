@@ -102,6 +102,7 @@ struct CeedElemRestriction_private {
   CeedInt ncomp;            /* number of components */
   CeedInt blksize;          /* number of elements in a batch */
   CeedInt nblk;             /* number of blocks of elements */
+  CeedInt *strides;         /* strides between [nodes, components, elements] */
   void *data;               /* place for the backend to store any data */
 };
 

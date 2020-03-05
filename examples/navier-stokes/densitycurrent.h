@@ -77,7 +77,8 @@
 //   center          ,  Location of bubble center
 //   dc_axis         ,  Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric
 // *****************************************************************************
-static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
+static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
+                    CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
   const SetupContext context = ctx;
 
@@ -102,7 +103,9 @@ static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt 
   // -- Potential temperature, density current
   CeedScalar rr[3] = {x - center[0], y - center[1], z - center[2]};
   // (I - q q^T) r: distance from dc_axis (or from center if dc_axis is the zero vector)
-  for (int i=0; i<3; i++) rr[i] -= dc_axis[i] * (dc_axis[0]*rr[0] + dc_axis[1]*rr[1] + dc_axis[2]*rr[2]);
+  for (int i=0; i<3; i++)
+    rr[i] -= dc_axis[i] *
+             (dc_axis[0]*rr[0] + dc_axis[1]*rr[1] + dc_axis[2]*rr[2]);
   const CeedScalar r = sqrt(rr[0]*rr[0] + rr[1]*rr[1] + rr[2]*rr[2]);
   const CeedScalar deltatheta = r <= rc ? thetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
   const CeedScalar theta = theta0*exp(N*N*z/g) + deltatheta;
@@ -282,32 +285,34 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
         for (int l=0; l<3; l++) {
           dUdx[j][k] += dU[j][l] * dXdx[l][k];
           dXdxdXdxT[j][k] += dXdx[j][l]*dXdx[k][l];  //dXdx_j,k * dXdx_k,j
-      }}}
+        }
+      }
+    }
     CeedScalar dudx[3][3] = {{0}};
     for (int j=0; j<3; j++)
       for (int k=0; k<3; k++)
         for (int l=0; l<3; l++)
           dudx[j][k] += du[j][l] * dXdx[l][k];
     // -- gradT
-    const CeedScalar gradT[3]  = {(dEdx[0]/rho - E*drhodx[0]/(rho*rho) -
-                                  (u[0]*dudx[0][0] + u[1]*dudx[1][0] + u[2]*dudx[2][0]))/cv,
-                                  (dEdx[1]/rho - E*drhodx[1]/(rho*rho) -
-                                  (u[0]*dudx[0][1] + u[1]*dudx[1][1] + u[2]*dudx[2][1]))/cv,
-                                  (dEdx[2]/rho - E*drhodx[2]/(rho*rho) -
-                                  (u[0]*dudx[0][2] + u[1]*dudx[1][2] + u[2]*dudx[2][2]))/cv
+    const CeedScalar gradT[3]  = {(dEdx[0]/rho - E *drhodx[0]/(rho*rho) -
+                                   (u[0]*dudx[0][0] + u[1]*dudx[1][0] + u[2]*dudx[2][0]))/cv,
+                                  (dEdx[1]/rho - E *drhodx[1]/(rho*rho) -
+                                   (u[0]*dudx[0][1] + u[1]*dudx[1][1] + u[2]*dudx[2][1]))/cv,
+                                  (dEdx[2]/rho - E *drhodx[2]/(rho*rho) -
+                                   (u[0]*dudx[0][2] + u[1]*dudx[1][2] + u[2]*dudx[2][2]))/cv
                                  };
 
     // -- Fuvisc
     // ---- Symmetric 3x3 matrix
-    const CeedScalar Fu[6]     =  { mu *(dudx[0][0] * (2 + lambda) +
-                                         lambda * (dudx[1][1] + dudx[2][2])),
-                                    mu *(dudx[0][1] + dudx[1][0]),
-                                    mu *(dudx[0][2] + dudx[2][0]),
-                                    mu *(dudx[1][1] * (2 + lambda) +
-                                         lambda * (dudx[0][0] + dudx[2][2])),
-                                    mu *(dudx[1][2] + dudx[2][1]),
-                                    mu *(dudx[2][2] * (2 + lambda) +
-                                         lambda * (dudx[0][0] + dudx[1][1]))
+    const CeedScalar Fu[6]     =  { mu*(dudx[0][0] * (2 + lambda) +
+                                        lambda * (dudx[1][1] + dudx[2][2])),
+                                    mu*(dudx[0][1] + dudx[1][0]),
+                                    mu*(dudx[0][2] + dudx[2][0]),
+                                    mu*(dudx[1][1] * (2 + lambda) +
+                                        lambda * (dudx[0][0] + dudx[2][2])),
+                                    mu*(dudx[1][2] + dudx[2][1]),
+                                    mu*(dudx[2][2] * (2 + lambda) +
+                                        lambda * (dudx[0][0] + dudx[1][1]))
                                   };
     // -- Fevisc
     const CeedScalar Fe[3]     =  { u[0]*Fu[0] + u[1]*Fu[1] + u[2]*Fu[2] +
@@ -326,14 +331,15 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     for (int j=0; j<3; j++) {
       dFconvdq[j][4][0] = u[j] * (2*Rd*ke/cv - E*gamma);
       dFconvdq[j][4][4] = u[j] * gamma;
-      for (int k=0; k<3; k++){
+      for (int k=0; k<3; k++) {
         dFconvdq[j][k+1][0] = -u[j]*u[k] + (j==k?(ke*Rd/cv):0);
         dFconvdq[j][k+1][4] = (j==k?(Rd/cv):0);
         dFconvdq[j][k+1][k+1] = (j!=k?u[j]:0);
         dFconvdq[j][0][k+1] = (j==k?1:0);
         dFconvdq[j][j+1][k+1] = u[k] * ((j==k?2:0) - Rd/cv);
         dFconvdq[j][4][k+1] = -(Rd/cv)*u[j]*u[k] + (j==k?(E*gamma - Rd*ke/cv):0);
-        }}
+      }
+    }
     dFconvdq[0][2][1] = u[1];
     dFconvdq[0][3][1] = u[2];
     dFconvdq[1][1][2] = u[0];
@@ -373,14 +379,14 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     // ---- u rho
     for (int j=0; j<3; j++)
       dv[j][0][i]  += wJ*(rho*u[0]*dXdx[j][0] + rho*u[1]*dXdx[j][1] +
-                         rho*u[2]*dXdx[j][2]);
+                          rho*u[2]*dXdx[j][2]);
     // -- Momentum
     // ---- rho (u x u) + P I3
     for (int j=0; j<3; j++)
       for (int k=0; k<3; k++)
         dv[k][j+1][i]  += wJ*((rho*u[j]*u[0] + (j==0?P:0))*dXdx[k][0] +
-                             (rho*u[j]*u[1] + (j==1?P:0))*dXdx[k][1] +
-                             (rho*u[j]*u[2] + (j==2?P:0))*dXdx[k][2]);
+                              (rho*u[j]*u[1] + (j==1?P:0))*dXdx[k][1] +
+                              (rho*u[j]*u[2] + (j==2?P:0))*dXdx[k][2]);
     // ---- Fuvisc
     const CeedInt Fuviscidx[3][3] = {{0, 1, 2}, {1, 3, 4}, {2, 4, 5}}; // symmetric matrix indices
     for (int j=0; j<3; j++)
@@ -392,7 +398,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     // ---- (E + P) u
     for (int j=0; j<3; j++)
       dv[j][4][i]  += wJ * (E + P) * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
-                                     u[2]*dXdx[j][2]);
+                                      u[2]*dXdx[j][2]);
     // ---- Fevisc
     for (int j=0; j<3; j++)
       dv[j][4][i] -= wJ * (Fe[0]*dXdx[j][0] + Fe[1]*dXdx[j][1] +
@@ -403,12 +409,14 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
 
     //Stabilization
     CeedScalar uX[3];
-    for (int j=0; j<3; j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
+    for (int j=0; j<3;
+         j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
     const CeedScalar uiujgij = uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2];
     const CeedScalar Cc   = 1.;
     const CeedScalar Ce   = 1.;
     const CeedScalar f1   = rho * sqrt(uiujgij);
-    const CeedScalar TauC = (Cc * f1) / ( 8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
+    const CeedScalar TauC = (Cc * f1) / ( 8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] +
+                                          dXdxdXdxT[2][2]));
     const CeedScalar TauM = 1./f1;
     const CeedScalar TauE = TauM / (Ce * cv);
     // *INDENT-ON*
@@ -417,22 +425,22 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     AdvectionContext context = ctx;
     switch (context->stabilization) {
     case 0:        // Galerkin
-       break;
+      break;
     case 1:        // SU
-       for (int j=0; j<3; j++)
-         for (int k=0; k<5; k++)
-           for (int l=0; l<5; l++)
-             stab[k][j] = dFconvdqT[j][k][l] * Tau[l] * StrongConv[l];
+      for (int j=0; j<3; j++)
+        for (int k=0; k<5; k++)
+          for (int l=0; l<5; l++)
+            stab[k][j] = dFconvdqT[j][k][l] * Tau[l] * StrongConv[l];
 
-       for (int j=0; j<5; j++)
-         for (int k=0; k<3; k++)
-           dv[k][j][i] -= stab[j][0] * dXdx[k][0] +
-                          stab[j][1] * dXdx[k][1] +
-                          stab[j][2] * dXdx[k][2];
-       break;
+      for (int j=0; j<5; j++)
+        for (int k=0; k<3; k++)
+          dv[k][j][i] -= stab[j][0] * dXdx[k][0] +
+                         stab[j][1] * dXdx[k][1] +
+                         stab[j][2] * dXdx[k][2];
+      break;
     case 2:        // SUPG is not implemented for explicit scheme
-       break;
-  }
+      break;
+    }
 
   } // End Quadrature Point Loop
 
@@ -449,7 +457,9 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
 //
 // *******************************************************************************
 CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
-                   const CeedScalar *const *in, CeedScalar *const *out) {
+                             const CeedScalar *const *in,
+                             CeedScalar *const *out) {
+  // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
                    (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
@@ -458,6 +468,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
              (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
+  // *INDENT-ON*
   // Context
   const CeedScalar *context = (const CeedScalar *)ctx;
   const CeedScalar lambda = context[0];
@@ -485,6 +496,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
                                      dq[1][0][i],
                                      dq[2][0][i]
                                     };
+    // *INDENT-OFF*
     const CeedScalar dU[3][3]   = {{dq[0][1][i],
                                     dq[1][1][i],
                                     dq[2][1][i]},
@@ -495,6 +507,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
                                     dq[1][3][i],
                                     dq[2][3][i]}
                                   };
+    // *INDENT-ON*
     const CeedScalar dE[3]      =   {dq[0][4][i],
                                      dq[1][4][i],
                                      dq[2][4][i]
@@ -503,6 +516,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     const CeedScalar wJ         =    qdata[0][i];
     // -- Interp-to-Grad qdata
     // ---- Inverse of change of coordinate matrix: X_i,j
+    // *INDENT-OFF*
     const CeedScalar dXdx[3][3] =  {{qdata[1][i],
                                      qdata[2][i],
                                      qdata[3][i]},
@@ -513,6 +527,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
                                      qdata[8][i],
                                      qdata[9][i]}
                                    };
+    // *INDENT-ON*
     // -- Grad-to-Grad qdata
     // dU/dx
     CeedScalar du[3][3] = {{0}};
@@ -528,19 +543,21 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
         for (int l=0; l<3; l++) {
           dUdx[j][k] += dU[j][l] * dXdx[l][k];
           dXdxdXdxT[j][k] += dXdx[j][l]*dXdx[k][l];  //dXdx_j,k * dXdx_k,j
-      }}}
+        }
+      }
+    }
     CeedScalar dudx[3][3] = {{0}};
     for (int j=0; j<3; j++)
       for (int k=0; k<3; k++)
         for (int l=0; l<3; l++)
           dudx[j][k] += du[j][l] * dXdx[l][k];
-   // -- gradT
+    // -- gradT
     const CeedScalar gradT[3]  = {(dEdx[0]/rho - E*drhodx[0]/(rho*rho) -
-                                  (u[0]*dudx[0][0] + u[1]*dudx[1][0] + u[2]*dudx[2][0]))/cv,
+                                   (u[0]*dudx[0][0] + u[1]*dudx[1][0] + u[2]*dudx[2][0]))/cv,
                                   (dEdx[1]/rho - E*drhodx[1]/(rho*rho) -
-                                  (u[0]*dudx[0][1] + u[1]*dudx[1][1] + u[2]*dudx[2][1]))/cv,
+                                   (u[0]*dudx[0][1] + u[1]*dudx[1][1] + u[2]*dudx[2][1]))/cv,
                                   (dEdx[2]/rho - E*drhodx[2]/(rho*rho) -
-                                  (u[0]*dudx[0][2] + u[1]*dudx[1][2] + u[2]*dudx[2][2]))/cv
+                                   (u[0]*dudx[0][2] + u[1]*dudx[1][2] + u[2]*dudx[2][2]))/cv
                                  };
     // -- Fuvisc
     // ---- Symmetric 3x3 matrix
@@ -571,14 +588,15 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     for (int j=0; j<3; j++) {
       dFconvdq[j][4][0] = u[j] * (2*Rd*ke/cv - E*gamma);
       dFconvdq[j][4][4] = u[j] * gamma;
-      for (int k=0; k<3; k++){
+      for (int k=0; k<3; k++) {
         dFconvdq[j][k+1][0] = -u[j]*u[k] + (j==k?(ke*Rd/cv):0);
         dFconvdq[j][k+1][4] = (j==k?(Rd/cv):0);
         dFconvdq[j][k+1][k+1] = (j!=k?u[j]:0);
         dFconvdq[j][0][k+1] = (j==k?1:0);
         dFconvdq[j][j+1][k+1] = u[k] * ((j==k?2:0) - Rd/cv);
         dFconvdq[j][4][k+1] = -(Rd/cv)*u[j]*u[k] + (j==k?(E*gamma - Rd*ke/cv):0);
-        }}
+      }
+    }
     dFconvdq[0][2][1] = u[1];
     dFconvdq[0][3][1] = u[2];
     dFconvdq[1][1][2] = u[0];
@@ -626,7 +644,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     // ---- u rho
     for (int j=0; j<3; j++)
       dv[j][0][i]  -= wJ*(rho*u[0]*dXdx[j][0] + rho*u[1]*dXdx[j][1] +
-                         rho*u[2]*dXdx[j][2]);
+                          rho*u[2]*dXdx[j][2]);
     // -- Momentum
     // ---- rho (u x u) + P I3
     for (int j=0; j<3; j++)
@@ -645,7 +663,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     // ---- (E + P) u
     for (int j=0; j<3; j++)
       dv[j][4][i]  -= wJ * (E + P) * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
-                                     u[2]*dXdx[j][2]);
+                                      u[2]*dXdx[j][2]);
     // ---- Fevisc
     for (int j=0; j<3; j++)
       dv[j][4][i] += wJ * (Fe[0]*dXdx[j][0] + Fe[1]*dXdx[j][1] +
@@ -656,12 +674,14 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
 
     //Stabilization
     CeedScalar uX[3];
-    for (int j=0; j<3; j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
+    for (int j=0; j<3;
+         j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
     const CeedScalar uiujgij = uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2];
     const CeedScalar Cc   = 1.;
     const CeedScalar Ce   = 1.;
     const CeedScalar f1   = rho * sqrt(uiujgij);
-    const CeedScalar TauC = (Cc * f1) / ( 8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
+    const CeedScalar TauC = (Cc * f1) / ( 8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] +
+                                          dXdxdXdxT[2][2]));
     const CeedScalar TauM = 1./f1;
     const CeedScalar TauE = TauM / (Ce * cv);
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};

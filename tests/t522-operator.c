@@ -20,9 +20,9 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedElemRestriction ErestrictxTet, ErestrictuTet,
-                      ErestrictxiTet, ErestrictqdiTet,
+                      ErestrictqdiTet,
                       ErestrictxHex, ErestrictuHex,
-                      ErestrictxiHex, ErestrictqdiHex;
+                      ErestrictqdiHex;
   CeedBasis bxTet, buTet,
             bxHex, buHex;
   CeedQFunction qf_setupTet, qf_diffTet,
@@ -86,14 +86,14 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, imode, nelemTet, PTet, ndofs, dim,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
                             &ErestrictxTet);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelemTet, PTet, nelemTet*PTet,
-                                    dim, &ErestrictxiTet);
 
   CeedElemRestrictionCreate(ceed, imode, nelemTet, PTet, ndofs, 1,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
                             &ErestrictuTet);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelemTet, QTet, nqptsTet,
-                                    dim*(dim+1)/2, &ErestrictqdiTet);
+  CeedInt stridesqdTet[3] = {1, QTet, QTet *dim *(dim+1)/2};
+  CeedElemRestrictionCreateStrided(ceed, nelemTet, QTet, nqptsTet,
+                                   dim*(dim+1)/2, stridesqdTet,
+                                   &ErestrictqdiTet);
 
   // -- Bases
   buildmats(qref, qweight, interp, grad);
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
   // ---- Setup Tet
   CeedOperatorCreate(ceed, qf_setupTet, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &op_setupTet);
-  CeedOperatorSetField(op_setupTet, "_weight", ErestrictxiTet, bxTet,
+  CeedOperatorSetField(op_setupTet, "_weight", CEED_ELEMRESTRICTION_NONE, bxTet,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setupTet, "dx", ErestrictxTet, bxTet,
                        CEED_VECTOR_ACTIVE);
@@ -149,15 +149,14 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, imode, nelemHex, PHex*PHex, ndofs, dim,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
                             &ErestrictxHex);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelemHex, PHex*PHex,
-                                    nelemHex*PHex*PHex, dim, &ErestrictxiHex);
 
   CeedElemRestrictionCreate(ceed, imode, nelemHex, PHex*PHex, ndofs, 1,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
                             &ErestrictuHex);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelemHex, QHex*QHex,
-                                    nqptsHex, dim*(dim+1)/2,
-                                    &ErestrictqdiHex);
+  CeedInt stridesqdHex[3] = {1, QHex*QHex, QHex *QHex *dim *(dim+1)/2};
+  CeedElemRestrictionCreateStrided(ceed, nelemHex, QHex*QHex, nqptsHex,
+                                   dim*(dim+1)/2, stridesqdHex,
+                                   &ErestrictqdiHex);
 
   // -- Bases
   CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, PHex, QHex, CEED_GAUSS,
@@ -178,7 +177,7 @@ int main(int argc, char **argv) {
   // -- Operators
   CeedOperatorCreate(ceed, qf_setupHex, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &op_setupHex);
-  CeedOperatorSetField(op_setupHex, "_weight", ErestrictxiHex, bxHex,
+  CeedOperatorSetField(op_setupHex, "_weight", CEED_ELEMRESTRICTION_NONE, bxHex,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setupHex, "dx", ErestrictxHex, bxHex,
                        CEED_VECTOR_ACTIVE);
@@ -233,11 +232,9 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&ErestrictuTet);
   CeedElemRestrictionDestroy(&ErestrictxTet);
   CeedElemRestrictionDestroy(&ErestrictqdiTet);
-  CeedElemRestrictionDestroy(&ErestrictxiTet);
   CeedElemRestrictionDestroy(&ErestrictuHex);
   CeedElemRestrictionDestroy(&ErestrictxHex);
   CeedElemRestrictionDestroy(&ErestrictqdiHex);
-  CeedElemRestrictionDestroy(&ErestrictxiHex);
   CeedBasisDestroy(&buTet);
   CeedBasisDestroy(&bxTet);
   CeedBasisDestroy(&buHex);

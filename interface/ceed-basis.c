@@ -324,7 +324,8 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
   // Build qref1d, qweight1d
   // Set endpoints
   if (Q < 2)
-    return CeedError(NULL, 1, "Cannot create Lobatto quadrature with Q=%d < 2 points", Q);
+    return CeedError(NULL, 1,
+                     "Cannot create Lobatto quadrature with Q=%d < 2 points", Q);
   wi = 2.0/((CeedScalar)(Q*(Q-1)));
   if (qweight1d) {
     qweight1d[0] = wi;
@@ -1317,6 +1318,6 @@ int CeedBasisDestroy(CeedBasis *basis) {
 
 /// @cond DOXYGEN_SKIP
 // Indicate that the quadrature points are collocated with the nodes
-CeedBasis CEED_BASIS_COLLOCATED = &ceed_basis_collocated;
+const CeedBasis CEED_BASIS_COLLOCATED = &ceed_basis_collocated;
 /// @endcond
 /// @}

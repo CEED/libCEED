@@ -149,21 +149,26 @@ class ElemRestriction(_ElemRestrictionBase):
                                   indices_pointer, self._pointer)
 
 # ------------------------------------------------------------------------------
-class IdentityElemRestriction(_ElemRestrictionBase):
-  """Ceed Identity ElemRestriction: identity restriction from local vectors to elements."""
+class StridedElemRestriction(_ElemRestrictionBase):
+  """Ceed Strided ElemRestriction: strided restriction from local vectors to elements."""
 
   # Constructor
-  def __init__(self, ceed, nelem, elemsize, nnodes, ncomp, imode=NONINTERLACED):
+  def __init__(self, ceed, nelem, elemsize, nnodes, ncomp, strides):
     # CeedVector object
     self._pointer = ffi.new("CeedElemRestriction *")
 
     # Reference to Ceed
     self._ceed = ceed
 
+    # Setup the numpy array for the libCEED call
+    strides_pointer = ffi.new("const CeedInt *")
+    strides_pointer = ffi.cast("const CeedInt *",
+                               strides.__array_interface__['data'][0])
+
     # libCEED call
-    lib.CeedElemRestrictionCreateIdentity(self._ceed._pointer[0], imode, nelem,
-                                          elemsize, nnodes, ncomp,
-                                          self._pointer)
+    lib.CeedElemRestrictionCreateStrided(self._ceed._pointer[0], nelem,
+                                         elemsize, nnodes, ncomp,
+                                         strides_pointer, self._pointer)
 
 # ------------------------------------------------------------------------------
 class BlockedElemRestriction(_ElemRestrictionBase):
@@ -220,6 +225,29 @@ class BlockedElemRestriction(_ElemRestrictionBase):
     # libCEED call
     lib.CeedElemRestrictionApplyBlock(self._pointer[0], block, tmode,
                                       u._pointer[0], v._pointer[0], request)
+
+# ------------------------------------------------------------------------------
+class BlockedStridedElemRestriction(BlockedElemRestriction):
+  """Ceed Blocked Strided ElemRestriction: strided restriction from local vectors to elements."""
+
+  # Constructor
+  def __init__(self, ceed, nelem, elemsize, blksize, nnodes, ncomp, strides):
+    # CeedVector object
+    self._pointer = ffi.new("CeedElemRestriction *")
+
+    # Reference to Ceed
+    self._ceed = ceed
+
+    # Setup the numpy array for the libCEED call
+    strides_pointer = ffi.new("const CeedInt *")
+    strides_pointer = ffi.cast("const CeedInt *",
+                               strides.__array_interface__['data'][0])
+
+    # libCEED call
+    lib.CeedElemRestrictionCreateBlockedStrided(self._ceed._pointer[0], nelem,
+                                                elemsize, blksize, nnodes,
+                                                ncomp, strides_pointer,
+                                                self._pointer)
 
 # ------------------------------------------------------------------------------
 class TransposeElemRestriction():

@@ -9,8 +9,7 @@
 
       integer ne
       parameter(ne=3)
-      integer imode
-      parameter(imode=ceed_noninterlaced)
+      integer strides(3)
 
       real*8 a(2*ne)
       real*8 yy(2*ne)
@@ -31,7 +30,8 @@
       aoffset=0
       call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,aoffset,err)
 
-      call ceedelemrestrictioncreateidentity(ceed,imode,ne,2,2*ne,1,r,err)
+      strides=[1,2,2]
+      call ceedelemrestrictioncreatestrided(ceed,ne,2,2*ne,1,strides,r,err)
 
       call ceedvectorcreate(ceed,2*ne,y,err);
       call ceedvectorsetvalue(y,0.d0,err);

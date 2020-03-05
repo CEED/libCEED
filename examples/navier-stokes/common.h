@@ -172,12 +172,14 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
 }
 
 CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
-                      const CeedScalar *const *in, CeedScalar *const *out) {
+                        const CeedScalar *const *in, CeedScalar *const *out) {
+  // *INDENT-OFF*
   // Inputs
   const CeedScalar (*J)[2][Q] = (const CeedScalar(*)[2][Q])in[0],
                    (*w) = in[1];
   // Outputs
   CeedScalar (*qdata)[Q] = (CeedScalar(*)[Q])out[0];
+  // *INDENT-ON*
 
   CeedPragmaSIMD
   // Quadrature Point Loop

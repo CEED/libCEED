@@ -268,16 +268,16 @@ static inline int CeedOperatorInputBasis_Ref(CeedInt e, CeedInt Q,
       break;
     case CEED_EVAL_WEIGHT:
       break;  // No action
+    // LCOV_EXCL_START
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL: {
-      // LCOV_EXCL_START
       ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis);
       CeedChk(ierr);
       Ceed ceed;
       ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
       return CeedError(ceed, 1, "Ceed evaluation mode not implemented");
-      // LCOV_EXCL_STOP
       break; // Not implemented
+      // LCOV_EXCL_STOP
     }
     }
   }
@@ -333,18 +333,16 @@ static inline int CeedOperatorOutputBasis_Ref(CeedInt e, CeedInt Q,
                             CEED_EVAL_GRAD, impl->qvecsout[i],
                             impl->evecsout[i]); CeedChk(ierr);
       break;
+    // LCOV_EXCL_START
     case CEED_EVAL_WEIGHT: {
-      // LCOV_EXCL_START
       Ceed ceed;
       ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
       return CeedError(ceed, 1, "CEED_EVAL_WEIGHT cannot be an output "
                        "evaluation mode");
-      // LCOV_EXCL_STOP
       break; // Should not occur
     }
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL: {
-      // LCOV_EXCL_START
       Ceed ceed;
       ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
       return CeedError(ceed, 1, "Ceed evaluation mode not implemented");
@@ -571,9 +569,11 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   // LCOV_EXCL_STOP
 
   // Create output restriction
-  CeedInterlaceMode imode = CEED_NONINTERLACED;
-  ierr = CeedElemRestrictionCreateIdentity(ceedparent, imode, numelements, Q,
-         numelements*Q, numactivein*numactiveout, rstr); CeedChk(ierr);
+  CeedInt strides[3] = {1, Q, numactivein *numactiveout*Q};
+  ierr = CeedElemRestrictionCreateStrided(ceedparent, numelements, Q,
+                                          numelements*Q,
+                                          numactivein*numactiveout, strides,
+                                          rstr); CeedChk(ierr);
   // Create assembled vector
   ierr = CeedVectorCreate(ceedparent, numelements*Q*numactivein*numactiveout,
                           assembled); CeedChk(ierr);
@@ -828,7 +828,7 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
               for (CeedInt n=0; n<nnodes; n++)
                 elemdiagarray[(e*ncomp+comp)*nnodes+n] += bt[q*nnodes+n] *
                     qfvalue * b[q*nnodes+n];
-            }
+          }
       }
     }
   }
@@ -1026,9 +1026,10 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
 
   // -- Restriction
   CeedElemRestriction rstr_i;
-  CeedInterlaceMode imode = CEED_NONINTERLACED;
-  ierr = CeedElemRestrictionCreateIdentity(ceedparent, imode, nelem, nnodes,
-         nnodes*nelem, ncomp, &rstr_i); CeedChk(ierr);
+  CeedInt strides[3] = {1, nnodes, nnodes*ncomp};
+  ierr = CeedElemRestrictionCreateStrided(ceedparent, nelem, nnodes,
+                                          nnodes*nelem, ncomp, strides, &rstr_i);
+  CeedChk(ierr);
   // -- QFunction
   CeedQFunction mass_qf;
   ierr = CeedQFunctionCreateInteriorByName(ceedparent, "MassApply", &mass_qf);

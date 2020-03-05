@@ -126,11 +126,9 @@ class CeedMassOperator : public mfem::Operator {
     FESpace2Ceed(mesh_fes, ir, ceed, &mesh_basis, &mesh_restr);
     CeedBasisGetNumQuadraturePoints(basis, &nqpts);
 
-    CeedInterlaceMode imode = CEED_NONINTERLACED;
-    CeedElemRestrictionCreateIdentity(ceed, imode, nelem, nqpts,
-                                      nqpts*nelem, 1, &restr_i);
-    CeedElemRestrictionCreateIdentity(ceed, imode, nelem, nqpts,
-                                      nqpts*nelem, 1, &mesh_restr_i);
+    CeedInt strides[3] = {1, nqpts, nqpts};
+    CeedElemRestrictionCreateStrided(ceed, nelem, nqpts, nqpts*nelem, 1,
+                                     strides, &restr_i);
 
     CeedVectorCreate(ceed, mesh->GetNodes()->Size(), &node_coords);
     CeedVectorSetArray(node_coords, CEED_MEM_HOST, CEED_USE_POINTER,
@@ -157,8 +155,8 @@ class CeedMassOperator : public mfem::Operator {
                        CEED_QFUNCTION_NONE, &build_oper);
     CeedOperatorSetField(build_oper, "dx", mesh_restr, mesh_basis,
                          CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(build_oper, "weights", mesh_restr_i, mesh_basis,
-                         CEED_VECTOR_NONE);
+    CeedOperatorSetField(build_oper, "weights", CEED_ELEMRESTRICTION_NONE,
+                         mesh_basis, CEED_VECTOR_NONE);
     CeedOperatorSetField(build_oper, "qdata", restr_i, CEED_BASIS_COLLOCATED,
                          CEED_VECTOR_ACTIVE);
 
@@ -199,7 +197,6 @@ class CeedMassOperator : public mfem::Operator {
     CeedElemRestrictionDestroy(&restr);
     CeedElemRestrictionDestroy(&mesh_restr);
     CeedElemRestrictionDestroy(&restr_i);
-    CeedElemRestrictionDestroy(&mesh_restr_i);
   }
 
   /// Operator action
