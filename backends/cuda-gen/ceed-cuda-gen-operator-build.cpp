@@ -435,7 +435,7 @@ inline __device__ void readSliceQuadsTranspose3d(BackendData& data, const CeedIn
 }
 
 template <int NCOMP, int Q1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void readSliceQuadsStrided3d(BackendData& data, const CeedInt elem, const CeedInt q, const CeedInt *strides, const CeedScalar* d_u, CeedScalar* r_u) {
+inline __device__ void readSliceQuadsStrided3d(BackendData& data, const CeedInt elem, const CeedInt q, const CeedScalar* d_u, CeedScalar* r_u) {
   const CeedInt node = data.tidx + data.tidy*Q1d + q*Q1d*Q1d;
   const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
   for (CeedInt comp = 0; comp < NCOMP; ++comp) {
@@ -1105,7 +1105,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         if (data->indices.in[i]) {
           ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
           code << "  // InterlaceMode: "<<CeedInterlaceModes[imode]<<"\n";
-          code << "  readSliceQuads"<<(imode==CEED_NONINTERLACED?"":"Transpose")<<"3d<ncomp_in_"<<i<<",Q1d>(data, nquads_in_"<<i<<", elem, q, indices.in["<<i<<"], d_u"<<i<<", r_q"<<i<<");\n";
+          code << "  readSliceQuads"<<(imode==CEED_NONINTERLACED?"":"Transpose")<<"3d<ncomp_in_"<<i<<",Q1d>(data, nquads_in_"<<i<<", elem, q, d_u"<<i<<", r_q"<<i<<");\n";
         } else {
           bool backendstrides;
           ierr = CeedElemRestrictionGetBackendStridesStatus(Erestrict,
