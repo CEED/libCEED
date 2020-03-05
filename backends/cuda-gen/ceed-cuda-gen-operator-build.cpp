@@ -470,7 +470,7 @@ inline __device__ void writeDofsTranspose3d(BackendData& data, const CeedInt nno
 }
 
 template <int NCOMP, int P1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void writeDofsStrided3d(BackendData& data, const CeedInt elem, const CeedInt *strides, const CeedScalar* r_v, CeedScalar* d_v) {
+inline __device__ void writeDofsStrided3d(BackendData& data, const CeedInt elem, const CeedScalar* r_v, CeedScalar* d_v) {
   if (data.tidx<P1d && data.tidy<P1d) {
     for (CeedInt z = 0; z < P1d; ++z) {
       const CeedInt node = data.tidx + data.tidy*P1d + z*P1d*P1d;
