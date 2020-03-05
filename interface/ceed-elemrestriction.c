@@ -767,7 +767,8 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
 const CeedInt CEED_STRIDES_BACKEND[3] = {};
 
 // Indicate that no ElemRestriction is provided by the user
-const CeedElemRestriction CEED_ELEMRESTRICTION_NONE = &ceed_elemrestriction_none;
+const CeedElemRestriction CEED_ELEMRESTRICTION_NONE =
+  &ceed_elemrestriction_none;
 /// @endcond
 
 /// @}

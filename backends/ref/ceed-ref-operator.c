@@ -828,7 +828,7 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
               for (CeedInt n=0; n<nnodes; n++)
                 elemdiagarray[(e*ncomp+comp)*nnodes+n] += bt[q*nnodes+n] *
                     qfvalue * b[q*nnodes+n];
-            }
+          }
       }
     }
   }
