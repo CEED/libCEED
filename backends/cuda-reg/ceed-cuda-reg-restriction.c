@@ -223,6 +223,7 @@ static int CeedElemRestrictionApply_Cuda_reg(CeedElemRestriction r,
     } else {
       kernel = impl->noTrStrided;
       void *args[] = {&nelem, &d_u, &d_v};
+      CeedInt blocksize = elemsize<1024?(elemsize>32?elemsize:32):1024;
       ierr = CeedRunKernelCuda(ceed, kernel, CeedDivUpInt(nnodes, blocksize),
                                blocksize, args); CeedChk(ierr);
     }
