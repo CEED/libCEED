@@ -879,8 +879,6 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "  const CeedInt P_in_"<<i<<" = "<<Q1d<<";\n";
       }
       code << "  const CeedInt ncomp_in_"<<i<<" = "<<ncomp<<";\n";
-      ierr = CeedElemRestrictionGetNumNodes(Erestrict, &nnodes); CeedChk(ierr);
-      code << "  const CeedInt nnodes_in_"<<i<<" = "<<nnodes<<";\n";
     }
 
     // Load basis data
@@ -940,8 +938,6 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "  const CeedInt P_out_"<<i<<" = "<<Q1d<<";\n";
     }
     code << "  const CeedInt ncomp_out_"<<i<<" = "<<ncomp<<";\n";
-    ierr = CeedElemRestrictionGetNumNodes(Erestrict, &nnodes); CeedChk(ierr);
-    code << "  const CeedInt nnodes_out_"<<i<<" = "<<nnodes<<";\n";
 
     // Load basis data
     code << "// EvalMode: "<<CeedEvalModes[emode]<<"\n";
@@ -1007,9 +1003,11 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
       data->indices.in[i] = restr_data->d_ind;
       if (data->indices.in[i]) {
+        ierr = CeedElemRestrictionGetNumNodes(Erestrict, &nnodes); CeedChk(ierr);
+        code << "  const CeedInt nnodes_in_"<<i<<" = "<<nnodes<<";\n";
         ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
-      code << "  // InterlaceMode: "<<CeedInterlaceModes[imode]<<"\n";
-      code << "  readDofs"<<(imode==CEED_NONINTERLACED?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<">(data, nnodes_in_"<<i<<", elem, indices.in["<<i<<"], d_u"<<i<<", r_u"<<i<<");\n";
+        code << "  // InterlaceMode: "<<CeedInterlaceModes[imode]<<"\n";
+        code << "  readDofs"<<(imode==CEED_NONINTERLACED?"":"Transpose")<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<">(data, nnodes_in_"<<i<<", elem, indices.in["<<i<<"], d_u"<<i<<", r_u"<<i<<");\n";
       } else {
         bool backendstrides;
         ierr = CeedElemRestrictionGetBackendStridesStatus(Erestrict,
@@ -1190,7 +1188,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "  "<<qFunctionName<<"(ctx, ";
   if (dim != 3 || basis_data->d_collograd1d) {
     code << "1 ";
-  }else{
+  } else {
     code << "Q1d ";
   }
   code << ", in, out);\n";
@@ -1275,6 +1273,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
     data->indices.out[i] = restr_data->d_ind;
     if (data->indices.out[i]) {
+      ierr = CeedElemRestrictionGetNumNodes(Erestrict, &nnodes); CeedChk(ierr);
+      code << "  const CeedInt nnodes_out_"<<i<<" = "<<nnodes<<";\n";
       ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
       code << "  // InterlaceMode: "<<CeedInterlaceModes[imode]<<"\n";
       code << "  writeDofs"<<(imode==CEED_NONINTERLACED?"":"Transpose")<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<">(data, nnodes_out_"<<i<<", elem, indices.out["<<i<<"], r_v"<<i<<", d_v"<<i<<");\n";
