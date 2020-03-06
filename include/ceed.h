@@ -214,22 +214,27 @@ CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 /// or CEED_EVAL_INTERP only, not with CEED_EVAL_GRAD, CEED_EVAL_DIV,
 /// or CEED_EVAL_CURL
 /// @ingroup CeedBasis
-CEED_EXTERN CeedBasis CEED_BASIS_COLLOCATED;
+CEED_EXTERN const CeedBasis CEED_BASIS_COLLOCATED;
 
 /// Argument for CeedOperatorSetField to use active input or output
 /// @ingroup CeedVector
-CEED_EXTERN CeedVector CEED_VECTOR_ACTIVE;
+CEED_EXTERN const CeedVector CEED_VECTOR_ACTIVE;
 
 /// Argument for CeedOperatorSetField to use no vector, used with
-/// qfunction input with eval mode CEED_EVAL_WEIGHTS
+/// qfunction input with eval mode CEED_EVAL_WEIGHT
 /// @ingroup CeedVector
-CEED_EXTERN CeedVector CEED_VECTOR_NONE;
+CEED_EXTERN const CeedVector CEED_VECTOR_NONE;
+
+/// Argument for CeedOperatorSetField to use no ElemRestriction, only used with
+/// eval mode CEED_EVAL_WEIGHT.
+/// @ingroup CeedElemRestriction
+CEED_EXTERN const CeedElemRestriction CEED_ELEMRESTRICTION_NONE;
 
 /// Argument for CeedOperatorCreate that QFunction is not created by user.
 /// Only used for QFunctions dqf and dqfT. If implemented, a backend may
 /// attempt to provide the action of these QFunctions.
 /// @ingroup CeedQFunction
-CEED_EXTERN CeedQFunction CEED_QFUNCTION_NONE;
+CEED_EXTERN const CeedQFunction CEED_QFUNCTION_NONE;
 
 /// Denotes whether a linear transformation or its transpose should be applied
 /// @ingroup CeedBasis
@@ -254,17 +259,26 @@ typedef enum {
 
 CEED_EXTERN const char *const CeedInterlaceModes[];
 
+/// Argument for CeedElemRestrictionCreateStrided that L-vector is in
+/// the Ceed backend's preferred layout. This argument should only be used
+/// with vectors created by a Ceed backend.
+/// @ingroup CeedElemRestriction
+CEED_EXTERN const CeedInt CEED_STRIDES_BACKEND[3];
+
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInterlaceMode imode,
     CeedInt nelem, CeedInt elemsize, CeedInt nnodes, CeedInt ncomp,
     CeedMemType mtype, CeedCopyMode cmode, const CeedInt *indices,
     CeedElemRestriction *rstr);
-CEED_EXTERN int CeedElemRestrictionCreateIdentity(Ceed ceed,
-    CeedInterlaceMode imode,CeedInt nelem, CeedInt elemsize, CeedInt nnodes,
-    CeedInt ncomp, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed,
-    CeedInterlaceMode imode,CeedInt nelem, CeedInt elemsize, CeedInt blksize,
+    CeedInterlaceMode imode, CeedInt nelem, CeedInt elemsize, CeedInt blksize,
     CeedInt nnodes, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
     const CeedInt *indices, CeedElemRestriction *rstr);
+CEED_EXTERN int CeedElemRestrictionCreateStrided(Ceed ceed,
+    CeedInt nelem, CeedInt elemsize, CeedInt nnodes, CeedInt ncomp,
+    const CeedInt strides[3], CeedElemRestriction *rstr);
+CEED_EXTERN int CeedElemRestrictionCreateBlockedStrided(Ceed ceed,
+    CeedInt nelem, CeedInt elemsize, CeedInt blksize, CeedInt nnodes,
+    CeedInt ncomp, const CeedInt strides[3], CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
     CeedVector *lvec, CeedVector *evec);
 CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr,

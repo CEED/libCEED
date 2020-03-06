@@ -400,8 +400,7 @@ int main(int argc, char **argv) {
   User user;
   Ceed ceed;
   CeedBasis basisx, basisu;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui,
-                      Erestrictqdi;
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictui, Erestrictqdi;
   CeedQFunction qf_setupgeo, qf_setuprhs, qf_apply, qf_error;
   CeedOperator op_setupgeo, op_setuprhs, op_apply, op_error;
   CeedVector xcoord, qdata, rhsceed, target;
@@ -600,13 +599,11 @@ int main(int argc, char **argv) {
   CreateRestriction(ceed, CEED_INTERLACED, melem, P, ncompu, &Erestrictu);
   CreateRestriction(ceed, CEED_NONINTERLACED, melem, 2, dim, &Erestrictx);
   CeedInt nelem = melem[0]*melem[1]*melem[2];
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q*Q,
-                                    nelem*Q*Q*Q, ncompu, &Erestrictui);
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q*Q,
-                                    nelem*Q*Q*Q, bpOptions[bpChoice].qdatasize,
-                                    &Erestrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, CEED_NONINTERLACED, nelem, Q*Q*Q,
-                                    nelem*Q*Q*Q, 1, &Erestrictxi);
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompu,
+                                   CEED_STRIDES_BACKEND, &Erestrictui);
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
+                                   bpOptions[bpChoice].qdatasize,
+                                   CEED_STRIDES_BACKEND, &Erestrictqdi);
   {
     CeedScalar *xloc;
     CeedInt shape[3] = {melem[0]+1, melem[1]+1, melem[2]+1}, len =
@@ -677,7 +674,7 @@ int main(int argc, char **argv) {
                      CEED_QFUNCTION_NONE, &op_setupgeo);
   CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, basisx,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setupgeo, "weight", Erestrictxi, basisx,
+  CeedOperatorSetField(op_setupgeo, "weight", CEED_ELEMRESTRICTION_NONE, basisx,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setupgeo, "qdata", Erestrictqdi,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
@@ -689,7 +686,7 @@ int main(int argc, char **argv) {
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setuprhs, "dx", Erestrictx, basisx,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setuprhs, "weight", Erestrictxi, basisx,
+  CeedOperatorSetField(op_setuprhs, "weight", CEED_ELEMRESTRICTION_NONE, basisx,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setuprhs, "true_soln", Erestrictui,
                        CEED_BASIS_COLLOCATED, target);
@@ -888,7 +885,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
   CeedElemRestrictionDestroy(&Erestrictui);
-  CeedElemRestrictionDestroy(&Erestrictxi);
   CeedElemRestrictionDestroy(&Erestrictqdi);
   CeedQFunctionDestroy(&qf_setupgeo);
   CeedQFunctionDestroy(&qf_setuprhs);

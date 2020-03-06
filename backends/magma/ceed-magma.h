@@ -95,6 +95,12 @@ CEED_INTERN {
                                const magma_int_t nelem, magma_int_t *indices,
                                const double *du, double *dv);
 
+  void magma_readDofsStrided(const magma_int_t NCOMP,
+                             const magma_int_t nnodes,
+                             const magma_int_t esize,
+                             const magma_int_t nelem, magma_int_t *strides,
+                             const double *du, double *dv);
+
   void magma_writeDofs(const magma_int_t NCOMP,
                        const magma_int_t nnodes,
                        const magma_int_t esize,
@@ -106,6 +112,12 @@ CEED_INTERN {
                                 const magma_int_t esize,
                                 const magma_int_t nelem, magma_int_t *indices,
                                 const double *du, double *dv);
+
+  void magma_writeDofsStrided(const magma_int_t NCOMP,
+                              const magma_int_t nnodes,
+                              const magma_int_t esize,
+                              const magma_int_t nelem, magma_int_t *strides,
+                              const double *du, double *dv);
 
   magma_int_t
   magma_isdevptr(const void *A);

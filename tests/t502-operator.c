@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedInterlaceMode imode = CEED_NONINTERLACED,
                     imodeu = CEED_INTERLACED;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui;
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictui;
   CeedBasis bx, bu;
   CeedQFunction qf_setup, qf_mass;
   CeedOperator op_setup, op_mass;
@@ -35,8 +35,6 @@ int main(int argc, char **argv) {
   // Restrictions
   CeedElemRestrictionCreate(ceed, imode, nelem, 2, Nx, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictx);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, 2, nelem*2, 1,
-                                    &Erestrictxi);
 
   for (CeedInt i=0; i<nelem; i++) {
     for (CeedInt j=0; j<P; j++) {
@@ -45,8 +43,9 @@ int main(int argc, char **argv) {
   }
   CeedElemRestrictionCreate(ceed, imodeu, nelem, P, Nu, 2, CEED_MEM_HOST,
                             CEED_USE_POINTER, indu, &Erestrictu);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelem, Q, Q*nelem, 1,
-                                    &Erestrictui);
+  CeedInt stridesu[3] = {1, Q, Q};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q, Q*nelem, 1, stridesu,
+                                   &Erestrictui);
 
   // Bases
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bx);
@@ -74,7 +73,8 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
   CeedVectorCreate(ceed, nelem*Q, &qdata);
 
-  CeedOperatorSetField(op_setup, "_weight", Erestrictxi, bx, CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setup, "_weight", CEED_ELEMRESTRICTION_NONE, bx,
+                       CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "dx", Erestrictx, bx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "rho", Erestrictui, CEED_BASIS_COLLOCATED,
                        CEED_VECTOR_ACTIVE);
@@ -114,7 +114,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
   CeedElemRestrictionDestroy(&Erestrictui);
-  CeedElemRestrictionDestroy(&Erestrictxi);
   CeedBasisDestroy(&bu);
   CeedBasisDestroy(&bx);
   CeedVectorDestroy(&X);

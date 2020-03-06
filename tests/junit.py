@@ -45,6 +45,7 @@ def skip_rule(test, resource):
     return any((
         test.startswith('ns-') and contains_any(resource, ['occa', 'gpu']),
         test.startswith('petsc-multigrid') and contains_any(resource, ['occa']),
+        test.startswith('t506') and contains_any(resource, ['occa']),
         ))
         
 def run(test, backends):

@@ -17,7 +17,7 @@
 from .ceed import Ceed
 from .ceed_vector import Vector
 from .ceed_basis import Basis, BasisTensorH1, BasisTensorH1Lagrange, BasisH1
-from .ceed_elemrestriction import ElemRestriction, IdentityElemRestriction, BlockedElemRestriction
+from .ceed_elemrestriction import ElemRestriction, StridedElemRestriction, BlockedElemRestriction, BlockedStridedElemRestriction
 from .ceed_qfunction import QFunction, QFunctionByName, IdentityQFunction
 from .ceed_operator import Operator, CompositeOperator
 from .ceed_constants import *
@@ -28,16 +28,18 @@ from .ceed_constants import *
 __all__ = ["Ceed",
            "Vector",
            "Basis", "BasisTensorH1", "BasisTensorH1Lagrange", "BasisH1",
-           "ElemRestriction", "IdentityElemRestriction", "BlockedElemRestriction",
+           "ElemRestriction", "StridedElemRestriction", "BlockedElemRestriction", "BlockedStridedelemRestriction",
            "QFunction", "QFunctionByName", "IdentityQFunction",
            "Operator", "CompositeOperator",
            "MEM_HOST", "MEM_DEVICE", "mem_types",
            "COPY_VALUES", "USE_POINTER", "OWN_POINTER", "copy_modes",
+           "NONINTERLACED", "INTERLACED", "layout_modes",
+           "NORM_1", "NORM_2", "NORM_MAX", "norm_types",
            "TRANSPOSE", "NOTRANSPOSE", "transpose_modes",
            "EVAL_NONE", "EVAL_INTERP", "EVAL_GRAD", "EVAL_DIV", "EVAL_CURL", "EVAL_WEIGHT", "eval_modes",
            "GAUSS", "GAUSS_LOBATTO", "quad_modes",
            "LINE", "TRIANGLE", "QUAD", "TET", "PYRAMID", "PRISM", "HEX", "elem_topologies",
            "REQUEST_IMMEDIATE", "REQUEST_ORDERED",
-           "VECTOR_ACTIVE", "VECTOR_NONE"]
+           "VECTOR_ACTIVE", "VECTOR_NONE", "ELEMRESTRICTION_NONE", "BASIS_COLLOCATED"]
 
 # ------------------------------------------------------------------------------

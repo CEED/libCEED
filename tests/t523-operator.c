@@ -20,9 +20,9 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedElemRestriction ErestrictxTet, ErestrictuTet,
-                      ErestrictxiTet, ErestrictuiTet,
+                      ErestrictuiTet,
                       ErestrictxHex, ErestrictuHex,
-                      ErestrictxiHex, ErestrictuiHex;
+                      ErestrictuiHex;
   CeedBasis bxTet, buTet,
             bxHex, buHex;
   CeedQFunction qf_setupTet, qf_massTet,
@@ -78,14 +78,13 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, imode, nelemTet, PTet, ndofs, dim,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
                             &ErestrictxTet);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelemTet, PTet, nelemTet*PTet,
-                                    dim, &ErestrictxiTet);
 
   CeedElemRestrictionCreate(ceed, imode, nelemTet, PTet, ndofs, 1,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
                             &ErestrictuTet);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelemTet, QTet, nqptsTet, 1,
-                                    &ErestrictuiTet);
+  CeedInt stridesuTet[3] = {1, QTet, QTet};
+  CeedElemRestrictionCreateStrided(ceed,  nelemTet, QTet, nqptsTet, 1,
+                                   stridesuTet, &ErestrictuiTet);
 
   // -- Bases
   buildmats(qref, qweight, interp, grad);
@@ -111,7 +110,7 @@ int main(int argc, char **argv) {
   // ---- Setup Tet
   CeedOperatorCreate(ceed, qf_setupTet, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &op_setupTet);
-  CeedOperatorSetField(op_setupTet, "_weight", ErestrictxiTet, bxTet,
+  CeedOperatorSetField(op_setupTet, "_weight", CEED_ELEMRESTRICTION_NONE, bxTet,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setupTet, "dx", ErestrictxTet, bxTet,
                        CEED_VECTOR_ACTIVE);
@@ -141,14 +140,13 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, imode, nelemHex, PHex*PHex, ndofs, dim,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
                             &ErestrictxHex);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelemHex, PHex*PHex,
-                                    nelemHex*PHex*PHex, dim, &ErestrictxiHex);
 
   CeedElemRestrictionCreate(ceed, imode, nelemHex, PHex*PHex, ndofs, 1,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
                             &ErestrictuHex);
-  CeedElemRestrictionCreateIdentity(ceed, imode, nelemHex, QHex*QHex, nqptsHex,
-                                    1, &ErestrictuiHex);
+  CeedInt stridesuHex[3] = {1, QHex*QHex, QHex*QHex};
+  CeedElemRestrictionCreateStrided(ceed, nelemHex, QHex*QHex, nqptsHex, 1,
+                                   stridesuHex, &ErestrictuiHex);
 
   // -- Bases
   CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, PHex, QHex, CEED_GAUSS,
@@ -169,7 +167,7 @@ int main(int argc, char **argv) {
   // -- Operators
   CeedOperatorCreate(ceed, qf_setupHex, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &op_setupHex);
-  CeedOperatorSetField(op_setupHex, "_weight", ErestrictxiHex, bxHex,
+  CeedOperatorSetField(op_setupHex, "_weight", CEED_ELEMRESTRICTION_NONE, bxHex,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setupHex, "dx", ErestrictxHex, bxHex,
                        CEED_VECTOR_ACTIVE);
@@ -216,11 +214,9 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&ErestrictuTet);
   CeedElemRestrictionDestroy(&ErestrictxTet);
   CeedElemRestrictionDestroy(&ErestrictuiTet);
-  CeedElemRestrictionDestroy(&ErestrictxiTet);
   CeedElemRestrictionDestroy(&ErestrictuHex);
   CeedElemRestrictionDestroy(&ErestrictxHex);
   CeedElemRestrictionDestroy(&ErestrictuiHex);
-  CeedElemRestrictionDestroy(&ErestrictxiHex);
   CeedBasisDestroy(&buTet);
   CeedBasisDestroy(&bxTet);
   CeedBasisDestroy(&buHex);

@@ -63,7 +63,8 @@
       integer ceed,err,i,j,k
       integer imode
       parameter(imode=ceed_noninterlaced)
-      integer erestrictx,erestrictu,erestrictxi,erestrictui
+      integer stridesu(3),stridesqd(3)
+      integer erestrictx,erestrictu,erestrictui
       integer erestrictqi,erestrictlini
       integer bx,bu
       integer qf_setup,qf_diff,qf_diff_lin
@@ -121,16 +122,16 @@
 ! Restrictions
       call ceedelemrestrictioncreate(ceed,imode,nelem,p*p,ndofs,d,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictx,err)
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,p*p,&
-     & nelem*p*p,d,erestrictxi,err)
 
       call ceedelemrestrictioncreate(ceed,imode,nelem,p*p,ndofs,1,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictu,err)
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,q*q,nqpts,&
-     & 1,erestrictui,err)
+      stridesu=[1,q*q,q*q]
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q*q,nqpts,&
+     & 1,stridesu,erestrictui,err)
 
-      call ceedelemrestrictioncreateidentity(ceed,imode,nelem,q*q,nqpts,&
-     & d*(d+1)/2,erestrictqi,err)
+      stridesqd=[1,q*q,q*q*d*(d+1)/2]
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q*q,nqpts,&
+     & d*(d+1)/2,stridesqd,erestrictqi,err)
 
 ! Bases
       call ceedbasiscreatetensorh1lagrange(ceed,d,d,p,q,ceed_gauss,&
@@ -151,7 +152,7 @@
      & ceed_qfunction_none,op_setup,err)
       call ceedoperatorsetfield(op_setup,'dx',erestrictx,&
      & bx,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&
+      call ceedoperatorsetfield(op_setup,'_weight',ceed_elemrestriction_none,&
      & bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'qdata',erestrictqi,&
      & ceed_basis_collocated,ceed_vector_active,err)
@@ -242,7 +243,6 @@
       call ceedoperatordestroy(op_diff_lin,err)
       call ceedelemrestrictiondestroy(erestrictu,err)
       call ceedelemrestrictiondestroy(erestrictx,err)
-      call ceedelemrestrictiondestroy(erestrictxi,err)
       call ceedelemrestrictiondestroy(erestrictui,err)
       call ceedelemrestrictiondestroy(erestrictqi,err)
       call ceedelemrestrictiondestroy(erestrictlini,err)
