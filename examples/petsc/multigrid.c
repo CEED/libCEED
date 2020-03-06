@@ -52,9 +52,10 @@ int main(int argc, char **argv) {
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
   DM  *dm, dmOrig;
+  SNES snes_dummy;
   KSP ksp;
   PC pc;
-  Mat *matO, *matI, *matR;
+  Mat *matO, *matI, *matR, matCoarse;
   Vec *X, *Xloc, *mult, rhs, rhsloc;
   UserO *userO;
   UserIR *userI, *userR;
@@ -407,6 +408,25 @@ int main(int argc, char **argv) {
     }
   }
 
+  // Setup dummy SNES for AMG coarse solve
+  ierr = SNESCreate(comm, &snes_dummy); CHKERRQ(ierr);
+  ierr = SNESSetDM(snes_dummy, dm[0]); CHKERRQ(ierr);
+  ierr = SNESSetSolution(snes_dummy, X[0]); CHKERRQ(ierr);
+
+  // -- Jacobian matrix
+  ierr = DMSetMatType(dm[0], MATAIJ); CHKERRQ(ierr);
+  ierr = DMCreateMatrix(dm[0], &matCoarse); CHKERRQ(ierr);
+  ierr = SNESSetJacobian(snes_dummy, matCoarse, matCoarse, NULL,
+                         NULL); CHKERRQ(ierr);
+
+  // -- Residual evaluation function
+  ierr = SNESSetFunction(snes_dummy, X[0], FormResidual_Ceed,
+                         userO[0]); CHKERRQ(ierr);
+
+  // -- Form Jacobian
+  ierr = SNESComputeJacobianDefaultColor(snes_dummy, X[0], matO[0],
+                                         matCoarse, NULL); CHKERRQ(ierr);
+
   // Set up KSP
   ierr = KSPCreate(comm, &ksp); CHKERRQ(ierr);
   {
@@ -458,13 +478,16 @@ int main(int argc, char **argv) {
       KSP coarse;
       PC coarse_pc;
       ierr = PCMGGetCoarseSolve(pc, &coarse); CHKERRQ(ierr);
-      ierr = KSPSetType(coarse, KSPCG); CHKERRQ(ierr);
-      ierr = KSPSetOperators(coarse, matO[0], matO[0]); CHKERRQ(ierr);
-      ierr = KSPSetTolerances(coarse, 1e-10, 1e-10, PETSC_DEFAULT,
-                              PETSC_DEFAULT); CHKERRQ(ierr);
+      ierr = KSPSetType(coarse, KSPPREONLY); CHKERRQ(ierr);
+      ierr = KSPSetOperators(coarse, matCoarse, matCoarse); CHKERRQ(ierr);
+
       ierr = KSPGetPC(coarse, &coarse_pc); CHKERRQ(ierr);
-      ierr = PCSetType(coarse_pc, PCJACOBI); CHKERRQ(ierr);
-      ierr = PCJacobiSetType(coarse_pc, PC_JACOBI_DIAGONAL); CHKERRQ(ierr);
+      ierr = PCSetType(coarse_pc, PCGAMG); CHKERRQ(ierr);
+
+      ierr = KSPSetOptionsPrefix(coarse, "coarse_"); CHKERRQ(ierr);
+      ierr = PCSetOptionsPrefix(coarse_pc, "coarse_"); CHKERRQ(ierr);
+      ierr = KSPSetFromOptions(coarse); CHKERRQ(ierr);
+      ierr = PCSetFromOptions(coarse_pc); CHKERRQ(ierr);
     }
 
     // PCMG options
@@ -601,7 +624,9 @@ int main(int argc, char **argv) {
   ierr = PetscFree(gsize); CHKERRQ(ierr);
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
   ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
+  ierr = MatDestroy(&matCoarse); CHKERRQ(ierr);
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
+  ierr = SNESDestroy(&snes_dummy); CHKERRQ(ierr);
   ierr = DMDestroy(&dmOrig); CHKERRQ(ierr);
   CeedVectorDestroy(&target);
   CeedQFunctionDestroy(&qf_error);

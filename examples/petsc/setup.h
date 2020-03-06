@@ -689,13 +689,11 @@ static PetscErrorCode MatGetDiag(Mat A, Vec D) {
 
 // This function uses libCEED to compute the action of the Laplacian with
 // Dirichlet boundary conditions
-static PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
+static PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, UserO user) {
   PetscErrorCode ierr;
-  UserO user;
   PetscScalar *x, *y;
 
   PetscFunctionBeginUser;
-  ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
 
   // Global-to-local
   ierr = DMGlobalToLocalBegin(user->dm, X, INSERT_VALUES, user->Xloc);
@@ -728,6 +726,36 @@ static PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
 
   PetscFunctionReturn(0);
 }
+
+// This function wraps the libCEED operator for a MatShell
+static PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
+  PetscErrorCode ierr;
+  UserO user;
+
+  PetscFunctionBeginUser;
+
+  ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
+
+  // libCEED for local action of residual evaluator
+  ierr = ApplyLocal_Ceed(X, Y, user); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+#ifdef multigrid
+// This function wraps the libCEED operator for a SNES residual evaluation
+static PetscErrorCode FormResidual_Ceed(SNES snes, Vec X, Vec Y, void *ctx) {
+  PetscErrorCode ierr;
+  UserO user = (UserO)ctx;
+
+  PetscFunctionBeginUser;
+
+  // libCEED for local action of residual evaluator
+  ierr = ApplyLocal_Ceed(X, Y, user); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+};
+#endif
 
 #ifdef multigrid
 // This function uses libCEED to compute the action of the interp operator
