@@ -175,7 +175,7 @@ bpData bpOptions[6] = {
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
     .qmode = CEED_GAUSS,
-    .enforce_bc = false,
+    .enforce_bc = PETSC_FALSE,
     .bcs_func = BCsMass
   },
   [CEED_BP2] = {
@@ -193,7 +193,7 @@ bpData bpOptions[6] = {
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
     .qmode = CEED_GAUSS,
-    .enforce_bc = false,
+    .enforce_bc = PETSC_FALSE,
     .bcs_func = BCsMass
   },
   [CEED_BP3] = {
@@ -211,7 +211,7 @@ bpData bpOptions[6] = {
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS,
-    .enforce_bc = true,
+    .enforce_bc = PETSC_TRUE,
     .bcs_func = BCsDiff
   },
   [CEED_BP4] = {
@@ -229,7 +229,7 @@ bpData bpOptions[6] = {
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS,
-    .enforce_bc = true,
+    .enforce_bc = PETSC_TRUE,
     .bcs_func = BCsDiff
   },
   [CEED_BP5] = {
@@ -247,7 +247,7 @@ bpData bpOptions[6] = {
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS_LOBATTO,
-    .enforce_bc = true,
+    .enforce_bc = PETSC_TRUE,
     .bcs_func = BCsDiff
   },
   [CEED_BP6] = {
@@ -265,7 +265,7 @@ bpData bpOptions[6] = {
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
     .qmode = CEED_GAUSS_LOBATTO,
-    .enforce_bc = true,
+    .enforce_bc = PETSC_TRUE,
     .bcs_func = BCsDiff
   }
 };
