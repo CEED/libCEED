@@ -557,10 +557,10 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   CeedOperatorApply(op_setupgeo, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
 
   // Set up RHS if needed
-  CeedVectorCreate(ceed, nelem*nqpts*ncompu, target);
   if (setup_rhs) {
     CeedQFunction qf_setuprhs;
     CeedOperator op_setuprhs;
+    CeedVectorCreate(ceed, nelem*nqpts*ncompu, target);
 
     // Create the q-function that sets up the RHS and true solution
     CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setuprhs,
