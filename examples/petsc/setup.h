@@ -323,10 +323,10 @@ static int PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
   /* Create quadrature */
   quadPointsPerEdge = PetscMax(order + 1,1);
   if (isSimplex) {
-    ierr = PetscDTGaussJacobiQuadrature(dim,   1, quadPointsPerEdge, -1.0, 1.0,
-                                        &q); CHKERRQ(ierr);
-    ierr = PetscDTGaussJacobiQuadrature(dim-1, 1, quadPointsPerEdge, -1.0, 1.0,
-                                        &fq); CHKERRQ(ierr);
+    ierr = PetscDTStroudConicalQuadrature(dim,   1, quadPointsPerEdge, -1.0, 1.0,
+                                          &q); CHKERRQ(ierr);
+    ierr = PetscDTStroudConicalQuadrature(dim-1, 1, quadPointsPerEdge, -1.0, 1.0,
+                                          &fq); CHKERRQ(ierr);
   } else {
     ierr = PetscDTGaussTensorQuadrature(dim,   1, quadPointsPerEdge, -1.0, 1.0,
                                         &q); CHKERRQ(ierr);
