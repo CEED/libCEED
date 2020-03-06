@@ -549,7 +549,8 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix,
     ierr = PetscSectionSetComponentName(section, 0, 1, "MomentumX"); CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 2, "MomentumY"); CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 3, "MomentumZ"); CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 4, "EnergyDensity"); CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 4, "EnergyDensity");
+    CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
 }
