@@ -17,6 +17,10 @@
 /// @file
 /// libCEED QFunctions for diffusion operator example using PETSc
 
+// *****************************************************************************
+// This QFunction sets up the rhs and true solution for the problem
+// *****************************************************************************
+
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupDiffRhs3)(void *ctx, CeedInt Q,
                               const CeedScalar *const *in,
@@ -67,6 +71,18 @@ CEED_QFUNCTION(SetupDiffRhs3)(void *ctx, CeedInt Q,
 
   return 0;
 }
+
+// *****************************************************************************
+// This QFunction applies the diffusion operator for a vector field of 3 components.
+//
+// Inputs:
+//   ug     - Input vector Jacobian at quadrature points
+//   qdata  - Geometric factors
+//
+// Output:
+//   vJ     - Output vector (test functions) Jacobian at quadrature points
+//
+// *****************************************************************************
 
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Diff3)(void *ctx, CeedInt Q,

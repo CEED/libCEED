@@ -227,7 +227,7 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
 //
 // Inputs:
 //   ug     - Input vector gradient at quadrature points
-//   qdata - Geometric factors
+//   qdata  - Geometric factors
 //
 // Output:
 //   vg     - Output vector (test functions) gradient at quadrature points
