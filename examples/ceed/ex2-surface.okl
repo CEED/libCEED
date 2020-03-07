@@ -81,11 +81,11 @@ typedef double CeedScalar;
 // This QFunction applies the diffusion operator for a scalar field.
 //
 // Inputs:
-//   ug     - Input vector at quadrature points
+//   ug    - Input vector at quadrature points
 //   qdata - Geometric factors
 //
 // Output:
-//   vg     - Output vector (test function) at quadrature points
+//   vg    - Output vector (test function) at quadrature points
 //
 // *****************************************************************************
 

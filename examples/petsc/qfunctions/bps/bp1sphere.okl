@@ -54,13 +54,9 @@ typedef double CeedScalar;
 // Qdata: detJ * w
 //
 // *****************************************************************************
-
-#define Sqr(a) ((a)*(a))
-
-// -----------------------------------------------------------------------------
-@kernel void SetupMassGeoSphere(void *ctx, CeedInt Q,
-                                const int *iOf7, const int *oOf7,
-                                const CeedScalar *in, CeedScalar *out) {
+@kernel void SetupMassGeo(void *ctx, CeedInt Q,
+                          const int *iOf7, const int *oOf7,
+                          const CeedScalar *in, CeedScalar *out) {
 // Inputs
 //  const CeedScalar
 //    *X     = in + iOf7[0];
@@ -73,10 +69,10 @@ typedef double CeedScalar;
   // Quadrature Point Loop
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
     // Read global Cartesian coordinates
-    const CeedScalar xx[3][1] = {{in[iOf7[0]+0*Q+i]},
-                                 {in[iOf7[0]+1*Q+i]},
-                                 {in[iOf7[0]+2*Q+i]}
-                                };
+    const CeedScalar xx[3] = {in[iOf7[0]+0*Q+i],
+                              in[iOf7[0]+1*Q+i],
+                              in[iOf7[0]+2*Q+i]
+                             };
     // Read dxxdX Jacobian entries, stored as
     // 0 3
     // 1 4
@@ -90,14 +86,13 @@ typedef double CeedScalar;
                                     };
 
     // Setup
-    const CeedScalar modxxsq = Sqr(xx[0][0]) + Sqr(xx[1][0]) + Sqr(xx[2][0]);
+    // x = xx (xx^T xx)^{-1/2}
+    // dx/dxx = I (xx^T xx)^{-1/2} - xx xx^T (xx^T xx)^{-3/2}
+    const CeedScalar modxxsq = Sqr(xx[0]) + Sqr(xx[1]) + Sqr(xx[2]);
     CeedScalar xxsq[3][3];
     for (int j=0; j<3; j++)
-      for (int k=0; k<3; k++) {
-        xxsq[j][k] = 0;
-        for (int l=0; l<1; l++)
-          xxsq[j][k] += xx[j][l]*xx[k][l] / (sqrt(modxxsq) * modxxsq);
-      }
+      for (int k=0; k<3; k++)
+        xxsq[j][k] = xx[j]*xx[k] / (sqrt(modxxsq) * modxxsq);
 
     const CeedScalar dxdxx[3][3] = {{1./sqrt(modxxsq) - xxsq[0][0],
                                      -xxsq[0][1],
@@ -119,19 +114,44 @@ typedef double CeedScalar;
       }
 
     // J is given by the cross product of the columns of dxdX
-    const CeedScalar J[3][1] = {{dxdX[1][0]*dxdX[2][1] - dxdX[2][0]*dxdX[1][1]},
-                                {dxdX[2][0]*dxdX[0][1] - dxdX[0][0]*dxdX[2][1]},
-                                {dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]}
-                               };
+    const CeedScalar J[3] = {dxdX[1][0]*dxdX[2][1] - dxdX[2][0]*dxdX[1][1],
+                             dxdX[2][0]*dxdX[0][1] - dxdX[0][0]*dxdX[2][1],
+                             dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]
+                            };
     // Use the magnitude of J as our detJ (volume scaling factor)
-    const CeedScalar modJ = sqrt(Sqr(J[0][0]) + Sqr(J[1][0]) + Sqr(J[2][0]));
+    const CeedScalar modJ = sqrt(Sqr(J[0]) + Sqr(J[1]) + Sqr(J[2]));
     out[oOf7[0]+i] = modJ * in[iOf7[2]+i];
   }
 }
-// -----------------------------------------------------------------------------
 
 // *****************************************************************************
-// This QFunction applies the mass matrix for a scalar field.
+@kernel void SetupMassRhs(CeedScalar *ctx, CeedInt Q,
+                          const int *iOf7, const int *oOf7,
+                          const CeedScalar *in, CeedScalar *out) {
+// Inputs
+//  const CeedScalar
+//    *x      = in + iOf7[0],
+//    *qdata  = in + iOf7[1];
+// Outputs
+//  CeedScalar
+//    *true_soln = out + oOf7[0],
+//    *rhs       = out + oOf7[1];
+
+  // Quadrature Point Loop
+  for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
+    //const struct BuildContext *bc = (struct BuildContext*)ctx;
+    const CeedScalar R = ctx[0];
+    // Compute latitude
+    const CeedScalar theta =  asin(in[oOf7[0]+i+2*Q] / R);
+
+    // Use absolute value of latitute for true solution
+    out[oOf7[0]+i+0*Q] = fabs(theta);
+    out[oOf7[1]+i+0*Q] = in[iOf7[1]+i+0*Q] * out[oOf7[0]+i+0*Q];
+  }
+}
+
+// *****************************************************************************
+// This QFunction applies the mass operator for a scalar field.
 //
 // Inputs:
 //   u     - Input vector at quadrature points
@@ -141,22 +161,16 @@ typedef double CeedScalar;
 //   v     - Output vector (test function) at quadrature points
 //
 // *****************************************************************************
-
-// -----------------------------------------------------------------------------
 @kernel void Mass(void *ctx, CeedInt Q,
-                          const int *iOf7, const int *oOf7,
-                          const CeedScalar *in, CeedScalar *out) {
-
+                  const int *iOf7, const int *oOf7,
+                  const CeedScalar *in, CeedScalar *out) {
 // Inputs
-//   const CeedScalar
-//     *u = in + iOf7[0],
-//     *qdata = in + iOf7[1];
-// Outputs
-//   CeedScalar *v = out + oOf7[0];
-
-// Quadrature Point Loop
+//  const CeedScalar
+//    *u     = in + iOf7[0],
+//    *qdata = in + iOf7[1];
+// Output
+//  CeedScalar *v = out + oOf7[0];
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
     out[oOf7[0]+i] = in[iOf7[1]+i] * in[iOf7[0]+i];
   }
 }
-// -----------------------------------------------------------------------------

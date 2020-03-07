@@ -198,8 +198,10 @@ int main(int argc, char **argv) {
     str = SetupMassGeoCube_loc;
   else if (geomfp == SetupMassGeoSphere)
     str = SetupMassGeoSphere_loc;
-  else
-    return CeedError(ceed, 1, "Function not found in the list");
+  else {
+    SETERRQ(comm, PETSC_ERR_USER, "Function not found in the list");
+    return PETSC_ERR_USER;
+  }
 
   // Setup DM
   if (read_mesh) {
@@ -370,14 +372,14 @@ int main(int argc, char **argv) {
   ierr = VecGetArray(Vloc, &v);
   CeedVectorSetArray(vceed, CEED_MEM_HOST, CEED_USE_POINTER, v);
 
-  // Compute the mesh volume using the mass operator: vol = 1^T \cdot M \cdot 1
+  // Compute the mesh volume using the mass operator: area = 1^T \cdot M \cdot 1
   if (!test_mode) {
     ierr = PetscPrintf(comm,
                        "Computing the mesh area using the formula: area = 1^T M 1\n");
     CHKERRQ(ierr);
   }
 
-  // Initialize u and v with ones
+  // Initialize u with ones
   CeedVectorSetValue(uceed, 1.0);
 
   // Apply the mass operator: 'u' -> 'v'

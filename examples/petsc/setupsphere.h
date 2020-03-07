@@ -24,27 +24,30 @@
 #include <petscfe.h>
 #include <ceed.h>
 #include "qfunctions/bps/common.h"
-#include "qfunctions/bps/bp1.h"
-#include "qfunctions/bps/bp2.h"
-#include "qfunctions/bps/bp3.h"
-#include "qfunctions/bps/bp4.h"
+#include "qfunctions/bps/bp1sphere.h"
+#include "qfunctions/bps/bp2sphere.h"
+#include "qfunctions/bps/bp3sphere.h"
+#include "qfunctions/bps/bp4sphere.h"
 
 // -----------------------------------------------------------------------------
 // PETSc Operator Structs
 // -----------------------------------------------------------------------------
 
-// Data for PETSc Matshell
+// Data for PETSc
 typedef struct UserO_ *UserO;
 struct UserO_ {
   MPI_Comm comm;
   DM dm;
+  PetscInt topodim; /* Topological problem dimension */ // TO DO: check if necessary
+  PetscBool simplex; /* Mesh with simplices */ // TO DO: check if necessary
   Vec Xloc, Yloc, diag;
   CeedVector xceed, yceed;
+//  CeedVector qdata;
   CeedOperator op;
   Ceed ceed;
 };
 
-// Data for PETSc Interp/Restrict Matshells
+// Data for PETSc Interp/Restrict operators
 typedef struct UserIR_ *UserIR;
 struct UserIR_ {
   MPI_Comm comm;
@@ -64,7 +67,8 @@ typedef struct CeedData_ *CeedData;
 struct CeedData_ {
   Ceed ceed;
   CeedBasis basisx, basisu, basisctof;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictui, Erestrictqdi;
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui,
+                      Erestrictqdi;
   CeedQFunction qf_apply;
   CeedOperator op_apply, op_restrict, op_interp;
   CeedVector qdata, xceed, yceed;
@@ -83,58 +87,6 @@ static const char *const coarsenTypes [] = {"uniform","logarithmic",
                                            };
 
 // -----------------------------------------------------------------------------
-// Boundary Conditions
-// -----------------------------------------------------------------------------
-
-// Diff boundary condition function
-PetscErrorCode BCsDiff(PetscInt dim, PetscReal time, const PetscReal x[],
-                       PetscInt ncompu, PetscScalar *u, void *ctx) {
-  // *INDENT-OFF*
-  #ifndef M_PI
-  #define M_PI    3.14159265358979323846
-  #endif
-  // *INDENT-ON*
-  const CeedScalar c[3] = { 0, 1., 2. };
-  const CeedScalar k[3] = { 1., 2., 3. };
-
-  PetscFunctionBeginUser;
-
-  for (PetscInt i = 0; i < ncompu; i++)
-    u[i] = sin(M_PI*(c[0] + k[0]*x[0])) *
-           sin(M_PI*(c[1] + k[1]*x[1])) *
-           sin(M_PI*(c[2] + k[2]*x[2]));
-
-  PetscFunctionReturn(0);
-}
-
-// Mass boundary condition function
-PetscErrorCode BCsMass(PetscInt dim, PetscReal time, const PetscReal x[],
-                       PetscInt ncompu, PetscScalar *u, void *ctx) {
-  PetscFunctionBeginUser;
-
-  for (PetscInt i = 0; i < ncompu; i++)
-    u[i] = PetscSqrtScalar(PetscSqr(x[0]) + PetscSqr(x[1]) +
-                           PetscSqr(x[2]));
-
-  PetscFunctionReturn(0);
-}
-
-// Create BC label
-static PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
-  int ierr;
-  DMLabel label;
-
-  PetscFunctionBeginUser;
-
-  ierr = DMCreateLabel(dm, name); CHKERRQ(ierr);
-  ierr = DMGetLabel(dm, name, &label); CHKERRQ(ierr);
-  ierr = DMPlexMarkBoundaryFaces(dm, 1, label); CHKERRQ(ierr);
-  ierr = DMPlexLabelComplete(dm, label); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
-
-// -----------------------------------------------------------------------------
 // BP Option Data
 // -----------------------------------------------------------------------------
 
@@ -150,8 +102,9 @@ static const char *const bpTypes[] = {"bp1","bp2","bp3","bp4","bp5","bp6",
 // BP specific data
 typedef struct {
   CeedInt ncompu, qdatasize, qextra;
-  CeedQFunctionUser setupgeo, setuprhs, apply, error;
-  const char *setupgeofname, *setuprhsfname, *applyfname, *errorfname;
+  CeedQFunctionUser setupgeo, setuprhs, apply, error, ident;
+  const char *setupgeofname, *setuprhsfname, *applyfname, *errorfname,
+             *identfname;
   CeedEvalMode inmode, outmode;
   CeedQuadMode qmode;
   PetscBool enforce_bc;
@@ -159,7 +112,7 @@ typedef struct {
                              PetscInt, PetscScalar *, void *);
 } bpData;
 
-bpData bpOptions[6] = {
+static bpData bpOptions[6] = {
   [CEED_BP1] = {
     .ncompu = 1,
     .qdatasize = 1,
@@ -174,9 +127,7 @@ bpData bpOptions[6] = {
     .errorfname = Error_loc,
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
-    .qmode = CEED_GAUSS,
-    .enforce_bc = PETSC_FALSE,
-    .bcs_func = BCsMass
+    .qmode = CEED_GAUSS
   },
   [CEED_BP2] = {
     .ncompu = 3,
@@ -192,13 +143,11 @@ bpData bpOptions[6] = {
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_INTERP,
     .outmode = CEED_EVAL_INTERP,
-    .qmode = CEED_GAUSS,
-    .enforce_bc = PETSC_FALSE,
-    .bcs_func = BCsMass
+    .qmode = CEED_GAUSS
   },
   [CEED_BP3] = {
     .ncompu = 1,
-    .qdatasize = 6,
+    .qdatasize = 4,
     .qextra = 1,
     .setupgeo = SetupDiffGeo,
     .setuprhs = SetupDiffRhs,
@@ -210,13 +159,11 @@ bpData bpOptions[6] = {
     .errorfname = Error_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
-    .qmode = CEED_GAUSS,
-    .enforce_bc = PETSC_TRUE,
-    .bcs_func = BCsDiff
+    .qmode = CEED_GAUSS
   },
   [CEED_BP4] = {
     .ncompu = 3,
-    .qdatasize = 6,
+    .qdatasize = 4,
     .qextra = 1,
     .setupgeo = SetupDiffGeo,
     .setuprhs = SetupDiffRhs3,
@@ -228,13 +175,11 @@ bpData bpOptions[6] = {
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
-    .qmode = CEED_GAUSS,
-    .enforce_bc = PETSC_TRUE,
-    .bcs_func = BCsDiff
+    .qmode = CEED_GAUSS
   },
   [CEED_BP5] = {
     .ncompu = 1,
-    .qdatasize = 6,
+    .qdatasize = 4,
     .qextra = 0,
     .setupgeo = SetupDiffGeo,
     .setuprhs = SetupDiffRhs,
@@ -246,13 +191,11 @@ bpData bpOptions[6] = {
     .errorfname = Error_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
-    .qmode = CEED_GAUSS_LOBATTO,
-    .enforce_bc = PETSC_TRUE,
-    .bcs_func = BCsDiff
+    .qmode = CEED_GAUSS_LOBATTO
   },
   [CEED_BP6] = {
     .ncompu = 3,
-    .qdatasize = 6,
+    .qdatasize = 4,
     .qextra = 0,
     .setupgeo = SetupDiffGeo,
     .setuprhs = SetupDiffRhs3,
@@ -264,11 +207,37 @@ bpData bpOptions[6] = {
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
-    .qmode = CEED_GAUSS_LOBATTO,
-    .enforce_bc = PETSC_TRUE,
-    .bcs_func = BCsDiff
+    .qmode = CEED_GAUSS_LOBATTO
   }
 };
+
+// -----------------------------------------------------------------------------
+// PETSc sphere auxiliary functions
+// -----------------------------------------------------------------------------
+
+// Utility function taken from petsc/src/dm/impls/plex/examples/tutorials/ex7.c
+static PetscErrorCode ProjectToUnitSphere(DM dm) {
+  Vec            coordinates;
+  PetscScalar   *coords;
+  PetscInt       Nv, v, dim, d;
+  PetscErrorCode ierr;
+
+  PetscFunctionBeginUser;
+  ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(coordinates, &Nv); CHKERRQ(ierr);
+  ierr = VecGetBlockSize(coordinates, &dim); CHKERRQ(ierr);
+  Nv  /= dim;
+  ierr = VecGetArray(coordinates, &coords); CHKERRQ(ierr);
+  for (v = 0; v < Nv; ++v) {
+    PetscReal r = 0.0;
+
+    for (d = 0; d < dim; ++d) r += PetscSqr(PetscRealPart(coords[v*dim+d]));
+    r = PetscSqrtReal(r);
+    for (d = 0; d < dim; ++d) coords[v*dim+d] /= r;
+  }
+  ierr = VecRestoreArray(coordinates, &coords); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
 
 // -----------------------------------------------------------------------------
 // PETSc FE Boilerplate
@@ -345,32 +314,21 @@ static int PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
 // PETSc Setup for Level
 // -----------------------------------------------------------------------------
 
-// This function sets up a DM for a given degree
+//// This function sets up a DM for a given degree
 static int SetupDMByDegree(DM dm, PetscInt degree, PetscInt ncompu,
-                           bpType bpChoice) {
-  PetscInt ierr, dim, marker_ids[1] = {1};
+                           PetscInt dim) {
+  PetscInt ierr;
   PetscFE fe;
 
   PetscFunctionBeginUser;
 
   // Setup FE
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   ierr = PetscFECreateByDegree(dm, dim, ncompu, PETSC_FALSE, NULL, degree, &fe);
   CHKERRQ(ierr);
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMAddField(dm, NULL, (PetscObject)fe); CHKERRQ(ierr);
 
   // Setup DM
   ierr = DMCreateDS(dm); CHKERRQ(ierr);
-  if (bpOptions[bpChoice].enforce_bc) {
-    PetscBool hasLabel;
-    DMHasLabel(dm, "marker", &hasLabel);
-    if (!hasLabel) {CreateBCLabel(dm, "marker");}
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "marker", 0, 0, NULL,
-                         (void(*)(void))bpOptions[bpChoice].bcs_func,
-                         1, marker_ids, NULL);
-    CHKERRQ(ierr);
-  }
   ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
   ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
@@ -394,6 +352,7 @@ static PetscErrorCode CeedDataDestroy(CeedInt i, CeedData data) {
   CeedElemRestrictionDestroy(&data->Erestrictu);
   CeedElemRestrictionDestroy(&data->Erestrictx);
   CeedElemRestrictionDestroy(&data->Erestrictui);
+  CeedElemRestrictionDestroy(&data->Erestrictxi);
   CeedElemRestrictionDestroy(&data->Erestrictqdi);
   CeedQFunctionDestroy(&data->qf_apply);
   CeedOperatorDestroy(&data->op_apply);
@@ -416,7 +375,7 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode, CeedInt P,
   PetscSection section;
   Vec Uloc;
 
-  PetscFunctionBeginUser;
+  PetscFunctionBegin;
 
   // Get Nelem
   ierr = DMGetSection(dm, &section); CHKERRQ(ierr);
@@ -424,19 +383,19 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode, CeedInt P,
   nelem = cEnd - cStart;
 
   // Get indices
-  ierr = PetscMalloc1(nelem*P*P*P, &erestrict); CHKERRQ(ierr);
-  for (c=cStart, eoffset=0; c<cEnd; c++) {
+  ierr = PetscMalloc1(nelem*P*P, &erestrict); CHKERRQ(ierr);
+  for (c=cStart, eoffset = 0; c<cEnd; c++) {
     PetscInt numindices, *indices, i;
     ierr = DMPlexGetClosureIndices(dm, section, section, c, &numindices,
                                    &indices, NULL); CHKERRQ(ierr);
     for (i=0; i<numindices; i+=ncomp) {
       for (PetscInt j=0; j<ncomp; j++) {
-        if (indices[i+j] != indices[i] + (PetscInt)(copysign(j, indices[i])))
+        if (indices[i+j] != indices[i] + copysign(j, indices[i]))
           SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
                    "Cell %D closure indices not interlaced", c);
       }
-      // Essential boundary conditions are encoded as -(loc+1)
-      PetscInt loc = indices[i] >= 0 ? indices[i] : -(indices[i] + 1);
+      // NO BC on closed surfaces
+      PetscInt loc = indices[i];
       erestrict[eoffset++] = loc/ncomp;
     }
     ierr = DMPlexRestoreClosureIndices(dm, section, section, c, &numindices,
@@ -448,7 +407,7 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode, CeedInt P,
   ierr = VecGetLocalSize(Uloc, &nnodes); CHKERRQ(ierr);
 
   ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, imode, nelem, P*P*P, nnodes/ncomp, ncomp,
+  CeedElemRestrictionCreate(ceed, imode, nelem, P*P, nnodes/ncomp, ncomp,
                             CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
                             Erestrict);
   ierr = PetscFree(erestrict); CHKERRQ(ierr);
@@ -457,10 +416,11 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode, CeedInt P,
 }
 
 // Set up libCEED for a given degree
-static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
-                                CeedInt qextra, PetscInt ncompu, PetscInt gsize,
-                                PetscInt xlsize, bpType bpChoice, CeedData data,
-                                PetscBool setup_rhs, CeedVector rhsceed,
+static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
+                                CeedInt topodim,
+                                CeedInt qextra, PetscInt ncompx, PetscInt ncompu,
+                                PetscInt gsize, PetscInt xlsize, bpType bpChoice,
+                                CeedData data, PetscBool setup_rhs, CeedVector rhsceed,
                                 CeedVector *target) {
   int ierr;
   DM dmcoord;
@@ -468,19 +428,21 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   Vec coords;
   const PetscScalar *coordArray;
   CeedBasis basisx, basisu;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictui, Erestrictqdi;
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi,
+                      Erestrictui, Erestrictqdi;
   CeedQFunction qf_setupgeo, qf_apply;
   CeedOperator op_setupgeo, op_apply;
   CeedVector xcoord, qdata, xceed, yceed;
-  CeedInt qdatasize = bpOptions[bpChoice].qdatasize, ncompx = dim, P, Q,
-          cStart, cEnd, nelem;
+  CeedInt P, Q, cStart, cEnd, nelem, qdatasize = bpOptions[bpChoice].qdatasize;
+  CeedScalar R = 1,                      // radius of the sphere
+             l = 1.0/PetscSqrtReal(3.0); // half edge of the inscribed cube
 
   // CEED bases
   P = degree + 1;
   Q = P + qextra;
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompu, P, Q,
+  CeedBasisCreateTensorH1Lagrange(ceed, topodim, ncompu, P, Q,
                                   bpOptions[bpChoice].qmode, &basisu);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, Q,
+  CeedBasisCreateTensorH1Lagrange(ceed, topodim, ncompx, 2, Q,
                                   bpOptions[bpChoice].qmode, &basisx);
 
   // CEED restrictions
@@ -489,15 +451,19 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   CHKERRQ(ierr);
 
   CreateRestrictionPlex(ceed, CEED_INTERLACED, 2, ncompx, &Erestrictx, dmcoord);
+  CHKERRQ(ierr);
   CreateRestrictionPlex(ceed, CEED_INTERLACED, P, ncompu, &Erestrictu, dm);
+  CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
 
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompu,
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nelem*Q*Q, ncompu,
                                    CEED_STRIDES_BACKEND, &Erestrictui);
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, qdatasize,
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nelem*Q*Q, qdatasize,
                                    CEED_STRIDES_BACKEND, &Erestrictqdi);
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nelem*Q*Q, 1,
+                                   CEED_STRIDES_BACKEND, &Erestrictxi);
 
   // Element coordinates
   ierr = DMGetCoordinatesLocal(dm, &coords); CHKERRQ(ierr);
@@ -507,7 +473,7 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   CeedElemRestrictionCreateVector(Erestrictx, &xcoord, NULL);
   CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_COPY_VALUES,
                      (PetscScalar *)coordArray);
-  ierr = VecRestoreArrayRead(coords, &coordArray); CHKERRQ(ierr);
+  ierr = VecRestoreArrayRead(coords, &coordArray);
 
   // Create the persistent vectors that will be needed in setup and apply
   CeedInt nqpts;
@@ -520,13 +486,14 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   // quadrature data) and set its context data
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setupgeo,
                               bpOptions[bpChoice].setupgeofname, &qf_setupgeo);
-  CeedQFunctionAddInput(qf_setupgeo, "dx", ncompx*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setupgeo, "x", ncompx, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_setupgeo, "dx", ncompx*topodim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setupgeo, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setupgeo, "qdata", qdatasize, CEED_EVAL_NONE);
 
   // Set up PDE operator
-  CeedInt inscale = bpOptions[bpChoice].inmode==CEED_EVAL_GRAD ? dim : 1;
-  CeedInt outscale = bpOptions[bpChoice].outmode==CEED_EVAL_GRAD ? dim : 1;
+  CeedInt inscale = bpOptions[bpChoice].inmode==CEED_EVAL_GRAD ? topodim : 1;
+  CeedInt outscale = bpOptions[bpChoice].outmode==CEED_EVAL_GRAD ? topodim : 1;
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].apply,
                               bpOptions[bpChoice].applyfname, &qf_apply);
   CeedQFunctionAddInput(qf_apply, "u", ncompu*inscale,
@@ -536,22 +503,26 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
                          bpOptions[bpChoice].outmode);
 
   // Create the operator that builds the quadrature data for the operator
-  CeedOperatorCreate(ceed, qf_setupgeo, CEED_QFUNCTION_NONE,
-                     CEED_QFUNCTION_NONE, &op_setupgeo);
+  CeedOperatorCreate(ceed, qf_setupgeo, NULL, NULL, &op_setupgeo);
+  CeedOperatorSetField(op_setupgeo, "x", Erestrictx, basisx,
+                       CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, basisx,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setupgeo, "weight", CEED_ELEMRESTRICTION_NONE, basisx,
+  CeedOperatorSetField(op_setupgeo, "weight", Erestrictxi, basisx,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setupgeo, "qdata", Erestrictqdi,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  // Create the operator
-  CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &op_apply);
+  // Create the mass or diff operator
+  CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
   CeedOperatorSetField(op_apply, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_BASIS_COLLOCATED,
                        qdata);
   CeedOperatorSetField(op_apply, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+
+  // Set up the libCEED context
+  CeedScalar ctxSetup[2] = {R, l};
+  CeedQFunctionSetContext(qf_setupgeo, &ctxSetup, sizeof ctxSetup);
 
   // Setup qdata
   CeedOperatorApply(op_setupgeo, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
@@ -565,25 +536,25 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
     // Create the q-function that sets up the RHS and true solution
     CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setuprhs,
                                 bpOptions[bpChoice].setuprhsfname, &qf_setuprhs);
-    CeedQFunctionAddInput(qf_setuprhs, "x", dim, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_setuprhs, "dx", ncompx*dim, CEED_EVAL_GRAD);
-    CeedQFunctionAddInput(qf_setuprhs, "weight", 1, CEED_EVAL_WEIGHT);
+    CeedQFunctionAddInput(qf_setuprhs, "x", ncompx, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_setuprhs, "qdata", qdatasize, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qf_setuprhs, "true_soln", ncompu, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qf_setuprhs, "rhs", ncompu, CEED_EVAL_INTERP);
 
     // Create the operator that builds the RHS and true solution
-    CeedOperatorCreate(ceed, qf_setuprhs, CEED_QFUNCTION_NONE,
-                       CEED_QFUNCTION_NONE, &op_setuprhs);
-    CeedOperatorSetField(op_setuprhs, "x", Erestrictx, basisx,
-                         CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_setuprhs, "dx", Erestrictx, basisx,
-                         CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_setuprhs, "weight", CEED_ELEMRESTRICTION_NONE,
-                         basisx, CEED_VECTOR_NONE);
+    CeedOperatorCreate(ceed, qf_setuprhs, NULL, NULL, &op_setuprhs);
+    CeedOperatorSetField(op_setuprhs, "x", Erestrictx, basisx, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_setuprhs, "qdata", Erestrictqdi, CEED_BASIS_COLLOCATED,
+                         qdata);
     CeedOperatorSetField(op_setuprhs, "true_soln", Erestrictui,
-                         CEED_BASIS_COLLOCATED, *target);
+                         CEED_BASIS_COLLOCATED,
+                         *target);
     CeedOperatorSetField(op_setuprhs, "rhs", Erestrictu, basisu,
                          CEED_VECTOR_ACTIVE);
+
+    // Set up the libCEED context
+    CeedScalar rhsSetup[2] = {R, l};
+    CeedQFunctionSetContext(qf_setuprhs, &rhsSetup, sizeof rhsSetup);
 
     // Setup RHS and target
     CeedOperatorApply(op_setuprhs, xcoord, rhsceed, CEED_REQUEST_IMMEDIATE);
@@ -603,6 +574,7 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   data->basisx = basisx; data->basisu = basisu;
   data->Erestrictx = Erestrictx;
   data->Erestrictu = Erestrictu;
+  data->Erestrictxi = Erestrictxi;
   data->Erestrictui = Erestrictui;
   data->Erestrictqdi = Erestrictqdi;
   data->qf_apply = qf_apply;
@@ -638,8 +610,7 @@ static PetscErrorCode CeedLevelTransferSetup(Ceed ceed, CeedInt numlevels,
                                     CEED_GAUSS_LOBATTO, &basisctof);
 
     // Create the restriction operator
-    CeedOperatorCreate(ceed, qf_restrict, CEED_QFUNCTION_NONE,
-                       CEED_QFUNCTION_NONE, &op_restrict);
+    CeedOperatorCreate(ceed, qf_restrict, NULL, NULL, &op_restrict);
     CeedOperatorSetField(op_restrict, "input", data[i]->Erestrictu,
                          CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_restrict, "output", data[i-1]->Erestrictu,
@@ -653,11 +624,10 @@ static PetscErrorCode CeedLevelTransferSetup(Ceed ceed, CeedInt numlevels,
     CeedOperator op_interp;
 
     // Create the prolongation operator
-    CeedOperatorCreate(ceed, qf_prolong, CEED_QFUNCTION_NONE,
-                       CEED_QFUNCTION_NONE, &op_interp);
-    CeedOperatorSetField(op_interp, "input", data[i-1]->Erestrictu,
+    CeedOperatorCreate(ceed, qf_prolong, NULL, NULL, &op_interp);
+    CeedOperatorSetField(op_interp, "uin", data[i-1]->Erestrictu,
                          basisctof, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_interp, "output", data[i]->Erestrictu,
+    CeedOperatorSetField(op_interp, "uout", data[i]->Erestrictu,
                          CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
     // Save libCEED data required for level
@@ -867,4 +837,3 @@ static PetscErrorCode ComputeErrorMax(UserO user, CeedOperator op_error,
   PetscFunctionReturn(0);
 }
 #endif
-

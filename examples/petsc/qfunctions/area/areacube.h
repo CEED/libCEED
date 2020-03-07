@@ -24,7 +24,7 @@
 // *****************************************************************************
 // This QFunction sets up the geometric factor required for integration when
 //   reference coordinates have a different dimension than the one of
-//   pysical coordinates
+//   physical coordinates
 //
 // Reference (parent) 2D coordinates: X \in [-1, 1]^2
 //
@@ -33,10 +33,10 @@
 // Local physical coordinates on the manifold (2D): x \in [-l, l]^2
 //
 // Change of coordinates matrix computed by the library:
-//   (pysical 3D coords relative to reference 2D coords)
+//   (physical 3D coords relative to reference 2D coords)
 //   dxx_j/dX_i (indicial notation) [3 * 2]
 //
-// Change of coordinates x (pysical 2D) relative to xx (phyisical 3D):
+// Change of coordinates x (physical 2D) relative to xx (phyisical 3D):
 //   dx_i/dxx_j (indicial notation) [2 * 3]
 //
 // Change of coordinates x (physical 2D) relative to X (reference 2D):
@@ -109,7 +109,7 @@ CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
 // -----------------------------------------------------------------------------
 
 // *****************************************************************************
-// This QFunction applies the mass matrix for a scalar field.
+// This QFunction applies the mass operator for a scalar field.
 //
 // Inputs:
 //   u     - Input vector at quadrature points

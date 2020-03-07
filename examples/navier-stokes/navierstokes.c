@@ -275,7 +275,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   ierr = DMLocalToGlobal(user->dm, Gloc, ADD_VALUES, G); CHKERRQ(ierr);
 
   // Inverse of the lumped mass matrix
-  ierr = VecPointwiseMult(G,G,user->M); // M is Minv
+  ierr = VecPointwiseMult(G, G, user->M); // M is Minv
   CHKERRQ(ierr);
 
   ierr = DMRestoreLocalVector(user->dm, &Qloc); CHKERRQ(ierr);

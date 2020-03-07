@@ -24,7 +24,7 @@
 // *****************************************************************************
 // This QFunction sets up the geometric factor required for integration when
 //   reference coordinates have a different dimension than the one of
-//   pysical coordinates
+//   physical coordinates
 //
 // Reference (parent) 2D coordinates: X \in [-1, 1]^2
 //
@@ -35,7 +35,7 @@
 //   with l half edge of the cube inscribed in the sphere
 //
 // Change of coordinates matrix computed by the library:
-//   (pysical 3D coords relative to reference 2D coords)
+//   (physical 3D coords relative to reference 2D coords)
 //   dxx_j/dX_i (indicial notation) [3 * 2]
 //
 // Change of coordinates x (on the 2D manifold) relative to xx (phyisical 3D):
@@ -45,14 +45,14 @@
 //   (by chain rule)
 //   dx_i/dX_j = dx_i/dxx_k * dxx_k/dX_j [3 * 2]
 //
-// detJ is given by the magnitude of the cross product of the columns of dx_i/dX_j
+// modJ is given by the magnitude of the cross product of the columns of dx_i/dX_j
 //
 // The quadrature data is stored in the array qdata.
 //
 // We require the determinant of the Jacobian to properly compute integrals of
 //   the form: int( u v )
 //
-// Qdata: detJ * w
+// Qdata: modJ * w
 //
 // *****************************************************************************
 
