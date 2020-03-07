@@ -69,10 +69,10 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Read global Cartesian coordinates
-    const CeedScalar xx[3][1] = {{X[i+0*Q]},
-                                 {X[i+1*Q]},
-                                 {X[i+2*Q]}
-                                };
+    const CeedScalar xx[3] = {X[i+0*Q],
+                              X[i+1*Q],
+                              X[i+2*Q]
+                             };
 
     // Read dxxdX Jacobian entries, stored as
     // 0 3
@@ -89,14 +89,11 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
     // Setup
     // x = xx (xx^T xx)^{-1/2}
     // dx/dxx = I (xx^T xx)^{-1/2} - xx xx^T (xx^T xx)^{-3/2}
-    const CeedScalar modxxsq = xx[0][0]*xx[0][0]+xx[1][0]*xx[1][0]+xx[2][0]*xx[2][0];
+    const CeedScalar modxxsq = xx[0]*xx[0]+xx[1]*xx[1]+xx[2]*xx[2];
     CeedScalar xxsq[3][3];
     for (int j=0; j<3; j++)
-      for (int k=0; k<3; k++) {
-        xxsq[j][k] = 0;
-        for (int l=0; l<1; l++)
-          xxsq[j][k] += xx[j][l]*xx[k][l] / (sqrt(modxxsq) * modxxsq);
-      }
+      for (int k=0; k<3; k++)
+        xxsq[j][k] = xx[j]*xx[k] / (sqrt(modxxsq) * modxxsq);
 
     const CeedScalar dxdxx[3][3] = {{1./sqrt(modxxsq) - xxsq[0][0],
                                      -xxsq[0][1],
@@ -118,13 +115,13 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
       }
 
     // J is given by the cross product of the columns of dxdX
-    const CeedScalar J[3][1] = {{dxdX[1][0]*dxdX[2][1] - dxdX[2][0]*dxdX[1][1]},
-                                {dxdX[2][0]*dxdX[0][1] - dxdX[0][0]*dxdX[2][1]},
-                                {dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]}
-                               };
+    const CeedScalar J[3] = {dxdX[1][0]*dxdX[2][1] - dxdX[2][0]*dxdX[1][1],
+                             dxdX[2][0]*dxdX[0][1] - dxdX[0][0]*dxdX[2][1],
+                             dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]
+                            };
 
     // Use the magnitude of J as our detJ (volume scaling factor)
-    const CeedScalar modJ = sqrt(J[0][0]*J[0][0]+J[1][0]*J[1][0]+J[2][0]*J[2][0]);
+    const CeedScalar modJ = sqrt(J[0]*J[0]+J[1]*J[1]+J[2]*J[2]);
 
     // Interp-to-Interp qdata
     qdata[i+Q*0] = modJ * w[i];

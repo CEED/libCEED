@@ -69,10 +69,10 @@ typedef double CeedScalar;
   // Quadrature Point Loop
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
     // Read global Cartesian coordinates
-    const CeedScalar xx[3][1] = {{in[iOf7[0]+0*Q+i]},
-                                 {in[iOf7[0]+1*Q+i]},
-                                 {in[iOf7[0]+2*Q+i]}
-                                };
+    const CeedScalar xx[3] = {in[iOf7[0]+0*Q+i],
+                              in[iOf7[0]+1*Q+i],
+                              in[iOf7[0]+2*Q+i]
+                             };
     // Read dxxdX Jacobian entries, stored as
     // 0 3
     // 1 4
@@ -86,14 +86,13 @@ typedef double CeedScalar;
                                     };
 
     // Setup
-    const CeedScalar modxxsq = Sqr(xx[0][0]) + Sqr(xx[1][0]) + Sqr(xx[2][0]);
+    // x = xx (xx^T xx)^{-1/2}
+    // dx/dxx = I (xx^T xx)^{-1/2} - xx xx^T (xx^T xx)^{-3/2}
+    const CeedScalar modxxsq = Sqr(xx[0]) + Sqr(xx[1]) + Sqr(xx[2]);
     CeedScalar xxsq[3][3];
     for (int j=0; j<3; j++)
-      for (int k=0; k<3; k++) {
-        xxsq[j][k] = 0;
-        for (int l=0; l<1; l++)
-          xxsq[j][k] += xx[j][l]*xx[k][l] / (sqrt(modxxsq) * modxxsq);
-      }
+      for (int k=0; k<3; k++)
+        xxsq[j][k] = xx[j]*xx[k] / (sqrt(modxxsq) * modxxsq);
 
     const CeedScalar dxdxx[3][3] = {{1./sqrt(modxxsq) - xxsq[0][0],
                                      -xxsq[0][1],
@@ -115,12 +114,12 @@ typedef double CeedScalar;
       }
 
     // J is given by the cross product of the columns of dxdX
-    const CeedScalar J[3][1] = {{dxdX[1][0]*dxdX[2][1] - dxdX[2][0]*dxdX[1][1]},
-                                {dxdX[2][0]*dxdX[0][1] - dxdX[0][0]*dxdX[2][1]},
-                                {dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]}
-                               };
+    const CeedScalar J[3] = {dxdX[1][0]*dxdX[2][1] - dxdX[2][0]*dxdX[1][1],
+                             dxdX[2][0]*dxdX[0][1] - dxdX[0][0]*dxdX[2][1],
+                             dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]
+                            };
     // Use the magnitude of J as our detJ (volume scaling factor)
-    const CeedScalar modJ = sqrt(Sqr(J[0][0]) + Sqr(J[1][0]) + Sqr(J[2][0]));
+    const CeedScalar modJ = sqrt(Sqr(J[0]) + Sqr(J[1]) + Sqr(J[2]));
     out[oOf7[0]+i] = modJ * in[iOf7[2]+i];
   }
 }
