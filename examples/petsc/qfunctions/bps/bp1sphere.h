@@ -24,7 +24,7 @@
 // *****************************************************************************
 // This QFunction sets up the geometric factors required for integration and
 //   coordinate transformations when reference coordinates have a different
-//   dimension than the one of pysical coordinates
+//   dimension than the one of physical coordinates
 //
 // Reference (parent) 2D coordinates: X \in [-1, 1]^2
 //
@@ -35,7 +35,7 @@
 //   with l half edge of the cube inscribed in the sphere
 //
 // Change of coordinates matrix computed by the library:
-//   (pysical 3D coords relative to reference 2D coords)
+//   (physical 3D coords relative to reference 2D coords)
 //   dxx_j/dX_i (indicial notation) [3 * 2]
 //
 // Change of coordinates x (on the 2D manifold) relative to xx (phyisical 3D):
@@ -87,6 +87,8 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
                                    };
 
     // Setup
+    // x = xx (xx^T xx)^{-1/2}
+    // dx/dxx = I (xx^T xx)^{-1/2} - xx xx^T (xx^T xx)^{-3/2}
     const CeedScalar modxxsq = xx[0][0]*xx[0][0]+xx[1][0]*xx[1][0]+xx[2][0]*xx[2][0];
     CeedScalar xxsq[3][3];
     for (int j=0; j<3; j++)
