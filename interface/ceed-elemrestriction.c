@@ -717,7 +717,7 @@ int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
   @brief Get the backend stride status of a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
-  @param[out] bool        Variable to store stride status
+  @param[out] status      Variable to store stride status
 
   @return An error code: 0 - success, otherwise - failure
 

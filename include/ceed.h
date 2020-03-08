@@ -302,9 +302,9 @@ CEED_EXTERN int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
 CEED_EXTERN int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream);
 CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *rstr);
 
-/// The formalism here is that we have the structure
-///   \int_\Omega v^T f_0(u, \nabla u, qdata) + (\nabla v)^T f_1(u, \nabla u, qdata)
-/// where gradients are with respect to the reference element.
+// The formalism here is that we have the structure
+//  \int_\Omega v^T f_0(u, \nabla u, qdata) + (\nabla v)^T f_1(u, \nabla u, qdata)
+// where gradients are with respect to the reference element.
 
 /// Basis evaluation mode
 ///

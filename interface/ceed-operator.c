@@ -128,7 +128,10 @@ static int CeedOperatorCheckReady(Ceed ceed, CeedOperator op) {
   @brief View a field of a CeedOperator
 
   @param[in] field       Operator field to view
+  @param[in] qffield     QFunction field (carries field name)
   @param[in] fieldnumber Number of field being viewed
+  @param[in] sub         true indicates sub-operator, which increases indentation; false for top-level operator
+  @param[in] in          true for an input field; false for output field
   @param[in] stream      Stream to view to, e.g., stdout
 
   @return An error code: 0 - success, otherwise - failure

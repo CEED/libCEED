@@ -117,6 +117,7 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
 
   @param[in] field        QFunction field to view
   @param[in] fieldnumber  Number of field being viewed
+  @param[in] in           true for input field, false for output
   @param[in] stream       Stream to view to, e.g., stdout
 
   @return An error code: 0 - success, otherwise - failure

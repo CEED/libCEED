@@ -507,7 +507,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(if $(OCCA_ON),$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/")
 
-.PHONY : cln clean doc lib install all print test tst prove prv prove-all junit examples style tidy okl-cache okl-clear info info-backends
+.PHONY : cln clean doxygen doc lib install all print test tst prove prv prove-all junit examples style tidy okl-cache okl-clear info info-backends
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
@@ -519,8 +519,21 @@ cln clean :
 distclean : clean
 	$(RM) -r doc/html config.mk
 
-doc :
-	doxygen Doxyfile
+DOXYGEN ?= doxygen
+doxygen :
+	$(DOXYGEN) Doxyfile
+
+# This is a real file, but it doesn't depend on the state of a file,
+# so we make it phony to force it.  We sort the shortlog by author
+# last name.
+.PHONY: AUTHORS
+AUTHORS:
+	git shortlog -s | awk '{$$1 = "placeholder"; print $$NF,$$0}' | sort | cut -d\  -f3- > $@
+
+doc-html doc-latexpdf doc-epub : doc-% : doxygen AUTHORS
+	make -C doc/sphinx $*
+
+doc : doc-html
 
 style :
 	@astyle --options=.astylerc \

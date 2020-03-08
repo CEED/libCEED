@@ -117,6 +117,9 @@ static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
   @param[in,out] A  Row major matrix to apply Givens rotation to, in place
   @param c          Cosine factor
   @param s          Sine factor
+  @param tmode      CEED_NOTRANSPOSE to rotate the basis counter-clockwise,
+                    which has the effect of rotating columns of A clockwise;
+                    CEED_TRANSPOSE for the opposite rotation
   @param i          First row/column to apply rotation
   @param k          Second row/column to apply rotation
   @param m          Number of rows in A
