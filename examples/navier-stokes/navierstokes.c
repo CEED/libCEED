@@ -513,16 +513,21 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix,
     ierr = DMAddField(dm,NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
     /* Wall boundary conditions are zero velocity and zero flux for density and energy */
-    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"wall","Face Sets",0,3,(PetscInt[]) {1,2,3},(
-      void(*)(void))problem->bc,bc->nwall,bc->walls,ctxSetup); CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"slipx","Face Sets",0,1,
-    (PetscInt[]) {1},(void(*)(void))NULL,bc->nslip[0],bc->slips[0],ctxSetup);
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
+                         3,(PetscInt[]) {1,2,3},
+                         (void(*)(void))problem->bc, bc->nwall, bc->walls, ctxSetup);
     CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"slipy","Face Sets",0,1,
-    (PetscInt[]) {2},(void(*)(void))NULL,bc->nslip[1],bc->slips[1],ctxSetup);
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
+                         1, (PetscInt[]) {1},
+                         (void(*)(void))NULL, bc->nslip[0], bc->slips[0], ctxSetup);
     CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm,DM_BC_ESSENTIAL,"slipz","Face Sets",0,1,
-    (PetscInt[]) {3},(void(*)(void))NULL,bc->nslip[2],bc->slips[2],ctxSetup);
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", "Face Sets", 0,
+                         1, (PetscInt[]) {2},
+                         (void(*)(void))NULL, bc->nslip[1], bc->slips[1], ctxSetup);
+    CHKERRQ(ierr);
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", "Face Sets", 0,
+                         1, (PetscInt[]) {3},
+                         (void(*)(void))NULL, bc->nslip[2], bc->slips[2], ctxSetup);
     CHKERRQ(ierr);
     ierr = DMPlexSetClosurePermutationTensor(dm,PETSC_DETERMINE,NULL);
     CHKERRQ(ierr);
@@ -540,6 +545,12 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix,
     PetscSection section;
     ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
     ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 0, "Density"); CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 1, "MomentumX"); CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 2, "MomentumY"); CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 3, "MomentumZ"); CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 4, "EnergyDensity");
+    CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
 }
@@ -935,6 +946,7 @@ int main(int argc, char **argv) {
     CeedQFunctionAddInput(qf_ifunction, "dq", ncompq*dim, CEED_EVAL_GRAD);
     CeedQFunctionAddInput(qf_ifunction, "qdot", ncompq, CEED_EVAL_INTERP);
     CeedQFunctionAddInput(qf_ifunction, "qdata", qdatasize, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qf_ifunction, "x", ncompx, CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(qf_ifunction, "v", ncompq, CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(qf_ifunction, "dv", ncompq*dim, CEED_EVAL_GRAD);
   }
@@ -988,6 +1000,8 @@ int main(int argc, char **argv) {
                          basisq, user->qdotceed);
     CeedOperatorSetField(op, "qdata", restrictqdi,
                          CEED_BASIS_COLLOCATED, qdata);
+    CeedOperatorSetField(op, "x", restrictx,
+                         basisx, xcorners);
     CeedOperatorSetField(op, "v", restrictq,
                          basisq, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "dv", restrictq,
