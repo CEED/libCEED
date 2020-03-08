@@ -20,10 +20,473 @@
 #include <math.h>
 
 /// @file
-/// Implementation of public CeedOperator interfaces
-///
-/// @addtogroup CeedOperator
-///   @{
+/// Implementation of CeedOperator interfaces
+
+/// ----------------------------------------------------------------------------
+/// CeedOperator Library Internal Functions
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedOperatorDeveloper
+/// @{
+
+/**
+  @brief Duplicate a CeedOperator with a reference Ceed to fallback for advanced
+           CeedOperator functionality
+
+  @param op           CeedOperator to create fallback for
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+int CeedOperatorCreateFallback(CeedOperator op) {
+  int ierr;
+
+  // Fallback Ceed
+  const char *resource, *fallbackresource;
+  ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
+  ierr = CeedGetOperatorFallbackResource(op->ceed, &fallbackresource);
+  CeedChk(ierr);
+  if (!strcmp(resource, fallbackresource))
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, 1, "Backend %s cannot create an operator"
+                     "fallback to resource %s", resource, fallbackresource);
+  // LCOV_EXCL_STOP
+
+  // Fallback Ceed
+  Ceed ceedref;
+  if (!op->ceed->opfallbackceed) {
+    ierr = CeedInit(fallbackresource, &ceedref); CeedChk(ierr);
+    ceedref->opfallbackparent = op->ceed;
+    op->ceed->opfallbackceed = ceedref;
+  }
+  ceedref = op->ceed->opfallbackceed;
+
+  // Clone Op
+  CeedOperator opref;
+  ierr = CeedCalloc(1, &opref); CeedChk(ierr);
+  memcpy(opref, op, sizeof(*opref)); CeedChk(ierr);
+  opref->data = NULL;
+  opref->setupdone = 0;
+  opref->ceed = ceedref;
+  ierr = ceedref->OperatorCreate(opref); CeedChk(ierr);
+  op->opfallback = opref;
+
+  // Clone QF
+  CeedQFunction qfref;
+  ierr = CeedCalloc(1, &qfref); CeedChk(ierr);
+  memcpy(qfref, (op->qf), sizeof(*qfref)); CeedChk(ierr);
+  qfref->data = NULL;
+  qfref->ceed = ceedref;
+  ierr = ceedref->QFunctionCreate(qfref); CeedChk(ierr);
+  opref->qf = qfref;
+  op->qffallback = qfref;
+
+  return 0;
+}
+
+/**
+  @brief Check if a CeedOperator is ready to be used.
+
+  @param[in] ceed Ceed object for error handling
+  @param[in] op   CeedOperator to check
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedOperatorCheckReady(Ceed ceed, CeedOperator op) {
+  CeedQFunction qf = op->qf;
+
+  if (op->composite) {
+    if (!op->numsub)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1, "No suboperators set");
+    // LCOV_EXCL_STOP
+  } else {
+    if (op->nfields == 0)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1, "No operator fields set");
+    // LCOV_EXCL_STOP
+    if (op->nfields < qf->numinputfields + qf->numoutputfields)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1, "Not all operator fields set");
+    // LCOV_EXCL_STOP
+    if (!op->hasrestriction)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1,"At least one restriction required");
+    // LCOV_EXCL_STOP
+    if (op->numqpoints == 0)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1,"At least one non-collocated basis required");
+    // LCOV_EXCL_STOP
+  }
+
+  return 0;
+}
+
+/**
+  @brief View a field of a CeedOperator
+
+  @param[in] field       Operator field to view
+  @param[in] fieldnumber Number of field being viewed
+  @param[in] stream      Stream to view to, e.g., stdout
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+static int CeedOperatorFieldView(CeedOperatorField field,
+                                 CeedQFunctionField qffield,
+                                 CeedInt fieldnumber, bool sub, bool in,
+                                 FILE *stream) {
+  const char *pre = sub ? "  " : "";
+  const char *inout = in ? "Input" : "Output";
+
+  fprintf(stream, "%s    %s Field [%d]:\n"
+          "%s      Name: \"%s\"\n",
+          pre, inout, fieldnumber, pre, qffield->fieldname);
+
+  if (field->basis == CEED_BASIS_COLLOCATED)
+    fprintf(stream, "%s      Collocated basis\n", pre);
+
+  if (field->vec == CEED_VECTOR_ACTIVE)
+    fprintf(stream, "%s      Active vector\n", pre);
+  else if (field->vec == CEED_VECTOR_NONE)
+    fprintf(stream, "%s      No vector\n", pre);
+
+  return 0;
+}
+
+/**
+  @brief View a single CeedOperator
+
+  @param[in] op     CeedOperator to view
+  @param[in] sub    Boolean flag for sub-operator
+  @param[in] stream Stream to write; typically stdout/stderr or a file
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
+  int ierr;
+  const char *pre = sub ? "  " : "";
+
+  CeedInt totalfields;
+  ierr = CeedOperatorGetNumArgs(op, &totalfields); CeedChk(ierr);
+
+  fprintf(stream, "%s  %d Field%s\n", pre, totalfields, totalfields>1 ? "s" : "");
+
+  fprintf(stream, "%s  %d Input Field%s:\n", pre, op->qf->numinputfields,
+          op->qf->numinputfields>1 ? "s" : "");
+  for (CeedInt i=0; i<op->qf->numinputfields; i++) {
+    ierr = CeedOperatorFieldView(op->inputfields[i], op->qf->inputfields[i],
+                                 i, sub, 1, stream); CeedChk(ierr);
+  }
+
+  fprintf(stream, "%s  %d Output Field%s:\n", pre, op->qf->numoutputfields,
+          op->qf->numoutputfields>1 ? "s" : "");
+  for (CeedInt i=0; i<op->qf->numoutputfields; i++) {
+    ierr = CeedOperatorFieldView(op->outputfields[i], op->qf->inputfields[i],
+                                 i, sub, 0, stream); CeedChk(ierr);
+  }
+
+  return 0;
+}
+
+/// @}
+
+/// ----------------------------------------------------------------------------
+/// CeedOperator Backend API
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedOperatorBackend
+/// @{
+
+/**
+  @brief Get the Ceed associated with a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] ceed       Variable to store Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
+  *ceed = op->ceed;
+  return 0;
+}
+
+/**
+  @brief Get the number of elements associated with a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] numelem    Variable to store number of elements
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
+  if (op->composite)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, 1, "Not defined for composite operator");
+  // LCOV_EXCL_STOP
+
+  *numelem = op->numelements;
+  return 0;
+}
+
+/**
+  @brief Get the number of quadrature points associated with a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] numqpts    Variable to store vector number of quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
+  if (op->composite)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, 1, "Not defined for composite operator");
+  // LCOV_EXCL_STOP
+
+  *numqpts = op->numqpoints;
+  return 0;
+}
+
+/**
+  @brief Get the number of arguments associated with a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] numargs    Variable to store vector number of arguments
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
+  if (op->composite)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, 1, "Not defined for composite operators");
+  // LCOV_EXCL_STOP
+
+  *numargs = op->nfields;
+  return 0;
+}
+
+/**
+  @brief Get the setup status of a CeedOperator
+
+  @param op             CeedOperator
+  @param[out] setupdone Variable to store setup status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorGetSetupStatus(CeedOperator op, bool *setupdone) {
+  *setupdone = op->setupdone;
+  return 0;
+}
+
+/**
+  @brief Get the QFunction associated with a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] qf         Variable to store QFunction
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
+  if (op->composite)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, 1, "Not defined for composite operator");
+  // LCOV_EXCL_STOP
+
+  *qf = op->qf;
+  return 0;
+}
+
+/**
+  @brief Get the number of suboperators associated with a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] numsub     Variable to store number of suboperators
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorGetNumSub(CeedOperator op, CeedInt *numsub) {
+  if (!op->composite)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, 1, "Not a composite operator");
+  // LCOV_EXCL_STOP
+
+  *numsub = op->numsub;
+  return 0;
+}
+
+/**
+  @brief Get the list of suboperators associated with a CeedOperator
+
+  @param op                CeedOperator
+  @param[out] suboperators Variable to store list of suboperators
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorGetSubList(CeedOperator op, CeedOperator **suboperators) {
+  if (!op->composite)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, 1, "Not a composite operator");
+  // LCOV_EXCL_STOP
+
+  *suboperators = op->suboperators;
+  return 0;
+}
+
+/**
+  @brief Get the backend data of a CeedOperator
+
+  @param op              CeedOperator
+  @param[out] data       Variable to store data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorGetData(CeedOperator op, void **data) {
+  *data = op->data;
+  return 0;
+}
+
+/**
+  @brief Set the backend data of a CeedOperator
+
+  @param[out] op         CeedOperator
+  @param data            Data to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorSetData(CeedOperator op, void **data) {
+  op->data = *data;
+  return 0;
+}
+
+/**
+  @brief Set the setup flag of a CeedOperator to True
+
+  @param op              CeedOperator
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorSetSetupDone(CeedOperator op) {
+  op->setupdone = 1;
+  return 0;
+}
+
+/**
+  @brief Get the CeedOperatorFields of a CeedOperator
+
+  @param op                 CeedOperator
+  @param[out] inputfields   Variable to store inputfields
+  @param[out] outputfields  Variable to store outputfields
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorGetFields(CeedOperator op, CeedOperatorField **inputfields,
+                          CeedOperatorField **outputfields) {
+  if (op->composite)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, 1, "Not defined for composite operator");
+  // LCOV_EXCL_STOP
+
+  if (inputfields) *inputfields = op->inputfields;
+  if (outputfields) *outputfields = op->outputfields;
+  return 0;
+}
+
+/**
+  @brief Get the CeedElemRestriction of a CeedOperatorField
+
+  @param opfield         CeedOperatorField
+  @param[out] rstr       Variable to store CeedElemRestriction
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorFieldGetElemRestriction(CeedOperatorField opfield,
+                                        CeedElemRestriction *rstr) {
+  *rstr = opfield->Erestrict;
+  return 0;
+}
+
+/**
+  @brief Get the CeedBasis of a CeedOperatorField
+
+  @param opfield         CeedOperatorField
+  @param[out] basis      Variable to store CeedBasis
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorFieldGetBasis(CeedOperatorField opfield, CeedBasis *basis) {
+  *basis = opfield->basis;
+  return 0;
+}
+
+/**
+  @brief Get the CeedVector of a CeedOperatorField
+
+  @param opfield         CeedOperatorField
+  @param[out] vec        Variable to store CeedVector
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorFieldGetVector(CeedOperatorField opfield, CeedVector *vec) {
+  *vec = opfield->vec;
+  return 0;
+}
+
+/// @}
+
+/// ----------------------------------------------------------------------------
+/// CeedOperator Public API
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedOperatorUser
+/// @{
 
 /**
   @brief Create a CeedOperator and associate a CeedQFunction. A CeedBasis and
@@ -41,7 +504,7 @@
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
  */
 int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
                        CeedQFunction dqfT, CeedOperator *op) {
@@ -93,7 +556,7 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
  */
 int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   int ierr;
@@ -143,7 +606,7 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                          CeedElemRestriction r, CeedBasis b, CeedVector v) {
@@ -239,7 +702,7 @@ found:
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
  */
 int CeedCompositeOperatorAddSub(CeedOperator compositeop, CeedOperator subop) {
   if (!compositeop->composite)
@@ -256,102 +719,6 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop, CeedOperator subop) {
   compositeop->suboperators[compositeop->numsub] = subop;
   subop->refcount++;
   compositeop->numsub++;
-  return 0;
-}
-
-/**
-  @brief Duplicate a CeedOperator with a reference Ceed to fallback for advanced
-           CeedOperator functionality
-
-  @param op           CeedOperator to create fallback for
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Developer
-**/
-int CeedOperatorCreateFallback(CeedOperator op) {
-  int ierr;
-
-  // Fallback Ceed
-  const char *resource, *fallbackresource;
-  ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
-  ierr = CeedGetOperatorFallbackResource(op->ceed, &fallbackresource);
-  CeedChk(ierr);
-  if (!strcmp(resource, fallbackresource))
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Backend %s cannot create an operator"
-                     "fallback to resource %s", resource, fallbackresource);
-  // LCOV_EXCL_STOP
-
-  // Fallback Ceed
-  Ceed ceedref;
-  if (!op->ceed->opfallbackceed) {
-    ierr = CeedInit(fallbackresource, &ceedref); CeedChk(ierr);
-    ceedref->opfallbackparent = op->ceed;
-    op->ceed->opfallbackceed = ceedref;
-  }
-  ceedref = op->ceed->opfallbackceed;
-
-  // Clone Op
-  CeedOperator opref;
-  ierr = CeedCalloc(1, &opref); CeedChk(ierr);
-  memcpy(opref, op, sizeof(*opref)); CeedChk(ierr);
-  opref->data = NULL;
-  opref->setupdone = 0;
-  opref->ceed = ceedref;
-  ierr = ceedref->OperatorCreate(opref); CeedChk(ierr);
-  op->opfallback = opref;
-
-  // Clone QF
-  CeedQFunction qfref;
-  ierr = CeedCalloc(1, &qfref); CeedChk(ierr);
-  memcpy(qfref, (op->qf), sizeof(*qfref)); CeedChk(ierr);
-  qfref->data = NULL;
-  qfref->ceed = ceedref;
-  ierr = ceedref->QFunctionCreate(qfref); CeedChk(ierr);
-  opref->qf = qfref;
-  op->qffallback = qfref;
-
-  return 0;
-}
-
-/**
-  @brief Check if a CeedOperator is ready to be used.
-
-  @param[in] ceed Ceed object for error handling
-  @param[in] op   CeedOperator to check
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Basic
-**/
-static int CeedOperatorCheckReady(Ceed ceed, CeedOperator op) {
-  CeedQFunction qf = op->qf;
-
-  if (op->composite) {
-    if (!op->numsub)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1, "No suboperators set");
-    // LCOV_EXCL_STOP
-  } else {
-    if (op->nfields == 0)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1, "No operator fields set");
-    // LCOV_EXCL_STOP
-    if (op->nfields < qf->numinputfields + qf->numoutputfields)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1, "Not all operator fields set");
-    // LCOV_EXCL_STOP
-    if (!op->hasrestriction)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1,"At least one restriction required");
-    // LCOV_EXCL_STOP
-    if (op->numqpoints == 0)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1,"At least one non-collocated basis required");
-    // LCOV_EXCL_STOP
-  }
-
   return 0;
 }
 
@@ -380,7 +747,7 @@ static int CeedOperatorCheckReady(Ceed ceed, CeedOperator op) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
                                         CeedElemRestriction *rstr,
@@ -418,7 +785,7 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
                                        CeedRequest *request) {
@@ -463,7 +830,7 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Advanced
+  @ref Backend
 **/
 int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdminv,
                                         CeedRequest *request) {
@@ -487,6 +854,34 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdminv,
   return 0;
 }
 
+/**
+  @brief View a CeedOperator
+
+  @param[in] op     CeedOperator to view
+  @param[in] stream Stream to write; typically stdout/stderr or a file
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorView(CeedOperator op, FILE *stream) {
+  int ierr;
+
+  if (op->composite) {
+    fprintf(stream, "Composite CeedOperator\n");
+
+    for (CeedInt i=0; i<op->numsub; i++) {
+      fprintf(stream, "  SubOperator [%d]:\n", i);
+      ierr = CeedOperatorSingleView(op->suboperators[i], 1, stream);
+      CeedChk(ierr);
+    }
+  } else {
+    fprintf(stream, "CeedOperator\n");
+    ierr = CeedOperatorSingleView(op, 0, stream); CeedChk(ierr);
+  }
+
+  return 0;
+}
 
 /**
   @brief Apply CeedOperator to a vector
@@ -506,7 +901,7 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdminv,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out,
                       CeedRequest *request) {
@@ -582,7 +977,7 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out,
                          CeedRequest *request) {
@@ -614,390 +1009,13 @@ int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out,
 }
 
 /**
-  @brief Get the Ceed associated with a CeedOperator
-
-  @param op              CeedOperator
-  @param[out] ceed       Variable to store Ceed
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
-  *ceed = op->ceed;
-  return 0;
-}
-
-/**
-  @brief Get the number of elements associated with a CeedOperator
-
-  @param op              CeedOperator
-  @param[out] numelem    Variable to store number of elements
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
-  if (op->composite)
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not defined for composite operator");
-  // LCOV_EXCL_STOP
-
-  *numelem = op->numelements;
-  return 0;
-}
-
-/**
-  @brief Get the number of quadrature points associated with a CeedOperator
-
-  @param op              CeedOperator
-  @param[out] numqpts    Variable to store vector number of quadrature points
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
-  if (op->composite)
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not defined for composite operator");
-  // LCOV_EXCL_STOP
-
-  *numqpts = op->numqpoints;
-  return 0;
-}
-
-/**
-  @brief Get the number of arguments associated with a CeedOperator
-
-  @param op              CeedOperator
-  @param[out] numargs    Variable to store vector number of arguments
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
-  if (op->composite)
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not defined for composite operators");
-  // LCOV_EXCL_STOP
-
-  *numargs = op->nfields;
-  return 0;
-}
-
-/**
-  @brief Get the setup status of a CeedOperator
-
-  @param op             CeedOperator
-  @param[out] setupdone Variable to store setup status
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorGetSetupStatus(CeedOperator op, bool *setupdone) {
-  *setupdone = op->setupdone;
-  return 0;
-}
-
-/**
-  @brief Get the QFunction associated with a CeedOperator
-
-  @param op              CeedOperator
-  @param[out] qf         Variable to store QFunction
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
-  if (op->composite)
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not defined for composite operator");
-  // LCOV_EXCL_STOP
-
-  *qf = op->qf;
-  return 0;
-}
-
-/**
-  @brief Get the number of suboperators associated with a CeedOperator
-
-  @param op              CeedOperator
-  @param[out] numsub     Variable to store number of suboperators
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorGetNumSub(CeedOperator op, CeedInt *numsub) {
-  if (!op->composite)
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not a composite operator");
-  // LCOV_EXCL_STOP
-
-  *numsub = op->numsub;
-  return 0;
-}
-
-/**
-  @brief Get the list of suboperators associated with a CeedOperator
-
-  @param op                CeedOperator
-  @param[out] suboperators Variable to store list of suboperators
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorGetSubList(CeedOperator op, CeedOperator **suboperators) {
-  if (!op->composite)
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not a composite operator");
-  // LCOV_EXCL_STOP
-
-  *suboperators = op->suboperators;
-  return 0;
-}
-
-/**
-  @brief Set the backend data of a CeedOperator
-
-  @param[out] op         CeedOperator
-  @param data            Data to set
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorSetData(CeedOperator op, void **data) {
-  op->data = *data;
-  return 0;
-}
-
-/**
-  @brief Get the backend data of a CeedOperator
-
-  @param op              CeedOperator
-  @param[out] data       Variable to store data
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorGetData(CeedOperator op, void **data) {
-  *data = op->data;
-  return 0;
-}
-
-/**
-  @brief Set the setup flag of a CeedOperator to True
-
-  @param op              CeedOperator
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorSetSetupDone(CeedOperator op) {
-  op->setupdone = 1;
-  return 0;
-}
-
-/**
-  @brief View a field of a CeedOperator
-
-  @param[in] field       Operator field to view
-  @param[in] fieldnumber Number of field being viewed
-  @param[in] stream      Stream to view to, e.g., stdout
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Utility
-**/
-static int CeedOperatorFieldView(CeedOperatorField field,
-                                 CeedQFunctionField qffield,
-                                 CeedInt fieldnumber, bool sub, bool in,
-                                 FILE *stream) {
-  const char *pre = sub ? "  " : "";
-  const char *inout = in ? "Input" : "Output";
-
-  fprintf(stream, "%s    %s Field [%d]:\n"
-          "%s      Name: \"%s\"\n",
-          pre, inout, fieldnumber, pre, qffield->fieldname);
-
-  if (field->basis == CEED_BASIS_COLLOCATED)
-    fprintf(stream, "%s      Collocated basis\n", pre);
-
-  if (field->vec == CEED_VECTOR_ACTIVE)
-    fprintf(stream, "%s      Active vector\n", pre);
-  else if (field->vec == CEED_VECTOR_NONE)
-    fprintf(stream, "%s      No vector\n", pre);
-
-  return 0;
-}
-
-/**
-  @brief View a single CeedOperator
-
-  @param[in] op     CeedOperator to view
-  @param[in] sub    Boolean flag for sub-operator
-  @param[in] stream Stream to write; typically stdout/stderr or a file
-
-  @return Error code: 0 - success, otherwise - failure
-
-  @ref Utility
-**/
-int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
-  int ierr;
-  const char *pre = sub ? "  " : "";
-
-  CeedInt totalfields;
-  ierr = CeedOperatorGetNumArgs(op, &totalfields); CeedChk(ierr);
-
-  fprintf(stream, "%s  %d Field%s\n", pre, totalfields, totalfields>1 ? "s" : "");
-
-  fprintf(stream, "%s  %d Input Field%s:\n", pre, op->qf->numinputfields,
-          op->qf->numinputfields>1 ? "s" : "");
-  for (CeedInt i=0; i<op->qf->numinputfields; i++) {
-    ierr = CeedOperatorFieldView(op->inputfields[i], op->qf->inputfields[i],
-                                 i, sub, 1, stream); CeedChk(ierr);
-  }
-
-  fprintf(stream, "%s  %d Output Field%s:\n", pre, op->qf->numoutputfields,
-          op->qf->numoutputfields>1 ? "s" : "");
-  for (CeedInt i=0; i<op->qf->numoutputfields; i++) {
-    ierr = CeedOperatorFieldView(op->outputfields[i], op->qf->inputfields[i],
-                                 i, sub, 0, stream); CeedChk(ierr);
-  }
-
-  return 0;
-}
-
-/**
-  @brief View a CeedOperator
-
-  @param[in] op     CeedOperator to view
-  @param[in] stream Stream to write; typically stdout/stderr or a file
-
-  @return Error code: 0 - success, otherwise - failure
-
-  @ref Utility
-**/
-int CeedOperatorView(CeedOperator op, FILE *stream) {
-  int ierr;
-
-  if (op->composite) {
-    fprintf(stream, "Composite CeedOperator\n");
-
-    for (CeedInt i=0; i<op->numsub; i++) {
-      fprintf(stream, "  SubOperator [%d]:\n", i);
-      ierr = CeedOperatorSingleView(op->suboperators[i], 1, stream);
-      CeedChk(ierr);
-    }
-  } else {
-    fprintf(stream, "CeedOperator\n");
-    ierr = CeedOperatorSingleView(op, 0, stream); CeedChk(ierr);
-  }
-
-  return 0;
-}
-
-/**
-  @brief Get the CeedOperatorFields of a CeedOperator
-
-  @param op                 CeedOperator
-  @param[out] inputfields   Variable to store inputfields
-  @param[out] outputfields  Variable to store outputfields
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorGetFields(CeedOperator op, CeedOperatorField **inputfields,
-                          CeedOperatorField **outputfields) {
-  if (op->composite)
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not defined for composite operator");
-  // LCOV_EXCL_STOP
-
-  if (inputfields) *inputfields = op->inputfields;
-  if (outputfields) *outputfields = op->outputfields;
-  return 0;
-}
-
-/**
-  @brief Get the CeedElemRestriction of a CeedOperatorField
-
-  @param opfield         CeedOperatorField
-  @param[out] rstr       Variable to store CeedElemRestriction
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorFieldGetElemRestriction(CeedOperatorField opfield,
-                                        CeedElemRestriction *rstr) {
-  *rstr = opfield->Erestrict;
-  return 0;
-}
-
-/**
-  @brief Get the CeedBasis of a CeedOperatorField
-
-  @param opfield         CeedOperatorField
-  @param[out] basis      Variable to store CeedBasis
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorFieldGetBasis(CeedOperatorField opfield, CeedBasis *basis) {
-  *basis = opfield->basis;
-  return 0;
-}
-
-/**
-  @brief Get the CeedVector of a CeedOperatorField
-
-  @param opfield         CeedOperatorField
-  @param[out] vec        Variable to store CeedVector
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedOperatorFieldGetVector(CeedOperatorField opfield, CeedVector *vec) {
-  *vec = opfield->vec;
-  return 0;
-}
-
-/**
   @brief Destroy a CeedOperator
 
   @param op CeedOperator to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedOperatorDestroy(CeedOperator *op) {
   int ierr;

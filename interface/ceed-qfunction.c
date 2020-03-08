@@ -19,9 +19,20 @@
 #include <string.h>
 #include <limits.h>
 
+/// @file
+/// Implementation of public CeedQFunction interfaces
+
 /// @cond DOXYGEN_SKIP
 static struct CeedQFunction_private ceed_qfunction_none;
 /// @endcond
+
+/// @addtogroup CeedQFunctionUser
+/// @{
+
+// Indicate that no QFunction is provided by the user
+const CeedQFunction CEED_QFUNCTION_NONE = &ceed_qfunction_none;
+
+/// @}
 
 /// @cond DOXYGEN_SKIP
 static struct {
@@ -33,72 +44,6 @@ static struct {
 } qfunctions[1024];
 static size_t num_qfunctions;
 /// @endcond
-
-/// @file
-/// Implementation of public CeedQFunction interfaces
-///
-/// @addtogroup CeedQFunction
-/// @{
-
-/**
-  @brief Create a CeedQFunction for evaluating interior (volumetric) terms.
-
-  @param ceed       A Ceed object where the CeedQFunction will be created
-  @param vlength    Vector length. Caller must ensure that number of quadrature
-                      points is a multiple of vlength.
-  @param f          Function pointer to evaluate action at quadrature points.
-                      See \ref CeedQFunctionUser.
-  @param source     Absolute path to source of QFunction,
-                      "\abs_path\file.h:function_name"
-  @param[out] qf    Address of the variable where the newly created
-                      CeedQFunction will be stored
-
-  @return An error code: 0 - success, otherwise - failure
-
-  See \ref CeedQFunctionUser for details on the call-back function @a f's
-    arguments.
-
-  @ref Basic
-**/
-int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedQFunctionUser f,
-                                const char *source, CeedQFunction *qf) {
-  int ierr;
-  char *source_copy;
-
-  if (!f) return CeedError(ceed, 1, "Must pass valid function f");
-  if (!ceed->QFunctionCreate) {
-    Ceed delegate;
-    ierr = CeedGetObjectDelegate(ceed, &delegate, "QFunction"); CeedChk(ierr);
-
-    if (!delegate)
-      // LCOV_EXCL_START
-      return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
-    // LCOV_EXCL_STOP
-
-    ierr = CeedQFunctionCreateInterior(delegate, vlength, f, source, qf);
-    CeedChk(ierr);
-    return 0;
-  }
-
-  ierr = CeedCalloc(1, qf); CeedChk(ierr);
-  (*qf)->ceed = ceed;
-  ceed->refcount++;
-  (*qf)->refcount = 1;
-  (*qf)->vlength = vlength;
-  (*qf)->identity = 0;
-  (*qf)->function = f;
-  (*qf)->sourcepath = NULL;
-  if (source) {
-    size_t slen = strlen(source) + 1;
-    ierr = CeedMalloc(slen, &source_copy); CeedChk(ierr);
-    memcpy(source_copy, source, slen);
-    (*qf)->sourcepath = source_copy;
-  }
-  ierr = CeedCalloc(16, &(*qf)->inputfields); CeedChk(ierr);
-  ierr = CeedCalloc(16, &(*qf)->outputfields); CeedChk(ierr);
-  ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
-  return 0;
-}
 
 /**
   @brief Register a gallery QFunction
@@ -115,7 +60,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedQFunctionUser f,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Advanced
+  @ref Developer
 **/
 int CeedQFunctionRegister(const char *name, const char *source,
                           CeedInt vlength, CeedQFunctionUser f,
@@ -137,6 +82,410 @@ int CeedQFunctionRegister(const char *name, const char *source,
 }
 
 /**
+  @brief Set a CeedQFunction field, used by CeedQFunctionAddInput/Output
+
+  @param f          CeedQFunctionField
+  @param fieldname  Name of QFunction field
+  @param size       Size of QFunction field, (ncomp * dim) for CEED_EVAL_GRAD or
+                      (ncomp * 1) for CEED_EVAL_NONE, CEED_EVAL_INTERP, and CEED_EVAL_WEIGHT
+  @param emode      \ref CEED_EVAL_NONE to use values directly,
+                      \ref CEED_EVAL_INTERP to use interpolated values,
+                      \ref CEED_EVAL_GRAD to use gradients,
+                      \ref CEED_EVAL_WEIGHT to use quadrature weights.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
+                                 CeedInt size, CeedEvalMode emode) {
+  size_t len = strlen(fieldname);
+  char *tmp;
+  int ierr;
+  ierr = CeedCalloc(1,f); CeedChk(ierr);
+
+  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
+  memcpy(tmp, fieldname, len+1);
+  (*f)->fieldname = tmp;
+  (*f)->size = size;
+  (*f)->emode = emode;
+  return 0;
+}
+
+/**
+  @brief View a field of a CeedQFunction
+
+  @param[in] field        QFunction field to view
+  @param[in] fieldnumber  Number of field being viewed
+  @param[in] stream       Stream to view to, e.g., stdout
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt fieldnumber,
+                                  bool in, FILE *stream) {
+  const char *inout = in ? "Input" : "Output";
+  fprintf(stream, "    %s Field [%d]:\n"
+          "      Name: \"%s\"\n"
+          "      Size: %d\n"
+          "      EvalMode: \"%s\"\n",
+          inout, fieldnumber, field->fieldname, field->size,
+          CeedEvalModes[field->emode]);
+
+  return 0;
+}
+
+/// @}
+
+/// ----------------------------------------------------------------------------
+/// CeedQFunction Backend API
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedQFunctionBackend
+/// @{
+
+/**
+  @brief Get the Ceed associated with a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] ceed       Variable to store Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
+  *ceed = qf->ceed;
+  return 0;
+}
+
+/**
+  @brief Get the vector length of a CeedQFunction
+
+  @param qf            CeedQFunction
+  @param[out] vlength  Variable to store vector length
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionGetVectorLength(CeedQFunction qf, CeedInt *vlength) {
+  *vlength = qf->vlength;
+  return 0;
+}
+
+/**
+  @brief Get the number of inputs and outputs to a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] numinput   Variable to store number of input fields
+  @param[out] numoutput  Variable to store number of output fields
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
+                            CeedInt *numoutput) {
+  if (numinput) *numinput = qf->numinputfields;
+  if (numoutput) *numoutput = qf->numoutputfields;
+  return 0;
+}
+
+/**
+  @brief Get the source path string for a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] source     Variable to store source path string
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source) {
+  *source = (char *) qf->sourcepath;
+  return 0;
+}
+
+/**
+  @brief Get the User Function for a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] f          Variable to store user function
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f) {
+  *f = qf->function;
+  return 0;
+}
+
+/**
+  @brief Get global context size for a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] ctxsize    Variable to store size of context data values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize) {
+  if (qf->fortranstatus) {
+    fContext *fctx = qf->ctx;
+    *ctxsize = fctx->innerctxsize;
+  } else {
+    *ctxsize = qf->ctxsize;
+  }
+  return 0;
+}
+
+/**
+  @brief Get global context for a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] ctx        Variable to store context data values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionGetContext(CeedQFunction qf, void **ctx) {
+  *ctx = qf->ctx;
+  return 0;
+}
+
+/**
+  @brief Get true user context for a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] ctx        Variable to store context data values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionGetInnerContext(CeedQFunction qf, void **ctx) {
+  if (qf->fortranstatus) {
+    fContext *fctx = qf->ctx;
+    *ctx = fctx->innerctx;
+  } else {
+    *ctx = qf->ctx;
+  }
+
+
+  return 0;
+}
+
+/**
+  @brief Determine if Fortran interface was used
+
+  @param qf                  CeedQFunction
+  @param[out] fortranstatus  Variable to store Fortran status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionGetFortranStatus(CeedQFunction qf, bool *fortranstatus) {
+  *fortranstatus = qf->fortranstatus;
+  return 0;
+}
+
+/**
+  @brief Determine if QFunction is identity
+
+  @param qf               CeedQFunction
+  @param[out] identity    Variable to store identity status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionGetIdentityStatus(CeedQFunction qf, bool *identity) {
+  *identity = qf->identity;
+  return 0;
+}
+
+/**
+  @brief Get backend data of a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] data       Variable to store data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionGetData(CeedQFunction qf, void **data) {
+  *data = qf->data;
+  return 0;
+}
+
+/**
+  @brief Set backend data of a CeedQFunction
+
+  @param[out] qf         CeedQFunction
+  @param data            Data to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionSetData(CeedQFunction qf, void **data) {
+  qf->data = *data;
+  return 0;
+}
+
+/**
+  @brief Get the CeedQFunctionFields of a CeedQFunction
+
+  @param qf                 CeedQFunction
+  @param[out] inputfields   Variable to store inputfields
+  @param[out] outputfields  Variable to store outputfields
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionGetFields(CeedQFunction qf, CeedQFunctionField **inputfields,
+                           CeedQFunctionField **outputfields) {
+  if (inputfields)
+    *inputfields = qf->inputfields;
+  if (outputfields)
+    *outputfields = qf->outputfields;
+  return 0;
+}
+
+/**
+  @brief Get the name of a CeedQFunctionField
+
+  @param qffield         CeedQFunctionField
+  @param[out] fieldname  Variable to store the field name
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionFieldGetName(CeedQFunctionField qffield, char **fieldname) {
+  *fieldname = (char *)qffield->fieldname;
+  return 0;
+}
+
+/**
+  @brief Get the number of components of a CeedQFunctionField
+
+  @param qffield    CeedQFunctionField
+  @param[out] size  Variable to store the size of the field
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionFieldGetSize(CeedQFunctionField qffield, CeedInt *size) {
+  *size = qffield->size;
+  return 0;
+}
+
+/**
+  @brief Get the CeedEvalMode of a CeedQFunctionField
+
+  @param qffield         CeedQFunctionField
+  @param[out] emode      Variable to store the field evaluation mode
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
+                                  CeedEvalMode *emode) {
+  *emode = qffield->emode;
+  return 0;
+}
+
+/// @}
+
+/// ----------------------------------------------------------------------------
+/// CeedQFunction Public API
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedQFunctionUser
+/// @{
+
+/**
+  @brief Create a CeedQFunction for evaluating interior (volumetric) terms.
+
+  @param ceed       A Ceed object where the CeedQFunction will be created
+  @param vlength    Vector length. Caller must ensure that number of quadrature
+                      points is a multiple of vlength.
+  @param f          Function pointer to evaluate action at quadrature points.
+                      See \ref CeedQFunctionUser.
+  @param source     Absolute path to source of QFunction,
+                      "\abs_path\file.h:function_name"
+  @param[out] qf    Address of the variable where the newly created
+                      CeedQFunction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  See \ref CeedQFunctionUser for details on the call-back function @a f's
+    arguments.
+
+  @ref User
+**/
+int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedQFunctionUser f,
+                                const char *source, CeedQFunction *qf) {
+  int ierr;
+  char *source_copy;
+
+  if (!ceed->QFunctionCreate) {
+    Ceed delegate;
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "QFunction"); CeedChk(ierr);
+
+    if (!delegate)
+      // LCOV_EXCL_START
+      return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
+    // LCOV_EXCL_STOP
+
+    ierr = CeedQFunctionCreateInterior(delegate, vlength, f, source, qf);
+    CeedChk(ierr);
+    return 0;
+  }
+
+  ierr = CeedCalloc(1, qf); CeedChk(ierr);
+  (*qf)->ceed = ceed;
+  ceed->refcount++;
+  (*qf)->refcount = 1;
+  (*qf)->vlength = vlength;
+  (*qf)->identity = 0;
+  (*qf)->function = f;
+  size_t slen = strlen(source) + 1;
+  ierr = CeedMalloc(slen, &source_copy); CeedChk(ierr);
+  memcpy(source_copy, source, slen);
+  (*qf)->sourcepath = source_copy;
+  ierr = CeedCalloc(16, &(*qf)->inputfields); CeedChk(ierr);
+  ierr = CeedCalloc(16, &(*qf)->outputfields); CeedChk(ierr);
+  ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
+  return 0;
+}
+
+/**
   @brief Create a CeedQFunction for evaluating interior (volumetric) terms by name.
 
   @param ceed       A Ceed object where the CeedQFunction will be created
@@ -146,7 +495,7 @@ int CeedQFunctionRegister(const char *name, const char *source,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
                                       CeedQFunction *qf) {
@@ -206,7 +555,7 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode inmode,
                                 CeedEvalMode outmode, CeedQFunction *qf) {
@@ -236,37 +585,6 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode inmode,
 }
 
 /**
-  @brief Set a CeedQFunction field, used by CeedQFunctionAddInput/Output
-
-  @param f          CeedQFunctionField
-  @param fieldname  Name of QFunction field
-  @param size       Size of QFunction field, (ncomp * dim) for CEED_EVAL_GRAD or
-                      (ncomp * 1) for CEED_EVAL_NONE, CEED_EVAL_INTERP, and CEED_EVAL_WEIGHT
-  @param emode      \ref CEED_EVAL_NONE to use values directly,
-                      \ref CEED_EVAL_INTERP to use interpolated values,
-                      \ref CEED_EVAL_GRAD to use gradients,
-                      \ref CEED_EVAL_WEIGHT to use quadrature weights.
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Developer
-**/
-static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
-                                 CeedInt size, CeedEvalMode emode) {
-  size_t len = strlen(fieldname);
-  char *tmp;
-  int ierr;
-  ierr = CeedCalloc(1,f); CeedChk(ierr);
-
-  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
-  memcpy(tmp, fieldname, len+1);
-  (*f)->fieldname = tmp;
-  (*f)->size = size;
-  (*f)->emode = emode;
-  return 0;
-}
-
-/**
   @brief Add a CeedQFunction input
 
   @param qf         CeedQFunction
@@ -279,7 +597,7 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname, CeedInt size,
                           CeedEvalMode emode) {
@@ -303,7 +621,7 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname, CeedInt size,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                            CeedInt size, CeedEvalMode emode) {
@@ -320,213 +638,6 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
 }
 
 /**
-  @brief Get the Ceed associated with a CeedQFunction
-
-  @param qf              CeedQFunction
-  @param[out] ceed       Variable to store Ceed
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
-  *ceed = qf->ceed;
-  return 0;
-}
-
-/**
-  @brief Get the vector length of a CeedQFunction
-
-  @param qf            CeedQFunction
-  @param[out] vlength  Variable to store vector length
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionGetVectorLength(CeedQFunction qf, CeedInt *vlength) {
-  *vlength = qf->vlength;
-  return 0;
-}
-
-/**
-  @brief Get the number of inputs and outputs to a CeedQFunction
-
-  @param qf              CeedQFunction
-  @param[out] numinput   Variable to store number of input fields
-  @param[out] numoutput  Variable to store number of output fields
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
-                            CeedInt *numoutput) {
-  if (numinput) *numinput = qf->numinputfields;
-  if (numoutput) *numoutput = qf->numoutputfields;
-  return 0;
-}
-
-/**
-  @brief Get the source path string for a CeedQFunction
-
-  @param qf              CeedQFunction
-  @param[out] source     Variable to store source path string
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source) {
-  *source = (char *) qf->sourcepath;
-  return 0;
-}
-
-/**
-  @brief Get the User Function for a CeedQFunction
-
-  @param qf              CeedQFunction
-  @param[out] f          Variable to store user function
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f) {
-  *f = qf->function;
-  return 0;
-}
-
-/**
-  @brief Get global context size for a CeedQFunction
-
-  @param qf              CeedQFunction
-  @param[out] ctxsize    Variable to store size of context data values
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize) {
-  if (qf->fortranstatus) {
-    fContext *fctx = qf->ctx;
-    *ctxsize = fctx->innerctxsize;
-  } else {
-    *ctxsize = qf->ctxsize;
-  }
-  return 0;
-}
-
-/**
-  @brief Get global context for a CeedQFunction
-
-  @param qf              CeedQFunction
-  @param[out] ctx        Variable to store context data values
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionGetContext(CeedQFunction qf, void **ctx) {
-  *ctx = qf->ctx;
-  return 0;
-}
-
-/**
-  @brief Determine if Fortran interface was used
-
-  @param qf                  CeedQFunction
-  @param[out] fortranstatus  Variable to store Fortran status
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionGetFortranStatus(CeedQFunction qf, bool *fortranstatus) {
-  *fortranstatus = qf->fortranstatus;
-  return 0;
-}
-
-/**
-  @brief Determine if QFunction is identity
-
-  @param qf               CeedQFunction
-  @param[out] identity    Variable to store identity status
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionGetIdentityStatus(CeedQFunction qf, bool *identity) {
-  *identity = qf->identity;
-  return 0;
-}
-
-/**
-  @brief Get true user context for a CeedQFunction
-
-  @param qf              CeedQFunction
-  @param[out] ctx        Variable to store context data values
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionGetInnerContext(CeedQFunction qf, void **ctx) {
-  if (qf->fortranstatus) {
-    fContext *fctx = qf->ctx;
-    *ctx = fctx->innerctx;
-  } else {
-    *ctx = qf->ctx;
-  }
-
-
-  return 0;
-}
-
-/**
-  @brief Get backend data of a CeedQFunction
-
-  @param qf              CeedQFunction
-  @param[out] data       Variable to store data
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionGetData(CeedQFunction qf, void **data) {
-  *data = qf->data;
-  return 0;
-}
-
-/**
-  @brief Set backend data of a CeedQFunction
-
-  @param[out] qf         CeedQFunction
-  @param data            Data to set
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionSetData(CeedQFunction qf, void **data) {
-  qf->data = *data;
-  return 0;
-}
-
-/**
   @brief Set global context for a CeedQFunction
 
   @param qf       CeedQFunction
@@ -535,35 +646,11 @@ int CeedQFunctionSetData(CeedQFunction qf, void **data) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
   qf->ctx = ctx;
   qf->ctxsize = ctxsize;
-  return 0;
-}
-
-/**
-  @brief View a field of a CeedQFunction
-
-  @param[in] field        QFunction field to view
-  @param[in] fieldnumber  Number of field being viewed
-  @param[in] stream       Stream to view to, e.g., stdout
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Utility
-**/
-static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt fieldnumber,
-                                  bool in, FILE *stream) {
-  const char *inout = in ? "Input" : "Output";
-  fprintf(stream, "    %s Field [%d]:\n"
-          "      Name: \"%s\"\n"
-          "      Size: %d\n"
-          "      EvalMode: \"%s\"\n",
-          inout, fieldnumber, field->fieldname, field->size,
-          CeedEvalModes[field->emode]);
-
   return 0;
 }
 
@@ -575,7 +662,7 @@ static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt fieldnumber,
 
   @return Error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref User
 **/
 int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
   int ierr;
@@ -609,7 +696,7 @@ int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Advanced
+  @ref User
 **/
 int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
                        CeedVector *u, CeedVector *v) {
@@ -628,83 +715,13 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
 }
 
 /**
-  @brief Get the CeedQFunctionFields of a CeedQFunction
-
-  @param qf                 CeedQFunction
-  @param[out] inputfields   Variable to store inputfields
-  @param[out] outputfields  Variable to store outputfields
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionGetFields(CeedQFunction qf, CeedQFunctionField **inputfields,
-                           CeedQFunctionField **outputfields) {
-  if (inputfields)
-    *inputfields = qf->inputfields;
-  if (outputfields)
-    *outputfields = qf->outputfields;
-  return 0;
-}
-
-/**
-  @brief Get the name of a CeedQFunctionField
-
-  @param qffield         CeedQFunctionField
-  @param[out] fieldname  Variable to store the field name
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionFieldGetName(CeedQFunctionField qffield, char **fieldname) {
-  *fieldname = (char *)qffield->fieldname;
-  return 0;
-}
-
-/**
-  @brief Get the number of components of a CeedQFunctionField
-
-  @param qffield    CeedQFunctionField
-  @param[out] size  Variable to store the size of the field
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionFieldGetSize(CeedQFunctionField qffield, CeedInt *size) {
-  *size = qffield->size;
-  return 0;
-}
-
-/**
-  @brief Get the CeedEvalMode of a CeedQFunctionField
-
-  @param qffield         CeedQFunctionField
-  @param[out] emode      Variable to store the field evaluation mode
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-
-int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
-                                  CeedEvalMode *emode) {
-  *emode = qffield->emode;
-  return 0;
-}
-
-/**
   @brief Destroy a CeedQFunction
 
   @param qf CeedQFunction to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedQFunctionDestroy(CeedQFunction *qf) {
   int ierr;
@@ -738,8 +755,4 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   return 0;
 }
 
-/// @cond DOXYGEN_SKIP
-// Indicate that no QFunction is provided by the user
-const CeedQFunction CEED_QFUNCTION_NONE = &ceed_qfunction_none;
-/// @endcond
 /// @}

@@ -23,6 +23,61 @@
 #include <ceed-backend.h>
 #include <stdbool.h>
 
+/** @defgroup CeedUser Public API for Ceed
+    @ingroup Ceed
+*/
+/** @defgroup CeedBackend Backend API for Ceed
+    @ingroup Ceed
+*/
+/** @defgroup CeedDeveloper Internal library functions for Ceed
+    @ingroup Ceed
+*/
+/** @defgroup CeedVectorUser Public API for CeedVector
+    @ingroup CeedVector
+*/
+/** @defgroup CeedVectorBackend Backend API for CeedVector
+    @ingroup CeedVector
+*/
+/** @defgroup CeedVectorDeveloper Internal library functions for CeedVector
+    @ingroup CeedVector
+*/
+/** @defgroup CeedElemRestrictionUser Public API for CeedElemRestriction
+    @ingroup CeedElemRestriction
+*/
+/** @defgroup CeedElemRestrictionBackend Backend API for CeedElemRestriction
+    @ingroup CeedElemRestriction
+*/
+/** @defgroup CeedElemRestrictionDeveloper Internal library functions for CeedElemRestriction
+    @ingroup CeedElemRestriction
+*/
+/** @defgroup CeedBasisUser Public API for CeedBasis
+    @ingroup CeedBasis
+*/
+/** @defgroup CeedBasisBackend Backend API for CeedBasis
+    @ingroup CeedBasis
+*/
+/** @defgroup CeedBasisDeveloper Internal library functions for CeedBasis
+    @ingroup CeedBasis
+*/
+/** @defgroup CeedQFunctionUser Public API for CeedQFunction
+    @ingroup CeedQFunction
+*/
+/** @defgroup CeedQFunctionBackend Backend API for CeedQFunction
+    @ingroup CeedQFunction
+*/
+/** @defgroup CeedQFunctionDeveloper Internal library functions for CeedQFunction
+    @ingroup CeedQFunction
+*/
+/** @defgroup CeedOperatorUser Public API for CeedOperator
+    @ingroup CeedOperator
+*/
+/** @defgroup CeedOperatorBackend Backend API for CeedOperator
+    @ingroup CeedOperator
+*/
+/** @defgroup CeedOperatorDeveloper Internal library functions for CeedOperator
+    @ingroup CeedOperator
+*/
+
 // Lookup table field for backend functions
 typedef struct {
   const char *fname;
@@ -245,7 +300,7 @@ CEED_INTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
 CEED_INTERN int CeedErrorExit(Ceed, const char *, int, const char *, int,
                               const char *, va_list);
 CEED_INTERN int CeedSetErrorHandler(Ceed ceed,
-                                    int (eh)(Ceed, const char *, int,
+                                    int (*eh)(Ceed, const char *, int,
                                         const char *, int, const char *,
                                         va_list));
 
