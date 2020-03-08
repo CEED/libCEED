@@ -27,10 +27,9 @@ with open(os.path.abspath("include/ceed.h")) as f:
                not line.startswith("  static") and
                "CeedErrorImpl" not in line and
                "const char *, ...);" not in line and
-               "///" not in line and
                not line.startswith("CEED_EXTERN const char *const")]
     lines = [line.replace("CEED_EXTERN", "extern") for line in lines]
-    header = ''.join(lines)
+    header = '\n'.join(lines)
     header = header.split("static inline CeedInt CeedIntPow", 1)[0]
 ffibuilder.cdef(header)
 

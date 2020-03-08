@@ -18,15 +18,112 @@
 #include <ceed-backend.h>
 #include <math.h>
 
+/// @file
+/// Implementation of public CeedVector interfaces
+
 /// @cond DOXYGEN_SKIP
 static struct CeedVector_private ceed_vector_active;
 static struct CeedVector_private ceed_vector_none;
 /// @endcond
 
-/// @file
-/// Implementation of public CeedVector interfaces
-///
-/// @addtogroup CeedVector
+/// @addtogroup CeedVectorUser
+/// @{
+
+/// Indicate that vector will be provided as an explicit argument to
+///   CeedOperatorApply().
+const CeedVector CEED_VECTOR_ACTIVE = &ceed_vector_active;
+
+/// Indicate that no vector is applicable (i.e., for CEED_EVAL_WEIGHTS).
+const CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
+
+/// @}
+
+/// ----------------------------------------------------------------------------
+/// CeedVector Backend API
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedVectorBackend
+/// @{
+
+/**
+  @brief Get the Ceed associated with a CeedVector
+
+  @param vec           CeedVector to retrieve state
+  @param[out] ceed     Variable to store ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
+  *ceed = vec->ceed;
+  return 0;
+}
+
+/**
+  @brief Get the state of a CeedVector
+
+  @param vec           CeedVector to retrieve state
+  @param[out] state    Variable to store state
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorGetState(CeedVector vec, uint64_t *state) {
+  *state = vec->state;
+  return 0;
+}
+
+/**
+  @brief Add a refrence to a CeedVector
+
+  @param[out] vec     CeedVector to increment refrence counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorAddReference(CeedVector vec) {
+  vec->refcount++;
+  return 0;
+}
+
+/**
+  @brief Get the backend data of a CeedVector
+
+  @param vec           CeedVector to retrieve state
+  @param[out] data     Variable to store data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorGetData(CeedVector vec, void **data) {
+  *data = vec->data;
+  return 0;
+}
+
+/**
+  @brief Set the backend data of a CeedVector
+
+  @param[out] vec     CeedVector to retrieve state
+  @param data         Data to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorSetData(CeedVector vec, void **data) {
+  vec->data = *data;
+  return 0;
+}
+
+/// @}
+
+/// ----------------------------------------------------------------------------
+/// CeedVector Public API
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedVectorUser
 /// @{
 
 /**
@@ -39,7 +136,7 @@ static struct CeedVector_private ceed_vector_none;
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   int ierr;
@@ -79,7 +176,7 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedVectorSetArray(CeedVector vec, CeedMemType mtype, CeedCopyMode cmode,
                        CeedScalar *array) {
@@ -112,7 +209,7 @@ int CeedVectorSetArray(CeedVector vec, CeedMemType mtype, CeedCopyMode cmode,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
   int ierr;
@@ -143,7 +240,7 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype) {
   int ierr;
@@ -179,7 +276,7 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
   int ierr;
@@ -214,7 +311,7 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
                            const CeedScalar **array) {
@@ -243,7 +340,7 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
   int ierr;
@@ -272,7 +369,7 @@ int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
   int ierr;
@@ -290,59 +387,6 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
 }
 
 /**
-  @brief View a CeedVector
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Utility
-**/
-int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
-  const CeedScalar *x;
-
-  int ierr = CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &x); CeedChk(ierr);
-
-  char fmt[1024];
-  fprintf(stream, "CeedVector length %ld\n", (long)vec->length);
-  snprintf(fmt, sizeof fmt, "  %s\n", fpfmt ? fpfmt : "%g");
-  for (CeedInt i=0; i<vec->length; i++)
-    fprintf(stream, fmt, x[i]);
-
-  ierr = CeedVectorRestoreArrayRead(vec, &x); CeedChk(ierr);
-
-  return 0;
-}
-
-/**
-  @brief Get the Ceed associated with a CeedVector
-
-  @param vec           CeedVector to retrieve state
-  @param[out] ceed     Variable to store ceed
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
-  *ceed = vec->ceed;
-  return 0;
-}
-
-/**
-  @brief Get the length of a CeedVector
-
-  @param vec           CeedVector to retrieve length
-  @param[out] length   Variable to store length
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
-  *length = vec->length;
-  return 0;
-}
-
-/**
   @brief Get the norm of a CeedVector.
 
   Note: This operation is local to the CeedVector. This function will likely
@@ -355,7 +399,7 @@ int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Advanced
+  @ref User
 **/
 int CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm) {
   int ierr;
@@ -396,61 +440,40 @@ int CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm) {
 }
 
 /**
-  @brief Get the state of a CeedVector
-
-  @param vec           CeedVector to retrieve state
-  @param[out] state    Variable to store state
+  @brief View a CeedVector
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Advanced
+  @ref User
 **/
-int CeedVectorGetState(CeedVector vec, uint64_t *state) {
-  *state = vec->state;
+int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
+  const CeedScalar *x;
+
+  int ierr = CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &x); CeedChk(ierr);
+
+  char fmt[1024];
+  fprintf(stream, "CeedVector length %ld\n", (long)vec->length);
+  snprintf(fmt, sizeof fmt, "  %s\n", fpfmt ? fpfmt : "%g");
+  for (CeedInt i=0; i<vec->length; i++)
+    fprintf(stream, fmt, x[i]);
+
+  ierr = CeedVectorRestoreArrayRead(vec, &x); CeedChk(ierr);
+
   return 0;
 }
 
 /**
-  @brief Get the backend data of a CeedVector
+  @brief Get the length of a CeedVector
 
-  @param vec           CeedVector to retrieve state
-  @param[out] data     Variable to store data
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-int CeedVectorGetData(CeedVector vec, void **data) {
-  *data = vec->data;
-  return 0;
-}
-
-/**
-  @brief Set the backend data of a CeedVector
-
-  @param[out] vec     CeedVector to retrieve state
-  @param data         Data to set
+  @param vec           CeedVector to retrieve length
+  @param[out] length   Variable to store length
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Advanced
+  @ref User
 **/
-int CeedVectorSetData(CeedVector vec, void **data) {
-  vec->data = *data;
-  return 0;
-}
-
-/**
-  @brief Add a refrence to a CeedVector
-
-  @param[out] vec     CeedVector to increment refrence counter
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-int CeedVectorAddReference(CeedVector vec) {
-  vec->refcount++;
+int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
+  *length = vec->length;
   return 0;
 }
 
@@ -461,7 +484,7 @@ int CeedVectorAddReference(CeedVector vec) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Basic
+  @ref User
 **/
 int CeedVectorDestroy(CeedVector *vec) {
   int ierr;
@@ -483,12 +506,4 @@ int CeedVectorDestroy(CeedVector *vec) {
   return 0;
 }
 
-/// @cond DOXYGEN_SKIP
-// Indicate that vector will be provided as an explicit argument to
-//   CeedOperatorApply().
-const CeedVector CEED_VECTOR_ACTIVE = &ceed_vector_active;
-
-// Indicate that no vector is applicable (i.e., for CEED_EVAL_WEIGHTS).
-const CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
-/// @endcond
 /// @}

@@ -12,4 +12,4 @@ If you utilize libCEED please cite
 ```
 
 The BiBTeX file for this reference can be found in the
-[doc/bib/references.bib](doc/bib/references.bib) file.
+`doc/bib/references.bib` file.

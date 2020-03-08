@@ -6,7 +6,6 @@ build/*
 *.so
 *.d
 *.DIR
-doc/html
 ceed.pc
 config.mk
 
@@ -32,8 +31,20 @@ dist
 *cffi.so
 *cffi.dylib
 
+# Documentation
+xml/*
+doc/html
+doc/sphinx/build/
+
 # Editor Misc
 .history
 .vscode
 .ccls-cache
 .vim
+libCEED.cflags
+libCEED.config
+libCEED.creator
+libCEED.creator.*
+libCEED.cxxflags
+libCEED.files
+libCEED.includes

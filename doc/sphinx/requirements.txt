@@ -1,0 +1,8 @@
+breathe
+recommonmark
+sphinx_rtd_theme
+sphinxcontrib-bibtex
+sphinxcontrib-mermaid
+sphinxcontrib-svg2pdfconverter
+sphinx-hoverxref
+sphinx-markdown-tables

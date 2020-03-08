@@ -33,16 +33,15 @@
 ///    These functions are intended general utilities that may be useful to
 ///    libCEED developers and users. These functions can generally be found in
 ///    "ceed.h".
-/// @section Basic User Functions
-///    These functions are intended to be used by general users of the libCEED
-///    interface. These functions can generally be found in "ceed.h".
-/// @section Advanced Backend Developer Functions
-///    These functions are intended to be used by backend developers of the
-///    libCEED interface. These functions can generally be found in
-///    "ceed-backend.h".
-/// @section Developer Frontend Developer Functions
-///    These functions are intended to be used by frontend developers of the
-///    libCEED interface. These functions can generally be found in "ceed-impl.h".
+/// @section User User Functions
+///    These functions are intended to be used by general users of libCEED
+///    and can generally be found in "ceed.h".
+/// @section Backend Backend Developer Functions
+///    These functions are intended to be used by backend developers of
+///    libCEED and can generally be found in "ceed-backend.h".
+/// @section Developer Library Developer Functions
+///    These functions are intended to be used by library developers of
+///    libCEED and can generally be found in "ceed-impl.h".
 
 /**
   CEED_EXTERN is used in this header to denote all publicly visible symbols.
@@ -81,8 +80,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-/// We can discuss ways to avoid forcing these to be compile-time decisions,
-///   but let's leave that for later.
 /// Integer type, used for indexing
 /// @ingroup Ceed
 typedef int32_t CeedInt;
@@ -91,23 +88,23 @@ typedef int32_t CeedInt;
 typedef double CeedScalar;
 
 /// Library context created by CeedInit()
-/// @ingroup Ceed
+/// @ingroup CeedUser
 typedef struct Ceed_private *Ceed;
 /// Non-blocking Ceed interfaces return a CeedRequest.
 /// To perform an operation immediately, pass \ref CEED_REQUEST_IMMEDIATE instead.
-/// @ingroup Ceed
+/// @ingroup CeedUser
 typedef struct CeedRequest_private *CeedRequest;
 /// Handle for vectors over the field \ref CeedScalar
-/// @ingroup CeedVector
+/// @ingroup CeedVectorUser
 typedef struct CeedVector_private *CeedVector;
 /// Handle for object describing restriction to elements
-/// @ingroup CeedElemRestriction
+/// @ingroup CeedElemRestrictionUser
 typedef struct CeedElemRestriction_private *CeedElemRestriction;
 /// Handle for object describing discrete finite element evaluations
-/// @ingroup CeedBasis
+/// @ingroup CeedBasisUser
 typedef struct CeedBasis_private *CeedBasis;
 /// Handle for object describing functions evaluated independently at quadrature points
-/// @ingroup CeedQFunction
+/// @ingroup CeedQFunctionUser
 typedef struct CeedQFunction_private *CeedQFunction;
 /// Handle for object describing FE-type operators acting on vectors
 ///
@@ -115,7 +112,7 @@ typedef struct CeedQFunction_private *CeedQFunction;
 ///   quadrature function\f$f\f$, a CeedOperator expresses operations of the form
 ///   $$ E^T B^T f(B E u) $$
 ///   acting on the vector \f$u\f$.
-/// @ingroup CeedOperator
+/// @ingroup CeedOperatorUser
 typedef struct CeedOperator_private *CeedOperator;
 
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
@@ -305,9 +302,9 @@ CEED_EXTERN int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
 CEED_EXTERN int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream);
 CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *rstr);
 
-/// The formalism here is that we have the structure
-///   \int_\Omega v^T f_0(u, \nabla u, qdata) + (\nabla v)^T f_1(u, \nabla u, qdata)
-/// where gradients are with respect to the reference element.
+// The formalism here is that we have the structure
+//  \int_\Omega v^T f_0(u, \nabla u, qdata) + (\nabla v)^T f_1(u, \nabla u, qdata)
+// where gradients are with respect to the reference element.
 
 /// Basis evaluation mode
 ///
@@ -457,9 +454,9 @@ CEED_EXTERN int CeedOperatorAssembleLinearQFunction(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request);
 CEED_EXTERN int CeedOperatorAssembleLinearDiagonal(CeedOperator op,
     CeedVector *assembled, CeedRequest *request);
-CEED_EXTERN int CeedOperatorView(CeedOperator op, FILE *stream);
 CEED_EXTERN int CeedOperatorCreateFDMElementInverse(CeedOperator op,
     CeedOperator *fdminv, CeedRequest *request);
+CEED_EXTERN int CeedOperatorView(CeedOperator op, FILE *stream);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorApplyAdd(CeedOperator op, CeedVector in,

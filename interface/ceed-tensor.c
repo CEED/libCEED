@@ -18,9 +18,12 @@
 #include <ceed-backend.h>
 
 /// @file
-/// Implementation of backend CeedTensorContract interfaces
-///
-/// @addtogroup CeedBasis
+/// Implementation of CeedTensorContract interfaces
+
+/// ----------------------------------------------------------------------------
+/// CeedTensorContract Backend API
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedBasisBackend
 /// @{
 
 /**
@@ -33,7 +36,7 @@
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Advanced
+  @ref Backend
 **/
 int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
                              CeedTensorContract *contract) {
@@ -61,7 +64,7 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
   ierr = ceed->TensorContractCreate(basis, *contract);
   CeedChk(ierr);
   return 0;
-};
+}
 
 /**
   @brief Apply tensor contraction
@@ -85,7 +88,7 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Advanced
+  @ref Backend
 **/
 int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B,
                             CeedInt C, CeedInt J, const CeedScalar *restrict t,
@@ -97,7 +100,7 @@ int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B,
   ierr = contract->Apply(contract, A, B, C, J, t, tmode, add,  u, v);
   CeedChk(ierr);
   return 0;
-};
+}
 
 /**
   @brief Get Ceed associated with a CeedTensorContract
@@ -107,12 +110,12 @@ int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Advanced
+  @ref Backend
 **/
 int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed) {
   *ceed = contract->ceed;
   return 0;
-};
+}
 
 /**
   @brief Get backend data of a CeedTensorContract
@@ -122,7 +125,7 @@ int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Advanced
+  @ref Backend
 **/
 int CeedTensorContractGetData(CeedTensorContract contract, void **data) {
   *data = contract->data;
@@ -137,7 +140,7 @@ int CeedTensorContractGetData(CeedTensorContract contract, void **data) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Advanced
+  @ref Backend
 **/
 int CeedTensorContractSetData(CeedTensorContract contract, void **data) {
   contract->data = *data;
@@ -151,7 +154,7 @@ int CeedTensorContractSetData(CeedTensorContract contract, void **data) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Advanced
+  @ref Backend
 **/
 int CeedTensorContractDestroy(CeedTensorContract *contract) {
   int ierr;
@@ -164,6 +167,6 @@ int CeedTensorContractDestroy(CeedTensorContract *contract) {
   ierr = CeedDestroy(&(*contract)->ceed); CeedChk(ierr);
   ierr = CeedFree(contract); CeedChk(ierr);
   return 0;
-};
+}
 
 /// @}

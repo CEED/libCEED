@@ -49,10 +49,10 @@ CEED_INTERN int CeedFree(void *p);
 #define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
 /// Handle for object describing CeedQFunction fields
-/// @ingroup CeedQFunction
+/// @ingroup CeedQFunctionBackend
 typedef struct CeedQFunctionField_private *CeedQFunctionField;
 /// Handle for object describing CeedOperator fields
-/// @ingroup CeedOperator
+/// @ingroup CeedOperatorBackend
 typedef struct CeedOperatorField_private *CeedOperatorField;
 
 CEED_EXTERN int CeedRegister(const char *prefix,
@@ -123,10 +123,11 @@ CEED_EXTERN int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
     CeedTensorContract *contract);
 CEED_EXTERN int CeedTensorContractApply(CeedTensorContract contract, CeedInt A,
                                         CeedInt B, CeedInt C, CeedInt J,
-                                        const CeedScalar *t,
+                                        const CeedScalar *restrict t,
                                         CeedTransposeMode tmode,
-                                        const CeedInt Add, const CeedScalar *u,
-                                        CeedScalar *v);
+                                        const CeedInt Add,
+                                        const CeedScalar *restrict u,
+                                        CeedScalar *restrict v);
 CEED_EXTERN int CeedTensorContractGetCeed(CeedTensorContract contract,
     Ceed *ceed);
 CEED_EXTERN int CeedTensorContractGetData(CeedTensorContract contract,
