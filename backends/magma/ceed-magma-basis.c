@@ -31,7 +31,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
 
-  Ceed_Magma *data; 
+  Ceed_Magma *data;
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
 
   const CeedScalar *u;
@@ -189,7 +189,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     // LCOV_EXCL_STOP
   }
 
-  // must sync to ensure completeness 
+  // must sync to ensure completeness
   ceed_magma_queue_sync( data->queue );
 
   if (emode!=CEED_EVAL_WEIGHT) {
@@ -209,7 +209,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
 
-  Ceed_Magma *data; 
+  Ceed_Magma *data;
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
 
   CeedInt dim, ncomp, ndof, nqpt;
@@ -246,16 +246,16 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     CeedInt P = ndof, Q = nqpt;
     if (tmode == CEED_TRANSPOSE)
       magma_dgemm_nontensor(MagmaNoTrans, MagmaNoTrans,
-                  P, nelem*ncomp, Q,
-                  1.0, impl->dinterp, P,
-                  du, Q,
-                  0.0, dv, P, data->queue);
+                            P, nelem*ncomp, Q,
+                            1.0, impl->dinterp, P,
+                            du, Q,
+                            0.0, dv, P, data->queue);
     else
       magma_dgemm_nontensor(MagmaTrans, MagmaNoTrans,
-                  Q, nelem*ncomp, P,
-                  1.0, impl->dinterp, P,
-                  du, P,
-                  0.0, dv, Q, data->queue);
+                            Q, nelem*ncomp, P,
+                            1.0, impl->dinterp, P,
+                            du, P,
+                            0.0, dv, Q, data->queue);
   }
   break;
 
@@ -267,18 +267,18 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
         if (d>0)
           beta = 1.0;
         magma_dgemm_nontensor(MagmaNoTrans, MagmaNoTrans,
-                    P, nelem*ncomp, Q,
-                    1.0, impl->dgrad + d*P*Q, P,
-                    du + d*nelem*ncomp*Q, Q,
-                    beta, dv, P, data->queue);
+                              P, nelem*ncomp, Q,
+                              1.0, impl->dgrad + d*P*Q, P,
+                              du + d*nelem*ncomp*Q, Q,
+                              beta, dv, P, data->queue);
       }
     } else {
       for(int d=0; d< dim; d++)
         magma_dgemm_nontensor(MagmaTrans, MagmaNoTrans,
-                    Q, nelem*ncomp, P,
-                    1.0, impl->dgrad + d*P*Q, P,
-                    du, P,
-                    0.0, dv + d*nelem*ncomp*Q, Q, data->queue);
+                              Q, nelem*ncomp, P,
+                              1.0, impl->dgrad + d*P*Q, P,
+                              du, P,
+                              0.0, dv + d*nelem*ncomp*Q, Q, data->queue);
     }
   }
   break;
@@ -309,7 +309,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     // LCOV_EXCL_STOP
   }
 
-  // must sync to ensure completeness 
+  // must sync to ensure completeness
   ceed_magma_queue_sync( data->queue );
 
   if(emode!=CEED_EVAL_WEIGHT) {
@@ -368,7 +368,7 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
 
-  Ceed_Magma *data; 
+  Ceed_Magma *data;
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
@@ -382,22 +382,26 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   // Copy qref1d to the GPU
   ierr = magma_malloc((void **)&impl->dqref1d, Q1d*sizeof(qref1d[0]));
   CeedChk(ierr);
-  magma_setvector(Q1d, sizeof(qref1d[0]), qref1d, 1, impl->dqref1d, 1, data->queue);
+  magma_setvector(Q1d, sizeof(qref1d[0]), qref1d, 1, impl->dqref1d, 1,
+                  data->queue);
 
   // Copy interp1d to the GPU
   ierr = magma_malloc((void **)&impl->dinterp1d, Q1d*P1d*sizeof(interp1d[0]));
   CeedChk(ierr);
-  magma_setvector(Q1d*P1d, sizeof(interp1d[0]), interp1d, 1, impl->dinterp1d, 1, data->queue);
+  magma_setvector(Q1d*P1d, sizeof(interp1d[0]), interp1d, 1, impl->dinterp1d, 1,
+                  data->queue);
 
   // Copy grad1d to the GPU
   ierr = magma_malloc((void **)&impl->dgrad1d, Q1d*P1d*sizeof(grad1d[0]));
   CeedChk(ierr);
-  magma_setvector(Q1d*P1d, sizeof(grad1d[0]), grad1d, 1, impl->dgrad1d, 1, data->queue);
+  magma_setvector(Q1d*P1d, sizeof(grad1d[0]), grad1d, 1, impl->dgrad1d, 1,
+                  data->queue);
 
   // Copy qweight1d to the GPU
   ierr = magma_malloc((void **)&impl->dqweight1d, Q1d*sizeof(qweight1d[0]));
   CeedChk(ierr);
-  magma_setvector(Q1d, sizeof(qweight1d[0]), qweight1d, 1, impl->dqweight1d, 1, data->queue);
+  magma_setvector(Q1d, sizeof(qweight1d[0]), qweight1d, 1, impl->dqweight1d, 1,
+                  data->queue);
 
   return 0;
 }
@@ -414,7 +418,7 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
 
-  Ceed_Magma *data; 
+  Ceed_Magma *data;
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
@@ -433,17 +437,20 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   // Copy interp to the GPU
   ierr = magma_malloc((void **)&impl->dinterp, nqpts*ndof*sizeof(interp[0]));
   CeedChk(ierr);
-  magma_setvector(nqpts*ndof, sizeof(interp[0]), interp, 1, impl->dinterp, 1, data->queue);
+  magma_setvector(nqpts*ndof, sizeof(interp[0]), interp, 1, impl->dinterp, 1,
+                  data->queue);
 
   // Copy grad to the GPU
   ierr = magma_malloc((void **)&impl->dgrad, nqpts*ndof*dim*sizeof(grad[0]));
   CeedChk(ierr);
-  magma_setvector(nqpts*ndof*dim, sizeof(grad[0]), grad, 1, impl->dgrad, 1, data->queue);
+  magma_setvector(nqpts*ndof*dim, sizeof(grad[0]), grad, 1, impl->dgrad, 1,
+                  data->queue);
 
   // Copy qweight to the GPU
   ierr = magma_malloc((void **)&impl->dqweight, nqpts*sizeof(qweight[0]));
   CeedChk(ierr);
-  magma_setvector(nqpts, sizeof(qweight[0]), qweight, 1, impl->dqweight, 1, data->queue);
+  magma_setvector(nqpts, sizeof(qweight[0]), qweight, 1, impl->dqweight, 1,
+                  data->queue);
 
   return 0;
 }

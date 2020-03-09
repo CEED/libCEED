@@ -17,8 +17,8 @@
 #include "ceed-magma.h"
 
 static int CeedDestroy_Magma(Ceed ceed) {
-  int ierr; 
-  Ceed_Magma *data; 
+  int ierr;
+  Ceed_Magma *data;
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
   magma_queue_destroy( data->queue );
   ierr = CeedFree(&data); CeedChk(ierr);
@@ -47,7 +47,7 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
 
   Ceed_Magma *data;
   ierr = CeedCalloc(sizeof(Ceed_Magma), &data); CeedChk(ierr);
-  ierr = CeedSetData(ceed, (void*)&data); CeedChk(ierr);
+  ierr = CeedSetData(ceed, (void *)&data); CeedChk(ierr);
 
   // create a queue that uses the null stream
   magma_getdevice( &(data->device) );
