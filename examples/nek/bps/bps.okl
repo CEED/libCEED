@@ -30,8 +30,8 @@ typedef double CeedScalar;
 //    *J = in + iOf7[1],
 //    *w = in + iOf7[2];
 //  CeedScalar
-//    *rho = out + oOf7[0],
-//    *rhs = out + oOf7[1];
+//    *qdata = out + oOf7[0],
+//    *rhs   = out + oOf7[1];
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
     const CeedInt D = 3;
     CeedScalar det = (+ in[iOf7[1]+(0*D+0)*Q+i] *
@@ -56,8 +56,8 @@ typedef double CeedScalar;
                    const int *iOf7, const int *oOf7,
                    const CeedScalar *in, CeedScalar *out) {
 //  const CeedScalar
-//    *u = in + iOf7[0],
-//    *rho = in + iOf7[1],
+//    *u     = in + iOf7[0],
+//    *qdata = in + iOf7[1],
 //  CeedScalar *v = out + oOf7[0];
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
     out[oOf7[0]+i] = in[iOf7[1]+i] * in[iOf7[0]+i];
@@ -75,8 +75,8 @@ typedef double CeedScalar;
 //    *J = in + iOf7[1],
 //    *w = in + iOf7[2];
 //  CeedScalar
-//    *rho = out + oOf7[0],
-//    *rhs = out + oOf7[1];
+//    *qdata = out + oOf7[0],
+//    *rhs   = out + oOf7[1];
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
     const CeedScalar MPI = 3.14159265358979323846;
     const CeedInt D = 3;
@@ -120,8 +120,8 @@ typedef double CeedScalar;
                         const int *iOf7, const int *oOf7,
                         const CeedScalar *in, CeedScalar *out) {
 //  const CeedScalar
-//    *u = in + iOf7[0],
-//    *rho = in + iOf7[1],
+//    *u     = in + iOf7[0],
+//    *qdata = in + iOf7[1],
 //  CeedScalar *v = out + oOf7[0];
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
     const CeedScalar ug0 = in[iOf7[0]+i+Q*0];

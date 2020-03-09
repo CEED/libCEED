@@ -17,8 +17,8 @@
 //                        libCEED + PETSc Example: Surface Area
 //
 // This example demonstrates a simple usage of libCEED with PETSc to calculate
-// the surface area of a simple closed surface, such as the one of a cube
-// via the mass operator.
+// the surface area of a simple closed surface, such as the one of a cube or a
+// tensor-product discrete sphere via the mass operator.
 //
 // The code uses higher level communication protocols in DMPlex.
 //
@@ -29,27 +29,40 @@
 // Sample runs:
 //   Sequential:
 //
-//     area -petscspace_degree 3
+//     ./area -problem cube -petscspace_degree 3 -dm_refine 2
+//
+//     ./area -problem sphere -petscspace_degree 3 -dm_refine 2
 //
 //   In parallel:
 //
-//     mpiexec -n 4 area -petscspace_degree 3
+//     mpiexec -n 4 ./area -probelm cube -petscspace_degree 3 -dm_refine 2
+//
+//     mpiexec -n 4 ./area -problem sphere -petscspace_degree 3 -dm_refine 2
+//
+//   The above example runs use 2 levels of refinement for the mesh.
+//   Use -dm_refine k, for k levels of uniform refinement.
 //
 //TESTARGS -ceed {ceed_resource} -test -petscspace_degree 3
 
 /// @file
-/// libCEED example using the mass operator to compute surface area using PETSc with DMPlex
+/// libCEED example using the mass operator to compute a cube or a cubed-sphere surface area using PETSc with DMPlex
 static const char help[] =
-  "Compute surface area of a cube using DMPlex in PETSc\n";
+  "Compute surface area of a cube or a cubed-sphere using DMPlex in PETSc\n";
 
 #include <string.h>
 #include <petscdmplex.h>
 #include <ceed.h>
-#include "qfunctions/area/area.h"
+#include "qfunctions/area/areacube.h"
+#include "qfunctions/area/areasphere.h"
+
+#ifndef M_PI
+#  define M_PI    3.14159265358979323846
+#endif
 
 // Auxiliary function to define CEED restrictions from DMPlex data
-static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
-                                 CeedElemRestriction *Erestrict, DM dm) {
+static int CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode, CeedInt P,
+                                 CeedInt ncomp, CeedElemRestriction *Erestrict,
+                                 DM dm) {
   PetscInt ierr;
   PetscInt c, cStart, cEnd, nelem, nnodes, *erestrict, eoffset;
   PetscSection section;
@@ -87,11 +100,35 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
   ierr = VecGetLocalSize(Uloc, &nnodes); CHKERRQ(ierr);
 
   ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, nelem, P*P, nnodes/ncomp, ncomp,
+  CeedElemRestrictionCreate(ceed, imode, nelem, P*P, nnodes/ncomp, ncomp,
                             CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
                             Erestrict);
   ierr = PetscFree(erestrict); CHKERRQ(ierr);
 
+  PetscFunctionReturn(0);
+}
+
+// Utility function taken from petsc/src/dm/impls/plex/examples/tutorials/ex7.c
+static PetscErrorCode ProjectToUnitSphere(DM dm) {
+  Vec            coordinates;
+  PetscScalar   *coords;
+  PetscInt       Nv, v, dim, d;
+  PetscErrorCode ierr;
+
+  PetscFunctionBeginUser;
+  ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(coordinates, &Nv); CHKERRQ(ierr);
+  ierr = VecGetBlockSize(coordinates, &dim); CHKERRQ(ierr);
+  Nv  /= dim;
+  ierr = VecGetArray(coordinates, &coords); CHKERRQ(ierr);
+  for (v = 0; v < Nv; ++v) {
+    PetscReal r = 0.0;
+
+    for (d = 0; d < dim; ++d) r += PetscSqr(PetscRealPart(coords[v*dim+d]));
+    r = PetscSqrtReal(r);
+    for (d = 0; d < dim; ++d) coords[v*dim+d] /= r;
+  }
+  ierr = VecRestoreArray(coordinates, &coords); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -114,14 +151,29 @@ int main(int argc, char **argv) {
   DM  dm, dmcoord;
   Ceed ceed;
   CeedInt P, Q;
+  CeedOperator op_setupgeo, op_apply;
+  CeedQFunction qf_setupgeo, qf_apply;
+  CeedBasis basisx, basisu;
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictqdi;
+  PetscFunctionList geomfactorlist = NULL;
+  char problemtype[PETSC_MAX_PATH_LEN] = "sphere";
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
   comm = PETSC_COMM_WORLD;
 
-  // Read CL options
+  // Set up problem type command line option
+  ierr = PetscFunctionListAdd(&geomfactorlist, "cube", &SetupMassGeoCube);
+  CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&geomfactorlist, "sphere", &SetupMassGeoSphere);
+  CHKERRQ(ierr);
+
+  // Read command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED surface area problem with PETSc",
                            NULL);
+  CHKERRQ(ierr);
+  ierr = PetscOptionsFList("-problem", "Problem to solve", NULL, geomfactorlist,
+                           problemtype, problemtype, sizeof problemtype, NULL);
   CHKERRQ(ierr);
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
@@ -136,8 +188,22 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
+  // Setup function pointer for geometric factors
+  int (*geomfp)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
+                CeedScalar *const *out);
+  ierr = PetscFunctionListFind(geomfactorlist, problemtype,
+                               (void(* *)(void))&geomfp); CHKERRQ(ierr);
+  const char *str;
+  if (geomfp == SetupMassGeoCube)
+    str = SetupMassGeoCube_loc;
+  else if (geomfp == SetupMassGeoSphere)
+    str = SetupMassGeoSphere_loc;
+  else {
+    SETERRQ(comm, PETSC_ERR_USER, "Function not found in the list");
+    return PETSC_ERR_USER;
+  }
+
   // Setup DM
-  PetscScalar l = 1.0/PetscSqrtReal(3.0); // half edge of the cube
   if (read_mesh) {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
@@ -147,7 +213,7 @@ int main(int argc, char **argv) {
     ierr = DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topodim, simplex, &dm);
     CHKERRQ(ierr);
     // Set the object name
-    ierr = PetscObjectSetName((PetscObject) dm, "Cube"); CHKERRQ(ierr);
+    ierr = PetscObjectSetName((PetscObject)dm, problemtype); CHKERRQ(ierr);
     // Distribute mesh over processes
     {
       DM dmDist = NULL;
@@ -161,6 +227,11 @@ int main(int argc, char **argv) {
         dm  = dmDist;
       }
     }
+    // Refine DMPlex with uniform refinement using runtime option -dm_refine
+    ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
+    ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+    if (!strcmp(problemtype, "sphere"))
+      ierr = ProjectToUnitSphere(dm); CHKERRQ(ierr);
     // View DMPlex via runtime option
     ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
   }
@@ -201,25 +272,19 @@ int main(int argc, char **argv) {
   CeedGetResource(ceed, &usedresource);
   if (!test_mode) {
     ierr = PetscPrintf(comm,
-                       "\n-- libCEED + PETSc Surface Area problem --\n"
+                       "\n-- libCEED + PETSc Surface Area of a Manifold --\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
-                       "    Global nodes                       : %D\n",
-                       usedresource, P, Q,  gsize/ncompu);
+                       "    Global nodes                       : %D\n"
+                       "    DoF per node                       : %D\n",
+                       usedresource, P, Q,  gsize/ncompu, ncompu);
     CHKERRQ(ierr);
   }
 
-  // Setup libCEED's objects
-  // Create CEED operators and API objects they need
-  CeedOperator op_setupgeo, op_apply;
-  CeedQFunction qf_setupgeo, qf_apply;
-  CeedBasis basisx, basisu;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi,
-                      Erestrictqdi;
-
+  // Setup libCEED's objects:
   // Create bases
   CeedBasisCreateTensorH1Lagrange(ceed, topodim, ncompu, P, Q,
                                   CEED_GAUSS, &basisu);
@@ -231,19 +296,19 @@ int main(int argc, char **argv) {
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
-  CreateRestrictionPlex(ceed, 2, ncompx, &Erestrictx, dmcoord); CHKERRQ(ierr);
-  CreateRestrictionPlex(ceed, P, ncompu, &Erestrictu, dm); CHKERRQ(ierr);
+  CreateRestrictionPlex(ceed, CEED_INTERLACED, 2, ncompx, &Erestrictx, dmcoord);
+  CHKERRQ(ierr);
+  CreateRestrictionPlex(ceed, CEED_INTERLACED, P, ncompu, &Erestrictu, dm);
+  CHKERRQ(ierr);
 
   CeedInt cStart, cEnd;
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   const CeedInt nelem = cEnd - cStart;
 
-  // CEED identity restrictions
+  // CEED strided restrictions
   const CeedInt qdatasize = 1;
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q, nelem*Q*Q,
-                                    qdatasize, &Erestrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q, nelem*Q*Q, 1,
-                                    &Erestrictxi);
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nelem*Q*Q, qdatasize,
+                                   CEED_STRIDES_BACKEND, &Erestrictqdi);
 
   // Element coordinates
   Vec coords;
@@ -267,10 +332,10 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, xlsize, &uceed);
   CeedVectorCreate(ceed, xlsize, &vceed);
 
-  /* Create the Q-function that builds the operator for the geomteric factors
-     (i.e., the quadrature data) */
-  CeedQFunctionCreateInterior(ceed, 1, SetupMassGeo,
-                              SetupMassGeo_loc, &qf_setupgeo);
+  // Create the Q-function that builds the operator for the geomteric factors
+  //   (i.e., the quadrature data)
+  CeedQFunctionCreateInterior(ceed, 1, geomfp, str, &qf_setupgeo);
+  CeedQFunctionAddInput(qf_setupgeo, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setupgeo, "dx", ncompx*topodim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setupgeo, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setupgeo, "qdata", qdatasize, CEED_EVAL_NONE);
@@ -282,24 +347,22 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_apply, "v", ncompu, CEED_EVAL_INTERP);
 
   // Create the operator that builds the quadrature data for the operator
-  CeedOperatorCreate(ceed, qf_setupgeo, CEED_QFUNCTION_NONE,
-                     CEED_QFUNCTION_NONE, &op_setupgeo);
-  CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, CEED_TRANSPOSE,
-                       basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setupgeo, "weight", Erestrictxi, CEED_NOTRANSPOSE,
-                       basisx, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setupgeo, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
+  CeedOperatorCreate(ceed, qf_setupgeo, NULL, NULL, &op_setupgeo);
+  CeedOperatorSetField(op_setupgeo, "x", Erestrictx, basisx,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, basisx,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setupgeo, "weight", CEED_ELEMRESTRICTION_NONE, basisx,
+                       CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setupgeo, "qdata", Erestrictqdi,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Create the mass operator
-  CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &op_apply);
-  CeedOperatorSetField(op_apply, "u", Erestrictu, CEED_TRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_apply, "v", Erestrictu, CEED_TRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
+  CeedOperatorSetField(op_apply, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_BASIS_COLLOCATED,
+                       qdata);
+  CeedOperatorSetField(op_apply, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
 
   // Compute the quadrature data for the mass operator
   CeedOperatorApply(op_setupgeo, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
@@ -309,16 +372,15 @@ int main(int argc, char **argv) {
   ierr = VecGetArray(Vloc, &v);
   CeedVectorSetArray(vceed, CEED_MEM_HOST, CEED_USE_POINTER, v);
 
-  // Compute the mesh volume using the mass operator: vol = 1^T \cdot M \cdot 1
+  // Compute the mesh volume using the mass operator: area = 1^T \cdot M \cdot 1
   if (!test_mode) {
     ierr = PetscPrintf(comm,
-                       "Computing the mesh volume using the formula: vol = 1^T M 1\n");
+                       "Computing the mesh area using the formula: area = 1^T M 1\n");
     CHKERRQ(ierr);
   }
 
-  // Initialize u and v with ones
+  // Initialize u with ones
   CeedVectorSetValue(uceed, 1.0);
-  CeedVectorSetValue(vceed, 1.0);
 
   // Apply the mass operator: 'u' -> 'v'
   CeedOperatorApply(op_apply, uceed, vceed, CEED_REQUEST_IMMEDIATE);
@@ -335,7 +397,12 @@ int main(int argc, char **argv) {
   ierr = VecSum(V, &area); CHKERRQ(ierr);
 
   // Compute the exact surface area and print the result
-  CeedScalar exact_surfarea = 6 * (2*l) * (2*l);
+  CeedScalar exact_surfarea = 4 * M_PI;
+  if (!strcmp(problemtype, "cube")) {
+    PetscScalar l = 1.0/PetscSqrtReal(3.0); // half edge of the cube
+    exact_surfarea = 6 * (2*l) * (2*l);
+  }
+
   if (!test_mode) {
     ierr = PetscPrintf(comm, "Exact mesh surface area    : % .14g\n",
                        exact_surfarea); CHKERRQ(ierr);
@@ -363,7 +430,6 @@ int main(int argc, char **argv) {
   CeedBasisDestroy(&basisu);
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
-  CeedElemRestrictionDestroy(&Erestrictxi);
   CeedElemRestrictionDestroy(&Erestrictqdi);
   CeedQFunctionDestroy(&qf_apply);
   CeedOperatorDestroy(&op_apply);

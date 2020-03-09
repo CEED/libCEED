@@ -6,5 +6,7 @@
 /petsc-bps
 /bpsraw
 /petsc-bpsraw
+/bpssphere
+/petsc-bpssphere
 /multigrid
 /petsc-multigrid

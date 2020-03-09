@@ -21,6 +21,64 @@
 #define common_h
 
 #include <math.h>
+#include <ceed.h>
+
+typedef struct SetupContext_ *SetupContext;
+struct SetupContext_ {
+  CeedScalar theta0;
+  CeedScalar thetaC;
+  CeedScalar P0;
+  CeedScalar N;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar Rd;
+  CeedScalar g;
+  CeedScalar rc;
+  CeedScalar lx;
+  CeedScalar ly;
+  CeedScalar lz;
+  CeedScalar periodicity0;
+  CeedScalar periodicity1;
+  CeedScalar periodicity2;
+  CeedScalar center[3];
+  CeedScalar dc_axis[3];
+  CeedScalar time;
+};
+
+// PETSc user data
+typedef struct User_ *User;
+typedef struct Units_ *Units;
+
+struct User_ {
+  MPI_Comm comm;
+  PetscInt outputfreq;
+  DM dm;
+  DM dmviz;
+  Mat interpviz;
+  Ceed ceed;
+  Units units;
+  CeedVector qceed, qdotceed, gceed;
+  CeedOperator op_rhs, op_ifunction;
+  Vec M;
+  char outputfolder[PETSC_MAX_PATH_LEN];
+  PetscInt contsteps;
+};
+
+struct Units_ {
+  // fundamental units
+  PetscScalar meter;
+  PetscScalar kilogram;
+  PetscScalar second;
+  PetscScalar Kelvin;
+  // derived units
+  PetscScalar Pascal;
+  PetscScalar JperkgK;
+  PetscScalar mpersquareds;
+  PetscScalar WpermK;
+  PetscScalar kgpercubicm;
+  PetscScalar kgpersquaredms;
+  PetscScalar Joulepercubicm;
+};
 
 // *****************************************************************************
 // This QFunction sets up the geometric factors required for integration and
@@ -61,7 +119,7 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*J)[3][Q] = (CeedScalar(*)[3][Q])in[0],
+  const CeedScalar (*J)[3][Q] = (const CeedScalar(*)[3][Q])in[0],
                    (*w) = in[1];
 
   // Outputs
@@ -113,6 +171,41 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
   return 0;
 }
 
+CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
+                        const CeedScalar *const *in, CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*J)[2][Q] = (const CeedScalar(*)[2][Q])in[0],
+                   (*w) = in[1];
+  // Outputs
+  CeedScalar (*qdata)[Q] = (CeedScalar(*)[Q])out[0];
+  // *INDENT-ON*
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    const CeedScalar J11 = J[0][0][i];
+    const CeedScalar J21 = J[0][1][i];
+    const CeedScalar J12 = J[1][0][i];
+    const CeedScalar J22 = J[1][1][i];
+    const CeedScalar detJ = J11*J22 - J21*J12;
+
+    // Qdata
+    // -- Interp-to-Interp qdata
+    qdata[0][i] = w[i] * detJ;
+    // -- Interp-to-Grad qdata
+    // Inverse of change of coordinate matrix: X_i,j
+    qdata[1][i] =  J22 / detJ;
+    qdata[2][i] = -J21 / detJ;
+    qdata[3][i] = -J12 / detJ;
+    qdata[4][i] =  J11 / detJ;
+  } // End of Quadrature Point Loop
+
+  // Return
+  return 0;
+}
+
 // *****************************************************************************
 // This QFunction applies the mass matrix to five interlaced fields.
 //
@@ -128,7 +221,7 @@ CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*u)[Q] = (CeedScalar(*)[Q])in[0],
+  const CeedScalar (*u)[Q] = (const CeedScalar(*)[Q])in[0],
                    (*qdata) = in[1];
 
   // Outputs

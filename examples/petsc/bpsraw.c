@@ -28,12 +28,12 @@
 //
 // Sample runs:
 //
-//     bpsraw -problem bp1
-//     bpsraw -problem bp2 -ceed /cpu/self
-//     bpsraw -problem bp3 -ceed /gpu/occa
-//     bpsraw -problem bp4 -ceed /cpu/occa
-//     bpsraw -problem bp5 -ceed /omp/occa
-//     bpsraw -problem bp6 -ceed /ocl/occa
+//     ./bpsraw -problem bp1
+//     ./bpsraw -problem bp2 -ceed /cpu/self
+//     ./bpsraw -problem bp3 -ceed /gpu/occa
+//     ./bpsraw -problem bp4 -ceed /cpu/occa
+//     ./bpsraw -problem bp5 -ceed /omp/occa
+//     ./bpsraw -problem bp6 -ceed /ocl/occa
 //
 //TESTARGS -ceed {ceed_resource} -test -problem bp2 -degree 5 -qextra 5
 
@@ -89,8 +89,8 @@ static PetscInt GlobalStart(const PetscInt p[3], const PetscInt irank[3],
   }
   return -1;
 }
-static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
-                             CeedInt P, CeedInt ncomp,
+static int CreateRestriction(Ceed ceed, CeedInterlaceMode imode,
+                             const CeedInt melem[3], CeedInt P, CeedInt ncomp,
                              CeedElemRestriction *Erestrict) {
   const PetscInt nelem = melem[0]*melem[1]*melem[2];
   PetscInt mnodes[3], *idx, *idxp;
@@ -116,9 +116,9 @@ static int CreateRestriction(Ceed ceed, const CeedInt melem[3],
             }
 
   // Setup CEED restriction
-  CeedElemRestrictionCreate(ceed, nelem, P*P*P, mnodes[0]*mnodes[1]*mnodes[2],
-                            ncomp, CEED_MEM_HOST, CEED_OWN_POINTER, idx,
-                            Erestrict);
+  CeedElemRestrictionCreate(ceed, imode, nelem, P*P*P,
+                            mnodes[0]*mnodes[1]*mnodes[2], ncomp,
+                            CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
 
   PetscFunctionReturn(0);
 }
@@ -400,8 +400,7 @@ int main(int argc, char **argv) {
   User user;
   Ceed ceed;
   CeedBasis basisx, basisu;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui,
-                      Erestrictqdi;
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictui, Erestrictqdi;
   CeedQFunction qf_setupgeo, qf_setuprhs, qf_apply, qf_error;
   CeedOperator op_setupgeo, op_setuprhs, op_apply, op_error;
   CeedVector xcoord, qdata, rhsceed, target;
@@ -412,6 +411,8 @@ int main(int argc, char **argv) {
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
   comm = PETSC_COMM_WORLD;
+
+  // Read command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
   bpChoice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
@@ -496,11 +497,12 @@ int main(int argc, char **argv) {
                        "    Global nodes                       : %D\n"
                        "    Process Decomposition              : %D %D %D\n"
                        "    Local Elements                     : %D = %D %D %D\n"
-                       "    Owned nodes                        : %D = %D %D %D\n",
+                       "    Owned nodes                        : %D = %D %D %D\n"
+                       "    DoF per node                       : %D\n",
                        bpChoice+1, usedresource, P, Q,  gsize/ncompu, p[0],
                        p[1], p[2], localelem, melem[0], melem[1], melem[2],
                        mnodes[0]*mnodes[1]*mnodes[2], mnodes[0], mnodes[1],
-                       mnodes[2]); CHKERRQ(ierr);
+                       mnodes[2], ncompu); CHKERRQ(ierr);
   }
 
   {
@@ -594,17 +596,14 @@ int main(int argc, char **argv) {
                                   bpOptions[bpChoice].qmode, &basisx);
 
   // CEED restrictions
-  CreateRestriction(ceed, melem, P, ncompu, &Erestrictu);
-  CreateRestriction(ceed, melem, 2, dim, &Erestrictx);
+  CreateRestriction(ceed, CEED_INTERLACED, melem, P, ncompu, &Erestrictu);
+  CreateRestriction(ceed, CEED_NONINTERLACED, melem, 2, dim, &Erestrictx);
   CeedInt nelem = melem[0]*melem[1]*melem[2];
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompu,
-                                    &Erestrictui);
-  CeedElemRestrictionCreateIdentity(ceed, nelem,
-                                    Q*Q*Q,
-                                    nelem*Q*Q*Q,
-                                    bpOptions[bpChoice].qdatasize, &Erestrictqdi);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1,
-                                    &Erestrictxi);
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompu,
+                                   CEED_STRIDES_BACKEND, &Erestrictui);
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
+                                   bpOptions[bpChoice].qdatasize,
+                                   CEED_STRIDES_BACKEND, &Erestrictqdi);
   {
     CeedScalar *xloc;
     CeedInt shape[3] = {melem[0]+1, melem[1]+1, melem[2]+1}, len =
@@ -673,46 +672,43 @@ int main(int argc, char **argv) {
   // Create the operator that builds the quadrature data for the ceed operator
   CeedOperatorCreate(ceed, qf_setupgeo, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &op_setupgeo);
-  CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, CEED_NOTRANSPOSE,
-                       basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setupgeo, "weight", Erestrictxi, CEED_NOTRANSPOSE,
-                       basisx, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setupgeo, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, basisx,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setupgeo, "weight", CEED_ELEMRESTRICTION_NONE, basisx,
+                       CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setupgeo, "qdata", Erestrictqdi,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Create the operator that builds the RHS and true solution
   CeedOperatorCreate(ceed, qf_setuprhs, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &op_setuprhs);
-  CeedOperatorSetField(op_setuprhs, "x", Erestrictx, CEED_NOTRANSPOSE,
-                       basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setuprhs, "dx", Erestrictx, CEED_NOTRANSPOSE,
-                       basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setuprhs, "weight", Erestrictxi, CEED_NOTRANSPOSE,
-                       basisx, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setuprhs, "true_soln", Erestrictui, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_setuprhs, "x", Erestrictx, basisx,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setuprhs, "dx", Erestrictx, basisx,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setuprhs, "weight", CEED_ELEMRESTRICTION_NONE, basisx,
+                       CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setuprhs, "true_soln", Erestrictui,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_setuprhs, "rhs", Erestrictu, CEED_TRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setuprhs, "rhs", Erestrictu, basisu,
+                       CEED_VECTOR_ACTIVE);
 
   // Create the mass or diff operator
   CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_apply);
-  CeedOperatorSetField(op_apply, "u", Erestrictu, CEED_TRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_apply, "v", Erestrictu, CEED_TRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_apply, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_BASIS_COLLOCATED,
+                       qdata);
+  CeedOperatorSetField(op_apply, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
 
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_error);
-  CeedOperatorSetField(op_error, "u", Erestrictu, CEED_TRANSPOSE,
-                       basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_error, "true_soln", Erestrictui, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_error, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "true_soln", Erestrictui,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "error", Erestrictui, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "error", Erestrictui, CEED_BASIS_COLLOCATED,
+                       CEED_VECTOR_ACTIVE);
 
   // Set up Mat
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
@@ -849,7 +845,7 @@ int main(int argc, char **argv) {
   {
     PetscReal maxerror;
     ierr = ComputeErrorMax(user, op_error, X, target, &maxerror); CHKERRQ(ierr);
-    PetscReal tol = (bpChoice == CEED_BP1 || bpChoice == CEED_BP2) ? 5e-3 : 5e-2;
+    PetscReal tol = 5e-2;
     if (!test_mode || maxerror > tol) {
       ierr = PetscPrintf(comm,
                          "    Pointwise Error (max)              : %e\n",
@@ -889,7 +885,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
   CeedElemRestrictionDestroy(&Erestrictui);
-  CeedElemRestrictionDestroy(&Erestrictxi);
   CeedElemRestrictionDestroy(&Erestrictqdi);
   CeedQFunctionDestroy(&qf_setupgeo);
   CeedQFunctionDestroy(&qf_setuprhs);

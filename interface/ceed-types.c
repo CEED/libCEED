@@ -32,6 +32,11 @@ const char *const CeedTransposeModes[] = {
   [CEED_NOTRANSPOSE] = "no transpose",
 };
 
+const char *const CeedInterlaceModes[] = {
+  [CEED_NONINTERLACED] = "not interlaced",
+  [CEED_INTERLACED] = "interlaced"
+};
+
 const char *const CeedEvalModes[] = {
   [CEED_EVAL_NONE] = "none",
   [CEED_EVAL_INTERP] = "interpolation",

@@ -70,6 +70,32 @@ magma_readDofsTranspose_kernel(const int NCOMP, const int nnodes, const int esiz
    }
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+// Fastest index listed first
+// i : related to nodes
+// e : elements
+// c: component
+// Go from L-vector (du) to E-vector (dv), with strides provided 
+//  to describe the L-vector layout
+//
+// dv(i, e, c) = du( i * strides[0] + c * strides[1] + e * strides[2] )  
+static __global__ void 
+magma_readDofsStrided_kernel(const int NCOMP, const int nnodes, const int esize, const int nelem,
+                      const int *strides, 
+                      const double *du, double *dv)
+{
+  const int  pid = threadIdx.x;
+  const int elem = blockIdx.x;
+ 
+  for (CeedInt i = pid; i < esize; i += blockDim.x) {
+        for (CeedInt comp = 0; comp < NCOMP; ++comp) {
+            dv[i+elem*esize+comp*esize*nelem] = du[i * strides[0] + 
+                                                   comp * strides[1] + 
+                                                   elem * strides[2]];
+        }
+  }
+}
+
 // Fastest index listed first
 // i : related to nodes
 // e : elements
@@ -125,6 +151,32 @@ magma_writeDofsTranspose_kernel(const int NCOMP, const int nnodes, const int esi
     }
 }
 
+// Fastest index listed first
+// i : related to nodes
+// e : elements
+// c: component
+// Go from E-vector (du) to L-vector (dv), with strides provided 
+//  to describe the L-vector layout
+//
+// dv( i * strides[0] + c * strides[1] + e * strides[2] ) = du(i, e, c) 
+static __global__ void 
+magma_writeDofsStrided_kernel(const int NCOMP, const int nnodes, const int esize, const int nelem,
+                      const int *strides, 
+                      const double *du, double *dv)
+{
+    const int  pid = threadIdx.x;
+    const int elem = blockIdx.x;
+
+    for (CeedInt i = pid; i < esize; i += blockDim.x) {
+        for (CeedInt comp = 0; comp < NCOMP; ++comp) {
+            // magmablas_datomic_add(&dv[ind + esize * comp], 
+            //                       du[i+comp*esize+elem*NCOMP*esize]);
+            magmablas_datomic_add(dv + (i * strides[0] + comp * strides[1] + 
+                                        elem * strides[2]),
+                                  du[i+elem*esize+comp*esize*nelem]);
+        }
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -136,8 +188,8 @@ magma_readDofs(const magma_int_t NCOMP,
                const magma_int_t nnodes,
                const magma_int_t esize, 
                const magma_int_t nelem, magma_int_t *indices, 
-	           const double *du, double *dv, 
-	           magma_queue_t queue)
+               const double *du, double *dv, 
+               magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
@@ -165,6 +217,23 @@ magma_readDofsTranspose(const magma_int_t NCOMP,
     (NCOMP, nnodes, esize, nelem, indices, du, dv);
 }
 
+// ReadDofs to device memory, strided description for L-vector
+// du is L-vector, size nnodes * NCOMP
+// dv is E-vector, size nelem * esize * NCOMP
+extern "C" void
+magma_readDofsStrided(const magma_int_t NCOMP, 
+                      const magma_int_t nnodes,
+                      const magma_int_t esize, 
+                      const magma_int_t nelem, const int *strides, 
+	              const double *du, double *dv)
+{
+    magma_int_t grid    = nelem;
+    magma_int_t threads = 256;
+
+    magma_readDofsStrided_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, esize, nelem, 
+                                                             strides, du, dv);
+}
+
 // WriteDofs from device memory
 // du is E-vector, size nelem * esize * NCOMP
 // dv is L-vector, size nnodes * NCOMP 
@@ -173,8 +242,8 @@ magma_writeDofs(const magma_int_t NCOMP,
                 const magma_int_t nnodes, 
                 const magma_int_t esize, 
                 const magma_int_t nelem, magma_int_t *indices, 
-	            const double *du, double *dv, 
-	            magma_queue_t queue)
+                const double *du, double *dv, 
+                magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
@@ -200,4 +269,21 @@ magma_writeDofsTranspose(const magma_int_t NCOMP,
     assert(NCOMP<=4);
     magma_writeDofsTranspose_kernel<256,4><<<grid, threads, 0, magma_queue_get_cuda_stream(queue)>>>
     (NCOMP, nnodes, esize, nelem, indices, du, dv);
+}
+
+// WriteDofs from device memory, strided description for L-vector
+// du is E-vector, size nelem * esize * NCOMP
+// dv is L-vector, size nnodes * NCOMP 
+extern "C" void
+magma_writeDofsStrided(const magma_int_t NCOMP, 
+                       const magma_int_t nnodes,
+                       const magma_int_t esize, 
+                       const magma_int_t nelem, const int *strides, 
+	               const double *du, double *dv)
+{
+    magma_int_t grid    = nelem;
+    magma_int_t threads = 256;
+
+    magma_writeDofsStrided_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, esize, nelem, 
+                                                              strides, du, dv);
 }

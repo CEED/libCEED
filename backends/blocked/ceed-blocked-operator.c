@@ -17,41 +17,9 @@
 #include "ceed-blocked.h"
 #include "../ref/ceed-ref.h"
 
-static int CeedOperatorDestroy_Blocked(CeedOperator op) {
-  int ierr;
-  CeedOperator_Blocked *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
-
-  for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
-    ierr = CeedElemRestrictionDestroy(&impl->blkrestr[i]); CeedChk(ierr);
-    ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);
-  }
-  ierr = CeedFree(&impl->blkrestr); CeedChk(ierr);
-  ierr = CeedFree(&impl->evecs); CeedChk(ierr);
-  ierr = CeedFree(&impl->edata); CeedChk(ierr);
-  ierr = CeedFree(&impl->inputstate); CeedChk(ierr);
-
-  for (CeedInt i=0; i<impl->numein; i++) {
-    ierr = CeedVectorDestroy(&impl->evecsin[i]); CeedChk(ierr);
-    ierr = CeedVectorDestroy(&impl->qvecsin[i]); CeedChk(ierr);
-  }
-  ierr = CeedFree(&impl->evecsin); CeedChk(ierr);
-  ierr = CeedFree(&impl->qvecsin); CeedChk(ierr);
-
-  for (CeedInt i=0; i<impl->numeout; i++) {
-    ierr = CeedVectorDestroy(&impl->evecsout[i]); CeedChk(ierr);
-    ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
-  }
-  ierr = CeedFree(&impl->evecsout); CeedChk(ierr);
-  ierr = CeedFree(&impl->qvecsout); CeedChk(ierr);
-
-  ierr = CeedFree(&impl); CeedChk(ierr);
-  return 0;
-}
-
-/*
-  Setup infields or outfields
- */
+//------------------------------------------------------------------------------
+// Setup Input/Output Fields
+//------------------------------------------------------------------------------
 static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
     CeedOperator op, bool inOrOut,
     CeedElemRestriction *blkrestr,
@@ -91,15 +59,26 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
       Ceed ceed;
       ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
       CeedInt nelem, elemsize, nnodes;
+      CeedInterlaceMode imode;
       ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
       ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
       ierr = CeedElemRestrictionGetNumNodes(r, &nnodes); CeedChk(ierr);
       ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
-      ierr = CeedElemRestrictionCreateBlocked(ceed, nelem, elemsize,
-                                              blksize, nnodes, ncomp,
-                                              CEED_MEM_HOST, CEED_COPY_VALUES,
-                                              data->indices, &blkrestr[i+starte]);
-      CeedChk(ierr);
+      if (data->indices) {
+        ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
+        ierr = CeedElemRestrictionCreateBlocked(ceed, imode, nelem, elemsize,
+                                                blksize, nnodes, ncomp,
+                                                CEED_MEM_HOST, CEED_COPY_VALUES,
+                                                data->indices,
+                                                &blkrestr[i+starte]);
+        CeedChk(ierr);
+      } else {
+        CeedInt strides[3];
+        ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
+        ierr = CeedElemRestrictionCreateBlockedStrided(ceed, nelem, elemsize,
+               blksize, nnodes, ncomp, strides, &blkrestr[i+starte]);
+        CeedChk(ierr);
+      }
       ierr = CeedElemRestrictionCreateVector(blkrestr[i+starte], NULL,
                                              &fullevecs[i+starte]);
       CeedChk(ierr);
@@ -143,10 +122,9 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
   return 0;
 }
 
-/*
-  CeedOperator needs to connect all the named fields (be they active or passive)
-  to the named inputs and outputs of its CeedQFunction.
- */
+//------------------------------------------------------------------------------
+// Setup Operator
+//------------------------------------------------------------------------------
 static int CeedOperatorSetup_Blocked(CeedOperator op) {
   int ierr;
   bool setupdone;
@@ -223,7 +201,9 @@ static int CeedOperatorSetup_Blocked(CeedOperator op) {
   return 0;
 }
 
-// Setup Input fields
+//------------------------------------------------------------------------------
+// Setup Operator Inputs
+//------------------------------------------------------------------------------
 static inline int CeedOperatorSetupInputs_Blocked(CeedInt numinputfields,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
     CeedVector invec, bool skipactive, CeedOperator_Blocked *impl,
@@ -231,7 +211,6 @@ static inline int CeedOperatorSetupInputs_Blocked(CeedInt numinputfields,
   CeedInt ierr;
   CeedEvalMode emode;
   CeedVector vec;
-  CeedTransposeMode lmode;
   uint64_t state;
 
   for (CeedInt i=0; i<numinputfields; i++) {
@@ -251,11 +230,9 @@ static inline int CeedOperatorSetupInputs_Blocked(CeedInt numinputfields,
       // Restrict
       ierr = CeedVectorGetState(vec, &state); CeedChk(ierr);
       if (state != impl->inputstate[i] || vec == invec) {
-        ierr = CeedOperatorFieldGetLMode(opinputfields[i], &lmode);
-        CeedChk(ierr);
         ierr = CeedElemRestrictionApply(impl->blkrestr[i], CEED_NOTRANSPOSE,
-                                        lmode, vec, impl->evecs[i],
-                                        request); CeedChk(ierr); CeedChk(ierr);
+                                        vec, impl->evecs[i], request);
+        CeedChk(ierr);
         impl->inputstate[i] = state;
       }
       // Get evec
@@ -267,7 +244,9 @@ static inline int CeedOperatorSetupInputs_Blocked(CeedInt numinputfields,
   return 0;
 }
 
-// Input basis action
+//------------------------------------------------------------------------------
+// Input Basis Action
+//------------------------------------------------------------------------------
 static inline int CeedOperatorInputBasis_Blocked(CeedInt e, CeedInt Q,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
     CeedInt numinputfields, CeedInt blksize, bool skipactive,
@@ -325,23 +304,25 @@ static inline int CeedOperatorInputBasis_Blocked(CeedInt e, CeedInt Q,
       break;
     case CEED_EVAL_WEIGHT:
       break;  // No action
+    // LCOV_EXCL_START
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL: {
-      // LCOV_EXCL_START
       ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis);
       CeedChk(ierr);
       Ceed ceed;
       ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
       return CeedError(ceed, 1, "Ceed evaluation mode not implemented");
-      // LCOV_EXCL_STOP
       break; // Not implemented
+      // LCOV_EXCL_STOP
     }
     }
   }
   return 0;
 }
 
-// Output basis action
+//------------------------------------------------------------------------------
+// Output Basis Action
+//------------------------------------------------------------------------------
 static inline int CeedOperatorOutputBasis_Blocked(CeedInt e, CeedInt Q,
     CeedQFunctionField *qfoutputfields, CeedOperatorField *opoutputfields,
     CeedInt blksize, CeedInt numinputfields, CeedInt numoutputfields,
@@ -388,30 +369,30 @@ static inline int CeedOperatorOutputBasis_Blocked(CeedInt e, CeedInt Q,
                             CEED_EVAL_GRAD, impl->qvecsout[i],
                             impl->evecsout[i]); CeedChk(ierr);
       break;
+    // LCOV_EXCL_START
     case CEED_EVAL_WEIGHT: {
-      // LCOV_EXCL_START
       Ceed ceed;
       ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
       return CeedError(ceed, 1, "CEED_EVAL_WEIGHT cannot be an output "
                        "evaluation mode");
-      // LCOV_EXCL_STOP
       break; // Should not occur
     }
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL: {
-      // LCOV_EXCL_START
       Ceed ceed;
       ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
       return CeedError(ceed, 1, "Ceed evaluation mode not implemented");
-      // LCOV_EXCL_STOP
       break; // Not implemented
+      // LCOV_EXCL_STOP
     }
     }
   }
   return 0;
 }
 
-// Restore Inputs
+//------------------------------------------------------------------------------
+// Restore Input Vectors
+//------------------------------------------------------------------------------
 static inline int CeedOperatorRestoreInputs_Blocked(CeedInt numinputfields,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
     bool skipactive, CeedOperator_Blocked *impl) {
@@ -438,7 +419,9 @@ static inline int CeedOperatorRestoreInputs_Blocked(CeedInt numinputfields,
   return 0;
 }
 
-// Apply Ceed Operator
+//------------------------------------------------------------------------------
+// Operator Apply
+//------------------------------------------------------------------------------
 static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
                                      CeedVector outvec,
                                      CeedRequest *request) {
@@ -454,7 +437,6 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
-  CeedTransposeMode lmode;
   CeedOperatorField *opinputfields, *opoutputfields;
   ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
   CeedChk(ierr);
@@ -523,10 +505,9 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
     if (vec == CEED_VECTOR_ACTIVE)
       vec = outvec;
     // Restrict
-    ierr = CeedOperatorFieldGetLMode(opoutputfields[i], &lmode); CeedChk(ierr);
-    ierr = CeedElemRestrictionApply(impl->blkrestr[i+impl->numein], CEED_TRANSPOSE,
-                                    lmode, impl->evecs[i+impl->numein], vec,
-                                    request); CeedChk(ierr);
+    ierr = CeedElemRestrictionApply(impl->blkrestr[i+impl->numein],
+                                    CEED_TRANSPOSE, impl->evecs[i+impl->numein],
+                                    vec, request); CeedChk(ierr);
 
   }
 
@@ -537,7 +518,9 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
   return 0;
 }
 
+//------------------------------------------------------------------------------
 // Assemble Linear QFunction
+//------------------------------------------------------------------------------
 static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
   int ierr;
@@ -626,8 +609,9 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
   ierr = CeedVectorGetArray(lvec, CEED_MEM_HOST, &a); CeedChk(ierr);
 
   // Create output restriction
-  ierr = CeedElemRestrictionCreateIdentity(ceed, numelements, Q,
-         numelements*Q, numactivein*numactiveout, rstr); CeedChk(ierr);
+  CeedInt strides[3] = {1, Q, numactivein *numactiveout*Q};
+  ierr = CeedElemRestrictionCreateStrided(ceed, numelements, Q, numelements*Q,
+                                          numactivein*numactiveout, strides, rstr); CeedChk(ierr);
   // Create assembled vector
   ierr = CeedVectorCreate(ceed, numelements*Q*numactivein*numactiveout,
                           assembled); CeedChk(ierr);
@@ -687,13 +671,13 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
   ierr = CeedVectorRestoreArray(lvec, &a); CeedChk(ierr);
   ierr = CeedVectorSetValue(*assembled, 0.0); CeedChk(ierr);
   CeedElemRestriction blkrstr;
-  ierr = CeedElemRestrictionCreateBlocked(ceed, numelements, Q, blksize,
-                                          numelements*Q,
-                                          numactivein*numactiveout,
-                                          CEED_MEM_HOST, CEED_COPY_VALUES,
-                                          NULL, &blkrstr); CeedChk(ierr);
-  ierr = CeedElemRestrictionApply(blkrstr, CEED_TRANSPOSE, CEED_NOTRANSPOSE,
-                                  lvec, *assembled, request); CeedChk(ierr);
+  ierr = CeedElemRestrictionCreateBlockedStrided(ceed, numelements, Q, blksize,
+         numelements*Q,
+         numactivein*numactiveout,
+         strides, &blkrstr);
+  CeedChk(ierr);
+  ierr = CeedElemRestrictionApply(blkrstr, CEED_TRANSPOSE, lvec, *assembled,
+                                  request); CeedChk(ierr);
 
   // Cleanup
   for (CeedInt i=0; i<numactivein; i++) {
@@ -706,6 +690,44 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Operator Destroy
+//------------------------------------------------------------------------------
+static int CeedOperatorDestroy_Blocked(CeedOperator op) {
+  int ierr;
+  CeedOperator_Blocked *impl;
+  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+
+  for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
+    ierr = CeedElemRestrictionDestroy(&impl->blkrestr[i]); CeedChk(ierr);
+    ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);
+  }
+  ierr = CeedFree(&impl->blkrestr); CeedChk(ierr);
+  ierr = CeedFree(&impl->evecs); CeedChk(ierr);
+  ierr = CeedFree(&impl->edata); CeedChk(ierr);
+  ierr = CeedFree(&impl->inputstate); CeedChk(ierr);
+
+  for (CeedInt i=0; i<impl->numein; i++) {
+    ierr = CeedVectorDestroy(&impl->evecsin[i]); CeedChk(ierr);
+    ierr = CeedVectorDestroy(&impl->qvecsin[i]); CeedChk(ierr);
+  }
+  ierr = CeedFree(&impl->evecsin); CeedChk(ierr);
+  ierr = CeedFree(&impl->qvecsin); CeedChk(ierr);
+
+  for (CeedInt i=0; i<impl->numeout; i++) {
+    ierr = CeedVectorDestroy(&impl->evecsout[i]); CeedChk(ierr);
+    ierr = CeedVectorDestroy(&impl->qvecsout[i]); CeedChk(ierr);
+  }
+  ierr = CeedFree(&impl->evecsout); CeedChk(ierr);
+  ierr = CeedFree(&impl->qvecsout); CeedChk(ierr);
+
+  ierr = CeedFree(&impl); CeedChk(ierr);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+// Operator Create
+//------------------------------------------------------------------------------
 int CeedOperatorCreate_Blocked(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -724,3 +746,4 @@ int CeedOperatorCreate_Blocked(CeedOperator op) {
                                 CeedOperatorDestroy_Blocked); CeedChk(ierr);
   return 0;
 }
+//------------------------------------------------------------------------------

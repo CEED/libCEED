@@ -1,3 +1,21 @@
+! Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
+! the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
+! reserved. See files LICENSE and NOTICE for details.
+!
+! This file is part of CEED, a collection of benchmarks, miniapps, software
+! libraries and APIs for efficient high-order finite element and spectral
+! element discretizations for exascale applications. For more information and
+! source code availability see http://github.com/ceed.
+!
+! The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
+! a collaborative effort of two U.S. Department of Energy organizations (Office
+! of Science and the National Nuclear Security Administration) responsible for
+! the planning and preparation of a capable exascale ecosystem, including
+! software, applications, hardware, advanced system engineering and early
+! testbed platforms, in support of the nation's exascale computing imperative.
+!
+!-----------------------------------------------------------------------
+!
 !-----------------------------------------------------------------------
 ! Dummy parameters for CEED Fortran 77+ stubs
 !-----------------------------------------------------------------------
@@ -41,6 +59,36 @@
 
       integer ceed_null
       parameter(ceed_null = -3)
+
+!-----------------------------------------------------------------------
+! CeedNormType
+!-----------------------------------------------------------------------
+
+      integer ceed_norm_1
+      parameter(ceed_norm_1      = 0 )
+
+      integer ceed_norm_2
+      parameter(ceed_norm_2      = 1 )
+
+      integer ceed_norm_max
+      parameter(ceed_norm_max    = 2 )
+
+!-----------------------------------------------------------------------
+! CeedInterlaceMode
+!-----------------------------------------------------------------------
+
+      integer ceed_noninterlaced
+      parameter(ceed_noninterlaced = 0)
+
+      integer ceed_interlaced
+      parameter(ceed_interlaced = 1)
+
+!-----------------------------------------------------------------------
+! Ceed Strides Constant
+!-----------------------------------------------------------------------
+
+      integer ceed_strides_backend
+      parameter(ceed_strides_backend     = -4)
 
 !-----------------------------------------------------------------------
 ! CeedTransposeMode
@@ -113,14 +161,17 @@
 ! Operator and OperatorField Constants
 !-----------------------------------------------------------------------
 
-      integer ceed_basis_collocated
-      parameter(ceed_basis_collocated     = -1)
-
       integer ceed_vector_active
-      parameter(ceed_vector_active        = -1)
+      parameter(ceed_vector_active        = -5)
 
       integer ceed_vector_none
-      parameter(ceed_vector_none          = -2)
+      parameter(ceed_vector_none          = -6)
+
+      integer ceed_elemrestriction_none
+      parameter(ceed_elemrestriction_none = -7)
+
+      integer ceed_basis_collocated
+      parameter(ceed_basis_collocated     = -8)
 
       integer ceed_qfunction_none
-      parameter(ceed_qfunction_none       = -1)
+      parameter(ceed_qfunction_none       = -9)

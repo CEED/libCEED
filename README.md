@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/CEED/libCEED.svg?branch=master)](https://travis-ci.org/CEED/libCEED)
 [![Code Coverage](https://codecov.io/gh/CEED/libCEED/branch/master/graphs/badge.svg)](https://codecov.io/gh/CEED/libCEED/)
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
+[![Documentation Status](https://readthedocs.org/projects/libceed/badge/?version=latest)](https://libceed.readthedocs.io/en/latest/?badge=latest)
 [![Doxygen](https://codedocs.xyz/CEED/libCEED.svg)](https://codedocs.xyz/CEED/libCEED/)
 
 ## Code for Efficient Extensible Discretization
@@ -12,7 +13,7 @@ high-order discretization methods developed by the ECP co-design [Center for
 Efficient Exascale Discretizations (CEED)](http://ceed.exascaleproject.org).
 While our focus is on high-order finite elements, the approach is mostly
 algebraic and thus applicable to other discretizations in factored form, as
-explained in the API documentation portion of the [Doxygen documentation](https://codedocs.xyz/CEED/libCEED/md_doc_libCEEDapi.html).
+explained in the [User manual](https://libceed.readthedocs.io/en/latest/) and API documentation portion of the [Doxygen documentation](https://codedocs.xyz/CEED/libCEED/md_doc_libCEEDapi.html).
 
 One of the challenges with high-order methods is that a global sparse matrix is
 no longer a good representation of a high-order linear operator, both with
@@ -24,7 +25,7 @@ sparse matrix.
 The goal of libCEED is to propose such a format, as well as supporting
 implementations and data structures, that enable efficient operator evaluation
 on a variety of computational device types (CPUs, GPUs, etc.). This new operator
-description is based on algebraically [factored form](https://codedocs.xyz/CEED/libCEED/md_doc_libCEEDapi.html),
+description is based on algebraically [factored form](https://libceed.readthedocs.io/en/latest/libCEEDapi.html),
 which is easy to incorporate in a wide variety of applications, without significant
 refactoring of their own discretization infrastructure.
 
@@ -43,10 +44,13 @@ platforms, in support of the nation’s exascale computing imperative.
 
 For more details on the CEED API see http://ceed.exascaleproject.org/ceed-code/.
 
+For detailed instructions on how to build libCEED and run benchmarks and examples, please see the dedicated [Getting Started](https://libceed.readthedocs.io/en/latest/gettingstarted.html) page in the [User manual](https://libceed.readthedocs.io/en/latest/). A short summary is provided here.
+
 ## Building
 
-The CEED library, `libceed`, is a C99 library with no external dependencies.  It
-can be built using
+The CEED library, `libceed`, is a C99 library with no external dependencies. The library
+has Fortran and Python interfaces; see `interface/ceed-fortran.c` and
+`interface/ceed-python/`. It can be built using
 
     make
 
@@ -84,7 +88,7 @@ or, using the `prove` tool distributed with Perl (recommended)
 
 There are multiple supported backends, which can be selected at runtime in the examples:
 
-|  CEED resource           | Backend                                           |
+| CEED resource            | Backend                                           |
 | :----------------------- | :------------------------------------------------ |
 | `/cpu/self/ref/serial`   | Serial reference implementation                   |
 | `/cpu/self/ref/blocked`  | Blocked refrence implementation                   |
@@ -134,135 +138,3 @@ cross platform performance.
 The `/gpu/cuda/*` backends provide GPU performance strictly using CUDA.
 
 The `/gpu/magma` backend relies upon the [MAGMA](https://bitbucket.org/icl/magma) package.
-
-## Examples
-
-libCEED comes with several examples of its usage, ranging from standalone C
-codes in the `/examples/ceed` directory to examples based on external packages,
-such as MFEM, PETSc, and Nek5000. Nek5000 v18.0 or greater is required.
-
-To build the examples, set the `MFEM_DIR`, `PETSC_DIR` and `NEK5K_DIR` variables
-and run:
-
-```console
-# libCEED examples on CPU and GPU
-cd examples/ceed
-make
-./ex1 -ceed /cpu/self
-./ex1 -ceed /gpu/occa
-cd ../..
-
-# MFEM+libCEED examples on CPU and GPU
-cd examples/mfem
-make
-./bp1 -ceed /cpu/self -no-vis
-./bp3 -ceed /gpu/occa -no-vis
-cd ../..
-
-# Nek5000+libCEED examples on CPU and GPU
-cd examples/nek
-make
-./nek-examples.sh -e bp1 -ceed /cpu/self -b 3
-./nek-examples.sh -e bp3 -ceed /gpu/occa -b 3
-cd ../..
-
-# PETSc+libCEED examples on CPU and GPU
-cd examples/petsc
-make
-./bps -problem bp1 -ceed /cpu/self
-./bps -problem bp2 -ceed /gpu/occa
-./bps -problem bp3 -ceed /cpu/self
-./bps -problem bp4 -ceed /gpu/occa
-./bps -problem bp5 -ceed /cpu/self
-./bps -problem bp6 -ceed /gpu/occa
-cd ../..
-
-cd examples/navier-stokes
-make
-./navierstokes -ceed /cpu/self
-./navierstokes -ceed /gpu/occa
-cd ../..
-```
-
-The above code assumes a GPU-capable machine with the OCCA backend 
-enabled. Depending on the available backends, other Ceed resource specifiers can
-be provided with the `-ceed` option.
-
-## Benchmarks
-
-A sequence of benchmarks for all enabled backends can be run using
-
-```console
-make benchmarks
-```
-
-The results from the benchmarks are stored inside the `benchmarks/` directory
-and they can be viewed using the commands (requires python with matplotlib):
-
-```console
-cd benchmarks
-python postprocess-plot.py petsc-bps-bp1-*-output.txt
-python postprocess-plot.py petsc-bps-bp3-*-output.txt
-```
-
-Using the `benchmarks` target runs a comprehensive set of benchmarks which may
-take some time to run. Subsets of the benchmarks can be run using the scripts in the `benchmarks` folder.
-
-For more details about the benchmarks, see
-[`benchmarks/README.md`](benchmarks/README.md)
-
-
-## Install
-
-To install libCEED, run
-
-    make install prefix=/usr/local
-
-or (e.g., if creating packages),
-
-    make install prefix=/usr DESTDIR=/packaging/path
-
-Note that along with the library, libCEED installs kernel sources, e.g. OCCA
-kernels are installed in `$prefix/lib/okl`. This allows the OCCA backend to
-build specialized kernels at run-time. In a normal setting, the kernel sources
-will be found automatically (relative to the library file `libceed.so`).
-However, if that fails (e.g. if `libceed.so` is moved), one can copy (cache) the
-kernel sources inside the user OCCA directory, `~/.occa` using
-
-    $(OCCA_DIR)/bin/occa cache ceed $(CEED_DIR)/lib/okl/*.okl
-
-This will allow OCCA to find the sources regardless of the location of the CEED
-library. One may occasionally need to clear the OCCA cache, which can be accomplished
-by removing the `~/.occa` directory or by calling `$(OCCA_DIR)/bin/occa clear -a`.
-
-### pkg-config
-
-In addition to library and header, libCEED provides a [pkg-config][pkg-config1]
-file that can be used to easily compile and link. [For example][pkg-config2], if
-`$prefix` is a standard location or you set the environment variable
-`PKG_CONFIG_PATH`,
-
-    cc `pkg-config --cflags --libs ceed` -o myapp myapp.c
-
-will build `myapp` with libCEED.  This can be used with the source or
-installed directories.  Most build systems have support for pkg-config.
-
-## Contact
-
-You can reach the libCEED team by emailing [ceed-users@llnl.gov](mailto:ceed-users@llnl.gov)
-or by leaving a comment in the [issue tracker](https://github.com/CEED/libCEED/issues).
-
-## Copyright
-
-The following copyright applies to each file in the CEED software suite, unless
-otherwise stated in the file:
-
-> Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at the
-> Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights reserved.
-
-See files LICENSE and NOTICE for details.
-
-[ceed-soft]:   http://ceed.exascaleproject.org/software/
-[ecp]:         https://exascaleproject.org/exascale-computing-project
-[pkg-config1]: https://en.wikipedia.org/wiki/Pkg-config
-[pkg-config2]: https://people.freedesktop.org/~dbn/pkg-config-guide.html#faq

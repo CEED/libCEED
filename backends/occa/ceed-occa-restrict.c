@@ -33,7 +33,6 @@ static inline size_t bytes(const CeedElemRestriction res) {
 static
 int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
                                   CeedTransposeMode tmode,
-                                  CeedTransposeMode lmode,
                                   CeedVector u, CeedVector v,
                                   CeedRequest *request) {
   int ierr;
@@ -53,16 +52,20 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
   ierr = CeedVectorGetData(v, (void *)&v_data); CeedChk(ierr);
   const occaMemory ud = u_data->d_array;
   const occaMemory vd = v_data->d_array;
+  const bool strided = data->strided;
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
+  if (!strided) {
+    ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
+  }
   const CeedTransposeMode restriction = (tmode == CEED_NOTRANSPOSE);
-  const CeedTransposeMode ordering = (lmode == CEED_NOTRANSPOSE);
-  const bool identity = data->identity;
+  const CeedInterlaceMode ordering = (imode == CEED_NONINTERLACED);
   // ***************************************************************************
-  if (identity) {
-    dbg("[CeedElemRestriction][Apply] kRestrict[6]");
-    occaKernelRun(data->kRestrict[6], ud, vd);
-  } else if (restriction) {
+  if (restriction) {
     // Perform: v = r * u
-    if (ncomp == 1) {
+    if (strided) {
+      dbg("[CeedElemRestriction][Apply] kRestrict[6]");
+      occaKernelRun(data->kRestrict[6], ud, vd);
+    } else if (ncomp == 1) {
       dbg("[CeedElemRestriction][Apply] kRestrict[0]");
       occaKernelRun(data->kRestrict[0], id, ud, vd);
     } else {
@@ -79,7 +82,10 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
     }
   } else { // ******************************************************************
     // Note: in transpose mode, we perform: v += r^t * u
-    if (ncomp == 1) {
+    if (strided) {
+      dbg("[CeedElemRestriction][Apply] kRestrict[7]");
+      occaKernelRun(data->kRestrict[7], ud, vd);
+    } else if (ncomp == 1) {
       dbg("[CeedElemRestriction][Apply] kRestrict[3]");
       occaKernelRun(data->kRestrict[3], tid, od, ud, vd);
     } else {
@@ -102,8 +108,9 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
 
 // *****************************************************************************
 int CeedElemRestrictionApplyBlock_Occa(CeedElemRestriction r,
-                                       CeedInt block, CeedTransposeMode tmode, CeedTransposeMode lmode,
-                                       CeedVector u, CeedVector v, CeedRequest *request) {
+                                       CeedInt block, CeedTransposeMode tmode,
+                                       CeedInterlaceMode imode, CeedVector u,
+                                       CeedVector v, CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
@@ -208,7 +215,7 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
     // ***************************************************************************
     occaCopyPtrToMem(data->d_indices,indices,bytes(r),NO_OFFSET,NO_PROPS);
   } else {
-    data->identity = true;
+    data->strided = true;
   }
   // ***************************************************************************
   dbg("[CeedElemRestriction][Create] Building kRestrict");
@@ -221,12 +228,25 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
   dbg("[CeedElemRestriction][Create] nelem=%d",nelem);
   occaProperties pKR = occaCreateProperties();
   occaPropertiesSet(pKR, "defines/nnodes", occaInt(nnodes));
+  occaPropertiesSet(pKR, "defines/numcomp", occaInt(ncomp));
   occaPropertiesSet(pKR, "defines/nelem", occaInt(nelem));
   occaPropertiesSet(pKR, "defines/elemsize", occaInt(elemsize));
   occaPropertiesSet(pKR, "defines/nelem_x_elemsize",
                     occaInt(nelem*elemsize));
   occaPropertiesSet(pKR, "defines/nelem_x_elemsize_x_ncomp",
                     occaInt(nelem*elemsize*ncomp));
+  CeedInt strides[3] = {1, elemsize, elemsize*ncomp};
+  if (data->strided) {
+    bool backendstrides;
+    ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
+    CeedChk(ierr);
+    if (!backendstrides) {
+      ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
+    }
+  }
+  occaPropertiesSet(pKR, "defines/stridenode", occaInt(strides[0]));
+  occaPropertiesSet(pKR, "defines/stridecomp", occaInt(strides[1]));
+  occaPropertiesSet(pKR, "defines/strideelem", occaInt(strides[2]));
   // OpenCL check for this requirement
   const CeedInt nelem_tile_size = (nelem>TILE_SIZE)?TILE_SIZE:nelem;
   // OCCA+MacOS implementation need that for now (if DeviceID targets a CPU)
@@ -244,6 +264,7 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
   data->kRestrict[4] = occaDeviceBuildKernel(dev, oklPath, "kRestrict4", pKR);
   data->kRestrict[5] = occaDeviceBuildKernel(dev, oklPath, "kRestrict5", pKR);
   data->kRestrict[6] = occaDeviceBuildKernel(dev, oklPath, "kRestrict6", pKR);
+  data->kRestrict[7] = occaDeviceBuildKernel(dev, oklPath, "kRestrict7", pKR);
   // free local usage **********************************************************
   occaFree(pKR);
   ierr = CeedFree(&oklPath); CeedChk(ierr);

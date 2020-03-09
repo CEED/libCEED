@@ -17,6 +17,31 @@
 /// @file
 /// libCEED QFunctions for diffusion operator example using PETSc
 
+// *****************************************************************************
+// This QFunction sets up the geometric factors required to apply the
+//   diffusion operator
+//
+// We require the product of the inverse of the Jacobian and its transpose to
+//   properly compute integrals of the form: int( gradv gradu)
+//
+// Determinant of Jacobian:
+//   detJ = J11*A11 + J21*A12 + J31*A13
+//     Jij = Jacobian entry ij
+//     Aij = Adjoint ij
+//
+// Inverse of Jacobian:
+//   Bij = Aij / detJ
+//
+// Product of Inverse and Transpose:
+//   BBij = sum( Bik Bkj )
+//
+// Stored: w B^T B detJ = w A^T A / detJ
+//   Note: This matrix is symmetric, so we only store 6 distinct entries
+//     qd: 0 3 6
+//         1 4 7
+//         2 5 8
+// *****************************************************************************
+
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
                              const CeedScalar *const *in,
@@ -56,6 +81,10 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
 
   return 0;
 }
+
+// *****************************************************************************
+// This QFunction sets up the rhs and true solution for the problem
+// *****************************************************************************
 
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
@@ -98,10 +127,22 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
   return 0;
 }
 
+// *****************************************************************************
+// This QFunction applies the diffusion operator for a scalar field.
+//
+// Inputs:
+//   ug     - Input vector gradient at quadrature points
+//   qdata  - Geometric factors
+//
+// Output:
+//   vg     - Output vector (test functions) gradient at quadrature points
+//
+// *****************************************************************************
+
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *ug = in[0], *qd = in[1];
+  const CeedScalar *ug = in[0], *qdata = in[1];
   CeedScalar *vg = out[0];
 
   // Quadrature Point Loop
@@ -113,15 +154,15 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q,
                                       ug[i+Q*2]
                                      };
     // Read qdata (dXdxdXdxT symmetric matrix)
-    const CeedScalar dXdxdXdxT[3][3] = {{qd[i+0*Q],
-                                         qd[i+1*Q],
-                                         qd[i+2*Q]},
-                                        {qd[i+1*Q],
-                                         qd[i+3*Q],
-                                         qd[i+4*Q]},
-                                        {qd[i+2*Q],
-                                         qd[i+4*Q],
-                                         qd[i+5*Q]}
+    const CeedScalar dXdxdXdxT[3][3] = {{qdata[i+0*Q],
+                                         qdata[i+1*Q],
+                                         qdata[i+2*Q]},
+                                        {qdata[i+1*Q],
+                                         qdata[i+3*Q],
+                                         qdata[i+4*Q]},
+                                        {qdata[i+2*Q],
+                                         qdata[i+4*Q],
+                                         qdata[i+5*Q]}
                                        };
 
     for (int j=0; j<3; j++) // j = direction of vg

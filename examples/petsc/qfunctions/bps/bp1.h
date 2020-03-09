@@ -21,6 +21,19 @@
 #  include <math.h>
 #endif
 
+// *****************************************************************************
+// This QFunction sets up the geometric factors required to apply the
+//   mass operator
+//
+// The quadrature data is stored in the array qdata.
+//
+// We require the determinant of the Jacobian to properly compute integrals of
+//   the form: int( u v )
+//
+// Qdata: detJ * w
+//
+// *****************************************************************************
+
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
@@ -31,13 +44,17 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
-                            J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-                            J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
-    qdata[i] = det * w[i];
+    const CeedScalar detJ = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
+                             J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
+                             J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
+    qdata[i] = detJ * w[i];
   } // End of Quadrature Point Loop
   return 0;
 }
+
+// *****************************************************************************
+// This QFunction sets up the rhs and true solution for the problem
+// *****************************************************************************
 
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q,
@@ -59,6 +76,19 @@ CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q,
   } // End of Quadrature Point Loop
   return 0;
 }
+
+
+// *****************************************************************************
+// This QFunction applies the mass operator for a scalar field.
+//
+// Inputs:
+//   u     - Input vector at quadrature points
+//   qdata - Geometric factors
+//
+// Output:
+//   v     - Output vector (test functions) at quadrature points
+//
+// *****************************************************************************
 
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,

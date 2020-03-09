@@ -7,12 +7,12 @@ This page provides a brief description of the examples for the libCEED library.
 Two examples are provided that rely only upon libCEED without any external
 libraries.
 
-### Example 1
+### Example 1: ex1-volume
 
 This example uses the mass matrix to compute the length, area, or volume of a
 region, depending upon runtime parameters.
 
-### Example 2
+### Example 2: ex2-surface
 
 This example uses the diffusion matrix to compute the surface area of a region,
 depending upon runtime parameters.
@@ -74,10 +74,17 @@ The supplied examples solve *_A_ _u_ = f*, where *_A_* is the Laplace operator f
 
 The nodal points, *p*, are Gauss-Legendre-Lobatto, and the quadrature points, *q* are Gauss-Legendre-Lobatto. The nodal points and quadrature points are collocated.
 
-## Navier-Stokes Solver
+## PETSc+libCEED Navier-Stokes Solver
 
 The Navier-Stokes problem solves the compressible Navier-Stokes equations using an explicit time integration. A more detailed description of the problem formulation
-can be found in the `navier-stokes` folder.
+can be found in the [`navier-stokes`](./navierstokes) folder.
+
+## PETSc+libCEED Surface Area Examples
+
+These examples use the mass operator to compute the surface area of a cube or a discrete cubed-sphere, using PETSc.
+
+These examples show in particular the constructions of geometric factors to handle problems in which the elements topological dimension is different from the
+geometrical dimension and for which the coordinate transformation Jacobian from the 2D reference space to a manifold embedded in 3D physical space is a non-square matrix.
 
 ## Running Examples
 
@@ -88,8 +95,10 @@ and run:
 # libCEED examples on CPU and GPU
 cd ceed
 make
-./ex1 -ceed /cpu/self
-./ex1 -ceed /gpu/occa
+./ex1-volume -ceed /cpu/self
+./ex1-volume -ceed /gpu/occa
+./ex2-surface -ceed /cpu/self
+./ex2-surface -ceed /gpu/occa
 cd ..
 
 # MFEM+libCEED examples on CPU and GPU
@@ -117,13 +126,21 @@ make
 ./bpsraw -problem bp6 -ceed /gpu/occa
 cd ..
 
+cd petsc
+make
+./area -problem cube -ceed /cpu/self -petscspace_degree 3
+./area -problem cube -ceed /gpu/occa -petscspace_degree 3
+./area -problem sphere -ceed /cpu/self -petscspace_degree 3 -dm_refine 2
+./area -problem sphere -ceed /gpu/occa -petscspace_degree 3 -dm_refine 2
+
 cd navier-stokes
 make
-./navierstokes -ceed /cpu/self
-./navierstokes -ceed /gpu/occa
+./navierstokes -ceed /cpu/self -petscspace_degree 1
+./navierstokes -ceed /gpu/occa -petscspace_degree 1
 cd ..
 ```
 
 The above code assumes a GPU-capable machine with the OCCA backend 
 enabled. Depending on the available backends, other CEED resource specifiers can
-be provided with the `-ceed` option.
+be provided with the `-ceed` option. Other command line arguments can be found in the
+[`petsc`](./petsc/README.md) folder.

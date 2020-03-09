@@ -73,9 +73,11 @@ endif
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-OPT    = -O -g -march=native -ffp-contract=fast -fopenmp-simd
+MARCHFLAG := $(if $(shell $(CC) -E -march=native -x c /dev/null > /dev/null 2>&1 && echo 1),-march=native,-mtune=native)
+
+OPT    = -O -g $(MARCHFLAG) -ffp-contract=fast -fopenmp-simd
 CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-CXXFLAGS = $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
+CXXFLAGS = -std=c++11 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 NVCCFLAGS = -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
@@ -154,9 +156,9 @@ nekexamples  := $(OBJDIR)/nek-bps
 # PETSc Examples
 petscexamples.c := $(wildcard examples/petsc/*.c)
 petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
-# Navier-Stokes Example
-navierstokesexample.c := $(sort $(wildcard examples/navier-stokes/*.c))
-navierstokesexample  := $(navierstokesexample.c:examples/navier-stokes/%.c=$(OBJDIR)/navier-stokes-%)
+# Navier-Stokes Examples
+nsexamples.c := $(sort $(wildcard examples/navier-stokes/*.c))
+nsexamples  := $(nsexamples.c:examples/navier-stokes/%.c=$(OBJDIR)/ns-%)
 
 # Backends/[ref, blocked, template, memcheck, opt, avx, occa, magma]
 ref.c          := $(sort $(wildcard backends/ref/*.c))
@@ -404,7 +406,7 @@ $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
 	mv examples/petsc/$* $@
 
-$(OBJDIR)/navier-stokes-% : examples/navier-stokes/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
+$(OBJDIR)/ns-% : examples/navier-stokes/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(MAKE) -C examples/navier-stokes CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
 	mv examples/navier-stokes/$* $@
@@ -425,7 +427,8 @@ run-% : $(OBJDIR)/%
 external_examples := \
 	$(if $(MFEM_DIR),$(mfemexamples)) \
 	$(if $(PETSC_DIR),$(petscexamples)) \
-	$(if $(NEK5K_DIR),$(nekexamples))
+	$(if $(NEK5K_DIR),$(nekexamples)) \
+	$(if $(PETSC_DIR),$(nsexamples))
 
 allexamples = $(examples) $(external_examples)
 
@@ -504,19 +507,33 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(if $(OCCA_ON),$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/")
 
-.PHONY : cln clean doc lib install all print test tst prove prv prove-all junit examples style tidy okl-cache okl-clear info info-backends
+.PHONY : cln clean doxygen doc lib install all print test tst prove prv prove-all junit examples style tidy okl-cache okl-clear info info-backends
 
 cln clean :
-	$(RM) -r $(OBJDIR) $(LIBDIR)
+	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
 	$(MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
+	$(MAKE) -C tests/python clean
 	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
 	$(RM) benchmarks/*output.txt
 
 distclean : clean
 	$(RM) -r doc/html config.mk
 
-doc :
-	doxygen Doxyfile
+DOXYGEN ?= doxygen
+doxygen :
+	$(DOXYGEN) Doxyfile
+
+# This is a real file, but it doesn't depend on the state of a file,
+# so we make it phony to force it.  We sort the shortlog by author
+# last name.
+.PHONY: AUTHORS
+AUTHORS:
+	git shortlog -s | awk '{$$1 = "placeholder"; print $$NF,$$0}' | sort | cut -d\  -f3- > $@
+
+doc-html doc-latexpdf doc-epub : doc-% : doxygen AUTHORS
+	make -C doc/sphinx $*
+
+doc : doc-html
 
 style :
 	@astyle --options=.astylerc \

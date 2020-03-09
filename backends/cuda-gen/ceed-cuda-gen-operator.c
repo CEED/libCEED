@@ -23,13 +23,12 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   int ierr;
   CeedOperator_Cuda_gen *impl;
   ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
-
   ierr = CeedFree(&impl); CeedChk(ierr);
   return 0;
 }
 
 static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
-                                         CeedVector outvec, CeedRequest *request) {
+    CeedVector outvec, CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);

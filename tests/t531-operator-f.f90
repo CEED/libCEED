@@ -61,7 +61,10 @@
       include 'ceedf.h'
 
       integer ceed,err,i,j,k
-      integer erestrictx,erestrictu,erestrictxi,erestrictui
+      integer imode
+      parameter(imode=ceed_noninterlaced)
+      integer stridesu(3),stridesqd(3)
+      integer erestrictx,erestrictu,erestrictui
       integer erestrictqi,erestrictlini
       integer bx,bu
       integer qf_setup,qf_diff,qf_diff_lin
@@ -117,18 +120,18 @@
       enddo
 
 ! Restrictions
-      call ceedelemrestrictioncreate(ceed,nelem,p*p,ndofs,d,&
+      call ceedelemrestrictioncreate(ceed,imode,nelem,p*p,ndofs,d,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictx,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelem,p*p,&
-     & nelem*p*p,d,erestrictxi,err)
 
-      call ceedelemrestrictioncreate(ceed,nelem,p*p,ndofs,1,&
+      call ceedelemrestrictioncreate(ceed,imode,nelem,p*p,ndofs,1,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictu,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelem,q*q,nqpts,&
-     & 1,erestrictui,err)
+      stridesu=[1,q*q,q*q]
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q*q,nqpts,&
+     & 1,stridesu,erestrictui,err)
 
-      call ceedelemrestrictioncreateidentity(ceed,nelem,q*q,nqpts,&
-     & d*(d+1)/2,erestrictqi,err)
+      stridesqd=[1,q*q,q*q*d*(d+1)/2]
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q*q,nqpts,&
+     & d*(d+1)/2,stridesqd,erestrictqi,err)
 
 ! Bases
       call ceedbasiscreatetensorh1lagrange(ceed,d,d,p,q,ceed_gauss,&
@@ -148,11 +151,11 @@
       call ceedoperatorcreate(ceed,qf_setup,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setup,err)
       call ceedoperatorsetfield(op_setup,'dx',erestrictx,&
-     & ceed_notranspose,bx,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&
-     & ceed_notranspose,bx,ceed_vector_none,err)
+     & bx,ceed_vector_active,err)
+      call ceedoperatorsetfield(op_setup,'_weight',ceed_elemrestriction_none,&
+     & bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'qdata',erestrictqi,&
-     & ceed_notranspose,ceed_basis_collocated,ceed_vector_active,err)
+     & ceed_basis_collocated,ceed_vector_active,err)
 
 ! Apply Setup Operator
       call ceedoperatorapply(op_setup,x,qdata,ceed_request_immediate,err)
@@ -169,11 +172,11 @@
       call ceedoperatorcreate(ceed,qf_diff,ceed_qfunction_none,&
      & ceed_qfunction_none,op_diff,err)
       call ceedoperatorsetfield(op_diff,'du',erestrictu,&
-     & ceed_notranspose,bu,ceed_vector_active,err)
+     & bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_diff,'qdata',erestrictqi,&
-     & ceed_notranspose,ceed_basis_collocated,qdata,err)
+     & ceed_basis_collocated,qdata,err)
       call ceedoperatorsetfield(op_diff,'dv',erestrictu,&
-     & ceed_notranspose,bu,ceed_vector_active,err)
+     & bu,ceed_vector_active,err)
 
 ! Apply original Poisson Operator
       call ceedvectorcreate(ceed,ndofs,u,err)
@@ -209,11 +212,11 @@
       call ceedoperatorcreate(ceed,qf_diff_lin,ceed_qfunction_none,&
      & ceed_qfunction_none,op_diff_lin,err)
       call ceedoperatorsetfield(op_diff_lin,'du',erestrictu,&
-     & ceed_notranspose,bu,ceed_vector_active,err)
+     & bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_diff_lin,'qdata',erestrictlini,&
-     & ceed_notranspose,ceed_basis_collocated,a,err)
+     & ceed_basis_collocated,a,err)
       call ceedoperatorsetfield(op_diff_lin,'dv',erestrictu,&
-     & ceed_notranspose,bu,ceed_vector_active,err)
+     & bu,ceed_vector_active,err)
 
 ! Apply linearized Poisson Operator
       call ceedvectorsetvalue(v,0.d0,err)
@@ -240,7 +243,6 @@
       call ceedoperatordestroy(op_diff_lin,err)
       call ceedelemrestrictiondestroy(erestrictu,err)
       call ceedelemrestrictiondestroy(erestrictx,err)
-      call ceedelemrestrictiondestroy(erestrictxi,err)
       call ceedelemrestrictiondestroy(erestrictui,err)
       call ceedelemrestrictiondestroy(erestrictqi,err)
       call ceedelemrestrictiondestroy(erestrictlini,err)

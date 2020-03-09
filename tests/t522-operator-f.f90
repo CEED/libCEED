@@ -44,8 +44,11 @@
       include 'ceedf.h'
 
       integer ceed,err,i,j,k
-      integer erestrictxtet,erestrictutet,erestrictxitet,erestrictqditet,&
-&             erestrictxhex,erestrictuhex,erestrictxihex,erestrictqdihex
+      integer imode
+      parameter(imode=ceed_noninterlaced)
+      integer stridesqdtet(3),stridesqdhex(3)
+      integer erestrictxtet,erestrictutet,erestrictqditet,&
+&             erestrictxhex,erestrictuhex,erestrictqdihex
       integer bxtet,butet,bxhex,buhex
       integer qf_setuptet,qf_difftet,qf_setuphex,qf_diffhex
       integer op_setuptet,op_difftet,op_setuphex,op_diffhex,op_setup,op_diff
@@ -127,15 +130,14 @@
       enddo
 
 ! -- Restrictions
-      call ceedelemrestrictioncreate(ceed,nelemtet,ptet,ndofs,d,ceed_mem_host,&
-     & ceed_use_pointer,indxtet,erestrictxtet,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelemtet,ptet,nelemtet*ptet,&
-     & d,erestrictxitet,err)
+      call ceedelemrestrictioncreate(ceed,imode,nelemtet,ptet,ndofs,d,&
+     & ceed_mem_host,ceed_use_pointer,indxtet,erestrictxtet,err)
 
-      call ceedelemrestrictioncreate(ceed,nelemtet,ptet,ndofs,1,ceed_mem_host,&
-     & ceed_use_pointer,indxtet,erestrictutet,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelemtet,qtet,nqptstet,&
-     & d*(d+1)/2,erestrictqditet,err)
+      call ceedelemrestrictioncreate(ceed,imode,nelemtet,ptet,ndofs,1,&
+     & ceed_mem_host,ceed_use_pointer,indxtet,erestrictutet,err)
+      stridesqdtet=[1,qtet,qtet*d*(d+1)/2]
+      call ceedelemrestrictioncreatestrided(ceed,nelemtet,qtet,nqptstet,&
+     & d*(d+1)/2,stridesqdtet,erestrictqditet,err)
 
 ! -- Bases
       call buildmats(qref,qweight,interp,grad)
@@ -165,21 +167,21 @@
 ! ---- Setup Tet
       call ceedoperatorcreate(ceed,qf_setuptet,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setuptet,err)
-      call ceedoperatorsetfield(op_setuptet,'_weight',erestrictxitet,&
-     & ceed_notranspose,bxtet,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setuptet,'_weight',&
+     & ceed_elemrestriction_none,bxtet,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuptet,'dx',erestrictxtet,&
-     & ceed_notranspose,bxtet,ceed_vector_active,err)
+     & bxtet,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setuptet,'rho',erestrictqditet,&
-     & ceed_notranspose,ceed_basis_collocated,qdatatet,err)
+     & ceed_basis_collocated,qdatatet,err)
 ! ---- diff Tet
       call ceedoperatorcreate(ceed,qf_difftet,ceed_qfunction_none,&
      & ceed_qfunction_none,op_difftet,err)
       call ceedoperatorsetfield(op_difftet,'rho',erestrictqditet,&
-     & ceed_notranspose,ceed_basis_collocated,qdatatet,err)
+     & ceed_basis_collocated,qdatatet,err)
       call ceedoperatorsetfield(op_difftet,'u',erestrictutet,&
-     & ceed_notranspose,butet,ceed_vector_active,err)
+     & butet,ceed_vector_active,err)
       call ceedoperatorsetfield(op_difftet,'v',erestrictutet,&
-     & ceed_notranspose,butet,ceed_vector_active,err)
+     & butet,ceed_vector_active,err)
 
 ! Hex Elements
       do i=0,nelemhex-1
@@ -194,15 +196,14 @@
       enddo
 
 ! -- Restrictions
-      call ceedelemrestrictioncreate(ceed,nelemhex,phex*phex,ndofs,d,&
+      call ceedelemrestrictioncreate(ceed,imode,nelemhex,phex*phex,ndofs,d,&
      & ceed_mem_host,ceed_use_pointer,indxhex,erestrictxhex,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelemhex,phex*phex,&
-     & nelemhex*phex*phex,d,erestrictxihex,err)
 
-      call ceedelemrestrictioncreate(ceed,nelemhex,phex*phex,ndofs,1,&
+      call ceedelemrestrictioncreate(ceed,imode,nelemhex,phex*phex,ndofs,1,&
      & ceed_mem_host,ceed_use_pointer,indxhex,erestrictuhex,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelemhex,qhex*qhex,nqptshex,&
-     & d*(d+1)/2,erestrictqdihex,err)
+      stridesqdhex=[1,qhex*qhex,qhex*qhex*d*(d+1)/2]
+      call ceedelemrestrictioncreatestrided(ceed,nelemhex,qhex*qhex,&
+     & nqptshex,d*(d+1)/2,stridesqdhex,erestrictqdihex,err)
 
 ! -- Bases
       call ceedbasiscreatetensorh1lagrange(ceed,d,d,phex,qhex,ceed_gauss,&
@@ -230,21 +231,21 @@
 ! ---- Setup Hex
       call ceedoperatorcreate(ceed,qf_setuphex,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setuphex,err)
-      call ceedoperatorsetfield(op_setuphex,'_weight',erestrictxihex,&
-     & ceed_notranspose,bxhex,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setuphex,'_weight',&
+     & ceed_elemrestriction_none,bxhex,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuphex,'dx',erestrictxhex,&
-     & ceed_notranspose,bxhex,ceed_vector_active,err)
+     & bxhex,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setuphex,'rho',erestrictqdihex,&
-     & ceed_notranspose,ceed_basis_collocated,qdatahex,err)
+     & ceed_basis_collocated,qdatahex,err)
 ! ---- diff Hex
       call ceedoperatorcreate(ceed,qf_diffhex,ceed_qfunction_none,&
      & ceed_qfunction_none,op_diffhex,err)
       call ceedoperatorsetfield(op_diffhex,'rho',erestrictqdihex,&
-     & ceed_notranspose,ceed_basis_collocated,qdatahex,err)
+     & ceed_basis_collocated,qdatahex,err)
       call ceedoperatorsetfield(op_diffhex,'u',erestrictuhex,&
-     & ceed_notranspose,buhex,ceed_vector_active,err)
+     & buhex,ceed_vector_active,err)
       call ceedoperatorsetfield(op_diffhex,'v',erestrictuhex,&
-     & ceed_notranspose,buhex,ceed_vector_active,err)
+     & buhex,ceed_vector_active,err)
 
 ! Composite Operators
       call ceedcompositeoperatorcreate(ceed,op_setup,err)
@@ -291,11 +292,9 @@
       call ceedelemrestrictiondestroy(erestrictutet,err)
       call ceedelemrestrictiondestroy(erestrictxtet,err)
       call ceedelemrestrictiondestroy(erestrictqditet,err)
-      call ceedelemrestrictiondestroy(erestrictxitet,err)
       call ceedelemrestrictiondestroy(erestrictuhex,err)
       call ceedelemrestrictiondestroy(erestrictxhex,err)
       call ceedelemrestrictiondestroy(erestrictqdihex,err)
-      call ceedelemrestrictiondestroy(erestrictxihex,err)
       call ceedbasisdestroy(butet,err)
       call ceedbasisdestroy(bxtet,err)
       call ceedbasisdestroy(buhex,err)

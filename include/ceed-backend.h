@@ -27,6 +27,7 @@
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
 #define CEED_COMPOSITE_MAX 16
+#define CEED_EPSILON 1E-16
 
 /// Handle for object handling TensorContraction
 /// @ingroup CeedBasis
@@ -48,10 +49,10 @@ CEED_INTERN int CeedFree(void *p);
 #define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
 /// Handle for object describing CeedQFunction fields
-/// @ingroup CeedQFunction
+/// @ingroup CeedQFunctionBackend
 typedef struct CeedQFunctionField_private *CeedQFunctionField;
 /// Handle for object describing CeedOperator fields
-/// @ingroup CeedOperator
+/// @ingroup CeedOperatorBackend
 typedef struct CeedOperatorField_private *CeedOperatorField;
 
 CEED_EXTERN int CeedRegister(const char *prefix,
@@ -84,18 +85,10 @@ CEED_EXTERN int CeedVectorSetData(CeedVector vec, void **data);
 
 CEED_EXTERN int CeedElemRestrictionGetCeed(CeedElemRestriction rstr,
     Ceed *ceed);
-CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
-    CeedInt *numelem);
-CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
-    CeedInt *elemsize);
-CEED_EXTERN int CeedElemRestrictionGetNumNodes(CeedElemRestriction rstr,
-    CeedInt *numnodes);
-CEED_EXTERN int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
-    CeedInt *numcomp);
-CEED_EXTERN int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
-    CeedInt *numblk);
-CEED_EXTERN int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
-    CeedInt *blksize);
+CEED_EXTERN int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
+    CeedInt (*strides)[3]);
+CEED_EXTERN int CeedElemRestrictionGetBackendStridesStatus(
+  CeedElemRestriction rstr, bool *status);
 CEED_EXTERN int CeedElemRestrictionGetData(CeedElemRestriction rstr,
     void **data);
 CEED_EXTERN int CeedElemRestrictionSetData(CeedElemRestriction rstr,
@@ -113,10 +106,9 @@ CEED_EXTERN int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis,
 CEED_EXTERN int CeedBasisGetQRef(CeedBasis basis, CeedScalar **qref);
 CEED_EXTERN int CeedBasisGetQWeights(CeedBasis basis, CeedScalar **qweight);
 CEED_EXTERN int CeedBasisGetInterp(CeedBasis basis, CeedScalar **interp);
+CEED_EXTERN int CeedBasisGetInterp1D(CeedBasis basis, CeedScalar **interp1d);
 CEED_EXTERN int CeedBasisGetGrad(CeedBasis basis, CeedScalar **grad);
-CEED_EXTERN int CeedBasisGetValue(CeedBasis basis, CeedEvalMode emode,
-                                  CeedInt node, CeedInt qpt, CeedInt dim,
-                                  CeedScalar *value);
+CEED_EXTERN int CeedBasisGetGrad1D(CeedBasis basis, CeedScalar **grad1d);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void **data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void **data);
 
@@ -131,10 +123,11 @@ CEED_EXTERN int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
     CeedTensorContract *contract);
 CEED_EXTERN int CeedTensorContractApply(CeedTensorContract contract, CeedInt A,
                                         CeedInt B, CeedInt C, CeedInt J,
-                                        const CeedScalar *t,
+                                        const CeedScalar *restrict t,
                                         CeedTransposeMode tmode,
-                                        const CeedInt Add, const CeedScalar *u,
-                                        CeedScalar *v);
+                                        const CeedInt Add,
+                                        const CeedScalar *restrict u,
+                                        CeedScalar *restrict v);
 CEED_EXTERN int CeedTensorContractGetCeed(CeedTensorContract contract,
     Ceed *ceed);
 CEED_EXTERN int CeedTensorContractGetData(CeedTensorContract contract,
@@ -195,9 +188,11 @@ CEED_EXTERN int CeedOperatorFieldGetElemRestriction(CeedOperatorField opfield,
     CeedElemRestriction *rstr);
 CEED_EXTERN int CeedOperatorFieldGetBasis(CeedOperatorField opfield,
     CeedBasis *basis);
-CEED_EXTERN int CeedOperatorFieldGetLMode(CeedOperatorField opfield,
-    CeedTransposeMode *lmode);
 CEED_EXTERN int CeedOperatorFieldGetVector(CeedOperatorField opfield,
     CeedVector *vec);
+
+CEED_INTERN int CeedMatrixMultiply(Ceed ceed, const CeedScalar *matA,
+                                   const CeedScalar *matB, CeedScalar *matC,
+                                   CeedInt m, CeedInt n, CeedInt kk);
 
 #endif

@@ -8,9 +8,9 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedElemRestriction Erestrictx, Erestrictu,
-                      Erestrictxi, Erestrictui,
-                      Erestrictqi, Erestrictlini;
+                      Erestrictui, Erestrictqi, Erestrictlini;
   CeedBasis bx, bu;
   CeedQFunction qf_setup, qf_diff, qf_diff_lin;
   CeedOperator op_setup, op_diff, op_diff_lin;
@@ -47,17 +47,18 @@ int main(int argc, char **argv) {
   }
 
   // Restrictions
-  CeedElemRestrictionCreate(ceed, nelem, P*P, ndofs, dim, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, imode, nelem, P*P, ndofs, dim, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictx);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, P*P, nelem*P*P, dim,
-                                    &Erestrictxi);
 
-  CeedElemRestrictionCreate(ceed, nelem, P*P, ndofs, 1, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, imode, nelem, P*P, ndofs, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictu);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q, nqpts, 1, &Erestrictui);
+  CeedInt stridesu[3] = {1, Q*Q, Q *Q*dim};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nqpts, 1, stridesu,
+                                   &Erestrictui);
 
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q*Q, nqpts, dim*(dim+1)/2,
-                                    &Erestrictqi);
+  CeedInt stridesqd[3] = {1, Q*Q, Q *Q *dim *(dim+1)/2};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nqpts, dim*(dim+1)/2,
+                                   stridesqd, &Erestrictqi);
 
   // Bases
   CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, P, Q, CEED_GAUSS, &bx);
@@ -72,12 +73,11 @@ int main(int argc, char **argv) {
   // Operator - setup
   CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_setup);
-  CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE, bx,
-                       CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "_weight", Erestrictxi, CEED_NOTRANSPOSE, bx,
+  CeedOperatorSetField(op_setup, "dx", Erestrictx, bx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "_weight", CEED_ELEMRESTRICTION_NONE, bx,
                        CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "qdata", Erestrictqi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "qdata", Erestrictqi, CEED_BASIS_COLLOCATED,
+                       CEED_VECTOR_ACTIVE);
 
   // Apply Setup Operator
   CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
@@ -91,12 +91,10 @@ int main(int argc, char **argv) {
   // Operator - apply
   CeedOperatorCreate(ceed, qf_diff, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_diff);
-  CeedOperatorSetField(op_diff, "du", Erestrictu, CEED_NOTRANSPOSE, bu,
-                       CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_diff, "qdata", Erestrictqi, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_diff, "dv", Erestrictu, CEED_NOTRANSPOSE, bu,
-                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diff, "du", Erestrictu, bu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diff, "qdata", Erestrictqi, CEED_BASIS_COLLOCATED,
+                       qdata);
+  CeedOperatorSetField(op_diff, "dv", Erestrictu, bu, CEED_VECTOR_ACTIVE);
 
   // Apply original Poisson Operator
   CeedVectorCreate(ceed, ndofs, &u);
@@ -128,12 +126,10 @@ int main(int argc, char **argv) {
   // Operator - apply assembled
   CeedOperatorCreate(ceed, qf_diff_lin, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &op_diff_lin);
-  CeedOperatorSetField(op_diff_lin, "du", Erestrictu, CEED_NOTRANSPOSE, bu,
-                       CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_diff_lin, "qdata", Erestrictlini, CEED_NOTRANSPOSE,
+  CeedOperatorSetField(op_diff_lin, "du", Erestrictu, bu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diff_lin, "qdata", Erestrictlini,
                        CEED_BASIS_COLLOCATED, A);
-  CeedOperatorSetField(op_diff_lin, "dv", Erestrictu, CEED_NOTRANSPOSE, bu,
-                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diff_lin, "dv", Erestrictu, bu, CEED_VECTOR_ACTIVE);
 
   // Apply new Poisson Operator
   CeedVectorSetValue(v, 0.0);
@@ -158,7 +154,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
   CeedElemRestrictionDestroy(&Erestrictui);
-  CeedElemRestrictionDestroy(&Erestrictxi);
   CeedElemRestrictionDestroy(&Erestrictqi);
   CeedElemRestrictionDestroy(&Erestrictlini);
   CeedBasisDestroy(&bu);

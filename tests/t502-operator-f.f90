@@ -35,7 +35,12 @@
       include 'ceedf.h'
 
       integer ceed,err,i,j
-      integer erestrictx,erestrictu,erestrictxi,erestrictui
+      integer imode
+      parameter(imode=ceed_noninterlaced)
+      integer imodeu
+      parameter(imodeu=ceed_interlaced)
+      integer stridesu(3)
+      integer erestrictx,erestrictu,erestrictui
       integer bx,bu
       integer qf_setup,qf_mass
       integer op_setup,op_mass
@@ -70,10 +75,8 @@
         indx(2*i+2)=i+1
       enddo
 
-      call ceedelemrestrictioncreate(ceed,nelem,2,nx,1,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,imode,nelem,2,nx,1,ceed_mem_host,&
      & ceed_use_pointer,indx,erestrictx,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelem,2,2*nelem,1,&
-     & erestrictxi,err)
 
       do i=0,nelem-1
         do j=0,p-1
@@ -81,9 +84,10 @@
         enddo
       enddo
 
-      call ceedelemrestrictioncreate(ceed,nelem,p,nu,2,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,imodeu,nelem,p,nu,2,ceed_mem_host,&
      & ceed_use_pointer,indu,erestrictu,err)
-      call ceedelemrestrictioncreateidentity(ceed,nelem,q,q*nelem,1,&
+      stridesu=[1,q,q]
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q,q*nelem,1,stridesu,&
      & erestrictui,err)
 
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss,bx,err)
@@ -113,18 +117,18 @@
       call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,xoffset,err)
       call ceedvectorcreate(ceed,nelem*q,qdata,err)
 
-      call ceedoperatorsetfield(op_setup,'_weight',erestrictxi,&
-     & ceed_notranspose,bx,ceed_vector_none,err)
-      call ceedoperatorsetfield(op_setup,'dx',erestrictx,&
-     & ceed_notranspose,bx,ceed_vector_active,err)
+      call ceedoperatorsetfield(op_setup,'_weight',ceed_elemrestriction_none,&
+     & bx,ceed_vector_none,err)
+      call ceedoperatorsetfield(op_setup,'dx',erestrictx,bx,&
+     & ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rho',erestrictui,&
-     & ceed_notranspose,ceed_basis_collocated,ceed_vector_active,err)
+     & ceed_basis_collocated,ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass,'rho',erestrictui,&
-     & ceed_notranspose,ceed_basis_collocated,qdata,err)
-      call ceedoperatorsetfield(op_mass,'u',erestrictu,&
-     & ceed_transpose,bu,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_mass,'v',erestrictu,&
-     & ceed_transpose,bu,ceed_vector_active,err)
+     & ceed_basis_collocated,qdata,err)
+      call ceedoperatorsetfield(op_mass,'u',erestrictu,bu,&
+     & ceed_vector_active,err)
+      call ceedoperatorsetfield(op_mass,'v',erestrictu,bu,&
+     & ceed_vector_active,err)
 
       call ceedoperatorapply(op_setup,x,qdata,ceed_request_immediate,err)
 
@@ -170,7 +174,6 @@
       call ceedelemrestrictiondestroy(erestrictu,err)
       call ceedelemrestrictiondestroy(erestrictx,err)
       call ceedelemrestrictiondestroy(erestrictui,err)
-      call ceedelemrestrictiondestroy(erestrictxi,err)
       call ceeddestroy(ceed,err)
       end
 !-----------------------------------------------------------------------

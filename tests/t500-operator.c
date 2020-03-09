@@ -1,6 +1,6 @@
 /// @file
-/// Test creation creation, action, and destruction for mass matrix operator
-/// \test Test creation creation, action, and destruction for mass matrix operator
+/// Test creation, action, and destruction for mass matrix operator
+/// \test Test creation, action, and destruction for mass matrix operator
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
@@ -9,7 +9,8 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictxi, Erestrictui;
+  CeedInterlaceMode imode = CEED_NONINTERLACED;
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictui;
   CeedBasis bx, bu;
   CeedQFunction qf_setup, qf_mass;
   CeedOperator op_setup, op_mass;
@@ -30,9 +31,8 @@ int main(int argc, char **argv) {
     indx[2*i+1] = i+1;
   }
 //! [ElemRestr Create]
-  CeedElemRestrictionCreate(ceed, nelem, 2, Nx, 1, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, imode, nelem, 2, Nx, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictx);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, 2, nelem*2, 1, &Erestrictxi);
 //! [ElemRestr Create]
 
   for (CeedInt i=0; i<nelem; i++) {
@@ -41,9 +41,11 @@ int main(int argc, char **argv) {
     }
   }
 //! [ElemRestrU Create]
-  CeedElemRestrictionCreate(ceed, nelem, P, Nu, 1, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, imode, nelem, P, Nu, 1, CEED_MEM_HOST,
                             CEED_USE_POINTER, indu, &Erestrictu);
-  CeedElemRestrictionCreateIdentity(ceed, nelem, Q, Q*nelem, 1, &Erestrictui);
+  CeedInt stridesu[3] = {1, Q, Q};
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q, Q*nelem, 1, stridesu,
+                                   &Erestrictui);
 //! [ElemRestrU Create]
 
 //! [Basis Create]
@@ -78,21 +80,18 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, nelem*Q, &qdata);
 
 //! [Setup Set]
-  CeedOperatorSetField(op_setup, "_weight", Erestrictxi, CEED_NOTRANSPOSE,
-                       bx, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "dx", Erestrictx, CEED_NOTRANSPOSE,
-                       bx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "rho", Erestrictui, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "_weight", CEED_ELEMRESTRICTION_NONE, bx,
+                       CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setup, "dx", Erestrictx, bx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "rho", Erestrictui, CEED_BASIS_COLLOCATED,
+                       CEED_VECTOR_ACTIVE);
 //! [Setup Set]
 
 //! [Operator Set]
-  CeedOperatorSetField(op_mass, "rho", Erestrictui, CEED_NOTRANSPOSE,
-                       CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_mass, "u", Erestrictu, CEED_NOTRANSPOSE,
-                       bu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_mass, "v", Erestrictu, CEED_NOTRANSPOSE,
-                       bu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "rho", Erestrictui,CEED_BASIS_COLLOCATED,
+                       qdata);
+  CeedOperatorSetField(op_mass, "u", Erestrictu, bu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "v", Erestrictu, bu, CEED_VECTOR_ACTIVE);
 //! [Operator Set]
 
 //! [Setup Apply]
@@ -118,7 +117,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
   CeedElemRestrictionDestroy(&Erestrictui);
-  CeedElemRestrictionDestroy(&Erestrictxi);
   CeedBasisDestroy(&bu);
   CeedBasisDestroy(&bx);
   CeedVectorDestroy(&X);

@@ -16,7 +16,9 @@
 
 #include "ceed-xsmm.h"
 
-// Utility functions for index in pointer array
+//------------------------------------------------------------------------------
+// Get Kernel Index
+//------------------------------------------------------------------------------
 int CeedGetXsmmInd_Tensor(CeedInt nelem, CeedInt add, CeedTransposeMode tmode,
                           CeedInt B, CeedInt C, CeedInt J, CeedInt currdim,
                           CeedInt dim) {
@@ -30,7 +32,9 @@ int CeedGetXsmmInd_NonTensor(CeedInt add, CeedInt P, CeedInt Q, CeedInt B,
          (B == P ? (J == Q ? 0:1) : (B == Q ? 2:3));
 }
 
-// Default Tensor Contact
+//------------------------------------------------------------------------------
+// Tensor Contract C=1
+//------------------------------------------------------------------------------
 static int CeedTensorContract_Xsmm_C1(CeedTensorContract contract,
                                       CeedInt A, CeedInt B, CeedInt C,
                                       CeedInt J, const CeedScalar *restrict t,
@@ -55,7 +59,9 @@ static int CeedTensorContract_Xsmm_C1(CeedTensorContract contract,
   return 0;
 }
 
-// Switch for Tensor Contract
+//------------------------------------------------------------------------------
+// Tensor Contract Apply
+//------------------------------------------------------------------------------
 static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
                                         CeedInt B, CeedInt C, CeedInt J,
                                         const CeedScalar *restrict t,
@@ -94,16 +100,48 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Tensor Contract Destroy
+//------------------------------------------------------------------------------
 static int CeedTensorContractDestroy_Xsmm(CeedTensorContract contract) {
   int ierr;
   CeedTensorContract_Xsmm *impl;
   ierr = CeedTensorContractGetData(contract, (void *)&impl); CeedChk(ierr);
+  // Free kernels
+  if (impl->tensorbasis) {
+    for (CeedInt nelem = 1; nelem <= 8; nelem+=7)
+      for (CeedInt add = 0; add <= 1; add++)
+        for (CeedInt tmode = 0; tmode <= 1; tmode++)
+          for (CeedInt grad = 0; grad <=1; grad++)
+            for (CeedInt dim = 0; dim < impl->dim; dim++) {
+              CeedInt B = grad ? impl->Q : (tmode ? impl->Q : impl->P),
+                      J = grad ? impl->Q : (tmode ? impl->P : impl->Q),
+                      C = nelem*CeedIntPow(J, dim);
+              int ind = CeedGetXsmmInd_Tensor(nelem, add, tmode, B, C, J, dim,
+                                              impl->dim);
+              libxsmm_release_kernel(&impl->kernels[ind]);
+            }
+  } else {
+    for (CeedInt nelem = 1; nelem <= 8; nelem+=7)
+      for (CeedInt add = 0; add <= 1; add++)
+        for (CeedInt tmode = 0; tmode <= 1; tmode++)
+          for (CeedInt grad = 1; grad <= impl->dim; grad+=impl->dim-1) {
+            CeedInt B = tmode ? grad*impl->Q : impl->P,
+                    J = tmode ? impl->P : grad*impl->Q;
+            int ind = CeedGetXsmmInd_NonTensor(add, impl->P, impl->Q, B, nelem,
+                                               J);
+            libxsmm_release_kernel(&impl->kernels[ind]);
+          }
+  }
   ierr = CeedFree(&impl->kernels); CeedChk(ierr);
   ierr = CeedFree(&impl); CeedChk(ierr);
 
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Tensor Contract Create
+//------------------------------------------------------------------------------
 int CeedTensorContractCreate_Xsmm(CeedBasis basis,
                                   CeedTensorContract contract) {
   int ierr;
@@ -178,3 +216,4 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
 
   return 0;
 }
+//------------------------------------------------------------------------------

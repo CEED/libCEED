@@ -86,8 +86,8 @@ typedef double CeedScalar;
                           const int *iOf7, const int *oOf7,
                           const CeedScalar *in, CeedScalar *out) {
 //  const CeedScalar
-//    *ug = in + iOf7[0],
-//    *qd = in + iOf7[1];
+//    *ug    = in + iOf7[0],
+//    *qdata = in + iOf7[1];
 //  CeedScalar *vg = out + oOf7[0];
   for (int i=0; i<Q; i++; @tile(TILE_SIZE,@outer,@inner)) {
     const int dim = ctx[0];

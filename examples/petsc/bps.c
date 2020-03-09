@@ -27,12 +27,12 @@
 //
 // Sample runs:
 //
-//     bps -problem bp1 -degree 3
-//     bps -problem bp2 -ceed /cpu/self -degree 3
-//     bps -problem bp3 -ceed /gpu/occa -degree 3
-//     bps -problem bp4 -ceed /cpu/occa -degree 3
-//     bps -problem bp5 -ceed /omp/occa -degree 3
-//     bps -problem bp6 -ceed /ocl/occa -degree 3
+//     ./bps -problem bp1 -degree 3
+//     ./bps -problem bp2 -ceed /cpu/self -degree 3
+//     ./bps -problem bp3 -ceed /gpu/occa -degree 3
+//     ./bps -problem bp4 -ceed /cpu/occa -degree 3
+//     ./bps -problem bp5 -ceed /omp/occa -degree 3
+//     ./bps -problem bp6 -ceed /ocl/occa -degree 3
 //
 //TESTARGS -ceed {ceed_resource} -test -problem bp5 -degree 3
 
@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
   if (ierr) return ierr;
   comm = PETSC_COMM_WORLD;
 
-  // Read CL options
+  // Read command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
   bpChoice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
@@ -174,9 +174,10 @@ int main(int argc, char **argv) {
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
                        "    Global nodes                       : %D\n"
-                       "    Owned nodes                        : %D\n",
+                       "    Owned nodes                        : %D\n"
+                       "    DoF per node                       : %D\n",
                        bpChoice+1, usedresource, P, Q, gsize/ncompu,
-                       lsize/ncompu); CHKERRQ(ierr);
+                       lsize/ncompu, ncompu); CHKERRQ(ierr);
   }
 
   // Create RHS vector
@@ -209,13 +210,11 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_error);
   CeedOperatorSetField(op_error, "u", ceeddata->Erestrictu,
-                       CEED_TRANSPOSE, ceeddata->basisu,
-                       CEED_VECTOR_ACTIVE);
+                       ceeddata->basisu, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_error, "true_soln", ceeddata->Erestrictui,
-                       CEED_NOTRANSPOSE, CEED_BASIS_COLLOCATED, target);
+                       CEED_BASIS_COLLOCATED, target);
   CeedOperatorSetField(op_error, "error", ceeddata->Erestrictui,
-                       CEED_NOTRANSPOSE, CEED_BASIS_COLLOCATED,
-                       CEED_VECTOR_ACTIVE);
+                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Set up Mat
   userO->comm = comm;

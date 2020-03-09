@@ -1,10 +1,12 @@
 language: c
 
+arch: amd64
+
 os:
   - linux
   - osx
 
-dist: xenial
+dist: bionic
 
 osx_image: xcode11.2
 
@@ -31,6 +33,32 @@ addons:
 env:
   - FC=gfortran
 
+matrix:
+  include:
+   - os: linux
+     arch: ppc64le
+     compiler: gcc
+     env: FC=gfortran
+   - os: linux
+     arch: arm64
+     compiler: gcc
+     env: FC=gfortran
+   - language: python
+     arch: amd64
+     os: linux
+     dist: xenial
+     compiler: gcc
+     python: 3.8
+     install:
+       - pip install -r requirements.txt
+     script:
+       - make info && make -j4 && export CEED_DIR=$PWD
+       - pip install .
+       - cd tests/python
+       - python setup-qfunctions.py build
+       - pytest test-*.py --ceed /cpu/self/ref/serial -vv
+     after_success: skip
+
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         export PATH="/usr/local/opt/ccache/libexec:$PATH"
@@ -40,11 +68,13 @@ install:
   - git clone --depth 1 https://github.com/libocca/occa.git;
   - make -C occa -j2
   - export OCCA_DIR=$PWD/occa
-# libXSMM
-  - git clone https://github.com/hfp/libxsmm.git;
-  - cd libxsmm && git reset --hard ed9c10e && cd ..; # LIBXSMM v1.14
-  - make -C libxsmm -j2
-  - export XSMM_DIR=$PWD/libxsmm
+# libXSMM v1.14 (need to use specific commit, XSMM develops on master)
+  - if [[ "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
+        git clone https://github.com/hfp/libxsmm.git
+        && cd libxsmm && git reset --hard ed9c10e && cd ..
+        && make -C libxsmm -j2
+        && export XSMM_DIR=$PWD/libxsmm;
+    fi
 # MFEM
   - git clone --depth 1 https://github.com/mfem/mfem.git;
   - make -C mfem -j2 serial CXXFLAGS="-O -std=c++11"
@@ -54,11 +84,13 @@ install:
   - cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..;
   - export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH MPI=0;
 # PETSc
-  - export PETSC_INSTALL=$HOME/install/petsc-3.12.0
+  - PETSC_COMMIT=94e224767ab72a963c0f657b2484abe25d3d44e5 # master 2020-03-06
+  - export PETSC_INSTALL=$HOME/install/petsc-$PETSC_COMMIT
   - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
-        || (  curl -O http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.12.0.tar.gz
-        && tar xf petsc-lite-3.12.0.tar.gz
-        && cd petsc-3.12.0
+        || (  curl -O https://gitlab.com/petsc/petsc/-/archive/$PETSC_COMMIT/petsc-$PETSC_COMMIT.tar.gz
+        && rm -rf $HOME/install/petsc*
+        && tar xf petsc-$PETSC_COMMIT.tar.gz
+        && cd petsc-$PETSC_COMMIT
         && ./configure --with-debugging=0 COPTFLAGS=-O --with-mpi=0 --with-fc=0 --with-cxx=0 --prefix=$PETSC_INSTALL
         && make
         && make install )
@@ -68,14 +100,15 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         export COVERAGE=1;
     fi
+  - make info
   - make -j2
   - make -j2 prove-all PROVE_OPTS=-v
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
         clang-tidy --version && make -j2 tidy;
     fi
 
 after_success:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
         lcov --directory . --capture --output-file coverage.info
         && bash <(curl -s https://codecov.io/bash) -f coverage.info -F interface
         && bash <(curl -s https://codecov.io/bash) -f coverage.info -F gallery
