@@ -35,6 +35,8 @@ dist
 xml/*
 doc/html
 doc/sphinx/build/
+# Example docs automatically copied from source tree
+doc/sphinx/source/examples/
 
 # Editor Misc
 .history

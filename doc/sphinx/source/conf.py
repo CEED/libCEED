@@ -251,6 +251,24 @@ breathe_build_directory = "../build/breathe"
 #breathe_domain_by_extension = {"c": "c", "h": "c", "cpp": "cpp", "hpp": "cpp"}
 
 # Run Doxygen if building on Read The Docs
+rootdir = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir)
 if os.environ.get('READTHEDOCS'):
-    rootdir = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir)
     subprocess.check_call(['doxygen', 'Doxyfile'], cwd=rootdir)
+
+# Copy example documentation from source tree
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except FileExistsError:
+        pass
+
+import glob
+import shutil
+try:
+    shutil.rmtree('examples')
+except FileNotFoundError:
+    pass
+for filename in glob.glob(os.path.join(rootdir, 'examples/**/*.rst'), recursive=True):
+    destdir = os.path.dirname(os.path.relpath(filename, rootdir))
+    mkdir_p(destdir)
+    shutil.copy2(filename, destdir)

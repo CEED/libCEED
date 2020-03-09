@@ -11,7 +11,7 @@ Welcome to libCEED's User Manual!
    libCEEDapi
    libCEEDdev
    Contributing <CONTRIBUTING>
-   Examples <examples>
+   Examples <examples/index.rst>
    api/index
    releasenotes
    Citing <CITING>

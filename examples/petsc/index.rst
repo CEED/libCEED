@@ -1,0 +1,130 @@
+PETSc demos and BPs
+======================================
+
+.. _example-petsc-area:
+
+Area
+--------------------------------------
+
+This example is located in the subdirectory :file:`examples/petsc`. It
+demonstrates a simple usage of libCEED with PETSc to calculate
+the surface area of a closed surface. The code uses higher level
+communication protocols for mesh handling in PETSc's DMPlex. This example has the
+same mathematical formulation as :ref:`Ex1-Volume`, with the exception that the
+physical coordinates for this problem are :math:`\mathbf{x}=(x,y,z)\in \mathbb{R}^3`,
+while the coordinates of the reference element are
+:math:`\boldsymbol{X}=(X,Y) \equiv (X_1,X_2) \in\mathbf{I}=[-1,1]^2`.
+
+
+.. _example-petsc-area-cube:
+
+Cube
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This is one of the test cases of the computation of the :ref:`example-petsc-area` of a
+2D manifold embedded in 3D. This problem can be run with::
+
+   ./area -problem cube
+
+This example uses the following coordinate transformations for the computation of the
+geometric factors: from the physical coordinates on the cube, denoted by
+:math:`\bar{\mathbf{x}}=(\bar{x},\bar{y},\bar{z})`,
+and physical coordinates on the discrete surface, denoted by
+:math:`\mathbf{{x}}=(x,y)`, to :math:`\mathbf{X}=(X,Y) \in\mathbf{I}=[-1,1]^2` on the
+reference element, via the chain rule
+
+.. math::
+   \frac{\partial \mathbf{x}}{\partial \mathbf{X}}_{(2\times2)} = \frac{\partial {\mathbf{x}}}{\partial \bar{\mathbf{x}}}_{(2\times3)} \frac{\partial \bar{\mathbf{x}}}{\partial \mathbf{X}}_{(3\times2)} \, ,
+   :label: eq-coordinate-transforms-cube
+
+with Jacobian determinant given by
+
+.. math::
+   \left| J \right| = \left\|col_1\left(\frac{\partial \bar{\mathbf{x}}}{\partial \mathbf{X}}\right)\right\| \left\|col_2 \left(\frac{\partial \bar{\mathbf{x}}}{\partial \mathbf{X}}\right) \right\|
+   :label: eq-jacobian-cube
+
+We note that in equation :math:numref:`eq-coordinate-transforms-cube`, the right-most
+Jacobian matrix :math:`{\partial\bar{\mathbf{x}}}/{\partial \mathbf{X}}_{(3\times2)}` is
+provided by the library, while
+:math:`{\partial{\mathbf{x}}}/{\partial \bar{ \mathbf{x}}}_{(2\times3)}` is
+provided by the user as
+
+.. math::
+   \left[ col_1\left(\frac{\partial\bar{\mathbf{x}}}{\partial \mathbf{X}}\right) / \left\| col_1\left(\frac{\partial\bar{\mathbf{x}}}{\partial \mathbf{X}}\right)\right\| , col_2\left(\frac{\partial\bar{\mathbf{x}}}{\partial \mathbf{X}}\right) / \left\| col_2\left(\frac{\partial\bar{\mathbf{x}}}{\partial \mathbf{X}}\right)\right\| \right]^T_{(2\times 3)}.
+
+
+.. _example-petsc-area-sphere:
+
+Sphere
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This problem computes the surface :ref:`example-petsc-area` of a tensor-product
+discrete sphere, obtained by projecting a cube inscribed in a sphere onto the surface
+of the sphere (this discrete surface is sometimes referred to as a cubed-sphere).
+This problem can be run with::
+
+   ./area -problem sphere
+
+This example uses the following coordinate transformations for the computation of the
+geometric factors: from the physical coordinates on the sphere, denoted by
+:math:`\overset{\circ}{\mathbf{x}}=(\overset{\circ}{x},\overset{\circ}{y},\overset{\circ}{z})`,
+and physical coordinates on the discrete surface, denoted by
+:math:`\mathbf{{x}}=(x,y,z)`, to :math:`\mathbf{X}=(X,Y) \in\mathbf{I}=[-1,1]^2` on the
+reference element, via the chain rule
+
+.. math::
+   \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(3\times2)} = \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{x}}_{(3\times3)} \frac{\partial\mathbf{x}}{\partial \mathbf{X}}_{(3\times2)} \, ,
+   :label: eq-coordinate-transforms-sphere
+
+with Jacobian determinant given by
+
+.. math::
+   \left| J \right| = \left| col_1\left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}\right) \times col_2 \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}\right)\right| .
+   :label: eq-jacobian-sphere
+
+We note that in equation :math:numref:`eq-coordinate-transforms-sphere`, the right-most
+Jacobian matrix :math:`{\partial\mathbf{x}}/{\partial \mathbf{X}}_{(3\times2)}` is
+provided by the library, while
+:math:`{\partial \overset{\circ}{\mathbf{x}}}/{\partial \mathbf{x}}_{(3\times3)}` is
+provided by the user with analytical derivatives.
+In particular, for a sphere of radius 1, we have
+
+.. math::
+   \overset{\circ}{\mathbf x}(\mathbf x) = \frac{\mathbf x}{\lVert \mathbf x \rVert}
+
+and thus
+
+.. math::
+   \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{x}} = \frac{1}{\lVert \mathbf x \rVert} \mathbf I - \frac{\mathbf x \mathbf x^T}{\lVert \mathbf x \rVert^3}.
+
+.. _example-petsc-bps:
+
+Bakeoff problems and generalizations
+------------------------------------
+
+The PETSc examples in this directory include a full suite of parallel :ref:`bakeoff problems <bps>` (BPs) using a "raw" parallel decomposition (see ``bpsraw.c``) and using PETSc's ``DMPlex`` for unstructured grid management (see ``bps.c``).
+A generalization of these BPs to the surface of the sphere (using transformations as in :ref:`example-petsc-area-sphere`) are available in ``bpssphere.c``.
+   
+.. _example-petsc-multigrid:
+
+Multigrid
+--------------------------------------
+
+This example is located in the subdirectory :file:`examples/petsc`. It
+investigates :math:`p`-multigrid for the Poisson problem, equation
+:math:numref:`eq-variable-coeff-poisson`, using an unstructured high-order finite
+element discretization. All of the operators associated with the geometric multigrid
+are implemented in libCEED.
+
+.. math::
+   -\nabla\cdot \left( \kappa \left( x \right) \nabla x \right) = g \left( x \right)
+   :label: eq-variable-coeff-poisson
+
+The Poisson operator can be specified with the decomposition given by the equation in
+figure :ref:`fig-operator-decomp`, and the restriction and prolongation operators given
+by interpolation basis operations, :math:`\mathbf{B}`, and :math:`\mathbf{B}^T`,
+respectively, act on the different grid levels with corresponding element restrictions,
+:math:`\mathbf{G}`. These three operations can be exploited by existing matrix-free
+multigrid software and smoothers. Preconditioning based on the libCEED finite element
+operator decomposition is an ongoing area of research.
+
