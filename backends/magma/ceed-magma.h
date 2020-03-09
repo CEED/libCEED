@@ -109,7 +109,8 @@ CEED_INTERN {
                              const magma_int_t nnodes,
                              const magma_int_t esize,
                              const magma_int_t nelem, magma_int_t *strides,
-                             const double *du, double *dv);
+                             const double *du, double *dv,
+                             magma_queue_t queue);
 
   void magma_writeDofs(const magma_int_t NCOMP,
                        const magma_int_t nnodes,
@@ -129,7 +130,8 @@ CEED_INTERN {
                               const magma_int_t nnodes,
                               const magma_int_t esize,
                               const magma_int_t nelem, magma_int_t *strides,
-                              const double *du, double *dv);
+                              const double *du, double *dv,
+                              magma_queue_t queue);
 
   int magma_dgemm_nontensor(
     magma_trans_t transA, magma_trans_t transB,
