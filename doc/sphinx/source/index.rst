@@ -2,20 +2,19 @@ Welcome to libCEED's User Manual!
 ===================================
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 4
    :caption: Contents
 
    intro
    gettingstarted
-   FEMtheory
    libCEEDapi
+   examples/index
+   api/index
    libCEEDdev
    Contributing <CONTRIBUTING>
-   Examples <examples/index.rst>
-   api/index
-   releasenotes
    Citing <CITING>
    Code of Conduct <CODE_OF_CONDUCT>
+   releasenotes
    references
 
 Indices and tables
