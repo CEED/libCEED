@@ -225,12 +225,13 @@ magma_readDofsStrided(const magma_int_t NCOMP,
                       const magma_int_t nnodes,
                       const magma_int_t esize, 
                       const magma_int_t nelem, const int *strides, 
-	              const double *du, double *dv)
+	              const double *du, double *dv,
+                      magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    magma_readDofsStrided_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, esize, nelem, 
+    magma_readDofsStrided_kernel<<<grid, threads, 0, magma_queue_get_cuda_stream(queue)>>>(NCOMP, nnodes, esize, nelem, 
                                                              strides, du, dv);
 }
 
@@ -279,11 +280,12 @@ magma_writeDofsStrided(const magma_int_t NCOMP,
                        const magma_int_t nnodes,
                        const magma_int_t esize, 
                        const magma_int_t nelem, const int *strides, 
-	               const double *du, double *dv)
+	               const double *du, double *dv,
+                       magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    magma_writeDofsStrided_kernel<<<grid, threads, 0, NULL>>>(NCOMP, nnodes, esize, nelem, 
+    magma_writeDofsStrided_kernel<<<grid, threads, 0, magma_queue_get_cuda_stream(queue)>>>(NCOMP, nnodes, esize, nelem, 
                                                               strides, du, dv);
 }
