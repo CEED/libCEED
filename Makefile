@@ -302,7 +302,9 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
     BLAS_LIB = -lblas
   else
     ifneq ($(MKLROOT),)
-      MKL_LINK = -L$(MKLROOT)/lib/intel64 -Wl,-rpath,$(MKLROOT)/lib/intel64
+      # Some installs put everything inside an intel64 subdirectory, others not
+      MKL_LIBDIR = $(dir $(firstword $(wildcard $(MKLROOT)/lib/intel64/libmkl_sequential.* $(MKLROOT)/lib/libmkl_sequential.*)))
+      MKL_LINK = -L$(MKL_LIBDIR) -Wl,-rpath,$(MKL_LIBDIR)
     endif
     BLAS_LIB = $(MKL_LINK) -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
   endif
