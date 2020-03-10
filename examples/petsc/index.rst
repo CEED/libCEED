@@ -90,12 +90,13 @@ provided by the user with analytical derivatives.
 In particular, for a sphere of radius 1, we have
 
 .. math::
-   \overset{\circ}{\mathbf x}(\mathbf x) = \frac{\mathbf x}{\lVert \mathbf x \rVert}
+   \overset{\circ}{\mathbf x}(\mathbf x) = \frac{1}{\lVert \mathbf x \rVert} \mathbf x_{(3\times 1)}
 
 and thus
 
 .. math::
-   \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{x}} = \frac{1}{\lVert \mathbf x \rVert} \mathbf I - \frac{\mathbf x \mathbf x^T}{\lVert \mathbf x \rVert^3}.
+   \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{x}} = \frac{1}{\lVert \mathbf x \rVert} \mathbf I_{(3\times 3)} - \frac{1}{\lVert \mathbf x \rVert^3} (\mathbf x \mathbf x^T)_{(3\times 3)}.
+
 
 .. _example-petsc-bps:
 
@@ -103,8 +104,27 @@ Bakeoff problems and generalizations
 ------------------------------------
 
 The PETSc examples in this directory include a full suite of parallel :ref:`bakeoff problems <bps>` (BPs) using a "raw" parallel decomposition (see ``bpsraw.c``) and using PETSc's ``DMPlex`` for unstructured grid management (see ``bps.c``).
-A generalization of these BPs to the surface of the sphere (using transformations as in :ref:`example-petsc-area-sphere`) are available in ``bpssphere.c``.
-   
+A generalization of these BPs to the surface of the cubed-sphere are available in ``bpssphere.c``.
+
+
+.. _example-petsc-bps-sphere:
+
+Bakeoff problems on the cubed-sphere
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For the :math:`L^2` projection problems, BP1-BP2, that use the mass operator, the
+coordinate transformations and the corresponding Jacobian determinant,
+equation :math:numref:`eq-jacobian-sphere`, are the same as in the
+:ref:`example-petsc-area-sphere` example. For the Poisson's problem, BP3-BP6, on the
+cubed-sphere, in addition to equation :math:numref:`eq-jacobian-sphere`, the pseudo-inverse of
+:math:`\partial \overset{\circ}{\mathbf{x}} / \partial \mathbf{X}` is needed.
+We define this by using the Moore-Penrose (left) pseudo-inverse:
+
+.. math::
+   \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}\right)_{(2\times 3)}^{+} =  \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(3\times2)} \right)^{-1} \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T \,.
+   :label: eq-dxcircdX-pseudo-inv
+
+
 .. _example-petsc-multigrid:
 
 Multigrid
