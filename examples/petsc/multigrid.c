@@ -55,14 +55,14 @@ int main(int argc, char **argv) {
   SNES snes_dummy;
   KSP ksp;
   PC pc;
-  Mat *matO, *matI, *matR, matCoarse;
+  Mat *matO, *matPR, matCoarse;
   Vec *X, *Xloc, *mult, rhs, rhsloc;
   UserO *userO;
-  UserIR *userI, *userR;
+  UserProlongRestr *userPR;
   Ceed ceed;
   CeedData *ceeddata;
   CeedVector rhsceed, target;
-  CeedQFunction qf_error, qf_restrict, qf_prolong;
+  CeedQFunction qf_error, qfRestrict, qfProlong;
   CeedOperator op_error;
   bpType bpChoice;
   coarsenType coarsen;
@@ -166,11 +166,9 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(numlevels, &Xloc); CHKERRQ(ierr);
   ierr = PetscMalloc1(numlevels, &mult); CHKERRQ(ierr);
   ierr = PetscMalloc1(numlevels, &userO); CHKERRQ(ierr);
-  ierr = PetscMalloc1(numlevels, &userI); CHKERRQ(ierr);
-  ierr = PetscMalloc1(numlevels, &userR); CHKERRQ(ierr);
+  ierr = PetscMalloc1(numlevels, &userPR); CHKERRQ(ierr);
   ierr = PetscMalloc1(numlevels, &matO); CHKERRQ(ierr);
-  ierr = PetscMalloc1(numlevels, &matI); CHKERRQ(ierr);
-  ierr = PetscMalloc1(numlevels, &matR); CHKERRQ(ierr);
+  ierr = PetscMalloc1(numlevels, &matPR); CHKERRQ(ierr);
   ierr = PetscMalloc1(numlevels, &lsize); CHKERRQ(ierr);
   ierr = PetscMalloc1(numlevels, &xlsize); CHKERRQ(ierr);
   ierr = PetscMalloc1(numlevels, &gsize); CHKERRQ(ierr);
@@ -201,18 +199,13 @@ int main(int argc, char **argv) {
     // Level transfers
     if (i > 0) {
       // Interp
-      ierr = PetscMalloc1(1, &userI[i]); CHKERRQ(ierr);
+      ierr = PetscMalloc1(1, &userPR[i]); CHKERRQ(ierr);
       ierr = MatCreateShell(comm, lsize[i], lsize[i-1], gsize[i], gsize[i-1],
-                            userI[i], &matI[i]); CHKERRQ(ierr);
-      ierr = MatShellSetOperation(matI[i], MATOP_MULT,
-                                  (void(*)(void))MatMult_Interp);
+                            userPR[i], &matPR[i]); CHKERRQ(ierr);
+      ierr = MatShellSetOperation(matPR[i], MATOP_MULT,
+                                  (void(*)(void))MatMult_Prolong);
       CHKERRQ(ierr);
-
-      // Restrict
-      ierr = PetscMalloc1(1, &userR[i]); CHKERRQ(ierr);
-      ierr = MatCreateShell(comm, lsize[i-1], lsize[i], gsize[i-1], gsize[i],
-                            userR[i], &matR[i]); CHKERRQ(ierr);
-      ierr = MatShellSetOperation(matR[i], MATOP_MULT,
+      ierr = MatShellSetOperation(matPR[i], MATOP_MULT_TRANSPOSE,
                                   (void(*)(void))MatMult_Restrict);
       CHKERRQ(ierr);
     }
@@ -279,13 +272,13 @@ int main(int argc, char **argv) {
 
   // Create the restriction/interpolation Q-function
   CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_NONE, CEED_EVAL_INTERP,
-                              &qf_restrict);
+                              &qfRestrict);
   CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_INTERP, CEED_EVAL_NONE,
-                              &qf_prolong);
+                              &qfProlong);
 
   // Set up libCEED level transfer operators
   ierr = CeedLevelTransferSetup(ceed, numlevels, ncompu, bpChoice, ceeddata,
-                                leveldegrees, qf_restrict, qf_prolong);
+                                leveldegrees, qfRestrict, qfProlong);
   CHKERRQ(ierr);
 
   // Create the error Q-function
@@ -351,29 +344,18 @@ int main(int argc, char **argv) {
     userO[i]->ceed = ceed;
 
     if (i > 0) {
-      // Interp Operator
-      userI[i]->comm = comm;
-      userI[i]->dmc = dm[i-1];
-      userI[i]->dmf = dm[i];
-      userI[i]->Xloc = Xloc[i-1];
-      userI[i]->Yloc = userO[i]->Yloc;
-      userI[i]->mult = mult[i];
-      userI[i]->ceedvecc = userO[i-1]->xceed;
-      userI[i]->ceedvecf = userO[i]->yceed;
-      userI[i]->op = ceeddata[i]->op_interp;
-      userI[i]->ceed = ceed;
-
-      // Restrict Operator
-      userR[i]->comm = comm;
-      userR[i]->dmc = dm[i-1];
-      userR[i]->dmf = dm[i];
-      userR[i]->Xloc = Xloc[i];
-      userR[i]->Yloc = userO[i-1]->Yloc;
-      userR[i]->mult = mult[i];
-      userR[i]->ceedvecf = userO[i]->xceed;
-      userR[i]->ceedvecc = userO[i-1]->yceed;
-      userR[i]->op = ceeddata[i]->op_restrict;
-      userR[i]->ceed = ceed;
+      // Prolongation/Restriction Operator
+      userPR[i]->comm = comm;
+      userPR[i]->dmF = dm[i];
+      userPR[i]->dmC = dm[i-1];
+      userPR[i]->locVecC = Xloc[i-1];
+      userPR[i]->locVecF = userO[i]->Yloc;
+      userPR[i]->multVec = mult[i];
+      userPR[i]->ceedVecC = userO[i-1]->xceed;
+      userPR[i]->ceedVecF = userO[i]->yceed;
+      userPR[i]->opProlong = ceeddata[i]->opProlong;
+      userPR[i]->opRestrict = ceeddata[i]->opRestrict;
+      userPR[i]->ceed = ceed;
     }
   }
 
@@ -437,10 +419,7 @@ int main(int argc, char **argv) {
       // Level transfers
       if (i > 0) {
         // Interpolation
-        ierr = PCMGSetInterpolation(pc, i, matI[i]); CHKERRQ(ierr);
-
-        // Restriction
-        ierr = PCMGSetRestriction(pc, i, matR[i]); CHKERRQ(ierr);
+        ierr = PCMGSetInterpolation(pc, i, matPR[i]); CHKERRQ(ierr);
       }
 
       // Coarse solve
@@ -567,10 +546,8 @@ int main(int argc, char **argv) {
     ierr = MatDestroy(&matO[i]); CHKERRQ(ierr);
     ierr = PetscFree(userO[i]); CHKERRQ(ierr);
     if (i > 0) {
-      ierr = MatDestroy(&matI[i]); CHKERRQ(ierr);
-      ierr = PetscFree(userI[i]); CHKERRQ(ierr);
-      ierr = MatDestroy(&matR[i]); CHKERRQ(ierr);
-      ierr = PetscFree(userR[i]); CHKERRQ(ierr);
+      ierr = MatDestroy(&matPR[i]); CHKERRQ(ierr);
+      ierr = PetscFree(userPR[i]); CHKERRQ(ierr);
     }
     ierr = CeedDataDestroy(i, ceeddata[i]); CHKERRQ(ierr);
     ierr = DMDestroy(&dm[i]); CHKERRQ(ierr);
@@ -581,12 +558,10 @@ int main(int argc, char **argv) {
   ierr = PetscFree(Xloc); CHKERRQ(ierr);
   ierr = PetscFree(mult); CHKERRQ(ierr);
   ierr = PetscFree(matO); CHKERRQ(ierr);
-  ierr = PetscFree(matI); CHKERRQ(ierr);
-  ierr = PetscFree(matR); CHKERRQ(ierr);
+  ierr = PetscFree(matPR); CHKERRQ(ierr);
   ierr = PetscFree(ceeddata); CHKERRQ(ierr);
   ierr = PetscFree(userO); CHKERRQ(ierr);
-  ierr = PetscFree(userI); CHKERRQ(ierr);
-  ierr = PetscFree(userR); CHKERRQ(ierr);
+  ierr = PetscFree(userPR); CHKERRQ(ierr);
   ierr = PetscFree(lsize); CHKERRQ(ierr);
   ierr = PetscFree(xlsize); CHKERRQ(ierr);
   ierr = PetscFree(gsize); CHKERRQ(ierr);
@@ -598,8 +573,8 @@ int main(int argc, char **argv) {
   ierr = DMDestroy(&dmOrig); CHKERRQ(ierr);
   CeedVectorDestroy(&target);
   CeedQFunctionDestroy(&qf_error);
-  CeedQFunctionDestroy(&qf_restrict);
-  CeedQFunctionDestroy(&qf_prolong);
+  CeedQFunctionDestroy(&qfRestrict);
+  CeedQFunctionDestroy(&qfProlong);
   CeedOperatorDestroy(&op_error);
   CeedDestroy(&ceed);
   return PetscFinalize();
