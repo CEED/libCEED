@@ -80,116 +80,48 @@ int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed) {
 }
 
 /**
-  @brief Get the L-vector interlaced mode of a CeedElemRestriction
+
+  @brief Get the strides of a strided CeedElemRestriction
 
   @param rstr             CeedElemRestriction
-  @param[out] imode       Variable to store imode
+  @param[out] strides     Variable to store strides array
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedElemRestrictionGetIMode(CeedElemRestriction rstr,
-                                CeedInterlaceMode *imode) {
-  *imode = rstr->imode;
+int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
+                                  CeedInt (*strides)[3]) {
+  if (!rstr->strides)
+    // LCOV_EXCL_START
+    return CeedError(rstr->ceed, 1, "ElemRestriction has no stride data");
+  // LCOV_EXCL_STOP
+
+  for (int i = 0; i<3; i++)
+    (*strides)[i] = rstr->strides[i];
   return 0;
 }
 
 /**
-  @brief Get the total number of elements in the range of a CeedElemRestriction
+  @brief Get the backend stride status of a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
-  @param[out] numelem     Variable to store number of elements
+  @param[out] status      Variable to store stride status
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
-                                      CeedInt *numelem) {
-  *numelem = rstr->nelem;
-  return 0;
-}
+int CeedElemRestrictionGetBackendStridesStatus(CeedElemRestriction rstr,
+    bool *status) {
+  if (!rstr->strides)
+    // LCOV_EXCL_START
+    return CeedError(rstr->ceed, 1, "ElemRestriction has no stride data");
+  // LCOV_EXCL_STOP
 
-/**
-  @brief Get the size of elements in the CeedElemRestriction
-
-  @param rstr             CeedElemRestriction
-  @param[out] elemsize    Variable to store size of elements
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
-                                      CeedInt *elemsize) {
-  *elemsize = rstr->elemsize;
-  return 0;
-}
-
-/**
-  @brief Get the number of degrees of freedom in the range of a
-         CeedElemRestriction
-
-  @param rstr             CeedElemRestriction
-  @param[out] numnodes    Variable to store number of nodes
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedElemRestrictionGetNumNodes(CeedElemRestriction rstr,
-                                   CeedInt *numnodes) {
-  *numnodes = rstr->nnodes;
-  return 0;
-}
-
-/**
-  @brief Get the number of components in the elements of a
-         CeedElemRestriction
-
-  @param rstr             CeedElemRestriction
-  @param[out] numcomp     Variable to store number of components
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
-                                        CeedInt *numcomp) {
-  *numcomp = rstr->ncomp;
-  return 0;
-}
-
-/**
-  @brief Get the number of blocks in a CeedElemRestriction
-
-  @param rstr             CeedElemRestriction
-  @param[out] numblock    Variable to store number of blocks
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
-                                    CeedInt *numblock) {
-  *numblock = rstr->nblk;
-  return 0;
-}
-
-/**
-  @brief Get the size of blocks in the CeedElemRestriction
-
-  @param rstr             CeedElemRestriction
-  @param[out] blksize     Variable to store size of blocks
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
-                                    CeedInt *blksize) {
-  *blksize = rstr->blksize;
+  *status = ((rstr->strides[0] == CEED_STRIDES_BACKEND[0]) &&
+             (rstr->strides[1] == CEED_STRIDES_BACKEND[1]) &&
+             (rstr->strides[2] == CEED_STRIDES_BACKEND[2]));
   return 0;
 }
 
@@ -661,6 +593,120 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
 }
 
 /**
+  @brief Get the L-vector interlaced mode of a CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] imode       Variable to store imode
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetIMode(CeedElemRestriction rstr,
+                                CeedInterlaceMode *imode) {
+  *imode = rstr->imode;
+  return 0;
+}
+
+/**
+  @brief Get the total number of elements in the range of a CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] numelem     Variable to store number of elements
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
+                                      CeedInt *numelem) {
+  *numelem = rstr->nelem;
+  return 0;
+}
+
+/**
+  @brief Get the size of elements in the CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] elemsize    Variable to store size of elements
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
+                                      CeedInt *elemsize) {
+  *elemsize = rstr->elemsize;
+  return 0;
+}
+
+/**
+  @brief Get the number of degrees of freedom in the range of a
+         CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] numnodes    Variable to store number of nodes
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetNumNodes(CeedElemRestriction rstr,
+                                   CeedInt *numnodes) {
+  *numnodes = rstr->nnodes;
+  return 0;
+}
+
+/**
+  @brief Get the number of components in the elements of a
+         CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] numcomp     Variable to store number of components
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
+                                        CeedInt *numcomp) {
+  *numcomp = rstr->ncomp;
+  return 0;
+}
+
+/**
+  @brief Get the number of blocks in a CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] numblock    Variable to store number of blocks
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
+                                    CeedInt *numblock) {
+  *numblock = rstr->nblk;
+  return 0;
+}
+
+/**
+  @brief Get the size of blocks in the CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] blksize     Variable to store size of blocks
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
+                                    CeedInt *blksize) {
+  *blksize = rstr->blksize;
+  return 0;
+}
+
+/**
   @brief Get the multiplicity of nodes in a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
@@ -687,52 +733,6 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
   // Cleanup
   ierr = CeedVectorDestroy(&evec); CeedChk(ierr);
 
-  return 0;
-}
-
-/**
-
-  @brief Get the strides of a strided CeedElemRestriction
-
-  @param rstr             CeedElemRestriction
-  @param[out] strides     Variable to store strides array
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
-                                  CeedInt (*strides)[3]) {
-  if (!rstr->strides)
-    // LCOV_EXCL_START
-    return CeedError(rstr->ceed, 1, "ElemRestriction has no stride data");
-  // LCOV_EXCL_STOP
-
-  for (int i = 0; i<3; i++)
-    (*strides)[i] = rstr->strides[i];
-  return 0;
-}
-
-/**
-  @brief Get the backend stride status of a CeedElemRestriction
-
-  @param rstr             CeedElemRestriction
-  @param[out] status      Variable to store stride status
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedElemRestrictionGetBackendStridesStatus(CeedElemRestriction rstr,
-    bool *status) {
-  if (!rstr->strides)
-    // LCOV_EXCL_START
-    return CeedError(rstr->ceed, 1, "ElemRestriction has no stride data");
-  // LCOV_EXCL_STOP
-
-  *status = ((rstr->strides[0] == CEED_STRIDES_BACKEND[0]) &&
-             (rstr->strides[1] == CEED_STRIDES_BACKEND[1]) &&
-             (rstr->strides[2] == CEED_STRIDES_BACKEND[2]));
   return 0;
 }
 
