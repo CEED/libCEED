@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
   char filename[PETSC_MAX_PATH_LEN],
        ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   double my_rt_start, my_rt, rt_min, rt_max;
-  PetscInt degree = 3, qextra, *lsize, *xlsize, *gsize, dim = 3,
+  PetscInt degree = 3, qextra, *lsize, *xlsize, *gsize, dim = 3, fineLevel,
            melem[3] = {3, 3, 3}, ncompu = 1, numlevels = degree, *leveldegrees;
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
@@ -152,13 +152,15 @@ int main(int argc, char **argv) {
     break;
   }
   ierr = PetscMalloc1(numlevels, &leveldegrees); CHKERRQ(ierr);
+  fineLevel = numlevels - 1;
+
   switch (coarsen) {
   case COARSEN_UNIFORM:
     for (int i=0; i<numlevels; i++) leveldegrees[i] = i + 1;
     break;
   case COARSEN_LOGARITHMIC:
-    for (int i=0; i<numlevels-1; i++) leveldegrees[i] = pow(2,i);
-    leveldegrees[numlevels-1] = degree;
+    for (int i=0; i<numlevels - 1; i++) leveldegrees[i] = pow(2,i);
+    leveldegrees[fineLevel] = degree;
     break;
   }
   ierr = PetscMalloc1(numlevels, &dm); CHKERRQ(ierr);
@@ -210,7 +212,7 @@ int main(int argc, char **argv) {
       CHKERRQ(ierr);
     }
   }
-  ierr = VecDuplicate(X[numlevels-1], &rhs); CHKERRQ(ierr);
+  ierr = VecDuplicate(X[fineLevel], &rhs); CHKERRQ(ierr);
 
   // Set up libCEED
   CeedInit(ceedresource, &ceed);
@@ -233,22 +235,22 @@ int main(int argc, char **argv) {
                        "  Multigrid:\n"
                        "    Number of Levels                   : %d\n",
                        bpChoice+1, usedresource, P, Q,
-                       gsize[numlevels-1]/ncompu, lsize[numlevels-1]/ncompu,
+                       gsize[fineLevel]/ncompu, lsize[fineLevel]/ncompu,
                        ncompu, numlevels); CHKERRQ(ierr);
   }
 
   // Create RHS vector
-  ierr = VecDuplicate(Xloc[numlevels-1], &rhsloc); CHKERRQ(ierr);
+  ierr = VecDuplicate(Xloc[fineLevel], &rhsloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(rhsloc); CHKERRQ(ierr);
   ierr = VecGetArray(rhsloc, &r); CHKERRQ(ierr);
-  CeedVectorCreate(ceed, xlsize[numlevels-1], &rhsceed);
+  CeedVectorCreate(ceed, xlsize[fineLevel], &rhsceed);
   CeedVectorSetArray(rhsceed, CEED_MEM_HOST, CEED_USE_POINTER, r);
 
   // Set up libCEED operators on each level
   ierr = PetscMalloc1(numlevels, &ceeddata); CHKERRQ(ierr);
   for (int i=0; i<numlevels; i++) {
     // Print level information
-    if (!test_mode && (i == 0 || i == numlevels-1)) {
+    if (!test_mode && (i == 0 || i == fineLevel)) {
       ierr = PetscPrintf(comm,"    Level %D (%s):\n"
                          "      Number of 1D Basis Nodes (p)     : %d\n"
                          "      Global Nodes                     : %D\n"
@@ -259,14 +261,14 @@ int main(int argc, char **argv) {
     ierr = PetscMalloc1(1, &ceeddata[i]); CHKERRQ(ierr);
     ierr = SetupLibceedByDegree(dm[i], ceed, leveldegrees[i], dim, qextra,
                                 ncompu, gsize[i], xlsize[i], bpChoice,
-                                ceeddata[i], i==(numlevels-1), rhsceed,
+                                ceeddata[i], i==(fineLevel), rhsceed,
                                 &target); CHKERRQ(ierr);
   }
 
   // Gather RHS
   ierr = VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
   ierr = VecZeroEntries(rhs); CHKERRQ(ierr);
-  ierr = DMLocalToGlobal(dm[numlevels-1], rhsloc, ADD_VALUES, rhs);
+  ierr = DMLocalToGlobal(dm[fineLevel], rhsloc, ADD_VALUES, rhs);
   CHKERRQ(ierr);
   CeedVectorDestroy(&rhsceed);
 
@@ -291,11 +293,11 @@ int main(int argc, char **argv) {
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_error);
-  CeedOperatorSetField(op_error, "u", ceeddata[numlevels-1]->Erestrictu,
-                       ceeddata[numlevels-1]->basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_error, "true_soln", ceeddata[numlevels-1]->Erestrictui,
+  CeedOperatorSetField(op_error, "u", ceeddata[fineLevel]->Erestrictu,
+                       ceeddata[fineLevel]->basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "true_soln", ceeddata[fineLevel]->Erestrictui,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "error", ceeddata[numlevels-1]->Erestrictui,
+  CeedOperatorSetField(op_error, "error", ceeddata[fineLevel]->Erestrictui,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Calculate multiplicity
@@ -387,7 +389,7 @@ int main(int argc, char **argv) {
                             PETSC_DEFAULT); CHKERRQ(ierr);
   }
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
-  ierr = KSPSetOperators(ksp, matO[numlevels-1], matO[numlevels-1]);
+  ierr = KSPSetOperators(ksp, matO[fineLevel], matO[fineLevel]);
   CHKERRQ(ierr);
 
   // Set up PCMG
@@ -412,7 +414,7 @@ int main(int argc, char **argv) {
       ierr = PCJacobiSetType(smoother_pc, PC_JACOBI_DIAGONAL); CHKERRQ(ierr);
 
       // Work vector
-      if (i < numlevels-1) {
+      if (i < numlevels - 1) {
         ierr = PCMGSetX(pc, i, X[i]); CHKERRQ(ierr);
       }
 
@@ -448,9 +450,9 @@ int main(int argc, char **argv) {
   if (benchmark_mode) {
     ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 1);
     CHKERRQ(ierr);
-    ierr = VecZeroEntries(X[numlevels-1]); CHKERRQ(ierr);
+    ierr = VecZeroEntries(X[fineLevel]); CHKERRQ(ierr);
     my_rt_start = MPI_Wtime();
-    ierr = KSPSolve(ksp, rhs, X[numlevels-1]); CHKERRQ(ierr);
+    ierr = KSPSolve(ksp, rhs, X[fineLevel]); CHKERRQ(ierr);
     my_rt = MPI_Wtime() - my_rt_start;
     ierr = MPI_Allreduce(MPI_IN_PLACE, &my_rt, 1, MPI_DOUBLE, MPI_MIN, comm);
     CHKERRQ(ierr);
@@ -465,10 +467,10 @@ int main(int argc, char **argv) {
   }
 
   // Timed solve
-  ierr = VecZeroEntries(X[numlevels-1]); CHKERRQ(ierr);
+  ierr = VecZeroEntries(X[fineLevel]); CHKERRQ(ierr);
   ierr = PetscBarrier((PetscObject)ksp); CHKERRQ(ierr);
   my_rt_start = MPI_Wtime();
-  ierr = KSPSolve(ksp, rhs, X[numlevels-1]); CHKERRQ(ierr);
+  ierr = KSPSolve(ksp, rhs, X[fineLevel]); CHKERRQ(ierr);
   my_rt = MPI_Wtime() - my_rt_start;
 
   // Output results
@@ -504,7 +506,7 @@ int main(int argc, char **argv) {
     }
     {
       PetscReal maxerror;
-      ierr = ComputeErrorMax(userO[numlevels-1], op_error, X[numlevels-1], target,
+      ierr = ComputeErrorMax(userO[fineLevel], op_error, X[fineLevel], target,
                              &maxerror); CHKERRQ(ierr);
       PetscReal tol = 5e-2;
       if (!test_mode || maxerror > tol) {
@@ -521,8 +523,8 @@ int main(int argc, char **argv) {
     if (benchmark_mode && (!test_mode)) {
       ierr = PetscPrintf(comm,
                          "    DoFs/Sec in CG                     : %g (%g) million\n",
-                         1e-6*gsize[numlevels-1]*its/rt_max,
-                         1e-6*gsize[numlevels-1]*its/rt_min);
+                         1e-6*gsize[fineLevel]*its/rt_max,
+                         1e-6*gsize[fineLevel]*its/rt_min);
       CHKERRQ(ierr);
     }
   }
@@ -533,7 +535,7 @@ int main(int argc, char **argv) {
     ierr = PetscViewerCreate(comm, &vtkviewersoln); CHKERRQ(ierr);
     ierr = PetscViewerSetType(vtkviewersoln, PETSCVIEWERVTK); CHKERRQ(ierr);
     ierr = PetscViewerFileSetName(vtkviewersoln, "solution.vtk"); CHKERRQ(ierr);
-    ierr = VecView(X[numlevels-1], vtkviewersoln); CHKERRQ(ierr);
+    ierr = VecView(X[fineLevel], vtkviewersoln); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&vtkviewersoln); CHKERRQ(ierr);
   }
 
