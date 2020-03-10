@@ -126,8 +126,8 @@ CEED_EXTERN int CeedTensorContractApply(CeedTensorContract contract, CeedInt A,
                                         const CeedScalar *restrict t,
                                         CeedTransposeMode tmode,
                                         const CeedInt Add,
-                                        const CeedScalar *restrict u,
-                                        CeedScalar *restrict v);
+                                        const CeedScalar *__restrict__ u,
+                                        CeedScalar *__restrict__ v);
 CEED_EXTERN int CeedTensorContractGetCeed(CeedTensorContract contract,
     Ceed *ceed);
 CEED_EXTERN int CeedTensorContractGetData(CeedTensorContract contract,
