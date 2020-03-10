@@ -123,7 +123,7 @@ CEED_EXTERN int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
     CeedTensorContract *contract);
 CEED_EXTERN int CeedTensorContractApply(CeedTensorContract contract, CeedInt A,
                                         CeedInt B, CeedInt C, CeedInt J,
-                                        const CeedScalar *restrict t,
+                                        const CeedScalar *__restrict__ t,
                                         CeedTransposeMode tmode,
                                         const CeedInt Add,
                                         const CeedScalar *__restrict__ u,
