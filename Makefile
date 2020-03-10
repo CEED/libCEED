@@ -81,13 +81,9 @@ CXXFLAGS = -std=c++11 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
 NVCCFLAGS = -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
-  FFLAGS = $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD -DSOURCE_DIR='"$(abspath $(<D))/"'
+  FFLAGS ?= $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD
 else # gfortran/Intel-style options
-  FFLAGS = -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP -DSOURCE_DIR='"$(abspath $(<D))/"'
-endif
-
-ifeq ($(UNDERSCORE), 1)
-  CPPFLAGS += -DUNDERSCORE
+  FFLAGS ?= -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
 endif
 
 ifeq ($(COVERAGE), 1)
@@ -329,7 +325,6 @@ CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
-  $(libceeds) : CFLAGS += -I$(CUDA_DIR)/include
   $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
   $(libceeds) : LDLIBS += -lcudart -lnvrtc -lcuda
@@ -353,7 +348,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   libceed.c  += $(magma_allsrc.c)
   libceed.cu += $(magma_allsrc.cu)
   $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) $(magma_allsrc.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-  $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o) : NVCCFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
+  $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
   BACKENDS += /gpu/magma
   endif
 endif
@@ -365,6 +360,7 @@ export BACKENDS
 	$(magma_preprocessor) $<
 
 libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o)
+$(filter %fortran.o,$(libceed.o)) : CPPFLAGS += $(if $(filter 1,$(UNDERSCORE)),-DUNDERSCORE)
 $(libceed.o): | info-backends
 $(libceed) : $(libceed.o) | $$(@D)/.DIR
 	$(call quiet,LINK) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
@@ -382,13 +378,13 @@ $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : tests/%.f90 | $$(@D)/.DIR
-	$(call quiet,LINK.F) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
-	$(call quiet,LINK.F) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	+$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
