@@ -194,10 +194,9 @@ int main(int argc, char **argv) {
     ierr = MatCreateShell(comm, lsize[i], lsize[i], gsize[i], gsize[i],
                           userO[i], &matO[i]); CHKERRQ(ierr);
     ierr = MatShellSetOperation(matO[i], MATOP_MULT,
-                                (void(*)(void))MatMult_Ceed);
+                                (void(*)(void))MatMult_Ceed); CHKERRQ(ierr);
     ierr = MatShellSetOperation(matO[i], MATOP_GET_DIAGONAL,
-                                (void(*)(void))MatGetDiag);
-    CHKERRQ(ierr);
+                                (void(*)(void))MatGetDiag); CHKERRQ(ierr);
 
     // Level transfers
     if (i > 0) {

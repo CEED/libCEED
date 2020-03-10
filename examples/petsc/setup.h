@@ -672,7 +672,6 @@ static PetscErrorCode CeedLevelTransferSetup(Ceed ceed, CeedInt numlevels,
 // Mat Shell Functions
 // -----------------------------------------------------------------------------
 // This function returns the computed diagonal of the operator
-#ifdef multigrid
 static PetscErrorCode MatGetDiag(Mat A, Vec D) {
   PetscErrorCode ierr;
   UserO user;
@@ -704,7 +703,6 @@ static PetscErrorCode MatGetDiag(Mat A, Vec D) {
 
   PetscFunctionReturn(0);
 }
-#endif
 
 // This function uses libCEED to compute the action of the Laplacian with
 // Dirichlet boundary conditions

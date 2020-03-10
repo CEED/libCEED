@@ -155,8 +155,9 @@ int main(int argc, char **argv) {
   ierr = MatCreateShell(comm, lsize, lsize, gsize, gsize,
                         userO, &matO); CHKERRQ(ierr);
   ierr = MatShellSetOperation(matO, MATOP_MULT,
-                              (void(*)(void))MatMult_Ceed);
-  CHKERRQ(ierr);
+                              (void(*)(void))MatMult_Ceed); CHKERRQ(ierr);
+  ierr = MatShellSetOperation(matO, MATOP_GET_DIAGONAL,
+                              (void(*)(void))MatGetDiag); CHKERRQ(ierr);
 
   // Set up libCEED
   CeedInit(ceedresource, &ceed);
