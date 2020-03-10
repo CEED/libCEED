@@ -696,10 +696,7 @@ static PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, UserO user) {
   PetscFunctionBeginUser;
 
   // Global-to-local
-  ierr = DMGlobalToLocalBegin(user->dm, X, INSERT_VALUES, user->Xloc);
-  CHKERRQ(ierr);
-  ierr = DMGlobalToLocalEnd(user->dm, X, INSERT_VALUES, user->Xloc);
-  CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, X, INSERT_VALUES, user->Xloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
   // Setup CEED vectors
@@ -719,10 +716,7 @@ static PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, UserO user) {
 
   // Local-to-global
   ierr = VecZeroEntries(Y); CHKERRQ(ierr);
-  ierr = DMLocalToGlobalBegin(user->dm, user->Yloc, ADD_VALUES, Y);
-  CHKERRQ(ierr);
-  ierr = DMLocalToGlobalEnd(user->dm, user->Yloc, ADD_VALUES, Y);
-  CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(user->dm, user->Yloc, ADD_VALUES, Y); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -769,9 +763,7 @@ static PetscErrorCode MatMult_Interp(Mat A, Vec X, Vec Y) {
 
   // Global-to-local
   ierr = VecZeroEntries(user->Xloc); CHKERRQ(ierr);
-  ierr = DMGlobalToLocalBegin(user->dmc, X, INSERT_VALUES, user->Xloc);
-  CHKERRQ(ierr);
-  ierr = DMGlobalToLocalEnd(user->dmc, X, INSERT_VALUES, user->Xloc);
+  ierr = DMGlobalToLocal(user->dmc, X, INSERT_VALUES, user->Xloc);
   CHKERRQ(ierr);
   ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
@@ -796,10 +788,7 @@ static PetscErrorCode MatMult_Interp(Mat A, Vec X, Vec Y) {
 
   // Local-to-global
   ierr = VecZeroEntries(Y); CHKERRQ(ierr);
-  ierr = DMLocalToGlobalBegin(user->dmf, user->Yloc, ADD_VALUES, Y);
-  CHKERRQ(ierr);
-  ierr = DMLocalToGlobalEnd(user->dmf, user->Yloc, ADD_VALUES, Y);
-  CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(user->dmf, user->Yloc, ADD_VALUES, Y); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -815,9 +804,7 @@ static PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y) {
 
   // Global-to-local
   ierr = VecZeroEntries(user->Xloc); CHKERRQ(ierr);
-  ierr = DMGlobalToLocalBegin(user->dmf, X, INSERT_VALUES, user->Xloc);
-  CHKERRQ(ierr);
-  ierr = DMGlobalToLocalEnd(user->dmf, X, INSERT_VALUES, user->Xloc);
+  ierr = DMGlobalToLocal(user->dmf, X, INSERT_VALUES, user->Xloc);
   CHKERRQ(ierr);
   ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
@@ -842,10 +829,7 @@ static PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y) {
 
   // Local-to-global
   ierr = VecZeroEntries(Y); CHKERRQ(ierr);
-  ierr = DMLocalToGlobalBegin(user->dmc, user->Yloc, ADD_VALUES, Y);
-  CHKERRQ(ierr);
-  ierr = DMLocalToGlobalEnd(user->dmc, user->Yloc, ADD_VALUES, Y);
-  CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(user->dmc, user->Yloc, ADD_VALUES, Y); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

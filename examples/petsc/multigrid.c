@@ -274,9 +274,7 @@ int main(int argc, char **argv) {
   // Gather RHS
   ierr = VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
   ierr = VecZeroEntries(rhs); CHKERRQ(ierr);
-  ierr = DMLocalToGlobalBegin(dm[numlevels-1], rhsloc, ADD_VALUES, rhs);
-  CHKERRQ(ierr);
-  ierr = DMLocalToGlobalEnd(dm[numlevels-1], rhsloc, ADD_VALUES, rhs);
+  ierr = DMLocalToGlobal(dm[numlevels-1], rhsloc, ADD_VALUES, rhs);
   CHKERRQ(ierr);
   CeedVectorDestroy(&rhsceed);
 
@@ -328,16 +326,12 @@ int main(int argc, char **argv) {
 
     // Local-to-global
     ierr = VecZeroEntries(X[i]); CHKERRQ(ierr);
-    ierr = DMLocalToGlobalBegin(dm[i], Xloc[i], ADD_VALUES, X[i]);
-    CHKERRQ(ierr);
-    ierr = DMLocalToGlobalEnd(dm[i], Xloc[i], ADD_VALUES, X[i]);
+    ierr = DMLocalToGlobal(dm[i], Xloc[i], ADD_VALUES, X[i]);
     CHKERRQ(ierr);
     ierr = VecZeroEntries(Xloc[i]); CHKERRQ(ierr);
 
     // Global-to-local
-    ierr = DMGlobalToLocalBegin(dm[i], X[i], INSERT_VALUES, mult[i]);
-    CHKERRQ(ierr);
-    ierr = DMGlobalToLocalEnd(dm[i], X[i], INSERT_VALUES, mult[i]);
+    ierr = DMGlobalToLocal(dm[i], X[i], INSERT_VALUES, mult[i]);
     CHKERRQ(ierr);
     ierr = VecZeroEntries(X[i]); CHKERRQ(ierr);
 
@@ -372,10 +366,8 @@ int main(int argc, char **argv) {
 
     // -- Global diagonal
     ierr = VecZeroEntries(userO[i]->diag); CHKERRQ(ierr);
-    ierr = DMLocalToGlobalBegin(userO[i]->dm, Xloc[i], ADD_VALUES,
+    ierr = DMLocalToGlobal(userO[i]->dm, Xloc[i], ADD_VALUES,
                                 userO[i]->diag); CHKERRQ(ierr);
-    ierr = DMLocalToGlobalEnd(userO[i]->dm, Xloc[i], ADD_VALUES,
-                              userO[i]->diag); CHKERRQ(ierr);
 
     // -- Cleanup
     ierr = VecResetArray(Xloc[i]); CHKERRQ(ierr);
