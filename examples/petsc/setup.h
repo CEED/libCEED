@@ -38,7 +38,7 @@ typedef struct UserO_ *UserO;
 struct UserO_ {
   MPI_Comm comm;
   DM dm;
-  Vec Xloc, Yloc, diag;
+  Vec Xloc, Yloc;
   CeedVector xceed, yceed;
   CeedOperator op;
   Ceed ceed;
@@ -614,8 +614,8 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   PetscFunctionReturn(0);
 }
 
-#ifdef multigrid
 // Setup libCEED level transfer operator objects
+#ifdef multigrid
 static PetscErrorCode CeedLevelTransferSetup(Ceed ceed, CeedInt numlevels,
     CeedInt ncompu, bpType bpChoice, CeedData *data, CeedInt *leveldegrees,
     CeedQFunction qf_restrict, CeedQFunction qf_prolong) {
@@ -671,17 +671,36 @@ static PetscErrorCode CeedLevelTransferSetup(Ceed ceed, CeedInt numlevels,
 // -----------------------------------------------------------------------------
 // Mat Shell Functions
 // -----------------------------------------------------------------------------
-
-#ifdef multigrid
 // This function returns the computed diagonal of the operator
+#ifdef multigrid
 static PetscErrorCode MatGetDiag(Mat A, Vec D) {
   PetscErrorCode ierr;
   UserO user;
 
   PetscFunctionBeginUser;
+
   ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
 
-  ierr = VecCopy(user->diag, D); CHKERRQ(ierr);
+  // Compute Diagonal via libCEED
+  CeedVector ceedDiagVec;
+  const CeedScalar *diagArray;
+
+  // -- Compute Diagonal
+  CeedOperatorAssembleLinearDiagonal(user->op, &ceedDiagVec,
+                                     CEED_REQUEST_IMMEDIATE);
+
+  // -- Place in PETSc vector
+  CeedVectorGetArrayRead(ceedDiagVec, CEED_MEM_HOST, &diagArray);
+  ierr = VecPlaceArray(user->Xloc, diagArray); CHKERRQ(ierr);
+
+  // -- Local-to-Global
+  ierr = VecZeroEntries(D); CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(user->dm, user->Xloc, ADD_VALUES, D); CHKERRQ(ierr);
+
+  // -- Cleanup
+  ierr = VecResetArray(user->Xloc); CHKERRQ(ierr);
+  CeedVectorRestoreArrayRead(ceedDiagVec, &diagArray);
+  CeedVectorDestroy(&ceedDiagVec);
 
   PetscFunctionReturn(0);
 }
@@ -736,8 +755,8 @@ static PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
   PetscFunctionReturn(0);
 }
 
-#ifdef multigrid
 // This function wraps the libCEED operator for a SNES residual evaluation
+#ifdef multigrid
 static PetscErrorCode FormResidual_Ceed(SNES snes, Vec X, Vec Y, void *ctx) {
   PetscErrorCode ierr;
   UserO user = (UserO)ctx;
@@ -751,8 +770,8 @@ static PetscErrorCode FormResidual_Ceed(SNES snes, Vec X, Vec Y, void *ctx) {
 };
 #endif
 
-#ifdef multigrid
 // This function uses libCEED to compute the action of the interp operator
+#ifdef multigrid
 static PetscErrorCode MatMult_Interp(Mat A, Vec X, Vec Y) {
   PetscErrorCode ierr;
   UserIR user;
@@ -792,8 +811,10 @@ static PetscErrorCode MatMult_Interp(Mat A, Vec X, Vec Y) {
 
   PetscFunctionReturn(0);
 }
+#endif
 
 // This function uses libCEED to compute the action of the restriction operator
+#ifdef multigrid
 static PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y) {
   PetscErrorCode ierr;
   UserIR user;

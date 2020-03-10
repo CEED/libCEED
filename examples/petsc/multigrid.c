@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
   UserIR *userI, *userR;
   Ceed ceed;
   CeedData *ceeddata;
-  CeedVector rhsceed, diagceed, target;
+  CeedVector rhsceed, target;
   CeedQFunction qf_error, qf_restrict, qf_prolong;
   CeedOperator op_error;
   bpType bpChoice;
@@ -351,28 +351,6 @@ int main(int argc, char **argv) {
     userO[i]->op = ceeddata[i]->op_apply;
     userO[i]->ceed = ceed;
 
-    // Set up diagonal
-    const CeedScalar *ceedarray;
-    ierr = VecDuplicate(X[i], &userO[i]->diag); CHKERRQ(ierr);
-
-    // -- Local diagonal
-    CeedOperatorAssembleLinearDiagonal(userO[i]->op, &diagceed,
-                                       CEED_REQUEST_IMMEDIATE);
-
-    // -- Set PETSc array
-    CeedVectorGetArrayRead(diagceed, CEED_MEM_HOST, &ceedarray);
-    ierr = VecPlaceArray(Xloc[i], ceedarray); CHKERRQ(ierr);
-    CeedVectorRestoreArrayRead(diagceed, &ceedarray);
-
-    // -- Global diagonal
-    ierr = VecZeroEntries(userO[i]->diag); CHKERRQ(ierr);
-    ierr = DMLocalToGlobal(userO[i]->dm, Xloc[i], ADD_VALUES,
-                                userO[i]->diag); CHKERRQ(ierr);
-
-    // -- Cleanup
-    ierr = VecResetArray(Xloc[i]); CHKERRQ(ierr);
-    CeedVectorDestroy(&diagceed);
-
     if (i > 0) {
       // Interp Operator
       userI[i]->comm = comm;
@@ -587,7 +565,6 @@ int main(int argc, char **argv) {
     ierr = VecDestroy(&Xloc[i]); CHKERRQ(ierr);
     ierr = VecDestroy(&mult[i]); CHKERRQ(ierr);
     ierr = VecDestroy(&userO[i]->Yloc); CHKERRQ(ierr);
-    ierr = VecDestroy(&userO[i]->diag); CHKERRQ(ierr);
     ierr = MatDestroy(&matO[i]); CHKERRQ(ierr);
     ierr = PetscFree(userO[i]); CHKERRQ(ierr);
     if (i > 0) {
