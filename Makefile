@@ -14,7 +14,8 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
--include config.mk
+CONFIG ?= config.mk
+-include $(CONFIG)
 
 ifeq (,$(filter-out undefined default,$(origin CC)))
   CC = gcc
@@ -75,10 +76,10 @@ AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 MARCHFLAG := $(if $(shell $(CC) -E -march=native -x c /dev/null > /dev/null 2>&1 && echo 1),-march=native,-mtune=native)
 
-OPT    = -O -g $(MARCHFLAG) -ffp-contract=fast -fopenmp-simd
-CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-CXXFLAGS = -std=c++11 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-NVCCFLAGS = -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
+OPT    ?= -O -g $(MARCHFLAG) -ffp-contract=fast -fopenmp-simd
+CFLAGS ?= -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
+CXXFLAGS ?= -std=c++11 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
+NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
   FFLAGS ?= $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD
@@ -515,7 +516,7 @@ cln clean :
 	$(RM) benchmarks/*output.txt
 
 distclean : clean
-	$(RM) -r doc/html config.mk
+	$(RM) -r doc/html $(CONFIG)
 
 DOXYGEN ?= doxygen
 doxygen :
@@ -557,33 +558,37 @@ print-% :
 	$(info )
 	@true
 
-# "make configure" will autodetect any variables not passed on the
-# command line, caching the result in config.mk to be used on any
-# subsequent invocations of make.  For example,
+# "make configure" detects any variables passed on the command line or
+# previously set in config.mk, caching them in config.mk as simple
+# (:=) variables.  Variables set in config.mk or on the command line
+# take precedence over the defaults provided in the file.  Typical
+# usage:
 #
 #   make configure CC=/path/to/my/cc CUDA_DIR=/opt/cuda
 #   make
 #   make prove
+#
+# The values in the file can be updated by passing them on the command
+# line, e.g.,
+#
+#   make configure CC=/path/to/other/clang
+
+# All variables to consider for caching
+CONFIG_VARS = CC CXX FC NVCC NVCC_CXX \
+	OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS \
+	LDFLAGS LDLIBS \
+	MAGMA_DIR XSMM_DIR CUDA_DIR MFEM_DIR PETSC_DIR NEK5K_DIR
+
+# $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
+# was set on the command line or in config.mk (where it will appear as
+# a simple variable).
+needs_save = $(or $(filter command line,$(origin $(1))),$(filter simple,$(flavor $(1))))
+
 configure :
-	@: > config.mk
-	@echo "CC = $(CC)" | tee -a config.mk
-	@echo "CXX = $(CXX)" | tee -a config.mk
-	@echo "FC = $(FC)" | tee -a config.mk
-	@echo "NVCC = $(NVCC)" | tee -a config.mk
-	@echo "NVCC_CXX = $(NVCC_CXX)" | tee -a config.mk
-	@echo "CFLAGS = $(CFLAGS)" | tee -a config.mk
-	@echo "CPPFLAGS = $(CPPFLAGS)" | tee -a config.mk
-	@echo "FFLAGS = $(FFLAGS)" | tee -a config.mk
-	@echo "NVCCFLAGS = $(NVCCFLAGS)" | tee -a config.mk
-	@echo "LDFLAGS = $(LDFLAGS)" | tee -a config.mk
-	@echo "LDLIBS = $(LDLIBS)" | tee -a config.mk
-	@echo "MAGMA_DIR = $(MAGMA_DIR)" | tee -a config.mk
-	@echo "XSMM_DIR = $(XSMM_DIR)" | tee -a config.mk
-	@echo "CUDA_DIR = $(CUDA_DIR)" | tee -a config.mk
-	@echo "MFEM_DIR = $(MFEM_DIR)" | tee -a config.mk
-	@echo "PETSC_DIR = $(PETSC_DIR)" | tee -a config.mk
-	@echo "NEK5K_DIR = $(NEK5K_DIR)" | tee -a config.mk
-	@echo "Configuration cached in config.mk"
+	$(file > $(CONFIG))
+	$(foreach v,$(CONFIG_VARS),$(if $(call needs_save,$(v)),$(file >> $(CONFIG),$(v) := $($(v)))))
+	@echo "Configuration cached in $(CONFIG):"
+	@cat $(CONFIG)
 
 .PHONY : configure
 
