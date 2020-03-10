@@ -551,6 +551,7 @@ print :
 print-% :
 	$(info [ variable name]: $*)
 	$(info [        origin]: $(origin $*))
+	$(info [        flavor]: $(flavor $*))
 	$(info [         value]: $(value $*))
 	$(info [expanded value]: $($*))
 	$(info )
