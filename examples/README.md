@@ -86,6 +86,10 @@ These examples use the mass operator to compute the surface area of a cube or a 
 These examples show in particular the constructions of geometric factors to handle problems in which the elements topological dimension is different from the
 geometrical dimension and for which the coordinate transformation Jacobian from the 2D reference space to a manifold embedded in 3D physical space is a non-square matrix.
 
+## PETSc+libCEED Bakeoff Problems on the Cubed-Sphere
+
+These examples reproduce the Bakeoff Problems 1-6 on a discrete cubed-sphere, using PETSc.
+
 ## Running Examples
 
 To build the examples, set the `MFEM_DIR`, `PETSC_DIR` and `NEK5K_DIR` variables
@@ -118,12 +122,32 @@ cd ..
 # PETSc+libCEED examples on CPU and GPU
 cd petsc
 make
+./bps -problem bp1 -ceed /cpu/self
+./bps -problem bp2 -ceed /gpu/occa
+./bps -problem bp3 -ceed /cpu/self
+./bps -problem bp4 -ceed /gpu/occa
+./bps -problem bp5 -ceed /cpu/self
+./bps -problem bp6 -ceed /gpu/occa
+cd ..
+
+cd petsc
+make
 ./bpsraw -problem bp1 -ceed /cpu/self
 ./bpsraw -problem bp2 -ceed /gpu/occa
 ./bpsraw -problem bp3 -ceed /cpu/self
 ./bpsraw -problem bp4 -ceed /gpu/occa
 ./bpsraw -problem bp5 -ceed /cpu/self
 ./bpsraw -problem bp6 -ceed /gpu/occa
+cd ..
+
+cd petsc
+make
+./bpssphere -problem bp1 -ceed /cpu/self
+./bpssphere -problem bp2 -ceed /gpu/occa
+./bpssphere -problem bp3 -ceed /cpu/self
+./bpssphere -problem bp4 -ceed /gpu/occa
+./bpssphere -problem bp5 -ceed /cpu/self
+./bpssphere -problem bp6 -ceed /gpu/occa
 cd ..
 
 cd petsc
