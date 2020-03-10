@@ -87,7 +87,7 @@ else # gfortran/Intel-style options
 endif
 
 ifeq ($(UNDERSCORE), 1)
-  CFLAGS += -DUNDERSCORE
+  CPPFLAGS += -DUNDERSCORE
 endif
 
 ifeq ($(COVERAGE), 1)
@@ -98,7 +98,7 @@ endif
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
 LDFLAGS += $(if $(ASAN),$(AFLAGS))
-CPPFLAGS = -I./include
+CPPFLAGS += -I./include
 LDLIBS = -lm
 OBJDIR := build
 LIBDIR := lib
