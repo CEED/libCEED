@@ -63,10 +63,10 @@
 //
 // g^{ij} = dX_i/dx_k dX_j/dx_k = (dxdX^T dxdX)^{-1}
 //
-// Stored: g^{ij} (in Voigt convention)
-//   in qdata[1:3] as
-//   [dXdxdXdxT11 dXdxdXdxT12]
-//   [dXdxdXdxT21 dXdxdXdxT22]
+// Stored: g^{ij} (in Voigt convention) in
+//
+//   qdata[1:3]: [dXdxdXdxT00 dXdxdXdxT01]
+//               [dXdxdXdxT01 dXdxdXdxT11]
 // *****************************************************************************
 
 // -----------------------------------------------------------------------------
@@ -137,7 +137,7 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
     // Interp-to-Interp qdata
     qdata[i+Q*0] = modJ * w[i];
 
-    // dxdX_j,k * dxdX_k,j, needed for the pseudoinverse
+    // dxdX_k,j * dxdX_j,k
     CeedScalar dxdXTdxdX[2][2];
     for (int j=0; j<2; j++)
       for (int k=0; k<2; k++) {
@@ -149,7 +149,7 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
     const CeedScalar detdxdXTdxdX =  dxdXTdxdX[0][0] * dxdXTdxdX[1][1]
                                     -dxdXTdxdX[1][0] * dxdXTdxdX[0][1];
 
-    // Compute inverse of dxdXTdxdX, which is the 2x2 metric tensor g^{ij}
+    // Compute inverse of dxdXTdxdX, which is the 2x2 contravariant metric tensor g^{ij}
     CeedScalar dxdXTdxdXinv[2][2];
     dxdXTdxdXinv[0][0] =  dxdXTdxdX[1][1] / detdxdXTdxdX;
     dxdXTdxdXinv[0][1] = -dxdXTdxdX[0][1] / detdxdXTdxdX;

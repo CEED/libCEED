@@ -117,7 +117,7 @@ coordinate transformations and the corresponding Jacobian determinant,
 equation :math:numref:`eq-jacobian-sphere`, are the same as in the
 :ref:`example-petsc-area-sphere` example. For the Poisson's problem, BP3-BP6, on the
 cubed-sphere, in addition to equation :math:numref:`eq-jacobian-sphere`, the pseudo-inverse of
-:math:`\partial \overset{\circ}{\mathbf{x}} / \partial \mathbf{X}` used to derive the contravariant metric tensor.
+:math:`\partial \overset{\circ}{\mathbf{x}} / \partial \mathbf{X}` is used to derive the contravariant metric tensor.
 We begin by expressing the Moore-Penrose (left) pseudo-inverse:
 
 .. math::
