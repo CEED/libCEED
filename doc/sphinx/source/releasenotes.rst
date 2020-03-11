@@ -1,5 +1,5 @@
 Changes/Release Notes
-======================================
+========================================
 
 On this page we provide a summary of the main API changes, new feautures and examples
 for each release of libCEED.
@@ -8,7 +8,7 @@ for each release of libCEED.
 .. _v0.5:
 
 v0.5 (Sep 18, 2019)
---------------------------------------
+----------------------------------------
 
 For this release, several improvements were made. Two new CUDA backends were added to
 the family of backends, of which, the new ``cuda-gen`` backend achieves state-of-the-art
@@ -111,7 +111,7 @@ Examples available in this release:
 .. _v0.4:
 
 v0.4 (Apr 1, 2019)
---------------------------------------
+----------------------------------------
 
 libCEED v0.4 was made again publicly available in the second full CEED software
 distribution, release CEED 2.0. This release contained notable features, such as
@@ -198,7 +198,7 @@ Examples available in this release:
 .. _v0.3:
 
 v0.3 (Sep 30, 2018)
---------------------------------------
+----------------------------------------
 
 Notable features in this release include active/passive field interface, support for
 non-tensor bases, backend optimization, and improved Fortran interface. This release
@@ -261,7 +261,7 @@ Examples available in this release:
 .. _v0.21:
 
 v0.21 (Sep 30, 2018)
---------------------------------------
+----------------------------------------
 
 A MAGMA backend (which relies upon the
 `MAGMA <https://bitbucket.org/icl/magma>`_ package) was integrated in libCEED for this
@@ -312,7 +312,7 @@ Examples available in this release:
 .. _v0.2:
 
 v0.2 (Mar 30, 2018)
---------------------------------------
+----------------------------------------
 
 libCEED was made publicly available the first full CEED software distribution, release
 CEED 1.0. The distribution was made available using the Spack package manager to provide
@@ -359,7 +359,7 @@ Examples available in this release:
 .. _v0.1:
 
 v0.1 (Jan 3, 2018)
---------------------------------------
+----------------------------------------
 
 Initial low-level API of the CEED project. The low-level API provides a set of Finite
 Elements kernels and components for writing new low-level kernels. Examples include:

@@ -1,7 +1,7 @@
 .. _Theoretical Framework:
 
 Theoretical Framework
-======================================
+---------------------
 
 In finite element formulations, the weak form of a Partial Differential Equation
 (PDE) is evaluated on a subdomain :math:`\Omega_e` (element) and the local results

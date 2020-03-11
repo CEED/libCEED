@@ -1,9 +1,9 @@
 Developer Notes
-======================================
+========================================
 
 
 Shape
---------------------------------------
+----------------------------------------
 
 Backends often manipulate tensors of dimension greater than 2.  It is
 awkward to pass fully-specified multi-dimensional arrays using C99 and
@@ -43,7 +43,7 @@ appropriate convention.
 
 
 Clang-tidy
---------------------------------------
+----------------------------------------
 
 Please check your code for common issues by running
 
