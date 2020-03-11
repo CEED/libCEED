@@ -183,7 +183,7 @@ int CeedErrorExit(Ceed ceed, const char *filename, int lineno, const char *func,
 **/
 int CeedSetErrorHandler(Ceed ceed,
                         int (*eh)(Ceed, const char *, int, const char *,
-                                 int, const char *, va_list)) {
+                                  int, const char *, va_list)) {
   ceed->Error = eh;
   return 0;
 }

@@ -320,7 +320,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
                                    k*gradT[2] /* *NOPAD* */
                                   };
     // ke = kinetic energy
-    const CeedScalar ke = ( u[0]*u[0] + u[1]*u[1] + u[2]*u[2] ) / 2.;
+    const CeedScalar ke = (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2.;
     // P = pressure
     const CeedScalar P  = (E - ke * rho - rho*g*x[2][i]) * (gamma - 1.);
     // dFconvdq[3][5][5] = dF(convective)/dq at each direction
@@ -413,7 +413,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     const CeedScalar Ce   = 1.;
     const CeedScalar f1   = rho * sqrt(uiujgij);
     const CeedScalar TauC = (Cc * f1) /
-      (8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
+                            (8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
     const CeedScalar TauM = 1. / (f1>1. ? f1 : 1.);
     const CeedScalar TauE = TauM / (Ce * cv);
     // *INDENT-ON*
@@ -578,7 +578,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
                                    k*gradT[2] /* *NOPAD* */
                                   };
     // ke = kinetic energy
-    const CeedScalar ke = ( u[0]*u[0] + u[1]*u[1] + u[2]*u[2] ) / 2.;
+    const CeedScalar ke = (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2.;
     // P = pressure
     const CeedScalar P  = (E - ke * rho - rho*g*x[2][i]) * (gamma - 1.);
     // dFconvdq[3][5][5] = dF(convective)/dq at each direction
@@ -679,7 +679,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     const CeedScalar Ce   = 1.;
     const CeedScalar f1   = rho * sqrt(uiujgij);
     const CeedScalar TauC = (Cc * f1) /
-      (8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
+                            (8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
     const CeedScalar TauM = 1. / (f1>1. ? f1 : 1.);
     const CeedScalar TauE = TauM / (Ce * cv);
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
