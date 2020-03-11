@@ -101,7 +101,7 @@ and thus
 .. _example-petsc-bps:
 
 Bakeoff problems and generalizations
-------------------------------------
+--------------------------------------
 
 The PETSc examples in this directory include a full suite of parallel :ref:`bakeoff problems <bps>` (BPs) using a "raw" parallel decomposition (see ``bpsraw.c``) and using PETSc's ``DMPlex`` for unstructured grid management (see ``bps.c``).
 A generalization of these BPs to the surface of the cubed-sphere are available in ``bpssphere.c``.

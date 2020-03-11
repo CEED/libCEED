@@ -18,7 +18,7 @@ Welcome to libCEED's User Manual!
    references
 
 Indices and tables
-==================
+===================================
 
 * :ref:`genindex`
 * :ref:`modindex`

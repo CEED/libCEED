@@ -1,7 +1,7 @@
 .. _example-petsc-navier-stokes:
 
 Compressible Navier-Stokes mini-app
-===================================
+======================================
 
 This example is located in the subdirectory :file:`examples/navier-stokes`. It solves
 the time-dependent Navier-Stokes equations of compressible gas dynamics in a static
@@ -148,7 +148,7 @@ so called :ref:`problem-density-current` problem.
 .. _problem-advection:
 
 Advection
----------
+--------------------------------------
 
 A simplified version of system :math:numref:`eq-ns`, only accounting for the transport
 of total energy, is given by
@@ -169,7 +169,7 @@ and non-penetration boundary conditions for :math:`\boldsymbol{u}`, and no-flux 
 .. _problem-density-current:
 
 Density Current
----------------
+--------------------------------------
 
 For this test problem (from :cite:`straka1993numerical`), we solve the full Navier-Stokes equations :math:numref:`eq-ns`,
 for which a cold air bubble (of radius :math:`r_c`) drops by convection in a neutrally

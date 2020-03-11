@@ -1,7 +1,7 @@
 .. _Examples:
 
 Examples
-========
+===================================
 
 This section contains a mathematical description of all examples provided with libCEED
 in the :file:`examples/` directory.

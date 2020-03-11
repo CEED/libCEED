@@ -1,5 +1,5 @@
 Introduction
-========================
+===================================
 
 Historically, conventional high-order finite element methods were rarely used for
 industrial problems because the Jacobian rapidly loses sparsity as the order is
