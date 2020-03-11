@@ -1,10 +1,10 @@
 PETSc demos and BPs
-======================================
+========================================
 
 .. _example-petsc-area:
 
 Area
---------------------------------------
+----------------------------------------
 
 This example is located in the subdirectory :file:`examples/petsc`. It
 demonstrates a simple usage of libCEED with PETSc to calculate
@@ -19,7 +19,7 @@ while the coordinates of the reference element are
 .. _example-petsc-area-cube:
 
 Cube
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This is one of the test cases of the computation of the :ref:`example-petsc-area` of a
 2D manifold embedded in 3D. This problem can be run with::
@@ -56,7 +56,7 @@ provided by the user as
 .. _example-petsc-area-sphere:
 
 Sphere
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This problem computes the surface :ref:`example-petsc-area` of a tensor-product
 discrete sphere, obtained by projecting a cube inscribed in a sphere onto the surface
@@ -101,7 +101,7 @@ and thus
 .. _example-petsc-bps:
 
 Bakeoff problems and generalizations
---------------------------------------
+----------------------------------------
 
 The PETSc examples in this directory include a full suite of parallel :ref:`bakeoff problems <bps>` (BPs) using a "raw" parallel decomposition (see ``bpsraw.c``) and using PETSc's ``DMPlex`` for unstructured grid management (see ``bps.c``).
 A generalization of these BPs to the surface of the cubed-sphere are available in ``bpssphere.c``.
@@ -110,7 +110,7 @@ A generalization of these BPs to the surface of the cubed-sphere are available i
 .. _example-petsc-bps-sphere:
 
 Bakeoff problems on the cubed-sphere
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For the :math:`L^2` projection problems, BP1-BP2, that use the mass operator, the
 coordinate transformations and the corresponding Jacobian determinant,
@@ -158,7 +158,7 @@ which is the form implemented in ``qfunctions/bps/bp3sphere.h``.
 .. _example-petsc-multigrid:
 
 Multigrid
---------------------------------------
+----------------------------------------
 
 This example is located in the subdirectory :file:`examples/petsc`. It
 investigates :math:`p`-multigrid for the Poisson problem, equation

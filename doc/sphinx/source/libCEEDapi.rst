@@ -1,5 +1,5 @@
 Interface Concepts
-======================================
+========================================
 
 This page provides a brief description of the theoretical foundations and the
 practical implementation of the libCEED library.
@@ -10,7 +10,7 @@ Developers may also want to consult the automatically updated
 .. include:: FEMtheory.rst.inc
 
 Finite Element Operator Decomposition
---------------------------------------
+----------------------------------------
 
 Finite element operators are typically defined through weak formulations of
 partial differential equations that involve integration over a computational
@@ -58,7 +58,7 @@ operators (:math:`\mathbf{D1}`, :math:`\mathbf{D2}`, etc.).
 
 
 Terminology and Notation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Vector representation/storage categories:
 
@@ -180,7 +180,7 @@ Operator representation/storage/action categories:
 
 
 Partial Assembly
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Since the global operator :math:`\mathbf{A}` is just a series of variational restrictions
 with :math:`\mathbf{B}`, :math:`\mathbf{G}` and :math:`\mathbf{P}`, starting from its
@@ -214,7 +214,7 @@ different depending on the physics being expressed and the representation of
 
 
 Parallel Decomposition
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After the application of each of the first three transition operators,
 :math:`\mathbf{P}`, :math:`\mathbf{G}` and :math:`\mathbf{B}`, the operator evaluation
@@ -259,7 +259,7 @@ operations on the host.
 
 
 API Description
---------------------------------------
+----------------------------------------
 
 The libCEED API takes an algebraic approach, where the user essentially
 describes in the *frontend* the operators **G**, **B** and **D** and the library
@@ -475,7 +475,7 @@ explicitly wait for the completion of the operation.
 
 
 Interface Principles and Evolution
---------------------------------------
+----------------------------------------
 
 LibCEED is intended to be extensible via backends that are packaged with the
 library and packaged separately (possibly as a binary containing proprietary

@@ -1,7 +1,7 @@
 .. _bps:
 
 CEED Bakeoff Problems
-======================================
+========================================
 
 The Center for Efficient Exascale Discretizations (CEED) uses Bakeoff Problems (BPs)
 to test and compare the performance of high-order finite element implementations. The

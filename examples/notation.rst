@@ -1,5 +1,5 @@
 Common notation
-===============
+========================================
 
 For most of our examples, the spatial discretization
 uses high-order finite elements/spectral elements, namely, the high-order Lagrange
