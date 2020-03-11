@@ -117,13 +117,43 @@ coordinate transformations and the corresponding Jacobian determinant,
 equation :math:numref:`eq-jacobian-sphere`, are the same as in the
 :ref:`example-petsc-area-sphere` example. For the Poisson's problem, BP3-BP6, on the
 cubed-sphere, in addition to equation :math:numref:`eq-jacobian-sphere`, the pseudo-inverse of
-:math:`\partial \overset{\circ}{\mathbf{x}} / \partial \mathbf{X}` is needed.
-We define this by using the Moore-Penrose (left) pseudo-inverse:
+:math:`\partial \overset{\circ}{\mathbf{x}} / \partial \mathbf{X}` used to derive the contravariant metric tensor.
+We begin by expressing the Moore-Penrose (left) pseudo-inverse:
 
 .. math::
-   \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}\right)_{(2\times 3)}^{+} =  \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(3\times2)} \right)^{-1} \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T \,.
+   \frac{\partial \mathbf{X}}{\partial \overset{\circ}{\mathbf{x}}}_{(2\times 3)} \equiv \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}\right)_{(2\times 3)}^{+} =  \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(3\times2)} \right)^{-1} \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T \,.
    :label: eq-dxcircdX-pseudo-inv
 
+This enables computation of gradients of an arbitrary function :math:`u(\overset{\circ}{\mathbf x})` in the embedding space as
+
+.. math::
+   \frac{\partial u}{\partial \overset{\circ}{\mathbf x}}_{(1\times 3)} = \frac{\partial u}{\partial \mathbf X}_{(1\times 2)} \frac{\partial \mathbf X}{\partial \overset{\circ}{\mathbf x}}_{(2\times 3)}
+
+and thus the weak Laplacian may be expressed as
+
+.. math::
+   :label: eq-weak-laplace-sphere
+
+   \int_S \frac{\partial v}{\partial \overset\circ{\mathbf x}} \left( \frac{\partial u}{\partial \overset\circ{\mathbf x}} \right)^T
+       = \int_S \frac{\partial v}{\partial \mathbf X} \underbrace{\frac{\partial \mathbf X}{\partial \overset\circ{\mathbf x}} \left( \frac{\partial \mathbf X}{\partial \overset\circ{\mathbf x}} \right)^T}_{\mathbf g_{(2\times 2)}}  \left(\frac{\partial u}{\partial \mathbf X} \right)^T
+
+where we have identified the :math:`2\times 2` contravariant metric tensor :math:`\mathbf g` (sometimes written :math:`\mathbf g^{ij}`).
+This expression can be simplified to avoid the explicit Moore-Penrose pseudo-inverse,
+
+.. math::
+   \mathbf g &= \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}} \right)^{-1}_{(2\times 2)} \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T
+   \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(3\times2)} \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}} \right)^{-T}_{(2\times 2)}
+
+   &= \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}} \right)^{-1}_{(2\times 2)}
+
+where we have dropped the transpose due to symmetry.
+This allows us to simplify :math:numref:`eq-weak-laplace-sphere` as
+
+.. math::
+   \int_S \frac{\partial v}{\partial \overset\circ{\mathbf x}} \left( \frac{\partial u}{\partial \overset\circ{\mathbf x}} \right)^T
+       = \int_S \frac{\partial v}{\partial \mathbf X} \underbrace{\left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}} \right)^{-1}}_{\mathbf g_{(2\times 2)}}  \left(\frac{\partial u}{\partial \mathbf X} \right)^T,
+
+which is the form implemented in ``qfunctions/bps/bp3sphere.h``.
 
 .. _example-petsc-multigrid:
 

@@ -59,7 +59,11 @@
 //
 // dX_i/dx_j [2 * 3] = (dx_i/dX_j)+ = (dxdX^T dxdX)^(-1) dxdX
 //
-// Stored: dX_i/dx_j * dX_j/dx_i (in Voigt convention)
+// and the product simplifies to yield the contravariant metric tensor
+//
+// g^{ij} = dX_i/dx_k dX_j/dx_k = (dxdX^T dxdX)^{-1}
+//
+// Stored: g^{ij} (in Voigt convention)
 //   in qdata[1:3] as
 //   [dXdxdXdxT11 dXdxdXdxT12]
 //   [dXdxdXdxT21 dXdxdXdxT22]
@@ -145,36 +149,17 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
     const CeedScalar detdxdXTdxdX =  dxdXTdxdX[0][0] * dxdXTdxdX[1][1]
                                     -dxdXTdxdX[1][0] * dxdXTdxdX[0][1];
 
-    // Compute inverse of dxdXTdxdX, needed for the pseudoinverse
+    // Compute inverse of dxdXTdxdX, which is the 2x2 metric tensor g^{ij}
     CeedScalar dxdXTdxdXinv[2][2];
     dxdXTdxdXinv[0][0] =  dxdXTdxdX[1][1] / detdxdXTdxdX;
     dxdXTdxdXinv[0][1] = -dxdXTdxdX[0][1] / detdxdXTdxdX;
     dxdXTdxdXinv[1][0] = -dxdXTdxdX[1][0] / detdxdXTdxdX;
     dxdXTdxdXinv[1][1] =  dxdXTdxdX[0][0] / detdxdXTdxdX;
 
-    // Compute the pseudo inverse of dxdX
-    CeedScalar pseudodXdx[2][3];
-    for (int j=0; j<2; j++)
-      for (int k=0; k<3; k++) {
-        pseudodXdx[j][k] = 0;
-        for (int l=0; l<2; l++)
-          pseudodXdx[j][k] += dxdXTdxdXinv[j][l]*dxdX[k][l];
-      }
-
-    // Grad-to-Grad qdata is given by pseudodXdx * pseudodXdxT
-    CeedScalar dXdxdXdxT[2][2];
-    for (int j=0; j<2; j++)
-      for (int k=0; k<2; k++) {
-        dXdxdXdxT[j][k] = 0;
-        for (int l=0; l<3; l++)
-          dXdxdXdxT[j][k] += pseudodXdx[j][l]*pseudodXdx[k][l];
-      }
-
     // Stored in Voigt convention
-    qdata[i+Q*1] = dXdxdXdxT[0][0];
-    qdata[i+Q*2] = dXdxdXdxT[1][1];
-    qdata[i+Q*3] = dXdxdXdxT[0][1];
-
+    qdata[i+Q*1] = dxdXTdxdXinv[0][0];
+    qdata[i+Q*2] = dxdXTdxdXinv[1][1];
+    qdata[i+Q*3] = dxdXTdxdXinv[0][1];
   } // End of Quadrature Point Loop
 
   // Return
