@@ -16,6 +16,13 @@
 
 #include "ceed-avx.h"
 
+// c += a * b
+#ifdef __FMA__
+#  define fmadd(c,a,b) (c) = _mm256_fmadd_pd((a), (b), (c))
+#else
+#  define fmadd(c,a,b) (c) += _mm256_mul_pd((a), (b))
+#endif
+
 //------------------------------------------------------------------------------
 // Blocked Tensor Contract
 //------------------------------------------------------------------------------
@@ -41,8 +48,7 @@ static inline int CeedTensorContract_Avx_Blocked(CeedTensorContract contract,
           for (CeedInt jj=0; jj<JJ; jj++) { // unroll
             __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
             for (CeedInt cc=0; cc<CC/4; cc++) // unroll
-              vv[jj][cc] += _mm256_mul_pd(tqv,
-                                          _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
+              fmadd(vv[jj][cc], tqv, _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
           }
         }
         for (CeedInt jj=0; jj<JJ; jj++)
@@ -63,8 +69,7 @@ static inline int CeedTensorContract_Avx_Blocked(CeedTensorContract contract,
           for (CeedInt jj=0; jj<J-j; jj++) { // doesn't unroll
             __m256d tqv = _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]);
             for (CeedInt cc=0; cc<CC/4; cc++) // unroll
-              vv[jj][cc] += _mm256_mul_pd(tqv,
-                                          _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
+              fmadd(vv[jj][cc], tqv, _mm256_loadu_pd(&u[(a*B+b)*C+c+cc*4]));
           }
         }
         for (CeedInt jj=0; jj<J-j; jj++)
@@ -111,8 +116,7 @@ static inline int CeedTensorContract_Avx_Remainder(CeedTensorContract contract,
           else
             tqu = _mm256_loadu_pd(&u[(a*B+b)*C+c]);
           for (CeedInt jj=0; jj<JJ; jj++) // unroll
-            vv[jj] += _mm256_mul_pd(tqu,
-                                    _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]));
+            fmadd(vv[jj], tqu, _mm256_set1_pd(t[(j+jj)*tstride0 + b*tstride1]));
         }
         for (CeedInt jj=0; jj<JJ; jj++)
           _mm256_storeu_pd(&v[(a*J+j+jj)*C+c], vv[jj]);
@@ -156,7 +160,7 @@ static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract,
                                       t[(j+jj*4+1)*tstride0 + b*tstride1],
                                       t[(j+jj*4+0)*tstride0 + b*tstride1]);
           for (CeedInt aa=0; aa<AA; aa++) // unroll
-            vv[aa][jj] += _mm256_mul_pd(tqv, _mm256_set1_pd(u[(a+aa)*B+b]));
+            fmadd(vv[aa][jj], tqv, _mm256_set1_pd(u[(a+aa)*B+b]));
         }
       }
       for (CeedInt aa=0; aa<AA; aa++)
@@ -179,7 +183,7 @@ static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract,
                                     t[(j+jj*4+1)*tstride0 + b*tstride1],
                                     t[(j+jj*4+0)*tstride0 + b*tstride1]);
         for (CeedInt aa=0; aa<A-a; aa++) // unroll
-          vv[aa][jj] += _mm256_mul_pd(tqv, _mm256_set1_pd(u[(a+aa)*B+b]));
+          fmadd(vv[aa][jj], tqv, _mm256_set1_pd(u[(a+aa)*B+b]));
       }
     }
     for (CeedInt aa=0; aa<A-a; aa++)
@@ -213,7 +217,7 @@ static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract,
                               t[(j+1)*tstride0 + b*tstride1],
                               t[(j+0)*tstride0 + b*tstride1]);
         for (CeedInt aa=0; aa<AA; aa++) // unroll
-          vv[aa] += _mm256_mul_pd(tqv, _mm256_set1_pd(u[(a+aa)*B+b]));
+          fmadd(vv[aa], tqv, _mm256_set1_pd(u[(a+aa)*B+b]));
       }
       for (CeedInt aa=0; aa<AA; aa++)
         _mm256_storeu_pd(&v[(a+aa)*J+j], vv[aa]);
