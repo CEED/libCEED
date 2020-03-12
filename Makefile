@@ -14,7 +14,8 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
--include config.mk
+CONFIG ?= config.mk
+-include $(CONFIG)
 
 ifeq (,$(filter-out undefined default,$(origin CC)))
   CC = gcc
@@ -73,21 +74,21 @@ endif
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
+CC_VENDOR := $(firstword $(filter gcc clang,$(shell $(CC) --version)))
+
 MARCHFLAG := $(if $(shell $(CC) -E -march=native -x c /dev/null > /dev/null 2>&1 && echo 1),-march=native,-mtune=native)
 
-OPT    = -O -g $(MARCHFLAG) -ffp-contract=fast -fopenmp-simd
-CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-CXXFLAGS = -std=c++11 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-NVCCFLAGS = -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
+OMP_SIMD_FLAG := $(if $(shell $(CC) -E -fopenmp-simd -x c /dev/null > /dev/null 2>&1 && echo 1),-fopenmp-simd)
+
+OPT    ?= -O -g $(MARCHFLAG) -ffp-contract=fast $(OMP_SIMD_FLAG)
+CFLAGS ?= -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
+CXXFLAGS ?= -std=c++11 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
+NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
 # If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
 ifneq ($(filter %xlf %xlf_r,$(FC)),)
-  FFLAGS = $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD -DSOURCE_DIR='"$(abspath $(<D))/"'
+  FFLAGS ?= $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD
 else # gfortran/Intel-style options
-  FFLAGS = -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP -DSOURCE_DIR='"$(abspath $(<D))/"'
-endif
-
-ifeq ($(UNDERSCORE), 1)
-  CFLAGS += -DUNDERSCORE
+  FFLAGS ?= -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
 endif
 
 ifeq ($(COVERAGE), 1)
@@ -98,7 +99,7 @@ endif
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
 LDFLAGS += $(if $(ASAN),$(AFLAGS))
-CPPFLAGS = -I./include
+CPPFLAGS += -I./include
 LDLIBS = -lm
 OBJDIR := build
 LIBDIR := lib
@@ -286,8 +287,9 @@ endif
 
 # AVX Backed
 AVX_STATUS = Disabled
-AVX := $(shell $(CC) $(OPT) -v -E - < /dev/null 2>&1 | grep -c ' -mavx')
-ifeq ($(AVX),1)
+AVX_FLAG := $(if $(filter clang,$(CC_VENDOR)),+avx,-mavx)
+AVX := $(filter $(AVX_FLAG),$(shell $(CC) $(OPT) -v -E -x c /dev/null 2>&1))
+ifneq ($(AVX),)
   AVX_STATUS = Enabled
   libceed.c += $(avx.c)
   BACKENDS += /cpu/self/avx/serial /cpu/self/avx/blocked
@@ -302,7 +304,9 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
     BLAS_LIB = -lblas
   else
     ifneq ($(MKLROOT),)
-      MKL_LINK = -L$(MKLROOT)/lib/intel64 -Wl,-rpath,$(MKLROOT)/lib/intel64
+      # Some installs put everything inside an intel64 subdirectory, others not
+      MKL_LIBDIR = $(dir $(firstword $(wildcard $(MKLROOT)/lib/intel64/libmkl_sequential.* $(MKLROOT)/lib/libmkl_sequential.*)))
+      MKL_LINK = -L$(MKL_LIBDIR) -Wl,-rpath,$(MKL_LIBDIR)
     endif
     BLAS_LIB = $(MKL_LINK) -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
   endif
@@ -327,7 +331,6 @@ CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
-  $(libceeds) : CFLAGS += -I$(CUDA_DIR)/include
   $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
   $(libceeds) : LDLIBS += -lcudart -lnvrtc -lcuda
@@ -351,7 +354,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   libceed.c  += $(magma_allsrc.c)
   libceed.cu += $(magma_allsrc.cu)
   $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) $(magma_allsrc.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-  $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o) : NVCCFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
+  $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
   BACKENDS += /gpu/magma
   endif
 endif
@@ -363,6 +366,7 @@ export BACKENDS
 	$(magma_preprocessor) $<
 
 libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o)
+$(filter %fortran.o,$(libceed.o)) : CPPFLAGS += $(if $(filter 1,$(UNDERSCORE)),-DUNDERSCORE)
 $(libceed.o): | info-backends
 $(libceed) : $(libceed.o) | $$(@D)/.DIR
 	$(call quiet,LINK) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
@@ -380,13 +384,13 @@ $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : tests/%.f90 | $$(@D)/.DIR
-	$(call quiet,LINK.F) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
-	$(call quiet,LINK.F) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	+$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
@@ -517,7 +521,7 @@ cln clean :
 	$(RM) benchmarks/*output.txt
 
 distclean : clean
-	$(RM) -r doc/html config.mk
+	$(RM) -r doc/html $(CONFIG)
 
 DOXYGEN ?= doxygen
 doxygen :
@@ -553,38 +557,43 @@ print :
 print-% :
 	$(info [ variable name]: $*)
 	$(info [        origin]: $(origin $*))
+	$(info [        flavor]: $(flavor $*))
 	$(info [         value]: $(value $*))
 	$(info [expanded value]: $($*))
 	$(info )
 	@true
 
-# "make configure" will autodetect any variables not passed on the
-# command line, caching the result in config.mk to be used on any
-# subsequent invocations of make.  For example,
+# "make configure" detects any variables passed on the command line or
+# previously set in config.mk, caching them in config.mk as simple
+# (:=) variables.  Variables set in config.mk or on the command line
+# take precedence over the defaults provided in the file.  Typical
+# usage:
 #
 #   make configure CC=/path/to/my/cc CUDA_DIR=/opt/cuda
 #   make
 #   make prove
+#
+# The values in the file can be updated by passing them on the command
+# line, e.g.,
+#
+#   make configure CC=/path/to/other/clang
+
+# All variables to consider for caching
+CONFIG_VARS = CC CXX FC NVCC NVCC_CXX \
+	OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS \
+	LDFLAGS LDLIBS \
+	MAGMA_DIR XSMM_DIR CUDA_DIR MFEM_DIR PETSC_DIR NEK5K_DIR
+
+# $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
+# was set on the command line or in config.mk (where it will appear as
+# a simple variable).
+needs_save = $(or $(filter command line,$(origin $(1))),$(filter simple,$(flavor $(1))))
+
 configure :
-	@: > config.mk
-	@echo "CC = $(CC)" | tee -a config.mk
-	@echo "CXX = $(CXX)" | tee -a config.mk
-	@echo "FC = $(FC)" | tee -a config.mk
-	@echo "NVCC = $(NVCC)" | tee -a config.mk
-	@echo "NVCC_CXX = $(NVCC_CXX)" | tee -a config.mk
-	@echo "CFLAGS = $(CFLAGS)" | tee -a config.mk
-	@echo "CPPFLAGS = $(CPPFLAGS)" | tee -a config.mk
-	@echo "FFLAGS = $(FFLAGS)" | tee -a config.mk
-	@echo "NVCCFLAGS = $(NVCCFLAGS)" | tee -a config.mk
-	@echo "LDFLAGS = $(LDFLAGS)" | tee -a config.mk
-	@echo "LDLIBS = $(LDLIBS)" | tee -a config.mk
-	@echo "MAGMA_DIR = $(MAGMA_DIR)" | tee -a config.mk
-	@echo "XSMM_DIR = $(XSMM_DIR)" | tee -a config.mk
-	@echo "CUDA_DIR = $(CUDA_DIR)" | tee -a config.mk
-	@echo "MFEM_DIR = $(MFEM_DIR)" | tee -a config.mk
-	@echo "PETSC_DIR = $(PETSC_DIR)" | tee -a config.mk
-	@echo "NEK5K_DIR = $(NEK5K_DIR)" | tee -a config.mk
-	@echo "Configuration cached in config.mk"
+	$(file > $(CONFIG))
+	$(foreach v,$(CONFIG_VARS),$(if $(call needs_save,$(v)),$(file >> $(CONFIG),$(v) := $($(v)))))
+	@echo "Configuration cached in $(CONFIG):"
+	@cat $(CONFIG)
 
 .PHONY : configure
 
