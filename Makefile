@@ -76,9 +76,13 @@ AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 CC_VENDOR := $(firstword $(filter gcc clang,$(shell $(CC) --version)))
 
-MARCHFLAG := $(if $(shell $(CC) -E -march=native -x c /dev/null > /dev/null 2>&1 && echo 1),-march=native,-mtune=native)
+cc_check_flag = $(shell $(CC) -E $(1) -x c /dev/null > /dev/null 2>&1 && echo 1)
+MARCHFLAG := -march=native
+MARCHFLAG := $(if $(call cc_check_flag,$(MARCHFLAG)),$(MARCHFLAG),-mcpu=native)
+MARCHFLAG := $(if $(call cc_check_flag,$(MARCHFLAG)),$(MARCHFLAG))
 
-OMP_SIMD_FLAG := $(if $(shell $(CC) -E -fopenmp-simd -x c /dev/null > /dev/null 2>&1 && echo 1),-fopenmp-simd)
+OMP_SIMD_FLAG := -fopenmp-simd
+OMP_SIMD_FLAG := $(if $(call cc_check_flag,$(OMP_SIMD_FLAG)),$(OMP_SIMD_FLAG))
 
 OPT    ?= -O -g $(MARCHFLAG) -ffp-contract=fast $(OMP_SIMD_FLAG)
 CFLAGS ?= -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
@@ -407,12 +411,12 @@ $(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh $(libc
 
 $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(MAKE) -C examples/petsc CEED_DIR=`pwd` \
-	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
+	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	mv examples/petsc/$* $@
 
 $(OBJDIR)/ns-% : examples/navier-stokes/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(MAKE) -C examples/navier-stokes CEED_DIR=`pwd` \
-	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
+	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	mv examples/navier-stokes/$* $@
 
 libceed_test.o = $(test_backends.c:%.c=$(OBJDIR)/%.o)
