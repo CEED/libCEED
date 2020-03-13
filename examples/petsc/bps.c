@@ -65,10 +65,10 @@ int main(int argc, char **argv) {
   UserO userO;
   Ceed ceed;
   CeedData ceeddata;
-  CeedQFunction qf_error;
-  CeedOperator op_error;
+  CeedQFunction qferror;
+  CeedOperator operror;
   CeedVector rhsceed, target;
-  bpType bpChoice;
+  bpType bpchoice;
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -76,12 +76,12 @@ int main(int argc, char **argv) {
 
   // Read command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
-  bpChoice = CEED_BP1;
+  bpchoice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
-                          bpTypes, (PetscEnum)bpChoice, (PetscEnum *)&bpChoice,
+                          bpTypes, (PetscEnum)bpchoice, (PetscEnum *)&bpchoice,
                           NULL); CHKERRQ(ierr);
-  ncompu = bpOptions[bpChoice].ncompu;
+  ncompu = bpOptions[bpchoice].ncompu;
   test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
   degree = test_mode ? 3 : 2;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
-  qextra = bpOptions[bpChoice].qextra;
+  qextra = bpOptions[bpchoice].qextra;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
   }
 
   // Create DM
-  ierr = SetupDMByDegree(dm, degree, ncompu, bpChoice);
+  ierr = SetupDMByDegree(dm, degree, ncompu, bpchoice);
   CHKERRQ(ierr);
 
   // Create vectors
@@ -155,8 +155,9 @@ int main(int argc, char **argv) {
   ierr = MatCreateShell(comm, lsize, lsize, gsize, gsize,
                         userO, &matO); CHKERRQ(ierr);
   ierr = MatShellSetOperation(matO, MATOP_MULT,
-                              (void(*)(void))MatMult_Ceed);
-  CHKERRQ(ierr);
+                              (void(*)(void))MatMult_Ceed); CHKERRQ(ierr);
+  ierr = MatShellSetOperation(matO, MATOP_GET_DIAGONAL,
+                              (void(*)(void))MatGetDiag); CHKERRQ(ierr);
 
   // Set up libCEED
   CeedInit(ceedresource, &ceed);
@@ -176,7 +177,7 @@ int main(int argc, char **argv) {
                        "    Global nodes                       : %D\n"
                        "    Owned nodes                        : %D\n"
                        "    DoF per node                       : %D\n",
-                       bpChoice+1, usedresource, P, Q, gsize/ncompu,
+                       bpchoice+1, usedresource, P, Q, gsize/ncompu,
                        lsize/ncompu, ncompu); CHKERRQ(ierr);
   }
 
@@ -189,7 +190,7 @@ int main(int argc, char **argv) {
 
   ierr = PetscMalloc1(1, &ceeddata); CHKERRQ(ierr);
   ierr = SetupLibceedByDegree(dm, ceed, degree, dim, qextra,
-                              ncompu, gsize, xlsize, bpChoice, ceeddata,
+                              ncompu, gsize, xlsize, bpchoice, ceeddata,
                               true, rhsceed, &target); CHKERRQ(ierr);
 
   // Gather RHS
@@ -200,20 +201,20 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&rhsceed);
 
   // Create the error Q-function
-  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].error,
-                              bpOptions[bpChoice].errorfname, &qf_error);
-  CeedQFunctionAddInput(qf_error, "u", ncompu, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_error, "true_soln", ncompu, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_error, "error", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].error,
+                              bpOptions[bpchoice].errorfname, &qferror);
+  CeedQFunctionAddInput(qferror, "u", ncompu, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qferror, "true_soln", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qferror, "error", ncompu, CEED_EVAL_NONE);
 
   // Create the error operator
-  CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &op_error);
-  CeedOperatorSetField(op_error, "u", ceeddata->Erestrictu,
+  CeedOperatorCreate(ceed, qferror, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &operror);
+  CeedOperatorSetField(operror, "u", ceeddata->Erestrictu,
                        ceeddata->basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_error, "true_soln", ceeddata->Erestrictui,
+  CeedOperatorSetField(operror, "true_soln", ceeddata->Erestrictui,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "error", ceeddata->Erestrictui,
+  CeedOperatorSetField(operror, "error", ceeddata->Erestrictui,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Set up Mat
@@ -223,14 +224,14 @@ int main(int argc, char **argv) {
   ierr = VecDuplicate(Xloc, &userO->Yloc); CHKERRQ(ierr);
   userO->xceed = ceeddata->xceed;
   userO->yceed = ceeddata->yceed;
-  userO->op = ceeddata->op_apply;
+  userO->op = ceeddata->opapply;
   userO->ceed = ceed;
 
   ierr = KSPCreate(comm, &ksp); CHKERRQ(ierr);
   {
     PC pc;
     ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
-    if (bpChoice == CEED_BP1 || bpChoice == CEED_BP2) {
+    if (bpchoice == CEED_BP1 || bpchoice == CEED_BP2) {
       ierr = PCSetType(pc, PCJACOBI); CHKERRQ(ierr);
       ierr = PCJacobiSetType(pc, PC_JACOBI_ROWSUM); CHKERRQ(ierr);
     } else {
@@ -295,7 +296,7 @@ int main(int argc, char **argv) {
     }
     {
       PetscReal maxerror;
-      ierr = ComputeErrorMax(userO, op_error, X, target, &maxerror);
+      ierr = ComputeErrorMax(userO, operror, X, target, &maxerror);
       CHKERRQ(ierr);
       PetscReal tol = 5e-2;
       if (!test_mode || maxerror > tol) {
@@ -340,8 +341,8 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
   CeedVectorDestroy(&target);
-  CeedQFunctionDestroy(&qf_error);
-  CeedOperatorDestroy(&op_error);
+  CeedQFunctionDestroy(&qferror);
+  CeedOperatorDestroy(&operror);
   CeedDestroy(&ceed);
   return PetscFinalize();
 }
