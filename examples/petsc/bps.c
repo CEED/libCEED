@@ -65,8 +65,8 @@ int main(int argc, char **argv) {
   UserO userO;
   Ceed ceed;
   CeedData ceeddata;
-  CeedQFunction qf_error;
-  CeedOperator op_error;
+  CeedQFunction qferror;
+  CeedOperator operror;
   CeedVector rhsceed, target;
   bpType bpChoice;
 
@@ -202,19 +202,19 @@ int main(int argc, char **argv) {
 
   // Create the error Q-function
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].error,
-                              bpOptions[bpChoice].errorfname, &qf_error);
-  CeedQFunctionAddInput(qf_error, "u", ncompu, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_error, "true_soln", ncompu, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_error, "error", ncompu, CEED_EVAL_NONE);
+                              bpOptions[bpChoice].errorfname, &qferror);
+  CeedQFunctionAddInput(qferror, "u", ncompu, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qferror, "true_soln", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qferror, "error", ncompu, CEED_EVAL_NONE);
 
   // Create the error operator
-  CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &op_error);
-  CeedOperatorSetField(op_error, "u", ceeddata->Erestrictu,
+  CeedOperatorCreate(ceed, qferror, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &operror);
+  CeedOperatorSetField(operror, "u", ceeddata->Erestrictu,
                        ceeddata->basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_error, "true_soln", ceeddata->Erestrictui,
+  CeedOperatorSetField(operror, "true_soln", ceeddata->Erestrictui,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "error", ceeddata->Erestrictui,
+  CeedOperatorSetField(operror, "error", ceeddata->Erestrictui,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Set up Mat
@@ -224,7 +224,7 @@ int main(int argc, char **argv) {
   ierr = VecDuplicate(Xloc, &userO->Yloc); CHKERRQ(ierr);
   userO->xceed = ceeddata->xceed;
   userO->yceed = ceeddata->yceed;
-  userO->op = ceeddata->op_apply;
+  userO->op = ceeddata->opapply;
   userO->ceed = ceed;
 
   ierr = KSPCreate(comm, &ksp); CHKERRQ(ierr);
@@ -296,7 +296,7 @@ int main(int argc, char **argv) {
     }
     {
       PetscReal maxerror;
-      ierr = ComputeErrorMax(userO, op_error, X, target, &maxerror);
+      ierr = ComputeErrorMax(userO, operror, X, target, &maxerror);
       CHKERRQ(ierr);
       PetscReal tol = 5e-2;
       if (!test_mode || maxerror > tol) {
@@ -341,8 +341,8 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
   CeedVectorDestroy(&target);
-  CeedQFunctionDestroy(&qf_error);
-  CeedOperatorDestroy(&op_error);
+  CeedQFunctionDestroy(&qferror);
+  CeedOperatorDestroy(&operror);
   CeedDestroy(&ceed);
   return PetscFinalize();
 }

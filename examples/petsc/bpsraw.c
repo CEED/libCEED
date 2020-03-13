@@ -338,7 +338,7 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
 }
 
 // This function calculates the error in the final solution
-static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
+static PetscErrorCode ComputeErrorMax(User user, CeedOperator operror, Vec X,
                                       CeedVector target, PetscReal *maxerror) {
   PetscErrorCode ierr;
   PetscScalar *x;
@@ -360,7 +360,7 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
   CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
   // Apply CEED operator
-  CeedOperatorApply(op_error, user->xceed, collocated_error,
+  CeedOperatorApply(operror, user->xceed, collocated_error,
                     CEED_REQUEST_IMMEDIATE);
 
   // Restore PETSc vector
@@ -401,8 +401,8 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedBasis basisx, basisu;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictui, Erestrictqdi;
-  CeedQFunction qf_setupgeo, qf_setuprhs, qf_apply, qf_error;
-  CeedOperator op_setupgeo, op_setuprhs, op_apply, op_error;
+  CeedQFunction qfsetupgeo, qfsetuprhs, qfapply, qferror;
+  CeedOperator opsetupgeo, opsetuprhs, opapply, operror;
   CeedVector xcoord, qdata, rhsceed, target;
   CeedInt P, Q;
   const CeedInt dim = 3, ncompx = 3;
@@ -627,40 +627,40 @@ int main(int argc, char **argv) {
 
   // Create the Qfunction that builds the operator quadrature data
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setupgeo,
-                              bpOptions[bpChoice].setupgeofname, &qf_setupgeo);
-  CeedQFunctionAddInput(qf_setupgeo, "dx", ncompx*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_setupgeo, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setupgeo, "qdata", bpOptions[bpChoice].qdatasize,
+                              bpOptions[bpChoice].setupgeofname, &qfsetupgeo);
+  CeedQFunctionAddInput(qfsetupgeo, "dx", ncompx*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qfsetupgeo, "weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddOutput(qfsetupgeo, "qdata", bpOptions[bpChoice].qdatasize,
                          CEED_EVAL_NONE);
 
   // Create the Qfunction that sets up the RHS and true solution
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setuprhs,
-                              bpOptions[bpChoice].setuprhsfname, &qf_setuprhs);
-  CeedQFunctionAddInput(qf_setuprhs, "x", ncompx, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_setuprhs, "dx", ncompx*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_setuprhs, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setuprhs, "true_soln", ncompu, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_setuprhs, "rhs", ncompu, CEED_EVAL_INTERP);
+                              bpOptions[bpChoice].setuprhsfname, &qfsetuprhs);
+  CeedQFunctionAddInput(qfsetuprhs, "x", ncompx, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qfsetuprhs, "dx", ncompx*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qfsetuprhs, "weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddOutput(qfsetuprhs, "true_soln", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qfsetuprhs, "rhs", ncompu, CEED_EVAL_INTERP);
 
   // Set up PDE operator
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].apply,
-                              bpOptions[bpChoice].applyfname, &qf_apply);
+                              bpOptions[bpChoice].applyfname, &qfapply);
   // Add inputs and outputs
   CeedInt inscale = bpOptions[bpChoice].inmode==CEED_EVAL_GRAD ? 3 : 1;
   CeedInt outscale = bpOptions[bpChoice].outmode==CEED_EVAL_GRAD ? 3 : 1;
-  CeedQFunctionAddInput(qf_apply, "u", ncompu*inscale,
+  CeedQFunctionAddInput(qfapply, "u", ncompu*inscale,
                         bpOptions[bpChoice].inmode);
-  CeedQFunctionAddInput(qf_apply, "qdata", bpOptions[bpChoice].qdatasize,
+  CeedQFunctionAddInput(qfapply, "qdata", bpOptions[bpChoice].qdatasize,
                         CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_apply, "v", ncompu*outscale,
+  CeedQFunctionAddOutput(qfapply, "v", ncompu*outscale,
                          bpOptions[bpChoice].outmode);
 
   // Create the error qfunction
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].error,
-                              bpOptions[bpChoice].errorfname, &qf_error);
-  CeedQFunctionAddInput(qf_error, "u", ncompu, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_error, "true_soln", ncompu, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_error, "error", ncompu, CEED_EVAL_NONE);
+                              bpOptions[bpChoice].errorfname, &qferror);
+  CeedQFunctionAddInput(qferror, "u", ncompu, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qferror, "true_soln", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qferror, "error", ncompu, CEED_EVAL_NONE);
 
   // Create the persistent vectors that will be needed in setup
   CeedInt nqpts;
@@ -670,44 +670,44 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, lsize*ncompu, &rhsceed);
 
   // Create the operator that builds the quadrature data for the ceed operator
-  CeedOperatorCreate(ceed, qf_setupgeo, CEED_QFUNCTION_NONE,
-                     CEED_QFUNCTION_NONE, &op_setupgeo);
-  CeedOperatorSetField(op_setupgeo, "dx", Erestrictx, basisx,
+  CeedOperatorCreate(ceed, qfsetupgeo, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &opsetupgeo);
+  CeedOperatorSetField(opsetupgeo, "dx", Erestrictx, basisx,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setupgeo, "weight", CEED_ELEMRESTRICTION_NONE, basisx,
+  CeedOperatorSetField(opsetupgeo, "weight", CEED_ELEMRESTRICTION_NONE, basisx,
                        CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setupgeo, "qdata", Erestrictqdi,
+  CeedOperatorSetField(opsetupgeo, "qdata", Erestrictqdi,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Create the operator that builds the RHS and true solution
-  CeedOperatorCreate(ceed, qf_setuprhs, CEED_QFUNCTION_NONE,
-                     CEED_QFUNCTION_NONE, &op_setuprhs);
-  CeedOperatorSetField(op_setuprhs, "x", Erestrictx, basisx,
+  CeedOperatorCreate(ceed, qfsetuprhs, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &opsetuprhs);
+  CeedOperatorSetField(opsetuprhs, "x", Erestrictx, basisx,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setuprhs, "dx", Erestrictx, basisx,
+  CeedOperatorSetField(opsetuprhs, "dx", Erestrictx, basisx,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setuprhs, "weight", CEED_ELEMRESTRICTION_NONE, basisx,
+  CeedOperatorSetField(opsetuprhs, "weight", CEED_ELEMRESTRICTION_NONE, basisx,
                        CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setuprhs, "true_soln", Erestrictui,
+  CeedOperatorSetField(opsetuprhs, "true_soln", Erestrictui,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_setuprhs, "rhs", Erestrictu, basisu,
+  CeedOperatorSetField(opsetuprhs, "rhs", Erestrictu, basisu,
                        CEED_VECTOR_ACTIVE);
 
   // Create the mass or diff operator
-  CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &op_apply);
-  CeedOperatorSetField(op_apply, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_BASIS_COLLOCATED,
+  CeedOperatorCreate(ceed, qfapply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &opapply);
+  CeedOperatorSetField(opapply, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(opapply, "qdata", Erestrictqdi, CEED_BASIS_COLLOCATED,
                        qdata);
-  CeedOperatorSetField(op_apply, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(opapply, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
 
   // Create the error operator
-  CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &op_error);
-  CeedOperatorSetField(op_error, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_error, "true_soln", Erestrictui,
+  CeedOperatorCreate(ceed, qferror, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &operror);
+  CeedOperatorSetField(operror, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(operror, "true_soln", Erestrictui,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "error", Erestrictui, CEED_BASIS_COLLOCATED,
+  CeedOperatorSetField(operror, "error", Erestrictui, CEED_BASIS_COLLOCATED,
                        CEED_VECTOR_ACTIVE);
 
   // Set up Mat
@@ -722,7 +722,7 @@ int main(int argc, char **argv) {
   ierr = VecDuplicate(Xloc, &user->Yloc); CHKERRQ(ierr);
   CeedVectorCreate(ceed, lsize*ncompu, &user->xceed);
   CeedVectorCreate(ceed, lsize*ncompu, &user->yceed);
-  user->op = op_apply;
+  user->op = opapply;
   user->qdata = qdata;
   user->ceed = ceed;
 
@@ -745,8 +745,8 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(rhsceed, CEED_MEM_HOST, CEED_USE_POINTER, r);
 
   // Setup qdata, rhs, and target
-  CeedOperatorApply(op_setupgeo, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
-  CeedOperatorApply(op_setuprhs, xcoord, rhsceed, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(opsetupgeo, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(opsetuprhs, xcoord, rhsceed, CEED_REQUEST_IMMEDIATE);
   ierr = CeedVectorSyncArray(rhsceed, CEED_MEM_HOST); CHKERRQ(ierr);
   CeedVectorDestroy(&xcoord);
 
@@ -844,7 +844,7 @@ int main(int argc, char **argv) {
 
   {
     PetscReal maxerror;
-    ierr = ComputeErrorMax(user, op_error, X, target, &maxerror); CHKERRQ(ierr);
+    ierr = ComputeErrorMax(user, operror, X, target, &maxerror); CHKERRQ(ierr);
     PetscReal tol = 5e-2;
     if (!test_mode || maxerror > tol) {
       ierr = PetscPrintf(comm,
@@ -878,18 +878,18 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&user->yceed);
   CeedVectorDestroy(&user->qdata);
   CeedVectorDestroy(&target);
-  CeedOperatorDestroy(&op_setupgeo);
-  CeedOperatorDestroy(&op_setuprhs);
-  CeedOperatorDestroy(&op_apply);
-  CeedOperatorDestroy(&op_error);
+  CeedOperatorDestroy(&opsetupgeo);
+  CeedOperatorDestroy(&opsetuprhs);
+  CeedOperatorDestroy(&opapply);
+  CeedOperatorDestroy(&operror);
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
   CeedElemRestrictionDestroy(&Erestrictui);
   CeedElemRestrictionDestroy(&Erestrictqdi);
-  CeedQFunctionDestroy(&qf_setupgeo);
-  CeedQFunctionDestroy(&qf_setuprhs);
-  CeedQFunctionDestroy(&qf_apply);
-  CeedQFunctionDestroy(&qf_error);
+  CeedQFunctionDestroy(&qfsetupgeo);
+  CeedQFunctionDestroy(&qfsetuprhs);
+  CeedQFunctionDestroy(&qfapply);
+  CeedQFunctionDestroy(&qferror);
   CeedBasisDestroy(&basisu);
   CeedBasisDestroy(&basisx);
   CeedDestroy(&ceed);

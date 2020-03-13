@@ -51,7 +51,7 @@ struct UserProlongRestr_ {
   DM dmC, dmF;
   Vec locVecC, locVecF, multVec;
   CeedVector ceedVecC, ceedVecF;
-  CeedOperator opProlong, opRestrict;
+  CeedOperator opprolong, oprestrict;
   Ceed ceed;
 };
 
@@ -65,8 +65,8 @@ struct CeedData_ {
   Ceed ceed;
   CeedBasis basisx, basisu, basisctof;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictui, Erestrictqdi;
-  CeedQFunction qf_apply;
-  CeedOperator op_apply, opRestrict, opProlong;
+  CeedQFunction qfapply;
+  CeedOperator opapply, oprestrict, opprolong;
   CeedVector qdata, xceed, yceed;
 };
 
@@ -395,12 +395,12 @@ static PetscErrorCode CeedDataDestroy(CeedInt i, CeedData data) {
   CeedElemRestrictionDestroy(&data->Erestrictx);
   CeedElemRestrictionDestroy(&data->Erestrictui);
   CeedElemRestrictionDestroy(&data->Erestrictqdi);
-  CeedQFunctionDestroy(&data->qf_apply);
-  CeedOperatorDestroy(&data->op_apply);
+  CeedQFunctionDestroy(&data->qfapply);
+  CeedOperatorDestroy(&data->opapply);
   if (i > 0) {
-    CeedOperatorDestroy(&data->opProlong);
+    CeedOperatorDestroy(&data->opprolong);
     CeedBasisDestroy(&data->basisctof);
-    CeedOperatorDestroy(&data->opRestrict);
+    CeedOperatorDestroy(&data->oprestrict);
   }
   ierr = PetscFree(data); CHKERRQ(ierr);
 
@@ -469,8 +469,8 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   const PetscScalar *coordArray;
   CeedBasis basisx, basisu;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictui, Erestrictqdi;
-  CeedQFunction qf_setupgeo, qf_apply;
-  CeedOperator op_setupgeo, op_apply;
+  CeedQFunction qf_setupgeo, qfapply;
+  CeedOperator op_setupgeo, opapply;
   CeedVector xcoord, qdata, xceed, yceed;
   CeedInt qdatasize = bpOptions[bpChoice].qdatasize, ncompx = dim, P, Q,
           cStart, cEnd, nelem;
@@ -528,11 +528,11 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   CeedInt inscale = bpOptions[bpChoice].inmode==CEED_EVAL_GRAD ? dim : 1;
   CeedInt outscale = bpOptions[bpChoice].outmode==CEED_EVAL_GRAD ? dim : 1;
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].apply,
-                              bpOptions[bpChoice].applyfname, &qf_apply);
-  CeedQFunctionAddInput(qf_apply, "u", ncompu*inscale,
+                              bpOptions[bpChoice].applyfname, &qfapply);
+  CeedQFunctionAddInput(qfapply, "u", ncompu*inscale,
                         bpOptions[bpChoice].inmode);
-  CeedQFunctionAddInput(qf_apply, "qdata", qdatasize, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_apply, "v", ncompu*outscale,
+  CeedQFunctionAddInput(qfapply, "qdata", qdatasize, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qfapply, "v", ncompu*outscale,
                          bpOptions[bpChoice].outmode);
 
   // Create the operator that builds the quadrature data for the operator
@@ -546,12 +546,12 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Create the operator
-  CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &op_apply);
-  CeedOperatorSetField(op_apply, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "qdata", Erestrictqdi, CEED_BASIS_COLLOCATED,
+  CeedOperatorCreate(ceed, qfapply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &opapply);
+  CeedOperatorSetField(opapply, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(opapply, "qdata", Erestrictqdi, CEED_BASIS_COLLOCATED,
                        qdata);
-  CeedOperatorSetField(op_apply, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(opapply, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
 
   // Setup qdata
   CeedOperatorApply(op_setupgeo, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
@@ -605,8 +605,8 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   data->Erestrictu = Erestrictu;
   data->Erestrictui = Erestrictui;
   data->Erestrictqdi = Erestrictqdi;
-  data->qf_apply = qf_apply;
-  data->op_apply = op_apply;
+  data->qfapply = qfapply;
+  data->opapply = opapply;
   data->qdata = qdata;
   data->xceed = xceed;
   data->yceed = yceed;
@@ -618,7 +618,7 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
 #ifdef multigrid
 static PetscErrorCode CeedLevelTransferSetup(Ceed ceed, CeedInt numlevels,
     CeedInt ncompu, bpType bpChoice, CeedData *data, CeedInt *leveldegrees,
-    CeedQFunction qfRestrict, CeedQFunction qfProlong) {
+    CeedQFunction qfrestrict, CeedQFunction qfprolong) {
   // Return early if numlevels=1
   if (numlevels==1)
     PetscFunctionReturn(0);
@@ -631,37 +631,37 @@ static PetscErrorCode CeedLevelTransferSetup(Ceed ceed, CeedInt numlevels,
 
     // Restriction - Fine to corse
     CeedBasis basisctof;
-    CeedOperator opRestrict;
+    CeedOperator oprestrict;
 
     // Basis
     CeedBasisCreateTensorH1Lagrange(ceed, 3, ncompu, Pc, Pf,
                                     CEED_GAUSS_LOBATTO, &basisctof);
 
     // Create the restriction operator
-    CeedOperatorCreate(ceed, qfRestrict, CEED_QFUNCTION_NONE,
-                       CEED_QFUNCTION_NONE, &opRestrict);
-    CeedOperatorSetField(opRestrict, "input", data[i]->Erestrictu,
+    CeedOperatorCreate(ceed, qfrestrict, CEED_QFUNCTION_NONE,
+                       CEED_QFUNCTION_NONE, &oprestrict);
+    CeedOperatorSetField(oprestrict, "input", data[i]->Erestrictu,
                          CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(opRestrict, "output", data[i-1]->Erestrictu,
+    CeedOperatorSetField(oprestrict, "output", data[i-1]->Erestrictu,
                          basisctof, CEED_VECTOR_ACTIVE);
 
     // Save libCEED data required for level
     data[i]->basisctof = basisctof;
-    data[i]->opRestrict = opRestrict;
+    data[i]->oprestrict = oprestrict;
 
     // Interpolation - Corse to fine
-    CeedOperator opProlong;
+    CeedOperator opprolong;
 
     // Create the prolongation operator
-    CeedOperatorCreate(ceed, qfProlong, CEED_QFUNCTION_NONE,
-                       CEED_QFUNCTION_NONE, &opProlong);
-    CeedOperatorSetField(opProlong, "input", data[i-1]->Erestrictu,
+    CeedOperatorCreate(ceed, qfprolong, CEED_QFUNCTION_NONE,
+                       CEED_QFUNCTION_NONE, &opprolong);
+    CeedOperatorSetField(opprolong, "input", data[i-1]->Erestrictu,
                          basisctof, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(opProlong, "output", data[i]->Erestrictu,
+    CeedOperatorSetField(opprolong, "output", data[i]->Erestrictu,
                          CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
     // Save libCEED data required for level
-    data[i]->opProlong = opProlong;
+    data[i]->opprolong = opprolong;
   }
 
   PetscFunctionReturn(0);
@@ -793,7 +793,7 @@ static PetscErrorCode MatMult_Prolong(Mat A, Vec X, Vec Y) {
   CeedVectorSetArray(user->ceedVecF, CEED_MEM_HOST, CEED_USE_POINTER, f);
 
   // Apply CEED operator
-  CeedOperatorApply(user->opProlong, user->ceedVecC, user->ceedVecF,
+  CeedOperatorApply(user->opprolong, user->ceedVecC, user->ceedVecF,
                     CEED_REQUEST_IMMEDIATE);
   CeedVectorSyncArray(user->ceedVecF, CEED_MEM_HOST);
 
@@ -842,7 +842,7 @@ static PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y) {
   CeedVectorSetArray(user->ceedVecC, CEED_MEM_HOST, CEED_USE_POINTER, c);
 
   // Apply CEED operator
-  CeedOperatorApply(user->opRestrict, user->ceedVecF, user->ceedVecC,
+  CeedOperatorApply(user->oprestrict, user->ceedVecF, user->ceedVecC,
                     CEED_REQUEST_IMMEDIATE);
   CeedVectorSyncArray(user->ceedVecC, CEED_MEM_HOST);
 

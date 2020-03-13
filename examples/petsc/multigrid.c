@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
   DM  *dm, dmOrig;
-  SNES snes_dummy;
+  SNES snesdummy;
   KSP ksp;
   PC pc;
   Mat *matO, *matPR, matCoarse;
@@ -62,8 +62,8 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedData *ceeddata;
   CeedVector rhsceed, target;
-  CeedQFunction qf_error, qfRestrict, qfProlong;
-  CeedOperator op_error;
+  CeedQFunction qferror, qfrestrict, qfprolong;
+  CeedOperator operror;
   bpType bpChoice;
   coarsenType coarsen;
 
@@ -274,30 +274,30 @@ int main(int argc, char **argv) {
 
   // Create the restriction/interpolation Q-function
   CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_NONE, CEED_EVAL_INTERP,
-                              &qfRestrict);
+                              &qfrestrict);
   CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_INTERP, CEED_EVAL_NONE,
-                              &qfProlong);
+                              &qfprolong);
 
   // Set up libCEED level transfer operators
   ierr = CeedLevelTransferSetup(ceed, numlevels, ncompu, bpChoice, ceeddata,
-                                leveldegrees, qfRestrict, qfProlong);
+                                leveldegrees, qfrestrict, qfprolong);
   CHKERRQ(ierr);
 
   // Create the error Q-function
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].error,
-                              bpOptions[bpChoice].errorfname, &qf_error);
-  CeedQFunctionAddInput(qf_error, "u", ncompu, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_error, "true_soln", ncompu, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_error, "error", ncompu, CEED_EVAL_NONE);
+                              bpOptions[bpChoice].errorfname, &qferror);
+  CeedQFunctionAddInput(qferror, "u", ncompu, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qferror, "true_soln", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qferror, "error", ncompu, CEED_EVAL_NONE);
 
   // Create the error operator
-  CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &op_error);
-  CeedOperatorSetField(op_error, "u", ceeddata[fineLevel]->Erestrictu,
+  CeedOperatorCreate(ceed, qferror, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &operror);
+  CeedOperatorSetField(operror, "u", ceeddata[fineLevel]->Erestrictu,
                        ceeddata[fineLevel]->basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_error, "true_soln", ceeddata[fineLevel]->Erestrictui,
+  CeedOperatorSetField(operror, "true_soln", ceeddata[fineLevel]->Erestrictui,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "error", ceeddata[fineLevel]->Erestrictui,
+  CeedOperatorSetField(operror, "error", ceeddata[fineLevel]->Erestrictui,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Calculate multiplicity
@@ -342,7 +342,7 @@ int main(int argc, char **argv) {
     ierr = VecDuplicate(Xloc[i], &userO[i]->Yloc); CHKERRQ(ierr);
     userO[i]->xceed = ceeddata[i]->xceed;
     userO[i]->yceed = ceeddata[i]->yceed;
-    userO[i]->op = ceeddata[i]->op_apply;
+    userO[i]->op = ceeddata[i]->opapply;
     userO[i]->ceed = ceed;
 
     if (i > 0) {
@@ -355,29 +355,29 @@ int main(int argc, char **argv) {
       userPR[i]->multVec = mult[i];
       userPR[i]->ceedVecC = userO[i-1]->xceed;
       userPR[i]->ceedVecF = userO[i]->yceed;
-      userPR[i]->opProlong = ceeddata[i]->opProlong;
-      userPR[i]->opRestrict = ceeddata[i]->opRestrict;
+      userPR[i]->opprolong = ceeddata[i]->opprolong;
+      userPR[i]->oprestrict = ceeddata[i]->oprestrict;
       userPR[i]->ceed = ceed;
     }
   }
 
   // Setup dummy SNES for AMG coarse solve
-  ierr = SNESCreate(comm, &snes_dummy); CHKERRQ(ierr);
-  ierr = SNESSetDM(snes_dummy, dm[0]); CHKERRQ(ierr);
-  ierr = SNESSetSolution(snes_dummy, X[0]); CHKERRQ(ierr);
+  ierr = SNESCreate(comm, &snesdummy); CHKERRQ(ierr);
+  ierr = SNESSetDM(snesdummy, dm[0]); CHKERRQ(ierr);
+  ierr = SNESSetSolution(snesdummy, X[0]); CHKERRQ(ierr);
 
   // -- Jacobian matrix
   ierr = DMSetMatType(dm[0], MATAIJ); CHKERRQ(ierr);
   ierr = DMCreateMatrix(dm[0], &matCoarse); CHKERRQ(ierr);
-  ierr = SNESSetJacobian(snes_dummy, matCoarse, matCoarse, NULL,
+  ierr = SNESSetJacobian(snesdummy, matCoarse, matCoarse, NULL,
                          NULL); CHKERRQ(ierr);
 
   // -- Residual evaluation function
-  ierr = SNESSetFunction(snes_dummy, X[0], FormResidual_Ceed,
+  ierr = SNESSetFunction(snesdummy, X[0], FormResidual_Ceed,
                          userO[0]); CHKERRQ(ierr);
 
   // -- Form Jacobian
-  ierr = SNESComputeJacobianDefaultColor(snes_dummy, X[0], matO[0],
+  ierr = SNESComputeJacobianDefaultColor(snesdummy, X[0], matO[0],
                                          matCoarse, NULL); CHKERRQ(ierr);
 
   // Set up KSP
@@ -506,7 +506,7 @@ int main(int argc, char **argv) {
     }
     {
       PetscReal maxerror;
-      ierr = ComputeErrorMax(userO[fineLevel], op_error, X[fineLevel], target,
+      ierr = ComputeErrorMax(userO[fineLevel], operror, X[fineLevel], target,
                              &maxerror); CHKERRQ(ierr);
       PetscReal tol = 5e-2;
       if (!test_mode || maxerror > tol) {
@@ -571,13 +571,13 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
   ierr = MatDestroy(&matCoarse); CHKERRQ(ierr);
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
-  ierr = SNESDestroy(&snes_dummy); CHKERRQ(ierr);
+  ierr = SNESDestroy(&snesdummy); CHKERRQ(ierr);
   ierr = DMDestroy(&dmOrig); CHKERRQ(ierr);
   CeedVectorDestroy(&target);
-  CeedQFunctionDestroy(&qf_error);
-  CeedQFunctionDestroy(&qfRestrict);
-  CeedQFunctionDestroy(&qfProlong);
-  CeedOperatorDestroy(&op_error);
+  CeedQFunctionDestroy(&qferror);
+  CeedQFunctionDestroy(&qfrestrict);
+  CeedQFunctionDestroy(&qfprolong);
+  CeedOperatorDestroy(&operror);
   CeedDestroy(&ceed);
   return PetscFinalize();
 }
