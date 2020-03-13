@@ -406,7 +406,7 @@ int main(int argc, char **argv) {
   CeedVector xcoord, qdata, rhsceed, target;
   CeedInt P, Q;
   const CeedInt dim = 3, ncompx = 3;
-  bpType bpChoice;
+  bpType bpchoice;
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -414,12 +414,12 @@ int main(int argc, char **argv) {
 
   // Read command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
-  bpChoice = CEED_BP1;
+  bpchoice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
-                          bpTypes, (PetscEnum)bpChoice, (PetscEnum *)&bpChoice,
+                          bpTypes, (PetscEnum)bpchoice, (PetscEnum *)&bpchoice,
                           NULL); CHKERRQ(ierr);
-  ncompu = bpOptions[bpChoice].ncompu;
+  ncompu = bpOptions[bpchoice].ncompu;
   test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
@@ -437,7 +437,7 @@ int main(int argc, char **argv) {
   degree = test_mode ? 3 : 1;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
-  qextra = bpOptions[bpChoice].qextra;
+  qextra = bpOptions[bpchoice].qextra;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
@@ -499,7 +499,7 @@ int main(int argc, char **argv) {
                        "    Local Elements                     : %D = %D %D %D\n"
                        "    Owned nodes                        : %D = %D %D %D\n"
                        "    DoF per node                       : %D\n",
-                       bpChoice+1, usedresource, P, Q,  gsize/ncompu, p[0],
+                       bpchoice+1, usedresource, P, Q,  gsize/ncompu, p[0],
                        p[1], p[2], localelem, melem[0], melem[1], melem[2],
                        mnodes[0]*mnodes[1]*mnodes[2], mnodes[0], mnodes[1],
                        mnodes[2], ncompu); CHKERRQ(ierr);
@@ -591,9 +591,9 @@ int main(int argc, char **argv) {
 
   // CEED bases
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompu, P, Q,
-                                  bpOptions[bpChoice].qmode, &basisu);
+                                  bpOptions[bpchoice].qmode, &basisu);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, Q,
-                                  bpOptions[bpChoice].qmode, &basisx);
+                                  bpOptions[bpchoice].qmode, &basisx);
 
   // CEED restrictions
   CreateRestriction(ceed, CEED_INTERLACED, melem, P, ncompu, &Erestrictu);
@@ -602,7 +602,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompu,
                                    CEED_STRIDES_BACKEND, &Erestrictui);
   CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
-                                   bpOptions[bpChoice].qdatasize,
+                                   bpOptions[bpchoice].qdatasize,
                                    CEED_STRIDES_BACKEND, &Erestrictqdi);
   {
     CeedScalar *xloc;
@@ -626,16 +626,16 @@ int main(int argc, char **argv) {
   }
 
   // Create the Qfunction that builds the operator quadrature data
-  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setupgeo,
-                              bpOptions[bpChoice].setupgeofname, &qfsetupgeo);
+  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].setupgeo,
+                              bpOptions[bpchoice].setupgeofname, &qfsetupgeo);
   CeedQFunctionAddInput(qfsetupgeo, "dx", ncompx*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qfsetupgeo, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qfsetupgeo, "qdata", bpOptions[bpChoice].qdatasize,
+  CeedQFunctionAddOutput(qfsetupgeo, "qdata", bpOptions[bpchoice].qdatasize,
                          CEED_EVAL_NONE);
 
   // Create the Qfunction that sets up the RHS and true solution
-  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].setuprhs,
-                              bpOptions[bpChoice].setuprhsfname, &qfsetuprhs);
+  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].setuprhs,
+                              bpOptions[bpchoice].setuprhsfname, &qfsetuprhs);
   CeedQFunctionAddInput(qfsetuprhs, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qfsetuprhs, "dx", ncompx*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qfsetuprhs, "weight", 1, CEED_EVAL_WEIGHT);
@@ -643,21 +643,21 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qfsetuprhs, "rhs", ncompu, CEED_EVAL_INTERP);
 
   // Set up PDE operator
-  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].apply,
-                              bpOptions[bpChoice].applyfname, &qfapply);
+  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].apply,
+                              bpOptions[bpchoice].applyfname, &qfapply);
   // Add inputs and outputs
-  CeedInt inscale = bpOptions[bpChoice].inmode==CEED_EVAL_GRAD ? 3 : 1;
-  CeedInt outscale = bpOptions[bpChoice].outmode==CEED_EVAL_GRAD ? 3 : 1;
+  CeedInt inscale = bpOptions[bpchoice].inmode==CEED_EVAL_GRAD ? 3 : 1;
+  CeedInt outscale = bpOptions[bpchoice].outmode==CEED_EVAL_GRAD ? 3 : 1;
   CeedQFunctionAddInput(qfapply, "u", ncompu*inscale,
-                        bpOptions[bpChoice].inmode);
-  CeedQFunctionAddInput(qfapply, "qdata", bpOptions[bpChoice].qdatasize,
+                        bpOptions[bpchoice].inmode);
+  CeedQFunctionAddInput(qfapply, "qdata", bpOptions[bpchoice].qdatasize,
                         CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qfapply, "v", ncompu*outscale,
-                         bpOptions[bpChoice].outmode);
+                         bpOptions[bpchoice].outmode);
 
   // Create the error qfunction
-  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].error,
-                              bpOptions[bpChoice].errorfname, &qferror);
+  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].error,
+                              bpOptions[bpchoice].errorfname, &qferror);
   CeedQFunctionAddInput(qferror, "u", ncompu, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qferror, "true_soln", ncompu, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qferror, "error", ncompu, CEED_EVAL_NONE);
@@ -665,7 +665,7 @@ int main(int argc, char **argv) {
   // Create the persistent vectors that will be needed in setup
   CeedInt nqpts;
   CeedBasisGetNumQuadraturePoints(basisu, &nqpts);
-  CeedVectorCreate(ceed, bpOptions[bpChoice].qdatasize*nelem*nqpts, &qdata);
+  CeedVectorCreate(ceed, bpOptions[bpchoice].qdatasize*nelem*nqpts, &qdata);
   CeedVectorCreate(ceed, nelem*nqpts*ncompu, &target);
   CeedVectorCreate(ceed, lsize*ncompu, &rhsceed);
 
@@ -714,7 +714,7 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
   user->comm = comm;
   user->ltog = ltog;
-  if (bpChoice != CEED_BP1 && bpChoice != CEED_BP2) {
+  if (bpchoice != CEED_BP1 && bpchoice != CEED_BP2) {
     user->ltog0 = ltog0;
     user->gtogD = gtogD;
   }
@@ -729,7 +729,7 @@ int main(int argc, char **argv) {
   ierr = MatCreateShell(comm, mnodes[0]*mnodes[1]*mnodes[2]*ncompu,
                         mnodes[0]*mnodes[1]*mnodes[2]*ncompu,
                         PETSC_DECIDE, PETSC_DECIDE, user, &mat); CHKERRQ(ierr);
-  if (bpChoice == CEED_BP1 || bpChoice == CEED_BP2) {
+  if (bpchoice == CEED_BP1 || bpchoice == CEED_BP2) {
     ierr = MatShellSetOperation(mat, MATOP_MULT, (void(*)(void))MatMult_Mass);
     CHKERRQ(ierr);
   } else {
@@ -763,7 +763,7 @@ int main(int argc, char **argv) {
   {
     PC pc;
     ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
-    if (bpChoice == CEED_BP1 || bpChoice == CEED_BP2) {
+    if (bpchoice == CEED_BP1 || bpchoice == CEED_BP2) {
       ierr = PCSetType(pc, PCJACOBI); CHKERRQ(ierr);
       ierr = PCJacobiSetType(pc, PC_JACOBI_ROWSUM); CHKERRQ(ierr);
     } else {

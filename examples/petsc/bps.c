@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
   CeedQFunction qferror;
   CeedOperator operror;
   CeedVector rhsceed, target;
-  bpType bpChoice;
+  bpType bpchoice;
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -76,12 +76,12 @@ int main(int argc, char **argv) {
 
   // Read command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
-  bpChoice = CEED_BP1;
+  bpchoice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
-                          bpTypes, (PetscEnum)bpChoice, (PetscEnum *)&bpChoice,
+                          bpTypes, (PetscEnum)bpchoice, (PetscEnum *)&bpchoice,
                           NULL); CHKERRQ(ierr);
-  ncompu = bpOptions[bpChoice].ncompu;
+  ncompu = bpOptions[bpchoice].ncompu;
   test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
   degree = test_mode ? 3 : 2;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
-  qextra = bpOptions[bpChoice].qextra;
+  qextra = bpOptions[bpchoice].qextra;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
   }
 
   // Create DM
-  ierr = SetupDMByDegree(dm, degree, ncompu, bpChoice);
+  ierr = SetupDMByDegree(dm, degree, ncompu, bpchoice);
   CHKERRQ(ierr);
 
   // Create vectors
@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
                        "    Global nodes                       : %D\n"
                        "    Owned nodes                        : %D\n"
                        "    DoF per node                       : %D\n",
-                       bpChoice+1, usedresource, P, Q, gsize/ncompu,
+                       bpchoice+1, usedresource, P, Q, gsize/ncompu,
                        lsize/ncompu, ncompu); CHKERRQ(ierr);
   }
 
@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
 
   ierr = PetscMalloc1(1, &ceeddata); CHKERRQ(ierr);
   ierr = SetupLibceedByDegree(dm, ceed, degree, dim, qextra,
-                              ncompu, gsize, xlsize, bpChoice, ceeddata,
+                              ncompu, gsize, xlsize, bpchoice, ceeddata,
                               true, rhsceed, &target); CHKERRQ(ierr);
 
   // Gather RHS
@@ -201,8 +201,8 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&rhsceed);
 
   // Create the error Q-function
-  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].error,
-                              bpOptions[bpChoice].errorfname, &qferror);
+  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].error,
+                              bpOptions[bpchoice].errorfname, &qferror);
   CeedQFunctionAddInput(qferror, "u", ncompu, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qferror, "true_soln", ncompu, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qferror, "error", ncompu, CEED_EVAL_NONE);
@@ -231,7 +231,7 @@ int main(int argc, char **argv) {
   {
     PC pc;
     ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
-    if (bpChoice == CEED_BP1 || bpChoice == CEED_BP2) {
+    if (bpchoice == CEED_BP1 || bpchoice == CEED_BP2) {
       ierr = PCSetType(pc, PCJACOBI); CHKERRQ(ierr);
       ierr = PCJacobiSetType(pc, PC_JACOBI_ROWSUM); CHKERRQ(ierr);
     } else {

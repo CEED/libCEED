@@ -51,11 +51,11 @@ int main(int argc, char **argv) {
            melem[3] = {3, 3, 3}, ncompu = 1, numlevels = degree, *leveldegrees;
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
-  DM  *dm, dmOrig;
+  DM  *dm, dmorig;
   SNES snesdummy;
   KSP ksp;
   PC pc;
-  Mat *matO, *matPR, matCoarse;
+  Mat *matO, *matPR, matcoarse;
   Vec *X, *Xloc, *mult, rhs, rhsloc;
   UserO *userO;
   UserProlongRestr *userPR;
@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
   CeedVector rhsceed, target;
   CeedQFunction qferror, qfrestrict, qfprolong;
   CeedOperator operror;
-  bpType bpChoice;
+  bpType bpchoice;
   coarsenType coarsen;
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
@@ -73,12 +73,12 @@ int main(int argc, char **argv) {
 
   // Parse command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
-  bpChoice = CEED_BP3;
+  bpchoice = CEED_BP3;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
-                          bpTypes, (PetscEnum)bpChoice, (PetscEnum *)&bpChoice,
+                          bpTypes, (PetscEnum)bpchoice, (PetscEnum *)&bpchoice,
                           NULL); CHKERRQ(ierr);
-  ncompu = bpOptions[bpChoice].ncompu;
+  ncompu = bpOptions[bpchoice].ncompu;
   test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
   if (degree < 1) SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
                              "-degree %D must be at least 1", degree);
-  qextra = bpOptions[bpChoice].qextra;
+  qextra = bpOptions[bpchoice].qextra;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
@@ -122,23 +122,23 @@ int main(int argc, char **argv) {
 
   // Setup DM
   if (read_mesh) {
-    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dmOrig);
+    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dmorig);
     CHKERRQ(ierr);
   } else {
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, melem, NULL,
-                               NULL, NULL, PETSC_TRUE,&dmOrig); CHKERRQ(ierr);
+                               NULL, NULL, PETSC_TRUE,&dmorig); CHKERRQ(ierr);
   }
 
   {
     DM dmDist = NULL;
     PetscPartitioner part;
 
-    ierr = DMPlexGetPartitioner(dmOrig, &part); CHKERRQ(ierr);
+    ierr = DMPlexGetPartitioner(dmorig, &part); CHKERRQ(ierr);
     ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-    ierr = DMPlexDistribute(dmOrig, 0, NULL, &dmDist); CHKERRQ(ierr);
+    ierr = DMPlexDistribute(dmorig, 0, NULL, &dmDist); CHKERRQ(ierr);
     if (dmDist) {
-      ierr = DMDestroy(&dmOrig); CHKERRQ(ierr);
-      dmOrig = dmDist;
+      ierr = DMDestroy(&dmorig); CHKERRQ(ierr);
+      dmorig = dmDist;
     }
   }
 
@@ -178,8 +178,8 @@ int main(int argc, char **argv) {
   // Setup DM and Operator Mat Shells for each level
   for (CeedInt i=0; i<numlevels; i++) {
     // Create DM
-    ierr = DMClone(dmOrig, &dm[i]); CHKERRQ(ierr);
-    ierr = SetupDMByDegree(dm[i], leveldegrees[i], ncompu, bpChoice);
+    ierr = DMClone(dmorig, &dm[i]); CHKERRQ(ierr);
+    ierr = SetupDMByDegree(dm[i], leveldegrees[i], ncompu, bpchoice);
     CHKERRQ(ierr);
 
     // Create vectors
@@ -234,7 +234,7 @@ int main(int argc, char **argv) {
                        "    DoF per node                       : %D\n"
                        "  Multigrid:\n"
                        "    Number of Levels                   : %d\n",
-                       bpChoice+1, usedresource, P, Q,
+                       bpchoice+1, usedresource, P, Q,
                        gsize[fineLevel]/ncompu, lsize[fineLevel]/ncompu,
                        ncompu, numlevels); CHKERRQ(ierr);
   }
@@ -260,7 +260,7 @@ int main(int argc, char **argv) {
     }
     ierr = PetscMalloc1(1, &ceeddata[i]); CHKERRQ(ierr);
     ierr = SetupLibceedByDegree(dm[i], ceed, leveldegrees[i], dim, qextra,
-                                ncompu, gsize[i], xlsize[i], bpChoice,
+                                ncompu, gsize[i], xlsize[i], bpchoice,
                                 ceeddata[i], i==(fineLevel), rhsceed,
                                 &target); CHKERRQ(ierr);
   }
@@ -279,13 +279,13 @@ int main(int argc, char **argv) {
                               &qfprolong);
 
   // Set up libCEED level transfer operators
-  ierr = CeedLevelTransferSetup(ceed, numlevels, ncompu, bpChoice, ceeddata,
+  ierr = CeedLevelTransferSetup(ceed, numlevels, ncompu, bpchoice, ceeddata,
                                 leveldegrees, qfrestrict, qfprolong);
   CHKERRQ(ierr);
 
   // Create the error Q-function
-  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].error,
-                              bpOptions[bpChoice].errorfname, &qferror);
+  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].error,
+                              bpOptions[bpchoice].errorfname, &qferror);
   CeedQFunctionAddInput(qferror, "u", ncompu, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qferror, "true_soln", ncompu, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qferror, "error", ncompu, CEED_EVAL_NONE);
@@ -348,13 +348,13 @@ int main(int argc, char **argv) {
     if (i > 0) {
       // Prolongation/Restriction Operator
       userPR[i]->comm = comm;
-      userPR[i]->dmF = dm[i];
-      userPR[i]->dmC = dm[i-1];
-      userPR[i]->locVecC = Xloc[i-1];
-      userPR[i]->locVecF = userO[i]->Yloc;
-      userPR[i]->multVec = mult[i];
-      userPR[i]->ceedVecC = userO[i-1]->xceed;
-      userPR[i]->ceedVecF = userO[i]->yceed;
+      userPR[i]->dmf = dm[i];
+      userPR[i]->dmc = dm[i-1];
+      userPR[i]->locvecc = Xloc[i-1];
+      userPR[i]->locvecf = userO[i]->Yloc;
+      userPR[i]->multvec = mult[i];
+      userPR[i]->ceedvecc = userO[i-1]->xceed;
+      userPR[i]->ceedvecf = userO[i]->yceed;
       userPR[i]->opprolong = ceeddata[i]->opprolong;
       userPR[i]->oprestrict = ceeddata[i]->oprestrict;
       userPR[i]->ceed = ceed;
@@ -368,8 +368,8 @@ int main(int argc, char **argv) {
 
   // -- Jacobian matrix
   ierr = DMSetMatType(dm[0], MATAIJ); CHKERRQ(ierr);
-  ierr = DMCreateMatrix(dm[0], &matCoarse); CHKERRQ(ierr);
-  ierr = SNESSetJacobian(snesdummy, matCoarse, matCoarse, NULL,
+  ierr = DMCreateMatrix(dm[0], &matcoarse); CHKERRQ(ierr);
+  ierr = SNESSetJacobian(snesdummy, matcoarse, matcoarse, NULL,
                          NULL); CHKERRQ(ierr);
 
   // -- Residual evaluation function
@@ -378,7 +378,7 @@ int main(int argc, char **argv) {
 
   // -- Form Jacobian
   ierr = SNESComputeJacobianDefaultColor(snesdummy, X[0], matO[0],
-                                         matCoarse, NULL); CHKERRQ(ierr);
+                                         matcoarse, NULL); CHKERRQ(ierr);
 
   // Set up KSP
   ierr = KSPCreate(comm, &ksp); CHKERRQ(ierr);
@@ -429,7 +429,7 @@ int main(int argc, char **argv) {
       PC coarse_pc;
       ierr = PCMGGetCoarseSolve(pc, &coarse); CHKERRQ(ierr);
       ierr = KSPSetType(coarse, KSPPREONLY); CHKERRQ(ierr);
-      ierr = KSPSetOperators(coarse, matCoarse, matCoarse); CHKERRQ(ierr);
+      ierr = KSPSetOperators(coarse, matcoarse, matcoarse); CHKERRQ(ierr);
 
       ierr = KSPGetPC(coarse, &coarse_pc); CHKERRQ(ierr);
       ierr = PCSetType(coarse_pc, PCGAMG); CHKERRQ(ierr);
@@ -569,10 +569,10 @@ int main(int argc, char **argv) {
   ierr = PetscFree(gsize); CHKERRQ(ierr);
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
   ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
-  ierr = MatDestroy(&matCoarse); CHKERRQ(ierr);
+  ierr = MatDestroy(&matcoarse); CHKERRQ(ierr);
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
   ierr = SNESDestroy(&snesdummy); CHKERRQ(ierr);
-  ierr = DMDestroy(&dmOrig); CHKERRQ(ierr);
+  ierr = DMDestroy(&dmorig); CHKERRQ(ierr);
   CeedVectorDestroy(&target);
   CeedQFunctionDestroy(&qferror);
   CeedQFunctionDestroy(&qfrestrict);

@@ -48,9 +48,9 @@ struct UserO_ {
 typedef struct UserProlongRestr_ *UserProlongRestr;
 struct UserProlongRestr_ {
   MPI_Comm comm;
-  DM dmC, dmF;
-  Vec locVecC, locVecF, multVec;
-  CeedVector ceedVecC, ceedVecF;
+  DM dmc, dmf;
+  Vec locvecc, locvecf, multvec;
+  CeedVector ceedvecc, ceedvecf;
   CeedOperator opprolong, oprestrict;
   Ceed ceed;
 };
@@ -780,34 +780,34 @@ static PetscErrorCode MatMult_Prolong(Mat A, Vec X, Vec Y) {
   ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
 
   // Global-to-local
-  ierr = VecZeroEntries(user->locVecC); CHKERRQ(ierr);
-  ierr = DMGlobalToLocal(user->dmC, X, INSERT_VALUES, user->locVecC); 
+  ierr = VecZeroEntries(user->locvecc); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dmc, X, INSERT_VALUES, user->locvecc); 
   CHKERRQ(ierr);
-  ierr = VecZeroEntries(user->locVecF); CHKERRQ(ierr);
+  ierr = VecZeroEntries(user->locvecf); CHKERRQ(ierr);
 
   // Setup CEED vectors
-  ierr = VecGetArrayRead(user->locVecC, (const PetscScalar **)&c);
+  ierr = VecGetArrayRead(user->locvecc, (const PetscScalar **)&c);
   CHKERRQ(ierr);
-  ierr = VecGetArray(user->locVecF, &f); CHKERRQ(ierr);
-  CeedVectorSetArray(user->ceedVecC, CEED_MEM_HOST, CEED_USE_POINTER, c);
-  CeedVectorSetArray(user->ceedVecF, CEED_MEM_HOST, CEED_USE_POINTER, f);
+  ierr = VecGetArray(user->locvecf, &f); CHKERRQ(ierr);
+  CeedVectorSetArray(user->ceedvecc, CEED_MEM_HOST, CEED_USE_POINTER, c);
+  CeedVectorSetArray(user->ceedvecf, CEED_MEM_HOST, CEED_USE_POINTER, f);
 
   // Apply CEED operator
-  CeedOperatorApply(user->opprolong, user->ceedVecC, user->ceedVecF,
+  CeedOperatorApply(user->opprolong, user->ceedvecc, user->ceedvecf,
                     CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->ceedVecF, CEED_MEM_HOST);
+  CeedVectorSyncArray(user->ceedvecf, CEED_MEM_HOST);
 
   // Restore PETSc vectors
-  ierr = VecRestoreArrayRead(user->locVecC, (const PetscScalar **)c);
+  ierr = VecRestoreArrayRead(user->locvecc, (const PetscScalar **)c);
   CHKERRQ(ierr);
-  ierr = VecRestoreArray(user->locVecF, &f); CHKERRQ(ierr);
+  ierr = VecRestoreArray(user->locvecf, &f); CHKERRQ(ierr);
 
   // Multiplicity
-  ierr = VecPointwiseMult(user->locVecF, user->locVecF, user->multVec);
+  ierr = VecPointwiseMult(user->locvecf, user->locvecf, user->multvec);
 
   // Local-to-global
   ierr = VecZeroEntries(Y); CHKERRQ(ierr);
-  ierr = DMLocalToGlobal(user->dmF, user->locVecF, ADD_VALUES, Y);
+  ierr = DMLocalToGlobal(user->dmf, user->locvecf, ADD_VALUES, Y);
   CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -826,34 +826,34 @@ static PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y) {
   ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
 
   // Global-to-local
-  ierr = VecZeroEntries(user->locVecF); CHKERRQ(ierr);
-  ierr = DMGlobalToLocal(user->dmF, X, INSERT_VALUES, user->locVecF);
+  ierr = VecZeroEntries(user->locvecf); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dmf, X, INSERT_VALUES, user->locvecf);
   CHKERRQ(ierr);
-  ierr = VecZeroEntries(user->locVecC); CHKERRQ(ierr);
+  ierr = VecZeroEntries(user->locvecc); CHKERRQ(ierr);
 
   // Multiplicity
-  ierr = VecPointwiseMult(user->locVecF, user->locVecF, user->multVec);
+  ierr = VecPointwiseMult(user->locvecf, user->locvecf, user->multvec);
   CHKERRQ(ierr);
 
   // Setup CEED vectors
-  ierr = VecGetArrayRead(user->locVecF, (const PetscScalar **)&f); CHKERRQ(ierr);
-  ierr = VecGetArray(user->locVecC, &c); CHKERRQ(ierr);
-  CeedVectorSetArray(user->ceedVecF, CEED_MEM_HOST, CEED_USE_POINTER, f);
-  CeedVectorSetArray(user->ceedVecC, CEED_MEM_HOST, CEED_USE_POINTER, c);
+  ierr = VecGetArrayRead(user->locvecf, (const PetscScalar **)&f); CHKERRQ(ierr);
+  ierr = VecGetArray(user->locvecc, &c); CHKERRQ(ierr);
+  CeedVectorSetArray(user->ceedvecf, CEED_MEM_HOST, CEED_USE_POINTER, f);
+  CeedVectorSetArray(user->ceedvecc, CEED_MEM_HOST, CEED_USE_POINTER, c);
 
   // Apply CEED operator
-  CeedOperatorApply(user->oprestrict, user->ceedVecF, user->ceedVecC,
+  CeedOperatorApply(user->oprestrict, user->ceedvecf, user->ceedvecc,
                     CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->ceedVecC, CEED_MEM_HOST);
+  CeedVectorSyncArray(user->ceedvecc, CEED_MEM_HOST);
 
   // Restore PETSc vectors
-  ierr = VecRestoreArrayRead(user->locVecF, (const PetscScalar **)&f);
+  ierr = VecRestoreArrayRead(user->locvecf, (const PetscScalar **)&f);
   CHKERRQ(ierr);
-  ierr = VecRestoreArray(user->locVecC, &c); CHKERRQ(ierr);
+  ierr = VecRestoreArray(user->locvecc, &c); CHKERRQ(ierr);
 
   // Local-to-global
   ierr = VecZeroEntries(Y); CHKERRQ(ierr);
-  ierr = DMLocalToGlobal(user->dmC, user->locVecC, ADD_VALUES, Y);
+  ierr = DMLocalToGlobal(user->dmc, user->locvecc, ADD_VALUES, Y);
   CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
