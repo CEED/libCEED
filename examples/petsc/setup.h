@@ -781,7 +781,7 @@ static PetscErrorCode MatMult_Prolong(Mat A, Vec X, Vec Y) {
 
   // Global-to-local
   ierr = VecZeroEntries(user->locvecc); CHKERRQ(ierr);
-  ierr = DMGlobalToLocal(user->dmc, X, INSERT_VALUES, user->locvecc); 
+  ierr = DMGlobalToLocal(user->dmc, X, INSERT_VALUES, user->locvecc);
   CHKERRQ(ierr);
   ierr = VecZeroEntries(user->locvecf); CHKERRQ(ierr);
 
