@@ -547,7 +547,7 @@ style :
 
 CLANG_TIDY ?= clang-tidy
 %.c.tidy : %.c
-	$(CLANG_TIDY) $^ -- $(CPPFLAGS) --std=c99
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99
 
 tidy : $(libceed.c:%=%.tidy)
 

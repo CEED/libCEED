@@ -23,6 +23,7 @@ addons:
     - libopenblas-dev
     - valgrind-dbg
     - lcov
+    - astyle
   homebrew:
     packages:
     - ccache
@@ -104,7 +105,10 @@ script:
   - make -j2
   - make -j2 prove-all PROVE_OPTS=-v
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
-        clang-tidy --version && make -j2 tidy;
+        clang-tidy --version && TIDY_OPTS="-fix-errors" make -j2 tidy && git diff --exit-code;
+    fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
+        make style && git diff --exit-code;
     fi
 
 after_success:
