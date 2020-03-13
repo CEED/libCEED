@@ -61,6 +61,7 @@ int main(int argc, char **argv) {
   UserProlongRestr *userPR;
   Ceed ceed;
   CeedData *ceeddata;
+  CeedMemType memtyperequested;
   CeedVector rhsceed, target;
   CeedQFunction qferror, qfrestrict, qfprolong;
   CeedOperator operror;
@@ -70,6 +71,16 @@ int main(int argc, char **argv) {
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
   comm = PETSC_COMM_WORLD;
+
+  // Check PETSc CUDA avaliability
+  PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
+  // *INDENT-OFF*
+  #ifdef PETSC_HAVE_CUDA
+  petschavecuda = PETSC_TRUE;
+  #else
+  petschavecuda = PETSC_FALSE;
+  #endif
+  // *INDENT-ON*
 
   // Parse command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
@@ -118,7 +129,26 @@ int main(int argc, char **argv) {
     ierr = PetscOptionsIntArray("-cells","Number of cells per dimension", NULL,
                                 melem, &tmp, NULL); CHKERRQ(ierr);
   }
+  memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
+  ierr = PetscOptionsEnum("-memtype",
+                          "CEED MemType requested", NULL,
+                          memTypes, (PetscEnum)memtyperequested,
+                          (PetscEnum *)&memtyperequested, &setmemtyperequest);
+  CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  // Set up libCEED
+  CeedInit(ceedresource, &ceed);
+  CeedMemType memtypebackend;
+  CeedGetPreferredMemType(ceed, &memtypebackend);
+
+  // Check memtype compatibility
+  if (!setmemtyperequest)
+    memtyperequested = memtypebackend;
+  else if (!petschavecuda && memtyperequested == CEED_MEM_DEVICE)
+    SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_SUP_SYS,
+             "PETSc was not built with CUDA. "
+             "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
 
   // Setup DM
   if (read_mesh) {
@@ -183,6 +213,9 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
 
     // Create vectors
+    if (memtyperequested == CEED_MEM_DEVICE) {
+      ierr = DMSetVecType(dm[i], VECCUDA); CHKERRQ(ierr);
+    }
     ierr = DMCreateGlobalVector(dm[i], &X[i]); CHKERRQ(ierr);
     ierr = VecGetLocalSize(X[i], &lsize[i]); CHKERRQ(ierr);
     ierr = VecGetSize(X[i], &gsize[i]); CHKERRQ(ierr);
@@ -197,6 +230,9 @@ int main(int argc, char **argv) {
                                 (void(*)(void))MatMult_Ceed); CHKERRQ(ierr);
     ierr = MatShellSetOperation(matO[i], MATOP_GET_DIAGONAL,
                                 (void(*)(void))MatGetDiag); CHKERRQ(ierr);
+    if (memtyperequested == CEED_MEM_DEVICE) {
+      ierr = MatShellSetVecType(matO[i], VECCUDA); CHKERRQ(ierr);
+    }
 
     // Level transfers
     if (i > 0) {
@@ -210,6 +246,9 @@ int main(int argc, char **argv) {
       ierr = MatShellSetOperation(matPR[i], MATOP_MULT_TRANSPOSE,
                                   (void(*)(void))MatMult_Restrict);
       CHKERRQ(ierr);
+      if (memtyperequested == CEED_MEM_DEVICE) {
+        ierr = MatShellSetVecType(matPR[i], VECCUDA); CHKERRQ(ierr);
+      }
     }
   }
   ierr = VecDuplicate(X[fineLevel], &rhs); CHKERRQ(ierr);
@@ -220,12 +259,21 @@ int main(int argc, char **argv) {
   // Print global grid information
   if (!test_mode) {
     PetscInt P = degree + 1, Q = P + qextra;
+
     const char *usedresource;
     CeedGetResource(ceed, &usedresource);
+
+    VecType vectype;
+    ierr = VecGetType(X[0], &vectype); CHKERRQ(ierr);
+
     ierr = PetscPrintf(comm,
                        "\n-- CEED Benchmark Problem %d -- libCEED + PETSc + PCMG --\n"
+                       "  PETSc:\n"
+                       "    PETSc Vec Type                     : %s\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
+                       "    libCEED Backend MemType            : %s\n"
+                       "    libCEED User Requested MemType     : %s\n"
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
@@ -234,15 +282,22 @@ int main(int argc, char **argv) {
                        "    DoF per node                       : %D\n"
                        "  Multigrid:\n"
                        "    Number of Levels                   : %d\n",
-                       bpchoice+1, usedresource, P, Q,
-                       gsize[fineLevel]/ncompu, lsize[fineLevel]/ncompu,
+                       bpchoice+1, vectype, usedresource,
+                       CeedMemTypes[memtypebackend],
+                       (setmemtyperequest) ?
+                       CeedMemTypes[memtyperequested] : "none",
+                       P, Q, gsize[fineLevel]/ncompu, lsize[fineLevel]/ncompu,
                        ncompu, numlevels); CHKERRQ(ierr);
   }
 
   // Create RHS vector
   ierr = VecDuplicate(Xloc[fineLevel], &rhsloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(rhsloc); CHKERRQ(ierr);
-  ierr = VecGetArray(rhsloc, &r); CHKERRQ(ierr);
+  if (memtyperequested == CEED_MEM_HOST) {
+    ierr = VecGetArray(rhsloc, &r); CHKERRQ(ierr);
+  } else {
+    ierr = VecCUDAGetArray(rhsloc, &r); CHKERRQ(ierr);
+  }
   CeedVectorCreate(ceed, xlsize[fineLevel], &rhsceed);
   CeedVectorSetArray(rhsceed, CEED_MEM_HOST, CEED_USE_POINTER, r);
 
@@ -266,10 +321,14 @@ int main(int argc, char **argv) {
   }
 
   // Gather RHS
-  ierr = VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
+  CeedVectorSyncArray(rhsceed, memtyperequested);
+  if (memtyperequested == CEED_MEM_HOST) {
+    ierr = VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
+  } else {
+    ierr = VecCUDARestoreArray(rhsloc, &r); CHKERRQ(ierr);
+  }
   ierr = VecZeroEntries(rhs); CHKERRQ(ierr);
-  ierr = DMLocalToGlobal(dm[fineLevel], rhsloc, ADD_VALUES, rhs);
-  CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(dm[fineLevel], rhsloc, ADD_VALUES, rhs); CHKERRQ(ierr);
   CeedVectorDestroy(&rhsceed);
 
   // Create the restriction/interpolation Q-function
@@ -344,6 +403,18 @@ int main(int argc, char **argv) {
     userO[i]->yceed = ceeddata[i]->yceed;
     userO[i]->op = ceeddata[i]->opapply;
     userO[i]->ceed = ceed;
+    userO[i]->memtype = memtyperequested;
+    if (memtyperequested == CEED_MEM_HOST) {
+      userO[i]->VecGetArray = VecGetArray;
+      userO[i]->VecGetArrayRead = VecGetArrayRead;
+      userO[i]->VecRestoreArray = VecRestoreArray;
+      userO[i]->VecRestoreArrayRead = VecRestoreArrayRead;
+    } else {
+      userO[i]->VecGetArray = VecCUDAGetArray;
+      userO[i]->VecGetArrayRead = VecCUDAGetArrayRead;
+      userO[i]->VecRestoreArray = VecCUDARestoreArray;
+      userO[i]->VecRestoreArrayRead = VecCUDARestoreArrayRead;
+    }
 
     if (i > 0) {
       // Prolongation/Restriction Operator
@@ -358,6 +429,11 @@ int main(int argc, char **argv) {
       userPR[i]->opprolong = ceeddata[i]->opprolong;
       userPR[i]->oprestrict = ceeddata[i]->oprestrict;
       userPR[i]->ceed = ceed;
+      userPR[i]->memtype = userO[i]->memtype;
+      userPR[i]->VecGetArray = userO[i]->VecGetArray;
+      userPR[i]->VecGetArrayRead = userO[i]->VecGetArrayRead;
+      userPR[i]->VecRestoreArray = userO[i]->VecRestoreArray;
+      userPR[i]->VecRestoreArrayRead = userO[i]->VecRestoreArrayRead;
     }
   }
 

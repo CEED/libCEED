@@ -52,6 +52,15 @@ const char help[] = "Solve CEED BPs using PETSc\n";
 #include "qfunctions/bps/bp3.h"
 #include "qfunctions/bps/bp4.h"
 
+#include <petscsys.h>
+#if PETSC_VERSION_LT(3,12,0)
+#ifdef PETSC_HAVE_CUDA
+#include <petsccuda.h>
+// Note: With PETSc prior to version 3.12.0, providing the source path to
+//       include 'cublas_v2.h' will be needed to use 'petsccuda.h'.
+#endif
+#endif
+
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
   for (PetscInt d=0,sizeleft=size; d<3; d++) {
     PetscInt try = (PetscInt)PetscCeilReal(PetscPowReal(sizeleft, 1./(3 - d)));
@@ -135,7 +144,17 @@ struct User_ {
   CeedOperator op;
   CeedVector qdata;
   Ceed ceed;
+  CeedMemType memtype;
+  int (*VecGetArray)(Vec, PetscScalar **);
+  int (*VecGetArrayRead)(Vec, const PetscScalar **);
+  int (*VecRestoreArray)(Vec, PetscScalar **);
+  int (*VecRestoreArrayRead)(Vec, const PetscScalar **);
 };
+
+// MemType Options
+static const char *const memTypes[] = {"host","device","memType",
+                                       "CEED_MEM_",0
+                                      };
 
 // BP Options
 typedef enum {
@@ -261,31 +280,40 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
   PetscScalar *x, *y;
 
   PetscFunctionBeginUser;
+
   ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
+
+  // Global-to-local
   ierr = VecScatterBegin(user->ltog, X, user->Xloc, INSERT_VALUES,
                          SCATTER_REVERSE); CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES, SCATTER_REVERSE);
-  CHKERRQ(ierr);
+  ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES,
+                       SCATTER_REVERSE); CHKERRQ(ierr);
   ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
-  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
-  ierr = VecGetArray(user->Yloc, &y); CHKERRQ(ierr);
-  CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
-  CeedVectorSetArray(user->yceed, CEED_MEM_HOST, CEED_USE_POINTER, y);
+  // Setup libCEED vectors
+  ierr = user->VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
+  CHKERRQ(ierr);
+  ierr = user->VecGetArray(user->Yloc, &y); CHKERRQ(ierr);
+  CeedVectorSetArray(user->xceed, user->memtype, CEED_USE_POINTER, x);
+  CeedVectorSetArray(user->yceed, user->memtype, CEED_USE_POINTER, y);
 
+  // Apply libCEED operator
   CeedOperatorApply(user->op, user->xceed, user->yceed,
                     CEED_REQUEST_IMMEDIATE);
-  ierr = CeedVectorSyncArray(user->yceed, CEED_MEM_HOST); CHKERRQ(ierr);
+  CeedVectorSyncArray(user->yceed, user->memtype);
 
-  ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
-  ierr = VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
+  // Restore PETSc vectors
+  ierr = user->VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
+  CHKERRQ(ierr);
+  ierr = user->VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
 
+  // Local-to-global
   if (Y) {
     ierr = VecZeroEntries(Y); CHKERRQ(ierr);
-    ierr = VecScatterBegin(user->ltog, user->Yloc, Y, ADD_VALUES, SCATTER_FORWARD);
-    CHKERRQ(ierr);
-    ierr = VecScatterEnd(user->ltog, user->Yloc, Y, ADD_VALUES, SCATTER_FORWARD);
-    CHKERRQ(ierr);
+    ierr = VecScatterBegin(user->ltog, user->Yloc, Y, ADD_VALUES,
+                           SCATTER_FORWARD); CHKERRQ(ierr);
+    ierr = VecScatterEnd(user->ltog, user->Yloc, Y, ADD_VALUES,
+                         SCATTER_FORWARD); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
 }
@@ -298,6 +326,7 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
   PetscScalar *x, *y;
 
   PetscFunctionBeginUser;
+
   ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
 
   // Global-to-local
@@ -308,20 +337,22 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
   CHKERRQ(ierr);
   ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
-  // Setup CEED vectors
-  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
-  ierr = VecGetArray(user->Yloc, &y); CHKERRQ(ierr);
-  CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
-  CeedVectorSetArray(user->yceed, CEED_MEM_HOST, CEED_USE_POINTER, y);
+  // Setup libCEED vectors
+  ierr = user->VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
+  CHKERRQ(ierr);
+  ierr = user->VecGetArray(user->Yloc, &y); CHKERRQ(ierr);
+  CeedVectorSetArray(user->xceed, user->memtype, CEED_USE_POINTER, x);
+  CeedVectorSetArray(user->yceed, user->memtype, CEED_USE_POINTER, y);
 
-  // Apply CEED operator
+  // Apply libCEED operator
   CeedOperatorApply(user->op, user->xceed, user->yceed,
                     CEED_REQUEST_IMMEDIATE);
-  ierr = CeedVectorSyncArray(user->yceed, CEED_MEM_HOST); CHKERRQ(ierr);
+  CeedVectorSyncArray(user->yceed, user->memtype);
 
   // Restore PETSc vectors
-  ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
-  ierr = VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
+  ierr = user->VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
+  CHKERRQ(ierr);
+  ierr = user->VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
 
   // Local-to-global
   ierr = VecZeroEntries(Y); CHKERRQ(ierr);
@@ -329,8 +360,8 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
   CHKERRQ(ierr);
   ierr = VecScatterEnd(user->gtogD, X, Y, INSERT_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
-  ierr = VecScatterBegin(user->ltog0, user->Yloc, Y, ADD_VALUES, SCATTER_FORWARD);
-  CHKERRQ(ierr);
+  ierr = VecScatterBegin(user->ltog0, user->Yloc, Y, ADD_VALUES,
+                         SCATTER_FORWARD); CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog0, user->Yloc, Y, ADD_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);
 
@@ -346,25 +377,28 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator operror, Vec X,
   CeedInt length;
 
   PetscFunctionBeginUser;
+
   CeedVectorGetLength(target, &length);
   CeedVectorCreate(user->ceed, length, &collocated_error);
 
   // Global-to-local
   ierr = VecScatterBegin(user->ltog, X, user->Xloc, INSERT_VALUES,
                          SCATTER_REVERSE); CHKERRQ(ierr);
-  ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES, SCATTER_REVERSE);
+  ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES,
+                       SCATTER_REVERSE); CHKERRQ(ierr);
+
+  // Setup libCEED vector
+  ierr = user->VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
   CHKERRQ(ierr);
+  CeedVectorSetArray(user->xceed, user->memtype, CEED_USE_POINTER, x);
 
-  // Setup CEED vector
-  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
-  CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
-
-  // Apply CEED operator
+  // Apply libCEED operator
   CeedOperatorApply(operror, user->xceed, collocated_error,
                     CEED_REQUEST_IMMEDIATE);
 
   // Restore PETSc vector
-  VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
+  ierr = user->VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
+  CHKERRQ(ierr);
 
   // Reduce max error
   *maxerror = 0;
@@ -374,8 +408,8 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator operror, Vec X,
     *maxerror = PetscMax(*maxerror, PetscAbsScalar(e[i]));
   }
   CeedVectorRestoreArrayRead(collocated_error, &e);
-  ierr = MPI_Allreduce(MPI_IN_PLACE, maxerror,
-                       1, MPIU_REAL, MPIU_MAX, user->comm); CHKERRQ(ierr);
+  ierr = MPI_Allreduce(MPI_IN_PLACE, maxerror, 1, MPIU_REAL, MPIU_MAX,
+                       user->comm); CHKERRQ(ierr);
 
   // Cleanup
   CeedVectorDestroy(&collocated_error);
@@ -404,9 +438,20 @@ int main(int argc, char **argv) {
   CeedQFunction qfsetupgeo, qfsetuprhs, qfapply, qferror;
   CeedOperator opsetupgeo, opsetuprhs, opapply, operror;
   CeedVector xcoord, qdata, rhsceed, target;
+  CeedMemType memtyperequested;
   CeedInt P, Q;
   const CeedInt dim = 3, ncompx = 3;
   bpType bpchoice;
+
+  // Check for PETSc CUDA availability
+  PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
+  // *INDENT-OFF*
+  #ifdef PETSC_HAVE_CUDA
+  petschavecuda = PETSC_TRUE;
+  #else
+  petschavecuda = PETSC_FALSE;
+  #endif
+  // *INDENT-ON*
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -447,9 +492,28 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsInt("-local",
                          "Target number of locally owned nodes per process",
                          NULL, localnodes, &localnodes, NULL); CHKERRQ(ierr);
+  memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
+  ierr = PetscOptionsEnum("-memtype",
+                          "CEED MemType requested", NULL,
+                          memTypes, (PetscEnum)memtyperequested,
+                          (PetscEnum *)&memtyperequested, &setmemtyperequest);
+  CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   P = degree + 1;
   Q = P + qextra;
+
+  // Set up libCEED
+  CeedInit(ceedresource, &ceed);
+  CeedMemType memtypebackend;
+  CeedGetPreferredMemType(ceed, &memtypebackend);
+
+  // Check memtype compatibility
+  if (!setmemtyperequest)
+    memtyperequested = memtypebackend;
+  else if (!petschavecuda && memtyperequested == CEED_MEM_DEVICE)
+    SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_SUP_SYS,
+             "PETSc was not built with CUDA. "
+             "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
 
   // Determine size of process grid
   ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
@@ -473,6 +537,9 @@ int main(int argc, char **argv) {
   GlobalNodes(p, irank, degree, melem, mnodes);
 
   // Setup global vector
+  if (memtyperequested == CEED_MEM_DEVICE) {
+    ierr = VecSetType(X, VECCUDA); CHKERRQ(ierr);
+  }
   ierr = VecCreate(comm, &X); CHKERRQ(ierr);
   ierr = VecSetSizes(X, mnodes[0]*mnodes[1]*mnodes[2]*ncompu, PETSC_DECIDE);
   CHKERRQ(ierr);
@@ -487,10 +554,18 @@ int main(int argc, char **argv) {
   if (!test_mode) {
     const char *usedresource;
     CeedGetResource(ceed, &usedresource);
+
+    VecType vectype;
+    ierr = VecGetType(X, &vectype); CHKERRQ(ierr);
+
     ierr = PetscPrintf(comm,
                        "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
+                       "  PETSc:\n"
+                       "    PETSc Vec Type                     : %s\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
+                       "    libCEED Backend MemType            : %s\n"
+                       "    libCEED User Requested MemType     : %s\n"
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
@@ -499,8 +574,12 @@ int main(int argc, char **argv) {
                        "    Local Elements                     : %D = %D %D %D\n"
                        "    Owned nodes                        : %D = %D %D %D\n"
                        "    DoF per node                       : %D\n",
-                       bpchoice+1, usedresource, P, Q,  gsize/ncompu, p[0],
-                       p[1], p[2], localelem, melem[0], melem[1], melem[2],
+                       bpchoice+1, vectype, usedresource,
+                       CeedMemTypes[memtypebackend],
+                       (setmemtyperequest) ?
+                       CeedMemTypes[memtyperequested] : "none",
+                       P, Q,  gsize/ncompu, p[0], p[1], p[2], localelem,
+                       melem[0], melem[1], melem[2],
                        mnodes[0]*mnodes[1]*mnodes[2], mnodes[0], mnodes[1],
                        mnodes[2], ncompu); CHKERRQ(ierr);
   }
@@ -510,6 +589,9 @@ int main(int argc, char **argv) {
     for (int d=0; d<dim; d++) {
       lnodes[d] = melem[d]*degree + 1;
       lsize *= lnodes[d];
+    }
+    if (memtyperequested == CEED_MEM_DEVICE) {
+      ierr = VecSetType(Xloc, VECCUDA); CHKERRQ(ierr);
     }
     ierr = VecCreate(PETSC_COMM_SELF, &Xloc); CHKERRQ(ierr);
     ierr = VecSetSizes(Xloc, lsize*ncompu, PETSC_DECIDE); CHKERRQ(ierr);
@@ -725,6 +807,18 @@ int main(int argc, char **argv) {
   user->op = opapply;
   user->qdata = qdata;
   user->ceed = ceed;
+  user->memtype = memtyperequested;
+  if (memtyperequested == CEED_MEM_HOST) {
+    user->VecGetArray = VecGetArray;
+    user->VecGetArrayRead = VecGetArrayRead;
+    user->VecRestoreArray = VecRestoreArray;
+    user->VecRestoreArrayRead = VecRestoreArrayRead;
+  } else {
+    user->VecGetArray = VecCUDAGetArray;
+    user->VecGetArrayRead = VecCUDAGetArrayRead;
+    user->VecRestoreArray = VecCUDARestoreArray;
+    user->VecRestoreArrayRead = VecCUDARestoreArrayRead;
+  }
 
   ierr = MatCreateShell(comm, mnodes[0]*mnodes[1]*mnodes[2]*ncompu,
                         mnodes[0]*mnodes[1]*mnodes[2]*ncompu,
@@ -736,22 +830,25 @@ int main(int argc, char **argv) {
     ierr = MatShellSetOperation(mat, MATOP_MULT, (void(*)(void))MatMult_Diff);
     CHKERRQ(ierr);
   }
-  ierr = MatCreateVecs(mat, &rhs, NULL); CHKERRQ(ierr);
+  if (user->memtype == CEED_MEM_DEVICE) {
+    ierr = MatShellSetVecType(mat, VECCUDA); CHKERRQ(ierr);
+  }
 
   // Get RHS vector
+  ierr = VecDuplicate(X, &rhs); CHKERRQ(ierr);
   ierr = VecDuplicate(Xloc, &rhsloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(rhsloc); CHKERRQ(ierr);
-  ierr = VecGetArray(rhsloc, &r); CHKERRQ(ierr);
-  CeedVectorSetArray(rhsceed, CEED_MEM_HOST, CEED_USE_POINTER, r);
+  ierr = user->VecGetArray(rhsloc, &r); CHKERRQ(ierr);
+  CeedVectorSetArray(rhsceed, user->memtype, CEED_USE_POINTER, r);
 
   // Setup qdata, rhs, and target
   CeedOperatorApply(opsetupgeo, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
   CeedOperatorApply(opsetuprhs, xcoord, rhsceed, CEED_REQUEST_IMMEDIATE);
-  ierr = CeedVectorSyncArray(rhsceed, CEED_MEM_HOST); CHKERRQ(ierr);
+  ierr = CeedVectorSyncArray(rhsceed, user->memtype); CHKERRQ(ierr);
   CeedVectorDestroy(&xcoord);
 
   // Gather RHS
-  ierr = VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
+  ierr = user->VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
   ierr = VecZeroEntries(rhs); CHKERRQ(ierr);
   ierr = VecScatterBegin(ltog, rhsloc, rhs, ADD_VALUES, SCATTER_FORWARD);
   CHKERRQ(ierr);

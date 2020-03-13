@@ -29,6 +29,15 @@
 #include "qfunctions/bps/bp3.h"
 #include "qfunctions/bps/bp4.h"
 
+#include <petscsys.h>
+#if PETSC_VERSION_LT(3,12,0)
+#ifdef PETSC_HAVE_CUDA
+#include <petsccuda.h>
+// Note: With PETSc prior to version 3.12.0, providing the source path to
+//       include 'cublas_v2.h' will be needed to use 'petsccuda.h'.
+#endif
+#endif
+
 // -----------------------------------------------------------------------------
 // PETSc Operator Structs
 // -----------------------------------------------------------------------------
@@ -42,6 +51,11 @@ struct UserO_ {
   CeedVector xceed, yceed;
   CeedOperator op;
   Ceed ceed;
+  CeedMemType memtype;
+  int (*VecGetArray)(Vec, PetscScalar **);
+  int (*VecGetArrayRead)(Vec, const PetscScalar **);
+  int (*VecRestoreArray)(Vec, PetscScalar **);
+  int (*VecRestoreArrayRead)(Vec, const PetscScalar **);
 };
 
 // Data for PETSc Prolong/Restrict Matshells
@@ -53,6 +67,11 @@ struct UserProlongRestr_ {
   CeedVector ceedvecc, ceedvecf;
   CeedOperator opprolong, oprestrict;
   Ceed ceed;
+  CeedMemType memtype;
+  int (*VecGetArray)(Vec, PetscScalar **);
+  int (*VecGetArrayRead)(Vec, const PetscScalar **);
+  int (*VecRestoreArray)(Vec, PetscScalar **);
+  int (*VecRestoreArrayRead)(Vec, const PetscScalar **);
 };
 
 // -----------------------------------------------------------------------------
@@ -73,6 +92,11 @@ struct CeedData_ {
 // -----------------------------------------------------------------------------
 // Command Line Options
 // -----------------------------------------------------------------------------
+
+// MemType Options
+static const char *const memTypes[] = {"host","device","memType",
+                                       "CEED_MEM_",0
+                                      };
 
 // Coarsening options
 typedef enum {
@@ -716,20 +740,21 @@ static PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, UserO user) {
   ierr = DMGlobalToLocal(user->dm, X, INSERT_VALUES, user->Xloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
-  // Setup CEED vectors
-  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
-  ierr = VecGetArray(user->Yloc, &y); CHKERRQ(ierr);
-  CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
-  CeedVectorSetArray(user->yceed, CEED_MEM_HOST, CEED_USE_POINTER, y);
+  // Setup libCEED vectors
+  ierr = user->VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
+  CHKERRQ(ierr);
+  ierr = user->VecGetArray(user->Yloc, &y); CHKERRQ(ierr);
+  CeedVectorSetArray(user->xceed, user->memtype, CEED_USE_POINTER, x);
+  CeedVectorSetArray(user->yceed, user->memtype, CEED_USE_POINTER, y);
 
-  // Apply CEED operator
+  // Apply libCEED operator
   CeedOperatorApply(user->op, user->xceed, user->yceed, CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->yceed, CEED_MEM_HOST);
+  CeedVectorSyncArray(user->yceed, user->memtype);
 
   // Restore PETSc vectors
-  ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
+  ierr = user->VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
   CHKERRQ(ierr);
-  ierr = VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
+  ierr = user->VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
 
   // Local-to-global
   ierr = VecZeroEntries(Y); CHKERRQ(ierr);
@@ -785,22 +810,22 @@ static PetscErrorCode MatMult_Prolong(Mat A, Vec X, Vec Y) {
   CHKERRQ(ierr);
   ierr = VecZeroEntries(user->locvecf); CHKERRQ(ierr);
 
-  // Setup CEED vectors
-  ierr = VecGetArrayRead(user->locvecc, (const PetscScalar **)&c);
+  // Setup libCEED vectors
+  ierr = user->VecGetArrayRead(user->locvecc, (const PetscScalar **)&c);
   CHKERRQ(ierr);
-  ierr = VecGetArray(user->locvecf, &f); CHKERRQ(ierr);
-  CeedVectorSetArray(user->ceedvecc, CEED_MEM_HOST, CEED_USE_POINTER, c);
-  CeedVectorSetArray(user->ceedvecf, CEED_MEM_HOST, CEED_USE_POINTER, f);
+  ierr = user->VecGetArray(user->locvecf, &f); CHKERRQ(ierr);
+  CeedVectorSetArray(user->ceedvecc, user->memtype, CEED_USE_POINTER, c);
+  CeedVectorSetArray(user->ceedvecf, user->memtype, CEED_USE_POINTER, f);
 
-  // Apply CEED operator
+  // Apply libCEED operator
   CeedOperatorApply(user->opprolong, user->ceedvecc, user->ceedvecf,
                     CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->ceedvecf, CEED_MEM_HOST);
+  CeedVectorSyncArray(user->ceedvecf, user->memtype);
 
   // Restore PETSc vectors
-  ierr = VecRestoreArrayRead(user->locvecc, (const PetscScalar **)c);
+  ierr = user->VecRestoreArrayRead(user->locvecc, (const PetscScalar **)c);
   CHKERRQ(ierr);
-  ierr = VecRestoreArray(user->locvecf, &f); CHKERRQ(ierr);
+  ierr = user->VecRestoreArray(user->locvecf, &f); CHKERRQ(ierr);
 
   // Multiplicity
   ierr = VecPointwiseMult(user->locvecf, user->locvecf, user->multvec);
@@ -835,21 +860,22 @@ static PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y) {
   ierr = VecPointwiseMult(user->locvecf, user->locvecf, user->multvec);
   CHKERRQ(ierr);
 
-  // Setup CEED vectors
-  ierr = VecGetArrayRead(user->locvecf, (const PetscScalar **)&f); CHKERRQ(ierr);
-  ierr = VecGetArray(user->locvecc, &c); CHKERRQ(ierr);
-  CeedVectorSetArray(user->ceedvecf, CEED_MEM_HOST, CEED_USE_POINTER, f);
-  CeedVectorSetArray(user->ceedvecc, CEED_MEM_HOST, CEED_USE_POINTER, c);
+  // Setup libCEED vectors
+  ierr = user->VecGetArrayRead(user->locvecf, (const PetscScalar **)&f);
+  CHKERRQ(ierr);
+  ierr = user->VecGetArray(user->locvecc, &c); CHKERRQ(ierr);
+  CeedVectorSetArray(user->ceedvecf, user->memtype, CEED_USE_POINTER, f);
+  CeedVectorSetArray(user->ceedvecc, user->memtype, CEED_USE_POINTER, c);
 
   // Apply CEED operator
   CeedOperatorApply(user->oprestrict, user->ceedvecf, user->ceedvecc,
                     CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->ceedvecc, CEED_MEM_HOST);
+  CeedVectorSyncArray(user->ceedvecc, user->memtype);
 
   // Restore PETSc vectors
-  ierr = VecRestoreArrayRead(user->locvecf, (const PetscScalar **)&f);
+  ierr = user->VecRestoreArrayRead(user->locvecf, (const PetscScalar **)&f);
   CHKERRQ(ierr);
-  ierr = VecRestoreArray(user->locvecc, &c); CHKERRQ(ierr);
+  ierr = user->VecRestoreArray(user->locvecc, &c); CHKERRQ(ierr);
 
   // Local-to-global
   ierr = VecZeroEntries(Y); CHKERRQ(ierr);
@@ -876,16 +902,18 @@ static PetscErrorCode ComputeErrorMax(UserO user, CeedOperator op_error,
   // Global-to-local
   ierr = DMGlobalToLocal(user->dm, X, INSERT_VALUES, user->Xloc); CHKERRQ(ierr);
 
-  // Setup CEED vector
-  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
-  CeedVectorSetArray(user->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
+  // Setup libCEED vector
+  ierr = user->VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
+  CHKERRQ(ierr);
+  CeedVectorSetArray(user->xceed, user->memtype, CEED_USE_POINTER, x);
 
-  // Apply CEED operator
+  // Apply libCEED operator
   CeedOperatorApply(op_error, user->xceed, collocated_error,
                     CEED_REQUEST_IMMEDIATE);
 
   // Restore PETSc vector
-  VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x); CHKERRQ(ierr);
+  ierr = user->VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
+  CHKERRQ(ierr);
 
   // Reduce max error
   *maxerror = 0;
@@ -895,8 +923,8 @@ static PetscErrorCode ComputeErrorMax(UserO user, CeedOperator op_error,
     *maxerror = PetscMax(*maxerror, PetscAbsScalar(e[i]));
   }
   CeedVectorRestoreArrayRead(collocated_error, &e);
-  ierr = MPI_Allreduce(MPI_IN_PLACE, maxerror,
-                       1, MPIU_REAL, MPIU_MAX, user->comm); CHKERRQ(ierr);
+  ierr = MPI_Allreduce(MPI_IN_PLACE, maxerror, 1, MPIU_REAL, MPIU_MAX,
+                       user->comm); CHKERRQ(ierr);
 
   // Cleanup
   CeedVectorDestroy(&collocated_error);
