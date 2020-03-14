@@ -61,6 +61,10 @@
   static int name
 #endif
 
+#ifndef CEED_Q_VLA
+#  define CEED_Q_VLA Q
+#endif
+
 #ifndef CeedPragmaSIMD
 #  if defined(__INTEL_COMPILER) &&__INTEL_COMPILER >= 900
 #    define CeedPragmaSIMD _Pragma("simd")

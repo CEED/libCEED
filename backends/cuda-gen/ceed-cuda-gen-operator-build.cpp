@@ -1185,6 +1185,11 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   }
   code << "\n  // Apply QFunction\n";
   string qFunctionName(qf_data->qFunctionName);
+  if (dim != 3 || basis_data->d_collograd1d) {
+    code << "    #define CEED_Q_VLA 1\n";
+  } else {
+    code << "    #define CEED_Q_VLA "<<Q1d<<"\n";
+  }
   code << "  "<<qFunctionName<<"(ctx, ";
   if (dim != 3 || basis_data->d_collograd1d) {
     code << "1 ";

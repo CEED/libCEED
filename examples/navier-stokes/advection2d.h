@@ -86,9 +86,9 @@ static int Exact_Advection2d(CeedInt dim, CeedScalar time, const CeedScalar X[],
 CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q,
                                const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*X)[Q] = (const CeedScalar(*)[Q])in[0];
+  const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   // Outputs
-  CeedScalar (*q0)[Q] = (CeedScalar(*)[Q])out[0];
+  CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   const SetupContext context = ctx;
 
   CeedPragmaSIMD
@@ -131,12 +131,12 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q,
                             CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
-                   (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
-                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[2];
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
-  CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
-             (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
+             (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
   Advection2dContext context = ctx;
   const CeedScalar CtauS = context->CtauS;
@@ -229,13 +229,13 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
                                       CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
-                   (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
-                   (*qdot)[Q] = (const CeedScalar(*)[Q])in[2],
-                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[3];
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*qdot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
-  CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
-             (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
+             (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
   Advection2dContext context = ctx;
   const CeedScalar CtauS = context->CtauS;

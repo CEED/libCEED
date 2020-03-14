@@ -126,10 +126,10 @@ static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
 CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*X)[Q] = (const CeedScalar(*)[Q])in[0];
+  const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
 
   // Outputs
-  CeedScalar (*q0)[Q] = (CeedScalar(*)[Q])out[0];
+  CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -200,13 +200,13 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
                    const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
-                   (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
-                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[2],
-                   (*x)[Q] = (const CeedScalar(*)[Q])in[3];
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
-  CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
-             (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
+             (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
 
   // Context
@@ -458,14 +458,14 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
                              CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
-                   (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
-                   (*qdot)[Q] = (const CeedScalar(*)[Q])in[2],
-                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[3],
-                   (*x)[Q] = (const CeedScalar(*)[Q])in[4];
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*qdot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3],
+                   (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
   // Outputs
-  CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
-             (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
+             (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
   // Context
   const CeedScalar *context = (const CeedScalar *)ctx;
