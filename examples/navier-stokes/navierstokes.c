@@ -524,11 +524,11 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix,
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
                            1, comps, (void(*)(void))NULL, bc->nslip[0],
                            bc->slips[0], ctxSetup); CHKERRQ(ierr);
-      comps[1] = 2;
+      comps[0] = 2;
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", "Face Sets", 0,
                            1, comps, (void(*)(void))NULL, bc->nslip[1],
                            bc->slips[1], ctxSetup); CHKERRQ(ierr);
-      comps[1] = 3;
+      comps[0] = 3;
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", "Face Sets", 0,
                            1, comps, (void(*)(void))NULL, bc->nslip[2],
                            bc->slips[2], ctxSetup); CHKERRQ(ierr);
