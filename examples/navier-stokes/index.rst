@@ -132,12 +132,79 @@ And its weak form is:
 
 .. math::
    :label: eq-weak-vector-ns
-   :nowrap:
 
    \begin{multline}
-    \int_{\Omega} v \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV + \int_{\Gamma} v \widehat{\mathbf{n}} \cdot \boldsymbol{F} (\boldsymbol{q}_N) \,dS - \int_{\Omega} \nabla v\cdot\boldsymbol{F}(\boldsymbol{q}_N)\,dV  =
+    \int_{\Omega} v \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV + \int_{\partial \Omega} v \widehat{\mathbf{n}} \cdot \boldsymbol{F} (\boldsymbol{q}_N) \,dS - \int_{\Omega} \nabla v\cdot\boldsymbol{F}(\boldsymbol{q}_N)\,dV  =
         \int_\Omega v \mathbf{S}(\boldsymbol{q}_N) \, dV \, , \; \forall v \in \mathcal{V}_p
    \end{multline}
+
+We solve equation :math:numref:`eq-weak-vector-ns` with Galerkin method discretization
+which is the default option in our Navier-Stokes example.
+
+To resolve the numerical instability of the Galerkin method, we implement two stabilization
+techniques (from :cite:`hughesetal2010`):
+
+- **SUPG** (streamline-upwind/Petrov-Galerkin)
+
+    In this method, the weighted residual of the original system of equations
+    :math:numref:`eq-vector-ns` is added to the Galerkin formulation
+    :math:numref:`eq-weak-vector-ns`. The weak form for this method is given as
+
+    .. math::
+       :label: eq-weak-vector-ns-supg
+
+       \begin{multline}
+          \int_{\Omega} v \, \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV +
+          \int_{\partial \Omega} v \, \widehat{\mathbf{n}} \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) \,dS -
+          \int_{\Omega} \nabla v\cdot\boldsymbol{F} \, (\boldsymbol{q}_N)\,dV  -
+          \int_\Omega v \, \mathbf{S}(\boldsymbol{q}_N) \, dV \, +
+       \end{multline}
+
+    .. math::
+       \begin{multline}
+          \int_{\Omega} \boldsymbol{P}\, \,^T \, \left( \frac{\partial \boldsymbol{q}_N}{\partial t} \, + \,
+          \nabla \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) - \mathbf{S}(\boldsymbol{q}_N) \right) \,dV = 0
+          \, , \; \, \, \, \, \forall v \in \mathcal{V}_p
+       \end{multline}
+
+    This stabilization technique can be implemented by the option ``-stab supg``.
+
+
+- **SU** (streamline-upwind)
+
+    This method is a simplified version of *SUPG* :math:numref:`eq-weak-vector-ns-supg` which
+    is developed for debugging/comparision purposes. The weak form for this method is
+
+    .. math::
+       :label: eq-weak-vector-ns-su
+
+       \begin{multline}
+          \int_{\Omega} v \, \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV +
+          \int_{\partial \Omega} v \, \widehat{\mathbf{n}} \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) \,dS -
+          \int_{\Omega} \nabla v\cdot\boldsymbol{F} \, (\boldsymbol{q}_N)\,dV  -
+          \int_\Omega v \, \mathbf{S}(\boldsymbol{q}_N) \, dV \, +
+       \end{multline}
+
+    .. math::
+       \begin{multline}
+          \int_{\Omega} \boldsymbol{P}\, \,^T \, \nabla \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) \,dV = 0
+          \, , \; \, \, \, \, \forall v \in \mathcal{V}_p
+       \end{multline}
+
+    This stabilization technique can be implemented by the option ``-stab su``.
+
+
+  In both :math:numref:`eq-weak-vector-ns-su` and :math:numref:`eq-weak-vector-ns-supg`,
+  :math:`\boldsymbol{P} \,` is called the *perturbation to the test-function space*,
+  since it modifies the original Galerkin method into *SUPG* or *SU* schemes. It is defined as
+
+  .. math::
+     \begin{multline}
+        \boldsymbol{P} \, = \boldsymbol{\tau} \, \left( \frac{\partial \boldsymbol{F} \, (\boldsymbol{q}_N)}{\partial
+        \boldsymbol{q}_N} \right)^T \, \nabla v
+     \end{multline}
+
+  Where parameter :math:`\boldsymbol{\tau}` is an intrinsic time scale diagonal matrix.
 
 Currently, this demo provides two types of problems/physical models that can be selected
 at run time via the option ``-problem``. One is the problem of transport of energy in a
