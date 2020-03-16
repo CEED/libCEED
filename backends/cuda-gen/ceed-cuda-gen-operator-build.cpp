@@ -772,8 +772,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   CeedQFunction_Cuda_gen *qf_data;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   ierr = CeedQFunctionGetData(qf, (void **)&qf_data); CeedChk(ierr);
-  CeedInt Q, P1d, Q1d = -1, numelements, elemsize, numinputfields,
-          numoutputfields, ncomp, dim, nnodes;
+  CeedInt Q, P1d, Q1d = 0, numelements, elemsize, numinputfields,
+          numoutputfields, ncomp, dim = 0, nnodes;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
@@ -805,8 +805,6 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     code << atomicAdd;
   }
 
-  data->dim = dim;
-  data->Q1d = Q1d;
 
   code << devFunctions;
 
@@ -815,15 +813,32 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
   code << "\n#define CeedPragmaSIMD\n";
 
-  // Define CEED_Q_VLA
+  // Find dim and Q1d
   bool collograd = false;
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
-    if (basis != CEED_BASIS_COLLOCATED)
+    if (basis != CEED_BASIS_COLLOCATED) {
       ierr = CeedBasisGetData(basis, (void **)&basis_data); CeedChk(ierr);
+
+      // Check for collocated gradient
       if (basis_data->d_collograd1d)
-        collograd = true;
+        collograd = true; 
+
+      // Collect dim and Q1d
+      ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+      bool isTensor;
+      ierr = CeedBasisGetTensorStatus(basis, &isTensor); CeedChk(ierr); 
+      if (isTensor) {
+        ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
+      } else {
+        return CeedError(ceed, 1, "Backend does not implement operators with non-tensor basis");
+        }
+    }
   }
+  data->dim = dim;
+  data->Q1d = Q1d;
+
+  // Define CEED_Q_VLA
   if (dim != 3 || collograd) {
     code << "\n#define CEED_Q_VLA 1\n\n";
   } else {
@@ -838,33 +853,18 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
     CeedChk(ierr);
-    if (emode == CEED_EVAL_WEIGHT) { // Skip
-    } else {
+    if (emode != CEED_EVAL_WEIGHT) { // Skip CEED_EVAL_WEIGHT
       code << "const CeedScalar* d_u" <<i<<" = fields.in["<<i<<"];\n";
-      if (emode != CEED_EVAL_NONE)
-      {
-        ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
-        bool isTensor;
-        ierr = CeedBasisGetTensorStatus(basis, &isTensor); CeedChk(ierr);
-        //TODO check that all are the same
-        ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
-        if (isTensor)
-        {
-          //TODO check that all are the same
-          ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
-        } else {
-          return CeedError(ceed, 1, "Backend does not implement operators with non-tensor basis");
-        }
-      }
     }
   }
 
   for (CeedInt i = 0; i < numoutputfields; i++) {
     code << "CeedScalar* d_v"<<i<<" = fields.out["<<i<<"];\n";
   }
+
   code << "const CeedInt Dim = "<<dim<<";\n";
   code << "const CeedInt Q1d = "<<Q1d<<";\n";
-  // code << "const CeedInt Q   = "<<Q<<";\n";
+
   code << "extern __shared__ CeedScalar slice[];\n";
   code << "BackendData data;\n";
   code << "data.tidx = threadIdx.x;\n";
