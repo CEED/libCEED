@@ -835,6 +835,23 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         }
     }
   }
+  // Check output bases for Q1d, dim as well
+  //   The only imput basis might be CEED_BASIS_COLLOCATED
+  for (CeedInt i = 0; i < numoutputfields; i++) {
+    ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis); CeedChk(ierr);
+    if (basis != CEED_BASIS_COLLOCATED) {
+      ierr = CeedBasisGetData(basis, (void **)&basis_data); CeedChk(ierr);
+      // Collect dim and Q1d
+      ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+      bool isTensor;
+      ierr = CeedBasisGetTensorStatus(basis, &isTensor); CeedChk(ierr); 
+      if (isTensor) {
+        ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
+      } else {
+        return CeedError(ceed, 1, "Backend does not implement operators with non-tensor basis");
+        }
+    }
+  }
   data->dim = dim;
   data->Q1d = Q1d;
 
