@@ -199,10 +199,11 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
   ierr = PetscMalloc1(Nelem*PetscPowInt(P, dim), &erestrict); CHKERRQ(ierr);
   for (c=cStart,eoffset=0; c<cEnd; c++) {
     PetscInt numindices, *indices, nnodes;
-    ierr = DMPlexGetClosureIndices(dm,section,section,c,&numindices,&indices,NULL);
-    CHKERRQ(ierr);
+    ierr = DMPlexGetClosureIndices(dm, section, section, c, &numindices,
+                                   &indices, NULL); CHKERRQ(ierr);
     if (numindices % fieldoff[nfields]) SETERRQ1(PETSC_COMM_SELF,
-          PETSC_ERR_ARG_INCOMP,"Number of closure indices not compatible with Cell %D",c);
+          PETSC_ERR_ARG_INCOMP, "Number of closure indices not compatible with Cell %D",
+          c);
     nnodes = numindices / fieldoff[nfields];
     for (PetscInt i=0; i<nnodes; i++) {
       // Check that indices are blocked by node and thus can be coalesced as a single field with
@@ -212,19 +213,19 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
           if (Involute(indices[fieldoff[f]*nnodes + i*ncomp[f] + j])
               != Involute(indices[i*ncomp[0]]) + fieldoff[f] + j)
             SETERRQ4(PETSC_COMM_SELF,PETSC_ERR_ARG_INCOMP,
-                     "Cell %D closure indices not interlaced for node %D field %D component %D",c,i,
-                     f,j);
+                     "Cell %D closure indices not interlaced for node %D field %D component %D",
+                     c, i, f, j);
         }
       }
       // Essential boundary conditions are encoded as -(loc+1), but we don't care so we decode.
       PetscInt loc = Involute(indices[i*ncomp[0]]);
       erestrict[eoffset++] = loc / fieldoff[nfields];
     }
-    ierr = DMPlexRestoreClosureIndices(dm,section,section,c,&numindices,&indices,
-                                       NULL); CHKERRQ(ierr);
+    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, &numindices,
+                                       &indices, NULL); CHKERRQ(ierr);
   }
   if (eoffset != Nelem*PetscPowInt(P, dim)) SETERRQ3(PETSC_COMM_SELF,
-        PETSC_ERR_LIB,"ElemRestriction of size (%D,%D) initialized %D nodes",Nelem,
+        PETSC_ERR_LIB,"ElemRestriction of size (%D,%D) initialized %D nodes", Nelem,
         PetscPowInt(P, dim),eoffset);
   ierr = DMGetLocalVector(dm, &Uloc); CHKERRQ(ierr);
   ierr = VecGetLocalSize(Uloc, &Ndof); CHKERRQ(ierr);
@@ -400,7 +401,8 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
 
     ierr = DMGetGlobalVector(user->dmviz, &Qrefined); CHKERRQ(ierr);
     ierr = DMGetLocalVector(user->dmviz, &Qrefined_loc); CHKERRQ(ierr);
-    ierr = PetscObjectSetName((PetscObject)Qrefined_loc, "Refined"); CHKERRQ(ierr);
+    ierr = PetscObjectSetName((PetscObject)Qrefined_loc, "Refined");
+    CHKERRQ(ierr);
     ierr = MatInterpolate(user->interpviz, Q, Qrefined); CHKERRQ(ierr);
     ierr = VecZeroEntries(Qrefined_loc); CHKERRQ(ierr);
     ierr = DMGlobalToLocal(user->dmviz, Qrefined, INSERT_VALUES, Qrefined_loc);
@@ -475,11 +477,8 @@ static PetscErrorCode ICs_PetscMultiplicity(CeedOperator op_ics,
 }
 
 static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
-    CeedElemRestriction restrictq,
-    CeedBasis basisq,
-    CeedElemRestriction restrictqdi,
-    CeedVector qdata,
-    Vec M) {
+    CeedElemRestriction restrictq, CeedBasis basisq,
+    CeedElemRestriction restrictqdi, CeedVector qdata, Vec M) {
   PetscErrorCode ierr;
   CeedQFunction qf_mass;
   CeedOperator op_mass;
@@ -498,12 +497,10 @@ static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
 
   // Create the mass operator
   CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
-  CeedOperatorSetField(op_mass, "q", restrictq,
-                       basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "q", restrictq, basisq, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "qdata", restrictqdi,
                        CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_mass, "v", restrictq,
-                       basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "v", restrictq, basisq, CEED_VECTOR_ACTIVE);
 
   ierr = DMGetLocalVector(dm, &Mloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(Mloc); CHKERRQ(ierr);
@@ -541,8 +538,9 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix,
     PetscFE fe;
     PetscSpace fespace;
     PetscInt ncompq = 5;
-    ierr = PetscFECreateDefault(PETSC_COMM_SELF,problem->dim, ncompq, PETSC_FALSE,
-                                prefix, PETSC_DETERMINE, &fe); CHKERRQ(ierr);
+    ierr = PetscFECreateDefault(PETSC_COMM_SELF,problem->dim, ncompq,
+                                PETSC_FALSE, prefix, PETSC_DETERMINE, &fe);
+    CHKERRQ(ierr);
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm,NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
@@ -583,10 +581,14 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix,
     PetscSection section;
     ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
     ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 0, "Density"); CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 1, "MomentumX"); CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 2, "MomentumY"); CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 3, "MomentumZ"); CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 0, "Density");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 1, "MomentumX");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 2, "MomentumY");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 3, "MomentumZ");
+    CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 4, "EnergyDensity");
     CHKERRQ(ierr);
   }
@@ -657,7 +659,9 @@ int main(int argc, char **argv) {
   PetscInt contsteps    = 0;        // -
   PetscInt degree;
   PetscInt qextra       = 2;        // -
-  DMBoundaryType periodicity[] = {DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE};
+  DMBoundaryType periodicity[] = {DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
+                                  DM_BOUNDARY_NONE
+                                 };
   PetscReal center[3], dc_axis[3] = {0, 0, 0};
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
@@ -685,26 +689,32 @@ int main(int argc, char **argv) {
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
-                          NULL, implicit=PETSC_FALSE, &implicit, NULL); CHKERRQ(ierr);
+                          NULL, implicit=PETSC_FALSE, &implicit, NULL);
+  CHKERRQ(ierr);
   {
     PetscInt len;
     PetscBool flg;
     ierr = PetscOptionsIntArray("-bc_wall",
-                                "Use wall boundary conditions on this list of faces", NULL, bc.walls,
-                                (len = sizeof(bc.walls) / sizeof(bc.walls[0]), &len), &flg); CHKERRQ(ierr);
+                                "Use wall boundary conditions on this list of faces",
+                                NULL, bc.walls,
+                                (len = sizeof(bc.walls) / sizeof(bc.walls[0]),
+                                 &len), &flg); CHKERRQ(ierr);
     if (flg) bc.nwall = len;
     for (PetscInt j=0; j<3; j++) {
       const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
       ierr = PetscOptionsIntArray(flags[j],
-                                  "Use slip boundary conditions on this list of faces", NULL, bc.slips[j],
-                                  (len = sizeof(bc.slips[j]) / sizeof(bc.slips[j][0]), &len), &flg);
+                                  "Use slip boundary conditions on this list of faces",
+                                  NULL, bc.slips[j],
+                                  (len = sizeof(bc.slips[j]) / sizeof(bc.slips[j][0]),
+                                   &len), &flg);
       CHKERRQ(ierr);
       if (flg) bc.nslip[j] = len;
     }
   }
   ierr = PetscOptionsBool("-viz_refine",
                           "Use regular refinement for visualization",
-                          NULL, viz_refine=PETSC_FALSE, &viz_refine, NULL); CHKERRQ(ierr);
+                          NULL, viz_refine=PETSC_FALSE, &viz_refine, NULL);
+  CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, meter, &meter, NULL); CHKERRQ(ierr);
   meter = fabs(meter);
@@ -744,7 +754,8 @@ int main(int argc, char **argv) {
                             NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-strong_form",
                             "Strong (1) or weak/integrated by parts (0) advection residual",
-                            NULL, strong_form, &strong_form, NULL); CHKERRQ(ierr);
+                            NULL, strong_form, &strong_form, NULL);
+  CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                             NULL, lx, &lx, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
@@ -774,8 +785,8 @@ int main(int argc, char **argv) {
                                "Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric",
                                NULL, dc_axis, &n, NULL); CHKERRQ(ierr);
   {
-    PetscReal norm = PetscSqrtReal(PetscSqr(dc_axis[0]) + PetscSqr(
-                                     dc_axis[1]) + PetscSqr(dc_axis[2]));
+    PetscReal norm = PetscSqrtReal(PetscSqr(dc_axis[0]) +
+                                   PetscSqr(dc_axis[1]) + PetscSqr(dc_axis[2]));
     if (norm > 0) {
       for (int i=0; i<3; i++) dc_axis[i] /= norm;
     }
@@ -850,8 +861,12 @@ int main(int argc, char **argv) {
     .time = 0,
   };
 
-  ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, (PetscReal[]) {lx, ly, lz},
-  periodicity, PETSC_TRUE, &dm); CHKERRQ(ierr);
+  {
+    const PetscReal scale[3] = {lx, ly, lz};
+    ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, scale,
+                               periodicity, PETSC_TRUE, &dm);
+    CHKERRQ(ierr);
+  }
   if (1) {
     DM               dmDist = NULL;
     PetscPartitioner part;
@@ -880,7 +895,8 @@ int main(int argc, char **argv) {
     ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
     ierr = DMRefine(dm, MPI_COMM_NULL, &dmviz); CHKERRQ(ierr);
     ierr = DMSetCoarseDM(dmviz, dm); CHKERRQ(ierr);
-    ierr = PetscOptionsSetValue(NULL,"-viz_petscspace_degree","1"); CHKERRQ(ierr);
+    ierr = PetscOptionsSetValue(NULL,"-viz_petscspace_degree","1");
+    CHKERRQ(ierr);
     ierr = SetUpDM(dmviz, problem, "viz_", &bc, &ctxSetup, NULL); CHKERRQ(ierr);
     ierr = DMCreateInterpolation(dm, dmviz, &interpviz, NULL); CHKERRQ(ierr);
   }
@@ -900,8 +916,8 @@ int main(int argc, char **argv) {
     ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str,
                                  sizeof(box_faces_str), NULL); CHKERRQ(ierr);
     if (!test) {
-      ierr = PetscPrintf(comm, "Global FEM dofs: %D (%D owned) on %d ranks\n", gdofs,
-                         odofs, comm_size); CHKERRQ(ierr);
+      ierr = PetscPrintf(comm, "Global FEM dofs: %D (%D owned) on %d ranks\n",
+                         gdofs, odofs, comm_size); CHKERRQ(ierr);
       ierr = PetscPrintf(comm, "Local FEM nodes: %D\n", lnodes); CHKERRQ(ierr);
       ierr = PetscPrintf(comm, "dm_plex_box_faces: %s\n", box_faces_str);
       CHKERRQ(ierr);
@@ -925,11 +941,12 @@ int main(int argc, char **argv) {
                                   CEED_GAUSS_LOBATTO, &basisxc);
 
   ierr = DMGetCoordinateDM(dm, &dmcoord); CHKERRQ(ierr);
-  ierr = DMPlexSetClosurePermutationTensor(dmcoord,PETSC_DETERMINE,NULL);
+  ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
   // CEED Restrictions
-  ierr = CreateRestrictionFromPlex(ceed, dm, degree+1, &restrictq); CHKERRQ(ierr);
+  ierr = CreateRestrictionFromPlex(ceed, dm, degree+1, &restrictq);
+  CHKERRQ(ierr);
   ierr = CreateRestrictionFromPlex(ceed, dmcoord, 2, &restrictx); CHKERRQ(ierr);
   DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   localNelem = cEnd - cStart;
@@ -991,8 +1008,7 @@ int main(int argc, char **argv) {
 
   // Create the operator that builds the quadrature data for the NS operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
-  CeedOperatorSetField(op_setup, "dx", restrictx,
-                       basisx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "dx", restrictx, basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE,
                        basisx, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "qdata", restrictqdi,
@@ -1000,8 +1016,7 @@ int main(int argc, char **argv) {
 
   // Create the operator that sets the ICs
   CeedOperatorCreate(ceed, qf_ics, NULL, NULL, &op_ics);
-  CeedOperatorSetField(op_ics, "x", restrictx,
-                       basisxc, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_ics, "x", restrictx, basisxc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_ics, "q0", restrictq,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
@@ -1012,38 +1027,27 @@ int main(int argc, char **argv) {
   if (qf_rhs) { // Create the RHS physics operator
     CeedOperator op;
     CeedOperatorCreate(ceed, qf_rhs, NULL, NULL, &op);
-    CeedOperatorSetField(op, "q", restrictq,
-                         basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dq", restrictq,
-                         basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "q", restrictq, basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dq", restrictq, basisq, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "qdata", restrictqdi,
                          CEED_BASIS_COLLOCATED, qdata);
-    CeedOperatorSetField(op, "x", restrictx,
-                         basisx, xcorners);
-    CeedOperatorSetField(op, "v", restrictq,
-                         basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dv", restrictq,
-                         basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "x", restrictx, basisx, xcorners);
+    CeedOperatorSetField(op, "v", restrictq, basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dv", restrictq, basisq, CEED_VECTOR_ACTIVE);
     user->op_rhs = op;
   }
 
   if (qf_ifunction) { // Create the IFunction operator
     CeedOperator op;
     CeedOperatorCreate(ceed, qf_ifunction, NULL, NULL, &op);
-    CeedOperatorSetField(op, "q", restrictq,
-                         basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dq", restrictq,
-                         basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "qdot", restrictq,
-                         basisq, user->qdotceed);
+    CeedOperatorSetField(op, "q", restrictq, basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dq", restrictq, basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "qdot", restrictq, basisq, user->qdotceed);
     CeedOperatorSetField(op, "qdata", restrictqdi,
                          CEED_BASIS_COLLOCATED, qdata);
-    CeedOperatorSetField(op, "x", restrictx,
-                         basisx, xcorners);
-    CeedOperatorSetField(op, "v", restrictq,
-                         basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dv", restrictq,
-                         basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "x", restrictx, basisx, xcorners);
+    CeedOperatorSetField(op, "v", restrictq, basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dv", restrictq, basisq, CEED_VECTOR_ACTIVE);
     user->op_ifunction = op;
   }
 
@@ -1057,7 +1061,8 @@ int main(int argc, char **argv) {
   switch (problemChoice) {
   case NS_DENSITY_CURRENT:
     if (qf_rhs) CeedQFunctionSetContext(qf_rhs, &ctxNS, sizeof ctxNS);
-    if (qf_ifunction) CeedQFunctionSetContext(qf_ifunction, &ctxNS, sizeof ctxNS);
+    if (qf_ifunction) CeedQFunctionSetContext(qf_ifunction, &ctxNS,
+          sizeof ctxNS);
     break;
   case NS_ADVECTION:
   case NS_ADVECTION2D:
