@@ -47,14 +47,7 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
   opts[numopts + 1] = "-DCeedInt=int";
   struct cudaDeviceProp prop;
   Ceed_Cuda *ceed_data;
-  Ceed delegate;
-  CeedGetDelegate(ceed, &delegate);
-  //We assume that the delegate is always the Cuda one
-  if (delegate) {
-    ierr = CeedGetData(delegate, (void *)&ceed_data); CeedChk(ierr);
-  } else {
-    ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
-  }
+  ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
   ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId);
   CeedChk_Cu(ceed, ierr);
   char buff[optslen];
@@ -128,12 +121,8 @@ static int CeedGetPreferredMemType_Cuda(CeedMemType *type) {
   return 0;
 }
 
-static int CeedInit_Cuda(const char *resource, Ceed ceed) {
+int CeedCudaInit(Ceed ceed, const char *resource, int nrc) {
   int ierr;
-  const int nrc = 9; // number of characters in resource
-  if (strncmp(resource, "/gpu/cuda/ref", nrc))
-    return CeedError(ceed, 1, "Cuda backend cannot use resource: %s", resource);
-
   const int rlen = strlen(resource);
   const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
   const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : 0;
@@ -144,16 +133,27 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
     ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
   }
 
-  Ceed_Cuda *data;
-  ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  data->deviceId = deviceID;
-
   struct cudaDeviceProp deviceProp;
   ierr = cudaGetDeviceProperties(&deviceProp, deviceID); CeedChk_Cu(ceed,ierr);
 
+  Ceed_Cuda *data;
+  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  data->deviceId = deviceID;
   data->optblocksize = deviceProp.maxThreadsPerBlock;
+  return 0;
+}
 
+static int CeedInit_Cuda(const char *resource, Ceed ceed) {
+  int ierr;
+  const int nrc = 9; // number of characters in resource
+  if (strncmp(resource, "/gpu/cuda/ref", nrc))
+    return CeedError(ceed, 1, "Cuda backend cannot use resource: %s", resource);
+
+  Ceed_Cuda *data;
+  ierr = CeedCalloc(1,&data); CeedChk(ierr);
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
+  ierr = CeedCudaInit(ceed, resource, nrc); CeedChk(ierr);
+
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
                                 CeedGetPreferredMemType_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate",

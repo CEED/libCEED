@@ -37,16 +37,11 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   CeedInit("/gpu/cuda/shared", &ceedshared);
   ierr = CeedSetDelegate(ceed, ceedshared); CeedChk(ierr);
 
-  const int rlen = strlen(resource);
-  const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
-  const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : 0;
-
-  ierr = cudaSetDevice(deviceID); CeedChk(ierr);
-
   Ceed_Cuda_gen *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
-
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
+  ierr = CeedCudaInit(ceed, resource, nrc); CeedChk(ierr);
+
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
                                 CeedGetPreferredMemType_Cuda_gen); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",

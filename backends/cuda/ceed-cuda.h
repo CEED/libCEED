@@ -13,6 +13,9 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+#ifndef _ceed_cuda_h
+#define _ceed_cuda_h
+
 #include <ceed-backend.h>
 #include <ceed.h>
 #include <nvrtc.h>
@@ -156,6 +159,8 @@ CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
                                       const int sharedMemSize,
                                       void **args);
 
+CEED_INTERN int CeedCudaInit(Ceed ceed, const char *resource, int nrc);
+
 CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
@@ -189,3 +194,4 @@ CEED_INTERN int CeedQFunctionCreate_Cuda(CeedQFunction qf);
 CEED_INTERN int CeedOperatorCreate_Cuda(CeedOperator op);
 
 CEED_INTERN int CeedCompositeOperatorCreate_Cuda(CeedOperator op);
+#endif
