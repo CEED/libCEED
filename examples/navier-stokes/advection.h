@@ -61,7 +61,7 @@ struct AdvectionContext_ {
 
 static int Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[],
                            CeedInt Nf, CeedScalar q[], void *ctx) {
-  const SetupContext context = ctx;
+  const SetupContext context = (SetupContext)ctx;
   const CeedScalar rc = context->rc;
   const CeedScalar lx = context->lx;
   const CeedScalar ly = context->ly;
@@ -189,7 +189,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
   // *INDENT-ON*
 
   // Context
-  AdvectionContext context = ctx;
+  AdvectionContext context = (AdvectionContext)ctx;
   const CeedScalar CtauS = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
@@ -307,7 +307,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
-  AdvectionContext context = ctx;
+  AdvectionContext context = (AdvectionContext)ctx;
   const CeedScalar CtauS = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 

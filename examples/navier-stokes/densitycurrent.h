@@ -117,7 +117,7 @@ struct AdvectionContext_ {
 static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
                     CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
-  const SetupContext context = ctx;
+  const SetupContext context = (SetupContext)ctx;
 
   const CeedScalar theta0 = context->theta0;
   const CeedScalar thetaC = context->thetaC;
@@ -456,7 +456,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     // *INDENT-ON*
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
     CeedScalar stab[5][3];
-    AdvectionContext context = ctx;
+    AdvectionContext context = (AdvectionContext)ctx;
     switch (context->stabilization) {
     case 0:        // Galerkin
       break;
@@ -721,7 +721,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     const CeedScalar TauE = TauM / (Ce * cv);
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
     CeedScalar stab[5][3];
-    AdvectionContext context = ctx;
+    AdvectionContext context = (AdvectionContext)ctx;
     switch (context->stabilization) {
     case 0:        // Galerkin
       break;

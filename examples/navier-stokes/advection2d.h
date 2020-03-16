@@ -65,7 +65,7 @@ struct Advection2dContext_ {
 
 static int Exact_Advection2d(CeedInt dim, CeedScalar time, const CeedScalar X[],
                              CeedInt Nf, CeedScalar q[], void *ctx) {
-  const SetupContext context = ctx;
+  const SetupContext context = (SetupContext)ctx;
   const CeedScalar rc = context->rc;
   const CeedScalar lx = context->lx;
   const CeedScalar ly = context->ly;
@@ -126,7 +126,7 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q,
   const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   // Outputs
   CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  const SetupContext context = ctx;
+  const SetupContext context = (SetupContext)ctx;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -168,7 +168,7 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
-  Advection2dContext context = ctx;
+  Advection2dContext context = (Advection2dContext)ctx;
   const CeedScalar CtauS = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
@@ -267,7 +267,7 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
-  Advection2dContext context = ctx;
+  Advection2dContext context = (Advection2dContext)ctx;
   const CeedScalar CtauS = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
