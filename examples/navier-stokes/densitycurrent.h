@@ -114,8 +114,8 @@ struct AdvectionContext_ {
 //   center          ,  Location of bubble center
 //   dc_axis         ,  Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric
 // *****************************************************************************
-static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
-                    CeedInt Nf, CeedScalar q[], void *ctx) {
+static inline int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
+                           CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
   const SetupContext context = (SetupContext)ctx;
 
@@ -160,6 +160,7 @@ static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
   return 0;
 }
 
+// *****************************************************************************
 CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -181,7 +182,6 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
   // Return
   return 0;
 }
-
 
 // *******************************************************************************
 // This QFunction implements the following formulation of Navier-Stokes with

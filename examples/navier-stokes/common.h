@@ -115,6 +115,7 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
   return 0;
 }
 
+// *****************************************************************************
 CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*

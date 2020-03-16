@@ -59,8 +59,9 @@ struct AdvectionContext_ {
 };
 #endif
 
-static int Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[],
-                           CeedInt Nf, CeedScalar q[], void *ctx) {
+static inline int Exact_Advection(CeedInt dim, CeedScalar time,
+                                  const CeedScalar X[], CeedInt Nf,
+                                  CeedScalar q[], void *ctx) {
   const SetupContext context = (SetupContext)ctx;
   const CeedScalar rc = context->rc;
   const CeedScalar lx = context->lx;
