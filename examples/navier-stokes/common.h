@@ -20,8 +20,9 @@
 #ifndef common_h
 #define common_h
 
-#include <math.h>
-#include <ceed.h>
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
 
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {

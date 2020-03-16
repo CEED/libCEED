@@ -20,7 +20,9 @@
 #ifndef advection_h
 #define advection_h
 
-#include <math.h>
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
 
 static int Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[],
                            CeedInt Nf, CeedScalar q[], void *ctx) {
