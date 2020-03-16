@@ -24,31 +24,6 @@
 #  include <math.h>
 #endif
 
-#ifndef context_struct
-#define context_struct
-typedef struct SetupContext_ *SetupContext;
-struct SetupContext_ {
-  CeedScalar theta0;
-  CeedScalar thetaC;
-  CeedScalar P0;
-  CeedScalar N;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar Rd;
-  CeedScalar g;
-  CeedScalar rc;
-  CeedScalar lx;
-  CeedScalar ly;
-  CeedScalar lz;
-  CeedScalar periodicity0;
-  CeedScalar periodicity1;
-  CeedScalar periodicity2;
-  CeedScalar center[3];
-  CeedScalar dc_axis[3];
-  CeedScalar time;
-};
-#endif
-
 // *****************************************************************************
 // This QFunction sets up the geometric factors required for integration and
 //   coordinate transformations

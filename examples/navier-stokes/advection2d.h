@@ -28,8 +28,8 @@
 #define M_PI    3.14159265358979323846
 #endif
 
-#ifndef context_struct
-#define context_struct
+#ifndef setup_context_struct
+#define setup_context_struct
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
   CeedScalar theta0;
@@ -50,6 +50,16 @@ struct SetupContext_ {
   CeedScalar center[3];
   CeedScalar dc_axis[3];
   CeedScalar time;
+};
+#endif
+
+#ifndef advection2d_context_struct
+#define advection2d_context_struct
+typedef struct Advection2dContext_ *Advection2dContext;
+struct Advection2dContext_ {
+  CeedScalar CtauS;
+  CeedScalar strong_form;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
 
@@ -131,13 +141,6 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q,
   // Return
   return 0;
 }
-
-typedef struct Advection2dContext_ *Advection2dContext;
-struct Advection2dContext_ {
-  CeedScalar CtauS;
-  CeedScalar strong_form;
-  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
-};
 
 // *****************************************************************************
 // This QFunction implements the following formulation of the advection equation

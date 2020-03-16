@@ -32,8 +32,8 @@
 #define M_PI    3.14159265358979323846
 #endif
 
-#ifndef context_struct
-#define context_struct
+#ifndef setup_context_struct
+#define setup_context_struct
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
   CeedScalar theta0;
@@ -54,6 +54,16 @@ struct SetupContext_ {
   CeedScalar center[3];
   CeedScalar dc_axis[3];
   CeedScalar time;
+};
+#endif
+
+#ifndef advection_context_struct
+#define advection_context_struct
+typedef struct AdvectionContext_ *AdvectionContext;
+struct AdvectionContext_ {
+  CeedScalar CtauS;
+  CeedScalar strong_form;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
 
