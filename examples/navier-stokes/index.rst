@@ -5,7 +5,7 @@ Compressible Navier-Stokes mini-app
 
 This example is located in the subdirectory :file:`examples/navier-stokes`. It solves
 the time-dependent Navier-Stokes equations of compressible gas dynamics in a static
-Eulerian three-dimensional frame using structured high-order finite element/spectral
+Eulerian three-dimensional frame using unstructured high-order finite element/spectral
 element spatial discretizations and explicit high-order time-stepping (available in
 PETSc). Moreover, the Navier-Stokes example has been developed using PETSc, so that the
 pointwise physics (defined at quadrature points) is separated from the parallelization
@@ -148,7 +148,7 @@ Our formulation follows :cite:`hughesetal2010`, which offers a comprehensive rev
 
 - **SUPG** (streamline-upwind/Petrov-Galerkin)
 
-    In this method, the weighted residual of the original system of equations
+    In this method, the weighted residual of the strong form
     :math:numref:`eq-vector-ns` is added to the Galerkin formulation
     :math:numref:`eq-weak-vector-ns`. The weak form for this method is given as
 
