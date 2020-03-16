@@ -130,9 +130,8 @@ Integrating by parts on the divergence term, we arrive at the weak form,
    :label: eq-weak-vector-ns
 
    \begin{aligned}
-   \int_{\Omega} \boldsymbol v \cdot \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV
-   - \int_{\Omega} \nabla \boldsymbol v \!:\! \boldsymbol{F}(\boldsymbol{q}_N)\,dV
-   - \int_\Omega \boldsymbol v \cdot \mathbf{S}(\boldsymbol{q}_N) \, dV & \\
+   \int_{\Omega} \boldsymbol v \cdot \left( \frac{\partial \boldsymbol{q}_N}{\partial t} - \mathbf{S}(\boldsymbol{q}_N) \right)  \,dV
+   - \int_{\Omega} \nabla \boldsymbol v \!:\! \boldsymbol{F}(\boldsymbol{q}_N)\,dV & \\
    + \int_{\partial \Omega} \boldsymbol v \cdot \boldsymbol{F}(\boldsymbol q_N) \cdot \widehat{\mathbf{n}} \,dS
      &= 0 \, , \; \forall \boldsymbol v \in \mathcal{V}_p \,,
    \end{aligned}
@@ -157,9 +156,8 @@ Our formulation follows :cite:`hughesetal2010`, which offers a comprehensive rev
        :label: eq-weak-vector-ns-supg
 
        \begin{aligned}
-       \int_{\Omega} \boldsymbol v \cdot \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV
-       - \int_{\Omega} \nabla \boldsymbol v \!:\! \boldsymbol{F}(\boldsymbol{q}_N)\,dV
-       - \int_\Omega \boldsymbol v \cdot \mathbf{S}(\boldsymbol{q}_N) \, dV & \\
+       \int_{\Omega} \boldsymbol v \cdot \left( \frac{\partial \boldsymbol{q}_N}{\partial t} - \mathbf{S}(\boldsymbol{q}_N) \right)  \,dV
+       - \int_{\Omega} \nabla \boldsymbol v \!:\! \boldsymbol{F}(\boldsymbol{q}_N)\,dV & \\
        + \int_{\partial \Omega} \boldsymbol v \cdot \boldsymbol{F}(\boldsymbol{q}_N) \cdot \widehat{\mathbf{n}} \,dS & \\
        + \int_{\Omega} \boldsymbol{P}(\boldsymbol v)^T \, \left( \frac{\partial \boldsymbol{q}_N}{\partial t} \, + \,
        \nabla \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) - \mathbf{S}(\boldsymbol{q}_N) \right) \,dV &= 0
@@ -178,9 +176,8 @@ Our formulation follows :cite:`hughesetal2010`, which offers a comprehensive rev
        :label: eq-weak-vector-ns-su
 
        \begin{aligned}
-       \int_{\Omega} \boldsymbol v \cdot \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV
-       - \int_{\Omega} \nabla \boldsymbol v \!:\! \boldsymbol{F}(\boldsymbol{q}_N)\,dV
-       - \int_\Omega \boldsymbol v \, \mathbf{S}(\boldsymbol{q}_N) \, dV & \\
+       \int_{\Omega} \boldsymbol v \cdot \left( \frac{\partial \boldsymbol{q}_N}{\partial t} - \mathbf{S}(\boldsymbol{q}_N) \right)  \,dV
+       - \int_{\Omega} \nabla \boldsymbol v \!:\! \boldsymbol{F}(\boldsymbol{q}_N)\,dV & \\
        + \int_{\partial \Omega} \boldsymbol v \cdot \boldsymbol{F}(\boldsymbol{q}_N) \cdot \widehat{\mathbf{n}} \,dS & \\
        + \int_{\Omega} \boldsymbol{P}(\boldsymbol v)^T \, \nabla \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) \,dV
        & = 0 \, , \; \forall \boldsymbol v \in \mathcal{V}_p
