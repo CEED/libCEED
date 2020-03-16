@@ -65,7 +65,7 @@ for ((i=0;i<${#backends[@]};++i)); do
     fi
 
     # Navier-Stokes qfunctions use VLA; not currently supported in cuda/occa
-    if [[ ( "$backend" = *gpu* || "$backend" = *occa ) && "$1" = ns-* ]]; then
+    if [[ "$backend" = *occa && ("$1" = ns-* || "$1" = t507*) ]]; then
         printf "ok $i0 # SKIP - No support for $backend\n"
         printf "ok $i1 # SKIP - No support for $backend stdout\n"
         printf "ok $i2 # SKIP - No support for $backend stderr\n"
