@@ -772,7 +772,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   CeedQFunction_Cuda_gen *qf_data;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   ierr = CeedQFunctionGetData(qf, (void **)&qf_data); CeedChk(ierr);
-  CeedInt Q, P1d, Q1d = -1, numelements, elemsize, numinputfields, numoutputfields, ncomp, dim, nnodes;
+  CeedInt Q, P1d, Q1d = -1, numelements, elemsize, numinputfields,
+          numoutputfields, ncomp, dim, nnodes;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
@@ -804,12 +805,31 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     code << atomicAdd;
   }
 
+  data->dim = dim;
+  data->Q1d = Q1d;
+
   code << devFunctions;
 
   string qFunction(qf_data->qFunctionSource);
 
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
   code << "\n#define CeedPragmaSIMD\n";
+
+  // Define CEED_Q_VLA
+  bool collograd = false;
+  for (CeedInt i = 0; i < numinputfields; i++) {
+    ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
+    if (basis != CEED_BASIS_COLLOCATED)
+      ierr = CeedBasisGetData(basis, (void **)&basis_data); CeedChk(ierr);
+      if (basis_data->d_collograd1d)
+        collograd = true;
+  }
+  if (dim != 3 || collograd) {
+    code << "\n#define CEED_Q_VLA 1\n\n";
+  } else {
+    code << "\n#define CEED_Q_VLA "<<Q1d<<"\n\n";
+  }
+
   code << qFunction;
 
   // Setup
@@ -838,8 +858,6 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       }
     }
   }
-  data->dim = dim;
-  data->Q1d = Q1d;
 
   for (CeedInt i = 0; i < numoutputfields; i++) {
     code << "CeedScalar* d_v"<<i<<" = fields.out["<<i<<"];\n";
@@ -1185,11 +1203,6 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   }
   code << "\n  // Apply QFunction\n";
   string qFunctionName(qf_data->qFunctionName);
-  if (dim != 3 || basis_data->d_collograd1d) {
-    code << "    #define CEED_Q_VLA 1\n";
-  } else {
-    code << "    #define CEED_Q_VLA "<<Q1d<<"\n";
-  }
   code << "  "<<qFunctionName<<"(ctx, ";
   if (dim != 3 || basis_data->d_collograd1d) {
     code << "1 ";
