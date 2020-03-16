@@ -59,6 +59,9 @@ struct AdvectionContext_ {
 };
 #endif
 
+// *****************************************************************************
+// TODO: Annotate this function
+// *****************************************************************************
 static inline int Exact_Advection(CeedInt dim, CeedScalar time,
                                   const CeedScalar X[], CeedInt Nf,
                                   CeedScalar q[], void *ctx) {
@@ -294,6 +297,8 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
   return 0;
 }
 
+// *****************************************************************************
+// TODO: Annotate this function
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
                                     const CeedScalar *const *in,

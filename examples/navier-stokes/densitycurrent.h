@@ -161,6 +161,8 @@ static inline int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
 }
 
 // *****************************************************************************
+// TODO: Annotate this function
+// *****************************************************************************
 CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs

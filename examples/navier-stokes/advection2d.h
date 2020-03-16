@@ -63,6 +63,9 @@ struct Advection2dContext_ {
 };
 #endif
 
+// *****************************************************************************
+// TODO: Annotate this function
+// *****************************************************************************
 static inline int Exact_Advection2d(CeedInt dim, CeedScalar time,
                                     const CeedScalar X[], CeedInt Nf,
                                     CeedScalar q[], void *ctx) {
