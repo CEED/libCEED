@@ -97,9 +97,9 @@ For the time discretization, we use two types of time stepping schemes.
 
 - Explicit time-stepping method
 
-    The follwoing explicit formulation is solved with the adaptive Runge-Kutta-Fehlberg
+    The following explicit formulation is solved with the adaptive Runge-Kutta-Fehlberg
     (RKF4-5) method by default (any explicit time-stepping
-    scheme avaialble in PETSc can be chosen at runtime)
+    scheme available in PETSc can be chosen at runtime)
 
     .. math::
        \boldsymbol{q}_N^{n+1} = \boldsymbol{q}_N^n + \Delta t \sum_{i=1}^{s} b_i k_i \, ,
@@ -125,7 +125,7 @@ For the time discretization, we use two types of time stepping schemes.
 
     This time stepping method which can be selected using the option ``-implicit`` is solved
     with Backward differentiation formula (BDF) method by default (similarly, any implicit
-    time-stepping scheme avaialble in PETSc can be chosen at runtime). The implicit formulation
+    time-stepping scheme available in PETSc can be chosen at runtime). The implicit formulation
     is given as
 
     .. math::
@@ -195,7 +195,7 @@ Our formulation follows :cite:`hughesetal2010`, which offers a comprehensive rev
 - **SU** (streamline-upwind)
 
     This method is a simplified version of *SUPG* :math:numref:`eq-weak-vector-ns-supg` which
-    is developed for debugging/comparision purposes. The weak form for this method is
+    is developed for debugging/comparison purposes. The weak form for this method is
 
     .. math::
        :label: eq-weak-vector-ns-su
