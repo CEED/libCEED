@@ -89,7 +89,7 @@ where the flux and the source terms, respectively, are given by
 Let the discrete solution be
 
 .. math::
-   \mathbf{q}_N (\boldsymbol{x},t)^{(e)} = \sum_{k=1}^{P}\psi_k (\boldsymbol{x})\boldsymbol{q}_k^{(e)}
+   \boldsymbol{q}_N (\boldsymbol{x},t)^{(e)} = \sum_{k=1}^{P}\psi_k (\boldsymbol{x})\boldsymbol{q}_k^{(e)}
 
 with :math:`P=p+1` the number of nodes in the element :math:`e`. We use tensor-product
 bases :math:`\psi_{kji} = h_i(X_1)h_j(X_2)h_k(X_3)`.
@@ -119,30 +119,32 @@ and with
 .. math::
    f(t^n, \boldsymbol{q}_N^n) = - [\nabla \cdot \boldsymbol{F}(\boldsymbol{q}_N)]^n + [S(\boldsymbol{q}_N)]^n \, .
 
-The strong form of :math:numref:`eq-vector-ns` is:
+To obtain a finite element discretization, we first multiply the strong form :math:numref:`eq-vector-ns` by a test function :math:`\boldsymbol v \in H^1(\Omega)` and integrate,
 
 .. math::
-   :label: eq-strong-vector-ns
+   \int_{\Omega} \boldsymbol v \cdot \left(\frac{\partial \boldsymbol{q}_N}{\partial t} + \nabla \cdot \boldsymbol{F}(\boldsymbol{q}_N) \right) \,dV = \int_\Omega v \mathbf{S}(\boldsymbol{q}_N) \, dV \, , \; \forall \boldsymbol v \in \mathcal{V}_p\,,
 
-   \int_{\Omega} v \left(\frac{\partial \boldsymbol{q}_N}{\partial t} + \nabla \cdot \boldsymbol{F}(\boldsymbol{q}_N) \right) \,dV = \int_\Omega v \mathbf{S}(\boldsymbol{q}_N) \, dV \, , \; \forall v \in \mathcal{V}_p
+with :math:`\mathcal{V}_p = \{ \boldsymbol v(\mathbf x) \in H^{1}(\Omega_e) \,|\, \boldsymbol v(\mathbf x_e(\mathbf X)) \in P_p(\boldsymbol{I}), e=1,\ldots,N_e \}` a mapped space of polynomials containing at least polynomials of degree :math:`p` (with or without the higher mixed terms that appear in tensor product spaces).
 
-with :math:`\mathcal{V}_p = \{ v \in H^{1}(\Omega_e) \,|\, v \in P_p(\boldsymbol{I}), e=1,\ldots,N_e \}`.
-
-And its weak form is:
+Integrating by parts, we arrive at the weak form,
 
 .. math::
    :label: eq-weak-vector-ns
 
    \begin{multline}
-    \int_{\Omega} v \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV + \int_{\partial \Omega} v \widehat{\mathbf{n}} \cdot \boldsymbol{F} (\boldsymbol{q}_N) \,dS - \int_{\Omega} \nabla v\cdot\boldsymbol{F}(\boldsymbol{q}_N)\,dV  =
-        \int_\Omega v \mathbf{S}(\boldsymbol{q}_N) \, dV \, , \; \forall v \in \mathcal{V}_p
+    \int_{\Omega} \boldsymbol v \cdot \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV + \int_{\partial \Omega} \boldsymbol v \cdot \boldsymbol{F}(\boldsymbol q_N) \cdot \widehat{\mathbf{n}} \,dS - \int_{\Omega} \nabla \boldsymbol v \!:\! \boldsymbol{F}(\boldsymbol{q}_N)\,dV  =
+        \int_\Omega \boldsymbol v \cdot \mathbf{S}(\boldsymbol{q}_N) \, dV \, , \; \forall \boldsymbol v \in \mathcal{V}_p \,,
    \end{multline}
 
-We solve equation :math:numref:`eq-weak-vector-ns` with Galerkin method discretization
-which is the default option in our Navier-Stokes example.
+where :math:`\boldsymbol{F}(\boldsymbol q_N) \cdot \widehat{\mathbf{n}}` is typically replaced with a boundary condition.
 
-To resolve the numerical instability of the Galerkin method, we implement two stabilization
-techniques (from :cite:`hughesetal2010`):
+.. note::
+  The notation :math:`\nabla \boldsymbol v \!:\! \boldsymbol F` represents contraction over both fields and spatial dimensions while a single dot represents contraction in just one, which should be clear from context, e.g., :math:`\boldsymbol v \cdot \boldsymbol S` contracts over fields while :math:`\boldsymbol F \cdot \widehat{\mathbf n}` contracts over spatial dimensions.
+
+We solve :math:numref:`eq-weak-vector-ns` using a Galerkin discretization (default) or a stabilized method, as is necessary for most real-world flows.
+
+Galerkin methods produce oscillations for transport-dominated problems (any time the cell Péclet number is larger than 1), and those tend to blow up for nonlinear problems such as the Euler equations and (low-viscosity/poorly resolved) Navier-Stokes, in which case stabilization is necessary.
+Our formulation follows :cite:`hughesetal2010`, which offers a comprehensive review of stabilization and shock-capturing methods for continuous finite element discretization of compressible flows.
 
 - **SUPG** (streamline-upwind/Petrov-Galerkin)
 
@@ -153,21 +155,16 @@ techniques (from :cite:`hughesetal2010`):
     .. math::
        :label: eq-weak-vector-ns-supg
 
-       \begin{multline}
-          \int_{\Omega} v \, \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV +
-          \int_{\partial \Omega} v \, \widehat{\mathbf{n}} \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) \,dS -
-          \int_{\Omega} \nabla v\cdot\boldsymbol{F} \, (\boldsymbol{q}_N)\,dV  -
-          \int_\Omega v \, \mathbf{S}(\boldsymbol{q}_N) \, dV \, +
-       \end{multline}
+       \int_{\Omega} \boldsymbol v \cdot \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV +
+       \int_{\partial \Omega} \boldsymbol v \cdot \boldsymbol{F}(\boldsymbol{q}_N) \cdot \widehat{\mathbf{n}} \,dS -
+       \int_{\Omega} \nabla \boldsymbol v \!:\! \boldsymbol{F}(\boldsymbol{q}_N)\,dV  -
+       \int_\Omega \boldsymbol v \cdot \mathbf{S}(\boldsymbol{q}_N) \, dV \, +
 
-    .. math::
-       \begin{multline}
-          \int_{\Omega} \boldsymbol{P}\, \,^T \, \left( \frac{\partial \boldsymbol{q}_N}{\partial t} \, + \,
-          \nabla \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) - \mathbf{S}(\boldsymbol{q}_N) \right) \,dV = 0
-          \, , \; \, \, \, \, \forall v \in \mathcal{V}_p
-       \end{multline}
+       \int_{\Omega} \boldsymbol{P}(\boldsymbol v)^T \, \left( \frac{\partial \boldsymbol{q}_N}{\partial t} \, + \,
+       \nabla \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) - \mathbf{S}(\boldsymbol{q}_N) \right) \,dV = 0
+       \, , \; \, \, \, \, \forall \boldsymbol v \in \mathcal{V}_p
 
-    This stabilization technique can be implemented by the option ``-stab supg``.
+    This stabilization technique can be selected using the option ``-stab supg``.
 
 
 - **SU** (streamline-upwind)
@@ -178,33 +175,26 @@ techniques (from :cite:`hughesetal2010`):
     .. math::
        :label: eq-weak-vector-ns-su
 
-       \begin{multline}
-          \int_{\Omega} v \, \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV +
-          \int_{\partial \Omega} v \, \widehat{\mathbf{n}} \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) \,dS -
-          \int_{\Omega} \nabla v\cdot\boldsymbol{F} \, (\boldsymbol{q}_N)\,dV  -
-          \int_\Omega v \, \mathbf{S}(\boldsymbol{q}_N) \, dV \, +
-       \end{multline}
+       \int_{\Omega} \boldsymbol v \cdot \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV +
+       \int_{\partial \Omega} \boldsymbol v \cdot \boldsymbol{F}(\boldsymbol{q}_N) \cdot \widehat{\mathbf{n}} \,dS -
+       \int_{\Omega} \nabla \boldsymbol v \!:\! \boldsymbol{F}(\boldsymbol{q}_N)\,dV  -
+       \int_\Omega \boldsymbol v \, \mathbf{S}(\boldsymbol{q}_N) \, dV \, +
 
-    .. math::
-       \begin{multline}
-          \int_{\Omega} \boldsymbol{P}\, \,^T \, \nabla \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) \,dV = 0
-          \, , \; \, \, \, \, \forall v \in \mathcal{V}_p
-       \end{multline}
+       \int_{\Omega} \boldsymbol{P}(\boldsymbol v)^T \, \nabla \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) \,dV = 0
+       \, , \; \, \, \, \, \forall \boldsymbol v \in \mathcal{V}_p
 
-    This stabilization technique can be implemented by the option ``-stab su``.
+    This stabilization technique can be selected using the option ``-stab su``.
 
 
-  In both :math:numref:`eq-weak-vector-ns-su` and :math:numref:`eq-weak-vector-ns-supg`,
-  :math:`\boldsymbol{P} \,` is called the *perturbation to the test-function space*,
-  since it modifies the original Galerkin method into *SUPG* or *SU* schemes. It is defined as
+In both :math:numref:`eq-weak-vector-ns-su` and :math:numref:`eq-weak-vector-ns-supg`,
+:math:`\boldsymbol{P} \,` is called the *perturbation to the test-function space*,
+since it modifies the original Galerkin method into *SUPG* or *SU* schemes. It is defined as
 
-  .. math::
-     \begin{multline}
-        \boldsymbol{P} \, = \boldsymbol{\tau} \, \left( \frac{\partial \boldsymbol{F} \, (\boldsymbol{q}_N)}{\partial
-        \boldsymbol{q}_N} \right)^T \, \nabla v
-     \end{multline}
+.. math::
+   \boldsymbol{P}(\boldsymbol v) \equiv \left(\boldsymbol{\tau} \cdot \frac{\partial \boldsymbol{F} \, (\boldsymbol{q}_N)}{\partial
+   \boldsymbol{q}_N} \right)^T \, \nabla \boldsymbol v\,,
 
-  Where parameter :math:`\boldsymbol{\tau}` is an intrinsic time scale diagonal matrix.
+where parameter :math:`\boldsymbol{\tau} \in \mathbb R^{3\times 3}` is an intrinsic time/space scale matrix.
 
 Currently, this demo provides two types of problems/physical models that can be selected
 at run time via the option ``-problem``. One is the problem of transport of energy in a
