@@ -19,7 +19,7 @@ follows. The compressible Navier-Stokes equations in conservative form are
 
    \frac{\partial \rho}{\partial t} + \nabla \cdot \boldsymbol{U} &= 0
 
-   \frac{\partial \boldsymbol{U}}{\partial t} + \nabla \cdot \left( \frac{\boldsymbol{U} \otimes \boldsymbol{U}}{\rho} + P \mathbf{I}_3 -\boldsymbol\sigma \right) &= -\rho g \boldsymbol{\hat k}
+   \frac{\partial \boldsymbol{U}}{\partial t} + \nabla \cdot \left( \frac{\boldsymbol{U} \otimes \boldsymbol{U}}{\rho} + P \mathbf{I}_3 -\boldsymbol\sigma \right) + \rho g \boldsymbol{\hat k} &= 0
 
    \frac{\partial E}{\partial t} + \nabla \cdot \left( \frac{(E + P)\boldsymbol{U}}{\rho} -\boldsymbol{u} \cdot \boldsymbol{\sigma} - k \nabla T \right) &= 0 \, ,
 
@@ -49,7 +49,7 @@ The system :math:numref:`eq-ns` can be rewritten in vector form
 .. math::
    :label: eq-vector-ns
 
-   \frac{\partial \boldsymbol{q}}{\partial t} + \nabla \cdot \boldsymbol{F}(\boldsymbol{q}) = S(\boldsymbol{q}) \, ,
+   \frac{\partial \boldsymbol{q}}{\partial t} + \nabla \cdot \boldsymbol{F}(\boldsymbol{q}) -S(\boldsymbol{q}) = 0 \, ,
 
 for the state variables 5-dimensional vector
 
@@ -122,7 +122,7 @@ and with
 To obtain a finite element discretization, we first multiply the strong form :math:numref:`eq-vector-ns` by a test function :math:`\boldsymbol v \in H^1(\Omega)` and integrate,
 
 .. math::
-   \int_{\Omega} \boldsymbol v \cdot \left(\frac{\partial \boldsymbol{q}_N}{\partial t} + \nabla \cdot \boldsymbol{F}(\boldsymbol{q}_N) \right) \,dV = \int_\Omega v \mathbf{S}(\boldsymbol{q}_N) \, dV \, , \; \forall \boldsymbol v \in \mathcal{V}_p\,,
+   \int_{\Omega} \boldsymbol v \cdot \left(\frac{\partial \boldsymbol{q}_N}{\partial t} + \nabla \cdot \boldsymbol{F}(\boldsymbol{q}_N) \right) \,dV - \int_\Omega v \mathbf{S}(\boldsymbol{q}_N) \, dV = 0 \, , \; \forall \boldsymbol v \in \mathcal{V}_p\,,
 
 with :math:`\mathcal{V}_p = \{ \boldsymbol v(\mathbf x) \in H^{1}(\Omega_e) \,|\, \boldsymbol v(\mathbf x_e(\mathbf X)) \in P_p(\boldsymbol{I}), e=1,\ldots,N_e \}` a mapped space of polynomials containing at least polynomials of degree :math:`p` (with or without the higher mixed terms that appear in tensor product spaces).
 
@@ -132,8 +132,8 @@ Integrating by parts, we arrive at the weak form,
    :label: eq-weak-vector-ns
 
    \begin{multline}
-    \int_{\Omega} \boldsymbol v \cdot \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV + \int_{\partial \Omega} \boldsymbol v \cdot \boldsymbol{F}(\boldsymbol q_N) \cdot \widehat{\mathbf{n}} \,dS - \int_{\Omega} \nabla \boldsymbol v \!:\! \boldsymbol{F}(\boldsymbol{q}_N)\,dV  =
-        \int_\Omega \boldsymbol v \cdot \mathbf{S}(\boldsymbol{q}_N) \, dV \, , \; \forall \boldsymbol v \in \mathcal{V}_p \,,
+    \int_{\Omega} \boldsymbol v \cdot \frac{\partial \boldsymbol{q}_N}{\partial t}  \,dV + \int_{\partial \Omega} \boldsymbol v \cdot \boldsymbol{F}(\boldsymbol q_N) \cdot \widehat{\mathbf{n}} \,dS - \int_{\Omega} \nabla \boldsymbol v \!:\! \boldsymbol{F}(\boldsymbol{q}_N)\,dV  -
+        \int_\Omega \boldsymbol v \cdot \mathbf{S}(\boldsymbol{q}_N) \, dV = 0 \, , \; \forall \boldsymbol v \in \mathcal{V}_p \,,
    \end{multline}
 
 where :math:`\boldsymbol{F}(\boldsymbol q_N) \cdot \widehat{\mathbf{n}}` is typically replaced with a boundary condition.
@@ -162,7 +162,7 @@ Our formulation follows :cite:`hughesetal2010`, which offers a comprehensive rev
 
        \int_{\Omega} \boldsymbol{P}(\boldsymbol v)^T \, \left( \frac{\partial \boldsymbol{q}_N}{\partial t} \, + \,
        \nabla \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) - \mathbf{S}(\boldsymbol{q}_N) \right) \,dV = 0
-       \, , \; \, \, \, \, \forall \boldsymbol v \in \mathcal{V}_p
+       \, , \; \forall \boldsymbol v \in \mathcal{V}_p
 
     This stabilization technique can be selected using the option ``-stab supg``.
 
@@ -181,7 +181,7 @@ Our formulation follows :cite:`hughesetal2010`, which offers a comprehensive rev
        \int_\Omega \boldsymbol v \, \mathbf{S}(\boldsymbol{q}_N) \, dV \, +
 
        \int_{\Omega} \boldsymbol{P}(\boldsymbol v)^T \, \nabla \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) \,dV = 0
-       \, , \; \, \, \, \, \forall \boldsymbol v \in \mathcal{V}_p
+       \, , \; \forall \boldsymbol v \in \mathcal{V}_p
 
     This stabilization technique can be selected using the option ``-stab su``.
 
