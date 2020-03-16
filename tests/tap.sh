@@ -64,8 +64,17 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # Navier-Stokes qfunctions use VLA; not currently supported in cuda/occa
+    # Navier-Stokes qfunctions use VLA; not currently supported in occa
     if [[ "$backend" = *occa && ("$1" = ns-* || "$1" = t507*) ]]; then
+        printf "ok $i0 # SKIP - No support for VLA with $backend\n"
+        printf "ok $i1 # SKIP - No support for VLA with $backend stdout\n"
+        printf "ok $i2 # SKIP - No support for VLA with $backend stderr\n"
+        continue;
+    fi
+
+    # Navier-Stokes test problem too large for most CUDA backends, cuda/gen
+    #   does not support multiple output modes for the same vector yet
+    if [[ "$backend" = *gpu* && ("$1" = ns-*) ]]; then
         printf "ok $i0 # SKIP - No support for $backend\n"
         printf "ok $i1 # SKIP - No support for $backend stdout\n"
         printf "ok $i2 # SKIP - No support for $backend stderr\n"
