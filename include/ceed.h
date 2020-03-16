@@ -55,16 +55,34 @@
 #  define CEED_EXTERN extern
 #endif
 
+/**
+  @ingroup CeedQFunction
+  This macro populates the correct function annotations for User QFunction
+    source for code generation backends or populates default values for CPU
+    backends.
+**/
 #ifndef CEED_QFUNCTION
 #define CEED_QFUNCTION(name) \
   static const char name ## _loc[] = __FILE__ ":" #name;        \
   static int name
 #endif
 
+/**
+  @ingroup CeedQFunction
+  Using VLA syntax to reshape User QFunction inputs and outputs can make
+    user code more readable. VLA is a C99 feature that is not supported by
+    the C++ dialect used by CUDA. This macro allows users to use the VLA
+    syntax with the CUDA backends.
+**/
 #ifndef CEED_Q_VLA
 #  define CEED_Q_VLA Q
 #endif
 
+/**
+  @ingroup Ceed
+  This macro provides the appropriate SIMD Pragma for the compilation
+    environment. Code generation backends may redefine this macro, as needed. 
+**/
 #ifndef CeedPragmaSIMD
 #  if defined(__INTEL_COMPILER) &&__INTEL_COMPILER >= 900
 #    define CeedPragmaSIMD _Pragma("simd")
