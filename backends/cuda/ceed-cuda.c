@@ -28,7 +28,7 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
   CeedChk_Nvrtc(ceed, nvrtcCreateProgram(&prog, source, NULL, 0, NULL, NULL));
 
   const int optslen = 32;
-  const int optsextra = 3;
+  const int optsextra = 4;
   const char *opts[numopts + optsextra];
   char buf[numopts][optslen];
   if (numopts>0) {
@@ -45,6 +45,7 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
   }
   opts[numopts]     = "-DCeedScalar=double";
   opts[numopts + 1] = "-DCeedInt=int";
+  opts[numopts + 2] = "-default-device";
   struct cudaDeviceProp prop;
   Ceed_Cuda *ceed_data;
   Ceed delegate;
@@ -59,7 +60,7 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
   CeedChk_Cu(ceed, ierr);
   char buff[optslen];
   snprintf(buff, optslen,"-arch=compute_%d%d", prop.major, prop.minor);
-  opts[numopts + 2] = buff;
+  opts[numopts + 3] = buff;
 
   nvrtcResult result = nvrtcCompileProgram(prog, numopts + optsextra, opts);
   if (result != NVRTC_SUCCESS) {
