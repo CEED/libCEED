@@ -24,6 +24,8 @@
 #  include <math.h>
 #endif
 
+#ifndef context_struct
+#define context_struct
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
   CeedScalar theta0;
@@ -45,41 +47,7 @@ struct SetupContext_ {
   CeedScalar dc_axis[3];
   CeedScalar time;
 };
-
-// PETSc user data
-typedef struct User_ *User;
-typedef struct Units_ *Units;
-
-struct User_ {
-  MPI_Comm comm;
-  PetscInt outputfreq;
-  DM dm;
-  DM dmviz;
-  Mat interpviz;
-  Ceed ceed;
-  Units units;
-  CeedVector qceed, qdotceed, gceed;
-  CeedOperator op_rhs, op_ifunction;
-  Vec M;
-  char outputfolder[PETSC_MAX_PATH_LEN];
-  PetscInt contsteps;
-};
-
-struct Units_ {
-  // fundamental units
-  PetscScalar meter;
-  PetscScalar kilogram;
-  PetscScalar second;
-  PetscScalar Kelvin;
-  // derived units
-  PetscScalar Pascal;
-  PetscScalar JperkgK;
-  PetscScalar mpersquareds;
-  PetscScalar WpermK;
-  PetscScalar kgpercubicm;
-  PetscScalar kgpersquaredms;
-  PetscScalar Joulepercubicm;
-};
+#endif
 
 // *****************************************************************************
 // This QFunction sets up the geometric factors required for integration and
