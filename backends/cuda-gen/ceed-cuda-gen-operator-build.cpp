@@ -1136,9 +1136,11 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
         data->indices.in[i] = restr_data->d_ind;
         if (data->indices.in[i]) {
+          ierr = CeedElemRestrictionGetNumNodes(Erestrict, &nnodes); CeedChk(ierr);
+          code << "  const CeedInt nnodes_in_"<<i<<" = "<<nnodes<<";\n";
           ierr = CeedElemRestrictionGetIMode(Erestrict, &imode); CeedChk(ierr);
           code << "  // InterlaceMode: "<<CeedInterlaceModes[imode]<<"\n";
-          code << "  readSliceQuads"<<(imode==CEED_NONINTERLACED?"":"Transpose")<<"3d<ncomp_in_"<<i<<",Q1d>(data, nquads_in_"<<i<<", elem, q, indices.in["<<i<<"], d_u"<<i<<", r_q"<<i<<");\n";
+          code << "  readSliceQuads"<<(imode==CEED_NONINTERLACED?"":"Transpose")<<"3d<ncomp_in_"<<i<<",Q1d>(data, nnodes_in_"<<i<<", elem, q, indices.in["<<i<<"], d_u"<<i<<", r_q"<<i<<");\n";
         } else {
           bool backendstrides;
           ierr = CeedElemRestrictionGetBackendStridesStatus(Erestrict,
