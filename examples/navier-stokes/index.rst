@@ -93,29 +93,54 @@ Let the discrete solution be
 with :math:`P=p+1` the number of nodes in the element :math:`e`. We use tensor-product
 bases :math:`\psi_{kji} = h_i(X_1)h_j(X_2)h_k(X_3)`.
 
-For the time discretization, we use the follwoing explicit formulation solved with
-the adaptive Runge-Kutta-Fehlberg (RKF4-5) method by default (any explicit time-stepping
-scheme avaialble in PETSc can be chosen at runtime)
+For the time discretization, we use two types of time stepping schemes.
 
-.. math::
-   \boldsymbol{q}_N^{n+1} = \boldsymbol{q}_N^n + \Delta t \sum_{i=1}^{s} b_i k_i \, ,
+- Explicit time-stepping method
 
-where
+    The follwoing explicit formulation is solved with the adaptive Runge-Kutta-Fehlberg
+    (RKF4-5) method by default (any explicit time-stepping
+    scheme avaialble in PETSc can be chosen at runtime)
 
-.. math::
+    .. math::
+       \boldsymbol{q}_N^{n+1} = \boldsymbol{q}_N^n + \Delta t \sum_{i=1}^{s} b_i k_i \, ,
 
-   \begin{aligned}
-      k_1 &= f(t^n, \boldsymbol{q}_N^n)\\
-      k_2 &= f(t^n + c_2 \Delta t, \boldsymbol{q}_N^n + \Delta t (a_{21} k_1))\\
-      k_3 &= f(t^n + c_3 \Delta t, \boldsymbol{q}_N^n + \Delta t (a_{31} k_1 + a_{32} k_2))\\
-      \vdots&\\
-      k_i &= f\left(t^n + c_i \Delta t, \boldsymbol{q}_N^n + \Delta t \sum_{j=1}^s a_{ij} k_j \right)\\
-   \end{aligned}
+    where
 
-and with
+    .. math::
 
-.. math::
-   f(t^n, \boldsymbol{q}_N^n) = - [\nabla \cdot \boldsymbol{F}(\boldsymbol{q}_N)]^n + [S(\boldsymbol{q}_N)]^n \, .
+       \begin{aligned}
+          k_1 &= f(t^n, \boldsymbol{q}_N^n)\\
+          k_2 &= f(t^n + c_2 \Delta t, \boldsymbol{q}_N^n + \Delta t (a_{21} k_1))\\
+          k_3 &= f(t^n + c_3 \Delta t, \boldsymbol{q}_N^n + \Delta t (a_{31} k_1 + a_{32} k_2))\\
+          \vdots&\\
+          k_i &= f\left(t^n + c_i \Delta t, \boldsymbol{q}_N^n + \Delta t \sum_{j=1}^s a_{ij} k_j \right)\\
+       \end{aligned}
+
+    and with
+
+    .. math::
+       f(t^n, \boldsymbol{q}_N^n) = - [\nabla \cdot \boldsymbol{F}(\boldsymbol{q}_N)]^n + [S(\boldsymbol{q}_N)]^n \, .
+
+- Implicit time-stepping method
+
+    This time stepping method which can be selected using the option ``-implicit`` is solved
+    with Backward differentiation formula (BDF) method by default (similarly, any implicit
+    time-stepping scheme avaialble in PETSc can be chosen at runtime). The implicit formulation
+    is given as
+
+    .. math::
+       \boldsymbol{q}_N^{n+1} = \boldsymbol{q}_N^n + \Delta t \, f(t^{n+1}, \boldsymbol{q}_N^{n+1}, \boldsymbol{\dot{q}}_N^{n+1}) \, ,
+
+    where
+
+    .. math::
+      \boldsymbol{\dot{q}} = \frac{\partial \boldsymbol{q}}{\partial t} \\
+
+    and
+
+    .. math::
+       f(t^{n+1}, \boldsymbol{q}_N^{n+1}, \boldsymbol{\dot{q}}_N^{n+1}) = [\dot{\boldsymbol{q}}]^{n+1} +
+       [\nabla \cdot \boldsymbol{F}(\boldsymbol{q})]^{n+1} - [S(\boldsymbol{q})]^{n+1} \, .
 
 To obtain a finite element discretization, we first multiply the strong form :math:numref:`eq-vector-ns` by a test function :math:`\boldsymbol v \in H^1(\Omega)` and integrate,
 
