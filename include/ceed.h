@@ -81,7 +81,7 @@
 /**
   @ingroup Ceed
   This macro provides the appropriate SIMD Pragma for the compilation
-    environment. Code generation backends may redefine this macro, as needed. 
+    environment. Code generation backends may redefine this macro, as needed.
 **/
 #ifndef CeedPragmaSIMD
 #  if defined(__INTEL_COMPILER) &&__INTEL_COMPILER >= 900
