@@ -36,6 +36,9 @@ function :math:`v` and :math:`f_1` all terms which multiply its gradient :math:`
 For an n-component problems in :math:`d` dimensions, :math:`f_0 \in \mathbb{R}^n` and
 :math:`f_1 \in \mathbb{R}^{nd}`.
 
+.. note::
+  The notation :math:`\nabla \boldsymbol v \!:\! f_1` represents contraction over both fields and spatial dimensions while a single dot represents contraction in just one, which should be clear from context, e.g., :math:`v \cdot f_0` contracts only over fields.
+
 .. note:: In the code, the function that represents the weak form at quadrature
    points is called the :ref:`CeedQFunction`. In the :ref:`Examples` provided with the
    library (in the :file:`examples/` directory), we store the term :math:`f_0` directly
