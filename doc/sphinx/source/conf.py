@@ -47,7 +47,7 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.intersphinx',
     'sphinx.ext.githubpages',
-    'sphinx.ext.mathjax',
+    'sphinxcontrib.katex',
     'sphinxcontrib.mermaid',  # still in beta; fails with latexpdf builder
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
@@ -169,7 +169,7 @@ latex_elements = {
 
     # Additional stuff for the LaTeX preamble.
     #
-    # 'preamble': '',
+    'preamble': r'\usepackage{bm}',
 
     # Latex figure (float) alignment
     #

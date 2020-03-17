@@ -173,11 +173,11 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 //   P = (gamma - 1) (E - rho (u u) / 2 - rho g z)
 //
 // Stabilization:
-//   Tau = [TauC, TauM, TauM, TauM, TauE]
+//   Tau = diag(TauC, TauM, TauM, TauM, TauE)
 //     f1 = rho  sqrt(ui uj gij)
 //     gij = dXi/dX * dXi/dX
 //     TauC = Cc f1 / (8 gii)
-//     TauM = 1 / f1
+//     TauM = min( 1 , 1 / f1 )
 //     TauE = TauM / (Ce cv)
 //
 //  SU   = Galerkin + grad(v) . ( Ai^T * Tau * (Aj q,j) )
