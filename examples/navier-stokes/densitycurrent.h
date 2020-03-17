@@ -24,14 +24,51 @@
 #ifndef densitycurrent_h
 #define densitycurrent_h
 
-#include <math.h>
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846
 #endif
 
+#ifndef setup_context_struct
+#define setup_context_struct
+typedef struct SetupContext_ *SetupContext;
+struct SetupContext_ {
+  CeedScalar theta0;
+  CeedScalar thetaC;
+  CeedScalar P0;
+  CeedScalar N;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar Rd;
+  CeedScalar g;
+  CeedScalar rc;
+  CeedScalar lx;
+  CeedScalar ly;
+  CeedScalar lz;
+  CeedScalar periodicity0;
+  CeedScalar periodicity1;
+  CeedScalar periodicity2;
+  CeedScalar center[3];
+  CeedScalar dc_axis[3];
+  CeedScalar time;
+};
+#endif
+
+#ifndef advection_context_struct
+#define advection_context_struct
+typedef struct AdvectionContext_ *AdvectionContext;
+struct AdvectionContext_ {
+  CeedScalar CtauS;
+  CeedScalar strong_form;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
+};
+#endif
+
 // *****************************************************************************
-// This function sets the the initial conditions and boundary conditions
+// These function sets the the initial conditions and boundary conditions
 //
 // These initial conditions are given in terms of potential temperature and
 //   Exner pressure and then converted to density and total energy.
@@ -77,10 +114,14 @@
 //   center          ,  Location of bubble center
 //   dc_axis         ,  Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric
 // *****************************************************************************
-static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
-                    CeedInt Nf, CeedScalar q[], void *ctx) {
+
+// *****************************************************************************
+// This helper function provides the current density current IC formulation
+// *****************************************************************************
+static inline int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
+                           CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
-  const SetupContext context = ctx;
+  const SetupContext context = (SetupContext)ctx;
 
   const CeedScalar theta0 = context->theta0;
   const CeedScalar thetaC = context->thetaC;
@@ -103,7 +144,7 @@ static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
   // -- Potential temperature, density current
   CeedScalar rr[3] = {x - center[0], y - center[1], z - center[2]};
   // (I - q q^T) r: distance from dc_axis (or from center if dc_axis is the zero vector)
-  for (int i=0; i<3; i++)
+  for (CeedInt i=0; i<3; i++)
     rr[i] -= dc_axis[i] *
              (dc_axis[0]*rr[0] + dc_axis[1]*rr[1] + dc_axis[2]*rr[2]);
   const CeedScalar r = sqrt(rr[0]*rr[0] + rr[1]*rr[1] + rr[2]*rr[2]);
@@ -120,16 +161,20 @@ static int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
   q[2] = 0.0;
   q[3] = 0.0;
   q[4] = rho * (cv*theta*Pi + g*z);
+
   return 0;
 }
 
+// *****************************************************************************
+// Initial conditions for density current
+// *****************************************************************************
 CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*X)[Q] = (const CeedScalar(*)[Q])in[0];
+  const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
 
   // Outputs
-  CeedScalar (*q0)[Q] = (CeedScalar(*)[Q])out[0];
+  CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -138,15 +183,16 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
     CeedScalar q[5];
 
     Exact_DC(3, 0., x, 5, q, ctx);
-    for (CeedInt j=0; j<5; j++) q0[j][i] = q[j];
+
+    for (CeedInt j=0; j<5; j++)
+      q0[j][i] = q[j];
   } // End of Quadrature Point Loop
 
   // Return
   return 0;
 }
 
-
-// *******************************************************************************
+// *****************************************************************************
 // This QFunction implements the following formulation of Navier-Stokes with
 //   explicit time stepping method
 //
@@ -195,18 +241,18 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 // its transpose (dXdx_k,j) to properly compute integrals of the form:
 // int( gradv gradu )
 //
-// *******************************************************************************
+// *****************************************************************************
 CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
                    const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
-                   (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
-                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[2],
-                   (*x)[Q] = (const CeedScalar(*)[Q])in[3];
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
-  CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
-             (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
+             (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
 
   // Context
@@ -419,7 +465,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     // *INDENT-ON*
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
     CeedScalar stab[5][3];
-    AdvectionContext context = ctx;
+    AdvectionContext context = (AdvectionContext)ctx;
     switch (context->stabilization) {
     case 0:        // Galerkin
       break;
@@ -444,7 +490,8 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
   // Return
   return 0;
 }
-// *******************************************************************************
+
+// *****************************************************************************
 // This QFunction implements the Navier-Stokes equations (mentioned above) with
 //   implicit time stepping method
 //
@@ -452,20 +499,20 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
 //  SUPG = Galerkin + grad(v) . ( Ai^T * Tau * (qdot + Aj q,j - body force) )
 //                                       (diffussive terms will be added later)
 //
-// *******************************************************************************
+// *****************************************************************************
 CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
-                   (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
-                   (*qdot)[Q] = (const CeedScalar(*)[Q])in[2],
-                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[3],
-                   (*x)[Q] = (const CeedScalar(*)[Q])in[4];
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*qdot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3],
+                   (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
   // Outputs
-  CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
-             (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
+             (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
   // Context
   const CeedScalar *context = (const CeedScalar *)ctx;
@@ -684,7 +731,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     const CeedScalar TauE = TauM / (Ce * cv);
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
     CeedScalar stab[5][3];
-    AdvectionContext context = ctx;
+    AdvectionContext context = (AdvectionContext)ctx;
     switch (context->stabilization) {
     case 0:        // Galerkin
       break;

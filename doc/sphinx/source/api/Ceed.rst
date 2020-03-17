@@ -12,6 +12,16 @@ Base library resources
    :content-only:
    :members:
 
+Macros
+--------------------------------------
+
+.. doxygendefine:: CeedError
+   :project: libCEED
+
+.. doxygendefine:: CeedPragmaSIMD
+   :project: libCEED
+
+
 Typedefs and Enumerations
 --------------------------------------
 
