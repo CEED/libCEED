@@ -51,6 +51,7 @@ int main(int argc, char **argv) {
            melem[3] = {3, 3, 3}, ncompu = 1, numlevels = degree, *leveldegrees;
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
+  PetscLogStage solvestage;
   DM  *dm, dmorig;
   SNES snesdummy;
   KSP ksp;
@@ -545,9 +546,19 @@ int main(int argc, char **argv) {
   // Timed solve
   ierr = VecZeroEntries(X[fineLevel]); CHKERRQ(ierr);
   ierr = PetscBarrier((PetscObject)ksp); CHKERRQ(ierr);
+
+  // -- Performance logging
+  ierr = PetscLogStageRegister("Solve Stage", &solvestage); CHKERRQ(ierr);
+  ierr = PetscLogStagePush(solvestage); CHKERRQ(ierr);
+
+  // -- Solve
   my_rt_start = MPI_Wtime();
   ierr = KSPSolve(ksp, rhs, X[fineLevel]); CHKERRQ(ierr);
   my_rt = MPI_Wtime() - my_rt_start;
+
+
+  // -- Performance logging
+  ierr = PetscLogStagePop();
 
   // Output results
   {

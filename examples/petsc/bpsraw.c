@@ -427,6 +427,7 @@ int main(int argc, char **argv) {
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode, write_solution;
   PetscMPIInt size, rank;
+  PetscLogStage solvestage;
   Vec X, Xloc, rhs, rhsloc;
   Mat mat;
   KSP ksp;
@@ -891,11 +892,23 @@ int main(int argc, char **argv) {
       CHKERRQ(ierr);
     }
   }
+
   // Timed solve
+  ierr = VecZeroEntries(X); CHKERRQ(ierr);
   ierr = PetscBarrier((PetscObject)ksp); CHKERRQ(ierr);
+
+  // -- Performance logging
+  ierr = PetscLogStageRegister("Solve Stage", &solvestage); CHKERRQ(ierr);
+  ierr = PetscLogStagePush(solvestage); CHKERRQ(ierr);
+
+  // -- Solve
   my_rt_start = MPI_Wtime();
   ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
   my_rt = MPI_Wtime() - my_rt_start;
+
+  // -- Performance logging
+  ierr = PetscLogStagePop();
+
   {
     KSPType ksptype;
     KSPConvergedReason reason;

@@ -59,8 +59,8 @@ int main(int argc, char **argv) {
   PetscInt degree = 3, qextra, lsize, gsize, topodim = 2, ncompx = 3,
            ncompu = 1, xlsize;
   PetscScalar *r;
-  PetscBool test_mode, benchmark_mode, read_mesh,
-            write_solution, simplex;
+  PetscBool test_mode, benchmark_mode, read_mesh, write_solution, simplex;
+  PetscLogStage solvestage;
   Vec X, Xloc, rhs, rhsloc;
   Mat matO;
   KSP ksp;
@@ -284,9 +284,18 @@ int main(int argc, char **argv) {
   // Timed solve
   ierr = VecZeroEntries(X); CHKERRQ(ierr);
   ierr = PetscBarrier((PetscObject)ksp); CHKERRQ(ierr);
+
+  // -- Performance logging
+  ierr = PetscLogStageRegister("Solve Stage", &solvestage); CHKERRQ(ierr);
+  ierr = PetscLogStagePush(solvestage); CHKERRQ(ierr);
+
+  // -- Solve
   my_rt_start = MPI_Wtime();
   ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
   my_rt = MPI_Wtime() - my_rt_start;
+
+  // -- Performance logging
+  ierr = PetscLogStagePop();
 
   // Output results
   {
