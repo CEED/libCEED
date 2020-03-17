@@ -68,7 +68,7 @@ struct AdvectionContext_ {
 #endif
 
 // *****************************************************************************
-// This function sets the the initial conditions and boundary conditions
+// These function sets the the initial conditions and boundary conditions
 //
 // These initial conditions are given in terms of potential temperature and
 //   Exner pressure and then converted to density and total energy.
@@ -114,6 +114,10 @@ struct AdvectionContext_ {
 //   center          ,  Location of bubble center
 //   dc_axis         ,  Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric
 // *****************************************************************************
+
+// *****************************************************************************
+// This helper function provides the current density current IC formulation
+// *****************************************************************************
 static inline int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
                            CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
@@ -140,7 +144,7 @@ static inline int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
   // -- Potential temperature, density current
   CeedScalar rr[3] = {x - center[0], y - center[1], z - center[2]};
   // (I - q q^T) r: distance from dc_axis (or from center if dc_axis is the zero vector)
-  for (int i=0; i<3; i++)
+  for (CeedInt i=0; i<3; i++)
     rr[i] -= dc_axis[i] *
              (dc_axis[0]*rr[0] + dc_axis[1]*rr[1] + dc_axis[2]*rr[2]);
   const CeedScalar r = sqrt(rr[0]*rr[0] + rr[1]*rr[1] + rr[2]*rr[2]);
@@ -157,11 +161,12 @@ static inline int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
   q[2] = 0.0;
   q[3] = 0.0;
   q[4] = rho * (cv*theta*Pi + g*z);
+  
   return 0;
 }
 
 // *****************************************************************************
-// TODO: Annotate this function
+// Initial conditions for density current
 // *****************************************************************************
 CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
@@ -178,14 +183,16 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
     CeedScalar q[5];
 
     Exact_DC(3, 0., x, 5, q, ctx);
-    for (CeedInt j=0; j<5; j++) q0[j][i] = q[j];
+    
+    for (CeedInt j=0; j<5; j++)
+      q0[j][i] = q[j];
   } // End of Quadrature Point Loop
 
   // Return
   return 0;
 }
 
-// *******************************************************************************
+// *****************************************************************************
 // This QFunction implements the following formulation of Navier-Stokes with
 //   explicit time stepping method
 //
@@ -234,7 +241,7 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 // its transpose (dXdx_k,j) to properly compute integrals of the form:
 // int( gradv gradu )
 //
-// *******************************************************************************
+// *****************************************************************************
 CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
                    const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
@@ -483,7 +490,8 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
   // Return
   return 0;
 }
-// *******************************************************************************
+
+// *****************************************************************************
 // This QFunction implements the Navier-Stokes equations (mentioned above) with
 //   implicit time stepping method
 //
@@ -491,7 +499,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
 //  SUPG = Galerkin + grad(v) . ( Ai^T * Tau * (qdot + Aj q,j - body force) )
 //                                       (diffussive terms will be added later)
 //
-// *******************************************************************************
+// *****************************************************************************
 CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {

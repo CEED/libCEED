@@ -60,7 +60,29 @@ struct AdvectionContext_ {
 #endif
 
 // *****************************************************************************
-// TODO: Annotate this function
+// This QFunction sets the the initial conditions and boundary conditions
+//
+// Initial Conditions:
+//   Mass Density:
+//     Constant mass density of 1.0
+//   Momentum Density:
+//     Rotational field in x,y with no momentum in z
+//   Energy Density:
+//     Maximum of 1. x0 decreasing linearly to 0. as radial distance increases
+//       to (1.-r/rc), then 0. everywhere else
+//
+//  Boundary Conditions:
+//    Mass Density:
+//      0.0 flux
+//    Momentum Density:
+//      0.0
+//    Energy Density:
+//      0.0 flux
+//
+// *****************************************************************************
+
+// *****************************************************************************
+// This helper function provides the current 3D advection IC formulation
 // *****************************************************************************
 static inline int Exact_Advection(CeedInt dim, CeedScalar time,
                                   const CeedScalar X[], CeedInt Nf,
@@ -123,25 +145,7 @@ static inline int Exact_Advection(CeedInt dim, CeedScalar time,
 }
 
 // *****************************************************************************
-// This QFunction sets the the initial conditions and boundary conditions
-//
-// Initial Conditions:
-//   Mass Density:
-//     Constant mass density of 1.0
-//   Momentum Density:
-//     Rotational field in x,y with no momentum in z
-//   Energy Density:
-//     Maximum of 1. x0 decreasing linearly to 0. as radial distance increases
-//       to (1.-r/rc), then 0. everywhere else
-//
-//  Boundary Conditions:
-//    Mass Density:
-//      0.0 flux
-//    Momentum Density:
-//      0.0
-//    Energy Density:
-//      0.0 flux
-//
+// Initial conditions for 3D advection
 // *****************************************************************************
 CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q,
                              const CeedScalar *const *in,
@@ -255,8 +259,8 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
     // The Physics
 
     // No Change in density or momentum
-    for (int f=0; f<4; f++) {
-      for (int j=0; j<3; j++)
+    for (CeedInt f=0; f<4; f++) {
+      for (CeedInt j=0; j<3; j++)
         dv[j][f][i] = 0;
       v[f][i] = 0;
     }
@@ -265,9 +269,9 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
     // Evaluate the strong form using div(E u) = u . grad(E) + E div(u)
     // or in index notation: (u_j E)_{,j} = u_j E_j + E u_{j,j}
     CeedScalar div_u = 0, u_dot_grad_E = 0;
-    for (int j=0; j<3; j++) {
+    for (CeedInt j=0; j<3; j++) {
       CeedScalar dEdx_j = 0;
-      for (int k=0; k<3; k++) {
+      for (CeedInt k=0; k<3; k++) {
         div_u += du[j][k] * dXdx[k][j]; // u_{j,j} = u_{j,K} X_{K,j}
         dEdx_j += dE[k] * dXdx[k][j];
       }
@@ -276,7 +280,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
     CeedScalar strongConv = E*div_u + u_dot_grad_E;
 
     // Weak Galerkin convection term: dv \cdot (E u)
-    for (int j=0; j<3; j++)
+    for (CeedInt j=0; j<3; j++)
       dv[j][4][i] = (1 - strong_form) * wJ * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
                     u[2]*dXdx[j][2]);
     v[4][i] = 0;
@@ -287,10 +291,10 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
     // Stabilization requires a measure of element transit time in the velocity
     // field u.
     CeedScalar uX[3];
-    for (int j=0; j<3;
+    for (CeedInt j=0; j<3;
          j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
     const CeedScalar TauS = CtauS / sqrt(uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2]);
-    for (int j=0; j<3; j++)
+    for (CeedInt j=0; j<3; j++)
       dv[j][4][i] -= wJ * TauS * strongConv * uX[j];
   } // End Quadrature Point Loop
 
@@ -298,7 +302,9 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-// TODO: Annotate this function
+// This QFunction implements 3D (mentioned above) with
+//   implicit time stepping method
+//
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
                                     const CeedScalar *const *in,
@@ -376,8 +382,8 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
     // The Physics
 
     // No Change in density or momentum
-    for (int f=0; f<4; f++) {
-      for (int j=0; j<3; j++)
+    for (CeedInt f=0; f<4; f++) {
+      for (CeedInt j=0; j<3; j++)
         dv[j][f][i] = 0;
       v[f][i] = wJ * qdot[f][i]; //K Mass/transient term
     }
@@ -386,9 +392,9 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
     // Evaluate the strong form using div(E u) = u . grad(E) + E div(u)
     // or in index notation: (u_j E)_{,j} = u_j E_j + E u_{j,j}
     CeedScalar div_u = 0, u_dot_grad_E = 0;
-    for (int j=0; j<3; j++) {
+    for (CeedInt j=0; j<3; j++) {
       CeedScalar dEdx_j = 0;
-      for (int k=0; k<3; k++) {
+      for (CeedInt k=0; k<3; k++) {
         div_u += du[j][k] * dXdx[k][j]; // u_{j,j} = u_{j,K} X_{K,j}
         dEdx_j += dE[k] * dXdx[k][j];
       }
@@ -400,7 +406,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
     v[4][i] = wJ * qdot[4][i]; // transient part (ALWAYS)
 
     // Weak Galerkin convection term: -dv \cdot (E u)
-    for (int j=0; j<3; j++)
+    for (CeedInt j=0; j<3; j++)
       dv[j][4][i] = -wJ * (1 - strong_form) * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
                     u[2]*dXdx[j][2]);
 
@@ -410,11 +416,11 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
     // Stabilization requires a measure of element transit time in the velocity
     // field u.
     CeedScalar uX[3];
-    for (int j=0; j<3;
+    for (CeedInt j=0; j<3;
          j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
     const CeedScalar TauS = CtauS / sqrt(uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2]);
 
-    for (int j=0; j<3; j++)
+    for (CeedInt j=0; j<3; j++)
       switch (context->stabilization) {
       case 0:
         break;

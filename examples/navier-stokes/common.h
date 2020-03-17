@@ -116,7 +116,7 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-// TODO: Annotate this function
+// This function provides the 2D variant of the above setup
 // *****************************************************************************
 CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
