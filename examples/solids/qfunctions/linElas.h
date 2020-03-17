@@ -35,13 +35,13 @@ CEED_QFUNCTION(LinElasF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                          CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*ug)[3][Q] = (CeedScalar(*)[3][Q])in[0],
-                   (*qdata)[Q] = (CeedScalar(*)[Q])in[1];
+  const CeedScalar (*ug)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])in[0],
+                   (*qdata)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])in[1];
 
   // Outputs
-  CeedScalar (*dvdX)[3][Q] = (CeedScalar(*)[3][Q])out[0];
+  CeedScalar (*dvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
              // gradu not used for linear elasticity
-             // (*gradu)[3][Q] = (CeedScalar(*)[3][Q])out[1];
+             // (*gradu)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
   // *INDENT-ON*
 
   // Context
@@ -157,13 +157,13 @@ CEED_QFUNCTION(LinElasdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                           CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*deltaug)[3][Q] = (CeedScalar(*)[3][Q])in[0],
-                   (*qdata)[Q] = (CeedScalar(*)[Q])in[1];
+  const CeedScalar (*deltaug)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])in[0],
+                   (*qdata)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])in[1];
                    // gradu not used for linear elasticity
                    // (*gradu)[3][Q] = (CeedScalar(*)[3][Q])in[2];
 
   // Outputs
-  CeedScalar (*deltadvdX)[3][Q] = (CeedScalar(*)[3][Q])out[0];
+  CeedScalar (*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
   // *INDENT-ON*
 
   // Context
