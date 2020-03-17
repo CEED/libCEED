@@ -26,8 +26,10 @@ elif [ ${1::5} == "mfem-" ]; then
     allargs=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
 elif [ ${1::4} == "nek-" ]; then
     allargs=$(grep -F "C TESTARGS" examples/nek/bps/${1:4}.usr* | cut -d\  -f3- )
-elif [ ${1::3} == "ns-" ]; then
-    allargs=$(grep -F //TESTARGS examples/navier-stokes/${1:3}.c* | cut -d\  -f2- )
+elif [ ${1::7} == "fluids-" ]; then
+    allargs=$(grep -F //TESTARGS examples/fluids/${1:7}.c* | cut -d\  -f2- )
+elif [ ${1::7} == "solids-" ]; then
+    allargs=$(grep -F //TESTARGS examples/solids/${1:7}.c* | cut -d\  -f2- )
 elif [ ${1::2} == "ex" ]; then
     # get all test configurations
     numconfig=$(grep -F //TESTARGS examples/ceed/$1.c* | wc -l)
@@ -64,8 +66,8 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # Navier-Stokes qfunctions use VLA; not currently supported in occa
-    if [[ "$backend" = *occa && ("$1" = ns-* || "$1" = t507*) ]]; then
+    # Fluids and Solids qfunctions use VLA; not currently supported in occa
+    if [[ "$backend" = *occa && ("$1" = fluids-* || "$1" = solids-* || "$1" = t507*) ]]; then
         printf "ok $i0 # SKIP - No support for VLA with $backend\n"
         printf "ok $i1 # SKIP - No support for VLA with $backend stdout\n"
         printf "ok $i2 # SKIP - No support for VLA with $backend stderr\n"
