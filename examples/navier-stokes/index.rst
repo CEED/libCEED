@@ -126,21 +126,41 @@ For the time discretization, we use two types of time stepping schemes.
     This time stepping method which can be selected using the option ``-implicit`` is solved
     with Backward differentiation formula (BDF) method by default (similarly, any implicit
     time-stepping scheme available in PETSc can be chosen at runtime). The implicit formulation
-    is given as
+    solves nonlinear systems for :math:`\bm q_N`:
 
     .. math::
-       \boldsymbol{q}_N^{n+1} = \boldsymbol{q}_N^n + \Delta t \, f(t^{n+1}, \boldsymbol{q}_N^{n+1}, \boldsymbol{\dot{q}}_N^{n+1}) \, ,
+       :label: eq-ts-implicit-ns
 
-    where
+       \bm f(\bm q_N) \equiv \bm g(t^{n+1}, \boldsymbol{q}_N, \boldsymbol{\dot{q}}_N) = 0 \, ,
 
-    .. math::
-      \boldsymbol{\dot{q}} = \frac{\partial \boldsymbol{q}}{\partial t} \\
-
-    and
+    where the time derivative :math:`\bm{\dot q}_N` is defined by
 
     .. math::
-       f(t^{n+1}, \boldsymbol{q}_N^{n+1}, \boldsymbol{\dot{q}}_N^{n+1}) = [\dot{\boldsymbol{q}}]^{n+1} +
-       [\nabla \cdot \boldsymbol{F}(\boldsymbol{q})]^{n+1} - [S(\boldsymbol{q})]^{n+1} \, .
+      \boldsymbol{\dot{q}}_N(\bm q_N) = \alpha \bm q_N + \bm z_N
+
+    in terms of :math:`\bm z_N` from prior state and :math:`\alpha > 0`,
+    both of which depend on the specific time integration scheme (backward difference
+    formulas, generalized alpha, implicit Runge-Kutta, etc.).
+    Each nonlinear system :math:numref:`eq-ts-implicit-ns` will correspond to a
+    weak form, as explained below.
+    In determining how difficult a given problem is to solve, we consider the
+    Jacobian of :math:numref:`eq-ts-implicit-ns`,
+
+    .. math::
+       \frac{\partial \bm f}{\partial \bm q_N}
+       = \frac{\partial \bm g}{\partial \bm q_N}
+       + \alpha \frac{\partial \bm g}{\partial \bm{\dot q}_N}.
+
+    The scalar "shift" :math:`\alpha` scales inversely with the time step
+    :math:`\Delta t`, so small time steps result in the Jacobian being dominated
+    by the second term, which is a sort of "mass matrix", and typically
+    well-conditioned independent of grid resolution with a simple preconditioner
+    (such as Jacobi).
+    In contrast, the first term dominates for large time steps, with a condition
+    number that grows with the diameter of the domain and polynomial degree of
+    the approximation space.  Both terms are significant for time-accurate
+    simulation and the setup costs of strong preconditioners must be balanced
+    with the convergence rate of Krylov methods using weak preconditioners.
 
 To obtain a finite element discretization, we first multiply the strong form :math:numref:`eq-vector-ns` by a test function :math:`\boldsymbol v \in H^1(\Omega)` and integrate,
 
