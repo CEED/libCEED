@@ -112,10 +112,10 @@ static inline int Exact_Advection2d(CeedInt dim, CeedScalar time,
   q[2] =  (x - center[0]);
   q[3] = 0;
   q[4] = 0;
-  
+
   CeedScalar r = sqrt(pow(x - x0[0], 2) + pow(y - x0[1], 2));
   CeedScalar E = 1 - r/rc;
-  
+
   if (0) { // non-smooth initial conditions
     if (q[4] < E) q[4] = E;
     r = sqrt(pow(x - x1[0], 2) + pow(y - x1[1], 2));
@@ -124,7 +124,7 @@ static inline int Exact_Advection2d(CeedInt dim, CeedScalar time,
   r = sqrt(pow(x - x2[0], 2) + pow(y - x2[1], 2));
   E = (r <= rc) ? .5 + .5*cos(r*M_PI/rc) : 0;
   if (q[4] < E) q[4] = E;
-  
+
   return 0;
 }
 

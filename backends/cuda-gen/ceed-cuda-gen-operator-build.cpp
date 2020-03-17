@@ -805,7 +805,6 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     code << atomicAdd;
   }
 
-
   code << devFunctions;
 
   string qFunction(qf_data->qFunctionSource);

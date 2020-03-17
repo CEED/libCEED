@@ -161,7 +161,7 @@ static inline int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
   q[2] = 0.0;
   q[3] = 0.0;
   q[4] = rho * (cv*theta*Pi + g*z);
-  
+
   return 0;
 }
 
@@ -183,7 +183,7 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
     CeedScalar q[5];
 
     Exact_DC(3, 0., x, 5, q, ctx);
-    
+
     for (CeedInt j=0; j<5; j++)
       q0[j][i] = q[j];
   } // End of Quadrature Point Loop
