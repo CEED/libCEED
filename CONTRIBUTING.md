@@ -34,6 +34,9 @@ Give credit where credit is due using tags such as `Reported-by:
 Helpful User <helpful@example.com>`.  Please use a real name and email
 for your author information (`git config user.name` and `user.email`).
 
+When contributors make a major contribution and support it, their names
+are included in the automatically generated user-manual documentation.
+
 Please avoid "merging from upstream" (like merging 'master' into your
 feature branch) unless there is a specific reason to do so, in which
 case you should explain why in the merge commit.
