@@ -14,4 +14,5 @@ These examples are meant to demonstrate use of libCEED from standalone definitio
    ceed/index
    petsc/index
    bps
-   navier-stokes/index
+   fluids/index
+   solids/index
