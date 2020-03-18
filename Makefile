@@ -531,14 +531,7 @@ DOXYGEN ?= doxygen
 doxygen :
 	$(DOXYGEN) Doxyfile
 
-# This is a real file, but it doesn't depend on the state of a file,
-# so we make it phony to force it.  We sort the shortlog by author
-# last name.
-.PHONY: AUTHORS
-AUTHORS:
-	git shortlog -s | awk '{$$1 = "placeholder"; print $$NF,$$0}' | sort | cut -d\  -f3- > $@
-
-doc-html doc-latexpdf doc-epub : doc-% : doxygen AUTHORS
+doc-html doc-latexpdf doc-epub : doc-% : doxygen
 	make -C doc/sphinx $*
 
 doc : doc-html

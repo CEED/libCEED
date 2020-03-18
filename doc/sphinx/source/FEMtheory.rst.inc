@@ -37,9 +37,13 @@ For an n-component problems in :math:`d` dimensions, :math:`f_0 \in \mathbb{R}^n
 :math:`f_1 \in \mathbb{R}^{nd}`.
 
 .. note::
-  The notation :math:`\nabla \boldsymbol v \!:\! f_1` represents contraction over both fields and spatial dimensions while a single dot represents contraction in just one, which should be clear from context, e.g., :math:`v \cdot f_0` contracts only over fields.
+   The notation :math:`\nabla \boldsymbol v \!:\! f_1` represents contraction over both
+   fields and spatial dimensions while a single dot represents contraction in just one,
+   which should be clear from context, e.g., :math:`v \cdot f_0` contracts only over
+   fields.
 
-.. note:: In the code, the function that represents the weak form at quadrature
+.. note::
+   In the code, the function that represents the weak form at quadrature
    points is called the :ref:`CeedQFunction`. In the :ref:`Examples` provided with the
    library (in the :file:`examples/` directory), we store the term :math:`f_0` directly
    into `v`, and the term :math:`f_1` directly into `dv` (which stands for

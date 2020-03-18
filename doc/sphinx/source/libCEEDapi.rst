@@ -354,14 +354,21 @@ for both input and output fields indicates that the mass operator only contains 
 the form
 
 .. math::
-   \int_\Omega v f_0(u)
+   \int_\Omega v \cdot f_0 (u, \nabla u)
 
-where :math:`v` are test functions. More general operators, such as those of the form
+where :math:`v` are test functions (see the :ref:`Theoretical Framework`).
+More general operators, such as those of the form
 
 .. math::
-   \int_\Omega v f_0(u \nabla u)+\nabla v \cdot f_1(u \nabla u)
+   \int_\Omega v \cdot f_0 (u, \nabla u) + \nabla v : f_1 (u, \nabla u)
 
 can be expressed.
+
+.. note::
+   The notation :math:`\nabla \boldsymbol v \!:\! f_1` represents contraction over both
+   fields and spatial dimensions while a single dot represents contraction in just one,
+   which should be clear from context, e.g., :math:`v \cdot f_0` contracts only over
+   fields.
 
 For fields with derivatives, such as with the basis evaluation mode
 (see :ref:`CeedBasis-Typedefs and Enumerations`) ``CEED_EVAL_GRAD``, the size of the
@@ -472,6 +479,21 @@ that the result of the operation is available in the output parameters
 immediately after the call. For a true asynchronous call, one needs to provide
 the address of a user defined variable. Such a variable can be used later to
 explicitly wait for the completion of the operation.
+
+
+Gallery of QFunctions
+----------------------------------------
+
+LibCEED provides a gallery of built-in QFunctions in the :file:`gallery/` directory.
+The available QFunctions are the ones associated with the mass, the Laplacian, and
+the identity operators. To illustrate how the user can declare a :ref:`CeedQFunction`
+via the gallery of available QFunctions, consider the selection of the
+:ref:`CeedQFunction` associated with a simple 1D mass matrix
+(cf. `tests/t410-qfunction.c <https://github.com/CEED/libCEED/blob/master/tests/t410-qfunction.c>`_).
+
+.. literalinclude::  ../../../tests/t410-qfunction.c
+   :language: c
+   :linenos:
 
 
 Interface Principles and Evolution
