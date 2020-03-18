@@ -123,10 +123,10 @@ For the time discretization, we use two types of time stepping schemes.
 
 - Implicit time-stepping method
 
-    This time stepping method which can be selected using the option ``-implicit`` is solved
-    with Backward differentiation formula (BDF) method by default (similarly, any implicit
-    time-stepping scheme available in PETSc can be chosen at runtime). The implicit formulation
-    solves nonlinear systems for :math:`\bm q_N`:
+    This time stepping method which can be selected using the option ``-implicit`` is
+    solved with Backward Differentiation Formula (BDF) method by default (similarly,
+    any implicit time-stepping scheme available in PETSc can be chosen at runtime).
+    The implicit formulation solves nonlinear systems for :math:`\bm q_N`:
 
     .. math::
        :label: eq-ts-implicit-ns
@@ -162,12 +162,16 @@ For the time discretization, we use two types of time stepping schemes.
     simulation and the setup costs of strong preconditioners must be balanced
     with the convergence rate of Krylov methods using weak preconditioners.
 
-To obtain a finite element discretization, we first multiply the strong form :math:numref:`eq-vector-ns` by a test function :math:`\boldsymbol v \in H^1(\Omega)` and integrate,
+To obtain a finite element discretization, we first multiply the strong form
+:math:numref:`eq-vector-ns` by a test function :math:`\boldsymbol v \in H^1(\Omega)`
+and integrate,
 
 .. math::
    \int_{\Omega} \boldsymbol v \cdot \left(\frac{\partial \boldsymbol{q}_N}{\partial t} + \nabla \cdot \boldsymbol{F}(\boldsymbol{q}_N) - \mathbf{S}(\boldsymbol{q}_N) \right) \,dV = 0 \, , \; \forall \boldsymbol v \in \mathcal{V}_p\,,
 
-with :math:`\mathcal{V}_p = \{ \boldsymbol v(\mathbf x) \in H^{1}(\Omega_e) \,|\, \boldsymbol v(\mathbf x_e(\mathbf X)) \in P_p(\boldsymbol{I}), e=1,\ldots,N_e \}` a mapped space of polynomials containing at least polynomials of degree :math:`p` (with or without the higher mixed terms that appear in tensor product spaces).
+with :math:`\mathcal{V}_p = \{ \boldsymbol v(\mathbf x) \in H^{1}(\Omega_e) \,|\, \boldsymbol v(\mathbf x_e(\mathbf X)) \in P_p(\boldsymbol{I}), e=1,\ldots,N_e \}`
+a mapped space of polynomials containing at least polynomials of degree :math:`p`
+(with or without the higher mixed terms that appear in tensor product spaces).
 
 Integrating by parts on the divergence term, we arrive at the weak form,
 
@@ -181,15 +185,21 @@ Integrating by parts on the divergence term, we arrive at the weak form,
      &= 0 \, , \; \forall \boldsymbol v \in \mathcal{V}_p \,,
    \end{aligned}
 
-where :math:`\boldsymbol{F}(\boldsymbol q_N) \cdot \widehat{\mathbf{n}}` is typically replaced with a boundary condition.
+where :math:`\boldsymbol{F}(\boldsymbol q_N) \cdot \widehat{\mathbf{n}}` is typically
+replaced with a boundary condition.
 
 .. note::
   The notation :math:`\nabla \boldsymbol v \!:\! \boldsymbol F` represents contraction over both fields and spatial dimensions while a single dot represents contraction in just one, which should be clear from context, e.g., :math:`\boldsymbol v \cdot \boldsymbol S` contracts over fields while :math:`\boldsymbol F \cdot \widehat{\mathbf n}` contracts over spatial dimensions.
 
-We solve :math:numref:`eq-weak-vector-ns` using a Galerkin discretization (default) or a stabilized method, as is necessary for most real-world flows.
+We solve :math:numref:`eq-weak-vector-ns` using a Galerkin discretization (default)
+or a stabilized method, as is necessary for most real-world flows.
 
-Galerkin methods produce oscillations for transport-dominated problems (any time the cell Péclet number is larger than 1), and those tend to blow up for nonlinear problems such as the Euler equations and (low-viscosity/poorly resolved) Navier-Stokes, in which case stabilization is necessary.
-Our formulation follows :cite:`hughesetal2010`, which offers a comprehensive review of stabilization and shock-capturing methods for continuous finite element discretization of compressible flows.
+Galerkin methods produce oscillations for transport-dominated problems (any time
+the cell Péclet number is larger than 1), and those tend to blow up for nonlinear
+problems such as the Euler equations and (low-viscosity/poorly resolved) Navier-Stokes,
+in which case stabilization is necessary. Our formulation follows :cite:`hughesetal2010`,
+which offers a comprehensive review of stabilization and shock-capturing methods
+for continuous finite element discretization of compressible flows.
 
 - **SUPG** (streamline-upwind/Petrov-Galerkin)
 
@@ -214,8 +224,9 @@ Our formulation follows :cite:`hughesetal2010`, which offers a comprehensive rev
 
 - **SU** (streamline-upwind)
 
-    This method is a simplified version of *SUPG* :math:numref:`eq-weak-vector-ns-supg` which
-    is developed for debugging/comparison purposes. The weak form for this method is
+    This method is a simplified version of *SUPG* :math:numref:`eq-weak-vector-ns-supg`
+    which is developed for debugging/comparison purposes. The weak form for this method
+    is
 
     .. math::
        :label: eq-weak-vector-ns-su
@@ -233,7 +244,8 @@ Our formulation follows :cite:`hughesetal2010`, which offers a comprehensive rev
 
 In both :math:numref:`eq-weak-vector-ns-su` and :math:numref:`eq-weak-vector-ns-supg`,
 :math:`\boldsymbol{P} \,` is called the *perturbation to the test-function space*,
-since it modifies the original Galerkin method into *SUPG* or *SU* schemes. It is defined as
+since it modifies the original Galerkin method into *SUPG* or *SU* schemes. It is defined
+as
 
 .. math::
    \boldsymbol{P}(\boldsymbol v) \equiv \left(\boldsymbol{\tau} \cdot \frac{\partial \boldsymbol{F} \, (\boldsymbol{q}_N)}{\partial
@@ -259,11 +271,11 @@ of total energy, is given by
    \frac{\partial E}{\partial t} + \nabla \cdot (\boldsymbol{u} E ) = 0 \, ,
    :label: eq-advection
 
-with :math:`\boldsymbol{u}` the vector velocity field. In this particular test case, a blob of
-total energy (defined by a characteristic radius :math:`r_c`) is transported by a
-uniform circular velocity field. We have solved :math:numref:`eq-advection` with no-slip
-and non-penetration boundary conditions for :math:`\boldsymbol{u}`, and no-flux for
-:math:`E`. This problem can be run with::
+with :math:`\boldsymbol{u}` the vector velocity field. In this particular test case, a
+blob of total energy (defined by a characteristic radius :math:`r_c`) is transported by
+a uniform circular velocity field. We have solved :math:numref:`eq-advection` with
+no-slip and non-penetration boundary conditions for :math:`\boldsymbol{u}`, and no-flux
+for :math:`E`. This problem can be run with::
 
    ./navierstokes -problem advection
 
@@ -273,9 +285,10 @@ and non-penetration boundary conditions for :math:`\boldsymbol{u}`, and no-flux 
 Density Current
 ----------------------------------------
 
-For this test problem (from :cite:`straka1993numerical`), we solve the full Navier-Stokes equations :math:numref:`eq-ns`,
-for which a cold air bubble (of radius :math:`r_c`) drops by convection in a neutrally
-stratified atmosphere. Its initial condition is defined in terms of the Exner pressure,
+For this test problem (from :cite:`straka1993numerical`), we solve the full
+Navier-Stokes equations :math:numref:`eq-ns`, for which a cold air bubble
+(of radius :math:`r_c`) drops by convection in a neutrally stratified atmosphere.
+Its initial condition is defined in terms of the Exner pressure,
 :math:`\pi(\boldsymbol{x},t)`, and potential temperature,
 :math:`\theta(\boldsymbol{x},t)`, that relate to the state variables via
 

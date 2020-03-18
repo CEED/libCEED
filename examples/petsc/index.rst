@@ -103,9 +103,11 @@ and thus
 Bakeoff problems and generalizations
 ----------------------------------------
 
-The PETSc examples in this directory include a full suite of parallel :ref:`bakeoff problems <bps>` (BPs) using a "raw" parallel decomposition (see ``bpsraw.c``) and using PETSc's ``DMPlex`` for unstructured grid management (see ``bps.c``).
-A generalization of these BPs to the surface of the cubed-sphere are available in
-``bpssphere.c``.
+The PETSc examples in this directory include a full suite of parallel
+:ref:`bakeoff problems <bps>` (BPs) using a "raw" parallel decomposition
+(see ``bpsraw.c``) and using PETSc's ``DMPlex`` for unstructured grid management
+(see ``bps.c``). A generalization of these BPs to the surface of the cubed-sphere are
+available in ``bpssphere.c``.
 
 
 .. _example-petsc-bps-sphere:
@@ -117,9 +119,10 @@ For the :math:`L^2` projection problems, BP1-BP2, that use the mass operator, th
 coordinate transformations and the corresponding Jacobian determinant,
 equation :math:numref:`eq-jacobian-sphere`, are the same as in the
 :ref:`example-petsc-area-sphere` example. For the Poisson's problem, BP3-BP6, on the
-cubed-sphere, in addition to equation :math:numref:`eq-jacobian-sphere`, the pseudo-inverse of
-:math:`\partial \overset{\circ}{\mathbf{x}} / \partial \mathbf{X}` is used to derive the contravariant metric tensor.
-We begin by expressing the Moore-Penrose (left) pseudo-inverse:
+cubed-sphere, in addition to equation :math:numref:`eq-jacobian-sphere`, the
+pseudo-inverse of :math:`\partial \overset{\circ}{\mathbf{x}} / \partial \mathbf{X}`
+is used to derive the contravariant metric tensor. We begin by expressing the
+Moore-Penrose (left) pseudo-inverse:
 
 .. math::
    \frac{\partial \mathbf{X}}{\partial \overset{\circ}{\mathbf{x}}}_{(2\times 3)} \equiv \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}\right)_{(2\times 3)}^{+} =  \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(3\times2)} \right)^{-1} \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T \,.
