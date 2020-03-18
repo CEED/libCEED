@@ -25,8 +25,8 @@
 #define PHYSICS_STRUCT
 typedef struct Physics_private *Physics;
 struct Physics_private {
-  PetscScalar   nu;      // Poisson's ratio
-  PetscScalar   E;       // Young's Modulus
+  CeedScalar   nu;      // Poisson's ratio
+  CeedScalar   E;       // Young's Modulus
 };
 #endif
 
@@ -45,7 +45,7 @@ CEED_QFUNCTION(HyperSSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   // *INDENT-ON*
 
   // Context
-  const Physics context = ctx;
+  const Physics context = (Physics)ctx;
   const CeedScalar E  = context->E;
   const CeedScalar nu = context->nu;
 
@@ -170,7 +170,7 @@ CEED_QFUNCTION(HyperSSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   // *INDENT-ON*
 
   // Context
-  const Physics context = ctx;
+  const Physics context = (Physics)ctx;
   const CeedScalar E  = context->E;
   const CeedScalar nu = context->nu;
 
