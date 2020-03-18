@@ -104,7 +104,8 @@ Bakeoff problems and generalizations
 ----------------------------------------
 
 The PETSc examples in this directory include a full suite of parallel :ref:`bakeoff problems <bps>` (BPs) using a "raw" parallel decomposition (see ``bpsraw.c``) and using PETSc's ``DMPlex`` for unstructured grid management (see ``bps.c``).
-A generalization of these BPs to the surface of the cubed-sphere are available in ``bpssphere.c``.
+A generalization of these BPs to the surface of the cubed-sphere are available in
+``bpssphere.c``.
 
 
 .. _example-petsc-bps-sphere:
@@ -141,10 +142,11 @@ where we have identified the :math:`2\times 2` contravariant metric tensor :math
 This expression can be simplified to avoid the explicit Moore-Penrose pseudo-inverse,
 
 .. math::
+   \begin{aligned}
    \mathbf g &= \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}} \right)^{-1}_{(2\times 2)} \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T
    \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(3\times2)} \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}} \right)^{-T}_{(2\times 2)}
-
    &= \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}} \right)^{-1}_{(2\times 2)}
+   \end{aligned}
 
 where we have dropped the transpose due to symmetry.
 This allows us to simplify :math:numref:`eq-weak-laplace-sphere` as
