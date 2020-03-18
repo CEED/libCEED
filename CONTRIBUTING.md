@@ -31,8 +31,12 @@ mind while committing are likely not in the mind of whomever (possibly
 you) needs to understand it in the future.
 
 Give credit where credit is due using tags such as `Reported-by:
-Helpful User <helpful@example.com>`.  Please use a real name and email
-for your author information (`git config user.name` and `user.email`).
+Helpful User <helpful@example.com>` or
+[`Co-authored-by: Snippet Mentor <code.by@comment.com>`](https://help.github.com/en/github/committing-changes-to-your-project/creating-a-commit-with-multiple-authors#creating-co-authored-commits-on-the-command-line).
+Please use a real name and email for your author information (`git
+config user.name` and `user.email`).  If your author information or
+email becomes inconsistent (look at `git shortlog -se`), please edit
+`.mailmap` to obtain your preferred name and email address.
 
 When contributors make a major contribution and support it, their names
 are included in the automatically generated user-manual documentation.
@@ -76,4 +80,32 @@ By making a contribution to this project, I certify that:
     maintained indefinitely and may be redistributed consistent with
     this project or the open source license(s) involved.
 
+## Authorship
 
+libCEED contains components authored by many individuals.  It is
+important that contributors receive appropriate recognition through
+informal and academically-recognized credit systems such as
+publications.  Status as a named author on the users manual and
+libCEED software publications will be granted for those who
+
+1. make significant contributions to libCEED (in implementation,
+  documentation, conceptualization, review, etc.) and
+2. maintain and support those contributions.
+
+Maintainers will do their best to notice when contributions reach this
+level and add your name to `AUTHORS`, but please email or create an
+issue if you believe your contributions have met these criteria and
+haven't yet been acknowledged.
+
+Authors of publications about libCEED as a whole, including
+DOI-bearing archives, shall offer co-authorship to all individuals
+listed in the `AUTHORS` file.  Authors of publications claiming
+specific libCEED contributions shall evaluate those listed in
+`AUTHORS` and offer co-authorship to those who made significant
+intellectual contributions to the work.
+
+Note that there is no co-authorship expectation for those publishing
+about use of libCEED (versus creation of new features in libCEED), but
+see [`CITING.md`](CITING.md) and use your judgment regarding
+significance of support/advice you may have received in developing
+your use case and interpreting results.
