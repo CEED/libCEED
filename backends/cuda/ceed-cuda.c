@@ -155,8 +155,6 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
   ierr = CeedCudaInit(ceed, resource, nrc); CeedChk(ierr);
 
-  ierr = CeedSetOperatorFallbackResource(ceed, "/gpu/cuda/ref"); CeedChk(ierr);
-
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
                                 CeedGetPreferredMemType_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate",
