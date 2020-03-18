@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
 
   // -- Set mesh file, polynomial degree, problem type
-  ierr = PetscMalloc1(1, &appCtx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &appCtx); CHKERRQ(ierr);
   ierr = ProcessCommandLineOptions(comm, appCtx); CHKERRQ(ierr);
   numLevels = appCtx->numLevels;
   fineLevel = numLevels - 1;
@@ -260,7 +260,7 @@ int main(int argc, char **argv) {
                        problemTypesForDisp[appCtx->problemChoice],
                        forcingTypesForDisp[appCtx->forcingChoice],
                        boundaryTypesForDisp[appCtx->boundaryChoice],
-                       appCtx->meshFile ? appCtx->meshFile : "Box Mesh",
+                       appCtx->meshFile[0] ? appCtx->meshFile : "Box Mesh",
                        appCtx->degree + 1, appCtx->degree + 1,
                        Ugsz[fineLevel]/ncompu, Ulsz[fineLevel]/ncompu, ncompu,
                        multigridTypesForDisp[appCtx->multigridChoice],
