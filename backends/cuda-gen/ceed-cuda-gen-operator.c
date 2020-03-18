@@ -49,7 +49,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
   CeedChk(ierr);
   CeedEvalMode emode;
-  CeedVector vec;
+  CeedVector vec, outvecs[16] = {};
 
   //Creation of the operator
   ierr = CeedCudaGenOperatorBuild(op); CeedChk(ierr);
@@ -79,8 +79,21 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
       // Get output vector
       ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
       if (vec == CEED_VECTOR_ACTIVE) vec = outvec;
-      ierr = CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.out[i]);
-      CeedChk(ierr);
+      outvecs[i] = vec;
+      // Check for multiple output modes
+      CeedInt index = -1;
+      for (CeedInt j = 0; j < i; j++) {
+        if (vec == outvecs[j]) {
+          index = j;
+          break;
+        }
+      }
+      if (index == -1) {
+        ierr = CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.out[i]);
+        CeedChk(ierr);
+      } else {
+        data->fields.out[i] = data->fields.out[index];
+      }
     }
   }
 
@@ -148,8 +161,18 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
     } else {
       ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
       if (vec == CEED_VECTOR_ACTIVE) vec = outvec;
-      ierr = CeedVectorRestoreArray(vec, &data->fields.out[i]);
-      CeedChk(ierr);
+      // Check for multiple output modes
+      CeedInt index = -1;
+      for (CeedInt j = 0; j < i; j++) {
+        if (vec == outvecs[j]) {
+          index = j;
+          break;
+        }
+      }
+      if (index == -1) {
+        ierr = CeedVectorRestoreArray(vec, &data->fields.out[i]);
+        CeedChk(ierr);
+      }
     }
   }
 
