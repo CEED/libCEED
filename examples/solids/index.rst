@@ -24,43 +24,42 @@ The strong form of the static balance linear momentum at small strain for the th
 
 
 where :math:`\boldsymbol{\sigma}`, :math:`\boldsymbol{\epsilon}`
-and :math:`\boldsymbol{g}` are stress, strain and forcing functions
+and :math:`\boldsymbol{g}` are stress, strain, and forcing functions,
 respectively. Integrating by parts on the divergence term, we arrive at the weak form the of equation :math:numref:`lin-elas`:
 
 .. math::
 
    \int_{\Omega}{ \nabla \boldsymbol{v} \colon \boldsymbol{\sigma}} dV - \int_{d\Omega}{\boldsymbol{v} \cdot \left(\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}}\right)} dS + \int_{\Omega}{\boldsymbol{v} \cdot \boldsymbol{g}} dV = 0
 
-where :math:`\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}} dS` is typically
+where :math:`\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}}` is typically
 replaced with a boundary condition.
 
 The stress-strain relationship (constitutive law) is given by:
 
 .. math::
 
-   \boldsymbol{\sigma} = \boldsymbol{S} \boldsymbol{\epsilon}
+   \boldsymbol{\sigma} = \boldsymbol{S} \boldsymbol{\epsilon},
 
 where 
 
 .. math::
 
-   \boldsymbol{\epsilon} = \dfrac{1}{2}\left(\boldsymbol{\nabla} \boldsymbol{u} + \boldsymbol{\nabla} \boldsymbol{u}^T \right)
+   \boldsymbol{\epsilon} = \dfrac{1}{2}\left(\nabla \boldsymbol{u} + \nabla \boldsymbol{u}^T \right)
 
-and
+is the (symmetric) strain tensor.
+For notational convenience, we suppose the symmetric second order tensors :math:`\bm \sigma` and :math:`\bm \epsilon` are expressed as vectors of length 6 using `Voigt notation <https://en.wikipedia.org/wiki/Voigt_notation>`_, in which case the fourth order material tensor :math:`\bm S` becomes a :math:`6\times 6` symmetric matrix
 
 .. math::
 
    \boldsymbol{S} = \dfrac{E}{(1+\nu)(1-2\nu)}
-   \left[
-     \begin{array}{cccccc} 
+   \begin{bmatrix}
         1-\nu & \nu & \nu & & & \\
           \nu & 1 - \nu & \nu & & & \\
           \nu & \nu &  1 - \nu & & & \\
           & & & \dfrac{1 - 2\nu}{2} & & \\    
          & & & &\dfrac{1 - 2\nu}{2} & \\
          & & & & & \dfrac{1 - 2\nu}{2} \\   
-     \end {array}
-   \right] 
+   \end{bmatrix},
 
 where :math:`E` is the Young’s modulus and :math:`\nu` is the Poisson’s ratio.
 
@@ -82,7 +81,7 @@ Integrating by parts on the divergence term, we arrive at the weak form:
 
    \int_{\Omega}{ \nabla \boldsymbol{v} \colon \boldsymbol{\sigma}} dV - \int_{d\Omega}{\boldsymbol{v} \cdot \left(\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}}\right)} dS + \int_{\Omega}{\boldsymbol{v} \cdot \boldsymbol{g}} dV = 0
 
-where :math:`\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}} dS` is typically replaced with a boundary condition.
+where :math:`\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}}` is typically replaced with a boundary condition.
 
 The small strain version of a Neo-Hookean hyperelasticity material is given as
 follows:
@@ -93,13 +92,13 @@ follows:
    \boldsymbol{\sigma} = \lambda \ln(1 + \boldsymbol{\epsilon_v)} \boldsymbol{I}_3 + 2\mu \boldsymbol{\epsilon}
 
 where :math:`\boldsymbol{\sigma}`, :math:`\boldsymbol{\epsilon}`, are stress and
-strain respectively. Strain is defined by
+strain, respectively. Strain is defined by
 
 .. math::
 
-   \boldsymbol{\epsilon} = \dfrac{1}{2}\left(\boldsymbol{\nabla} \boldsymbol{u} + \boldsymbol{\nabla} \boldsymbol{u}^T \right)
+   \boldsymbol{\epsilon} = \dfrac{1}{2}\left(\nabla \boldsymbol{u} + \nabla \boldsymbol{u}^T \right)
 
-and :math:`\mu` and  :math:`\lambda` are the Lamé parameters.
+where :math:`\bm u` is the displacement and :math:`\mu` and  :math:`\lambda` are the Lamé parameters.
 :math:`\boldsymbol{\epsilon}_v` is known as *Volumetric Strain*:
 
 .. math::
@@ -170,9 +169,8 @@ Hyperelasticity at Finite Strain
 
 In the *total Lagrangian* approach for the neo-Hookean Hyperelasticity
 probelm, the discrete equations are formulated with respect to the reference
-configuration. The independent variables are :math:`X' and :math:`t'. The
-dependent variable is the displacement :math:`u(X,t)`. The notation for
-elasticity at finite strain is inspired by :cite:`holzapfel2000nonlinear` to
+configuration. We solve for displacement :math:`\bm u(\bm X)` in the reference frame :math:`\bm X`.
+The notation for elasticity at finite strain is inspired by :cite:`holzapfel2000nonlinear` to
 distinguish between the current and reference configurations.
 **Capital letters** refer to **reference** and *small letters* refer to
 *current* configurations.
@@ -188,29 +186,29 @@ The strong form of the static balance of linear-momentum at
  
 where :math:`_X` in :math:`\nabla_X` indicates the reference configuration in
 the finite strain regime. :math:`\boldsymbol{P}` and :math:`\boldsymbol{g}` are
-:math:`2^{nd}` *Piola-Kirchhoff stress* and the prescribed forcing
-function respectively. :math:`\rho_0` is known as the *reference* mass
+the *first Piola-Kirchhoff stress* tensor and the prescribed forcing,
+function, respectively. :math:`\rho_0` is known as the *reference* mass
 density.
 
-The constitutive law of the material is given by:
+The constitutive law of the material is given by
 
 .. math::
    :label: 1st2nd
    
-   \boldsymbol{P} = \boldsymbol{F} \cdot \boldsymbol{S}
+   \boldsymbol{P} = \boldsymbol{F} \cdot \boldsymbol{S},
 
-where,
+where
 
 .. math::
 
-   \boldsymbol{S} = \mu \boldsymbol{1} + \left[\lambda \ln(J) - \mu \right] \boldsymbol{C}^{-1}
+   \boldsymbol{S} = \mu \boldsymbol{I}_3 + \left[\lambda \ln(J) - \mu \right] \boldsymbol{C}^{-1}
 
-:math:`\boldsymbol{P}` and :math:`\boldsymbol{S}` are the first and second
-Piola-Kirchhoff stresses, respectfully; :math:`\mu` and :math:`\lambda` are the
-Lamé parameters; :math:`\boldsymbol{C} = \boldsymbol{F}^T \cdot \boldsymbol{F}`
-is right Cauchy-Green tensor, and :math:`\boldsymbol{F}` is the deformation
-gradient in reference configuration :math:`(\boldsymbol{1} + \nabla \boldsymbol{u})`;
-and :math:`J = det(\boldsymbol{F})` is the Jacobian of deformation.
+is the *second Piola-Kirchhoff stress* tensor, :math:`\mu` and :math:`\lambda` are the
+Lamé parameters, :math:`\boldsymbol{C} = \boldsymbol{F}^T \cdot \boldsymbol{F}`
+is the right Cauchy-Green tensor,
+:math:`\boldsymbol{F} = \bm I_3 + \nabla_X \bm u`
+is the deformation gradient, and :math:`J = \det(\boldsymbol{F})` is
+the Jacobian of deformation.
 
 It is crucial to distinguish between the current and reference element in the Total Lagrangian Finite Strain regime. Therefore, we switch to the indicial notation:
 
