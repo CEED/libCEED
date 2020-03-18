@@ -485,8 +485,8 @@ Gallery of QFunctions
 ----------------------------------------
 
 LibCEED provides a gallery of built-in QFunctions in the :file:`gallery/` directory.
-The available QFunctions are the ones associated with the mass, the Laplace, and
-the identity matrices. To illustrate how the user can declare a :ref:`CeedQFunction`
+The available QFunctions are the ones associated with the mass, the Laplacian, and
+the identity operators. To illustrate how the user can declare a :ref:`CeedQFunction`
 via the gallery of available QFunctions, consider the selection of the
 :ref:`CeedQFunction` associated with a simple 1D mass matrix
 (cf. `tests/t410-qfunction.c <https://github.com/CEED/libCEED/blob/master/tests/t410-qfunction.c>`_).
