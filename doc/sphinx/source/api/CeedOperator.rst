@@ -4,7 +4,8 @@ CeedOperator
 **************************************
 
 A `CeedOperator` defines the finite/spectral element operator associated to a
-`QFunction`.
+`QFunction`. A `CeedOperator` connects objects of the type
+:ref:`CeedElemRestriction`, :ref:`CeedBasis`, and :ref:`CeedQFunction`.
 
 Discrete operators on user vectors
 ======================================
