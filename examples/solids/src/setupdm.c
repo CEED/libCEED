@@ -68,19 +68,79 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx appCtx, DM *dm) {
   PetscFunctionReturn(0);
 };
 
+// Create FE by degree
+PetscErrorCode PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
+                                     PetscBool isSimplex, const char prefix[],
+                                     PetscInt order, PetscFE *fem) {
+  PetscQuadrature q, fq;
+  DM              K;
+  PetscSpace      P;
+  PetscDualSpace  Q;
+  PetscInt        quadPointsPerEdge;
+  PetscBool       tensor = isSimplex ? PETSC_FALSE : PETSC_TRUE;
+  PetscErrorCode  ierr;
+
+  PetscFunctionBeginUser;
+  /* Create space */
+  ierr = PetscSpaceCreate(PetscObjectComm((PetscObject) dm), &P); CHKERRQ(ierr);
+  ierr = PetscObjectSetOptionsPrefix((PetscObject) P, prefix); CHKERRQ(ierr);
+  ierr = PetscSpacePolynomialSetTensor(P, tensor); CHKERRQ(ierr);
+  ierr = PetscSpaceSetFromOptions(P); CHKERRQ(ierr);
+  ierr = PetscSpaceSetNumComponents(P, Nc); CHKERRQ(ierr);
+  ierr = PetscSpaceSetNumVariables(P, dim); CHKERRQ(ierr);
+  ierr = PetscSpaceSetDegree(P, order, order); CHKERRQ(ierr);
+  ierr = PetscSpaceSetUp(P); CHKERRQ(ierr);
+  ierr = PetscSpacePolynomialGetTensor(P, &tensor); CHKERRQ(ierr);
+  /* Create dual space */
+  ierr = PetscDualSpaceCreate(PetscObjectComm((PetscObject) dm), &Q);
+  CHKERRQ(ierr);
+  ierr = PetscDualSpaceSetType(Q,PETSCDUALSPACELAGRANGE); CHKERRQ(ierr);
+  ierr = PetscObjectSetOptionsPrefix((PetscObject) Q, prefix); CHKERRQ(ierr);
+  ierr = PetscDualSpaceCreateReferenceCell(Q, dim, isSimplex, &K); CHKERRQ(ierr);
+  ierr = PetscDualSpaceSetDM(Q, K); CHKERRQ(ierr);
+  ierr = DMDestroy(&K); CHKERRQ(ierr);
+  ierr = PetscDualSpaceSetNumComponents(Q, Nc); CHKERRQ(ierr);
+  ierr = PetscDualSpaceSetOrder(Q, order); CHKERRQ(ierr);
+  ierr = PetscDualSpaceLagrangeSetTensor(Q, tensor); CHKERRQ(ierr);
+  ierr = PetscDualSpaceSetFromOptions(Q); CHKERRQ(ierr);
+  ierr = PetscDualSpaceSetUp(Q); CHKERRQ(ierr);
+  /* Create element */
+  ierr = PetscFECreate(PetscObjectComm((PetscObject) dm), fem); CHKERRQ(ierr);
+  ierr = PetscObjectSetOptionsPrefix((PetscObject) *fem, prefix); CHKERRQ(ierr);
+  ierr = PetscFESetFromOptions(*fem); CHKERRQ(ierr);
+  ierr = PetscFESetBasisSpace(*fem, P); CHKERRQ(ierr);
+  ierr = PetscFESetDualSpace(*fem, Q); CHKERRQ(ierr);
+  ierr = PetscFESetNumComponents(*fem, Nc); CHKERRQ(ierr);
+  ierr = PetscFESetUp(*fem); CHKERRQ(ierr);
+  ierr = PetscSpaceDestroy(&P); CHKERRQ(ierr);
+  ierr = PetscDualSpaceDestroy(&Q); CHKERRQ(ierr);
+  /* Create quadrature */
+  quadPointsPerEdge = PetscMax(order + 1,1);
+  if (isSimplex) {
+    ierr = PetscDTStroudConicalQuadrature(dim,   1, quadPointsPerEdge, -1.0, 1.0,
+                                          &q); CHKERRQ(ierr);
+    ierr = PetscDTStroudConicalQuadrature(dim-1, 1, quadPointsPerEdge, -1.0, 1.0,
+                                          &fq); CHKERRQ(ierr);
+  } else {
+    ierr = PetscDTGaussTensorQuadrature(dim,   1, quadPointsPerEdge, -1.0, 1.0,
+                                        &q); CHKERRQ(ierr);
+    ierr = PetscDTGaussTensorQuadrature(dim-1, 1, quadPointsPerEdge, -1.0, 1.0,
+                                        &fq); CHKERRQ(ierr);
+  }
+  ierr = PetscFESetQuadrature(*fem, q); CHKERRQ(ierr);
+  ierr = PetscFESetFaceQuadrature(*fem, fq); CHKERRQ(ierr);
+  ierr = PetscQuadratureDestroy(&q); CHKERRQ(ierr);
+  ierr = PetscQuadratureDestroy(&fq); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 // Setup DM with FE space of appropriate degree
 PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
                                PetscInt ncompu) {
   PetscErrorCode  ierr;
   PetscInt        dim;
-  PetscSpace      P;
-  PetscDualSpace  Q;
-  DM              K;
   PetscFE         fe;
-  PetscInt        quadPointsPerEdge;
-  PetscQuadrature q;  // quadrature points
-  PetscQuadrature fq; // face quadrature points (For future: Nuemman boundary)
-  // Variables for Dirichlet (Essential) Boundary
   IS              faceSetIS;           // Index Set for Face Sets
   const char      *name = "Face Sets"; // PETSc internal requirement
   PetscInt        numFaceSets;         // Number of FaceSets in faceSetIS
@@ -88,54 +148,10 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
 
   PetscFunctionBeginUser;
 
-  ierr = DMGetDimension(dm, &dim);
-
-  // Setup FE space by polynomial order
-  // Note: This is a modification of the built in PETSc function
-  //         PetscFECreateDefault(). PETSc declined to add a 'degree' option.
-  // -- Setup FE space (Space P) for tensor polynomials
-  ierr = PetscSpaceCreate(PetscObjectComm((PetscObject) dm), &P); CHKERRQ(ierr);
-  ierr = PetscSpacePolynomialSetTensor(P, PETSC_TRUE); CHKERRQ(ierr);
-  ierr = PetscSpaceSetFromOptions(P); CHKERRQ(ierr);
-  ierr = PetscSpaceSetNumComponents(P, ncompu); CHKERRQ(ierr);
-  ierr = PetscSpaceSetNumVariables(P, dim); CHKERRQ(ierr);
-  ierr = PetscSpaceSetDegree(P, order, order); CHKERRQ(ierr);
-  ierr = PetscSpaceSetUp(P); CHKERRQ(ierr);
-  // -- Setup FE dual space (Space Q) for tensor polynomials
-  ierr = PetscDualSpaceCreate(PetscObjectComm((PetscObject) dm), &Q);
-  CHKERRQ(ierr);
-  ierr = PetscDualSpaceSetType(Q,PETSCDUALSPACELAGRANGE); CHKERRQ(ierr);
-  ierr = PetscDualSpaceCreateReferenceCell(Q, dim, PETSC_FALSE, &K);
-  CHKERRQ(ierr);
-  ierr = PetscDualSpaceSetDM(Q, K); CHKERRQ(ierr);
-  ierr = DMDestroy(&K); CHKERRQ(ierr);
-  ierr = PetscDualSpaceSetNumComponents(Q, ncompu); CHKERRQ(ierr);
-  ierr = PetscDualSpaceSetOrder(Q, order); CHKERRQ(ierr);
-  ierr = PetscDualSpaceLagrangeSetTensor(Q, PETSC_TRUE); CHKERRQ(ierr);
-  ierr = PetscDualSpaceSetFromOptions(Q); CHKERRQ(ierr);
-  ierr = PetscDualSpaceSetUp(Q); CHKERRQ(ierr);
-  // -- Create element
-  ierr = PetscFECreate(PetscObjectComm((PetscObject) dm), &fe); CHKERRQ(ierr);
-  ierr = PetscFESetFromOptions(fe); CHKERRQ(ierr);
-  ierr = PetscFESetBasisSpace(fe, P); CHKERRQ(ierr);
-  ierr = PetscFESetDualSpace(fe, Q); CHKERRQ(ierr);
-  ierr = PetscFESetNumComponents(fe, ncompu); CHKERRQ(ierr);
-  ierr = PetscFESetUp(fe); CHKERRQ(ierr);
-  ierr = PetscSpaceDestroy(&P); CHKERRQ(ierr);
-  ierr = PetscDualSpaceDestroy(&Q); CHKERRQ(ierr);
-  // -- Create quadrature
-  quadPointsPerEdge = PetscMax(order + 1,1);
-  ierr = PetscDTGaussTensorQuadrature(dim, 1, quadPointsPerEdge, -1.0, 1.0, &q);
-  CHKERRQ(ierr);
-  ierr = PetscDTGaussTensorQuadrature(dim-1, 1, quadPointsPerEdge, -1.0, 1.0,
-                                      &fq); CHKERRQ(ierr);
-  ierr = PetscFESetQuadrature(fe, q); CHKERRQ(ierr);
-  ierr = PetscFESetFaceQuadrature(fe, fq); CHKERRQ(ierr);
-  ierr = PetscQuadratureDestroy(&q); CHKERRQ(ierr);
-  ierr = PetscQuadratureDestroy(&fq); CHKERRQ(ierr);
-  // -- End of modified PetscFECreateDefault()
-
   // Setup DM
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  ierr = PetscFECreateByDegree(dm, dim, ncompu, PETSC_FALSE, NULL, order, &fe);
+  CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMAddField(dm, NULL, (PetscObject)fe); CHKERRQ(ierr);
   ierr = DMCreateDS(dm); CHKERRQ(ierr);
