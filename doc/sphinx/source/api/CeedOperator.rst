@@ -3,6 +3,9 @@
 CeedOperator
 **************************************
 
+A `CeedOperator` defines the finite/spectral element operator associated to a
+`QFunction`.
+
 Discrete operators on user vectors
 ======================================
 
