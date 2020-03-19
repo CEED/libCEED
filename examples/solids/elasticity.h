@@ -22,6 +22,7 @@
 
 #include <petsc.h>
 #include <petscdmplex.h>
+#include <petscksp.h>
 #include <petscfe.h>
 
 #include <ceed.h>

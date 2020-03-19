@@ -37,11 +37,6 @@
 /// CEED elasticity example using PETSc with DMPlex
 const char help[] = "Solve solid Problems with CEED and PETSc DMPlex\n";
 
-#include <stdbool.h>
-#include <string.h>
-#include <petscksp.h>
-#include <petscdmplex.h>
-#include <ceed.h>
 #include "elasticity.h"
 
 int main(int argc, char **argv) {
