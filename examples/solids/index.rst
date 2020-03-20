@@ -316,27 +316,21 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 Weak form
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It is crucial to distinguish between the current and reference element in the Total Lagrangian Finite Strain regime. Therefore, we switch to the indicial notation:
+It is crucial to distinguish between the current and reference element in the Total Lagrangian Finite Strain regime.
 
 .. math::
 
-    \int_{B}{\boldsymbol{v} \cdot \left(\nabla_X \cdot \boldsymbol{P} + \rho \boldsymbol{g}\right)} JdV = \boldsymbol{0}
-
-and in indicial notation we have,
-
-.. math::
-
-   \int_{B_0}{v_i \left(\dfrac{\partial{P_{iI}}}{\partial{X_I}} + \rho_0 g_i \right)} dV = 0
+    \int_{\Omega}{\boldsymbol{v} \cdot \left(\nabla_X \cdot \boldsymbol{P} + J \rho \boldsymbol{g}\right)} dV = \boldsymbol{0}
 
 By Integration by part we arrive at the weak form:
 
 .. math::
 
-   \int_{B_0}{\dfrac{\partial{v_i P_{iI}}}{\partial{X_I}}}dV =
-   - \int_{B_0}{v_i \rho_0 g_i}dV
-   - \int_{\Gamma_0^t}{v_i t_i}dA
-
-where :math:`t_i` is a prescribed boundary written in terms of reference
+    \int_{\Omega}{\nabla_X \boldsymbol{v} \colon \boldsymbol{P}}dV =
+  - \int_{\Omega}{\boldsymbol{v} \cdot \rho_0 \boldsymbol{g}}dV
+  - \int_{\partial \Omega}{\boldsymbol{v} \cdot \boldsymbol{P} \cdot \hat{\boldsymbol{N}}}dA
+    
+where :math:`\boldsymbol{P} \cdot \hat{\boldsymbol{N}}` is a prescribed boundary written in terms of reference
 configuration.
 
 The constitutive law in indicial notation is given by:
