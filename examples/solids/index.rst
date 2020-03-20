@@ -127,8 +127,8 @@ strain, respectively. Strain is defined by
 
    \boldsymbol{\epsilon} = \dfrac{1}{2}\left(\nabla \boldsymbol{u} + \nabla \boldsymbol{u}^T \right)
 
-where :math:`\bm u` is the displacement and :math:`\mu` and  :math:`\lambda` are the Lamé parameters.
-:math:`\boldsymbol{\epsilon}_v` is known as *Volumetric Strain*:
+where :math:`\bm u` is the displacement and :math:`\mu` and  :math:`\lambda` are the Lamé parameters. The trace of the strain tensor,
+:math:`\boldsymbol{\epsilon}_v`, is known as *volumetric strain*:
 
 .. math::
 
@@ -198,39 +198,44 @@ In the *total Lagrangian* approach for the neo-Hookean Hyperelasticity
 probelm, the discrete equations are formulated with respect to the reference
 configuration. We solve for displacement :math:`\bm u(\bm X)` in the reference frame :math:`\bm X`.
 The notation for elasticity at finite strain is inspired by :cite:`holzapfel2000nonlinear` to
-distinguish between the current and reference configurations.
-**Capital letters** refer to **reference** and *small letters* refer to
-*current* configurations.
+distinguish between the current and reference configurations. As explained in the
+:ref:`Common notation` section, we denote by capital letters the reference frame and by small
+letters the current one.
 
 The strong form of the static balance of linear-momentum at
-*Finite Strain* (Total Lagrangian) is given by:
+*Finite Strain* (total Lagrangian) is given by:
 
 .. math::
    :label: sblFinS
 
    \nabla_X \cdot \boldsymbol{P} + \rho_0 \boldsymbol{g} = \boldsymbol{0}
  
-where :math:`_X` in :math:`\nabla_X` indicates the reference configuration in
-the finite strain regime. :math:`\boldsymbol{P}` and :math:`\boldsymbol{g}` are
+where the :math:`_X` in :math:`\nabla_X` indicates that the gradient is calculated with
+respect to with the reference configuration in the finite strain regime.
+:math:`\boldsymbol{P}` and :math:`\boldsymbol{g}` are
 the *first Piola-Kirchhoff stress* tensor and the prescribed forcing,
 function, respectively. :math:`\rho_0` is known as the *reference* mass
 density.
 The tensor :math:`\bm P` is not symmetric, living in the current configuration on the left and the reference configuration on the right.
-It can be decomposed as
+:math:`\boldsymbol{P}` can be decomposed as
 
 .. math::
    :label: 1st2nd
    
    \boldsymbol{P} = \boldsymbol{F} \cdot \boldsymbol{S},
 
-where :math:`\bm S` is the *second Piola-Kirchhoff stress* tensor, a symmetric tensor entirely in the reference configuration,
+where :math:`\bm S` is the *second Piola-Kirchhoff stress* tensor, a symmetric tensor
+defined entirely in the reference configuration,
 and :math:`\boldsymbol{F} = \bm I_3 + \nabla_X \bm u` is the deformation gradient.
-A constitutive model is needed to define :math:`\bm S`.
+Different constitutive models can define :math:`\bm S`.
+
 
 Constitutive modeling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In their most general form, constitutive models define :math:`\bm S` in terms of state variables, which in our model is the displacement :math:`\bm u`, and more specifically, its gradient :math:`\nabla_X \bm u`.
+In their most general form, constitutive models define :math:`\bm S` in terms of state
+variables, which in our model are constituted by the vector displacement field
+:math:`\bm u`, and more specifically, its gradient :math:`\nabla_X \bm u`.
 We begin by defining two symmetric tensors in the reference configuration, the right Cauchy-Green tensor
 
 .. math::
@@ -322,7 +327,7 @@ It is crucial to distinguish between the current and reference element in the To
 
     \int_{\Omega}{\boldsymbol{v} \cdot \left(\nabla_X \cdot \boldsymbol{P} + J \rho \boldsymbol{g}\right)} dV = \boldsymbol{0}
 
-By Integration by part we arrive at the weak form:
+Integrating by parts, we arrive at the weak form:
 
 .. math::
 
@@ -330,19 +335,19 @@ By Integration by part we arrive at the weak form:
   - \int_{\Omega}{\boldsymbol{v} \cdot \rho_0 \boldsymbol{g}}dV
   - \int_{\partial \Omega}{\boldsymbol{v} \cdot \boldsymbol{P} \cdot \hat{\boldsymbol{N}}}dA
     
-where :math:`\boldsymbol{P} \cdot \hat{\boldsymbol{N}}` is a prescribed boundary written in terms of reference
-configuration.
+where :math:`\boldsymbol{P} \cdot \hat{\boldsymbol{N}}` is a prescribed boundary
+condition written in terms of the reference configuration.
 
-The constitutive law in indicial notation is given by:
+For simplicity, we express here the constitutive law in indicial notation:
 
 .. math::
 
-   P_{iI} = F_{iB}S_{BI} 
+   P_{iI} = F_{iB}S_{BI}\, ,
 
-Therfore, its material derivative is given by
+so that we can define its Jacobian (or stiffness) fourth order tensor as
 
 .. math::
    :label: mtfs
 
    \dfrac{\partial P_{iI}}{\partial F_{aA}} = \delta_{ai}S_{AI} + \left[\lambda F_{Aa}^{-1} F_{Ii}^{-1} 
-   -\left( \lambda ln(J) - \mu\right)\left(F_{Ai}^{-1} F_{Ia}^{-1} + \delta_{ai} C^{-1}_{AI}  \right)   \right]
+   -\left( \lambda ln(J) - \mu\right)\left(F_{Ai}^{-1} F_{Ia}^{-1} + \delta_{ai} C^{-1}_{AI}  \right)   \right] \,.
