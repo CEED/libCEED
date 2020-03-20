@@ -17,6 +17,7 @@
 from _ceed_cffi import ffi, lib
 import sys
 import io
+import tempfile
 from abc import ABC
 from .ceed_vector import Vector
 from .ceed_basis import BasisTensorH1, BasisTensorH1Lagrange, BasisH1
@@ -43,6 +44,22 @@ class Ceed():
   # Representation
   def __repr__(self):
     return "<Ceed instance at " + hex(id(self)) + ">"
+
+  # String conversion for print() to stdout
+  def __str__(self):
+    """View a Ceed via print()."""
+
+    # libCEED call
+    with tempfile.NamedTemporaryFile() as key_file:
+      with open(key_file.name, 'r+') as stream_file:
+        stream = ffi.cast("FILE *", stream_file)
+
+        lib.CeedView(self._pointer[0], stream)
+
+        stream_file.seek(0)
+        out_string = stream_file.read()
+
+    return out_string
 
   # Get Resource
   def get_resource(self):

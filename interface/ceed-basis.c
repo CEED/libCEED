@@ -150,12 +150,12 @@ static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s,
 /**
   @brief View an array stored in a CeedBasis
 
-  @param name      Name of array
-  @param fpformat  Printing format
-  @param m         Number of rows in array
-  @param n         Number of columns in array
-  @param a         Array to be viewed
-  @param stream    Stream to view to, e.g., stdout
+  @param[in] name      Name of array
+  @param[in] fpformat  Printing format
+  @param[in] m         Number of rows in array
+  @param[in] n         Number of columns in array
+  @param[in] a         Array to be viewed
+  @param[in] stream    Stream to view to, e.g., stdout
 
   @return An error code: 0 - success, otherwise - failure
 

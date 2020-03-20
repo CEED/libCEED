@@ -745,6 +745,30 @@ int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type) {
 }
 
 /**
+  @brief View a Ceed
+
+  @param[in] ceed          Ceed to view
+  @param[in] stream        Filestream to write to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedView(Ceed ceed, FILE *stream) {
+  int ierr;
+  CeedMemType memtype;
+
+  ierr = CeedGetPreferredMemType(ceed, &memtype); CeedChk(ierr);
+
+  fprintf(stream, "Ceed\n"
+          "  Ceed Resource: %s\n"
+          "  Preferred MemType: %s\n",
+          ceed->resource, CeedMemTypes[memtype]);
+
+  return 0;
+}
+
+/**
   @brief Destroy a Ceed context
 
   @param ceed Address of Ceed context to destroy

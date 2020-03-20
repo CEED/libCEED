@@ -89,6 +89,11 @@ void fCeedGetPreferredMemType(int *ceed, int *type, int *err) {
   *err = CeedGetPreferredMemType(Ceed_dict[*ceed], (CeedMemType *)type);
 }
 
+#define fCeedView FORTRAN_NAME(ceedview,CEEDVIEW)
+void fCeedView(int *ceed, int *err) {
+  *err = CeedView(Ceed_dict[*ceed], stdout);
+}
+
 #define fCeedDestroy FORTRAN_NAME(ceeddestroy,CEEDDESTROY)
 void fCeedDestroy(int *ceed, int *err) {
   *err = CeedDestroy(&Ceed_dict[*ceed]);

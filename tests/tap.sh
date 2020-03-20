@@ -174,6 +174,9 @@ for ((i=0;i<${#backends[@]};++i)); do
                 printf "# ${line}\n"
             done < ${output}.diff
         fi
+    elif [[ "$1" == t003* ]]; then
+    # For t003, the output will vary widely; only checking stderr
+        printf "ok $i1 $1 $backend stdout\n"
     elif [ -s ${output}.out ]; then
         printf "not ok $i1 $1 $backend stdout\n"
         while read line; do
