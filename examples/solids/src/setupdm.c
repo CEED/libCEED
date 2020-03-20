@@ -171,7 +171,7 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
   } else {
     // -- ExodusII mesh
     ierr = DMGetLabelIdIS(dm, name, &faceSetIS); CHKERRQ(ierr);
-    ierr = ISGetLocalSize(faceSetIS,&numFaceSets); CHKERRQ(ierr);
+    ierr = ISGetSize(faceSetIS,&numFaceSets); CHKERRQ(ierr);
     ierr = ISGetIndices(faceSetIS, &faceSetIds); CHKERRQ(ierr);
 
     for (PetscInt faceSet = 0; faceSet < numFaceSets; faceSet++) {
