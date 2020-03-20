@@ -442,6 +442,10 @@ int CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm) {
 /**
   @brief View a CeedVector
 
+  @param[in] vec           CeedVector to view
+  @param[in] fpfmt         Printing format
+  @param[in] stream        Filestream to write to
+
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
