@@ -342,7 +342,7 @@ Equation :math:numref:`1st2nd` represents a hyperelastic solid with a Neo-Hookea
 
 .. math::
    
-  \frac{\partial \bm P}{\partial \bm F} \delta \bm F = \delta \bm F \bm S + \bm F \frac{\partial \bm S}{\partial \bm E} \delta \bm E
+  \partial \bm P = \frac{\partial \bm P}{\partial \bm F} \delta \bm F = \delta \bm F \bm S + \bm F \frac{\partial \bm S}{\partial \bm E} \delta \bm E
 
 where
 
@@ -355,7 +355,7 @@ and
 .. math::
    :label: mtfs
 
-   \frac{\partial \bm S}{\partial \bm E} \delta \bm E = \left[ \lambda \bm F^{-1} \otimes \bm F^{-1} \left(\lambda \log(J) - \mu \right) \left(\bm F^{-1} \otimes \bm F^{-1} + \bm I_3\bm C^{-1} \right) \right]
+   \frac{\partial \bm S}{\partial \bm E} \delta \bm E = \bm S + \left[ \lambda \bm F^{-1} \otimes \bm F^{-1} \left(\lambda \log(J) - \mu \right) \left(\bm F^{-1} \otimes \bm F^{-1} + \bm I_3 \odot \bm C^{-1} \right) \right]
   
 Equations :math:numref:`1st2nd` and :math:numref:`mtfs`  may be expressed in indicial notation respectively by:
 
