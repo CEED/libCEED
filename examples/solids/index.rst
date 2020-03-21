@@ -343,13 +343,14 @@ Equation :math:numref:`1st2nd` devises a method to model a hyperelastic solid wi
 .. math::
    :label: mtfs
 
-   \dfrac{\partial \bm P}{\partial \bm F} = \bm S + \left[ \lambda \bm F^{-1} \bm F^{-1} \left(\lambda \log(J) - \mu \right) \left(\bm F^{-1}\bm F^{-1} + \bm C^{-1} \right) \right]
+   \dfrac{\partial \bm P}{\partial \bm F} = \bm S + \left[ \lambda \bm F^{-1} \otimes \bm F^{-1} \left(\lambda \log(J) - \mu \right) \left(\bm F^{-1} \otimes \bm F^{-1} + \bm I_3\bm C^{-1} \right) \right]
+  
 
 with
 
 .. math::
    
-   \bm C^{-1} = \bm F^{-1} \bm F^{-T}
+   \bm C^{-1} = \bm F^{-1} \cdot \bm F^{-T}
    
 Equations :math:numref:`1st2nd` and :math:numref:`mtfs`  may be expressed in indicial notation respectively by:
 
