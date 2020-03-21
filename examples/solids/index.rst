@@ -325,7 +325,7 @@ It is crucial to distinguish between the current and reference element in the To
 
 .. math::
 
-    \int_{\Omega}{\boldsymbol{v} \cdot \left(\nabla_X \cdot \boldsymbol{P} + J \rho \boldsymbol{g}\right)} dV = \boldsymbol{0}
+    \int_{\Omega}{\boldsymbol{v} \cdot \left(\nabla_X \cdot \boldsymbol{P} + \rho_0 \boldsymbol{g}\right)} dV = \boldsymbol{0}
 
 Integrating by parts, we arrive at the weak form:
 
@@ -338,16 +338,35 @@ Integrating by parts, we arrive at the weak form:
 where :math:`\boldsymbol{P} \cdot \hat{\boldsymbol{N}}` is a prescribed boundary
 condition written in terms of the reference configuration.
 
-For simplicity, we express here the constitutive law in indicial notation:
+Equation :math:numref:`1st2nd` devises a method to model a hyperelastic solid with a Neo-Hookean constitutive law. Evaluatinig the derivative of this model, yields a forth order tensor:
+
+.. math::
+   :label: mtfs
+
+   \dfrac{\partial \bm P}{\partial \bm F} = \bm S + \left[ \lambda \bm F^{-1} \bm F^{-1} \left(\lambda \log(J) - \mu \right) \left(\bm F^{-1}\bm F^{-1} + \bm C^{-1} \right) \right]
+
+with
+
+.. math::
+   
+   \bm C^{-1} = \bm F^{-1} \bm F^{-T}
+   
+Equations :math:numref:`1st2nd` and :math:numref:`mtfs`  may be expressed in indicial notation respectively by:
 
 .. math::
 
    P_{iI} = F_{iB}S_{BI}\, ,
 
-so that we can define its Jacobian (or stiffness) fourth order tensor as
+and
 
 .. math::
-   :label: mtfs
+   :label: mtfsIndicial
 
    \dfrac{\partial P_{iI}}{\partial F_{aA}} = \delta_{ai}S_{AI} + \left[\lambda F_{Aa}^{-1} F_{Ii}^{-1} 
-   -\left( \lambda ln(J) - \mu\right)\left(F_{Ai}^{-1} F_{Ia}^{-1} + \delta_{ai} C^{-1}_{AI}  \right)   \right] \,.
+   -\left( \lambda \log(J) - \mu\right)\left(F_{Ai}^{-1} F_{Ia}^{-1} + \delta_{ai} C^{-1}_{AI}  \right)   \right] \,.
+
+with
+
+.. math::
+
+   C_{AI}^{-1} = F_{Aq}^{-1} F_{Iq}^{-1}
