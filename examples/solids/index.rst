@@ -338,20 +338,25 @@ Integrating by parts, we arrive at the weak form:
 where :math:`\boldsymbol{P} \cdot \hat{\boldsymbol{N}}` is a prescribed boundary
 condition written in terms of the reference configuration.
 
-Equation :math:numref:`1st2nd` devises a method to model a hyperelastic solid with a Neo-Hookean constitutive law. Evaluatinig the derivative of this model, yields a forth order tensor:
+Equation :math:numref:`1st2nd` represents a hyperelastic solid with a Neo-Hookean constitutive law. This is a non-linear isotropic material model that produces a non-linear systems of algebraic equations. Therefore, linearization of the constitutive law is empolyed in the Newton-Raphson step. Evaluating the derivative of the material model yields a forth order tensor:
+
+.. math::
+   
+  \frac{\partial \bm P}{\partial \bm F} \delta \bm F = \delta \bm F \bm S + \bm F \frac{\partial \bm S}{\partial \bm E} \delta \bm E
+
+where
+
+.. math::
+
+  \delta \bm E = \frac{\partial \bm E}{\partial \bm F} \delta \bm F
+
+and
 
 .. math::
    :label: mtfs
 
-   \dfrac{\partial \bm P}{\partial \bm F} = \bm S + \left[ \lambda \bm F^{-1} \otimes \bm F^{-1} \left(\lambda \log(J) - \mu \right) \left(\bm F^{-1} \otimes \bm F^{-1} + \bm I_3\bm C^{-1} \right) \right]
+   \frac{\partial \bm S}{\partial \bm E} \delta \bm E = \left[ \lambda \bm F^{-1} \otimes \bm F^{-1} \left(\lambda \log(J) - \mu \right) \left(\bm F^{-1} \otimes \bm F^{-1} + \bm I_3\bm C^{-1} \right) \right]
   
-
-with
-
-.. math::
-   
-   \bm C^{-1} = \bm F^{-1} \cdot \bm F^{-T}
-   
 Equations :math:numref:`1st2nd` and :math:numref:`mtfs`  may be expressed in indicial notation respectively by:
 
 .. math::
@@ -363,11 +368,5 @@ and
 .. math::
    :label: mtfsIndicial
 
-   \dfrac{\partial P_{iI}}{\partial F_{aA}} = \delta_{ai}S_{AI} + \left[\lambda F_{Aa}^{-1} F_{Ii}^{-1} 
+   \frac{\partial P_{iI}}{\partial F_{aA}} = \delta_{ai}S_{AI} + \left[\lambda F_{Aa}^{-1} F_{Ii}^{-1} 
    -\left( \lambda \log(J) - \mu\right)\left(F_{Ai}^{-1} F_{Ia}^{-1} + \delta_{ai} C^{-1}_{AI}  \right)   \right] \,.
-
-with
-
-.. math::
-
-   C_{AI}^{-1} = F_{Aq}^{-1} F_{Iq}^{-1}
