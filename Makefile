@@ -592,6 +592,10 @@ configure :
 	@echo "Configuration cached in $(CONFIG):"
 	@cat $(CONFIG)
 
-.PHONY : configure
+wheel :
+	 docker run -it --user $(shell id -u):$(shell id -g) --rm -v $(PWD):/io -w /io quay.io/pypa/manylinux2014_x86_64 python/make-wheels.sh
 
--include $(libceed.c:%.c=$(OBJDIR)/%.d) $(tests.c:tests/%.c=$(OBJDIR)/%.d)
+.PHONY : configure wheel
+
+# Include *.d deps when not -B = --always-make: useful if the paths are wonky in a container
+-include $(if $(filter B,$(MAKEFLAGS)),,$(libceed.c:%.c=$(OBJDIR)/%.d) $(tests.c:tests/%.c=$(OBJDIR)/%.d))
