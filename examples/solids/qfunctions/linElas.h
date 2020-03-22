@@ -82,10 +82,10 @@ CEED_QFUNCTION(LinElasF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to du = gradu
     CeedScalar gradu[3][3];
-    for (int j = 0; j < 3; j++)     // Component
-      for (int k = 0; k < 3; k++) { // Derivative
+    for (CeedInt j = 0; j < 3; j++)     // Component
+      for (CeedInt k = 0; k < 3; k++) { // Derivative
         gradu[j][k] = 0;
-        for (int m = 0; m < 3; m++)
+        for (CeedInt m = 0; m < 3; m++)
           gradu[j][k] += dXdx[m][k] * du[j][m];
       }
 
@@ -140,10 +140,10 @@ CEED_QFUNCTION(LinElasF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // Apply dXdx^T and weight to sigma
-    for (int j = 0; j < 3; j++)     // Component
-      for (int k = 0; k < 3; k++) { // Derivative
+    for (CeedInt j = 0; j < 3; j++)     // Component
+      for (CeedInt k = 0; k < 3; k++) { // Derivative
         dvdX[k][j][i] = 0;
-        for (int m = 0; m < 3; m++)
+        for (CeedInt m = 0; m < 3; m++)
           dvdX[k][j][i] += dXdx[k][m] * sigma[j][m] * wJ;
       }
 
@@ -204,10 +204,10 @@ CEED_QFUNCTION(LinElasdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to deltadu = graddeltau
     CeedScalar graddeltau[3][3];
-    for (int j = 0; j < 3; j++)     // Component
-      for (int k = 0; k < 3; k++) { // Derivative
+    for (CeedInt j = 0; j < 3; j++)     // Component
+      for (CeedInt k = 0; k < 3; k++) { // Derivative
         graddeltau[j][k] = 0;
-        for (int m = 0; m < 3; m++)
+        for (CeedInt m = 0; m < 3; m++)
           graddeltau[j][k] += dXdx[m][k] * deltadu[j][m];
       }
 
@@ -260,10 +260,10 @@ CEED_QFUNCTION(LinElasdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // Apply dXdx^T and weight
-    for (int j = 0; j < 3; j++)     // Component
-      for (int k = 0; k < 3 ; k++) { // Derivative
+    for (CeedInt j = 0; j < 3; j++)     // Component
+      for (CeedInt k = 0; k < 3 ; k++) { // Derivative
         deltadvdX[k][j][i] = 0;
-        for (int m = 0; m < 3; m++)
+        for (CeedInt m = 0; m < 3; m++)
           deltadvdX[k][j][i] += dXdx[k][m] * dsigma[j][m] * wJ;
       }
 
