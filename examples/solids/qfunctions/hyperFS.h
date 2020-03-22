@@ -140,7 +140,7 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
     // Compute C^(-1) : C-Inverse
     const CeedScalar A00 = C[1][1]*C[2][2] - C[1][2]*C[2][1];
-    const CeedScalar A01 = C[0][2]*F[2][1] - C[0][1]*C[2][2];
+    const CeedScalar A01 = C[0][2]*C[2][1] - C[0][1]*C[2][2];
     const CeedScalar A02 = C[0][1]*C[1][2] - C[0][2]*C[1][1];
     const CeedScalar A10 = C[1][2]*C[2][0] - C[1][0]*C[2][2];
     const CeedScalar A11 = C[0][0]*C[2][2] - C[0][2]*C[2][0];
@@ -299,7 +299,7 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
     // Compute C^(-1) : C-Inverse
     const CeedScalar A00 = C[1][1]*C[2][2] - C[1][2]*C[2][1];
-    const CeedScalar A01 = C[0][2]*F[2][1] - C[0][1]*C[2][2];
+    const CeedScalar A01 = C[0][2]*C[2][1] - C[0][1]*C[2][2];
     const CeedScalar A02 = C[0][1]*C[1][2] - C[0][2]*C[1][1];
     const CeedScalar A10 = C[1][2]*C[2][0] - C[1][0]*C[2][2];
     const CeedScalar A11 = C[0][0]*C[2][2] - C[0][2]*C[2][0];
