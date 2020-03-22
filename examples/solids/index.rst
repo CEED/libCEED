@@ -38,7 +38,7 @@ The constitutive law (stress-strain relationship) is given by:
 .. math::
    :label: linear-stress-strain
 
-   \boldsymbol{\sigma} = \mathsf{C} \boldsymbol{\epsilon},
+   \boldsymbol{\sigma} = \mathsf{C} \!:\! \boldsymbol{\epsilon},
 
 where 
 
@@ -47,10 +47,11 @@ where
 
    \boldsymbol{\epsilon} = \dfrac{1}{2}\left(\nabla \boldsymbol{u} + \nabla \boldsymbol{u}^T \right)
 
-is the symmetric (small/infinitesimal) strain tensor.
-For notational convenience, we express the symmetric second order tensors :math:`\bm \sigma` and :math:`\bm \epsilon` as vectors of length 6 using the `Voigt notation <https://en.wikipedia.org/wiki/Voigt_notation>`_. Hence, the fourth order material stiffness tensor :math:`\mathsf C` can be represented as a :math:`6\times 6` symmetric matrix
+is the symmetric (small/infinitesimal) strain tensor and the colon represent a double contraction, as we now explain.
+For notational convenience, we express the symmetric second order tensors :math:`\bm \sigma` and :math:`\bm \epsilon` as vectors of length 6 using the `Voigt notation <https://en.wikipedia.org/wiki/Voigt_notation>`_. Hence, the fourth order elasticity tensor :math:`\mathsf C` (also known as elastic moduli tensor or material stiffness tensor) can be represented as a :math:`6\times 6` symmetric matrix
 
 .. math::
+   :label: linear-elasticity-tensor
 
    \mathsf C = \dfrac{E}{(1+\nu)(1-2\nu)}
    \begin{bmatrix}
@@ -77,7 +78,7 @@ can be found, for which the constitutive equation :math:numref:`linear-stress-st
    \bm\sigma = \lambda (\operatorname{trace} \bm\epsilon) \bm I_3 + 2 \mu \bm\epsilon,
 
 where :math:`\bm I_3` is the :math:`3 \times 3` identity matrix.
-With the latter formulation, the stiffness tensor becomes
+With the latter formulation, the elasticity tensor :math:numref:`linear-elasticity-tensor` becomes
 
 .. math::
 
@@ -194,7 +195,7 @@ The tensor :math:`\bm P` is not symmetric, living in the current configuration o
 .. math::
    :label: 1st2nd
    
-   \boldsymbol{P} = \boldsymbol{F} \cdot \boldsymbol{S},
+   \boldsymbol{P} = \boldsymbol{F} \, \boldsymbol{S},
 
 where :math:`\bm S` is the *second Piola-Kirchhoff stress* tensor, a symmetric tensor
 defined entirely in the reference configuration,
@@ -216,14 +217,13 @@ We begin by defining two symmetric tensors in the reference configuration, the r
 and the Green-Lagrange strain tensor
 
 .. math::
-   :label: eq-non-linear-strain
+   :label: eq-green-lagrange-strain
 
    \bm E = \frac 1 2 (\bm C - \bm I_3) = \frac 1 2 \Big( \nabla_X \bm u + (\nabla_X \bm u)^T + (\nabla_X \bm u)^T \nabla_X \bm u \Big),
 
 the latter of which converges to the linear strain tensor :math:`\bm \epsilon` in the small-deformation limit.
 The constitutive models considered, appropriate for large deformations, express :math:`\bm S` as a function of :math:`\bm E`, similar to the linear case, showed in equation  :math:numref:`linear-stress-strain`, which  expresses the relationship between :math:`\bm\sigma` and :math:`\bm\epsilon`.
-
-Equation :math:numref:`eq-non-linear-strain` represents a nonlinear tensor-valued function of a tensor-valued input, but an arbitrary choice of such a function will generally not be invariant under orthogonal transformations, thus will not admissible because a physical model must not depend on the choice of coordinate system chosen to express it.
+This constitutive model :math:`\bm S(\bm E)` is a nonlinear tensor-valued function of a tensor-valued input, but an arbitrary choice of such a function will generally not be invariant under orthogonal transformations, thus will not admissible because a physical model must not depend on the coordinate system chosen to express it.
 In particular, given an orthogonal transformation :math:`Q`, we desire
 
 .. math::
@@ -241,7 +241,7 @@ Here, we focus on an important subset of them known as hyperelastic materials, f
    \bm S(\bm E) = \frac{\partial \Phi}{\partial \bm E}.
 
 .. note::
-   The strain energy density functional cannot be an arbitrary function :math:`\Phi(\bm E)`, but can only depend on *invariants*, scalar-valued functions :math:`\gamma` satisfying
+   The strain energy density functional cannot be an arbitrary function :math:`\Phi(\bm E)`; it can only depend on *invariants*, scalar-valued functions :math:`\gamma` satisfying
 
    .. math::
       \gamma(\bm E) = \gamma(Q \bm E Q^T)
@@ -249,7 +249,7 @@ Here, we focus on an important subset of them known as hyperelastic materials, f
    for all orthogonal matrices :math:`Q`.
    Consequently, we may assume without loss of generality that :math:`\bm E` is diagonal, and take its set of eigenvalues as the invariants.
    It is clear that there can be only three invariants, and there are many alternate choices, such as
-   :math:`\operatorname{trace}(\bm E), \operatorname{trace}(\bm E^2), \lvert E \rvert` and combinations thereof.
+   :math:`\operatorname{trace}(\bm E), \operatorname{trace}(\bm E^2), \lvert \bm E \rvert`, and combinations thereof.
    It is common in the literature for invariants to be taken from :math:`\bm C = \bm I_3 + 2 \bm E` instead of :math:`\bm E`.
 
 For example, if we take the compressible Neo-Hookean model,
@@ -270,7 +270,7 @@ To evaluate :math:numref:`strain-energy-grad`, we make use of
 .. math::
    \frac{\partial J}{\partial \bm E} = \frac{\partial \sqrt{\lvert \bm C \rvert}}{\partial \bm E} = \lvert \bm C \rvert^{-1/2} \lvert \bm C \rvert \bm C^{-1} = J \bm C^{-1},
 
-where the factor of 2 has been absorbed due to :math:`\bm C = \bm I_3 + 2 \bm E`.
+where the factor of 2 has been absorbed due to :math:`\bm C = \bm I_3 + 2 \bm E.`
 Carrying through the differentiation :math:numref:`strain-energy-grad` for the model :math:numref:`neo-hookean-energy`, we arrive at
 
 .. math::
@@ -287,6 +287,8 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    in which case :math:numref:`neo-hookean-stress` reduces to
 
    .. math::
+      :label: eq-st-venant-kirchoff
+
       \bm S = \lambda (\operatorname{trace} \bm E) \bm I_3 + 2 \mu \bm E,
 
    which is the St. Venant-Kirchoff model.
@@ -301,30 +303,80 @@ It is crucial to distinguish between the current and reference element in the To
 
     \int_{\Omega}{\boldsymbol{v} \cdot \left(\nabla_X \cdot \boldsymbol{P} + \rho_0 \boldsymbol{g}\right)} dV = \boldsymbol{0}
 
-Integrating by parts, we arrive at the weak form:
+Integrating by parts, we arrive at the weak form: find :math:`\bm u \in \mathcal V \equiv H^1(\Omega_0)` such that
 
 .. math::
+   :label: hyperelastic-weak-form
 
-    \int_{\Omega}{\nabla_X \boldsymbol{v} \colon \boldsymbol{P}}dV =
-  - \int_{\Omega}{\boldsymbol{v} \cdot \rho_0 \boldsymbol{g}}dV
-  - \int_{\partial \Omega}{\boldsymbol{v} \cdot \boldsymbol{P} \cdot \hat{\boldsymbol{N}}}dA
+    \int_{\Omega}{\nabla_X \boldsymbol{v} \colon \boldsymbol{P}}dV
+    + \int_{\Omega}{\boldsymbol{v} \cdot \rho_0 \boldsymbol{g}}dV
+    + \int_{\partial \Omega}{\boldsymbol{v} \cdot \boldsymbol{P} \cdot \hat{\boldsymbol{N}}}dA = 0, \quad \forall \bm v \in \mathcal V,
     
-where :math:`\boldsymbol{P} \cdot \hat{\boldsymbol{N}}` is a prescribed boundary
-condition written in terms of the reference configuration.
+where :math:`\boldsymbol{P} \cdot \hat{\boldsymbol{N}}` is replaced by any prescribed stress/traction boundary conditions written in terms of the reference configuration.
+This equation contains material/constitutive nonlinearities in defining :math:`\bm S(\bm E)`, as well as geometric nonlinearities through :math:`\bm P = \bm F\, \bm S`, :math:`\bm E(\bm F)`, and the body force :math:`\bm g`, which must be pulled back from the current configuration to the reference configuration.
+Discretization of :math:numref:`hyperelastic-weak-form` produces a finite-dimensional system of nonlinear algebraic equations, which we solve using Newton-Raphson methods.
+One attractive feature of Galerkin discretization is that we can arrive at the same linear system by discretizing the Newton linearization of the continuous form; that is, discretization and differentiation (Newton linearization) commute.
 
-Equation :math:numref:`1st2nd` represents a hyperelastic solid with a Neo-Hookean constitutive law. This is a non-linear isotropic material model that produces a non-linear systems of algebraic equations. Therefore, linearization of the constitutive law is empolyed in the Newton-Raphson step. Evaluating the derivative of the material model yields a forth order tensor:
+Newton linearization
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To derive a Newton linearization of :math:numref:`hyperelastic-weak-form`, we begin by expressing the derivative of :math:numref:`1st2nd` in incremental form,
 
 .. math::
-   
-  \partial \bm P = \frac{\partial \bm P}{\partial \bm F} \delta \bm F = \delta \bm F \bm S + \bm F \frac{\partial \bm S}{\partial \bm E} \delta \bm E
+   :label: eq-delta-P
+
+   \delta \bm P = \frac{\partial \bm P}{\partial \bm F} \!:\! \delta \bm F = \delta \bm F\, \bm S + \bm F \underbrace{\frac{\partial \bm S}{\partial \bm E} \!:\! \delta \bm E}_{\delta \bm S}
 
 where
 
 .. math::
+   \delta \bm E = \frac{\partial \bm E}{\partial \bm F} \!:\! \delta \bm F = \frac 1 2 \Big( \delta \bm F^T \bm F + \bm F^T \delta \bm F \Big).
 
-  \delta \bm E = \frac{\partial \bm E}{\partial \bm F} \delta \bm F
+The quantity :math:`\frac{\partial \bm S}{\partial \bm E}` is known as the incremental elasticity tensor, and is analogous to the linear elasticity tensor :math:`\mathsf C` of :math:numref:`linear-elasticity-tensor`.
+We now evaluate :math:`\delta \bm S` for the Neo-Hookean model :math:numref:`neo-hookean-stress`,
 
-and
+.. math::
+   :label: eq-neo-hookean-incremental-stress
+
+   \frac{\partial \bm S}{\partial \bm E} \!:\! \delta \bm E
+   = \lambda (\bm C^{-1} \!:\! \delta\bm E) \bm C^{-1}
+     + 2 (\mu - \lambda \log J) \bm C^{-1} \delta\bm E \, \bm C^{-1},
+
+where we have used
+
+.. math::
+   \delta \bm C^{-1} = \frac{\partial \bm C^{-1}}{\partial \bm E} \!:\! \delta\bm E
+   = -2 \bm C^{-1} \delta \bm E \, \bm C^{-1} .
+
+.. note::
+   In the small-strain limit, :math:`\bm C \to \bm I_3` and :math:`\log J \to 0`, thereby reducing :math:numref:`eq-neo-hookean-incremental-stress` to the St. Venant-Kirchoff model :math:numref:`eq-st-venant-kirchoff`.
+
+It is sometimes useful to express :math:numref:`eq-neo-hookean-incremental-stress` in index notation,
+
+.. math::
+   :label: eq-neo-hookean-incremental-stress-index
+
+   \begin{aligned}
+   \delta\bm S_{IJ} &= \frac{\partial \bm S_{IJ}}{\partial \bm E_{KL}} \delta \bm E_{KL} \\
+     &= \lambda (\bm C^{-1}_{KL} \delta\bm E_{KL}) \bm C^{-1}_{IJ} + 2 (\mu - \lambda \log J) \bm C^{-1}_{IK} \delta\bm E_{KL} \bm C^{-1}_{LJ} \\
+     &= \underbrace{\Big( \lambda \bm C^{-1}_{IJ} \bm C^{-1}_{KL} + 2 (\mu - \lambda \log J) \bm C^{-1}_{IK} \bm C^{-1}_{JL} \Big)}_{\mathsf C_{IJKL}} \delta \bm E_{KL} \,,
+   \end{aligned}
+
+where we have identified the effective elasticity tensor :math:`\mathsf C = \mathsf C_{IJKL}`.
+It is generally not desirable to store :math:`\mathsf C`, but rather to use the earlier expressions so that only :math:`3\times 3` tensors (most of which are symmetric) must be manipulated.
+That is, given the linearization point :math:`\bm F` and solution increment :math:`\delta \bm F = \nabla_X (\delta \bm u)` (which we are solving for in the Newton step), we compute :math:`\delta \bm P` via
+
+#. recover :math:`\bm C^{-1}` and :math:`\log J` (either stored at quadrature points or recomputed),
+#. proceed with :math:`3\times 3` matrix products as in :math:numref:`eq-neo-hookean-incremental-stress` or the second line of :math:numref:`eq-neo-hookean-incremental-stress-index` to compute :math:`\delta \bm S` while avoiding computation or storage of higher order tensors, and
+#. conclude by :math:numref:`eq-delta-P`, where :math:`\bm S` is either stored or recomputed from its definition exactly as in the nonlinear residual evaluation.
+
+.. note::
+   The decision of whether to recompute or store functions of the current state :math:`\bm F` depend on a roofline analysis :cite:`williams2009roofline,Brown:2010` of the computation and the cost of the constitutive model.
+   For low-order elements where flops tend to be in surplus relative to memory bandwidth, recomputation is likely to be preferable, where as the opposite may be true for high-order elements.
+   Similarly, analysis with a simple constitutive model may see better performance while storing little or nothing while an expensive model such as Arruda-Boyce :cite:`arruda1993largestretch`, which contains many special functions, may be faster when using more storage to avoid recomputation.
+
+Arash's index notation
+""""""""""""""""""""""
 
 .. math::
    :label: mtfs
