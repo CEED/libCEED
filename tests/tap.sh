@@ -118,14 +118,6 @@ for ((i=0;i<${#backends[@]};++i)); do
     (build/$1 ${args/\{ceed_resource\}/$backend} || false) > ${output}.out 2> ${output}.err
     status=$?
 
-    # grep to skip test if backend cannot handle resource
-    if grep -F -q -e 'OCCA backend failed to use' ${output}.err; then
-        printf "ok $i0 # SKIP - occa mode not supported $1 $backend\n"
-        printf "ok $i1 # SKIP - occa mode not supported $1 $backend stdout\n"
-        printf "ok $i2 # SKIP - occa mode not supported $1 $backend stderr\n"
-        continue
-    fi
-
     # grep to skip test if backend chooses to whitelist test
     if grep -F -q -e 'Backend does not implement' \
             ${output}.err ; then

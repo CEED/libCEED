@@ -151,13 +151,19 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/cpu/self/xsmm/blocked`` | Blocked LIBXSMM implementation                    | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/occa``              | Serial OCCA kernels                               | No                    |
+| ``/*/occa``                | Selects backend based on available OCCA modes     | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/occa``              | CUDA OCCA kernels                                 | No                    |
+| ``/cpu/occa``              | Serial OCCA kernels                               | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/omp/occa``              | OpenMP OCCA kernels                               | No                    |
+| ``/gpu/occa``              | CUDA OCCA kernels                                 | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/ocl/occa``              | OpenCL OCCA kernels                               | No                    |
+| ``/openmp/occa``           | Selects OCCA backend with OpenMP kernels          | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/cuda/occa``             | Selects OCCA backend with CUDA kernels            | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/hip/occa``              | Selects OCCA backend with HIP kernels             | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/opencl/occa``           | Selects OCCA backend with OpenCL kernels          | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/cuda/ref``          | Reference pure CUDA kernels                       | No                    |
 +----------------------------+---------------------------------------------------+-----------------------+
@@ -198,7 +204,9 @@ This backend can be run in serial or blocked mode and defaults to running in the
 if ``/cpu/self/memcheck`` is selected at runtime.
 
 The ``/*/occa`` backends rely upon the `OCCA <http://github.com/libocca/occa>`_ package to provide
-cross platform performance.
+cross platform performance. Additionally, users can pass specific device flags such as:
+
+  - `"/*/occa:mode='CUDA',device_id=0"`
 
 The ``/gpu/cuda/*`` backends provide GPU performance strictly using CUDA.
 
@@ -346,19 +354,6 @@ To install libCEED, run::
 or (e.g., if creating packages)::
 
     make install prefix=/usr DESTDIR=/packaging/path
-
-Note that along with the library, libCEED installs kernel sources, e.g. OCCA
-kernels are installed in ``$prefix/lib/okl``. This allows the OCCA backend to
-build specialized kernels at run-time. In a normal setting, the kernel sources
-will be found automatically (relative to the library file ``libceed.so``).
-However, if that fails (e.g. if ``libceed.so`` is moved), one can copy (cache) the
-kernel sources inside the user OCCA directory, ``~/.occa`` using::
-
-    $(OCCA_DIR)/bin/occa cache ceed $(CEED_DIR)/lib/okl/*.okl
-
-This will allow OCCA to find the sources regardless of the location of the CEED
-library. One may occasionally need to clear the OCCA cache, which can be accomplished
-by removing the ``~/.occa`` directory or by calling ``$(OCCA_DIR)/bin/occa clear -a``.
 
 To install libCEED for Python, run::
 

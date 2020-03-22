@@ -135,7 +135,6 @@ LIBDIR := lib
 prefix ?= /usr/local
 bindir = $(prefix)/bin
 libdir = $(prefix)/lib
-okldir = $(libdir)/okl
 includedir = $(prefix)/include
 pkgconfigdir = $(libdir)/pkgconfig
 INSTALL = install
@@ -209,7 +208,7 @@ cuda-shared.cu := $(sort $(wildcard backends/cuda-shared/kernels/*.cu))
 cuda-gen.c     := $(sort $(wildcard backends/cuda-gen/*.c))
 cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
 cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/kernels/*.cu))
-occa.c         := $(sort $(wildcard backends/occa/*.c))
+occa.cpp       := $(sort $(shell find backends/occa -type f -name *.cpp))
 magma.c        := $(sort $(wildcard backends/magma/*.c))
 magma.cu       := $(sort $(wildcard backends/magma/kernels/*.cu))
 hip.c          := $(sort $(wildcard backends/hip/*.c))
@@ -269,7 +268,7 @@ info:
 	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,/cpu/self/memcheck/serial /cpu/sef/memcheck/blocked))
 	$(info AVX_STATUS    = $(AVX_STATUS)$(call backend_status,/cpu/self/avx/serial /cpu/self/avx/blocked))
 	$(info XSMM_DIR      = $(XSMM_DIR)$(call backend_status,/cpu/self/xsmm/serial /cpu/self/xsmm/blocked))
-	$(info OCCA_DIR      = $(OCCA_DIR)$(call backend_status,/cpu/occa /gpu/occa /omp/occa))
+	$(info OCCA_DIR      = $(OCCA_DIR)$(call backend_status,$(OCCA_BACKENDS)))
 	$(info MAGMA_DIR     = $(MAGMA_DIR)$(call backend_status,/gpu/magma /gpu/magma/det))
 	$(info CUDA_DIR      = $(CUDA_DIR)$(call backend_status,$(CUDA_BACKENDS)))
 	$(info HIP_DIR       = $(HIP_DIR)$(call backend_status,$(HIP_BACKENDS)))
@@ -281,7 +280,6 @@ info:
 	$(info prefix        = $(prefix))
 	$(info includedir    = $(value includedir))
 	$(info libdir        = $(value libdir))
-	$(info okldir        = $(value okldir))
 	$(info pkgconfigdir  = $(value pkgconfigdir))
 	$(info ------------------------------------)
 	@true
@@ -342,12 +340,18 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
 endif
 
 # OCCA Backends
+OCCA_BACKENDS = /cpu/occa /*/occa
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
+	OCCA_GPU_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "CUDA\|OpenCL\|HIP" && echo 1)
+  ifeq ($(OCCA_GPU_MODE_FOUND),1)
+    OCCA_BACKENDS += /gpu/occa
+  endif
+  $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceeds) : LDLIBS += -locca
-  libceed.c += $(occa.c)
-  $(occa.c:%.c=$(OBJDIR)/%.o) $(occa.c:%=%.tidy) : CPPFLAGS += -I$(OCCA_DIR)/include
-  BACKENDS += /cpu/occa /gpu/occa /omp/occa
+  $(libceeds) : LINK = $(CXX)
+  libceed.cpp += $(occa.cpp)
+  BACKENDS += $(OCCA_BACKENDS)
 endif
 
 # CUDA Backends
@@ -542,25 +546,15 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 %/ceed.pc : ceed.pc.template | $$(@D)/.DIR
 	@sed "s:%prefix%:$(pkgconfig-prefix):" $< > $@
 
-OCCA        := $(OCCA_DIR)/bin/occa
-OKL_KERNELS := $(wildcard backends/occa/*.okl)
-
-okl-cache :
-	$(OCCA) cache ceed $(OKL_KERNELS)
-
-okl-clear:
-	$(OCCA) clear -y -l ceed
-
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
-	  "$(libdir)" "$(pkgconfigdir)" $(if $(OCCA_ON),"$(okldir)"))
+	  "$(libdir)" "$(pkgconfigdir)"
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
-	$(if $(OCCA_ON),$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/")
 
-.PHONY : cln clean doxygen doc lib install all print test tst prove prv prove-all junit examples style style-c style-py tidy okl-cache okl-clear info info-backends
+.PHONY : cln clean doxygen doc lib install all print test tst prove prv prove-all junit examples style style-c style-py tidy info info-backends
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*

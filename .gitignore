@@ -1,6 +1,9 @@
 # Build Dir
 build/*
 
+# Library Dir
+lib/*
+
 # General
 *.o
 *.so
