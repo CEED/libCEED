@@ -4,18 +4,18 @@ Solid mechanics elasticity mini-app
 ========================================
 
 This example is located in the subdirectory :file:`examples/solids`. It solves
-the steady-state static balance momentum equations using unstructured high-order
-finite element/spectral element spatial discretizations. Moreover, the solid
-mechanics elasticity example has been developed using PETSc, so that the
-pointwise physics (defined at quadrature points) is separated from the
-parallelization and meshing concerns.
+the steady-state static balance momentum equations using unstructured
+high-order finite/spectral element spatial discretizations. As for the
+:ref:`example-petsc-navier-stokes` case, the solid mechanics elasticity example
+has been developed using PETSc, so that the pointwise physics (defined at
+quadrature points) is separated from the parallelization and meshing concerns.
 
 
 .. _problem-linear-elasticity:
 
 ----------------------------------------
 
-The strong form of the static balance linear momentum at small strain for the three-dimensional linear elasticity problem is given by :cite:`hughes2012finite`:
+The strong form of the static balance of linear momentum at small strain for the three-dimensional linear elasticity problem is given by :cite:`hughes2012finite`:
 
 .. math::
    :label: lin-elas
@@ -23,8 +23,7 @@ The strong form of the static balance linear momentum at small strain for the th
    \nabla \cdot \boldsymbol{\sigma} + \boldsymbol{g} = \boldsymbol{0} 
 
 
-where :math:`\boldsymbol{\sigma}`, :math:`\boldsymbol{\epsilon}`
-and :math:`\boldsymbol{g}` are stress, strain, and forcing functions,
+where :math:`\boldsymbol{\sigma}` and :math:`\boldsymbol{g}` are stress and forcing functions,
 respectively. Integrating by parts on the divergence term, we arrive at the weak form the of equation :math:numref:`lin-elas`:
 
 .. math::
@@ -34,7 +33,7 @@ respectively. Integrating by parts on the divergence term, we arrive at the weak
 where :math:`\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}}` is typically
 replaced with a boundary condition.
 
-The stress-strain relationship (constitutive law) is given by:
+The constitutive law (stress-strain relationship) is given by:
 
 .. math::
    :label: linear-stress-strain
@@ -44,11 +43,12 @@ The stress-strain relationship (constitutive law) is given by:
 where 
 
 .. math::
+   :label: small-strain
 
    \boldsymbol{\epsilon} = \dfrac{1}{2}\left(\nabla \boldsymbol{u} + \nabla \boldsymbol{u}^T \right)
 
-is the (symmetric) strain tensor.
-For notational convenience, we suppose the symmetric second order tensors :math:`\bm \sigma` and :math:`\bm \epsilon` are expressed as vectors of length 6 using `Voigt notation <https://en.wikipedia.org/wiki/Voigt_notation>`_, in which case the fourth order material stiffness tensor :math:`\mathsf C` can be represented as a :math:`6\times 6` symmetric matrix
+is the symmetric (small/infinitesimal) strain tensor.
+For notational convenience, we express the symmetric second order tensors :math:`\bm \sigma` and :math:`\bm \epsilon` as vectors of length 6 using the `Voigt notation <https://en.wikipedia.org/wiki/Voigt_notation>`_. Hence, the fourth order material stiffness tensor :math:`\mathsf C` can be represented as a :math:`6\times 6` symmetric matrix
 
 .. math::
 
@@ -63,7 +63,7 @@ For notational convenience, we suppose the symmetric second order tensors :math:
    \end{bmatrix},
 
 where :math:`E` is the Young’s modulus and :math:`\nu` is the Poisson’s ratio.
-An alternate formulation is in terms of the Lamé parameters,
+An alternative formulation, in terms of the Lamé parameters,
 
 .. math::
    \begin{aligned}
@@ -71,13 +71,13 @@ An alternate formulation is in terms of the Lamé parameters,
    \mu &= \frac{E}{2(1 + \nu)}
    \end{aligned}
 
-in which case the constitutive equation :math:numref:`linear-stress-strain` may be written
+can be found, for which the constitutive equation :math:numref:`linear-stress-strain` may be written as
 
 .. math::
    \bm\sigma = \lambda (\operatorname{trace} \bm\epsilon) \bm I_3 + 2 \mu \bm\epsilon,
 
 where :math:`\bm I_3` is the :math:`3 \times 3` identity matrix.
-Alternatively, the stiffness tensor becomes
+With the latter formulation, the stiffness tensor becomes
 
 .. math::
 
@@ -92,25 +92,11 @@ Alternatively, the stiffness tensor becomes
 
 Note that the incompressible limit :math:`\nu \to \frac 1 2` causes :math:`\lambda \to \infty`, and thus :math:`\mathsf C` becomes singular.
 
+
 .. _problem-hyper-small-strain:
 
 Hyperelasticity at Small Strain
 ----------------------------------------
-
-The strong form of the static balance linear momentum at small strain for the three-dimensional neo-Hookean Hyperelasticity problem is given by
-:cite:`hughes2012finite`:
-
-.. math::
-
-   \nabla \cdot \boldsymbol{\sigma} + \boldsymbol{g} = \boldsymbol{0} 
-
-Integrating by parts on the divergence term, we arrive at the weak form:
-
-.. math::
-
-   \int_{\Omega}{ \nabla \boldsymbol{v} \colon \boldsymbol{\sigma}} dV - \int_{d\Omega}{\boldsymbol{v} \cdot \left(\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}}\right)} dS + \int_{\Omega}{\boldsymbol{v} \cdot \boldsymbol{g}} dV = 0
-
-where :math:`\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}}` is typically replaced with a boundary condition.
 
 The small strain version of a Neo-Hookean hyperelasticity material is given as
 follows:
@@ -120,39 +106,25 @@ follows:
    
    \boldsymbol{\sigma} = \lambda \ln(1 + \boldsymbol{\epsilon_v)} \boldsymbol{I}_3 + 2\mu \boldsymbol{\epsilon}
 
-where :math:`\boldsymbol{\sigma}`, :math:`\boldsymbol{\epsilon}`, are stress and
-strain, respectively. Strain is defined by
-
-.. math::
-
-   \boldsymbol{\epsilon} = \dfrac{1}{2}\left(\nabla \boldsymbol{u} + \nabla \boldsymbol{u}^T \right)
-
-where :math:`\bm u` is the displacement and :math:`\mu` and  :math:`\lambda` are the Lamé parameters. The trace of the strain tensor,
-:math:`\boldsymbol{\epsilon}_v`, is known as *volumetric strain*:
-
-.. math::
-
-   \boldsymbol{\epsilon}_v = \boldsymbol{\epsilon}_{11} + \boldsymbol{\epsilon}_{22} + \boldsymbol{\epsilon}_{33} 
-
-Equation :math:numref:`clss` in indicial notation is given by:
+where :math:`\boldsymbol{\epsilon}` is defined as in :math:numref:`small-strain`. The trace of the strain tensor, also known as the *volumetric strain* and denoted by :math:`\boldsymbol{\epsilon}_v`, in three dimensions is :math:`\boldsymbol{\epsilon}_v = \boldsymbol{\epsilon}_{11} + \boldsymbol{\epsilon}_{22} + \boldsymbol{\epsilon}_{33}`. To easily represent spatial derivatives, we rewrite equation :math:numref:`clss` in indicial notation:
 
 .. math::
    \sigma_{ij} = \lambda ln(1 + \epsilon_v)\delta_{ij} + 2\mu\epsilon_{ij}
 
-where its derivative in indicial notation is:
+so that its derivative is:
 
 .. math::
    :label: derss
 
-   \dfrac{\partial{\sigma_{ij}}}{\partial{\epsilon_{kl}}} = \bar{\lambda}\delta_{ij}\delta_{kl} + 2\mu \delta_{ik} \delta_{jl}
+   \dfrac{\partial{\sigma_{ij}}}{\partial{\epsilon_{kl}}} = \bar{\lambda}\delta_{ij}\delta_{kl} + 2\mu \delta_{ik} \delta_{jl} ,
 
-with,
+where we have introduced the symbol
 
 .. math::
 
-   \bar{\lambda} = \dfrac{\lambda}{1+\epsilon_v}
+   \bar{\lambda} = \dfrac{\lambda}{1+\epsilon_v} .
 
-Equation :math:numref:`derss` can be written in matrix form as follows:
+Consequently, equation :math:numref:`derss` can be written in matrix form as follows:
 
 .. math::
    :label: mdss
@@ -196,7 +168,7 @@ Hyperelasticity at Finite Strain
 
 In the *total Lagrangian* approach for the neo-Hookean Hyperelasticity
 probelm, the discrete equations are formulated with respect to the reference
-configuration. We solve for displacement :math:`\bm u(\bm X)` in the reference frame :math:`\bm X`.
+configuration. In this formulation, we solve for displacement :math:`\bm u(\bm X)` in the reference frame :math:`\bm X`.
 The notation for elasticity at finite strain is inspired by :cite:`holzapfel2000nonlinear` to
 distinguish between the current and reference configurations. As explained in the
 :ref:`Common notation` section, we denote by capital letters the reference frame and by small
@@ -211,7 +183,7 @@ The strong form of the static balance of linear-momentum at
    \nabla_X \cdot \boldsymbol{P} + \rho_0 \boldsymbol{g} = \boldsymbol{0}
  
 where the :math:`_X` in :math:`\nabla_X` indicates that the gradient is calculated with
-respect to with the reference configuration in the finite strain regime.
+respect to the reference configuration in the finite strain regime.
 :math:`\boldsymbol{P}` and :math:`\boldsymbol{g}` are
 the *first Piola-Kirchhoff stress* tensor and the prescribed forcing,
 function, respectively. :math:`\rho_0` is known as the *reference* mass
@@ -234,8 +206,8 @@ Constitutive modeling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In their most general form, constitutive models define :math:`\bm S` in terms of state
-variables, which in our model are constituted by the vector displacement field
-:math:`\bm u`, and more specifically, its gradient :math:`\nabla_X \bm u`.
+variables. In the model taken into consideration in the present miniapp, the state variables are constituted by the vector displacement field
+:math:`\bm u`, and its gradient :math:`\nabla_X \bm u`.
 We begin by defining two symmetric tensors in the reference configuration, the right Cauchy-Green tensor
 
 .. math::
@@ -244,12 +216,14 @@ We begin by defining two symmetric tensors in the reference configuration, the r
 and the Green-Lagrange strain tensor
 
 .. math::
+   :label: eq-non-linear-strain
+
    \bm E = \frac 1 2 (\bm C - \bm I_3) = \frac 1 2 \Big( \nabla_X \bm u + (\nabla_X \bm u)^T + (\nabla_X \bm u)^T \nabla_X \bm u \Big),
 
-which converges to the linear strain tensor :math:`\bm \epsilon` in the small-deformation limit.
-Our constitutive models will express :math:`\bm S` as a function of :math:`\bm E`, much like the linear case :math:numref:`linear-stress-strain` expresses :math:`\bm\sigma` in terms of :math:`\bm\epsilon`.
+the latter of which converges to the linear strain tensor :math:`\bm \epsilon` in the small-deformation limit.
+The constitutive models considered, appropriate for large deformations, express :math:`\bm S` as a function of :math:`\bm E`, similar to the linear case, showed in equation  :math:numref:`linear-stress-strain`, which  expresses the relationship between :math:`\bm\sigma` and :math:`\bm\epsilon`.
 
-This is a nonlinear tensor-valued function of tensor-valued input, but an arbitrary choice of such a function will generally not be invariant under orthogonal transformation, thus not admissible because a physical model must not depend on the choice of coordinate system chosen to express it.
+Equation :math:numref:`eq-non-linear-strain` represents a nonlinear tensor-valued function of a tensor-valued input, but an arbitrary choice of such a function will generally not be invariant under orthogonal transformations, thus will not admissible because a physical model must not depend on the choice of coordinate system chosen to express it.
 In particular, given an orthogonal transformation :math:`Q`, we desire
 
 .. math::
@@ -259,7 +233,7 @@ In particular, given an orthogonal transformation :math:`Q`, we desire
 
 which means that we can change our reference frame before or after computing :math:`\bm S`, and get the same result either way.
 Constitutive relations in which :math:`\bm S` is uniquely determined by :math:`\bm E` (equivalently, :math:`\bm C` or related tensors) while satisfying the invariance property :math:numref:`elastic-invariance` are known as Cauchy elastic materials.
-We focus on an important subset known as hyperelastic materials, for which we may define a strain energy density functional :math:`\Phi(\bm E) \in \mathbb R` and obtain the strain energy from its gradient,
+Here, we focus on an important subset of them known as hyperelastic materials, for which we may define a strain energy density functional :math:`\Phi(\bm E) \in \mathbb R` and obtain the strain energy from its gradient,
 
 .. math::
    :label: strain-energy-grad
@@ -291,7 +265,7 @@ For example, if we take the compressible Neo-Hookean model,
 where :math:`J = \lvert \bm F \rvert = \sqrt{\lvert \bm C \rvert}` is the determinant of deformation (i.e., volume change)
 and :math:`\lambda` and :math:`\mu` are the Lamé parameters in the infinitesimal strain limit.
 
-To evaluate :math:numref:`strain-energy-grad`, we will make use of
+To evaluate :math:numref:`strain-energy-grad`, we make use of
 
 .. math::
    \frac{\partial J}{\partial \bm E} = \frac{\partial \sqrt{\lvert \bm C \rvert}}{\partial \bm E} = \lvert \bm C \rvert^{-1/2} \lvert \bm C \rvert \bm C^{-1} = J \bm C^{-1},
@@ -357,7 +331,7 @@ and
 
    \frac{\partial \bm S}{\partial \bm E} \delta \bm E = \bm S + \left[ \lambda \bm F^{-1} \otimes \bm F^{-1} \left(\lambda \log(J) - \mu \right) \left(\bm F^{-1} \otimes \bm F^{-1} + \bm I_3 \odot \bm C^{-1} \right) \right]
   
-Equations :math:numref:`1st2nd` and :math:numref:`mtfs`  may be expressed in indicial notation respectively by:
+Equations :math:numref:`1st2nd` and :math:numref:`mtfs`  may be expressed in indicial notation, respectively, as:
 
 .. math::
 
