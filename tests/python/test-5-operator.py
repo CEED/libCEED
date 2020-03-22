@@ -23,6 +23,7 @@ import ctypes
 import libceed
 import numpy as np
 import buildmats as bm
+TOL = np.finfo(float).eps * 256
 
 #-------------------------------------------------------------------------------
 # Utility
@@ -122,7 +123,7 @@ def test_500(ceed_resource):
   # Check
   v_array = v.get_array_read()
   for i in range(q):
-    assert abs(v_array[i]) < 1E-14
+    assert abs(v_array[i]) < TOL
 
   v.restore_array_read()
 
@@ -209,7 +210,7 @@ def test_501(ceed_resource):
   total = 0.0
   for i in range(nu):
     total = total + v_array[i]
-  assert abs(total - 1.0) < 1E-14
+  assert abs(total - 1.0) < TOL
 
   v.restore_array_read()
 
@@ -555,7 +556,7 @@ def test_505(ceed_resource):
   total = 0.0
   for i in range(nu):
     total = total + v_array[i]
-  assert abs(total - 1.0) < 1E-14
+  assert abs(total - 1.0) < TOL
 
   v.restore_array_read()
 
@@ -673,7 +674,7 @@ def test_510(ceed_resource):
   # Check
   v_array = v.get_array_read()
   for i in range(ndofs):
-    assert abs(v_array[i]) < 1E-14
+    assert abs(v_array[i]) < TOL
 
   v.restore_array_read()
 
@@ -953,7 +954,7 @@ def test_520(ceed_resource):
   # Check
   v_array = v.get_array_read()
   for i in range(ndofs):
-    assert abs(v_array[i]) < 1E-14
+    assert abs(v_array[i]) < TOL
 
   v.restore_array_read()
 

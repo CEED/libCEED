@@ -22,6 +22,7 @@ import math
 import libceed
 import numpy as np
 import buildmats as bm
+TOL = np.finfo(float).eps * 256
 
 #-------------------------------------------------------------------------------
 # Utilities
@@ -71,12 +72,12 @@ def test_301(ceed_resource, capsys):
   qr, tau = libceed.Basis.qr_factorization(ceed, qr, tau, 4, 3)
 
   for i in range(len(qr)):
-    if qr[i] <= 1E-14  and qr[i] >= -1E-14:
+    if qr[i] <= TOL  and qr[i] >= -TOL:
       qr[i] = 0
     print("%12.8f"%qr[i])
 
   for i in range(len(tau)):
-    if tau[i] <= 1E-14  and tau[i] >= -1E-14:
+    if tau[i] <= TOL  and tau[i] >= -TOL:
       tau[i] = 0
     print("%12.8f"%tau[i])
 
@@ -102,13 +103,13 @@ def test_304(ceed_resource, capsys):
   print("Q: ")
   for i in range(4):
     for j in range(4):
-      if A[j+4*i] <= 1E-14 and A[j+4*i] >= -1E-14:
+      if A[j+4*i] <= TOL and A[j+4*i] >= -TOL:
          A[j+4*i] = 0
       print("%12.8f"%A[j+4*i])
 
   print("lambda: ")
   for i in range(4):
-    if lam[i] <= 1E-14 and lam[i] >= -1E-14:
+    if lam[i] <= TOL and lam[i] >= -TOL:
       lam[i] = 0
     print("%12.8f"%lam[i])
 
@@ -138,13 +139,13 @@ def test_305(ceed_resource, capsys):
   print("x: ")
   for i in range(4):
     for j in range(4):
-      if x[j+4*i] <= 1E-14 and x[j+4*i] >= -1E-14:
+      if x[j+4*i] <= TOL and x[j+4*i] >= -TOL:
         x[j+4*i] = 0
       print("%12.8f"%x[j+4*i])
 
   print("lambda: ")
   for i in range(4):
-    if lam[i] <= 1E-14 and lam[i] >= -1E-14:
+    if lam[i] <= TOL and lam[i] >= -TOL:
       lam[i] = 0
     print("%12.8f"%lam[i])
 
