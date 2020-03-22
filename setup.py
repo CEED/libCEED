@@ -38,7 +38,7 @@ class libceed_build_ext(build_ext):
 
     def make_libceed_so(self):
         import subprocess
-        subprocess.check_call(['make', '-j', 'MARCHFLAG=-march=generic', '-B'])
+        subprocess.check_call(['make', '-j', '-B'])
         subprocess.check_call(['make', 'install', 'prefix=' + os.path.join(self.build_lib, 'libceed')])
 
 description = """
