@@ -113,7 +113,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
     if (!meshFileFlag) {
       SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-mesh option needed (file)");
     }
-    if (!(appCtx->bcZeroCount + appCtx->bcClampCount)) {
+    if (!(appCtx->bcZeroCount + appCtx->bcClampCount) &&
+        appCtx->forcingChoice != FORCE_MMS) {
       SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-boundary options needed");
     }
   } else {
