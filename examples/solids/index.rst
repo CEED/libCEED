@@ -16,7 +16,7 @@ The strong form of the static balance of linear momentum at small strain for the
 
 .. math::
    :label: lin-elas
-   
+
    \nabla \cdot \boldsymbol{\sigma} + \boldsymbol{g} = \boldsymbol{0} 
 
 
@@ -314,33 +314,60 @@ Newton linearization
 To derive a Newton linearization of :math:numref:`hyperelastic-weak-form`, we begin by expressing the derivative of :math:numref:`1st2nd` in incremental form,
 
 .. math::
-   :label: eq-delta-P
+   :label: eq-diff-P
 
-   \delta \bm P = \frac{\partial \bm P}{\partial \bm F} \!:\! \delta \bm F = \delta \bm F\, \bm S + \bm F \underbrace{\frac{\partial \bm S}{\partial \bm E} \!:\! \delta \bm E}_{\delta \bm S}
+   \diff \bm P = \frac{\partial \bm P}{\partial \bm F} \!:\! \diff \bm F = \diff \bm F\, \bm S + \bm F \underbrace{\frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E}_{\diff \bm S}
 
 where
 
 .. math::
-   \delta \bm E = \frac{\partial \bm E}{\partial \bm F} \!:\! \delta \bm F = \frac 1 2 \Big( \delta \bm F^T \bm F + \bm F^T \delta \bm F \Big).
+   \diff \bm E = \frac{\partial \bm E}{\partial \bm F} \!:\! \diff \bm F = \frac 1 2 \Big( \diff \bm F^T \bm F + \bm F^T \diff \bm F \Big).
 
 The quantity :math:`\frac{\partial \bm S}{\partial \bm E}` is known as the incremental elasticity tensor, and is analogous to the linear elasticity tensor :math:`\mathsf C` of :math:numref:`linear-elasticity-tensor`.
-We now evaluate :math:`\delta \bm S` for the Neo-Hookean model :math:numref:`neo-hookean-stress`,
+We now evaluate :math:`\diff \bm S` for the Neo-Hookean model :math:numref:`neo-hookean-stress`,
 
 .. math::
    :label: eq-neo-hookean-incremental-stress
 
-   \frac{\partial \bm S}{\partial \bm E} \!:\! \delta \bm E
-   = \lambda (\bm C^{-1} \!:\! \delta\bm E) \bm C^{-1}
-     + 2 (\mu - \lambda \log J) \bm C^{-1} \delta\bm E \, \bm C^{-1},
+   \diff\bm S = \frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E
+   = \lambda (\bm C^{-1} \!:\! \diff\bm E) \bm C^{-1}
+     + 2 (\mu - \lambda \log J) \bm C^{-1} \diff\bm E \, \bm C^{-1},
 
 where we have used
 
 .. math::
-   \delta \bm C^{-1} = \frac{\partial \bm C^{-1}}{\partial \bm E} \!:\! \delta\bm E
-   = -2 \bm C^{-1} \delta \bm E \, \bm C^{-1} .
+   \diff \bm C^{-1} = \frac{\partial \bm C^{-1}}{\partial \bm E} \!:\! \diff\bm E
+   = -2 \bm C^{-1} \diff \bm E \, \bm C^{-1} .
 
 .. note::
    In the small-strain limit, :math:`\bm C \to \bm I_3` and :math:`\log J \to 0`, thereby reducing :math:numref:`eq-neo-hookean-incremental-stress` to the St. Venant-Kirchoff model :math:numref:`eq-st-venant-kirchoff`.
+
+.. note::
+   Some cancellation is possible (at the expense of symmetry) if we substitute :math:numref:`eq-neo-hookean-incremental-stress` into :math:numref:`eq-diff-P`,
+
+   .. math::
+      :label: eq-diff-P-dF
+
+      \begin{aligned}
+      \diff \bm P &= \diff \bm F\, \bm S
+        + \lambda (\bm C^{-1} : \diff \bm E) \bm F^{-T} + 2(\mu - \lambda \log J) \bm F^{-T} \diff\bm E \, \bm C^{-1} \\
+      &= \diff \bm F\, \bm S
+        + \lambda (\bm F^{-T} : \diff \bm F) \bm F^{-T} + (\mu - \lambda \log J) \bm F^{-T} (\bm F^T \diff \bm F + \diff \bm F^T \bm F) \bm C^{-1} \\
+      &= \diff \bm F\, \bm S
+        + \lambda (\bm F^{-T} : \diff \bm F) \bm F^{-T} + (\mu - \lambda \log J) \Big( \diff \bm F\, \bm C^{-1} + \bm F^{-T} \diff \bm F^T \bm F^{-T} \Big),
+      \end{aligned}
+
+   where we have exploited :math:`\bm F \bm C^{-1} = \bm F^{-T}` and
+
+   .. math::
+      \begin{aligned}
+      \bm C^{-1} \!:\! \diff \bm E = \bm C_{IJ}^{-1} \diff \bm E_{IJ}
+      &= \frac 1 2 \bm F_{Ik}^{-1} \bm F_{Jk}^{-1} (\bm F_{\ell I} \diff \bm F_{\ell J} + \diff \bm F_{\ell I} \bm F_{\ell J}) \\
+      &= \frac 1 2 \Big( \delta_{\ell k} \bm F_{Jk}^{-1} \diff \bm F_{\ell J} + \delta_{\ell k} \bm F_{Ik}^{-1} \diff \bm F_{\ell I} \Big) \\
+      &= \bm F_{Ik}^{-1} \diff \bm F_{kI} = \bm F^{-T} \!:\! \diff \bm F.
+      \end{aligned}
+
+   We prefer to compute with :math:numref:`eq-neo-hookean-incremental-stress` because :math:numref:`eq-diff-P-dF` is more expensive, requiring access to (nonsymmetric) :math:`\bm F^{-1}` in addition to (symmetric) :math:`\bm C^{-1} = \bm F^{-1} \bm F^{-T}`, having fewer symmetries to exploit in contractions, and being less numerically stable.
 
 It is sometimes useful to express :math:numref:`eq-neo-hookean-incremental-stress` in index notation,
 
@@ -348,20 +375,23 @@ It is sometimes useful to express :math:numref:`eq-neo-hookean-incremental-stres
    :label: eq-neo-hookean-incremental-stress-index
 
    \begin{aligned}
-   \delta\bm S_{IJ} &= \frac{\partial \bm S_{IJ}}{\partial \bm E_{KL}} \delta \bm E_{KL} \\
-     &= \lambda (\bm C^{-1}_{KL} \delta\bm E_{KL}) \bm C^{-1}_{IJ} + 2 (\mu - \lambda \log J) \bm C^{-1}_{IK} \delta\bm E_{KL} \bm C^{-1}_{LJ} \\
-     &= \underbrace{\Big( \lambda \bm C^{-1}_{IJ} \bm C^{-1}_{KL} + 2 (\mu - \lambda \log J) \bm C^{-1}_{IK} \bm C^{-1}_{JL} \Big)}_{\mathsf C_{IJKL}} \delta \bm E_{KL} \,,
+   \diff\bm S_{IJ} &= \frac{\partial \bm S_{IJ}}{\partial \bm E_{KL}} \diff \bm E_{KL} \\
+     &= \lambda (\bm C^{-1}_{KL} \diff\bm E_{KL}) \bm C^{-1}_{IJ} + 2 (\mu - \lambda \log J) \bm C^{-1}_{IK} \diff\bm E_{KL} \bm C^{-1}_{LJ} \\
+     &= \underbrace{\Big( \lambda \bm C^{-1}_{IJ} \bm C^{-1}_{KL} + 2 (\mu - \lambda \log J) \bm C^{-1}_{IK} \bm C^{-1}_{JL} \Big)}_{\mathsf C_{IJKL}} \diff \bm E_{KL} \,,
    \end{aligned}
 
 where we have identified the effective elasticity tensor :math:`\mathsf C = \mathsf C_{IJKL}`.
 It is generally not desirable to store :math:`\mathsf C`, but rather to use the earlier expressions so that only :math:`3\times 3` tensors (most of which are symmetric) must be manipulated.
-That is, given the linearization point :math:`\bm F` and solution increment :math:`\delta \bm F = \nabla_X (\delta \bm u)` (which we are solving for in the Newton step), we compute :math:`\delta \bm P` via
+That is, given the linearization point :math:`\bm F` and solution increment :math:`\diff \bm F = \nabla_X (\diff \bm u)` (which we are solving for in the Newton step), we compute :math:`\diff \bm P` via
 
 #. recover :math:`\bm C^{-1}` and :math:`\log J` (either stored at quadrature points or recomputed),
-#. proceed with :math:`3\times 3` matrix products as in :math:numref:`eq-neo-hookean-incremental-stress` or the second line of :math:numref:`eq-neo-hookean-incremental-stress-index` to compute :math:`\delta \bm S` while avoiding computation or storage of higher order tensors, and
-#. conclude by :math:numref:`eq-delta-P`, where :math:`\bm S` is either stored or recomputed from its definition exactly as in the nonlinear residual evaluation.
+#. proceed with :math:`3\times 3` matrix products as in :math:numref:`eq-neo-hookean-incremental-stress` or the second line of :math:numref:`eq-neo-hookean-incremental-stress-index` to compute :math:`\diff \bm S` while avoiding computation or storage of higher order tensors, and
+#. conclude by :math:numref:`eq-diff-P`, where :math:`\bm S` is either stored or recomputed from its definition exactly as in the nonlinear residual evaluation.
 
 .. note::
    The decision of whether to recompute or store functions of the current state :math:`\bm F` depend on a roofline analysis :cite:`williams2009roofline,Brown:2010` of the computation and the cost of the constitutive model.
    For low-order elements where flops tend to be in surplus relative to memory bandwidth, recomputation is likely to be preferable, where as the opposite may be true for high-order elements.
    Similarly, analysis with a simple constitutive model may see better performance while storing little or nothing while an expensive model such as Arruda-Boyce :cite:`arruda1993largestretch`, which contains many special functions, may be faster when using more storage to avoid recomputation.
+   In the case where complete linearization is preferred, note the symmetry :math:`\mathsf C_{IJKL} = \mathsf C_{KLIJ}` evident in :math:numref:`eq-neo-hookean-incremental-stress-index`, thus :math:`\mathsf C` can be stored as a symmetric :math:`6\times 6` matrix, which has 21 unique entries.
+   Along with 6 entries for :math:`\bm S`, this totals 27 entries of overhead compared to computing everything from :math:`\bm F`.
+   This compares with 13 entries of overhead for direct storage of :math:`\{ \bm S, \bm C^{-1}, \log J \}`, which is sufficient for the Neo-Hookean model to avoid all but matrix products.
