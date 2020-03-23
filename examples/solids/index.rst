@@ -27,8 +27,7 @@ Integrating by parts on the divergence term, we arrive at the weak form the of e
 
    \int_{\Omega}{ \nabla \boldsymbol{v} \colon \boldsymbol{\sigma}} dV - \int_{d\Omega}{\boldsymbol{v} \cdot \left(\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}}\right)} dS + \int_{\Omega}{\boldsymbol{v} \cdot \boldsymbol{g}} dV = 0
 
-where :math:`\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}}` is typically
-replaced with a boundary condition.
+where :math:`\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}}` is typically replaced with a boundary condition.
 
 The constitutive law (stress-strain relationship) is given by:
 
@@ -44,7 +43,7 @@ where
 
    \boldsymbol{\epsilon} = \dfrac{1}{2}\left(\nabla \boldsymbol{u} + \nabla \boldsymbol{u}^T \right)
 
-is the symmetric (small/infinitesimal) strain tensor and the colon represent a double contraction, as we now explain.
+is the symmetric (small/infinitesimal) strain tensor and the colon represents a double contraction.
 For notational convenience, we express the symmetric second order tensors :math:`\bm \sigma` and :math:`\bm \epsilon` as vectors of length 6 using the `Voigt notation <https://en.wikipedia.org/wiki/Voigt_notation>`_.
 Hence, the fourth order elasticity tensor :math:`\mathsf C` (also known as elastic moduli tensor or material stiffness tensor) can be represented as a :math:`6\times 6` symmetric matrix
 
@@ -106,7 +105,8 @@ follows:
    \boldsymbol{\sigma} = \lambda \ln(1 + \boldsymbol{\epsilon_v)} \boldsymbol{I}_3 + 2\mu \boldsymbol{\epsilon}
 
 where :math:`\boldsymbol{\epsilon}` is defined as in :math:numref:`small-strain`.
-The trace of the strain tensor, also known as the *volumetric strain* and denoted by :math:`\boldsymbol{\epsilon}_v`, in three dimensions is :math:`\boldsymbol{\epsilon}_v = \boldsymbol{\epsilon}_{11} + \boldsymbol{\epsilon}_{22} + \boldsymbol{\epsilon}_{33}`.
+The trace of the strain tensor, also known as the *volumetric strain*, is denoted by :math:`\boldsymbol{\epsilon}_v = \Sum_i \boldsymbol{\epsilon}_{ii}`.
+
 To easily represent spatial derivatives, we rewrite equation :math:numref:`clss` in indicial notation:
 
 .. math::
@@ -172,8 +172,7 @@ In this formulation, we solve for displacement :math:`\bm u(\bm X)` in the refer
 The notation for elasticity at finite strain is inspired by :cite:`holzapfel2000nonlinear` to distinguish between the current and reference configurations.
 As explained in the :ref:`Common notation` section, we denote by capital letters the reference frame and by small letters the current one.
 
-The strong form of the static balance of linear-momentum at
-*Finite Strain* (total Lagrangian) is given by:
+The strong form of the static balance of linear-momentum at *Finite Strain* (total Lagrangian) is given by:
 
 .. math::
    :label: sblFinS
@@ -181,9 +180,10 @@ The strong form of the static balance of linear-momentum at
    \nabla_X \cdot \boldsymbol{P} + \rho_0 \boldsymbol{g} = \boldsymbol{0}
  
 where the :math:`_X` in :math:`\nabla_X` indicates that the gradient is calculated with respect to the reference configuration in the finite strain regime.
-:math:`\boldsymbol{P}` and :math:`\boldsymbol{g}` are the *first Piola-Kirchhoff stress* tensor and the prescribed forcing, function, respectively.
+:math:`\boldsymbol{P}` and :math:`\boldsymbol{g}` are the *first Piola-Kirchhoff stress* tensor and the prescribed forcing function, respectively.
 :math:`\rho_0` is known as the *reference* mass density.
 The tensor :math:`\bm P` is not symmetric, living in the current configuration on the left and the reference configuration on the right.
+
 :math:`\boldsymbol{P}` can be decomposed as
 
 .. math::
@@ -213,8 +213,8 @@ and the Green-Lagrange strain tensor
    \bm E = \frac 1 2 (\bm C - \bm I_3) = \frac 1 2 \Big( \nabla_X \bm u + (\nabla_X \bm u)^T + (\nabla_X \bm u)^T \nabla_X \bm u \Big),
 
 the latter of which converges to the linear strain tensor :math:`\bm \epsilon` in the small-deformation limit.
-The constitutive models considered, appropriate for large deformations, express :math:`\bm S` as a function of :math:`\bm E`, similar to the linear case, showed in equation  :math:numref:`linear-stress-strain`, which  expresses the relationship between :math:`\bm\sigma` and :math:`\bm\epsilon`.
-This constitutive model :math:`\bm S(\bm E)` is a nonlinear tensor-valued function of a tensor-valued input, but an arbitrary choice of such a function will generally not be invariant under orthogonal transformations, thus will not admissible because a physical model must not depend on the coordinate system chosen to express it.
+The constitutive models considered, appropriate for large deformations, express :math:`\bm S` as a function of :math:`\bm E`, similar to the linear case, shown in equation  :math:numref:`linear-stress-strain`, which  expresses the relationship between :math:`\bm\sigma` and :math:`\bm\epsilon`.
+This constitutive model :math:`\bm S(\bm E)` is a nonlinear tensor-valued function of a tensor-valued input, but an arbitrary choice of such a function will generally not be invariant under orthogonal transformations and thus will not admissible as a physical model must not depend on the coordinate system chosen to express it.
 In particular, given an orthogonal transformation :math:`Q`, we desire
 
 .. math::
@@ -238,8 +238,8 @@ Here, we focus on an important subset of them known as hyperelastic materials, f
       \gamma(\bm E) = \gamma(Q \bm E Q^T)
 
 for all orthogonal matrices :math:`Q`.
-Consequently, we may assume without loss of generality that :math:`\bm E` is diagonal, and take its set of eigenvalues as the invariants.
-It is clear that there can be only three invariants, and there are many alternate choices, such as    :math:`\operatorname{trace}(\bm E), \operatorname{trace}(\bm E^2), \lvert \bm E \rvert`, and combinations thereof.
+Consequently, we may assume without loss of generality that :math:`\bm E` is diagonal and take its set of eigenvalues as the invariants.
+It is clear that there can be only three invariants, and there are many alternate choices, such as :math:`\operatorname{trace}(\bm E), \operatorname{trace}(\bm E^2), \lvert \bm E \rvert`, and combinations thereof.
 It is common in the literature for invariants to be taken from :math:`\bm C = \bm I_3 + 2 \bm E` instead of :math:`\bm E`.
 
 For example, if we take the compressible Neo-Hookean model,
@@ -287,13 +287,14 @@ This model can be used for geometrically nonlinear mechanics (e.g., snap-through
 Weak form
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It is crucial to distinguish between the current and reference element in the Total Lagrangian Finite Strain regime.
+It is crucial to distinguish between the current and reference element in the *total Lagrangian* Finite Strain regime.
 
 .. math::
 
     \int_{\Omega}{\boldsymbol{v} \cdot \left(\nabla_X \cdot \boldsymbol{P} + \rho_0 \boldsymbol{g}\right)} dV = \boldsymbol{0}
 
-Integrating by parts, we arrive at the weak form: find :math:`\bm u \in \mathcal V \equiv H^1(\Omega_0)` such that
+Integrating by parts, we arrive at the weak form:
+find :math:`\bm u \in \mathcal V \equiv H^1(\Omega_0)` such that
 
 .. math::
    :label: hyperelastic-weak-form
