@@ -25,8 +25,8 @@
 #define PHYSICS_STRUCT
 typedef struct Physics_private *Physics;
 struct Physics_private {
-  CeedScalar   nu;      // Poisson's ratio
-  CeedScalar   E;       // Young's Modulus
+  PetscScalar   nu;      // Poisson's ratio
+  PetscScalar   E;       // Young's Modulus
 };
 #endif
 
@@ -35,17 +35,17 @@ CEED_QFUNCTION(HyperSSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                          CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*ug)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])in[0],
-                   (*qdata)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar (*ug)[3][Q] = (CeedScalar(*)[3][Q])in[0],
+                   (*qdata)[Q] = (CeedScalar(*)[Q])in[1];
 
   // Outputs
-  CeedScalar (*dvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
+  CeedScalar (*dvdX)[3][Q] = (CeedScalar(*)[3][Q])out[0];
   // Store gradu for HyperFSdF (Jacobian of HyperFSF)
-  CeedScalar (*gradu)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
+  CeedScalar (*gradu)[3][Q] = (CeedScalar(*)[3][Q])out[1];
   // *INDENT-ON*
 
   // Context
-  const Physics context = (Physics)ctx;
+  const Physics context = ctx;
   const CeedScalar E  = context->E;
   const CeedScalar nu = context->nu;
 
@@ -86,28 +86,28 @@ CEED_QFUNCTION(HyperSSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // Compute gradu
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to du = gradu
-    for (CeedInt j = 0; j < 3; j++)     // Component
-      for (CeedInt k = 0; k < 3; k++) { // Derivative
+    for (int j = 0; j < 3; j++)     // Component
+      for (int k = 0; k < 3; k++) { // Derivative
         gradu[j][k][i] = 0;
-        for (CeedInt m = 0; m < 3; m++)
+        for (int m = 0; m < 3; m++)
           gradu[j][k][i] += dXdx[m][k] * du[j][m];
       }
 
     // Compute Strain : e (epsilon)
     // e = 1/2 (grad u + (grad u)^T)
+    const CeedScalar e00 = (gradu[0][0][i] + gradu[0][0][i])/2.,
+                     e01 = (gradu[0][1][i] + gradu[1][0][i])/2.,
+                     e02 = (gradu[0][2][i] + gradu[2][0][i])/2.,
+                     e11 = (gradu[1][1][i] + gradu[1][1][i])/2.,
+                     e12 = (gradu[1][2][i] + gradu[2][1][i])/2.,
+                     e22 = (gradu[2][2][i] + gradu[2][2][i])/2.;
     // *INDENT-OFF*
-    const CeedScalar e[3][3] =  {{(gradu[0][0][i] + gradu[0][0][i])*0.5,
-                                  (gradu[0][1][i] + gradu[1][0][i])*0.5,
-                                  (gradu[0][2][i] + gradu[2][0][i])*0.5},
-                                 {(gradu[1][0][i] + gradu[0][1][i])*0.5,
-                                  (gradu[1][1][i] + gradu[1][1][i])*0.5,
-                                  (gradu[1][2][i] + gradu[2][1][i])*0.5},
-                                 {(gradu[2][0][i] + gradu[0][2][i])*0.5,
-                                  (gradu[2][1][i] + gradu[1][2][i])*0.5,
-                                  (gradu[2][2][i] + gradu[2][2][i])*0.5}
+    const CeedScalar e[3][3] =  {{e00, e01, e02},
+                                 {e01, e11, e12},
+                                 {e02, e12, e22}
                                 };
-
     // *INDENT-ON*
+    
     // strain (epsilon)
     //    and
     // stress (sigma) in Voigt notation:
@@ -143,10 +143,10 @@ CEED_QFUNCTION(HyperSSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // Apply dXdx^T and weight to sigma
-    for (CeedInt j = 0; j < 3; j++)     // Component
-      for (CeedInt k = 0; k < 3; k++) { // Derivative
+    for (int j = 0; j < 3; j++)     // Component
+      for (int k = 0; k < 3; k++) { // Derivative
         dvdX[k][j][i] = 0;
-        for (CeedInt m = 0; m < 3; m++)
+        for (int m = 0; m < 3; m++)
           dvdX[k][j][i] += dXdx[k][m] * sigma[j][m] * wJ;
       }
 
@@ -160,17 +160,17 @@ CEED_QFUNCTION(HyperSSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                           CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*deltaug)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])in[0],
-                   (*qdata)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar (*deltaug)[3][Q] = (CeedScalar(*)[3][Q])in[0],
+                   (*qdata)[Q] = (CeedScalar(*)[Q])in[1];
   // gradu is used for hyperelasticity (non-linear)
-  const CeedScalar (*gradu)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])in[2];
+  const CeedScalar (*gradu)[3][Q] = (CeedScalar(*)[3][Q])in[2];
 
   // Outputs
-  CeedScalar (*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
+  CeedScalar (*deltadvdX)[3][Q] = (CeedScalar(*)[3][Q])out[0];
   // *INDENT-ON*
 
   // Context
-  const Physics context = (Physics)ctx;
+  const Physics context = ctx;
   const CeedScalar E  = context->E;
   const CeedScalar nu = context->nu;
 
@@ -211,28 +211,28 @@ CEED_QFUNCTION(HyperSSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // Compute graddeltau
     // Apply dXdx^-1 to deltadu = graddeltau
     CeedScalar graddeltau[3][3];
-    for (CeedInt j = 0; j < 3; j++)     // Component
-      for (CeedInt k = 0; k < 3; k++) { // Derivative
+    for (int j = 0; j < 3; j++)     // Component
+      for (int k = 0; k < 3; k++) { // Derivative
         graddeltau[j][k] = 0;
-        for (CeedInt m = 0; m < 3; m++)
+        for (int m = 0; m < 3; m++)
           graddeltau[j][k] += dXdx[m][k] * deltadu[j][m];
       }
 
     // Compute Strain : e (epsilon)
     // e = 1/2 (grad u + (grad u)^T)
+    const CeedScalar de00 = (graddeltau[0][0] + graddeltau[0][0])/2.,
+                     de01 = (graddeltau[0][1] + graddeltau[1][0])/2.,
+                     de02 = (graddeltau[0][2] + graddeltau[2][0])/2.,
+                     de11 = (graddeltau[1][1] + graddeltau[1][1])/2.,
+                     de12 = (graddeltau[1][2] + graddeltau[2][1])/2.,
+                     de22 = (graddeltau[2][2] + graddeltau[2][2])/2.;
     // *INDENT-OFF*
-    const CeedScalar de[3][3]     =  {{(graddeltau[0][0] + graddeltau[0][0])*0.5,
-                                       (graddeltau[0][1] + graddeltau[1][0])*0.5,
-                                       (graddeltau[0][2] + graddeltau[2][0])*0.5},
-                                      {(graddeltau[1][0] + graddeltau[0][1])*0.5,
-                                       (graddeltau[1][1] + graddeltau[1][1])*0.5,
-                                       (graddeltau[1][2] + graddeltau[2][1])*0.5},
-                                      {(graddeltau[2][0] + graddeltau[0][2])*0.5,
-                                       (graddeltau[2][1] + graddeltau[1][2])*0.5,
-                                       (graddeltau[2][2] + graddeltau[2][2])*0.5}
-                                     };
-
+    const CeedScalar de[3][3] =  {{de00, de01, de02},
+                                  {de01, de11, de12},
+                                  {de02, de12, de22}
+                                 };
     // *INDENT-ON*
+    
     //strain (epsilon)
     //    and
     //stress (sigma) in Voigt notation:
@@ -280,10 +280,10 @@ CEED_QFUNCTION(HyperSSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // Apply dXdx^-T and weight
-    for (CeedInt j = 0; j < 3; j++)     // Component
-      for (CeedInt k = 0; k < 3; k++) { // Derivative
+    for (int j = 0; j < 3; j++)     // Component
+      for (int k = 0; k < 3; k++) { // Derivative
         deltadvdX[k][j][i] = 0;
-        for (CeedInt m = 0; m < 3; m++)
+        for (int m = 0; m < 3; m++)
           deltadvdX[k][j][i] += dXdx[k][m] * dsigma[j][m] * wJ;
       }
 
