@@ -105,7 +105,7 @@ follows:
    \boldsymbol{\sigma} = \lambda \ln(1 + \boldsymbol{\epsilon_v)} \boldsymbol{I}_3 + 2\mu \boldsymbol{\epsilon}
 
 where :math:`\boldsymbol{\epsilon}` is defined as in :math:numref:`small-strain`.
-The trace of the strain tensor, also known as the *volumetric strain*, is denoted by :math:`\boldsymbol{\epsilon}_v = \Sum_i \boldsymbol{\epsilon}_{ii}`.
+The trace of the strain tensor, also known as the *volumetric strain*, is denoted by :math:`\boldsymbol{\epsilon}_v = \sum_i \boldsymbol{\epsilon}_{ii}`.
 
 To easily represent spatial derivatives, we rewrite equation :math:numref:`clss` in indicial notation:
 
