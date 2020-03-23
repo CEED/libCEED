@@ -160,7 +160,7 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // Compute the Second Piola-Kirchhoff (S)
-    const CeedScalar llnj_m = lambda*log(detF)-mu;
+    const CeedScalar llnj_m = lambda*log(detF) - mu;
     const CeedScalar S00 = mu + llnj_m*C_inv[0][0], S01 = llnj_m*C_inv[0][1],
                      S02 = llnj_m*C_inv[0][2], S11 = mu + llnj_m*C_inv[1][1],
                      S12 = llnj_m*C_inv[1][2], S22 = mu + llnj_m*C_inv[2][2];
@@ -249,47 +249,35 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
     // Compute graddeltau
     //   dXdx = (dx/dX)^(-1)
-    // Apply dXdx to deltadu = graddeltau (9x1 vector [u1,x  u2,x  u3,x  u1,y ....]) to multiply by reshaped 9x9 dPdF
-    CeedScalar graddeltau[9];
+    // Apply dXdx to deltadu = graddelta
+    CeedScalar graddeltau[3][3];
     for (CeedInt j = 0; j < 3; j++)     // Component
       for (CeedInt k = 0; k < 3; k++) { // Derivative
-        graddeltau[3*j+k] = 0;
+        graddeltau[j][k] = 0;
         for (CeedInt m =0 ; m < 3; m++)
-          graddeltau[3*j+k] += dXdx[m][k] * deltadu[j][m];
+          graddeltau[j][k] += dXdx[m][k] * deltadu[j][m];
       }
 
     // I3 : 3x3 Identity matrix
     // Compute The Deformation Gradient : F = I3 + gradu
     // *INDENT-OFF*
-    const CeedScalar F[3][3] =  {{gradu[0][0][i] + 1,
-                                  gradu[0][1][i],
-                                  gradu[0][2][i]},
-                                 {gradu[1][0][i],
-                                  gradu[1][1][i] + 1,
-                                  gradu[1][2][i]},
-                                 {gradu[2][0][i],
-                                  gradu[2][1][i],
-                                  gradu[2][2][i] + 1}
-                                };
+    const CeedScalar F[3][3] =      {{gradu[0][0][i] + 1,
+                                      gradu[0][1][i],
+                                      gradu[0][2][i]},
+                                     {gradu[1][0][i],
+                                      gradu[1][1][i] + 1,
+                                      gradu[1][2][i]},
+                                     {gradu[2][0][i],
+                                      gradu[2][1][i],
+                                      gradu[2][2][i] + 1}
+                                    };
     // *INDENT-ON*
 
     // Compute the F_inv componets and det(F)
     const CeedScalar Fa00 = F[1][1]*F[2][2] - F[1][2]*F[2][1];
     const CeedScalar Fa01 = F[0][2]*F[2][1] - F[0][1]*F[2][2];
     const CeedScalar Fa02 = F[0][1]*F[1][2] - F[0][2]*F[1][1];
-    const CeedScalar Fa10 = F[1][2]*F[2][0] - F[1][0]*F[2][2];
-    const CeedScalar Fa11 = F[0][0]*F[2][2] - F[0][2]*F[2][0];
-    const CeedScalar Fa12 = F[0][2]*F[1][0] - F[0][0]*F[1][2];
-    const CeedScalar Fa20 = F[1][0]*F[2][1] - F[1][1]*F[2][0];
-    const CeedScalar Fa21 = F[0][1]*F[2][0] - F[0][0]*F[2][1];
-    const CeedScalar Fa22 = F[0][0]*F[1][1] - F[0][1]*F[1][0];
     const CeedScalar detF = F[0][0]*Fa00 + F[1][0]*Fa01 + F[2][0]*Fa02;
-    // *INDENT-OFF*
-    const CeedScalar F_inv[3][3] = {{Fa00/detF, Fa01/detF, Fa02/detF},
-                                    {Fa10/detF, Fa11/detF, Fa12/detF},
-                                    {Fa20/detF, Fa21/detF, Fa22/detF}
-                                   };
-    // *INDENT-ON*
 
     // C : right Cauchy-Green tensor
     // C = F^T * F (^T  means Transpose)
@@ -323,8 +311,18 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                    };
     // *INDENT-ON*
 
+    // deltaE - delta Green-Lagrange strain tensor
+    CeedScalar deltaE[3][3];
+    for (CeedInt j = 0; j < 3; j++)
+      for (CeedInt k = 0; k < 3; k++) {
+        deltaE[j][k] = 0;
+        for (CeedInt m = 0; m < 3; m++)
+          deltaE[j][k] += (graddeltau[m][j]*F[m][k] +
+                           F[m][j]*graddeltau[m][k])/2.;
+      }
+
     // Compute the Second Piola-Kirchhoff (S)
-    const CeedScalar llnj_m = lambda*log(detF)-mu;
+    const CeedScalar llnj_m = lambda*log(detF) - mu;
     const CeedScalar S00 = mu + llnj_m*C_inv[0][0], S01 = llnj_m*C_inv[0][1],
                      S02 = llnj_m*C_inv[0][2], S11 = mu + llnj_m*C_inv[1][1],
                      S12 = llnj_m*C_inv[1][2], S22 = mu + llnj_m*C_inv[2][2];
@@ -335,32 +333,32 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                          };
     // *INDENT-ON*
 
-    // dPdF is indexed as an array of 81  elements
-    CeedScalar dPdF[81];
+    // deltaS = dSdE:deltaE
+    CeedScalar deltaS[3][3];
     for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt J = 0; J < 3; J++)
-        for (CeedInt a = 0; a < 3; a++)
-          for (CeedInt A = 0; A < 3; A++)
-            dPdF[27*j+9*J+3*a+A] = (a == j ? 1 : 0) * (S[A][J]) +
-                                   lambda*F_inv[A][a]*F_inv[J][j]
-                                   - (lambda*log(detF) - mu) *
-                                   (F_inv[A][j]*F_inv[J][a] +
-                                   (a == j ? 1 : 0) * C_inv[A][J]);
-
-    // dPdF is indexed as a 9x9 matrix
-    CeedScalar dPdF_grad_del_u[9];
-    for (CeedInt j = 0; j < 9; j++) {
-       dPdF_grad_del_u[j] = 0.;
-       for (CeedInt k = 0; k < 9; k++)
-          dPdF_grad_del_u[j] += dPdF[9*j+k]* graddeltau[k];
-    }
+      for (CeedInt k = 0; k < 3; k++) {
+        deltaS[j][k] = 0;
+        for (CeedInt m = 0; m < 3; m++)
+          for (CeedInt n = 0; n < 3; n++)
+            deltaS[j][k] += lambda*C_inv[m][n]*deltaE[m][n]*C_inv[j][k] -
+                            2.*llnj_m*C_inv[j][m]*deltaE[m][n]*C_inv[n][k];
+      }
+    
+    // deltaP = dPdF:deltaF = deltaF*S + F*deltaS
+    CeedScalar deltaP[3][3];
+    for (CeedInt j = 0; j < 3; j++)
+      for (CeedInt k = 0; k < 3; k++) {
+        deltaP[j][k] = 0;
+        for (CeedInt m = 0; m < 3; m++)
+          deltaP[j][k] += graddeltau[j][m]*S[m][k] + F[j][m]*deltaS[m][k];
+      }
 
     // Apply dXdx^T and weight
     for (CeedInt j = 0; j < 3; j++)     // Component
       for (CeedInt k = 0; k < 3; k++) { // Derivative
         deltadvdX[k][j][i] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          deltadvdX[k][j][i] += dXdx[k][m] * dPdF_grad_del_u[3*j+m] * wJ;
+          deltadvdX[k][j][i] += dXdx[k][m] * deltaP[j][m] * wJ;
       }
 
     } // End of Quadrature Point Loop
