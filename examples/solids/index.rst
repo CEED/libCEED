@@ -374,25 +374,3 @@ That is, given the linearization point :math:`\bm F` and solution increment :mat
    The decision of whether to recompute or store functions of the current state :math:`\bm F` depend on a roofline analysis :cite:`williams2009roofline,Brown:2010` of the computation and the cost of the constitutive model.
    For low-order elements where flops tend to be in surplus relative to memory bandwidth, recomputation is likely to be preferable, where as the opposite may be true for high-order elements.
    Similarly, analysis with a simple constitutive model may see better performance while storing little or nothing while an expensive model such as Arruda-Boyce :cite:`arruda1993largestretch`, which contains many special functions, may be faster when using more storage to avoid recomputation.
-
-Arash's index notation
-""""""""""""""""""""""
-
-.. math::
-   :label: mtfs
-
-   \frac{\partial \bm S}{\partial \bm E} \delta \bm E = \bm S + \left[ \lambda \bm F^{-1} \otimes \bm F^{-1} \left(\lambda \log(J) - \mu \right) \left(\bm F^{-1} \otimes \bm F^{-1} + \bm I_3 \odot \bm C^{-1} \right) \right]
-  
-Equations :math:numref:`1st2nd` and :math:numref:`mtfs`  may be expressed in indicial notation, respectively, as:
-
-.. math::
-
-   P_{iI} = F_{iB}S_{BI}\, ,
-
-and
-
-.. math::
-   :label: mtfsIndicial
-
-   \frac{\partial P_{iI}}{\partial F_{aA}} = \delta_{ai}S_{AI} + \left[\lambda F_{Aa}^{-1} F_{Ii}^{-1} 
-   -\left( \lambda \log(J) - \mu\right)\left(F_{Ai}^{-1} F_{Ia}^{-1} + \delta_{ai} C^{-1}_{AI}  \right)   \right] \,.
