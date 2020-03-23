@@ -592,11 +592,12 @@ configure :
 	@echo "Configuration cached in $(CONFIG):"
 	@cat $(CONFIG)
 
-wheel : MARCHFLAG = -march=generic
+wheel : export MARCHFLAG = -march=generic
+wheel : export WHEEL_PLAT = manylinux2010_x86_64
 wheel :
 	docker run -it --user $(shell id -u):$(shell id -g) --rm -v $(PWD):/io -w /io \
-		-e "MARCHFLAG=$(MARCHFLAG)" \
-		quay.io/pypa/manylinux2014_x86_64 python/make-wheels.sh
+		-e MARCHFLAG -e WHEEL_PLAT \
+		quay.io/pypa/$(WHEEL_PLAT) python/make-wheels.sh
 
 .PHONY : configure wheel
 
