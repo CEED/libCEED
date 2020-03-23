@@ -166,22 +166,35 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
       ierr = CreateBCLabel(dm, "marker"); CHKERRQ(ierr);
     }
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "marker", 0, 0, NULL,
-                         (void(*)(void))boundaryOptions[appCtx->boundaryChoice],
-                         1, marker_ids, NULL); CHKERRQ(ierr);
-  } else {
-    // -- ExodusII mesh
+                         (void(*)(void))BCMMS, 1, marker_ids, NULL);
+    CHKERRQ(ierr);
+  } else if (appCtx->forcingChoice == FORCE_MMS) {
+    // -- ExodusII mesh with MMS
     ierr = DMGetLabelIdIS(dm, name, &faceSetIS); CHKERRQ(ierr);
     ierr = ISGetSize(faceSetIS,&numFaceSets); CHKERRQ(ierr);
     ierr = ISGetIndices(faceSetIS, &faceSetIds); CHKERRQ(ierr);
 
     for (PetscInt faceSet = 0; faceSet < numFaceSets; faceSet++) {
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, NULL, "Face Sets", 0, 0, NULL,
-                           (void(*)(void))boundaryOptions[appCtx->boundaryChoice],
-                           1, &faceSetIds[faceSet],
-                           (void *)(&faceSetIds[faceSet])); CHKERRQ(ierr);
+                           (void(*)(void))BCMMS, 1, &faceSetIds[faceSet],
+                           NULL); CHKERRQ(ierr);
     }
     ierr = ISRestoreIndices(faceSetIS, &faceSetIds); CHKERRQ(ierr);
     ierr = ISDestroy(&faceSetIS); CHKERRQ(ierr);
+  } else {
+    // -- ExodusII mesh with user specified BCs
+    // ---- Zero BCs
+    for (PetscInt faceSet = 0; faceSet < appCtx->bcZeroCount; faceSet++) {
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, NULL, "Face Sets", 0, 0, NULL,
+                           (void(*)(void))BCZero, 1,
+                           &appCtx->bcZeroFaces[faceSet], NULL); CHKERRQ(ierr);
+    }
+    // ---- Clamp BCs
+    for (PetscInt faceSet = 0; faceSet < appCtx->bcClampCount; faceSet++) {
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, NULL, "Face Sets", 0, 0, NULL,
+                           (void(*)(void))BCClamp, 1,
+                           &appCtx->bcClampFaces[faceSet], NULL); CHKERRQ(ierr);
+    }
   }
   ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);

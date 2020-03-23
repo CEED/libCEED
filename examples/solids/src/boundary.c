@@ -22,23 +22,7 @@
 // Note: If additional boundary conditions are added, an update is needed in
 //         elasticity.h for the boundaryOptions variable.
 
-// BCMMS boundary function
-// ss : (sideset)
-// MMS: Boundary corresponding to the Method of Manufactured Solutions
-// Cylinder with a whole in the middle (see figure ..\meshes\surface999-9.png)
-// Also check ..\meshes\cyl-hol.8.jou
-//
-// left:  sideset 999
-// right: sideset 998
-// outer: sideset 997
-// inner: sideset 996
-//
-//   / \-------------------\              y
-//  /   \                   \             |
-// (  O  )                   )      x ____|
-//  \   /                   /              \    Coordinate axis
-//   \ /-------------------/                \ z
-//
+// BCMMS - boundary function
 // Values on all points of the mesh is set based on given solution below
 // for u[0], u[1], u[2]
 PetscErrorCode BCMMS(PetscInt dim, PetscReal loadIncrement,
@@ -57,68 +41,27 @@ PetscErrorCode BCMMS(PetscInt dim, PetscReal loadIncrement,
   PetscFunctionReturn(0);
 };
 
-// BCBend2_ss boundary function
-// ss : (sideset)
-// 2_ss : two sides of the geometry
-// Cylinder with a whole in the middle (see figure ..\meshes\surface999-9.png)
-// Also check ..\meshes\cyl-hol.8.jou
-//
-// left:  sideset 999
-// right: sideset 998
-//
-//   / \-------------------\              y
-//  /   \                   \             |
-// (  O  )                   )      x ____|
-//  \   /                   /              \    Coordinate axis
-//   \ /-------------------/                \ z
-//
-//  0 values on the left side of the cyl-hole (sideset 999)
-// -1 values on y direction of the right side of the cyl-hole (sideset 999)
-PetscErrorCode BCBend2_ss(PetscInt dim, PetscReal loadIncrement,
-                          const PetscReal coords[], PetscInt ncompu,
-                          PetscScalar *u, void *ctx) {
-  PetscInt *faceID = (PetscInt *)ctx;
-
-  PetscFunctionBeginUser;
-
-  switch (*faceID) {
-  case 999:                      // left side of the cyl-hol
-    u[0] = 0;
-    u[1] = 0;
-    u[2] = 0;
-    break;
-  case 998:                      // right side of the cyl-hol
-    u[0] = 0;
-    u[1] = -1.0 * loadIncrement; // bend in the -y direction
-    u[2] = 0;
-    break;
-  }
-
-  PetscFunctionReturn(0);
-};
-
-// BCBend1_ss boundary function
-// ss : (sideset)
-// 1_ss : 1 side (left side) of the geometry
-// Cylinder with a whole in the middle (see figure ..\meshes\surface999-9.png)
-// Also check ..\meshes\cyl-hol.8.jou
-//
-// left: sideset 999
-//
-//   / \-------------------\              y
-//  /   \                   \             |
-// (  O  )                   )      x ____|
-//  \   /                   /              \    Coordinate axis
-//   \ /-------------------/                \ z
-//
-//  0 values on the left side of the cyl-hole (sideset 999)
-PetscErrorCode BCBend1_ss(PetscInt dim, PetscReal loadIncrement,
-                          const PetscReal coords[], PetscInt ncompu,
-                          PetscScalar *u, void *ctx) {
+// BCZero - fix boundary values at zero
+PetscErrorCode BCZero(PetscInt dim, PetscReal loadIncrement,
+                      const PetscReal coords[], PetscInt ncompu,
+                      PetscScalar *u, void *ctx) {
   PetscFunctionBeginUser;
 
   u[0] = 0;
   u[1] = 0;
+  u[2] = 0;
+
+  PetscFunctionReturn(0);
+};
+
+// BCClamp - fix boundary values at fraction of load increment
+PetscErrorCode BCClamp(PetscInt dim, PetscReal loadIncrement,
+                       const PetscReal coords[], PetscInt ncompu,
+                       PetscScalar *u, void *ctx) {
+  PetscFunctionBeginUser;
+
+  u[0] = 0;
+  u[1] = -loadIncrement;
   u[2] = 0;
 
   PetscFunctionReturn(0);

@@ -27,9 +27,6 @@
 // -----------------------------------------------------------------------------
 // Problem options
 // -----------------------------------------------------------------------------
-// Avaliable boundary conditions
-BCFunc *boundaryOptions[3] = {BCBend1_ss, BCBend2_ss, BCMMS};
-
 // Data specific to each problem option
 problemData problemOptions[3] = {
   [ELAS_LIN] = {

@@ -24,11 +24,9 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
   PetscErrorCode ierr;
   PetscBool meshFileFlag = PETSC_FALSE;
   PetscBool degreeFalg   = PETSC_FALSE;
-  PetscBool boundaryFlag = PETSC_FALSE;
   PetscBool ceedFlag     = PETSC_FALSE;
   appCtx->problemChoice  = ELAS_LIN;       // Default - Linear Elasticity
   appCtx->degree         = 3;
-  appCtx->boundaryChoice = BDRY_WALL_NONE; // Related to mesh choice
   appCtx->forcingChoice  = FORCE_NONE;     // Default - no forcing term
 
   PetscFunctionBeginUser;
@@ -74,12 +72,15 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                           (PetscEnum *)&appCtx->forcingChoice, NULL);
   CHKERRQ(ierr);
 
-  ierr = PetscOptionsEnum("-boundary",
-                          "Set Dirichlet (Essential) Boundary option", NULL,
-                          boundaryTypes, (PetscEnum)appCtx->boundaryChoice,
-                          (PetscEnum *)&appCtx->boundaryChoice, &boundaryFlag);
-  CHKERRQ(ierr);
-
+  appCtx->bcZeroCount = 16;
+  ierr = PetscOptionsIntArray("-bc_zero","Face IDs to apply zero Dirichlet BC",
+                              NULL, appCtx->bcZeroFaces, &appCtx->bcZeroCount,
+                              NULL); CHKERRQ(ierr);
+  appCtx->bcClampCount = 16;
+  ierr = PetscOptionsIntArray("-bc_clamp","Face IDs to apply incremental Dirichlet BC",
+                              NULL, appCtx->bcClampFaces, &appCtx->bcClampCount,
+                              NULL); CHKERRQ(ierr);
+  
   appCtx->multigridChoice = MULTIGRID_LOGARITHMIC;
   ierr = PetscOptionsEnum("-multigrid", "Set multigrid type option", NULL,
                           multigridTypes, (PetscEnum)appCtx->multigridChoice,
@@ -112,11 +113,10 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
     if (!meshFileFlag) {
       SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-mesh option needed (file)");
     }
-    if (!boundaryFlag) {
-      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-boundary option needed");
+    if (!(appCtx->bcZeroCount + appCtx->bcClampCount)) {
+      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-boundary options needed");
     }
   } else {
-    appCtx->boundaryChoice = BDRY_MMS;
     appCtx->forcingChoice = FORCE_MMS;
   }
 

@@ -27,9 +27,9 @@
 //
 // Sample runs:
 //
-//     ./elasticity -problem linElas -degree 2 -nu 0.3 -E 1 -forcing mms -boundary mms -mesh ./meshes/cylinder8_672e_4ss_us.exo
-//     ./elasticity -problem hyperSS -ceed /cpu/self -degree 2 -nu 0.3 -E 1 -forcing mms -boundary mms -mesh ./meshes/cylinder8_672e_4ss_us.exo
-//     ./elasticity -problem hyperFS -ceed /gpu/occa -degree 2 -nu 0.3 -E 1 -forcing mms -boundary mms -mesh ./meshes/cylinder8_672e_4ss_us.exo
+//     ./elasticity -problem linElas -degree 2 -nu 0.3 -E 1 -forcing mms -mesh ./meshes/cylinder8_672e_4ss_us.exo
+//     ./elasticity -problem hyperSS -ceed /cpu/self -degree 2 -nu 0.3 -E 1 -forcing mms -mesh ./meshes/cylinder8_672e_4ss_us.exo
+//     ./elasticity -problem hyperFS -ceed /gpu/occa -degree 2 -nu 0.3 -E 1 -forcing mms -mesh ./meshes/cylinder8_672e_4ss_us.exo
 //
 //TESTARGS -ceed {ceed_resource} -test -degree 2 -nu 0.3 -E 1
 
@@ -241,7 +241,6 @@ int main(int argc, char **argv) {
                        "  Problem:\n"
                        "    Problem Name                       : %s\n"
                        "    Forcing Function                   : %s\n"
-                       "    Boundary Condition                 : %s\n"
                        "  Mesh:\n"
                        "    File                               : %s\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
@@ -254,7 +253,6 @@ int main(int argc, char **argv) {
                        "    Number of Levels                   : %d\n",
                        problemTypesForDisp[appCtx->problemChoice],
                        forcingTypesForDisp[appCtx->forcingChoice],
-                       boundaryTypesForDisp[appCtx->boundaryChoice],
                        appCtx->meshFile[0] ? appCtx->meshFile : "Box Mesh",
                        appCtx->degree + 1, appCtx->degree + 1,
                        Ugsz[fineLevel]/ncompu, Ulsz[fineLevel]/ncompu, ncompu,

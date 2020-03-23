@@ -67,27 +67,6 @@ static const char *const forcingTypesForDisp[] = {"None",
                                                   "Manufactured solution"
                                                  };
 
-// Boundary condition options
-typedef enum {
-  BDRY_WALL_NONE = 0, BDRY_WALL_WEIGHT = 1, BDRY_MMS = 2
-} boundaryType;
-static const char *const boundaryTypes[] = {"wall_none",
-                                            "wall_weight",
-                                            "mms",
-                                            "boundaryType","BDRY_",0
-                                           };
-static const char *const boundaryTypesForDisp[] = {"Wall with free end",
-                                                   "Wall with weighted end",
-                                                   "Manufactured solution"
-                                                  };
-
-typedef PetscErrorCode BCFunc(PetscInt, PetscReal, const PetscReal *, PetscInt,
-                              PetscScalar *, void *);
-// Note: These variables should be updated if additional boundary conditions
-//         are added to boundary.c.
-BCFunc BCBend1_ss, BCBend2_ss, BCMMS;
-BCFunc *boundaryOptions[3];
-
 // Multigrid options
 typedef enum {
   MULTIGRID_LOGARITHMIC = 0, MULTIGRID_UNIFORM = 1, MULTIGRID_NONE = 2
@@ -101,6 +80,12 @@ static const char *const multigridTypesForDisp[] = {"P-multigrid, logarithmic co
                                                     "P-multigrind, uniform coarsening",
                                                     "No multigrid"
                                                    };
+
+typedef PetscErrorCode BCFunc(PetscInt, PetscReal, const PetscReal *, PetscInt,
+                              PetscScalar *, void *);
+// Note: These variables should be updated if additional boundary conditions
+//         are added to boundary.c.
+BCFunc BCMMS, BCZero, BCClamp;
 
 // -----------------------------------------------------------------------------
 // Structs
@@ -126,12 +111,13 @@ struct AppCtx_private {
   PetscBool     viewSoln;
   problemType   problemChoice;
   forcingType   forcingChoice;
-  boundaryType  boundaryChoice;
   multigridType multigridChoice;
   PetscInt      degree;
   PetscInt      numLevels;
   PetscInt      *levelDegrees;
   PetscInt      numIncrements;                         // Number of steps
+  PetscInt      bcZeroFaces[16], bcClampFaces[16];
+  PetscInt      bcZeroCount, bcClampCount;
 };
 
 // Problem specific data
@@ -299,65 +285,22 @@ PetscErrorCode GetDiag_Ceed(Mat A, Vec D);
 // -----------------------------------------------------------------------------
 // Boundary Functions
 // -----------------------------------------------------------------------------
-// BCMMS boundary function
-// ss : (sideset)
-// MMS: Boundary corresponding to the Method of Manufactured Solutions
-// Cylinder with a whole in the middle (see figure ..\meshes\surface999-9.png)
-// Also check ..\meshes\cyl-hol.8.jou
-//
-// left:  sideset 999
-// right: sideset 998
-// outer: sideset 997
-// inner: sideset 996
-//
-//   / \-------------------\              y
-//  /   \                   \             |
-// (  O  )                   )      x ____|
-//  \   /                   /              \    Coordinate axis
-//   \ /-------------------/                \ z
-//
+// Note: If additional boundary conditions are added, an update is needed in
+//         elasticity.h for the boundaryOptions variable.
+
+// BCMMS - boundary function
 // Values on all points of the mesh is set based on given solution below
 // for u[0], u[1], u[2]
 PetscErrorCode BCMMS(PetscInt dim, PetscReal loadIncrement,
                      const PetscReal coords[], PetscInt ncompu,
                      PetscScalar *u, void *ctx);
 
-// BCBend2_ss boundary function
-// ss : (sideset)
-// 2_ss : two sides of the geometry
-// Cylinder with a whole in the middle (see figure ..\meshes\surface999-9.png)
-// Also check ..\meshes\cyl-hol.8.jou
-//
-// left:  sideset 999
-// right: sideset 998
-//
-//   / \-------------------\              y
-//  /   \                   \             |
-// (  O  )                   )      x ____|
-//  \   /                   /              \    Coordinate axis
-//   \ /-------------------/                \ z
-//
-//  0 values on the left side of the cyl-hole (sideset 999)
-// -1 values on y direction of the right side of the cyl-hole (sideset 999)
-PetscErrorCode BCBend2_ss(PetscInt dim, PetscReal loadIncrement,
-                          const PetscReal coords[], PetscInt ncompu,
-                          PetscScalar *u, void *ctx);
+// BCZero - fix boundary values at zero
+PetscErrorCode BCZero(PetscInt dim, PetscReal loadIncrement,
+                      const PetscReal coords[], PetscInt ncompu,
+                      PetscScalar *u, void *ctx);
 
-// BCBend1_ss boundary function
-// ss : (sideset)
-// 1_ss : 1 side (left side) of the geometry
-// Cylinder with a whole in the middle (see figure ..\meshes\surface999-9.png)
-// Also check ..\meshes\cyl-hol.8.jou
-//
-// left: sideset 999
-//
-//   / \-------------------\              y
-//  /   \                   \             |
-// (  O  )                   )      x ____|
-//  \   /                   /              \    Coordinate axis
-//   \ /-------------------/                \ z
-//
-//  0 values on the left side of the cyl-hole (sideset 999)
+// BCClamp - fix boundary values at fraction of load increment
 PetscErrorCode BCBend1_ss(PetscInt dim, PetscReal loadIncrement,
                           const PetscReal coords[], PetscInt ncompu,
                           PetscScalar *u, void *ctx);
