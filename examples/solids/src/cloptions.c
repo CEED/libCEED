@@ -62,7 +62,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                           (PetscEnum *)&appCtx->problemChoice, NULL);
   CHKERRQ(ierr);
 
-  appCtx->numIncrements = appCtx->problemChoice == ELAS_LIN ? 1 : 5;
+  appCtx->numIncrements = appCtx->problemChoice == ELAS_LIN ? 1 : 10;
   ierr = PetscOptionsInt("-num_steps", "Number of pseudo-time steps",
                          NULL, appCtx->numIncrements, &appCtx->numIncrements,
                          NULL); CHKERRQ(ierr);
