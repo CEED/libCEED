@@ -173,28 +173,21 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
     ierr = DMGetLabelIdIS(dm, name, &faceSetIS); CHKERRQ(ierr);
     ierr = ISGetSize(faceSetIS,&numFaceSets); CHKERRQ(ierr);
     ierr = ISGetIndices(faceSetIS, &faceSetIds); CHKERRQ(ierr);
-
-    for (PetscInt faceSet = 0; faceSet < numFaceSets; faceSet++) {
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, NULL, "Face Sets", 0, 0, NULL,
-                           (void(*)(void))BCMMS, 1, &faceSetIds[faceSet],
-                           NULL); CHKERRQ(ierr);
-    }
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, NULL, "Face Sets", 0, 0, NULL,
+                         (void(*)(void))BCMMS, numFaceSets, faceSetIds, NULL);
+    CHKERRQ(ierr);
     ierr = ISRestoreIndices(faceSetIS, &faceSetIds); CHKERRQ(ierr);
     ierr = ISDestroy(&faceSetIS); CHKERRQ(ierr);
   } else {
     // -- ExodusII mesh with user specified BCs
     // ---- Zero BCs
-    for (PetscInt faceSet = 0; faceSet < appCtx->bcZeroCount; faceSet++) {
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, NULL, "Face Sets", 0, 0, NULL,
-                           (void(*)(void))BCZero, 1,
-                           &appCtx->bcZeroFaces[faceSet], NULL); CHKERRQ(ierr);
-    }
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, NULL, "Face Sets", 0, 0, NULL,
+                         (void(*)(void))BCZero, appCtx->bcZeroCount,
+                         appCtx->bcZeroFaces, NULL); CHKERRQ(ierr);
     // ---- Clamp BCs
-    for (PetscInt faceSet = 0; faceSet < appCtx->bcClampCount; faceSet++) {
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, NULL, "Face Sets", 0, 0, NULL,
-                           (void(*)(void))BCClamp, 1,
-                           &appCtx->bcClampFaces[faceSet], NULL); CHKERRQ(ierr);
-    }
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, NULL, "Face Sets", 0, 0, NULL,
+                         (void(*)(void))BCClamp, appCtx->bcClampCount,
+                         appCtx->bcClampFaces, NULL); CHKERRQ(ierr);
   }
   ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
