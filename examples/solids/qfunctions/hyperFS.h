@@ -334,15 +334,33 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // deltaS = dSdE:deltaE
+    //      = lambda (C_inv:deltaE)C_inv + 2(mu-lambda*log(J))C_inv*deltaE*C_inv
+    // -- C_inv:deltaE
+    CeedScalar C_inv_contract_E = 0;
+    for (CeedInt j = 0; j < 3; j++)
+      for (CeedInt k = 0; k < 3; k++)
+        C_inv_contract_E += C_inv[j][k]*deltaE[j][k];
+    // -- deltaE*C_inv
+    CeedScalar deltaEC_inv[3][3];
+    for (CeedInt j = 0; j < 3; j++)
+      for (CeedInt k = 0; k < 3; k++) {
+        deltaEC_inv[j][k] = 0;
+        for (CeedInt m = 0; m < 3; m++)
+            deltaEC_inv[j][k] += deltaE[j][m]*C_inv[m][k];
+      }
+    // -- intermediate deltaS = C_inv*deltaE*C_inv
     CeedScalar deltaS[3][3];
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++) {
         deltaS[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          for (CeedInt n = 0; n < 3; n++)
-            deltaS[j][k] += lambda*C_inv[m][n]*deltaE[m][n]*C_inv[j][k] -
-                            2.*llnj_m*C_inv[j][m]*deltaE[m][n]*C_inv[n][k];
+          deltaS[j][k] += C_inv[j][m]*deltaEC_inv[m][k];
       }
+    // -- deltaS = lambda (C_inv:deltaE)C_inv - 2(lambda*log(J)-mu)*(intermediate)
+    for (CeedInt j = 0; j < 3; j++)
+      for (CeedInt k = 0; k < 3; k++)
+        deltaS[j][k] = lambda*C_inv_contract_E*C_inv[j][k] -
+                       2.*llnj_m*deltaS[j][k];
     
     // deltaP = dPdF:deltaF = deltaF*S + F*deltaS
     CeedScalar deltaP[3][3];
