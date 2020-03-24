@@ -100,17 +100,17 @@ The small strain version of a Neo-Hookean hyperelasticity material is given as
 follows:
 
 .. math::
-   :label: clss
+   :label: eq-neo-hookean-small-strain
    
-   \boldsymbol{\sigma} = \lambda \ln(1 + \boldsymbol{\epsilon_v)} \boldsymbol{I}_3 + 2\mu \boldsymbol{\epsilon}
+   \boldsymbol{\sigma} = \lambda \log(1 + \boldsymbol{\epsilon_v)} \boldsymbol{I}_3 + 2\mu \boldsymbol{\epsilon}
 
 where :math:`\boldsymbol{\epsilon}` is defined as in :math:numref:`small-strain`.
 The trace of the strain tensor, also known as the *volumetric strain*, is denoted by :math:`\boldsymbol{\epsilon}_v = \sum_i \boldsymbol{\epsilon}_{ii}`.
 
-To easily represent spatial derivatives, we rewrite equation :math:numref:`clss` in indicial notation:
+To easily represent spatial derivatives, we rewrite equation :math:numref:`eq-neo-hookean-small-strain` in indicial notation:
 
 .. math::
-   \sigma_{ij} = \lambda ln(1 + \epsilon_v)\delta_{ij} + 2\mu\epsilon_{ij}
+   \sigma_{ij} = \lambda \log (1 + \epsilon_v)\delta_{ij} + 2\mu\epsilon_{ij}
 
 so that its derivative is:
 
@@ -267,22 +267,35 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 
    \bm S = \lambda \log J \bm C^{-1} + \mu (\bm I_3 - \bm C^{-1}).
 
+.. tip::
+   An equivalent form of :math:numref:`neo-hookean-stress` is
+
+   .. math::
+      \bm S = \lambda \log J \bm C^{-1} + 2 \mu \bm C^{-1} \bm E,
+
+   which is more numerically stable for small :math:`\bm E`, and thus preferred for computation.
+
 .. note::
-   One can linearize :math:numref:`neo-hookean-stress` around :math:`\bm E = 0` and make use of
+   One can linearize :math:numref:`neo-hookean-stress` around :math:`\bm E = 0`, for which :math:`\bm C = \bm I_3 + 2 \bm E \to \bm I_3` and :math:`J \to 1 + \operatorname{trace} \bm E`, therefore :math:numref:`neo-hookean-stress` reduces to
 
-.. math::
+   .. math::
+      :label: eq-st-venant-kirchoff
 
-   \bm C^{-1} = (\bm I_3 + 2 \bm E)^{-1} = \bm I_3 - 2 \bm E + O\left(\lVert \bm E\rVert^2 \right),
+      \bm S = \lambda (\operatorname{trace} \bm E) \bm I_3 + 2 \mu \bm E,
 
-in which case :math:numref:`neo-hookean-stress` reduces to
+   which is the St. Venant-Kirchoff model.
+   This model can be used for geometrically nonlinear mechanics (e.g., snap-through of thin structures), but is inappropriate for large strain.
 
-.. math::
-   :label: eq-st-venant-kirchoff
+   Alternatively, one can drop geometric nonlinearities, :math:`\bm E \to \bm \epsilon` and :math:`\bm C \to \bm I_3`, while retaining the nonlinear dependence on :math:`J \to 1 + \operatorname{trace} \bm \epsilon`, thereby yielding :math:numref:`eq-neo-hookean-small-strain`.
+   The effect of geometric and constitutive linearization is sketched in the diagram below.
 
-   \bm S = \lambda (\operatorname{trace} \bm E) \bm I_3 + 2 \mu \bm E,
+   .. math::
 
-which is the St. Venant-Kirchoff model.
-This model can be used for geometrically nonlinear mechanics (e.g., snap-through of thin structures), but is inappropriate for large strain.
+      \begin{matrix}
+      \text{Finite Strain Hyperelastic} & \underset{\bm S = \mathsf C \bm E}{\overset{\text{constitutive}}{\LARGE \longrightarrow}} & \text{St. Venant-Kirchoff} \\
+      \text{\scriptsize geometric} {\LARGE \ \downarrow\ } \scriptsize{\bm E \to \bm \epsilon} & & \text{\scriptsize geometric} {\LARGE \ \downarrow\ } \scriptsize{\bm E \to \bm \epsilon} \\
+      \text{Small Strain Hyperelastic} & \underset{\bm \sigma = \mathsf C \bm \epsilon}{\overset{\text{constitutive}}{\LARGE \longrightarrow}} & \text{Linear Elastic} \\
+      \end{matrix}
 
 Weak form
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
