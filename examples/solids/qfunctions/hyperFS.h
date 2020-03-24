@@ -54,14 +54,14 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   const CeedScalar E  = context->E;
   const CeedScalar nu = context->nu;
   const CeedScalar TwoMu = E / (1 + nu);
-  const CeedScalar mu = TwoMu /2;
+  const CeedScalar mu = TwoMu / 2;
   const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
   const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
 
   // Formulation Terminology:
   //  I3    : 3x3 Identity matrix
   //  C     : right Cauchy-Green tensor
-  //  C_inv : inverse of C
+  //  Cinv  : inverse of C
   //  F     : deformation gradient
   //  S     : 2nd Piola-Kirchhoff (in current config)
   //  P     : 1st Piola-Kirchhoff (in referential config)
@@ -69,7 +69,7 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   //  F =  I3 + grad_ue
   //  J = det(F)
   //  C = F(^T)*F
-  //  S = mu*I3 + (lambda*log(J)-mu)*C_inv;
+  //  S = mu*I3 + (lambda*log(J)-mu)*Cinv;
   //  P = F*S
 
   // Quadrature Point Loop
@@ -141,19 +141,20 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                            {E2work[4], E2work[3], E2work[2]}
                           };
     // *INDENT-ON*
-    const CeedScalar detC_m1 = E00*(E11*E22 - E12*E12) +
-                               E01*(E02*E12 - E01*E22) +
-                               E02*(E01*E12 - E02*E11) +
-                               E00 + E11 + E22 +
-                               E00*E11 + E00*E22 + E11*E22 -
-                               E01*E01 - E02*E02 - E12*E12;
+    const CeedScalar detC_m1 = E2[0][0]*(E2[1][1]*E2[2][2]-E2[1][2]*E2[1][2]) +
+                               E2[0][1]*(E2[0][2]*E2[1][2]-E2[0][1]*E2[2][2]) +
+                               E2[0][2]*(E2[0][1]*E2[1][2]-E2[0][2]*E2[1][1]) +
+                               E2[0][0] + E2[1][1] + E2[2][2] +
+                               E2[0][0]*E2[1][1] + E2[0][0]*E2[2][2] +
+                               E2[1][1]*E2[2][2] - E2[0][1]*E2[0][1] -
+                               E2[0][2]*E2[0][2] - E2[1][2]*E2[1][2];
 
     // C : right Cauchy-Green tensor
     // C = I + 2E
     // *INDENT-OFF*
-    const CeedScalar C[3][3] = {{1 + E00, E01, E02},
-                                {E01, 1 + E11, E12},
-                                {E02, E12, 1 + E22}
+    const CeedScalar C[3][3] = {{1 + E2[0][0], E2[0][1], E2[0][2]},
+                                {E2[0][1], 1 + E2[1][1], E2[1][2]},
+                                {E2[0][2], E2[1][2], 1 + E2[2][2]}
                                };
     // *INDENT-ON*
 
@@ -164,36 +165,36 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     const CeedScalar A11 = C[0][0]*C[2][2] - C[0][2]*C[2][0];
     const CeedScalar A12 = C[0][2]*C[1][0] - C[0][0]*C[1][2];
     const CeedScalar A22 = C[0][0]*C[1][1] - C[0][1]*C[1][0];
-    const CeedScalar C_inv00 = A00/(detC_m1 + 1.), C_inv01 = A01/(detC_m1 + 1.),
-                     C_inv02 = A02/(detC_m1 + 1.), C_inv11 = A11/(detC_m1 + 1.),
-                     C_inv12 = A12/(detC_m1 + 1.), C_inv22 = A22/(detC_m1 + 1.);
+    const CeedScalar Cinv00 = A00/(detC_m1 + 1.), Cinv01 = A01/(detC_m1 + 1.),
+                     Cinv02 = A02/(detC_m1 + 1.), Cinv11 = A11/(detC_m1 + 1.),
+                     Cinv12 = A12/(detC_m1 + 1.), Cinv22 = A22/(detC_m1 + 1.);
     // *INDENT-OFF*
-    const CeedScalar C_inv[3][3] = {{C_inv00, C_inv01, C_inv02},
-                                    {C_inv01, C_inv11, C_inv12},
-                                    {C_inv02, C_inv12, C_inv22}
-                                   };
+    const CeedScalar Cinv[3][3] = {{Cinv00, Cinv01, Cinv02},
+                                   {Cinv01, Cinv11, Cinv12},
+                                   {Cinv02, Cinv12, Cinv22}
+                                  };
     // *INDENT-ON*
 
     // Compute the Second Piola-Kirchhoff (S)
     const CeedScalar llnj = lambda*log1p(detC_m1)/2.;
-    const CeedScalar S00 = llnj*C_inv[0][0] +
-                           mu*(C_inv[0][0]*E2[0][0] + C_inv[0][1]*E2[1][0] +
-                               C_inv[0][2]*E2[2][0]),
-                     S01 = llnj*C_inv[0][1] +
-                           mu*(C_inv[0][0]*E2[0][1] + C_inv[0][1]*E2[1][1] +
-                               C_inv[0][2]*E2[2][1]),
-                     S02 = llnj*C_inv[0][2] +
-                           mu*(C_inv[0][0]*E2[0][2] + C_inv[0][1]*E2[1][2] +
-                               C_inv[0][2]*E2[2][2]),
-                     S11 = llnj*C_inv[1][1] +
-                           mu*(C_inv[1][0]*E2[0][1] + C_inv[1][1]*E2[1][1] +
-                               C_inv[1][2]*E2[2][1]),
-                     S12 = llnj*C_inv[1][2] +
-                           mu*(C_inv[1][0]*E2[0][2] + C_inv[1][1]*E2[1][2] +
-                               C_inv[1][2]*E2[2][2]),
-                     S22 = llnj*C_inv[2][2] +
-                           mu*(C_inv[2][0]*E2[0][2] + C_inv[2][1]*E2[1][2] +
-                               C_inv[2][2]*E2[2][2]);
+    const CeedScalar S00 = llnj*Cinv[0][0] +
+                           mu*(Cinv[0][0]*E2[0][0] + Cinv[0][1]*E2[1][0] +
+                               Cinv[0][2]*E2[2][0]),
+                     S01 = llnj*Cinv[0][1] +
+                           mu*(Cinv[0][0]*E2[0][1] + Cinv[0][1]*E2[1][1] +
+                               Cinv[0][2]*E2[2][1]),
+                     S02 = llnj*Cinv[0][2] +
+                           mu*(Cinv[0][0]*E2[0][2] + Cinv[0][1]*E2[1][2] +
+                               Cinv[0][2]*E2[2][2]),
+                     S11 = llnj*Cinv[1][1] +
+                           mu*(Cinv[1][0]*E2[0][1] + Cinv[1][1]*E2[1][1] +
+                               Cinv[1][2]*E2[2][1]),
+                     S12 = llnj*Cinv[1][2] +
+                           mu*(Cinv[1][0]*E2[0][2] + Cinv[1][1]*E2[1][2] +
+                               Cinv[1][2]*E2[2][2]),
+                     S22 = llnj*Cinv[2][2] +
+                           mu*(Cinv[2][0]*E2[0][2] + Cinv[2][1]*E2[1][2] +
+                               Cinv[2][2]*E2[2][2]);
     // *INDENT-OFF*
     CeedScalar S[3][3] = {{S00, S01, S02},
                           {S01, S11, S12},
@@ -320,63 +321,35 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                            {E2work[4], E2work[3], E2work[2]}
                           };
     // *INDENT-ON*
-    const CeedScalar detC_m1 = E00*(E11*E22 - E12*E12) +
-                               E01*(E02*E12 - E01*E22) +
-                               E02*(E01*E12 - E02*E11) +
-                               E00 + E11 + E22 +
-                               E00*E11 + E00*E22 + E11*E22 -
-                               E01*E01 - E02*E02 - E12*E12;
+    const CeedScalar detC_m1 = E2[0][0]*(E2[1][1]*E2[2][2]-E2[1][2]*E2[1][2]) +
+                               E2[0][1]*(E2[0][2]*E2[1][2]-E2[0][1]*E2[2][2]) +
+                               E2[0][2]*(E2[0][1]*E2[1][2]-E2[0][2]*E2[1][1]) +
+                               E2[0][0] + E2[1][1] + E2[2][2] +
+                               E2[0][0]*E2[1][1] + E2[0][0]*E2[2][2] +
+                               E2[1][1]*E2[2][2] - E2[0][1]*E2[0][1] -
+                               E2[0][2]*E2[0][2] - E2[1][2]*E2[1][2];
 
     // deltaE - Green-Lagrange strain tensor
-    const CeedScalar deltaE00 = (graddeltau[0][0]*F[0][0] +
-                                 graddeltau[1][0]*F[1][0] +
-                                 graddeltau[2][0]*F[2][0] +
-                                 F[0][0]*graddeltau[0][0] +
-                                 F[1][0]*graddeltau[1][0] +
-                                 F[2][0]*graddeltau[2][0])/2.;
-    const CeedScalar deltaE01 = (graddeltau[0][0]*F[0][1] +
-                                 graddeltau[1][0]*F[1][1] +
-                                 graddeltau[2][0]*F[2][1] +
-                                 F[0][0]*graddeltau[0][1] +
-                                 F[1][0]*graddeltau[1][1] +
-                                 F[2][0]*graddeltau[2][1])/2.;
-    const CeedScalar deltaE02 = (graddeltau[0][0]*F[0][2] +
-                                 graddeltau[1][0]*F[1][2] +
-                                 graddeltau[2][0]*F[2][2] +
-                                 F[0][0]*graddeltau[0][2] +
-                                 F[1][0]*graddeltau[1][2] +
-                                 F[2][0]*graddeltau[2][2])/2.;
-    const CeedScalar deltaE11 = (graddeltau[0][1]*F[0][1] +
-                                 graddeltau[1][1]*F[1][1] +
-                                 graddeltau[2][1]*F[2][1] +
-                                 F[0][1]*graddeltau[0][1] +
-                                 F[1][1]*graddeltau[1][1] +
-                                 F[2][1]*graddeltau[2][1])/2.;
-    const CeedScalar deltaE12 = (graddeltau[0][1]*F[0][2] +
-                                 graddeltau[1][1]*F[1][2] +
-                                 graddeltau[2][1]*F[2][2] +
-                                 F[0][1]*graddeltau[0][2] +
-                                 F[1][1]*graddeltau[1][2] +
-                                 F[2][1]*graddeltau[2][2])/2.;
-    const CeedScalar deltaE22 = (graddeltau[0][2]*F[0][2] +
-                                 graddeltau[1][2]*F[1][2] +
-                                 graddeltau[2][2]*F[2][2] +
-                                 F[0][2]*graddeltau[0][2] +
-                                 F[1][2]*graddeltau[1][2] +
-                                 F[2][2]*graddeltau[2][2])/2.;
+    CeedScalar deltaEwork[6];
+    for (CeedInt m = 0; m < 6; m++) {
+      deltaEwork[m] = 0;
+      for (CeedInt n = 0; n < 3; n++)
+        deltaEwork[m] += (graddeltau[n][indj[m]]*F[n][indk[m]] +
+                          F[n][indj[m]]*graddeltau[n][indk[m]])/2.;
+    }           
     // *INDENT-OFF*
-    CeedScalar deltaE[3][3] = {{deltaE00, deltaE01, deltaE02},
-                               {deltaE01, deltaE11, deltaE12},
-                               {deltaE02, deltaE12, deltaE22}
+    CeedScalar deltaE[3][3] = {{deltaEwork[0], deltaEwork[5], deltaEwork[4]},
+                               {deltaEwork[5], deltaEwork[1], deltaEwork[3]},
+                               {deltaEwork[4], deltaEwork[3], deltaEwork[2]}
                               };
     // *INDENT-ON*
 
     // C : right Cauchy-Green tensor
     // C = I + 2E
     // *INDENT-OFF*
-    const CeedScalar C[3][3] = {{1 + E00, E01, E02},
-                                {E01, 1 + E11, E12},
-                                {E02, E12, 1 + E22}
+    const CeedScalar C[3][3] = {{1 + E2[0][0], E2[0][1], E2[0][2]},
+                                {E2[0][1], 1 + E2[1][1], E2[1][2]},
+                                {E2[0][2], E2[1][2], 1 + E2[2][2]}
                                };
     // *INDENT-ON*
 
@@ -387,36 +360,36 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     const CeedScalar A11 = C[0][0]*C[2][2] - C[0][2]*C[2][0];
     const CeedScalar A12 = C[0][2]*C[1][0] - C[0][0]*C[1][2];
     const CeedScalar A22 = C[0][0]*C[1][1] - C[0][1]*C[1][0];
-    const CeedScalar C_inv00 = A00/(detC_m1 + 1.), C_inv01 = A01/(detC_m1 + 1.),
-                     C_inv02 = A02/(detC_m1 + 1.), C_inv11 = A11/(detC_m1 + 1.),
-                     C_inv12 = A12/(detC_m1 + 1.), C_inv22 = A22/(detC_m1 + 1.);
+    const CeedScalar Cinv00 = A00/(detC_m1 + 1.), Cinv01 = A01/(detC_m1 + 1.),
+                     Cinv02 = A02/(detC_m1 + 1.), Cinv11 = A11/(detC_m1 + 1.),
+                     Cinv12 = A12/(detC_m1 + 1.), Cinv22 = A22/(detC_m1 + 1.);
     // *INDENT-OFF*
-    const CeedScalar C_inv[3][3] = {{C_inv00, C_inv01, C_inv02},
-                                    {C_inv01, C_inv11, C_inv12},
-                                    {C_inv02, C_inv12, C_inv22}
-                                   };
+    const CeedScalar Cinv[3][3] = {{Cinv00, Cinv01, Cinv02},
+                                   {Cinv01, Cinv11, Cinv12},
+                                   {Cinv02, Cinv12, Cinv22}
+                                  };
     // *INDENT-ON*
 
     // Compute the Second Piola-Kirchhoff (S)
     const CeedScalar llnj = lambda*log1p(detC_m1)/2.;
-    const CeedScalar S00 = llnj*C_inv[0][0] +
-                           mu*(C_inv[0][0]*E2[0][0] + C_inv[0][1]*E2[1][0] +
-                               C_inv[0][2]*E2[2][0]),
-                     S01 = llnj*C_inv[0][1] +
-                           mu*(C_inv[0][0]*E2[0][1] + C_inv[0][1]*E2[1][1] +
-                               C_inv[0][2]*E2[2][1]),
-                     S02 = llnj*C_inv[0][2] +
-                           mu*(C_inv[0][0]*E2[0][2] + C_inv[0][1]*E2[1][2] +
-                               C_inv[0][2]*E2[2][2]),
-                     S11 = llnj*C_inv[1][1] +
-                           mu*(C_inv[1][0]*E2[0][1] + C_inv[1][1]*E2[1][1] +
-                               C_inv[1][2]*E2[2][1]),
-                     S12 = llnj*C_inv[1][2] +
-                           mu*(C_inv[1][0]*E2[0][2] + C_inv[1][1]*E2[1][2] +
-                               C_inv[1][2]*E2[2][2]),
-                     S22 = llnj*C_inv[2][2] +
-                           mu*(C_inv[2][0]*E2[0][2] + C_inv[2][1]*E2[1][2] +
-                               C_inv[2][2]*E2[2][2]);
+    const CeedScalar S00 = llnj*Cinv[0][0] +
+                           mu*(Cinv[0][0]*E2[0][0] + Cinv[0][1]*E2[1][0] +
+                               Cinv[0][2]*E2[2][0]),
+                     S01 = llnj*Cinv[0][1] +
+                           mu*(Cinv[0][0]*E2[0][1] + Cinv[0][1]*E2[1][1] +
+                               Cinv[0][2]*E2[2][1]),
+                     S02 = llnj*Cinv[0][2] +
+                           mu*(Cinv[0][0]*E2[0][2] + Cinv[0][1]*E2[1][2] +
+                               Cinv[0][2]*E2[2][2]),
+                     S11 = llnj*Cinv[1][1] +
+                           mu*(Cinv[1][0]*E2[0][1] + Cinv[1][1]*E2[1][1] +
+                               Cinv[1][2]*E2[2][1]),
+                     S12 = llnj*Cinv[1][2] +
+                           mu*(Cinv[1][0]*E2[0][2] + Cinv[1][1]*E2[1][2] +
+                               Cinv[1][2]*E2[2][2]),
+                     S22 = llnj*Cinv[2][2] +
+                           mu*(Cinv[2][0]*E2[0][2] + Cinv[2][1]*E2[1][2] +
+                               Cinv[2][2]*E2[2][2]);
     // *INDENT-OFF*
     CeedScalar S[3][3] = {{S00, S01, S02},
                           {S01, S11, S12},
@@ -425,33 +398,33 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // deltaS = dSdE:deltaE
-    //      = lambda (C_inv:deltaE)C_inv + 2(mu-lambda*log(J))C_inv*deltaE*C_inv
-    // -- C_inv:deltaE
-    CeedScalar C_inv_contract_E = 0;
+    //      = lambda (Cinv:deltaE)Cinv + 2(mu-lambda*log(J))Cinv*deltaE*Cinv
+    // -- Cinv:deltaE
+    CeedScalar Cinv_contract_E = 0;
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++)
-        C_inv_contract_E += C_inv[j][k]*deltaE[j][k];
-    // -- deltaE*C_inv
-    CeedScalar deltaEC_inv[3][3];
+        Cinv_contract_E += Cinv[j][k]*deltaE[j][k];
+    // -- deltaE*Cinv
+    CeedScalar deltaECinv[3][3];
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++) {
-        deltaEC_inv[j][k] = 0;
+        deltaECinv[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-            deltaEC_inv[j][k] += deltaE[j][m]*C_inv[m][k];
+            deltaECinv[j][k] += deltaE[j][m]*Cinv[m][k];
       }
-    // -- intermediate deltaS = C_inv*deltaE*C_inv
+    // -- intermediate deltaS = Cinv*deltaE*Cinv
     CeedScalar deltaS[3][3];
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++) {
         deltaS[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          deltaS[j][k] += C_inv[j][m]*deltaEC_inv[m][k];
+          deltaS[j][k] += Cinv[j][m]*deltaECinv[m][k];
       }
-    // -- deltaS = lambda (C_inv:deltaE)C_inv - 2(lambda*log(J)-mu)*(intermediate)
+    // -- deltaS = lambda (Cinv:deltaE)Cinv - 2(lambda*log(J)-mu)*(intermediate)
     const CeedScalar llnj_m = llnj - mu;
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++)
-        deltaS[j][k] = lambda*C_inv_contract_E*C_inv[j][k] -
+        deltaS[j][k] = lambda*Cinv_contract_E*Cinv[j][k] -
                        2.*llnj_m*deltaS[j][k];
     
     // deltaP = dPdF:deltaF = deltaF*S + F*deltaS
