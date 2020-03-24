@@ -48,9 +48,8 @@ For detailed instructions on how to build libCEED and run benchmarks and example
 
 ## Building
 
-The CEED library, `libceed`, is a C99 library with no external dependencies. The library
-has Fortran and Python interfaces; see `interface/ceed-fortran.c` and
-`interface/ceed-python/`. It can be built using
+The CEED library, `libceed`, is a C99 library with no required dependencies, and
+with Fortran and Python interfaces.  It can be built using
 
     make
 
@@ -60,7 +59,11 @@ or, with optimization flags
 
 These optimization flags are used by all languages (C, C++, Fortran) and this
 makefile variable can also be set for testing and examples (below).
+Python users can install using
 
+    pip install libceed
+
+or in a clone of the repository via `pip install .`.
 The library attempts to automatically detect support for the AVX
 instruction set using gcc-style compiler options for the host.
 Support may need to be manually specified via

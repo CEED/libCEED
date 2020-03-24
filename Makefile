@@ -592,6 +592,14 @@ configure :
 	@echo "Configuration cached in $(CONFIG):"
 	@cat $(CONFIG)
 
-.PHONY : configure
+wheel : export MARCHFLAG = -march=generic
+wheel : export WHEEL_PLAT = manylinux2010_x86_64
+wheel :
+	docker run -it --user $(shell id -u):$(shell id -g) --rm -v $(PWD):/io -w /io \
+		-e MARCHFLAG -e WHEEL_PLAT \
+		quay.io/pypa/$(WHEEL_PLAT) python/make-wheels.sh
 
--include $(libceed.c:%.c=$(OBJDIR)/%.d) $(tests.c:tests/%.c=$(OBJDIR)/%.d)
+.PHONY : configure wheel
+
+# Include *.d deps when not -B = --always-make: useful if the paths are wonky in a container
+-include $(if $(filter B,$(MAKEFLAGS)),,$(libceed.c:%.c=$(OBJDIR)/%.d) $(tests.c:tests/%.c=$(OBJDIR)/%.d))
