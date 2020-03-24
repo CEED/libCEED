@@ -163,17 +163,11 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                E01*E01 - E02*E02 - E12*E12;
 
     // C : right Cauchy-Green tensor
-    // C = F^T * F (^T  means Transpose)
-    const CeedScalar C00 = F[0][0]*F[0][0] + F[0][1]*F[0][1] + F[0][2]*F[0][2];
-    const CeedScalar C01 = F[0][0]*F[1][0] + F[0][1]*F[1][1] + F[0][2]*F[1][2];
-    const CeedScalar C02 = F[0][0]*F[2][0] + F[0][1]*F[2][1] + F[0][2]*F[2][2];
-    const CeedScalar C11 = F[1][0]*F[1][0] + F[1][1]*F[1][1] + F[1][2]*F[1][2];
-    const CeedScalar C12 = F[1][0]*F[2][0] + F[1][1]*F[2][1] + F[1][2]*F[2][2];
-    const CeedScalar C22 = F[2][0]*F[2][0] + F[2][1]*F[2][1] + F[2][2]*F[2][2];
+    // C = I + 2E
     // *INDENT-OFF*
-    const CeedScalar C[3][3] = {{C00, C01, C02},
-                                {C01, C11, C12},
-                                {C02, C12, C22}
+    const CeedScalar C[3][3] = {{1 + E00, E01, E02},
+                                {E01, 1 + E11, E12},
+                                {E02, E12, 1 + E22}
                                };
     // *INDENT-ON*
 
@@ -406,17 +400,11 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // C : right Cauchy-Green tensor
-    // C = F^T * F (^T  means Transpose)
-    const CeedScalar C00 = F[0][0]*F[0][0] + F[0][1]*F[0][1] + F[0][2]*F[0][2];
-    const CeedScalar C01 = F[0][0]*F[1][0] + F[0][1]*F[1][1] + F[0][2]*F[1][2];
-    const CeedScalar C02 = F[0][0]*F[2][0] + F[0][1]*F[2][1] + F[0][2]*F[2][2];
-    const CeedScalar C11 = F[1][0]*F[1][0] + F[1][1]*F[1][1] + F[1][2]*F[1][2];
-    const CeedScalar C12 = F[1][0]*F[2][0] + F[1][1]*F[2][1] + F[1][2]*F[2][2];
-    const CeedScalar C22 = F[2][0]*F[2][0] + F[2][1]*F[2][1] + F[2][2]*F[2][2];
+    // C = I + 2E
     // *INDENT-OFF*
-    const CeedScalar C[3][3] = {{C00, C01, C02},
-                                {C01, C11, C12},
-                                {C02, C12, C22}
+    const CeedScalar C[3][3] = {{1 + E00, E01, E02},
+                                {E01, 1 + E11, E12},
+                                {E02, E12, 1 + E22}
                                };
     // *INDENT-ON*
 
