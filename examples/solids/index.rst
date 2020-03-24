@@ -51,14 +51,14 @@ Hence, the fourth order elasticity tensor :math:`\mathsf C` (also known as elast
    :label: linear-elasticity-tensor
 
    \mathsf C = \dfrac{E}{(1+\nu)(1-2\nu)}
-   \begin{bmatrix}
-        1-\nu & \nu & \nu & & & \\
-          \nu & 1 - \nu & \nu & & & \\
-          \nu & \nu &  1 - \nu & & & \\
-          & & & \dfrac{1 - 2\nu}{2} & & \\    
-         & & & &\dfrac{1 - 2\nu}{2} & \\
-         & & & & & \dfrac{1 - 2\nu}{2} \\   
-   \end{bmatrix},
+   \begin{pmatrix}
+     1-\nu & \nu & \nu & & & \\
+     \nu & 1 - \nu & \nu & & & \\
+     \nu & \nu &  1 - \nu & & & \\
+     & & & \dfrac{1 - 2\nu}{2} & & \\    
+     & & & &\dfrac{1 - 2\nu}{2} & \\
+     & & & & & \dfrac{1 - 2\nu}{2} \\   
+   \end{pmatrix},
 
 where :math:`E` is the Young’s modulus and :math:`\nu` is the Poisson’s ratio.
 An alternative formulation, in terms of the Lamé parameters,
@@ -79,14 +79,14 @@ With the latter formulation, the elasticity tensor :math:numref:`linear-elastici
 
 .. math::
 
-   \mathsf C = \begin{bmatrix}
+   \mathsf C = \begin{pmatrix}
    \lambda + 2\mu & \lambda & \lambda & & & \\
    \lambda & \lambda + 2\mu & \lambda & & & \\
    \lambda & \lambda & \lambda + 2\mu & & & \\
    & & & \mu & & \\
    & & & & \mu & \\
    & & & & & \mu
-   \end{bmatrix}.
+   \end{pmatrix}.
 
 Note that the incompressible limit :math:`\nu \to \frac 1 2` causes :math:`\lambda \to \infty`, and thus :math:`\mathsf C` becomes singular.
 
@@ -96,7 +96,7 @@ Note that the incompressible limit :math:`\nu \to \frac 1 2` causes :math:`\lamb
 Hyperelasticity at Small Strain
 ----------------------------------------
 
-The small strain version of a Neo-Hookean hyperelasticity material is given as
+The the constitutive law for the small strain version of a Neo-Hookean hyperelasticity material is given as
 follows:
 
 .. math::
@@ -107,60 +107,69 @@ follows:
 where :math:`\boldsymbol{\epsilon}` is defined as in :math:numref:`small-strain`.
 The trace of the strain tensor, also known as the *volumetric strain*, is denoted by :math:`\boldsymbol{\epsilon}_v = \sum_i \boldsymbol{\epsilon}_{ii}`.
 
-To easily represent spatial derivatives, we rewrite equation :math:numref:`eq-neo-hookean-small-strain` in indicial notation:
+Newton linearization
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To derive a Newton linearization of :math:numref:`eq-neo-hookean-small-strain`, we begin by expressing the derivative,
 
 .. math::
-   \sigma_{ij} = \lambda \log (1 + \epsilon_v)\delta_{ij} + 2\mu\epsilon_{ij}
 
-so that its derivative is:
+   d \boldsymbol{\sigma} = \dfrac{\partial \boldsymbol{\sigma}}{\partial \boldsymbol{\epsilon}} \colon d \boldsymbol{\epsilon}
+
+where
+
+.. math::
+
+   d \boldsymbol{\epsilon} = \dfrac{1}{2}\left( \nabla \boldsymbol{d u} + \nabla \boldsymbol{d u}^T \right)
+
+and 
+
+.. math::
+
+   d \nabla \boldsymbol{u} = \nabla \boldsymbol{d u} .
+
+Therefore,
 
 .. math::
    :label: derss
 
-   \dfrac{\partial{\sigma_{ij}}}{\partial{\epsilon_{kl}}} = \bar{\lambda}\delta_{ij}\delta_{kl} + 2\mu \delta_{ik} \delta_{jl} ,
+   d \boldsymbol{\sigma}  = \bar{\lambda} \cdot tr \left(d \boldsymbol{\epsilon} \right) \cdot \boldsymbol{I}_3 + 2\mu d \boldsymbol{\epsilon}
 
-where we have introduced the symbol
+where we have introduced the symbol 
 
 .. math::
 
-   \bar{\lambda} = \dfrac{\lambda}{1+\epsilon_v} .
+   \bar{\lambda} = \dfrac{\lambda}{1 + \boldsymbol{\epsilon}_v } .
 
-Consequently, equation :math:numref:`derss` can be written in matrix form as follows:
+Equation :math:numref:`derss` can be written in matrix form as follows:
 
 .. math::
    :label: mdss
 
-   \left[
-     \begin{array}{c} 
-       d\sigma_{11} \\
-       d\sigma_{22} \\
-       d\sigma_{33} \\
-       d\sigma_{12} \\
-       d\sigma_{13} \\
-       d\sigma_{23}       
-    \end {array}
-   \right]  = 
-   \left[
-     \begin{array}{cccccc} 
-       2 \mu +\bar{\lambda} & \bar{\lambda} & \bar{\lambda} & & & \\
-       \bar{\lambda} & 2 \mu +\bar{\lambda} & \bar{\lambda} & & & \\
-       \bar{\lambda} & \bar{\lambda} & 2 \mu +\bar{\lambda} & & & \\
-       & & & 2 \mu & & \\    
-       & & & & 2 \mu & \\
-       & & & & & 2 \mu \\   
-     \end {array}
-   \right] 
-   \left[
-     \begin{array}{c} 
-       d\epsilon_{11} \\
-       d\epsilon_{22} \\
-       d\epsilon_{33} \\
-       d\epsilon_{12} \\
-       d\epsilon_{13} \\
-       d\epsilon_{23}       
-     \end {array}
-   \right]
-   
+   \begin{pmatrix}
+     d\sigma_{11} \\
+     d\sigma_{22} \\
+     d\sigma_{33} \\
+     d\sigma_{23} \\
+     d\sigma_{13} \\
+     d\sigma_{12}       
+   \end{pmatrix}  = 
+   \begin{pmatrix}
+     2 \mu +\bar{\lambda} & \bar{\lambda} & \bar{\lambda} & & & \\
+     \bar{\lambda} & 2 \mu +\bar{\lambda} & \bar{\lambda} & & & \\
+     \bar{\lambda} & \bar{\lambda} & 2 \mu +\bar{\lambda} & & & \\
+     & & & \mu & & \\    
+     & & & & \mu & \\
+     & & & & & \mu \\   
+   \end{pmatrix}
+   \begin{pmatrix} 
+     d\epsilon_{11} \\
+     d\epsilon_{22} \\
+     d\epsilon_{33} \\
+     d\epsilon_{23} \\
+     d\epsilon_{13} \\
+     d\epsilon_{12}       
+   \end{pmatrix}
 
 .. _problem-hyperelasticity-finite-strain:
 
