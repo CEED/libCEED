@@ -7,9 +7,27 @@ This example is located in the subdirectory :file:`examples/solids`.
 It solves the steady-state static balance momentum equations using unstructured high-order finite/spectral element spatial discretizations.
 As with the :ref:`example-petsc-navier-stokes` case, the solid mechanics elasticity example has been developed using PETSc, so that the pointwise physics (defined at quadrature points) is separated from the parallelization and meshing concerns.
 
+In this mini-app, we consider three material models used in solid mechanic applications: linear elasticity, Neo-Hookean hyperelasticity at small strain, and Neo-Hookean hyperelasticity at finite strain.
+We provide the  stong and weak form of static balance of linear momentum equations in the small strain and finite strain regimes.
+The stress-strain relationship (constitutive law) for each of the material models is provided.
+Due to the nonlinearity of material models in Neo-Hookean hyperelasticity, the Newton linearization of the material models is provided.
+
+.. note::
+
+   The linear elastiticty and hyperelasticity at small strain material models can be seen as constitutive and geometric linearization of the hyperelasticity at finite strain material model.
+   
+   The effect of constitutive and geometric linearization is sketched in the diagram below, where :math:`\bm \sigma` and :math:`\bm \epsilon` are stress and strain, respectively, in the small strain regime while :math:`\bm S` and :math:`\bm E` are stress and strain defined in the reference configuration in the finite strain formulation and :math:`\mathsf C` is the constitutive law.
+
+   .. math::
+      \begin{matrix}
+      \text{Finite Strain Hyperelastic} & \underset{\bm S = \mathsf C \bm E}{\overset{\text{constitutive}}{\LARGE \longrightarrow}} & \text{St. Venant-Kirchoff} \\
+      \text{\scriptsize geometric} {\LARGE \ \downarrow\ } \scriptsize{\bm E \to \bm \epsilon} & & \text{\scriptsize geometric} {\LARGE \ \downarrow\ } \scriptsize{\bm E \to \bm \epsilon} \\
+      \text{Small Strain Hyperelastic} & \underset{\bm \sigma = \mathsf C \bm \epsilon}{\overset{\text{constitutive}}{\LARGE \longrightarrow}} & \text{Linear Elastic} \\
+      \end{matrix}
 
 .. _problem-linear-elasticity:
 
+Linear Elasticity
 ----------------------------------------
 
 The strong form of the static balance of linear momentum at small strain for the three-dimensional linear elasticity problem is given by :cite:`hughes2012finite`:
@@ -24,6 +42,7 @@ where :math:`\boldsymbol{\sigma}` and :math:`\boldsymbol{g}` are stress and forc
 Integrating by parts on the divergence term, we arrive at the weak form the of equation :math:numref:`lin-elas`:
 
 .. math::
+   :label: lin-elas-weak
 
    \int_{\Omega}{ \nabla \boldsymbol{v} \colon \boldsymbol{\sigma}} dV - \int_{d\Omega}{\boldsymbol{v} \cdot \left(\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}}\right)} dS + \int_{\Omega}{\boldsymbol{v} \cdot \boldsymbol{g}} dV = 0
 
@@ -61,6 +80,7 @@ Hence, the fourth order elasticity tensor :math:`\mathsf C` (also known as elast
    \end{pmatrix},
 
 where :math:`E` is the Young’s modulus and :math:`\nu` is the Poisson’s ratio.
+
 An alternative formulation, in terms of the Lamé parameters,
 
 .. math::
@@ -69,13 +89,13 @@ An alternative formulation, in terms of the Lamé parameters,
    \mu &= \frac{E}{2(1 + \nu)}
    \end{aligned}
 
-can be found, for which the constitutive equation :math:numref:`linear-stress-strain` may be written as
+can be found. In this formulation, the constitutive equation :math:numref:`linear-stress-strain` may be written as
 
 .. math::
    \bm\sigma = \lambda (\operatorname{trace} \bm\epsilon) \bm I_3 + 2 \mu \bm\epsilon,
 
 where :math:`\bm I_3` is the :math:`3 \times 3` identity matrix.
-With the latter formulation, the elasticity tensor :math:numref:`linear-elasticity-tensor` becomes
+With the formulation using Lamé parameters, the elasticity tensor :math:numref:`linear-elasticity-tensor` becomes
 
 .. math::
 
@@ -96,21 +116,21 @@ Note that the incompressible limit :math:`\nu \to \frac 1 2` causes :math:`\lamb
 Hyperelasticity at Small Strain
 ----------------------------------------
 
-The the constitutive law for the small strain version of a Neo-Hookean hyperelasticity material is given as
-follows:
+The strong and weak forms given above, in :math:numref:`lin-elas` and :math:numref:`lin-elas-weak`, are valid for Neo-Hookean hyperelasticity at small strain.
+However, the constitutive law differs and is given as follows:
 
 .. math::
    :label: eq-neo-hookean-small-strain
    
-   \boldsymbol{\sigma} = \lambda \log(1 + \boldsymbol{\epsilon_v)} \boldsymbol{I}_3 + 2\mu \boldsymbol{\epsilon}
+   \boldsymbol{\sigma} = \lambda \log(1 + \operatorname{trace} \bm\epsilon) \boldsymbol{I}_3 + 2\mu \boldsymbol{\epsilon}
 
 where :math:`\boldsymbol{\epsilon}` is defined as in :math:numref:`small-strain`.
-The trace of the strain tensor, also known as the *volumetric strain*, is denoted by :math:`\boldsymbol{\epsilon}_v = \sum_i \boldsymbol{\epsilon}_{ii}`.
 
 Newton linearization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To derive a Newton linearization of :math:numref:`eq-neo-hookean-small-strain`, we begin by expressing the derivative,
+Due to nonlinearity in the constitutive law, we require a Newton linearization of :math:numref:`eq-neo-hookean-small-strain`.
+To derive the Newton linearization, we begin by expressing the derivative,
 
 .. math::
 
@@ -133,13 +153,15 @@ Therefore,
 .. math::
    :label: derss
 
-   d \boldsymbol{\sigma}  = \bar{\lambda} \cdot trace \left(\boldsymbol{\epsilon} \right) \cdot \boldsymbol{I}_3 + 2\mu d \boldsymbol{\epsilon}
+   d \boldsymbol{\sigma}  = \bar{\lambda} \cdot \operatorname{trace} d \boldsymbol{\epsilon} \cdot \boldsymbol{I}_3 + 2\mu d \boldsymbol{\epsilon}
 
-where we have introduced the symbol 
+where we have introduced the symbol
 
 .. math::
 
-   \bar{\lambda} = \dfrac{\lambda}{1 + \boldsymbol{\epsilon}_v } .
+   \bar{\lambda} = \dfrac{\lambda}{1 + \boldsymbol{\epsilon}_v }
+
+where volumetric strain is given by :math:`\boldsymbol{\epsilon}_v = \sum_i \boldsymbol{\epsilon}_{ii}`.
 
 Equation :math:numref:`derss` can be written in matrix form as follows:
 
@@ -176,12 +198,12 @@ Equation :math:numref:`derss` can be written in matrix form as follows:
 Hyperelasticity at Finite Strain
 ----------------------------------------
 
-In the *total Lagrangian* approach for the neo-Hookean Hyperelasticity probelm, the discrete equations are formulated with respect to the reference configuration.
+In the *total Lagrangian* approach for the Neo-Hookean hyperelasticity probelm, the discrete equations are formulated with respect to the reference configuration.
 In this formulation, we solve for displacement :math:`\bm u(\bm X)` in the reference frame :math:`\bm X`.
 The notation for elasticity at finite strain is inspired by :cite:`holzapfel2000nonlinear` to distinguish between the current and reference configurations.
 As explained in the :ref:`Common notation` section, we denote by capital letters the reference frame and by small letters the current one.
 
-The strong form of the static balance of linear-momentum at *Finite Strain* (total Lagrangian) is given by:
+The strong form of the static balance of linear-momentum at *finite strain* (total Lagrangian) is given by:
 
 .. math::
    :label: sblFinS
@@ -208,7 +230,7 @@ Constitutive modeling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In their most general form, constitutive models define :math:`\bm S` in terms of state variables.
-In the model taken into consideration in the present miniapp, the state variables are constituted by the vector displacement field :math:`\bm u`, and its gradient :math:`\nabla_X \bm u`.
+In the model taken into consideration in the present mini-app, the state variables are constituted by the vector displacement field :math:`\bm u`, and its gradient :math:`\nabla_X \bm u`.
 We begin by defining two symmetric tensors in the reference configuration, the right Cauchy-Green tensor
 
 .. math::
@@ -298,30 +320,22 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 
 .. note::
    One can linearize :math:numref:`neo-hookean-stress` around :math:`\bm E = 0`, for which :math:`\bm C = \bm I_3 + 2 \bm E \to \bm I_3` and :math:`J \to 1 + \operatorname{trace} \bm E`, therefore :math:numref:`neo-hookean-stress` reduces to
-
+ 
    .. math::
       :label: eq-st-venant-kirchoff
 
       \bm S = \lambda (\operatorname{trace} \bm E) \bm I_3 + 2 \mu \bm E,
-
+ 
    which is the St. Venant-Kirchoff model.
+
    This model can be used for geometrically nonlinear mechanics (e.g., snap-through of thin structures), but is inappropriate for large strain.
 
    Alternatively, one can drop geometric nonlinearities, :math:`\bm E \to \bm \epsilon` and :math:`\bm C \to \bm I_3`, while retaining the nonlinear dependence on :math:`J \to 1 + \operatorname{trace} \bm \epsilon`, thereby yielding :math:numref:`eq-neo-hookean-small-strain`.
-   The effect of geometric and constitutive linearization is sketched in the diagram below.
-
-   .. math::
-
-      \begin{matrix}
-      \text{Finite Strain Hyperelastic} & \underset{\bm S = \mathsf C \bm E}{\overset{\text{constitutive}}{\LARGE \longrightarrow}} & \text{St. Venant-Kirchoff} \\
-      \text{\scriptsize geometric} {\LARGE \ \downarrow\ } \scriptsize{\bm E \to \bm \epsilon} & & \text{\scriptsize geometric} {\LARGE \ \downarrow\ } \scriptsize{\bm E \to \bm \epsilon} \\
-      \text{Small Strain Hyperelastic} & \underset{\bm \sigma = \mathsf C \bm \epsilon}{\overset{\text{constitutive}}{\LARGE \longrightarrow}} & \text{Linear Elastic} \\
-      \end{matrix}
 
 Weak form
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It is crucial to distinguish between the current and reference element in the *total Lagrangian* Finite Strain regime.
+It is crucial to distinguish between the current and reference element in the total Lagrangian finite strain regime.
 
 .. math::
 
@@ -429,3 +443,4 @@ That is, given the linearization point :math:`\bm F` and solution increment :mat
    In the case where complete linearization is preferred, note the symmetry :math:`\mathsf C_{IJKL} = \mathsf C_{KLIJ}` evident in :math:numref:`eq-neo-hookean-incremental-stress-index`, thus :math:`\mathsf C` can be stored as a symmetric :math:`6\times 6` matrix, which has 21 unique entries.
    Along with 6 entries for :math:`\bm S`, this totals 27 entries of overhead compared to computing everything from :math:`\bm F`.
    This compares with 13 entries of overhead for direct storage of :math:`\{ \bm S, \bm C^{-1}, \log J \}`, which is sufficient for the Neo-Hookean model to avoid all but matrix products.
+
