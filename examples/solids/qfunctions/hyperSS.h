@@ -269,9 +269,9 @@ CEED_QFUNCTION(HyperSSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     const CeedScalar dsigma00 = (TwoMu + lambda_bar)*de[0][0] + lambda_bar*de[1][1] + lambda_bar*de[2][2],
                      dsigma11 = lambda_bar*de[0][0] + (TwoMu + lambda_bar)*de[1][1] + lambda_bar*de[2][2],
                      dsigma22 = lambda_bar*de[0][0] + lambda_bar*de[1][1] + (TwoMu + lambda_bar)*de[2][2],
-                     dsigma12 = 0.5*TwoMu*de[1][2],
-                     dsigma02 = 0.5*TwoMu*de[0][2],
-                     dsigma01 = 0.5*TwoMu*de[0][1];
+                     dsigma12 = TwoMu*de[1][2],
+                     dsigma02 = TwoMu*de[0][2],
+                     dsigma01 = TwoMu*de[0][1];
     // *INDENT-OFF*
     const CeedScalar dsigma[3][3] = {{dsigma00, dsigma01, dsigma02},
                                      {dsigma01, dsigma11, dsigma12},
