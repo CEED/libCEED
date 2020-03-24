@@ -142,12 +142,12 @@ Consequently, equation :math:numref:`derss` can be written in matrix form as fol
    \right]  = 
    \left[
      \begin{array}{cccccc} 
-       2\mu +\bar{\lambda} & \bar{\lambda} & \bar{\lambda} & & & \\
-        \bar{\lambda} & 2\mu +\bar{\lambda} & \bar{\lambda} & & & \\
-        \bar{\lambda} & \bar{\lambda} & 2\mu +\bar{\lambda} & & & \\
-        & & & \mu & & \\    
-        & & & &\mu & \\
-        & & & & & \mu \\   
+       2 \mu +\bar{\lambda} & \bar{\lambda} & \bar{\lambda} & & & \\
+       \bar{\lambda} & 2 \mu +\bar{\lambda} & \bar{\lambda} & & & \\
+       \bar{\lambda} & \bar{\lambda} & 2 \mu +\bar{\lambda} & & & \\
+       & & & 2 \mu & & \\    
+       & & & & 2 \mu & \\
+       & & & & & 2 \mu \\   
      \end {array}
    \right] 
    \left[
