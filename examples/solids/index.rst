@@ -283,6 +283,18 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
       \bm S = \lambda \log J \bm C^{-1} + 2 \mu \bm C^{-1} \bm E,
 
    which is more numerically stable for small :math:`\bm E`, and thus preferred for computation.
+   Note that the product :math:`\bm C^{-1} \bm E` is also symmetric, and that :math:`\bm E` should be computed using :math:numref:`eq-green-lagrange-strain`.
+
+   Similarly, it is preferable to compute :math:`\log J` using ``log1p``, especially in case of nearly incompressible materials.
+   To sketch this idea, suppose we have the :math:`2\times 2` symmetric matrix :math:`C = \left( \begin{smallmatrix} 1 + e_{00} & e_{01} \\ e_{01} & 1 + e_{11} \end{smallmatrix} \right)`.
+   Then we compute
+
+   .. math::
+      \log \sqrt{\lvert C \rvert} = \frac 1 2 \mathtt{log1p}(e_{00} + e_{11} + e_{00} e_{11} - e_{01}^2).
+
+   which gives accurate results even in the limit when the entries :math:`e_{ij}` are very small.
+   For example, if :math:`e_{ij} \sim 10^{-8}`, then naive computation of :math:`\bm I_3 - \bm C^{-1}` and :math:`\log J` will have a relative accuracy of order :math:`10^{-8}` in double precision and no correct digits in single precision.
+   When using the stable choices above, these quantities retain full :math:`\varepsilon_{\text{machine}}` relative accuracy.
 
 .. note::
    One can linearize :math:numref:`neo-hookean-stress` around :math:`\bm E = 0`, for which :math:`\bm C = \bm I_3 + 2 \bm E \to \bm I_3` and :math:`J \to 1 + \operatorname{trace} \bm E`, therefore :math:numref:`neo-hookean-stress` reduces to
