@@ -14,6 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+/// @file
+/// Hyperelasticity, finite strain for solid mechanics example using PETSc
+
 #ifndef HYPER_FS_H
 #define HYPER_FS_H
 
@@ -30,6 +33,8 @@ struct Physics_private {
 };
 #endif
 
+// -----------------------------------------------------------------------------
+// Residual evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                          CeedScalar *const *out) {
@@ -193,6 +198,8 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   return 0;
 }
 
+// -----------------------------------------------------------------------------
+// Jacobian evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                           CeedScalar *const *out) {

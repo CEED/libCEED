@@ -14,6 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+/// @file
+/// Linear elasticity manufactured solution true solution for solid mechanics example using PETSc
+
 #ifndef MANUFACTURED_TRUE_H
 #define MANUFACTURED_TRUE_H
 
@@ -21,6 +24,8 @@
 #  include <math.h>
 #endif
 
+// -----------------------------------------------------------------------------
+// True solution for linear elasticity manufactured solution
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(MMSTrueSoln)(void *ctx, const CeedInt Q,
                             const CeedScalar *const *in,

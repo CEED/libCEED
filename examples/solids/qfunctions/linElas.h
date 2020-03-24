@@ -14,6 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+/// @file
+/// Linear elasticity for solid mechanics example using PETSc
+
 #ifndef LIN_ELAS_H
 #define LIN_ELAS_H
 
@@ -30,6 +33,8 @@ struct Physics_private {
 };
 #endif
 
+// -----------------------------------------------------------------------------
+// Residual evaluation for linear elasticity
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(LinElasF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                          CeedScalar *const *out) {
@@ -152,6 +157,8 @@ CEED_QFUNCTION(LinElasF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   return 0;
 }
 
+// -----------------------------------------------------------------------------
+// Jacobian evaluation for linear elasticity
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(LinElasdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                           CeedScalar *const *out) {

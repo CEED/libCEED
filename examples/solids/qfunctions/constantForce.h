@@ -14,6 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+/// @file
+/// Constant forcing term for solid mechanics example using PETSc
+
 #ifndef CONSTANT_H
 #define CONSTANT_H
 
@@ -30,6 +33,8 @@ struct Physics_private {
 };
 #endif
 
+// -----------------------------------------------------------------------------
+// Constant forcing term, -1 in y direction only
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupConstantForce)(void *ctx, const CeedInt Q,
                                    const CeedScalar *const *in,
