@@ -5,7 +5,7 @@ Solid mechanics elasticity mini-app
 
 This example is located in the subdirectory :file:`examples/solids`.
 It solves the steady-state static balance momentum equations using unstructured high-order finite/spectral element spatial discretizations.
-As for the :ref:`example-petsc-navier-stokes` case, the solid mechanics elasticity example has been developed using PETSc, so that the pointwise physics (defined at quadrature points) is separated from the parallelization and meshing concerns.
+As with the :ref:`example-petsc-navier-stokes` case, the solid mechanics elasticity example has been developed using PETSc, so that the pointwise physics (defined at quadrature points) is separated from the parallelization and meshing concerns.
 
 
 .. _problem-linear-elasticity:
@@ -133,7 +133,7 @@ Therefore,
 .. math::
    :label: derss
 
-   d \boldsymbol{\sigma}  = \bar{\lambda} \cdot tr \left(d \boldsymbol{\epsilon} \right) \cdot \boldsymbol{I}_3 + 2\mu d \boldsymbol{\epsilon}
+   d \boldsymbol{\sigma}  = \bar{\lambda} \cdot trace \left(\boldsymbol{\epsilon} \right) \cdot \boldsymbol{I}_3 + 2\mu d \boldsymbol{\epsilon}
 
 where we have introduced the symbol 
 
