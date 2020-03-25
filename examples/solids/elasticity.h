@@ -118,6 +118,7 @@ struct AppCtx_private {
   PetscInt      numIncrements;                         // Number of steps
   PetscInt      bcZeroFaces[16], bcClampFaces[16];
   PetscInt      bcZeroCount, bcClampCount;
+  PetscScalar   bcClampMax;
 };
 
 // Problem specific data

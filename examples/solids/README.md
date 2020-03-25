@@ -27,6 +27,7 @@ Available runtime options are:
 | `-forcing`               | Forcing term option (`none`, `constant`, or `mms`)                                              |
 | `-bc_zero`               | List of boundary face IDs to apply zero Dirichlet BCs                                           |
 | `-bc_clamp`              | List of boundary face IDs to apply incremental -y Dirichlet BCs                                 |
+| `-bc_clamp_max`          | Maximum value to displace clamped boundary                                                      |
 | `-num_steps`             | Number of pseudo-time steps for continuation method                                             |
 | `-view_soln`             | Output solution at each pseudo-time step for viewing                                            |
 | `-E`                     | Young's modulus                                                                                 |

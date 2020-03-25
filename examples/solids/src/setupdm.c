@@ -190,7 +190,8 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
     // ---- Clamp BCs
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, NULL, "Face Sets", 0, 0, NULL,
                          (void(*)(void))BCClamp, appCtx->bcClampCount,
-                         appCtx->bcClampFaces, NULL); CHKERRQ(ierr);
+                         appCtx->bcClampFaces, (void*)&appCtx->bcClampMax);
+    CHKERRQ(ierr);
   }
   ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);

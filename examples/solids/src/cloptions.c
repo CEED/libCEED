@@ -83,6 +83,11 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
   ierr = PetscOptionsIntArray("-bc_clamp","Face IDs to apply incremental Dirichlet BC",
                               NULL, appCtx->bcClampFaces, &appCtx->bcClampCount,
                               NULL); CHKERRQ(ierr);
+
+  appCtx->bcClampMax = -1;
+  ierr = PetscOptionsScalar("-bc_clamp_max", "Maximum value to displace clamped boundary",
+                            NULL, appCtx->bcClampMax, &appCtx->bcClampMax,
+                            NULL); CHKERRQ(ierr);
   
   appCtx->multigridChoice = MULTIGRID_LOGARITHMIC;
   ierr = PetscOptionsEnum("-multigrid", "Set multigrid type option", NULL,
