@@ -34,6 +34,15 @@ struct Physics_private {
 #endif
 
 // -----------------------------------------------------------------------------
+// Series approximation of log1p()
+//  log1p() is not vectorized in libc
+// -----------------------------------------------------------------------------
+static inline CeedScalar log1p_series(CeedScalar x) {
+  const CeedScalar y = x / (2. + x);
+  return 2*(y + y*y*y/3. + y*y*y*y*y/5. + y*y*y*y*y*y*y/7.);
+};
+
+// -----------------------------------------------------------------------------
 // Residual evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
@@ -176,7 +185,7 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // Compute the Second Piola-Kirchhoff (S)
-    const CeedScalar llnj = lambda*log1p(detC_m1)/2.;
+    const CeedScalar llnj = lambda*log1p_series(detC_m1)/2.;
     const CeedScalar S00 = llnj*Cinv[0][0] +
                            mu*(Cinv[0][0]*E2[0][0] + Cinv[0][1]*E2[1][0] +
                                Cinv[0][2]*E2[2][0]),
@@ -371,7 +380,7 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // Compute the Second Piola-Kirchhoff (S)
-    const CeedScalar llnj = lambda*log1p(detC_m1)/2.;
+    const CeedScalar llnj = lambda*log1p_series(detC_m1)/2.;
     const CeedScalar S00 = llnj*Cinv[0][0] +
                            mu*(Cinv[0][0]*E2[0][0] + Cinv[0][1]*E2[1][0] +
                                Cinv[0][2]*E2[2][0]),
