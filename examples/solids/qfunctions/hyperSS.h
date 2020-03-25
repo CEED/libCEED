@@ -112,7 +112,7 @@ CEED_QFUNCTION(HyperSSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                  {e02, e12, e22}
                                 };
     // *INDENT-ON*
-    
+
     // strain (epsilon)
     //    and
     // stress (sigma) in Voigt notation:
@@ -134,12 +134,12 @@ CEED_QFUNCTION(HyperSSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // Volumetric strain
     const CeedScalar strain_vol = e[0][0] + e[1][1] + e[2][2];
 
-    const CeedScalar sigma00 = lambda*log(1+strain_vol) + TwoMu * e[0][0],
-                     sigma11 = lambda*log(1+strain_vol) + TwoMu * e[1][1],
-                     sigma22 = lambda*log(1+strain_vol) + TwoMu * e[2][2],
-                     sigma12 = TwoMu * e[1][2],
-                     sigma02 = TwoMu * e[0][2],
-                     sigma01 = TwoMu * e[0][1];
+    const CeedScalar sigma00 = lambda*log(1+strain_vol) + TwoMu*e[0][0],
+                     sigma11 = lambda*log(1+strain_vol) + TwoMu*e[1][1],
+                     sigma22 = lambda*log(1+strain_vol) + TwoMu*e[2][2],
+                     sigma12 = TwoMu*e[1][2],
+                     sigma02 = TwoMu*e[0][2],
+                     sigma01 = TwoMu*e[0][1];
     // *INDENT-OFF*
     const CeedScalar sigma[3][3] = {{sigma00, sigma01, sigma02},
                                     {sigma01, sigma11, sigma12},
@@ -239,7 +239,7 @@ CEED_QFUNCTION(HyperSSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                   {de02, de12, de22}
                                  };
     // *INDENT-ON*
-    
+
     //strain (epsilon)
     //    and
     //stress (sigma) in Voigt notation:
@@ -270,15 +270,15 @@ CEED_QFUNCTION(HyperSSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     //     [                                                                       mu ]
     //
     // Above Voigt Notation is placed in a 3x3 matrix:
-    const CeedScalar strain_vol = gradu[0][0][i] + gradu[1][1][i] + gradu[2][2][i];
+    const CeedScalar strain_vol = gradu[0][0][i]+gradu[1][1][i]+gradu[2][2][i];
     const CeedScalar lambda_bar = lambda / (1 + strain_vol);
-    const CeedScalar lambda_dtrace = lambda_bar * (de[0][0] + de[1][1] + de[2][2]);
-    const CeedScalar dsigma00 = lambda_dtrace + TwoMu * de[0][0],
-                     dsigma11 = lambda_dtrace + TwoMu * de[1][1],
-                     dsigma22 = lambda_dtrace + TwoMu * de[2][2],
-                     dsigma12 = TwoMu * de[1][2],
-                     dsigma02 = TwoMu * de[0][2],
-                     dsigma01 = TwoMu * de[0][1];
+    const CeedScalar lambda_dtrace = lambda_bar*(de[0][0]+de[1][1]+de[2][2]);
+    const CeedScalar dsigma00 = lambda_dtrace + TwoMu*de[0][0],
+                     dsigma11 = lambda_dtrace + TwoMu*de[1][1],
+                     dsigma22 = lambda_dtrace + TwoMu*de[2][2],
+                     dsigma12 = TwoMu*de[1][2],
+                     dsigma02 = TwoMu*de[0][2],
+                     dsigma01 = TwoMu*de[0][1];
     // *INDENT-OFF*
     const CeedScalar dsigma[3][3] = {{dsigma00, dsigma01, dsigma02},
                                      {dsigma01, dsigma11, dsigma12},
