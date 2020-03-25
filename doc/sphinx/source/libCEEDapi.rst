@@ -121,7 +121,7 @@ Vector representation/storage categories:
 - Quadrature point vector, **Q-vector**:
 
    - this is similar to **E-vector** where instead of dofs, the vector represents
-     values at qudrature points, grouped by element.
+     values at quadrature points, grouped by element.
 
 - In many cases it is useful to distinguish two types of vectors:
 
@@ -424,7 +424,7 @@ nodes (which do not appear in **L-vectors**) as linear combinations of the degre
 freedom at master nodes.
 
 These operations, :math:`\mathbf{P}`, :math:`\mathbf{B}`, and :math:`\mathbf{D}`,
-are combined with a ``CeedOperator``. As with qfunctions, operator fields are added
+are combined with a ``CeedOperator``. As with QFunctions, operator fields are added
 separately with a matching field name, basis (:math:`\mathbf{B}`), element restriction
 (:math:`\mathbf{G}`), and **L-vector**. The flag
 ``CEED_VECTOR_ACTIVE`` indicates that the vector corresponding to that field will
