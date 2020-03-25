@@ -27,9 +27,9 @@
 //
 // Sample runs:
 //
-//     ./elasticity -problem linElas -degree 2 -nu 0.3 -E 1 -forcing mms -mesh ./meshes/cylinder8_672e_4ss_us.exo
-//     ./elasticity -problem hyperSS -ceed /cpu/self -degree 2 -nu 0.3 -E 1 -forcing none -bc_zero 999 -bc_clamp 998 -mesh ./meshes/cylinder8_672e_4ss_us.exo
-//     ./elasticity -problem hyperFS -ceed /gpu/occa -degree 2 -nu 0.3 -E 1 -forcing none -bc_zero 999 -bc_clamp 998 -mesh ./meshes/cylinder8_672e_4ss_us.exo
+//     ./elasticity -mesh ./meshes/cylinder8_672e_4ss_us.exo -degree 2 -E 1 -nu 0.3 -problem linElas -forcing mms
+//     ./elasticity -mesh ./meshes/cylinder8_672e_4ss_us.exo -degree 2 -E 1 -nu 0.3 -bc_zero 999 -bc_clamp 998 -problem hyperSS -forcing none -ceed /cpu/self
+//     ./elasticity -mesh ./meshes/cylinder8_672e_4ss_us.exo -degree 2 -E 1 -nu 0.3 -bc_zero 999 -bc_clamp 998 -problem hyperFS -forcing none -ceed /gpu/occa
 //
 //TESTARGS -ceed {ceed_resource} -test -degree 2 -nu 0.3 -E 1
 

@@ -47,9 +47,9 @@ At least one boundary condition must be set for these forcing functions.
 The boundaries can be constrained to zero or a unit decrement in the `-y` direction.
 
 Example:\
- `./elasticity -mesh ./meshes/cylinder8_672e_4ss_us.exo -degree 2 -nu .3 -E 1e6 -bc_zero 999 -bc_clamp 998 -forcing constant`
+ `./elasticity -mesh ./meshes/cylinder8_672e_4ss_us.exo -degree 2 -E 1e6 -nu .3 -bc_zero 999 -bc_clamp 998 -forcing constant`
 
 To test the linear elasticity code, the forcing term can be set instead to `mms`.
 
 Example:\
- `./elasticity -mesh ./meshes/cylinder8_672e_4ss_us.exo -degree 2 -nu .3 -E 1e6 -forcing mms`
+ `./elasticity -mesh ./meshes/cylinder8_672e_4ss_us.exo -degree 2 -E 1e6 -nu .3 -forcing mms`
