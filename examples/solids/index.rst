@@ -8,13 +8,13 @@ It solves the steady-state static balance momentum equations using unstructured 
 As with the :ref:`example-petsc-navier-stokes` case, the solid mechanics elasticity example has been developed using PETSc, so that the pointwise physics (defined at quadrature points) is separated from the parallelization and meshing concerns.
 
 In this mini-app, we consider three material models used in solid mechanic applications: linear elasticity, Neo-Hookean hyperelasticity at small strain, and Neo-Hookean hyperelasticity at finite strain.
-We provide the  stong and weak form of static balance of linear momentum equations in the small strain and finite strain regimes.
+We provide the  strong and weak form of static balance of linear momentum equations in the small strain and finite strain regimes.
 The stress-strain relationship (constitutive law) for each of the material models is provided.
 Due to the nonlinearity of material models in Neo-Hookean hyperelasticity, the Newton linearization of the material models is provided.
 
 .. note::
 
-   The linear elastiticty and hyperelasticity at small strain material models can be seen as constitutive and geometric linearization of the hyperelasticity at finite strain material model.
+   The linear elasticity and hyperelasticity at small strain material models can be seen as constitutive and geometric linearization of the hyperelasticity at finite strain material model.
    
    The effect of constitutive and geometric linearization is sketched in the diagram below, where :math:`\bm \sigma` and :math:`\bm \epsilon` are stress and strain, respectively, in the small strain regime while :math:`\bm S` and :math:`\bm E` are stress and strain defined in the reference configuration in the finite strain formulation and :math:`\mathsf C` is the constitutive law.
 
@@ -24,6 +24,39 @@ Due to the nonlinearity of material models in Neo-Hookean hyperelasticity, the N
       \text{\scriptsize geometric} {\LARGE \ \downarrow\ } \scriptsize{\bm E \to \bm \epsilon} & & \text{\scriptsize geometric} {\LARGE \ \downarrow\ } \scriptsize{\bm E \to \bm \epsilon} \\
       \text{Small Strain Hyperelastic} & \underset{\bm \sigma = \mathsf C \bm \epsilon}{\overset{\text{constitutive}}{\LARGE \longrightarrow}} & \text{Linear Elastic} \\
       \end{matrix}
+
+.. _running-elasticity:
+
+Running the mini-app
+----------------------------------------
+
+There are five required command line options and a variety of additional command line options for this mini-app.
+The four required command line options are :code:`-mesh`, :code:`-degree`, :code:`-E`, and :code:`-nu`. Additionally, at least one boundary condition must be set, using :code:`-bc_zero` or :code:`-bc_clamp`.
+
+To set the ExodusII mesh file, use the :code:`-mesh` option and the file path to the mesh file::
+
+   ./elasticity -mesh ./meshes/meshes/cylinder8_672e_4ss_us.exo
+
+To set the 
+
+To set the polynomial order of the finite element basis, use the :code:`-degree` option::
+
+   ./elasticity -mesh ./meshes/meshes/cylinder8_672e_4ss_us.exo -degree 4
+
+To set the materiel parameters, use the :code:`-E` and :code:`-nu` options, for Young's modulus and Poisson's ratio, respectively::
+
+   ./elasticity -mesh ./meshes/meshes/cylinder8_672e_4ss_us.exo -degree 4 -E 1e6 -nu 0.3
+
+To set the boundary conditions, use :code:`-bc_zero` or :code:`-bc_clamp` followed by a comma separated list of the constrained faces::
+
+   ./elasticity -mesh ./meshes/meshes/cylinder8_672e_4ss_us.exo -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998
+
+These command line options are the minimum requirements for the mini-app, but additional options may also be set.
+For example, the materiel model (:code:`-problem`), forcing term (:code:`-forcing`), libCEED backend resource (:code:`-ceed`) can be specified::
+
+   ./elasticity -mesh ./meshes/meshes/cylinder8_672e_4ss_us.exo -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998 -problem hyperFS -forcing none -ceed /cpu/self/opt/blocked
+
+The full list of command line options is detailed in the :file:`README` file in the :file:`examples/solids` subdirectory.
 
 .. _problem-linear-elasticity:
 
@@ -198,7 +231,7 @@ Equation :math:numref:`derss` can be written in matrix form as follows:
 Hyperelasticity at Finite Strain
 ----------------------------------------
 
-In the *total Lagrangian* approach for the Neo-Hookean hyperelasticity probelm, the discrete equations are formulated with respect to the reference configuration.
+In the *total Lagrangian* approach for the Neo-Hookean hyperelasticity problem, the discrete equations are formulated with respect to the reference configuration.
 In this formulation, we solve for displacement :math:`\bm u(\bm X)` in the reference frame :math:`\bm X`.
 The notation for elasticity at finite strain is inspired by :cite:`holzapfel2000nonlinear` to distinguish between the current and reference configurations.
 As explained in the :ref:`Common notation` section, we denote by capital letters the reference frame and by small letters the current one.
@@ -415,7 +448,7 @@ where we have used
       &= \bm F_{Ik}^{-1} \diff \bm F_{kI} = \bm F^{-T} \!:\! \diff \bm F.
       \end{aligned}
 
-   We prefer to compute with :math:numref:`eq-neo-hookean-incremental-stress` because :math:numref:`eq-diff-P-dF` is more expensive, requiring access to (nonsymmetric) :math:`\bm F^{-1}` in addition to (symmetric) :math:`\bm C^{-1} = \bm F^{-1} \bm F^{-T}`, having fewer symmetries to exploit in contractions, and being less numerically stable.
+   We prefer to compute with :math:numref:`eq-neo-hookean-incremental-stress` because :math:numref:`eq-diff-P-dF` is more expensive, requiring access to (non-symmetric) :math:`\bm F^{-1}` in addition to (symmetric) :math:`\bm C^{-1} = \bm F^{-1} \bm F^{-T}`, having fewer symmetries to exploit in contractions, and being less numerically stable.
 
 It is sometimes useful to express :math:numref:`eq-neo-hookean-incremental-stress` in index notation,
 

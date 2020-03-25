@@ -76,7 +76,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
   CHKERRQ(ierr);
 
   appCtx->bcZeroCount = 16;
-  ierr = PetscOptionsIntArray("-bc_zero","Face IDs to apply zero Dirichlet BC",
+  ierr = PetscOptionsIntArray("-bc_zero", "Face IDs to apply zero Dirichlet BC",
                               NULL, appCtx->bcZeroFaces, &appCtx->bcZeroCount,
                               NULL); CHKERRQ(ierr);
   appCtx->bcClampCount = 16;
@@ -200,12 +200,12 @@ PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units) {
   CHKERRQ(ierr);
   units->meter = fabs(units->meter);
 
-  ierr = PetscOptionsScalar("-units_second","1 second in scaled time units",
+  ierr = PetscOptionsScalar("-units_second", "1 second in scaled time units",
                             NULL, units->second, &units->second, NULL);
   CHKERRQ(ierr);
   units->second = fabs(units->second);
 
-  ierr = PetscOptionsScalar("-units_kilogram","1 kilogram in scaled mass units",
+  ierr = PetscOptionsScalar("-units_kilogram", "1 kilogram in scaled mass units",
                             NULL, units->kilogram, &units->kilogram, NULL);
   CHKERRQ(ierr);
   units->kilogram = fabs(units->kilogram);
