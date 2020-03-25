@@ -114,12 +114,13 @@ static inline int commonFS(const CeedScalar lambda, const CeedScalar mu,
                     };
   for (CeedInt m = 0; m < 6; m++)
     Cinvwork[m] = A[m] / (detC_m1 + 1.);
-    // *INDENT-OFF*
-    const CeedScalar Cinv[3][3] = {{Cinvwork[0], Cinvwork[5], Cinvwork[4]},
-                                   {Cinvwork[5], Cinvwork[1], Cinvwork[3]},
-                                   {Cinvwork[4], Cinvwork[3], Cinvwork[2]}
-                                  };
-    // *INDENT-ON*
+
+  // *INDENT-OFF*
+  const CeedScalar Cinv[3][3] = {{Cinvwork[0], Cinvwork[5], Cinvwork[4]},
+                                 {Cinvwork[5], Cinvwork[1], Cinvwork[3]},
+                                 {Cinvwork[4], Cinvwork[3], Cinvwork[2]}
+                                };
+  // *INDENT-ON*
 
   // Compute the Second Piola-Kirchhoff (S)
   (*llnj) = lambda*log1p_series(detC_m1)/2.;
