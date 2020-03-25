@@ -36,10 +36,34 @@ struct Physics_private {
 // -----------------------------------------------------------------------------
 // Series approximation of log1p()
 //  log1p() is not vectorized in libc
+//
+//  The series expansion is accurate to 1e-7 in the range sqrt(2)/2 < J < sqrt(2),
+//  with machine precision accuracy near J=1.  The initialization extends this range
+//  to 0.35 ~= sqrt(2)/4 < J < sqrt(2)*2 ~= 2.83, which should be sufficient for
+//  applications of the Neo-Hookean model.
 // -----------------------------------------------------------------------------
 static inline CeedScalar log1p_series(CeedScalar x) {
-  const CeedScalar y = x / (2. + x);
-  return 2*(y + y*y*y/3. + y*y*y*y*y/5. + y*y*y*y*y*y*y/7.);
+  const CeedScalar left = sqrt(2)/2 - 1, right = sqrt(2) - 1;
+  CeedScalar sum = 0;
+  if (1) { // Disable if the smaller range sqrt(2) < J < sqrt(2) is sufficient
+    if (x < left) { // Replace if with while for arbitrary range (may hurt vectorization)
+      sum -= log(2) / 2;
+      x = 1 + 2 * x;
+    } else if (right < x) {
+      sum += log(2) / 2;
+      x = (x - 1) / 2;
+    }
+  }
+  CeedScalar y = x / (2. + x);
+  const CeedScalar y2 = y*y;
+  sum += y;
+  y *= y2;
+  sum += y / 3;
+  y *= y2;
+  sum += y / 5;
+  y *= y2;
+  sum += y / 7;
+  return 2 * sum;
 };
 
 // -----------------------------------------------------------------------------
