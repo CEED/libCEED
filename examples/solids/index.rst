@@ -19,9 +19,9 @@ Due to the nonlinearity of material models in Neo-Hookean hyperelasticity, the N
 
    .. math::
       \begin{matrix}
-      \text{Finite Strain Hyperelastic} & \underset{\bm S = \mathsf C \bm E}{\overset{\text{constitutive}}{\LARGE \longrightarrow}} & \text{St. Venant-Kirchoff} \\
+      \text{Finite Strain Hyperelastic} & \underset{\bm S = \mathsf C \bm E}{\overset{\text{constitutive}}{\longrightarrow}} & \text{St. Venant-Kirchoff} \\
       \text{\scriptsize geometric} {\LARGE \ \downarrow\ } \scriptsize{\bm E \to \bm \epsilon} & & \text{\scriptsize geometric} {\LARGE \ \downarrow\ } \scriptsize{\bm E \to \bm \epsilon} \\
-      \text{Small Strain Hyperelastic} & \underset{\bm \sigma = \mathsf C \bm \epsilon}{\overset{\text{constitutive}}{\LARGE \longrightarrow}} & \text{Linear Elastic} \\
+      \text{Small Strain Hyperelastic} & \underset{\bm \sigma = \mathsf C \bm \epsilon}{\overset{\text{constitutive}}{\longrightarrow}} & \text{Linear Elastic} \\
       \end{matrix}
 
 .. _running-elasticity:
