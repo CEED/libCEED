@@ -407,7 +407,7 @@ int main(int argc, char **argv) {
       ierr = PCMGSetLevels(pc, numLevels, NULL); CHKERRQ(ierr);
       for (int level = 0; level < numLevels; level++) {
         // -------- Smoother
-        KSP kspSmoother;
+        KSP kspSmoother, kspEst;
         PC pcSmoother;
 
         // ---------- Smoother KSP
@@ -419,6 +419,8 @@ int main(int argc, char **argv) {
         ierr = KSPSetType(kspSmoother, KSPCHEBYSHEV); CHKERRQ(ierr);
         ierr = KSPChebyshevEstEigSet(kspSmoother, 0, 0.1, 0, 1.1);
         CHKERRQ(ierr);
+        ierr = KSPChebyshevEstEigGetKSP(kspSmoother, &kspEst); CHKERRQ(ierr);
+        ierr = KSPSetType(kspEst, KSPCG); CHKERRQ(ierr);
         ierr = KSPChebyshevEstEigSetUseNoisy(kspSmoother, PETSC_TRUE);
         CHKERRQ(ierr);
         ierr = KSPSetOperators(kspSmoother, jacobMat[level], jacobMat[level]);
