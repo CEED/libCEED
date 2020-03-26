@@ -437,7 +437,11 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
                        user->outputfolder); CHKERRQ(ierr);
   ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
   CHKERRQ(ierr);
+  #if PETSC_VERSION_GE(3,13,0)
+  ierr = PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL);
+  #else
   ierr = PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL, true);
+  #endif
   CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 

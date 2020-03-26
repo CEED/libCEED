@@ -34,7 +34,7 @@ and physical coordinates on the discrete surface, denoted by
 reference element, via the chain rule
 
 .. math::
-   \frac{\partial \mathbf{x}}{\partial \mathbf{X}}_{(2\times2)} = \frac{\partial {\mathbf{x}}}{\partial \bar{\mathbf{x}}}_{(2\times3)} \frac{\partial \bar{\mathbf{x}}}{\partial \mathbf{X}}_{(3\times2)} \, ,
+   \frac{\partial \mathbf{x}}{\partial \mathbf{X}}_{(2\times2)} = \frac{\partial {\mathbf{x}}}{\partial \bar{\mathbf{x}}}_{(2\times3)} \frac{\partial \bar{\mathbf{x}}}{\partial \mathbf{X}}_{(3\times2)},
    :label: eq-coordinate-transforms-cube
 
 with Jacobian determinant given by
@@ -73,7 +73,7 @@ and physical coordinates on the discrete surface, denoted by
 reference element, via the chain rule
 
 .. math::
-   \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(3\times2)} = \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{x}}_{(3\times3)} \frac{\partial\mathbf{x}}{\partial \mathbf{X}}_{(3\times2)} \, ,
+   \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(3\times2)} = \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{x}}_{(3\times3)} \frac{\partial\mathbf{x}}{\partial \mathbf{X}}_{(3\times2)} ,
    :label: eq-coordinate-transforms-sphere
 
 with Jacobian determinant given by
@@ -95,7 +95,7 @@ In particular, for a sphere of radius 1, we have
 and thus
 
 .. math::
-   \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{x}} = \frac{1}{\lVert \mathbf x \rVert} \mathbf I_{(3\times 3)} - \frac{1}{\lVert \mathbf x \rVert^3} (\mathbf x \mathbf x^T)_{(3\times 3)}.
+   \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{x}} = \frac{1}{\lVert \mathbf x \rVert} \mathbf I_{(3\times 3)} - \frac{1}{\lVert \mathbf x \rVert^3} (\mathbf x \mathbf x^T)_{(3\times 3)} .
 
 
 .. _example-petsc-bps:
@@ -125,7 +125,7 @@ is used to derive the contravariant metric tensor. We begin by expressing the
 Moore-Penrose (left) pseudo-inverse:
 
 .. math::
-   \frac{\partial \mathbf{X}}{\partial \overset{\circ}{\mathbf{x}}}_{(2\times 3)} \equiv \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}\right)_{(2\times 3)}^{+} =  \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(3\times2)} \right)^{-1} \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T \,.
+   \frac{\partial \mathbf{X}}{\partial \overset{\circ}{\mathbf{x}}}_{(2\times 3)} \equiv \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}\right)_{(2\times 3)}^{+} =  \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(3\times2)} \right)^{-1} \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T .
    :label: eq-dxcircdX-pseudo-inv
 
 This enables computation of gradients of an arbitrary function :math:`u(\overset{\circ}{\mathbf x})` in the embedding space as
@@ -138,11 +138,13 @@ and thus the weak Laplacian may be expressed as
 .. math::
    :label: eq-weak-laplace-sphere
 
-   \int_S \frac{\partial v}{\partial \overset\circ{\mathbf x}} \left( \frac{\partial u}{\partial \overset\circ{\mathbf x}} \right)^T
-       = \int_S \frac{\partial v}{\partial \mathbf X} \underbrace{\frac{\partial \mathbf X}{\partial \overset\circ{\mathbf x}} \left( \frac{\partial \mathbf X}{\partial \overset\circ{\mathbf x}} \right)^T}_{\mathbf g_{(2\times 2)}}  \left(\frac{\partial u}{\partial \mathbf X} \right)^T
+   \int_{\Omega} \frac{\partial v}{\partial \overset\circ{\mathbf x}} \left( \frac{\partial u}{\partial \overset\circ{\mathbf x}} \right)^T \, dS
+       = \int_{\Omega} \frac{\partial v}{\partial \mathbf X} \underbrace{\frac{\partial \mathbf X}{\partial \overset\circ{\mathbf x}} \left( \frac{\partial \mathbf X}{\partial \overset\circ{\mathbf x}} \right)^T}_{\mathbf g_{(2\times 2)}}  \left(\frac{\partial u}{\partial \mathbf X} \right)^T \, dS
 
-where we have identified the :math:`2\times 2` contravariant metric tensor :math:`\mathbf g` (sometimes written :math:`\mathbf g^{ij}`).
-This expression can be simplified to avoid the explicit Moore-Penrose pseudo-inverse,
+where we have identified the :math:`2\times 2` contravariant metric tensor :math:`\mathbf g` (sometimes written :math:`\mathbf g^{ij}`), and where now :math:`\Omega` represents the surface of the sphere,
+which is a two-dimensional closed surface embedded in the three-dimensional Euclidean space
+:math:`\mathbb{R}^3`. This expression can be simplified to avoid the explicit
+Moore-Penrose pseudo-inverse,
 
 .. math::
    \mathbf g = \left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}} \right)^{-1}_{(2\times 2)} \frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}_{(2\times3)}^T
@@ -153,8 +155,8 @@ where we have dropped the transpose due to symmetry.
 This allows us to simplify :math:numref:`eq-weak-laplace-sphere` as
 
 .. math::
-   \int_S \frac{\partial v}{\partial \overset\circ{\mathbf x}} \left( \frac{\partial u}{\partial \overset\circ{\mathbf x}} \right)^T
-       = \int_S \frac{\partial v}{\partial \mathbf X} \underbrace{\left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}} \right)^{-1}}_{\mathbf g_{(2\times 2)}}  \left(\frac{\partial u}{\partial \mathbf X} \right)^T,
+   \int_{\Omega} \frac{\partial v}{\partial \overset\circ{\mathbf x}} \left( \frac{\partial u}{\partial \overset\circ{\mathbf x}} \right)^T \, dS
+       = \int_{\Omega} \frac{\partial v}{\partial \mathbf X} \underbrace{\left(\frac{\partial \overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}}^T \frac{\partial\overset{\circ}{\mathbf{x}}}{\partial \mathbf{X}} \right)^{-1}}_{\mathbf g_{(2\times 2)}}  \left(\frac{\partial u}{\partial \mathbf X} \right)^T \, dS ,
 
 which is the form implemented in ``qfunctions/bps/bp3sphere.h``.
 

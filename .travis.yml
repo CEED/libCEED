@@ -85,7 +85,7 @@ install:
   - cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..;
   - export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH MPI=0;
 # PETSc
-  - PETSC_COMMIT=94e224767ab72a963c0f657b2484abe25d3d44e5 # master 2020-03-06
+  - PETSC_COMMIT=41ae997de21eca59ba1199030b6f2b87eb581260 # master 2020-03-25
   - export PETSC_INSTALL=$HOME/install/petsc-$PETSC_COMMIT
   - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
         || (  curl -O https://gitlab.com/petsc/petsc/-/archive/$PETSC_COMMIT/petsc-$PETSC_COMMIT.tar.gz

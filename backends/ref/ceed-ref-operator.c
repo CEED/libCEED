@@ -854,8 +854,7 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
 // Create FDM Element Inverse
 //------------------------------------------------------------------------------
 int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
-    CeedOperator *fdminv,
-    CeedRequest *request) {
+    CeedOperator *fdminv, CeedRequest *request) {
   int ierr;
   Ceed ceed, ceedparent;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);

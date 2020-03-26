@@ -29,9 +29,9 @@ MPI ?= 1
 PETSC_DIR ?=
 PETSC_ARCH ?=
 
-.PHONY: all nek ns mfem petsc ceed clean
+.PHONY: all ceed mfem nek petsc fluids solids clean
 
-all: ceed nek ns mfem petsc ceed
+all: ceed mfem nek petsc fluids solids
 
 ceed:
 	make CEED_DIR=$(CEED_DIR) -C ceed all
@@ -48,12 +48,15 @@ nek:
 petsc:
 	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C petsc all
 
-ns:
-	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C navier-stokes all
+fluids:
+	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C fluids all
 
+solids:
+	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C solids all
 clean:
 	+make -C ceed clean
 	+make -C mfem clean
 	+make -C nek clean
 	+make -C petsc clean
-	+make -C navier-stokes clean
+	+make -C fluids clean
+	+make -C solids clean
