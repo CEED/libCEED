@@ -157,13 +157,13 @@ where
 
 .. math::
 
-   \diff \boldsymbol{\epsilon} = \dfrac{1}{2}\left( \nabla \boldsymbol{\diff u} + \nabla \boldsymbol{\diff u}^T \right)
+   \diff \boldsymbol{\epsilon} = \dfrac{1}{2}\left( \nabla \diff \boldsymbol{u} + \nabla \diff \boldsymbol{u}^T \right)
 
 and 
 
 .. math::
 
-   \diff \nabla \boldsymbol{u} = \nabla \boldsymbol{\diff u} .
+   \diff \nabla \boldsymbol{u} = \nabla \diff \boldsymbol{u} .
 
 Therefore,
 
