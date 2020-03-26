@@ -21,7 +21,7 @@ domain :math:`\Omega` respectively, by applying the mass operator to a vector of
 :math:`\mathbf{1}`\s. It computes:
 
 .. math::
-   I = \int_{\Omega} \mathbf{1} \, d V\, .
+   I = \int_{\Omega} \mathbf{1} \, dV .
    :label: eq-ex1-volume
 
 Using the same notation as in :ref:`Theoretical Framework`, we write here the vector
@@ -47,14 +47,14 @@ Arbitrary mesh and solution orders in 1D, 2D and 3D are supported from the same 
 Similarly to :ref:`Ex1-Volume`, it computes:
 
 .. math::
-   I = \int_{\partial \Omega} \mathbf{1} \, d S\, .
+   I = \int_{\partial \Omega} \mathbf{1} \, dS .
    :label: eq-ex2-surface
 
 but this time by solving a Laplace's equation for a harmonic function
 :math:`u(\mathbf{x})`. We write the Laplace's equation
 
 .. math::
-   \nabla \cdot \nabla u = 0, \textrm{ for  } \mathbf{x} \in \Omega.
+   \nabla \cdot \nabla u = 0, \textrm{ for  } \mathbf{x} \in \Omega .
    :label: eq-laplace
 
 We can rewrite this via the bilinear form
@@ -66,7 +66,7 @@ where :math:`v` is the test function, and for which :math:`L(v)=0` in this case.
 obtain
 
 .. math::
-   B(u,v)  = \int_\Omega v \nabla \cdot \nabla u \, d V =   \int_{\partial \Omega} v \nabla u \cdot \mathbf{n}\, d S - \int_\Omega \nabla v \cdot \nabla u \, d V  = 0\, ,
+   B(u,v)  = \int_\Omega v \nabla \cdot \nabla u \, dV =   \int_{\partial \Omega} v \nabla u \cdot \mathbf{n}\, dS - \int_\Omega \nabla v \cdot \nabla u \, dV  = 0 ,
 
 where we have used integration by parts.
 
@@ -74,7 +74,7 @@ where we have used integration by parts.
 can write
 
 .. math::
-   \int_{\partial \Omega} v \nabla u \cdot \mathbf{n}\, d S = \int_\Omega \nabla v \cdot \nabla u \, d V
+   \int_{\partial \Omega} v \nabla u \cdot \mathbf{n}\, dS = \int_\Omega \nabla v \cdot \nabla u \, dV
    :label: eq-laplace-by-parts
 
 and use the :ref:`CeedOperator` for Laplace's operator to compute the right-hand side of

@@ -60,7 +60,7 @@ find :math:`u \in V^p` such that for all :math:`v \in V^p`
 .. math::
    :label: eq-general-weak-form
 
-   \langle u,v \rangle = \langle f,v \rangle , \,
+   \langle u,v \rangle = \langle f,v \rangle ,
 
 where :math:`\langle u,v\rangle` and :math:`\langle f,v\rangle` express the continuous
 bilinear and linear forms, respectively, defined on :math:`V^p`, and, for sufficiently
@@ -68,8 +68,8 @@ regular :math:`u`, :math:`v`, and :math:`f`, we have:
 
 .. math::
    \begin{aligned}
-   \langle v,u \rangle &:= \int_{\Omega} \, v \, u \, d \bm x,\\
-   \langle v,f \rangle &:= \int_{\Omega} \, v \, f \, d \bm x \,.
+   \langle v,u \rangle &:= \int_{\Omega} \, v \, u \, dV ,\\
+   \langle v,f \rangle &:= \int_{\Omega} \, v \, f \, dV .
    \end{aligned}
 
 Following the standard finite/spectral element approach, we formally
@@ -79,8 +79,8 @@ expand all functions in terms of basis functions, such as
    :label: eq-nodal-values
 
    \begin{aligned}
-   u(\bm x) &= \sum_{j=1}^n u_j \, \phi_j(\bm x)\,, \\
-   v(\bm x) &= \sum_{i=1}^n v_i \, \phi_i(\bm x)\,.
+   u(\bm x) &= \sum_{j=1}^n u_j \, \phi_j(\bm x) ,\\
+   v(\bm x) &= \sum_{i=1}^n v_i \, \phi_i(\bm x) .
    \end{aligned}
 
 The coefficients :math:`\{u_j\}` and :math:`\{v_i\}` are the nodal values of :math:`u`
@@ -117,8 +117,8 @@ where now :math:`a (u,v)` expresses the continuous bilinear form defined on
 
 .. math::
    \begin{aligned}
-   a(v,u) &:= \int_{\Omega}\nabla v \, \cdot \, \nabla u \, d \bm x,\\
-   \langle v,f \rangle &:= \int_{\Omega} \, v \, f \, d \bm x \,.
+   a(v,u) &:= \int_{\Omega}\nabla v \, \cdot \, \nabla u \, dV ,\\
+   \langle v,f \rangle &:= \int_{\Omega} \, v \, f \, dV .
    \end{aligned}
 
 After substituting the same formulations provided in :math:numref:`eq-nodal-values`,
