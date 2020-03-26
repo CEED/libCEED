@@ -77,7 +77,7 @@ The nodal points, *p*, are Gauss-Legendre-Lobatto, and the quadrature points, *q
 ## PETSc+libCEED Navier-Stokes Solver
 
 The Navier-Stokes problem solves the compressible Navier-Stokes equations using an explicit time integration. A more detailed description of the problem formulation
-can be found in the [`navier-stokes`](./navierstokes) folder.
+can be found in the [`fluids`](./fluids) folder.
 
 ## PETSc+libCEED Surface Area Examples
 
@@ -157,7 +157,7 @@ make
 ./area -problem sphere -ceed /cpu/self -petscspace_degree 3 -dm_refine 2
 ./area -problem sphere -ceed /gpu/occa -petscspace_degree 3 -dm_refine 2
 
-cd navier-stokes
+cd fluids
 make
 ./navierstokes -ceed /cpu/self -petscspace_degree 1
 ./navierstokes -ceed /gpu/occa -petscspace_degree 1

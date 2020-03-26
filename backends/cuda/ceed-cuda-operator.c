@@ -362,6 +362,21 @@ static int CeedOperatorAssembleLinearQFunction_Cuda(CeedOperator op) {
   return CeedError(ceed, 1, "Backend does not implement QFunction assembly");
 }
 
+static int CeedOperatorAssembleLinearDiagonal_Cuda(CeedOperator op) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  return CeedError(ceed, 1,
+                   "Backend does not implement Operator diagonal assembly");
+}
+
+static int CeedOperatorCreateFDMElementInverse_Cuda(CeedOperator op) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  return CeedError(ceed, 1, "Backend does not implement FDM inverse creation");
+}
+
 int CeedOperatorCreate_Cuda(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -373,6 +388,12 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
                                 CeedOperatorAssembleLinearQFunction_Cuda);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearDiagonal",
+                                CeedOperatorAssembleLinearDiagonal_Cuda);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "CreateFDMElementInverse",
+                                CeedOperatorCreateFDMElementInverse_Cuda);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                 CeedOperatorApplyAdd_Cuda); CeedChk(ierr);

@@ -1,7 +1,7 @@
 Changes/Release Notes
 ========================================
 
-On this page we provide a summary of the main API changes, new feautures and examples
+On this page we provide a summary of the main API changes, new features and examples
 for each release of libCEED.
 
 
@@ -117,7 +117,7 @@ libCEED v0.4 was made again publicly available in the second full CEED software
 distribution, release CEED 2.0. This release contained notable features, such as
 four new CPU backends, two new GPU backends, CPU backend optimizations, initial
 support for operator composition, performance benchmarking, and a Navier-Stokes demo.
-The new CPU backends in this relase came in two families. The ``/cpu/self/*/serial``
+The new CPU backends in this release came in two families. The ``/cpu/self/*/serial``
 backends process one element at a time and are intended for meshes with a smaller number
 of high order elements. The ``/cpu/self/*/blocked`` backends process blocked batches of
 eight interlaced elements and are intended for meshes with higher numbers of elements.
@@ -319,7 +319,7 @@ CEED 1.0. The distribution was made available using the Spack package manager to
 a common, easy-to-use build environment, where the user can build the CEED distribution
 with all dependencies. This release included a new Fortran interface for the library.
 This release also contained major improvements in the OCCA backend (including a new
-``/ocl/occa`` backend) and new exaples. The standalone libCEED example was modified to
+``/ocl/occa`` backend) and new examples. The standalone libCEED example was modified to
 compute the volume volume of a given mesh (in 1D, 2D, or 3D) and placed in an
 ``examples/ceed`` subfolder. A new ``mfem`` example to perform BP3 (with the application
 of the Laplace operator) was also added to this release.
@@ -371,7 +371,7 @@ implementation for them serves as the basis for specialized backend implementati
 This release contained several backends: ``/cpu/self``, and backends which rely upon the
 `OCCA <http://github.com/libocca/occa>`_ package, such as ``/cpu/occa``,
 ``/gpu/occa``, and ``/omp/occa``.
-It also includeed several examples, in the ``examples`` folder:
+It also included several examples, in the ``examples`` folder:
 A standalone code that shows the usage of libCEED (with no external
 dependencies) to apply the Laplace operator, ``ex1``; an ``mfem`` example to perform BP1
 (with the application of the mass operator); and a ``petsc`` example to perform BP1

@@ -148,6 +148,12 @@ html_sidebars = {
 hoverxref_auto_ref = True
 hoverxref_mathjax = True
 
+katex_options = r'''{
+    macros: {
+        '\\diff': '{\\operatorname{d}}',
+    },
+}'''
+
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
@@ -169,7 +175,10 @@ latex_elements = {
 
     # Additional stuff for the LaTeX preamble.
     #
-    'preamble': r'\usepackage{bm}',
+    'preamble': r'''
+\usepackage{bm}
+\newcommand{\diff}{\operatorname{d}}
+''',
 
     # Latex figure (float) alignment
     #
