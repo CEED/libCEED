@@ -4,19 +4,18 @@ Solid mechanics elasticity mini-app
 ========================================
 
 This example is located in the subdirectory :file:`examples/solids`.
-It solves the steady-state static balance momentum equations using unstructured high-order finite/spectral element spatial discretizations.
+It solves the steady-state static momentum balance equations using unstructured high-order finite/spectral element spatial discretizations.
 As with the :ref:`example-petsc-navier-stokes` case, the solid mechanics elasticity example has been developed using PETSc, so that the pointwise physics (defined at quadrature points) is separated from the parallelization and meshing concerns.
 
-In this mini-app, we consider three material models used in solid mechanic applications: linear elasticity, Neo-Hookean hyperelasticity at small strain, and Neo-Hookean hyperelasticity at finite strain.
-We provide the  strong and weak form of static balance of linear momentum equations in the small strain and finite strain regimes.
+In this mini-app, we consider three formulations used in solid mechanics applications: linear elasticity, Neo-Hookean hyperelasticity at small strain, and Neo-Hookean hyperelasticity at finite strain.
+We provide the strong and weak forms of static balance of linear momentum in the small strain and finite strain regimes.
 The stress-strain relationship (constitutive law) for each of the material models is provided.
 Due to the nonlinearity of material models in Neo-Hookean hyperelasticity, the Newton linearization of the material models is provided.
 
 .. note::
 
-   The linear elasticity and hyperelasticity at small strain material models can be seen as constitutive and geometric linearization of the hyperelasticity at finite strain material model.
-   
-   The effect of constitutive and geometric linearization is sketched in the diagram below, where :math:`\bm \sigma` and :math:`\bm \epsilon` are stress and strain, respectively, in the small strain regime while :math:`\bm S` and :math:`\bm E` are stress and strain defined in the reference configuration in the finite strain formulation and :math:`\mathsf C` is the constitutive law.
+   Linear elasticity and small-strain hyperelasticity can both by obtained from the finite-strain hyperelastic formulation by linearization of geometric and constitutive nonlinearities.
+   The effect of these linearizations is sketched in the diagram below, where :math:`\bm \sigma` and :math:`\bm \epsilon` are stress and strain, respectively, in the small strain regime, while :math:`\bm S` and :math:`\bm E` are their finite-strain generalizations (second Piola-Kirchoff tensor and Green-Lagrange strain tensor, respectively) defined in the reference configuration, and :math:`\mathsf C` is a linearized constitutive model.
 
    .. math::
       \begin{matrix}
@@ -68,18 +67,20 @@ The strong form of the static balance of linear momentum at small strain for the
 .. math::
    :label: lin-elas
 
-   \nabla \cdot \boldsymbol{\sigma} + \boldsymbol{g} = \boldsymbol{0} 
-
+   \nabla \cdot \boldsymbol{\sigma} + \boldsymbol{g} = \boldsymbol{0}
 
 where :math:`\boldsymbol{\sigma}` and :math:`\boldsymbol{g}` are stress and forcing functions, respectively.
-Integrating by parts on the divergence term, we arrive at the weak form the of equation :math:numref:`lin-elas`:
+We multiply :math:numref:`lin-elas` by a test function :math:`\bm v` and integrate the divergence term by parts to arrive at the weak form: find :math:`\bm u \in \mathcal V \subset H^1(\Omega)` such that
 
 .. math::
    :label: lin-elas-weak
 
-   \int_{\Omega}{ \nabla \boldsymbol{v} \colon \boldsymbol{\sigma}} dV - \int_{d\Omega}{\boldsymbol{v} \cdot \left(\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}}\right)} dS + \int_{\Omega}{\boldsymbol{v} \cdot \boldsymbol{g}} dV = 0
+   \int_{\Omega}{ \nabla \boldsymbol{v} \colon \boldsymbol{\sigma}}
+   - \int_{\partial \Omega}{\boldsymbol{v} \cdot \left(\boldsymbol{\sigma} \cdot \hat{\boldsymbol{n}}\right)}
+   - \int_{\Omega}{\boldsymbol{v} \cdot \boldsymbol{g}}
+   = 0, \quad \forall \bm v \in \mathcal V,
 
-where :math:`\boldsymbol{\sigma}_t \cdot \hat{\boldsymbol{n}}` is typically replaced with a boundary condition.
+where :math:`\boldsymbol{\sigma} \cdot \hat{\boldsymbol{n}}|_{\partial \Omega}` is replaced by an applied force/traction boundary condition.
 
 The constitutive law (stress-strain relationship) is given by:
 
@@ -95,7 +96,7 @@ where
 
    \boldsymbol{\epsilon} = \dfrac{1}{2}\left(\nabla \boldsymbol{u} + \nabla \boldsymbol{u}^T \right)
 
-is the symmetric (small/infinitesimal) strain tensor and the colon represents a double contraction.
+is the symmetric (small/infinitesimal) strain tensor and the colon represents a double contraction (over both indices of :math:`\bm \epsilon`).
 For notational convenience, we express the symmetric second order tensors :math:`\bm \sigma` and :math:`\bm \epsilon` as vectors of length 6 using the `Voigt notation <https://en.wikipedia.org/wiki/Voigt_notation>`_.
 Hence, the fourth order elasticity tensor :math:`\mathsf C` (also known as elastic moduli tensor or material stiffness tensor) can be represented as a :math:`6\times 6` symmetric matrix
 
@@ -113,6 +114,9 @@ Hence, the fourth order elasticity tensor :math:`\mathsf C` (also known as elast
    \end{pmatrix},
 
 where :math:`E` is the Young’s modulus and :math:`\nu` is the Poisson’s ratio.
+
+Lamé parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 An alternative formulation, in terms of the Lamé parameters,
 
@@ -167,26 +171,26 @@ To derive the Newton linearization, we begin by expressing the derivative,
 
 .. math::
 
-   d \boldsymbol{\sigma} = \dfrac{\partial \boldsymbol{\sigma}}{\partial \boldsymbol{\epsilon}} \colon d \boldsymbol{\epsilon}
+   \diff \boldsymbol{\sigma} = \dfrac{\partial \boldsymbol{\sigma}}{\partial \boldsymbol{\epsilon}} \colon \diff \boldsymbol{\epsilon}
 
 where
 
 .. math::
 
-   d \boldsymbol{\epsilon} = \dfrac{1}{2}\left( \nabla \boldsymbol{d u} + \nabla \boldsymbol{d u}^T \right)
+   \diff \boldsymbol{\epsilon} = \dfrac{1}{2}\left( \nabla \boldsymbol{\diff u} + \nabla \boldsymbol{\diff u}^T \right)
 
 and 
 
 .. math::
 
-   d \nabla \boldsymbol{u} = \nabla \boldsymbol{d u} .
+   \diff \nabla \boldsymbol{u} = \nabla \boldsymbol{\diff u} .
 
 Therefore,
 
 .. math::
    :label: derss
 
-   d \boldsymbol{\sigma}  = \bar{\lambda} \cdot \operatorname{trace} d \boldsymbol{\epsilon} \cdot \boldsymbol{I}_3 + 2\mu d \boldsymbol{\epsilon}
+   \diff \boldsymbol{\sigma}  = \bar{\lambda} \cdot \operatorname{trace} \diff \boldsymbol{\epsilon} \cdot \boldsymbol{I}_3 + 2\mu \diff \boldsymbol{\epsilon}
 
 where we have introduced the symbol
 
@@ -196,18 +200,18 @@ where we have introduced the symbol
 
 where volumetric strain is given by :math:`\boldsymbol{\epsilon}_v = \sum_i \boldsymbol{\epsilon}_{ii}`.
 
-Equation :math:numref:`derss` can be written in matrix form as follows:
+Equation :math:numref:`derss` can be written in Voigt matrix notation as follows:
 
 .. math::
    :label: mdss
 
    \begin{pmatrix}
-     d\sigma_{11} \\
-     d\sigma_{22} \\
-     d\sigma_{33} \\
-     d\sigma_{23} \\
-     d\sigma_{13} \\
-     d\sigma_{12}       
+     \diff \sigma_{11} \\
+     \diff \sigma_{22} \\
+     \diff \sigma_{33} \\
+     \diff \sigma_{23} \\
+     \diff \sigma_{13} \\
+     \diff \sigma_{12}
    \end{pmatrix}  = 
    \begin{pmatrix}
      2 \mu +\bar{\lambda} & \bar{\lambda} & \bar{\lambda} & & & \\
@@ -215,16 +219,16 @@ Equation :math:numref:`derss` can be written in matrix form as follows:
      \bar{\lambda} & \bar{\lambda} & 2 \mu +\bar{\lambda} & & & \\
      & & & \mu & & \\    
      & & & & \mu & \\
-     & & & & & \mu \\   
+     & & & & & \mu \\
    \end{pmatrix}
    \begin{pmatrix} 
-     d\epsilon_{11} \\
-     d\epsilon_{22} \\
-     d\epsilon_{33} \\
-     d\epsilon_{23} \\
-     d\epsilon_{13} \\
-     d\epsilon_{12}       
-   \end{pmatrix}
+     \diff \epsilon_{11} \\
+     \diff \epsilon_{22} \\
+     \diff \epsilon_{33} \\
+     2 \diff \epsilon_{23} \\
+     2 \diff \epsilon_{13} \\
+     2 \diff \epsilon_{12}
+   \end{pmatrix}.
 
 .. _problem-hyperelasticity-finite-strain:
 
@@ -241,7 +245,7 @@ The strong form of the static balance of linear-momentum at *finite strain* (tot
 .. math::
    :label: sblFinS
 
-   \nabla_X \cdot \boldsymbol{P} + \rho_0 \boldsymbol{g} = \boldsymbol{0}
+   - \nabla_X \cdot \boldsymbol{P} - \rho_0 \boldsymbol{g} = \boldsymbol{0}
  
 where the :math:`_X` in :math:`\nabla_X` indicates that the gradient is calculated with respect to the reference configuration in the finite strain regime.
 :math:`\boldsymbol{P}` and :math:`\boldsymbol{g}` are the *first Piola-Kirchhoff stress* tensor and the prescribed forcing function, respectively.
@@ -301,7 +305,8 @@ Here, we focus on an important subset of them known as hyperelastic materials, f
    .. math::
       \gamma(\bm E) = \gamma(Q \bm E Q^T)
 
-for all orthogonal matrices :math:`Q`.
+   for all orthogonal matrices :math:`Q`.
+
 Consequently, we may assume without loss of generality that :math:`\bm E` is diagonal and take its set of eigenvalues as the invariants.
 It is clear that there can be only three invariants, and there are many alternate choices, such as :math:`\operatorname{trace}(\bm E), \operatorname{trace}(\bm E^2), \lvert \bm E \rvert`, and combinations thereof.
 It is common in the literature for invariants to be taken from :math:`\bm C = \bm I_3 + 2 \bm E` instead of :math:`\bm E`.
@@ -323,7 +328,7 @@ To evaluate :math:numref:`strain-energy-grad`, we make use of
 .. math::
    \frac{\partial J}{\partial \bm E} = \frac{\partial \sqrt{\lvert \bm C \rvert}}{\partial \bm E} = \lvert \bm C \rvert^{-1/2} \lvert \bm C \rvert \bm C^{-1} = J \bm C^{-1},
 
-where the factor of 2 has been absorbed due to :math:`\bm C = \bm I_3 + 2 \bm E.`
+where the factor of :math:`\frac 1 2` has been absorbed due to :math:`\bm C = \bm I_3 + 2 \bm E.`
 Carrying through the differentiation :math:numref:`strain-energy-grad` for the model :math:numref:`neo-hookean-energy`, we arrive at
 
 .. math::
@@ -368,23 +373,18 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 Weak form
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It is crucial to distinguish between the current and reference element in the total Lagrangian finite strain regime.
-
-.. math::
-
-    \int_{\Omega}{\boldsymbol{v} \cdot \left(\nabla_X \cdot \boldsymbol{P} + \rho_0 \boldsymbol{g}\right)} dV = \boldsymbol{0}
-
-Integrating by parts, we arrive at the weak form:
-find :math:`\bm u \in \mathcal V \equiv H^1(\Omega_0)` such that
+We multiply :math:numref:`sblFinS` by a test function :math:`\bm v` and integrate by parts to obtain the weak form for finite-strain hyperelasticity:
+find :math:`\bm u \in \mathcal V \subset H^1(\Omega_0)` such that
 
 .. math::
    :label: hyperelastic-weak-form
 
-    \int_{\Omega}{\nabla_X \boldsymbol{v} \colon \boldsymbol{P}}dV
-    + \int_{\Omega}{\boldsymbol{v} \cdot \rho_0 \boldsymbol{g}}dV
-    + \int_{\partial \Omega}{\boldsymbol{v} \cdot \boldsymbol{P} \cdot \hat{\boldsymbol{N}}}dA = 0, \quad \forall \bm v \in \mathcal V,
+    \int_{\Omega_0}{\nabla_X \boldsymbol{v} \colon \boldsymbol{P}}
+    - \int_{\Omega_0}{\boldsymbol{v} \cdot \rho_0 \boldsymbol{g}}
+    - \int_{\partial \Omega_0}{\boldsymbol{v} \cdot (\boldsymbol{P} \cdot \hat{\boldsymbol{N}})}
+    = 0, \quad \forall \bm v \in \mathcal V,
     
-where :math:`\boldsymbol{P} \cdot \hat{\boldsymbol{N}}` is replaced by any prescribed stress/traction boundary conditions written in terms of the reference configuration.
+where :math:`\boldsymbol{P} \cdot \hat{\boldsymbol{N}}|_{\partial\Omega}` is replaced by any prescribed force/traction boundary conditions written in terms of the reference configuration.
 This equation contains material/constitutive nonlinearities in defining :math:`\bm S(\bm E)`, as well as geometric nonlinearities through :math:`\bm P = \bm F\, \bm S`, :math:`\bm E(\bm F)`, and the body force :math:`\bm g`, which must be pulled back from the current configuration to the reference configuration.
 Discretization of :math:numref:`hyperelastic-weak-form` produces a finite-dimensional system of nonlinear algebraic equations, which we solve using Newton-Raphson methods.
 One attractive feature of Galerkin discretization is that we can arrive at the same linear system by discretizing the Newton linearization of the continuous form; that is, discretization and differentiation (Newton linearization) commute.
