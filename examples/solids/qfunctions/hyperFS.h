@@ -33,6 +33,8 @@ struct Physics_private {
 };
 #endif
 
+#ifndef LOG1P
+#define LOG1P
 // -----------------------------------------------------------------------------
 // Series approximation of log1p()
 //  log1p() is not vectorized in libc
@@ -65,6 +67,7 @@ static inline CeedScalar log1p_series(CeedScalar x) {
   sum += y / 7;
   return 2 * sum;
 };
+#endif
 
 // -----------------------------------------------------------------------------
 // Common computations between FS and dFS

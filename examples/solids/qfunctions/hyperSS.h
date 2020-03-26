@@ -33,6 +33,42 @@ struct Physics_private {
 };
 #endif
 
+#ifndef LOG1P
+#define LOG1P
+// -----------------------------------------------------------------------------
+// Series approximation of log1p()
+//  log1p() is not vectorized in libc
+//
+//  The series expansion is accurate to 1e-7 in the range sqrt(2)/2 < J < sqrt(2),
+//  with machine precision accuracy near J=1.  The initialization extends this range
+//  to 0.35 ~= sqrt(2)/4 < J < sqrt(2)*2 ~= 2.83, which should be sufficient for
+//  applications of the Neo-Hookean model.
+// -----------------------------------------------------------------------------
+static inline CeedScalar log1p_series(CeedScalar x) {
+  const CeedScalar left = sqrt(2)/2 - 1, right = sqrt(2) - 1;
+  CeedScalar sum = 0;
+  if (1) { // Disable if the smaller range sqrt(2) < J < sqrt(2) is sufficient
+    if (x < left) { // Replace if with while for arbitrary range (may hurt vectorization)
+      sum -= log(2) / 2;
+      x = 1 + 2 * x;
+    } else if (right < x) {
+      sum += log(2) / 2;
+      x = (x - 1) / 2;
+    }
+  }
+  CeedScalar y = x / (2. + x);
+  const CeedScalar y2 = y*y;
+  sum += y;
+  y *= y2;
+  sum += y / 3;
+  y *= y2;
+  sum += y / 5;
+  y *= y2;
+  sum += y / 7;
+  return 2 * sum;
+};
+#endif
+
 // -----------------------------------------------------------------------------
 // Residual evaluation for hyperelasticity, small strain
 // -----------------------------------------------------------------------------
@@ -133,10 +169,10 @@ CEED_QFUNCTION(HyperSSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // Above Voigt Notation is placed in a 3x3 matrix:
     // Volumetric strain
     const CeedScalar strain_vol = e[0][0] + e[1][1] + e[2][2];
-
-    const CeedScalar sigma00 = lambda*log1p(strain_vol) + TwoMu*e[0][0],
-                     sigma11 = lambda*log1p(strain_vol) + TwoMu*e[1][1],
-                     sigma22 = lambda*log1p(strain_vol) + TwoMu*e[2][2],
+    const CeedScalar llv = log1p_series(strain_vol);
+    const CeedScalar sigma00 = lambda*llv + TwoMu*e[0][0],
+                     sigma11 = lambda*llv + TwoMu*e[1][1],
+                     sigma22 = lambda*llv + TwoMu*e[2][2],
                      sigma12 = TwoMu*e[1][2],
                      sigma02 = TwoMu*e[0][2],
                      sigma01 = TwoMu*e[0][1];
