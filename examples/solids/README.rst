@@ -42,7 +42,13 @@ For example, the problem formulation (:code:`-problem`), forcing term (:code:`-f
 
    ./elasticity -mesh ./meshes/meshes/cylinder8_672e_4ss_us.exo -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998 -problem hyperFS -forcing none -ceed /cpu/self/opt/blocked
 
-Available runtime options are:
+To verify the convergence of the linear elasticity formulation on a given mesh with the method of manufactured solutions, run::
+
+   ./elasticity -mesh [mesh] -degree [degree] -nu [nu] -E [E] -forcing mms
+
+This option attempts to recover a known solution from an analytically computed forcing term.
+
+The full list of runtime options is:
 
 +-----------------------+-------------------------------------------------------------------+
 | Option                | Meaning                                                           |
