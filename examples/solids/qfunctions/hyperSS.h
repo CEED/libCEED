@@ -134,9 +134,9 @@ CEED_QFUNCTION(HyperSSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // Volumetric strain
     const CeedScalar strain_vol = e[0][0] + e[1][1] + e[2][2];
 
-    const CeedScalar sigma00 = lambda*log(1+strain_vol) + TwoMu*e[0][0],
-                     sigma11 = lambda*log(1+strain_vol) + TwoMu*e[1][1],
-                     sigma22 = lambda*log(1+strain_vol) + TwoMu*e[2][2],
+    const CeedScalar sigma00 = lambda*log1p(strain_vol) + TwoMu*e[0][0],
+                     sigma11 = lambda*log1p(strain_vol) + TwoMu*e[1][1],
+                     sigma22 = lambda*log1p(strain_vol) + TwoMu*e[2][2],
                      sigma12 = TwoMu*e[1][2],
                      sigma02 = TwoMu*e[0][2],
                      sigma01 = TwoMu*e[0][1];
