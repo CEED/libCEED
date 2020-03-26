@@ -47,9 +47,10 @@ The elasticity min-app is controlled via command-line options, the following of 
      - List of face sets on which to displace by :code:`-bc_clamp_max` in the :math:`y` direction
 
 (One can set only one of :code:`-bc_zero` or :code:`-bc_clamp`, but the result will likely not be interesting.)
-The following is an example of a minimal set of command line options::
 
-   ./elasticity -mesh [.exo file] -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998
+Consider the specific example of the mesh seen below.
+
+.. image:: https://github.com/jeremylt/ceedSampleMeshes/raw/master/cylinderDiagram.png
 
 .. note::
 
@@ -59,6 +60,12 @@ The following is an example of a minimal set of command line options::
 
 .. _CUBIT: https://cubit.sandia.gov/
 .. _this repository: https://github.com/jeremylt/ceedSampleMeshes
+
+The following is an example of a minimal set of command line options::
+
+   ./elasticity -mesh [.exo file] -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998
+
+In this example, we set the left boundary, face set :math:`999`, to zero displacement and the right boundary, face set :math:`998`, to displace by the default value of :math:`-1.0` in the :math:`y` direction.
 
 These command line options are the minimum requirements for the mini-app, but additional options may also be set.
 
