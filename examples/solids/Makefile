@@ -34,15 +34,13 @@ LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 OBJDIR := build
 SRCDIR := src
 
-src.c := $(sort $(wildcard $(SRCDIR)/*.c))
-src.o = $(src.c:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+src.c := elasticity.c $(sort $(wildcard $(SRCDIR)/*.c))
+src.o = $(src.c:%.c=$(OBJDIR)/%.o)
 
-elasticity.c := elasticity.c
-elasticity.o := $(elasticity.o:%.c=$(OBJDIR)/%.o)
-elasticity := $(elasticity.c:%.c=%)
+all: elasticity
 
-all: $(elasticity)
-$(elasticity): $(src.o) $(elasticity.o) | $(PETSc.pc) $(ceed.pc)
+elasticity: $(src.o) | $(PETSc.pc) $(ceed.pc)
+	$(call quiet,LINK.c) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
 %/.DIR :
@@ -66,7 +64,7 @@ output = $(if $(TERM:dumb=),$(call color_out,$1,$2),$(call emacs_out,$1,$2))
 # if V is set to non-nil, turn the verbose mode
 quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 
-$(OBJDIR)/%.o : $(CURDIR)/$(SRCDIR)/%.c | $$(@D)/.DIR
+$(OBJDIR)/%.o : %.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
 
 # Rules for building the examples
@@ -81,7 +79,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) -r $(OBJDIR) $(elasticity) *.d src/*.d
+	$(RM) -r $(OBJDIR) elasticity
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
@@ -91,4 +89,4 @@ $(PETSc.pc):
 
 pkgconf = $(shell pkg-config $1 | sed -e 's/^"//g' -e 's/"$$//g')
 
--include $(src.o:%.o=%.d) $(elasticity.o:%.o=%.d)
+-include $(src.o:%.o=%.d)
