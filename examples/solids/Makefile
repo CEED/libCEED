@@ -81,7 +81,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) -r $(OBJDIR) $(elasticity)
+	$(RM) -r $(OBJDIR) $(elasticity) *.d
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
