@@ -55,6 +55,7 @@ The following is an example of a minimal set of command line options::
 
    This solver can use any mesh format that PETSc's ``DMPlex`` can read (Exodus, Gmsh, Med, etc.).
    Our tests have primarily been using Exodus meshes created using CUBIT_; sample meshes used for the example runs suggested here can be found in `this repository`_.
+   Note that many mesh formats require PETSc to be configured appropriately; e.g., ``--download-exodusii`` for Exodus support.
 
 .. _CUBIT: https://cubit.sandia.gov/
 .. _this repository: https://github.com/jeremylt/ceedSampleMeshes
