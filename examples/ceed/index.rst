@@ -68,7 +68,7 @@ this case. We
 obtain
 
 .. math::
-   a(u,v)  = \int_\Omega v \nabla \cdot \nabla u \, d V =   \int_{\partial \Omega} v \nabla u \cdot \mathbf{n}\, d S - \int_\Omega \nabla v \cdot \nabla u \, d V  = 0 ,
+   a(u,v)  = \int_\Omega v \nabla \cdot \nabla u \, dV =   \int_{\partial \Omega} v \nabla u \cdot \mathbf{n}\, dS - \int_\Omega \nabla v \cdot \nabla u \, dV  = 0 ,
 
 where we have used integration by parts.
 
