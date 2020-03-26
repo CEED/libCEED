@@ -118,8 +118,21 @@ To verify the convergence of the linear elasticity formulation on a given mesh w
 
 This option attempts to recover a known solution from an analytically computed forcing term.
 
+On algebraic solvers
+^^^^^^^^^^^^^^^^^^^^
+This mini-app is configured to use the following Newton-Krylov-Multigrid method by default.
+
+* Newton-type methods for the nonlinear solve, with the hyperelasticity models globalized using load increments.
+* Preconditioned conjugate gradients to solve the symmetric positive definite linear systems arising at each Newton step.
+* Preconditioning via :math:`p`-version multigrid coarsening to linear elements, with algebraic multigrid (PETSc's ``GAMG``) for the coarse solve.
+  The default smoother uses degree 3 Chebyshev with Jacobi preconditioning.
+  (Lower degree is often faster, albeit less robust; try :code:`-outer_mg_levels_ksp_max_it 2`, for example.)
+  Application of the linear operators for all levels with degree :math:`p > 1` is performed matrix-free using analytic Newton linearization, while the lowest order :math:`p = 1` operators are assembled explicitly (using coloring at present).
+
+Many related solvers can be implemented by composing PETSc command-line options.
+
 Nondimensionalization
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 
 Quantities such as the Young's modulus vary over many orders of magnitude, and thus can lead to poorly scaled equations.
 One can nondimensionalize the model by choosing an alternate system of units, such that displacements and residuals are of reasonable scales.
