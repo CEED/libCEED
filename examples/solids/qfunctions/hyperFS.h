@@ -33,8 +33,6 @@ struct Physics_private {
 };
 #endif
 
-#ifndef LOG1P
-#define LOG1P
 // -----------------------------------------------------------------------------
 // Series approximation of log1p()
 //  log1p() is not vectorized in libc
@@ -44,7 +42,7 @@ struct Physics_private {
 //  to 0.35 ~= sqrt(2)/4 < J < sqrt(2)*2 ~= 2.83, which should be sufficient for
 //  applications of the Neo-Hookean model.
 // -----------------------------------------------------------------------------
-static inline CeedScalar log1p_series(CeedScalar x) {
+static inline CeedScalar log1p_series_shifted(CeedScalar x) {
   const CeedScalar left = sqrt(2)/2 - 1, right = sqrt(2) - 1;
   CeedScalar sum = 0;
   if (1) { // Disable if the smaller range sqrt(2) < J < sqrt(2) is sufficient
@@ -67,7 +65,6 @@ static inline CeedScalar log1p_series(CeedScalar x) {
   sum += y / 7;
   return 2 * sum;
 };
-#endif
 
 // -----------------------------------------------------------------------------
 // Common computations between FS and dFS
@@ -126,7 +123,7 @@ static inline int commonFS(const CeedScalar lambda, const CeedScalar mu,
   // *INDENT-ON*
 
   // Compute the Second Piola-Kirchhoff (S)
-  (*llnj) = lambda*log1p_series(detC_m1)/2.;
+  (*llnj) = lambda*log1p_series_shifted(detC_m1)/2.;
   for (CeedInt m = 0; m < 6; m++) {
     Swork[m] = (*llnj)*Cinvwork[m];
     for (CeedInt n = 0; n < 3; n++)
