@@ -1,7 +1,7 @@
 libCEED: the CEED Library
 ============================================
 
-|build-status| |codecov| |license| |doc| |doxygen|
+|build-status| |codecov| |license| |doc| |doxygen| |binder|
 
 .. |build-status| image:: https://travis-ci.org/CEED/libCEED.svg?branch=master
     :alt: Build Status
@@ -28,6 +28,10 @@ libCEED: the CEED Library
     :scale: 100%
     :target: https://codedocs.xyz/CEED/libCEED/
 
+.. |binder| image:: http://mybinder.org/badge_logo.svg
+    :alt: Binder
+    :scale: 100%
+    :target: https://mybinder.org/v2/gh/CEED/libCEED/master?urlpath=lab/tree/examples/tutorials/tutorial1-python-ceed.ipynb
 
 Code for Efficient Extensible Discretization
 --------------------------------------------
