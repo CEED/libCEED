@@ -18,7 +18,7 @@ and run with::
 Runtime options
 ---------------
 
-.. inclusion-marker-do-not-remove
+.. inclusion-solids-marker
 
 The elasticity min-app is controlled via command-line options, the following of which are mandatory.
 
@@ -48,10 +48,6 @@ The elasticity min-app is controlled via command-line options, the following of 
 
 (One can set only one of :code:`-bc_zero` or :code:`-bc_clamp`, but the result will likely not be interesting.)
 
-Consider the specific example of the mesh seen below.
-
-.. image:: https://github.com/jeremylt/ceedSampleMeshes/raw/master/cylinderDiagram.png
-
 .. note::
 
    This solver can use any mesh format that PETSc's ``DMPlex`` can read (Exodus, Gmsh, Med, etc.).
@@ -61,7 +57,11 @@ Consider the specific example of the mesh seen below.
 .. _CUBIT: https://cubit.sandia.gov/
 .. _this repository: https://github.com/jeremylt/ceedSampleMeshes
 
-The following is an example of a minimal set of command line options::
+Consider the specific example of the mesh seen below:
+
+.. image:: https://github.com/jeremylt/ceedSampleMeshes/raw/master/cylinderDiagram.png
+
+With the sidesets defined in the figure, we provide here an example of a minimal set of command line options::
 
    ./elasticity -mesh [.exo file] -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998
 

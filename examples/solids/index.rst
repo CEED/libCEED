@@ -38,7 +38,7 @@ Running the mini-app
       README
 
 .. include:: README.rst
-   :start-after: inclusion-marker-do-not-remove
+   :start-after: inclusion-solids-marker
 
 
 .. _problem-linear-elasticity:
