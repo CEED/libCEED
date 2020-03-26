@@ -33,6 +33,10 @@ The four mandatory command line options are :code:`-mesh`, :code:`-degree`, :cod
 
 A face set with :code:`-bc_zero` will remain fixed at zero displacement and a face set with :code:`-bc_clamp` will be displaced by :code:`-bc_clamp_max` in the y direction, or -1 in the y direction if this value is not set.
 
+Sample meshes can be found here_.
+
+.. _here: https://github.com/jeremylt/ceedSampleMeshes
+
 The following is an example of a minimal set of command line options::
 
    ./elasticity -mesh ./meshes/cylinder8_672e_4ss_us.exo -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998
