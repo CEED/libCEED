@@ -48,7 +48,7 @@ There are five mandatory command line options and a variety of additional comman
 
 The following is an example of a minimal set of command line options::
 
-   ./elasticity -mesh ./meshes/cylinder8_672e_4ss_us.exo -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998
+   ./elasticity -mesh [.exo file] -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998
 
 .. note::
 
