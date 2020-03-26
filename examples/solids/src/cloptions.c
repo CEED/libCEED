@@ -111,17 +111,13 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting AppCtx
 
-  // Check for all required values set and Exodus-II support
+  // Check for all required values set
   if (!appCtx->testMode) {
-    #if !defined(PETSC_HAVE_EXODUSII)
-    SETERRQ(comm, PETSC_ERR_ARG_WRONG,
-            "ExodusII support needed. Reconfigure your Arch with --download-exodusii");
-    #endif
     if (!degreeFalg) {
       SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-degree option needed");
     }
     if (!meshFileFlag) {
-      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-mesh option needed (file)");
+      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-mesh option needed");
     }
     if (!(appCtx->bcZeroCount + appCtx->bcClampCount) &&
         appCtx->forcingChoice != FORCE_MMS) {
