@@ -84,8 +84,18 @@
     environment. Code generation backends may redefine this macro, as needed.
 **/
 #ifndef CeedPragmaSIMD
-#  if defined(__INTEL_COMPILER) &&__INTEL_COMPILER >= 900
-#    define CeedPragmaSIMD _Pragma("simd")
+#  if defined(__INTEL_COMPILER)
+#    define CeedPragmaSIMD _Pragma("vector")
+// Cannot use Intel pragma ivdep because it miscompiles unpacking symmetric tensors, as in
+// Poisson2DApply, where the SIMD loop body contains temporaries such as the following.
+//
+//     const CeedScalar dXdxdXdxT[2][2] = {{qd[i+0*Q], qd[i+2*Q]},
+//                                         {qd[i+2*Q], qd[i+1*Q]}};
+//     for (int j=0; j<2; j++)
+//        vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] + du[1] * dXdxdXdxT[1][j]);
+//
+// Miscompilation with pragma ivdep observed with icc (ICC) 19.0.5.281 20190815
+// at -O2 and above.
 #  elif defined(__GNUC__) && __GNUC__ >= 5
 #    define CeedPragmaSIMD _Pragma("GCC ivdep")
 #  elif defined(_OPENMP) && _OPENMP >= 201307 // OpenMP-4.0 (July, 2013)
