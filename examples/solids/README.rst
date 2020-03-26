@@ -20,27 +20,27 @@ Runtime options
 
 .. inclusion-marker-do-not-remove
 
-There are five required command line options and a variety of additional command line options for this mini-app.
-The four required command line options are :code:`-mesh`, :code:`-degree`, :code:`-E`, and :code:`-nu`. Additionally, at least one boundary condition must be set, using :code:`-bc_zero` or :code:`-bc_clamp`.
+There are five mandatory command line options and a variety of additional command line options for this mini-app.
+The four mandatory command line options are :code:`-mesh`, :code:`-degree`, :code:`-E`, and :code:`-nu`. Additionally, at least one boundary condition must be set, using :code:`-bc_zero` or :code:`-bc_clamp`.
 
-To set the ExodusII mesh file, use the :code:`-mesh` option and the file path to the mesh file.
+- To set the ExodusII mesh file, use the :code:`-mesh` option and the file path to the mesh file.
 
-To set the polynomial degree of the finite element basis, use the :code:`-degree` option.
+- To set the polynomial degree of the finite element basis, use the :code:`-degree` option.
 
-To set the materiel parameters, use the :code:`-E` and :code:`-nu` options, for Young's modulus and Poisson's ratio, respectively.
+- To set the material parameters, use the :code:`-E` and :code:`-nu` options, for Young's modulus and Poisson's ratio, respectively.
 
-To set the boundary conditions, use :code:`-bc_zero` or :code:`-bc_clamp` followed by a comma separated list of the constrained faces.
+- To set the boundary conditions, use :code:`-bc_zero` or :code:`-bc_clamp` followed by a comma separated list of the constrained faces.
 
 A face set with :code:`-bc_zero` will remain fixed at zero displacement and a face set with :code:`-bc_clamp` will be displaced by :code:`-bc_clamp_max` in the y direction, or -1 in the y direction if this value is not set.
 
 The following is an example of a minimal set of command line options::
 
-   ./elasticity -mesh ./meshes/meshes/cylinder8_672e_4ss_us.exo -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998
+   ./elasticity -mesh ./meshes/cylinder8_672e_4ss_us.exo -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998
 
 These command line options are the minimum requirements for the mini-app, but additional options may also be set.
 For example, the problem formulation (:code:`-problem`), forcing term (:code:`-forcing`), libCEED backend resource (:code:`-ceed`) can be specified::
 
-   ./elasticity -mesh ./meshes/meshes/cylinder8_672e_4ss_us.exo -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998 -problem hyperFS -forcing none -ceed /cpu/self/opt/blocked
+   ./elasticity -mesh ./meshes/cylinder8_672e_4ss_us.exo -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998 -problem hyperFS -forcing none -ceed /cpu/self/opt/blocked
 
 To verify the convergence of the linear elasticity formulation on a given mesh with the method of manufactured solutions, run::
 
