@@ -30,10 +30,12 @@ Due to the nonlinearity of material models in Neo-Hookean hyperelasticity, the N
 Running the mini-app
 ----------------------------------------
 
-.. toctree::
-   :hidden:
+.. only:: html
 
-   README
+   .. toctree::
+      :hidden:
+
+      README
 
 .. include:: README.rst
    :start-after: inclusion-marker-do-not-remove
