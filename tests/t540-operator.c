@@ -101,9 +101,9 @@ int main(int argc, char **argv) {
   // Check output
   CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u);
   for (int i=0; i<ndofs; i++)
-    if (fabs(u[i] - 1.0) > 1E-14)
+    if (fabs(u[i] - 1.0) > 5e-14)
       // LCOV_EXCL_START
-      printf("[%d] Error in inverse: %f != 1.0\n", i, u[i]);
+      printf("[%d] Error in inverse: %e - 1.0 = %e\n", i, u[i], u[i] - 1.);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(U, &u);
 

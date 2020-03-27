@@ -149,7 +149,7 @@
 ! Check Output
       call ceedvectorgetarrayread(u,ceed_mem_host,uu,uoffset,err)
       do i=1,ndofs
-        if (abs(uu(uoffset+i)-1.0)>1.0d-14) then
+        if (abs(uu(uoffset+i)-1.0)>5.0d-14) then
 ! LCOV_EXCL_START
           write(*,*) '[',i,'] Error in inverse: ',uu(uoffset+i),' != 1.0'
 ! LCOV_EXCL_STOP
