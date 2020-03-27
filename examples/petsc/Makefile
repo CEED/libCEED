@@ -35,7 +35,7 @@ $(multigrid): | $(PETSc.pc) $(ceed.pc)
 
 # Rules for building the examples
 %: %.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(abspath $<) -o $@ \
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(CEED_LDFLAGS) $(abspath $<) -o $@ \
 	  $(LDLIBS)
 
 print: $(PETSc.pc) $(ceed.pc)

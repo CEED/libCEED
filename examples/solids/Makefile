@@ -40,7 +40,7 @@ src.o = $(src.c:%.c=$(OBJDIR)/%.o)
 all: elasticity
 
 elasticity: $(src.o) | $(PETSc.pc) $(ceed.pc)
-	$(call quiet,LINK.c) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(call quiet,LINK.c) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
 %/.DIR :

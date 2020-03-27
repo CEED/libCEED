@@ -33,7 +33,7 @@ $(navierstokes): | $(PETSc.pc) $(ceed.pc)
 
 # Rules for building the example
 %: %.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(abspath $<) -o $@ $(LDLIBS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(CEED_LDFLAGS) $(abspath $<) -o $@ $(LDLIBS)
 
 print: $(PETSc.pc) $(ceed.pc)
 	$(info CC      : $(CC))

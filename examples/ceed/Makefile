@@ -35,7 +35,7 @@ all: $(EXAMPLES)
 
 # Rules for building the examples
 %: %.c
-	$(LINK.c) $(CEED_FLAGS) $< -o $@ $(CEED_LIBS)
+	$(LINK.c) $(CEED_FLAGS) $(CEED_LDFLAGS) $< -o $@ $(CEED_LIBS)
 
 clean:
 	rm -f *~ $(EXAMPLES)

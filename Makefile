@@ -405,16 +405,16 @@ $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 	$(call quiet,NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
-	$(call quiet,LINK.c) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : tests/%.f90 | $$(@D)/.DIR
-	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
-	$(call quiet,LINK.c) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
-	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	+$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
