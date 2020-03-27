@@ -48,7 +48,7 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                          CeedScalar *const *out) {
     // *INDENT-OFF*
      // Inputs
-     const CeedScalar (*J)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])in[0],
+     const CeedScalar (*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
                       (*w) = in[1];
 
      // Outputs
