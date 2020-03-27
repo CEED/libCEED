@@ -3,6 +3,8 @@
 CeedBasis
 **************************************
 
+A `CeedBasis` defines the discrete finite element basis and associated quadrature rule.
+
 Discrete element bases and quadrature
 ======================================
 

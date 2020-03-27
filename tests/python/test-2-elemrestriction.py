@@ -77,7 +77,7 @@ def test_201(ceed_resource):
   y.restore_array_read()
 
 #-------------------------------------------------------------------------------
-# Test creation, use, and destruction of a blocked element restriction
+# Test creation and destruction of a blocked element restriction
 #-------------------------------------------------------------------------------
 def test_202(ceed_resource, capsys):
   ceed = libceed.Ceed(ceed_resource)
@@ -151,7 +151,7 @@ def test_208(ceed_resource, capsys):
   assert stdout == true_output
 
 #-------------------------------------------------------------------------------
-# Test creation, use, and destruction of a blocked element restriction
+# Test getting the multiplicity of the indices in an element restriction
 #-------------------------------------------------------------------------------
 def test_209(ceed_resource):
   ceed = libceed.Ceed(ceed_resource)

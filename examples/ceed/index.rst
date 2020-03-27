@@ -57,20 +57,22 @@ but this time by solving a Laplace's equation for a harmonic function
    \nabla \cdot \nabla u = 0, \textrm{ for  } \mathbf{x} \in \Omega .
    :label: eq-laplace
 
-We can rewrite this via the bilinear form
+We can rewrite this via the bilinear form :math:`a(\cdot, \cdot)` and the linear form
+:math:`\langle \cdot, \cdot \rangle` as
 
 .. math::
-   B(u,v) = L(v)
+   a(u,v) = \langle, v,f \rangle
 
-where :math:`v` is the test function, and for which :math:`L(v)=0` in this case. We
+where :math:`v` is the test function, and for which :math:`\langle, v,f \rangle=0` in
+this case. We
 obtain
 
 .. math::
-   B(u,v)  = \int_\Omega v \nabla \cdot \nabla u \, dV =   \int_{\partial \Omega} v \nabla u \cdot \mathbf{n}\, dS - \int_\Omega \nabla v \cdot \nabla u \, dV  = 0 ,
+   a(u,v)  = \int_\Omega v \nabla \cdot \nabla u \, dV =   \int_{\partial \Omega} v \nabla u \cdot \mathbf{n}\, dS - \int_\Omega \nabla v \cdot \nabla u \, dV  = 0 ,
 
 where we have used integration by parts.
 
-:math:`B(u,v) = 0` because we have chosen :math:`u(\mathbf{x})` to be harmonic, so we
+:math:`a(u,v) = 0` because we have chosen :math:`u(\mathbf{x})` to be harmonic, so we
 can write
 
 .. math::
@@ -80,5 +82,5 @@ can write
 and use the :ref:`CeedOperator` for Laplace's operator to compute the right-hand side of
 equation :math:numref:`eq-laplace-by-parts`. This way, the left-hand side of equation
 :math:numref:`eq-laplace-by-parts` (which gives :math:numref:`eq-ex2-surface` because
-we have chosen :math:`u(\mathbf{x}) = (x + y + z)` such that  :math:`\nabla u \cdot \mathbf{n} = 1`)
-is readily found.
+we have chosen :math:`u(\mathbf{x}) = (x + y + z)` such that
+:math:`\nabla u \cdot \mathbf{n} = 1`) is readily found.

@@ -3,6 +3,8 @@
 Ceed
 **************************************
 
+A `Ceed` is a library context representing control of a logical hardware resource.
+
 Base library resources
 ======================================
 
