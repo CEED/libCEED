@@ -620,7 +620,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   }
   if (!matchlen)
     // LCOV_EXCL_START
-    return CeedError(NULL, 1, "No suitable backend");
+    return CeedError(NULL, 1, "No suitable backend: %s", resource);
   // LCOV_EXCL_STOP
 
   // Setup Ceed
