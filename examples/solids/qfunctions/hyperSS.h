@@ -38,7 +38,7 @@ struct Physics_private {
 //  log1p() is not vectorized in libc
 //
 //  The series expansion is accurate to 1e-7 in the range sqrt(2)/2 < J < sqrt(2),
-//  with machine precision accuracy near J=1. 
+//  with machine precision accuracy near J=1.
 // -----------------------------------------------------------------------------
 static inline CeedScalar log1p_series(CeedScalar x) {
   CeedScalar sum = 0;
