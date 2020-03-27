@@ -74,26 +74,43 @@ endif
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-CC_VENDOR := $(firstword $(filter gcc clang,$(shell $(CC) --version)))
+CC_VENDOR := $(firstword $(filter gcc clang icc XL,$(shell $(CC) --version)))
+FC_VENDOR := $(firstword $(filter GNU ifort XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion)))
+
+# Default extra flags by vendor
+MARCHFLAG.gcc           := -march=native
+MARCHFLAG.clang         := $(MARCHFLAG.gcc)
+MARCHFLAG.icc           :=
+OMP_SIMD_FLAG.gcc       := -fopenmp-simd
+OMP_SIMD_FLAG.clang     := $(OMP_SIMD_FLAG.gcc)
+OMP_SIMD_FLAG.icc       := -qopenmp-simd
+OPT.gcc                 := -ffp-contract=fast
+OPT.clang               := $(OPT.gcc)
+CFLAGS.gcc              := -fPIC -std=c99 -Wall -Wextra -Wno-unused-parameter -MMD -MP
+CFLAGS.clang            := $(CFLAGS.gcc)
+CFLAGS.icc              := $(CFLAGS.gcc)
+CFLAGS.XL               := -qpic -MMD
+CXXFLAGS.gcc            := -fPIC -std=c++11 -Wall -Wextra -Wno-unused-parameter -MMD -MP
+CXXFLAGS.clang          := $(CXXFLAGS.gcc)
+CXXFLAGS.icc            := $(CXXFLAGS.gcc)
+CXXFLAGS.XL             := -qpic -MMD
+FFLAGS.GNU              := -fPIC -cpp -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -MMD -MP
+FFLAGS.ifort            := -fPIC -cpp
+FFLAGS.XL               := -qpic -ffree-form -qpreprocess -qextname -MMD
 
 cc_check_flag = $(shell $(CC) -E $(1) -x c /dev/null > /dev/null 2>&1 && echo 1)
-MARCHFLAG := -march=native
+MARCHFLAG := $(MARCHFLAG.$(CC_VENDOR))
 MARCHFLAG := $(if $(call cc_check_flag,$(MARCHFLAG)),$(MARCHFLAG),-mcpu=native)
 MARCHFLAG := $(if $(call cc_check_flag,$(MARCHFLAG)),$(MARCHFLAG))
 
-OMP_SIMD_FLAG := -fopenmp-simd
+OMP_SIMD_FLAG := $(OMP_SIMD_FLAG.$(CC_VENDOR))
 OMP_SIMD_FLAG := $(if $(call cc_check_flag,$(OMP_SIMD_FLAG)),$(OMP_SIMD_FLAG))
 
-OPT    ?= -O -g $(MARCHFLAG) -ffp-contract=fast $(OMP_SIMD_FLAG)
-CFLAGS ?= -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-CXXFLAGS ?= -std=c++11 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
+OPT    ?= -O -g $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
+CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
+CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
-# If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
-ifneq ($(filter %xlf %xlf_r,$(FC)),)
-  FFLAGS ?= $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD
-else # gfortran/Intel-style options
-  FFLAGS ?= -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP
-endif
+FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 
 ifeq ($(COVERAGE), 1)
   CFLAGS += --coverage
