@@ -98,7 +98,10 @@ FFLAGS.GNU              := -fPIC -cpp -Wall -Wextra -Wno-unused-parameter -Wno-u
 FFLAGS.ifort            := -fPIC -cpp
 FFLAGS.XL               := -qpic -ffree-form -qpreprocess -qextname -MMD
 
-cc_check_flag = $(shell $(CC) -E $(1) -x c /dev/null > /dev/null 2>&1 && echo 1)
+# This check works with compilers that use gcc and clang.  It fails with some
+# compilers; e.g., xlc apparently ignores all options when -E is passed, thus
+# succeeds with any flags.  Users can pass MARCHFLAG=... if desired.
+cc_check_flag = $(shell $(CC) -E -Werror $(1) -x c /dev/null > /dev/null 2>&1 && echo 1)
 MARCHFLAG := $(MARCHFLAG.$(CC_VENDOR))
 MARCHFLAG := $(if $(call cc_check_flag,$(MARCHFLAG)),$(MARCHFLAG),-mcpu=native)
 MARCHFLAG := $(if $(call cc_check_flag,$(MARCHFLAG)),$(MARCHFLAG))
