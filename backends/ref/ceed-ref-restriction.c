@@ -198,19 +198,15 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
   case 11:
     return CeedElemRestrictionApply_Ref_11(r, 0, numblk, tmode, imode,
                                            u, v, request);
-    break;
   case 18:
     return CeedElemRestrictionApply_Ref_18(r, 0, numblk, tmode, imode,
                                            u, v, request);
-    break;
   case 31:
     return CeedElemRestrictionApply_Ref_31(r, 0, numblk, tmode, imode,
                                            u, v, request);
-    break;
   case 38:
     return CeedElemRestrictionApply_Ref_38(r, 0, numblk, tmode, imode,
                                            u, v, request);
-    break;
   default:
     // LCOV_EXCL_START
     return CeedElemRestrictionApply_Ref_Core(r, blksize, ncomp, 0, numblk,
@@ -242,19 +238,15 @@ static int CeedElemRestrictionApplyBlock_Ref(CeedElemRestriction r,
   case 11:
     return CeedElemRestrictionApply_Ref_11(r, block, block+1, tmode, imode,
                                            u, v, request);
-    break;
   case 18:
     return CeedElemRestrictionApply_Ref_18(r, block, block+1, tmode, imode,
                                            u, v, request);
-    break;
   case 31:
     return CeedElemRestrictionApply_Ref_31(r, block, block+1, tmode, imode,
                                            u, v, request);
-    break;
   case 38:
     return CeedElemRestrictionApply_Ref_38(r, block, block+1, tmode, imode,
                                            u, v, request);
-    break;
   default:
     // LCOV_EXCL_START
     return CeedElemRestrictionApply_Ref_Core(r, blksize, ncomp, block, block+1,
