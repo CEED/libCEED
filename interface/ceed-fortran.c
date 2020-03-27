@@ -132,13 +132,14 @@ void fCeedVectorCreate(int *ceed, int *length, int *vec, int *err) {
 #define fCeedVectorSetArray FORTRAN_NAME(ceedvectorsetarray,CEEDVECTORSETARRAY)
 void fCeedVectorSetArray(int *vec, int *memtype, int *copymode,
                          CeedScalar *array, int64_t *offset, int *err) {
-  *err = CeedVectorSetArray(CeedVector_dict[*vec], *memtype, *copymode,
+  *err = CeedVectorSetArray(CeedVector_dict[*vec], (CeedMemType)*memtype,
+                            (CeedCopyMode)*copymode,
                             (CeedScalar *)(array + *offset));
 }
 
 #define fCeedVectorSyncArray FORTRAN_NAME(ceedvectorsyncarray,CEEDVECTORSYNCARRAY)
 void fCeedVectorSyncArray(int *vec, int *memtype, int *err) {
-  *err = CeedVectorSyncArray(CeedVector_dict[*vec], *memtype);
+  *err = CeedVectorSyncArray(CeedVector_dict[*vec], (CeedMemType)*memtype);
 }
 
 #define fCeedVectorSetValue FORTRAN_NAME(ceedvectorsetvalue,CEEDVECTORSETVALUE)
@@ -152,7 +153,7 @@ void fCeedVectorGetArray(int *vec, int *memtype, CeedScalar *array,
                          int *err) {
   CeedScalar *b;
   CeedVector vec_ = CeedVector_dict[*vec];
-  *err = CeedVectorGetArray(vec_, *memtype, &b);
+  *err = CeedVectorGetArray(vec_, (CeedMemType)*memtype, &b);
   *offset = b - array;
 }
 
@@ -162,7 +163,7 @@ void fCeedVectorGetArrayRead(int *vec, int *memtype, CeedScalar *array,
                              int64_t *offset, int *err) {
   const CeedScalar *b;
   CeedVector vec_ = CeedVector_dict[*vec];
-  *err = CeedVectorGetArrayRead(vec_, *memtype, &b);
+  *err = CeedVectorGetArrayRead(vec_, (CeedMemType)*memtype, &b);
   *offset = b - array;
 }
 
@@ -185,7 +186,7 @@ void fCeedVectorRestoreArrayRead(int *vec, const CeedScalar *array,
 #define fCeedVectorNorm \
     FORTRAN_NAME(ceedvectornorm,CEEDVECTORNORM)
 void fCeedVectorNorm(int *vec, int *type, CeedScalar *norm, int *err) {
-  *err = CeedVectorNorm(CeedVector_dict[*vec], *type, norm);
+  *err = CeedVectorNorm(CeedVector_dict[*vec], (CeedNormType)*type, norm);
 }
 
 #define fCeedVectorView FORTRAN_NAME(ceedvectorview,CEEDVECTORVIEW)
@@ -227,9 +228,9 @@ void fCeedElemRestrictionCreate(int *ceed, int *imode, int *nelements,
 
   CeedElemRestriction *elemrestriction_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
-  *err = CeedElemRestrictionCreate(Ceed_dict[*ceed], *imode, *nelements, *esize,
-                                   *nnodes, *ncomp, *memtype, *copymode,
-                                   indices_, elemrestriction_);
+  *err = CeedElemRestrictionCreate(Ceed_dict[*ceed], (CeedInterlaceMode)*imode,
+                                   *nelements, *esize, *nnodes, *ncomp, (CeedMemType)*memtype,
+                                   (CeedCopyMode)*copymode, indices_, elemrestriction_);
 
   if (*err == 0) {
     *elemrestriction = CeedElemRestriction_count++;
@@ -251,8 +252,7 @@ void fCeedElemRestrictionCreateStrided(int *ceed, int *nelements, int *esize,
     &CeedElemRestriction_dict[CeedElemRestriction_count];
   *err = CeedElemRestrictionCreateStrided(Ceed_dict[*ceed], *nelements, *esize,
                                           *nnodes, *ncomp,
-                                          *strides == FORTRAN_STRIDES_BACKEND ?
-                                          CEED_STRIDES_BACKEND : strides,
+                                          *strides == FORTRAN_STRIDES_BACKEND ? CEED_STRIDES_BACKEND : strides,
                                           elemrestriction_);
   if (*err == 0) {
     *elemrestriction = CeedElemRestriction_count++;
@@ -275,9 +275,10 @@ void fCeedElemRestrictionCreateBlocked(int *ceed, int *imode, int *nelements,
 
   CeedElemRestriction *elemrestriction_ =
     &CeedElemRestriction_dict[CeedElemRestriction_count];
-  *err = CeedElemRestrictionCreateBlocked(Ceed_dict[*ceed], *imode, *nelements,
+  *err = CeedElemRestrictionCreateBlocked(Ceed_dict[*ceed],
+                                          (CeedInterlaceMode)*imode, *nelements,
                                           *esize, *blocksize, *nnodes, *ncomp,
-                                          *mtype, *cmode, blkindices,
+                                          (CeedMemType)*mtype, (CeedCopyMode)*cmode, blkindices,
                                           elemrestriction_);
 
   if (*err == 0) {
@@ -332,7 +333,8 @@ void fCeedElemRestrictionApply(int *elemr, int *tmode, int *uvec, int *ruvec,
   else if (*rqst == FORTRAN_REQUEST_ORDERED  ) rqst_ = CEED_REQUEST_ORDERED;
   else rqst_ = &CeedRequest_dict[CeedRequest_count];
 
-  *err = CeedElemRestrictionApply(CeedElemRestriction_dict[*elemr], *tmode,
+  *err = CeedElemRestrictionApply(CeedElemRestriction_dict[*elemr],
+                                  (CeedTransposeMode)*tmode,
                                   CeedVector_dict[*uvec],
                                   CeedVector_dict[*ruvec], rqst_);
 
@@ -362,7 +364,7 @@ void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmode,
   else rqst_ = &CeedRequest_dict[CeedRequest_count];
 
   *err = CeedElemRestrictionApplyBlock(CeedElemRestriction_dict[*elemr], *block,
-                                       *tmode, CeedVector_dict[*uvec],
+                                       (CeedTransposeMode)*tmode, CeedVector_dict[*uvec],
                                        CeedVector_dict[*ruvec], rqst_);
 
   if (*err == 0 && createRequest) {
@@ -430,7 +432,7 @@ void fCeedBasisCreateTensorH1Lagrange(int *ceed, int *dim,
   }
 
   *err = CeedBasisCreateTensorH1Lagrange(Ceed_dict[*ceed], *dim, *ncomp, *P, *Q,
-                                         *quadmode,
+                                         (CeedQuadMode)*quadmode,
                                          &CeedBasis_dict[CeedBasis_count]);
 
   if (*err == 0) {
@@ -473,8 +475,8 @@ void fCeedBasisCreateH1(int *ceed, int *topo, int *ncomp, int *nnodes,
     CeedRealloc(CeedBasis_count_max, &CeedBasis_dict);
   }
 
-  *err = CeedBasisCreateH1(Ceed_dict[*ceed], *topo, *ncomp, *nnodes, *nqpts,
-                           interp, grad, qref, qweight,
+  *err = CeedBasisCreateH1(Ceed_dict[*ceed], (CeedElemTopology)*topo, *ncomp,
+                           *nnodes, *nqpts, interp, grad, qref, qweight,
                            &CeedBasis_dict[CeedBasis_count]);
 
   if (*err == 0) {
@@ -521,9 +523,9 @@ void fCeedBasisGetCollocatedGrad(int *basis, CeedScalar *colograd1d,
 #define fCeedBasisApply FORTRAN_NAME(ceedbasisapply, CEEDBASISAPPLY)
 void fCeedBasisApply(int *basis, int *nelem, int *tmode, int *emode,
                      int *u, int *v, int *err) {
-  *err = CeedBasisApply(CeedBasis_dict[*basis], *nelem, *tmode, *emode,
-                        *u==FORTRAN_VECTOR_NONE?
-                        CEED_VECTOR_NONE:CeedVector_dict[*u],
+  *err = CeedBasisApply(CeedBasis_dict[*basis], *nelem, (CeedTransposeMode)*tmode,
+                        (CeedEvalMode)*emode,
+                        *u == FORTRAN_VECTOR_NONE ? CEED_VECTOR_NONE : CeedVector_dict[*u],
                         CeedVector_dict[*v]);
 }
 
@@ -661,8 +663,9 @@ void fCeedQFunctionCreateIdentity(int *ceed, int *size, int *inmode,
   }
 
   CeedQFunction *qf_ = &CeedQFunction_dict[CeedQFunction_count];
-  *err = CeedQFunctionCreateIdentity(Ceed_dict[*ceed], *size, *inmode,
-                                     *outmode, qf_);
+  *err = CeedQFunctionCreateIdentity(Ceed_dict[*ceed], *size,
+                                     (CeedEvalMode)*inmode,
+                                     (CeedEvalMode)*outmode, qf_);
 
   if (*err == 0) {
     *qf = CeedQFunction_count++;
