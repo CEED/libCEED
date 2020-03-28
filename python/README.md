@@ -4,10 +4,18 @@
 
 To install libCEED for Python, run
 
-    python setup.py build install
+    pip install libceed
 
-In the top level folder.
+or in a clone of the repository via `pip install .`
 
-## Examples
+## Examples and Tutorials
 
-For examples of libCEED for Python, see the folder `tests/python`.
+For examples and short tutorials see the folder `examples/tutorials`. It
+contains some [Jupyter](https://jupyter.org/) notebooks using Python and C.
+Jupyter can be installed locally so that users can edit and interact with these
+notebook.
+
+`tutorial0`-`tutorial5` illustrate libCEED for Python, each one focusing on one
+class of objects.
+
+`tutorial6` shows a standalone libCEED C example.

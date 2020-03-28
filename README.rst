@@ -290,7 +290,8 @@ To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR`` and
    ./elasticity -ceed /gpu/occa -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem linElas -forcing mms
    cd ..
 
-For the last example showed, sample meshes to be used in place of `[.exo file]` can be found at https://github.com/jeremylt/ceedSampleMeshes
+For the last example showed, sample meshes to be used in place of
+``[.exo file]`` can be found at https://github.com/jeremylt/ceedSampleMeshes
 
 The above code assumes a GPU-capable machine with the OCCA backend
 enabled. Depending on the available backends, other CEED resource
