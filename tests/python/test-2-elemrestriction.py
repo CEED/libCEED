@@ -44,11 +44,9 @@ def test_200(ceed_resource):
 
   r.apply(x, y)
 
-  y_array = y.get_array_read()
-  for i in range(2*ne):
-    assert 10+(i+1)//2 == y_array[i]
-
-  y.restore_array_read()
+  with y.array_read() as y_array:
+    for i in range(2*ne):
+      assert 10+(i+1)//2 == y_array[i]
 
 #-------------------------------------------------------------------------------
 # Test creation, use, and destruction of a strided element restriction
@@ -70,11 +68,9 @@ def test_201(ceed_resource):
 
   r.apply(x, y)
 
-  y_array = y.get_array_read()
-  for i in range(2*ne):
-    assert 10+i == y_array[i]
-
-  y.restore_array_read()
+  with y.array_read() as y_array:
+    for i in range(2*ne):
+      assert 10+i == y_array[i]
 
 #-------------------------------------------------------------------------------
 # Test creation and destruction of a blocked element restriction
@@ -168,12 +164,10 @@ def test_209(ceed_resource):
 
   mult = r.get_multiplicity()
 
-  mult_array = mult.get_array_read()
-  for i in range(3*ne+1):
-    val = 1 + (1 if (i > 0 and i < 3*ne and i%3 == 0) else 0)
-    assert val == mult_array[i]
-
-  mult.restore_array_read()
+  with mult.array_read() as mult_array:
+    for i in range(3*ne+1):
+      val = 1 + (1 if (i > 0 and i < 3*ne and i%3 == 0) else 0)
+      assert val == mult_array[i]
 
 #-------------------------------------------------------------------------------
 # Test creation and view of an element restriction

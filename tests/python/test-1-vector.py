@@ -25,11 +25,9 @@ import numpy as np
 # Utility
 #-------------------------------------------------------------------------------
 def check_values(ceed, x, value):
-  b = x.get_array_read()
-  for i in range(len(b)):
-    assert b[i] == value
-
-  x.restore_array_read()
+  with x.array_read() as b:
+    for i in range(len(b)):
+      assert b[i] == value
 
 #-------------------------------------------------------------------------------
 # Test creation, setting, reading, restoring, and destroying of a vector
@@ -43,11 +41,9 @@ def test_100(ceed_resource):
   a = np.arange(10, 10 + n, dtype="float64")
   x.set_array(a, cmode=libceed.USE_POINTER)
 
-  b = x.get_array_read()
-  for i in range(n):
-    assert b[i] == 10 + i
-
-  x.restore_array_read()
+  with x.array_read() as b:
+    for i in range(n):
+      assert b[i] == 10 + i
 
 #-------------------------------------------------------------------------------
 # Test setValue
@@ -60,11 +56,9 @@ def test_101(ceed_resource):
   a = np.arange(10, 10 + n, dtype="float64")
   x.set_array(a, cmode=libceed.USE_POINTER)
 
-  b = x.get_array_read()
-  for i in range(len(b)):
-    assert b[i] == 10 + i
-
-  x.restore_array_read()
+  with x.array() as b:
+    for i in range(len(b)):
+      assert b[i] == 10 + i
 
   x.set_value(3.0)
   check_values(ceed, x, 3.0)
@@ -105,15 +99,12 @@ def test_103(ceed_resource):
   a = np.arange(10, 10 + n, dtype="float64")
   x.set_array(a, cmode=libceed.USE_POINTER)
 
-  x_array = x.get_array()
-  y.set_array(x_array, cmode=libceed.USE_POINTER)
-  x.restore_array()
+  with x.array() as x_array:
+    y.set_array(x_array, cmode=libceed.USE_POINTER)
 
-  y_array = y.get_array_read()
-  for i in range(n):
-    assert y_array[i] == 10 + i
-
-  y.restore_array_read()
+  with y.array_read() as y_array:
+    for i in range(n):
+      assert y_array[i] == 10 + i
 
 #-------------------------------------------------------------------------------
 # Test getArray to modify array
@@ -127,11 +118,21 @@ def test_104(ceed_resource):
   a = np.zeros(n, dtype="float64")
   x.set_array(a, cmode=libceed.USE_POINTER)
 
-  b = x.get_array()
-  b[3] = -3.14;
-  x.restore_array()
+  with x.array() as b:
+    b[3] = -3.14;
 
   assert a[3] == -3.14
+
+def test_105(ceed_resource):
+  """Modification of reshaped array"""
+  ceed = libceed.Ceed(ceed_resource)
+
+  vec = ceed.Vector(12)
+  with vec.array(4, 3) as x:
+    x[...] = np.eye(4, 3)
+
+  with vec.array_read(3, 4) as x:
+    assert np.all(x == np.eye(4, 3).reshape(3, 4))
 
 #-------------------------------------------------------------------------------
 # Test view

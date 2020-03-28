@@ -91,11 +91,9 @@ def test_400(ceed_resource):
   outputs = [ v ]
   qf_mass.apply(q, inputs, outputs)
 
-  v_array = v.get_array_read()
-  for i in range(q):
-    assert v_array[i] == v_true[i]
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    for i in range(q):
+      assert v_array[i] == v_true[i]
 
 #-------------------------------------------------------------------------------
 # Test creation, evaluation, and destruction for qfunction
@@ -151,11 +149,9 @@ def test_401(ceed_resource):
   outputs = [ v ]
   qf_mass.apply(q, inputs, outputs)
 
-  v_array = v.get_array_read()
-  for i in range(q):
-    assert v_array[i] == v_true[i]
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    for i in range(q):
+      assert v_array[i] == v_true[i]
 
 #-------------------------------------------------------------------------------
 # Test viewing of qfunction
@@ -228,11 +224,9 @@ def test_410(ceed_resource):
   outputs = [ v ]
   qf_mass.apply(q, inputs, outputs)
 
-  v_array = v.get_array_read()
-  for i in range(q):
-    assert v_array[i] == v_true[i]
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    for i in range(q):
+      assert v_array[i] == v_true[i]
 
 #-------------------------------------------------------------------------------
 # Test creation, evaluation, and destruction of identity qfunction
@@ -257,11 +251,9 @@ def test_411(ceed_resource):
   outputs = [ v ]
   qf.apply(q, inputs, outputs)
 
-  v_array = v.get_array_read()
-  for i in range(q):
-    assert v_array[i] == i*i
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    for i in range(q):
+      assert v_array[i] == i*i
 
 #-------------------------------------------------------------------------------
 # Test creation, evaluation, and destruction of identity qfunction with size>1
@@ -287,11 +279,9 @@ def test_412(ceed_resource):
   outputs = [ v ]
   qf.apply(q, inputs, outputs)
 
-  v_array = v.get_array_read()
-  for i in range(q*size):
-    assert v_array[i] == i*i
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    for i in range(q*size):
+      assert v_array[i] == i*i
 
 #-------------------------------------------------------------------------------
 # Test viewing of qfunction by name

@@ -17,6 +17,7 @@
 from _ceed_cffi import ffi, lib
 import tempfile
 import numpy as np
+import contextlib
 from .ceed_constants import MEM_HOST, COPY_VALUES, NORM_2
 
 # ------------------------------------------------------------------------------
@@ -153,6 +154,53 @@ class Vector():
 
     # libCEED call
     lib.CeedVectorRestoreArrayRead(self._pointer[0], array_pointer)
+
+  @contextlib.contextmanager
+  def array(self, *shape):
+    """Context manager for array access.
+
+    Args:
+      shape (tuple): shape of returned numpy.array
+
+    Returns:
+      np.array: writable view of vector
+
+    Examples:
+      Constructing the identity inside a libceed.Vector:
+
+      >>> vec = ceed.Vector(16)
+      >>> with vec.array(4, 4) as x:
+      >>>     x[...] = np.eye(4)
+    """
+    x = self.get_array()
+    if shape:
+      x = x.reshape(shape)
+    yield x
+    self.restore_array()
+
+  @contextlib.contextmanager
+  def array_read(self, *shape):
+    """Context manager for read-only array access.
+
+    Args:
+      shape (tuple): shape of returned numpy.array
+
+    Returns:
+      np.array: read-only view of vector
+
+    Examples:
+      Constructing the identity inside a libceed.Vector:
+
+      >>> vec = ceed.Vector(6)
+      >>> vec.set_value(1.3)
+      >>> with vec.array_read(2, 3) as x:
+      >>>     print(x)
+    """
+    x = self.get_array_read()
+    if shape:
+      x = x.reshape(shape)
+    yield x
+    self.restore_array_read()
 
   # Get the length of a Vector
   def get_length(self):

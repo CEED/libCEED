@@ -199,14 +199,13 @@ def test_313(ceed_resource):
 
     bxl.apply(1, libceed.EVAL_INTERP, X, Xq)
 
-    xq = Xq.get_array_read()
-    for i in range(Qdim):
-      xx = np.empty(dim, dtype="float64")
-      for d in range(dim):
-        xx[d] = xq[d*Qdim + i]
-      uq[i] = eval(dim, xx)
+    with Xq.array_read() as xq:
+      for i in range(Qdim):
+        xx = np.empty(dim, dtype="float64")
+        for d in range(dim):
+          xx[d] = xq[d*Qdim + i]
+        uq[i] = eval(dim, xx)
 
-    Xq.restore_array_read()
     Uq.set_array(uq, cmode=libceed.USE_POINTER)
 
     # This operation is the identity because the quadrature is collocated
@@ -218,18 +217,13 @@ def test_313(ceed_resource):
     bxg.apply(1, libceed.EVAL_INTERP, X, Xq)
     bug.apply(1, libceed.EVAL_INTERP, U, Uq)
 
-    xq = Xq.get_array_read()
-    u = Uq.get_array_read()
-
-    for i in range(Qdim):
-      xx = np.empty(dim, dtype="float64")
-      for d in range(dim):
-        xx[d] = xq[d*Qdim + i]
-      fx = eval(dim, xx)
-      assert math.fabs(u[i] - fx) < 1E-4
-
-    Xq.restore_array_read()
-    Uq.restore_array_read()
+    with Xq.array_read() as xq, Uq.array_read() as u:
+      for i in range(Qdim):
+        xx = np.empty(dim, dtype="float64")
+        for d in range(dim):
+          xx[d] = xq[d*Qdim + i]
+        fx = eval(dim, xx)
+        assert math.fabs(u[i] - fx) < 1E-4
 
 #-------------------------------------------------------------------------------
 # Test grad in multiple dimensions
@@ -266,12 +260,12 @@ def test_314(ceed_resource):
     bxl = ceed.BasisTensorH1Lagrange(dim, dim, 2, P, libceed.GAUSS_LOBATTO)
     bxl.apply(1, libceed.EVAL_INTERP, X, Xq)
 
-    xq = Xq.get_array_read()
-    for i in range(Pdim):
-      xx = np.empty(dim, dtype="float64")
-      for d in range(dim):
-        xx[d] = xq[d*Pdim + i]
-      u[i] = eval(dim, xx)
+    with Xq.array_read() as xq:
+      for i in range(Pdim):
+        xx = np.empty(dim, dtype="float64")
+        for d in range(dim):
+          xx[d] = xq[d*Pdim + i]
+        u[i] = eval(dim, xx)
 
     Xq.restore_array_read()
     U.set_array(u, cmode=libceed.USE_POINTER)
@@ -282,15 +276,11 @@ def test_314(ceed_resource):
     bug.T.apply(1, libceed.EVAL_GRAD, Ones, Gtposeones)
 
     # Check if 1' * G * u = u' * (G' * 1)
-    gtposeones = Gtposeones.get_array_read()
-    uq = Uq.get_array_read()
-
-    for i in range(Pdim):
-      sum1 += gtposeones[i]*u[i]
-    for i in range(dim*Qdim):
-      sum2 += uq[i]
-    Gtposeones.restore_array_read()
-    Uq.restore_array_read()
+    with Gtposeones.array_read() as gtposeones, Uq.array_read() as uq:
+      for i in range(Pdim):
+        sum1 += gtposeones[i]*u[i]
+      for i in range(dim*Qdim):
+        sum2 += uq[i]
 
     assert math.fabs(sum1 - sum2) < 1E-10
 
@@ -345,15 +335,11 @@ def test_322(ceed_resource):
   b.apply(1, libceed.EVAL_WEIGHT, libceed.VECTOR_NONE, weights_vec)
 
   # Check values at quadrature points
-  out_array = out_vec.get_array_read()
-  weights_array = weights_vec.get_array_read()
-  sum = 0
-  for i in range(Q):
-    sum += out_array[i]*weights_array[i]
-  assert math.fabs(sum - 17./24.) < 1E-10
-
-  out_vec.restore_array_read()
-  weights_vec.restore_array_read()
+  with out_vec.array_read() as out_array, weights_vec.array_read() as weights_array:
+    sum = 0
+    for i in range(Q):
+      sum += out_array[i]*weights_array[i]
+    assert math.fabs(sum - 17./24.) < 1E-10
 
 #-------------------------------------------------------------------------------
 # Test grad with a 2D Simplex non-tensor H1 basis
@@ -385,14 +371,12 @@ def test_323(ceed_resource):
   b.apply(1, libceed.EVAL_GRAD, in_vec, out_vec)
 
   # Check values at quadrature points
-  out_array = out_vec.get_array_read()
-  for i in range(Q):
-    value = dfeval(xq[0*Q+i], xq[1*Q+i])
-    assert math.fabs(out_array[0*Q+i] - value) < 1E-10
-
-    value = dfeval(xq[1*Q+i], xq[0*Q+i])
-    assert math.fabs(out_array[1*Q+i] - value) < 1E-10
-
-  out_vec.restore_array_read()
+  with out_vec.array_read() as out_array:
+    for i in range(Q):
+      value = dfeval(xq[0*Q+i], xq[1*Q+i])
+      assert math.fabs(out_array[0*Q+i] - value) < 1E-10
+  
+      value = dfeval(xq[1*Q+i], xq[0*Q+i])
+      assert math.fabs(out_array[1*Q+i] - value) < 1E-10
 
 #-------------------------------------------------------------------------------
