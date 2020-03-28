@@ -20,6 +20,7 @@
 import os
 import libceed
 import numpy as np
+import check
 
 #-------------------------------------------------------------------------------
 # Utility
@@ -148,11 +149,9 @@ def test_107(ceed_resource, capsys):
 
   print(x)
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_107.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
 # Test norms

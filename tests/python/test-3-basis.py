@@ -22,6 +22,8 @@ import math
 import libceed
 import numpy as np
 import buildmats as bm
+import check
+
 TOL = np.finfo(float).eps * 256
 
 #-------------------------------------------------------------------------------
@@ -54,11 +56,9 @@ def test_300(ceed_resource, capsys):
   print(b)
   del b
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_300.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
 # Test QR factorization
@@ -81,11 +81,9 @@ def test_301(ceed_resource, capsys):
       tau[i] = 0
     print("%12.8f"%tau[i])
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_301.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
 # Test Symmetric Schur Decomposition
@@ -113,11 +111,9 @@ def test_304(ceed_resource, capsys):
       lam[i] = 0
     print("%12.8f"%lam[i])
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_304.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
 # Test Simultaneous Diagonalization
@@ -149,11 +145,9 @@ def test_305(ceed_resource, capsys):
       lam[i] = 0
     print("%12.8f"%lam[i])
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_305.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
 # Test GetNumNodes and GetNumQuadraturePoints for basis

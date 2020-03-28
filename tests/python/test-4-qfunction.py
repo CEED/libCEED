@@ -22,6 +22,7 @@ import glob
 import ctypes
 import libceed
 import numpy as np
+import check
 
 #-------------------------------------------------------------------------------
 # Utility
@@ -31,14 +32,11 @@ def load_qfs_so():
   file_dir = os.path.dirname(os.path.abspath(__file__))
 
   # Rename, if needed
-  qfs_so = glob.glob("libceed_qfunctions.*.so")
-  if len(qfs_so) > 0:
-    os.rename(qfs_so[0], file_dir + "/qfs.so")
+  qfs_so = glob.glob(os.path.join(file_dir, "libceed_qfunctions.*.so"))
+  assert len(qfs_so) == 1, "Did not find unique file {}".format(qfs_so)
 
   # Load library
-  qfs = ctypes.cdll.LoadLibrary('./qfs.so')
-
-  return qfs
+  return ctypes.cdll.LoadLibrary(qfs_so[0])
 
 #-------------------------------------------------------------------------------
 # Test creation, evaluation, and destruction for qfunction
@@ -177,11 +175,9 @@ def test_402(ceed_resource, capsys):
   print(qf_setup)
   print(qf_mass)
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_402.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
 # Test creation, evaluation, and destruction for qfunction by name
@@ -295,10 +291,8 @@ def test_413(ceed_resource, capsys):
   print(qf_setup)
   print(qf_mass)
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_413.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
