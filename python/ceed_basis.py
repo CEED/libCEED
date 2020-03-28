@@ -126,7 +126,7 @@ class Basis(ABC):
 
     # Setup arguments
     qref1d = np.empty(q, dtype="float64")
-    qweight1d = np.empy(q, dtype="float64")
+    qweight1d = np.empty(q, dtype="float64")
 
     qref1d_pointer = ffi.new("CeedScalar *")
     qref1d_pointer = ffi.cast("CeedScalar *", qref1d.__array_interface__['data'][0])
@@ -157,7 +157,7 @@ class Basis(ABC):
     qref1d_pointer = ffi.new("CeedScalar *")
     qref1d_pointer = ffi.cast("CeedScalar *", qref1d.__array_interface__['data'][0])
 
-    qweight1d = np.empy(q, dtype="float64")
+    qweight1d = np.empty(q, dtype="float64")
     qweight1d_pointer = ffi.new("CeedScalar *")
     qweight1d_pointer = ffi.cast("CeedScalar *", qweight1d.__array_interface__['data'][0])
 
