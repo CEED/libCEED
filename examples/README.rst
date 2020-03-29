@@ -7,149 +7,99 @@ library.
 Basic libCEED Examples
 --------------------------------------------------
 
-Two examples are provided that rely only upon libCEED without any
-external libraries.
-
-
-Example 1: ex1-volume
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This example uses the mass matrix to compute the length, area, or volume
-of a region, depending upon runtime parameters.
-
-
-Example 2: ex2-surface
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This example uses the diffusion matrix to compute the surface area of a
-region, depending upon runtime parameters.
+Two examples that rely only upon libCEED without any external libraries are provided in the `ceed/ <./ceed>`_ folder. For more details, please see the dedicated `documenttaion section <https://libceed.readthedocs.io/en/latest/examples/ceed/index.html>`_.
 
 
 Bakeoff Problems
 --------------------------------------------------
 
-This section provides a brief description of the bakeoff problems, used
-as examples for the libCEED library. These bakeoff problems are
-high-order benchmarks designed to test and compare the performance of
-high-order finite element codes.
+.. bps-inclusion-marker
 
-For further documentation, readers may wish to consult the `CEED
-documentation <http://ceed.exascaleproject.org/bps/>`__ of the bakeoff
-problems.
+The Center for Efficient Exascale Discretizations (CEED) uses Bakeoff Problems (BPs)
+to test and compare the performance of high-order finite element implementations. The
+definitions of the problems are given on the ceed
+`website <https://ceed.exascaleproject.org/bps/>`_. Each of the following bakeoff
+problems that use external discretization libraries (such as MFEM, PETSc, and Nek5000)
+are located in the subdirectories ``mfem/``, ``petsc/``, and
+``nek5000/``, respectively.
 
+Here we provide a short summary:
 
-Bakeoff Problem 1
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++-------------------------+----------------------------------------------------------------+
+| User code               | BPs                                                            |
++-------------------------+----------------------------------------------------------------+
+|                         | - BP1 (scalar mass operator), with :math:`Q=P+1`               |
+| ``mfem``                | - BP3 (scalar Laplace operator), with :math:`Q=P+1`            |
++-------------------------+----------------------------------------------------------------+
+|                         | - BP1 (scalar mass operator), with :math:`Q=P+1`               |
+|                         | - BP2 (vector mass operator), with :math:`Q=P+1`               |
+|                         | - BP3 (scalar Laplace operator), with :math:`Q=P+1`            |
+| ``petsc``               | - BP4 (vector Laplace operator), with :math:`Q=P+1`            |
+|                         | - BP5 (collocated scalar Laplace operator), with :math:`Q=P`   |
+|                         | - BP6 (collocated vector Laplace operator), with :math:`Q=P`   |
++-------------------------+----------------------------------------------------------------+
+|                         | - BP1 (scalar mass operator), with :math:`Q=P+1`               |
+| ``nek5000``             | - BP3 (scalar Laplace operator), with :math:`Q=P+1`            |
++-------------------------+----------------------------------------------------------------+
 
-Bakeoff problem 1 is the *L2* projection problem into the finite element
-space.
+These are all **T-vector**-to-**T-vector** and include parallel scatter, element
+scatter, element evaluation kernel, element gather, and parallel gather (with the
+parallel gathers/scatters done externally to libCEED).
 
-The supplied examples solve *B u = f*, where *B* is the mass matrix.
+BP1 and BP2 are :math:`L^2` projections, and thus have no boundary condition.
+The rest of the BPs have homogeneous Dirichlet boundary conditions.
 
-The nodal points, *p*, are Gauss-Legendre-Lobatto, and the quadrature
-points, *q* are Gauss-Legendre. There is one more quadrature point in
-each dimension than nodal point, *q = p + 1*.
+The BPs are parametrized by the number :math:`P` of Gauss-Legendre-Lobatto nodal points
+(with :math:`P=p+1`, and :math:`p` the degree of the basis polynomial) for the Lagrange
+polynomials, as well as the number of quadrature points, :math:`Q`.
+A :math:`Q`-point Gauss-Legendre quadrature is used for all BPs except BP5 and BP6,
+which choose :math:`Q = P` and Gauss-Legendre-Lobatto quadrature to collocate with the
+interpolation nodes. This latter choice is popular in applications that use spectral
+element methods because it produces a diagonal mass matrix (enabling easy explicit
+time integration) and significantly reduces the number of floating point operations
+to apply the operator.
 
+.. bps-exclusion-marker
 
-Bakeoff Problem 2
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Bakeoff problem 2 is the *L2* projection problem into the finite element
-space on a vector system.
-
-The supplied examples solve *B u = f*, where *B* is the mass matrix.
-
-The nodal points, *p*, are Gauss-Legendre-Lobatto, and the quadrature
-points, *q* are Gauss-Legendre. There is one more quadrature point in
-each dimension than nodal point, *q = p + 1*.
-
-
-Bakeoff Problem 3
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Bakeoff problem 3 is the Poisson problem.
-
-The supplied examples solve *A u = f*, where *A* is the Poisson
-operator.
-
-The nodal points, *p*, are Gauss-Legendre-Lobatto, and the quadrature
-points, *q* are Gauss-Legendre. There is one more quadrature point in
-each dimension than nodal point, *q = p + 1*.
-
-
-Bakeoff Problem 4
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Bakeoff problem 4 is the Poisson problem on a vector system.
-
-The supplied examples solve *A u = f*, where *A* is the Laplace operator
-for the Poisson equation.
-
-The nodal points, *p*, are Gauss-Legendre-Lobatto, and the quadrature
-points, *q* are Gauss-Legendre. There is one more quadrature point in
-each dimension than nodal point, *q = p + 1*.
-
-
-Bakeoff Problem 5
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Bakeoff problem 5 is the Poisson problem.
-
-The supplied examples solve *A u = f*, where *A* is the Poisson
-operator.
-
-The nodal points, *p*, are Gauss-Legendre-Lobatto, and the quadrature
-points, *q* are Gauss-Legendre-Lobatto. The nodal points and quadrature
-points are collocated.
-
-
-Bakeoff Problem 6
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Bakeoff problem 6 is the Poisson problem on a vector system.
-
-The supplied examples solve *A u = f*, where *A* is the Laplace operator
-for the Poisson equation.
-
-The nodal points, *p*, are Gauss-Legendre-Lobatto, and the quadrature
-points, *q* are Gauss-Legendre-Lobatto. The nodal points and quadrature
-points are collocated.
+For a more detailed description of the operators employed in the BPs, please see the dedicated `BPs documentation section <https://libceed.readthedocs.io/en/latest/examples/bps.html>`_.
 
 
 PETSc+libCEED Navier-Stokes Solver
 --------------------------------------------------
 
 The Navier-Stokes problem solves the compressible Navier-Stokes
-equations using an explicit time integration. A more detailed
+equations using an explicit or implicit time integration. A more detailed
 description of the problem formulation can be found in the
-`fluids <./fluids>`_ folder.
+`fluids/ <./fluids>`_ folder and the corresponding `fluids documentation page <https://libceed.readthedocs.io/en/latest/examples/fluids/index.html>`_.
+
+
+PETSc+libCEED Solid mechanics elasticity mini-app
+--------------------------------------------------
+
+This example solves the steady-state static momentum balance equations using unstructured high-order finite/spectral element spatial discretizations. A more detailed
+description of the problem formulation can be found in the
+`solids/ <./solids>`_ folder and the corresponding `solids documentation page <https://libceed.readthedocs.io/en/latest/examples/solids/index.html>`_.
 
 
 PETSc+libCEED Surface Area Examples
 --------------------------------------------------
 
-These examples use the mass operator to compute the surface area of a
-cube or a discrete cubed-sphere, using PETSc.
-
-These examples show in particular the constructions of geometric factors
-to handle problems in which the elements topological dimension is
-different from the geometrical dimension and for which the coordinate
-transformation Jacobian from the 2D reference space to a manifold
-embedded in 3D physical space is a non-square matrix.
+These examples, located in the `petsc/ <./petsc>`_ folder, use the mass operator to compute the surface area of a
+cube or a discrete cubed-sphere, using PETSc. For a detailed description, please see the corresponding `area documentation page <https://libceed.readthedocs.io/en/latest/examples/petsc/index.html#area>`_.
 
 
 PETSc+libCEED Bakeoff Problems on the Cubed-Sphere
 --------------------------------------------------
 
-These examples reproduce the Bakeoff Problems 1-6 on a discrete
-cubed-sphere, using PETSc.
+These examples, located in the `petsc/ <./petsc>`_ folder, reproduce the Bakeoff Problems 1-6 on a discrete
+cubed-sphere, using PETSc. For a detailed description, please see the corresponding `problems on the cubed-sphere documentation page <https://libceed.readthedocs.io/en/latest/examples/petsc/index.html#bakeoff-problems-on-the-cubed-sphere>`_.
 
 
 Running Examples
 --------------------------------------------------
 
-To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR`` and
-``NEK5K_DIR`` variables and, from the `examples/` directory, run
+To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR``, and
+``NEK5K_DIR`` variables and, from the ``examples/`` directory, run
 
 .. include:: ../README.rst
    :start-after: running-examples-inclusion-marker
