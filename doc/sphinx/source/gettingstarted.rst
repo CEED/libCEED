@@ -1,5 +1,5 @@
 Getting Started
 ========================================
 
-.. include:: ./../../../README.rst
+.. include:: ../../../README.rst
    :start-after: gettingstarted-inclusion-marker
