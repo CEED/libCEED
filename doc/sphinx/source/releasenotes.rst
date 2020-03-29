@@ -5,6 +5,51 @@ On this page we provide a summary of the main API changes, new features and exam
 for each release of libCEED.
 
 
+.. _v0.6:
+
+v0.6 (Mar 29, 2020)
+----------------------------------------
+
+libCEED v0.6 was made again publicly available in the third full CEED software
+distribution, release CEED 3.0. This release contained notable features, and
+substantial additions in the examples suite. Some API changes were introduced,
+including the change from ``CeedElemRestrictionCreateIdentity()`` to
+``CeedElemRestrictionCreateStrided()``
+and the addition of ``ElemRestriction`` layout mode. The latter change
+requires changing use of ``CEED_TRANSPOSE`` and ``CEED_NOTRANSPOSE`` to
+``CEED_LAYOUT_NODE_COMPONENT`` and ``CEED_LAYOUT_COMPONENT_NODE``,
+respectively, for ``CeedElemRestriction lmode`` in ``CeedElemRestrictionCreate*``.
+The user still has the choice of interlacing fields by node, or viceversa,
+interlacing nodes by fields, but this choice now is not declared when the
+different ``CeedOperator`` fields are set with the ``CeedOperatorSetField()``,
+rather when the restriction is created with ``CeedElemRestrictionCreate()``.
+
+For this release, the libCEED team has deployed libCEED's very first
+`user manual <https://libceed.readthedocs.io/en/latest/>`_!
+And a C/Python interface, developed using the C Foreign Function Interface
+(`CFFI <https://cffi.readthedocs.io/en/latest/>`_)
+for Python. CFFI allows to reuse most of the C declarations and requires only a
+minimal adaptation of some of them. The C and Python APIs are mapped in a nearly
+1:1 correspondence. For instance, data stored in the CeedVector structure are
+associated to arrays defined via the numpy package. In fact, since libCEED heavily
+relies on pointers and arrays to handle the data, a Python structure that resembles
+the C arrays is needed. In details, numpy arrays allow this correspondence obtained
+by passing the numpy array memory address as pointers to the libCEED C API.
+
+Moreover, in this release, libCEED's suite of PETSc application examples has
+significantly expanded, including: An expanded Navier-Stokes miniapp, which now
+features an implicit time-integration formulation, SU/SUPG stabilization methods,
+free slip boundary conditions and quasi-2D computational domain for faster
+execution; A Continuum Mechanics example, which features different constitutive
+models, such as linear elasticity and hyperelasticity both at small and finite
+strain; Calculation of surface areas including the case of the surface of a
+cube and a cubed-sphere; And finally, the expansion of the set of PETSc Bakeoff
+Problems (BPs) on the cubed-sphere. In what follows, we provide a detailed
+description of the added examples.
+
+Backends available in this release, are the same ones available in :ref:`v0.5`.
+
+
 .. _v0.5:
 
 v0.5 (Sep 18, 2019)
