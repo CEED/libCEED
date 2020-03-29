@@ -872,7 +872,6 @@ int main(int argc, char **argv) {
     ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
                             PETSC_DEFAULT); CHKERRQ(ierr);
   }
-  ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp, mat, mat); CHKERRQ(ierr);
   // First run, if benchmarking
   if (benchmark_mode) {
@@ -892,6 +891,7 @@ int main(int argc, char **argv) {
       CHKERRQ(ierr);
     }
   }
+  ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
 
   // Timed solve
   ierr = VecZeroEntries(X); CHKERRQ(ierr);
