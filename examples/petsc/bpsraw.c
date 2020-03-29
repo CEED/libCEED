@@ -909,6 +909,7 @@ int main(int argc, char **argv) {
   // -- Performance logging
   ierr = PetscLogStagePop();
 
+  // Output results
   {
     KSPType ksptype;
     KSPConvergedReason reason;
@@ -919,10 +920,6 @@ int main(int argc, char **argv) {
     ierr = KSPGetIterationNumber(ksp, &its); CHKERRQ(ierr);
     ierr = KSPGetResidualNorm(ksp, &rnorm); CHKERRQ(ierr);
     if (!test_mode || reason < 0 || rnorm > 1e-8) {
-      ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
-      CHKERRQ(ierr);
-      ierr = MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm);
-      CHKERRQ(ierr);
       ierr = PetscPrintf(comm,
                          "  KSP:\n"
                          "    KSP Type                           : %s\n"
@@ -931,35 +928,31 @@ int main(int argc, char **argv) {
                          "    Final rnorm                        : %e\n",
                          ksptype, KSPConvergedReasons[reason], its,
                          (double)rnorm); CHKERRQ(ierr);
-      ierr = PetscPrintf(comm,
-                         "  Performance:\n"
-                         "    CG Solve Time                      : %g (%g) sec\n"
-                         "    DoFs/Sec in CG                     : %g (%g) million\n",
-                         rt_max, rt_min, 1e-6*gsize*its/rt_max,
-                         1e-6*gsize*its/rt_min); CHKERRQ(ierr);
+    }
+    if (!test_mode) {
+      ierr = PetscPrintf(comm,"  Performance:\n"); CHKERRQ(ierr);
+    }
+    {
+      PetscReal maxerror;
+      ierr = ComputeErrorMax(user, operror, X, target, &maxerror);
+      CHKERRQ(ierr);
+      PetscReal tol = 5e-2;
+      if (!test_mode || maxerror > tol) {
+        ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
+        CHKERRQ(ierr);
+        ierr = MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm);
+        CHKERRQ(ierr);
+        ierr = PetscPrintf(comm,
+                           "    Pointwise Error (max)              : %e\n"
+                           "    CG Solve Time                      : %g (%g) sec\n",
+                           (double)maxerror, rt_max, rt_min); CHKERRQ(ierr);
+      }
     }
     if (benchmark_mode && (!test_mode)) {
-      ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
-      CHKERRQ(ierr);
-      ierr = MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm);
-      CHKERRQ(ierr);
       ierr = PetscPrintf(comm,
-                         "  Performance:\n"
-                         "    CG Solve Time                      : %g (%g) sec\n"
                          "    DoFs/Sec in CG                     : %g (%g) million\n",
-                         rt_max, rt_min, 1e-6*gsize*its/rt_max,
+                         1e-6*gsize*its/rt_max,
                          1e-6*gsize*its/rt_min); CHKERRQ(ierr);
-    }
-  }
-
-  {
-    PetscReal maxerror;
-    ierr = ComputeErrorMax(user, operror, X, target, &maxerror); CHKERRQ(ierr);
-    PetscReal tol = 5e-2;
-    if (!test_mode || maxerror > tol) {
-      ierr = PetscPrintf(comm,
-                         "    Pointwise Error (max)              : %e\n",
-                         (double)maxerror); CHKERRQ(ierr);
     }
   }
 
