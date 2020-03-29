@@ -22,6 +22,7 @@ import glob
 import ctypes
 import libceed
 import numpy as np
+import check
 
 #-------------------------------------------------------------------------------
 # Utility
@@ -31,14 +32,11 @@ def load_qfs_so():
   file_dir = os.path.dirname(os.path.abspath(__file__))
 
   # Rename, if needed
-  qfs_so = glob.glob("libceed_qfunctions.*.so")
-  if len(qfs_so) > 0:
-    os.rename(qfs_so[0], file_dir + "/qfs.so")
+  qfs_so = glob.glob(os.path.join(file_dir, "libceed_qfunctions.*.so"))
+  assert len(qfs_so) == 1, "Did not find unique file {}".format(qfs_so)
 
   # Load library
-  qfs = ctypes.cdll.LoadLibrary('./qfs.so')
-
-  return qfs
+  return ctypes.cdll.LoadLibrary(qfs_so[0])
 
 #-------------------------------------------------------------------------------
 # Test creation, evaluation, and destruction for qfunction
@@ -91,11 +89,9 @@ def test_400(ceed_resource):
   outputs = [ v ]
   qf_mass.apply(q, inputs, outputs)
 
-  v_array = v.get_array_read()
-  for i in range(q):
-    assert v_array[i] == v_true[i]
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    for i in range(q):
+      assert v_array[i] == v_true[i]
 
 #-------------------------------------------------------------------------------
 # Test creation, evaluation, and destruction for qfunction
@@ -151,11 +147,9 @@ def test_401(ceed_resource):
   outputs = [ v ]
   qf_mass.apply(q, inputs, outputs)
 
-  v_array = v.get_array_read()
-  for i in range(q):
-    assert v_array[i] == v_true[i]
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    for i in range(q):
+      assert v_array[i] == v_true[i]
 
 #-------------------------------------------------------------------------------
 # Test viewing of qfunction
@@ -181,11 +175,9 @@ def test_402(ceed_resource, capsys):
   print(qf_setup)
   print(qf_mass)
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_402.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
 # Test creation, evaluation, and destruction for qfunction by name
@@ -228,11 +220,9 @@ def test_410(ceed_resource):
   outputs = [ v ]
   qf_mass.apply(q, inputs, outputs)
 
-  v_array = v.get_array_read()
-  for i in range(q):
-    assert v_array[i] == v_true[i]
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    for i in range(q):
+      assert v_array[i] == v_true[i]
 
 #-------------------------------------------------------------------------------
 # Test creation, evaluation, and destruction of identity qfunction
@@ -257,11 +247,9 @@ def test_411(ceed_resource):
   outputs = [ v ]
   qf.apply(q, inputs, outputs)
 
-  v_array = v.get_array_read()
-  for i in range(q):
-    assert v_array[i] == i*i
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    for i in range(q):
+      assert v_array[i] == i*i
 
 #-------------------------------------------------------------------------------
 # Test creation, evaluation, and destruction of identity qfunction with size>1
@@ -287,11 +275,9 @@ def test_412(ceed_resource):
   outputs = [ v ]
   qf.apply(q, inputs, outputs)
 
-  v_array = v.get_array_read()
-  for i in range(q*size):
-    assert v_array[i] == i*i
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    for i in range(q*size):
+      assert v_array[i] == i*i
 
 #-------------------------------------------------------------------------------
 # Test viewing of qfunction by name
@@ -305,10 +291,8 @@ def test_413(ceed_resource, capsys):
   print(qf_setup)
   print(qf_mass)
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_413.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------

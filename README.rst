@@ -31,7 +31,7 @@ libCEED: the CEED Library
 .. |binder| image:: http://mybinder.org/badge_logo.svg
     :alt: Binder
     :scale: 100%
-    :target: https://mybinder.org/v2/gh/CEED/libCEED/master?urlpath=lab/tree/examples/tutorials/tutorial1-python-ceed.ipynb
+    :target: https://mybinder.org/v2/gh/CEED/libCEED/master?urlpath=lab/tree/examples/tutorials/tutorial-0-ceed.ipynb
 
 Code for Efficient Extensible Discretization
 --------------------------------------------

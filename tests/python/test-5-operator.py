@@ -23,6 +23,8 @@ import ctypes
 import libceed
 import numpy as np
 import buildmats as bm
+import check
+
 TOL = np.finfo(float).eps * 256
 
 #-------------------------------------------------------------------------------
@@ -33,14 +35,11 @@ def load_qfs_so():
   file_dir = os.path.dirname(os.path.abspath(__file__))
 
   # Rename, if needed
-  qfs_so = glob.glob("libceed_qfunctions.*.so")
-  if len(qfs_so) > 0:
-    os.rename(qfs_so[0], file_dir + "/qfs.so")
+  qfs_so = glob.glob(os.path.join(file_dir, "libceed_qfunctions.*.so"))
+  assert len(qfs_so) == 1, "Did not find unique file {}".format(qfs_so)
 
   # Load library
-  qfs = ctypes.cdll.LoadLibrary('./qfs.so')
-
-  return qfs
+  return ctypes.cdll.LoadLibrary(qfs_so[0])
 
 #-------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator
@@ -121,11 +120,9 @@ def test_500(ceed_resource):
   op_mass.apply(u, v)
 
   # Check
-  v_array = v.get_array_read()
-  for i in range(q):
-    assert abs(v_array[i]) < TOL
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    for i in range(q):
+      assert abs(v_array[i]) < TOL
 
 #-------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator
@@ -206,13 +203,11 @@ def test_501(ceed_resource):
   op_mass.apply(u, v)
 
   # Check
-  v_array = v.get_array_read()
-  total = 0.0
-  for i in range(nu):
-    total = total + v_array[i]
-  assert abs(total - 1.0) < TOL
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    total = 0.0
+    for i in range(nu):
+      total = total + v_array[i]
+    assert abs(total - 1.0) < TOL
 
 #-------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator
@@ -290,24 +285,21 @@ def test_502(ceed_resource):
   op_setup.apply(x, qdata)
 
   # Apply mass matrix
-  u_array = u.get_array()
-  for i in range(nu):
-    u_array[2*i] = 1.
-    u_array[2*i+1] = 2.
-  u.restore_array()
+  with u.array() as u_array:
+    for i in range(nu):
+      u_array[2*i] = 1.
+      u_array[2*i+1] = 2.
   op_mass.apply(u, v)
 
   # Check
-  v_array = v.get_array_read()
-  total_1 = 0.0
-  total_2 = 0.0
-  for i in range(nu):
-    total_1 = total_1 + v_array[2*i]
-    total_2 = total_2 + v_array[2*i+1]
-  assert abs(total_1 - 1.0) < 1E-13
-  assert abs(total_2 - 2.0) < 1E-13
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    total_1 = 0.0
+    total_2 = 0.0
+    for i in range(nu):
+      total_1 = total_1 + v_array[2*i]
+      total_2 = total_2 + v_array[2*i+1]
+    assert abs(total_1 - 1.0) < 1E-13
+    assert abs(total_2 - 2.0) < 1E-13
 
 #-------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator with passive
@@ -391,13 +383,11 @@ def test_503(ceed_resource):
   op_mass.apply(libceed.VECTOR_NONE, libceed.VECTOR_NONE)
 
   # Check
-  v_array = v.get_array_read()
-  total = 0.0
-  for i in range(nu):
-    total = total + v_array[i]
-  assert abs(total - 1.0) < 1E-13
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    total = 0.0
+    for i in range(nu):
+      total = total + v_array[i]
+    assert abs(total - 1.0) < 1E-13
 
 #-------------------------------------------------------------------------------
 # Test viewing of mass matrix operator
@@ -466,11 +456,9 @@ def test_504(ceed_resource, capsys):
   print(op_setup)
   print(op_mass)
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_504.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
 # Test CeedOperatorApplyAdd
@@ -552,26 +540,22 @@ def test_505(ceed_resource):
   op_mass.apply_add(u, v)
 
   # Check
-  v_array = v.get_array_read()
-  total = 0.0
-  for i in range(nu):
-    total = total + v_array[i]
-  assert abs(total - 1.0) < TOL
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    total = 0.0
+    for i in range(nu):
+      total = total + v_array[i]
+    assert abs(total - 1.0) < TOL
 
   # Apply mass matrix with v = 0
   v.set_value(1.)
   op_mass.apply_add(u, v)
 
   # Check
-  v_array = v.get_array_read()
-  total = -nu
-  for i in range(nu):
-    total = total + v_array[i]
-  assert abs(total - 1.0) < 1E-10
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    total = -nu
+    for i in range(nu):
+      total = total + v_array[i]
+    assert abs(total - 1.0) < 1E-10
 
 #-------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator
@@ -672,11 +656,9 @@ def test_510(ceed_resource):
   op_mass.apply(u, v)
 
   # Check
-  v_array = v.get_array_read()
-  for i in range(ndofs):
-    assert abs(v_array[i]) < TOL
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    for i in range(ndofs):
+      assert abs(v_array[i]) < TOL
 
 #-------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator
@@ -777,13 +759,11 @@ def test_511(ceed_resource):
   op_mass.apply(u, v)
 
   # Check
-  v_array = v.get_array_read()
-  total = 0.0
-  for i in range(ndofs):
-    total = total + v_array[i]
-  assert abs(total - 1.0) < 1E-10
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    total = 0.0
+    for i in range(ndofs):
+      total = total + v_array[i]
+    assert abs(total - 1.0) < 1E-10
 
 #-------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator
@@ -952,11 +932,9 @@ def test_520(ceed_resource):
   op_mass.apply(u, v)
 
   # Check
-  v_array = v.get_array_read()
-  for i in range(ndofs):
-    assert abs(v_array[i]) < TOL
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    for i in range(ndofs):
+      assert abs(v_array[i]) < TOL
 
 #-------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator
@@ -1124,13 +1102,11 @@ def test_521(ceed_resource):
   op_mass.apply(u, v)
 
   # Check
-  v_array = v.get_array_read()
-  total = 0.0
-  for i in range(ndofs):
-    total = total + v_array[i]
-  assert abs(total - 1.0) < 1E-10
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    total = 0.0
+    for i in range(ndofs):
+      total = total + v_array[i]
+    assert abs(total - 1.0) < 1E-10
 
 #-------------------------------------------------------------------------------
 # Test viewing of composite mass matrix operator
@@ -1288,11 +1264,9 @@ def test_523(ceed_resource, capsys):
   print(op_setup)
   print(op_mass)
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_523.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator
@@ -1460,25 +1434,21 @@ def test_524(ceed_resource):
   op_mass.apply(u, v)
 
   # Check
-  v_array = v.get_array_read()
-  total = 0.0
-  for i in range(ndofs):
-    total = total + v_array[i]
-  assert abs(total - 1.0) < 1E-10
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    total = 0.0
+    for i in range(ndofs):
+      total = total + v_array[i]
+    assert abs(total - 1.0) < 1E-10
 
   # ApplyAdd mass matrix
   v.set_value(1.)
   op_mass.apply_add(u, v)
 
   # Check
-  v_array = v.get_array_read()
-  total = -ndofs
-  for i in range(ndofs):
-    total = total + v_array[i]
-  assert abs(total - 1.0) < 1E-10
-
-  v.restore_array_read()
+  with v.array_read() as v_array:
+    total = -ndofs
+    for i in range(ndofs):
+      total = total + v_array[i]
+    assert abs(total - 1.0) < 1E-10
 
 #-------------------------------------------------------------------------------

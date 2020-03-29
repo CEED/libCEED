@@ -20,6 +20,7 @@
 import os
 import libceed
 import numpy as np
+import check
 
 #-------------------------------------------------------------------------------
 # Test creation, use, and destruction of an element restriction
@@ -44,11 +45,9 @@ def test_200(ceed_resource):
 
   r.apply(x, y)
 
-  y_array = y.get_array_read()
-  for i in range(2*ne):
-    assert 10+(i+1)//2 == y_array[i]
-
-  y.restore_array_read()
+  with y.array_read() as y_array:
+    for i in range(2*ne):
+      assert 10+(i+1)//2 == y_array[i]
 
 #-------------------------------------------------------------------------------
 # Test creation, use, and destruction of a strided element restriction
@@ -70,11 +69,9 @@ def test_201(ceed_resource):
 
   r.apply(x, y)
 
-  y_array = y.get_array_read()
-  for i in range(2*ne):
-    assert 10+i == y_array[i]
-
-  y.restore_array_read()
+  with y.array_read() as y_array:
+    for i in range(2*ne):
+      assert 10+i == y_array[i]
 
 #-------------------------------------------------------------------------------
 # Test creation and destruction of a blocked element restriction
@@ -107,11 +104,9 @@ def test_202(ceed_resource, capsys):
   r.T.apply(y, x)
   print(x)
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_202.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
 # Test creation, use, and destruction of a blocked element restriction
@@ -144,11 +139,9 @@ def test_208(ceed_resource, capsys):
   r.T.apply_block(1, y, x)
   print(x)
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_208.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
 # Test getting the multiplicity of the indices in an element restriction
@@ -168,12 +161,10 @@ def test_209(ceed_resource):
 
   mult = r.get_multiplicity()
 
-  mult_array = mult.get_array_read()
-  for i in range(3*ne+1):
-    val = 1 + (1 if (i > 0 and i < 3*ne and i%3 == 0) else 0)
-    assert val == mult_array[i]
-
-  mult.restore_array_read()
+  with mult.array_read() as mult_array:
+    for i in range(3*ne+1):
+      val = 1 + (1 if (i > 0 and i < 3*ne and i%3 == 0) else 0)
+      assert val == mult_array[i]
 
 #-------------------------------------------------------------------------------
 # Test creation and view of an element restriction
@@ -191,11 +182,9 @@ def test_210(ceed_resource, capsys):
 
   print(r)
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_210.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
 # Test creation and view of a strided element restriction
@@ -210,11 +199,9 @@ def test_211(ceed_resource, capsys):
 
   print(r)
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_211.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
 # Test creation and view of a blocked strided element restriction
@@ -229,10 +216,8 @@ def test_212(ceed_resource, capsys):
 
   print(r)
 
-  stdout, stderr = capsys.readouterr()
-  with open(os.path.abspath("./output/test_212.out")) as output_file:
-    true_output = output_file.read()
-
-  assert stdout == true_output
+  stdout, stderr, ref_stdout = check.output(capsys)
+  assert not stderr
+  assert stdout == ref_stdout
 
 #-------------------------------------------------------------------------------
