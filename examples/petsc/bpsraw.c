@@ -288,7 +288,6 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
                          SCATTER_REVERSE); CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES,
                        SCATTER_REVERSE); CHKERRQ(ierr);
-  ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
   // Setup libCEED vectors
   ierr = user->VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
@@ -335,7 +334,6 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
   ierr = VecScatterEnd(user->ltog0, X, user->Xloc, INSERT_VALUES,
                        SCATTER_REVERSE);
   CHKERRQ(ierr);
-  ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
   // Setup libCEED vectors
   ierr = user->VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
