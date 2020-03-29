@@ -208,7 +208,7 @@ libCEED comes with several examples of its usage, ranging from standalone C
 codes in the ``/examples/ceed`` directory to examples based on external packages,
 such as MFEM, PETSc, and Nek5000. Nek5000 v18.0 or greater is required.
 
-To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR`` and
+To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR``, and
 ``NEK5K_DIR`` variables and run::
 
    cd examples/
@@ -218,7 +218,7 @@ To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR`` and
 .. code:: console
 
    # libCEED examples on CPU and GPU
-   cd ceed
+   cd ceed/
    make
    ./ex1-volume -ceed /cpu/self
    ./ex1-volume -ceed /gpu/occa
@@ -227,21 +227,21 @@ To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR`` and
    cd ..
 
    # MFEM+libCEED examples on CPU and GPU
-   cd mfem
+   cd mfem/
    make
    ./bp1 -ceed /cpu/self -no-vis
    ./bp3 -ceed /gpu/occa -no-vis
    cd ..
 
    # Nek5000+libCEED examples on CPU and GPU
-   cd nek
+   cd nek/
    make
    ./nek-examples.sh -e bp1 -ceed /cpu/self -b 3
    ./nek-examples.sh -e bp3 -ceed /gpu/occa -b 3
    cd ..
 
    # PETSc+libCEED examples on CPU and GPU
-   cd petsc
+   cd petsc/
    make
    ./bps -problem bp1 -ceed /cpu/self
    ./bps -problem bp2 -ceed /gpu/occa
@@ -251,7 +251,7 @@ To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR`` and
    ./bps -problem bp6 -ceed /gpu/occa
    cd ..
 
-   cd petsc
+   cd petsc/
    make
    ./bpsraw -problem bp1 -ceed /cpu/self
    ./bpsraw -problem bp2 -ceed /gpu/occa
@@ -261,7 +261,7 @@ To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR`` and
    ./bpsraw -problem bp6 -ceed /gpu/occa
    cd ..
 
-   cd petsc
+   cd petsc/
    make
    ./bpssphere -problem bp1 -ceed /cpu/self
    ./bpssphere -problem bp2 -ceed /gpu/occa
@@ -271,26 +271,26 @@ To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR`` and
    ./bpssphere -problem bp6 -ceed /gpu/occa
    cd ..
 
-   cd petsc
+   cd petsc/
    make
    ./area -problem cube -ceed /cpu/self -petscspace_degree 3
    ./area -problem cube -ceed /gpu/occa -petscspace_degree 3
    ./area -problem sphere -ceed /cpu/self -petscspace_degree 3 -dm_refine 2
    ./area -problem sphere -ceed /gpu/occa -petscspace_degree 3 -dm_refine 2
 
-   cd fluids
+   cd fluids/
    make
    ./navierstokes -ceed /cpu/self -petscspace_degree 1
    ./navierstokes -ceed /gpu/occa -petscspace_degree 1
    cd ..
 
-   cd solids
+   cd solids/
    make
    ./elasticity -ceed /cpu/self -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem linElas -forcing mms
    ./elasticity -ceed /gpu/occa -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem linElas -forcing mms
    cd ..
 
-For the last example showed, sample meshes to be used in place of
+For the last example shown, sample meshes to be used in place of
 ``[.exo file]`` can be found at https://github.com/jeremylt/ceedSampleMeshes
 
 The above code assumes a GPU-capable machine with the OCCA backend

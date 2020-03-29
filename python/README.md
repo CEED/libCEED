@@ -15,7 +15,7 @@ contains some [Jupyter](https://jupyter.org/) notebooks using Python and C.
 Jupyter can be installed locally so that users can edit and interact with these
 notebook.
 
-`tutorial0`-`tutorial5` illustrate libCEED for Python, each one focusing on one
+`tutorial-0`-`tutorial-5` illustrate libCEED for Python, each one focusing on one
 class of objects.
 
-`tutorial6` shows a standalone libCEED C example.
+`tutorial-6` shows a standalone libCEED C example.

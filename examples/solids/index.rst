@@ -5,7 +5,7 @@ Solid mechanics elasticity mini-app
 
 This example is located in the subdirectory :file:`examples/solids`.
 It solves the steady-state static momentum balance equations using unstructured high-order finite/spectral element spatial discretizations.
-As with the :ref:`example-petsc-navier-stokes` case, the solid mechanics elasticity example has been developed using PETSc, so that the pointwise physics (defined at quadrature points) is separated from the parallelization and meshing concerns.
+As for the :ref:`example-petsc-navier-stokes` case, the solid mechanics elasticity example has been developed using PETSc, so that the pointwise physics (defined at quadrature points) is separated from the parallelization and meshing concerns.
 
 In this mini-app, we consider three formulations used in solid mechanics applications: linear elasticity, Neo-Hookean hyperelasticity at small strain, and Neo-Hookean hyperelasticity at finite strain.
 We provide the strong and weak forms of static balance of linear momentum in the small strain and finite strain regimes.
@@ -458,7 +458,7 @@ That is, given the linearization point :math:`\bm F` and solution increment :mat
 #. conclude by :math:numref:`eq-diff-P`, where :math:`\bm S` is either stored or recomputed from its definition exactly as in the nonlinear residual evaluation.
 
 .. note::
-   The decision of whether to recompute or store functions of the current state :math:`\bm F` depend on a roofline analysis :cite:`williams2009roofline,Brown:2010` of the computation and the cost of the constitutive model.
+   The decision of whether to recompute or store functions of the current state :math:`\bm F` depends on a roofline analysis :cite:`williams2009roofline,Brown:2010` of the computation and the cost of the constitutive model.
    For low-order elements where flops tend to be in surplus relative to memory bandwidth, recomputation is likely to be preferable, where as the opposite may be true for high-order elements.
    Similarly, analysis with a simple constitutive model may see better performance while storing little or nothing while an expensive model such as Arruda-Boyce :cite:`arruda1993largestretch`, which contains many special functions, may be faster when using more storage to avoid recomputation.
    In the case where complete linearization is preferred, note the symmetry :math:`\mathsf C_{IJKL} = \mathsf C_{KLIJ}` evident in :math:numref:`eq-neo-hookean-incremental-stress-index`, thus :math:`\mathsf C` can be stored as a symmetric :math:`6\times 6` matrix, which has 21 unique entries.
