@@ -1035,8 +1035,10 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
   // Build qref1d, qweight1d
   // Set endpoints
   if (Q < 2)
+    // LCOV_EXCL_START
     return CeedError(NULL, 1,
                      "Cannot create Lobatto quadrature with Q=%d < 2 points", Q);
+  // LCOV_EXCL_STOP
   wi = 2.0/((CeedScalar)(Q*(Q-1)));
   if (qweight1d) {
     qweight1d[0] = wi;

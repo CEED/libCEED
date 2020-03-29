@@ -682,8 +682,10 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
   // LCOV_EXCL_STOP
 found:
   if (r == CEED_ELEMRESTRICTION_NONE && qfield->emode != CEED_EVAL_WEIGHT)
+    // LCOV_EXCL_START
     return CeedError(op->ceed, 1, "CEED_ELEMRESTRICTION_NONE can only be used "
                      "for a field with eval mode CEED_EVAL_WEIGHT");
+  // LCOV_EXCL_STOP
   ierr = CeedCalloc(1, ofield); CeedChk(ierr);
   (*ofield)->Erestrict = r;
   r->refcount += 1;

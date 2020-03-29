@@ -820,10 +820,12 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
     retval = ceed->Error(ceed, filename, lineno, func, ecode, format, args);
   } else {
     // This function doesn't actually return
+    // LCOV_EXCL_START
     retval = CeedErrorAbort(ceed, filename, lineno, func, ecode, format, args);
   }
   va_end(args);
   return retval;
+  // LCOV_EXCL_STOP
 }
 
 /// @}
