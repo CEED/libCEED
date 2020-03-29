@@ -538,10 +538,10 @@ int main(int argc, char **argv) {
   GlobalNodes(p, irank, degree, melem, mnodes);
 
   // Setup global vector
+  ierr = VecCreate(comm, &X); CHKERRQ(ierr);
   if (memtyperequested == CEED_MEM_DEVICE) {
     ierr = VecSetType(X, VECCUDA); CHKERRQ(ierr);
   }
-  ierr = VecCreate(comm, &X); CHKERRQ(ierr);
   ierr = VecSetSizes(X, mnodes[0]*mnodes[1]*mnodes[2]*ncompu, PETSC_DECIDE);
   CHKERRQ(ierr);
   ierr = VecSetUp(X); CHKERRQ(ierr);
@@ -591,10 +591,10 @@ int main(int argc, char **argv) {
       lnodes[d] = melem[d]*degree + 1;
       lsize *= lnodes[d];
     }
+    ierr = VecCreate(PETSC_COMM_SELF, &Xloc); CHKERRQ(ierr);
     if (memtyperequested == CEED_MEM_DEVICE) {
       ierr = VecSetType(Xloc, VECCUDA); CHKERRQ(ierr);
     }
-    ierr = VecCreate(PETSC_COMM_SELF, &Xloc); CHKERRQ(ierr);
     ierr = VecSetSizes(Xloc, lsize*ncompu, PETSC_DECIDE); CHKERRQ(ierr);
     ierr = VecSetUp(Xloc); CHKERRQ(ierr);
 
