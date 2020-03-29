@@ -288,7 +288,6 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
                          SCATTER_REVERSE); CHKERRQ(ierr);
   ierr = VecScatterEnd(user->ltog, X, user->Xloc, INSERT_VALUES,
                        SCATTER_REVERSE); CHKERRQ(ierr);
-  ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
   // Setup libCEED vectors
   ierr = user->VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
@@ -335,7 +334,6 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
   ierr = VecScatterEnd(user->ltog0, X, user->Xloc, INSERT_VALUES,
                        SCATTER_REVERSE);
   CHKERRQ(ierr);
-  ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
   // Setup libCEED vectors
   ierr = user->VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
@@ -872,7 +870,6 @@ int main(int argc, char **argv) {
     ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
                             PETSC_DEFAULT); CHKERRQ(ierr);
   }
-  ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp, mat, mat); CHKERRQ(ierr);
   // First run, if benchmarking
   if (benchmark_mode) {
@@ -892,6 +889,7 @@ int main(int argc, char **argv) {
       CHKERRQ(ierr);
     }
   }
+  ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
 
   // Timed solve
   ierr = VecZeroEntries(X); CHKERRQ(ierr);

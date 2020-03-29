@@ -738,7 +738,6 @@ static PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, UserO user) {
 
   // Global-to-local
   ierr = DMGlobalToLocal(user->dm, X, INSERT_VALUES, user->Xloc); CHKERRQ(ierr);
-  ierr = VecZeroEntries(user->Yloc); CHKERRQ(ierr);
 
   // Setup libCEED vectors
   ierr = user->VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
@@ -808,7 +807,6 @@ static PetscErrorCode MatMult_Prolong(Mat A, Vec X, Vec Y) {
   ierr = VecZeroEntries(user->locvecc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(user->dmc, X, INSERT_VALUES, user->locvecc);
   CHKERRQ(ierr);
-  ierr = VecZeroEntries(user->locvecf); CHKERRQ(ierr);
 
   // Setup libCEED vectors
   ierr = user->VecGetArrayRead(user->locvecc, (const PetscScalar **)&c);
@@ -854,7 +852,6 @@ static PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y) {
   ierr = VecZeroEntries(user->locvecf); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(user->dmf, X, INSERT_VALUES, user->locvecf);
   CHKERRQ(ierr);
-  ierr = VecZeroEntries(user->locvecc); CHKERRQ(ierr);
 
   // Multiplicity
   ierr = VecPointwiseMult(user->locvecf, user->locvecf, user->multvec);
