@@ -29,6 +29,8 @@ Using the same notation as in :ref:`Theoretical Framework`, we write here the ve
 and find the volume of :math:`\Omega` as
 
 .. math::
+   :label: volume-sum
+
    \sum_e \int_{\Omega_e} v(x) \cdot \mathbf{1} \, dV
 
 with :math:`v(x) \in \mathcal{V}_p = \{ v \in H^{1}(\Omega_e) \,|\, v \in P_p(\boldsymbol{I}), e=1,\ldots,N_e \}`,
@@ -63,4 +65,7 @@ multiply by a test function :math:`v` and integrate by parts to obtain
 .. math::
     \int_\Omega \nabla v \cdot \nabla u \, dV - \int_{\partial \Omega} v \nabla u \cdot \hat{\bm n}\, dS = 0 .
 
-Since we have chosen :math:`u` such that the boundary integrand is :math:`v 1`, we may evaluate the surface integral by applying the volumetric Laplacian and summing the result.
+Since we have chosen :math:`u` such that :math:`\nabla u \cdot \hat{\bm n} = 1`, the boundary integrand is :math:`v 1 \equiv v`. Hence, similar to :math:numref:`volume-sum`, we can evaluate the surface integral by applying the volumetric Laplacian as follows
+
+.. math::
+   \int_\Omega \nabla v \cdot \nabla u \, dV \approx \sum_e \int_{\partial \Omega_e} v(x) \cdot \mathbf{1} \, dS .
