@@ -29,6 +29,7 @@
 #
 ################################################################################
 import sys
+import os
 
 def main():
     # The source file is the 1st argument to the script
@@ -42,7 +43,7 @@ def main():
     file.close()
 
     fname  = sys.argv[1]
-    fname  = fname[:fname.find(".")]
+    fname  = os.path.splitext(fname)[0]
     cfile  = open(fname + "_tmp.c" , "w")
     cufile = open(fname + "_cuda.cu", "w")
 
