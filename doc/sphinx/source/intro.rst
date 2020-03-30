@@ -4,7 +4,7 @@ Introduction
 Historically, conventional high-order finite element methods were rarely used for
 industrial problems because the Jacobian rapidly loses sparsity as the order is
 increased, leading to unaffordable solve times and memory requirements
-:cite:`Brown:2010`. This effect typically limited the order of accuracy to at most
+:cite:`brown2010`. This effect typically limited the order of accuracy to at most
 quadratic, especially because they are computationally advantageous in terms of
 floating point operations (FLOPS) per degree of freedom (DOF)---see
 :numref:`fig-assembledVsmatrix-free`---, despite the fast convergence and favorable

@@ -50,37 +50,17 @@ Similarly to :ref:`Ex1-Volume`, it computes:
    I = \int_{\partial \Omega} \mathbf{1} \, dS .
    :label: eq-ex2-surface
 
-but this time by solving a Laplace's equation for a harmonic function
-:math:`u(\mathbf{x})`. We write the Laplace's equation
+but this time by applying the divergence theorem using a Laplacian.
+In particular, we select :math:`u(\bm x) = x_0 + x_1 + x_2`, for which :math:`\nabla u = [1, 1, 1]^T`, and thus :math:`\nabla u \cdot \hat{\bm n} = 1`.
+
+Given Laplace's equation,
 
 .. math::
-   \nabla \cdot \nabla u = 0, \textrm{ for  } \mathbf{x} \in \Omega .
-   :label: eq-laplace
+   -\nabla \cdot \nabla u = 0, \textrm{ for  } \mathbf{x} \in \Omega
 
-We can rewrite this via the bilinear form :math:`a(\cdot, \cdot)` and the linear form
-:math:`\langle \cdot, \cdot \rangle` as
+multiply by a test function :math:`v` and integrate by parts to obtain
 
 .. math::
-   a(u,v) = \langle, v,f \rangle
+    \int_\Omega \nabla v \cdot \nabla u \, dV - \int_{\partial \Omega} v \nabla u \cdot \hat{\bm n}\, dS = 0 .
 
-where :math:`v` is the test function, and for which :math:`\langle, v,f \rangle=0` in
-this case. We
-obtain
-
-.. math::
-   a(u,v)  = \int_\Omega v \nabla \cdot \nabla u \, dV =   \int_{\partial \Omega} v \nabla u \cdot \mathbf{n}\, dS - \int_\Omega \nabla v \cdot \nabla u \, dV  = 0 ,
-
-where we have used integration by parts.
-
-:math:`a(u,v) = 0` because we have chosen :math:`u(\mathbf{x})` to be harmonic, so we
-can write
-
-.. math::
-   \int_{\partial \Omega} v \nabla u \cdot \mathbf{n}\, dS = \int_\Omega \nabla v \cdot \nabla u \, dV
-   :label: eq-laplace-by-parts
-
-and use the :ref:`CeedOperator` for Laplace's operator to compute the right-hand side of
-equation :math:numref:`eq-laplace-by-parts`. This way, the left-hand side of equation
-:math:numref:`eq-laplace-by-parts` (which gives :math:numref:`eq-ex2-surface` because
-we have chosen :math:`u(\mathbf{x}) = (x + y + z)` such that
-:math:`\nabla u \cdot \mathbf{n} = 1`) is readily found.
+Since we have chosen :math:`u` such that the boundary integrand is :math:`v 1`, we may evaluate the surface integral by applying the volumetric Laplacian and summing the result.
