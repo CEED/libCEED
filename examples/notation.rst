@@ -15,7 +15,8 @@ typically) by letting :math:`\Omega = \bigcup_{e=1}^{N_e}\Omega_e`, with :math:`
 disjoint elements. For most examples we use unstructured meshes for which the elements
 are hexahedra (although this is not a requirement in libCEED).
 
-The physical coordinates are denoted by :math:`\mathbf{x}=(x,y,z)\in\Omega_e`,
+The physical coordinates are denoted by
+:math:`\mathbf{x}=(x,y,z) \equiv (x_0,x_1,x_2) \in\Omega_e`,
 while the reference coordinates are represented as
-:math:`\boldsymbol{X}=(X,Y,Z) \equiv (X_1,X_2,X_3) \in\mathbf{I}=[-1,1]^3`
+:math:`\boldsymbol{X}=(X,Y,Z) \equiv (X_0,X_1,X_2) \in\mathbf{I}=[-1,1]^3`
 (for :math:`d=3`).
