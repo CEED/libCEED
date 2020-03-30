@@ -19,18 +19,18 @@ follows. The compressible Navier-Stokes equations in conservative form are
 
    \begin{aligned}
    \frac{\partial \rho}{\partial t} + \nabla \cdot \bm{U} &= 0 \\
-   \frac{\partial \bm{U}}{\partial t} + \nabla \cdot \left( \frac{\bm{U} \otimes \bm{U}}{\rho} + P \mathbf{I}_3 -\bm\sigma \right) + \rho g \bm{\hat k} &= 0 \\
+   \frac{\partial \bm{U}}{\partial t} + \nabla \cdot \left( \frac{\bm{U} \otimes \bm{U}}{\rho} + P \bm{I}_3 -\bm\sigma \right) + \rho g \bm{\hat k} &= 0 \\
    \frac{\partial E}{\partial t} + \nabla \cdot \left( \frac{(E + P)\bm{U}}{\rho} -\bm{u} \cdot \bm{\sigma} - k \nabla T \right) &= 0 \, , \\
    \end{aligned}
 
-where :math:`\bm{\sigma} = \mu(\nabla \bm{u} + (\nabla \bm{u})^T + \lambda (\nabla \cdot \bm{u})\mathbf{I}_3)`
+where :math:`\bm{\sigma} = \mu(\nabla \bm{u} + (\nabla \bm{u})^T + \lambda (\nabla \cdot \bm{u})\bm{I}_3)`
 is the Cauchy (symmetric) stress tensor, with :math:`\mu` the dynamic viscosity
 coefficient, and :math:`\lambda = - 2/3` the Stokes hypothesis constant. In equations
 :math:numref:`eq-ns`, :math:`\rho` represents the volume mass density, :math:`U` the
 momentum density (defined as :math:`\bm{U}=\rho \bm{u}`, where
 :math:`\bm{u}` is the vector velocity field), :math:`E` the total energy
 density (defined as :math:`E = \rho e`, where :math:`e` is the total energy),
-:math:`\mathbf{I}_3` represents the :math:`3 \times 3` identity matrix, :math:`g`
+:math:`\bm{I}_3` represents the :math:`3 \times 3` identity matrix, :math:`g`
 the gravitational acceleration constant, :math:`\bm{\hat{k}}` the unit vector
 in the :math:`z` direction, :math:`k` the thermal conductivity constant, :math:`T`
 represents the temperature, and :math:`P` the pressure, given by the following equation
@@ -57,7 +57,7 @@ for the state variables 5-dimensional vector
     \bm{q} =
            \begin{pmatrix}
                \rho \\
-               \bm{U} \equiv \rho \mathbf{ u }\\
+               \bm{U} \equiv \rho \bm{ u }\\
                E \equiv \rho e
            \end{pmatrix}
            \begin{array}{l}
@@ -74,7 +74,7 @@ where the flux and the source terms, respectively, are given by
     \bm{F}(\bm{q}) &=
     \begin{pmatrix}
         \bm{U}\\
-        {(\bm{U} \otimes \bm{U})}/{\rho} + P \mathbf{I}_3 -  \bm{\sigma} \\
+        {(\bm{U} \otimes \bm{U})}/{\rho} + P \bm{I}_3 -  \bm{\sigma} \\
         {(E + P)\bm{U}}/{\rho} - \bm{u}  \cdot \bm{\sigma} - k \nabla T
     \end{pmatrix} ,\\
     S(\bm{q}) &=
@@ -167,9 +167,9 @@ To obtain a finite element discretization, we first multiply the strong form
 and integrate,
 
 .. math::
-   \int_{\Omega} \bm v \cdot \left(\frac{\partial \bm{q}_N}{\partial t} + \nabla \cdot \bm{F}(\bm{q}_N) - \mathbf{S}(\bm{q}_N) \right) \,dV = 0 \, , \; \forall \bm v \in \mathcal{V}_p\,,
+   \int_{\Omega} \bm v \cdot \left(\frac{\partial \bm{q}_N}{\partial t} + \nabla \cdot \bm{F}(\bm{q}_N) - \bm{S}(\bm{q}_N) \right) \,dV = 0 \, , \; \forall \bm v \in \mathcal{V}_p\,,
 
-with :math:`\mathcal{V}_p = \{ \bm v(\mathbf x) \in H^{1}(\Omega_e) \,|\, \bm v(\mathbf x_e(\mathbf X)) \in P_p(\bm{I}), e=1,\ldots,N_e \}`
+with :math:`\mathcal{V}_p = \{ \bm v(\bm x) \in H^{1}(\Omega_e) \,|\, \bm v(\bm x_e(\bm X)) \in P_p(\bm{I}), e=1,\ldots,N_e \}`
 a mapped space of polynomials containing at least polynomials of degree :math:`p`
 (with or without the higher mixed terms that appear in tensor product spaces).
 
@@ -179,17 +179,17 @@ Integrating by parts on the divergence term, we arrive at the weak form,
    :label: eq-weak-vector-ns
 
    \begin{aligned}
-   \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \mathbf{S}(\bm{q}_N) \right)  \,dV
+   \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \bm{S}(\bm{q}_N) \right)  \,dV
    - \int_{\Omega} \nabla \bm v \!:\! \bm{F}(\bm{q}_N)\,dV & \\
-   + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm q_N) \cdot \widehat{\mathbf{n}} \,dS
+   + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm q_N) \cdot \widehat{\bm{n}} \,dS
      &= 0 \, , \; \forall \bm v \in \mathcal{V}_p \,,
    \end{aligned}
 
-where :math:`\bm{F}(\bm q_N) \cdot \widehat{\mathbf{n}}` is typically
+where :math:`\bm{F}(\bm q_N) \cdot \widehat{\bm{n}}` is typically
 replaced with a boundary condition.
 
 .. note::
-  The notation :math:`\nabla \bm v \!:\! \bm F` represents contraction over both fields and spatial dimensions while a single dot represents contraction in just one, which should be clear from context, e.g., :math:`\bm v \cdot \bm S` contracts over fields while :math:`\bm F \cdot \widehat{\mathbf n}` contracts over spatial dimensions.
+  The notation :math:`\nabla \bm v \!:\! \bm F` represents contraction over both fields and spatial dimensions while a single dot represents contraction in just one, which should be clear from context, e.g., :math:`\bm v \cdot \bm S` contracts over fields while :math:`\bm F \cdot \widehat{\bm n}` contracts over spatial dimensions.
 
 We solve :math:numref:`eq-weak-vector-ns` using a Galerkin discretization (default)
 or a stabilized method, as is necessary for most real-world flows.
@@ -211,11 +211,11 @@ for continuous finite element discretization of compressible flows.
        :label: eq-weak-vector-ns-supg
 
        \begin{aligned}
-       \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \mathbf{S}(\bm{q}_N) \right)  \,dV
+       \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \bm{S}(\bm{q}_N) \right)  \,dV
        - \int_{\Omega} \nabla \bm v \!:\! \bm{F}(\bm{q}_N)\,dV & \\
-       + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm{q}_N) \cdot \widehat{\mathbf{n}} \,dS & \\
+       + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm{q}_N) \cdot \widehat{\bm{n}} \,dS & \\
        + \int_{\Omega} \bm{P}(\bm v)^T \, \left( \frac{\partial \bm{q}_N}{\partial t} \, + \,
-       \nabla \cdot \bm{F} \, (\bm{q}_N) - \mathbf{S}(\bm{q}_N) \right) \,dV &= 0
+       \nabla \cdot \bm{F} \, (\bm{q}_N) - \bm{S}(\bm{q}_N) \right) \,dV &= 0
        \, , \; \forall \bm v \in \mathcal{V}_p
        \end{aligned}
 
@@ -232,9 +232,9 @@ for continuous finite element discretization of compressible flows.
        :label: eq-weak-vector-ns-su
 
        \begin{aligned}
-       \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \mathbf{S}(\bm{q}_N) \right)  \,dV
+       \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \bm{S}(\bm{q}_N) \right)  \,dV
        - \int_{\Omega} \nabla \bm v \!:\! \bm{F}(\bm{q}_N)\,dV & \\
-       + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm{q}_N) \cdot \widehat{\mathbf{n}} \,dS & \\
+       + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm{q}_N) \cdot \widehat{\bm{n}} \,dS & \\
        + \int_{\Omega} \bm{P}(\bm v)^T \, \nabla \cdot \bm{F} \, (\bm{q}_N) \,dV
        & = 0 \, , \; \forall \bm v \in \mathcal{V}_p
        \end{aligned}

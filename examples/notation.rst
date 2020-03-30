@@ -16,7 +16,7 @@ disjoint elements. For most examples we use unstructured meshes for which the el
 are hexahedra (although this is not a requirement in libCEED).
 
 The physical coordinates are denoted by
-:math:`\mathbf{x}=(x,y,z) \equiv (x_0,x_1,x_2) \in\Omega_e`,
+:math:`\bm{x}=(x,y,z) \equiv (x_0,x_1,x_2) \in\Omega_e`,
 while the reference coordinates are represented as
-:math:`\bm{X}=(X,Y,Z) \equiv (X_0,X_1,X_2) \in\mathbf{I}=[-1,1]^3`
+:math:`\bm{X}=(X,Y,Z) \equiv (X_0,X_1,X_2) \in\bm{I}=[-1,1]^3`
 (for :math:`d=3`).

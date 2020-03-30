@@ -18,20 +18,20 @@ are supported from the same code.
 
 This example shows how to compute line/surface/volume integrals of a 1D, 2D, or 3D
 domain :math:`\Omega` respectively, by applying the mass operator to a vector of
-:math:`\mathbf{1}`\s. It computes:
+:math:`\bm{1}`\s. It computes:
 
 .. math::
-   I = \int_{\Omega} \mathbf{1} \, dV .
+   I = \int_{\Omega} \bm{1} \, dV .
    :label: eq-ex1-volume
 
 Using the same notation as in :ref:`Theoretical Framework`, we write here the vector
-:math:`u(\mathbf{x})\equiv \mathbf{1}` in the Galerkin approximation,
+:math:`u(\bm{x})\equiv \bm{1}` in the Galerkin approximation,
 and find the volume of :math:`\Omega` as
 
 .. math::
    :label: volume-sum
 
-   \sum_e \int_{\Omega_e} v(x) \cdot \mathbf{1} \, dV
+   \sum_e \int_{\Omega_e} v(x) \cdot \bm{1} \, dV
 
 with :math:`v(x) \in \mathcal{V}_p = \{ v \in H^{1}(\Omega_e) \,|\, v \in P_p(\bm{I}), e=1,\ldots,N_e \}`,
 the test functions.
@@ -49,7 +49,7 @@ Arbitrary mesh and solution orders in 1D, 2D and 3D are supported from the same 
 Similarly to :ref:`Ex1-Volume`, it computes:
 
 .. math::
-   I = \int_{\partial \Omega} \mathbf{1} \, dS .
+   I = \int_{\partial \Omega} \bm{1} \, dS .
    :label: eq-ex2-surface
 
 but this time by applying the divergence theorem using a Laplacian.
@@ -58,7 +58,7 @@ In particular, we select :math:`u(\bm x) = x_0 + x_1 + x_2`, for which :math:`\n
 Given Laplace's equation,
 
 .. math::
-   -\nabla \cdot \nabla u = 0, \textrm{ for  } \mathbf{x} \in \Omega
+   -\nabla \cdot \nabla u = 0, \textrm{ for  } \bm{x} \in \Omega
 
 multiply by a test function :math:`v` and integrate by parts to obtain
 
@@ -68,4 +68,4 @@ multiply by a test function :math:`v` and integrate by parts to obtain
 Since we have chosen :math:`u` such that :math:`\nabla u \cdot \hat{\bm n} = 1`, the boundary integrand is :math:`v 1 \equiv v`. Hence, similar to :math:numref:`volume-sum`, we can evaluate the surface integral by applying the volumetric Laplacian as follows
 
 .. math::
-   \int_\Omega \nabla v \cdot \nabla u \, dV \approx \sum_e \int_{\partial \Omega_e} v(x) \cdot \mathbf{1} \, dS .
+   \int_\Omega \nabla v \cdot \nabla u \, dV \approx \sum_e \int_{\partial \Omega_e} v(x) \cdot \bm{1} \, dS .

@@ -18,9 +18,9 @@ We start by considering the discrete residual :math:`F(u)=0` formulation
 in weak form. We first define the :math:`L^2` inner product
 
 .. math::
-   \langle u, v \rangle = \int_\Omega u v d \mathbf{x},
+   \langle u, v \rangle = \int_\Omega u v d \bm{x},
 
-where :math:`d \mathbf{x} \in \mathbb{R}^d \supset \Omega`.
+where :math:`d \bm{x} \in \mathbb{R}^d \supset \Omega`.
 
 We want to find :math:`u` in a suitable space :math:`V_D`,
 such that
