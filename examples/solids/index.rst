@@ -51,34 +51,34 @@ The strong form of the static balance of linear momentum at small strain for the
 .. math::
    :label: lin-elas
 
-   \nabla \cdot \boldsymbol{\sigma} + \boldsymbol{g} = \boldsymbol{0}
+   \nabla \cdot \bm{\sigma} + \bm{g} = \bm{0}
 
-where :math:`\boldsymbol{\sigma}` and :math:`\boldsymbol{g}` are stress and forcing functions, respectively.
+where :math:`\bm{\sigma}` and :math:`\bm{g}` are stress and forcing functions, respectively.
 We multiply :math:numref:`lin-elas` by a test function :math:`\bm v` and integrate the divergence term by parts to arrive at the weak form: find :math:`\bm u \in \mathcal V \subset H^1(\Omega)` such that
 
 .. math::
    :label: lin-elas-weak
 
-   \int_{\Omega}{ \nabla \boldsymbol{v} \colon \boldsymbol{\sigma}} \, dV
-   - \int_{\partial \Omega}{\boldsymbol{v} \cdot \left(\boldsymbol{\sigma} \cdot \hat{\boldsymbol{n}}\right)} \, dS
-   - \int_{\Omega}{\boldsymbol{v} \cdot \boldsymbol{g}} \, dV
+   \int_{\Omega}{ \nabla \bm{v} \colon \bm{\sigma}} \, dV
+   - \int_{\partial \Omega}{\bm{v} \cdot \left(\bm{\sigma} \cdot \hat{\bm{n}}\right)} \, dS
+   - \int_{\Omega}{\bm{v} \cdot \bm{g}} \, dV
    = 0, \quad \forall \bm v \in \mathcal V,
 
-where :math:`\boldsymbol{\sigma} \cdot \hat{\boldsymbol{n}}|_{\partial \Omega}` is replaced by an applied force/traction boundary condition.
+where :math:`\bm{\sigma} \cdot \hat{\bm{n}}|_{\partial \Omega}` is replaced by an applied force/traction boundary condition.
 
 The constitutive law (stress-strain relationship) is given by:
 
 .. math::
    :label: linear-stress-strain
 
-   \boldsymbol{\sigma} = \mathsf{C} \!:\! \boldsymbol{\epsilon},
+   \bm{\sigma} = \mathsf{C} \!:\! \bm{\epsilon},
 
 where 
 
 .. math::
    :label: small-strain
 
-   \boldsymbol{\epsilon} = \dfrac{1}{2}\left(\nabla \boldsymbol{u} + \nabla \boldsymbol{u}^T \right)
+   \bm{\epsilon} = \dfrac{1}{2}\left(\nabla \bm{u} + \nabla \bm{u}^T \right)
 
 is the symmetric (small/infinitesimal) strain tensor and the colon represents a double contraction (over both indices of :math:`\bm \epsilon`).
 For notational convenience, we express the symmetric second order tensors :math:`\bm \sigma` and :math:`\bm \epsilon` as vectors of length 6 using the `Voigt notation <https://en.wikipedia.org/wiki/Voigt_notation>`_.
@@ -144,9 +144,9 @@ However, the constitutive law differs and is given as follows:
 .. math::
    :label: eq-neo-hookean-small-strain
    
-   \boldsymbol{\sigma} = \lambda \log(1 + \operatorname{trace} \bm\epsilon) \boldsymbol{I}_3 + 2\mu \boldsymbol{\epsilon}
+   \bm{\sigma} = \lambda \log(1 + \operatorname{trace} \bm\epsilon) \bm{I}_3 + 2\mu \bm{\epsilon}
 
-where :math:`\boldsymbol{\epsilon}` is defined as in :math:numref:`small-strain`.
+where :math:`\bm{\epsilon}` is defined as in :math:numref:`small-strain`.
 
 
 Newton linearization
@@ -157,34 +157,34 @@ To derive the Newton linearization, we begin by expressing the derivative,
 
 .. math::
 
-   \diff \boldsymbol{\sigma} = \dfrac{\partial \boldsymbol{\sigma}}{\partial \boldsymbol{\epsilon}} \colon \diff \boldsymbol{\epsilon}
+   \diff \bm{\sigma} = \dfrac{\partial \bm{\sigma}}{\partial \bm{\epsilon}} \colon \diff \bm{\epsilon}
 
 where
 
 .. math::
 
-   \diff \boldsymbol{\epsilon} = \dfrac{1}{2}\left( \nabla \diff \boldsymbol{u} + \nabla \diff \boldsymbol{u}^T \right)
+   \diff \bm{\epsilon} = \dfrac{1}{2}\left( \nabla \diff \bm{u} + \nabla \diff \bm{u}^T \right)
 
 and 
 
 .. math::
 
-   \diff \nabla \boldsymbol{u} = \nabla \diff \boldsymbol{u} .
+   \diff \nabla \bm{u} = \nabla \diff \bm{u} .
 
 Therefore,
 
 .. math::
    :label: derss
 
-   \diff \boldsymbol{\sigma}  = \bar{\lambda} \cdot \operatorname{trace} \diff \boldsymbol{\epsilon} \cdot \boldsymbol{I}_3 + 2\mu \diff \boldsymbol{\epsilon}
+   \diff \bm{\sigma}  = \bar{\lambda} \cdot \operatorname{trace} \diff \bm{\epsilon} \cdot \bm{I}_3 + 2\mu \diff \bm{\epsilon}
 
 where we have introduced the symbol
 
 .. math::
 
-   \bar{\lambda} = \dfrac{\lambda}{1 + \boldsymbol{\epsilon}_v }
+   \bar{\lambda} = \dfrac{\lambda}{1 + \bm{\epsilon}_v }
 
-where volumetric strain is given by :math:`\boldsymbol{\epsilon}_v = \sum_i \boldsymbol{\epsilon}_{ii}`.
+where volumetric strain is given by :math:`\bm{\epsilon}_v = \sum_i \bm{\epsilon}_{ii}`.
 
 Equation :math:numref:`derss` can be written in Voigt matrix notation as follows:
 
@@ -232,21 +232,21 @@ The strong form of the static balance of linear-momentum at *finite strain* (tot
 .. math::
    :label: sblFinS
 
-   - \nabla_X \cdot \boldsymbol{P} - \rho_0 \boldsymbol{g} = \boldsymbol{0}
+   - \nabla_X \cdot \bm{P} - \rho_0 \bm{g} = \bm{0}
  
 where the :math:`_X` in :math:`\nabla_X` indicates that the gradient is calculated with respect to the reference configuration in the finite strain regime.
-:math:`\boldsymbol{P}` and :math:`\boldsymbol{g}` are the *first Piola-Kirchhoff stress* tensor and the prescribed forcing function, respectively.
+:math:`\bm{P}` and :math:`\bm{g}` are the *first Piola-Kirchhoff stress* tensor and the prescribed forcing function, respectively.
 :math:`\rho_0` is known as the *reference* mass density.
 The tensor :math:`\bm P` is not symmetric, living in the current configuration on the left and the reference configuration on the right.
 
-:math:`\boldsymbol{P}` can be decomposed as
+:math:`\bm{P}` can be decomposed as
 
 .. math::
    :label: 1st2nd
    
-   \boldsymbol{P} = \boldsymbol{F} \, \boldsymbol{S},
+   \bm{P} = \bm{F} \, \bm{S},
 
-where :math:`\bm S` is the *second Piola-Kirchhoff stress* tensor, a symmetric tensor defined entirely in the reference configuration, and :math:`\boldsymbol{F} = \bm I_3 + \nabla_X \bm u` is the deformation gradient.
+where :math:`\bm S` is the *second Piola-Kirchhoff stress* tensor, a symmetric tensor defined entirely in the reference configuration, and :math:`\bm{F} = \bm I_3 + \nabla_X \bm u` is the deformation gradient.
 Different constitutive models can define :math:`\bm S`.
 
 
@@ -367,12 +367,12 @@ find :math:`\bm u \in \mathcal V \subset H^1(\Omega_0)` such that
 .. math::
    :label: hyperelastic-weak-form
 
-    \int_{\Omega_0}{\nabla_X \boldsymbol{v} \colon \boldsymbol{P}} \, dV
-    - \int_{\Omega_0}{\boldsymbol{v} \cdot \rho_0 \boldsymbol{g}} \, dV
-    - \int_{\partial \Omega_0}{\boldsymbol{v} \cdot (\boldsymbol{P} \cdot \hat{\boldsymbol{N}})} \, dS
+    \int_{\Omega_0}{\nabla_X \bm{v} \colon \bm{P}} \, dV
+    - \int_{\Omega_0}{\bm{v} \cdot \rho_0 \bm{g}} \, dV
+    - \int_{\partial \Omega_0}{\bm{v} \cdot (\bm{P} \cdot \hat{\bm{N}})} \, dS
     = 0, \quad \forall \bm v \in \mathcal V,
     
-where :math:`\boldsymbol{P} \cdot \hat{\boldsymbol{N}}|_{\partial\Omega}` is replaced by any prescribed force/traction boundary conditions written in terms of the reference configuration.
+where :math:`\bm{P} \cdot \hat{\bm{N}}|_{\partial\Omega}` is replaced by any prescribed force/traction boundary conditions written in terms of the reference configuration.
 This equation contains material/constitutive nonlinearities in defining :math:`\bm S(\bm E)`, as well as geometric nonlinearities through :math:`\bm P = \bm F\, \bm S`, :math:`\bm E(\bm F)`, and the body force :math:`\bm g`, which must be pulled back from the current configuration to the reference configuration.
 Discretization of :math:numref:`hyperelastic-weak-form` produces a finite-dimensional system of nonlinear algebraic equations, which we solve using Newton-Raphson methods.
 One attractive feature of Galerkin discretization is that we can arrive at the same linear system by discretizing the Newton linearization of the continuous form; that is, discretization and differentiation (Newton linearization) commute.

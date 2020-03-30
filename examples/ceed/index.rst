@@ -33,7 +33,7 @@ and find the volume of :math:`\Omega` as
 
    \sum_e \int_{\Omega_e} v(x) \cdot \mathbf{1} \, dV
 
-with :math:`v(x) \in \mathcal{V}_p = \{ v \in H^{1}(\Omega_e) \,|\, v \in P_p(\boldsymbol{I}), e=1,\ldots,N_e \}`,
+with :math:`v(x) \in \mathcal{V}_p = \{ v \in H^{1}(\Omega_e) \,|\, v \in P_p(\bm{I}), e=1,\ldots,N_e \}`,
 the test functions.
 
 

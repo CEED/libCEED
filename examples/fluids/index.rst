@@ -18,26 +18,26 @@ follows. The compressible Navier-Stokes equations in conservative form are
    :label: eq-ns
 
    \begin{aligned}
-   \frac{\partial \rho}{\partial t} + \nabla \cdot \boldsymbol{U} &= 0 \\
-   \frac{\partial \boldsymbol{U}}{\partial t} + \nabla \cdot \left( \frac{\boldsymbol{U} \otimes \boldsymbol{U}}{\rho} + P \mathbf{I}_3 -\boldsymbol\sigma \right) + \rho g \boldsymbol{\hat k} &= 0 \\
-   \frac{\partial E}{\partial t} + \nabla \cdot \left( \frac{(E + P)\boldsymbol{U}}{\rho} -\boldsymbol{u} \cdot \boldsymbol{\sigma} - k \nabla T \right) &= 0 \, , \\
+   \frac{\partial \rho}{\partial t} + \nabla \cdot \bm{U} &= 0 \\
+   \frac{\partial \bm{U}}{\partial t} + \nabla \cdot \left( \frac{\bm{U} \otimes \bm{U}}{\rho} + P \mathbf{I}_3 -\bm\sigma \right) + \rho g \bm{\hat k} &= 0 \\
+   \frac{\partial E}{\partial t} + \nabla \cdot \left( \frac{(E + P)\bm{U}}{\rho} -\bm{u} \cdot \bm{\sigma} - k \nabla T \right) &= 0 \, , \\
    \end{aligned}
 
-where :math:`\boldsymbol{\sigma} = \mu(\nabla \boldsymbol{u} + (\nabla \boldsymbol{u})^T + \lambda (\nabla \cdot \boldsymbol{u})\mathbf{I}_3)`
+where :math:`\bm{\sigma} = \mu(\nabla \bm{u} + (\nabla \bm{u})^T + \lambda (\nabla \cdot \bm{u})\mathbf{I}_3)`
 is the Cauchy (symmetric) stress tensor, with :math:`\mu` the dynamic viscosity
 coefficient, and :math:`\lambda = - 2/3` the Stokes hypothesis constant. In equations
 :math:numref:`eq-ns`, :math:`\rho` represents the volume mass density, :math:`U` the
-momentum density (defined as :math:`\boldsymbol{U}=\rho \boldsymbol{u}`, where
-:math:`\boldsymbol{u}` is the vector velocity field), :math:`E` the total energy
+momentum density (defined as :math:`\bm{U}=\rho \bm{u}`, where
+:math:`\bm{u}` is the vector velocity field), :math:`E` the total energy
 density (defined as :math:`E = \rho e`, where :math:`e` is the total energy),
 :math:`\mathbf{I}_3` represents the :math:`3 \times 3` identity matrix, :math:`g`
-the gravitational acceleration constant, :math:`\boldsymbol{\hat{k}}` the unit vector
+the gravitational acceleration constant, :math:`\bm{\hat{k}}` the unit vector
 in the :math:`z` direction, :math:`k` the thermal conductivity constant, :math:`T`
 represents the temperature, and :math:`P` the pressure, given by the following equation
 of state
 
 .. math::
-   P = \left( {c_p}/{c_v} -1\right) \left( E - {\boldsymbol{U}\cdot\boldsymbol{U}}/{(2 \rho)} - \rho g z \right) \, ,
+   P = \left( {c_p}/{c_v} -1\right) \left( E - {\bm{U}\cdot\bm{U}}/{(2 \rho)} - \rho g z \right) \, ,
    :label: eq-state
 
 where :math:`c_p` is the specific heat at constant pressure and :math:`c_v` is the
@@ -49,15 +49,15 @@ The system :math:numref:`eq-ns` can be rewritten in vector form
 .. math::
    :label: eq-vector-ns
 
-   \frac{\partial \boldsymbol{q}}{\partial t} + \nabla \cdot \boldsymbol{F}(\boldsymbol{q}) -S(\boldsymbol{q}) = 0 \, ,
+   \frac{\partial \bm{q}}{\partial t} + \nabla \cdot \bm{F}(\bm{q}) -S(\bm{q}) = 0 \, ,
 
 for the state variables 5-dimensional vector
 
 .. math::
-    \boldsymbol{q} =
+    \bm{q} =
            \begin{pmatrix}
                \rho \\
-               \boldsymbol{U} \equiv \rho \mathbf{ u }\\
+               \bm{U} \equiv \rho \mathbf{ u }\\
                E \equiv \rho e
            \end{pmatrix}
            \begin{array}{l}
@@ -71,16 +71,16 @@ where the flux and the source terms, respectively, are given by
 .. math::
 
     \begin{aligned}
-    \boldsymbol{F}(\boldsymbol{q}) &=
+    \bm{F}(\bm{q}) &=
     \begin{pmatrix}
-        \boldsymbol{U}\\
-        {(\boldsymbol{U} \otimes \boldsymbol{U})}/{\rho} + P \mathbf{I}_3 -  \boldsymbol{\sigma} \\
-        {(E + P)\boldsymbol{U}}/{\rho} - \boldsymbol{u}  \cdot \boldsymbol{\sigma} - k \nabla T
+        \bm{U}\\
+        {(\bm{U} \otimes \bm{U})}/{\rho} + P \mathbf{I}_3 -  \bm{\sigma} \\
+        {(E + P)\bm{U}}/{\rho} - \bm{u}  \cdot \bm{\sigma} - k \nabla T
     \end{pmatrix} ,\\
-    S(\boldsymbol{q}) &=
+    S(\bm{q}) &=
     - \begin{pmatrix}
         0\\
-        \rho g \boldsymbol{\hat{k}}\\
+        \rho g \bm{\hat{k}}\\
         0
     \end{pmatrix}.
     \end{aligned}
@@ -88,10 +88,10 @@ where the flux and the source terms, respectively, are given by
 Let the discrete solution be
 
 .. math::
-   \boldsymbol{q}_N (\boldsymbol{x},t)^{(e)} = \sum_{k=1}^{P}\psi_k (\boldsymbol{x})\boldsymbol{q}_k^{(e)}
+   \bm{q}_N (\bm{x},t)^{(e)} = \sum_{k=1}^{P}\psi_k (\bm{x})\bm{q}_k^{(e)}
 
 with :math:`P=p+1` the number of nodes in the element :math:`e`. We use tensor-product
-bases :math:`\psi_{kji} = h_i(X_1)h_j(X_2)h_k(X_3)`.
+bases :math:`\psi_{kji} = h_i(X_0)h_j(X_1)h_k(X_2)`.
 
 For the time discretization, we use two types of time stepping schemes.
 
@@ -102,24 +102,24 @@ For the time discretization, we use two types of time stepping schemes.
     scheme available in PETSc can be chosen at runtime)
 
     .. math::
-       \boldsymbol{q}_N^{n+1} = \boldsymbol{q}_N^n + \Delta t \sum_{i=1}^{s} b_i k_i \, ,
+       \bm{q}_N^{n+1} = \bm{q}_N^n + \Delta t \sum_{i=1}^{s} b_i k_i \, ,
 
     where
 
     .. math::
 
        \begin{aligned}
-          k_1 &= f(t^n, \boldsymbol{q}_N^n)\\
-          k_2 &= f(t^n + c_2 \Delta t, \boldsymbol{q}_N^n + \Delta t (a_{21} k_1))\\
-          k_3 &= f(t^n + c_3 \Delta t, \boldsymbol{q}_N^n + \Delta t (a_{31} k_1 + a_{32} k_2))\\
+          k_1 &= f(t^n, \bm{q}_N^n)\\
+          k_2 &= f(t^n + c_2 \Delta t, \bm{q}_N^n + \Delta t (a_{21} k_1))\\
+          k_3 &= f(t^n + c_3 \Delta t, \bm{q}_N^n + \Delta t (a_{31} k_1 + a_{32} k_2))\\
           \vdots&\\
-          k_i &= f\left(t^n + c_i \Delta t, \boldsymbol{q}_N^n + \Delta t \sum_{j=1}^s a_{ij} k_j \right)\\
+          k_i &= f\left(t^n + c_i \Delta t, \bm{q}_N^n + \Delta t \sum_{j=1}^s a_{ij} k_j \right)\\
        \end{aligned}
 
     and with
 
     .. math::
-       f(t^n, \boldsymbol{q}_N^n) = - [\nabla \cdot \boldsymbol{F}(\boldsymbol{q}_N)]^n + [S(\boldsymbol{q}_N)]^n \, .
+       f(t^n, \bm{q}_N^n) = - [\nabla \cdot \bm{F}(\bm{q}_N)]^n + [S(\bm{q}_N)]^n \, .
 
 - Implicit time-stepping method
 
@@ -131,12 +131,12 @@ For the time discretization, we use two types of time stepping schemes.
     .. math::
        :label: eq-ts-implicit-ns
 
-       \bm f(\bm q_N) \equiv \bm g(t^{n+1}, \boldsymbol{q}_N, \boldsymbol{\dot{q}}_N) = 0 \, ,
+       \bm f(\bm q_N) \equiv \bm g(t^{n+1}, \bm{q}_N, \bm{\dot{q}}_N) = 0 \, ,
 
     where the time derivative :math:`\bm{\dot q}_N` is defined by
 
     .. math::
-      \boldsymbol{\dot{q}}_N(\bm q_N) = \alpha \bm q_N + \bm z_N
+      \bm{\dot{q}}_N(\bm q_N) = \alpha \bm q_N + \bm z_N
 
     in terms of :math:`\bm z_N` from prior state and :math:`\alpha > 0`,
     both of which depend on the specific time integration scheme (backward difference
@@ -163,13 +163,13 @@ For the time discretization, we use two types of time stepping schemes.
     with the convergence rate of Krylov methods using weak preconditioners.
 
 To obtain a finite element discretization, we first multiply the strong form
-:math:numref:`eq-vector-ns` by a test function :math:`\boldsymbol v \in H^1(\Omega)`
+:math:numref:`eq-vector-ns` by a test function :math:`\bm v \in H^1(\Omega)`
 and integrate,
 
 .. math::
-   \int_{\Omega} \boldsymbol v \cdot \left(\frac{\partial \boldsymbol{q}_N}{\partial t} + \nabla \cdot \boldsymbol{F}(\boldsymbol{q}_N) - \mathbf{S}(\boldsymbol{q}_N) \right) \,dV = 0 \, , \; \forall \boldsymbol v \in \mathcal{V}_p\,,
+   \int_{\Omega} \bm v \cdot \left(\frac{\partial \bm{q}_N}{\partial t} + \nabla \cdot \bm{F}(\bm{q}_N) - \mathbf{S}(\bm{q}_N) \right) \,dV = 0 \, , \; \forall \bm v \in \mathcal{V}_p\,,
 
-with :math:`\mathcal{V}_p = \{ \boldsymbol v(\mathbf x) \in H^{1}(\Omega_e) \,|\, \boldsymbol v(\mathbf x_e(\mathbf X)) \in P_p(\boldsymbol{I}), e=1,\ldots,N_e \}`
+with :math:`\mathcal{V}_p = \{ \bm v(\mathbf x) \in H^{1}(\Omega_e) \,|\, \bm v(\mathbf x_e(\mathbf X)) \in P_p(\bm{I}), e=1,\ldots,N_e \}`
 a mapped space of polynomials containing at least polynomials of degree :math:`p`
 (with or without the higher mixed terms that appear in tensor product spaces).
 
@@ -179,17 +179,17 @@ Integrating by parts on the divergence term, we arrive at the weak form,
    :label: eq-weak-vector-ns
 
    \begin{aligned}
-   \int_{\Omega} \boldsymbol v \cdot \left( \frac{\partial \boldsymbol{q}_N}{\partial t} - \mathbf{S}(\boldsymbol{q}_N) \right)  \,dV
-   - \int_{\Omega} \nabla \boldsymbol v \!:\! \boldsymbol{F}(\boldsymbol{q}_N)\,dV & \\
-   + \int_{\partial \Omega} \boldsymbol v \cdot \boldsymbol{F}(\boldsymbol q_N) \cdot \widehat{\mathbf{n}} \,dS
-     &= 0 \, , \; \forall \boldsymbol v \in \mathcal{V}_p \,,
+   \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \mathbf{S}(\bm{q}_N) \right)  \,dV
+   - \int_{\Omega} \nabla \bm v \!:\! \bm{F}(\bm{q}_N)\,dV & \\
+   + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm q_N) \cdot \widehat{\mathbf{n}} \,dS
+     &= 0 \, , \; \forall \bm v \in \mathcal{V}_p \,,
    \end{aligned}
 
-where :math:`\boldsymbol{F}(\boldsymbol q_N) \cdot \widehat{\mathbf{n}}` is typically
+where :math:`\bm{F}(\bm q_N) \cdot \widehat{\mathbf{n}}` is typically
 replaced with a boundary condition.
 
 .. note::
-  The notation :math:`\nabla \boldsymbol v \!:\! \boldsymbol F` represents contraction over both fields and spatial dimensions while a single dot represents contraction in just one, which should be clear from context, e.g., :math:`\boldsymbol v \cdot \boldsymbol S` contracts over fields while :math:`\boldsymbol F \cdot \widehat{\mathbf n}` contracts over spatial dimensions.
+  The notation :math:`\nabla \bm v \!:\! \bm F` represents contraction over both fields and spatial dimensions while a single dot represents contraction in just one, which should be clear from context, e.g., :math:`\bm v \cdot \bm S` contracts over fields while :math:`\bm F \cdot \widehat{\mathbf n}` contracts over spatial dimensions.
 
 We solve :math:numref:`eq-weak-vector-ns` using a Galerkin discretization (default)
 or a stabilized method, as is necessary for most real-world flows.
@@ -211,12 +211,12 @@ for continuous finite element discretization of compressible flows.
        :label: eq-weak-vector-ns-supg
 
        \begin{aligned}
-       \int_{\Omega} \boldsymbol v \cdot \left( \frac{\partial \boldsymbol{q}_N}{\partial t} - \mathbf{S}(\boldsymbol{q}_N) \right)  \,dV
-       - \int_{\Omega} \nabla \boldsymbol v \!:\! \boldsymbol{F}(\boldsymbol{q}_N)\,dV & \\
-       + \int_{\partial \Omega} \boldsymbol v \cdot \boldsymbol{F}(\boldsymbol{q}_N) \cdot \widehat{\mathbf{n}} \,dS & \\
-       + \int_{\Omega} \boldsymbol{P}(\boldsymbol v)^T \, \left( \frac{\partial \boldsymbol{q}_N}{\partial t} \, + \,
-       \nabla \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) - \mathbf{S}(\boldsymbol{q}_N) \right) \,dV &= 0
-       \, , \; \forall \boldsymbol v \in \mathcal{V}_p
+       \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \mathbf{S}(\bm{q}_N) \right)  \,dV
+       - \int_{\Omega} \nabla \bm v \!:\! \bm{F}(\bm{q}_N)\,dV & \\
+       + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm{q}_N) \cdot \widehat{\mathbf{n}} \,dS & \\
+       + \int_{\Omega} \bm{P}(\bm v)^T \, \left( \frac{\partial \bm{q}_N}{\partial t} \, + \,
+       \nabla \cdot \bm{F} \, (\bm{q}_N) - \mathbf{S}(\bm{q}_N) \right) \,dV &= 0
+       \, , \; \forall \bm v \in \mathcal{V}_p
        \end{aligned}
 
     This stabilization technique can be selected using the option ``-stab supg``.
@@ -232,26 +232,26 @@ for continuous finite element discretization of compressible flows.
        :label: eq-weak-vector-ns-su
 
        \begin{aligned}
-       \int_{\Omega} \boldsymbol v \cdot \left( \frac{\partial \boldsymbol{q}_N}{\partial t} - \mathbf{S}(\boldsymbol{q}_N) \right)  \,dV
-       - \int_{\Omega} \nabla \boldsymbol v \!:\! \boldsymbol{F}(\boldsymbol{q}_N)\,dV & \\
-       + \int_{\partial \Omega} \boldsymbol v \cdot \boldsymbol{F}(\boldsymbol{q}_N) \cdot \widehat{\mathbf{n}} \,dS & \\
-       + \int_{\Omega} \boldsymbol{P}(\boldsymbol v)^T \, \nabla \cdot \boldsymbol{F} \, (\boldsymbol{q}_N) \,dV
-       & = 0 \, , \; \forall \boldsymbol v \in \mathcal{V}_p
+       \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \mathbf{S}(\bm{q}_N) \right)  \,dV
+       - \int_{\Omega} \nabla \bm v \!:\! \bm{F}(\bm{q}_N)\,dV & \\
+       + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm{q}_N) \cdot \widehat{\mathbf{n}} \,dS & \\
+       + \int_{\Omega} \bm{P}(\bm v)^T \, \nabla \cdot \bm{F} \, (\bm{q}_N) \,dV
+       & = 0 \, , \; \forall \bm v \in \mathcal{V}_p
        \end{aligned}
 
     This stabilization technique can be selected using the option ``-stab su``.
 
 
 In both :math:numref:`eq-weak-vector-ns-su` and :math:numref:`eq-weak-vector-ns-supg`,
-:math:`\boldsymbol{P} \,` is called the *perturbation to the test-function space*,
+:math:`\bm{P} \,` is called the *perturbation to the test-function space*,
 since it modifies the original Galerkin method into *SUPG* or *SU* schemes. It is defined
 as
 
 .. math::
-   \boldsymbol{P}(\boldsymbol v) \equiv \left(\boldsymbol{\tau} \cdot \frac{\partial \boldsymbol{F} \, (\boldsymbol{q}_N)}{\partial
-   \boldsymbol{q}_N} \right)^T \, \nabla \boldsymbol v\,,
+   \bm{P}(\bm v) \equiv \left(\bm{\tau} \cdot \frac{\partial \bm{F} \, (\bm{q}_N)}{\partial
+   \bm{q}_N} \right)^T \, \nabla \bm v\,,
 
-where parameter :math:`\boldsymbol{\tau} \in \mathbb R^{3\times 3}` is an intrinsic time/space scale matrix.
+where parameter :math:`\bm{\tau} \in \mathbb R^{3\times 3}` is an intrinsic time/space scale matrix.
 
 Currently, this demo provides two types of problems/physical models that can be selected
 at run time via the option ``-problem``. One is the problem of transport of energy in a
@@ -268,13 +268,13 @@ A simplified version of system :math:numref:`eq-ns`, only accounting for the tra
 of total energy, is given by
 
 .. math::
-   \frac{\partial E}{\partial t} + \nabla \cdot (\boldsymbol{u} E ) = 0 \, ,
+   \frac{\partial E}{\partial t} + \nabla \cdot (\bm{u} E ) = 0 \, ,
    :label: eq-advection
 
-with :math:`\boldsymbol{u}` the vector velocity field. In this particular test case, a
+with :math:`\bm{u}` the vector velocity field. In this particular test case, a
 blob of total energy (defined by a characteristic radius :math:`r_c`) is transported by
 a uniform circular velocity field. We have solved :math:numref:`eq-advection` with
-no-slip and non-penetration boundary conditions for :math:`\boldsymbol{u}`, and no-flux
+no-slip and non-penetration boundary conditions for :math:`\bm{u}`, and no-flux
 for :math:`E`. This problem can be run with::
 
    ./navierstokes -problem advection
@@ -289,17 +289,17 @@ For this test problem (from :cite:`straka1993numerical`), we solve the full
 Navier-Stokes equations :math:numref:`eq-ns`, for which a cold air bubble
 (of radius :math:`r_c`) drops by convection in a neutrally stratified atmosphere.
 Its initial condition is defined in terms of the Exner pressure,
-:math:`\pi(\boldsymbol{x},t)`, and potential temperature,
-:math:`\theta(\boldsymbol{x},t)`, that relate to the state variables via
+:math:`\pi(\bm{x},t)`, and potential temperature,
+:math:`\theta(\bm{x},t)`, that relate to the state variables via
 
 .. math::
    \begin{aligned}
-   \rho &= \frac{P_0}{( c_p - c_v)\theta(\boldsymbol{x},t)} \pi(\boldsymbol{x},t)^{\frac{c_v}{ c_p - c_v}} \, , \\
-   e &= c_v \theta(\boldsymbol{x},t) \pi(\boldsymbol{x},t) + \boldsymbol{u}\cdot \boldsymbol{u} /2 + g z \, ,
+   \rho &= \frac{P_0}{( c_p - c_v)\theta(\bm{x},t)} \pi(\bm{x},t)^{\frac{c_v}{ c_p - c_v}} \, , \\
+   e &= c_v \theta(\bm{x},t) \pi(\bm{x},t) + \bm{u}\cdot \bm{u} /2 + g z \, ,
    \end{aligned}
 
 where :math:`P_0` is the atmospheric pressure. For this problem, we have used no-slip
-and non-penetration boundary conditions for :math:`\boldsymbol{u}`, and no-flux
+and non-penetration boundary conditions for :math:`\bm{u}`, and no-flux
 for mass and energy densities. This problem can be run with::
 
    ./navierstokes -problem density_current

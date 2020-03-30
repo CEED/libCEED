@@ -13,7 +13,7 @@ communication protocols for mesh handling in PETSc's DMPlex. This example has th
 same mathematical formulation as :ref:`Ex1-Volume`, with the exception that the
 physical coordinates for this problem are :math:`\mathbf{x}=(x,y,z)\in \mathbb{R}^3`,
 while the coordinates of the reference element are
-:math:`\boldsymbol{X}=(X,Y) \equiv (X_1,X_2) \in\mathbf{I}=[-1,1]^2`.
+:math:`\bm{X}=(X,Y) \equiv (X_1,X_2) \in\mathbf{I}=[-1,1]^2`.
 
 
 .. _example-petsc-area-cube:

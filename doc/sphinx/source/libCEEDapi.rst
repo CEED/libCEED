@@ -365,7 +365,7 @@ More general operators, such as those of the form
 can be expressed.
 
 .. note::
-   The notation :math:`\nabla \boldsymbol v \!:\! f_1` represents contraction over both
+   The notation :math:`\nabla \bm v \!:\! f_1` represents contraction over both
    fields and spatial dimensions while a single dot represents contraction in just one,
    which should be clear from context, e.g., :math:`v \cdot f_0` contracts only over
    fields.
