@@ -10,45 +10,79 @@ for each release of libCEED.
 v0.6 (Mar 29, 2020)
 ----------------------------------------
 
-libCEED v0.6 was made again publicly available in the third full CEED software
-distribution, release CEED 3.0. This release contained notable features, and
-substantial additions in the examples suite. Some API changes were introduced,
-including the change from ``CeedElemRestrictionCreateIdentity()`` to
-``CeedElemRestrictionCreateStrided()``
-and the addition of ``ElemRestriction`` layout mode. The latter change
-requires changing use of ``CEED_TRANSPOSE`` and ``CEED_NOTRANSPOSE`` to
-``CEED_LAYOUT_NODE_COMPONENT`` and ``CEED_LAYOUT_COMPONENT_NODE``,
-respectively, for ``CeedElemRestriction lmode`` in ``CeedElemRestrictionCreate*``.
-The user still has the choice of interlacing fields by node, or viceversa,
-interlacing nodes by fields, but this choice now is not declared when the
-different ``CeedOperator`` fields are set with the ``CeedOperatorSetField()``,
-rather when the restriction is created with ``CeedElemRestrictionCreate()``.
+libCEED v0.6 contains numerous new features and examples, as well as expanded
+documentation in `this new website <https://libceed.readthedocs.io>`_.
 
-For this release, the libCEED team has deployed libCEED's very first
-`user manual <https://libceed.readthedocs.io/en/latest/>`_!
-And a C/Python interface, developed using the C Foreign Function Interface
-(`CFFI <https://cffi.readthedocs.io/en/latest/>`_)
-for Python. CFFI allows to reuse most of the C declarations and requires only a
-minimal adaptation of some of them. The C and Python APIs are mapped in a nearly
-1:1 correspondence. For instance, data stored in the CeedVector structure are
-associated to arrays defined via the numpy package. In fact, since libCEED heavily
-relies on pointers and arrays to handle the data, a Python structure that resembles
-the C arrays is needed. In details, numpy arrays allow this correspondence obtained
-by passing the numpy array memory address as pointers to the libCEED C API.
+New features
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* New Python interface using `CFFI <https://cffi.readthedocs.io/>`_ provides a nearly
+  1-1 correspondence with the C interface, plus some convenience features.  For instance,
+  data stored in the :cpp:type:`CeedVector` structure are available without copy as
+  :py:class:`numpy.ndarray`.  Short tutorials are provided in
+  `Binder <https://mybinder.org/v2/gh/CEED/libCEED/master?urlpath=lab/tree/examples/tutorials/>`_.
+* Linear QFunctions can be assembled as block-diagonal matrices (per quadrature point,
+  :cpp:func:`CeedOperatorAssembleLinearQFunction`) or to evaluate the diagonal
+  (:cpp:func:`CeedOperatorAssembleLinearDiagonal`).  These operations are useful for
+  preconditioning ingredients and are used in the libCEED's multigrid examples.
+* The inverse of separable operators can be obtained using
+  :cpp:func:`CeedOperatorCreateFDMElementInverse` and applied with
+  :cpp:func:`CeedOperatorApply`.  This is a useful preconditioning ingredient,
+  especially for Laplacians and related operators.
+* New functions: :cpp:func:`CeedVectorNorm`, :cpp:func:`CeedOperatorApplyAdd`,
+  :cpp:func:`CeedQFunctionView`, :cpp:func:`CeedOperatorView`.
+* Make public accessors for various attributes to facilitate writing composable code.
+* New backend: ``/cpu/self/memcheck/serial``.
+* QFunctions using variable-length array (VLA) pointer constructs can be used with CUDA
+  backends.  (Single source is coming soon for OCCA backends.)
+* Fix some missing edge cases in CUDA backend.
 
-Moreover, in this release, libCEED's suite of PETSc application examples has
-significantly expanded, including: An expanded Navier-Stokes miniapp, which now
-features an implicit time-integration formulation, SU/SUPG stabilization methods,
-free slip boundary conditions and quasi-2D computational domain for faster
-execution; A Continuum Mechanics example, which features different constitutive
-models, such as linear elasticity and hyperelasticity both at small and finite
-strain; Calculation of surface areas including the case of the surface of a
-cube and a cubed-sphere; And finally, the expansion of the set of PETSc Bakeoff
-Problems (BPs) on the cubed-sphere. In what follows, we provide a detailed
-description of the added examples.
+Performance Improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* MAGMA backend performance optimization and non-tensor bases.
+* No-copy optimization in :cpp:func:`CeedOperatorApply`.
 
-Backends available in this release, are the same ones available in :ref:`v0.5`.
+Interface changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Replace :code:`CeedElemRestrictionCreateIdentity` and
+  :code:`CeedElemRestrictionCreateBlocked` with more flexible
+  :cpp:func:`CeedElemRestrictionCreateStrided` and
+  :cpp:func:`CeedElemRestrictionCreateBlockedStrided`.
+* Add arguments to :cpp:func:`CeedQFunctionCreateIdentity`.
+* Replace ambiguous uses of :cpp:enum:`CeedTransposeMode` for L-vector identification
+  with :cpp:enum:`CeedInterlaceMode`.  This is now an attribute of the
+  :cpp:type:`CeedElemRestriction` (see :cpp:func:`CeedElemRestrictionCreate`) and no
+  longer passed as ``lmode`` arguments to :cpp:func:`CeedOperatorSetField` and
+  :cpp:func:`CeedElemRestrictionApply`.
 
+Examples
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+libCEED-0.6 contains greatly expanded examples with :ref:`new documentation <Examples>`.
+Notable additions include:
+
+* Standalone :ref:`ex2-surface` (:file:`examples/ceed/ex2-surface`): compute the area of
+  a domain in 1, 2, and 3 dimensions by applying a Laplacian.
+* PETSc :ref:`example-petsc-area` (:file:`examples/petsc/area.c`): computes surface area
+  of domains (like the cube and sphere) by direct integration on a surface mesh;
+  demonstrates geometric dimension different from topological dimension.
+* PETSc :ref:`example-petsc-bps`:
+
+  * :file:`examples/petsc/bpsraw.c` (formerly ``bps.c``): transparent CUDA support.
+  * :file:`examples/petsc/bps.c` (formerly ``bpsdmplex.c``): performance improvements
+    and transparent CUDA support.
+  * :ref:`example-petsc-bps-sphere` (:file:`examples/petsc/bpssphere.c`):
+    generalizations of all CEED BPs to the surface of the sphere; demonstrates geometric
+    dimension different from topological dimension.
+
+* :ref:`example-petsc-multigrid` (:file:`examples/petsc/multigrid.c`): new p-multigrid
+  solver with algebraic multigrid coarse solve.
+* :ref:`example-petsc-navier-stokes` (:file:`examples/fluids/navierstokes.c`; formerly
+  ``examples/navier-stokes``): unstructured grid support (using PETSc's ``DMPlex``),
+  implicit time integration, SU/SUPG stabilization, free-slip boundary conditions, and
+  quasi-2D computational domain support.
+* :ref:`example-petsc-elasticity` (:file:`examples/solids/elasticity.c`): new solver for
+  linear elasticity, small-strain hyperelasticity, and globalized finite-strain
+  hyperelasticity using p-multigrid with algebraic multigrid coarse solve.
 
 .. _v0.5:
 
