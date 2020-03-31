@@ -28,8 +28,8 @@ regular :math:`u`, :math:`v`, and :math:`f`, we have:
 
 .. math::
    \begin{aligned}
-   \langle v,u \rangle &:= \int_{\Omega} \, v \, u \, dV ,\\
-   \langle v,f \rangle &:= \int_{\Omega} \, v \, f \, dV .
+   \langle u,v \rangle &:= \int_{\Omega} \, u \, v \, dV ,\\
+   \langle f,v \rangle &:= \int_{\Omega} \, f \, v \, dV .
    \end{aligned}
 
 Following the standard finite/spectral element approach, we formally
@@ -50,7 +50,7 @@ into :math:numref:`eq-general-weak-form`, we obtain the inner-products
 .. math::
    :label: eq-inner-prods
 
-   \langle v,u \rangle = \bm v^T M \bm u , \qquad  \langle f,v\rangle =  \bm v^T \bm b \,.
+   \langle u,v \rangle = \bm v^T M \bm u , \qquad  \langle f,v\rangle =  \bm v^T \bm b \,.
 
 Here, we have introduced the mass matrix, :math:`M`, and the right-hand side,
 :math:`\bm b`,
@@ -77,15 +77,15 @@ where now :math:`a (u,v)` expresses the continuous bilinear form defined on
 
 .. math::
    \begin{aligned}
-   a(v,u) &:= \int_{\Omega}\nabla v \, \cdot \, \nabla u \, dV ,\\
-   \langle v,f \rangle &:= \int_{\Omega} \, v \, f \, dV .
+   a(u,v) &:= \int_{\Omega}\nabla u \, \cdot \, \nabla v \, dV ,\\
+   \langle f,v \rangle &:= \int_{\Omega} \, f \, v \, dV .
    \end{aligned}
 
 After substituting the same formulations provided in :math:numref:`eq-nodal-values`,
 we obtain
 
 .. math::
-   a(v,u) = \bm v^T K \bm u ,
+   a(u,v) = \bm v^T K \bm u ,
 
 in which we have introduced the stiffness (diffusion) matrix, :math:`K`, defined as
 

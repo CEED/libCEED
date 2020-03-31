@@ -52,9 +52,9 @@ versions of :math:`\bm{P}`, :math:`\bm{G}` and :math:`\bm{B}`.
 Note that in the case of adaptive mesh refinement (AMR), the restrictions
 :math:`\bm{P}` and :math:`\bm{G}` will involve not just extracting sub-vectors,
 but evaluating values at constrained degrees of freedom through the AMR interpolation.
-There can also be several levels of subdomains (:math:`\bm{P1}`, :math:`\bm{P2}`,
+There can also be several levels of subdomains (:math:`\bm P_1`, :math:`\bm P_2`,
 etc.), and it may be convenient to split :math:`\bm{D}` as the product of several
-operators (:math:`\bm{D1}`, :math:`\bm{D2}`, etc.).
+operators (:math:`\bm D_1`, :math:`\bm D_2`, etc.).
 
 
 Terminology and Notation
@@ -78,7 +78,7 @@ Vector representation/storage categories:
      element containing :math:`i`
 
    - this is an overlapping vector decomposition with overlaps only across
-     different processors - there is no duplication of unknowns on a single
+     different processors---there is no duplication of unknowns on a single
      processor
 
    - the shared dofs/unknowns are the overlapping dofs, i.e. the ones that have
@@ -109,7 +109,7 @@ Vector representation/storage categories:
 
    - in other words, an entry in an **E-vector** is obtained by copying an entry
      from the corresponding **L-vector**, optionally switching the sign of the
-     entry (for :math:`H(\mathrm{div})`- and :math:`H(\mathrm{curl})`-conforming spaces).
+     entry (for :math:`H(\mathrm{div})`---and :math:`H(\mathrm{curl})`-conforming spaces).
 
    .. image:: ../../img/L-vector-AMR.svg
 
@@ -125,13 +125,13 @@ Vector representation/storage categories:
 
 - In many cases it is useful to distinguish two types of vectors:
 
-   - X-vector, or **primal** X-vector, and X'-vector, or **dual** X-vector
+   - **X-vector**, or **primal X-vector**, and **X'-vector**, or **dual X-vector**
 
    - here X can be any of the T, L, E, or Q categories
 
-   - for example, the mass matrix operator maps a **T-vector** to a T'-vector
+   - for example, the mass matrix operator maps a **T-vector** to a **T'-vector**
 
-   - the solutions vector is a **T-vector**, and the RHS vector is a T'-vector
+   - the solutions vector is a **T-vector**, and the RHS vector is a **T'-vector**
 
    - using the parallel prolongation operator, one can map the solution
      **T-vector** to a solution **L-vector**, etc.
@@ -165,8 +165,7 @@ Operator representation/storage/action categories:
 
 - Quadrature-point/partial assembly, **QA** or **PA**:
 
-   - precompute and store :math:`w\det(J)`, or :math:`\det(J)` (in the case of mass
-     matrix) at all quadrature points in all mesh elements
+   - precompute and store :math:`w\det(J)` at all quadrature points in all mesh elements
 
    - the stored data can be viewed as a **Q-vector**.
 
@@ -363,12 +362,6 @@ More general operators, such as those of the form
    \int_\Omega v \cdot f_0 (u, \nabla u) + \nabla v : f_1 (u, \nabla u)
 
 can be expressed.
-
-.. note::
-   The notation :math:`\nabla \bm v \!:\! f_1` represents contraction over both
-   fields and spatial dimensions while a single dot represents contraction in just one,
-   which should be clear from context, e.g., :math:`v \cdot f_0` contracts only over
-   fields.
 
 For fields with derivatives, such as with the basis evaluation mode
 (see :ref:`CeedBasis-Typedefs and Enumerations`) ``CEED_EVAL_GRAD``, the size of the
