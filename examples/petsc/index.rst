@@ -13,7 +13,7 @@ communication protocols for mesh handling in PETSc's DMPlex. This example has th
 same mathematical formulation as :ref:`Ex1-Volume`, with the exception that the
 physical coordinates for this problem are :math:`\bm{x}=(x,y,z)\in \mathbb{R}^3`,
 while the coordinates of the reference element are
-:math:`\bm{X}=(X,Y) \equiv (X_1,X_2) \in\bm{I}=[-1,1]^2`.
+:math:`\bm{X}=(X,Y) \equiv (X_0,X_1) \in \textrm{I} =[-1,1]^2`.
 
 
 .. _example-petsc-area-cube:
@@ -30,7 +30,7 @@ This example uses the following coordinate transformations for the computation o
 geometric factors: from the physical coordinates on the cube, denoted by
 :math:`\bar{\bm{x}}=(\bar{x},\bar{y},\bar{z})`,
 and physical coordinates on the discrete surface, denoted by
-:math:`\bm{{x}}=(x,y)`, to :math:`\bm{X}=(X,Y) \in\bm{I}=[-1,1]^2` on the
+:math:`\bm{{x}}=(x,y)`, to :math:`\bm{X}=(X,Y) \in \textrm{I}` on the
 reference element, via the chain rule
 
 .. math::
@@ -69,7 +69,7 @@ This example uses the following coordinate transformations for the computation o
 geometric factors: from the physical coordinates on the sphere, denoted by
 :math:`\overset{\circ}{\bm{x}}=(\overset{\circ}{x},\overset{\circ}{y},\overset{\circ}{z})`,
 and physical coordinates on the discrete surface, denoted by
-:math:`\bm{{x}}=(x,y,z)`, to :math:`\bm{X}=(X,Y) \in\bm{I}=[-1,1]^2` on the
+:math:`\bm{{x}}=(x,y,z)`, to :math:`\bm{X}=(X,Y) \in \textrm{I}` on the
 reference element, via the chain rule
 
 .. math::

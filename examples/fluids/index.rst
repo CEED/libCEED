@@ -11,7 +11,7 @@ PETSc). Moreover, the Navier-Stokes example has been developed using PETSc, so t
 pointwise physics (defined at quadrature points) is separated from the parallelization
 and meshing concerns.
 
-The mathematical formulation (from :cite:`giraldoetal2010`, cfr. SE3) is given in what
+The mathematical formulation (from :cite:`giraldoetal2010`, cf. SE3) is given in what
 follows. The compressible Navier-Stokes equations in conservative form are
 
 .. math::

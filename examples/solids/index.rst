@@ -64,7 +64,7 @@ We multiply :math:numref:`lin-elas` by a test function :math:`\bm v` and integra
    - \int_{\Omega}{\bm{v} \cdot \bm{g}} \, dV
    = 0, \quad \forall \bm v \in \mathcal V,
 
-where :math:`\bm{\sigma} \cdot \hat{\bm{n}}|_{\partial \Omega}` is replaced by an applied force/traction boundary condition.
+where :math:`\bm{\sigma} \cdot \hat{\bm{n}}|_{\partial \Omega}` is replaced by an applied force/traction boundary condition written in terms of the reference configuration.
 
 The constitutive law (stress-strain relationship) is given by:
 
@@ -182,9 +182,9 @@ where we have introduced the symbol
 
 .. math::
 
-   \bar{\lambda} = \dfrac{\lambda}{1 + \bm{\epsilon}_v }
+   \bar{\lambda} = \dfrac{\lambda}{1 + \epsilon_v }
 
-where volumetric strain is given by :math:`\bm{\epsilon}_v = \sum_i \bm{\epsilon}_{ii}`.
+where volumetric strain is given by :math:`\epsilon_v = \sum_i \epsilon_{ii}`.
 
 Equation :math:numref:`derss` can be written in Voigt matrix notation as follows:
 
@@ -372,10 +372,11 @@ find :math:`\bm u \in \mathcal V \subset H^1(\Omega_0)` such that
     - \int_{\partial \Omega_0}{\bm{v} \cdot (\bm{P} \cdot \hat{\bm{N}})} \, dS
     = 0, \quad \forall \bm v \in \mathcal V,
     
-where :math:`\bm{P} \cdot \hat{\bm{N}}|_{\partial\Omega}` is replaced by any prescribed force/traction boundary conditions written in terms of the reference configuration.
+where :math:`\bm{P} \cdot \hat{\bm{N}}|_{\partial\Omega}` is replaced by any prescribed force/traction boundary condition written in terms of the reference configuration.
 This equation contains material/constitutive nonlinearities in defining :math:`\bm S(\bm E)`, as well as geometric nonlinearities through :math:`\bm P = \bm F\, \bm S`, :math:`\bm E(\bm F)`, and the body force :math:`\bm g`, which must be pulled back from the current configuration to the reference configuration.
 Discretization of :math:numref:`hyperelastic-weak-form` produces a finite-dimensional system of nonlinear algebraic equations, which we solve using Newton-Raphson methods.
 One attractive feature of Galerkin discretization is that we can arrive at the same linear system by discretizing the Newton linearization of the continuous form; that is, discretization and differentiation (Newton linearization) commute.
+
 
 Newton linearization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -392,7 +393,7 @@ where
 .. math::
    \diff \bm E = \frac{\partial \bm E}{\partial \bm F} \!:\! \diff \bm F = \frac 1 2 \Big( \diff \bm F^T \bm F + \bm F^T \diff \bm F \Big).
 
-The quantity :math:`\frac{\partial \bm S}{\partial \bm E}` is known as the incremental elasticity tensor, and is analogous to the linear elasticity tensor :math:`\mathsf C` of :math:numref:`linear-elasticity-tensor`.
+The quantity :math:`{\partial \bm S} / {\partial \bm E}` is known as the incremental elasticity tensor, and is analogous to the linear elasticity tensor :math:`\mathsf C` of :math:numref:`linear-elasticity-tensor`.
 We now evaluate :math:`\diff \bm S` for the Neo-Hookean model :math:numref:`neo-hookean-stress`,
 
 .. math::

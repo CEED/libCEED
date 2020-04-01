@@ -7,7 +7,7 @@ for each release of libCEED.
 
 .. _v0.6:
 
-v0.6 (Mar 30, 2020)
+v0.6 (Mar 29, 2020)
 ----------------------------------------
 
 libCEED v0.6 contains numerous new features and examples, as well as expanded
