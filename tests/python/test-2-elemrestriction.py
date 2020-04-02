@@ -22,202 +22,219 @@ import libceed
 import numpy as np
 import check
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Test creation, use, and destruction of an element restriction
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+
 def test_200(ceed_resource):
-  ceed = libceed.Ceed(ceed_resource)
+    ceed = libceed.Ceed(ceed_resource)
 
-  ne = 3
+    ne = 3
 
-  x = ceed.Vector(ne+1)
-  a = np.arange(10, 10 + ne+1, dtype="float64")
-  x.set_array(a, cmode=libceed.USE_POINTER)
+    x = ceed.Vector(ne + 1)
+    a = np.arange(10, 10 + ne + 1, dtype="float64")
+    x.set_array(a, cmode=libceed.USE_POINTER)
 
-  ind = np.zeros(2*ne, dtype="int32")
-  for i in range(ne):
-    ind[2*i+0] = i
-    ind[2*i+1] = i+1
-  r = ceed.ElemRestriction(ne, 2, ne+1, 1, ind, cmode=libceed.USE_POINTER)
+    ind = np.zeros(2 * ne, dtype="int32")
+    for i in range(ne):
+        ind[2 * i + 0] = i
+        ind[2 * i + 1] = i + 1
+    r = ceed.ElemRestriction(ne, 2, ne + 1, 1, ind, cmode=libceed.USE_POINTER)
 
-  y = ceed.Vector(2*ne)
-  y.set_value(0)
+    y = ceed.Vector(2 * ne)
+    y.set_value(0)
 
-  r.apply(x, y)
+    r.apply(x, y)
 
-  with y.array_read() as y_array:
-    for i in range(2*ne):
-      assert 10+(i+1)//2 == y_array[i]
+    with y.array_read() as y_array:
+        for i in range(2 * ne):
+            assert 10 + (i + 1) // 2 == y_array[i]
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Test creation, use, and destruction of a strided element restriction
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+
 def test_201(ceed_resource):
-  ceed = libceed.Ceed(ceed_resource)
+    ceed = libceed.Ceed(ceed_resource)
 
-  ne = 3
+    ne = 3
 
-  x = ceed.Vector(2*ne)
-  a = np.arange(10, 10 + 2*ne, dtype="float64")
-  x.set_array(a, cmode=libceed.USE_POINTER)
+    x = ceed.Vector(2 * ne)
+    a = np.arange(10, 10 + 2 * ne, dtype="float64")
+    x.set_array(a, cmode=libceed.USE_POINTER)
 
-  strides = np.array([1, 2, 2], dtype="int32")
-  r = ceed.StridedElemRestriction(ne, 2, 2*ne, 1, strides)
+    strides = np.array([1, 2, 2], dtype="int32")
+    r = ceed.StridedElemRestriction(ne, 2, 2 * ne, 1, strides)
 
-  y = ceed.Vector(2*ne)
-  y.set_value(0)
+    y = ceed.Vector(2 * ne)
+    y.set_value(0)
 
-  r.apply(x, y)
+    r.apply(x, y)
 
-  with y.array_read() as y_array:
-    for i in range(2*ne):
-      assert 10+i == y_array[i]
+    with y.array_read() as y_array:
+        for i in range(2 * ne):
+            assert 10 + i == y_array[i]
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Test creation and destruction of a blocked element restriction
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+
 def test_202(ceed_resource, capsys):
-  ceed = libceed.Ceed(ceed_resource)
+    ceed = libceed.Ceed(ceed_resource)
 
-  ne = 8
-  blksize = 5
+    ne = 8
+    blksize = 5
 
-  x = ceed.Vector(ne+1)
-  a = np.arange(10, 10 + ne+1, dtype="float64")
-  x.set_array(a, cmode=libceed.USE_POINTER)
+    x = ceed.Vector(ne + 1)
+    a = np.arange(10, 10 + ne + 1, dtype="float64")
+    x.set_array(a, cmode=libceed.USE_POINTER)
 
-  ind = np.zeros(2*ne, dtype="int32")
-  for i in range(ne):
-    ind[2*i+0] = i
-    ind[2*i+1] = i+1
-  r = ceed.BlockedElemRestriction(ne, 2, blksize, ne+1, 1, ind,
-                                  cmode=libceed.USE_POINTER)
+    ind = np.zeros(2 * ne, dtype="int32")
+    for i in range(ne):
+        ind[2 * i + 0] = i
+        ind[2 * i + 1] = i + 1
+    r = ceed.BlockedElemRestriction(ne, 2, blksize, ne + 1, 1, ind,
+                                    cmode=libceed.USE_POINTER)
 
-  y = ceed.Vector(2*blksize*2)
-  y.set_value(0)
+    y = ceed.Vector(2 * blksize * 2)
+    y.set_value(0)
 
-  r.apply(x, y)
+    r.apply(x, y)
 
-  print(y)
+    print(y)
 
-  x.set_value(0)
-  r.T.apply(y, x)
-  print(x)
+    x.set_value(0)
+    r.T.apply(y, x)
+    print(x)
 
-  stdout, stderr, ref_stdout = check.output(capsys)
-  assert not stderr
-  assert stdout == ref_stdout
+    stdout, stderr, ref_stdout = check.output(capsys)
+    assert not stderr
+    assert stdout == ref_stdout
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Test creation, use, and destruction of a blocked element restriction
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+
 def test_208(ceed_resource, capsys):
-  ceed = libceed.Ceed(ceed_resource)
+    ceed = libceed.Ceed(ceed_resource)
 
-  ne = 8
-  blksize = 5
+    ne = 8
+    blksize = 5
 
-  x = ceed.Vector(ne+1)
-  a = np.arange(10, 10 + ne+1, dtype="float64")
-  x.set_array(a, cmode=libceed.USE_POINTER)
+    x = ceed.Vector(ne + 1)
+    a = np.arange(10, 10 + ne + 1, dtype="float64")
+    x.set_array(a, cmode=libceed.USE_POINTER)
 
-  ind = np.zeros(2*ne, dtype="int32")
-  for i in range(ne):
-    ind[2*i+0] = i
-    ind[2*i+1] = i+1
-  r = ceed.BlockedElemRestriction(ne, 2, blksize, ne+1, 1, ind,
-                                  cmode=libceed.USE_POINTER)
+    ind = np.zeros(2 * ne, dtype="int32")
+    for i in range(ne):
+        ind[2 * i + 0] = i
+        ind[2 * i + 1] = i + 1
+    r = ceed.BlockedElemRestriction(ne, 2, blksize, ne + 1, 1, ind,
+                                    cmode=libceed.USE_POINTER)
 
-  y = ceed.Vector(blksize*2)
-  y.set_value(0)
+    y = ceed.Vector(blksize * 2)
+    y.set_value(0)
 
-  r.apply_block(1, x, y)
+    r.apply_block(1, x, y)
 
-  print(y)
+    print(y)
 
-  x.set_value(0)
-  r.T.apply_block(1, y, x)
-  print(x)
+    x.set_value(0)
+    r.T.apply_block(1, y, x)
+    print(x)
 
-  stdout, stderr, ref_stdout = check.output(capsys)
-  assert not stderr
-  assert stdout == ref_stdout
+    stdout, stderr, ref_stdout = check.output(capsys)
+    assert not stderr
+    assert stdout == ref_stdout
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Test getting the multiplicity of the indices in an element restriction
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+
 def test_209(ceed_resource):
-  ceed = libceed.Ceed(ceed_resource)
+    ceed = libceed.Ceed(ceed_resource)
 
-  ne = 3
+    ne = 3
 
-  ind = np.zeros(4*ne, dtype="int32")
-  for i in range(ne):
-    ind[4*i+0] = i*3+0
-    ind[4*i+1] = i*3+1
-    ind[4*i+2] = i*3+2
-    ind[4*i+3] = i*3+3
-  r = ceed.ElemRestriction(ne, 4, 3*ne+1, 1, ind, cmode=libceed.USE_POINTER)
+    ind = np.zeros(4 * ne, dtype="int32")
+    for i in range(ne):
+        ind[4 * i + 0] = i * 3 + 0
+        ind[4 * i + 1] = i * 3 + 1
+        ind[4 * i + 2] = i * 3 + 2
+        ind[4 * i + 3] = i * 3 + 3
+    r = ceed.ElemRestriction(ne, 4, 3 * ne + 1, 1, ind,
+                             cmode=libceed.USE_POINTER)
 
-  mult = r.get_multiplicity()
+    mult = r.get_multiplicity()
 
-  with mult.array_read() as mult_array:
-    for i in range(3*ne+1):
-      val = 1 + (1 if (i > 0 and i < 3*ne and i%3 == 0) else 0)
-      assert val == mult_array[i]
+    with mult.array_read() as mult_array:
+        for i in range(3 * ne + 1):
+            val = 1 + (1 if (i > 0 and i < 3 * ne and i % 3 == 0) else 0)
+            assert val == mult_array[i]
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Test creation and view of an element restriction
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+
 def test_210(ceed_resource, capsys):
-  ceed = libceed.Ceed(ceed_resource)
+    ceed = libceed.Ceed(ceed_resource)
 
-  ne = 3
+    ne = 3
 
-  ind = np.zeros(2*ne, dtype="int32")
-  for i in range(ne):
-    ind[2*i+0] = i+0
-    ind[2*i+1] = i+1
-  r = ceed.ElemRestriction(ne, 2, ne+1, 1, ind, cmode=libceed.USE_POINTER)
+    ind = np.zeros(2 * ne, dtype="int32")
+    for i in range(ne):
+        ind[2 * i + 0] = i + 0
+        ind[2 * i + 1] = i + 1
+    r = ceed.ElemRestriction(ne, 2, ne + 1, 1, ind, cmode=libceed.USE_POINTER)
 
-  print(r)
+    print(r)
 
-  stdout, stderr, ref_stdout = check.output(capsys)
-  assert not stderr
-  assert stdout == ref_stdout
+    stdout, stderr, ref_stdout = check.output(capsys)
+    assert not stderr
+    assert stdout == ref_stdout
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Test creation and view of a strided element restriction
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+
 def test_211(ceed_resource, capsys):
-  ceed = libceed.Ceed(ceed_resource)
+    ceed = libceed.Ceed(ceed_resource)
 
-  ne = 3
+    ne = 3
 
-  strides = np.array([1, 2, 2], dtype="int32")
-  r = ceed.StridedElemRestriction(ne, 2, ne+1, 1, strides)
+    strides = np.array([1, 2, 2], dtype="int32")
+    r = ceed.StridedElemRestriction(ne, 2, ne + 1, 1, strides)
 
-  print(r)
+    print(r)
 
-  stdout, stderr, ref_stdout = check.output(capsys)
-  assert not stderr
-  assert stdout == ref_stdout
+    stdout, stderr, ref_stdout = check.output(capsys)
+    assert not stderr
+    assert stdout == ref_stdout
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Test creation and view of a blocked strided element restriction
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+
 def test_212(ceed_resource, capsys):
-  ceed = libceed.Ceed(ceed_resource)
+    ceed = libceed.Ceed(ceed_resource)
 
-  ne = 3
+    ne = 3
 
-  strides = np.array([1, 2, 2], dtype="int32")
-  r = ceed.BlockedStridedElemRestriction(ne, 2, 2, ne+1, 1, strides)
+    strides = np.array([1, 2, 2], dtype="int32")
+    r = ceed.BlockedStridedElemRestriction(ne, 2, 2, ne + 1, 1, strides)
 
-  print(r)
+    print(r)
 
-  stdout, stderr, ref_stdout = check.output(capsys)
-  assert not stderr
-  assert stdout == ref_stdout
+    stdout, stderr, ref_stdout = check.output(capsys)
+    assert not stderr
+    assert stdout == ref_stdout
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------

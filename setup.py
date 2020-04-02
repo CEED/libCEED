@@ -21,15 +21,19 @@ from setuptools.command.build_ext import build_ext
 # ------------------------------------------------------------------------------
 # Setup
 # ------------------------------------------------------------------------------
+
+
 def version():
-  with open(os.path.abspath("ceed.pc.template")) as template:
-    ceed_version = [line.split("Version:", 1)[1].strip() for line in template if
-                    line.startswith("Version: ")]
-  return ceed_version[0]
+    with open(os.path.abspath("ceed.pc.template")) as template:
+        ceed_version = [line.split("Version:", 1)[1].strip() for line in template if
+                        line.startswith("Version: ")]
+    return ceed_version[0]
+
 
 def requirements():
     with open('requirements.txt') as f:
         return f.readlines()
+
 
 class libceed_build_ext(build_ext):
     def run(self):
@@ -39,7 +43,9 @@ class libceed_build_ext(build_ext):
     def make_libceed_so(self):
         import subprocess
         subprocess.check_call(['make', '-j', '-B'])
-        subprocess.check_call(['make', 'install', 'prefix=' + os.path.join(self.build_lib, 'libceed')])
+        subprocess.check_call(
+            ['make', 'install', 'prefix=' + os.path.join(self.build_lib, 'libceed')])
+
 
 description = """
 libCEED: Code for Efficient Extensible Discretization
@@ -82,7 +88,7 @@ setup(name="libceed",
       description="libCEED: Code for Efficient Extensible Discretization",
       long_description=description,
       long_description_content_type='text/x-rst',
-      classifiers= classifiers.split("\n")[1:-1],
+      classifiers=classifiers.split("\n")[1:-1],
       keywords=["libCEED"],
       platforms=["POSIX"],
       license="BSD 2",
@@ -90,9 +96,9 @@ setup(name="libceed",
       url="https://libceed.readthedocs.io",
       download_url="https://github.com/CEED/libCEED/releases",
       project_urls={
-        "Bug Tracker": "https://github.com/CEED/libCEED/issues",
-        "Documentation": "https://libceed.readthedocs.io",
-        "Source Code": "https://github.com/CEED/libCEED",
+          "Bug Tracker": "https://github.com/CEED/libCEED/issues",
+          "Documentation": "https://libceed.readthedocs.io",
+          "Source Code": "https://github.com/CEED/libCEED",
       },
       author="libCEED Team",
       author_email="ceed-users@llnl.gov",
@@ -105,6 +111,6 @@ setup(name="libceed",
       setup_requires=["cffi"],
       cffi_modules=["python/build_ceed_cffi.py:ffibuilder"],
       cmdclass={'build_ext': libceed_build_ext},
-)
+      )
 
 # ------------------------------------------------------------------------------
