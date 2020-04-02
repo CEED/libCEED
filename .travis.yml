@@ -52,13 +52,16 @@ matrix:
      python: 3.8
      install:
        - pip install -r requirements.txt
+       - pip install -r requirements-test.txt
      script:
        - make info && make -j4 && export CEED_DIR=$PWD
        - pip install .
        - cd tests/python
        - python setup-qfunctions.py build
        - pytest test-*.py --ceed /cpu/self/ref/serial -vv
-     after_success: skip
+       - cd ../..
+     after_success:
+       - make style-py && git diff --exit-code;
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -108,7 +111,7 @@ script:
         clang-tidy --version && TIDY_OPTS="-fix-errors" make -j2 tidy && git diff --exit-code;
     fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
-        make style && git diff --exit-code;
+        make style-c && git diff --exit-code;
     fi
 
 after_success:
