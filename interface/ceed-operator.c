@@ -815,6 +815,46 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
 }
 
 /**
+  @brief Assemble the point block diagonal of a square linear Operator
+
+  This returns a CeedVector containing the point block diagonal of a linear
+    CeedOperator.
+
+  @param op             CeedOperator to assemble CeedQFunction
+  @param[out] assembled CeedVector to store assembled CeedOperator point block
+                          diagonal
+  @param request        Address of CeedRequest for non-blocking completion, else
+                          CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorAssembleLinearPointBlockDiagonal(CeedOperator op,
+    CeedVector *assembled,
+    CeedRequest *request) {
+  int ierr;
+  Ceed ceed = op->ceed;
+  ierr = CeedOperatorCheckReady(ceed, op); CeedChk(ierr);
+
+  // Use backend version, if available
+  if (op->AssembleLinearPointBlockDiagonal) {
+    ierr = op->AssembleLinearPointBlockDiagonal(op, assembled, request);
+    CeedChk(ierr);
+  } else {
+    // Fallback to reference Ceed
+    if (!op->opfallback) {
+      ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
+    }
+    // Assemble
+    ierr = op->opfallback->AssembleLinearPointBlockDiagonal(op->opfallback,
+           assembled, request); CeedChk(ierr);
+  }
+
+  return 0;
+}
+
+/**
   @brief Build a FDM based approximate inverse for each element for a
            CeedOperator
 

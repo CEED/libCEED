@@ -669,6 +669,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedQFunction, Destroy),
     CEED_FTABLE_ENTRY(CeedOperator, AssembleLinearQFunction),
     CEED_FTABLE_ENTRY(CeedOperator, AssembleLinearDiagonal),
+    CEED_FTABLE_ENTRY(CeedOperator, AssembleLinearPointBlockDiagonal),
     CEED_FTABLE_ENTRY(CeedOperator, CreateFDMElementInverse),
     CEED_FTABLE_ENTRY(CeedOperator, Apply),
     CEED_FTABLE_ENTRY(CeedOperator, ApplyComposite),

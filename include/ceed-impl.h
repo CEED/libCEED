@@ -271,6 +271,8 @@ struct CeedOperator_private {
   int (*AssembleLinearQFunction)(CeedOperator, CeedVector *,
                                  CeedElemRestriction *, CeedRequest *);
   int (*AssembleLinearDiagonal)(CeedOperator, CeedVector *, CeedRequest *);
+  int (*AssembleLinearPointBlockDiagonal)(CeedOperator, CeedVector *,
+                                          CeedRequest *);
   int (*CreateFDMElementInverse)(CeedOperator, CeedOperator *, CeedRequest *);
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyComposite)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
