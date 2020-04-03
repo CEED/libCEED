@@ -18,7 +18,7 @@ We start by considering the discrete residual :math:`F(u)=0` formulation
 in weak form. We first define the :math:`L^2` inner product between real-valued functions
 
 .. math::
-   \langle u, v \rangle = \int_\Omega u v d \bm{x},
+   \langle v, u \rangle = \int_\Omega v u d \bm{x},
 
 where :math:`\bm{x} \in \mathbb{R}^d \supset \Omega`.
 
