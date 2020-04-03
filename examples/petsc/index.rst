@@ -69,7 +69,8 @@ This example uses the following coordinate transformations for the computation o
 geometric factors: from the physical coordinates on the sphere, denoted by
 :math:`\overset{\circ}{\bm{x}}=(\overset{\circ}{x},\overset{\circ}{y},\overset{\circ}{z})`,
 and physical coordinates on the discrete surface, denoted by
-:math:`\bm{{x}}=(x,y,z)`, to :math:`\bm{X}=(X,Y) \in \textrm{I}` on the
+:math:`\bm{{x}}=(x,y,z)` (depicted, for simplicity, as coordinates on a circle and 1D linear
+element in figure :numref:`fig-sphere-coords`), to :math:`\bm{X}=(X,Y) \in \textrm{I}` on the
 reference element, via the chain rule
 
 .. math::
@@ -81,6 +82,15 @@ with Jacobian determinant given by
 .. math::
    \left| J \right| = \left| col_1\left(\frac{\partial \overset{\circ}{\bm{x}}}{\partial \bm{X}}\right) \times col_2 \left(\frac{\partial \overset{\circ}{\bm{x}}}{\partial \bm{X}}\right)\right| .
    :label: eq-jacobian-sphere
+
+.. _fig-sphere-coords:
+
+.. figure:: ../../../../img/SphereSketch.svg
+
+   Sketch of coordinates mapping between a 1D linear element and a circle.
+   Two quadrature points, :math:`q_0` and :math:`q_1`, with physical coordinates
+   denoted by :math:`\bm x(\bm X)`, are mapped to their corresponding radial
+   projections on the circle, which have coordinates :math:`\overset{\circ}{\bm{x}}(\bm x)`.
 
 We note that in equation :math:numref:`eq-coordinate-transforms-sphere`, the right-most
 Jacobian matrix :math:`{\partial\bm{x}}/{\partial \bm{X}}_{(3\times2)}` is

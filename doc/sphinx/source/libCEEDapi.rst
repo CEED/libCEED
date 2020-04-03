@@ -84,7 +84,6 @@ Vector representation/storage categories:
    - the shared dofs/unknowns are the overlapping dofs, i.e. the ones that have
      more than one copy, on different processors.
 
-
    .. image:: ../../img/L-vector.svg
 
 - Per element decomposition, **E-vector**:
