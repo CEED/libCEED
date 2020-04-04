@@ -80,17 +80,21 @@ reference element, via the chain rule
 with Jacobian determinant given by
 
 .. math::
-   \left| J \right| = \left| col_1\left(\frac{\partial \overset{\circ}{\bm{x}}}{\partial \bm{X}}\right) \times col_2 \left(\frac{\partial \overset{\circ}{\bm{x}}}{\partial \bm{X}}\right)\right| .
    :label: eq-jacobian-sphere
+
+   \left| J \right| = \left| col_1\left(\frac{\partial \overset{\circ}{\bm{x}}}{\partial \bm{X}}\right) \times col_2 \left(\frac{\partial \overset{\circ}{\bm{x}}}{\partial \bm{X}}\right)\right| .
 
 .. _fig-sphere-coords:
 
 .. figure:: ../../../../img/SphereSketch.svg
 
-   Sketch of coordinates mapping between a 1D linear element and a circle.
-   Two quadrature points, :math:`q_0` and :math:`q_1`, with physical coordinates
-   denoted by :math:`\bm x(\bm X)`, are mapped to their corresponding radial
-   projections on the circle, which have coordinates :math:`\overset{\circ}{\bm{x}}(\bm x)`.
+   Sketch of coordinates mapping between a 1D linear element and a circle. In the
+   case of a linear element the two nodes, :math:`p_0` and :math:`p_1`, marked
+   by red crosses, coincide with the endpoints of the element.
+   Two quadrature points, :math:`q_0` and :math:`q_1`, marked by blue dots, with
+   physical coordinates denoted by :math:`\bm x(\bm X)`, are mapped to their
+   corresponding radial projections on the circle, which have coordinates
+   :math:`\overset{\circ}{\bm{x}}(\bm x)`.
 
 We note that in equation :math:numref:`eq-coordinate-transforms-sphere`, the right-most
 Jacobian matrix :math:`{\partial\bm{x}}/{\partial \bm{X}}_{(3\times2)}` is
