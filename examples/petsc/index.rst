@@ -135,7 +135,8 @@ equation :math:numref:`eq-jacobian-sphere`, are the same as in the
 :ref:`example-petsc-area-sphere` example. For the Poisson's problem, BP3-BP6, on the
 cubed-sphere, in addition to equation :math:numref:`eq-jacobian-sphere`, the
 pseudo-inverse of :math:`\partial \overset{\circ}{\bm{x}} / \partial \bm{X}`
-is used to derive the contravariant metric tensor. We begin by expressing the
+is used to derive the contravariant metric tensor (please see figure
+:numref:`fig-sphere-coords` for a reference of the notation used). We begin by expressing the
 Moore-Penrose (left) pseudo-inverse:
 
 .. math::
