@@ -25,7 +25,6 @@
 // Process general command line options
 PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
   PetscErrorCode ierr;
-  PetscBool meshFileFlag = PETSC_FALSE;
   PetscBool degreeFalg   = PETSC_FALSE;
   PetscBool ceedFlag     = PETSC_FALSE;
   appCtx->problemChoice  = ELAS_LIN;       // Default - Linear Elasticity
@@ -56,8 +55,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
 
   ierr = PetscOptionsString("-mesh", "Read mesh from file", NULL,
                             appCtx->meshFile, appCtx->meshFile,
-                            sizeof(appCtx->meshFile), &meshFileFlag);
-  CHKERRQ(ierr);
+                            sizeof(appCtx->meshFile), NULL); CHKERRQ(ierr);
 
   ierr = PetscOptionsEnum("-problem",
                           "Solves Elasticity & Hyperelasticity Problems",
@@ -115,9 +113,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
   if (!appCtx->testMode) {
     if (!degreeFalg) {
       SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-degree option needed");
-    }
-    if (!meshFileFlag) {
-      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-mesh option needed");
     }
     if (!(appCtx->bcZeroCount + appCtx->bcClampCount) &&
         appCtx->forcingChoice != FORCE_MMS) {
