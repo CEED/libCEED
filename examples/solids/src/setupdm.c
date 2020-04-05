@@ -40,16 +40,11 @@ PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
 PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx appCtx, DM *dm) {
   PetscErrorCode  ierr;
   const char      *filename = appCtx->meshFile;
-  // Note: interpolate if polynomial degree > 1
   PetscBool       interpolate = PETSC_TRUE;
   DM              distributedMesh = NULL;
   PetscPartitioner part;
 
   PetscFunctionBeginUser;
-
-  // Read mesh
-  if (appCtx->degree >= 2)
-    interpolate = PETSC_TRUE;
 
   if (!*filename) {
     PetscInt dim = 3;
