@@ -490,6 +490,10 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Solve SNES
   // ---------------------------------------------------------------------------
+  PetscBool snesMonitor = PETSC_FALSE;
+  ierr = PetscOptionsHasName(NULL, NULL, "-snes_monitor", &snesMonitor);
+  CHKERRQ(ierr);
+
   // Performance logging
   ierr = PetscLogStageRegister("SNES Solve Stage", &stageSnesSolve);
   CHKERRQ(ierr);
@@ -500,7 +504,14 @@ int main(int argc, char **argv) {
   startTime = MPI_Wtime();
 
   // Solve for each load increment
-  for (PetscInt increment = 1; increment <= appCtx->numIncrements; increment++) {
+  PetscInt increment;
+  for (increment = 1; increment <= appCtx->numIncrements; increment++) {
+    // -- Log increment count
+    if (snesMonitor) {
+      ierr = PetscPrintf(comm, "%d Load Increment\n", increment - 1);
+      CHKERRQ(ierr);
+    }
+
     // -- Scale the problem
     PetscScalar loadIncrement = 1.0*increment / appCtx->numIncrements,
                 scalingFactor = loadIncrement /
@@ -546,11 +557,12 @@ int main(int argc, char **argv) {
                        "    SNES Type                          : %s\n"
                        "    SNES Convergence                   : %s\n"
                        "    Number of Load Increments          : %d\n"
+                       "    Completed Load Increments          : %d\n"
                        "    Total SNES Iterations              : %D\n"
                        "    Final rnorm                        : %e\n",
                        snesType, SNESConvergedReasons[reason],
-                       appCtx->numIncrements, snesIts, (double)rnorm);
-    CHKERRQ(ierr);
+                       appCtx->numIncrements, increment - 1,
+                       snesIts, (double)rnorm); CHKERRQ(ierr);
 
     // -- KSP
     KSP ksp;
