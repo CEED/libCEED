@@ -140,7 +140,10 @@ PetscErrorCode FormJacobian(SNES snes, Vec U, Mat J, Mat Jpre, void *ctx) {
   // Jpre might be AIJ (e.g., when using coloring), so we need to assemble it
   ierr = MatAssemblyBegin(Jpre, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   ierr = MatAssemblyEnd(Jpre, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
-
+  if (J != Jpre) {
+    ierr = MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+  }
   PetscFunctionReturn(0);
 };
 
