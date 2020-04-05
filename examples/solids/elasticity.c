@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
       ierr = PetscCalloc1(1, &ceedData[level]); CHKERRQ(ierr);
     }
 
-    // Note: use high order ceed, if specified and degree > 3
+    // Note: use high order ceed, if specified and degree > 4
     bool highOrder = (appCtx->levelDegrees[level] > 4 && ceedFine);
     Ceed levelCeed = highOrder ? ceedFine : ceed;
     ierr = SetupLibceedLevel(levelDMs[level], levelCeed, appCtx, phys,
