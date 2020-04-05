@@ -533,6 +533,12 @@ int main(int argc, char **argv) {
     PetscInt its;
     ierr = SNESGetIterationNumber(snes, &its); CHKERRQ(ierr);
     snesIts += its;
+
+    // -- Check for divergence
+    SNESConvergedReason reason;
+    ierr = SNESGetConvergedReason(snes, &reason); CHKERRQ(ierr);
+    if (reason < 0)
+      break;
   }
 
   // Timing
