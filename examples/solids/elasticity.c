@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
   // libCEED objects
   Ceed           ceed, ceedFine = NULL;
   CeedData       *ceedData;
-  CeedQFunction  qfRestrict, qfProlong;
+  CeedQFunction  qfRestrict = NULL, qfProlong = NULL;
   // Parameters
   PetscInt       ncompu = 3;             // 3 DoFs in 3D
   PetscInt       numLevels = 1, fineLevel = 0;
@@ -259,8 +259,13 @@ int main(int argc, char **argv) {
                        appCtx->meshFile[0] ? appCtx->meshFile : "Box Mesh",
                        appCtx->degree + 1, appCtx->degree + 1,
                        Ugsz[fineLevel]/ncompu, Ulsz[fineLevel]/ncompu, ncompu,
+                       (appCtx->degree == 1 &&
+                        appCtx->multigridChoice != MULTIGRID_NONE) ?
+                       "Algebraic multigrid" :
                        multigridTypesForDisp[appCtx->multigridChoice],
-                       numLevels); CHKERRQ(ierr);
+                       (appCtx->degree == 1 ||
+                        appCtx->multigridChoice == MULTIGRID_NONE) ?
+                       0 : numLevels); CHKERRQ(ierr);
 
     if (appCtx->multigridChoice != MULTIGRID_NONE) {
       for (int i = 0; i < 2; i++) {
@@ -399,6 +404,12 @@ int main(int argc, char **argv) {
       // ---- No Multigrid
       ierr = PCSetType(pc, PCJACOBI); CHKERRQ(ierr);
       ierr = PCJacobiSetType(pc, PC_JACOBI_DIAGONAL); CHKERRQ(ierr);
+    } else if (appCtx->degree == 1) {
+      // ---- AMG for degree 1
+      ierr = SNESSetJacobian(snes, jacobMat[fineLevel], jacobMatCoarse,
+                             FormJacobian, formJacobCtx); CHKERRQ(ierr);
+      ierr = KSPSetType(ksp, KSPPREONLY); CHKERRQ(ierr);
+      ierr = PCSetType(pc, PCGAMG); CHKERRQ(ierr);
     } else {
       // ---- PCMG
       ierr = PCSetType(pc, PCMG); CHKERRQ(ierr);
@@ -581,7 +592,7 @@ int main(int argc, char **argv) {
                        kspType); CHKERRQ(ierr);
 
     // -- PC
-    if (appCtx->multigridChoice != MULTIGRID_NONE) {
+    if (appCtx->multigridChoice != MULTIGRID_NONE && appCtx->degree > 1) {
       PC pc;
       PCMGType pcmgType;
       ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
