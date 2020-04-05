@@ -483,6 +483,13 @@ int main(int argc, char **argv) {
     ierr = KSPSetFromOptions(ksp);
     ierr = PCSetFromOptions(pc);
   }
+  { // Default to critical-point (CP) line search (related to Wolfe's curvature condition)
+    SNESLineSearch linesearch;
+
+    ierr = SNESGetLineSearch(snes, &linesearch); CHKERRQ(ierr);
+    ierr = SNESLineSearchSetType(linesearch, SNESLINESEARCHCP); CHKERRQ(ierr);
+  }
+
   ierr = SNESSetFromOptions(snes); CHKERRQ(ierr);
 
   // Performance logging
