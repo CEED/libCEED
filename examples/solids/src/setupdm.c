@@ -200,5 +200,19 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
   // Cleanup
   ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
 
+  // Label field components for viewing
+  {
+    // Empty name for conserved field (because there is only one field)
+    PetscSection section;
+    ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
+    ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 0, "DisplacementX");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 1, "DisplacementY");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 2, "DisplacementZ");
+    CHKERRQ(ierr);
+  }
+
   PetscFunctionReturn(0);
 };
