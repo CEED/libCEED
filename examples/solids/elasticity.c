@@ -386,8 +386,8 @@ int main(int argc, char **argv) {
 
   // Set Jacobian function
   if (appCtx->degree > 1) {
-      ierr = SNESSetJacobian(snes, jacobMat[fineLevel], jacobMat[fineLevel],
-                             FormJacobian, formJacobCtx); CHKERRQ(ierr);
+    ierr = SNESSetJacobian(snes, jacobMat[fineLevel], jacobMat[fineLevel],
+                           FormJacobian, formJacobCtx); CHKERRQ(ierr);
   } else {
     ierr = SNESSetJacobian(snes, jacobMat[0], jacobMatCoarse,
                            SNESComputeJacobianDefaultColor, NULL);
