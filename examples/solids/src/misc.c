@@ -122,9 +122,8 @@ PetscErrorCode FormJacobian(SNES snes, Vec U, Mat J, Mat Jpre, void *ctx) {
   PetscInt      numLevels = formJacobCtx->numLevels;
   Mat           *jacobMat = formJacobCtx->jacobMat;
 
-  // Update Jacobian PC smoother on each level
-  for (int level = 0; level < numLevels; level++) {
-    // -- Update diagonal state counter
+  // Update Jacobian on each level
+  for (PetscInt level = 0; level < numLevels; level++) {
     ierr = MatAssemblyBegin(jacobMat[level], MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
     ierr = MatAssemblyEnd(jacobMat[level], MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   }
@@ -140,7 +139,10 @@ PetscErrorCode FormJacobian(SNES snes, Vec U, Mat J, Mat Jpre, void *ctx) {
   // Jpre might be AIJ (e.g., when using coloring), so we need to assemble it
   ierr = MatAssemblyBegin(Jpre, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   ierr = MatAssemblyEnd(Jpre, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
-
+  if (J != Jpre) {
+    ierr = MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+  }
   PetscFunctionReturn(0);
 };
 

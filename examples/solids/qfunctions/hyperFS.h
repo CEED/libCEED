@@ -79,7 +79,7 @@ static inline int commonFS(const CeedScalar lambda, const CeedScalar mu,
   for (CeedInt m = 0; m < 6; m++) {
     E2work[m] = gradu[indj[m]][indk[m]] + gradu[indk[m]][indj[m]];
     for (CeedInt n = 0; n < 3; n++)
-      E2work[m] += gradu[indj[m]][n]*gradu[indk[m]][n];
+      E2work[m] += gradu[n][indj[m]]*gradu[n][indk[m]];
   }
   // *INDENT-OFF*
   CeedScalar E2[3][3] = {{E2work[0], E2work[5], E2work[4]},
@@ -97,12 +97,12 @@ static inline int commonFS(const CeedScalar lambda, const CeedScalar mu,
 
   // C : right Cauchy-Green tensor
   // C = I + 2E
-    // *INDENT-OFF*
-    const CeedScalar C[3][3] = {{1 + E2[0][0], E2[0][1], E2[0][2]},
-                                {E2[0][1], 1 + E2[1][1], E2[1][2]},
-                                {E2[0][2], E2[1][2], 1 + E2[2][2]}
-                               };
-    // *INDENT-ON*
+  // *INDENT-OFF*
+  const CeedScalar C[3][3] = {{1 + E2[0][0], E2[0][1], E2[0][2]},
+                              {E2[0][1], 1 + E2[1][1], E2[1][2]},
+                              {E2[0][2], E2[1][2], 1 + E2[2][2]}
+                             };
+  // *INDENT-ON*
 
   // Compute C^(-1) : C-Inverse
   CeedScalar A[6] = {C[1][1]*C[2][2] - C[1][2]*C[2][1], /* *NOPAD* */
@@ -256,7 +256,7 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
       for (CeedInt k = 0; k < 3; k++) {
         P[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          P[j][k] += F[m][k] * S[j][m];
+          P[j][k] += F[j][m] * S[m][k];
       }
 
     // Apply dXdx^T and weight to P (First Piola-Kirchhoff)
