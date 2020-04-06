@@ -20,9 +20,9 @@ find :math:`u \in V^p` such that for all :math:`v \in V^p`
 .. math::
    :label: eq-general-weak-form
 
-   \langle u,v \rangle = \langle f,v \rangle ,
+   \langle v,u \rangle = \langle v,f \rangle ,
 
-where :math:`\langle u,v\rangle` and :math:`\langle f,v\rangle` express the continuous
+where :math:`\langle v,u\rangle` and :math:`\langle v,f\rangle` express the continuous
 bilinear and linear forms, respectively, defined on :math:`V^p`, and, for sufficiently
 regular :math:`u`, :math:`v`, and :math:`f`, we have:
 
@@ -50,13 +50,13 @@ into :math:numref:`eq-general-weak-form`, we obtain the inner-products
 .. math::
    :label: eq-inner-prods
 
-   \langle v,u \rangle = \bm v^T M \bm u , \qquad  \langle f,v\rangle =  \bm v^T \bm b \,.
+   \langle v,u \rangle = \bm v^T M \bm u , \qquad  \langle v,f\rangle =  \bm v^T \bm b \,.
 
 Here, we have introduced the mass matrix, :math:`M`, and the right-hand side,
 :math:`\bm b`,
 
 .. math::
-   M_{ij} :=  (\phi_i,\phi_j), \;\; \qquad b_{i} :=  \langle f, \phi_i \rangle,
+   M_{ij} :=  (\phi_i,\phi_j), \;\; \qquad b_{i} :=  \langle \phi_i, f \rangle,
 
 each defined for index sets :math:`i,j \; \in \; \{1,\dots,n\}`.
 
@@ -70,9 +70,9 @@ The Laplace's operator used in BP3-BP6 is defined via the following variational
 formulation, i.e., find :math:`u \in V^p` such that for all :math:`v \in V^p`
 
 .. math::
-   a(u,v) = \langle f,v \rangle , \,
+   a(v,u) = \langle v,f \rangle , \,
 
-where now :math:`a (u,v)` expresses the continuous bilinear form defined on
+where now :math:`a (v,u)` expresses the continuous bilinear form defined on
 :math:`V^p` for sufficiently regular :math:`u`, :math:`v`, and :math:`f`, that is:
 
 .. math::

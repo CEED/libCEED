@@ -35,13 +35,13 @@ mesh elements, and the values at quadrature points, respectively.
 
 We refer to the operators that connect the different types of vectors as:
 
-- Subdomain restriction :math:`\mathbf{P}`
-- Element restriction :math:`\mathbf{G}`
-- Basis (Dofs-to-Qpts) evaluator :math:`\mathbf{B}`
-- Operator at quadrature points :math:`\mathbf{D}`
+- Subdomain restriction :math:`\bm{P}`
+- Element restriction :math:`\bm{G}`
+- Basis (Dofs-to-Qpts) evaluator :math:`\bm{B}`
+- Operator at quadrature points :math:`\bm{D}`
 
 More generally, when the test and trial space differ, they get their own
-versions of :math:`\mathbf{P}`, :math:`\mathbf{G}` and :math:`\mathbf{B}`.
+versions of :math:`\bm{P}`, :math:`\bm{G}` and :math:`\bm{B}`.
 
 .. _fig-operator-decomp:
 
@@ -50,11 +50,11 @@ versions of :math:`\mathbf{P}`, :math:`\mathbf{G}` and :math:`\mathbf{B}`.
    Operator Decomposition
 
 Note that in the case of adaptive mesh refinement (AMR), the restrictions
-:math:`\mathbf{P}` and :math:`\mathbf{G}` will involve not just extracting sub-vectors,
+:math:`\bm{P}` and :math:`\bm{G}` will involve not just extracting sub-vectors,
 but evaluating values at constrained degrees of freedom through the AMR interpolation.
-There can also be several levels of subdomains (:math:`\mathbf{P1}`, :math:`\mathbf{P2}`,
-etc.), and it may be convenient to split :math:`\mathbf{D}` as the product of several
-operators (:math:`\mathbf{D1}`, :math:`\mathbf{D2}`, etc.).
+There can also be several levels of subdomains (:math:`\bm P_1`, :math:`\bm P_2`,
+etc.), and it may be convenient to split :math:`\bm{D}` as the product of several
+operators (:math:`\bm D_1`, :math:`\bm D_2`, etc.).
 
 
 Terminology and Notation
@@ -78,12 +78,11 @@ Vector representation/storage categories:
      element containing :math:`i`
 
    - this is an overlapping vector decomposition with overlaps only across
-     different processors - there is no duplication of unknowns on a single
+     different processors---there is no duplication of unknowns on a single
      processor
 
    - the shared dofs/unknowns are the overlapping dofs, i.e. the ones that have
      more than one copy, on different processors.
-
 
    .. image:: ../../img/L-vector.svg
 
@@ -109,7 +108,7 @@ Vector representation/storage categories:
 
    - in other words, an entry in an **E-vector** is obtained by copying an entry
      from the corresponding **L-vector**, optionally switching the sign of the
-     entry (for :math:`H(\mathrm{div})`- and :math:`H(\mathrm{curl})`-conforming spaces).
+     entry (for :math:`H(\mathrm{div})`---and :math:`H(\mathrm{curl})`-conforming spaces).
 
    .. image:: ../../img/L-vector-AMR.svg
 
@@ -125,13 +124,13 @@ Vector representation/storage categories:
 
 - In many cases it is useful to distinguish two types of vectors:
 
-   - X-vector, or **primal** X-vector, and X'-vector, or **dual** X-vector
+   - **X-vector**, or **primal X-vector**, and **X'-vector**, or **dual X-vector**
 
    - here X can be any of the T, L, E, or Q categories
 
-   - for example, the mass matrix operator maps a **T-vector** to a T'-vector
+   - for example, the mass matrix operator maps a **T-vector** to a **T'-vector**
 
-   - the solutions vector is a **T-vector**, and the RHS vector is a T'-vector
+   - the solutions vector is a **T-vector**, and the RHS vector is a **T'-vector**
 
    - using the parallel prolongation operator, one can map the solution
      **T-vector** to a solution **L-vector**, etc.
@@ -149,10 +148,10 @@ Operator representation/storage/action categories:
 
    - CSR matrix on each rank
 
-   - the parallel prolongation operator, :math:`\mathbf{P}`, (and its transpose) should use
+   - the parallel prolongation operator, :math:`\bm{P}`, (and its transpose) should use
      optimized matrix-free action
 
-   - note that :math:`\mathbf{P}` is the operator mapping T-vectors to L-vectors.
+   - note that :math:`\bm{P}` is the operator mapping T-vectors to L-vectors.
 
 - Element matrix assembly, **EA**:
 
@@ -165,8 +164,7 @@ Operator representation/storage/action categories:
 
 - Quadrature-point/partial assembly, **QA** or **PA**:
 
-   - precompute and store :math:`w\det(J)`, or :math:`\det(J)` (in the case of mass
-     matrix) at all quadrature points in all mesh elements
+   - precompute and store :math:`w\det(J)` at all quadrature points in all mesh elements
 
    - the stored data can be viewed as a **Q-vector**.
 
@@ -182,62 +180,62 @@ Operator representation/storage/action categories:
 Partial Assembly
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Since the global operator :math:`\mathbf{A}` is just a series of variational restrictions
-with :math:`\mathbf{B}`, :math:`\mathbf{G}` and :math:`\mathbf{P}`, starting from its
-point-wise kernel :math:`\mathbf{D}`, a "matvec" with :math:`\mathbf{A}` can be
+Since the global operator :math:`\bm{A}` is just a series of variational restrictions
+with :math:`\bm{B}`, :math:`\bm{G}` and :math:`\bm{P}`, starting from its
+point-wise kernel :math:`\bm{D}`, a "matvec" with :math:`\bm{A}` can be
 performed by evaluating and storing some of the innermost variational restriction
 matrices, and applying the rest of the operators "on-the-fly". For example, one can
 compute and store a global matrix on **T-vector** level. Alternatively, one can compute
 and store only the subdomain (**L-vector**) or element (**E-vector**) matrices and
-perform the action of :math:`\mathbf{A}` using matvecs with :math:`\mathbf{P}` or
-:math:`\mathbf{P}` and :math:`\mathbf{G}`. While these options are natural for
+perform the action of :math:`\bm{A}` using matvecs with :math:`\bm{P}` or
+:math:`\bm{P}` and :math:`\bm{G}`. While these options are natural for
 low-order discretizations, they are not a good fit for high-order methods due to
 the amount of FLOPs needed for their evaluation, as well as the memory transfer
 needed for a matvec.
 
 Our focus in libCEED, instead, is on **partial assembly**, where we compute and
-store only :math:`\mathbf{D}` (or portions of it) and evaluate the actions of
-:math:`\mathbf{P}`, :math:`\mathbf{G}` and :math:`\mathbf{B}` on-the-fly.
+store only :math:`\bm{D}` (or portions of it) and evaluate the actions of
+:math:`\bm{P}`, :math:`\bm{G}` and :math:`\bm{B}` on-the-fly.
 Critically for performance, we take advantage of the tensor-product structure of the
 degrees of freedom and quadrature points on *quad* and *hex* elements to perform the
-action of :math:`\mathbf{B}` without storing it as a matrix.
+action of :math:`\bm{B}` without storing it as a matrix.
 
 Implemented properly, the partial assembly algorithm requires optimal amount of
 memory transfers (with respect to the polynomial order) and near-optimal FLOPs
 for operator evaluation. It consists of an operator *setup* phase, that
-evaluates and stores :math:`\mathbf{D}` and an operator *apply* (evaluation) phase that
-computes the action of :math:`\mathbf{A}` on an input vector. When desired, the setup
+evaluates and stores :math:`\bm{D}` and an operator *apply* (evaluation) phase that
+computes the action of :math:`\bm{A}` on an input vector. When desired, the setup
 phase may be done as a side-effect of evaluating a different operator, such as a
 nonlinear residual. The relative costs of the setup and apply phases are
 different depending on the physics being expressed and the representation of
-:math:`\mathbf{D}`.
+:math:`\bm{D}`.
 
 
 Parallel Decomposition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After the application of each of the first three transition operators,
-:math:`\mathbf{P}`, :math:`\mathbf{G}` and :math:`\mathbf{B}`, the operator evaluation
-is decoupled  on their ranges, so :math:`\mathbf{P}`, :math:`\mathbf{G}` and
-:math:`\mathbf{B}` allow us to "zoom-in" to subdomain, element and quadrature point
+:math:`\bm{P}`, :math:`\bm{G}` and :math:`\bm{B}`, the operator evaluation
+is decoupled  on their ranges, so :math:`\bm{P}`, :math:`\bm{G}` and
+:math:`\bm{B}` allow us to "zoom-in" to subdomain, element and quadrature point
 level, ignoring the coupling at higher levels.
 
-Thus, a natural mapping of :math:`\mathbf{A}` on a parallel computer is to split the
+Thus, a natural mapping of :math:`\bm{A}` on a parallel computer is to split the
 **T-vector** over MPI ranks (a non-overlapping decomposition, as is typically
 used for sparse matrices), and then split the rest of the vector types over
 computational devices (CPUs, GPUs, etc.) as indicated by the shaded regions in
 the diagram above.
 
 One of the advantages of the decomposition perspective in these settings is that
-the operators :math:`\mathbf{P}`, :math:`\mathbf{G}`, :math:`\mathbf{B}` and
-:math:`\mathbf{D}` clearly separate the MPI parallelism
-in the operator (:math:`\mathbf{P}`) from the unstructured mesh topology
-(:math:`\mathbf{G}`), the choice of the finite element space/basis (:math:`\mathbf{B}`)
-and the geometry and point-wise physics :math:`\mathbf{D}`. These components also
+the operators :math:`\bm{P}`, :math:`\bm{G}`, :math:`\bm{B}` and
+:math:`\bm{D}` clearly separate the MPI parallelism
+in the operator (:math:`\bm{P}`) from the unstructured mesh topology
+(:math:`\bm{G}`), the choice of the finite element space/basis (:math:`\bm{B}`)
+and the geometry and point-wise physics :math:`\bm{D}`. These components also
 naturally fall in different classes of numerical algorithms -- parallel (multi-device)
-linear algebra for :math:`\mathbf{P}`, sparse (on-device) linear algebra for
-:math:`\mathbf{G}`, dense/structured linear algebra (tensor contractions) for
-:math:`\mathbf{B}` and parallel point-wise evaluations for :math:`\mathbf{D}`.
+linear algebra for :math:`\bm{P}`, sparse (on-device) linear algebra for
+:math:`\bm{G}`, dense/structured linear algebra (tensor contractions) for
+:math:`\bm{B}` and parallel point-wise evaluations for :math:`\bm{D}`.
 
 Currently in libCEED, it is assumed that the host application manages the global
 **T-vectors** and the required communications among devices (which are generally
@@ -252,7 +250,7 @@ ranks (each using a single ``Ceed`` object): 2 ranks using 1 CPU socket each, an
 4 using 1 GPU each. Another choice could be to run 1 MPI rank on the whole node
 and use 5 ``Ceed`` objects: 1 managing all CPU cores on the 2 sockets and 4
 managing 1 GPU each. The communications among the devices, e.g. required for
-applying the action of :math:`\mathbf{P}`, are currently out of scope of libCEED. The
+applying the action of :math:`\bm{P}`, are currently out of scope of libCEED. The
 interface is non-blocking for all operations involving more than O(1) data,
 allowing operations performed on a coprocessor or worker threads to overlap with
 operations on the host.
@@ -288,13 +286,13 @@ implementation is as follows:
   (A backend may choose to operate incrementally without forming explicit **E-** or
   **Q-vectors**.)
 
-- :math:`\mathbf{G}` is represented as variable of type :ref:`CeedElemRestriction`.
+- :math:`\bm{G}` is represented as variable of type :ref:`CeedElemRestriction`.
 
-- :math:`\mathbf{B}` is represented as variable of type :ref:`CeedBasis`.
+- :math:`\bm{B}` is represented as variable of type :ref:`CeedBasis`.
 
-- the action of :math:`\mathbf{D}` is represented as variable of type :ref:`CeedQFunction`.
+- the action of :math:`\bm{D}` is represented as variable of type :ref:`CeedQFunction`.
 
-- the overall operator :math:`\mathbf{G}^T \mathbf{B}^T \mathbf{D} \mathbf{B} \mathbf{G}`
+- the overall operator :math:`\bm{G}^T \bm{B}^T \bm{D} \bm{B} \bm{G}`
   is represented as variable of type
   :ref:`CeedOperator` and its action is accessible through ``CeedOperatorApply()``.
 
@@ -320,9 +318,9 @@ may suffer in case of oversubscription). The resource is used to locate a
 suitable backend which will have discretion over the implementations of all
 objects created with this logical device.
 
-The ``setup`` routine above computes and stores :math:`\mathbf{D}`, in this case a
+The ``setup`` routine above computes and stores :math:`\bm{D}`, in this case a
 scalar value in each quadrature point, while ``mass`` uses these saved values to perform
-the action of :math:`\mathbf{D}`. These functions are turned into the ``CeedQFunction``
+the action of :math:`\bm{D}`. These functions are turned into the ``CeedQFunction``
 variables ``qf_setup`` and ``qf_mass`` in the ``CeedQFunctionCreateInterior()`` calls:
 
 .. literalinclude::  ../../../tests/t500-operator.c
@@ -364,19 +362,13 @@ More general operators, such as those of the form
 
 can be expressed.
 
-.. note::
-   The notation :math:`\nabla \boldsymbol v \!:\! f_1` represents contraction over both
-   fields and spatial dimensions while a single dot represents contraction in just one,
-   which should be clear from context, e.g., :math:`v \cdot f_0` contracts only over
-   fields.
-
 For fields with derivatives, such as with the basis evaluation mode
 (see :ref:`CeedBasis-Typedefs and Enumerations`) ``CEED_EVAL_GRAD``, the size of the
 field needs to reflect both the number of components and the geometric dimension.
 A 3-dimensional gradient on four components would therefore mean the field has a size of
 12.
 
-The :math:`\mathbf{B}` operators for the mesh nodes, ``bx``, and the unknown field,
+The :math:`\bm{B}` operators for the mesh nodes, ``bx``, and the unknown field,
 ``bu``, are defined in the calls to the function ``CeedBasisCreateTensorH1Lagrange()``.
 In this example, both the mesh and the unknown field use :math:`H^1` Lagrange finite
 elements of order 1 and 4 respectively (the ``P`` argument represents the number of 1D
@@ -394,7 +386,7 @@ dimension using ``CeedBasisCreateTensorH1()``. Elements that do not have tensor
 product structure, such as symmetric elements on simplices, will be created
 using different constructors.
 
-The :math:`\mathbf{G}` operators for the mesh nodes, ``Erestrictx``, and the unknown field,
+The :math:`\bm{G}` operators for the mesh nodes, ``Erestrictx``, and the unknown field,
 ``Erestrictu``, are specified in the ``CeedElemRestrictionCreate()``. Both of these
 specify directly the dof indices for each element in the ``indx`` and ``indu``
 arrays:
@@ -415,23 +407,23 @@ contexts that involve problem-sized data.
 
 For discontinuous Galerkin and for applications such as Nek5000 that only
 explicitly store **E-vectors** (inter-element continuity has been subsumed by
-the parallel restriction :math:`\mathbf{P}`), the element restriction :math:`\mathbf{G}`
+the parallel restriction :math:`\bm{P}`), the element restriction :math:`\bm{G}`
 is the identity and ``CeedElemRestrictionCreateStrided()`` is used instead.
-We plan to support other structured representations of :math:`\mathbf{G}` which will
+We plan to support other structured representations of :math:`\bm{G}` which will
 be added according to demand. In the case of non-conforming mesh elements,
-:math:`\mathbf{G}` needs a more general representation that expresses values at slave
+:math:`\bm{G}` needs a more general representation that expresses values at slave
 nodes (which do not appear in **L-vectors**) as linear combinations of the degrees of
 freedom at master nodes.
 
-These operations, :math:`\mathbf{P}`, :math:`\mathbf{B}`, and :math:`\mathbf{D}`,
+These operations, :math:`\bm{P}`, :math:`\bm{B}`, and :math:`\bm{D}`,
 are combined with a ``CeedOperator``. As with QFunctions, operator fields are added
-separately with a matching field name, basis (:math:`\mathbf{B}`), element restriction
-(:math:`\mathbf{G}`), and **L-vector**. The flag
+separately with a matching field name, basis (:math:`\bm{B}`), element restriction
+(:math:`\bm{G}`), and **L-vector**. The flag
 ``CEED_VECTOR_ACTIVE`` indicates that the vector corresponding to that field will
 be provided to the operator when ``CeedOperatorApply()`` is called. Otherwise the
 input/output will be read from/written to the specified **L-vector**.
 
-With partial assembly, we first perform a setup stage where :math:`\mathbf{D}` is evaluated
+With partial assembly, we first perform a setup stage where :math:`\bm{D}` is evaluated
 and stored. This is accomplished by the operator ``op_setup`` and its application
 to ``X``, the nodes of the mesh (these are needed to compute Jacobians at
 quadrature points). Note that the corresponding ``CeedOperatorApply()`` has no basis
