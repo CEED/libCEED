@@ -20,6 +20,8 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+import glob
+import shutil
 import sphinx_rtd_theme
 import sys
 import breathe
@@ -53,7 +55,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinxcontrib.bibtex',
     'sphinxcontrib.rsvgconverter',
-    ]
+]
 
 # The following, if true, allows figures, tables and code-blocks to be
 # automatically numbered if they have a caption.
@@ -252,7 +254,7 @@ epub_exclude_files = ['search.html']
 intersphinx_mapping = {
     'python': ('https://docs.python.org', None),
     'numpy': ('https://numpy.org/devdocs', None),
-    }
+}
 
 
 # -- Options for breathe --------------------------------------------------
@@ -263,24 +265,26 @@ breathe_build_directory = "../build/breathe"
 #breathe_domain_by_extension = {"c": "c", "h": "c", "cpp": "cpp", "hpp": "cpp"}
 
 # Run Doxygen if building on Read The Docs
-rootdir = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir)
+rootdir = os.path.join(os.path.dirname(__file__),
+                       os.pardir, os.pardir, os.pardir)
 if os.environ.get('READTHEDOCS'):
     subprocess.check_call(['doxygen', 'Doxyfile'], cwd=rootdir)
 
-# Copy example documentation from source tree
+
 def mkdir_p(path):
     try:
         os.makedirs(path)
     except FileExistsError:
         pass
 
-import glob
-import shutil
+
+# Copy example documentation from source tree
 try:
     shutil.rmtree('examples')
 except FileNotFoundError:
     pass
-for filename in glob.glob(os.path.join(rootdir, 'examples/**/*.rst'), recursive=True):
+for filename in glob.glob(os.path.join(
+        rootdir, 'examples/**/*.rst'), recursive=True):
     destdir = os.path.dirname(os.path.relpath(filename, rootdir))
     mkdir_p(destdir)
     shutil.copy2(filename, destdir)
