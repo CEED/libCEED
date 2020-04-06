@@ -56,10 +56,10 @@ int main(int argc, char **argv) {
   DM             *levelDMs;
   Vec            U, *Ug, *Uloc;          // U: solution, R: residual, F: forcing
   Vec            R, Rloc, F, Floc;       // g: global, loc: local
-  SNES           snes, snesCoarse;
+  SNES           snes, snesCoarse = NULL;
   Mat            *jacobMat, jacobMatCoarse, *prolongRestrMat;
   // PETSc data
-  UserMult       resCtx, jacobCoarseCtx, *jacobCtx;
+  UserMult       resCtx, jacobCoarseCtx = NULL, *jacobCtx;
   FormJacobCtx   formJacobCtx;
   UserMultProlongRestr *prolongRestrCtx;
   PCMGCycleType  pcmgCycleType = PC_MG_CYCLE_V;
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
 
   // -- Setup DM by polynomial degree
   ierr = PetscMalloc1(numLevels, &levelDMs); CHKERRQ(ierr);
-  for (int level = 0; level < numLevels; level++) {
+  for (PetscInt level = 0; level < numLevels; level++) {
     ierr = DMClone(dmOrig, &levelDMs[level]); CHKERRQ(ierr);
     ierr = SetupDMByDegree(levelDMs[level], appCtx, appCtx->levelDegrees[level],
                            ncompu); CHKERRQ(ierr);
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(numLevels, &Ulocsz); CHKERRQ(ierr);
 
   // -- Setup solution vectors for each level
-  for (int level = 0; level < numLevels; level++) {
+  for (PetscInt level = 0; level < numLevels; level++) {
     // -- Create global unknown vector U
     ierr = DMCreateGlobalVector(levelDMs[level], &Ug[level]); CHKERRQ(ierr);
     ierr = VecGetSize(Ug[level], &Ugsz[level]); CHKERRQ(ierr);
@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
   }
   // ---- Setup Jacobian evaluator and prolongation/restriction
-  for (int level = 0; level < numLevels; level++) {
+  for (PetscInt level = 0; level < numLevels; level++) {
     if (level != fineLevel) {
       ierr = PetscCalloc1(1, &ceedData[level]); CHKERRQ(ierr);
     }
@@ -268,7 +268,7 @@ int main(int argc, char **argv) {
                        0 : numLevels); CHKERRQ(ierr);
 
     if (appCtx->multigridChoice != MULTIGRID_NONE) {
-      for (int i = 0; i < 2; i++) {
+      for (PetscInt i = 0; i < 2; i++) {
         CeedInt level = i ? fineLevel : 0;
         ierr = PetscPrintf(comm,
                            "    Level %D (%s):\n"
@@ -298,7 +298,7 @@ int main(int argc, char **argv) {
   // -- Jacobian evaluators
   ierr = PetscMalloc1(numLevels, &jacobCtx); CHKERRQ(ierr);
   ierr = PetscMalloc1(numLevels, &jacobMat); CHKERRQ(ierr);
-  for (int level = 0; level < numLevels; level++) {
+  for (PetscInt level = 0; level < numLevels; level++) {
     // -- Jacobian context for level
     ierr = PetscMalloc1(1, &jacobCtx[level]); CHKERRQ(ierr);
     ierr = SetupJacobianCtx(comm, appCtx, levelDMs[level], Ug[level],
@@ -316,14 +316,12 @@ int main(int argc, char **argv) {
                                 (void(*)(void))GetDiag_Ceed);
 
   }
-  // Note: FormJacobian updates the state count of the Jacobian diagonals
+  // Note: FormJacobian updates Jacobian matrices on each level
   //   and assembles the Jpre matrix, if needed
   ierr = PetscMalloc1(1, &formJacobCtx); CHKERRQ(ierr);
   formJacobCtx->jacobCtx = jacobCtx;
   formJacobCtx->numLevels = numLevels;
   formJacobCtx->jacobMat = jacobMat;
-  ierr = SNESSetJacobian(snes, jacobMat[fineLevel], jacobMat[fineLevel],
-                         FormJacobian, formJacobCtx); CHKERRQ(ierr);
 
   // -- Residual evaluation function
   ierr = PetscMalloc1(1, &resCtx); CHKERRQ(ierr);
@@ -335,7 +333,7 @@ int main(int argc, char **argv) {
   // -- Prolongation/Restriction evaluation
   ierr = PetscMalloc1(numLevels, &prolongRestrCtx); CHKERRQ(ierr);
   ierr = PetscMalloc1(numLevels, &prolongRestrMat); CHKERRQ(ierr);
-  for (int level = 1; level < numLevels; level++) {
+  for (PetscInt level = 1; level < numLevels; level++) {
     // ---- Prolongation/restriction context for level
     ierr = PetscMalloc1(1, &prolongRestrCtx[level]); CHKERRQ(ierr);
     ierr = SetupProlongRestrictCtx(comm, levelDMs[level-1], levelDMs[level],
@@ -358,27 +356,43 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Setup dummy SNES for AMG coarse solve
   // ---------------------------------------------------------------------------
-  ierr = SNESCreate(comm, &snesCoarse); CHKERRQ(ierr);
-  ierr = SNESSetDM(snesCoarse, levelDMs[0]); CHKERRQ(ierr);
-  ierr = SNESSetSolution(snesCoarse, Ug[0]); CHKERRQ(ierr);
+  if (appCtx->multigridChoice != MULTIGRID_NONE) {
+    // -- Jacobian Matrix
+    ierr = DMSetMatType(levelDMs[0], MATAIJ); CHKERRQ(ierr);
+    ierr = DMCreateMatrix(levelDMs[0], &jacobMatCoarse); CHKERRQ(ierr);
 
-  // -- Jacobian matrix
-  ierr = DMSetMatType(levelDMs[0], MATAIJ); CHKERRQ(ierr);
-  ierr = DMCreateMatrix(levelDMs[0], &jacobMatCoarse); CHKERRQ(ierr);
-  ierr = SNESSetJacobian(snesCoarse, jacobMatCoarse, jacobMatCoarse, NULL,
-                         NULL); CHKERRQ(ierr);
+    if (appCtx->degree > 1) {
+      ierr = SNESCreate(comm, &snesCoarse); CHKERRQ(ierr);
+      ierr = SNESSetDM(snesCoarse, levelDMs[0]); CHKERRQ(ierr);
+      ierr = SNESSetSolution(snesCoarse, Ug[0]); CHKERRQ(ierr);
 
-  // -- Residual evaluation function
-  ierr = PetscMalloc1(1, &jacobCoarseCtx); CHKERRQ(ierr);
-  ierr = PetscMemcpy(jacobCoarseCtx, jacobCtx[0], sizeof(*jacobCtx[0]));
-  CHKERRQ(ierr);
-  ierr = SNESSetFunction(snesCoarse, Ug[0], ApplyJacobianCoarse_Ceed,
-                         jacobCoarseCtx); CHKERRQ(ierr);
+      // -- Jacobian function
+      ierr = SNESSetJacobian(snesCoarse, jacobMatCoarse, jacobMatCoarse, NULL,
+                             NULL); CHKERRQ(ierr);
 
-  // -- Update formJacobCtx
-  formJacobCtx->Ucoarse = Ug[0];
-  formJacobCtx->snesCoarse = snesCoarse;
-  formJacobCtx->jacobMatCoarse = jacobMatCoarse;
+      // -- Residual evaluation function
+      ierr = PetscMalloc1(1, &jacobCoarseCtx); CHKERRQ(ierr);
+      ierr = PetscMemcpy(jacobCoarseCtx, jacobCtx[0], sizeof(*jacobCtx[0]));
+      CHKERRQ(ierr);
+      ierr = SNESSetFunction(snesCoarse, Ug[0], ApplyJacobianCoarse_Ceed,
+                             jacobCoarseCtx); CHKERRQ(ierr);
+
+      // -- Update formJacobCtx
+      formJacobCtx->Ucoarse = Ug[0];
+      formJacobCtx->snesCoarse = snesCoarse;
+      formJacobCtx->jacobMatCoarse = jacobMatCoarse;
+    }
+  }
+
+  // Set Jacobian function
+  if (appCtx->degree > 1) {
+      ierr = SNESSetJacobian(snes, jacobMat[fineLevel], jacobMat[fineLevel],
+                             FormJacobian, formJacobCtx); CHKERRQ(ierr);
+  } else {
+    ierr = SNESSetJacobian(snes, jacobMat[0], jacobMatCoarse,
+                           SNESComputeJacobianDefaultColor, NULL);
+    CHKERRQ(ierr);
+  }
 
   // ---------------------------------------------------------------------------
   // Setup KSP
@@ -406,8 +420,6 @@ int main(int argc, char **argv) {
       ierr = PCJacobiSetType(pc, PC_JACOBI_DIAGONAL); CHKERRQ(ierr);
     } else if (appCtx->degree == 1) {
       // ---- AMG for degree 1
-      ierr = SNESSetJacobian(snes, jacobMat[fineLevel], jacobMatCoarse,
-                             FormJacobian, formJacobCtx); CHKERRQ(ierr);
       ierr = KSPSetType(ksp, KSPPREONLY); CHKERRQ(ierr);
       ierr = PCSetType(pc, PCGAMG); CHKERRQ(ierr);
     } else {
@@ -416,7 +428,7 @@ int main(int argc, char **argv) {
 
       // ------ PCMG levels
       ierr = PCMGSetLevels(pc, numLevels, NULL); CHKERRQ(ierr);
-      for (int level = 0; level < numLevels; level++) {
+      for (PetscInt level = 0; level < numLevels; level++) {
         // -------- Smoother
         KSP kspSmoother, kspEst;
         PC pcSmoother;
@@ -600,10 +612,16 @@ int main(int argc, char **argv) {
                        kspType); CHKERRQ(ierr);
 
     // -- PC
+    PC pc;
+    PCType pcType;
+    ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
+    ierr = PCGetType(pc, &pcType); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm,
+                       "    PC Type                            : %s\n",
+                       pcType); CHKERRQ(ierr);
+
     if (appCtx->multigridChoice != MULTIGRID_NONE && appCtx->degree > 1) {
-      PC pc;
       PCMGType pcmgType;
-      ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
       ierr = PCMGGetType(pc, &pcmgType); CHKERRQ(ierr);
       ierr = PetscPrintf(comm,
                          "  P-Multigrid:\n"
@@ -688,7 +706,7 @@ int main(int argc, char **argv) {
   // Free objects
   // ---------------------------------------------------------------------------
   // Data in arrays per level
-  for (int level = 0; level < numLevels; level++) {
+  for (PetscInt level = 0; level < numLevels; level++) {
     // Vectors
     ierr = VecDestroy(&Ug[level]); CHKERRQ(ierr);
     ierr = VecDestroy(&Uloc[level]); CHKERRQ(ierr);
