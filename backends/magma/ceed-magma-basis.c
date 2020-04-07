@@ -100,11 +100,13 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     }
 
     // Loop through components and apply batch over elements
-    magmablas_dbasis_apply_batched_eval_interp(P, Q, dim, ncomp,
-        impl->dinterp1d, tmode,
-        u, u_elstride, u_compstride,
-        v, v_elstride, v_compstride,
-        nelem, data->queue);
+    ierr = magma_interp(P, Q, dim, ncomp, 
+            impl->dinterp1d, tmode, 
+            u, u_elstride, u_compstride, 
+            v, v_elstride, v_compstride, 
+            nelem, data->basis_kernel_mode, 
+            data->queue);
+    if(ierr != 0) CeedError(ceed, 1, "MAGMA: launch failure detected for magma_interp");
   }
   break;
   case CEED_EVAL_GRAD: {
