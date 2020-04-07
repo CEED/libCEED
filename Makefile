@@ -179,17 +179,20 @@ cuda-gen.c     := $(sort $(wildcard backends/cuda-gen/*.c))
 cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
 cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/*.cu))
 occa.c         := $(sort $(wildcard backends/occa/*.c))
-magma_preprocessor := python backends/magma/gccm.py
-magma_pre_src  := $(filter-out %ceed-magma.c %_tmp.c, $(wildcard backends/magma/ceed-*.c))
-magma_dsrc     := $(wildcard backends/magma/magma_d*.c)
-magma_dsrc     += backends/magma/ceed-magma.c
-magma_tmp.c    := $(magma_pre_src:%.c=%_tmp.c)
-magma_tmp.cu   := $(magma_pre_src:%.c=%_cuda.cu)
-magma_allsrc.c := $(magma_dsrc) $(magma_tmp.c)
-magma_allsrc.cu:= $(magma_tmp.cu) backends/magma/magma_devptr.cu
-magma_allsrc.cu+= backends/magma/magma_dbasisApply_grad.cu backends/magma/magma_dbasisApply_weight.cu
-magma_allsrc.cu+= backends/magma/magma_drestrictApply.cu
-magma_allsrc.cu+= backends/magma/interp_1d.cu backends/magma/interp_2d.cu backends/magma/interp_3d.cu backends/magma/interp_generic.cu
+#magma_preprocessor := python backends/magma/gccm.py
+#magma_pre_src  := $(filter-out %ceed-magma.c %_tmp.c, $(wildcard backends/magma/ceed-*.c))
+#magma_dsrc     := $(wildcard backends/magma/magma_d*.c)
+#magma_dsrc     += backends/magma/ceed-magma.c
+#magma_tmp.c    := $(magma_pre_src:%.c=%_tmp.c)
+#magma_tmp.cu   := $(magma_pre_src:%.c=%_cuda.cu)
+#magma_allsrc.c := $(magma_dsrc) $(magma_tmp.c)
+#magma_allsrc.cu:= $(magma_tmp.cu) backends/magma/magma_devptr.cu
+#magma_allsrc.cu+= backends/magma/magma_dbasisApply_grad.cu backends/magma/magma_dbasisApply_weight.cu
+#magma_allsrc.cu+= backends/magma/magma_drestrictApply.cu
+#magma_allsrc.cu+= backends/magma/interp_1d.cu backends/magma/interp_2d.cu backends/magma/interp_3d.cu backends/magma/interp_generic.cu
+magma_allsrc.c  = $(wildcard backends/magma/*.c)
+magma_allsrc.cu = $(wildcard backends/magma/*.cu)
+
 
 # Output using the 216-color rules mode
 rule_file = $(notdir $(1))
@@ -360,8 +363,8 @@ endif
 export BACKENDS
 
 # Generate magma_tmp.c and magma_cuda.cu from magma.c
-%_tmp.c %_cuda.cu : %.c
-	$(magma_preprocessor) $<
+#%_tmp.c %_cuda.cu : %.c
+#	$(magma_preprocessor) $<
 
 libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o)
 $(libceed.o): | info-backends
