@@ -50,6 +50,8 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   ierr = CeedSetData(ceed, (void *)&data); CeedChk(ierr);
 
   // create a queue that uses the null stream
+  data->basis_kernel_mode = MAGMA_KERNEL_DIM_SPECIFIC;
+  //data->basis_kernel_mode = MAGMA_KERNEL_DIM_GENERIC;
   magma_getdevice( &(data->device) );
   magma_queue_create_from_cuda(data->device, NULL, NULL, NULL, &(data->queue));
 
