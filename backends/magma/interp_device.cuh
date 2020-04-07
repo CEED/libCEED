@@ -237,7 +237,7 @@ magma_interp_3d_device(
 // interp basis action -- dim and ncomp are run-time variables
 template<int P, int Q>
 static __device__ __inline__ void
-magma_interp_dim_generic_device( 
+magma_interp_generic_device( 
     const int dim, const int ncomp, const int pre_org, const int post_org, const int tmp_size, 
     const double *dT, magma_trans_t transT,
     const double *dU, double *dV, 
