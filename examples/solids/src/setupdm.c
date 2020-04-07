@@ -184,10 +184,12 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
                          (void(*)(void))BCZero, appCtx->bcZeroCount,
                          appCtx->bcZeroFaces, NULL); CHKERRQ(ierr);
     // ---- Clamp BCs
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "clamp", "Face Sets", 0, 0, NULL,
-                         (void(*)(void))BCClamp, appCtx->bcClampCount,
-                         appCtx->bcClampFaces, (void *)&appCtx->bcClampMax);
-    CHKERRQ(ierr);
+    for (PetscInt i = 0; i < appCtx->bcClampCount; i++) {
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "clamp", "Face Sets", 0, 0, NULL,
+                           (void(*)(void))BCClamp, 1, &appCtx->bcClampFaces[i],
+                           (void *)&appCtx->bcClampMax[i]);
+      CHKERRQ(ierr);
+    }
   }
   ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);

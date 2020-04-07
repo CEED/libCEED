@@ -118,7 +118,7 @@ struct AppCtx_private {
   PetscInt      numIncrements;                        // Number of steps
   PetscInt      bcZeroFaces[16], bcClampFaces[16];
   PetscInt      bcZeroCount, bcClampCount;
-  PetscScalar   bcClampMax;
+  PetscScalar   bcClampMax[16][3];
 };
 
 // Problem specific data
@@ -308,8 +308,8 @@ PetscErrorCode BCZero(PetscInt dim, PetscReal loadIncrement,
                       PetscScalar *u, void *ctx);
 
 // BCClamp - fix boundary values at fraction of load increment
-PetscErrorCode BCBend1_ss(PetscInt dim, PetscReal loadIncrement,
-                          const PetscReal coords[], PetscInt ncompu,
-                          PetscScalar *u, void *ctx);
+PetscErrorCode BCClamp(PetscInt dim, PetscReal loadIncrement,
+                       const PetscReal coords[], PetscInt ncompu,
+                       PetscScalar *u, void *ctx);
 
 #endif //setup_h

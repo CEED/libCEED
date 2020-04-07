@@ -61,12 +61,13 @@ PetscErrorCode BCZero(PetscInt dim, PetscReal loadIncrement,
 PetscErrorCode BCClamp(PetscInt dim, PetscReal loadIncrement,
                        const PetscReal coords[], PetscInt ncompu,
                        PetscScalar *u, void *ctx) {
-  PetscScalar clampMax = *(PetscScalar *)ctx;
+  PetscScalar (*clampMax) = (PetscScalar(*))ctx;
+
   PetscFunctionBeginUser;
 
-  u[0] = 0;
-  u[1] = clampMax*loadIncrement;
-  u[2] = 0;
+  u[0] = clampMax[0]*loadIncrement;
+  u[1] = clampMax[1]*loadIncrement;
+  u[2] = clampMax[2]*loadIncrement;
 
   PetscFunctionReturn(0);
 };

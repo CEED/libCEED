@@ -82,12 +82,21 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                               "Face IDs to apply incremental Dirichlet BC",
                               NULL, appCtx->bcClampFaces, &appCtx->bcClampCount,
                               NULL); CHKERRQ(ierr);
-
-  appCtx->bcClampMax = -1;
-  ierr = PetscOptionsScalar("-bc_clamp_max",
-                            "Maximum value to displace clamped boundary",
-                            NULL, appCtx->bcClampMax, &appCtx->bcClampMax,
-                            NULL); CHKERRQ(ierr);
+  for (PetscInt i = 0; i < appCtx->bcClampCount; i++) {
+    char optionName[25];
+    snprintf(optionName, sizeof optionName, "-bc_clamp_%d_translate",
+             appCtx->bcClampFaces[i]);
+    PetscInt maxn = 3;
+    PetscBool bcFlag = PETSC_FALSE;
+    ierr = PetscOptionsScalarArray(optionName,
+                                   "Vector to translate clamped end by", NULL,
+                                   appCtx->bcClampMax[i], &maxn, &bcFlag);
+    CHKERRQ(ierr);
+    if (!bcFlag) {
+      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
+              "-bc_clamp additional option needed");
+    }
+  }
 
   appCtx->multigridChoice = MULTIGRID_LOGARITHMIC;
   ierr = PetscOptionsEnum("-multigrid", "Set multigrid type option", NULL,

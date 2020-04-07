@@ -44,8 +44,9 @@ The elasticity min-app is controlled via command-line options, the following of 
      - List of faces sets on which to enforce zero displacement
 
    * - :code:`-bc_clamp [int list]`
-     - List of face sets on which to displace by :code:`-bc_clamp_max` in the :math:`y` direction
+     - List of face sets on which to displace by :code:`-bc_clamp_facenumber_translate`
 
+Note: The displacement vector must be set for each clamped face.
 (One can set only one of :code:`-bc_zero` or :code:`-bc_clamp`, but the result will likely not be interesting.)
 
 .. note::
@@ -63,9 +64,11 @@ Consider the specific example of the mesh seen below:
 
 With the sidesets defined in the figure, we provide here an example of a minimal set of command line options::
 
-   ./elasticity -mesh [.exo file] -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998
+   ./elasticity -mesh [.exo file] -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp  998 -bc_clamp_998_translate 0,-0.5,1
 
-In this example, we set the left boundary, face set :math:`999`, to zero displacement and the right boundary, face set :math:`998`, to displace by the default value of :math:`-1.0` in the :math:`y` direction.
+In this example, we set the left boundary, face set :math:`999`, to zero displacement and the right boundary, face set :math:`998`, to displace :math:`0` in the :math:`x` direction, :math:`-0.5` in the :math:`y`, and :math:`1` in the :math:`z`.
+
+As an alternative to specifying a mesh with :code:`-mesh`, the user may use a DMPlex box mesh by specifying :code:`-dm_plex_box_faces [int list]`, :code:`-dm_plex_box_upper [real list]`, and :code:`-dm_plex_box_lower [real list]`.
 
 The command line options just shown are the minimum requirements to run the mini-app, but additional options may also be set as follows
 
@@ -95,10 +98,6 @@ The command line options just shown are the minimum requirements to run the mini
    * - :code:`-forcing`
      -  Forcing term option (:code:`none`, :code:`constant`, or :code:`mms`)
      - :code:`none`
-
-   * - :code:`-bc_clamp_max`
-     - Maximum value to displace clamped boundary
-     - :code:`-1.0`
 
    * - :code:`-num_steps`
      - Number of load increments for continuation method
