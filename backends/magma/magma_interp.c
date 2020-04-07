@@ -17,7 +17,10 @@
 #include "ceed-magma.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
-extern "C" magma_int_t 
+#ifdef __cplusplus
+CEED_INTERN "C"
+#endif
+magma_int_t 
 magma_interp( 
     magma_int_t P, magma_int_t Q, 
     magma_int_t dim, magma_int_t ncomp,  
