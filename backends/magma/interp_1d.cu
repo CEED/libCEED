@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed.h>
+#include <cuda.h>    // for CUDA_VERSION
 #include <magma_v2.h>
 #include "magma_tc_device.cuh"
 #include "interp_device.cuh"
@@ -102,12 +103,26 @@ magma_interp_1d_kernel_driver(
                       T *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
                 magma_int_t nelem, magma_queue_t queue)
 {
+    magma_device_t device;
+    magma_getdevice( &device );
+    magma_int_t shmem_max, nthreads_max;
+
     magma_int_t shmem  = 0;
     shmem += NCOMP * (1*P + 1*Q) * sizeof(T); 
     shmem += P*Q*sizeof(T);    
     magma_int_t nthreads = max(P, Q); 
-    
-    if( nthreads > 1024 || shmem >= 48000 ) {
+
+    cudaDeviceGetAttribute (&nthreads_max, cudaDevAttrMaxThreadsPerBlock, device);
+    #if CUDA_VERSION >= 9000
+    cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlockOptin, device);
+    if(shmem <= shmem_max) {
+        cudaFuncSetAttribute(interp_generic_kernel<P, Q>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
+    }
+    #else
+    cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlock, device);
+    #endif    // CUDA_VERSION >= 9000
+ 
+    if( nthreads > nthreads_max || shmem > shmem_max ) {
         return 1;    // launch failed
     }
     else { 
