@@ -190,8 +190,8 @@ occa.c         := $(sort $(wildcard backends/occa/*.c))
 #magma_allsrc.cu+= backends/magma/magma_dbasisApply_grad.cu backends/magma/magma_dbasisApply_weight.cu
 #magma_allsrc.cu+= backends/magma/magma_drestrictApply.cu
 #magma_allsrc.cu+= backends/magma/interp_1d.cu backends/magma/interp_2d.cu backends/magma/interp_3d.cu backends/magma/interp_generic.cu
-magma_allsrc.c  = $(wildcard backends/magma/*.c)
-magma_allsrc.cu = $(wildcard backends/magma/*.cu)
+magma_allsrc.c  = $(sort $(wildcard backends/magma/*.c))
+magma_allsrc.cu = $(sort $(wildcard backends/magma/*.cu))
 
 
 # Output using the 216-color rules mode
