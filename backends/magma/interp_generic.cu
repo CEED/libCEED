@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed.h>
+#include <cuda.h>    // for CUDA_VERSION
 #include <magma_v2.h>
 #include "magma_tc_device.cuh"
 #include "interp_device.cuh"
@@ -33,7 +34,7 @@ interp_generic_kernel(
 {
     const int elem_id = blockIdx.x; 
     const int comp_id = blockIdx.y;
-    dbasis_apply_eval_interp_device< P, Q >
+    magma_interp_generic_device< P, Q >
     ( dim, ncomp, pre_org, post_org, tmp_size, dT, transT, 
       dU + (elem_id * u_elstride) + (comp_id * u_compstride), 
       dV + (elem_id * v_elstride) + (comp_id * v_compstride), 
@@ -50,9 +51,12 @@ interp_generic_kernel_driver(
                       double *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
                 magma_int_t nelem, magma_queue_t queue)
 {
+    magma_device_t device;
+    magma_getdevice( &device );
+
+    magma_int_t shmem_max, nthreads_max;
     magma_int_t pre = ipow(P, dim-1); //ncomp*CeedIntPow(P, dim-1);
     magma_int_t post = 1; 
-
     // ncomp*Q*CeedIntPow(P>Q?P:Q,dim-1);
     // originally the exponent is (dim-1), but we use dim because 
     // we have to read the original u in shared memory
@@ -61,18 +65,21 @@ interp_generic_kernel_driver(
     magma_int_t shmem = P * Q * sizeof(double);
     shmem += 2 * tmp_size * sizeof(double); 
     
-    
     magma_int_t nthreads = max(P, ipow(Q, dim-1) ); 
     nthreads = magma_roundup( nthreads, Q ); // nthreads must be multiple of Q
-    
-    #if 1 //CUDA_VERSION >= 9000
-    if(shmem > 49152) {
-        cudaFuncSetAttribute( interp_generic_kernel<P, Q>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
-    }
-    #endif
 
-    if( nthreads > 1024 || shmem >= 98000 ) {
-        return 1;    // launch failed
+    cudaDeviceGetAttribute (&nthreads_max, cudaDevAttrMaxThreadsPerBlock, device);
+    #if CUDA_VERSION >= 9000
+    cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlockOptin, device);
+    if(shmem <= shmem_max) {
+        cudaFuncSetAttribute(interp_generic_kernel<P, Q>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
+    }
+    #else
+    cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlock, device);
+    #endif    // CUDA_VERSION >= 9000
+
+    if( nthreads > nthreads_max || shmem > shmem_max ) {
+        return 1;
     }
     else { 
         dim3 threads(nthreads, 1, 1);
@@ -81,8 +88,7 @@ interp_generic_kernel_driver(
         ( dim, ncomp, pre, post, tmp_size, dT, transT, 
           dU, u_elstride, u_compstride, 
           dV, v_elstride, v_compstride );
-        
-        return 0;
+          return (cudaPeekAtLastError() == cudaSuccess) ? 0 : 1;
     } 
 }
 
