@@ -37,9 +37,11 @@ problemData problemOptions[3] = {
     .setupgeo = SetupGeo,
     .apply = LinElasF,
     .jacob = LinElasdF,
+    .energy = LinElasEnergy,
     .setupgeofname = SetupGeo_loc,
     .applyfname = LinElasF_loc,
     .jacobfname = LinElasdF_loc,
+    .energyfname = LinElasEnergy_loc,
     .qmode = CEED_GAUSS
   },
   [ELAS_HYPER_SS] = {
@@ -47,9 +49,11 @@ problemData problemOptions[3] = {
     .setupgeo = SetupGeo,
     .apply = HyperSSF,
     .jacob = HyperSSdF,
+    .energy = HyperSSEnergy,
     .setupgeofname = SetupGeo_loc,
     .applyfname = HyperSSF_loc,
     .jacobfname = HyperSSdF_loc,
+    .energyfname = HyperSSEnergy_loc,
     .qmode = CEED_GAUSS
   },
   [ELAS_HYPER_FS] = {
@@ -57,9 +61,11 @@ problemData problemOptions[3] = {
     .setupgeo = SetupGeo,
     .apply = HyperFSF,
     .jacob = HyperFSdF,
+    .energy = HyperFSEnergy,
     .setupgeofname = SetupGeo_loc,
     .applyfname = HyperFSF_loc,
     .jacobfname = HyperFSdF_loc,
+    .energyfname = HyperFSEnergy_loc,
     .qmode = CEED_GAUSS
   }
 };
@@ -93,24 +99,29 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
   CeedVectorDestroy(&data->xceed);
   CeedVectorDestroy(&data->yceed);
   CeedVectorDestroy(&data->truesoln);
+  CeedVectorDestroy(&data->energy);
 
   // Restrictions
   CeedElemRestrictionDestroy(&data->Erestrictu);
   CeedElemRestrictionDestroy(&data->Erestrictx);
   CeedElemRestrictionDestroy(&data->ErestrictGradui);
   CeedElemRestrictionDestroy(&data->Erestrictqdi);
+  CeedElemRestrictionDestroy(&data->ErestrictEnergy);
 
   // Bases
   CeedBasisDestroy(&data->basisx);
   CeedBasisDestroy(&data->basisu);
+  CeedBasisDestroy(&data->basisEnergy);
 
   // QFunctions
   CeedQFunctionDestroy(&data->qfJacob);
   CeedQFunctionDestroy(&data->qfApply);
+  CeedQFunctionDestroy(&data->qfEnergy);
 
   // Operators
   CeedOperatorDestroy(&data->opJacob);
   CeedOperatorDestroy(&data->opApply);
+  CeedOperatorDestroy(&data->opEnergy);
 
   // Restriction and Prolongation data
   CeedBasisDestroy(&data->basisCtoF);
@@ -193,8 +204,8 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
   PetscInt      cStart, cEnd, nelem;
   const PetscScalar *coordArray;
   CeedVector    xcoord;
-  CeedQFunction qfSetupGeo, qfApply;
-  CeedOperator  opSetupGeo, opApply;
+  CeedQFunction qfSetupGeo, qfApply, qfEnergy;
+  CeedOperator  opSetupGeo, opApply, opEnergy;
 
   PetscFunctionBeginUser;
 
@@ -229,6 +240,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
     CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
                                      dim*ncompu, CEED_STRIDES_BACKEND,
                                      &data[fineLevel]->ErestrictGradui);
+  // -- Energy restriction
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1,
+                                   CEED_STRIDES_BACKEND,
+                                   &data[fineLevel]->ErestrictEnergy);
 
   // ---------------------------------------------------------------------------
   // Element coordinates
@@ -253,6 +268,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, Q,
                                   problemOptions[problemChoice].qmode,
                                   &data[fineLevel]->basisx);
+  // -- Energy basis
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P, Q,
+                                  problemOptions[problemChoice].qmode,
+                                  &data[fineLevel]->basisEnergy);
 
   // ---------------------------------------------------------------------------
   // Persistent libCEED vectors
@@ -263,6 +282,8 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
   // -- State gradient vector
   if (problemChoice != ELAS_LIN)
     CeedVectorCreate(ceed, dim*ncompu*nelem*nqpts, &data[fineLevel]->gradu);
+  // -- Energy vector
+  CeedVectorCreate(ceed, nelem*nqpts, &data[fineLevel]->energy);
 
   // ---------------------------------------------------------------------------
   // Geometric factor computation
@@ -426,6 +447,33 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
     CeedQFunctionDestroy(&qfTrue);
     CeedOperatorDestroy(&opTrue);
   }
+
+  // ---------------------------------------------------------------------------
+  // Local energy computation
+  // ---------------------------------------------------------------------------
+  // Create the QFunction and Operator that computes the strain energy
+  // ---------------------------------------------------------------------------
+  // -- QFunction
+  CeedQFunctionCreateInterior(ceed, 1, problemOptions[problemChoice].energy,
+                              problemOptions[problemChoice].energyfname,
+                              &qfEnergy);
+  CeedQFunctionAddInput(qfEnergy, "du", ncompu*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qfEnergy, "qdata", qdatasize, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qfEnergy, "energy", 1, CEED_EVAL_INTERP);
+  CeedQFunctionSetContext(qfEnergy, phys, sizeof(phys));
+
+  // -- Operator
+  CeedOperatorCreate(ceed, qfEnergy, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &opEnergy);
+  CeedOperatorSetField(opEnergy, "du", data[fineLevel]->Erestrictu,
+                       data[fineLevel]->basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(opEnergy, "qdata", data[fineLevel]->Erestrictqdi,
+                       CEED_BASIS_COLLOCATED, data[fineLevel]->qdata);
+  CeedOperatorSetField(opEnergy, "energy", data[fineLevel]->ErestrictEnergy,
+                       data[fineLevel]->basisEnergy, CEED_VECTOR_ACTIVE);
+  // -- Save libCEED data
+  data[fineLevel]->qfEnergy = qfEnergy;
+  data[fineLevel]->opEnergy = opEnergy;
 
   // ---------------------------------------------------------------------------
   // Cleanup

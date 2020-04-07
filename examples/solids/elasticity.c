@@ -33,7 +33,7 @@
 //
 // Sample meshes can be found at https://github.com/jeremylt/ceedSampleMeshes
 //
-//TESTARGS -ceed {ceed_resource} -test -degree 2 -nu 0.3 -E 1  -dm_plex_box_faces 3,3,3
+//TESTARGS -ceed {ceed_resource} -test -degree 2 -nu 0.3 -E 1 -dm_plex_box_faces 3,3,3
 
 /// @file
 /// CEED elasticity example using PETSc with DMPlex
@@ -700,6 +700,23 @@ int main(int argc, char **argv) {
     // -- Cleanup
     ierr = VecDestroy(&errorVec); CHKERRQ(ierr);
     ierr = VecDestroy(&trueVec); CHKERRQ(ierr);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Compute energy
+  // ---------------------------------------------------------------------------
+  if (!appCtx->testMode) {
+    // -- Compute L2 error
+    CeedScalar energy;
+    ierr = ComputeStrainEnergy(resCtx,
+                               ceedData[fineLevel]->opEnergy, U,
+                               ceedData[fineLevel]->energy, &energy);
+    CHKERRQ(ierr);
+
+    // -- Output
+    ierr = PetscPrintf(comm,
+                       "    Strain Energy                      : %e\n",
+                       energy); CHKERRQ(ierr);
   }
 
   // ---------------------------------------------------------------------------

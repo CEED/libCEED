@@ -194,6 +194,7 @@ PetscErrorCode Restrict_Ceed(Mat A, Vec X, Vec Y) {
 
   PetscFunctionReturn(0);
 };
+
 // This function returns the computed diagonal of the operator
 PetscErrorCode GetDiag_Ceed(Mat A, Vec D) {
   PetscErrorCode ierr;
@@ -223,6 +224,48 @@ PetscErrorCode GetDiag_Ceed(Mat A, Vec D) {
   ierr = VecResetArray(user->Xloc); CHKERRQ(ierr);
   CeedVectorRestoreArrayRead(ceedDiagVec, &diagArray);
   CeedVectorDestroy(&ceedDiagVec);
+
+  PetscFunctionReturn(0);
+};
+
+// This function calculates the strain energy in the final solution
+PetscErrorCode ComputeStrainEnergy(UserMult user, CeedOperator opEnergy, Vec X,
+                                   CeedVector energyLoc, PetscReal *energy) {
+  PetscErrorCode ierr;
+  PetscScalar *x;
+  CeedInt length;
+
+  PetscFunctionBeginUser;
+
+  // Global-to-local
+  ierr = VecZeroEntries(user->Xloc); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, X, INSERT_VALUES, user->Xloc); CHKERRQ(ierr);
+  ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, user->Xloc,
+                                    user->loadIncrement, NULL, NULL, NULL);
+
+  // Setup libCEED vector
+  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
+  CHKERRQ(ierr);
+  CeedVectorSetArray(user->Xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
+
+  // Apply libCEED operator
+  CeedOperatorApply(opEnergy, user->Xceed, energyLoc, CEED_REQUEST_IMMEDIATE);
+
+  // Restore PETSc vector
+  ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
+  CHKERRQ(ierr);
+
+  // Reduce max error
+  const CeedScalar *e;
+  CeedVectorGetArrayRead(energyLoc, CEED_MEM_HOST, &e);
+  (*energy) = 0;
+  CeedVectorGetLength(energyLoc, &length);
+  for (CeedInt i=0; i<length; i++)
+    (*energy) += e[i];
+  CeedVectorRestoreArrayRead(energyLoc, &e);
+
+  ierr = MPI_Allreduce(MPI_IN_PLACE, energy, 1, MPIU_REAL, MPIU_SUM,
+                       user->comm); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 };
