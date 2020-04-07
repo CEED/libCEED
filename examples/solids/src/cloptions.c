@@ -82,19 +82,43 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                               "Face IDs to apply incremental Dirichlet BC",
                               NULL, appCtx->bcClampFaces, &appCtx->bcClampCount,
                               NULL); CHKERRQ(ierr);
+  // Set vector for each clamped BC
   for (PetscInt i = 0; i < appCtx->bcClampCount; i++) {
+    // Translation vector
     char optionName[25];
     snprintf(optionName, sizeof optionName, "-bc_clamp_%d_translate",
              appCtx->bcClampFaces[i]);
     PetscInt maxn = 3;
-    PetscBool bcFlag = PETSC_FALSE;
+    appCtx->bcClampTranslate[i] = PETSC_FALSE;
     ierr = PetscOptionsScalarArray(optionName,
                                    "Vector to translate clamped end by", NULL,
-                                   appCtx->bcClampMax[i], &maxn, &bcFlag);
+                                   appCtx->bcClampMax[i], &maxn,
+                                   &appCtx->bcClampTranslate[i]);
     CHKERRQ(ierr);
-    if (!bcFlag) {
-      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
-              "-bc_clamp additional option needed");
+
+    // Rotation vector
+    if (!appCtx->bcClampTranslate[i]) {
+      PetscBool bcFlag = PETSC_FALSE;
+      maxn = 4;
+      snprintf(optionName, sizeof optionName, "-bc_clamp_%d_rotate",
+               appCtx->bcClampFaces[i]);
+      ierr = PetscOptionsScalarArray(optionName,
+                                     "Rodrigues vector to rotate clamped end by, in radians",
+                                     NULL, appCtx->bcClampMax[i], &maxn,
+                                     &bcFlag); CHKERRQ(ierr);
+
+      // Normalize
+      PetscScalar norm = sqrt(appCtx->bcClampMax[i][0]*appCtx->bcClampMax[i][0]+
+                              appCtx->bcClampMax[i][1]*appCtx->bcClampMax[i][1]+
+                              appCtx->bcClampMax[i][2]*appCtx->bcClampMax[i][2]);
+      for (PetscInt j = 0; j < 3; j++)
+        appCtx->bcClampMax[i][j] /= norm;
+
+      // Error if neither were set
+      if (!bcFlag) {
+        SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
+                "-bc_clamp additional option needed");
+      }
     }
   }
 

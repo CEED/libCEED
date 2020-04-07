@@ -186,7 +186,9 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
     // ---- Clamp BCs
     for (PetscInt i = 0; i < appCtx->bcClampCount; i++) {
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "clamp", "Face Sets", 0, 0, NULL,
-                           (void(*)(void))BCClamp, 1, &appCtx->bcClampFaces[i],
+                           (void(*)(void))(appCtx->bcClampTranslate[i] ?
+                                           BCClampTranslate : BCClampRotate),
+                           1, &appCtx->bcClampFaces[i],
                            (void *)&appCtx->bcClampMax[i]);
       CHKERRQ(ierr);
     }
