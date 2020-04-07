@@ -15,12 +15,20 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 // magma functions specific to ceed
+#ifndef CEED_MAGMA_H
+#define CEED_MAGMA_H
 
 #include <string.h>
 #include <ceed-backend.h>
-#include "magma_v2.h"
+#include <magma_v2.h>
+
+typedef enum {
+  MAGMA_KERNEL_DIM_GENERIC=101,
+  MAGMA_KERNEL_DIM_SPECIFIC=102
+} magma_kernel_mode_t;
 
 typedef struct {
+  magma_kernel_mode_t basis_kernel_mode;
   magma_device_t device;
   magma_queue_t queue;
 } Ceed_Magma;
@@ -60,15 +68,44 @@ typedef struct {
 #ifdef __cplusplus
 CEED_INTERN {
 #endif
-  void magmablas_dbasis_apply_batched_eval_interp(magma_int_t P, magma_int_t Q,
+
+  magma_int_t magma_interp_1d( 
+      magma_int_t P, magma_int_t Q, magma_int_t ncomp,  
+      const CeedScalar *dT, CeedTransposeMode tmode,
+      const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
+            CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
+      magma_int_t nelem, magma_queue_t queue);
+    
+  magma_int_t magma_interp_2d( 
+      magma_int_t P, magma_int_t Q, magma_int_t ncomp,  
+      const CeedScalar *dT, CeedTransposeMode tmode,
+      const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
+            CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
+      magma_int_t nelem, magma_queue_t queue);
+
+  magma_int_t magma_interp_3d( 
+      magma_int_t P, magma_int_t Q, magma_int_t ncomp,  
+      const CeedScalar *dT, CeedTransposeMode tmode,
+      const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
+            CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
+      magma_int_t nelem, magma_queue_t queue);
+
+  magma_int_t magma_interp_generic(magma_int_t P, magma_int_t Q,
       magma_int_t dim, magma_int_t ncomp,
       const double *dT, CeedTransposeMode tmode,
       const double *dU, magma_int_t u_elemstride,
       magma_int_t u_compstride,
       double *dV, magma_int_t v_elemstride,
       magma_int_t v_compstride,
-      magma_int_t nelem,
-      magma_queue_t queue);
+      magma_int_t nelem, magma_queue_t queue);
+
+  magma_int_t magma_interp( 
+      magma_int_t P, magma_int_t Q, 
+      magma_int_t dim, magma_int_t ncomp,  
+      const double *dT, CeedTransposeMode tmode,
+      const double *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
+            double *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
+      magma_int_t nelem, magma_kernel_mode_t kernel_mode, magma_queue_t queue);
 
   void magmablas_dbasis_apply_batched_eval_grad(magma_int_t P, magma_int_t Q,
       magma_int_t dim, magma_int_t ncomp,
@@ -189,3 +226,5 @@ CEED_INTERN {
 #ifndef MAGMA_BATCH_STRIDE
 #define MAGMA_BATCH_STRIDE (1000)
 #endif
+
+#endif  // CEED_MAGMA_H
