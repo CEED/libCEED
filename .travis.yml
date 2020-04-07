@@ -1,18 +1,8 @@
 language: c
 
-arch: amd64
-
-os:
-  - linux
-  - osx
-
 dist: bionic
 
 osx_image: xcode11.2
-
-compiler:
-  - gcc
-  - clang
 
 addons:
   apt:
@@ -31,20 +21,40 @@ addons:
     - lapack
     - openblas
 
-env:
-  - FC=gfortran
-
 matrix:
   include:
-   - os: linux
+   - name: "Linux GCC + CodeCov"
+     os: linux
+     arch: amd64
+     compiler: gcc
+     env: FC=gfortran
+   - name: "Linux Clang + Tidy and Style"
+     os: linux
+     arch: amd64
+     compiler: clang
+     env: FC=gfortran
+   - name: "OSX GCC"
+     os: osx
+     arch: amd64
+     compiler: gcc
+     env: FC=gfortran
+   - name: "OSX Clang"
+     os: osx
+     arch: amd64
+     compiler: clang
+     env: FC=gfortran
+   - name: "IBM Power"
+     os: linux
      arch: ppc64le
      compiler: gcc
      env: FC=gfortran
-   - os: linux
+   - name: "ARM"
+     os: linux
      arch: arm64
      compiler: gcc
      env: FC=gfortran
-   - language: python
+   - name: "Python"
+     language: python
      arch: amd64
      os: linux
      dist: xenial
