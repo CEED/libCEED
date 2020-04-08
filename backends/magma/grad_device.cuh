@@ -14,13 +14,13 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef MAGMA_BASIS_APPLY_GRAD_DEVICE_CUH
-#define MAGMA_BASIS_APPLY_GRAD_DEVICE_CUH
+#ifndef MAGMA_GRAD_DEVICE_CUH
+#define MAGMA_GRAD_DEVICE_CUH
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<int P, int Q>
 static __device__ __inline__ void
-dbasis_apply_eval_grad_device( 
+magma_grad_generic_device( 
     const int p, 
     const int dim, const int ncomp, const int pre_org, const int post_org, const int tmp_size, 
     const double *sTinterp, const double *sTgrad, magma_trans_t transT,
