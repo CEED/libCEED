@@ -554,7 +554,7 @@ cln clean :
 	$(RM) benchmarks/*output.txt
 
 distclean : clean
-	$(RM) -r doc/html $(CONFIG)
+	$(RM) -r doc/html doc/sphinx/build $(CONFIG)
 
 DOXYGEN ?= doxygen
 doxygen :
