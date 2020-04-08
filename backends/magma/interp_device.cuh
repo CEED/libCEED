@@ -275,9 +275,7 @@ magma_interp_generic_device(
     // read U in sTmp1 (AC x B)
     sU += slice_id * C * B;
     dU += slice_id * C * B;
-    #pragma unroll
     for(i = 0; i < A-nslices; i+=nslices) {
-        #pragma unroll
         for(int b = 0; b < B; b++) {
             sU[b * C + tx_] = dU[b * C + tx_];
         }
@@ -286,7 +284,6 @@ magma_interp_generic_device(
     }
     
     if(slice_id < A-i) {
-        #pragma unroll
         for(int b = 0; b < B; b++) {
             //printf("tx = %d, tx_ = %d, accessing b * C + tx_ = %d\n", tx, tx_, b * C + tx_);
             sU[b * C + tx_] = dU[b * C + tx_];
@@ -295,14 +292,12 @@ magma_interp_generic_device(
     __syncthreads();
 
     int d = 0; 
-    #pragma unroll
     for(d = 0; d < dim-1; d++) {
         sU = (d % 2 == 0) ? sTmp1 : sTmp2;
         sV = (d % 2 == 0) ? sTmp2 : sTmp1;
         
         sU += slice_id * C * B;
         sV += slice_id * C * J; 
-        #pragma unroll
         for(i = 0; i < A-nslices; i+=nslices) {
             dread_U_gsm2reg<B>(C, tx_, sU, rU);   // read U
             dgemm_slice<B, J>(MAGMA_D_ONE, sT, rU, MAGMA_D_ZERO, rV); // multiply
@@ -349,7 +344,6 @@ magma_interp_generic_device(
         
     sU += slice_id * C * B;
     dV += slice_id * C * J;
-    #pragma unroll
     for(i = 0; i < A-nslices; i+=nslices) {
         dread_U_gsm2reg<B>(C, tx_, sU, rU);   // read U
         if( add ) {
