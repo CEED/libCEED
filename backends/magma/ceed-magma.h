@@ -107,7 +107,7 @@ CEED_INTERN {
             double *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
       magma_int_t nelem, magma_kernel_mode_t kernel_mode, magma_queue_t queue);
 
-  void magmablas_dbasis_apply_batched_eval_grad(magma_int_t P, magma_int_t Q,
+  void magma_grad_generic(magma_int_t P, magma_int_t Q,
       magma_int_t dim, magma_int_t ncomp,
       magma_int_t nqpt, const double* dinterp1d,
       const double *dgrad1d, CeedTransposeMode tmode,
