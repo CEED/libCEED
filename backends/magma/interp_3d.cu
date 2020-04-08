@@ -44,23 +44,7 @@ magma_interp_3d_kernel(
     T* sTmp  = sT + P*Q;
 
     // read T
-    if( transT == MagmaNoTrans ) {
-        // T is P x Q
-        if(tx < P) {
-            for(int j = 0; j < Q; j++) {
-                sT[j * P + tx] = dT[j	 * P + tx];
-            }
-        }
-    }
-    else {
-        // T is Q x P -- transpose it in shared memory
-        if(tx < Q) {
-            #pragma unroll
-            for(int i = 0; i < P; i++) {
-                sT[tx * P + i] = dT[i * Q + tx];
-            }
-        }
-    }
+    dread_T_gm2sm<P, Q>(tx, transT, dT, sT);
     __syncthreads();
 
     // read U as a batch P^2 of (1xP) vectors
