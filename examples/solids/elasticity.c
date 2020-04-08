@@ -420,7 +420,6 @@ int main(int argc, char **argv) {
       ierr = PCJacobiSetType(pc, PC_JACOBI_DIAGONAL); CHKERRQ(ierr);
     } else if (appCtx->degree == 1) {
       // ---- AMG for degree 1
-      ierr = KSPSetType(ksp, KSPPREONLY); CHKERRQ(ierr);
       ierr = PCSetType(pc, PCGAMG); CHKERRQ(ierr);
     } else {
       // ---- PCMG
