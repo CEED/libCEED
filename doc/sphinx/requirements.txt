@@ -1,5 +1,5 @@
 sphinx==2.4.4
-breathe
+breathe==4.14.2
 recommonmark
 sphinx_rtd_theme
 sphinxcontrib-bibtex
