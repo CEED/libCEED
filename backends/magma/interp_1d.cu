@@ -48,23 +48,7 @@ magma_interp_1d_kernel(
     }
 
     // read T
-    if( transT == MagmaNoTrans ) {
-        // T is P x Q
-        if(tx < P) {
-            for(int j = 0; j < Q; j++) {
-                sT[j * P + tx] = dT[j	 * P + tx];
-            }
-        }
-    }
-    else {
-        // T is Q x P -- transpose it in shared memory
-        if(tx < Q) {
-            #pragma unroll
-            for(int i = 0; i < P; i++) {
-                sT[tx * P + i] = dT[i * Q + tx];
-            }
-        }
-    }
+    dread_T_gm2sm<P, Q>(tx, transT, dT, sT);
 
     // read U
     if(tx < P) {
