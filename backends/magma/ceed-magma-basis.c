@@ -160,7 +160,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
 
     // Loop through grad dimensions only, batch call over elements and components
     for (CeedInt dim_ctr = 0; dim_ctr < dim; dim_ctr++)
-      magmablas_dbasis_apply_batched_eval_grad(P, Q, dim, ncomp, nqpt,
+      magma_grad_generic(P, Q, dim, ncomp, nqpt,
           impl->dinterp1d, impl->dgrad1d, tmode,
           u + dim_ctr * u_dimstride, u_elstride, u_compstride, u_dimstride,
           v + dim_ctr * v_dimstride, v_elstride, v_compstride, v_dimstride,
