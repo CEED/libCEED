@@ -133,6 +133,40 @@ With the formulation using Lamé parameters, the elasticity tensor :math:numref:
 Note that the incompressible limit :math:`\nu \to \frac 1 2` causes :math:`\lambda \to \infty`, and thus :math:`\mathsf C` becomes singular.
 
 
+Strain Energy Density Function
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When strains and rotations are small, no distinction is made between the various measures of stress and strain.
+Therefore, the kinematics, equations of motion, and constitutive equation of small-strain theory are used.
+For a linear or non-linear elastic material under uniaxial stress, the stress-strain law can be written as equation :math:numref:`linear-stress-strain` in which thermodynamic effects (such as heat conduction) are not considered.
+Elastic material undergoing loading do not dissipate energy and store all energy in the body which can be recovered upon unloading.
+This implies that there exists a potential function :math:`\bm W (\bm \epsilon)` such that:
+
+.. math::
+
+   \bm{\sigma} = \bm{C}(\bm{\epsilon}) = \frac{d \bm{W}(\bm{\epsilon})}{d \bm{\epsilon}}
+
+where :math:`\bm{W}(\bm{\epsilon})` is the strain energy density per unit volume.
+It follows that:
+
+.. math::
+
+   d \bm{W}(\bm{\epsilon}) =  \bm{\sigma} d \bm{\epsilon}
+
+which yields:
+
+.. math::
+   :label: energy
+
+   \bm{W} = \int_0^{\bm{\epsilon}} \bm{\sigma} d \bm{\epsilon}
+
+From :math:numref:`energy` the strain energy density is therefore given by
+
+.. math::
+
+   \bm{W} = \frac{\lambda}{2} (\operatorname{trace} \bm{\epsilon})^2 + \mu \bm{\epsilon} : \bm{\epsilon}
+
+
 .. _problem-hyper-small-strain:
 
 Hyperelasticity at Small Strain
@@ -147,6 +181,11 @@ However, the constitutive law differs and is given as follows:
    \bm{\sigma} = \lambda \log(1 + \operatorname{trace} \bm\epsilon) \bm{I}_3 + 2\mu \bm{\epsilon}
 
 where :math:`\bm{\epsilon}` is defined as in :math:numref:`small-strain`.
+As above, we have the corresponding strain energy density given by
+
+.. math::
+   
+   \bm{W} = \lambda (1 + \operatorname{trace} \bm{\epsilon}) (\log(1 + \operatorname{trace} \bm\epsilon) - 1) + \mu \bm{\epsilon} : \bm{\epsilon}
 
 
 Newton linearization
