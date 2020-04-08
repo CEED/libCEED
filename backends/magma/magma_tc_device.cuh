@@ -29,7 +29,6 @@ dread_T_gm2sm(
     if( transT == MagmaNoTrans ) {
         // T is B x J
         if(tx < B) {
-            #pragma unroll
             for(int i = 0; i < J; i++) {
                 sT[i * B + tx] = dT[i * B + tx];
             }
@@ -38,7 +37,6 @@ dread_T_gm2sm(
     else {
         // T is J x B
         if(tx < J) {
-            #pragma unroll
             for(int i = 0; i < B; i++) {
                 sT[tx * B + i] = dT[i * J + tx];
             }
@@ -56,7 +54,6 @@ dread_U_gsm2reg(
         const int C, const int tx_, 
         const double* U, double rU[B] ) 
 {
-    #pragma unroll
     for(int i = 0; i < B; i++){
         rU[i] = U[i * C + tx_];
     }
@@ -70,7 +67,6 @@ __device__ __inline__ void
 dread_V_gsm2reg( 
         const int C, const int tx_, const double* V, double rV[J] ) 
 {
-    #pragma unroll
     for(int i = 0; i < J; i++){
         rV[i] = V[i * C + tx_];
     }
@@ -85,7 +81,6 @@ dwrite_V_reg2gsm(
         const int C, const int tx_, 
         double rV[J], double* V ) 
 {
-    #pragma unroll
     for(int i = 0; i < J; i++){
         V[i * C + tx_] = rV[i];
     }
@@ -100,10 +95,8 @@ dgemm_slice(
         double rU[B], double beta, double rV[J] ) 
 {
     double rTmp;
-    #pragma unroll
     for(int j = 0; j < J; j++) {
         rTmp = MAGMA_D_ZERO;
-        #pragma unroll
         for(int b = 0; b < B; b++){
             rTmp += rU[ b ] * sT[ j * B + b ];
         }
