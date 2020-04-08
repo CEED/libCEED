@@ -30,7 +30,6 @@ magma_interp(
     magma_int_t nelem, magma_kernel_mode_t kernel_mode, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
-    magma_trans_t transT = (tmode == CEED_NOTRANSPOSE) ? MagmaNoTrans : MagmaTrans;
 
     if(kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC) {
         switch(dim) {
@@ -43,7 +42,7 @@ magma_interp(
     else{
         launch_failed = magma_interp_generic(
                         P, Q, dim, ncomp, 
-                        dT, transT, 
+                        dT, tmode, 
                         dU, u_elstride, u_compstride, 
                         dV, v_elstride, v_compstride, 
                         nelem, queue);
