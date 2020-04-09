@@ -31,9 +31,7 @@
 //     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
 //     ./navierstokes -ceed /gpu/occa -problem advection -degree 1
 //
-//TESTARGS -ceed {ceed_resource} -test explicit -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3
-//TESTARGS -ceed {ceed_resource} -test implicit_stab_none -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha
-//TESTARGS -ceed {ceed_resource} -test implicit_stab_supg -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -stab supg
+//TESTARGS -ceed {ceed_resource} -test -degree 1
 
 /// @file
 /// Navier-Stokes example using PETSc
@@ -50,18 +48,6 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include "advection2d.h"
 #include "densitycurrent.h"
 
-#if PETSC_VERSION_LT(3,14,0)
-#  define DMPlexGetClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexGetClosureIndices(a,b,c,d,f,g,i)
-#  define DMPlexRestoreClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexRestoreClosureIndices(a,b,c,d,f,g,i)
-#endif
-
-// MemType Options
-static const char *const memTypes[] = {
-  "host",
-  "device",
-  "memType", "CEED_MEM_", NULL
-};
-
 // Problem Options
 typedef enum {
   NS_DENSITY_CURRENT = 0,
@@ -72,7 +58,7 @@ static const char *const problemTypes[] = {
   "density_current",
   "advection",
   "advection2d",
-  "problemType", "NS_", NULL
+  "problemType","NS_",0
 };
 
 typedef enum {
@@ -81,50 +67,10 @@ typedef enum {
   STAB_SUPG = 2, // Streamline Upwind Petrov-Galerkin
 } StabilizationType;
 static const char *const StabilizationTypes[] = {
-  "none",
+  "NONE",
   "SU",
   "SUPG",
   "StabilizationType", "STAB_", NULL
-};
-
-// Test Options
-typedef enum {
-  TEST_NONE = 0,               // Non test mode
-  TEST_EXPLICIT = 1,           // Explicit test
-  TEST_IMPLICIT_STAB_NONE = 2, // Implicit test no stab
-  TEST_IMPLICIT_STAB_SUPG = 3, // Implicit test supg stab
-} testType;
-static const char *const testTypes[] = {
-  "none",
-  "explicit",
-  "implicit_stab_none",
-  "implicit_stab_supg",
-  "testType", "TEST_", NULL
-};
-
-// Tests specific data
-typedef struct {
-  PetscScalar testtol;
-  const char *filepath;
-} testData;
-
-testData testOptions[] = {
-  [TEST_NONE] = {
-    .testtol = 0.,
-    .filepath = NULL
-  },
-  [TEST_EXPLICIT] = {
-    .testtol = 1E-5,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-explicit.bin"
-  },
-  [TEST_IMPLICIT_STAB_NONE] = {
-    .testtol = 5E-4,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-implicit-stab-none.bin"
-  },
-  [TEST_IMPLICIT_STAB_SUPG] = {
-    .testtol = 5E-4,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-implicit-stab-supg.bin"
-  }
 };
 
 // Problem specific data
@@ -150,7 +96,7 @@ problemData problemOptions[] = {
     .apply_ifunction     = IFunction_DC,
     .apply_ifunction_loc = IFunction_DC_loc,
     .bc                  = Exact_DC,
-    .non_zero_time       = PETSC_FALSE,
+    .non_zero_time       = false,
   },
   [NS_ADVECTION] = {
     .dim                 = 3,
@@ -164,7 +110,7 @@ problemData problemOptions[] = {
     .apply_ifunction     = IFunction_Advection,
     .apply_ifunction_loc = IFunction_Advection_loc,
     .bc                  = Exact_Advection,
-    .non_zero_time       = PETSC_FALSE,
+    .non_zero_time       = true,
   },
   [NS_ADVECTION2D] = {
     .dim                 = 2,
@@ -178,7 +124,7 @@ problemData problemOptions[] = {
     .apply_ifunction     = IFunction_Advection2d,
     .apply_ifunction_loc = IFunction_Advection2d_loc,
     .bc                  = Exact_Advection2d,
-    .non_zero_time       = PETSC_TRUE,
+    .non_zero_time       = true,
   },
 };
 
@@ -220,8 +166,7 @@ struct Units_ {
 typedef struct SimpleBC_ *SimpleBC;
 struct SimpleBC_ {
   PetscInt nwall, nslip[3];
-  PetscInt walls[6], slips[3][6];
-  PetscBool userbc;
+  PetscInt walls[10], slips[3][10];
 };
 
 // Essential BC dofs are encoded in closure indices as -(i+1).
@@ -231,10 +176,15 @@ static PetscInt Involute(PetscInt i) {
 
 // Utility function to create local CEED restriction
 static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
+    CeedInt height, DMLabel domainLabel, CeedInt value,
     CeedElemRestriction *Erestrict) {
 
   PetscSection   section;
-  PetscInt       c, cStart, cEnd, Nelem, Ndof, *erestrict, eoffset, nfields, dim;
+  PetscInt       p, Nelem, Ndof, *erestrict, eoffset, nfields, dim,
+                 depth;
+  DMLabel depthLabel;
+  IS depthIS, iterIS;
+  const PetscInt *iterIndices;
   PetscErrorCode ierr;
   Vec Uloc;
 
@@ -249,17 +199,29 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
     fieldoff[f+1] = fieldoff[f] + ncomp[f];
   }
 
-  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
-  Nelem = cEnd - cStart;
+  ierr = DMPlexGetDepth(dm, &depth); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthLabel(dm, &depthLabel); CHKERRQ(ierr);
+  ierr = DMLabelGetStratumIS(depthLabel, depth - height, &depthIS); CHKERRQ(ierr);
+  if (domainLabel) {
+    IS domainIS;
+    ierr = DMLabelGetStratumIS(domainLabel, value, &domainIS); CHKERRQ(ierr);
+    ierr = ISIntersect(depthIS, domainIS, &iterIS); CHKERRQ(ierr);
+    ierr = ISDestroy(&domainIS); CHKERRQ(ierr);
+    ierr = ISDestroy(&depthIS); CHKERRQ(ierr);
+  } else {
+    iterIS = depthIS;
+  }
+  ierr = ISGetLocalSize(iterIS, &Nelem); CHKERRQ(ierr);
+  ierr = ISGetIndices(iterIS, &iterIndices); CHKERRQ(ierr);
   ierr = PetscMalloc1(Nelem*PetscPowInt(P, dim), &erestrict); CHKERRQ(ierr);
-  for (c=cStart,eoffset=0; c<cEnd; c++) {
+  for (p=0,eoffset=0; p<Nelem; p++) {
+    PetscInt c = iterIndices[p];
     PetscInt numindices, *indices, nnodes;
-    ierr = DMPlexGetClosureIndices(dm, section, section, c, PETSC_TRUE,
-                                   &numindices, &indices, NULL, NULL);
-    CHKERRQ(ierr);
-    if (numindices % fieldoff[nfields]) SETERRQ1(PETSC_COMM_SELF,
-          PETSC_ERR_ARG_INCOMP, "Number of closure indices not compatible with Cell %D",
-          c);
+    ierr = DMPlexGetClosureIndices(dm, section, section, c, &numindices,
+                                   &indices, NULL); CHKERRQ(ierr);
+    if (numindices % fieldoff[nfields])
+      SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
+               "Number of closure indices not compatible with Cell %D", c);
     nnodes = numindices / fieldoff[nfields];
     for (PetscInt i=0; i<nnodes; i++) {
       // Check that indices are blocked by node and thus can be coalesced as a single field with
@@ -277,13 +239,16 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
       PetscInt loc = Involute(indices[i*ncomp[0]]);
       erestrict[eoffset++] = loc;
     }
-    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, PETSC_TRUE,
-                                       &numindices, &indices, NULL, NULL);
-    CHKERRQ(ierr);
+    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, &numindices,
+                                       &indices, NULL); CHKERRQ(ierr);
   }
-  if (eoffset != Nelem*PetscPowInt(P, dim)) SETERRQ3(PETSC_COMM_SELF,
-        PETSC_ERR_LIB, "ElemRestriction of size (%D,%D) initialized %D nodes", Nelem,
-        PetscPowInt(P, dim),eoffset);
+  if (eoffset != Nelem*PetscPowInt(P, dim))
+    SETERRQ3(PETSC_COMM_SELF, PETSC_ERR_LIB,
+             "ElemRestriction of size (%D,%D) initialized %D nodes", Nelem,
+             PetscPowInt(P, dim),eoffset);
+  ierr = ISRestoreIndices(iterIS, &iterIndices); CHKERRQ(ierr);
+  ierr = ISDestroy(&iterIS); CHKERRQ(ierr);
+
   ierr = DMGetLocalVector(dm, &Uloc); CHKERRQ(ierr);
   ierr = VecGetLocalSize(Uloc, &Ndof); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
@@ -313,8 +278,7 @@ static int VectorPlacePetscVec(CeedVector c, Vec p) {
   ierr = CeedVectorGetLength(c, &mceed); CHKERRQ(ierr);
   ierr = VecGetLocalSize(p, &mpetsc); CHKERRQ(ierr);
   if (mceed != mpetsc) SETERRQ2(PETSC_COMM_SELF,PETSC_ERR_ARG_INCOMP,
-                                  "Cannot place PETSc Vec of length %D in CeedVector of length %D",
-                                  mpetsc, mceed);
+                                  "Cannot place PETSc Vec of length %D in CeedVector of length %D",mpetsc,mceed);
   ierr = VecGetArray(p, &a); CHKERRQ(ierr);
   CeedVectorSetArray(c, CEED_MEM_HOST, CEED_USE_POINTER, a);
   PetscFunctionReturn(0);
@@ -477,6 +441,7 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
     ierr = DMRestoreGlobalVector(user->dmviz, &Qrefined); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer_refined); CHKERRQ(ierr);
   }
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
 
   // Save data in a binary file for continuation of simulations
@@ -505,7 +470,7 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics,
+static PetscErrorCode ICs_PetscMultiplicity(CeedOperator op_ics,
     CeedVector xcorners, CeedVector q0ceed, DM dm, Vec Qloc, Vec Q,
     CeedElemRestriction restrictq, SetupContext ctxSetup, CeedScalar time) {
   PetscErrorCode ierr;
@@ -589,14 +554,15 @@ static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
-                              SimpleBC bc, void *ctxSetup) {
+PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
+                       SimpleBC bc, void *ctxSetup) {
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
   {
     // Configure the finite element space and boundary conditions
     PetscFE fe;
+    PetscSpace fespace;
     PetscInt ncompq = 5;
     ierr = PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, ncompq,
                                  PETSC_FALSE, degree, PETSC_DECIDE,
@@ -604,6 +570,13 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm,NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
+    /* Wall boundary conditions are zero velocity and zero flux for density and energy */
+    {
+      PetscInt comps[3] = {1, 2, 3};
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
+                           3, comps, (void(*)(void))problem->bc,
+                           bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
+    }
     {
       PetscInt comps[1] = {1};
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
@@ -618,38 +591,9 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
                            1, comps, (void(*)(void))NULL, bc->nslip[2],
                            bc->slips[2], ctxSetup); CHKERRQ(ierr);
     }
-    if (bc->userbc == PETSC_TRUE) {
-      for (PetscInt c = 0; c < 3; c++) {
-        for (PetscInt s = 0; s < bc->nslip[c]; s++) {
-          for (PetscInt w = 0; w < bc->nwall; w++) {
-            if (bc->slips[c][s] == bc->walls[w])
-              SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
-                       "Boundary condition already set on face %D!\n", bc->walls[w]);
-
-          }
-        }
-      }
-    }
-    // Wall boundary conditions are zero energy density and zero flux for
-    //   velocity in advection/advection2d, and zero velocity and zero flux
-    //   for mass density and energy density in density_current
-    {
-      if (problem->bc == Exact_Advection || problem->bc == Exact_Advection2d) {
-        PetscInt comps[1] = {4};
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
-                             1, comps, (void(*)(void))problem->bc,
-                             bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
-      } else if (problem->bc == Exact_DC) {
-        PetscInt comps[3] = {1, 2, 3};
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
-                             3, comps, (void(*)(void))problem->bc,
-                             bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
-      } else
-        SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_NULL,
-                "Undefined boundary conditions for this problem");
-    }
-    ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
+    ierr = DMPlexSetClosurePermutationTensor(dm,PETSC_DETERMINE,NULL);
     CHKERRQ(ierr);
+    ierr = PetscFEGetBasisSpace(fe, &fespace); CHKERRQ(ierr);
     ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
   }
   {
@@ -674,14 +618,14 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  DM dm, dmcoord, dmviz;
+  DM dm, dmcoord, dmviz, dmvizfine;
   Mat interpviz;
   TS ts;
   TSAdapt adapt;
   User user;
   Units units;
   char ceedresource[4096] = "/cpu/self";
-  PetscInt cStart, cEnd, localNelem, lnodes, gnodes, steps;
+  PetscInt cStart, cEnd, localNelem, lnodes, steps;
   const PetscInt ncompq = 5;
   PetscMPIInt rank;
   PetscScalar ftime;
@@ -694,60 +638,51 @@ int main(int argc, char **argv) {
   CeedQFunction qf_setup, qf_ics, qf_rhs, qf_ifunction;
   CeedOperator op_setup, op_ics;
   CeedScalar Rd;
-  CeedMemType memtyperequested;
   PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
               kgpersquaredms, Joulepercubicm;
   problemType problemChoice;
   problemData *problem = NULL;
   StabilizationType stab;
-  testType testChoice;
-  testData *test = NULL;
-  PetscBool implicit;
+  PetscBool   test, implicit;
   PetscInt    viz_refine = 0;
   struct SimpleBC_ bc = {
-    .nslip = {2, 2, 2},
-    .slips = {{5, 6}, {3, 4}, {1, 2}}
+    .nwall = 6,
+    .walls = {1,2,3,4,5,6},
   };
   double start, cpu_time_used;
-  // Check PETSc CUDA support
-  PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
-  // *INDENT-OFF*
-  #ifdef PETSC_HAVE_CUDA
-  petschavecuda = PETSC_TRUE;
-  #else
-  petschavecuda = PETSC_FALSE;
-  #endif
-  // *INDENT-ON*
 
   // Create the libCEED contexts
-  PetscScalar meter      = 1e-2;     // 1 meter in scaled length units
-  PetscScalar second     = 1e-2;     // 1 second in scaled time units
-  PetscScalar kilogram   = 1e-6;     // 1 kilogram in scaled mass units
-  PetscScalar Kelvin     = 1;        // 1 Kelvin in scaled temperature units
-  CeedScalar theta0      = 300.;     // K
-  CeedScalar thetaC      = -15.;     // K
-  CeedScalar P0          = 1.e5;     // Pa
-  CeedScalar N           = 0.01;     // 1/s
-  CeedScalar cv          = 717.;     // J/(kg K)
-  CeedScalar cp          = 1004.;    // J/(kg K)
-  CeedScalar g           = 9.81;     // m/s^2
-  CeedScalar lambda      = -2./3.;   // -
-  CeedScalar mu          = 75.;      // Pa s, dynamic viscosity
+  PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
+  PetscScalar second    = 1e-2;     // 1 second in scaled time units
+  PetscScalar kilogram  = 1e-6;     // 1 kilogram in scaled mass units
+  PetscScalar Kelvin    = 1;        // 1 Kelvin in scaled temperature units
+  CeedScalar theta0     = 300.;     // K
+  CeedScalar thetaC     = -15.;     // K
+  CeedScalar P0         = 1.e5;     // Pa
+  CeedScalar N          = 0.01;     // 1/s
+  CeedScalar cv         = 717.;     // J/(kg K)
+  CeedScalar cp         = 1004.;    // J/(kg K)
+  CeedScalar g          = 9.81;     // m/s^2
+  CeedScalar lambda     = -2./3.;   // -
+  CeedScalar mu         = 75.;      // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
-  CeedScalar k           = 0.02638;  // W/(m K)
-  CeedScalar CtauS       = 0.;       // dimensionless
+  CeedScalar k          = 0.02638;  // W/(m K)
+  CeedScalar CtauS      = 0.;       // dimensionless
   CeedScalar strong_form = 0.;      // [0,1]
-  PetscScalar lx         = 8000.;    // m
-  PetscScalar ly         = 8000.;    // m
-  PetscScalar lz         = 4000.;    // m
-  CeedScalar rc          = 1000.;    // m (Radius of bubble)
-  PetscScalar resx       = 1000.;    // m (resolution in x)
-  PetscScalar resy       = 1000.;    // m (resolution in y)
-  PetscScalar resz       = 1000.;    // m (resolution in z)
-  PetscInt outputfreq    = 10;       // -
-  PetscInt contsteps     = 0;        // -
-  PetscInt degree        = 1;        // -
-  PetscInt qextra        = 2;        // -
+  PetscScalar lx        = 8000.;    // m
+  PetscScalar ly        = 8000.;    // m
+  PetscScalar lz        = 4000.;    // m
+  CeedScalar rc         = 1000.;    // m (Radius of bubble)
+  PetscScalar resx      = 1000.;    // m (resolution in x)
+  PetscScalar resy      = 1000.;    // m (resolution in y)
+  PetscScalar resz      = 1000.;    // m (resolution in z)
+  PetscInt outputfreq   = 10;       // -
+  PetscInt contsteps    = 0;        // -
+  PetscInt degree       = 1;        // -
+  PetscInt qextra       = 2;        // -
+  DMBoundaryType periodicity[] = {DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
+                                  DM_BOUNDARY_NONE
+                                 };
   PetscReal center[3], dc_axis[3] = {0, 0, 0};
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
@@ -764,12 +699,8 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
-  testChoice = TEST_NONE;
-  ierr = PetscOptionsEnum("-test", "Run tests", NULL,
-                          testTypes, (PetscEnum)testChoice,
-                          (PetscEnum *)&testChoice,
-                          NULL); CHKERRQ(ierr);
-  test = &testOptions[testChoice];
+  ierr = PetscOptionsBool("-test", "Run in test mode",
+                          NULL, test=PETSC_FALSE, &test, NULL); CHKERRQ(ierr);
   problemChoice = NS_DENSITY_CURRENT;
   ierr = PetscOptionsEnum("-problem", "Problem to solve", NULL,
                           problemTypes, (PetscEnum)problemChoice,
@@ -781,10 +712,6 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
-  if (!implicit && stab != STAB_NONE) {
-    ierr = PetscPrintf(comm, "Warning! Use -stab only with -implicit\n");
-    CHKERRQ(ierr);
-  }
   {
     PetscInt len;
     PetscBool flg;
@@ -802,10 +729,7 @@ int main(int argc, char **argv) {
                                   (len = sizeof(bc.slips[j]) / sizeof(bc.slips[j][0]),
                                    &len), &flg);
       CHKERRQ(ierr);
-      if (flg) {
-        bc.nslip[j] = len;
-        bc.userbc = PETSC_TRUE;
-      }
+      if (flg) bc.nslip[j] = len;
     }
   }
   ierr = PetscOptionsInt("-viz_refine",
@@ -849,20 +773,10 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsScalar("-CtauS",
                             "Scale coefficient for tau (nondimensional)",
                             NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
-  if (stab == STAB_NONE && CtauS != 0) {
-    ierr = PetscPrintf(comm,
-                       "Warning! Use -CtauS only with -stab su or -stab supg\n");
-    CHKERRQ(ierr);
-  }
   ierr = PetscOptionsScalar("-strong_form",
                             "Strong (1) or weak/integrated by parts (0) advection residual",
                             NULL, strong_form, &strong_form, NULL);
   CHKERRQ(ierr);
-  if (problemChoice == NS_DENSITY_CURRENT && (CtauS != 0 || strong_form != 0)) {
-    ierr = PetscPrintf(comm,
-                       "Warning! Problem density_current does not support -CtauS or -strong_form\n");
-    CHKERRQ(ierr);
-  }
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                             NULL, lx, &lx, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
@@ -878,6 +792,10 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsScalar("-resz","Target resolution in z",
                             NULL, resz, &resz, NULL); CHKERRQ(ierr);
   PetscInt n = problem->dim;
+  ierr = PetscOptionsEnumArray("-periodicity", "Periodicity per direction",
+                               NULL, DMBoundaryTypes, (PetscEnum *)periodicity,
+                               &n, NULL); CHKERRQ(ierr);
+  n = problem->dim;
   center[0] = 0.5 * lx;
   center[1] = 0.5 * ly;
   center[2] = 0.5 * lz;
@@ -903,16 +821,10 @@ int main(int argc, char **argv) {
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
-  ierr = PetscStrncpy(user->outputfolder, ".", 2); CHKERRQ(ierr);
+  PetscStrncpy(user->outputfolder, ".", 2);
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
                             sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
-  memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
-  ierr = PetscOptionsEnum("-memtype",
-                          "CEED MemType requested", NULL,
-                          memTypes, (PetscEnum)memtyperequested,
-                          (PetscEnum *)&memtyperequested, &setmemtyperequest);
-  CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Define derived units
@@ -947,7 +859,7 @@ int main(int argc, char **argv) {
   const CeedInt dim = problem->dim, ncompx = problem->dim,
                 qdatasize = problem->qdatasize;
   // Set up the libCEED context
-  struct SetupContext_ ctxSetup = {
+  struct SetupContext_ ctxSetup =  {
     .theta0 = theta0,
     .thetaC = thetaC,
     .P0 = P0,
@@ -960,6 +872,9 @@ int main(int argc, char **argv) {
     .lx = lx,
     .ly = ly,
     .lz = lz,
+    .periodicity0 = periodicity[0],
+    .periodicity1 = periodicity[1],
+    .periodicity2 = periodicity[2],
     .center[0] = center[0],
     .center[1] = center[1],
     .center[2] = center[2],
@@ -969,16 +884,13 @@ int main(int argc, char **argv) {
     .time = 0,
   };
 
-  // Create the mesh
   {
     const PetscReal scale[3] = {lx, ly, lz};
     ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, scale,
-                               NULL, PETSC_TRUE, &dm);
+                               periodicity, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
   }
-
-  // Distribute the mesh over processes
-  {
+  if (1) {
     DM               dmDist = NULL;
     PetscPartitioner part;
 
@@ -992,12 +904,14 @@ int main(int argc, char **argv) {
   }
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
-  // Setup DM
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = SetUpDM(dm, problem, degree, &bc, &ctxSetup); CHKERRQ(ierr);
-
-  // Refine DM for high-order viz
+  if (!test) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                       "Degree of FEM Space: %D\n",
+                       degree); CHKERRQ(ierr);
+  }
   dmviz = NULL;
   interpviz = NULL;
   if (viz_refine) {
@@ -1036,72 +950,34 @@ int main(int argc, char **argv) {
   ierr = VecGetSize(Qloc, &lnodes); CHKERRQ(ierr);
   lnodes /= ncompq;
 
-  // Initialize CEED
-  CeedInit(ceedresource, &ceed);
-  // Set memtype
-  CeedMemType memtypebackend;
-  CeedGetPreferredMemType(ceed, &memtypebackend);
-  // Check memtype compatibility
-  if (!setmemtyperequest)
-    memtyperequested = memtypebackend;
-  else if (!petschavecuda && memtyperequested == CEED_MEM_DEVICE)
-    SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_SUP_SYS,
-             "PETSc was not built with CUDA. "
-             "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
-
-  // Set number of 1D nodes and quadrature points
-  numP = degree + 1;
-  numQ = numP + qextra;
-
-  // Print summary
-  if (testChoice == TEST_NONE) {
+  {
+    // Print grid information
     CeedInt gdofs, odofs;
     int comm_size;
     char box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
     ierr = VecGetSize(Q, &gdofs); CHKERRQ(ierr);
     ierr = VecGetLocalSize(Q, &odofs); CHKERRQ(ierr);
-    gnodes = gdofs/ncompq;
     ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
     ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str,
                                  sizeof(box_faces_str), NULL); CHKERRQ(ierr);
-    const char *usedresource;
-    CeedGetResource(ceed, &usedresource);
+    if (!test) {
+      ierr = PetscPrintf(comm, "Global FEM dofs: %D (%D owned) on %d ranks\n",
+                         gdofs, odofs, comm_size); CHKERRQ(ierr);
+      ierr = PetscPrintf(comm, "Local FEM nodes: %D\n", lnodes); CHKERRQ(ierr);
+      ierr = PetscPrintf(comm, "dm_plex_box_faces: %s\n", box_faces_str);
+      CHKERRQ(ierr);
+    }
 
-    ierr = PetscPrintf(comm,
-                       "\n-- Navier-Stokes solver - libCEED + PETSc --\n"
-                       "  rank(s)                              : %d\n"
-                       "  Problem:\n"
-                       "    Problem Name                       : %s\n"
-                       "    Stabilization                      : %s\n"
-                       "  PETSc:\n"
-                       "    Box Faces                          : %s\n"
-                       "  libCEED:\n"
-                       "    libCEED Backend                    : %s\n"
-                       "    libCEED Backend MemType            : %s\n"
-                       "    libCEED User Requested MemType     : %s\n"
-                       "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (P)       : %d\n"
-                       "    Number of 1D Quadrature Points (Q) : %d\n"
-                       "    Global DoFs                        : %D\n"
-                       "    Owned DoFs                         : %D\n"
-                       "    DoFs per node                      : %D\n"
-                       "    Global nodes                       : %D\n"
-                       "    Owned nodes                        : %D\n",
-                       comm_size, problemTypes[problemChoice],
-                       StabilizationTypes[stab], box_faces_str, usedresource,
-                       CeedMemTypes[memtypebackend],
-                       (setmemtyperequest) ?
-                       CeedMemTypes[memtyperequested] : "none",
-                       numP, numQ, gdofs, odofs, ncompq, gnodes, lnodes);
-    CHKERRQ(ierr);
   }
 
   // Set up global mass vector
-  ierr = VecDuplicate(Q, &user->M); CHKERRQ(ierr);
+  ierr = VecDuplicate(Q,&user->M); CHKERRQ(ierr);
 
-  // Set up libCEED
+  // Set up CEED
   // CEED Bases
   CeedInit(ceedresource, &ceed);
+  numP = degree + 1;
+  numQ = numP + qextra;
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompq, numP, numQ, CEED_GAUSS,
                                   &basisq);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numQ, CEED_GAUSS,
@@ -1114,9 +990,10 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
 
   // CEED Restrictions
-  ierr = CreateRestrictionFromPlex(ceed, dm, degree+1, &restrictq);
+  ierr = CreateRestrictionFromPlex(ceed, dm, degree+1, 0, 0, 0, &restrictq);
   CHKERRQ(ierr);
-  ierr = CreateRestrictionFromPlex(ceed, dmcoord, 2, &restrictx); CHKERRQ(ierr);
+  ierr = CreateRestrictionFromPlex(ceed, dmcoord, 2, 0, 0, 0, &restrictx);
+  CHKERRQ(ierr);
   DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   localNelem = cEnd - cStart;
   CeedInt numQdim = CeedIntPow(numQ, dim);
@@ -1130,6 +1007,8 @@ int main(int argc, char **argv) {
   // Create the CEED vectors that will be needed in setup
   CeedInt Nqpts;
   CeedBasisGetNumQuadraturePoints(basisq, &Nqpts);
+  CeedInt Ndofs = 1;
+  for (int d=0; d<3; d++) Ndofs *= numP;
   CeedVectorCreate(ceed, qdatasize*localNelem*Nqpts, &qdata);
   CeedElemRestrictionCreateVector(restrictq, &q0ceed, NULL);
 
@@ -1272,8 +1151,8 @@ int main(int argc, char **argv) {
   ierr = ComputeLumpedMassMatrix(ceed, dm, restrictq, basisq, restrictqdi, qdata,
                                  user->M); CHKERRQ(ierr);
 
-  ierr = ICs_FixMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictq,
-                             &ctxSetup, 0.0); CHKERRQ(ierr);
+  ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictq,
+                               &ctxSetup, 0.0);
   if (1) { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
     // We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow.  If we
     // disable this, we should still get the same results due to the problem->bc function, but with potentially much
@@ -1286,8 +1165,7 @@ int main(int argc, char **argv) {
     ierr = VecAXPY(Qbc, -1., Qloc); CHKERRQ(ierr);
     ierr = DMRestoreNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
     ierr = PetscObjectComposeFunction((PetscObject)dm,
-                                      "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_NS);
-    CHKERRQ(ierr);
+                                      "DMPlexInsertBoundaryValues_C",DMPlexInsertBoundaryValues_NS); CHKERRQ(ierr);
   }
 
   MPI_Comm_rank(comm, &rank);
@@ -1305,6 +1183,8 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
     ierr = VecLoad(Q, viewer); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  } else {
+    //ierr = DMLocalToGlobal(dm, Qloc, INSERT_VALUES, Q);CHKERRQ(ierr);
   }
   ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
 
@@ -1328,14 +1208,14 @@ int main(int argc, char **argv) {
   ierr = TSSetMaxTime(ts, 500. * units->second); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
   ierr = TSSetTimeStep(ts, 1.e-2 * units->second); CHKERRQ(ierr);
-  if (testChoice != TEST_NONE) {ierr = TSSetMaxSteps(ts, 10); CHKERRQ(ierr);}
+  if (test) {ierr = TSSetMaxSteps(ts, 1); CHKERRQ(ierr);}
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
   ierr = TSAdaptSetStepLimits(adapt,
                               1.e-12 * units->second,
                               1.e2 * units->second); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   if (!contsteps) { // print initial condition
-    if (testChoice == TEST_NONE) {
+    if (!test) {
       ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
     }
   } else { // continue from time of last output
@@ -1352,7 +1232,7 @@ int main(int argc, char **argv) {
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
     ierr = TSSetTime(ts, time * user->units->second); CHKERRQ(ierr);
   }
-  if (testChoice == TEST_NONE) {
+  if (!test) {
     ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
   }
 
@@ -1361,25 +1241,25 @@ int main(int argc, char **argv) {
   ierr = PetscBarrier((PetscObject)ts); CHKERRQ(ierr);
   ierr = TSSolve(ts, Q); CHKERRQ(ierr);
   cpu_time_used = MPI_Wtime() - start;
-  ierr = TSGetSolveTime(ts, &ftime); CHKERRQ(ierr);
+  ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
   ierr = MPI_Allreduce(MPI_IN_PLACE, &cpu_time_used, 1, MPI_DOUBLE, MPI_MIN,
                        comm); CHKERRQ(ierr);
-  if (testChoice == TEST_NONE) {
+  if (!test) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Time taken for solution (sec): %g\n",
+                       "Time taken for solution: %g\n",
                        (double)cpu_time_used); CHKERRQ(ierr);
   }
 
   // Get error
-  if (problem->non_zero_time && testChoice == TEST_NONE) {
+  if (problem->non_zero_time && !test) {
     Vec Qexact, Qexactloc;
     PetscReal norm;
     ierr = DMCreateGlobalVector(dm, &Qexact); CHKERRQ(ierr);
     ierr = DMGetLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
     ierr = VecGetSize(Qexactloc, &lnodes); CHKERRQ(ierr);
 
-    ierr = ICs_FixMultiplicity(op_ics, xcorners, q0ceed, dm, Qexactloc, Qexact,
-                               restrictq, &ctxSetup, ftime); CHKERRQ(ierr);
+    ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qexactloc, Qexact,
+                                 restrictq, &ctxSetup, ftime); CHKERRQ(ierr);
 
     ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
     ierr = VecNorm(Q, NORM_MAX, &norm); CHKERRQ(ierr);
@@ -1387,46 +1267,14 @@ int main(int argc, char **argv) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Max Error: %g\n",
                        (double)norm); CHKERRQ(ierr);
-    // Clean up vectors
-    ierr = DMRestoreLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
-    ierr = VecDestroy(&Qexact); CHKERRQ(ierr);
   }
 
   // Output Statistics
   ierr = TSGetStepNumber(ts,&steps); CHKERRQ(ierr);
-  if (testChoice == TEST_NONE) {
+  if (!test) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Time integrator took %D time steps to reach final time %g\n",
-                       steps, (double)ftime); CHKERRQ(ierr);
-  }
-  // Output numerical values from command line
-  ierr = VecViewFromOptions(Q, NULL, "-vec_view"); CHKERRQ(ierr);
-
-  // compare reference solution values with current run
-  if (testChoice != TEST_NONE) {
-    PetscViewer viewer;
-    // Read reference file
-    Vec Qref;
-    PetscReal error, Qrefnorm;
-    ierr = VecDuplicate(Q, &Qref); CHKERRQ(ierr);
-    ierr = PetscViewerBinaryOpen(comm, test->filepath, FILE_MODE_READ, &viewer);
-    CHKERRQ(ierr);
-    ierr = VecLoad(Qref, viewer); CHKERRQ(ierr);
-    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-    // Compute error with respect to reference solution
-    ierr = VecAXPY(Q, -1.0, Qref);  CHKERRQ(ierr);
-    ierr = VecNorm(Qref, NORM_MAX, &Qrefnorm); CHKERRQ(ierr);
-    ierr = VecScale(Q, 1./Qrefnorm); CHKERRQ(ierr);
-    ierr = VecNorm(Q, NORM_MAX, &error); CHKERRQ(ierr);
-    ierr = VecDestroy(&Qref); CHKERRQ(ierr);
-    // Check error
-    if (error > test->testtol) {
-      ierr = PetscPrintf(PETSC_COMM_WORLD,
-                         "Test failed with error norm %g\n",
-                         (double)error); CHKERRQ(ierr);
-    }
-    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+                       steps,(double)ftime); CHKERRQ(ierr);
   }
 
   // Clean up libCEED
