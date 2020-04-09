@@ -18,14 +18,14 @@
 #define MAGMA_GRAD_DEVICE_CUH
 
 //////////////////////////////////////////////////////////////////////////////////////////
-template<int P, int Q>
+template<typename T, int P, int Q>
 static __device__ __inline__ void
 magma_grad_generic_device( 
     const int p, 
     const int dim, const int ncomp, const int pre_org, const int post_org, const int tmp_size, 
-    const double *sTinterp, const double *sTgrad, magma_trans_t transT,
-    const double *dU, double *dV, 
-    double* shared_data )
+    const T *sTinterp, const T *sTgrad, magma_trans_t transT,
+    const T *dU, T *dV, 
+    T* shared_data )
 {
 #define B    (P)
 #define J    (Q)
@@ -43,11 +43,11 @@ magma_grad_generic_device(
 
     const magma_int_t add = (transT == MagmaTrans);
     
-    double* sTmp1 = (double*)shared_data;
-    double* sTmp2 = sTmp1 + tmp_size; 
-    double rU[P]  = { MAGMA_D_ZERO };    // each thread has an entire row of U
-    double rV[Q]  = { MAGMA_D_ZERO };    // each thread computes an entire row of V
-    double *sU, *sV, *sT; 
+    T* sTmp1 = (T*)shared_data;
+    T* sTmp2 = sTmp1 + tmp_size; 
+    T rU[P]  = { MAGMA_D_ZERO };    // each thread has an entire row of U
+    T rV[Q]  = { MAGMA_D_ZERO };    // each thread computes an entire row of V
+    T *sU, *sV, *sT; 
 
     sU = sTmp1; 
     sV = sTmp2;
@@ -77,7 +77,7 @@ magma_grad_generic_device(
     int d = 0; 
     #pragma unroll
     for(d = 0; d < dim-1; d++) {
-        sT = (p == d) ? (double*)sTgrad : (double*)sTinterp;
+        sT = (p == d) ? (T*)sTgrad : (T*)sTinterp;
         sU = (d % 2 == 0) ? sTmp1 : sTmp2;
         sV = (d % 2 == 0) ? sTmp2 : sTmp1;
         
@@ -109,10 +109,10 @@ magma_grad_generic_device(
     
     // handle last iteration (d = dim-1) with dV and beta
     // no need for sV in the last iteration, just use sU and write directly into dV
-    sT = (p == d) ? (double*)sTgrad : (double*)sTinterp;
+    sT = (p == d) ? (T*)sTgrad : (T*)sTinterp;
     sU = (d % 2 == 0) ? sTmp1 : sTmp2;
     //sV = (d % 2 == 0) ? sTmp2 : sTmp1; 
-    double beta = (add == 1) ? MAGMA_D_ONE : MAGMA_D_ZERO; 
+    T beta = (add == 1) ? MAGMA_D_ONE : MAGMA_D_ZERO; 
         
     sU += slice_id * C * B;
     dV += slice_id * C * J;
