@@ -99,7 +99,6 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
       u_compstride = nelem * elquadsize;
     }
 
-    // Loop through components and apply batch over elements
     ierr = magma_interp(P, Q, dim, ncomp, 
             impl->dinterp1d, tmode, 
             u, u_elstride, u_compstride, 
@@ -158,13 +157,13 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
 
     }
 
-    // Loop through grad dimensions only, batch call over elements and components
-    for (CeedInt dim_ctr = 0; dim_ctr < dim; dim_ctr++)
-      magma_grad_generic(P, Q, dim, ncomp, nqpt,
-          impl->dinterp1d, impl->dgrad1d, tmode,
-          u + dim_ctr * u_dimstride, u_elstride, u_compstride, u_dimstride,
-          v + dim_ctr * v_dimstride, v_elstride, v_compstride, v_dimstride,
-          dim_ctr, nelem, data->queue );
+    ierr = magma_grad( P, Q, dim, ncomp, nqpt,  
+            impl->dinterp1d, impl->dgrad1d, tmode, 
+            u, u_elstride, u_compstride, u_dimstride, 
+            v, v_elstride, v_compstride, v_dimstride, 
+            nelem, data->basis_kernel_mode, 
+            data->queue);
+    if(ierr != 0) CeedError(ceed, 1, "MAGMA: launch failure detected for magma_grad");
   }
   break;
   case CEED_EVAL_WEIGHT: {
