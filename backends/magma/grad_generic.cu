@@ -80,7 +80,7 @@ magma_grad_generic_kernel_driver(
     nthreads = magma_roundup( nthreads, Q ); // nthreads must be multiple of Q
 
     if( shmem >= 49000 ) {
-        cudaFuncSetAttribute(magma_grad_generic_kernel<P,Q>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
+        cudaFuncSetAttribute(magma_grad_generic_kernel<T,P,Q>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
     }
 
     if( nthreads > 1024 ) {
