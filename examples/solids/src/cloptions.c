@@ -82,6 +82,12 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                                  appCtx->forcingVector, &maxn, NULL);
   CHKERRQ(ierr);
 
+  if (appCtx->problemChoice == ELAS_HYPER_FS &&
+      appCtx->forcingChoice == FORCE_CONST)
+    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
+            "Cannot use constant forcing and finite strain formulation. "
+            "Constant forcing in reference frame currently unavaliable.");
+
   appCtx->bcZeroCount = 16;
   ierr = PetscOptionsIntArray("-bc_zero", "Face IDs to apply zero Dirichlet BC",
                               NULL, appCtx->bcZeroFaces, &appCtx->bcZeroCount,
