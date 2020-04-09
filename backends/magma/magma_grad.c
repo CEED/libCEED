@@ -24,8 +24,8 @@ magma_int_t
 magma_grad( 
     magma_int_t P, magma_int_t Q, magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt,  
     const CeedScalar *dinterp1d, const CeedScalar *dgrad1d, CeedTransposeMode tmode, 
-    const CeedScalar *dU, magma_int_t u_elemstride, magma_int_t u_compstride, magma_int_t u_dimstride, 
-          CeedScalar *dV, magma_int_t v_elemstride, magma_int_t v_compstride, magma_int_t v_dimstride, 
+    const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, magma_int_t u_dimstride, 
+          CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, magma_int_t v_dimstride, 
     magma_int_t nelem, magma_kernel_mode_t kernel_mode, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
@@ -46,7 +46,7 @@ magma_grad(
                 dinterp1d, dgrad1d, tmode, 
                 dU + dim_ctr * u_dimstride, u_elstride, u_compstride, u_dimstride, 
                 dV + dim_ctr * v_dimstride, v_elstride, v_compstride, v_dimstride, 
-                dim_ctr, nelem, data->queue ); 
+                dim_ctr, nelem, queue ); 
             if(launch_failed != 0) break;
         }
     }
