@@ -107,16 +107,19 @@ CEED_INTERN {
             double *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
       magma_int_t nelem, magma_kernel_mode_t kernel_mode, magma_queue_t queue);
 
-  void magma_grad_generic(magma_int_t P, magma_int_t Q,
-      magma_int_t dim, magma_int_t ncomp,
-      magma_int_t nqpt, const double* dinterp1d,
-      const double *dgrad1d, CeedTransposeMode tmode,
-      const double *dU, magma_int_t u_elemstride,
-      magma_int_t u_compstride, magma_int_t u_dimstride,
-      double *dV, magma_int_t v_elemstride,
-      magma_int_t v_compstride, magma_int_t v_dimstride,
-      magma_int_t dim_id, magma_int_t nelem,
-      magma_queue_t queue);
+  magma_int_t magma_grad_generic(
+      magma_int_t P, magma_int_t Q, magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt, 
+      const CeedScalar* dinterp1d, const CeedScalar *dgrad1d, CeedTransposeMode tmode,
+      const CeedScalar *dU, magma_int_t u_elemstride, magma_int_t u_compstride, magma_int_t u_dimstride,
+            CeedScalar *dV, magma_int_t v_elemstride, magma_int_t v_compstride, magma_int_t v_dimstride,
+      magma_int_t dim_id, magma_int_t nelem, magma_queue_t queue);
+
+  magma_int_t magma_grad( 
+    magma_int_t P, magma_int_t Q, magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt,  
+    const CeedScalar *dinterp1d, const CeedScalar *dgrad1d, CeedTransposeMode tmode, 
+    const CeedScalar *dU, magma_int_t u_elemstride, magma_int_t u_compstride, magma_int_t u_dimstride, 
+          CeedScalar *dV, magma_int_t v_elemstride, magma_int_t v_compstride, magma_int_t v_dimstride, 
+    magma_int_t nelem, magma_kernel_mode_t kernel_mode, magma_queue_t queue);
 
   void magmablas_dbasis_apply_batched_eval_weight(magma_int_t Q, magma_int_t dim,
       const double *dqweight1d, double *dV,
