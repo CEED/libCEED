@@ -182,8 +182,8 @@ magma_grad_generic(
         launch_failed = magma_grad_generic_q_p(
                 P, Q, dim, ncomp, 
                 dinterp1d, dgrad1d, transT, 
-                dU + dim_ctr * u_dimstride, u_elstride, u_compstride, u_dimstride, 
-                dV + dim_ctr * v_dimstride, v_elstride, v_compstride, v_dimstride, 
+                dU + dim_ctr * u_dimstride, u_elstride, u_compstride, 
+                dV + dim_ctr * v_dimstride, v_elstride, v_compstride, 
                 dim_ctr, nelem, queue ); 
         if(launch_failed != 0) break;
     }
