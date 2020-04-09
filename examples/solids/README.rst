@@ -99,6 +99,10 @@ The command line options just shown are the minimum requirements to run the mini
      -  Forcing term option (:code:`none`, :code:`constant`, or :code:`mms`)
      - :code:`none`
 
+   * - :code:`-forcing_vec`
+     -  Forcing vector
+     - :code:`0,-1,0`
+
    * - :code:`-num_steps`
      - Number of load increments for continuation method
      - :code:`1` if :code:`linElas` else :code:`10`

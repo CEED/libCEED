@@ -25,11 +25,8 @@
 // Process general command line options
 PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
   PetscErrorCode ierr;
-  PetscBool degreeFalg   = PETSC_FALSE;
+  PetscBool degreeFlag   = PETSC_FALSE;
   PetscBool ceedFlag     = PETSC_FALSE;
-  appCtx->problemChoice  = ELAS_LIN;       // Default - Linear Elasticity
-  appCtx->degree         = 3;
-  appCtx->forcingChoice  = FORCE_NONE;     // Default - no forcing term
 
   PetscFunctionBeginUser;
 
@@ -49,14 +46,16 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                             sizeof(appCtx->ceedResourceFine), NULL);
   CHKERRQ(ierr);
 
+  appCtx->degree         = 3;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, appCtx->degree, &appCtx->degree,
-                         &degreeFalg); CHKERRQ(ierr);
+                         &degreeFlag); CHKERRQ(ierr);
 
   ierr = PetscOptionsString("-mesh", "Read mesh from file", NULL,
                             appCtx->meshFile, appCtx->meshFile,
                             sizeof(appCtx->meshFile), NULL); CHKERRQ(ierr);
 
+  appCtx->problemChoice  = ELAS_LIN;       // Default - Linear Elasticity
   ierr = PetscOptionsEnum("-problem",
                           "Solves Elasticity & Hyperelasticity Problems",
                           NULL, problemTypes, (PetscEnum)appCtx->problemChoice,
@@ -68,9 +67,19 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                          NULL, appCtx->numIncrements, &appCtx->numIncrements,
                          NULL); CHKERRQ(ierr);
 
+  appCtx->forcingChoice  = FORCE_NONE;     // Default - no forcing term
   ierr = PetscOptionsEnum("-forcing", "Set forcing function option", NULL,
                           forcingTypes, (PetscEnum)appCtx->forcingChoice,
                           (PetscEnum *)&appCtx->forcingChoice, NULL);
+  CHKERRQ(ierr);
+
+  PetscInt maxn = 3;
+  appCtx->forcingVector[0] = 0;
+  appCtx->forcingVector[1] = -1;
+  appCtx->forcingVector[2] = 0;
+  ierr = PetscOptionsScalarArray("-forcing_vec",
+                                 "Direction to apply constant force", NULL,
+                                 appCtx->forcingVector, &maxn, NULL);
   CHKERRQ(ierr);
 
   appCtx->bcZeroCount = 16;
@@ -88,7 +97,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
     char optionName[25];
     snprintf(optionName, sizeof optionName, "-bc_clamp_%d_translate",
              appCtx->bcClampFaces[i]);
-    PetscInt maxn = 3;
     appCtx->bcClampTranslate[i] = PETSC_FALSE;
     ierr = PetscOptionsScalarArray(optionName,
                                    "Vector to translate clamped end by", NULL,
@@ -144,7 +152,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
 
   // Check for all required values set
   if (!appCtx->testMode) {
-    if (!degreeFalg) {
+    if (!degreeFlag) {
       SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-degree option needed");
     }
     if (!(appCtx->bcZeroCount + appCtx->bcClampCount) &&

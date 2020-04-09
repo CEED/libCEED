@@ -368,7 +368,11 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
     CeedQFunctionAddInput(qfSetupForce, "x", ncompx, CEED_EVAL_INTERP);
     CeedQFunctionAddInput(qfSetupForce, "qdata", qdatasize, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qfSetupForce, "force", ncompu, CEED_EVAL_INTERP);
-    CeedQFunctionSetContext(qfSetupForce, phys, sizeof(phys));
+    if (forcingChoice == FORCE_MMS)
+      CeedQFunctionSetContext(qfSetupForce, phys, sizeof(phys));
+    else
+      CeedQFunctionSetContext(qfSetupForce, appCtx->forcingVector,
+                              sizeof(appCtx->forcingVector));
 
     // -- Operator
     CeedOperatorCreate(ceed, qfSetupForce, CEED_QFUNCTION_NONE,

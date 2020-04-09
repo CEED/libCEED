@@ -120,6 +120,7 @@ struct AppCtx_private {
   PetscInt      bcZeroCount, bcClampCount;
   PetscBool     bcClampTranslate[16];
   PetscScalar   bcClampMax[16][4];
+  PetscScalar   forcingVector[3];
 };
 
 // Problem specific data
