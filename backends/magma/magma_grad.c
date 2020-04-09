@@ -42,8 +42,8 @@ magma_grad(
         launch_failed = magma_grad_generic(
                 P, Q, dim, ncomp, 
                 dinterp1d, dgrad1d, tmode, 
-                dU + dim_ctr * u_dimstride, u_elstride, u_compstride, u_dimstride, 
-                dV + dim_ctr * v_dimstride, v_elstride, v_compstride, v_dimstride, 
+                dU, u_elstride, u_compstride, u_dimstride, 
+                dV, v_elstride, v_compstride, v_dimstride, 
                 nelem, queue ); 
     }
 
