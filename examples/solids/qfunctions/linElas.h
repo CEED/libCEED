@@ -70,7 +70,7 @@ CEED_QFUNCTION(LinElasF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                     ug[2][2][i]}
                                   };
     // -- Qdata
-    const CeedScalar wJ         =   qdata[0][i];
+    const CeedScalar wdetJ      =   qdata[0][i];
     const CeedScalar dXdx[3][3] = {{qdata[1][i],
                                     qdata[2][i],
                                     qdata[3][i]},
@@ -149,7 +149,7 @@ CEED_QFUNCTION(LinElasF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
       for (CeedInt k = 0; k < 3; k++) { // Derivative
         dvdX[k][j][i] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          dvdX[k][j][i] += dXdx[k][m] * sigma[j][m] * wJ;
+          dvdX[k][j][i] += dXdx[k][m] * sigma[j][m] * wdetJ;
       }
 
   } // End of Quadrature Point Loop
@@ -194,7 +194,7 @@ CEED_QFUNCTION(LinElasdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                        deltaug[2][2][i]}
                                      };
     // -- Qdata
-    const CeedScalar wJ         =      qdata[0][i];
+    const CeedScalar wdetJ      =      qdata[0][i];
     const CeedScalar dXdx[3][3] =    {{qdata[1][i],
                                        qdata[2][i],
                                        qdata[3][i]},
@@ -271,7 +271,7 @@ CEED_QFUNCTION(LinElasdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
       for (CeedInt k = 0; k < 3 ; k++) { // Derivative
         deltadvdX[k][j][i] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          deltadvdX[k][j][i] += dXdx[k][m] * dsigma[j][m] * wJ;
+          deltadvdX[k][j][i] += dXdx[k][m] * dsigma[j][m] * wdetJ;
       }
 
   } // End of Quadrature Point Loop
@@ -320,7 +320,7 @@ CEED_QFUNCTION(LinElasEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                     ug[2][2][i]}
                                   };
     // -- Qdata
-    const CeedScalar wJ         =   qdata[0][i];
+    const CeedScalar wdetJ      =   qdata[0][i];
     const CeedScalar dXdx[3][3] = {{qdata[1][i],
                                     qdata[2][i],
                                     qdata[3][i]},
@@ -363,7 +363,7 @@ CEED_QFUNCTION(LinElasEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // Strain energy
     const CeedScalar strain_vol = e[0][0] + e[1][1] + e[2][2];
     energy[i] = (lambda*strain_vol*strain_vol/2. + strain_vol*mu +
-                 (e[0][1]*e[0][1] + e[0][2]*e[0][2] + e[1][2]*e[1][2])*2*mu)*wJ;
+                 (e[0][1]*e[0][1]+e[0][2]*e[0][2]+e[1][2]*e[1][2])*2*mu)*wdetJ;
 
   } // End of Quadrature Point Loop
 

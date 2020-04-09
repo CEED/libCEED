@@ -188,7 +188,7 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                     ug[2][2][i]}
                                   };
     // -- Qdata
-    const CeedScalar wJ         =   qdata[0][i];
+    const CeedScalar wdetJ      =   qdata[0][i];
     const CeedScalar dXdx[3][3] = {{qdata[1][i],
                                     qdata[2][i],
                                     qdata[3][i]},
@@ -264,7 +264,7 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
       for (CeedInt k = 0; k < 3; k++) { // Derivative
         dvdX[k][j][i] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          dvdX[k][j][i] += dXdx[k][m] * P[j][m] * wJ;
+          dvdX[k][j][i] += dXdx[k][m] * P[j][m] * wdetJ;
       }
 
   } // End of Quadrature Point Loop
@@ -315,7 +315,7 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                        deltaug[2][2][i]}
                                      };
     // -- Qdata
-    const CeedScalar wJ         =      qdata[0][i];
+    const CeedScalar wdetJ      =      qdata[0][i];
     const CeedScalar dXdx[3][3] =    {{qdata[1][i],
                                        qdata[2][i],
                                        qdata[3][i]},
@@ -447,7 +447,7 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
       for (CeedInt k = 0; k < 3; k++) { // Derivative
         deltadvdX[k][j][i] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          deltadvdX[k][j][i] += dXdx[k][m] * deltaP[j][m] * wJ;
+          deltadvdX[k][j][i] += dXdx[k][m] * deltaP[j][m] * wdetJ;
       }
 
   } // End of Quadrature Point Loop
@@ -494,7 +494,7 @@ CEED_QFUNCTION(HyperFSEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                     ug[2][2][i]}
                                   };
     // -- Qdata
-    const CeedScalar wJ         =   qdata[0][i];
+    const CeedScalar wdetJ      =   qdata[0][i];
     const CeedScalar dXdx[3][3] = {{qdata[1][i],
                                     qdata[2][i],
                                     qdata[3][i]},
@@ -545,7 +545,7 @@ CEED_QFUNCTION(HyperFSEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // Strain energy Phi(E) for compressible Neo-Hookean
     CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
     energy[i] = (lambda*logj*logj/2. - mu*logj +
-                 mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.) * wJ;
+                 mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.) * wdetJ;
 
   } // End of Quadrature Point Loop
 
