@@ -25,11 +25,10 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-  CeedInt dim, ncomp, ndof, nqpt;
+  CeedInt dim, ncomp, ndof;
   ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
   ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
-  ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
 
   Ceed_Magma *data;
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
@@ -157,7 +156,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
 
     }
 
-    ierr = magma_grad( P, Q, dim, ncomp, nqpt,  
+    ierr = magma_grad( P, Q, dim, ncomp,  
             impl->dinterp1d, impl->dgrad1d, tmode, 
             u, u_elstride, u_compstride, u_dimstride, 
             v, v_elstride, v_compstride, v_dimstride, 
