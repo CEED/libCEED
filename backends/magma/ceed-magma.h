@@ -116,7 +116,7 @@ CEED_INTERN {
       magma_int_t nelem, magma_queue_t queue);
 
   magma_int_t magma_grad( 
-    magma_int_t P, magma_int_t Q, magma_int_t dim, magma_int_t ncomp, magma_int_t nqpt,  
+    magma_int_t P, magma_int_t Q, magma_int_t dim, magma_int_t ncomp,  
     const CeedScalar *dinterp1d, const CeedScalar *dgrad1d, CeedTransposeMode tmode, 
     const CeedScalar *dU, magma_int_t u_elemstride, magma_int_t u_compstride, magma_int_t u_dimstride, 
           CeedScalar *dV, magma_int_t v_elemstride, magma_int_t v_compstride, magma_int_t v_dimstride, 
