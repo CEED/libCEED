@@ -17,6 +17,68 @@
 #ifndef MAGMA_GRAD_DEVICE_CUH
 #define MAGMA_GRAD_DEVICE_CUH
 
+#define maxpq(p,q)    (p > q ? p : q)
+
+// macros to abstract access of shared memory and reg. file
+#define sT(i,j)          sT[(j) * P + (i)]
+#define sTmp(i,j,ldw)    sTmp[(j)*(ldw) + (i)]
+#define rU(idim,icomp,i) rU[(idim)*NCOMP*P + (icomp)*P + (i)]
+#define rV(idim,icomp,i) rV[(idim)*NCOMP*Q + (icomp)*Q + (i)]
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// init scalar to zero
+template<typename T>
+__device__ __inline__ T
+make_zero()
+{
+    return 0;
+}
+//////////////////////////////////////////////////////////////////////////////////////////
+// init scalar to zero -- specialization
+template<>
+__device__ __inline__ magmaFloatComplex
+make_zero<magmaFloatComplex>()
+{
+    return MAGMA_C_ZERO;
+}
+//////////////////////////////////////////////////////////////////////////////////////////
+// init scalar to zero -- specialization
+template<>
+__device__ __inline__ magmaDoubleComplex
+make_zero<magmaDoubleComplex>()
+{
+    return MAGMA_Z_ZERO;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// interp basis action (1D)
+template<typename T, int DIM, int NCOMP, int P, int Q>
+static __device__ __inline__ void
+magma_grad_1d_device( 
+    const T *sT, magma_trans_t transT, 
+    T* sU[NCOMP], T* sV[NCOMP], const int tx)
+{
+    // Assumptions
+    // 1. 1D threads of size max(P,Q)
+    // 2. sU[i] is 1xP: in shared memory
+    // 3. sV[i] is 1xQ: in shared memory
+    // 4. Product per component is one row (1xP) times T matrix (PxQ) => one row (1xQ)
+    // 5. Each thread computes one entry in sV[i]
+    // 6. Must sync before and after call
+    // 7. Note that the layout for U and V is different from 2D/3D problem
+
+    T rv;
+    if(tx < Q) {
+        for(int icomp = 0; icomp < NCOMP; icomp++) {
+            rv = (transT == MagmaTrans) ? sV[icomp][tx] : make_zero<T>();
+            for(int i = 0; i < P; i++) {
+                rv += sU[icomp][i] * sT(i,tx); //sT[tx * P + i];	
+            }
+            sV[icomp][tx] = rv;
+        }
+    }
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int P, int Q>
 static __device__ __inline__ void
