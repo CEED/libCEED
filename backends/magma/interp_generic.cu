@@ -23,14 +23,14 @@
 #define ipow(a,b) ( (magma_int_t)(std::pow( (float)(a), (float)(b) ) ) )
 
 //////////////////////////////////////////////////////////////////////////////////////////
-extern __shared__ double shared_data[];
-template<int P, int Q>
+extern __shared__ CeedScalar shared_data[];
+template<typename T, int P, int Q>
 static __global__ void
 interp_generic_kernel( 
     const int dim, const int ncomp, const int pre_org, const int post_org, const int tmp_size, 
-    const double *dT, magma_trans_t transT,
-    const double *dU, const int u_elstride, const int u_compstride, 
-          double *dV, const int v_elstride, const int v_compstride)
+    const T *dT, magma_trans_t transT,
+    const T *dU, const int u_elstride, const int u_compstride, 
+          T *dV, const int v_elstride, const int v_compstride)
 {
     const int elem_id = blockIdx.x; 
     const int comp_id = blockIdx.y;
@@ -42,14 +42,14 @@ interp_generic_kernel(
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-template<int P, int Q>
+template<typename T, int P, int Q>
 static magma_int_t 
 interp_generic_kernel_driver( 
-                magma_int_t dim, magma_int_t ncomp,  
-                const double *dT, magma_trans_t transT,
-                const double *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
-                      double *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
-                magma_int_t nelem, magma_queue_t queue)
+    magma_int_t dim, magma_int_t ncomp,  
+    const T *dT, magma_trans_t transT,
+    const T *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
+          T *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
+    magma_int_t nelem, magma_queue_t queue)
 {
     magma_device_t device;
     magma_getdevice( &device );
@@ -62,9 +62,9 @@ interp_generic_kernel_driver(
     // we have to read the original u in shared memory
     // the original implementation access u directly
     magma_int_t tmp_size = ipow(max(P,Q), dim); //ncomp * Q * ipow(max(P,Q), dim); 
-    magma_int_t shmem = P * Q * sizeof(double);
-    shmem += 2 * tmp_size * sizeof(double); 
-    
+    magma_int_t shmem = P * Q * sizeof(T);
+    shmem += 2 * tmp_size * sizeof(T); 
+
     magma_int_t nthreads = max(P, ipow(Q, dim-1) ); 
     nthreads = magma_roundup( nthreads, Q ); // nthreads must be multiple of Q
 
@@ -84,7 +84,7 @@ interp_generic_kernel_driver(
     else { 
         dim3 threads(nthreads, 1, 1);
         dim3 grid(nelem, ncomp, 1);
-        interp_generic_kernel<P, Q><<<grid, threads, shmem, magma_queue_get_cuda_stream(queue)>>>
+        interp_generic_kernel<T, P, Q><<<grid, threads, shmem, magma_queue_get_cuda_stream(queue)>>>
         ( dim, ncomp, pre, post, tmp_size, dT, transT, 
           dU, u_elstride, u_compstride, 
           dV, v_elstride, v_compstride );
@@ -98,29 +98,29 @@ static magma_int_t
 magma_interp_generic_q( 
     magma_int_t Q, 
     magma_int_t dim, magma_int_t ncomp,  
-    const double *dT, magma_trans_t transT,
-    const double *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
-          double *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
+    const CeedScalar *dT, magma_trans_t transT,
+    const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
+          CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
     magma_int_t nelem, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
     switch(Q){
-        case  1: launch_failed = interp_generic_kernel_driver<P, 1>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case  2: launch_failed = interp_generic_kernel_driver<P, 2>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case  3: launch_failed = interp_generic_kernel_driver<P, 3>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case  4: launch_failed = interp_generic_kernel_driver<P, 4>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case  5: launch_failed = interp_generic_kernel_driver<P, 5>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case  6: launch_failed = interp_generic_kernel_driver<P, 6>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case  7: launch_failed = interp_generic_kernel_driver<P, 7>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case  8: launch_failed = interp_generic_kernel_driver<P, 8>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case  9: launch_failed = interp_generic_kernel_driver<P, 9>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 10: launch_failed = interp_generic_kernel_driver<P,10>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 11: launch_failed = interp_generic_kernel_driver<P,11>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 12: launch_failed = interp_generic_kernel_driver<P,12>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 13: launch_failed = interp_generic_kernel_driver<P,13>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 14: launch_failed = interp_generic_kernel_driver<P,14>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 15: launch_failed = interp_generic_kernel_driver<P,15>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 16: launch_failed = interp_generic_kernel_driver<P,16>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  1: launch_failed = interp_generic_kernel_driver<CeedScalar, P, 1>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  2: launch_failed = interp_generic_kernel_driver<CeedScalar, P, 2>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  3: launch_failed = interp_generic_kernel_driver<CeedScalar, P, 3>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  4: launch_failed = interp_generic_kernel_driver<CeedScalar, P, 4>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  5: launch_failed = interp_generic_kernel_driver<CeedScalar, P, 5>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  6: launch_failed = interp_generic_kernel_driver<CeedScalar, P, 6>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  7: launch_failed = interp_generic_kernel_driver<CeedScalar, P, 7>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  8: launch_failed = interp_generic_kernel_driver<CeedScalar, P, 8>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case  9: launch_failed = interp_generic_kernel_driver<CeedScalar, P, 9>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case 10: launch_failed = interp_generic_kernel_driver<CeedScalar, P,10>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case 11: launch_failed = interp_generic_kernel_driver<CeedScalar, P,11>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case 12: launch_failed = interp_generic_kernel_driver<CeedScalar, P,12>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case 13: launch_failed = interp_generic_kernel_driver<CeedScalar, P,13>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case 14: launch_failed = interp_generic_kernel_driver<CeedScalar, P,14>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case 15: launch_failed = interp_generic_kernel_driver<CeedScalar, P,15>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+        case 16: launch_failed = interp_generic_kernel_driver<CeedScalar, P,16>(dim, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         default: launch_failed = 1;
     }
     return launch_failed;
@@ -131,9 +131,9 @@ magma_int_t
 static magma_interp_generic_q_p( 
     magma_int_t P, magma_int_t Q, 
     magma_int_t dim, magma_int_t ncomp,  
-    const double *dT, magma_trans_t transT,
-    const double *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
-          double *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
+    const CeedScalar *dT, magma_trans_t transT,
+    const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
+          CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
     magma_int_t nelem, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
@@ -164,9 +164,9 @@ extern "C" magma_int_t
 magma_interp_generic( 
     magma_int_t P, magma_int_t Q, 
     magma_int_t dim, magma_int_t ncomp,  
-    const double *dT, CeedTransposeMode tmode,
-    const double *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
-          double *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
+    const CeedScalar *dT, CeedTransposeMode tmode,
+    const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
+          CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
     magma_int_t nelem, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
