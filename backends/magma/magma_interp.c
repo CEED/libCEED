@@ -24,9 +24,9 @@ magma_int_t
 magma_interp( 
     magma_int_t P, magma_int_t Q, 
     magma_int_t dim, magma_int_t ncomp,  
-    const double *dT, CeedTransposeMode tmode,
-    const double *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
-          double *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
+    const CeedScalar *dT, CeedTransposeMode tmode,
+    const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
+          CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
     magma_int_t nelem, magma_kernel_mode_t kernel_mode, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
