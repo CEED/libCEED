@@ -602,7 +602,7 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix,
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  DM dm, dmcoord, dmviz;
+  DM dm, dmcoord, dmviz, dmvizfine;
   Mat interpviz;
   TS ts;
   TSAdapt adapt;
@@ -627,7 +627,8 @@ int main(int argc, char **argv) {
   problemType problemChoice;
   problemData *problem = NULL;
   StabilizationType stab;
-  PetscBool   test, implicit, viz_refine;
+  PetscBool   test, implicit;
+  PetscInt    viz_refine = 0;
   struct SimpleBC_ bc = {
     .nwall = 6,
     .walls = {1,2,3,4,5,6},
@@ -715,9 +716,9 @@ int main(int argc, char **argv) {
       if (flg) bc.nslip[j] = len;
     }
   }
-  ierr = PetscOptionsBool("-viz_refine",
-                          "Use regular refinement for visualization",
-                          NULL, viz_refine=PETSC_FALSE, &viz_refine, NULL);
+  ierr = PetscOptionsInt("-viz_refine",
+                         "Regular refinement levels for visualization",
+                         NULL, viz_refine, &viz_refine, NULL);
   CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, meter, &meter, NULL); CHKERRQ(ierr);
@@ -897,12 +898,25 @@ int main(int argc, char **argv) {
   interpviz = NULL;
   if (viz_refine) {
     ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
+    dmvizfine = NULL;
     ierr = DMRefine(dm, MPI_COMM_NULL, &dmviz); CHKERRQ(ierr);
     ierr = DMSetCoarseDM(dmviz, dm); CHKERRQ(ierr);
     ierr = PetscOptionsSetValue(NULL,"-viz_petscspace_degree","1");
     CHKERRQ(ierr);
     ierr = SetUpDM(dmviz, problem, "viz_", &bc, &ctxSetup, NULL); CHKERRQ(ierr);
     ierr = DMCreateInterpolation(dm, dmviz, &interpviz, NULL); CHKERRQ(ierr);
+    for (PetscInt i = 1; i < viz_refine; i++) {
+      ierr = DMRefine(dmviz, MPI_COMM_NULL, &dmvizfine); CHKERRQ(ierr);
+      if (dmvizfine) {
+        ierr = DMSetCoarseDM(dmvizfine, dmviz); CHKERRQ(ierr);
+        ierr = PetscOptionsSetValue(NULL,"-viz_petscspace_degree","1");
+        CHKERRQ(ierr);
+        ierr = SetUpDM(dmvizfine, problem, "viz_", &bc, &ctxSetup, NULL); CHKERRQ(ierr);
+        ierr = DMCreateInterpolation(dmviz, dmvizfine, &interpviz, NULL); CHKERRQ(ierr);
+        ierr = DMDestroy(&dmviz); CHKERRQ(ierr);
+        dmviz  = dmvizfine;
+      }
+    }
   }
   ierr = DMCreateGlobalVector(dm, &Q); CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm, &Qloc); CHKERRQ(ierr);
