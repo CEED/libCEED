@@ -19,6 +19,7 @@
 
 #ifndef common_h
 #define common_h
+#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>
@@ -187,4 +188,5 @@ CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-#endif
+
+#endif // common_h

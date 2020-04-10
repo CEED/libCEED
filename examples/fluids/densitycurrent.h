@@ -23,6 +23,7 @@
 
 #ifndef densitycurrent_h
 #define densitycurrent_h
+#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>
@@ -768,4 +769,5 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-#endif
+
+#endif // densitycurrent_h

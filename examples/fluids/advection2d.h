@@ -19,6 +19,7 @@
 
 #ifndef advection2d_h
 #define advection2d_h
+#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>
@@ -380,4 +381,5 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-#endif
+
+#endif // advection2d_h
