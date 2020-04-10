@@ -19,6 +19,7 @@
 
 #ifndef LIN_ELAS_H
 #define LIN_ELAS_H
+#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>
@@ -279,4 +280,5 @@ CEED_QFUNCTION(LinElasdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
 #endif //End of LIN_ELAS_H

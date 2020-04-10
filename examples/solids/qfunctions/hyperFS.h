@@ -19,6 +19,7 @@
 
 #ifndef HYPER_FS_H
 #define HYPER_FS_H
+#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>
@@ -455,4 +456,5 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
 #endif // End of HYPER_FS_H

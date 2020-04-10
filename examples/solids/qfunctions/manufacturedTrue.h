@@ -19,6 +19,7 @@
 
 #ifndef MANUFACTURED_TRUE_H
 #define MANUFACTURED_TRUE_H
+#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>
@@ -57,4 +58,5 @@ CEED_QFUNCTION(MMSTrueSoln)(void *ctx, const CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
 #endif // End MANUFACTURED_TRUE_H

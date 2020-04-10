@@ -19,6 +19,7 @@
 
 #ifndef MANUFACTURED_H
 #define MANUFACTURED_H
+#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>
@@ -105,4 +106,5 @@ CEED_QFUNCTION(SetupMMSForce)(void *ctx, const CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
 #endif // End MANUFACTURED_H

@@ -19,6 +19,7 @@
 
 #ifndef CONSTANT_H
 #define CONSTANT_H
+#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>
@@ -66,4 +67,5 @@ CEED_QFUNCTION(SetupConstantForce)(void *ctx, const CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
 #endif // End of CONSTANT_H
