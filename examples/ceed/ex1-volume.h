@@ -14,6 +14,10 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#ifndef ex1_volume_h
+#define ex1_volume_h
+#include <ceed.h>
+
 /// A structure used to pass additional data to f_build_mass
 struct BuildContext { CeedInt dim, space_dim; };
 
@@ -72,3 +76,5 @@ CEED_QFUNCTION(f_apply_mass)(void *ctx, const CeedInt Q,
   } // End of Quadrature Point Loop
   return 0;
 }
+
+#endif // ex1_volume_h

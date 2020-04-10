@@ -14,6 +14,10 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#ifndef ex2_surface_h
+#define ex2_surface_h
+#include <ceed.h>
+
 /// A structure used to pass additional data to f_build_diff
 struct BuildContext { CeedInt dim, space_dim; };
 
@@ -159,3 +163,5 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q,
   }
   return 0;
 }
+
+#endif // ex2_surface_h
