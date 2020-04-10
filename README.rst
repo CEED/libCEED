@@ -41,7 +41,7 @@ high-order discretization methods developed by the ECP co-design
 `Center for Efficient Exascale Discretizations (CEED) <http://ceed.exascaleproject.org>`_.
 While our focus is on high-order finite elements, the approach is mostly
 algebraic and thus applicable to other discretizations in factored form, as
-explained in the `User manual <https://libceed.readthedocs.io/en/latest/>`_ and
+explained in the `user manual <https://libceed.readthedocs.io/en/latest/>`_ and
 API implementation portion of the
 `documentation <https://libceed.readthedocs.io/en/latest/libCEEDapi.html>`_.
 
