@@ -14,6 +14,10 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#ifndef bps_h
+#define bps_h
+#include <ceed.h>
+
 #ifndef __CUDACC__
 #  include <math.h>
 #endif
@@ -125,3 +129,5 @@ CEED_QFUNCTION int diffusionf(void *ctx, CeedInt Q, const CeedScalar *const *in,
   } // End of Quadrature Point Loop
   return 0;
 }
+
+#endif // bps_h
