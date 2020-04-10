@@ -57,7 +57,7 @@ In particular, we select :math:`u(\bm x) = x_0 + x_1 + x_2`, for which :math:`\n
 Given Laplace's equation,
 
 .. math::
-   \nabla \cdot \nabla u = 0, \textrm{ for  } \bm{x} \in \Omega
+   \nabla \cdot \nabla u = 0, \textrm{ for  } \bm{x} \in \Omega ,
 
 let us multiply by a test function :math:`v` and integrate by parts to obtain
 
