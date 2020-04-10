@@ -238,7 +238,7 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q,
                                          ug[i+Q*1]
                                         };
     // Read qdata
-    const CeedScalar wJ              =   qdata[i+Q*0];
+    const CeedScalar wdetJ           =   qdata[i+Q*0];
     // -- Grad-to-Grad qdata
     // ---- dXdx_j,k * dXdx_k,j
     const CeedScalar dXdxdXdxT[2][2] = {{qdata[i+Q*1],
@@ -248,8 +248,8 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q,
                                        };
 
     for (int j=0; j<2; j++) // j = direction of vg
-      vg[i+j*Q] = wJ * (du[0] * dXdxdXdxT[0][j] +
-                        du[1] * dXdxdXdxT[1][j]);
+      vg[i+j*Q] = wdetJ * (du[0] * dXdxdXdxT[0][j] +
+                           du[1] * dXdxdXdxT[1][j]);
 
   } // End of Quadrature Point Loop
 

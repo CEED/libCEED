@@ -235,7 +235,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
                                      dq[2][4][i]
                                     };
     // -- Interp-to-Interp qdata
-    const CeedScalar wJ         =    qdata[0][i];
+    const CeedScalar wdetJ      =    qdata[0][i];
     // -- Interp-to-Grad qdata
     // ---- Inverse of change of coordinate matrix: X_i,j
     // *INDENT-OFF*
@@ -282,12 +282,12 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
 
     // Weak Galerkin convection term: dv \cdot (E u)
     for (CeedInt j=0; j<3; j++)
-      dv[j][4][i] = (1 - strong_form) * wJ * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
+      dv[j][4][i] = (1 - strong_form) * wdetJ * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
                     u[2]*dXdx[j][2]);
     v[4][i] = 0;
 
     // Strong Galerkin convection term: - v div(E u)
-    v[4][i] = -strong_form * wJ * strongConv;
+    v[4][i] = -strong_form * wdetJ * strongConv;
 
     // Stabilization requires a measure of element transit time in the velocity
     // field u.
@@ -296,7 +296,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
          j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
     const CeedScalar TauS = CtauS / sqrt(uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2]);
     for (CeedInt j=0; j<3; j++)
-      dv[j][4][i] -= wJ * TauS * strongConv * uX[j];
+      dv[j][4][i] -= wdetJ * TauS * strongConv * uX[j];
   } // End Quadrature Point Loop
 
   return 0;
@@ -357,7 +357,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
                                      dq[2][4][i]
                                     };
     // -- Interp-to-Interp qdata
-    const CeedScalar wJ         =    qdata[0][i];
+    const CeedScalar wdetJ      =    qdata[0][i];
     // -- Interp-to-Grad qdata
     // ---- Inverse of change of coordinate matrix: X_i,j
     // *INDENT-OFF*
@@ -386,7 +386,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
     for (CeedInt f=0; f<4; f++) {
       for (CeedInt j=0; j<3; j++)
         dv[j][f][i] = 0;
-      v[f][i] = wJ * qdot[f][i]; //K Mass/transient term
+      v[f][i] = wdetJ * qdot[f][i]; //K Mass/transient term
     }
 
     // -- Total Energy
@@ -404,15 +404,15 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
     CeedScalar strongConv = E*div_u + u_dot_grad_E;
     CeedScalar strongResid = qdot[4][i] + strongConv;
 
-    v[4][i] = wJ * qdot[4][i]; // transient part (ALWAYS)
+    v[4][i] = wdetJ * qdot[4][i]; // transient part (ALWAYS)
 
     // Weak Galerkin convection term: -dv \cdot (E u)
     for (CeedInt j=0; j<3; j++)
-      dv[j][4][i] = -wJ * (1 - strong_form) * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
+      dv[j][4][i] = -wdetJ * (1 - strong_form) * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
                     u[2]*dXdx[j][2]);
 
     // Strong Galerkin convection term: v div(E u)
-    v[4][i] += wJ * strong_form * strongConv;
+    v[4][i] += wdetJ * strong_form * strongConv;
 
     // Stabilization requires a measure of element transit time in the velocity
     // field u.
@@ -425,9 +425,9 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
       switch (context->stabilization) {
       case 0:
         break;
-      case 1: dv[j][4][i] += wJ * TauS * strongConv * uX[j];  //SU
+      case 1: dv[j][4][i] += wdetJ * TauS * strongConv * uX[j];  //SU
         break;
-      case 2: dv[j][4][i] += wJ * TauS * strongResid * uX[j];  //SUPG
+      case 2: dv[j][4][i] += wdetJ * TauS * strongResid * uX[j];  //SUPG
         break;
       }
   } // End Quadrature Point Loop
