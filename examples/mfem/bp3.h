@@ -14,6 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#ifndef bp3_h
+#define bp3_h
+#include <ceed.h>
 
 /// A structure used to pass additional data to f_build_diff and f_apply_diff
 struct BuildContext { CeedInt dim, space_dim; };
@@ -134,3 +137,4 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q,
   return 0;
 }
 
+#endif // bp3_h
