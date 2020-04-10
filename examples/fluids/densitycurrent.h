@@ -273,17 +273,17 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     // *INDENT-OFF*
     // Setup
     // -- Interp in
-    const CeedScalar rho        =    q[0][i];
-    const CeedScalar u[3]       =   {q[1][i] / rho,
-                                     q[2][i] / rho,
-                                     q[3][i] / rho
-                                    };
-    const CeedScalar E          =    q[4][i];
+    const CeedScalar rho        =   q[0][i];
+    const CeedScalar u[3]       =  {q[1][i] / rho,
+                                    q[2][i] / rho,
+                                    q[3][i] / rho
+                                   };
+    const CeedScalar E          =   q[4][i];
     // -- Grad in
-    const CeedScalar drho[3]    =   {dq[0][0][i],
-                                     dq[1][0][i],
-                                     dq[2][0][i]
-                                    };
+    const CeedScalar drho[3]    =  {dq[0][0][i],
+                                    dq[1][0][i],
+                                    dq[2][0][i]
+                                   };
     const CeedScalar dU[3][3]   = {{dq[0][1][i],
                                     dq[1][1][i],
                                     dq[2][1][i]},
@@ -294,25 +294,25 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
                                     dq[1][3][i],
                                     dq[2][3][i]}
                                   };
-    const CeedScalar dE[3]      =   {dq[0][4][i],
-                                     dq[1][4][i],
-                                     dq[2][4][i]
-                                    };
+    const CeedScalar dE[3]      =  {dq[0][4][i],
+                                    dq[1][4][i],
+                                    dq[2][4][i]
+                                   };
     // -- Interp-to-Interp qdata
-    const CeedScalar wdetJ      =    qdata[0][i];
+    const CeedScalar wdetJ      =   qdata[0][i];
     // -- Interp-to-Grad qdata
     // ---- Inverse of change of coordinate matrix: X_i,j
     // *INDENT-OFF*
-    const CeedScalar dXdx[3][3] =  {{qdata[1][i],
-                                     qdata[2][i],
-                                     qdata[3][i]},
-                                    {qdata[4][i],
-                                     qdata[5][i],
-                                     qdata[6][i]},
-                                    {qdata[7][i],
-                                     qdata[8][i],
-                                     qdata[9][i]}
-                                   };
+    const CeedScalar dXdx[3][3] = {{qdata[1][i],
+                                    qdata[2][i],
+                                    qdata[3][i]},
+                                   {qdata[4][i],
+                                    qdata[5][i],
+                                    qdata[6][i]},
+                                   {qdata[7][i],
+                                    qdata[8][i],
+                                    qdata[9][i]}
+                                  };
     // *INDENT-ON*
     // -- Grad-to-Grad qdata
     // dU/dx
@@ -531,17 +531,17 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar rho        =    q[0][i];
-    const CeedScalar u[3]       =   {q[1][i] / rho,
-                                     q[2][i] / rho,
-                                     q[3][i] / rho
-                                    };
-    const CeedScalar E          =    q[4][i];
+    const CeedScalar rho        =   q[0][i];
+    const CeedScalar u[3]       =  {q[1][i] / rho,
+                                    q[2][i] / rho,
+                                    q[3][i] / rho
+                                   };
+    const CeedScalar E          =   q[4][i];
     // -- Grad in
-    const CeedScalar drho[3]    =   {dq[0][0][i],
-                                     dq[1][0][i],
-                                     dq[2][0][i]
-                                    };
+    const CeedScalar drho[3]    =  {dq[0][0][i],
+                                    dq[1][0][i],
+                                    dq[2][0][i]
+                                   };
     // *INDENT-OFF*
     const CeedScalar dU[3][3]   = {{dq[0][1][i],
                                     dq[1][1][i],
@@ -554,25 +554,25 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
                                     dq[2][3][i]}
                                   };
     // *INDENT-ON*
-    const CeedScalar dE[3]      =   {dq[0][4][i],
-                                     dq[1][4][i],
-                                     dq[2][4][i]
-                                    };
+    const CeedScalar dE[3]      =  {dq[0][4][i],
+                                    dq[1][4][i],
+                                    dq[2][4][i]
+                                   };
     // -- Interp-to-Interp qdata
-    const CeedScalar wdetJ      =    qdata[0][i];
+    const CeedScalar wdetJ      =   qdata[0][i];
     // -- Interp-to-Grad qdata
     // ---- Inverse of change of coordinate matrix: X_i,j
     // *INDENT-OFF*
-    const CeedScalar dXdx[3][3] =  {{qdata[1][i],
-                                     qdata[2][i],
-                                     qdata[3][i]},
-                                    {qdata[4][i],
-                                     qdata[5][i],
-                                     qdata[6][i]},
-                                    {qdata[7][i],
-                                     qdata[8][i],
-                                     qdata[9][i]}
-                                   };
+    const CeedScalar dXdx[3][3] = {{qdata[1][i],
+                                    qdata[2][i],
+                                    qdata[3][i]},
+                                   {qdata[4][i],
+                                    qdata[5][i],
+                                    qdata[6][i]},
+                                   {qdata[7][i],
+                                    qdata[8][i],
+                                    qdata[9][i]}
+                                  };
     // *INDENT-ON*
     // -- Grad-to-Grad qdata
     // dU/dx
@@ -703,8 +703,8 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     for (int j=0; j<3; j++)
       for (int k=0; k<3; k++)
         dv[k][j+1][i] += wdetJ*(Fu[Fuviscidx[j][0]]*dXdx[k][0] +
-                             Fu[Fuviscidx[j][1]]*dXdx[k][1] +
-                             Fu[Fuviscidx[j][2]]*dXdx[k][2]);
+                                Fu[Fuviscidx[j][1]]*dXdx[k][1] +
+                                Fu[Fuviscidx[j][2]]*dXdx[k][2]);
     // -- Total Energy Density
     // ---- (E + P) u
     for (int j=0; j<3; j++)
@@ -745,8 +745,8 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
           dv[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
-                             stab[j][1] * dXdx[k][1] +
-                             stab[j][2] * dXdx[k][2]);
+                                stab[j][1] * dXdx[k][1] +
+                                stab[j][2] * dXdx[k][2]);
       break;
     case 2:        // SUPG
       for (int j=0; j<3; j++)
@@ -757,8 +757,8 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
           dv[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
-                             stab[j][1] * dXdx[k][1] +
-                             stab[j][2] * dXdx[k][2]);
+                                stab[j][1] * dXdx[k][1] +
+                                stab[j][2] * dXdx[k][2]);
       break;
     }
 

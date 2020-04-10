@@ -248,7 +248,8 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q,
 
     // Weak Galerkin convection term: dv \cdot (E u)
     for (CeedInt j=0; j<2; j++)
-      dv[j][4][i] = (1 - strong_form) * wdetJ * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1]);
+      dv[j][4][i] = (1 - strong_form) * wdetJ * E * (u[0]*dXdx[j][0] +
+                    u[1]*dXdx[j][1]);
     v[4][i] = 0;
 
     // Strong Galerkin convection term: - v div(E u)
@@ -355,7 +356,8 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
 
     // Weak Galerkin convection term: -dv \cdot (E u)
     for (CeedInt j=0; j<2; j++)
-      dv[j][4][i] = -wdetJ * (1 - strong_form) * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1]);
+      dv[j][4][i] = -wdetJ * (1 - strong_form) * E * (u[0]*dXdx[j][0] +
+                    u[1]*dXdx[j][1]);
 
     // Strong Galerkin convection term: v div(E u)
     v[4][i] += wdetJ * strong_form * strongConv;
