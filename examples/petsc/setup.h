@@ -928,5 +928,5 @@ static PetscErrorCode ComputeErrorMax(UserO user, CeedOperator op_error,
 
   PetscFunctionReturn(0);
 }
-#endif
 
+#endif //setup_h

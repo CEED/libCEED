@@ -17,6 +17,10 @@
 /// @file
 /// libCEED QFunctions for diffusion operator example for a scalar field on the sphere using PETSc
 
+#ifndef bp3sphere_h
+#define bp3sphere_h
+#include <ceed.h>
+
 #ifndef __CUDACC__
 #  include <math.h>
 #endif
@@ -252,3 +256,5 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
+#endif // bp3sphere_h

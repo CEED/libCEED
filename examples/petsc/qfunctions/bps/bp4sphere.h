@@ -17,6 +17,10 @@
 /// @file
 /// libCEED QFunctions for mass operator example for a vector field on the sphere using PETSc
 
+#ifndef bp4sphere_h
+#define bp4sphere_h
+#include <ceed.h>
+
 #ifndef __CUDACC__
 #  include <math.h>
 #endif
@@ -120,3 +124,5 @@ CEED_QFUNCTION(Diff3)(void *ctx, const CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
+#endif // bp4sphere_h

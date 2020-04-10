@@ -42,6 +42,14 @@
 //         2 5 8
 // *****************************************************************************
 
+#ifndef bp3_h
+#define bp3_h
+#include <ceed.h>
+
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
+
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
                              const CeedScalar *const *in,
@@ -174,3 +182,5 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
+#endif // bp3_h

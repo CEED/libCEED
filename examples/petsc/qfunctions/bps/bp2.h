@@ -17,6 +17,10 @@
 /// @file
 /// libCEED QFunctions for mass operator example using PETSc
 
+#ifndef bp2_h
+#define bp2_h
+#include <ceed.h>
+
 #ifndef __CUDACC__
 #  include <math.h>
 #endif
@@ -88,3 +92,5 @@ CEED_QFUNCTION(Mass3)(void *ctx, const CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
+#endif // bp2_h

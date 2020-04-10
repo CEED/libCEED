@@ -21,6 +21,14 @@
 // This QFunction sets up the rhs and true solution for the problem
 // *****************************************************************************
 
+#ifndef bp4_h
+#define bp4_h
+#include <ceed.h>
+
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
+
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupDiffRhs3)(void *ctx, CeedInt Q,
                               const CeedScalar *const *in,
@@ -126,3 +134,5 @@ CEED_QFUNCTION(Diff3)(void *ctx, CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
+#endif // bp4_h
