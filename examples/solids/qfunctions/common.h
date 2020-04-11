@@ -19,7 +19,6 @@
 
 #ifndef COMMON_H
 #define COMMON_H
-#include <ceed.h>
 
 // -----------------------------------------------------------------------------
 // This QFunction sets up the geometric factors required for integration and

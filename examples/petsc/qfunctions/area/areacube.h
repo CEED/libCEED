@@ -19,7 +19,6 @@
 
 #ifndef areacube_h
 #define areacube_h
-#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>

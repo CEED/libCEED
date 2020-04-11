@@ -19,7 +19,6 @@
 
 #ifndef CONSTANT_H
 #define CONSTANT_H
-#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>

@@ -19,7 +19,6 @@
 
 #ifndef MANUFACTURED_H
 #define MANUFACTURED_H
-#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>

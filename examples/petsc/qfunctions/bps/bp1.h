@@ -19,7 +19,6 @@
 
 #ifndef bp1_h
 #define bp1_h
-#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>

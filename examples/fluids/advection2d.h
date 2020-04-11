@@ -19,7 +19,6 @@
 
 #ifndef advection2d_h
 #define advection2d_h
-#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>

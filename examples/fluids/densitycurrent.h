@@ -23,7 +23,6 @@
 
 #ifndef densitycurrent_h
 #define densitycurrent_h
-#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>

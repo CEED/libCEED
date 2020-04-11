@@ -19,7 +19,6 @@
 
 #ifndef bp2sphere_h
 #define bp2sphere_h
-#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>

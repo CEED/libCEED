@@ -19,7 +19,6 @@
 
 #ifndef HYPER_FS_H
 #define HYPER_FS_H
-#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>

@@ -19,7 +19,6 @@
 
 #ifndef LIN_ELAS_H
 #define LIN_ELAS_H
-#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>

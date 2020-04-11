@@ -19,7 +19,6 @@
 
 #ifndef common_h
 #define common_h
-#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>

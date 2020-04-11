@@ -19,7 +19,6 @@
 
 #ifndef areasphere_h
 #define areasphere_h
-#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>

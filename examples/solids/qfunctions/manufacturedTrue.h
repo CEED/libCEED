@@ -19,7 +19,6 @@
 
 #ifndef MANUFACTURED_TRUE_H
 #define MANUFACTURED_TRUE_H
-#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>

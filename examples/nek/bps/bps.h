@@ -16,7 +16,6 @@
 
 #ifndef bps_h
 #define bps_h
-#include <ceed.h>
 
 #ifndef __CUDACC__
 #  include <math.h>
