@@ -17,6 +17,10 @@
 /**
   @brief  Identity QFunction that copies inputs directly into outputs
 **/
+
+#ifndef identity_h
+#define identity_h
+
 CEED_QFUNCTION(Identity)(void *ctx, const CeedInt Q,
                          const CeedScalar *const *in,
                          CeedScalar *const *out) {
@@ -36,3 +40,5 @@ CEED_QFUNCTION(Identity)(void *ctx, const CeedInt Q,
 
   return 0;
 }
+
+#endif // identity_h
