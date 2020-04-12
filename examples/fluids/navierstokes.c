@@ -28,10 +28,10 @@
 //
 // Sample runs:
 //
-//     ./navierstokes -ceed /cpu/self -problem density_current -petscspace_degree 1
-//     ./navierstokes -ceed /gpu/occa -problem advection -petscspace_degree 1
+//     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
+//     ./navierstokes -ceed /gpu/occa -problem advection -degree 1
 //
-//TESTARGS -ceed {ceed_resource} -test -petscspace_degree 1
+//TESTARGS -ceed {ceed_resource} -test -degree 1
 
 /// @file
 /// Navier-Stokes example using PETSc
@@ -532,8 +532,8 @@ static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix,
-                       SimpleBC bc, void *ctxSetup, PetscInt *degree) {
+PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
+                       SimpleBC bc, void *ctxSetup) {
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
@@ -542,9 +542,9 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix,
     PetscFE fe;
     PetscSpace fespace;
     PetscInt ncompq = 5;
-    ierr = PetscFECreateDefault(PETSC_COMM_SELF,problem->dim, ncompq,
-                                PETSC_FALSE, prefix, PETSC_DETERMINE, &fe);
-    CHKERRQ(ierr);
+    ierr = PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, ncompq,
+                                 PETSC_FALSE, degree, PETSC_DECIDE,
+                                 &fe);
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm,NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
@@ -572,12 +572,6 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, const char *prefix,
     ierr = DMPlexSetClosurePermutationTensor(dm,PETSC_DETERMINE,NULL);
     CHKERRQ(ierr);
     ierr = PetscFEGetBasisSpace(fe, &fespace); CHKERRQ(ierr);
-    if (degree) {
-      ierr = PetscSpaceGetDegree(fespace, degree, NULL); CHKERRQ(ierr);
-      if (*degree < 1) SETERRQ1(PetscObjectComm((PetscObject)dm),
-                                  PETSC_ERR_ARG_OUTOFRANGE,
-                                  "Degree %D; must specify -petscspace_degree 1 (or greater)", *degree);
-    }
     ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
   }
   {
@@ -662,7 +656,7 @@ int main(int argc, char **argv) {
   PetscScalar resz      = 1000.;    // m (resolution in z)
   PetscInt outputfreq   = 10;       // -
   PetscInt contsteps    = 0;        // -
-  PetscInt degree;
+  PetscInt degree       = 1;        // -
   PetscInt qextra       = 2;        // -
   DMBoundaryType periodicity[] = {DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
                                   DM_BOUNDARY_NONE
@@ -801,6 +795,8 @@ int main(int argc, char **argv) {
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-continue", "Continue from previous solution",
                          NULL, contsteps, &contsteps, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-degree", "Polynomial degree of finite elements",
+                         NULL, degree, &degree, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
   PetscStrncpy(user->outputfolder, ".", 2);
@@ -888,35 +884,44 @@ int main(int argc, char **argv) {
 
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = SetUpDM(dm, problem, NULL, &bc, &ctxSetup, &degree); CHKERRQ(ierr);
+  ierr = SetUpDM(dm, problem, degree, &bc, &ctxSetup); CHKERRQ(ierr);
   if (!test) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Degree of FEM Space: %D\n",
-                       (PetscInt)degree); CHKERRQ(ierr);
+                       degree); CHKERRQ(ierr);
   }
   dmviz = NULL;
   interpviz = NULL;
   if (viz_refine) {
+    DM dmhierarchy[viz_refine+1];
+
     ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
-    dmvizfine = NULL;
-    ierr = DMRefine(dm, MPI_COMM_NULL, &dmviz); CHKERRQ(ierr);
-    ierr = DMSetCoarseDM(dmviz, dm); CHKERRQ(ierr);
-    ierr = PetscOptionsSetValue(NULL,"-viz_petscspace_degree","1");
-    CHKERRQ(ierr);
-    ierr = SetUpDM(dmviz, problem, "viz_", &bc, &ctxSetup, NULL); CHKERRQ(ierr);
-    ierr = DMCreateInterpolation(dm, dmviz, &interpviz, NULL); CHKERRQ(ierr);
-    for (PetscInt i = 1; i < viz_refine; i++) {
-      ierr = DMRefine(dmviz, MPI_COMM_NULL, &dmvizfine); CHKERRQ(ierr);
-      if (dmvizfine) {
-        ierr = DMSetCoarseDM(dmvizfine, dmviz); CHKERRQ(ierr);
-        ierr = PetscOptionsSetValue(NULL,"-viz_petscspace_degree","1");
-        CHKERRQ(ierr);
-        ierr = SetUpDM(dmvizfine, problem, "viz_", &bc, &ctxSetup, NULL); CHKERRQ(ierr);
-        ierr = DMCreateInterpolation(dmviz, dmvizfine, &interpviz, NULL); CHKERRQ(ierr);
-        ierr = DMDestroy(&dmviz); CHKERRQ(ierr);
-        dmviz  = dmvizfine;
+    dmhierarchy[0] = dm;
+    for (PetscInt i = 0, d = degree; i < viz_refine; i++) {
+      Mat interp_next;
+
+      ierr = DMRefine(dmhierarchy[i], MPI_COMM_NULL, &dmhierarchy[i+1]);
+      CHKERRQ(ierr);
+      ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
+      d = (d + 1) / 2;
+      if (i + 1 == viz_refine) d = 1;
+      ierr = SetUpDM(dmhierarchy[i+1], problem, d, &bc, &ctxSetup); CHKERRQ(ierr);
+      ierr = DMCreateInterpolation(dmhierarchy[i], dmhierarchy[i+1],
+                                   &interp_next, NULL); CHKERRQ(ierr);
+      if (!i) interpviz = interp_next;
+      else {
+        Mat C;
+        ierr = MatMatMult(interp_next, interpviz, MAT_INITIAL_MATRIX,
+                          PETSC_DECIDE, &C); CHKERRQ(ierr);
+        ierr = MatDestroy(&interp_next); CHKERRQ(ierr);
+        ierr = MatDestroy(&interpviz); CHKERRQ(ierr);
+        interpviz = C;
       }
     }
+    for (PetscInt i=1; i<viz_refine; i++) {
+      ierr = DMDestroy(&dmhierarchy[i]); CHKERRQ(ierr);
+    }
+    dmviz = dmhierarchy[viz_refine];
   }
   ierr = DMCreateGlobalVector(dm, &Q); CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm, &Qloc); CHKERRQ(ierr);
