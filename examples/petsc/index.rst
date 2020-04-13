@@ -60,10 +60,18 @@ Sphere
 
 This problem computes the surface :ref:`example-petsc-area` of a tensor-product
 discrete sphere, obtained by projecting a cube inscribed in a sphere onto the surface
-of the sphere (this discrete surface is sometimes referred to as a cubed-sphere).
+of the sphere. This discrete surface is sometimes referred to as a cubed-sphere
+(an example of such as a surface is given in figure :numref:`fig-cubed-sphere`).
 This problem can be run with::
 
    ./area -problem sphere
+
+.. _fig-cubed-sphere:
+
+.. figure:: ../../../../img/CubedSphere.svg
+
+   Example of a cubed-sphere, i.e., a tensor-product discrete sphere, obtained by
+   projecting a cube inscribed in a sphere onto the surface of the sphere.
 
 This example uses the following coordinate transformations for the computation of the
 geometric factors: from the physical coordinates on the sphere, denoted by
