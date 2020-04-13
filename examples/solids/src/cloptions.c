@@ -103,6 +103,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
     char optionName[25];
     snprintf(optionName, sizeof optionName, "-bc_clamp_%d_translate",
              appCtx->bcClampFaces[i]);
+    maxn = 3;
+
     appCtx->bcClampTranslate[i] = PETSC_FALSE;
     ierr = PetscOptionsScalarArray(optionName,
                                    "Vector to translate clamped end by", NULL,
