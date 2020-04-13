@@ -619,7 +619,7 @@ int main(int argc, char **argv) {
                        "    PC Type                            : %s\n",
                        pcType); CHKERRQ(ierr);
 
-    if (appCtx->multigridChoice != MULTIGRID_NONE && appCtx->degree > 1) {
+    if (!strcmp(pcType, PCMG)) {
       PCMGType pcmgType;
       ierr = PCMGGetType(pc, &pcmgType); CHKERRQ(ierr);
       ierr = PetscPrintf(comm,
