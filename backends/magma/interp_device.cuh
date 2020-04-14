@@ -85,7 +85,7 @@ template<typename T, int DIM, int NCOMP, int P, int Q, int MAXPQ>
 static __device__ __inline__ void
 magma_interp_2d_device( 
     const T *sT, magma_trans_t transT, 
-    T rU[DIM*NCOMP*MAXPQ] , T rV[DIM*NCOMP*MAXPQ], 
+    T rU[DIM][NCOMP][MAXPQ] , T rV[DIM][NCOMP][MAXPQ], 
     const int tx, T rTmp, T* swork)
 {
     // Assumptions
@@ -98,16 +98,6 @@ magma_interp_2d_device(
     // 5. Each thread computes one row of the output of each product
     // 6. Sync is recommended before and after the call
 
-    if(transT != MagmaTrans) {
-        // zero out rV[] for dim = 0, across all components and nodes
-        for(int icomp = 0; icomp < NCOMP; icomp++){
-            for(int i = 0; i < Q; i++) {
-                rV(0,icomp,i) = make_zero<T>();
-            }
-        }
-    }
-    // no sync here needed
-
     for(int icomp = 0; icomp < NCOMP; icomp++){
         // 1st product -- Batch P of (1xP) matrices [reg] x (PxQ) [shmem] => Batch P of (1xQ) matrices
         // the batch output P x (1xQ) is written on the fly to shmem
@@ -118,7 +108,7 @@ magma_interp_2d_device(
             for(int j = 0; j < Q; j++){
                 rTmp = make_zero<T>();
                 for(int i = 0; i < P; i++){
-                    rTmp += rU(0,icomp,i) * sT(i,j);
+                    rTmp += rU[0][icomp][i] * sT(i,j);
                 }
                 sTmp(0,j,sld) = rTmp;
             }
@@ -135,7 +125,7 @@ magma_interp_2d_device(
                 for(int i = 0; i < P; i++){
                     rTmp += sTmp(tx,i,sld) * sT(i,j);
                 }
-                rV(0,icomp,j) += rTmp;
+                rV[0][icomp][j] += rTmp;
             }
         }
         __syncthreads();
@@ -148,7 +138,7 @@ template<typename T, int DIM, int NCOMP, int P, int Q, int MAXPQ>
 static __device__ __inline__ void
 magma_interp_3d_device( 
     const T *sT, magma_trans_t transT, 
-    T rU[DIM*NCOMP*MAXPQ] , T rV[DIM*NCOMP*MAXPQ], 
+    T rU[DIM][NCOMP][MAXPQ] , T rV[DIM][NCOMP][MAXPQ], 
     const int tx, T rTmp[Q], T* swork)
 {
     // Assumptions
@@ -162,16 +152,6 @@ magma_interp_3d_device(
     // 5. Each thread computes one row of the output of each product
     // 6. Sync is recommended before and after the call
 
-    if(transT != MagmaTrans) {
-        // zero out rV[] for dim = 0, across all components and nodes
-        for(int icomp = 0; icomp < NCOMP; icomp++){
-            for(int i = 0; i < Q; i++) {
-                rV(0,icomp,i) = make_zero<T>();
-            }
-        }
-    }
-    // no sync here needed
-
     for(int icomp = 0; icomp < NCOMP; icomp++){
         // Batch P^2 of (1xP) matrices [reg] times (PxQ) matrix [shmem] => Batch P^2 of (1xQ) matrices [shmem]
         if(tx < (P*P)) {
@@ -181,7 +161,7 @@ magma_interp_3d_device(
             for(int j = 0; j < Q; j++){
                 rTmp[0] = make_zero<T>();
                 for(int i = 0; i < P; i++){
-                    rTmp[0] += rU(0,icomp,i) * sT(i,j);
+                    rTmp[0] += rU[0][icomp][i] * sT(i,j);
                 }
                 sTmp(0,j,sld) = rTmp[0];
             }
@@ -226,7 +206,7 @@ magma_interp_3d_device(
                for(int i = 0; i < P; i++) {
                    rTmp[0] += sTmp(tx,i,sld) * sT(i,j);
                }
-               rV(0,icomp,j) += rTmp[0];
+               rV[0][icomp][j] += rTmp[0];
            }
        }
        __syncthreads();
