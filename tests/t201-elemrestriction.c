@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     a[i] = 10 + i;
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
 
-  CeedElemRestrictionCreateStrided(ceed, ne, 2, ne*2, 1, strides, &r);
+  CeedElemRestrictionCreateStrided(ceed, ne, 2, 1, ne*2, strides, &r);
   CeedVectorCreate(ceed, ne*2, &y);
   CeedVectorSetValue(y, 0); // Allocates array
   CeedElemRestrictionApply(r, CEED_NOTRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);

@@ -25,7 +25,11 @@ if [ ${1::6} == "petsc-" ]; then
 elif [ ${1::5} == "mfem-" ]; then
     allargs=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
 elif [ ${1::4} == "nek-" ]; then
-    allargs=$(grep -F "C TESTARGS" examples/nek/bps/${1:4}.usr* | cut -d\  -f3- )
+    # get all test configurations
+    numconfig=$(grep -F C_TESTARGS examples/nek/bps/${1:4}.usr* | wc -l)
+    for ((i=0;i<${numconfig};++i)); do
+      allargs+=("$(awk -v i="$i" '/C_TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/nek/bps/${1:4}.usr* | cut -d\  -f2- )")
+    done
 elif [ ${1::7} == "fluids-" ]; then
     allargs=$(grep -F //TESTARGS examples/fluids/${1:7}.c* | cut -d\  -f2- )
 elif [ ${1::7} == "solids-" ]; then

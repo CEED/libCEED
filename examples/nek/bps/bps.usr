@@ -16,7 +16,8 @@ C testbed platforms, in support of the nation's exascale computing imperative.
 
 C> @file
 C> Mass and diffusion operators examples using Nek5000
-C TESTARGS -c {ceed_resource} -e bp1 -n 1 -b 4 -test
+C_TESTARGS -c {ceed_resource} -e bp1 -n 1 -b 4 -test
+C_TESTARGS -c {ceed_resource} -e bp3 -n 1 -b 4 -test
 
 C-----------------------------------------------------------------------
       subroutine masssetupf(ctx,q,u1,u2,u3,u4,u5,u6,u7,
@@ -792,13 +793,13 @@ C     Create ceed element restrictions for mesh and computation
       enode=p**ldim
       lnode=enode*nelt*ncompu
       stridesx=[1,enode,enode*ldim]
-      call ceedelemrestrictioncreatestrided(ceed,nelt,enode,lnode,
-     $  ldim,stridesx,erstrctx,err)
+      call ceedelemrestrictioncreatestrided(ceed,nelt,enode,ldim,
+     $  ldim*lnode,stridesx,erstrctx,err)
       stridesu=[1,enode,enode*ncompu]
-      call ceedelemrestrictioncreatestrided(ceed,nelt,enode,lnode,
-     $  ncompu,stridesu,erstrctu,err)
+      call ceedelemrestrictioncreatestrided(ceed,nelt,enode,ncompu,
+     $  ncompu*lnode,stridesu,erstrctu,err)
       call ceedelemrestrictioncreatestrided(ceed,nelt,q**ldim,
-     $  nelt*q**ldim,1,ceed_strides_backend,erstrctw,err)
+     $  1,nelt*q**ldim,ceed_strides_backend,erstrctw,err)
 
 C     Create ceed vectors
       call ceedvectorcreate(ceed,lnode,vec_p1,err)
@@ -1110,14 +1111,14 @@ C     Create ceed element restrictions for mesh and computation
       lnode=enode*nelt*ncompu
       ngeo=(ldim*(ldim+1))/2
       stridesx=[1,enode,enode*ldim]
-      call ceedelemrestrictioncreatestrided(ceed,nelt,enode,lnode,
-     $  ldim,stridesx,erstrctx,err)
+      call ceedelemrestrictioncreatestrided(ceed,nelt,enode,ldim,
+     $  ldim*lnode,stridesx,erstrctx,err)
       stridesu=[1,enode,enode*ncompu]
-      call ceedelemrestrictioncreatestrided(ceed,nelt,enode,lnode,
-     $  ncompu,stridesu,erstrctu,err)
+      call ceedelemrestrictioncreatestrided(ceed,nelt,enode,ncompu,
+     $  ncompu*lnode,stridesu,erstrctu,err)
       stridesw=[1,q**ldim,ngeo*q**ldim]
       call ceedelemrestrictioncreatestrided(ceed,nelt,q**ldim,
-     $  nelt*q**ldim,ngeo,stridesw,erstrctw,err)
+     $  ngeo,nelt*q**ldim*ngeo,stridesw,erstrctw,err)
 
 C     Create ceed vectors
       call ceedvectorcreate(ceed,lnode,vec_p1,err)

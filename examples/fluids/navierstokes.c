@@ -230,9 +230,9 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
   ierr = DMGetLocalVector(dm, &Uloc); CHKERRQ(ierr);
   ierr = VecGetLocalSize(Uloc, &Ndof); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, CEED_INTERLACED, Nelem, PetscPowInt(P, dim),
-                            Ndof/fieldoff[nfields], fieldoff[nfields],
-                            CEED_MEM_HOST, CEED_COPY_VALUES, erestrict, Erestrict);
+  CeedElemRestrictionCreate(ceed, Nelem, PetscPowInt(P, dim), fieldoff[nfields],
+                            1, Ndof, CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
+                            Erestrict);
   ierr = PetscFree(erestrict); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -975,10 +975,11 @@ int main(int argc, char **argv) {
   localNelem = cEnd - cStart;
   CeedInt numQdim = CeedIntPow(numQ, dim);
   CeedElemRestrictionCreateStrided(ceed, localNelem, numQdim,
-                                   localNelem*numQdim, qdatasize,
+                                   qdatasize, qdatasize*localNelem*numQdim,
                                    CEED_STRIDES_BACKEND, &restrictqdi);
   CeedElemRestrictionCreateStrided(ceed, localNelem, PetscPowInt(numP, dim),
-                                   localNelem*PetscPowInt(numP, dim), ncompx,
+                                   ncompx,
+                                   ncompx*localNelem*PetscPowInt(numP, dim),
                                    CEED_STRIDES_BACKEND, &restrictxcoord);
 
   ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);

@@ -18,7 +18,6 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedElemRestriction ErestrictxTet, ErestrictuTet,
                       ErestrictuiTet,
                       ErestrictxHex, ErestrictuHex,
@@ -84,15 +83,15 @@ int main(int argc, char **argv) {
   }
 
   // -- Restrictions
-  CeedElemRestrictionCreate(ceed, imode, nelemTet, PTet, ndofs, dim,
+  CeedElemRestrictionCreate(ceed, nelemTet, PTet, dim, ndofs, dim*ndofs,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
                             &ErestrictxTet);
 
-  CeedElemRestrictionCreate(ceed, imode, nelemTet, PTet, ndofs, 1,
+  CeedElemRestrictionCreate(ceed, nelemTet, PTet, 1, 1, ndofs,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
                             &ErestrictuTet);
   CeedInt stridesuTet[3] = {1, QTet, QTet};
-  CeedElemRestrictionCreateStrided(ceed,  nelemTet, QTet, nqptsTet, 1,
+  CeedElemRestrictionCreateStrided(ceed,  nelemTet, QTet, 1, nqptsTet,
                                    stridesuTet, &ErestrictuiTet);
 
   // -- Bases
@@ -146,15 +145,15 @@ int main(int argc, char **argv) {
   }
 
   // -- Restrictions
-  CeedElemRestrictionCreate(ceed, imode, nelemHex, PHex*PHex, ndofs, dim,
+  CeedElemRestrictionCreate(ceed, nelemHex, PHex*PHex, dim, ndofs, dim*ndofs,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
                             &ErestrictxHex);
 
-  CeedElemRestrictionCreate(ceed, imode, nelemHex, PHex*PHex, ndofs, 1,
+  CeedElemRestrictionCreate(ceed, nelemHex, PHex*PHex, 1, 1, ndofs,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
                             &ErestrictuHex);
   CeedInt stridesuHex[3] = {1, QHex*QHex, QHex*QHex};
-  CeedElemRestrictionCreateStrided(ceed, nelemHex, QHex*QHex, nqptsHex, 1,
+  CeedElemRestrictionCreateStrided(ceed, nelemHex, QHex*QHex, 1, nqptsHex,
                                    stridesuHex, &ErestrictuiHex);
 
   // -- Bases

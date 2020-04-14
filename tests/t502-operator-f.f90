@@ -35,10 +35,6 @@
       include 'ceedf.h'
 
       integer ceed,err,i,j
-      integer imode
-      parameter(imode=ceed_noninterlaced)
-      integer imodeu
-      parameter(imodeu=ceed_interlaced)
       integer stridesu(3)
       integer erestrictx,erestrictu,erestrictui
       integer bx,bu
@@ -75,19 +71,19 @@
         indx(2*i+2)=i+1
       enddo
 
-      call ceedelemrestrictioncreate(ceed,imode,nelem,2,nx,1,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,nelem,2,1,1,nx,ceed_mem_host,&
      & ceed_use_pointer,indx,erestrictx,err)
 
       do i=0,nelem-1
         do j=0,p-1
-          indu(p*i+j+1)=i*(p-1)+j
+          indu(p*i+j+1)=2*(i*(p-1)+j)
         enddo
       enddo
 
-      call ceedelemrestrictioncreate(ceed,imodeu,nelem,p,nu,2,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,nelem,p,2,1,2*nu,ceed_mem_host,&
      & ceed_use_pointer,indu,erestrictu,err)
       stridesu=[1,q,q]
-      call ceedelemrestrictioncreatestrided(ceed,nelem,q,q*nelem,1,stridesu,&
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q,1,q*nelem,stridesu,&
      & erestrictui,err)
 
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss,bx,err)

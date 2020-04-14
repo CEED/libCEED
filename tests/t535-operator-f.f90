@@ -65,8 +65,6 @@
       include 'ceedf.h'
 
       integer ceed,err,i,j,k
-      integer imode
-      parameter(imode=ceed_noninterlaced)
       integer stridesu(3),stridesqd(3)
       integer erestrictx,erestrictu,erestrictui,erestrictqi
       integer bx,bu
@@ -124,18 +122,18 @@
       enddo
 
 ! Restrictions
-      call ceedelemrestrictioncreate(ceed,imode,nelem,p*p,ndofs,d,&
+      call ceedelemrestrictioncreate(ceed,nelem,p*p,d,ndofs,d*ndofs,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictx,err)
 
-      call ceedelemrestrictioncreate(ceed,imode,nelem,p*p,ndofs,1,&
+      call ceedelemrestrictioncreate(ceed,nelem,p*p,1,1,ndofs,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictu,err)
       stridesu=[1,q*q,q*q]
-      call ceedelemrestrictioncreatestrided(ceed,nelem,q*q,nqpts,&
-     & 1,stridesu,erestrictui,err)
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q*q,1,nqpts,&
+     & stridesu,erestrictui,err)
 
       stridesqd=[1,q*q,q*q*d*(d+1)/2]
-      call ceedelemrestrictioncreatestrided(ceed,nelem,q*q,nqpts,&
-     & d*(d+1)/2,stridesqd,erestrictqi,err)
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q*q,d*(d+1)/2,&
+     & d*(d+1)/2*nqpts,stridesqd,erestrictqi,err)
 
 ! Bases
       call ceedbasiscreatetensorh1lagrange(ceed,d,d,p,q,ceed_gauss,bx,err)

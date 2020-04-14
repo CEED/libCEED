@@ -329,7 +329,6 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[dim], int order,
                               int ncomp, CeedInt *size, CeedInt num_qpts,
                               CeedElemRestriction *restr,
                               CeedElemRestriction *restr_i) {
-  CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedInt p = order, pp1 = p+1;
   CeedInt nnodes = CeedIntPow(pp1, dim); // number of scal. nodes per element
   CeedInt elem_qpts = CeedIntPow(num_qpts, dim); // number of qpts per element
@@ -358,12 +357,12 @@ int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[dim], int order,
       loc_el_nodes[lnodes] = gnodes;
     }
   }
-  CeedElemRestrictionCreate(ceed, imode, num_elem, nnodes, scalar_size,
-                            ncomp, CEED_MEM_HOST, CEED_COPY_VALUES, el_nodes,
-                            restr);
+  CeedElemRestrictionCreate(ceed, num_elem, nnodes, ncomp, scalar_size,
+                            ncomp*scalar_size, CEED_MEM_HOST, CEED_COPY_VALUES,
+                            el_nodes, restr);
   if (restr_i)
     CeedElemRestrictionCreateStrided(ceed, num_elem, elem_qpts,
-                                     elem_qpts*num_elem, ncomp,
+                                     ncomp, ncomp*elem_qpts*num_elem,
                                      CEED_STRIDES_BACKEND, restr_i);
   free(el_nodes);
   return 0;

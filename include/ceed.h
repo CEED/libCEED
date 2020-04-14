@@ -277,38 +277,26 @@ typedef enum {
 
 CEED_EXTERN const char *const CeedTransposeModes[];
 
-/// Denotes whether a L-vector is ordered [component, node] or [node, component]
-///   with the right-most index being contiguous in memory
-/// @ingroup CeedElemRestriction
-typedef enum {
-  /// L-vector data is not interlaced, ordered [component, node]
-  CEED_NONINTERLACED,
-  /// L-vector data is interlaced, ordered [node, component]
-  CEED_INTERLACED
-} CeedInterlaceMode;
-
-CEED_EXTERN const char *const CeedInterlaceModes[];
-
 /// Argument for CeedElemRestrictionCreateStrided that L-vector is in
 /// the Ceed backend's preferred layout. This argument should only be used
 /// with vectors created by a Ceed backend.
 /// @ingroup CeedElemRestriction
 CEED_EXTERN const CeedInt CEED_STRIDES_BACKEND[3];
 
-CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInterlaceMode imode,
-    CeedInt nelem, CeedInt elemsize, CeedInt nnodes, CeedInt ncomp,
-    CeedMemType mtype, CeedCopyMode cmode, const CeedInt *indices,
+CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem,
+    CeedInt elemsize, CeedInt ncomp, CeedInt compstride, CeedInt lsize,
+    CeedMemType mtype, CeedCopyMode cmode, const CeedInt *offsets,
     CeedElemRestriction *rstr);
-CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed,
-    CeedInterlaceMode imode, CeedInt nelem, CeedInt elemsize, CeedInt blksize,
-    CeedInt nnodes, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
-    const CeedInt *indices, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateStrided(Ceed ceed,
-    CeedInt nelem, CeedInt elemsize, CeedInt nnodes, CeedInt ncomp,
+    CeedInt nelem, CeedInt elemsize, CeedInt ncomp, CeedInt lsize,
     const CeedInt strides[3], CeedElemRestriction *rstr);
+CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem,
+    CeedInt elemsize, CeedInt blksize, CeedInt ncomp, CeedInt compstride,
+    CeedInt lsize, CeedMemType mtype, CeedCopyMode cmode,
+    const CeedInt *offsets, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlockedStrided(Ceed ceed,
-    CeedInt nelem, CeedInt elemsize, CeedInt blksize, CeedInt nnodes,
-    CeedInt ncomp, const CeedInt strides[3], CeedElemRestriction *rstr);
+    CeedInt nelem, CeedInt elemsize, CeedInt blksize, CeedInt ncomp,
+    CeedInt lsize, const CeedInt strides[3], CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
     CeedVector *lvec, CeedVector *evec);
 CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr,
@@ -316,14 +304,14 @@ CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr,
 CEED_EXTERN int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr,
     CeedInt block, CeedTransposeMode tmode, CeedVector u, CeedVector ru,
     CeedRequest *request);
-CEED_EXTERN int CeedElemRestrictionGetIMode(CeedElemRestriction rstr,
-    CeedInterlaceMode *Imode);
+CEED_EXTERN int CeedElemRestrictionGetCompStride(CeedElemRestriction rstr,
+    CeedInt *compstride);
 CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
     CeedInt *numelem);
 CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
     CeedInt *elemsize);
-CEED_EXTERN int CeedElemRestrictionGetNumNodes(CeedElemRestriction rstr,
-    CeedInt *numnodes);
+CEED_EXTERN int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr,
+    CeedInt *lsize);
 CEED_EXTERN int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
     CeedInt *numcomp);
 CEED_EXTERN int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,

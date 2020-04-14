@@ -8,7 +8,6 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedElemRestriction Erestrictx, Erestrictu,
                       Erestrictui, Erestrictqi;
   CeedBasis bx, bu;
@@ -49,17 +48,18 @@ int main(int argc, char **argv) {
   }
 
   // Restrictions
-  CeedElemRestrictionCreate(ceed, imode, nelem, P*P, ndofs, dim, CEED_MEM_HOST,
-                            CEED_USE_POINTER, indx, &Erestrictx);
+  CeedElemRestrictionCreate(ceed, nelem, P*P, dim, ndofs, dim*ndofs,
+                            CEED_MEM_HOST, CEED_USE_POINTER, indx, &Erestrictx);
 
-  CeedElemRestrictionCreate(ceed, imode, nelem, P*P, ndofs, 1, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, nelem, P*P, 1, 1, ndofs, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictu);
   CeedInt stridesu[3] = {1, Q*Q, Q*Q};
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nqpts, 1, stridesu,
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, 1, nqpts, stridesu,
                                    &Erestrictui);
 
   CeedInt stridesqd[3] = {1, Q*Q, Q *Q *dim *(dim+1)/2};
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nqpts, dim*(dim+1)/2,
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, dim*(dim+1)/2,
+                                   dim*(dim+1)/2*nqpts,
                                    stridesqd, &Erestrictqi);
 
   // Bases

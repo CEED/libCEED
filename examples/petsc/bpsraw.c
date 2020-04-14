@@ -98,9 +98,8 @@ static PetscInt GlobalStart(const PetscInt p[3], const PetscInt irank[3],
   }
   return -1;
 }
-static int CreateRestriction(Ceed ceed, CeedInterlaceMode imode,
-                             const CeedInt melem[3], CeedInt P, CeedInt ncomp,
-                             CeedElemRestriction *Erestrict) {
+static int CreateRestriction(Ceed ceed, const CeedInt melem[3], CeedInt P,
+                             CeedInt ncomp, CeedElemRestriction *Erestrict) {
   const PetscInt nelem = melem[0]*melem[1]*melem[2];
   PetscInt mnodes[3], *idx, *idxp;
 
@@ -114,19 +113,19 @@ static int CreateRestriction(Ceed ceed, CeedInterlaceMode imode,
           for (CeedInt jj=0; jj<P; jj++)
             for (CeedInt kk=0; kk<P; kk++) {
               if (0) { // This is the C-style (i,j,k) ordering that I prefer
-                idxp[(ii*P+jj)*P+kk] = (((i*(P-1)+ii)*mnodes[1]
-                                         + (j*(P-1)+jj))*mnodes[2]
-                                        + (k*(P-1)+kk));
+                idxp[(ii*P+jj)*P+kk] = ncomp*(((i*(P-1)+ii)*mnodes[1]
+                                               + (j*(P-1)+jj))*mnodes[2]
+                                              + (k*(P-1)+kk));
               } else { // (k,j,i) ordering for consistency with MFEM example
-                idxp[ii+P*(jj+P*kk)] = (((i*(P-1)+ii)*mnodes[1]
-                                         + (j*(P-1)+jj))*mnodes[2]
-                                        + (k*(P-1)+kk));
+                idxp[ii+P*(jj+P*kk)] = ncomp*(((i*(P-1)+ii)*mnodes[1]
+                                               + (j*(P-1)+jj))*mnodes[2]
+                                              + (k*(P-1)+kk));
               }
             }
 
   // Setup CEED restriction
-  CeedElemRestrictionCreate(ceed, imode, nelem, P*P*P,
-                            mnodes[0]*mnodes[1]*mnodes[2], ncomp,
+  CeedElemRestrictionCreate(ceed, nelem, P*P*P, ncomp, 1,
+                            mnodes[0]*mnodes[1]*mnodes[2]*ncomp,
                             CEED_MEM_HOST, CEED_OWN_POINTER, idx, Erestrict);
 
   PetscFunctionReturn(0);
@@ -677,13 +676,15 @@ int main(int argc, char **argv) {
                                   bpOptions[bpchoice].qmode, &basisx);
 
   // CEED restrictions
-  CreateRestriction(ceed, CEED_INTERLACED, melem, P, ncompu, &Erestrictu);
-  CreateRestriction(ceed, CEED_NONINTERLACED, melem, 2, dim, &Erestrictx);
+  CreateRestriction(ceed, melem, P, ncompu, &Erestrictu);
+  CreateRestriction(ceed, melem, 2, dim, &Erestrictx);
   CeedInt nelem = melem[0]*melem[1]*melem[2];
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompu,
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, ncompu,
+                                   ncompu*nelem*Q*Q*Q,
                                    CEED_STRIDES_BACKEND, &Erestrictui);
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q,
                                    bpOptions[bpchoice].qdatasize,
+                                   bpOptions[bpchoice].qdatasize*nelem*Q*Q*Q,
                                    CEED_STRIDES_BACKEND, &Erestrictqdi);
   {
     CeedScalar *xloc;
@@ -693,11 +694,11 @@ int main(int argc, char **argv) {
     for (CeedInt i=0; i<shape[0]; i++) {
       for (CeedInt j=0; j<shape[1]; j++) {
         for (CeedInt k=0; k<shape[2]; k++) {
-          xloc[((i*shape[1]+j)*shape[2]+k) + 0*len] = 1.*(irank[0]*melem[0]+i) /
+          xloc[dim*((i*shape[1]+j)*shape[2]+k) + 0] = 1.*(irank[0]*melem[0]+i) /
               (p[0]*melem[0]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 1*len] = 1.*(irank[1]*melem[1]+j) /
+          xloc[dim*((i*shape[1]+j)*shape[2]+k) + 1] = 1.*(irank[1]*melem[1]+j) /
               (p[1]*melem[1]);
-          xloc[((i*shape[1]+j)*shape[2]+k) + 2*len] = 1.*(irank[2]*melem[2]+k) /
+          xloc[dim*((i*shape[1]+j)*shape[2]+k) + 2] = 1.*(irank[2]*melem[2]+k) /
               (p[2]*melem[2]);
         }
       }

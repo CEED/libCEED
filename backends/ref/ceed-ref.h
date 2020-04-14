@@ -29,8 +29,11 @@ typedef struct {
 } CeedVector_Ref;
 
 typedef struct {
-  const CeedInt *indices;
-  CeedInt *indices_allocated;
+  const CeedInt *offsets;
+  CeedInt *offsets_allocated;
+  int (*Apply)(CeedElemRestriction, const CeedInt, const CeedInt,
+               const CeedInt, CeedInt, CeedInt, CeedTransposeMode, CeedVector,
+               CeedVector, CeedRequest *);
 } CeedElemRestriction_Ref;
 
 typedef struct {
