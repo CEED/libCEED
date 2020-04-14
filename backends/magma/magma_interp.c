@@ -33,10 +33,10 @@ magma_interp(
 
     if(kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC) {
         switch(dim) {
-            case 1: magma_interp_1d(P, Q, ncomp, dT, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-            case 2: magma_interp_2d(P, Q, ncomp, dT, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-            case 3: magma_interp_3d(P, Q, ncomp, dT, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-            default: printf("Launch failed at %s\n", __func__);
+            case 1: launch_failed = magma_interp_1d(P, Q, ncomp, dT, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+            case 2: launch_failed = magma_interp_2d(P, Q, ncomp, dT, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+            case 3: launch_failed = magma_interp_3d(P, Q, ncomp, dT, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+            default: launch_failed = 1;
         }
     }
     else{
