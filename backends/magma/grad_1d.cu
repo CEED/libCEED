@@ -160,12 +160,6 @@ magma_grad_1d_ncomp_q(
         case  8: launch_failed = magma_grad_1d_ncomp<P, 8>(ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         case  9: launch_failed = magma_grad_1d_ncomp<P, 9>(ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         case 10: launch_failed = magma_grad_1d_ncomp<P,10>(ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 11: launch_failed = magma_grad_1d_ncomp<P,11>(ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 12: launch_failed = magma_grad_1d_ncomp<P,12>(ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 13: launch_failed = magma_grad_1d_ncomp<P,13>(ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 14: launch_failed = magma_grad_1d_ncomp<P,14>(ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 15: launch_failed = magma_grad_1d_ncomp<P,15>(ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 16: launch_failed = magma_grad_1d_ncomp<P,16>(ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         default: launch_failed = 1;
     }
     return launch_failed;
@@ -193,12 +187,6 @@ magma_grad_1d_ncomp_q_p(
         case  8: launch_failed = magma_grad_1d_ncomp_q< 8>(Q, ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         case  9: launch_failed = magma_grad_1d_ncomp_q< 9>(Q, ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         case 10: launch_failed = magma_grad_1d_ncomp_q<10>(Q, ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 11: launch_failed = magma_grad_1d_ncomp_q<11>(Q, ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 12: launch_failed = magma_grad_1d_ncomp_q<12>(Q, ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 13: launch_failed = magma_grad_1d_ncomp_q<13>(Q, ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 14: launch_failed = magma_grad_1d_ncomp_q<14>(Q, ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 15: launch_failed = magma_grad_1d_ncomp_q<15>(Q, ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 16: launch_failed = magma_grad_1d_ncomp_q<16>(Q, ncomp, dTgrad, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         default: launch_failed = 1;
     }
     return launch_failed;
