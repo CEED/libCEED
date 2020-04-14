@@ -31,8 +31,8 @@ magma_interp_2d_kernel(
 {
     const int elem_id = blockIdx.x;
     const int tx      = threadIdx.x;
-    T rU[DIM * NCOMP * MAXPQ];    // for a non fused operator DIM is always 1
-    T rV[DIM * NCOMP * MAXPQ];    // for a non fused operator DIM is always 1
+    T rU[DIM][NCOMP][MAXPQ] = { make_zero<T>() };    // for a non fused operator DIM is always 1
+    T rV[DIM][NCOMP][MAXPQ] = { make_zero<T>() };    // for a non fused operator DIM is always 1
     T rTmp = make_zero<T>();
 
     // shift global memory pointers by elem stride
@@ -68,9 +68,10 @@ magma_interp_2d_kernel(
 
         if(tx < P) {
             for(int i = 0; i < P; i++) {
-                rU(0,icomp,i) = sTmp[tx*P + i];
+                rU[0][icomp][i] = sTmp[tx*P + i];
             }
         }
+        __syncthreads();
     }
 
     // read V if transT is magmaTrans
@@ -78,12 +79,12 @@ magma_interp_2d_kernel(
         if(tx < Q) {
             for(int icomp = 0; icomp < NCOMP; icomp++) {
                 for(int j = 0; j < Q; j++) {
-                    rV(0,icomp,j) = dV[icomp * v_compstride + j*Q + tx];
+                    rV[0][icomp][j] = dV[icomp * v_compstride + j*Q + tx];
                 }
             }
         }
     }
-    __syncthreads();
+    // __syncthreads();    // sync here is probably not required
     
     magma_interp_2d_device<T, DIM, NCOMP, P, Q, MAXPQ>(sT, transT, rU , rV, tx, rTmp, sTmp);
     __syncthreads();
@@ -92,7 +93,7 @@ magma_interp_2d_kernel(
     if(tx < Q) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
             for(int j = 0; j < Q; j++) {
-                dV[icomp * v_compstride + j*Q + tx] = rV(0,icomp,j);
+                dV[icomp * v_compstride + j*Q + tx] = rV[0][icomp][j];
             }
         }
     }
@@ -133,9 +134,8 @@ magma_interp_2d_kernel_driver(
     else { 
         dim3 threads(nthreads, 1, 1);
         dim3 grid(nelem, 1, 1);
-        // IMPORTANT: we instantiate with DIM=1 instead of DIM=2 because interp operators deal with dim=0 only
-        // We should instantiate with DIM=2 when we fuse interp and grad operators, because the grad operator 
-        // needs to access data from all dimensions
+        // IMPORTANT: we instantiate with DIM=1 instead of DIM=2 because the kernel handles one dimension at a time
+        // We should instantiate with DIM >= 1 when we fuse the whole operator, because of the q-function
         magma_interp_2d_kernel<T,1,NCOMP,P,Q,MAXPQ><<<grid, threads, shmem, magma_queue_get_cuda_stream(queue)>>>
         (dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride);
         return (cudaPeekAtLastError() == cudaSuccess) ? 0 : 1;
@@ -184,12 +184,6 @@ magma_interp_1d_ncomp_q(
         case  8: launch_failed = magma_interp_2d_ncomp<P, 8>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         case  9: launch_failed = magma_interp_2d_ncomp<P, 9>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         case 10: launch_failed = magma_interp_2d_ncomp<P,10>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 11: launch_failed = magma_interp_2d_ncomp<P,11>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 12: launch_failed = magma_interp_2d_ncomp<P,12>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 13: launch_failed = magma_interp_2d_ncomp<P,13>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 14: launch_failed = magma_interp_2d_ncomp<P,14>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 15: launch_failed = magma_interp_2d_ncomp<P,15>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 16: launch_failed = magma_interp_2d_ncomp<P,16>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         default: launch_failed = 1;
     }
     return launch_failed;
@@ -217,12 +211,6 @@ magma_interp_2d_ncomp_q_p(
         case  8: launch_failed = magma_interp_1d_ncomp_q< 8>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         case  9: launch_failed = magma_interp_1d_ncomp_q< 9>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         case 10: launch_failed = magma_interp_1d_ncomp_q<10>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 11: launch_failed = magma_interp_1d_ncomp_q<11>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 12: launch_failed = magma_interp_1d_ncomp_q<12>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 13: launch_failed = magma_interp_1d_ncomp_q<13>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 14: launch_failed = magma_interp_1d_ncomp_q<14>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 15: launch_failed = magma_interp_1d_ncomp_q<15>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-        case 16: launch_failed = magma_interp_1d_ncomp_q<16>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
         default: launch_failed = 1;
     }
     return launch_failed;
