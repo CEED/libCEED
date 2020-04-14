@@ -30,12 +30,22 @@ magma_grad(
 {
     magma_int_t launch_failed = 0;
 
-    if(dim <= 1 && (kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC)) {
-        switch(dim) {
-            case 1: magma_grad_1d(P, Q, ncomp, dinterp1d, dgrad1d, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-            //case 2: magma_interp_2d(P, Q, ncomp, dT, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-            //case 3: magma_interp_3d(P, Q, ncomp, dT, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
-            default: printf("Launch failed at %s\n", __func__);
+    if(kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC) {
+        if(tmode == CEED_TRANSPOSE){
+            switch(dim) {
+                case 1: launch_failed =  magma_grad_1d(P, Q, ncomp, dinterp1d, dgrad1d, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+                case 2: launch_failed = magma_gradt_2d(P, Q, ncomp, dinterp1d, dgrad1d, tmode, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, nelem, queue); break;
+                case 3: launch_failed = magma_gradt_3d(P, Q, ncomp, dinterp1d, dgrad1d, tmode, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, nelem, queue); break;
+                default: launch_failed = 1;
+            }
+        }
+        else{
+            switch(dim) {
+                case 1: launch_failed =  magma_grad_1d(P, Q, ncomp, dinterp1d, dgrad1d, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, queue); break;
+                case 2: launch_failed = magma_gradn_2d(P, Q, ncomp, dinterp1d, dgrad1d, tmode, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, nelem, queue); break;
+                case 3: launch_failed = magma_gradn_3d(P, Q, ncomp, dinterp1d, dgrad1d, tmode, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, nelem, queue); break;
+                default: launch_failed = 1;
+            }
         }
     }
     else {
