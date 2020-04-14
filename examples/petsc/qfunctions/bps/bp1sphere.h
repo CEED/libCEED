@@ -17,6 +17,9 @@
 /// @file
 /// libCEED QFunctions for mass operator example for a scalar field on the sphere using PETSc
 
+#ifndef bp1sphere_h
+#define bp1sphere_h
+
 #ifndef __CUDACC__
 #  include <math.h>
 #endif
@@ -190,3 +193,5 @@ CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
+#endif // bp1sphere_h

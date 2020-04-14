@@ -320,4 +320,5 @@ CEED_QFUNCTION(HyperSSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
 #endif // End of HYPER_SS_H

@@ -23,6 +23,10 @@
 /**
   @brief New Ceed QFunction
 **/
+
+#ifndef gallerytemplate_h
+#define gallerytemplate_h
+
 CEED_QFUNCTION(GalleryTemplate)(void *ctx, const CeedInt Q,
                                 const CeedScalar *const *in,
                                 CeedScalar *const *out) {
@@ -39,3 +43,5 @@ CEED_QFUNCTION(GalleryTemplate)(void *ctx, const CeedInt Q,
 
   return 0;
 }
+
+#endif // gallerytemplate_h

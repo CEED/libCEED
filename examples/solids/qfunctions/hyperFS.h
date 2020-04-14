@@ -455,4 +455,5 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
 #endif // End of HYPER_FS_H

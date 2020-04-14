@@ -57,4 +57,5 @@ CEED_QFUNCTION(MMSTrueSoln)(void *ctx, const CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
 #endif // End MANUFACTURED_TRUE_H

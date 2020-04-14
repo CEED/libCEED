@@ -105,4 +105,5 @@ CEED_QFUNCTION(SetupMMSForce)(void *ctx, const CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
 #endif // End MANUFACTURED_H

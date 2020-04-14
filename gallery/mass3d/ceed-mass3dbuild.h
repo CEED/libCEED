@@ -17,6 +17,10 @@
 /**
   @brief Ceed QFunction for building the geometric data for the 3D mass matrix
 **/
+
+#ifndef mass3dbuild_h
+#define mass3dbuild_h
+
 CEED_QFUNCTION(Mass3DBuild)(void *ctx, const CeedInt Q,
                             const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] is Jacobians with shape [3, nc=3, Q]
@@ -35,3 +39,5 @@ CEED_QFUNCTION(Mass3DBuild)(void *ctx, const CeedInt Q,
 
   return 0;
 }
+
+#endif // mass3dbuild_h

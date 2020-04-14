@@ -279,4 +279,5 @@ CEED_QFUNCTION(LinElasdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
 #endif //End of LIN_ELAS_H

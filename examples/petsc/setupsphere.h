@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef setup_h
-#define setup_h
+#ifndef setupsphere_h
+#define setupsphere_h
 
 #include <stdbool.h>
 #include <string.h>
@@ -835,4 +835,5 @@ static PetscErrorCode ComputeErrorMax(UserO user, CeedOperator op_error,
 
   PetscFunctionReturn(0);
 }
-#endif
+
+#endif // setupsphere_h

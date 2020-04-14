@@ -17,6 +17,13 @@
 /// @file
 /// libCEED QFunctions for diffusion operator example using PETSc
 
+#ifndef bp4_h
+#define bp4_h
+
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
+
 // *****************************************************************************
 // This QFunction sets up the rhs and true solution for the problem
 // *****************************************************************************
@@ -126,3 +133,5 @@ CEED_QFUNCTION(Diff3)(void *ctx, CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
+#endif // bp4_h

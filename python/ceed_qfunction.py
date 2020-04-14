@@ -131,7 +131,8 @@ class QFunction(_QFunctionBase):
 
         # libCEED call
         fieldnameAscii = ffi.new("char[]", fieldname.encode('ascii'))
-        lib.CeedQFunctionAddInput(self._pointer[0], fieldnameAscii, size, emode)
+        lib.CeedQFunctionAddInput(
+            self._pointer[0], fieldnameAscii, size, emode)
 
     def add_output(self, fieldname, size, emode):
         """Add a QFunction output.

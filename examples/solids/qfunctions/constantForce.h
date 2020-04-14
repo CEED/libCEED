@@ -66,4 +66,5 @@ CEED_QFUNCTION(SetupConstantForce)(void *ctx, const CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
 #endif // End of CONSTANT_H

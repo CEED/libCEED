@@ -187,4 +187,5 @@ CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-#endif
+
+#endif // common_h

@@ -14,6 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#ifndef bp1_h
+#define bp1_h
+
 /// A structure used to pass additional data to f_build_mass
 struct BuildContext { CeedInt dim, space_dim; };
 
@@ -72,3 +75,5 @@ CEED_QFUNCTION(f_apply_mass)(void *ctx, const CeedInt Q,
   }
   return 0;
 }
+
+#endif // bp1_h

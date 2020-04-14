@@ -17,6 +17,10 @@
 /// @file
 /// libCEED QFunctions for BP examples using PETSc
 
+#ifndef common_h
+#define common_h
+#include <ceed.h>
+
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Error)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
@@ -39,3 +43,5 @@ CEED_QFUNCTION(Error3)(void *ctx, CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
+#endif // common_h

@@ -17,6 +17,10 @@
 /**
   @brief Ceed QFunction for applying the mass matrix
 **/
+
+#ifndef massapply_h
+#define massapply_h
+
 CEED_QFUNCTION(MassApply)(void *ctx, const CeedInt Q,
                           const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] is u, size (Q)
@@ -33,3 +37,5 @@ CEED_QFUNCTION(MassApply)(void *ctx, const CeedInt Q,
 
   return 0;
 }
+
+#endif // massapply_h
