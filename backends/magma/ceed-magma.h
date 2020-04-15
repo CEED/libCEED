@@ -156,13 +156,18 @@ CEED_INTERN {
           CeedScalar *dV, magma_int_t v_elemstride, magma_int_t v_compstride, magma_int_t v_dimstride, 
     magma_int_t nelem, magma_kernel_mode_t kernel_mode, magma_queue_t queue);
 
-  void magmablas_dbasis_apply_batched_eval_weight(magma_int_t Q, magma_int_t dim,
-      const double *dqweight1d, double *dV,
-      magma_int_t v_elemstride,
-      magma_int_t nelem,
-      magma_queue_t queue);
+  magma_int_t magma_weight_1d( 
+    magma_int_t Q, const CeedScalar *dqweight1d, 
+    CeedScalar *dV, magma_int_t v_stride, 
+    magma_int_t nelem, magma_queue_t queue);
 
-  void magma_weight(magma_int_t grid, magma_int_t threads, magma_int_t nelem,
+  magma_int_t magma_weight_generic( 
+    magma_int_t Q, magma_int_t dim, 
+    const CeedScalar *dqweight1d, 
+    CeedScalar *dV, magma_int_t vstride, 
+    magma_int_t batchCount, magma_queue_t queue);
+
+  void magma_weight_nontensor(magma_int_t grid, magma_int_t threads, magma_int_t nelem,
                     magma_int_t Q,
                     double *dqweight, double *dv, magma_queue_t queue);
 
