@@ -25,7 +25,7 @@ magma_weight(
     magma_int_t Q, magma_int_t dim, 
     const CeedScalar *dqweight1d, 
     CeedScalar *dV, magma_int_t v_stride, 
-    magma_int_t nelem, magma_queue_t queue)
+    magma_int_t nelem, magma_kernel_mode_t kernel_mode, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
 
