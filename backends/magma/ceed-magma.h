@@ -161,6 +161,11 @@ CEED_INTERN {
     CeedScalar *dV, magma_int_t v_stride, 
     magma_int_t nelem, magma_queue_t queue);
 
+  magma_int_t magma_weight_2d( 
+    magma_int_t Q, const CeedScalar *dqweight1d, 
+    CeedScalar *dV, magma_int_t v_stride, 
+    magma_int_t nelem, magma_queue_t queue);
+
   magma_int_t magma_weight_generic( 
     magma_int_t Q, magma_int_t dim, 
     const CeedScalar *dqweight1d, 
