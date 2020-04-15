@@ -173,9 +173,8 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     // LCOV_EXCL_STOP
     CeedInt Q = Q1d;
     int eldofssize = CeedIntPow(Q, dim);
-    magmablas_dbasis_apply_batched_eval_weight(Q, dim, impl->dqweight1d,
-        v, eldofssize,
-        nelem, data->queue);
+    ierr = magma_weight_generic(Q, dim, impl->dqweight1d, v, eldofssize, nelem, data->queue);
+    if(ierr != 0) CeedError(ceed, 1, "MAGMA: launch failure detected for magma_weight");
   }
   break;
   // LCOV_EXCL_START
@@ -293,7 +292,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     int elemsPerBlock = 1;//basis->Q1d < 7 ? optElems[basis->Q1d] : 1;
     int grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)?
                                        1 : 0 );
-    magma_weight(grid, nqpt, nelem, nqpt, impl->dqweight, dv, data->queue);
+    magma_weight_nontensor(grid, nqpt, nelem, nqpt, impl->dqweight, dv, data->queue);
     CeedChk(ierr);
   }
   break;
