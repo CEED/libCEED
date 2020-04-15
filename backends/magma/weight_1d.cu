@@ -30,7 +30,7 @@ magma_weight_1d_kernel(const T *dqweight1d, T *dV, const int v_stride)
     const int tx      = threadIdx.x;
 
     // global memory pointers
-    dV += batchid * v_stride
+    dV += batchid * v_stride;
 
     // shared memory pointers
     T* sTweight = (T*)shared_data;
@@ -65,7 +65,7 @@ magma_weight_1d_kernel_driver(const T *dqweight1d, T *dV, magma_int_t v_stride, 
     #if CUDA_VERSION >= 9000
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlockOptin, device);
     if(shmem <= shmem_max) {
-        cudaFuncSetAttribute(magma_weight_1d_kernel<T, 1, NCOMP, P, Q>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
+        cudaFuncSetAttribute(magma_weight_1d_kernel<T, Q>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
     }
     #else
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlock, device);
