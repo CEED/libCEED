@@ -45,8 +45,10 @@ magma_weight_2d_kernel(const T *dqweight1d, T *dV, const int v_stride)
     magma_weight_2d_device<T, 1, 1, Q, 0, 0>(sTweight, rV, tx);
 
     // write V
-    for(int j = 0; j < Q; j++) {
-        dV[ j*Q + tx ] = rV[0][0][j];
+    if(tx < Q) {
+        for(int j = 0; j < Q; j++) {
+            dV[ j*Q + tx ] = rV[0][0][j];
+        }
     }
 }
 
@@ -60,7 +62,7 @@ magma_weight_2d_kernel_driver(const T *dqweight1d, T *dV, magma_int_t v_stride, 
     magma_int_t shmem_max, nthreads_max;
 
     magma_int_t shmem  = 0;
-    shmem += sizeof(T) * (2*Q);  // for dqweight1d and output 
+    shmem += sizeof(T) * Q;  // for dqweight1d and output 
     magma_int_t nthreads = Q; 
 
     cudaDeviceGetAttribute (&nthreads_max, cudaDevAttrMaxThreadsPerBlock, device);

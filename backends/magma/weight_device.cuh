@@ -36,7 +36,7 @@ magma_weight_1d_device(const T* sTweight, T* sV, const int tx)
 // weight basis action -- 2D
 template<typename T, int DIM, int NCOMP, int Q, int iDIM, int iCOMP>
 __device__ __inline__ void
-magma_weight_2d_device(const T* sTweight, T* rV[DIM][NCOMP][Q], const int tx) 
+magma_weight_2d_device(const T* sTweight, T rV[DIM][NCOMP][Q], const int tx) 
 {
     // Assumptions
     // 1. 1D thread configuration of size Q
@@ -62,7 +62,7 @@ magma_weight_2d_device(const T* sTweight, T* rV[DIM][NCOMP][Q], const int tx)
 // weight basis action -- 2D
 template<typename T, int DIM, int NCOMP, int Q, int iDIM, int iCOMP>
 __device__ __inline__ void
-magma_weight_3d_device(const T* sTweight, T* rV[DIM][NCOMP][Q], const int tx) 
+magma_weight_3d_device(const T* sTweight, T rV[DIM][NCOMP][Q], const int tx) 
 {
     // Assumptions
     // 1. 1D thread configuration of size Q^2
