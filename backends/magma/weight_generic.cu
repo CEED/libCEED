@@ -58,6 +58,11 @@ magma_weight_generic_kernel_driver(
                 T *dV, magma_int_t vstride, 
                 magma_int_t batchCount, magma_queue_t queue)
 {
+    magma_device_t device;
+    magma_getdevice( &device );
+
+    magma_int_t shmem_max, nthreads_max;
+
     magma_int_t pre_org  = CeedIntPow(Q, dim-0-1);
     magma_int_t post_org = CeedIntPow(Q, 0);
 
