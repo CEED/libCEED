@@ -14,7 +14,7 @@ Build by using
 
 and run with
 
-`./navierstokes -petscspace_degree 1`
+`./navierstokes`
 
 Available runtime options are:
 
@@ -30,7 +30,7 @@ Available runtime options are:
 | `-bc_slip_y`             | Use slip boundary conditions, for the y component, on this list of faces                        |
 | `-bc_slip_z`             | Use slip boundary conditions, for the z component, on this list of faces                        |
 | `-viz_refine`            | Use regular refinement for visualization                                                        |
-| `-petscspace_degree`     | Polynomial degree of tensor product basis (needs to be set > 0)                                 |
+| `-degree`                | Polynomial degree of tensor product basis (must be >= 1)                                        |
 | `-units_meter`           | 1 meter in scaled length units                                                                  |
 | `-units_second`          | 1 second in scaled time units                                                                   |
 | `-units_kilogram`        | 1 kilogram in scaled mass units                                                                 |
