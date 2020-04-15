@@ -88,9 +88,10 @@ install:
         && brew link --overwrite gcc;
     fi
 # OCCA
-  - git clone --depth 1 https://github.com/libocca/occa.git;
-  - make -C occa -j2
-  - export OCCA_DIR=$PWD/occa
+  - git clone https://github.com/libocca/occa.git
+        && cd occa && git reset --hard 327badb && cd ..
+        && make -C occa -j2
+        && export OCCA_DIR=$PWD/occa;
 # LIBXSMM v1.15 (need to use specific commit, XSMM develops on master)
   - if [[ "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
         git clone https://github.com/hfp/libxsmm.git
