@@ -42,7 +42,7 @@ magma_weight_1d_kernel(const T *dqweight1d, T *dV, const int v_stride)
     }
     __syncthreads();
 
-    magma_weight_1d_device(sTweight, sV, tx);
+    magma_weight_1d_device<T, Q>(sTweight, sV, tx);
 
     // write V
     dV[ tx ] = sV[ tx ];
