@@ -58,11 +58,9 @@ a variety of computational device types (selectable at run time).
 linear or nonlinear operator without assembling its sparse representation. Let us
 define the global operator as
 
-$$
 \begin{align}\label{eq:decomposition}
 A = P^T \underbrace{G^T B^T D B G}_{\text{libCEED}} P \, ,
 \end{align}
-$$
 
 where $P$ is the parallel process decomposition operator (external to ``libCEED``) in
 which the degrees of freedom (DOFs) are scattered to and gathered from the different
