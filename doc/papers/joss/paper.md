@@ -16,9 +16,12 @@ authors:
     orcid: 0000-0003-1129-2056
     affiliation: 1
   - name: XXXX TODO Many more authors to be added XXXX
+    affiliation: 2
 affiliations:
  - name: University of Colorado Boulder
    index: 1
+ - name: Lawrence Livermore National Laboratory
+   index: 2
 date: XXXX TODO write date XXXX
 bibliography: paper.bib
 
