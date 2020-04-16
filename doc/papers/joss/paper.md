@@ -19,7 +19,7 @@ authors:
 affiliations:
  - name: University of Colorado Boulder
    index: 1
-date: XXXX TODO: write date XXXX
+date: XXXX TODO write date XXXX
 bibliography: paper.bib
 
 # Optional fields if submitting to a AAS journal too, see this blog post:
