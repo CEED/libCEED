@@ -62,7 +62,7 @@ magma_weight_2d_kernel_driver(const T *dqweight1d, T *dV, magma_int_t v_stride, 
     magma_int_t shmem_max, nthreads_max;
 
     magma_int_t shmem  = 0;
-    shmem += sizeof(T) * Q;  // for dqweight1d and output 
+    shmem += sizeof(T) * Q;  // for dqweight1d 
     magma_int_t nthreads = Q; 
 
     cudaDeviceGetAttribute (&nthreads_max, cudaDevAttrMaxThreadsPerBlock, device);
