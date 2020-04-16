@@ -41,9 +41,9 @@ The elasticity min-app is controlled via command-line options, the following of 
      - `Poisson's ratio <https://en.wikipedia.org/wiki/Poisson%27s_ratio>`_, :math:`\nu < 0.5`
 
    * - :code:`-bc_clamp [int list]`
-     - List of face sets on which to displace by :code:`-bc_clamp_[facenumber]_translate [x,y,z]` or :code:`bc_clamp_[facenumber]_rotate [rx,ry,rz,theta]`
+     - List of face sets on which to displace by :code:`-bc_clamp_[facenumber]_translate [x,y,z]` and/or :code:`bc_clamp_[facenumber]_rotate [rx,ry,rz,theta]`
 
-Note: The default for a clamped face is zero displacement.
+Note: The default for a clamped face is zero displacement. All displacement is with respect to the initial configuration.
 
 .. note::
 
