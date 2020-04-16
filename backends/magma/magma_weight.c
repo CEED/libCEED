@@ -29,10 +29,11 @@ magma_weight(
 {
     magma_int_t launch_failed = 0;
 
-    if(dim <= 1 && kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC) {
+    if(kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC) {
         switch(dim) {
             case 1: launch_failed = magma_weight_1d(Q, dqweight1d, dV, v_stride, nelem, queue); break;
             case 2: launch_failed = magma_weight_2d(Q, dqweight1d, dV, v_stride, nelem, queue); break;
+            case 3: launch_failed = magma_weight_3d(Q, dqweight1d, dV, v_stride, nelem, queue); break;
             default: launch_failed = 1;
         }
     }
