@@ -181,8 +181,8 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
     // -- ExodusII mesh with user specified BCs
     // -- Clamp BCs
     for (PetscInt i = 0; i < appCtx->bcClampCount; i++) {
-    char bcName[25];
-    snprintf(bcName, sizeof bcName, "clamp_%d", appCtx->bcClampFaces[i]);
+      char bcName[25];
+      snprintf(bcName, sizeof bcName, "clamp_%d", appCtx->bcClampFaces[i]);
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, "Face Sets", 0, 0, NULL,
                            (void(*)(void))BCClamp, 1, &appCtx->bcClampFaces[i],
                            (void *)&appCtx->bcClampMax[i]); CHKERRQ(ierr);
