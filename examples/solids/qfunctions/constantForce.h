@@ -34,7 +34,7 @@ struct Physics_private {
 #endif
 
 // -----------------------------------------------------------------------------
-// Constant forcing term, -1 in y direction only
+// Constant forcing term along specified vector
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupConstantForce)(void *ctx, const CeedInt Q,
                                    const CeedScalar *const *in,
@@ -45,21 +45,24 @@ CEED_QFUNCTION(SetupConstantForce)(void *ctx, const CeedInt Q,
   // Outputs
   CeedScalar *force = out[0];
 
+  // Context
+  const CeedScalar *forcingVector = (CeedScalar(*))ctx;
+
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Setup
-    CeedScalar rho = qdata[i];
+    CeedScalar wdetJ = qdata[i];
 
     // Forcing function
     // -- Component 1
-    force[i+0*Q] = 0;
+    force[i+0*Q] = forcingVector[0]*wdetJ;
 
     // -- Component 2
-    force[i+1*Q] = -rho;
+    force[i+1*Q] = forcingVector[1]*wdetJ;
 
     // -- Component 3
-    force[i+2*Q] = 0;
+    force[i+2*Q] = forcingVector[2]*wdetJ;
 
   } // End of Quadrature Point Loop
 

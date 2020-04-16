@@ -28,12 +28,12 @@
 // Sample runs:
 //
 //     ./elasticity -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem linElas -forcing mms
-//     ./elasticity -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -bc_zero 999 -bc_clamp 998 -problem hyperSS -forcing none -ceed /cpu/self
-//     ./elasticity -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -bc_zero 999 -bc_clamp 998 -problem hyperFS -forcing none -ceed /gpu/occa
+//     ./elasticity -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -bc_clamp 998,999 -bc_clamp_998_translate 0.1,0.2,0.3 -problem hyperSS -forcing none -ceed /cpu/self
+//     ./elasticity -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -bc_clamp 998,999 -bc_clamp_998 rotate 1,0,0,0.2 -problem hyperFS -forcing none -ceed /gpu/occa
 //
 // Sample meshes can be found at https://github.com/jeremylt/ceedSampleMeshes
 //
-//TESTARGS -ceed {ceed_resource} -test -degree 2 -nu 0.3 -E 1  -dm_plex_box_faces 3,3,3
+//TESTARGS -ceed {ceed_resource} -test -degree 2 -nu 0.3 -E 1 -dm_plex_box_faces 3,3,3
 
 /// @file
 /// CEED elasticity example using PETSc with DMPlex
@@ -420,7 +420,6 @@ int main(int argc, char **argv) {
       ierr = PCJacobiSetType(pc, PC_JACOBI_DIAGONAL); CHKERRQ(ierr);
     } else if (appCtx->degree == 1) {
       // ---- AMG for degree 1
-      ierr = KSPSetType(ksp, KSPPREONLY); CHKERRQ(ierr);
       ierr = PCSetType(pc, PCGAMG); CHKERRQ(ierr);
     } else {
       // ---- PCMG
@@ -620,7 +619,7 @@ int main(int argc, char **argv) {
                        "    PC Type                            : %s\n",
                        pcType); CHKERRQ(ierr);
 
-    if (appCtx->multigridChoice != MULTIGRID_NONE && appCtx->degree > 1) {
+    if (!strcmp(pcType, PCMG)) {
       PCMGType pcmgType;
       ierr = PCMGGetType(pc, &pcmgType); CHKERRQ(ierr);
       ierr = PetscPrintf(comm,
@@ -700,6 +699,23 @@ int main(int argc, char **argv) {
     // -- Cleanup
     ierr = VecDestroy(&errorVec); CHKERRQ(ierr);
     ierr = VecDestroy(&trueVec); CHKERRQ(ierr);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Compute energy
+  // ---------------------------------------------------------------------------
+  if (!appCtx->testMode) {
+    // -- Compute L2 error
+    CeedScalar energy;
+    ierr = ComputeStrainEnergy(resCtx,
+                               ceedData[fineLevel]->opEnergy, U,
+                               ceedData[fineLevel]->energy, &energy);
+    CHKERRQ(ierr);
+
+    // -- Output
+    ierr = PetscPrintf(comm,
+                       "    Strain Energy                      : %e\n",
+                       energy); CHKERRQ(ierr);
   }
 
   // ---------------------------------------------------------------------------

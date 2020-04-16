@@ -66,58 +66,74 @@ We multiply :math:numref:`lin-elas` by a test function :math:`\bm v` and integra
 
 where :math:`\bm{\sigma} \cdot \hat{\bm{n}}|_{\partial \Omega}` is replaced by an applied force/traction boundary condition written in terms of the reference configuration.
 
-The constitutive law (stress-strain relationship) is given by:
 
-.. math::
-   :label: linear-stress-strain
+Constitutive modeling
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-   \bm{\sigma} = \mathsf{C} \!:\! \bm{\epsilon},
-
-where 
+In their most general form, constitutive models define :math:`\bm \sigma` in terms of state variables.
+In the model taken into consideration in the present mini-app, the state variables are constituted by the vector displacement field :math:`\bm u`, and its gradient :math:`\nabla \bm u`.
+We begin by defining the symmetric (small/infintesimal) strain tensor as
 
 .. math::
    :label: small-strain
 
-   \bm{\epsilon} = \dfrac{1}{2}\left(\nabla \bm{u} + \nabla \bm{u}^T \right)
+   \bm{\epsilon} = \dfrac{1}{2}\left(\nabla \bm{u} + \nabla \bm{u}^T \right).
 
-is the symmetric (small/infinitesimal) strain tensor and the colon represents a double contraction (over both indices of :math:`\bm \epsilon`).
-For notational convenience, we express the symmetric second order tensors :math:`\bm \sigma` and :math:`\bm \epsilon` as vectors of length 6 using the `Voigt notation <https://en.wikipedia.org/wiki/Voigt_notation>`_.
-Hence, the fourth order elasticity tensor :math:`\mathsf C` (also known as elastic moduli tensor or material stiffness tensor) can be represented as a :math:`6\times 6` symmetric matrix
+This constitutive model :math:`\bm \sigma(\bm \epsilon)` is a linear tensor-valued function of a tensor-valued input, but we will consider the more general nonlinear case in other models below.
+In these cases, an arbitrary choice of such a function will generally not be invariant under orthogonal transformations and thus will not admissible as a physical model must not depend on the coordinate system chosen to express it.
+In particular, given an orthogonal transformation :math:`Q`, we desire
 
 .. math::
-   :label: linear-elasticity-tensor
+   :label: elastic-invariance
 
-   \mathsf C = \dfrac{E}{(1+\nu)(1-2\nu)}
-   \begin{pmatrix}
-     1-\nu & \nu & \nu & & & \\
-     \nu & 1 - \nu & \nu & & & \\
-     \nu & \nu &  1 - \nu & & & \\
-     & & & \dfrac{1 - 2\nu}{2} & & \\    
-     & & & &\dfrac{1 - 2\nu}{2} & \\
-     & & & & & \dfrac{1 - 2\nu}{2} \\   
-   \end{pmatrix},
+   Q \bm \sigma(\bm \epsilon) Q^T = \bm \sigma(Q \bm \epsilon Q^T),
 
-where :math:`E` is the Young’s modulus and :math:`\nu` is the Poisson’s ratio.
+which means that we can change our reference frame before or after computing :math:`\bm \sigma`, and get the same result either way.
+Constitutive relations in which :math:`\bm \sigma` is uniquely determined by :math:`\bm \epsilon` while satisfying the invariance property :math:numref:`elastic-invariance` are known as Cauchy elastic materials.
+Here, we define a strain energy density functional :math:`\Phi(\bm \epsilon) \in \mathbb R` and obtain the strain energy from its gradient,
+
+.. math::
+   :label: strain-energy-grad
+
+   \bm \sigma(\bm \epsilon) = \frac{\partial \Phi}{\partial \bm \epsilon}.
 
 
-Lamé parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. note::
+   The strain energy density functional cannot be an arbitrary function :math:`\Phi(\bm \epsilon)`; it can only depend on *invariants*, scalar-valued functions :math:`\gamma` satisfying
 
-An alternative formulation, in terms of the Lamé parameters,
+   .. math::
+      \gamma(\bm \epsilon) = \gamma(Q \bm \epsilon Q^T)
+
+   for all orthogonal matrices :math:`Q`.
+
+For the linear elasticity model, the strain energy density is given by
+
+.. math::
+
+   \bm{\Phi} = \frac{\lambda}{2} (\operatorname{trace} \bm{\epsilon})^2 + \mu \bm{\epsilon} : \bm{\epsilon} .
+
+The constitutive law (stress-strain relationship) is therefore given by its gradient,
+
+.. math::
+   \bm\sigma = \lambda (\operatorname{trace} \bm\epsilon) \bm I_3 + 2 \mu \bm\epsilon,
+
+where :math:`\bm I_3` is the :math:`3 \times 3` identity matrix, the colon represents a double contraction (over both indices of :math:`\bm \epsilon`), and the Lamé parameters are given by
 
 .. math::
    \begin{aligned}
    \lambda &= \frac{E \nu}{(1 + \nu)(1 - 2 \nu)} \\
    \mu &= \frac{E}{2(1 + \nu)}
-   \end{aligned}
+   \end{aligned}.
 
-can be found. In this formulation, the constitutive equation :math:numref:`linear-stress-strain` may be written as
+The constitutive law (stress-strain relationship) can also be written as
 
 .. math::
-   \bm\sigma = \lambda (\operatorname{trace} \bm\epsilon) \bm I_3 + 2 \mu \bm\epsilon,
+   :label: linear-stress-strain
 
-where :math:`\bm I_3` is the :math:`3 \times 3` identity matrix.
-With the formulation using Lamé parameters, the elasticity tensor :math:numref:`linear-elasticity-tensor` becomes
+   \bm{\sigma} = \mathsf{C} \!:\! \bm{\epsilon}.
+
+For notational convenience, we express the symmetric second order tensors :math:`\bm \sigma` and :math:`\bm \epsilon` as vectors of length 6 using the `Voigt notation <https://en.wikipedia.org/wiki/Voigt_notation>`_.
+Hence, the fourth order elasticity tensor :math:`\mathsf C` (also known as elastic moduli tensor or material stiffness tensor) can be represented as
 
 .. math::
 
@@ -139,7 +155,13 @@ Hyperelasticity at Small Strain
 ----------------------------------------
 
 The strong and weak forms given above, in :math:numref:`lin-elas` and :math:numref:`lin-elas-weak`, are valid for Neo-Hookean hyperelasticity at small strain.
-However, the constitutive law differs and is given as follows:
+However, the strain energy density differs and is given by
+
+.. math::
+   
+   \bm{\Phi} = \lambda (1 + \operatorname{trace} \bm{\epsilon}) (\log(1 + \operatorname{trace} \bm\epsilon) - 1) + \mu \bm{\epsilon} : \bm{\epsilon} .
+   
+As above, we have the corresponding constitutive law given by
 
 .. math::
    :label: eq-neo-hookean-small-strain
@@ -253,9 +275,7 @@ Different constitutive models can define :math:`\bm S`.
 Constitutive modeling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In their most general form, constitutive models define :math:`\bm S` in terms of state variables.
-In the model taken into consideration in the present mini-app, the state variables are constituted by the vector displacement field :math:`\bm u`, and its gradient :math:`\nabla_X \bm u`.
-We begin by defining two symmetric tensors in the reference configuration, the right Cauchy-Green tensor
+For the constitutive modeling of hyperelasticity at finite strain, we begin by defining two symmetric tensors in the reference configuration, the right Cauchy-Green tensor
 
 .. math::
    \bm C = \bm F^T \bm F
@@ -269,32 +289,9 @@ and the Green-Lagrange strain tensor
 
 the latter of which converges to the linear strain tensor :math:`\bm \epsilon` in the small-deformation limit.
 The constitutive models considered, appropriate for large deformations, express :math:`\bm S` as a function of :math:`\bm E`, similar to the linear case, shown in equation  :math:numref:`linear-stress-strain`, which  expresses the relationship between :math:`\bm\sigma` and :math:`\bm\epsilon`.
-This constitutive model :math:`\bm S(\bm E)` is a nonlinear tensor-valued function of a tensor-valued input, but an arbitrary choice of such a function will generally not be invariant under orthogonal transformations and thus will not admissible as a physical model must not depend on the coordinate system chosen to express it.
-In particular, given an orthogonal transformation :math:`Q`, we desire
 
-.. math::
-   :label: elastic-invariance
-
-   Q \bm S(\bm E) Q^T = \bm S(Q \bm E Q^T),
-
-which means that we can change our reference frame before or after computing :math:`\bm S`, and get the same result either way.
-Constitutive relations in which :math:`\bm S` is uniquely determined by :math:`\bm E` (equivalently, :math:`\bm C` or related tensors) while satisfying the invariance property :math:numref:`elastic-invariance` are known as Cauchy elastic materials.
-Here, we focus on an important subset of them known as hyperelastic materials, for which we may define a strain energy density functional :math:`\Phi(\bm E) \in \mathbb R` and obtain the strain energy from its gradient,
-
-.. math::
-   :label: strain-energy-grad
-
-   \bm S(\bm E) = \frac{\partial \Phi}{\partial \bm E}.
-
-.. note::
-   The strain energy density functional cannot be an arbitrary function :math:`\Phi(\bm E)`; it can only depend on *invariants*, scalar-valued functions :math:`\gamma` satisfying
-
-   .. math::
-      \gamma(\bm E) = \gamma(Q \bm E Q^T)
-
-   for all orthogonal matrices :math:`Q`.
-
-Consequently, we may assume without loss of generality that :math:`\bm E` is diagonal and take its set of eigenvalues as the invariants.
+Recall that the strain energy density functional can only depend upon invariants.
+We will assume without loss of generality that :math:`\bm E` is diagonal and take its set of eigenvalues as the invariants.
 It is clear that there can be only three invariants, and there are many alternate choices, such as :math:`\operatorname{trace}(\bm E), \operatorname{trace}(\bm E^2), \lvert \bm E \rvert`, and combinations thereof.
 It is common in the literature for invariants to be taken from :math:`\bm C = \bm I_3 + 2 \bm E` instead of :math:`\bm E`.
 

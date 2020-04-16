@@ -115,17 +115,18 @@ struct AppCtx_private {
   PetscInt      degree;
   PetscInt      numLevels;
   PetscInt      *levelDegrees;
-  PetscInt      numIncrements;                         // Number of steps
-  PetscInt      bcZeroFaces[16], bcClampFaces[16];
-  PetscInt      bcZeroCount, bcClampCount;
-  PetscScalar   bcClampMax;
+  PetscInt      numIncrements;                        // Number of steps
+  PetscInt      bcClampFaces[16];
+  PetscInt      bcClampCount;
+  PetscScalar   bcClampMax[16][7];
+  PetscScalar   forcingVector[3];
 };
 
 // Problem specific data
 typedef struct {
   CeedInt           qdatasize;
-  CeedQFunctionUser setupgeo, apply, jacob;
-  const char        *setupgeofname, *applyfname, *jacobfname;
+  CeedQFunctionUser setupgeo, apply, jacob, energy;
+  const char        *setupgeofname, *applyfname, *jacobfname, *energyfname;
   CeedQuadMode      qmode;
 } problemData;
 
@@ -177,11 +178,12 @@ struct UserMultProlongRestr_private {
 typedef struct CeedData_private *CeedData;
 struct CeedData_private {
   Ceed                ceed;
-  CeedBasis           basisx, basisu, basisCtoF;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictqdi, ErestrictGradui;
-  CeedQFunction       qfApply, qfJacob;
-  CeedOperator        opApply, opJacob, opRestrict, opProlong;
-  CeedVector          qdata, gradu, xceed, yceed, truesoln;
+  CeedBasis           basisx, basisu, basisCtoF, basisEnergy;
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictqdi,
+                      ErestrictGradui, ErestrictEnergy;
+  CeedQFunction       qfApply, qfJacob, qfEnergy;
+  CeedOperator        opApply, opJacob, opRestrict, opProlong, opEnergy;
+  CeedVector          qdata, gradu, xceed, yceed, truesoln, energy;
 };
 
 // -----------------------------------------------------------------------------
@@ -280,8 +282,13 @@ PetscErrorCode Prolong_Ceed(Mat A, Vec X, Vec Y);
 
 // This function uses libCEED to compute the action of the restriction operator
 PetscErrorCode Restrict_Ceed(Mat A, Vec X, Vec Y);
+
 // This function returns the computed diagonal of the operator
 PetscErrorCode GetDiag_Ceed(Mat A, Vec D);
+
+// This function calculates the strain energy in the final solution
+PetscErrorCode ComputeStrainEnergy(UserMult user, CeedOperator opEnergy, Vec X,
+                                   CeedVector energyLoc, PetscReal *energy);
 
 // -----------------------------------------------------------------------------
 // Boundary Functions
@@ -296,14 +303,10 @@ PetscErrorCode BCMMS(PetscInt dim, PetscReal loadIncrement,
                      const PetscReal coords[], PetscInt ncompu,
                      PetscScalar *u, void *ctx);
 
-// BCZero - fix boundary values at zero
-PetscErrorCode BCZero(PetscInt dim, PetscReal loadIncrement,
-                      const PetscReal coords[], PetscInt ncompu,
-                      PetscScalar *u, void *ctx);
-
-// BCClamp - fix boundary values at fraction of load increment
-PetscErrorCode BCBend1_ss(PetscInt dim, PetscReal loadIncrement,
-                          const PetscReal coords[], PetscInt ncompu,
-                          PetscScalar *u, void *ctx);
+// BCClamp - fix boundary values with affine transformation at fraction of load
+//   increment
+PetscErrorCode BCClamp(PetscInt dim, PetscReal loadIncrement,
+                       const PetscReal coords[], PetscInt ncompu,
+                       PetscScalar *u, void *ctx);
 
 #endif //setup_h

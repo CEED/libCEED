@@ -40,13 +40,10 @@ The elasticity min-app is controlled via command-line options, the following of 
    * - :code:`-nu [real]`
      - `Poisson's ratio <https://en.wikipedia.org/wiki/Poisson%27s_ratio>`_, :math:`\nu < 0.5`
 
-   * - :code:`-bc_zero [int list]`
-     - List of faces sets on which to enforce zero displacement
-
    * - :code:`-bc_clamp [int list]`
-     - List of face sets on which to displace by :code:`-bc_clamp_max` in the :math:`y` direction
+     - List of face sets on which to displace by :code:`-bc_clamp_[facenumber]_translate [x,y,z]` and/or :code:`bc_clamp_[facenumber]_rotate [rx,ry,rz,theta]`
 
-(One can set only one of :code:`-bc_zero` or :code:`-bc_clamp`, but the result will likely not be interesting.)
+Note: The default for a clamped face is zero displacement. All displacement is with respect to the initial configuration.
 
 .. note::
 
@@ -63,9 +60,11 @@ Consider the specific example of the mesh seen below:
 
 With the sidesets defined in the figure, we provide here an example of a minimal set of command line options::
 
-   ./elasticity -mesh [.exo file] -degree 4 -E 1e6 -nu 0.3 -bc_zero 999 -bc_clamp 998
+   ./elasticity -mesh [.exo file] -degree 4 -E 1e6 -nu 0.3 -bc_clamp 998,999 -bc_clamp_998_translate 0,-0.5,1
 
-In this example, we set the left boundary, face set :math:`999`, to zero displacement and the right boundary, face set :math:`998`, to displace by the default value of :math:`-1.0` in the :math:`y` direction.
+In this example, we set the left boundary, face set :math:`999`, to zero displacement and the right boundary, face set :math:`998`, to displace :math:`0` in the :math:`x` direction, :math:`-0.5` in the :math:`y`, and :math:`1` in the :math:`z`.
+
+As an alternative to specifying a mesh with :code:`-mesh`, the user may use a DMPlex box mesh by specifying :code:`-dm_plex_box_faces [int list]`, :code:`-dm_plex_box_upper [real list]`, and :code:`-dm_plex_box_lower [real list]`.
 
 The command line options just shown are the minimum requirements to run the mini-app, but additional options may also be set as follows
 
@@ -96,9 +95,9 @@ The command line options just shown are the minimum requirements to run the mini
      -  Forcing term option (:code:`none`, :code:`constant`, or :code:`mms`)
      - :code:`none`
 
-   * - :code:`-bc_clamp_max`
-     - Maximum value to displace clamped boundary
-     - :code:`-1.0`
+   * - :code:`-forcing_vec`
+     -  Forcing vector
+     - :code:`0,-1,0`
 
    * - :code:`-num_steps`
      - Number of load increments for continuation method

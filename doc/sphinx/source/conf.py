@@ -39,7 +39,7 @@ import subprocess
 # ones.
 extensions = [
     'breathe',
-    #'hoverxref.extension',  # still in beta; not rendering well on RTD
+    # 'hoverxref.extension',  # still in beta; not rendering well on RTD
     'recommonmark',
     'sphinx_markdown_tables',
     'sphinx_rtd_theme',

@@ -188,7 +188,7 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                     ug[2][2][i]}
                                   };
     // -- Qdata
-    const CeedScalar wJ         =   qdata[0][i];
+    const CeedScalar wdetJ      =   qdata[0][i];
     const CeedScalar dXdx[3][3] = {{qdata[1][i],
                                     qdata[2][i],
                                     qdata[3][i]},
@@ -264,7 +264,7 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
       for (CeedInt k = 0; k < 3; k++) { // Derivative
         dvdX[k][j][i] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          dvdX[k][j][i] += dXdx[k][m] * P[j][m] * wJ;
+          dvdX[k][j][i] += dXdx[k][m] * P[j][m] * wdetJ;
       }
 
   } // End of Quadrature Point Loop
@@ -315,7 +315,7 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                        deltaug[2][2][i]}
                                      };
     // -- Qdata
-    const CeedScalar wJ         =      qdata[0][i];
+    const CeedScalar wdetJ      =      qdata[0][i];
     const CeedScalar dXdx[3][3] =    {{qdata[1][i],
                                        qdata[2][i],
                                        qdata[3][i]},
@@ -404,7 +404,7 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // deltaS = dSdE:deltaE
-    //      = lambda (Cinv:deltaE)Cinv + 2(mu-lambda*log(J))Cinv*deltaE*Cinv
+    //      = lambda(Cinv:deltaE)Cinv + 2(mu-lambda*log(J))Cinv*deltaE*Cinv
     // -- Cinv:deltaE
     CeedScalar Cinv_contract_E = 0;
     for (CeedInt j = 0; j < 3; j++)
@@ -426,7 +426,7 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
         for (CeedInt m = 0; m < 3; m++)
           deltaS[j][k] += Cinv[j][m]*deltaECinv[m][k];
       }
-    // -- deltaS = lambda (Cinv:deltaE)Cinv - 2(lambda*log(J)-mu)*(intermediate)
+    // -- deltaS = lambda(Cinv:deltaE)Cinv - 2(lambda*log(J)-mu)*(intermediate)
     const CeedScalar llnj_m = llnj - mu;
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++)
@@ -447,8 +447,105 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
       for (CeedInt k = 0; k < 3; k++) { // Derivative
         deltadvdX[k][j][i] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          deltadvdX[k][j][i] += dXdx[k][m] * deltaP[j][m] * wJ;
+          deltadvdX[k][j][i] += dXdx[k][m] * deltaP[j][m] * wdetJ;
       }
+
+  } // End of Quadrature Point Loop
+
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+// Strain energy computation for hyperelasticity, finite strain
+// -----------------------------------------------------------------------------
+CEED_QFUNCTION(HyperFSEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                              CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+
+  // Outputs
+  CeedScalar (*energy) = (CeedScalar(*))out[0];
+  // *INDENT-ON*
+
+  // Context
+  const Physics context = ctx;
+  const CeedScalar E  = context->E;
+  const CeedScalar nu = context->nu;
+  const CeedScalar TwoMu = E / (1 + nu);
+  const CeedScalar mu = TwoMu / 2;
+  const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
+  const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
+
+  // Quadrature Point Loop
+  CeedPragmaSIMD
+  for (CeedInt i=0; i<Q; i++) {
+    // Read spatial derivatives of u
+    // *INDENT-OFF*
+    const CeedScalar du[3][3]   = {{ug[0][0][i],
+                                    ug[1][0][i],
+                                    ug[2][0][i]},
+                                   {ug[0][1][i],
+                                    ug[1][1][i],
+                                    ug[2][1][i]},
+                                   {ug[0][2][i],
+                                    ug[1][2][i],
+                                    ug[2][2][i]}
+                                  };
+    // -- Qdata
+    const CeedScalar wdetJ      =   qdata[0][i];
+    const CeedScalar dXdx[3][3] = {{qdata[1][i],
+                                    qdata[2][i],
+                                    qdata[3][i]},
+                                   {qdata[4][i],
+                                    qdata[5][i],
+                                    qdata[6][i]},
+                                   {qdata[7][i],
+                                    qdata[8][i],
+                                    qdata[9][i]}
+                                  };
+    // *INDENT-ON*
+
+    // Compute gradu
+    //   dXdx = (dx/dX)^(-1)
+    // Apply dXdx to du = gradu
+    CeedScalar gradu[3][3];
+    for (int j = 0; j < 3; j++)     // Component
+      for (int k = 0; k < 3; k++) { // Derivative
+        gradu[j][k] = 0;
+        for (int m = 0; m < 3; m++)
+          gradu[j][k] += dXdx[m][k] * du[j][m];
+      }
+
+    // E - Green-Lagrange strain tensor
+    //     E = 1/2 (gradu + gradu^T + gradu^T*gradu)
+    const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
+    CeedScalar E2work[6];
+    for (CeedInt m = 0; m < 6; m++) {
+      E2work[m] = gradu[indj[m]][indk[m]] + gradu[indk[m]][indj[m]];
+      for (CeedInt n = 0; n < 3; n++)
+        E2work[m] += gradu[n][indj[m]]*gradu[n][indk[m]];
+    }
+    // *INDENT-OFF*
+    CeedScalar E2[3][3] = {{E2work[0], E2work[5], E2work[4]},
+                           {E2work[5], E2work[1], E2work[3]},
+                           {E2work[4], E2work[3], E2work[2]}
+                          };
+    // *INDENT-ON*
+    const CeedScalar detC_m1 = E2[0][0]*(E2[1][1]*E2[2][2]-E2[1][2]*E2[1][2]) +
+                               E2[0][1]*(E2[0][2]*E2[1][2]-E2[0][1]*E2[2][2]) +
+                               E2[0][2]*(E2[0][1]*E2[1][2]-E2[0][2]*E2[1][1]) +
+                               E2[0][0] + E2[1][1] + E2[2][2] +
+                               E2[0][0]*E2[1][1] + E2[0][0]*E2[2][2] +
+                               E2[1][1]*E2[2][2] - E2[0][1]*E2[0][1] -
+                               E2[0][2]*E2[0][2] - E2[1][2]*E2[1][2];
+    // *INDENT-OFF*
+
+    // Strain energy Phi(E) for compressible Neo-Hookean
+    CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
+    energy[i] = (lambda*logj*logj/2. - mu*logj +
+                 mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.) * wdetJ;
 
   } // End of Quadrature Point Loop
 
