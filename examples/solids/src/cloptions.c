@@ -88,10 +88,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
             "Cannot use constant forcing and finite strain formulation. "
             "Constant forcing in reference frame currently unavaliable.");
 
-  appCtx->bcZeroCount = 16;
-  ierr = PetscOptionsIntArray("-bc_zero", "Face IDs to apply zero Dirichlet BC",
-                              NULL, appCtx->bcZeroFaces, &appCtx->bcZeroCount,
-                              NULL); CHKERRQ(ierr);
   appCtx->bcClampCount = 16;
   ierr = PetscOptionsIntArray("-bc_clamp",
                               "Face IDs to apply incremental Dirichlet BC",
@@ -101,41 +97,34 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
   for (PetscInt i = 0; i < appCtx->bcClampCount; i++) {
     // Translation vector
     char optionName[25];
+    for (PetscInt j = 0; j < 7; j++)
+      appCtx->bcClampMax[i][j] = 0.;
     snprintf(optionName, sizeof optionName, "-bc_clamp_%d_translate",
              appCtx->bcClampFaces[i]);
     maxn = 3;
 
-    appCtx->bcClampTranslate[i] = PETSC_FALSE;
     ierr = PetscOptionsScalarArray(optionName,
                                    "Vector to translate clamped end by", NULL,
-                                   appCtx->bcClampMax[i], &maxn,
-                                   &appCtx->bcClampTranslate[i]);
+                                   appCtx->bcClampMax[i], &maxn, NULL);
     CHKERRQ(ierr);
 
     // Rotation vector
-    if (!appCtx->bcClampTranslate[i]) {
-      PetscBool bcFlag = PETSC_FALSE;
-      maxn = 4;
-      snprintf(optionName, sizeof optionName, "-bc_clamp_%d_rotate",
-               appCtx->bcClampFaces[i]);
-      ierr = PetscOptionsScalarArray(optionName,
-                                     "Rodrigues vector to rotate clamped end by, in radians",
-                                     NULL, appCtx->bcClampMax[i], &maxn,
-                                     &bcFlag); CHKERRQ(ierr);
+    maxn = 4;
+    snprintf(optionName, sizeof optionName, "-bc_clamp_%d_rotate",
+             appCtx->bcClampFaces[i]);
+    ierr = PetscOptionsScalarArray(optionName,
+                                   "Vector with axis of rotation and rotation, in radians",
+                                   NULL, &appCtx->bcClampMax[i][3], &maxn, NULL);
+    CHKERRQ(ierr);
 
-      // Normalize
-      PetscScalar norm = sqrt(appCtx->bcClampMax[i][0]*appCtx->bcClampMax[i][0]+
-                              appCtx->bcClampMax[i][1]*appCtx->bcClampMax[i][1]+
-                              appCtx->bcClampMax[i][2]*appCtx->bcClampMax[i][2]);
-      for (PetscInt j = 0; j < 3; j++)
-        appCtx->bcClampMax[i][j] /= norm;
-
-      // Error if neither were set
-      if (!bcFlag) {
-        SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
-                "-bc_clamp additional option needed");
-      }
-    }
+    // Normalize
+    PetscScalar norm = sqrt(appCtx->bcClampMax[i][3]*appCtx->bcClampMax[i][3] +
+                            appCtx->bcClampMax[i][4]*appCtx->bcClampMax[i][4] +
+                            appCtx->bcClampMax[i][5]*appCtx->bcClampMax[i][5]);
+    if (fabs(norm) < 1e-16)
+      norm = 1;
+    for (PetscInt j = 0; j < 3; j++)
+      appCtx->bcClampMax[i][3 + j] /= norm;
   }
 
   appCtx->multigridChoice = MULTIGRID_LOGARITHMIC;
@@ -151,8 +140,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
   CHKERRQ(ierr);
 
   appCtx->viewSoln = PETSC_FALSE;
-  ierr = PetscOptionsBool("-view_soln",
-                          "Write out solution vector for viewing",
+  ierr = PetscOptionsBool("-view_soln", "Write out solution vector for viewing",
                           NULL, appCtx->viewSoln, &(appCtx->viewSoln), NULL);
   CHKERRQ(ierr);
 
@@ -163,8 +151,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
     if (!degreeFlag) {
       SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-degree option needed");
     }
-    if (!(appCtx->bcZeroCount + appCtx->bcClampCount) &&
-        appCtx->forcingChoice != FORCE_MMS) {
+    if (!appCtx->bcClampCount && (appCtx->forcingChoice != FORCE_MMS)) {
       SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-boundary options needed");
     }
   } else {

@@ -179,18 +179,13 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
     ierr = ISDestroy(&faceSetIS); CHKERRQ(ierr);
   } else {
     // -- ExodusII mesh with user specified BCs
-    // ---- Zero BCs
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "zero", "Face Sets", 0, 0, NULL,
-                         (void(*)(void))BCZero, appCtx->bcZeroCount,
-                         appCtx->bcZeroFaces, NULL); CHKERRQ(ierr);
-    // ---- Clamp BCs
+    // -- Clamp BCs
     for (PetscInt i = 0; i < appCtx->bcClampCount; i++) {
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "clamp", "Face Sets", 0, 0, NULL,
-                           (void(*)(void))(appCtx->bcClampTranslate[i] ?
-                                           BCClampTranslate : BCClampRotate),
-                           1, &appCtx->bcClampFaces[i],
-                           (void *)&appCtx->bcClampMax[i]);
-      CHKERRQ(ierr);
+    char bcName[25];
+    snprintf(bcName, sizeof bcName, "clamp_%d", appCtx->bcClampFaces[i]);
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, "Face Sets", 0, 0, NULL,
+                           (void(*)(void))BCClamp, 1, &appCtx->bcClampFaces[i],
+                           (void *)&appCtx->bcClampMax[i]); CHKERRQ(ierr);
     }
   }
   ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);

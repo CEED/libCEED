@@ -44,42 +44,15 @@ PetscErrorCode BCMMS(PetscInt dim, PetscReal loadIncrement,
   PetscFunctionReturn(0);
 };
 
-// BCZero - fix boundary values at zero
-PetscErrorCode BCZero(PetscInt dim, PetscReal loadIncrement,
-                      const PetscReal coords[], PetscInt ncompu,
-                      PetscScalar *u, void *ctx) {
-  PetscFunctionBeginUser;
-
-  u[0] = 0;
-  u[1] = 0;
-  u[2] = 0;
-
-  PetscFunctionReturn(0);
-};
-
-// BCClampTranslate - translate boundary values at fraction of load increment
-PetscErrorCode BCClampTranslate(PetscInt dim, PetscReal loadIncrement,
-                                const PetscReal coords[], PetscInt ncompu,
-                                PetscScalar *u, void *ctx) {
-  PetscScalar (*clampMax) = (PetscScalar(*))ctx;
-
-  PetscFunctionBeginUser;
-
-  u[0] = clampMax[0]*loadIncrement;
-  u[1] = clampMax[1]*loadIncrement;
-  u[2] = clampMax[2]*loadIncrement;
-
-  PetscFunctionReturn(0);
-};
-
 #ifndef M_PI
 #  define M_PI    3.14159265358979323846
 #endif
 
-// BCClampRotate - rotate boundary values at fraction of load increment
-PetscErrorCode BCClampRotate(PetscInt dim, PetscReal loadIncrement,
-                             const PetscReal coords[], PetscInt ncompu,
-                             PetscScalar *u, void *ctx) {
+// BCClamp - fix boundary values with affine transformation at fraction of load
+//   increment
+PetscErrorCode BCClamp(PetscInt dim, PetscReal loadIncrement,
+                       const PetscReal coords[], PetscInt ncompu,
+                       PetscScalar *u, void *ctx) {
   PetscScalar x = coords[0];
   PetscScalar y = coords[1];
   PetscScalar z = coords[2];
@@ -87,13 +60,15 @@ PetscErrorCode BCClampRotate(PetscInt dim, PetscReal loadIncrement,
 
   PetscFunctionBeginUser;
 
-  PetscScalar theta = clampMax[3]*M_PI*loadIncrement,
-              kx = clampMax[0], ky = clampMax[1], kz = clampMax[2];
+  PetscScalar lx = clampMax[0]*loadIncrement, ly = clampMax[1]*loadIncrement,
+              lz = clampMax[2]*loadIncrement,
+              theta = clampMax[6]*M_PI*loadIncrement,
+              kx = clampMax[3], ky = clampMax[4], kz = clampMax[5];
   PetscScalar c = cos(theta), s = sin(theta);
 
-  u[0] = s*(-kz*y + ky*z) + (1-c)*(-ky*ky+kz*kz*x + kx*ky*y + kx*kz*z);
-  u[1] = s*(kz*x + -kx*z) + (1-c)*(kx*ky*x - (kx*kx+kz*kz)*y + ky*kz*z);
-  u[2] = s*(-ky*x + kx*y) + (1-c)*(kx*kz*x + ky*kz*y - (kx*kx+ky*ky)*z);
+  u[0] = lx + s*(-kz*y + ky*z) + (1-c)*(-ky*ky+kz*kz*x + kx*ky*y + kx*kz*z);
+  u[1] = ly + s*(kz*x + -kx*z) + (1-c)*(kx*ky*x - (kx*kx+kz*kz)*y + ky*kz*z);
+  u[2] = lz + s*(-ky*x + kx*y) + (1-c)*(kx*kz*x + ky*kz*y - (kx*kx+ky*ky)*z);
 
   PetscFunctionReturn(0);
 };

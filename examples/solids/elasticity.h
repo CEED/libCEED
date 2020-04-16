@@ -116,10 +116,9 @@ struct AppCtx_private {
   PetscInt      numLevels;
   PetscInt      *levelDegrees;
   PetscInt      numIncrements;                        // Number of steps
-  PetscInt      bcZeroFaces[16], bcClampFaces[16];
-  PetscInt      bcZeroCount, bcClampCount;
-  PetscBool     bcClampTranslate[16];
-  PetscScalar   bcClampMax[16][4];
+  PetscInt      bcClampFaces[16];
+  PetscInt      bcClampCount;
+  PetscScalar   bcClampMax[16][7];
   PetscScalar   forcingVector[3];
 };
 
@@ -304,19 +303,10 @@ PetscErrorCode BCMMS(PetscInt dim, PetscReal loadIncrement,
                      const PetscReal coords[], PetscInt ncompu,
                      PetscScalar *u, void *ctx);
 
-// BCZero - fix boundary values at zero
-PetscErrorCode BCZero(PetscInt dim, PetscReal loadIncrement,
-                      const PetscReal coords[], PetscInt ncompu,
-                      PetscScalar *u, void *ctx);
-
-// BCClampTranslate - translate boundary values at fraction of load increment
-PetscErrorCode BCClampTranslate(PetscInt dim, PetscReal loadIncrement,
-                                const PetscReal coords[], PetscInt ncompu,
-                                PetscScalar *u, void *ctx);
-
-// BCClampRotate - rotate boundary values at fraction of load increment
-PetscErrorCode BCClampRotate(PetscInt dim, PetscReal loadIncrement,
-                             const PetscReal coords[], PetscInt ncompu,
-                             PetscScalar *u, void *ctx);
+// BCClamp - fix boundary values with affine transformation at fraction of load
+//   increment
+PetscErrorCode BCClamp(PetscInt dim, PetscReal loadIncrement,
+                       const PetscReal coords[], PetscInt ncompu,
+                       PetscScalar *u, void *ctx);
 
 #endif //setup_h
