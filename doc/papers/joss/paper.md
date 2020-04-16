@@ -15,7 +15,7 @@ authors:
   - name: Valeria Barra
     orcid: 0000-0003-1129-2056
     affiliation: 1
-  - name: XXXX TODO: Many more authors to be added XXXX
+  - name: XXXX TODO Many more authors to be added XXXX
 affiliations:
  - name: University of Colorado Boulder
    index: 1
