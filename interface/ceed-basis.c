@@ -795,7 +795,7 @@ int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q1d) {
 
   @ref Backend
 **/
-int CeedBasisGetQRef(CeedBasis basis, CeedScalar **qref) {
+int CeedBasisGetQRef(CeedBasis basis, const CeedScalar **qref) {
   *qref = basis->qref1d;
   return 0;
 }
@@ -811,7 +811,7 @@ int CeedBasisGetQRef(CeedBasis basis, CeedScalar **qref) {
 
   @ref Backend
 **/
-int CeedBasisGetQWeights(CeedBasis basis, CeedScalar **qweight) {
+int CeedBasisGetQWeights(CeedBasis basis, const CeedScalar **qweight) {
   *qweight = basis->qweight1d;
   return 0;
 }
@@ -826,7 +826,7 @@ int CeedBasisGetQWeights(CeedBasis basis, CeedScalar **qweight) {
 
   @ref Backend
 **/
-int CeedBasisGetInterp(CeedBasis basis, CeedScalar **interp) {
+int CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp) {
   if (!basis->interp && basis->tensorbasis) {
     // Allocate
     int ierr;
@@ -861,7 +861,7 @@ int CeedBasisGetInterp(CeedBasis basis, CeedScalar **interp) {
 
   @ref Backend
 **/
-int CeedBasisGetInterp1D(CeedBasis basis, CeedScalar **interp1d) {
+int CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp1d) {
   if (!basis->tensorbasis)
     // LCOV_EXCL_START
     return CeedError(basis->ceed, 1, "CeedBasis is not a tensor product basis.");
@@ -882,7 +882,7 @@ int CeedBasisGetInterp1D(CeedBasis basis, CeedScalar **interp1d) {
 
   @ref Backend
 **/
-int CeedBasisGetGrad(CeedBasis basis, CeedScalar **grad) {
+int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad) {
   if (!basis->grad && basis->tensorbasis) {
     // Allocate
     int ierr;
@@ -924,7 +924,7 @@ int CeedBasisGetGrad(CeedBasis basis, CeedScalar **grad) {
 
   @ref Backend
 **/
-int CeedBasisGetGrad1D(CeedBasis basis, CeedScalar **grad1d) {
+int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad1d) {
   if (!basis->tensorbasis)
     // LCOV_EXCL_START
     return CeedError(basis->ceed, 1, "CeedBasis is not a tensor product basis.");

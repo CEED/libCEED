@@ -644,9 +644,9 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
 //------------------------------------------------------------------------------
 // Get Basis Emode Pointer
 //------------------------------------------------------------------------------
-static inline void CeedOperatorGetBasisPointer_Ref(CeedScalar **basisptr,
-    CeedEvalMode emode, CeedScalar *identity, CeedScalar *interp,
-    CeedScalar *grad) {
+static inline void CeedOperatorGetBasisPointer_Ref(const CeedScalar **basisptr,
+    CeedEvalMode emode, const CeedScalar *identity, const CeedScalar *interp,
+    const CeedScalar *grad) {
   switch (emode) {
   case CEED_EVAL_NONE:
     *basisptr = identity;
@@ -781,7 +781,8 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
   ierr = CeedBasisGetNumNodes(basisin, &nnodes); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basisin, &nqpts); CeedChk(ierr);
   // Basis matrices
-  CeedScalar *identity = NULL, *interpin, *interpout, *gradin, *gradout;
+  const CeedScalar *interpin, *interpout, *gradin, *gradout;
+  CeedScalar *identity = NULL;
   bool evalNone = false;
   for (CeedInt i=0; i<numemodein; i++)
     evalNone = evalNone || (emodein[i] == CEED_EVAL_NONE);
@@ -802,14 +803,14 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
     CeedInt dout = -1;
     // Each basis eval mode pair
     for (CeedInt eout=0; eout<numemodeout; eout++) {
-      CeedScalar *bt = NULL;
+      const CeedScalar *bt = NULL;
       if (emodeout[eout] == CEED_EVAL_GRAD)
         dout += 1;
       CeedOperatorGetBasisPointer_Ref(&bt, emodeout[eout], identity, interpout,
                                       &gradout[dout*nqpts*nnodes]);
       CeedInt din = -1;
       for (CeedInt ein=0; ein<numemodein; ein++) {
-        CeedScalar *b = NULL;
+        const CeedScalar *b = NULL;
         if (emodein[ein] == CEED_EVAL_GRAD)
           din += 1;
         CeedOperatorGetBasisPointer_Ref(&b, emodein[ein], identity, interpin,
@@ -913,7 +914,7 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
   ierr = CeedMalloc(P1d*P1d, &x2); CeedChk(ierr);
   ierr = CeedMalloc(P1d, &lambda); CeedChk(ierr);
   // -- Mass
-  CeedScalar *interp1d, *grad1d, *qweight1d;
+  const CeedScalar *interp1d, *grad1d, *qweight1d;
   ierr = CeedBasisGetInterp1D(basis, &interp1d); CeedChk(ierr);
   ierr = CeedBasisGetGrad1D(basis, &grad1d); CeedChk(ierr);
   ierr = CeedBasisGetQWeights(basis, &qweight1d); CeedChk(ierr);

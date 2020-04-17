@@ -423,12 +423,14 @@ CEED_EXTERN int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P1d);
 CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);
 CEED_EXTERN int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis,
     CeedInt *Q1d);
-CEED_EXTERN int CeedBasisGetQRef(CeedBasis basis, CeedScalar **qref);
-CEED_EXTERN int CeedBasisGetQWeights(CeedBasis basis, CeedScalar **qweight);
-CEED_EXTERN int CeedBasisGetInterp(CeedBasis basis, CeedScalar **interp);
-CEED_EXTERN int CeedBasisGetInterp1D(CeedBasis basis, CeedScalar **interp1d);
-CEED_EXTERN int CeedBasisGetGrad(CeedBasis basis, CeedScalar **grad);
-CEED_EXTERN int CeedBasisGetGrad1D(CeedBasis basis, CeedScalar **grad1d);
+CEED_EXTERN int CeedBasisGetQRef(CeedBasis basis, const CeedScalar **qref);
+CEED_EXTERN int CeedBasisGetQWeights(CeedBasis basis,
+                                     const CeedScalar **qweight);
+CEED_EXTERN int CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp);
+CEED_EXTERN int CeedBasisGetInterp1D(CeedBasis basis,
+                                     const CeedScalar **interp1d);
+CEED_EXTERN int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad);
+CEED_EXTERN int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad1d);
 CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
 
 CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d,
