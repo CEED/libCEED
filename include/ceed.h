@@ -413,11 +413,22 @@ CEED_EXTERN int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo,
                                   const CeedScalar *qref,
                                   const CeedScalar *qweight, CeedBasis *basis);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
-CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
-CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);
 CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt nelem,
                                CeedTransposeMode tmode,
                                CeedEvalMode emode, CeedVector u, CeedVector v);
+CEED_EXTERN int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim);
+CEED_EXTERN int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *numcomp);
+CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
+CEED_EXTERN int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P1d);
+CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);
+CEED_EXTERN int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis,
+    CeedInt *Q1d);
+CEED_EXTERN int CeedBasisGetQRef(CeedBasis basis, CeedScalar **qref);
+CEED_EXTERN int CeedBasisGetQWeights(CeedBasis basis, CeedScalar **qweight);
+CEED_EXTERN int CeedBasisGetInterp(CeedBasis basis, CeedScalar **interp);
+CEED_EXTERN int CeedBasisGetInterp1D(CeedBasis basis, CeedScalar **interp1d);
+CEED_EXTERN int CeedBasisGetGrad(CeedBasis basis, CeedScalar **grad);
+CEED_EXTERN int CeedBasisGetGrad1D(CeedBasis basis, CeedScalar **grad1d);
 CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
 
 CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d,
