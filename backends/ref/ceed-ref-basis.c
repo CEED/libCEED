@@ -72,7 +72,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
         }
         CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
         CeedScalar tmp[2][nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
-        CeedScalar *interp1d;
+        const CeedScalar *interp1d;
         ierr = CeedBasisGetInterp1D(basis, &interp1d); CeedChk(ierr);
         for (CeedInt d=0; d<dim; d++) {
           ierr = CeedTensorContractApply(contract, pre, P, post, Q,
@@ -98,7 +98,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
       CeedBasis_Ref *impl;
       ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
       CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
-      CeedScalar *interp1d;
+      const CeedScalar *interp1d;
       ierr = CeedBasisGetInterp1D(basis, &interp1d); CeedChk(ierr);
       if (impl->collograd1d) {
         CeedScalar tmp[2][nelem*ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
@@ -145,7 +145,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
           post *= Q;
         }
       } else if (impl->collointerp) { // Qpts collocated with nodes
-        CeedScalar *grad1d;
+        const CeedScalar *grad1d;
         ierr = CeedBasisGetGrad1D(basis, &grad1d); CeedChk(ierr);
 
         // Dim contractions, identity in other directions
@@ -162,7 +162,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
           post *= Q;
         }
       } else { // Underintegration, P > Q
-        CeedScalar *grad1d;
+        const CeedScalar *grad1d;
         ierr = CeedBasisGetGrad1D(basis, &grad1d); CeedChk(ierr);
 
         if (tmode == CEED_TRANSPOSE) {
@@ -200,7 +200,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
                          "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
       // LCOV_EXCL_STOP
       CeedInt Q = Q1d;
-      CeedScalar *qweight1d;
+      const CeedScalar *qweight1d;
       ierr = CeedBasisGetQWeights(basis, &qweight1d); CeedChk(ierr);
       for (CeedInt d=0; d<dim; d++) {
         CeedInt pre = CeedIntPow(Q, dim-d-1), post = CeedIntPow(Q, d);
@@ -233,7 +233,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     // Interpolate to/from quadrature points
     case CEED_EVAL_INTERP: {
       CeedInt P = nnodes, Q = nqpt;
-      CeedScalar *interp;
+      const CeedScalar *interp;
       ierr = CeedBasisGetInterp(basis, &interp); CeedChk(ierr);
       if (tmode == CEED_TRANSPOSE) {
         P = nqpt; Q = nnodes;
@@ -248,7 +248,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
       CeedInt P = nnodes, Q = nqpt;
       CeedInt dimstride = nqpt * ncomp * nelem;
       CeedInt gradstride = nqpt * nnodes;
-      CeedScalar *grad;
+      const CeedScalar *grad;
       ierr = CeedBasisGetGrad(basis, &grad); CeedChk(ierr);
       if (tmode == CEED_TRANSPOSE) {
         P = nqpt; Q = nnodes;
@@ -273,7 +273,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
         return CeedError(ceed, 1,
                          "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
       // LCOV_EXCL_STOP
-      CeedScalar *qweight;
+      const CeedScalar *qweight;
       ierr = CeedBasisGetQWeights(basis, &qweight); CeedChk(ierr);
       for (CeedInt i=0; i<nqpt; i++)
         for (CeedInt e=0; e<nelem; e++)
