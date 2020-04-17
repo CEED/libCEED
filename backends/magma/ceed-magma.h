@@ -83,39 +83,21 @@ CEED_INTERN {
                     magma_int_t Q,
                     double *dqweight, double *dv);
 
-  void magma_readDofs(const magma_int_t NCOMP,
-                      const magma_int_t nnodes,
-                      const magma_int_t esize,
-                      const magma_int_t nelem, magma_int_t *indices,
-                      const double *du, double *dv);
+  void magma_readDofsOffset(const magma_int_t NCOMP,
+                            const magma_int_t compstride,
+                            const magma_int_t esize, const magma_int_t nelem,
+                            magma_int_t *indices, const double *du, double *dv);
 
-  void magma_readDofsTranspose(const magma_int_t NCOMP,
-                               const magma_int_t nnodes,
-                               const magma_int_t esize,
-                               const magma_int_t nelem, magma_int_t *indices,
-                               const double *du, double *dv);
-
-  void magma_readDofsStrided(const magma_int_t NCOMP,
-                             const magma_int_t nnodes,
-                             const magma_int_t esize,
+  void magma_readDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                              const magma_int_t nelem, magma_int_t *strides,
                              const double *du, double *dv);
 
-  void magma_writeDofs(const magma_int_t NCOMP,
-                       const magma_int_t nnodes,
-                       const magma_int_t esize,
-                       const magma_int_t nelem, magma_int_t *indices,
-                       const double *du, double *dv);
+  void magma_writeDofsOffset(const magma_int_t NCOMP,
+                             const magma_int_t compstride,
+                             const magma_int_t esize, const magma_int_t nelem,
+                             magma_int_t *indices,const double *du, double *dv);
 
-  void magma_writeDofsTranspose(const magma_int_t NCOMP,
-                                const magma_int_t nnodes,
-                                const magma_int_t esize,
-                                const magma_int_t nelem, magma_int_t *indices,
-                                const double *du, double *dv);
-
-  void magma_writeDofsStrided(const magma_int_t NCOMP,
-                              const magma_int_t nnodes,
-                              const magma_int_t esize,
+  void magma_writeDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                               const magma_int_t nelem, magma_int_t *strides,
                               const double *du, double *dv);
 
