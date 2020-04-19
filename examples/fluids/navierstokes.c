@@ -28,10 +28,10 @@
 //
 // Sample runs:
 //
-//     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
-//     ./navierstokes -ceed /gpu/occa -problem advection -degree 1
+//     ./navierstokes -ceed /cpu/self -problem density_current -degree_volume 1
+//     ./navierstokes -ceed /gpu/occa -problem advection -degree_volume 1
 //
-//TESTARGS -ceed {ceed_resource} -test -degree 1
+//TESTARGS -ceed {ceed_resource} -test -degree_volume 1
 
 /// @file
 /// Navier-Stokes example using PETSc
@@ -75,56 +75,79 @@ static const char *const StabilizationTypes[] = {
 
 // Problem specific data
 typedef struct {
-  CeedInt dim, qdatasize;
-  CeedQFunctionUser setup, ics, apply_rhs, apply_ifunction;
+  CeedInt dim, qdatasizeVol, qdatasizeSur;
+  CeedQFunctionUser setupVol, setupSur, ics, applyVol_rhs, applySur_rhs,
+                    applyVol_ifunction, applySur_ifunction;
   PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                        PetscScalar[], void *);
-  const char *setup_loc, *ics_loc, *apply_rhs_loc, *apply_ifunction_loc;
+  const char *setupVol_loc, *setupSur_loc, *ics_loc, *applyVol_rhs_loc,
+             *applySur_rhs_loc, *applyVol_ifunction_loc, *applySur_ifunction_loc;
   const bool non_zero_time;
 } problemData;
 
 problemData problemOptions[] = {
   [NS_DENSITY_CURRENT] = {
-    .dim                 = 3,
-    .qdatasize           = 10,
-    .setup               = Setup,
-    .setup_loc           = Setup_loc,
-    .ics                 = ICsDC,
-    .ics_loc             = ICsDC_loc,
-    .apply_rhs           = DC,
-    .apply_rhs_loc       = DC_loc,
-    .apply_ifunction     = IFunction_DC,
-    .apply_ifunction_loc = IFunction_DC_loc,
-    .bc                  = Exact_DC,
-    .non_zero_time       = false,
+    .dim                       = 3,
+    .qdatasizeVol              = 10,
+  //.qdatasizeSur              = 5,
+    .setupVol                  = Setup_Vol,
+    .setupVol_loc              = Setup_Vol_loc,
+  //.setupSur                  = Setup_Sur,
+  //.setupSur_loc              = Setup_Sur_loc,
+    .ics                       = ICsDC,
+    .ics_loc                   = ICsDC_loc,
+    .applyVol_rhs              = DC_Vol,
+    .applyVol_rhs_loc          = DC_Vol_loc,
+  //.applySur_rhs              = DC_Sur,
+  //.applySur_rhs_loc          = DC_Sur_loc,
+    .applyVol_ifunction        = IFunction_DC_Vol,
+    .applyVol_ifunction_loc    = IFunction_DC_Vol_loc,
+  //.applySur_ifunction        = IFunction_DC_Sur,
+  //.applySur_ifunction_loc    = IFunction_DC_Sur_loc,
+    .bc                        = Exact_DC,
+    .non_zero_time             = false,
   },
   [NS_ADVECTION] = {
-    .dim                 = 3,
-    .qdatasize           = 10,
-    .setup               = Setup,
-    .setup_loc           = Setup_loc,
-    .ics                 = ICsAdvection,
-    .ics_loc             = ICsAdvection_loc,
-    .apply_rhs           = Advection,
-    .apply_rhs_loc       = Advection_loc,
-    .apply_ifunction     = IFunction_Advection,
-    .apply_ifunction_loc = IFunction_Advection_loc,
-    .bc                  = Exact_Advection,
-    .non_zero_time       = true,
+    .dim                       = 3,
+    .qdatasizeVol              = 10,
+  //.qdatasizeSur              = 5,
+    .setupVol                  = Setup_Vol,
+    .setupVol_loc              = Setup_Vol_loc,
+  //.setupSur                  = Setup_Sur,
+  //.setupSur_loc              = Setup_Sur_loc,
+    .ics                       = ICsAdvection,
+    .ics_loc                   = ICsAdvection_loc,
+    .applyVol_rhs              = Advection_Vol,
+    .applyVol_rhs_loc          = Advection_Vol_loc,
+  //.applySur_rhs              = Advection_Sur,
+  //.applySur_rhs_loc          = Advection_Sur_loc,
+    .applyVol_ifunction        = IFunction_Advection_Vol,
+    .applyVol_ifunction_loc    = IFunction_Advection_Vol_loc,
+  //.applySur_ifunction        = IFunction_Advection_Sur,
+  //.applySur_ifunction_loc    = IFunction_Advection_Sur_loc,
+    .bc                        = Exact_Advection,
+    .non_zero_time             = true,
   },
   [NS_ADVECTION2D] = {
-    .dim                 = 2,
-    .qdatasize           = 5,
-    .setup               = Setup2d,
-    .setup_loc           = Setup2d_loc,
-    .ics                 = ICsAdvection2d,
-    .ics_loc             = ICsAdvection2d_loc,
-    .apply_rhs           = Advection2d,
-    .apply_rhs_loc       = Advection2d_loc,
-    .apply_ifunction     = IFunction_Advection2d,
-    .apply_ifunction_loc = IFunction_Advection2d_loc,
-    .bc                  = Exact_Advection2d,
-    .non_zero_time       = true,
+    .dim                       = 2,
+    .qdatasizeVol              = 5,
+  //.qdatasizeSur              = 2,
+    .setupVol                  = Setup2d_Vol,
+    .setupVol_loc              = Setup2d_Vol_loc,
+  //.setupSur                  = Setup2d_Sur,
+  //.setupSur_loc              = Setup2d_Sur_loc,
+    .ics                       = ICsAdvection2d,
+    .ics_loc                   = ICsAdvection2d_loc,
+    .applyVol_rhs              = Advection2d_Vol,
+    .applyVol_rhs_loc          = Advection2d_Vol_loc,
+  //.applySur_rhs              = Advection2d_Sur,
+  //.applySur_rhs_loc          = Advection2d_Sur_loc,
+    .applyVol_ifunction        = IFunction_Advection2d_Vol,
+    .applyVol_ifunction_loc    = IFunction_Advection2d_Vol_loc,
+  //.applySur_ifunction        = IFunction_Advection2d_Sur,
+  //.applySur_ifunction_loc    = IFunction_Advection2d_Sur_loc,
+    .bc                        = Exact_Advection2d,
+    .non_zero_time             = true,
   },
 };
 
@@ -141,7 +164,8 @@ struct User_ {
   Ceed ceed;
   Units units;
   CeedVector qceed, qdotceed, gceed;
-  CeedOperator op_rhs, op_ifunction;
+  CeedOperator op_rhs_vol, op_rhs_sur, op_rhs,
+               op_ifunction_vol, op_ifunction_sur, op_ifunction;
   Vec M;
   char outputfolder[PETSC_MAX_PATH_LEN];
   PetscInt contsteps;
@@ -631,12 +655,14 @@ int main(int argc, char **argv) {
   PetscScalar ftime;
   Vec Q, Qloc, Xloc;
   Ceed ceed;
-  CeedInt numP, numQ;
-  CeedVector xcorners, qdata, q0ceed;
-  CeedBasis basisx, basisxc, basisq;
-  CeedElemRestriction restrictx, restrictq, restrictqdi;
-  CeedQFunction qf_setup, qf_ics, qf_rhs, qf_ifunction;
-  CeedOperator op_setup, op_ics;
+  CeedInt numP_Vol, numP_Sur, numQ_Vol, numQ_Sur;
+  CeedVector xcorners, qdataVol, qdataSur, q0ceed;
+  CeedBasis basisxVol, basisxcVol, basisqVol, basisxSur, basisxcSur, basisqSur;
+  CeedElemRestriction restrictxVol, restrictxcoordVol, restrictqVol, restrictqdiVol,
+                      restrictxSur, restrictxcoordSur, restrictqSur, restrictqdiSur;
+  CeedQFunction qf_setupVol, qf_setupSur, qf_ics, qf_rhsVol, qf_rhsSur,
+                qf_ifunctionVol, qf_ifunctionSur;
+  CeedOperator op_setupVol, op_setupSur, op_ics;
   CeedScalar Rd;
   PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
               kgpersquaredms, Joulepercubicm;
@@ -678,8 +704,10 @@ int main(int argc, char **argv) {
   PetscScalar resz      = 1000.;    // m (resolution in z)
   PetscInt outputfreq   = 10;       // -
   PetscInt contsteps    = 0;        // -
-  PetscInt degree       = 1;        // -
-  PetscInt qextra       = 2;        // -
+  PetscInt degreeVol    = 1;        // -
+  PetscInt degreeSur    = 1;        // -
+  PetscInt qextraVol    = 2;        // -
+  PetscInt qextraSur    = 2;        // -
   DMBoundaryType periodicity[] = {DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
                                   DM_BOUNDARY_NONE
                                  };
@@ -817,10 +845,10 @@ int main(int argc, char **argv) {
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-continue", "Continue from previous solution",
                          NULL, contsteps, &contsteps, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-degree", "Polynomial degree of finite elements",
-                         NULL, degree, &degree, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
-                         NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-degree_volume", "Polynomial degree of finite elements for the Volume",
+                         NULL, degreeVol, &degreeVol, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-qextra_volume", "Number of extra quadrature points for the Volume",
+                         NULL, qextraVol, &qextraVol, NULL); CHKERRQ(ierr);
   PetscStrncpy(user->outputfolder, ".", 2);
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
@@ -857,7 +885,7 @@ int main(int argc, char **argv) {
   for (int i=0; i<3; i++) center[i] *= meter;
 
   const CeedInt dim = problem->dim, ncompx = problem->dim,
-                qdatasize = problem->qdatasize;
+                qdatasizeVol = problem->qdatasizeVol;
   // Set up the libCEED context
   struct SetupContext_ ctxSetup =  {
     .theta0 = theta0,
@@ -906,11 +934,11 @@ int main(int argc, char **argv) {
 
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = SetUpDM(dm, problem, degree, &bc, &ctxSetup); CHKERRQ(ierr);
+  ierr = SetUpDM(dm, problem, degreeVol, &bc, &ctxSetup); CHKERRQ(ierr);
   if (!test) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Degree of FEM Space: %D\n",
-                       degree); CHKERRQ(ierr);
+                       "Degree of Volumetric FEM Space: %D\n",
+                       degreeVol); CHKERRQ(ierr);
   }
   dmviz = NULL;
   interpviz = NULL;
@@ -919,7 +947,7 @@ int main(int argc, char **argv) {
 
     ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
     dmhierarchy[0] = dm;
-    for (PetscInt i = 0, d = degree; i < viz_refine; i++) {
+    for (PetscInt i = 0, d = degreeVol; i < viz_refine; i++) {
       Mat interp_next;
 
       ierr = DMRefine(dmhierarchy[i], MPI_COMM_NULL, &dmhierarchy[i+1]);
@@ -976,27 +1004,27 @@ int main(int argc, char **argv) {
   // Set up CEED
   // CEED Bases
   CeedInit(ceedresource, &ceed);
-  numP = degree + 1;
-  numQ = numP + qextra;
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompq, numP, numQ, CEED_GAUSS,
-                                  &basisq);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numQ, CEED_GAUSS,
-                                  &basisx);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numP,
-                                  CEED_GAUSS_LOBATTO, &basisxc);
+  numP_Vol = degreeVol + 1;
+  numQ_Vol = numP_Vol + qextraVol;
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompq, numP_Vol, numQ_Vol, CEED_GAUSS,
+                                  &basisqVol);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numQ_Vol, CEED_GAUSS,
+                                  &basisxVol);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numP_Vol,
+                                  CEED_GAUSS_LOBATTO, &basisxcVol);
 
   ierr = DMGetCoordinateDM(dm, &dmcoord); CHKERRQ(ierr);
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
   // CEED Restrictions
-  ierr = CreateRestrictionFromPlex(ceed, dm, degree+1, 0, 0, 0, &restrictq);
+  ierr = CreateRestrictionFromPlex(ceed, dm, degreeVol+1, 0, 0, 0, &restrictqVol);
   CHKERRQ(ierr);
-  ierr = CreateRestrictionFromPlex(ceed, dmcoord, 2, 0, 0, 0, &restrictx);
+  ierr = CreateRestrictionFromPlex(ceed, dmcoord, 2, 0, 0, 0, &restrictxVol);
   CHKERRQ(ierr);
   DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   localNelem = cEnd - cStart;
-  CeedInt numQdim = CeedIntPow(numQ, dim);
+  CeedInt numQdim = CeedIntPow(numQ_Vol, dim);
   CeedElemRestrictionCreateStrided(ceed, localNelem, numQdim,
                                    qdatasize, qdatasize*localNelem*numQdim,
                                    CEED_STRIDES_BACKEND, &restrictqdi);
@@ -1006,91 +1034,91 @@ int main(int argc, char **argv) {
 
   // Create the CEED vectors that will be needed in setup
   CeedInt Nqpts;
-  CeedBasisGetNumQuadraturePoints(basisq, &Nqpts);
+  CeedBasisGetNumQuadraturePoints(basisqVol, &Nqpts);
   CeedInt Ndofs = 1;
-  for (int d=0; d<3; d++) Ndofs *= numP;
-  CeedVectorCreate(ceed, qdatasize*localNelem*Nqpts, &qdata);
-  CeedElemRestrictionCreateVector(restrictq, &q0ceed, NULL);
+  for (int d=0; d<3; d++) Ndofs *= numP_Vol;
+  CeedVectorCreate(ceed, qdatasizeVol*localNelem*Nqpts, &qdataVol);
+  CeedElemRestrictionCreateVector(restrictqVol, &q0ceed, NULL);
 
   // Create the Q-function that builds the quadrature data for the NS operator
-  CeedQFunctionCreateInterior(ceed, 1, problem->setup, problem->setup_loc,
-                              &qf_setup);
-  CeedQFunctionAddInput(qf_setup, "dx", ncompx*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setup, "qdata", qdatasize, CEED_EVAL_NONE);
+  CeedQFunctionCreateInterior(ceed, 1, problem->setupVol, problem->setupVol_loc,
+                              &qf_setupVol);
+  CeedQFunctionAddInput(qf_setupVol, "dx", ncompx*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setupVol, "weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddOutput(qf_setupVol, "qdataVol", qdatasizeVol, CEED_EVAL_NONE);
 
   // Create the Q-function that sets the ICs of the operator
   CeedQFunctionCreateInterior(ceed, 1, problem->ics, problem->ics_loc, &qf_ics);
   CeedQFunctionAddInput(qf_ics, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", ncompq, CEED_EVAL_NONE);
 
-  qf_rhs = NULL;
-  if (problem->apply_rhs) { // Create the Q-function that defines the action of the RHS operator
-    CeedQFunctionCreateInterior(ceed, 1, problem->apply_rhs,
-                                problem->apply_rhs_loc, &qf_rhs);
-    CeedQFunctionAddInput(qf_rhs, "q", ncompq, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_rhs, "dq", ncompq*dim, CEED_EVAL_GRAD);
-    CeedQFunctionAddInput(qf_rhs, "qdata", qdatasize, CEED_EVAL_NONE);
-    CeedQFunctionAddInput(qf_rhs, "x", ncompx, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(qf_rhs, "v", ncompq, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(qf_rhs, "dv", ncompq*dim, CEED_EVAL_GRAD);
+  qf_rhsVol = NULL;
+  if (problem->applyVol_rhs) { // Create the Q-function that defines the action of the RHS operator
+    CeedQFunctionCreateInterior(ceed, 1, problem->applyVol_rhs,
+                                problem->applyVol_rhs_loc, &qf_rhsVol);
+    CeedQFunctionAddInput(qf_rhsVol, "q", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_rhsVol, "dq", ncompq*dim, CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(qf_rhsVol, "qdataVol", qdatasizeVol, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qf_rhsVol, "x", ncompx, CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(qf_rhsVol, "v", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(qf_rhsVol, "dv", ncompq*dim, CEED_EVAL_GRAD);
   }
 
-  qf_ifunction = NULL;
-  if (problem->apply_ifunction) { // Create the Q-function that defines the action of the IFunction
-    CeedQFunctionCreateInterior(ceed, 1, problem->apply_ifunction,
-                                problem->apply_ifunction_loc, &qf_ifunction);
-    CeedQFunctionAddInput(qf_ifunction, "q", ncompq, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_ifunction, "dq", ncompq*dim, CEED_EVAL_GRAD);
-    CeedQFunctionAddInput(qf_ifunction, "qdot", ncompq, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_ifunction, "qdata", qdatasize, CEED_EVAL_NONE);
-    CeedQFunctionAddInput(qf_ifunction, "x", ncompx, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(qf_ifunction, "v", ncompq, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(qf_ifunction, "dv", ncompq*dim, CEED_EVAL_GRAD);
+  qf_ifunctionVol = NULL;
+  if (problem->applyVol_ifunction) { // Create the Q-function that defines the action of the IFunction
+    CeedQFunctionCreateInterior(ceed, 1, problem->applyVol_ifunction,
+                                problem->applyVol_ifunction_loc, &qf_ifunctionVol);
+    CeedQFunctionAddInput(qf_ifunctionVol, "q", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_ifunctionVol, "dq", ncompq*dim, CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(qf_ifunctionVol, "qdot", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_ifunctionVol, "qdataVol", qdatasizeVol, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qf_ifunctionVol, "x", ncompx, CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(qf_ifunctionVol, "v", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(qf_ifunctionVol, "dv", ncompq*dim, CEED_EVAL_GRAD);
   }
 
   // Create the operator that builds the quadrature data for the NS operator
-  CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
-  CeedOperatorSetField(op_setup, "dx", restrictx, basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE,
-                       basisx, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "qdata", restrictqdi,
+  CeedOperatorCreate(ceed, qf_setupVol, NULL, NULL, &op_setupVol);
+  CeedOperatorSetField(op_setupVol, "dx", restrictxVol, basisxVol, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setupVol, "weight", CEED_ELEMRESTRICTION_NONE,
+                       basisxVol, CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setupVol, "qdataVol", restrictqdiVol,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Create the operator that sets the ICs
   CeedOperatorCreate(ceed, qf_ics, NULL, NULL, &op_ics);
-  CeedOperatorSetField(op_ics, "x", restrictx, basisxc, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ics, "q0", restrictq,
+  CeedOperatorSetField(op_ics, "x", restrictxVol, basisxcVol, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_ics, "q0", restrictqVol,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  CeedElemRestrictionCreateVector(restrictq, &user->qceed, NULL);
-  CeedElemRestrictionCreateVector(restrictq, &user->qdotceed, NULL);
-  CeedElemRestrictionCreateVector(restrictq, &user->gceed, NULL);
+  CeedElemRestrictionCreateVector(restrictqVol, &user->qceed, NULL);
+  CeedElemRestrictionCreateVector(restrictqVol, &user->qdotceed, NULL);
+  CeedElemRestrictionCreateVector(restrictqVol, &user->gceed, NULL);
 
-  if (qf_rhs) { // Create the RHS physics operator
+  if (qf_rhsVol) { // Create the RHS physics operator
     CeedOperator op;
-    CeedOperatorCreate(ceed, qf_rhs, NULL, NULL, &op);
-    CeedOperatorSetField(op, "q", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dq", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "qdata", restrictqdi,
-                         CEED_BASIS_COLLOCATED, qdata);
-    CeedOperatorSetField(op, "x", restrictx, basisx, xcorners);
-    CeedOperatorSetField(op, "v", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dv", restrictq, basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorCreate(ceed, qf_rhsVol, NULL, NULL, &op);
+    CeedOperatorSetField(op, "q", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dq", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "qdataVol", restrictqdiVol,
+                         CEED_BASIS_COLLOCATED, qdataVol);
+    CeedOperatorSetField(op, "x", restrictxVol, basisxVol, xcorners);
+    CeedOperatorSetField(op, "v", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dv", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
     user->op_rhs = op;
   }
 
-  if (qf_ifunction) { // Create the IFunction operator
+  if (qf_ifunctionVol) { // Create the IFunction operator
     CeedOperator op;
-    CeedOperatorCreate(ceed, qf_ifunction, NULL, NULL, &op);
-    CeedOperatorSetField(op, "q", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dq", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "qdot", restrictq, basisq, user->qdotceed);
-    CeedOperatorSetField(op, "qdata", restrictqdi,
-                         CEED_BASIS_COLLOCATED, qdata);
-    CeedOperatorSetField(op, "x", restrictx, basisx, xcorners);
-    CeedOperatorSetField(op, "v", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dv", restrictq, basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorCreate(ceed, qf_ifunctionVol, NULL, NULL, &op);
+    CeedOperatorSetField(op, "q", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dq", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "qdot", restrictqVol, basisqVol, user->qdotceed);
+    CeedOperatorSetField(op, "qdataVol", restrictqdiVol,
+                         CEED_BASIS_COLLOCATED, qdataVol);
+    CeedOperatorSetField(op, "x", restrictxVol, basisxVol, xcorners);
+    CeedOperatorSetField(op, "v", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dv", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
     user->op_ifunction = op;
   }
 
@@ -1103,15 +1131,15 @@ int main(int argc, char **argv) {
   };
   switch (problemChoice) {
   case NS_DENSITY_CURRENT:
-    if (qf_rhs) CeedQFunctionSetContext(qf_rhs, &ctxNS, sizeof ctxNS);
-    if (qf_ifunction) CeedQFunctionSetContext(qf_ifunction, &ctxNS,
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxNS, sizeof ctxNS);
+    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, &ctxNS,
           sizeof ctxNS);
     break;
   case NS_ADVECTION:
   case NS_ADVECTION2D:
-    if (qf_rhs) CeedQFunctionSetContext(qf_rhs, &ctxAdvection2d,
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxAdvection2d,
                                           sizeof ctxAdvection2d);
-    if (qf_ifunction) CeedQFunctionSetContext(qf_ifunction, &ctxAdvection2d,
+    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, &ctxAdvection2d,
           sizeof ctxAdvection2d);
   }
 
@@ -1139,7 +1167,7 @@ int main(int argc, char **argv) {
   user->interpviz = interpviz;
   user->ceed = ceed;
 
-  // Calculate qdata and ICs
+  // Calculate qdataVol and ICs
   // Set up state global and local vectors
   ierr = VecZeroEntries(Q); CHKERRQ(ierr);
 
@@ -1147,11 +1175,11 @@ int main(int argc, char **argv) {
 
   // Apply Setup Ceed Operators
   ierr = VectorPlacePetscVec(xcorners, Xloc); CHKERRQ(ierr);
-  CeedOperatorApply(op_setup, xcorners, qdata, CEED_REQUEST_IMMEDIATE);
-  ierr = ComputeLumpedMassMatrix(ceed, dm, restrictq, basisq, restrictqdi, qdata,
+  CeedOperatorApply(op_setupVol, xcorners, qdataVol, CEED_REQUEST_IMMEDIATE);
+  ierr = ComputeLumpedMassMatrix(ceed, dm, restrictqVol, basisqVol, restrictqdiVol, qdataVol,
                                  user->M); CHKERRQ(ierr);
 
-  ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictq,
+  ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictqVol,
                                &ctxSetup, 0.0);
   if (1) { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
     // We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow.  If we
@@ -1259,7 +1287,7 @@ int main(int argc, char **argv) {
     ierr = VecGetSize(Qexactloc, &lnodes); CHKERRQ(ierr);
 
     ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qexactloc, Qexact,
-                                 restrictq, &ctxSetup, ftime); CHKERRQ(ierr);
+                                 restrictqVol, &ctxSetup, ftime); CHKERRQ(ierr);
 
     ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
     ierr = VecNorm(Q, NORM_MAX, &norm); CHKERRQ(ierr);
@@ -1278,22 +1306,23 @@ int main(int argc, char **argv) {
   }
 
   // Clean up libCEED
-  CeedVectorDestroy(&qdata);
+  CeedVectorDestroy(&qdataVol);
   CeedVectorDestroy(&user->qceed);
   CeedVectorDestroy(&user->qdotceed);
   CeedVectorDestroy(&user->gceed);
   CeedVectorDestroy(&xcorners);
-  CeedBasisDestroy(&basisq);
-  CeedBasisDestroy(&basisx);
-  CeedBasisDestroy(&basisxc);
-  CeedElemRestrictionDestroy(&restrictq);
-  CeedElemRestrictionDestroy(&restrictx);
-  CeedElemRestrictionDestroy(&restrictqdi);
-  CeedQFunctionDestroy(&qf_setup);
+  CeedBasisDestroy(&basisqVol);
+  CeedBasisDestroy(&basisxVol);
+  CeedBasisDestroy(&basisxcVol);
+  CeedElemRestrictionDestroy(&restrictqVol);
+  CeedElemRestrictionDestroy(&restrictxVol);
+  CeedElemRestrictionDestroy(&restrictqdiVol);
+  CeedElemRestrictionDestroy(&restrictxcoordVol);
+  CeedQFunctionDestroy(&qf_setupVol);
   CeedQFunctionDestroy(&qf_ics);
-  CeedQFunctionDestroy(&qf_rhs);
-  CeedQFunctionDestroy(&qf_ifunction);
-  CeedOperatorDestroy(&op_setup);
+  CeedQFunctionDestroy(&qf_rhsVol);
+  CeedQFunctionDestroy(&qf_ifunctionVol);
+  CeedOperatorDestroy(&op_setupVol);
   CeedOperatorDestroy(&op_ics);
   CeedOperatorDestroy(&user->op_rhs);
   CeedOperatorDestroy(&user->op_ifunction);

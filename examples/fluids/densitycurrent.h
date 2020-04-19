@@ -241,7 +241,7 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 // int( gradv gradu )
 //
 // *****************************************************************************
-CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(DC_Vol)(void *ctx, CeedInt Q,
                    const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
@@ -499,7 +499,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
 //                                       (diffussive terms will be added later)
 //
 // *****************************************************************************
-CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(IFunction_DC_Vol)(void *ctx, CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
   // *INDENT-OFF*

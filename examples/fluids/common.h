@@ -59,7 +59,7 @@
 //               [A31 A32 A33]
 //
 // *****************************************************************************
-CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(Setup_Vol)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
@@ -118,7 +118,7 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
 // *****************************************************************************
 // This function provides the 2D variant of the above setup
 // *****************************************************************************
-CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(Setup2d_Vol)(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
