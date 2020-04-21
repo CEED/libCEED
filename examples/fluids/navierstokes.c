@@ -219,7 +219,7 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
       }
       // Essential boundary conditions are encoded as -(loc+1), but we don't care so we decode.
       PetscInt loc = Involute(indices[i*ncomp[0]]);
-      erestrict[eoffset++] = loc / fieldoff[nfields];
+      erestrict[eoffset++] = loc;
     }
     ierr = DMPlexRestoreClosureIndices(dm, section, section, c, &numindices,
                                        &indices, NULL); CHKERRQ(ierr);
