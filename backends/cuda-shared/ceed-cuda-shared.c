@@ -22,6 +22,9 @@
 #include <cuda_runtime.h>
 #include "ceed-cuda-shared.h"
 
+//------------------------------------------------------------------------------
+// Backend init
+//------------------------------------------------------------------------------
 static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
   int ierr;
   const int nrc = 9; // number of characters in resource
@@ -43,7 +46,11 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Register backend
+//------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
   CeedRegister("/gpu/cuda/shared", CeedInit_Cuda_shared, 40);
 }
+//------------------------------------------------------------------------------

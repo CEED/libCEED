@@ -20,15 +20,20 @@
 #include <sstream>
 #include "../cuda/ceed-cuda.h"
 
-
 static const char *qReadWrite = QUOTE(
 template <int SIZE>
+//------------------------------------------------------------------------------
+// Read from quadrature points
+//------------------------------------------------------------------------------
 inline __device__ void readQuads(const CeedInt quad, const CeedInt nquads, const CeedScalar* d_u, CeedScalar* r_u) {
   for(CeedInt comp = 0; comp < SIZE; ++comp) {
     r_u[comp] = d_u[quad + nquads * comp];
   }
 }
 
+//------------------------------------------------------------------------------
+// Write at quadrature points
+//------------------------------------------------------------------------------
 template <int SIZE>
 inline __device__ void writeQuads(const CeedInt quad, const CeedInt nquads, const CeedScalar* r_v, CeedScalar* d_v) {
   for(CeedInt comp = 0; comp < SIZE; ++comp) {
@@ -37,28 +42,32 @@ inline __device__ void writeQuads(const CeedInt quad, const CeedInt nquads, cons
 }
 );
 
+//------------------------------------------------------------------------------
+// Build QFunction kernel
+//------------------------------------------------------------------------------
 extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   CeedInt ierr;
   using std::ostringstream;
   using std::string;
   CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, (void **)&data); CeedChk(ierr);
-  if (!data->qFunctionSource) //qFunction is build
-  {
+  // QFunction is built
+  if (!data->qFunctionSource)
     return 0;
-  }
-  //qFunction kernel generation
+  
+  // QFunction kernel generation
   CeedInt numinputfields, numoutputfields, size;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedQFunctionField *qfinputfields, *qfoutputfields;
   ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
   CeedChk(ierr);
 
+  // Build strings for final kernel
   string qFunction(data->qFunctionSource);
   string qReadWriteS(qReadWrite);
-
   ostringstream code;
 
+  // Defintions
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
   code << "\n#define CeedPragmaSIMD\n";
   code << "\n#define CEED_Q_VLA 1\n\n";
@@ -66,18 +75,24 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   code << qReadWriteS;
   code << qFunction;
   code << "extern \"C\" __global__ void qfunction(void *ctx, CeedInt Q, Fields_Cuda fields) {\n";
+  
+  // Inputs
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "// Input field "<<i<<"\n";
     ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size); CeedChk(ierr);
     code << "  const CeedInt size_in_"<<i<<" = "<<size<<";\n";
     code << "  CeedScalar r_q"<<i<<"[size_in_"<<i<<"];\n";
   }
+
+  // Outputs
   for (CeedInt i = 0; i < numoutputfields; i++) {
     code << "// Output field "<<i<<"\n";
     ierr = CeedQFunctionFieldGetSize(qfoutputfields[i], &size); CeedChk(ierr);
     code << "  const CeedInt size_out_"<<i<<" = "<<size<<";\n";
     code << "  CeedScalar r_qq"<<i<<"[size_out_"<<i<<"];\n";
   }
+
+  // Setup input/output arrays
   code << "  const CeedScalar* in["<<numinputfields<<"];\n";
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "    in["<<i<<"] = r_q"<<i<<";\n";
@@ -86,14 +101,21 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   for (CeedInt i = 0; i < numoutputfields; i++) {
     code << "    out["<<i<<"] = r_qq"<<i<<";\n";
   }
+
+  // Loop over quadrature points
   code << "  for (CeedInt q = blockIdx.x * blockDim.x + threadIdx.x; q < Q; q += blockDim.x * gridDim.x) {\n";
+
+  // Load inputs
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "// Input field "<<i<<"\n";
     code << "  readQuads<size_in_"<<i<<">(q, Q, fields.inputs["<<i<<"], r_q"<<i<<");\n";
   }
-  code << "//QFunction\n";
+  // QFunction
+  code << "// QFunction\n";
   string qFunctionName(data->qFunctionName);
   code << "    "<<qFunctionName<<"(ctx, 1, in, out);\n";
+
+  // Write outputs
   for (CeedInt i = 0; i < numoutputfields; i++) {
     code << "// Output field "<<i<<"\n";
     code << "  writeQuads<size_out_"<<i<<">(q, Q, r_qq"<<i<<", fields.outputs["<<i<<"]);\n";
@@ -101,15 +123,19 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   code << "  }\n";
   code << "}\n";
 
+  // View kernel for debugging
   // std::cout << code.str();
 
-  //********************
+  // Compile kernel
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
-  ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 0); CeedChk(ierr);
+  ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 0);
+  CeedChk(ierr);
   ierr = CeedGetKernelCuda(ceed, data->module, "qfunction", &data->qFunction);
   CeedChk(ierr);
-  ierr = CeedFree(&data->qFunctionSource); CeedChk(ierr);
 
+  // Cleanup
+  ierr = CeedFree(&data->qFunctionSource); CeedChk(ierr);
   return 0;
 }
+//------------------------------------------------------------------------------

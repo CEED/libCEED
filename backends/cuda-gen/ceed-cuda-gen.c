@@ -22,11 +22,17 @@
 #include <cuda_runtime.h>
 #include "ceed-cuda-gen.h"
 
+//------------------------------------------------------------------------------
+// CUDA preferred MemType
+//------------------------------------------------------------------------------
 static int CeedGetPreferredMemType_Cuda_gen(CeedMemType *type) {
   *type = CEED_MEM_DEVICE;
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Backend init
+//------------------------------------------------------------------------------
 static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   int ierr;
   const int nrc = 9; // number of characters in resource
@@ -54,7 +60,11 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Register backend
+//------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
   CeedRegister("/gpu/cuda/gen", CeedInit_Cuda_gen, 40);
 }
+//------------------------------------------------------------------------------
