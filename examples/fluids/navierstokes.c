@@ -1247,6 +1247,9 @@ int main(int argc, char **argv) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Max Error: %g\n",
                        (double)norm); CHKERRQ(ierr);
+    // Clean up vectors
+    ierr = DMRestoreLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
+    ierr = VecDestroy(&Qexact); CHKERRQ(ierr);
   }
 
   // Output Statistics
