@@ -110,7 +110,7 @@ problemData problemOptions[] = {
     .apply_ifunction     = IFunction_Advection,
     .apply_ifunction_loc = IFunction_Advection_loc,
     .bc                  = Exact_Advection,
-    .non_zero_time       = true,
+    .non_zero_time       = false,
   },
   [NS_ADVECTION2D] = {
     .dim                 = 2,
