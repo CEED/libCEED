@@ -448,7 +448,7 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode ICs_PetscMultiplicity(CeedOperator op_ics,
+static PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics,
     CeedVector xcorners, CeedVector q0ceed, DM dm, Vec Qloc, Vec Q,
     CeedElemRestriction restrictq, SetupContext ctxSetup, CeedScalar time) {
   PetscErrorCode ierr;
@@ -1131,8 +1131,8 @@ int main(int argc, char **argv) {
   ierr = ComputeLumpedMassMatrix(ceed, dm, restrictq, basisq, restrictqdi, qdata,
                                  user->M); CHKERRQ(ierr);
 
-  ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictq,
-                               &ctxSetup, 0.0);
+  ierr = ICs_FixMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictq,
+                             &ctxSetup, 0.0);
   if (1) { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
     // We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow.  If we
     // disable this, we should still get the same results due to the problem->bc function, but with potentially much
@@ -1238,8 +1238,8 @@ int main(int argc, char **argv) {
     ierr = DMGetLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
     ierr = VecGetSize(Qexactloc, &lnodes); CHKERRQ(ierr);
 
-    ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qexactloc, Qexact,
-                                 restrictq, &ctxSetup, ftime); CHKERRQ(ierr);
+    ierr = ICs_FixMultiplicity(op_ics, xcorners, q0ceed, dm, Qexactloc, Qexact,
+                               restrictq, &ctxSetup, ftime); CHKERRQ(ierr);
 
     ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
     ierr = VecNorm(Q, NORM_MAX, &norm); CHKERRQ(ierr);
