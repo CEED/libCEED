@@ -82,7 +82,8 @@ struct AdvectionContext_ {
 // *****************************************************************************
 
 // *****************************************************************************
-// This helper function provides the current 3D advection IC formulation
+// This helper function provides support for the exact, time-dependent solution
+//   (currently not implemented) and IC formulation for 3D advection
 // *****************************************************************************
 static inline int Exact_Advection(CeedInt dim, CeedScalar time,
                                   const CeedScalar X[], CeedInt Nf,
@@ -145,7 +146,7 @@ static inline int Exact_Advection(CeedInt dim, CeedScalar time,
 }
 
 // *****************************************************************************
-// Initial conditions for 3D advection
+// This QFunction sets the initial conditions for 3D advection
 // *****************************************************************************
 CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q,
                              const CeedScalar *const *in,

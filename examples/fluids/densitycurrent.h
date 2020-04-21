@@ -116,7 +116,8 @@ struct AdvectionContext_ {
 // *****************************************************************************
 
 // *****************************************************************************
-// This helper function provides the current density current IC formulation
+// This helper function provides support for the exact, time-dependent solution
+//   (currently not implemented) and IC formulation for density current
 // *****************************************************************************
 static inline int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
                            CeedInt Nf, CeedScalar q[], void *ctx) {
@@ -166,7 +167,7 @@ static inline int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
 }
 
 // *****************************************************************************
-// Initial conditions for density current
+// This QFunction sets the initial conditions for density current
 // *****************************************************************************
 CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {

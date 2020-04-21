@@ -194,7 +194,7 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
     fieldoff[f+1] = fieldoff[f] + ncomp[f];
   }
 
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   Nelem = cEnd - cStart;
   ierr = PetscMalloc1(Nelem*PetscPowInt(P, dim), &erestrict); CHKERRQ(ierr);
   for (c=cStart,eoffset=0; c<cEnd; c++) {
@@ -225,7 +225,7 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
                                        &indices, NULL); CHKERRQ(ierr);
   }
   if (eoffset != Nelem*PetscPowInt(P, dim)) SETERRQ3(PETSC_COMM_SELF,
-        PETSC_ERR_LIB,"ElemRestriction of size (%D,%D) initialized %D nodes", Nelem,
+        PETSC_ERR_LIB, "ElemRestriction of size (%D,%D) initialized %D nodes", Nelem,
         PetscPowInt(P, dim),eoffset);
   ierr = DMGetLocalVector(dm, &Uloc); CHKERRQ(ierr);
   ierr = VecGetLocalSize(Uloc, &Ndof); CHKERRQ(ierr);
@@ -256,7 +256,8 @@ static int VectorPlacePetscVec(CeedVector c, Vec p) {
   ierr = CeedVectorGetLength(c, &mceed); CHKERRQ(ierr);
   ierr = VecGetLocalSize(p, &mpetsc); CHKERRQ(ierr);
   if (mceed != mpetsc) SETERRQ2(PETSC_COMM_SELF,PETSC_ERR_ARG_INCOMP,
-                                  "Cannot place PETSc Vec of length %D in CeedVector of length %D",mpetsc,mceed);
+                                  "Cannot place PETSc Vec of length %D in CeedVector of length %D",
+                                  mpetsc, mceed);
   ierr = VecGetArray(p, &a); CHKERRQ(ierr);
   CeedVectorSetArray(c, CEED_MEM_HOST, CEED_USE_POINTER, a);
   PetscFunctionReturn(0);
@@ -596,7 +597,7 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  DM dm, dmcoord, dmviz, dmvizfine;
+  DM dm, dmcoord, dmviz;
   Mat interpviz;
   TS ts;
   TSAdapt adapt;
@@ -862,13 +863,16 @@ int main(int argc, char **argv) {
     .time = 0,
   };
 
+  // Create the mesh
   {
     const PetscReal scale[3] = {lx, ly, lz};
     ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, scale,
                                periodicity, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
   }
-  if (1) {
+
+  // Distribute the mesh over processes
+  {
     DM               dmDist = NULL;
     PetscPartitioner part;
 
@@ -882,14 +886,19 @@ int main(int argc, char **argv) {
   }
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
+  // Setup DM
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = SetUpDM(dm, problem, degree, &bc, &ctxSetup); CHKERRQ(ierr);
+
+  // Print FEM space information
   if (!test) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Degree of FEM Space: %D\n",
+                       "Degree of FEM space: %D\n",
                        degree); CHKERRQ(ierr);
   }
+
+  // Refine DM for high-order viz
   dmviz = NULL;
   interpviz = NULL;
   if (viz_refine) {
@@ -939,7 +948,7 @@ int main(int argc, char **argv) {
     ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str,
                                  sizeof(box_faces_str), NULL); CHKERRQ(ierr);
     if (!test) {
-      ierr = PetscPrintf(comm, "Global FEM dofs: %D (%D owned) on %d ranks\n",
+      ierr = PetscPrintf(comm, "Global FEM dofs: %D (%D owned) on %d rank(s)\n",
                          gdofs, odofs, comm_size); CHKERRQ(ierr);
       ierr = PetscPrintf(comm, "Local FEM nodes: %D\n", lnodes); CHKERRQ(ierr);
       ierr = PetscPrintf(comm, "dm_plex_box_faces: %s\n", box_faces_str);
@@ -949,7 +958,7 @@ int main(int argc, char **argv) {
   }
 
   // Set up global mass vector
-  ierr = VecDuplicate(Q,&user->M); CHKERRQ(ierr);
+  ierr = VecDuplicate(Q, &user->M); CHKERRQ(ierr);
 
   // Set up CEED
   // CEED Bases
@@ -987,8 +996,6 @@ int main(int argc, char **argv) {
   // Create the CEED vectors that will be needed in setup
   CeedInt Nqpts;
   CeedBasisGetNumQuadraturePoints(basisq, &Nqpts);
-  CeedInt Ndofs = 1;
-  for (int d=0; d<3; d++) Ndofs *= numP;
   CeedVectorCreate(ceed, qdatasize*localNelem*Nqpts, &qdata);
   CeedElemRestrictionCreateVector(restrictq, &q0ceed, NULL);
 
@@ -1145,7 +1152,8 @@ int main(int argc, char **argv) {
     ierr = VecAXPY(Qbc, -1., Qloc); CHKERRQ(ierr);
     ierr = DMRestoreNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
     ierr = PetscObjectComposeFunction((PetscObject)dm,
-                                      "DMPlexInsertBoundaryValues_C",DMPlexInsertBoundaryValues_NS); CHKERRQ(ierr);
+                                      "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_NS);
+    CHKERRQ(ierr);
   }
 
   MPI_Comm_rank(comm, &rank);
@@ -1163,8 +1171,6 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
     ierr = VecLoad(Q, viewer); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  } else {
-    //ierr = DMLocalToGlobal(dm, Qloc, INSERT_VALUES, Q);CHKERRQ(ierr);
   }
   ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
 
@@ -1221,12 +1227,12 @@ int main(int argc, char **argv) {
   ierr = PetscBarrier((PetscObject)ts); CHKERRQ(ierr);
   ierr = TSSolve(ts, Q); CHKERRQ(ierr);
   cpu_time_used = MPI_Wtime() - start;
-  ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
+  ierr = TSGetSolveTime(ts, &ftime); CHKERRQ(ierr);
   ierr = MPI_Allreduce(MPI_IN_PLACE, &cpu_time_used, 1, MPI_DOUBLE, MPI_MIN,
                        comm); CHKERRQ(ierr);
   if (!test) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Time taken for solution: %g\n",
+                       "Time taken for solution (sec): %g\n",
                        (double)cpu_time_used); CHKERRQ(ierr);
   }
 
@@ -1257,7 +1263,7 @@ int main(int argc, char **argv) {
   if (!test) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Time integrator took %D time steps to reach final time %g\n",
-                       steps,(double)ftime); CHKERRQ(ierr);
+                       steps, (double)ftime); CHKERRQ(ierr);
   }
 
   // Clean up libCEED
