@@ -35,8 +35,8 @@ typedef struct {
 } CeedBasisNonTensor_Magma;
 
 typedef struct {
-  CeedInt *indices;
-  CeedInt *dindices;
+  CeedInt *offsets;
+  CeedInt *doffsets;
   int  own_;
   int down_;            // cover a case where we own Device memory
 } CeedElemRestriction_Magma;
@@ -86,7 +86,7 @@ CEED_INTERN {
   void magma_readDofsOffset(const magma_int_t NCOMP,
                             const magma_int_t compstride,
                             const magma_int_t esize, const magma_int_t nelem,
-                            magma_int_t *indices, const double *du, double *dv);
+                            magma_int_t *offsets, const double *du, double *dv);
 
   void magma_readDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                              const magma_int_t nelem, magma_int_t *strides,
@@ -95,7 +95,7 @@ CEED_INTERN {
   void magma_writeDofsOffset(const magma_int_t NCOMP,
                              const magma_int_t compstride,
                              const magma_int_t esize, const magma_int_t nelem,
-                             magma_int_t *indices,const double *du, double *dv);
+                             magma_int_t *offsets,const double *du, double *dv);
 
   void magma_writeDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                               const magma_int_t nelem, magma_int_t *strides,
@@ -122,12 +122,12 @@ CEED_INTERN {
 
   int CeedElemRestrictionCreate_Magma(CeedMemType mtype,
                                       CeedCopyMode cmode,
-                                      const CeedInt *indices,
+                                      const CeedInt *offsets,
                                       CeedElemRestriction r);
 
   int CeedElemRestrictionCreateBlocked_Magma(const CeedMemType mtype,
       const CeedCopyMode cmode,
-      const CeedInt *indices,
+      const CeedInt *offsets,
       const CeedElemRestriction res);
   #ifdef __cplusplus
 }
