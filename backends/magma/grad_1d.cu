@@ -51,31 +51,19 @@ magma_grad_1d_kernel(
     dread_T_gm2sm<P, Q>(tx, transT, dTgrad, sT);
 
     // read U
-    if(tx < P) {
-        for(int icomp = 0; icomp < NCOMP; icomp++) {
-            sU[icomp][tx] = dU[icomp * u_compstride + tx];
-        }
-    }
+    read_1d<T, P, NCOMP>(dU, u_compstride, sU, tx);
 
     // read V if transT is magmaTrans
     if(transT == MagmaTrans) {
-        if(tx < Q) {
-            for(int icomp = 0; icomp < NCOMP; icomp++) {
-                sV[icomp][tx] = dV[icomp * v_compstride + tx];
-            }
-        }
+        read_1d<T, Q, NCOMP>(dV, v_compstride, sV, tx);
     }
-    __syncthreads();
 
+    __syncthreads();
     magma_grad_1d_device<T, DIM, NCOMP, P, Q>(sT, transT, sU, sV, tx);
     __syncthreads();
 
     // write V
-    if(tx < Q) {
-        for(int icomp = 0; icomp < NCOMP; icomp++) {
-            dV[icomp * v_compstride + tx] = sV[icomp][tx];
-        }
-    }
+    write_1d<T, Q, NCOMP>(sV, dV, v_compstride, tx);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

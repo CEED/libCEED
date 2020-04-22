@@ -49,35 +49,9 @@ magma_gradn_3d_kernel(
     dread_T_gm2sm<P, Q>(tx, transT, dgrad1d, sTgrad);
     __syncthreads();
 
-    // read U (u_dimstride is ignored in notrans) as a batch P of (1xP) vectors
-    // vec 0  : [u0, u1, u2, ... u_(P-1)] -- contiguous in memory
-    // vec 1  : [u0, u1, u2, ... u_(P-1)] -- contiguous in memory
-    // ... 
-    // vec P-1: [u0, u1, u2, ... u_(P-1)] -- contiguous in memory
-    // threads collaboratively read vec0 and then vec1 and so on
-    // but for the kernel, we want
-    // thread 0 to hold all of vec0 in registers, and
-    // thread 1 to hold all of vec1 in registers, and and so on
-    // so we need to transpose
-    for(int icomp = 0; icomp < NCOMP; icomp++) {
-        // read from global memory into shared memory
-        if(tx < P*P) {
-            #pragma unroll
-            for(int i = 0; i < P; i++) {
-                sTmp[i*P*P + tx] = dU[0 * u_dimstride + icomp * u_compstride + i*P*P + tx];
-            }
-        }
-        __syncthreads();
-
-        if(tx < P*P) {
-            #pragma unroll
-            for(int i = 0; i < P; i++) {
-                //rU(0,icomp,i) = sTmp[tx*P + i];
-                rU[0][icomp][i] = sTmp[tx*P + i];
-            }
-        }
-        __syncthreads();
-    }
+    // read U (idim = 0 for dU, iDIM = 0 for rU)
+    readU_3d<T, P, 1, NCOMP, MAXPQ, 0>(0, dU, u_compstride, u_dimstride, rU, sTmp, tx);
+    // there is a sync at the end of this function
 
     // No need to read V ( required only in transposed grad )
     const T beta = make_zero<T>();
@@ -87,42 +61,21 @@ magma_gradn_3d_kernel(
     __syncthreads();
 
     // write V for dim = 0 
-    if(tx < Q*Q) {
-        for(int icomp = 0; icomp < NCOMP; icomp++) {
-            for(int j = 0; j < Q; j++) {
-                dV[0 * v_dimstride + icomp * v_compstride + j*(Q*Q) + tx] = rV[0][icomp][j]/*rV(0,icomp,j)*/;
-            }
-        }
-    }
+    writeV_3d<T, Q, 1, NCOMP, MAXPQ, 0>(0, dV, v_compstride, v_dimstride, rV, tx);
 
     // second call (iDIM = 1, iDIMU = 0, iDIMV = 0)
     magma_grad_3d_device<T, 1, 1, NCOMP, P, Q, MAXPQ, 1, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
     __syncthreads();    
 
     // write V for dim = 1 
-    if(tx < Q*Q) {
-        for(int icomp = 0; icomp < NCOMP; icomp++) {
-            for(int j = 0; j < Q; j++) {
-                dV[1 * v_dimstride + icomp * v_compstride + j*(Q*Q) + tx] = rV[0][icomp][j]; //rV(0,icomp,j);
-            }
-        }
-    }
+    writeV_3d<T, Q, 1, NCOMP, MAXPQ, 0>(1, dV, v_compstride, v_dimstride, rV, tx);
 
     // third call (iDIM = 2, iDIMU = 0, iDIMV = 0)
     magma_grad_3d_device<T, 1, 1, NCOMP, P, Q, MAXPQ, 2, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
     __syncthreads();    
 
-    // write V for dim = 2 
-    if(tx < (Q*Q)) {
-        #pragma unroll
-        for(int icomp = 0; icomp < NCOMP; icomp++) {
-            #pragma unroll
-            for(int j = 0; j < Q; j++) {
-                dV[2 * v_dimstride + icomp * v_compstride + j*(Q*Q) + tx] = rV[0][icomp][j]; //rV(0,icomp,j);
-            }
-        }
-    }
-    
+    // write V for dim = 2
+    writeV_3d<T, Q, 1, NCOMP, MAXPQ, 0>(2, dV, v_compstride, v_dimstride, rV, tx);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
