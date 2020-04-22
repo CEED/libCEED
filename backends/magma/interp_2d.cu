@@ -45,58 +45,23 @@ magma_interp_2d_kernel(
 
     // read T
     dread_T_gm2sm<P, Q>(tx, transT, dT, sT);
-    __syncthreads();
 
-    // read U as a batch P of (1xP) vectors
-    // vec 0  : [u0, u1, u2, ... u_(P-1)] -- contiguous in memory
-    // vec 1  : [u0, u1, u2, ... u_(P-1)] -- contiguous in memory
-    // ... 
-    // vec P-1: [u0, u1, u2, ... u_(P-1)] -- contiguous in memory
-    // threads collaboratively read vec0 and then vec1 and so on
-    // but for the kernel, we want
-    // thread 0 to hold all of vec0 in registers, and
-    // thread 1 to hold all of vec1 in registers, and and so on
-    // so we need to transpose
-    for(int icomp = 0; icomp < NCOMP; icomp++) {
-        // read from global memory into shared memory
-        if(tx < P) {
-            for(int i = 0; i < P; i++) {
-                sTmp[i*P + tx] = dU[icomp * u_compstride + i*P + tx];
-            }
-        }
-        __syncthreads();
-
-        if(tx < P) {
-            for(int i = 0; i < P; i++) {
-                rU[0][icomp][i] = sTmp[tx*P + i];
-            }
-        }
-        __syncthreads();
-    }
+    // read U
+    readU_2d<T, P, DIM, NCOMP, MAXPQ, 0>(0, dU, u_compstride, 0, rU, sTmp, tx);
+    // there are sync inside this function
 
     // read V if transT is magmaTrans
     if(transT == MagmaTrans) {
-        if(tx < Q) {
-            for(int icomp = 0; icomp < NCOMP; icomp++) {
-                for(int j = 0; j < Q; j++) {
-                    rV[0][icomp][j] = dV[icomp * v_compstride + j*Q + tx];
-                }
-            }
-        }
+        readV_2d<T, Q, DIM, NCOMP, MAXPQ, 0>(0, dV, v_compstride, 0, rV, tx);
     }
-    // __syncthreads();    // sync here is probably not required
-    
+
+    // no sync needed here -- readU_2d already syncs at the end
     magma_interp_2d_device<T, DIM, NCOMP, P, Q, MAXPQ>(sT, transT, rU , rV, tx, rTmp, sTmp);
     __syncthreads();
 
     // write V
-    if(tx < Q) {
-        for(int icomp = 0; icomp < NCOMP; icomp++) {
-            for(int j = 0; j < Q; j++) {
-                dV[icomp * v_compstride + j*Q + tx] = rV[0][icomp][j];
-            }
-        }
-    }
+    writeV_2d<T, Q, DIM, NCOMP, MAXPQ, 0>(0, dV, v_compstride, 0, rV, tx);
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
