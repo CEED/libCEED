@@ -549,12 +549,21 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm,NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
-    /* Wall boundary conditions are zero velocity and zero flux for density and energy */
+    // Wall boundary conditions are zero energy density and zero flux for
+    //   velocity in advection/advection2d, and zero velocity and zero flux
+    //   for mass density and energy density in density_current
     {
-      PetscInt comps[3] = {1, 2, 3};
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
-                           3, comps, (void(*)(void))problem->bc,
-                           bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
+      if (problem->bc == Exact_Advection || problem->bc == Exact_Advection2d) {
+        PetscInt comps[1] = {4};
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
+                             1, comps, (void(*)(void))problem->bc,
+                             bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
+      } else if (problem->bc == Exact_DC) {
+        PetscInt comps[3] = {1, 2, 3};
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
+                             3, comps, (void(*)(void))problem->bc,
+                             bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
+      }
     }
     {
       PetscInt comps[1] = {1};

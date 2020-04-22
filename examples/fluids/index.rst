@@ -273,11 +273,15 @@ of total energy, is given by
 
 with :math:`\bm{u}` the vector velocity field. In this particular test case, a
 blob of total energy (defined by a characteristic radius :math:`r_c`) is transported by
-a uniform circular velocity field. We have solved :math:numref:`eq-advection` with
-no-slip and non-penetration boundary conditions for :math:`\bm{u}`, and no-flux
-for :math:`E`. This problem can be run with::
+a uniform circular velocity field. We have solved :math:numref:`eq-advection`
+with zero energy density :math:`E`, and no-flux for :math:`\bm{u}`.
+The :math:`3D` version of this problem can be run with::
 
    ./navierstokes -problem advection
+
+while the :math:`2D` version with::
+
+   ./navierstokes -problem advection2d
 
 
 .. _problem-density-current:
