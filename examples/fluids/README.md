@@ -62,6 +62,21 @@ Available runtime options are:
 | `-qextra`                | Number of extra quadrature points                                                               |
 | `-of`                    | Output folder                                                                                   |
 
+For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall` and/or `-bc_slip_x`,
+`-bc_slip_y`, and `-bc_slip_z` are:
+
+* 2D:
+  - faceMarkerBottom = 1;
+  - faceMarkerRight  = 2;
+  - faceMarkerTop    = 3;
+  - faceMarkerLeft   = 4;
+*  3D:
+  - faceMarkerBottom = 1;
+  - faceMarkerTop    = 2;
+  - faceMarkerFront  = 3;
+  - faceMarkerBack   = 4;
+  - faceMarkerRight  = 5;
+  - faceMarkerLeft   = 6;
 
 ### Advection
 
@@ -157,15 +172,15 @@ Constants:
    *lambda = - 2 / 3*,  From Stokes hypothesis
 
    *mu*              ,  Dynamic viscosity
- 
+
    *k*               ,  Thermal conductivity
- 
+
    *c<sub>v</sub>*              ,  Specific heat, constant volume
- 
+
    *c<sub>p</sub>*              ,  Specific heat, constant pressure
- 
+
    *g*               ,  Gravity
- 
+
    *gamma  = c<sub>p</sub> / c<sub>v</sub>*,  Specific heat ratio
 
 #### Initial Conditions
@@ -173,13 +188,13 @@ Constants:
 Potential Temperature:
 
    *theta = thetabar + deltatheta*
- 
+
    *thetabar   = theta0 exp( N * * 2 z / g )*
- 
+
    *deltatheta =
         r <= rc : theta0(1 + cos(pi r)) / 2
         r > rc : 0*
- 
+
    *r        = sqrt( (x - xc) * * 2 + (y - yc) * * 2 + (z - zc) * * 2 )*
     with *(xc,yc,zc)* center of domain
 
@@ -188,7 +203,7 @@ Exner Pressure:
    *Pi = Pibar + deltaPi*
 
    *Pibar      = g * * 2 (exp( - N * * 2 z / g ) - 1) / (cp theta0 N * * 2)*
- 
+
    *deltaPi    = 0* (hydrostatic balance)
 
 Velocity/Momentum Density:
@@ -204,29 +219,29 @@ Conversion to Conserved Variables:
 Constants:
 
    *theta0*          ,  Potential temperature constant
-   
+
    *thetaC*          ,  Potential temperature perturbation
-   
+
    *P0*              ,  Pressure at the surface
-   
+
    *N*               ,  Brunt-Vaisala frequency
-   
+
    *c<sub>v</sub>*              ,  Specific heat, constant volume
-   
+
    *c<sub>p</sub>*              ,  Specific heat, constant pressure
-   
+
    *R<sub>d</sub>*     = c<sub>p</sub> - c<sub>v</sub>,  Specific heat difference
-   
+
    *g*               ,  Gravity
-   
+
    *r<sub>c</sub>*              ,  Characteristic radius of thermal bubble
-   
+
    *l<sub>x</sub>*              ,  Characteristic length scale of domain in x
-   
+
    *l<sub>y</sub>*              ,  Characteristic length scale of domain in y
-   
+
    *l<sub>z</sub>*              ,  Characteristic length scale of domain in z
-   
+
 
 #### Boundary Conditions
 
@@ -241,8 +256,8 @@ Energy Density:
 
 ### Time Discretization
 
-For all different problems, the time integration is performed with an explicit formulation, therefore
-it can be subject to numerical instability, if run for large times or with large time steps.
+For all different problems, the time integration is performed with an explicit
+or implicit formulation.
 
 ### Space Discretization
 

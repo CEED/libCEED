@@ -166,7 +166,7 @@ struct Units_ {
 typedef struct SimpleBC_ *SimpleBC;
 struct SimpleBC_ {
   PetscInt nwall, nslip[3];
-  PetscInt walls[10], slips[3][10];
+  PetscInt walls[6], slips[3][6];
 };
 
 // Essential BC dofs are encoded in closure indices as -(i+1).
@@ -533,15 +533,14 @@ static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
-                       SimpleBC bc, void *ctxSetup) {
+static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
+                              SimpleBC bc, void *ctxSetup) {
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
   {
     // Configure the finite element space and boundary conditions
     PetscFE fe;
-    PetscSpace fespace;
     PetscInt ncompq = 5;
     ierr = PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, ncompq,
                                  PETSC_FALSE, degree, PETSC_DECIDE,
@@ -563,6 +562,11 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                              3, comps, (void(*)(void))problem->bc,
                              bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
+      } else {
+        MPI_Comm comm;
+        ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+        SETERRQ(comm, PETSC_ERR_ARG_NULL,
+                "Undefined boundary conditions for this problem");
       }
     }
     {
@@ -579,9 +583,8 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
                            1, comps, (void(*)(void))NULL, bc->nslip[2],
                            bc->slips[2], ctxSetup); CHKERRQ(ierr);
     }
-    ierr = DMPlexSetClosurePermutationTensor(dm,PETSC_DETERMINE,NULL);
+    ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
     CHKERRQ(ierr);
-    ierr = PetscFEGetBasisSpace(fe, &fespace); CHKERRQ(ierr);
     ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
   }
   {
@@ -763,7 +766,8 @@ int main(int argc, char **argv) {
                             "Scale coefficient for tau (nondimensional)",
                             NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
   if (stab == STAB_NONE && CtauS != 0) {
-    ierr = PetscPrintf(comm, "Warning! Use -CtauS only with -stab su or -stab supg\n");
+    ierr = PetscPrintf(comm,
+                       "Warning! Use -CtauS only with -stab su or -stab supg\n");
     CHKERRQ(ierr);
   }
   ierr = PetscOptionsScalar("-strong_form",
@@ -848,7 +852,7 @@ int main(int argc, char **argv) {
   const CeedInt dim = problem->dim, ncompx = problem->dim,
                 qdatasize = problem->qdatasize;
   // Set up the libCEED context
-  struct SetupContext_ ctxSetup =  {
+  struct SetupContext_ ctxSetup = {
     .theta0 = theta0,
     .thetaC = thetaC,
     .P0 = P0,
