@@ -204,6 +204,7 @@ static int CeedElemRestrictionApply_Ref_381(CeedElemRestriction r,
          u, v, request);
 }
 
+// LCOV_EXCL_START
 static int CeedElemRestrictionApply_Ref_510(CeedElemRestriction r,
     const CeedInt ncomp, const CeedInt blksize, const CeedInt compstride,
     CeedInt start, CeedInt stop, CeedTransposeMode tmode, CeedVector u,
@@ -211,6 +212,7 @@ static int CeedElemRestrictionApply_Ref_510(CeedElemRestriction r,
   return CeedElemRestrictionApply_Ref_Core(r, 5, 1, compstride, start, stop,
          tmode, u, v, request);
 }
+// LCOV_EXCL_STOP
 
 static int CeedElemRestrictionApply_Ref_511(CeedElemRestriction r,
     const CeedInt ncomp, const CeedInt blksize, const CeedInt compstride,
@@ -220,6 +222,7 @@ static int CeedElemRestrictionApply_Ref_511(CeedElemRestriction r,
          u, v, request);
 }
 
+// LCOV_EXCL_START
 static int CeedElemRestrictionApply_Ref_580(CeedElemRestriction r,
     const CeedInt ncomp, const CeedInt blksize, const CeedInt compstride,
     CeedInt start, CeedInt stop, CeedTransposeMode tmode, CeedVector u,
@@ -227,6 +230,7 @@ static int CeedElemRestrictionApply_Ref_580(CeedElemRestriction r,
   return CeedElemRestrictionApply_Ref_Core(r, 5, 8, compstride, start, stop,
          tmode, u, v, request);
 }
+// LCOV_EXCL_STOP
 
 static int CeedElemRestrictionApply_Ref_581(CeedElemRestriction r,
     const CeedInt ncomp, const CeedInt blksize, const CeedInt compstride,
@@ -390,15 +394,19 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
   case 381:
     impl->Apply = CeedElemRestrictionApply_Ref_381;
     break;
+  // LCOV_EXCL_START
   case 510:
     impl->Apply = CeedElemRestrictionApply_Ref_510;
     break;
+  // LCOV_EXCL_STOP
   case 511:
     impl->Apply = CeedElemRestrictionApply_Ref_511;
     break;
+  // LCOV_EXCL_START
   case 580:
     impl->Apply = CeedElemRestrictionApply_Ref_580;
     break;
+  // LCOV_EXCL_STOP
   case 581:
     impl->Apply = CeedElemRestrictionApply_Ref_581;
     break;
