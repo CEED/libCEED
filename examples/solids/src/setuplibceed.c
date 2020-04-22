@@ -134,8 +134,7 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
 };
 
 // Get libCEED restriction data from DMPlex
-PetscErrorCode CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode,
-                                     CeedInt P, CeedInt ncomp,
+PetscErrorCode CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
                                      CeedElemRestriction *Erestrict, DM dm) {
   PetscInt ierr;
   PetscInt c, cStart, cEnd, nelem, nnodes, *erestrict, eoffset;
@@ -163,7 +162,7 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode,
       }
       // Essential boundary conditions are encoded as -(loc+1)
       PetscInt loc = indices[i] >= 0 ? indices[i] : -(indices[i] + 1);
-      erestrict[eoffset++] = loc/ncomp;
+      erestrict[eoffset++] = loc;
     }
     ierr = DMPlexRestoreClosureIndices(dm, section, section, c, &numindices,
                                        &indices, NULL); CHKERRQ(ierr);
@@ -174,9 +173,8 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode,
   ierr = VecGetLocalSize(Uloc, &nnodes); CHKERRQ(ierr);
 
   ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, imode, nelem, P*P*P, nnodes/ncomp, ncomp,
-                            CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
-                            Erestrict);
+  CeedElemRestrictionCreate(ceed, nelem, P*P*P, ncomp, 1, nnodes, CEED_MEM_HOST,
+                            CEED_COPY_VALUES, erestrict, Erestrict);
   ierr = PetscFree(erestrict); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -220,25 +218,26 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
   CHKERRQ(ierr);
 
   // -- Coordinate restriction
-  ierr = CreateRestrictionPlex(ceed, CEED_INTERLACED, 2, ncompx,
-                               &(data[fineLevel]->Erestrictx), dmcoord);
-  CHKERRQ(ierr);
+  ierr = CreateRestrictionPlex(ceed, 2, ncompx, &(data[fineLevel]->Erestrictx),
+                               dmcoord); CHKERRQ(ierr);
 
   // -- Solution restriction
-  ierr = CreateRestrictionPlex(ceed, CEED_INTERLACED, P, ncompu,
-                               &data[fineLevel]->Erestrictu, dm); CHKERRQ(ierr);
+  ierr = CreateRestrictionPlex(ceed, P, ncompu, &data[fineLevel]->Erestrictu,
+                               dm); CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
 
   // -- Geometric data restriction
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, qdatasize,
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, qdatasize,
+                                   qdatasize*nelem*Q*Q*Q,
                                    CEED_STRIDES_BACKEND,
                                    &data[fineLevel]->Erestrictqdi);
   // -- State vector gradient restriction
   if (problemChoice != ELAS_LIN)
-    CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q,
-                                     dim*ncompu, CEED_STRIDES_BACKEND,
+    CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, dim*ncompu,
+                                     dim*ncompu*nelem*Q*Q*Q,
+                                     CEED_STRIDES_BACKEND,
                                      &data[fineLevel]->ErestrictGradui);
   // -- Energy restriction
   CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1,
@@ -513,8 +512,8 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx, Physics phys,
   // ---------------------------------------------------------------------------
   if (level != fineLevel) {
     // -- Solution restriction
-    ierr = CreateRestrictionPlex(ceed, CEED_INTERLACED, P, ncompu,
-                                 &data[level]->Erestrictu, dm); CHKERRQ(ierr);
+    ierr = CreateRestrictionPlex(ceed, P, ncompu, &data[level]->Erestrictu, dm);
+    CHKERRQ(ierr);
   }
 
   // ---------------------------------------------------------------------------

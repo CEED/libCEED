@@ -18,7 +18,7 @@ from _ceed_cffi import ffi, lib
 import tempfile
 import numpy as np
 from abc import ABC
-from .ceed_constants import REQUEST_IMMEDIATE, REQUEST_ORDERED, MEM_HOST, COPY_VALUES, TRANSPOSE, NOTRANSPOSE, INTERLACED, NONINTERLACED
+from .ceed_constants import REQUEST_IMMEDIATE, REQUEST_ORDERED, MEM_HOST, COPY_VALUES, TRANSPOSE, NOTRANSPOSE
 from .ceed_vector import _VectorWrap
 
 # ------------------------------------------------------------------------------
@@ -139,8 +139,8 @@ class ElemRestriction(_ElemRestrictionBase):
     """Ceed ElemRestriction: restriction from local vectors to elements."""
 
     # Constructor
-    def __init__(self, ceed, nelem, elemsize, nnodes, ncomp, indices,
-                 memtype=MEM_HOST, cmode=COPY_VALUES, imode=NONINTERLACED):
+    def __init__(self, ceed, nelem, elemsize, ncomp, compstride, lsize, offsets,
+                 memtype=MEM_HOST, cmode=COPY_VALUES):
         # CeedVector object
         self._pointer = ffi.new("CeedElemRestriction *")
 
@@ -148,14 +148,14 @@ class ElemRestriction(_ElemRestrictionBase):
         self._ceed = ceed
 
         # Setup the numpy array for the libCEED call
-        indices_pointer = ffi.new("const CeedInt *")
-        indices_pointer = ffi.cast("const CeedInt *",
-                                   indices.__array_interface__['data'][0])
+        offsets_pointer = ffi.new("const CeedInt *")
+        offsets_pointer = ffi.cast("const CeedInt *",
+                                   offsets.__array_interface__['data'][0])
 
         # libCEED call
-        lib.CeedElemRestrictionCreate(self._ceed._pointer[0], imode, nelem,
-                                      elemsize, nnodes, ncomp, memtype, cmode,
-                                      indices_pointer, self._pointer)
+        lib.CeedElemRestrictionCreate(self._ceed._pointer[0], nelem, elemsize,
+                                      ncomp, compstride, lsize, memtype, cmode,
+                                      offsets_pointer, self._pointer)
 
 # ------------------------------------------------------------------------------
 
@@ -164,7 +164,7 @@ class StridedElemRestriction(_ElemRestrictionBase):
     """Ceed Strided ElemRestriction: strided restriction from local vectors to elements."""
 
     # Constructor
-    def __init__(self, ceed, nelem, elemsize, nnodes, ncomp, strides):
+    def __init__(self, ceed, nelem, elemsize, ncomp, lsize, strides):
         # CeedVector object
         self._pointer = ffi.new("CeedElemRestriction *")
 
@@ -178,7 +178,7 @@ class StridedElemRestriction(_ElemRestrictionBase):
 
         # libCEED call
         lib.CeedElemRestrictionCreateStrided(self._ceed._pointer[0], nelem,
-                                             elemsize, nnodes, ncomp,
+                                             elemsize, ncomp, lsize,
                                              strides_pointer, self._pointer)
 
 # ------------------------------------------------------------------------------
@@ -188,8 +188,8 @@ class BlockedElemRestriction(_ElemRestrictionBase):
     """Ceed Blocked ElemRestriction: blocked restriction from local vectors to elements."""
 
     # Constructor
-    def __init__(self, ceed, nelem, elemsize, blksize, nnodes, ncomp, indices,
-                 memtype=MEM_HOST, cmode=COPY_VALUES, imode=NONINTERLACED):
+    def __init__(self, ceed, nelem, elemsize, blksize, ncomp, compstride, lsize,
+                 offsets, memtype=MEM_HOST, cmode=COPY_VALUES):
         # CeedVector object
         self._pointer = ffi.new("CeedElemRestriction *")
 
@@ -197,15 +197,15 @@ class BlockedElemRestriction(_ElemRestrictionBase):
         self._ceed = ceed
 
         # Setup the numpy array for the libCEED call
-        indices_pointer = ffi.new("const CeedInt *")
-        indices_pointer = ffi.cast("const CeedInt *",
-                                   indices.__array_interface__['data'][0])
+        offsets_pointer = ffi.new("const CeedInt *")
+        offsets_pointer = ffi.cast("const CeedInt *",
+                                   offsets.__array_interface__['data'][0])
 
         # libCEED call
-        lib.CeedElemRestrictionCreateBlocked(self._ceed._pointer[0], imode, nelem,
-                                             elemsize, blksize, nnodes, ncomp,
-                                             memtype, cmode, indices_pointer,
-                                             self._pointer)
+        lib.CeedElemRestrictionCreateBlocked(self._ceed._pointer[0], nelem,
+                                             elemsize, blksize, ncomp,
+                                             compstride, lsize, memtype, cmode,
+                                             offsets_pointer, self._pointer)
 
     # Transpose a Blocked ElemRestriction
     @property
@@ -246,7 +246,7 @@ class BlockedStridedElemRestriction(BlockedElemRestriction):
     """Ceed Blocked Strided ElemRestriction: strided restriction from local vectors to elements."""
 
     # Constructor
-    def __init__(self, ceed, nelem, elemsize, blksize, nnodes, ncomp, strides):
+    def __init__(self, ceed, nelem, elemsize, blksize, ncomp, lsize, strides):
         # CeedVector object
         self._pointer = ffi.new("CeedElemRestriction *")
 
@@ -260,8 +260,8 @@ class BlockedStridedElemRestriction(BlockedElemRestriction):
 
         # libCEED call
         lib.CeedElemRestrictionCreateBlockedStrided(self._ceed._pointer[0], nelem,
-                                                    elemsize, blksize, nnodes,
-                                                    ncomp, strides_pointer,
+                                                    elemsize, blksize, ncomp,
+                                                    lsize, strides_pointer,
                                                     self._pointer)
 
 # ------------------------------------------------------------------------------

@@ -60,9 +60,8 @@ static const char help[] =
 #endif
 
 // Auxiliary function to define CEED restrictions from DMPlex data
-static int CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode, CeedInt P,
-                                 CeedInt ncomp, CeedElemRestriction *Erestrict,
-                                 DM dm) {
+static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
+                                 CeedElemRestriction *Erestrict, DM dm) {
   PetscInt ierr;
   PetscInt c, cStart, cEnd, nelem, nnodes, *erestrict, eoffset;
   PetscSection section;
@@ -89,7 +88,7 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode, CeedInt P,
       }
       // NO BC on closed surfaces
       PetscInt loc = indices[i];
-      erestrict[eoffset++] = loc/ncomp;
+      erestrict[eoffset++] = loc;
     }
     ierr = DMPlexRestoreClosureIndices(dm, section, section, c, &numindices,
                                        &indices, NULL); CHKERRQ(ierr);
@@ -100,7 +99,7 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode, CeedInt P,
   ierr = VecGetLocalSize(Uloc, &nnodes); CHKERRQ(ierr);
 
   ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, imode, nelem, P*P, nnodes/ncomp, ncomp,
+  CeedElemRestrictionCreate(ceed, nelem, P*P, ncomp, 1, nnodes,
                             CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
                             Erestrict);
   ierr = PetscFree(erestrict); CHKERRQ(ierr);
@@ -296,10 +295,9 @@ int main(int argc, char **argv) {
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
-  CreateRestrictionPlex(ceed, CEED_INTERLACED, 2, ncompx, &Erestrictx, dmcoord);
+  ierr = CreateRestrictionPlex(ceed, 2, ncompx, &Erestrictx, dmcoord);
   CHKERRQ(ierr);
-  CreateRestrictionPlex(ceed, CEED_INTERLACED, P, ncompu, &Erestrictu, dm);
-  CHKERRQ(ierr);
+  ierr = CreateRestrictionPlex(ceed, P, ncompu, &Erestrictu, dm); CHKERRQ(ierr);
 
   CeedInt cStart, cEnd;
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
@@ -307,7 +305,8 @@ int main(int argc, char **argv) {
 
   // CEED strided restrictions
   const CeedInt qdatasize = 1;
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nelem*Q*Q, qdatasize,
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, qdatasize,
+                                   qdatasize*nelem*Q*Q,
                                    CEED_STRIDES_BACKEND, &Erestrictqdi);
 
   // Element coordinates

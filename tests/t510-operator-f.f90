@@ -39,8 +39,6 @@
       include 'ceedf.h'
 
       integer ceed,err,i
-      integer imode
-      parameter(imode=ceed_noninterlaced)
       integer stridesu(3)
       integer erestrictx,erestrictu,erestrictui
       integer bx,bu
@@ -103,13 +101,13 @@
         indx(i*2*p+12)=16+offset
       enddo
 
-      call ceedelemrestrictioncreate(ceed,imode,nelem,p,ndofs,d,ceed_mem_host,&
-     & ceed_use_pointer,indx,erestrictx,err)
+      call ceedelemrestrictioncreate(ceed,nelem,p,d,ndofs,d*ndofs,&
+     & ceed_mem_host,ceed_use_pointer,indx,erestrictx,err)
 
-      call ceedelemrestrictioncreate(ceed,imode,nelem,p,ndofs,1,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,nelem,p,1,1,ndofs,ceed_mem_host,&
      & ceed_use_pointer,indx,erestrictu,err)
       stridesu=[1,q,q]
-      call ceedelemrestrictioncreatestrided(ceed,nelem,q,nqpts,1,stridesu,&
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q,1,nqpts,stridesu,&
      & erestrictui,err)
 
       call buildmats(qref,qweight,interp,grad)

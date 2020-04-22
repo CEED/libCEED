@@ -36,15 +36,15 @@ int main(int argc, char **argv) {
 
   // Restrictions
   CeedInt stridesx[3] = {1, 2*2, 2*2*dim};
-  CeedElemRestrictionCreateStrided(ceed, nelem, 2*2, nelem*2*2, dim, stridesx,
-                                   &Erestrictxi);
+  CeedElemRestrictionCreateStrided(ceed, nelem, 2*2, dim, dim*nelem*2*2,
+                                   stridesx, &Erestrictxi);
 
   CeedInt stridesu[3] = {1, P*P, P*P};
-  CeedElemRestrictionCreateStrided(ceed, nelem, P*P, ndofs, 1, stridesu,
+  CeedElemRestrictionCreateStrided(ceed, nelem, P*P, 1, ndofs, stridesu,
                                    &Erestrictui);
 
   CeedInt stridesq[3] = {1, Q*Q, Q*Q};
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, nqpts, 1, stridesq,
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, 1, nqpts, stridesq,
                                    &Erestrictqi);
 
   // Bases

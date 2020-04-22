@@ -9,8 +9,6 @@
 
       integer ne
       parameter(ne=3)
-      integer imode
-      parameter(imode=ceed_noninterlaced)
 
       integer*4 ind(2*ne)
 
@@ -24,7 +22,7 @@
         ind(2*i  )=i
       enddo
 
-      call ceedelemrestrictioncreate(ceed,imode,ne,2,ne+1,1,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,ne,2,1,1,ne+1,ceed_mem_host,&
      & ceed_use_pointer,ind,r,err)
 
       call ceedelemrestrictionview(r,err)

@@ -28,11 +28,8 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
   CeedInt esize;
   CeedElemRestrictionGetElementSize(r, &esize);
 
-  CeedInt nnodes;
-  CeedElemRestrictionGetNumNodes(r, &nnodes);
-
-  CeedInt NCOMP;
-  CeedElemRestrictionGetNumComponents(r, &NCOMP);
+  CeedInt ncomp;
+  CeedElemRestrictionGetNumComponents(r, &ncomp);
 
   const CeedScalar *du;
   CeedScalar *dv;
@@ -56,8 +53,8 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     if (backendstrides) {
 
       strides[0] = 1;             // node stride
-      strides[1] = esize * nelem; //component stride
-      strides[2] = esize;         //element stride
+      strides[1] = esize * nelem; // component stride
+      strides[2] = esize;         // element stride
       magma_setvector(3, sizeof(CeedInt), strides, 1, dstrides, 1);
 
     } else {
@@ -69,29 +66,24 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
 
     // Perform strided restriction with dstrides
     if (tmode == CEED_TRANSPOSE) {
-      magma_writeDofsStrided(NCOMP, nnodes, esize, nelem, dstrides, du, dv);
+      magma_writeDofsStrided(ncomp, esize, nelem, dstrides, du, dv);
     } else {
-      magma_readDofsStrided(NCOMP, nnodes, esize, nelem, dstrides, du, dv);
+      magma_readDofsStrided(ncomp, esize, nelem, dstrides, du, dv);
     }
 
     ierr = magma_free(dstrides);  CeedChk(ierr);
 
   } else { // Indices array provided, standard restriction
 
-
-    CeedInterlaceMode imode;
-    ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
+    CeedInt compstride;
+    ierr = CeedElemRestrictionGetCompStride(r, &compstride); CeedChk(ierr);
 
     if (tmode == CEED_TRANSPOSE) {
-      if (imode == CEED_INTERLACED)
-        magma_writeDofsTranspose(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
-      else
-        magma_writeDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
+      magma_writeDofsOffset(ncomp, compstride, esize, nelem, impl->dindices,
+                            du, dv);
     } else {
-      if (imode == CEED_INTERLACED)
-        magma_readDofsTranspose(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
-      else
-        magma_readDofs(NCOMP, nnodes, esize, nelem, impl->dindices, du, dv);
+      magma_readDofsOffset(ncomp, compstride, esize, nelem, impl->dindices,
+                           du, dv);
     }
 
   }

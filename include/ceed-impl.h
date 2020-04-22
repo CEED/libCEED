@@ -149,12 +149,12 @@ struct CeedElemRestriction_private {
                     CeedVector, CeedRequest *);
   int (*Destroy)(CeedElemRestriction);
   int refcount;
-  CeedInterlaceMode imode;  /* Interlacing mode for L-vector ordering */
   CeedInt nelem;            /* number of elements */
   CeedInt elemsize;         /* number of nodes per element */
-  CeedInt nnodes;           /* size of the L-vector, can be used for checking
-                                 for correct vector sizes */
   CeedInt ncomp;            /* number of components */
+  CeedInt compstride;       /* Component stride for L-vector ordering */
+  CeedInt lsize;            /* size of the L-vector, can be used for checking
+                                 for correct vector sizes */
   CeedInt blksize;          /* number of elements in a batch */
   CeedInt nblk;             /* number of blocks of elements */
   CeedInt *strides;         /* strides between [nodes, components, elements] */

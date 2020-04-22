@@ -40,7 +40,8 @@ def test_200(ceed_resource):
     for i in range(ne):
         ind[2 * i + 0] = i
         ind[2 * i + 1] = i + 1
-    r = ceed.ElemRestriction(ne, 2, ne + 1, 1, ind, cmode=libceed.USE_POINTER)
+    r = ceed.ElemRestriction(ne, 2, 1, 1, ne + 1, ind,
+                             cmode=libceed.USE_POINTER)
 
     y = ceed.Vector(2 * ne)
     y.set_value(0)
@@ -66,7 +67,7 @@ def test_201(ceed_resource):
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     strides = np.array([1, 2, 2], dtype="int32")
-    r = ceed.StridedElemRestriction(ne, 2, 2 * ne, 1, strides)
+    r = ceed.StridedElemRestriction(ne, 2, 1, 2 * ne, strides)
 
     y = ceed.Vector(2 * ne)
     y.set_value(0)
@@ -96,7 +97,7 @@ def test_202(ceed_resource, capsys):
     for i in range(ne):
         ind[2 * i + 0] = i
         ind[2 * i + 1] = i + 1
-    r = ceed.BlockedElemRestriction(ne, 2, blksize, ne + 1, 1, ind,
+    r = ceed.BlockedElemRestriction(ne, 2, blksize, 1, 1, ne + 1, ind,
                                     cmode=libceed.USE_POINTER)
 
     y = ceed.Vector(2 * blksize * 2)
@@ -133,7 +134,7 @@ def test_208(ceed_resource, capsys):
     for i in range(ne):
         ind[2 * i + 0] = i
         ind[2 * i + 1] = i + 1
-    r = ceed.BlockedElemRestriction(ne, 2, blksize, ne + 1, 1, ind,
+    r = ceed.BlockedElemRestriction(ne, 2, blksize, 1, 1, ne + 1, ind,
                                     cmode=libceed.USE_POINTER)
 
     y = ceed.Vector(blksize * 2)
@@ -167,7 +168,7 @@ def test_209(ceed_resource):
         ind[4 * i + 1] = i * 3 + 1
         ind[4 * i + 2] = i * 3 + 2
         ind[4 * i + 3] = i * 3 + 3
-    r = ceed.ElemRestriction(ne, 4, 3 * ne + 1, 1, ind,
+    r = ceed.ElemRestriction(ne, 4, 1, 1, 3 * ne + 1, ind,
                              cmode=libceed.USE_POINTER)
 
     mult = r.get_multiplicity()
@@ -191,7 +192,8 @@ def test_210(ceed_resource, capsys):
     for i in range(ne):
         ind[2 * i + 0] = i + 0
         ind[2 * i + 1] = i + 1
-    r = ceed.ElemRestriction(ne, 2, ne + 1, 1, ind, cmode=libceed.USE_POINTER)
+    r = ceed.ElemRestriction(ne, 2, 1, 1, ne + 1, ind,
+                             cmode=libceed.USE_POINTER)
 
     print(r)
 
@@ -210,7 +212,7 @@ def test_211(ceed_resource, capsys):
     ne = 3
 
     strides = np.array([1, 2, 2], dtype="int32")
-    r = ceed.StridedElemRestriction(ne, 2, ne + 1, 1, strides)
+    r = ceed.StridedElemRestriction(ne, 2, 1, ne + 1, strides)
 
     print(r)
 
@@ -229,7 +231,7 @@ def test_212(ceed_resource, capsys):
     ne = 3
 
     strides = np.array([1, 2, 2], dtype="int32")
-    r = ceed.BlockedStridedElemRestriction(ne, 2, 2, ne + 1, 1, strides)
+    r = ceed.BlockedStridedElemRestriction(ne, 2, 2, 1, ne + 1, strides)
 
     print(r)
 

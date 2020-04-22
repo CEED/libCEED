@@ -18,7 +18,6 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedElemRestriction ErestrictxTet, ErestrictuTet,
                       ErestrictqdiTet,
                       ErestrictxHex, ErestrictuHex,
@@ -83,16 +82,16 @@ int main(int argc, char **argv) {
   }
 
   // -- Restrictions
-  CeedElemRestrictionCreate(ceed, imode, nelemTet, PTet, ndofs, dim,
+  CeedElemRestrictionCreate(ceed, nelemTet, PTet, dim, ndofs, dim*ndofs,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
                             &ErestrictxTet);
 
-  CeedElemRestrictionCreate(ceed, imode, nelemTet, PTet, ndofs, 1,
+  CeedElemRestrictionCreate(ceed, nelemTet, PTet, 1, 1, ndofs,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
                             &ErestrictuTet);
   CeedInt stridesqdTet[3] = {1, QTet, QTet *dim *(dim+1)/2};
-  CeedElemRestrictionCreateStrided(ceed, nelemTet, QTet, nqptsTet,
-                                   dim*(dim+1)/2, stridesqdTet,
+  CeedElemRestrictionCreateStrided(ceed, nelemTet, QTet, dim*(dim+1)/2,
+                                   dim*(dim+1)/2*nqptsTet, stridesqdTet,
                                    &ErestrictqdiTet);
 
   // -- Bases
@@ -146,16 +145,16 @@ int main(int argc, char **argv) {
   }
 
   // -- Restrictions
-  CeedElemRestrictionCreate(ceed, imode, nelemHex, PHex*PHex, ndofs, dim,
+  CeedElemRestrictionCreate(ceed, nelemHex, PHex*PHex, dim, ndofs, dim*ndofs,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
                             &ErestrictxHex);
 
-  CeedElemRestrictionCreate(ceed, imode, nelemHex, PHex*PHex, ndofs, 1,
+  CeedElemRestrictionCreate(ceed, nelemHex, PHex*PHex, 1, 1, ndofs,
                             CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
                             &ErestrictuHex);
   CeedInt stridesqdHex[3] = {1, QHex*QHex, QHex *QHex *dim *(dim+1)/2};
-  CeedElemRestrictionCreateStrided(ceed, nelemHex, QHex*QHex, nqptsHex,
-                                   dim*(dim+1)/2, stridesqdHex,
+  CeedElemRestrictionCreateStrided(ceed, nelemHex, QHex*QHex, dim*(dim+1)/2,
+                                   dim*(dim+1)/2*nqptsHex, stridesqdHex,
                                    &ErestrictqdiHex);
 
   // -- Bases

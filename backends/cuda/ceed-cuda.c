@@ -86,11 +86,8 @@ int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name,
 
 int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int gridSize,
                       const int blockSize, void **args) {
-  CeedChk_Cu(ceed, cuLaunchKernel(kernel,
-                                  gridSize, 1, 1,
-                                  blockSize, 1, 1,
-                                  0, NULL,
-                                  args, NULL));
+  CeedChk_Cu(ceed, cuLaunchKernel(kernel, gridSize, 1, 1, blockSize, 1,
+                                  1, 0, NULL, args, NULL));
   return 0;
 }
 

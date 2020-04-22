@@ -34,12 +34,6 @@ copy_modes = {COPY_VALUES: "copy values",
               USE_POINTER: "use pointer",
               OWN_POINTER: "own pointer"}
 
-# CeedLayoutMode
-NONINTERLACED = lib.CEED_NONINTERLACED
-INTERLACED = lib.CEED_INTERLACED
-layout_modes = {NONINTERLACED: "not interlaced",
-                INTERLACED: "interlaced"}
-
 # CeedNormType
 NORM_1 = lib.CEED_NORM_1
 NORM_2 = lib.CEED_NORM_2

@@ -4,6 +4,22 @@ Changes/Release Notes
 On this page we provide a summary of the main API changes, new features and examples
 for each release of libCEED.
 
+.. _master:
+
+Current Master
+----------------------------------------
+
+The current master branch contains bug fixes and interfaces changes.
+
+Interface changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Replace limited :code:`CeedInterlaceMode` with more flexible component stride :code:`compstride` in :code:`CeedElemRestriction` constructors.
+  As a result, the :code:`indices` parameter has been replaced with :code:`offsets` and the :code:`nnodes` parameter has been replaced with :code:`lsize`.
+  These changes improve support for mixed finite element methods.
+
+Examples
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* :ref:`example-petsc-elasticity` example updated with strain energy computation and more flexible boundary conditions.
 
 .. _v0.6:
 

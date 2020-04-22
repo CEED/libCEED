@@ -77,15 +77,15 @@
 
 ! Restrictions
       stridesx=[1,2*2,2*2*d]
-      call ceedelemrestrictioncreatestrided(ceed,nelem,2*2,nelem*2*2,d,&
+      call ceedelemrestrictioncreatestrided(ceed,nelem,2*2,d,d*nelem*2*2,&
      & stridesx,erestrictxi,err)
 
       stridesu=[1,p*p,p*p]
-      call ceedelemrestrictioncreatestrided(ceed,nelem,p*p,ndofs,1,&
+      call ceedelemrestrictioncreatestrided(ceed,nelem,p*p,1,ndofs,&
      & stridesu,erestrictui,err)
 
       stridesq=[1,q*q,q*q]
-      call ceedelemrestrictioncreatestrided(ceed,nelem,q*q,nqpts,1,&
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q*q,1,nqpts,&
      & stridesq,erestrictqi,err)
 
 ! Bases

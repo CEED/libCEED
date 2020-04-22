@@ -44,8 +44,6 @@
       include 'ceedf.h'
 
       integer ceed,err,i,j,k
-      integer imode
-      parameter(imode=ceed_noninterlaced)
       integer stridesqdtet(3),stridesqdhex(3)
       integer erestrictxtet,erestrictutet,erestrictqditet,&
 &             erestrictxhex,erestrictuhex,erestrictqdihex
@@ -130,14 +128,14 @@
       enddo
 
 ! -- Restrictions
-      call ceedelemrestrictioncreate(ceed,imode,nelemtet,ptet,ndofs,d,&
+      call ceedelemrestrictioncreate(ceed,nelemtet,ptet,d,ndofs,d*ndofs,&
      & ceed_mem_host,ceed_use_pointer,indxtet,erestrictxtet,err)
 
-      call ceedelemrestrictioncreate(ceed,imode,nelemtet,ptet,ndofs,1,&
+      call ceedelemrestrictioncreate(ceed,nelemtet,ptet,1,1,ndofs,&
      & ceed_mem_host,ceed_use_pointer,indxtet,erestrictutet,err)
       stridesqdtet=[1,qtet,qtet*d*(d+1)/2]
-      call ceedelemrestrictioncreatestrided(ceed,nelemtet,qtet,nqptstet,&
-     & d*(d+1)/2,stridesqdtet,erestrictqditet,err)
+      call ceedelemrestrictioncreatestrided(ceed,nelemtet,qtet,d*(d+1)/2,&
+     & d*(d+1)/2*nqptstet,stridesqdtet,erestrictqditet,err)
 
 ! -- Bases
       call buildmats(qref,qweight,interp,grad)
@@ -196,14 +194,14 @@
       enddo
 
 ! -- Restrictions
-      call ceedelemrestrictioncreate(ceed,imode,nelemhex,phex*phex,ndofs,d,&
-     & ceed_mem_host,ceed_use_pointer,indxhex,erestrictxhex,err)
+      call ceedelemrestrictioncreate(ceed,nelemhex,phex*phex,d,ndofs,&
+     & d*ndofs,ceed_mem_host,ceed_use_pointer,indxhex,erestrictxhex,err)
 
-      call ceedelemrestrictioncreate(ceed,imode,nelemhex,phex*phex,ndofs,1,&
+      call ceedelemrestrictioncreate(ceed,nelemhex,phex*phex,1,1,ndofs,&
      & ceed_mem_host,ceed_use_pointer,indxhex,erestrictuhex,err)
       stridesqdhex=[1,qhex*qhex,qhex*qhex*d*(d+1)/2]
       call ceedelemrestrictioncreatestrided(ceed,nelemhex,qhex*qhex,&
-     & nqptshex,d*(d+1)/2,stridesqdhex,erestrictqdihex,err)
+     & d*(d+1)/2,d*(d+1)/2*nqptshex,stridesqdhex,erestrictqdihex,err)
 
 ! -- Bases
       call ceedbasiscreatetensorh1lagrange(ceed,d,d,phex,qhex,ceed_gauss,&
