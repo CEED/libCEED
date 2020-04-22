@@ -327,7 +327,7 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
       ierr = CeedElemRestrictionGetLVectorSize(r, &lsize); CeedChk(ierr);
 
       for (CeedInt i = 0; i < nelem*elemsize; i++)
-        if (offsets[i] > lsize - 1)
+        if (offsets[i] < 0 || lsize <= offsets[i] + (ncomp - 1) * compstride)
           // LCOV_EXCL_START
           return CeedError(ceed, 1, "Restriction offset %d (%d) out of range "
                            "[0, %d]", i, offsets[i], lsize);
@@ -410,4 +410,3 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
   return 0;
 }
 //------------------------------------------------------------------------------
-
