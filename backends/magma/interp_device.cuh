@@ -26,31 +26,6 @@
 #define rV(idim,icomp,i) rV[(idim)*NCOMP*Q + (icomp)*Q + (i)]
 
 //////////////////////////////////////////////////////////////////////////////////////////
-// init scalar to zero
-template<typename T>
-__device__ __inline__ T
-make_zero()
-{
-    return 0;
-}
-//////////////////////////////////////////////////////////////////////////////////////////
-// init scalar to zero -- specialization
-template<>
-__device__ __inline__ magmaFloatComplex
-make_zero<magmaFloatComplex>()
-{
-    return MAGMA_C_ZERO;
-}
-//////////////////////////////////////////////////////////////////////////////////////////
-// init scalar to zero -- specialization
-template<>
-__device__ __inline__ magmaDoubleComplex
-make_zero<magmaDoubleComplex>()
-{
-    return MAGMA_Z_ZERO;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////
 // interp basis action (1D)
 template<typename T, int DIM, int NCOMP, int P, int Q>
 static __device__ __inline__ void
