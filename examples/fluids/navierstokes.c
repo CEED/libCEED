@@ -765,6 +765,10 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsScalar("-CtauS",
                             "Scale coefficient for tau (nondimensional)",
                             NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
+  if (stab == STAB_NONE && CtauS != 0) {
+    ierr = PetscPrintf(comm, "Warning! Use -CtauS only with -stab su or -stab supg\n");
+    CHKERRQ(ierr);
+  }
   ierr = PetscOptionsScalar("-strong_form",
                             "Strong (1) or weak/integrated by parts (0) advection residual",
                             NULL, strong_form, &strong_form, NULL);
