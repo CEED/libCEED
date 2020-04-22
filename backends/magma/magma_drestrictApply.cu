@@ -119,7 +119,7 @@ magma_writeDofsStrided_kernel(const int NCOMP, const int esize, const int nelem,
 //////////////////////////////////////////////////////////////////////////////////////////
 
 // ReadDofs to device memory
-// du is L-vector, size lsize * NCOMP
+// du is L-vector, size lsize
 // dv is E-vector, size nelem * esize * NCOMP
 extern "C" void
 magma_readDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
@@ -134,7 +134,7 @@ magma_readDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
 }
 
 // ReadDofs to device memory, strided description for L-vector
-// du is L-vector, size lsize * NCOMP
+// du is L-vector, size lsize
 // dv is E-vector, size nelem * esize * NCOMP
 extern "C" void
 magma_readDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
@@ -150,7 +150,7 @@ magma_readDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
 
 // WriteDofs from device memory
 // du is E-vector, size nelem * esize * NCOMP
-// dv is L-vector, size lsize * NCOMP 
+// dv is L-vector, size lsize 
 extern "C" void
 magma_writeDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
                       const magma_int_t esize, const magma_int_t nelem,
@@ -165,7 +165,7 @@ magma_writeDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
 
 // WriteDofs from device memory, strided description for L-vector
 // du is E-vector, size nelem * esize * NCOMP
-// dv is L-vector, size lsize * NCOMP 
+// dv is L-vector, size lsize
 extern "C" void
 magma_writeDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                        const magma_int_t nelem, const int *strides,
