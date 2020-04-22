@@ -309,6 +309,33 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
     return CeedError(ceed, 1, "Only MemType = HOST supported");
   // LCOV_EXCL_STOP
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
+
+  // Check indices for ref or memcheck backends
+  if (offsets) {
+    Ceed parentCeed = ceed, currCeed = NULL;
+    while (parentCeed != currCeed) {
+      currCeed = parentCeed;
+      ierr = CeedGetParent(currCeed, &parentCeed); CeedChk(ierr);
+    }
+    const char *resource;
+    ierr = CeedGetResource(parentCeed, &resource); CeedChk(ierr);
+    if (!strcmp(resource, "/cpu/self/ref/serial")
+        || !strcmp(resource, "/cpu/self/ref/blocked")
+        || !strcmp(resource, "/cpu/self/memcheck/serial")
+        || !strcmp(resource, "/cpu/self/memcheck/blocked")) {
+      CeedInt lsize;
+      ierr = CeedElemRestrictionGetLVectorSize(r, &lsize); CeedChk(ierr);
+
+      for (CeedInt i = 0; i < nelem*elemsize; i++)
+        if (offsets[i] > lsize - 1)
+          // LCOV_EXCL_START
+          return CeedError(ceed, 1, "Restriction offset %d (%d) out of range "
+                           "[0, %d]", i, offsets[i], lsize);
+      // LCOV_EXCL_STOP
+    }
+  }
+
+  // Offsets data
   switch (cmode) {
   case CEED_COPY_VALUES:
     ierr = CeedMalloc(nelem*elemsize, &impl->offsets_allocated);
