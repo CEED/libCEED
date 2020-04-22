@@ -668,9 +668,6 @@ int main(int argc, char **argv) {
   PetscInt contsteps    = 0;        // -
   PetscInt degree       = 1;        // -
   PetscInt qextra       = 2;        // -
-  DMBoundaryType periodicity[] = {DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
-                                  DM_BOUNDARY_NONE
-                                 };
   PetscReal center[3], dc_axis[3] = {0, 0, 0};
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
@@ -788,10 +785,6 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsScalar("-resz","Target resolution in z",
                             NULL, resz, &resz, NULL); CHKERRQ(ierr);
   PetscInt n = problem->dim;
-  ierr = PetscOptionsEnumArray("-periodicity", "Periodicity per direction",
-                               NULL, DMBoundaryTypes, (PetscEnum *)periodicity,
-                               &n, NULL); CHKERRQ(ierr);
-  n = problem->dim;
   center[0] = 0.5 * lx;
   center[1] = 0.5 * ly;
   center[2] = 0.5 * lz;
@@ -868,9 +861,6 @@ int main(int argc, char **argv) {
     .lx = lx,
     .ly = ly,
     .lz = lz,
-    .periodicity0 = periodicity[0],
-    .periodicity1 = periodicity[1],
-    .periodicity2 = periodicity[2],
     .center[0] = center[0],
     .center[1] = center[1],
     .center[2] = center[2],
@@ -884,7 +874,7 @@ int main(int argc, char **argv) {
   {
     const PetscReal scale[3] = {lx, ly, lz};
     ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, scale,
-                               periodicity, PETSC_TRUE, &dm);
+                               NULL, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
   }
 

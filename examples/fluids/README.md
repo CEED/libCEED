@@ -54,7 +54,6 @@ Available runtime options are:
 | `-resx`                  | Resolution in x                                                                                 |
 | `-resy`                  | Resolution in y                                                                                 |
 | `-resz`                  | Resolution in z                                                                                 |
-| `-periodicity`           | Periodicity per direction                                                                       |
 | `-center`                | Location of bubble center                                                                       |
 | `-dc_axis`               | Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric               |
 | `-output_freq`           | Frequency of output, in number of steps                                                         |
