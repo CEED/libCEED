@@ -18,6 +18,56 @@
 #define MAGMA_TC_DEVICE_CUH
 
 //////////////////////////////////////////////////////////////////////////////////////////
+// init scalar to zero
+template<typename T>
+__device__ __inline__ T
+make_zero()
+{
+    return 0;
+}
+//////////////////////////////////////////////////////////////////////////////////////////
+// init scalar to zero -- specialization
+template<>
+__device__ __inline__ magmaFloatComplex
+make_zero<magmaFloatComplex>()
+{
+    return MAGMA_C_ZERO;
+}
+//////////////////////////////////////////////////////////////////////////////////////////
+// init scalar to zero -- specialization
+template<>
+__device__ __inline__ magmaDoubleComplex
+make_zero<magmaDoubleComplex>()
+{
+    return MAGMA_Z_ZERO;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// init scalar to one
+template<typename T>
+__device__ __inline__ T
+make_one()
+{
+    return 1;
+}
+//////////////////////////////////////////////////////////////////////////////////////////
+// init scalar to zero -- specialization
+template<>
+__device__ __inline__ magmaFloatComplex
+make_one<magmaFloatComplex>()
+{
+    return MAGMA_C_ONE;
+}
+//////////////////////////////////////////////////////////////////////////////////////////
+// init scalar to zero -- specialization
+template<>
+__device__ __inline__ magmaDoubleComplex
+make_one<magmaDoubleComplex>()
+{
+    return MAGMA_Z_ONE;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
 // reads T into shared memory
 // must sync after call
 template<int B, int J>

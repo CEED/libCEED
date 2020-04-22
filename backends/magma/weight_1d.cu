@@ -17,7 +17,7 @@
 #include <ceed.h>
 #include <cuda.h>    // for CUDA_VERSION
 #include <magma_v2.h>
-#include "magma_tc_device.cuh"
+#include "magma_common_device.cuh"
 #include "weight_device.cuh"
 
 //////////////////////////////////////////////////////////////////////////////////////////
