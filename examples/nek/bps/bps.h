@@ -111,7 +111,7 @@ CEED_QFUNCTION(diffsetupf)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 }
 
 CEED_QFUNCTION(diffusionf)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                          CeedScalar *const *out) {
+                           CeedScalar *const *out) {
   const CeedScalar *ug = in[0];
   const CeedScalar *qdata = in[1];
   CeedScalar *vg = out[0];
