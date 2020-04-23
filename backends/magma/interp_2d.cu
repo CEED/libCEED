@@ -110,7 +110,7 @@ magma_interp_2d_kernel_driver(
         // IMPORTANT: we instantiate with DIM=1 instead of DIM=2 because the kernel handles one dimension at a time
         // We should instantiate with DIM >= 1 when we fuse the whole operator, because of the q-function
         magma_interp_2d_kernel<T,1,NCOMP,P,Q,MAXPQ><<<grid, threads, shmem, magma_queue_get_cuda_stream(queue)>>>
-        (dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride);
+        (dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem);
         return (cudaPeekAtLastError() == cudaSuccess) ? 0 : 1;
     }
 }
