@@ -314,8 +314,9 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
   // LCOV_EXCL_STOP
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
 
-  // Check indices for ref or memcheck backends
+  // Offsets data
   if (offsets) {
+    // Check indices for ref or memcheck backends
     Ceed parentCeed = ceed, currCeed = NULL;
     while (parentCeed != currCeed) {
       currCeed = parentCeed;
@@ -337,23 +338,23 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
                            "[0, %d]", i, offsets[i], lsize);
       // LCOV_EXCL_STOP
     }
-  }
 
-  // Offsets data
-  switch (cmode) {
-  case CEED_COPY_VALUES:
-    ierr = CeedMalloc(nelem*elemsize, &impl->offsets_allocated);
-    CeedChk(ierr);
-    memcpy(impl->offsets_allocated, offsets,
-           nelem * elemsize * sizeof(offsets[0]));
-    impl->offsets = impl->offsets_allocated;
-    break;
-  case CEED_OWN_POINTER:
-    impl->offsets_allocated = (CeedInt *)offsets;
-    impl->offsets = impl->offsets_allocated;
-    break;
-  case CEED_USE_POINTER:
-    impl->offsets = offsets;
+    // Copy data
+    switch (cmode) {
+    case CEED_COPY_VALUES:
+      ierr = CeedMalloc(nelem*elemsize, &impl->offsets_allocated);
+      CeedChk(ierr);
+      memcpy(impl->offsets_allocated, offsets,
+             nelem * elemsize * sizeof(offsets[0]));
+      impl->offsets = impl->offsets_allocated;
+      break;
+    case CEED_OWN_POINTER:
+      impl->offsets_allocated = (CeedInt *)offsets;
+      impl->offsets = impl->offsets_allocated;
+      break;
+    case CEED_USE_POINTER:
+      impl->offsets = offsets;
+    }
   }
 
   ierr = CeedElemRestrictionSetData(r, (void *)&impl); CeedChk(ierr);
