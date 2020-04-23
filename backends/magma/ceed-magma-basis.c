@@ -102,7 +102,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
             impl->dinterp1d, tmode, 
             u, u_elstride, u_compstride, 
             v, v_elstride, v_compstride, 
-            nelem, data->basis_kernel_mode, 
+            nelem, data->basis_kernel_mode, data->maxthreads, 
             data->queue);
     if(ierr != 0) CeedError(ceed, 1, "MAGMA: launch failure detected for magma_interp");
   }

@@ -27,15 +27,15 @@ magma_interp(
     const CeedScalar *dT, CeedTransposeMode tmode,
     const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
           CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
-    magma_int_t nelem, magma_kernel_mode_t kernel_mode, magma_int_t maxthreads, magma_queue_t queue)
+    magma_int_t nelem, magma_kernel_mode_t kernel_mode, magma_int_t* maxthreads, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
 
     if(kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC) {
         switch(dim) {
-            case 1: launch_failed = magma_interp_1d(P, Q, ncomp, dT, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-            case 2: launch_failed = magma_interp_2d(P, Q, ncomp, dT, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-            case 3: launch_failed = magma_interp_3d(P, Q, ncomp, dT, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
+            case 1: launch_failed = magma_interp_1d(P, Q, ncomp, dT, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads[0], queue); break;
+            case 2: launch_failed = magma_interp_2d(P, Q, ncomp, dT, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads[1], queue); break;
+            case 3: launch_failed = magma_interp_3d(P, Q, ncomp, dT, tmode, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads[2], queue); break;
             default: launch_failed = 1;
         }
     }
