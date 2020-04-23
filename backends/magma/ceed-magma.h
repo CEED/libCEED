@@ -29,6 +29,7 @@ typedef enum {
 
 typedef struct {
   magma_kernel_mode_t basis_kernel_mode;
+  magma_int_t maxthreads[3];
   magma_device_t device;
   magma_queue_t queue;
 } Ceed_Magma;
@@ -74,21 +75,21 @@ CEED_INTERN {
       const CeedScalar *dT, CeedTransposeMode tmode,
       const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
             CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
-      magma_int_t nelem, magma_queue_t queue);
+      magma_int_t nelem, magma_int_t maxthreads, magma_queue_t queue);
     
   magma_int_t magma_interp_2d( 
       magma_int_t P, magma_int_t Q, magma_int_t ncomp,  
       const CeedScalar *dT, CeedTransposeMode tmode,
       const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
             CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
-      magma_int_t nelem, magma_queue_t queue);
+      magma_int_t nelem, magma_int_t maxthreads, magma_queue_t queue);
 
   magma_int_t magma_interp_3d( 
       magma_int_t P, magma_int_t Q, magma_int_t ncomp,  
       const CeedScalar *dT, CeedTransposeMode tmode,
       const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
             CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
-      magma_int_t nelem, magma_queue_t queue);
+      magma_int_t nelem, magma_int_t maxthreads, magma_queue_t queue);
 
   magma_int_t magma_interp_generic(magma_int_t P, magma_int_t Q,
       magma_int_t dim, magma_int_t ncomp,
@@ -97,7 +98,7 @@ CEED_INTERN {
       magma_int_t u_compstride,
       double *dV, magma_int_t v_elemstride,
       magma_int_t v_compstride,
-      magma_int_t nelem, magma_queue_t queue);
+      magma_int_t nelem, magma_int_t maxthreads, magma_queue_t queue);
 
   magma_int_t magma_interp( 
       magma_int_t P, magma_int_t Q, 
