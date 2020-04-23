@@ -48,24 +48,20 @@ magma_gradn_2d_kernel(
     dread_T_gm2sm<P, Q>(tx, transT, dinterp1d, sTinterp);
     dread_T_gm2sm<P, Q>(tx, transT, dgrad1d, sTgrad);
 
-    readU_2d<T, P, 1, NCOMP, MAXPQ, 0>(0, dU, u_compstride, u_dimstride, rU, sTmp, tx);
-    // there are sync inside this function
-
     // No need to read V ( required only in transposed grad )
     const T beta = make_zero<T>();
 
-    // first call (iDIM = 0, iDIMU = 0, iDIMV = 0)
-    magma_grad_2d_device<T, 1, 1, NCOMP, P, Q, MAXPQ, 0, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
-    __syncthreads();
+    /* read U (idim = 0 for dU, iDIM = 0 for rU) -- there is a sync at the end of this function */
+    readU_2d<T, P, 1, NCOMP, MAXPQ, 0>(0, dU, u_compstride, u_dimstride, rU, sTmp, tx);
 
-    // write V for dim = 0  (iDIM = 0 for rV, idim = 0 for dV)
+    /* first call (iDIM = 0, iDIMU = 0, iDIMV = 0) -- output from rV[0][][] into dV (idim = 0) */
+    magma_grad_2d_device<T, 1, 1, NCOMP, P, Q, MAXPQ, 0, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp); 
+    __syncthreads();
     writeV_2d<T, Q, 1, NCOMP, MAXPQ, 0>(0, dV, v_compstride, v_dimstride, rV, tx);
 
-    // second call (iDIM = 1, iDIMU = 0, iDIMV = 0)
+    /* second call (iDIM = 1, iDIMU = 0, iDIMV = 0) -- output from rV[0][][] into dV (idim = 1) */
     magma_grad_2d_device<T, 1, 1, NCOMP, P, Q, MAXPQ, 1, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
     __syncthreads();    
-
-    // write V for dim = 1 (iDIM = 0 for rV, idim = 1 for dV)
     writeV_2d<T, Q, 1, NCOMP, MAXPQ, 0>(1, dV, v_compstride, v_dimstride, rV, tx);
 }
 
