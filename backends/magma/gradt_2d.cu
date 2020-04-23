@@ -27,10 +27,14 @@ static __global__ void
 magma_gradt_2d_kernel(
     const T *dinterp1d, const T *dgrad1d, magma_trans_t transT,
     const T *dU, const int u_elstride, const int u_compstride, const int u_dimstride,  
-          T *dV, const int v_elstride, const int v_compstride, const int v_dimstride)
+          T *dV, const int v_elstride, const int v_compstride, const int v_dimstride, const int nelem)
 {
-    const int elem_id = blockIdx.x;
     const int tx      = threadIdx.x;
+    const int ty      = threadIdx.y;
+    const int elem_id = (blockIdx.x * blockDim.y) + ty;
+
+    if(elem_id >= nelem) return;
+
     T rU[1][NCOMP][MAXPQ] = { make_zero<T>() };  // here DIMU = 1, but might be different for a fused operator
     T rV[1][NCOMP][MAXPQ] = { make_zero<T>() };  // here DIMV = 1, but might be different for a fused operator
     T rTmp = make_zero<T>();
@@ -43,10 +47,13 @@ magma_gradt_2d_kernel(
     T* sTinterp = (T*)(shared_data);
     T* sTgrad   = sTinterp + P*Q;
     T* sTmp     = sTgrad   + P*Q;
+    sTmp       += ty * (P*MAXPQ);
 
     // read T
-    dread_T_gm2sm<P, Q>(tx, transT, dinterp1d, sTinterp);
-    dread_T_gm2sm<P, Q>(tx, transT, dgrad1d, sTgrad);
+    if(ty == 0) {
+        dread_T_gm2sm<P, Q>(tx, transT, dinterp1d, sTinterp);
+        dread_T_gm2sm<P, Q>(tx, transT, dgrad1d, sTgrad);
+    }
     __syncthreads();
 
     // read V (since this is transposed mode -- idim = 0 for dV, iDIM = 0 for rV)
@@ -54,19 +61,15 @@ magma_gradt_2d_kernel(
     readV_2d<T, Q, 1, NCOMP, MAXPQ, 0>(0, dV, v_compstride, v_dimstride, rV, tx);
 
 
-    // read U (idim = 0 for dU, iDIM = 0 for rU)
+    /* read U (idim = 0 for dU, iDIM = 0 for rU) -- there is a sync at the end of this function */
+    /* then first call (iDIM = 0, iDIMU = 0, iDIMV = 0) */
     readU_2d<T, P, 1, NCOMP, MAXPQ, 0>(0, dU, u_compstride, u_dimstride, rU, sTmp, tx);
-    // there are sync inside this function
-
-    // first call (iDIM = 0, iDIMU = 0, iDIMV = 0)
     magma_grad_2d_device<T, 1, 1, NCOMP, P, Q, MAXPQ, 0, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
     __syncthreads();
 
-    // read U (idim = 1 for dU, iDIM = 0 for rU)
+    /* read U (idim = 1 for dU, iDIM = 0 for rU) -- there is a sync at the end of this function */
+    /* then second call (iDIM = 1, iDIMU = 0, iDIMV = 0) */
     readU_2d<T, P, 1, NCOMP, MAXPQ, 0>(1, dU, u_compstride, u_dimstride, rU, sTmp, tx);
-    // there are sync inside this function
-
-    // second call (iDIM = 1, iDIMU = 0, iDIMV = 0)
     magma_grad_2d_device<T, 1, 1, NCOMP, P, Q, MAXPQ, 1, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
     __syncthreads();    
 
@@ -88,10 +91,11 @@ magma_gradt_2d_kernel_driver(
     magma_int_t shmem_max, nthreads_max;
     const int MAXPQ = maxpq(P,Q);
 
+    magma_int_t nthreads = MAXPQ; 
+    magma_int_t ntcol = (64 / nthreads);
     magma_int_t shmem  = 0;
     shmem += 2*P*Q  *sizeof(T);  // for sTinterp and sTgrad
-    shmem += P*MAXPQ*sizeof(T);  // for reforming rU we need PxP, and for the intermediate output we need PxQ    
-    magma_int_t nthreads = MAXPQ; 
+    shmem += ntcol * ( P*MAXPQ*sizeof(T) );  // for reforming rU we need PxP, and for the intermediate output we need PxQ    
 
     cudaDeviceGetAttribute (&nthreads_max, cudaDevAttrMaxThreadsPerBlock, device);
     #if CUDA_VERSION >= 9000
@@ -103,17 +107,18 @@ magma_gradt_2d_kernel_driver(
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlock, device);
     #endif    // CUDA_VERSION >= 9000
    
-    if( nthreads > nthreads_max || shmem > shmem_max ) {
+    if( (nthreads*ntcol) > nthreads_max || shmem > shmem_max ) {
         return 1;    // launch failed
     }
     else { 
-        dim3 threads(nthreads, 1, 1);
-        dim3 grid(nelem, 1, 1);
+        magma_int_t nblocks = (nelem + ntcol-1) / ntcol;
+        dim3 threads(nthreads, ntcol, 1);
+        dim3 grid(nblocks, 1, 1);
         // IMPORTANT: we instantiate with DIM=1 instead of DIM=2 because interp operators deal with dim=0 only
         // We should instantiate with DIM=2 when we fuse interp and grad operators, because the grad operator 
         // needs to access data from all dimensions
         magma_gradt_2d_kernel<T,NCOMP,P,Q,MAXPQ><<<grid, threads, shmem, magma_queue_get_cuda_stream(queue)>>>
-        (dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride);
+        (dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride, v_dimstride, nelem);
         return (cudaPeekAtLastError() == cudaSuccess) ? 0 : 1;
     }
 }
