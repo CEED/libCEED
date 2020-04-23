@@ -59,7 +59,7 @@
 //               [A31 A32 A33]
 //
 // *****************************************************************************
-CEED_QFUNCTION(Setup_Vol)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(Setup3d)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
@@ -118,7 +118,7 @@ CEED_QFUNCTION(Setup_Vol)(void *ctx, CeedInt Q,
 // *****************************************************************************
 // This function provides the 2D variant of the above setup
 // *****************************************************************************
-CEED_QFUNCTION(Setup2d_Vol)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
@@ -149,6 +149,26 @@ CEED_QFUNCTION(Setup2d_Vol)(void *ctx, CeedInt Q,
     qdata[4][i] =  J11 / detJ;
   } // End of Quadrature Point Loop
 
+  // Return
+  return 0;
+}
+
+// *****************************************************************************
+// This function provides the 1D variant of the above setup
+// *****************************************************************************
+CEED_QFUNCTION(setup1d)(void *ctx, const CeedInt Q,
+                      const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar (*J) = in[0], (*w) = in[1];
+
+  // Output
+  CeedScalar (*qdata) = out[0];
+
+  // Quadrature Point Loop
+  CeedPragmaSIMD
+  for (CeedInt i=0; i<Q; i++) {
+    qdata[i] = w[i] * J[i];
+  } // End of Quadrature Point Loop
   // Return
   return 0;
 }

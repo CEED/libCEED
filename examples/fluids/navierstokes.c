@@ -89,19 +89,19 @@ problemData problemOptions[] = {
   [NS_DENSITY_CURRENT] = {
     .dim                       = 3,
     .qdatasizeVol              = 10,
-  //.qdatasizeSur              = 5,
-    .setupVol                  = Setup_Vol,
-    .setupVol_loc              = Setup_Vol_loc,
-  //.setupSur                  = Setup_Sur,
-  //.setupSur_loc              = Setup_Sur_loc,
+    .qdatasizeSur              = 5,
+    .setupVol                  = Setup3d,
+    .setupVol_loc              = Setup3d_loc,
+  //.setupSur                  = Setup2d,
+  //.setupSur_loc              = Setup2d_loc,
     .ics                       = ICsDC,
     .ics_loc                   = ICsDC_loc,
-    .applyVol_rhs              = DC_Vol,
-    .applyVol_rhs_loc          = DC_Vol_loc,
+    .applyVol_rhs              = DC,
+    .applyVol_rhs_loc          = DC_loc,
   //.applySur_rhs              = DC_Sur,
   //.applySur_rhs_loc          = DC_Sur_loc,
-    .applyVol_ifunction        = IFunction_DC_Vol,
-    .applyVol_ifunction_loc    = IFunction_DC_Vol_loc,
+    .applyVol_ifunction        = IFunction_DC,
+    .applyVol_ifunction_loc    = IFunction_DC_loc,
   //.applySur_ifunction        = IFunction_DC_Sur,
   //.applySur_ifunction_loc    = IFunction_DC_Sur_loc,
     .bc                        = Exact_DC,
@@ -110,19 +110,19 @@ problemData problemOptions[] = {
   [NS_ADVECTION] = {
     .dim                       = 3,
     .qdatasizeVol              = 10,
-  //.qdatasizeSur              = 5,
-    .setupVol                  = Setup_Vol,
-    .setupVol_loc              = Setup_Vol_loc,
-  //.setupSur                  = Setup_Sur,
-  //.setupSur_loc              = Setup_Sur_loc,
+    .qdatasizeSur              = 5,
+    .setupVol                  = Setup3d,
+    .setupVol_loc              = Setup3d_loc,
+  //.setupSur                  = Setup2d,
+  //.setupSur_loc              = Setup2d_loc,
     .ics                       = ICsAdvection,
     .ics_loc                   = ICsAdvection_loc,
-    .applyVol_rhs              = Advection_Vol,
-    .applyVol_rhs_loc          = Advection_Vol_loc,
+    .applyVol_rhs              = Advection,
+    .applyVol_rhs_loc          = Advection_loc,
   //.applySur_rhs              = Advection_Sur,
   //.applySur_rhs_loc          = Advection_Sur_loc,
-    .applyVol_ifunction        = IFunction_Advection_Vol,
-    .applyVol_ifunction_loc    = IFunction_Advection_Vol_loc,
+    .applyVol_ifunction        = IFunction_Advection,
+    .applyVol_ifunction_loc    = IFunction_Advection_loc,
   //.applySur_ifunction        = IFunction_Advection_Sur,
   //.applySur_ifunction_loc    = IFunction_Advection_Sur_loc,
     .bc                        = Exact_Advection,
@@ -131,19 +131,19 @@ problemData problemOptions[] = {
   [NS_ADVECTION2D] = {
     .dim                       = 2,
     .qdatasizeVol              = 5,
-  //.qdatasizeSur              = 2,
-    .setupVol                  = Setup2d_Vol,
-    .setupVol_loc              = Setup2d_Vol_loc,
-  //.setupSur                  = Setup2d_Sur,
-  //.setupSur_loc              = Setup2d_Sur_loc,
+    .qdatasizeSur              = 2,
+    .setupVol                  = Setup2d,
+    .setupVol_loc              = Setup2d_loc,
+  //.setupSur                  = Setup1d,
+  //.setupSur_loc              = Setup1d_loc,
     .ics                       = ICsAdvection2d,
     .ics_loc                   = ICsAdvection2d_loc,
-    .applyVol_rhs              = Advection2d_Vol,
-    .applyVol_rhs_loc          = Advection2d_Vol_loc,
+    .applyVol_rhs              = Advection2d,
+    .applyVol_rhs_loc          = Advection2d_loc,
   //.applySur_rhs              = Advection2d_Sur,
   //.applySur_rhs_loc          = Advection2d_Sur_loc,
-    .applyVol_ifunction        = IFunction_Advection2d_Vol,
-    .applyVol_ifunction_loc    = IFunction_Advection2d_Vol_loc,
+    .applyVol_ifunction        = IFunction_Advection2d,
+    .applyVol_ifunction_loc    = IFunction_Advection2d_loc,
   //.applySur_ifunction        = IFunction_Advection2d_Sur,
   //.applySur_ifunction_loc    = IFunction_Advection2d_Sur_loc,
     .bc                        = Exact_Advection2d,
@@ -280,6 +280,39 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
                             1, Ndof, CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
                             Erestrict);
   ierr = PetscFree(erestrict); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+// Utility function to get Ceed Restriction for each domain
+static PetscErrorCode GetRestriction(Ceed ceed, DM dm, CeedInt ncompx, CeedInt dim,
+    CeedInt height, DMLabel domainLabel, CeedInt value, CeedInt P, CeedInt Q,
+    CeedInt qdatasize, CeedElemRestriction *restrictq,
+    CeedElemRestriction *restrictx, CeedElemRestriction *restrictqdi) {
+
+  DM dmcoord;
+  CeedInt localNelem;
+  CeedElemRestriction  *restrictxcoord = NULL;
+  CeedInt Qdim = CeedIntPow(Q, dim);
+  //CeedInt numPdim = CeedIntPow(P, dim);
+  //Vec Xloc = NULL;
+  PetscErrorCode ierr;
+
+  PetscFunctionBeginUser;
+  ierr = DMGetCoordinateDM(dm, &dmcoord); CHKERRQ(ierr);
+  ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
+  CHKERRQ(ierr);
+  ierr = CreateRestrictionFromPlex(ceed, dm, P, height, domainLabel, value, restrictq);
+  CHKERRQ(ierr);
+  ierr = CreateRestrictionFromPlex(ceed, dmcoord, 2, height, domainLabel, value, restrictx);
+  CHKERRQ(ierr);
+  CeedElemRestrictionGetNumElements(*restrictq, &localNelem);
+  CeedElemRestrictionCreateStrided(ceed, localNelem, Qdim,
+                                   qdatasize, qdatasize*localNelem*Qdim,
+                                   CEED_STRIDES_BACKEND, restrictqdi);
+  CeedElemRestrictionCreateStrided(ceed, localNelem, PetscPowInt(P, dim),
+                                   ncompx,
+                                   ncompx*localNelem*PetscPowInt(P, dim),
+                                   CEED_STRIDES_BACKEND, restrictxcoord);
   PetscFunctionReturn(0);
 }
 
@@ -615,7 +648,7 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
                            1, comps, (void(*)(void))NULL, bc->nslip[2],
                            bc->slips[2], ctxSetup); CHKERRQ(ierr);
     }
-    ierr = DMPlexSetClosurePermutationTensor(dm,PETSC_DETERMINE,NULL);
+    ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE,NULL);
     CHKERRQ(ierr);
     ierr = PetscFEGetBasisSpace(fe, &fespace); CHKERRQ(ierr);
     ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
@@ -649,14 +682,14 @@ int main(int argc, char **argv) {
   User user;
   Units units;
   char ceedresource[4096] = "/cpu/self";
-  PetscInt cStart, cEnd, localNelem, lnodes, steps;
+  PetscInt localNelemVol, localNelemSur, lnodes, steps;
   const PetscInt ncompq = 5;
   PetscMPIInt rank;
   PetscScalar ftime;
   Vec Q, Qloc, Xloc;
   Ceed ceed;
   CeedInt numP_Vol, numP_Sur, numQ_Vol, numQ_Sur;
-  CeedVector xcorners, qdataVol, qdataSur, q0ceed;
+  CeedVector xcorners, qdataVol, qdataSur, q0ceedVol, q0ceedSur;
   CeedBasis basisxVol, basisxcVol, basisqVol, basisxSur, basisxcSur, basisqSur;
   CeedElemRestriction restrictxVol, restrictxcoordVol, restrictqVol, restrictqdiVol,
                       restrictxSur, restrictxcoordSur, restrictqSur, restrictqdiSur;
@@ -885,7 +918,8 @@ int main(int argc, char **argv) {
   for (int i=0; i<3; i++) center[i] *= meter;
 
   const CeedInt dim = problem->dim, ncompx = problem->dim,
-                qdatasizeVol = problem->qdatasizeVol;
+                qdatasizeVol = problem->qdatasizeVol,
+                qdatasizeSur = problem->qdatasizeSur;
   // Set up the libCEED context
   struct SetupContext_ ctxSetup =  {
     .theta0 = theta0,
@@ -1004,6 +1038,7 @@ int main(int argc, char **argv) {
   // Set up CEED
   // CEED Bases
   CeedInit(ceedresource, &ceed);
+  // Bases for the Volume
   numP_Vol = degreeVol + 1;
   numQ_Vol = numP_Vol + qextraVol;
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompq, numP_Vol, numQ_Vol, CEED_GAUSS,
@@ -1012,33 +1047,44 @@ int main(int argc, char **argv) {
                                   &basisxVol);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numP_Vol,
                                   CEED_GAUSS_LOBATTO, &basisxcVol);
+  // Bases for the Surface
+  CeedInt height = 1;
+  numP_Sur = degreeSur + 1;
+  numQ_Sur = numP_Sur + qextraSur;
+  CeedBasisCreateTensorH1Lagrange(ceed, dim - height, ncompq, numP_Sur, numQ_Sur, CEED_GAUSS,
+                                  &basisqSur);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim - height, ncompx, 2, numQ_Sur, CEED_GAUSS,
+                                  &basisxSur);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim - height, ncompx, 2, numP_Sur,
+                                  CEED_GAUSS_LOBATTO, &basisxcSur);
 
   ierr = DMGetCoordinateDM(dm, &dmcoord); CHKERRQ(ierr);
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
   // CEED Restrictions
-  ierr = CreateRestrictionFromPlex(ceed, dm, degreeVol+1, 0, 0, 0, &restrictqVol);
-  CHKERRQ(ierr);
-  ierr = CreateRestrictionFromPlex(ceed, dmcoord, 2, 0, 0, 0, &restrictxVol);
-  CHKERRQ(ierr);
-  DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
-  localNelem = cEnd - cStart;
-  CeedInt numQdim = CeedIntPow(numQ_Vol, dim);
-  CeedElemRestrictionCreateStrided(ceed, localNelem, numQdim,
-                                   qdatasize, qdatasize*localNelem*numQdim,
-                                   CEED_STRIDES_BACKEND, &restrictqdi);
+  // Restrictions on the Volume
+  ierr = GetRestriction(ceed, dm, ncompx, dim, 0, 0, 0, numP_Vol, numQ_Vol, qdatasizeVol,
+    &restrictqVol, &restrictxVol, &restrictqdiVol); CHKERRQ(ierr);
+  // (Rough draft) Restriction for one face ----> Should be done for all Neumann faces
+  ierr = GetRestriction(ceed, dm, ncompx, dim - height, height, "Face Sets", 6, numP_Sur,
+    numQ_Sur, qdatasizeSur, &restrictqSur, &restrictxSur, &restrictqdiSur); CHKERRQ(ierr);
 
   ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
   ierr = CreateVectorFromPetscVec(ceed, Xloc, &xcorners); CHKERRQ(ierr);
 
   // Create the CEED vectors that will be needed in setup
-  CeedInt Nqpts;
-  CeedBasisGetNumQuadraturePoints(basisqVol, &Nqpts);
-  CeedInt Ndofs = 1;
-  for (int d=0; d<3; d++) Ndofs *= numP_Vol;
-  CeedVectorCreate(ceed, qdatasizeVol*localNelem*Nqpts, &qdataVol);
-  CeedElemRestrictionCreateVector(restrictqVol, &q0ceed, NULL);
+  CeedInt NqptsVol, NqptsSur;
+  // Volume
+  CeedBasisGetNumQuadraturePoints(basisqVol, &NqptsVol);
+  CeedElemRestrictionGetNumElements(restrictqVol, &localNelemVol);
+  CeedVectorCreate(ceed, qdatasizeVol*localNelemVol*NqptsVol, &qdataVol);
+  CeedElemRestrictionCreateVector(restrictqVol, &q0ceedVol, NULL);
+  // Surface
+  CeedBasisGetNumQuadraturePoints(basisqSur, &NqptsSur);
+  CeedElemRestrictionGetNumElements(restrictqSur, &localNelemSur);
+  CeedVectorCreate(ceed, qdatasizeSur*localNelemSur*NqptsSur, &qdataSur);
+  //CeedElemRestrictionCreateVector(restrictqSur, &q0ceedSur, NULL);
 
   // Create the Q-function that builds the quadrature data for the NS operator
   CeedQFunctionCreateInterior(ceed, 1, problem->setupVol, problem->setupVol_loc,
@@ -1171,7 +1217,7 @@ int main(int argc, char **argv) {
   // Set up state global and local vectors
   ierr = VecZeroEntries(Q); CHKERRQ(ierr);
 
-  ierr = VectorPlacePetscVec(q0ceed, Qloc); CHKERRQ(ierr);
+  ierr = VectorPlacePetscVec(q0ceedVol, Qloc); CHKERRQ(ierr);
 
   // Apply Setup Ceed Operators
   ierr = VectorPlacePetscVec(xcorners, Xloc); CHKERRQ(ierr);
@@ -1179,7 +1225,7 @@ int main(int argc, char **argv) {
   ierr = ComputeLumpedMassMatrix(ceed, dm, restrictqVol, basisqVol, restrictqdiVol, qdataVol,
                                  user->M); CHKERRQ(ierr);
 
-  ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictqVol,
+  ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceedVol, dm, Qloc, Q, restrictqVol,
                                &ctxSetup, 0.0);
   if (1) { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
     // We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow.  If we
@@ -1286,12 +1332,12 @@ int main(int argc, char **argv) {
     ierr = DMGetLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
     ierr = VecGetSize(Qexactloc, &lnodes); CHKERRQ(ierr);
 
-    ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qexactloc, Qexact,
+    ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceedVol, dm, Qexactloc, Qexact,
                                  restrictqVol, &ctxSetup, ftime); CHKERRQ(ierr);
 
     ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
     ierr = VecNorm(Q, NORM_MAX, &norm); CHKERRQ(ierr);
-    CeedVectorDestroy(&q0ceed);
+    CeedVectorDestroy(&q0ceedVol);
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Max Error: %g\n",
                        (double)norm); CHKERRQ(ierr);
