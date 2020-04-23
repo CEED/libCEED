@@ -168,7 +168,7 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q,
 //   dE/dt + div( E u ) = 0
 //
 // *****************************************************************************
-CEED_QFUNCTION(Advection2d_Vol)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q,
                             const CeedScalar *const *in,
                             CeedScalar *const *out) {
   // *INDENT-OFF*
@@ -272,7 +272,7 @@ CEED_QFUNCTION(Advection2d_Vol)(void *ctx, CeedInt Q,
 //   implicit time stepping method
 //
 // *****************************************************************************
-CEED_QFUNCTION(IFunction_Advection2d_Vol)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
                                       const CeedScalar *const *in,
                                       CeedScalar *const *out) {
   // *INDENT-OFF*
