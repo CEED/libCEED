@@ -49,9 +49,16 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   ierr = CeedCalloc(sizeof(Ceed_Magma), &data); CeedChk(ierr);
   ierr = CeedSetData(ceed, (void *)&data); CeedChk(ierr);
 
-  // create a queue that uses the null stream
+  // kernel selection
   data->basis_kernel_mode = MAGMA_KERNEL_DIM_SPECIFIC;
   //data->basis_kernel_mode = MAGMA_KERNEL_DIM_GENERIC;
+
+  // kernel max threads per thread-block
+  data->maxthreads[0] = 128;  // for 1D kernels
+  data->maxthreads[1] = 128;  // for 2D kernels
+  data->maxthreads[2] =  64;  // for 3D kernels
+
+  // create a queue that uses the null stream
   magma_getdevice( &(data->device) );
   magma_queue_create_from_cuda(data->device, NULL, NULL, NULL, &(data->queue));
 
