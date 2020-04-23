@@ -19,6 +19,9 @@
 #include <stdarg.h>
 #include "ceed-cuda-reg.h"
 
+//------------------------------------------------------------------------------
+// Backend init
+//------------------------------------------------------------------------------
 static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   int ierr;
   const int nrc = 9; // number of characters in resource
@@ -45,7 +48,11 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Backend register
+//------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
   CeedRegister("/gpu/cuda/reg", CeedInit_Cuda_reg, 30);
 }
+//------------------------------------------------------------------------------

@@ -20,12 +20,18 @@
 #include "ceed-cuda.h"
 #include "ceed-cuda-qfunction-load.h"
 
+//------------------------------------------------------------------------------
+// Apply QFunction
+//------------------------------------------------------------------------------
 static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
                                    CeedVector *U, CeedVector *V) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+
+  // Build and compile kernel, if not done
   ierr = CeedCudaBuildQFunction(qf); CeedChk(ierr);
+
   CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   Ceed_Cuda *ceed_Cuda;
@@ -35,18 +41,18 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
   CeedChk(ierr);
   const int blocksize = ceed_Cuda->optblocksize;
 
+  // Read vectors
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_DEVICE, &data->fields.inputs[i]);
     CeedChk(ierr);
   }
-
   for (CeedInt i = 0; i < numoutputfields; i++) {
     ierr = CeedVectorGetArray(V[i], CEED_MEM_DEVICE, &data->fields.outputs[i]);
     CeedChk(ierr);
   }
 
+  // Copy context to device
   // TODO find a way to avoid this systematic memCpy
-
   size_t ctxsize;
   ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
   if (ctxsize > 0) {
@@ -59,28 +65,26 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
     CeedChk_Cu(ceed, ierr);
   }
 
-  void *ctx;
-  ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
-  // void *args[] = {&ctx, (void*)&Q, &data->d_u, &data->d_v};
+  // Run kernel
   void *args[] = {&data->d_c, (void *) &Q, &data->fields};
   ierr = CeedRunKernelCuda(ceed, data->qFunction, CeedDivUpInt(Q, blocksize),
-                           blocksize,
-                           args);
-  CeedChk(ierr);
+                           blocksize, args); CeedChk(ierr);
 
+// Restore vectors
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedVectorRestoreArrayRead(U[i], &data->fields.inputs[i]);
     CeedChk(ierr);
   }
-
   for (CeedInt i = 0; i < numoutputfields; i++) {
     ierr = CeedVectorRestoreArray(V[i], &data->fields.outputs[i]);
     CeedChk(ierr);
   }
-
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Destroy QFunction
+//------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   int ierr;
   CeedQFunction_Cuda *data;
@@ -89,16 +93,19 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
 
   ierr = cudaFree(data->d_c); CeedChk_Cu(ceed, ierr);
-
   ierr = CeedFree(&data); CeedChk(ierr);
-
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Load QFunction source file
+//------------------------------------------------------------------------------
 static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
   int ierr;
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
+
+  // Find source file
   char *cuda_file;
   ierr = CeedCalloc(CUDA_MAX_PATH, &cuda_file); CeedChk(ierr);
   memcpy(cuda_file, c_src_file, strlen(c_src_file));
@@ -107,37 +114,41 @@ static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
     return CeedError(ceed, 1, "Cannot find file's extension!");
   const size_t cuda_path_len = last_dot - cuda_file;
   strcpy(&cuda_file[cuda_path_len], ".h");
-  //*******************
+
+  // Open source file
   FILE *fp;
   long lSize;
   char *buffer;
-
   fp = fopen ( cuda_file, "rb" );
-  if( !fp ) CeedError(ceed, 1, "Couldn't open the Cuda file for the QFunction.");
+  if (!fp)
+    CeedError(ceed, 1, "Couldn't open the Cuda file for the QFunction.");
 
-  fseek( fp, 0L, SEEK_END);
-  lSize = ftell( fp );
-  rewind( fp );
+  // Compute size of source
+  fseek(fp, 0L, SEEK_END);
+  lSize = ftell(fp);
+  rewind(fp);
 
-  /* allocate memory for entire content */
+  // Allocate memory for entire content
   ierr = CeedCalloc( lSize+1, &buffer ); CeedChk(ierr);
 
-  /* copy the file into the buffer */
+  // Copy the file into the buffer
   if( 1!=fread( buffer, lSize, 1, fp) ) {
     fclose(fp);
     CeedFree(&buffer);
     CeedError(ceed, 1, "Couldn't read the Cuda file for the QFunction.");
   }
 
-  //********************
+  // Save QFunction source
   fclose(fp);
   CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   data->qFunctionSource = buffer;
-
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Create QFunction
+//------------------------------------------------------------------------------
 int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   int ierr;
   Ceed ceed;
@@ -151,6 +162,7 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
   ierr = cudaMalloc(&data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);
 
+  // Read source
   char *source;
   ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);
   const char *funname = strrchr(source, ':') + 1;
@@ -161,9 +173,11 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   filename[filenamelen - 1] = '\0';
   ierr = CeedCudaLoadQFunction(qf, filename); CeedChk(ierr);
 
+  // Register backend functions
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
                                 CeedQFunctionDestroy_Cuda); CeedChk(ierr);
   return 0;
 }
+//------------------------------------------------------------------------------

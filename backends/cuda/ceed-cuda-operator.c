@@ -18,6 +18,9 @@
 #include "ceed-cuda.h"
 #include <string.h>
 
+//------------------------------------------------------------------------------
+// Destroy operator
+//------------------------------------------------------------------------------
 static int CeedOperatorDestroy_Cuda(CeedOperator op) {
   int ierr;
   CeedOperator_Cuda *impl;
@@ -43,9 +46,9 @@ static int CeedOperatorDestroy_Cuda(CeedOperator op) {
   return 0;
 }
 
-/*
-  Setup infields or outfields
- */
+//------------------------------------------------------------------------------
+// Setup infields or outfields
+//------------------------------------------------------------------------------
 static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
                                         bool inOrOut, CeedVector *evecs,
                                         CeedVector *qvecs, CeedInt starte,
@@ -104,8 +107,8 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
     case CEED_EVAL_WEIGHT: // Only on input fields
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, numelements * Q, &qvecs[i]); CeedChk(ierr);
-      ierr = CeedBasisApply(basis, numelements, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
-                            NULL, qvecs[i]); CeedChk(ierr);
+      ierr = CeedBasisApply(basis, numelements, CEED_NOTRANSPOSE,
+                            CEED_EVAL_WEIGHT, NULL, qvecs[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_DIV:
       break; // TODO: Not implemented
@@ -116,15 +119,16 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
   return 0;
 }
 
-/*
-  CeedOperator needs to connect all the named fields (be they active or passive)
-  to the named inputs and outputs of its CeedQFunction.
- */
+//------------------------------------------------------------------------------
+// CeedOperator needs to connect all the named fields (be they active or passive)
+//   to the named inputs and outputs of its CeedQFunction.
+//------------------------------------------------------------------------------
 static int CeedOperatorSetup_Cuda(CeedOperator op) {
   int ierr;
   bool setupdone;
   ierr = CeedOperatorGetSetupStatus(op, &setupdone); CeedChk(ierr);
-  if (setupdone) return 0;
+  if (setupdone)
+    return 0;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Cuda *impl;
@@ -164,14 +168,16 @@ static int CeedOperatorSetup_Cuda(CeedOperator op) {
   // Outfields
   ierr = CeedOperatorSetupFields_Cuda(qf, op, 1,
                                       impl->evecs, impl->qvecsout,
-                                      numinputfields, numoutputfields, Q, numelements);
-  CeedChk(ierr);
+                                      numinputfields, numoutputfields, Q,
+                                      numelements); CeedChk(ierr);
 
   ierr = CeedOperatorSetSetupDone(op); CeedChk(ierr);
-
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Apply and add to output
+//------------------------------------------------------------------------------
 static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
                                      CeedVector outvec, CeedRequest *request) {
   int ierr;
@@ -351,10 +357,12 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
       CeedChk(ierr);
     }
   }
-
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Assemble linear QFunction not supported
+//------------------------------------------------------------------------------
 static int CeedOperatorAssembleLinearQFunction_Cuda(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -362,6 +370,9 @@ static int CeedOperatorAssembleLinearQFunction_Cuda(CeedOperator op) {
   return CeedError(ceed, 1, "Backend does not implement QFunction assembly");
 }
 
+//------------------------------------------------------------------------------
+// Assemble linear diagonal not supported
+//------------------------------------------------------------------------------
 static int CeedOperatorAssembleLinearDiagonal_Cuda(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -370,6 +381,9 @@ static int CeedOperatorAssembleLinearDiagonal_Cuda(CeedOperator op) {
                    "Backend does not implement Operator diagonal assembly");
 }
 
+//------------------------------------------------------------------------------
+// Create FDM element inverse not supported
+//------------------------------------------------------------------------------
 static int CeedOperatorCreateFDMElementInverse_Cuda(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -377,6 +391,9 @@ static int CeedOperatorCreateFDMElementInverse_Cuda(CeedOperator op) {
   return CeedError(ceed, 1, "Backend does not implement FDM inverse creation");
 }
 
+//------------------------------------------------------------------------------
+// Create operator
+//------------------------------------------------------------------------------
 int CeedOperatorCreate_Cuda(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -401,3 +418,4 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
                                 CeedOperatorDestroy_Cuda); CeedChk(ierr);
   return 0;
 }
+//------------------------------------------------------------------------------
