@@ -173,7 +173,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     // LCOV_EXCL_STOP
     CeedInt Q = Q1d;
     int eldofssize = CeedIntPow(Q, dim);
-    ierr = magma_weight(Q, dim, impl->dqweight1d, v, eldofssize, nelem, data->basis_kernel_mode, data->queue);
+    ierr = magma_weight(Q, dim, impl->dqweight1d, v, eldofssize, nelem, data->basis_kernel_mode, data->maxthreads, data->queue);
     if(ierr != 0) CeedError(ceed, 1, "MAGMA: launch failure detected for magma_weight");
   }
   break;
