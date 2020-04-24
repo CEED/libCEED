@@ -167,6 +167,7 @@ typedef struct SimpleBC_ *SimpleBC;
 struct SimpleBC_ {
   PetscInt nwall, nslip[3];
   PetscInt walls[6], slips[3][6];
+  PetscBool userbc;
 };
 
 // Essential BC dofs are encoded in closure indices as -(i+1).
@@ -548,6 +549,32 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm,NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
+    {
+      PetscInt comps[1] = {1};
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
+                           1, comps, (void(*)(void))NULL, bc->nslip[0],
+                           bc->slips[0], ctxSetup); CHKERRQ(ierr);
+      comps[0] = 2;
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", "Face Sets", 0,
+                           1, comps, (void(*)(void))NULL, bc->nslip[1],
+                           bc->slips[1], ctxSetup); CHKERRQ(ierr);
+      comps[0] = 3;
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", "Face Sets", 0,
+                           1, comps, (void(*)(void))NULL, bc->nslip[2],
+                           bc->slips[2], ctxSetup); CHKERRQ(ierr);
+    }
+    if (bc->userbc == PETSC_TRUE) {
+      for (PetscInt c = 0; c < 3; c++) {
+        for (PetscInt s = 0; s < bc->nslip[c]; s++) {
+          for (PetscInt w = 0; w < bc->nwall; w++) {
+            if (bc->slips[c][s] == bc->walls[w])
+              SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
+                       "Boundary condition already set on face %D!\n", bc->walls[w]);
+
+          }
+        }
+      }
+    }
     // Wall boundary conditions are zero energy density and zero flux for
     //   velocity in advection/advection2d, and zero velocity and zero flux
     //   for mass density and energy density in density_current
@@ -562,26 +589,9 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                              3, comps, (void(*)(void))problem->bc,
                              bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
-      } else {
-        MPI_Comm comm;
-        ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-        SETERRQ(comm, PETSC_ERR_ARG_NULL,
+      } else
+        SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_NULL,
                 "Undefined boundary conditions for this problem");
-      }
-    }
-    {
-      PetscInt comps[1] = {1};
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
-                           1, comps, (void(*)(void))NULL, bc->nslip[0],
-                           bc->slips[0], ctxSetup); CHKERRQ(ierr);
-      comps[0] = 2;
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", "Face Sets", 0,
-                           1, comps, (void(*)(void))NULL, bc->nslip[1],
-                           bc->slips[1], ctxSetup); CHKERRQ(ierr);
-      comps[0] = 3;
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", "Face Sets", 0,
-                           1, comps, (void(*)(void))NULL, bc->nslip[2],
-                           bc->slips[2], ctxSetup); CHKERRQ(ierr);
     }
     ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
     CHKERRQ(ierr);
@@ -637,8 +647,8 @@ int main(int argc, char **argv) {
   PetscBool   test, implicit;
   PetscInt    viz_refine = 0;
   struct SimpleBC_ bc = {
-    .nwall = 6,
-    .walls = {1,2,3,4,5,6},
+    .nslip = {2, 2, 2},
+    .slips = {{5, 6}, {3, 4}, {1, 2}}
   };
   double start, cpu_time_used;
 
@@ -721,7 +731,10 @@ int main(int argc, char **argv) {
                                   (len = sizeof(bc.slips[j]) / sizeof(bc.slips[j][0]),
                                    &len), &flg);
       CHKERRQ(ierr);
-      if (flg) bc.nslip[j] = len;
+      if (flg) {
+        bc.nslip[j] = len;
+        bc.userbc = PETSC_TRUE;
+      }
     }
   }
   ierr = PetscOptionsInt("-viz_refine",
