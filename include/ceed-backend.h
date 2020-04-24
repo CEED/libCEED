@@ -89,6 +89,8 @@ CEED_EXTERN int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
     CeedInt (*strides)[3]);
 CEED_EXTERN int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr,
     CeedMemType mtype, const CeedInt **offsets);
+CEED_EXTERN int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr,
+    const CeedInt **offsets);
 CEED_EXTERN int CeedElemRestrictionGetBackendStridesStatus(
   CeedElemRestriction rstr, bool *status);
 CEED_EXTERN int CeedElemRestrictionGetData(CeedElemRestriction rstr,

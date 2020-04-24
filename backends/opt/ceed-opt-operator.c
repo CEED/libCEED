@@ -78,6 +78,7 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
                blksize, ncomp, lsize, strides, &blkrestr[i+starte]);
         CeedChk(ierr);
       }
+      ierr = CeedElemRestrictionRestoreOffsets(r, &offsets); CeedChk(ierr);
       ierr = CeedElemRestrictionCreateVector(blkrestr[i+starte], NULL,
                                              &fullevecs[i+starte]);
       CeedChk(ierr);

@@ -125,6 +125,24 @@ int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mtype,
   // LCOV_EXCL_STOP
 
   ierr = rstr->GetOffsets(rstr, mtype, offsets); CeedChk(ierr);
+  rstr->numreaders++;
+  return 0;
+}
+
+/**
+  @brief Restore an offsets array obtained using CeedElemRestrictionGetOffsets()
+
+  @param rstr    CeedElemRestriction to restore
+  @param offsets Array of offset data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr,
+                                      const CeedInt **offsets) {
+  *offsets = NULL;
+  rstr->numreaders--;
   return 0;
 }
 
@@ -783,6 +801,9 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
 
   if (!*rstr || --(*rstr)->refcount > 0)
     return 0;
+  if ((*rstr)->numreaders)
+    return CeedError((*rstr)->ceed, 1, "Cannot destroy CeedElemRestriction, "
+                     "a process has read access to the offset data");
   if ((*rstr)->Destroy) {
     ierr = (*rstr)->Destroy(*rstr); CeedChk(ierr);
   }
