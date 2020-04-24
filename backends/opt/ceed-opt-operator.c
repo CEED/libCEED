@@ -61,9 +61,18 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
       ierr = CeedElemRestrictionGetLVectorSize(r, &lsize); CeedChk(ierr);
       ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
 
-      const CeedInt *offsets = NULL;
-      ierr = CeedElemRestrictionGetOffsets(r, CEED_MEM_HOST, &offsets);
-      if (offsets) {
+      bool strided;
+      ierr = CeedElemRestrictionGetStridedStatus(r, &strided); CeedChk(ierr);
+      if (strided) {
+        CeedInt strides[3];
+        ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
+        ierr = CeedElemRestrictionCreateBlockedStrided(ceed, nelem, elemsize,
+               blksize, ncomp, lsize, strides, &blkrestr[i+starte]);
+        CeedChk(ierr);
+      } else {
+        const CeedInt *offsets = NULL;
+        ierr = CeedElemRestrictionGetOffsets(r, CEED_MEM_HOST, &offsets);
+        CeedChk(ierr);
         ierr = CeedElemRestrictionGetCompStride(r, &compstride); CeedChk(ierr);
         ierr = CeedElemRestrictionCreateBlocked(ceed, nelem, elemsize,
                                                 blksize, ncomp, compstride,
@@ -71,14 +80,8 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
                                                 CEED_COPY_VALUES, offsets,
                                                 &blkrestr[i+starte]);
         CeedChk(ierr);
-      } else {
-        CeedInt strides[3];
-        ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
-        ierr = CeedElemRestrictionCreateBlockedStrided(ceed, nelem, elemsize,
-               blksize, ncomp, lsize, strides, &blkrestr[i+starte]);
-        CeedChk(ierr);
+        ierr = CeedElemRestrictionRestoreOffsets(r, &offsets); CeedChk(ierr);
       }
-      ierr = CeedElemRestrictionRestoreOffsets(r, &offsets); CeedChk(ierr);
       ierr = CeedElemRestrictionCreateVector(blkrestr[i+starte], NULL,
                                              &fullevecs[i+starte]);
       CeedChk(ierr);

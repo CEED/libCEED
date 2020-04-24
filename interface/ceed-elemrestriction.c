@@ -147,6 +147,22 @@ int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr,
 }
 
 /**
+  @brief Get the strided status of a CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] status      Variable to store strided status, 1 if strided else 0
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetStridedStatus(CeedElemRestriction rstr,
+                                        bool *status) {
+  *status = rstr->strides ? 1 : 0;
+  return 0;
+}
+
+/**
   @brief Get the backend stride status of a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
