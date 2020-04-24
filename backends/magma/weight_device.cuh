@@ -29,7 +29,6 @@ magma_weight_1d_device(const T* sTweight, T* sV, const int tx)
     if(tx < Q){
         sV[tx] = sTweight[tx];
     }
-    __syncthreads();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -46,14 +45,10 @@ magma_weight_2d_device(const T* sTweight, T rV[DIM][NCOMP][Q], const int tx)
     // 4. Sync is recommended after the call (to make sure sTweight can be overwritten)
 
     if(tx < Q) {
-        // first update
+        // x sTweight[j]  for first update
+        // x sTweight[tx] for second update
         for(int j = 0; j < Q; j++) {
-            rV[iDIM][iCOMP][j] = sTweight[j];
-        }
-
-        // second update
-        for(int j = 0; j < Q; j++) {
-            rV[iDIM][iCOMP][j] *= sTweight[tx];
+            rV[iDIM][iCOMP][j] = sTweight[j] * sTweight[tx];
         }
     }
 }
@@ -73,21 +68,11 @@ magma_weight_3d_device(const T* sTweight, T rV[DIM][NCOMP][Q], const int tx)
 
     if(tx < (Q*Q)) {
         int tx_;
-        // first update
+        // x sTweight[j]    for first update
+        // x sTweight[tx%Q] for second update
+        // x sTweight[tx/Q] for third update
         for(int j = 0; j < Q; j++) {
-            rV[iDIM][iCOMP][j] = sTweight[j];
-        }
-
-        // second update
-        tx_ = tx % Q;
-        for(int j = 0; j < Q; j++) {
-            rV[iDIM][iCOMP][j] *= sTweight[tx_];
-        }
-
-        // second update
-        tx_ = tx / Q;
-        for(int j = 0; j < Q; j++) {
-            rV[iDIM][iCOMP][j] *= sTweight[tx_];
+            rV[iDIM][iCOMP][j] = sTweight[j] * sTweight[tx%Q] * sTweight[tx/Q];
         }
     }
 }
