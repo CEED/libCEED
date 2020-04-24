@@ -90,7 +90,7 @@ magma_interp_1d_kernel_driver(
     magma_int_t ntcol = (maxthreads < nthreads) ? 1 : (maxthreads / nthreads);
     magma_int_t shmem  = 0;
     shmem += sizeof(T) * ntcol * ( NCOMP * (1*P + 1*Q) ); 
-    shmem += P*Q*sizeof(T);
+    shmem += sizeof(T) * (P*Q);
 
     cudaDeviceGetAttribute (&nthreads_max, cudaDevAttrMaxThreadsPerBlock, device);
     #if CUDA_VERSION >= 9000
