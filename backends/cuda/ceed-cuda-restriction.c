@@ -188,6 +188,26 @@ int CeedElemRestrictionApplyBlock_Cuda(CeedElemRestriction r, CeedInt block,
 }
 
 //------------------------------------------------------------------------------
+// Get offsets
+//------------------------------------------------------------------------------
+static int CeedElemRestrictionGetOffsets_Cuda(CeedElemRestriction rstr,
+    CeedMemType mtype, const CeedInt **offsets) {
+  int ierr;
+  CeedElemRestriction_Cuda *impl;
+  ierr = CeedElemRestrictionGetData(rstr, (void *)&impl); CeedChk(ierr);
+
+  switch (mtype) {
+  case CEED_MEM_HOST:
+    *offsets = impl->h_ind;
+    break;
+  case CEED_MEM_DEVICE:
+    *offsets = impl->d_ind;
+    break;
+  }
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Destroy
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
@@ -306,6 +326,9 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
                                 CeedElemRestrictionApply_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyBlock",
                                 CeedElemRestrictionApplyBlock_Cuda);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetOffsets",
+                                CeedElemRestrictionGetOffsets_Cuda);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy",
                                 CeedElemRestrictionDestroy_Cuda); CeedChk(ierr);
