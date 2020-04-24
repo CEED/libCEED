@@ -34,7 +34,7 @@ magma_weight_3d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int
 
     T rV[1][1][Q];    // allocate with DIM=NCOMP=1, but sizes may differ for a fused operator
     // global memory pointers
-    dV += batchid * v_stride;
+    dV += elem_id * v_stride;
 
     // shared memory pointers
     T* sTweight = (T*)shared_data;
@@ -126,6 +126,6 @@ magma_weight_3d(
     magma_int_t nelem, magma_int_t maxthreads, magma_queue_t queue)
 {    
     magma_int_t launch_failed = 0;
-    magma_weight_3d_q(Q, dqweight1d, dV, v_stride, nelem, queue);
+    magma_weight_3d_q(Q, dqweight1d, dV, v_stride, nelem, maxthreads, queue);
     return launch_failed;
 }

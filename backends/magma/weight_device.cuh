@@ -67,7 +67,6 @@ magma_weight_3d_device(const T* sTweight, T rV[DIM][NCOMP][Q], const int tx)
     // 4. Sync is recommended after the call (to make sure sTweight can be overwritten)
 
     if(tx < (Q*Q)) {
-        int tx_;
         // x sTweight[j]    for first update
         // x sTweight[tx%Q] for second update
         // x sTweight[tx/Q] for third update
