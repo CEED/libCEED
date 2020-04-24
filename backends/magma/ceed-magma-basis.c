@@ -160,7 +160,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
             impl->dinterp1d, impl->dgrad1d, tmode, 
             u, u_elstride, u_compstride, u_dimstride, 
             v, v_elstride, v_compstride, v_dimstride, 
-            nelem, data->basis_kernel_mode, 
+            nelem, data->basis_kernel_mode, data->maxthreads, 
             data->queue);
     if(ierr != 0) CeedError(ceed, 1, "MAGMA: launch failure detected for magma_grad");
   }
