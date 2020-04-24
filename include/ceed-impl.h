@@ -147,6 +147,7 @@ struct CeedElemRestriction_private {
                CeedRequest *);
   int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector,
                     CeedVector, CeedRequest *);
+  int (*GetOffsets)(CeedElemRestriction, CeedMemType, const CeedInt **);
   int (*Destroy)(CeedElemRestriction);
   int refcount;
   CeedInt nelem;            /* number of elements */

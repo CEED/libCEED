@@ -103,6 +103,32 @@ int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
 }
 
 /**
+  @brief Get read-only access to a CeedElemRestriction offsets array by memtype
+
+  @param rstr         CeedElemRestriction to retrieve offsets
+  @param mtype        Memory type on which to access the array.  If the backend
+                        uses a different memory type, this will perform a copy
+                        (possibly cached).
+  @param[out] offsets Array on memory type mtype
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mtype,
+                                  const CeedInt **offsets) {
+  int ierr;
+
+  if (!rstr->GetOffsets)
+    // LCOV_EXCL_START
+    return CeedError(rstr->ceed, 1, "Backend does not support GetOffsets");
+  // LCOV_EXCL_STOP
+
+  ierr = rstr->GetOffsets(rstr, mtype, offsets); CeedChk(ierr);
+  return 0;
+}
+
+/**
   @brief Get the backend stride status of a CeedElemRestriction
 
   @param rstr             CeedElemRestriction

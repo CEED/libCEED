@@ -278,6 +278,26 @@ static int CeedElemRestrictionApplyBlock_Ref(CeedElemRestriction r,
 }
 
 //------------------------------------------------------------------------------
+// ElemRestriction Get Offsets
+//------------------------------------------------------------------------------
+static int CeedElemRestrictionGetOffsets_Ref(CeedElemRestriction rstr,
+    CeedMemType mtype, const CeedInt **offsets) {
+  int ierr;
+  CeedElemRestriction_Ref *impl;
+  ierr = CeedElemRestrictionGetData(rstr, (void *)&impl); CeedChk(ierr);
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(rstr, &ceed); CeedChk(ierr);
+
+  if (mtype != CEED_MEM_HOST)
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Can only provide to HOST memory");
+  // LCOV_EXCL_STOP
+
+  *offsets = impl->offsets;
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // ElemRestriction Destroy
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {
@@ -361,6 +381,9 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
                                 CeedElemRestrictionApply_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyBlock",
                                 CeedElemRestrictionApplyBlock_Ref);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetOffsets",
+                                CeedElemRestrictionGetOffsets_Ref);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy",
                                 CeedElemRestrictionDestroy_Ref); CeedChk(ierr);
