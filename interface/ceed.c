@@ -659,6 +659,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedVector, Destroy),
     CEED_FTABLE_ENTRY(CeedElemRestriction, Apply),
     CEED_FTABLE_ENTRY(CeedElemRestriction, ApplyBlock),
+    CEED_FTABLE_ENTRY(CeedElemRestriction, GetOffsets),
     CEED_FTABLE_ENTRY(CeedElemRestriction, Destroy),
     CEED_FTABLE_ENTRY(CeedBasis, Apply),
     CEED_FTABLE_ENTRY(CeedBasis, Destroy),

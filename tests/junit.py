@@ -105,6 +105,8 @@ def run(test, backends):
                     check_required_failure(case, proc.stderr, 'Cannot restore CeedVector array access, access was not granted')
                 if test[:4] in 't118'.split():
                     check_required_failure(case, proc.stderr, 'Cannot sync CeedVector, the access lock is already in use')
+                if test[:4] in 't215'.split():
+                    check_required_failure(case, proc.stderr, 'Cannot destroy CeedElemRestriction, a process has read access to the offset data')
                 if test[:4] in 't303'.split():
                     check_required_failure(case, proc.stderr, 'Length of input/output vectors incompatible with basis dimensions')
 

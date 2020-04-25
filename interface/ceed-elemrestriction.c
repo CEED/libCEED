@@ -103,6 +103,66 @@ int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
 }
 
 /**
+  @brief Get read-only access to a CeedElemRestriction offsets array by memtype
+
+  @param rstr         CeedElemRestriction to retrieve offsets
+  @param mtype        Memory type on which to access the array.  If the backend
+                        uses a different memory type, this will perform a copy
+                        (possibly cached).
+  @param[out] offsets Array on memory type mtype
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mtype,
+                                  const CeedInt **offsets) {
+  int ierr;
+
+  if (!rstr->GetOffsets)
+    // LCOV_EXCL_START
+    return CeedError(rstr->ceed, 1, "Backend does not support GetOffsets");
+  // LCOV_EXCL_STOP
+
+  ierr = rstr->GetOffsets(rstr, mtype, offsets); CeedChk(ierr);
+  rstr->numreaders++;
+  return 0;
+}
+
+/**
+  @brief Restore an offsets array obtained using CeedElemRestrictionGetOffsets()
+
+  @param rstr    CeedElemRestriction to restore
+  @param offsets Array of offset data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr,
+                                      const CeedInt **offsets) {
+  *offsets = NULL;
+  rstr->numreaders--;
+  return 0;
+}
+
+/**
+  @brief Get the strided status of a CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] status      Variable to store strided status, 1 if strided else 0
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetStridedStatus(CeedElemRestriction rstr,
+                                        bool *status) {
+  *status = rstr->strides ? 1 : 0;
+  return 0;
+}
+
+/**
   @brief Get the backend stride status of a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
@@ -757,6 +817,9 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
 
   if (!*rstr || --(*rstr)->refcount > 0)
     return 0;
+  if ((*rstr)->numreaders)
+    return CeedError((*rstr)->ceed, 1, "Cannot destroy CeedElemRestriction, "
+                     "a process has read access to the offset data");
   if ((*rstr)->Destroy) {
     ierr = (*rstr)->Destroy(*rstr); CeedChk(ierr);
   }

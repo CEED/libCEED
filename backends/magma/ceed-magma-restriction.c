@@ -105,6 +105,23 @@ int CeedElemRestrictionApplyBlock_Magma(CeedElemRestriction r, CeedInt block,
   // LCOV_EXCL_STOP
 }
 
+static int CeedElemRestrictionGetOffsets_Magma(CeedElemRestriction rstr,
+    CeedMemType mtype, const CeedInt **offsets) {
+  int ierr;
+  CeedElemRestriction_Magma *impl;
+  ierr = CeedElemRestrictionGetData(rstr, (void *)&impl); CeedChk(ierr);
+
+  switch (mtype) {
+  case CEED_MEM_HOST:
+    *offsets = impl->offsets;
+    break;
+  case CEED_MEM_DEVICE:
+    *offsets = impl->doffsets;
+    break;
+  }
+  return 0;
+}
+
 static int CeedElemRestrictionDestroy_Magma(CeedElemRestriction r) {
   int ierr;
   CeedElemRestriction_Magma *impl;
@@ -213,6 +230,9 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
                                 CeedElemRestrictionApply_Magma); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyBlock",
                                 CeedElemRestrictionApplyBlock_Magma);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetOffsets",
+                                CeedElemRestrictionGetOffsets_Magma);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy",
                                 CeedElemRestrictionDestroy_Magma); CeedChk(ierr);
