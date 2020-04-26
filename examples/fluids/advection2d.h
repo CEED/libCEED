@@ -383,5 +383,48 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
+// This QFunction implements the boundary integral of
+//    the advection equation.
+
+// *****************************************************************************
+CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
+                            const CeedScalar *const *in,
+                            CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*qdata) = in[1];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+  Advection2dContext context = (Advection2dContext)ctx;
+  const CeedScalar strong_form = context->strong_form;
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // -- Interp in
+    const CeedScalar rho        =    q[0][i];
+    const CeedScalar u[3]       =   {q[1][i] / rho,
+                                     q[2][i] / rho,
+                                     q[3][i] / rho
+                                    };
+    const CeedScalar E          =    q[4][i];
+    // -- Interp-to-Interp qdata
+    const CeedScalar modJw      =    qdata[i];
+    // The boundary value for E u
+    const CeedScalar Eu = E * sqrt(u[0]*u[0] + u[1]*u[1]); // TODO: Update the formulation
+    // No Change in density or momentum
+    for (CeedInt j=0; j<4; j++) {
+      v[j][i] = 0;
+    }
+    v[4][i] = (1-strong_form) * modJw * Eu;
+  } // End Quadrature Point Loop
+
+  return 0;
+}
+
+// *****************************************************************************
 
 #endif // advection2d_h
