@@ -44,6 +44,7 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include <stdbool.h>
 #include <petscsys.h>
 #include "common.h"
+#include "setup-boundary.h"
 #include "advection.h"
 #include "advection2d.h"
 #include "densitycurrent.h"
@@ -90,10 +91,10 @@ problemData problemOptions[] = {
     .dim                       = 3,
     .qdatasizeVol              = 10,
     .qdatasizeSur              = 5,
-    .setupVol                  = Setup3d,
-    .setupVol_loc              = Setup3d_loc,
-  //.setupSur                  = Setup2d,
-  //.setupSur_loc              = Setup2d_loc,
+    .setupVol                  = Setup,
+    .setupVol_loc              = Setup_loc,
+  //.setupSur                  = SetupBoundary,
+  //.setupSur_loc              = SetupBoundary_loc,
     .ics                       = ICsDC,
     .ics_loc                   = ICsDC_loc,
     .applyVol_rhs              = DC,
@@ -111,10 +112,10 @@ problemData problemOptions[] = {
     .dim                       = 3,
     .qdatasizeVol              = 10,
     .qdatasizeSur              = 5,
-    .setupVol                  = Setup3d,
-    .setupVol_loc              = Setup3d_loc,
-  //.setupSur                  = Setup2d,
-  //.setupSur_loc              = Setup2d_loc,
+    .setupVol                  = Setup,
+    .setupVol_loc              = Setup_loc,
+  //.setupSur                  = SetupBoundary,
+  //.setupSur_loc              = SetupBoundary_loc,
     .ics                       = ICsAdvection,
     .ics_loc                   = ICsAdvection_loc,
     .applyVol_rhs              = Advection,
@@ -131,17 +132,17 @@ problemData problemOptions[] = {
   [NS_ADVECTION2D] = {
     .dim                       = 2,
     .qdatasizeVol              = 5,
-    .qdatasizeSur              = 2,
+    .qdatasizeSur              = 1,
     .setupVol                  = Setup2d,
     .setupVol_loc              = Setup2d_loc,
-  //.setupSur                  = Setup1d,
-  //.setupSur_loc              = Setup1d_loc,
+    .setupSur                  = SetupBoundary2d,
+    .setupSur_loc              = SetupBoundary2d_loc,
     .ics                       = ICsAdvection2d,
     .ics_loc                   = ICsAdvection2d_loc,
     .applyVol_rhs              = Advection2d,
     .applyVol_rhs_loc          = Advection2d_loc,
-  //.applySur_rhs              = Advection2d_Sur,
-  //.applySur_rhs_loc          = Advection2d_Sur_loc,
+    .applySur_rhs              = Advection2d_Sur,
+    .applySur_rhs_loc          = Advection2d_Sur_loc,
     .applyVol_ifunction        = IFunction_Advection2d,
     .applyVol_ifunction_loc    = IFunction_Advection2d_loc,
   //.applySur_ifunction        = IFunction_Advection2d_Sur,
