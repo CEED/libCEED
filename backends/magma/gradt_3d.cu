@@ -58,28 +58,28 @@ magma_gradt_3d_kernel(
 
     // read V (since this is transposed mode)
     const T beta = make_one<T>();
-    readV_3d<T, Q, 1, NCOMP, Q, 0>(0, dV, v_compstride, v_dimstride, rV, tx);
+    readV_3d<T, Q, 1, NCOMP, Q, 0>(dV + (0*v_dimstride), v_compstride, rV, tx);
 
     /* read U (idim = 0 for dU, iDIM = 0 for rU) -- there is a sync at the end of this function */
     /* then first call (iDIM = 0, iDIMU = 0, iDIMV = 0) */
-    readU_3d<T, P, 1, NCOMP, P, 0>(0, dU, u_compstride, u_dimstride, rU, sTmp, tx); 
+    readU_3d<T, P, 1, NCOMP, P, 0>(dU + (0 * u_dimstride), u_compstride, rU, sTmp, tx); 
     magma_grad_3d_device<T, 1, 1, NCOMP, P, Q, P, Q, 0, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
     /* there is a sync at the end of magma_grad_3d_device */
 
     /* read U (idim = 1 for dU, iDIM = 0 for rU) -- there is a sync at the end of this function */
     /* then second call (iDIM = 1, iDIMU = 0, iDIMV = 0) */
-    readU_3d<T, P, 1, NCOMP, P, 0>(1, dU, u_compstride, u_dimstride, rU, sTmp, tx); 
+    readU_3d<T, P, 1, NCOMP, P, 0>(dU + (1 * u_dimstride), u_compstride, rU, sTmp, tx); 
     magma_grad_3d_device<T, 1, 1, NCOMP, P, Q, P, Q, 1, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
     /* there is a sync at the end of magma_grad_3d_device */
 
     /* read U (idim = 2 for dU, iDIM = 0 for rU) -- there is a sync at the end of this function */
     /* then third call (iDIM = 2, iDIMU = 0, iDIMV = 0) */
-    readU_3d<T, P, 1, NCOMP, P, 0>(2, dU, u_compstride, u_dimstride, rU, sTmp, tx); 
+    readU_3d<T, P, 1, NCOMP, P, 0>(dU + (2 * u_dimstride), u_compstride, rU, sTmp, tx); 
     magma_grad_3d_device<T, 1, 1, NCOMP, P, Q, P, Q, 2, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
     /* there is a sync at the end of magma_grad_3d_device */
 
     // write V 
-    writeV_3d<T, Q, 1, NCOMP, Q, 0>(0, dV, v_compstride, v_dimstride, rV, tx);
+    writeV_3d<T, Q, 1, NCOMP, Q, 0>(dV + (0 * v_dimstride), v_compstride, rV, tx);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

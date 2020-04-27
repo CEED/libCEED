@@ -55,18 +55,18 @@ magma_interp_3d_kernel(
 
     // read V if transT is magmaTrans
     if(transT == MagmaTrans) {
-        readV_3d<T, Q, 1, NCOMP, Q, 0>(0, dV, v_compstride, 0, rV, tx);
+        readV_3d<T, Q, 1, NCOMP, Q, 0>(dV, v_compstride, rV, tx);
     }
 
     // read U (idim = 0 for dU, iDIM = 0 for rU, u_dimstride is always 0)
-    readU_3d<T, P, 1, NCOMP, P, 0>(0, dU, u_compstride, 0, rU, sTmp, tx);
+    readU_3d<T, P, 1, NCOMP, P, 0>(dU, u_compstride, rU, sTmp, tx);
     // there is a sync at the end of this function
 
     magma_interp_3d_device<T, 1, 1, NCOMP, P, Q, P, Q>(sT, transT, rU , rV, tx, rTmp, sTmp);
     __syncthreads();
 
     // write V
-    writeV_3d<T, Q, 1, NCOMP, Q, 0>(0, dV, v_compstride, 0, rV, tx);
+    writeV_3d<T, Q, 1, NCOMP, Q, 0>(dV, v_compstride, rV, tx);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

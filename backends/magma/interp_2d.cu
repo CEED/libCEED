@@ -55,19 +55,18 @@ magma_interp_2d_kernel(
 
     // read V if transT is magmaTrans
     if(transT == MagmaTrans) {
-        readV_2d<T, Q, 1, NCOMP, Q, 0>(0, dV, v_compstride, 0, rV, tx);
+        readV_2d<T, Q, 1, NCOMP, Q, 0>(dV, v_compstride, rV, tx);
     }
 
     // read U -- there is a sync at the end of this function
-    readU_2d<T, P, 1, NCOMP, P, 0>(0, dU, u_compstride, 0, rU, sTmp, tx);
+    readU_2d<T, P, 1, NCOMP, P, 0>(dU, u_compstride, rU, sTmp, tx);
 
     // no sync needed here -- readU_2d already syncs at the end
     magma_interp_2d_device<T, 1, 1, NCOMP, P, Q, P, Q>(sT, transT, rU, rV, tx, rTmp, sTmp);
     __syncthreads();
 
     // write V
-    writeV_2d<T, Q, 1, NCOMP, Q, 0>(0, dV, v_compstride, 0, rV, tx);
-
+    writeV_2d<T, Q, 1, NCOMP, Q, 0>(dV, v_compstride, rV, tx);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
