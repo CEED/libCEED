@@ -128,19 +128,18 @@ magma_grad_2d_device(
 // iDIMU -- which dim index of rU is accessed (always 0 for notrans, 0, 1, or 2 for trans)
 // iDIMV -- which dim index of rV is accessed (0, 1, or 2 for notrans, always 0 for trans)
 // the scalar beta is used to specify whether to accumulate to rV, or overwrite it
-template<typename T, int DIMU, int DIMV, int NCOMP, int P, int Q, int MAXPQ, int iDIM, int iDIMU, int iDIMV>
+template<typename T, int DIMU, int DIMV, int NCOMP, int P, int Q, int rUsize, int rVsize, int iDIM, int iDIMU, int iDIMV>
 static __device__ __inline__ void
 magma_grad_3d_device( 
     const T *sTinterp, const T *sTgrad, 
-    //T rU[DIMU*NCOMP*MAXPQ] , T rV[DIMV*NCOMP*MAXPQ], 
-    T rU[DIMU][NCOMP][MAXPQ] , T rV[DIMV][NCOMP][MAXPQ], 
+    T rU[DIMU][NCOMP][rUsize] , T rV[DIMV][NCOMP][rVsize], 
     T beta, const int tx, T rTmp, T* swork)
 {
     // Assumptions
     // 0. This device routine applies grad for one dim only (iDIM), so it should be thrice for 3D
     // 1. 1D threads of size max(P,Q)^2
-    // 2. input:  rU[DIMU x NCOMP x P] in registers (per thread)
-    // 3. output: rV[DIMV x NCOMP x Q] in registers (per thread)
+    // 2. input:  rU[DIMU x NCOMP x rUsize] in registers (per thread)
+    // 3. output: rV[DIMV x NCOMP x rVsize] in registers (per thread)
     // 4. Three products per each (dim,component) pair
     //  4.1 Batch P^2 of (1xP) matrices times (PxQ) matrix => Batch P^2 of (1xQ) matrices
     //  4.2 Batch P   of (QxP) matrices times (PxQ) matrix => Batch P   of (QxQ) matrices
