@@ -22,7 +22,7 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////
 extern __shared__ CeedScalar shared_data[];
-template<typename T, int DIM, int NCOMP, int P, int Q, int MAXPQ>
+template<typename T, int NCOMP, int P, int Q, int MAXPQ>
 static __global__ void
 magma_interp_3d_kernel(
     const T *dT, magma_trans_t transT,
@@ -35,8 +35,8 @@ magma_interp_3d_kernel(
 
     if(elem_id >= nelem) return;
 
-    T rU[DIM][NCOMP][MAXPQ] = { make_zero<T>() };    // for a non fused operator DIM is always 1
-    T rV[DIM][NCOMP][MAXPQ] = { make_zero<T>() };    // for a non fused operator DIM is always 1
+    T rU[1][NCOMP][P] = { make_zero<T>() };    // for a non fused operator DIM is always 1
+    T rV[1][NCOMP][Q] = { make_zero<T>() };    // for a non fused operator DIM is always 1
     T rTmp[Q] = { make_zero<T>() };
 
     // shift global memory pointers by elem stride
@@ -55,18 +55,18 @@ magma_interp_3d_kernel(
 
     // read V if transT is magmaTrans
     if(transT == MagmaTrans) {
-        readV_3d<T, Q, DIM, NCOMP, MAXPQ, 0>(0, dV, v_compstride, 0, rV, tx);
+        readV_3d<T, Q, 1, NCOMP, Q, 0>(0, dV, v_compstride, 0, rV, tx);
     }
 
     // read U (idim = 0 for dU, iDIM = 0 for rU, u_dimstride is always 0)
-    readU_3d<T, P, DIM, NCOMP, MAXPQ, 0>(0, dU, u_compstride, 0, rU, sTmp, tx);
+    readU_3d<T, P, 1, NCOMP, P, 0>(0, dU, u_compstride, 0, rU, sTmp, tx);
     // there is a sync at the end of this function
 
-    magma_interp_3d_device<T, DIM, NCOMP, P, Q, MAXPQ>(sT, transT, rU , rV, tx, rTmp, sTmp);
+    magma_interp_3d_device<T, 1, 1, NCOMP, P, Q, P, Q>(sT, transT, rU , rV, tx, rTmp, sTmp);
     __syncthreads();
 
     // write V
-    writeV_3d<T, Q, DIM, NCOMP, MAXPQ, 0>(0, dV, v_compstride, 0, rV, tx);
+    writeV_3d<T, Q, 1, NCOMP, Q, 0>(0, dV, v_compstride, 0, rV, tx);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -93,7 +93,7 @@ magma_interp_3d_kernel_driver(
     #if CUDA_VERSION >= 9000
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlockOptin, device);
     if(shmem <= shmem_max) {
-        cudaFuncSetAttribute(magma_interp_3d_kernel<T,1,NCOMP,P,Q,MAXPQ>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
+        cudaFuncSetAttribute(magma_interp_3d_kernel<T,NCOMP,P,Q,MAXPQ>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
     }
     #else
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlock, device);
@@ -106,9 +106,7 @@ magma_interp_3d_kernel_driver(
         magma_int_t nblocks = (nelem + ntcol-1) / ntcol;
         dim3 threads(nthreads, ntcol, 1);
         dim3 grid(nblocks, 1, 1);
-        // IMPORTANT: we instantiate with DIM=1 instead of DIM=3 because the kernel handles one dimension at a time
-        // We should instantiate with DIM >= 1 when we fuse the whole operator, because of the q-function
-        magma_interp_3d_kernel<T,1,NCOMP,P,Q,MAXPQ><<<grid, threads, shmem, magma_queue_get_cuda_stream(queue)>>>
+        magma_interp_3d_kernel<T,NCOMP,P,Q,MAXPQ><<<grid, threads, shmem, magma_queue_get_cuda_stream(queue)>>>
         (dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem);
         return (cudaPeekAtLastError() == cudaSuccess) ? 0 : 1;
     }

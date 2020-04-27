@@ -56,17 +56,17 @@ magma_interp_1d_device(
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // interp basis action (2D)
-template<typename T, int DIM, int NCOMP, int P, int Q, int MAXPQ>
+template<typename T, int DIMU, int DIMV, int NCOMP, int P, int Q, int rUsize, int rVsize>
 static __device__ __inline__ void
 magma_interp_2d_device( 
     const T *sT, magma_trans_t transT, 
-    T rU[DIM][NCOMP][MAXPQ] , T rV[DIM][NCOMP][MAXPQ], 
+    T rU[DIMU][NCOMP][rUsize] , T rV[DIMV][NCOMP][rVsize], 
     const int tx, T rTmp, T* swork)
 {
     // Assumptions
     // 1. 1D threads of size max(P,Q)
-    // 2. input:  rU[DIM x NCOMP x P] in registers (per thread)
-    // 3. output: rV[DIM x NCOMP x Q] in registers (per thread)
+    // 2. input:  rU[DIMU x NCOMP x rUsize] in registers (per thread)
+    // 3. output: rV[DIMV x NCOMP x rVsize] in registers (per thread)
     // 4. Two products per component
     //  4.1 Batch P of (1xP) matrices times (PxQ) matrix => Batch P of (1xQ) matrices
     //  4.2 Batch 1 of (QxP) matrix   times (PxQ) matrix => (QxQ) matrix
@@ -109,17 +109,17 @@ magma_interp_2d_device(
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // interp basis action (3D)
-template<typename T, int DIM, int NCOMP, int P, int Q, int MAXPQ>
+template<typename T, int DIMU, int DIMV, int NCOMP, int P, int Q, int rUsize, int rVsize>
 static __device__ __inline__ void
 magma_interp_3d_device( 
     const T *sT, magma_trans_t transT, 
-    T rU[DIM][NCOMP][MAXPQ] , T rV[DIM][NCOMP][MAXPQ], 
+    T rU[DIMU][NCOMP][rUsize] , T rV[DIMV][NCOMP][rVsize], 
     const int tx, T rTmp[Q], T* swork)
 {
     // Assumptions
     // 1. 1D threads of size max(P,Q)^2
-    // 2. input:  rU[DIM x NCOMP x P] in registers (per thread)
-    // 3. output: rV[DIM x NCOMP x Q] in registers (per thread)
+    // 2. input:  rU[DIMU x NCOMP x rUsize] in registers (per thread)
+    // 3. output: rV[DIMV x NCOMP x rVsize] in registers (per thread)
     // 4. Three products per component
     //  4.1 Batch P^2 of (1xP) matrices times (PxQ) matrix => Batch P^2 of (1xQ) matrices
     //  4.2 Batch P   of (QxP) matrices times (PxQ) matrix => Batch P   of (QxQ) matrices
