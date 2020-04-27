@@ -163,7 +163,7 @@ readV_2d(const T* dV, const int compstride, T rV[DIMV][NCOMP][rVsize], const int
 // rVsize can be different from P (e.g. MAXPQ)
 template<typename T, int Q, int DIMV, int NCOMP, int rVsize, int iDIM>
 __device__ __inline__ void 
-writeV_2d(const int idim, T* dV, const int compstride, const int dimstride, T rV[DIMV][NCOMP][rVsize], const int tx)
+writeV_2d(T* dV, const int compstride, T rV[DIMV][NCOMP][rVsize], const int tx)
 {
     if(tx < Q) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
@@ -241,7 +241,7 @@ readV_3d(const T* dV, const int compstride, T rV[DIMV][NCOMP][rVsize], const int
 // rVsize can be different from P (e.g. MAXPQ)
 template<typename T, int Q, int DIMV, int NCOMP, int rVsize, int iDIM>
 __device__ __inline__ void 
-writeV_3d(const int idim, T* dV, const int compstride, const int dimstride, T rV[DIMV][NCOMP][rVsize], const int tx)
+writeV_3d(T* dV, const int compstride, T rV[DIMV][NCOMP][rVsize], const int tx)
 {
     if(tx < (Q*Q)) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
