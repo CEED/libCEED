@@ -207,16 +207,8 @@ cuda-gen.c     := $(sort $(wildcard backends/cuda-gen/*.c))
 cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
 cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/*.cu))
 occa.c         := $(sort $(wildcard backends/occa/*.c))
-magma_preprocessor := python backends/magma/gccm.py
-magma_pre_src  := $(filter-out %ceed-magma.c %_tmp.c, $(wildcard backends/magma/ceed-*.c))
-magma_dsrc     := $(wildcard backends/magma/magma_d*.c)
-magma_dsrc     += backends/magma/ceed-magma.c
-magma_tmp.c    := $(magma_pre_src:%.c=%_tmp.c)
-magma_tmp.cu   := $(magma_pre_src:%.c=%_cuda.cu)
-magma_allsrc.c := $(magma_dsrc) $(magma_tmp.c)
-magma_allsrc.cu:= $(magma_tmp.cu) backends/magma/magma_devptr.cu
-magma_allsrc.cu+= backends/magma/magma_dbasisApply_grad.cu backends/magma/magma_dbasisApply_interp.cu backends/magma/magma_dbasisApply_weight.cu
-magma_allsrc.cu+= backends/magma/magma_drestrictApply.cu
+magma.c        := $(sort $(wildcard backends/magma/*.c))
+magma.cu       := $(sort $(wildcard backends/magma/*.cu))
 
 # Output using the 216-color rules mode
 rule_file = $(notdir $(1))
@@ -239,8 +231,6 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 .SUFFIXES:
 
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
-
-.SECONDARY: $(magma_tmp.c) $(magma_tmp.cu)
 
 %/.DIR :
 	@mkdir -p $(@D)
@@ -378,19 +368,15 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
   $(libceeds)           : LDLIBS += $(magma_link)
   $(tests) $(examples) : LDLIBS += $(magma_link)
-  libceed.c  += $(magma_allsrc.c)
-  libceed.cu += $(magma_allsrc.cu)
-  $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) $(magma_allsrc.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-  $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
+  libceed.c  += $(magma.c)
+  libceed.cu += $(magma.cu)
+  $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
+  $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
   BACKENDS += /gpu/magma
   endif
 endif
 
 export BACKENDS
-
-# Generate magma_tmp.c and magma_cuda.cu from magma.c
-%_tmp.c %_cuda.cu : %.c
-	$(magma_preprocessor) $<
 
 libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o)
 $(filter %fortran.o,$(libceed.o)) : CPPFLAGS += $(if $(filter 1,$(UNDERSCORE)),-DUNDERSCORE)
@@ -550,7 +536,6 @@ cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
 	$(MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
 	$(MAKE) -C tests/python clean
-	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
 	$(RM) benchmarks/*output.txt
 
 distclean : clean
