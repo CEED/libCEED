@@ -99,14 +99,14 @@ write_1d(T* sBuffer[NCOMP], T* devptr, const int compstride, const int tx)
 //////////////////////////////////////////////////////////////////////////////////////////
 // read U of a 2D element into registers rU[][][] --  for all components of a single dim
 // the devptr is assumed to point directly to the element (i.e. already offset by elem-stride)
-// register is assumed to be rU[DIMU][NCOMP][LU]
+// register is assumed to be rU[DIMU][NCOMP][rUsize]
 // idim specifies which dimension is being read from in dU
 // iDIM specifies which dimension is being read into in rU
-// LU can be different from P (e.g. MAXPQ)
+// rUsize can be different from P (e.g. MAXPQ)
 // sTmp is a shared memory workspace of size P^2
-template<typename T, int P, int DIMU, int NCOMP, int LU, int iDIM>
+template<typename T, int P, int DIMU, int NCOMP, int rUsize, int iDIM>
 __device__ __inline__ void 
-readU_2d(const int idim, const T* dU, const int compstride, const int dimstride, T rU[DIMU][NCOMP][LU], T* sTmp, const int tx)
+readU_2d(const int idim, const T* dU, const int compstride, const int dimstride, T rU[DIMU][NCOMP][rUsize], T* sTmp, const int tx)
 {
     // read U as a batch P of (1xP) vectors
     // vec 0  : [u0, u1, u2, ... u_(P-1)] -- contiguous in memory
@@ -139,13 +139,13 @@ readU_2d(const int idim, const T* dU, const int compstride, const int dimstride,
 //////////////////////////////////////////////////////////////////////////////////////////
 // read V of a 2D element into registers rV[][][] --  for all components of a single dim
 // dV is assumed to point directly to the element (i.e. already offset by elem-stride)
-// register is assumed to be rV[DIMV][NCOMP][LV]
+// register is assumed to be rV[DIMV][NCOMP][rVsize]
 // idim specifies which dimension is being read from in dV
 // iDIM specifies which dimension is being read into in rV
-// LV can be different from P (e.g. MAXPQ)
-template<typename T, int Q, int DIMV, int NCOMP, int LV, int iDIM>
+// rVsize can be different from P (e.g. MAXPQ)
+template<typename T, int Q, int DIMV, int NCOMP, int rVsize, int iDIM>
 __device__ __inline__ void 
-readV_2d(const int idim, const T* dV, const int compstride, const int dimstride, T rV[DIMV][NCOMP][LV], const int tx)
+readV_2d(const int idim, const T* dV, const int compstride, const int dimstride, T rV[DIMV][NCOMP][rVsize], const int tx)
 {
     if(tx < Q) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
@@ -159,13 +159,13 @@ readV_2d(const int idim, const T* dV, const int compstride, const int dimstride,
 //////////////////////////////////////////////////////////////////////////////////////////
 // write V of a 2D element from registers rV[][][] to global memory --  for all components of a single dim
 // dV is assumed to point directly to the element (i.e. already offset by elem-stride)
-// register is assumed to be rV[DIMV][NCOMP][LV]
+// register is assumed to be rV[DIMV][NCOMP][rVsize]
 // iDIM specifies which dimension is being read from in rV
 // idim specifies which dimension is being written to in dV
-// LU can be different from P (e.g. MAXPQ)
-template<typename T, int Q, int DIMV, int NCOMP, int LV, int iDIM>
+// rVsize can be different from P (e.g. MAXPQ)
+template<typename T, int Q, int DIMV, int NCOMP, int rVsize, int iDIM>
 __device__ __inline__ void 
-writeV_2d(const int idim, T* dV, const int compstride, const int dimstride, T rV[DIMV][NCOMP][LV], const int tx)
+writeV_2d(const int idim, T* dV, const int compstride, const int dimstride, T rV[DIMV][NCOMP][rVsize], const int tx)
 {
     if(tx < Q) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
@@ -179,14 +179,14 @@ writeV_2d(const int idim, T* dV, const int compstride, const int dimstride, T rV
 //////////////////////////////////////////////////////////////////////////////////////////
 // read U of a 3D element into registers rU[][][] --  for all components of a single dim
 // the devptr is assumed to point directly to the element (i.e. already offset by elem-stride)
-// register is assumed to be rU[DIMU][NCOMP][LU]
+// register is assumed to be rU[DIMU][NCOMP][rUsize]
 // idim specifies which dimension is being read from in dU
 // iDIM specifies which dimension is being read into in rU
-// LU can be different from P (e.g. MAXPQ)
+// rUsize can be different from P (e.g. MAXPQ)
 // sTmp is a shared memory workspace of size P^3
-template<typename T, int P, int DIMU, int NCOMP, int LU, int iDIM>
+template<typename T, int P, int DIMU, int NCOMP, int rUsize, int iDIM>
 __device__ __inline__ void 
-readU_3d(const int idim, const T* dU, const int compstride, const int dimstride, T rU[DIMU][NCOMP][LU], T* sTmp, const int tx)
+readU_3d(const int idim, const T* dU, const int compstride, const int dimstride, T rU[DIMU][NCOMP][rUsize], T* sTmp, const int tx)
 {
     // read U as a batch P^2 of (1xP) vectors
     // vec 0    : [u0, u1, u2, ... u_(P-1)] -- contiguous in memory
@@ -219,13 +219,13 @@ readU_3d(const int idim, const T* dU, const int compstride, const int dimstride,
 //////////////////////////////////////////////////////////////////////////////////////////
 // read V of a 3D element into registers rV[][][] --  for all components of a single dim
 // dV is assumed to point directly to the element (i.e. already offset by elem-stride)
-// register is assumed to be rV[DIMV][NCOMP][LV]
+// register is assumed to be rV[DIMV][NCOMP][rVsize]
 // idim specifies which dimension is being read from in dV
 // iDIM specifies which dimension is being read into in rV
-// LV can be different from P (e.g. MAXPQ)
-template<typename T, int Q, int DIMV, int NCOMP, int LV, int iDIM>
+// rVsize can be different from P (e.g. MAXPQ)
+template<typename T, int Q, int DIMV, int NCOMP, int rVsize, int iDIM>
 __device__ __inline__ void 
-readV_3d(const int idim, const T* dV, const int compstride, const int dimstride, T rV[DIMV][NCOMP][LV], const int tx)
+readV_3d(const int idim, const T* dV, const int compstride, const int dimstride, T rV[DIMV][NCOMP][rVsize], const int tx)
 {
     if(tx < Q*Q) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
@@ -239,13 +239,13 @@ readV_3d(const int idim, const T* dV, const int compstride, const int dimstride,
 //////////////////////////////////////////////////////////////////////////////////////////
 // write V of a 3D element from registers rV[][][] to global memory --  for all components of a single dim
 // dV is assumed to point directly to the element (i.e. already offset by elem-stride)
-// register is assumed to be rV[DIMV][NCOMP][LV]
+// register is assumed to be rV[DIMV][NCOMP][rVsize]
 // iDIM specifies which dimension is being read from in rV
 // idim specifies which dimension is being written to in dV
-// LU can be different from P (e.g. MAXPQ)
-template<typename T, int Q, int DIMV, int NCOMP, int LV, int iDIM>
+// rVsize can be different from P (e.g. MAXPQ)
+template<typename T, int Q, int DIMV, int NCOMP, int rVsize, int iDIM>
 __device__ __inline__ void 
-writeV_3d(const int idim, T* dV, const int compstride, const int dimstride, T rV[DIMV][NCOMP][LV], const int tx)
+writeV_3d(const int idim, T* dV, const int compstride, const int dimstride, T rV[DIMV][NCOMP][rVsize], const int tx)
 {
     if(tx < (Q*Q)) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
