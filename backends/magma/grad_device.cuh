@@ -64,11 +64,11 @@ magma_grad_1d_device(
 // iDIMU -- which dim index of rU is accessed (always 0 for notrans, 0 or 1 for trans)
 // iDIMV -- which dim index of rV is accessed (0 or 1 for notrans, always 0 for trans)
 // the scalar beta is used to specify whether to accumulate to rV, or overwrite it
-template<typename T, int DIMU, int DIMV, int NCOMP, int P, int Q, int MAXPQ, int iDIM, int iDIMU, int iDIMV>
+template<typename T, int DIMU, int DIMV, int NCOMP, int P, int Q, int rUsize, int rVsize, int iDIM, int iDIMU, int iDIMV>
 static __device__ __inline__ void
 magma_grad_2d_device( 
     const T *sTinterp, const T *sTgrad, 
-    T rU[DIMU][NCOMP][MAXPQ] , T rV[DIMV][NCOMP][MAXPQ], 
+    T rU[DIMU][NCOMP][rUsize] , T rV[DIMV][NCOMP][rVsize], 
     T beta, const int tx, T rTmp, T* swork)
 {
     // Assumptions

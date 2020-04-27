@@ -35,8 +35,8 @@ magma_gradn_2d_kernel(
 
     if(elem_id >= nelem) return;
 
-    T rU[1][NCOMP][MAXPQ] = { make_zero<T>() };  // here DIMU = 1, but might be different for a fused operator
-    T rV[1][NCOMP][MAXPQ] = { make_zero<T>() };  // here DIMV = 1, but might be different for a fused operator
+    T rU[1][NCOMP][P] = { make_zero<T>() };  // here DIMU = 1, but might be different for a fused operator
+    T rV[1][NCOMP][Q] = { make_zero<T>() };  // here DIMV = 1, but might be different for a fused operator
     T rTmp = make_zero<T>();
 
     // shift global memory pointers by elem stride
@@ -59,17 +59,17 @@ magma_gradn_2d_kernel(
     const T beta = make_zero<T>();
 
     /* read U (idim = 0 for dU, iDIM = 0 for rU) -- there is a sync at the end of this function */
-    readU_2d<T, P, 1, NCOMP, MAXPQ, 0>(0, dU, u_compstride, u_dimstride, rU, sTmp, tx);
+    readU_2d<T, P, 1, NCOMP, P, 0>(0, dU, u_compstride, u_dimstride, rU, sTmp, tx);
 
     /* first call (iDIM = 0, iDIMU = 0, iDIMV = 0) -- output from rV[0][][] into dV (idim = 0) */
-    magma_grad_2d_device<T, 1, 1, NCOMP, P, Q, MAXPQ, 0, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp); 
-    __syncthreads();
-    writeV_2d<T, Q, 1, NCOMP, MAXPQ, 0>(0, dV, v_compstride, v_dimstride, rV, tx);
+    magma_grad_2d_device<T, 1, 1, NCOMP, P, Q, P, Q, 0, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp); 
+    /* there is a sync at the end of magma_grad_2d_device */
+    writeV_2d<T, Q, 1, NCOMP, Q, 0>(0, dV, v_compstride, v_dimstride, rV, tx);
 
     /* second call (iDIM = 1, iDIMU = 0, iDIMV = 0) -- output from rV[0][][] into dV (idim = 1) */
-    magma_grad_2d_device<T, 1, 1, NCOMP, P, Q, MAXPQ, 1, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
-    __syncthreads();    
-    writeV_2d<T, Q, 1, NCOMP, MAXPQ, 0>(1, dV, v_compstride, v_dimstride, rV, tx);
+    magma_grad_2d_device<T, 1, 1, NCOMP, P, Q, P, Q, 1, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
+    /* there is a sync at the end of magma_grad_2d_device */
+    writeV_2d<T, Q, 1, NCOMP, Q, 0>(1, dV, v_compstride, v_dimstride, rV, tx);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
