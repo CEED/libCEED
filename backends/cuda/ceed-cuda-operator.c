@@ -200,6 +200,8 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
   CeedVector vec;
   CeedBasis basis;
   CeedElemRestriction Erestrict;
+  bool is_strided;
+  bool skip_restrict;
 
   // Setup
   ierr = CeedOperatorSetup_Cuda(op); CeedChk(ierr);
@@ -214,11 +216,23 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
       ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChk(ierr);
       if (vec == CEED_VECTOR_ACTIVE)
         vec = invec;
-      // Restrict
+      // Restrict, if necessary
       ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
       CeedChk(ierr);
-      ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE, vec,
+      // Check whether we can skip the restriction for this input vector
+      is_strided = false;
+      skip_restrict = false;
+      ierr = CeedElemRestrictionGetStridedStatus(Erestrict, &is_strided);
+      if (is_strided) { // Strided Restriction
+        // Check if vector is already in preferred backend ordering
+        ierr = CeedElemRestrictionGetBackendStridesStatus(Erestrict, &skip_restrict);
+      }
+      if (skip_restrict) {
+        impl->evecs[i] = vec;
+      } else {
+        ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE, vec,
                                       impl->evecs[i], request); CeedChk(ierr);
+      }  
       // Get evec
       ierr = CeedVectorGetArrayRead(impl->evecs[i], CEED_MEM_DEVICE,
                                     (const CeedScalar **) &impl->edata[i]);
