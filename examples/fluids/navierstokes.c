@@ -285,17 +285,14 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
 }
 
 // Utility function to get Ceed Restriction for each domain
-static PetscErrorCode GetRestriction(Ceed ceed, DM dm, CeedInt ncompx, CeedInt dim,
+static PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt ncompx, CeedInt dim,
     CeedInt height, DMLabel domainLabel, CeedInt value, CeedInt P, CeedInt Q,
     CeedInt qdatasize, CeedElemRestriction *restrictq,
     CeedElemRestriction *restrictx, CeedElemRestriction *restrictqdi) {
 
   DM dmcoord;
   CeedInt localNelem;
-  CeedElemRestriction  *restrictxcoord = NULL;
   CeedInt Qdim = CeedIntPow(Q, dim);
-  //CeedInt numPdim = CeedIntPow(P, dim);
-  //Vec Xloc = NULL;
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
@@ -310,10 +307,6 @@ static PetscErrorCode GetRestriction(Ceed ceed, DM dm, CeedInt ncompx, CeedInt d
   CeedElemRestrictionCreateStrided(ceed, localNelem, Qdim,
                                    qdatasize, qdatasize*localNelem*Qdim,
                                    CEED_STRIDES_BACKEND, restrictqdi);
-  CeedElemRestrictionCreateStrided(ceed, localNelem, PetscPowInt(P, dim),
-                                   ncompx,
-                                   ncompx*localNelem*PetscPowInt(P, dim),
-                                   CEED_STRIDES_BACKEND, restrictxcoord);
   PetscFunctionReturn(0);
 }
 
@@ -692,8 +685,8 @@ int main(int argc, char **argv) {
   CeedInt numP_Vol, numP_Sur, numQ_Vol, numQ_Sur;
   CeedVector xcorners, qdataVol, qdataSur, q0ceedVol, q0ceedSur;
   CeedBasis basisxVol, basisxcVol, basisqVol, basisxSur, basisxcSur, basisqSur;
-  CeedElemRestriction restrictxVol, restrictxcoordVol, restrictqVol, restrictqdiVol,
-                      restrictxSur, restrictxcoordSur, restrictqSur, restrictqdiSur;
+  CeedElemRestriction restrictxVol, restrictqVol, restrictqdiVol,
+                      restrictxSur, restrictqSur, restrictqdiSur;
   CeedQFunction qf_setupVol, qf_setupSur, qf_ics, qf_rhsVol, qf_rhsSur,
                 qf_ifunctionVol, qf_ifunctionSur;
   CeedOperator op_setupVol, op_setupSur, op_ics;
@@ -1039,7 +1032,6 @@ int main(int argc, char **argv) {
   // Set up CEED
   // CEED Bases
   CeedInit(ceedresource, &ceed);
-  // Bases for the Volume
   numP_Vol = degreeVol + 1;
   numQ_Vol = numP_Vol + qextraVol;
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompq, numP_Vol, numQ_Vol, CEED_GAUSS,
@@ -1048,44 +1040,24 @@ int main(int argc, char **argv) {
                                   &basisxVol);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numP_Vol,
                                   CEED_GAUSS_LOBATTO, &basisxcVol);
-  // Bases for the Surface
-  CeedInt height = 1;
-  numP_Sur = degreeSur + 1;
-  numQ_Sur = numP_Sur + qextraSur;
-  CeedBasisCreateTensorH1Lagrange(ceed, dim - height, ncompq, numP_Sur, numQ_Sur, CEED_GAUSS,
-                                  &basisqSur);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim - height, ncompx, 2, numQ_Sur, CEED_GAUSS,
-                                  &basisxSur);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim - height, ncompx, 2, numP_Sur,
-                                  CEED_GAUSS_LOBATTO, &basisxcSur);
-
   ierr = DMGetCoordinateDM(dm, &dmcoord); CHKERRQ(ierr);
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
   // CEED Restrictions
   // Restrictions on the Volume
-  ierr = GetRestriction(ceed, dm, ncompx, dim, 0, 0, 0, numP_Vol, numQ_Vol, qdatasizeVol,
+  ierr = GetRestrictionForDomain(ceed, dm, ncompx, dim, 0, 0, 0, numP_Vol, numQ_Vol, qdatasizeVol,
     &restrictqVol, &restrictxVol, &restrictqdiVol); CHKERRQ(ierr);
-  // (Rough draft) Restriction for one face ----> Should be done for all Neumann faces
-  ierr = GetRestriction(ceed, dm, ncompx, dim - height, height, "Face Sets", 6, numP_Sur,
-    numQ_Sur, qdatasizeSur, &restrictqSur, &restrictxSur, &restrictqdiSur); CHKERRQ(ierr);
 
   ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
   ierr = CreateVectorFromPetscVec(ceed, Xloc, &xcorners); CHKERRQ(ierr);
 
   // Create the CEED vectors that will be needed in setup
-  CeedInt NqptsVol, NqptsSur;
-  // Volume
+  CeedInt NqptsVol;
   CeedBasisGetNumQuadraturePoints(basisqVol, &NqptsVol);
   CeedElemRestrictionGetNumElements(restrictqVol, &localNelemVol);
   CeedVectorCreate(ceed, qdatasizeVol*localNelemVol*NqptsVol, &qdataVol);
   CeedElemRestrictionCreateVector(restrictqVol, &q0ceedVol, NULL);
-  // Surface
-  CeedBasisGetNumQuadraturePoints(basisqSur, &NqptsSur);
-  CeedElemRestrictionGetNumElements(restrictqSur, &localNelemSur);
-  CeedVectorCreate(ceed, qdatasizeSur*localNelemSur*NqptsSur, &qdataSur);
-  //CeedElemRestrictionCreateVector(restrictqSur, &q0ceedSur, NULL);
 
   // Create the Q-function that builds the quadrature data for the NS operator
   CeedQFunctionCreateInterior(ceed, 1, problem->setupVol, problem->setupVol_loc,
@@ -1364,7 +1336,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&restrictqVol);
   CeedElemRestrictionDestroy(&restrictxVol);
   CeedElemRestrictionDestroy(&restrictqdiVol);
-  CeedElemRestrictionDestroy(&restrictxcoordVol);
   CeedQFunctionDestroy(&qf_setupVol);
   CeedQFunctionDestroy(&qf_ics);
   CeedQFunctionDestroy(&qf_rhsVol);
