@@ -349,15 +349,41 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
     }
     // Get output vector
     ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
-    // Active
-    if (vec == CEED_VECTOR_ACTIVE)
-      vec = outvec;
     // Restrict
     ierr = CeedOperatorFieldGetElemRestriction(opoutputfields[i], &Erestrict);
     CeedChk(ierr);
-    ierr = CeedElemRestrictionApply(Erestrict, CEED_TRANSPOSE,
-                                    impl->evecs[i + impl->numein], vec,
-                                    request); CeedChk(ierr);
+    // Check whether we can skip the restriction for this input vector
+    is_strided = false;
+    skip_restrict = false;
+    ierr = CeedElemRestrictionGetStridedStatus(Erestrict, &is_strided);
+    if (is_strided) { // Strided Restriction
+      // Check if vector is already in preferred backend ordering
+      ierr = CeedElemRestrictionGetBackendStridesStatus(Erestrict, &skip_restrict);
+    }
+    if (skip_restrict) {
+      CeedScalar *evec_vals;
+      ierr = CeedVectorGetArray(impl->evecs[i+impl->numein], CEED_MEM_DEVICE, &evec_vals);
+      // Active
+      if (vec == CEED_VECTOR_ACTIVE) {
+         ierr = CeedVectorSetArray(outvec, CEED_MEM_DEVICE,
+                                   CEED_COPY_VALUES,
+                                   evec_vals); CeedChk(ierr);
+      }
+      else { 
+         ierr = CeedVectorSetArray(vec, CEED_MEM_DEVICE,
+                                   CEED_COPY_VALUES,
+                                   evec_vals); CeedChk(ierr);
+      }
+      ierr = CeedVectorRestoreArray(impl->evecs[i+impl->numein], &evec_vals);
+    } else {
+      // Active
+      if (vec == CEED_VECTOR_ACTIVE)
+        vec = outvec;
+
+      ierr = CeedElemRestrictionApply(Erestrict, CEED_TRANSPOSE,
+                                      impl->evecs[i + impl->numein], vec,
+                                      request); CeedChk(ierr);
+   }
   }
 
   // Restore input arrays
