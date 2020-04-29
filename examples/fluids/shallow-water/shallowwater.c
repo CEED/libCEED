@@ -1,0 +1,421 @@
+//                        libCEED + PETSc Example: Shallow-water equations
+//
+// This example demonstrates a simple usage of libCEED with PETSc to solve the
+// shallow-water equations on a cubed-sphere (i.e., a spherical surface
+// tessellated by quadrilaterals, obtained by projecting the sides
+// of a circumscribed cube onto a spherical surface).
+//
+// The code is intentionally "raw", using only low-level communication
+// primitives.
+//
+// Build with:
+//
+//     make [PETSC_DIR=</path/to/petsc>] [CEED_DIR=</path/to/libceed>]
+//
+// Sample runs:
+//
+//     shallow-water
+//     shallow-water -ceed /cpu/self
+//     shallow-water -ceed /gpu/occa
+//     shallow-water -ceed /cpu/occa
+//     shallow-water -ceed /omp/occa
+//     shallow-water -ceed /ocl/occa
+//
+
+/// @file
+/// Shallow-water equations example using PETSc
+
+const char help[] = "Solve the shallow-water equations using PETSc and libCEED\n";
+
+#include <petscts.h>
+#include <petscdmplex.h>
+#include <ceed.h>
+#include <stdbool.h>
+#include <petscsys.h>
+#include "sw_headers.h"
+
+int main(int argc, char **argv) {
+  // PETSc context
+  PetscInt ierr;
+  MPI_Comm comm;
+  DM dm, dmviz;
+  TS ts;
+  TSAdapt adapt;
+  Mat J, interpviz;
+  User user;
+  Units units;
+  PetscInt degree, qextra, outputfreq, steps, contsteps;
+  PetscMPIInt rank;
+  PetscScalar ftime;
+  Vec Q, Qloc, Xloc;
+  const CeedInt ncompx = 3;
+  PetscInt viz_refine = 0;
+  PetscBool read_mesh, simplex, test;
+  PetscInt topodim = 2, ncompq = 5, lnodes;
+  // libCEED context
+  char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
+                                          filename[PETSC_MAX_PATH_LEN];
+  Ceed ceed;
+  CeedData ceeddata;
+  PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
+  PetscScalar second    = 1e-2;     // 1 second in scaled time units
+  PetscScalar f         = 0.0001;   // mid-latitude Coriolis parameter
+  PetscScalar g         = 9.81;     // m/s^2
+  PetscScalar mpersquareds;
+  // Performance context
+  double start, cpu_time_used;
+
+  // Initialize PETSc
+  ierr = PetscInitialize(&argc, &argv, NULL, help);
+  if (ierr) return ierr;
+
+  // Allocate PETSc context
+  ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
+
+  // Set up problem type command line option
+  //PetscFunctionListAdd(&icsflist, "sphere", &ICsSW);
+  //PetscFunctionListAdd(&qflist, "shallow-water", &SW);
+
+  // Parse command line options
+  comm = PETSC_COMM_WORLD;
+  ierr = PetscOptionsBegin(comm, NULL, "Shallow-water equations in PETSc with libCEED",
+                           NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-ceed", "CEED resource specifier",
+                            NULL, ceedresource, ceedresource,
+                            sizeof(ceedresource), NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-test", "Run in test mode",
+                          NULL, test=PETSC_FALSE, &test, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-viz_refine",
+                         "Regular refinement levels for visualization",
+                         NULL, viz_refine, &viz_refine, NULL);
+  CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
+                            NULL, meter, &meter, NULL); CHKERRQ(ierr);
+  meter = fabs(meter);
+  ierr = PetscOptionsScalar("-units_second","1 second in scaled time units",
+                            NULL, second, &second, NULL); CHKERRQ(ierr);
+  second = fabs(second);
+  outputfreq = 10;
+  ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
+                         NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
+  contsteps = 0;
+  ierr = PetscOptionsInt("-continue", "Continue from previous solution",
+                         NULL, contsteps, &contsteps, NULL); CHKERRQ(ierr);
+  degree = 3;
+  ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
+                         NULL, degree, &degree, NULL); CHKERRQ(ierr);
+  qextra = 2;
+  ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
+                         NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
+                            NULL, g, &g, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-f", "Mid-latitude Coriolis parameter",
+                            NULL, f, &f, NULL); CHKERRQ(ierr);
+  PetscStrncpy(user->outputfolder, ".", 2);
+  ierr = PetscOptionsString("-of", "Output folder",
+                            NULL, user->outputfolder, user->outputfolder,
+                            sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
+  read_mesh = PETSC_FALSE;
+  ierr = PetscOptionsString("-mesh", "Read mesh from file", NULL,
+                            filename, filename, sizeof(filename), &read_mesh);
+  CHKERRQ(ierr);
+  simplex = PETSC_FALSE;
+  ierr = PetscOptionsBool("-simplex", "Use simplices, or tensor product cells",
+                          NULL, simplex, &simplex, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  // Define derived units
+  mpersquareds = meter / PetscSqr(second);
+
+  // Scale variables to desired units
+  f /= second;
+  g *= mpersquareds;
+
+  // Set up the libCEED context
+  PhysicsContext_s ctxSetup =  {
+    .u0 = 0.,
+    .v0 = 0.,
+    .h0 = .1,
+    .f = f,
+    .g = g,
+    .time = 0.
+  };
+
+  // Setup DM
+  if (read_mesh) {
+    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dm);
+    CHKERRQ(ierr);
+  } else {
+    // Create the mesh as a 0-refined sphere. This will create a cubic surface, not a box.
+    PetscBool simplex = PETSC_FALSE;
+    ierr = DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topodim, simplex, &dm);
+    CHKERRQ(ierr);
+    // Set the object name
+    ierr = PetscObjectSetName((PetscObject)dm, "Sphere"); CHKERRQ(ierr);
+    // Distribute mesh over processes
+    {
+      DM dmDist = NULL;
+      PetscPartitioner part;
+
+      ierr = DMPlexGetPartitioner(dm, &part); CHKERRQ(ierr);
+      ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
+      ierr = DMPlexDistribute(dm, 0, NULL, &dmDist); CHKERRQ(ierr);
+      if (dmDist) {
+        ierr = DMDestroy(&dm); CHKERRQ(ierr);
+        dm  = dmDist;
+      }
+    }
+    // Refine DMPlex with uniform refinement using runtime option -dm_refine
+    ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
+    ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+    ierr = ProjectToUnitSphere(dm); CHKERRQ(ierr);
+    // View DMPlex via runtime option
+    ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
+  }
+
+  // Create DM
+  ierr = SetupDM(dm, degree, ncompq, topodim);
+  CHKERRQ(ierr);
+
+  dmviz = NULL;
+  interpviz = NULL;
+  if (viz_refine) {
+    DM dmhierarchy[viz_refine+1];
+
+    ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
+    dmhierarchy[0] = dm;
+    for (PetscInt i = 0, d = degree; i < viz_refine; i++) {
+      Mat interp_next;
+
+      ierr = DMRefine(dmhierarchy[i], MPI_COMM_NULL, &dmhierarchy[i+1]);
+      CHKERRQ(ierr);
+      ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
+      d = (d + 1) / 2;
+      if (i + 1 == viz_refine) d = 1;
+      ierr = SetupDM(dmhierarchy[i+1], degree, ncompq, topodim); CHKERRQ(ierr);
+      ierr = DMCreateInterpolation(dmhierarchy[i], dmhierarchy[i+1],
+                                   &interp_next, NULL); CHKERRQ(ierr);
+      if (!i) interpviz = interp_next;
+      else {
+        Mat C;
+        ierr = MatMatMult(interp_next, interpviz, MAT_INITIAL_MATRIX,
+                          PETSC_DECIDE, &C); CHKERRQ(ierr);
+        ierr = MatDestroy(&interp_next); CHKERRQ(ierr);
+        ierr = MatDestroy(&interpviz); CHKERRQ(ierr);
+        interpviz = C;
+      }
+    }
+    for (PetscInt i=1; i<viz_refine; i++) {
+      ierr = DMDestroy(&dmhierarchy[i]); CHKERRQ(ierr);
+    }
+    dmviz = dmhierarchy[viz_refine];
+  }
+  ierr = DMCreateGlobalVector(dm, &Q); CHKERRQ(ierr);
+  ierr = DMGetLocalVector(dm, &Qloc); CHKERRQ(ierr);
+  ierr = VecGetSize(Qloc, &lnodes); CHKERRQ(ierr);
+  lnodes /= ncompq;
+
+  // Print grid information
+  PetscInt numP = degree + 1, numQ = numP + qextra;
+  PetscInt gdofs, odofs;
+  {
+    int comm_size;
+    ierr = VecGetSize(Q, &gdofs); CHKERRQ(ierr);
+    ierr = VecGetLocalSize(Q, &odofs); CHKERRQ(ierr);
+    ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
+    if (!test) {
+      ierr = PetscPrintf(comm,
+                         "\n-- CEED Shallow-water equations solver on the cubed-sphere -- libCEED + PETSc --\n"
+                         "  libCEED:\n"
+                         "    libCEED Backend                    : %s\n"
+                         "  FEM space:\n"
+                         "    Number of 1D Basis Nodes (p)       : %d\n"
+                         "    Number of 1D Quadrature Points (q) : %d\n"
+                         "    Global FEM dofs: %D (%D owned) on %d rank(s)\n"
+                         "    Local FEM nodes: %D\n",
+                         ceedresource, numP, numQ, gdofs, odofs, comm_size, lnodes); CHKERRQ(ierr);
+    }
+
+  }
+
+  // Set up global mass vector
+  ierr = VecDuplicate(Q, &user->M); CHKERRQ(ierr);
+
+  // Initialize CEED
+  CeedInit(ceedresource, &ceed);
+
+  // Setup libCEED's objects
+  ierr = PetscMalloc1(1, &ceeddata); CHKERRQ(ierr);
+  ierr = SetupLibceed(dm, ceed, degree, topodim, qextra,
+                      ncompx, ncompq, user, ceeddata, &ctxSetup); CHKERRQ(ierr);
+
+  // Set up PETSc context
+  // Set up units structure
+  units->meter = meter;
+  units->second = second;
+  units->mpersquareds = mpersquareds;
+
+  // Set up user structure
+  user->comm = comm;
+  user->outputfreq = outputfreq;
+  user->contsteps = contsteps;
+  user->units = units;
+  user->dm = dm;
+  user->dmviz = dmviz;
+  user->interpviz = interpviz;
+  user->ceed = ceed;
+
+  // Calculate qdata and ICs
+  // Set up state global and local vectors
+  ierr = VecZeroEntries(Q); CHKERRQ(ierr);
+  ierr = VectorPlacePetscVec(user->q0ceed, Qloc); CHKERRQ(ierr);
+
+  // Apply Setup Ceed Operators
+  ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
+  ierr = VectorPlacePetscVec(ceeddata->xcorners, Xloc); CHKERRQ(ierr);
+  CeedOperatorApply(ceeddata->op_setup, ceeddata->xcorners, ceeddata->qdata,
+                    CEED_REQUEST_IMMEDIATE);
+  ierr = ComputeLumpedMassMatrix(ceed, dm, ceeddata->Erestrictq,
+                                 ceeddata->basisq, ceeddata->Erestrictqdi,
+                                 ceeddata->qdata,
+                                 user->M); CHKERRQ(ierr);
+
+  // Apply IC operator and fix multiplicity of initial state vector
+  ierr = ICs_FixMultiplicity(ceeddata->op_ics, ceeddata->xcorners, user->q0ceed,
+                             dm, Qloc, Q, ceeddata->Erestrictq,
+                             &ctxSetup, 0.0);
+
+  MPI_Comm_rank(comm, &rank);
+  if (!rank) {ierr = PetscMkdir(user->outputfolder); CHKERRQ(ierr);}
+  // Gather initial Q values
+  // In case of continuation of simulation, set up initial values from binary file
+  if (contsteps) { // continue from existent solution
+    PetscViewer viewer;
+    char filepath[PETSC_MAX_PATH_LEN];
+    // Read input
+    ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin",
+                         user->outputfolder);
+    CHKERRQ(ierr);
+    ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
+    CHKERRQ(ierr);
+    ierr = VecLoad(Q, viewer); CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  }
+  ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
+
+  // Set up the MatShell for the associated Jacobian operator
+  ierr = MatCreateShell(PETSC_COMM_SELF, 3*odofs, 3*odofs, PETSC_DETERMINE,
+                        PETSC_DETERMINE, user, &J); CHKERRQ(ierr);
+  // Set the MatShell user context
+//  ierr = MatShellSetContext(J, user); CHKERRQ(ierr);
+  // Set the MatShell operation needed for the Jacobian
+  ierr = MatShellSetOperation(J, MATOP_MULT,
+                              (void (*)(void))ApplyJacobian_SW); CHKERRQ(ierr);
+
+  // Set up the MatShell for the associated Jacobian preconditioning operator
+//  MatCreateShell(PETSC_COMM_SELF, lsize, lsize, PETSC_DETERMINE,
+//                 PETSC_DETERMINE, (void*)&user, &Jpre);
+//  MatShellSetOperation(Jpre, MATOP_MATMAT_MULT, (void(*)(void))PreJacobianProductMat);
+
+  // Create and setup TS
+  ierr = TSCreate(comm, &ts); CHKERRQ(ierr);
+  ierr = TSSetDM(ts, dm); CHKERRQ(ierr);
+  ierr = TSSetType(ts,TSARKIMEX); CHKERRQ(ierr);
+  ierr = TSSetIFunction(ts, NULL, FormIFunction_SW, &user); CHKERRQ(ierr);
+  ierr = TSSetRHSFunction(ts, NULL, FormRHSFunction_SW, &user); CHKERRQ(ierr);
+  // TODO: Check TSSetIJacobian
+  ierr = DMSetMatType(dm, MATSHELL); CHKERRQ(ierr);
+  ierr = TSSetIJacobian(ts, J, J, FormJacobian_SW, &user); CHKERRQ(ierr);
+
+  // Other TS options
+  ierr = TSSetMaxTime(ts, 500. * units->second); CHKERRQ(ierr);
+  ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
+  ierr = TSSetTimeStep(ts, 1.e-2 * units->second); CHKERRQ(ierr);
+  if (test) {ierr = TSSetMaxSteps(ts, 1); CHKERRQ(ierr);}
+  ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
+  ierr = TSAdaptSetStepLimits(adapt,
+                              1.e-12 * units->second,
+                              1.e2 * units->second); CHKERRQ(ierr);
+  ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
+  if (!contsteps) { // print initial condition
+    if (!test) {
+      ierr = TSMonitor_SW(ts, 0, 0., Q, user); CHKERRQ(ierr);
+    }
+  } else { // continue from time of last output
+    PetscReal time;
+    PetscInt count;
+    PetscViewer viewer;
+    char filepath[PETSC_MAX_PATH_LEN];
+    ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.bin",
+                         user->outputfolder); CHKERRQ(ierr);
+    ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
+    CHKERRQ(ierr);
+    ierr = PetscViewerBinaryRead(viewer, &time, 1, &count, PETSC_REAL);
+    CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+    ierr = TSSetTime(ts, time * user->units->second); CHKERRQ(ierr);
+  }
+  if (!test) {
+    ierr = TSMonitorSet(ts, TSMonitor_SW, user, NULL); CHKERRQ(ierr);
+  }
+
+  // Solve
+  start = MPI_Wtime();
+  ierr = PetscBarrier((PetscObject)ts); CHKERRQ(ierr);
+  ierr = TSSolve(ts, Q); CHKERRQ(ierr);
+  cpu_time_used = MPI_Wtime() - start;
+  ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
+  ierr = MPI_Allreduce(MPI_IN_PLACE, &cpu_time_used, 1, MPI_DOUBLE, MPI_MIN,
+                       comm); CHKERRQ(ierr);
+  if (!test) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                       "Time taken for solution: %g\n",
+                       (double)cpu_time_used); CHKERRQ(ierr);
+  }
+
+  // Output Statistics
+  ierr = TSGetStepNumber(ts,&steps); CHKERRQ(ierr);
+  if (!test) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                       "Time integrator took %D time steps to reach final time %g\n",
+                       steps,(double)ftime); CHKERRQ(ierr);
+  }
+
+
+  // Clean up libCEED
+  CeedVectorDestroy(&ceeddata->qdata);
+  CeedVectorDestroy(&user->qceed);
+  CeedVectorDestroy(&user->fceed);
+  CeedVectorDestroy(&user->gceed);
+  CeedVectorDestroy(&user->jceed);
+  CeedVectorDestroy(&ceeddata->xcorners);
+  CeedBasisDestroy(&ceeddata->basisq);
+  CeedBasisDestroy(&ceeddata->basisx);
+  CeedElemRestrictionDestroy(&ceeddata->Erestrictq);
+  CeedElemRestrictionDestroy(&ceeddata->Erestrictx);
+  CeedElemRestrictionDestroy(&ceeddata->Erestrictqdi);
+  CeedQFunctionDestroy(&ceeddata->qf_setup);
+  CeedQFunctionDestroy(&ceeddata->qf_ics);
+  CeedQFunctionDestroy(&ceeddata->qf_explicit);
+  CeedQFunctionDestroy(&ceeddata->qf_implicit);
+  CeedQFunctionDestroy(&ceeddata->qf_jacobian);
+  CeedOperatorDestroy(&ceeddata->op_setup);
+  CeedOperatorDestroy(&ceeddata->op_ics);
+  CeedOperatorDestroy(&ceeddata->op_explicit);
+  CeedOperatorDestroy(&ceeddata->op_implicit);
+  CeedOperatorDestroy(&ceeddata->op_jacobian);
+  CeedDestroy(&ceed);
+
+  // Clean up PETSc
+  ierr = VecDestroy(&Q); CHKERRQ(ierr);
+  ierr = VecDestroy(&user->M); CHKERRQ(ierr);
+  ierr = MatDestroy(&interpviz); CHKERRQ(ierr);
+  ierr = DMDestroy(&dmviz); CHKERRQ(ierr);
+  ierr = TSDestroy(&ts); CHKERRQ(ierr);
+  ierr = DMDestroy(&dm); CHKERRQ(ierr);
+  ierr = MatDestroy(&J);CHKERRQ(ierr);
+  ierr = PetscFree(units); CHKERRQ(ierr);
+  ierr = PetscFree(user); CHKERRQ(ierr);
+  return PetscFinalize();
+}
