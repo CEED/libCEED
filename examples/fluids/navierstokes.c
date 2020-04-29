@@ -31,11 +31,11 @@
 //     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
 //     ./navierstokes -ceed /gpu/occa -problem advection -degree 1
 //
-//TESTARGS -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3
+//TESTARGS -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -vec_view
 //
-//TESTARGS -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha
+//TESTARGS -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -vec_view
 //
-//TESTARGS -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -stab supg
+//TESTARGS -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -stab supg -vec_view
 
 /// @file
 /// Navier-Stokes example using PETSc
@@ -1293,6 +1293,8 @@ int main(int argc, char **argv) {
                        "Time integrator took %D time steps to reach final time %g\n",
                        steps, (double)ftime); CHKERRQ(ierr);
   }
+  // Output numerical values from command line
+  ierr = VecViewFromOptions(Q, NULL, "-vec_view"); CHKERRQ(ierr);
 
   // Clean up libCEED
   CeedVectorDestroy(&qdata);
