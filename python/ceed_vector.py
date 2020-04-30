@@ -17,215 +17,275 @@
 from _ceed_cffi import ffi, lib
 import tempfile
 import numpy as np
+import contextlib
 from .ceed_constants import MEM_HOST, COPY_VALUES, NORM_2
 
 # ------------------------------------------------------------------------------
+
+
 class Vector():
-  """Ceed Vector: storing and manipulating vectors."""
+    """Ceed Vector: storing and manipulating vectors."""
 
-  # Attributes
-  _ceed = ffi.NULL
-  _pointer = ffi.NULL
+    # Attributes
+    _ceed = ffi.NULL
+    _pointer = ffi.NULL
 
-  # Constructor
-  def __init__(self, ceed, size):
-    # CeedVector object
-    self._pointer = ffi.new("CeedVector *")
+    # Constructor
+    def __init__(self, ceed, size):
+        # CeedVector object
+        self._pointer = ffi.new("CeedVector *")
 
-    # Reference to Ceed
-    self._ceed = ceed
+        # Reference to Ceed
+        self._ceed = ceed
 
-    # libCEED call
-    lib.CeedVectorCreate(self._ceed._pointer[0], size, self._pointer)
+        # libCEED call
+        lib.CeedVectorCreate(self._ceed._pointer[0], size, self._pointer)
 
-  # Destructor
-  def __del__(self):
-    # libCEED call
-    lib.CeedVectorDestroy(self._pointer)
+    # Destructor
+    def __del__(self):
+        # libCEED call
+        lib.CeedVectorDestroy(self._pointer)
 
-  # Representation
-  def __repr__(self):
-    return "<CeedVector instance at " + hex(id(self)) + ">"
+    # Representation
+    def __repr__(self):
+        return "<CeedVector instance at " + hex(id(self)) + ">"
 
-  # String conversion for print() to stdout
-  def __str__(self):
-    """View a Vector via print()."""
+    # String conversion for print() to stdout
+    def __str__(self):
+        """View a Vector via print()."""
 
-    # libCEED call
-    fmt = ffi.new("char[]", "%f".encode('ascii'))
-    with tempfile.NamedTemporaryFile() as key_file:
-      with open(key_file.name, 'r+') as stream_file:
-        stream = ffi.cast("FILE *", stream_file)
+        # libCEED call
+        fmt = ffi.new("char[]", "%f".encode('ascii'))
+        with tempfile.NamedTemporaryFile() as key_file:
+            with open(key_file.name, 'r+') as stream_file:
+                stream = ffi.cast("FILE *", stream_file)
 
-        lib.CeedVectorView(self._pointer[0], fmt, stream)
+                lib.CeedVectorView(self._pointer[0], fmt, stream)
 
-        stream_file.seek(0)
-        out_string = stream_file.read()
+                stream_file.seek(0)
+                out_string = stream_file.read()
 
-    return out_string
+        return out_string
 
-  # Set Vector's data array
-  def set_array(self, array, memtype=MEM_HOST, cmode=COPY_VALUES):
-    """Set the array used by a Vector, freeing any previously allocated
-       array if applicable.
+    # Set Vector's data array
+    def set_array(self, array, memtype=MEM_HOST, cmode=COPY_VALUES):
+        """Set the array used by a Vector, freeing any previously allocated
+           array if applicable.
 
-       Args:
-         *array: Numpy array to be used
-         **memtype: memory type of the array being passed, default CEED_MEM_HOST
-         **cmode: copy mode for the array, default CEED_COPY_VALUES"""
+           Args:
+             *array: Numpy array to be used
+             **memtype: memory type of the array being passed, default CEED_MEM_HOST
+             **cmode: copy mode for the array, default CEED_COPY_VALUES"""
 
-    # Setup the numpy array for the libCEED call
-    array_pointer = ffi.new("CeedScalar *")
-    array_pointer = ffi.cast("CeedScalar *", array.__array_interface__['data'][0])
+        # Setup the numpy array for the libCEED call
+        array_pointer = ffi.new("CeedScalar *")
+        array_pointer = ffi.cast(
+            "CeedScalar *",
+            array.__array_interface__['data'][0])
 
-    # libCEED call
-    lib.CeedVectorSetArray(self._pointer[0], memtype, cmode, array_pointer)
+        # libCEED call
+        lib.CeedVectorSetArray(self._pointer[0], memtype, cmode, array_pointer)
 
-  # Get Vector's data array
-  def get_array(self, memtype=MEM_HOST):
-    """Get read/write access to a Vector via the specified memory type.
+    # Get Vector's data array
+    def get_array(self, memtype=MEM_HOST):
+        """Get read/write access to a Vector via the specified memory type.
 
-       Args:
-         **memtype: memory type of the array being passed, default CEED_MEM_HOST
+           Args:
+             **memtype: memory type of the array being passed, default CEED_MEM_HOST
 
-       Returns:
-         *array: Numpy array"""
+           Returns:
+             *array: Numpy array"""
 
-    # Retrieve the length of the array
-    length_pointer = ffi.new("CeedInt *")
-    lib.CeedVectorGetLength(self._pointer[0], length_pointer)
+        # Retrieve the length of the array
+        length_pointer = ffi.new("CeedInt *")
+        lib.CeedVectorGetLength(self._pointer[0], length_pointer)
 
-    # Setup the pointer's pointer
-    array_pointer = ffi.new("CeedScalar **")
+        # Setup the pointer's pointer
+        array_pointer = ffi.new("CeedScalar **")
 
-    # libCEED call
-    lib.CeedVectorGetArray(self._pointer[0], memtype, array_pointer)
+        # libCEED call
+        lib.CeedVectorGetArray(self._pointer[0], memtype, array_pointer)
 
-    # Create buffer object from returned pointer
-    buff = ffi.buffer(array_pointer[0], ffi.sizeof("CeedScalar") * length_pointer[0])
-    # Return numpy array created from buffer
-    return np.frombuffer(buff, dtype="float64")
+        # Create buffer object from returned pointer
+        buff = ffi.buffer(
+            array_pointer[0],
+            ffi.sizeof("CeedScalar") *
+            length_pointer[0])
+        # Return numpy array created from buffer
+        return np.frombuffer(buff, dtype="float64")
 
-  # Get Vector's data array in read-only mode
-  def get_array_read(self, memtype=MEM_HOST):
-    """Get read-only access to a Vector via the specified memory type.
+    # Get Vector's data array in read-only mode
+    def get_array_read(self, memtype=MEM_HOST):
+        """Get read-only access to a Vector via the specified memory type.
 
-       Args:
-         **memtype: memory type of the array being passed, default CEED_MEM_HOST
+           Args:
+             **memtype: memory type of the array being passed, default CEED_MEM_HOST
 
-       Returns:
-         *array: Numpy array"""
+           Returns:
+             *array: Numpy array"""
 
-    # Retrieve the length of the array
-    length_pointer = ffi.new("CeedInt *")
-    lib.CeedVectorGetLength(self._pointer[0], length_pointer)
+        # Retrieve the length of the array
+        length_pointer = ffi.new("CeedInt *")
+        lib.CeedVectorGetLength(self._pointer[0], length_pointer)
 
-    # Setup the pointer's pointer
-    array_pointer = ffi.new("CeedScalar **")
+        # Setup the pointer's pointer
+        array_pointer = ffi.new("CeedScalar **")
 
-    # libCEED call
-    lib.CeedVectorGetArrayRead(self._pointer[0], memtype, array_pointer)
+        # libCEED call
+        lib.CeedVectorGetArrayRead(self._pointer[0], memtype, array_pointer)
 
-    # Create buffer object from returned pointer
-    buff = ffi.buffer(array_pointer[0], ffi.sizeof("CeedScalar") * length_pointer[0])
-    # Create numpy array from buffer
-    ret = np.frombuffer(buff, dtype="float64")
-    # Make the numpy array read-only
-    ret.flags['WRITEABLE'] = False
-    return ret
+        # Create buffer object from returned pointer
+        buff = ffi.buffer(
+            array_pointer[0],
+            ffi.sizeof("CeedScalar") *
+            length_pointer[0])
+        # Create numpy array from buffer
+        ret = np.frombuffer(buff, dtype="float64")
+        # Make the numpy array read-only
+        ret.flags['WRITEABLE'] = False
+        return ret
 
-  # Restore the Vector's data array
-  def restore_array(self):
-    """Restore an array obtained using get_array()."""
+    # Restore the Vector's data array
+    def restore_array(self):
+        """Restore an array obtained using get_array()."""
 
-    # Setup the pointer's pointer
-    array_pointer = ffi.new("CeedScalar **")
+        # Setup the pointer's pointer
+        array_pointer = ffi.new("CeedScalar **")
 
-    # libCEED call
-    lib.CeedVectorRestoreArray(self._pointer[0], array_pointer)
+        # libCEED call
+        lib.CeedVectorRestoreArray(self._pointer[0], array_pointer)
 
-  # Restore an array obtained using getArrayRead
-  def restore_array_read(self):
-    """Restore an array obtained using get_array_read()."""
+    # Restore an array obtained using getArrayRead
+    def restore_array_read(self):
+        """Restore an array obtained using get_array_read()."""
 
-    # Setup the pointer's pointer
-    array_pointer = ffi.new("CeedScalar **")
+        # Setup the pointer's pointer
+        array_pointer = ffi.new("CeedScalar **")
 
-    # libCEED call
-    lib.CeedVectorRestoreArrayRead(self._pointer[0], array_pointer)
+        # libCEED call
+        lib.CeedVectorRestoreArrayRead(self._pointer[0], array_pointer)
 
-  # Get the length of a Vector
-  def get_length(self):
-    """Get the length of a Vector.
+    @contextlib.contextmanager
+    def array(self, *shape):
+        """Context manager for array access.
 
-       Returns:
-         length: length of the Vector"""
+        Args:
+          shape (tuple): shape of returned numpy.array
 
-    length_pointer = ffi.new("CeedInt *")
+        Returns:
+          np.array: writable view of vector
 
-    # libCEED call
-    lib.CeedVectorGetLength(self._pointer[0], length_pointer)
+        Examples:
+          Constructing the identity inside a libceed.Vector:
 
-    return length_pointer[0]
+          >>> vec = ceed.Vector(16)
+          >>> with vec.array(4, 4) as x:
+          >>>     x[...] = np.eye(4)
+        """
+        x = self.get_array()
+        if shape:
+            x = x.reshape(shape)
+        yield x
+        self.restore_array()
 
-  # Get the length of a Vector
-  def __len__(self):
-    """Get the length of a Vector.
+    @contextlib.contextmanager
+    def array_read(self, *shape):
+        """Context manager for read-only array access.
 
-       Returns:
-         length: length of the Vector"""
+        Args:
+          shape (tuple): shape of returned numpy.array
 
-    length_pointer = ffi.new("CeedInt *")
+        Returns:
+          np.array: read-only view of vector
 
-    # libCEED call
-    lib.CeedVectorGetLength(self._pointer[0], length_pointer)
+        Examples:
+          Constructing the identity inside a libceed.Vector:
 
-    return length_pointer[0]
+          >>> vec = ceed.Vector(6)
+          >>> vec.set_value(1.3)
+          >>> with vec.array_read(2, 3) as x:
+          >>>     print(x)
+        """
+        x = self.get_array_read()
+        if shape:
+            x = x.reshape(shape)
+        yield x
+        self.restore_array_read()
 
-  # Set the Vector to a given constant value
-  def set_value(self, value):
-    """Set the Vector to a constant value.
+    # Get the length of a Vector
+    def get_length(self):
+        """Get the length of a Vector.
 
-       Args:
-         value: value to be used"""
+           Returns:
+             length: length of the Vector"""
 
-    # libCEED call
-    lib.CeedVectorSetValue(self._pointer[0], value)
+        length_pointer = ffi.new("CeedInt *")
 
-  # Sync the Vector to a specified memtype
-  def sync_array(self, memtype=MEM_HOST):
-    """Sync the Vector to a specified memtype.
+        # libCEED call
+        lib.CeedVectorGetLength(self._pointer[0], length_pointer)
 
-       Args:
-         **memtype: memtype to be synced"""
+        return length_pointer[0]
 
-    # libCEED call
-    lib.CeedVectorSyncArray(self._pointer[0], memtype)
+    # Get the length of a Vector
+    def __len__(self):
+        """Get the length of a Vector.
 
-  # Compute the norm of a vector
-  def norm(self, normtype=NORM_2):
-    """Get the norm of a Vector.
+           Returns:
+             length: length of the Vector"""
 
-       Args:
-         **normtype: type of norm to be computed"""
+        length_pointer = ffi.new("CeedInt *")
 
-    norm_pointer = ffi.new("CeedScalar *")
+        # libCEED call
+        lib.CeedVectorGetLength(self._pointer[0], length_pointer)
 
-    # libCEED call
-    lib.CeedVectorNorm(self._pointer[0], normtype, norm_pointer)
+        return length_pointer[0]
 
-    return norm_pointer[0]
+    # Set the Vector to a given constant value
+    def set_value(self, value):
+        """Set the Vector to a constant value.
+
+           Args:
+             value: value to be used"""
+
+        # libCEED call
+        lib.CeedVectorSetValue(self._pointer[0], value)
+
+    # Sync the Vector to a specified memtype
+    def sync_array(self, memtype=MEM_HOST):
+        """Sync the Vector to a specified memtype.
+
+           Args:
+             **memtype: memtype to be synced"""
+
+        # libCEED call
+        lib.CeedVectorSyncArray(self._pointer[0], memtype)
+
+    # Compute the norm of a vector
+    def norm(self, normtype=NORM_2):
+        """Get the norm of a Vector.
+
+           Args:
+             **normtype: type of norm to be computed"""
+
+        norm_pointer = ffi.new("CeedScalar *")
+
+        # libCEED call
+        lib.CeedVectorNorm(self._pointer[0], normtype, norm_pointer)
+
+        return norm_pointer[0]
 
 # ------------------------------------------------------------------------------
+
+
 class _VectorWrap(Vector):
-  """Wrap a CeedVector pointer in a Vector object."""
+    """Wrap a CeedVector pointer in a Vector object."""
 
-  # Constructor
-  def __init__(self, ceed, pointer):
-    # CeedVector object
-    self._pointer = pointer
+    # Constructor
+    def __init__(self, ceed, pointer):
+        # CeedVector object
+        self._pointer = pointer
 
-    # Reference to Ceed
-    self._ceed = ceed
+        # Reference to Ceed
+        self._ceed = ceed
 
 # ------------------------------------------------------------------------------

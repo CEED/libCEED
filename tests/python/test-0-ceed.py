@@ -19,30 +19,46 @@
 
 import libceed
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Test creation and destruction of a Ceed object
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+
 def test_000(ceed_resource):
-  ceed = libceed.Ceed(ceed_resource)
+    ceed = libceed.Ceed(ceed_resource)
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Test return of Ceed backend prefered memory type
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+
 def test_001(ceed_resource):
-  ceed = libceed.Ceed(ceed_resource)
+    ceed = libceed.Ceed(ceed_resource)
 
-  memtype = ceed.get_preferred_memtype()
+    memtype = ceed.get_preferred_memtype()
 
-  assert memtype != "error"
+    assert memtype != "error"
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Test return of a CEED object full resource name
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+
 def test_002(ceed_resource):
-  ceed = libceed.Ceed(ceed_resource)
+    ceed = libceed.Ceed(ceed_resource)
 
-  resource = ceed.get_resource()
+    resource = ceed.get_resource()
 
-  assert resource == ceed_resource
+    assert resource == ceed_resource
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# Test viewing of a CEED object
+# -------------------------------------------------------------------------------
+
+
+def test_003(ceed_resource):
+    ceed = libceed.Ceed(ceed_resource)
+
+    print(ceed)
+
+# -------------------------------------------------------------------------------

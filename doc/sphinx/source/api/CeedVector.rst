@@ -3,6 +3,9 @@
 CeedVector
 **************************************
 
+CeedVectors constitute the main data structure and serve as input/output for
+CeedOperators.
+
 Basic vector operations
 ======================================
 

@@ -268,7 +268,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
     CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = 1;
     //dbg("[CeedBasis][Apply] CEED_EVAL_INTERP");
     CeedScalar tmp[2][ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
-    CeedScalar *interp1d;
+    const CeedScalar *interp1d;
     ierr = CeedBasisGetInterp1D(basis, &interp1d); CeedChk(ierr);
     for (CeedInt d=0; d<dim; d++) {
       ierr = CeedTensorContract_Occa(pre, P, post, Q,
@@ -289,7 +289,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
     CeedScalar tmp[2][ncomp*Q*CeedIntPow(P>Q?P:Q, dim-1)];
     for (CeedInt p=0; p<dim; p++) {
       CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = 1;
-      CeedScalar *interp1d, *grad1d;
+      const CeedScalar *interp1d, *grad1d;
       ierr = CeedBasisGetInterp1D(basis, &interp1d); CeedChk(ierr);
       ierr = CeedBasisGetGrad1D(basis, &grad1d); CeedChk(ierr);
       for (CeedInt d=0; d<dim; d++) {
@@ -318,7 +318,7 @@ static int CeedBasisApply_Occa(CeedBasis basis, CeedInt nelem,
     CeedInt Q = Q1d;
     for (CeedInt d=0; d<dim; d++) {
       const CeedInt pre = CeedIntPow(Q, dim-d-1), post = CeedIntPow(Q, d);
-      CeedScalar *qweight1d;
+      const CeedScalar *qweight1d;
       ierr = CeedBasisGetQWeights(basis, &qweight1d); CeedChk(ierr);
       for (CeedInt i=0; i<pre; i++) {
         for (CeedInt j=0; j<Q; j++) {

@@ -150,12 +150,12 @@ static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s,
 /**
   @brief View an array stored in a CeedBasis
 
-  @param name      Name of array
-  @param fpformat  Printing format
-  @param m         Number of rows in array
-  @param n         Number of columns in array
-  @param a         Array to be viewed
-  @param stream    Stream to view to, e.g., stdout
+  @param[in] name      Name of array
+  @param[in] fpformat  Printing format
+  @param[in] m         Number of rows in array
+  @param[in] n         Number of columns in array
+  @param[in] a         Array to be viewed
+  @param[in] stream    Stream to view to, e.g., stdout
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -259,227 +259,6 @@ int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed) {
 **/
 int CeedBasisGetTensorStatus(CeedBasis basis, bool *tensor) {
   *tensor = basis->tensorbasis;
-  return 0;
-}
-
-/**
-  @brief Get dimension for given CeedBasis
-
-  @param basis     CeedBasis
-  @param[out] dim  Variable to store dimension of basis
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim) {
-  *dim = basis->dim;
-  return 0;
-}
-
-/**
-  @brief Get number of components for given CeedBasis
-
-  @param basis         CeedBasis
-  @param[out] numcomp  Variable to store number of components of basis
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *numcomp) {
-  *numcomp = basis->ncomp;
-  return 0;
-}
-
-/**
-  @brief Get total number of nodes (in 1 dimension) of a CeedBasis
-
-  @param basis     CeedBasis
-  @param[out] P1d  Variable to store number of nodes
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P1d) {
-  if (!basis->tensorbasis)
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, 1, "Cannot supply P1d for non-tensor basis");
-  // LCOV_EXCL_STOP
-
-  *P1d = basis->P1d;
-  return 0;
-}
-
-/**
-  @brief Get total number of quadrature points (in 1 dimension) of a CeedBasis
-
-  @param basis     CeedBasis
-  @param[out] Q1d  Variable to store number of quadrature points
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q1d) {
-  if (!basis->tensorbasis)
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, 1, "Cannot supply Q1d for non-tensor basis");
-  // LCOV_EXCL_STOP
-
-  *Q1d = basis->Q1d;
-  return 0;
-}
-
-/**
-  @brief Get reference coordinates of quadrature points (in dim dimensions)
-         of a CeedBasis
-
-  @param basis      CeedBasis
-  @param[out] qref  Variable to store reference coordinates of quadrature points
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetQRef(CeedBasis basis, CeedScalar **qref) {
-  *qref = basis->qref1d;
-  return 0;
-}
-
-/**
-  @brief Get quadrature weights of quadrature points (in dim dimensions)
-         of a CeedBasis
-
-  @param basis         CeedBasis
-  @param[out] qweight  Variable to store quadrature weights
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetQWeights(CeedBasis basis, CeedScalar **qweight) {
-  *qweight = basis->qweight1d;
-  return 0;
-}
-
-/**
-  @brief Get interpolation matrix of a CeedBasis
-
-  @param basis        CeedBasis
-  @param[out] interp  Variable to store interpolation matrix
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetInterp(CeedBasis basis, CeedScalar **interp) {
-  if (!basis->interp && basis->tensorbasis) {
-    // Allocate
-    int ierr;
-    ierr = CeedMalloc(basis->Q*basis->P, &basis->interp); CeedChk(ierr);
-
-    // Initialize
-    for (CeedInt i=0; i<basis->Q*basis->P; i++)
-      basis->interp[i] = 1.0;
-
-    // Calculate
-    for (CeedInt d=0; d<basis->dim; d++)
-      for (CeedInt qpt=0; qpt<basis->Q; qpt++)
-        for (CeedInt node=0; node<basis->P; node++) {
-          CeedInt p = (node / CeedIntPow(basis->P1d, d)) % basis->P1d;
-          CeedInt q = (qpt / CeedIntPow(basis->Q1d, d)) % basis->Q1d;
-          basis->interp[qpt*(basis->P)+node] *= basis->interp1d[q*basis->P1d+p];
-        }
-  }
-
-  *interp = basis->interp;
-
-  return 0;
-}
-
-/**
-  @brief Get 1D interpolation matrix of a tensor product CeedBasis
-
-  @param basis          CeedBasis
-  @param[out] interp1d  Variable to store interpolation matrix
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetInterp1D(CeedBasis basis, CeedScalar **interp1d) {
-  if (!basis->tensorbasis)
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, 1, "CeedBasis is not a tensor product basis.");
-  // LCOV_EXCL_STOP
-
-  *interp1d = basis->interp1d;
-
-  return 0;
-}
-
-/**
-  @brief Get gradient matrix of a CeedBasis
-
-  @param basis      CeedBasis
-  @param[out] grad  Variable to store gradient matrix
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetGrad(CeedBasis basis, CeedScalar **grad) {
-  if (!basis->grad && basis->tensorbasis) {
-    // Allocate
-    int ierr;
-    ierr = CeedMalloc(basis->dim*basis->Q*basis->P, &basis->grad);
-    CeedChk(ierr);
-
-    // Initialize
-    for (CeedInt i=0; i<basis->dim*basis->Q*basis->P; i++)
-      basis->grad[i] = 1.0;
-
-    // Calculate
-    for (CeedInt d=0; d<basis->dim; d++)
-      for (CeedInt i=0; i<basis->dim; i++)
-        for (CeedInt qpt=0; qpt<basis->Q; qpt++)
-          for (CeedInt node=0; node<basis->P; node++) {
-            CeedInt p = (node / CeedIntPow(basis->P1d, d)) % basis->P1d;
-            CeedInt q = (qpt / CeedIntPow(basis->Q1d, d)) % basis->Q1d;
-            if (i == d)
-              basis->grad[(i*basis->Q+qpt)*(basis->P)+node] *=
-                basis->grad1d[q*basis->P1d+p];
-            else
-              basis->grad[(i*basis->Q+qpt)*(basis->P)+node] *=
-                basis->interp1d[q*basis->P1d+p];
-          }
-  }
-
-  *grad = basis->grad;
-
-  return 0;
-}
-
-/**
-  @brief Get 1D gradient matrix of a tensor product CeedBasis
-
-  @param basis        CeedBasis
-  @param[out] grad1d  Variable to store gradient matrix
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetGrad1D(CeedBasis basis, CeedScalar **grad1d) {
-  if (!basis->tensorbasis)
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, 1, "CeedBasis is not a tensor product basis.");
-  // LCOV_EXCL_STOP
-
-  *grad1d = basis->grad1d;
-
   return 0;
 }
 
@@ -858,36 +637,6 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
 }
 
 /**
-  @brief Get total number of nodes (in dim dimensions) of a CeedBasis
-
-  @param basis   CeedBasis
-  @param[out] P  Variable to store number of nodes
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Utility
-**/
-int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
-  *P = basis->P;
-  return 0;
-}
-
-/**
-  @brief Get total number of quadrature points (in dim dimensions) of a CeedBasis
-
-  @param basis   CeedBasis
-  @param[out] Q  Variable to store number of quadrature points
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Utility
-**/
-int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
-  *Q = basis->Q;
-  return 0;
-}
-
-/**
   @brief Apply basis evaluation from nodes to quadrature points or vice versa
 
   @param basis   CeedBasis to evaluate
@@ -932,6 +681,257 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
                      "incompatible with basis dimensions");
 
   ierr = basis->Apply(basis, nelem, tmode, emode, u, v); CeedChk(ierr);
+  return 0;
+}
+
+/**
+  @brief Get dimension for given CeedBasis
+
+  @param basis     CeedBasis
+  @param[out] dim  Variable to store dimension of basis
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim) {
+  *dim = basis->dim;
+  return 0;
+}
+
+/**
+  @brief Get number of components for given CeedBasis
+
+  @param basis         CeedBasis
+  @param[out] numcomp  Variable to store number of components of basis
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *numcomp) {
+  *numcomp = basis->ncomp;
+  return 0;
+}
+
+/**
+  @brief Get total number of nodes (in dim dimensions) of a CeedBasis
+
+  @param basis   CeedBasis
+  @param[out] P  Variable to store number of nodes
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
+  *P = basis->P;
+  return 0;
+}
+
+/**
+  @brief Get total number of nodes (in 1 dimension) of a CeedBasis
+
+  @param basis     CeedBasis
+  @param[out] P1d  Variable to store number of nodes
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P1d) {
+  if (!basis->tensorbasis)
+    // LCOV_EXCL_START
+    return CeedError(basis->ceed, 1, "Cannot supply P1d for non-tensor basis");
+  // LCOV_EXCL_STOP
+
+  *P1d = basis->P1d;
+  return 0;
+}
+
+/**
+  @brief Get total number of quadrature points (in dim dimensions) of a CeedBasis
+
+  @param basis   CeedBasis
+  @param[out] Q  Variable to store number of quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
+  *Q = basis->Q;
+  return 0;
+}
+
+/**
+  @brief Get total number of quadrature points (in 1 dimension) of a CeedBasis
+
+  @param basis     CeedBasis
+  @param[out] Q1d  Variable to store number of quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q1d) {
+  if (!basis->tensorbasis)
+    // LCOV_EXCL_START
+    return CeedError(basis->ceed, 1, "Cannot supply Q1d for non-tensor basis");
+  // LCOV_EXCL_STOP
+
+  *Q1d = basis->Q1d;
+  return 0;
+}
+
+/**
+  @brief Get reference coordinates of quadrature points (in dim dimensions)
+         of a CeedBasis
+
+  @param basis      CeedBasis
+  @param[out] qref  Variable to store reference coordinates of quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetQRef(CeedBasis basis, const CeedScalar **qref) {
+  *qref = basis->qref1d;
+  return 0;
+}
+
+/**
+  @brief Get quadrature weights of quadrature points (in dim dimensions)
+         of a CeedBasis
+
+  @param basis         CeedBasis
+  @param[out] qweight  Variable to store quadrature weights
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetQWeights(CeedBasis basis, const CeedScalar **qweight) {
+  *qweight = basis->qweight1d;
+  return 0;
+}
+
+/**
+  @brief Get interpolation matrix of a CeedBasis
+
+  @param basis        CeedBasis
+  @param[out] interp  Variable to store interpolation matrix
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp) {
+  if (!basis->interp && basis->tensorbasis) {
+    // Allocate
+    int ierr;
+    ierr = CeedMalloc(basis->Q*basis->P, &basis->interp); CeedChk(ierr);
+
+    // Initialize
+    for (CeedInt i=0; i<basis->Q*basis->P; i++)
+      basis->interp[i] = 1.0;
+
+    // Calculate
+    for (CeedInt d=0; d<basis->dim; d++)
+      for (CeedInt qpt=0; qpt<basis->Q; qpt++)
+        for (CeedInt node=0; node<basis->P; node++) {
+          CeedInt p = (node / CeedIntPow(basis->P1d, d)) % basis->P1d;
+          CeedInt q = (qpt / CeedIntPow(basis->Q1d, d)) % basis->Q1d;
+          basis->interp[qpt*(basis->P)+node] *= basis->interp1d[q*basis->P1d+p];
+        }
+  }
+
+  *interp = basis->interp;
+
+  return 0;
+}
+
+/**
+  @brief Get 1D interpolation matrix of a tensor product CeedBasis
+
+  @param basis          CeedBasis
+  @param[out] interp1d  Variable to store interpolation matrix
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp1d) {
+  if (!basis->tensorbasis)
+    // LCOV_EXCL_START
+    return CeedError(basis->ceed, 1, "CeedBasis is not a tensor product basis.");
+  // LCOV_EXCL_STOP
+
+  *interp1d = basis->interp1d;
+
+  return 0;
+}
+
+/**
+  @brief Get gradient matrix of a CeedBasis
+
+  @param basis      CeedBasis
+  @param[out] grad  Variable to store gradient matrix
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad) {
+  if (!basis->grad && basis->tensorbasis) {
+    // Allocate
+    int ierr;
+    ierr = CeedMalloc(basis->dim*basis->Q*basis->P, &basis->grad);
+    CeedChk(ierr);
+
+    // Initialize
+    for (CeedInt i=0; i<basis->dim*basis->Q*basis->P; i++)
+      basis->grad[i] = 1.0;
+
+    // Calculate
+    for (CeedInt d=0; d<basis->dim; d++)
+      for (CeedInt i=0; i<basis->dim; i++)
+        for (CeedInt qpt=0; qpt<basis->Q; qpt++)
+          for (CeedInt node=0; node<basis->P; node++) {
+            CeedInt p = (node / CeedIntPow(basis->P1d, d)) % basis->P1d;
+            CeedInt q = (qpt / CeedIntPow(basis->Q1d, d)) % basis->Q1d;
+            if (i == d)
+              basis->grad[(i*basis->Q+qpt)*(basis->P)+node] *=
+                basis->grad1d[q*basis->P1d+p];
+            else
+              basis->grad[(i*basis->Q+qpt)*(basis->P)+node] *=
+                basis->interp1d[q*basis->P1d+p];
+          }
+  }
+
+  *grad = basis->grad;
+
+  return 0;
+}
+
+/**
+  @brief Get 1D gradient matrix of a tensor product CeedBasis
+
+  @param basis        CeedBasis
+  @param[out] grad1d  Variable to store gradient matrix
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad1d) {
+  if (!basis->tensorbasis)
+    // LCOV_EXCL_START
+    return CeedError(basis->ceed, 1, "CeedBasis is not a tensor product basis.");
+  // LCOV_EXCL_STOP
+
+  *grad1d = basis->grad1d;
+
   return 0;
 }
 
@@ -1035,8 +1035,10 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *qref1d,
   // Build qref1d, qweight1d
   // Set endpoints
   if (Q < 2)
+    // LCOV_EXCL_START
     return CeedError(NULL, 1,
                      "Cannot create Lobatto quadrature with Q=%d < 2 points", Q);
+  // LCOV_EXCL_STOP
   wi = 2.0/((CeedScalar)(Q*(Q-1)));
   if (qweight1d) {
     qweight1d[0] = wi;

@@ -17,6 +17,9 @@
 /// @file
 /// libCEED QFunctions for mass operator example for a vector field on the sphere using PETSc
 
+#ifndef bp4sphere_h
+#define bp4sphere_h
+
 #ifndef __CUDACC__
 #  include <math.h>
 #endif
@@ -101,7 +104,7 @@ CEED_QFUNCTION(Diff3)(void *ctx, const CeedInt Q,
                                          ug[i+(2+1*3)*Q]}
                                        };
     // Read qdata
-    const CeedScalar wJ              =   qdata[i+Q*0];
+    const CeedScalar wdetJ           =   qdata[i+Q*0];
     // -- Grad-to-Grad qdata
     // ---- dXdx_j,k * dXdx_k,j
     const CeedScalar dXdxdXdxT[2][2] = {{qdata[i+Q*1],
@@ -112,11 +115,13 @@ CEED_QFUNCTION(Diff3)(void *ctx, const CeedInt Q,
 
     for (int k=0; k<3; k++) // k = component
       for (int j=0; j<2; j++) // j = direction of vg
-        vJ[i+(k+j*3)*Q] = wJ * (uJ[k][0] * dXdxdXdxT[0][j] +
-                                uJ[k][1] * dXdxdXdxT[1][j]);
+        vJ[i+(k+j*3)*Q] = wdetJ * (uJ[k][0] * dXdxdXdxT[0][j] +
+                                   uJ[k][1] * dXdxdXdxT[1][j]);
 
   } // End of Quadrature Point Loop
 
   return 0;
 }
 // -----------------------------------------------------------------------------
+
+#endif // bp4sphere_h

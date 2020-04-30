@@ -10,7 +10,6 @@ int main(int argc, char **argv) {
   CeedInt ind[2*ne];
 
   CeedElemRestriction r;
-  CeedInterlaceMode imode = CEED_NONINTERLACED;
 
   CeedInit(argv[1], &ceed);
 
@@ -18,7 +17,7 @@ int main(int argc, char **argv) {
     ind[2*i+0] = i;
     ind[2*i+1] = i+1;
   }
-  CeedElemRestrictionCreate(ceed, imode, ne, 2, ne+1, 1, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, ne, 2, 1, 1, ne+1, CEED_MEM_HOST,
                             CEED_USE_POINTER, ind, &r);
 
   CeedElemRestrictionView(r, stdout);

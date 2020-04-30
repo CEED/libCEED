@@ -11,8 +11,6 @@
 
       integer ne
       parameter(ne=3)
-      integer imode
-      parameter(imode=ceed_noninterlaced)
 
       integer*4 ind(4*ne)
       real*8 mm(3*ne+1)
@@ -33,7 +31,7 @@
         ind(4*i-1)=3*i-1
         ind(4*i-0)=3*i-0
       enddo
-      call ceedelemrestrictioncreate(ceed,imode,ne,4,3*ne+1,1,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,ne,4,1,1,3*ne+1,ceed_mem_host,&
      & ceed_use_pointer,ind,r,err)
 
       call ceedelemrestrictiongetmultiplicity(r,mult,err)

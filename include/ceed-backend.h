@@ -87,6 +87,12 @@ CEED_EXTERN int CeedElemRestrictionGetCeed(CeedElemRestriction rstr,
     Ceed *ceed);
 CEED_EXTERN int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
     CeedInt (*strides)[3]);
+CEED_EXTERN int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr,
+    CeedMemType mtype, const CeedInt **offsets);
+CEED_EXTERN int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr,
+    const CeedInt **offsets);
+CEED_EXTERN int CeedElemRestrictionGetStridedStatus( CeedElemRestriction rstr,
+    bool *status);
 CEED_EXTERN int CeedElemRestrictionGetBackendStridesStatus(
   CeedElemRestriction rstr, bool *status);
 CEED_EXTERN int CeedElemRestrictionGetData(CeedElemRestriction rstr,
@@ -98,17 +104,6 @@ CEED_EXTERN int CeedBasisGetCollocatedGrad(CeedBasis basis,
     CeedScalar *colograd1d);
 CEED_EXTERN int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed);
 CEED_EXTERN int CeedBasisGetTensorStatus(CeedBasis basis, bool *tensor);
-CEED_EXTERN int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim);
-CEED_EXTERN int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *numcomp);
-CEED_EXTERN int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P1d);
-CEED_EXTERN int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis,
-    CeedInt *Q1d);
-CEED_EXTERN int CeedBasisGetQRef(CeedBasis basis, CeedScalar **qref);
-CEED_EXTERN int CeedBasisGetQWeights(CeedBasis basis, CeedScalar **qweight);
-CEED_EXTERN int CeedBasisGetInterp(CeedBasis basis, CeedScalar **interp);
-CEED_EXTERN int CeedBasisGetInterp1D(CeedBasis basis, CeedScalar **interp1d);
-CEED_EXTERN int CeedBasisGetGrad(CeedBasis basis, CeedScalar **grad);
-CEED_EXTERN int CeedBasisGetGrad1D(CeedBasis basis, CeedScalar **grad1d);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void **data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void **data);
 

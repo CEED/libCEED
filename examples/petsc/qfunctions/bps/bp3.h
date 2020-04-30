@@ -17,6 +17,13 @@
 /// @file
 /// libCEED QFunctions for diffusion operator example using PETSc
 
+#ifndef bp3_h
+#define bp3_h
+
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
+
 // *****************************************************************************
 // This QFunction sets up the geometric factors required to apply the
 //   diffusion operator
@@ -174,3 +181,5 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q,
   return 0;
 }
 // -----------------------------------------------------------------------------
+
+#endif // bp3_h

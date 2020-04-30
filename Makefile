@@ -14,7 +14,8 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
--include config.mk
+CONFIG ?= config.mk
+-include $(CONFIG)
 
 ifeq (,$(filter-out undefined default,$(origin CC)))
   CC = gcc
@@ -73,22 +74,46 @@ endif
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-MARCHFLAG := $(if $(shell $(CC) -E -march=native -x c /dev/null > /dev/null 2>&1 && echo 1),-march=native,-mtune=native)
+CC_VENDOR := $(patsubst gcc%,gcc,$(firstword $(filter gcc% clang icc XL,$(shell $(CC) --version))))
+FC_VENDOR := $(firstword $(filter GNU ifort XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion)))
 
-OPT    = -O -g $(MARCHFLAG) -ffp-contract=fast -fopenmp-simd
-CFLAGS = -std=c99 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-CXXFLAGS = -std=c++11 $(OPT) -Wall -Wextra -Wno-unused-parameter -fPIC -MMD -MP
-NVCCFLAGS = -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
-# If using the IBM XL Fortran (xlf) replace FFLAGS appropriately:
-ifneq ($(filter %xlf %xlf_r,$(FC)),)
-  FFLAGS = $(OPT) -ffree-form -qpreprocess -qextname -qpic -MMD -DSOURCE_DIR='"$(abspath $(<D))/"'
-else # gfortran/Intel-style options
-  FFLAGS = -cpp     $(OPT) -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -fPIC -MMD -MP -DSOURCE_DIR='"$(abspath $(<D))/"'
-endif
+# Default extra flags by vendor
+MARCHFLAG.gcc           := -march=native
+MARCHFLAG.clang         := $(MARCHFLAG.gcc)
+MARCHFLAG.icc           :=
+OMP_SIMD_FLAG.gcc       := -fopenmp-simd
+OMP_SIMD_FLAG.clang     := $(OMP_SIMD_FLAG.gcc)
+OMP_SIMD_FLAG.icc       := -qopenmp-simd
+OPT.gcc                 := -ffp-contract=fast
+OPT.clang               := $(OPT.gcc)
+CFLAGS.gcc              := -fPIC -std=c99 -Wall -Wextra -Wno-unused-parameter -MMD -MP
+CFLAGS.clang            := $(CFLAGS.gcc)
+CFLAGS.icc              := $(CFLAGS.gcc)
+CFLAGS.XL               := -qpic -MMD
+CXXFLAGS.gcc            := -fPIC -std=c++11 -Wall -Wextra -Wno-unused-parameter -MMD -MP
+CXXFLAGS.clang          := $(CXXFLAGS.gcc)
+CXXFLAGS.icc            := $(CXXFLAGS.gcc)
+CXXFLAGS.XL             := -qpic -MMD
+FFLAGS.GNU              := -fPIC -cpp -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -MMD -MP
+FFLAGS.ifort            := -fPIC -cpp
+FFLAGS.XL               := -qpic -ffree-form -qpreprocess -qextname -MMD
 
-ifeq ($(UNDERSCORE), 1)
-  CFLAGS += -DUNDERSCORE
-endif
+# This check works with compilers that use gcc and clang.  It fails with some
+# compilers; e.g., xlc apparently ignores all options when -E is passed, thus
+# succeeds with any flags.  Users can pass MARCHFLAG=... if desired.
+cc_check_flag = $(shell $(CC) -E -Werror $(1) -x c /dev/null > /dev/null 2>&1 && echo 1)
+MARCHFLAG := $(MARCHFLAG.$(CC_VENDOR))
+MARCHFLAG := $(if $(call cc_check_flag,$(MARCHFLAG)),$(MARCHFLAG),-mcpu=native)
+MARCHFLAG := $(if $(call cc_check_flag,$(MARCHFLAG)),$(MARCHFLAG))
+
+OMP_SIMD_FLAG := $(OMP_SIMD_FLAG.$(CC_VENDOR))
+OMP_SIMD_FLAG := $(if $(call cc_check_flag,$(OMP_SIMD_FLAG)),$(OMP_SIMD_FLAG))
+
+OPT    ?= -O -g $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
+CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
+CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
+NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
+FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 
 ifeq ($(COVERAGE), 1)
   CFLAGS += --coverage
@@ -98,7 +123,7 @@ endif
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
 LDFLAGS += $(if $(ASAN),$(AFLAGS))
-CPPFLAGS = -I./include
+CPPFLAGS += -I./include
 LDLIBS = -lm
 OBJDIR := build
 LIBDIR := lib
@@ -156,9 +181,12 @@ nekexamples  := $(OBJDIR)/nek-bps
 # PETSc Examples
 petscexamples.c := $(wildcard examples/petsc/*.c)
 petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
-# Navier-Stokes Examples
-nsexamples.c := $(sort $(wildcard examples/navier-stokes/*.c))
-nsexamples  := $(nsexamples.c:examples/navier-stokes/%.c=$(OBJDIR)/ns-%)
+# Fluid Dynamics Examples
+fluidsexamples.c := $(sort $(wildcard examples/fluids/*.c))
+fluidsexamples  := $(fluidsexamples.c:examples/fluids/%.c=$(OBJDIR)/fluids-%)
+# Solid Mechanics Examples
+solidsexamples.c := $(sort $(wildcard examples/solids/*.c))
+solidsexamples   := $(solidsexamples.c:examples/solids/%.c=$(OBJDIR)/solids-%)
 
 # Backends/[ref, blocked, template, memcheck, opt, avx, occa, magma]
 ref.c          := $(sort $(wildcard backends/ref/*.c))
@@ -179,9 +207,8 @@ cuda-gen.c     := $(sort $(wildcard backends/cuda-gen/*.c))
 cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
 cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/*.cu))
 occa.c         := $(sort $(wildcard backends/occa/*.c))
-magma_allsrc.c  = $(sort $(wildcard backends/magma/*.c))
-magma_allsrc.cu = $(sort $(wildcard backends/magma/*.cu))
-
+magma.c        := $(sort $(wildcard backends/magma/*.c))
+magma.cu       := $(sort $(wildcard backends/magma/*.cu))
 
 # Output using the 216-color rules mode
 rule_file = $(notdir $(1))
@@ -204,8 +231,6 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 .SUFFIXES:
 
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
-
-.SECONDARY: $(magma_tmp.c) $(magma_tmp.cu)
 
 %/.DIR :
 	@mkdir -p $(@D)
@@ -279,8 +304,9 @@ endif
 
 # AVX Backed
 AVX_STATUS = Disabled
-AVX := $(shell $(CC) $(OPT) -v -E - < /dev/null 2>&1 | grep -c ' -mavx')
-ifeq ($(AVX),1)
+AVX_FLAG := $(if $(filter clang,$(CC_VENDOR)),+avx,-mavx)
+AVX := $(filter $(AVX_FLAG),$(shell $(CC) $(OPT) -v -E -x c /dev/null 2>&1))
+ifneq ($(AVX),)
   AVX_STATUS = Enabled
   libceed.c += $(avx.c)
   BACKENDS += /cpu/self/avx/serial /cpu/self/avx/blocked
@@ -295,7 +321,9 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
     BLAS_LIB = -lblas
   else
     ifneq ($(MKLROOT),)
-      MKL_LINK = -L$(MKLROOT)/lib/intel64 -Wl,-rpath,$(MKLROOT)/lib/intel64
+      # Some installs put everything inside an intel64 subdirectory, others not
+      MKL_LIBDIR = $(dir $(firstword $(wildcard $(MKLROOT)/lib/intel64/libmkl_sequential.* $(MKLROOT)/lib/libmkl_sequential.*)))
+      MKL_LINK = -L$(MKL_LIBDIR) -Wl,-rpath,$(MKL_LIBDIR)
     endif
     BLAS_LIB = $(MKL_LINK) -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
   endif
@@ -320,7 +348,6 @@ CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
-  $(libceeds) : CFLAGS += -I$(CUDA_DIR)/include
   $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
   $(libceeds) : LDLIBS += -lcudart -lnvrtc -lcuda
@@ -341,10 +368,10 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
   $(libceeds)           : LDLIBS += $(magma_link)
   $(tests) $(examples) : LDLIBS += $(magma_link)
-  libceed.c  += $(magma_allsrc.c)
-  libceed.cu += $(magma_allsrc.cu)
-  $(magma_allsrc.c:%.c=$(OBJDIR)/%.o) $(magma_allsrc.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-  $(magma_allsrc.cu:%.cu=$(OBJDIR)/%.o) : NVCCFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
+  libceed.c  += $(magma.c)
+  libceed.cu += $(magma.cu)
+  $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
+  $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
   BACKENDS += /gpu/magma
   endif
 endif
@@ -352,6 +379,7 @@ endif
 export BACKENDS
 
 libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o)
+$(filter %fortran.o,$(libceed.o)) : CPPFLAGS += $(if $(filter 1,$(UNDERSCORE)),-DUNDERSCORE)
 $(libceed.o): | info-backends
 $(libceed) : $(libceed.o) | $$(@D)/.DIR
 	$(call quiet,LINK) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
@@ -366,16 +394,16 @@ $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 	$(call quiet,NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
-	$(call quiet,LINK.c) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : tests/%.f90 | $$(@D)/.DIR
-	$(call quiet,LINK.F) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
-	$(call quiet,LINK.c) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
-	$(call quiet,LINK.F) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
 
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	+$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
@@ -392,13 +420,18 @@ $(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh $(libc
 
 $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(MAKE) -C examples/petsc CEED_DIR=`pwd` \
-	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
+	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	mv examples/petsc/$* $@
 
-$(OBJDIR)/ns-% : examples/navier-stokes/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	+$(MAKE) -C examples/navier-stokes CEED_DIR=`pwd` \
+$(OBJDIR)/fluids-% : examples/fluids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
+	+$(MAKE) -C examples/fluids CEED_DIR=`pwd` \
+	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
+	mv examples/fluids/$* $@
+
+$(OBJDIR)/solids-% : examples/solids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
+	+$(MAKE) -C examples/solids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
-	mv examples/navier-stokes/$* $@
+	mv examples/solids/$* $@
 
 libceed_test.o = $(test_backends.c:%.c=$(OBJDIR)/%.o)
 $(libceed_test) : $(libceed.o) $(libceed_test.o) | $$(@D)/.DIR
@@ -417,7 +450,8 @@ external_examples := \
 	$(if $(MFEM_DIR),$(mfemexamples)) \
 	$(if $(PETSC_DIR),$(petscexamples)) \
 	$(if $(NEK5K_DIR),$(nekexamples)) \
-	$(if $(PETSC_DIR),$(nsexamples))
+	$(if $(PETSC_DIR),$(fluidsexamples)) \
+	$(if $(PETSC_DIR),$(solidsexamples))
 
 allexamples = $(examples) $(external_examples)
 
@@ -496,43 +530,42 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(if $(OCCA_ON),$(INSTALL_DATA) $(OKL_KERNELS) "$(DESTDIR)$(okldir)/")
 
-.PHONY : cln clean doxygen doc lib install all print test tst prove prv prove-all junit examples style tidy okl-cache okl-clear info info-backends
+.PHONY : cln clean doxygen doc lib install all print test tst prove prv prove-all junit examples style style-c style-py tidy okl-cache okl-clear info info-backends
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
 	$(MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
 	$(MAKE) -C tests/python clean
-	$(RM) $(magma_tmp.c) $(magma_tmp.cu) backends/magma/*~ backends/magma/*.o
 	$(RM) benchmarks/*output.txt
 
 distclean : clean
-	$(RM) -r doc/html config.mk
+	$(RM) -r doc/html doc/sphinx/build $(CONFIG)
 
 DOXYGEN ?= doxygen
 doxygen :
 	$(DOXYGEN) Doxyfile
 
-# This is a real file, but it doesn't depend on the state of a file,
-# so we make it phony to force it.  We sort the shortlog by author
-# last name.
-.PHONY: AUTHORS
-AUTHORS:
-	git shortlog -s | awk '{$$1 = "placeholder"; print $$NF,$$0}' | sort | cut -d\  -f3- > $@
-
-doc-html doc-latexpdf doc-epub : doc-% : doxygen AUTHORS
+doc-html doc-latexpdf doc-epub : doc-% : doxygen
 	make -C doc/sphinx $*
 
 doc : doc-html
 
-style :
+style-c :
 	@astyle --options=.astylerc \
           $(filter-out include/ceedf.h tests/t320-basis-f.h, \
             $(wildcard include/*.h interface/*.[ch] tests/*.[ch] backends/*/*.[ch] \
-              examples/*/*.[ch] examples/*/*.[ch]pp gallery/*/*.[ch]))
+              examples/*/*/*.[ch] examples/*/*.[ch] examples/*/*.[ch]pp gallery/*/*.[ch]))
+
+AUTOPEP8 = autopep8
+style-py : AUTOPEP8_ARGS = --in-place --aggressive
+style-py :
+	@$(AUTOPEP8) $(AUTOPEP8_ARGS) $(wildcard *.py python**/*.py tests/python**/*.py examples**/*.py doc/sphinx/source**/*.py)
+
+style : style-c style-py
 
 CLANG_TIDY ?= clang-tidy
 %.c.tidy : %.c
-	$(CLANG_TIDY) $^ -- $(CPPFLAGS) --std=c99
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99
 
 tidy : $(libceed.c:%=%.tidy)
 
@@ -542,39 +575,52 @@ print :
 print-% :
 	$(info [ variable name]: $*)
 	$(info [        origin]: $(origin $*))
+	$(info [        flavor]: $(flavor $*))
 	$(info [         value]: $(value $*))
 	$(info [expanded value]: $($*))
 	$(info )
 	@true
 
-# "make configure" will autodetect any variables not passed on the
-# command line, caching the result in config.mk to be used on any
-# subsequent invocations of make.  For example,
+# "make configure" detects any variables passed on the command line or
+# previously set in config.mk, caching them in config.mk as simple
+# (:=) variables.  Variables set in config.mk or on the command line
+# take precedence over the defaults provided in the file.  Typical
+# usage:
 #
 #   make configure CC=/path/to/my/cc CUDA_DIR=/opt/cuda
 #   make
 #   make prove
+#
+# The values in the file can be updated by passing them on the command
+# line, e.g.,
+#
+#   make configure CC=/path/to/other/clang
+
+# All variables to consider for caching
+CONFIG_VARS = CC CXX FC NVCC NVCC_CXX \
+	OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS \
+	LDFLAGS LDLIBS \
+	MAGMA_DIR XSMM_DIR CUDA_DIR MFEM_DIR PETSC_DIR NEK5K_DIR
+
+# $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
+# was set on the command line or in config.mk (where it will appear as
+# a simple variable).
+needs_save = $(or $(filter command line,$(origin $(1))),$(filter simple,$(flavor $(1))))
+
 configure :
-	@: > config.mk
-	@echo "CC = $(CC)" | tee -a config.mk
-	@echo "CXX = $(CXX)" | tee -a config.mk
-	@echo "FC = $(FC)" | tee -a config.mk
-	@echo "NVCC = $(NVCC)" | tee -a config.mk
-	@echo "NVCC_CXX = $(NVCC_CXX)" | tee -a config.mk
-	@echo "CFLAGS = $(CFLAGS)" | tee -a config.mk
-	@echo "CPPFLAGS = $(CPPFLAGS)" | tee -a config.mk
-	@echo "FFLAGS = $(FFLAGS)" | tee -a config.mk
-	@echo "NVCCFLAGS = $(NVCCFLAGS)" | tee -a config.mk
-	@echo "LDFLAGS = $(LDFLAGS)" | tee -a config.mk
-	@echo "LDLIBS = $(LDLIBS)" | tee -a config.mk
-	@echo "MAGMA_DIR = $(MAGMA_DIR)" | tee -a config.mk
-	@echo "XSMM_DIR = $(XSMM_DIR)" | tee -a config.mk
-	@echo "CUDA_DIR = $(CUDA_DIR)" | tee -a config.mk
-	@echo "MFEM_DIR = $(MFEM_DIR)" | tee -a config.mk
-	@echo "PETSC_DIR = $(PETSC_DIR)" | tee -a config.mk
-	@echo "NEK5K_DIR = $(NEK5K_DIR)" | tee -a config.mk
-	@echo "Configuration cached in config.mk"
+	$(file > $(CONFIG))
+	$(foreach v,$(CONFIG_VARS),$(if $(call needs_save,$(v)),$(file >> $(CONFIG),$(v) := $($(v)))))
+	@echo "Configuration cached in $(CONFIG):"
+	@cat $(CONFIG)
 
-.PHONY : configure
+wheel : export MARCHFLAG = -march=generic
+wheel : export WHEEL_PLAT = manylinux2010_x86_64
+wheel :
+	docker run -it --user $(shell id -u):$(shell id -g) --rm -v $(PWD):/io -w /io \
+		-e MARCHFLAG -e WHEEL_PLAT \
+		quay.io/pypa/$(WHEEL_PLAT) python/make-wheels.sh
 
--include $(libceed.c:%.c=$(OBJDIR)/%.d) $(tests.c:tests/%.c=$(OBJDIR)/%.d)
+.PHONY : configure wheel
+
+# Include *.d deps when not -B = --always-make: useful if the paths are wonky in a container
+-include $(if $(filter B,$(MAKEFLAGS)),,$(libceed.c:%.c=$(OBJDIR)/%.d) $(tests.c:tests/%.c=$(OBJDIR)/%.d))

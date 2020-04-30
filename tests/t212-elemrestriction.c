@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
 
   CeedInt strides[3] = {1, 2, 2};
-  CeedElemRestrictionCreateBlockedStrided(ceed, ne, 2, 2, ne+1, 1, strides, &r);
+  CeedElemRestrictionCreateBlockedStrided(ceed, ne, 2, 2, 1, ne+1, strides, &r);
 
   CeedElemRestrictionView(r, stdout);
 

@@ -19,16 +19,19 @@
 #include <stdarg.h>
 #include "ceed-cuda.h"
 
-
+//------------------------------------------------------------------------------
+// Compile CUDA kernel
+//------------------------------------------------------------------------------
 int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
                     const CeedInt numopts, ...) {
   int ierr;
-  cudaFree(0);//Make sure a Context exists for nvrtc
+  cudaFree(0); // Make sure a Context exists for nvrtc
   nvrtcProgram prog;
   CeedChk_Nvrtc(ceed, nvrtcCreateProgram(&prog, source, NULL, 0, NULL, NULL));
 
+  // Get kernel specific options, such as kernel constants
   const int optslen = 32;
-  const int optsextra = 3;
+  const int optsextra = 4;
   const char *opts[numopts + optsextra];
   char buf[numopts][optslen];
   if (numopts>0) {
@@ -43,24 +46,21 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
       opts[i] = &buf[i][0];
     }
   }
+
+  // Standard backend options
   opts[numopts]     = "-DCeedScalar=double";
   opts[numopts + 1] = "-DCeedInt=int";
+  opts[numopts + 2] = "-default-device";
   struct cudaDeviceProp prop;
   Ceed_Cuda *ceed_data;
-  Ceed delegate;
-  CeedGetDelegate(ceed, &delegate);
-  //We assume that the delegate is always the Cuda one
-  if (delegate) {
-    ierr = CeedGetData(delegate, (void *)&ceed_data); CeedChk(ierr);
-  } else {
-    ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
-  }
+  ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
   ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId);
   CeedChk_Cu(ceed, ierr);
   char buff[optslen];
   snprintf(buff, optslen,"-arch=compute_%d%d", prop.major, prop.minor);
-  opts[numopts + 2] = buff;
+  opts[numopts + 3] = buff;
 
+  // Compile kernel
   nvrtcResult result = nvrtcCompileProgram(prog, numopts + optsextra, opts);
   if (result != NVRTC_SUCCESS) {
     size_t logsize;
@@ -80,60 +80,66 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
 
   CeedChk_Cu(ceed, cuModuleLoadData(module, ptx));
   ierr = CeedFree(&ptx); CeedChk(ierr);
-
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Get CUDA kernel
+//------------------------------------------------------------------------------
 int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name,
                       CUfunction *kernel) {
   CeedChk_Cu(ceed, cuModuleGetFunction(kernel, module, name));
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Run CUDA kernel
+//------------------------------------------------------------------------------
 int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int gridSize,
                       const int blockSize, void **args) {
-  CeedChk_Cu(ceed, cuLaunchKernel(kernel,
-                                  gridSize, 1, 1,
-                                  blockSize, 1, 1,
-                                  0, NULL,
-                                  args, NULL));
+  CeedChk_Cu(ceed, cuLaunchKernel(kernel, gridSize, 1, 1, blockSize, 1,
+                                  1, 0, NULL, args, NULL));
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Run CUDA kernel for spatial dimension
+//------------------------------------------------------------------------------
 int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel, const int gridSize,
                          const int blockSizeX, const int blockSizeY,
                          const int blockSizeZ, void **args) {
-  CeedChk_Cu(ceed, cuLaunchKernel(kernel,
-                                  gridSize, 1, 1,
+  CeedChk_Cu(ceed, cuLaunchKernel(kernel, gridSize, 1, 1,
                                   blockSizeX, blockSizeY, blockSizeZ,
-                                  0, NULL,
-                                  args, NULL));
+                                  0, NULL, args, NULL));
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Run CUDA kernel for spatial dimension with sharde memory
+//------------------------------------------------------------------------------
 int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel, const int gridSize,
                                const int blockSizeX, const int blockSizeY,
                                const int blockSizeZ, const int sharedMemSize,
                                void **args) {
-  CeedChk_Cu(ceed, cuLaunchKernel(kernel,
-                                  gridSize, 1, 1,
+  CeedChk_Cu(ceed, cuLaunchKernel(kernel, gridSize, 1, 1,
                                   blockSizeX, blockSizeY, blockSizeZ,
-                                  sharedMemSize, NULL,
-                                  args, NULL));
+                                  sharedMemSize, NULL, args, NULL));
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// CUDA prefered MemType
+//------------------------------------------------------------------------------
 static int CeedGetPreferredMemType_Cuda(CeedMemType *type) {
   *type = CEED_MEM_DEVICE;
   return 0;
 }
 
-static int CeedInit_Cuda(const char *resource, Ceed ceed) {
+//------------------------------------------------------------------------------
+// Device information backend init
+//------------------------------------------------------------------------------
+int CeedCudaInit(Ceed ceed, const char *resource, int nrc) {
   int ierr;
-  const int nrc = 9; // number of characters in resource
-  if (strncmp(resource, "/gpu/cuda/ref", nrc))
-    return CeedError(ceed, 1, "Cuda backend cannot use resource: %s", resource);
-
   const int rlen = strlen(resource);
   const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
   const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : 0;
@@ -144,16 +150,32 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
     ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
   }
 
-  Ceed_Cuda *data;
-  ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  data->deviceId = deviceID;
-
   struct cudaDeviceProp deviceProp;
   ierr = cudaGetDeviceProperties(&deviceProp, deviceID); CeedChk_Cu(ceed,ierr);
 
+  Ceed_Cuda *data;
+  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  data->deviceId = deviceID;
   data->optblocksize = deviceProp.maxThreadsPerBlock;
+  return 0;
+}
 
+//------------------------------------------------------------------------------
+// Backend Init
+//------------------------------------------------------------------------------
+static int CeedInit_Cuda(const char *resource, Ceed ceed) {
+  int ierr;
+  const int nrc = 9; // number of characters in resource
+  if (strncmp(resource, "/gpu/cuda/ref", nrc))
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Cuda backend cannot use resource: %s", resource);
+  // LCOV_EXCL_STOP
+
+  Ceed_Cuda *data;
+  ierr = CeedCalloc(1,&data); CeedChk(ierr);
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
+  ierr = CeedCudaInit(ceed, resource, nrc); CeedChk(ierr);
+
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
                                 CeedGetPreferredMemType_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate",
@@ -175,7 +197,11 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Backend Register
+//------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
   CeedRegister("/gpu/cuda/ref", CeedInit_Cuda, 20);
 }
+//------------------------------------------------------------------------------

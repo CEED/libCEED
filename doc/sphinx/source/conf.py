@@ -20,6 +20,8 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+import glob
+import shutil
 import sphinx_rtd_theme
 import sys
 import breathe
@@ -37,7 +39,7 @@ import subprocess
 # ones.
 extensions = [
     'breathe',
-    'hoverxref.extension',  # still in beta; not rendering well on RTD
+    # 'hoverxref.extension',  # still in beta; not rendering well on RTD
     'recommonmark',
     'sphinx_markdown_tables',
     'sphinx_rtd_theme',
@@ -47,13 +49,13 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.intersphinx',
     'sphinx.ext.githubpages',
-    'sphinx.ext.mathjax',
+    'sphinxcontrib.katex',
     'sphinxcontrib.mermaid',  # still in beta; fails with latexpdf builder
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinxcontrib.bibtex',
     'sphinxcontrib.rsvgconverter',
-    ]
+]
 
 # The following, if true, allows figures, tables and code-blocks to be
 # automatically numbered if they have a caption.
@@ -105,7 +107,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = []
+exclude_patterns = ['examples/README.rst']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -130,7 +132,7 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = []
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -147,6 +149,12 @@ html_sidebars = {
 # hoverxref options
 hoverxref_auto_ref = True
 hoverxref_mathjax = True
+
+katex_options = r'''{
+    macros: {
+        '\\diff': '{\\operatorname{d}}',
+    },
+}'''
 
 # -- Options for HTMLHelp output ------------------------------------------
 
@@ -169,7 +177,10 @@ latex_elements = {
 
     # Additional stuff for the LaTeX preamble.
     #
-    # 'preamble': '',
+    'preamble': r'''
+\usepackage{bm}
+\newcommand{\diff}{\operatorname{d}}
+''',
 
     # Latex figure (float) alignment
     #
@@ -240,7 +251,10 @@ epub_exclude_files = ['search.html']
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {
+    'python': ('https://docs.python.org', None),
+    'numpy': ('https://numpy.org/devdocs', None),
+}
 
 
 # -- Options for breathe --------------------------------------------------
@@ -251,6 +265,26 @@ breathe_build_directory = "../build/breathe"
 #breathe_domain_by_extension = {"c": "c", "h": "c", "cpp": "cpp", "hpp": "cpp"}
 
 # Run Doxygen if building on Read The Docs
+rootdir = os.path.join(os.path.dirname(__file__),
+                       os.pardir, os.pardir, os.pardir)
 if os.environ.get('READTHEDOCS'):
-    rootdir = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir)
     subprocess.check_call(['doxygen', 'Doxyfile'], cwd=rootdir)
+
+
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except FileExistsError:
+        pass
+
+
+# Copy example documentation from source tree
+try:
+    shutil.rmtree('examples')
+except FileNotFoundError:
+    pass
+for filename in glob.glob(os.path.join(
+        rootdir, 'examples/**/*.rst'), recursive=True):
+    destdir = os.path.dirname(os.path.relpath(filename, rootdir))
+    mkdir_p(destdir)
+    shutil.copy2(filename, destdir)

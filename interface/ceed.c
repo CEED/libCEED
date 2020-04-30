@@ -183,7 +183,7 @@ int CeedErrorExit(Ceed ceed, const char *filename, int lineno, const char *func,
 **/
 int CeedSetErrorHandler(Ceed ceed,
                         int (*eh)(Ceed, const char *, int, const char *,
-                                 int, const char *, va_list)) {
+                                  int, const char *, va_list)) {
   ceed->Error = eh;
   return 0;
 }
@@ -620,7 +620,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   }
   if (!matchlen)
     // LCOV_EXCL_START
-    return CeedError(NULL, 1, "No suitable backend");
+    return CeedError(NULL, 1, "No suitable backend: %s", resource);
   // LCOV_EXCL_STOP
 
   // Setup Ceed
@@ -659,6 +659,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedVector, Destroy),
     CEED_FTABLE_ENTRY(CeedElemRestriction, Apply),
     CEED_FTABLE_ENTRY(CeedElemRestriction, ApplyBlock),
+    CEED_FTABLE_ENTRY(CeedElemRestriction, GetOffsets),
     CEED_FTABLE_ENTRY(CeedElemRestriction, Destroy),
     CEED_FTABLE_ENTRY(CeedBasis, Apply),
     CEED_FTABLE_ENTRY(CeedBasis, Destroy),
@@ -745,6 +746,30 @@ int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type) {
 }
 
 /**
+  @brief View a Ceed
+
+  @param[in] ceed          Ceed to view
+  @param[in] stream        Filestream to write to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedView(Ceed ceed, FILE *stream) {
+  int ierr;
+  CeedMemType memtype;
+
+  ierr = CeedGetPreferredMemType(ceed, &memtype); CeedChk(ierr);
+
+  fprintf(stream, "Ceed\n"
+          "  Ceed Resource: %s\n"
+          "  Preferred MemType: %s\n",
+          ceed->resource, CeedMemTypes[memtype]);
+
+  return 0;
+}
+
+/**
   @brief Destroy a Ceed context
 
   @param ceed Address of Ceed context to destroy
@@ -796,10 +821,12 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
     retval = ceed->Error(ceed, filename, lineno, func, ecode, format, args);
   } else {
     // This function doesn't actually return
+    // LCOV_EXCL_START
     retval = CeedErrorAbort(ceed, filename, lineno, func, ecode, format, args);
   }
   va_end(args);
   return retval;
+  // LCOV_EXCL_STOP
 }
 
 /// @}

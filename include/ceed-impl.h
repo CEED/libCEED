@@ -147,17 +147,19 @@ struct CeedElemRestriction_private {
                CeedRequest *);
   int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector,
                     CeedVector, CeedRequest *);
+  int (*GetOffsets)(CeedElemRestriction, CeedMemType, const CeedInt **);
   int (*Destroy)(CeedElemRestriction);
   int refcount;
-  CeedInterlaceMode imode;  /* Interlacing mode for L-vector ordering */
   CeedInt nelem;            /* number of elements */
   CeedInt elemsize;         /* number of nodes per element */
-  CeedInt nnodes;           /* size of the L-vector, can be used for checking
-                                 for correct vector sizes */
   CeedInt ncomp;            /* number of components */
+  CeedInt compstride;       /* Component stride for L-vector ordering */
+  CeedInt lsize;            /* size of the L-vector, can be used for checking
+                                 for correct vector sizes */
   CeedInt blksize;          /* number of elements in a batch */
   CeedInt nblk;             /* number of blocks of elements */
   CeedInt *strides;         /* strides between [nodes, components, elements] */
+  uint64_t numreaders;      /* number of instances of offset read only access */
   void *data;               /* place for the backend to store any data */
 };
 

@@ -100,10 +100,11 @@ class CeedMassOperator : public mfem::Operator {
         tp_el_dof[j + el_offset] = el_dof.GetJ()[dof_map[j] + el_offset];
       }
     }
-    CeedInterlaceMode imode = CEED_NONINTERLACED;
-    CeedElemRestrictionCreate(ceed, imode, mesh->GetNE(), fe->GetDof(),
-                              fes->GetNDofs(), fes->GetVDim(), CEED_MEM_HOST,
-                              CEED_COPY_VALUES, tp_el_dof.GetData(), restr);
+    CeedElemRestrictionCreate(ceed, mesh->GetNE(), fe->GetDof(),
+                              fes->GetVDim(), fes->GetNDofs(),
+                              (fes->GetVDim())*(fes->GetNDofs()),
+                              CEED_MEM_HOST, CEED_COPY_VALUES,
+                              tp_el_dof.GetData(), restr);
   }
 
  public:
@@ -127,7 +128,7 @@ class CeedMassOperator : public mfem::Operator {
     CeedBasisGetNumQuadraturePoints(basis, &nqpts);
 
     CeedInt strides[3] = {1, nqpts, nqpts};
-    CeedElemRestrictionCreateStrided(ceed, nelem, nqpts, nqpts*nelem, 1,
+    CeedElemRestrictionCreateStrided(ceed, nelem, nqpts, 1, nqpts*nelem,
                                      strides, &restr_i);
 
     CeedVectorCreate(ceed, mesh->GetNodes()->Size(), &node_coords);

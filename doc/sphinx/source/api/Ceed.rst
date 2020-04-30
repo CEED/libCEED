@@ -3,6 +3,8 @@
 Ceed
 **************************************
 
+A `Ceed` is a library context representing control of a logical hardware resource.
+
 Base library resources
 ======================================
 
@@ -11,6 +13,16 @@ Base library resources
    :path: ../../../../xml
    :content-only:
    :members:
+
+Macros
+--------------------------------------
+
+.. doxygendefine:: CeedError
+   :project: libCEED
+
+.. doxygendefine:: CeedPragmaSIMD
+   :project: libCEED
+
 
 Typedefs and Enumerations
 --------------------------------------

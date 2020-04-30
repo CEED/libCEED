@@ -19,6 +19,9 @@
 #include "ceed-cuda-gen-operator-build.h"
 #include "../cuda/ceed-cuda.h"
 
+//------------------------------------------------------------------------------
+// Destroy operator
+//------------------------------------------------------------------------------
 static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   int ierr;
   CeedOperator_Cuda_gen *impl;
@@ -27,6 +30,9 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Apply and add to output
+//------------------------------------------------------------------------------
 static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
     CeedVector outvec, CeedRequest *request) {
   int ierr;
@@ -49,7 +55,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
   CeedChk(ierr);
   CeedEvalMode emode;
-  CeedVector vec;
+  CeedVector vec, outvecs[16] = {};
 
   //Creation of the operator
   ierr = CeedCudaGenOperatorBuild(op); CeedChk(ierr);
@@ -79,8 +85,21 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
       // Get output vector
       ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
       if (vec == CEED_VECTOR_ACTIVE) vec = outvec;
-      ierr = CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.out[i]);
-      CeedChk(ierr);
+      outvecs[i] = vec;
+      // Check for multiple output modes
+      CeedInt index = -1;
+      for (CeedInt j = 0; j < i; j++) {
+        if (vec == outvecs[j]) {
+          index = j;
+          break;
+        }
+      }
+      if (index == -1) {
+        ierr = CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.out[i]);
+        CeedChk(ierr);
+      } else {
+        data->fields.out[i] = data->fields.out[index];
+      }
     }
   }
 
@@ -148,14 +167,26 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
     } else {
       ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
       if (vec == CEED_VECTOR_ACTIVE) vec = outvec;
-      ierr = CeedVectorRestoreArray(vec, &data->fields.out[i]);
-      CeedChk(ierr);
+      // Check for multiple output modes
+      CeedInt index = -1;
+      for (CeedInt j = 0; j < i; j++) {
+        if (vec == outvecs[j]) {
+          index = j;
+          break;
+        }
+      }
+      if (index == -1) {
+        ierr = CeedVectorRestoreArray(vec, &data->fields.out[i]);
+        CeedChk(ierr);
+      }
     }
   }
-
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Assemble linear QFunction not supported
+//------------------------------------------------------------------------------
 static int CeedOperatorAssembleLinearQFunction_Cuda(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -163,6 +194,30 @@ static int CeedOperatorAssembleLinearQFunction_Cuda(CeedOperator op) {
   return CeedError(ceed, 1, "Backend does not implement QFunction assembly");
 }
 
+//------------------------------------------------------------------------------
+// Assemble linear diagonal not supported
+//------------------------------------------------------------------------------
+static int CeedOperatorAssembleLinearDiagonal_Cuda(CeedOperator op) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  return CeedError(ceed, 1,
+                   "Backend does not implement Operator diagonal assembly");
+}
+
+//------------------------------------------------------------------------------
+// Create FDM element inverse not supported
+//------------------------------------------------------------------------------
+static int CeedOperatorCreateFDMElementInverse_Cuda(CeedOperator op) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  return CeedError(ceed, 1, "Backend does not implement FDM inverse creation");
+}
+
+//------------------------------------------------------------------------------
+// Create operator
+//------------------------------------------------------------------------------
 int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -175,9 +230,16 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
                                 CeedOperatorAssembleLinearQFunction_Cuda);
   CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearDiagonal",
+                                CeedOperatorAssembleLinearDiagonal_Cuda);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "CreateFDMElementInverse",
+                                CeedOperatorCreateFDMElementInverse_Cuda);
+  CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                 CeedOperatorApplyAdd_Cuda_gen); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
                                 CeedOperatorDestroy_Cuda_gen); CeedChk(ierr);
   return 0;
 }
+//------------------------------------------------------------------------------

@@ -3,6 +3,9 @@
 CeedQFunction
 ***********************************************************************
 
+QFunctions represent the spatial terms of the point-wise functions describing the
+physics at the quadrature points.
+
 Resolution/space-independent weak forms and quadrature-based operations
 =======================================================================
 
@@ -11,3 +14,12 @@ Resolution/space-independent weak forms and quadrature-based operations
    :path: ../../../../xml
    :content-only:
    :members:
+
+Macros
+--------------------------------------
+
+.. doxygendefine:: CEED_QFUNCTION
+   :project: libCEED
+
+.. doxygendefine:: CEED_Q_VLA
+   :project: libCEED

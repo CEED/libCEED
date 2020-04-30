@@ -1,8 +1,10 @@
-breathe
+sphinx>=3.0
+breathe>=4.15
 recommonmark
 sphinx_rtd_theme
 sphinxcontrib-bibtex
+sphinxcontrib-katex
 sphinxcontrib-mermaid
 sphinxcontrib-svg2pdfconverter
-sphinx-hoverxref
+# git+https://github.com/readthedocs/sphinx-hoverxref@master#egg=sphinx-hoverxref==0.1b-master
 sphinx-markdown-tables

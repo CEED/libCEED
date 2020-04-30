@@ -18,6 +18,7 @@
 #include <nvrtc.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include "../cuda/ceed-cuda.h"
 
 typedef struct {
   CUmodule module;
@@ -33,6 +34,7 @@ typedef struct {
 } CeedBasis_Cuda_shared;
 
 typedef struct {
+  Ceed_Cuda base;
 } Ceed_Cuda_shared;
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d,

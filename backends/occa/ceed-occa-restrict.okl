@@ -15,49 +15,28 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 // *****************************************************************************
-@kernel void kRestrict0(const int *indices,
-                        const double* uu,
-                        double* vv) {
+@kernel void kRestrict0(const int *indices, const double* uu, double* vv) {
   for (int i=0; i<nelem_x_elemsize; i++; @tile(TILE_SIZE,@outer,@inner)){
     vv[i] = uu[indices[i]];
   }
 }
 
 // *****************************************************************************
-@kernel void kRestrict1(const int ncomp,
-                        const int *indices,
-                        const double* uu,
-                        double* vv) {
+@kernel void kRestrict1(const int ncomp, const int compstride,
+                        const int *indices, const double* uu, double* vv) {
   for (int e = 0; e < nelem; e++; @tile(TILE_SIZE,@outer,@inner)){
-    for (int d = 0; d < ncomp; d++){
-      for (int i=0; i<elemsize; i++) {
-        vv[i+elemsize*(d+ncomp*e)] =
-          uu[indices[i+elemsize*e]+nnodes*d];
+    for (int k = 0; k < ncomp; k++){
+      for (int i = 0; i < elemsize; i++) {
+        vv[i+elemsize*(k+ncomp*e)] =
+          uu[indices[i+elemsize*e]+k*compstride];
       }
     }
   }
 }
 
 // *****************************************************************************
-@kernel void kRestrict2(const int ncomp,
-                        const int *indices,
-                        const double* uu,
-                        double* vv) {
-  for (int e = 0; e < nelem; e++; @tile(TILE_SIZE,@outer,@inner)){
-    for (int d = 0; d < ncomp; d++){
-      for (int i=0; i<elemsize; i++) {
-        vv[i+elemsize*(d+ncomp*e)] =
-          uu[d+ncomp*indices[i+elemsize*e]];
-      }
-    }
-  }
-}
-
-// *****************************************************************************
-@kernel void kRestrict3(const int *tindices,
-                         const int *toffsets,
-                         const double* uu,
-                         double* vv) {
+@kernel void kRestrict2(const int *tindices, const int *toffsets,
+                        const double* uu, double* vv) {
   for (int i=0; i<nnodes; i++; @tile(TILE_SIZE,@outer,@inner)){
     const int rng1 = toffsets[i];
     const int rngN = toffsets[i+1];
@@ -71,49 +50,26 @@
 }
 
 // *****************************************************************************
-@kernel void kRestrict4(const int ncomp,
-                         const int *tindices,
-                         const int *toffsets,
-                         const double* uu,
-                         double* vv) {
+@kernel void kRestrict3(const int ncomp, const int compstride,
+                        const int *tindices, const int *toffsets,
+                        const double* uu, double* vv) {
   for (int i=0; i<nnodes; i++; @tile(TILE_SIZE,@outer,@inner)){
     const int rng1 = toffsets[i];
     const int rngN = toffsets[i+1];
-    for (int d = 0; d < ncomp; ++d) {
-      double value = vv[d*nnodes+i];
+    for (int k = 0; k < ncomp; ++k) {
+      double value = vv[k*compstride + i];
       for (int j=rng1; j<rngN; ++j) {
         int n = tindices[j] % elemsize;
         int e = tindices[j] / elemsize;
-        value += uu[(e*ncomp + d)*elemsize + n];
+        value += uu[(e*ncomp + k)*elemsize + n];
       }
-      vv[d*nnodes+i] = value;
+      vv[k*compstride + i] = value;
     }
   }
 }
 
 // *****************************************************************************
-@kernel void kRestrict5(const int ncomp,
-                         const int *tindices,
-                         const int *toffsets,
-                         const double* uu,
-                         double* vv) {
-  for (int i=0; i<nnodes; i++; @tile(TILE_SIZE,@outer,@inner)){
-    const int rng1 = toffsets[i];
-    const int rngN = toffsets[i+1];
-    for (int d = 0; d < ncomp; ++d) {
-      double value = vv[d+i*ncomp];
-      for (int j=rng1; j<rngN; ++j) {
-        int n = tindices[j] % elemsize;
-        int e = tindices[j] / elemsize;
-        value += uu[(e*ncomp + d)*elemsize + n];
-      }
-      vv[d+i*ncomp] = value;
-    }
-  }
-}
-
-// *****************************************************************************
-@kernel void kRestrict6(const double* uu, double* vv) {
+@kernel void kRestrict4(const double* uu, double* vv) {
   for (int e=0; e<nelem; e++; @tile(TILE_SIZE,@outer,@inner)){
     for (int k=0; k<numcomp; k++) {
       for (int n=0; n<elemsize; n++) {
@@ -125,7 +81,7 @@
 }
 
 // *****************************************************************************
-@kernel void kRestrict7(const double* uu, double* vv) {
+@kernel void kRestrict5(const double* uu, double* vv) {
   for (int e=0; e<nelem; e++; @tile(TILE_SIZE,@outer,@inner)){
     for (int k=0; k<numcomp; k++) {
       for (int n=0; n<elemsize; n++) {

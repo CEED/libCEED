@@ -20,11 +20,74 @@
 #ifndef advection_h
 #define advection_h
 
-#include <math.h>
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
 
-static int Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[],
-                           CeedInt Nf, CeedScalar q[], void *ctx) {
-  const SetupContext context = ctx;
+#ifndef setup_context_struct
+#define setup_context_struct
+typedef struct SetupContext_ *SetupContext;
+struct SetupContext_ {
+  CeedScalar theta0;
+  CeedScalar thetaC;
+  CeedScalar P0;
+  CeedScalar N;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar Rd;
+  CeedScalar g;
+  CeedScalar rc;
+  CeedScalar lx;
+  CeedScalar ly;
+  CeedScalar lz;
+  CeedScalar periodicity0;
+  CeedScalar periodicity1;
+  CeedScalar periodicity2;
+  CeedScalar center[3];
+  CeedScalar dc_axis[3];
+  CeedScalar time;
+};
+#endif
+
+#ifndef advection_context_struct
+#define advection_context_struct
+typedef struct AdvectionContext_ *AdvectionContext;
+struct AdvectionContext_ {
+  CeedScalar CtauS;
+  CeedScalar strong_form;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
+};
+#endif
+
+// *****************************************************************************
+// This QFunction sets the the initial conditions and boundary conditions
+//
+// Initial Conditions:
+//   Mass Density:
+//     Constant mass density of 1.0
+//   Momentum Density:
+//     Rotational field in x,y with no momentum in z
+//   Energy Density:
+//     Maximum of 1. x0 decreasing linearly to 0. as radial distance increases
+//       to (1.-r/rc), then 0. everywhere else
+//
+//  Boundary Conditions:
+//    Mass Density:
+//      0.0 flux
+//    Momentum Density:
+//      0.0
+//    Energy Density:
+//      0.0 flux
+//
+// *****************************************************************************
+
+// *****************************************************************************
+// This helper function provides the current 3D advection IC formulation
+// *****************************************************************************
+static inline int Exact_Advection(CeedInt dim, CeedScalar time,
+                                  const CeedScalar X[], CeedInt Nf,
+                                  CeedScalar q[], void *ctx) {
+  const SetupContext context = (SetupContext)ctx;
   const CeedScalar rc = context->rc;
   const CeedScalar lx = context->lx;
   const CeedScalar ly = context->ly;
@@ -61,8 +124,8 @@ static int Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[],
   q[1] = -(y - center[1]);
   q[2] =  (x - center[0]);
   q[3] = 0.0;
-  CeedInt continuityBubble=
-    -1; // 0 is original sphere switch to -1 to challenge solver with sharp gradients in back half of bubble
+  CeedInt continuityBubble = -1;
+  // 0 is original sphere, switch to -1 to challenge solver with sharp gradients in back half of bubble
   switch (continuityBubble) {
   // original continuous, smooth shape
   case 0: {
@@ -82,33 +145,15 @@ static int Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[],
 }
 
 // *****************************************************************************
-// This QFunction sets the the initial conditions and boundary conditions
-//
-// Initial Conditions:
-//   Mass Density:
-//     Constant mass density of 1.0
-//   Momentum Density:
-//     Rotational field in x,y with no momentum in z
-//   Energy Density:
-//     Maximum of 1. x0 decreasing linearly to 0. as radial distance increases
-//       to (1.-r/rc), then 0. everywhere else
-//
-//  Boundary Conditions:
-//    Mass Density:
-//      0.0 flux
-//    Momentum Density:
-//      0.0
-//    Energy Density:
-//      0.0 flux
-//
+// Initial conditions for 3D advection
 // *****************************************************************************
 CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*X)[Q] = (const CeedScalar(*)[Q])in[0];
+  const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   // Outputs
-  CeedScalar (*q0)[Q] = (CeedScalar(*)[Q])out[0];
+  CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -123,13 +168,6 @@ CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q,
   // Return
   return 0;
 }
-
-typedef struct AdvectionContext_ *AdvectionContext;
-struct AdvectionContext_ {
-  CeedScalar CtauS;
-  CeedScalar strong_form;
-  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
-};
 
 // *****************************************************************************
 // This QFunction implements the following formulation of the advection equation
@@ -149,17 +187,17 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
                           const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   // *INDENT-OFF*
-  const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
-                   (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
-                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[2];
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
 
   // Outputs
-  CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
-             (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
+             (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
 
   // Context
-  AdvectionContext context = ctx;
+  AdvectionContext context = (AdvectionContext)ctx;
   const CeedScalar CtauS = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
@@ -196,7 +234,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
                                      dq[2][4][i]
                                     };
     // -- Interp-to-Interp qdata
-    const CeedScalar wJ         =    qdata[0][i];
+    const CeedScalar wdetJ      =    qdata[0][i];
     // -- Interp-to-Grad qdata
     // ---- Inverse of change of coordinate matrix: X_i,j
     // *INDENT-OFF*
@@ -221,8 +259,8 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
     // The Physics
 
     // No Change in density or momentum
-    for (int f=0; f<4; f++) {
-      for (int j=0; j<3; j++)
+    for (CeedInt f=0; f<4; f++) {
+      for (CeedInt j=0; j<3; j++)
         dv[j][f][i] = 0;
       v[f][i] = 0;
     }
@@ -231,9 +269,9 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
     // Evaluate the strong form using div(E u) = u . grad(E) + E div(u)
     // or in index notation: (u_j E)_{,j} = u_j E_j + E u_{j,j}
     CeedScalar div_u = 0, u_dot_grad_E = 0;
-    for (int j=0; j<3; j++) {
+    for (CeedInt j=0; j<3; j++) {
       CeedScalar dEdx_j = 0;
-      for (int k=0; k<3; k++) {
+      for (CeedInt k=0; k<3; k++) {
         div_u += du[j][k] * dXdx[k][j]; // u_{j,j} = u_{j,K} X_{K,j}
         dEdx_j += dE[k] * dXdx[k][j];
       }
@@ -242,42 +280,47 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
     CeedScalar strongConv = E*div_u + u_dot_grad_E;
 
     // Weak Galerkin convection term: dv \cdot (E u)
-    for (int j=0; j<3; j++)
-      dv[j][4][i] = (1 - strong_form) * wJ * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
+    for (CeedInt j=0; j<3; j++)
+      dv[j][4][i] = (1 - strong_form) * wdetJ * E * (u[0]*dXdx[j][0] +
+                    u[1]*dXdx[j][1] +
                     u[2]*dXdx[j][2]);
     v[4][i] = 0;
 
     // Strong Galerkin convection term: - v div(E u)
-    v[4][i] = -strong_form * wJ * strongConv;
+    v[4][i] = -strong_form * wdetJ * strongConv;
 
     // Stabilization requires a measure of element transit time in the velocity
     // field u.
     CeedScalar uX[3];
-    for (int j=0; j<3;
+    for (CeedInt j=0; j<3;
          j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
     const CeedScalar TauS = CtauS / sqrt(uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2]);
-    for (int j=0; j<3; j++)
-      dv[j][4][i] -= wJ * TauS * strongConv * uX[j];
+    for (CeedInt j=0; j<3; j++)
+      dv[j][4][i] -= wdetJ * TauS * strongConv * uX[j];
   } // End Quadrature Point Loop
 
   return 0;
 }
 
 // *****************************************************************************
+// This QFunction implements 3D (mentioned above) with
+//   implicit time stepping method
+//
+// *****************************************************************************
 CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
                                     const CeedScalar *const *in,
                                     CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q)[Q] = (const CeedScalar(*)[Q])in[0],
-                   (*dq)[5][Q] = (const CeedScalar(*)[5][Q])in[1],
-                   (*qdot)[Q] = (const CeedScalar(*)[Q])in[2],
-                   (*qdata)[Q] = (const CeedScalar(*)[Q])in[3];
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*qdot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
-  CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0],
-             (*dv)[5][Q] = (CeedScalar(*)[5][Q])out[1];
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
+             (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
-  AdvectionContext context = ctx;
+  AdvectionContext context = (AdvectionContext)ctx;
   const CeedScalar CtauS = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
@@ -314,7 +357,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
                                      dq[2][4][i]
                                     };
     // -- Interp-to-Interp qdata
-    const CeedScalar wJ         =    qdata[0][i];
+    const CeedScalar wdetJ      =    qdata[0][i];
     // -- Interp-to-Grad qdata
     // ---- Inverse of change of coordinate matrix: X_i,j
     // *INDENT-OFF*
@@ -340,19 +383,19 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
     // The Physics
 
     // No Change in density or momentum
-    for (int f=0; f<4; f++) {
-      for (int j=0; j<3; j++)
+    for (CeedInt f=0; f<4; f++) {
+      for (CeedInt j=0; j<3; j++)
         dv[j][f][i] = 0;
-      v[f][i] = wJ * qdot[f][i]; //K Mass/transient term
+      v[f][i] = wdetJ * qdot[f][i]; //K Mass/transient term
     }
 
     // -- Total Energy
     // Evaluate the strong form using div(E u) = u . grad(E) + E div(u)
     // or in index notation: (u_j E)_{,j} = u_j E_j + E u_{j,j}
     CeedScalar div_u = 0, u_dot_grad_E = 0;
-    for (int j=0; j<3; j++) {
+    for (CeedInt j=0; j<3; j++) {
       CeedScalar dEdx_j = 0;
-      for (int k=0; k<3; k++) {
+      for (CeedInt k=0; k<3; k++) {
         div_u += du[j][k] * dXdx[k][j]; // u_{j,j} = u_{j,K} X_{K,j}
         dEdx_j += dE[k] * dXdx[k][j];
       }
@@ -361,30 +404,31 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
     CeedScalar strongConv = E*div_u + u_dot_grad_E;
     CeedScalar strongResid = qdot[4][i] + strongConv;
 
-    v[4][i] = wJ * qdot[4][i]; // transient part (ALWAYS)
+    v[4][i] = wdetJ * qdot[4][i]; // transient part (ALWAYS)
 
     // Weak Galerkin convection term: -dv \cdot (E u)
-    for (int j=0; j<3; j++)
-      dv[j][4][i] = -wJ * (1 - strong_form) * E * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
+    for (CeedInt j=0; j<3; j++)
+      dv[j][4][i] = -wdetJ * (1 - strong_form) * E * (u[0]*dXdx[j][0] +
+                    u[1]*dXdx[j][1] +
                     u[2]*dXdx[j][2]);
 
     // Strong Galerkin convection term: v div(E u)
-    v[4][i] += wJ * strong_form * strongConv;
+    v[4][i] += wdetJ * strong_form * strongConv;
 
     // Stabilization requires a measure of element transit time in the velocity
     // field u.
     CeedScalar uX[3];
-    for (int j=0; j<3;
+    for (CeedInt j=0; j<3;
          j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
     const CeedScalar TauS = CtauS / sqrt(uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2]);
 
-    for (int j=0; j<3; j++)
+    for (CeedInt j=0; j<3; j++)
       switch (context->stabilization) {
       case 0:
         break;
-      case 1: dv[j][4][i] += wJ * TauS * strongConv * uX[j];  //SU
+      case 1: dv[j][4][i] += wdetJ * TauS * strongConv * uX[j];  //SU
         break;
-      case 2: dv[j][4][i] += wJ * TauS * strongResid * uX[j];  //SUPG
+      case 2: dv[j][4][i] += wdetJ * TauS * strongResid * uX[j];  //SUPG
         break;
       }
   } // End Quadrature Point Loop
@@ -393,4 +437,5 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-#endif
+
+#endif // advection_h

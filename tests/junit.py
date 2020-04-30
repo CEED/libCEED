@@ -21,8 +21,10 @@ def get_source(test):
         return os.path.join('examples', 'mfem', test[5:] + '.cpp')
     elif test.startswith('nek-'):
         return os.path.join('examples', 'nek', 'bps', test[4:] + '.usr')
-    elif test.startswith('ns-'):
-        return os.path.join('examples', 'navier-stokes', test[3:] + '.c')
+    elif test.startswith('fluids-'):
+        return os.path.join('examples', 'fluids', test[7:] + '.c')
+    elif test.startswith('solids-'):
+        return os.path.join('examples', 'solids', test[7:] + '.c')
     elif test.startswith('ex'):
         return os.path.join('examples', 'ceed', test + '.c')
 
@@ -43,9 +45,11 @@ def contains_any(resource, substrings):
 
 def skip_rule(test, resource):
     return any((
-        test.startswith('ns-') and contains_any(resource, ['occa', 'gpu']),
+        test.startswith('fluids-') and contains_any(resource, ['occa', 'gpu']) and not contains_any(resource, ['/gpu/cuda/gen']),
+        test.startswith('solids-') and contains_any(resource, ['occa']),
         test.startswith('petsc-multigrid') and contains_any(resource, ['occa']),
         test.startswith('t506') and contains_any(resource, ['occa']),
+        test.startswith('t507') and contains_any(resource, ['occa']),
         ))
         
 def run(test, backends):
@@ -101,6 +105,8 @@ def run(test, backends):
                     check_required_failure(case, proc.stderr, 'Cannot restore CeedVector array access, access was not granted')
                 if test[:4] in 't118'.split():
                     check_required_failure(case, proc.stderr, 'Cannot sync CeedVector, the access lock is already in use')
+                if test[:4] in 't215'.split():
+                    check_required_failure(case, proc.stderr, 'Cannot destroy CeedElemRestriction, a process has read access to the offset data')
                 if test[:4] in 't303'.split():
                     check_required_failure(case, proc.stderr, 'Length of input/output vectors incompatible with basis dimensions')
 
@@ -117,7 +123,7 @@ def run(test, backends):
                                                          tofile='New'))
                     if diff:
                         case.add_failure_info('stdout', output=''.join(diff))
-                elif proc.stdout:
+                elif proc.stdout and test[:4] not in 't003':
                     case.add_failure_info('stdout', output=proc.stdout)
             testcases.append(case)
         return TestSuite(test, testcases)

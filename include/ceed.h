@@ -55,15 +55,47 @@
 #  define CEED_EXTERN extern
 #endif
 
+/**
+  @ingroup CeedQFunction
+  This macro populates the correct function annotations for User QFunction
+    source for code generation backends or populates default values for CPU
+    backends.
+**/
 #ifndef CEED_QFUNCTION
 #define CEED_QFUNCTION(name) \
   static const char name ## _loc[] = __FILE__ ":" #name;        \
   static int name
 #endif
 
+/**
+  @ingroup CeedQFunction
+  Using VLA syntax to reshape User QFunction inputs and outputs can make
+    user code more readable. VLA is a C99 feature that is not supported by
+    the C++ dialect used by CUDA. This macro allows users to use the VLA
+    syntax with the CUDA backends.
+**/
+#ifndef CEED_Q_VLA
+#  define CEED_Q_VLA Q
+#endif
+
+/**
+  @ingroup Ceed
+  This macro provides the appropriate SIMD Pragma for the compilation
+    environment. Code generation backends may redefine this macro, as needed.
+**/
 #ifndef CeedPragmaSIMD
-#  if defined(__INTEL_COMPILER) &&__INTEL_COMPILER >= 900
-#    define CeedPragmaSIMD _Pragma("simd")
+#  if defined(__INTEL_COMPILER)
+#    define CeedPragmaSIMD _Pragma("vector")
+// Cannot use Intel pragma ivdep because it miscompiles unpacking symmetric tensors, as in
+// Poisson2DApply, where the SIMD loop body contains temporaries such as the following.
+//
+//     const CeedScalar dXdxdXdxT[2][2] = {{qd[i+0*Q], qd[i+2*Q]},
+//                                         {qd[i+2*Q], qd[i+1*Q]}};
+//     for (int j=0; j<2; j++)
+//        vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] + du[1] * dXdxdXdxT[1][j]);
+//
+// Miscompilation with pragma ivdep observed with icc (ICC) 19.0.5.281 20190815
+// at -O2 and above.
 #  elif defined(__GNUC__) && __GNUC__ >= 5
 #    define CeedPragmaSIMD _Pragma("GCC ivdep")
 #  elif defined(_OPENMP) && _OPENMP >= 201307 // OpenMP-4.0 (July, 2013)
@@ -117,6 +149,7 @@ typedef struct CeedOperator_private *CeedOperator;
 
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
 CEED_EXTERN int CeedGetResource(Ceed ceed, const char **resource);
+CEED_EXTERN int CeedView(Ceed ceed, FILE *stream);
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
 
 CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
@@ -244,38 +277,26 @@ typedef enum {
 
 CEED_EXTERN const char *const CeedTransposeModes[];
 
-/// Denotes whether a L-vector is ordered [component, node] or [node, component]
-///   with the right-most index being contiguous in memory
-/// @ingroup CeedElemRestriction
-typedef enum {
-  /// L-vector data is not interlaced, ordered [component, node]
-  CEED_NONINTERLACED,
-  /// L-vector data is interlaced, ordered [node, component]
-  CEED_INTERLACED
-} CeedInterlaceMode;
-
-CEED_EXTERN const char *const CeedInterlaceModes[];
-
 /// Argument for CeedElemRestrictionCreateStrided that L-vector is in
 /// the Ceed backend's preferred layout. This argument should only be used
 /// with vectors created by a Ceed backend.
 /// @ingroup CeedElemRestriction
 CEED_EXTERN const CeedInt CEED_STRIDES_BACKEND[3];
 
-CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInterlaceMode imode,
-    CeedInt nelem, CeedInt elemsize, CeedInt nnodes, CeedInt ncomp,
-    CeedMemType mtype, CeedCopyMode cmode, const CeedInt *indices,
+CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem,
+    CeedInt elemsize, CeedInt ncomp, CeedInt compstride, CeedInt lsize,
+    CeedMemType mtype, CeedCopyMode cmode, const CeedInt *offsets,
     CeedElemRestriction *rstr);
-CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed,
-    CeedInterlaceMode imode, CeedInt nelem, CeedInt elemsize, CeedInt blksize,
-    CeedInt nnodes, CeedInt ncomp, CeedMemType mtype, CeedCopyMode cmode,
-    const CeedInt *indices, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateStrided(Ceed ceed,
-    CeedInt nelem, CeedInt elemsize, CeedInt nnodes, CeedInt ncomp,
+    CeedInt nelem, CeedInt elemsize, CeedInt ncomp, CeedInt lsize,
     const CeedInt strides[3], CeedElemRestriction *rstr);
+CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem,
+    CeedInt elemsize, CeedInt blksize, CeedInt ncomp, CeedInt compstride,
+    CeedInt lsize, CeedMemType mtype, CeedCopyMode cmode,
+    const CeedInt *offsets, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlockedStrided(Ceed ceed,
-    CeedInt nelem, CeedInt elemsize, CeedInt blksize, CeedInt nnodes,
-    CeedInt ncomp, const CeedInt strides[3], CeedElemRestriction *rstr);
+    CeedInt nelem, CeedInt elemsize, CeedInt blksize, CeedInt ncomp,
+    CeedInt lsize, const CeedInt strides[3], CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
     CeedVector *lvec, CeedVector *evec);
 CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr,
@@ -283,14 +304,14 @@ CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr,
 CEED_EXTERN int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr,
     CeedInt block, CeedTransposeMode tmode, CeedVector u, CeedVector ru,
     CeedRequest *request);
-CEED_EXTERN int CeedElemRestrictionGetIMode(CeedElemRestriction rstr,
-    CeedInterlaceMode *Imode);
+CEED_EXTERN int CeedElemRestrictionGetCompStride(CeedElemRestriction rstr,
+    CeedInt *compstride);
 CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
     CeedInt *numelem);
 CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
     CeedInt *elemsize);
-CEED_EXTERN int CeedElemRestrictionGetNumNodes(CeedElemRestriction rstr,
-    CeedInt *numnodes);
+CEED_EXTERN int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr,
+    CeedInt *lsize);
 CEED_EXTERN int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
     CeedInt *numcomp);
 CEED_EXTERN int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
@@ -380,11 +401,24 @@ CEED_EXTERN int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo,
                                   const CeedScalar *qref,
                                   const CeedScalar *qweight, CeedBasis *basis);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
-CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
-CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);
 CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt nelem,
                                CeedTransposeMode tmode,
                                CeedEvalMode emode, CeedVector u, CeedVector v);
+CEED_EXTERN int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim);
+CEED_EXTERN int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *numcomp);
+CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
+CEED_EXTERN int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P1d);
+CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);
+CEED_EXTERN int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis,
+    CeedInt *Q1d);
+CEED_EXTERN int CeedBasisGetQRef(CeedBasis basis, const CeedScalar **qref);
+CEED_EXTERN int CeedBasisGetQWeights(CeedBasis basis,
+                                     const CeedScalar **qweight);
+CEED_EXTERN int CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp);
+CEED_EXTERN int CeedBasisGetInterp1D(CeedBasis basis,
+                                     const CeedScalar **interp1d);
+CEED_EXTERN int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad);
+CEED_EXTERN int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad1d);
 CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
 
 CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *qref1d,

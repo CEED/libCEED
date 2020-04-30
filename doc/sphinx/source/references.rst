@@ -1,5 +1,5 @@
 Bibliography
-========================
+========================================
 
 .. bibliography::
    references.bib

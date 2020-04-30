@@ -23,34 +23,27 @@ ffibuilder = FFI()
 # ------------------------------------------------------------------------------
 with open(os.path.abspath("include/ceed.h")) as f:
     lines = [line.strip() for line in f if
-               not line.startswith("#") and
-               not line.startswith("  static") and
-               "CeedErrorImpl" not in line and
-               "const char *, ...);" not in line and
-               not line.startswith("CEED_EXTERN const char *const")]
+             not line.startswith("#") and
+             not line.startswith("  static") and
+             "CeedErrorImpl" not in line and
+             "const char *, ...);" not in line and
+             not line.startswith("CEED_EXTERN const char *const")]
     lines = [line.replace("CEED_EXTERN", "extern") for line in lines]
     header = '\n'.join(lines)
     header = header.split("static inline CeedInt CeedIntPow", 1)[0]
 ffibuilder.cdef(header)
 
-# ------------------------------------------------------------------------------
-# Set source of libCEED header file
-# ------------------------------------------------------------------------------
-ceed_dir = os.getenv("CEED_DIR", None)
-if ceed_dir:
-  ceed_lib_dirs = [os.path.abspath("lib"), os.path.join(ceed_dir, "lib")]
-else:
-  ceed_lib_dirs = [os.path.abspath("lib")]
-
 ffibuilder.set_source("_ceed_cffi",
-  """
+                      """
   #include <ceed.h>   // the C header of the library
   """,
-  include_dirs = [os.path.abspath("include")], # include path
-  libraries = ["ceed"],   # library name, for the linker
-  library_dirs = [os.path.abspath("lib")], # library path, for the linker
-  runtime_library_dirs = ceed_lib_dirs # library path, at runtime
-)
+                      include_dirs=[
+                          os.path.abspath("include")],  # include path
+                      libraries=["ceed"],   # library name, for the linker
+                      library_dirs=['./lib'],  # library path, for the linker
+                      # use libceed.so as installed
+                      runtime_library_dirs=['$ORIGIN/libceed/lib']
+                      )
 
 # ------------------------------------------------------------------------------
 # Builder

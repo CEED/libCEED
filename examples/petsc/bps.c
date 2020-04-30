@@ -58,6 +58,7 @@ int main(int argc, char **argv) {
            ncompu = 1, xlsize;
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
+  PetscLogStage solvestage;
   Vec X, Xloc, rhs, rhsloc;
   Mat matO;
   KSP ksp;
@@ -65,10 +66,21 @@ int main(int argc, char **argv) {
   UserO userO;
   Ceed ceed;
   CeedData ceeddata;
-  CeedQFunction qf_error;
-  CeedOperator op_error;
+  CeedQFunction qferror;
+  CeedOperator operror;
   CeedVector rhsceed, target;
-  bpType bpChoice;
+  CeedMemType memtyperequested;
+  bpType bpchoice;
+
+  // Check PETSc CUDA support
+  PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
+  // *INDENT-OFF*
+  #ifdef PETSC_HAVE_CUDA
+  petschavecuda = PETSC_TRUE;
+  #else
+  petschavecuda = PETSC_FALSE;
+  #endif
+  // *INDENT-ON*
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -76,12 +88,12 @@ int main(int argc, char **argv) {
 
   // Read command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
-  bpChoice = CEED_BP1;
+  bpchoice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
-                          bpTypes, (PetscEnum)bpChoice, (PetscEnum *)&bpChoice,
+                          bpTypes, (PetscEnum)bpchoice, (PetscEnum *)&bpchoice,
                           NULL); CHKERRQ(ierr);
-  ncompu = bpOptions[bpChoice].ncompu;
+  ncompu = bpOptions[bpchoice].ncompu;
   test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
@@ -99,7 +111,7 @@ int main(int argc, char **argv) {
   degree = test_mode ? 3 : 2;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
-  qextra = bpOptions[bpChoice].qextra;
+  qextra = bpOptions[bpchoice].qextra;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
@@ -114,6 +126,14 @@ int main(int argc, char **argv) {
     ierr = PetscOptionsIntArray("-cells","Number of cells per dimension", NULL,
                                 melem, &tmp, NULL); CHKERRQ(ierr);
   }
+
+  memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
+  ierr = PetscOptionsEnum("-memtype",
+                          "CEED MemType requested", NULL,
+                          memTypes, (PetscEnum)memtyperequested,
+                          (PetscEnum *)&memtyperequested, &setmemtyperequest);
+  CHKERRQ(ierr);
+
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Setup DM
@@ -138,11 +158,27 @@ int main(int argc, char **argv) {
     }
   }
 
+  // Set up libCEED
+  CeedInit(ceedresource, &ceed);
+  CeedMemType memtypebackend;
+  CeedGetPreferredMemType(ceed, &memtypebackend);
+
+  // Check memtype compatibility
+  if (!setmemtyperequest)
+    memtyperequested = memtypebackend;
+  else if (!petschavecuda && memtyperequested == CEED_MEM_DEVICE)
+    SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_SUP_SYS,
+             "PETSc was not built with CUDA. "
+             "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
+
   // Create DM
-  ierr = SetupDMByDegree(dm, degree, ncompu, bpChoice);
+  ierr = SetupDMByDegree(dm, degree, ncompu, bpchoice);
   CHKERRQ(ierr);
 
   // Create vectors
+  if (memtyperequested == CEED_MEM_DEVICE) {
+    ierr = DMSetVecType(dm, VECCUDA); CHKERRQ(ierr);
+  }
   ierr = DMCreateGlobalVector(dm, &X); CHKERRQ(ierr);
   ierr = VecGetLocalSize(X, &lsize); CHKERRQ(ierr);
   ierr = VecGetSize(X, &gsize); CHKERRQ(ierr);
@@ -155,65 +191,87 @@ int main(int argc, char **argv) {
   ierr = MatCreateShell(comm, lsize, lsize, gsize, gsize,
                         userO, &matO); CHKERRQ(ierr);
   ierr = MatShellSetOperation(matO, MATOP_MULT,
-                              (void(*)(void))MatMult_Ceed);
-  CHKERRQ(ierr);
-
-  // Set up libCEED
-  CeedInit(ceedresource, &ceed);
+                              (void(*)(void))MatMult_Ceed); CHKERRQ(ierr);
+  ierr = MatShellSetOperation(matO, MATOP_GET_DIAGONAL,
+                              (void(*)(void))MatGetDiag); CHKERRQ(ierr);
+  if (memtyperequested == CEED_MEM_DEVICE) {
+    ierr = MatShellSetVecType(matO, VECCUDA); CHKERRQ(ierr);
+  }
 
   // Print summary
   if (!test_mode) {
     PetscInt P = degree + 1, Q = P + qextra;
+
     const char *usedresource;
     CeedGetResource(ceed, &usedresource);
+
+    VecType vectype;
+    ierr = VecGetType(X, &vectype); CHKERRQ(ierr);
+
     ierr = PetscPrintf(comm,
                        "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
+                       "  PETSc:\n"
+                       "    PETSc Vec Type                     : %s\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
+                       "    libCEED Backend MemType            : %s\n"
+                       "    libCEED User Requested MemType     : %s\n"
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
                        "    Global nodes                       : %D\n"
                        "    Owned nodes                        : %D\n"
                        "    DoF per node                       : %D\n",
-                       bpChoice+1, usedresource, P, Q, gsize/ncompu,
-                       lsize/ncompu, ncompu); CHKERRQ(ierr);
+                       bpchoice+1, vectype, usedresource,
+                       CeedMemTypes[memtypebackend],
+                       (setmemtyperequest) ?
+                       CeedMemTypes[memtyperequested] : "none",
+                       P, Q, gsize/ncompu, lsize/ncompu, ncompu); CHKERRQ(ierr);
   }
 
   // Create RHS vector
   ierr = VecDuplicate(Xloc, &rhsloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(rhsloc); CHKERRQ(ierr);
-  ierr = VecGetArray(rhsloc, &r); CHKERRQ(ierr);
+  if (memtyperequested == CEED_MEM_HOST) {
+    ierr = VecGetArray(rhsloc, &r); CHKERRQ(ierr);
+  } else {
+    ierr = VecCUDAGetArray(rhsloc, &r); CHKERRQ(ierr);
+  }
   CeedVectorCreate(ceed, xlsize, &rhsceed);
-  CeedVectorSetArray(rhsceed, CEED_MEM_HOST, CEED_USE_POINTER, r);
+  CeedVectorSetArray(rhsceed, memtyperequested, CEED_USE_POINTER, r);
 
   ierr = PetscMalloc1(1, &ceeddata); CHKERRQ(ierr);
   ierr = SetupLibceedByDegree(dm, ceed, degree, dim, qextra,
-                              ncompu, gsize, xlsize, bpChoice, ceeddata,
+                              ncompu, gsize, xlsize, bpchoice, ceeddata,
                               true, rhsceed, &target); CHKERRQ(ierr);
 
   // Gather RHS
-  ierr = VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
+  CeedVectorSyncArray(rhsceed, memtyperequested);
+  if (memtyperequested == CEED_MEM_HOST) {
+    ierr = VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
+  } else {
+    ierr = VecCUDARestoreArray(rhsloc, &r); CHKERRQ(ierr);
+  }
   ierr = VecZeroEntries(rhs); CHKERRQ(ierr);
   ierr = DMLocalToGlobalBegin(dm, rhsloc, ADD_VALUES, rhs); CHKERRQ(ierr);
   ierr = DMLocalToGlobalEnd(dm, rhsloc, ADD_VALUES, rhs); CHKERRQ(ierr);
   CeedVectorDestroy(&rhsceed);
 
   // Create the error Q-function
-  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpChoice].error,
-                              bpOptions[bpChoice].errorfname, &qf_error);
-  CeedQFunctionAddInput(qf_error, "u", ncompu, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_error, "true_soln", ncompu, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_error, "error", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].error,
+                              bpOptions[bpchoice].errorfname, &qferror);
+  CeedQFunctionAddInput(qferror, "u", ncompu, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qferror, "true_soln", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qferror, "error", ncompu, CEED_EVAL_NONE);
 
   // Create the error operator
-  CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &op_error);
-  CeedOperatorSetField(op_error, "u", ceeddata->Erestrictu,
+  CeedOperatorCreate(ceed, qferror, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &operror);
+  CeedOperatorSetField(operror, "u", ceeddata->Erestrictu,
                        ceeddata->basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_error, "true_soln", ceeddata->Erestrictui,
+  CeedOperatorSetField(operror, "true_soln", ceeddata->Erestrictui,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "error", ceeddata->Erestrictui,
+  CeedOperatorSetField(operror, "error", ceeddata->Erestrictui,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Set up Mat
@@ -223,14 +281,26 @@ int main(int argc, char **argv) {
   ierr = VecDuplicate(Xloc, &userO->Yloc); CHKERRQ(ierr);
   userO->xceed = ceeddata->xceed;
   userO->yceed = ceeddata->yceed;
-  userO->op = ceeddata->op_apply;
+  userO->op = ceeddata->opapply;
   userO->ceed = ceed;
+  userO->memtype = memtyperequested;
+  if (memtyperequested == CEED_MEM_HOST) {
+    userO->VecGetArray = VecGetArray;
+    userO->VecGetArrayRead = VecGetArrayRead;
+    userO->VecRestoreArray = VecRestoreArray;
+    userO->VecRestoreArrayRead = VecRestoreArrayRead;
+  } else {
+    userO->VecGetArray = VecCUDAGetArray;
+    userO->VecGetArrayRead = VecCUDAGetArrayRead;
+    userO->VecRestoreArray = VecCUDARestoreArray;
+    userO->VecRestoreArrayRead = VecCUDARestoreArrayRead;
+  }
 
   ierr = KSPCreate(comm, &ksp); CHKERRQ(ierr);
   {
     PC pc;
     ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
-    if (bpChoice == CEED_BP1 || bpChoice == CEED_BP2) {
+    if (bpchoice == CEED_BP1 || bpchoice == CEED_BP2) {
       ierr = PCSetType(pc, PCJACOBI); CHKERRQ(ierr);
       ierr = PCJacobiSetType(pc, PC_JACOBI_ROWSUM); CHKERRQ(ierr);
     } else {
@@ -241,7 +311,6 @@ int main(int argc, char **argv) {
     ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
                             PETSC_DEFAULT); CHKERRQ(ierr);
   }
-  ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp, matO, matO); CHKERRQ(ierr);
 
   // First run, if benchmarking
@@ -262,13 +331,23 @@ int main(int argc, char **argv) {
       CHKERRQ(ierr);
     }
   }
+  ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
 
   // Timed solve
   ierr = VecZeroEntries(X); CHKERRQ(ierr);
   ierr = PetscBarrier((PetscObject)ksp); CHKERRQ(ierr);
+
+  // -- Performance logging
+  ierr = PetscLogStageRegister("Solve Stage", &solvestage); CHKERRQ(ierr);
+  ierr = PetscLogStagePush(solvestage); CHKERRQ(ierr);
+
+  // -- Solve
   my_rt_start = MPI_Wtime();
   ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
   my_rt = MPI_Wtime() - my_rt_start;
+
+  // -- Performance logging
+  ierr = PetscLogStagePop();
 
   // Output results
   {
@@ -295,7 +374,7 @@ int main(int argc, char **argv) {
     }
     {
       PetscReal maxerror;
-      ierr = ComputeErrorMax(userO, op_error, X, target, &maxerror);
+      ierr = ComputeErrorMax(userO, operror, X, target, &maxerror);
       CHKERRQ(ierr);
       PetscReal tol = 5e-2;
       if (!test_mode || maxerror > tol) {
@@ -340,8 +419,8 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
   CeedVectorDestroy(&target);
-  CeedQFunctionDestroy(&qf_error);
-  CeedOperatorDestroy(&op_error);
+  CeedQFunctionDestroy(&qferror);
+  CeedOperatorDestroy(&operror);
   CeedDestroy(&ceed);
   return PetscFinalize();
 }

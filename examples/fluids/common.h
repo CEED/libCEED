@@ -20,65 +20,9 @@
 #ifndef common_h
 #define common_h
 
-#include <math.h>
-#include <ceed.h>
-
-typedef struct SetupContext_ *SetupContext;
-struct SetupContext_ {
-  CeedScalar theta0;
-  CeedScalar thetaC;
-  CeedScalar P0;
-  CeedScalar N;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar Rd;
-  CeedScalar g;
-  CeedScalar rc;
-  CeedScalar lx;
-  CeedScalar ly;
-  CeedScalar lz;
-  CeedScalar periodicity0;
-  CeedScalar periodicity1;
-  CeedScalar periodicity2;
-  CeedScalar center[3];
-  CeedScalar dc_axis[3];
-  CeedScalar time;
-};
-
-// PETSc user data
-typedef struct User_ *User;
-typedef struct Units_ *Units;
-
-struct User_ {
-  MPI_Comm comm;
-  PetscInt outputfreq;
-  DM dm;
-  DM dmviz;
-  Mat interpviz;
-  Ceed ceed;
-  Units units;
-  CeedVector qceed, qdotceed, gceed;
-  CeedOperator op_rhs, op_ifunction;
-  Vec M;
-  char outputfolder[PETSC_MAX_PATH_LEN];
-  PetscInt contsteps;
-};
-
-struct Units_ {
-  // fundamental units
-  PetscScalar meter;
-  PetscScalar kilogram;
-  PetscScalar second;
-  PetscScalar Kelvin;
-  // derived units
-  PetscScalar Pascal;
-  PetscScalar JperkgK;
-  PetscScalar mpersquareds;
-  PetscScalar WpermK;
-  PetscScalar kgpercubicm;
-  PetscScalar kgpersquaredms;
-  PetscScalar Joulepercubicm;
-};
+#ifndef __CUDACC__
+#  include <math.h>
+#endif
 
 // *****************************************************************************
 // This QFunction sets up the geometric factors required for integration and
@@ -119,11 +63,11 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*J)[3][Q] = (const CeedScalar(*)[3][Q])in[0],
+  const CeedScalar (*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
                    (*w) = in[1];
 
   // Outputs
-  CeedScalar (*qdata)[Q] = (CeedScalar(*)[Q])out[0];
+  CeedScalar (*qdata)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
 
   CeedPragmaSIMD
@@ -171,14 +115,17 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
   return 0;
 }
 
+// *****************************************************************************
+// This function provides the 2D variant of the above setup
+// *****************************************************************************
 CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
                         const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*J)[2][Q] = (const CeedScalar(*)[2][Q])in[0],
+  const CeedScalar (*J)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[0],
                    (*w) = in[1];
   // Outputs
-  CeedScalar (*qdata)[Q] = (CeedScalar(*)[Q])out[0];
+  CeedScalar (*qdata)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
 
   CeedPragmaSIMD
@@ -221,11 +168,11 @@ CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*u)[Q] = (const CeedScalar(*)[Q])in[0],
+  const CeedScalar (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
                    (*qdata) = in[1];
 
   // Outputs
-  CeedScalar (*v)[Q] = (CeedScalar(*)[Q])out[0];
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
 
   CeedPragmaSIMD
@@ -240,4 +187,5 @@ CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-#endif
+
+#endif // common_h

@@ -1,12 +1,12 @@
 Introduction
-========================
+========================================
 
 Historically, conventional high-order finite element methods were rarely used for
 industrial problems because the Jacobian rapidly loses sparsity as the order is
 increased, leading to unaffordable solve times and memory requirements
-:cite:`Brown:2010`. This effect typically limited the order of accuracy to at most
-quadratic, especially because they are computationally advantegeous in terms of
-floating point opeartions (FLOPS) per degree of freedom (DOF)---see
+:cite:`brown2010`. This effect typically limited the order of accuracy to at most
+quadratic, especially because they are computationally advantageous in terms of
+floating point operations (FLOPS) per degree of freedom (DOF)---see
 :numref:`fig-assembledVsmatrix-free`---, despite the fast convergence and favorable
 stability properties offered by higher order discretizations. Nowadays, high-order
 numerical methods, such as the spectral element method (SEM)---a special case of
@@ -21,7 +21,7 @@ only the metric terms needed as an operator setup-phase (labeled as *tensor-qsto
 and non assembling  the matrix and computing the metric terms on the fly and storing
 a compact representation of the linearization at quadrature points (labeled as
 *tensor*). In the right panel, we show the cost in terms of FLOPS/DOF. This metric for
-computational efficinecy made sense historically, when the performance was mostly
+computational efficiency made sense historically, when the performance was mostly
 limited by processors' clockspeed. A more relevant performance plot for current
 state-of-the-art high-performance machines (for which the bottleneck of performance is
 mostly in the memory bandwith) is shown in the right panel of
@@ -50,7 +50,7 @@ Furthermore, software packages that provide high-performance implementations hav
 been special-purpose and intrusive. libCEED is a new library that offers a purely
 algebraic interface for matrix-free operator representation and supports run-time
 selection of implementations tuned for a variety of computational device types,
-including CPUs and GPUs. libCEED’s purely algebraic interface can unobtrusively be
+including CPUs and GPUs. libCEED's purely algebraic interface can unobtrusively be
 integrated in new and legacy software to provide performance portable interfaces.
 While libCEED's focus is on high-order finite elements, the approach is algebraic
 and thus applicable to other discretizations in factored form. libCEED's role, as

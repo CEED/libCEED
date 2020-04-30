@@ -16,17 +16,26 @@
 #include "../include/ceed.h"
 #include <cuda.h>
 
-__global__ static void setValueK(CeedScalar * __restrict__ vec, CeedInt size, CeedScalar val) {
+//------------------------------------------------------------------------------
+// Kernel for set value on device
+//------------------------------------------------------------------------------
+__global__ static void setValueK(CeedScalar * __restrict__ vec, CeedInt size,
+                                 CeedScalar val) {
   int idx = threadIdx.x + blockDim.x * blockIdx.x;
   if (idx >= size)
     return;
   vec[idx] = val;
 }
 
-extern "C" int CeedDeviceSetValue(CeedScalar* d_array, CeedInt length, CeedScalar val) {
+//------------------------------------------------------------------------------
+// Set value on device memory
+//------------------------------------------------------------------------------
+extern "C" int CeedDeviceSetValue(CeedScalar* d_array, CeedInt length,
+                                  CeedScalar val) {
   const int bsize = 512;
   const int vecsize = length;
   int gridsize = vecsize / bsize;
+
   if (bsize * gridsize < vecsize)
     gridsize += 1;
   setValueK<<<gridsize,bsize>>>(d_array, length, val);

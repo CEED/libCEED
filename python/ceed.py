@@ -17,6 +17,7 @@
 from _ceed_cffi import ffi, lib
 import sys
 import io
+import tempfile
 from abc import ABC
 from .ceed_vector import Vector
 from .ceed_basis import BasisTensorH1, BasisTensorH1Lagrange, BasisH1
@@ -26,321 +27,328 @@ from .ceed_operator import Operator, CompositeOperator
 from .ceed_constants import *
 
 # ------------------------------------------------------------------------------
+
+
 class Ceed():
-  """Ceed: core components."""
-  # Attributes
-  _pointer = ffi.NULL
+    """Ceed: core components."""
+    # Attributes
+    _pointer = ffi.NULL
 
-  # Constructor
-  def __init__(self, resource = "/cpu/self"):
-    # libCEED object
-    self._pointer = ffi.new("Ceed *")
+    # Constructor
+    def __init__(self, resource="/cpu/self"):
+        # libCEED object
+        self._pointer = ffi.new("Ceed *")
 
-    # libCEED call
-    resourceAscii = ffi.new("char[]", resource.encode("ascii"))
-    lib.CeedInit(resourceAscii, self._pointer)
+        # libCEED call
+        resourceAscii = ffi.new("char[]", resource.encode("ascii"))
+        lib.CeedInit(resourceAscii, self._pointer)
 
-  # Representation
-  def __repr__(self):
-    return "<Ceed instance at " + hex(id(self)) + ">"
+    # Representation
+    def __repr__(self):
+        return "<Ceed instance at " + hex(id(self)) + ">"
 
-  # Get Resource
-  def get_resource(self):
-    """Get the full resource name for a Ceed context.
+    # String conversion for print() to stdout
+    def __str__(self):
+        """View a Ceed via print()."""
 
-       Returns:
-         resource: resource name"""
+        # libCEED call
+        with tempfile.NamedTemporaryFile() as key_file:
+            with open(key_file.name, 'r+') as stream_file:
+                stream = ffi.cast("FILE *", stream_file)
 
-    # libCEED call
-    resource = ffi.new("char **")
-    lib.CeedGetResource(self._pointer[0], resource)
+                lib.CeedView(self._pointer[0], stream)
 
-    return ffi.string(resource[0]).decode("UTF-8")
+                stream_file.seek(0)
+                out_string = stream_file.read()
 
-  # Preferred MemType
-  def get_preferred_memtype(self):
-    """Return Ceed preferred memory type.
+        return out_string
 
-       Returns:
-         memtype: Ceed preferred memory type"""
+    # Get Resource
+    def get_resource(self):
+        """Get the full resource name for a Ceed context.
 
-    # libCEED call
-    memtype = ffi.new("CeedMemType *", MEM_HOST)
-    lib.CeedGetPreferredMemType(self._pointer[0], memtype)
+           Returns:
+             resource: resource name"""
 
-    return memtype[0]
+        # libCEED call
+        resource = ffi.new("char **")
+        lib.CeedGetResource(self._pointer[0], resource)
 
-  # CeedVector
-  def Vector(self, size):
-    """Ceed Vector: storing and manipulating vectors.
+        return ffi.string(resource[0]).decode("UTF-8")
 
-       Args:
-         size: length of vector
+    # Preferred MemType
+    def get_preferred_memtype(self):
+        """Return Ceed preferred memory type.
 
-       Returns:
-         vector: Ceed Vector"""
+           Returns:
+             memtype: Ceed preferred memory type"""
 
-    return Vector(self, size)
+        # libCEED call
+        memtype = ffi.new("CeedMemType *", MEM_HOST)
+        lib.CeedGetPreferredMemType(self._pointer[0], memtype)
 
-  # CeedElemRestriction
-  def ElemRestriction(self, nelem, elemsize, nnodes, ncomp, indices,
-                      memtype=lib.CEED_MEM_HOST, cmode=lib.CEED_COPY_VALUES,
-                      imode=lib.CEED_NONINTERLACED):
-    """Ceed ElemRestriction: restriction from local vectors to elements.
+        return memtype[0]
 
-       Args:
-         nelem: number of elements described in the indices array
-         elemsize: size (number of nodes) per element
-         nnodes: the number of nodes in the local vector. The input Ceed Vector
-                   to which the restriction will be applied is of size
-                   (nnodes * ncomp). This size may include data
-                   used by other Ceed ElemRestriction objects describing
-                   different types of elements.
-         ncomp: number of field components per interpolation node (1 for scalar fields)
-         *indices: Numpy array of shape [nelem, elemsize]. Row i holds the
-                      ordered list of the indices (into the input Ceed Vector)
-                      for the unknowns corresponding to element i, where
-                      0 <= i < nelem. All indices must be in the range
-                      [0, nnodes - 1].
-         **memtype: memory type of the indices array, default CEED_MEM_HOST
-         **cmode: copy mode for the indices array, default CEED_COPY_VALUES
-         **imode: ordering of the ncomp components, i.e. it specifies
-                    the ordering of the components of the local vector used
-                    by this CeedElemRestriction. CEED_NONINTERLACED indicates
-                    the component is the outermost index and CEED_INTERLACED
-                    indicates the component is the innermost index in
-                    ordering of the local vector, default CEED_NONINTERLACED
+    # CeedVector
+    def Vector(self, size):
+        """Ceed Vector: storing and manipulating vectors.
 
-       Returns:
-         elemrestriction: Ceed ElemRestiction"""
+           Args:
+             size: length of vector
 
-    return ElemRestriction(self, nelem, elemsize, nnodes, ncomp, indices,
-                           memtype=memtype, cmode=cmode, imode=imode)
+           Returns:
+             vector: Ceed Vector"""
 
-  def StridedElemRestriction(self, nelem, elemsize, nnodes, ncomp, strides):
-    """Ceed Identity ElemRestriction: strided restriction from local vectors to elements.
+        return Vector(self, size)
 
-       Args:
-         nelem: number of elements described in the indices array
-         elemsize: size (number of nodes) per element
-         nnodes: the number of nodes in the local vector. The input Ceed Vector
-                   to which the restriction will be applied is of size
-                   (nnodes * ncomp). This size may include data
-                   used by other Ceed ElemRestriction objects describing
-                   different types of elements.
-         ncomp: number of field components per interpolation node
-                  (1 for scalar fields)
-         *strides: Array for strides between [nodes, components, elements].
-                     The data for node i, component j, element k in the
-                     L-vector is given by
-                       i*strides[0] + j*strides[1] + k*strides[2]
+    # CeedElemRestriction
+    def ElemRestriction(self, nelem, elemsize, ncomp, compstride, lsize, offsets,
+                        memtype=lib.CEED_MEM_HOST, cmode=lib.CEED_COPY_VALUES):
+        """Ceed ElemRestriction: restriction from local vectors to elements.
 
-       Returns:
-         elemrestriction: Ceed Strided ElemRestiction"""
+           Args:
+             nelem: number of elements described by the restriction
+             elemsize: size (number of nodes) per element
+             ncomp: number of field components per interpolation node
+                      (1 for scalar fields)
+             compstride: Stride between components for the same L-vector "node".
+                           Data for node i, component k can be found in the
+                           L-vector at index [offsets[i] + k*compstride].
+             lsize: The size of the L-vector. This vector may be larger than
+                       the elements and fields given by this restriction.
+             *offsets: Numpy array of shape [nelem, elemsize]. Row i holds the
+                         ordered list of the offsets (into the input Ceed Vector)
+                         for the unknowns corresponding to element i, where
+                         0 <= i < nelem. All offsets must be in the range
+                         [0, lsize - 1].
+             **memtype: memory type of the offsets array, default CEED_MEM_HOST
+             **cmode: copy mode for the offsets array, default CEED_COPY_VALUES
 
-    return StridedElemRestriction(self, nelem, elemsize, nnodes, ncomp, strides)
+           Returns:
+             elemrestriction: Ceed ElemRestiction"""
 
-  def BlockedElemRestriction(self, nelem, elemsize, blksize, nnodes, ncomp,
-                             indices, memtype=lib.CEED_MEM_HOST,
-                             cmode=lib.CEED_COPY_VALUES,
-                             imode=lib.CEED_NONINTERLACED):
-    """Ceed Blocked ElemRestriction: blocked restriction from local vectors to elements.
+        return ElemRestriction(self, nelem, elemsize, ncomp, compstride, lsize,
+                               offsets, memtype=memtype, cmode=cmode)
 
-       Args:
-         nelem: number of elements described in the indices array
-         elemsize: size (number of nodes) per element
-         blksize: number of elements in a block
-         nnodes: the number of nodes in the local vector. The input Ceed Vector
-                   to which the restriction will be applied is of size
-                   (nnodes * ncomp). This size may include data
-                   used by other Ceed ElemRestriction objects describing
-                   different types of elements.
-         ncomp: number of field components per interpolation node (1 for scalar fields)
-         *indices: Numpy array of shape [nelem, elemsize]. Row i holds the
-                      ordered list of the indices (into the input Ceed Vector)
-                      for the unknowns corresponding to element i, where
-                      0 <= i < nelem. All indices must be in the range
-                      [0, nnodes - 1]. The backend will permute and pad this
-                      array to the desired ordering for the blocksize, which is
-                      typically given by the backend. The default reordering is
-                      to interlace elements.
-         **memtype: memory type of the indices array, default CEED_MEM_HOST
-         **cmode: copy mode for the indices array, default CEED_COPY_VALUES
-         **imode: ordering of the ncomp components, i.e. it specifies
-                    the ordering of the components of the local vector used
-                    by this CeedElemRestriction. CEED_NONINTERLACED indicates
-                    the component is the outermost index and CEED_INTERLACED
-                    indicates the component is the innermost index in
-                    ordering of the local vector, default CEED_NONINTERLACED
+    def StridedElemRestriction(self, nelem, elemsize, ncomp, lsize, strides):
+        """Ceed Identity ElemRestriction: strided restriction from local vectors
+             to elements.
 
-       Returns:
-         elemrestriction: Ceed Blocked ElemRestiction"""
+           Args:
+             nelem: number of elements described by the restriction
+             elemsize: size (number of nodes) per element
+             ncomp: number of field components per interpolation node
+                      (1 for scalar fields)
+             lsize: The size of the L-vector. This vector may be larger than
+                      the elements and fields given by this restriction.
+             *strides: Array for strides between [nodes, components, elements].
+                         The data for node i, component j, element k in the
+                         L-vector is given by
+                           i*strides[0] + j*strides[1] + k*strides[2]
 
-    return BlockedElemRestriction(self, nelem, elemsize, blksize, nnodes,
-                                  ncomp, indices, memtype=memtype,
-                                  cmode=cmode, imode=imode)
+           Returns:
+             elemrestriction: Ceed Strided ElemRestiction"""
 
-  def BlockedStridedElemRestriction(self, nelem, elemsize, blksize, nnodes,
-                                    ncomp, strides):
-    """Ceed Blocked Strided ElemRestriction: blocked and strided restriction from local vectors to elements.
+        return StridedElemRestriction(
+            self, nelem, elemsize, ncomp, lsize, strides)
 
-       Args:
-         nelem: number of elements described in the indices array
-         elemsize: size (number of nodes) per element
-         blksize: number of elements in a block
-         nnodes: the number of nodes in the local vector. The input Ceed Vector
-                   to which the restriction will be applied is of size
-                   (nnodes * ncomp). This size may include data
-                   used by other Ceed ElemRestriction objects describing
-                   different types of elements.
-         ncomp: number of field components per interpolation node
-                  (1 for scalar fields)
-         *strides: Array for strides between [nodes, components, elements].
-                     The data for node i, component j, element k in the
-                     L-vector is given by
-                       i*strides[0] + j*strides[1] + k*strides[2]
+    def BlockedElemRestriction(self, nelem, elemsize, blksize, ncomp, compstride,
+                               lsize, offsets, memtype=lib.CEED_MEM_HOST,
+                               cmode=lib.CEED_COPY_VALUES):
+        """Ceed Blocked ElemRestriction: blocked restriction from local vectors
+             to elements.
 
-       Returns:
-         elemrestriction: Ceed Strided ElemRestiction"""
+           Args:
+             nelem: number of elements described by the restriction
+             elemsize: size (number of nodes) per element
+             blksize: number of elements in a block
+             ncomp: number of field components per interpolation node
+                       (1 for scalar fields)
+             lsize: The size of the L-vector. This vector may be larger than
+                      the elements and fields given by this restriction.
+             *offsets: Numpy array of shape [nelem, elemsize]. Row i holds the
+                         ordered list of the offsets (into the input Ceed Vector)
+                         for the unknowns corresponding to element i, where
+                         0 <= i < nelem. All offsets must be in the range
+                         [0, lsize - 1]. The backend will permute and pad this
+                         array to the desired ordering for the blocksize, which is
+                         typically given by the backend. The default reordering is
+                         to interlace elements.
+             **memtype: memory type of the offsets array, default CEED_MEM_HOST
+             **cmode: copy mode for the offsets array, default CEED_COPY_VALUES
 
-    return BlockedStridedElemRestriction(self, nelem, elemsize, blksize,
-                                         nnodes, ncomp, strides)
+           Returns:
+             elemrestriction: Ceed Blocked ElemRestiction"""
 
-  # CeedBasis
-  def BasisTensorH1(self, dim, ncomp, P1d, Q1d, interp1d, grad1d,
-                    qref1d, qweight1d):
-    """Ceed Tensor H1 Basis: finite element tensor-product basis objects for
-         H^1 discretizations.
+        return BlockedElemRestriction(self, nelem, elemsize, blksize, ncomp,
+                                      compstride, lsize, offsets,
+                                      memtype=memtype, cmode=cmode)
 
-       Args:
-         dim: topological dimension
-         ncomp: number of field components (1 for scalar fields)
-         P1d: number of nodes in one dimension
-         Q1d: number of quadrature points in one dimension
-         *interp1d: Numpy array holding the row-major (Q1d * P1d) matrix expressing the
-                     values of nodal basis functions at quadrature points
-         *grad1d: Numpy array holding the row-major (Q1d * P1d) matrix expressing the
-                   derivatives of nodal basis functions at quadrature points
-         *qref1d: Numpy array of length Q1d holding the locations of quadrature points
-                   on the 1D reference element [-1, 1]
-         *qweight1d: Numpy array of length Q1d holding the quadrature weights on the
-                      reference element
+    def BlockedStridedElemRestriction(self, nelem, elemsize, blksize, ncomp,
+                                      lsize, strides):
+        """Ceed Blocked Strided ElemRestriction: blocked and strided restriction
+             from local vectors to elements.
 
-       Returns:
-         basis: Ceed Basis"""
+           Args:
+             nelem: number of elements described in the restriction
+             elemsize: size (number of nodes) per element
+             blksize: number of elements in a block
+             ncomp: number of field components per interpolation node
+                      (1 for scalar fields)
+             lsize: The size of the L-vector. This vector may be larger than
+                      the elements and fields given by this restriction.
+             *strides: Array for strides between [nodes, components, elements].
+                         The data for node i, component j, element k in the
+                         L-vector is given by
+                           i*strides[0] + j*strides[1] + k*strides[2]
 
-    return BasisTensorH1(self, dim, ncomp, P1d, Q1d, interp1d, grad1d,
-                         qref1d, qweight1d)
+           Returns:
+             elemrestriction: Ceed Strided ElemRestiction"""
 
-  def BasisTensorH1Lagrange(self, dim, ncomp, P, Q, qmode):
-    """Ceed Tensor H1 Lagrange Basis: finite element tensor-product Lagrange basis
-         objects for H^1 discretizations.
+        return BlockedStridedElemRestriction(self, nelem, elemsize, blksize,
+                                             ncomp, lsize, strides)
 
-       Args:
-         dim: topological dimension
-         ncomp: number of field components (1 for scalar fields)
-         P: number of Gauss-Lobatto nodes in one dimension.  The
-              polynomial degree of the resulting Q_k element is k=P-1.
-         Q: number of quadrature points in one dimension
-         qmode: distribution of the Q quadrature points (affects order of
-                  accuracy for the quadrature)
+    # CeedBasis
+    def BasisTensorH1(self, dim, ncomp, P1d, Q1d, interp1d, grad1d,
+                      qref1d, qweight1d):
+        """Ceed Tensor H1 Basis: finite element tensor-product basis objects for
+             H^1 discretizations.
 
-       Returns:
-         basis: Ceed Basis"""
+           Args:
+             dim: topological dimension
+             ncomp: number of field components (1 for scalar fields)
+             P1d: number of nodes in one dimension
+             Q1d: number of quadrature points in one dimension
+             *interp1d: Numpy array holding the row-major (Q1d * P1d) matrix
+                          expressing the values of nodal basis functions at
+                          quadrature points
+             *grad1d: Numpy array holding the row-major (Q1d * P1d) matrix
+                        expressing the derivatives of nodal basis functions at
+                        quadrature points
+             *qref1d: Numpy array of length Q1d holding the locations of
+                        quadrature points on the 1D reference element [-1, 1]
+             *qweight1d: Numpy array of length Q1d holding the quadrature
+                           weights on the reference element
 
-    return BasisTensorH1Lagrange(self, dim, ncomp, P, Q, qmode)
+           Returns:
+             basis: Ceed Basis"""
 
-  def BasisH1(self, topo, ncomp, nnodes, nqpts, interp, grad, qref, qweight):
-    """Ceed H1 Basis: finite element non tensor-product basis for H^1 discretizations.
+        return BasisTensorH1(self, dim, ncomp, P1d, Q1d, interp1d, grad1d,
+                             qref1d, qweight1d)
 
-       Args:
-         topo: topology of the element, e.g. hypercube, simplex, etc
-         ncomp: number of field components (1 for scalar fields)
-         nnodes: total number of nodes
-         nqpts: total number of quadrature points
-         *interp: Numpy array holding the row-major (nqpts * nnodes) matrix expressing
-                   the values of nodal basis functions at quadrature points
-         *grad: Numpy array holding the row-major (nqpts * dim * nnodes) matrix
-                 expressing the derivatives of nodal basis functions at
-                 quadrature points
-         *qref: Numpy array of length (nqpts * dim) holding the locations of quadrature
-                 points on the reference element [-1, 1]
-         *qweight: Numpy array of length nnodes holding the quadrature weights on the
-                    reference element
+    def BasisTensorH1Lagrange(self, dim, ncomp, P, Q, qmode):
+        """Ceed Tensor H1 Lagrange Basis: finite element tensor-product Lagrange
+             basis objects for H^1 discretizations.
 
-       Returns:
-         basis: Ceed Basis"""
+           Args:
+             dim: topological dimension
+             ncomp: number of field components (1 for scalar fields)
+             P: number of Gauss-Lobatto nodes in one dimension.  The
+                  polynomial degree of the resulting Q_k element is k=P-1.
+             Q: number of quadrature points in one dimension
+             qmode: distribution of the Q quadrature points (affects order of
+                      accuracy for the quadrature)
 
-    return BasisH1(self, topo, ncomp, nnodes, nqpts, interp, grad, qref, qweight)
+           Returns:
+             basis: Ceed Basis"""
 
-  # CeedQFunction
-  def QFunction(self, vlength, f, source):
-    """Ceed QFunction: point-wise operation at quadrature points for evaluating
-         volumetric terms.
+        return BasisTensorH1Lagrange(self, dim, ncomp, P, Q, qmode)
 
-       Args:
-         vlength: vector length. Caller must ensure that number of quadrature
-                    points is a multiple of vlength
-         f: ctypes function pointer to evaluate action at quadrature points
-         source: absolute path to source of QFunction,
-           "\\abs_path\\file.h:function_name
+    def BasisH1(self, topo, ncomp, nnodes, nqpts, interp, grad, qref, qweight):
+        """Ceed H1 Basis: finite element non tensor-product basis for H^1
+             discretizations.
 
-       Returns:
-         qfunction: Ceed QFunction"""
+           Args:
+             topo: topology of the element, e.g. hypercube, simplex, etc
+             ncomp: number of field components (1 for scalar fields)
+             nnodes: total number of nodes
+             nqpts: total number of quadrature points
+             *interp: Numpy array holding the row-major (nqpts * nnodes) matrix
+                       expressing the values of nodal basis functions at
+                       quadrature points
+             *grad: Numpy array holding the row-major (nqpts * dim * nnodes)
+                     matrix expressing the derivatives of nodal basis functions
+                     at quadrature points
+             *qref: Numpy array of length (nqpts * dim) holding the locations of
+                     quadrature points on the reference element [-1, 1]
+             *qweight: Numpy array of length nnodes holding the quadrature
+                        weights on the reference element
 
-    return QFunction(self, vlength, f, source)
+           Returns:
+             basis: Ceed Basis"""
 
-  def QFunctionByName(self, name):
-    """Ceed QFunction By Name: point-wise operation at quadrature points
-         from a given gallery, for evaluating volumetric terms.
+        return BasisH1(self, topo, ncomp, nnodes, nqpts,
+                       interp, grad, qref, qweight)
 
-       Args:
-         name: name of QFunction to use from gallery
+    # CeedQFunction
+    def QFunction(self, vlength, f, source):
+        """Ceed QFunction: point-wise operation at quadrature points for
+             evaluating volumetric terms.
 
-       Returns:
-         qfunction: Ceed QFunction By Name"""
+           Args:
+             vlength: vector length. Caller must ensure that number of quadrature
+                        points is a multiple of vlength
+             f: ctypes function pointer to evaluate action at quadrature points
+             source: absolute path to source of QFunction,
+               "\\abs_path\\file.h:function_name
 
-    return QFunctionByName(self, name)
+           Returns:
+             qfunction: Ceed QFunction"""
 
-  def IdentityQFunction(self, size, inmode, outmode):
-    """Ceed Idenity QFunction: identity qfunction operation.
+        return QFunction(self, vlength, f, source)
 
-       Args:
-         size: size of the qfunction fields
-         **inmode: CeedEvalMode for input to Ceed QFunction
-         **outmode: CeedEvalMode for output to Ceed QFunction
+    def QFunctionByName(self, name):
+        """Ceed QFunction By Name: point-wise operation at quadrature points
+             from a given gallery, for evaluating volumetric terms.
 
-       Returns:
-         qfunction: Ceed Identity QFunction"""
+           Args:
+             name: name of QFunction to use from gallery
 
-    return IdentityQFunction(self, size, inmode, outmode)
+           Returns:
+             qfunction: Ceed QFunction By Name"""
 
-  # CeedOperator
-  def Operator(self, qf, dqf=None, qdfT=None):
-    """Ceed Operator: composed FE-type operations on vectors.
+        return QFunctionByName(self, name)
 
-       Args:
-         qf: QFunction defining the action of the operator at quadrature points
-         **dqf: QFunction defining the action of the Jacobian, default None
-         **dqfT: QFunction defining the action of the transpose of the Jacobian,
-                   default None
+    def IdentityQFunction(self, size, inmode, outmode):
+        """Ceed Idenity QFunction: identity qfunction operation.
 
-       Returns:
-         operator: Ceed Operator"""
+           Args:
+             size: size of the qfunction fields
+             **inmode: CeedEvalMode for input to Ceed QFunction
+             **outmode: CeedEvalMode for output to Ceed QFunction
 
-    return Operator(self, qf, dqf, qdfT)
+           Returns:
+             qfunction: Ceed Identity QFunction"""
 
-  def CompositeOperator(self):
-    """Composite Ceed Operator: composition of multiple CeedOperators.
+        return IdentityQFunction(self, size, inmode, outmode)
 
-       Returns:
-         operator: Ceed Composite Operator"""
+    # CeedOperator
+    def Operator(self, qf, dqf=None, qdfT=None):
+        """Ceed Operator: composed FE-type operations on vectors.
 
-    return CompositeOperator(self)
+           Args:
+             qf: QFunction defining the action of the operator at quadrature
+                   points
+             **dqf: QFunction defining the action of the Jacobian, default None
+             **dqfT: QFunction defining the action of the transpose of the
+                       Jacobian, default None
 
-  # Destructor
-  def __del__(self):
-    # libCEED call
-    lib.CeedDestroy(self._pointer)
+           Returns:
+             operator: Ceed Operator"""
+
+        return Operator(self, qf, dqf, qdfT)
+
+    def CompositeOperator(self):
+        """Composite Ceed Operator: composition of multiple CeedOperators.
+
+           Returns:
+             operator: Ceed Composite Operator"""
+
+        return CompositeOperator(self)
+
+    # Destructor
+    def __del__(self):
+        # libCEED call
+        lib.CeedDestroy(self._pointer)
 
 # ------------------------------------------------------------------------------

@@ -18,8 +18,10 @@
 #include <string.h>
 #include <stdarg.h>
 #include "ceed-cuda-reg.h"
-#include "../cuda/ceed-cuda.h"
 
+//------------------------------------------------------------------------------
+// Backend init
+//------------------------------------------------------------------------------
 static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   int ierr;
   const int nrc = 9; // number of characters in resource
@@ -30,20 +32,11 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   CeedInit("/gpu/cuda/ref", &ceedref);
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
-  const int rlen = strlen(resource);
-  const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
-  const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : 0;
-
-  int currentDeviceID;
-  ierr = cudaGetDevice(&currentDeviceID); CeedChk_Cu(ceed,ierr);
-  if (currentDeviceID!=deviceID) {
-    ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
-  }
-
   Ceed_Cuda_reg *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
-
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
+  ierr = CeedCudaInit(ceed, resource, nrc); CeedChk(ierr);
+
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Cuda_reg); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
@@ -55,7 +48,11 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Backend register
+//------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
   CeedRegister("/gpu/cuda/reg", CeedInit_Cuda_reg, 30);
 }
+//------------------------------------------------------------------------------

@@ -18,6 +18,7 @@
 #include <nvrtc.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include "../cuda/ceed-cuda.h"
 
 typedef struct {
   CUmodule module;
@@ -34,20 +35,21 @@ typedef struct {
 typedef struct {
   CUmodule module;
   CUfunction noTrStrided;
-  CUfunction noTrNoTr;
-  CUfunction noTrTr;
+  CUfunction noTrOffset;
   CUfunction trStrided;
-  CUfunction trNoTr;
-  CUfunction trTr;
+  CUfunction trOffset;
+  CeedInt nnodes;
   CeedInt *h_ind;
   CeedInt *h_ind_allocated;
   CeedInt *d_ind;
   CeedInt *d_ind_allocated;
   CeedInt *d_toffsets;
   CeedInt *d_tindices;
+  CeedInt *d_lvec_indices;
 } CeedElemRestriction_Cuda_reg;
 
 typedef struct {
+  Ceed_Cuda base;
 } Ceed_Cuda_reg;
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda_reg(CeedInt dim, CeedInt P1d,

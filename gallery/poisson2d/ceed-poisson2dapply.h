@@ -17,6 +17,10 @@
 /**
   @brief Ceed QFunction for applying the 2D poisson operator
 **/
+
+#ifndef poisson2dapply_h
+#define poisson2dapply_h
+
 CEED_QFUNCTION(Poisson2DApply)(void *ctx, const CeedInt Q,
                                const CeedScalar *const *in,
                                CeedScalar *const *out) {
@@ -56,3 +60,5 @@ CEED_QFUNCTION(Poisson2DApply)(void *ctx, const CeedInt Q,
 
   return 0;
 }
+
+#endif // poisson2dapply_h

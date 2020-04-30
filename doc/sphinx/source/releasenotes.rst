@@ -1,14 +1,109 @@
 Changes/Release Notes
-======================================
+========================================
 
-On this page we provide a summary of the main API changes, new feautures and examples
+On this page we provide a summary of the main API changes, new features and examples
 for each release of libCEED.
 
+.. _master:
+
+Current Master
+----------------------------------------
+
+The current master branch contains bug fixes and interfaces changes.
+
+Interface changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Replace limited :code:`CeedInterlaceMode` with more flexible component stride :code:`compstride` in :code:`CeedElemRestriction` constructors.
+  As a result, the :code:`indices` parameter has been replaced with :code:`offsets` and the :code:`nnodes` parameter has been replaced with :code:`lsize`.
+  These changes improve support for mixed finite element methods.
+
+Examples
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* :ref:`example-petsc-elasticity` example updated with strain energy computation and more flexible boundary conditions.
+
+.. _v0.6:
+
+v0.6 (Mar 29, 2020)
+----------------------------------------
+
+libCEED v0.6 contains numerous new features and examples, as well as expanded
+documentation in `this new website <https://libceed.readthedocs.io>`_.
+
+New features
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* New Python interface using `CFFI <https://cffi.readthedocs.io/>`_ provides a nearly
+  1-1 correspondence with the C interface, plus some convenience features.  For instance,
+  data stored in the :cpp:type:`CeedVector` structure are available without copy as
+  :py:class:`numpy.ndarray`.  Short tutorials are provided in
+  `Binder <https://mybinder.org/v2/gh/CEED/libCEED/master?urlpath=lab/tree/examples/tutorials/>`_.
+* Linear QFunctions can be assembled as block-diagonal matrices (per quadrature point,
+  :cpp:func:`CeedOperatorAssembleLinearQFunction`) or to evaluate the diagonal
+  (:cpp:func:`CeedOperatorAssembleLinearDiagonal`).  These operations are useful for
+  preconditioning ingredients and are used in the libCEED's multigrid examples.
+* The inverse of separable operators can be obtained using
+  :cpp:func:`CeedOperatorCreateFDMElementInverse` and applied with
+  :cpp:func:`CeedOperatorApply`.  This is a useful preconditioning ingredient,
+  especially for Laplacians and related operators.
+* New functions: :cpp:func:`CeedVectorNorm`, :cpp:func:`CeedOperatorApplyAdd`,
+  :cpp:func:`CeedQFunctionView`, :cpp:func:`CeedOperatorView`.
+* Make public accessors for various attributes to facilitate writing composable code.
+* New backend: ``/cpu/self/memcheck/serial``.
+* QFunctions using variable-length array (VLA) pointer constructs can be used with CUDA
+  backends.  (Single source is coming soon for OCCA backends.)
+* Fix some missing edge cases in CUDA backend.
+
+Performance Improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* MAGMA backend performance optimization and non-tensor bases.
+* No-copy optimization in :cpp:func:`CeedOperatorApply`.
+
+Interface changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Replace :code:`CeedElemRestrictionCreateIdentity` and
+  :code:`CeedElemRestrictionCreateBlocked` with more flexible
+  :cpp:func:`CeedElemRestrictionCreateStrided` and
+  :cpp:func:`CeedElemRestrictionCreateBlockedStrided`.
+* Add arguments to :cpp:func:`CeedQFunctionCreateIdentity`.
+* Replace ambiguous uses of :cpp:enum:`CeedTransposeMode` for L-vector identification
+  with :cpp:enum:`CeedInterlaceMode`.  This is now an attribute of the
+  :cpp:type:`CeedElemRestriction` (see :cpp:func:`CeedElemRestrictionCreate`) and no
+  longer passed as ``lmode`` arguments to :cpp:func:`CeedOperatorSetField` and
+  :cpp:func:`CeedElemRestrictionApply`.
+
+Examples
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+libCEED-0.6 contains greatly expanded examples with :ref:`new documentation <Examples>`.
+Notable additions include:
+
+* Standalone :ref:`ex2-surface` (:file:`examples/ceed/ex2-surface`): compute the area of
+  a domain in 1, 2, and 3 dimensions by applying a Laplacian.
+* PETSc :ref:`example-petsc-area` (:file:`examples/petsc/area.c`): computes surface area
+  of domains (like the cube and sphere) by direct integration on a surface mesh;
+  demonstrates geometric dimension different from topological dimension.
+* PETSc :ref:`example-petsc-bps`:
+
+  * :file:`examples/petsc/bpsraw.c` (formerly ``bps.c``): transparent CUDA support.
+  * :file:`examples/petsc/bps.c` (formerly ``bpsdmplex.c``): performance improvements
+    and transparent CUDA support.
+  * :ref:`example-petsc-bps-sphere` (:file:`examples/petsc/bpssphere.c`):
+    generalizations of all CEED BPs to the surface of the sphere; demonstrates geometric
+    dimension different from topological dimension.
+
+* :ref:`example-petsc-multigrid` (:file:`examples/petsc/multigrid.c`): new p-multigrid
+  solver with algebraic multigrid coarse solve.
+* :ref:`example-petsc-navier-stokes` (:file:`examples/fluids/navierstokes.c`; formerly
+  ``examples/navier-stokes``): unstructured grid support (using PETSc's ``DMPlex``),
+  implicit time integration, SU/SUPG stabilization, free-slip boundary conditions, and
+  quasi-2D computational domain support.
+* :ref:`example-petsc-elasticity` (:file:`examples/solids/elasticity.c`): new solver for
+  linear elasticity, small-strain hyperelasticity, and globalized finite-strain
+  hyperelasticity using p-multigrid with algebraic multigrid coarse solve.
 
 .. _v0.5:
 
 v0.5 (Sep 18, 2019)
---------------------------------------
+----------------------------------------
 
 For this release, several improvements were made. Two new CUDA backends were added to
 the family of backends, of which, the new ``cuda-gen`` backend achieves state-of-the-art
@@ -111,13 +206,13 @@ Examples available in this release:
 .. _v0.4:
 
 v0.4 (Apr 1, 2019)
---------------------------------------
+----------------------------------------
 
 libCEED v0.4 was made again publicly available in the second full CEED software
 distribution, release CEED 2.0. This release contained notable features, such as
 four new CPU backends, two new GPU backends, CPU backend optimizations, initial
 support for operator composition, performance benchmarking, and a Navier-Stokes demo.
-The new CPU backends in this relase came in two families. The ``/cpu/self/*/serial``
+The new CPU backends in this release came in two families. The ``/cpu/self/*/serial``
 backends process one element at a time and are intended for meshes with a smaller number
 of high order elements. The ``/cpu/self/*/blocked`` backends process blocked batches of
 eight interlaced elements and are intended for meshes with higher numbers of elements.
@@ -198,7 +293,7 @@ Examples available in this release:
 .. _v0.3:
 
 v0.3 (Sep 30, 2018)
---------------------------------------
+----------------------------------------
 
 Notable features in this release include active/passive field interface, support for
 non-tensor bases, backend optimization, and improved Fortran interface. This release
@@ -261,7 +356,7 @@ Examples available in this release:
 .. _v0.21:
 
 v0.21 (Sep 30, 2018)
---------------------------------------
+----------------------------------------
 
 A MAGMA backend (which relies upon the
 `MAGMA <https://bitbucket.org/icl/magma>`_ package) was integrated in libCEED for this
@@ -312,14 +407,14 @@ Examples available in this release:
 .. _v0.2:
 
 v0.2 (Mar 30, 2018)
---------------------------------------
+----------------------------------------
 
 libCEED was made publicly available the first full CEED software distribution, release
 CEED 1.0. The distribution was made available using the Spack package manager to provide
 a common, easy-to-use build environment, where the user can build the CEED distribution
 with all dependencies. This release included a new Fortran interface for the library.
 This release also contained major improvements in the OCCA backend (including a new
-``/ocl/occa`` backend) and new exaples. The standalone libCEED example was modified to
+``/ocl/occa`` backend) and new examples. The standalone libCEED example was modified to
 compute the volume volume of a given mesh (in 1D, 2D, or 3D) and placed in an
 ``examples/ceed`` subfolder. A new ``mfem`` example to perform BP3 (with the application
 of the Laplace operator) was also added to this release.
@@ -359,7 +454,7 @@ Examples available in this release:
 .. _v0.1:
 
 v0.1 (Jan 3, 2018)
---------------------------------------
+----------------------------------------
 
 Initial low-level API of the CEED project. The low-level API provides a set of Finite
 Elements kernels and components for writing new low-level kernels. Examples include:
@@ -371,7 +466,7 @@ implementation for them serves as the basis for specialized backend implementati
 This release contained several backends: ``/cpu/self``, and backends which rely upon the
 `OCCA <http://github.com/libocca/occa>`_ package, such as ``/cpu/occa``,
 ``/gpu/occa``, and ``/omp/occa``.
-It also includeed several examples, in the ``examples`` folder:
+It also included several examples, in the ``examples`` folder:
 A standalone code that shows the usage of libCEED (with no external
 dependencies) to apply the Laplace operator, ``ex1``; an ``mfem`` example to perform BP1
 (with the application of the mass operator); and a ``petsc`` example to perform BP1

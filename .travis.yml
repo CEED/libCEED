@@ -1,19 +1,5 @@
 language: c
 
-arch: amd64
-
-os:
-  - linux
-  - osx
-
-dist: bionic
-
-osx_image: xcode11.2
-
-compiler:
-  - gcc
-  - clang
-
 addons:
   apt:
     update: true
@@ -23,6 +9,7 @@ addons:
     - libopenblas-dev
     - valgrind-dbg
     - lcov
+    - astyle
   homebrew:
     packages:
     - ccache
@@ -30,34 +17,70 @@ addons:
     - lapack
     - openblas
 
-env:
-  - FC=gfortran
-
 matrix:
   include:
-   - os: linux
+# Linux GCC + Codecov
+   - name: "Linux GCC + CodeCov"
+     os: linux
+     dist: bionic
+     arch: amd64
+     compiler: gcc
+     env: FC=gfortran
+# Linux Clang + Tidy and Style
+   - name: "Linux Clang + Tidy and Style"
+     os: linux
+     dist: bionic
+     arch: amd64
+     compiler: clang
+     env: FC=gfortran
+# OSX GCC
+   - name: "OSX GCC"
+     os: osx
+     osx_image: xcode11.2
+     arch: amd64
+     compiler: gcc
+     env: FC=gfortran
+# OSX Clang
+   - name: "OSX Clang"
+     os: osx
+     osx_image: xcode11.2
+     arch: amd64
+     compiler: clang
+     env: FC=gfortran
+# IBM Power
+   - name: "IBM Power"
+     os: linux
+     dist: bionic
      arch: ppc64le
      compiler: gcc
      env: FC=gfortran
-   - os: linux
+# ARM
+   - name: "ARM"
+     os: linux
+     dist: bionic
      arch: arm64
      compiler: gcc
      env: FC=gfortran
-   - language: python
-     arch: amd64
+# Python
+   - name: "Python"
+     language: python
      os: linux
-     dist: xenial
+     dist: bionic
+     arch: amd64
      compiler: gcc
      python: 3.8
      install:
        - pip install -r requirements.txt
+       - pip install -r requirements-test.txt
      script:
        - make info && make -j4 && export CEED_DIR=$PWD
        - pip install .
        - cd tests/python
        - python setup-qfunctions.py build
        - pytest test-*.py --ceed /cpu/self/ref/serial -vv
-     after_success: skip
+       - cd ../..
+     after_success:
+       - make style-py && git diff --exit-code;
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -65,13 +88,14 @@ install:
         && brew link --overwrite gcc;
     fi
 # OCCA
-  - git clone --depth 1 https://github.com/libocca/occa.git;
-  - make -C occa -j2
-  - export OCCA_DIR=$PWD/occa
-# libXSMM v1.14 (need to use specific commit, XSMM develops on master)
+  - git clone https://github.com/libocca/occa.git
+        && cd occa && git reset --hard 327badb && cd ..
+        && make -C occa -j2
+        && export OCCA_DIR=$PWD/occa;
+# LIBXSMM v1.15 (need to use specific commit, XSMM develops on master)
   - if [[ "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
         git clone https://github.com/hfp/libxsmm.git
-        && cd libxsmm && git reset --hard ed9c10e && cd ..
+        && cd libxsmm && git reset --hard 724205c && cd ..
         && make -C libxsmm -j2
         && export XSMM_DIR=$PWD/libxsmm;
     fi
@@ -84,7 +108,7 @@ install:
   - cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..;
   - export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH MPI=0;
 # PETSc
-  - PETSC_COMMIT=94e224767ab72a963c0f657b2484abe25d3d44e5 # master 2020-03-06
+  - PETSC_COMMIT=41ae997de21eca59ba1199030b6f2b87eb581260 # master 2020-03-25
   - export PETSC_INSTALL=$HOME/install/petsc-$PETSC_COMMIT
   - test -s "$PETSC_INSTALL/lib/pkgconfig/PETSc.pc"
         || (  curl -O https://gitlab.com/petsc/petsc/-/archive/$PETSC_COMMIT/petsc-$PETSC_COMMIT.tar.gz
@@ -103,12 +127,15 @@ script:
   - make info
   - make -j2
   - make -j2 prove-all PROVE_OPTS=-v
-  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
-        clang-tidy --version && make -j2 tidy;
+  - if [[ "$CC" = "clang" && "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
+        clang-tidy --version && TIDY_OPTS="-fix-errors" make -j2 tidy && git diff --exit-code;
+    fi
+  - if [[ "$CC" = "clang" && "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
+        make style-c && git diff --exit-code;
     fi
 
 after_success:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
+  - if [[ "$CC" == "gcc" && "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
         lcov --directory . --capture --output-file coverage.info
         && bash <(curl -s https://codecov.io/bash) -f coverage.info -F interface
         && bash <(curl -s https://codecov.io/bash) -f coverage.info -F gallery

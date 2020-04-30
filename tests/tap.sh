@@ -25,9 +25,15 @@ if [ ${1::6} == "petsc-" ]; then
 elif [ ${1::5} == "mfem-" ]; then
     allargs=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
 elif [ ${1::4} == "nek-" ]; then
-    allargs=$(grep -F "C TESTARGS" examples/nek/bps/${1:4}.usr* | cut -d\  -f3- )
-elif [ ${1::3} == "ns-" ]; then
-    allargs=$(grep -F //TESTARGS examples/navier-stokes/${1:3}.c* | cut -d\  -f2- )
+    # get all test configurations
+    numconfig=$(grep -F C_TESTARGS examples/nek/bps/${1:4}.usr* | wc -l)
+    for ((i=0;i<${numconfig};++i)); do
+      allargs+=("$(awk -v i="$i" '/C_TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/nek/bps/${1:4}.usr* | cut -d\  -f2- )")
+    done
+elif [ ${1::7} == "fluids-" ]; then
+    allargs=$(grep -F //TESTARGS examples/fluids/${1:7}.c* | cut -d\  -f2- )
+elif [ ${1::7} == "solids-" ]; then
+    allargs=$(grep -F //TESTARGS examples/solids/${1:7}.c* | cut -d\  -f2- )
 elif [ ${1::2} == "ex" ]; then
     # get all test configurations
     numconfig=$(grep -F //TESTARGS examples/ceed/$1.c* | wc -l)
@@ -55,20 +61,51 @@ for ((i=0;i<${#backends[@]};++i)); do
     i2=$(($i0+2))  # stderr
     backend=${backends[$i]}
 
-    # grep to skip multigrid test for OCCA
+    # Skip ElemRestriction get offsets test for OCCA
     #  This exception will be removed with the OCCA backend overhaul
-    if [[ "$backend" = *"occa" && "$1" = "petsc-multigrid" ]] ; then
+    if [[ "$backend" = *"occa" && \
+            ( "$1" = t214* || "$1" = t215* ) ]] ; then
+        printf "ok $i0 # SKIP - GetOffsets not supported by $backend\n"
+        printf "ok $i1 # SKIP - GetOffsets not supported by $backend stdout\n"
+        printf "ok $i2 # SKIP - GetOffsets not supported by $backend stderr\n"
+        continue
+    fi
+
+    # Skip multigrid test for OCCA
+    #  This exception will be removed with the OCCA backend overhaul
+    if [[ "$backend" = *"occa" && \
+            ( "$1" = "petsc-multigrid" || "$1" = t506* ) ]] ; then
         printf "ok $i0 # SKIP - QFunction reuse not supported by $backend\n"
         printf "ok $i1 # SKIP - QFunction reuse not supported by $backend stdout\n"
         printf "ok $i2 # SKIP - QFunction reuse not supported by $backend stderr\n"
         continue
     fi
 
-    # Navier-Stokes qfunctions use VLA; not currently supported in cuda/occa
-    if [[ ( "$backend" = *gpu* || "$backend" = *occa ) && "$1" = ns-* ]]; then
-        printf "ok $i0 # SKIP - No support for $backend\n"
-        printf "ok $i1 # SKIP - No support for $backend stdout\n"
-        printf "ok $i2 # SKIP - No support for $backend stderr\n"
+    # Skip tests t41*, t540, ex1, and ex2 for OCCA
+    #  This exception will be removed with the OCCA backend overhaul
+    if [[ "$backend" = *occa && \
+            ( "$1" = t41* || "$1" = t540* || "$1" = ex* ) ]] ; then
+        printf "ok $i0 # SKIP - gallery not supported by $1 $backend\n"
+        printf "ok $i1 # SKIP - gallery not supported by $1 $backend stdout\n"
+        printf "ok $i2 # SKIP - gallery not supported by $1 $backend stderr\n"
+        continue
+    fi
+
+    # Fluids and Solids QFunctions use VLA; not currently supported in OCCA
+    if [[ "$backend" = *occa && \
+            ( "$1" = fluids-* || "$1" = solids-* || "$1" = t507* ) ]]; then
+        printf "ok $i0 # SKIP - no support for VLA with $backend\n"
+        printf "ok $i1 # SKIP - no support for VLA with $backend stdout\n"
+        printf "ok $i2 # SKIP - no support for VLA with $backend stderr\n"
+        continue;
+    fi
+
+    # Navier-Stokes test problem too large for most CUDA backends
+    if [[ "$backend" = *gpu* && "$backend" != /gpu/cuda/gen && \
+            ( "$1" = fluids-* ) ]]; then
+        printf "ok $i0 # SKIP - test problem too large for $backend\n"
+        printf "ok $i1 # SKIP - test problem too large for $backend stdout\n"
+        printf "ok $i2 # SKIP - test problem too large for $backend stderr\n"
         continue;
     fi
 
@@ -90,6 +127,15 @@ for ((i=0;i<${#backends[@]};++i)); do
         printf "ok $i0 # SKIP - not implemented $1 $backend\n"
         printf "ok $i1 # SKIP - not implemented $1 $backend stdout\n"
         printf "ok $i2 # SKIP - not implemented $1 $backend stderr\n"
+        continue
+    fi
+
+    # grep to pass test t215 on error
+    if grep -F -q -e 'access' ${output}.err \
+            && [[ "$1" = "t215"* ]] ; then
+        printf "ok $i0 PASS - expected failure $1 $backend\n"
+        printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
+        printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
         continue
     fi
 
@@ -120,26 +166,6 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to skip tests t41*, t540, ex1, and ex2 for OCCA
-    #  This exception will be removed with the OCCA backend overhaul
-    if grep -F -q -e 'OklPath' ${output}.err \
-            && [[ "$1" = "t41"* || "$1" = "t540"* || "$1" = "ex"* ]] ; then
-        printf "ok $i0 # SKIP - gallery not supported $1 $backend\n"
-        printf "ok $i1 # SKIP - gallery not supported $1 $backend stdout\n"
-        printf "ok $i2 # SKIP - gallery not supported $1 $backend stderr\n"
-        continue
-    fi
-
-    # grep to skip multigrid test for OCCA
-    #  This exception will be removed with the OCCA backend overhaul
-    if [[ "$backend" = *"occa" ]] \
-            && [[ "$1" = "petsc-multigrid" || "$1" = "t506"* ]] ; then
-        printf "ok $i0 # SKIP - QFunction reuse not supported by $backend\n"
-        printf "ok $i1 # SKIP - QFunction reuse not supported by $backend stdout\n"
-        printf "ok $i2 # SKIP - QFunction reuse not supported by $backend stderr\n"
-        continue
-    fi
-
     # grep to skip t204-7 for MAGMA (different layout used for E-vectors)
     if [[ "$backend" = *"magma" ]] \
             && [[ "$1" = "t20"[4-7]* ]] ; then
@@ -165,6 +191,9 @@ for ((i=0;i<${#backends[@]};++i)); do
                 printf "# ${line}\n"
             done < ${output}.diff
         fi
+    elif [[ "$1" == t003* ]]; then
+    # For t003, the output will vary widely; only checking stderr
+        printf "ok $i1 $1 $backend stdout\n"
     elif [ -s ${output}.out ]; then
         printf "not ok $i1 $1 $backend stdout\n"
         while read line; do
