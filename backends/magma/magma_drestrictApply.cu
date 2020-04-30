@@ -147,13 +147,13 @@ magma_readDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
     magma_int_t threads = 256;
 
     magma_readDofsStrided_kernel<<<grid, threads, 0,
-      magma_queue_get_cuda_stream(queue)>>>(NCOMP, nnodes, esize, nelem, 
+      magma_queue_get_cuda_stream(queue)>>>(NCOMP, esize, nelem, 
       strides, du, dv);
 }
 
 // WriteDofs from device memory
 // du is E-vector, size nelem * esize * NCOMP
-// dv is L-vector, size nnodes * NCOMP 
+// dv is L-vector, size lsize 
 extern "C" void
 magma_writeDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
                       const magma_int_t esize, const magma_int_t nelem,
@@ -181,6 +181,6 @@ magma_writeDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
     magma_int_t threads = 256;
 
     magma_writeDofsStrided_kernel<<<grid, threads, 0,
-      magma_queue_get_cuda_stream(queue)>>>(NCOMP, nnodes, esize, nelem, 
+      magma_queue_get_cuda_stream(queue)>>>(NCOMP, esize, nelem, 
       strides, du, dv);
 }

@@ -73,10 +73,10 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
 
     // Perform strided restriction with dstrides
     if (tmode == CEED_TRANSPOSE) {
-      magma_writeDofsStrided(ncomp, nnodes, esize, nelem, dstrides, du, dv,
+      magma_writeDofsStrided(ncomp, esize, nelem, dstrides, du, dv,
                              data->queue);
     } else {
-      magma_readDofsStrided(ncomp, nnodes, esize, nelem, dstrides, du, dv,
+      magma_readDofsStrided(ncomp, esize, nelem, dstrides, du, dv,
                             data->queue);
     }
 
