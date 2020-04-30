@@ -98,13 +98,14 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
       u_compstride = nelem * elquadsize;
     }
 
-    ierr = magma_interp(P, Q, dim, ncomp, 
-            impl->dinterp1d, tmode, 
-            u, u_elstride, u_compstride, 
-            v, v_elstride, v_compstride, 
-            nelem, data->basis_kernel_mode, data->maxthreads, 
-            data->queue);
-    if(ierr != 0) CeedError(ceed, 1, "MAGMA: launch failure detected for magma_interp");
+    ierr = magma_interp(P, Q, dim, ncomp,
+                        impl->dinterp1d, tmode,
+                        u, u_elstride, u_compstride,
+                        v, v_elstride, v_compstride,
+                        nelem, data->basis_kernel_mode, data->maxthreads,
+                        data->queue);
+    if(ierr != 0) CeedError(ceed, 1,
+                              "MAGMA: launch failure detected for magma_interp");
   }
   break;
   case CEED_EVAL_GRAD: {
@@ -156,13 +157,14 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
 
     }
 
-    ierr = magma_grad( P, Q, dim, ncomp,  
-            impl->dinterp1d, impl->dgrad1d, tmode, 
-            u, u_elstride, u_compstride, u_dimstride, 
-            v, v_elstride, v_compstride, v_dimstride, 
-            nelem, data->basis_kernel_mode, data->maxthreads, 
-            data->queue);
-    if(ierr != 0) CeedError(ceed, 1, "MAGMA: launch failure detected for magma_grad");
+    ierr = magma_grad( P, Q, dim, ncomp,
+                       impl->dinterp1d, impl->dgrad1d, tmode,
+                       u, u_elstride, u_compstride, u_dimstride,
+                       v, v_elstride, v_compstride, v_dimstride,
+                       nelem, data->basis_kernel_mode, data->maxthreads,
+                       data->queue);
+    if(ierr != 0) CeedError(ceed, 1,
+                              "MAGMA: launch failure detected for magma_grad");
   }
   break;
   case CEED_EVAL_WEIGHT: {
@@ -173,8 +175,10 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     // LCOV_EXCL_STOP
     CeedInt Q = Q1d;
     int eldofssize = CeedIntPow(Q, dim);
-    ierr = magma_weight(Q, dim, impl->dqweight1d, v, eldofssize, nelem, data->basis_kernel_mode, data->maxthreads, data->queue);
-    if(ierr != 0) CeedError(ceed, 1, "MAGMA: launch failure detected for magma_weight");
+    ierr = magma_weight(Q, dim, impl->dqweight1d, v, eldofssize, nelem,
+                        data->basis_kernel_mode, data->maxthreads, data->queue);
+    if(ierr != 0) CeedError(ceed, 1,
+                              "MAGMA: launch failure detected for magma_weight");
   }
   break;
   // LCOV_EXCL_START
@@ -292,7 +296,8 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     int elemsPerBlock = 1;//basis->Q1d < 7 ? optElems[basis->Q1d] : 1;
     int grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)?
                                        1 : 0 );
-    magma_weight_nontensor(grid, nqpt, nelem, nqpt, impl->dqweight, dv, data->queue);
+    magma_weight_nontensor(grid, nqpt, nelem, nqpt, impl->dqweight, dv,
+                           data->queue);
     CeedChk(ierr);
   }
   break;
