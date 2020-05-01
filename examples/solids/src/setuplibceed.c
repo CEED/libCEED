@@ -240,7 +240,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
                                      CEED_STRIDES_BACKEND,
                                      &data[fineLevel]->ErestrictGradui);
   // -- Energy restriction
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1,
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, 1, nelem*Q*Q*Q,
                                    CEED_STRIDES_BACKEND,
                                    &data[fineLevel]->ErestrictEnergy);
 
