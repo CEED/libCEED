@@ -230,7 +230,7 @@ static struct CeedElemRestriction_private ceed_elemrestriction_none;
 /// Indicate that the stride is determined by the backend
 const CeedInt CEED_STRIDES_BACKEND[3] = {};
 
-/// Indicate that no ElemRestriction is provided by the user
+/// Indicate that no CeedElemRestriction is provided by the user
 const CeedElemRestriction CEED_ELEMRESTRICTION_NONE =
   &ceed_elemrestriction_none;
 
@@ -544,11 +544,11 @@ int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *lvec,
 
   @param rstr    CeedElemRestriction
   @param tmode   Apply restriction or transpose
-  @param u       Input vector (of size @a lsize when tmode=CEED_NOTRANSPOSE)
+  @param u       Input vector (of size @a lsize when tmode=@ref CEED_NOTRANSPOSE)
   @param ru      Output vector (of shape [@a nelem * @a elemsize] when
-                   tmode=CEED_NOTRANSPOSE). Ordering of the e-vector is decided
+                   tmode=@ref CEED_NOTRANSPOSE). Ordering of the e-vector is decided
                    by the backend.
-  @param request Request or CEED_REQUEST_IMMEDIATE
+  @param request Request or @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -590,11 +590,11 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
                    elements [0 : blksize] and block=3 will handle elements
                    [3*blksize : 4*blksize]
   @param tmode   Apply restriction or transpose
-  @param u       Input vector (of size @a lsize when tmode=CEED_NOTRANSPOSE)
+  @param u       Input vector (of size @a lsize when tmode=@ref CEED_NOTRANSPOSE)
   @param ru      Output vector (of shape [@a blksize * @a elemsize] when
-                   tmode=CEED_NOTRANSPOSE). Ordering of the e-vector is decided
+                   tmode=@ref CEED_NOTRANSPOSE). Ordering of the e-vector is decided
                    by the backend.
-  @param request Request or CEED_REQUEST_IMMEDIATE
+  @param request Request or @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
