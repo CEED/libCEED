@@ -88,7 +88,7 @@ CeedRequest *const CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
   `op2` until `op1` has completed.
 
   @todo The current implementation is overly strict, offering equivalent
-  semantics to CEED_REQUEST_IMMEDIATE.
+  semantics to @ref CEED_REQUEST_IMMEDIATE.
 
   @sa CEED_REQUEST_IMMEDIATE
  */
