@@ -384,7 +384,7 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
 
 // *****************************************************************************
 // This QFunction implements the boundary integral of
-//    the advection equation.
+//    the advection equation in 2D.
 
 // *****************************************************************************
 CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
@@ -412,14 +412,15 @@ CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
                                     };
     const CeedScalar E          =    q[4][i];
     // -- Interp-to-Interp qdata
-    const CeedScalar modJw      =    qdata[i];
-    // The boundary value for E u
-    const CeedScalar Eu = E * sqrt(u[0]*u[0] + u[1]*u[1]); // TODO: Update the formulation
+    const CeedScalar wdetJ      =    qdata[i];
+    // The boundary value for the floating flux
+    // TODO: Add flux as an input
+    const CeedScalar Eu = E * sqrt(u[0]*u[0] + u[1]*u[1]);
     // No Change in density or momentum
     for (CeedInt j=0; j<4; j++) {
       v[j][i] = 0;
     }
-    v[4][i] = (1-strong_form) * modJw * Eu;
+    v[4][i] = (1-strong_form) * wdetJ * Eu;
   } // End Quadrature Point Loop
 
   return 0;
