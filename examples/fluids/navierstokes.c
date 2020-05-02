@@ -76,7 +76,7 @@ static const char *const StabilizationTypes[] = {
 
 // Problem specific data
 typedef struct {
-  CeedInt dim, qdatasizeVol, qdatasizeSur;
+  CeedInt dim, qdatasizeVol;
   CeedQFunctionUser setupVol, setupSur, ics, applyVol_rhs, applySur_rhs,
                     applyVol_ifunction, applySur_ifunction;
   PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
@@ -90,7 +90,6 @@ problemData problemOptions[] = {
   [NS_DENSITY_CURRENT] = {
     .dim                       = 3,
     .qdatasizeVol              = 10,
-    .qdatasizeSur              = 5,
     .setupVol                  = Setup,
     .setupVol_loc              = Setup_loc,
     .setupSur                  = SetupBoundary,
@@ -111,7 +110,6 @@ problemData problemOptions[] = {
   [NS_ADVECTION] = {
     .dim                       = 3,
     .qdatasizeVol              = 10,
-    .qdatasizeSur              = 5,
     .setupVol                  = Setup,
     .setupVol_loc              = Setup_loc,
     .setupSur                  = SetupBoundary,
@@ -132,7 +130,6 @@ problemData problemOptions[] = {
   [NS_ADVECTION2D] = {
     .dim                       = 2,
     .qdatasizeVol              = 5,
-    .qdatasizeSur              = 1,
     .setupVol                  = Setup2d,
     .setupVol_loc              = Setup2d_loc,
     .setupSur                  = SetupBoundary2d,
@@ -912,8 +909,7 @@ int main(int argc, char **argv) {
   for (int i=0; i<3; i++) center[i] *= meter;
 
   const CeedInt dim = problem->dim, ncompx = problem->dim,
-                qdatasizeVol = problem->qdatasizeVol,
-                qdatasizeSur = problem->qdatasizeSur;
+                qdatasizeVol = problem->qdatasizeVol;
   // Set up the libCEED context
   struct SetupContext_ ctxSetup =  {
     .theta0 = theta0,
@@ -1160,6 +1156,7 @@ int main(int argc, char **argv) {
   // CEED Restrictions
   // Restriction on one face
   DMLabel domainLabel;
+  CeedInt qdatasizeSur = 1;
   ierr = DMGetLabel(dm, "Face Sets", &domainLabel); CHKERRQ(ierr);
   ierr = GetRestrictionForDomain(ceed, dm, ncompx, dimSur, height, domainLabel, 2, numP_Sur,
                                  numQ_Sur, qdatasizeSur, &restrictqSur, &restrictxSur,
