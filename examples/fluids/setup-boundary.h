@@ -57,7 +57,7 @@ CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q,
     const CeedScalar detJ = sqrt(j[0][0]*j[0][0] +
                                  j[1][0]*j[1][0] +
                                  j[2][0]*j[2][0]);
-    qdata[i+Q*0] = detJ * w[i];
+    qdata[i] =  w[i] * detJ;
 
   } // End of Quadrature Point Loop
 
