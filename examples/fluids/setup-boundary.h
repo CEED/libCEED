@@ -49,14 +49,14 @@ CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q,
                                    };
 
     // J is given by the cross product of the columns of dxdX
-    const CeedScalar J[3][1] = {{dxdX[1][0]*dxdX[2][1] - dxdX[2][0]*dxdX[1][1]},
+    const CeedScalar j[3][1] = {{dxdX[1][0]*dxdX[2][1] - dxdX[2][0]*dxdX[1][1]},
                                 {dxdX[2][0]*dxdX[0][1] - dxdX[0][0]*dxdX[2][1]},
                                 {dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]}
                                };
 
-    const CeedScalar detJ = sqrt(J[0][0]*J[0][0] +
-                                 J[1][0]*J[1][0] +
-                                 J[2][0]*J[2][0]);
+    const CeedScalar detJ = sqrt(j[0][0]*j[0][0] +
+                                 j[1][0]*j[1][0] +
+                                 j[2][0]*j[2][0]);
     qdata[i+Q*0] = detJ * w[i];
 
   } // End of Quadrature Point Loop
@@ -81,10 +81,11 @@ CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
-    const CeedScalar J1 = J[0][i];
-    const CeedScalar J2 = J[1][i];
-    // Qdata
-    qdata[i] = w[i] * sqrt( J1*J1 + J2*J2 );
+    const CeedScalar dxdX[2] = {J[0][i],
+                                J[1][i]};
+    const CeedScalar detJ = sqrt(dxdX[0]*dxdX[0] + dxdX[1]*dxdX[1]);
+
+    qdata[i] = w[i] * detJ;
 
   } // End of Quadrature Point Loop
 
