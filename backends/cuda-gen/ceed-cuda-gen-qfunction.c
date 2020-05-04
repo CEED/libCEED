@@ -41,6 +41,7 @@ static int CeedQFunctionDestroy_Cuda_gen(CeedQFunction qf) {
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
   ierr = cudaFree(data->d_c); CeedChk_Cu(ceed, ierr);
+  ierr = CeedFree(&data->qFunctionSource); CeedChk(ierr);
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
@@ -52,6 +53,8 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   int ierr;
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
+  CeedQFunction_Cuda_gen *data;
+  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
 
   // Find source file
   char *cuda_file;
@@ -61,7 +64,7 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   if (!last_dot)
     return CeedError(ceed, 1, "Cannot find file's extension!");
   const size_t cuda_path_len = last_dot - cuda_file;
-  strcpy(&cuda_file[cuda_path_len], ".h");
+  strncpy(&cuda_file[cuda_path_len], ".h", 3);
 
   // Open source file
   FILE *fp;
@@ -72,17 +75,17 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
     CeedError(ceed, 1, "Couldn't open the Cuda file for the QFunction.");
 
   // Compute size of source file
-  fseek( fp, 0L, SEEK_END);
-  lSize = ftell( fp );
-  rewind( fp );
+  fseek(fp, 0L, SEEK_END);
+  lSize = ftell(fp);
+  rewind(fp);
 
   // Allocate memory for entire content
-  ierr = CeedCalloc( lSize+1, &buffer ); CeedChk(ierr);
+  ierr = CeedCalloc(lSize+1, &buffer); CeedChk(ierr);
 
   // Copy the file into the buffer
-  if (1 != fread( buffer, lSize, 1, fp) ) {
+  if (1 != fread(buffer, lSize, 1, fp)) {
     fclose(fp);
-    CeedFree(&buffer);
+    ierr = CeedFree(&buffer); CeedChk(ierr);
     CeedError(ceed, 1, "Couldn't read the Cuda file for the QFunction.");
   }
 
@@ -90,14 +93,13 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   // FIXME: the magic number 16 should be defined somewhere...
   char *fields_string =
     "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda_gen;";
-  char *source = (char *) malloc(1 + strlen(fields_string)+ strlen(buffer) );
-  strcpy(source, fields_string);
-  strcat(source, buffer);
-  CeedQFunction_Cuda_gen *data;
-  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
-  data->qFunctionSource = buffer;
+  ierr = CeedMalloc(1 + strlen(fields_string) + strlen(buffer),
+                    &data->qFunctionSource); CeedChk(ierr);
+  strncpy(data->qFunctionSource, fields_string, 1 + strlen(fields_string));
+  strncat(data->qFunctionSource, buffer, strlen(buffer));
 
-
+  // Cleanup
+  ierr = CeedFree(&buffer); CeedChk(ierr);
   fclose(fp);
   return 0;
 }
