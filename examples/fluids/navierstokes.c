@@ -612,7 +612,7 @@ int main(int argc, char **argv) {
   CeedInt numP, numQ;
   CeedVector xcorners, qdata, q0ceed;
   CeedBasis basisx, basisxc, basisq;
-  CeedElemRestriction restrictx, restrictxcoord, restrictq, restrictqdi;
+  CeedElemRestriction restrictx, restrictq, restrictqdi;
   CeedQFunction qf_setup, qf_ics, qf_rhs, qf_ifunction;
   CeedOperator op_setup, op_ics;
   CeedScalar Rd;
@@ -977,10 +977,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreateStrided(ceed, localNelem, numQdim,
                                    qdatasize, qdatasize*localNelem*numQdim,
                                    CEED_STRIDES_BACKEND, &restrictqdi);
-  CeedElemRestrictionCreateStrided(ceed, localNelem, PetscPowInt(numP, dim),
-                                   ncompx,
-                                   ncompx*localNelem*PetscPowInt(numP, dim),
-                                   CEED_STRIDES_BACKEND, &restrictxcoord);
 
   ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
   ierr = CreateVectorFromPetscVec(ceed, Xloc, &xcorners); CHKERRQ(ierr);
@@ -1270,7 +1266,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&restrictq);
   CeedElemRestrictionDestroy(&restrictx);
   CeedElemRestrictionDestroy(&restrictqdi);
-  CeedElemRestrictionDestroy(&restrictxcoord);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_ics);
   CeedQFunctionDestroy(&qf_rhs);
