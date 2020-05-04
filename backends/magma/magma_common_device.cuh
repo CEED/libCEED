@@ -75,7 +75,7 @@ template<typename T, int LENGTH, int NCOMP>
 __device__ __inline__ void 
 read_1d(const T* devptr, const int compstride, T* sBuffer[NCOMP], const int tx)
 {
-    if(tx < LENGTH) {
+    if (tx < LENGTH) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
             sBuffer[icomp][tx] = devptr[icomp * compstride + tx];
         }
@@ -89,7 +89,7 @@ template<typename T, int LENGTH, int NCOMP>
 __device__ __inline__ void 
 write_1d(T* sBuffer[NCOMP], T* devptr, const int compstride, const int tx)
 {
-    if(tx < LENGTH) {
+    if (tx < LENGTH) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
             devptr[icomp * compstride + tx] = sBuffer[icomp][tx];
         }
@@ -119,14 +119,14 @@ readU_2d(const T* dU, const int compstride, T rU[DIMU][NCOMP][rUsize], T* sTmp, 
     // so we need to transpose
     for(int icomp = 0; icomp < NCOMP; icomp++) {
         // read from global memory into shared memory
-        if(tx < P) {
+        if (tx < P) {
             for(int i = 0; i < P; i++) {
                 sTmp[i*P + tx] = dU[icomp * compstride + i*P + tx];
             }
         }
         __syncthreads();
 
-        if(tx < P) {
+        if (tx < P) {
             for(int i = 0; i < P; i++) {
                 rU[iDIM][icomp][i] = sTmp[tx*P + i];
             }
@@ -145,7 +145,7 @@ template<typename T, int Q, int DIMV, int NCOMP, int rVsize, int iDIM>
 __device__ __inline__ void 
 readV_2d(const T* dV, const int compstride, T rV[DIMV][NCOMP][rVsize], const int tx)
 {
-    if(tx < Q) {
+    if (tx < Q) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
             for(int j = 0; j < Q; j++) {
                 rV[iDIM][icomp][j] = dV[icomp * compstride + j*Q + tx];
@@ -165,7 +165,7 @@ template<typename T, int Q, int DIMV, int NCOMP, int rVsize, int iDIM>
 __device__ __inline__ void 
 writeV_2d(T* dV, const int compstride, T rV[DIMV][NCOMP][rVsize], const int tx)
 {
-    if(tx < Q) {
+    if (tx < Q) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
             for(int j = 0; j < Q; j++) {
                 dV[icomp * compstride + j*Q + tx] = rV[iDIM][icomp][j];
@@ -197,14 +197,14 @@ readU_3d(const T* dU, const int compstride, T rU[DIMU][NCOMP][rUsize], T* sTmp, 
     // so we need to transpose
     for(int icomp = 0; icomp < NCOMP; icomp++) {
         // read from global memory into shared memory
-        if(tx < P*P) {
+        if (tx < P*P) {
             for(int i = 0; i < P; i++) {
                 sTmp[i*P*P + tx] = dU[icomp * compstride + i*P*P + tx];
             }
         }
         __syncthreads();
 
-        if(tx < P*P) {
+        if (tx < P*P) {
             for(int i = 0; i < P; i++) {
                 rU[iDIM][icomp][i] = sTmp[tx*P + i];
             }
@@ -223,7 +223,7 @@ template<typename T, int Q, int DIMV, int NCOMP, int rVsize, int iDIM>
 __device__ __inline__ void 
 readV_3d(const T* dV, const int compstride, T rV[DIMV][NCOMP][rVsize], const int tx)
 {
-    if(tx < Q*Q) {
+    if (tx < Q*Q) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
             for(int j = 0; j < Q; j++) {
                 rV[iDIM][icomp][j] = dV[icomp * compstride + j*(Q*Q) + tx];
@@ -243,7 +243,7 @@ template<typename T, int Q, int DIMV, int NCOMP, int rVsize, int iDIM>
 __device__ __inline__ void 
 writeV_3d(T* dV, const int compstride, T rV[DIMV][NCOMP][rVsize], const int tx)
 {
-    if(tx < (Q*Q)) {
+    if (tx < (Q*Q)) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
             for(int j = 0; j < Q; j++) {
                 dV[icomp * compstride + j*(Q*Q) + tx] = rV[iDIM][icomp][j];
@@ -261,9 +261,9 @@ dread_T_gm2sm(
         const int tx, const magma_trans_t transT, 
         const double* dT, double *sT ) 
 {
-    if( transT == MagmaNoTrans ) {
+    if ( transT == MagmaNoTrans ) {
         // T is B x J
-        if(tx < B) {
+        if (tx < B) {
             for(int i = 0; i < J; i++) {
                 sT[i * B + tx] = dT[i * B + tx];
             }
@@ -271,7 +271,7 @@ dread_T_gm2sm(
     }
     else {
         // T is J x B
-        if(tx < J) {
+        if (tx < J) {
             for(int i = 0; i < B; i++) {
                 sT[tx * B + i] = dT[i * J + tx];
             }
@@ -356,7 +356,7 @@ dgemm_ceed_device( const int tx, const int A, const int C, magma_trans_t transT,
     dV += slice_id * C * J;
 
     // read V if beta is non-zero  
-    if( beta != MAGMA_D_ZERO ) {
+    if ( beta != MAGMA_D_ZERO ) {
         dread_V_gsm2reg<J>(C, tx_, (const double*)dV, rV); 
     }
 

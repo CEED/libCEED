@@ -33,7 +33,7 @@ magma_interp_2d_kernel(
     const int ty      = threadIdx.y;
     const int elem_id = (blockIdx.x * blockDim.y) + ty;
 
-    if(elem_id >= nelem) return;
+    if (elem_id >= nelem) return;
 
     T rU[1][NCOMP][P] = { make_zero<T>() };    // for a non fused operator DIM is always 1
     T rV[1][NCOMP][Q] = { make_zero<T>() };    // for a non fused operator DIM is always 1
@@ -49,12 +49,12 @@ magma_interp_2d_kernel(
     sTmp    += ty * (P * MAXPQ);
 
     // read T
-    if(ty == 0) {
+    if (ty == 0) {
         dread_T_gm2sm<P, Q>(tx, transT, dT, sT);
     }
 
     // read V if transT is magmaTrans
-    if(transT == MagmaTrans) {
+    if (transT == MagmaTrans) {
         readV_2d<T, Q, 1, NCOMP, Q, 0>(dV, v_compstride, rV, tx);
     }
 
@@ -92,14 +92,14 @@ magma_interp_2d_kernel_driver(
     cudaDeviceGetAttribute (&nthreads_max, cudaDevAttrMaxThreadsPerBlock, device);
     #if CUDA_VERSION >= 9000
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlockOptin, device);
-    if(shmem <= shmem_max) {
+    if (shmem <= shmem_max) {
         cudaFuncSetAttribute(magma_interp_2d_kernel<T,NCOMP,P,Q,MAXPQ>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
     }
     #else
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlock, device);
     #endif    // CUDA_VERSION >= 9000
    
-    if( (nthreads*ntcol) > nthreads_max || shmem > shmem_max ) {
+    if ( (nthreads*ntcol) > nthreads_max || shmem > shmem_max ) {
         return 1;    // launch failed
     }
     else { 

@@ -29,7 +29,7 @@ magma_weight(
   magma_queue_t queue) {
   magma_int_t launch_failed = 0;
 
-  if(kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC) {
+  if (kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC) {
     switch(dim) {
     case 1: launch_failed = magma_weight_1d(Q, dqweight1d, dV, v_stride, nelem,
                                               maxthreads[0], queue); break;

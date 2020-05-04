@@ -86,14 +86,14 @@ magma_grad_generic_kernel_driver(
     cudaDeviceGetAttribute (&nthreads_max, cudaDevAttrMaxThreadsPerBlock, device);
     #if CUDA_VERSION >= 9000
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlockOptin, device);
-    if(shmem <= shmem_max) {
+    if (shmem <= shmem_max) {
         cudaFuncSetAttribute(magma_grad_generic_kernel<T, P, Q>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
     }
     #else
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlock, device);
     #endif    // CUDA_VERSION >= 9000
 
-    if( nthreads > nthreads_max || shmem > shmem_max ) {
+    if ( nthreads > nthreads_max || shmem > shmem_max ) {
         return 1;
     }
     else { 
@@ -185,7 +185,7 @@ magma_grad_generic(
                 dU + dim_ctr * u_dimstride, u_elstride, u_compstride, 
                 dV + dim_ctr * v_dimstride, v_elstride, v_compstride, 
                 dim_ctr, nelem, queue ); 
-        if(launch_failed != 0) break;
+        if (launch_failed != 0) break;
     }
 
     return launch_failed;    

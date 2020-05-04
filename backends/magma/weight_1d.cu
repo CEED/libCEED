@@ -30,7 +30,7 @@ magma_weight_1d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int
     const int ty      = threadIdx.y;
     const int elem_id = (blockIdx.x * blockDim.y) + ty;
 
-    if(elem_id >= nelem) return;
+    if (elem_id >= nelem) return;
 
     // global memory pointers
     dV += elem_id * v_stride;
@@ -41,7 +41,7 @@ magma_weight_1d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int
     sV   += ty * Q;
 
     // read dqweight_1d
-    if(ty == 0 && tx < Q) {
+    if (ty == 0 && tx < Q) {
         sTweight[tx] = dqweight1d[tx];
     }
 
@@ -73,14 +73,14 @@ magma_weight_1d_kernel_driver(
     cudaDeviceGetAttribute (&nthreads_max, cudaDevAttrMaxThreadsPerBlock, device);
     #if CUDA_VERSION >= 9000
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlockOptin, device);
-    if(shmem <= shmem_max) {
+    if (shmem <= shmem_max) {
         cudaFuncSetAttribute(magma_weight_1d_kernel<T, Q>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
     }
     #else
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlock, device);
     #endif    // CUDA_VERSION >= 9000
 
-    if( (nthreads*ntcol) > nthreads_max || shmem > shmem_max ) {
+    if ( (nthreads*ntcol) > nthreads_max || shmem > shmem_max ) {
         return 1;    // launch failed
     }
     else {

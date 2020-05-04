@@ -32,8 +32,8 @@ magma_grad(
   magma_queue_t queue) {
   magma_int_t launch_failed = 0;
 
-  if(kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC) {
-    if(tmode == CEED_TRANSPOSE) {
+  if (kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC) {
+    if (tmode == CEED_TRANSPOSE) {
       switch(dim) {
       case 1: launch_failed =  magma_grad_1d(P, Q, ncomp, dinterp1d, dgrad1d, tmode,
                                                dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem,

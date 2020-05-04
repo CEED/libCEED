@@ -33,7 +33,7 @@ magma_grad_1d_kernel(
     const int ty      = threadIdx.y;
     const int elem_id = (blockIdx.x * blockDim.y) + ty;
 
-    if(elem_id >= nelem) return;
+    if (elem_id >= nelem) return;
 
     T* sU[NCOMP];
     T* sV[NCOMP];
@@ -53,7 +53,7 @@ magma_grad_1d_kernel(
     }
 
     // read T
-    if(ty == 0) {
+    if (ty == 0) {
         dread_T_gm2sm<P, Q>(tx, transT, dTgrad, sT);
     }
 
@@ -61,7 +61,7 @@ magma_grad_1d_kernel(
     read_1d<T, P, NCOMP>(dU, u_compstride, sU, tx);
 
     // read V if transT is magmaTrans
-    if(transT == MagmaTrans) {
+    if (transT == MagmaTrans) {
         read_1d<T, Q, NCOMP>(dV, v_compstride, sV, tx);
     }
 
@@ -95,14 +95,14 @@ magma_grad_1d_kernel_driver(
     cudaDeviceGetAttribute (&nthreads_max, cudaDevAttrMaxThreadsPerBlock, device);
     #if CUDA_VERSION >= 9000
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlockOptin, device);
-    if(shmem <= shmem_max) {
+    if (shmem <= shmem_max) {
         cudaFuncSetAttribute(magma_grad_1d_kernel<T, 1, NCOMP, P, Q>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
     }
     #else
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlock, device);
     #endif    // CUDA_VERSION >= 9000
  
-    if( (nthreads*ntcol) > nthreads_max || shmem > shmem_max ) {
+    if ( (nthreads*ntcol) > nthreads_max || shmem > shmem_max ) {
         return 1;    // launch failed
     }
     else {

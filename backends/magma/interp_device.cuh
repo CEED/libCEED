@@ -43,7 +43,7 @@ magma_interp_1d_device(
     // 7. Note that the layout for U and V is different from 2D/3D problem
 
     T rv;
-    if(tx < Q) {
+    if (tx < Q) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
             rv = (transT == MagmaTrans) ? sV[icomp][tx] : make_zero<T>();
             for(int i = 0; i < P; i++) {
@@ -76,7 +76,7 @@ magma_interp_2d_device(
     for(int icomp = 0; icomp < NCOMP; icomp++){
         // 1st product -- Batch P of (1xP) matrices [reg] x (PxQ) [shmem] => Batch P of (1xQ) matrices
         // the batch output P x (1xQ) is written on the fly to shmem
-        if(tx < P) {
+        if (tx < P) {
             const int batchid = tx;
             const int sld     = 1;
             T* sTmp = swork + batchid * (1 * Q);
@@ -87,11 +87,11 @@ magma_interp_2d_device(
                 }
                 sTmp(0,j,sld) = rTmp;
             }
-        }    // end of: if(tx < P)
+        }    // end of: if (tx < P)
         __syncthreads();
 
         // 2nd product -- Batch 1 of a (QxP) matrix [shmem] x (PxQ) [shmem] => (QxQ) matrix [reg]
-        if(tx < Q) {
+        if (tx < Q) {
             const int batchid = 0;
             const int sld     = Q;
             T* sTmp = swork + batchid * (Q*P);
@@ -129,7 +129,7 @@ magma_interp_3d_device(
 
     for(int icomp = 0; icomp < NCOMP; icomp++){
         // Batch P^2 of (1xP) matrices [reg] times (PxQ) matrix [shmem] => Batch P^2 of (1xQ) matrices [shmem]
-        if(tx < (P*P)) {
+        if (tx < (P*P)) {
             const int batchid = tx;
             const int sld     = 1;
             T* sTmp = swork + batchid * (1*Q);
@@ -140,11 +140,11 @@ magma_interp_3d_device(
                 }
                 sTmp(0,j,sld) = rTmp[0];
             }
-        }    // end of: if(tx < P*P)
+        }    // end of: if (tx < P*P)
         __syncthreads();
 
         // Batch P of (QxP) matrices [shmem] times (PxQ) matrix [shmem] => Batch P of (QxQ) matrices [reg]
-        if(tx < (P*Q)) {
+        if (tx < (P*Q)) {
             const int batchid = tx / Q;
             const int tx_     = tx % Q;
             const int sld     = Q;
@@ -159,7 +159,7 @@ magma_interp_3d_device(
         __syncthreads();
 
         // write rTmp[] into shmem as batch P of QxQ matrices
-        if(tx < (P*Q)){
+        if (tx < (P*Q)){
             const int batchid = tx / Q;
             const int tx_     = tx % Q;
             const int sld     = Q;
@@ -171,7 +171,7 @@ magma_interp_3d_device(
         __syncthreads();
 
        // Batch 1 of (Q^2xP) matrices [shmem] times (PxQ) matrix [shmem] => Batch 1 of (Q^2xQ) matrices [reg]
-       if(tx < (Q*Q)) {
+       if (tx < (Q*Q)) {
            // No need to declare batchid = (tx  / Q^2) = always zero
            // No need to declare tx_     = (tx_ % Q^2) = always tx
            const int sld     = Q*Q;
@@ -238,7 +238,7 @@ magma_interp_generic_device(
         sU += nslices * C * B;
     }
     
-    if(slice_id < A-i) {
+    if (slice_id < A-i) {
         for(int b = 0; b < B; b++) {
             //printf("tx = %d, tx_ = %d, accessing b * C + tx_ = %d\n", tx, tx_, b * C + tx_);
             sU[b * C + tx_] = dU[b * C + tx_];
@@ -261,7 +261,7 @@ magma_interp_generic_device(
             sV += nslices * C * J;
         }
 
-        if(slice_id < A-i){
+        if (slice_id < A-i){
             dread_U_gsm2reg<B>(C, tx_, sU, rU);   // read U
             dgemm_slice<B, J>(MAGMA_D_ONE, sT, rU, MAGMA_D_ZERO, rV); // multiply
             dwrite_V_reg2gsm<J>(C, tx_, rV, sV ); // write V back
@@ -271,7 +271,7 @@ magma_interp_generic_device(
         
         #if 0 
         __syncthreads();
-        if(tx == 0) {
+        if (tx == 0) {
             printf("GPU,dim = %d \n", d);
             for(int i = 0; i < pre * post; i++) {
                 for(int j = 0; j < Q; j++) {
@@ -301,7 +301,7 @@ magma_interp_generic_device(
     dV += slice_id * C * J;
     for(i = 0; i < A-nslices; i+=nslices) {
         dread_U_gsm2reg<B>(C, tx_, sU, rU);   // read U
-        if( add ) {
+        if ( add ) {
             dread_V_gsm2reg<J>(C, tx_, dV, rV); 
         }
         dgemm_slice<B, J>(MAGMA_D_ONE, sT, rU, beta, rV); // multiply
@@ -310,9 +310,9 @@ magma_interp_generic_device(
         dV += nslices * C * J;
     }
 
-    if(slice_id < A-i){
+    if (slice_id < A-i){
         dread_U_gsm2reg<B>(C, tx_, sU, rU);   // read U
-        if( add ) {
+        if ( add ) {
             dread_V_gsm2reg<J>(C, tx_, dV, rV); 
         }
         dgemm_slice<B, J>(MAGMA_D_ONE, sT, rU, beta, rV); // multiply
@@ -322,7 +322,7 @@ magma_interp_generic_device(
     
     #if 0
     __syncthreads();
-    if(tx == 0) {
+    if (tx == 0) {
         printf("GPU,dim = %d \n", d);
         for(int i = 0; i < pre * post; i++) {
             for(int j = 0; j < Q; j++) {

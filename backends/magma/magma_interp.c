@@ -31,7 +31,7 @@ magma_interp(
   magma_queue_t queue) {
   magma_int_t launch_failed = 0;
 
-  if(kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC) {
+  if (kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC) {
     switch(dim) {
     case 1: launch_failed = magma_interp_1d(P, Q, ncomp, dT, tmode, dU, u_elstride,
                                               u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads[0], queue); break;

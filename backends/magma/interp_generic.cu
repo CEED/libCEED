@@ -71,14 +71,14 @@ interp_generic_kernel_driver(
     cudaDeviceGetAttribute (&nthreads_max, cudaDevAttrMaxThreadsPerBlock, device);
     #if CUDA_VERSION >= 9000
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlockOptin, device);
-    if(shmem <= shmem_max) {
+    if (shmem <= shmem_max) {
         cudaFuncSetAttribute(interp_generic_kernel<T, P, Q>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
     }
     #else
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlock, device);
     #endif    // CUDA_VERSION >= 9000
 
-    if( nthreads > nthreads_max || shmem > shmem_max ) {
+    if ( nthreads > nthreads_max || shmem > shmem_max ) {
         return 1;
     }
     else { 

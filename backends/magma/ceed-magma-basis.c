@@ -104,7 +104,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
                         v, v_elstride, v_compstride,
                         nelem, data->basis_kernel_mode, data->maxthreads,
                         data->queue);
-    if(ierr != 0) CeedError(ceed, 1,
+    if (ierr != 0) CeedError(ceed, 1,
                               "MAGMA: launch failure detected for magma_interp");
   }
   break;
@@ -163,7 +163,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
                        v, v_elstride, v_compstride, v_dimstride,
                        nelem, data->basis_kernel_mode, data->maxthreads,
                        data->queue);
-    if(ierr != 0) CeedError(ceed, 1,
+    if (ierr != 0) CeedError(ceed, 1,
                               "MAGMA: launch failure detected for magma_grad");
   }
   break;
@@ -177,7 +177,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     int eldofssize = CeedIntPow(Q, dim);
     ierr = magma_weight(Q, dim, impl->dqweight1d, v, eldofssize, nelem,
                         data->basis_kernel_mode, data->maxthreads, data->queue);
-    if(ierr != 0) CeedError(ceed, 1,
+    if (ierr != 0) CeedError(ceed, 1,
                               "MAGMA: launch failure detected for magma_weight");
   }
   break;
@@ -316,7 +316,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   // must sync to ensure completeness
   ceed_magma_queue_sync( data->queue );
 
-  if(emode!=CEED_EVAL_WEIGHT) {
+  if (emode!=CEED_EVAL_WEIGHT) {
     ierr = CeedVectorRestoreArrayRead(U, &du); CeedChk(ierr);
   }
   ierr = CeedVectorRestoreArray(V, &dv); CeedChk(ierr);

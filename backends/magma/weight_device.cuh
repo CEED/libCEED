@@ -26,7 +26,7 @@ magma_weight_1d_device(const T* sTweight, T* sV, const int tx)
     // Assumptions
     // 1. 1D thread configuration of size Q
     // 2. The output sV is in shared memory -- size 1xQ
-    if(tx < Q){
+    if (tx < Q){
         sV[tx] = sTweight[tx];
     }
 }
@@ -44,7 +44,7 @@ magma_weight_2d_device(const T* sTweight, T rV[DIM][NCOMP][Q], const int tx)
     //    since the output per thread is a register array of size Q
     // 4. Sync is recommended after the call (to make sure sTweight can be overwritten)
 
-    if(tx < Q) {
+    if (tx < Q) {
         // x sTweight[j]  for first update
         // x sTweight[tx] for second update
         for(int j = 0; j < Q; j++) {
@@ -66,7 +66,7 @@ magma_weight_3d_device(const T* sTweight, T rV[DIM][NCOMP][Q], const int tx)
     //    since the output per thread is a register array of size Q
     // 4. Sync is recommended after the call (to make sure sTweight can be overwritten)
 
-    if(tx < (Q*Q)) {
+    if (tx < (Q*Q)) {
         // x sTweight[j]    for first update
         // x sTweight[tx%Q] for second update
         // x sTweight[tx/Q] for third update
@@ -105,7 +105,7 @@ magma_weight_generic_device(
         sqweight1d[i+tx] = dqweight1d[i+tx];
     }
 
-    if(tx < Q-i) {
+    if (tx < Q-i) {
         sqweight1d[i+tx] = dqweight1d[i+tx];
     }
      __syncthreads();

@@ -30,7 +30,7 @@ magma_weight_3d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int
     const int ty      = threadIdx.y;
     const int elem_id = (blockIdx.x * blockDim.y) + ty;
 
-    if(elem_id >= nelem) return;
+    if (elem_id >= nelem) return;
 
     T rV[1][1][Q];    // allocate with DIM=NCOMP=1, but sizes may differ for a fused operator
     // global memory pointers
@@ -40,7 +40,7 @@ magma_weight_3d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int
     T* sTweight = (T*)shared_data;
 
     // read dqweight_1d
-    if(tx < Q) {
+    if (tx < Q) {
         sTweight[tx] = dqweight1d[tx];
     }
     __syncthreads();
@@ -48,7 +48,7 @@ magma_weight_3d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int
     magma_weight_3d_device<T, 1, 1, Q, 0, 0>(sTweight, rV, tx);
 
     // write V
-    if(tx < (Q*Q)) {
+    if (tx < (Q*Q)) {
         for(int j = 0; j < Q; j++) {
             dV[ j*(Q*Q) + tx ] = rV[0][0][j];
         }
@@ -74,14 +74,14 @@ magma_weight_3d_kernel_driver(
     cudaDeviceGetAttribute (&nthreads_max, cudaDevAttrMaxThreadsPerBlock, device);
     #if CUDA_VERSION >= 9000
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlockOptin, device);
-    if(shmem <= shmem_max) {
+    if (shmem <= shmem_max) {
         cudaFuncSetAttribute(magma_weight_3d_kernel<T, Q>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
     }
     #else
     cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlock, device);
     #endif    // CUDA_VERSION >= 9000
 
-    if( (nthreads*ntcol) > nthreads_max || shmem > shmem_max ) {
+    if ( (nthreads*ntcol) > nthreads_max || shmem > shmem_max ) {
         return 1;    // launch failed
     }
     else { 
