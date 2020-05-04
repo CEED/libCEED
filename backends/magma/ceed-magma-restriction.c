@@ -49,6 +49,7 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     //    then node)
     bool backendstrides;
     ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
+    CeedChk(ierr);
 
     if (backendstrides) {
 

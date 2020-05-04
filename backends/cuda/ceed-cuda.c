@@ -34,7 +34,7 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
   const int optsextra = 4;
   const char *opts[numopts + optsextra];
   char buf[numopts][optslen];
-  if (numopts>0) {
+  if (numopts > 0) {
     va_list args;
     va_start(args, numopts);
     char *name;
@@ -45,6 +45,7 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
       snprintf(&buf[i][0], optslen,"-D%s=%d", name, val);
       opts[i] = &buf[i][0];
     }
+    va_end(args);
   }
 
   // Standard backend options
