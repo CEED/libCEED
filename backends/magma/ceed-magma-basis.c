@@ -57,7 +57,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
 
   if (tmode == CEED_TRANSPOSE) {
     CeedInt length;
-    ierr = CeedVectorGetLength(V, &length);
+    ierr = CeedVectorGetLength(V, &length); CeedChk(ierr);
     magmablas_dlaset(MagmaFull, length, 1, 0., 0., v, length, data->queue);
     ceed_magma_queue_sync( data->queue );
   }
