@@ -51,7 +51,6 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
 
   // kernel selection
   data->basis_kernel_mode = MAGMA_KERNEL_DIM_SPECIFIC;
-  //data->basis_kernel_mode = MAGMA_KERNEL_DIM_GENERIC;
 
   // kernel max threads per thread-block
   data->maxthreads[0] = 128;  // for 1D kernels
