@@ -304,6 +304,25 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
       break; // TODO: Not implemented
     }
   }
+
+  // Output pointers, as necessary
+  for (CeedInt i = 0; i < numoutputfields; i++) {
+    ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
+    CeedChk(ierr);
+    if (emode == CEED_EVAL_NONE && !impl->e_and_q_layout_diff) {
+      // If the E- and Q-Vector layouts are not the same, we will perform
+      // an element restriction during the output basis apply, and don't
+      // need to set these pointers.  Otherwise, set the output Q-Vector
+      // to use the E-Vector data directly.
+      ierr = CeedVectorGetArray(impl->evecs[i + impl->numein], CEED_MEM_DEVICE,
+                                &impl->edata[i + numinputfields]); CeedChk(ierr);
+      ierr = CeedVectorSetArray(impl->qvecsout[i], CEED_MEM_DEVICE,
+                                CEED_USE_POINTER,
+                                impl->edata[i + numinputfields]);
+      CeedChk(ierr);
+    }
+  }
+
   // Q function
   ierr = CeedQFunctionApply(qf, numelements * Q, impl->qvecsin, impl->qvecsout);
   CeedChk(ierr);
@@ -321,11 +340,13 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
     // Basis action
     switch (emode) {
     case CEED_EVAL_NONE:
-      // Perform restriction to create E-vector in case ordering
-      // is different from Q-Vector
-      ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE,
-                                    impl->qvecsout[i], impl->evecs[i + impl->numein],
-                                    request); CeedChk(ierr);
+      if (impl->e_and_q_layout_diff) {
+        // Perform restriction to create E-vector in case ordering
+        // is different from Q-Vector
+        ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE,
+                                        impl->qvecsout[i], impl->evecs[i + impl->numein],
+                                        request); CeedChk(ierr);
+      }
       break;
     case CEED_EVAL_INTERP:
       ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis);
@@ -360,6 +381,11 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
     // Restore evec
     ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
     CeedChk(ierr);
+    if (emode == CEED_EVAL_NONE && !impl->e_and_q_layout_diff) {
+      ierr = CeedVectorRestoreArray(impl->evecs[i+impl->numein],
+                                    &impl->edata[i + numinputfields]);
+      CeedChk(ierr);
+    }
     // Get output vector
     ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec); CeedChk(ierr);
     // Restrict
@@ -436,6 +462,7 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
   CeedOperator_Cuda *impl;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
+  impl->e_and_q_layout_diff = true; 
   ierr = CeedOperatorSetData(op, (void *)&impl);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
