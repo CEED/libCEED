@@ -511,10 +511,6 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
                        qdata);
   CeedOperatorSetField(op_apply, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
 
-  // Set up the libCEED context
-  CeedScalar ctxSetup[2] = {R, l};
-  CeedQFunctionSetContext(qf_setupgeo, &ctxSetup, sizeof ctxSetup);
-
   // Setup qdata
   CeedOperatorApply(op_setupgeo, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
 
