@@ -61,6 +61,10 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
   CeedElemRestriction Erestrict;
   CeedOperatorField *opfields;
   CeedQFunctionField *qffields;
+  CeedVector field_vec;
+  bool is_strided;
+  bool skip_restrict;
+
   if (inOrOut) {
     ierr = CeedOperatorGetFields(op, NULL, &opfields);
     CeedChk(ierr);
@@ -78,12 +82,41 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
     CeedEvalMode emode;
     ierr = CeedQFunctionFieldGetEvalMode(qffields[i], &emode); CeedChk(ierr);
 
+    is_strided = false;
+    skip_restrict = false;
     if (emode != CEED_EVAL_WEIGHT) {
       ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &Erestrict);
       CeedChk(ierr);
-      ierr = CeedElemRestrictionCreateVector(Erestrict, NULL,
-                                             &evecs[i + starte]);
-      CeedChk(ierr);
+
+      // Check whether this field can skip the element restriction:
+      // must be passive input, with emode NONE, and have a strided restriction with
+      // CEED_STRIDES_BACKEND.
+
+      // First, check whether the field is input or output:
+      if (!inOrOut) {
+        // Check for passive input:
+        ierr = CeedOperatorFieldGetVector(opfields[i], &field_vec); CeedChk(ierr);
+        if (field_vec != CEED_VECTOR_ACTIVE) {
+          // Check emode
+          if (emode == CEED_EVAL_NONE) {
+            // Check for strided restriction
+            ierr = CeedElemRestrictionGetStridedStatus(Erestrict, &is_strided);
+            if (is_strided) {
+              // Check if vector is already in preferred backend ordering
+              ierr = CeedElemRestrictionGetBackendStridesStatus(Erestrict, &skip_restrict);
+            }
+          }
+        }
+      }
+      if (skip_restrict) {
+        // We do not need an E-Vector, but will use the input field vector's data
+        // directly in the operator application.
+        evecs[i + starte] = NULL;
+      } else {
+        ierr = CeedElemRestrictionCreateVector(Erestrict, NULL,
+                                               &evecs[i + starte]);
+        CeedChk(ierr);
+      }
     }
 
     switch (emode) {
@@ -200,8 +233,6 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
   CeedVector vec;
   CeedBasis basis;
   CeedElemRestriction Erestrict;
-  bool is_strided;
-  bool skip_restrict;
 
   // Setup
   ierr = CeedOperatorSetup_Cuda(op); CeedChk(ierr);
@@ -212,29 +243,16 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
     CeedChk(ierr);
     if (emode == CEED_EVAL_WEIGHT) { // Skip
     } else {
-      is_strided = false;
-      skip_restrict = false;
-
       // Get input vector
       ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChk(ierr);
       // Get input element restriction
       ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
       CeedChk(ierr);
-      if (vec == CEED_VECTOR_ACTIVE) {
+      if (vec == CEED_VECTOR_ACTIVE) 
         vec = invec;
-      } else {
-        // Check whether we can skip the restriction for this input vector
-        if (emode == CEED_EVAL_NONE) {
-          ierr = CeedElemRestrictionGetStridedStatus(Erestrict, &is_strided);
-          if (is_strided) { // Strided Restriction
-            // Check if vector is already in preferred backend ordering
-            ierr = CeedElemRestrictionGetBackendStridesStatus(Erestrict, &skip_restrict);
-          }
-        }
-      }
       // Restrict, if necessary
-      if (skip_restrict) {
-        impl->evecs[i] = NULL;
+      if (impl->evecs[i] == NULL) {
+        // No restriction for this field; read data directly from vec.
         ierr = CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE,
                                      (const CeedScalar **) &impl->edata[i]);
         CeedChk(ierr);
