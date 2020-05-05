@@ -300,7 +300,7 @@ int main(int argc, char **argv) {
     ierr = VecCUDAGetArray(rhsloc, &r); CHKERRQ(ierr);
   }
   CeedVectorCreate(ceed, xlsize[fineLevel], &rhsceed);
-  CeedVectorSetArray(rhsceed, CEED_MEM_HOST, CEED_USE_POINTER, r);
+  CeedVectorSetArray(rhsceed, memtyperequested, CEED_USE_POINTER, r);
 
   // Set up libCEED operators on each level
   ierr = PetscMalloc1(numlevels, &ceeddata); CHKERRQ(ierr);
