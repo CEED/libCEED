@@ -75,7 +75,7 @@ at run time). This easily allows $hp$-refinement studies (where $h$ commonly den
 
 ![A schematic of element restriction and basis applicator operators for
 elements with different topology. This sketch shows the independence of QFunctions
-(in this case representing a Laplacian) element resolution, topology, or basis degree.\label{fig:schematic}](img/QFunctionSketch.svg)
+(in this case representing a Laplacian) element resolution, topology, or basis degree.\label{fig:schematic}](img/QFunctionSketch.pdf)
 
 To achieve high performance, libCEED can take advantage of a tensor-product
 finite-element basis and quadrature rule to apply the action of the basis
