@@ -423,7 +423,6 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
     ierr = DMRestoreGlobalVector(user->dmviz, &Qrefined); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer_refined); CHKERRQ(ierr);
   }
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
 
   // Save data in a binary file for continuation of simulations
