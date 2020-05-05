@@ -20,6 +20,7 @@ fi
 
 # for examples/ceed petsc*, mfem*, or ex* grep the code to fetch arguments from a TESTARGS line
 declare -a allargs
+declare -a suffices
 if [ ${1::6} == "petsc-" ]; then
     allargs=$(grep -F //TESTARGS examples/petsc/${1:6}.c* | cut -d\  -f2- )
 elif [ ${1::5} == "mfem-" ]; then
@@ -27,7 +28,12 @@ elif [ ${1::5} == "mfem-" ]; then
 elif [ ${1::4} == "nek-" ]; then
     allargs=$(grep -F "C TESTARGS" examples/nek/bps/${1:4}.usr* | cut -d\  -f3- )
 elif [ ${1::7} == "fluids-" ]; then
-    allargs=$(grep -F //TESTARGS examples/fluids/${1:7}.c* | cut -d\  -f2- )
+    # get all test configurations
+    numconfig=$(grep -F //TESTARGS examples/fluids/${1:7}.c* | wc -l)
+    for ((i=0;i<${numconfig};++i)); do
+      suffices+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/fluids/${1:7}.c | cut -d\  -f2- | cut -d ";" -f 1 | cut -d "=" -f 2 )")
+      allargs+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/fluids/${1:7}.c | cut -d\  -f2- | cut -d ";" -f 2 )")
+    done
 elif [ ${1::7} == "solids-" ]; then
     allargs=$(grep -F //TESTARGS examples/solids/${1:7}.c* | cut -d\  -f2- )
 elif [ ${1::2} == "ex" ]; then
@@ -159,25 +165,46 @@ for ((i=0;i<${#backends[@]};++i)); do
     fi
 
     # stdout
-    if [ -f tests/output/$1.out ]; then
-        if diff -u tests/output/$1.out ${output}.out > ${output}.diff; then
-            printf "ok $i1 $1 $backend stdout\n"
-        else
+    if [ ${1::7} == "fluids-" ]; then
+        printf "Suffices: "${suffices[$j]}"    "
+        if [ -f examples/fluids/output/${1}${suffices[$j]}.out ]; then
+            if diff -u examples/fluids/output/${1}${suffices[$j]}.out ${output}.out > ${output}.diff; then
+                printf "ok $i1 $1 $backend stdout\n"
+            else
+                printf "not ok $i1 $1 $backend stdout\n"
+                while read line; do
+                    printf "# ${line}\n"
+                done < ${output}.diff
+            fi
+        elif [ -s ${output}.out ]; then
             printf "not ok $i1 $1 $backend stdout\n"
             while read line; do
-                printf "# ${line}\n"
-            done < ${output}.diff
+                printf "# + ${line}\n"
+            done < ${output}.out
+        else
+            printf "ok $i1 $1 $backend stdout\n"
         fi
-    elif [[ "$1" == t003* ]]; then
-    # For t003, the output will vary widely; only checking stderr
-        printf "ok $i1 $1 $backend stdout\n"
-    elif [ -s ${output}.out ]; then
-        printf "not ok $i1 $1 $backend stdout\n"
-        while read line; do
-            printf "# + ${line}\n"
-        done < ${output}.out
     else
-        printf "ok $i1 $1 $backend stdout\n"
+        if [ -f tests/output/$1.out ]; then
+            if diff -u tests/output/$1.out ${output}.out > ${output}.diff; then
+                printf "ok $i1 $1 $backend stdout\n"
+            else
+                printf "not ok $i1 $1 $backend stdout\n"
+                while read line; do
+                    printf "# ${line}\n"
+                done < ${output}.diff
+            fi
+        elif [[ "$1" == t003* ]]; then
+        # For t003, the output will vary widely; only checking stderr
+            printf "ok $i1 $1 $backend stdout\n"
+        elif [ -s ${output}.out ]; then
+            printf "not ok $i1 $1 $backend stdout\n"
+            while read line; do
+                printf "# + ${line}\n"
+            done < ${output}.out
+        else
+            printf "ok $i1 $1 $backend stdout\n"
+        fi
     fi
 
     # stderr
