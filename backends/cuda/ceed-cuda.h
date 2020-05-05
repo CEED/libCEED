@@ -113,7 +113,7 @@ typedef struct {
   CeedVector *qvecsout;   /// Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
-  bool e_and_q_layout_diff;
+  bool eandqdiffer; /// Indicate whether or not E- and Q-Vector layouts differ
 } CeedOperator_Cuda;
 
 typedef struct {

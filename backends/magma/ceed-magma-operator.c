@@ -19,9 +19,8 @@
 #include "ceed-magma.h"
 #include <string.h>
 
-// Create a cuda-ref operator and modify its e_and_q_layout_diff value
+// Create a cuda-ref operator and modify its eandqdiffer value
 int CeedOperatorCreate_Magma(CeedOperator op) {
-
   int ierr;
 
   // Explicitly set up a cuda-ref Operator
@@ -33,7 +32,7 @@ int CeedOperatorCreate_Magma(CeedOperator op) {
 
   // Set this value to false since the E- and Q-Vector layouts
   // use the same ordering strategy for this backend (but not cuda-ref)
-  impl->e_and_q_layout_diff = false;
+  impl->eandqdiffer = false;
 
   return 0;
 }
