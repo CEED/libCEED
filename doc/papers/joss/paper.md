@@ -40,8 +40,7 @@ library that offers a purely algebraic interface for efficient operator evaluati
 and matrix-free preconditioning ingredients. libCEED supports run-time selection of
 implementations tuned for a variety of computational architectures, including CPUs and
 GPUs, and can be unobtrusively integrated in new and legacy software to provide portable
-performance. We introduce ``libCEED``’s conceptual framework and its low-level C
-interface, together with its newly available high-level Python interface.
+performance. We introduce ``libCEED``’s conceptual framework and interface, and show examples of its integration with other packages, including PETSc and MFEM.
 
 In finite element formulations, the weak form of a PDE is evaluated on a subdomain
 (element), and the local results are composed into a larger system of equations that
@@ -72,7 +71,11 @@ describing the physics of the problem at the quadrature points, also called the
 QFunction. QFunctions, which can either be defined by the user or selected from a
 gallery of available built-in functions in the library, are pointwise functions
 that do not depend on element resolution, topology, or basis degree (selectable
-at run time).
+at run time). This easily allows $hp$-refinement studies (where $h$ commonly denotes the average element size and $p$ the polynomial degree of the basis functions in 1D) and $p$-multigrid solvers. libCEED also supports composition of different operators for multiphysics problems and mixed-element meshes (see Fig. \ref{fig:schematic}).
+
+![A schematic of element restriction and basis applicator operators for
+elements with different topology. This sketch shows the independence of QFunctions
+(in this case representing a Laplacian) element resolution, topology, or basis degree.\label{fig:schematic}](img/QFunctionSketch.svg)
 
 To achieve high performance, libCEED can take advantage of a tensor-product
 finite-element basis and quadrature rule to apply the action of the basis
@@ -83,7 +86,7 @@ symmetric/asymmetric operators and exposes opportunities for device-specific
 optimizations.
 
 ![libCEED is a low-level API for finite element codes, that has specialized implementations
-(backends) for heterogeneous architectures.\label{fig:libCEEDBackends}](libCEEDBackends.pdf)
+(backends) for heterogeneous architectures.\label{fig:libCEEDBackends}](img/libCEEDBackends.pdf)
 
 Fig. \ref{fig:libCEEDBackends} shows a subset of the backend implementations available
 in ``libCEED``. GPU implementations are available via pure CUDA as well as the OCCA
@@ -93,6 +96,16 @@ only need to write a single source code and can select the desired specialized
 implementation at run time. Moreover, each process or thread can instantiate an
 arbitrary number of backends.
 
+# Performance Benchmarks
+
+The Center for Efficient Exascale Discretizations (CEED), part of the Exascale Computing Project (ECP) uses Benchmark Problems (BPs) to test and compare the performance of high-order finite element implementations. In Fig. \ref{fig:Skylakeselfxsmm}, we analyze the performance of libCEED's LIBXSMM backend on a Poisson's problem. We measure performance over 20 iterations of unpreconditioned Conjugate Gradient (CG) and plot throughput, versus execution time per iteration, for different values of the polynomial degree $p$.
+
+![\texttt{xsmm/serial} backend on a Skylake
+(2x Intel Xeon Platinum 8180M CPU 2.50GHz).\label{fig:Skylakeselfxsmm}](img/plot_libCEED_PETScBP3_cpuselfxsmmserial_N001_pn56_time.pdf)
+
+# Applications
+
+To highlight the ease of library reuse for solver composition and leverage libCEED's full capability for real-world applications, libCEED comes with a suite of application examples, including problems of interst to the fluid dynamics and continuum mechanics communities.
 
 # Acknowledgements
 
