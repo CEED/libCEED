@@ -250,22 +250,22 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
       // Get input element restriction
       ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
       CeedChk(ierr);
-      if (vec == CEED_VECTOR_ACTIVE) 
+      if (vec == CEED_VECTOR_ACTIVE)
         vec = invec;
       // Restrict, if necessary
       if (!impl->evecs[i]) {
         // No restriction for this field; read data directly from vec.
         ierr = CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE,
-                                     (const CeedScalar **) &impl->edata[i]);
+                                      (const CeedScalar **) &impl->edata[i]);
         CeedChk(ierr);
       } else {
         ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE, vec,
-                                      impl->evecs[i], request); CeedChk(ierr);
+                                        impl->evecs[i], request); CeedChk(ierr);
         // Get evec
         ierr = CeedVectorGetArrayRead(impl->evecs[i], CEED_MEM_DEVICE,
-                                    (const CeedScalar **) &impl->edata[i]);
+                                      (const CeedScalar **) &impl->edata[i]);
         CeedChk(ierr);
-      }  
+      }
     }
   }
 
@@ -410,7 +410,7 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
     } else {
       if (!impl->evecs[i]) {  // This was a skiprestrict case
         ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChk(ierr);
-        ierr = CeedVectorRestoreArrayRead(vec, 
+        ierr = CeedVectorRestoreArrayRead(vec,
                                           (const CeedScalar **)&impl->edata[i]);
         CeedChk(ierr);
       } else {
@@ -464,7 +464,7 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
   CeedOperator_Cuda *impl;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  impl->eandqdiffer = true; 
+  impl->eandqdiffer = true;
   ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
