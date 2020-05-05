@@ -37,7 +37,10 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &du); CeedChk(ierr);
   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &dv); CeedChk(ierr);
 
-  if (!impl->offsets) {  // Strided Restriction
+  bool isStrided;
+  ierr = CeedElemRestrictionGetStridedStatus(r, &isStrided); CeedChk(ierr);
+
+  if (isStrided) {  // Strided Restriction
 
     CeedInt strides[3];
     CeedInt *dstrides;
@@ -49,6 +52,7 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     //    then node)
     bool backendstrides;
     ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
+    CeedChk(ierr);
 
     if (backendstrides) {
 
@@ -240,8 +244,7 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
 }
 
 int CeedElemRestrictionCreateBlocked_Magma(const CeedMemType mtype,
-    const CeedCopyMode cmode,
-    const CeedInt *offsets,
+    const CeedCopyMode cmode, const CeedInt *offsets,
     const CeedElemRestriction r) {
   int ierr;
   Ceed ceed;

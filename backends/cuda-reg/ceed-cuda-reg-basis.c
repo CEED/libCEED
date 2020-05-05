@@ -600,6 +600,7 @@ int CeedBasisApply_Cuda_reg(CeedBasis basis, const CeedInt nelem,
     if (blocksize * gridsize < nelem)
       gridsize += 1;
     ierr = CeedRunKernelCuda(ceed, data->weight, gridsize, blocksize, weightargs);
+    CeedChk(ierr);
   } break;
   // LCOV_EXCL_START
   // Evaluate the divergence to/from the quadrature points

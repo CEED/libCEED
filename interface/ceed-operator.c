@@ -499,9 +499,9 @@ int CeedOperatorFieldGetVector(CeedOperatorField opfield, CeedVector *vec) {
   @param ceed    A Ceed object where the CeedOperator will be created
   @param qf      QFunction defining the action of the operator at quadrature points
   @param dqf     QFunction defining the action of the Jacobian of @a qf (or
-                   CEED_QFUNCTION_NONE)
+                   @ref CEED_QFUNCTION_NONE)
   @param dqfT    QFunction defining the action of the transpose of the Jacobian
-                   of @a qf (or CEED_QFUNCTION_NONE)
+                   of @a qf (or @ref CEED_QFUNCTION_NONE)
   @param[out] op Address of the variable where the newly created
                      CeedOperator will be stored
 
@@ -601,11 +601,11 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   @param fieldname  Name of the field (to be matched with the name used by
                       CeedQFunction)
   @param r          CeedElemRestriction
-  @param b          CeedBasis in which the field resides or CEED_BASIS_COLLOCATED
+  @param b          CeedBasis in which the field resides or @ref CEED_BASIS_COLLOCATED
                       if collocated with quadrature points
-  @param v          CeedVector to be used by CeedOperator or CEED_VECTOR_ACTIVE
-                      if field is active or CEED_VECTOR_NONE if using
-                      CEED_EVAL_WEIGHT in the QFunction
+  @param v          CeedVector to be used by CeedOperator or @ref CEED_VECTOR_ACTIVE
+                      if field is active or @ref CEED_VECTOR_NONE if using
+                      @ref CEED_EVAL_WEIGHT in the QFunction
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -737,7 +737,7 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop, CeedOperator subop) {
     and contains column-major matrices representing the action of the
     CeedQFunction for a corresponding quadrature point on an element. Inputs and
     outputs are in the order provided by the user when adding CeedOperator fields.
-    For example, a QFunction with inputs 'u' and 'gradu' and outputs 'gradv' and
+    For example, a CeedQFunction with inputs 'u' and 'gradu' and outputs 'gradv' and
     'v', provided in that order, would result in an assembled QFunction that
     consists of (1 + dim) x (dim + 1) matrices at each quadrature point acting
     on the input [u, du_0, du_1] and producing the output [dv_0, dv_1, v].
@@ -748,7 +748,7 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop, CeedOperator subop) {
   @param[out] rstr      CeedElemRestriction for CeedVector containing assembled
                           CeedQFunction
   @param request        Address of CeedRequest for non-blocking completion, else
-                          CEED_REQUEST_IMMEDIATE
+                          @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -786,7 +786,7 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
   @param op             CeedOperator to assemble CeedQFunction
   @param[out] assembled CeedVector to store assembled CeedOperator diagonal
   @param request        Address of CeedRequest for non-blocking completion, else
-                          CEED_REQUEST_IMMEDIATE
+                          @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -831,7 +831,7 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
   @param[out] fdminv    CeedOperator to apply the action of a FDM based inverse
                           for each element
   @param request        Address of CeedRequest for non-blocking completion, else
-                          CEED_REQUEST_IMMEDIATE
+                          @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -896,13 +896,13 @@ int CeedOperatorView(CeedOperator op, FILE *stream) {
   CeedOperatorSetField().
 
   @param op        CeedOperator to apply
-  @param[in] in    CeedVector containing input state or CEED_VECTOR_NONE if
+  @param[in] in    CeedVector containing input state or @ref CEED_VECTOR_NONE if
                   there are no active inputs
   @param[out] out  CeedVector to store result of applying operator (must be
-                     distinct from @a in) or CEED_VECTOR_NONE if there are no
+                     distinct from @a in) or @ref CEED_VECTOR_NONE if there are no
                      active outputs
   @param request   Address of CeedRequest for non-blocking completion, else
-                     CEED_REQUEST_IMMEDIATE
+                     @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -978,7 +978,7 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out,
   @param[out] out  CeedVector to sum in result of applying operator (must be
                      distinct from @a in) or NULL if there are no active outputs
   @param request   Address of CeedRequest for non-blocking completion, else
-                     CEED_REQUEST_IMMEDIATE
+                     @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 

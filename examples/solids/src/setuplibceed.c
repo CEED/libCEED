@@ -197,7 +197,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
   problemType   problemChoice = appCtx->problemChoice;
   forcingType   forcingChoice = appCtx->forcingChoice;
   DM            dmcoord;
-  PetscSection  section;
   Vec           coords;
   PetscInt      cStart, cEnd, nelem;
   const PetscScalar *coordArray;
@@ -240,7 +239,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
                                      CEED_STRIDES_BACKEND,
                                      &data[fineLevel]->ErestrictGradui);
   // -- Energy restriction
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, 1,
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, 1, nelem*Q*Q*Q,
                                    CEED_STRIDES_BACKEND,
                                    &data[fineLevel]->ErestrictEnergy);
 
@@ -249,7 +248,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
   // ---------------------------------------------------------------------------
   ierr = DMGetCoordinatesLocal(dm, &coords); CHKERRQ(ierr);
   ierr = VecGetArrayRead(coords, &coordArray); CHKERRQ(ierr);
-  ierr = DMGetSection(dmcoord, &section); CHKERRQ(ierr);
 
   CeedElemRestrictionCreateVector(data[fineLevel]->Erestrictx, &xcoord, NULL);
   CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_COPY_VALUES,

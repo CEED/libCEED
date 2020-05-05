@@ -35,7 +35,7 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
   CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   Ceed_Cuda *ceed_Cuda;
-  ierr = CeedGetData(ceed, (void *)&ceed_Cuda);
+  ierr = CeedGetData(ceed, (void *)&ceed_Cuda); CeedChk(ierr);
   CeedInt numinputfields, numoutputfields;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
@@ -113,7 +113,7 @@ static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
   if (!last_dot)
     return CeedError(ceed, 1, "Cannot find file's extension!");
   const size_t cuda_path_len = last_dot - cuda_file;
-  strcpy(&cuda_file[cuda_path_len], ".h");
+  strncpy(&cuda_file[cuda_path_len], ".h", 3);
 
   // Open source file
   FILE *fp;
@@ -158,6 +158,7 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = CeedQFunctionSetData(qf, (void *)&data); CeedChk(ierr);
   CeedInt numinputfields, numoutputfields;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
+  CeedChk(ierr);
   size_t ctxsize;
   ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
   ierr = cudaMalloc(&data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);

@@ -335,7 +335,9 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
 
   // Offsets data
-  if (offsets) {
+  bool isStrided;
+  ierr = CeedElemRestrictionGetStridedStatus(r, &isStrided); CeedChk(ierr);
+  if (!isStrided) {
     // Check indices for ref or memcheck backends
     Ceed parentCeed = ceed, currCeed = NULL;
     while (parentCeed != currCeed) {
