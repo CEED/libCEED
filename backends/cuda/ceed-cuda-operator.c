@@ -408,7 +408,7 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
     CeedChk(ierr);
     if (emode == CEED_EVAL_WEIGHT) { // Skip
     } else {
-      if (impl->evecs[i] == NULL) {  // This was a skiprestrict case
+      if (!impl->evecs[i]) {  // This was a skiprestrict case
         ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChk(ierr);
         ierr = CeedVectorRestoreArrayRead(vec, 
                                           (const CeedScalar **)&impl->edata[i]);
