@@ -101,9 +101,11 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
           if (emode == CEED_EVAL_NONE) {
             // Check for strided restriction
             ierr = CeedElemRestrictionGetStridedStatus(Erestrict, &is_strided);
+            CeedChk(ierr);
             if (is_strided) {
               // Check if vector is already in preferred backend ordering
               ierr = CeedElemRestrictionGetBackendStridesStatus(Erestrict, &skip_restrict);
+              CeedChk(ierr);
             }
           }
         }
