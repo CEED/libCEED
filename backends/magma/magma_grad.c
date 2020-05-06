@@ -24,10 +24,10 @@ magma_int_t
 magma_grad(
   magma_int_t P, magma_int_t Q, magma_int_t dim, magma_int_t ncomp,
   const CeedScalar *dinterp1d, const CeedScalar *dgrad1d, CeedTransposeMode tmode,
-  const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride,
-  magma_int_t u_dimstride,
-  CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride,
-  magma_int_t v_dimstride,
+  const CeedScalar *dU, magma_int_t estrdU, magma_int_t cstrdU,
+  magma_int_t dstrdU,
+  CeedScalar *dV, magma_int_t estrdV, magma_int_t cstrdV,
+  magma_int_t dstrdV,
   magma_int_t nelem, magma_kernel_mode_t kernel_mode, magma_int_t *maxthreads,
   magma_queue_t queue) {
   magma_int_t launch_failed = 0;
@@ -36,27 +36,27 @@ magma_grad(
     if (tmode == CEED_TRANSPOSE) {
       switch(dim) {
       case 1: launch_failed =  magma_grad_1d(P, Q, ncomp, dinterp1d, dgrad1d, tmode,
-                                               dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem,
+                                               dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem,
                                                maxthreads[0], queue); break;
       case 2: launch_failed = magma_gradt_2d(P, Q, ncomp, dinterp1d, dgrad1d, tmode,
-                                               dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride,
-                                               v_dimstride, nelem, maxthreads[1], queue); break;
+                                               dU, estrdU, cstrdU, dstrdU, dV, estrdV, cstrdV,
+                                               dstrdV, nelem, maxthreads[1], queue); break;
       case 3: launch_failed = magma_gradt_3d(P, Q, ncomp, dinterp1d, dgrad1d, tmode,
-                                               dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride,
-                                               v_dimstride, nelem, maxthreads[2], queue); break;
+                                               dU, estrdU, cstrdU, dstrdU, dV, estrdV, cstrdV,
+                                               dstrdV, nelem, maxthreads[2], queue); break;
       default: launch_failed = 1;
       }
     } else {
       switch(dim) {
       case 1: launch_failed =  magma_grad_1d(P, Q, ncomp, dinterp1d, dgrad1d, tmode,
-                                               dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem,
+                                               dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem,
                                                maxthreads[0], queue); break;
       case 2: launch_failed = magma_gradn_2d(P, Q, ncomp, dinterp1d, dgrad1d, tmode,
-                                               dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride,
-                                               v_dimstride, nelem, maxthreads[1], queue); break;
+                                               dU, estrdU, cstrdU, dstrdU, dV, estrdV, cstrdV,
+                                               dstrdV, nelem, maxthreads[1], queue); break;
       case 3: launch_failed = magma_gradn_3d(P, Q, ncomp, dinterp1d, dgrad1d, tmode,
-                                               dU, u_elstride, u_compstride, u_dimstride, dV, v_elstride, v_compstride,
-                                               v_dimstride, nelem, maxthreads[2], queue); break;
+                                               dU, estrdU, cstrdU, dstrdU, dV, estrdV, cstrdV,
+                                               dstrdV, nelem, maxthreads[2], queue); break;
       default: launch_failed = 1;
       }
     }
@@ -64,8 +64,8 @@ magma_grad(
     launch_failed = magma_grad_generic(
                       P, Q, dim, ncomp,
                       dinterp1d, dgrad1d, tmode,
-                      dU, u_elstride, u_compstride, u_dimstride,
-                      dV, v_elstride, v_compstride, v_dimstride,
+                      dU, estrdU, cstrdU, dstrdU,
+                      dV, estrdV, cstrdV, dstrdV,
                       nelem, queue );
   }
 

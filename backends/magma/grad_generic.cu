@@ -30,8 +30,8 @@ magma_grad_generic_kernel(
     const int dim, const int ncomp, 
     const int pre_org, const int tmp_size, 
     const T* dinterp1d, const T *dgrad1d, magma_trans_t transT,
-    const T *dU, const int u_elstride, const int u_compstride, 
-          T *dV, const int v_elstride, const int v_compstride, 
+    const T *dU, const int estrdU, const int cstrdU, 
+          T *dV, const int estrdV, const int cstrdV, 
     const int dim_id )
 {
     const int elem_id = blockIdx.x;
@@ -40,8 +40,8 @@ magma_grad_generic_kernel(
     int pre, post;
     
     // advance to the respective element in the batch
-    dU += (elem_id * u_elstride) + (comp_id * u_compstride);
-    dV += (elem_id * v_elstride) + (comp_id * v_compstride);
+    dU += (elem_id * estrdU) + (comp_id * cstrdU);
+    dV += (elem_id * estrdV) + (comp_id * cstrdV);
 
     T* sTinterp = (T*)shared_data;
     T* sTgrad = sTinterp + P * Q;
@@ -63,8 +63,8 @@ static magma_int_t
 magma_grad_generic_kernel_driver( 
     magma_int_t dim, magma_int_t ncomp, 
     const T* dinterp1d, const T *dgrad1d, magma_trans_t transT,
-    const T *dU, magma_int_t u_elstride, const int u_compstride, 
-          T *dV, magma_int_t v_elstride, const int v_compstride, 
+    const T *dU, magma_int_t estrdU, const int cstrdU, 
+          T *dV, magma_int_t estrdV, const int cstrdV, 
     magma_int_t dim_id, magma_int_t nelem, magma_queue_t queue)
 {
     magma_device_t device;
@@ -101,8 +101,8 @@ magma_grad_generic_kernel_driver(
         dim3 grid(nelem, ncomp, 1);
         magma_grad_generic_kernel<T, P, Q><<<grid, threads, shmem, magma_queue_get_cuda_stream(queue)>>>
         ( dim, ncomp, pre, tmp_size, dinterp1d, dgrad1d, transT, 
-          dU, u_elstride, u_compstride, 
-          dV, v_elstride, v_compstride, 
+          dU, estrdU, cstrdU, 
+          dV, estrdV, cstrdV, 
           dim_id );
         return (cudaPeekAtLastError() == cudaSuccess) ? 0 : 1;
     } 
@@ -115,8 +115,8 @@ magma_grad_generic_q(
     magma_int_t Q, 
     magma_int_t dim, magma_int_t ncomp, 
     const CeedScalar* dinterp1d, const CeedScalar *dgrad1d, magma_trans_t transT,
-    const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
-          CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
+    const CeedScalar *dU, magma_int_t estrdU, magma_int_t cstrdU, 
+          CeedScalar *dV, magma_int_t estrdV, magma_int_t cstrdV, 
     magma_int_t dim_id, magma_int_t nelem, 
     magma_queue_t queue)
 {
@@ -124,43 +124,43 @@ magma_grad_generic_q(
     switch(Q){
         case  1: 
           launch_failed = magma_grad_generic_kernel_driver<CeedScalar, P, 1>
-          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  2: 
           launch_failed = magma_grad_generic_kernel_driver<CeedScalar, P, 2>
-          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  3: 
           launch_failed = magma_grad_generic_kernel_driver<CeedScalar, P, 3>
-          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  4: 
           launch_failed = magma_grad_generic_kernel_driver<CeedScalar, P, 4>
-          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  5: 
           launch_failed = magma_grad_generic_kernel_driver<CeedScalar, P, 5>
-          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  6: 
           launch_failed = magma_grad_generic_kernel_driver<CeedScalar, P, 6>
-          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  7: 
           launch_failed = magma_grad_generic_kernel_driver<CeedScalar, P, 7>
-          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  8: 
           launch_failed = magma_grad_generic_kernel_driver<CeedScalar, P, 8>
-          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  9: 
           launch_failed = magma_grad_generic_kernel_driver<CeedScalar, P, 9>
-          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case 10: 
           launch_failed = magma_grad_generic_kernel_driver<CeedScalar, P,10>
-          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          ( dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         default: launch_failed = 1;
     }
@@ -173,8 +173,8 @@ magma_grad_generic_q_p(
     magma_int_t P, magma_int_t Q, 
     magma_int_t dim, magma_int_t ncomp, 
     const CeedScalar* dinterp1d, const CeedScalar *dgrad1d, magma_trans_t transT,
-    const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, 
-          CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, 
+    const CeedScalar *dU, magma_int_t estrdU, magma_int_t cstrdU, 
+          CeedScalar *dV, magma_int_t estrdV, magma_int_t cstrdV, 
     magma_int_t dim_id, magma_int_t nelem, 
     magma_queue_t queue)
 {
@@ -182,43 +182,43 @@ magma_grad_generic_q_p(
     switch(P){
         case  1: 
           launch_failed = magma_grad_generic_q< 1>
-          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  2: 
           launch_failed = magma_grad_generic_q< 2>
-          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  3: 
           launch_failed = magma_grad_generic_q< 3>
-          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  4: 
           launch_failed = magma_grad_generic_q< 4>
-          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  5: 
           launch_failed = magma_grad_generic_q< 5>
-          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  6: 
           launch_failed = magma_grad_generic_q< 6>
-          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  7: 
           launch_failed = magma_grad_generic_q< 7>
-          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  8: 
           launch_failed = magma_grad_generic_q< 8>
-          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case  9: 
           launch_failed = magma_grad_generic_q< 9>
-          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         case 10: 
           launch_failed = magma_grad_generic_q<10>
-          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, dim_id, nelem, queue); 
+          (Q, dim, ncomp, dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, dim_id, nelem, queue); 
           break;
         default: launch_failed = 1;
     }
@@ -231,8 +231,8 @@ magma_grad_generic(
     magma_int_t P, magma_int_t Q, 
     magma_int_t dim, magma_int_t ncomp, 
     const CeedScalar* dinterp1d, const CeedScalar *dgrad1d, CeedTransposeMode tmode,
-    const CeedScalar *dU, magma_int_t u_elstride, magma_int_t u_compstride, magma_int_t u_dimstride, 
-          CeedScalar *dV, magma_int_t v_elstride, magma_int_t v_compstride, magma_int_t v_dimstride, 
+    const CeedScalar *dU, magma_int_t estrdU, magma_int_t cstrdU, magma_int_t u_dimstride, 
+          CeedScalar *dV, magma_int_t estrdV, magma_int_t cstrdV, magma_int_t v_dimstride, 
     magma_int_t nelem, magma_queue_t queue)
 {    
     magma_int_t launch_failed = 0;
@@ -242,8 +242,8 @@ magma_grad_generic(
         launch_failed = magma_grad_generic_q_p(
                 P, Q, dim, ncomp, 
                 dinterp1d, dgrad1d, transT, 
-                dU + dim_ctr * u_dimstride, u_elstride, u_compstride, 
-                dV + dim_ctr * v_dimstride, v_elstride, v_compstride, 
+                dU + dim_ctr * u_dimstride, estrdU, cstrdU, 
+                dV + dim_ctr * v_dimstride, estrdV, cstrdV, 
                 dim_ctr, nelem, queue ); 
         if (launch_failed != 0) break;
     }
