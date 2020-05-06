@@ -439,7 +439,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
 
 // *****************************************************************************
 // This QFunction implements the boundary integral of
-//    the advection equation in 2d.
+//    the advection equation in 3D.
 
 // *****************************************************************************
 CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
@@ -448,7 +448,7 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*qdata) = in[1];
+                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
@@ -466,16 +466,23 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
                                      q[3][i] / rho
                                     };
     const CeedScalar E          =    q[4][i];
-    // -- Interp-to-Interp qdata
-    const CeedScalar wdetJ      =    qdata[i];
+    // -- Interp-to-Interp qdataSur
+    const CeedScalar wdetJb      =  qdataSur[0][i];
+    const CeedScalar norm[3]     = {qdataSur[1][i],
+                                    qdataSur[2][i],
+                                    qdataSur[3][i]
+                                   };
+    // u_n = normal velocity
+    const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1] + norm[2]*u[2];
     // The boundary value for the floating flux
-    // TODO: Add flux as an input
-    const CeedScalar Eu = E * sqrt(u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);
     // No Change in density or momentum
     for (CeedInt j=0; j<4; j++) {
       v[j][i] = 0;
     }
-    v[4][i] = (1-strong_form) * wdetJ * Eu;
+    v[4][i] = (1-strong_form) *wdetJb *E *u_n;
+
+    // TODO: implement assigned fluxes
+
   } // End Quadrature Point Loop
 
   return 0;
