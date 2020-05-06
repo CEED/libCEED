@@ -20,9 +20,10 @@
 // Get Kernel Index
 //------------------------------------------------------------------------------
 int CeedGetXsmmInd_NonTensor(CeedInt add, CeedInt P, CeedInt Q, CeedInt B,
-                             CeedInt C, CeedInt J) {
-  return (C == 8 ? 1:0)*4*2 + (add ? 1:0)*4 +
+                             CeedInt C, CeedInt J, CeedInt *ind) {
+  *ind = (C == 8 ? 1:0)*4*2 + (add ? 1:0)*4 +
          (B == P ? (J == Q ? 0:1) : (B == Q ? 2:3));
+  return 0;
 }
 
 //------------------------------------------------------------------------------
@@ -69,12 +70,12 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
 
   // Get kernel index
   if (impl->tensorbasis) {
-    CeedInt key = ((B*impl->indScale + C)*impl->indScale + J)*10 +
-                  2*(tmode == CEED_TRANSPOSE) + add;
+    CeedHashIJKLMKey key = {B, C, J, tmode, add};
     khint_t k = kh_get(m32, impl->lookup, key);
-    ind = kh_value(impl->lookup, k);
+    CeedHashGetValue(impl->lookup, k, ind);
   } else {
-    ind = CeedGetXsmmInd_NonTensor(add, impl->P, impl->Q, B, C, J);
+    ierr = CeedGetXsmmInd_NonTensor(add, impl->P, impl->Q, B, C, J, &ind);
+    CeedChk(ierr);
   }
 
   // Run kernel or fallback to default implementation
@@ -127,9 +128,6 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
     ierr = CeedCalloc(impl->numkernels, &impl->kernels); CeedChk(ierr);
     // Setup indices hash table
     CeedInt ind = 0;
-    impl->indScale = 10;
-    while ((impl->P > impl->Q ? impl->P : impl->Q)/impl->indScale > 0)
-      impl->indScale *= 10;
     impl->lookup = kh_init(m32);
     // Build all required kernels
     for (CeedInt nelem = 1; nelem <= 8; nelem+=7)
@@ -142,10 +140,9 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
                       J = grad ? impl->Q : (tmode ? impl->P : impl->Q),
                       C = nelem*CeedIntPow(J, dim);
               // Add key, ind pair to hash table
-              CeedInt key = ((B*impl->indScale + C)*impl->indScale + J)*10 +
-                            2*(tmode) + add;
+              CeedHashIJKLMKey key = {B, C, J, tmode, add};
               khint_t k = kh_get(m32, impl->lookup, key);
-              CeedInt keyMissing = (k == kh_end(impl->lookup));
+              bool keyMissing = CeedHashMissing(impl->lookup, k);
               // Skip if duplicate key
               if (keyMissing) {
                 CeedInt absent;
@@ -178,8 +175,9 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
             const int flags = LIBXSMM_GEMM_FLAGS('N', tmode ? 'T' : 'N');
             CeedInt B = tmode ? grad*impl->Q : impl->P,
                     J = tmode ? impl->P : grad*impl->Q;
-            int ind = CeedGetXsmmInd_NonTensor(add, impl->P, impl->Q, B, nelem,
-                                               J);
+            CeedInt ind;
+            ierr = CeedGetXsmmInd_NonTensor(add, impl->P, impl->Q, B, nelem,
+                                            J, &ind); CeedChk(ierr);
             CeedScalar alpha = 1.0, beta = 1.0;
             if (!add) beta = 0.0;
             impl->kernels[ind] = libxsmm_dmmdispatch(nelem, J, B,
