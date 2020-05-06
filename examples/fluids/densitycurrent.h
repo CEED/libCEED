@@ -767,5 +767,166 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
+// This QFunction implements the boundary integral of
+//    the Navier-Stokes equations in 3D.
+
+// *****************************************************************************
+CEED_QFUNCTION(DC_Sur)(void *ctx, CeedInt Q,
+                            const CeedScalar *const *in,
+                            CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3],
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  // *INDENT-ON*
+  // Context
+  const CeedScalar *context = (const CeedScalar *)ctx;
+  const CeedScalar lambda = context[0];
+  const CeedScalar mu     = context[1];
+  const CeedScalar k      = context[2];
+  const CeedScalar cv     = context[3];
+  const CeedScalar cp     = context[4];
+  const CeedScalar g      = context[5];
+  const CeedScalar gamma  = cp / cv;
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // -- Interp in
+    const CeedScalar rho        =    q[0][i];
+    const CeedScalar u[3]       =   {q[1][i] / rho,
+                                     q[2][i] / rho,
+                                     q[3][i] / rho
+                                    };
+    const CeedScalar E          =    q[4][i];
+    // -- Grad in
+    const CeedScalar drho[3]    =  {dq[0][0][i],
+                                    dq[1][0][i],
+                                    dq[2][0][i]
+                                   };
+    // *INDENT-OFF*
+    const CeedScalar dU[3][3]   = {{dq[0][1][i],
+                                    dq[1][1][i],
+                                    dq[2][1][i]},
+                                   {dq[0][2][i],
+                                    dq[1][2][i],
+                                    dq[2][2][i]},
+                                   {dq[0][3][i],
+                                    dq[1][3][i],
+                                    dq[2][3][i]}
+                                  };
+    // *INDENT-ON*
+    const CeedScalar dE[3]      =  {dq[0][4][i],
+                                    dq[1][4][i],
+                                    dq[2][4][i]
+                                   };
+    // -- Interp-to-Interp qdataSur
+    const CeedScalar wdetJb      =  qdataSur[0][i];
+    const CeedScalar norm[3]     = {qdataSur[1][i],
+                                    qdataSur[2][i],
+                                    qdataSur[3][i]
+                                   };
+    // Assumed 3D elements for computing dXdx
+    const CeedScalar dXdx[3][3] = {{qdata[1][i],
+                                    qdata[2][i],
+                                    qdata[3][i]},
+                                   {qdata[4][i],
+                                    qdata[5][i],
+                                    qdata[6][i]},
+                                   {qdata[7][i],
+                                    qdata[8][i],
+                                    qdata[9][i]}
+                                  };
+    // -- Grad-to-Grad qdata
+    // dU/dx
+    CeedScalar du[3][3] = {{0}};
+    CeedScalar drhodx[3] = {0};
+    CeedScalar dEdx[3] = {0};
+    for (int j=0; j<3; j++) {
+      for (int k=0; k<3; k++) {
+        du[j][k] = (dU[j][k] - drho[k]*u[j]) / rho;
+        drhodx[j] += drho[k] * dXdx[k][j];
+        dEdx[j] += dE[k] * dXdx[k][j];
+      }
+    }
+    CeedScalar dudx[3][3] = {{0}};
+    for (int j=0; j<3; j++)
+      for (int k=0; k<3; k++)
+        for (int l=0; l<3; l++)
+          dudx[j][k] += du[j][l] * dXdx[l][k];
+
+    // u_n = normal velocity
+    const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1] + norm[2]*u[2];
+    // ke = kinetic energy
+    const CeedScalar ke = (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2.;
+    // P = pressure
+    const CeedScalar P  = (E - ke * rho - rho*g*x[2][i]) * (gamma - 1.);
+
+    // -- gradT
+    const CeedScalar gradT[3]  = {(dEdx[0]/rho - E*drhodx[0]/(rho*rho) - /* *NOPAD* */
+                                   (u[0]*dudx[0][0] + u[1]*dudx[1][0] + u[2]*dudx[2][0]))/cv,
+                                  (dEdx[1]/rho - E*drhodx[1]/(rho*rho) - /* *NOPAD* */
+                                   (u[0]*dudx[0][1] + u[1]*dudx[1][1] + u[2]*dudx[2][1]))/cv,
+                                  (dEdx[2]/rho - E*drhodx[2]/(rho*rho) - /* *NOPAD* */
+                                   (u[0]*dudx[0][2] + u[1]*dudx[1][2] + u[2]*dudx[2][2]) - g)/cv
+                                 };
+    // -- Fuvisc
+    // ---- Symmetric 3x3 matrix
+    const CeedScalar Fu[6]     =  {mu*(dudx[0][0] * (2 + lambda) + /* *NOPAD* */
+                                       lambda * (dudx[1][1] + dudx[2][2])),
+                                   mu*(dudx[0][1] + dudx[1][0]), /* *NOPAD* */
+                                   mu*(dudx[0][2] + dudx[2][0]), /* *NOPAD* */
+                                   mu*(dudx[1][1] * (2 + lambda) + /* *NOPAD* */
+                                       lambda * (dudx[0][0] + dudx[2][2])),
+                                   mu*(dudx[1][2] + dudx[2][1]), /* *NOPAD* */
+                                   mu*(dudx[2][2] * (2 + lambda) + /* *NOPAD* */
+                                       lambda * (dudx[0][0] + dudx[1][1]))
+                                  };
+    // -- Fevisc
+    const CeedScalar Fe[3]     =  {u[0]*Fu[0] + u[1]*Fu[1] + u[2]*Fu[2] + /* *NOPAD* */
+                                   k*gradT[0], /* *NOPAD* */
+                                   u[0]*Fu[1] + u[1]*Fu[3] + u[2]*Fu[4] + /* *NOPAD* */
+                                   k*gradT[1], /* *NOPAD* */
+                                   u[0]*Fu[2] + u[1]*Fu[4] + u[2]*Fu[5] + /* *NOPAD* */
+                                   k*gradT[2] /* *NOPAD* */
+                                  };
+
+    // The boundary value for the floating flux
+    // Zero v so all future terms can safely sum into it
+    for (int j=0; j<5; j++) v[j][i] = 0;
+    // -- Density
+    // ---- u rho
+    v[0][i]  -= wdetJb * rho * u_n;
+    // -- Momentum
+    // ---- rho (u x u) + P I3
+    for (int j=0; j<3; j++)
+      v[j+1][i]  -= wdetJb *(rho*u_n*u[j] + norm[j]*P);
+    // ---- Fuvisc
+    v[1][i] +=  wdetJb *(Fu[0]*norm[0] + Fu[1]*norm[1] + Fu[2]*norm[2]);
+    v[2][i] +=  wdetJb *(Fu[1]*norm[0] + Fu[3]*norm[1] + Fu[4]*norm[2]);
+    v[3][i] +=  wdetJb *(Fu[2]*norm[0] + Fu[4]*norm[1] + Fu[5]*norm[2]);
+    // -- Total Energy Density
+    // ---- (E + P) u
+    v[4][i] -= wdetJb *u_n *(E + P);
+    // ---- Fevisc
+    for (int j=0; j<3; j++)
+    v[4][i] += wdetJb *Fe[j] *norm[j];
+
+    // TODO: implement assigned fluxes
+
+  } // End Quadrature Point Loop
+
+  return 0;
+}
+
+// *****************************************************************************
 
 #endif // densitycurrent_h
