@@ -103,17 +103,47 @@ magma_weight_generic_q(
     magma_int_t batchCount, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
-    switch(Q){
-        case  1: launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 1>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
-        case  2: launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 2>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
-        case  3: launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 3>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
-        case  4: launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 4>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
-        case  5: launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 5>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
-        case  6: launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 6>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
-        case  7: launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 7>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
-        case  8: launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 8>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
-        case  9: launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 9>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
-        case 10: launch_failed = magma_weight_generic_kernel_driver<CeedScalar,10>(dim, dqweight1d, dV, vstride, batchCount, queue); break;
+    switch (Q) {
+        case  1: 
+          launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 1>
+          (dim, dqweight1d, dV, vstride, batchCount, queue); 
+          break;
+        case  2: 
+          launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 2>
+          (dim, dqweight1d, dV, vstride, batchCount, queue); 
+          break;
+        case  3: 
+          launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 3>
+          (dim, dqweight1d, dV, vstride, batchCount, queue); 
+          break;
+        case  4: 
+          launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 4>
+          (dim, dqweight1d, dV, vstride, batchCount, queue); 
+          break;
+        case  5: 
+          launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 5>
+          (dim, dqweight1d, dV, vstride, batchCount, queue); 
+          break;
+        case  6: 
+          launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 6>
+          (dim, dqweight1d, dV, vstride, batchCount, queue); 
+          break;
+        case  7: 
+          launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 7>
+          (dim, dqweight1d, dV, vstride, batchCount, queue); 
+          break;
+        case  8: 
+          launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 8>
+          (dim, dqweight1d, dV, vstride, batchCount, queue); 
+          break;
+        case  9: 
+          launch_failed = magma_weight_generic_kernel_driver<CeedScalar, 9>
+          (dim, dqweight1d, dV, vstride, batchCount, queue); 
+          break;
+        case 10: 
+          launch_failed = magma_weight_generic_kernel_driver<CeedScalar,10>
+          (dim, dqweight1d, dV, vstride, batchCount, queue); 
+          break;
         default: launch_failed = 1;
     }
     return launch_failed;

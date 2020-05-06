@@ -101,7 +101,7 @@ magma_weight_1d_q(
         magma_int_t nelem, magma_int_t maxthreads, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
-    switch(Q) {
+    switch (Q) {
         case  1: 
           launch_failed = magma_weight_1d_kernel_driver<CeedScalar, 1>
           (dqweight1d, dV, v_stride, nelem, maxthreads, queue); 

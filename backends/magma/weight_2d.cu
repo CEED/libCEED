@@ -102,17 +102,47 @@ magma_weight_2d_q(
         magma_int_t nelem, magma_int_t maxthreads, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
-    switch(Q) {
-        case  1: launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 1>(dqweight1d, dV, v_stride, nelem, maxthreads, queue); break;
-        case  2: launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 2>(dqweight1d, dV, v_stride, nelem, maxthreads, queue); break;
-        case  3: launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 3>(dqweight1d, dV, v_stride, nelem, maxthreads, queue); break;
-        case  4: launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 4>(dqweight1d, dV, v_stride, nelem, maxthreads, queue); break;
-        case  5: launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 5>(dqweight1d, dV, v_stride, nelem, maxthreads, queue); break;
-        case  6: launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 6>(dqweight1d, dV, v_stride, nelem, maxthreads, queue); break;
-        case  7: launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 7>(dqweight1d, dV, v_stride, nelem, maxthreads, queue); break;
-        case  8: launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 8>(dqweight1d, dV, v_stride, nelem, maxthreads, queue); break;
-        case  9: launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 9>(dqweight1d, dV, v_stride, nelem, maxthreads, queue); break;
-        case 10: launch_failed = magma_weight_2d_kernel_driver<CeedScalar,10>(dqweight1d, dV, v_stride, nelem, maxthreads, queue); break;
+    switch (Q) {
+        case  1: 
+          launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 1>
+          (dqweight1d, dV, v_stride, nelem, maxthreads, queue); 
+          break;
+        case  2: 
+          launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 2>
+          (dqweight1d, dV, v_stride, nelem, maxthreads, queue); 
+          break;
+        case  3: 
+          launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 3>
+          (dqweight1d, dV, v_stride, nelem, maxthreads, queue); 
+          break;
+        case  4: 
+          launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 4>
+          (dqweight1d, dV, v_stride, nelem, maxthreads, queue); 
+          break;
+        case  5: 
+          launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 5>
+          (dqweight1d, dV, v_stride, nelem, maxthreads, queue); 
+          break;
+        case  6: 
+          launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 6>
+          (dqweight1d, dV, v_stride, nelem, maxthreads, queue); 
+          break;
+        case  7: 
+          launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 7>
+          (dqweight1d, dV, v_stride, nelem, maxthreads, queue); 
+          break;
+        case  8: 
+          launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 8>
+          (dqweight1d, dV, v_stride, nelem, maxthreads, queue); 
+          break;
+        case  9: 
+          launch_failed = magma_weight_2d_kernel_driver<CeedScalar, 9>
+          (dqweight1d, dV, v_stride, nelem, maxthreads, queue); 
+          break;
+        case 10: 
+          launch_failed = magma_weight_2d_kernel_driver<CeedScalar,10>
+          (dqweight1d, dV, v_stride, nelem, maxthreads, queue); 
+          break;
         default: launch_failed = 1;
     }
     return launch_failed;

@@ -123,10 +123,19 @@ magma_interp_3d_ncomp(
                 magma_int_t nelem, magma_int_t maxthreads, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
-    switch(ncomp) {
-        case 1: launch_failed = magma_interp_3d_kernel_driver<CeedScalar,1,P,Q>(dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case 2: launch_failed = magma_interp_3d_kernel_driver<CeedScalar,2,P,Q>(dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case 3: launch_failed = magma_interp_3d_kernel_driver<CeedScalar,3,P,Q>(dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
+    switch (ncomp) {
+        case 1: 
+          launch_failed = magma_interp_3d_kernel_driver<CeedScalar,1,P,Q>
+          (dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case 2: 
+          launch_failed = magma_interp_3d_kernel_driver<CeedScalar,2,P,Q>
+          (dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case 3: 
+          launch_failed = magma_interp_3d_kernel_driver<CeedScalar,3,P,Q>
+          (dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
         default: launch_failed = 1;
     }
     return launch_failed;
@@ -143,17 +152,47 @@ magma_interp_1d_ncomp_q(
                 magma_int_t nelem, magma_int_t maxthreads, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
-    switch(Q) {
-        case  1: launch_failed = magma_interp_3d_ncomp<P, 1>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  2: launch_failed = magma_interp_3d_ncomp<P, 2>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  3: launch_failed = magma_interp_3d_ncomp<P, 3>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  4: launch_failed = magma_interp_3d_ncomp<P, 4>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  5: launch_failed = magma_interp_3d_ncomp<P, 5>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  6: launch_failed = magma_interp_3d_ncomp<P, 6>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  7: launch_failed = magma_interp_3d_ncomp<P, 7>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  8: launch_failed = magma_interp_3d_ncomp<P, 8>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  9: launch_failed = magma_interp_3d_ncomp<P, 9>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case 10: launch_failed = magma_interp_3d_ncomp<P,10>(ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
+    switch (Q) {
+        case  1: 
+          launch_failed = magma_interp_3d_ncomp<P, 1>
+          (ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  2: 
+          launch_failed = magma_interp_3d_ncomp<P, 2>
+          (ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  3: 
+          launch_failed = magma_interp_3d_ncomp<P, 3>
+          (ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  4: 
+          launch_failed = magma_interp_3d_ncomp<P, 4>
+          (ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  5: 
+          launch_failed = magma_interp_3d_ncomp<P, 5>
+          (ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  6: 
+          launch_failed = magma_interp_3d_ncomp<P, 6>
+          (ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  7: 
+          launch_failed = magma_interp_3d_ncomp<P, 7>
+          (ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  8: 
+          launch_failed = magma_interp_3d_ncomp<P, 8>
+          (ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  9: 
+          launch_failed = magma_interp_3d_ncomp<P, 9>
+          (ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case 10: 
+          launch_failed = magma_interp_3d_ncomp<P,10>
+          (ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
         default: launch_failed = 1;
     }
     return launch_failed;
@@ -170,17 +209,47 @@ magma_interp_3d_ncomp_q_p(
                 magma_int_t nelem, magma_int_t maxthreads, magma_queue_t queue)
 {
     magma_int_t launch_failed = 0;
-    switch(P) {
-        case  1: launch_failed = magma_interp_1d_ncomp_q< 1>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  2: launch_failed = magma_interp_1d_ncomp_q< 2>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  3: launch_failed = magma_interp_1d_ncomp_q< 3>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  4: launch_failed = magma_interp_1d_ncomp_q< 4>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  5: launch_failed = magma_interp_1d_ncomp_q< 5>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  6: launch_failed = magma_interp_1d_ncomp_q< 6>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  7: launch_failed = magma_interp_1d_ncomp_q< 7>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  8: launch_failed = magma_interp_1d_ncomp_q< 8>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case  9: launch_failed = magma_interp_1d_ncomp_q< 9>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
-        case 10: launch_failed = magma_interp_1d_ncomp_q<10>(Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); break;
+    switch (P) {
+        case  1: 
+          launch_failed = magma_interp_1d_ncomp_q< 1>
+          (Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  2: 
+          launch_failed = magma_interp_1d_ncomp_q< 2>
+          (Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  3: 
+          launch_failed = magma_interp_1d_ncomp_q< 3>
+          (Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  4: 
+          launch_failed = magma_interp_1d_ncomp_q< 4>
+          (Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  5: 
+          launch_failed = magma_interp_1d_ncomp_q< 5>
+          (Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  6: 
+          launch_failed = magma_interp_1d_ncomp_q< 6>
+          (Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  7: 
+          launch_failed = magma_interp_1d_ncomp_q< 7>
+          (Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  8: 
+          launch_failed = magma_interp_1d_ncomp_q< 8>
+          (Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case  9: 
+          launch_failed = magma_interp_1d_ncomp_q< 9>
+          (Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
+        case 10: 
+          launch_failed = magma_interp_1d_ncomp_q<10>
+          (Q, ncomp, dT, transT, dU, u_elstride, u_compstride, dV, v_elstride, v_compstride, nelem, maxthreads, queue); 
+          break;
         default: launch_failed = 1;
     }
     return launch_failed;
