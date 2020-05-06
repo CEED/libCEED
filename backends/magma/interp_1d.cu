@@ -219,39 +219,39 @@ magma_interp_1d_ncomp_q_p(
           break;
         case  2: 
           launch_failed = magma_interp_1d_ncomp_q< 2>
-          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue; 
+          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue); 
           break;
         case  3: 
           launch_failed = magma_interp_1d_ncomp_q< 3>
-          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue; 
+          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue); 
           break;
         case  4: 
           launch_failed = magma_interp_1d_ncomp_q< 4>
-          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue; 
+          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue); 
           break;
         case  5: 
           launch_failed = magma_interp_1d_ncomp_q< 5>
-          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue; 
+          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue); 
           break;
         case  6: 
           launch_failed = magma_interp_1d_ncomp_q< 6>
-          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue; 
+          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue); 
           break;
         case  7: 
           launch_failed = magma_interp_1d_ncomp_q< 7>
-          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue; 
+          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue); 
           break;
         case  8: 
           launch_failed = magma_interp_1d_ncomp_q< 8>
-          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue; 
+          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue); 
           break;
         case  9: 
           launch_failed = magma_interp_1d_ncomp_q< 9>
-          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue; 
+          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue); 
           break;
         case 10: 
           launch_failed = magma_interp_1d_ncomp_q<10>
-          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue; 
+          (Q, ncomp, dT, transT, dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem, maxthreads, queue); 
           break;
         default: launch_failed = 1;
     }
