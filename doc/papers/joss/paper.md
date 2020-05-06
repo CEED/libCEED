@@ -40,7 +40,7 @@ library that offers a purely algebraic interface for efficient operator evaluati
 and matrix-free preconditioning ingredients. libCEED supports run-time selection of
 implementations tuned for a variety of computational architectures, including CPUs and
 GPUs, and can be unobtrusively integrated in new and legacy software to provide portable
-performance. We introduce ``libCEED``’s conceptual framework and interface, and show examples of its integration with other packages, including PETSc and MFEM.
+performance. We introduce ``libCEED``’s conceptual framework and interface, and show examples of its integration with other packages, such as PETSc, MFEM, and Nek5000.
 
 In finite element formulations, the weak form of a PDE is evaluated on a subdomain
 (element), and the local results are composed into a larger system of equations that
