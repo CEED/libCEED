@@ -17,12 +17,17 @@
 #include <ceed-backend.h>
 #include <libxsmm.h>
 #include <string.h>
+#include <khash.h>
 #include <math.h>
+
+// Instantiate khash structs and methods
+KHASH_MAP_INIT_INT(m32, char)
 
 typedef struct {
   libxsmm_dmmfunction *kernels;
   bool tensorbasis;
-  CeedInt P, Q, dim, nelem, numkernels;
+  CeedInt P, Q, dim, nelem, numkernels, indScale;
+  khash_t(m32) *lookup;
 } CeedTensorContract_Xsmm;
 
 CEED_INTERN int CeedTensorContractCreate_Xsmm(CeedBasis basis,
