@@ -128,7 +128,7 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
                 CeedScalar alpha = 1.0, beta = 1.0;
                 if (!add) beta = 0.0;
                 libxsmm_dmmfunction kernel = libxsmm_dmmdispatch(
-                  C, J, B, NULL, NULL, NULL, &alpha, &beta, &flags, NULL);
+                                               C, J, B, NULL, NULL, NULL, &alpha, &beta, &flags, NULL);
                 if (!kernel)
                   // LCOV_EXCL_START
                   return CeedError(ceed, 1, "LIBXSMM kernel failed to build.");
@@ -159,7 +159,7 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
               CeedScalar alpha = 1.0, beta = 1.0;
               if (!add) beta = 0.0;
               libxsmm_dmmfunction kernel = libxsmm_dmmdispatch(
-                C, J, B, NULL, NULL, NULL, &alpha, &beta, &flags, NULL);
+                                             C, J, B, NULL, NULL, NULL, &alpha, &beta, &flags, NULL);
               if (!kernel)
                 // LCOV_EXCL_START
                 return CeedError(ceed, 1, "LIBXSMM kernel failed to build.");
