@@ -105,7 +105,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
                         nelem, data->basis_kernel_mode, data->maxthreads,
                         data->queue);
     if (ierr != 0) CeedError(ceed, 1,
-                              "MAGMA: launch failure detected for magma_interp");
+                               "MAGMA: launch failure detected for magma_interp");
   }
   break;
   case CEED_EVAL_GRAD: {
@@ -164,7 +164,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
                        nelem, data->basis_kernel_mode, data->maxthreads,
                        data->queue);
     if (ierr != 0) CeedError(ceed, 1,
-                              "MAGMA: launch failure detected for magma_grad");
+                               "MAGMA: launch failure detected for magma_grad");
   }
   break;
   case CEED_EVAL_WEIGHT: {
@@ -178,7 +178,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     ierr = magma_weight(Q, dim, impl->dqweight1d, v, eldofssize, nelem,
                         data->basis_kernel_mode, data->maxthreads, data->queue);
     if (ierr != 0) CeedError(ceed, 1,
-                              "MAGMA: launch failure detected for magma_weight");
+                               "MAGMA: launch failure detected for magma_weight");
   }
   break;
   // LCOV_EXCL_START
