@@ -21,7 +21,7 @@
 #include <math.h>
 
 // Instantiate khash structs and methods
-CeedHashIJKLMInit(m32, char)
+CeedHashIJKLMInit(m32, libxsmm_dmmfunction)
 
 typedef struct {
   libxsmm_dmmfunction *kernels;

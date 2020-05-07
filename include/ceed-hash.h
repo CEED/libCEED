@@ -36,69 +36,6 @@
 #define kfree(P) free(P)
 #endif
 
-/* --- Useful extensions to khash --- */
-
-#if !defined(kh_reset)
-/*! @function
-  @abstract     Reset a hash table to initial state.
-  @param  name  Name of the hash table [symbol]
-  @param  h     Pointer to the hash table [khash_t(name)*]
- */
-#define kh_reset(name, h) {                                     \
-        if (h) {                                                \
-                kfree((h)->keys); kfree((h)->flags);            \
-                kfree((h)->vals);                               \
-                memset((h), 0x00, sizeof(*(h)));                \
-        } }
-#endif /*kh_reset*/
-
-#if !defined(kh_foreach)
-/*! @function
-  @abstract     Iterate over the entries in the hash table
-  @param  h     Pointer to the hash table [khash_t(name)*]
-  @param  kvar  Variable to which key will be assigned
-  @param  vvar  Variable to which value will be assigned
-  @param  code  Block of code to execute
- */
-#define kh_foreach(h, kvar, vvar, code) { khint_t __i;          \
-        for (__i = kh_begin(h); __i != kh_end(h); ++__i) {      \
-                if (!kh_exist(h,__i)) continue;                 \
-                (kvar) = kh_key(h,__i);                         \
-                (vvar) = kh_val(h,__i);                         \
-                code;                                           \
-        } }
-#endif /*kh_foreach*/
-
-#if !defined(kh_foreach_key)
-/*! @function
-  @abstract     Iterate over the keys in the hash table
-  @param  h     Pointer to the hash table [khash_t(name)*]
-  @param  kvar  Variable to which key will be assigned
-  @param  code  Block of code to execute
- */
-#define kh_foreach_key(h, kvar, code) { khint_t __i;            \
-        for (__i = kh_begin(h); __i != kh_end(h); ++__i) {      \
-                if (!kh_exist(h,__i)) continue;                 \
-                (kvar) = kh_key(h,__i);                         \
-                code;                                           \
-        } }
-#endif /*kh_foreach_key*/
-
-#if !defined(kh_foreach_value)
-/*! @function
-  @abstract     Iterate over the values in the hash table
-  @param  h     Pointer to the hash table [khash_t(name)*]
-  @param  vvar  Variable to which value will be assigned
-  @param  code  Block of code to execute
- */
-#define kh_foreach_value(h, vvar, code) { khint_t __i;          \
-        for (__i = kh_begin(h); __i != kh_end(h); ++__i) {      \
-                if (!kh_exist(h,__i)) continue;                 \
-                (vvar) = kh_val(h,__i);                         \
-                code;                                           \
-        } }
-#endif /*kh_foreach_value*/
-
 #define CeedHashGetValue(ht,k,v) ((v) = kh_value((ht),(k)))
 
 #define CeedHashMissing(ht,k) ((k) == kh_end((ht)))
@@ -130,8 +67,6 @@ static inline CeedHash_t CeedHashCombine(CeedHash_t seed, CeedHash_t hash) {
   return seed ^ (hash + (seed << 6) + (seed >> 2));
 }
 
-#define CeedHashEqual(a,b) ((a) == (b))
-
 typedef struct _CeedHashIJKLMKey { CeedInt i, j, k, l, m; } CeedHashIJKLMKey;
 #define CeedHashIJKLMKeyHash(key) \
   CeedHashCombine( \
@@ -144,6 +79,6 @@ typedef struct _CeedHashIJKLMKey { CeedInt i, j, k, l, m; } CeedHashIJKLMKey;
    ((k1).m==(k2).m) : 0 : 0 : 0 : 0)
 
 #define CeedHashIJKLMInit(name, value)										\
-	KHASH_INIT(name,CeedHashIJKLMKey,char,1,CeedHashIJKLMKeyHash,CeedHashIJKLMKeyEqual)
+	KHASH_INIT(name,CeedHashIJKLMKey,value,1,CeedHashIJKLMKeyHash,CeedHashIJKLMKeyEqual)
 
 #endif // _ceed_hash_h
