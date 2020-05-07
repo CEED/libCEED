@@ -12,7 +12,6 @@ Welcome to libCEED's User Manual!
    api/index
    libCEEDdev
    Contributing <CONTRIBUTING>
-   Citing <CITING>
    Code of Conduct <CODE_OF_CONDUCT>
    releasenotes
    references

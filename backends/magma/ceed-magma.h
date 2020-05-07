@@ -248,6 +248,9 @@ CEED_INTERN {
       const CeedCopyMode cmode,
       const CeedInt *offsets,
       const CeedElemRestriction res);
+
+  int CeedOperatorCreate_Magma(CeedOperator op);
+
   #ifdef __cplusplus
 }
   #endif

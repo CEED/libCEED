@@ -544,7 +544,7 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     PetscInt ncompq = 5;
     ierr = PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, ncompq,
                                  PETSC_FALSE, degree, PETSC_DECIDE,
-                                 &fe);
+                                 &fe); CHKERRQ(ierr);
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm,NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
@@ -612,7 +612,7 @@ int main(int argc, char **argv) {
   CeedInt numP, numQ;
   CeedVector xcorners, qdata, q0ceed;
   CeedBasis basisx, basisxc, basisq;
-  CeedElemRestriction restrictx, restrictxcoord, restrictq, restrictqdi;
+  CeedElemRestriction restrictx, restrictq, restrictqdi;
   CeedQFunction qf_setup, qf_ics, qf_rhs, qf_ifunction;
   CeedOperator op_setup, op_ics;
   CeedScalar Rd;
@@ -977,10 +977,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreateStrided(ceed, localNelem, numQdim,
                                    qdatasize, qdatasize*localNelem*numQdim,
                                    CEED_STRIDES_BACKEND, &restrictqdi);
-  CeedElemRestrictionCreateStrided(ceed, localNelem, PetscPowInt(numP, dim),
-                                   ncompx,
-                                   ncompx*localNelem*PetscPowInt(numP, dim),
-                                   CEED_STRIDES_BACKEND, &restrictxcoord);
 
   ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
   ierr = CreateVectorFromPetscVec(ceed, Xloc, &xcorners); CHKERRQ(ierr);
@@ -1270,7 +1266,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&restrictq);
   CeedElemRestrictionDestroy(&restrictx);
   CeedElemRestrictionDestroy(&restrictqdi);
-  CeedElemRestrictionDestroy(&restrictxcoord);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_ics);
   CeedQFunctionDestroy(&qf_rhs);
