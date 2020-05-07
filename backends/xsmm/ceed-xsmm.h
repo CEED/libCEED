@@ -24,9 +24,8 @@
 CeedHashIJKLMInit(m32, libxsmm_dmmfunction)
 
 typedef struct {
-  libxsmm_dmmfunction *kernels;
   bool tensorbasis;
-  CeedInt P, Q, dim, nelem, numkernels;
+  CeedInt P, Q, dim;
   khash_t(m32) *lookup;
 } CeedTensorContract_Xsmm;
 

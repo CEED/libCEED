@@ -79,14 +79,12 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
 static int CeedTensorContractDestroy_Xsmm(CeedTensorContract contract) {
   int ierr;
   CeedTensorContract_Xsmm *impl;
+  libxsmm_dmmfunction kernel;
+
   ierr = CeedTensorContractGetData(contract, (void *)&impl); CeedChk(ierr);
   // Free kernels
-  // Note: invalid reads in LIBXSMM when freeing from 0 -> numkernels - 1
-  for (CeedInt i = impl->numkernels - 1; i >= 0; i--)
-    if (impl->kernels[i])
-      libxsmm_release_kernel(&impl->kernels[i]);
+  kh_foreach_value(impl->lookup, kernel, libxsmm_release_kernel(&kernel));
   kh_destroy(m32, impl->lookup);
-  ierr = CeedFree(&impl->kernels); CeedChk(ierr);
   ierr = CeedFree(&impl); CeedChk(ierr);
   return 0;
 }
@@ -103,7 +101,6 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
 
   // Setup kernels hash table
-  CeedInt ind = 0;
   impl->lookup = kh_init(m32);
 
   // Set up pointers to kernels
@@ -112,9 +109,6 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
     ierr = CeedBasisGetNumNodes1D(basis, &impl->P); CeedChk(ierr);
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &impl->Q); CeedChk(ierr);
     ierr = CeedBasisGetDimension(basis, &impl->dim); CeedChk(ierr);
-    // Set up kernel pointer array
-    impl->numkernels = 2*2*4*impl->dim;
-    ierr = CeedCalloc(impl->numkernels, &impl->kernels); CeedChk(ierr);
     // Build all required kernels
     for (CeedInt nelem = 1; nelem <= 8; nelem+=7)
       for (CeedInt add = 0; add <= 1; add++)
@@ -125,36 +119,28 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
               CeedInt B = grad ? impl->Q : (tmode ? impl->Q : impl->P),
                       J = grad ? impl->Q : (tmode ? impl->P : impl->Q),
                       C = nelem*CeedIntPow(J, dim);
-              // Add key, ind pair to hash table
+              // Add key, kernel pair to hash table
               CeedHashIJKLMKey key = {B, C, J, tmode, add};
-              khint_t k = kh_get(m32, impl->lookup, key);
-              bool keyMissing = CeedHashMissing(impl->lookup, k);
-              // Skip if duplicate key
-              if (keyMissing) {
+              int new_item;
+              khint_t k = kh_put(m32, impl->lookup, key, &new_item);
+              if (new_item) {
                 // Build kernel
                 CeedScalar alpha = 1.0, beta = 1.0;
                 if (!add) beta = 0.0;
-                impl->kernels[ind] = libxsmm_dmmdispatch(C, J, B,
-                                     NULL, NULL, NULL, &alpha,
-                                     &beta, &flags, NULL);
-                if (!impl->kernels[ind])
+                libxsmm_dmmfunction kernel = libxsmm_dmmdispatch(
+                  C, J, B, NULL, NULL, NULL, &alpha, &beta, &flags, NULL);
+                if (!kernel)
                   // LCOV_EXCL_START
                   return CeedError(ceed, 1, "LIBXSMM kernel failed to build.");
                 // LCOV_EXCL_STOP
                 // Add kernel to hash table
-                CeedInt absent;
-                k = kh_put(m32, impl->lookup, key, &absent);
-                kh_value(impl->lookup, k) = impl->kernels[ind];
+                kh_value(impl->lookup, k) = kernel;
               }
-              ind++;
             }
   } else {
     ierr = CeedBasisGetNumNodes(basis, &impl->P); CeedChk(ierr);
     ierr = CeedBasisGetNumQuadraturePoints(basis, &impl->Q); CeedChk(ierr);
     ierr = CeedBasisGetDimension(basis, &impl->dim); CeedChk(ierr);
-    // Set up kernel pointer array
-    impl->numkernels = 4*2*2;
-    ierr = CeedCalloc(impl->numkernels, &impl->kernels); CeedChk(ierr);
     // Build all required kernels
     for (CeedInt nelem = 1; nelem <= 8; nelem+=7)
       for (CeedInt add = 0; add <= 1; add++)
@@ -164,28 +150,23 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
             CeedInt B = tmode ? grad*impl->Q : impl->P,
                     J = tmode ? impl->P : grad*impl->Q,
                     C = nelem;
-            // Add key, ind pair to hash table
+            // Add key, kernel pair to hash table
             CeedHashIJKLMKey key = {B, C, J, tmode, add};
-            khint_t k = kh_get(m32, impl->lookup, key);
-            bool keyMissing = CeedHashMissing(impl->lookup, k);
-            // Skip if duplicate key
-            if (keyMissing) {
+            int new_item;
+            khint_t k = kh_put(m32, impl->lookup, key, &new_item);
+            if (new_item) {
               // Build kernel
               CeedScalar alpha = 1.0, beta = 1.0;
               if (!add) beta = 0.0;
-              impl->kernels[ind] = libxsmm_dmmdispatch(C, J, B,
-                                   NULL, NULL, NULL, &alpha,
-                                   &beta, &flags, NULL);
-              if (!impl->kernels[ind])
+              libxsmm_dmmfunction kernel = libxsmm_dmmdispatch(
+                C, J, B, NULL, NULL, NULL, &alpha, &beta, &flags, NULL);
+              if (!kernel)
                 // LCOV_EXCL_START
                 return CeedError(ceed, 1, "LIBXSMM kernel failed to build.");
               // LCOV_EXCL_STOP
               // Add kernel to hash table
-              CeedInt absent;
-              k = kh_put(m32, impl->lookup, key, &absent);
-              kh_value(impl->lookup, k) = impl->kernels[ind];
+              kh_value(impl->lookup, k) = kernel;
             }
-            ind++;
           }
   }
   ierr = CeedTensorContractSetData(contract, (void *)&impl); CeedChk(ierr);
