@@ -86,7 +86,7 @@
       parameter(nx=3)
       parameter(ny=2)
       parameter(ndofs=(nx*2+1)*(ny*2+1))
-      parameter(nqpts=nelem*q*q)
+      parameter(nqpts=nelem*q)
       integer indx(nelem*p*p)
       real*8 arrx(d*ndofs),aa(nqpts),uu(ndofs),vv(ndofs),atrue(ndofs)
       integer*8 xoffset,aoffset,uoffset,voffset

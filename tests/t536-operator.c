@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   CeedInt nelem = 12, dim = 2, P = 6, Q = 4;
   CeedInt nx = 3, ny = 2;
   CeedInt row, col, offset;
-  CeedInt ndofs = (nx*2+1)*(ny*2+1), nqpts = nelem*Q*Q;
+  CeedInt ndofs = (nx*2+1)*(ny*2+1), nqpts = nelem*Q;
   CeedInt indx[nelem*P*P];
   CeedScalar x[dim*ndofs], assembledTrue[ndofs];
   CeedScalar qref[dim*Q], qweight[Q];
