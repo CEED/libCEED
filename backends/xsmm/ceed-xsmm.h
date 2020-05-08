@@ -15,14 +15,18 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-backend.h>
+#include <ceed-hash.h>
 #include <libxsmm.h>
 #include <string.h>
 #include <math.h>
 
+// Instantiate khash structs and methods
+CeedHashIJKLMInit(m32, libxsmm_dmmfunction)
+
 typedef struct {
-  libxsmm_dmmfunction *kernels;
   bool tensorbasis;
-  CeedInt P, Q, dim, nelem, numkernels;
+  CeedInt P, Q, dim;
+  khash_t(m32) *lookup;
 } CeedTensorContract_Xsmm;
 
 CEED_INTERN int CeedTensorContractCreate_Xsmm(CeedBasis basis,
