@@ -577,6 +577,11 @@ int main(int argc, char **argv) {
   // Performance logging
   ierr = PetscLogStagePop();
 
+  // View solution
+  if (appCtx->viewFinalSoln && !appCtx->viewSoln) {
+    ierr = ViewSolution(comm, U, increment - 1, 1.0); CHKERRQ(ierr);
+  }
+
   // ---------------------------------------------------------------------------
   // Output summary
   // ---------------------------------------------------------------------------
