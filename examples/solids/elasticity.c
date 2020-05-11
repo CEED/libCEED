@@ -555,8 +555,7 @@ int main(int argc, char **argv) {
     ierr = SNESSolve(snes, F, U); CHKERRQ(ierr);
 
     // -- View solution
-    if (appCtx->viewSoln ||
-        (increment == appCtx->numIncrements && appCtx->viewFinalSoln)) {
+    if (appCtx->viewSoln) {
       ierr = ViewSolution(comm, U, increment, loadIncrement); CHKERRQ(ierr);
     }
 
@@ -577,6 +576,11 @@ int main(int argc, char **argv) {
 
   // Performance logging
   ierr = PetscLogStagePop();
+
+  // View solution
+  if (appCtx->viewFinalSoln && !appCtx->viewSoln) {
+    ierr = ViewSolution(comm, U, increment - 1, 1.0); CHKERRQ(ierr);
+  }
 
   // ---------------------------------------------------------------------------
   // Output summary
