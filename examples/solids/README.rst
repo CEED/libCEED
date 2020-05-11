@@ -83,6 +83,10 @@ The command line options just shown are the minimum requirements to run the mini
      - CEED resource specifier for multigrid fine grid
      - :code:`/cpu/self`
 
+   * - :code:`-qextra`
+     - Number of extra quadrature points
+     - :code:`0`
+
    * - :code:`-test`
      - Run in test mode
      -
@@ -105,6 +109,10 @@ The command line options just shown are the minimum requirements to run the mini
 
    * - :code:`-view_soln`
      - Output solution at each load increment for viewing
+     -
+
+   * - :code:`-view_final_soln`
+     - Output solution at final load increment for viewing
      -
 
    * - :code:`-snes_view`

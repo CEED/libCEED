@@ -555,7 +555,8 @@ int main(int argc, char **argv) {
     ierr = SNESSolve(snes, F, U); CHKERRQ(ierr);
 
     // -- View solution
-    if (appCtx->viewSoln) {
+    if (appCtx->viewSoln ||
+        (increment == appCtx->numIncrements && appCtx->viewFinalSoln)) {
       ierr = ViewSolution(comm, U, increment, loadIncrement); CHKERRQ(ierr);
     }
 
