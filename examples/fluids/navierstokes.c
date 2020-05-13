@@ -50,6 +50,13 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include "advection2d.h"
 #include "densitycurrent.h"
 
+// MemType Options
+static const char *const memTypes[] = {
+  "host",
+  "device",
+  "memType", "CEED_MEM_", NULL
+};
+
 // Problem Options
 typedef enum {
   NS_DENSITY_CURRENT = 0,
@@ -667,7 +674,7 @@ int main(int argc, char **argv) {
   User user;
   Units units;
   char ceedresource[4096] = "/cpu/self";
-  PetscInt cStart, cEnd, localNelem, lnodes, steps;
+  PetscInt cStart, cEnd, localNelem, lnodes, gnodes, steps;
   const PetscInt ncompq = 5;
   PetscMPIInt rank;
   PetscScalar ftime;
@@ -680,6 +687,7 @@ int main(int argc, char **argv) {
   CeedQFunction qf_setup, qf_ics, qf_rhs, qf_ifunction;
   CeedOperator op_setup, op_ics;
   CeedScalar Rd;
+  CeedMemType memtyperequested;
   PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
               kgpersquaredms, Joulepercubicm;
   problemType problemChoice;
@@ -694,6 +702,15 @@ int main(int argc, char **argv) {
     .slips = {{5, 6}, {3, 4}, {1, 2}}
   };
   double start, cpu_time_used;
+  // Check PETSc CUDA support
+  PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
+  // *INDENT-OFF*
+  #ifdef PETSC_HAVE_CUDA
+  petschavecuda = PETSC_TRUE;
+  #else
+  petschavecuda = PETSC_FALSE;
+  #endif
+  // *INDENT-ON*
 
   // Create the libCEED contexts
   PetscScalar meter      = 1e-2;     // 1 meter in scaled length units
@@ -883,6 +900,12 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
                             sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
+  memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
+  ierr = PetscOptionsEnum("-memtype",
+                          "CEED MemType requested", NULL,
+                          memTypes, (PetscEnum)memtyperequested,
+                          (PetscEnum *)&memtyperequested, &setmemtyperequest);
+  CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Define derived units
@@ -967,13 +990,6 @@ int main(int argc, char **argv) {
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = SetUpDM(dm, problem, degree, &bc, &ctxSetup); CHKERRQ(ierr);
 
-  // Print FEM space information
-  if (testChoice == TEST_NONE) {
-    ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Degree of FEM space: %D\n",
-                       degree); CHKERRQ(ierr);
-  }
-
   // Refine DM for high-order viz
   dmviz = NULL;
   interpviz = NULL;
@@ -1013,33 +1029,68 @@ int main(int argc, char **argv) {
   ierr = VecGetSize(Qloc, &lnodes); CHKERRQ(ierr);
   lnodes /= ncompq;
 
-  {
-    // Print grid information
+  // Initialize CEED
+  CeedInit(ceedresource, &ceed);
+  // Set memtype
+  CeedMemType memtypebackend;
+  CeedGetPreferredMemType(ceed, &memtypebackend);
+  // Check memtype compatibility
+  if (!setmemtyperequest)
+    memtyperequested = memtypebackend;
+  else if (!petschavecuda && memtyperequested == CEED_MEM_DEVICE)
+    SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_SUP_SYS,
+             "PETSc was not built with CUDA. "
+             "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
+
+  // Set number of 1D nodes and quadrature points
+  numP = degree + 1;
+  numQ = numP + qextra;
+
+  // Print summary
+  if (testChoice == TEST_NONE) {
     CeedInt gdofs, odofs;
     int comm_size;
     char box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
     ierr = VecGetSize(Q, &gdofs); CHKERRQ(ierr);
     ierr = VecGetLocalSize(Q, &odofs); CHKERRQ(ierr);
+    gnodes = gdofs/ncompq;
     ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
     ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str,
                                  sizeof(box_faces_str), NULL); CHKERRQ(ierr);
-    if (testChoice == TEST_NONE) {
-      ierr = PetscPrintf(comm, "Global FEM dofs: %D (%D owned) on %d rank(s)\n",
-                         gdofs, odofs, comm_size); CHKERRQ(ierr);
-      ierr = PetscPrintf(comm, "Local FEM nodes: %D\n", lnodes); CHKERRQ(ierr);
-      ierr = PetscPrintf(comm, "dm_plex_box_faces: %s\n", box_faces_str);
-      CHKERRQ(ierr);
-    }
+    const char *usedresource;
+    CeedGetResource(ceed, &usedresource);
+
+    ierr = PetscPrintf(comm,
+                       "\n-- libCEED Navier-Stokes solver + PETSc --\n"
+                       "  rank(s):                             : %d\n"
+                       "  PETSc:\n"
+                       "    dm_plex_box_faces:                 : %s\n"
+                       "  libCEED:\n"
+                       "    libCEED Backend                    : %s\n"
+                       "    libCEED Backend MemType            : %s\n"
+                       "    libCEED User Requested MemType     : %s\n"
+                       "  Mesh:\n"
+                       "    Number of 1D Basis Nodes (P)       : %d\n"
+                       "    Number of 1D Quadrature Points (Q) : %d\n"
+                       "    Global DoFs                        : %D\n"
+                       "    Owned DoFs                         : %D\n"
+                       "    DoFs per node                      : %D\n"
+                       "    Global nodes                       : %D\n"
+                       "    Owned nodes                        : %D\n",
+                       comm_size, box_faces_str, usedresource,
+                       CeedMemTypes[memtypebackend],
+                       (setmemtyperequest) ?
+                       CeedMemTypes[memtyperequested] : "none",
+                       numP, numQ, gdofs, odofs, ncompq, gnodes, lnodes);
+    CHKERRQ(ierr);
   }
 
   // Set up global mass vector
   ierr = VecDuplicate(Q, &user->M); CHKERRQ(ierr);
 
-  // Set up CEED
+  // Set up libCEED
   // CEED Bases
   CeedInit(ceedresource, &ceed);
-  numP = degree + 1;
-  numQ = numP + qextra;
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompq, numP, numQ, CEED_GAUSS,
                                   &basisq);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numQ, CEED_GAUSS,
