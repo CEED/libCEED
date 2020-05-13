@@ -125,6 +125,7 @@ struct AppCtx_private {
 };
 
 // Problem specific data
+// *INDENT-OFF*
 typedef struct {
   CeedInt           qdatasize;
   CeedQFunctionUser setupgeo, apply, jacob, energy, diagnostic;
@@ -132,6 +133,7 @@ typedef struct {
                     *diagnosticfname;
   CeedQuadMode      qmode;
 } problemData;
+// *INDENT-ON*
 
 // Data specific to each problem option
 extern problemData problemOptions[3];

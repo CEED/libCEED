@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
     ierr = PetscSectionSetComponentName(section, 0, 0, "CondensedPressure");
     ierr = PetscSectionSetComponentName(section, 0, 1, "StrainEnergyDensity");
     CHKERRQ(ierr);
-  }  
+  }
 
   // ---------------------------------------------------------------------------
   // Setup solution and work vectors

@@ -306,7 +306,8 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   // -- Geometric data vector
   CeedVectorCreate(ceed, qdatasize*nelem*nqpts, &data[fineLevel]->qdata);
   // -- Collocated geometric data vector
-  CeedVectorCreate(ceed, qdatasize*nelem*P*P*P, &data[fineLevel]->qdataDiagnostic);
+  CeedVectorCreate(ceed, qdatasize*nelem*P*P*P,
+                   &data[fineLevel]->qdataDiagnostic);
   // -- State gradient vector
   if (problemChoice != ELAS_LIN)
     CeedVectorCreate(ceed, dim*ncompu*nelem*nqpts, &data[fineLevel]->gradu);
