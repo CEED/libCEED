@@ -162,7 +162,7 @@ PetscErrorCode ViewSolution(MPI_Comm comm, Vec U, PetscInt increment,
   ierr = PetscSNPrintf(outputFilename, sizeof outputFilename,
                        "solution-%03D.vtu", increment); CHKERRQ(ierr);
 
-  // Increment senquence
+  // Increment sequence
   ierr = VecGetDM(U, &dm); CHKERRQ(ierr);
   ierr = DMSetOutputSequenceNumber(dm, increment, loadIncrement); CHKERRQ(ierr);
 

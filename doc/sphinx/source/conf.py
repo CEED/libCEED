@@ -39,7 +39,7 @@ import subprocess
 # ones.
 extensions = [
     'breathe',
-    # 'hoverxref.extension',  # still in beta; not rendering well on RTD
+    'hoverxref.extension',
     'recommonmark',
     'sphinx_markdown_tables',
     'sphinx_rtd_theme',
@@ -262,7 +262,7 @@ sys.path.append(breathe.__path__)
 breathe_projects = {"libCEED": "../../../xml"}
 breathe_default_project = "libCEED"
 breathe_build_directory = "../build/breathe"
-#breathe_domain_by_extension = {"c": "c", "h": "c", "cpp": "cpp", "hpp": "cpp"}
+breathe_domain_by_extension = {"c": "c", "h": "c", "cpp": "cpp", "hpp": "cpp"}
 
 # Run Doxygen if building on Read The Docs
 rootdir = os.path.join(os.path.dirname(__file__),

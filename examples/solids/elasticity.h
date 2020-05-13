@@ -109,10 +109,12 @@ struct AppCtx_private {
   char          meshFile[PETSC_MAX_PATH_LEN];         // exodusII mesh file
   PetscBool     testMode;
   PetscBool     viewSoln;
+  PetscBool     viewFinalSoln;
   problemType   problemChoice;
   forcingType   forcingChoice;
   multigridType multigridChoice;
   PetscInt      degree;
+  PetscInt      qextra;
   PetscInt      numLevels;
   PetscInt      *levelDegrees;
   PetscInt      numIncrements;                        // Number of steps
@@ -219,8 +221,7 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
 PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data);
 
 // Get libCEED restriction data from DMPlex
-PetscErrorCode CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode,
-                                     CeedInt P, CeedInt ncomp,
+PetscErrorCode CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
                                      CeedElemRestriction *Erestrict, DM dm);
 
 // Set up libCEED for a given degree

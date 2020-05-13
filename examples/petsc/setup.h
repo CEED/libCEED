@@ -432,9 +432,8 @@ static PetscErrorCode CeedDataDestroy(CeedInt i, CeedData data) {
 }
 
 // Get CEED restriction data from DMPlex
-static int CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode, CeedInt P,
-                                 CeedInt ncomp, CeedElemRestriction *Erestrict,
-                                 DM dm) {
+static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
+                                 CeedElemRestriction *Erestrict, DM dm) {
   PetscInt ierr;
   PetscInt c, cStart, cEnd, nelem, nnodes, *erestrict, eoffset;
   PetscSection section;
@@ -461,7 +460,7 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode, CeedInt P,
       }
       // Essential boundary conditions are encoded as -(loc+1)
       PetscInt loc = indices[i] >= 0 ? indices[i] : -(indices[i] + 1);
-      erestrict[eoffset++] = loc/ncomp;
+      erestrict[eoffset++] = loc;
     }
     ierr = DMPlexRestoreClosureIndices(dm, section, section, c, &numindices,
                                        &indices, NULL); CHKERRQ(ierr);
@@ -472,9 +471,8 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInterlaceMode imode, CeedInt P,
   ierr = VecGetLocalSize(Uloc, &nnodes); CHKERRQ(ierr);
 
   ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, imode, nelem, P*P*P, nnodes/ncomp, ncomp,
-                            CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
-                            Erestrict);
+  CeedElemRestrictionCreate(ceed, nelem, P*P*P, ncomp, 1, nnodes, CEED_MEM_HOST,
+                            CEED_COPY_VALUES, erestrict, Erestrict);
   ierr = PetscFree(erestrict); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -488,7 +486,6 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
                                 CeedVector *target) {
   int ierr;
   DM dmcoord;
-  PetscSection section;
   Vec coords;
   const PetscScalar *coordArray;
   CeedBasis basisx, basisu;
@@ -512,21 +509,23 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
-  CreateRestrictionPlex(ceed, CEED_INTERLACED, 2, ncompx, &Erestrictx, dmcoord);
-  CreateRestrictionPlex(ceed, CEED_INTERLACED, P, ncompu, &Erestrictu, dm);
+  ierr = CreateRestrictionPlex(ceed, 2, ncompx, &Erestrictx, dmcoord);
+  CHKERRQ(ierr);
+  ierr = CreateRestrictionPlex(ceed, P, ncompu, &Erestrictu, dm); CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
 
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, ncompu,
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, ncompu,
+                                   ncompu*nelem*Q*Q*Q,
                                    CEED_STRIDES_BACKEND, &Erestrictui);
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, nelem*Q*Q*Q, qdatasize,
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, qdatasize,
+                                   qdatasize*nelem*Q*Q*Q,
                                    CEED_STRIDES_BACKEND, &Erestrictqdi);
 
   // Element coordinates
   ierr = DMGetCoordinatesLocal(dm, &coords); CHKERRQ(ierr);
   ierr = VecGetArrayRead(coords, &coordArray); CHKERRQ(ierr);
-  ierr = DMGetSection(dmcoord, &section); CHKERRQ(ierr);
 
   CeedElemRestrictionCreateVector(Erestrictx, &xcoord, NULL);
   CeedVectorSetArray(xcoord, CEED_MEM_HOST, CEED_COPY_VALUES,

@@ -33,7 +33,7 @@ static struct CeedVector_private ceed_vector_none;
 ///   CeedOperatorApply().
 const CeedVector CEED_VECTOR_ACTIVE = &ceed_vector_active;
 
-/// Indicate that no vector is applicable (i.e., for CEED_EVAL_WEIGHTS).
+/// Indicate that no vector is applicable (i.e., for @ref CEED_EVAL_WEIGHTS).
 const CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
 
 /// @}
@@ -171,7 +171,7 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   @param vec   CeedVector
   @param mtype Memory type of the array being passed
   @param cmode Copy mode for the array
-  @param array Array to be used, or NULL with CEED_COPY_VALUES to have the
+  @param array Array to be used, or NULL with @ref CEED_COPY_VALUES to have the
                  library allocate
 
   @return An error code: 0 - success, otherwise - failure
@@ -394,7 +394,7 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
           of a parallel vector or a CeedVector with duplicated or hanging nodes.
 
   @param vec           CeedVector to retrieve maximum value
-  @param type          Norm type CEED_NORM_1, CEED_NORM_2, or CEED_NORM_MAX
+  @param type          Norm type @ref CEED_NORM_1, @ref CEED_NORM_2, or @ref CEED_NORM_MAX
   @param[out] norm     Variable to store norm value
 
   @return An error code: 0 - success, otherwise - failure

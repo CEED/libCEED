@@ -31,7 +31,7 @@
       call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,a,aoffset,err)
 
       strides=[1,2,2]
-      call ceedelemrestrictioncreatestrided(ceed,ne,2,2*ne,1,strides,r,err)
+      call ceedelemrestrictioncreatestrided(ceed,ne,2,1,2*ne,strides,r,err)
 
       call ceedvectorcreate(ceed,2*ne,y,err);
       call ceedvectorsetvalue(y,0.d0,err);

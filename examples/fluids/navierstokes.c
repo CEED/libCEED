@@ -593,7 +593,7 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     PetscInt ncompq = 5;
     ierr = PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, ncompq,
                                  PETSC_FALSE, degree, PETSC_DECIDE,
-                                 &fe);
+                                 &fe); CHKERRQ(ierr);
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm,NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);

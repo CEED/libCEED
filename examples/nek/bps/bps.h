@@ -41,14 +41,13 @@ CEED_QFUNCTION(masssetupf)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                       J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
                       J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
     qdata[i] = det * w[i];
-    rhs[i] = qdata[i] * w[i] *
-             sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
+    rhs[i] = qdata[i] * sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
   } // End of Quadrature Point Loop
   return 0;
 }
 
-CEED_QFUNCTION int massf(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                         CeedScalar *const *out) {
+CEED_QFUNCTION(massf)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                      CeedScalar *const *out) {
   const CeedScalar *u = in[0];
   const CeedScalar *qdata = in[1];
   CeedScalar *v = out[0];
@@ -111,8 +110,8 @@ CEED_QFUNCTION(diffsetupf)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   return 0;
 }
 
-CEED_QFUNCTION int diffusionf(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                              CeedScalar *const *out) {
+CEED_QFUNCTION(diffusionf)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                           CeedScalar *const *out) {
   const CeedScalar *ug = in[0];
   const CeedScalar *qdata = in[1];
   CeedScalar *vg = out[0];

@@ -35,8 +35,8 @@ typedef struct {
 } CeedBasisNonTensor_Magma;
 
 typedef struct {
-  CeedInt *indices;
-  CeedInt *dindices;
+  CeedInt *offsets;
+  CeedInt *doffsets;
   int  own_;
   int down_;            // cover a case where we own Device memory
 } CeedElemRestriction_Magma;
@@ -83,39 +83,21 @@ CEED_INTERN {
                     magma_int_t Q,
                     double *dqweight, double *dv);
 
-  void magma_readDofs(const magma_int_t NCOMP,
-                      const magma_int_t nnodes,
-                      const magma_int_t esize,
-                      const magma_int_t nelem, magma_int_t *indices,
-                      const double *du, double *dv);
+  void magma_readDofsOffset(const magma_int_t NCOMP,
+                            const magma_int_t compstride,
+                            const magma_int_t esize, const magma_int_t nelem,
+                            magma_int_t *offsets, const double *du, double *dv);
 
-  void magma_readDofsTranspose(const magma_int_t NCOMP,
-                               const magma_int_t nnodes,
-                               const magma_int_t esize,
-                               const magma_int_t nelem, magma_int_t *indices,
-                               const double *du, double *dv);
-
-  void magma_readDofsStrided(const magma_int_t NCOMP,
-                             const magma_int_t nnodes,
-                             const magma_int_t esize,
+  void magma_readDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                              const magma_int_t nelem, magma_int_t *strides,
                              const double *du, double *dv);
 
-  void magma_writeDofs(const magma_int_t NCOMP,
-                       const magma_int_t nnodes,
-                       const magma_int_t esize,
-                       const magma_int_t nelem, magma_int_t *indices,
-                       const double *du, double *dv);
+  void magma_writeDofsOffset(const magma_int_t NCOMP,
+                             const magma_int_t compstride,
+                             const magma_int_t esize, const magma_int_t nelem,
+                             magma_int_t *offsets,const double *du, double *dv);
 
-  void magma_writeDofsTranspose(const magma_int_t NCOMP,
-                                const magma_int_t nnodes,
-                                const magma_int_t esize,
-                                const magma_int_t nelem, magma_int_t *indices,
-                                const double *du, double *dv);
-
-  void magma_writeDofsStrided(const magma_int_t NCOMP,
-                              const magma_int_t nnodes,
-                              const magma_int_t esize,
+  void magma_writeDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                               const magma_int_t nelem, magma_int_t *strides,
                               const double *du, double *dv);
 
@@ -140,13 +122,16 @@ CEED_INTERN {
 
   int CeedElemRestrictionCreate_Magma(CeedMemType mtype,
                                       CeedCopyMode cmode,
-                                      const CeedInt *indices,
+                                      const CeedInt *offsets,
                                       CeedElemRestriction r);
 
   int CeedElemRestrictionCreateBlocked_Magma(const CeedMemType mtype,
       const CeedCopyMode cmode,
-      const CeedInt *indices,
+      const CeedInt *offsets,
       const CeedElemRestriction res);
+
+  int CeedOperatorCreate_Magma(CeedOperator op);
+
   #ifdef __cplusplus
 }
   #endif

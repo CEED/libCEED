@@ -1,14 +1,13 @@
 /// @file
-/// Test creation and view of an element restriction
-/// \test Test creation and view of an element restriction
-#include <ceed.h>
+/// Test element restriction state counter
+/// \test Test element restriction state counter
+#include <ceed-backend.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;
-
   CeedInt ne = 3;
   CeedInt ind[2*ne];
-
+  const CeedInt *offsets;
   CeedElemRestriction r;
 
   CeedInit(argv[1], &ceed);
@@ -20,9 +19,12 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, ne, 2, 1, 1, ne+1, CEED_MEM_HOST,
                             CEED_USE_POINTER, ind, &r);
 
-  CeedElemRestrictionView(r, stdout);
+  // Get offsets and fail to restore them
+  CeedElemRestrictionGetOffsets(r, CEED_MEM_HOST, &offsets);
 
   CeedElemRestrictionDestroy(&r);
+  // LCOV_EXCL_START
   CeedDestroy(&ceed);
+  // LCOV_EXCL_STOP
   return 0;
 }

@@ -27,14 +27,14 @@
 /// @{
 
 /**
-  @brief Permute and pad indices for a blocked restriction
+  @brief Permute and pad offsets for a blocked restriction
 
-  @param indices    Array of shape [@a nelem, @a elemsize]. Row i holds the
-                      ordered list of the indices (into the input CeedVector)
+  @param offsets    Array of shape [@a nelem, @a elemsize]. Row i holds the
+                      ordered list of the offsets (into the input CeedVector)
                       for the unknowns corresponding to element i, where
-                      0 <= i < @a nelem. All indices must be in the range
-                      [0, @a nnodes).
-  @param blkindices Array of permuted and padded indices of
+                      0 <= i < @a nelem. All offsets must be in the range
+                      [0, @a lsize - 1].
+  @param blkoffsets Array of permuted and padded offsets of
                       shape [@a nblk, @a elemsize, @a blksize].
   @param nblk       Number of blocks
   @param nelem      Number of elements
@@ -45,14 +45,14 @@
 
   @ref Utility
 **/
-int CeedPermutePadIndices(const CeedInt *indices, CeedInt *blkindices,
+int CeedPermutePadOffsets(const CeedInt *offsets, CeedInt *blkoffsets,
                           CeedInt nblk, CeedInt nelem, CeedInt blksize,
                           CeedInt elemsize) {
   for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
     for (int j = 0; j < blksize; j++)
       for (int k = 0; k < elemsize; k++)
-        blkindices[e*elemsize + k*blksize + j]
-          = indices[CeedIntMin(e+j,nelem-1)*elemsize + k];
+        blkoffsets[e*elemsize + k*blksize + j]
+          = offsets[CeedIntMin(e+j,nelem-1)*elemsize + k];
   return 0;
 }
 
@@ -99,6 +99,66 @@ int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
 
   for (int i = 0; i<3; i++)
     (*strides)[i] = rstr->strides[i];
+  return 0;
+}
+
+/**
+  @brief Get read-only access to a CeedElemRestriction offsets array by memtype
+
+  @param rstr         CeedElemRestriction to retrieve offsets
+  @param mtype        Memory type on which to access the array.  If the backend
+                        uses a different memory type, this will perform a copy
+                        (possibly cached).
+  @param[out] offsets Array on memory type mtype
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mtype,
+                                  const CeedInt **offsets) {
+  int ierr;
+
+  if (!rstr->GetOffsets)
+    // LCOV_EXCL_START
+    return CeedError(rstr->ceed, 1, "Backend does not support GetOffsets");
+  // LCOV_EXCL_STOP
+
+  ierr = rstr->GetOffsets(rstr, mtype, offsets); CeedChk(ierr);
+  rstr->numreaders++;
+  return 0;
+}
+
+/**
+  @brief Restore an offsets array obtained using CeedElemRestrictionGetOffsets()
+
+  @param rstr    CeedElemRestriction to restore
+  @param offsets Array of offset data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr,
+                                      const CeedInt **offsets) {
+  *offsets = NULL;
+  rstr->numreaders--;
+  return 0;
+}
+
+/**
+  @brief Get the strided status of a CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] status      Variable to store strided status, 1 if strided else 0
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetStridedStatus(CeedElemRestriction rstr,
+                                        bool *status) {
+  *status = rstr->strides ? 1 : 0;
   return 0;
 }
 
@@ -170,7 +230,7 @@ static struct CeedElemRestriction_private ceed_elemrestriction_none;
 /// Indicate that the stride is determined by the backend
 const CeedInt CEED_STRIDES_BACKEND[3] = {};
 
-/// Indicate that no ElemRestriction is provided by the user
+/// Indicate that no CeedElemRestriction is provided by the user
 const CeedElemRestriction CEED_ELEMRESTRICTION_NONE =
   &ceed_elemrestriction_none;
 
@@ -178,28 +238,22 @@ const CeedElemRestriction CEED_ELEMRESTRICTION_NONE =
   @brief Create a CeedElemRestriction
 
   @param ceed       A Ceed object where the CeedElemRestriction will be created
-  @param imode      Ordering of the ncomp components, i.e. it specifies
-                      the ordering of the components of the L-vector used
-                      by this CeedElemRestriction. CEED_NONINTERLACED indicates
-                      the component is the outermost index and CEED_INTERLACED
-                      indicates the component is the innermost index in
-                      ordering of the L-vector.
-  @param nelem      Number of elements described in the @a indices array
+  @param nelem      Number of elements described in the @a offsets array
   @param elemsize   Size (number of "nodes") per element
-  @param nnodes     The number of nodes in the L-vector. The input CeedVector
-                      to which the restriction will be applied is of size
-                      @a nnodes * @a ncomp. This size may include data
-                      used by other CeedElemRestriction objects describing
-                      different types of elements.
   @param ncomp      Number of field components per interpolation node
                       (1 for scalar fields)
-  @param mtype      Memory type of the @a indices array, see CeedMemType
-  @param cmode      Copy mode for the @a indices array, see CeedCopyMode
-  @param indices    Array of shape [@a nelem, @a elemsize]. Row i holds the
-                      ordered list of the indices (into the input CeedVector)
+  @param compstride Stride between components for the same L-vector "node".
+                      Data for node i, component k can be found in the L-vector
+                      at index [offsets[i] + k*compstride].
+  @param lsize      The size of the L-vector. This vector may be larger than
+                      the elements and fields given by this restriction.
+  @param mtype      Memory type of the @a offsets array, see CeedMemType
+  @param cmode      Copy mode for the @a offsets array, see CeedCopyMode
+  @param offsets    Array of shape [@a nelem, @a elemsize]. Row i holds the
+                      ordered list of the offsets (into the input CeedVector)
                       for the unknowns corresponding to element i, where
-                      0 <= i < @a nelem. All indices must be in the range
-                      [0, @a nnodes - 1].
+                      0 <= i < @a nelem. All offsets must be in the range
+                      [0, @a lsize - 1].
   @param[out] rstr  Address of the variable where the newly created
                       CeedElemRestriction will be stored
 
@@ -207,10 +261,10 @@ const CeedElemRestriction CEED_ELEMRESTRICTION_NONE =
 
   @ref User
 **/
-int CeedElemRestrictionCreate(Ceed ceed, CeedInterlaceMode imode,
-                              CeedInt nelem, CeedInt elemsize, CeedInt nnodes,
-                              CeedInt ncomp, CeedMemType mtype,
-                              CeedCopyMode cmode, const CeedInt *indices,
+int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
+                              CeedInt ncomp, CeedInt compstride,
+                              CeedInt lsize, CeedMemType mtype,
+                              CeedCopyMode cmode, const CeedInt *offsets,
                               CeedElemRestriction *rstr) {
   int ierr;
 
@@ -224,9 +278,9 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInterlaceMode imode,
       return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreate");
     // LCOV_EXCL_STOP
 
-    ierr = CeedElemRestrictionCreate(delegate, imode, nelem, elemsize,
-                                     nnodes, ncomp, mtype, cmode,
-                                     indices, rstr); CeedChk(ierr);
+    ierr = CeedElemRestrictionCreate(delegate, nelem, elemsize, ncomp,
+                                     compstride, lsize, mtype, cmode,
+                                     offsets, rstr); CeedChk(ierr);
     return 0;
   }
 
@@ -234,14 +288,15 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInterlaceMode imode,
   (*rstr)->ceed = ceed;
   ceed->refcount++;
   (*rstr)->refcount = 1;
-  (*rstr)->imode = imode;
   (*rstr)->nelem = nelem;
   (*rstr)->elemsize = elemsize;
-  (*rstr)->nnodes = nnodes;
   (*rstr)->ncomp = ncomp;
+  (*rstr)->compstride = compstride;
+  (*rstr)->lsize = lsize;
   (*rstr)->nblk = nelem;
   (*rstr)->blksize = 1;
-  ierr = ceed->ElemRestrictionCreate(mtype, cmode, indices, *rstr); CeedChk(ierr);
+  ierr = ceed->ElemRestrictionCreate(mtype, cmode, offsets, *rstr);
+  CeedChk(ierr);
   return 0;
 }
 
@@ -251,13 +306,10 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInterlaceMode imode,
   @param ceed       A Ceed object where the CeedElemRestriction will be created
   @param nelem      Number of elements described by the restriction
   @param elemsize   Size (number of "nodes") per element
-  @param nnodes     The number of nodes in the L-vector. The input CeedVector
-                      to which the restriction will be applied is of size
-                      @a nnodes * @a ncomp. This size may include data
-                      used by other CeedElemRestriction objects describing
-                      different types of elements.
   @param ncomp      Number of field components per interpolation node
                       (1 for scalar fields)
+  @param lsize      The size of the L-vector. This vector may be larger than
+                      the elements and fields given by this restriction.
   @param strides    Array for strides between [nodes, components, elements].
                       The data for node i, component j, element k in the
                       L-vector is given by
@@ -270,7 +322,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInterlaceMode imode,
   @ref User
 **/
 int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt nelem, CeedInt elemsize,
-                                     CeedInt nnodes, CeedInt ncomp,
+                                     CeedInt ncomp, CeedInt lsize,
                                      const CeedInt strides[3],
                                      CeedElemRestriction *rstr) {
   int ierr;
@@ -285,8 +337,9 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt nelem, CeedInt elemsize,
       return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreate");
     // LCOV_EXCL_STOP
 
-    ierr = CeedElemRestrictionCreateStrided(delegate, nelem, elemsize, nnodes,
-                                            ncomp, strides, rstr); CeedChk(ierr);
+    ierr = CeedElemRestrictionCreateStrided(delegate, nelem, elemsize, ncomp,
+                                            lsize, strides, rstr);
+    CeedChk(ierr);
     return 0;
   }
 
@@ -296,8 +349,8 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   (*rstr)->refcount = 1;
   (*rstr)->nelem = nelem;
   (*rstr)->elemsize = elemsize;
-  (*rstr)->nnodes = nnodes;
   (*rstr)->ncomp = ncomp;
+  (*rstr)->lsize = lsize;
   (*rstr)->nblk = nelem;
   (*rstr)->blksize = 1;
   ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
@@ -313,29 +366,23 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   @brief Create a blocked CeedElemRestriction, typically only called by backends
 
   @param ceed       A Ceed object where the CeedElemRestriction will be created.
-  @param imode      Ordering of the ncomp components, i.e. it specifies
-                      the ordering of the components of the L-vector used
-                      by this CeedElemRestriction. CEED_NONINTERLACED indicates
-                      the component is the outermost index and CEED_INTERLACED
-                      indicates the component is the innermost index in
-                      ordering of the L-vector.
-  @param nelem      Number of elements described in the @a indices array.
+  @param nelem      Number of elements described in the @a offsets array.
   @param elemsize   Size (number of unknowns) per element
   @param blksize    Number of elements in a block
-  @param nnodes     The number of nodes in the L-vector. The input CeedVector
-                      to which the restriction will be applied is of size
-                      @a nnodes * @a ncomp. This size may include data
-                      used by other CeedElemRestriction objects describing
-                      different types of elements.
   @param ncomp      Number of field components per interpolation node
                       (1 for scalar fields)
-  @param mtype      Memory type of the @a indices array, see CeedMemType
-  @param cmode      Copy mode for the @a indices array, see CeedCopyMode
-  @param indices    Array of shape [@a nelem, @a elemsize]. Row i holds the
-                      ordered list of the indices (into the input CeedVector)
+  @param compstride Stride between components for the same L-vector "node".
+                      Data for node i, component k can be found in the L-vector
+                      at index [offsets[i] + k*compstride].
+  @param lsize      The size of the L-vector. This vector may be larger than
+                      the elements and fields given by this restriction.
+  @param mtype      Memory type of the @a offsets array, see CeedMemType
+  @param cmode      Copy mode for the @a offsets array, see CeedCopyMode
+  @param offsets    Array of shape [@a nelem, @a elemsize]. Row i holds the
+                      ordered list of the offsets (into the input CeedVector)
                       for the unknowns corresponding to element i, where
-                      0 <= i < @a nelem. All indices must be in the range
-                      [0, @a nnodes). The backend will permute and pad this
+                      0 <= i < @a nelem. All offsets must be in the range
+                      [0, @a lsize - 1]. The backend will permute and pad this
                       array to the desired ordering for the blocksize, which is
                       typically given by the backend. The default reordering is
                       to interlace elements.
@@ -346,14 +393,14 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
   @ref Backend
  **/
-int CeedElemRestrictionCreateBlocked(Ceed ceed,  CeedInterlaceMode imode,
-                                     CeedInt nelem, CeedInt elemsize,
-                                     CeedInt blksize, CeedInt nnodes,
-                                     CeedInt ncomp, CeedMemType mtype,
-                                     CeedCopyMode cmode, const CeedInt *indices,
+int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
+                                     CeedInt blksize, CeedInt ncomp,
+                                     CeedInt compstride, CeedInt lsize,
+                                     CeedMemType mtype, CeedCopyMode cmode,
+                                     const CeedInt *offsets,
                                      CeedElemRestriction *rstr) {
   int ierr;
-  CeedInt *blkindices;
+  CeedInt *blkoffsets;
   CeedInt nblk = (nelem / blksize) + !!(nelem % blksize);
 
   if (!ceed->ElemRestrictionCreateBlocked) {
@@ -367,34 +414,35 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed,  CeedInterlaceMode imode,
                        "ElemRestrictionCreateBlocked");
     // LCOV_EXCL_STOP
 
-    ierr = CeedElemRestrictionCreateBlocked(delegate, imode, nelem, elemsize,
-                                            blksize, nnodes, ncomp, mtype, cmode,
-                                            indices, rstr); CeedChk(ierr);
+    ierr = CeedElemRestrictionCreateBlocked(delegate, nelem, elemsize, blksize,
+                                            ncomp, compstride, lsize, mtype,
+                                            cmode, offsets, rstr);
+    CeedChk(ierr);
     return 0;
   }
 
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
 
-  ierr = CeedCalloc(nblk*blksize*elemsize, &blkindices); CeedChk(ierr);
-  ierr = CeedPermutePadIndices(indices, blkindices, nblk, nelem, blksize,
+  ierr = CeedCalloc(nblk*blksize*elemsize, &blkoffsets); CeedChk(ierr);
+  ierr = CeedPermutePadOffsets(offsets, blkoffsets, nblk, nelem, blksize,
                                elemsize);
   CeedChk(ierr);
 
   (*rstr)->ceed = ceed;
   ceed->refcount++;
   (*rstr)->refcount = 1;
-  (*rstr)->imode = imode;
   (*rstr)->nelem = nelem;
   (*rstr)->elemsize = elemsize;
-  (*rstr)->nnodes = nnodes;
   (*rstr)->ncomp = ncomp;
+  (*rstr)->compstride = compstride;
+  (*rstr)->lsize = lsize;
   (*rstr)->nblk = nblk;
   (*rstr)->blksize = blksize;
   ierr = ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER,
-         (const CeedInt *) blkindices, *rstr); CeedChk(ierr);
+         (const CeedInt *) blkoffsets, *rstr); CeedChk(ierr);
 
   if (cmode == CEED_OWN_POINTER) {
-    ierr = CeedFree(&indices); CeedChk(ierr);
+    ierr = CeedFree(&offsets); CeedChk(ierr);
   }
 
   return 0;
@@ -407,13 +455,10 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed,  CeedInterlaceMode imode,
   @param nelem      Number of elements described by the restriction
   @param elemsize   Size (number of "nodes") per element
   @param blksize    Number of elements in a block
-  @param nnodes     The number of nodes in the L-vector. The input CeedVector
-                      to which the restriction will be applied is of size
-                      @a nnodes * @a ncomp. This size may include data
-                      used by other CeedElemRestriction objects describing
-                      different types of elements.
   @param ncomp      Number of field components per interpolation node
                       (1 for scalar fields)
+  @param lsize      The size of the L-vector. This vector may be larger than
+                      the elements and fields given by this restriction.
   @param strides    Array for strides between [nodes, components, elements].
                       The data for node i, component j, element k in the
                       L-vector is given by
@@ -426,7 +471,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed,  CeedInterlaceMode imode,
   @ref User
 **/
 int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt nelem,
-    CeedInt elemsize, CeedInt blksize, CeedInt nnodes, CeedInt ncomp,
+    CeedInt elemsize, CeedInt blksize, CeedInt ncomp, CeedInt lsize,
     const CeedInt strides[3], CeedElemRestriction *rstr) {
   int ierr;
   CeedInt nblk = (nelem / blksize) + !!(nelem % blksize);
@@ -443,7 +488,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt nelem,
     // LCOV_EXCL_STOP
 
     ierr = CeedElemRestrictionCreateBlockedStrided(delegate, nelem, elemsize,
-           blksize, nnodes, ncomp, strides, rstr);
+           blksize, ncomp, lsize, strides, rstr);
     CeedChk(ierr);
     return 0;
   }
@@ -455,8 +500,8 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt nelem,
   (*rstr)->refcount = 1;
   (*rstr)->nelem = nelem;
   (*rstr)->elemsize = elemsize;
-  (*rstr)->nnodes = nnodes;
   (*rstr)->ncomp = ncomp;
+  (*rstr)->lsize = lsize;
   (*rstr)->nblk = nblk;
   (*rstr)->blksize = blksize;
   ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
@@ -483,7 +528,7 @@ int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *lvec,
                                     CeedVector *evec) {
   int ierr;
   CeedInt n, m;
-  m = rstr->nnodes * rstr->ncomp;
+  m = rstr->lsize;
   n = rstr->nblk * rstr->blksize * rstr->elemsize * rstr->ncomp;
   if (lvec) {
     ierr = CeedVectorCreate(rstr->ceed, m, lvec); CeedChk(ierr);
@@ -499,12 +544,11 @@ int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *lvec,
 
   @param rstr    CeedElemRestriction
   @param tmode   Apply restriction or transpose
-  @param u       Input vector (of shape [@a nnodes, @a ncomp] when
-                   tmode=CEED_NOTRANSPOSE, imode=CEED_INTERLACED)
+  @param u       Input vector (of size @a lsize when tmode=@ref CEED_NOTRANSPOSE)
   @param ru      Output vector (of shape [@a nelem * @a elemsize] when
-                   tmode=CEED_NOTRANSPOSE). Ordering of the e-vector is decided
+                   tmode=@ref CEED_NOTRANSPOSE). Ordering of the e-vector is decided
                    by the backend.
-  @param request Request or CEED_REQUEST_IMMEDIATE
+  @param request Request or @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -518,9 +562,9 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
 
   if (tmode == CEED_NOTRANSPOSE) {
     m = rstr->nblk * rstr->blksize * rstr->elemsize * rstr->ncomp;
-    n = rstr->nnodes * rstr->ncomp;
+    n = rstr->lsize;
   } else {
-    m = rstr->nnodes * rstr->ncomp;
+    m = rstr->lsize;
     n = rstr->nblk * rstr->blksize * rstr->elemsize * rstr->ncomp;
   }
   if (n != u->length)
@@ -546,12 +590,11 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
                    elements [0 : blksize] and block=3 will handle elements
                    [3*blksize : 4*blksize]
   @param tmode   Apply restriction or transpose
-  @param u       Input vector (of shape [@a nnodes, @a ncomp] when
-                   tmode=CEED_NOTRANSPOSE, imode=CEED_INTERLACED)
+  @param u       Input vector (of size @a lsize when tmode=@ref CEED_NOTRANSPOSE)
   @param ru      Output vector (of shape [@a blksize * @a elemsize] when
-                   tmode=CEED_NOTRANSPOSE). Ordering of the e-vector is decided
+                   tmode=@ref CEED_NOTRANSPOSE). Ordering of the e-vector is decided
                    by the backend.
-  @param request Request or CEED_REQUEST_IMMEDIATE
+  @param request Request or @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -565,9 +608,9 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
 
   if (tmode == CEED_NOTRANSPOSE) {
     m = rstr->blksize * rstr->elemsize * rstr->ncomp;
-    n = rstr->nnodes * rstr->ncomp;
+    n = rstr->lsize;
   } else {
-    m = rstr->nnodes * rstr->ncomp;
+    m = rstr->lsize;
     n = rstr->blksize * rstr->elemsize * rstr->ncomp;
   }
   if (n != u->length)
@@ -593,18 +636,18 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
 }
 
 /**
-  @brief Get the L-vector interlaced mode of a CeedElemRestriction
+  @brief Get the L-vector component stride
 
   @param rstr             CeedElemRestriction
-  @param[out] imode       Variable to store imode
+  @param[out] compstride  Variable to store component stride
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedElemRestrictionGetIMode(CeedElemRestriction rstr,
-                                CeedInterlaceMode *imode) {
-  *imode = rstr->imode;
+int CeedElemRestrictionGetCompStride(CeedElemRestriction rstr,
+                                     CeedInt *compstride) {
+  *compstride = rstr->compstride;
   return 0;
 }
 
@@ -641,8 +684,7 @@ int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
 }
 
 /**
-  @brief Get the number of degrees of freedom in the range of a
-         CeedElemRestriction
+  @brief Get the size of the l-vector for a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
   @param[out] numnodes    Variable to store number of nodes
@@ -651,9 +693,9 @@ int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
 
   @ref Backend
 **/
-int CeedElemRestrictionGetNumNodes(CeedElemRestriction rstr,
-                                   CeedInt *numnodes) {
-  *numnodes = rstr->nnodes;
+int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr,
+                                      CeedInt *lsize) {
+  *lsize = rstr->lsize;
   return 0;
 }
 
@@ -710,7 +752,7 @@ int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
   @brief Get the multiplicity of nodes in a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
-  @param[out] mult        Vector to store multiplicity (of size nnodes*ncomp)
+  @param[out] mult        Vector to store multiplicity (of size lsize)
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -751,12 +793,13 @@ int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
   if (rstr->strides)
     sprintf(stridesstr, "[%d, %d, %d]", rstr->strides[0], rstr->strides[1],
             rstr->strides[2]);
+  else
+    sprintf(stridesstr, "%d", rstr->compstride);
 
   fprintf(stream, "%sCeedElemRestriction from (%d, %d) to %d elements with %d "
           "nodes each and %s %s\n", rstr->blksize > 1 ? "Blocked " : "",
-          rstr->nnodes, rstr->ncomp, rstr->nelem, rstr->elemsize,
-          rstr->strides ? "strides" : "L-vector components",
-          rstr->strides ? stridesstr : CeedInterlaceModes[rstr->imode]);
+          rstr->lsize, rstr->ncomp, rstr->nelem, rstr->elemsize,
+          rstr->strides ? "strides" : "component stride", stridesstr);
   return 0;
 }
 
@@ -774,6 +817,9 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
 
   if (!*rstr || --(*rstr)->refcount > 0)
     return 0;
+  if ((*rstr)->numreaders)
+    return CeedError((*rstr)->ceed, 1, "Cannot destroy CeedElemRestriction, "
+                     "a process has read access to the offset data");
   if ((*rstr)->Destroy) {
     ierr = (*rstr)->Destroy(*rstr); CeedChk(ierr);
   }

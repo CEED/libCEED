@@ -19,6 +19,9 @@
 #include "ceed-cuda-gen-operator-build.h"
 #include "../cuda/ceed-cuda.h"
 
+//------------------------------------------------------------------------------
+// Destroy operator
+//------------------------------------------------------------------------------
 static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   int ierr;
   CeedOperator_Cuda_gen *impl;
@@ -27,6 +30,9 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Apply and add to output
+//------------------------------------------------------------------------------
 static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
     CeedVector outvec, CeedRequest *request) {
   int ierr;
@@ -175,10 +181,12 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
       }
     }
   }
-
   return 0;
 }
 
+//------------------------------------------------------------------------------
+// Assemble linear QFunction not supported
+//------------------------------------------------------------------------------
 static int CeedOperatorAssembleLinearQFunction_Cuda(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -186,6 +194,9 @@ static int CeedOperatorAssembleLinearQFunction_Cuda(CeedOperator op) {
   return CeedError(ceed, 1, "Backend does not implement QFunction assembly");
 }
 
+//------------------------------------------------------------------------------
+// Assemble linear diagonal not supported
+//------------------------------------------------------------------------------
 static int CeedOperatorAssembleLinearDiagonal_Cuda(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -194,6 +205,9 @@ static int CeedOperatorAssembleLinearDiagonal_Cuda(CeedOperator op) {
                    "Backend does not implement Operator diagonal assembly");
 }
 
+//------------------------------------------------------------------------------
+// Create FDM element inverse not supported
+//------------------------------------------------------------------------------
 static int CeedOperatorCreateFDMElementInverse_Cuda(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -201,6 +215,9 @@ static int CeedOperatorCreateFDMElementInverse_Cuda(CeedOperator op) {
   return CeedError(ceed, 1, "Backend does not implement FDM inverse creation");
 }
 
+//------------------------------------------------------------------------------
+// Create operator
+//------------------------------------------------------------------------------
 int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   int ierr;
   Ceed ceed;
@@ -208,7 +225,7 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   CeedOperator_Cuda_gen *impl;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedOperatorSetData(op, (void *)&impl);
+  ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
                                 CeedOperatorAssembleLinearQFunction_Cuda);
@@ -225,3 +242,4 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
                                 CeedOperatorDestroy_Cuda_gen); CeedChk(ierr);
   return 0;
 }
+//------------------------------------------------------------------------------

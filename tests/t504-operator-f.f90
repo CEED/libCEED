@@ -38,8 +38,6 @@
       include 'ceedf.h'
 
       integer ceed,err,i,j
-      integer imode
-      parameter(imode=ceed_noninterlaced)
       integer stridesu(3)
       integer erestrictx,erestrictu,erestrictui
       integer bx,bu
@@ -70,23 +68,23 @@
         indx(2*i+2)=i+1
       enddo
 
-      call ceedelemrestrictioncreate(ceed,imode,nelem,2,nx,1,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,nelem,2,1,1,nx,ceed_mem_host,&
      & ceed_use_pointer,indx,erestrictx,err)
 
       do i=0,nelem-1
         do j=0,p-1
-          indu(p*i+j+1)=i*(p-1)+j
+          indu(p*i+j+1)=2*(i*(p-1)+j)
         enddo
       enddo
 
-      call ceedelemrestrictioncreate(ceed,imode,nelem,p,nu,1,ceed_mem_host,&
+      call ceedelemrestrictioncreate(ceed,nelem,p,2,1,2*nu,ceed_mem_host,&
      & ceed_use_pointer,indu,erestrictu,err)
       stridesu=[1,q,q]
-      call ceedelemrestrictioncreatestrided(ceed,nelem,q,q*nelem,1,stridesu,&
+      call ceedelemrestrictioncreatestrided(ceed,nelem,q,1,q*nelem,stridesu,&
      & erestrictui,err)
 
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss,bx,err)
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,p,q,ceed_gauss,bu,err)
+      call ceedbasiscreatetensorh1lagrange(ceed,1,2,p,q,ceed_gauss,bu,err)
 
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
@@ -99,8 +97,8 @@
      &SOURCE_DIR&
      &//'t500-operator.h:mass'//char(0),qf_mass,err)
       call ceedqfunctionaddinput(qf_mass,'rho',1,ceed_eval_none,err)
-      call ceedqfunctionaddinput(qf_mass,'u',1,ceed_eval_interp,err)
-      call ceedqfunctionaddoutput(qf_mass,'v',1,ceed_eval_interp,err)
+      call ceedqfunctionaddinput(qf_mass,'u',2,ceed_eval_interp,err)
+      call ceedqfunctionaddoutput(qf_mass,'v',2,ceed_eval_interp,err)
 
       call ceedoperatorcreate(ceed,qf_setup,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setup,err)

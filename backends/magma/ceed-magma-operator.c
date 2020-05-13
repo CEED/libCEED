@@ -15,19 +15,24 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-backend.h>
-#include <ceed-hash.h>
-#include <libxsmm.h>
+#include "../cuda/ceed-cuda.h"
+#include "ceed-magma.h"
 #include <string.h>
-#include <math.h>
 
-// Instantiate khash structs and methods
-CeedHashIJKLMInit(m32, libxsmm_dmmfunction)
+// Create a cuda-ref operator and modify its eandqdiffer value
+int CeedOperatorCreate_Magma(CeedOperator op) {
+  int ierr;
 
-typedef struct {
-  bool tensorbasis;
-  CeedInt P, Q, dim;
-  khash_t(m32) *lookup;
-} CeedTensorContract_Xsmm;
+  // Explicitly set up a cuda-ref Operator
+  ierr = CeedOperatorCreate_Cuda(op); CeedChk(ierr);
 
-CEED_INTERN int CeedTensorContractCreate_Xsmm(CeedBasis basis,
-    CeedTensorContract contract);
+  // Get the backend data for this op
+  CeedOperator_Cuda *impl;
+  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+
+  // Set this value to false since the E- and Q-Vector layouts
+  // use the same ordering strategy for this backend (but not cuda-ref)
+  impl->eandqdiffer = false;
+
+  return 0;
+}

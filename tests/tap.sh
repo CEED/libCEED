@@ -26,7 +26,11 @@ if [ ${1::6} == "petsc-" ]; then
 elif [ ${1::5} == "mfem-" ]; then
     allargs=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
 elif [ ${1::4} == "nek-" ]; then
-    allargs=$(grep -F "C TESTARGS" examples/nek/bps/${1:4}.usr* | cut -d\  -f3- )
+    # get all test configurations
+    numconfig=$(grep -F C_TESTARGS examples/nek/bps/${1:4}.usr* | wc -l)
+    for ((i=0;i<${numconfig};++i)); do
+      allargs+=("$(awk -v i="$i" '/C_TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/nek/bps/${1:4}.usr* | cut -d\  -f2- )")
+    done
 elif [ ${1::7} == "fluids-" ]; then
     # get all test configurations
     numconfig=$(grep -F //TESTARGS examples/fluids/${1:7}.c* | wc -l)
@@ -61,6 +65,16 @@ for ((i=0;i<${#backends[@]};++i)); do
     i1=$(($i0+1))  # stdout
     i2=$(($i0+2))  # stderr
     backend=${backends[$i]}
+
+    # Skip ElemRestriction get offsets test for OCCA
+    #  This exception will be removed with the OCCA backend overhaul
+    if [[ "$backend" = *"occa" && \
+            ( "$1" = t214* || "$1" = t215* ) ]] ; then
+        printf "ok $i0 # SKIP - GetOffsets not supported by $backend\n"
+        printf "ok $i1 # SKIP - GetOffsets not supported by $backend stdout\n"
+        printf "ok $i2 # SKIP - GetOffsets not supported by $backend stderr\n"
+        continue
+    fi
 
     # Skip multigrid test for OCCA
     #  This exception will be removed with the OCCA backend overhaul
@@ -118,6 +132,15 @@ for ((i=0;i<${#backends[@]};++i)); do
         printf "ok $i0 # SKIP - not implemented $1 $backend\n"
         printf "ok $i1 # SKIP - not implemented $1 $backend stdout\n"
         printf "ok $i2 # SKIP - not implemented $1 $backend stderr\n"
+        continue
+    fi
+
+    # grep to pass test t215 on error
+    if grep -F -q -e 'access' ${output}.err \
+            && [[ "$1" = "t215"* ]] ; then
+        printf "ok $i0 PASS - expected failure $1 $backend\n"
+        printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
+        printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
         continue
     fi
 

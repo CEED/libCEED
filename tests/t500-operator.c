@@ -9,7 +9,6 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedInterlaceMode imode = CEED_NONINTERLACED;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictui;
   CeedBasis bx, bu;
   CeedQFunction qf_setup, qf_mass;
@@ -31,7 +30,7 @@ int main(int argc, char **argv) {
     indx[2*i+1] = i+1;
   }
 //! [ElemRestr Create]
-  CeedElemRestrictionCreate(ceed, imode, nelem, 2, Nx, 1, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, nelem, 2, 1, 1, Nx, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictx);
 //! [ElemRestr Create]
 
@@ -41,10 +40,10 @@ int main(int argc, char **argv) {
     }
   }
 //! [ElemRestrU Create]
-  CeedElemRestrictionCreate(ceed, imode, nelem, P, Nu, 1, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, nelem, P, 1, 1, Nu, CEED_MEM_HOST,
                             CEED_USE_POINTER, indu, &Erestrictu);
   CeedInt stridesu[3] = {1, Q, Q};
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q, Q*nelem, 1, stridesu,
+  CeedElemRestrictionCreateStrided(ceed, nelem, Q, 1, Q*nelem, stridesu,
                                    &Erestrictui);
 //! [ElemRestrU Create]
 

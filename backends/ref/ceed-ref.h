@@ -29,8 +29,11 @@ typedef struct {
 } CeedVector_Ref;
 
 typedef struct {
-  const CeedInt *indices;
-  CeedInt *indices_allocated;
+  const CeedInt *offsets;
+  CeedInt *offsets_allocated;
+  int (*Apply)(CeedElemRestriction, const CeedInt, const CeedInt,
+               const CeedInt, CeedInt, CeedInt, CeedTransposeMode, CeedVector,
+               CeedVector, CeedRequest *);
 } CeedElemRestriction_Ref;
 
 typedef struct {
@@ -59,11 +62,8 @@ CEED_INTERN int CeedElemRestrictionCreate_Ref(CeedMemType mtype,
     CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P1d,
-    CeedInt Q1d, const CeedScalar *interp1d,
-    const CeedScalar *grad1d,
-    const CeedScalar *qref1d,
-    const CeedScalar *qweight1d,
-    CeedBasis basis);
+    CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
+    const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
 
 CEED_INTERN int CeedBasisCreateH1_Ref(CeedElemTopology topo,
                                       CeedInt dim, CeedInt ndof, CeedInt nqpts,

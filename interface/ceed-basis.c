@@ -117,9 +117,9 @@ static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
   @param[in,out] A  Row major matrix to apply Givens rotation to, in place
   @param c          Cosine factor
   @param s          Sine factor
-  @param tmode      CEED_NOTRANSPOSE to rotate the basis counter-clockwise,
+  @param tmode      @ref CEED_NOTRANSPOSE to rotate the basis counter-clockwise,
                     which has the effect of rotating columns of A clockwise;
-                    CEED_TRANSPOSE for the opposite rotation
+                    @ref CEED_TRANSPOSE for the opposite rotation
   @param i          First row/column to apply rotation
   @param k          Second row/column to apply rotation
   @param m          Number of rows in A
@@ -642,7 +642,7 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   @param basis   CeedBasis to evaluate
   @param nelem   The number of elements to apply the basis evaluation to;
                    the backend will specify the ordering in
-                   ElemRestrictionCreateBlocked
+                   CeedElemRestrictionCreateBlocked()
   @param tmode   \ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature
                    points, \ref CEED_TRANSPOSE to apply the transpose, mapping
                    from quadrature points to nodes

@@ -15,7 +15,6 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include "ceed-blocked.h"
-#include "../ref/ceed-ref.h"
 
 //------------------------------------------------------------------------------
 // Setup Input/Output Fields
@@ -54,30 +53,33 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
     if (emode != CEED_EVAL_WEIGHT) {
       ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &r);
       CeedChk(ierr);
-      CeedElemRestriction_Ref *data;
-      ierr = CeedElemRestrictionGetData(r, (void *)&data); CeedChk(ierr);
-      Ceed ceed;
       ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
-      CeedInt nelem, elemsize, nnodes;
-      CeedInterlaceMode imode;
+      CeedInt nelem, elemsize, lsize, compstride;
       ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
       ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
-      ierr = CeedElemRestrictionGetNumNodes(r, &nnodes); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetLVectorSize(r, &lsize); CeedChk(ierr);
       ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
-      if (data->indices) {
-        ierr = CeedElemRestrictionGetIMode(r, &imode); CeedChk(ierr);
-        ierr = CeedElemRestrictionCreateBlocked(ceed, imode, nelem, elemsize,
-                                                blksize, nnodes, ncomp,
-                                                CEED_MEM_HOST, CEED_COPY_VALUES,
-                                                data->indices,
-                                                &blkrestr[i+starte]);
-        CeedChk(ierr);
-      } else {
+
+      bool strided;
+      ierr = CeedElemRestrictionGetStridedStatus(r, &strided); CeedChk(ierr);
+      if (strided) {
         CeedInt strides[3];
         ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
         ierr = CeedElemRestrictionCreateBlockedStrided(ceed, nelem, elemsize,
-               blksize, nnodes, ncomp, strides, &blkrestr[i+starte]);
+               blksize, ncomp, lsize, strides, &blkrestr[i+starte]);
         CeedChk(ierr);
+      } else {
+        const CeedInt *offsets = NULL;
+        ierr = CeedElemRestrictionGetOffsets(r, CEED_MEM_HOST, &offsets);
+        CeedChk(ierr);
+        ierr = CeedElemRestrictionGetCompStride(r, &compstride); CeedChk(ierr);
+        ierr = CeedElemRestrictionCreateBlocked(ceed, nelem, elemsize,
+                                                blksize, ncomp, compstride,
+                                                lsize, CEED_MEM_HOST,
+                                                CEED_COPY_VALUES, offsets,
+                                                &blkrestr[i+starte]);
+        CeedChk(ierr);
+        ierr = CeedElemRestrictionRestoreOffsets(r, &offsets); CeedChk(ierr);
       }
       ierr = CeedElemRestrictionCreateVector(blkrestr[i+starte], NULL,
                                              &fullevecs[i+starte]);
@@ -607,8 +609,10 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
 
   // Create output restriction
   CeedInt strides[3] = {1, Q, numactivein *numactiveout*Q};
-  ierr = CeedElemRestrictionCreateStrided(ceed, numelements, Q, numelements*Q,
-                                          numactivein*numactiveout, strides, rstr); CeedChk(ierr);
+  ierr = CeedElemRestrictionCreateStrided(ceed, numelements, Q,
+                                          numactivein*numactiveout,
+                                          numactivein*numactiveout*numelements*Q,
+                                          strides, rstr); CeedChk(ierr);
   // Create assembled vector
   ierr = CeedVectorCreate(ceed, numelements*Q*numactivein*numactiveout,
                           assembled); CeedChk(ierr);
@@ -669,10 +673,8 @@ static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
   ierr = CeedVectorSetValue(*assembled, 0.0); CeedChk(ierr);
   CeedElemRestriction blkrstr;
   ierr = CeedElemRestrictionCreateBlockedStrided(ceed, numelements, Q, blksize,
-         numelements*Q,
-         numactivein*numactiveout,
-         strides, &blkrstr);
-  CeedChk(ierr);
+         numactivein*numactiveout, numactivein*numactiveout*numelements*Q,
+         strides, &blkrstr); CeedChk(ierr);
   ierr = CeedElemRestrictionApply(blkrstr, CEED_TRANSPOSE, lvec, *assembled,
                                   request); CeedChk(ierr);
 

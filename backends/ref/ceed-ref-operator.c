@@ -568,9 +568,9 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   // Create output restriction
   CeedInt strides[3] = {1, Q, numactivein *numactiveout*Q};
   ierr = CeedElemRestrictionCreateStrided(ceedparent, numelements, Q,
-                                          numelements*Q,
-                                          numactivein*numactiveout, strides,
-                                          rstr); CeedChk(ierr);
+                                          numactivein*numactiveout,
+                                          numactivein*numactiveout*numelements*Q,
+                                          strides, rstr); CeedChk(ierr);
   // Create assembled vector
   ierr = CeedVectorCreate(ceedparent, numelements*Q*numactivein*numactiveout,
                           assembled); CeedChk(ierr);
@@ -888,7 +888,7 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "No active field set");
   // LCOV_EXCL_STOP
-  CeedInt P1d, Q1d, elemsize, nqpts, dim, ncomp = 1, nelem = 1, nnodes = 1;
+  CeedInt P1d, Q1d, elemsize, nqpts, dim, ncomp = 1, nelem = 1, lsize = 1;
   ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
   ierr = CeedBasisGetNumNodes(basis, &elemsize); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
@@ -896,7 +896,7 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
   ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
   ierr = CeedElemRestrictionGetNumElements(rstr, &nelem); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetNumNodes(rstr, &nnodes); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetLVectorSize(rstr, &lsize); CeedChk(ierr);
 
   // Build and diagonalize 1D Mass and Laplacian
   bool tensorbasis;
@@ -985,22 +985,22 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
   // Build FDM diagonal
   CeedVector qdata;
   CeedScalar *qdataarray;
-  ierr = CeedVectorCreate(ceedparent, nelem*ncomp*nnodes, &qdata); CeedChk(ierr);
+  ierr = CeedVectorCreate(ceedparent, nelem*ncomp*lsize, &qdata); CeedChk(ierr);
   ierr = CeedVectorSetArray(qdata, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
   CeedChk(ierr);
   ierr = CeedVectorGetArray(qdata, CEED_MEM_HOST, &qdataarray); CeedChk(ierr);
   for (CeedInt e=0; e<nelem; e++)
     for (CeedInt c=0; c<ncomp; c++)
-      for (CeedInt n=0; n<nnodes; n++) {
+      for (CeedInt n=0; n<lsize; n++) {
         if (interp)
-          qdataarray[(e*ncomp+c)*nnodes+n] = 1;
+          qdataarray[(e*ncomp+c)*lsize+n] = 1;
         if (grad)
           for (CeedInt d=0; d<dim; d++) {
             CeedInt i = (n / CeedIntPow(P1d, d)) % P1d;
-            qdataarray[(e*ncomp+c)*nnodes+n] += lambda[i];
+            qdataarray[(e*ncomp+c)*lsize+n] += lambda[i];
           }
-        qdataarray[(e*ncomp+c)*nnodes+n] = 1 / (elemavg[e] *
-                                                qdataarray[(e*ncomp+c)*nnodes+n]);
+        qdataarray[(e*ncomp+c)*lsize+n] = 1 / (elemavg[e] *
+                                               qdataarray[(e*ncomp+c)*lsize+n]);
       }
   ierr = CeedFree(&elemavg); CeedChk(ierr);
   ierr = CeedVectorRestoreArray(qdata, &qdataarray); CeedChk(ierr);
@@ -1023,9 +1023,9 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
 
   // -- Restriction
   CeedElemRestriction rstr_i;
-  CeedInt strides[3] = {1, nnodes, nnodes*ncomp};
-  ierr = CeedElemRestrictionCreateStrided(ceedparent, nelem, nnodes,
-                                          nnodes*nelem, ncomp, strides, &rstr_i);
+  CeedInt strides[3] = {1, lsize, lsize*ncomp};
+  ierr = CeedElemRestrictionCreateStrided(ceedparent, nelem, lsize, ncomp,
+                                          lsize*nelem*ncomp, strides, &rstr_i);
   CeedChk(ierr);
   // -- QFunction
   CeedQFunction mass_qf;

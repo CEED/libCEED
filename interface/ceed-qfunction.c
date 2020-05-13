@@ -86,8 +86,8 @@ int CeedQFunctionRegister(const char *name, const char *source,
 
   @param f          CeedQFunctionField
   @param fieldname  Name of QFunction field
-  @param size       Size of QFunction field, (ncomp * dim) for CEED_EVAL_GRAD or
-                      (ncomp * 1) for CEED_EVAL_NONE, CEED_EVAL_INTERP, and CEED_EVAL_WEIGHT
+  @param size       Size of QFunction field, (ncomp * dim) for @ref CEED_EVAL_GRAD or
+                      (ncomp * 1) for @ref CEED_EVAL_NONE, @ref CEED_EVAL_INTERP, and @ref CEED_EVAL_WEIGHT
   @param emode      \ref CEED_EVAL_NONE to use values directly,
                       \ref CEED_EVAL_INTERP to use interpolated values,
                       \ref CEED_EVAL_GRAD to use gradients,
@@ -590,8 +590,8 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode inmode,
 
   @param qf         CeedQFunction
   @param fieldname  Name of QFunction field
-  @param size       Size of QFunction field, (ncomp * dim) for CEED_EVAL_GRAD or
-                      (ncomp * 1) for CEED_EVAL_NONE and CEED_EVAL_INTERP
+  @param size       Size of QFunction field, (ncomp * dim) for @ref CEED_EVAL_GRAD or
+                      (ncomp * 1) for @ref CEED_EVAL_NONE and @ref CEED_EVAL_INTERP
   @param emode      \ref CEED_EVAL_NONE to use values directly,
                       \ref CEED_EVAL_INTERP to use interpolated values,
                       \ref CEED_EVAL_GRAD to use gradients.
@@ -614,8 +614,8 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname, CeedInt size,
 
   @param qf         CeedQFunction
   @param fieldname  Name of QFunction field
-  @param size       Size of QFunction field, (ncomp * dim) for CEED_EVAL_GRAD or
-                      (ncomp * 1) for CEED_EVAL_NONE and CEED_EVAL_INTERP
+  @param size       Size of QFunction field, (ncomp * dim) for @ref CEED_EVAL_GRAD or
+                      (ncomp * 1) for @ref CEED_EVAL_NONE and @ref CEED_EVAL_INTERP
   @param emode      \ref CEED_EVAL_NONE to use values directly,
                       \ref CEED_EVAL_INTERP to use interpolated values,
                       \ref CEED_EVAL_GRAD to use gradients.

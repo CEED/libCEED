@@ -60,11 +60,9 @@ typedef struct {
 typedef struct {
   CUmodule module;
   CUfunction noTrStrided;
-  CUfunction noTrNoTr;
-  CUfunction noTrTr;
+  CUfunction noTrOffset;
   CUfunction trStrided;
-  CUfunction trNoTr;
-  CUfunction trTr;
+  CUfunction trOffset;
   CeedInt *h_ind;
   CeedInt *h_ind_allocated;
   CeedInt *d_ind;
@@ -115,6 +113,7 @@ typedef struct {
   CeedVector *qvecsout;   /// Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
+  bool eandqdiffer; /// Indicate whether or not E- and Q-Vector layouts differ
 } CeedOperator_Cuda;
 
 typedef struct {

@@ -39,8 +39,6 @@
       include 'ceedf.h'
 
       integer ceed,err,i,j,k
-      integer imode
-      parameter(imode=ceed_noninterlaced)
       integer stridesutet(3),stridesuhex(3)
       integer erestrictxtet,erestrictutet,erestrictuitet,&
 &             erestrictxhex,erestrictuhex,erestrictuihex
@@ -125,14 +123,14 @@
       enddo
 
 ! -- Restrictions
-      call ceedelemrestrictioncreate(ceed,imode,nelemtet,ptet,ndofs,d,&
+      call ceedelemrestrictioncreate(ceed,nelemtet,ptet,d,ndofs,d*ndofs,&
      & ceed_mem_host,ceed_use_pointer,indxtet,erestrictxtet,err)
 
-      call ceedelemrestrictioncreate(ceed,imode,nelemtet,ptet,ndofs,1,&
+      call ceedelemrestrictioncreate(ceed,nelemtet,ptet,1,1,ndofs,&
      & ceed_mem_host,ceed_use_pointer,indxtet,erestrictutet,err)
       stridesutet=[1,qtet,qtet]
-      call ceedelemrestrictioncreatestrided(ceed,nelemtet,qtet,nqptstet,&
-     & 1,stridesutet,erestrictuitet,err)
+      call ceedelemrestrictioncreatestrided(ceed,nelemtet,qtet,1,nqptstet,&
+     & stridesutet,erestrictuitet,err)
 
 ! -- Bases
       call buildmats(qref,qweight,interp,grad)
@@ -190,14 +188,14 @@
       enddo
 
 ! -- Restrictions
-      call ceedelemrestrictioncreate(ceed,imode,nelemhex,phex*phex,ndofs,d,&
+      call ceedelemrestrictioncreate(ceed,nelemhex,phex*phex,d,ndofs,d*ndofs,&
      & ceed_mem_host,ceed_use_pointer,indxhex,erestrictxhex,err)
 
-      call ceedelemrestrictioncreate(ceed,imode,nelemhex,phex*phex,ndofs,1,&
+      call ceedelemrestrictioncreate(ceed,nelemhex,phex*phex,1,1,ndofs,&
      & ceed_mem_host,ceed_use_pointer,indxhex,erestrictuhex,err)
       stridesuhex=[1,qhex*qhex,qhex*qhex]
       call ceedelemrestrictioncreatestrided(ceed,nelemhex,qhex*qhex,&
-     & nqptshex,1,stridesuhex,erestrictuihex,err)
+     & 1,nqptshex,stridesuhex,erestrictuihex,err)
 
 ! -- Bases
       call ceedbasiscreatetensorh1lagrange(ceed,d,d,phex,qhex,ceed_gauss,&
