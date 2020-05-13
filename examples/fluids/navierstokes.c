@@ -98,7 +98,7 @@ problemData problemOptions[] = {
     .apply_ifunction     = IFunction_DC,
     .apply_ifunction_loc = IFunction_DC_loc,
     .bc                  = Exact_DC,
-    .non_zero_time       = false,
+    .non_zero_time       = PETSC_FALSE,
   },
   [NS_ADVECTION] = {
     .dim                 = 3,
@@ -112,7 +112,7 @@ problemData problemOptions[] = {
     .apply_ifunction     = IFunction_Advection,
     .apply_ifunction_loc = IFunction_Advection_loc,
     .bc                  = Exact_Advection,
-    .non_zero_time       = false,
+    .non_zero_time       = PETSC_FALSE,
   },
   [NS_ADVECTION2D] = {
     .dim                 = 2,
@@ -126,7 +126,7 @@ problemData problemOptions[] = {
     .apply_ifunction     = IFunction_Advection2d,
     .apply_ifunction_loc = IFunction_Advection2d_loc,
     .bc                  = Exact_Advection2d,
-    .non_zero_time       = true,
+    .non_zero_time       = PETSC_TRUE,
   },
 };
 
@@ -828,7 +828,7 @@ int main(int argc, char **argv) {
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
-  PetscStrncpy(user->outputfolder, ".", 2);
+  ierr = PetscStrncpy(user->outputfolder, ".", 2); CHKERRQ(ierr);
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
                             sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
@@ -1164,7 +1164,7 @@ int main(int argc, char **argv) {
                                  user->M); CHKERRQ(ierr);
 
   ierr = ICs_FixMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictq,
-                             &ctxSetup, 0.0);
+                             &ctxSetup, 0.0); CHKERRQ(ierr);
   if (1) { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
     // We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow.  If we
     // disable this, we should still get the same results due to the problem->bc function, but with potentially much
@@ -1323,7 +1323,7 @@ int main(int argc, char **argv) {
     // Read reference file
     Vec Qref;
     PetscReal error, Qrefnorm;
-    ierr = VecDuplicate(Q, &Qref);
+    ierr = VecDuplicate(Q, &Qref); CHKERRQ(ierr);
     ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
     CHKERRQ(ierr);
     ierr = VecLoad(Qref, viewer); CHKERRQ(ierr);
@@ -1341,6 +1341,7 @@ int main(int argc, char **argv) {
                          "Test failed with error norm %g\n",
                          (double)error); CHKERRQ(ierr);
     }
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   }
 
   // Clean up libCEED
