@@ -60,7 +60,7 @@ static const char *const problemTypes[] = {
   "density_current",
   "advection",
   "advection2d",
-  "problemType","NS_",0
+  "problemType", "NS_", NULL
 };
 
 typedef enum {
@@ -696,34 +696,34 @@ int main(int argc, char **argv) {
   double start, cpu_time_used;
 
   // Create the libCEED contexts
-  PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
-  PetscScalar second    = 1e-2;     // 1 second in scaled time units
-  PetscScalar kilogram  = 1e-6;     // 1 kilogram in scaled mass units
-  PetscScalar Kelvin    = 1;        // 1 Kelvin in scaled temperature units
-  CeedScalar theta0     = 300.;     // K
-  CeedScalar thetaC     = -15.;     // K
-  CeedScalar P0         = 1.e5;     // Pa
-  CeedScalar N          = 0.01;     // 1/s
-  CeedScalar cv         = 717.;     // J/(kg K)
-  CeedScalar cp         = 1004.;    // J/(kg K)
-  CeedScalar g          = 9.81;     // m/s^2
-  CeedScalar lambda     = -2./3.;   // -
-  CeedScalar mu         = 75.;      // Pa s, dynamic viscosity
+  PetscScalar meter      = 1e-2;     // 1 meter in scaled length units
+  PetscScalar second     = 1e-2;     // 1 second in scaled time units
+  PetscScalar kilogram   = 1e-6;     // 1 kilogram in scaled mass units
+  PetscScalar Kelvin     = 1;        // 1 Kelvin in scaled temperature units
+  CeedScalar theta0      = 300.;     // K
+  CeedScalar thetaC      = -15.;     // K
+  CeedScalar P0          = 1.e5;     // Pa
+  CeedScalar N           = 0.01;     // 1/s
+  CeedScalar cv          = 717.;     // J/(kg K)
+  CeedScalar cp          = 1004.;    // J/(kg K)
+  CeedScalar g           = 9.81;     // m/s^2
+  CeedScalar lambda      = -2./3.;   // -
+  CeedScalar mu          = 75.;      // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
-  CeedScalar k          = 0.02638;  // W/(m K)
-  CeedScalar CtauS      = 0.;       // dimensionless
+  CeedScalar k           = 0.02638;  // W/(m K)
+  CeedScalar CtauS       = 0.;       // dimensionless
   CeedScalar strong_form = 0.;      // [0,1]
-  PetscScalar lx        = 8000.;    // m
-  PetscScalar ly        = 8000.;    // m
-  PetscScalar lz        = 4000.;    // m
-  CeedScalar rc         = 1000.;    // m (Radius of bubble)
-  PetscScalar resx      = 1000.;    // m (resolution in x)
-  PetscScalar resy      = 1000.;    // m (resolution in y)
-  PetscScalar resz      = 1000.;    // m (resolution in z)
-  PetscInt outputfreq   = 10;       // -
-  PetscInt contsteps    = 0;        // -
-  PetscInt degree       = 1;        // -
-  PetscInt qextra       = 2;        // -
+  PetscScalar lx         = 8000.;    // m
+  PetscScalar ly         = 8000.;    // m
+  PetscScalar lz         = 4000.;    // m
+  CeedScalar rc          = 1000.;    // m (Radius of bubble)
+  PetscScalar resx       = 1000.;    // m (resolution in x)
+  PetscScalar resy       = 1000.;    // m (resolution in y)
+  PetscScalar resz       = 1000.;    // m (resolution in z)
+  PetscInt outputfreq    = 10;       // -
+  PetscInt contsteps     = 0;        // -
+  PetscInt degree        = 1;        // -
+  PetscInt qextra        = 2;        // -
   PetscReal center[3], dc_axis[3] = {0, 0, 0};
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
@@ -1030,7 +1030,6 @@ int main(int argc, char **argv) {
       ierr = PetscPrintf(comm, "dm_plex_box_faces: %s\n", box_faces_str);
       CHKERRQ(ierr);
     }
-
   }
 
   // Set up global mass vector
@@ -1344,7 +1343,8 @@ int main(int argc, char **argv) {
   // Output numerical values from command line
   ierr = VecViewFromOptions(Q, NULL, "-vec_view"); CHKERRQ(ierr);
 
-  if (testChoice != TEST_NONE) { // compare reference solution values with current run
+  // compare reference solution values with current run
+  if (testChoice != TEST_NONE) {
     PetscViewer viewer;
     // Read reference file
     Vec Qref;
