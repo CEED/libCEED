@@ -788,6 +788,11 @@ int main(int argc, char **argv) {
                             "Strong (1) or weak/integrated by parts (0) advection residual",
                             NULL, strong_form, &strong_form, NULL);
   CHKERRQ(ierr);
+  if (problemChoice == NS_DENSITY_CURRENT && (CtauS != 0 || strong_form != 0)) {
+    ierr = PetscPrintf(comm,
+                       "Warning! Problem density_current does not support -CtauS or -strong_form\n");
+    CHKERRQ(ierr);
+  }
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                             NULL, lx, &lx, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",

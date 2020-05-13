@@ -59,10 +59,8 @@ struct SetupContext_ {
 
 #ifndef advection_context_struct
 #define advection_context_struct
-typedef struct AdvectionContext_ *AdvectionContext;
-struct AdvectionContext_ {
-  CeedScalar CtauS;
-  CeedScalar strong_form;
+typedef struct DCContext_ *DCContext;
+struct DCContext_ {
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
@@ -466,7 +464,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     // *INDENT-ON*
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
     CeedScalar stab[5][3];
-    AdvectionContext context = (AdvectionContext)ctx;
+    DCContext context = (DCContext)ctx;
     switch (context->stabilization) {
     case 0:        // Galerkin
       break;
@@ -732,7 +730,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     const CeedScalar TauE = TauM / (Ce * cv);
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
     CeedScalar stab[5][3];
-    AdvectionContext context = (AdvectionContext)ctx;
+    DCContext context = (DCContext)ctx;
     switch (context->stabilization) {
     case 0:        // Galerkin
       break;

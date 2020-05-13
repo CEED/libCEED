@@ -51,8 +51,8 @@ struct SetupContext_ {
 
 #ifndef advection_context_struct
 #define advection_context_struct
-typedef struct AdvectionContext_ *AdvectionContext;
-struct AdvectionContext_ {
+typedef struct DCContext_ *DCContext;
+struct DCContext_ {
   CeedScalar CtauS;
   CeedScalar strong_form;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
@@ -198,7 +198,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
   // *INDENT-ON*
 
   // Context
-  AdvectionContext context = (AdvectionContext)ctx;
+  DCContext context = (DCContext)ctx;
   const CeedScalar CtauS = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
@@ -321,7 +321,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
-  AdvectionContext context = (AdvectionContext)ctx;
+  DCContext context = (DCContext)ctx;
   const CeedScalar CtauS = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
