@@ -260,7 +260,7 @@ int main(int argc, char **argv) {
     CeedGetResource(ceed, &usedresource);
 
     ierr = PetscPrintf(comm,
-                       "\n-- Elastisticy Example - libCEED + PETSc --\n"
+                       "\n-- Elasticity Example - libCEED + PETSc --\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n",
                        usedresource); CHKERRQ(ierr);
