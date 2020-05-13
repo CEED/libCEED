@@ -31,8 +31,7 @@ elif [ ${1::7} == "fluids-" ]; then
     # get all test configurations
     numconfig=$(grep -F //TESTARGS examples/fluids/${1:7}.c* | wc -l)
     for ((i=0;i<${numconfig};++i)); do
-      suffices+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/fluids/${1:7}.c | cut -d\  -f2- | cut -d ";" -f 1 | cut -d "=" -f 2 )")
-      allargs+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/fluids/${1:7}.c | cut -d\  -f2- | cut -d ";" -f 2 )")
+      allargs+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/fluids/${1:7}.c | cut -d\  -f2- )")
     done
 elif [ ${1::7} == "solids-" ]; then
     allargs=$(grep -F //TESTARGS examples/solids/${1:7}.c* | cut -d\  -f2- )
@@ -158,6 +157,15 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
+    # grep to skip t506 for MAGMA, range of basis kernels limited for now
+    if [[ "$backend" = *"magma" ]] \
+            && [[ "$1" = "t506"* ]] ; then
+        printf "ok $i0 # SKIP - backend basis kernel not available $1 $backend\n"
+        printf "ok $i1 # SKIP - backend basis kernel not available $1 $backend stdout\n"
+        printf "ok $i2 # SKIP - backend basis kernel not available $1 $backend stderr\n"
+        continue
+    fi
+
     if [ $status -eq 0 ]; then
         printf "ok $i0 $1 $backend\n"
     else
@@ -165,46 +173,25 @@ for ((i=0;i<${#backends[@]};++i)); do
     fi
 
     # stdout
-    if [ ${1::7} == "fluids-" ]; then
-        printf "Suffices: "${suffices[$j]}"    "
-        if [ -f examples/fluids/output/${1}${suffices[$j]}.out ]; then
-            if diff -u examples/fluids/output/${1}${suffices[$j]}.out ${output}.out > ${output}.diff; then
-                printf "ok $i1 $1 $backend stdout\n"
-            else
-                printf "not ok $i1 $1 $backend stdout\n"
-                while read line; do
-                    printf "# ${line}\n"
-                done < ${output}.diff
-            fi
-        elif [ -s ${output}.out ]; then
+    if [ -f tests/output/$1.out ]; then
+        if diff -u tests/output/$1.out ${output}.out > ${output}.diff; then
+            printf "ok $i1 $1 $backend stdout\n"
+        else
             printf "not ok $i1 $1 $backend stdout\n"
             while read line; do
-                printf "# + ${line}\n"
-            done < ${output}.out
-        else
-            printf "ok $i1 $1 $backend stdout\n"
+                printf "# ${line}\n"
+            done < ${output}.diff
         fi
+    elif [[ "$1" == t003* ]]; then
+    # For t003, the output will vary widely; only checking stderr
+        printf "ok $i1 $1 $backend stdout\n"
+    elif [ -s ${output}.out ]; then
+        printf "not ok $i1 $1 $backend stdout\n"
+        while read line; do
+            printf "# + ${line}\n"
+        done < ${output}.out
     else
-        if [ -f tests/output/$1.out ]; then
-            if diff -u tests/output/$1.out ${output}.out > ${output}.diff; then
-                printf "ok $i1 $1 $backend stdout\n"
-            else
-                printf "not ok $i1 $1 $backend stdout\n"
-                while read line; do
-                    printf "# ${line}\n"
-                done < ${output}.diff
-            fi
-        elif [[ "$1" == t003* ]]; then
-        # For t003, the output will vary widely; only checking stderr
-            printf "ok $i1 $1 $backend stdout\n"
-        elif [ -s ${output}.out ]; then
-            printf "not ok $i1 $1 $backend stdout\n"
-            while read line; do
-                printf "# + ${line}\n"
-            done < ${output}.out
-        else
-            printf "ok $i1 $1 $backend stdout\n"
-        fi
+        printf "ok $i1 $1 $backend stdout\n"
     fi
 
     # stderr
