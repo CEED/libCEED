@@ -182,10 +182,10 @@ struct CeedData_private {
   Ceed                ceed;
   CeedBasis           basisx, basisu, basisCtoF, basisEnergy;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictqdi,
-                      ErestrictGradui, ErestrictEnergy;
+                      ErestrictGradui, ErestrictEnergy, ErestrictDiagnostic;
   CeedQFunction       qfApply, qfJacob, qfEnergy;
   CeedOperator        opApply, opJacob, opRestrict, opProlong, opEnergy;
-  CeedVector          qdata, gradu, xceed, yceed, truesoln, energy;
+  CeedVector          qdata, gradu, xceed, yceed, truesoln;
 };
 
 // -----------------------------------------------------------------------------
@@ -212,7 +212,7 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx appCtx, DM *dm);
 
 // Setup DM with FE space of appropriate degree
 PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
-                               PetscInt ncompu);
+                               PetscBool boundary, PetscInt ncompu);
 
 // -----------------------------------------------------------------------------
 // libCEED Functions
@@ -225,11 +225,11 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
                                      CeedElemRestriction *Erestrict, DM dm);
 
 // Set up libCEED for a given degree
-PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
-                                     Physics phys, CeedData *data,
-                                     PetscInt fineLevel, PetscInt ncompu,
-                                     PetscInt Ugsz, PetscInt Ulocsz,
-                                     CeedVector forceCeed,
+PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
+                                     Ceed ceed, AppCtx appCtx, Physics phys,
+                                     CeedData *data, PetscInt fineLevel,
+                                     PetscInt ncompu, PetscInt Ugsz,
+                                     PetscInt Ulocsz, CeedVector forceCeed,
                                      CeedQFunction qfRestrict,
                                      CeedQFunction qfProlong);
 
@@ -288,8 +288,9 @@ PetscErrorCode Restrict_Ceed(Mat A, Vec X, Vec Y);
 PetscErrorCode GetDiag_Ceed(Mat A, Vec D);
 
 // This function calculates the strain energy in the final solution
-PetscErrorCode ComputeStrainEnergy(UserMult user, CeedOperator opEnergy, Vec X,
-                                   CeedVector energyLoc, PetscReal *energy);
+PetscErrorCode ComputeStrainEnergy(DM dmEnergy, UserMult user,
+                                   CeedOperator opEnergy, Vec X,
+                                   PetscReal *energy);
 
 // -----------------------------------------------------------------------------
 // Boundary Functions

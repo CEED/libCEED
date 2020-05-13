@@ -229,8 +229,9 @@ PetscErrorCode GetDiag_Ceed(Mat A, Vec D) {
 };
 
 // This function calculates the strain energy in the final solution
-PetscErrorCode ComputeStrainEnergy(UserMult user, CeedOperator opEnergy, Vec X,
-                                   CeedVector energyLoc, PetscReal *energy) {
+PetscErrorCode ComputeStrainEnergy(DM dmEnergy, UserMult user,
+                                   CeedOperator opEnergy, Vec X,
+                                   PetscReal *energy) {
   PetscErrorCode ierr;
   PetscScalar *x;
   CeedInt length;
@@ -243,13 +244,21 @@ PetscErrorCode ComputeStrainEnergy(UserMult user, CeedOperator opEnergy, Vec X,
   ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, user->Xloc,
                                     user->loadIncrement, NULL, NULL, NULL);
 
-  // Setup libCEED vector
+  // Setup libCEED input vector
   ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
   CHKERRQ(ierr);
   CeedVectorSetArray(user->Xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
+  // Setup libCEED output vector
+  Vec Eloc;
+  CeedVector eloc;
+  ierr = DMCreateLocalVector(dmEnergy, &Eloc); CHKERRQ(ierr);
+  ierr = VecGetSize(Eloc, &length); CHKERRQ(ierr);
+  ierr = VecDestroy(&Eloc); CHKERRQ(ierr);
+  CeedVectorCreate(user->ceed, length, &eloc);
+
   // Apply libCEED operator
-  CeedOperatorApply(opEnergy, user->Xceed, energyLoc, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(opEnergy, user->Xceed, eloc, CEED_REQUEST_IMMEDIATE);
 
   // Restore PETSc vector
   ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
@@ -257,12 +266,12 @@ PetscErrorCode ComputeStrainEnergy(UserMult user, CeedOperator opEnergy, Vec X,
 
   // Reduce max error
   const CeedScalar *e;
-  CeedVectorGetArrayRead(energyLoc, CEED_MEM_HOST, &e);
+  CeedVectorGetArrayRead(eloc, CEED_MEM_HOST, &e);
   (*energy) = 0;
-  CeedVectorGetLength(energyLoc, &length);
   for (CeedInt i=0; i<length; i++)
     (*energy) += e[i];
-  CeedVectorRestoreArrayRead(energyLoc, &e);
+  CeedVectorRestoreArrayRead(eloc, &e);
+  CeedVectorDestroy(&eloc);
 
   ierr = MPI_Allreduce(MPI_IN_PLACE, energy, 1, MPIU_REAL, MPIU_SUM,
                        user->comm); CHKERRQ(ierr);

@@ -136,7 +136,7 @@ PetscErrorCode PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
 
 // Setup DM with FE space of appropriate degree
 PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
-                               PetscInt ncompu) {
+                               PetscBool boundary, PetscInt ncompu) {
   PetscErrorCode  ierr;
   PetscInt        dim;
   PetscFE         fe;
@@ -156,36 +156,39 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
   ierr = DMCreateDS(dm); CHKERRQ(ierr);
 
   // Add Dirichlet (Essential) boundary
-  if (appCtx->testMode) {
-    // -- Test mode - box mesh
-    PetscBool hasLabel;
-    PetscInt marker_ids[1] = {1};
-    DMHasLabel(dm, "marker", &hasLabel);
-    if (!hasLabel) {
-      ierr = CreateBCLabel(dm, "marker"); CHKERRQ(ierr);
-    }
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", "marker", 0, 0, NULL,
-                         (void(*)(void))BCMMS, 1, marker_ids, NULL);
-    CHKERRQ(ierr);
-  } else if (appCtx->forcingChoice == FORCE_MMS) {
-    // -- ExodusII mesh with MMS
-    ierr = DMGetLabelIdIS(dm, name, &faceSetIS); CHKERRQ(ierr);
-    ierr = ISGetSize(faceSetIS,&numFaceSets); CHKERRQ(ierr);
-    ierr = ISGetIndices(faceSetIS, &faceSetIds); CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", "Face Sets", 0, 0, NULL,
-                         (void(*)(void))BCMMS, numFaceSets, faceSetIds, NULL);
-    CHKERRQ(ierr);
-    ierr = ISRestoreIndices(faceSetIS, &faceSetIds); CHKERRQ(ierr);
-    ierr = ISDestroy(&faceSetIS); CHKERRQ(ierr);
-  } else {
-    // -- ExodusII mesh with user specified BCs
-    // -- Clamp BCs
-    for (PetscInt i = 0; i < appCtx->bcClampCount; i++) {
-      char bcName[25];
-      snprintf(bcName, sizeof bcName, "clamp_%d", appCtx->bcClampFaces[i]);
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, "Face Sets", 0, 0, NULL,
-                           (void(*)(void))BCClamp, 1, &appCtx->bcClampFaces[i],
-                           (void *)&appCtx->bcClampMax[i]); CHKERRQ(ierr);
+  if (boundary) {
+    if (appCtx->testMode) {
+      // -- Test mode - box mesh
+      PetscBool hasLabel;
+      PetscInt marker_ids[1] = {1};
+      DMHasLabel(dm, "marker", &hasLabel);
+      if (!hasLabel) {
+        ierr = CreateBCLabel(dm, "marker"); CHKERRQ(ierr);
+      }
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", "marker", 0, 0, NULL,
+                           (void(*)(void))BCMMS, 1, marker_ids, NULL);
+      CHKERRQ(ierr);
+    } else if (appCtx->forcingChoice == FORCE_MMS) {
+      // -- ExodusII mesh with MMS
+      ierr = DMGetLabelIdIS(dm, name, &faceSetIS); CHKERRQ(ierr);
+      ierr = ISGetSize(faceSetIS,&numFaceSets); CHKERRQ(ierr);
+      ierr = ISGetIndices(faceSetIS, &faceSetIds); CHKERRQ(ierr);
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", "Face Sets", 0, 0, NULL,
+                           (void(*)(void))BCMMS, numFaceSets, faceSetIds, NULL);
+      CHKERRQ(ierr);
+      ierr = ISRestoreIndices(faceSetIS, &faceSetIds); CHKERRQ(ierr);
+      ierr = ISDestroy(&faceSetIS); CHKERRQ(ierr);
+    } else {
+      // -- ExodusII mesh with user specified BCs
+      // -- Clamp BCs
+      for (PetscInt i = 0; i < appCtx->bcClampCount; i++) {
+        char bcName[25];
+        snprintf(bcName, sizeof bcName, "clamp_%d", appCtx->bcClampFaces[i]);
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, "Face Sets", 0, 0,
+                             NULL, (void(*)(void))BCClamp, 1,
+                             &appCtx->bcClampFaces[i],
+                             (void *)&appCtx->bcClampMax[i]); CHKERRQ(ierr);
+      }
     }
   }
   ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
@@ -193,20 +196,6 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
 
   // Cleanup
   ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
-
-  // Label field components for viewing
-  {
-    // Empty name for conserved field (because there is only one field)
-    PetscSection section;
-    ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 0, "DisplacementX");
-    CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 1, "DisplacementY");
-    CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 2, "DisplacementZ");
-    CHKERRQ(ierr);
-  }
 
   PetscFunctionReturn(0);
 };

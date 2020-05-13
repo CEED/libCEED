@@ -53,6 +53,7 @@ int main(int argc, char **argv) {
   PetscLogStage  stageDMSetup, stageLibceedSetup,
                  stageSnesSetup, stageSnesSolve;
   DM             dmOrig;                 // Distributed DM to clone
+  DM             dmEnergy, dmDiagnostic; // DMs for postprocessing
   DM             *levelDMs;
   Vec            U, *Ug, *Uloc;          // U: solution, R: residual, F: forcing
   Vec            R, Rloc, F, Floc;       // g: global, loc: local
@@ -111,8 +112,37 @@ int main(int argc, char **argv) {
   for (PetscInt level = 0; level < numLevels; level++) {
     ierr = DMClone(dmOrig, &levelDMs[level]); CHKERRQ(ierr);
     ierr = SetupDMByDegree(levelDMs[level], appCtx, appCtx->levelDegrees[level],
-                           ncompu); CHKERRQ(ierr);
+                           PETSC_TRUE, ncompu); CHKERRQ(ierr);
+    // -- Label field components for viewing
+    // Empty name for conserved field (because there is only one field)
+    PetscSection section;
+    ierr = DMGetLocalSection(levelDMs[level], &section); CHKERRQ(ierr);
+    ierr = PetscSectionSetFieldName(section, 0, "Displacement"); CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 0, "DisplacementX");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 1, "DisplacementY");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 2, "DisplacementZ");
+    CHKERRQ(ierr);
   }
+
+  // -- Setup postprocessing DMs
+  ierr = DMClone(dmOrig, &dmEnergy); CHKERRQ(ierr);
+  ierr = SetupDMByDegree(dmEnergy, appCtx, appCtx->levelDegrees[fineLevel],
+                         PETSC_FALSE, 1); CHKERRQ(ierr);
+  ierr = DMClone(dmOrig, &dmDiagnostic); CHKERRQ(ierr);
+  ierr = SetupDMByDegree(dmDiagnostic, appCtx, appCtx->levelDegrees[fineLevel],
+                         PETSC_FALSE, 2); CHKERRQ(ierr);
+  {
+    // -- Label field components for viewing
+    // Empty name for conserved field (because there is only one field)
+    PetscSection section;
+    ierr = DMGetLocalSection(dmDiagnostic, &section); CHKERRQ(ierr);
+    ierr = PetscSectionSetFieldName(section, 0, "Diagnostics"); CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 0, "Stress");
+    ierr = PetscSectionSetComponentName(section, 0, 0, "StrainEnergyDensity");
+    CHKERRQ(ierr);
+  }  
 
   // ---------------------------------------------------------------------------
   // Setup solution and work vectors
@@ -185,10 +215,10 @@ int main(int argc, char **argv) {
   {
     bool highOrder = (appCtx->levelDegrees[fineLevel] > 4 && ceedFine);
     Ceed levelCeed = highOrder ? ceedFine : ceed;
-    ierr = SetupLibceedFineLevel(levelDMs[fineLevel], levelCeed, appCtx,
-                                 phys, ceedData, fineLevel, ncompu,
-                                 Ugsz[fineLevel], Ulocsz[fineLevel], forceCeed,
-                                 qfRestrict, qfProlong);
+    ierr = SetupLibceedFineLevel(levelDMs[fineLevel], dmEnergy, dmDiagnostic,
+                                 levelCeed, appCtx, phys, ceedData, fineLevel,
+                                 ncompu, Ugsz[fineLevel], Ulocsz[fineLevel],
+                                 forceCeed, qfRestrict, qfProlong);
     CHKERRQ(ierr);
   }
   // ---- Setup Jacobian evaluator and prolongation/restriction
@@ -712,10 +742,8 @@ int main(int argc, char **argv) {
   if (!appCtx->testMode) {
     // -- Compute L2 error
     CeedScalar energy;
-    ierr = ComputeStrainEnergy(resCtx,
-                               ceedData[fineLevel]->opEnergy, U,
-                               ceedData[fineLevel]->energy, &energy);
-    CHKERRQ(ierr);
+    ierr = ComputeStrainEnergy(dmEnergy, resCtx, ceedData[fineLevel]->opEnergy,
+                               U, &energy); CHKERRQ(ierr);
 
     // -- Output
     ierr = PetscPrintf(comm,
@@ -780,6 +808,8 @@ int main(int argc, char **argv) {
   ierr = SNESDestroy(&snes); CHKERRQ(ierr);
   ierr = SNESDestroy(&snesCoarse); CHKERRQ(ierr);
   ierr = DMDestroy(&dmOrig); CHKERRQ(ierr);
+  ierr = DMDestroy(&dmEnergy); CHKERRQ(ierr);
+  ierr = DMDestroy(&dmDiagnostic); CHKERRQ(ierr);
   ierr = PetscFree(levelDMs); CHKERRQ(ierr);
 
   // Structs

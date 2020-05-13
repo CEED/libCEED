@@ -104,7 +104,6 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
   CeedVectorDestroy(&data->xceed);
   CeedVectorDestroy(&data->yceed);
   CeedVectorDestroy(&data->truesoln);
-  CeedVectorDestroy(&data->energy);
 
   // Restrictions
   CeedElemRestrictionDestroy(&data->Erestrictu);
@@ -112,6 +111,7 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
   CeedElemRestrictionDestroy(&data->ErestrictGradui);
   CeedElemRestrictionDestroy(&data->Erestrictqdi);
   CeedElemRestrictionDestroy(&data->ErestrictEnergy);
+  CeedElemRestrictionDestroy(&data->ErestrictDiagnostic);
 
   // Bases
   CeedBasisDestroy(&data->basisx);
@@ -188,11 +188,11 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
 };
 
 // Set up libCEED for a given degree
-PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
-                                     Physics phys, CeedData *data,
-                                     PetscInt fineLevel, PetscInt ncompu,
-                                     PetscInt Ugsz, PetscInt Ulocsz,
-                                     CeedVector forceCeed,
+PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
+                                     Ceed ceed, AppCtx appCtx, Physics phys,
+                                     CeedData *data, PetscInt fineLevel,
+                                     PetscInt ncompu, PetscInt Ugsz,
+                                     PetscInt Ulocsz, CeedVector forceCeed,
                                      CeedQFunction qfRestrict,
                                      CeedQFunction qfProlong) {
   int           ierr;
@@ -226,10 +226,15 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
   // -- Coordinate restriction
   ierr = CreateRestrictionPlex(ceed, 2, ncompx, &(data[fineLevel]->Erestrictx),
                                dmcoord); CHKERRQ(ierr);
-
   // -- Solution restriction
   ierr = CreateRestrictionPlex(ceed, P, ncompu, &data[fineLevel]->Erestrictu,
                                dm); CHKERRQ(ierr);
+  // -- Energy restriction
+  ierr = CreateRestrictionPlex(ceed, P, 1, &data[fineLevel]->ErestrictEnergy,
+                               dmEnergy); CHKERRQ(ierr);
+  // -- Pressure restriction
+  ierr = CreateRestrictionPlex(ceed, P, 2, &data[fineLevel]->ErestrictDiagnostic,
+                               dmDiagnostic); CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
@@ -245,10 +250,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
                                      dim*ncompu*nelem*Q*Q*Q,
                                      CEED_STRIDES_BACKEND,
                                      &data[fineLevel]->ErestrictGradui);
-  // -- Energy restriction
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, 1, nelem*Q*Q*Q,
-                                   CEED_STRIDES_BACKEND,
-                                   &data[fineLevel]->ErestrictEnergy);
 
   // ---------------------------------------------------------------------------
   // Element coordinates
@@ -286,8 +287,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, Ceed ceed, AppCtx appCtx,
   // -- State gradient vector
   if (problemChoice != ELAS_LIN)
     CeedVectorCreate(ceed, dim*ncompu*nelem*nqpts, &data[fineLevel]->gradu);
-  // -- Energy vector
-  CeedVectorCreate(ceed, nelem*nqpts, &data[fineLevel]->energy);
 
   // ---------------------------------------------------------------------------
   // Geometric factor computation
