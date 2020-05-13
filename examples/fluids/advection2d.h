@@ -86,7 +86,8 @@ struct Advection2dContext_ {
 // *****************************************************************************
 
 // *****************************************************************************
-// This helper function provides the current 2D advection IC formulation
+// This helper function provides the exact, time-dependent solution
+//   and IC formulation for 2D advection
 // *****************************************************************************
 static inline int Exact_Advection2d(CeedInt dim, CeedScalar time,
                                     const CeedScalar X[], CeedInt Nf,
@@ -129,7 +130,7 @@ static inline int Exact_Advection2d(CeedInt dim, CeedScalar time,
 }
 
 // *****************************************************************************
-// Initial conditions for 2D advection
+// This QFunction sets the initial conditions for 2D advection
 // *****************************************************************************
 CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q,
                                const CeedScalar *const *in, CeedScalar *const *out) {

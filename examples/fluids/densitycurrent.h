@@ -59,10 +59,8 @@ struct SetupContext_ {
 
 #ifndef advection_context_struct
 #define advection_context_struct
-typedef struct AdvectionContext_ *AdvectionContext;
-struct AdvectionContext_ {
-  CeedScalar CtauS;
-  CeedScalar strong_form;
+typedef struct DCContext_ *DCContext;
+struct DCContext_ {
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
@@ -78,13 +76,13 @@ struct AdvectionContext_ {
 //   Potential Temperature:
 //     theta = thetabar + deltatheta
 //       thetabar   = theta0 exp( N**2 z / g )
-//       deltatheta = r <= rc : theta0(1 + cos(pi r/rc)) / 2
+//       deltatheta = r <= rc : thetaC(1 + cos(pi r/rc)) / 2
 //                     r > rc : 0
 //         r        = sqrt( (x - xc)**2 + (y - yc)**2 + (z - zc)**2 )
 //         with (xc,yc,zc) center of domain, rc characteristic radius of thermal bubble
 //   Exner Pressure:
 //     Pi = Pibar + deltaPi
-//       Pibar      = g**2 (exp( - N**2 z / g ) - 1) / (cp theta0 N**2)
+//       Pibar      = 1. + g**2 (exp( - N**2 z / g ) - 1) / (cp theta0 N**2)
 //       deltaPi    = 0 (hydrostatic balance)
 //   Velocity/Momentum Density:
 //     Ui = ui = 0
@@ -116,7 +114,8 @@ struct AdvectionContext_ {
 // *****************************************************************************
 
 // *****************************************************************************
-// This helper function provides the current density current IC formulation
+// This helper function provides support for the exact, time-dependent solution
+//   (currently not implemented) and IC formulation for density current
 // *****************************************************************************
 static inline int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
                            CeedInt Nf, CeedScalar q[], void *ctx) {
@@ -166,7 +165,7 @@ static inline int Exact_DC(CeedInt dim, CeedScalar time, const CeedScalar X[],
 }
 
 // *****************************************************************************
-// Initial conditions for density current
+// This QFunction sets the initial conditions for density current
 // *****************************************************************************
 CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
@@ -465,7 +464,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     // *INDENT-ON*
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
     CeedScalar stab[5][3];
-    AdvectionContext context = (AdvectionContext)ctx;
+    DCContext context = (DCContext)ctx;
     switch (context->stabilization) {
     case 0:        // Galerkin
       break;
@@ -731,7 +730,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     const CeedScalar TauE = TauM / (Ce * cv);
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
     CeedScalar stab[5][3];
-    AdvectionContext context = (AdvectionContext)ctx;
+    DCContext context = (DCContext)ctx;
     switch (context->stabilization) {
     case 0:        // Galerkin
       break;

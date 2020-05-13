@@ -20,6 +20,7 @@ fi
 
 # for examples/ceed petsc*, mfem*, or ex* grep the code to fetch arguments from a TESTARGS line
 declare -a allargs
+declare -a suffices
 if [ ${1::6} == "petsc-" ]; then
     allargs=$(grep -F //TESTARGS examples/petsc/${1:6}.c* | cut -d\  -f2- )
 elif [ ${1::5} == "mfem-" ]; then
@@ -31,7 +32,11 @@ elif [ ${1::4} == "nek-" ]; then
       allargs+=("$(awk -v i="$i" '/C_TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/nek/bps/${1:4}.usr* | cut -d\  -f2- )")
     done
 elif [ ${1::7} == "fluids-" ]; then
-    allargs=$(grep -F //TESTARGS examples/fluids/${1:7}.c* | cut -d\  -f2- )
+    # get all test configurations
+    numconfig=$(grep -F //TESTARGS examples/fluids/${1:7}.c* | wc -l)
+    for ((i=0;i<${numconfig};++i)); do
+      allargs+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/fluids/${1:7}.c | cut -d\  -f2- )")
+    done
 elif [ ${1::7} == "solids-" ]; then
     allargs=$(grep -F //TESTARGS examples/solids/${1:7}.c* | cut -d\  -f2- )
 elif [ ${1::2} == "ex" ]; then
