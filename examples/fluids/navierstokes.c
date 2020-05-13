@@ -31,9 +31,9 @@
 //     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
 //     ./navierstokes -ceed /gpu/occa -problem advection -degree 1
 //
-//TESTARGS suffix=-explicit; -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -vec_view
-//TESTARGS suffix=-implicit-nostab; -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -vec_view
-//TESTARGS suffix=-implicit-supgstab; -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -stab supg -vec_view
+//TESTARGS -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3
+//TESTARGS -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha
+//TESTARGS -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -stab supg
 
 /// @file
 /// Navier-Stokes example using PETSc
@@ -1292,6 +1292,56 @@ int main(int argc, char **argv) {
   }
   // Output numerical values from command line
   ierr = VecViewFromOptions(Q, NULL, "-vec_view"); CHKERRQ(ierr);
+
+  if (test) { // compare reference solution values with current run
+    PetscViewer viewer;
+    char filepath[PETSC_MAX_PATH_LEN];
+    PetscReal testtol;
+    // Create reference solution file name and assign relative error tolerance
+    if (!implicit) { // Explicit test run
+      testtol = 1E-5;
+      ierr = PetscStrncpy(filepath,
+                          "examples/fluids/tests-output/fluids-navierstokes-explicit.bin",
+                          sizeof filepath);
+      CHKERRQ(ierr);
+    }
+    else { // Implicit test runs
+      testtol = 5E-4;
+      if (stab != STAB_SUPG) {
+        ierr = PetscStrncpy(filepath,
+                            "examples/fluids/tests-output/fluids-navierstokes-implicit-nostab.bin",
+                            sizeof filepath);
+        CHKERRQ(ierr);
+      }
+      else {
+        ierr = PetscStrncpy(filepath,
+                            "examples/fluids/tests-output/fluids-navierstokes-implicit-supgstab.bin",
+                            sizeof filepath);
+        CHKERRQ(ierr);
+      }
+    }
+    // Read reference file
+    Vec Qref;
+    PetscReal error, Qrefnorm;
+    ierr = VecDuplicate(Q, &Qref);
+    ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
+    CHKERRQ(ierr);
+    ierr = VecLoad(Qref, viewer); CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+    // Compute error with respect to reference solution
+    ierr = VecAXPY(Q, -1.0, Qref);  CHKERRQ(ierr);
+    ierr = VecNorm(Qref, NORM_MAX, &Qrefnorm); CHKERRQ(ierr);
+    ierr = VecScale(Q, 1./Qrefnorm); CHKERRQ(ierr);
+    ierr = VecNorm(Q, NORM_MAX, &error); CHKERRQ(ierr);
+    ierr = VecDestroy(&Qref); CHKERRQ(ierr);
+    // Check error
+    if (error > testtol) {
+      ierr = PetscPrintf(PETSC_COMM_WORLD,
+                         "Test failed with error norm %g\n",
+                         (double)error); CHKERRQ(ierr);
+    }
+  }
 
   // Clean up libCEED
   CeedVectorDestroy(&qdata);
