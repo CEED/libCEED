@@ -76,7 +76,7 @@ typedef enum {
   STAB_SUPG = 2, // Streamline Upwind Petrov-Galerkin
 } StabilizationType;
 static const char *const StabilizationTypes[] = {
-  "NONE",
+  "none",
   "SU",
   "SUPG",
   "StabilizationType", "STAB_", NULL
@@ -269,7 +269,7 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
       }
       // Essential boundary conditions are encoded as -(loc+1), but we don't care so we decode.
       PetscInt loc = Involute(indices[i*ncomp[0]]);
-      erestrict[eoffset++] = loc / fieldoff[nfields];
+      erestrict[eoffset++] = loc;
     }
     ierr = DMPlexRestoreClosureIndices(dm, section, section, c, &numindices,
                                        &indices, NULL); CHKERRQ(ierr);
@@ -280,9 +280,9 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
   ierr = DMGetLocalVector(dm, &Uloc); CHKERRQ(ierr);
   ierr = VecGetLocalSize(Uloc, &Ndof); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, CEED_INTERLACED, Nelem, PetscPowInt(P, dim),
-                            Ndof/fieldoff[nfields], fieldoff[nfields],
-                            CEED_MEM_HOST, CEED_COPY_VALUES, erestrict, Erestrict);
+  CeedElemRestrictionCreate(ceed, Nelem, PetscPowInt(P, dim), fieldoff[nfields],
+                            1, Ndof, CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
+                            Erestrict);
   ierr = PetscFree(erestrict); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -683,7 +683,7 @@ int main(int argc, char **argv) {
   CeedInt numP, numQ;
   CeedVector xcorners, qdata, q0ceed;
   CeedBasis basisx, basisxc, basisq;
-  CeedElemRestriction restrictx, restrictxcoord, restrictq, restrictqdi;
+  CeedElemRestriction restrictx, restrictq, restrictqdi;
   CeedQFunction qf_setup, qf_ics, qf_rhs, qf_ifunction;
   CeedOperator op_setup, op_ics;
   CeedScalar Rd;
@@ -1061,10 +1061,12 @@ int main(int argc, char **argv) {
     CeedGetResource(ceed, &usedresource);
 
     ierr = PetscPrintf(comm,
-                       "\n-- libCEED Navier-Stokes solver + PETSc --\n"
-                       "  rank(s):                             : %d\n"
+                       "\n-- Navier-Stokes solver - libCEED + PETSc --\n"
+                       "  rank(s)                              : %d\n"
+                       "  Problem to solve                     : %s\n"
+                       "  Stabilization                        : %s\n"
                        "  PETSc:\n"
-                       "    dm_plex_box_faces:                 : %s\n"
+                       "    Box Faces:                         : %s\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
                        "    libCEED Backend MemType            : %s\n"
@@ -1077,7 +1079,8 @@ int main(int argc, char **argv) {
                        "    DoFs per node                      : %D\n"
                        "    Global nodes                       : %D\n"
                        "    Owned nodes                        : %D\n",
-                       comm_size, box_faces_str, usedresource,
+                       comm_size, problemTypes[problemChoice],
+                       StabilizationTypes[stab], box_faces_str, usedresource,
                        CeedMemTypes[memtypebackend],
                        (setmemtyperequest) ?
                        CeedMemTypes[memtyperequested] : "none",
@@ -1110,11 +1113,8 @@ int main(int argc, char **argv) {
   localNelem = cEnd - cStart;
   CeedInt numQdim = CeedIntPow(numQ, dim);
   CeedElemRestrictionCreateStrided(ceed, localNelem, numQdim,
-                                   localNelem*numQdim, qdatasize,
+                                   qdatasize, qdatasize*localNelem*numQdim,
                                    CEED_STRIDES_BACKEND, &restrictqdi);
-  CeedElemRestrictionCreateStrided(ceed, localNelem, PetscPowInt(numP, dim),
-                                   localNelem*PetscPowInt(numP, dim), ncompx,
-                                   CEED_STRIDES_BACKEND, &restrictxcoord);
 
   ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
   ierr = CreateVectorFromPetscVec(ceed, Xloc, &xcorners); CHKERRQ(ierr);
@@ -1433,7 +1433,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&restrictq);
   CeedElemRestrictionDestroy(&restrictx);
   CeedElemRestrictionDestroy(&restrictqdi);
-  CeedElemRestrictionDestroy(&restrictxcoord);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_ics);
   CeedQFunctionDestroy(&qf_rhs);
