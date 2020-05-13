@@ -43,10 +43,12 @@ problemData problemOptions[3] = {
     .apply = LinElasF,
     .jacob = LinElasdF,
     .energy = LinElasEnergy,
+    .diagnostic = LinElasDiagnostic,
     .setupgeofname = SetupGeo_loc,
     .applyfname = LinElasF_loc,
     .jacobfname = LinElasdF_loc,
     .energyfname = LinElasEnergy_loc,
+    .diagnosticfname = LinElasDiagnostic_loc,
     .qmode = CEED_GAUSS
   },
   [ELAS_HYPER_SS] = {
@@ -55,10 +57,12 @@ problemData problemOptions[3] = {
     .apply = HyperSSF,
     .jacob = HyperSSdF,
     .energy = HyperSSEnergy,
+    .diagnostic = HyperSSDiagnostic,
     .setupgeofname = SetupGeo_loc,
     .applyfname = HyperSSF_loc,
     .jacobfname = HyperSSdF_loc,
     .energyfname = HyperSSEnergy_loc,
+    .diagnosticfname = HyperSSDiagnostic_loc,
     .qmode = CEED_GAUSS
   },
   [ELAS_HYPER_FS] = {
@@ -67,10 +71,12 @@ problemData problemOptions[3] = {
     .apply = HyperFSF,
     .jacob = HyperFSdF,
     .energy = HyperFSEnergy,
+    .diagnostic = HyperFSDiagnostic,
     .setupgeofname = SetupGeo_loc,
     .applyfname = HyperFSF_loc,
     .jacobfname = HyperFSdF_loc,
     .energyfname = HyperFSEnergy_loc,
+    .diagnosticfname = HyperFSDiagnostic_loc,
     .qmode = CEED_GAUSS
   }
 };
@@ -100,6 +106,7 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
 
   // Vectors
   CeedVectorDestroy(&data->qdata);
+  CeedVectorDestroy(&data->qdataDiagnostic);
   CeedVectorDestroy(&data->gradu);
   CeedVectorDestroy(&data->xceed);
   CeedVectorDestroy(&data->yceed);
@@ -112,21 +119,25 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
   CeedElemRestrictionDestroy(&data->Erestrictqdi);
   CeedElemRestrictionDestroy(&data->ErestrictEnergy);
   CeedElemRestrictionDestroy(&data->ErestrictDiagnostic);
+  CeedElemRestrictionDestroy(&data->ErestrictqdDiagnostici);
 
   // Bases
   CeedBasisDestroy(&data->basisx);
   CeedBasisDestroy(&data->basisu);
   CeedBasisDestroy(&data->basisEnergy);
+  CeedBasisDestroy(&data->basisDiagnostic);
 
   // QFunctions
   CeedQFunctionDestroy(&data->qfJacob);
   CeedQFunctionDestroy(&data->qfApply);
   CeedQFunctionDestroy(&data->qfEnergy);
+  CeedQFunctionDestroy(&data->qfDiagnostic);
 
   // Operators
   CeedOperatorDestroy(&data->opJacob);
   CeedOperatorDestroy(&data->opApply);
   CeedOperatorDestroy(&data->opEnergy);
+  CeedOperatorDestroy(&data->opDiagnostic);
 
   // Restriction and Prolongation data
   CeedBasisDestroy(&data->basisCtoF);
@@ -198,7 +209,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   int           ierr;
   CeedInt       P = appCtx->levelDegrees[fineLevel] + 1;
   CeedInt       Q = appCtx->levelDegrees[fineLevel] + 1 + appCtx->qextra;
-  CeedInt       dim, ncompx;
+  CeedInt       dim, ncompx, ncompe = 1, ncompd = 2;
   CeedInt       nqpts;
   CeedInt       qdatasize = problemOptions[appCtx->problemChoice].qdatasize;
   problemType   problemChoice = appCtx->problemChoice;
@@ -208,8 +219,8 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   PetscInt      cStart, cEnd, nelem;
   const PetscScalar *coordArray;
   CeedVector    xcoord;
-  CeedQFunction qfSetupGeo, qfApply, qfEnergy;
-  CeedOperator  opSetupGeo, opApply, opEnergy;
+  CeedQFunction qfSetupGeo, qfApply, qfEnergy, qfDiagnostic;
+  CeedOperator  opSetupGeo, opApply, opEnergy, opDiagnostic;
 
   PetscFunctionBeginUser;
 
@@ -230,10 +241,12 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   ierr = CreateRestrictionPlex(ceed, P, ncompu, &data[fineLevel]->Erestrictu,
                                dm); CHKERRQ(ierr);
   // -- Energy restriction
-  ierr = CreateRestrictionPlex(ceed, P, 1, &data[fineLevel]->ErestrictEnergy,
-                               dmEnergy); CHKERRQ(ierr);
+  ierr = CreateRestrictionPlex(ceed, P, ncompe,
+                               &data[fineLevel]->ErestrictEnergy, dmEnergy);
+  CHKERRQ(ierr);
   // -- Pressure restriction
-  ierr = CreateRestrictionPlex(ceed, P, 2, &data[fineLevel]->ErestrictDiagnostic,
+  ierr = CreateRestrictionPlex(ceed, P, ncompd,
+                               &data[fineLevel]->ErestrictDiagnostic,
                                dmDiagnostic); CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
@@ -250,6 +263,11 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
                                      dim*ncompu*nelem*Q*Q*Q,
                                      CEED_STRIDES_BACKEND,
                                      &data[fineLevel]->ErestrictGradui);
+  // -- Geometric data restriction
+  CeedElemRestrictionCreateStrided(ceed, nelem, P*P*P, qdatasize,
+                                   qdatasize*nelem*P*P*P,
+                                   CEED_STRIDES_BACKEND,
+                                   &data[fineLevel]->ErestrictqdDiagnostici);
 
   // ---------------------------------------------------------------------------
   // Element coordinates
@@ -274,9 +292,12 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
                                   problemOptions[problemChoice].qmode,
                                   &data[fineLevel]->basisx);
   // -- Energy basis
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P, Q,
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompe, P, Q,
                                   problemOptions[problemChoice].qmode,
                                   &data[fineLevel]->basisEnergy);
+  // -- Diagnostic output basis
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompu, P, P, CEED_GAUSS_LOBATTO,
+                                  &data[fineLevel]->basisDiagnostic);
 
   // ---------------------------------------------------------------------------
   // Persistent libCEED vectors
@@ -284,6 +305,8 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   CeedBasisGetNumQuadraturePoints(data[fineLevel]->basisu, &nqpts);
   // -- Geometric data vector
   CeedVectorCreate(ceed, qdatasize*nelem*nqpts, &data[fineLevel]->qdata);
+  // -- Collocated geometric data vector
+  CeedVectorCreate(ceed, qdatasize*nelem*P*P*P, &data[fineLevel]->qdataDiagnostic);
   // -- State gradient vector
   if (problemChoice != ELAS_LIN)
     CeedVectorCreate(ceed, dim*ncompu*nelem*nqpts, &data[fineLevel]->gradu);
@@ -443,7 +466,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
     // -- Multiplicity correction
     CeedVectorGetArray(data[fineLevel]->truesoln, CEED_MEM_HOST, &truearray);
     CeedVectorGetArrayRead(multvec, CEED_MEM_HOST, &multarray);
-    for (int i = 0; i < Ulocsz; i++)
+    for (CeedInt i = 0; i < Ulocsz; i++)
       truearray[i] /= multarray[i];
     CeedVectorRestoreArray(data[fineLevel]->truesoln, &truearray);
     CeedVectorRestoreArrayRead(multvec, &multarray);
@@ -466,7 +489,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
                               &qfEnergy);
   CeedQFunctionAddInput(qfEnergy, "du", ncompu*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qfEnergy, "qdata", qdatasize, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qfEnergy, "energy", 1, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qfEnergy, "energy", ncompe, CEED_EVAL_INTERP);
   CeedQFunctionSetContext(qfEnergy, phys, sizeof(phys));
 
   // -- Operator
@@ -481,6 +504,69 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   // -- Save libCEED data
   data[fineLevel]->qfEnergy = qfEnergy;
   data[fineLevel]->opEnergy = opEnergy;
+
+  // ---------------------------------------------------------------------------
+  // Diagnostic value computation
+  // ---------------------------------------------------------------------------
+  // Create the QFunction and Operator that computes stress, strain energy density
+  // ---------------------------------------------------------------------------
+  // Geometric factors
+  // -- Coordinate basis
+  CeedBasis basisx;
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, Q, CEED_GAUSS_LOBATTO,
+                                  &basisx);
+  // -- QFunction
+  CeedQFunctionCreateInterior(ceed, 1, problemOptions[problemChoice].setupgeo,
+                              problemOptions[problemChoice].setupgeofname,
+                              &qfSetupGeo);
+  CeedQFunctionAddInput(qfSetupGeo, "dx", ncompx*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qfSetupGeo, "weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddOutput(qfSetupGeo, "qdata", qdatasize, CEED_EVAL_NONE);
+
+  // -- Operator
+  CeedOperatorCreate(ceed, qfSetupGeo, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &opSetupGeo);
+  CeedOperatorSetField(opSetupGeo, "dx", data[fineLevel]->Erestrictx,
+                       basisx, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(opSetupGeo, "weight", CEED_ELEMRESTRICTION_NONE,
+                       basisx, CEED_VECTOR_NONE);
+  CeedOperatorSetField(opSetupGeo, "qdata",
+                       data[fineLevel]->ErestrictqdDiagnostici,
+                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+
+  // -- Compute the quadrature data
+  CeedOperatorApply(opSetupGeo, xcoord, data[fineLevel]->qdataDiagnostic,
+                    CEED_REQUEST_IMMEDIATE);
+
+  // -- Cleanup
+  CeedBasisDestroy(&basisx);
+  CeedQFunctionDestroy(&qfSetupGeo);
+  CeedOperatorDestroy(&opSetupGeo);
+
+  // Diagnostic quantities
+  // -- QFunction
+  CeedQFunctionCreateInterior(ceed, 1, problemOptions[problemChoice].diagnostic,
+                              problemOptions[problemChoice].diagnosticfname,
+                              &qfDiagnostic);
+  CeedQFunctionAddInput(qfDiagnostic, "du", ncompu*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qfDiagnostic, "qdata", qdatasize, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qfDiagnostic, "diagnostic", ncompd, CEED_EVAL_NONE);
+  CeedQFunctionSetContext(qfDiagnostic, phys, sizeof(phys));
+
+  // -- Operator
+  CeedOperatorCreate(ceed, qfDiagnostic, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &opDiagnostic);
+  CeedOperatorSetField(opDiagnostic, "du", data[fineLevel]->Erestrictu,
+                       data[fineLevel]->basisDiagnostic, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(opDiagnostic, "qdata",
+                       data[fineLevel]->ErestrictqdDiagnostici,
+                       CEED_BASIS_COLLOCATED, data[fineLevel]->qdataDiagnostic);
+  CeedOperatorSetField(opDiagnostic, "diagnostic",
+                       data[fineLevel]->ErestrictDiagnostic,
+                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  // -- Save libCEED data
+  data[fineLevel]->qfDiagnostic = qfDiagnostic;
+  data[fineLevel]->opDiagnostic = opDiagnostic;
 
   // ---------------------------------------------------------------------------
   // Cleanup

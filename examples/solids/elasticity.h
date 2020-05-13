@@ -127,8 +127,9 @@ struct AppCtx_private {
 // Problem specific data
 typedef struct {
   CeedInt           qdatasize;
-  CeedQFunctionUser setupgeo, apply, jacob, energy;
-  const char        *setupgeofname, *applyfname, *jacobfname, *energyfname;
+  CeedQFunctionUser setupgeo, apply, jacob, energy, diagnostic;
+  const char        *setupgeofname, *applyfname, *jacobfname, *energyfname,
+                    *diagnosticfname;
   CeedQuadMode      qmode;
 } problemData;
 
@@ -180,12 +181,14 @@ struct UserMultProlongRestr_private {
 typedef struct CeedData_private *CeedData;
 struct CeedData_private {
   Ceed                ceed;
-  CeedBasis           basisx, basisu, basisCtoF, basisEnergy;
+  CeedBasis           basisx, basisu, basisCtoF, basisEnergy, basisDiagnostic;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictqdi,
-                      ErestrictGradui, ErestrictEnergy, ErestrictDiagnostic;
-  CeedQFunction       qfApply, qfJacob, qfEnergy;
-  CeedOperator        opApply, opJacob, opRestrict, opProlong, opEnergy;
-  CeedVector          qdata, gradu, xceed, yceed, truesoln;
+                      ErestrictGradui, ErestrictEnergy, ErestrictDiagnostic,
+                      ErestrictqdDiagnostici;
+  CeedQFunction       qfApply, qfJacob, qfEnergy, qfDiagnostic;
+  CeedOperator        opApply, opJacob, opRestrict, opProlong, opEnergy,
+                      opDiagnostic;
+  CeedVector          qdata, qdataDiagnostic, gradu, xceed, yceed, truesoln;
 };
 
 // -----------------------------------------------------------------------------
@@ -258,10 +261,14 @@ PetscErrorCode SetupProlongRestrictCtx(MPI_Comm comm, DM dmC, DM dmF, Vec VF,
 PetscErrorCode FormJacobian(SNES snes, Vec U, Mat J, Mat Jpre, void *ctx);
 
 // -----------------------------------------------------------------------------
-// SNES Monitor
+// Solution output
 // -----------------------------------------------------------------------------
 PetscErrorCode ViewSolution(MPI_Comm comm, Vec U, PetscInt increment,
                             PetscScalar loadIncrement);
+
+PetscErrorCode ViewDiagnosticQuantities(MPI_Comm comm, DM dmU,
+                                        UserMult user, Vec U,
+                                        CeedElemRestriction ErestrictDiagnostic);
 
 // -----------------------------------------------------------------------------
 // libCEED Operators for MatShell

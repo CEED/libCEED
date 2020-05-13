@@ -70,6 +70,7 @@ int main(int argc, char **argv) {
   CeedQFunction  qfRestrict = NULL, qfProlong = NULL;
   // Parameters
   PetscInt       ncompu = 3;             // 3 DoFs in 3D
+  PetscInt       ncompe = 1, ncompd = 2; // 1 energy output, 2 diagnostic
   PetscInt       numLevels = 1, fineLevel = 0;
   PetscInt       *Ugsz, *Ulsz, *Ulocsz;  // sz: size
   PetscInt       snesIts = 0;
@@ -129,18 +130,18 @@ int main(int argc, char **argv) {
   // -- Setup postprocessing DMs
   ierr = DMClone(dmOrig, &dmEnergy); CHKERRQ(ierr);
   ierr = SetupDMByDegree(dmEnergy, appCtx, appCtx->levelDegrees[fineLevel],
-                         PETSC_FALSE, 1); CHKERRQ(ierr);
+                         PETSC_FALSE, ncompe); CHKERRQ(ierr);
   ierr = DMClone(dmOrig, &dmDiagnostic); CHKERRQ(ierr);
   ierr = SetupDMByDegree(dmDiagnostic, appCtx, appCtx->levelDegrees[fineLevel],
-                         PETSC_FALSE, 2); CHKERRQ(ierr);
+                         PETSC_FALSE, ncompd); CHKERRQ(ierr);
   {
     // -- Label field components for viewing
     // Empty name for conserved field (because there is only one field)
     PetscSection section;
     ierr = DMGetLocalSection(dmDiagnostic, &section); CHKERRQ(ierr);
     ierr = PetscSectionSetFieldName(section, 0, "Diagnostics"); CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 0, "Stress");
-    ierr = PetscSectionSetComponentName(section, 0, 0, "StrainEnergyDensity");
+    ierr = PetscSectionSetComponentName(section, 0, 0, "CondensedPressure");
+    ierr = PetscSectionSetComponentName(section, 0, 1, "StrainEnergyDensity");
     CHKERRQ(ierr);
   }  
 
@@ -749,6 +750,26 @@ int main(int argc, char **argv) {
     ierr = PetscPrintf(comm,
                        "    Strain Energy                      : %e\n",
                        energy); CHKERRQ(ierr);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Output diagnostic quantities
+  // ---------------------------------------------------------------------------
+  if (appCtx->viewSoln || appCtx->viewFinalSoln) {
+    // -- Setup context
+    UserMult diagnosticCtx;
+    ierr = PetscMalloc1(1, &diagnosticCtx); CHKERRQ(ierr);
+    ierr = PetscMemcpy(diagnosticCtx, resCtx, sizeof(*resCtx)); CHKERRQ(ierr);
+    diagnosticCtx->dm = dmDiagnostic;
+    diagnosticCtx->op = ceedData[fineLevel]->opDiagnostic;
+
+    // -- Compute and output
+    ierr = ViewDiagnosticQuantities(comm, levelDMs[fineLevel], diagnosticCtx, U,
+                                    ceedData[fineLevel]->ErestrictDiagnostic);
+    CHKERRQ(ierr);
+
+    // -- Cleanup
+    ierr = PetscFree(diagnosticCtx); CHKERRQ(ierr);
   }
 
   // ---------------------------------------------------------------------------

@@ -243,6 +243,7 @@ PetscErrorCode ComputeStrainEnergy(DM dmEnergy, UserMult user,
   ierr = DMGlobalToLocal(user->dm, X, INSERT_VALUES, user->Xloc); CHKERRQ(ierr);
   ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, user->Xloc,
                                     user->loadIncrement, NULL, NULL, NULL);
+  CHKERRQ(ierr);
 
   // Setup libCEED input vector
   ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
