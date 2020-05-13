@@ -257,7 +257,7 @@ PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units) {
   // Define derived units
   units->Pascal = units->kilogram / (units->meter * PetscSqr(units->second));
 
-  // Scale E to GPa
+  // Scale E to Pa
   phys->E *= units->Pascal;
 
   PetscFunctionReturn(0);
