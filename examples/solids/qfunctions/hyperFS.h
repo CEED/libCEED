@@ -67,11 +67,25 @@ static inline CeedScalar log1p_series_shifted(CeedScalar x) {
 };
 
 // -----------------------------------------------------------------------------
+// Compute det C - 1
+// -----------------------------------------------------------------------------
+static inline CeedScalar computeDetCM1(CeedScalar E2work[6]) {
+  return E2work[0]*(E2work[1]*E2work[2]-E2work[3]*E2work[3]) +
+         E2work[5]*(E2work[4]*E2work[3]-E2work[5]*E2work[2]) +
+         E2work[4]*(E2work[5]*E2work[3]-E2work[4]*E2work[1]) +
+         E2work[0] + E2work[1] + E2work[2] +
+         E2work[0]*E2work[1] + E2work[0]*E2work[2] +
+         E2work[1]*E2work[2] - E2work[5]*E2work[5] -
+         E2work[4]*E2work[4] - E2work[3]*E2work[3];
+};
+
+// -----------------------------------------------------------------------------
 // Common computations between FS and dFS
 // -----------------------------------------------------------------------------
 static inline int commonFS(const CeedScalar lambda, const CeedScalar mu,
                            const CeedScalar gradu[3][3], CeedScalar Swork[6],
-                           CeedScalar Cinvwork[6], CeedScalar *llnj) {
+                           CeedScalar Cinvwork[6], CeedScalar *detC_m1,
+                           CeedScalar *llnj) {
   // E - Green-Lagrange strain tensor
   //     E = 1/2 (gradu + gradu^T + gradu^T*gradu)
   const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
@@ -87,13 +101,7 @@ static inline int commonFS(const CeedScalar lambda, const CeedScalar mu,
                          {E2work[4], E2work[3], E2work[2]}
                         };
   // *INDENT-ON*
-  const CeedScalar detC_m1 = E2[0][0]*(E2[1][1]*E2[2][2]-E2[1][2]*E2[1][2]) +
-                             E2[0][1]*(E2[0][2]*E2[1][2]-E2[0][1]*E2[2][2]) +
-                             E2[0][2]*(E2[0][1]*E2[1][2]-E2[0][2]*E2[1][1]) +
-                             E2[0][0] + E2[1][1] + E2[2][2] +
-                             E2[0][0]*E2[1][1] + E2[0][0]*E2[2][2] +
-                             E2[1][1]*E2[2][2] - E2[0][1]*E2[0][1] -
-                             E2[0][2]*E2[0][2] - E2[1][2]*E2[1][2];
+  (*detC_m1) = computeDetCM1(E2work);
 
   // C : right Cauchy-Green tensor
   // C = I + 2E
@@ -113,7 +121,7 @@ static inline int commonFS(const CeedScalar lambda, const CeedScalar mu,
                      C[0][2]*C[2][1] - C[0][1]*C[2][2] /* *NOPAD* */
                     };
   for (CeedInt m = 0; m < 6; m++)
-    Cinvwork[m] = A[m] / (detC_m1 + 1.);
+    Cinvwork[m] = A[m] / (*detC_m1 + 1.);
 
   // *INDENT-OFF*
   const CeedScalar Cinv[3][3] = {{Cinvwork[0], Cinvwork[5], Cinvwork[4]},
@@ -123,7 +131,7 @@ static inline int commonFS(const CeedScalar lambda, const CeedScalar mu,
   // *INDENT-ON*
 
   // Compute the Second Piola-Kirchhoff (S)
-  (*llnj) = lambda*log1p_series_shifted(detC_m1)/2.;
+  (*llnj) = lambda*log1p_series_shifted(*detC_m1)/2.;
   for (CeedInt m = 0; m < 6; m++) {
     Swork[m] = (*llnj)*Cinvwork[m];
     for (CeedInt n = 0; n < 3; n++)
@@ -227,7 +235,7 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // Common components of finite strain calculations
-    CeedScalar Swork[6], Cinvwork[6], llnj;
+    CeedScalar Swork[6], Cinvwork[6], llnj, detC_m1;
     // *INDENT-OFF*
     const CeedScalar tempgradu[3][3] =  {{gradu[0][0][i],
                                           gradu[0][1][i],
@@ -240,7 +248,7 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                           gradu[2][2][i]}
                                         };
     // *INDENT-ON*
-    commonFS(lambda, mu, tempgradu, Swork, Cinvwork, &llnj);
+    commonFS(lambda, mu, tempgradu, Swork, Cinvwork, &detC_m1, &llnj);
 
     // Second Piola-Kirchhoff (S)
     // *INDENT-OFF*
@@ -355,7 +363,7 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // Common components of finite strain calculations
-    CeedScalar Swork[6], Cinvwork[6], llnj;
+    CeedScalar Swork[6], Cinvwork[6], llnj, detC_m1;
     // *INDENT-OFF*
     const CeedScalar tempgradu[3][3] =  {{gradu[0][0][i],
                                           gradu[0][1][i],
@@ -368,7 +376,7 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                           gradu[2][2][i]}
                                         };
     // *INDENT-ON*
-    commonFS(lambda, mu, tempgradu, Swork, Cinvwork, &llnj);
+    commonFS(lambda, mu, tempgradu, Swork, Cinvwork, &detC_m1, &llnj);
 
     // deltaE - Green-Lagrange strain tensor
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
@@ -533,14 +541,7 @@ CEED_QFUNCTION(HyperFSEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                            {E2work[4], E2work[3], E2work[2]}
                           };
     // *INDENT-ON*
-    const CeedScalar detC_m1 = E2[0][0]*(E2[1][1]*E2[2][2]-E2[1][2]*E2[1][2]) +
-                               E2[0][1]*(E2[0][2]*E2[1][2]-E2[0][1]*E2[2][2]) +
-                               E2[0][2]*(E2[0][1]*E2[1][2]-E2[0][2]*E2[1][1]) +
-                               E2[0][0] + E2[1][1] + E2[2][2] +
-                               E2[0][0]*E2[1][1] + E2[0][0]*E2[2][2] +
-                               E2[1][1]*E2[2][2] - E2[0][1]*E2[0][1] -
-                               E2[0][2]*E2[0][2] - E2[1][2]*E2[1][2];
-    // *INDENT-OFF*
+    const CeedScalar detC_m1 = computeDetCM1(E2work);
 
     // Strain energy Phi(E) for compressible Neo-Hookean
     CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
@@ -630,14 +631,7 @@ CEED_QFUNCTION(HyperFSDiagnostic)(void *ctx, CeedInt Q,
                            {E2work[4], E2work[3], E2work[2]}
                           };
     // *INDENT-ON*
-    const CeedScalar detC_m1 = E2[0][0]*(E2[1][1]*E2[2][2]-E2[1][2]*E2[1][2]) +
-                               E2[0][1]*(E2[0][2]*E2[1][2]-E2[0][1]*E2[2][2]) +
-                               E2[0][2]*(E2[0][1]*E2[1][2]-E2[0][2]*E2[1][1]) +
-                               E2[0][0] + E2[1][1] + E2[2][2] +
-                               E2[0][0]*E2[1][1] + E2[0][0]*E2[2][2] +
-                               E2[1][1]*E2[2][2] - E2[0][1]*E2[0][1] -
-                               E2[0][2]*E2[0][2] - E2[1][2]*E2[1][2];
-    // *INDENT-OFF*
+    const CeedScalar detC_m1 = computeDetCM1(E2work);
 
     // Strain energy Phi(E) for compressible Neo-Hookean
     CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
