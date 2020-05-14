@@ -122,8 +122,7 @@ int main(int argc, char **argv) {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
   } else {
-    // Create the mesh as a 0-refined sphere. This will create a cubic surface, not a box.
-    PetscBool simplex = PETSC_FALSE;
+    // Create the mesh as a 0-refined sphere. This will create a cubic surface, not a box
     ierr = DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topodim, simplex, &dm);
     CHKERRQ(ierr);
     // Set the object name
@@ -150,8 +149,7 @@ int main(int argc, char **argv) {
   }
 
   // Create DM
-  ierr = SetupDMByDegree(dm, degree, ncompu, topodim);
-  CHKERRQ(ierr);
+  ierr = SetupDMByDegree(dm, degree, ncompu, topodim); CHKERRQ(ierr);
 
   // Create vectors
   ierr = DMCreateGlobalVector(dm, &X); CHKERRQ(ierr);
@@ -166,8 +164,7 @@ int main(int argc, char **argv) {
   ierr = MatCreateShell(comm, lsize, lsize, gsize, gsize,
                         userO, &matO); CHKERRQ(ierr);
   ierr = MatShellSetOperation(matO, MATOP_MULT,
-                              (void(*)(void))MatMult_Ceed);
-  CHKERRQ(ierr);
+                              (void(*)(void))MatMult_Ceed); CHKERRQ(ierr);
 
   // Set up libCEED
   CeedInit(ceedresource, &ceed);
@@ -234,8 +231,6 @@ int main(int argc, char **argv) {
   userO->yceed = ceeddata->yceed;
   userO->op = ceeddata->op_apply;
   userO->ceed = ceed;
-  userO->topodim = topodim;
-  userO->simplex = simplex;
 
   // Setup solver
   ierr = KSPCreate(comm, &ksp); CHKERRQ(ierr);

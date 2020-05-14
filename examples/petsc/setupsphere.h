@@ -38,11 +38,8 @@ typedef struct UserO_ *UserO;
 struct UserO_ {
   MPI_Comm comm;
   DM dm;
-  PetscInt topodim; /* Topological problem dimension */ // TO DO: check if necessary
-  PetscBool simplex; /* Mesh with simplices */ // TO DO: check if necessary
   Vec Xloc, Yloc, diag;
   CeedVector xceed, yceed;
-//  CeedVector qdata;
   CeedOperator op;
   Ceed ceed;
 };
