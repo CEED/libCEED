@@ -50,6 +50,11 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include "advection2d.h"
 #include "densitycurrent.h"
 
+#if PETSC_VERSION_LT(3,14,0)
+#  define DMPlexGetClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexGetClosureIndices(a,b,c,d,f,g,i)
+#  define DMPlexRestoreClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexRestoreClosureIndices(a,b,c,d,f,g,i)
+#endif
+
 // MemType Options
 static const char *const memTypes[] = {
   "host",
@@ -249,8 +254,9 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
   ierr = PetscMalloc1(Nelem*PetscPowInt(P, dim), &erestrict); CHKERRQ(ierr);
   for (c=cStart,eoffset=0; c<cEnd; c++) {
     PetscInt numindices, *indices, nnodes;
-    ierr = DMPlexGetClosureIndices(dm, section, section, c, &numindices,
-                                   &indices, NULL); CHKERRQ(ierr);
+    ierr = DMPlexGetClosureIndices(dm, section, section, c, PETSC_TRUE,
+                                   &numindices, &indices, NULL, NULL);
+    CHKERRQ(ierr);
     if (numindices % fieldoff[nfields]) SETERRQ1(PETSC_COMM_SELF,
           PETSC_ERR_ARG_INCOMP, "Number of closure indices not compatible with Cell %D",
           c);
@@ -271,8 +277,9 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
       PetscInt loc = Involute(indices[i*ncomp[0]]);
       erestrict[eoffset++] = loc;
     }
-    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, &numindices,
-                                       &indices, NULL); CHKERRQ(ierr);
+    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, PETSC_TRUE,
+                                       &numindices, &indices, NULL, NULL);
+    CHKERRQ(ierr);
   }
   if (eoffset != Nelem*PetscPowInt(P, dim)) SETERRQ3(PETSC_COMM_SELF,
         PETSC_ERR_LIB, "ElemRestriction of size (%D,%D) initialized %D nodes", Nelem,
