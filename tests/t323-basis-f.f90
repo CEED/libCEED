@@ -19,7 +19,7 @@
       end
 !-----------------------------------------------------------------------
       program test
-
+      implicit none
       include 'ceedf.h'
 
       integer ceed,err
@@ -41,7 +41,7 @@
       real*8 x1,x2
       integer*8 ioffset,ooffset
 
-      integer b
+      integer b,i
 
       character arg*32
 

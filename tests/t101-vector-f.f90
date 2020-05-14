@@ -1,10 +1,10 @@
 !-----------------------------------------------------------------------
       program test
-
+      implicit none
       include 'ceedf.h'
 
       integer ceed,err
-      integer x,n
+      integer i,x,n
       real*8 a(10)
       real*8 b(10)
       real*8 diff

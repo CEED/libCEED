@@ -1,6 +1,6 @@
 !-----------------------------------------------------------------------
       program test
-
+      implicit none
       include 'ceedf.h'
 
       integer ceed,mtype,err

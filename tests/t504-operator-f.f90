@@ -34,7 +34,7 @@
 ! LCOV_EXCL_STOP
 !-----------------------------------------------------------------------
       program test
-
+      implicit none
       include 'ceedf.h'
 
       integer ceed,err,i,j
@@ -43,7 +43,7 @@
       integer bx,bu
       integer qf_setup,qf_mass
       integer op_setup,op_mass
-      integer qdata
+      integer x,qdata
       integer nelem,p,q
       parameter(nelem=15)
       parameter(p=5)

@@ -1,9 +1,9 @@
 !-----------------------------------------------------------------------
       program test
-
+      implicit none
       include 'ceedf.h'
 
-      integer ceed,err
+      integer ceed,err,i,j
       integer b
       real*8 collograd1d(16), collograd1d2(36)
 

@@ -1,9 +1,9 @@
 !-----------------------------------------------------------------------
       program test
-
+      implicit none
       include 'ceedf.h'
 
-      integer ceed,err
+      integer ceed,err,i,j
       real*8 a(16), lambda(4)
 
       character arg*32
