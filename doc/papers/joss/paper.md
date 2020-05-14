@@ -77,6 +77,8 @@ at run time). This easily allows $hp$-refinement studies (where $h$ commonly den
 elements with different topology. This sketch shows the independence of QFunctions
 (in this case representing a Laplacian) element resolution, topology, or basis degree.\label{fig:schematic}](img/QFunctionSketch.pdf)
 
+LibCEED is a C99 library with Fortran77 and Python interfaces. The Python interface was developed using the C Foreign Function Interface (CFFI) for Python. CFFI allows to reuse most of the C declarations and requires only a minimal adaptation of some of them. The C and Python APIs are mapped in a nearly 1:1 correspondence. For instance, data stored in the CeedVector structure are associated to arrays defined via the numpy package. In fact, since libCEED heavily relies on pointers and arrays to handle the data, a Python structure that resembles the C arrays is needed. In details, numpy arrays allow this correspondence obtained by passing the numpy array memory address as pointers to the libCEED C API.
+
 To achieve high performance, libCEED can take advantage of a tensor-product
 finite-element basis and quadrature rule to apply the action of the basis
 operator $B$ or, alternatively, efficiently operate on bases that are defined
