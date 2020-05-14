@@ -133,7 +133,7 @@ typedef struct {
 } problemData;
 
 // Data specific to each problem option
-problemData problemOptions[3];
+extern problemData problemOptions[3];
 
 // Forcing function data
 typedef struct {
@@ -141,7 +141,7 @@ typedef struct {
   const char        *setupforcingfname;
 } forcingData;
 
-forcingData forcingOptions[3];
+extern forcingData forcingOptions[3];
 
 // Data for PETSc Matshell
 typedef struct UserMult_private *UserMult;
