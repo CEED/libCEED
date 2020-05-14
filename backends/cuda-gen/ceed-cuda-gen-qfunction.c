@@ -95,8 +95,9 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
     "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda_gen;";
   ierr = CeedMalloc(1 + strlen(fields_string) + strlen(buffer),
                     &data->qFunctionSource); CeedChk(ierr);
-  strncpy(data->qFunctionSource, fields_string, 1 + strlen(fields_string));
-  strncat(data->qFunctionSource, buffer, strlen(buffer));
+  memcpy(data->qFunctionSource, fields_string, strlen(fields_string));
+  memcpy(data->qFunctionSource + strlen(fields_string), buffer,
+         strlen(buffer) + 1);
 
   // Cleanup
   ierr = CeedFree(&buffer); CeedChk(ierr);
