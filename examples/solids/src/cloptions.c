@@ -137,6 +137,11 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                           (PetscEnum *)&appCtx->multigridChoice, NULL);
   CHKERRQ(ierr);
 
+  appCtx->nuSmoother = 0.;
+  ierr = PetscOptionsScalar("-nu_smoother", "Poisson's ratio for smoother",
+                            NULL, appCtx->nuSmoother, &appCtx->nuSmoother, NULL);
+  CHKERRQ(ierr);
+
   appCtx->testMode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",

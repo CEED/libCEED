@@ -25,6 +25,7 @@
 // Setup context data for Jacobian evaluation
 PetscErrorCode SetupJacobianCtx(MPI_Comm comm, AppCtx appCtx, DM dm, Vec V,
                                 Vec Vloc, CeedData ceedData, Ceed ceed,
+                                Physics phys, Physics physSmoother,
                                 UserMult jacobianCtx) {
   PetscErrorCode ierr;
 
@@ -42,9 +43,14 @@ PetscErrorCode SetupJacobianCtx(MPI_Comm comm, AppCtx appCtx, DM dm, Vec V,
 
   // libCEED operator
   jacobianCtx->op = ceedData->opJacob;
+  jacobianCtx->qf = ceedData->qfJacob;
 
   // Ceed
   jacobianCtx->ceed = ceed;
+
+  // Physics
+  jacobianCtx->phys = phys;
+  jacobianCtx->physSmoother = physSmoother;
 
   PetscFunctionReturn(0);
 };

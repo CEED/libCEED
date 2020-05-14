@@ -204,13 +204,20 @@ PetscErrorCode GetDiag_Ceed(Mat A, Vec D) {
 
   ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
 
-  // Compute Diagonal via libCEED
+  // -- Set physics context
+  if (user->physSmoother)
+    CeedQFunctionSetContext(user->qf, user->physSmoother,
+                            sizeof(*user->physSmoother));
+
+  // -- Compute Diagonal via libCEED
   CeedVector ceedDiagVec;
   const CeedScalar *diagArray;
-
-  // -- Compute Diagonal
   CeedOperatorAssembleLinearDiagonal(user->op, &ceedDiagVec,
                                      CEED_REQUEST_IMMEDIATE);
+
+  // -- Reset physics context
+  if (user->physSmoother)
+    CeedQFunctionSetContext(user->qf, user->phys, sizeof(*user->phys));
 
   // -- Place in PETSc vector
   CeedVectorGetArrayRead(ceedDiagVec, CEED_MEM_HOST, &diagArray);

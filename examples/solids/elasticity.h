@@ -113,6 +113,7 @@ struct AppCtx_private {
   problemType   problemChoice;
   forcingType   forcingChoice;
   multigridType multigridChoice;
+  PetscScalar   nuSmoother;
   PetscInt      degree;
   PetscInt      qextra;
   PetscInt      numLevels;
@@ -149,13 +150,15 @@ extern forcingData forcingOptions[3];
 // Data for PETSc Matshell
 typedef struct UserMult_private *UserMult;
 struct UserMult_private {
-  MPI_Comm     comm;
-  DM           dm;
-  Vec          Xloc, Yloc;
-  CeedVector   Xceed, Yceed;
-  CeedOperator op;
-  Ceed         ceed;
-  PetscScalar  loadIncrement;
+  MPI_Comm      comm;
+  DM            dm;
+  Vec           Xloc, Yloc;
+  CeedVector    Xceed, Yceed;
+  CeedOperator  op;
+  CeedQFunction qf;
+  Ceed          ceed;
+  PetscScalar   loadIncrement;
+  Physics       phys, physSmoother;
 };
 
 // Data for Jacobian setup routine
@@ -249,6 +252,7 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx, Physics phys,
 // Setup context data for Jacobian evaluation
 PetscErrorCode SetupJacobianCtx(MPI_Comm comm, AppCtx appCtx, DM dm, Vec V,
                                 Vec Vloc, CeedData ceedData, Ceed ceed,
+                                Physics phys, Physics physSmoother,
                                 UserMult jacobianCtx);
 
 // Setup context data for prolongation and restriction operators

@@ -103,6 +103,14 @@ The command line options just shown are the minimum requirements to run the mini
      -  Forcing vector
      - :code:`0,-1,0`
 
+   * - :code:`-multigrid`
+     - Multigrid coarsening to use (:code:`logarithmic`, :code:`uniform` or :code:`none`)
+     - :code:`logarithmic`
+
+   * - :code:`-nu_smoother [real]`
+     - `Poisson's ratio for multigrid smoothers, :math:`\nu < 0.5`
+     - 
+
    * - :code:`-num_steps`
      - Number of load increments for continuation method
      - :code:`1` if :code:`linElas` else :code:`10`

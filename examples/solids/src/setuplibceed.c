@@ -359,7 +359,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   CeedQFunctionAddOutput(qfApply, "dv", ncompu*dim, CEED_EVAL_GRAD);
   if (problemChoice != ELAS_LIN)
     CeedQFunctionAddOutput(qfApply, "gradu", ncompu*dim, CEED_EVAL_NONE);
-  CeedQFunctionSetContext(qfApply, phys, sizeof(phys));
+  CeedQFunctionSetContext(qfApply, phys, sizeof(*phys));
 
   // -- Operator
   CeedOperatorCreate(ceed, qfApply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
@@ -396,10 +396,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
     CeedQFunctionAddInput(qfSetupForce, "qdata", qdatasize, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qfSetupForce, "force", ncompu, CEED_EVAL_INTERP);
     if (forcingChoice == FORCE_MMS)
-      CeedQFunctionSetContext(qfSetupForce, phys, sizeof(phys));
+      CeedQFunctionSetContext(qfSetupForce, phys, sizeof(*phys));
     else
       CeedQFunctionSetContext(qfSetupForce, appCtx->forcingVector,
-                              sizeof(appCtx->forcingVector));
+                              sizeof(*appCtx->forcingVector));
 
     // -- Operator
     CeedOperatorCreate(ceed, qfSetupForce, CEED_QFUNCTION_NONE,
@@ -491,7 +491,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   CeedQFunctionAddInput(qfEnergy, "du", ncompu*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qfEnergy, "qdata", qdatasize, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qfEnergy, "energy", ncompe, CEED_EVAL_INTERP);
-  CeedQFunctionSetContext(qfEnergy, phys, sizeof(phys));
+  CeedQFunctionSetContext(qfEnergy, phys, sizeof(*phys));
 
   // -- Operator
   CeedOperatorCreate(ceed, qfEnergy, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
@@ -552,7 +552,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   CeedQFunctionAddInput(qfDiagnostic, "du", ncompu*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qfDiagnostic, "qdata", qdatasize, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qfDiagnostic, "diagnostic", ncompd, CEED_EVAL_NONE);
-  CeedQFunctionSetContext(qfDiagnostic, phys, sizeof(phys));
+  CeedQFunctionSetContext(qfDiagnostic, phys, sizeof(*phys));
 
   // -- Operator
   CeedOperatorCreate(ceed, qfDiagnostic, CEED_QFUNCTION_NONE,
@@ -644,7 +644,7 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx, Physics phys,
   if (problemChoice != ELAS_LIN)
     CeedQFunctionAddInput(qfJacob, "gradu", ncompu*dim, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qfJacob, "deltadv", ncompu*dim, CEED_EVAL_GRAD);
-  CeedQFunctionSetContext(qfJacob, phys, sizeof(phys));
+  CeedQFunctionSetContext(qfJacob, phys, sizeof(*phys));
 
   // -- Operator
   CeedOperatorCreate(ceed, qfJacob, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,

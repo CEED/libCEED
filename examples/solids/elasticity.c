@@ -48,6 +48,7 @@ int main(int argc, char **argv) {
   // Context structs
   AppCtx         appCtx;                 // Contains problem options
   Physics        phys;                   // Contains physical constants
+  Physics        physSmoother = NULL;    // Separate context if nuSmoother set
   Units          units;                  // Contains units scaling
   // PETSc objects
   PetscLogStage  stageDMSetup, stageLibceedSetup,
@@ -96,6 +97,11 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(1, &phys); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
   ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
+  if (fabs(appCtx->nuSmoother) > 1E-14) {
+    ierr = PetscMalloc1(1, &physSmoother); CHKERRQ(ierr);
+    ierr = PetscMemcpy(physSmoother, phys, sizeof(*phys)); CHKERRQ(ierr);
+    physSmoother->nu = appCtx->nuSmoother;
+  }
 
   // ---------------------------------------------------------------------------
   // Setup DM
@@ -333,8 +339,8 @@ int main(int argc, char **argv) {
     // -- Jacobian context for level
     ierr = PetscMalloc1(1, &jacobCtx[level]); CHKERRQ(ierr);
     ierr = SetupJacobianCtx(comm, appCtx, levelDMs[level], Ug[level],
-                            Uloc[level], ceedData[level], ceed,
-                            jacobCtx[level]); CHKERRQ(ierr);
+                            Uloc[level], ceedData[level], ceed, phys,
+                            physSmoother, jacobCtx[level]); CHKERRQ(ierr);
 
     // -- Form Action of Jacobian on delta_u
     ierr = MatCreateShell(comm, Ulsz[level], Ulsz[level], Ugsz[level],
@@ -359,6 +365,7 @@ int main(int argc, char **argv) {
   ierr = PetscMemcpy(resCtx, jacobCtx[fineLevel],
                      sizeof(*jacobCtx[fineLevel])); CHKERRQ(ierr);
   resCtx->op = ceedData[fineLevel]->opApply;
+  resCtx->qf = ceedData[fineLevel]->qfApply;
   ierr = SNESSetFunction(snes, R, FormResidual_Ceed, resCtx); CHKERRQ(ierr);
 
   // -- Prolongation/Restriction evaluation
@@ -839,6 +846,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(jacobCoarseCtx); CHKERRQ(ierr);
   ierr = PetscFree(appCtx); CHKERRQ(ierr);
   ierr = PetscFree(phys); CHKERRQ(ierr);
+  ierr = PetscFree(physSmoother); CHKERRQ(ierr);
   ierr = PetscFree(units); CHKERRQ(ierr);
 
   return PetscFinalize();
