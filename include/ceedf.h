@@ -127,25 +127,25 @@
 !-----------------------------------------------------------------------
 
       integer ceed_line
-      parameter(ceed_line        = X'10000' )
+      parameter(ceed_line        = int(z'10000') )
 
       integer ceed_triangle
-      parameter(ceed_triangle    = X'20001' )
+      parameter(ceed_triangle    = int(z'20001') )
 
       integer ceed_quad
-      parameter(ceed_quad        = X'20002' )
+      parameter(ceed_quad        = int(z'20002') )
 
       integer ceed_tet
-      parameter(ceed_tet         = X'30003' )
+      parameter(ceed_tet         = int(z'30003') )
 
       integer ceed_pryamid
-      parameter(ceed_pryamid     = X'30004' )
+      parameter(ceed_pryamid     = int(z'30004') )
 
       integer ceed_prism
-      parameter(ceed_prism       = X'30005' )
+      parameter(ceed_prism       = int(z'30005') )
 
       integer ceed_hex
-      parameter(ceed_hex         = X'30006' )
+      parameter(ceed_hex         = int(z'30006') )
 
 !-----------------------------------------------------------------------
 ! Operator and OperatorField Constants
@@ -165,3 +165,5 @@
 
       integer ceed_qfunction_none
       parameter(ceed_qfunction_none       = -9)
+
+! -*- fortran-mode -*-
