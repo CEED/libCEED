@@ -561,8 +561,9 @@ CEED_QFUNCTION(HyperFSDiagnostic)(void *ctx, CeedInt Q,
                                   CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
-                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
 
   // Outputs
   CeedScalar (*diagnostic)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -631,12 +632,19 @@ CEED_QFUNCTION(HyperFSDiagnostic)(void *ctx, CeedInt Q,
                            {E2work[4], E2work[3], E2work[2]}
                           };
     // *INDENT-ON*
-    const CeedScalar detC_m1 = computeDetCM1(E2work);
 
-    // Strain energy Phi(E) for compressible Neo-Hookean
+    // Displacement
+    diagnostic[0][i] = u[0][i];
+    diagnostic[1][i] = u[1][i];
+    diagnostic[2][i] = u[2][i];
+
+    // Condensed pressure
+    const CeedScalar detC_m1 = computeDetCM1(E2work);
     CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
-    diagnostic[0][i] = lambda*logj;
-    diagnostic[1][i] = (lambda*logj*logj/2. - mu*logj +
+    diagnostic[3][i] = lambda*logj;
+
+    // Strain energy
+    diagnostic[4][i] = (lambda*logj*logj/2. - mu*logj +
                         mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.);
 
   } // End of Quadrature Point Loop

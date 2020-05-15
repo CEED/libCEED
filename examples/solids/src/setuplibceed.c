@@ -245,7 +245,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
                                &data[fineLevel]->ErestrictEnergy, dmEnergy);
   CHKERRQ(ierr);
   // -- Pressure restriction
-  ierr = CreateRestrictionPlex(ceed, P, ncompd,
+  ierr = CreateRestrictionPlex(ceed, P, ncompu + ncompd,
                                &data[fineLevel]->ErestrictDiagnostic,
                                dmDiagnostic); CHKERRQ(ierr);
 
@@ -549,14 +549,18 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   CeedQFunctionCreateInterior(ceed, 1, problemOptions[problemChoice].diagnostic,
                               problemOptions[problemChoice].diagnosticfname,
                               &qfDiagnostic);
+  CeedQFunctionAddInput(qfDiagnostic, "u", ncompu, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qfDiagnostic, "du", ncompu*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qfDiagnostic, "qdata", qdatasize, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qfDiagnostic, "diagnostic", ncompd, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qfDiagnostic, "diagnostic", ncompu + ncompd,
+                         CEED_EVAL_NONE);
   CeedQFunctionSetContext(qfDiagnostic, phys, sizeof(*phys));
 
   // -- Operator
   CeedOperatorCreate(ceed, qfDiagnostic, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &opDiagnostic);
+  CeedOperatorSetField(opDiagnostic, "u", data[fineLevel]->Erestrictu,
+                       data[fineLevel]->basisDiagnostic, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(opDiagnostic, "du", data[fineLevel]->Erestrictu,
                        data[fineLevel]->basisDiagnostic, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(opDiagnostic, "qdata",

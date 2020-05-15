@@ -378,8 +378,9 @@ CEED_QFUNCTION(LinElasDiagnostic)(void *ctx, CeedInt Q,
                                   CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
-                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
 
   // Outputs
   CeedScalar (*diagnostic)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -451,10 +452,17 @@ CEED_QFUNCTION(LinElasDiagnostic)(void *ctx, CeedInt Q,
                                };
     // *INDENT-ON*
 
-    // Strain energy
+    // Displacement
+    diagnostic[0][i] = u[0][i];
+    diagnostic[1][i] = u[1][i];
+    diagnostic[2][i] = u[2][i];
+
+    // Condensed pressure
     const CeedScalar strain_vol = e[0][0] + e[1][1] + e[2][2];
-    diagnostic[0][i] = lambda*strain_vol;
-    diagnostic[1][i] = (lambda*strain_vol*strain_vol/2. + strain_vol*mu +
+    diagnostic[3][i] = lambda*strain_vol;
+
+    // Strain energy
+    diagnostic[4][i] = (lambda*strain_vol*strain_vol/2. + strain_vol*mu +
                         (e[0][1]*e[0][1]+e[0][2]*e[0][2]+e[1][2]*e[1][2])*2*mu);
 
   } // End of Quadrature Point Loop

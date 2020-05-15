@@ -139,15 +139,22 @@ int main(int argc, char **argv) {
                          PETSC_FALSE, ncompe); CHKERRQ(ierr);
   ierr = DMClone(dmOrig, &dmDiagnostic); CHKERRQ(ierr);
   ierr = SetupDMByDegree(dmDiagnostic, appCtx, appCtx->levelDegrees[fineLevel],
-                         PETSC_FALSE, ncompd); CHKERRQ(ierr);
+                         PETSC_FALSE, ncompu + ncompd); CHKERRQ(ierr);
   {
     // -- Label field components for viewing
     // Empty name for conserved field (because there is only one field)
     PetscSection section;
     ierr = DMGetLocalSection(dmDiagnostic, &section); CHKERRQ(ierr);
     ierr = PetscSectionSetFieldName(section, 0, "Diagnostics"); CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 0, "CondensedPressure");
-    ierr = PetscSectionSetComponentName(section, 0, 1, "StrainEnergyDensity");
+    ierr = PetscSectionSetComponentName(section, 0, 0, "DisplacementX");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 1, "DisplacementY");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 2, "DisplacementZ");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 3, "CondensedPressure");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 4, "StrainEnergyDensity");
     CHKERRQ(ierr);
   }
 
@@ -614,11 +621,6 @@ int main(int argc, char **argv) {
 
   // Performance logging
   ierr = PetscLogStagePop();
-
-  // View solution
-  if (appCtx->viewFinalSoln && !appCtx->viewSoln) {
-    ierr = ViewSolution(comm, U, increment - 1, 1.0); CHKERRQ(ierr);
-  }
 
   // ---------------------------------------------------------------------------
   // Output summary
