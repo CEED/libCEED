@@ -16,6 +16,15 @@
 
 #include "ceed-magma.h"
 
+static int CeedDestroy_Magma(Ceed ceed) {
+  int ierr;
+  Ceed_Magma *data;
+  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  magma_queue_destroy( data->queue );
+  ierr = CeedFree(&data); CeedChk(ierr);
+  return 0;
+}
+
 static int CeedInit_Magma(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/gpu/magma"))
@@ -36,6 +45,22 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
     return CeedError(ceed, 1, "error in magma_init(): %d\n", ierr);
   // LCOV_EXCL_STOP
 
+  Ceed_Magma *data;
+  ierr = CeedCalloc(sizeof(Ceed_Magma), &data); CeedChk(ierr);
+  ierr = CeedSetData(ceed, (void *)&data); CeedChk(ierr);
+
+  // kernel selection
+  data->basis_kernel_mode = MAGMA_KERNEL_DIM_SPECIFIC;
+
+  // kernel max threads per thread-block
+  data->maxthreads[0] = 128;  // for 1D kernels
+  data->maxthreads[1] = 128;  // for 2D kernels
+  data->maxthreads[2] =  64;  // for 3D kernels
+
+  // create a queue that uses the null stream
+  magma_getdevice( &(data->device) );
+  magma_queue_create_from_cuda(data->device, NULL, NULL, NULL, &(data->queue));
+
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
                                 CeedElemRestrictionCreate_Magma); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
@@ -47,6 +72,8 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
                                 CeedBasisCreateH1_Magma); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Magma); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
+                                CeedDestroy_Magma); CeedChk(ierr);
   return 0;
 }
 

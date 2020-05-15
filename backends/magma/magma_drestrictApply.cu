@@ -67,7 +67,6 @@ magma_readDofsStrided_kernel(const int NCOMP, const int esize, const int nelem,
   }
 }
 
-
 // Fastest index listed first
 // i : related to nodes
 // e : elements
@@ -124,12 +123,14 @@ magma_writeDofsStrided_kernel(const int NCOMP, const int esize, const int nelem,
 extern "C" void
 magma_readDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
                      const magma_int_t esize, const magma_int_t nelem,
-                     magma_int_t *offsets, const double *du, double *dv)
+                     magma_int_t *offsets, const double *du, double *dv,
+                     magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    magma_readDofsOffset_kernel<<<grid, threads, 0, NULL>>>(NCOMP, compstride,
+    magma_readDofsOffset_kernel<<<grid, threads, 0,
+      magma_queue_get_cuda_stream(queue)>>>(NCOMP, compstride,
       esize, nelem, offsets, du, dv);
 }
 
@@ -139,13 +140,15 @@ magma_readDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
 extern "C" void
 magma_readDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                       const magma_int_t nelem, const int *strides,
-                      const double *du, double *dv)
+                      const double *du, double *dv,
+                      magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    magma_readDofsStrided_kernel<<<grid, threads, 0, NULL>>>(NCOMP, esize,
-      nelem, strides, du, dv);
+    magma_readDofsStrided_kernel<<<grid, threads, 0,
+      magma_queue_get_cuda_stream(queue)>>>(NCOMP, esize, nelem, 
+      strides, du, dv);
 }
 
 // WriteDofs from device memory
@@ -154,12 +157,14 @@ magma_readDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
 extern "C" void
 magma_writeDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
                       const magma_int_t esize, const magma_int_t nelem,
-                      magma_int_t *offsets, const double *du, double *dv)
+                      magma_int_t *offsets, const double *du, double *dv,
+                      magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    magma_writeDofsOffset_kernel<<<grid, threads, 0, NULL>>>(NCOMP, compstride,
+    magma_writeDofsOffset_kernel<<<grid, threads, 0,
+      magma_queue_get_cuda_stream(queue)>>>(NCOMP, compstride,
       esize, nelem, offsets, du, dv);
 }
 
@@ -169,11 +174,13 @@ magma_writeDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
 extern "C" void
 magma_writeDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                        const magma_int_t nelem, const int *strides,
-                       const double *du, double *dv)
+                       const double *du, double *dv,
+                       magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    magma_writeDofsStrided_kernel<<<grid, threads, 0, NULL>>>(NCOMP, esize,
-      nelem, strides, du, dv);
+    magma_writeDofsStrided_kernel<<<grid, threads, 0,
+      magma_queue_get_cuda_stream(queue)>>>(NCOMP, esize, nelem, 
+      strides, du, dv);
 }

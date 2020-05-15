@@ -18,9 +18,16 @@
 
 static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request) {
+
   int ierr;
   CeedElemRestriction_Magma *impl;
   ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
+
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
+
+  Ceed_Magma *data;
+  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
 
   CeedInt nelem;
   CeedElemRestrictionGetNumElements(r, &nelem);
@@ -57,37 +64,39 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     if (backendstrides) {
 
       strides[0] = 1;             // node stride
-      strides[1] = esize * nelem; // component stride
-      strides[2] = esize;         // element stride
-      magma_setvector(3, sizeof(CeedInt), strides, 1, dstrides, 1);
+      strides[1] = esize * nelem; //component stride
+      strides[2] = esize;         //element stride
+      magma_setvector(3, sizeof(CeedInt), strides, 1, dstrides, 1, data->queue);
 
     } else {
 
       // Get the new strides
       ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
-      magma_setvector(3, sizeof(CeedInt), strides, 1, dstrides, 1);
+      magma_setvector(3, sizeof(CeedInt), strides, 1, dstrides, 1, data->queue);
     }
 
     // Perform strided restriction with dstrides
     if (tmode == CEED_TRANSPOSE) {
-      magma_writeDofsStrided(ncomp, esize, nelem, dstrides, du, dv);
+      magma_writeDofsStrided(ncomp, esize, nelem, dstrides, du, dv,
+                             data->queue);
     } else {
-      magma_readDofsStrided(ncomp, esize, nelem, dstrides, du, dv);
+      magma_readDofsStrided(ncomp, esize, nelem, dstrides, du, dv,
+                            data->queue);
     }
 
     ierr = magma_free(dstrides);  CeedChk(ierr);
 
-  } else { // Indices array provided, standard restriction
+  } else { // Offsets array provided, standard restriction
 
     CeedInt compstride;
     ierr = CeedElemRestrictionGetCompStride(r, &compstride); CeedChk(ierr);
 
     if (tmode == CEED_TRANSPOSE) {
       magma_writeDofsOffset(ncomp, compstride, esize, nelem, impl->doffsets,
-                            du, dv);
+                            du, dv, data->queue);
     } else {
       magma_readDofsOffset(ncomp, compstride, esize, nelem, impl->doffsets,
-                           du, dv);
+                           du, dv, data->queue);
     }
 
   }
@@ -148,6 +157,9 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
 
+  Ceed_Magma *data;
+  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+
   CeedInt elemsize, nelem;
   ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
@@ -175,7 +187,8 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
                                     size * sizeof(CeedInt)); CeedChk(ierr);
         memcpy(impl->offsets, offsets, size * sizeof(CeedInt));
 
-        magma_setvector(size, sizeof(CeedInt), offsets, 1, impl->doffsets, 1);
+        magma_setvector(size, sizeof(CeedInt), offsets, 1, impl->doffsets, 1,
+                        data->queue);
       }
       break;
     case CEED_OWN_POINTER:
@@ -188,14 +201,16 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
         //       (as we own it, lter in destroy, we use free for pinned memory).
         impl->offsets = (CeedInt *)offsets;
 
-        magma_setvector(size, sizeof(CeedInt), offsets, 1, impl->doffsets, 1);
+        magma_setvector(size, sizeof(CeedInt), offsets, 1, impl->doffsets, 1,
+                        data->queue);
       }
       break;
     case CEED_USE_POINTER:
       if (offsets != NULL) {
         ierr = magma_malloc( (void **)&impl->doffsets,
                              size * sizeof(CeedInt)); CeedChk(ierr);
-        magma_setvector(size, sizeof(CeedInt), offsets, 1, impl->doffsets, 1);
+        magma_setvector(size, sizeof(CeedInt), offsets, 1, impl->doffsets, 1,
+                        data->queue);
       }
       impl->down_ = 1;
       impl->offsets  = (CeedInt *)offsets;
@@ -211,8 +226,8 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
       impl->own_ = 1;
 
       if (offsets)
-        magma_getvector(size, sizeof(CeedInt), impl->doffsets, 1, (void *)offsets, 1);
-
+        magma_getvector(size, sizeof(CeedInt), impl->doffsets, 1, (void *)offsets, 1,
+                        data->queue);
       break;
     case CEED_OWN_POINTER:
       impl->doffsets = (CeedInt *)offsets;
