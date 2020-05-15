@@ -638,7 +638,7 @@ CEED_QFUNCTION(HyperFSDiagnostic)(void *ctx, CeedInt Q,
     diagnostic[1][i] = u[1][i];
     diagnostic[2][i] = u[2][i];
 
-    // Condensed pressure
+    // Pressure
     const CeedScalar detC_m1 = computeDetCM1(E2work);
     CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
     diagnostic[3][i] = lambda*logj;

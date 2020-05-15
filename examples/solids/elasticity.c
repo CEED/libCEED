@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 2, "DisplacementZ");
     CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 3, "CondensedPressure");
+    ierr = PetscSectionSetComponentName(section, 0, 3, "Pressure");
     CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 4, "TraceE");
     CHKERRQ(ierr);

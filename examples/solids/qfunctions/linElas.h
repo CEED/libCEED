@@ -457,7 +457,7 @@ CEED_QFUNCTION(LinElasDiagnostic)(void *ctx, CeedInt Q,
     diagnostic[1][i] = u[1][i];
     diagnostic[2][i] = u[2][i];
 
-    // Condensed pressure
+    // Pressure
     const CeedScalar strain_vol = e[0][0] + e[1][1] + e[2][2];
     diagnostic[3][i] = lambda*strain_vol;
 
