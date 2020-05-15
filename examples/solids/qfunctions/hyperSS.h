@@ -502,7 +502,7 @@ CEED_QFUNCTION(HyperSSDiagnostic)(void *ctx, CeedInt Q,
     // Pressure
     const CeedScalar strain_vol = e[0][0] + e[1][1] + e[2][2];
     const CeedScalar llv = log1p_series(strain_vol);
-    diagnostic[3][i] = lambda*llv;
+    diagnostic[3][i] = -lambda*llv;
 
     // Stress tensor invariants
     diagnostic[4][i] = strain_vol;

@@ -459,7 +459,7 @@ CEED_QFUNCTION(LinElasDiagnostic)(void *ctx, CeedInt Q,
 
     // Pressure
     const CeedScalar strain_vol = e[0][0] + e[1][1] + e[2][2];
-    diagnostic[3][i] = lambda*strain_vol;
+    diagnostic[3][i] = -lambda*strain_vol;
 
     // Stress tensor invariants
     diagnostic[4][i] = strain_vol;

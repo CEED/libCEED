@@ -641,7 +641,7 @@ CEED_QFUNCTION(HyperFSDiagnostic)(void *ctx, CeedInt Q,
     // Pressure
     const CeedScalar detC_m1 = computeDetCM1(E2work);
     CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
-    diagnostic[3][i] = lambda*logj;
+    diagnostic[3][i] = -lambda*logj;
 
     // Stress tensor invariants
     diagnostic[4][i] = (E2[0][0] + E2[1][1] + E2[2][2]) / 2.;
