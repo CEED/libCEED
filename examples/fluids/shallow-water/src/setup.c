@@ -14,6 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+/// @file
+/// Helper setup functions for shallow-water example using PETSc
+
 #include <stdbool.h>
 #include <string.h>
 #include <petsc.h>
@@ -24,8 +27,10 @@
 #include "../qfunctions/setup_geo.h"     // Geometric factors
 #include "../qfunctions/shallowwater.h"  // Physics point-wise functions
 
-/// @file
-/// Helper setup functions for shallow-water example using PETSc
+#if PETSC_VERSION_LT(3,14,0)
+#  define DMPlexGetClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexGetClosureIndices(a,b,c,d,f,g,i)
+#  define DMPlexRestoreClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexRestoreClosureIndices(a,b,c,d,f,g,i)
+#endif
 
 // -----------------------------------------------------------------------------
 // Auxiliary function to create PETSc FE space for a given degree
@@ -191,8 +196,9 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, DM dm, CeedInt P,
   ierr = PetscMalloc1(nelem*P*P, &erestrict); CHKERRQ(ierr);
   for (c=cStart, eoffset = 0; c<cEnd; c++) {
     PetscInt numindices, *indices, i;
-    ierr = DMPlexGetClosureIndices(dm, section, section, c, &numindices,
-                                   &indices, NULL); CHKERRQ(ierr);
+    ierr = DMPlexGetClosureIndices(dm, section, section, c, PETSC_TRUE,
+                                   &numindices, &indices, NULL, NULL);
+    CHKERRQ(ierr);
     for (i=0; i<numindices; i+=ncomp) {
       for (PetscInt j=0; j<ncomp; j++) {
         if (indices[i+j] != indices[i] + (PetscInt)(copysign(j, indices[i])))
@@ -203,8 +209,9 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, DM dm, CeedInt P,
       PetscInt loc = indices[i];
       erestrict[eoffset++] = loc;
     }
-    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, &numindices,
-                                       &indices, NULL); CHKERRQ(ierr);
+    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, PETSC_TRUE,
+                                       &numindices, &indices, NULL, NULL);
+    CHKERRQ(ierr);
   }
   if (eoffset != nelem*P*P) SETERRQ3(PETSC_COMM_SELF,
         PETSC_ERR_LIB, "ElemRestriction of size (%D,%D) initialized %D nodes",
