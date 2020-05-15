@@ -209,7 +209,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   int           ierr;
   CeedInt       P = appCtx->levelDegrees[fineLevel] + 1;
   CeedInt       Q = appCtx->levelDegrees[fineLevel] + 1 + appCtx->qextra;
-  CeedInt       dim, ncompx, ncompe = 1, ncompd = 2;
+  CeedInt       dim, ncompx, ncompe = 1, ncompd = 5;
   CeedInt       nqpts;
   CeedInt       qdatasize = problemOptions[appCtx->problemChoice].qdatasize;
   problemType   problemChoice = appCtx->problemChoice;
@@ -509,7 +509,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   // ---------------------------------------------------------------------------
   // Diagnostic value computation
   // ---------------------------------------------------------------------------
-  // Create the QFunction and Operator that computes stress, strain energy density
+  // Create the QFunction and Operator that computes nodal diagnostic quantities
   // ---------------------------------------------------------------------------
   // Geometric factors
   // -- Coordinate basis

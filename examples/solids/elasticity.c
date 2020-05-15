@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
   CeedQFunction  qfRestrict = NULL, qfProlong = NULL;
   // Parameters
   PetscInt       ncompu = 3;             // 3 DoFs in 3D
-  PetscInt       ncompe = 1, ncompd = 2; // 1 energy output, 2 diagnostic
+  PetscInt       ncompe = 1, ncompd = 5; // 1 energy output, 5 diagnostic
   PetscInt       numLevels = 1, fineLevel = 0;
   PetscInt       *Ugsz, *Ulsz, *Ulocsz;  // sz: size
   PetscInt       snesIts = 0;
@@ -154,7 +154,13 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 3, "CondensedPressure");
     CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 4, "StrainEnergyDensity");
+    ierr = PetscSectionSetComponentName(section, 0, 4, "TraceE");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 5, "TraceE2");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 6, "detJ");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 7, "StrainEnergyDensity");
     CHKERRQ(ierr);
   }
 

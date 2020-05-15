@@ -504,8 +504,16 @@ CEED_QFUNCTION(HyperSSDiagnostic)(void *ctx, CeedInt Q,
     const CeedScalar llv = log1p_series(strain_vol);
     diagnostic[3][i] = lambda*llv;
 
+    // Stress tensor invariants
+    diagnostic[4][i] = strain_vol;
+    diagnostic[5][i] = 0.;
+    for (CeedInt j = 0; j < 3; j++)
+      for (CeedInt m = 0; m < 3; m++)
+        diagnostic[5][i] += e[j][m] * e[m][j];
+    diagnostic[6][i] = 1 + strain_vol;
+
     // Strain energy
-    diagnostic[4][i] = (lambda*(1 + strain_vol)*(llv - 1) + strain_vol*mu +
+    diagnostic[7][i] = (lambda*(1 + strain_vol)*(llv - 1) + strain_vol*mu +
                         (e[0][1]*e[0][1]+e[0][2]*e[0][2]+e[1][2]*e[1][2])*2*mu);
 
   } // End of Quadrature Point Loop

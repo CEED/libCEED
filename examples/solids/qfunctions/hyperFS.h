@@ -643,8 +643,16 @@ CEED_QFUNCTION(HyperFSDiagnostic)(void *ctx, CeedInt Q,
     CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
     diagnostic[3][i] = lambda*logj;
 
+    // Stress tensor invariants
+    diagnostic[4][i] = (E2[0][0] + E2[1][1] + E2[2][2]) / 2.;
+    diagnostic[5][i] = 0.;
+    for (CeedInt j = 0; j < 3; j++)
+      for (CeedInt m = 0; m < 3; m++)
+        diagnostic[5][i] += E2[j][m] * E2[m][j] / 4.;
+    diagnostic[6][i] = sqrt(detC_m1 + 1);
+
     // Strain energy
-    diagnostic[4][i] = (lambda*logj*logj/2. - mu*logj +
+    diagnostic[7][i] = (lambda*logj*logj/2. - mu*logj +
                         mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.);
 
   } // End of Quadrature Point Loop
