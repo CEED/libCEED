@@ -1,4 +1,4 @@
 build/*
 elasticity
 *.d
-solution*
+*.vtu
