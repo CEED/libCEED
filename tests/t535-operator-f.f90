@@ -61,7 +61,7 @@
       end
 !-----------------------------------------------------------------------
       program test
-
+      implicit none
       include 'ceedf.h'
 
       integer ceed,err,i,j,k

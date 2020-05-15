@@ -66,7 +66,7 @@
       end
 !-----------------------------------------------------------------------
       program test
-
+      implicit none
       include 'ceedf.h'
 
       integer ceed,err,i
@@ -95,7 +95,7 @@
       real*8 qweight(q)
       real*8 interp(p*q)
       real*8 grad(d*p*q)
-
+      real*8 val
       character arg*32
 
       external setup_mass,setup_diff,apply

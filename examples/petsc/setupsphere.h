@@ -29,6 +29,11 @@
 #include "qfunctions/bps/bp3sphere.h"
 #include "qfunctions/bps/bp4sphere.h"
 
+#if PETSC_VERSION_LT(3,14,0)
+#  define DMPlexGetClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexGetClosureIndices(a,b,c,d,f,g,i)
+#  define DMPlexRestoreClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexRestoreClosureIndices(a,b,c,d,f,g,i)
+#endif
+
 // -----------------------------------------------------------------------------
 // PETSc Operator Structs
 // -----------------------------------------------------------------------------
@@ -379,8 +384,9 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
   ierr = PetscMalloc1(nelem*P*P, &erestrict); CHKERRQ(ierr);
   for (c=cStart, eoffset = 0; c<cEnd; c++) {
     PetscInt numindices, *indices, i;
-    ierr = DMPlexGetClosureIndices(dm, section, section, c, &numindices,
-                                   &indices, NULL); CHKERRQ(ierr);
+    ierr = DMPlexGetClosureIndices(dm, section, section, c, PETSC_TRUE,
+                                   &numindices, &indices, NULL, NULL);
+    CHKERRQ(ierr);
     for (i=0; i<numindices; i+=ncomp) {
       for (PetscInt j=0; j<ncomp; j++) {
         if (indices[i+j] != indices[i] + copysign(j, indices[i]))
@@ -391,8 +397,9 @@ static int CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
       PetscInt loc = indices[i];
       erestrict[eoffset++] = loc;
     }
-    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, &numindices,
-                                       &indices, NULL); CHKERRQ(ierr);
+    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, PETSC_TRUE,
+                                       &numindices, &indices, NULL, NULL);
+    CHKERRQ(ierr);
   }
 
   // Setup CEED restriction

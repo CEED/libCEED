@@ -8,6 +8,7 @@ build/*
 *.DIR
 ceed.pc
 config.mk
+.prove
 
 # Mac specific
 .DS_Store
@@ -30,6 +31,8 @@ dist
 .pytest_cache
 *cffi.so
 *cffi.dylib
+__pycache__/
+.ipynb_checkpoints/
 
 # Documentation
 xml/*

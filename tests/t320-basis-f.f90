@@ -5,7 +5,7 @@
       include 't320-basis-f.h'
 !-----------------------------------------------------------------------
       program test
-
+      implicit none
       include 'ceedf.h'
 
       integer ceed,err

@@ -1,11 +1,11 @@
 !-----------------------------------------------------------------------
       program test
-
+      implicit none
       include 'ceedf.h'
 
       integer ceed,err
       integer x,y
-      integer r
+      integer i,r
 
       integer ne
       parameter(ne=3)

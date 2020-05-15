@@ -33,7 +33,7 @@
 ! LCOV_EXCL_STOP
 !-----------------------------------------------------------------------
       program test
-
+      implicit none
       include 'ceedf.h'
 
       integer ceed,err

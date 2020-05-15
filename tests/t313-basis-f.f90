@@ -18,7 +18,7 @@
       end
 !-----------------------------------------------------------------------
       program test
-
+      implicit none
       include 'ceedf.h'
 
       integer ceed,err
@@ -114,7 +114,7 @@
           endif
         enddo
         call ceedvectorrestorearrayread(xq,xxq,offset1,err)
-        call ceedvectorrestorearrayread(uq,uuq,offest2,err)
+        call ceedvectorrestorearrayread(uq,uuq,offset2,err)
 
         call ceedvectordestroy(x,err)
         call ceedvectordestroy(xq,err)

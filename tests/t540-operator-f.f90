@@ -32,10 +32,10 @@
       end
 !-----------------------------------------------------------------------
       program test
-
+      implicit none
       include 'ceedf.h'
 
-      integer ceed,err,i
+      integer ceed,err,i,j
       integer stridesx(3),stridesu(3),stridesq(3)
       integer erestrictxi,erestrictui,erestrictqi
       integer bx,bu
@@ -63,10 +63,10 @@
 
 ! DoF Coordinates
       do i=0,1
-      do j=0,1
-        arrx(i+1+j*2+0*4)=i
-        arrx(i+1+j*2+1*4)=j
-      enddo
+        do j=0,1
+          arrx(i+1+j*2+0*4)=i
+          arrx(i+1+j*2+1*4)=j
+        enddo
       enddo
       call ceedvectorcreate(ceed,d*nelem*2*2,x,err)
       xoffset=0

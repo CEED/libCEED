@@ -1,10 +1,10 @@
 !-----------------------------------------------------------------------
       program test
-
+      implicit none
       include 'ceedf.h'
 
       integer ceed,err
-      integer x,y,n
+      integer x,y,i,n
       integer*8 aoffset,xoffset,yoffset
       real*8 a(10)
       real*8 xx(10)
