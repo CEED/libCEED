@@ -452,7 +452,7 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
-  AdvectionContext context = (AdvectionContext)ctx;
+  DCContext context = (DCContext)ctx;
   const CeedScalar strong_form = context->strong_form;
 
   CeedPragmaSIMD
@@ -474,14 +474,11 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
                                    };
     // u_n = normal velocity
     const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1] + norm[2]*u[2];
-    // The boundary value for the floating flux
     // No Change in density or momentum
     for (CeedInt j=0; j<4; j++) {
       v[j][i] = 0;
     }
     v[4][i] = (1-strong_form) *wdetJb *E *u_n;
-
-    // TODO: implement assigned fluxes
 
   } // End Quadrature Point Loop
 

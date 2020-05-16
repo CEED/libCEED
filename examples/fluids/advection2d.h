@@ -418,8 +418,6 @@ CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
                                     };
     // u_n = normal velocity
     const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1];
-    // The boundary value for the floating flux
-    // TODO: Add flux as an input
 
     // No Change in density or momentum
     for (CeedInt j=0; j<4; j++) {

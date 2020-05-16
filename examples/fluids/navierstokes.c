@@ -28,10 +28,12 @@
 //
 // Sample runs:
 //
-//     ./navierstokes -ceed /cpu/self -problem density_current -degree_volume 1
-//     ./navierstokes -ceed /gpu/occa -problem advection -degree_volume 1
+//     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
+//     ./navierstokes -ceed /gpu/occa -problem advection -degree 1
 //
-//TESTARGS -ceed {ceed_resource} -test -degree_volume 1
+//TESTARGS -ceed {ceed_resource} -test explicit -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3
+//TESTARGS -ceed {ceed_resource} -test implicit_stab_none -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha
+//TESTARGS -ceed {ceed_resource} -test implicit_stab_supg -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -stab supg
 
 /// @file
 /// Navier-Stokes example using PETSc
@@ -49,6 +51,18 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include "advection2d.h"
 #include "densitycurrent.h"
 
+#if PETSC_VERSION_LT(3,14,0)
+#  define DMPlexGetClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexGetClosureIndices(a,b,c,d,f,g,i)
+#  define DMPlexRestoreClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexRestoreClosureIndices(a,b,c,d,f,g,i)
+#endif
+
+// MemType Options
+static const char *const memTypes[] = {
+  "host",
+  "device",
+  "memType", "CEED_MEM_", NULL
+};
+
 // Problem Options
 typedef enum {
   NS_DENSITY_CURRENT = 0,
@@ -59,7 +73,7 @@ static const char *const problemTypes[] = {
   "density_current",
   "advection",
   "advection2d",
-  "problemType","NS_",0
+  "problemType", "NS_", NULL
 };
 
 typedef enum {
@@ -68,10 +82,50 @@ typedef enum {
   STAB_SUPG = 2, // Streamline Upwind Petrov-Galerkin
 } StabilizationType;
 static const char *const StabilizationTypes[] = {
-  "NONE",
+  "none",
   "SU",
   "SUPG",
   "StabilizationType", "STAB_", NULL
+};
+
+// Test Options
+typedef enum {
+  TEST_NONE = 0,               // Non test mode
+  TEST_EXPLICIT = 1,           // Explicit test
+  TEST_IMPLICIT_STAB_NONE = 2, // Implicit test no stab
+  TEST_IMPLICIT_STAB_SUPG = 3, // Implicit test supg stab
+} testType;
+static const char *const testTypes[] = {
+  "none",
+  "explicit",
+  "implicit_stab_none",
+  "implicit_stab_supg",
+  "testType", "TEST_", NULL
+};
+
+// Tests specific data
+typedef struct {
+  PetscScalar testtol;
+  const char *filepath;
+} testData;
+
+testData testOptions[] = {
+  [TEST_NONE] = {
+    .testtol = 0.,
+    .filepath = NULL
+  },
+  [TEST_EXPLICIT] = {
+    .testtol = 1E-5,
+    .filepath = "examples/fluids/tests-output/fluids-navierstokes-explicit.bin"
+  },
+  [TEST_IMPLICIT_STAB_NONE] = {
+    .testtol = 5E-4,
+    .filepath = "examples/fluids/tests-output/fluids-navierstokes-implicit-stab-none.bin"
+  },
+  [TEST_IMPLICIT_STAB_SUPG] = {
+    .testtol = 5E-4,
+    .filepath = "examples/fluids/tests-output/fluids-navierstokes-implicit-stab-supg.bin"
+  }
 };
 
 // Problem specific data
@@ -106,7 +160,7 @@ problemData problemOptions[] = {
   //.applySur_ifunction        = IFunction_DC_Sur,
   //.applySur_ifunction_loc    = IFunction_DC_Sur_loc,
     .bc                        = Exact_DC,
-    .non_zero_time             = false,
+    .non_zero_time             = PETSC_FALSE,
   },
   [NS_ADVECTION] = {
     .dim                       = 3,
@@ -127,7 +181,7 @@ problemData problemOptions[] = {
   //.applySur_ifunction        = IFunction_Advection_Sur,
   //.applySur_ifunction_loc    = IFunction_Advection_Sur_loc,
     .bc                        = Exact_Advection,
-    .non_zero_time             = true,
+    .non_zero_time             = PETSC_FALSE,
   },
   [NS_ADVECTION2D] = {
     .dim                       = 2,
@@ -148,7 +202,7 @@ problemData problemOptions[] = {
   //.applySur_ifunction        = IFunction_Advection2d_Sur,
   //.applySur_ifunction_loc    = IFunction_Advection2d_Sur_loc,
     .bc                        = Exact_Advection2d,
-    .non_zero_time             = true,
+    .non_zero_time             = PETSC_TRUE,
   },
 };
 
@@ -191,7 +245,8 @@ struct Units_ {
 typedef struct SimpleBC_ *SimpleBC;
 struct SimpleBC_ {
   PetscInt nwall, nslip[3], noutflow;
-  PetscInt walls[10], slips[3][10], outflow[6];
+  PetscInt walls[6], slips[3][6], outflow[6];
+  PetscBool userbc;
 };
 
 // Essential BC dofs are encoded in closure indices as -(i+1).
@@ -201,22 +256,21 @@ static PetscInt Involute(PetscInt i) {
 
 // Utility function to create local CEED restriction
 static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
-    CeedInt height, DMLabel domainLabel, PetscInt value,
+    CeedInt height, DMLabel domainLabel, CeedInt value,
     CeedElemRestriction *Erestrict) {
 
   PetscSection   section;
   PetscInt       p, Nelem, Ndof, *erestrict, eoffset, nfields, dim,
                  depth;
-  DMLabel depthLabel;
-  IS depthIS, iterIS;
+  DMLabel        depthLabel;
+  IS             depthIS, iterIS;
+  Vec            Uloc;
   const PetscInt *iterIndices;
   PetscErrorCode ierr;
-  Vec Uloc;
 
   PetscFunctionBeginUser;
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-  dim -= height;
-  ierr = DMGetLocalSection(dm,&section); CHKERRQ(ierr);
+  ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
   ierr = PetscSectionGetNumFields(section, &nfields); CHKERRQ(ierr);
   PetscInt ncomp[nfields], fieldoff[nfields+1];
   fieldoff[0] = 0;
@@ -243,11 +297,12 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
   for (p=0,eoffset=0; p<Nelem; p++) {
     PetscInt c = iterIndices[p];
     PetscInt numindices, *indices, nnodes;
-    ierr = DMPlexGetClosureIndices(dm, section, section, c, &numindices,
-                                   &indices, NULL); CHKERRQ(ierr);
-    if (numindices % fieldoff[nfields])
-      SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
-               "Number of closure indices not compatible with Cell %D", c);
+    ierr = DMPlexGetClosureIndices(dm, section, section, c, PETSC_TRUE,
+                                   &numindices, &indices, NULL, NULL);
+    CHKERRQ(ierr);
+    if (numindices % fieldoff[nfields]) SETERRQ1(PETSC_COMM_SELF,
+          PETSC_ERR_ARG_INCOMP, "Number of closure indices not compatible with Cell %D",
+          c);
     nnodes = numindices / fieldoff[nfields];
     for (PetscInt i=0; i<nnodes; i++) {
       // Check that indices are blocked by node and thus can be coalesced as a single field with
@@ -265,8 +320,9 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
       PetscInt loc = Involute(indices[i*ncomp[0]]);
       erestrict[eoffset++] = loc;
     }
-    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, &numindices,
-                                       &indices, NULL); CHKERRQ(ierr);
+    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, PETSC_TRUE,
+                                       &numindices, &indices, NULL, NULL);
+    CHKERRQ(ierr);
   }
   if (eoffset != Nelem*PetscPowInt(P, dim))
     SETERRQ3(PETSC_COMM_SELF, PETSC_ERR_LIB,
@@ -330,7 +386,8 @@ static int VectorPlacePetscVec(CeedVector c, Vec p) {
   ierr = CeedVectorGetLength(c, &mceed); CHKERRQ(ierr);
   ierr = VecGetLocalSize(p, &mpetsc); CHKERRQ(ierr);
   if (mceed != mpetsc) SETERRQ2(PETSC_COMM_SELF,PETSC_ERR_ARG_INCOMP,
-                                  "Cannot place PETSc Vec of length %D in CeedVector of length %D",mpetsc,mceed);
+                                  "Cannot place PETSc Vec of length %D in CeedVector of length %D",
+                                  mpetsc, mceed);
   ierr = VecGetArray(p, &a); CHKERRQ(ierr);
   CeedVectorSetArray(c, CEED_MEM_HOST, CEED_USE_POINTER, a);
   PetscFunctionReturn(0);
@@ -493,7 +550,6 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
     ierr = DMRestoreGlobalVector(user->dmviz, &Qrefined); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer_refined); CHKERRQ(ierr);
   }
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
 
   // Save data in a binary file for continuation of simulations
@@ -522,7 +578,7 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode ICs_PetscMultiplicity(CeedOperator op_ics,
+static PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics,
     CeedVector xcorners, CeedVector q0ceed, DM dm, Vec Qloc, Vec Q,
     CeedElemRestriction restrictq, SetupContext ctxSetup, CeedScalar time) {
   PetscErrorCode ierr;
@@ -606,15 +662,14 @@ static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
-                       SimpleBC bc, void *ctxSetup) {
+static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
+                              SimpleBC bc, void *ctxSetup) {
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
   {
     // Configure the finite element space and boundary conditions
     PetscFE fe;
-    PetscSpace fespace;
     PetscInt ncompq = 5;
     ierr = PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, ncompq,
                                  PETSC_FALSE, degree, PETSC_DECIDE,
@@ -622,13 +677,6 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm,NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
-    /* Wall boundary conditions are zero velocity and zero flux for density and energy */
-    {
-      PetscInt comps[3] = {1, 2, 3};
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
-                           3, comps, (void(*)(void))problem->bc,
-                           bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
-    }
     {
       PetscInt comps[1] = {1};
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
@@ -643,9 +691,38 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
                            1, comps, (void(*)(void))NULL, bc->nslip[2],
                            bc->slips[2], ctxSetup); CHKERRQ(ierr);
     }
-    ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE,NULL);
+    if (bc->userbc == PETSC_TRUE) {
+      for (PetscInt c = 0; c < 3; c++) {
+        for (PetscInt s = 0; s < bc->nslip[c]; s++) {
+          for (PetscInt w = 0; w < bc->nwall; w++) {
+            if (bc->slips[c][s] == bc->walls[w])
+              SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
+                       "Boundary condition already set on face %D!\n", bc->walls[w]);
+
+          }
+        }
+      }
+    }
+    // Wall boundary conditions are zero energy density and zero flux for
+    //   velocity in advection/advection2d, and zero velocity and zero flux
+    //   for mass density and energy density in density_current
+    {
+      if (problem->bc == Exact_Advection || problem->bc == Exact_Advection2d) {
+        PetscInt comps[1] = {4};
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
+                             1, comps, (void(*)(void))problem->bc,
+                             bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
+      } else if (problem->bc == Exact_DC) {
+        PetscInt comps[3] = {1, 2, 3};
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
+                             3, comps, (void(*)(void))problem->bc,
+                             bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
+      } else
+        SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_NULL,
+                "Undefined boundary conditions for this problem");
+    }
+    ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
     CHKERRQ(ierr);
-    ierr = PetscFEGetBasisSpace(fe, &fespace); CHKERRQ(ierr);
     ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
   }
   {
@@ -670,73 +747,82 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  DM dm, dmcoord, dmviz, dmvizfine;
+  DM dm, dmcoord, dmviz;
   Mat interpviz;
   TS ts;
   TSAdapt adapt;
   User user;
   Units units;
   char ceedresource[4096] = "/cpu/self";
-  PetscInt localNelemVol, lnodes, steps;
+  PetscInt localNelemVol, lnodes, gnodes, steps;
   const PetscInt ncompq = 5;
   PetscMPIInt rank;
   PetscScalar ftime;
   Vec Q, Qloc, Xloc;
   Ceed ceed;
-  CeedInt numP_Vol, numQ_Vol;
+  CeedInt numP, numQ;
   CeedVector xcorners, qdata, q0ceed;
-  CeedBasis basisxVol, basisxcVol, basisqVol;
-  CeedElemRestriction restrictxVol, restrictqVol, restrictqdiVol;
+  CeedBasis basisx, basisxc, basisq;
+  CeedElemRestriction restrictx, restrictq, restrictqdi;
   CeedQFunction qf_setupVol, qf_ics, qf_rhsVol, qf_ifunctionVol;
   CeedOperator op_setupVol, op_ics;
   CeedScalar Rd;
+  CeedMemType memtyperequested;
   PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
               kgpersquaredms, Joulepercubicm;
   problemType problemChoice;
   problemData *problem = NULL;
   StabilizationType stab;
-  PetscBool   test, implicit;
+  testType testChoice;
+  testData *test = NULL;
+  PetscBool implicit;
   PetscInt    viz_refine = 0;
   struct SimpleBC_ bc = {
-    .nwall = 6,
-    .walls = {1,2,3,4,5,6},
+    .nslip = {2, 2, 2},
+    .slips = {{5, 6}, {3, 4}, {1, 2}}
   };
   double start, cpu_time_used;
+  // Check PETSc CUDA support
+  PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
+  // *INDENT-OFF*
+  #ifdef PETSC_HAVE_CUDA
+  petschavecuda = PETSC_TRUE;
+  #else
+  petschavecuda = PETSC_FALSE;
+  #endif
+  // *INDENT-ON*
 
   // Create the libCEED contexts
-  PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
-  PetscScalar second    = 1e-2;     // 1 second in scaled time units
-  PetscScalar kilogram  = 1e-6;     // 1 kilogram in scaled mass units
-  PetscScalar Kelvin    = 1;        // 1 Kelvin in scaled temperature units
-  CeedScalar theta0     = 300.;     // K
-  CeedScalar thetaC     = -15.;     // K
-  CeedScalar P0         = 1.e5;     // Pa
-  CeedScalar N          = 0.01;     // 1/s
-  CeedScalar cv         = 717.;     // J/(kg K)
-  CeedScalar cp         = 1004.;    // J/(kg K)
-  CeedScalar g          = 9.81;     // m/s^2
-  CeedScalar lambda     = -2./3.;   // -
-  CeedScalar mu         = 75.;      // Pa s, dynamic viscosity
+  PetscScalar meter      = 1e-2;     // 1 meter in scaled length units
+  PetscScalar second     = 1e-2;     // 1 second in scaled time units
+  PetscScalar kilogram   = 1e-6;     // 1 kilogram in scaled mass units
+  PetscScalar Kelvin     = 1;        // 1 Kelvin in scaled temperature units
+  CeedScalar theta0      = 300.;     // K
+  CeedScalar thetaC      = -15.;     // K
+  CeedScalar P0          = 1.e5;     // Pa
+  CeedScalar N           = 0.01;     // 1/s
+  CeedScalar cv          = 717.;     // J/(kg K)
+  CeedScalar cp          = 1004.;    // J/(kg K)
+  CeedScalar g           = 9.81;     // m/s^2
+  CeedScalar lambda      = -2./3.;   // -
+  CeedScalar mu          = 75.;      // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
-  CeedScalar k          = 0.02638;  // W/(m K)
-  CeedScalar CtauS      = 0.;       // dimensionless
+  CeedScalar k           = 0.02638;  // W/(m K)
+  CeedScalar CtauS       = 0.;       // dimensionless
   CeedScalar strong_form = 0.;      // [0,1]
-  PetscScalar lx        = 8000.;    // m
-  PetscScalar ly        = 8000.;    // m
-  PetscScalar lz        = 4000.;    // m
-  CeedScalar rc         = 1000.;    // m (Radius of bubble)
-  PetscScalar resx      = 1000.;    // m (resolution in x)
-  PetscScalar resy      = 1000.;    // m (resolution in y)
-  PetscScalar resz      = 1000.;    // m (resolution in z)
-  PetscInt outputfreq   = 10;       // -
-  PetscInt contsteps    = 0;        // -
-  PetscInt degreeVol    = 1;        // -
-  PetscInt degreeSur    = 1;        // -
-  PetscInt qextraVol    = 2;        // -
-  PetscInt qextraSur    = 2;        // -
-  DMBoundaryType periodicity[] = {DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
-                                  DM_BOUNDARY_NONE
-                                 };
+  PetscScalar lx         = 8000.;    // m
+  PetscScalar ly         = 8000.;    // m
+  PetscScalar lz         = 4000.;    // m
+  CeedScalar rc          = 1000.;    // m (Radius of bubble)
+  PetscScalar resx       = 1000.;    // m (resolution in x)
+  PetscScalar resy       = 1000.;    // m (resolution in y)
+  PetscScalar resz       = 1000.;    // m (resolution in z)
+  PetscInt outputfreq    = 10;       // -
+  PetscInt contsteps     = 0;        // -
+  PetscInt degree        = 1;        // -
+  PetscInt qextra        = 2;        // -
+  PetscInt degreeSur     = 1;        // -
+  PetscInt qextraSur     = 2;        // -
   PetscReal center[3], dc_axis[3] = {0, 0, 0};
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
@@ -753,8 +839,12 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-test", "Run in test mode",
-                          NULL, test=PETSC_FALSE, &test, NULL); CHKERRQ(ierr);
+  testChoice = TEST_NONE;
+  ierr = PetscOptionsEnum("-test", "Run tests", NULL,
+                          testTypes, (PetscEnum)testChoice,
+                          (PetscEnum *)&testChoice,
+                          NULL); CHKERRQ(ierr);
+  test = &testOptions[testChoice];
   problemChoice = NS_DENSITY_CURRENT;
   ierr = PetscOptionsEnum("-problem", "Problem to solve", NULL,
                           problemTypes, (PetscEnum)problemChoice,
@@ -766,6 +856,10 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
+  if (!implicit && stab != STAB_NONE) {
+    ierr = PetscPrintf(comm, "Warning! Use -stab only with -implicit\n");
+    CHKERRQ(ierr);
+  }
   {
     PetscInt len, len1;
     PetscBool flg, flg1;
@@ -783,7 +877,10 @@ int main(int argc, char **argv) {
                                   (len = sizeof(bc.slips[j]) / sizeof(bc.slips[j][0]),
                                    &len), &flg);
       CHKERRQ(ierr);
-      if (flg) bc.nslip[j] = len;
+      if (flg) {
+        bc.nslip[j] = len;
+        bc.userbc = PETSC_TRUE;
+      }
     }
     ierr = PetscOptionsIntArray("-bc_outflow",
                               "Use outflow boundary conditions on this list of faces",
@@ -833,10 +930,20 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsScalar("-CtauS",
                             "Scale coefficient for tau (nondimensional)",
                             NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
+  if (stab == STAB_NONE && CtauS != 0) {
+    ierr = PetscPrintf(comm,
+                       "Warning! Use -CtauS only with -stab su or -stab supg\n");
+    CHKERRQ(ierr);
+  }
   ierr = PetscOptionsScalar("-strong_form",
                             "Strong (1) or weak/integrated by parts (0) advection residual",
                             NULL, strong_form, &strong_form, NULL);
   CHKERRQ(ierr);
+  if (problemChoice == NS_DENSITY_CURRENT && (CtauS != 0 || strong_form != 0)) {
+    ierr = PetscPrintf(comm,
+                       "Warning! Problem density_current does not support -CtauS or -strong_form\n");
+    CHKERRQ(ierr);
+  }
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                             NULL, lx, &lx, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
@@ -852,10 +959,6 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsScalar("-resz","Target resolution in z",
                             NULL, resz, &resz, NULL); CHKERRQ(ierr);
   PetscInt n = problem->dim;
-  ierr = PetscOptionsEnumArray("-periodicity", "Periodicity per direction",
-                               NULL, DMBoundaryTypes, (PetscEnum *)periodicity,
-                               &n, NULL); CHKERRQ(ierr);
-  n = problem->dim;
   center[0] = 0.5 * lx;
   center[1] = 0.5 * ly;
   center[2] = 0.5 * lz;
@@ -877,14 +980,20 @@ int main(int argc, char **argv) {
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-continue", "Continue from previous solution",
                          NULL, contsteps, &contsteps, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-degree_volume", "Polynomial degree of finite elements for the Volume",
-                         NULL, degreeVol, &degreeVol, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-qextra_volume", "Number of extra quadrature points for the Volume",
-                         NULL, qextraVol, &qextraVol, NULL); CHKERRQ(ierr);
-  PetscStrncpy(user->outputfolder, ".", 2);
+  ierr = PetscOptionsInt("-degree", "Polynomial degree of finite elements",
+                         NULL, degree, &degree, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
+                         NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
+  ierr = PetscStrncpy(user->outputfolder, ".", 2); CHKERRQ(ierr);
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
                             sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
+  memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
+  ierr = PetscOptionsEnum("-memtype",
+                          "CEED MemType requested", NULL,
+                          memTypes, (PetscEnum)memtyperequested,
+                          (PetscEnum *)&memtyperequested, &setmemtyperequest);
+  CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Define derived units
@@ -919,7 +1028,7 @@ int main(int argc, char **argv) {
   const CeedInt dim = problem->dim, ncompx = problem->dim,
                 qdatasizeVol = problem->qdatasizeVol;
   // Set up the libCEED context
-  struct SetupContext_ ctxSetup =  {
+  struct SetupContext_ ctxSetup = {
     .theta0 = theta0,
     .thetaC = thetaC,
     .P0 = P0,
@@ -932,9 +1041,6 @@ int main(int argc, char **argv) {
     .lx = lx,
     .ly = ly,
     .lz = lz,
-    .periodicity0 = periodicity[0],
-    .periodicity1 = periodicity[1],
-    .periodicity2 = periodicity[2],
     .center[0] = center[0],
     .center[1] = center[1],
     .center[2] = center[2],
@@ -944,13 +1050,16 @@ int main(int argc, char **argv) {
     .time = 0,
   };
 
+  // Create the mesh
   {
     const PetscReal scale[3] = {lx, ly, lz};
     ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, scale,
-                               periodicity, PETSC_TRUE, &dm);
+                               NULL, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
   }
-  if (1) {
+
+  // Distribute the mesh over processes
+  {
     DM               dmDist = NULL;
     PetscPartitioner part;
 
@@ -964,14 +1073,12 @@ int main(int argc, char **argv) {
   }
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
+  // Setup DM
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = SetUpDM(dm, problem, degreeVol, &bc, &ctxSetup); CHKERRQ(ierr);
-  if (!test) {
-    ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Degree of Volumetric FEM Space: %D\n",
-                       degreeVol); CHKERRQ(ierr);
-  }
+  ierr = SetUpDM(dm, problem, degree, &bc, &ctxSetup); CHKERRQ(ierr);
+
+  // Refine DM for high-order viz
   dmviz = NULL;
   interpviz = NULL;
   if (viz_refine) {
@@ -979,7 +1086,7 @@ int main(int argc, char **argv) {
 
     ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
     dmhierarchy[0] = dm;
-    for (PetscInt i = 0, d = degreeVol; i < viz_refine; i++) {
+    for (PetscInt i = 0, d = degree; i < viz_refine; i++) {
       Mat interp_next;
 
       ierr = DMRefine(dmhierarchy[i], MPI_COMM_NULL, &dmhierarchy[i+1]);
@@ -1010,59 +1117,96 @@ int main(int argc, char **argv) {
   ierr = VecGetSize(Qloc, &lnodes); CHKERRQ(ierr);
   lnodes /= ncompq;
 
-  {
-    // Print grid information
+  // Initialize CEED
+  CeedInit(ceedresource, &ceed);
+  // Set memtype
+  CeedMemType memtypebackend;
+  CeedGetPreferredMemType(ceed, &memtypebackend);
+  // Check memtype compatibility
+  if (!setmemtyperequest)
+    memtyperequested = memtypebackend;
+  else if (!petschavecuda && memtyperequested == CEED_MEM_DEVICE)
+    SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_SUP_SYS,
+             "PETSc was not built with CUDA. "
+             "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
+
+  // Set number of 1D nodes and quadrature points
+  numP = degree + 1;
+  numQ = numP + qextra;
+
+    // Print summary
+  if (testChoice == TEST_NONE) {
     CeedInt gdofs, odofs;
     int comm_size;
     char box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
     ierr = VecGetSize(Q, &gdofs); CHKERRQ(ierr);
     ierr = VecGetLocalSize(Q, &odofs); CHKERRQ(ierr);
+    gnodes = gdofs/ncompq;
     ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
     ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str,
                                  sizeof(box_faces_str), NULL); CHKERRQ(ierr);
-    if (!test) {
-      ierr = PetscPrintf(comm, "Global FEM dofs: %D (%D owned) on %d ranks\n",
-                         gdofs, odofs, comm_size); CHKERRQ(ierr);
-      ierr = PetscPrintf(comm, "Local FEM nodes: %D\n", lnodes); CHKERRQ(ierr);
-      ierr = PetscPrintf(comm, "dm_plex_box_faces: %s\n", box_faces_str);
-      CHKERRQ(ierr);
-    }
+    const char *usedresource;
+    CeedGetResource(ceed, &usedresource);
 
+    ierr = PetscPrintf(comm,
+                       "\n-- Navier-Stokes solver - libCEED + PETSc --\n"
+                       "  rank(s)                              : %d\n"
+                       "  Problem:\n"
+                       "    Problem Name                       : %s\n"
+                       "    Stabilization                      : %s\n"
+                       "  PETSc:\n"
+                       "    Box Faces                          : %s\n"
+                       "  libCEED:\n"
+                       "    libCEED Backend                    : %s\n"
+                       "    libCEED Backend MemType            : %s\n"
+                       "    libCEED User Requested MemType     : %s\n"
+                       "  Mesh:\n"
+                       "    Number of 1D Basis Nodes (P)       : %d\n"
+                       "    Number of 1D Quadrature Points (Q) : %d\n"
+                       "    Global DoFs                        : %D\n"
+                       "    Owned DoFs                         : %D\n"
+                       "    DoFs per node                      : %D\n"
+                       "    Global nodes                       : %D\n"
+                       "    Owned nodes                        : %D\n",
+                       comm_size, problemTypes[problemChoice],
+                       StabilizationTypes[stab], box_faces_str, usedresource,
+                       CeedMemTypes[memtypebackend],
+                       (setmemtyperequest) ?
+                       CeedMemTypes[memtyperequested] : "none",
+                       numP, numQ, gdofs, odofs, ncompq, gnodes, lnodes);
+    CHKERRQ(ierr);
   }
 
   // Set up global mass vector
-  ierr = VecDuplicate(Q,&user->M); CHKERRQ(ierr);
+  ierr = VecDuplicate(Q, &user->M); CHKERRQ(ierr);
 
-  // Set up CEED
+  // Set up libCEED
   // CEED Bases
   CeedInit(ceedresource, &ceed);
-  numP_Vol = degreeVol + 1;
-  numQ_Vol = numP_Vol + qextraVol;
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompq, numP_Vol, numQ_Vol, CEED_GAUSS,
-                                  &basisqVol);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numQ_Vol, CEED_GAUSS,
-                                  &basisxVol);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numP_Vol,
-                                  CEED_GAUSS_LOBATTO, &basisxcVol);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompq, numP, numQ, CEED_GAUSS,
+                                  &basisq);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numQ, CEED_GAUSS,
+                                  &basisx);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numP,
+                                  CEED_GAUSS_LOBATTO, &basisxc);
   ierr = DMGetCoordinateDM(dm, &dmcoord); CHKERRQ(ierr);
   ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
 
   // CEED Restrictions
-  // Restrictions on the Volume
-  ierr = GetRestrictionForDomain(ceed, dm, ncompx, dim, 0, 0, 0, numP_Vol, numQ_Vol,
-                                 qdatasizeVol, &restrictqVol, &restrictxVol,
-                                 &restrictqdiVol); CHKERRQ(ierr);
+  ierr = GetRestrictionForDomain(ceed, dm, ncompx, dim, 0, 0, 0, numP, numQ,
+                                 qdatasizeVol, &restrictq, &restrictx,
+                                 &restrictqdi); CHKERRQ(ierr);
 
   ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
   ierr = CreateVectorFromPetscVec(ceed, Xloc, &xcorners); CHKERRQ(ierr);
 
   // Create the CEED vectors that will be needed in setup
   CeedInt NqptsVol;
-  CeedBasisGetNumQuadraturePoints(basisqVol, &NqptsVol);
-  CeedElemRestrictionGetNumElements(restrictqVol, &localNelemVol);
+  CeedBasisGetNumQuadraturePoints(basisq, &NqptsVol);
+  CeedElemRestrictionGetNumElements(restrictq, &localNelemVol);
   CeedVectorCreate(ceed, qdatasizeVol*localNelemVol*NqptsVol, &qdata);
-  CeedElemRestrictionCreateVector(restrictqVol, &q0ceed, NULL);
+  CeedElemRestrictionCreateVector(restrictq, &q0ceed, NULL);
 
   // Create the Q-function that builds the quadrature data for the NS operator
   CeedQFunctionCreateInterior(ceed, 1, problem->setupVol, problem->setupVol_loc,
@@ -1103,46 +1247,46 @@ int main(int argc, char **argv) {
 
   // Create the operator that builds the quadrature data for the NS operator
   CeedOperatorCreate(ceed, qf_setupVol, NULL, NULL, &op_setupVol);
-  CeedOperatorSetField(op_setupVol, "dx", restrictxVol, basisxVol, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setupVol, "dx", restrictx, basisx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setupVol, "weight", CEED_ELEMRESTRICTION_NONE,
-                       basisxVol, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setupVol, "qdata", restrictqdiVol,
+                       basisx, CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setupVol, "qdata", restrictqdi,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Create the operator that sets the ICs
   CeedOperatorCreate(ceed, qf_ics, NULL, NULL, &op_ics);
-  CeedOperatorSetField(op_ics, "x", restrictxVol, basisxcVol, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ics, "q0", restrictqVol,
+  CeedOperatorSetField(op_ics, "x", restrictx, basisxc, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_ics, "q0", restrictq,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  CeedElemRestrictionCreateVector(restrictqVol, &user->qceed, NULL);
-  CeedElemRestrictionCreateVector(restrictqVol, &user->qdotceed, NULL);
-  CeedElemRestrictionCreateVector(restrictqVol, &user->gceed, NULL);
+  CeedElemRestrictionCreateVector(restrictq, &user->qceed, NULL);
+  CeedElemRestrictionCreateVector(restrictq, &user->qdotceed, NULL);
+  CeedElemRestrictionCreateVector(restrictq, &user->gceed, NULL);
 
   if (qf_rhsVol) { // Create the RHS physics operator
     CeedOperator op;
     CeedOperatorCreate(ceed, qf_rhsVol, NULL, NULL, &op);
-    CeedOperatorSetField(op, "q", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dq", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "qdata", restrictqdiVol,
+    CeedOperatorSetField(op, "q", restrictq, basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dq", restrictq, basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "qdata", restrictqdi,
                          CEED_BASIS_COLLOCATED, qdata);
-    CeedOperatorSetField(op, "x", restrictxVol, basisxVol, xcorners);
-    CeedOperatorSetField(op, "v", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dv", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "x", restrictx, basisx, xcorners);
+    CeedOperatorSetField(op, "v", restrictq, basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dv", restrictq, basisq, CEED_VECTOR_ACTIVE);
     user->op_rhs = op;
   }
 
   if (qf_ifunctionVol) { // Create the IFunction operator
     CeedOperator op;
     CeedOperatorCreate(ceed, qf_ifunctionVol, NULL, NULL, &op);
-    CeedOperatorSetField(op, "q", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dq", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "qdot", restrictqVol, basisqVol, user->qdotceed);
-    CeedOperatorSetField(op, "qdata", restrictqdiVol,
+    CeedOperatorSetField(op, "q", restrictq, basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dq", restrictq, basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "qdot", restrictq, basisq, user->qdotceed);
+    CeedOperatorSetField(op, "qdata", restrictqdi,
                          CEED_BASIS_COLLOCATED, qdata);
-    CeedOperatorSetField(op, "x", restrictxVol, basisxVol, xcorners);
-    CeedOperatorSetField(op, "v", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dv", restrictqVol, basisqVol, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "x", restrictx, basisx, xcorners);
+    CeedOperatorSetField(op, "v", restrictq, basisq, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "dv", restrictq, basisq, CEED_VECTOR_ACTIVE);
     user->op_ifunction = op;
   }
 
@@ -1209,7 +1353,6 @@ int main(int argc, char **argv) {
   }
   // Create CEED Operator for each face
   for(CeedInt i=0; i<numOutFlow; i++){
-
     ierr = GetRestrictionForDomain(ceed, dm, ncompx, dimSur, height, domainLabel, bc.outflow[i], numP_Sur,
                                    numQ_Sur, qdatasizeSur, &restrictqSur[i], &restrictxSur[i],
                                    &restrictqdiSur[i]); CHKERRQ(ierr);
@@ -1228,9 +1371,9 @@ int main(int argc, char **argv) {
 
     // Utility operator that builds the quadrature data for computing viscous terms
     CeedOperatorCreate(ceed, qf_setupVol, NULL, NULL, &op_setupSur_[i]);
-    CeedOperatorSetField(op_setupSur_[i], "dx", restrictxSur[i], basisxVol, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_setupSur_[i], "dx", restrictxSur[i], basisx, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_setupSur_[i], "weight", CEED_ELEMRESTRICTION_NONE,
-                         basisxVol, CEED_VECTOR_NONE);
+                         basisx, CEED_VECTOR_NONE);
     CeedOperatorSetField(op_setupSur_[i], "qdata", restrictqdiSur[i],
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
@@ -1263,6 +1406,7 @@ int main(int argc, char **argv) {
     }
   }
   // Composite Operaters
+  // IFunction
   if (user->op_ifunction_vol) {
     if (numOutFlow>0) {
       // Composite Operators for the IFunction
@@ -1275,6 +1419,7 @@ int main(int argc, char **argv) {
     user->op_ifunction = user->op_ifunction_vol;
     }
   }
+  // RHS
   if (user->op_rhs_vol) {
     if (numOutFlow == 1) {
       // Composite Operators for the RHS
@@ -1349,11 +1494,11 @@ int main(int argc, char **argv) {
   // Apply Setup Ceed Operators
   ierr = VectorPlacePetscVec(xcorners, Xloc); CHKERRQ(ierr);
   CeedOperatorApply(op_setupVol, xcorners, qdata, CEED_REQUEST_IMMEDIATE);
-  ierr = ComputeLumpedMassMatrix(ceed, dm, restrictqVol, basisqVol, restrictqdiVol, qdata,
+  ierr = ComputeLumpedMassMatrix(ceed, dm, restrictq, basisq, restrictqdi, qdata,
                                  user->M); CHKERRQ(ierr);
 
-  ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictqVol,
-                               &ctxSetup, 0.0);
+  ierr = ICs_FixMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictq,
+                             &ctxSetup, 0.0); CHKERRQ(ierr);
   if (1) { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
     // We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow.  If we
     // disable this, we should still get the same results due to the problem->bc function, but with potentially much
@@ -1366,7 +1511,8 @@ int main(int argc, char **argv) {
     ierr = VecAXPY(Qbc, -1., Qloc); CHKERRQ(ierr);
     ierr = DMRestoreNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
     ierr = PetscObjectComposeFunction((PetscObject)dm,
-                                      "DMPlexInsertBoundaryValues_C",DMPlexInsertBoundaryValues_NS); CHKERRQ(ierr);
+                                      "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_NS);
+    CHKERRQ(ierr);
   }
 
   MPI_Comm_rank(comm, &rank);
@@ -1384,12 +1530,10 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
     ierr = VecLoad(Q, viewer); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  } else {
-    //ierr = DMLocalToGlobal(dm, Qloc, INSERT_VALUES, Q);CHKERRQ(ierr);
   }
   ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
 
-  // Create and setup TS
+// Create and setup TS
   ierr = TSCreate(comm, &ts); CHKERRQ(ierr);
   ierr = TSSetDM(ts, dm); CHKERRQ(ierr);
   if (implicit) {
@@ -1409,14 +1553,14 @@ int main(int argc, char **argv) {
   ierr = TSSetMaxTime(ts, 500. * units->second); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
   ierr = TSSetTimeStep(ts, 1.e-2 * units->second); CHKERRQ(ierr);
-  if (test) {ierr = TSSetMaxSteps(ts, 1); CHKERRQ(ierr);}
+  if (testChoice != TEST_NONE) {ierr = TSSetMaxSteps(ts, 10); CHKERRQ(ierr);}
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
   ierr = TSAdaptSetStepLimits(adapt,
                               1.e-12 * units->second,
                               1.e2 * units->second); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   if (!contsteps) { // print initial condition
-    if (!test) {
+    if (testChoice == TEST_NONE) {
       ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
     }
   } else { // continue from time of last output
@@ -1433,7 +1577,7 @@ int main(int argc, char **argv) {
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
     ierr = TSSetTime(ts, time * user->units->second); CHKERRQ(ierr);
   }
-  if (!test) {
+  if (testChoice == TEST_NONE) {
     ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
   }
 
@@ -1442,25 +1586,25 @@ int main(int argc, char **argv) {
   ierr = PetscBarrier((PetscObject)ts); CHKERRQ(ierr);
   ierr = TSSolve(ts, Q); CHKERRQ(ierr);
   cpu_time_used = MPI_Wtime() - start;
-  ierr = TSGetSolveTime(ts,&ftime); CHKERRQ(ierr);
+  ierr = TSGetSolveTime(ts, &ftime); CHKERRQ(ierr);
   ierr = MPI_Allreduce(MPI_IN_PLACE, &cpu_time_used, 1, MPI_DOUBLE, MPI_MIN,
                        comm); CHKERRQ(ierr);
-  if (!test) {
+  if (testChoice == TEST_NONE) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Time taken for solution: %g\n",
+                       "Time taken for solution (sec): %g\n",
                        (double)cpu_time_used); CHKERRQ(ierr);
   }
 
   // Get error
-  if (problem->non_zero_time && !test) {
+  if (problem->non_zero_time && testChoice == TEST_NONE) {
     Vec Qexact, Qexactloc;
     PetscReal norm;
     ierr = DMCreateGlobalVector(dm, &Qexact); CHKERRQ(ierr);
     ierr = DMGetLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
     ierr = VecGetSize(Qexactloc, &lnodes); CHKERRQ(ierr);
 
-    ierr = ICs_PetscMultiplicity(op_ics, xcorners, q0ceed, dm, Qexactloc, Qexact,
-                                 restrictqVol, &ctxSetup, ftime); CHKERRQ(ierr);
+    ierr = ICs_FixMultiplicity(op_ics, xcorners, q0ceed, dm, Qexactloc, Qexact,
+                               restrictq, &ctxSetup, ftime); CHKERRQ(ierr);
 
     ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
     ierr = VecNorm(Q, NORM_MAX, &norm); CHKERRQ(ierr);
@@ -1468,14 +1612,46 @@ int main(int argc, char **argv) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Max Error: %g\n",
                        (double)norm); CHKERRQ(ierr);
+    // Clean up vectors
+    ierr = DMRestoreLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
+    ierr = VecDestroy(&Qexact); CHKERRQ(ierr);
   }
 
   // Output Statistics
   ierr = TSGetStepNumber(ts,&steps); CHKERRQ(ierr);
-  if (!test) {
+  if (testChoice == TEST_NONE) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Time integrator took %D time steps to reach final time %g\n",
-                       steps,(double)ftime); CHKERRQ(ierr);
+                       steps, (double)ftime); CHKERRQ(ierr);
+  }
+  // Output numerical values from command line
+  ierr = VecViewFromOptions(Q, NULL, "-vec_view"); CHKERRQ(ierr);
+
+  // compare reference solution values with current run
+  if (testChoice != TEST_NONE) {
+    PetscViewer viewer;
+    // Read reference file
+    Vec Qref;
+    PetscReal error, Qrefnorm;
+    ierr = VecDuplicate(Q, &Qref); CHKERRQ(ierr);
+    ierr = PetscViewerBinaryOpen(comm, test->filepath, FILE_MODE_READ, &viewer);
+    CHKERRQ(ierr);
+    ierr = VecLoad(Qref, viewer); CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+    // Compute error with respect to reference solution
+    ierr = VecAXPY(Q, -1.0, Qref);  CHKERRQ(ierr);
+    ierr = VecNorm(Qref, NORM_MAX, &Qrefnorm); CHKERRQ(ierr);
+    ierr = VecScale(Q, 1./Qrefnorm); CHKERRQ(ierr);
+    ierr = VecNorm(Q, NORM_MAX, &error); CHKERRQ(ierr);
+    ierr = VecDestroy(&Qref); CHKERRQ(ierr);
+    // Check error
+    if (error > test->testtol) {
+      ierr = PetscPrintf(PETSC_COMM_WORLD,
+                         "Test failed with error norm %g\n",
+                         (double)error); CHKERRQ(ierr);
+    }
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   }
 
   // Clean up libCEED
@@ -1484,12 +1660,12 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&user->qdotceed);
   CeedVectorDestroy(&user->gceed);
   CeedVectorDestroy(&xcorners);
-  CeedBasisDestroy(&basisqVol);
-  CeedBasisDestroy(&basisxVol);
-  CeedBasisDestroy(&basisxcVol);
-  CeedElemRestrictionDestroy(&restrictqVol);
-  CeedElemRestrictionDestroy(&restrictxVol);
-  CeedElemRestrictionDestroy(&restrictqdiVol);
+  CeedBasisDestroy(&basisq);
+  CeedBasisDestroy(&basisx);
+  CeedBasisDestroy(&basisxc);
+  CeedElemRestrictionDestroy(&restrictq);
+  CeedElemRestrictionDestroy(&restrictx);
+  CeedElemRestrictionDestroy(&restrictqdi);
   CeedQFunctionDestroy(&qf_setupVol);
   CeedQFunctionDestroy(&qf_ics);
   CeedQFunctionDestroy(&qf_rhsVol);
