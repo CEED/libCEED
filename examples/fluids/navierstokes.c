@@ -863,14 +863,29 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
   }
   {
-    PetscInt len, len1;
-    PetscBool flg, flg1;
+    PetscInt len;
+    PetscBool flg;
+    ierr = PetscOptionsIntArray("-bc_outflow",
+                              "Use outflow boundary conditions on this list of faces",
+                              NULL, bc.outflow,
+                              (len = sizeof(bc.outflow) / sizeof(bc.outflow[0]),
+                              &len), &flg); CHKERRQ(ierr);
+    if (flg) {
+      bc.noutflow = len;
+      // Using outflow boundaries disables automatic wall/slip boundaries (they must be set explicitly)
+      bc.nwall = 0;
+      bc.nslip[0] = bc.nslip[1] = bc.nslip[2] = 0;
+    }
     ierr = PetscOptionsIntArray("-bc_wall",
                                 "Use wall boundary conditions on this list of faces",
                                 NULL, bc.walls,
                                 (len = sizeof(bc.walls) / sizeof(bc.walls[0]),
                                  &len), &flg); CHKERRQ(ierr);
-    if (flg) bc.nwall = len;
+    if (flg) {
+      bc.nwall = len;
+      // Using a no-slip wall disables automatic slip walls (they must be set explicitly)
+      bc.nslip[0] = bc.nslip[1] = bc.nslip[2] = 0;
+    }
     for (PetscInt j=0; j<3; j++) {
       const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
       ierr = PetscOptionsIntArray(flags[j],
@@ -884,12 +899,6 @@ int main(int argc, char **argv) {
         bc.userbc = PETSC_TRUE;
       }
     }
-    ierr = PetscOptionsIntArray("-bc_outflow",
-                              "Use outflow boundary conditions on this list of faces",
-                              NULL, bc.outflow,
-                              (len1 = sizeof(bc.outflow) / sizeof(bc.outflow[0]),
-                              &len1), &flg1); CHKERRQ(ierr);
-    if (flg1) bc.noutflow = len1;
   }
   ierr = PetscOptionsInt("-viz_refine",
                          "Regular refinement levels for visualization",
@@ -1417,8 +1426,8 @@ int main(int argc, char **argv) {
       for(CeedInt i=0; i<numOutFlow; i++){
         CeedCompositeOperatorAddSub(user->op_ifunction, user->op_ifunction_sur[i]);
       }
-  } else {
-    user->op_ifunction = user->op_ifunction_vol;
+    } else {
+      user->op_ifunction = user->op_ifunction_vol;
     }
   }
   // RHS
