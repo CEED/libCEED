@@ -70,7 +70,7 @@ For the case of a square/cubic mesh, the list of face indices to be used with `-
   - faceMarkerRight  = 2;
   - faceMarkerTop    = 3;
   - faceMarkerLeft   = 4;
-*  3D:
+* 3D:
   - faceMarkerBottom = 1;
   - faceMarkerTop    = 2;
   - faceMarkerFront  = 3;
@@ -88,13 +88,13 @@ This is 3D advection given in two formulations based upon the weak form.
 State Variables:
 
    *q = ( rho, U<sub>1</sub>, U<sub>2</sub>, U<sub>3</sub>, E )*
-    
+
    *rho* - Mass Density
-    
+
    *U<sub>i</sub>*  - Momentum Density    ,   *U<sub>i</sub> = rho ui*
-    
+
    *E*   - Total Energy Density,   *E  = rho Cv T + rho (u u) / 2 + rho g z*
-    
+
 Advection Equation:
 
    *dE/dt + div( E _u_ ) = 0*
