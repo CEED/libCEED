@@ -37,10 +37,8 @@ function run_tests()
    for ((sol_p = 1; sol_p <= max_p; sol_p++)); do
       local loc_el=
       for ((loc_el = 1; loc_el*sol_p**3 <= max_loc_dofs; loc_el = 2*loc_el)); do
-         local loc_dofs=$((loc_el*sol_p**3))
-         local loc_cell=$(echo "e(l($loc_dofs)/3)" | bc -l)
-         loc_cell=${loc_cell%.*}
-         local all_args=("${common_args[@]}" -degree $sol_p -cells $loc_cell,$loc_cell,$loc_cell -problem $bp)
+         local loc_nodes=$((loc_el*sol_p**3))
+         local all_args=("${common_args[@]}" -degree $sol_p -local_nodes $loc_nodes -problem $bp)
          if [ -z "$dry_run" ]; then
             echo
             echo "Running test:"
