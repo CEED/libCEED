@@ -526,6 +526,7 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), filepath,
                             FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
   ierr = VecView(Qloc, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   if (user->dmviz) {
     Vec Qrefined, Qrefined_loc;
     char filepath_refined[PETSC_MAX_PATH_LEN];
