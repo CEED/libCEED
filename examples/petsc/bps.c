@@ -55,9 +55,10 @@ int main(int argc, char **argv) {
        ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree = 3, qextra, lsize, gsize, dim = 3, melem[3] = {3, 3, 3},
-           ncompu = 1, xlsize;
+           ncompu = 1, xlsize, localnodes, lelem;
   PetscScalar *r;
-  PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
+  PetscBool test_mode, benchmark_mode, read_mesh, write_solution,
+            userlnodes = PETSC_FALSE;
   PetscLogStage solvestage;
   Vec X, Xloc, rhs, rhsloc;
   Mat matO;
@@ -123,15 +124,19 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   if (!read_mesh) {
     PetscInt tmp = dim;
-    ierr = PetscOptionsIntArray("-cells","Number of cells per dimension", NULL,
+    ierr = PetscOptionsIntArray("-cells", "Number of cells per dimension", NULL,
                                 melem, &tmp, NULL); CHKERRQ(ierr);
   }
-
   memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
   ierr = PetscOptionsEnum("-memtype",
                           "CEED MemType requested", NULL,
                           memTypes, (PetscEnum)memtyperequested,
                           (PetscEnum *)&memtyperequested, &setmemtyperequest);
+  CHKERRQ(ierr);
+  localnodes = 1000;
+  ierr = PetscOptionsInt("-local_nodes",
+                         "Target number of locally owned nodes per process",
+                         NULL, localnodes, &localnodes, &userlnodes);
   CHKERRQ(ierr);
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
@@ -141,6 +146,16 @@ int main(int argc, char **argv) {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
   } else {
+    if (userlnodes) {
+      // Find a nicely composite number of elements no less than lnodes
+      for (lelem = PetscMax(1, localnodes / (degree*degree*degree)); ;
+           lelem++) {
+        Split3(lelem, melem, true);
+        if (Max3(melem) / Min3(melem) <= 2) break;
+      }
+    } else {
+      lelem = melem[0]*melem[1]*melem[2];
+    }
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, melem, NULL,
                                NULL, NULL, PETSC_TRUE, &dm); CHKERRQ(ierr);
   }
@@ -221,12 +236,14 @@ int main(int argc, char **argv) {
                        "    Number of 1D Quadrature Points (q) : %d\n"
                        "    Global nodes                       : %D\n"
                        "    Owned nodes                        : %D\n"
-                       "    DoF per node                       : %D\n",
+                       "    DoF per node                       : %D\n"
+                       "    Owned elements                     : %D\n",
                        bpchoice+1, vectype, usedresource,
                        CeedMemTypes[memtypebackend],
                        (setmemtyperequest) ?
                        CeedMemTypes[memtyperequested] : "none",
-                       P, Q, gsize/ncompu, lsize/ncompu, ncompu); CHKERRQ(ierr);
+                       P, Q, gsize/ncompu, lsize/ncompu, ncompu, lelem);
+    CHKERRQ(ierr);
   }
 
   // Create RHS vector
