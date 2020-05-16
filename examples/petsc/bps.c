@@ -48,6 +48,28 @@ const char help[] = "Solve CEED BPs using PETSc with DMPlex\n";
 #include <ceed.h>
 #include "setup.h"
 
+// -----------------------------------------------------------------------------
+// Utilities
+// -----------------------------------------------------------------------------
+
+// Utility function, compute three factors of an integer
+static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
+  for (PetscInt d=0,sizeleft=size; d<3; d++) {
+    PetscInt try = (PetscInt)PetscCeilReal(PetscPowReal(sizeleft, 1./(3 - d)));
+    while (try * (sizeleft / try) != sizeleft) try++;
+    m[reverse ? 2-d : d] = try;
+    sizeleft /= try;
+  }
+}
+
+static int Max3(const PetscInt a[3]) {
+  return PetscMax(a[0], PetscMax(a[1], a[2]));
+}
+
+static int Min3(const PetscInt a[3]) {
+  return PetscMin(a[0], PetscMin(a[1], a[2]));
+}
+
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;

@@ -299,32 +299,6 @@ bpData bpOptions[6] = {
   }
 };
 
-
-// -----------------------------------------------------------------------------
-// Utilities
-// -----------------------------------------------------------------------------
-
-// Utility function, compute three factors of an integer
-int Split3(PetscInt size, PetscInt m[3], bool reverse) {
-
-  PetscFunctionBeginUser;
-  for (PetscInt d=0,sizeleft=size; d<3; d++) {
-    PetscInt try = (PetscInt)PetscCeilReal(PetscPowReal(sizeleft, 1./(3 - d)));
-    while (try * (sizeleft / try) != sizeleft) try++;
-    m[reverse ? 2-d : d] = try;
-    sizeleft /= try;
-  }
-  PetscFunctionReturn(0);
-}
-
-int Max3(const PetscInt a[3]) {
-  return PetscMax(a[0], PetscMax(a[1], a[2]));
-}
-
-int Min3(const PetscInt a[3]) {
-  return PetscMin(a[0], PetscMin(a[1], a[2]));
-}
-
 // -----------------------------------------------------------------------------
 // PETSc FE Boilerplate
 // -----------------------------------------------------------------------------
