@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
        ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree = 3, qextra, lsize, gsize, dim = 3, melem[3] = {3, 3, 3},
-           ncompu = 1, xlsize, localnodes, lelem;
+           ncompu = 1, xlsize, localnodes;
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode, read_mesh, write_solution,
             userlnodes = PETSC_FALSE;
@@ -170,13 +170,13 @@ int main(int argc, char **argv) {
   } else {
     if (userlnodes) {
       // Find a nicely composite number of elements no less than lnodes
-      for (lelem = PetscMax(1, localnodes / (degree*degree*degree)); ;
-           lelem++) {
-        Split3(lelem, melem, true);
+      PetscMPIInt size;
+      ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
+      for (PetscInt gelem = PetscMax(1, size * localnodes / PetscPowInt(degree, dim)); ;
+           gelem++) {
+        Split3(gelem, melem, true);
         if (Max3(melem) / Min3(melem) <= 2) break;
       }
-    } else {
-      lelem = melem[0]*melem[1]*melem[2];
     }
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, melem, NULL,
                                NULL, NULL, PETSC_TRUE, &dm); CHKERRQ(ierr);
@@ -245,6 +245,8 @@ int main(int argc, char **argv) {
     VecType vectype;
     ierr = VecGetType(X, &vectype); CHKERRQ(ierr);
 
+    PetscInt cStart, cEnd;
+    ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
     ierr = PetscPrintf(comm,
                        "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
                        "  PETSc:\n"
@@ -264,7 +266,7 @@ int main(int argc, char **argv) {
                        CeedMemTypes[memtypebackend],
                        (setmemtyperequest) ?
                        CeedMemTypes[memtyperequested] : "none",
-                       P, Q, gsize/ncompu, lsize/ncompu, ncompu, lelem);
+                       P, Q, gsize/ncompu, lsize/ncompu, ncompu, cEnd - cStart);
     CHKERRQ(ierr);
   }
 
