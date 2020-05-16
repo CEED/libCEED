@@ -898,15 +898,11 @@ CEED_QFUNCTION(DC_Sur)(void *ctx, CeedInt Q,
                                    u[0]*Fu[2] + u[1]*Fu[4] + u[2]*Fu[5] + /* *NOPAD* */
                                    k*gradT[2] /* *NOPAD* */
                                   };
-
-    // The boundary value for the floating flux
     // Zero v so all future terms can safely sum into it
     for (int j=0; j<5; j++) v[j][i] = 0;
     // -- Density
-    // ---- u rho
     v[0][i]  -= wdetJb * rho * u_n;
     // -- Momentum
-    // ---- rho (u x u) + P I3
     for (int j=0; j<3; j++)
       v[j+1][i]  -= wdetJb *(rho*u_n*u[j] + norm[j]*P);
     // ---- Fuvisc
@@ -914,13 +910,10 @@ CEED_QFUNCTION(DC_Sur)(void *ctx, CeedInt Q,
     v[2][i] +=  wdetJb *(Fu[1]*norm[0] + Fu[3]*norm[1] + Fu[4]*norm[2]);
     v[3][i] +=  wdetJb *(Fu[2]*norm[0] + Fu[4]*norm[1] + Fu[5]*norm[2]);
     // -- Total Energy Density
-    // ---- (E + P) u
     v[4][i] -= wdetJb *u_n *(E + P);
     // ---- Fevisc
     for (int j=0; j<3; j++)
     v[4][i] += wdetJb *Fe[j] *norm[j];
-
-    // TODO: implement assigned fluxes
 
   } // End Quadrature Point Loop
 
