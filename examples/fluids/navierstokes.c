@@ -270,6 +270,7 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
 
   PetscFunctionBeginUser;
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  dim -= height;
   ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
   ierr = PetscSectionGetNumFields(section, &nfields); CHKERRQ(ierr);
   PetscInt ncomp[nfields], fieldoff[nfields+1];
