@@ -561,6 +561,7 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Set initial guess
   // ---------------------------------------------------------------------------
+  ierr = PetscObjectSetName((PetscObject)U, ""); CHKERRQ(ierr);
   ierr = VecSet(U, 0.0); CHKERRQ(ierr);
 
   // View solution

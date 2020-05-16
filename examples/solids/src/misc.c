@@ -201,6 +201,7 @@ PetscErrorCode ViewDiagnosticQuantities(MPI_Comm comm, DM dmU,
   // PETSc and libCEED vectors
   // ---------------------------------------------------------------------------
   ierr = DMCreateGlobalVector(user->dm, &Diagnostic); CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject)Diagnostic, ""); CHKERRQ(ierr);
   ierr = DMCreateLocalVector(user->dm, &Yloc); CHKERRQ(ierr);
   ierr = VecGetSize(Yloc, &lsz); CHKERRQ(ierr);
   CeedVectorCreate(user->ceed, lsz, &Yceed);
