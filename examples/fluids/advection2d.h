@@ -109,8 +109,8 @@ static inline int Exact_Advection2d(CeedInt dim, CeedScalar time,
 
   // Initial/Boundary Conditions
   q[0] = 1.;
-  q[1] = -(y - center[1]);
-  q[2] =  (x - center[0]);
+  q[1] = 1.;
+  q[2] = 0;
   q[3] = 0;
   q[4] = 0;
 
@@ -393,7 +393,7 @@ CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
