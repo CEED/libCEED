@@ -771,6 +771,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
 //    the Navier-Stokes equations in 3D.
 
 // *****************************************************************************
+#if 0
 CEED_QFUNCTION(DC_Sur)(void *ctx, CeedInt Q,
                             const CeedScalar *const *in,
                             CeedScalar *const *out) {
@@ -919,6 +920,7 @@ CEED_QFUNCTION(DC_Sur)(void *ctx, CeedInt Q,
 
   return 0;
 }
+#endif
 
 // *****************************************************************************
 
