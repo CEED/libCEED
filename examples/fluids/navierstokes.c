@@ -823,7 +823,6 @@ int main(int argc, char **argv) {
   PetscInt contsteps     = 0;        // -
   PetscInt degree        = 1;        // -
   PetscInt qextra        = 2;        // -
-  PetscInt degreeSur     = 1;        // -
   PetscInt qextraSur     = 2;        // -
   PetscReal center[3], dc_axis[3] = {0, 0, 0};
 
@@ -1284,7 +1283,7 @@ int main(int argc, char **argv) {
     CeedOperatorSetField(op, "x", restrictx, basisx, xcorners);
     CeedOperatorSetField(op, "v", restrictq, basisq, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "dv", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    user->op_rhs = op;
+    user->op_rhs_vol = op;
   }
 
   if (qf_ifunctionVol) { // Create the IFunction operator
@@ -1298,7 +1297,7 @@ int main(int argc, char **argv) {
     CeedOperatorSetField(op, "x", restrictx, basisx, xcorners);
     CeedOperatorSetField(op, "v", restrictq, basisq, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "dv", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    user->op_ifunction = op;
+    user->op_ifunction_vol = op;
   }
 
   //--------------------------------------------------------------------------------------//
@@ -1308,7 +1307,7 @@ int main(int argc, char **argv) {
   CeedInt numP_Sur, numQ_Sur;
   CeedInt height = 1;
   CeedInt dimSur = dim - height;
-  numP_Sur = degreeSur + 1;
+  numP_Sur = degree + 1;
   numQ_Sur = numP_Sur + qextraSur;
   const CeedInt qdatasizeSur = problem->qdatasizeSur;
   CeedBasis basisxSur, basisxcSur, basisqSur;
@@ -1400,29 +1399,29 @@ int main(int argc, char **argv) {
   // Composite Operaters
   // IFunction
   if (user->op_ifunction_vol) {
-    if (numOutFlow>0) {
+    if (numOutFlow) {
       // Composite Operators for the IFunction
       CeedCompositeOperatorCreate(ceed, &user->op_ifunction);
       CeedCompositeOperatorAddSub(user->op_ifunction, user->op_ifunction_vol);
       for(CeedInt i=0; i<numOutFlow; i++){
         CeedCompositeOperatorAddSub(user->op_ifunction, user->op_ifunction_sur[i]);
-        }
+      }
     } else {
       user->op_ifunction = user->op_ifunction_vol;
-      }
+    }
   }
   // RHS
   if (user->op_rhs_vol) {
-    if (numOutFlow == 1) {
+    if (numOutFlow) {
       // Composite Operators for the RHS
       CeedCompositeOperatorCreate(ceed, &user->op_rhs);
       CeedCompositeOperatorAddSub(user->op_rhs, user->op_rhs_vol);
       for(CeedInt i=0; i<numOutFlow; i++){
         CeedCompositeOperatorAddSub(user->op_rhs, user->op_rhs_sur[i]);
-        }
+      }
     } else {
       user->op_rhs = user->op_rhs_vol;
-      }
+    }
   }
   //--------------------------------------------------------------------------------------//
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
