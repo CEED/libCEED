@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
   } else {
     if (userlnodes) {
-      // Find a nicely composite number of elements no less than lnodes
+      // Find a nicely composite number of elements no less than global nodes
       PetscMPIInt size;
       ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
       for (PetscInt gelem = PetscMax(1, size * localnodes / PetscPowInt(degree, dim));
