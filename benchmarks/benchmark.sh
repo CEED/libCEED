@@ -84,6 +84,7 @@ backends.
 
 Example usage:
   $this_file  --run petsc-bpsraw.sh
+  $this_file  --run petsc-bps.sh
 "
 
 

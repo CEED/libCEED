@@ -48,6 +48,28 @@ const char help[] = "Solve CEED BPs using PETSc with DMPlex\n";
 #include <ceed.h>
 #include "setup.h"
 
+// -----------------------------------------------------------------------------
+// Utilities
+// -----------------------------------------------------------------------------
+
+// Utility function, compute three factors of an integer
+static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
+  for (PetscInt d=0,sizeleft=size; d<3; d++) {
+    PetscInt try = (PetscInt)PetscCeilReal(PetscPowReal(sizeleft, 1./(3 - d)));
+    while (try * (sizeleft / try) != sizeleft) try++;
+    m[reverse ? 2-d : d] = try;
+    sizeleft /= try;
+  }
+}
+
+static int Max3(const PetscInt a[3]) {
+  return PetscMax(a[0], PetscMax(a[1], a[2]));
+}
+
+static int Min3(const PetscInt a[3]) {
+  return PetscMin(a[0], PetscMin(a[1], a[2]));
+}
+
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
@@ -55,9 +77,10 @@ int main(int argc, char **argv) {
        ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree = 3, qextra, lsize, gsize, dim = 3, melem[3] = {3, 3, 3},
-           ncompu = 1, xlsize;
+           ncompu = 1, xlsize, localnodes;
   PetscScalar *r;
-  PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
+  PetscBool test_mode, benchmark_mode, read_mesh, write_solution,
+            userlnodes = PETSC_FALSE;
   PetscLogStage solvestage;
   Vec X, Xloc, rhs, rhsloc;
   Mat matO;
@@ -123,15 +146,19 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   if (!read_mesh) {
     PetscInt tmp = dim;
-    ierr = PetscOptionsIntArray("-cells","Number of cells per dimension", NULL,
+    ierr = PetscOptionsIntArray("-cells", "Number of cells per dimension", NULL,
                                 melem, &tmp, NULL); CHKERRQ(ierr);
   }
-
   memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
   ierr = PetscOptionsEnum("-memtype",
                           "CEED MemType requested", NULL,
                           memTypes, (PetscEnum)memtyperequested,
                           (PetscEnum *)&memtyperequested, &setmemtyperequest);
+  CHKERRQ(ierr);
+  localnodes = 1000;
+  ierr = PetscOptionsInt("-local_nodes",
+                         "Target number of locally owned nodes per process",
+                         NULL, localnodes, &localnodes, &userlnodes);
   CHKERRQ(ierr);
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
@@ -141,6 +168,17 @@ int main(int argc, char **argv) {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
   } else {
+    if (userlnodes) {
+      // Find a nicely composite number of elements no less than global nodes
+      PetscMPIInt size;
+      ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
+      for (PetscInt gelem = PetscMax(1, size * localnodes / PetscPowInt(degree, dim));
+           ;
+           gelem++) {
+        Split3(gelem, melem, true);
+        if (Max3(melem) / Min3(melem) <= 2) break;
+      }
+    }
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, melem, NULL,
                                NULL, NULL, PETSC_TRUE, &dm); CHKERRQ(ierr);
   }
@@ -208,6 +246,8 @@ int main(int argc, char **argv) {
     VecType vectype;
     ierr = VecGetType(X, &vectype); CHKERRQ(ierr);
 
+    PetscInt cStart, cEnd;
+    ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
     ierr = PetscPrintf(comm,
                        "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
                        "  PETSc:\n"
@@ -220,13 +260,16 @@ int main(int argc, char **argv) {
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
                        "    Global nodes                       : %D\n"
+                       "    Local Elements                     : %D\n"
                        "    Owned nodes                        : %D\n"
                        "    DoF per node                       : %D\n",
                        bpchoice+1, vectype, usedresource,
                        CeedMemTypes[memtypebackend],
                        (setmemtyperequest) ?
                        CeedMemTypes[memtyperequested] : "none",
-                       P, Q, gsize/ncompu, lsize/ncompu, ncompu); CHKERRQ(ierr);
+                       P, Q, gsize/ncompu, cEnd - cStart, lsize/ncompu,
+                       ncompu);
+    CHKERRQ(ierr);
   }
 
   // Create RHS vector

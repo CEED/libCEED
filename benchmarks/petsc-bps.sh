@@ -23,7 +23,7 @@ function run_tests()
    # -degree <1>: Polynomial degree of tensor product basis
    # -qextra <1>: Number of extra quadrature points
    # -ceed </cpu/self>: CEED resource specifier
-   # -local <1000>: Target number of locally (per rank) owned nodes
+   # -local_nodes <1000>: Target number of locally (per rank) owned nodes
 
    # The variables 'max_dofs_node', and 'max_p' can be set on the command line
    # invoking the 'benchmark.sh' script.
@@ -37,19 +37,19 @@ function run_tests()
    for ((sol_p = 1; sol_p <= max_p; sol_p++)); do
       local loc_el=
       for ((loc_el = 1; loc_el*sol_p**3 <= max_loc_nodes; loc_el = 2*loc_el)); do
-         local loc_dofs=$((loc_el*sol_p**3))
-         local all_args=("${common_args[@]}" -degree $sol_p -local $loc_dofs -problem $bp)
+         local loc_nodes=$((loc_el*sol_p**3))
+         local all_args=("${common_args[@]}" -degree $sol_p -local_nodes $loc_nodes -problem $bp)
          if [ -z "$dry_run" ]; then
             echo
             echo "Running test:"
-            quoted_echo $mpi_run ./petsc-bpsraw "${all_args[@]}"
-            $mpi_run ./petsc-bpsraw "${all_args[@]}" || \
+            quoted_echo $mpi_run ./petsc-bps "${all_args[@]}"
+            $mpi_run ./petsc-bps "${all_args[@]}" || \
                printf "\nError in the test, error code: $?\n\n"
          else
-            $dry_run $mpi_run ./petsc-bpsraw "${all_args[@]}"
+            $dry_run $mpi_run ./petsc-bps "${all_args[@]}"
          fi
       done
    done
 }
 
-test_required_examples="petsc-bpsraw"
+test_required_examples="petsc-bps"
