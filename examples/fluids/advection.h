@@ -478,8 +478,7 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
     for (CeedInt j=0; j<4; j++) {
       v[j][i] = 0;
     }
-    v[4][i] = (1-strong_form) *wdetJb *E *u_n;
-
+    v[4][i] = -(1-strong_form) *wdetJb *E *u_n;
   } // End Quadrature Point Loop
 
   return 0;
