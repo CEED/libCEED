@@ -259,14 +259,15 @@ int main(int argc, char **argv) {
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
                        "    Global nodes                       : %D\n"
+                       "    Local Elements                     : %D\n"
                        "    Owned nodes                        : %D\n"
-                       "    DoF per node                       : %D\n"
-                       "    Owned elements                     : %D\n",
+                       "    DoF per node                       : %D\n",
                        bpchoice+1, vectype, usedresource,
                        CeedMemTypes[memtypebackend],
                        (setmemtyperequest) ?
                        CeedMemTypes[memtyperequested] : "none",
-                       P, Q, gsize/ncompu, lsize/ncompu, ncompu, cEnd - cStart);
+                       P, Q, gsize/ncompu, cEnd - cStart, lsize/ncompu,
+                       ncompu);
     CHKERRQ(ierr);
   }
 
