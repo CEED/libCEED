@@ -368,6 +368,63 @@ static PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt ncompx, 
   PetscFunctionReturn(0);
 }
 
+// Create CEED Operator for each face
+static PetscErrorCode CreateOperatorForSubDomain(Ceed ceed, DM dm, CeedOperator op_applyVol,
+    CeedQFunction qf_applySur, CeedQFunction qf_setupSur, CeedInt height, PetscInt nFace,
+    PetscInt value[6], CeedInt numP_Sur, CeedInt numQ_Sur, CeedInt qdatasizeSur, CeedInt NqptsSur,
+    CeedBasis basisxSur, CeedBasis basisqSur, CeedVector xcorners, CeedOperator *op_apply) {
+
+  CeedInt ncompx;
+  CeedInt dimSur;
+  CeedElemRestriction restrictxSur[6], restrictqSur[6], restrictqdiSur[6];
+  PetscInt dim, localNelemSur[6];
+  CeedVector qdataSur[6];
+  CeedOperator op_setupSur[6], op_applySur[6];
+  DMLabel domainLabel;
+  PetscErrorCode ierr;
+
+  PetscFunctionBeginUser;
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  ncompx = dim;
+  dimSur = dim - height;
+  // Composite Operaters
+  CeedCompositeOperatorCreate(ceed, op_apply);
+  CeedCompositeOperatorAddSub(*op_apply, op_applyVol);
+
+  if (nFace){
+      // Get Label for the Faces
+      ierr = DMGetLabel(dm, "Face Sets", &domainLabel); CHKERRQ(ierr);
+      // Create CEED Operator for each Face
+      for(CeedInt i=0; i<nFace; i++){
+        ierr = GetRestrictionForDomain(ceed, dm, ncompx, dimSur, height, domainLabel, value[i], numP_Sur,
+                                       numQ_Sur, qdatasizeSur, &restrictqSur[i], &restrictxSur[i],
+                                       &restrictqdiSur[i]); CHKERRQ(ierr);
+        // Create the CEED vectors that will be needed in setup
+        CeedElemRestrictionGetNumElements(restrictqSur[i], &localNelemSur[i]);
+        CeedVectorCreate(ceed, qdatasizeSur*localNelemSur[i]*NqptsSur, &qdataSur[i]);
+
+        // Create the operator that builds the quadrature data for the NS operator
+        CeedOperatorCreate(ceed, qf_setupSur, NULL, NULL, &op_setupSur[i]);
+        CeedOperatorSetField(op_setupSur[i], "dx", restrictxSur[i], basisxSur, CEED_VECTOR_ACTIVE);
+        CeedOperatorSetField(op_setupSur[i], "weight", CEED_ELEMRESTRICTION_NONE,
+                             basisxSur, CEED_VECTOR_NONE);
+        CeedOperatorSetField(op_setupSur[i], "qdataSur", restrictqdiSur[i],
+                             CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+        // Create the NS operator
+        CeedOperatorCreate(ceed, qf_applySur, NULL, NULL, &op_applySur[i]);
+        CeedOperatorSetField(op_applySur[i], "q", restrictqSur[i], basisqSur, CEED_VECTOR_ACTIVE);
+        CeedOperatorSetField(op_applySur[i], "qdataSur", restrictqdiSur[i],
+                             CEED_BASIS_COLLOCATED, qdataSur[i]);
+        CeedOperatorSetField(op_applySur[i], "x", restrictxSur[i], basisxSur, xcorners);
+        CeedOperatorSetField(op_applySur[i], "v", restrictqSur[i], basisqSur, CEED_VECTOR_ACTIVE);
+
+        // Add a Sub-Operator
+        CeedCompositeOperatorAddSub(*op_apply, op_applySur[i]);
+      }
+  }
+  PetscFunctionReturn(0);
+}
+
 static int CreateVectorFromPetscVec(Ceed ceed, Vec p, CeedVector *v) {
   PetscErrorCode ierr;
   PetscInt m;
@@ -1304,24 +1361,14 @@ int main(int argc, char **argv) {
   // Outflow Boundary Condition
   //--------------------------------------------------------------------------------------//
   // Set up CEED for the boundaries
-  CeedInt numP_Sur, numQ_Sur;
   CeedInt height = 1;
   CeedInt dimSur = dim - height;
-  numP_Sur = degree + 1;
-  numQ_Sur = numP_Sur + qextraSur;
+  CeedInt numP_Sur = degree + 1,
+          numQ_Sur = numP_Sur + qextraSur;
   const CeedInt qdatasizeSur = problem->qdatasizeSur;
   CeedBasis basisxSur, basisxcSur, basisqSur;
-  CeedElemRestriction restrictxSur[6], restrictqSur[6], restrictqdiSur[6];
   CeedInt NqptsSur;
-  PetscInt localNelemSur[6];
-  CeedVector qdataSur[6];
   CeedQFunction qf_setupSur, qf_rhsSur, qf_ifunctionSur;
-  CeedOperator op_setupSur[6];
-  PetscInt numOutFlow = bc.noutflow;
-  DMLabel domainLabel;
-
-  // Get Label for the boundaries
-  ierr = DMGetLabel(dm, "Face Sets", &domainLabel); CHKERRQ(ierr);
 
   // CEED bases for the boundaries
   CeedBasisCreateTensorH1Lagrange(ceed, dimSur, ncompq, numP_Sur, numQ_Sur, CEED_GAUSS,
@@ -1358,71 +1405,17 @@ int main(int argc, char **argv) {
     CeedQFunctionAddOutput(qf_ifunctionSur, "v", ncompq, CEED_EVAL_INTERP);
   }
   // Create CEED Operator for each face
-  for(CeedInt i=0; i<numOutFlow; i++){
-    ierr = GetRestrictionForDomain(ceed, dm, ncompx, dimSur, height, domainLabel, bc.outflow[i], numP_Sur,
-                                   numQ_Sur, qdatasizeSur, &restrictqSur[i], &restrictxSur[i],
-                                   &restrictqdiSur[i]); CHKERRQ(ierr);
-    // Create the CEED vectors that will be needed in setup
-    CeedElemRestrictionGetNumElements(restrictqSur[i], &localNelemSur[i]);
-    CeedVectorCreate(ceed, qdatasizeSur*localNelemSur[i]*NqptsSur, &qdataSur[i]);
+  if (qf_rhsSur)
+    ierr = CreateOperatorForSubDomain(ceed, dm, user->op_rhs_vol, qf_rhsSur, qf_setupSur, height,
+                                      bc.noutflow, bc.outflow, numP_Sur, numQ_Sur, qdatasizeSur,
+                                      NqptsSur, basisxSur, basisqSur, xcorners, &user->op_rhs);
+                                      CHKERRQ(ierr);
+  if (qf_ifunctionSur)
+    ierr = CreateOperatorForSubDomain(ceed, dm, user->op_ifunction_vol, qf_ifunctionSur, qf_setupSur, height,
+                                      bc.noutflow, bc.outflow, numP_Sur, numQ_Sur, qdatasizeSur,
+                                      NqptsSur, basisxSur, basisqSur, xcorners, &user->op_ifunction);
+                                      CHKERRQ(ierr);
 
-    // Create the operator that builds the quadrature data for the NS operator
-    CeedOperatorCreate(ceed, qf_setupSur, NULL, NULL, &op_setupSur[i]);
-    CeedOperatorSetField(op_setupSur[i], "dx", restrictxSur[i], basisxSur, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_setupSur[i], "weight", CEED_ELEMRESTRICTION_NONE,
-                         basisxSur, CEED_VECTOR_NONE);
-    CeedOperatorSetField(op_setupSur[i], "qdataSur", restrictqdiSur[i],
-                         CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-
-    if (qf_rhsSur) { // Create the RHS physics operator
-      CeedOperator op;
-      CeedOperatorCreate(ceed, qf_rhsSur, NULL, NULL, &op);
-      CeedOperatorSetField(op, "q", restrictqSur[i], basisqSur, CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op, "qdataSur", restrictqdiSur[i],
-                           CEED_BASIS_COLLOCATED, qdataSur[i]);
-      CeedOperatorSetField(op, "x", restrictxSur[i], basisxSur, xcorners);
-      CeedOperatorSetField(op, "v", restrictqSur[i], basisqSur, CEED_VECTOR_ACTIVE);
-      user->op_rhs_sur[i] = op;
-    }
-
-    if (qf_ifunctionSur) { // Create the IFunction operator
-      CeedOperator op;
-      CeedOperatorCreate(ceed, qf_ifunctionSur, NULL, NULL, &op);
-      CeedOperatorSetField(op, "q", restrictqSur[i], basisqSur, CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op, "qdataSur", restrictqdiSur[i],
-                           CEED_BASIS_COLLOCATED, qdataSur[i]);
-      CeedOperatorSetField(op, "x", restrictxSur[i], basisxSur, xcorners);
-      CeedOperatorSetField(op, "v", restrictqSur[i], basisqSur, CEED_VECTOR_ACTIVE);
-      user->op_ifunction_sur[i] = op;
-    }
-  }
-  // Composite Operaters
-  // IFunction
-  if (user->op_ifunction_vol) {
-    if (numOutFlow) {
-      // Composite Operators for the IFunction
-      CeedCompositeOperatorCreate(ceed, &user->op_ifunction);
-      CeedCompositeOperatorAddSub(user->op_ifunction, user->op_ifunction_vol);
-      for(CeedInt i=0; i<numOutFlow; i++){
-        CeedCompositeOperatorAddSub(user->op_ifunction, user->op_ifunction_sur[i]);
-      }
-    } else {
-      user->op_ifunction = user->op_ifunction_vol;
-    }
-  }
-  // RHS
-  if (user->op_rhs_vol) {
-    if (numOutFlow) {
-      // Composite Operators for the RHS
-      CeedCompositeOperatorCreate(ceed, &user->op_rhs);
-      CeedCompositeOperatorAddSub(user->op_rhs, user->op_rhs_vol);
-      for(CeedInt i=0; i<numOutFlow; i++){
-        CeedCompositeOperatorAddSub(user->op_rhs, user->op_rhs_sur[i]);
-      }
-    } else {
-      user->op_rhs = user->op_rhs_vol;
-    }
-  }
   //--------------------------------------------------------------------------------------//
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
   CeedScalar ctxNS[8] = {lambda, mu, k, cv, cp, g, Rd};
@@ -1672,15 +1665,6 @@ int main(int argc, char **argv) {
   CeedQFunctionDestroy(&qf_setupSur);
   CeedQFunctionDestroy(&qf_rhsSur);
   CeedQFunctionDestroy(&qf_ifunctionSur);
-  for(CeedInt i=0; i<numOutFlow; i++){
-    CeedVectorDestroy(&qdataSur[i]);
-    CeedElemRestrictionDestroy(&restrictqSur[i]);
-    CeedElemRestrictionDestroy(&restrictxSur[i]);
-    CeedElemRestrictionDestroy(&restrictqdiSur[i]);
-    CeedOperatorDestroy(&op_setupSur[i]);
-    CeedOperatorDestroy(&user->op_rhs_sur[i]);
-    CeedOperatorDestroy(&user->op_ifunction_sur[i]);
-  }
   CeedOperatorDestroy(&user->op_rhs);
   CeedOperatorDestroy(&user->op_ifunction);
 
