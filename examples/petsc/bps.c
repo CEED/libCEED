@@ -172,7 +172,8 @@ int main(int argc, char **argv) {
       // Find a nicely composite number of elements no less than lnodes
       PetscMPIInt size;
       ierr = MPI_Comm_size(comm, &size); CHKERRQ(ierr);
-      for (PetscInt gelem = PetscMax(1, size * localnodes / PetscPowInt(degree, dim)); ;
+      for (PetscInt gelem = PetscMax(1, size * localnodes / PetscPowInt(degree, dim));
+           ;
            gelem++) {
         Split3(gelem, melem, true);
         if (Max3(melem) / Min3(melem) <= 2) break;
