@@ -6,6 +6,7 @@ libCEED library, based on PETSc.
 
 This code solves the steady-state static momentum balance equations using unstructured high-order finite/spectral element spatial discretizations.
 In this mini-app, we consider three formulations used in solid mechanics applications: linear elasticity, Neo-Hookean hyperelasticity at small strain, and Neo-Hookean hyperelasticity at finite strain.
+All three of these formulations are for compressible materials.
 
 Build by using::
 
