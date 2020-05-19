@@ -220,7 +220,7 @@ The table below summarizes the formulations of each of these quantities for each
      - :math:`\lambda \log \operatorname{trace} \bm{\epsilon}`
      - :math:`\lambda \log J`
 
-   * - :math:`\operatorname{trace} \bm{E}`
+   * - Volumetric Strain
      - :math:`\operatorname{trace} \bm{\epsilon}`
      - :math:`\operatorname{trace} \bm{\epsilon}`
      - :math:`\operatorname{trace} \bm{E}`
