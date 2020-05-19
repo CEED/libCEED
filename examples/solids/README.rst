@@ -192,7 +192,7 @@ For example, consider a problem involving metals subject to gravity.
      - :math:`1 \,\mathrm{cm} = 10^{-2} \,\mathrm m`
 
    * - Young's modulus, :math:`E`
-     - :math:`100 \,\mathrm{GPa} = 10^{11} \,\mathrm{kg}\, \mathrm{m}^{-1}\, \mathrm s^{-2}`
+     - :math:`10^{11} \,\mathrm{Pa} = 10^{11} \,\mathrm{kg}\, \mathrm{m}^{-1}\, \mathrm s^{-2}`
 
    * - Body force (gravity) on volume, :math:`\int \rho \bm g`
      - :math:`5 \cdot 10^4 \,\mathrm{kg}\, \mathrm m^{-2} \, \mathrm s^{-2} \cdot (\text{volume} \, \mathrm m^3)`
