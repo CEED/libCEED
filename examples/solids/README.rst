@@ -108,7 +108,7 @@ The command line options just shown are the minimum requirements to run the mini
      - :code:`logarithmic`
 
    * - :code:`-nu_smoother [real]`
-     - `Poisson's ratio for multigrid smoothers, :math:`\nu < 0.5`
+     - Poisson's ratio for multigrid smoothers, :math:`\nu < 0.5`
      - 
 
    * - :code:`-num_steps`
