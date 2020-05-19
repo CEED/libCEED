@@ -198,3 +198,43 @@ For example, consider a problem involving metals subject to gravity.
 
 One can choose units of displacement independently (e.g., :code:`-units_meter 100` to measure displacement in centimeters), but :math:`E` and :math:`\int \rho \bm g` have the same dependence on mass and time, so cannot both be made of order 1.
 This reflects the fact that both quantities are not equally significant for a given displacement size; the relative significance of gravity increases as the domain size grows.
+
+Diagnostic Quantities
+^^^^^^^^^^^^^^^^^^^^^
+
+Diagnostic quantities for viewing are provided when the command line options for visualization output, :code:`-view_soln` or :code:`-view_final_soln` are used.
+The diagnostic quantities include displacement in the :math:`x` direction, displacement in the :math:`y` direction, displacement in the :math:`z` direction, pressure, :math:`\operatorname{trace} \left( E \right)`, :math:`\operatorname{trace} \left( E^2 \right)`, :math:`\lvert J \rvert`, and strain energy density.
+The table below summarizes the formulations of each of these quantities for each problem type.
+
+.. list-table:: Diagnostic quantities
+   :header-rows: 1
+
+   * - Quantity
+     - Linear Elasticity
+     - Hyperelasticity, Small Strain
+     - Hyperelasticity, Finite Strain
+
+   * - Pressure
+     - :math:`\lambda \sum_i \bm{\epsilon}_{ii}`
+     - :math:`\lambda \log \left( \sum_i \bm{\epsilon}_{ii} \right)`
+     - :math:`\lambda \log J`
+
+   * - :math:`\operatorname{trace} \left( E \right)`
+     - :math:`\sum_i \bm{\epsilon}_{ii}`
+     - :math:`\sum_i \bm{\epsilon}_{ii}`
+     - :math:`\sum_i E_{ii}`
+
+   * - :math:`\operatorname{trace} \left( E^2 \right)`
+     - :math:`\sum_i \left( \bm{\epsilon} \bm{\epsilon} \right)_{ii}`
+     - :math:`\sum_i \left( \bm{\epsilon} \bm{\epsilon} \right)_{ii}`
+     - :math:`\sum_i \left( E E \right)_{ii}`
+
+   * - :math:`\lvert J \rvert`
+     - :math:`1 + \sum_i \bm{\epsilon}_{ii}`
+     - :math:`1 + \sum_i \bm{\epsilon}_{ii}`
+     - :math:`\lvert J \rvert`
+
+   * - Strain Energy Density
+     - :math:`\frac{\lambda}{2} (\sum_i \bm{\epsilon}_{ii})^2 + \mu \bm{\epsilon} : \bm{\epsilon}`
+     - :math:`\lambda (1 + \sum_i \bm{\epsilon}_{ii}) (\log(1 + \sum_i \bm{\epsilon}_{ii} ) - 1) + \mu \bm{\epsilon} : \bm{\epsilon}`
+     - :math:`\frac{\lambda}{2}(\log J)^2 + \mu \sum_i E_{ii} - \mu \log J`
