@@ -204,7 +204,7 @@ Diagnostic Quantities
 ^^^^^^^^^^^^^^^^^^^^^
 
 Diagnostic quantities for viewing are provided when the command line options for visualization output, :code:`-view_soln` or :code:`-view_final_soln` are used.
-The diagnostic quantities include displacement in the :math:`x` direction, displacement in the :math:`y` direction, displacement in the :math:`z` direction, pressure, :math:`\operatorname{trace} \left( \bm \bm{E} \right)`, :math:`\operatorname{trace} \left( \bm \bm{E}^2 \right)`, :math:`\lvert J \rvert`, and strain energy density.
+The diagnostic quantities include displacement in the :math:`x` direction, displacement in the :math:`y` direction, displacement in the :math:`z` direction, pressure, :math:`\operatorname{trace} \bm{E}`, :math:`\operatorname{trace} \bm{E}^2`, :math:`\lvert J \rvert`, and strain energy density.
 The table below summarizes the formulations of each of these quantities for each problem type.
 
 .. list-table:: Diagnostic quantities
@@ -216,26 +216,26 @@ The table below summarizes the formulations of each of these quantities for each
      - Hyperelasticity, Finite Strain
 
    * - Pressure
-     - :math:`\lambda \sum_i \bm{\epsilon}_{ii}`
-     - :math:`\lambda \log \left( \sum_i \bm{\epsilon}_{ii} \right)`
+     - :math:`\lambda \operatorname{trace} \bm{\epsilon}`
+     - :math:`\lambda \log \operatorname{trace} \bm{\epsilon}`
      - :math:`\lambda \log J`
 
-   * - :math:`\operatorname{trace} \left( \bm{E} \right)`
-     - :math:`\sum_i \bm{\epsilon}_{ii}`
-     - :math:`\sum_i \bm{\epsilon}_{ii}`
-     - :math:`\sum_i \bm{E}_{ii}`
+   * - :math:`\operatorname{trace} \bm{E}`
+     - :math:`\operatorname{trace} \bm{\epsilon}`
+     - :math:`\operatorname{trace} \bm{\epsilon}`
+     - :math:`\operatorname{trace} \bm{E}`
 
-   * - :math:`\operatorname{trace} \left( \bm{E}^2 \right)`
-     - :math:`\sum_i \left( \bm{\epsilon} \bm{\epsilon} \right)_{ii}`
-     - :math:`\sum_i \left( \bm{\epsilon} \bm{\epsilon} \right)_{ii}`
-     - :math:`\sum_i \left( \bm{E} \bm{E} \right)_{ii}`
+   * - :math:`\operatorname{trace} \bm{E}^2`
+     - :math:`\operatorname{trace} \bm{\epsilon}^2`
+     - :math:`\operatorname{trace} \bm{\epsilon}^2`
+     - :math:`\operatorname{trace} \bm{E}^2`
 
    * - :math:`\lvert J \rvert`
-     - :math:`1 + \sum_i \bm{\epsilon}_{ii}`
-     - :math:`1 + \sum_i \bm{\epsilon}_{ii}`
+     - :math:`1 + \operatorname{trace} \bm{\epsilon}`
+     - :math:`1 + \operatorname{trace} \bm{\epsilon}`
      - :math:`\lvert J \rvert`
 
    * - Strain Energy Density
-     - :math:`\frac{\lambda}{2} (\sum_i \bm{\epsilon}_{ii})^2 + \mu \bm{\epsilon} : \bm{\epsilon}`
-     - :math:`\lambda (1 + \sum_i \bm{\epsilon}_{ii}) (\log(1 + \sum_i \bm{\epsilon}_{ii} ) - 1) + \mu \bm{\epsilon} : \bm{\epsilon}`
-     - :math:`\frac{\lambda}{2}(\log J)^2 + \mu \sum_i E_{ii} - \mu \log J`
+     - :math:`\frac{\lambda}{2} (\operatorname{trace} \bm{\epsilon})^2 + \mu \bm{\epsilon} : \bm{\epsilon}`
+     - :math:`\lambda (1 + \operatorname{trace} \bm{\epsilon}) (\log(1 + \operatorname{trace} \bm{\epsilon} ) - 1) + \mu \bm{\epsilon} : \bm{\epsilon}`
+     - :math:`\frac{\lambda}{2}(\log J)^2 + \mu \operatorname{trace} \bm{E} - \mu \log J`
