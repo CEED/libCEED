@@ -204,7 +204,7 @@ Diagnostic Quantities
 ^^^^^^^^^^^^^^^^^^^^^
 
 Diagnostic quantities for viewing are provided when the command line options for visualization output, :code:`-view_soln` or :code:`-view_final_soln` are used.
-The diagnostic quantities include displacement in the :math:`x` direction, displacement in the :math:`y` direction, displacement in the :math:`z` direction, pressure, :math:`\operatorname{trace} \left( \bm E \right)`, :math:`\operatorname{trace} \left( \bm E^2 \right)`, :math:`\lvert J \rvert`, and strain energy density.
+The diagnostic quantities include displacement in the :math:`x` direction, displacement in the :math:`y` direction, displacement in the :math:`z` direction, pressure, :math:`\operatorname{trace} \left( \bm \bm{E} \right)`, :math:`\operatorname{trace} \left( \bm \bm{E}^2 \right)`, :math:`\lvert J \rvert`, and strain energy density.
 The table below summarizes the formulations of each of these quantities for each problem type.
 
 .. list-table:: Diagnostic quantities
@@ -220,15 +220,15 @@ The table below summarizes the formulations of each of these quantities for each
      - :math:`\lambda \log \left( \sum_i \bm{\epsilon}_{ii} \right)`
      - :math:`\lambda \log J`
 
-   * - :math:`\operatorname{trace} \left( E \right)`
+   * - :math:`\operatorname{trace} \left( \bm{E} \right)`
      - :math:`\sum_i \bm{\epsilon}_{ii}`
      - :math:`\sum_i \bm{\epsilon}_{ii}`
-     - :math:`\sum_i E_{ii}`
+     - :math:`\sum_i \bm{E}_{ii}`
 
-   * - :math:`\operatorname{trace} \left( E^2 \right)`
+   * - :math:`\operatorname{trace} \left( \bm{E}^2 \right)`
      - :math:`\sum_i \left( \bm{\epsilon} \bm{\epsilon} \right)_{ii}`
      - :math:`\sum_i \left( \bm{\epsilon} \bm{\epsilon} \right)_{ii}`
-     - :math:`\sum_i \left( E E \right)_{ii}`
+     - :math:`\sum_i \left( \bm{E} \bm{E} \right)_{ii}`
 
    * - :math:`\lvert J \rvert`
      - :math:`1 + \sum_i \bm{\epsilon}_{ii}`
