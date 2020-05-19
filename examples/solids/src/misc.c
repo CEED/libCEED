@@ -25,6 +25,7 @@
 // Setup context data for Jacobian evaluation
 PetscErrorCode SetupJacobianCtx(MPI_Comm comm, AppCtx appCtx, DM dm, Vec V,
                                 Vec Vloc, CeedData ceedData, Ceed ceed,
+                                Physics phys, Physics physSmoother,
                                 UserMult jacobianCtx) {
   PetscErrorCode ierr;
 
@@ -42,9 +43,14 @@ PetscErrorCode SetupJacobianCtx(MPI_Comm comm, AppCtx appCtx, DM dm, Vec V,
 
   // libCEED operator
   jacobianCtx->op = ceedData->opJacob;
+  jacobianCtx->qf = ceedData->qfJacob;
 
   // Ceed
   jacobianCtx->ceed = ceed;
+
+  // Physics
+  jacobianCtx->phys = phys;
+  jacobianCtx->physSmoother = physSmoother;
 
   PetscFunctionReturn(0);
 };
@@ -171,6 +177,104 @@ PetscErrorCode ViewSolution(MPI_Comm comm, Vec U, PetscInt increment,
   CHKERRQ(ierr);
   ierr = VecView(U, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+};
+
+// -----------------------------------------------------------------------------
+// Output diagnostic quantities for visualization
+// -----------------------------------------------------------------------------
+PetscErrorCode ViewDiagnosticQuantities(MPI_Comm comm, DM dmU,
+                                        UserMult user, Vec U,
+                                        CeedElemRestriction ErestrictDiagnostic) {
+  PetscErrorCode ierr;
+  Vec Diagnostic, Yloc, MultVec;
+  CeedVector Yceed;
+  CeedScalar *x, *y;
+  PetscInt lsz;
+  PetscViewer viewer;
+  const char *outputFilename = "diagnostic_quantities.vtu";
+
+  PetscFunctionBeginUser;
+
+  // ---------------------------------------------------------------------------
+  // PETSc and libCEED vectors
+  // ---------------------------------------------------------------------------
+  ierr = DMCreateGlobalVector(user->dm, &Diagnostic); CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject)Diagnostic, ""); CHKERRQ(ierr);
+  ierr = DMCreateLocalVector(user->dm, &Yloc); CHKERRQ(ierr);
+  ierr = VecGetSize(Yloc, &lsz); CHKERRQ(ierr);
+  CeedVectorCreate(user->ceed, lsz, &Yceed);
+
+  // ---------------------------------------------------------------------------
+  // Compute quantities
+  // ---------------------------------------------------------------------------
+  // -- Global-to-local
+  ierr = VecZeroEntries(user->Xloc); CHKERRQ(ierr);
+  ierr = DMPlexInsertBoundaryValues(dmU, PETSC_TRUE, user->Xloc,
+                                    user->loadIncrement, NULL, NULL, NULL);
+  CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(dmU, U, INSERT_VALUES, user->Xloc); CHKERRQ(ierr);
+  ierr = VecZeroEntries(Yloc); CHKERRQ(ierr);
+
+  // -- Setup CEED vectors
+  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
+  CHKERRQ(ierr);
+  ierr = VecGetArray(Yloc, &y); CHKERRQ(ierr);
+  CeedVectorSetArray(user->Xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
+  CeedVectorSetArray(Yceed, CEED_MEM_HOST, CEED_USE_POINTER, y);
+
+  // -- Apply CEED operator
+  CeedOperatorApply(user->op, user->Xceed, Yceed, CEED_REQUEST_IMMEDIATE);
+  CeedVectorSyncArray(Yceed, CEED_MEM_HOST);
+
+  // -- Restore PETSc vectors
+  ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
+  CHKERRQ(ierr);
+
+  // -- Local-to-global
+  ierr = VecZeroEntries(Diagnostic); CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(user->dm, Yloc, ADD_VALUES, Diagnostic);
+  CHKERRQ(ierr);
+
+  // ---------------------------------------------------------------------------
+  // Scale for multiplicity
+  // ---------------------------------------------------------------------------
+  // -- Setup vectors
+  ierr = VecDuplicate(Diagnostic, &MultVec); CHKERRQ(ierr);
+  ierr = VecZeroEntries(Yloc); CHKERRQ(ierr);
+
+  // -- Compute multiplicity
+  CeedElemRestrictionGetMultiplicity(ErestrictDiagnostic, Yceed);
+
+  // -- Restore vectors
+  ierr = VecRestoreArray(Yloc, &y); CHKERRQ(ierr);
+
+  // -- Local-to-global
+  ierr = VecZeroEntries(MultVec); CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(user->dm, Yloc, ADD_VALUES, MultVec);
+  CHKERRQ(ierr);
+
+  // -- Scale
+  ierr = VecReciprocal(MultVec); CHKERRQ(ierr);
+  ierr = VecPointwiseMult(Diagnostic, Diagnostic, MultVec);
+
+
+  // ---------------------------------------------------------------------------
+  // Output solution vector
+  // ---------------------------------------------------------------------------
+  ierr = PetscViewerVTKOpen(comm, outputFilename, FILE_MODE_WRITE, &viewer);
+  CHKERRQ(ierr);
+  ierr = VecView(Diagnostic, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  // ---------------------------------------------------------------------------
+  // Cleanup
+  // ---------------------------------------------------------------------------
+  ierr = VecDestroy(&Diagnostic); CHKERRQ(ierr);
+  ierr = VecDestroy(&MultVec); CHKERRQ(ierr);
+  ierr = VecDestroy(&Yloc); CHKERRQ(ierr);
+  CeedVectorDestroy(&Yceed);
 
   PetscFunctionReturn(0);
 };

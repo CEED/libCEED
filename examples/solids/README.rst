@@ -6,6 +6,7 @@ libCEED library, based on PETSc.
 
 This code solves the steady-state static momentum balance equations using unstructured high-order finite/spectral element spatial discretizations.
 In this mini-app, we consider three formulations used in solid mechanics applications: linear elasticity, Neo-Hookean hyperelasticity at small strain, and Neo-Hookean hyperelasticity at finite strain.
+All three of these formulations are for compressible materials.
 
 Build by using::
 
@@ -103,6 +104,14 @@ The command line options just shown are the minimum requirements to run the mini
      -  Forcing vector
      - :code:`0,-1,0`
 
+   * - :code:`-multigrid`
+     - Multigrid coarsening to use (:code:`logarithmic`, :code:`uniform` or :code:`none`)
+     - :code:`logarithmic`
+
+   * - :code:`-nu_smoother [real]`
+     - Poisson's ratio for multigrid smoothers, :math:`\nu < 0.5`
+     - 
+
    * - :code:`-num_steps`
      - Number of load increments for continuation method
      - :code:`1` if :code:`linElas` else :code:`10`
@@ -183,10 +192,50 @@ For example, consider a problem involving metals subject to gravity.
      - :math:`1 \,\mathrm{cm} = 10^{-2} \,\mathrm m`
 
    * - Young's modulus, :math:`E`
-     - :math:`100 \,\mathrm{GPa} = 10^{11} \,\mathrm{kg}\, \mathrm{m}^{-1}\, \mathrm s^{-2}`
+     - :math:`10^{11} \,\mathrm{Pa} = 10^{11} \,\mathrm{kg}\, \mathrm{m}^{-1}\, \mathrm s^{-2}`
 
    * - Body force (gravity) on volume, :math:`\int \rho \bm g`
      - :math:`5 \cdot 10^4 \,\mathrm{kg}\, \mathrm m^{-2} \, \mathrm s^{-2} \cdot (\text{volume} \, \mathrm m^3)`
 
 One can choose units of displacement independently (e.g., :code:`-units_meter 100` to measure displacement in centimeters), but :math:`E` and :math:`\int \rho \bm g` have the same dependence on mass and time, so cannot both be made of order 1.
 This reflects the fact that both quantities are not equally significant for a given displacement size; the relative significance of gravity increases as the domain size grows.
+
+Diagnostic Quantities
+^^^^^^^^^^^^^^^^^^^^^
+
+Diagnostic quantities for viewing are provided when the command line options for visualization output, :code:`-view_soln` or :code:`-view_final_soln` are used.
+The diagnostic quantities include displacement in the :math:`x` direction, displacement in the :math:`y` direction, displacement in the :math:`z` direction, pressure, :math:`\operatorname{trace} \bm{E}`, :math:`\operatorname{trace} \bm{E}^2`, :math:`\lvert J \rvert`, and strain energy density.
+The table below summarizes the formulations of each of these quantities for each problem type.
+
+.. list-table:: Diagnostic quantities
+   :header-rows: 1
+
+   * - Quantity
+     - Linear Elasticity
+     - Hyperelasticity, Small Strain
+     - Hyperelasticity, Finite Strain
+
+   * - Pressure
+     - :math:`\lambda \operatorname{trace} \bm{\epsilon}`
+     - :math:`\lambda \log \operatorname{trace} \bm{\epsilon}`
+     - :math:`\lambda \log J`
+
+   * - Volumetric Strain
+     - :math:`\operatorname{trace} \bm{\epsilon}`
+     - :math:`\operatorname{trace} \bm{\epsilon}`
+     - :math:`\operatorname{trace} \bm{E}`
+
+   * - :math:`\operatorname{trace} \bm{E}^2`
+     - :math:`\operatorname{trace} \bm{\epsilon}^2`
+     - :math:`\operatorname{trace} \bm{\epsilon}^2`
+     - :math:`\operatorname{trace} \bm{E}^2`
+
+   * - :math:`\lvert J \rvert`
+     - :math:`1 + \operatorname{trace} \bm{\epsilon}`
+     - :math:`1 + \operatorname{trace} \bm{\epsilon}`
+     - :math:`\lvert J \rvert`
+
+   * - Strain Energy Density
+     - :math:`\frac{\lambda}{2} (\operatorname{trace} \bm{\epsilon})^2 + \mu \bm{\epsilon} : \bm{\epsilon}`
+     - :math:`\lambda (1 + \operatorname{trace} \bm{\epsilon}) (\log(1 + \operatorname{trace} \bm{\epsilon} ) - 1) + \mu \bm{\epsilon} : \bm{\epsilon}`
+     - :math:`\frac{\lambda}{2}(\log J)^2 + \mu \operatorname{trace} \bm{E} - \mu \log J`
