@@ -203,7 +203,7 @@ Diagnostic Quantities
 ^^^^^^^^^^^^^^^^^^^^^
 
 Diagnostic quantities for viewing are provided when the command line options for visualization output, :code:`-view_soln` or :code:`-view_final_soln` are used.
-The diagnostic quantities include displacement in the :math:`x` direction, displacement in the :math:`y` direction, displacement in the :math:`z` direction, pressure, :math:`\operatorname{trace} \left( E \right)`, :math:`\operatorname{trace} \left( E^2 \right)`, :math:`\lvert J \rvert`, and strain energy density.
+The diagnostic quantities include displacement in the :math:`x` direction, displacement in the :math:`y` direction, displacement in the :math:`z` direction, pressure, :math:`\operatorname{trace} \left( \bm E \right)`, :math:`\operatorname{trace} \left( \bm E^2 \right)`, :math:`\lvert J \rvert`, and strain energy density.
 The table below summarizes the formulations of each of these quantities for each problem type.
 
 .. list-table:: Diagnostic quantities
