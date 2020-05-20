@@ -35,6 +35,7 @@ authors:
     orcid: 0000-0003-2980-0899
     affiliation: 1
   - name: Stan Tomov
+    orcid: 0000-0002-5937-7959
     affiliation: 3
 affiliations:
  - name: University of Colorado at Boulder
