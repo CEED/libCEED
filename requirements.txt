@@ -1,3 +1,2 @@
 cffi
 numpy
-numba

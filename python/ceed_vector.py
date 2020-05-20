@@ -17,7 +17,6 @@
 from _ceed_cffi import ffi, lib
 import tempfile
 import numpy as np
-import numba.cuda as nbcuda
 import contextlib
 from .ceed_constants import MEM_HOST, COPY_VALUES, NORM_2
 
@@ -124,6 +123,7 @@ class Vector():
         else:
             # CUDA array interface
             # https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html
+            import numba.cuda as nbcuda
             desc = {
                 'shape': (length_pointer[0]),
                 'typestr': '>f8',
@@ -167,6 +167,7 @@ class Vector():
         else:
             # CUDA array interface
             # https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html
+            import numba.cuda as nbcuda
             desc = {
                 'shape': (length_pointer[0]),
                 'typestr': '>f8',
