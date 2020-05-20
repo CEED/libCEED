@@ -34,7 +34,7 @@ authors:
   - name: Stan Tomov
     affiliation: 3
 affiliations:
- - name: University of Colorado Boulder
+ - name: University of Colorado at Boulder
    index: 1
  - name: Lawrence Livermore National Laboratory
    index: 2
