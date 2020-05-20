@@ -47,7 +47,7 @@ In finite element formulations, the weak form of a PDE is evaluated on a subdoma
 models the entire problem. In particular, when high-order finite elements or spectral
 elements are used, the resulting sparse matrix representation of the global operator
 is computationally expensive, with respect to both the memory transfer and floating
-point operations needed for its evaluation [@Orszag:1980,@Brown:2010]. ``libCEED`` provides an
+point operations needed for its evaluation [@Orszag:1980; @Brown:2010]. ``libCEED`` provides an
 interface for matrix-free operator description that enables efficient evaluation on
 a variety of computational device types (selectable at run time).
 
