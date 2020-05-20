@@ -136,17 +136,31 @@ def test_104(ceed_resource):
 
     assert a[3] == -3.14
 
+# -------------------------------------------------------------------------------
+# Test creation, setting, reading, restoring, and destroying of a vector using
+#   CEED_MEM_DEVICE
+# -------------------------------------------------------------------------------
+
 
 def test_105(ceed_resource):
-    """Modification of reshaped array"""
-    ceed = libceed.Ceed(ceed_resource)
+    # Skip test for non-GPU backend
+    if 'gpu' in ceed_resource:
+        ceed = libceed.Ceed(ceed_resource)
 
-    vec = ceed.Vector(12)
-    with vec.array(4, 3) as x:
-        x[...] = np.eye(4, 3)
+        n = 10
+        x = ceed.Vector(n)
+        y = ceed.Vector(n)
 
-    with vec.array_read(3, 4) as x:
-        assert np.all(x == np.eye(4, 3).reshape(3, 4))
+        a = np.arange(10, 10 + n, dtype="float64")
+        x.set_array(a, cmode=libceed.USE_POINTER)
+
+        arr = x.get_array_read(memtype=libceed.MEM_DEVICE)
+        y.set_array(arr, memtype=libceed.MEM_DEVICE)
+        x.restore_array_read()
+
+        with y.array_read() as b:
+            for i in range(n):
+                assert b[i] == 10 + i
 
 # -------------------------------------------------------------------------------
 # Test view
@@ -196,5 +210,21 @@ def test_108(ceed_resource, capsys):
     norm = x.norm(normtype=libceed.NORM_MAX)
 
     assert abs(norm - 9.) < 1e-14
+
+# -------------------------------------------------------------------------------
+# Test modification of reshaped array
+# -------------------------------------------------------------------------------
+
+
+def test_199(ceed_resource):
+    """Modification of reshaped array"""
+    ceed = libceed.Ceed(ceed_resource)
+
+    vec = ceed.Vector(12)
+    with vec.array(4, 3) as x:
+        x[...] = np.eye(4, 3)
+
+    with vec.array_read(3, 4) as x:
+        assert np.all(x == np.eye(4, 3).reshape(3, 4))
 
 # -------------------------------------------------------------------------------
