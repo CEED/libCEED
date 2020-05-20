@@ -23,6 +23,7 @@ authors:
   - name: Yohann Dudouit
     affiliation: 2
   - name:  Leila Ghaffari
+    orcid: 0000-0002-0965-214X
     affiliation: 1
   - name: Tzanio Kolev
     affiliation: 2
