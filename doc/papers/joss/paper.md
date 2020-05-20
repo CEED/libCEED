@@ -7,21 +7,43 @@ tags:
   - spectral elements
   - matrix-free
 authors:
-  - name: Jed Brown
-    orcid: 0000-0002-9945-0639
-    affiliation: 1
-  - name: Jeremy Thompson
-    affiliation: 1
   - name: Valeria Barra
     orcid: 0000-0003-1129-2056
     affiliation: 1
-  - name: XXXX TODO Many more authors to be added XXXX
+  - name: Natalie Beams
+    affiliation: 3
+  - name: Jed Brown
+    orcid: 0000-0002-9945-0639
+    affiliation: 1
+  - name: Jean-Sylvain Camier
     affiliation: 2
+  - name: Veselin Dobrev
+    affiliation: 2
+  - name: Yohann Dudouit
+    affiliation: 2
+  - name:  Leila Ghaffari
+    affiliation: 1
+  - name: Tzanio Kolev
+    affiliation: 2
+  - name: David Medina
+    affiliation: 4
+  - name: Thilina Rathnayake
+    affiliation: 5
+  - name: Jeremy Thompson
+    affiliation: 1
+  - name: Stan Tomov
+    affiliation: 3
 affiliations:
  - name: University of Colorado Boulder
    index: 1
  - name: Lawrence Livermore National Laboratory
    index: 2
+ - name: University of Tennessee
+   index: 3
+ - name: Brex
+   index: 4
+ - name: University of Illinois at Urbana-Champaign
+   index: 5
 date: XXXX TODO write date XXXX
 bibliography: paper.bib
 
