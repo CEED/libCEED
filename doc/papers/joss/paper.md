@@ -35,7 +35,7 @@ aas-journal: Astrophysical Journal <- The name of the AAS journal.
 
 High-order numerical methods are widely used in Partial Differential Equation (PDE)
 solvers, but software packages that provide high-performance implementations have
-often been special-purpose and intrusive. ``libCEED`` is an open-source light-weight
+often been special-purpose and intrusive. ``libCEED`` is an open-source light-weight matrix-free finite element
 library that offers a purely algebraic interface for efficient operator evaluation
 and matrix-free preconditioning ingredients. libCEED supports run-time selection of
 implementations tuned for a variety of computational architectures, including CPUs and
@@ -47,7 +47,7 @@ In finite element formulations, the weak form of a PDE is evaluated on a subdoma
 models the entire problem. In particular, when high-order finite elements or spectral
 elements are used, the resulting sparse matrix representation of the global operator
 is computationally expensive, with respect to both the memory transfer and floating
-point operations needed for its evaluation [@Brown:2010]. ``libCEED`` provides an
+point operations needed for its evaluation [@Orszag:1980,@Brown:2010]. ``libCEED`` provides an
 interface for matrix-free operator description that enables efficient evaluation on
 a variety of computational device types (selectable at run time).
 
