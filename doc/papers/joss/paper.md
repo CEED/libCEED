@@ -31,6 +31,7 @@ authors:
   - name: Thilina Rathnayake
     affiliation: 5
   - name: Jeremy Thompson
+    orcid: 0000-0003-2980-0899
     affiliation: 1
   - name: Stan Tomov
     affiliation: 3
