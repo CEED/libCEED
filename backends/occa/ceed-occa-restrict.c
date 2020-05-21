@@ -57,7 +57,7 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
   if (!strided) {
     ierr = CeedElemRestrictionGetCompStride(r, &compstride); CeedChk(ierr);
   }
-  const CeedTransposeMode restriction = (tmode == CEED_NOTRANSPOSE);
+  bool restriction = (tmode == CEED_NOTRANSPOSE);
   // ***************************************************************************
   if (restriction) {
     // Perform: v = r * u
