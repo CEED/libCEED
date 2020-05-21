@@ -7,6 +7,9 @@ tags:
   - spectral elements
   - matrix-free
 authors:
+  - name: Ahmad Abdelfattah
+    orcid: 0000-0001-5054-4784
+    affiliation: 3
   - name: Valeria Barra
     orcid: 0000-0003-1129-2056
     affiliation: 1
