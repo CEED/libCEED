@@ -22,6 +22,7 @@ authors:
   - name: Jean-Sylvain Camier
     affiliation: 2
   - name: Veselin Dobrev
+    orcid: 0000-0003-1793-5622
     affiliation: 2
   - name: Yohann Dudouit
     affiliation: 2
