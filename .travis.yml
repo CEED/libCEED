@@ -1,5 +1,8 @@
 language: c
 
+os: linux
+dist: bionic
+
 addons:
   apt:
     update: true
@@ -17,7 +20,7 @@ addons:
     - lapack
     - openblas
 
-matrix:
+jobs:
   include:
 # Linux GCC + Codecov
    - name: "Linux GCC + CodeCov"
@@ -33,6 +36,26 @@ matrix:
      arch: amd64
      compiler: clang
      env: FC=gfortran
+# Linux ICC
+   - name: "Linux ICC"
+     os: linux
+     dist: bionic
+     arch: amd64
+     compiler: clang
+     env:
+       - FC=ifort
+       - CC=icc
+       - CXX=icc
+     before_install:
+       - export DEBIAN_FRONTEND=noninteractive
+       - sudo apt-get -qqq update
+       - sudo apt-get install -y build-essential ca-certificates cmake gnupg man-db pkg-config wget
+       - wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+       - sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+       - echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee -a /etc/apt/sources.list.d/oneAPI.list
+       - sudo apt-get -qqq update
+       - sudo apt-get install -y intel-oneapi-icc intel-oneapi-ifort
+       - . /opt/intel/inteloneapi/setvars.sh
 # OSX GCC
    - name: "OSX GCC"
      os: osx
@@ -115,13 +138,13 @@ install:
         && rm -rf $HOME/install/petsc*
         && tar xf petsc-$PETSC_COMMIT.tar.gz
         && cd petsc-$PETSC_COMMIT
-        && ./configure --with-debugging=0 COPTFLAGS=-O --with-mpi=0 --with-fc=0 --with-cxx=0 --prefix=$PETSC_INSTALL
+        && ./configure --with-debugging=0 CC=$CC COPTFLAGS=-O --with-mpi=0 --with-fc=0 --with-cxx=0 --prefix=$PETSC_INSTALL
         && make
         && make install )
   - export PETSC_DIR=$PETSC_INSTALL
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+  - if [[ "$CC" == "gcc" && "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
         export COVERAGE=1;
     fi
   - make info

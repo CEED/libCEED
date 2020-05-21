@@ -206,7 +206,7 @@ int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
     ierr = CeedQFunctionFieldGetSize(inputfields[i], &ncomp); CeedChk(ierr);
     CeedEvalMode emode;
     ierr = CeedQFunctionFieldGetEvalMode(inputfields[i], &emode); CeedChk(ierr);
-    switch(emode) {
+    switch (emode) {
     case CEED_EVAL_NONE: {
       dbg("[CeedQFunction][FillOp] \"%s\" > NONE",name);
       const CeedInt length = Q*ncomp;
@@ -236,7 +236,7 @@ int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
       occaCopyPtrToMem(d_indata,in[i],length*bytes,iOf7[i]*bytes,NO_PROPS);
       break;
     }
-    case CEED_EVAL_WEIGHT:
+    case CEED_EVAL_WEIGHT: {
       dbg("[CeedQFunction][FillOp] \"%s\" WEIGHT", name);
       dbg("[CeedQFunction][FillOp] WEIGHT iOf7[%d]=%d", i,iOf7[i]);
       const CeedInt length = iOf7[i+1]-iOf7[i];
@@ -244,7 +244,8 @@ int CeedQFunctionFillOp_Occa(CeedQFunction qf, CeedInt Q,
       dbg("[CeedQFunction][FillOp] WEIGHT offset=%d", iOf7[i]);
       assert(length>0);
       occaCopyPtrToMem(d_indata,in[i],length*bytes,iOf7[i]*bytes,NO_PROPS);
-      break;  // No action
+      break;
+    }
     case CEED_EVAL_DIV: break; // Not implemented
     case CEED_EVAL_CURL: break; // Not implemented
     }

@@ -13,6 +13,9 @@ container: jedbrown/petsc-root:latest
 
 steps:
 - script: |
+    make info
+  displayName: 'make info'
+- script: |
     make
   displayName: 'make'
 - script: |
