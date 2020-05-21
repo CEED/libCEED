@@ -407,7 +407,7 @@ $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
 
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	+$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
-	  MFEM_DIR="$(abspath $(MFEM_DIR))" $*
+	  MFEM_DIR="$(abspath $(MFEM_DIR))" CXX=$(CXX) $*
 	mv examples/mfem/$* $@
 
 # Note: Multiple Nek files cannot be built in parallel. The '+' here enables
@@ -430,7 +430,7 @@ $(OBJDIR)/fluids-% : examples/fluids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 
 $(OBJDIR)/solids-% : examples/solids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(MAKE) -C examples/solids CEED_DIR=`pwd` \
-	  PETSC_DIR="$(abspath $(PETSC_DIR))" $*
+	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	mv examples/solids/$* $@
 
 libceed_test.o = $(test_backends.c:%.c=$(OBJDIR)/%.o)
