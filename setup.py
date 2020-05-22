@@ -111,6 +111,10 @@ setup(name="libceed",
       setup_requires=["cffi"],
       cffi_modules=["python/build_ceed_cffi.py:ffibuilder"],
       cmdclass={'build_ext': libceed_build_ext},
+
+      extras_require={
+          'cuda' : ['numba']
+      },
       )
 
 # ------------------------------------------------------------------------------

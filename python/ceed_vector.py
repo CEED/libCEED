@@ -73,15 +73,20 @@ class Vector():
            array if applicable.
 
            Args:
-             *array: Numpy array to be used
+             *array: Numpy or Numba array to be used
              **memtype: memory type of the array being passed, default CEED_MEM_HOST
              **cmode: copy mode for the array, default CEED_COPY_VALUES"""
 
         # Setup the numpy array for the libCEED call
         array_pointer = ffi.new("CeedScalar *")
-        array_pointer = ffi.cast(
-            "CeedScalar *",
-            array.__array_interface__['data'][0])
+        if memtype == MEM_HOST:
+            array_pointer = ffi.cast(
+                "CeedScalar *",
+                array.__array_interface__['data'][0])
+        else:
+            array_pointer = ffi.cast(
+                "CeedScalar *",
+                array.__cuda_array_interface__['data'][0])
 
         # libCEED call
         lib.CeedVectorSetArray(self._pointer[0], memtype, cmode, array_pointer)
@@ -94,7 +99,7 @@ class Vector():
              **memtype: memory type of the array being passed, default CEED_MEM_HOST
 
            Returns:
-             *array: Numpy array"""
+             *array: Numpy or Numba array"""
 
         # Retrieve the length of the array
         length_pointer = ffi.new("CeedInt *")
@@ -106,13 +111,27 @@ class Vector():
         # libCEED call
         lib.CeedVectorGetArray(self._pointer[0], memtype, array_pointer)
 
-        # Create buffer object from returned pointer
-        buff = ffi.buffer(
-            array_pointer[0],
-            ffi.sizeof("CeedScalar") *
-            length_pointer[0])
-        # Return numpy array created from buffer
-        return np.frombuffer(buff, dtype="float64")
+        # Return array created from buffer
+        if memtype == MEM_HOST:
+            # Create buffer object from returned pointer
+            buff = ffi.buffer(
+                array_pointer[0],
+                ffi.sizeof("CeedScalar") *
+                length_pointer[0])
+            # return Numpy array
+            return np.frombuffer(buff, dtype="float64")
+        else:
+            # CUDA array interface
+            # https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html
+            import numba.cuda as nbcuda
+            desc = {
+                'shape': (length_pointer[0]),
+                'typestr': '>f8',
+                'data': (int(ffi.cast("intptr_t", array_pointer[0])), False),
+                'version': 2
+            }
+            # return Numba array
+            return nbcuda.from_cuda_array_interface(desc)
 
     # Get Vector's data array in read-only mode
     def get_array_read(self, memtype=MEM_HOST):
@@ -122,7 +141,7 @@ class Vector():
              **memtype: memory type of the array being passed, default CEED_MEM_HOST
 
            Returns:
-             *array: Numpy array"""
+             *array: Numpy or Numba array"""
 
         # Retrieve the length of the array
         length_pointer = ffi.new("CeedInt *")
@@ -134,16 +153,29 @@ class Vector():
         # libCEED call
         lib.CeedVectorGetArrayRead(self._pointer[0], memtype, array_pointer)
 
-        # Create buffer object from returned pointer
-        buff = ffi.buffer(
-            array_pointer[0],
-            ffi.sizeof("CeedScalar") *
-            length_pointer[0])
-        # Create numpy array from buffer
-        ret = np.frombuffer(buff, dtype="float64")
-        # Make the numpy array read-only
-        ret.flags['WRITEABLE'] = False
-        return ret
+        # Return array created from buffer
+        if memtype == MEM_HOST:
+            # Create buffer object from returned pointer
+            buff = ffi.buffer(
+                array_pointer[0],
+                ffi.sizeof("CeedScalar") *
+                length_pointer[0])
+            # return read only Numpy array
+            ret = np.frombuffer(buff, dtype="float64")
+            ret.flags['WRITEABLE'] = False
+            return ret
+        else:
+            # CUDA array interface
+            # https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html
+            import numba.cuda as nbcuda
+            desc = {
+                'shape': (length_pointer[0]),
+                'typestr': '>f8',
+                'data': (int(ffi.cast("intptr_t", array_pointer[0])), False),
+                'version': 2
+            }
+            # return read only Numba array
+            return nbcuda.from_cuda_array_interface(desc)
 
     # Restore the Vector's data array
     def restore_array(self):
@@ -166,11 +198,13 @@ class Vector():
         lib.CeedVectorRestoreArrayRead(self._pointer[0], array_pointer)
 
     @contextlib.contextmanager
-    def array(self, *shape):
+    def array(self, *shape, memtype=MEM_HOST):
         """Context manager for array access.
 
         Args:
           shape (tuple): shape of returned numpy.array
+          **memtype: memory type of the array being passed, default CEED_MEM_HOST
+
 
         Returns:
           np.array: writable view of vector
@@ -182,18 +216,19 @@ class Vector():
           >>> with vec.array(4, 4) as x:
           >>>     x[...] = np.eye(4)
         """
-        x = self.get_array()
+        x = self.get_array(memtype=memtype)
         if shape:
             x = x.reshape(shape)
         yield x
         self.restore_array()
 
     @contextlib.contextmanager
-    def array_read(self, *shape):
+    def array_read(self, *shape, memtype=MEM_HOST):
         """Context manager for read-only array access.
 
         Args:
           shape (tuple): shape of returned numpy.array
+          **memtype: memory type of the array being passed, default CEED_MEM_HOST
 
         Returns:
           np.array: read-only view of vector
@@ -206,7 +241,7 @@ class Vector():
           >>> with vec.array_read(2, 3) as x:
           >>>     print(x)
         """
-        x = self.get_array_read()
+        x = self.get_array_read(memtype=memtype)
         if shape:
             x = x.reshape(shape)
         yield x
