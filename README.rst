@@ -203,9 +203,7 @@ To enable the MAGMA backend, the environment variable ``MAGMA_DIR`` must point t
 MAGMA directory, with the MAGMA library located in ``$(MAGMA_DIR)/lib/``.
 By default, ``MAGMA_DIR`` is set to ``../magma``; to build the MAGMA backend
 with a MAGMA installation located elsewhere, create a link to ``magma/`` in libCEED's parent
-directory, or set ``MAGMA_DIR`` to the proper location.  Currently, both basis function order
-and the number of quadrature points in one dimension must be <= 10 for tensor bases in MAGMA.
-(Non-tensor bases do not have these limits.)
+directory, or set ``MAGMA_DIR`` to the proper location.  MAGMA version 2.5.0 or newer is required.
 
 Examples
 ----------------------------------------
