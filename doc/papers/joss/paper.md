@@ -20,6 +20,7 @@ authors:
     orcid: 0000-0002-9945-0639
     affiliation: 1
   - name: Jean-Sylvain Camier
+    orcid: 0000-0003-2421-1999
     affiliation: 2
   - name: Veselin Dobrev
     orcid: 0000-0003-1793-5622
