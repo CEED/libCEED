@@ -30,6 +30,7 @@ authors:
     orcid: 0000-0002-0965-214X
     affiliation: 1
   - name: Tzanio Kolev
+    orcid: 0000-0002-2810-3090
     affiliation: 2
   - name: David Medina
     affiliation: 4
