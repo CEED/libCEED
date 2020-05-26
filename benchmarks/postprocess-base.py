@@ -89,6 +89,8 @@ while True:
          data['case']='scalar' if (('Problem 1' in line) or ('Problem 3' in line)
                                   or ('Problem 5' in line)) else 'vector'
       ## Backend
+      elif 'libCEED Backend MemType' in line:
+         data['backend_memtype']=line.split(':')[1].strip()
       elif 'libCEED Backend' in line:
          data['backend']=line.split(':')[1].strip()
       ## P

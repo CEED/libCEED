@@ -18,7 +18,7 @@
 #####   Adjustable plot parameters:
 log_y=0               # use log scale on the y-axis?
 x_range=(1e1,4e6)     # plot range for the x-axis; comment out for auto
-y_range=(0,8e7)       # plot range for the y-axis; comment out for auto
+y_range=(0,2e9)       # plot range for the y-axis; comment out for auto
 draw_iter_lines=0     # draw the "iter/s" lines?
 ymin_iter_lines=3e5   # minimal y value for the "iter/s" lines
 ymax_iter_lines=8e8   # maximal y value for the "iter/s" lines
@@ -74,12 +74,13 @@ code  = codes[0]
 sel_runs=sel_runs.loc[sel_runs['code'] == code]
 
 ##### Group plots by backend and number of processes
-pl_set=sel_runs[['backend', 'num_procs', 'num_procs_node']]
+pl_set=sel_runs[['backend', 'backend_memtype', 'num_procs', 'num_procs_node']]
 pl_set=pl_set.drop_duplicates()
 
 ##### Plotting
 for index, row in pl_set.iterrows():
    backend=row['backend']
+   backend_memtype=row['backend_memtype']
    num_procs=float(row['num_procs'])
    num_procs_node=float(row['num_procs_node'])
    num_nodes=num_procs/num_procs_node
@@ -156,9 +157,9 @@ for index, row in pl_set.iterrows():
       plot(y/slope2,y,'k-',label='%g iter/s'%(slope2/vdim))
 
    # Plot information
-   title(r'%i node%s $\times$ %i ranks, %s, %s'%(
+   title(r'%i node%s $\times$ %i ranks, %s, %s, %s'%(
          num_nodes,'' if num_nodes==1 else 's',
-         num_procs_node,backend,test_short),fontsize=16)
+         num_procs_node,backend,backend_memtype,test_short),fontsize=16)
    xscale('log') # subsx=[2,4,6,8]
    if log_y:
       yscale('log')
@@ -180,8 +181,8 @@ for index, row in pl_set.iterrows():
    if write_figures: # write .pdf file?
       short_backend=backend.replace('/','')
       test_short_save=test_short.replace(' ','')
-      pdf_file='plot_%s_%s_%s_N%03i_pn%i.pdf'%(
-               code,test_short_save,short_backend,num_nodes,num_procs_node)
+      pdf_file='plot_%s_%s_%s_%s_N%03i_pn%i.pdf'%(
+               code,test_short_save,short_backend,backend_memtype,num_nodes,num_procs_node)
       print('\nsaving figure --> %s'%pdf_file)
       savefig(pdf_file, format='pdf', bbox_inches='tight')
 
