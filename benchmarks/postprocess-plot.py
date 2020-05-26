@@ -18,7 +18,7 @@
 #####   Adjustable plot parameters:
 log_y=0               # use log scale on the y-axis?
 x_range=(1e1,4e6)     # plot range for the x-axis; comment out for auto
-y_range=(0,8e7)       # plot range for the y-axis; comment out for auto
+y_range=(0,2e9)       # plot range for the y-axis; comment out for auto
 draw_iter_lines=0     # draw the "iter/s" lines?
 ymin_iter_lines=3e5   # minimal y value for the "iter/s" lines
 ymax_iter_lines=8e8   # maximal y value for the "iter/s" lines
