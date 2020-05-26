@@ -397,7 +397,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
   magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
   magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
-  $(libceeds)           : LDLIBS += $(magma_link)
+  $(libceeds)          : LDLIBS += $(magma_link)
   $(tests) $(examples) : LDLIBS += $(magma_link)
   libceed.c  += $(magma.c)
   libceed.cu += $(magma.cu)
@@ -588,10 +588,17 @@ style-py :
 style : style-c style-py
 
 CLANG_TIDY ?= clang-tidy
+
 %.c.tidy : %.c
 	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include
 
-tidy : $(libceed.c:%=%.tidy)
+%.cpp.tidy : %.cpp
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(OCCA_DIR)/include
+
+tidy_c   : $(libceed.c:%=%.tidy)
+tidy_cpp : $(libceed.cpp:%=%.tidy)
+
+tidy : tidy_c tidy_cpp
 
 print :
 	@echo $(VAR)=$($(VAR))
