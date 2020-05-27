@@ -288,6 +288,30 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
     ierr = ISIntersect(depthIS, domainIS, &iterIS); CHKERRQ(ierr);
     ierr = ISDestroy(&domainIS); CHKERRQ(ierr);
     ierr = ISDestroy(&depthIS); CHKERRQ(ierr);
+
+    PetscInt numCells, numFaces, start;
+    const PetscInt *orients, *faces, *cells;
+    ierr = DMPlexGetSupport(dm, value, &cells); CHKERRQ(ierr);
+    ierr = DMPlexGetSupportSize(dm, value, &numCells); CHKERRQ(ierr);
+    ierr = DMPlexGetCone(dm, cells[0], &faces); CHKERRQ(ierr);
+    ierr = DMPlexGetConeSize(dm, cells[0], &numFaces); CHKERRQ(ierr);
+    for (PetscInt i=0; i<numFaces; i++) {if (faces[i] == value) start = i;}
+    ierr = DMPlexGetConeOrientation(dm, cells[0], &orients); CHKERRQ(ierr);
+    if (orients[start] < 0) {
+      PetscInt numFaces_;
+      PetscInt newOrients;
+      const PetscInt *faces_, *orients_;
+      for (PetscInt i=0; i<numCells; i++) {
+        ierr = DMPlexGetCone(dm, cells[i], &faces_); CHKERRQ(ierr);
+        ierr = DMPlexGetConeSize(dm, cells[i], &numFaces_); CHKERRQ(ierr);
+        ierr = DMPlexGetConeOrientation(dm, cells[i], &orients_); CHKERRQ(ierr);
+        for (PetscInt j=0; j<numFaces_; j++){
+          if (dim == 1) newOrients = orients_[(numFaces_ + start - j)%numFaces_];
+          //else if (dim == 2) ;
+          ierr = DMPlexInsertConeOrientation(dm, cells[i], j, newOrients);CHKERRQ(ierr);
+        }
+      }
+    }
   } else {
     iterIS = depthIS;
   }
