@@ -439,8 +439,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
 
 // *****************************************************************************
 // This QFunction implements the boundary integral of
-//    the advection equation in 3D.
-
+//    the advection equation in 3D for explicit scheme.
 // *****************************************************************************
 CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
                             const CeedScalar *const *in,
@@ -483,7 +482,51 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
 
   return 0;
 }
+// *****************************************************************************
+// This QFunction implements the boundary integral of
+//    the advection equation in 3D for implicit scheme.
+// *****************************************************************************
+CEED_QFUNCTION(IFunction_Advection_Sur)(void *ctx, CeedInt Q,
+                            const CeedScalar *const *in,
+                            CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+  DCContext context = (DCContext)ctx;
+  const CeedScalar strong_form = context->strong_form;
 
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // -- Interp in
+    const CeedScalar rho        =    q[0][i];
+    const CeedScalar u[3]       =   {q[1][i] / rho,
+                                     q[2][i] / rho,
+                                     q[3][i] / rho
+                                    };
+    const CeedScalar E          =    q[4][i];
+    // -- Interp-to-Interp qdataSur
+    const CeedScalar wdetJb      =  qdataSur[0][i];
+    const CeedScalar norm[3]     = {qdataSur[1][i],
+                                    qdataSur[2][i],
+                                    qdataSur[3][i]
+                                   };
+    // u_n = normal velocity
+    const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1] + norm[2]*u[2];
+    // No Change in density or momentum
+    for (CeedInt j=0; j<4; j++) {
+      v[j][i] = 0;
+    }
+    v[4][i] = (1-strong_form) *wdetJb *E *u_n;
+  } // End Quadrature Point Loop
+
+  return 0;
+}
 // *****************************************************************************
 
 #endif // advection_h
