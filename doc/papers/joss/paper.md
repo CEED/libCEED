@@ -7,6 +7,9 @@ tags:
   - spectral elements
   - matrix-free
 authors:
+  - name: Jed Brown
+    orcid: 0000-0002-9945-0639
+    affiliation: 1
   - name: Ahmad Abdelfattah
     orcid: 0000-0001-5054-4784
     affiliation: 3
@@ -16,9 +19,6 @@ authors:
   - name: Natalie Beams
     orcid: 0000-0001-6060-4082
     affiliation: 3
-  - name: Jed Brown
-    orcid: 0000-0002-9945-0639
-    affiliation: 1
   - name: Jean-Sylvain Camier
     orcid: 0000-0003-2421-1999
     affiliation: 2
