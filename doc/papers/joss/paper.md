@@ -50,7 +50,7 @@ affiliations:
    index: 2
  - name: University of Tennessee
    index: 3
- - name: Brex
+ - name: Occalytics LLC
    index: 4
  - name: University of Illinois at Urbana-Champaign
    index: 5
