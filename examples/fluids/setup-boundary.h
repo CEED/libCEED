@@ -90,9 +90,9 @@ CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q,
     const CeedScalar detJb = sqrt(J1*J1 + J2*J2);
 
     qdataSur[0][i] = w[i] * detJb;
-    qdataSur[1][i] = J1 / detJb;
-    qdataSur[2][i] = J2 / detJb;
-
+    // Normal vector is J × ẑ
+    qdataSur[1][i] = J2 / detJb;
+    qdataSur[2][i] = -J1 / detJb;
   } // End of Quadrature Point Loop
 
   // Return
