@@ -288,30 +288,6 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
     ierr = ISIntersect(depthIS, domainIS, &iterIS); CHKERRQ(ierr);
     ierr = ISDestroy(&domainIS); CHKERRQ(ierr);
     ierr = ISDestroy(&depthIS); CHKERRQ(ierr);
-
-    PetscInt numCells, numFaces, start;
-    const PetscInt *orients, *faces, *cells;
-    ierr = DMPlexGetSupport(dm, value, &cells); CHKERRQ(ierr);
-    ierr = DMPlexGetSupportSize(dm, value, &numCells); CHKERRQ(ierr);
-    ierr = DMPlexGetCone(dm, cells[0], &faces); CHKERRQ(ierr);
-    ierr = DMPlexGetConeSize(dm, cells[0], &numFaces); CHKERRQ(ierr);
-    for (PetscInt i=0; i<numFaces; i++) {if (faces[i] == value) start = i;}
-    ierr = DMPlexGetConeOrientation(dm, cells[0], &orients); CHKERRQ(ierr);
-    if (orients[start] < 0) {
-      PetscInt numFaces_;
-      PetscInt newOrients;
-      const PetscInt *faces_, *orients_;
-      for (PetscInt i=0; i<numCells; i++) {
-        ierr = DMPlexGetCone(dm, cells[i], &faces_); CHKERRQ(ierr);
-        ierr = DMPlexGetConeSize(dm, cells[i], &numFaces_); CHKERRQ(ierr);
-        ierr = DMPlexGetConeOrientation(dm, cells[i], &orients_); CHKERRQ(ierr);
-        for (PetscInt j=0; j<numFaces_; j++){
-          if (dim == 1) newOrients = orients_[(numFaces_ + start - j)%numFaces_];
-          //else if (dim == 2) ;
-          ierr = DMPlexInsertConeOrientation(dm, cells[i], j, newOrients);CHKERRQ(ierr);
-        }
-      }
-    }
   } else {
     iterIS = depthIS;
   }
@@ -324,24 +300,46 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
     ierr = DMPlexGetClosureIndices(dm, section, section, c, PETSC_TRUE,
                                    &numindices, &indices, NULL, NULL);
     CHKERRQ(ierr);
+    bool flip = false;
+    if (height > 0) {
+      PetscInt numCells, numFaces, start = -1;
+      const PetscInt *orients, *faces, *cells;
+      ierr = DMPlexGetSupport(dm, c, &cells); CHKERRQ(ierr);
+      ierr = DMPlexGetSupportSize(dm, c, &numCells); CHKERRQ(ierr);
+      if (numCells != 1) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP, "Expected one cell in support of exterior face, but got %D cells", numCells);
+      ierr = DMPlexGetCone(dm, cells[0], &faces); CHKERRQ(ierr);
+      ierr = DMPlexGetConeSize(dm, cells[0], &numFaces); CHKERRQ(ierr);
+      for (PetscInt i=0; i<numFaces; i++) {if (faces[i] == c) start = i;}
+      if (start < 0) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_CORRUPT, "Could not find face %D in cone of its support", c);
+      ierr = DMPlexGetConeOrientation(dm, cells[0], &orients); CHKERRQ(ierr);
+      if (orients[start] < 0) flip = true;
+    }
     if (numindices % fieldoff[nfields]) SETERRQ1(PETSC_COMM_SELF,
           PETSC_ERR_ARG_INCOMP, "Number of closure indices not compatible with Cell %D",
           c);
     nnodes = numindices / fieldoff[nfields];
     for (PetscInt i=0; i<nnodes; i++) {
+      PetscInt ii = i;
+      if (flip) {
+	if (P == nnodes) ii = nnodes - 1 - i;
+	else if (P*P == nnodes) {
+	  PetscInt row = i / P, col = i % P;
+	  ii = row + col * P;
+	} else SETERRQ2(PETSC_COMM_SELF, PETSC_ERR_SUP, "No support for flipping point with %D nodes != P (%D) or P^2", nnodes, P);
+      }
       // Check that indices are blocked by node and thus can be coalesced as a single field with
       // fieldoff[nfields] = sum(ncomp) components.
       for (PetscInt f=0; f<nfields; f++) {
         for (PetscInt j=0; j<ncomp[f]; j++) {
-          if (Involute(indices[fieldoff[f]*nnodes + i*ncomp[f] + j])
-              != Involute(indices[i*ncomp[0]]) + fieldoff[f] + j)
+          if (Involute(indices[fieldoff[f]*nnodes + ii*ncomp[f] + j])
+              != Involute(indices[ii*ncomp[0]]) + fieldoff[f] + j)
             SETERRQ4(PETSC_COMM_SELF,PETSC_ERR_ARG_INCOMP,
                      "Cell %D closure indices not interlaced for node %D field %D component %D",
-                     c, i, f, j);
+                     c, ii, f, j);
         }
       }
       // Essential boundary conditions are encoded as -(loc+1), but we don't care so we decode.
-      PetscInt loc = Involute(indices[i*ncomp[0]]);
+      PetscInt loc = Involute(indices[ii*ncomp[0]]);
       erestrict[eoffset++] = loc;
     }
     ierr = DMPlexRestoreClosureIndices(dm, section, section, c, PETSC_TRUE,
