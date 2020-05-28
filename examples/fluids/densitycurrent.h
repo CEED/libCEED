@@ -772,7 +772,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
 
 // *****************************************************************************
 #if 0
-CEED_QFUNCTION(DC_Sur)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(DC_Out)(void *ctx, CeedInt Q,
                             const CeedScalar *const *in,
                             CeedScalar *const *out) {
   // *INDENT-OFF*

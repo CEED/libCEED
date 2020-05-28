@@ -386,7 +386,7 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
 // This QFunction implements the boundary integral of
 //    the advection equation in 2D for explicit scheme.
 // *****************************************************************************
-CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(Advection2d_Out)(void *ctx, CeedInt Q,
                             const CeedScalar *const *in,
                             CeedScalar *const *out) {
   // *INDENT-OFF*
@@ -431,7 +431,7 @@ CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
 // This QFunction implements the boundary integral of
 //    the advection equation in 2D for implicit scheme.
 // *****************************************************************************
-CEED_QFUNCTION(IFunction_Advection2d_Sur)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(IFunction_Advection2d_Out)(void *ctx, CeedInt Q,
                             const CeedScalar *const *in,
                             CeedScalar *const *out) {
   // *INDENT-OFF*
