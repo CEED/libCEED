@@ -528,5 +528,138 @@ CEED_QFUNCTION(IFunction_Advection_Out)(void *ctx, CeedInt Q,
   return 0;
 }
 // *****************************************************************************
+// This QFunction implements inflow BCs for 3D advection
+//     with explicit time stepping method
+//
+//  Suffixes of the variables:
+//    star  = on the inlet (inflow boundary face)
+//    right = inside the domain
+//    left  = outside the domain
+// *****************************************************************************
+CEED_QFUNCTION(Advection_In)(void *ctx, CeedInt Q,
+                            const CeedScalar *const *in,
+                            CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+    // Context
+  const CeedScalar *context = (const CeedScalar *)ctx;
+  const CeedScalar cv       = context[0];
+  const CeedScalar cp       = context[1];
+  const CeedScalar Rd       = context[2];
+  const CeedScalar P_left   = context[3];
+  const CeedScalar rho_left = context[4];
+  const CeedScalar gamma    = cp / cv;
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // -- Interp in
+    const CeedScalar rho_right        =    q[0][i];
+    const CeedScalar u_right[3]       =   {q[1][i] / rho_right,
+                                           q[2][i] / rho_right,
+                                           q[3][i] / rho_right
+                                          };
+    const CeedScalar E_right          =    q[4][i];
+    // -- Interp-to-Interp qdata
+    const CeedScalar wdetJb           =    qdataSur[0][i];
+    const CeedScalar norm[3]          =   {qdataSur[1][i],
+                                           qdataSur[2][i],
+                                           qdataSur[3][i]
+                                          };
+    // ke_right = kinetic energy inside the domain
+    const CeedScalar ke_right  = (u_right[0]*u_right[0] + u_right[1]*u_right[1] +
+                                    u_right[2]*u_right[2]) / 2.;
+    // u_n_right = normal velocity inside the domain
+    const CeedScalar u_n_right = -(norm[0]*u_right[0] + norm[1]*u_right[1] +
+                                    norm[2]*u_right[2]);
+    // -- Inlet variables
+    // P_star = P_right so the incoming nonlinear wave has amplitude zero
+    const CeedScalar P_star    = (E_right - ke_right * rho_right) * (gamma - 1.);
+    const CeedScalar u_star    = u_n_right + 2.*sqrt(fabs(gamma*P_star/rho_right))/(gamma - 1.);
+    const CeedScalar rho_star  = rho_left * pow(fabs(P_star/P_left), (1./gamma));
+    const CeedScalar T_star    = P_star/(Rd*rho_star);
+    const CeedScalar E_star    = rho_star * (cv*T_star + u_star*u_star/2.);
+
+    // No Change in density or momentum
+    for (CeedInt j=0; j<4; j++) {
+      v[j][i] = 0;
+    }
+    DCContext context = (DCContext)ctx;
+    v[4][i] = (1 - context->strong_form) *wdetJb *E_star *u_star;
+  } // End Quadrature Point Loop
+
+  return 0;
+}
+// *****************************************************************************
+// This QFunction implements inflow BCs for 2D advection
+//     with implicit time stepping method
+// *****************************************************************************
+CEED_QFUNCTION(IFunction_Advection_In)(void *ctx, CeedInt Q,
+                            const CeedScalar *const *in,
+                            CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+    // Context
+  const CeedScalar *context = (const CeedScalar *)ctx;
+  const CeedScalar cv       = context[0];
+  const CeedScalar cp       = context[1];
+  const CeedScalar Rd       = context[2];
+  const CeedScalar P_left   = context[3];
+  const CeedScalar rho_left = context[4];
+  const CeedScalar gamma    = cp / cv;
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // -- Interp in
+    const CeedScalar rho_right        =    q[0][i];
+    const CeedScalar u_right[3]       =   {q[1][i] / rho_right,
+                                           q[2][i] / rho_right,
+                                           q[3][i] / rho_right
+                                          };
+    const CeedScalar E_right          =    q[4][i];
+    // -- Interp-to-Interp qdata
+    const CeedScalar wdetJb           =    qdataSur[0][i];
+    const CeedScalar norm[3]          =   {qdataSur[1][i],
+                                           qdataSur[2][i],
+                                           qdataSur[3][i]
+                                          };
+    // ke_right = kinetic energy inside the domain
+    const CeedScalar ke_right  = (u_right[0]*u_right[0] + u_right[1]*u_right[1] +
+                                    u_right[2]*u_right[2]) / 2.;
+    // u_n_right = normal velocity inside the domain
+    const CeedScalar u_n_right = -(norm[0]*u_right[0] + norm[1]*u_right[1] +
+                                    norm[2]*u_right[2]);
+    // -- Inlet variables
+    // P_star = P_right so the incoming nonlinear wave has amplitude zero
+    const CeedScalar P_star    = (E_right - ke_right * rho_right) * (gamma - 1.);
+    const CeedScalar u_star    = u_n_right + 2.*sqrt(fabs(gamma*P_star/rho_right))/(gamma - 1.);
+    const CeedScalar rho_star  = rho_left * pow(fabs(P_star/P_left), (1./gamma));
+    const CeedScalar T_star    = P_star/(Rd*rho_star);
+    const CeedScalar E_star    = rho_star * (cv*T_star + u_star*u_star/2.);
+
+    // No Change in density or momentum
+    for (CeedInt j=0; j<4; j++) {
+      v[j][i] = 0;
+    }
+    DCContext context = (DCContext)ctx;
+    v[4][i] = -(1 - context->strong_form) *wdetJb *E_star *u_star;
+  } // End Quadrature Point Loop
+
+  return 0;
+}
+// *****************************************************************************
 
 #endif // advection_h
