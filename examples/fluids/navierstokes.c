@@ -321,11 +321,11 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
     for (PetscInt i=0; i<nnodes; i++) {
       PetscInt ii = i;
       if (flip) {
-	if (P == nnodes) ii = nnodes - 1 - i;
-	else if (P*P == nnodes) {
-	  PetscInt row = i / P, col = i % P;
-	  ii = row + col * P;
-	} else SETERRQ2(PETSC_COMM_SELF, PETSC_ERR_SUP, "No support for flipping point with %D nodes != P (%D) or P^2", nnodes, P);
+    	  if (P == nnodes) ii = nnodes - 1 - i;
+        else if (P*P == nnodes) {
+          PetscInt row = i / P, col = i % P;
+	        ii = row + col * P;
+	      } else SETERRQ2(PETSC_COMM_SELF, PETSC_ERR_SUP, "No support for flipping point with %D nodes != P (%D) or P^2", nnodes, P);
       }
       // Check that indices are blocked by node and thus can be coalesced as a single field with
       // fieldoff[nfields] = sum(ncomp) components.
@@ -1438,13 +1438,13 @@ int main(int argc, char **argv) {
     CeedQFunctionAddOutput(qf_ifunctionSur, "v", ncompq, CEED_EVAL_INTERP);
   }
   // Create CEED Operator for each face
-  if (qf_rhsSur) {
+  if (user->op_rhs_vol) {
     ierr = CreateOperatorForDomain(ceed, dm, user->op_rhs_vol, qf_rhsSur, qf_setupSur, height,
                                   bc.noutflow, bc.outflow, numP_Sur, numQ_Sur, qdatasizeSur,
                                   NqptsSur, basisxSur, basisqSur, &user->op_rhs);
                                   CHKERRQ(ierr);
   }
-  if (qf_ifunctionSur) {
+  if (user->op_ifunction_vol) {
     ierr = CreateOperatorForDomain(ceed, dm, user->op_ifunction_vol, qf_ifunctionSur, qf_setupSur, height,
                                   bc.noutflow, bc.outflow, numP_Sur, numQ_Sur, qdatasizeSur,
                                   NqptsSur, basisxSur, basisqSur, &user->op_ifunction);
