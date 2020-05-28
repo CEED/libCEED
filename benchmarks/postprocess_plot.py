@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
 # Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
 # All Rights reserved. See files LICENSE and NOTICE for details.
@@ -29,8 +30,9 @@ show_figures=1        # display the figures on the screen?
 
 #####   Load the data
 import pandas as pd
-exec(compile(open('postprocess-base.py').read(), 'postprocess-base.py', 'exec'))
+from postprocess_base import read_logs
 
+runs = read_logs()
 
 #####   Sample plot output
 from matplotlib import use
@@ -95,19 +97,19 @@ for index, row in pl_set.iterrows():
 
    figure()
    i=0
-   sol_p_set=sel_runs['order'].drop_duplicates()
+   sol_p_set=sel_runs['degree'].drop_duplicates()
    sol_p_set=sol_p_set.sort_values()
    ##### Iterate over P
    for sol_p in sol_p_set:
-      qpts=sel_runs['quadrature_pts'].loc[pl_runs['order']==sol_p]
+      qpts=sel_runs['quadrature_pts'].loc[pl_runs['degree']==sol_p]
       qpts=qpts.drop_duplicates().sort_values(ascending=False)
       qpts=qpts.reset_index(drop=True)
-      print('Order: %i, quadrature points:'%sol_p, qpts[0])
+      print('Degree: %i, quadrature points:'%sol_p, qpts[0])
       # Generate plot data
-      d=[[run['order'],run['num_elem'],1.*run['num_unknowns']/num_nodes/vdim,
+      d=[[run['degree'],run['num_elem'],1.*run['num_unknowns']/num_nodes/vdim,
           run['cg_iteration_dps']/num_nodes]
          for index, run in
-         pl_runs.loc[(pl_runs['order']==sol_p) |
+         pl_runs.loc[(pl_runs['degree']==sol_p) |
                      (pl_runs['quadrature_pts']==qpts[0])].iterrows()]
       d=[[e[2],e[3]] for e in d if e[0]==sol_p]
       # (DOFs/[sec/iter]/node)/(DOFs/node) = iter/sec
@@ -118,7 +120,7 @@ for index, row in pl_set.iterrows():
       d=asarray(sorted(d))
       # Plot
       plot(d[:,0],d[:,2],'o-',color=colors[i%cm_size],
-           label='p=%i'%(sol_p-1))
+           label='p=%i'%sol_p)
       if list(d[:,1]) != list(d[:,2]):
          plot(d[:,0],d[:,1],'o-',color=colors[i])
          fill_between(d[:,0],d[:,1],d[:,2],facecolor=colors[i],alpha=0.2)
@@ -127,10 +129,10 @@ for index, row in pl_set.iterrows():
          i=i+1
          continue
       # Second set of qpts
-      d=[[run['order'],run['num_elem'],1.*run['num_unknowns']/num_nodes/vdim,
+      d=[[run['degree'],run['num_elem'],1.*run['num_unknowns']/num_nodes/vdim,
           run['cg_iteration_dps']/num_nodes]
          for index, run in
-         pl_runs.loc[(pl_runs['order']==sol_p) |
+         pl_runs.loc[(pl_runs['degree']==sol_p) |
                      (pl_runs['quadrature_pts']==qpts[1])].iterrows()]
       d=[[e[2],e[3]] for e in d if e[0]==sol_p]
       if len(d)==0:
@@ -142,7 +144,7 @@ for index, row in pl_set.iterrows():
          for nun in set([e[0] for e in d])]
       d=asarray(sorted(d))
       plot(d[:,0],d[:,2],'s--',color=colors[i],
-           label='p=%i'%(sol_p-1))
+           label='p=%i'%sol_p)
       if list(d[:,1]) != list(d[:,2]):
          plot(d[:,0],d[:,1],'s--',color=colors[i])
       ##
