@@ -26,6 +26,7 @@ authors:
     orcid: 0000-0003-1793-5622
     affiliation: 2
   - name: Yohann Dudouit
+    orcid: 0000-0001-5831-561X
     affiliation: 2
   - name:  Leila Ghaffari
     orcid: 0000-0002-0965-214X
