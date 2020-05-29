@@ -526,14 +526,14 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
     return 0;
   }
 
+  if (!qf || qf == CEED_QFUNCTION_NONE)
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Operator must have a valid QFunction.");
+  // LCOV_EXCL_STOP
   ierr = CeedCalloc(1, op); CeedChk(ierr);
   (*op)->ceed = ceed;
   ceed->refcount++;
   (*op)->refcount = 1;
-  if (qf == CEED_QFUNCTION_NONE)
-    // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Operator must have a valid QFunction.");
-  // LCOV_EXCL_STOP
   (*op)->qf = qf;
   qf->refcount++;
   if (dqf && dqf != CEED_QFUNCTION_NONE) {
