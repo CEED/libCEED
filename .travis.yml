@@ -76,7 +76,7 @@ jobs:
      dist: bionic
      arch: ppc64le
      compiler: gcc
-     env: FC=gfortran
+     env: FC=gfortran MFEM_USE_SIMD=NO
 # ARM
    - name: "ARM"
      os: linux
@@ -124,7 +124,7 @@ install:
     fi
 # MFEM
   - git clone --depth 1 https://github.com/mfem/mfem.git;
-  - make -C mfem -j2 serial CXXFLAGS="-O -std=c++11"
+  - make -C mfem -j2 serial CXXFLAGS="-O -std=c++11" MFEM_USE_SIMD=${MFEM_USE_SIMD}
   - export MFEM_DIR=$PWD/mfem
 # Nek5k
   - git clone --depth 1 https://github.com/Nek5000/Nek5000.git;
