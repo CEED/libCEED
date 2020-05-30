@@ -53,7 +53,7 @@ void applyRestriction(const CeedInt elementCount,
 @directive("#endif")
 
       for (int c = 0; c < COMPONENT_COUNT; ++c) {
-@directive("#if STRIDE_TYPE == COMPONENT_STRIDED")
+@directive("#if STRIDE_TYPE == NOT_STRIDED")
         const CeedScalar u_i = u[index + (c * COMPONENT_STRIDE)];
 @directive("#else")
         const CeedInt u_node = index % ELEMENT_SIZE;

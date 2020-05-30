@@ -249,15 +249,15 @@ namespace ceed {
 
       if (isStrided) {
         if (hasBackendStrides) {
-          ceedStrideType = FULLY_STRIDED;
+          ceedStrideType = USER_STRIDES;
         } else {
-          ceedStrideType = NOT_STRIDED;
+          ceedStrideType = BACKEND_STRIDES;
         }
       } else {
-        ceedStrideType = COMPONENT_STRIDED;
+        ceedStrideType = NOT_STRIDED;
       }
 
-      if (ceedStrideType == FULLY_STRIDED) {
+      if (ceedStrideType == USER_STRIDES) {
         CeedInt strides[3];
 
         ierr = CeedElemRestrictionGetStrides(r, &strides);
@@ -266,7 +266,7 @@ namespace ceed {
         ceedNodeStride      = strides[0];
         ceedComponentStride = strides[1];
         ceedElementStride   = strides[2];
-      } else if (ceedStrideType == COMPONENT_STRIDED) {
+      } else if (ceedStrideType == NOT_STRIDED) {
         ierr = CeedElemRestrictionGetCompStride(r, &ceedComponentStride);
         CeedOccaFromChk(ierr);
       } else {
@@ -284,10 +284,10 @@ namespace ceed {
       const bool rIsTransposed = (rTransposeMode != CEED_NOTRANSPOSE);
 
       ::occa::properties kernelProps;
-      kernelProps["defines/FULLY_STRIDED"]     = StrideType::FULLY_STRIDED;
-      kernelProps["defines/COMPONENT_STRIDED"] = StrideType::COMPONENT_STRIDED;
-      kernelProps["defines/NOT_STRIDED"]       = StrideType::NOT_STRIDED;
-      kernelProps["defines/STRIDE_TYPE"]       = ceedStrideType;
+      kernelProps["defines/USER_STRIDES"]    = StrideType::USER_STRIDES;
+      kernelProps["defines/NOT_STRIDED"]     = StrideType::NOT_STRIDED;
+      kernelProps["defines/BACKEND_STRIDES"] = StrideType::BACKEND_STRIDES;
+      kernelProps["defines/STRIDE_TYPE"]     = ceedStrideType;
 
       kernelProps["defines/NODE_COUNT"]       = transposeQuadIndices.length();
       kernelProps["defines/NODE_STRIDE"]      = ceedNodeStride;

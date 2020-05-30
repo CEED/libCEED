@@ -24,9 +24,9 @@
 namespace ceed {
   namespace occa {
     enum StrideType {
-      NOT_STRIDED = 0,
-      FULLY_STRIDED = 1,
-      COMPONENT_STRIDED = 2,
+      BACKEND_STRIDES = 0,
+      USER_STRIDES = 1,
+      NOT_STRIDED = 2,
     };
 
     class ElemRestriction : public CeedObject {
