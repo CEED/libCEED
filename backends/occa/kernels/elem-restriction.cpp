@@ -23,15 +23,16 @@
 // - CeedScalar
 //
 // Expects the following constants to be defined:
-// - COMPONENT_COUNT  : CeedInt
-// - ELEMENT_SIZE     : CeedInt
-// - NODE_COUNT       : CeedInt
-// - TILE_SIZE        : int
-// - USES_INDICES     : bool
-// - STRIDE_TYPE      : ceed::occa::StrideType
-// - NODE_STRIDE      : Optional[CeedInt]
-// - COMPONENT_STRIDE : Optional[CeedInt]
-// - ELEMENT_STRIDE   : CeedInt
+// - COMPONENT_COUNT            : CeedInt
+// - ELEMENT_SIZE               : CeedInt
+// - NODE_COUNT                 : CeedInt
+// - TILE_SIZE                  : int
+// - USES_INDICES               : bool
+// - STRIDE_TYPE                : ceed::occa::StrideType
+// - NODE_STRIDE                : Optional[CeedInt]
+// - COMPONENT_STRIDE           : Optional[CeedInt]
+// - ELEMENT_STRIDE             : Optional[CeedInt]
+// - UNSTRIDED_COMPONENT_STRIDE : Optional[CeedInt]
 
 const char *occa_elem_restriction_source = STRINGIFY_SOURCE(
 
@@ -54,7 +55,7 @@ void applyRestriction(const CeedInt elementCount,
 
       for (int c = 0; c < COMPONENT_COUNT; ++c) {
 @directive("#if STRIDE_TYPE == NOT_STRIDED")
-        const CeedScalar u_i = u[index + (c * COMPONENT_STRIDE)];
+        const CeedScalar u_i = u[index + (c * UNSTRIDED_COMPONENT_STRIDE)];
 @directive("#else")
         const CeedInt u_node = index % ELEMENT_SIZE;
         const CeedInt u_element = index / ELEMENT_SIZE;
@@ -106,7 +107,7 @@ void applyRestrictionTranspose(const CeedInt elementCount,
     }
 
     for (int c = 0; c < COMPONENT_COUNT; ++c) {
-      v[vIndex + (c * COMPONENT_STRIDE)] += vComp[c];
+      v[vIndex + (c * UNSTRIDED_COMPONENT_STRIDE)] += vComp[c];
     }
   }
 

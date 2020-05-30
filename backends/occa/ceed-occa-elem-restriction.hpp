@@ -40,6 +40,7 @@ namespace ceed {
       CeedInt ceedNodeStride;
       CeedInt ceedComponentStride;
       CeedInt ceedElementStride;
+      CeedInt ceedUnstridedComponentStride;
 
       // Passed resources
       bool freeHostIndices;

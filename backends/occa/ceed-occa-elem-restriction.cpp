@@ -30,6 +30,7 @@ namespace ceed {
         ceedNodeStride(0),
         ceedComponentStride(0),
         ceedElementStride(0),
+        ceedUnstridedComponentStride(0),
         freeHostIndices(true),
         hostIndices(NULL),
         freeIndices(true) {}
@@ -249,13 +250,18 @@ namespace ceed {
 
       if (isStrided) {
         if (hasBackendStrides) {
-          ceedStrideType = USER_STRIDES;
-        } else {
           ceedStrideType = BACKEND_STRIDES;
+        } else {
+          ceedStrideType = USER_STRIDES;
         }
       } else {
         ceedStrideType = NOT_STRIDED;
       }
+
+      // Default strides
+      ceedNodeStride      = 1;
+      ceedComponentStride = ceedElementSize * ceedElementCount;
+      ceedElementStride   = ceedElementSize;
 
       if (ceedStrideType == USER_STRIDES) {
         CeedInt strides[3];
@@ -266,13 +272,10 @@ namespace ceed {
         ceedNodeStride      = strides[0];
         ceedComponentStride = strides[1];
         ceedElementStride   = strides[2];
+
       } else if (ceedStrideType == NOT_STRIDED) {
-        ierr = CeedElemRestrictionGetCompStride(r, &ceedComponentStride);
+        ierr = CeedElemRestrictionGetCompStride(r, &ceedUnstridedComponentStride);
         CeedOccaFromChk(ierr);
-      } else {
-        ceedNodeStride      = 1;
-        ceedComponentStride = ceedElementSize * ceedElementCount;
-        ceedElementStride   = ceedElementSize;
       }
 
       return this;
@@ -293,6 +296,7 @@ namespace ceed {
       kernelProps["defines/NODE_STRIDE"]      = ceedNodeStride;
       kernelProps["defines/COMPONENT_STRIDE"] = ceedComponentStride;
       kernelProps["defines/ELEMENT_STRIDE"]   = ceedElementStride;
+      kernelProps["defines/UNSTRIDED_COMPONENT_STRIDE"] = ceedUnstridedComponentStride;
 
       if (rIsTransposed) {
         ::occa::kernel applyTranspose = applyTransposeKernelBuilder.build(

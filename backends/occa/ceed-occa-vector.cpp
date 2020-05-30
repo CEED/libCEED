@@ -253,9 +253,24 @@ namespace ceed {
       CeedScalar *values;
       getReadOnlyArray(CEED_MEM_HOST, &values);
 
-      std::cout << name << " (length: " << length << "):" << std::endl;
+      CeedScalar minValue = values[0];
+      CeedScalar maxValue = values[0];
+
       for (int i = 0; i < length; ++i) {
-        printf("  %12.8f\n", values[i]);
+        const CeedScalar value = values[i];
+        minValue = minValue < value ? minValue : value;
+        maxValue = maxValue > value ? maxValue : value;
+      }
+
+      std::cout << std::setprecision(8)
+                << "Vector: " << name << std::endl
+                << "  - Length: " << length << std::endl
+                << "  - Min   : " << minValue << std::endl
+                << "  - Max   : " << maxValue << std::endl
+                << "  - Values: " << maxValue << std::endl;
+
+      for (int i = 0; i < length; ++i) {
+        printf("    %12.8f\n", values[i]);
       }
     }
 

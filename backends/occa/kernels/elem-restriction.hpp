@@ -24,14 +24,16 @@
 // - CeedScalar
 //
 // Expects the following constants to be defined:
-// - COMPONENT_COUNT : CeedInt
-// - ELEMENT_SIZE    : CeedInt
-// - NODE_COUNT      : CeedInt
-// - TILE_SIZE       : int
-// - USES_INDICES    : bool
-// - NODE_STRIDE      : Optional[CeedInt]
-// - COMPONENT_STRIDE : Optional[CeedInt]
-// - ELEMENT_STRIDE   : CeedInt
+// - COMPONENT_COUNT            : CeedInt
+// - ELEMENT_SIZE               : CeedInt
+// - NODE_COUNT                 : CeedInt
+// - TILE_SIZE                  : int
+// - USES_INDICES               : bool
+// - STRIDE_TYPE                : ceed::occa::StrideType
+// - NODE_STRIDE                : Optional[CeedInt]
+// - COMPONENT_STRIDE           : Optional[CeedInt]
+// - ELEMENT_STRIDE             : Optional[CeedInt]
+// - UNSTRIDED_COMPONENT_STRIDE : Optional[CeedInt]
 
 extern const char *occa_elem_restriction_source;
 
