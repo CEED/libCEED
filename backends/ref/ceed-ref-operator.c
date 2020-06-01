@@ -566,7 +566,7 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   // LCOV_EXCL_STOP
 
   // Create output restriction
-  CeedInt strides[3] = {1, Q, numactivein *numactiveout*Q};
+  CeedInt strides[3] = {1, Q, numactivein*numactiveout*Q};
   ierr = CeedElemRestrictionCreateStrided(ceedparent, numelements, Q,
                                           numactivein*numactiveout,
                                           numactivein*numactiveout*numelements*Q,
@@ -698,7 +698,7 @@ static int CreateCSRRestriction(CeedElemRestriction rstr,
   ierr = CeedElemRestrictionGetNumComponents(rstr, &ncomp); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(rstr, &elemsize); CeedChk(ierr);
   ierr = CeedElemRestrictionGetCompStride(rstr, &compstride); CeedChk(ierr);
-  shift = ncomp;  
+  shift = ncomp;
   if (compstride != 1)
     shift *= ncomp;
   ierr = CeedCalloc(nelem*elemsize, &csrOffsets); CeedChk(ierr);
@@ -892,7 +892,7 @@ static int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
                 if (fabs(qfvalue) > maxnorm*1e-12)
                   for (CeedInt n=0; n<nnodes; n++)
                     elemdiagarray[((e*ncomp+compOut)*ncomp+compIn)*nnodes+n] +=
-                        bt[q*nnodes+n] * qfvalue * b[q*nnodes+n];
+                      bt[q*nnodes+n] * qfvalue * b[q*nnodes+n];
               }
             } else {
               // Diagonal Only
@@ -902,7 +902,7 @@ static int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
               if (fabs(qfvalue) > maxnorm*1e-12)
                 for (CeedInt n=0; n<nnodes; n++)
                   elemdiagarray[(e*ncomp+compOut)*nnodes+n] +=
-                      bt[q*nnodes+n] * qfvalue * b[q*nnodes+n];
+                    bt[q*nnodes+n] * qfvalue * b[q*nnodes+n];
             }
       }
     }
@@ -1197,7 +1197,8 @@ int CeedOperatorCreate_Ref(CeedOperator op) {
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearDiagonal",
                                 CeedOperatorAssembleLinearDiagonal_Ref);
   CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearPointBlockDiagonal",
+  ierr = CeedSetBackendFunction(ceed, "Operator", op,
+                                "AssembleLinearPointBlockDiagonal",
                                 CeedOperatorAssembleLinearPointBlockDiagonal_Ref);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "CreateFDMElementInverse",
