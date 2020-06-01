@@ -20,6 +20,7 @@
 #include "ceed-occa-simplex-basis.hpp"
 #include "ceed-occa-tensor-basis.hpp"
 
+#define CEED_OCCA_PRINT_KERNEL_HASHES 0
 
 namespace ceed {
   namespace occa {
@@ -229,8 +230,6 @@ namespace ceed {
 
       addKernelSource(ss);
 
-      // std::cout << ss.str();
-
       // TODO: Store a kernel per Q
       return getDevice().buildKernelFromString(ss.str(),
                                                "applyAdd",
@@ -326,13 +325,27 @@ namespace ceed {
          << "  @tile(128, @outer, @inner)"                                 << std::endl
          << "  for (int element = 0; element < elementCount; ++element) {" << std::endl;
 
+#if CEED_OCCA_PRINT_KERNEL_HASHES
+      // Print to see which kernel is being run
+      ss << "    if (element == 0) {" << std::endl
+         << "      printf(\"\\n\\nOperator Kernel: \" OKL_KERNEL_HASH \"\\n\\n\");" << std::endl
+         << "    }" << std::endl;
+#endif
+
       addQuadArraySource(ss);
 
+      ss  << std::endl
+          << "    // [Start] Transforming inputs to quadrature points" << std::endl;
       addInputSetupSource(ss);
+      ss << "    // [End] Transforming inputs to quadrature points" << std::endl
+         << std::endl;
 
       addQFunctionApplicationSource(ss);
 
+      ss  << std::endl
+          << "    // [Start] Transforming outputs to quadrature points" << std::endl;
       addOutputSetupSource(ss);
+      ss << "    // [End] Transforming outputs to quadrature points" << std::endl;
 
       ss << "  }" << std::endl
          << "}"   << std::endl;
@@ -473,18 +486,28 @@ namespace ceed {
       const std::string quadInput = "quadInput";
       const std::string quadOutput = "quadOutput";
 
+      ss << "    // Store the transformed input quad values" << std::endl;
       for (int i = 0; i < inputs; ++i) {
         const bool isInput = true;
         addSingleQfunctionQuadArraySource(ss, isInput, i, quadInput);
       }
+
+      ss << std::endl
+         << "    // Store the transformed output quad values" << std::endl;
       for (int i = 0; i < outputs; ++i) {
         const bool isInput = false;
         addSingleQfunctionQuadArraySource(ss, isInput, i, quadOutput);
       }
       ss << std::endl;
 
-      addQfunctionQuadArraySource(ss, inputs, quadInput);
-      addQfunctionQuadArraySource(ss, outputs, quadOutput);
+      ss << std::endl
+         << "    // Store all input pointers in a single array" << std::endl;
+      addQfunctionQuadArraySource(ss, true, inputs, quadInput);
+
+      ss << std::endl
+         << "    // Store all output pointers in a single array" << std::endl;
+      addQfunctionQuadArraySource(ss, false, outputs, quadOutput);
+
       ss << std::endl;
     }
 
@@ -514,6 +537,7 @@ namespace ceed {
     }
 
     void CpuOperator::addQfunctionQuadArraySource(std::stringstream &ss,
+                                                  const bool isInput,
                                                   const int count,
                                                   const std::string &name) {
       // Output:
@@ -523,7 +547,9 @@ namespace ceed {
       //   };
 
       // Add an 's': quadInput -> quadInputs
-      ss << "    CeedScalar *" << name << "s[" << count << "] = {" << std::endl;
+      const std::string arrayName = name + "s";
+
+      ss << "    CeedScalar *" << arrayName << "[" << count << "] = {" << std::endl;
       for (int i = 0; i < count; ++i) {
         if (i) {
           ss << ',' << std::endl;
@@ -601,7 +627,8 @@ namespace ceed {
         output = "&" + dofOutputVar(index) + "(" + dimArgs + ", component, element)";
       }
 
-      ss << "    for (int component = 0; component < " << components << "; ++component) {" << std::endl
+      ss << "    // Applying interp (" << xputName(isInput) << ": " << index << ")"        << std::endl
+         << "    for (int component = 0; component < " << components << "; ++component) {" << std::endl
          << "      " << elementFunction(isInput, index) << "("                             << std::endl
          << "        " << weights << ','                                                   << std::endl
          << "        " << input   << ','                                                   << std::endl
@@ -652,7 +679,8 @@ namespace ceed {
         outputs = "&" + dofOutputVar(index) + "(" + dimArgs + ", component, element)";
       }
 
-      ss << "    for (int component = 0; component < " << components << "; ++component) {" << std::endl
+      ss << "    // Applying grad-tensor (" << xputName(isInput) << ": " << index << ")"   << std::endl
+         << "    for (int component = 0; component < " << components << "; ++component) {" << std::endl
          << "      " << elementFunction(isInput, index) << "("                             << std::endl
          << "        " << B       << ','                                                   << std::endl
          << "        " << Bx      << ','                                                   << std::endl
@@ -683,7 +711,8 @@ namespace ceed {
         output = "&" + dofOutputVar(index) + "(0, component, element)";
       }
 
-      ss << "    for (int component = 0; component < " << components << "; ++component) {" << std::endl
+      ss << "    // Applying grad-simplex (" << xputName(isInput) << ": " << index << ")"  << std::endl
+         << "    for (int component = 0; component < " << components << "; ++component) {" << std::endl
          << "      " << elementFunction(isInput, index) << "("                             << std::endl
          << "        " << weights << ','                                                   << std::endl
          << "        " << input   << ','                                                   << std::endl
@@ -707,7 +736,8 @@ namespace ceed {
         output = "&" + dofOutputVar(index) + "(0, element)";
       }
 
-      ss << "    " << elementFunction(isInput, index) << "("                             << std::endl
+      ss << "    // Applying weight (" << xputName(isInput) << ": " << index << ")"      << std::endl
+         << "    " << elementFunction(isInput, index) << "("                             << std::endl
          << "      " << weights << ','                                                   << std::endl
          << "      " << output                                                           << std::endl
          << "    );"                                                                     << std::endl
@@ -729,12 +759,13 @@ namespace ceed {
         output = dofOutputVar(index) + "[q + (OCCA_Q * (field + element * " + size + "))]";
       }
 
-      ss << "    for (int field = 0; field < " << size << "; ++field) {"  << std::endl
-         << "      for (int q = 0; q < OCCA_Q; ++q) {"                    << std::endl
-         << "        " << output << " = " << input << ";"                 << std::endl
-         << "      }"                                                     << std::endl
-         << "    }"                                                       << std::endl
-         <<                                                                  std::endl;
+      ss << "    // Copying source directly (" << xputName(isInput) << ": " << index << ")" << std::endl
+         << "    for (int field = 0; field < " << size << "; ++field) {"                    << std::endl
+         << "      for (int q = 0; q < OCCA_Q; ++q) {"                                      << std::endl
+         << "        " << output << " = " << input << ";"                                   << std::endl
+         << "      }"                                                                       << std::endl
+         << "    }"                                                                         << std::endl
+         <<                                                                                    std::endl;
     }
 
     void CpuOperator::addQFunctionApplicationSource(std::stringstream &ss) {

@@ -36,6 +36,8 @@
 
 const char *occa_elem_restriction_source = STRINGIFY_SOURCE(
 
+@directive("#define PRINT_KERNEL_HASHES 0")
+
 typedef CeedScalar *QuadVector @dim(ELEMENT_SIZE, COMPONENT_COUNT, elementCount);
 
 @kernel
@@ -43,35 +45,42 @@ void applyRestriction(const CeedInt elementCount,
                       @restrict const CeedInt *indices,
                       @restrict const CeedScalar *u,
                       @restrict QuadVector v) {
+
   @tile(TILE_SIZE, @outer, @inner)
   for (int element = 0; element < elementCount; ++element) {
-    for (int node = 0; node < ELEMENT_SIZE; ++node) {
+
+@directive("#if PRINT_KERNEL_HASHES")
+      // Print to see which kernel is being run
+      if (element == 0) {
+        printf("\n\napplyRestriction Kernel: " OKL_KERNEL_HASH "\n\n");
+      }
+@directive("#endif")
 
 @directive("#if USES_INDICES")
+    for (int node = 0; node < ELEMENT_SIZE; ++node) {
       const CeedInt index = indices[node + (element * ELEMENT_SIZE)];
-@directive("#else")
-      const CeedInt index = node + (element * ELEMENT_SIZE);
-@directive("#endif")
 
       for (int c = 0; c < COMPONENT_COUNT; ++c) {
-@directive("#if STRIDE_TYPE == NOT_STRIDED")
-        const CeedScalar u_i = u[index + (c * UNSTRIDED_COMPONENT_STRIDE)];
-@directive("#else")
-        const CeedInt u_node = index % ELEMENT_SIZE;
-        const CeedInt u_element = index / ELEMENT_SIZE;
-
-        const CeedScalar u_i = u[
-          (u_node * NODE_STRIDE)
-          + (c * COMPONENT_STRIDE)
-          + (u_element * ELEMENT_STRIDE)
+        v(node, c, element) = u[
+          index + (c * UNSTRIDED_COMPONENT_STRIDE)
         ];
-@directive("#endif")
-
-        v(node, c, element) = u_i;
       }
     }
+@directive("#else")
+    for (int node = 0; node < ELEMENT_SIZE; ++node) {
+      for (int c = 0; c < COMPONENT_COUNT; ++c) {
+        v(node, c, element) = u[
+          (node * NODE_STRIDE)
+          + (c * COMPONENT_STRIDE)
+          + (element * ELEMENT_STRIDE)
+        ];
+      }
+    }
+@directive("#endif")
   }
 }
+
+@directive("#if USES_INDICES")
 
 @kernel
 void applyRestrictionTranspose(const CeedInt elementCount,
@@ -80,13 +89,19 @@ void applyRestrictionTranspose(const CeedInt elementCount,
                                @restrict const CeedInt *dofIndices,
                                @restrict const QuadVector u,
                                @restrict CeedScalar *v) {
-
-  @directive("#if USES_INDICES")
-
   @tile(TILE_SIZE, @outer, @inner)
   for (int n = 0; n < NODE_COUNT; ++n) {
+
+@directive("#if PRINT_KERNEL_HASHES")
+      // Print to see which kernel is being run
+      if (n == 0) {
+        printf("\n\napplyRestrictionTranspose Kernel: " OKL_KERNEL_HASH "\n\n");
+      }
+@directive("#endif")
+
     CeedScalar vComp[COMPONENT_COUNT];
 
+    // Prefetch index information
     const CeedInt vIndex = quadIndices[n];
     const CeedInt offsetStart = dofOffsets[n];
     const CeedInt offsetEnd = dofOffsets[n + 1];
@@ -95,6 +110,7 @@ void applyRestrictionTranspose(const CeedInt elementCount,
       vComp[c] = 0;
     }
 
+    // Aggregate by component
     for (CeedInt i = offsetStart; i < offsetEnd; ++i) {
       const CeedInt index = dofIndices[i];
 
@@ -106,15 +122,34 @@ void applyRestrictionTranspose(const CeedInt elementCount,
       }
     }
 
+    // Update dofs by component
     for (int c = 0; c < COMPONENT_COUNT; ++c) {
-      v[vIndex + (c * UNSTRIDED_COMPONENT_STRIDE)] += vComp[c];
+      v[
+        vIndex + (c * UNSTRIDED_COMPONENT_STRIDE)
+      ] += vComp[c];
     }
   }
+}
 
-@directive("#else")
+@directive("#else") // USES_INDICES = false
 
+@kernel
+void applyRestrictionTranspose(const CeedInt elementCount,
+                               @restrict const CeedInt *quadIndices,
+                               @restrict const CeedInt *dofOffsets,
+                               @restrict const CeedInt *dofIndices,
+                               @restrict const QuadVector u,
+                               @restrict CeedScalar *v) {
   @tile(TILE_SIZE, @outer, @inner)
   for (int element = 0; element < elementCount; ++element) {
+
+@directive("#if PRINT_KERNEL_HASHES")
+      // Print to see which kernel is being run
+      if (element == 0) {
+        printf("\n\napplyRestrictionTranspose Kernel: " OKL_KERNEL_HASH "\n\n");
+      }
+@directive("#endif")
+
     for (int node = 0; node < ELEMENT_SIZE; ++node) {
       for (int c = 0; c < COMPONENT_COUNT; ++c) {
         v[
@@ -125,9 +160,8 @@ void applyRestrictionTranspose(const CeedInt elementCount,
       }
     }
   }
-
-@directive("#endif")
-
 }
+
+@directive("#endif") // USES_INDICES
 
 );

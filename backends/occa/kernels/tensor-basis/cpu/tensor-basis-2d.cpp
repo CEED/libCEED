@@ -155,8 +155,8 @@ inline void TENSOR_FUNCTION(gradElementTranspose)(
     }
 
     for (int qx = 0; qx < Q1D; ++qx) {
-      const CeedScalar Ux = Ue_x(qy, qx);
-      const CeedScalar Uy = Ue_y(qy, qx);
+      const CeedScalar Ux = Ue_x(qx, qy);
+      const CeedScalar Uy = Ue_y(qx, qy);
       for (int px = 0; px < P1D; ++px) {
         const CeedScalar wx  = B(px, qx);
         const CeedScalar wDx = Bx(px, qx);

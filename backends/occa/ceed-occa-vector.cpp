@@ -249,7 +249,35 @@ namespace ceed {
       return currentMemory;
     }
 
-    void Vector::print(const std::string &name) {
+    void Vector::printValues(const std::string &name) {
+      CeedScalar *values;
+      getReadOnlyArray(CEED_MEM_HOST, &values);
+
+      std::cout << std::setprecision(8)
+                << "Vector: " << name << std::endl
+                << "  - Values: " << std::endl;
+
+      for (int i = 0; i < length; ++i) {
+        printf("    %12.8f\n", values[i]);
+      }
+    }
+
+    void Vector::printNonZeroValues(const std::string &name) {
+      CeedScalar *values;
+      getReadOnlyArray(CEED_MEM_HOST, &values);
+
+      std::cout << std::setprecision(8)
+                << "Vector: " << name << std::endl
+                << "  - Non-zero values: " << std::endl;
+
+      for (int i = 0; i < length; ++i) {
+        if (fabs(values[i]) > 1e-8) {
+          printf("    %d: %12.8f\n", i, values[i]);
+        }
+      }
+    }
+
+    void Vector::printSummary(const std::string &name) {
       CeedScalar *values;
       getReadOnlyArray(CEED_MEM_HOST, &values);
 
@@ -266,12 +294,7 @@ namespace ceed {
                 << "Vector: " << name << std::endl
                 << "  - Length: " << length << std::endl
                 << "  - Min   : " << minValue << std::endl
-                << "  - Max   : " << maxValue << std::endl
-                << "  - Values: " << maxValue << std::endl;
-
-      for (int i = 0; i < length; ++i) {
-        printf("    %12.8f\n", values[i]);
-      }
+                << "  - Max   : " << maxValue << std::endl;
     }
 
     //---[ Ceed Callbacks ]-----------

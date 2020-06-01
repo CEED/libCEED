@@ -112,6 +112,7 @@ namespace ceed {
                                              const std::string &name);
 
       void addQfunctionQuadArraySource(std::stringstream &ss,
+                                       const bool isInput,
                                        const int count,
                                        const std::string &name);
 
@@ -147,6 +148,10 @@ namespace ceed {
 
 
       //  ---[ Variables ]---------------
+      inline std::string xputName(const bool isInput) {
+        return isInput ? "input" : "output";
+      }
+
       inline std::string indexedVar(const std::string &name,
                                     const int index) {
         return name + std::to_string(index);
@@ -155,7 +160,7 @@ namespace ceed {
       inline std::string indexedVar(const std::string &name,
                                     const bool isInput,
                                     const int index) {
-        return (isInput ? "i" : "o") + std::to_string(index) + "_" + name;
+        return (isInput ? "input" : "output") + std::to_string(index) + "_" + name;
       }
 
       inline std::string dofInputVar(const int index) {

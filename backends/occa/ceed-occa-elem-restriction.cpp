@@ -262,6 +262,7 @@ namespace ceed {
       ceedNodeStride      = 1;
       ceedComponentStride = ceedElementSize * ceedElementCount;
       ceedElementStride   = ceedElementSize;
+      ceedUnstridedComponentStride = 1;
 
       if (ceedStrideType == USER_STRIDES) {
         CeedInt strides[3];

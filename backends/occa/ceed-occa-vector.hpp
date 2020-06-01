@@ -103,7 +103,9 @@ namespace ceed {
 
       ::occa::memory getConstKernelArg();
 
-      void print(const std::string &name);
+      void printValues(const std::string &name);
+      void printNonZeroValues(const std::string &name);
+      void printSummary(const std::string &name);
 
       //---[ Ceed Callbacks ]-----------
       static int registerVectorFunction(Ceed ceed, CeedVector vec,
