@@ -822,7 +822,9 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
 
   @param op             CeedOperator to assemble CeedQFunction
   @param[out] assembled CeedVector to store assembled CeedOperator point block
-                          diagonal
+                          diagonal, provided in CSR format with an
+                          @a ncomp * @a ncomp block at each node. The array has
+                          shape [nodes, component out, component in].
   @param request        Address of CeedRequest for non-blocking completion, else
                           CEED_REQUEST_IMMEDIATE
 
