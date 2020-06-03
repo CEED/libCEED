@@ -66,23 +66,13 @@ aas-journal: Astrophysical Journal <- The name of the AAS journal.
 
 # Summary
 
-High-order numerical methods are widely used in Partial Differential Equation (PDE)
-solvers, but software packages that provide high-performance implementations have
-often been special-purpose and intrusive. ``libCEED`` is an open-source light-weight matrix-free finite element
-library that offers a purely algebraic interface for efficient operator evaluation
-and matrix-free preconditioning ingredients. libCEED supports run-time selection of
-implementations tuned for a variety of computational architectures, including CPUs and
-GPUs, and can be unobtrusively integrated in new and legacy software to provide portable
-performance. We introduce ``libCEED``’s conceptual framework and interface, and show examples of its integration with other packages, such as PETSc, MFEM, and Nek5000.
+High-order numerical methods are widely used in Partial Differential Equation (PDE) solvers, but software packages that provide high-performance implementations have often been special-purpose and intrusive.
+``libCEED`` is a new lightweight, open-source, matrix-free Finite Element library that offers a purely algebraic interface for efficient operator evaluation and preconditioning ingredients [@libceed-dev-site].
+libCEED supports run-time selection of implementations tuned for a variety of computational architectures, including CPUs and GPUs, and can be unobtrusively integrated in new and legacy software to provide portable performance. We introduce libCEED’s conceptual framework and interface, and show examples of its integration with other packages, such as PETSc [@PETScUserManual], MFEM [@MFEMlibrary], and Nek5000 [@Nekwebsite].
 
-In finite element formulations, the weak form of a PDE is evaluated on a subdomain
-(element), and the local results are composed into a larger system of equations that
-models the entire problem. In particular, when high-order finite elements or spectral
-elements are used, the resulting sparse matrix representation of the global operator
-is computationally expensive, with respect to both the memory transfer and floating
-point operations needed for its evaluation [@Orszag:1980; @Brown:2010]. ``libCEED`` provides an
-interface for matrix-free operator description that enables efficient evaluation on
-a variety of computational device types (selectable at run time).
+In finite element formulations, the weak form of a PDE is evaluated on a subdomain (element), and the local results are composed into a larger system of equations that models the entire problem.
+In particular, when high-order finite elements or spectral elements are used, the resulting sparse matrix representation of the global operator is computationally expensive, with respect to both the memory transfer and floating point operations needed for its evaluation [@Orszag:1980; @Brown:2010].
+libCEED provides an interface for matrix-free operator description that enables efficient evaluation on a variety of computational device types (selectable at run time).
 
 # libCEED's API
 
@@ -94,7 +84,7 @@ define the global operator as
 A = P^T \underbrace{G^T B^T D B G}_{\text{libCEED}} P \, ,
 \end{align}
 
-where $P$ is the parallel process decomposition operator (external to ``libCEED``) in
+where $P$ is the parallel process decomposition operator (external to libCEED) in
 which the degrees of freedom (DOFs) are scattered to and gathered from the different
 compute devices. The operator denoted by $A_L = G^T B^T D B G$ gives the local action
 on a compute node or process, where $G$ is a local element restriction operation that
@@ -123,13 +113,8 @@ optimizations.
 ![libCEED is a low-level API for finite element codes, that has specialized implementations
 (backends) for heterogeneous architectures.\label{fig:libCEEDBackends}](img/libCEEDBackends.pdf)
 
-Fig. \ref{fig:libCEEDBackends} shows a subset of the backend implementations available
-in ``libCEED``. GPU implementations are available via pure CUDA as well as the OCCA
-and MAGMA libraries. CPU implementations are available via pure C and AVX intrinsics
-as well as the LIBXSMM library. libCEED provides a unified interface, so that users
-only need to write a single source code and can select the desired specialized
-implementation at run time. Moreover, each process or thread can instantiate an
-arbitrary number of backends.
+Fig. \ref{fig:libCEEDBackends} shows a subset of the backend implementations (backends) available in libCEED and its role, as a low-level library that allows a wide variety of applications to share highly optimized discretization kernels.
+GPU implementations are available via pure CUDA [@CUDAwebsite] as well as the OCCA [@OCCAwebsite] and MAGMA [@MAGMAwebsite] libraries. CPU implementations are available via pure C and AVX intrinsics as well as the LIBXSMM library [@LIBXSMM]. libCEED provides a unified interface, so that users only need to write a single source code and can select the desired specialized implementation at run time. Moreover, each process or thread can instantiate an arbitrary number of backends.
 
 # Performance Benchmarks
 
