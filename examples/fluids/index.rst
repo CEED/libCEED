@@ -3,7 +3,7 @@
 Compressible Navier-Stokes mini-app
 ========================================
 
-This example is located in the subdirectory :file:`examples/fluids`. It solves
+This example is located in the subdirectory :file:`examples/fluids/navier-stokes`. It solves
 the time-dependent Navier-Stokes equations of compressible gas dynamics in a static
 Eulerian three-dimensional frame using unstructured high-order finite/spectral
 element spatial discretizations and explicit or implicit high-order time-stepping (available in

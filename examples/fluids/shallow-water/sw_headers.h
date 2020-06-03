@@ -30,12 +30,20 @@ typedef struct {
   CeedScalar u0;
   CeedScalar v0;
   CeedScalar h0;
-  CeedScalar f;
+  CeedScalar Omega;
+  CeedScalar R;
   CeedScalar g;
   CeedScalar time;
 } PhysicsContext_s;
 typedef PhysicsContext_s *PhysicsContext;
 #endif // physics_context_struct
+
+// MemType Options
+static const char *const memTypes[] = {
+  "host",
+  "device",
+  "memType", "CEED_MEM_", NULL
+};
 
 // Problem specific data
 typedef struct {

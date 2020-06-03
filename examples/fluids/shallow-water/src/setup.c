@@ -115,7 +115,6 @@ PetscErrorCode SetupDM(DM dm, PetscInt degree, PetscInt ncompq,
   {
     // Configure the finite element space
     PetscFE fe;
-    PetscInt ncompq = 5;
     ierr = PetscFECreateByDegree(dm, dim, ncompq, PETSC_FALSE, NULL, degree,
                                  &fe);
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
@@ -272,7 +271,7 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree,
                             CeedInt topodim, CeedInt qextra,
                             PetscInt ncompx, PetscInt ncompq,
                             User user, CeedData data,
-                            PhysicsContext ctxSetup) {
+                            PhysicsContext ctx) {
   int ierr;
   DM dmcoord;
   Vec Xloc;
@@ -336,10 +335,10 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree,
   // Create the Q-Function that defines the explicit part of the PDE operator
   CeedQFunctionCreateInterior(ceed, 1, SWExplicit, SWExplicit_loc,
                               &qf_explicit);
+  CeedQFunctionAddInput(qf_explicit, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_explicit, "q", ncompq, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_explicit, "dq", ncompq*topodim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_explicit, "qdata", qdatasize, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_explicit, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_explicit, "v", ncompq, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_explicit, "dv", ncompq*topodim, CEED_EVAL_GRAD);
 
@@ -385,13 +384,13 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree,
 
   // Create the explicit part of the PDE operator
   CeedOperatorCreate(ceed, qf_explicit, NULL, NULL, &op_explicit);
+  CeedOperatorSetField(op_explicit, "x", Erestrictx, basisx, xcorners);
   CeedOperatorSetField(op_explicit, "q", Erestrictq, basisq,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_explicit, "dq", Erestrictq, basisq,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_explicit, "qdata", Erestrictq,
                        CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_explicit, "x", Erestrictx, basisx, xcorners);
   CeedOperatorSetField(op_explicit, "v", Erestrictq, basisq,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_explicit, "dv", Erestrictq, basisq,
@@ -419,25 +418,18 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree,
   CeedOperatorSetField(op_jacobian, "q", Erestrictq, basisq,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_jacobian, "deltaq", Erestrictq, basisq,
-                       CEED_VECTOR_ACTIVE); // TO DO: Check restriction and basis for delta q
+                       CEED_VECTOR_ACTIVE); // TODO: Check restriction and basis for delta q
   CeedOperatorSetField(op_jacobian, "qdata", Erestrictqdi,
                        CEED_BASIS_COLLOCATED, qdata);
   CeedOperatorSetField(op_jacobian, "dv", Erestrictq, basisq,
                        CEED_VECTOR_ACTIVE);
   user->op_jacobian = op_jacobian;
 
-  CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
-
   // Set up the libCEED context
-  CeedScalar ctxSWICs[3] = {ctxSetup->u0, ctxSetup->v0,
-                            ctxSetup->h0};
-  CeedQFunctionSetContext(qf_ics, &ctxSWICs, sizeof ctxSWICs);
-  CeedScalar ctxSWExplicit = ctxSetup->f;
-  CeedQFunctionSetContext(qf_explicit, &ctxSWExplicit, sizeof ctxSWExplicit);
-  CeedScalar ctxSWImplicit = ctxSetup->g;
-  CeedQFunctionSetContext(qf_implicit, &ctxSWImplicit, sizeof ctxSWImplicit);
-  // same context for Jacobian qfunction
-  CeedQFunctionSetContext(qf_jacobian, &ctxSWImplicit, sizeof ctxSWImplicit);
+  CeedQFunctionSetContext(qf_ics, ctx, sizeof *ctx);
+  CeedQFunctionSetContext(qf_explicit, ctx, sizeof *ctx);
+  CeedQFunctionSetContext(qf_implicit, ctx, sizeof *ctx);
+  CeedQFunctionSetContext(qf_jacobian, ctx, sizeof *ctx);
 
   // Save libCEED data required for level // TODO: check how many of these are really needed outside
   data->basisx = basisx;

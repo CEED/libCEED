@@ -1,12 +1,27 @@
-//                        libCEED + PETSc Example: Shallow-water equations
+// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
+// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
+// reserved. See files LICENSE and NOTICE for details.
+//
+// This file is part of CEED, a collection of benchmarks, miniapps, software
+// libraries and APIs for efficient high-order finite element and spectral
+// element discretizations for exascale applications. For more information and
+// source code availability see http://github.com/ceed.
+//
+// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
+// a collaborative effort of two U.S. Department of Energy organizations (Office
+// of Science and the National Nuclear Security Administration) responsible for
+// the planning and preparation of a capable exascale ecosystem, including
+// software, applications, hardware, advanced system engineering and early
+// testbed platforms, in support of the nation's exascale computing imperative.
+
+//              libCEED + PETSc Example: Shallow-water equations
 //
 // This example demonstrates a simple usage of libCEED with PETSc to solve the
-// shallow-water equations on a cubed-sphere (i.e., a spherical surface
-// tessellated by quadrilaterals, obtained by projecting the sides
-// of a circumscribed cube onto a spherical surface).
+// shallow-water equations on a cubed-sphere (i.e., a tensor-product discrete
+// sphere, obtained by projecting a cube inscribed in a sphere onto the surface
+// of the sphere).
 //
-// The code is intentionally "raw", using only low-level communication
-// primitives.
+// The code uses higher level communication protocols in PETSc's DMPlex.
 //
 // Build with:
 //
@@ -27,11 +42,6 @@
 
 const char help[] = "Solve the shallow-water equations using PETSc and libCEED\n";
 
-#include <petscts.h>
-#include <petscdmplex.h>
-#include <ceed.h>
-#include <stdbool.h>
-#include <petscsys.h>
 #include "sw_headers.h"
 
 int main(int argc, char **argv) {
@@ -57,11 +67,22 @@ int main(int argc, char **argv) {
                                           filename[PETSC_MAX_PATH_LEN];
   Ceed ceed;
   CeedData ceeddata;
-  PetscScalar meter     = 1e-2;     // 1 meter in scaled length units
-  PetscScalar second    = 1e-2;     // 1 second in scaled time units
-  PetscScalar f         = 0.0001;   // mid-latitude Coriolis parameter
-  PetscScalar g         = 9.81;     // m/s^2
+  CeedMemType memtyperequested;
+  PetscScalar meter     = 1e-2;       // 1 meter in scaled length units
+  PetscScalar second    = 1e-2;       // 1 second in scaled time units
+  PetscScalar Omega     = 7.29212e-5; // Earth rotation rate (1/s)
+  PetscScalar g         = 9.81;       // gravitational acceleration (m/s^2)
+  PetscScalar R         = 6.37122e6;  // Earth radius (m)
   PetscScalar mpersquareds;
+  // Check PETSc CUDA support
+  PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
+  // *INDENT-OFF*
+  #ifdef PETSC_HAVE_CUDA
+  petschavecuda = PETSC_TRUE;
+  #else
+  petschavecuda = PETSC_FALSE;
+  #endif
+  // *INDENT-ON*
   // Performance context
   double start, cpu_time_used;
 
@@ -72,10 +93,6 @@ int main(int argc, char **argv) {
   // Allocate PETSc context
   ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
-
-  // Set up problem type command line option
-  //PetscFunctionListAdd(&icsflist, "sphere", &ICsSW);
-  //PetscFunctionListAdd(&qflist, "shallow-water", &SW);
 
   // Parse command line options
   comm = PETSC_COMM_WORLD;
@@ -110,8 +127,6 @@ int main(int argc, char **argv) {
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
                             NULL, g, &g, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-f", "Mid-latitude Coriolis parameter",
-                            NULL, f, &f, NULL); CHKERRQ(ierr);
   PetscStrncpy(user->outputfolder, ".", 2);
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
@@ -123,21 +138,28 @@ int main(int argc, char **argv) {
   simplex = PETSC_FALSE;
   ierr = PetscOptionsBool("-simplex", "Use simplices, or tensor product cells",
                           NULL, simplex, &simplex, NULL); CHKERRQ(ierr);
+  memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
+  ierr = PetscOptionsEnum("-memtype",
+                          "CEED MemType requested", NULL,
+                          memTypes, (PetscEnum)memtyperequested,
+                          (PetscEnum *)&memtyperequested, &setmemtyperequest);
+  CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Define derived units
   mpersquareds = meter / PetscSqr(second);
 
   // Scale variables to desired units
-  f /= second;
+  Omega /= second;
   g *= mpersquareds;
 
   // Set up the libCEED context
-  PhysicsContext_s ctxSetup =  {
+  PhysicsContext_s ctx =  {
     .u0 = 0.,
     .v0 = 0.,
     .h0 = .1,
-    .f = f,
+    .Omega = Omega,
+    .R = R,
     .g = g,
     .time = 0.
   };
@@ -216,25 +238,62 @@ int main(int argc, char **argv) {
   ierr = VecGetSize(Qloc, &lnodes); CHKERRQ(ierr);
   lnodes /= ncompq;
 
+  // Initialize CEED
+  CeedInit(ceedresource, &ceed);
+  // Set memtype
+  CeedMemType memtypebackend;
+  CeedGetPreferredMemType(ceed, &memtypebackend);
+  // Check memtype compatibility
+  if (!setmemtyperequest)
+    memtyperequested = memtypebackend;
+  else if (!petschavecuda && memtyperequested == CEED_MEM_DEVICE)
+    SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_SUP_SYS,
+             "PETSc was not built with CUDA. "
+             "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
+
   // Print grid information
   PetscInt numP = degree + 1, numQ = numP + qextra;
   PetscInt gdofs, odofs;
   {
+    const char *usedresource;
+    CeedGetResource(ceed, &usedresource);
+
     int comm_size;
+    ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
+
     ierr = VecGetSize(Q, &gdofs); CHKERRQ(ierr);
     ierr = VecGetLocalSize(Q, &odofs); CHKERRQ(ierr);
-    ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
+    VecType vectype;
+    ierr = VecGetType(Q, &vectype); CHKERRQ(ierr);
+
+    PetscInt cStart, cEnd;
+    ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
+
     if (!test) {
       ierr = PetscPrintf(comm,
                          "\n-- CEED Shallow-water equations solver on the cubed-sphere -- libCEED + PETSc --\n"
+                         "  rank(s)                              : %d\n"
+                         "  PETSc:\n"
+                         "    PETSc Vec Type                     : %s\n"
                          "  libCEED:\n"
                          "    libCEED Backend                    : %s\n"
+                         "    libCEED Backend MemType            : %s\n"
+                         "    libCEED User Requested MemType     : %s\n"
                          "  FEM space:\n"
-                         "    Number of 1D Basis Nodes (p)       : %d\n"
-                         "    Number of 1D Quadrature Points (q) : %d\n"
-                         "    Global FEM dofs: %D (%D owned) on %d rank(s)\n"
-                         "    Local FEM nodes: %D\n",
-                         ceedresource, numP, numQ, gdofs, odofs, comm_size, lnodes); CHKERRQ(ierr);
+                         "    Number of 1D Basis Nodes (P)       : %d\n"
+                         "    Number of 1D Quadrature Points (Q) : %d\n"
+                         "    Local Elements                     : %D\n"
+                         "    Global nodes                       : %D\n"
+                         "    Owned nodes                        : %D\n"
+                         "    DoFs per node                      : %D\n"
+                         "    Global DoFs                        : %D\n"
+                         "    Owned DoFs                         : %D\n",
+                         comm_size, ceedresource, usedresource,
+                         CeedMemTypes[memtypebackend],
+                         (setmemtyperequest) ?
+                         CeedMemTypes[memtyperequested] : "none", numP, numQ,
+                         cEnd - cStart, gdofs/ncompq, odofs/ncompq, ncompq,
+                         gdofs, odofs); CHKERRQ(ierr);
     }
 
   }
@@ -242,13 +301,10 @@ int main(int argc, char **argv) {
   // Set up global mass vector
   ierr = VecDuplicate(Q, &user->M); CHKERRQ(ierr);
 
-  // Initialize CEED
-  CeedInit(ceedresource, &ceed);
-
   // Setup libCEED's objects
   ierr = PetscMalloc1(1, &ceeddata); CHKERRQ(ierr);
   ierr = SetupLibceed(dm, ceed, degree, topodim, qextra,
-                      ncompx, ncompq, user, ceeddata, &ctxSetup); CHKERRQ(ierr);
+                      ncompx, ncompq, user, ceeddata, &ctx); CHKERRQ(ierr);
 
   // Set up PETSc context
   // Set up units structure
@@ -278,23 +334,24 @@ int main(int argc, char **argv) {
                     CEED_REQUEST_IMMEDIATE);
   ierr = ComputeLumpedMassMatrix(ceed, dm, ceeddata->Erestrictq,
                                  ceeddata->basisq, ceeddata->Erestrictqdi,
-                                 ceeddata->qdata,
-                                 user->M); CHKERRQ(ierr);
+                                 ceeddata->qdata, user->M); CHKERRQ(ierr);
 
   // Apply IC operator and fix multiplicity of initial state vector
   ierr = ICs_FixMultiplicity(ceeddata->op_ics, ceeddata->xcorners, user->q0ceed,
                              dm, Qloc, Q, ceeddata->Erestrictq,
-                             &ctxSetup, 0.0);
+                             &ctx, 0.0); CHKERRQ(ierr);
 
   MPI_Comm_rank(comm, &rank);
-  if (!rank) {ierr = PetscMkdir(user->outputfolder); CHKERRQ(ierr);}
+  if (!rank) {
+    ierr = PetscMkdir(user->outputfolder); CHKERRQ(ierr);
+  }
   // Gather initial Q values
   // In case of continuation of simulation, set up initial values from binary file
   if (contsteps) { // continue from existent solution
     PetscViewer viewer;
     char filepath[PETSC_MAX_PATH_LEN];
     // Read input
-    ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin",
+    ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/swe-solution.bin",
                          user->outputfolder);
     CHKERRQ(ierr);
     ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
@@ -305,7 +362,7 @@ int main(int argc, char **argv) {
   ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
 
   // Set up the MatShell for the associated Jacobian operator
-  ierr = MatCreateShell(PETSC_COMM_SELF, 3*odofs, 3*odofs, PETSC_DETERMINE,
+  ierr = MatCreateShell(PETSC_COMM_SELF, 5*odofs, 5*odofs, PETSC_DETERMINE,
                         PETSC_DETERMINE, user, &J); CHKERRQ(ierr);
   // Set the MatShell user context
 //  ierr = MatShellSetContext(J, user); CHKERRQ(ierr);
