@@ -12,6 +12,8 @@ with different problem definitions according to the application of interest.
 
 Build by using
 
+`cd navier-stokes`
+
 `make`
 
 and run with
@@ -281,6 +283,8 @@ of the sphere).
 The main shallow-water solver for libCEED is defined in [`shallowwater.c`](shallowwater.c).
 
 Build by using
+
+`cd shallow-water`
 
 `make`
 
