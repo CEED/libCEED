@@ -665,10 +665,10 @@ static inline void CeedOperatorGetBasisPointer_Ref(const CeedScalar **basisptr,
 }
 
 //------------------------------------------------------------------------------
-// Create CSR restriction
+// Create point block restriction
 //------------------------------------------------------------------------------
-static int CreateCSRRestriction(CeedElemRestriction rstr,
-                                CeedElemRestriction *csrRstr) {
+static int CreatePBRestriction(CeedElemRestriction rstr,
+                               CeedElemRestriction *pbRstr) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(rstr, &ceed); CeedChk(ierr);
@@ -677,7 +677,7 @@ static int CreateCSRRestriction(CeedElemRestriction rstr,
   CeedChk(ierr);
 
   // Expand offsets
-  CeedInt nelem, ncomp, elemsize, compstride, max = 1, *csrOffsets;
+  CeedInt nelem, ncomp, elemsize, compstride, max = 1, *pbOffsets;
   ierr = CeedElemRestrictionGetNumElements(rstr, &nelem); CeedChk(ierr);
   ierr = CeedElemRestrictionGetNumComponents(rstr, &ncomp); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(rstr, &elemsize); CeedChk(ierr);
@@ -685,17 +685,17 @@ static int CreateCSRRestriction(CeedElemRestriction rstr,
   CeedInt shift = ncomp;
   if (compstride != 1)
     shift *= ncomp;
-  ierr = CeedCalloc(nelem*elemsize, &csrOffsets); CeedChk(ierr);
+  ierr = CeedCalloc(nelem*elemsize, &pbOffsets); CeedChk(ierr);
   for (CeedInt i = 0; i < nelem*elemsize; i++) {
-    csrOffsets[i] = offsets[i]*shift;
-    if (csrOffsets[i] > max)
-      max = csrOffsets[i];
+    pbOffsets[i] = offsets[i]*shift;
+    if (pbOffsets[i] > max)
+      max = pbOffsets[i];
   }
 
   // Create new restriction
   ierr = CeedElemRestrictionCreate(ceed, nelem, elemsize, ncomp*ncomp, 1,
                                    max + ncomp*ncomp, CEED_MEM_HOST,
-                                   CEED_OWN_POINTER, csrOffsets, csrRstr);
+                                   CEED_OWN_POINTER, pbOffsets, pbRstr);
   CeedChk(ierr);
 
   // Cleanup
@@ -807,7 +807,7 @@ static int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
   // Assemble CSR restriction, if needed
   CeedElemRestriction diagrstr = rstrout;
   if (pointBlock) {
-    ierr = CreateCSRRestriction(rstrout, &diagrstr); CeedChk(ierr);
+    ierr = CreatePBRestriction(rstrout, &diagrstr); CeedChk(ierr);
   }
 
   // Create diagonal vector

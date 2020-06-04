@@ -779,9 +779,12 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
 }
 
 /**
-  @brief Assemble the diagonal of a square linear Operator
+  @brief Assemble the diagonal of a square linear CeedOperator
 
   This returns a CeedVector containing the diagonal of a linear CeedOperator.
+
+  Note: Currently only non-composite CeedOperators with a single field are
+          supported.
 
   @param op             CeedOperator to assemble CeedQFunction
   @param[out] assembled CeedVector to store assembled CeedOperator diagonal
@@ -815,16 +818,21 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
 }
 
 /**
-  @brief Assemble the point block diagonal of a square linear Operator
+  @brief Assemble the point block diagonal of a square linear CeedOperator
 
   This returns a CeedVector containing the point block diagonal of a linear
     CeedOperator.
 
+  Note: Currently only non-composite CeedOperators with a single field are
+          supported.
+
   @param op             CeedOperator to assemble CeedQFunction
   @param[out] assembled CeedVector to store assembled CeedOperator point block
-                          diagonal, provided in CSR format with an
-                          @a ncomp * @a ncomp block at each node. The array has
-                          shape [nodes, component out, component in].
+                          diagonal, provided in row-major form with an
+                          @a ncomp * @a ncomp block at each node. The dimensions
+                          of this vector are derived from the active vector
+                          for the CeedOperator. The array has shape
+                          [nodes, component out, component in].
   @param request        Address of CeedRequest for non-blocking completion, else
                           CEED_REQUEST_IMMEDIATE
 
