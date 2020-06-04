@@ -670,40 +670,24 @@ static inline void CeedOperatorGetBasisPointer_Ref(const CeedScalar **basisptr,
 static int CreateCSRRestriction(CeedElemRestriction rstr,
                                 CeedElemRestriction *csrRstr) {
   int ierr;
-
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(rstr, &ceed); CeedChk(ierr);
   const CeedInt *offsets;
   ierr = CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets);
   CeedChk(ierr);
-  CeedVector mult;
-  ierr = CeedElemRestrictionCreateVector(rstr, &mult, NULL); CeedChk(ierr);
-  ierr = CeedVectorSetValue(mult, 0.0); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetMultiplicity(rstr, mult); CeedChk(ierr);
 
-  // Account for gaps in offsets
-  CeedInt length, shift = 0;
-  CeedScalar *multArray;
-  ierr = CeedVectorGetLength(mult, &length); CeedChk(ierr);
-  ierr = CeedVectorGetArray(mult, CEED_MEM_HOST, &multArray); CeedChk(ierr);
-  for (CeedInt i = 0; i < length; i++) {
-    if (fabs(multArray[i]) < CEED_EPSILON*10)
-      shift++;
-    multArray[i] = shift;
-  }
-
-  // Compact offsets
+  // Expand offsets
   CeedInt nelem, ncomp, elemsize, compstride, max = 1, *csrOffsets;
   ierr = CeedElemRestrictionGetNumElements(rstr, &nelem); CeedChk(ierr);
   ierr = CeedElemRestrictionGetNumComponents(rstr, &ncomp); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(rstr, &elemsize); CeedChk(ierr);
   ierr = CeedElemRestrictionGetCompStride(rstr, &compstride); CeedChk(ierr);
-  shift = ncomp;
+  CeedInt shift = ncomp;
   if (compstride != 1)
     shift *= ncomp;
   ierr = CeedCalloc(nelem*elemsize, &csrOffsets); CeedChk(ierr);
   for (CeedInt i = 0; i < nelem*elemsize; i++) {
-    csrOffsets[i] = (offsets[i] - (CeedInt)multArray[offsets[i]])*shift;
+    csrOffsets[i] = offsets[i]*shift;
     if (csrOffsets[i] > max)
       max = csrOffsets[i];
   }
@@ -716,8 +700,6 @@ static int CreateCSRRestriction(CeedElemRestriction rstr,
 
   // Cleanup
   ierr = CeedElemRestrictionRestoreOffsets(rstr, &offsets); CeedChk(ierr);
-  ierr = CeedVectorRestoreArray(mult, &multArray); CeedChk(ierr);
-  ierr = CeedVectorDestroy(&mult); CeedChk(ierr);
 
   return 0;
 }
