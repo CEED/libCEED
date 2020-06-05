@@ -49,7 +49,9 @@ struct SetupContext_ {
   CeedScalar periodicity2;
   CeedScalar center[3];
   CeedScalar dc_axis[3];
+  CeedScalar wind[3];
   CeedScalar time;
+  int wind_type; // See WindType: 0=ROTATION, 1=TRANSLATION
 };
 #endif
 
@@ -97,6 +99,7 @@ static inline int Exact_Advection2d(CeedInt dim, CeedScalar time,
   const CeedScalar lx = context->lx;
   const CeedScalar ly = context->ly;
   const CeedScalar lz = context->lz;
+  const CeedScalar *wind = context->wind;
 
   // Setup
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
@@ -107,24 +110,35 @@ static inline int Exact_Advection2d(CeedInt dim, CeedScalar time,
 
   const CeedScalar x = X[0], y = X[1];
 
-  // Initial/Boundary Conditions
-  q[0] = 1.;
-  q[1] = -(y - center[1]);
-  q[2] =  (x - center[0]);
-  q[3] = 0;
-  q[4] = 0;
-
   CeedScalar r = sqrt(pow(x - x0[0], 2) + pow(y - x0[1], 2));
   CeedScalar E = 1 - r/rc;
 
-  if (0) { // non-smooth initial conditions
+  // Initial/Boundary Conditions
+  switch (context->wind_type) {
+  case 0:    // Rotation
+    q[0] = 1.;
+    q[1] = -(y - center[1]);
+    q[2] =  (x - center[0]);
+    q[3] = 0;
+    q[4] = 0;
+
+    if (0) { // non-smooth initial conditions
+      if (q[4] < E) q[4] = E;
+      r = sqrt(pow(x - x1[0], 2) + pow(y - x1[1], 2));
+      if (r <= rc) q[4] = 1;
+    }
+    r = sqrt(pow(x - x2[0], 2) + pow(y - x2[1], 2));
+    E = (r <= rc) ? .5 + .5*cos(r*M_PI/rc) : 0;
     if (q[4] < E) q[4] = E;
-    r = sqrt(pow(x - x1[0], 2) + pow(y - x1[1], 2));
-    if (r <= rc) q[4] = 1;
+    break;
+  case 1:    // Translation
+    q[0] = 1.;
+    q[1] = wind[0];
+    q[2] = wind[1];
+    q[3] = 0;
+    q[4] = 0;
+    break;
   }
-  r = sqrt(pow(x - x2[0], 2) + pow(y - x2[1], 2));
-  E = (r <= rc) ? .5 + .5*cos(r*M_PI/rc) : 0;
-  if (q[4] < E) q[4] = E;
 
   return 0;
 }

@@ -76,6 +76,17 @@ static const char *const problemTypes[] = {
   "problemType", "NS_", NULL
 };
 
+// Wind Options for Advection
+typedef enum {
+  ADVECTION_WIND_ROTATION = 0,
+  ADVECTION_WIND_TRANSLATION = 1,
+} WindType;
+static const char *const WindTypes[] = {
+  "rotation",
+  "translation",
+  "WindType", "ADVECTION_WIND_", NULL
+};
+
 typedef enum {
   STAB_NONE = 0,
   STAB_SU = 1,   // Streamline Upwind
@@ -153,16 +164,8 @@ problemData problemOptions[] = {
     .ics_loc                   = ICsDC_loc,
     .applyVol_rhs              = DC,
     .applyVol_rhs_loc          = DC_loc,
-  //.applyOut_rhs              = DC_Out,
-  //.applyOut_rhs_loc          = DC_Out_loc,
-  //.applyIn_rhs               = DC_In,
-  //.applyIn_rhs_loc           = DC_In_loc,
     .applyVol_ifunction        = IFunction_DC,
     .applyVol_ifunction_loc    = IFunction_DC_loc,
-  //.applyOut_ifunction        = IFunction_DC_Out,
-  //.applyOut_ifunction_loc    = IFunction_DC_Out_loc,
-  //.applyIn_ifunction         = IFunction_DC_In,
-  //.applyIn_ifunction_loc     = IFunction_DC_In_loc,
     .bc                        = Exact_DC,
     .non_zero_time             = PETSC_FALSE,
   },
@@ -270,12 +273,11 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
     CeedInt height, DMLabel domainLabel, CeedInt value,
     CeedElemRestriction *Erestrict) {
 
-  PetscSection   section;
-  PetscInt       p, Nelem, Ndof, *erestrict, eoffset, nfields, dim,
-                 depth;
-  DMLabel        depthLabel;
-  IS             depthIS, iterIS;
-  Vec            Uloc;
+  PetscSection section;
+  PetscInt p, Nelem, Ndof, *erestrict, eoffset, nfields, dim, depth;
+  DMLabel depthLabel;
+  IS depthIS, iterIS;
+  Vec Uloc;
   const PetscInt *iterIndices;
   PetscErrorCode ierr;
 
@@ -345,7 +347,7 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
         for (PetscInt j=0; j<ncomp[f]; j++) {
           if (Involute(indices[fieldoff[f]*nnodes + ii*ncomp[f] + j])
               != Involute(indices[ii*ncomp[0]]) + fieldoff[f] + j)
-            SETERRQ4(PETSC_COMM_SELF,PETSC_ERR_ARG_INCOMP,
+            SETERRQ4(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
                      "Cell %D closure indices not interlaced for node %D field %D component %D",
                      c, ii, f, j);
         }
@@ -413,13 +415,12 @@ static PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, CeedOperator op_
 
   CeedElemRestriction restrictxOut[6], restrictqOut[6], restrictqdiOut[6],
                       restrictxIn[6], restrictqIn[6], restrictqdiIn[6];
-  PetscInt localNelemOut[6], localNelemIn[6];
+  PetscInt lsize, localNelemOut[6], localNelemIn[6];
   Vec Xloc;
   CeedVector xcorners, qdataOut[6], qdataIn[6];
   CeedOperator op_setupOut[6], op_applyOut[6], op_setupIn[6], op_applyIn[6];
   DMLabel domainLabel;
   PetscScalar *x;
-  PetscInt lsize;
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
@@ -510,13 +511,13 @@ static int CreateVectorFromPetscVec(Ceed ceed, Vec p, CeedVector *v) {
 
 static int VectorPlacePetscVec(CeedVector c, Vec p) {
   PetscErrorCode ierr;
-  PetscInt mceed,mpetsc;
+  PetscInt mceed, mpetsc;
   PetscScalar *a;
 
   PetscFunctionBeginUser;
   ierr = CeedVectorGetLength(c, &mceed); CHKERRQ(ierr);
   ierr = VecGetLocalSize(p, &mpetsc); CHKERRQ(ierr);
-  if (mceed != mpetsc) SETERRQ2(PETSC_COMM_SELF,PETSC_ERR_ARG_INCOMP,
+  if (mceed != mpetsc) SETERRQ2(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
                                   "Cannot place PETSc Vec of length %D in CeedVector of length %D",
                                   mpetsc, mceed);
   ierr = VecGetArray(p, &a); CHKERRQ(ierr);
@@ -807,7 +808,7 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
                                  PETSC_FALSE, degree, PETSC_DECIDE,
                                  &fe); CHKERRQ(ierr);
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
-    ierr = DMAddField(dm,NULL,(PetscObject)fe); CHKERRQ(ierr);
+    ierr = DMAddField(dm, NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
     {
       PetscInt comps[1] = {1};
@@ -904,6 +905,7 @@ int main(int argc, char **argv) {
               kgpersquaredms, Joulepercubicm;
   problemType problemChoice;
   problemData *problem = NULL;
+  WindType wind_type;
   StabilizationType stab;
   testType testChoice;
   testData *test = NULL;
@@ -956,7 +958,7 @@ int main(int argc, char **argv) {
   PetscInt degree        = 1;        // -
   PetscInt qextra        = 2;        // -
   PetscInt qextraSur     = 2;        // -
-  PetscReal center[3], dc_axis[3] = {0, 0, 0};
+  PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0};
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -983,6 +985,14 @@ int main(int argc, char **argv) {
                           problemTypes, (PetscEnum)problemChoice,
                           (PetscEnum *)&problemChoice, NULL); CHKERRQ(ierr);
   problem = &problemOptions[problemChoice];
+  ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
+                          NULL, WindTypes, (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
+                          (PetscEnum *)&wind_type, NULL); CHKERRQ(ierr);
+  if (wind_type == ADVECTION_WIND_TRANSLATION) {
+    PetscInt n = problem->dim;
+    ierr = PetscOptionsRealArray("-problem_advection_wind_translation", "Constant wind vector",
+                                 NULL, wind, &n, NULL); CHKERRQ(ierr);
+  }
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
@@ -1153,6 +1163,47 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
+  // Setup BCs for Rotation or Translation wind types in Advection (3d)
+  if (problemChoice == NS_ADVECTION) {
+    switch (wind_type) {
+    case ADVECTION_WIND_ROTATION:
+      // No in/out-flow
+      bc.ninflow = bc.noutflow = 0;
+      break;
+    case ADVECTION_WIND_TRANSLATION:
+      // Face 6 is inflow and Face 5 is outflow
+      bc.ninflow = bc.noutflow = 1;
+      bc.inflow[0] = 6; bc.outflow[0] = 5;
+      // Faces 3 and 4 are slip
+      bc.nslip[0] = bc.nslip[2] = 0; bc.nslip[1] = 2;
+      bc.slips[1][0] = 3; bc.slips[1][1] = 4;
+      // Faces 1 and 2 are wall
+      bc.nwall = 2;
+      bc.walls[0] = 1; bc.walls[1] = 2;
+      break;
+    }
+  }
+  // Setup BCs for Rotation or Translation wind types in Advection (2d)
+  if (problemChoice == NS_ADVECTION2D) {
+    switch (wind_type) {
+    case ADVECTION_WIND_ROTATION:
+      // No in/out-flow
+      bc.ninflow = bc.noutflow = 0;
+      break;
+    case ADVECTION_WIND_TRANSLATION:
+      // Face 4 is inflow and Face 2 is outflow
+      bc.ninflow = bc.noutflow = 1;
+      bc.inflow[0] = 4; bc.outflow[0] = 2;
+      // Face 3 is slip
+      bc.nslip[0] = bc.nslip[2] = 0; bc.nslip[1] = 1;
+      bc.slips[1][0] = 3;
+      // Face 1 is wall
+      bc.nwall = 1;
+      bc.walls[0] = 1;
+      break;
+    }
+  }
+
   // Define derived units
   Pascal = kilogram / (meter * PetscSqr(second));
   JperkgK =  PetscSqr(meter) / (PetscSqr(second) * Kelvin);
@@ -1206,7 +1257,11 @@ int main(int argc, char **argv) {
     .dc_axis[0] = dc_axis[0],
     .dc_axis[1] = dc_axis[1],
     .dc_axis[2] = dc_axis[2],
+    .wind[0] = wind[0],
+    .wind[1] = wind[1],
+    .wind[2] = wind[2],
     .time = 0,
+    .wind_type = wind_type,
   };
 
   // Create the mesh
@@ -1544,11 +1599,6 @@ int main(int argc, char **argv) {
     if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxNS, sizeof ctxNS);
     if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, &ctxNS,
           sizeof ctxNS);
-    if (qf_rhsOut) CeedQFunctionSetContext(qf_rhsOut, &ctxNS, sizeof ctxNS);
-    if (qf_ifunctionOut) CeedQFunctionSetContext(qf_ifunctionOut, &ctxNS,
-          sizeof ctxNS);
-    if (qf_rhsIn) CeedQFunctionSetContext(qf_rhsIn, &ctxIn, sizeof ctxIn);
-    if (qf_ifunctionIn) CeedQFunctionSetContext(qf_ifunctionIn, &ctxIn, sizeof ctxIn);
     break;
   case NS_ADVECTION:
   case NS_ADVECTION2D:
@@ -1647,7 +1697,7 @@ int main(int argc, char **argv) {
       ierr = TSSetRHSFunction(ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
     }
   } else {
-    if (!user->op_rhs) SETERRQ(comm,PETSC_ERR_ARG_NULL,
+    if (!user->op_rhs) SETERRQ(comm, PETSC_ERR_ARG_NULL,
                                  "Problem does not provide RHSFunction");
     ierr = TSSetType(ts, TSRK); CHKERRQ(ierr);
     ierr = TSRKSetType(ts, TSRK5F); CHKERRQ(ierr);
@@ -1721,7 +1771,7 @@ int main(int argc, char **argv) {
   }
 
   // Output Statistics
-  ierr = TSGetStepNumber(ts,&steps); CHKERRQ(ierr);
+  ierr = TSGetStepNumber(ts, &steps); CHKERRQ(ierr);
   if (testChoice == TEST_NONE) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Time integrator took %D time steps to reach final time %g\n",
