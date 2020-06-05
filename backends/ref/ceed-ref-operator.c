@@ -804,7 +804,7 @@ static int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
     }
   }
 
-  // Assemble CSR restriction, if needed
+  // Assemble point-block diagonal restriction, if needed
   CeedElemRestriction diagrstr = rstrout;
   if (pointBlock) {
     ierr = CreatePBRestriction(rstrout, &diagrstr); CeedChk(ierr);
