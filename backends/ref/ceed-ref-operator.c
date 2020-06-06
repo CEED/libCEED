@@ -566,7 +566,7 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   // LCOV_EXCL_STOP
 
   // Create output restriction
-  CeedInt strides[3] = {1, Q, numactivein*numactiveout*Q};
+  CeedInt strides[3] = {1, Q, numactivein*numactiveout*Q}; /* *NOPAD* */
   ierr = CeedElemRestrictionCreateStrided(ceedparent, numelements, Q,
                                           numactivein*numactiveout,
                                           numactivein*numactiveout*numelements*Q,
