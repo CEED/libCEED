@@ -1,6 +1,6 @@
 /// @file
-/// Test assembly of mass matrix operator QFunction
-/// \test Test assembly of mass matrix operator QFunction
+/// Test assembly of mass matrix operator diagonal
+/// \test Test assembly of mass matrix operator diagonal
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
@@ -122,6 +122,7 @@ int main(int argc, char **argv) {
       // LCOV_EXCL_START
       printf("[%d] Error in assembly: %f != %f\n", i, a[i], assembledTrue[i]);
   // LCOV_EXCL_STOP
+  CeedVectorRestoreArrayRead(A, &a);
 
   // Cleanup
   CeedQFunctionDestroy(&qf_setup);

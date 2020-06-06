@@ -566,7 +566,7 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   // LCOV_EXCL_STOP
 
   // Create output restriction
-  CeedInt strides[3] = {1, Q, numactivein *numactiveout*Q};
+  CeedInt strides[3] = {1, Q, numactivein*numactiveout*Q}; /* *NOPAD* */
   ierr = CeedElemRestrictionCreateStrided(ceedparent, numelements, Q,
                                           numactivein*numactiveout,
                                           numactivein*numactiveout*numelements*Q,
@@ -665,10 +665,50 @@ static inline void CeedOperatorGetBasisPointer_Ref(const CeedScalar **basisptr,
 }
 
 //------------------------------------------------------------------------------
+// Create point block restriction
+//------------------------------------------------------------------------------
+static int CreatePBRestriction(CeedElemRestriction rstr,
+                               CeedElemRestriction *pbRstr) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(rstr, &ceed); CeedChk(ierr);
+  const CeedInt *offsets;
+  ierr = CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets);
+  CeedChk(ierr);
+
+  // Expand offsets
+  CeedInt nelem, ncomp, elemsize, compstride, max = 1, *pbOffsets;
+  ierr = CeedElemRestrictionGetNumElements(rstr, &nelem); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumComponents(rstr, &ncomp); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetElementSize(rstr, &elemsize); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetCompStride(rstr, &compstride); CeedChk(ierr);
+  CeedInt shift = ncomp;
+  if (compstride != 1)
+    shift *= ncomp;
+  ierr = CeedCalloc(nelem*elemsize, &pbOffsets); CeedChk(ierr);
+  for (CeedInt i = 0; i < nelem*elemsize; i++) {
+    pbOffsets[i] = offsets[i]*shift;
+    if (pbOffsets[i] > max)
+      max = pbOffsets[i];
+  }
+
+  // Create new restriction
+  ierr = CeedElemRestrictionCreate(ceed, nelem, elemsize, ncomp*ncomp, 1,
+                                   max + ncomp*ncomp, CEED_MEM_HOST,
+                                   CEED_OWN_POINTER, pbOffsets, pbRstr);
+  CeedChk(ierr);
+
+  // Cleanup
+  ierr = CeedElemRestrictionRestoreOffsets(rstr, &offsets); CeedChk(ierr);
+
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Assemble Linear Diagonal
 //------------------------------------------------------------------------------
-static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
-    CeedVector *assembled, CeedRequest *request) {
+static int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
+    CeedVector *assembled, CeedRequest *request, const bool pointBlock) {
   int ierr;
 
   // Assemble QFunction
@@ -764,9 +804,15 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
     }
   }
 
+  // Assemble point-block diagonal restriction, if needed
+  CeedElemRestriction diagrstr = rstrout;
+  if (pointBlock) {
+    ierr = CreatePBRestriction(rstrout, &diagrstr); CeedChk(ierr);
+  }
+
   // Create diagonal vector
   CeedVector elemdiag;
-  ierr = CeedElemRestrictionCreateVector(rstrin, assembled, &elemdiag);
+  ierr = CeedElemRestrictionCreateVector(diagrstr, assembled, &elemdiag);
   CeedChk(ierr);
 
   // Assemble element operator diagonals
@@ -777,7 +823,7 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
   ierr = CeedVectorGetArray(assembledqf, CEED_MEM_HOST, &assembledqfarray);
   CeedChk(ierr);
   CeedInt nelem, nnodes, nqpts;
-  ierr = CeedElemRestrictionGetNumElements(rstrin, &nelem); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumElements(diagrstr, &nelem); CeedChk(ierr);
   ierr = CeedBasisGetNumNodes(basisin, &nnodes); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basisin, &nqpts); CeedChk(ierr);
   // Basis matrices
@@ -816,17 +862,30 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
         CeedOperatorGetBasisPointer_Ref(&b, emodein[ein], identity, interpin,
                                         &gradin[din*nqpts*nnodes]);
         // Each component
-        for (CeedInt comp=0; comp<ncomp; comp++)
+        for (CeedInt compOut=0; compOut<ncomp; compOut++)
           // Each qpoint/node pair
-          for (CeedInt q=0; q<nqpts; q++) {
-            const CeedScalar qfvalue =
-              assembledqfarray[((((e*numemodein+ein)*ncomp+comp)*
-                                 numemodeout+eout)*ncomp+comp)*nqpts+q];
-            if (fabs(qfvalue) > maxnorm*1e-12)
-              for (CeedInt n=0; n<nnodes; n++)
-                elemdiagarray[(e*ncomp+comp)*nnodes+n] += bt[q*nnodes+n] *
-                    qfvalue * b[q*nnodes+n];
-          }
+          for (CeedInt q=0; q<nqpts; q++)
+            if (pointBlock) {
+              // Point Block Diagonal
+              for (CeedInt compIn=0; compIn<ncomp; compIn++) {
+                const CeedScalar qfvalue =
+                  assembledqfarray[((((e*numemodein+ein)*ncomp+compIn)*
+                                     numemodeout+eout)*ncomp+compOut)*nqpts+q];
+                if (fabs(qfvalue) > maxnorm*1e-12)
+                  for (CeedInt n=0; n<nnodes; n++)
+                    elemdiagarray[((e*ncomp+compOut)*ncomp+compIn)*nnodes+n] +=
+                      bt[q*nnodes+n] * qfvalue * b[q*nnodes+n];
+              }
+            } else {
+              // Diagonal Only
+              const CeedScalar qfvalue =
+                assembledqfarray[((((e*numemodein+ein)*ncomp+compOut)*
+                                   numemodeout+eout)*ncomp+compOut)*nqpts+q];
+              if (fabs(qfvalue) > maxnorm*1e-12)
+                for (CeedInt n=0; n<nnodes; n++)
+                  elemdiagarray[(e*ncomp+compOut)*nnodes+n] +=
+                    bt[q*nnodes+n] * qfvalue * b[q*nnodes+n];
+            }
       }
     }
   }
@@ -835,10 +894,13 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
 
   // Assemble local operator diagonal
   ierr = CeedVectorSetValue(*assembled, 0.0); CeedChk(ierr);
-  ierr = CeedElemRestrictionApply(rstrout, CEED_TRANSPOSE, elemdiag,
+  ierr = CeedElemRestrictionApply(diagrstr, CEED_TRANSPOSE, elemdiag,
                                   *assembled, request); CeedChk(ierr);
 
   // Cleanup
+  if (pointBlock) {
+    ierr = CeedElemRestrictionDestroy(&diagrstr); CeedChk(ierr);
+  }
   ierr = CeedVectorDestroy(&assembledqf); CeedChk(ierr);
   ierr = CeedVectorDestroy(&elemdiag); CeedChk(ierr);
   ierr = CeedFree(&emodein); CeedChk(ierr);
@@ -846,6 +908,22 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
   ierr = CeedFree(&identity); CeedChk(ierr);
 
   return 0;
+}
+
+//------------------------------------------------------------------------------
+// Assemble Linear Diagonal
+//------------------------------------------------------------------------------
+static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
+    CeedVector *assembled, CeedRequest *request) {
+  return CeedOperatorAssembleDiagonalCore_Ref(op, assembled, request, false);
+}
+
+//------------------------------------------------------------------------------
+// Assemble Linear Point Block Diagonal
+//------------------------------------------------------------------------------
+static int CeedOperatorAssembleLinearPointBlockDiagonal_Ref(CeedOperator op,
+    CeedVector *assembled, CeedRequest *request) {
+  return CeedOperatorAssembleDiagonalCore_Ref(op, assembled, request, true);
 }
 
 //------------------------------------------------------------------------------
@@ -1100,6 +1178,10 @@ int CeedOperatorCreate_Ref(CeedOperator op) {
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearDiagonal",
                                 CeedOperatorAssembleLinearDiagonal_Ref);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op,
+                                "AssembleLinearPointBlockDiagonal",
+                                CeedOperatorAssembleLinearPointBlockDiagonal_Ref);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "CreateFDMElementInverse",
                                 CeedOperatorCreateFDMElementInverse_Ref);

@@ -113,7 +113,7 @@ setup(name="libceed",
       cmdclass={'build_ext': libceed_build_ext},
 
       extras_require={
-          'cuda' : ['numba']
+          'cuda': ['numba']
       },
       )
 

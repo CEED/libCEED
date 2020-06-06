@@ -445,6 +445,17 @@ static int CeedOperatorAssembleLinearDiagonal_Cuda(CeedOperator op) {
 }
 
 //------------------------------------------------------------------------------
+// Assemble linear point block diagonal not supported
+//------------------------------------------------------------------------------
+static int CeedOperatorAssembleLinearPointBlockDiagonal_Cuda(CeedOperator op) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  return CeedError(ceed, 1,
+                   "Backend does not implement Operator point block diagonal assembly");
+}
+
+//------------------------------------------------------------------------------
 // Create FDM element inverse not supported
 //------------------------------------------------------------------------------
 static int CeedOperatorCreateFDMElementInverse_Cuda(CeedOperator op) {
@@ -472,6 +483,10 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearDiagonal",
                                 CeedOperatorAssembleLinearDiagonal_Cuda);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op,
+                                "AssembleLinearPointBlockDiagonal",
+                                CeedOperatorAssembleLinearPointBlockDiagonal_Cuda);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "CreateFDMElementInverse",
                                 CeedOperatorCreateFDMElementInverse_Cuda);

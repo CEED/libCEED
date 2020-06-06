@@ -173,6 +173,7 @@ int main(int argc, char **argv) {
       // LCOV_EXCL_START
       printf("[%d] Error in assembly: %f != %f\n", i, a[i], assembledTrue[i]);
   // LCOV_EXCL_STOP
+  CeedVectorRestoreArrayRead(A, &a);
 
   // Cleanup
   CeedQFunctionDestroy(&qf_setup_mass);
