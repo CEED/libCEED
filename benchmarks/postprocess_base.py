@@ -26,14 +26,17 @@ def read_logs(files=None):
     state = 0
     line=''
     i=0
-    mesh_p=0
-    config='unknown'
-    backend='unknown'
-    test='unknown'
-    num_procs=0
-    num_procs_node=0
-    lnfmt='%05i'
-    data={}
+    data = dict(
+        file='unknown',
+        backend='unknown',
+        test='unknown',
+        num_procs=0,
+        num_procs_node=0,
+        degree=0,
+        quadrature_pts=0,
+        code='libCEED',
+        )
+
     runs=[]
     while True:
        ##
@@ -49,45 +52,27 @@ def read_logs(files=None):
        elif state==1:
           ##
           state=0
-          if 'Reading configuration' in line:
-             ##
-             ## This is the beginning of a new file.
-             ##
-             config=line.split()[2]
-             num_procs=0
-             num_procs_node=0
-          ## Number of MPI tasks
-          elif 'Running the tests using a total of' in line:
-             num_procs=int(line.split('a total of ',1)[1].split(None,1)[0])
+          ## Legacy header contains number of MPI tasks
+          if 'Running the tests using a total of' in line:
+             data['num_procs'] = int(line.split('a total of ',1)[1].split(None,1)[0])
           ## MPI tasks per node
           elif 'tasks per node' in line:
-             num_procs_node=int(line.split(' tasks per',1)[0].rsplit(None,1)[1])
-          elif line == 'Running test:\n':
-             ##
-             ## This is the beginning of a new run.
-             ##
-
-             ## Add last row
-             if 'cg_iteration_dps' in data:
-                runs.append(data)
-             ## New row
-             data={}
-             data['file']=fileinput.filename()
-             data['config']=config
-             data['backend']=backend
-             data['test']=test
-             data['num_procs']=num_procs
-             data['num_procs_node']=num_procs_node
-             data['degree']=mesh_p
-             data['quadrature_pts']=mesh_p
-             data['code']="libCEED"
-             test_=test.rsplit('/',1)[-1]
-             data['case']='scalar'
-          ## Benchmark Problem
+             data['num_procs_node'] = int(line.split(' tasks per',1)[0].rsplit(None,1)[1])
+          ## New Benchmark Problem
           elif "CEED Benchmark Problem" in line:
+             # Starting a new block
+             data = data.copy()
+             runs.append(data)
+             data['file'] = fileinput.filename()
              data['test'] = line.split()[-2] + " " + line.split('-- ')[1]
              data['case']='scalar' if (('Problem 1' in line) or ('Problem 3' in line)
                                       or ('Problem 5' in line)) else 'vector'
+          elif "Hostname" in line:
+              data['hostname'] = line.split(':')[1].strip()
+          elif "Total ranks" in line:
+              data['num_procs'] = int(line.split(':')[1].strip())
+          elif "Ranks per node" in line:
+              data['num_procs_node'] = int(line.split(':')[1].strip())
           ## Backend
           elif 'libCEED Backend MemType' in line:
              data['backend_memtype']=line.split(':')[1].strip()
@@ -118,12 +103,9 @@ def read_logs(files=None):
              data['cg_iteration_dps']=1e6*float(line.split(':')[1].split()[0])
           ## End of output
 
-    ## Add last row
-    if 'cg_iteration_dps' in data:
-       runs.append(data)
-
     return pd.DataFrame(runs)
 
 if __name__ == "__main__":
     runs = read_logs()
     print('Number of test runs read: %i'%len(runs))
+    print(runs)
