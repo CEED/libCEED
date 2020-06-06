@@ -77,9 +77,10 @@ typedef struct RunParams_ *RunParams;
 struct RunParams_ {
   MPI_Comm comm;
   PetscBool test_mode, benchmark_mode, read_mesh, userlnodes, setmemtyperequest,
-  petschavecuda, write_solution;
-  char *filename, *ceedresource;
+            petschavecuda, write_solution;
+  char *filename, *ceedresource, *hostname;
   PetscInt localnodes, degree, qextra, dim, ncompu, *melem;
+  PetscMPIInt rankspernode;
   bpType bpchoice;
   CeedMemType memtyperequested;
   PetscLogStage solvestage;
@@ -116,7 +117,7 @@ static PetscErrorCode Run(RunParams rp) {
       PetscMPIInt size;
       ierr = MPI_Comm_size(rp->comm, &size); CHKERRQ(ierr);
       for (PetscInt gelem =
-           PetscMax(1, size * rp->localnodes / PetscPowInt(rp->degree, rp->dim));
+             PetscMax(1, size * rp->localnodes / PetscPowInt(rp->degree, rp->dim));
            ;
            gelem++) {
         Split3(gelem, rp->melem, true);
@@ -192,8 +193,14 @@ static PetscErrorCode Run(RunParams rp) {
 
     PetscInt cStart, cEnd;
     ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
+    PetscMPIInt comm_size;
+    ierr = MPI_Comm_size(rp->comm, &comm_size); CHKERRQ(ierr);
     ierr = PetscPrintf(rp->comm,
                        "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
+                       "  MPI:\n"
+                       "    Hostname                           : %s\n"
+                       "    Total ranks                        : %d\n"
+                       "    Ranks per compute node             : %d\n"
                        "  PETSc:\n"
                        "    PETSc Vec Type                     : %s\n"
                        "  libCEED:\n"
@@ -207,7 +214,10 @@ static PetscErrorCode Run(RunParams rp) {
                        "    Local Elements                     : %D\n"
                        "    Owned nodes                        : %D\n"
                        "    DoF per node                       : %D\n",
-                       rp->bpchoice+1, vectype, usedresource,
+                       rp->bpchoice+1,
+                       rp->hostname,
+                       comm_size, rp->rankspernode,
+                       vectype, usedresource,
                        CeedMemTypes[memtypebackend],
                        (rp->setmemtyperequest) ?
                        CeedMemTypes[rp->memtyperequested] : "none",
@@ -414,15 +424,17 @@ static PetscErrorCode Run(RunParams rp) {
 int main(int argc, char **argv) {
   PetscInt ierr, commsize;
   RunParams rp;
-  MPI_Comm comm, splitcomm;
+  MPI_Comm comm;
   PetscLogStage solvestage;
-  char filename[PETSC_MAX_PATH_LEN],
-       ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
+  char filename[PETSC_MAX_PATH_LEN];
+  char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
+  char hostname[PETSC_MAX_PATH_LEN];
 
-  PetscInt degree = 3, qextra, dim = 3, melem[3] = {3, 3, 3},
-           ncompu = 1,  localnodes, maxdegree = 8, totproc, procpercompnode, maxdofsnode = 3 * PetscPowInt(2, 20);
+  PetscInt qextra, dim = 3, melem[3] = {3, 3, 3}, ncompu = 1;
+  PetscInt num_degrees = 30, degree[30] = {}, num_localnodes = 2, localnodes[2] = {};
+  PetscMPIInt rankspernode;
   PetscBool test_mode, benchmark_mode, read_mesh, write_solution,
-            userlnodes = PETSC_FALSE;
+            userlnodes = PETSC_FALSE, degree_set;
   CeedMemType memtyperequested;
   bpType bpchoice;
 
@@ -442,19 +454,24 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
   ierr = MPI_Comm_size(comm, &commsize);
   if (ierr != MPI_SUCCESS) return ierr;
-  // Determine number of processes per compute node
-  ierr = MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL,
-                             &splitcomm);
-  if (ierr != MPI_SUCCESS) return ierr;
-  ierr = MPI_Comm_size(splitcomm, &procpercompnode);
-  if (ierr != MPI_SUCCESS) return ierr;
+  #if defined(PETSC_HAVE_MPI_PROCESS_SHARED_MEMORY)
+  {
+    MPI_Comm splitcomm;
+    ierr = MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL,
+                               &splitcomm);
+    CHKERRQ(ierr);
+    ierr = MPI_Comm_size(splitcomm, &rankspernode); CHKERRQ(ierr);
+    ierr = MPI_Comm_free(&splitcomm); CHKERRQ(ierr);
+  }
+  #else
+  rankspernode = -1; // Unknown
+  #endif
 
   // Read command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL);
   CHKERRQ(ierr);
   bpchoice = CEED_BP1;
-  ierr = PetscOptionsEnum("-problem",
-                          "CEED benchmark problem to solve", NULL,
+  ierr = PetscOptionsEnum("-problem", "CEED benchmark problem to solve", NULL,
                           bpTypes, (PetscEnum)bpchoice, (PetscEnum *)&bpchoice,
                           NULL); CHKERRQ(ierr);
   ncompu = bpOptions[bpchoice].ncompu;
@@ -468,22 +485,27 @@ int main(int argc, char **argv) {
                           NULL, benchmark_mode, &benchmark_mode, NULL);
   CHKERRQ(ierr);
   write_solution = PETSC_FALSE;
-  ierr = PetscOptionsBool("-write_solution",
-                          "Write solution for visualization",
+  ierr = PetscOptionsBool("-write_solution", "Write solution for visualization",
                           NULL, write_solution, &write_solution, NULL);
   CHKERRQ(ierr);
-  degree = test_mode ? 3 : 2;
-  ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
-                         NULL, degree, &degree, NULL); CHKERRQ(ierr);
+  degree[0] = test_mode ? 3 : 2;
+  ierr = PetscOptionsIntArray("-degree",
+                              "Polynomial degree of tensor product basis", NULL,
+                              degree, &num_degrees, &degree_set); CHKERRQ(ierr);
+  if (!degree_set)
+    num_degrees = 1;
   qextra = bpOptions[bpchoice].qextra;
-  ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
-                         NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsString("-ceed", "CEED resource specifier",
-                            NULL, ceedresource, ceedresource,
-                            sizeof(ceedresource), NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points", NULL,
+                         qextra, &qextra, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-ceed", "CEED resource specifier", NULL,
+                            ceedresource,
+                            ceedresource, sizeof(ceedresource), NULL); CHKERRQ(ierr);
+  ierr = PetscGetHostName(hostname, sizeof hostname); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-hostname", "Hostname for output", NULL, hostname,
+                            hostname, sizeof(hostname), NULL); CHKERRQ(ierr);
   read_mesh = PETSC_FALSE;
-  ierr = PetscOptionsString("-mesh", "Read mesh from file", NULL,
-                            filename, filename, sizeof(filename), &read_mesh);
+  ierr = PetscOptionsString("-mesh", "Read mesh from file", NULL, filename,
+                            filename, sizeof(filename), &read_mesh);
   CHKERRQ(ierr);
   if (!read_mesh) {
     PetscInt tmp = dim;
@@ -491,35 +513,46 @@ int main(int argc, char **argv) {
                                 melem, &tmp, NULL); CHKERRQ(ierr);
   }
   memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
-  ierr = PetscOptionsEnum("-memtype",
-                          "CEED MemType requested", NULL,
-                          memTypes, (PetscEnum)memtyperequested,
+  ierr = PetscOptionsEnum("-memtype", "CEED MemType requested", NULL, memTypes,
+                          (PetscEnum)memtyperequested,
                           (PetscEnum *)&memtyperequested, &setmemtyperequest);
   CHKERRQ(ierr);
-  localnodes = 1000;
-  ierr = PetscOptionsInt("-local_nodes",
-                         "Target number of locally owned nodes per process",
-                         NULL, localnodes, &localnodes, &userlnodes);
+  localnodes[0] = 1000;
+  ierr = PetscOptionsIntArray("-local_nodes",
+                              "Target number of locally owned nodes per "
+                              "process (single value or min,max)",
+                              NULL, localnodes, &num_localnodes, &userlnodes);
   CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-max_degree",
-                         "Max degree to run in benchmark mode",
-                         NULL, maxdegree, &maxdegree, NULL); CHKERRQ(ierr);
-  totproc = commsize;
-  ierr = PetscOptionsInt("-n",
-                         "Total number of processors across all compute nodes",
-                         NULL, totproc, &totproc, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-p",
-                         "Number of processors per node",
-                         NULL, procpercompnode, &procpercompnode, NULL);
-  CHKERRQ(ierr);
+  if (num_localnodes < 2)
+    localnodes[1] = 2 * localnodes[0];
+  if (benchmark_mode && !degree_set) {
+    PetscInt maxdegree = 8;
+    ierr = PetscOptionsInt("-max_degree", "Max degree to run in benchmark mode",
+                           NULL, maxdegree, &maxdegree, NULL);
+    CHKERRQ(ierr);
+    for (PetscInt i = 0; i < maxdegree; i++)
+      degree[i] = i + 1;
+    num_degrees = maxdegree;
+  }
+  {
+    PetscBool flg;
+    PetscInt p = rankspernode;
+    ierr = PetscOptionsInt("-p", "Number of MPI ranks per node", NULL,
+                           p, &p, &flg);
+    CHKERRQ(ierr);
+    if (flg) rankspernode = p;
+  }
 
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  ierr = PetscOptionsEnd();
+  CHKERRQ(ierr);
 
   // Register PETSc logging stage
-  ierr = PetscLogStageRegister("Solve Stage", &solvestage); CHKERRQ(ierr);
+  ierr = PetscLogStageRegister("Solve Stage", &solvestage);
+  CHKERRQ(ierr);
 
   // Setup all parameters needed in Run()
-  ierr = PetscMalloc1(1, &rp); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &rp);
+  CHKERRQ(ierr);
   rp->comm = comm;
   rp->test_mode = test_mode;
   rp->benchmark_mode = benchmark_mode;
@@ -530,8 +563,7 @@ int main(int argc, char **argv) {
   rp->write_solution = write_solution;
   rp->filename = filename;
   rp->ceedresource = ceedresource;
-  rp->localnodes = localnodes;
-  rp->degree = degree;
+  rp->hostname = hostname;
   rp->qextra = qextra;
   rp->dim = dim;
   rp->ncompu = ncompu;
@@ -539,20 +571,15 @@ int main(int argc, char **argv) {
   rp->bpchoice = bpchoice;
   rp->memtyperequested = memtyperequested;
   rp->solvestage = solvestage;
+  rp->rankspernode = rankspernode;
 
-  if (benchmark_mode) {
-    PetscInt maxlocnodes = maxdofsnode / procpercompnode;
-    // In benchmark_mode, call the main body of the program in a loop
-    for (PetscInt p = 1; p <= maxdegree; p++) {
-      for (PetscInt e = 1; e * PetscPowInt(degree, 3) <= maxlocnodes; e *= 2) {
-        rp->degree = p;
-        rp->localnodes = e * PetscPowInt(degree, 3);
-        ierr = Run(rp); CHKERRQ(ierr);
-      }
+  for (PetscInt d = 0; d < num_degrees; d++) {
+    PetscInt deg = degree[d];
+    for (PetscInt n = localnodes[0]; n < localnodes[1]; n *= 2) {
+      rp->degree = deg;
+      rp->localnodes = n;
+      ierr = Run(rp); CHKERRQ(ierr);
     }
-  }
-  else { // Othersise run program only once
-    ierr = Run(rp); CHKERRQ(ierr);
   }
 
   // Clear memory
