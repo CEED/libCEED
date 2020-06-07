@@ -204,7 +204,12 @@ This backend can be run in serial or blocked mode and defaults to running in the
 if ``/cpu/self/memcheck`` is selected at runtime.
 
 The ``/*/occa`` backends rely upon the `OCCA <http://github.com/libocca/occa>`_ package to provide
-cross platform performance. Additionally, users can pass specific device flags such as:
+cross platform performance. To enable the OCCA backend, the environment variable ``OCCA_DIR`` must point
+to the top-level OCCA directory, with the OCCA library located in the ``${OCCA_DIR}/lib`` (By default,
+``OCCA_DIR`` is set to ``../occa``).
+
+Additionally, users can pass specific OCCA device properties after setting the CEED resource.
+For example:
 
   - `"/*/occa:mode='CUDA',device_id=0"`
 
