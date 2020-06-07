@@ -298,8 +298,8 @@ namespace ceed {
     }
 
     //---[ Ceed Callbacks ]-----------
-    int Vector::registerVectorFunction(Ceed ceed, CeedVector vec,
-                                       const char *fname, ceed::occa::ceedFunction f) {
+    int Vector::registerCeedFunction(Ceed ceed, CeedVector vec,
+                                     const char *fname, ceed::occa::ceedFunction f) {
       return CeedSetBackendFunction(ceed, "Vector", vec, fname, f);
     }
 
@@ -309,33 +309,13 @@ namespace ceed {
       Ceed ceed;
       ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
 
-      ierr = registerVectorFunction(ceed, vec, "SetValue",
-                                    (ceed::occa::ceedFunction) Vector::ceedSetValue);
-      CeedChk(ierr);
-
-      ierr = registerVectorFunction(ceed, vec, "SetArray",
-                                    (ceed::occa::ceedFunction) Vector::ceedSetArray);
-      CeedChk(ierr);
-
-      ierr = registerVectorFunction(ceed, vec, "GetArray",
-                                    (ceed::occa::ceedFunction) Vector::ceedGetArray);
-      CeedChk(ierr);
-
-      ierr = registerVectorFunction(ceed, vec, "GetArrayRead",
-                                    (ceed::occa::ceedFunction) Vector::ceedGetArrayRead);
-      CeedChk(ierr);
-
-      ierr = registerVectorFunction(ceed, vec, "RestoreArray",
-                                    (ceed::occa::ceedFunction) Vector::ceedRestoreArray);
-      CeedChk(ierr);
-
-      ierr = registerVectorFunction(ceed, vec, "RestoreArrayRead",
-                                    (ceed::occa::ceedFunction) Vector::ceedRestoreArrayRead);
-      CeedChk(ierr);
-
-      ierr = registerVectorFunction(ceed, vec, "Destroy",
-                                    (ceed::occa::ceedFunction) Vector::ceedDestroy);
-      CeedChk(ierr);
+      CeedOccaRegisterFunction(vec, "SetValue", Vector::ceedSetValue);
+      CeedOccaRegisterFunction(vec, "SetArray", Vector::ceedSetArray);
+      CeedOccaRegisterFunction(vec, "GetArray", Vector::ceedGetArray);
+      CeedOccaRegisterFunction(vec, "GetArrayRead", Vector::ceedGetArrayRead);
+      CeedOccaRegisterFunction(vec, "RestoreArray", Vector::ceedRestoreArray);
+      CeedOccaRegisterFunction(vec, "RestoreArrayRead", Vector::ceedRestoreArrayRead);
+      CeedOccaRegisterFunction(vec, "Destroy", Vector::ceedDestroy);
 
       Vector *vector = new Vector();
       ierr = CeedVectorSetData(vec, (void**) &vector); CeedChk(ierr);

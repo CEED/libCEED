@@ -262,58 +262,23 @@ namespace ceed {
 
     static ceed::occa::ceedFunction getPreferredMemType(Ceed ceed) {
       if (Context::from(ceed)->device.hasSeparateMemorySpace()) {
-        return (ceed::occa::ceedFunction) preferDeviceMemType;
+        return (ceed::occa::ceedFunction) (void*) preferDeviceMemType;
       }
-      return (ceed::occa::ceedFunction) preferHostMemType;
+      return (ceed::occa::ceedFunction) (void*) preferHostMemType;
     }
 
     static int registerMethods(Ceed ceed) {
       int ierr;
 
-      ierr = registerCeedFunction(
-        ceed, "Destroy",
-        (ceed::occa::ceedFunction) ceed::occa::destroyCeed
-      ); CeedChk(ierr);
-
-      ierr = registerCeedFunction(
-        ceed, "GetPreferredMemType",
-        getPreferredMemType(ceed)
-      ); CeedChk(ierr);
-
-      ierr = registerCeedFunction(
-        ceed, "VectorCreate",
-        (ceed::occa::ceedFunction) ceed::occa::Vector::ceedCreate
-      ); CeedChk(ierr);
-
-      ierr = registerCeedFunction(
-        ceed, "BasisCreateTensorH1",
-        (ceed::occa::ceedFunction) ceed::occa::TensorBasis::ceedCreate
-      ); CeedChk(ierr);
-
-      ierr = registerCeedFunction(
-        ceed, "BasisCreateH1",
-        (ceed::occa::ceedFunction) ceed::occa::SimplexBasis::ceedCreate
-      ); CeedChk(ierr);
-
-      ierr = registerCeedFunction(
-        ceed, "ElemRestrictionCreate",
-        (ceed::occa::ceedFunction) ceed::occa::ElemRestriction::ceedCreate
-      ); CeedChk(ierr);
-
-      ierr = registerCeedFunction(
-        ceed, "ElemRestrictionCreateBlocked",
-        (ceed::occa::ceedFunction) ceed::occa::ElemRestriction::ceedCreateBlocked
-      ); CeedChk(ierr);
-
-      ierr = registerCeedFunction(
-        ceed, "QFunctionCreate",
-        (ceed::occa::ceedFunction) ceed::occa::QFunction::ceedCreate
-      ); CeedChk(ierr);
-
-      ierr = registerCeedFunction(
-        ceed, "OperatorCreate",
-        (ceed::occa::ceedFunction) ceed::occa::Operator::ceedCreate
-      ); CeedChk(ierr);
+      CeedOccaRegisterBaseFunction("Destroy", ceed::occa::destroyCeed);
+      CeedOccaRegisterBaseFunction("GetPreferredMemType", getPreferredMemType(ceed));
+      CeedOccaRegisterBaseFunction("VectorCreate", ceed::occa::Vector::ceedCreate);
+      CeedOccaRegisterBaseFunction("BasisCreateTensorH1", ceed::occa::TensorBasis::ceedCreate);
+      CeedOccaRegisterBaseFunction("BasisCreateH1", ceed::occa::SimplexBasis::ceedCreate);
+      CeedOccaRegisterBaseFunction("ElemRestrictionCreate", ceed::occa::ElemRestriction::ceedCreate);
+      CeedOccaRegisterBaseFunction("ElemRestrictionCreateBlocked", ceed::occa::ElemRestriction::ceedCreateBlocked);
+      CeedOccaRegisterBaseFunction("QFunctionCreate", ceed::occa::QFunction::ceedCreate);
+      CeedOccaRegisterBaseFunction("OperatorCreate", ceed::occa::Operator::ceedCreate);
 
       return 0;
     }
@@ -324,7 +289,7 @@ namespace ceed {
       try {
         ierr = ceed::occa::initCeed(resource, ceed); CeedChk(ierr);
         ierr = ceed::occa::registerMethods(ceed); CeedChk(ierr);
-      } catch (::occa::exception exc) {
+      } catch (::occa::exception &exc) {
         CeedHandleOccaException(exc);
       }
 

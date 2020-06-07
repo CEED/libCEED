@@ -85,8 +85,8 @@ namespace ceed {
     void Operator::initialSetup() {}
 
     //---[ Ceed Callbacks ]-------------
-    int Operator::registerOperatorFunction(Ceed ceed, CeedOperator op,
-                                           const char *fname, ceed::occa::ceedFunction f) {
+    int Operator::registerCeedFunction(Ceed ceed, CeedOperator op,
+                                       const char *fname, ceed::occa::ceedFunction f) {
       return CeedSetBackendFunction(ceed, "Operator", op, fname, f);
     }
 
@@ -108,25 +108,11 @@ namespace ceed {
 
       ierr = CeedOperatorSetData(op, (void**) &operator_); CeedChk(ierr);
 
-      ierr = registerOperatorFunction(ceed, op, "AssembleLinearQFunction",
-                                      (ceed::occa::ceedFunction) Operator::ceedAssembleLinearQFunction);
-      CeedChk(ierr);
-
-      ierr = registerOperatorFunction(ceed, op, "AssembleLinearDiagonal",
-                                      (ceed::occa::ceedFunction) Operator::ceedAssembleLinearDiagonal);
-      CeedChk(ierr);
-
-      ierr = registerOperatorFunction(ceed, op, "CreateFDMElementInverse",
-                                      (ceed::occa::ceedFunction) Operator::ceedCreateFDMElementInverse);
-      CeedChk(ierr);
-
-      ierr = registerOperatorFunction(ceed, op, "ApplyAdd",
-                                      (ceed::occa::ceedFunction) Operator::ceedApplyAdd);
-      CeedChk(ierr);
-
-      ierr = registerOperatorFunction(ceed, op, "Destroy",
-                                      (ceed::occa::ceedFunction) Operator::ceedDestroy);
-      CeedChk(ierr);
+      CeedOccaRegisterFunction(op, "AssembleLinearQFunction", Operator::ceedAssembleLinearQFunction);
+      CeedOccaRegisterFunction(op, "AssembleLinearDiagonal", Operator::ceedAssembleLinearDiagonal);
+      CeedOccaRegisterFunction(op, "CreateFDMElementInverse", Operator::ceedCreateFDMElementInverse);
+      CeedOccaRegisterFunction(op, "ApplyAdd", Operator::ceedApplyAdd);
+      CeedOccaRegisterFunction(op, "Destroy", Operator::ceedDestroy);
 
       return 0;
     }

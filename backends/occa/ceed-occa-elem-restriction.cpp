@@ -342,8 +342,8 @@ namespace ceed {
     }
 
     //---[ Ceed Callbacks ]-----------
-    int ElemRestriction::registerRestrictionFunction(Ceed ceed, CeedElemRestriction r,
-                                                     const char *fname, ceed::occa::ceedFunction f) {
+    int ElemRestriction::registerCeedFunction(Ceed ceed, CeedElemRestriction r,
+                                              const char *fname, ceed::occa::ceedFunction f) {
       return CeedSetBackendFunction(ceed, "ElemRestriction", r, fname, f);
     }
 
@@ -366,21 +366,10 @@ namespace ceed {
       elemRestriction = ElemRestriction::from(r);
       elemRestriction->setup(memType, copyMode, indicesInput);
 
-      ierr = registerRestrictionFunction(ceed, r, "Apply",
-                                         (ceed::occa::ceedFunction) ElemRestriction::ceedApply);
-      CeedChk(ierr);
-
-      ierr = registerRestrictionFunction(ceed, r, "ApplyBlock",
-                                         (ceed::occa::ceedFunction) ElemRestriction::ceedApplyBlock);
-      CeedChk(ierr);
-
-      ierr = registerRestrictionFunction(ceed, r, "GetOffsets",
-                                         (ceed::occa::ceedFunction) ElemRestriction::ceedGetOffsets);
-      CeedChk(ierr);
-
-      ierr = registerRestrictionFunction(ceed, r, "Destroy",
-                                         (ceed::occa::ceedFunction) ElemRestriction::ceedDestroy);
-      CeedChk(ierr);
+      CeedOccaRegisterFunction(r, "Apply", ElemRestriction::ceedApply);
+      CeedOccaRegisterFunction(r, "ApplyBlock", ElemRestriction::ceedApplyBlock);
+      CeedOccaRegisterFunction(r, "GetOffsets", ElemRestriction::ceedGetOffsets);
+      CeedOccaRegisterFunction(r, "Destroy", ElemRestriction::ceedDestroy);
 
       return 0;
     }

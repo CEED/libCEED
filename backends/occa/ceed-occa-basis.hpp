@@ -53,8 +53,8 @@ namespace ceed {
                         Vector *v) = 0;
 
       //---[ Ceed Callbacks ]-----------
-      static int registerBasisFunction(Ceed ceed, CeedBasis basis,
-                                       const char *fname, ceed::occa::ceedFunction f);
+      static int registerCeedFunction(Ceed ceed, CeedBasis basis,
+                                      const char *fname, ceed::occa::ceedFunction f);
 
       static int ceedApply(CeedBasis basis, const CeedInt nelem,
                            CeedTransposeMode tmode,

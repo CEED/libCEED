@@ -108,8 +108,8 @@ namespace ceed {
       void printSummary(const std::string &name);
 
       //---[ Ceed Callbacks ]-----------
-      static int registerVectorFunction(Ceed ceed, CeedVector vec,
-                                        const char *fname, ceed::occa::ceedFunction f);
+      static int registerCeedFunction(Ceed ceed, CeedVector vec,
+                                      const char *fname, ceed::occa::ceedFunction f);
 
       static int ceedCreate(CeedInt length, CeedVector vec);
 

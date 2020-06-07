@@ -212,7 +212,7 @@ namespace ceed {
           default:
             return ceedError("Backend does not support given simplex eval mode");
         }
-      } catch (::occa::exception exc) {
+      } catch (::occa::exception &exc) {
         // Handle kernel build errors the CEED way
         CeedHandleOccaException(exc);
       }
@@ -240,13 +240,8 @@ namespace ceed {
                                               interp, grad, qWeight);
       ierr = CeedBasisSetData(basis, (void**) &basis_); CeedChk(ierr);
 
-      ierr = registerBasisFunction(ceed, basis, "Apply",
-                                   (ceed::occa::ceedFunction) Basis::ceedApply);
-      CeedChk(ierr);
-
-      ierr = registerBasisFunction(ceed, basis, "Destroy",
-                                   (ceed::occa::ceedFunction) Basis::ceedDestroy);
-      CeedChk(ierr);
+      CeedOccaRegisterFunction(basis, "Apply", Basis::ceedApply);
+      CeedOccaRegisterFunction(basis, "Destroy", Basis::ceedDestroy);
 
       return 0;
     }

@@ -63,8 +63,8 @@ namespace ceed {
     }
 
     //---[ Ceed Callbacks ]-----------
-    int Basis::registerBasisFunction(Ceed ceed, CeedBasis basis,
-                                     const char *fname, ceed::occa::ceedFunction f) {
+    int Basis::registerCeedFunction(Ceed ceed, CeedBasis basis,
+                                    const char *fname, ceed::occa::ceedFunction f) {
       return CeedSetBackendFunction(ceed, "Basis", basis, fname, f);
     }
 

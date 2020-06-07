@@ -55,8 +55,8 @@ namespace ceed {
       int apply(CeedInt Q, CeedVector *U, CeedVector *V);
 
       //---[ Ceed Callbacks ]-----------
-      static int registerQFunctionFunction(Ceed ceed, CeedQFunction qf,
-                                           const char *fname, ceed::occa::ceedFunction f);
+      static int registerCeedFunction(Ceed ceed, CeedQFunction qf,
+                                      const char *fname, ceed::occa::ceedFunction f);
 
       static int ceedCreate(CeedQFunction qf);
 

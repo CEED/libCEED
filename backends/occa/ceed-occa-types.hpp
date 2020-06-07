@@ -41,6 +41,22 @@
     return CeedError(ceed, 1, error.c_str());   \
   } while (0)
 
+#define CeedOccaCastRegisterFunction(func)      \
+  (ceed::occa::ceedFunction) (void*) func
+
+#define CeedOccaRegisterBaseFunction(name, func)  \
+  ierr = registerCeedFunction(                    \
+    ceed, name,                                   \
+    CeedOccaCastRegisterFunction(func)            \
+  ); CeedChk(ierr)
+
+#define CeedOccaRegisterFunction(object, name, func) \
+  ierr = registerCeedFunction(                       \
+    ceed, object, name,                              \
+    CeedOccaCastRegisterFunction(func)               \
+  ); CeedChk(ierr)
+
+
 namespace ceed {
   namespace occa {
     typedef int (*ceedFunction)();

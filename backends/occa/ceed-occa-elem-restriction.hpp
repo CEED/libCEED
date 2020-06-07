@@ -89,8 +89,8 @@ namespace ceed {
                      const CeedInt **offsets);
 
       //---[ Ceed Callbacks ]-----------
-      static int registerRestrictionFunction(Ceed ceed, CeedElemRestriction r,
-                                             const char *fname, ceed::occa::ceedFunction f);
+      static int registerCeedFunction(Ceed ceed, CeedElemRestriction r,
+                                      const char *fname, ceed::occa::ceedFunction f);
 
       static int ceedCreate(CeedMemType memType,
                             CeedCopyMode copyMode,

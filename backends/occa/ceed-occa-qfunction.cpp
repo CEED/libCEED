@@ -243,8 +243,8 @@ namespace ceed {
     }
 
     //---[ Ceed Callbacks ]-----------
-    int QFunction::registerQFunctionFunction(Ceed ceed, CeedQFunction qf,
-                                             const char *fname, ceed::occa::ceedFunction f) {
+    int QFunction::registerCeedFunction(Ceed ceed, CeedQFunction qf,
+                                        const char *fname, ceed::occa::ceedFunction f) {
       return CeedSetBackendFunction(ceed, "QFunction", qf, fname, f);
     }
 
@@ -260,13 +260,8 @@ namespace ceed {
       QFunction *qFunction = new QFunction(source);
       ierr = CeedQFunctionSetData(qf, (void**) &qFunction); CeedChk(ierr);
 
-      ierr = registerQFunctionFunction(ceed, qf, "Apply",
-                                       (ceed::occa::ceedFunction) QFunction::ceedApply);
-      CeedChk(ierr);
-
-      ierr = registerQFunctionFunction(ceed, qf, "Destroy",
-                                       (ceed::occa::ceedFunction) QFunction::ceedDestroy);
-      CeedChk(ierr);
+      CeedOccaRegisterFunction(qf, "Apply", QFunction::ceedApply);
+      CeedOccaRegisterFunction(qf, "Destroy", QFunction::ceedDestroy);
 
       return 0;
     }

@@ -60,8 +60,8 @@ namespace ceed {
       virtual void applyAdd(Vector *in, Vector *out) = 0;
 
       //---[ Ceed Callbacks ]-----------
-      static int registerOperatorFunction(Ceed ceed, CeedOperator op,
-                                          const char *fname, ceed::occa::ceedFunction f);
+      static int registerCeedFunction(Ceed ceed, CeedOperator op,
+                                      const char *fname, ceed::occa::ceedFunction f);
 
       static int ceedCreate(CeedOperator op);
 
