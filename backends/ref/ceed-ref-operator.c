@@ -711,6 +711,8 @@ static inline int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
     CeedVector *assembled, CeedRequest *request, const bool pointBlock,
     const bool createVector) {
   int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
 
   // Assemble QFunction
   CeedQFunction qf;
@@ -739,11 +741,18 @@ static inline int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
     CeedVector vec;
     ierr = CeedOperatorFieldGetVector(opfields[i], &vec); CeedChk(ierr);
     if (vec == CEED_VECTOR_ACTIVE) {
+      CeedElemRestriction rstr;
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basisin); CeedChk(ierr);
       ierr = CeedBasisGetNumComponents(basisin, &ncomp); CeedChk(ierr);
       ierr = CeedBasisGetDimension(basisin, &dim); CeedChk(ierr);
-      ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &rstrin);
+      ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &rstr);
       CeedChk(ierr);
+      if (rstrin && rstrin != rstr)
+        // LCOV_EXCL_START
+        return CeedError(ceed, 1,
+                         "Multi-field non-composite operator diagonal assembly not supported");
+      // LCOV_EXCL_STOP
+      rstrin = rstr;
       CeedEvalMode emode;
       ierr = CeedQFunctionFieldGetEvalMode(qffields[i], &emode);
       CeedChk(ierr);
@@ -779,9 +788,16 @@ static inline int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
     CeedVector vec;
     ierr = CeedOperatorFieldGetVector(opfields[i], &vec); CeedChk(ierr);
     if (vec == CEED_VECTOR_ACTIVE) {
+      CeedElemRestriction rstr;
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basisout); CeedChk(ierr);
-      ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &rstrout);
+      ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &rstr);
       CeedChk(ierr);
+      if (rstrout && rstrout != rstr)
+        // LCOV_EXCL_START
+        return CeedError(ceed, 1,
+                         "Multi-field non-composite operator diagonal assembly not supported");
+      // LCOV_EXCL_STOP
+      rstrout = rstr;
       CeedEvalMode emode;
       ierr = CeedQFunctionFieldGetEvalMode(qffields[i], &emode); CeedChk(ierr);
       switch (emode) {
