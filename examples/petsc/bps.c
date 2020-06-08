@@ -322,10 +322,12 @@ static PetscErrorCode Run(RunParams rp) {
     CHKERRQ(ierr);
     // Set maxits based on first iteration timing
     if (my_rt > 0.02) {
-      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, rp->ksp_max_it_clip[0]);
+      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
+                              rp->ksp_max_it_clip[0]);
       CHKERRQ(ierr);
     } else {
-      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, rp->ksp_max_it_clip[1]);
+      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
+                              rp->ksp_max_it_clip[1]);
       CHKERRQ(ierr);
     }
   }
@@ -427,14 +429,16 @@ int main(int argc, char **argv) {
   RunParams rp;
   MPI_Comm comm;
   char filename[PETSC_MAX_PATH_LEN];
-  char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
+  char *ceedresources[30];
+  PetscInt num_ceedresources = 30;
   char hostname[PETSC_MAX_PATH_LEN];
 
   PetscInt dim = 3, melem[3] = {3, 3, 3};
   PetscInt num_degrees = 30, degree[30] = {}, num_localnodes = 2, localnodes[2] = {};
   PetscMPIInt rankspernode;
   PetscBool degree_set;
-  bpType bpchoice;
+  bpType bpchoices[10];
+  PetscInt num_bpchoices = 10;
 
   // Check PETSc CUDA support
   PetscBool petschavecuda;
@@ -472,11 +476,17 @@ int main(int argc, char **argv) {
   // Read command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL);
   CHKERRQ(ierr);
-  bpchoice = CEED_BP1;
-  ierr = PetscOptionsEnum("-problem", "CEED benchmark problem to solve", NULL,
-                          bpTypes, (PetscEnum)bpchoice, (PetscEnum *)&bpchoice,
-                          NULL); CHKERRQ(ierr);
-  rp->ncompu = bpOptions[bpchoice].ncompu;
+  {
+    PetscBool set;
+    ierr = PetscOptionsEnumArray("-problem", "CEED benchmark problem to solve",
+                                 NULL,
+                                 bpTypes, (PetscEnum *)bpchoices, &num_bpchoices, &set);
+    CHKERRQ(ierr);
+    if (!set) {
+      bpchoices[0] = CEED_BP1;
+      num_bpchoices = 1;
+    }
+  }
   rp->test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
@@ -496,12 +506,18 @@ int main(int argc, char **argv) {
                               degree, &num_degrees, &degree_set); CHKERRQ(ierr);
   if (!degree_set)
     num_degrees = 1;
-  rp->qextra = bpOptions[bpchoice].qextra;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points", NULL,
                          rp->qextra, &rp->qextra, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsString("-ceed", "CEED resource specifier", NULL,
-                            ceedresource,
-                            ceedresource, sizeof(ceedresource), NULL); CHKERRQ(ierr);
+  {
+    PetscBool set;
+    ierr = PetscOptionsStringArray("-ceed",
+                                   "CEED resource specifier (comma-separated list)", NULL,
+                                   ceedresources, &num_ceedresources, &set); CHKERRQ(ierr);
+    if (!set) {
+      ierr = PetscStrallocpy( "/cpu/self", &ceedresources[0]); CHKERRQ(ierr);
+      num_ceedresources = 1;
+    }
+  }
   ierr = PetscGetHostName(hostname, sizeof hostname); CHKERRQ(ierr);
   ierr = PetscOptionsString("-hostname", "Hostname for output", NULL, hostname,
                             hostname, sizeof(hostname), NULL); CHKERRQ(ierr);
@@ -564,24 +580,32 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
 
   rp->petschavecuda = petschavecuda;
-  rp->ceedresource = ceedresource;
   rp->hostname = hostname;
   rp->dim = dim;
   rp->melem = melem;
-  rp->bpchoice = bpchoice;
   rp->rankspernode = rankspernode;
 
-  for (PetscInt d = 0; d < num_degrees; d++) {
-    PetscInt deg = degree[d];
-    for (PetscInt n = localnodes[0]; n < localnodes[1]; n *= 2) {
-      rp->degree = deg;
-      rp->localnodes = n;
-      ierr = Run(rp); CHKERRQ(ierr);
+  for (PetscInt b = 0; b < num_bpchoices; b++) {
+    rp->bpchoice = bpchoices[b];
+    rp->ncompu = bpOptions[rp->bpchoice].ncompu;
+    rp->qextra = bpOptions[rp->bpchoice].qextra;
+    for (PetscInt d = 0; d < num_degrees; d++) {
+      PetscInt deg = degree[d];
+      for (PetscInt n = localnodes[0]; n < localnodes[1]; n *= 2) {
+        rp->degree = deg;
+        rp->localnodes = n;
+        for (PetscInt c = 0; c < num_ceedresources; c++) {
+          rp->ceedresource = ceedresources[c];
+          ierr = Run(rp);
+          CHKERRQ(ierr);
+        }
+      }
     }
   }
-
   // Clear memory
   ierr = PetscFree(rp); CHKERRQ(ierr);
-
+  for (PetscInt i=0; i<num_ceedresources; i++) {
+    ierr = PetscFree(ceedresources[i]); CHKERRQ(ierr);
+  }
   return PetscFinalize();
 }
