@@ -76,7 +76,7 @@ static int Min3(const PetscInt a[3]) {
 typedef struct RunParams_ *RunParams;
 struct RunParams_ {
   MPI_Comm comm;
-  PetscBool test_mode, benchmark_mode, read_mesh, userlnodes, setmemtyperequest,
+  PetscBool test_mode, read_mesh, userlnodes, setmemtyperequest,
             petschavecuda, write_solution;
   char *filename, *ceedresource, *hostname;
   PetscInt localnodes, degree, qextra, dim, ncompu, *melem;
@@ -311,25 +311,23 @@ static PetscErrorCode Run(RunParams rp) {
   }
   ierr = KSPSetOperators(ksp, matO, matO); CHKERRQ(ierr);
 
-  // First run, if benchmarking
-  if (rp->benchmark_mode) {
-    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 1);
+  // First run's performance log is not considered for benchmarking purposes
+  ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 1);
+  CHKERRQ(ierr);
+  my_rt_start = MPI_Wtime();
+  ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
+  my_rt = MPI_Wtime() - my_rt_start;
+  ierr = MPI_Allreduce(MPI_IN_PLACE, &my_rt, 1, MPI_DOUBLE, MPI_MIN, rp->comm);
+  CHKERRQ(ierr);
+  // Set maxits based on first iteration timing
+  if (my_rt > 0.02) {
+    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
+                            rp->ksp_max_it_clip[0]);
     CHKERRQ(ierr);
-    my_rt_start = MPI_Wtime();
-    ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
-    my_rt = MPI_Wtime() - my_rt_start;
-    ierr = MPI_Allreduce(MPI_IN_PLACE, &my_rt, 1, MPI_DOUBLE, MPI_MIN, rp->comm);
+  } else {
+    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
+                            rp->ksp_max_it_clip[1]);
     CHKERRQ(ierr);
-    // Set maxits based on first iteration timing
-    if (my_rt > 0.02) {
-      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
-                              rp->ksp_max_it_clip[0]);
-      CHKERRQ(ierr);
-    } else {
-      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
-                              rp->ksp_max_it_clip[1]);
-      CHKERRQ(ierr);
-    }
   }
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
 
@@ -491,11 +489,6 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
                           NULL, rp->test_mode, &rp->test_mode, NULL); CHKERRQ(ierr);
-  rp->benchmark_mode = PETSC_FALSE;
-  ierr = PetscOptionsBool("-benchmark",
-                          "Benchmarking mode (prints benchmark statistics)",
-                          NULL, rp->benchmark_mode, &rp->benchmark_mode, NULL);
-  CHKERRQ(ierr);
   rp->write_solution = PETSC_FALSE;
   ierr = PetscOptionsBool("-write_solution", "Write solution for visualization",
                           NULL, rp->write_solution, &rp->write_solution, NULL);
@@ -536,7 +529,6 @@ int main(int argc, char **argv) {
                           (PetscEnum)rp->memtyperequested,
                           (PetscEnum *)&rp->memtyperequested, &rp->setmemtyperequest);
   CHKERRQ(ierr);
-
   localnodes[0] = 1000;
   ierr = PetscOptionsIntArray("-local_nodes",
                               "Target number of locally owned nodes per "
@@ -553,10 +545,9 @@ int main(int argc, char **argv) {
                                 "Min and max number of iterations to use during benchmarking",
                                 NULL, rp->ksp_max_it_clip, &two, NULL); CHKERRQ(ierr);
   }
-
-  if (rp->benchmark_mode && !degree_set) {
+  if (!degree_set) {
     PetscInt maxdegree = 8;
-    ierr = PetscOptionsInt("-max_degree", "Max degree to run in benchmark mode",
+    ierr = PetscOptionsInt("-max_degree", "Range of degrees [1, maxdegree] to run with",
                            NULL, maxdegree, &maxdegree, NULL);
     CHKERRQ(ierr);
     for (PetscInt i = 0; i < maxdegree; i++)

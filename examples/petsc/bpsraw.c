@@ -872,23 +872,21 @@ int main(int argc, char **argv) {
                             PETSC_DEFAULT); CHKERRQ(ierr);
   }
   ierr = KSPSetOperators(ksp, mat, mat); CHKERRQ(ierr);
-  // First run, if benchmarking
-  if (benchmark_mode) {
-    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 1);
+  // First run's performance log is not considered for benchmarking purposes
+  ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 1);
+  CHKERRQ(ierr);
+  my_rt_start = MPI_Wtime();
+  ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
+  my_rt = MPI_Wtime() - my_rt_start;
+  ierr = MPI_Allreduce(MPI_IN_PLACE, &my_rt, 1, MPI_DOUBLE, MPI_MIN, comm);
+  CHKERRQ(ierr);
+  // Set maxits based on first iteration timing
+  if (my_rt > 0.02) {
+    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 5);
     CHKERRQ(ierr);
-    my_rt_start = MPI_Wtime();
-    ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
-    my_rt = MPI_Wtime() - my_rt_start;
-    ierr = MPI_Allreduce(MPI_IN_PLACE, &my_rt, 1, MPI_DOUBLE, MPI_MIN, comm);
+  } else {
+    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 20);
     CHKERRQ(ierr);
-    // Set maxits based on first iteration timing
-    if (my_rt > 0.02) {
-      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 5);
-      CHKERRQ(ierr);
-    } else {
-      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 20);
-      CHKERRQ(ierr);
-    }
   }
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
 
