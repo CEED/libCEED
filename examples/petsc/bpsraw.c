@@ -565,8 +565,8 @@ int main(int argc, char **argv) {
                        "    libCEED Backend MemType            : %s\n"
                        "    libCEED User Requested MemType     : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (p)       : %d\n"
-                       "    Number of 1D Quadrature Points (q) : %d\n"
+                       "    Number of 1D Basis Nodes (P)       : %d\n"
+                       "    Number of 1D Quadrature Points (Q) : %d\n"
                        "    Global nodes                       : %D\n"
                        "    Process Decomposition              : %D %D %D\n"
                        "    Local Elements                     : %D = %D %D %D\n"
@@ -947,7 +947,7 @@ int main(int argc, char **argv) {
                            (double)maxerror, rt_max, rt_min); CHKERRQ(ierr);
       }
     }
-    if (benchmark_mode && (!test_mode)) {
+    if (!test_mode) {
       ierr = PetscPrintf(comm,
                          "    DoFs/Sec in CG                     : %g (%g) million\n",
                          1e-6*gsize*its/rt_max,
