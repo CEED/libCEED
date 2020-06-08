@@ -80,6 +80,7 @@ struct RunParams_ {
             petschavecuda, write_solution;
   char *filename, *ceedresource, *hostname;
   PetscInt localnodes, degree, qextra, dim, ncompu, *melem;
+  PetscInt ksp_max_it_clip[2];
   PetscMPIInt rankspernode;
   bpType bpchoice;
   CeedMemType memtyperequested;
@@ -321,10 +322,10 @@ static PetscErrorCode Run(RunParams rp) {
     CHKERRQ(ierr);
     // Set maxits based on first iteration timing
     if (my_rt > 0.02) {
-      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 5);
+      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, rp->ksp_max_it_clip[0]);
       CHKERRQ(ierr);
     } else {
-      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 20);
+      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, rp->ksp_max_it_clip[1]);
       CHKERRQ(ierr);
     }
   }
@@ -425,21 +426,18 @@ int main(int argc, char **argv) {
   PetscInt ierr, commsize;
   RunParams rp;
   MPI_Comm comm;
-  PetscLogStage solvestage;
   char filename[PETSC_MAX_PATH_LEN];
   char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   char hostname[PETSC_MAX_PATH_LEN];
 
-  PetscInt qextra, dim = 3, melem[3] = {3, 3, 3}, ncompu = 1;
+  PetscInt dim = 3, melem[3] = {3, 3, 3};
   PetscInt num_degrees = 30, degree[30] = {}, num_localnodes = 2, localnodes[2] = {};
   PetscMPIInt rankspernode;
-  PetscBool test_mode, benchmark_mode, read_mesh, write_solution,
-            userlnodes = PETSC_FALSE, degree_set;
-  CeedMemType memtyperequested;
+  PetscBool degree_set;
   bpType bpchoice;
 
   // Check PETSc CUDA support
-  PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
+  PetscBool petschavecuda;
   // *INDENT-OFF*
   #ifdef PETSC_HAVE_CUDA
   petschavecuda = PETSC_TRUE;
@@ -467,6 +465,10 @@ int main(int argc, char **argv) {
   rankspernode = -1; // Unknown
   #endif
 
+  // Setup all parameters needed in Run()
+  ierr = PetscMalloc1(1, &rp); CHKERRQ(ierr);
+  rp->comm = comm;
+
   // Read command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL);
   CHKERRQ(ierr);
@@ -474,58 +476,69 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsEnum("-problem", "CEED benchmark problem to solve", NULL,
                           bpTypes, (PetscEnum)bpchoice, (PetscEnum *)&bpchoice,
                           NULL); CHKERRQ(ierr);
-  ncompu = bpOptions[bpchoice].ncompu;
-  test_mode = PETSC_FALSE;
+  rp->ncompu = bpOptions[bpchoice].ncompu;
+  rp->test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
-                          NULL, test_mode, &test_mode, NULL); CHKERRQ(ierr);
-  benchmark_mode = PETSC_FALSE;
+                          NULL, rp->test_mode, &rp->test_mode, NULL); CHKERRQ(ierr);
+  rp->benchmark_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-benchmark",
                           "Benchmarking mode (prints benchmark statistics)",
-                          NULL, benchmark_mode, &benchmark_mode, NULL);
+                          NULL, rp->benchmark_mode, &rp->benchmark_mode, NULL);
   CHKERRQ(ierr);
-  write_solution = PETSC_FALSE;
+  rp->write_solution = PETSC_FALSE;
   ierr = PetscOptionsBool("-write_solution", "Write solution for visualization",
-                          NULL, write_solution, &write_solution, NULL);
+                          NULL, rp->write_solution, &rp->write_solution, NULL);
   CHKERRQ(ierr);
-  degree[0] = test_mode ? 3 : 2;
+  degree[0] = rp->test_mode ? 3 : 2;
   ierr = PetscOptionsIntArray("-degree",
                               "Polynomial degree of tensor product basis", NULL,
                               degree, &num_degrees, &degree_set); CHKERRQ(ierr);
   if (!degree_set)
     num_degrees = 1;
-  qextra = bpOptions[bpchoice].qextra;
+  rp->qextra = bpOptions[bpchoice].qextra;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points", NULL,
-                         qextra, &qextra, NULL); CHKERRQ(ierr);
+                         rp->qextra, &rp->qextra, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-ceed", "CEED resource specifier", NULL,
                             ceedresource,
                             ceedresource, sizeof(ceedresource), NULL); CHKERRQ(ierr);
   ierr = PetscGetHostName(hostname, sizeof hostname); CHKERRQ(ierr);
   ierr = PetscOptionsString("-hostname", "Hostname for output", NULL, hostname,
                             hostname, sizeof(hostname), NULL); CHKERRQ(ierr);
-  read_mesh = PETSC_FALSE;
+  rp->read_mesh = PETSC_FALSE;
   ierr = PetscOptionsString("-mesh", "Read mesh from file", NULL, filename,
-                            filename, sizeof(filename), &read_mesh);
+                            filename, sizeof(filename), &rp->read_mesh);
   CHKERRQ(ierr);
-  if (!read_mesh) {
+  rp->filename = filename;
+  if (!rp->read_mesh) {
     PetscInt tmp = dim;
     ierr = PetscOptionsIntArray("-cells", "Number of cells per dimension", NULL,
                                 melem, &tmp, NULL); CHKERRQ(ierr);
   }
-  memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
+  rp->memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
   ierr = PetscOptionsEnum("-memtype", "CEED MemType requested", NULL, memTypes,
-                          (PetscEnum)memtyperequested,
-                          (PetscEnum *)&memtyperequested, &setmemtyperequest);
+                          (PetscEnum)rp->memtyperequested,
+                          (PetscEnum *)&rp->memtyperequested, &rp->setmemtyperequest);
   CHKERRQ(ierr);
+
   localnodes[0] = 1000;
   ierr = PetscOptionsIntArray("-local_nodes",
                               "Target number of locally owned nodes per "
                               "process (single value or min,max)",
-                              NULL, localnodes, &num_localnodes, &userlnodes);
+                              NULL, localnodes, &num_localnodes, &rp->userlnodes);
   CHKERRQ(ierr);
   if (num_localnodes < 2)
     localnodes[1] = 2 * localnodes[0];
-  if (benchmark_mode && !degree_set) {
+  {
+    PetscInt two = 2;
+    rp->ksp_max_it_clip[0] = 5;
+    rp->ksp_max_it_clip[1] = 20;
+    ierr = PetscOptionsIntArray("-ksp_max_it_clip",
+                                "Min and max number of iterations to use during benchmarking",
+                                NULL, rp->ksp_max_it_clip, &two, NULL); CHKERRQ(ierr);
+  }
+
+  if (rp->benchmark_mode && !degree_set) {
     PetscInt maxdegree = 8;
     ierr = PetscOptionsInt("-max_degree", "Max degree to run in benchmark mode",
                            NULL, maxdegree, &maxdegree, NULL);
@@ -547,30 +560,15 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
 
   // Register PETSc logging stage
-  ierr = PetscLogStageRegister("Solve Stage", &solvestage);
+  ierr = PetscLogStageRegister("Solve Stage", &rp->solvestage);
   CHKERRQ(ierr);
 
-  // Setup all parameters needed in Run()
-  ierr = PetscMalloc1(1, &rp);
-  CHKERRQ(ierr);
-  rp->comm = comm;
-  rp->test_mode = test_mode;
-  rp->benchmark_mode = benchmark_mode;
-  rp->read_mesh = read_mesh;
-  rp->userlnodes = userlnodes;
-  rp->setmemtyperequest = setmemtyperequest;
   rp->petschavecuda = petschavecuda;
-  rp->write_solution = write_solution;
-  rp->filename = filename;
   rp->ceedresource = ceedresource;
   rp->hostname = hostname;
-  rp->qextra = qextra;
   rp->dim = dim;
-  rp->ncompu = ncompu;
   rp->melem = melem;
   rp->bpchoice = bpchoice;
-  rp->memtyperequested = memtyperequested;
-  rp->solvestage = solvestage;
   rp->rankspernode = rankspernode;
 
   for (PetscInt d = 0; d < num_degrees; d++) {
