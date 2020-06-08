@@ -387,7 +387,7 @@ static PetscErrorCode Run(RunParams rp) {
                            (double)maxerror, rt_max, rt_min); CHKERRQ(ierr);
       }
     }
-    if (rp->benchmark_mode && (!rp->test_mode)) {
+    if (!rp->test_mode) {
       ierr = PetscPrintf(rp->comm,
                          "    DoFs/Sec in CG                     : %g (%g) million\n",
                          1e-6*gsize*its/rt_max,
