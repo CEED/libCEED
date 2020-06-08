@@ -76,7 +76,10 @@ code = codes[0]
 sel_runs = sel_runs.loc[sel_runs['code'] == code]
 
 # Group plots by backend and number of processes
-pl_set = sel_runs[['backend', 'backend_memtype', 'num_procs', 'num_procs_node']]
+pl_set = sel_runs[['backend',
+                   'backend_memtype',
+                   'num_procs',
+                   'num_procs_node']]
 pl_set = pl_set.drop_duplicates()
 
 # Plotting
