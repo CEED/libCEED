@@ -26,7 +26,6 @@ Available runtime options are:
 | `-stab`                  | Stabilization method                                                                            |
 | `-implicit`              | Use implicit time integartor formulation                                                        |
 | `-bc_wall`               | Use wall boundary conditions on this list of faces                                              |
-| `-bc_outflow`            | Use outflow boundary conditions on this list of faces                                              |
 | `-bc_slip_x`             | Use slip boundary conditions, for the x component, on this list of faces                        |
 | `-bc_slip_y`             | Use slip boundary conditions, for the y component, on this list of faces                        |
 | `-bc_slip_z`             | Use slip boundary conditions, for the z component, on this list of faces                        |
@@ -64,7 +63,7 @@ Available runtime options are:
 | `-of`                    | Output folder                                                                                   |
 
 For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall` and/or `-bc_slip_x`,
-`-bc_slip_y`, and `-bc_slip_z` or `bc_outflow` are:
+`-bc_slip_y`, and `-bc_slip_z` are:
 
 * 2D:
   - faceMarkerBottom = 1;

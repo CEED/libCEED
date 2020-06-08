@@ -1006,28 +1006,6 @@ int main(int argc, char **argv) {
   {
     PetscInt len;
     PetscBool flg;
-    ierr = PetscOptionsIntArray("-bc_outflow",
-                              "Use outflow boundary conditions on this list of faces",
-                              NULL, bc.outflow,
-                              (len = sizeof(bc.outflow) / sizeof(bc.outflow[0]),
-                              &len), &flg); CHKERRQ(ierr);
-    if (flg) {
-      bc.noutflow = len;
-      // Using outflow boundaries disables automatic wall/slip boundaries (they must be set explicitly)
-      bc.nwall = 0;
-      bc.nslip[0] = bc.nslip[1] = bc.nslip[2] = 0;
-    }
-    ierr = PetscOptionsIntArray("-bc_inflow",
-                              "Use inflow boundary conditions on this list of faces",
-                              NULL, bc.inflow,
-                              (len = sizeof(bc.inflow) / sizeof(bc.inflow[0]),
-                              &len), &flg); CHKERRQ(ierr);
-    if (flg) {
-      bc.ninflow = len;
-      // Using inflow boundaries disables automatic wall/slip boundaries (they must be set explicitly)
-      bc.nwall = 0;
-      bc.nslip[0] = bc.nslip[1] = bc.nslip[2] = 0;
-    }
     ierr = PetscOptionsIntArray("-bc_wall",
                                 "Use wall boundary conditions on this list of faces",
                                 NULL, bc.walls,
@@ -1187,20 +1165,50 @@ int main(int argc, char **argv) {
   if (problemChoice == NS_ADVECTION2D) {
     switch (wind_type) {
     case ADVECTION_WIND_ROTATION:
-      // No in/out-flow
-      bc.ninflow = bc.noutflow = 0;
       break;
     case ADVECTION_WIND_TRANSLATION:
-      // Face 4 is inflow and Face 2 is outflow
-      bc.ninflow = bc.noutflow = 1;
-      bc.inflow[0] = 4; bc.outflow[0] = 2;
-      // Face 3 is slip
-      bc.nslip[0] = bc.nslip[2] = 0; bc.nslip[1] = 1;
-      bc.slips[1][0] = 3;
-      // Face 1 is wall
-      bc.nwall = 1;
-      bc.walls[0] = 1;
-      break;
+      bc.nwall = bc.nslip[0] = bc.nslip[1] = bc.nslip[2] = 0; // No wall BCs, and slip BCs will be determined according to the wind vector.
+      if (wind[0] == 0 && wind[1] == 0) {
+          SETERRQ2(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
+                   "No translation with problem_advection_wind_translation %f,%f. At least one of the elements needs to be non-zero.",
+                   wind[0], wind[1]);
+        break;} else if (wind[0] == 0 && wind[1] > 0) {
+          bc.ninflow = bc.noutflow = 1; // Face 1 is inflow and Face 3 is outflow
+          bc.inflow[0] = 1; bc.outflow[0] = 3;
+          bc.nslip[0] = 2;              // Faces 2 and 4 are slip
+          bc.slips[0][0] = 2; bc.slips[0][1] = 4;
+        break;} else if (wind[0] == 0 && wind[1] < 0) {
+          bc.ninflow = bc.noutflow = 1; // Face 3 is inflow and Face 1 is outflow
+          bc.inflow[0] = 3; bc.outflow[0] = 1;
+          bc.nslip[0] = 2;              // Faces 2 and 4 are slip
+          bc.slips[0][0] = 2; bc.slips[0][1] = 4;
+        break;} else if (wind[0] > 0 && wind[1] == 0) {
+          bc.ninflow = bc.noutflow = 1; // Face 4 is inflow and Face 2 is outflow
+          bc.inflow[0] = 4; bc.outflow[0] = 2;
+          bc.nslip[1] = 2;              // Faces 1 and 3 are slip
+          bc.slips[1][0] = 1; bc.slips[1][1] = 3;
+        break;} else if (wind[0] < 0 && wind[1] == 0) {
+          bc.ninflow = bc.noutflow = 1; // Face 2 is inflow and Face 4 is outflow
+          bc.inflow[0] = 2; bc.outflow[0] = 4;
+          bc.nslip[1] = 2;              // Faces 1 and 3 are slip
+          bc.slips[1][0] = 1; bc.slips[1][1] = 3;
+        break;} else if (wind[0] > 0 && wind[1] > 0) {
+          bc.ninflow = bc.noutflow = 2; // Faces 1 and 4 are inflow and Faces 2 and 3 are outflow
+          bc.inflow[0]  = 1; bc.inflow[1]  = 4;
+          bc.outflow[0] = 2; bc.outflow[1] = 3;
+        break;} else if (wind[0] > 0 && wind[1] < 0) {
+          bc.ninflow = bc.noutflow = 2; // Faces 3 and 4 are inflow and Faces 1 and 2 are outflow
+          bc.inflow[0]  = 3; bc.inflow[1]  = 4;
+          bc.outflow[0] = 1; bc.outflow[1] = 2;
+        break;} else if (wind[0] < 0 && wind[1] > 0) {
+          bc.ninflow = bc.noutflow = 2; // Faces 1 and 2 are inflow and Faces 3 and 4 are outflow
+          bc.inflow[0]  = 1; bc.inflow[1]  = 2;
+          bc.outflow[0] = 3; bc.outflow[1] = 4;
+        break;} else if (wind[0] < 0 && wind[1] < 0) {
+          bc.ninflow = bc.noutflow = 2; // Faces 2 and 3 are inflow and Faces 1 and 4 are outflow
+          bc.inflow[0]  = 2; bc.inflow[1]  = 3;
+          bc.outflow[0] = 1; bc.outflow[1] = 4;
+        break;}
     }
   }
 

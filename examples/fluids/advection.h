@@ -129,31 +129,33 @@ static inline int Exact_Advection(CeedInt dim, CeedScalar time,
     q[0] = 1.;
     q[1] = -(y - center[1]);
     q[2] =  (x - center[0]);
-    q[3] = 0.;
-    CeedInt continuityBubble = -1;
-    // 0 is original sphere, switch to -1 to challenge solver with sharp gradients in back half of bubble
-    switch (continuityBubble) {
-    // original continuous, smooth shape
-    case 0: {
-      q[4] = r <= rc ? (1.-r/rc) : 0.;
-    } break;
-    // discontinuous, sharp back half shape
-    case -1: {
-      q[4] = ((r <= rc) && (y<center[1])) ? (1.-r/rc) : 0.;
-    } break;
-    // attempt to define a finite thickness that will get resolved under grid refinement
-    case 2: {
-      q[4] = ((r <= rc)
-              && (y<center[1])) ? (1.-r/rc)*fmin(1.0,(center[1]-y)/1.25) : 0.;
-    } break;
-    }
-    case 1:    // Translation
-      q[0] = 1.;
-      q[1] = wind[0];
-      q[2] = wind[1];
-      q[3] = wind[2];
-      q[4] = 0.;
-    }
+    q[3] = 0;
+    break;
+  case 1:    // Translation
+    q[0] = 1.;
+    q[1] = wind[0];
+    q[2] = wind[1];
+    q[3] = wind[2];
+    break;
+  }
+
+  CeedInt continuityBubble = -1;
+  // 0 is original sphere, switch to -1 to challenge solver with sharp gradients in back half of bubble
+  switch (continuityBubble) {
+  // original continuous, smooth shape
+  case 0: {
+    q[4] = r <= rc ? (1.-r/rc) : 0.;
+  } break;
+  // discontinuous, sharp back half shape
+  case -1: {
+    q[4] = ((r <= rc) && (y<center[1])) ? (1.-r/rc) : 0.;
+  } break;
+  // attempt to define a finite thickness that will get resolved under grid refinement
+  case 2: {
+    q[4] = ((r <= rc)
+            && (y<center[1])) ? (1.-r/rc)*fmin(1.0,(center[1]-y)/1.25) : 0.;
+  } break;
+  }
   return 0;
 }
 
