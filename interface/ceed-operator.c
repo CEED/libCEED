@@ -322,6 +322,22 @@ int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
 }
 
 /**
+  @brief Get a boolean value indicating if the CeedOperator is composite
+
+  @param op                CeedOperator
+  @param[out] isComposite  Variable to store composite status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorGetCompositeStatus(CeedOperator op, bool *isComposite) {
+  *isComposite = op->composite;
+  return 0;
+}
+
+/**
   @brief Get the number of suboperators associated with a CeedOperator
 
   @param op              CeedOperator

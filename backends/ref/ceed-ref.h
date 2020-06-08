@@ -79,3 +79,5 @@ CEED_INTERN int CeedTensorContractCreate_Ref(CeedBasis basis,
 CEED_INTERN int CeedQFunctionCreate_Ref(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Ref(CeedOperator op);
+
+CEED_INTERN int CeedCompositeOperatorCreate_Ref(CeedOperator op);
