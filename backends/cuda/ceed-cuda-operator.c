@@ -310,7 +310,7 @@ static inline int CeedOperatorInputBasis_Cuda(CeedInt numelements,
                             impl->qvecsin[i]); CeedChk(ierr);
       break;
     case CEED_EVAL_WEIGHT:
-      break;  // No action
+      break; // No action
     case CEED_EVAL_DIV:
       break; // TODO: Not implemented
     case CEED_EVAL_CURL:
@@ -637,7 +637,7 @@ static int CeedOperatorAssembleLinearQFunction_Cuda(CeedOperator op,
                          NULL); CeedChk(ierr);
     }
   }
- 
+
   // Restore input arrays
   ierr = CeedOperatorRestoreInputs_Cuda(numinputfields, qfinputfields,
                                         opinputfields, true, impl);
