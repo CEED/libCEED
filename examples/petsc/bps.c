@@ -78,7 +78,7 @@ struct RunParams_ {
   MPI_Comm comm;
   PetscBool test_mode, read_mesh, userlnodes, setmemtyperequest,
             petschavecuda, write_solution;
-  char *filename, *ceedresource, *hostname;
+  char *filename, *hostname;
   PetscInt localnodes, degree, qextra, dim, ncompu, *melem;
   PetscInt ksp_max_it_clip[2];
   PetscMPIInt rankspernode;
@@ -90,16 +90,15 @@ struct RunParams_ {
 // -----------------------------------------------------------------------------
 // Main body of program, called in a loop for performance benchmarking purposes
 // -----------------------------------------------------------------------------
-
-static PetscErrorCode Run(RunParams rp) {
-  PetscInt ierr;
+static PetscErrorCode RunWithDM(RunParams rp, DM dm,
+                                const char *ceedresource) {
+  PetscErrorCode ierr;
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt xlsize, lsize, gsize;
   PetscScalar *r;
   Vec X, Xloc, rhs, rhsloc;
   Mat matO;
   KSP ksp;
-  DM  dm;
   UserO userO;
   Ceed ceed;
   CeedData ceeddata;
@@ -108,42 +107,8 @@ static PetscErrorCode Run(RunParams rp) {
   CeedVector rhsceed, target;
 
   PetscFunctionBeginUser;
-  // Setup DM
-  if (rp->read_mesh) {
-    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, rp->filename, PETSC_TRUE, &dm);
-    CHKERRQ(ierr);
-  } else {
-    if (rp->userlnodes) {
-      // Find a nicely composite number of elements no less than global nodes
-      PetscMPIInt size;
-      ierr = MPI_Comm_size(rp->comm, &size); CHKERRQ(ierr);
-      for (PetscInt gelem =
-             PetscMax(1, size * rp->localnodes / PetscPowInt(rp->degree, rp->dim));
-           ;
-           gelem++) {
-        Split3(gelem, rp->melem, true);
-        if (Max3(rp->melem) / Min3(rp->melem) <= 2) break;
-      }
-    }
-    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, rp->dim, PETSC_FALSE, rp->melem,
-                               NULL, NULL, NULL, PETSC_TRUE, &dm); CHKERRQ(ierr);
-  }
-
-  {
-    DM dmDist = NULL;
-    PetscPartitioner part;
-
-    ierr = DMPlexGetPartitioner(dm, &part); CHKERRQ(ierr);
-    ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-    ierr = DMPlexDistribute(dm, 0, NULL, &dmDist); CHKERRQ(ierr);
-    if (dmDist) {
-      ierr = DMDestroy(&dm); CHKERRQ(ierr);
-      dm  = dmDist;
-    }
-  }
-
   // Set up libCEED
-  CeedInit(rp->ceedresource, &ceed);
+  CeedInit(ceedresource, &ceed);
   CeedMemType memtypebackend;
   CeedGetPreferredMemType(ceed, &memtypebackend);
 
@@ -154,10 +119,6 @@ static PetscErrorCode Run(RunParams rp) {
     SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_SUP_SYS,
              "PETSc was not built with CUDA. "
              "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
-
-  // Create DM
-  ierr = SetupDMByDegree(dm, rp->degree, rp->ncompu, rp->bpchoice);
-  CHKERRQ(ierr);
 
   // Create vectors
   if (rp->memtyperequested == CEED_MEM_DEVICE) {
@@ -410,7 +371,6 @@ static PetscErrorCode Run(RunParams rp) {
   ierr = MatDestroy(&matO); CHKERRQ(ierr);
   ierr = PetscFree(userO); CHKERRQ(ierr);
   ierr = CeedDataDestroy(0, ceeddata); CHKERRQ(ierr);
-  ierr = DMDestroy(&dm); CHKERRQ(ierr);
 
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
   ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
@@ -419,6 +379,68 @@ static PetscErrorCode Run(RunParams rp) {
   CeedQFunctionDestroy(&qferror);
   CeedOperatorDestroy(&operror);
   CeedDestroy(&ceed);
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode Run(RunParams rp,
+                          PetscInt num_resources, char *const *ceedresources,
+                          PetscInt num_bpchoices, const bpType *bpchoices) {
+  PetscInt ierr;
+  DM  dm;
+
+  PetscFunctionBeginUser;
+  // Setup DM
+  if (rp->read_mesh) {
+    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, rp->filename, PETSC_TRUE, &dm);
+    CHKERRQ(ierr);
+  } else {
+    if (rp->userlnodes) {
+      // Find a nicely composite number of elements no less than global nodes
+      PetscMPIInt size;
+      ierr = MPI_Comm_size(rp->comm, &size); CHKERRQ(ierr);
+      for (PetscInt gelem =
+             PetscMax(1, size * rp->localnodes / PetscPowInt(rp->degree, rp->dim));
+           ;
+           gelem++) {
+        Split3(gelem, rp->melem, true);
+        if (Max3(rp->melem) / Min3(rp->melem) <= 2) break;
+      }
+    }
+    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, rp->dim, PETSC_FALSE, rp->melem,
+                               NULL, NULL, NULL, PETSC_TRUE, &dm); CHKERRQ(ierr);
+  }
+
+  {
+    DM dmDist = NULL;
+    PetscPartitioner part;
+
+    ierr = DMPlexGetPartitioner(dm, &part); CHKERRQ(ierr);
+    ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
+    ierr = DMPlexDistribute(dm, 0, NULL, &dmDist); CHKERRQ(ierr);
+    if (dmDist) {
+      ierr = DMDestroy(&dm); CHKERRQ(ierr);
+      dm  = dmDist;
+    }
+  }
+
+  for (PetscInt b = 0; b < num_bpchoices; b++) {
+    DM dm_deg;
+    PetscInt qextra = rp->qextra;
+    rp->bpchoice = bpchoices[b];
+    rp->ncompu = bpOptions[rp->bpchoice].ncompu;
+    rp->qextra = qextra < 0 ? bpOptions[rp->bpchoice].qextra : qextra;
+    ierr = DMClone(dm, &dm_deg); CHKERRQ(ierr);
+    // Create DM
+    ierr = SetupDMByDegree(dm_deg, rp->degree, rp->ncompu, rp->bpchoice);
+    CHKERRQ(ierr);
+    for (PetscInt r = 0; r < num_resources; r++) {
+      ierr = RunWithDM(rp, dm_deg, ceedresources[r]); CHKERRQ(ierr);
+    }
+    ierr = DMDestroy(&dm_deg); CHKERRQ(ierr);
+    rp->qextra = qextra;
+  }
+
+  ierr = DMDestroy(&dm); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -499,7 +521,9 @@ int main(int argc, char **argv) {
                               degree, &num_degrees, &degree_set); CHKERRQ(ierr);
   if (!degree_set)
     num_degrees = 1;
-  ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points", NULL,
+  rp->qextra = PETSC_DECIDE;
+  ierr = PetscOptionsInt("-qextra",
+                         "Number of extra quadrature points (-1 for auto)", NULL,
                          rp->qextra, &rp->qextra, NULL); CHKERRQ(ierr);
   {
     PetscBool set;
@@ -547,7 +571,8 @@ int main(int argc, char **argv) {
   }
   if (!degree_set) {
     PetscInt maxdegree = 8;
-    ierr = PetscOptionsInt("-max_degree", "Range of degrees [1, maxdegree] to run with",
+    ierr = PetscOptionsInt("-max_degree",
+                           "Range of degrees [1, maxdegree] to run with",
                            NULL, maxdegree, &maxdegree, NULL);
     CHKERRQ(ierr);
     for (PetscInt i = 0; i < maxdegree; i++)
@@ -576,21 +601,13 @@ int main(int argc, char **argv) {
   rp->melem = melem;
   rp->rankspernode = rankspernode;
 
-  for (PetscInt b = 0; b < num_bpchoices; b++) {
-    rp->bpchoice = bpchoices[b];
-    rp->ncompu = bpOptions[rp->bpchoice].ncompu;
-    rp->qextra = bpOptions[rp->bpchoice].qextra;
-    for (PetscInt d = 0; d < num_degrees; d++) {
-      PetscInt deg = degree[d];
-      for (PetscInt n = localnodes[0]; n < localnodes[1]; n *= 2) {
-        rp->degree = deg;
-        rp->localnodes = n;
-        for (PetscInt c = 0; c < num_ceedresources; c++) {
-          rp->ceedresource = ceedresources[c];
-          ierr = Run(rp);
-          CHKERRQ(ierr);
-        }
-      }
+  for (PetscInt d = 0; d < num_degrees; d++) {
+    PetscInt deg = degree[d];
+    for (PetscInt n = localnodes[0]; n < localnodes[1]; n *= 2) {
+      rp->degree = deg;
+      rp->localnodes = n;
+      ierr = Run(rp, num_ceedresources, ceedresources,
+                 num_bpchoices, bpchoices); CHKERRQ(ierr);
     }
   }
   // Clear memory
