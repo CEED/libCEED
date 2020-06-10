@@ -988,10 +988,13 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
                           NULL, WindTypes, (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
                           (PetscEnum *)&wind_type, NULL); CHKERRQ(ierr);
-  if (wind_type == ADVECTION_WIND_TRANSLATION) {
-    PetscInt n = problem->dim;
-    ierr = PetscOptionsRealArray("-problem_advection_wind_translation", "Constant wind vector",
-                                 NULL, wind, &n, NULL); CHKERRQ(ierr);
+  PetscInt n = problem->dim;
+  PetscBool userWind;
+  ierr = PetscOptionsRealArray("-problem_advection_wind_translation", "Constant wind vector",
+                               NULL, wind, &n, &userWind); CHKERRQ(ierr);
+  if (wind_type == ADVECTION_WIND_ROTATION && userWind) {
+    ierr = PetscPrintf(comm, "Warning! Use -problem_advection_wind_translation only with -problem_advection_wind translation\n");
+    CHKERRQ(ierr);
   }
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
@@ -1103,7 +1106,7 @@ int main(int argc, char **argv) {
                             NULL, resy, &resy, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-resz","Target resolution in z",
                             NULL, resz, &resz, NULL); CHKERRQ(ierr);
-  PetscInt n = problem->dim;
+  n = problem->dim;
   center[0] = 0.5 * lx;
   center[1] = 0.5 * ly;
   center[2] = 0.5 * lz;
