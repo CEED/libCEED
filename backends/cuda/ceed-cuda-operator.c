@@ -312,10 +312,7 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
     ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
     CeedChk(ierr);
     if (emode == CEED_EVAL_NONE) {
-      // If the E- and Q-Vector layouts are not the same, we will perform
-      // an element restriction during the output basis apply, and don't
-      // need to set these pointers.  Otherwise, set the output Q-Vector
-      // to use the E-Vector data directly.
+      // Set the output Q-Vector to use the E-Vector data directly.
       ierr = CeedVectorGetArray(impl->evecs[i + impl->numein], CEED_MEM_DEVICE,
                                 &impl->edata[i + numinputfields]); CeedChk(ierr);
       ierr = CeedVectorSetArray(impl->qvecsout[i], CEED_MEM_DEVICE,
