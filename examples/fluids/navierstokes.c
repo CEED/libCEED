@@ -934,8 +934,8 @@ int main(int argc, char **argv) {
   CeedScalar theta0      = 300.;     // K
   CeedScalar thetaC      = -15.;     // K
   CeedScalar P0          = 1.e5;     // Pa
-  CeedScalar P_left      = 1.5e5;    // Pa
-  CeedScalar rho_left    = 1.2;      // Kg/m^3
+  CeedScalar P_wind      = 1.5e5;    // Pa
+  CeedScalar rho_wind    = 1.2;      // Kg/m^3
   CeedScalar N           = 0.01;     // 1/s
   CeedScalar cv          = 717.;     // J/(kg K)
   CeedScalar cp          = 1004.;    // J/(kg K)
@@ -1056,10 +1056,10 @@ int main(int argc, char **argv) {
                             NULL, thetaC, &thetaC, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-P0", "Atmospheric pressure",
                             NULL, P0, &P0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-P_left", "Inflow pressure",
-                            NULL, P_left, &P_left, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-rho_left", "Inflow density",
-                            NULL, rho_left, &rho_left, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-P_wind", "Inflow wind pressure",
+                            NULL, P_wind, &P_wind, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-rho_wind", "Inflow wind density",
+                            NULL, rho_wind, &rho_wind, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-N", "Brunt-Vaisala frequency",
                             NULL, N, &N, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-cv", "Heat capacity at constant volume",
@@ -1132,6 +1132,13 @@ int main(int argc, char **argv) {
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
+  PetscBool userQextraSur;
+  ierr = PetscOptionsInt("-qextra_boundary", "Number of extra quadrature points on in/outflow faces",
+                         NULL, qextraSur, &qextraSur, &userQextraSur); CHKERRQ(ierr);
+  if ((wind_type == ADVECTION_WIND_ROTATION || problemChoice == NS_DENSITY_CURRENT) && userQextraSur) {
+    ierr = PetscPrintf(comm, "Warning! Use -qextra_boundary only with -problem_advection_wind translation\n");
+    CHKERRQ(ierr);
+  }
   ierr = PetscStrncpy(user->outputfolder, ".", 2); CHKERRQ(ierr);
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
@@ -1228,8 +1235,8 @@ int main(int argc, char **argv) {
   theta0 *= Kelvin;
   thetaC *= Kelvin;
   P0 *= Pascal;
-  P_left *= Pascal;
-  rho_left *= kgpercubicm;
+  P_wind *= Pascal;
+  rho_wind *= kgpercubicm;
   N *= (1./second);
   cv *= JperkgK;
   cp *= JperkgK;
@@ -1599,7 +1606,7 @@ int main(int argc, char **argv) {
   //--------------------------------------------------------------------------------------//
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
   CeedScalar ctxNS[8] = {lambda, mu, k, cv, cp, g, Rd};
-  CeedScalar ctxIn[5] = {cv, cp, Rd, P_left, rho_left};
+  CeedScalar ctxIn[5] = {cv, cp, Rd, P_wind, rho_wind};
   struct Advection2dContext_ ctxAdvection2d = {
     .CtauS = CtauS,
     .strong_form = strong_form,

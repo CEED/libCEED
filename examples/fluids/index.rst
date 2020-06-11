@@ -272,9 +272,48 @@ of total energy, is given by
    :label: eq-advection
 
 with :math:`\bm{u}` the vector velocity field. In this particular test case, a
-blob of total energy (defined by a characteristic radius :math:`r_c`) is transported by
-a uniform circular velocity field. We have solved :math:numref:`eq-advection`
-with zero energy density :math:`E`, and no-flux for :math:`\bm{u}`.
+blob of total energy (defined by a characteristic radius :math:`r_c`) is transported by two
+different wind types.
+
+- **Rotation**
+
+   In this case, a uniform circular velocity field transports the blob of total energy. We have
+   solved :math:numref:`eq-advection` with zero energy density :math:`E`, and no-flux for :math:`\bm{u}`.
+
+   This wind type can be selected using the option ``-problem_advection_wind rotation``.
+
+- **Translation**
+
+   In this case, a background wind with a constant velocity field, enters the domain and compels
+   the blob of total energy to leave the domain.
+
+   For the inflow boundary conditions, we have followed :cite:`kyncl2017riemann` which offers solution
+   to a modified Riemann problem by preference of pressure (:math:`P`). We have chosen the pressure on
+   the boundary to be equal to the one inside the domain, so the incoming nonlinear wave has no amplitude.
+   The boundary values are computed as following
+
+   .. math::
+
+      \begin{aligned}
+         P_* &= P_R\\
+         \rho_* &= \rho_L \left( \frac {P_*}{P_L} \right)^\frac{1}{\gamma}\\
+         T_* &= \frac{P_*}{R \, \rho_*}\\
+         u_* &= u_R + \frac{2}{\gamma - 1} \sqrt{\gamma \frac{P_R}{\rho_R} } \left[ 1
+         - \left( \frac{P_*}{P_R} \right)^\frac{\gamma - 1}{2 \gamma} \right]
+      \end{aligned}
+
+   where the subscripts :math:`*`, :math:`R`, and :math:`L` denote the values on the boundary, inside
+   the domain, and incoming wind, respectively. The computed variables :math:`P_*`, :math:`\rho_*`,
+   :math:`T_*`, and :math:`u_*` are applied weakly on the inflow boundaries.
+
+   For the outflow boundary conditions, we have
+   applied values from previous iteration, following :cite:`papanastasiou1992outflow` which extends the
+   validity of the weak form of the governing equations to the synthetic outflow instead of replacing them
+   with unknown essential or natural boundary conditions.
+
+   This wind type can be selected using the option ``-problem_advection_wind translation`` and the default
+   velocity field :math:`(1,0,0)` can be changed using the option ``-problem_advection_wind_translation``.
+
 The :math:`3D` version of this problem can be run with::
 
    ./navierstokes -problem advection
