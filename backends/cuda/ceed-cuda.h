@@ -107,13 +107,12 @@ typedef struct {
 
 typedef struct {
   CeedVector
-  *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
+  *evecs;   // E-vectors needed to apply operator (input followed by outputs)
   CeedScalar **edata;
-  CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
-  CeedVector *qvecsout;   /// Output Q-vectors needed to apply operator
+  CeedVector *qvecsin;    // Input Q-vectors needed to apply operator
+  CeedVector *qvecsout;   // Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
-  bool eandqdiffer; /// Indicate whether or not E- and Q-Vector layouts differ
 } CeedOperator_Cuda;
 
 typedef struct {
