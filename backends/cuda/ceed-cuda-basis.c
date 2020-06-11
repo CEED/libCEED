@@ -111,10 +111,10 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
   const CeedInt Q = transpose ? BASIS_P1D : BASIS_Q1D;
   const CeedInt stride0 = transpose ? 1 : BASIS_P1D;
   const CeedInt stride1 = transpose ? BASIS_P1D : 1;
-  const CeedInt u_stride = transpose ? BASIS_NQPT : BASIS_NCOMP * BASIS_ELEMSIZE;
-  const CeedInt v_stride = transpose ? BASIS_NCOMP * BASIS_ELEMSIZE : BASIS_NQPT;
-  const CeedInt u_comp_stride = transpose ? nelem * BASIS_NQPT : BASIS_ELEMSIZE;
-  const CeedInt v_comp_stride = transpose ? BASIS_ELEMSIZE : nelem * BASIS_NQPT;
+  const CeedInt u_stride = transpose ? BASIS_NQPT : BASIS_ELEMSIZE;
+  const CeedInt v_stride = transpose ? BASIS_ELEMSIZE : BASIS_NQPT;
+  const CeedInt u_comp_stride = nelem * (transpose ? BASIS_NQPT : BASIS_ELEMSIZE);
+  const CeedInt v_comp_stride = nelem * (transpose ? BASIS_ELEMSIZE : BASIS_NQPT);
   const CeedInt u_size = transpose ? BASIS_NQPT : BASIS_ELEMSIZE;
 
   // Apply basis element by element
@@ -254,10 +254,10 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
   const CeedInt Q = transpose ? BASIS_P1D : BASIS_Q1D;
   const CeedInt stride0 = transpose ? 1 : BASIS_P1D;
   const CeedInt stride1 = transpose ? BASIS_P1D : 1;
-  const CeedInt u_stride = transpose ? BASIS_NQPT : BASIS_NCOMP * BASIS_ELEMSIZE;
-  const CeedInt v_stride = transpose ? BASIS_NCOMP * BASIS_ELEMSIZE : BASIS_NQPT;
-  const CeedInt u_comp_stride = transpose ? nelem * BASIS_NQPT : BASIS_ELEMSIZE;
-  const CeedInt v_comp_stride = transpose ? BASIS_ELEMSIZE : nelem * BASIS_NQPT;
+  const CeedInt u_stride = transpose ? BASIS_NQPT : BASIS_ELEMSIZE;
+  const CeedInt v_stride = transpose ? BASIS_ELEMSIZE : BASIS_NQPT;
+  const CeedInt u_comp_stride = nelem * (transpose ? BASIS_NQPT : BASIS_ELEMSIZE);
+  const CeedInt v_comp_stride = nelem * (transpose ? BASIS_ELEMSIZE : BASIS_NQPT);
   const CeedInt u_dim_stride = transpose ? nelem * BASIS_NQPT * BASIS_NCOMP : 0;
   const CeedInt v_dim_stride = transpose ? 0 : nelem * BASIS_NQPT * BASIS_NCOMP;
 
@@ -400,7 +400,7 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
        elem += gridDim.x*blockDim.z) {
     for (int comp = 0; comp < BASIS_NCOMP; comp++) {
       if (!transpose) { // run with Q threads
-        U = d_U + elem*BASIS_NCOMP*P + comp*P;
+        U = d_U + elem*P + comp*nelem*P;
         V = 0.0;
         for (int i = 0; i < P; ++i)
           V += d_B[i + tid*P]*U[i];
@@ -412,7 +412,7 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
         for (int i = 0; i < Q; ++i)
           V += d_B[tid + i*P]*U[i];
 
-        d_V[elem*BASIS_NCOMP*P + comp*P + tid] = V;
+        d_V[elem*P + comp*nelem*P + tid] = V;
       }
     }
   }
@@ -435,7 +435,7 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
     for (int comp=0; comp<BASIS_NCOMP; comp++) {
       if (!transpose) { // run with Q threads
         double V[BASIS_DIM];
-        U = d_U + elem*BASIS_NCOMP*P + comp*P;
+        U = d_U + elem*P + comp*nelem*P;
         for (int dim = 0; dim < BASIS_DIM; dim++)
           V[dim] = 0.0;
 
@@ -454,7 +454,7 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
           for (int i = 0; i < Q; ++i)
             V += d_G[tid + i*P + dim*P*Q]*U[i];
         }
-        d_V[elem*BASIS_NCOMP*P + comp*P + tid] = V;
+        d_V[elem*P + comp*nelem*P + tid] = V;
       }
     }
   }

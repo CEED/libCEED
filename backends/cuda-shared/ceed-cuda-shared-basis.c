@@ -45,7 +45,7 @@ inline __device__ void readDofs1d(const int elem, const int tidx,
                                   const int nelem, const CeedScalar *d_U,
                                   CeedScalar *slice) {
   for (int i = 0; i < P1D; i++)
-    slice[i + tidz*Q1D] = d_U[i + comp*P1D + elem*BASIS_NCOMP*P1D];
+    slice[i + tidz*Q1D] = d_U[i + elem*P1D + comp*P1D*nelem];
   for (int i = P1D; i < Q1D; i++)
     slice[i + tidz*Q1D] = 0.0;
 }
@@ -58,7 +58,7 @@ inline __device__ void writeDofs1d(const int elem, const int tidx,
                                    const int nelem, const CeedScalar &r_V,
                                    CeedScalar *d_V) {
   if (tidx<P1D)
-    d_V[tidx + comp*P1D + elem*BASIS_NCOMP*P1D] = r_V;
+    d_V[tidx + elem*P1D + comp*P1D*nelem] = r_V;
 }
 
 //------------------------------------------------------------------------------
@@ -197,10 +197,8 @@ inline __device__ void readDofs2d(const int elem, const int tidx,
                                   const int tidy, const int comp,
                                   const int nelem, const CeedScalar *d_U,
                                   CeedScalar &U) {
-  U = (tidx<P1D
-       && tidy<P1D) ? d_U[tidx + tidy*P1D + comp*P1D*P1D +
-                          elem*BASIS_NCOMP*P1D*P1D] :
-      0.0;
+  U = (tidx<P1D && tidy<P1D) ?
+      d_U[tidx + tidy*P1D + elem*P1D*P1D + comp*P1D*P1D*nelem] : 0.0;
 }
 
 //------------------------------------------------------------------------------
@@ -211,7 +209,7 @@ inline __device__ void writeDofs2d(const int elem, const int tidx,
                                    const int nelem, const CeedScalar &r_V,
                                    CeedScalar *d_V) {
   if (tidx<P1D && tidy<P1D)
-    d_V[tidx + tidy*P1D + comp*P1D*P1D + elem*BASIS_NCOMP*P1D*P1D] = r_V;
+    d_V[tidx + tidy*P1D + elem*P1D*P1D + comp*P1D*P1D*nelem] = r_V;
 }
 
 //------------------------------------------------------------------------------
@@ -407,10 +405,24 @@ inline __device__ void readDofs3d(const int elem, const int tidx,
                                   CeedScalar *r_U) {
   for (int i = 0; i < P1D; i++)
     r_U[i] = (tidx < P1D && tidy < P1D) ?
-              d_U[tidx + tidy*P1D + i*P1D*P1D + comp*P1D*P1D*P1D +
-                                      elem*BASIS_NCOMP*P1D*P1D*P1D] : 0.0;
+              d_U[tidx + tidy*P1D + i*P1D*P1D + elem*P1D*P1D*P1D +
+                  comp*P1D*P1D*P1D*nelem] : 0.0;
   for (int i = P1D; i < Q1D; i++)
     r_U[i] = 0.0;
+}
+
+//------------------------------------------------------------------------------
+// Write DoFs
+//------------------------------------------------------------------------------
+inline __device__ void writeDofs3d(const int elem, const int tidx,
+                                   const int tidy, const int comp,
+                                   const int nelem, const CeedScalar *r_V,
+                                   CeedScalar *d_V) {
+  if (tidx < P1D && tidy < P1D) {
+    for (int i = 0; i < P1D; i++)
+      d_V[tidx + tidy*P1D + i*P1D*P1D + elem*P1D*P1D*P1D +
+          comp*P1D*P1D*P1D*nelem] = r_V[i];
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -423,20 +435,6 @@ inline __device__ void readQuads3d(const int elem, const int tidx,
   for (int i = 0; i < Q1D; i++)
     r_U[i] = d_U[tidx + tidy*Q1D + i*Q1D*Q1D + elem*Q1D*Q1D*Q1D +
                  comp*Q1D*Q1D*Q1D*nelem + dim*BASIS_NCOMP*nelem*Q1D*Q1D*Q1D];
-}
-
-//------------------------------------------------------------------------------
-// Write DoFs
-//------------------------------------------------------------------------------
-inline __device__ void writeDofs3d(const int elem, const int tidx,
-                                   const int tidy, const int comp,
-                                   const int nelem, const CeedScalar *r_V,
-                                   CeedScalar *d_V) {
-  if (tidx < P1D && tidy < P1D) {
-    for (int i = 0; i < P1D; i++)
-      d_V[tidx + tidy*P1D + i*P1D*P1D + comp*P1D*P1D*P1D +
-          elem*BASIS_NCOMP*P1D*P1D*P1D] = r_V[i];
-  }
 }
 
 //------------------------------------------------------------------------------

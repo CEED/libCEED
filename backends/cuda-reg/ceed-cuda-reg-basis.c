@@ -31,12 +31,14 @@ typedef CeedScalar real;
 //------------------------------------------------------------------------------
 // Read non interleaved dofs
 //------------------------------------------------------------------------------
+/*
 inline __device__ void readDofs(const int bid, const int tid, const int comp,
                                 const int size, const int nelem,
                                 const CeedScalar *d_U, real *r_U) {
   for (int i = 0; i < size; i++)
     r_U[i] = d_U[i + comp*size + tid*BASIS_NCOMP*size + bid*32*BASIS_NCOMP*size];
 }
+*/
 
 //------------------------------------------------------------------------------
 // Read interleaved quads
@@ -52,12 +54,14 @@ inline __device__ void readQuads(const int bid, const int tid, const int comp,
 //------------------------------------------------------------------------------
 // Write non interleaved dofs
 //------------------------------------------------------------------------------
+/*
 inline __device__ void writeDofs(const int bid, const int tid, const int comp,
                                  const int size, const int nelem,
                                  const CeedScalar *r_V, real *d_V) {
   for (int i = 0; i < size; i++)
     d_V[i + comp*size + tid*BASIS_NCOMP*size + bid*32*BASIS_NCOMP*size] = r_V[i];
 }
+*/
 
 //------------------------------------------------------------------------------
 // Write interleaved quads
@@ -123,7 +127,7 @@ inline __device__ void interp1d(const CeedInt nelem, const int transpose,
     for(int comp = 0; comp < BASIS_NCOMP; comp++) {
       if (!transpose) {
         const int sizeU = P1D;
-        readDofs(bid, tid, comp, sizeU, nelem, d_U, r_V);
+        readQuads(bid, tid, comp, 0, sizeU, nelem, d_U, r_V);
         Contract1d(r_V, c_B, P1D, P1D, Q1D, r_t);
         const int sizeV = Q1D;
         writeQuads(bid, tid, comp, 0, sizeV, nelem, r_t, d_V);
@@ -132,7 +136,7 @@ inline __device__ void interp1d(const CeedInt nelem, const int transpose,
         readQuads(bid, tid, comp, 0, sizeU, nelem, d_U, r_V);
         ContractTranspose1d(r_V, c_B, Q1D, P1D, Q1D, r_t);
         const int sizeV = P1D;
-        writeDofs(bid, tid, comp, sizeV, nelem, r_t, d_V);
+        writeQuads(bid, tid, comp, 0, sizeV, nelem, r_t, d_V);
       }
     }
   }
@@ -158,7 +162,7 @@ inline __device__ void grad1d(const CeedInt nelem, const int transpose,
       if (!transpose) {
         const int sizeU = P1D;
         const int sizeV = Q1D;
-        readDofs(bid, tid, comp, sizeU, nelem, d_U, r_U);
+        readQuads(bid, tid, comp, 0, sizeU, nelem, d_U, r_U);
         Contract1d(r_U, c_G, P1D, P1D, Q1D, r_V);
         dim = 0;
         writeQuads(bid, tid, comp, dim, sizeV, nelem, r_V, d_V);
@@ -168,7 +172,7 @@ inline __device__ void grad1d(const CeedInt nelem, const int transpose,
         dim = 0;
         readQuads(bid, tid, comp, dim, sizeU, nelem, d_U, r_U);
         ContractTranspose1d(r_U, c_G, Q1D, P1D, Q1D, r_V);
-        writeDofs(bid, tid, comp, sizeV, nelem, r_V, d_V);
+        writeQuads(bid, tid, comp, 0, sizeV, nelem, r_V, d_V);
       }
     }
   }
@@ -238,7 +242,7 @@ inline __device__ void interp2d(const CeedInt nelem, const int transpose,
     for(int comp = 0; comp<  BASIS_NCOMP; comp++) {
       if (!transpose) {
         const int sizeU = P1D*P1D;
-        readDofs(bid, tid, comp, sizeU, nelem, d_U, r_V);
+        readQuads(bid, tid, comp, 0, sizeU, nelem, d_U, r_V);
         Contract2d(r_V, c_B, P1D, P1D, P1D, Q1D, r_t);
         Contract2d(r_t, c_B, P1D, Q1D, P1D, Q1D, r_V);
         const int sizeV = Q1D*Q1D;
@@ -249,7 +253,7 @@ inline __device__ void interp2d(const CeedInt nelem, const int transpose,
         ContractTranspose2d(r_V, c_B, Q1D, Q1D, P1D, Q1D, r_t);
         ContractTranspose2d(r_t, c_B, Q1D, P1D, P1D, Q1D, r_V);
         const int sizeV = P1D*P1D;
-        writeDofs(bid, tid, comp, sizeV, nelem, r_V, d_V);
+        writeQuads(bid, tid, comp, 0, sizeV, nelem, r_V, d_V);
       }
     }
   }
@@ -276,7 +280,7 @@ inline __device__ void grad2d(const CeedInt nelem, const int transpose,
       if (!transpose) {
         const int sizeU = P1D*P1D;
         const int sizeV = Q1D*Q1D;
-        readDofs(bid, tid, comp, sizeU, nelem, d_U, r_U);
+        readQuads(bid, tid, comp, 0, sizeU, nelem, d_U, r_U);
         Contract2d(r_U, c_G, P1D, P1D, P1D, Q1D, r_t);
         Contract2d(r_t, c_B, P1D, Q1D, P1D, Q1D, r_V);
         dim = 0;
@@ -297,7 +301,7 @@ inline __device__ void grad2d(const CeedInt nelem, const int transpose,
         ContractTranspose2d(r_U, c_B, Q1D, Q1D, P1D, Q1D, r_t);
         ContractTranspose2d(r_t, c_G, Q1D, P1D, P1D, Q1D, r_U);
         add(sizeV, r_V, r_U);
-        writeDofs(bid, tid, comp, sizeV, nelem, r_V, d_V);
+        writeQuads(bid, tid, comp, 0, sizeV, nelem, r_V, d_V);
       }
     }
   }
@@ -371,7 +375,7 @@ inline __device__ void interp3d(const CeedInt nelem, const int transpose,
       if (!transpose) {
         const int sizeU = P1D*P1D*P1D;
         const int sizeV = Q1D*Q1D*Q1D;
-        readDofs(bid, tid, comp, sizeU, nelem, d_U, r_V);
+        readQuads(bid, tid, comp, 0, sizeU, nelem, d_U, r_V);
         Contract3d(r_V, c_B, P1D, P1D, P1D, P1D, Q1D, r_t);
         Contract3d(r_t, c_B, P1D, P1D, Q1D, P1D, Q1D, r_V);
         Contract3d(r_V, c_B, P1D, Q1D, Q1D, P1D, Q1D, r_t);
@@ -383,7 +387,7 @@ inline __device__ void interp3d(const CeedInt nelem, const int transpose,
         ContractTranspose3d(r_V, c_B, Q1D, Q1D, Q1D, P1D, Q1D, r_t);
         ContractTranspose3d(r_t, c_B, Q1D, Q1D, P1D, P1D, Q1D, r_V);
         ContractTranspose3d(r_V, c_B, Q1D, P1D, P1D, P1D, Q1D, r_t);
-        writeDofs(bid, tid, comp, sizeV, nelem, r_t, d_V);
+        writeQuads(bid, tid, comp, 0, sizeV, nelem, r_t, d_V);
       }
     }
   }
@@ -410,7 +414,7 @@ inline __device__ void grad3d(const CeedInt nelem, const int transpose,
       if (!transpose) {
         const int sizeU = P1D*P1D*P1D;
         const int sizeV = Q1D*Q1D*Q1D;
-        readDofs(bid, tid, comp, sizeU, nelem, d_U, r_U);
+        readQuads(bid, tid, comp, 0, sizeU, nelem, d_U, r_U);
         Contract3d(r_U, c_G, P1D, P1D, P1D, P1D, Q1D, r_V);
         Contract3d(r_V, c_B, P1D, P1D, Q1D, P1D, Q1D, r_t);
         Contract3d(r_t, c_B, P1D, Q1D, Q1D, P1D, Q1D, r_V);
@@ -446,7 +450,7 @@ inline __device__ void grad3d(const CeedInt nelem, const int transpose,
         ContractTranspose3d(r_t, c_B, Q1D, Q1D, P1D, P1D, Q1D, r_U);
         ContractTranspose3d(r_U, c_G, Q1D, P1D, P1D, P1D, Q1D, r_t);
         add(sizeV, r_V, r_t);
-        writeDofs(bid, tid, comp, sizeV, nelem, r_V, d_V);
+        writeQuads(bid, tid, comp, 0, sizeV, nelem, r_V, d_V);
       }
     }
   }
