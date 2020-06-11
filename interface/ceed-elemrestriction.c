@@ -186,6 +186,55 @@ int CeedElemRestrictionGetBackendStridesStatus(CeedElemRestriction rstr,
 }
 
 /**
+
+  @brief Get the E-vector layout of a CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] layout      Variable to store layout array,
+                            stored as [nodes, components, elements].
+                            The data for node i, component j, element k in the
+                            E-vector is given by
+                            i*strides[0] + j*strides[1] + k*strides[2]
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetELayout(CeedElemRestriction rstr,
+                                  CeedInt (*layout)[3]) {
+  if (!rstr->layout[0])
+    // LCOV_EXCL_START
+    return CeedError(rstr->ceed, 1, "ElemRestriction has no layout data");
+  // LCOV_EXCL_STOP
+
+  for (int i = 0; i<3; i++)
+    (*layout)[i] = rstr->layout[i];
+  return 0;
+}
+
+/**
+
+  @brief Set the E-vector layout of a CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param layout           Variable to containing layout array,
+                            stored as [nodes, components, elements].
+                            The data for node i, component j, element k in the
+                            E-vector is given by
+                            i*strides[0] + j*strides[1] + k*strides[2]
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionSetELayout(CeedElemRestriction rstr,
+                                  CeedInt layout[3]) {
+  for (int i = 0; i<3; i++)
+    rstr->layout[i] = layout[i];
+  return 0;
+}
+
+/**
   @brief Get the backend data of a CeedElemRestriction
 
   @param rstr             CeedElemRestriction

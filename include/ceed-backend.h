@@ -95,6 +95,10 @@ CEED_EXTERN int CeedElemRestrictionGetStridedStatus(CeedElemRestriction rstr,
     bool *status);
 CEED_EXTERN int CeedElemRestrictionGetBackendStridesStatus(
   CeedElemRestriction rstr, bool *status);
+CEED_EXTERN int CeedElemRestrictionGetELayout(CeedElemRestriction rstr,
+    CeedInt (*layout)[3]);
+CEED_EXTERN int CeedElemRestrictionSetELayout(CeedElemRestriction rstr,
+    CeedInt layout[3]);
 CEED_EXTERN int CeedElemRestrictionGetData(CeedElemRestriction rstr,
     void **data);
 CEED_EXTERN int CeedElemRestrictionSetData(CeedElemRestriction rstr,

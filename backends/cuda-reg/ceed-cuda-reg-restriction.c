@@ -354,8 +354,9 @@ int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype, CeedCopyMode cmode,
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
   CeedElemRestriction_Cuda_reg *impl;
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  CeedInt nelem, elemsize;
+  CeedInt nelem, ncomp, elemsize;
   ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
   CeedInt size = nelem * elemsize;
   CeedInt strides[3] = {1, size, elemsize};
@@ -383,6 +384,8 @@ int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype, CeedCopyMode cmode,
   impl->d_toffsets      = NULL;
   impl->nnodes = size;
   ierr = CeedElemRestrictionSetData(r, (void *)&impl); CeedChk(ierr);
+  CeedInt layout[3] = {1, elemsize, elemsize*ncomp};
+  ierr = CeedElemRestrictionSetELayout(r, layout); CeedChk(ierr);
 
   // Set up device indices/offset arrays
   if (mtype == CEED_MEM_HOST) {
@@ -433,8 +436,7 @@ int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype, CeedCopyMode cmode,
   }
 
   // Compile CUDA kernels
-  CeedInt ncomp, nnodes = impl->nnodes;
-  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
+  CeedInt nnodes = impl->nnodes;
   ierr = CeedCompileCuda(ceed, restrictionkernels, &impl->module, 7,
                          "RESTRICTION_ELEMSIZE", elemsize,
                          "RESTRICTION_NCOMP", ncomp,

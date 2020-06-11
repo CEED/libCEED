@@ -324,6 +324,8 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
 
   // Register backend functions
   ierr = CeedElemRestrictionSetData(r, (void *)&impl); CeedChk(ierr);
+  CeedInt layout[3] = {1, elemsize, elemsize*ncomp};
+  ierr = CeedElemRestrictionSetELayout(r, layout); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",
                                 CeedElemRestrictionApply_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyBlock",

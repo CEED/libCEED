@@ -2,6 +2,7 @@
 /// Test creation, use, and destruction of a strided element restriction
 /// \test Test creation, use, and destruction of a strided element restriction
 #include <ceed.h>
+#include <ceed-backend.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;
@@ -10,6 +11,7 @@ int main(int argc, char **argv) {
   CeedScalar a[ne*2];
   const CeedScalar *yy;
   CeedInt strides[3] = {1, 2, 2};
+  CeedInt layout[3];
   CeedElemRestriction r;
 
   CeedInit(argv[1], &ceed);
@@ -25,11 +27,15 @@ int main(int argc, char **argv) {
   CeedElemRestrictionApply(r, CEED_NOTRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);
 
   CeedVectorGetArrayRead(y, CEED_MEM_HOST, &yy);
-  for (CeedInt i=0; i<ne*2; i++)
-    if (yy[i] != 10+i)
-      // LCOV_EXCL_START
-      printf("Error in restricted array y[%d] = %f",
-             i, (double)yy[i]);
+  CeedElemRestrictionGetELayout(r, &layout);
+  for (CeedInt i=0; i<2; i++)      // Node
+    for (CeedInt j=0; j<1; j++)    // Component
+      for (CeedInt k=0; k<ne; k++) // Element
+        if (yy[i*layout[0] + j*layout[1] + k*layout[2]] !=
+            a[i*strides[0] + j*strides[1] + k*strides[2]])
+          // LCOV_EXCL_START
+          printf("Error in restricted array y[%d][%d][%d] = %f",
+                 i, j, k, (double)yy[i*strides[0] + j*strides[1] + j*strides[2]]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(y, &yy);
 

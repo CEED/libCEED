@@ -171,15 +171,6 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to skip t204-7 for MAGMA (different layout used for E-vectors)
-    if [[ "$backend" = *"magma" ]] \
-            && [[ "$1" = "t20"[4-7]* ]] ; then
-        printf "ok $i0 # SKIP - backend uses different E-vector layout $1 $backend\n"
-        printf "ok $i1 # SKIP - backend uses different E-vector layout $1 $backend stdout\n"
-        printf "ok $i2 # SKIP - backend uses different E-vector layout $1 $backend stderr\n"
-        continue
-    fi
-
     # grep to skip t506 for MAGMA, range of basis kernels limited for now
     if [[ "$backend" = *"magma" ]] \
             && [[ "$1" = "t506"* ]] ; then
