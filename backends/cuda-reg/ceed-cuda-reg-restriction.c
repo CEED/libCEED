@@ -62,30 +62,6 @@ extern "C" __global__ void noTrOffset(const CeedInt nelem,
 }
 
 //------------------------------------------------------------------------------
-// L-vector -> E-vector, interleaved
-//------------------------------------------------------------------------------
-/*
-extern "C" __global__ void noTrInterleaved(const CeedInt nelem,
-    const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
-    CeedScalar *__restrict__ v) {
-  const int tid = threadIdx.x;
-  const int bid = blockIdx.x;
-  const CeedInt esize = RESTRICTION_ELEMSIZE * nelem;
-
-  for (CeedInt elem = blockIdx.x * blockDim.x + threadIdx.x;
-      elem < nelem;
-      elem += blockDim.x * gridDim.x) {
-    for (CeedInt node = 0; node < RESTRICTION_ELEMSIZE; ++node) {
-      const CeedInt ind = indices[node + elem*RESTRICTION_ELEMSIZE];
-      for (CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp)
-        v[tid + node*32 + bid*32*RESTRICTION_ELEMSIZE + comp*esize] = 
-          u[ind + comp*RESTRICTION_COMPSTRIDE]; // TODO: make sure at least 32 elements
-    }
-  }
-}
-*/
-
-//------------------------------------------------------------------------------
 // E-vector -> L-vector, strided
 //------------------------------------------------------------------------------
 extern "C" __global__ void trStrided(const CeedInt nelem,
