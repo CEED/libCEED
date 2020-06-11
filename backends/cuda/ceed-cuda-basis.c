@@ -27,6 +27,7 @@ static const char *basiskernels = QUOTE(
 //------------------------------------------------------------------------------
 // Interp interleaved
 //------------------------------------------------------------------------------
+/*
 extern "C" __global__ void interpInterleaved(const CeedInt nelem,
                                              const int transpose,
                                              const CeedScalar *__restrict__ interp1d,
@@ -87,6 +88,7 @@ extern "C" __global__ void interpInterleaved(const CeedInt nelem,
     }
   }
 }
+*/
 
 //------------------------------------------------------------------------------
 // Interp
@@ -155,6 +157,7 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
 //------------------------------------------------------------------------------
 // Grad interleaved
 //------------------------------------------------------------------------------
+/*
 extern "C" __global__ void gradInterleaved(const CeedInt nelem,
     const int transpose,
     const CeedScalar *__restrict__ interp1d,
@@ -225,6 +228,7 @@ extern "C" __global__ void gradInterleaved(const CeedInt nelem,
     }
   }
 }
+*/
 
 //------------------------------------------------------------------------------
 // Grad

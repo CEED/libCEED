@@ -51,11 +51,11 @@ extern "C" __global__ void noTrStrided(const CeedInt nelem,
 
   for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
        i += blockDim.x * gridDim.x) {
-    const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
-    const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
-    const CeedInt s = i % RESTRICTION_ELEMSIZE;
+    const CeedInt e = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NELEM;
+    const CeedInt c = i / (RESTRICTION_ELEMSIZE * RESTRICTION_NELEM);
+    const CeedInt n = i % RESTRICTION_ELEMSIZE;
 
-    v[i] = u[s*STRIDE_NODES + d*STRIDE_COMP + e*STRIDE_ELEM];
+    v[i] = u[n*STRIDE_NODES + c*STRIDE_COMP + e*STRIDE_ELEM];
   }
 }
 
@@ -70,11 +70,11 @@ extern "C" __global__ void noTrOffset(const CeedInt nelem,
 
   for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
        i += blockDim.x * gridDim.x) {
-    const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
-    const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
-    const CeedInt s = i % RESTRICTION_ELEMSIZE;
+    const CeedInt e = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NELEM;
+    const CeedInt c = i / (RESTRICTION_ELEMSIZE * RESTRICTION_NELEM);
+    const CeedInt n = i % RESTRICTION_ELEMSIZE;
 
-    v[i] = u[indices[s + RESTRICTION_ELEMSIZE * e] + RESTRICTION_COMPSTRIDE * d];
+    v[i] = u[indices[n + e*RESTRICTION_ELEMSIZE] + c*RESTRICTION_COMPSTRIDE];
   }
 }
 
@@ -89,11 +89,11 @@ extern "C" __global__ void trStrided(const CeedInt nelem,
 
   for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
        i += blockDim.x * gridDim.x) {
-    const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
-    const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
-    const CeedInt s = i % RESTRICTION_ELEMSIZE;
+    const CeedInt e = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NELEM;
+    const CeedInt c = i / (RESTRICTION_ELEMSIZE * RESTRICTION_NELEM);
+    const CeedInt n = i % RESTRICTION_ELEMSIZE;
 
-    v[s*STRIDE_NODES + d*STRIDE_COMP + e*STRIDE_ELEM] += u[i];
+    v[n*STRIDE_NODES + c*STRIDE_COMP + e*STRIDE_ELEM] += u[i];
   }
 }
 
@@ -108,12 +108,12 @@ extern "C" __global__ void trOffset(const CeedInt nelem,
 
   for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
        i += blockDim.x * gridDim.x) {
-    const CeedInt e = i / (RESTRICTION_NCOMP * RESTRICTION_ELEMSIZE);
-    const CeedInt d = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NCOMP;
-    const CeedInt s = i % RESTRICTION_ELEMSIZE;
+    const CeedInt e = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NELEM;
+    const CeedInt c = i / (RESTRICTION_ELEMSIZE * RESTRICTION_NELEM);
+    const CeedInt n = i % RESTRICTION_ELEMSIZE;
 
-    atomicAdd(v + (indices[s + RESTRICTION_ELEMSIZE * e] +
-                   RESTRICTION_COMPSTRIDE * d), u[i]);
+    atomicAdd(v + (indices[n + e*RESTRICTION_ELEMSIZE] +
+                   c*RESTRICTION_COMPSTRIDE), u[i]);
   }
 }
 
@@ -306,8 +306,9 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
   // Compile CUDA kernels
   CeedInt ncomp;
   ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
-  ierr = CeedCompileCuda(ceed, restrictionkernels, &impl->module, 6,
+  ierr = CeedCompileCuda(ceed, restrictionkernels, &impl->module, 7,
                          "RESTRICTION_ELEMSIZE", elemsize,
+                         "RESTRICTION_NELEM", nelem,
                          "RESTRICTION_NCOMP", ncomp,
                          "RESTRICTION_COMPSTRIDE", compstride,
                          "STRIDE_NODES", strides[0],
@@ -324,7 +325,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
 
   // Register backend functions
   ierr = CeedElemRestrictionSetData(r, (void *)&impl); CeedChk(ierr);
-  CeedInt layout[3] = {1, elemsize, elemsize*ncomp};
+  CeedInt layout[3] = {1, elemsize*nelem, elemsize};
   ierr = CeedElemRestrictionSetELayout(r, layout); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",
                                 CeedElemRestrictionApply_Cuda); CeedChk(ierr);

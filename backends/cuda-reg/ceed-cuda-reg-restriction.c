@@ -34,8 +34,8 @@ extern "C" __global__ void noTrStrided(const CeedInt nelem,
     const CeedInt elem = node / RESTRICTION_ELEMSIZE;
 
     for (CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp)
-      v[locNode + comp*RESTRICTION_ELEMSIZE +
-        elem*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP] =
+      v[locNode + comp*RESTRICTION_ELEMSIZE*RESTRICTION_NELEM +
+        elem*RESTRICTION_ELEMSIZE] =
           u[locNode*STRIDE_NODES + comp*STRIDE_COMP + elem*STRIDE_ELEM];
   }
 }
@@ -55,8 +55,8 @@ extern "C" __global__ void noTrOffset(const CeedInt nelem,
     const CeedInt elem = node / RESTRICTION_ELEMSIZE;
 
     for (CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp)
-      v[locNode + comp*RESTRICTION_ELEMSIZE +
-        elem*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP] =
+      v[locNode + comp*RESTRICTION_ELEMSIZE*RESTRICTION_NELEM +
+        elem*RESTRICTION_ELEMSIZE] =
           u[ind + comp*RESTRICTION_COMPSTRIDE];
   }
 }
@@ -64,6 +64,7 @@ extern "C" __global__ void noTrOffset(const CeedInt nelem,
 //------------------------------------------------------------------------------
 // L-vector -> E-vector, interleaved
 //------------------------------------------------------------------------------
+/*
 extern "C" __global__ void noTrInterleaved(const CeedInt nelem,
     const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
     CeedScalar *__restrict__ v) {
@@ -82,6 +83,7 @@ extern "C" __global__ void noTrInterleaved(const CeedInt nelem,
     }
   }
 }
+*/
 
 //------------------------------------------------------------------------------
 // E-vector -> L-vector, strided
@@ -96,8 +98,8 @@ extern "C" __global__ void trStrided(const CeedInt nelem,
 
     for (CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp)
       v[locNode*STRIDE_NODES + comp*STRIDE_COMP + elem*STRIDE_ELEM] +=
-          u[locNode + comp*RESTRICTION_ELEMSIZE +
-            elem*RESTRICTION_ELEMSIZE*RESTRICTION_NCOMP];
+          u[locNode + comp*RESTRICTION_ELEMSIZE*RESTRICTION_NELEM +
+            elem*RESTRICTION_ELEMSIZE];
   }
 }
 
@@ -127,8 +129,8 @@ extern "C" __global__ void trOffset(const CeedInt *__restrict__ lvec_indices,
       CeedInt elem = tind / RESTRICTION_ELEMSIZE;
 
       for (CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp)
-        value[comp] += u[locNode + comp*RESTRICTION_ELEMSIZE +
-                         elem*RESTRICTION_NCOMP*RESTRICTION_ELEMSIZE];
+        value[comp] += u[locNode + comp*RESTRICTION_ELEMSIZE*RESTRICTION_NELEM +
+                         elem*RESTRICTION_ELEMSIZE];
     }
 
     for (CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp)
@@ -384,7 +386,7 @@ int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype, CeedCopyMode cmode,
   impl->d_toffsets      = NULL;
   impl->nnodes = size;
   ierr = CeedElemRestrictionSetData(r, (void *)&impl); CeedChk(ierr);
-  CeedInt layout[3] = {1, elemsize, elemsize*ncomp};
+  CeedInt layout[3] = {1, elemsize*nelem, elemsize};
   ierr = CeedElemRestrictionSetELayout(r, layout); CeedChk(ierr);
 
   // Set up device indices/offset arrays
@@ -437,8 +439,9 @@ int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype, CeedCopyMode cmode,
 
   // Compile CUDA kernels
   CeedInt nnodes = impl->nnodes;
-  ierr = CeedCompileCuda(ceed, restrictionkernels, &impl->module, 7,
+  ierr = CeedCompileCuda(ceed, restrictionkernels, &impl->module, 8,
                          "RESTRICTION_ELEMSIZE", elemsize,
+                         "RESTRICTION_NELEM", nelem,
                          "RESTRICTION_NCOMP", ncomp,
                          "RESTRICTION_NNODES", nnodes,
                          "RESTRICTION_COMPSTRIDE", compstride,
