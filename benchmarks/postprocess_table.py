@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
 # Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
 # All Rights reserved. See files LICENSE and NOTICE for details.
@@ -15,12 +16,13 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 
-##### Load the data
+# Load the data
 import pandas as pd
-exec(compile(open('postprocess-base.py').read(), 'postprocess-base.py', 'exec'))
+from postprocess_base import read_logs
 
+runs = read_logs()
 
-##### Data output
+# Data output
 print('Writing data to \'benchmark_data.csv\'...')
 runs.to_csv('benchmark_data.csv', sep='\t', index=False)
 print('Writing complete')

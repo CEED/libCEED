@@ -559,7 +559,7 @@ style-c :
 AUTOPEP8 = autopep8
 style-py : AUTOPEP8_ARGS = --in-place --aggressive
 style-py :
-	@$(AUTOPEP8) $(AUTOPEP8_ARGS) $(wildcard *.py python**/*.py tests/python**/*.py examples**/*.py doc/sphinx/source**/*.py)
+	@$(AUTOPEP8) $(AUTOPEP8_ARGS) $(wildcard *.py python**/*.py tests/python**/*.py examples**/*.py doc/sphinx/source**/*.py benchmarks/*.py)
 
 style : style-c style-py
 

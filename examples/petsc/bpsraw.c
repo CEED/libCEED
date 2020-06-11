@@ -565,8 +565,8 @@ int main(int argc, char **argv) {
                        "    libCEED Backend MemType            : %s\n"
                        "    libCEED User Requested MemType     : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (p)       : %d\n"
-                       "    Number of 1D Quadrature Points (q) : %d\n"
+                       "    Number of 1D Basis Nodes (P)       : %d\n"
+                       "    Number of 1D Quadrature Points (Q) : %d\n"
                        "    Global nodes                       : %D\n"
                        "    Process Decomposition              : %D %D %D\n"
                        "    Local Elements                     : %D = %D %D %D\n"
@@ -872,23 +872,21 @@ int main(int argc, char **argv) {
                             PETSC_DEFAULT); CHKERRQ(ierr);
   }
   ierr = KSPSetOperators(ksp, mat, mat); CHKERRQ(ierr);
-  // First run, if benchmarking
-  if (benchmark_mode) {
-    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 1);
+  // First run's performance log is not considered for benchmarking purposes
+  ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 1);
+  CHKERRQ(ierr);
+  my_rt_start = MPI_Wtime();
+  ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
+  my_rt = MPI_Wtime() - my_rt_start;
+  ierr = MPI_Allreduce(MPI_IN_PLACE, &my_rt, 1, MPI_DOUBLE, MPI_MIN, comm);
+  CHKERRQ(ierr);
+  // Set maxits based on first iteration timing
+  if (my_rt > 0.02) {
+    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 5);
     CHKERRQ(ierr);
-    my_rt_start = MPI_Wtime();
-    ierr = KSPSolve(ksp, rhs, X); CHKERRQ(ierr);
-    my_rt = MPI_Wtime() - my_rt_start;
-    ierr = MPI_Allreduce(MPI_IN_PLACE, &my_rt, 1, MPI_DOUBLE, MPI_MIN, comm);
+  } else {
+    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 20);
     CHKERRQ(ierr);
-    // Set maxits based on first iteration timing
-    if (my_rt > 0.02) {
-      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 5);
-      CHKERRQ(ierr);
-    } else {
-      ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 20);
-      CHKERRQ(ierr);
-    }
   }
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
 
@@ -947,7 +945,7 @@ int main(int argc, char **argv) {
                            (double)maxerror, rt_max, rt_min); CHKERRQ(ierr);
       }
     }
-    if (benchmark_mode && (!test_mode)) {
+    if (!test_mode) {
       ierr = PetscPrintf(comm,
                          "    DoFs/Sec in CG                     : %g (%g) million\n",
                          1e-6*gsize*its/rt_max,
