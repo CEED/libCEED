@@ -18,49 +18,54 @@ and run with
 
 Available runtime options are:
 
-|  Option                  | Meaning                                                                                         |
-| :----------------------- | :-----------------------------------------------------------------------------------------------|
-| `-ceed`                  | CEED resource specifier                                                                         |
-| `-test`                  | Run in test mode                                                                                |
-| `-problem`               | Problem to solve (`advection`, `advection2d`, or `density_current`)                             |
-| `-stab`                  | Stabilization method                                                                            |
-| `-implicit`              | Use implicit time integartor formulation                                                        |
-| `-bc_wall`               | Use wall boundary conditions on this list of faces                                              |
-| `-bc_slip_x`             | Use slip boundary conditions, for the x component, on this list of faces                        |
-| `-bc_slip_y`             | Use slip boundary conditions, for the y component, on this list of faces                        |
-| `-bc_slip_z`             | Use slip boundary conditions, for the z component, on this list of faces                        |
-| `-viz_refine`            | Use regular refinement for visualization                                                        |
-| `-degree`                | Polynomial degree of tensor product basis (must be >= 1)                                        |
-| `-units_meter`           | 1 meter in scaled length units                                                                  |
-| `-units_second`          | 1 second in scaled time units                                                                   |
-| `-units_kilogram`        | 1 kilogram in scaled mass units                                                                 |
-| `-units_Kelvin`          | 1 Kelvin in scaled temperature units                                                            |
-| `-theta0`                | Reference potential temperature                                                                 |
-| `-thetaC`                | Perturbation of potential temperature                                                           |
-| `-P0`                    | Atmospheric pressure                                                                            |
-| `-N`                     | Brunt-Vaisala frequency                                                                         |
-| `-cv`                    | Heat capacity at constant volume                                                                |
-| `-cp`                    | Heat capacity at constant pressure                                                              |
-| `-g`                     | Gravitational acceleration                                                                      |
-| `-lambda`                | Stokes hypothesis second viscosity coefficient                                                  |
-| `-mu`                    | Shear dynamic viscosity coefficient                                                             |
-| `-k`                     | Thermal conductivity                                                                            |
-| `-CtauS`                 | Scale coefficient for stabilization tau (nondimensional)                                        |
-| `-strong_form`           | Strong (1) or weak/integrated by parts (0) advection residual                                   |
-| `-lx`                    | Length scale in x direction                                                                     |
-| `-ly`                    | Length scale in y direction                                                                     |
-| `-lz`                    | Length scale in z direction                                                                     |
-| `-rc`                    | Characteristic radius of thermal bubble                                                         |
-| `-resx`                  | Resolution in x                                                                                 |
-| `-resy`                  | Resolution in y                                                                                 |
-| `-resz`                  | Resolution in z                                                                                 |
-| `-center`                | Location of bubble center                                                                       |
-| `-dc_axis`               | Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric               |
-| `-output_freq`           | Frequency of output, in number of steps                                                         |
-| `-continue`              | Continue from previous solution                                                                 |
-| `-degree`                | Polynomial degree of tensor product basis                                                       |
-| `-qextra`                | Number of extra quadrature points                                                               |
-| `-of`                    | Output folder                                                                                   |
+|  Option                               | Meaning                                                                                         |
+| :-------------------------------------| :-----------------------------------------------------------------------------------------------|
+| `-ceed`                               | CEED resource specifier                                                                         |
+| `-test`                               | Run in test mode                                                                                |
+| `-problem`                            | Problem to solve (`advection`, `advection2d`, or `density_current`)                             |
+| `-problem_advection_wind`             | Wind type in Advection (`rotation` or `translation`)                                            |
+| `-problem_advection_wind_translation` | Constant wind vector when `-problem_advection_wind translation`                                 |
+| `-stab`                               | Stabilization method                                                                            |
+| `-implicit`                           | Use implicit time integartor formulation                                                        |
+| `-bc_wall`                            | Use wall boundary conditions on this list of faces                                              |
+| `-bc_slip_x`                          | Use slip boundary conditions, for the x component, on this list of faces                        |
+| `-bc_slip_y`                          | Use slip boundary conditions, for the y component, on this list of faces                        |
+| `-bc_slip_z`                          | Use slip boundary conditions, for the z component, on this list of faces                        |
+| `-viz_refine`                         | Use regular refinement for visualization                                                        |
+| `-degree`                             | Polynomial degree of tensor product basis (must be >= 1)                                        |
+| `-units_meter`                        | 1 meter in scaled length units                                                                  |
+| `-units_second`                       | 1 second in scaled time units                                                                   |
+| `-units_kilogram`                     | 1 kilogram in scaled mass units                                                                 |
+| `-units_Kelvin`                       | 1 Kelvin in scaled temperature units                                                            |
+| `-theta0`                             | Reference potential temperature                                                                 |
+| `-thetaC`                             | Perturbation of potential temperature                                                           |
+| `-P0`                                 | Atmospheric pressure                                                                            |
+| `-P_wind`                             | Inflow wind pressure                                                                            |
+| `-rho_wind`                           | Inflow wind density                                                                            |
+| `-N`                                  | Brunt-Vaisala frequency                                                                         |
+| `-cv`                                 | Heat capacity at constant volume                                                                |
+| `-cp`                                 | Heat capacity at constant pressure                                                              |
+| `-g`                                  | Gravitational acceleration                                                                      |
+| `-lambda`                             | Stokes hypothesis second viscosity coefficient                                                  |
+| `-mu`                                 | Shear dynamic viscosity coefficient                                                             |
+| `-k`                                  | Thermal conductivity                                                                            |
+| `-CtauS`                              | Scale coefficient for stabilization tau (nondimensional)                                        |
+| `-strong_form`                        | Strong (1) or weak/integrated by parts (0) advection residual                                   |
+| `-lx`                                 | Length scale in x direction                                                                     |
+| `-ly`                                 | Length scale in y direction                                                                     |
+| `-lz`                                 | Length scale in z direction                                                                     |
+| `-rc`                                 | Characteristic radius of thermal bubble                                                         |
+| `-resx`                               | Resolution in x                                                                                 |
+| `-resy`                               | Resolution in y                                                                                 |
+| `-resz`                               | Resolution in z                                                                                 |
+| `-center`                             | Location of bubble center                                                                       |
+| `-dc_axis`                            | Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric               |
+| `-output_freq`                        | Frequency of output, in number of steps                                                         |
+| `-continue`                           | Continue from previous solution                                                                 |
+| `-degree`                             | Polynomial degree of tensor product basis                                                       |
+| `-qextra`                             | Number of extra quadrature points                                                               |
+| `-qextra_boundary`                    | Number of extra quadrature points on in/outflow faces                                           |
+| `-of`                                 | Output folder                                                                                   |
 
 For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall` and/or `-bc_slip_x`,
 `-bc_slip_y`, and `-bc_slip_z` are:
