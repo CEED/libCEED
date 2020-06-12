@@ -48,7 +48,7 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
   ierr = CeedCudaInit(ceed, resource, nrc); CeedChk(ierr);
 
-  const char fallbackresource[] = "/cpu/self/ref/serial";
+  const char fallbackresource[] = "/gpu/cuda/ref";
   ierr = CeedSetOperatorFallbackResource(ceed, fallbackresource); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
