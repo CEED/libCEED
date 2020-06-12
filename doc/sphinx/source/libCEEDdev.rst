@@ -58,7 +58,7 @@ There are several common layouts for **L-vectors**, **E-vectors**, and **Q-vecto
 
 * **E-vector** layouts
 
-  * If possible, backends should use :ref:`CeedElemRestrictionSetELayout` to use the ``t2**`` tests.
+  * If possible, backends should use :c:func:`CeedElemRestrictionSetELayout()` to use the ``t2**`` tests.
     If the backend uses a strided **E-vector** layout, then the data for node ``i``, component ``j``, element ``k`` in the **E-vector** is given by ``i*layout[0] + j*layout[1] + k*layout[2]``.
 
   * Backends may choose to use a non-strided **E-vector** layout; however, the ``t2**`` tests will not function correctly in this case and the tests will need to be whitelisted for the backend to pass the test suite.
@@ -77,12 +77,12 @@ Backend Inheritance
 There are three mechanisms by which a Ceed backend can inherit implementation from another Ceed backend.
 These options are set in the backend initialization routine.
 
-#. Delegation - Developers may use :ref:`CeedSetDelegate` to set a backend that will provide the implementation of any unimplemented Ceed objects.
+#. Delegation - Developers may use :c:func:`CeedSetDelegate()` to set a backend that will provide the implementation of any unimplemented Ceed objects.
 
-#. Object delegation  - Developers may use :ref:`CeedSetObjectDelegate` to set a backend that will provide the implementation of a specific unimplemented Ceed object.
+#. Object delegation  - Developers may use :c:func:`CeedSetObjectDelegate()` to set a backend that will provide the implementation of a specific unimplemented Ceed object.
 Object delegation has higher precedence than delegation.
 
-#. Fallback - Developers may use :ref:`CeedSetOperatorFallbackResource()` to set a :ref:`Ceed` resource that will provide the implementation of unimplemented :ref:`CeedOperator` methods.
+#. Fallback - Developers may use :c:func:`CeedSetOperatorFallbackResource()` to set a :ref:`Ceed` resource that will provide the implementation of unimplemented :ref:`CeedOperator` methods.
 A fallback :ref:`Ceed` with this resource will only be instantiated if a method is called that is not implemented by the parent :ref:`Ceed`.
 In order to use the fallback mechanism, the parent :ref:`Ceed` and fallback resource must use compatible **E-vector** and **Q-vector** layouts.
 
