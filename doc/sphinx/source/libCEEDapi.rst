@@ -241,14 +241,14 @@ Currently in libCEED, it is assumed that the host application manages the global
 **T-vectors** and the required communications among devices (which are generally
 on different compute nodes) with **P**. Our API is thus focused on the
 **L-vector** level, where the logical devices, which in the library are
-represented by the ``Ceed`` object, are independent. Each MPI rank can use one or
-more ``Ceed``\s, and each ``Ceed``, in turn, can represent one or more physical
+represented by the :ref:`Ceed` object, are independent. Each MPI rank can use one or
+more :ref:`Ceed`\s, and each :ref:`Ceed`, in turn, can represent one or more physical
 devices, as long as libCEED backends support such configurations. The idea is
 that every MPI rank can use any logical device it is assigned at runtime. For
 example, on a node with 2 CPU sockets and 4 GPUs, one may decide to use 6 MPI
-ranks (each using a single ``Ceed`` object): 2 ranks using 1 CPU socket each, and
+ranks (each using a single :ref:`Ceed` object): 2 ranks using 1 CPU socket each, and
 4 using 1 GPU each. Another choice could be to run 1 MPI rank on the whole node
-and use 5 ``Ceed`` objects: 1 managing all CPU cores on the 2 sockets and 4
+and use 5 :ref:`Ceed` objects: 1 managing all CPU cores on the 2 sockets and 4
 managing 1 GPU each. The communications among the devices, e.g. required for
 applying the action of :math:`\bm{P}`, are currently out of scope of libCEED. The
 interface is non-blocking for all operations involving more than O(1) data,
@@ -294,7 +294,7 @@ implementation is as follows:
 
 - the overall operator :math:`\bm{G}^T \bm{B}^T \bm{D} \bm{B} \bm{G}`
   is represented as variable of type
-  :ref:`CeedOperator` and its action is accessible through ``CeedOperatorApply()``.
+  :ref:`CeedOperator` and its action is accessible through :ref:`CeedOperatorApply`.
 
 To clarify these concepts and illustrate how they are combined in the API,
 consider the implementation of the action of a simple 1D mass matrix
@@ -320,8 +320,8 @@ objects created with this logical device.
 
 The ``setup`` routine above computes and stores :math:`\bm{D}`, in this case a
 scalar value in each quadrature point, while ``mass`` uses these saved values to perform
-the action of :math:`\bm{D}`. These functions are turned into the ``CeedQFunction``
-variables ``qf_setup`` and ``qf_mass`` in the ``CeedQFunctionCreateInterior()`` calls:
+the action of :math:`\bm{D}`. These functions are turned into the :ref:`CeedQFunction`
+variables ``qf_setup`` and ``qf_mass`` in the :ref:`CeedQFunctionCreateInterior` calls:
 
 .. literalinclude::  ../../../tests/t500-operator.c
    :language: c
@@ -347,7 +347,7 @@ name, size of the field, and evaluation mode.
 The size of the field is provided by a combination of the number of components
 the effect of any basis evaluations.
 
-The evaluation mode (see :ref:`CeedBasis-Typedefs and Enumerations`) ``CEED_EVAL_INTERP``
+The evaluation mode (see :ref:`CeedBasis-Typedefs and Enumerations`) :ref:`CEED_EVAL_INTERP`
 for both input and output fields indicates that the mass operator only contains terms of
 the form
 
@@ -363,13 +363,13 @@ More general operators, such as those of the form
 can be expressed.
 
 For fields with derivatives, such as with the basis evaluation mode
-(see :ref:`CeedBasis-Typedefs and Enumerations`) ``CEED_EVAL_GRAD``, the size of the
+(see :ref:`CeedBasis-Typedefs and Enumerations`) :ref:`CEED_EVAL_GRAD`, the size of the
 field needs to reflect both the number of components and the geometric dimension.
 A 3-dimensional gradient on four components would therefore mean the field has a size of
 12.
 
 The :math:`\bm{B}` operators for the mesh nodes, ``bx``, and the unknown field,
-``bu``, are defined in the calls to the function ``CeedBasisCreateTensorH1Lagrange()``.
+``bu``, are defined in the calls to the function :ref:`CeedBasisCreateTensorH1Lagrange`.
 In this example, both the mesh and the unknown field use :math:`H^1` Lagrange finite
 elements of order 1 and 4 respectively (the ``P`` argument represents the number of 1D
 degrees of freedom on each element). Both basis operators use the same integration rule,
@@ -382,12 +382,12 @@ which is Gauss-Legendre with 8 points (the ``Q`` argument).
 
 Other elements with this structure can be specified in terms of the ``Q×P``
 matrices that evaluate values and gradients at quadrature points in one
-dimension using ``CeedBasisCreateTensorH1()``. Elements that do not have tensor
+dimension using :ref:`CeedBasisCreateTensorH1`. Elements that do not have tensor
 product structure, such as symmetric elements on simplices, will be created
 using different constructors.
 
 The :math:`\bm{G}` operators for the mesh nodes, ``Erestrictx``, and the unknown field,
-``Erestrictu``, are specified in the ``CeedElemRestrictionCreate()``. Both of these
+``Erestrictu``, are specified in the :ref:`CeedElemRestrictionCreate`. Both of these
 specify directly the dof indices for each element in the ``indx`` and ``indu``
 arrays:
 
@@ -402,13 +402,13 @@ arrays:
    :end-before: //! [ElemRestrU Create]
 
 If the user has arrays available on a device, they can be provided using
-``CEED_MEM_DEVICE``. This technique is used to provide no-copy interfaces in all
+:ref:`CEED_MEM_DEVICE`. This technique is used to provide no-copy interfaces in all
 contexts that involve problem-sized data.
 
 For discontinuous Galerkin and for applications such as Nek5000 that only
 explicitly store **E-vectors** (inter-element continuity has been subsumed by
 the parallel restriction :math:`\bm{P}`), the element restriction :math:`\bm{G}`
-is the identity and ``CeedElemRestrictionCreateStrided()`` is used instead.
+is the identity and :ref:`CeedElemRestrictionCreateStrided` is used instead.
 We plan to support other structured representations of :math:`\bm{G}` which will
 be added according to demand. In the case of non-conforming mesh elements,
 :math:`\bm{G}` needs a more general representation that expresses values at slave
@@ -416,17 +416,17 @@ nodes (which do not appear in **L-vectors**) as linear combinations of the degre
 freedom at master nodes.
 
 These operations, :math:`\bm{P}`, :math:`\bm{B}`, and :math:`\bm{D}`,
-are combined with a ``CeedOperator``. As with QFunctions, operator fields are added
+are combined with a :ref:`CeedOperator`. As with :ref:`CeedQFunction`\s, operator fields are added
 separately with a matching field name, basis (:math:`\bm{B}`), element restriction
 (:math:`\bm{G}`), and **L-vector**. The flag
-``CEED_VECTOR_ACTIVE`` indicates that the vector corresponding to that field will
-be provided to the operator when ``CeedOperatorApply()`` is called. Otherwise the
+:ref:`CEED_VECTOR_ACTIVE` indicates that the vector corresponding to that field will
+be provided to the operator when :ref:`CeedOperatorApply` is called. Otherwise the
 input/output will be read from/written to the specified **L-vector**.
 
 With partial assembly, we first perform a setup stage where :math:`\bm{D}` is evaluated
 and stored. This is accomplished by the operator ``op_setup`` and its application
 to ``X``, the nodes of the mesh (these are needed to compute Jacobians at
-quadrature points). Note that the corresponding ``CeedOperatorApply()`` has no basis
+quadrature points). Note that the corresponding :ref:`CeedOperatorApply` has no basis
 evaluation on the output, as the quadrature data is not needed at the dofs:
 
 .. literalinclude::  ../../../tests/t500-operator.c
@@ -445,7 +445,7 @@ evaluation on the output, as the quadrature data is not needed at the dofs:
    :end-before: //! [Setup Apply]
 
 The action of the operator is then represented by operator ``op_mass`` and its
-``CeedOperatorApply()`` to the input **L-vector** ``U`` with output in ``V``:
+:ref:`CeedOperatorApply` to the input **L-vector** ``U`` with output in ``V``:
 
 .. literalinclude::  ../../../tests/t500-operator.c
    :language: c
@@ -462,10 +462,10 @@ The action of the operator is then represented by operator ``op_mass`` and its
    :start-after: //! [Operator Apply]
    :end-before: //! [Operator Apply]
 
-A number of function calls in the interface, such as ``CeedOperatorApply()``, are
+A number of function calls in the interface, such as :ref:`CeedOperatorApply`, are
 intended to support asynchronous execution via their last argument,
 ``CeedRequest*``. The specific (pointer) value used in the above example,
-``CEED_REQUEST_IMMEDIATE``, is used to express the request (from the user) for the
+:ref:`CEED_REQUEST_IMMEDIATE`, is used to express the request (from the user) for the
 operation to complete before returning from the function call, i.e. to make sure
 that the result of the operation is available in the output parameters
 immediately after the call. For a true asynchronous call, one needs to provide
@@ -476,7 +476,7 @@ explicitly wait for the completion of the operation.
 Gallery of QFunctions
 ----------------------------------------
 
-LibCEED provides a gallery of built-in QFunctions in the :file:`gallery/` directory.
+LibCEED provides a gallery of built-in :ref:`QFunction`\s in the :file:`gallery/` directory.
 The available QFunctions are the ones associated with the mass, the Laplacian, and
 the identity operators. To illustrate how the user can declare a :ref:`CeedQFunction`
 via the gallery of available QFunctions, consider the selection of the
