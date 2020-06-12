@@ -2,12 +2,15 @@
 /// Test creation, transpose use, and destruction of an interlaced multicomponent element restriction
 /// \test Test creation, transpose use, and destruction of an interlaced multicomponent element restriction
 #include <ceed.h>
+#include <ceed-backend.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedVector x, y;
-  CeedInt ne = 5, mult;
+  CeedInt ne = 5;
   CeedInt ind[2*ne];
+  CeedInt layout[3];
+  CeedScalar mult;
   CeedScalar a[2*(ne*2)];
   const CeedScalar *yy;
   CeedElemRestriction r;
@@ -16,13 +19,6 @@ int main(int argc, char **argv) {
 
   // Setup
   CeedVectorCreate(ceed, 2*(ne*2), &x);
-  for (CeedInt i=0; i<ne; i++) {
-    for (CeedInt n=0; n<2; n++) {
-      a[i*4+n] = 10+(2*i+n+1)/2;
-      a[i*4+n+2] = 20+(2*i+n+1)/2;
-    }
-  }
-  CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
 
   for (CeedInt i=0; i<ne; i++) {
     ind[2*i+0] = 2*i;
@@ -33,6 +29,14 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, 2*(ne+1), &y);
   CeedVectorSetValue(y, 0); // Allocates array
 
+  // Set x data in backend E-layout
+  CeedElemRestrictionGetELayout(r, &layout);
+  for (CeedInt i=0; i<2; i++)      // Node
+    for (CeedInt j=0; j<2; j++)    // Component
+      for (CeedInt k=0; k<ne; k++) // Element
+        a[i*layout[0] + j*layout[1] + k*layout[2]] = 10*j+(2*k+i+1)/2;
+  CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
+
   // Restrict
   CeedElemRestrictionApply(r, CEED_TRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);
 
@@ -40,15 +44,15 @@ int main(int argc, char **argv) {
   CeedVectorGetArrayRead(y, CEED_MEM_HOST, &yy);
   for (CeedInt i=0; i<ne+1; i++) {
     mult = i>0&&i<ne ? 2 : 1;
-    if (yy[2*i] != (10+i)*mult)
+    if (yy[2*i] != i*mult)
       // LCOV_EXCL_START
       printf("Error in restricted array y[%d] = %f != %f\n",
-             2*i, (double)yy[2*i], (10.+i)*mult);
+             2*i, (double)yy[2*i], i*mult);
     // LCOV_EXCL_STOP
-    if (yy[2*i+1] != (20+i)*mult)
+    if (yy[2*i+1] != (10+i)*mult)
       // LCOV_EXCL_START
       printf("Error in restricted array y[%d] = %f != %f\n",
-             2*i+1, (double)yy[2*i+1], (20.+i)*mult);
+             2*i+1, (double)yy[2*i+1], (10.+i)*mult);
     // LCOV_EXCL_STOP
   }
 

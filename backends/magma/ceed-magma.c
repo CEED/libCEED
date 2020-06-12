@@ -70,8 +70,6 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
                                 CeedBasisCreateTensorH1_Magma); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
                                 CeedBasisCreateH1_Magma); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Magma); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
                                 CeedDestroy_Magma); CeedChk(ierr);
   return 0;

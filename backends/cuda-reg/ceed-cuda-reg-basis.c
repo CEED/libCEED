@@ -29,16 +29,6 @@ typedef CeedScalar real;
 //TODO remove the magic number 32
 
 //------------------------------------------------------------------------------
-// Read non interleaved dofs
-//------------------------------------------------------------------------------
-inline __device__ void readDofs(const int bid, const int tid, const int comp,
-                                const int size, const int nelem,
-                                const CeedScalar *d_U, real *r_U) {
-  for (int i = 0; i < size; i++)
-    r_U[i] = d_U[i + comp*size + tid*BASIS_NCOMP*size + bid*32*BASIS_NCOMP*size];
-}
-
-//------------------------------------------------------------------------------
 // Read interleaved quads
 //------------------------------------------------------------------------------
 inline __device__ void readQuads(const int bid, const int tid, const int comp,
@@ -50,13 +40,12 @@ inline __device__ void readQuads(const int bid, const int tid, const int comp,
 }
 
 //------------------------------------------------------------------------------
-// Write non interleaved dofs
+// Read non interleaved dofs
 //------------------------------------------------------------------------------
-inline __device__ void writeDofs(const int bid, const int tid, const int comp,
-                                 const int size, const int nelem,
-                                 const CeedScalar *r_V, real *d_V) {
-  for (int i = 0; i < size; i++)
-    d_V[i + comp*size + tid*BASIS_NCOMP*size + bid*32*BASIS_NCOMP*size] = r_V[i];
+inline __device__ void readDofs(const int bid, const int tid, const int comp,
+                                const int size, const int nelem,
+                                const CeedScalar *d_U, real *r_U) {
+  readQuads(bid, tid, comp, 0, size, nelem, d_U, r_U);
 }
 
 //------------------------------------------------------------------------------
@@ -68,6 +57,15 @@ inline __device__ void writeQuads(const int bid, const int tid, const int comp,
   for (int i = 0; i < size; i++)
     d_V[i + tid*size + bid*32*size + comp*size*nelem + dim*BASIS_NCOMP*nelem*size]
       = r_V[i];
+}
+
+//------------------------------------------------------------------------------
+// Write non interleaved dofs
+//------------------------------------------------------------------------------
+inline __device__ void writeDofs(const int bid, const int tid, const int comp,
+                                 const int size, const int nelem,
+                                 const CeedScalar *r_V, real *d_V) {
+  writeQuads(bid, tid, comp, 0, size, nelem, r_V, d_V);
 }
 
 //------------------------------------------------------------------------------

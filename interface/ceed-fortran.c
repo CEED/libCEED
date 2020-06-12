@@ -383,6 +383,16 @@ void fCeedElemRestrictionGetMultiplicity(int *elemr, int *mult, int *err) {
          CeedVector_dict[*mult]);
 }
 
+#define fCeedElemRestrictionGetELayout \
+    FORTRAN_NAME(ceedelemrestrictiongetelayout,CEEDELEMRESTRICTIONGETELAYOUT)
+void fCeedElemRestrictionGetELayout(int *elemr, int *layout, int *err) {
+  CeedInt layout_c[3];
+  *err = CeedElemRestrictionGetELayout(CeedElemRestriction_dict[*elemr],
+                                       &layout_c);
+  for (int i=0; i<3; i++)
+    layout[i] = layout_c[i];
+}
+
 #define fCeedElemRestrictionView \
     FORTRAN_NAME(ceedelemrestrictionview,CEEDELEMRESTRICTIONVIEW)
 void fCeedElemRestrictionView(int *elemr, int *err) {

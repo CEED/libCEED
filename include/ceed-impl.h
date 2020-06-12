@@ -159,6 +159,7 @@ struct CeedElemRestriction_private {
   CeedInt blksize;          /* number of elements in a batch */
   CeedInt nblk;             /* number of blocks of elements */
   CeedInt *strides;         /* strides between [nodes, components, elements] */
+  CeedInt layout[3];        /* E-vector layout [nodes, components, elements] */
   uint64_t numreaders;      /* number of instances of offset read only access */
   void *data;               /* place for the backend to store any data */
 };

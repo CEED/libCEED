@@ -211,6 +211,8 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
     data->kRestrict[i] = occaUndefined;
   }
   ierr = CeedElemRestrictionSetData(r, (void *)&data); CeedChk(ierr);
+  CeedInt layout[3] = {1, elemsize, elemsize*ncomp};
+  ierr = CeedElemRestrictionSetELayout(r, layout); CeedChk(ierr);
   dbg("[CeedElemRestriction][Create] nelem=%d",nelem);
   occaProperties pKR = occaCreateProperties();
   occaPropertiesSet(pKR, "defines/nnodes", occaInt(nnodes));
