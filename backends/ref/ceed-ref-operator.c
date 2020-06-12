@@ -516,7 +516,7 @@ static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
   // Check for identity
   if (impl->identityqf)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Assembling identity qfunctions not supported");
+    return CeedError(ceed, 1, "Assembling identity QFunctions not supported");
   // LCOV_EXCL_STOP
 
   // Input Evecs and Restriction

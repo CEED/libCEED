@@ -23,14 +23,6 @@
 #include "ceed-cuda-gen.h"
 
 //------------------------------------------------------------------------------
-// CUDA preferred MemType
-//------------------------------------------------------------------------------
-static int CeedGetPreferredMemType_Cuda_gen(CeedMemType *type) {
-  *type = CEED_MEM_DEVICE;
-  return 0;
-}
-
-//------------------------------------------------------------------------------
 // Backend init
 //------------------------------------------------------------------------------
 static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
@@ -48,11 +40,9 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
   ierr = CeedCudaInit(ceed, resource, nrc); CeedChk(ierr);
 
-  const char fallbackresource[] = "/cpu/self/ref/serial";
+  const char fallbackresource[] = "/gpu/cuda/ref";
   ierr = CeedSetOperatorFallbackResource(ceed, fallbackresource); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
-                                CeedGetPreferredMemType_Cuda_gen); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
                                 CeedQFunctionCreate_Cuda_gen); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
