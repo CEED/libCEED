@@ -3,10 +3,10 @@ libCEED: the CEED Library
 
 |build-status| |codecov| |license| |doc| |doxygen| |binder|
 
-.. |build-status| image:: https://travis-ci.org/CEED/libCEED.svg?branch=master
+.. |build-status| image:: https://travis-ci.com/CEED/libCEED.svg?branch=master
     :alt: Build Status
     :scale: 100%
-    :target: https://travis-ci.org/CEED/libCEED
+    :target: https://travis-ci.com/CEED/libCEED
 
 .. |codecov| image:: https://codecov.io/gh/CEED/libCEED/branch/master/graphs/badge.svg
     :alt: Code Coverage
