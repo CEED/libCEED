@@ -584,14 +584,7 @@ static int CeedOperatorAssembleLinearQFunction_Cuda(CeedOperator op,
   ierr = CeedVectorCreate(ceedparent, numelements*Q*numactivein*numactiveout,
                           assembled); CeedChk(ierr);
   ierr = CeedVectorSetValue(*assembled, 0.0); CeedChk(ierr);
-  CeedVector assembledE;
-  if (impl->eandqdiffer) {
-    ierr = CeedVectorCreate(ceedparent, numelements*Q*numactivein*numactiveout,
-                            &assembledE); CeedChk(ierr);
-    ierr = CeedVectorGetArray(assembledE, CEED_MEM_DEVICE, &a); CeedChk(ierr);
-  } else {
-    ierr = CeedVectorGetArray(*assembled, CEED_MEM_DEVICE, &a); CeedChk(ierr);
-  }
+  ierr = CeedVectorGetArray(*assembled, CEED_MEM_DEVICE, &a); CeedChk(ierr);
 
   // Input basis apply
   ierr = CeedOperatorInputBasis_Cuda(numelements, qfinputfields, opinputfields,
@@ -644,14 +637,7 @@ static int CeedOperatorAssembleLinearQFunction_Cuda(CeedOperator op,
   CeedChk(ierr);
 
   // Restore output
-  if (impl->eandqdiffer) {
-    ierr = CeedVectorRestoreArray(assembledE, &a); CeedChk(ierr);
-    ierr = CeedElemRestrictionApply(*rstr, CEED_TRANSPOSE, assembledE,
-                                    *assembled, request); CeedChk(ierr);
-    ierr = CeedVectorDestroy(&assembledE); CeedChk(ierr);
-  } else {
-    ierr = CeedVectorRestoreArray(*assembled, &a); CeedChk(ierr);
-  }
+  ierr = CeedVectorRestoreArray(*assembled, &a); CeedChk(ierr);
 
   // Cleanup
   for (CeedInt i=0; i<numactivein; i++) {
