@@ -80,11 +80,11 @@ These options are set in the backend initialization routine.
 #. Delegation - Developers may use :c:func:`CeedSetDelegate()` to set a backend that will provide the implementation of any unimplemented Ceed objects.
 
 #. Object delegation  - Developers may use :c:func:`CeedSetObjectDelegate()` to set a backend that will provide the implementation of a specific unimplemented Ceed object.
-Object delegation has higher precedence than delegation.
+   Object delegation has higher precedence than delegation.
 
-#. Fallback - Developers may use :c:func:`CeedSetOperatorFallbackResource()` to set a :ref:`Ceed` resource that will provide the implementation of unimplemented :ref:`CeedOperator` methods.
-A fallback :ref:`Ceed` with this resource will only be instantiated if a method is called that is not implemented by the parent :ref:`Ceed`.
-In order to use the fallback mechanism, the parent :ref:`Ceed` and fallback resource must use compatible **E-vector** and **Q-vector** layouts.
+#. Operator fallback - Developers may use :c:func:`CeedSetOperatorFallbackResource()` to set a :ref:`Ceed` resource that will provide the implementation of unimplemented :ref:`CeedOperator` methods.
+   A fallback :ref:`Ceed` with this resource will only be instantiated if a method is called that is not implemented by the parent :ref:`Ceed`.
+   In order to use the fallback mechanism, the parent :ref:`Ceed` and fallback resource must use compatible **E-vector** and **Q-vector** layouts.
 
 
 Clang-tidy
