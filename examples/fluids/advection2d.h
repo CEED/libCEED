@@ -65,6 +65,22 @@ struct Advection2dContext_ {
 };
 #endif
 
+#ifndef surface_context_struct
+#define surface_context_struct
+typedef struct SurfaceContext_ *SurfaceContext;
+struct SurfaceContext_ {
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar Rd;
+  CeedScalar P_wind;
+  CeedScalar rho_wind;
+  CeedScalar strong_form;
+  CeedScalar wind[3];
+  int wind_type; // See WindType: 0=ROTATION, 1=TRANSLATION
+  PetscBool implicit;
+};
+#endif
+
 // *****************************************************************************
 // This QFunction sets the the initial conditions and boundary conditions
 //
@@ -396,10 +412,36 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
   return 0;
 }
 // *****************************************************************************
-// This QFunction implements consistent outflow BCs for 2D advection
-//     with explicit time stepping method
+// This QFunction implements consistent outflow and inflow BCs
+//      for 2D advection
+//
+//  dot(wind, normal) is computed and based on its sign, it is determined
+//    whether the face is outflow or inflow.
+//    sign(dot(wind, normal)) > 0 : outflow BCs
+//    sign(dot(wind, normal)) < 0 : inflow BCs
+//
+//  Outflow BCs:
+//    The validity of the weak form of the governing equations is extended
+//    to the outflow and the values obtained from the previous iteration
+//    are applied.
+//
+//  Inflow BCs:
+//    Subscripts of the variables:
+//      star  = on the inlet (inflow boundary face)
+//      wind  = inflow wind
+//       -    = inside the domain
+//
+//    The Riemann problem is implemented for the inflow BCs:
+//      P_star = P
+//      rho_star = ( P_star / P_L ) ^ ( 1/gamma )
+//      T_star = P_star / ( R rho_star )
+//      u_star = u + 2 sqrt(gamma P/rho) *
+//                (1 - (P_star/P)^((gamma-1)/2 gamma)) / (gamma-1)
+//
+//    The above values are applied weakly on the inflow boundary faces.
+//
 // *****************************************************************************
-CEED_QFUNCTION(Advection2d_Out)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
                             const CeedScalar *const *in,
                             CeedScalar *const *out) {
   // *INDENT-OFF*
@@ -409,142 +451,43 @@ CEED_QFUNCTION(Advection2d_Out)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
-  Advection2dContext context = (Advection2dContext)ctx;
+  SurfaceContext context = (SurfaceContext)ctx;
+  const CeedScalar cv = context->cv;
+  const CeedScalar cp = context->cp;
+  const CeedScalar Rd = context->Rd;
+  const CeedScalar P_wind = context->P_wind;
+  const CeedScalar rho_wind = context->rho_wind;
   const CeedScalar strong_form = context->strong_form;
-
-  CeedPragmaSIMD
-  // Quadrature Point Loop
-  for (CeedInt i=0; i<Q; i++) {
-    // Setup
-    // -- Interp in
-    const CeedScalar rho        =    q[0][i];
-    const CeedScalar u[3]       =   {q[1][i] / rho,
-                                     q[2][i] / rho,
-                                     q[3][i] / rho
-                                    };
-    const CeedScalar E          =    q[4][i];
-    // -- Interp-to-Interp qdata
-    const CeedScalar wdetJb     =    qdataSur[0][i];
-    const CeedScalar norm[2]    =   {qdataSur[1][i],
-                                     qdataSur[2][i]
-                                    };
-    // u_n = normal velocity
-    const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1];
-
-    // No Change in density or momentum
-    for (CeedInt j=0; j<4; j++) {
-      v[j][i] = 0;
-    }
-    v[4][i] = -(1-strong_form) *wdetJb *E *u_n;
-  } // End Quadrature Point Loop
-
-  return 0;
-}
-// *****************************************************************************
-// This QFunction implements consistent outflow BCs for 2D advection
-//     with implicit time stepping method
-// *****************************************************************************
-CEED_QFUNCTION(IFunction_Advection2d_Out)(void *ctx, CeedInt Q,
-                            const CeedScalar *const *in,
-                            CeedScalar *const *out) {
-  // *INDENT-OFF*
-  // Inputs
-  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
-  // Outputs
-  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
-  Advection2dContext context = (Advection2dContext)ctx;
-  const CeedScalar strong_form = context->strong_form;
-
-  CeedPragmaSIMD
-  // Quadrature Point Loop
-  for (CeedInt i=0; i<Q; i++) {
-    // Setup
-    // -- Interp in
-    const CeedScalar rho        =    q[0][i];
-    const CeedScalar u[3]       =   {q[1][i] / rho,
-                                     q[2][i] / rho,
-                                     q[3][i] / rho
-                                    };
-    const CeedScalar E          =    q[4][i];
-    // -- Interp-to-Interp qdata
-    const CeedScalar wdetJb     =    qdataSur[0][i];
-    const CeedScalar norm[2]    =   {qdataSur[1][i],
-                                     qdataSur[2][i]
-                                    };
-    // u_n = normal velocity
-    const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1];
-
-    // No Change in density or momentum
-    for (CeedInt j=0; j<4; j++) {
-      v[j][i] = 0;
-    }
-    v[4][i] = (1-strong_form) *wdetJb *E *u_n;
-  } // End Quadrature Point Loop
-
-  return 0;
-}
-// *****************************************************************************
-// This QFunction implements inflow BCs for 2D advection
-//     with explicit time stepping method
-//
-//  Subscripts of the variables:
-//    star  = on the inlet (inflow boundary face)
-//    wind  = inflow wind
-//     -    = inside the domain
-//
-//  The Riemann problem is implemented for the inflow BCs:
-//    P_star = P
-//    rho_star = ( P_star / P_L ) ^ ( 1/gamma )
-//    T_star = P_star / ( R rho_star )
-//    u_star = u + 2 sqrt(gamma P/rho) *
-//              (1 - (P_star/P)^((gamma-1)/2 gamma)) / (gamma-1)
-//
-//  The above values are applied weakly on the inflow boundary faces.
-//
-// *****************************************************************************
-CEED_QFUNCTION(Advection2d_In)(void *ctx, CeedInt Q,
-                            const CeedScalar *const *in,
-                            CeedScalar *const *out) {
-  // *INDENT-OFF*
-  // Inputs
-  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
-  // Outputs
-  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
-    // Context
-  const CeedScalar *context = (const CeedScalar *)ctx;
-  const CeedScalar cv       = context[0];
-  const CeedScalar cp       = context[1];
-  const CeedScalar Rd       = context[2];
-  const CeedScalar P_wind   = context[3];
-  const CeedScalar rho_wind = context[4];
+  const CeedScalar *wind = context->wind;
   const CeedScalar gamma    = cp / cv;
+  const int wind_type = context->wind_type;
+  const PetscBool implicit = context->implicit;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar rho       =    q[0][i];
-    const CeedScalar u[3]      =   {q[1][i] / rho,
-                                    q[2][i] / rho,
-                                    q[3][i] / rho
-                                   };
-    const CeedScalar E         =    q[4][i];
+    const CeedScalar rho        =    q[0][i];
+    const CeedScalar u[3]       =   {q[1][i] / rho,
+                                     q[2][i] / rho,
+                                     q[3][i] / rho
+                                    };
+    const CeedScalar E          =    q[4][i];
     // -- Interp-to-Interp qdata
-    const CeedScalar wdetJb    =    qdataSur[0][i];
-    const CeedScalar norm[2]   =   {qdataSur[1][i],
-                                    qdataSur[2][i]
-                                   };
+    const CeedScalar wdetJb     =    qdataSur[0][i];
+    // ---- Normal vectors
+    const CeedScalar norm[2]    =   {qdataSur[1][i],
+                                     qdataSur[2][i]
+                                    };
+    // windDotNorm = dot(velocity, normal)
+    const CeedScalar windDotNorm = norm[0]*wind[0] + norm[1]*wind[1];
+    // Normal velocity
+    const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1];
     // ke = kinetic energy inside the domain
     const CeedScalar ke  = (u[0]*u[0] + u[1]*u[1]) / 2.;
-    // u_n = normal velocity inside the domain
-    const CeedScalar u_n = -(norm[0]*u[0] + norm[1]*u[1]);
-    // -- Inlet variables
-    // P_star = P so the incoming nonlinear wave has amplitude zero
+    // -- Values on inflow boundaries
+    // P_star = P, so the incoming nonlinear wave has amplitude zero
     const CeedScalar P_star   = (E - ke * rho) * (gamma - 1.);
     const CeedScalar u_star   = u_n + 2.*sqrt(fabs(gamma*P_star/rho))/(gamma - 1.);
     const CeedScalar rho_star = rho_wind * pow(fabs(P_star/P_wind), (1./gamma));
@@ -555,71 +498,16 @@ CEED_QFUNCTION(Advection2d_In)(void *ctx, CeedInt Q,
     for (CeedInt j=0; j<4; j++) {
       v[j][i] = 0;
     }
-    Advection2dContext context = (Advection2dContext)ctx;
-    v[4][i] = (1 - context->strong_form) *wdetJb *E_star *u_star;
-  } // End Quadrature Point Loop
-
-  return 0;
-}
-// *****************************************************************************
-// This QFunction implements inflow BCs for 2D advection
-//     with implicit time stepping method
-// *****************************************************************************
-CEED_QFUNCTION(IFunction_Advection2d_In)(void *ctx, CeedInt Q,
-                            const CeedScalar *const *in,
-                            CeedScalar *const *out) {
-  // *INDENT-OFF*
-  // Inputs
-  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
-  // Outputs
-  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
-    // Context
-  const CeedScalar *context = (const CeedScalar *)ctx;
-  const CeedScalar cv       = context[0];
-  const CeedScalar cp       = context[1];
-  const CeedScalar Rd       = context[2];
-  const CeedScalar P_wind   = context[3];
-  const CeedScalar rho_wind = context[4];
-  const CeedScalar gamma    = cp / cv;
-
-  CeedPragmaSIMD
-  // Quadrature Point Loop
-  for (CeedInt i=0; i<Q; i++) {
-    // Setup
-    // -- Interp in
-    const CeedScalar rho        =    q[0][i];
-    const CeedScalar u[3]       =   {q[1][i] / rho,
-                                     q[2][i] / rho,
-                                     q[3][i] / rho
-                                    };
-    const CeedScalar E          =    q[4][i];
-    // -- Interp-to-Interp qdata
-    const CeedScalar wdetJb     =    qdataSur[0][i];
-    const CeedScalar norm[2]    =   {qdataSur[1][i],
-                                     qdataSur[2][i]
-                                    };
-    // ke = kinetic energy inside the domain
-    const CeedScalar ke  = (u[0]*u[0] + u[1]*u[1]) / 2.;
-    // u_n = normal velocity inside the domain
-    const CeedScalar u_n = -(norm[0]*u[0] + norm[1]*u[1]);
-    // -- Inlet variables
-    // P_star = P so the incoming nonlinear wave has amplitude zero
-    const CeedScalar P_star   = (E - ke * rho) * (gamma - 1.);
-    const CeedScalar u_star   = u_n + 2.*sqrt(fabs(gamma*P_star/rho))/(gamma - 1.);
-    const CeedScalar rho_star = rho_wind * pow(fabs(P_star/P_wind), (1./gamma));
-    const CeedScalar T_star   = P_star/(Rd*rho_star);
-    const CeedScalar E_star   = rho_star * (cv*T_star + u_star*u_star/2.);
-
-    // No Change in density or momentum
-    for (CeedInt j=0; j<4; j++) {
-      v[j][i] = 0;
+    if (windDotNorm > 1E-8) {   // Outflow BC
+      if (!implicit) v[4][i] = -(1-strong_form) *wdetJb *E *u_n;
+      if ( implicit) v[4][i] =  (1-strong_form) *wdetJb *E *u_n;
+    } else if (windDotNorm < -1E-8) {   // Inflow BC
+      if (!implicit) v[4][i] =  (1-strong_form) *wdetJb *E_star *u_star;
+      if ( implicit) v[4][i] = -(1-strong_form) *wdetJb *E_star *u_star;
+    } else {  // No in/outflow
+      v[4][i] = 0;
     }
-    Advection2dContext context = (Advection2dContext)ctx;
-    v[4][i] = -(1 - context->strong_form) *wdetJb *E_star *u_star;
   } // End Quadrature Point Loop
-
   return 0;
 }
 // *****************************************************************************
