@@ -705,11 +705,14 @@ static int CreatePBRestriction(CeedElemRestriction rstr,
 }
 
 //------------------------------------------------------------------------------
-// Assemble Linear Diagonal
+// Assemble diagonal common code
 //------------------------------------------------------------------------------
-static int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
-    CeedVector *assembled, CeedRequest *request, const bool pointBlock) {
+static inline int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
+    CeedVector *assembled, CeedRequest *request, const bool pointBlock,
+    const bool createVector) {
   int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
 
   // Assemble QFunction
   CeedQFunction qf;
@@ -738,11 +741,18 @@ static int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
     CeedVector vec;
     ierr = CeedOperatorFieldGetVector(opfields[i], &vec); CeedChk(ierr);
     if (vec == CEED_VECTOR_ACTIVE) {
+      CeedElemRestriction rstr;
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basisin); CeedChk(ierr);
       ierr = CeedBasisGetNumComponents(basisin, &ncomp); CeedChk(ierr);
       ierr = CeedBasisGetDimension(basisin, &dim); CeedChk(ierr);
-      ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &rstrin);
+      ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &rstr);
       CeedChk(ierr);
+      if (rstrin && rstrin != rstr)
+        // LCOV_EXCL_START
+        return CeedError(ceed, 1,
+                         "Multi-field non-composite operator diagonal assembly not supported");
+      // LCOV_EXCL_STOP
+      rstrin = rstr;
       CeedEvalMode emode;
       ierr = CeedQFunctionFieldGetEvalMode(qffields[i], &emode);
       CeedChk(ierr);
@@ -778,9 +788,16 @@ static int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
     CeedVector vec;
     ierr = CeedOperatorFieldGetVector(opfields[i], &vec); CeedChk(ierr);
     if (vec == CEED_VECTOR_ACTIVE) {
+      CeedElemRestriction rstr;
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basisout); CeedChk(ierr);
-      ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &rstrout);
+      ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &rstr);
       CeedChk(ierr);
+      if (rstrout && rstrout != rstr)
+        // LCOV_EXCL_START
+        return CeedError(ceed, 1,
+                         "Multi-field non-composite operator diagonal assembly not supported");
+      // LCOV_EXCL_STOP
+      rstrout = rstr;
       CeedEvalMode emode;
       ierr = CeedQFunctionFieldGetEvalMode(qffields[i], &emode); CeedChk(ierr);
       switch (emode) {
@@ -812,8 +829,12 @@ static int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
 
   // Create diagonal vector
   CeedVector elemdiag;
-  ierr = CeedElemRestrictionCreateVector(diagrstr, assembled, &elemdiag);
+  ierr = CeedElemRestrictionCreateVector(diagrstr, NULL, &elemdiag);
   CeedChk(ierr);
+  if (createVector) {
+    ierr = CeedElemRestrictionCreateVector(diagrstr, assembled, NULL);
+    CeedChk(ierr);
+  }
 
   // Assemble element operator diagonals
   CeedScalar *elemdiagarray, *assembledqfarray;
@@ -893,7 +914,9 @@ static int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
   ierr = CeedVectorRestoreArray(assembledqf, &assembledqfarray); CeedChk(ierr);
 
   // Assemble local operator diagonal
-  ierr = CeedVectorSetValue(*assembled, 0.0); CeedChk(ierr);
+  if (createVector) {
+    ierr = CeedVectorSetValue(*assembled, 0.0); CeedChk(ierr);
+  }
   ierr = CeedElemRestrictionApply(diagrstr, CEED_TRANSPOSE, elemdiag,
                                   *assembled, request); CeedChk(ierr);
 
@@ -911,11 +934,38 @@ static int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
 }
 
 //------------------------------------------------------------------------------
+// Assemble composite diagonal common code
+//------------------------------------------------------------------------------
+static inline int CeedOperatorAssembleLinearDiagonalCompositeCore_Ref(
+  CeedOperator op, CeedVector *assembled, CeedRequest *request,
+  const bool pointBlock) {
+  int ierr;
+  CeedInt numSub;
+  CeedOperator *subOperators;
+  ierr = CeedOperatorGetNumSub(op, &numSub); CeedChk(ierr);
+  ierr = CeedOperatorGetSubList(op, &subOperators); CeedChk(ierr);
+  for (CeedInt i = 0; i < numSub; i++) {
+    ierr = CeedOperatorAssembleDiagonalCore_Ref(subOperators[i], assembled,
+           request, pointBlock, !i); CeedChk(ierr);
+  }
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Assemble Linear Diagonal
 //------------------------------------------------------------------------------
 static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
     CeedVector *assembled, CeedRequest *request) {
-  return CeedOperatorAssembleDiagonalCore_Ref(op, assembled, request, false);
+  int ierr;
+  bool isComposite;
+  ierr = CeedOperatorGetCompositeStatus(op, &isComposite); CeedChk(ierr);
+  if (isComposite) {
+    return CeedOperatorAssembleLinearDiagonalCompositeCore_Ref(op, assembled,
+           request, false);
+  } else {
+    return CeedOperatorAssembleDiagonalCore_Ref(op, assembled, request, false,
+           true);
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -923,7 +973,16 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
 //------------------------------------------------------------------------------
 static int CeedOperatorAssembleLinearPointBlockDiagonal_Ref(CeedOperator op,
     CeedVector *assembled, CeedRequest *request) {
-  return CeedOperatorAssembleDiagonalCore_Ref(op, assembled, request, true);
+  int ierr;
+  bool isComposite;
+  ierr = CeedOperatorGetCompositeStatus(op, &isComposite); CeedChk(ierr);
+  if (isComposite) {
+    return CeedOperatorAssembleLinearDiagonalCompositeCore_Ref(op, assembled,
+           request, true);
+  } else {
+    return CeedOperatorAssembleDiagonalCore_Ref(op, assembled, request, true,
+           true);
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -1190,6 +1249,23 @@ int CeedOperatorCreate_Ref(CeedOperator op) {
                                 CeedOperatorApply_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
                                 CeedOperatorDestroy_Ref); CeedChk(ierr);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+// Composite Operator Create
+//------------------------------------------------------------------------------
+int CeedCompositeOperatorCreate_Ref(CeedOperator op) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearDiagonal",
+                                CeedOperatorAssembleLinearDiagonal_Ref);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op,
+                                "AssembleLinearPointBlockDiagonal",
+                                CeedOperatorAssembleLinearPointBlockDiagonal_Ref);
+  CeedChk(ierr);
   return 0;
 }
 //------------------------------------------------------------------------------

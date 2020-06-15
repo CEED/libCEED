@@ -173,6 +173,8 @@ CEED_EXTERN int CeedOperatorGetNumQuadraturePoints(CeedOperator op,
 CEED_EXTERN int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs);
 CEED_EXTERN int CeedOperatorGetSetupStatus(CeedOperator op, bool *setupdone);
 CEED_EXTERN int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf);
+CEED_EXTERN int CeedOperatorGetCompositeStatus(CeedOperator op,
+    bool *isComposite);
 CEED_EXTERN int CeedOperatorGetNumSub(CeedOperator op, CeedInt *numsub);
 CEED_EXTERN int CeedOperatorGetSubList(CeedOperator op,
                                        CeedOperator **suboperators);

@@ -322,6 +322,22 @@ int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
 }
 
 /**
+  @brief Get a boolean value indicating if the CeedOperator is composite
+
+  @param op                CeedOperator
+  @param[out] isComposite  Variable to store composite status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorGetCompositeStatus(CeedOperator op, bool *isComposite) {
+  *isComposite = op->composite;
+  return 0;
+}
+
+/**
   @brief Get the number of suboperators associated with a CeedOperator
 
   @param op              CeedOperator
@@ -783,8 +799,8 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
 
   This returns a CeedVector containing the diagonal of a linear CeedOperator.
 
-  Note: Currently only non-composite CeedOperators with a single field are
-          supported.
+  Note: Currently only non-composite CeedOperators with a single field and
+          composite CeedOperators with single field sub-operators are supported.
 
   @param op             CeedOperator to assemble CeedQFunction
   @param[out] assembled CeedVector to store assembled CeedOperator diagonal
@@ -823,8 +839,8 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
   This returns a CeedVector containing the point block diagonal of a linear
     CeedOperator.
 
-  Note: Currently only non-composite CeedOperators with a single field are
-          supported.
+  Note: Currently only non-composite CeedOperators with a single field and
+          composite CeedOperators with single field sub-operators are supported.
 
   @param op             CeedOperator to assemble CeedQFunction
   @param[out] assembled CeedVector to store assembled CeedOperator point block
