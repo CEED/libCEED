@@ -70,6 +70,8 @@ There are several common layouts for **L-vectors**, **E-vectors**, and **Q-vecto
 
   * When the :ref:`CeedQFunction` field has ``emode`` ``CEED_EVAL_GRAD``, data for quadrature point ``i``, component ``j``, derivative ``k`` can be found in the **Q-vector** at index ``i + Q*j + Q*size*k``.
 
+  * Note that backend developers must take special care to ensure that the data in the **Q-vectors** for a field with ``emode`` ``CEED_EVAL_NONE`` is properly ordered when the backend uses different layouts for **E-vectors** and **Q-vectors**.
+
 
 Backend Inheritance
 ----------------------------------------
