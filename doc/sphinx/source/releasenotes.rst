@@ -16,6 +16,9 @@ Interface changes
 * Replace limited :code:`CeedInterlaceMode` with more flexible component stride :code:`compstride` in :code:`CeedElemRestriction` constructors.
   As a result, the :code:`indices` parameter has been replaced with :code:`offsets` and the :code:`nnodes` parameter has been replaced with :code:`lsize`.
   These changes improve support for mixed finite element methods.
+* Replace various uses of :code:`Ceed*Get*Status` with :code:`Ceed*Is*` in the backend API to match common nomenclature.
+* Replace :code:`CeedOperatorAssembleLinearDiagonal` with :cpp:func:`CeedOperatorLinearAssembleDiagonal` for clarity.
+* Linear Operators can be assembled as point-block diagonal matices with :cpp:func:`CeedOperatorLinearAssemblePointBlockDiagonal`, provided in row-major form in a :code:`ncomp` by :code:`ncomp` block per node.
 
 Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
