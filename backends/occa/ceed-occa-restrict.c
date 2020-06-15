@@ -226,7 +226,7 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
   CeedInt strides[3] = {1, elemsize, elemsize*ncomp};
   if (data->strided) {
     bool backendstrides;
-    ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
+    ierr = CeedElemRestrictionHasBackendStrides(r, &backendstrides);
     CeedChk(ierr);
     if (!backendstrides) {
       ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);

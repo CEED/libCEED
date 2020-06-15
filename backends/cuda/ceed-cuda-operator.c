@@ -100,12 +100,12 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
           // Check emode
           if (emode == CEED_EVAL_NONE) {
             // Check for strided restriction
-            ierr = CeedElemRestrictionGetStridedStatus(Erestrict, &strided);
+            ierr = CeedElemRestrictionIsStrided(Erestrict, &strided);
             CeedChk(ierr);
             if (strided) {
               // Check if vector is already in preferred backend ordering
-              ierr = CeedElemRestrictionGetBackendStridesStatus(Erestrict, &skiprestrict);
-              CeedChk(ierr);
+              ierr = CeedElemRestrictionHasBackendStrides(Erestrict,
+                  &skiprestrict); CeedChk(ierr);
             }
           }
         }
@@ -161,7 +161,7 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
 static int CeedOperatorSetup_Cuda(CeedOperator op) {
   int ierr;
   bool setupdone;
-  ierr = CeedOperatorGetSetupStatus(op, &setupdone); CeedChk(ierr);
+  ierr = CeedOperatorIsSetupDone(op, &setupdone); CeedChk(ierr);
   if (setupdone)
     return 0;
   Ceed ceed;
@@ -522,7 +522,7 @@ static int CeedOperatorAssembleLinearQFunction_Cuda(CeedOperator op,
 
   // Check for identity
   bool identityqf;
-  ierr = CeedQFunctionGetIdentityStatus(qf, &identityqf); CeedChk(ierr);
+  ierr = CeedQFunctionIsIdentity(qf, &identityqf); CeedChk(ierr);
   if (identityqf)
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Assembling identity QFunctions not supported");

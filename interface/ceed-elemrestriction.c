@@ -150,15 +150,14 @@ int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr,
   @brief Get the strided status of a CeedElemRestriction
 
   @param rstr             CeedElemRestriction
-  @param[out] status      Variable to store strided status, 1 if strided else 0
+  @param[out] isstrided   Variable to store strided status, 1 if strided else 0
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedElemRestrictionGetStridedStatus(CeedElemRestriction rstr,
-                                        bool *status) {
-  *status = rstr->strides ? 1 : 0;
+int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *isstrided) {
+  *isstrided = rstr->strides ? 1 : 0;
   return 0;
 }
 
@@ -172,16 +171,16 @@ int CeedElemRestrictionGetStridedStatus(CeedElemRestriction rstr,
 
   @ref Backend
 **/
-int CeedElemRestrictionGetBackendStridesStatus(CeedElemRestriction rstr,
-    bool *status) {
+int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr,
+    bool *hasbackendstrides) {
   if (!rstr->strides)
     // LCOV_EXCL_START
     return CeedError(rstr->ceed, 1, "ElemRestriction has no stride data");
   // LCOV_EXCL_STOP
 
-  *status = ((rstr->strides[0] == CEED_STRIDES_BACKEND[0]) &&
-             (rstr->strides[1] == CEED_STRIDES_BACKEND[1]) &&
-             (rstr->strides[2] == CEED_STRIDES_BACKEND[2]));
+  *hasbackendstrides = ((rstr->strides[0] == CEED_STRIDES_BACKEND[0]) &&
+                        (rstr->strides[1] == CEED_STRIDES_BACKEND[1]) &&
+                        (rstr->strides[2] == CEED_STRIDES_BACKEND[2]));
   return 0;
 }
 

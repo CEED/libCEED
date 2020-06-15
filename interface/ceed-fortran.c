@@ -789,7 +789,7 @@ void fCeedQFunctionApply(int *qf, int *Q,
     FORTRAN_NAME(ceedqfunctiondestroy,CEEDQFUNCTIONDESTROY)
 void fCeedQFunctionDestroy(int *qf, int *err) {
   bool fstatus;
-  *err = CeedQFunctionGetFortranStatus(CeedQFunction_dict[*qf], &fstatus);
+  *err = CeedQFunctionIsFortran(CeedQFunction_dict[*qf], &fstatus);
   if (*err) return;
   if (fstatus) {
     fContext *fctx = CeedQFunction_dict[*qf]->ctx;

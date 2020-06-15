@@ -94,7 +94,7 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
 static int CeedOperatorSetup_Ref(CeedOperator op) {
   int ierr;
   bool setupdone;
-  ierr = CeedOperatorGetSetupStatus(op, &setupdone); CeedChk(ierr);
+  ierr = CeedOperatorIsSetupDone(op, &setupdone); CeedChk(ierr);
   if (setupdone) return 0;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -104,7 +104,7 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
-  ierr = CeedQFunctionGetIdentityStatus(qf, &impl->identityqf); CeedChk(ierr);
+  ierr = CeedQFunctionIsIdentity(qf, &impl->identityqf); CeedChk(ierr);
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
@@ -958,7 +958,7 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
     CeedVector *assembled, CeedRequest *request) {
   int ierr;
   bool isComposite;
-  ierr = CeedOperatorGetCompositeStatus(op, &isComposite); CeedChk(ierr);
+  ierr = CeedOperatorIsComposite(op, &isComposite); CeedChk(ierr);
   if (isComposite) {
     return CeedOperatorAssembleLinearDiagonalCompositeCore_Ref(op, assembled,
            request, false);
@@ -975,7 +975,7 @@ static int CeedOperatorAssembleLinearPointBlockDiagonal_Ref(CeedOperator op,
     CeedVector *assembled, CeedRequest *request) {
   int ierr;
   bool isComposite;
-  ierr = CeedOperatorGetCompositeStatus(op, &isComposite); CeedChk(ierr);
+  ierr = CeedOperatorIsComposite(op, &isComposite); CeedChk(ierr);
   if (isComposite) {
     return CeedOperatorAssembleLinearDiagonalCompositeCore_Ref(op, assembled,
            request, true);
@@ -1037,7 +1037,7 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
 
   // Build and diagonalize 1D Mass and Laplacian
   bool tensorbasis;
-  ierr = CeedBasisGetTensorStatus(basis, &tensorbasis); CeedChk(ierr);
+  ierr = CeedBasisIsTensor(basis, &tensorbasis); CeedChk(ierr);
   if (!tensorbasis)
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "FDMElementInverse only supported for tensor "

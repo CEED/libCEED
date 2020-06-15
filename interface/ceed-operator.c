@@ -287,16 +287,16 @@ int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
 /**
   @brief Get the setup status of a CeedOperator
 
-  @param op             CeedOperator
-  @param[out] setupdone Variable to store setup status
+  @param op                CeedOperator
+  @param[out] issetupdone  Variable to store setup status
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
 
-int CeedOperatorGetSetupStatus(CeedOperator op, bool *setupdone) {
-  *setupdone = op->setupdone;
+int CeedOperatorIsSetupDone(CeedOperator op, bool *issetupdone) {
+  *issetupdone = op->setupdone;
   return 0;
 }
 
@@ -325,15 +325,15 @@ int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
   @brief Get a boolean value indicating if the CeedOperator is composite
 
   @param op                CeedOperator
-  @param[out] isComposite  Variable to store composite status
+  @param[out] iscomposite  Variable to store composite status
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
 
-int CeedOperatorGetCompositeStatus(CeedOperator op, bool *isComposite) {
-  *isComposite = op->composite;
+int CeedOperatorIsComposite(CeedOperator op, bool *iscomposite) {
+  *iscomposite = op->composite;
   return 0;
 }
 

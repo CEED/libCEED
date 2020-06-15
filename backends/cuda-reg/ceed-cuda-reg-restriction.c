@@ -342,10 +342,10 @@ int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype, CeedCopyMode cmode,
 
   // Stride data
   bool isStrided;
-  ierr = CeedElemRestrictionGetStridedStatus(r, &isStrided); CeedChk(ierr);
+  ierr = CeedElemRestrictionIsStrided(r, &isStrided); CeedChk(ierr);
   if (isStrided) {
     bool backendstrides;
-    ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
+    ierr = CeedElemRestrictionHasBackendStrides(r, &backendstrides);
     CeedChk(ierr);
     if (!backendstrides) {
       ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);

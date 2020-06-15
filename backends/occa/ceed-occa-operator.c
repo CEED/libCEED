@@ -180,7 +180,7 @@ static int CeedOperatorSetupFields_Occa(CeedQFunction qf, CeedOperator op,
 static int CeedOperatorSetup_Occa(CeedOperator op) {
   int ierr;
   bool setupdone;
-  ierr = CeedOperatorGetSetupStatus(op, &setupdone); CeedChk(ierr);
+  ierr = CeedOperatorIsSetupDone(op, &setupdone); CeedChk(ierr);
   if (setupdone) return 0;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
