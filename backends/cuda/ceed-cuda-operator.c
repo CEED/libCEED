@@ -105,7 +105,7 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
             if (strided) {
               // Check if vector is already in preferred backend ordering
               ierr = CeedElemRestrictionHasBackendStrides(Erestrict,
-                  &skiprestrict); CeedChk(ierr);
+                     &skiprestrict); CeedChk(ierr);
             }
           }
         }
