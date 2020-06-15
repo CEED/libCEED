@@ -1424,7 +1424,7 @@ int main(int argc, char **argv) {
   const CeedInt qdatasizeSur = problem->qdatasizeSur;
   CeedBasis basisxSur, basisxcSur, basisqSur;
   CeedInt NqptsSur;
-  CeedQFunction qf_setupSur, qf_Sur;
+  CeedQFunction qf_setupSur, qf_applySur;
 
   // CEED bases for the boundaries
   CeedBasisCreateTensorH1Lagrange(ceed, dimSur, ncompq, numP_Sur, numQ_Sur, CEED_GAUSS,
@@ -1443,23 +1443,23 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_setupSur, "qdataSur", qdatasizeSur, CEED_EVAL_NONE);
 
   // Creat Q-Function for Boundaries
-  qf_Sur = NULL;
+  qf_applySur = NULL;
   if (problem->applySur) {
     CeedQFunctionCreateInterior(ceed, 1, problem->applySur,
-                                problem->applySur_loc, &qf_Sur);
-    CeedQFunctionAddInput(qf_Sur, "q", ncompq, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_Sur, "qdataSur", qdatasizeSur, CEED_EVAL_NONE);
-    CeedQFunctionAddInput(qf_Sur, "x", ncompx, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(qf_Sur, "v", ncompq, CEED_EVAL_INTERP);
+                                problem->applySur_loc, &qf_applySur);
+    CeedQFunctionAddInput(qf_applySur, "q", ncompq, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_applySur, "qdataSur", qdatasizeSur, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qf_applySur, "x", ncompx, CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(qf_applySur, "v", ncompq, CEED_EVAL_INTERP);
   }
 
   // Create CEED Operator for the whole domain
   if (!implicit)
-    ierr = CreateOperatorForDomain(ceed, dm, &bc, wind_type, user->op_rhs_vol, qf_Sur, qf_setupSur,
+    ierr = CreateOperatorForDomain(ceed, dm, &bc, wind_type, user->op_rhs_vol, qf_applySur, qf_setupSur,
                                   height, numP_Sur, numQ_Sur, qdatasizeSur, NqptsSur, basisxSur,
                                   basisqSur, &user->op_rhs); CHKERRQ(ierr);
   if (implicit)
-    ierr = CreateOperatorForDomain(ceed, dm, &bc, wind_type, user->op_ifunction_vol, qf_Sur, qf_setupSur,
+    ierr = CreateOperatorForDomain(ceed, dm, &bc, wind_type, user->op_ifunction_vol, qf_applySur, qf_setupSur,
                                   height, numP_Sur, numQ_Sur, qdatasizeSur, NqptsSur, basisxSur,
                                   basisqSur, &user->op_ifunction); CHKERRQ(ierr);
   // Set up contex for QFunctions
@@ -1480,7 +1480,6 @@ int main(int argc, char **argv) {
     .wind[0] = wind[0],
     .wind[1] = wind[1],
     .wind[2] = wind[2],
-    .wind_type = wind_type,
     .implicit = implicit,
   };
   switch (problemChoice) {
@@ -1495,7 +1494,7 @@ int main(int argc, char **argv) {
           sizeof ctxAdvection2d);
     if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, &ctxAdvection2d,
           sizeof ctxAdvection2d);
-    if (qf_Sur) CeedQFunctionSetContext(qf_Sur, &ctxSurface, sizeof ctxSurface);
+    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxSurface, sizeof ctxSurface);
   }
 
   // Set up PETSc context
@@ -1716,7 +1715,7 @@ int main(int argc, char **argv) {
   CeedBasisDestroy(&basisxSur);
   CeedBasisDestroy(&basisxcSur);
   CeedQFunctionDestroy(&qf_setupSur);
-  CeedQFunctionDestroy(&qf_Sur);
+  CeedQFunctionDestroy(&qf_applySur);
   CeedOperatorDestroy(&user->op_rhs);
   CeedOperatorDestroy(&user->op_ifunction);
 
