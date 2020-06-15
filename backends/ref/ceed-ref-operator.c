@@ -483,7 +483,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
 //------------------------------------------------------------------------------
 // Assemble Linear QFunction
 //------------------------------------------------------------------------------
-static int CeedOperatorAssembleLinearQFunction_Ref(CeedOperator op,
+static int CeedOperatorLinearAssembleQFunction_Ref(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
   int ierr;
   CeedOperator_Ref *impl;
@@ -722,7 +722,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
   CeedChk(ierr);
   CeedVector assembledqf;
   CeedElemRestriction rstr;
-  ierr = CeedOperatorAssembleLinearQFunction(op,  &assembledqf, &rstr, request);
+  ierr = CeedOperatorLinearAssembleQFunction(op,  &assembledqf, &rstr, request);
   CeedChk(ierr);
   ierr = CeedElemRestrictionDestroy(&rstr); CeedChk(ierr);
   CeedScalar maxnorm = 0;
@@ -936,7 +936,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
 //------------------------------------------------------------------------------
 // Assemble composite diagonal common code
 //------------------------------------------------------------------------------
-static inline int CeedOperatorAssembleLinearDiagonalCompositeCore_Ref(
+static inline int CeedOperatorLinearAssembleDiagonalCompositeCore_Ref(
   CeedOperator op, CeedVector *assembled, CeedRequest *request,
   const bool pointBlock) {
   int ierr;
@@ -954,13 +954,13 @@ static inline int CeedOperatorAssembleLinearDiagonalCompositeCore_Ref(
 //------------------------------------------------------------------------------
 // Assemble Linear Diagonal
 //------------------------------------------------------------------------------
-static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
+static int CeedOperatorLinearAssembleDiagonal_Ref(CeedOperator op,
     CeedVector *assembled, CeedRequest *request) {
   int ierr;
   bool isComposite;
   ierr = CeedOperatorIsComposite(op, &isComposite); CeedChk(ierr);
   if (isComposite) {
-    return CeedOperatorAssembleLinearDiagonalCompositeCore_Ref(op, assembled,
+    return CeedOperatorLinearAssembleDiagonalCompositeCore_Ref(op, assembled,
            request, false);
   } else {
     return CeedOperatorAssembleDiagonalCore_Ref(op, assembled, request, false,
@@ -971,13 +971,13 @@ static int CeedOperatorAssembleLinearDiagonal_Ref(CeedOperator op,
 //------------------------------------------------------------------------------
 // Assemble Linear Point Block Diagonal
 //------------------------------------------------------------------------------
-static int CeedOperatorAssembleLinearPointBlockDiagonal_Ref(CeedOperator op,
+static int CeedOperatorLinearAssemblePointBlockDiagonal_Ref(CeedOperator op,
     CeedVector *assembled, CeedRequest *request) {
   int ierr;
   bool isComposite;
   ierr = CeedOperatorIsComposite(op, &isComposite); CeedChk(ierr);
   if (isComposite) {
-    return CeedOperatorAssembleLinearDiagonalCompositeCore_Ref(op, assembled,
+    return CeedOperatorLinearAssembleDiagonalCompositeCore_Ref(op, assembled,
            request, true);
   } else {
     return CeedOperatorAssembleDiagonalCore_Ref(op, assembled, request, true,
@@ -1082,7 +1082,7 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
   // Assemble QFunction
   CeedVector assembled;
   CeedElemRestriction rstr_qf;
-  ierr =  CeedOperatorAssembleLinearQFunction(op, &assembled, &rstr_qf,
+  ierr =  CeedOperatorLinearAssembleQFunction(op, &assembled, &rstr_qf,
           request); CeedChk(ierr);
   ierr = CeedElemRestrictionDestroy(&rstr_qf); CeedChk(ierr);
   CeedScalar maxnorm = 0;
@@ -1232,15 +1232,15 @@ int CeedOperatorCreate_Ref(CeedOperator op) {
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
-                                CeedOperatorAssembleLinearQFunction_Ref);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",
+                                CeedOperatorLinearAssembleQFunction_Ref);
   CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearDiagonal",
-                                CeedOperatorAssembleLinearDiagonal_Ref);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleDiagonal",
+                                CeedOperatorLinearAssembleDiagonal_Ref);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "AssembleLinearPointBlockDiagonal",
-                                CeedOperatorAssembleLinearPointBlockDiagonal_Ref);
+                                "LinearAssemblePointBlockDiagonal",
+                                CeedOperatorLinearAssemblePointBlockDiagonal_Ref);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "CreateFDMElementInverse",
                                 CeedOperatorCreateFDMElementInverse_Ref);
@@ -1259,12 +1259,12 @@ int CeedCompositeOperatorCreate_Ref(CeedOperator op) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearDiagonal",
-                                CeedOperatorAssembleLinearDiagonal_Ref);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleDiagonal",
+                                CeedOperatorLinearAssembleDiagonal_Ref);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "AssembleLinearPointBlockDiagonal",
-                                CeedOperatorAssembleLinearPointBlockDiagonal_Ref);
+                                "LinearAssemblePointBlockDiagonal",
+                                CeedOperatorLinearAssemblePointBlockDiagonal_Ref);
   CeedChk(ierr);
   return 0;
 }

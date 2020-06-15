@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_apply, "dv", Erestrictu, bu, CEED_VECTOR_ACTIVE);
 
   // Assemble diagonal
-  CeedOperatorAssembleLinearDiagonal(op_apply, &A, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorLinearAssembleDiagonal(op_apply, &A, CEED_REQUEST_IMMEDIATE);
 
   // Manually assemble diagonal
   CeedVectorCreate(ceed, ndofs, &U);

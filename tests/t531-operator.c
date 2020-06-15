@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
   CeedVectorRestoreArrayRead(v, &vv);
 
   // Assemble QFunction
-  CeedOperatorAssembleLinearQFunction(op_diff, &A, &Erestrictlini,
+  CeedOperatorLinearAssembleQFunction(op_diff, &A, &Erestrictlini,
                                       CEED_REQUEST_IMMEDIATE);
 
   // QFunction - apply assembled

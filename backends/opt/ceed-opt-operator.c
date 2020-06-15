@@ -531,7 +531,7 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
 //------------------------------------------------------------------------------
 // Assemble Linear QFunction
 //------------------------------------------------------------------------------
-static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
+static int CeedOperatorLinearAssembleQFunction_Opt(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
   int ierr;
   Ceed ceed;
@@ -758,8 +758,8 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
     return CeedError(ceed, 1, "Opt backend cannot use blocksize: %d", blksize);
   // LCOV_EXCL_STOP
 
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
-                                CeedOperatorAssembleLinearQFunction_Opt);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",
+                                CeedOperatorLinearAssembleQFunction_Opt);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                 CeedOperatorApply_Opt); CeedChk(ierr);

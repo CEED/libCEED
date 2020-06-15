@@ -522,7 +522,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
 // *****************************************************************************
 // * Assemble linear QFunction not supported
 // *****************************************************************************
-static int CeedOperatorAssembleLinearQFunction_Occa(CeedOperator op) {
+static int CeedOperatorLinearAssembleQFunction_Occa(CeedOperator op) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -532,7 +532,7 @@ static int CeedOperatorAssembleLinearQFunction_Occa(CeedOperator op) {
 // *****************************************************************************
 // * Assemble linear diagonal not supported
 // *****************************************************************************
-static int CeedOperatorAssembleLinearDiagonal_Occa(CeedOperator op) {
+static int CeedOperatorLinearAssembleDiagonal_Occa(CeedOperator op) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -543,7 +543,7 @@ static int CeedOperatorAssembleLinearDiagonal_Occa(CeedOperator op) {
 // *****************************************************************************
 // * Assemble linear point block diagonal not supported
 // *****************************************************************************
-static int CeedOperatorAssembleLinearPointBlockDiagonal_Occa(CeedOperator op) {
+static int CeedOperatorLinearAssemblePointBlockDiagonal_Occa(CeedOperator op) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -574,15 +574,15 @@ int CeedOperatorCreate_Occa(CeedOperator op) {
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
-                                CeedOperatorAssembleLinearQFunction_Occa);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",
+                                CeedOperatorLinearAssembleQFunction_Occa);
   CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearDiagonal",
-                                CeedOperatorAssembleLinearDiagonal_Occa);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleDiagonal",
+                                CeedOperatorLinearAssembleDiagonal_Occa);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "AssembleLinearPointBlockDiagonal",
-                                CeedOperatorAssembleLinearPointBlockDiagonal_Occa);
+                                "LinearAssemblePointBlockDiagonal",
+                                CeedOperatorLinearAssemblePointBlockDiagonal_Occa);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "CreateFDMElementInverse",
                                 CeedOperatorCreateFDMElementInverse_Occa);
