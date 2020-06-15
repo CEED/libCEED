@@ -72,7 +72,6 @@ struct SurfaceContext_ {
   CeedScalar rho_wind;
   CeedScalar strong_form;
   CeedScalar wind[3];
-  int wind_type; // See WindType: 0=ROTATION, 1=TRANSLATION
   PetscBool implicit;
 };
 #endif
@@ -515,8 +514,7 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
   const CeedScalar rho_wind = context->rho_wind;
   const CeedScalar strong_form = context->strong_form;
   const CeedScalar *wind = context->wind;
-  const CeedScalar gamma    = cp / cv;
-  const int wind_type = context->wind_type;
+  const CeedScalar gamma = cp / cv;
   const PetscBool implicit = context->implicit;
 
   CeedPragmaSIMD
@@ -556,14 +554,26 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
     for (CeedInt j=0; j<4; j++) {
       v[j][i] = 0;
     }
-    if (windDotNorm > 1E-8) {   // Outflow BC
-      if (!implicit) v[4][i] = -(1-strong_form) *wdetJb *E *u_n;
-      if ( implicit) v[4][i] =  (1-strong_form) *wdetJb *E *u_n;
-    } else if (windDotNorm < -1E-8) {   // Inflow BC
-      if (!implicit) v[4][i] =  (1-strong_form) *wdetJb *E_star *u_star;
-      if ( implicit) v[4][i] = -(1-strong_form) *wdetJb *E_star *u_star;
-    } else {         // No in/outflow
-      v[4][i] = 0;
+    // Implementing in/outflow BCs
+    switch (implicit) {
+    case 0: {  //explicit
+      if (windDotNorm >  1E-5) { // outflow
+        v[4][i] = -(1-strong_form) *wdetJb *E *u_n;
+      } else if (windDotNorm < -1E-5) { // inflow
+        v[4][i] = (1-strong_form) *wdetJb *E_star *u_star;
+      } else {
+        v[4][i] = 0;
+      }
+    } break;
+    case 1: {  //implicit
+      if (windDotNorm >  1E-5) { // outflow
+        v[4][i] = (1-strong_form) *wdetJb *E *u_n;
+      } else if (windDotNorm < -1E-5) { // inflow
+        v[4][i] = -(1-strong_form) *wdetJb *E_star *u_star;
+      } else {
+        v[4][i] = 0;
+      }
+    } break;
     }
   } // End Quadrature Point Loop
 
