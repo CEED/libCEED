@@ -51,7 +51,7 @@ There are several common layouts for **L-vectors**, **E-vectors**, and **Q-vecto
 * **L-vector** layouts
 
   * **L-vectors** described by a :ref:`CeedElemRestriction` have a layout described by the ``offsets`` array and ``compstride`` parameter.
-    Data for node ``i``, component ``j``, element ``k`` can be found in the **L-vector** at index ``offsets[i + j*elemsize] + k*compstride``.
+    Data for node ``i``, component ``j``, element ``k`` can be found in the **L-vector** at index ``offsets[i + k*elemsize] + j*compstride``.
 
   * **L-vectors** described by a strided :ref:`CeedElemRestriction` have a layout described by the ``strides`` array.
     Data for node ``i``, component ``j``, element ``k`` can be found in the **L-vector** at index ``i*strides[0] + j*strides[1] + k*strides[2]``.

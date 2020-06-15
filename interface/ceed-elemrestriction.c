@@ -294,7 +294,7 @@ const CeedElemRestriction CEED_ELEMRESTRICTION_NONE =
   @param compstride Stride between components for the same L-vector "node".
                       Data for node i, component j, element k can be found in
                       the L-vector at index
-                        offsets[i + j*elemsize] + k*compstride.
+                        offsets[i + k*elemsize] + j*compstride.
   @param lsize      The size of the L-vector. This vector may be larger than
                       the elements and fields given by this restriction.
   @param mtype      Memory type of the @a offsets array, see CeedMemType
@@ -426,7 +426,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   @param compstride Stride between components for the same L-vector "node".
                       Data for node i, component j, element k can be found in
                       the L-vector at index
-                        offsets[i + j*elemsize] + k*compstride.
+                        offsets[i + k*elemsize] + j*compstride.
   @param lsize      The size of the L-vector. This vector may be larger than
                       the elements and fields given by this restriction.
   @param mtype      Memory type of the @a offsets array, see CeedMemType
