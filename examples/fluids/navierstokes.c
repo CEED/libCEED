@@ -957,6 +957,10 @@ int main(int argc, char **argv) {
     ierr = PetscPrintf(comm, "Warning! Use -problem_advection_wind_translation only with -problem_advection_wind translation\n");
     CHKERRQ(ierr);
   }
+  if (wind_type == ADVECTION_WIND_TRANSLATION && problemChoice == NS_DENSITY_CURRENT) {
+        SETERRQ(comm, PETSC_ERR_ARG_INCOMP,
+                "-problem_advection_wind translation is not defined for -problem density_current");
+  }
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
