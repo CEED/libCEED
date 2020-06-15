@@ -157,7 +157,7 @@
      & bu,ceed_vector_active,err)
 
 ! Assemble Diagonal
-      call ceedoperatorassemblelineardiagonal(op_diff,a,&
+      call ceedoperatorlinearassemblediagonal(op_diff,a,&
      & ceed_request_immediate,err)
 
 ! Manually assemble diagonal

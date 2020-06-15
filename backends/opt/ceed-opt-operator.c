@@ -62,7 +62,7 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
       ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
 
       bool strided;
-      ierr = CeedElemRestrictionGetStridedStatus(r, &strided); CeedChk(ierr);
+      ierr = CeedElemRestrictionIsStrided(r, &strided); CeedChk(ierr);
       if (strided) {
         CeedInt strides[3];
         ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
@@ -132,7 +132,7 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
 static int CeedOperatorSetup_Opt(CeedOperator op) {
   int ierr;
   bool setupdone;
-  ierr = CeedOperatorGetSetupStatus(op, &setupdone); CeedChk(ierr);
+  ierr = CeedOperatorIsSetupDone(op, &setupdone); CeedChk(ierr);
   if (setupdone) return 0;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -145,7 +145,7 @@ static int CeedOperatorSetup_Opt(CeedOperator op) {
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
-  ierr = CeedQFunctionGetIdentityStatus(qf, &impl->identityqf); CeedChk(ierr);
+  ierr = CeedQFunctionIsIdentity(qf, &impl->identityqf); CeedChk(ierr);
   ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
@@ -531,7 +531,7 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
 //------------------------------------------------------------------------------
 // Assemble Linear QFunction
 //------------------------------------------------------------------------------
-static int CeedOperatorAssembleLinearQFunction_Opt(CeedOperator op,
+static int CeedOperatorLinearAssembleQFunction_Opt(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
   int ierr;
   Ceed ceed;
@@ -758,8 +758,8 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
     return CeedError(ceed, 1, "Opt backend cannot use blocksize: %d", blksize);
   // LCOV_EXCL_STOP
 
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
-                                CeedOperatorAssembleLinearQFunction_Opt);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",
+                                CeedOperatorLinearAssembleQFunction_Opt);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                 CeedOperatorApply_Opt); CeedChk(ierr);

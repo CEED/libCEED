@@ -734,7 +734,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   using std::string;
   int ierr;
   bool setupdone;
-  ierr = CeedOperatorGetSetupStatus(op, &setupdone); CeedChk(ierr);
+  ierr = CeedOperatorIsSetupDone(op, &setupdone); CeedChk(ierr);
   if (setupdone) return 0;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -795,7 +795,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       // Collect dim and Q1d
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
       bool isTensor;
-      ierr = CeedBasisGetTensorStatus(basis, &isTensor); CeedChk(ierr); 
+      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChk(ierr); 
       if (isTensor) {
         ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
       } else {
@@ -812,7 +812,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       // Collect dim and Q1d
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
       bool isTensor;
-      ierr = CeedBasisGetTensorStatus(basis, &isTensor); CeedChk(ierr); 
+      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChk(ierr); 
       if (isTensor) {
         ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
       } else {
@@ -1005,7 +1005,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "  CeedScalar r_u"<<i<<"[ncomp_in_"<<i<<"*P_in_"<<i<<"];\n";
       
       bool isStrided;
-      ierr = CeedElemRestrictionGetStridedStatus(Erestrict, &isStrided); CeedChk(ierr);
+      ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChk(ierr);
       if (!isStrided) {
         ierr = CeedElemRestrictionGetLVectorSize(Erestrict, &lsize);
         CeedChk(ierr);
@@ -1018,8 +1018,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "  readDofsOffset"<<dim<<"d<ncomp_in_"<<i<<", "<<compstride<<", P_in_"<<i<<">(data, lsize_in_"<<i<<", elem, indices.in["<<i<<"], d_u"<<i<<", r_u"<<i<<");\n";
       } else {
         bool backendstrides;
-        ierr = CeedElemRestrictionGetBackendStridesStatus(Erestrict,
-                                                          &backendstrides);
+        ierr = CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides);
         CeedChk(ierr);
         CeedInt strides[3] = {1, elemsize, elemsize*ncomp};
         if (!backendstrides) {
@@ -1108,7 +1107,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "  CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"];\n";
 
         bool isStrided;
-        ierr = CeedElemRestrictionGetStridedStatus(Erestrict, &isStrided); CeedChk(ierr);
+        ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChk(ierr);
         if (!isStrided) {
           ierr = CeedElemRestrictionGetLVectorSize(Erestrict, &lsize);
           CeedChk(ierr);
@@ -1121,8 +1120,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
           code << "  readSliceQuadsOffset"<<"3d<ncomp_in_"<<i<<", "<<compstride<<", Q1d>(data, lsize_in_"<<i<<", elem, q, indices.in["<<i<<"], d_u"<<i<<", r_q"<<i<<");\n";
         } else {
           bool backendstrides;
-          ierr = CeedElemRestrictionGetBackendStridesStatus(Erestrict,
-                                                            &backendstrides);
+          ierr = CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides);
           CeedChk(ierr);
           CeedInt strides[3] = {1, elemsize, elemsize*ncomp};
           if (!backendstrides) {
@@ -1286,7 +1284,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     }
     // Restriction
       bool isStrided;
-      ierr = CeedElemRestrictionGetStridedStatus(Erestrict, &isStrided); CeedChk(ierr);
+      ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChk(ierr);
     if (!isStrided) {
       ierr = CeedElemRestrictionGetLVectorSize(Erestrict, &lsize);
       CeedChk(ierr);
@@ -1299,8 +1297,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "  writeDofsOffset"<<dim<<"d<ncomp_out_"<<i<<", "<<compstride<<", P_out_"<<i<<">(data, lsize_out_"<<i<<", elem, indices.out["<<i<<"], r_v"<<i<<", d_v"<<i<<");\n";
     } else {
       bool backendstrides;
-      ierr = CeedElemRestrictionGetBackendStridesStatus(Erestrict,
-                                                        &backendstrides);
+      ierr = CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides);
       CeedChk(ierr);
       CeedInt strides[3] = {1, elemsize, elemsize*ncomp};
       if (!backendstrides) {

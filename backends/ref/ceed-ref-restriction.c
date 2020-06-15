@@ -41,7 +41,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
     // No offsets provided, Identity Restriction
     if (!impl->offsets) {
       bool backendstrides;
-      ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
+      ierr = CeedElemRestrictionHasBackendStrides(r, &backendstrides);
       CeedChk(ierr);
       if (backendstrides) {
         // CPU backend strides are {1, elemsize, elemsize*ncomp}
@@ -89,7 +89,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
     // No offsets provided, Identity Restriction
     if (!impl->offsets) {
       bool backendstrides;
-      ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
+      ierr = CeedElemRestrictionHasBackendStrides(r, &backendstrides);
       CeedChk(ierr);
       if (backendstrides) {
         // CPU backend strides are {1, elemsize, elemsize*ncomp}
@@ -336,7 +336,7 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
 
   // Offsets data
   bool isStrided;
-  ierr = CeedElemRestrictionGetStridedStatus(r, &isStrided); CeedChk(ierr);
+  ierr = CeedElemRestrictionIsStrided(r, &isStrided); CeedChk(ierr);
   if (!isStrided) {
     // Check indices for ref or memcheck backends
     Ceed parentCeed = ceed, currCeed = NULL;

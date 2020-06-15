@@ -715,7 +715,7 @@ static PetscErrorCode MatGetDiag(Mat A, Vec D) {
   const CeedScalar *diagArray;
 
   // -- Compute Diagonal
-  CeedOperatorAssembleLinearDiagonal(user->op, &ceedDiagVec,
+  CeedOperatorLinearAssembleDiagonal(user->op, &ceedDiagVec,
                                      CEED_REQUEST_IMMEDIATE);
 
   // -- Place in PETSc vector

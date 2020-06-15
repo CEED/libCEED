@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
   // LCOV_EXCL_STOP
 
   // Assemble QFunction
-  CeedOperatorAssembleLinearQFunction(op_apply, &A, &Erestrictlini,
+  CeedOperatorLinearAssembleQFunction(op_apply, &A, &Erestrictlini,
                                       CEED_REQUEST_IMMEDIATE);
 
   // QFunction - apply assembled

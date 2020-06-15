@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
 
   // Assemble QFunction
-  CeedOperatorAssembleLinearQFunction(op_mass, &A, &Erestrictlini,
+  CeedOperatorLinearAssembleQFunction(op_mass, &A, &Erestrictlini,
                                       CEED_REQUEST_IMMEDIATE);
 
   // Check output

@@ -145,7 +145,7 @@
       call ceedoperatorapply(op_setup,x,qdata,ceed_request_immediate,err)
 
 ! Assemble Diagonal
-      call ceedoperatorassemblelineardiagonal(op_mass,a,&
+      call ceedoperatorlinearassemblediagonal(op_mass,a,&
      & ceed_request_immediate,err)
 
 ! Manually assemble diagonal

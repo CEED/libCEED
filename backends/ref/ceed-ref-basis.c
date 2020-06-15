@@ -52,7 +52,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
       v[i] = (CeedScalar) 0.0;
   }
   bool tensorbasis;
-  ierr = CeedBasisGetTensorStatus(basis, &tensorbasis); CeedChk(ierr);
+  ierr = CeedBasisIsTensor(basis, &tensorbasis); CeedChk(ierr);
   // Tensor basis
   if (tensorbasis) {
     CeedInt P1d, Q1d;

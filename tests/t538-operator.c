@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
   CeedCompositeOperatorAddSub(op_apply, op_diff);
 
   // Assemble diagonal
-  CeedOperatorAssembleLinearDiagonal(op_apply, &A, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorLinearAssembleDiagonal(op_apply, &A, CEED_REQUEST_IMMEDIATE);
 
   // Manually assemble diagonal
   CeedVectorCreate(ceed, ndofs, &U);

@@ -212,7 +212,7 @@ PetscErrorCode GetDiag_Ceed(Mat A, Vec D) {
   // -- Compute Diagonal via libCEED
   CeedVector ceedDiagVec;
   const CeedScalar *diagArray;
-  CeedOperatorAssembleLinearDiagonal(user->op, &ceedDiagVec,
+  CeedOperatorLinearAssembleDiagonal(user->op, &ceedDiagVec,
                                      CEED_REQUEST_IMMEDIATE);
 
   // -- Reset physics context

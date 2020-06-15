@@ -287,16 +287,16 @@ int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
 /**
   @brief Get the setup status of a CeedOperator
 
-  @param op             CeedOperator
-  @param[out] setupdone Variable to store setup status
+  @param op                CeedOperator
+  @param[out] issetupdone  Variable to store setup status
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
 
-int CeedOperatorGetSetupStatus(CeedOperator op, bool *setupdone) {
-  *setupdone = op->setupdone;
+int CeedOperatorIsSetupDone(CeedOperator op, bool *issetupdone) {
+  *issetupdone = op->setupdone;
   return 0;
 }
 
@@ -325,15 +325,15 @@ int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
   @brief Get a boolean value indicating if the CeedOperator is composite
 
   @param op                CeedOperator
-  @param[out] isComposite  Variable to store composite status
+  @param[out] iscomposite  Variable to store composite status
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
 
-int CeedOperatorGetCompositeStatus(CeedOperator op, bool *isComposite) {
-  *isComposite = op->composite;
+int CeedOperatorIsComposite(CeedOperator op, bool *iscomposite) {
+  *iscomposite = op->composite;
   return 0;
 }
 
@@ -770,7 +770,7 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop, CeedOperator subop) {
 
   @ref User
 **/
-int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
+int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled,
                                         CeedElemRestriction *rstr,
                                         CeedRequest *request) {
   int ierr;
@@ -778,8 +778,8 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
   ierr = CeedOperatorCheckReady(ceed, op); CeedChk(ierr);
 
   // Backend version
-  if (op->AssembleLinearQFunction) {
-    ierr = op->AssembleLinearQFunction(op, assembled, rstr, request);
+  if (op->LinearAssembleQFunction) {
+    ierr = op->LinearAssembleQFunction(op, assembled, rstr, request);
     CeedChk(ierr);
   } else {
     // Fallback to reference Ceed
@@ -787,7 +787,7 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
       ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
     }
     // Assemble
-    ierr = op->opfallback->AssembleLinearQFunction(op->opfallback, assembled,
+    ierr = op->opfallback->LinearAssembleQFunction(op->opfallback, assembled,
            rstr, request); CeedChk(ierr);
   }
 
@@ -811,22 +811,22 @@ int CeedOperatorAssembleLinearQFunction(CeedOperator op, CeedVector *assembled,
 
   @ref User
 **/
-int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
+int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector *assembled,
                                        CeedRequest *request) {
   int ierr;
   Ceed ceed = op->ceed;
   ierr = CeedOperatorCheckReady(ceed, op); CeedChk(ierr);
 
   // Use backend version, if available
-  if (op->AssembleLinearDiagonal) {
-    ierr = op->AssembleLinearDiagonal(op, assembled, request); CeedChk(ierr);
+  if (op->LinearAssembleDiagonal) {
+    ierr = op->LinearAssembleDiagonal(op, assembled, request); CeedChk(ierr);
   } else {
     // Fallback to reference Ceed
     if (!op->opfallback) {
       ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
     }
     // Assemble
-    ierr = op->opfallback->AssembleLinearDiagonal(op->opfallback, assembled,
+    ierr = op->opfallback->LinearAssembleDiagonal(op->opfallback, assembled,
            request); CeedChk(ierr);
   }
 
@@ -856,7 +856,7 @@ int CeedOperatorAssembleLinearDiagonal(CeedOperator op, CeedVector *assembled,
 
   @ref User
 **/
-int CeedOperatorAssembleLinearPointBlockDiagonal(CeedOperator op,
+int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
     CeedVector *assembled,
     CeedRequest *request) {
   int ierr;
@@ -864,8 +864,8 @@ int CeedOperatorAssembleLinearPointBlockDiagonal(CeedOperator op,
   ierr = CeedOperatorCheckReady(ceed, op); CeedChk(ierr);
 
   // Use backend version, if available
-  if (op->AssembleLinearPointBlockDiagonal) {
-    ierr = op->AssembleLinearPointBlockDiagonal(op, assembled, request);
+  if (op->LinearAssemblePointBlockDiagonal) {
+    ierr = op->LinearAssemblePointBlockDiagonal(op, assembled, request);
     CeedChk(ierr);
   } else {
     // Fallback to reference Ceed
@@ -873,7 +873,7 @@ int CeedOperatorAssembleLinearPointBlockDiagonal(CeedOperator op,
       ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
     }
     // Assemble
-    ierr = op->opfallback->AssembleLinearPointBlockDiagonal(op->opfallback,
+    ierr = op->opfallback->LinearAssemblePointBlockDiagonal(op->opfallback,
            assembled, request); CeedChk(ierr);
   }
 

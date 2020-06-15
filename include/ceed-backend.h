@@ -91,10 +91,10 @@ CEED_EXTERN int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr,
     CeedMemType mtype, const CeedInt **offsets);
 CEED_EXTERN int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr,
     const CeedInt **offsets);
-CEED_EXTERN int CeedElemRestrictionGetStridedStatus(CeedElemRestriction rstr,
-    bool *status);
-CEED_EXTERN int CeedElemRestrictionGetBackendStridesStatus(
-  CeedElemRestriction rstr, bool *status);
+CEED_EXTERN int CeedElemRestrictionIsStrided(CeedElemRestriction rstr,
+    bool *isstrided);
+CEED_EXTERN int CeedElemRestrictionHasBackendStrides( CeedElemRestriction rstr,
+    bool *hasbackendstrides);
 CEED_EXTERN int CeedElemRestrictionGetELayout(CeedElemRestriction rstr,
     CeedInt (*layout)[3]);
 CEED_EXTERN int CeedElemRestrictionSetELayout(CeedElemRestriction rstr,
@@ -107,7 +107,7 @@ CEED_EXTERN int CeedElemRestrictionSetData(CeedElemRestriction rstr,
 CEED_EXTERN int CeedBasisGetCollocatedGrad(CeedBasis basis,
     CeedScalar *colograd1d);
 CEED_EXTERN int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed);
-CEED_EXTERN int CeedBasisGetTensorStatus(CeedBasis basis, bool *tensor);
+CEED_EXTERN int CeedBasisIsTensor(CeedBasis basis, bool *istensor);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void **data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void **data);
 
@@ -149,10 +149,8 @@ CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
 CEED_EXTERN int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize);
 CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, void **ctx);
 CEED_EXTERN int CeedQFunctionGetInnerContext(CeedQFunction qf, void **ctx);
-CEED_EXTERN int CeedQFunctionGetFortranStatus(CeedQFunction qf,
-    bool *fortranstatus);
-CEED_EXTERN int CeedQFunctionGetIdentityStatus(CeedQFunction qf,
-    bool *identity);
+CEED_EXTERN int CeedQFunctionIsFortran(CeedQFunction qf, bool *isfortran);
+CEED_EXTERN int CeedQFunctionIsIdentity(CeedQFunction qf, bool *isidentity);
 CEED_EXTERN int CeedQFunctionGetData(CeedQFunction qf, void **data);
 CEED_EXTERN int CeedQFunctionSetData(CeedQFunction qf, void **data);
 
@@ -171,10 +169,9 @@ CEED_EXTERN int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem);
 CEED_EXTERN int CeedOperatorGetNumQuadraturePoints(CeedOperator op,
     CeedInt *numqpts);
 CEED_EXTERN int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs);
-CEED_EXTERN int CeedOperatorGetSetupStatus(CeedOperator op, bool *setupdone);
+CEED_EXTERN int CeedOperatorIsSetupDone(CeedOperator op, bool *issetupdone);
 CEED_EXTERN int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf);
-CEED_EXTERN int CeedOperatorGetCompositeStatus(CeedOperator op,
-    bool *isComposite);
+CEED_EXTERN int CeedOperatorIsComposite(CeedOperator op, bool *iscomposite);
 CEED_EXTERN int CeedOperatorGetNumSub(CeedOperator op, CeedInt *numsub);
 CEED_EXTERN int CeedOperatorGetSubList(CeedOperator op,
                                        CeedOperator **suboperators);

@@ -789,7 +789,7 @@ void fCeedQFunctionApply(int *qf, int *Q,
     FORTRAN_NAME(ceedqfunctiondestroy,CEEDQFUNCTIONDESTROY)
 void fCeedQFunctionDestroy(int *qf, int *err) {
   bool fstatus;
-  *err = CeedQFunctionGetFortranStatus(CeedQFunction_dict[*qf], &fstatus);
+  *err = CeedQFunctionIsFortran(CeedQFunction_dict[*qf], &fstatus);
   if (*err) return;
   if (fstatus) {
     fContext *fctx = CeedQFunction_dict[*qf]->ctx;
@@ -900,8 +900,8 @@ void fCeedCompositeOperatorAddSub(int *compositeop, int *subop, int *err) {
   if (*err) return;
 }
 
-#define fCeedOperatorAssembleLinearQFunction FORTRAN_NAME(ceedoperatorassemblelinearqfunction, CEEDOPERATORASSEMBLELINEARQFUNCTION)
-void fCeedOperatorAssembleLinearQFunction(int *op, int *assembledvec,
+#define fCeedOperatorLinearAssembleQFunction FORTRAN_NAME(ceedoperatorlinearassembleqfunction, CEEDOPERATORLINEARASSEMBLEQFUNCTION)
+void fCeedOperatorLinearAssembleQFunction(int *op, int *assembledvec,
     int *assembledrstr, int *rqst, int *err) {
   // Vector
   if (CeedVector_count == CeedVector_count_max) {
@@ -934,7 +934,7 @@ void fCeedOperatorAssembleLinearQFunction(int *op, int *assembledvec,
   else if (*rqst == -2) rqst_ = CEED_REQUEST_ORDERED;
   else rqst_ = &CeedRequest_dict[CeedRequest_count];
 
-  *err = CeedOperatorAssembleLinearQFunction(CeedOperator_dict[*op],
+  *err = CeedOperatorLinearAssembleQFunction(CeedOperator_dict[*op],
          assembledvec_, rstr_, rqst_);
   if (*err) return;
   if (createRequest) {
@@ -950,8 +950,8 @@ void fCeedOperatorAssembleLinearQFunction(int *op, int *assembledvec,
   }
 }
 
-#define fCeedOperatorAssembleLinearDiagonal FORTRAN_NAME(ceedoperatorassemblelineardiagonal, CEEDOPERATORASSEMBLELINEARDIAGONAL)
-void fCeedOperatorAssembleLinearDiagonal(int *op, int *assembledvec,
+#define fCeedOperatorLinearAssembleDiagonal FORTRAN_NAME(ceedoperatorlinearassemblediagonal, CEEDOPERATORLINEARASSEMBLEDIAGONAL)
+void fCeedOperatorLinearAssembleDiagonal(int *op, int *assembledvec,
     int *rqst, int *err) {
   // Vector
   if (CeedVector_count == CeedVector_count_max) {
@@ -976,7 +976,7 @@ void fCeedOperatorAssembleLinearDiagonal(int *op, int *assembledvec,
   else if (*rqst == -2) rqst_ = CEED_REQUEST_ORDERED;
   else rqst_ = &CeedRequest_dict[CeedRequest_count];
 
-  *err = CeedOperatorAssembleLinearDiagonal(CeedOperator_dict[*op],
+  *err = CeedOperatorLinearAssembleDiagonal(CeedOperator_dict[*op],
          assembledvec_, rqst_);
   if (*err) return;
   if (createRequest) {

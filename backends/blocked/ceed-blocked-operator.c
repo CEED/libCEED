@@ -61,7 +61,7 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
       ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
 
       bool strided;
-      ierr = CeedElemRestrictionGetStridedStatus(r, &strided); CeedChk(ierr);
+      ierr = CeedElemRestrictionIsStrided(r, &strided); CeedChk(ierr);
       if (strided) {
         CeedInt strides[3];
         ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
@@ -130,7 +130,7 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
 static int CeedOperatorSetup_Blocked(CeedOperator op) {
   int ierr;
   bool setupdone;
-  ierr = CeedOperatorGetSetupStatus(op, &setupdone); CeedChk(ierr);
+  ierr = CeedOperatorIsSetupDone(op, &setupdone); CeedChk(ierr);
   if (setupdone) return 0;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -140,7 +140,7 @@ static int CeedOperatorSetup_Blocked(CeedOperator op) {
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
-  ierr = CeedQFunctionGetIdentityStatus(qf, &impl->identityqf); CeedChk(ierr);
+  ierr = CeedQFunctionIsIdentity(qf, &impl->identityqf); CeedChk(ierr);
   ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
@@ -520,7 +520,7 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
 //------------------------------------------------------------------------------
 // Assemble Linear QFunction
 //------------------------------------------------------------------------------
-static int CeedOperatorAssembleLinearQFunction_Blocked(CeedOperator op,
+static int CeedOperatorLinearAssembleQFunction_Blocked(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
   int ierr;
   CeedOperator_Blocked *impl;
@@ -736,8 +736,8 @@ int CeedOperatorCreate_Blocked(CeedOperator op) {
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "AssembleLinearQFunction",
-                                CeedOperatorAssembleLinearQFunction_Blocked);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",
+                                CeedOperatorLinearAssembleQFunction_Blocked);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                 CeedOperatorApply_Blocked); CeedChk(ierr);

@@ -250,15 +250,15 @@ int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed) {
 /**
   @brief Get tensor status for given CeedBasis
 
-  @param basis        CeedBasis
-  @param[out] tensor  Variable to store tensor status
+  @param basis          CeedBasis
+  @param[out] istensor  Variable to store tensor status
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedBasisGetTensorStatus(CeedBasis basis, bool *tensor) {
-  *tensor = basis->tensorbasis;
+int CeedBasisIsTensor(CeedBasis basis, bool *istensor) {
+  *istensor = basis->tensorbasis;
   return 0;
 }
 

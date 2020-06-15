@@ -146,7 +146,7 @@
       call ceedoperatorapply(op_setup,x,qdata,ceed_request_immediate,err)
 
 ! Assemble QFunction
-      call ceedoperatorassemblelinearqfunction(op_mass,a,erestrictlini,&
+      call ceedoperatorlinearassembleqfunction(op_mass,a,erestrictlini,&
      & ceed_request_immediate,err)
 
 ! Check Output

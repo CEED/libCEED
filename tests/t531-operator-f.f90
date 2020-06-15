@@ -195,7 +195,7 @@
       call ceedvectorrestorearrayread(v,vv,voffset,err)
 
 ! Assemble QFunction
-      call ceedoperatorassemblelinearqfunction(op_diff,a,erestrictlini,&
+      call ceedoperatorlinearassembleqfunction(op_diff,a,erestrictlini,&
      & ceed_request_immediate,err)
 
 ! QFunction - apply linearized

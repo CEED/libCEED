@@ -45,7 +45,7 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &dv); CeedChk(ierr);
 
   bool isStrided;
-  ierr = CeedElemRestrictionGetStridedStatus(r, &isStrided); CeedChk(ierr);
+  ierr = CeedElemRestrictionIsStrided(r, &isStrided); CeedChk(ierr);
 
   if (isStrided) {  // Strided Restriction
 
@@ -58,7 +58,7 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     //  (dimension = slowest index, then component, then element,
     //    then node)
     bool backendstrides;
-    ierr = CeedElemRestrictionGetBackendStridesStatus(r, &backendstrides);
+    ierr = CeedElemRestrictionHasBackendStrides(r, &backendstrides);
     CeedChk(ierr);
 
     if (backendstrides) {
