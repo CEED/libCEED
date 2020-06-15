@@ -194,7 +194,7 @@ int CeedElemRestrictionGetBackendStridesStatus(CeedElemRestriction rstr,
                             stored as [nodes, components, elements].
                             The data for node i, component j, element k in the
                             E-vector is given by
-                            i*strides[0] + j*strides[1] + k*strides[2]
+                            i*layout[0] + j*layout[1] + k*layout[2]
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -221,7 +221,7 @@ int CeedElemRestrictionGetELayout(CeedElemRestriction rstr,
                             stored as [nodes, components, elements].
                             The data for node i, component j, element k in the
                             E-vector is given by
-                            i*strides[0] + j*strides[1] + k*strides[2]
+                            i*layout[0] + j*layout[1] + k*layout[2]
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -292,8 +292,9 @@ const CeedElemRestriction CEED_ELEMRESTRICTION_NONE =
   @param ncomp      Number of field components per interpolation node
                       (1 for scalar fields)
   @param compstride Stride between components for the same L-vector "node".
-                      Data for node i, component k can be found in the L-vector
-                      at index [offsets[i] + k*compstride].
+                      Data for node i, component j, element k can be found in
+                      the L-vector at index
+                        offsets[i + j*elemsize] + k*compstride.
   @param lsize      The size of the L-vector. This vector may be larger than
                       the elements and fields given by this restriction.
   @param mtype      Memory type of the @a offsets array, see CeedMemType
@@ -355,14 +356,16 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   @param ceed       A Ceed object where the CeedElemRestriction will be created
   @param nelem      Number of elements described by the restriction
   @param elemsize   Size (number of "nodes") per element
-  @param ncomp      Number of field components per interpolation node
+  @param ncomp      Number of field components per interpolation "node"
                       (1 for scalar fields)
   @param lsize      The size of the L-vector. This vector may be larger than
                       the elements and fields given by this restriction.
   @param strides    Array for strides between [nodes, components, elements].
-                      The data for node i, component j, element k in the
-                      L-vector is given by
-                        i*strides[0] + j*strides[1] + k*strides[2]
+                      Data for node i, component j, element k can be found in
+                      the L-vector at index
+                        i*strides[0] + j*strides[1] + k*strides[2].
+                      @a CEED_STRIDES_BACKEND may be used with vectors created
+                      by a Ceed backend.
   @param rstr       Address of the variable where the newly created
                       CeedElemRestriction will be stored
 
@@ -421,8 +424,9 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   @param ncomp      Number of field components per interpolation node
                       (1 for scalar fields)
   @param compstride Stride between components for the same L-vector "node".
-                      Data for node i, component k can be found in the L-vector
-                      at index [offsets[i] + k*compstride].
+                      Data for node i, component j, element k can be found in
+                      the L-vector at index
+                        offsets[i + j*elemsize] + k*compstride.
   @param lsize      The size of the L-vector. This vector may be larger than
                       the elements and fields given by this restriction.
   @param mtype      Memory type of the @a offsets array, see CeedMemType
@@ -509,9 +513,11 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   @param lsize      The size of the L-vector. This vector may be larger than
                       the elements and fields given by this restriction.
   @param strides    Array for strides between [nodes, components, elements].
-                      The data for node i, component j, element k in the
-                      L-vector is given by
-                        i*strides[0] + j*strides[1] + k*strides[2]
+                      Data for node i, component j, element k can be found in
+                      the L-vector at index
+                        i*strides[0] + j*strides[1] + k*strides[2].
+                      @a CEED_STRIDES_BACKEND may be used with vectors created
+                      by a Ceed backend.
   @param rstr       Address of the variable where the newly created
                       CeedElemRestriction will be stored
 
