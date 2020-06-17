@@ -67,7 +67,7 @@ aas-journal: Astrophysical Journal <- The name of the AAS journal.
 # Summary
 
 High-order numerical methods are widely used in Partial Differential Equation (PDE) solvers, but software packages that provide high-performance implementations have often been special-purpose and intrusive.
-``libCEED`` is a new lightweight, open-source, matrix-free Finite Element library that offers a purely algebraic interface for efficient operator evaluation and preconditioning ingredients [@libceed-dev-site].
+``libCEED``, the Code for Efficient Extensible Discretizations, is a new lightweight, open-source, matrix-free Finite Element library that offers a purely algebraic interface for efficient operator evaluation and preconditioning ingredients [@libceed-dev-site].
 libCEED supports run-time selection of implementations tuned for a variety of computational architectures, including CPUs and GPUs, and can be unobtrusively integrated in new and legacy software to provide portable performance. We introduce libCEED’s conceptual framework and interface, and show examples of its integration with other packages, such as PETSc [@PETScUserManual], MFEM [@MFEMlibrary], and Nek5000 [@Nekwebsite].
 
 In finite element formulations, the weak form of a PDE is evaluated on a subdomain (element), and the local results are composed into a larger system of equations that models the entire problem.
@@ -118,7 +118,7 @@ GPU implementations are available via pure CUDA [@CUDAwebsite] as well as the OC
 
 # Performance Benchmarks
 
-The Center for Efficient Exascale Discretizations (CEED), part of the Exascale Computing Project (ECP) uses Benchmark Problems (BPs) to test and compare the performance of high-order finite element implementations. In Fig. \ref{fig:Skylakeselfxsmm}, we analyze the performance of libCEED's LIBXSMM backend on a Poisson's problem. We measure performance over 20 iterations of unpreconditioned Conjugate Gradient (CG) and plot throughput, versus execution time per iteration, for different values of the polynomial degree $p$.
+The Center for Efficient Exascale Discretizations (CEED), part of the Exascale Computing Project (ECP) uses Benchmark Problems (BPs) to test and compare the performance of high-order finite element implementations [@Fischer2020scalability]. In Fig. \ref{fig:Skylakeselfxsmm}, we analyze the performance of libCEED's LIBXSMM backend on a Poisson's problem. We measure performance over 20 iterations of unpreconditioned Conjugate Gradient (CG) and plot throughput, versus execution time per iteration, for different values of the polynomial degree $p$.
 
 ![\texttt{xsmm/serial} backend on a Skylake
 (2x Intel Xeon Platinum 8180M CPU 2.50GHz).\label{fig:Skylakeselfxsmm}](img/plot_libCEED_PETScBP3_cpuselfxsmmserial_N001_pn56_time.pdf)
@@ -126,6 +126,8 @@ The Center for Efficient Exascale Discretizations (CEED), part of the Exascale C
 # Applications
 
 To highlight the ease of library reuse for solver composition and leverage libCEED's full capability for real-world applications, libCEED comes with a suite of application examples, including problems of interest to the fluid dynamics and continuum mechanics communities.
+
+Examples of integration of libCEED with other packages in the co-design Center for Efficient Exascale Discretizations (CEED) [@CEEDwebsite], such as PETSc, MFEM, and Nek5000, can be found in the CEED distribution, which provides the full CEED software ecosystem [@CEEDMS25; @CEEDMS34].
 
 # Acknowledgements
 
