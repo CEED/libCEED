@@ -296,15 +296,13 @@ different wind types.
 
       \begin{aligned}
          P_* &= P_R\\
-         \rho_* &= \rho_L \left( \frac {P_*}{P_L} \right)^\frac{1}{\gamma}\\
-         T_* &= \frac{P_*}{R \, \rho_*}\\
          u_* &= u_R + \frac{2}{\gamma - 1} \sqrt{\gamma \frac{P_R}{\rho_R} } \left[ 1
          - \left( \frac{P_*}{P_R} \right)^\frac{\gamma - 1}{2 \gamma} \right]
       \end{aligned}
 
    where the subscripts :math:`*`, :math:`R`, and :math:`L` denote the values on the boundary, inside
-   the domain, and incoming wind, respectively. The computed variables :math:`P_*`, :math:`\rho_*`,
-   :math:`T_*`, and :math:`u_*` are applied weakly on the inflow boundaries.
+   the domain, and incoming wind, respectively. The computed variables :math:`P_*` and :math:`u_*` and,
+   a prescribed :math:`E_L` are applied weakly on the inflow boundaries.
 
    For the outflow boundary conditions, we have
    applied values from previous iteration, following :cite:`papanastasiou1992outflow` which extends the

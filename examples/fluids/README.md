@@ -40,8 +40,7 @@ Available runtime options are:
 | `-theta0`                             | Reference potential temperature                                                                 |
 | `-thetaC`                             | Perturbation of potential temperature                                                           |
 | `-P0`                                 | Atmospheric pressure                                                                            |
-| `-P_wind`                             | Inflow wind pressure                                                                            |
-| `-rho_wind`                           | Inflow wind density                                                                            |
+| `-E_wind`                             | Total energy of inflow wind                                                                     |
 | `-N`                                  | Brunt-Vaisala frequency                                                                         |
 | `-cv`                                 | Heat capacity at constant volume                                                                |
 | `-cp`                                 | Heat capacity at constant pressure                                                              |
