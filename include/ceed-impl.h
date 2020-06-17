@@ -119,6 +119,7 @@ struct Ceed_private {
   int (*OperatorCreate)(CeedOperator);
   int (*CompositeOperatorCreate)(CeedOperator);
   int refcount;
+  bool isDeterministic;
   void *data;
   foffset *foffsets;
 };

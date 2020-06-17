@@ -26,6 +26,7 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Ref backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
+  ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate",
                                 CeedVectorCreate_Ref); CeedChk(ierr);

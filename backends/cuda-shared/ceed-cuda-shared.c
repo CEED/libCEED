@@ -26,6 +26,7 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
   const int nrc = 9; // number of characters in resource
   if (strncmp(resource, "/gpu/cuda/shared", nrc))
     return CeedError(ceed, 1, "Cuda backend cannot use resource: %s", resource);
+  ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
 
   Ceed ceedreg;
   CeedInit("/gpu/cuda/reg", &ceedreg);

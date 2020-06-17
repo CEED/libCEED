@@ -503,6 +503,21 @@ int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent) {
 }
 
 /**
+  @brief Flag Ceed context as deterministic
+
+  @param ceed     Ceed to flag as deterministic
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedSetDeterministic(Ceed ceed, bool isDeterministic) {
+  ceed->isDeterministic = isDeterministic;
+  return 0;
+}
+
+/**
   @brief Set a backend function
 
   This function is used for a backend to set the function associated with
@@ -745,6 +760,21 @@ int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type) {
     }
   }
 
+  return 0;
+}
+
+/**
+  @brief Get deterministic status of Ceed
+
+  @param[in] ceed              Ceed
+  @param[out] isDeterministic  Variable to store deterministic status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedIsDeterministic(Ceed ceed, bool *isDeterministic) {
+  *isDeterministic = ceed->isDeterministic;
   return 0;
 }
 
