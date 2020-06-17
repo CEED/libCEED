@@ -45,8 +45,8 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
   // Macro definitions
   // Get kernel specific options, such as kernel constants
   const int optslen = 32;
-  const int optsextra = 2;
-  const char *opts[optsextra];
+  const int optssize = 2;
+  const char *opts[optssize];
   if (numopts > 0) {
     va_list args;
     va_start(args, numopts);
@@ -82,7 +82,7 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
   CeedChk_hiprtc(ceed, hiprtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
 
   // Compile kernel
-  hiprtcResult result = hiprtcCompileProgram(prog, numopts + optsextra, opts);
+  hiprtcResult result = hiprtcCompileProgram(prog, optssize, opts);
   if (result != HIPRTC_SUCCESS) {
     size_t logsize;
     CeedChk_hiprtc(ceed, hiprtcGetProgramLogSize(prog, &logsize));
