@@ -209,28 +209,29 @@ PetscErrorCode GetDiag_Ceed(Mat A, Vec D) {
     CeedQFunctionSetContext(user->qf, user->physSmoother,
                             sizeof(*user->physSmoother));
 
-  // -- Compute Diagonal via libCEED
-  CeedVector ceedDiagVec;
-  const CeedScalar *diagArray;
-  CeedOperatorLinearAssembleDiagonal(user->op, &ceedDiagVec,
+  // Compute Diagonal via libCEED
+  PetscScalar *x;
+
+  // -- Place PETSc vector in libCEED vector
+  ierr = VecGetArray(user->Xloc, &x); CHKERRQ(ierr);
+  CeedVectorSetArray(user->Xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
+
+  // -- Compute Diagonal
+  CeedOperatorLinearAssembleDiagonal(user->op, user->Xceed,
                                      CEED_REQUEST_IMMEDIATE);
+  CeedVectorSyncArray(user->Xceed, CEED_MEM_HOST);
 
   // -- Reset physics context
   if (user->physSmoother)
     CeedQFunctionSetContext(user->qf, user->phys, sizeof(*user->phys));
 
-  // -- Place in PETSc vector
-  CeedVectorGetArrayRead(ceedDiagVec, CEED_MEM_HOST, &diagArray);
-  ierr = VecPlaceArray(user->Xloc, diagArray); CHKERRQ(ierr);
-
   // -- Local-to-Global
+  ierr = VecRestoreArray(user->Xloc, &x); CHKERRQ(ierr);
   ierr = VecZeroEntries(D); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(user->dm, user->Xloc, ADD_VALUES, D); CHKERRQ(ierr);
 
-  // -- Cleanup
-  ierr = VecResetArray(user->Xloc); CHKERRQ(ierr);
-  CeedVectorRestoreArrayRead(ceedDiagVec, &diagArray);
-  CeedVectorDestroy(&ceedDiagVec);
+  // Cleanup
+  ierr = VecZeroEntries(user->Xloc); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 };

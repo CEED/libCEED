@@ -811,7 +811,7 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled,
 
   @ref User
 **/
-int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector *assembled,
+int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled,
                                        CeedRequest *request) {
   int ierr;
   Ceed ceed = op->ceed;
@@ -826,6 +826,7 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector *assembled,
       ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
     }
     // Assemble
+    ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
     ierr = op->opfallback->LinearAssembleDiagonal(op->opfallback, assembled,
            request); CeedChk(ierr);
   }
@@ -857,8 +858,7 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector *assembled,
   @ref User
 **/
 int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
-    CeedVector *assembled,
-    CeedRequest *request) {
+    CeedVector assembled, CeedRequest *request) {
   int ierr;
   Ceed ceed = op->ceed;
   ierr = CeedOperatorCheckReady(ceed, op); CeedChk(ierr);
@@ -873,6 +873,7 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
       ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
     }
     // Assemble
+    ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
     ierr = op->opfallback->LinearAssemblePointBlockDiagonal(op->opfallback,
            assembled, request); CeedChk(ierr);
   }
