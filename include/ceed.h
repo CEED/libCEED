@@ -488,7 +488,11 @@ CEED_EXTERN int CeedOperatorLinearAssembleQFunction(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssembleDiagonal(CeedOperator op,
     CeedVector assembled, CeedRequest *request);
+CEED_EXTERN int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op,
+    CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
+    CeedVector assembled, CeedRequest *request);
+CEED_EXTERN int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
     CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int CeedOperatorCreateFDMElementInverse(CeedOperator op,
     CeedOperator *fdminv, CeedRequest *request);

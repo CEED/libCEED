@@ -1225,11 +1225,11 @@ int CeedOperatorCreate_Ref(CeedOperator op) {
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",
                                 CeedOperatorLinearAssembleQFunction_Ref);
   CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleDiagonal",
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
                                 CeedOperatorLinearAssembleDiagonal_Ref);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "LinearAssemblePointBlockDiagonal",
+                                "LinearAssembleAddPointBlockDiagonal",
                                 CeedOperatorLinearAssemblePointBlockDiagonal_Ref);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "CreateFDMElementInverse",
@@ -1249,11 +1249,11 @@ int CeedCompositeOperatorCreate_Ref(CeedOperator op) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleDiagonal",
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
                                 CeedOperatorLinearAssembleDiagonal_Ref);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "LinearAssemblePointBlockDiagonal",
+                                "LinearAssembleAddPointBlockDiagonal",
                                 CeedOperatorLinearAssemblePointBlockDiagonal_Ref);
   CeedChk(ierr);
   return 0;
