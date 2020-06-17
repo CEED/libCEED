@@ -125,7 +125,7 @@ The Center for Efficient Exascale Discretizations (CEED), part of the Exascale C
 
 # Applications
 
-To highlight the ease of library reuse for solver composition and leverage libCEED's full capability for real-world applications, libCEED comes with a suite of application examples, including problems of interst to the fluid dynamics and continuum mechanics communities.
+To highlight the ease of library reuse for solver composition and leverage libCEED's full capability for real-world applications, libCEED comes with a suite of application examples, including problems of interest to the fluid dynamics and continuum mechanics communities.
 
 # Acknowledgements
 
