@@ -131,7 +131,6 @@ Examples of integration of libCEED with other packages in the co-design Center f
 
 # Acknowledgements
 
-We acknowledge the US Department of Energy (DOE) Exascale Computing Project (ECP)
-(17-SC-20-SC) and thank all collaborators.
+This research is supported by the Exascale Computing Project (17-SC-20-SC), a collaborative effort of two U.S. Department of Energy organizations (Office of Science and the National Nuclear Security Administration) responsible for the planning and preparation of a capable exascale ecosystem, including software, applications, hardware, advanced system engineering and early testbed platforms, in support of the nations exascale computing imperative.
 
 # References
