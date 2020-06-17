@@ -67,9 +67,7 @@ typedef struct SurfaceContext_ *SurfaceContext;
 struct SurfaceContext_ {
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar Rd;
-  CeedScalar P_wind;
-  CeedScalar rho_wind;
+  CeedScalar E_wind;
   CeedScalar strong_form;
   CeedScalar wind[3];
   PetscBool implicit;
@@ -470,8 +468,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
 // This QFunction implements consistent outflow and inflow BCs
 //      for 3D advection
 //
-//  dot(wind, normal) is computed and based on its sign, it is determined
-//    whether the face is outflow or inflow.
+//  Inflow and outflow faces are determined based on sign(dot(wind, normal)):
 //    sign(dot(wind, normal)) > 0 : outflow BCs
 //    sign(dot(wind, normal)) < 0 : inflow BCs
 //
@@ -488,12 +485,11 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
 //
 //    The Riemann problem is implemented for the inflow BCs:
 //      P_star = P
-//      rho_star = ( P_star / P_L ) ^ ( 1/gamma )
-//      T_star = P_star / ( R rho_star )
 //      u_star = u + 2 sqrt(gamma P/rho) *
 //                (1 - (P_star/P)^((gamma-1)/2 gamma)) / (gamma-1)
 //
-//    The above values are applied weakly on the inflow boundary faces.
+//    u_star and a prescribed E_wind are applied weakly
+//      on the inflow boundaries.
 //
 // *****************************************************************************
 CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
@@ -509,9 +505,7 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
   SurfaceContext context = (SurfaceContext)ctx;
   const CeedScalar cv = context->cv;
   const CeedScalar cp = context->cp;
-  const CeedScalar Rd = context->Rd;
-  const CeedScalar P_wind = context->P_wind;
-  const CeedScalar rho_wind = context->rho_wind;
+  const CeedScalar E_wind = context->E_wind;
   const CeedScalar strong_form = context->strong_form;
   const CeedScalar *wind = context->wind;
   const CeedScalar gamma = cp / cv;
@@ -546,9 +540,6 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
     // P_star = P, so the incoming nonlinear wave has amplitude zero
     const CeedScalar P_star   = (E - ke * rho) * (gamma - 1.);
     const CeedScalar u_star   = u_n + 2.*sqrt(fabs(gamma*P_star/rho))/(gamma - 1.);
-    const CeedScalar rho_star = rho_wind * pow(fabs(P_star/P_wind), (1./gamma));
-    const CeedScalar T_star   = P_star/(Rd*rho_star);
-    const CeedScalar E_star   = rho_star * (cv*T_star + u_star*u_star/2.);
 
     // No Change in density or momentum
     for (CeedInt j=0; j<4; j++) {
@@ -560,7 +551,7 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
       if (windDotNorm >  1E-5) { // outflow
         v[4][i] = -(1-strong_form) *wdetJb *E *u_n;
       } else if (windDotNorm < -1E-5) { // inflow
-        v[4][i] = (1-strong_form) *wdetJb *E_star *u_star;
+        v[4][i] = (1-strong_form) *wdetJb *E_wind *u_star;
       } else {
         v[4][i] = 0;
       }
@@ -569,7 +560,7 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
       if (windDotNorm >  1E-5) { // outflow
         v[4][i] = (1-strong_form) *wdetJb *E *u_n;
       } else if (windDotNorm < -1E-5) { // inflow
-        v[4][i] = -(1-strong_form) *wdetJb *E_star *u_star;
+        v[4][i] = -(1-strong_form) *wdetJb *E_wind *u_star;
       } else {
         v[4][i] = 0;
       }

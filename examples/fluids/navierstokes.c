@@ -241,6 +241,7 @@ struct Units_ {
   PetscScalar kgpercubicm;
   PetscScalar kgpersquaredms;
   PetscScalar Joulepercubicm;
+  PetscScalar Joule;
 };
 
 typedef struct SimpleBC_ *SimpleBC;
@@ -863,7 +864,7 @@ int main(int argc, char **argv) {
   CeedScalar Rd;
   CeedMemType memtyperequested;
   PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
-              kgpersquaredms, Joulepercubicm;
+              kgpersquaredms, Joulepercubicm, Joule;
   problemType problemChoice;
   problemData *problem = NULL;
   WindType wind_type;
@@ -895,8 +896,7 @@ int main(int argc, char **argv) {
   CeedScalar theta0      = 300.;     // K
   CeedScalar thetaC      = -15.;     // K
   CeedScalar P0          = 1.e5;     // Pa
-  CeedScalar P_wind      = 1.5e5;    // Pa
-  CeedScalar rho_wind    = 1.2;      // Kg/m^3
+  CeedScalar E_wind      = 1.e6;     // J
   CeedScalar N           = 0.01;     // 1/s
   CeedScalar cv          = 717.;     // J/(kg K)
   CeedScalar cp          = 1004.;    // J/(kg K)
@@ -1021,10 +1021,8 @@ int main(int argc, char **argv) {
                             NULL, thetaC, &thetaC, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-P0", "Atmospheric pressure",
                             NULL, P0, &P0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-P_wind", "Inflow wind pressure",
-                            NULL, P_wind, &P_wind, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-rho_wind", "Inflow wind density",
-                            NULL, rho_wind, &rho_wind, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
+                            NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-N", "Brunt-Vaisala frequency",
                             NULL, N, &N, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-cv", "Heat capacity at constant volume",
@@ -1124,13 +1122,13 @@ int main(int argc, char **argv) {
   kgpercubicm = kilogram / pow(meter,3);
   kgpersquaredms = kilogram / (PetscSqr(meter) * second);
   Joulepercubicm = kilogram / (meter * PetscSqr(second));
+  Joule = kilogram * PetscSqr(meter) / PetscSqr(second);
 
   // Scale variables to desired units
   theta0 *= Kelvin;
   thetaC *= Kelvin;
   P0 *= Pascal;
-  P_wind *= Pascal;
-  rho_wind *= kgpercubicm;
+  E_wind *= Joule;
   N *= (1./second);
   cv *= JperkgK;
   cp *= JperkgK;
@@ -1473,9 +1471,7 @@ int main(int argc, char **argv) {
   struct SurfaceContext_ ctxSurface = {
     .cv = cv,
     .cp = cp,
-    .Rd = Rd,
-    .P_wind = P_wind,
-    .rho_wind = rho_wind,
+    .E_wind = E_wind,
     .strong_form = strong_form,
     .wind[0] = wind[0],
     .wind[1] = wind[1],
@@ -1510,6 +1506,7 @@ int main(int argc, char **argv) {
   units->kgpercubicm = kgpercubicm;
   units->kgpersquaredms = kgpersquaredms;
   units->Joulepercubicm = Joulepercubicm;
+  units->Joule = Joule;
 
   // Set up user structure
   user->comm = comm;
