@@ -280,7 +280,13 @@ different wind types.
    In this case, a uniform circular velocity field transports the blob of total energy. We have
    solved :math:numref:`eq-advection` with zero energy density :math:`E`, and no-flux for :math:`\bm{u}`.
 
-   This wind type can be selected using the option ``-problem_advection_wind rotation``.
+   The :math:`3D` version of this test case can be run with::
+
+      ./navierstokes -problem advection -problem_advection_wind rotation
+
+   while the :math:`2D` version with::
+
+      ./navierstokes -problem advection2d -problem_advection_wind rotation
 
 - **Translation**
 
@@ -309,16 +315,13 @@ different wind types.
    validity of the weak form of the governing equations to the synthetic outflow instead of replacing them
    with unknown essential or natural boundary conditions.
 
-   This wind type can be selected using the option ``-problem_advection_wind translation`` and the default
-   velocity field :math:`(1,0,0)` can be changed using the option ``-problem_advection_wind_translation``.
+   The :math:`3D` version of this test case problem can be run with::
 
-The :math:`3D` version of this problem can be run with::
+      ./navierstokes -problem advection -problem_advection_wind translation -problem_advection_wind translation .5,-1,0
 
-   ./navierstokes -problem advection
+   while the :math:`2D` version with::
 
-while the :math:`2D` version with::
-
-   ./navierstokes -problem advection2d
+      ./navierstokes -problem advection2d -problem_advection_wind translation -problem_advection_wind translation 1,-.5
 
 
 .. _problem-density-current:
