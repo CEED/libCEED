@@ -1469,13 +1469,8 @@ int main(int argc, char **argv) {
     .stabilization = stab,
   };
   struct SurfaceContext_ ctxSurface = {
-    .cv = cv,
-    .cp = cp,
     .E_wind = E_wind,
     .strong_form = strong_form,
-    .wind[0] = wind[0],
-    .wind[1] = wind[1],
-    .wind[2] = wind[2],
     .implicit = implicit,
   };
   switch (problemChoice) {
