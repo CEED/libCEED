@@ -278,7 +278,8 @@ different wind types.
 - **Rotation**
 
    In this case, a uniform circular velocity field transports the blob of total energy. We have
-   solved :math:numref:`eq-advection` with zero energy density :math:`E`, and no-flux for :math:`\bm{u}`.
+   solved :math:numref:`eq-advection` applying zero energy density :math:`E`, and no-flux for
+   :math:`\bm{u}` on the boundaries.
 
    The :math:`3D` version of this test case can be run with::
 
@@ -290,30 +291,23 @@ different wind types.
 
 - **Translation**
 
-   In this case, a background wind with a constant velocity field, enters the domain and compels
-   the blob of total energy to leave the domain.
+   In this case, a background wind with a constant rectilinear velocity field, enters the domain and transports
+   the blob of total energy out of the domain.
 
-   For the inflow boundary conditions, we have followed :cite:`kyncl2017riemann` which offers solution
-   to a modified Riemann problem by preference of pressure (:math:`P`). We have chosen the pressure on
-   the boundary to be equal to the one inside the domain, so the incoming nonlinear wave has no amplitude.
-   The boundary values are computed as following
+   For the inflow boundary conditions, a prescribed :math:`E_{wind}` is applied weakly on the inflow boundaries
+   such that the weak form boundary integral in :math:numref:`eq-weak-vector-ns` is defined as
 
    .. math::
+      \int_{\partial \Omega_{inflow}} \bm v \cdot \bm{F}(\bm q_N) \cdot \widehat{\bm{n}} \,dS = \int_{\partial \Omega_{inflow}} \bm v \, E_{wind} \, \bm u \cdot \widehat{\bm{n}} \,dS  \, ,
 
-      \begin{aligned}
-         P_* &= P_R\\
-         u_* &= u_R + \frac{2}{\gamma - 1} \sqrt{\gamma \frac{P_R}{\rho_R} } \left[ 1
-         - \left( \frac{P_*}{P_R} \right)^\frac{\gamma - 1}{2 \gamma} \right]
-      \end{aligned}
+   For the outflow boundary conditions, we have used the current values of :math:`E`, following
+   :cite:`papanastasiou1992outflow` which extends the validity of the weak form of the governing
+   equations to the outflow instead of replacing them with unknown essential or natural
+   boundary conditions. The weak form boundary integral in :math:numref:`eq-weak-vector-ns` for
+   outflow boundary conditions is defined as
 
-   where the subscripts :math:`*`, :math:`R`, and :math:`L` denote the values on the boundary, inside
-   the domain, and incoming wind, respectively. The computed variables :math:`P_*` and :math:`u_*` and,
-   a prescribed :math:`E_L` are applied weakly on the inflow boundaries.
-
-   For the outflow boundary conditions, we have
-   applied values from previous iteration, following :cite:`papanastasiou1992outflow` which extends the
-   validity of the weak form of the governing equations to the synthetic outflow instead of replacing them
-   with unknown essential or natural boundary conditions.
+   .. math::
+      \int_{\partial \Omega_{outflow}} \bm v \cdot \bm{F}(\bm q_N) \cdot \widehat{\bm{n}} \,dS = \int_{\partial \Omega_{outflow}} \bm v \, E \, \bm u \cdot \widehat{\bm{n}} \,dS  \, ,
 
    The :math:`3D` version of this test case problem can be run with::
 
