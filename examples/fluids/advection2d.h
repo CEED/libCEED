@@ -452,7 +452,10 @@ CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
                                     };
     const CeedScalar E          =    q[4][i];
     // -- Interp-to-Interp qdata
-    const CeedScalar wdetJb     =    qdataSur[0][i];
+    // For explicit mode, the surface integral is on the RHS of ODE qdot = f(q).
+    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(qdot, q).
+    // We can effect this by swapping the sign on this weight
+    const CeedScalar wdetJb     =    (implicit ? -1. : 1.) * qdataSur[0][i];
     // ---- Normal vectors
     const CeedScalar norm[2]    =   {qdataSur[1][i],
                                      qdataSur[2][i]
@@ -464,26 +467,12 @@ CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
     for (CeedInt j=0; j<4; j++) {
       v[j][i] = 0;
     }
+
     // Implementing in/outflow BCs
-    switch (implicit) {
-    case 0: {  //explicit
-      if (u_n >  1E-5) { // outflow
-        v[4][i] = -(1-strong_form) *wdetJb *E *u_n;
-      } else if (u_n < -1E-5) { // inflow
-        v[4][i] = (1-strong_form) *wdetJb *E_wind *u_n;
-      } else {
-        v[4][i] = 0;
-      }
-    } break;
-    case 1: {  //implicit
-      if (u_n >  1E-5) { // outflow
-        v[4][i] = (1-strong_form) *wdetJb *E *u_n;
-      } else if (u_n < -1E-5) { // inflow
-        v[4][i] = -(1-strong_form) *wdetJb *E_wind *u_n;
-      } else {
-        v[4][i] = 0;
-      }
-    } break;
+    if (u_n > 0) { // outflow
+      v[4][i] = -(1 - strong_form) * wdetJb * E * u_n;
+    } else { // inflow
+      v[4][i] = -(1 - strong_form) * wdetJb * E_wind * u_n;
     }
   } // End Quadrature Point Loop
   return 0;
