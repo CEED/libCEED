@@ -18,7 +18,6 @@
 # Test Ceed QFunction functionality
 
 import os
-import glob
 import ctypes
 import libceed
 import numpy as np
@@ -28,15 +27,13 @@ import check
 # Utility
 #-------------------------------------------------------------------------------
 def load_qfs_so():
-  # Filename
-  file_dir = os.path.dirname(os.path.abspath(__file__))
+  from distutils.sysconfig import get_config_var
 
-  # Rename, if needed
-  qfs_so = glob.glob(os.path.join(file_dir, "libceed_qfunctions.*.so"))
-  assert len(qfs_so) == 1, "Did not find unique file {}".format(qfs_so)
+  file_dir = os.path.dirname(os.path.abspath(__file__))
+  qfs_so = os.path.join(file_dir, "libceed_qfunctions" + get_config_var("EXT_SUFFIX"))
 
   # Load library
-  return ctypes.cdll.LoadLibrary(qfs_so[0])
+  return ctypes.cdll.LoadLibrary(qfs_so)
 
 #-------------------------------------------------------------------------------
 # Test creation, evaluation, and destruction for qfunction
