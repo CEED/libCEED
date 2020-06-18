@@ -145,6 +145,7 @@
       call ceedoperatorapply(op_setup,x,qdata,ceed_request_immediate,err)
 
 ! Assemble Diagonal
+      call ceedvectorcreate(ceed,ndofs,a,err)
       call ceedoperatorlinearassemblediagonal(op_mass,a,&
      & ceed_request_immediate,err)
 

@@ -91,7 +91,8 @@ int main(int argc, char **argv) {
   CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
 
   // Assemble diagonal
-  CeedOperatorLinearAssemblePointBlockDiagonal(op_mass, &A,
+  CeedVectorCreate(ceed, ncomp*ncomp*ndofs, &A);
+  CeedOperatorLinearAssemblePointBlockDiagonal(op_mass, A,
       CEED_REQUEST_IMMEDIATE);
 
   // Manually assemble diagonal

@@ -19,6 +19,8 @@ Interface changes
 * Replace various uses of :code:`Ceed*Get*Status` with :code:`Ceed*Is*` in the backend API to match common nomenclature.
 * Replace :code:`CeedOperatorAssembleLinearDiagonal` with :cpp:func:`CeedOperatorLinearAssembleDiagonal` for clarity.
 * Linear Operators can be assembled as point-block diagonal matices with :cpp:func:`CeedOperatorLinearAssemblePointBlockDiagonal`, provided in row-major form in a :code:`ncomp` by :code:`ncomp` block per node.
+* Diagonal assemble interface changed to accept a :ref:`CeedVector` instead of a pointer to a :ref:`CeedVector` to reduce memory movement when interfacing with calling code.
+* Added :cpp:func:`CeedOperatorLinearAssembleAddDiagonal` and :cpp:func:`CeedOperatorLinearAssembleAddPointBlockDiagonal` for improved future integration with codes such as MFEM that compose the action of :ref:`CeedOperator`\s external to libCEED.
 
 Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
