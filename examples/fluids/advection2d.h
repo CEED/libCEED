@@ -422,18 +422,7 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
 //    are applied.
 //
 //  Inflow BCs:
-//    Subscripts of the variables:
-//      star  = on the inlet (inflow boundary face)
-//      wind  = inflow wind
-//       -    = inside the domain
-//
-//    The Riemann problem is implemented for the inflow BCs:
-//      P_star = P
-//      u_star = u + 2 sqrt(gamma P/rho) *
-//                (1 - (P_star/P)^((gamma-1)/2 gamma)) / (gamma-1)
-//
-//    u_star and a prescribed E_wind are applied weakly
-//      on the inflow boundaries.
+//    A prescribed Total Energy (E_wind) is applied weakly.
 //
 // *****************************************************************************
 CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
@@ -447,12 +436,8 @@ CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
   SurfaceContext context = (SurfaceContext)ctx;
-  const CeedScalar cv = context->cv;
-  const CeedScalar cp = context->cp;
   const CeedScalar E_wind = context->E_wind;
   const CeedScalar strong_form = context->strong_form;
-  const CeedScalar *wind = context->wind;
-  const CeedScalar gamma = cp / cv;
   const PetscBool implicit = context->implicit;
 
   CeedPragmaSIMD
@@ -472,16 +457,8 @@ CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
     const CeedScalar norm[2]    =   {qdataSur[1][i],
                                      qdataSur[2][i]
                                     };
-    // windDotNorm = dot(velocity, normal)
-    const CeedScalar windDotNorm = norm[0]*wind[0] + norm[1]*wind[1];
     // Normal velocity
     const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1];
-    // ke = kinetic energy inside the domain
-    const CeedScalar ke  = (u[0]*u[0] + u[1]*u[1]) / 2.;
-    // -- Values on inflow boundaries
-    // P_star = P, so the incoming nonlinear wave has amplitude zero
-    const CeedScalar P_star   = (E - ke * rho) * (gamma - 1.);
-    const CeedScalar u_star   = u_n + 2.*sqrt(fabs(gamma*P_star/rho))/(gamma - 1.);
 
     // No Change in density or momentum
     for (CeedInt j=0; j<4; j++) {
@@ -490,19 +467,19 @@ CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
     // Implementing in/outflow BCs
     switch (implicit) {
     case 0: {  //explicit
-      if (windDotNorm >  1E-5) { // outflow
+      if (u_n >  1E-5) { // outflow
         v[4][i] = -(1-strong_form) *wdetJb *E *u_n;
-      } else if (windDotNorm < -1E-5) { // inflow
-        v[4][i] = (1-strong_form) *wdetJb *E_wind *u_star;
+      } else if (u_n < -1E-5) { // inflow
+        v[4][i] = (1-strong_form) *wdetJb *E_wind *u_n;
       } else {
         v[4][i] = 0;
       }
     } break;
     case 1: {  //implicit
-      if (windDotNorm >  1E-5) { // outflow
+      if (u_n >  1E-5) { // outflow
         v[4][i] = (1-strong_form) *wdetJb *E *u_n;
-      } else if (windDotNorm < -1E-5) { // inflow
-        v[4][i] = -(1-strong_form) *wdetJb *E_wind *u_star;
+      } else if (u_n < -1E-5) { // inflow
+        v[4][i] = -(1-strong_form) *wdetJb *E_wind *u_n;
       } else {
         v[4][i] = 0;
       }
