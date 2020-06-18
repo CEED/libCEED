@@ -35,7 +35,7 @@
 //     ./bpsraw -problem bp5 -ceed /omp/occa
 //     ./bpsraw -problem bp6 -ceed /ocl/occa
 //
-//TESTARGS -ceed {ceed_resource} -test -problem bp2 -degree 5 -qextra 5
+//TESTARGS -ceed {ceed_resource} -test -problem bp2 -degree 5 -qextra 5 -ksp_max_it_clip 20,20
 
 /// @file
 /// CEED BPs example using PETSc
@@ -420,7 +420,7 @@ int main(int argc, char **argv) {
   char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree, qextra, localnodes, localelem, melem[3], mnodes[3], p[3],
-           irank[3], lnodes[3], lsize, ncompu = 1;
+           irank[3], lnodes[3], lsize, ncompu = 1, ksp_max_it_clip[2];
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode, write_solution;
   PetscMPIInt size, rank;
@@ -490,6 +490,13 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsInt("-local",
                          "Target number of locally owned nodes per process",
                          NULL, localnodes, &localnodes, NULL); CHKERRQ(ierr);
+  PetscInt two = 2;
+  ksp_max_it_clip[0] = 5;
+  ksp_max_it_clip[1] = 20;
+  ierr = PetscOptionsIntArray("-ksp_max_it_clip",
+                              "Min and max number of iterations to use during benchmarking",
+                              NULL, ksp_max_it_clip, &two, NULL);
+  CHKERRQ(ierr);
   memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
   ierr = PetscOptionsEnum("-memtype",
                           "CEED MemType requested", NULL,
@@ -882,11 +889,11 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   // Set maxits based on first iteration timing
   if (my_rt > 0.02) {
-    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 5);
-    CHKERRQ(ierr);
+    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
+                            ksp_max_it_clip[0]); CHKERRQ(ierr);
   } else {
-    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 20);
-    CHKERRQ(ierr);
+    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
+                            ksp_max_it_clip[1]); CHKERRQ(ierr);
   }
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
 

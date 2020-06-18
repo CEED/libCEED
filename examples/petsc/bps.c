@@ -34,7 +34,7 @@
 //     ./bps -problem bp5 -ceed /omp/occa -degree 3
 //     ./bps -problem bp6 -ceed /ocl/occa -degree 3
 //
-//TESTARGS -ceed {ceed_resource} -test -problem bp5 -degree 3
+//TESTARGS -ceed {ceed_resource} -test -problem bp5 -degree 3 -ksp_max_it_clip 15,15
 
 /// @file
 /// CEED BPs example using PETSc with DMPlex
