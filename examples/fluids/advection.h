@@ -118,7 +118,7 @@ static inline int Exact_Advection(CeedInt dim, CeedScalar time,
 
   // -- Energy
   CeedScalar r ;
-  CeedInt dimBubble=2; // 3 is a sphere, 2 is a cylinder
+  CeedInt dimBubble=3; // 3 is a sphere, 2 is a cylinder
   switch (dimBubble) {
   //  original sphere
   case 3: {
