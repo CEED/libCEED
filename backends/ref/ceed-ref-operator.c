@@ -667,8 +667,8 @@ static inline void CeedOperatorGetBasisPointer_Ref(const CeedScalar **basisptr,
 //------------------------------------------------------------------------------
 // Create point block restriction
 //------------------------------------------------------------------------------
-static int CreatePBRestriction(CeedElemRestriction rstr,
-                               CeedElemRestriction *pbRstr) {
+static int CreatePBRestriction_Ref(CeedElemRestriction rstr,
+                                   CeedElemRestriction *pbRstr) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(rstr, &ceed); CeedChk(ierr);
@@ -823,7 +823,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
   // Assemble point-block diagonal restriction, if needed
   CeedElemRestriction diagrstr = rstrout;
   if (pointBlock) {
-    ierr = CreatePBRestriction(rstrout, &diagrstr); CeedChk(ierr);
+    ierr = CreatePBRestriction_Ref(rstrout, &diagrstr); CeedChk(ierr);
   }
 
   // Create diagonal vector

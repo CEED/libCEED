@@ -16,6 +16,7 @@
 
 #include "ceed-cuda.h"
 #include <string.h>
+#include <math.h>
 
 //------------------------------------------------------------------------------
 // Destroy operator
@@ -625,7 +626,7 @@ static int CeedOperatorLinearAssembleQFunction_Cuda(CeedOperator op,
     CeedChk(ierr);
     // Check if active output
     if (vec == CEED_VECTOR_ACTIVE) {
-      CeedVectorSetArray(impl->qvecsout[out], CEED_MEM_HOST, CEED_COPY_VALUES,
+      CeedVectorSetArray(impl->qvecsout[out], CEED_MEM_DEVICE, CEED_OWN_POINTER,
                          NULL); CeedChk(ierr);
     }
   }
@@ -648,25 +649,337 @@ static int CeedOperatorLinearAssembleQFunction_Cuda(CeedOperator op,
 }
 
 //------------------------------------------------------------------------------
-// Assemble linear diagonal not supported
+// Get Basis Emode Pointer
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleDiagonal_Cuda(CeedOperator op) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1,
-                   "Backend does not implement Operator diagonal assembly");
+static inline void CeedOperatorGetBasisPointer_Cuda(const CeedScalar **basisptr,
+    CeedEvalMode emode, const CeedScalar *identity, const CeedScalar *interp,
+    const CeedScalar *grad) {
+  switch (emode) {
+  case CEED_EVAL_NONE:
+    *basisptr = identity;
+    break;
+  case CEED_EVAL_INTERP:
+    *basisptr = interp;
+    break;
+  case CEED_EVAL_GRAD:
+    *basisptr = grad;
+    break;
+  case CEED_EVAL_WEIGHT:
+  case CEED_EVAL_DIV:
+  case CEED_EVAL_CURL:
+    break; // Caught by QF Assembly
+  }
 }
 
 //------------------------------------------------------------------------------
-// Assemble linear point block diagonal not supported
+// Create point block restriction
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssemblePointBlockDiagonal_Cuda(CeedOperator op) {
+static int CreatePBRestriction(CeedElemRestriction rstr,
+                               CeedElemRestriction *pbRstr) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(rstr, &ceed); CeedChk(ierr);
+  const CeedInt *offsets;
+  ierr = CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets);
+  CeedChk(ierr);
+
+  // Expand offsets
+  CeedInt nelem, ncomp, elemsize, compstride, max = 1, *pbOffsets;
+  ierr = CeedElemRestrictionGetNumElements(rstr, &nelem); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumComponents(rstr, &ncomp); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetElementSize(rstr, &elemsize); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetCompStride(rstr, &compstride); CeedChk(ierr);
+  CeedInt shift = ncomp;
+  if (compstride != 1)
+    shift *= ncomp;
+  ierr = CeedCalloc(nelem*elemsize, &pbOffsets); CeedChk(ierr);
+  for (CeedInt i = 0; i < nelem*elemsize; i++) {
+    pbOffsets[i] = offsets[i]*shift;
+    if (pbOffsets[i] > max)
+      max = pbOffsets[i];
+  }
+
+  // Create new restriction
+  ierr = CeedElemRestrictionCreate(ceed, nelem, elemsize, ncomp*ncomp, 1,
+                                   max + ncomp*ncomp, CEED_MEM_HOST,
+                                   CEED_OWN_POINTER, pbOffsets, pbRstr);
+  CeedChk(ierr);
+
+  // Cleanup
+  ierr = CeedElemRestrictionRestoreOffsets(rstr, &offsets); CeedChk(ierr);
+
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+// Assemble diagonal common code
+//------------------------------------------------------------------------------
+static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
+    CeedVector assembled, CeedRequest *request, const bool pointBlock) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1,
-                   "Backend does not implement Operator point block diagonal assembly");
+
+  // Assemble QFunction
+  CeedQFunction qf;
+  ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
+  CeedInt numinputfields, numoutputfields;
+  ierr= CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
+  CeedChk(ierr);
+  CeedVector assembledqf;
+  CeedElemRestriction rstr;
+  ierr = CeedOperatorLinearAssembleQFunction(op,  &assembledqf, &rstr, request);
+  CeedChk(ierr);
+  ierr = CeedElemRestrictionDestroy(&rstr); CeedChk(ierr);
+  CeedScalar maxnorm = 0;
+  ierr = CeedVectorNorm(assembledqf, CEED_NORM_MAX, &maxnorm); CeedChk(ierr);
+
+  // Determine active input basis
+  CeedOperatorField *opfields;
+  CeedQFunctionField *qffields;
+  ierr = CeedOperatorGetFields(op, &opfields, NULL); CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, &qffields, NULL); CeedChk(ierr);
+  CeedInt numemodein = 0, ncomp, dim = 1;
+  CeedEvalMode *emodein = NULL;
+  CeedBasis basisin = NULL;
+  CeedElemRestriction rstrin = NULL;
+  for (CeedInt i=0; i<numinputfields; i++) {
+    CeedVector vec;
+    ierr = CeedOperatorFieldGetVector(opfields[i], &vec); CeedChk(ierr);
+    if (vec == CEED_VECTOR_ACTIVE) {
+      CeedElemRestriction rstr;
+      ierr = CeedOperatorFieldGetBasis(opfields[i], &basisin); CeedChk(ierr);
+      ierr = CeedBasisGetNumComponents(basisin, &ncomp); CeedChk(ierr);
+      ierr = CeedBasisGetDimension(basisin, &dim); CeedChk(ierr);
+      ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &rstr);
+      CeedChk(ierr);
+      if (rstrin && rstrin != rstr)
+        // LCOV_EXCL_START
+        return CeedError(ceed, 1,
+                         "Multi-field non-composite operator diagonal assembly not supported");
+      // LCOV_EXCL_STOP
+      rstrin = rstr;
+      CeedEvalMode emode;
+      ierr = CeedQFunctionFieldGetEvalMode(qffields[i], &emode);
+      CeedChk(ierr);
+      switch (emode) {
+      case CEED_EVAL_NONE:
+      case CEED_EVAL_INTERP:
+        ierr = CeedRealloc(numemodein + 1, &emodein); CeedChk(ierr);
+        emodein[numemodein] = emode;
+        numemodein += 1;
+        break;
+      case CEED_EVAL_GRAD:
+        ierr = CeedRealloc(numemodein + dim, &emodein); CeedChk(ierr);
+        for (CeedInt d=0; d<dim; d++)
+          emodein[numemodein+d] = emode;
+        numemodein += dim;
+        break;
+      case CEED_EVAL_WEIGHT:
+      case CEED_EVAL_DIV:
+      case CEED_EVAL_CURL:
+        break; // Caught by QF Assembly
+      }
+    }
+  }
+
+  // Determine active output basis
+  ierr = CeedOperatorGetFields(op, NULL, &opfields); CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qffields); CeedChk(ierr);
+  CeedInt numemodeout = 0;
+  CeedEvalMode *emodeout = NULL;
+  CeedBasis basisout = NULL;
+  CeedElemRestriction rstrout = NULL;
+  for (CeedInt i=0; i<numoutputfields; i++) {
+    CeedVector vec;
+    ierr = CeedOperatorFieldGetVector(opfields[i], &vec); CeedChk(ierr);
+    if (vec == CEED_VECTOR_ACTIVE) {
+      CeedElemRestriction rstr;
+      ierr = CeedOperatorFieldGetBasis(opfields[i], &basisout); CeedChk(ierr);
+      ierr = CeedOperatorFieldGetElemRestriction(opfields[i], &rstr);
+      CeedChk(ierr);
+      if (rstrout && rstrout != rstr)
+        // LCOV_EXCL_START
+        return CeedError(ceed, 1,
+                         "Multi-field non-composite operator diagonal assembly not supported");
+      // LCOV_EXCL_STOP
+      rstrout = rstr;
+      CeedEvalMode emode;
+      ierr = CeedQFunctionFieldGetEvalMode(qffields[i], &emode); CeedChk(ierr);
+      switch (emode) {
+      case CEED_EVAL_NONE:
+      case CEED_EVAL_INTERP:
+        ierr = CeedRealloc(numemodeout + 1, &emodeout); CeedChk(ierr);
+        emodeout[numemodeout] = emode;
+        numemodeout += 1;
+        break;
+      case CEED_EVAL_GRAD:
+        ierr = CeedRealloc(numemodeout + dim, &emodeout); CeedChk(ierr);
+        for (CeedInt d=0; d<dim; d++)
+          emodeout[numemodeout+d] = emode;
+        numemodeout += dim;
+        break;
+      case CEED_EVAL_WEIGHT:
+      case CEED_EVAL_DIV:
+      case CEED_EVAL_CURL:
+        break; // Caught by QF Assembly
+      }
+    }
+  }
+
+  // Assemble point-block diagonal restriction, if needed
+  CeedElemRestriction diagrstr = rstrout;
+  if (pointBlock) {
+    ierr = CreatePBRestriction(rstrout, &diagrstr); CeedChk(ierr);
+  }
+
+  // Create diagonal vector
+  CeedVector elemdiag;
+  ierr = CeedElemRestrictionCreateVector(diagrstr, NULL, &elemdiag);
+  CeedChk(ierr);
+
+  // Assemble element operator diagonals
+  CeedScalar *elemdiagarray, *assembledqfarray;
+  ierr = CeedVectorSetValue(elemdiag, 0.0); CeedChk(ierr);
+  ierr = CeedVectorGetArray(elemdiag, CEED_MEM_HOST, &elemdiagarray);
+  CeedChk(ierr);
+  ierr = CeedVectorGetArray(assembledqf, CEED_MEM_HOST, &assembledqfarray);
+  CeedChk(ierr);
+  CeedInt nelem, nnodes, nqpts;
+  ierr = CeedElemRestrictionGetNumElements(diagrstr, &nelem); CeedChk(ierr);
+  ierr = CeedBasisGetNumNodes(basisin, &nnodes); CeedChk(ierr);
+  ierr = CeedBasisGetNumQuadraturePoints(basisin, &nqpts); CeedChk(ierr);
+  // Basis matrices
+  const CeedScalar *interpin, *interpout, *gradin, *gradout;
+  CeedScalar *identity = NULL;
+  bool evalNone = false;
+  for (CeedInt i=0; i<numemodein; i++)
+    evalNone = evalNone || (emodein[i] == CEED_EVAL_NONE);
+  for (CeedInt i=0; i<numemodeout; i++)
+    evalNone = evalNone || (emodeout[i] == CEED_EVAL_NONE);
+  if (evalNone) {
+    ierr = CeedCalloc(nqpts*nnodes, &identity); CeedChk(ierr);
+    for (CeedInt i=0; i<(nnodes<nqpts?nnodes:nqpts); i++)
+      identity[i*nnodes+i] = 1.0;
+  }
+  ierr = CeedBasisGetInterp(basisin, &interpin); CeedChk(ierr);
+  ierr = CeedBasisGetInterp(basisout, &interpout); CeedChk(ierr);
+  ierr = CeedBasisGetGrad(basisin, &gradin); CeedChk(ierr);
+  ierr = CeedBasisGetGrad(basisout, &gradout); CeedChk(ierr);
+  // Compute the diagonal of B^T D B
+  // Each element
+  for (CeedInt e=0; e<nelem; e++) {
+    CeedInt dout = -1;
+    // Each basis eval mode pair
+    for (CeedInt eout=0; eout<numemodeout; eout++) {
+      const CeedScalar *bt = NULL;
+      if (emodeout[eout] == CEED_EVAL_GRAD)
+        dout += 1;
+      CeedOperatorGetBasisPointer_Cuda(&bt, emodeout[eout], identity, interpout,
+                                      &gradout[dout*nqpts*nnodes]);
+      CeedInt din = -1;
+      for (CeedInt ein=0; ein<numemodein; ein++) {
+        const CeedScalar *b = NULL;
+        if (emodein[ein] == CEED_EVAL_GRAD)
+          din += 1;
+        CeedOperatorGetBasisPointer_Cuda(&b, emodein[ein], identity, interpin,
+                                        &gradin[din*nqpts*nnodes]);
+        // Each component
+        for (CeedInt compOut=0; compOut<ncomp; compOut++)
+          // Each qpoint/node pair
+          for (CeedInt q=0; q<nqpts; q++)
+            if (pointBlock) {
+              // Point Block Diagonal
+              for (CeedInt compIn=0; compIn<ncomp; compIn++) {
+                const CeedScalar qfvalue =
+                  assembledqfarray[((((ein*ncomp+compIn)*numemodeout+eout)*
+                                     ncomp+compOut)*nelem+e)*nqpts+q];
+                if (fabs(qfvalue) > maxnorm*1e-12)
+                  for (CeedInt n=0; n<nnodes; n++)
+                    elemdiagarray[((compOut*ncomp+compIn)*nelem+e)*nnodes+n] +=
+                      bt[q*nnodes+n] * qfvalue * b[q*nnodes+n];
+              }
+            } else {
+              // Diagonal Only
+              const CeedScalar qfvalue =
+                assembledqfarray[((((ein*ncomp+compOut)*numemodeout+eout)*
+                                   ncomp+compOut)*nelem+e)*nqpts+q];
+              if (fabs(qfvalue) > maxnorm*1e-12)
+                for (CeedInt n=0; n<nnodes; n++)
+                  elemdiagarray[(compOut*nelem+e)*nnodes+n] +=
+                    bt[q*nnodes+n] * qfvalue * b[q*nnodes+n];
+            }
+      }
+    }
+  }
+  ierr = CeedVectorRestoreArray(elemdiag, &elemdiagarray); CeedChk(ierr);
+  ierr = CeedVectorRestoreArray(assembledqf, &assembledqfarray); CeedChk(ierr);
+
+  // Assemble local operator diagonal
+  ierr = CeedElemRestrictionApply(diagrstr, CEED_TRANSPOSE, elemdiag,
+                                  assembled, request); CeedChk(ierr);
+
+  // Cleanup
+  if (pointBlock) {
+    ierr = CeedElemRestrictionDestroy(&diagrstr); CeedChk(ierr);
+  }
+  ierr = CeedVectorDestroy(&assembledqf); CeedChk(ierr);
+  ierr = CeedVectorDestroy(&elemdiag); CeedChk(ierr);
+  ierr = CeedFree(&emodein); CeedChk(ierr);
+  ierr = CeedFree(&emodeout); CeedChk(ierr);
+  ierr = CeedFree(&identity); CeedChk(ierr);
+
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+// Assemble composite diagonal common code
+//------------------------------------------------------------------------------
+static inline int CeedOperatorLinearAssembleDiagonalCompositeCore_Cuda(
+  CeedOperator op, CeedVector assembled, CeedRequest *request,
+  const bool pointBlock) {
+  int ierr;
+  CeedInt numSub;
+  CeedOperator *subOperators;
+  ierr = CeedOperatorGetNumSub(op, &numSub); CeedChk(ierr);
+  ierr = CeedOperatorGetSubList(op, &subOperators); CeedChk(ierr);
+  for (CeedInt i = 0; i < numSub; i++) {
+    ierr = CeedOperatorAssembleDiagonalCore_Cuda(subOperators[i], assembled,
+           request, pointBlock); CeedChk(ierr);
+  }
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+// Assemble Linear Diagonal
+//------------------------------------------------------------------------------
+static int CeedOperatorLinearAssembleDiagonal_Cuda(CeedOperator op,
+    CeedVector assembled, CeedRequest *request) {
+  int ierr;
+  bool isComposite;
+  ierr = CeedOperatorIsComposite(op, &isComposite); CeedChk(ierr);
+  if (isComposite) {
+    return CeedOperatorLinearAssembleDiagonalCompositeCore_Cuda(op, assembled,
+           request, false);
+  } else {
+    return CeedOperatorAssembleDiagonalCore_Cuda(op, assembled, request, false);
+  }
+}
+
+//------------------------------------------------------------------------------
+// Assemble Linear Point Block Diagonal
+//------------------------------------------------------------------------------
+static int CeedOperatorLinearAssemblePointBlockDiagonal_Cuda(CeedOperator op,
+    CeedVector assembled, CeedRequest *request) {
+  int ierr;
+  bool isComposite;
+  ierr = CeedOperatorIsComposite(op, &isComposite); CeedChk(ierr);
+  if (isComposite) {
+    return CeedOperatorLinearAssembleDiagonalCompositeCore_Cuda(op, assembled,
+           request, true);
+  } else {
+    return CeedOperatorAssembleDiagonalCore_Cuda(op, assembled, request, true);
+  }
 }
 
 //------------------------------------------------------------------------------
