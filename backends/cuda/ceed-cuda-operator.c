@@ -1023,4 +1023,21 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
                                 CeedOperatorDestroy_Cuda); CeedChk(ierr);
   return 0;
 }
+
+//------------------------------------------------------------------------------
+// Composite Operator Create
+//------------------------------------------------------------------------------
+int CeedCompositeOperatorCreate_Cuda(CeedOperator op) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
+                                CeedOperatorLinearAssembleDiagonal_Cuda);
+  CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op,
+                                "LinearAssembleAddPointBlockDiagonal",
+                                CeedOperatorLinearAssemblePointBlockDiagonal_Cuda);
+  CeedChk(ierr);
+  return 0;
+}
 //------------------------------------------------------------------------------
