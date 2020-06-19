@@ -20,11 +20,16 @@
 #include <string.h>
 #include <math.h>
 
+// LIBXSMM chose to redefine _Bool. This undoes that choice.
+#ifdef _Bool
+#undef _Bool
+#endif
+
 // Instantiate khash structs and methods
 CeedHashIJKLMInit(m32, libxsmm_dmmfunction)
 
 typedef struct {
-  bool tensorbasis;
+  bool isTensor;
   CeedInt P, Q, dim;
   khash_t(m32) *lookup;
 } CeedTensorContract_Xsmm;

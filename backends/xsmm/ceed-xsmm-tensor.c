@@ -104,8 +104,8 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
   impl->lookup = kh_init(m32);
 
   // Set up pointers to kernels
-  ierr = CeedBasisIsTensor(basis, &impl->tensorbasis); CeedChk(ierr);
-  if (impl->tensorbasis) {
+  ierr = CeedBasisIsTensor(basis, &impl->isTensor); CeedChk(ierr);
+  if (impl->isTensor) {
     ierr = CeedBasisGetNumNodes1D(basis, &impl->P); CeedChk(ierr);
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &impl->Q); CeedChk(ierr);
     ierr = CeedBasisGetDimension(basis, &impl->dim); CeedChk(ierr);
