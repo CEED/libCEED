@@ -225,7 +225,7 @@ static int CeedElemRestrictionDestroy_Hip(CeedElemRestriction r) {
 
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
-  ierr = hipModuleUnload(impl->module); CeedChk_Hip(ceed, ierr);
+//  ierr = hipModuleUnload(impl->module); CeedChk_Hip(ceed, ierr);
   ierr = CeedFree(&impl->h_ind_allocated); CeedChk(ierr);
   ierr = hipFree(impl->d_ind_allocated); CeedChk_Hip(ceed, ierr);
   ierr = CeedFree(&impl); CeedChk(ierr);

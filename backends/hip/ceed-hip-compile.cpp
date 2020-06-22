@@ -97,7 +97,7 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
   char *ptx;
   ierr = CeedMalloc(ptxsize, &ptx); CeedChk(ierr);
   CeedChk_hiprtc(ceed, hiprtcGetCode(prog, ptx));
-  CeedChk_hiprtc(ceed, hiprtcDestroyProgram(&prog));
+//  CeedChk_hiprtc(ceed, hiprtcDestroyProgram(&prog));
 
   CeedChk_Hip(ceed, hipModuleLoadData(module, ptx));
   ierr = CeedFree(&ptx); CeedChk(ierr);

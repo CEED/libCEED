@@ -525,7 +525,7 @@ static int CeedBasisDestroy_Hip(CeedBasis basis) {
   CeedBasis_Hip *data;
   ierr = CeedBasisGetData(basis, (void *) &data); CeedChk(ierr);
 
-  CeedChk_Hip(ceed, hipModuleUnload(data->module));
+//  CeedChk_Hip(ceed, hipModuleUnload(data->module));
 
   ierr = hipFree(data->d_qweight1d); CeedChk_Hip(ceed,ierr);
   ierr = hipFree(data->d_interp1d); CeedChk_Hip(ceed,ierr);
@@ -546,7 +546,7 @@ static int CeedBasisDestroyNonTensor_Hip(CeedBasis basis) {
   CeedBasisNonTensor_Hip *data;
   ierr = CeedBasisGetData(basis, (void *) &data); CeedChk(ierr);
 
-  CeedChk_Hip(ceed, hipModuleUnload(data->module));
+//  CeedChk_Hip(ceed, hipModuleUnload(data->module));
 
   ierr = hipFree(data->d_qweight); CeedChk_Hip(ceed, ierr);
   ierr = hipFree(data->d_interp); CeedChk_Hip(ceed, ierr);
