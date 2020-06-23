@@ -343,9 +343,9 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   Ceed_Cuda *ceed_Cuda;
-  CeedGetData(ceed, (void *) &ceed_Cuda); CeedChk(ierr);
+  ierr = CeedGetData(ceed, (void *) &ceed_Cuda); CeedChk(ierr);
   CeedBasis_Cuda *data;
-  CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
   const int maxblocksize = 32;
 
@@ -431,9 +431,9 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt nelem,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   Ceed_Cuda *ceed_Cuda;
-  CeedGetData(ceed, (void *) &ceed_Cuda); CeedChk(ierr);
+  ierr = CeedGetData(ceed, (void *) &ceed_Cuda); CeedChk(ierr);
   CeedBasisNonTensor_Cuda *data;
-  CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
   CeedInt nnodes, nqpt;
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   ierr = CeedBasisGetNumNodes(basis, &nnodes); CeedChk(ierr);
