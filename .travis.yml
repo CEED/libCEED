@@ -117,8 +117,7 @@ install:
         && export OCCA_DIR=$PWD/occa;
 # LIBXSMM v1.16 (need to use releases, XSMM develops on master)
   - if [[ "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
-        git clone --depth=1 https://github.com/hfp/libxsmm.git
-        && cd libxsmm && git checkout -f tags/1.16 && cd ..
+        git clone --depth=1 --branch 1.16 https://github.com/hfp/libxsmm.git
         && make -C libxsmm -j2
         && export XSMM_DIR=$PWD/libxsmm;
     fi
