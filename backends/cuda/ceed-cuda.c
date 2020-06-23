@@ -162,6 +162,17 @@ int CeedCudaInit(Ceed ceed, const char *resource, int nrc) {
 }
 
 //------------------------------------------------------------------------------
+// Backend destroy
+//------------------------------------------------------------------------------
+int CeedDestroy_Cuda(Ceed ceed) {
+  int ierr;
+  Ceed_Cuda *data;
+  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedFree(&data); CeedChk(ierr);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Cuda(const char *resource, Ceed ceed) {
@@ -195,6 +206,8 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
                                 CeedQFunctionCreate_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
+                                CeedDestroy_Cuda); CeedChk(ierr);
   return 0;
 }
 

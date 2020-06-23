@@ -159,6 +159,8 @@ CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
 
 CEED_INTERN int CeedCudaInit(Ceed ceed, const char *resource, int nrc);
 
+CEED_INTERN int CeedDestroy_Cuda(Ceed ceed);
+
 CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
