@@ -17,7 +17,6 @@
 #define _ceed_cuda_h
 
 #include <ceed-backend.h>
-#include <ceed.h>
 #include <nvrtc.h>
 #include <cuda.h>
 #include <cuda_runtime.h>

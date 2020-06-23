@@ -13,11 +13,10 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-#include <ceed-backend.h>
+
 #include "ceed-cuda-gen.h"
 #include <iostream>
 #include <sstream>
-#include "../cuda/ceed-cuda.h"
 #include "../cuda-reg/ceed-cuda-reg.h"
 #include "../cuda-shared/ceed-cuda-shared.h"
 

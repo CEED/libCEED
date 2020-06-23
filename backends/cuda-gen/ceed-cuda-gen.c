@@ -14,12 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
 #include <string.h>
 #include <stdarg.h>
-#include <nvrtc.h>
-#include <cuda.h>
-#include <cuda_runtime.h>
 #include "ceed-cuda-gen.h"
 
 //------------------------------------------------------------------------------
