@@ -255,7 +255,6 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
     ierr = CeedElemRestrictionGetCompStride(r, &compstride); CeedChk(ierr);
   }
 
-  ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   impl->h_ind           = NULL;
   impl->h_ind_allocated = NULL;
   impl->d_ind           = NULL;
