@@ -111,9 +111,9 @@ typedef struct {
   CeedBasis basisin, basisout;
   CeedElemRestriction diagrstr, pbdiagrstr;
   CeedInt numemodein, numemodeout, nnodes;
-  CeedEvalMode *emodein_h, *emodeout_h;
-  CeedEvalMode *emodein_d, *emodeout_d;
-  CeedScalar *identity, *interpin, *interpout, *gradin, *gradout;
+  CeedEvalMode *h_emodein, *h_emodeout;
+  CeedEvalMode *d_emodein, *d_emodeout;
+  CeedScalar *d_identity, *d_interpin, *d_interpout, *d_gradin, *d_gradout;
 } CeedOperatorDiag_Cuda;
 
 typedef struct {

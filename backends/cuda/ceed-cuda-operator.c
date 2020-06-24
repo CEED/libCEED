@@ -48,15 +48,15 @@ static int CeedOperatorDestroy_Cuda(CeedOperator op) {
     Ceed ceed;
     ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
     CeedChk_Cu(ceed, cuModuleUnload(impl->diag->module));
-    ierr = CeedFree(&impl->diag->emodein_h); CeedChk(ierr);
-    ierr = CeedFree(&impl->diag->emodeout_h); CeedChk(ierr);
-    ierr = cudaFree(impl->diag->emodein_d); CeedChk_Cu(ceed, ierr);
-    ierr = cudaFree(impl->diag->emodeout_d); CeedChk_Cu(ceed, ierr);
-    ierr = cudaFree(impl->diag->identity); CeedChk_Cu(ceed, ierr);
-    ierr = cudaFree(impl->diag->interpin); CeedChk_Cu(ceed, ierr);
-    ierr = cudaFree(impl->diag->interpout); CeedChk_Cu(ceed, ierr);
-    ierr = cudaFree(impl->diag->gradin); CeedChk_Cu(ceed, ierr);
-    ierr = cudaFree(impl->diag->gradout); CeedChk_Cu(ceed, ierr);
+    ierr = CeedFree(&impl->diag->h_emodein); CeedChk(ierr);
+    ierr = CeedFree(&impl->diag->h_emodeout); CeedChk(ierr);
+    ierr = cudaFree(impl->diag->d_emodein); CeedChk_Cu(ceed, ierr);
+    ierr = cudaFree(impl->diag->d_emodeout); CeedChk_Cu(ceed, ierr);
+    ierr = cudaFree(impl->diag->d_identity); CeedChk_Cu(ceed, ierr);
+    ierr = cudaFree(impl->diag->d_interpin); CeedChk_Cu(ceed, ierr);
+    ierr = cudaFree(impl->diag->d_interpout); CeedChk_Cu(ceed, ierr);
+    ierr = cudaFree(impl->diag->d_gradin); CeedChk_Cu(ceed, ierr);
+    ierr = cudaFree(impl->diag->d_gradout); CeedChk_Cu(ceed, ierr);
     ierr = CeedElemRestrictionDestroy(&impl->diag->pbdiagrstr); CeedChk(ierr);
   }
   ierr = CeedFree(&impl->diag); CeedChk(ierr);
@@ -964,8 +964,8 @@ static inline int CeedOperatorAssembleDiagonalSetup_Cuda(CeedOperator op,
   CeedOperatorDiag_Cuda *diag = impl->diag;
   diag->basisin = basisin;
   diag->basisout = basisout;
-  diag->emodein_h = emodein;
-  diag->emodeout_h = emodeout;
+  diag->h_emodein = emodein;
+  diag->h_emodeout = emodeout;
   diag->numemodein = numemodein;
   diag->numemodeout = numemodeout;
 
@@ -1005,39 +1005,39 @@ static inline int CeedOperatorAssembleDiagonalSetup_Cuda(CeedOperator op,
     ierr = CeedCalloc(nqpts*nnodes, &identity); CeedChk(ierr);
     for (CeedInt i=0; i<(nnodes<nqpts?nnodes:nqpts); i++)
       identity[i*nnodes+i] = 1.0;
-    ierr = cudaMalloc((void **)&diag->identity, iBytes); CeedChk_Cu(ceed, ierr);
-    ierr = cudaMemcpy(diag->identity, identity, iBytes,
+    ierr = cudaMalloc((void **)&diag->d_identity, iBytes); CeedChk_Cu(ceed, ierr);
+    ierr = cudaMemcpy(diag->d_identity, identity, iBytes,
                       cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
   }
 
   // CEED_EVAL_INTERP
   ierr = CeedBasisGetInterp(basisin, &interpin); CeedChk(ierr);
-  ierr = cudaMalloc((void **)&diag->interpin, iBytes); CeedChk_Cu(ceed, ierr);
-  ierr = cudaMemcpy(diag->interpin, interpin, iBytes,
+  ierr = cudaMalloc((void **)&diag->d_interpin, iBytes); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMemcpy(diag->d_interpin, interpin, iBytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
   ierr = CeedBasisGetInterp(basisout, &interpout); CeedChk(ierr);
-  ierr = cudaMalloc((void **)&diag->interpout, iBytes); CeedChk_Cu(ceed, ierr);
-  ierr = cudaMemcpy(diag->interpout, interpout, iBytes,
+  ierr = cudaMalloc((void **)&diag->d_interpout, iBytes); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMemcpy(diag->d_interpout, interpout, iBytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
   // CEED_EVAL_GRAD
   ierr = CeedBasisGetGrad(basisin, &gradin); CeedChk(ierr);
-  ierr = cudaMalloc((void **)&diag->gradin, gBytes); CeedChk_Cu(ceed, ierr);
-  ierr = cudaMemcpy(diag->gradin, gradin, gBytes,
+  ierr = cudaMalloc((void **)&diag->d_gradin, gBytes); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMemcpy(diag->d_gradin, gradin, gBytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
   ierr = CeedBasisGetGrad(basisout, &gradout); CeedChk(ierr);
-  ierr = cudaMalloc((void **)&diag->gradout, gBytes); CeedChk_Cu(ceed, ierr);
-  ierr = cudaMemcpy(diag->gradout, gradout, gBytes,
+  ierr = cudaMalloc((void **)&diag->d_gradout, gBytes); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMemcpy(diag->d_gradout, gradout, gBytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
   // Arrays of emodes
-  ierr = cudaMalloc((void **)&diag->emodein_d, numemodein * eBytes);
+  ierr = cudaMalloc((void **)&diag->d_emodein, numemodein * eBytes);
   CeedChk_Cu(ceed, ierr);
-  ierr = cudaMemcpy(diag->emodein_d, emodein, numemodein * eBytes,
+  ierr = cudaMemcpy(diag->d_emodein, emodein, numemodein * eBytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
-  ierr = cudaMalloc((void **)&diag->emodeout_d, numemodeout * eBytes);
+  ierr = cudaMalloc((void **)&diag->d_emodeout, numemodeout * eBytes);
   CeedChk_Cu(ceed, ierr);
-  ierr = cudaMemcpy(diag->emodeout_d, emodeout, numemodeout * eBytes,
+  ierr = cudaMemcpy(diag->d_emodeout, emodeout, numemodeout * eBytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
   // Restriction
@@ -1099,9 +1099,9 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
   // Compute the diagonal of B^T D B
   int elemsPerBlock = 1;
   int grid = nelem/elemsPerBlock+((nelem/elemsPerBlock*elemsPerBlock<nelem)?1:0);
-  void *args[] = {(void *) &nelem, (void *) &maxnorm, &diag->identity,
-                  &diag->interpin, &diag->gradin, &diag->interpout,
-                  &diag->gradout, &diag->emodein_d, &diag->emodeout_d,
+  void *args[] = {(void *) &nelem, (void *) &maxnorm, &diag->d_identity,
+                  &diag->d_interpin, &diag->d_gradin, &diag->d_interpout,
+                  &diag->d_gradout, &diag->d_emodein, &diag->d_emodeout,
                   &assembledqfarray, &elemdiagarray
                  };
   if (pointBlock) {
