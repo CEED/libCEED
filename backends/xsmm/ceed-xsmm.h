@@ -20,11 +20,6 @@
 #include <string.h>
 #include <math.h>
 
-// LIBXSMM chose to redefine _Bool. This undoes that choice.
-#ifdef _Bool
-#undef _Bool
-#endif
-
 // Instantiate khash structs and methods
 CeedHashIJKLMInit(m32, libxsmm_dmmfunction)
 
