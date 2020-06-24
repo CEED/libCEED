@@ -69,11 +69,8 @@ struct Advection2dContext_ {
 #define surface_context_struct
 typedef struct SurfaceContext_ *SurfaceContext;
 struct SurfaceContext_ {
-  CeedScalar cv;
-  CeedScalar cp;
   CeedScalar E_wind;
   CeedScalar strong_form;
-  CeedScalar wind[3];
   PetscBool implicit;
 };
 #endif
