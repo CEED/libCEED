@@ -115,9 +115,10 @@ install:
         && cd occa && git reset --hard 327badb && cd ..
         && make -C occa -j2
         && export OCCA_DIR=$PWD/occa;
-# LIBXSMM v1.16 (need to use releases, XSMM develops on master)
+# LIBXSMM v1.16 (need to use releases or specific commits, XSMM develops on master)
   - if [[ "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
-        git clone --depth=1 --branch 1.16 https://github.com/hfp/libxsmm.git
+        git clone https://github.com/hfp/libxsmm.git
+        && cd libxsmm && git reset --hard 143409c && cd ..
         && make -C libxsmm -j2
         && export XSMM_DIR=$PWD/libxsmm;
     fi
