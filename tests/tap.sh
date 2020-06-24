@@ -172,8 +172,17 @@ for ((i=0;i<${#backends[@]};++i)); do
     fi
 
     # grep to skip t506 for MAGMA, range of basis kernels limited for now
-    if [[ "$backend" = *"magma" ]] \
-            && [[ "$1" = "t506"* ]] ; then
+    if [[ "$backend" = *magma ]] \
+            && [[ "$1" = t506* ]] ; then
+        printf "ok $i0 # SKIP - backend basis kernel not available $1 $backend\n"
+        printf "ok $i1 # SKIP - backend basis kernel not available $1 $backend stdout\n"
+        printf "ok $i2 # SKIP - backend basis kernel not available $1 $backend stderr\n"
+        continue
+    fi
+
+    # grep to skip t318 for cuda/ref and MAGMA, Q is too large for these backends
+    if [[ "$backend" = *magma || "$backend" = *cuda/ref ]] \
+            && [[ "$1" = t318* ]] ; then
         printf "ok $i0 # SKIP - backend basis kernel not available $1 $backend\n"
         printf "ok $i1 # SKIP - backend basis kernel not available $1 $backend stdout\n"
         printf "ok $i2 # SKIP - backend basis kernel not available $1 $backend stderr\n"
