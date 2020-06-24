@@ -17,7 +17,6 @@
 #define _ceed_cuda_h
 
 #include <ceed-backend.h>
-#include <ceed.h>
 #include <nvrtc.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -158,6 +157,8 @@ CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
                                       void **args);
 
 CEED_INTERN int CeedCudaInit(Ceed ceed, const char *resource, int nrc);
+
+CEED_INTERN int CeedDestroy_Cuda(Ceed ceed);
 
 CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
 

@@ -14,7 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
 #include <string.h>
 #include <stdarg.h>
 #include "ceed-cuda-reg.h"
@@ -44,6 +43,8 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
                                 "ElemRestrictionCreateBlocked",
                                 CeedElemRestrictionCreateBlocked_Cuda_reg);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
+                                CeedDestroy_Cuda); CeedChk(ierr);
   CeedChk(ierr);
   return 0;
 }

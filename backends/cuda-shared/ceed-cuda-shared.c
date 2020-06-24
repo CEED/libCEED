@@ -14,12 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
 #include <string.h>
 #include <stdarg.h>
-#include <nvrtc.h>
-#include <cuda.h>
-#include <cuda_runtime.h>
 #include "ceed-cuda-shared.h"
 
 //------------------------------------------------------------------------------
@@ -42,6 +38,8 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Cuda_shared);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
+                                CeedDestroy_Cuda); CeedChk(ierr);
   CeedChk(ierr);
   return 0;
 }

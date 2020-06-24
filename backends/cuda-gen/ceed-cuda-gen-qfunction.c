@@ -14,10 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
 #include <string.h>
 #include <stdio.h>
-#include "../cuda/ceed-cuda.h"
 #include "ceed-cuda-gen.h"
 
 //------------------------------------------------------------------------------
@@ -70,7 +68,7 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   FILE *fp;
   long lSize;
   char *buffer;
-  fp = fopen ( cuda_file, "rb" );
+  fp = fopen (cuda_file, "rb");
   if (!fp)
     CeedError(ceed, 1, "Couldn't open the Cuda file for the QFunction.");
 
@@ -102,6 +100,7 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   // Cleanup
   ierr = CeedFree(&buffer); CeedChk(ierr);
   fclose(fp);
+  ierr = CeedFree(&cuda_file); CeedChk(ierr);
   return 0;
 }
 

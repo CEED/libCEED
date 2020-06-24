@@ -35,7 +35,7 @@
 //     ./bpsraw -problem bp5 -ceed /omp/occa
 //     ./bpsraw -problem bp6 -ceed /ocl/occa
 //
-//TESTARGS -ceed {ceed_resource} -test -problem bp2 -degree 5 -qextra 5 -ksp_max_it_clip 20,20
+//TESTARGS -ceed {ceed_resource} -test -problem bp2 -degree 5 -qextra 1 -ksp_max_it_clip 20,20
 
 /// @file
 /// CEED BPs example using PETSc
@@ -923,7 +923,7 @@ int main(int argc, char **argv) {
     ierr = KSPGetConvergedReason(ksp, &reason); CHKERRQ(ierr);
     ierr = KSPGetIterationNumber(ksp, &its); CHKERRQ(ierr);
     ierr = KSPGetResidualNorm(ksp, &rnorm); CHKERRQ(ierr);
-    if (!test_mode || reason < 0 || rnorm > 1e-8) {
+    if (!test_mode || reason < 0 || rnorm > 1e-9) {
       ierr = PetscPrintf(comm,
                          "  KSP:\n"
                          "    KSP Type                           : %s\n"
