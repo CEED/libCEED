@@ -25,7 +25,33 @@
 #endif
 
 // *****************************************************************************
-// TODO: Comment on this QFunction
+// This QFunction sets up the geometric factor required for integration when
+//   reference coordinates is 2D and the physical coordinates is 3D
+//
+// Reference (parent) 2D coordinates: X
+// Physical (current) 3D coordinates: x
+// Change of coordinate matrix:
+//   dxdX_{i,j} = dx_i/dX_j (indicial notation) [3 * 2]
+//
+// (J1,J2,J3) is given by the cross product of the columns of dxdX_{i,j}
+//
+// detJb is the magnitude of (J1,J2,J3)
+//
+// All quadrature data is stored in 4 field vector of quadrature data.
+//
+// We require the determinant of the Jacobian to properly compute integrals of
+//   the form: int( u v )
+//
+// Stored: w detJb
+//   in qdataSur[0]
+//
+// Normal vector = (J1,J2,J3) / detJb
+//
+// Stored: (J1,J2,J3) / detJb
+//   in qdataSur[1:3] as
+//   (detJb^-1) * [ J1 ]
+//                [ J2 ]
+//                [ J3 ]
 //
 // *****************************************************************************
 CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q,
@@ -69,7 +95,31 @@ CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-// TODO: Comment on this QFunction
+// This QFunction sets up the geometric factor required for integration when
+//   reference coordinates is 1D and the physical coordinates is 2D
+//
+// Reference (parent) 1D coordinates: X
+// Physical (current) 2D coordinates: x
+// Change of coordinate vector:
+//           J1 = dx_1/dX
+//           J2 = dx_2/dX
+//
+// detJb is the magnitude of (J1,J2)
+//
+// All quadrature data is stored in 3 field vector of quadrature data.
+//
+// We require the determinant of the Jacobian to properly compute integrals of
+//   the form: int( u v )
+//
+// Stored: w detJb
+//   in qdataSur[0]
+//
+// Normal vector is given by the cross product of (J1,J2)/detJ and ẑ
+//
+// Stored: (J1,J2,0) x (0,0,1) / detJb
+//   in qdataSur[1:2] as
+//   (detJb^-1) * [ J2 ]
+//                [-J1 ]
 //
 // *****************************************************************************
 CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q,
@@ -90,7 +140,6 @@ CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q,
     const CeedScalar detJb = sqrt(J1*J1 + J2*J2);
 
     qdataSur[0][i] = w[i] * detJb;
-    // Normal vector is J × ẑ
     qdataSur[1][i] = J2 / detJb;
     qdataSur[2][i] = -J1 / detJb;
   } // End of Quadrature Point Loop
