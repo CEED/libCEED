@@ -168,7 +168,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
   #endif
   // *INDENT-ON*
 
-  appCtx->memTypeRequested = appCtx->petscHaveCuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
+  appCtx->memTypeRequested = appCtx->petscHaveCuda ? CEED_MEM_DEVICE :
+                             CEED_MEM_HOST;
   ierr = PetscOptionsEnum("-memtype", "CEED MemType requested", NULL, memTypes,
                           (PetscEnum)appCtx->memTypeRequested,
                           (PetscEnum *)&appCtx->memTypeRequested,
