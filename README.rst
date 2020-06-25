@@ -130,45 +130,45 @@ Backends
 
 There are multiple supported backends, which can be selected at runtime in the examples:
 
-+----------------------------+---------------------------------------------------+
-| CEED resource              | Backend                                           |
-+----------------------------+---------------------------------------------------+
-| ``/cpu/self/ref/serial``   | Serial reference implementation                   |
-+----------------------------+---------------------------------------------------+
-| ``/cpu/self/ref/blocked``  | Blocked reference implementation                  |
-+----------------------------+---------------------------------------------------+
-| ``/cpu/self/ref/memcheck`` | Memcheck backend, undefined value checks          |
-+----------------------------+---------------------------------------------------+
-| ``/cpu/self/opt/serial``   | Serial optimized C implementation                 |
-+----------------------------+---------------------------------------------------+
-| ``/cpu/self/opt/blocked``  | Blocked optimized C implementation                |
-+----------------------------+---------------------------------------------------+
-| ``/cpu/self/avx/serial``   | Serial AVX implementation                         |
-+----------------------------+---------------------------------------------------+
-| ``/cpu/self/avx/blocked``  | Blocked AVX implementation                        |
-+----------------------------+---------------------------------------------------+
-| ``/cpu/self/xsmm/serial``  | Serial LIBXSMM implementation                     |
-+----------------------------+---------------------------------------------------+
-| ``/cpu/self/xsmm/blocked`` | Blocked LIBXSMM implementation                    |
-+----------------------------+---------------------------------------------------+
-| ``/cpu/occa``              | Serial OCCA kernels                               |
-+----------------------------+---------------------------------------------------+
-| ``/gpu/occa``              | CUDA OCCA kernels                                 |
-+----------------------------+---------------------------------------------------+
-| ``/omp/occa``              | OpenMP OCCA kernels                               |
-+----------------------------+---------------------------------------------------+
-| ``/ocl/occa``              | OpenCL OCCA kernels                               |
-+----------------------------+---------------------------------------------------+
-| ``/gpu/cuda/ref``          | Reference pure CUDA kernels                       |
-+----------------------------+---------------------------------------------------+
-| ``/gpu/cuda/reg``          | Pure CUDA kernels using one thread per element    |
-+----------------------------+---------------------------------------------------+
-| ``/gpu/cuda/shared``       | Optimized pure CUDA kernels using shared memory   |
-+----------------------------+---------------------------------------------------+
-| ``/gpu/cuda/gen``          | Optimized pure CUDA kernels using code generation |
-+----------------------------+---------------------------------------------------+
-| ``/gpu/magma``             | CUDA MAGMA kernels                                |
-+----------------------------+---------------------------------------------------+
++----------------------------+---------------------------------------------------+-----------------------+
+| CEED resource              | Backend                                           | Deterministic Capable |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/cpu/self/ref/serial``   | Serial reference implementation                   | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/cpu/self/ref/blocked``  | Blocked reference implementation                  | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/cpu/self/ref/memcheck`` | Memcheck backend, undefined value checks          | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/cpu/self/opt/serial``   | Serial optimized C implementation                 | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/cpu/self/opt/blocked``  | Blocked optimized C implementation                | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/cpu/self/avx/serial``   | Serial AVX implementation                         | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/cpu/self/avx/blocked``  | Blocked AVX implementation                        | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/cpu/self/xsmm/serial``  | Serial LIBXSMM implementation                     | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/cpu/self/xsmm/blocked`` | Blocked LIBXSMM implementation                    | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/cpu/occa``              | Serial OCCA kernels                               | No                    |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/occa``              | CUDA OCCA kernels                                 | No                    |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/omp/occa``              | OpenMP OCCA kernels                               | No                    |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/ocl/occa``              | OpenCL OCCA kernels                               | No                    |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/cuda/ref``          | Reference pure CUDA kernels                       | No                    |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/cuda/reg``          | Pure CUDA kernels using one thread per element    | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/cuda/shared``       | Optimized pure CUDA kernels using shared memory   | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/cuda/gen``          | Optimized pure CUDA kernels using code generation | No                    |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/magma``             | CUDA MAGMA kernels                                | No                    |
++----------------------------+---------------------------------------------------+-----------------------+
 
 The ``/cpu/self/*/serial`` backends process one element at a time and are intended for meshes
 with a smaller number of high order elements. The ``/cpu/self/*/blocked`` backends process
@@ -204,6 +204,10 @@ MAGMA directory, with the MAGMA library located in ``$(MAGMA_DIR)/lib/``.
 By default, ``MAGMA_DIR`` is set to ``../magma``; to build the MAGMA backend
 with a MAGMA installation located elsewhere, create a link to ``magma/`` in libCEED's parent
 directory, or set ``MAGMA_DIR`` to the proper location.  MAGMA version 2.5.0 or newer is required.
+
+Bit-for-bit reproducibility is important in some applications.
+However, some libCEED backends use non-deterministic operations, such as ``atomicAdd`` for increased performance.
+The backends which are capable of generating reproducable results, with the proper compilation options, are highlighted in the list above.
 
 Examples
 ----------------------------------------
