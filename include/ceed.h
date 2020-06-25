@@ -172,6 +172,7 @@ CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
 #  define CeedError(ceed, ecode, ...)                                     \
   CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__) ?: (ecode)
 #endif
+
 /// Specify memory type
 ///
 /// Many Ceed interfaces take or return pointers to memory.  This enum is used to
