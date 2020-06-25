@@ -82,7 +82,8 @@ static int CeedOperatorSetupFields_Occa(CeedQFunction qf, CeedOperator op,
 
   // Loop over fields
   for (CeedInt i=0; i<numfields; i++) {
-    CeedDebug("\t\t[CeedOperator][SetupFields] # %d/%d, \033[7m %d",i,numfields-1, i);
+    CeedDebug("\t\t[CeedOperator][SetupFields] # %d/%d, \033[7m %d",i,numfields-1,
+              i);
     CeedEvalMode emode;
     ierr = CeedQFunctionFieldGetEvalMode(qffields[i], &emode); CeedChk(ierr);
     if (emode != CEED_EVAL_WEIGHT) {
@@ -103,7 +104,7 @@ static int CeedOperatorSetupFields_Occa(CeedQFunction qf, CeedOperator op,
       break; // No action
     case CEED_EVAL_INTERP:
       CeedDebug("\t\t[CeedOperator][SetupFields] INTERP, Q++, qvec[%d]",
-          i + starte);
+                i + starte);
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
       ierr = CeedQFunctionFieldGetSize(qffields[i], &ncomp);
       CeedChk(ierr);
@@ -115,7 +116,7 @@ static int CeedOperatorSetupFields_Occa(CeedQFunction qf, CeedOperator op,
       break;
     case CEED_EVAL_GRAD:
       CeedDebug("\t\t[CeedOperator][SetupFields] GRAD, Q++, qvec[%d]",
-          i + starte);
+                i + starte);
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
       ierr = CeedQFunctionFieldGetSize(qffields[i], &ncomp); CeedChk(ierr);
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
@@ -127,7 +128,7 @@ static int CeedOperatorSetupFields_Occa(CeedQFunction qf, CeedOperator op,
       break;
     case CEED_EVAL_WEIGHT: // Only on input fields
       CeedDebug("\t\t[CeedOperator][SetupFields] WEIGHT, Q== & qvec[%d]",
-          i + starte);
+                i + starte);
       ierr = CeedOperatorFieldGetBasis(opfields[i], &basis); CeedChk(ierr);
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
       ierr = CeedVectorCreate(ceed, Q, &qvecs[i]); CeedChk(ierr);
@@ -177,7 +178,7 @@ static int CeedOperatorSetup_Occa(CeedOperator op) {
   // Allocate ******************************************************************
   const CeedInt numIO = numinputfields + numoutputfields;
   CeedDebug("\t[CeedOperator][Setup] numIO=%d (%d in, %d out)",numIO,
-      numinputfields, numoutputfields);
+            numinputfields, numoutputfields);
 
   ierr = CeedCalloc(numinputfields + numoutputfields, &data->Evecs);
   CeedChk(ierr);
@@ -286,7 +287,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
       if (vec == CEED_VECTOR_ACTIVE)
         vec = invec;
       CeedDebug("[CeedOperator][Apply] Restriction: data->Evecs[%d] = Edata[%d]",
-          i,i);
+                i,i);
       // Restrict
       ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
       CeedChk(ierr);
@@ -339,7 +340,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
         break;
       case CEED_EVAL_INTERP:
         CeedDebug("\t\t[CeedOperator][Apply] in INTERP, basis, Edata[%d] => qdata[%d] => indata[%d]",
-            i,i,i);
+                  i,i,i);
         ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
         ierr = CeedVectorSetArray(data->evecsin[i], CEED_MEM_HOST,
                                   CEED_USE_POINTER,
@@ -351,7 +352,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
         break;
       case CEED_EVAL_GRAD:
         CeedDebug("\t\t[CeedOperator][Apply] in GRAD, basis, Edata[%d] => qdata[%d] => indata[%d]",
-            i,i,i);
+                  i,i,i);
         ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
         ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
         ncomp /= dim;
@@ -382,7 +383,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
       CeedDebug("\t\t[CeedOperator][Apply] OUT %d",i);
       if (emode == CEED_EVAL_NONE) {
         CeedDebug("\t\t[CeedOperator][Apply] out NONE, Edata[%d] => outdata[%d]",
-            i + numinputfields,i);
+                  i + numinputfields,i);
         ierr = CeedQFunctionFieldGetSize(qfoutputfields[i], &ncomp);
         CeedChk(ierr);
         ierr = CeedVectorSetArray(data->qvecsout[i], CEED_MEM_HOST,

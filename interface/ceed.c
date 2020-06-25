@@ -205,7 +205,8 @@ int CeedSetErrorHandler(Ceed ceed,
   @return None
 
   @ref Backend
-**/  
+**/
+// LCOV_EXCL_START
 void CeedDebugImpl(const Ceed ceed, const char *format,...) {
   if (!ceed->debug) return;
   va_list args;
@@ -213,6 +214,7 @@ void CeedDebugImpl(const Ceed ceed, const char *format,...) {
   CeedDebugImpl256(ceed, 0, format, args);
   va_end(args);
 }
+// LCOV_EXCL_STOP
 
 /**
   @brief Print Ceed debugging information in color
@@ -224,7 +226,8 @@ void CeedDebugImpl(const Ceed ceed, const char *format,...) {
   @return None
 
   @ref Backend
-**/   
+**/
+// LCOV_EXCL_START
 void CeedDebugImpl256(const Ceed ceed, const unsigned char color,
                       const char *format,...) {
   if (!ceed->debug) return;
@@ -238,6 +241,7 @@ void CeedDebugImpl256(const Ceed ceed, const unsigned char color,
   fflush(stdout);
   va_end(args);
 }
+// LCOV_EXCL_STOP
 
 /**
   @brief Allocate an array on the host; use CeedMalloc()

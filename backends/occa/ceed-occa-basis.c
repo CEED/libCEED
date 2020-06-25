@@ -74,11 +74,11 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
   occaPropertiesSet(pKR, "defines/M1d", occaInt(M1d));
   const CeedInt MPow = CeedIntPow(M1d,dim-1);
   CeedDebug("[CeedBasis][BK] nelem=%d, ncomp=%d, M1d=%d, MPow=%d",
-      nelem,ncomp,M1d,MPow);
+            nelem,ncomp,M1d,MPow);
   const CeedInt tmpSz = ncomp*M1d*CeedIntPow(M1d,dim-1);
   occaPropertiesSet(pKR, "defines/tmpSz", occaInt(tmpSz));
   CeedDebug("[CeedBasis][BK] dim=%d, ncomp=%d, P1d=%d, Q1d=%d, M1d=%d ",
-      dim,ncomp,P1d,Q1d,M1d);
+            dim,ncomp,P1d,Q1d,M1d);
   const CeedInt elems_x_tmpSz = nelem*tmpSz;
   CeedDebug("[CeedBasis][BK] elems_x_tmpSz=%d",elems_x_tmpSz);
   data->tmp0 = occaDeviceMalloc(dev,elems_x_tmpSz*sizeof(CeedScalar),NULL,

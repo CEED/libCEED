@@ -34,7 +34,8 @@
 #define CEED_DEBUG_COLOR 0
 #endif
 CEED_EXTERN void CeedDebugImpl(const Ceed,const char *,...);
-CEED_EXTERN void CeedDebugImpl256(const Ceed,const unsigned char,const char *,...);
+CEED_EXTERN void CeedDebugImpl256(const Ceed,const unsigned char,const char *,
+                                  ...);
 #define CeedDebug1(ceed,format, ...) CeedDebugImpl(ceed,format, ## __VA_ARGS__)
 #define CeedDebug256(ceed,color, ...) CeedDebugImpl256(ceed,color, ## __VA_ARGS__)
 #define CeedDebug(...) CeedDebug256(ceed,(unsigned char)CEED_DEBUG_COLOR, ## __VA_ARGS__)

@@ -138,7 +138,8 @@ int CeedQFunctionAllocNoOpOut_Occa(CeedQFunction qf, CeedInt Q,
       break;
     case CEED_EVAL_GRAD:
       ncomp /= dim;
-      CeedDebug("\t[CeedQFunction][AllocOpOut] \"%s\" > GRAD (%d)", name, Q*ncomp*dim);
+      CeedDebug("\t[CeedQFunction][AllocOpOut] \"%s\" > GRAD (%d)", name,
+                Q*ncomp*dim);
       oOf7[odx+1]=oOf7[odx]+Q*ncomp*dim;
       odx+=1;
       break;
