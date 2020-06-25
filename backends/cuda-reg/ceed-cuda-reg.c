@@ -25,7 +25,9 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   int ierr;
   const int nrc = 9; // number of characters in resource
   if (strncmp(resource, "/gpu/cuda/reg", nrc))
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Cuda backend cannot use resource: %s", resource);
+  // LCOV_EXCL_STOP
   ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
 
   Ceed ceedref;
