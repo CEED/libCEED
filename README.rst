@@ -169,6 +169,8 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/magma``             | CUDA MAGMA kernels                                | No                    |
 +----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/magma/det``         | CUDA MAGMA kernels                                | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
 
 The ``/cpu/self/*/serial`` backends process one element at a time and are intended for meshes
 with a smaller number of high order elements. The ``/cpu/self/*/blocked`` backends process
@@ -198,8 +200,8 @@ cross platform performance.
 
 The ``/gpu/cuda/*`` backends provide GPU performance strictly using CUDA.
 
-The ``/gpu/magma`` backend relies upon the `MAGMA <https://bitbucket.org/icl/magma>`_ package.
-To enable the MAGMA backend, the environment variable ``MAGMA_DIR`` must point to the top-level
+The ``/gpu/magma/*`` backends rely upon the `MAGMA <https://bitbucket.org/icl/magma>`_ package.
+To enable the MAGMA backends, the environment variable ``MAGMA_DIR`` must point to the top-level
 MAGMA directory, with the MAGMA library located in ``$(MAGMA_DIR)/lib/``.
 By default, ``MAGMA_DIR`` is set to ``../magma``; to build the MAGMA backend
 with a MAGMA installation located elsewhere, create a link to ``magma/`` in libCEED's parent
