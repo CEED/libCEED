@@ -137,7 +137,7 @@ PetscErrorCode Prolong_Ceed(Mat A, Vec X, Vec Y) {
   CeedVectorSyncArray(user->ceedVecF, user->memType);
 
   // Restore PETSc vectors
-  ierr = user->VecRestoreArrayRead(user->locVecC, (const PetscScalar **)c);
+  ierr = user->VecRestoreArrayRead(user->locVecC, (const PetscScalar **)&c);
   CHKERRQ(ierr);
   ierr = user->VecRestoreArray(user->locVecF, &f); CHKERRQ(ierr);
 
