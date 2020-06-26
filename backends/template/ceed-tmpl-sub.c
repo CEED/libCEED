@@ -28,13 +28,13 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
     return CeedError(ceed, 1, "Tmpl backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
 
-  // Create refrence CEED that implementation will be dispatched
+  // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceedref;
   CeedInit("/cpu/self/ref/blocked", &ceedref);
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
-  // Create refrence CEED for objects
+  // Create reference CEED for objects
   Ceed basisceedref;
   CeedInit("/cpu/self/ref/blocked", &basisceedref);
   ierr = CeedSetObjectDelegate(ceed, basisceedref, "Basis");

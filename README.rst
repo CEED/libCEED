@@ -207,7 +207,7 @@ directory, or set ``MAGMA_DIR`` to the proper location.  MAGMA version 2.5.0 or 
 
 Bit-for-bit reproducibility is important in some applications.
 However, some libCEED backends use non-deterministic operations, such as ``atomicAdd`` for increased performance.
-The backends which are capable of generating reproducable results, with the proper compilation options, are highlighted in the list above.
+The backends which are capable of generating reproducible results, with the proper compilation options, are highlighted in the list above.
 
 Examples
 ----------------------------------------

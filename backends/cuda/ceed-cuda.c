@@ -128,7 +128,7 @@ int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel, const int gridSize,
 }
 
 //------------------------------------------------------------------------------
-// CUDA prefered MemType
+// CUDA preferred MemType
 //------------------------------------------------------------------------------
 static int CeedGetPreferredMemType_Cuda(CeedMemType *type) {
   *type = CEED_MEM_DEVICE;

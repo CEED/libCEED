@@ -15,7 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /**
-  @brief Ceed QFunction for building the geometric data for the 2D poisson operator
+  @brief Ceed QFunction for building the geometric data for the 2D Poisson operator
 **/
 CEED_QFUNCTION(Poisson2DBuild)(void *ctx, const CeedInt Q,
                                const CeedScalar *const *in,

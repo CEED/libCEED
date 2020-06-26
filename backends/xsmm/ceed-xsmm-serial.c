@@ -29,7 +29,7 @@ static int CeedInit_Xsmm_Serial(const char *resource, Ceed ceed) {
   // LCOV_EXCL_STOP
   ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
 
-  // Create refrence CEED that implementation will be dispatched
+  // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceedref;
   CeedInit("/cpu/self/opt/serial", &ceedref);

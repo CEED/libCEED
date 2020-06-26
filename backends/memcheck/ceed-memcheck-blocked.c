@@ -27,7 +27,7 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
                      resource);
   // LCOV_EXCL_STOP
 
-  // Create refrence CEED that implementation will be dispatched
+  // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceedref;
   CeedInit("/cpu/self/ref/blocked", &ceedref);
