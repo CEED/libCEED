@@ -182,7 +182,7 @@ PetscErrorCode Restrict_Ceed(Mat A, Vec X, Vec Y) {
   // Apply CEED operator
   CeedOperatorApply(user->opRestrict, user->ceedVecF, user->ceedVecC,
                     CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->ceedVecC, CEED_MEM_HOST);
+  CeedVectorSyncArray(user->ceedVecC, user->memType);
 
   // Restore PETSc vectors
   ierr = user->VecRestoreArrayRead(user->locVecF, (const PetscScalar **)&f);

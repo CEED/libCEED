@@ -404,7 +404,9 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
     ierr = MatShellSetOperation(jacobMat[level], MATOP_GET_DIAGONAL,
                                 (void(*)(void))GetDiag_Ceed);
-
+    if (appCtx->memTypeRequested == CEED_MEM_DEVICE) {
+      ierr = MatShellSetVecType(jacobMat[level], VECCUDA); CHKERRQ(ierr);
+    }
   }
   // Note: FormJacobian updates Jacobian matrices on each level
   //   and assembles the Jpre matrix, if needed
@@ -443,6 +445,9 @@ int main(int argc, char **argv) {
     ierr = MatShellSetOperation(prolongRestrMat[level], MATOP_MULT_TRANSPOSE,
                                 (void (*)(void))Restrict_Ceed);
     CHKERRQ(ierr);
+    if (appCtx->memTypeRequested == CEED_MEM_DEVICE) {
+      ierr = MatShellSetVecType(prolongRestrMat[level], VECCUDA); CHKERRQ(ierr);
+    }
   }
 
   // ---------------------------------------------------------------------------
