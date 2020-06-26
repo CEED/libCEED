@@ -329,7 +329,7 @@ int main(int argc, char **argv) {
   ierr = DMLocalToGlobal(dm[fineLevel], rhsloc, ADD_VALUES, rhs); CHKERRQ(ierr);
   CeedVectorDestroy(&rhsceed);
 
-  // Create the restriction/interpolation Q-function
+  // Create the restriction/interpolation QFunction
   CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_NONE, CEED_EVAL_INTERP,
                               &qfrestrict);
   CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_INTERP, CEED_EVAL_NONE,
@@ -340,7 +340,7 @@ int main(int argc, char **argv) {
                                 leveldegrees, qfrestrict, qfprolong);
   CHKERRQ(ierr);
 
-  // Create the error Q-function
+  // Create the error QFunction
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].error,
                               bpOptions[bpchoice].errorfname, &qferror);
   CeedQFunctionAddInput(qferror, "u", ncompu, CEED_EVAL_INTERP);

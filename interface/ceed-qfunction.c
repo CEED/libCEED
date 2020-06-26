@@ -573,12 +573,10 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode inmode,
   ierr = CeedQFunctionAddOutput(*qf, "output", size, outmode); CeedChk(ierr);
 
   (*qf)->identity = 1;
-  if (size > 1) {
-    CeedInt *ctx;
-    ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
-    ctx[0] = size;
-    ierr = CeedQFunctionSetContext(*qf, ctx, sizeof(*ctx)); CeedChk(ierr);
-  }
+  CeedInt *ctx;
+  ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
+  ctx[0] = size;
+  ierr = CeedQFunctionSetContext(*qf, ctx, sizeof(*ctx)); CeedChk(ierr);
 
   return 0;
 }
