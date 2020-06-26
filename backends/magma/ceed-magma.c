@@ -78,4 +78,3 @@ __attribute__((constructor))
 static void Register(void) {
   CeedRegister("/gpu/magma", CeedInit_Magma,20);
 }
-
