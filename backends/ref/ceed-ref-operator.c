@@ -667,8 +667,8 @@ static inline void CeedOperatorGetBasisPointer_Ref(const CeedScalar **basisptr,
 //------------------------------------------------------------------------------
 // Create point block restriction
 //------------------------------------------------------------------------------
-static int CreatePBRestriction(CeedElemRestriction rstr,
-                               CeedElemRestriction *pbRstr) {
+static int CreatePBRestriction_Ref(CeedElemRestriction rstr,
+                                   CeedElemRestriction *pbRstr) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(rstr, &ceed); CeedChk(ierr);
@@ -823,7 +823,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
   // Assemble point-block diagonal restriction, if needed
   CeedElemRestriction diagrstr = rstrout;
   if (pointBlock) {
-    ierr = CreatePBRestriction(rstrout, &diagrstr); CeedChk(ierr);
+    ierr = CreatePBRestriction_Ref(rstrout, &diagrstr); CeedChk(ierr);
   }
 
   // Create diagonal vector
@@ -861,6 +861,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
   ierr = CeedBasisGetGrad(basisout, &gradout); CeedChk(ierr);
   // Compute the diagonal of B^T D B
   // Each element
+  const CeedScalar qfvaluebound = maxnorm*1e-12;
   for (CeedInt e=0; e<nelem; e++) {
     CeedInt dout = -1;
     // Each basis eval mode pair
@@ -887,7 +888,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
                 const CeedScalar qfvalue =
                   assembledqfarray[((((e*numemodein+ein)*ncomp+compIn)*
                                      numemodeout+eout)*ncomp+compOut)*nqpts+q];
-                if (fabs(qfvalue) > maxnorm*1e-12)
+                if (fabs(qfvalue) > qfvaluebound)
                   for (CeedInt n=0; n<nnodes; n++)
                     elemdiagarray[((e*ncomp+compOut)*ncomp+compIn)*nnodes+n] +=
                       bt[q*nnodes+n] * qfvalue * b[q*nnodes+n];
@@ -897,7 +898,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
               const CeedScalar qfvalue =
                 assembledqfarray[((((e*numemodein+ein)*ncomp+compOut)*
                                    numemodeout+eout)*ncomp+compOut)*nqpts+q];
-              if (fabs(qfvalue) > maxnorm*1e-12)
+              if (fabs(qfvalue) > qfvaluebound)
                 for (CeedInt n=0; n<nnodes; n++)
                   elemdiagarray[(e*ncomp+compOut)*nnodes+n] +=
                     bt[q*nnodes+n] * qfvalue * b[q*nnodes+n];

@@ -105,6 +105,18 @@ typedef struct {
 } CeedBasisNonTensor_Cuda;
 
 typedef struct {
+  CUmodule module;
+  CUfunction linearDiagonal;
+  CUfunction linearPointBlock;
+  CeedBasis basisin, basisout;
+  CeedElemRestriction diagrstr, pbdiagrstr;
+  CeedInt numemodein, numemodeout, nnodes;
+  CeedEvalMode *h_emodein, *h_emodeout;
+  CeedEvalMode *d_emodein, *d_emodeout;
+  CeedScalar *d_identity, *d_interpin, *d_interpout, *d_gradin, *d_gradout;
+} CeedOperatorDiag_Cuda;
+
+typedef struct {
   CeedVector
   *evecs;   // E-vectors needed to apply operator (input followed by outputs)
   CeedScalar **edata;
@@ -112,6 +124,7 @@ typedef struct {
   CeedVector *qvecsout;   // Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
+  CeedOperatorDiag_Cuda *diag;
 } CeedOperator_Cuda;
 
 typedef struct {

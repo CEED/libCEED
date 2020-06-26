@@ -826,7 +826,7 @@ static PetscErrorCode MatMult_Prolong(Mat A, Vec X, Vec Y) {
   CeedVectorSyncArray(user->ceedvecf, user->memtype);
 
   // Restore PETSc vectors
-  ierr = user->VecRestoreArrayRead(user->locvecc, (const PetscScalar **)c);
+  ierr = user->VecRestoreArrayRead(user->locvecc, (const PetscScalar **)&c);
   CHKERRQ(ierr);
   ierr = user->VecRestoreArray(user->locvecf, &f); CHKERRQ(ierr);
 
