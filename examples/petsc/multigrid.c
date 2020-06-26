@@ -254,9 +254,6 @@ int main(int argc, char **argv) {
   }
   ierr = VecDuplicate(X[fineLevel], &rhs); CHKERRQ(ierr);
 
-  // Set up libCEED
-  CeedInit(ceedresource, &ceed);
-
   // Print global grid information
   if (!test_mode) {
     PetscInt P = degree + 1, Q = P + qextra;
