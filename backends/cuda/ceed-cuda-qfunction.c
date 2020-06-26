@@ -90,9 +90,8 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
-
-  CeedChk_Cu(ceed, cuModuleUnload(data->module));
-
+  if  (data->module)
+    CeedChk_Cu(ceed, cuModuleUnload(data->module));
   ierr = cudaFree(data->d_c); CeedChk_Cu(ceed, ierr);
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
