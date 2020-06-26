@@ -149,6 +149,7 @@ typedef struct CeedOperator_private *CeedOperator;
 
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
 CEED_EXTERN int CeedGetResource(Ceed ceed, const char **resource);
+CEED_EXTERN int CeedIsDeterministic(Ceed ceed, bool *isDeterministic);
 CEED_EXTERN int CeedView(Ceed ceed, FILE *stream);
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
 

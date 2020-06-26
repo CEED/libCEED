@@ -83,6 +83,12 @@ void fCeedInit(const char *resource, int *ceed, int *err,
   }
 }
 
+#define fCeedIsDeterministic \
+    FORTRAN_NAME(ceedisdeterministic,CEEDISDETERMINISTIC)
+void fCeedIsDeterministic(int *ceed, int *isDeterministic, int *err) {
+  *err = CeedIsDeterministic(Ceed_dict[*ceed], (bool *)isDeterministic);
+}
+
 #define fCeedGetPreferredMemType \
     FORTRAN_NAME(ceedgetpreferredmemtype,CEEDGETPREFERREDMEMTYPE)
 void fCeedGetPreferredMemType(int *ceed, int *type, int *err) {

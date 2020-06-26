@@ -26,8 +26,9 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "AVX backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
+  ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
 
-  // Create refrence CEED that implementation will be dispatched
+  // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceedref;
   CeedInit("/cpu/self/opt/blocked", &ceedref);

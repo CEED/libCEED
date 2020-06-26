@@ -71,6 +71,7 @@ CEED_EXTERN int CeedGetOperatorFallbackResource(Ceed ceed,
 CEED_EXTERN int CeedSetOperatorFallbackResource(Ceed ceed,
     const char *resource);
 CEED_EXTERN int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent);
+CEED_EXTERN int CeedSetDeterministic(Ceed ceed, bool isDeterministic);
 CEED_EXTERN int CeedSetBackendFunction(Ceed ceed,
                                        const char *type, void *object,
                                        const char *fname, int (*f)());

@@ -20,7 +20,7 @@
 
 /**
   @brief Set fields for Ceed QFunction building the geometric data for the 3D
-           poisson operator
+           Poisson operator
 **/
 static int CeedQFunctionInit_Poisson3DBuild(Ceed ceed, const char *requested,
     CeedQFunction qf) {
@@ -48,7 +48,7 @@ static int CeedQFunctionInit_Poisson3DBuild(Ceed ceed, const char *requested,
 
 /**
   @brief Register Ceed QFunction for building the geometric data for the 3D
-           poisson operator
+           Poisson operator
 **/
 __attribute__((constructor))
 static void Register(void) {

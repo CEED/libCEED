@@ -15,7 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /**
-  @brief Ceed QFunction for applying the 2D poisson operator
+  @brief Ceed QFunction for applying the 2D Poisson operator
 **/
 
 #ifndef poisson2dapply_h

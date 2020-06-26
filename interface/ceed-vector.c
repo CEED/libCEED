@@ -77,7 +77,7 @@ int CeedVectorGetState(CeedVector vec, uint64_t *state) {
 /**
   @brief Add a refrence to a CeedVector
 
-  @param[out] vec     CeedVector to increment refrence counter
+  @param[out] vec     CeedVector to increment reference counter
 
   @return An error code: 0 - success, otherwise - failure
 
