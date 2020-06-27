@@ -776,6 +776,9 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << devFunctions;
 
   string qFunction(qf_data->qFunctionSource);
+  string qFunctionName(qf_data->qFunctionName);
+  string oper;
+  oper = "kernel_" + qFunctionName;
 
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
   code << "\n#define CeedPragmaSIMD\n";
@@ -832,7 +835,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << qFunction;
 
   // Setup
-  code << "\nextern \"C\" __global__ void oper(CeedInt nelem, void* ctx, CudaFieldsInt indices, CudaFields fields, CudaFields B, CudaFields G, CeedScalar* W) {\n";
+  code << "\nextern \"C\" __global__ void "<<oper<<"(CeedInt nelem, void* ctx, CudaFieldsInt indices, CudaFields fields, CudaFields B, CudaFields G, CeedScalar* W) {\n";
   // Input Evecs and Restriction
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
@@ -1196,7 +1199,6 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     code << "  out["<<i<<"] = r_qq"<<i<<";\n";
   }
   code << "\n  // Apply QFunction\n";
-  string qFunctionName(qf_data->qFunctionName);
   code << "  "<<qFunctionName<<"(ctx, ";
   if (dim != 3 || basis_data->d_collograd1d) {
     code << "1 ";
@@ -1316,7 +1318,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
 
   ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 0);
   CeedChk(ierr);
-  ierr = CeedGetKernelCuda(ceed, data->module, "oper", &data->op);
+  ierr = CeedGetKernelCuda(ceed, data->module, oper.c_str(), &data->op);
   CeedChk(ierr);
 
   ierr = CeedOperatorSetSetupDone(op); CeedChk(ierr);
