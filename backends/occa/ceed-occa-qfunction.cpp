@@ -51,7 +51,7 @@ namespace ceed {
       ierr = CeedQFunctionGetInnerContext(qf, &qFunction->ceedContext);
       CeedOccaFromChk(ierr);
 
-      ierr = CeedQFunctionGetIdentityStatus(qf, &qFunction->ceedIsIdentity);
+      ierr = CeedQFunctionIsIdentity(qf, &qFunction->ceedIsIdentity);
       CeedOccaFromChk(ierr);
 
       qFunction->args.setupQFunctionArgs(qf);

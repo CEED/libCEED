@@ -240,11 +240,11 @@ namespace ceed {
       bool isStrided = false;
       bool hasBackendStrides = false;
 
-      ierr = CeedElemRestrictionGetStridedStatus(r, &isStrided);
+      ierr = CeedElemRestrictionIsStrided(r, &isStrided);
       CeedOccaFromChk(ierr);
 
       if (isStrided) {
-        ierr = CeedElemRestrictionGetBackendStridesStatus(r, &hasBackendStrides);
+        ierr = CeedElemRestrictionHasBackendStrides(r, &hasBackendStrides);
         CeedOccaFromChk(ierr);
       }
 
