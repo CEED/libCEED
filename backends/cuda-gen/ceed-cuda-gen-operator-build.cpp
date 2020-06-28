@@ -13,6 +13,7 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+#define CEED_DEBUG_COLOR 12
 
 #include "ceed-cuda-gen.h"
 #include <iostream>
@@ -1312,7 +1313,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "}\n\n";
 
   // View kernel for debugging
-  // std::cout << code.str();
+  CeedDebug(code.str().c_str());
 
   ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 0);
   CeedChk(ierr);

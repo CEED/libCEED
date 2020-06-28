@@ -32,11 +32,11 @@ int CeedOklPath_Occa(const Ceed ceed, const char *c_src_file,
   if (!last_dot)
     return CeedError(ceed, 1, "Cannot find file's extension!");
   strncpy(last_dot, ".okl", OCCA_PATH_MAX - (last_dot - okl));
-  dbg("[CeedOklPath] Current OKL is %s",okl);
+  CeedDebug("[CeedOklPath] Current OKL is %s",okl);
   // Test if we can get file's status,
   if (stat(okl, &buf)!=0) { // if not revert to occa cache
-    dbg("[CeedOklPath] Could NOT stat this OKL file: %s",okl);
-    dbg("[CeedOklPath] Trying occa://ceed/%s.okl",okl_base_name);
+    CeedDebug("[CeedOklPath] Could NOT stat this OKL file: %s",okl);
+    CeedDebug("[CeedOklPath] Trying occa://ceed/%s.okl",okl_base_name);
     if (!ceed_data->occa_cache_dir)
       return CeedError(ceed, 1, "Cannot use null occa_cache_dir!");
     // Try to stat ceed-occa-restrict.okl in occa cache
@@ -44,25 +44,25 @@ int CeedOklPath_Occa(const Ceed ceed, const char *c_src_file,
                  ceed_data->occa_cache_dir,
                  okl_base_name);
     CeedChk(!ierr);
-    dbg("[CeedOklPath] Stating %s",okl);
+    CeedDebug("[CeedOklPath] Stating %s",okl);
     // if we cannot find the okl file in cache,
     if (stat(okl, &buf)!=0) { // look into libceed install path
       if (!ceed_data->libceed_dir)
         return CeedError(ceed, 1, "Cannot use null libceed_dir!");
-      dbg("[CeedOklPath] Could NOT stat OCCA cache: %s",okl);
+      CeedDebug("[CeedOklPath] Could NOT stat OCCA cache: %s",okl);
       ierr=sprintf(okl,"%s/okl/%s.okl",
                    ceed_data->libceed_dir,
                    okl_base_name);
       CeedChk(!ierr);
-      dbg("[CeedOklPath] Trying fron libceed: %s",okl);
+      CeedDebug("[CeedOklPath] Trying fron libceed: %s",okl);
       if (stat(okl, &buf)!=0) // last chance here
         return CeedError(ceed, 1, "Cannot find OKL file!");
     } else {// if it is in occa cache, use it
-      dbg("[CeedOklPath] Found occa://ceed/%s.okl",okl_base_name);
+      CeedDebug("[CeedOklPath] Found occa://ceed/%s.okl",okl_base_name);
       sprintf(okl,"occa://ceed/%s.okl",okl_base_name);
     }
   }
-  dbg("[CeedOklPath] Final OKL is %s",okl);
+  CeedDebug("[CeedOklPath] Final OKL is %s",okl);
   return 0;
 }
 
@@ -76,7 +76,7 @@ int CeedOklDladdr_Occa(Ceed ceed) {
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
   memset(&info,0,sizeof(info));
   ierr = dladdr((void *)&CeedInit,&info);
-  dbg("[CeedOklDladdr] libceed -> %s", info.dli_fname);
+  CeedDebug("[CeedOklDladdr] libceed -> %s", info.dli_fname);
   if (ierr==0)
     return CeedError(ceed, 1, "OCCA backend cannot fetch dladdr");
   // libceed_dir setup & alloc in our data
@@ -95,6 +95,6 @@ int CeedOklDladdr_Occa(Ceed ceed) {
                      libceed_dir);
   // remove from last_slash and push it to our data
   memcpy(data->libceed_dir,libceed_dir,last_slash-libceed_dir);
-  dbg("[CeedOklDladdr] libceed_dir -> %s", data->libceed_dir);
+  CeedDebug("[CeedOklDladdr] libceed_dir -> %s", data->libceed_dir);
   return 0;
 }

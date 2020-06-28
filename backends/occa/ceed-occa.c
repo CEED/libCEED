@@ -46,48 +46,13 @@ static int CeedDestroy_Occa(Ceed ceed) {
   int ierr;
   Ceed_Occa *data;
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
-  dbg("[CeedDestroy]");
+  CeedDebug("[CeedDestroy]");
   ierr = CeedFree(&data->occa_cache_dir); CeedChk(ierr);
   occaFree(data->device);
   ierr = CeedFree(&data->libceed_dir); CeedChk(ierr);
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
-
-// *****************************************************************************
-// * CeedDebugImpl256
-// *****************************************************************************
-void CeedDebugImpl256(const Ceed ceed,
-                      const unsigned char color,
-                      const char *format,...) {
-  const Ceed_Occa *data;
-  CeedGetData(ceed, (void *)&data);
-  if (!data->debug) return;
-  va_list args;
-  va_start(args, format);
-  fflush(stdout);
-  fprintf(stdout,"\033[38;5;%dm",color);
-  vfprintf(stdout,format,args);
-  fprintf(stdout,"\033[m");
-  fprintf(stdout,"\n");
-  fflush(stdout);
-  va_end(args);
-}
-
-// *****************************************************************************
-// * CeedDebugImpl
-// *****************************************************************************
-void CeedDebugImpl(const Ceed ceed,
-                   const char *format,...) {
-  const Ceed_Occa *data;
-  CeedGetData(ceed, (void *)&data);
-  if (!data->debug) return;
-  va_list args;
-  va_start(args, format);
-  CeedDebugImpl256(ceed,0,format,args);
-  va_end(args);
-}
-
 
 // *****************************************************************************
 // * INIT
@@ -127,30 +92,30 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Occa); CeedChk(ierr);
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  // push env variables CEED_DEBUG or DBG to our data
-  data->debug=!!getenv("CEED_DEBUG") || !!getenv("DBG");
   // push ocl to our data, to be able to check it later for the kernels
   data->ocl = ocl;
   data->libceed_dir = NULL;
   data->occa_cache_dir = NULL;
-  if (data->debug) {
+  bool debug;
+  ierr = CeedIsDebug(ceed, &debug); CeedChk(ierr);
+  if (debug) {
     occaPropertiesSet(occaSettings(), "device/verbose", occaBool(1));
     occaPropertiesSet(occaSettings(), "kernel/verbose", occaBool(1));
   }
   ierr = CeedSetData(ceed, (void *)&data); CeedChk(ierr);
   // Now that we can dbg, output resource and deviceID
-  dbg("[CeedInit] resource: %s", resource);
-  dbg("[CeedInit] deviceID: %d", deviceID);
+  CeedDebug("[CeedInit] resource: %s", resource);
+  CeedDebug("[CeedInit] deviceID: %d", deviceID);
   const char *mode_format = gpu?occaGPU : omp?occaOMP : ocl ? occaOCL : occaCPU;
   char mode[CEED_MAX_RESOURCE_LEN] = {0};
   // Push deviceID for CUDA and OpenCL mode
   if (ocl || gpu) sprintf(mode,mode_format,deviceID);
   else memcpy(mode,mode_format,strlen(mode_format));
-  dbg("[CeedInit] mode: %s", mode);
+  CeedDebug("[CeedInit] mode: %s", mode);
   // Now creating OCCA device
   data->device = occaCreateDevice(occaString(mode));
   const char *deviceMode = occaDeviceMode(data->device);
-  dbg("[CeedInit] returned deviceMode: %s", deviceMode);
+  CeedDebug("[CeedInit] returned deviceMode: %s", deviceMode);
   // Warning: "OCCA backend failed" is used to grep in test/tap.sh
   if (cpu && strcmp(occaDeviceMode(data->device), "Serial"))
     return CeedError(ceed,1, "OCCA backend failed to use Serial resource");
@@ -163,7 +128,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   // populating our data struct with libceed_dir
   ierr = CeedOklDladdr_Occa(ceed); CeedChk(ierr);
   if (data->libceed_dir)
-    dbg("[CeedInit] libceed_dir: %s", data->libceed_dir);
+    CeedDebug("[CeedInit] libceed_dir: %s", data->libceed_dir);
   // populating our data struct with occa_cache_dir
   char occa_cache_home[OCCA_PATH_MAX];
   const char *HOME = getenv("HOME");
@@ -174,7 +139,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   const int occa_cache_dir_len = strlen(occa_cache_dir);
   ierr = CeedCalloc(occa_cache_dir_len+1,&data->occa_cache_dir); CeedChk(ierr);
   memcpy(data->occa_cache_dir,occa_cache_dir,occa_cache_dir_len+1);
-  dbg("[CeedInit] occa_cache_dir: %s", data->occa_cache_dir);
+  CeedDebug("[CeedInit] occa_cache_dir: %s", data->occa_cache_dir);
   return 0;
 }
 
