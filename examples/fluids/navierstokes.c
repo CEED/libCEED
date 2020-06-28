@@ -1215,6 +1215,8 @@ int main(int argc, char **argv) {
 
       ierr = DMRefine(dmhierarchy[i], MPI_COMM_NULL, &dmhierarchy[i+1]);
       CHKERRQ(ierr);
+      ierr = DMClearDS(dmhierarchy[i+1]);CHKERRQ(ierr);
+      ierr = DMClearFields(dmhierarchy[i+1]);CHKERRQ(ierr);
       ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
       d = (d + 1) / 2;
       if (i + 1 == viz_refine) d = 1;
