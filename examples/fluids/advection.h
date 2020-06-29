@@ -528,7 +528,7 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
     // For explicit mode, the surface integral is on the RHS of ODE qdot = f(q).
     // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(qdot, q).
     // We can effect this by swapping the sign on this weight
-    const CeedScalar wdetJb     =    (implicit ? -1. : 1.) * qdataSur[0][i];
+    const CeedScalar wdetJb     =   (implicit ? -1. : 1.) * qdataSur[0][i];
     // ---- Normal vectors
     const CeedScalar norm[3]    =   {qdataSur[1][i],
                                      qdataSur[2][i],
