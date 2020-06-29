@@ -314,8 +314,8 @@ int main(int argc, char **argv) {
     ierr = PetscMalloc1(1, &ceeddata[i]); CHKERRQ(ierr);
     ierr = SetupLibceedByDegree(dm[i], ceed, leveldegrees[i], dim, qextra,
                                 ncompu, gsize[i], xlsize[i], bpchoice,
-                                ceeddata[i], i==(fineLevel), rhsceed,
-                                &target); CHKERRQ(ierr);
+                                ceeddata[i], i==(fineLevel), rhsceed, &target);
+    CHKERRQ(ierr);
   }
 
   // Gather RHS
@@ -362,12 +362,14 @@ int main(int argc, char **argv) {
     PetscScalar *x;
 
     // CEED vector
+    ierr = VecZeroEntries(Xloc[i]); CHKERRQ(ierr);
     ierr = VecGetArray(Xloc[i], &x); CHKERRQ(ierr);
     CeedVectorSetArray(ceeddata[i]->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
     // Multiplicity
     CeedElemRestrictionGetMultiplicity(ceeddata[i]->Erestrictu,
                                        ceeddata[i]->xceed);
+    CeedVectorSyncArray(ceeddata[i]->xceed, CEED_MEM_HOST);
 
     // Restore vector
     ierr = VecRestoreArray(Xloc[i], &x); CHKERRQ(ierr);
