@@ -40,9 +40,6 @@ struct SetupContext_ {
   CeedScalar lx;
   CeedScalar ly;
   CeedScalar lz;
-  CeedScalar periodicity0;
-  CeedScalar periodicity1;
-  CeedScalar periodicity2;
   CeedScalar center[3];
   CeedScalar dc_axis[3];
   CeedScalar wind[3];
