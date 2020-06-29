@@ -83,9 +83,9 @@ struct SurfaceContext_ {
 //        Momentum Density:
 //          Rotational field in x,y
 //        Energy Density:
-//          Maximum of 1. x0 decreasing linearly to 0. as radial distance 
+//          Maximum of 1. x0 decreasing linearly to 0. as radial distance
 //            increases to (1.-r/rc), then 0. everywhere else
-//     
+//
 //      Boundary Conditions:
 //        Mass Density:
 //          0.0 flux
@@ -103,19 +103,19 @@ struct SurfaceContext_ {
 //        Energy Density:
 //          Maximum of 1. x0 decreasing linearly to 0. as radial distance
 //            increases to (1.-r/rc), then 0. everywhere else
-//     
+//
 //      Boundary Conditions:
 //        Mass Density:
 //          0.0 flux
 //        Momentum Density:
 //          0.0
 //        Energy Density:
-//          Inflow BCs:  
+//          Inflow BCs:
 //            E = 1E6 is applied weakly in QFunction "Advection2d_Sur"
-//          Outflow BCs: 
-//            The current values of E are applied weakly in 
+//          Outflow BCs:
+//            The current values of E are applied weakly in
 //              QFunction "Advection2d_Sur"
-//       
+//
 // *****************************************************************************
 
 // *****************************************************************************
@@ -443,8 +443,8 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
 //
 // *****************************************************************************
 CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
-                            const CeedScalar *const *in,
-                            CeedScalar *const *out) {
+                                const CeedScalar *const *in,
+                                CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
