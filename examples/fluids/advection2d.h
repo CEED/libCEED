@@ -68,7 +68,7 @@ typedef struct SurfaceContext_ *SurfaceContext;
 struct SurfaceContext_ {
   CeedScalar E_wind;
   CeedScalar strong_form;
-  PetscBool implicit;
+  bool implicit;
 };
 #endif
 
@@ -432,7 +432,7 @@ CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
   SurfaceContext context = (SurfaceContext)ctx;
   const CeedScalar E_wind = context->E_wind;
   const CeedScalar strong_form = context->strong_form;
-  const PetscBool implicit = context->implicit;
+  const bool implicit = context->implicit;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
