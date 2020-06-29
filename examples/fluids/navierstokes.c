@@ -319,12 +319,14 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
       ierr = DMPlexGetSupport(dm, c, &cells); CHKERRQ(ierr);
       ierr = DMPlexGetSupportSize(dm, c, &numCells); CHKERRQ(ierr);
       if (numCells != 1) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
-                                    "Expected one cell in support of exterior face, but got %D cells", numCells);
+                                    "Expected one cell in support of exterior face, but got %D cells",
+                                    numCells);
       ierr = DMPlexGetCone(dm, cells[0], &faces); CHKERRQ(ierr);
       ierr = DMPlexGetConeSize(dm, cells[0], &numFaces); CHKERRQ(ierr);
       for (PetscInt i=0; i<numFaces; i++) {if (faces[i] == c) start = i;}
       if (start < 0) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_CORRUPT,
-                                "Could not find face %D in cone of its support", c);
+                                "Could not find face %D in cone of its support",
+                                c);
       ierr = DMPlexGetConeOrientation(dm, cells[0], &orients); CHKERRQ(ierr);
       if (orients[start] < 0) flip = true;
     }
@@ -340,7 +342,8 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
           PetscInt row = i / P, col = i % P;
           ii = row + col * P;
         } else SETERRQ2(PETSC_COMM_SELF, PETSC_ERR_SUP,
-                          "No support for flipping point with %D nodes != P (%D) or P^2", nnodes, P);
+                          "No support for flipping point with %D nodes != P (%D) or P^2",
+                          nnodes, P);
       }
       // Check that indices are blocked by node and thus can be coalesced as a single field with
       // fieldoff[nfields] = sum(ncomp) components.
@@ -450,11 +453,13 @@ static PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
     // Create CEED Operator for each boundary face
     for (CeedInt i=0; i<nFace; i++) {
       ierr = GetRestrictionForDomain(ceed, dm, height, domainLabel, i+1, numP_Sur,
-                                     numQ_Sur, qdatasizeSur, &restrictqSur[i], &restrictxSur[i],
-                                     &restrictqdiSur[i]); CHKERRQ(ierr);
+                                     numQ_Sur, qdatasizeSur, &restrictqSur[i],
+                                     &restrictxSur[i], &restrictqdiSur[i]);
+      CHKERRQ(ierr);
       // Create the CEED vectors that will be needed in Boundary setup
       CeedElemRestrictionGetNumElements(restrictqSur[i], &localNelemSur[i]);
-      CeedVectorCreate(ceed, qdatasizeSur*localNelemSur[i]*NqptsSur, &qdataSur[i]);
+      CeedVectorCreate(ceed, qdatasizeSur*localNelemSur[i]*NqptsSur,
+                       &qdataSur[i]);
       // Create the operator that builds the quadrature data for the Boundary operator
       CeedOperatorCreate(ceed, qf_setupSur, NULL, NULL, &op_setupSur[i]);
       CeedOperatorSetField(op_setupSur[i], "dx", restrictxSur[i], basisxSur,
@@ -469,7 +474,8 @@ static PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                            CEED_VECTOR_ACTIVE);
       CeedOperatorSetField(op_applySur[i], "qdataSur", restrictqdiSur[i],
                            CEED_BASIS_COLLOCATED, qdataSur[i]);
-      CeedOperatorSetField(op_applySur[i], "x", restrictxSur[i], basisxSur, xcorners);
+      CeedOperatorSetField(op_applySur[i], "x", restrictxSur[i], basisxSur,
+                           xcorners);
       CeedOperatorSetField(op_applySur[i], "v", restrictqSur[i], basisqSur,
                            CEED_VECTOR_ACTIVE);
       // Apply CEED operator for Boundary setup
@@ -814,7 +820,8 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
           for (PetscInt w = 0; w < bc->nwall; w++) {
             if (bc->slips[c][s] == bc->walls[w])
               SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
-                       "Boundary condition already set on face %D!\n", bc->walls[w]);
+                       "Boundary condition already set on face %D!\n",
+                       bc->walls[w]);
 
           }
         }
@@ -969,7 +976,8 @@ int main(int argc, char **argv) {
                           (PetscEnum *)&problemChoice, NULL); CHKERRQ(ierr);
   problem = &problemOptions[problemChoice];
   ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
-                          NULL, WindTypes, (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
+                          NULL, WindTypes,
+                          (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
                           (PetscEnum *)&wind_type, NULL); CHKERRQ(ierr);
   PetscInt n = problem->dim;
   PetscBool userWind;
@@ -1123,7 +1131,8 @@ int main(int argc, char **argv) {
   PetscBool userQextraSur;
   ierr = PetscOptionsInt("-qextra_boundary",
                          "Number of extra quadrature points on in/outflow faces",
-                         NULL, qextraSur, &qextraSur, &userQextraSur); CHKERRQ(ierr);
+                         NULL, qextraSur, &qextraSur, &userQextraSur);
+  CHKERRQ(ierr);
   if ((wind_type == ADVECTION_WIND_ROTATION
        || problemChoice == NS_DENSITY_CURRENT) && userQextraSur) {
     ierr = PetscPrintf(comm,
@@ -1248,7 +1257,8 @@ int main(int argc, char **argv) {
       ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
       d = (d + 1) / 2;
       if (i + 1 == viz_refine) d = 1;
-      ierr = SetUpDM(dmhierarchy[i+1], problem, d, &bc, &ctxSetup); CHKERRQ(ierr);
+      ierr = SetUpDM(dmhierarchy[i+1], problem, d, &bc, &ctxSetup);
+      CHKERRQ(ierr);
       ierr = DMCreateInterpolation(dmhierarchy[i], dmhierarchy[i+1],
                                    &interp_next, NULL); CHKERRQ(ierr);
       if (!i) interpviz = interp_next;
@@ -1486,13 +1496,16 @@ int main(int argc, char **argv) {
   if (!implicit)
     ierr = CreateOperatorForDomain(ceed, dm, &bc, wind_type, user->op_rhs_vol,
                                    qf_applySur, qf_setupSur,
-                                   height, numP_Sur, numQ_Sur, qdatasizeSur, NqptsSur, basisxSur,
-                                   basisqSur, &user->op_rhs); CHKERRQ(ierr);
+                                   height, numP_Sur, numQ_Sur, qdatasizeSur,
+                                   NqptsSur, basisxSur, basisqSur,
+                                   &user->op_rhs); CHKERRQ(ierr);
   if (implicit)
-    ierr = CreateOperatorForDomain(ceed, dm, &bc, wind_type, user->op_ifunction_vol,
+    ierr = CreateOperatorForDomain(ceed, dm, &bc, wind_type,
+                                   user->op_ifunction_vol,
                                    qf_applySur, qf_setupSur,
-                                   height, numP_Sur, numQ_Sur, qdatasizeSur, NqptsSur, basisxSur,
-                                   basisqSur, &user->op_ifunction); CHKERRQ(ierr);
+                                   height, numP_Sur, numQ_Sur, qdatasizeSur,
+                                   NqptsSur, basisxSur, basisqSur,
+                                   &user->op_ifunction); CHKERRQ(ierr);
   // Set up contex for QFunctions
   CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
   CeedScalar ctxNS[8] = {lambda, mu, k, cv, cp, g, Rd};
