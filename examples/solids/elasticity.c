@@ -33,7 +33,7 @@
 //
 // Sample meshes can be found at https://github.com/jeremylt/ceedSampleMeshes
 //
-//TESTARGS -ceed {ceed_resource} -test -degree 2 -nu 0.3 -E 1 -dm_plex_box_faces 3,3,3
+//TESTARGS -ceed {ceed_resource} -test -degree 3 -nu 0.3 -E 1 -dm_plex_box_faces 3,3,3
 
 /// @file
 /// CEED elasticity example using PETSc with DMPlex
