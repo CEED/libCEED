@@ -288,14 +288,23 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
   if (domainLabel) {
     IS domainIS;
     ierr = DMLabelGetStratumIS(domainLabel, value, &domainIS); CHKERRQ(ierr);
-    ierr = ISIntersect(depthIS, domainIS, &iterIS); CHKERRQ(ierr);
-    ierr = ISDestroy(&domainIS); CHKERRQ(ierr);
+    if (domainIS) { // domainIS is non-empty
+      ierr = ISIntersect(depthIS, domainIS, &iterIS); CHKERRQ(ierr);
+      ierr = ISDestroy(&domainIS); CHKERRQ(ierr);
+    } else { // domainIS is NULL (empty)
+      iterIS = NULL;
+    }
     ierr = ISDestroy(&depthIS); CHKERRQ(ierr);
   } else {
     iterIS = depthIS;
   }
-  ierr = ISGetLocalSize(iterIS, &Nelem); CHKERRQ(ierr);
-  ierr = ISGetIndices(iterIS, &iterIndices); CHKERRQ(ierr);
+  if (iterIS) {
+    ierr = ISGetLocalSize(iterIS, &Nelem); CHKERRQ(ierr);
+    ierr = ISGetIndices(iterIS, &iterIndices); CHKERRQ(ierr);
+  } else {
+    Nelem = 0;
+    iterIndices = NULL;
+  }
   ierr = PetscMalloc1(Nelem*PetscPowInt(P, dim), &erestrict); CHKERRQ(ierr);
   for (p=0,eoffset=0; p<Nelem; p++) {
     PetscInt c = iterIndices[p];
@@ -356,7 +365,9 @@ static PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
     SETERRQ3(PETSC_COMM_SELF, PETSC_ERR_LIB,
              "ElemRestriction of size (%D,%D) initialized %D nodes", Nelem,
              PetscPowInt(P, dim),eoffset);
-  ierr = ISRestoreIndices(iterIS, &iterIndices); CHKERRQ(ierr);
+  if (iterIS) {
+    ierr = ISRestoreIndices(iterIS, &iterIndices); CHKERRQ(ierr);
+  }
   ierr = ISDestroy(&iterIS); CHKERRQ(ierr);
 
   ierr = DMGetLocalVector(dm, &Uloc); CHKERRQ(ierr);
