@@ -778,7 +778,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   string qFunction(qf_data->qFunctionSource);
   string qFunctionName(qf_data->qFunctionName);
   string oper;
-  oper = "kernel_" + qFunctionName;
+  oper = "CeedKernel_Cuda_gen_" + qFunctionName;
 
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
   code << "\n#define CeedPragmaSIMD\n";
