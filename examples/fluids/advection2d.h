@@ -74,24 +74,48 @@ struct SurfaceContext_ {
 
 // *****************************************************************************
 // This QFunction sets the the initial conditions and boundary conditions
+//   for two test cases: ROTATION and TRANSLATION
 //
-// Initial Conditions:
-//   Mass Density:
-//     Constant mass density of 1.0
-//   Momentum Density:
-//     Rotational field in x,y
-//   Energy Density:
-//     Maximum of 1. x0 decreasing linearly to 0. as radial distance increases
-//       to (1.-r/rc), then 0. everywhere else
+// -- ROTATION (default)
+//      Initial Conditions:
+//        Mass Density:
+//          Constant mass density of 1.0
+//        Momentum Density:
+//          Rotational field in x,y
+//        Energy Density:
+//          Maximum of 1. x0 decreasing linearly to 0. as radial distance 
+//            increases to (1.-r/rc), then 0. everywhere else
+//     
+//      Boundary Conditions:
+//        Mass Density:
+//          0.0 flux
+//        Momentum Density:
+//          0.0
+//        Energy Density:
+//          0.0 flux
 //
-//  Boundary Conditions:
-//    Mass Density:
-//      0.0 flux
-//    Momentum Density:
-//      0.0
-//    Energy Density:
-//      0.0 flux
-//
+// -- TRANSLATION
+//      Initial Conditions:
+//        Mass Density:
+//          Constant mass density of 1.0
+//        Momentum Density:
+//           Constant rectilinear field in x,y
+//        Energy Density:
+//          Maximum of 1. x0 decreasing linearly to 0. as radial distance
+//            increases to (1.-r/rc), then 0. everywhere else
+//     
+//      Boundary Conditions:
+//        Mass Density:
+//          0.0 flux
+//        Momentum Density:
+//          0.0
+//        Energy Density:
+//          Inflow BCs:  
+//            E = 1E6 is applied weakly in QFunction "Advection2d_Sur"
+//          Outflow BCs: 
+//            The current values of E are applied weakly in 
+//              QFunction "Advection2d_Sur"
+//       
 // *****************************************************************************
 
 // *****************************************************************************
@@ -412,8 +436,7 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
 //
 //  Outflow BCs:
 //    The validity of the weak form of the governing equations is extended
-//    to the outflow and the values obtained from the previous iteration
-//    are applied.
+//    to the outflow and the current values of E are applied.
 //
 //  Inflow BCs:
 //    A prescribed Total Energy (E_wind) is applied weakly.

@@ -26,7 +26,7 @@
 
 // *****************************************************************************
 // This QFunction sets up the geometric factor required for integration when
-//   reference coordinates is 2D and the physical coordinates is 3D
+//   reference coordinates are in 2D and the physical coordinates are in 3D
 //
 // Reference (parent) 2D coordinates: X
 // Physical (current) 3D coordinates: x
@@ -96,7 +96,7 @@ CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q,
 
 // *****************************************************************************
 // This QFunction sets up the geometric factor required for integration when
-//   reference coordinates is 1D and the physical coordinates is 2D
+//   reference coordinates are in 1D and the physical coordinates are in 2D
 //
 // Reference (parent) 1D coordinates: X
 // Physical (current) 2D coordinates: x
