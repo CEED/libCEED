@@ -1020,7 +1020,10 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         bool backendstrides;
         ierr = CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides);
         CeedChk(ierr);
-        CeedInt strides[3] = {1, elemsize, elemsize*ncomp};
+        CeedInt nelem;
+        ierr = CeedElemRestrictionGetNumElements(Erestrict, &nelem);
+        CeedChk(ierr);
+        CeedInt strides[3] = {1, elemsize*nelem, elemsize};
         if (!backendstrides) {
           ierr = CeedElemRestrictionGetStrides(Erestrict, &strides);
           CeedChk(ierr);
@@ -1107,6 +1110,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "  CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"];\n";
 
         bool isStrided;
+        ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize); CeedChk(ierr);
         ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChk(ierr);
         if (!isStrided) {
           ierr = CeedElemRestrictionGetLVectorSize(Erestrict, &lsize);
@@ -1122,7 +1126,10 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
           bool backendstrides;
           ierr = CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides);
           CeedChk(ierr);
-          CeedInt strides[3] = {1, elemsize, elemsize*ncomp};
+          CeedInt nelem;
+          ierr = CeedElemRestrictionGetNumElements(Erestrict, &nelem);
+          CeedChk(ierr);
+          CeedInt strides[3] = {1, elemsize*nelem, elemsize};
           if (!backendstrides) {
             ierr = CeedElemRestrictionGetStrides(Erestrict, &strides);
             CeedChk(ierr);
@@ -1299,7 +1306,10 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       bool backendstrides;
       ierr = CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides);
       CeedChk(ierr);
-      CeedInt strides[3] = {1, elemsize, elemsize*ncomp};
+      CeedInt nelem;
+      ierr = CeedElemRestrictionGetNumElements(Erestrict, &nelem);
+      CeedChk(ierr);
+      CeedInt strides[3] = {1, elemsize*nelem, elemsize};
       if (!backendstrides) {
         ierr = CeedElemRestrictionGetStrides(Erestrict, &strides);
         CeedChk(ierr);
