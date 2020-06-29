@@ -121,8 +121,8 @@ install:
         && make -C libxsmm -j2
         && export XSMM_DIR=$PWD/libxsmm;
     fi
-# MFEM
-  - git clone --depth 1 https://github.com/mfem/mfem.git
+# MFEM v4.1
+  - git clone --depth 1 --branch v4.1 https://github.com/mfem/mfem.git
         && make -C mfem -j2 serial CXXFLAGS="-O -std=c++11" MFEM_USE_SIMD=${MFEM_USE_SIMD}
         && export MFEM_DIR=$PWD/mfem
 # Nek5k (pinned before Nek partially updated MPI_Type_extent)
