@@ -1056,7 +1056,6 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Cuda *impl;
   ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
-  CeedOperatorDiag_Cuda *diag = impl->diag;
 
   // Assemble QFunction
   CeedVector assembledqf;
@@ -1071,7 +1070,8 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
   if (!impl->diag) {
     ierr = CeedOperatorAssembleDiagonalSetup_Cuda(op, pointBlock); CeedChk(ierr);
   }
-  diag = impl->diag;
+  CeedOperatorDiag_Cuda *diag = impl->diag;
+  assert(diag != NULL);
 
   // Restriction
   if (pointBlock && !diag->pbdiagrstr) {

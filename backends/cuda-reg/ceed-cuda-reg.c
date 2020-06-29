@@ -46,6 +46,7 @@ static int CeedInit_Cuda_reg(const char *resource, Ceed ceed) {
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
                                 "ElemRestrictionCreateBlocked",
                                 CeedElemRestrictionCreateBlocked_Cuda_reg);
+  CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
                                 CeedDestroy_Cuda); CeedChk(ierr);
   CeedChk(ierr);
