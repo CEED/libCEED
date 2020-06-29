@@ -170,7 +170,7 @@ static inline int Exact_Advection(CeedInt dim, CeedScalar time,
     break;
   }
 
-  CeedInt continuityBubble = -1;
+  CeedInt continuityBubble = 0;
   // 0 is original sphere, switch to -1 to challenge solver with sharp gradients in back half of bubble
   switch (continuityBubble) {
   // original continuous, smooth shape
