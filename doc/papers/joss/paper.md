@@ -118,10 +118,13 @@ GPU implementations are available via pure CUDA [@CUDAwebsite] as well as the OC
 
 # Performance Benchmarks
 
-The Center for Efficient Exascale Discretizations (CEED), part of the Exascale Computing Project (ECP) uses Benchmark Problems (BPs) to test and compare the performance of high-order finite element implementations [@Fischer2020scalability]. In Fig. \ref{fig:Skylakeselfxsmm}, we analyze the performance of libCEED's LIBXSMM backend on a Poisson's problem. We measure performance over 20 iterations of unpreconditioned Conjugate Gradient (CG) and plot throughput, versus execution time per iteration, for different values of the polynomial degree $p$.
+The Center for Efficient Exascale Discretizations (CEED), part of the Exascale Computing Project (ECP) uses Benchmark Problems (BPs) to test and compare the performance of high-order finite element implementations [@Fischer2020scalability]. We present here the performance of libCEED's LIBXSMM blocked backend on a 2x AMD EPYC 7452 (32-core) CPU 2.35GHz. In Fig. \ref{fig:NoetherxsmmBP1}, we measure performance over 20 iterations of unpreconditioned Conjugate Gradient (CG) for the mass operator and plot throughput, for different values of the polynomial degree $p$. In Fig. \ref{fig:NoetherxsmmBP3}, we show the measured performance to solve a Poisson's problem. For both problems the throughput is plotted versus execution time per iteration (on the left panel) and Finite Element points per compute node (on the right panel). For these tests, we use a 3D domain discretized with unstructured meshes. 
 
-![\texttt{xsmm/serial} backend on a Skylake
-(2x Intel Xeon Platinum 8180M CPU 2.50GHz).\label{fig:Skylakeselfxsmm}](img/plot_libCEED_PETScBP3_cpuselfxsmmserial_N001_pn56_time.pdf)
+![\texttt{xsmm/blocked} backend on 
+a 2x AMD EPYC 7452 (32-core) CPU 2.35GHz.\label{fig:NoetherxsmmBP1}](img/BP1.pdf)
+
+![\texttt{xsmm/blocked} backend on 
+a 2x AMD EPYC 7452 (32-core) CPU 2.35GHz.\label{fig:NoetherxsmmBP3}](img/BP3.pdf)
 
 # Applications
 
