@@ -619,8 +619,8 @@ static int CeedOperatorLinearAssembleQFunction_Ref(CeedOperator op,
     CeedChk(ierr);
     // Check if active output
     if (vec == CEED_VECTOR_ACTIVE) {
-      CeedVectorSetArray(impl->qvecsout[out], CEED_MEM_HOST, CEED_COPY_VALUES,
-                         NULL); CeedChk(ierr);
+      CeedVectorTakeArray(impl->qvecsout[out], CEED_MEM_HOST, NULL);
+      CeedChk(ierr);
     }
   }
 
